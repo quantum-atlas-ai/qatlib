@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SourceWord
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SourceWord
+
+@[expose] public section
 
 /-! # Initial-plane coordinate derivatives of the actual smooth transport -/
 set_option autoImplicit false

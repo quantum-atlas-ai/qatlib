@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.StabilizerSim04.MainResults.Basic
+module
+
+public import Qatlib.Papers.StabilizerSim04.MainResults.Basic
+
+@[expose] public section
 
 /-!
 # Standard Pauli generators and the all-zero stabilizer
@@ -196,7 +200,7 @@ theorem exists_word_gen (n : ℕ) :
               have hlist : letterList a (w a) = [XAt a, ZAt a] := by
                 simp [letterList, hwa]
               rw [hlist] at hg
-              simp only [List.mem_cons, List.mem_singleton, List.not_mem_nil,
+              simp only [List.mem_cons, List.not_mem_nil,
                 or_false] at hg
               rcases hg with rfl | rfl
               · exact XAt_mem_standardGenList a
@@ -271,7 +275,7 @@ theorem fixes_ketZero_data {n : ℕ} {p : PauliElem n}
     rw [op_apply] at hh
     dsimp only [ZeroStr] at hh
     rw [Qatlib.Foundations.PureStateMath.ket_apply,
-      if_pos rfl] at hh
+      ite_eq_left rfl] at hh
     exact hh
   have hprod : (∏ k, P1 (p.word k) false false) ≠ 0 := by
     intro hzero

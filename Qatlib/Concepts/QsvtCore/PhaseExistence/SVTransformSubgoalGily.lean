@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.PhaseExistence.SVTransformSubgoalStat
-import Qatlib.Concepts.SignalPrimitive.LCUConsumers.SingularValueTransformation
+module
+
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.SVTransformSubgoalStat
+public import Qatlib.Concepts.SignalPrimitive.LCUConsumers.SingularValueTransformation
+
+@[expose] public section
 
 /-!
 # A cubic singular value transformation identity

@@ -4,82 +4,86 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Defs
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Algebra.CharP.Defs
-import Mathlib.Algebra.CharZero.Defs
-import Mathlib.Algebra.Field.Defs
-import Mathlib.Algebra.Group.Basic
-import Mathlib.Algebra.Group.Defs
-import Mathlib.Algebra.Group.DivInvMonoid
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.Group.Nat.Defs
-import Mathlib.Algebra.Group.Semigroup
-import Mathlib.Algebra.GroupWithZero.Basic
-import Mathlib.Algebra.GroupWithZero.Defs
-import Mathlib.Algebra.GroupWithZero.Nat
-import Mathlib.Algebra.GroupWithZero.Units.Basic
-import Mathlib.Algebra.Notation.Pi.Defs
-import Mathlib.Algebra.Order.Archimedean.Real.Basic
-import Mathlib.Algebra.Order.BigOperators.Group.Finset
-import Mathlib.Algebra.Order.Chebyshev
-import Mathlib.Algebra.Order.Floor.Defs
-import Mathlib.Algebra.Order.Group.Defs
-import Mathlib.Algebra.Order.GroupWithZero.Basic
-import Mathlib.Algebra.Order.GroupWithZero.Defs
-import Mathlib.Algebra.Order.Monoid.Defs
-import Mathlib.Algebra.Order.Monoid.Unbundled.Basic
-import Mathlib.Algebra.Order.Monoid.Unbundled.Defs
-import Mathlib.Algebra.Order.Ring.Defs
-import Mathlib.Algebra.Order.Ring.Unbundled.Basic
-import Mathlib.Algebra.Order.Star.Basic
-import Mathlib.Algebra.Order.Star.Real
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Algebra.Ring.Nat
-import Mathlib.Basic.Real.Basic
-import Mathlib.Basic.Real.Star
-import Mathlib.Basic.SetLike.Basic
-import Mathlib.Data.Finset.Basic
-import Mathlib.Data.Finset.Card
-import Mathlib.Data.Finset.Defs
-import Mathlib.Data.Finset.Disjoint
-import Mathlib.Data.Finset.Empty
-import Mathlib.Data.Finset.Filter
-import Mathlib.Data.Finset.Lattice.Basic
-import Mathlib.Data.Fintype.Basic
-import Mathlib.Data.Fintype.BigOperators
-import Mathlib.Data.Fintype.Card
-import Mathlib.Data.Fintype.Defs
-import Mathlib.Data.Fintype.Pi
-import Mathlib.Data.Fintype.Prod
-import Mathlib.Data.Int.Cast.Defs
-import Mathlib.Data.Nat.Cast.Basic
-import Mathlib.Data.Nat.Cast.Defs
-import Mathlib.Data.Nat.Cast.Order.Basic
-import Mathlib.Data.Nat.Choose.Basic
-import Mathlib.Data.Nat.Init
-import Mathlib.Data.Set.Defs
-import Mathlib.Data.Set.Operations
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Data.ZMod.Defs
-import Mathlib.Logic.Function.Defs
-import Mathlib.Order.Defs.Lattice
-import Mathlib.Order.Defs.LinearOrder
-import Mathlib.Order.Defs.PartialOrder
-import Mathlib.Order.Disjoint
-import Mathlib.Order.Lattice
-import Mathlib.Tactic
-import Mathlib.Tactic.CancelDenoms.Core
-import Mathlib.Tactic.Linarith.Lemmas
-import Mathlib.Tactic.Linarith.Preprocessing
-import Mathlib.Tactic.NormNum.Basic
-import Mathlib.Tactic.NormNum.Ineq
-import Mathlib.Tactic.NormNum.Inv
-import Mathlib.Tactic.NormNum.Result
-import Mathlib.Tactic.Positivity.Core
-import Mathlib.Tactic.Ring.Basic
-import Mathlib.Tactic.Ring.Common
+module
+
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Defs
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Algebra.CharP.Defs
+public import Mathlib.Algebra.CharZero.Defs
+public import Mathlib.Algebra.Field.Defs
+public import Mathlib.Algebra.Group.Basic
+public import Mathlib.Algebra.Group.Defs
+public import Mathlib.Algebra.Group.DivInvMonoid
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.Group.Nat.Defs
+public import Mathlib.Algebra.Group.Semigroup
+public import Mathlib.Algebra.GroupWithZero.Basic
+public import Mathlib.Algebra.GroupWithZero.Defs
+public import Mathlib.Algebra.GroupWithZero.Nat
+public import Mathlib.Algebra.GroupWithZero.Units.Basic
+public import Mathlib.Algebra.Notation.Pi.Defs
+public import Mathlib.Algebra.Order.Archimedean.Real.Basic
+public import Mathlib.Algebra.Order.BigOperators.Group.Finset
+public import Mathlib.Algebra.Order.Chebyshev
+public import Mathlib.Algebra.Order.Floor.Defs
+public import Mathlib.Algebra.Order.Group.Defs
+public import Mathlib.Algebra.Order.GroupWithZero.Basic
+public import Mathlib.Algebra.Order.GroupWithZero.Defs
+public import Mathlib.Algebra.Order.Monoid.Defs
+public import Mathlib.Algebra.Order.Monoid.Unbundled.Basic
+public import Mathlib.Algebra.Order.Monoid.Unbundled.Defs
+public import Mathlib.Algebra.Order.Ring.Defs
+public import Mathlib.Algebra.Order.Ring.Unbundled.Basic
+public import Mathlib.Algebra.Order.Star.Basic
+public import Mathlib.Algebra.Order.Star.Real
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Algebra.Ring.Nat
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Basic.Real.Star
+public import Mathlib.Basic.SetLike.Basic
+public import Mathlib.Data.Finset.Basic
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Data.Finset.Defs
+public import Mathlib.Data.Finset.Disjoint
+public import Mathlib.Data.Finset.Empty
+public import Mathlib.Data.Finset.Filter
+public import Mathlib.Data.Finset.Lattice.Basic
+public import Mathlib.Data.Fintype.Basic
+public import Mathlib.Data.Fintype.BigOperators
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Data.Fintype.Defs
+public import Mathlib.Data.Fintype.Pi
+public import Mathlib.Data.Fintype.Prod
+public import Mathlib.Data.Int.Cast.Defs
+public import Mathlib.Data.Nat.Cast.Basic
+public import Mathlib.Data.Nat.Cast.Defs
+public import Mathlib.Data.Nat.Cast.Order.Basic
+public import Mathlib.Data.Nat.Choose.Basic
+public import Mathlib.Data.Nat.Init
+public import Mathlib.Data.Set.Defs
+public import Mathlib.Data.Set.Operations
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Data.ZMod.Defs
+public import Mathlib.Logic.Function.Defs
+public import Mathlib.Order.Defs.Lattice
+public import Mathlib.Order.Defs.LinearOrder
+public import Mathlib.Order.Defs.PartialOrder
+public import Mathlib.Order.Disjoint
+public import Mathlib.Order.Lattice
+public import Mathlib.Tactic
+public import Mathlib.Tactic.CancelDenoms.Core
+public import Mathlib.Tactic.Linarith.Lemmas
+public import Mathlib.Tactic.Linarith.Preprocessing
+public import Mathlib.Tactic.NormNum.Basic
+public import Mathlib.Tactic.NormNum.Ineq
+public import Mathlib.Tactic.NormNum.Inv
+public import Mathlib.Tactic.NormNum.Result
+public import Mathlib.Tactic.Positivity.Core
+public import Mathlib.Tactic.Ring.Basic
+public import Mathlib.Tactic.Ring.Common
+
+@[expose] public section
 
 /-!
 # Matrix sum instances and a concentration criterion
@@ -141,12 +145,12 @@ lemma matVec_zero (v : Fin r → ZMod p) : matVec p r (0 : ZMod p) v = 0 := by
   apply Finset.sum_eq_zero
   intro j _
   by_cases h : (i : ℕ) ≤ (j : ℕ)
-  · rw [matEntry, if_pos h, binomMod]
+  · rw [matEntry, ite_eq_left h, binomMod]
     have hl : 0 < (j : ℕ) - (i : ℕ) + 1 := by omega
     have hz : (0 : ZMod p).val = 0 := ZMod.val_zero
     rw [hz, Nat.choose_eq_zero_of_lt hl]
     simp
-  · rw [matEntry, if_neg h]
+  · rw [matEntry, ite_eq_right h]
     simp
 
 /-- Summing the cardinalities of the solution sets over all targets gives the number of

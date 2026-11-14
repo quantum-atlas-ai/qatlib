@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GramQueryCore.FilteredCert.FilteredGamma2
-import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryMagnitude
-import Qatlib.Concepts.SpectralFilter.PhaseReadout.CountedPhaseReflection
+module
+
+public import Qatlib.Concepts.GramQueryCore.FilteredCert.FilteredGamma2
+public import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryMagnitude
+public import Qatlib.Concepts.SpectralFilter.PhaseReadout.CountedPhaseReflection
+
+@[expose] public section
 
 /-!
 # Basic data for Boolean witness conversion

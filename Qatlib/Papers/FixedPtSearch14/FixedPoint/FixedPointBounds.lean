@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.FixedPtSearch14.FixedPoint.FixedPointDefs
+module
+
+public import Qatlib.Papers.FixedPtSearch14.FixedPoint.FixedPointDefs
+
+@[expose] public section
 
 /-!
 # Filter stability and consumer bounds
@@ -116,7 +120,7 @@ theorem clause20_actual_well_mass (d θ : ℝ) (hd : 0 < d) :
         Collapse (ApplyGate (sinEnvelopeFlagRotation d θ) (Ket (0 : Fin 3)))
           sinEnvelopeWellEvent := by
     unfold ProjectiveBranch Collapse
-    simp only [if_true]
+    simp only [ite_true]
   rw [hcollapse, sum_normSq_collapse]
   have hcol : ApplyGate (sinEnvelopeFlagRotation d θ) (Ket (0 : Fin 3)) =
       sinEnvelopeHVector d θ := by
@@ -144,7 +148,7 @@ theorem clause20_actual_well_output (d θ : ℝ) (hd : 0 < d)
         (sinEnvelopeHVector d θ) =
       Collapse (sinEnvelopeHVector d θ) sinEnvelopeWellEvent := by
     unfold ProjectiveBranch Collapse
-    simp only [if_true]
+    simp only [ite_true]
   unfold ProjectiveConditionalState
   rw [hbranch]
   have hmass : MeasureProb (Collapse (sinEnvelopeHVector d θ) sinEnvelopeWellEvent)
@@ -160,12 +164,12 @@ theorem clause20_actual_well_output (d θ : ℝ) (hd : 0 < d)
       simp [sinEnvelopeHVector, sinEnvelopeWellFlag]]
     rw [Complex.norm_real, Real.norm_eq_abs, abs_of_nonneg hfn]
   unfold ConditionalState
-  rw [if_pos (by rw [hmass]; positivity)]
+  rw [ite_eq_left (by rw [hmass]; positivity)]
   have hcollapse2 (i : Fin 3) :
       Collapse (Collapse (sinEnvelopeHVector d θ) sinEnvelopeWellEvent) Finset.univ i =
         if i ∈ sinEnvelopeWellEvent then (sinEnvelopeHVector d θ) i else 0 := by
     rw [collapse_apply]
-    simp only [Finset.mem_univ, if_true]
+    simp only [Finset.mem_univ, ite_true]
     rw [collapse_apply]
   have hpost : PostMeasure (Collapse (sinEnvelopeHVector d θ) sinEnvelopeWellEvent)
       Finset.univ = Ket (1 : Fin 3) := by
@@ -180,7 +184,7 @@ theorem clause20_actual_well_output (d θ : ℝ) (hd : 0 < d)
       have hsqrt : Real.sqrt (sinEnvelopeFilterF d θ ^ 2) = sinEnvelopeFilterF d θ :=
         Real.sqrt_sq_eq_abs _ |>.trans (abs_of_nonneg hfn)
       have hfne : (sinEnvelopeFilterF d θ : ℂ) ≠ 0 := by simp [hf.ne']
-      simp only [hi, if_true]
+      simp only [hi, ite_true]
       rw [show (sinEnvelopeHVector d θ) sinEnvelopeWellFlag = (sinEnvelopeFilterF d θ : ℂ) by
         simp [sinEnvelopeHVector, sinEnvelopeWellFlag]]
       rw [hsqrt]
@@ -234,7 +238,7 @@ theorem clause20_reference_branch_norm (d θ : ℝ) (hd : 0 < d) :
 
 /-- At phase `2 * d`, the well mass is `1 / 4` and the ideal ill mass is zero. For every phase
 at least `2 * d`, the ideal well mass is `(d / θ') ^ 2`. -/
-theorem clause20_tight_well_parameters (d θ : ℝ) (hd : 0 < d) :
+theorem clause20_tight_well_parameters (d _θ : ℝ) (hd : 0 < d) :
     sinEnvelopeActualWellMass d (2 * d) hd = 1 / 4 ∧
     sinEnvelopeIdealIllMass d (2 * d) = 0 ∧
     (∀ θ', 2 * d ≤ θ' → sinEnvelopeIdealWellMass d θ' = (d / θ') ^ 2) := by
@@ -263,7 +267,7 @@ theorem clause20_executed_branch_error {d θ : ℝ} (E : SinEnvelopeFilterExecut
     simp only [SinEnvelopeFilterExecution.wellVector, sinEnvelopeActualWellVector, ApplyGate,
       Pi.sub_apply, collapse_apply]
     by_cases hi : i ∈ sinEnvelopeWellEvent
-    · simp only [hi, if_true]
+    · simp only [hi, ite_true]
       have hh := congrFun (Matrix.sub_mulVec (E.rotation) (sinEnvelopeFlagRotation d θ)
         (Ket (0 : Fin 3))) i
       simpa only [Pi.sub_apply] using! hh.symm
@@ -462,11 +466,12 @@ theorem clause21_caller_budgets (M r : ℕ) :
     rcases M with (_ | k)
     · simp only [Nat.zero_sub] at h1
       have h2 : 3 ≤ (2 * r + 1) * 3 := by
-        simpa using! (Nat.mul_le_mul_right 3 (by omega : (1 : ℕ) ≤ 2 * r + 1))
+        exact Nat.mul_le_mul_right 3 (by omega : (1 : ℕ) ≤ 2 * r + 1)
       omega
     · simp only [Nat.succ_sub_one] at h1
       have h2 : 5 * k + 3 ≤ (2 * r + 1) * (5 * k + 3) := by
-        simpa using! (Nat.mul_le_mul_right (5 * k + 3) (by omega : (1 : ℕ) ≤ 2 * r + 1))
+        simpa only [one_mul] using
+          (Nat.mul_le_mul_right (5 * k + 3) (by omega : (1 : ℕ) ≤ 2 * r + 1))
       omega
 
 /-- All three caller success gaps are positive. The HHL gap differs from the

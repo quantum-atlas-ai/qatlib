@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OverlapGapGoh26.GaussianModel.RawPath
+module
+
+public import Qatlib.Papers.OverlapGapGoh26.GaussianModel.RawPath
+
+@[expose] public section
 
 /-!
 # Smooth finite approximations of ground energies
@@ -143,6 +147,9 @@ def stateEnergy {r N : ℕ} (u : Fin N→ℝ) (x : Input r N) : ℝ :=
 /-- The energy density of a fixed spin vector is infinitely differentiable in the Gaussian
 input. -/
 theorem contDiff_stateEnergy {r N : ℕ} (u : Fin N→ℝ) : ContDiff ℝ (↑(⊤ : ℕ∞)) (stateEnergy (r:=r) u) := by
+  have hcoords : ContDiff ℝ (↑(⊤ : ℕ∞)) (fun x : Input r N => x.ofLp) :=
+    (PiLp.continuousLinearEquiv 2 ℝ
+      (fun _ : (Fin (r+1)→Fin N)⊕Fin N => ℝ)).contDiff
   change ContDiff ℝ (↑(⊤ : ℕ∞)) (fun x : Input r N =>
     (∑ k : Fin (r+1)→Fin N,Real.sqrt (((N:ℝ)^r)⁻¹)*x (Sum.inl k)*(∏ a,u (k a)))/(N:ℝ))
   fun_prop

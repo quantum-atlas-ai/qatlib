@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteThermal.FiniteThermalNativeInverse
-import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteThermal.FiniteThermalComparator
-import Mathlib.Order.Interval.Finset.Fin
+module
+
+public import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteThermal.FiniteThermalNativeInverse
+public import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteThermal.FiniteThermalComparator
+public import Mathlib.Order.Interval.Finset.Fin
+
+@[expose] public section
 
 /-!
 # Finite Hadamard words and uniform registers
@@ -212,7 +216,8 @@ theorem thermalUniformBits_interval_sum (b lo hi : ℕ) (horder : lo≤hi) (hhi 
   have he (v : ℕ) : (if lo≤v ∧ v<hi then (1:ℂ) else 0)=
       (if v<hi then 1 else 0)-(if v<lo then 1 else 0) := by
     by_cases ha : v<lo <;> by_cases hb : v<hi
-    all_goals simp [ha,hb] <;> omega
+    all_goals simp [ha,hb]
+    all_goals omega
   simp_rw [he]
   rw [Finset.sum_sub_distrib,thermalUniformBits_less_complex b hi hhi,
     thermalUniformBits_less_complex b lo (horder.trans hhi),Nat.cast_sub horder]
@@ -226,21 +231,21 @@ theorem thermalUniformHMatrix_zero_column {n : ℕ} (cs : List (Fin n)) (hn : cs
       if ∀ w : Fin n,w∉cs → x w=y w then ((Real.sqrt 2:ℂ)⁻¹)^cs.length else 0 := by
   rw [thermalUniformHMatrix,thermalLocalProduct_apply]
   by_cases ho : ∀ w : Fin n,w∉cs → x w=y w
-  · rw [if_pos ho]
+  · rw [ite_eq_left ho]
     have hf (w : Fin n) : (if w∈cs then Qatlib.Foundations.PureStateMath.Hadamard else (1:Matrix Bool Bool ℂ)) (x w) (y w)=
         if w∈cs then (Real.sqrt 2:ℂ)⁻¹ else 1 := by
       by_cases hw : w∈cs
-      · rw [if_pos hw,if_pos hw,hy w hw,Qatlib.Foundations.PureStateMath.hadamard_apply_false]
-      · rw [if_neg hw,if_neg hw,Matrix.one_apply,if_pos (ho w hw)]
+      · rw [ite_eq_left hw,ite_eq_left hw,hy w hw,Qatlib.Foundations.PureStateMath.hadamard_apply_false]
+      · rw [ite_eq_right hw,ite_eq_right hw,Matrix.one_apply,ite_eq_left (ho w hw)]
     simp_rw [hf]
     rw [← Finset.prod_filter]
     have hs : (Finset.univ.filter (fun w : Fin n => w∈cs))=cs.toFinset := by ext w;simp
     rw [hs,Finset.prod_const,List.toFinset_card_of_nodup hn]
-  · rw [if_neg ho]
+  · rw [ite_eq_right ho]
     obtain ⟨w,hwn,hxy⟩ : ∃ w : Fin n,w∉cs ∧ x w≠y w := by
       simpa only [not_forall,exists_prop] using ho
     apply Finset.prod_eq_zero (Finset.mem_univ w)
-    rw [if_neg hwn,Matrix.one_apply,if_neg hxy]
+    rw [ite_eq_right hwn,Matrix.one_apply,ite_eq_right hxy]
 
 /-- An entry of the masked Hadamard matrix vanishes if its two basis labels differ on a wire
 outside the mask. -/
@@ -250,7 +255,7 @@ theorem thermalUniformHMatrix_off_support {n : ℕ} (cs : List (Fin n)) (x y : Q
   obtain ⟨w,hwn,hxy⟩ : ∃ w : Fin n,w∉cs ∧ x w≠y w := by
     simpa only [not_forall,exists_prop] using h
   apply Finset.prod_eq_zero (Finset.mem_univ w)
-  rw [if_neg hwn,Matrix.one_apply,if_neg hxy]
+  rw [ite_eq_right hwn,Matrix.one_apply,ite_eq_right hxy]
 
 /-- The diagonal projector onto basis states whose wires in `ws` are all zero. -/
 def thermalCleanProjector {n : ℕ} (ws : List (Fin n)) : Matrix (Qatlib.Foundations.PureStateMath.Reg n) (Qatlib.Foundations.PureStateMath.Reg n) ℂ :=

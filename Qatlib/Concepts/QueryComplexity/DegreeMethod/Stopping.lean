@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.StoppingCore.BranchCostCore.StoppingDefs
-import Qatlib.Concepts.MixedInstrument.ClockBridge.StoppingJoint
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.StoppingReference
-import Qatlib.Concepts.StoppingCore.BranchCostCore.BranchCostExecution
-import Qatlib.Concepts.FairRandomBits.GeometricRetry
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNative
+module
+
+public import Qatlib.Concepts.StoppingCore.BranchCostCore.StoppingDefs
+public import Qatlib.Concepts.MixedInstrument.ClockBridge.StoppingJoint
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.StoppingReference
+public import Qatlib.Concepts.StoppingCore.BranchCostCore.BranchCostExecution
+public import Qatlib.Concepts.FairRandomBits.GeometricRetry
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNative
+
+@[expose] public section
 
 /-!
 # Stopping interfaces and fair-bit costs

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.Reflections.KernelWitnessCorrectedStat
-import Qatlib.Concepts.QueryComplexity.Reflections.WitnessLaws
+module
+
+public import Qatlib.Concepts.QueryComplexity.Reflections.KernelWitnessCorrectedStat
+public import Qatlib.Concepts.QueryComplexity.Reflections.WitnessLaws
+
+@[expose] public section
 
 /-!
 # Corrected nonzero kernel witnesses

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PauliClifford.PauliAlgebra.PauliCliffordLawsProofs
-import Qatlib.Foundations.MatrixGeometry.LcuFrame.Moments
+module
+
+public import Qatlib.Concepts.PauliClifford.PauliAlgebra.PauliCliffordLawsProofs
+public import Qatlib.Foundations.MatrixGeometry.LcuFrame.Moments
+
+@[expose] public section
 
 /-!
 # Pauli expectations in walk eigenstates

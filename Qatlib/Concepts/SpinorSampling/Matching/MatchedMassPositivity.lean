@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpinorSampling.Matching.MatchedEventSymmetry
-import Qatlib.Concepts.SpinorSampling.Matching.MatchedFiberConstruction
+module
+
+public import Qatlib.Concepts.SpinorSampling.Matching.MatchedEventSymmetry
+public import Qatlib.Concepts.SpinorSampling.Matching.MatchedFiberConstruction
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -30,8 +34,10 @@ open scoped BigOperators
 
 variable {S : Type} [Fintype S] [DecidableEq S]
 
+omit [DecidableEq S] in
+
 /-- Complete original `pairAddressMass_pos` guarantee for `MatchedMassPositivity`; all source hypotheses and output obligations are retained. -/
-theorem pairAddressMass_pos [Nonempty S]
+theorem pairAddressMass_pos {S : Type} [_scopeInst0 : Fintype S] [_scopeInst1 : DecidableEq S] [Nonempty S]
     {n m : ℕ} (z : (Fin n → S) × (Fin m → S)) : 0 < pairAddressMass z := by
   unfold pairAddressMass
   have hJ : 0 < (cohortLaw (uniformLaw S) n).prob z.1 := by

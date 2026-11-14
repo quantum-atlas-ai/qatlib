@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SupervisedML13.MainResults.SourceClusterAssignment
-import Qatlib.Papers.SupervisedML13.MainResults.SourceQuantumLloyd
-import Qatlib.Papers.SupervisedML13.MainResults.SourceAdiabaticClustering
+module
+
+public import Qatlib.Papers.SupervisedML13.MainResults.SourceClusterAssignment
+public import Qatlib.Papers.SupervisedML13.MainResults.SourceQuantumLloyd
+public import Qatlib.Papers.SupervisedML13.MainResults.SourceAdiabaticClustering
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Calculus.ContDiff.Basic
-import Mathlib.Analysis.Calculus.Deriv.Basic
-import Mathlib.MeasureTheory.Integral.Bochner.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Qatlib.Concepts.MixedFidelity.FidelityMetric.MixedFidelity
+module
+
+public import Mathlib.Analysis.Calculus.ContDiff.Basic
+public import Mathlib.Analysis.Calculus.Deriv.Basic
+public import Mathlib.MeasureTheory.Integral.Bochner.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Qatlib.Concepts.MixedFidelity.FidelityMetric.MixedFidelity
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

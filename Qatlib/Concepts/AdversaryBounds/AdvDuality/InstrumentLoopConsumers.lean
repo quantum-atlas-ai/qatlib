@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.InstrumentLoopBudget
-import Qatlib.Concepts.PauliClifford.ExactRank.MeasuredPauliShadows
-import Qatlib.Concepts.QuditTeleport.TeleportCore.BellReferenceProtocol
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.InstrumentLoopBudget
+public import Qatlib.Concepts.PauliClifford.ExactRank.MeasuredPauliShadows
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.BellReferenceProtocol
+
+@[expose] public section
 
 /-!
 # A Fair Flip Instrument Loop
@@ -67,21 +71,21 @@ noncomputable def fairH : Operator 2 := pauliBasisMatrix 0
 
 /-- The zero flag projector is idempotent. -/
 private theorem fairFlagZero_mul_self : fairFlagZero * fairFlagZero = fairFlagZero := by
-  ext a b <;> fin_cases a <;> fin_cases b <;>
+  ext a b; fin_cases a <;> fin_cases b <;>
     simp [fairFlagZero, Matrix.mul_apply, Fin.sum_univ_two]
 
 /-- The one flag projector is idempotent. -/
 private theorem fairFlagOne_mul_self : fairFlagOne * fairFlagOne = fairFlagOne := by
-  ext a b <;> fin_cases a <;> fin_cases b <;>
+  ext a b; fin_cases a <;> fin_cases b <;>
     simp [fairFlagOne, Matrix.mul_apply, Fin.sum_univ_two]
 
 /-- The zero flag projector is self-adjoint. -/
 private theorem fairFlagZero_star : fairFlagZeroᴴ = fairFlagZero := by
-  ext a b <;> fin_cases a <;> fin_cases b <;> simp [fairFlagZero, Matrix.conjTranspose_apply]
+  ext a b; fin_cases a <;> fin_cases b <;> simp [fairFlagZero, Matrix.conjTranspose_apply]
 
 /-- The one flag projector is self-adjoint. -/
 private theorem fairFlagOne_star : fairFlagOneᴴ = fairFlagOne := by
-  ext a b <;> fin_cases a <;> fin_cases b <;> simp [fairFlagOne, Matrix.conjTranspose_apply]
+  ext a b; fin_cases a <;> fin_cases b <;> simp [fairFlagOne, Matrix.conjTranspose_apply]
 
 /-- The zero flag projector has trace one. -/
 private theorem trace_fairFlagZero : Matrix.trace fairFlagZero = 1 := by
@@ -93,12 +97,12 @@ private theorem trace_fairFlagOne : Matrix.trace fairFlagOne = 1 := by
 
 /-- The square of the Pauli-X operator is the identity. -/
 private theorem pauliX_mul_self : pauliX * pauliX = 1 := by
-  ext a b <;> fin_cases a <;> fin_cases b <;>
-    simp [pauliX, Matrix.mul_apply, Fin.sum_univ_two, Matrix.one_apply]
+  ext a b; fin_cases a <;> fin_cases b <;>
+    simp [pauliX, Matrix.mul_apply, Fin.sum_univ_two]
 
 /-- The Pauli-X operator is self-adjoint. -/
 private theorem pauliX_star : pauliXᴴ = pauliX := by
-  ext a b <;> fin_cases a <;> fin_cases b <;> simp [pauliX, Matrix.conjTranspose_apply]
+  ext a b; fin_cases a <;> fin_cases b <;> simp [pauliX, Matrix.conjTranspose_apply]
 
 /-- The Pauli-X operator belongs to the unitary group on a qubit. -/
 private theorem fairPauliX_unitary : pauliX ∈ Matrix.unitaryGroup (Fin 2) ℂ := by
@@ -107,8 +111,8 @@ private theorem fairPauliX_unitary : pauliX ∈ Matrix.unitaryGroup (Fin 2) ℂ 
 /-- Conjugating a qubit operator twice by Pauli X returns the original operator. -/
 private theorem pauliX_double_conj (Y : Operator 2) :
     pauliX * (pauliX * Y * pauliX) * pauliX = Y := by
-  ext a b <;> fin_cases a <;> fin_cases b <;>
-    simp only [pauliX, Matrix.mul_apply, Fin.sum_univ_two, Matrix.mulVec, dotProduct] <;>
+  ext a b; fin_cases a <;> fin_cases b <;>
+    simp only [pauliX, Matrix.mul_apply, Fin.sum_univ_two] <;>
     norm_num
 
 /-- Conjugation by Pauli X preserves the trace of every qubit operator. -/
@@ -118,33 +122,30 @@ private theorem trace_pauliX_conj (M : Operator 2) :
 
 /-- The flag Hadamard operator is self-adjoint. -/
 private theorem fairH_star : fairHᴴ = fairH := by
-  ext a b <;> fin_cases a <;> fin_cases b <;>
+  ext a b; fin_cases a <;> fin_cases b <;>
     simp only [fairH, pauliBasisMatrix_zero, Matrix.conjTranspose_apply, Matrix.smul_apply,
-      smul_eq_mul, Matrix.mul_apply, Fin.sum_univ_two, Matrix.mulVec, dotProduct] <;>
+      smul_eq_mul] <;>
     norm_num
 
 /-- Compute the zero flag projector multiplied on the right by the flag Hadamard operator. -/
 private theorem fZ_mul_H : fairFlagZero * fairH = ((Real.sqrt 2 : ℂ)⁻¹) • !![1, 1; 0, 0] := by
-  ext a b <;> fin_cases a <;> fin_cases b <;>
+  ext a b; fin_cases a <;> fin_cases b <;>
     simp only [fairFlagZero, fairH, pauliBasisMatrix_zero, Matrix.mul_apply, Fin.sum_univ_two,
-      Matrix.mulVec, dotProduct, Matrix.cons_val_zero, Matrix.cons_val_one, Matrix.head_cons,
       Matrix.smul_apply, smul_eq_mul] <;>
     norm_num
 
 /-- Compute the flag Hadamard operator multiplied on the right by the zero flag projector. -/
 private theorem hH_fZ : fairH * fairFlagZero = ((Real.sqrt 2 : ℂ)⁻¹) • !![1, 0; 1, 0] := by
-  ext a b <;> fin_cases a <;> fin_cases b <;>
+  ext a b; fin_cases a <;> fin_cases b <;>
     simp only [fairFlagZero, fairH, pauliBasisMatrix_zero, Matrix.mul_apply, Fin.sum_univ_two,
-      Matrix.mulVec, dotProduct, Matrix.cons_val_zero, Matrix.cons_val_one, Matrix.head_cons,
       Matrix.smul_apply, smul_eq_mul] <;>
     norm_num
 
 /-- The unnormalized zero-outcome flag matrix sandwiches the zero flag projector to itself. -/
 private theorem hAZ : (!![1, 1; 0, 0] : Matrix (Fin 2) (Fin 2) ℂ) * fairFlagZero
     * !![1, 0; 1, 0] = fairFlagZero := by
-  ext a b <;> fin_cases a <;> fin_cases b <;>
-    simp only [fairFlagZero, Matrix.mul_apply, Fin.sum_univ_two, Matrix.mulVec, dotProduct,
-      Matrix.cons_val_zero, Matrix.cons_val_one, Matrix.head_cons] <;>
+  ext a b; fin_cases a <;> fin_cases b <;>
+    simp only [fairFlagZero, Matrix.mul_apply, Fin.sum_univ_two] <;>
     norm_num
 
 /-- The zero-outcome Hadamard branch sends the zero flag projector to one half of that
@@ -157,17 +158,15 @@ private theorem fairFlagZero_sandwich :
 
 /-- Compute the one flag projector multiplied on the right by the flag Hadamard operator. -/
 private theorem fOne_mul_H : fairFlagOne * fairH = ((Real.sqrt 2 : ℂ)⁻¹) • !![0, 0; 1, -1] := by
-  ext a b <;> fin_cases a <;> fin_cases b <;>
+  ext a b; fin_cases a <;> fin_cases b <;>
     simp only [fairFlagOne, fairH, pauliBasisMatrix_zero, Matrix.mul_apply, Fin.sum_univ_two,
-      Matrix.mulVec, dotProduct, Matrix.cons_val_zero, Matrix.cons_val_one, Matrix.head_cons,
       Matrix.smul_apply, smul_eq_mul] <;>
     norm_num
 
 /-- Compute the flag Hadamard operator multiplied on the right by the one flag projector. -/
 private theorem hH_fOne : fairH * fairFlagOne = ((Real.sqrt 2 : ℂ)⁻¹) • !![0, 1; 0, -1] := by
-  ext a b <;> fin_cases a <;> fin_cases b <;>
+  ext a b; fin_cases a <;> fin_cases b <;>
     simp only [fairFlagOne, fairH, pauliBasisMatrix_zero, Matrix.mul_apply, Fin.sum_univ_two,
-      Matrix.mulVec, dotProduct, Matrix.cons_val_zero, Matrix.cons_val_one, Matrix.head_cons,
       Matrix.smul_apply, smul_eq_mul] <;>
     norm_num
 
@@ -175,9 +174,8 @@ private theorem hH_fOne : fairH * fairFlagOne = ((Real.sqrt 2 : ℂ)⁻¹) • !
 projector. -/
 private theorem hBZ : (!![0, 0; 1, -1] : Matrix (Fin 2) (Fin 2) ℂ) * fairFlagZero
     * !![0, 1; 0, -1] = fairFlagOne := by
-  ext a b <;> fin_cases a <;> fin_cases b <;>
-    simp only [fairFlagOne, fairFlagZero, Matrix.mul_apply, Fin.sum_univ_two, Matrix.mulVec,
-      dotProduct, Matrix.cons_val_zero, Matrix.cons_val_one, Matrix.head_cons] <;>
+  ext a b; fin_cases a <;> fin_cases b <;>
+    simp only [fairFlagOne, fairFlagZero, Matrix.mul_apply, Fin.sum_univ_two] <;>
     norm_num
 
 /-- The one-outcome Hadamard branch sends the zero flag projector to one half of the one flag
@@ -246,8 +244,8 @@ private theorem tensorGate_sub_left (A B V : Operator 2) :
 
 /-- The complement of the zero flag projector is the one flag projector. -/
 private theorem one_sub_fairFlagZero : (1 : Operator 2) - fairFlagZero = fairFlagOne := by
-  ext a b <;> fin_cases a <;> fin_cases b <;>
-    simp [fairFlagOne, fairFlagZero, Matrix.one_apply]
+  ext a b; fin_cases a <;> fin_cases b <;>
+    simp [fairFlagOne, fairFlagZero]
 
 /-- The complement of `TensorGate U 1` is the tensor product of `1 - U` with the identity. -/
 private theorem one_sub_tensorGate (U : Operator 2) :
@@ -283,7 +281,7 @@ private theorem traceLeft_smul_general {d : ℕ} [Fintype (Fin d)] (c : ℂ)
 private theorem relabelGate_sub_general {I J : Type*} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (e : I ≃ J) (A B : Matrix I I ℂ) :
     relabelGate e (A - B) = relabelGate e A - relabelGate e B := by
-  ext x y <;> simp [relabelGate, Matrix.reindex_apply, Matrix.submatrix_apply, Matrix.sub_apply]
+  ext x y; simp [relabelGate, Matrix.reindex_apply, Matrix.submatrix_apply, Matrix.sub_apply]
 
 /-- Relabeling matrix indices by an equivalence preserves the orthogonal projector property. -/
 private theorem isOrthogonalProjector_relabelGate {I J : Type*} [Fintype I] [DecidableEq I]
@@ -593,7 +591,9 @@ private noncomputable def fairFlipConjPow (n : ℕ) (Y : Operator 2) : Operator 
 conjugated by Pauli X exactly when `n` is odd. -/
 theorem fairContinue_eq (n : ℕ) (Y : Operator 2) :
     loopContinueMap fairFlipLoopInstrument n Y
-      = (((1/2:ℝ)^n : ℝ) : ℂ) • fairFlipConjPow n Y := by
+      = (((1/2:ℝ)^n : ℝ) : ℂ) • (if n % 2 = 0 then Y else pauliX * Y * pauliX) := by
+  change loopContinueMap fairFlipLoopInstrument n Y
+    = (((1/2:ℝ)^n : ℝ) : ℂ) • fairFlipConjPow n Y
   induction n generalizing Y with
   | zero => simp [fairFlipConjPow]
   | succ n ih =>
@@ -603,9 +603,9 @@ theorem fairContinue_eq (n : ℕ) (Y : Operator 2) :
       rw [loopContinueMap_succ_apply, ih, map_smul, fairFlip_branch_false, smul_smul, ← hc]
       by_cases hpar : n % 2 = 0
       · have h1 : ¬ (n + 1) % 2 = 0 := by omega
-        simp only [fairFlipConjPow, if_pos hpar, if_neg h1]
+        simp only [fairFlipConjPow, ite_eq_left hpar, ite_eq_right h1]
       · have h1 : (n + 1) % 2 = 0 := by omega
-        simp only [fairFlipConjPow, if_neg hpar, if_pos h1, pauliX_double_conj]
+        simp only [fairFlipConjPow, ite_eq_right hpar, ite_eq_left h1, pauliX_double_conj]
 
 /-- The fair flip output that halts after `n` continuations is one half of the output surviving
 those continuations. -/
@@ -633,9 +633,8 @@ private theorem fairFixed (X : Operator 2) :
     rw [fairTerminalCandidate, Matrix.mul_add, Matrix.add_mul, Matrix.mul_smul,
       Matrix.mul_smul, Matrix.smul_mul, Matrix.smul_mul, pauliX_double_conj]
   rw [fairFlip_branch_true, fairFlip_branch_false, hconj, fairTerminalCandidate]
-  ext a b <;> fin_cases a <;> fin_cases b <;>
-    simp [Matrix.smul_apply, smul_eq_mul, Matrix.add_apply, pauliX, Matrix.mul_apply,
-      Fin.sum_univ_two] <;>
+  ext a b; fin_cases a <;> fin_cases b <;>
+    simp [Matrix.smul_apply, smul_eq_mul, Matrix.add_apply, pauliX] <;>
     ring
 
 /-- The candidate terminal output decomposes into the first `n` halting outputs plus `n`
@@ -679,8 +678,7 @@ private def fairFlipIdx (a : Fin 2) : Fin 2 := if a = 0 then 1 else 0
 private theorem pauliX_conj_entry (M : Operator 2) (a b : Fin 2) :
     (pauliX * M * pauliX) a b = M (fairFlipIdx a) (fairFlipIdx b) := by
   fin_cases a <;> fin_cases b <;>
-    simp only [pauliX, Matrix.mul_apply, Fin.sum_univ_two, Matrix.mulVec, dotProduct,
-      Matrix.cons_val_zero, Matrix.cons_val_one, Matrix.head_cons, fairFlipIdx, reduceIte] <;>
+    simp only [pauliX, Matrix.mul_apply, Fin.sum_univ_two, fairFlipIdx] <;>
     norm_num
 
 set_option maxHeartbeats 400000 in
@@ -727,14 +725,16 @@ theorem fairTerminal_eq (X : Operator 2) :
     intro n
     have hnn : (0:ℝ) ≤ (1/2:ℝ)^n := pow_nonneg (by norm_num : (0:ℝ) ≤ 1/2) n
     have hn : ‖(((1/2:ℝ)^n : ℝ) : ℂ)‖ = (1/2:ℝ)^n := by
-      simp [abs_of_nonneg hnn]
-    rw [fairContinue_eq n D, Matrix.smul_apply, smul_eq_mul, Complex.norm_mul, hn]
+      simp
+    have hcontinue : loopContinueMap fairFlipLoopInstrument n D
+        = (((1/2:ℝ)^n : ℝ) : ℂ) • fairFlipConjPow n D := fairContinue_eq n D
+    rw [hcontinue, Matrix.smul_apply, smul_eq_mul, Complex.norm_mul, hn]
     rcases Nat.even_or_odd n with ⟨m, hm⟩ | ⟨m, hm⟩
     · have hp : n % 2 = 0 := by omega
-      simpa only [fairFlipConjPow, if_pos hp] using
+      simpa only [fairFlipConjPow, ite_eq_left hp] using
         mul_le_mul_of_nonneg_left (hC i j) hnn
     · have hp : ¬ n % 2 = 0 := by omega
-      simp only [fairFlipConjPow, if_neg hp, pauliX_conj_entry]
+      simp only [fairFlipConjPow, ite_eq_right hp, pauliX_conj_entry]
       exact mul_le_mul_of_nonneg_left (hC (fairFlipIdx i) (fairFlipIdx j)) hnn
   have hlim0 : Filter.Tendsto
       (fun n => ((1/2:ℝ)^n) * (‖D 0 0‖ + ‖D 0 1‖ + ‖D 1 0‖ + ‖D 1 1‖))
@@ -755,13 +755,15 @@ theorem fairTerminal_eq (X : Operator 2) :
 ^ k`. -/
 private theorem fairTraceContinue (ρ : Operator 2) (hρ : IsDensityOperator ρ) (k : ℕ) :
     (Matrix.trace (loopContinueMap fairFlipLoopInstrument k ρ)).re = (1/2:ℝ)^k := by
-  rw [fairContinue_eq k ρ, Matrix.trace_smul, smul_eq_mul]
+  have hcontinue : loopContinueMap fairFlipLoopInstrument k ρ
+      = (((1/2:ℝ)^k : ℝ) : ℂ) • fairFlipConjPow k ρ := fairContinue_eq k ρ
+  rw [hcontinue, Matrix.trace_smul, smul_eq_mul]
   have htr : Matrix.trace (fairFlipConjPow k ρ) = 1 := by
     rcases Nat.even_or_odd k with ⟨m, hm⟩ | ⟨m, hm⟩
     · have hp : k % 2 = 0 := by omega
-      simpa only [fairFlipConjPow, if_pos hp] using hρ.2
+      simpa only [fairFlipConjPow, ite_eq_left hp] using hρ.2
     · have hp : ¬ k % 2 = 0 := by omega
-      rw [fairFlipConjPow, if_neg hp, trace_pauliX_conj]
+      rw [fairFlipConjPow, ite_eq_right hp, trace_pauliX_conj]
       exact hρ.2
   rw [htr, mul_one, Complex.ofReal_re]
 
@@ -826,6 +828,6 @@ theorem fair_flip_expected_resources (ρ : Operator 2) (hρ : IsDensityOperator 
     (loopExpectedTime fairFlipLoopInstrument ρ).toReal * 2 = 4 ∧
     (loopExpectedTime fairFlipLoopInstrument ρ).toReal * 1 = 2 := by
   refine ⟨fairExpectedTime ρ hρ, ?_, ?_⟩ <;>
-    rw [fairExpectedTime ρ hρ] <;> simp <;> norm_num
+    rw [fairExpectedTime ρ hρ] <;> simp; norm_num
 
 end Qatlib.Concepts.AdversaryBounds.AdvDuality

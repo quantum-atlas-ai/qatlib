@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Papers.QDecoding23.MainResults.Definitions
-import QuantumInfo.Measurements.POVM
-import Mathlib.LinearAlgebra.UnitaryGroup
-import Mathlib.Analysis.SpecialFunctions.Complex.Circle
+module
+
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Papers.QDecoding23.MainResults.Definitions
+public import QuantumInfo.Measurements.POVM
+public import Mathlib.LinearAlgebra.UnitaryGroup
+public import Mathlib.Analysis.SpecialFunctions.Complex.Circle
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

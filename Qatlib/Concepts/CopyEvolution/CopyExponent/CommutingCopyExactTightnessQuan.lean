@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CopyEvolution.CopyExponent.CommutingCopyExactTightnessStat
-import Qatlib.Concepts.CopyEvolution.CopyExponent.SupNormTightCopyBudgetQuan
-import Qatlib.Concepts.GibbsMetropolis.RationalBath.ApproximateRationalGibbs
+module
+
+public import Qatlib.Concepts.CopyEvolution.CopyExponent.CommutingCopyExactTightnessStat
+public import Qatlib.Concepts.CopyEvolution.CopyExponent.SupNormTightCopyBudgetQuan
+public import Qatlib.Concepts.GibbsMetropolis.RationalBath.ApproximateRationalGibbs
+
+@[expose] public section
 
 /-!
 # Exact commuting examples for copy exponentiation

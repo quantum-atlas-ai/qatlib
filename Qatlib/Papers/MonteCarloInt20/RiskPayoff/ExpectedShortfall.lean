@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MonteCarloInt20.RiskPayoff.StrictTail
-import Mathlib.Order.ConditionallyCompleteLattice.Basic
+module
+
+public import Qatlib.Papers.MonteCarloInt20.RiskPayoff.StrictTail
+public import Mathlib.Order.ConditionallyCompleteLattice.Basic
+
+@[expose] public section
 
 /-!
 # Expected shortfall with threshold atoms

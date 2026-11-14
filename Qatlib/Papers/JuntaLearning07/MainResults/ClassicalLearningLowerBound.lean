@@ -4,20 +4,24 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.JuntaLearning07.MainResults.JuntaLearningDefs
-import Mathlib.Analysis.SpecialFunctions.Log.Base
-import Mathlib.Algebra.BigOperators.Group.Finset.Defs
-import Mathlib.Algebra.BigOperators.Group.Finset.Sigma
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Algebra.Order.BigOperators.Group.Finset
-import Mathlib.Algebra.Order.Field.Basic
-import Mathlib.Algebra.Order.Floor.Semiring
-import Mathlib.Algebra.Order.GroupWithZero.Unbundled.Basic
-import Mathlib.Data.Fintype.BigOperators
-import Mathlib.Data.Fintype.Card
-import Mathlib.Data.Finset.Dedup
-import Mathlib.Data.Finset.Powerset
-import Mathlib.Data.Real.Sqrt
+module
+
+public import Qatlib.Papers.JuntaLearning07.MainResults.JuntaLearningDefs
+public import Mathlib.Analysis.SpecialFunctions.Log.Base
+public import Mathlib.Algebra.BigOperators.Group.Finset.Defs
+public import Mathlib.Algebra.BigOperators.Group.Finset.Sigma
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Algebra.Order.BigOperators.Group.Finset
+public import Mathlib.Algebra.Order.Field.Basic
+public import Mathlib.Algebra.Order.Floor.Semiring
+public import Mathlib.Algebra.Order.GroupWithZero.Basic
+public import Mathlib.Data.Fintype.BigOperators
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Data.Finset.Dedup
+public import Mathlib.Data.Finset.Powerset
+public import Mathlib.Analysis.Real.Sqrt
+
+@[expose] public section
 
 /-!
 # Deterministic membership-learning lower bounds
@@ -114,8 +118,8 @@ theorem disagreement_symm (f g : (Fin n → Bool) → Bool) :
       apply Finset.sum_congr rfl
       intro x _
       by_cases h : f x = g x
-      · rw [if_pos h, if_pos h.symm]
-      · rw [if_neg h, if_neg (fun hh => h hh.symm)]]
+      · rw [ite_eq_left h, ite_eq_left h.symm]
+      · rw [ite_eq_right h, ite_eq_right (fun hh => h hh.symm)]]
 
 /-- With zero queries, the learner's hypothesis is its output on the all-false transcript,
 independently of the target function; see [AticiServedio2007]. -/
@@ -172,7 +176,7 @@ theorem disagreement_dictator_ne {n : ℕ} {i j : Fin n} (hij : i ≠ j) :
     intro x
     have h1 : (cubeFlip x j) i = x i := by
       rw [cubeFlip]
-      exact if_neg hij
+      exact ite_eq_right hij
     have h2 : (cubeFlip x j) j = !x j := by simp [cubeFlip]
     rw [h1, h2]
     cases x i <;> cases x j <;> simp
@@ -219,10 +223,10 @@ theorem answers_eq_of_agree_query {n T : ℕ} (L : ClassicalMembershipLearner n 
             (if (i : ℕ) = t then g (L.query (answers L g t))
               else answers L g t i)
         by_cases hi : (i : ℕ) = t
-        · rw [if_pos hi, if_pos hi]
+        · rw [ite_eq_left hi, ite_eq_left hi]
           have hq : g (L.query (answers L f t)) = f (L.query (answers L f t)) := h ⟨t, htT⟩
           rw [← hq, ih']
-        · rw [if_neg hi, if_neg hi, congrFun ih' i]
+        · rw [ite_eq_right hi, ite_eq_right hi, congrFun ih' i]
   exact hstep T le_rfl
 
 /-- The finite set of inputs queried along the transcript generated against f. -/
@@ -248,7 +252,7 @@ theorem flipOff_agree_querySet {n T : ℕ} (L : ClassicalMembershipLearner n T)
     flipOff (querySet L f) f (L.query (answers L f (t : ℕ))) =
       f (L.query (answers L f (t : ℕ))) := by
   unfold flipOff
-  rw [if_pos (mem_querySet L f t)]
+  rw [ite_eq_left (mem_querySet L f t)]
 
 /-- The disagreement fraction between f and `flipOff P f` is the size of the complement of P
 divided by 2^n. -/

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QAOAScaling23.MainResults.CausalTheorem
-import Qatlib.Papers.QAOAScaling23.BiasedProcess.FamilyBudget
-import Qatlib.Papers.QAOAScaling23.LABSDefs
+module
+
+public import Qatlib.Papers.QAOAScaling23.MainResults.CausalTheorem
+public import Qatlib.Papers.QAOAScaling23.BiasedProcess.FamilyBudget
+public import Qatlib.Papers.QAOAScaling23.LABSDefs
+
+@[expose] public section
 
 /-!
 # Native minimum finding and LABS optimization
@@ -75,7 +79,7 @@ theorem actual_public_minimum (U : Matrix I I ℂ) (hU : U∈Matrix.unitaryGroup
       (((Born.preparedLaw U hU seed).map (costRank cost)) j).toReal=
         Born.weights cost (Born.preparedLaw U hU seed) j.val := by
     intro j
-    simp only [Born.weights,dif_pos j.isLt,costClassLaw]
+    simp only [Born.weights,dite_eq_left j.isLt,costClassLaw]
   have horder : ∀ i j,(costRank cost i).val<(costRank cost j).val ↔ cost i<cost j :=
     fun i j => costRank_lt_iff cost i j
   have hjoint : ∀ current r,(costRank cost current).val=r+1 →

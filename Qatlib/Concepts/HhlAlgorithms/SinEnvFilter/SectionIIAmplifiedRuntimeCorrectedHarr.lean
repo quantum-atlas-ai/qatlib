@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.SectionIIAmplifiedRuntimeCorrectedStat
-import Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.SinEnvelopeHHLConsumers
+module
+
+public import Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.SectionIIAmplifiedRuntimeCorrectedStat
+public import Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.SinEnvelopeHHLConsumers
+
+@[expose] public section
 
 /-!
 # Certificate for corrected HHL amplification bounds
@@ -53,7 +57,7 @@ open scoped Real
 depth at most `⌈1 / (5 * d)⌉₊ + 1` achieves success probability at least `1 / 4` with the
 stated cost bound. See [Harrow et al., Section II][HarrowHassidimLloyd2009]. -/
 theorem sectionIIAmplifiedRuntime : SectionIIAmplifiedRuntimeCorrected :=
-  fun D M hM eig V B j d η hV hB hd h2d hη hη1 heig hbudget =>
+  fun _D M hM eig V B j d η hV hB hd h2d hη hη1 heig hbudget =>
     sin_envelope_aa_success_and_cost M hM eig V B j d η hV hB hd h2d hη hη1 heig hbudget
 
 end Qatlib.Concepts.HhlAlgorithms.SinEnvFilter

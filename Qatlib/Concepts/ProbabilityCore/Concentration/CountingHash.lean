@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ProbabilityCore.Concentration.CountingComplexity
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.EffectiveCountingDefs
+module
+
+public import Qatlib.Concepts.ProbabilityCore.Concentration.CountingComplexity
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.EffectiveCountingDefs
+
+@[expose] public section
 
 /-!
 # Hash seed tapes and counting costs
@@ -65,8 +69,8 @@ private theorem ecTapeOff_lt (L ℓ : ℕ) (i : Fin ℓ) :
 
 /-- Read an affine Boolean hash seed from its matrix and offset bits on a tape. -/
 def ecSeedOfTape (L ℓ : ℕ) (t : Fin (EcHashSeedBits L ℓ) → Bool) : EcHashSeed L ℓ :=
-  ((fun (i : Fin ℓ) (j : Fin L) => t ⟨i.val * L + j.val, ecTapeMat_lt L ℓ i j⟩),
-   fun (i : Fin ℓ) => t ⟨ℓ * L + i.val, ecTapeOff_lt L ℓ i⟩)
+  ((fun (i : Fin ℓ) (j : Fin L) => t ⟨i.val * L + j.val, by exact ecTapeMat_lt L ℓ i j⟩),
+   fun (i : Fin ℓ) => t ⟨ℓ * L + i.val, by exact ecTapeOff_lt L ℓ i⟩)
 
 /-- Serialize the matrix and offset bits of an affine Boolean hash seed. -/
 def ecTapeOfSeed (L ℓ : ℕ) (s : EcHashSeed L ℓ) : Fin (EcHashSeedBits L ℓ) → Bool :=
@@ -92,14 +96,14 @@ theorem ecTapeOfSeed_seedOfTape (L ℓ : ℕ) (t : Fin (EcHashSeedBits L ℓ) �
     rw [Nat.mul_comm] at hdm
     have hfin : (⟨k.val / L * L + k.val % L, by omega⟩ : Fin (ℓ * L + ℓ)) = k :=
       Fin.val_injective hdm
-    simp only [ecTapeOfSeed, dif_pos h, ecSeedOfTape]
+    simp only [ecTapeOfSeed, dite_eq_left h, ecSeedOfTape]
     exact congrArg t hfin
   · have hle : ℓ * L ≤ k.val := by omega
     have hval : ℓ * L + (k.val - ℓ * L) = k.val := by omega
     have hlt : ℓ * L + (k.val - ℓ * L) < ℓ * L + ℓ := by omega
     have hfin : (⟨ℓ * L + (k.val - ℓ * L), hlt⟩ : Fin (ℓ * L + ℓ)) = k :=
       Fin.val_injective hval
-    simp only [ecTapeOfSeed, dif_neg h, ecSeedOfTape]
+    simp only [ecTapeOfSeed, dite_eq_right h, ecSeedOfTape]
     exact congrArg t hfin
 
 /-- Reading a serialized seed recovers the original seed. -/
@@ -130,7 +134,7 @@ theorem ecSeedOfTape_tapeOfSeed (L ℓ : ℕ) (s : EcHashSeed L ℓ) :
           omega)
       omega
     show (ecTapeOfSeed L ℓ s) ⟨i.val * L + j.val, ecTapeMat_lt L ℓ i j⟩ = s.1 i j
-    simp only [ecTapeOfSeed, dif_pos hltL]
+    simp only [ecTapeOfSeed, dite_eq_left hltL]
     exact congrArg₂ s.1 (Fin.val_injective hdiv) (Fin.val_injective hmod)
   have hoff : (ecSeedOfTape L ℓ (ecTapeOfSeed L ℓ s)).2 = s.2 := by
     funext i
@@ -138,7 +142,7 @@ theorem ecSeedOfTape_tapeOfSeed (L ℓ : ℕ) (s : EcHashSeed L ℓ) :
       have := Fin.is_lt i
       omega
     show (ecTapeOfSeed L ℓ s) ⟨ℓ * L + i.val, ecTapeOff_lt L ℓ i⟩ = s.2 i
-    simp only [ecTapeOfSeed, dif_neg hnl]
+    simp only [ecTapeOfSeed, dite_eq_right hnl]
     exact congrArg s.2 (Fin.val_injective (Nat.add_sub_cancel_left _ _))
   exact Prod.ext_iff.mpr ⟨hmat, hoff⟩
 
@@ -197,9 +201,8 @@ theorem ecFiberSq_eq_fiber_add_coll {L ℓ : ℕ} (R : Set (Fin L → Bool)) (s 
         if R w ∧ R w' ∧ w ≠ w' ∧ CcHashJointZero s w w' then 1 else 0)
       (Finset.mem_univ w)
     have hself : (if R w ∧ R w ∧ w ≠ w ∧ CcHashJointZero s w w then 1 else 0) = 0 :=
-      if_neg (fun hc => hc.2.2.1 rfl)
+      ite_eq_right (fun hc => hc.2.2.1 rfl)
     rw [← h1, ← h2]
-    try simp only []
     rw [hdiag w, hself, Nat.add_zero]
     rw [Finset.sum_congr rfl (fun w' hw' => hoff w w' (Finset.mem_erase.mp hw').1)]
     omega
@@ -402,8 +405,8 @@ private theorem ecChargeMachine_coinAct (L ℓ addrBits queries outputBits : ℕ
         ⟨i, by omega⟩ = CcAct.coinFlip ⟨i + 1, by omega⟩ ⟨i + 1, by omega⟩ := by
   simp only [ecSamplerChargeMachine]
   by_cases hL : i < L
-  · rw [dif_pos hL]
-  · rw [dif_neg hL, dif_pos (by omega)]
+  · rw [dite_eq_left hL]
+  · rw [dite_eq_right hL, dite_eq_left (by omega)]
 
 /-- A state in the address portion of a query block pushes a query bit. -/
 private theorem ecChargeMachine_pushAct (L ℓ addrBits queries outputBits : ℕ)
@@ -413,7 +416,7 @@ private theorem ecChargeMachine_pushAct (L ℓ addrBits queries outputBits : ℕ
     (ecSamplerChargeMachine L ℓ addrBits queries outputBits).states
         ⟨i, by omega⟩ = CcAct.queryPush ⟨i + 1, by omega⟩ := by
   simp only [ecSamplerChargeMachine]
-  rw [dif_neg h1, dif_neg h2, dif_pos h3, if_pos hm]
+  rw [dite_eq_right h1, dite_eq_right h2, dite_eq_left h3, ite_eq_left hm]
 
 /-- The last state of a query block makes an oracle call. -/
 private theorem ecChargeMachine_callAct (L ℓ addrBits queries outputBits : ℕ)
@@ -423,7 +426,7 @@ private theorem ecChargeMachine_callAct (L ℓ addrBits queries outputBits : ℕ
     (ecSamplerChargeMachine L ℓ addrBits queries outputBits).states
         ⟨i, by omega⟩ = CcAct.oracleCall ⟨i + 1, by omega⟩ ⟨i + 1, by omega⟩ := by
   simp only [ecSamplerChargeMachine]
-  rw [dif_neg h1, dif_neg h2, dif_pos h3, if_neg hm]
+  rw [dite_eq_right h1, dite_eq_right h2, dite_eq_left h3, ite_eq_right hm]
 
 /-- An even offset in the output phase writes a false bit. -/
 private theorem ecChargeMachine_writeAct (L ℓ addrBits queries outputBits : ℕ)
@@ -434,7 +437,7 @@ private theorem ecChargeMachine_writeAct (L ℓ addrBits queries outputBits : �
     (ecSamplerChargeMachine L ℓ addrBits queries outputBits).states
         ⟨i, by omega⟩ = CcAct.write false ⟨i + 1, by omega⟩ := by
   simp only [ecSamplerChargeMachine]
-  rw [dif_neg h1, dif_neg h2, dif_neg h3, dif_pos h4, if_pos hm]
+  rw [dite_eq_right h1, dite_eq_right h2, dite_eq_right h3, dite_eq_left h4, ite_eq_left hm]
 
 /-- An odd offset in the output phase moves the tape head to the right. -/
 private theorem ecChargeMachine_moveAct (L ℓ addrBits queries outputBits : ℕ)
@@ -445,7 +448,7 @@ private theorem ecChargeMachine_moveAct (L ℓ addrBits queries outputBits : ℕ
     (ecSamplerChargeMachine L ℓ addrBits queries outputBits).states
         ⟨i, by omega⟩ = CcAct.moveR ⟨i + 1, by omega⟩ := by
   simp only [ecSamplerChargeMachine]
-  rw [dif_neg h1, dif_neg h2, dif_neg h3, dif_pos h4, if_neg hm]
+  rw [dite_eq_right h1, dite_eq_right h2, dite_eq_right h3, dite_eq_left h4, ite_eq_right hm]
 
 /-- The final state of the charge program accepts. -/
 private theorem ecChargeMachine_acceptAct (L ℓ addrBits queries outputBits : ℕ)
@@ -458,7 +461,7 @@ private theorem ecChargeMachine_acceptAct (L ℓ addrBits queries outputBits : �
     (ecSamplerChargeMachine L ℓ addrBits queries outputBits).states
         ⟨i, by omega⟩ = CcAct.accept := by
   simp only [ecSamplerChargeMachine]
-  rw [dif_neg h1, dif_neg h2, dif_neg h3, dif_neg h4]
+  rw [dite_eq_right h1, dite_eq_right h2, dite_eq_right h3, dite_eq_right h4]
 
 /-- During random bit generation, the state, time, coin count, and coin index equal the number
 of steps, with no head movement or queries. -/
@@ -755,7 +758,7 @@ private theorem ecChargeMachine_output (L ℓ addrBits queries outputBits : ℕ)
       simp only [ccStep]
       rw [hact1]
       simp only [o2, o3, o4, o5, o6, o7, o8]
-      refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;> first | rfl | trivial
+      refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;> trivial
     obtain ⟨m1, m2, m3, m4, m5, m6, m7, m8⟩ := hmid
     have hst2 : (ccRun (ecSamplerChargeMachine L ℓ addrBits queries outputBits) A ρ x
           (L + EcHashSeedBits L ℓ + queries * (addrBits + 1) + 2 * i + 1)).state
@@ -783,7 +786,7 @@ private theorem ecChargeMachine_output (L ℓ addrBits queries outputBits : ℕ)
     simp only [m2, m3, m4, m5, m6, m7, m8]
     have hs2o : L + EcHashSeedBits L ℓ + queries * (addrBits + 1) + 2 * i + 2
         = L + EcHashSeedBits L ℓ + queries * (addrBits + 1) + 2 * (i + 1) := by omega
-    refine ⟨hs2o, by omega, ?_, ?_, by omega, ?_, ?_, ?_⟩ <;> first | rfl | trivial
+    refine ⟨hs2o, by omega, ?_, ?_, by omega, ?_, ?_, ?_⟩ <;> trivial
 
 /-- The charge program configuration remains fixed after its final accepting state is reached. -/
 private theorem ecChargeMachine_frozen (L ℓ addrBits queries outputBits : ℕ)
@@ -959,7 +962,7 @@ private theorem ecSeedStoreMachine_acceptAct (L ℓ : ℕ) {i : ℕ}
     (hi : i ≤ 4 * EcHashSeedBits L ℓ) (h : ¬ i < 4 * EcHashSeedBits L ℓ) :
     (ecSeedStoreMachine L ℓ).states ⟨i, by omega⟩ = CcAct.accept := by
   simp only [ecSeedStoreMachine]
-  rw [dif_neg h]
+  rw [dite_eq_right h]
 
 /-- After storing `i` seed bits, the first `i` tape cells contain those random bits and all
 counters and remaining tape cells have the stated values. -/
@@ -994,7 +997,7 @@ private theorem ecSeedStoreMachine_run (L ℓ : ℕ) (A : List Bool → Bool) (�
         = CcAct.coinFlip ⟨4 * n + 1, by omega⟩ ⟨4 * n + 2, by omega⟩ := by
       rw [hst1]
       simp only [ecSeedStoreMachine]
-      rw [dif_pos (by omega), dif_pos (by omega)]
+      rw [dite_eq_left (by omega), dite_eq_left (by omega)]
     have hstep1 : ccRun (ecSeedStoreMachine L ℓ) A ρ x (3 * n + 1)
         = ccStep (ecSeedStoreMachine L ℓ) A ρ
             (ccRun (ecSeedStoreMachine L ℓ) A ρ x (3 * n)) := rfl
@@ -1015,7 +1018,7 @@ private theorem ecSeedStoreMachine_run (L ℓ : ℕ) (A : List Bool → Bool) (�
       rw [hact1]
       simp only [r2, r3, r4, r5, r6, r7, r8]
       refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
-        first | rfl | trivial | exact fun k => r9 k | (split_ifs <;> rfl)
+        first | trivial | (split_ifs <;> rfl)
     obtain ⟨m1, m2, m3, m4, m5, m6, m7, m8, m9⟩ := hmid1
     have hnS : n < EcHashSeedBits L ℓ := by omega
     by_cases hc : ρ n = true
@@ -1029,7 +1032,7 @@ private theorem ecSeedStoreMachine_run (L ℓ : ℕ) (A : List Bool → Bool) (�
         rw [show (ccRun (ecSeedStoreMachine L ℓ) A ρ x (3 * n + 1)).state
               = ⟨4 * n + 1, by omega⟩ from Fin.val_injective hst1']
         simp only [ecSeedStoreMachine]
-        rw [dif_pos (by omega), dif_neg (by omega), dif_pos (by omega)]
+        rw [dite_eq_left (by omega), dite_eq_right (by omega), dite_eq_left (by omega)]
       have hstep2 : ccRun (ecSeedStoreMachine L ℓ) A ρ x (3 * n + 2)
           = ccStep (ecSeedStoreMachine L ℓ) A ρ
               (ccRun (ecSeedStoreMachine L ℓ) A ρ x (3 * n + 1)) := by
@@ -1058,8 +1061,8 @@ private theorem ecSeedStoreMachine_run (L ℓ : ℕ) (A : List Bool → Bool) (�
         rw [show (ccRun (ecSeedStoreMachine L ℓ) A ρ x (3 * n + 2)).state
               = ⟨4 * n + 3, by omega⟩ from Fin.val_injective hmid2.1]
         simp only [ecSeedStoreMachine]
-        rw [dif_pos (by omega), dif_neg (by omega), dif_neg (by omega),
-          dif_neg (by omega)]
+        rw [dite_eq_left (by omega), dite_eq_right (by omega), dite_eq_right (by omega),
+          dite_eq_right (by omega)]
       have hstep3 : ccRun (ecSeedStoreMachine L ℓ) A ρ x (3 * n + 3)
           = ccStep (ecSeedStoreMachine L ℓ) A ρ
               (ccRun (ecSeedStoreMachine L ℓ) A ρ x (3 * n + 2)) := by
@@ -1086,15 +1089,15 @@ private theorem ecSeedStoreMachine_run (L ℓ : ℕ) (A : List Bool → Bool) (�
         simp [hne, h1, h2]
     · have hst1' : ((ccRun (ecSeedStoreMachine L ℓ) A ρ x (3 * n + 1)).state : ℕ)
           = 4 * n + 2 := by
-        rw [m1, if_neg hc]
+        rw [m1, ite_eq_right hc]
       have hact2 : (ecSeedStoreMachine L ℓ).states
             (ccRun (ecSeedStoreMachine L ℓ) A ρ x (3 * n + 1)).state
           = CcAct.write false ⟨4 * n + 3, by omega⟩ := by
         rw [show (ccRun (ecSeedStoreMachine L ℓ) A ρ x (3 * n + 1)).state
               = ⟨4 * n + 2, by omega⟩ from Fin.val_injective hst1']
         simp only [ecSeedStoreMachine]
-        rw [dif_pos (by omega), dif_neg (by omega), dif_neg (by omega),
-          dif_pos (by omega)]
+        rw [dite_eq_left (by omega), dite_eq_right (by omega), dite_eq_right (by omega),
+          dite_eq_left (by omega)]
       have hstep2 : ccRun (ecSeedStoreMachine L ℓ) A ρ x (3 * n + 2)
           = ccStep (ecSeedStoreMachine L ℓ) A ρ
               (ccRun (ecSeedStoreMachine L ℓ) A ρ x (3 * n + 1)) := by
@@ -1123,8 +1126,8 @@ private theorem ecSeedStoreMachine_run (L ℓ : ℕ) (A : List Bool → Bool) (�
         rw [show (ccRun (ecSeedStoreMachine L ℓ) A ρ x (3 * n + 2)).state
               = ⟨4 * n + 3, by omega⟩ from Fin.val_injective hmid2.1]
         simp only [ecSeedStoreMachine]
-        rw [dif_pos (by omega), dif_neg (by omega), dif_neg (by omega),
-          dif_neg (by omega)]
+        rw [dite_eq_left (by omega), dite_eq_right (by omega), dite_eq_right (by omega),
+          dite_eq_right (by omega)]
       have hstep3 : ccRun (ecSeedStoreMachine L ℓ) A ρ x (3 * n + 3)
           = ccStep (ecSeedStoreMachine L ℓ) A ρ
               (ccRun (ecSeedStoreMachine L ℓ) A ρ x (3 * n + 2)) := by
@@ -1215,9 +1218,9 @@ theorem ecSeedStoreMachine_tape (L ℓ : ℕ) (A : List Bool → Bool) (x : List
     (EcHashSeedBits L ℓ) (Nat.le_refl _)
   rw [hrun.2.2.2.2.2.2.2.2 k]
   by_cases hk : k < EcHashSeedBits L ℓ
-  · rw [if_pos hk]
-    simp only [ccCoinString, dif_pos hk]
-  · rw [if_neg hk, dif_neg hk]
+  · rw [ite_eq_left hk]
+    simp only [ccCoinString, dite_eq_left hk]
+  · rw [ite_eq_right hk, dite_eq_right hk]
 
 /-- Decoding the stored tape recovers the seed decoded from the supplied coin string. -/
 theorem ecSeedStoreMachine_seed (L ℓ : ℕ) (A : List Bool → Bool) (x : List Bool)
@@ -1230,7 +1233,7 @@ theorem ecSeedStoreMachine_seed (L ℓ : ℕ) (A : List Bool → Bool) (x : List
       (ccRun (ecSeedStoreMachine L ℓ) A (ccCoinString t) x
         (3 * EcHashSeedBits L ℓ)).tape k.val) = t := by
     funext k
-    rw [ecSeedStoreMachine_tape L ℓ A x t k.val, dif_pos (Fin.is_lt k)]
+    rw [ecSeedStoreMachine_tape L ℓ A x t k.val, dite_eq_left (Fin.is_lt k)]
   rw [hfun]
 
 /-- The seed storage program satisfies `CcPolyTime` with bound `3 * EcHashSeedBits L ℓ + 1` and

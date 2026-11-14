@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QLowerBound00.MainResults.Model.ValueOracle
-import Qatlib.Papers.QLowerBound00.MainResults.AdversaryCore
+module
+
+public import Qatlib.Papers.QLowerBound00.MainResults.Model.ValueOracle
+public import Qatlib.Papers.QLowerBound00.MainResults.AdversaryCore
+
+@[expose] public section
 
 /-!
 # Adversary progress under finite-alphabet value queries
@@ -39,14 +43,14 @@ open Qatlib.Papers.QLowerBound00.MainResults.AdversaryCore
 
 /-- The explicit modular addition `addFin` agrees with addition in `Fin d` for positive `d`. -/
 theorem addFin_eq_add {d : ℕ} (hd : 0 < d) (a b : Fin d) : addFin hd a b = a + b := by
-  haveI : NeZero d := ⟨Nat.pos_iff_ne_zero.mp hd⟩
+  have : NeZero d := ⟨Nat.pos_iff_ne_zero.mp hd⟩
   rw [Fin.ext_iff, addFin, Fin.val_add]
 
 /-- A finite sum is unchanged by a modular translation of its index. -/
 theorem sum_addFin_shift {d : ℕ} {M : Type*} [AddCommMonoid M]
     (hd : 0 < d) (G : Fin d → M) (c : Fin d) :
     (∑ a : Fin d, G (addFin hd a c)) = ∑ a : Fin d, G a := by
-  haveI : NeZero d := ⟨Nat.pos_iff_ne_zero.mp hd⟩
+  have : NeZero d := ⟨Nat.pos_iff_ne_zero.mp hd⟩
   have h : ∀ a : Fin d, addFin hd a c = a + c := fun a => addFin_eq_add hd a c
   simp_rw [h]
   exact Equiv.sum_comp (Equiv.addRight c) G
@@ -151,8 +155,8 @@ theorem progress_valueQuery_step_le_lmax {n d Z : ℕ} (hd : 0 < d)
         else ‖rhoEntry (valueQuery hd i ψ) p.1 p.2 - rhoEntry ψ p.1 p.2‖ := by
     intro p hp
     by_cases h : p.1 i = p.2 i
-    · rw [if_pos h, rhoEntry_valueQuery_same hd i ψ p.1 p.2 h, sub_self, norm_zero]
-    · rw [if_neg h]
+    · rw [ite_eq_left h, rhoEntry_valueQuery_same hd i ψ p.1 p.2 h, sub_self, norm_zero]
+    · rw [ite_eq_right h]
   rw [Finset.sum_congr rfl hterm]
   have hfilt : (∑ p ∈ R, if p.1 i = p.2 i then 0
         else ‖rhoEntry (valueQuery hd i ψ) p.1 p.2 - rhoEntry ψ p.1 p.2‖)

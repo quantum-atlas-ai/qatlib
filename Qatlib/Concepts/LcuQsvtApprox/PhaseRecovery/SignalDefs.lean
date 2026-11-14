@@ -4,65 +4,69 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PhaseGeometry.Phase
-import Qatlib.Concepts.TrotterFormula.SuzukiFourth.QSP
-import Qatlib.Concepts.CoherentSim.CoherentOAA.Qubitization
-import Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis
-import Qatlib.Concepts.CoherentSim.CoherentOAA.QSVT
-import Qatlib.Concepts.CoherentSim.CoherentOAA.OperatorResponse
-import Qatlib.Concepts.QspSimulation.Achievability.RealPolynomial
-import Qatlib.Concepts.OperatorErrors.Robustness
-import Qatlib.Concepts.QsvtCore.LinearSystems.RealPolynomialCompletionClosed
-import Qatlib.Concepts.CoherentSim.CoherentOAA.Realization
-import Qatlib.Concepts.CoherentSim.CoherentOAA.SingularPolynomial
-import Qatlib.Concepts.CoherentSim.CoherentOAA.BlockRobustness
-import Qatlib.Concepts.QspSimulation.Achievability.ResponseFactorization
-import Qatlib.Concepts.QspSimulation.Achievability.RealPartResponse
-import Qatlib.Concepts.QspSimulation.Achievability.RealPartQSVT
-import Qatlib.Concepts.CopyEvolution.Discriminate.ParallelQSVT
-import Lean.Elab.Tactic.NormCast
-import Lean.Elab.Tactic.Omega
-import Mathlib.AlgebraicTopology.SimplexCategory.Basic
-import Mathlib.Analysis.CStarAlgebra.Classes
-import Mathlib.Analysis.Complex.Trigonometric
-import Mathlib.Algebra.Order.Star.Real
-import Mathlib.LinearAlgebra.UnitaryGroup
-import Mathlib.Tactic.Ext
-import Mathlib.Tactic.FinCases
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Ring
-import Qatlib.Foundations.PureStateMath.Tensor
-import Qatlib.Concepts.WalshMoment.Forrelation.CountedThresholdQSVT
-import Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.ThresholdOutputConsumers
-import Qatlib.Concepts.QsvtCore.QsVtStability.ComplexBoundaryQsvt
-import Qatlib.Concepts.QsvtCore.QsVtStability.ComplexBoundaryQsvtConsumers
-import Qatlib.Concepts.QsvtCore.QsVtMain.CPPPhaseCompiler
-import Qatlib.Concepts.QspSimulation.WordModel.CPPAdjointDefs
-import Qatlib.Concepts.QsvtCore.QsVtMain.LengthQSVT
-import Qatlib.Concepts.QsvtCore.QsVtMain.QSVTConsumers
-import Qatlib.Concepts.NonNormalSpec.ResolventWord.ThresholdIntegralDefs
-import Qatlib.Concepts.NonNormalSpec.ResolventWord.ThresholdIntegralAmplification
-import Qatlib.Concepts.NonNormalSpec.ResolventWord.ThresholdIntegralConsumer
-import Qatlib.Concepts.NonNormalSpec.ResolventWord.NativeThresholdIntegralDefs
-import Qatlib.Concepts.NonNormalSpec.ResolventWord.NativeThresholdIntegralCoefficients
-import Qatlib.Concepts.NonNormalSpec.ResolventWord.NativeThresholdIntegralCutoff
-import Qatlib.Concepts.NonNormalSpec.ResolventWord.NativeThresholdIntegralConsumer
-import Qatlib.Concepts.NativeNumerics.PhaseSynthesis.GaussianResponseData
-import Qatlib.Concepts.NativeNumerics.PhaseSynthesis.FinitePhaseGrid
-import Qatlib.Concepts.NativeNumerics.PhaseSynthesis.FinitePhaseSynthesis
-import Qatlib.Concepts.SignalPrimitive.PhaseFrontend.ComputedPhaseQSVT
-import Qatlib.Concepts.QspSimulation.WordModel.FinitePhaseConsumers
-import Qatlib.Concepts.SignalPrimitive.HermitianQSVT
-import Qatlib.Concepts.QsvtCore.QsVtStability.SquareRootQSVTRobustness
-import Qatlib.Concepts.QsvtCore.QsVtStability.RootRobustQSVTConsumers
-import Qatlib.Concepts.QsvtCore.QsVtStability.InteriorComplexQsvt
-import Qatlib.Concepts.QsvtCore.QsVtMain.ConventionBridge
-import Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.ConventionBridgeConsumers
-import Qatlib.Concepts.NativeNumerics.NlfftPipeline.NonlinearFourierSU2
-import Qatlib.Concepts.NativeNumerics.NlfftPipeline.InverseNLFFTSU2
-import Qatlib.Concepts.NativeNumerics.NlfftPipeline.FiniteFFTPolynomialMul
-import Qatlib.Concepts.NativeNumerics.NlfftPipeline.InverseNLFFTSU2Finite
+module
+
+public import Qatlib.Concepts.PhaseGeometry.Phase
+public import Qatlib.Concepts.TrotterFormula.SuzukiFourth.QSP
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.Qubitization
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.QSVT
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.OperatorResponse
+public import Qatlib.Concepts.QspSimulation.Achievability.RealPolynomial
+public import Qatlib.Concepts.OperatorErrors.Robustness
+public import Qatlib.Concepts.QsvtCore.LinearSystems.RealPolynomialCompletionClosed
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.Realization
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.SingularPolynomial
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.BlockRobustness
+public import Qatlib.Concepts.QspSimulation.Achievability.ResponseFactorization
+public import Qatlib.Concepts.QspSimulation.Achievability.RealPartResponse
+public import Qatlib.Concepts.QspSimulation.Achievability.RealPartQSVT
+public import Qatlib.Concepts.CopyEvolution.Discriminate.ParallelQSVT
+public import Lean.Elab.Tactic.NormCast
+public import Lean.Elab.Tactic.Omega
+public import Mathlib.AlgebraicTopology.SimplexCategory.Basic
+public import Mathlib.Analysis.CStarAlgebra.Classes
+public import Mathlib.Analysis.Complex.Trigonometric
+public import Mathlib.Algebra.Order.Star.Real
+public import Mathlib.LinearAlgebra.UnitaryGroup
+public import Mathlib.Tactic.Ext
+public import Mathlib.Tactic.FinCases
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Ring
+public import Qatlib.Foundations.PureStateMath.Tensor
+public import Qatlib.Concepts.WalshMoment.Forrelation.CountedThresholdQSVT
+public import Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.ThresholdOutputConsumers
+public import Qatlib.Concepts.QsvtCore.QsVtStability.ComplexBoundaryQsvt
+public import Qatlib.Concepts.QsvtCore.QsVtStability.ComplexBoundaryQsvtConsumers
+public import Qatlib.Concepts.QsvtCore.QsVtMain.CPPPhaseCompiler
+public import Qatlib.Concepts.QspSimulation.WordModel.CPPAdjointDefs
+public import Qatlib.Concepts.QsvtCore.QsVtMain.LengthQSVT
+public import Qatlib.Concepts.QsvtCore.QsVtMain.QSVTConsumers
+public import Qatlib.Concepts.NonNormalSpec.ResolventWord.ThresholdIntegralDefs
+public import Qatlib.Concepts.NonNormalSpec.ResolventWord.ThresholdIntegralAmplification
+public import Qatlib.Concepts.NonNormalSpec.ResolventWord.ThresholdIntegralConsumer
+public import Qatlib.Concepts.NonNormalSpec.ResolventWord.NativeThresholdIntegralDefs
+public import Qatlib.Concepts.NonNormalSpec.ResolventWord.NativeThresholdIntegralCoefficients
+public import Qatlib.Concepts.NonNormalSpec.ResolventWord.NativeThresholdIntegralCutoff
+public import Qatlib.Concepts.NonNormalSpec.ResolventWord.NativeThresholdIntegralConsumer
+public import Qatlib.Concepts.NativeNumerics.PhaseSynthesis.GaussianResponseData
+public import Qatlib.Concepts.NativeNumerics.PhaseSynthesis.FinitePhaseGrid
+public import Qatlib.Concepts.NativeNumerics.PhaseSynthesis.FinitePhaseSynthesis
+public import Qatlib.Concepts.SignalPrimitive.PhaseFrontend.ComputedPhaseQSVT
+public import Qatlib.Concepts.QspSimulation.WordModel.FinitePhaseConsumers
+public import Qatlib.Concepts.SignalPrimitive.HermitianQSVT
+public import Qatlib.Concepts.QsvtCore.QsVtStability.SquareRootQSVTRobustness
+public import Qatlib.Concepts.QsvtCore.QsVtStability.RootRobustQSVTConsumers
+public import Qatlib.Concepts.QsvtCore.QsVtStability.InteriorComplexQsvt
+public import Qatlib.Concepts.QsvtCore.QsVtMain.ConventionBridge
+public import Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.ConventionBridgeConsumers
+public import Qatlib.Concepts.NativeNumerics.NlfftPipeline.NonlinearFourierSU2
+public import Qatlib.Concepts.NativeNumerics.NlfftPipeline.InverseNLFFTSU2
+public import Qatlib.Concepts.NativeNumerics.NlfftPipeline.FiniteFFTPolynomialMul
+public import Qatlib.Concepts.NativeNumerics.NlfftPipeline.InverseNLFFTSU2Finite
+
+@[expose] public section
 
 /-!
 # Signal matrices and polynomial QSP form
@@ -137,8 +141,7 @@ theorem signalMatrix_unitary {x : ℝ} (hx1 : -1 ≤ x) (hx2 : x ≤ 1) :
   ext a b
   fin_cases a <;> fin_cases b <;>
     simp only [SignalMatrix, Matrix.mul_apply, Matrix.conjTranspose_apply,
-      Matrix.of_apply, RCLike.star_def, Fin.sum_univ_two, map_mul, Complex.conj_I,
-      neg_mul, mul_neg, Matrix.one_apply] <;>
+      Matrix.of_apply, RCLike.star_def, Fin.sum_univ_two,  Matrix.one_apply] <;>
     norm_num
   · rw [h2, neg_neg]; exact hd
   · ring
@@ -220,36 +223,36 @@ theorem signalMatrix_mul_phaseRotation_apply (x φ : ℝ) (a b : Fin 2) :
   have hPR : PhaseRotation φ = Matrix.diagonal (fun a =>
       if a = 0 then Complex.exp ((φ : ℂ) * Complex.I)
         else Complex.exp ((-φ : ℂ) * Complex.I)) := rfl
-  rw [hPR, Matrix.mul_diagonal, Matrix.diagonal_apply, if_pos rfl]
+  rw [hPR, Matrix.mul_diagonal, Matrix.diagonal_apply, ite_eq_left rfl]
 
 /-- The upper-left entry of a signal-phase factor is `x * exp(i * φ)`. -/
 theorem signalMatrix_mul_phaseRotation_zero_zero (x φ : ℝ) :
     (SignalMatrix x * PhaseRotation φ) 0 0
       = (x : ℂ) * Complex.exp ((φ : ℂ) * Complex.I) := by
   rw [signalMatrix_mul_phaseRotation_apply, signalMatrix_apply, phaseRotation_apply,
-    if_pos rfl, if_pos rfl, if_pos rfl]
+    ite_eq_left rfl, ite_eq_left rfl, ite_eq_left rfl]
 
 /-- The upper-right entry of a signal-phase factor is `i * √(1 - x^2) * exp(-i * φ)`. -/
 theorem signalMatrix_mul_phaseRotation_zero_one (x φ : ℝ) :
     (SignalMatrix x * PhaseRotation φ) 0 1
       = (Real.sqrt (1 - x ^ 2) : ℂ) * Complex.I * Complex.exp ((-φ : ℂ) * Complex.I) := by
   rw [signalMatrix_mul_phaseRotation_apply, signalMatrix_apply, phaseRotation_apply,
-    if_neg (by decide : ¬((0 : Fin 2) = 1)), if_pos rfl,
-    if_neg (by decide : ¬((1 : Fin 2) = 0))]
+    ite_eq_right (by decide : ¬((0 : Fin 2) = 1)), ite_eq_left rfl,
+    ite_eq_right (by decide : ¬((1 : Fin 2) = 0))]
 
 /-- The lower-left entry of a signal-phase factor is `i * √(1 - x^2) * exp(i * φ)`. -/
 theorem signalMatrix_mul_phaseRotation_one_zero (x φ : ℝ) :
     (SignalMatrix x * PhaseRotation φ) 1 0
       = (Real.sqrt (1 - x ^ 2) : ℂ) * Complex.I * Complex.exp ((φ : ℂ) * Complex.I) := by
   rw [signalMatrix_mul_phaseRotation_apply, signalMatrix_apply, phaseRotation_apply,
-    if_neg (by decide : ¬((1 : Fin 2) = 0)), if_pos rfl, if_pos rfl]
+    ite_eq_right (by decide : ¬((1 : Fin 2) = 0)), ite_eq_left rfl, ite_eq_left rfl]
 
 /-- The lower-right entry of a signal-phase factor is `x * exp(-i * φ)`. -/
 theorem signalMatrix_mul_phaseRotation_one_one (x φ : ℝ) :
     (SignalMatrix x * PhaseRotation φ) 1 1
       = (x : ℂ) * Complex.exp ((-φ : ℂ) * Complex.I) := by
   rw [signalMatrix_mul_phaseRotation_apply, signalMatrix_apply, phaseRotation_apply,
-    if_pos rfl, if_pos rfl, if_neg (by decide : ¬((1 : Fin 2) = 0))]
+    ite_eq_left rfl, ite_eq_left rfl, ite_eq_right (by decide : ¬((1 : Fin 2) = 0))]
 
 /-- For `x` in `[-1, 1]`, the square of the complex-cast square root of `1 - x^2` equals `1 - (x
 : ℂ)^2`. -/

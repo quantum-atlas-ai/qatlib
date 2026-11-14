@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ThermalDrift26.ThermalSampling.Intake.ThermalSourceExponential
+module
+
+public import Qatlib.Papers.ThermalDrift26.ThermalSampling.Intake.ThermalSourceExponential
+
+@[expose] public section
 
 /-!
 # Hamiltonian trace-readout formulas
@@ -104,7 +108,7 @@ theorem traceEvolution_matrix (x : Fin M → ℝ) (t : ℝ) :
     = Matrix.blockDiagonal (fun j =>
         (Real.cos (|x j| * t) : ℂ) • (1 : Matrix (Fin 2) (Fin 2) ℂ)
           - (Complex.I * (Real.sin (|x j| * t) : ℂ)) • pauliX) := by
-  letI : NormedAlgebra ℚ (Matrix (Fin 2) (Fin 2) ℂ) :=
+  let : NormedAlgebra ℚ (Matrix (Fin 2) (Fin 2) ℂ) :=
     NormedAlgebra.restrictScalars ℚ ℂ _
   unfold HamiltonianEvolution traceHamiltonian
   rw [← Matrix.blockDiagonal_smul,Matrix.exp_blockDiagonal]
@@ -137,7 +141,7 @@ theorem traceSuccessProb_eq (x : Fin M → ℝ) (t : ℝ) (hM : 0 < M) :
       BornProb (traceEvolvedState (M := M) x t) ((1 : Fin 2), j)
         = (1 / (M : ℝ)) * (Real.sin (|x j| * t)) ^ 2 := by
     unfold BornProb traceEvolvedState
-    rw [if_neg (by decide : ¬ (1 : Fin 2) = 0)]
+    rw [ite_eq_right (by decide : ¬ (1 : Fin 2) = 0)]
     have hc : ‖((1 / (Real.sqrt (M : ℝ) : ℂ)))‖ ^ 2 = 1 / (M : ℝ) := by
       rw [norm_div, norm_one, Complex.norm_real, Real.norm_eq_abs,
         abs_of_pos (by positivity : (0 : ℝ) < Real.sqrt (M : ℝ))]
@@ -153,7 +157,7 @@ theorem traceSuccessProb_eq (x : Fin M → ℝ) (t : ℝ) (hM : 0 < M) :
     rw [Finset.sum_eq_single (1 : Fin 2)]
     · apply Finset.sum_congr rfl
       intro j _
-      rw [if_pos rfl]
+      rw [ite_eq_left rfl]
     · intro a _ ha
       simp [ha]
     · intro h1

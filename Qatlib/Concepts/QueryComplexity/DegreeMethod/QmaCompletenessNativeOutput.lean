@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.QmaCompletenessGates
-import Qatlib.Concepts.TensorRegisters.RegisterModel.QmaCompletenessLocalSupport
-import Qatlib.Concepts.UniformBqp.FiniteGateWord.QmaCompleteness
-import Mathlib.Logic.Equiv.Fin.Basic
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.QmaCompletenessGates
+public import Qatlib.Concepts.TensorRegisters.RegisterModel.QmaCompletenessLocalSupport
+public import Qatlib.Concepts.UniformBqp.FiniteGateWord.QmaCompleteness
+public import Mathlib.Logic.Equiv.Fin.Basic
+
+@[expose] public section
 
 /-!
 # Native integer tables for clock Hamiltonians

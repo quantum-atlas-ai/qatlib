@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.NegativeExpProgram
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.PhaseLogProgram
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.NegativeExpProgram
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.PhaseLogProgram
+
+@[expose] public section
 
 /-! # Actual rational complex Taylor prefixes for cis -/
 

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SketchSpectral.SketchAnalysis.SketchSingularValueL2StabilityStat
-import Qatlib.Concepts.SketchSpectral.SketchPerturb.SketchSingularValueStabilitySamp
-import Qatlib.Concepts.SketchSpectral.EvenSvtLaw.EvenSVTFrobeniusRecordTools
-import Qatlib.Concepts.SketchArith.SketchBuild.SketchFrobeniusConcentration
+module
+
+public import Qatlib.Concepts.SketchSpectral.SketchAnalysis.SketchSingularValueL2StabilityStat
+public import Qatlib.Concepts.SketchSpectral.SketchPerturb.SketchSingularValueStabilitySamp
+public import Qatlib.Concepts.SketchSpectral.EvenSvtLaw.EvenSVTFrobeniusRecordTools
+public import Qatlib.Concepts.SketchArith.SketchBuild.SketchFrobeniusConcentration
+
+@[expose] public section
 
 /-!
 # Euclidean stability of sampled squared singular values

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommutLCHS26.MainResults.BCHWordLie
-import Qatlib.Papers.CommutLCHS26.MainResults.BCHFormal
+module
+
+public import Qatlib.Papers.CommutLCHS26.MainResults.BCHWordLie
+public import Qatlib.Papers.CommutLCHS26.MainResults.BCHFormal
+
+@[expose] public section
 
 /-!
 # Evaluating formal word logarithms as matrices

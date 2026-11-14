@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QspSimulation.Achievability.Lc17AuxSourceCompilation
-import Qatlib.Papers.HamSimQSP17.SparseWalk.EigenphaseTarget
+module
+
+public import Qatlib.Concepts.QspSimulation.Achievability.Lc17AuxSourceCompilation
+public import Qatlib.Papers.HamSimQSP17.SparseWalk.EigenphaseTarget
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

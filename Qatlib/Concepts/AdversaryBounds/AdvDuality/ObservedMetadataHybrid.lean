@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedExpectedHybridDefs
-import Mathlib.Algebra.Order.BigOperators.Ring.Finset
-import Mathlib.Data.List.OfFn
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedExpectedHybridDefs
+public import Mathlib.Algebra.Order.BigOperators.Ring.Finset
+public import Mathlib.Data.List.OfFn
+
+@[expose] public section
 
 /-!
 # Metadata scores from paired state distance
@@ -153,6 +157,7 @@ private theorem metadata_list_score_sq {α E : Type*} [NormedAddCommGroup E]
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+omit [DecidableEq I] in
 /-- The mass of a pure branch equals the squared Euclidean norm of its state vector. -/
 private theorem metadata_mass_norm (ψ : QState I) :
     branchMass ψ = ‖toEuclidean_fromVec ψ‖ ^ 2 := by

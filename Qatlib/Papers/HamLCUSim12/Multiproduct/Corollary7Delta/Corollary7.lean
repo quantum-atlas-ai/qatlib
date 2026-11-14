@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductGammaThresholdHami
-import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductMassStructureHami
+module
+
+public import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductGammaThresholdHami
+public import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductMassStructureHami
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -104,7 +108,7 @@ theorem lt_node_of_retry_bound {k : ℕ} (γ : ℝ)
       _ ≤ (1 / 2) * N ^ 2 := hm
   have hlt : (k : ℝ) ^ 2 < N ^ 2 := by nlinarith [sq_pos_of_pos hNpos]
   by_contra hcon
-  push_neg at hcon
+  push Not at hcon
   have hle : N ^ 2 ≤ (k : ℝ) ^ 2 := by
     have hsqle := mul_self_le_mul_self hNpos.le hcon
     simpa [sq] using hsqle

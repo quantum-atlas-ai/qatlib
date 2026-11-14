@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.OpCalculus.ContourCalc.ResolventBound
-import Qatlib.Concepts.CoherentSim.CoherentOAA.Pseudoinverse
+module
+
+public import Qatlib.Foundations.OpCalculus.ContourCalc.ResolventBound
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.Pseudoinverse
+
+@[expose] public section
 open Qatlib.Foundations.OpCalculus.ContourCalc
 
 open Qatlib.Concepts.CoherentSim.CoherentOAA

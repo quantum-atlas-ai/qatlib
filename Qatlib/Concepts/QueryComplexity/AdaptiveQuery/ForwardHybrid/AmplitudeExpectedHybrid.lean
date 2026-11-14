@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.ForwardHybrid.PaidCoarse.AdaptiveHybrid
-import Mathlib.Tactic.Abel
-import Mathlib.Tactic.Ring
+module
+
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.ForwardHybrid.PaidCoarse.AdaptiveHybrid
+public import Mathlib.Tactic.Abel
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 /-!
 # Hybrid bounds from expected adaptive query counts

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Tactic.NormNum.RealSqrt
-import Qatlib.Concepts.WalkSearch.Primitives.TriangleContracts
+module
+
+public import Mathlib.Tactic.NormNum.RealSqrt
+public import Qatlib.Concepts.WalkSearch.Primitives.TriangleContracts
+
+@[expose] public section
 
 /-!
 # Diagnostics for triangle-search contracts
@@ -137,7 +141,7 @@ theorem stepFour_rejecting {n : ℕ} (hn : 0 < n) (G : UGraph n)
     exact ih _ _
 
 /-- Tests whether a classification outcome is a partition rather than a triangle candidate. -/
-private def isPartition {n : ℕ} : ClassifyOut n → Bool
+def isPartition {n : ℕ} : ClassifyOut n → Bool
   | .part _ _ _ => true
   | .tri _ _ _ _ => false
 
@@ -162,7 +166,7 @@ theorem classify_rejecting {n : ℕ} (hn : 0 < n) (G : UGraph n)
         · exact ih _ _ _ _
 
 /-- Tests whether a combinatorial search outcome is rejection. -/
-private def isRejection {n : ℕ} : CombOut n → Bool
+def isRejection {n : ℕ} : CombOut n → Bool
   | .reject _ => true
   | .tri _ _ _ _ => false
 
@@ -213,29 +217,36 @@ theorem rejecting_incomplete {n : ℕ} (hn : 0 < n) (hn2 : 2 < n) (G : UGraph n)
     (htri : 1 ≤ triCount G.edges) (k K c dHi dLo τ tThin B : ℕ) :
     ¬ combComplete hn G rejectingGrover rejectingEdgeSearch k K c dHi dLo τ tThin B := by
   intro h
-  letI : NeZero n := ⟨hn.ne'⟩
-  letI := rejectingGrover.seedFin
-  letI := rejectingEdgeSearch.seedFin
-  letI := rejectingGrover.seedNe
-  letI := rejectingEdgeSearch.seedNe
+  let : NeZero n := ⟨hn.ne'⟩
+  let := rejectingGrover.seedFin
+  let := rejectingEdgeSearch.seedFin
+  let := rejectingGrover.seedNe
+  let := rejectingEdgeSearch.seedNe
   have hb := h htri
   have hf : (Finset.univ.filter fun t : combTape n k K c rejectingGrover rejectingEdgeSearch B =>
-      combSound.match_1 (fun _ : CombOut n => Bool)
-        (combAlg hn G rejectingGrover rejectingEdgeSearch k K c dHi dLo τ tThin
+      isRejection (combAlg hn G rejectingGrover rejectingEdgeSearch k K c dHi dLo τ tThin
           t.1 t.2.1 (@extendSeed B rejectingGrover.seed rejectingGrover.seedNe t.2.2.1)
-            (@extendSeed B rejectingEdgeSearch.seed rejectingEdgeSearch.seedNe t.2.2.2))
-        (fun _ _ _ _ => false) (fun _ => true) = true) = Finset.univ := by
-    ext t
-    simp only [Finset.mem_filter, Finset.mem_univ, true_and]
-    have hr := combAlg_rejecting hn G k K c dHi dLo τ tThin t.1 t.2.1
+            (@extendSeed B rejectingEdgeSearch.seed rejectingEdgeSearch.seedNe t.2.2.2)) = true) =
+        Finset.univ := by
+    apply Finset.filter_eq_self.mpr
+    intro t _
+    exact combAlg_rejecting hn G k K c dHi dLo τ tThin t.1 t.2.1
       (@extendSeed B rejectingGrover.seed rejectingGrover.seedNe t.2.2.1)
       (@extendSeed B rejectingEdgeSearch.seed rejectingEdgeSearch.seedNe t.2.2.2)
-    cases hout : combAlg hn G rejectingGrover rejectingEdgeSearch k K c dHi dLo τ tThin
+  have hb' : (Finset.univ.filter fun t : combTape n k K c rejectingGrover rejectingEdgeSearch B =>
+      isRejection (combAlg hn G rejectingGrover rejectingEdgeSearch k K c dHi dLo τ tThin
         t.1 t.2.1 (@extendSeed B rejectingGrover.seed rejectingGrover.seedNe t.2.2.1)
-          (@extendSeed B rejectingEdgeSearch.seed rejectingEdgeSearch.seedNe t.2.2.2) with
-    | tri a b cc q => rw [hout] at hr; cases hr
-    | reject q => simp
-  rw [Finset.filter_congr_decidable, hf, Finset.card_univ] at hb
+          (@extendSeed B rejectingEdgeSearch.seed rejectingEdgeSearch.seedNe t.2.2.2)) = true).card * n ≤
+      2 * Fintype.card (combTape n k K c rejectingGrover rejectingEdgeSearch B) := by
+    convert hb using 1
+    apply congrArg (fun s : Finset (combTape n k K c rejectingGrover rejectingEdgeSearch B) =>
+      s.card * n)
+    ext t
+    simp only [Finset.mem_filter, Finset.mem_univ, true_and]
+    cases combAlg hn G rejectingGrover rejectingEdgeSearch k K c dHi dLo τ tThin
+      t.1 t.2.1 (@extendSeed B rejectingGrover.seed rejectingGrover.seedNe t.2.2.1)
+        (@extendSeed B rejectingEdgeSearch.seed rejectingEdgeSearch.seedNe t.2.2.2) <;> rfl
+  rw [hf, Finset.card_univ] at hb'
   have hcard : 0 < Fintype.card (combTape n k K c rejectingGrover rejectingEdgeSearch B) :=
       Fintype.card_pos
   nlinarith

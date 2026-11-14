@@ -10,12 +10,16 @@ Source: B. Toloui and P. J. Love, "Quantum Algorithms for Quantum Chemistry base
 sparsity of the CI-matrix", arXiv:1312.2579 (2013), Section III D p.7 and Appendix A
 (Eqs. (A1)-(A54)), Main Theorem of Appendix A.5, pdf p.15-18.
 -/
-import Mathlib.Data.Finset.Powerset
-import Mathlib.Data.Finset.Card
-import Mathlib.Data.Nat.Choose.Basic
-import Mathlib.Data.Fintype.Card
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Data.Finset.Powerset
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Data.Nat.Choose.Basic
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

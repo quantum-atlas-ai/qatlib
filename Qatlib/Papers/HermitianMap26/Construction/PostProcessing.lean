@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HermitianMap26.Construction.Definitions
+module
+
+public import Qatlib.Papers.HermitianMap26.Construction.Definitions
+
+@[expose] public section
 
 /-!
 # Trace reconstruction from normalized Kraus branches

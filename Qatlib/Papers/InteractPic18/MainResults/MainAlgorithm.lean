@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.InteractionEvo.MeanDerivGrid.InteractionPictureDefs
-import Qatlib.Concepts.CoherentSim.FactorialTaylor.FactorialTaylorSimulation
+module
+
+public import Qatlib.Concepts.InteractionEvo.MeanDerivGrid.InteractionPictureDefs
+public import Qatlib.Concepts.CoherentSim.FactorialTaylor.FactorialTaylorSimulation
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -81,7 +85,6 @@ theorem theorem3_total_failure (L : ℕ) (δ : ℝ) (_hδ0 : 0 ≤ δ) (hδ1 : �
     ipTotalFailure L δ ≤ (L : ℝ) * δ := by
   unfold ipTotalFailure
   have h := one_add_mul_le_pow (a := -δ) (n := L) (by linarith)
-  push_cast at h
   ring_nf at h ⊢
   linarith
 

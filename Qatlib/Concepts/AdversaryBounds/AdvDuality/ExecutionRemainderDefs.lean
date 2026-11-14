@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsRemainderDefs
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedMixedState
-import Qatlib.Concepts.GateVocabulary.GateVocab.GateVocabularyDefs
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsRemainderDefs
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedMixedState
+public import Qatlib.Concepts.GateVocabulary.GateVocab.GateVocabularyDefs
+
+@[expose] public section
 
 /-!
 # Fair feedback and hybrid execution data

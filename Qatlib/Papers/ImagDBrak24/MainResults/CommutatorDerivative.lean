@@ -4,9 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ImagDBrak24.MainResults.SourceDynamics
-import Mathlib.Analysis.Complex.RealDeriv
-import Mathlib.Analysis.SpecialFunctions.Exponential
+module
+
+public import Qatlib.Papers.ImagDBrak24.MainResults.SourceDynamics
+public import Mathlib.Analysis.Calculus.Deriv.Linear
+public import Mathlib.Analysis.Complex.RealDeriv
+public import Mathlib.Analysis.Matrix.Normed
+public import Mathlib.Analysis.SpecialFunctions.Exponential
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

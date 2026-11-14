@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ParabolicPDE24.FourierModel.FourierSystem
-import Qatlib.Concepts.ChannelTheory.Naimark.EtaProjection
+module
+
+public import Qatlib.Papers.ParabolicPDE24.FourierModel.FourierSystem
+public import Qatlib.Concepts.ChannelTheory.Naimark.EtaProjection
+
+@[expose] public section
 
 /-!
 # Two-component Fourier fiber generators

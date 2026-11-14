@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.UnambigMeas25.MainResults.Definitions.UnambigMeasModel
+module
+
+public import Qatlib.Papers.UnambigMeas25.MainResults.Definitions.UnambigMeasModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -36,7 +40,7 @@ def gammaD (γ : ℝ) (d : ℕ) : ℕ := ⌈γ * (d : ℝ)⌉₊
 Source: Proposition 3, p. 22.  Proof: for a `τ`-universal `V`, take the dual
 solution `b_i = 2^τ 1_V(i)`; Equation (3) follows from the `τ`-universality of
 `V`, hence `ρ = σ^L ≤ 2^τ ∑_{i∈V}|α̂_i|²`; take the infimum over `V`. -/
-def proposition3 {n : ℕ} (S : SymFamily n) (τ : ℕ) (hτ : τ ≤ n) : Prop :=
+def proposition3 {n : ℕ} (S : SymFamily n) (τ : ℕ) (_hτ : τ ≤ n) : Prop :=
   rho S (Cthr τ) ≤ universalValue S τ
   -- Paper: arXiv:2510.07298v2, Proposition 3, p. 22.
   -- Key steps: b_i = 2^τ * 1_V(i); the coset constraint at level k becomes
@@ -53,8 +57,8 @@ let `ε = ∑_{i ∉ B_d}|α̂_i|²`.  Then `ρ(S, ⌈γd⌉) ≤ ε(1+o(1))`.
 The paper's `o(1)` is formalised in the usual `ε`-form: for every `ε' > 0` the
 inequality `ρ(S, ⌈γd⌉) ≤ ε(1+ε')` holds eventually in `n` along any sequence of
 symmetric families. -/
-def theorem5 (γ : ℝ) (hγ : 2 < γ) (S : (n : ℕ) → SymFamily n)
-    (d : ℕ → ℕ) (hd : Tendsto (fun n => (d n : ℝ)) atTop atTop) : Prop :=
+def theorem5 (γ : ℝ) (_hγ : 2 < γ) (S : (n : ℕ) → SymFamily n)
+    (d : ℕ → ℕ) (_hd : Tendsto (fun n => (d n : ℝ)) atTop atTop) : Prop :=
   ∀ ε' : ℝ, 0 < ε' → ∀ᶠ n : ℕ in atTop,
       rho (S n) (Cthr (gammaD γ (d n))) ≤ epsilonOut (S n) (d n) * (1 + ε')
   -- Paper: arXiv:2510.07298v2, Theorem 5, p. 24; proof in Appendix B.
@@ -91,7 +95,7 @@ theorem proposition16 (n k : ℕ) (V : Finset (F2 n)) :
 
 Source: Theorem 4, p. 22.  Proof: `⇐` is Corollary 2; `⇒` is Proposition 18
 combined with strong duality Proposition 15. -/
-def theorem4 {n : ℕ} (S : SymFamily n) (τ : ℕ) (hτ : τ ≤ n) : Prop :=
+def theorem4 {n : ℕ} (S : SymFamily n) (τ : ℕ) (_hτ : τ ≤ n) : Prop :=
   rho S (Cthr τ) = 0 ↔
       ∃ V : Finset (F2 n), UniversalFinset n τ V ∧ ∀ i ∈ V, S.hat i = 0
   -- Paper: arXiv:2510.07298v2, Theorem 4, p. 22.
@@ -107,7 +111,7 @@ setting `ρ(S;τ) = σ^L(S;τ) ≤ min{2^τ ∑_{i∈V}|α̂_i|² : V is τ-univ
 Source: Proposition 17, p. 22–23.  Proof: the equality is strong duality
 (Proposition 15); the inequality is the explicit dual solution `b_i = 2^τ 1_V(i)`
 as in Proposition 3. -/
-def proposition17 {n : ℕ} (S : SymFamily n) (τ : ℕ) (hτ : τ ≤ n) : Prop :=
+def proposition17 {n : ℕ} (S : SymFamily n) (τ : ℕ) (_hτ : τ ≤ n) : Prop :=
   rho S (Cthr τ) = sigmaL S (Cthr τ) ∧
       sigmaL S (Cthr τ) ≤ universalValue S τ
   -- Paper: arXiv:2510.07298v2, Proposition 17, p. 22–23.
@@ -119,9 +123,9 @@ def proposition17 {n : ℕ} (S : SymFamily n) (τ : ℕ) (hτ : τ ≤ n) : Prop
 
 /-- **Corollary 2** (arXiv:2510.07298v2, p. 23).  If there exists a
 `τ`-universal set `V` with `α̂_i = 0` for all `i ∈ V`, then `ρ(S;τ) = 0`. -/
-def corollary2 {n : ℕ} (S : SymFamily n) (τ : ℕ) (hτ : τ ≤ n)
-    (V : Finset (F2 n)) (hV : UniversalFinset n τ V)
-    (hzero : ∀ i ∈ V, S.hat i = 0) : Prop :=
+def corollary2 {n : ℕ} (S : SymFamily n) (τ : ℕ) (_hτ : τ ≤ n)
+    (V : Finset (F2 n)) (_hV : UniversalFinset n τ V)
+    (_hzero : ∀ i ∈ V, S.hat i = 0) : Prop :=
   rho S (Cthr τ) = 0
   -- Paper: arXiv:2510.07298v2, Corollary 2, p. 23.
   -- Key steps: Proposition 17 gives ρ ≤ 2^τ ∑_{i∈V}|α̂_i|² = 0, and ρ ≥ 0.
@@ -135,8 +139,8 @@ then there is a `τ`-universal set on which all `α̂_i` vanish.
 Source: Proposition 18, p. 23.  Proof: take an optimal dual solution `b`, let
 `T = {i : b_i ≠ 0}`; dual feasibility gives `T ∩ D_H(s) ≠ ∅` for all `k ≥ τ`,
 so `T` contains a `τ`-universal set; `σ^L = 0` forces `α̂_i = 0` on `T`. -/
-def proposition18 {n : ℕ} (S : SymFamily n) (τ : ℕ) (hτ : τ ≤ n)
-    (hρ : rho S (Cthr τ) = 0) (hσ : sigmaL S (Cthr τ) = 0) : Prop :=
+def proposition18 {n : ℕ} (S : SymFamily n) (τ : ℕ) (_hτ : τ ≤ n)
+    (_hρ : rho S (Cthr τ) = 0) (_hσ : sigmaL S (Cthr τ) = 0) : Prop :=
   ∃ V : Finset (F2 n), UniversalFinset n τ V ∧ ∀ i ∈ V, S.hat i = 0
   -- Paper: arXiv:2510.07298v2, Proposition 18, p. 23.
   -- Key steps: choose an optimal dual `b` (attainment of the `sInf`); set
@@ -156,7 +160,7 @@ Source: Proposition 19, p. 23.  Proof: write `V = v + W`, choose `k` columns
 `I` of a generator of `W` forming an invertible `k × k` matrix; then
 `V ∩ B_d` injects into the Hamming ball of radius `d` in `𝔽₂^k`, whose size is
 `∑_{a≤d} C(k,a)`. -/
-def proposition19 (n k d : ℕ) (V : Set (F2 n)) (hV : AffineKSubspace n k V) : Prop :=
+def proposition19 (n k d : ℕ) (V : Set (F2 n)) (_hV : AffineKSubspace n k V) : Prop :=
   Nat.card (V ∩ ball d : Set (F2 n)) ≤
       ∑ a ∈ Finset.range (d + 1), Nat.choose k a
   -- Paper: arXiv:2510.07298v2, Proposition 19, p. 23.

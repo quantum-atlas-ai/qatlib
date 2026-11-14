@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RationalScan.Step2Scan.MatrixOptimizationAlgorithmsDefs
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.FieldSimp
+module
+
+public import Qatlib.Concepts.RationalScan.Step2Scan.MatrixOptimizationAlgorithmsDefs
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.FieldSimp
+
+@[expose] public section
 
 /-!
 # Matrix optimization width and sampling bounds
@@ -167,7 +171,7 @@ theorem certificateObjective_dualCertificate (m : ℕ) (b : Fin m → ℝ) (δ �
         (∑ t ∈ Finset.range T, ∑ i, y t i * b i) / T := by
     simp only [certificateObjective]
     simp only [dualCertificate, add_mul, div_mul_eq_mul_div, Finset.sum_add_distrib,
-      ite_mul, zero_mul, Finset.sum_ite_eq', Finset.mem_univ, if_true]
+      ite_mul, zero_mul, Finset.sum_ite_eq', Finset.mem_univ, ite_true]
     congr 1
     simp only [Finset.sum_mul, ← Finset.sum_div]
     rw [Finset.sum_comm]
@@ -339,7 +343,7 @@ theorem expectationClause_valid :
         (∀ i, |(Matrix.trace (A i * ρ)).re - (Matrix.trace (A i * ρ)).re| ≤ h) ∧
           |(Matrix.trace (Cv * ρ)).re - (Matrix.trace (Cv * ρ)).re| ≤ h) : Fin 1 → Prop) 0 :=
         ⟨hP, hPc⟩
-      rw [if_pos hp0]
+      rw [ite_eq_left hp0]
     rw [hval]
     linarith
 
@@ -356,7 +360,7 @@ theorem mixtureLaw_eq_dualSampleDist (m T : ℕ) (y : ℕ → Fin m → ℝ) (j�
       δ * α / (2 * R) + (∑ t ∈ Finset.range T, ∑ j, y t j) / (T : ℝ) := by
     simp only [dualSampleScale, dualCertificate]
     rw [Finset.sum_add_distrib]
-    simp only [Finset.sum_ite_eq', Finset.mem_univ, if_true]
+    simp only [Finset.sum_ite_eq', Finset.mem_univ, ite_true]
     rw [← Finset.sum_div, Finset.sum_comm]
   have hst (t : ℕ) (ht : t < T) : (0 : ℝ) < ∑ j, y t j := hround t ht
   have hmass (t : ℕ) (ht : t < T) (i' : Fin m) : 0 ≤ y t i' := hy t ht i'
@@ -374,7 +378,7 @@ theorem mixtureLaw_eq_dualSampleDist (m T : ℕ) (y : ℕ → Fin m → ℝ) (j�
         mixtureComponents m j₀ y T 0 i =
         (if i = j₀ then (δ * α / (2 * R)) / dualSampleScale m (dualCertificate m δ α R j₀ y T)
           else 0) := by
-      simp only [mixtureWeights, mixtureComponents, Fin.val_zero, if_true]
+      simp only [mixtureWeights, mixtureComponents, Fin.val_zero, ite_true]
       split_ifs with hi
       · rw [mul_one]
       · rw [mul_zero]
@@ -386,7 +390,7 @@ theorem mixtureLaw_eq_dualSampleDist (m T : ℕ) (y : ℕ → Fin m → ℝ) (j�
       have hval : (((t.succ : Fin (T + 1)).val) - 1 : ℕ) = (t : ℕ) := by simp
       have hnn : ¬ (((t.succ : Fin (T + 1)).val : ℕ) = 0) := by simp
       simp only [mixtureWeights, mixtureComponents, hval]
-      rw [if_neg hnn, if_neg hnn]
+      rw [ite_eq_right hnn, ite_eq_right hnn]
       have hne : (∑ j, y (t : ℕ) j : ℝ) ≠ 0 := ne_of_gt (hst t.val t.isLt)
       have hprod : ((∑ j, y (t : ℕ) j) / (T : ℝ) /
           dualSampleScale m (dualCertificate m δ α R j₀ y T)) *
@@ -469,9 +473,9 @@ theorem mixtureClause_fixed :
     intro u
     simp only [mixtureWeights]
     by_cases hu : u.val = 0
-    · rw [if_pos hu]
+    · rw [ite_eq_left hu]
       exact div_nonneg (by positivity) (le_of_lt hscale)
-    · rw [if_neg hu]
+    · rw [ite_eq_right hu]
       have hlt : u.val - 1 < T := by
         have h1 : 0 < u.val := Nat.pos_of_ne_zero hu
         have h2 : u.val - 1 < u.val := Nat.sub_lt h1 (by norm_num)
@@ -483,9 +487,9 @@ theorem mixtureClause_fixed :
     refine ⟨fun i => ?_, ?_⟩
     · simp only [mixtureComponents]
       by_cases hu : u.val = 0
-      · rw [if_pos hu]
+      · rw [ite_eq_left hu]
         split_ifs <;> norm_num
-      · rw [if_neg hu]
+      · rw [ite_eq_right hu]
         have hlt : u.val - 1 < T := by
           have h1 : 0 < u.val := Nat.pos_of_ne_zero hu
           have h2 : u.val - 1 < u.val := Nat.sub_lt h1 (by norm_num)
@@ -494,10 +498,10 @@ theorem mixtureClause_fixed :
         exact div_nonneg (hy (u.val - 1) hlt i) (le_of_lt hS)
     · simp only [mixtureComponents]
       by_cases hu : u.val = 0
-      · simp only [if_pos hu]
+      · simp only [ite_eq_left hu]
         rw [Finset.sum_ite_eq']
         simp
-      · simp only [if_neg hu]
+      · simp only [ite_eq_right hu]
         have hlt : u.val - 1 < T := by
           have h1 : 0 < u.val := Nat.pos_of_ne_zero hu
           have h2 : u.val - 1 < u.val := Nat.sub_lt h1 (by norm_num)
@@ -514,14 +518,14 @@ theorem mixtureClause_fixed :
             then (δ * α / (2 * R)) / dualSampleScale m (dualCertificate m δ α R j₀ y T)
             else ((∑ i, y ((((0 : Fin (T + 1)).val : ℕ)) - 1) i) / (T : ℝ) /
               dualSampleScale m (dualCertificate m δ α R j₀ y T))) := rfl
-      rw [hdef, if_pos hcond]
+      rw [hdef, ite_eq_left hcond]
     have htermw : ∀ t : Fin T, mixtureWeights m δ α R j₀ y T t.succ =
         (∑ i, y (t : ℕ) i) / (T : ℝ) / dualSampleScale m (dualCertificate m δ α R j₀ y T) := by
       intro t
       have hval : (((t.succ : Fin (T + 1)).val) - 1 : ℕ) = (t : ℕ) := by simp
       have hnn : ¬ (((t.succ : Fin (T + 1)).val : ℕ) = 0) := by simp
       simp only [mixtureWeights, hval]
-      rw [if_neg hnn]
+      rw [ite_eq_right hnn]
     rw [Fin.sum_univ_succ, hw0]
     have hrew : (∑ t : Fin T, mixtureWeights m δ α R j₀ y T t.succ) =
         ∑ t : Fin T, (∑ i, y (t : ℕ) i) / (T : ℝ) /
@@ -532,7 +536,7 @@ theorem mixtureClause_fixed :
         δ * α / (2 * R) + (∑ t ∈ Finset.range T, ∑ i, y t i) / (T : ℝ) := by
       simp only [dualSampleScale, dualCertificate]
       rw [Finset.sum_add_distrib]
-      simp only [Finset.sum_ite_eq', Finset.mem_univ, if_true]
+      simp only [Finset.sum_ite_eq', Finset.mem_univ, ite_true]
       rw [← Finset.sum_div, Finset.sum_comm]
     have hrest : (∑ t : Fin T, (∑ i, y (t : ℕ) i) / (T : ℝ) /
         dualSampleScale m (dualCertificate m δ α R j₀ y T)) =
@@ -578,7 +582,7 @@ theorem step2IdealLaw_isSamplingLaw (D m : ℕ) (A : Fin m → Operator D) (b : 
     Real.exp (-(κ / (4 * R ^ 2)) *
       ((k : ℝ) * (Matrix.trace (A i * ρ)).re + ((γ - k : ℕ) : ℝ) * b i))
   have he : ∀ i, 0 < e i := fun i => Real.exp_pos _
-  letI : Nonempty (Fin m) := ⟨⟨0, hm⟩⟩
+  let : Nonempty (Fin m) := ⟨⟨0, hm⟩⟩
   have hS : 0 < ∑ j, e j := Finset.sum_pos (fun i _ => he i) Finset.univ_nonempty
   have hne : (∑ j, e j : ℝ) ≠ 0 := ne_of_gt hS
   refine ⟨fun i => ?_, ?_⟩

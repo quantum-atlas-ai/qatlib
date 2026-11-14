@@ -5,7 +5,11 @@ Authors: Jiyuan Tan, Qatlib Contributors
 Adapted from https://github.com/Jiyuan-Tan/CausalSmith@e298f64
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Approximation.Causalean.Mathlib.Analysis.Approximation.Chebyshev.Kernel
+module
+
+public import Qatlib.Foundations.CbmdAnalysis.Approximation.Causalean.Mathlib.Analysis.Approximation.Chebyshev.Kernel
+
+@[expose] public section
 
 /-!
 # Trigonometric extraction and coefficient bounds

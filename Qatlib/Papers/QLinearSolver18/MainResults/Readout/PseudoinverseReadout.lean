@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QlsReadoutSpec.PseudoInverse
+module
+
+public import Qatlib.Concepts.QlsReadoutSpec.PseudoInverse
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -58,7 +62,7 @@ theorem spectralSupport_eq_one_of_ne_zero {D : ℕ} (eig : Fin D → ℝ) (V : O
   unfold spectralSupport
   have hd : (fun i => if eig i = 0 then (0 : ℂ) else 1) = fun _ => 1 := by
     funext i
-    rw [if_neg (hne i)]
+    rw [ite_eq_right (hne i)]
   rw [hd, Matrix.diagonal_one, Matrix.mul_one]
   simpa only [Matrix.star_eq_conjTranspose] using Matrix.mem_unitaryGroup_iff.mp hV
 

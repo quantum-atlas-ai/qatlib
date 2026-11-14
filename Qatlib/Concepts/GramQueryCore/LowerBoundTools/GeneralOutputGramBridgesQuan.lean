@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GramQueryCore.LowerBoundTools.GeneralOutputGramBridgesStat
-import Qatlib.Concepts.GramQueryCore.ModelSemantics.BooleanValueCompatibilityQuan
-import Mathlib.Tactic.LinearCombination
-import Qatlib.Concepts.GramQueryCore.LowerBoundTools.AlphabetPhaseWordAssemblyQuan
-import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
+module
+
+public import Qatlib.Concepts.GramQueryCore.LowerBoundTools.GeneralOutputGramBridgesStat
+public import Qatlib.Concepts.GramQueryCore.ModelSemantics.BooleanValueCompatibilityQuan
+public import Mathlib.Tactic.LinearCombination
+public import Qatlib.Concepts.GramQueryCore.LowerBoundTools.AlphabetPhaseWordAssemblyQuan
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
+
+@[expose] public section
 
 /-!
 # Gram bounds and general output states
@@ -378,7 +382,7 @@ theorem sourceGramAlphabet_apply {X S : Type} [Fintype S] [DecidableEq S] {n q :
   cases adj with
   | false =>
     rw [he]
-    simpa only [Bool.false_eq_true,if_false,sourceGramAlphabetEquiv,Equiv.coe_fn_symm_mk,
+    simpa only [Bool.false_eq_true,ite_false,sourceGramAlphabetEquiv,Equiv.coe_fn_symm_mk,
       sub_eq_add_neg] using! sourceGramPermutation_apply (sourceGramAlphabetEquiv input x) ψ ((j,a),w)
   | true =>
     simp only [ite_true,he,sourceGramPermutation_adjoint]
@@ -444,7 +448,7 @@ theorem sourceGram_one_query_cert {X S : Type} [Fintype X] [DecidableEq X]
         mul_neg,Finset.sum_neg_distrib]
       by_cases he : input x j=input y j
       · have hshift : shift j.castSucc x=shift j.castSucc y := by
-          simp only [shift,sourcePaddedSymbol,Fin.val_castSucc,dif_pos j.isLt]
+          simp only [shift,sourcePaddedSymbol,Fin.val_castSucc,dite_eq_left j.isLt]
           rw [he]
         have hi : Qatlib.Foundations.PureStateMath.Inner (b j.castSucc x) (b j.castSucc y)=Qatlib.Foundations.PureStateMath.Inner (a j.castSucc x) (a j.castSucc y) := by
           dsimp only [b]
@@ -506,7 +510,7 @@ theorem sourceGram_word_cert {X S : Type} [Fintype X] [DecidableEq X]
         funext x
         exact hrun x
       rw [he]
-      simpa only [hg,sourceWordCalls,List.countP_cons,Bool.false_eq_true,if_false,zero_add] using!
+      simpa only [hg,sourceWordCalls,List.countP_cons,Bool.false_eq_true,ite_false,zero_add] using!
           hi
     | inr adj =>
       let O (x : X) : Matrix ((Fin (n+1) × Fin (q+1)) × S) ((Fin (n+1) × Fin (q+1)) × S) ℂ :=

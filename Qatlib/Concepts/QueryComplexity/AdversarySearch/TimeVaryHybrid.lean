@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceMarkSetHybrid
-import Qatlib.Foundations.BornMetrics.EventProbability
+module
+
+public import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceMarkSetHybrid
+public import Qatlib.Foundations.BornMetrics.EventProbability
+
+@[expose] public section
 
 /-!
 # Hybrid bounds for time varying oracle edits

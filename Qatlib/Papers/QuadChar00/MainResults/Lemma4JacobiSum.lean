@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QuadChar00.MainResults.Defs
-import Mathlib.Data.Nat.ChineseRemainder
+module
+
+public import Qatlib.Papers.QuadChar00.MainResults.Defs
+public import Mathlib.Data.Nat.ChineseRemainder
+
+@[expose] public section
 
 /-!
 # Vanishing of Jacobi character sums
@@ -64,14 +68,14 @@ theorem lemma4_jacobiSum (n : ℕ) [NeZero n] (hn : Odd n) (hsq : Squarefree n)
     intro h0
     rw [h0, mul_zero] at hmul
     omega
-  haveI : NeZero p := ⟨hp_ne0⟩
-  haveI : NeZero m := ⟨hm_ne0⟩
+  have : NeZero p := ⟨hp_ne0⟩
+  have : NeZero m := ⟨hm_ne0⟩
   have hpsq : ¬ p * p ∣ n := (Nat.squarefree_iff_prime_squarefree.mp hsq) p hp
   have hcop : p.Coprime m := by
     rw [Nat.Prime.coprime_iff_not_dvd hp]
     intro hpm
     exact hpsq (by rw [← hmul]; exact mul_dvd_mul_left p hpm)
-  haveI : Fact p.Prime := ⟨hp⟩
+  have : Fact p.Prime := ⟨hp⟩
   have hchar : ringChar (ZMod p) ≠ 2 := by rw [ZMod.ringChar_zmod_n]; exact hp2
   obtain ⟨r, hr⟩ := quadraticChar_exists_neg_one (F := ZMod p) hchar
   obtain ⟨k, hk1, hk2⟩ := Nat.chineseRemainder hcop r.val 1

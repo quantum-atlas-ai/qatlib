@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CoherentSim.ResetDiscard.Equation12Stat
-import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.FiberBridge
-import Qatlib.Concepts.CoherentSim.ResetDiscard.CountedObliviousAmplification
+module
+
+public import Qatlib.Concepts.CoherentSim.ResetDiscard.Equation12Stat
+public import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.FiberBridge
+public import Qatlib.Concepts.CoherentSim.ResetDiscard.CountedObliviousAmplification
+
+@[expose] public section
 
 /-!
 # Exact scale-two oblivious amplification

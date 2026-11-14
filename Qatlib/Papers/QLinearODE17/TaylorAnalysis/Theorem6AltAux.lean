@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QLinearODE17.TaylorAnalysis.TaylorAux
-import Mathlib.Topology.Algebra.InfiniteSum.Order
-import Mathlib.Analysis.Normed.Group.InfiniteSum
-import Mathlib.Analysis.SpecificLimits.Basic
+module
+
+public import Qatlib.Papers.QLinearODE17.TaylorAnalysis.TaylorAux
+public import Mathlib.Topology.Algebra.InfiniteSum.Order
+public import Mathlib.Analysis.Normed.Group.InfiniteSum
+public import Mathlib.Analysis.SpecificLimits.Basic
+
+@[expose] public section
 
 /-!
 # Taylor polynomials for homogeneous and forced evolution

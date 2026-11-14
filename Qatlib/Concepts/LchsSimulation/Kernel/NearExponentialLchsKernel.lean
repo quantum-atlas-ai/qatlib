@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LchsSimulation.TimeOrdered.TimeOrderedConsumers
-import Mathlib.Analysis.SpecialFunctions.Complex.Analytic
-import Mathlib.Analysis.SpecialFunctions.ImproperIntegrals
-import Mathlib.MeasureTheory.Integral.Gamma
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.SpecialFunctions.Gamma.BohrMollerup
-import Mathlib.Analysis.Complex.RemovableSingularity
-import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
+module
+
+public import Qatlib.Concepts.LchsSimulation.TimeOrdered.TimeOrderedConsumers
+public import Mathlib.Analysis.SpecialFunctions.Complex.Analytic
+public import Mathlib.Analysis.SpecialFunctions.ImproperIntegrals
+public import Mathlib.MeasureTheory.Integral.Gamma
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.SpecialFunctions.Gamma.BohrMollerup
+public import Mathlib.Analysis.Complex.RemovableSingularity
+public import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
+
+@[expose] public section
 
 /-!
 # Near-exponential analytic kernels for LCHS

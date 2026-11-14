@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownFrameLocalSynthesis
-import Mathlib.GroupTheory.Perm.Sign
-import Mathlib.Data.ZMod.Basic
-import Qatlib.Papers.QMechSim97.MainResults.Defs
+module
+
+public import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownFrameLocalSynthesis
+public import Mathlib.GroupTheory.Perm.Sign
+public import Mathlib.Data.ZMod.Basic
+public import Qatlib.Papers.QMechSim97.MainResults.Defs
+
+@[expose] public section
 
 /-!
 # Periodic lattice propagation circuits
@@ -52,14 +56,14 @@ private theorem swapFactorsAux_length {N : ℕ} (l : List (Fin N)) :
   | cons x l ih =>
     intro f h
     by_cases hx : x = f x
-    · simp only [Equiv.Perm.swapFactorsAux, dif_pos hx]
+    · simp only [Equiv.Perm.swapFactorsAux, dite_eq_left hx]
       apply (ih f ?_).trans (Nat.le_succ _)
       intro y hy
       apply List.mem_of_ne_of_mem ?_ (h hy)
       intro hyx
       subst y
       exact hy hx.symm
-    · simp only [Equiv.Perm.swapFactorsAux, dif_neg hx, List.length_cons]
+    · simp only [Equiv.Perm.swapFactorsAux, dite_eq_right hx, List.length_cons]
       apply Nat.succ_le_succ (ih (Equiv.swap x (f x) * f) ?_)
       intro y hy
       have hs := Equiv.Perm.ne_and_ne_of_swap_mul_apply_ne_self hy

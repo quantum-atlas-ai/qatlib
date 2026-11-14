@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LchsSimulation.InhomLeftGrid.InhomogeneousSourceScheduleStat
-import Qatlib.Concepts.LchsSimulation.InhomLeftGrid.InhomogeneousSourceQuadratureLine
+module
+
+public import Qatlib.Concepts.LchsSimulation.InhomLeftGrid.InhomogeneousSourceScheduleStat
+public import Qatlib.Concepts.LchsSimulation.InhomLeftGrid.InhomogeneousSourceQuadratureLine
+
+@[expose] public section
 
 /-!
 # Explicit schedules for left-grid source approximation

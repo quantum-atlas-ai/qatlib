@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RiskEstimation.CVaREstimation.CVaRAlgorithmFiniteRestrictedStat
-import Qatlib.Concepts.RiskEstimation.VaRQuantile.StableQuantileFiniteRestrictedQuan
+module
+
+public import Qatlib.Concepts.RiskEstimation.CVaREstimation.CVaRAlgorithmFiniteRestrictedStat
+public import Qatlib.Concepts.RiskEstimation.VaRQuantile.StableQuantileFiniteRestrictedQuan
+
+@[expose] public section
 
 /-!
 # Finite conditional risk estimation

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CollisionProb97.MainResults.SearchReceipt
-import Qatlib.Papers.CollisionProb97.MainResults.TableRecords
-import Qatlib.Papers.CollisionProb97.MainResults.CollisionCounting
+module
+
+public import Qatlib.Papers.CollisionProb97.MainResults.SearchReceipt
+public import Qatlib.Papers.CollisionProb97.MainResults.TableRecords
+public import Qatlib.Papers.CollisionProb97.MainResults.CollisionCounting
+
+@[expose] public section
 
 /-!
 # Executing the regular collision algorithm
@@ -105,7 +109,7 @@ theorem run_correct (F : X → R) (r : ℕ) (hr : 2 ≤ r) (hF : RToOne F r)
   obtain ⟨z,hz,heq⟩ := (PMF.mem_support_map_iff _ _ _).mp hm
   have hout : z.1 = out := congrArg Prod.fst heq
   by_cases he : early F K = none
-  · simp only [dif_pos he] at hz
+  · simp only [dite_eq_left he] at hz
     change (z.1,z.2) ∈ ((SearchReceipt.recordReceipt Fintype.card_pos F K (table F K) l hl hl4
       (marked_pos F r hr hF K hK he)).map _).support at hz
     obtain ⟨w,hw,hwz⟩ := (PMF.mem_support_map_iff _ _ _).mp hz
@@ -123,7 +127,7 @@ theorem run_correct (F : X → R) (r : ℕ) (hr : 2 ≤ r) (hF : RToOne F r)
       exact hp.1 (hst ▸ hsK)
   · have hz' : z.1 = early F K := by
       have hmem : z ∈ (PMF.pure (early F K,0)).support := by
-        simpa only [dif_neg he, CostedLaw.ret] using hz
+        simpa only [dite_eq_right he, CostedLaw.ret] using hz
       exact congrArg Prod.fst ((PMF.mem_support_pure_iff _ _).mp hmem)
     cases hv : early F K with
     | none => exact False.elim (he hv)

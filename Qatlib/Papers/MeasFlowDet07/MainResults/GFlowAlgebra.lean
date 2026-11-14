@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowCoreDefs
-import Qatlib.Concepts.ClusterPatterns.ResourceCompile.ClusterStabilizerResourceQuan
-import Qatlib.Papers.MeasFlowDet07.MainResults.PlaneAnachronical
+module
+
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowCoreDefs
+public import Qatlib.Concepts.ClusterPatterns.ResourceCompile.ClusterStabilizerResourceQuan
+public import Qatlib.Papers.MeasFlowDet07.MainResults.PlaneAnachronical
+
+@[expose] public section
 
 /-!
 # Pauli algebra for generalized flow conditions
@@ -53,7 +57,7 @@ def mbqcPauliWord (a b : Bool) : Operator 2 :=
 theorem mbqcPauliWord_mul_X (a b : Bool) :
     mbqcPauliWord a b * pauliX = mbqcSign b • (pauliX * mbqcPauliWord a b) := by
   cases a <;> cases b <;>
-    simp only [mbqcPauliWord, mbqcSign, if_true, if_false, Bool.false_eq_true, one_mul,
+    simp only [mbqcPauliWord, mbqcSign, ite_true, ite_false, Bool.false_eq_true, one_mul,
       mul_one] <;>
     ext i j <;> fin_cases i <;> fin_cases j <;>
       simp [pauliX, pauliZ, Matrix.mul_apply, Fin.sum_univ_two, Matrix.smul_apply]
@@ -62,7 +66,7 @@ theorem mbqcPauliWord_mul_X (a b : Bool) :
 theorem mbqcPauliWord_mul_Z (a b : Bool) :
     mbqcPauliWord a b * pauliZ = mbqcSign a • (pauliZ * mbqcPauliWord a b) := by
   cases a <;> cases b <;>
-    simp only [mbqcPauliWord, mbqcSign, if_true, if_false, Bool.false_eq_true, one_mul,
+    simp only [mbqcPauliWord, mbqcSign, ite_true, ite_false, Bool.false_eq_true, one_mul,
       mul_one] <;>
     ext i j <;> fin_cases i <;> fin_cases j <;>
       simp [pauliX, pauliZ, Matrix.mul_apply, Fin.sum_univ_two, Matrix.smul_apply]
@@ -72,7 +76,7 @@ differ. -/
 theorem mbqcPauliWord_mul_Y (a b : Bool) :
     mbqcPauliWord a b * pauliY = mbqcSign (a != b) • (pauliY * mbqcPauliWord a b) := by
   cases a <;> cases b <;>
-    simp only [mbqcPauliWord, mbqcSign, if_true, if_false, Bool.false_eq_true, one_mul,
+    simp only [mbqcPauliWord, mbqcSign, ite_true, ite_false, Bool.false_eq_true, one_mul,
       mul_one] <;>
     ext i j <;> fin_cases i <;> fin_cases j <;>
       simp [pauliX, pauliZ, pauliY, Matrix.mul_apply, Fin.sum_univ_two, Matrix.smul_apply]
@@ -159,7 +163,7 @@ theorem mbqcPauliWord_mul_axisB (lam : MbqcPlane) (a b : Bool) :
 
 /-- The sign `mbqcSign t` equals `-1` exactly when `t = true`. -/
 theorem mbqcSign_eq_neg_one (t : Bool) : mbqcSign t = -1 ↔ t = true := by
-  cases t <;> simp [mbqcSign] <;> norm_num
+  cases t <;> simp [mbqcSign]; norm_num
 
 /-- For a nonzero qubit operator `M`, the equality `s • M = -M` holds exactly when `s = -1`. -/
 theorem smul_eq_neg_iff {M : Operator 2} (hM : M ≠ 0) (s : ℂ) :
@@ -181,7 +185,7 @@ theorem smul_eq_neg_iff {M : Operator 2} (hM : M ≠ 0) (s : ℂ) :
 /-- A qubit operator with nonzero determinant is nonzero. -/
 theorem det_ne_zero_imp_ne_zero {M : Operator 2} (h : M.det ≠ 0) : M ≠ 0 := by
   intro h0
-  exact h (by rw [h0]; simp [Matrix.det_fin_two])
+  exact h (by rw [h0]; simp [])
 
 /-- The determinant of `pauliX` is nonzero. -/
 theorem pauliX_det_ne_zero : pauliX.det ≠ 0 := by
@@ -255,8 +259,7 @@ theorem mbqcAnachronical_anticomm_axisB (lam : MbqcPlane) :
     mbqcAnachronical lam * mbqcPlaneAxisB lam
       = -(mbqcPlaneAxisB lam * mbqcAnachronical lam) := by
   have h := mbqcAnachronical_anticomm lam (Real.pi / 2)
-  simp only [mbqcPlaneObservable, Real.cos_pi_div_two, Real.sin_pi_div_two,
-    zero_mul, one_mul, zero_add] at h
+  simp only [mbqcPlaneObservable, Real.cos_pi_div_two, Real.sin_pi_div_two] at h
   simpa using h
 
 /-- Anticommutation of a Pauli word with both plane axes implies `mbqcGFlowPlaneCond` for its
@@ -323,7 +326,7 @@ theorem stabilizer_eq_localX_neighborZ {n : ℕ} (edges : Finset (Fin n × Fin n
   apply Finset.prod_congr rfl
   intro w _
   by_cases h : (v, w) ∈ edges ∨ (w, v) ∈ edges <;> cases hx : x w <;>
-    simp [h, hx, bitPhase]
+    simp [h, bitPhase]
 
 /-- The controlled-Z matrix for any edge set squares to the identity. -/
 theorem czMatrix_mul_self {n : ℕ} (edges : Finset (Fin n × Fin n)) :
@@ -349,7 +352,7 @@ theorem czMatrix_mul_localX {n : ℕ} (G : MbqcGraph n) (hG : mbqcCanonical G) (
     simp [localX, permMatrix]
   · have hx : localX v x y = 0 := by
       simp only [localX, permMatrix, Matrix.of_apply]
-      rw [if_neg]
+      rw [ite_eq_right]
       simpa [flipBit] using h
     simp [hx]
 
@@ -402,7 +405,7 @@ theorem mbqcPauliProj_mul_axis {A : Operator 2} (hA : A * A = 1) (b : Bool) :
 theorem mbqcPauliProj_X_mul (b : Bool) :
     mbqcPauliProj pauliX b * pauliX = mbqcSign b • mbqcPauliProj pauliX b := by
   apply mbqcPauliProj_mul_axis
-  ext i j <;> fin_cases i <;> fin_cases j <;>
+  ext i j; fin_cases i <;> fin_cases j <;>
     simp [pauliX, Matrix.mul_apply, Fin.sum_univ_two]
 
 /-- The Pauli `Y` outcome projector is a right eigenoperator of `pauliY` with eigenvalue
@@ -410,7 +413,7 @@ theorem mbqcPauliProj_X_mul (b : Bool) :
 theorem mbqcPauliProj_Y_mul (b : Bool) :
     mbqcPauliProj pauliY b * pauliY = mbqcSign b • mbqcPauliProj pauliY b := by
   apply mbqcPauliProj_mul_axis
-  ext i j <;> fin_cases i <;> fin_cases j <;>
+  ext i j; fin_cases i <;> fin_cases j <;>
     simp [pauliY, Matrix.mul_apply, Fin.sum_univ_two]
 
 /-- The Pauli `Z` outcome projector is a right eigenoperator of `pauliZ` with eigenvalue
@@ -418,7 +421,7 @@ theorem mbqcPauliProj_Y_mul (b : Bool) :
 theorem mbqcPauliProj_Z_mul (b : Bool) :
     mbqcPauliProj pauliZ b * pauliZ = mbqcSign b • mbqcPauliProj pauliZ b := by
   apply mbqcPauliProj_mul_axis
-  ext i j <;> fin_cases i <;> fin_cases j <;>
+  ext i j; fin_cases i <;> fin_cases j <;>
     simp [pauliZ, Matrix.mul_apply, Fin.sum_univ_two]
 
 end Qatlib.Papers.MeasFlowDet07.MainResults

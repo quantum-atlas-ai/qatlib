@@ -4,24 +4,28 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GradientOracle.StationaryPhase.StationaryPhaseVarianceStat
-import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.BigOperators.GroupWithZero.Finset
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Data.Fintype.Defs
-import Mathlib.Data.Real.Sqrt
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
-import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
-import Mathlib.Tactic.ByCases
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.FunProp
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.SimpRw
-import Mathlib.Tactic.SplitIfs
+module
+
+public import Qatlib.Concepts.GradientOracle.StationaryPhase.StationaryPhaseVarianceStat
+public import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.BigOperators.GroupWithZero.Finset
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Data.Fintype.Defs
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
+public import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
+public import Mathlib.Tactic.ByCases
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.FunProp
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.SimpRw
+public import Mathlib.Tactic.SplitIfs
+
+@[expose] public section
 
 /-!
 # Cube moments for the stationary-phase model
@@ -116,7 +120,7 @@ private theorem cube_second (d : ℕ) (i j : Fin d) :
     simp
   · have hz : (∫ x, pairFactor i j i x ∂coordinateMeasure) = 0 := by
       simpa [pairFactor, hij] using coordinate_first
-    rw [if_neg hij]
+    rw [ite_eq_right hij]
     exact Finset.prod_eq_zero (Finset.mem_univ i) hz
 
 /-- A row-linear combination of centered cube coordinates has mean zero and second moment equal
@@ -144,7 +148,7 @@ private theorem cube_linear (d : ℕ) (A : Matrix (Fin d) (Fin d) ℝ) (i : Fin 
       integrable_finsetSum _ (fun k _ => (pair_integrable j k).const_mul (A i j*A i k)))]
     simp_rw [integral_finsetSum _ (fun k _ => (pair_integrable _ k).const_mul _),
       integral_const_mul, cube_second]
-    simp only [mul_ite, mul_zero, Finset.sum_ite_eq, Finset.mem_univ, if_true]
+    simp only [mul_ite, mul_zero, Finset.sum_ite_eq, Finset.mem_univ, ite_true]
     rw [Finset.mul_sum]
     apply Finset.sum_congr rfl
     intro j _

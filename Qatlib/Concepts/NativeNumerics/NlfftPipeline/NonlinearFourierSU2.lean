@@ -4,31 +4,35 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Intervals
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Algebra.EuclideanDomain.Basic
-import Mathlib.Algebra.Order.BigOperators.GroupWithZero.List
-import Mathlib.Algebra.Polynomial.Basic
-import Mathlib.Algebra.Polynomial.Coeff
-import Mathlib.Algebra.Polynomial.Degree.Lemmas
-import Mathlib.Algebra.Polynomial.Eval.Defs
-import Mathlib.Algebra.Polynomial.Inductions
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Basic.Complex.Basic
-import Mathlib.Data.Finset.Range
-import Mathlib.Data.Nat.Basic
-import Mathlib.Analysis.Real.Sqrt
-import Mathlib.Order.Basic
-import Mathlib.Tactic.ByCases
-import Mathlib.Tactic.ByContra
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.LinearCombination
-import Mathlib.Tactic.Ring
-import Mathlib.Algebra.Polynomial.Reverse
-import Mathlib.Algebra.Polynomial.Degree.Operations
-import Mathlib.Algebra.Polynomial.FieldDivision
-import Mathlib.RingTheory.EuclideanDomain
+module
+
+public import Mathlib.Algebra.BigOperators.Intervals
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Algebra.EuclideanDomain.Basic
+public import Mathlib.Algebra.Order.BigOperators.GroupWithZero.List
+public import Mathlib.Algebra.Polynomial.Basic
+public import Mathlib.Algebra.Polynomial.Coeff
+public import Mathlib.Algebra.Polynomial.Degree.Lemmas
+public import Mathlib.Algebra.Polynomial.Eval.Defs
+public import Mathlib.Algebra.Polynomial.Inductions
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Data.Finset.Range
+public import Mathlib.Data.Nat.Basic
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Order.Basic
+public import Mathlib.Tactic.ByCases
+public import Mathlib.Tactic.ByContra
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.LinearCombination
+public import Mathlib.Tactic.Ring
+public import Mathlib.Algebra.Polynomial.Reverse
+public import Mathlib.Algebra.Polynomial.Degree.Operations
+public import Mathlib.Algebra.Polynomial.FieldDivision
+public import Mathlib.RingTheory.EuclideanDomain
+
+@[expose] public section
 
 /-!
 # SU(2) nonlinear Fourier polynomials and layer stripping

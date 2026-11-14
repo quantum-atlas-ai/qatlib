@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CopyEvolution.Discriminate.TwoSpeciesCopyExponential
-import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopyDrivenPhaseReadout
-import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopyPureReadout
-import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopySpectralReadout
+module
+
+public import Qatlib.Concepts.CopyEvolution.Discriminate.TwoSpeciesCopyExponential
+public import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopyDrivenPhaseReadout
+public import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopyPureReadout
+public import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopySpectralReadout
+
+@[expose] public section
 
 /-!
 # Two-species fresh-copy spectral readout
@@ -200,7 +204,7 @@ has trace one. -/
 theorem twoSpeciesQPEInput_density (D M : ℕ) (hM : 0 < M) (χ : Operator D)
     (hχ : IsDensityOperator χ) :
     (twoSpeciesQPEInput D M χ).PosSemidef ∧ Matrix.trace (twoSpeciesQPEInput D M χ) = 1 := by
-  rw [twoSpeciesQPEInput, dif_pos hM]
+  rw [twoSpeciesQPEInput, dite_eq_left hM]
   constructor
   · exact (outerProduct_posSemidef _).kronecker
       ((outerProduct_posSemidef _).kronecker hχ.1)
@@ -345,13 +349,12 @@ private theorem twoSpeciesQPE_conj_difference_norm {I : Type*} [Fintype I] [Deci
   rw [← (MatrixMap.conj U).map_sub]
   have hh : Uᴴ * U = 1 := by
     simpa only [Matrix.star_eq_conjTranspose] using! (Matrix.mem_unitaryGroup_iff').mp hU
-  letI : DecidableEq I := Classical.decEq I
+  let : DecidableEq I := Classical.decEq I
   have hu : U.Isometry := by
     change Uᴴ * U = 1
     convert! hh using 1
-    first
-      | exact Subsingleton.elim _ _
-      | (ext i j; simp [Matrix.one_apply])
+    ext i j
+    simp [Matrix.one_apply]
   change (U * (A - B) * Uᴴ).traceNorm = (A - B).traceNorm
   rw [Matrix.traceNorm_isometry_right hu, Matrix.traceNorm_isometry_left hu]
 
@@ -505,7 +508,7 @@ private theorem twoSpecies_input_expansion (D M : ℕ) (hM : 0 < M) (V χ : Oper
     twoSpeciesQPEInput D M χ=∑ j, ∑ k, ((Vᴴ*χ*V) j k) •
       twoSpeciesDyad (TensorState (Ket (⟨0,hM⟩ : Fin M)) (TensorState (Ket false) (fun a => V a j)))
         (TensorState (Ket (⟨0,hM⟩ : Fin M)) (TensorState (Ket false) (fun a => V a k))) := by
-  rw [twoSpeciesQPEInput,dif_pos hM]
+  rw [twoSpeciesQPEInput,dite_eq_left hM]
   conv_lhs => rw [twoSpecies_basis_expansion D V χ hV]
   ext ⟨a,b,i⟩ ⟨c,e,l⟩
   simp only [tensorGate_apply,Matrix.sum_apply,Matrix.smul_apply,outerProduct_apply,
@@ -534,7 +537,6 @@ private theorem twoSpecies_eigenphase (D : ℕ) (ρ σ V : Operator D) (x : Fin 
     push_cast; ring
   funext a
   have h := congrArg (fun A : Operator D => A a j) he
-  (try dsimp only at h)
   rw [Matrix.mul_diagonal] at h
   simp only [Matrix.mul_apply] at h
   change (∑ k, hamiltonianEvolution (ρ-σ) Real.pi a k*V k j)=

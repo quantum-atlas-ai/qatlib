@@ -28,12 +28,16 @@ regimes — is fully retained.
 Everything is built on `Mathlib.Combinatorics.Young.YoungDiagram`; no
 axiom, no `admit`, no `native_decide`.
 -/
-import Mathlib.Combinatorics.Young.YoungDiagram
-import Batteries.Tactic.Exact
-import Lean.Elab.Tactic.Omega
-import Mathlib.Algebra.Polynomial.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Data.Nat.Choose.Basic
+module
+
+public import Mathlib.Combinatorics.Young.YoungDiagram
+public import Batteries.Tactic.Exact
+public import Lean.Elab.Tactic.Omega
+public import Mathlib.Algebra.Polynomial.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Data.Nat.Choose.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

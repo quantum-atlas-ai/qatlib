@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QCryptanal15.MainResults.Complexity.GroverBudget
-import Qatlib.Papers.QCryptanal15.MainResults.TruncatedDifferential.Q2Distinguisher
-import Qatlib.Papers.QCryptanal15.MainResults.SimpleDifferential.Q1LastRounds
+module
+
+public import Qatlib.Papers.QCryptanal15.MainResults.Complexity.GroverBudget
+public import Qatlib.Papers.QCryptanal15.MainResults.TruncatedDifferential.Q2Distinguisher
+public import Qatlib.Papers.QCryptanal15.MainResults.SimpleDifferential.Q1LastRounds
+
+@[expose] public section
 
 /-!
 # Q1 truncated-differential last-round costs

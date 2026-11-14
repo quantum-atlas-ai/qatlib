@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommutLCHS26.MainResults.BCHWordPowers
+module
+
+public import Qatlib.Papers.CommutLCHS26.MainResults.BCHWordPowers
+
+@[expose] public section
 
 /-!
 # Clone multiplicities in BCH coefficient bounds
@@ -147,7 +151,7 @@ theorem clone_permutation_word_sum (m : Fin Γ → ℕ) :
   simp only [evaluate_relabel_word] at hex
   have hscale := extract_scaleWords (cloneSet m) (cloneSet_disjoint m) (expandedWord m) (fun i => by
     rw [cloneSet_card]
-    simpa only [expandedWord, if_pos (List.mem_finRange i)] using!
+    simpa only [expandedWord, ite_eq_left (List.mem_finRange i)] using!
       count_expanded_list (List.finRange Γ) (List.nodup_finRange Γ) m i)
     ((∑ i : Fin Γ, letter i) ^ (cloneWord m).length)
   change extractCoefficient (blockDegree Finset.univ (cloneSet m))

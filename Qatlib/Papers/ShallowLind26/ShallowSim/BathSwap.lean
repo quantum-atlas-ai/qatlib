@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Finset.Basic
-import Mathlib.Logic.Function.Basic
+module
+
+public import Mathlib.Data.Finset.Basic
+public import Mathlib.Logic.Function.Basic
+
+@[expose] public section
 
 /-!
 # Bath-register exchange (Lemma 5.2)

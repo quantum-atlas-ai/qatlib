@@ -4,13 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QuadHamilton24.MainResults.QuadHamiltonModel
-import Mathlib.Analysis.Calculus.MeanValue
-import Mathlib.Analysis.SpecialFunctions.Exponential
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NoncommRing
-import Mathlib.Tactic.Ring
+module
+
+public import Mathlib.Analysis.Calculus.Deriv.Comp
+public import Qatlib.Papers.QuadHamilton24.MainResults.QuadHamiltonModel
+public import Mathlib.Analysis.Calculus.MeanValue
+public import Mathlib.Analysis.SpecialFunctions.Exponential
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NoncommRing
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

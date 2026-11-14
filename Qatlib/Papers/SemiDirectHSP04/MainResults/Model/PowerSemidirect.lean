@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SemiDirectHSP04.MainResults.Model.SemidirectGroup
-import Mathlib.Algebra.Group.Equiv.Basic
+module
+
+public import Qatlib.Papers.SemiDirectHSP04.MainResults.Model.SemidirectGroup
+public import Mathlib.Algebra.Group.Equiv.Basic
+
+@[expose] public section
 
 /-!
 # Diagonal cyclic actions on powers of cyclic groups

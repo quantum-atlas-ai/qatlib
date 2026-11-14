@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QWalkLine00.MainResults.WalkModel.FamilyDerivatives
-import Qatlib.Papers.QWalkLine00.MainResults.LinearMixing.MixingCore
+module
+
+public import Qatlib.Papers.QWalkLine00.MainResults.WalkModel.FamilyDerivatives
+public import Qatlib.Papers.QWalkLine00.MainResults.LinearMixing.MixingCore
+
+@[expose] public section
 
 /-!
 # Density expressions and conditional mixing for a walk family

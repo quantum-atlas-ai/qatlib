@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ArthurMerlin05.StaticGames.Fidelity.Lemma53
+module
+
+public import Qatlib.Papers.ArthurMerlin05.StaticGames.Fidelity.Lemma53
+
+@[expose] public section
 
 /-!
 # Theorem 5.4 — the `1/2 + 2^{-r}` soundness compression

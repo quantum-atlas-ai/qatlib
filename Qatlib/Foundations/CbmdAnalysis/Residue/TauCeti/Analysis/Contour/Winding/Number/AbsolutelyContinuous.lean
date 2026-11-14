@@ -6,10 +6,14 @@ Authors: The Tau Ceti contributors, Qatlib Contributors
 Adapted from https://github.com/TauCetiProject/TauCeti@3780371c
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+module
 
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Winding.Number.Basic
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.MeasureTheory.Integral.IntervalIntegral.AbsolutelyContinuousFun
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Winding.Number.Basic
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.MeasureTheory.Integral.IntervalIntegral.AbsolutelyContinuousFun
+
+@[expose] public section
 
 /-!
 # Integral formula for absolutely continuous winding numbers

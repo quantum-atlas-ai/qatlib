@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Analysis.Complex.Trigonometric
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Data.Matrix.Mul
-import Mathlib.Data.Fin.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Analysis.Complex.Trigonometric
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.Data.Fin.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Phase and basis-change gate widgets

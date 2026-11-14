@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.TorusFourier.FourierCoefficientList
-import Qatlib.Concepts.EffectiveGauge.TorusFourier.FrequencyGridExecution
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SourceCoefficientFromGap
+module
+
+public import Qatlib.Concepts.EffectiveGauge.TorusFourier.FourierCoefficientList
+public import Qatlib.Concepts.EffectiveGauge.TorusFourier.FrequencyGridExecution
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SourceCoefficientFromGap
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

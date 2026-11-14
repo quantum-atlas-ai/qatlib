@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionCoreDefs
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionNative
-import Qatlib.Concepts.BitWordCompiler.CanonicalCodec.BitWordEmitterDefs
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionCoreDefs
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionNative
+public import Qatlib.Concepts.BitWordCompiler.CanonicalCodec.BitWordEmitterDefs
+
+@[expose] public section
 
 /-!
 # Fixed-point representations

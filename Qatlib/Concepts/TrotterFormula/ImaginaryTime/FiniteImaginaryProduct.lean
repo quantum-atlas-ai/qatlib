@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LchsSimulation.LchsRep.ImaginaryTimeProduct
-import Qatlib.Concepts.TrotterFormula.LieStrang.CommutatorProductFormula
+module
+
+public import Qatlib.Concepts.LchsSimulation.LchsRep.ImaginaryTimeProduct
+public import Qatlib.Concepts.TrotterFormula.LieStrang.CommutatorProductFormula
+
+@[expose] public section
 
 /-!
 # Finite-family imaginary-time product formulas

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LchsSimulation.InhomLeftGrid.InhomogeneousSourceQuadratureStat
-import Qatlib.Concepts.LchsSimulation.KTrapezoid.InhomogeneousTrapezoidSourceDefs
+module
+
+public import Qatlib.Concepts.LchsSimulation.InhomLeftGrid.InhomogeneousSourceQuadratureStat
+public import Qatlib.Concepts.LchsSimulation.KTrapezoid.InhomogeneousTrapezoidSourceDefs
+
+@[expose] public section
 
 /-!
 # Trapezoidal source error specification

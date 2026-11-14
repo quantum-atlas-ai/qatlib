@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.TorusFourier.FourierRegularity
-import Qatlib.Concepts.EffectiveGauge.TorusFourier.FourierSeries
-import Qatlib.Concepts.EffectiveGauge.TorusFourier.PoissonCoefficient
+module
+
+public import Qatlib.Concepts.EffectiveGauge.TorusFourier.FourierRegularity
+public import Qatlib.Concepts.EffectiveGauge.TorusFourier.FourierSeries
+public import Qatlib.Concepts.EffectiveGauge.TorusFourier.PoissonCoefficient
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

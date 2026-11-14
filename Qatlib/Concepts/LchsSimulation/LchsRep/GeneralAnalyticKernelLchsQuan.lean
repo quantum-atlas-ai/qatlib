@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LchsSimulation.LchsRep.GeneralAnalyticKernelLchsStat
-import Qatlib.Concepts.LchsSimulation.LchsRep.GeneralAnalyticLchsKernel
+module
+
+public import Qatlib.Concepts.LchsSimulation.LchsRep.GeneralAnalyticKernelLchsStat
+public import Qatlib.Concepts.LchsSimulation.LchsRep.GeneralAnalyticLchsKernel
+
+@[expose] public section
 
 /-!
 # LCHS representation with general analytic kernels

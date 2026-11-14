@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.Th4Expander.SzegedyTheorem4ExpanderChainStat
-import Qatlib.Concepts.WalkSearch.Detection.CorrectedSzegedyDetector
-import Qatlib.Concepts.WalkSearch.ProjectorCS
-import Qatlib.Concepts.WalkSearch.Th4Expander.SzegedyTheorem4ExpanderGroverDefs
+module
+
+public import Qatlib.Concepts.WalkSearch.Th4Expander.SzegedyTheorem4ExpanderChainStat
+public import Qatlib.Concepts.WalkSearch.Detection.CorrectedSzegedyDetector
+public import Qatlib.Concepts.WalkSearch.ProjectorCS
+public import Qatlib.Concepts.WalkSearch.Th4Expander.SzegedyTheorem4ExpanderGroverDefs
+
+@[expose] public section
 
 /-!
 # Expander detection probability contract

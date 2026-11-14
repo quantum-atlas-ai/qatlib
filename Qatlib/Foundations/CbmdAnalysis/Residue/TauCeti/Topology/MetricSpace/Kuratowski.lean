@@ -6,11 +6,15 @@ Authors: The Tau Ceti contributors, Qatlib Contributors
 Adapted from https://github.com/TauCetiProject/TauCeti@3780371c
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+module
 
-import Mathlib.Topology.ContinuousMap.Bounded.Basic
-import Mathlib.Topology.MetricSpace.Kuratowski
-import Mathlib.Topology.Algebra.Module.Basic
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+
+public import Mathlib.Topology.ContinuousMap.Bounded.Basic
+public import Mathlib.Topology.MetricSpace.Kuratowski
+public import Mathlib.Topology.Algebra.Module.Basic
+
+@[expose] public section
 
 /-!
 # Kuratowski isometries into complete normed spaces

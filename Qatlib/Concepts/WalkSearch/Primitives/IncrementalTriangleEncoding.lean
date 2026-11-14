@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.Primitives.IncrementalTriangleRanks
-import Qatlib.Concepts.WalkSearch.Primitives.CanonicalEdgeCounting
+module
+
+public import Qatlib.Concepts.WalkSearch.Primitives.IncrementalTriangleRanks
+public import Qatlib.Concepts.WalkSearch.Primitives.CanonicalEdgeCounting
+
+@[expose] public section
 
 /-!
 # Encoding triangles by their last edge

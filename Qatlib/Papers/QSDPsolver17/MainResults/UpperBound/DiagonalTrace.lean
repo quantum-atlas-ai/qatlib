@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QSDPsolver17.MainResults.PaperInterface.PaperDefs
+module
+
+public import Qatlib.Papers.QSDPsolver17.MainResults.PaperInterface.PaperDefs
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -37,8 +41,8 @@ Headline resource specification for `lemma11_diagonal_flag`.
 The records below carry independent output and resource annotations; this proposition
 does not certify an oracle execution, sampling procedure, or gate decomposition. -/
 def lemma11_diagonal_flag_statement (n : ℕ) (A H : Matrix (Fin n) (Fin n) ℝ) (μ : ℝ)
-    (hμ : 0 < μ) (hA : IsDiagonal A) (hH : IsDiagonal H) (hAnorm : OpNormLE_R A 1)
-    (hHpsd : ∀ i, 0 ≤ H i i) : Prop :=
+    (_hμ : 0 < μ) (_hA : IsDiagonal A) (_hH : IsDiagonal H) (_hAnorm : OpNormLE_R A 1)
+    (_hHpsd : ∀ i, 0 ≤ H i i) : Prop :=
     ∃ F : RealProbabilityCircuit n,
       |F.prob - (Matrix.trace (((1 / (4 * (n : ℝ))) • (1 + A / 2)) * matExpR H))| ≤ μ ∧
       F.queries = 1 ∧

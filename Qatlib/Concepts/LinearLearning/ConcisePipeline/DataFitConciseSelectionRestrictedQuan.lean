@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LinearLearning.ConcisePipeline.DataFitConciseSelectionRestrictedStat
-import Qatlib.Concepts.LinearLearning.ConcisePipeline.ConciseFitSelection
+module
+
+public import Qatlib.Concepts.LinearLearning.ConcisePipeline.DataFitConciseSelectionRestrictedStat
+public import Qatlib.Concepts.LinearLearning.ConcisePipeline.ConciseFitSelection
+
+@[expose] public section
 
 /-!
 # Restricted concise fitting from sampled coordinates

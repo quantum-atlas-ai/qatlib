@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AdiabLimit07.MainResults.Definitions
+module
+
+public import Qatlib.Papers.AdiabLimit07.MainResults.Definitions
+
+@[expose] public section
 
 /-!
 # Walsh character and coupling bounds
@@ -72,10 +76,10 @@ theorem walshChar_sum (x y : Reg n) :
       subst h
       simp [ZeroStr]
   by_cases hxy : x = y
-  · rw [if_pos (hiff.mpr hxy), if_pos hxy]
+  · rw [ite_eq_left (hiff.mpr hxy), ite_eq_left hxy]
     push_cast
     ring
-  · rw [if_neg (fun h => hxy (hiff.mp h)), if_neg hxy]
+  · rw [ite_eq_right (fun h => hxy (hiff.mp h)), ite_eq_right hxy]
 
 /-- The real cardinalities of the `qBlock` fibers sum to the number `2 ^ n` of register
 configurations. -/
@@ -124,7 +128,7 @@ theorem coupling_bound {q : ℕ} (F : Fin (q + 1) → ℝ)
     by_cases hk : k = K
     · subst hk
       simp
-    · rw [if_neg hk, norm_mul, Complex.norm_real, Real.norm_eq_abs]
+    · rw [ite_eq_right hk, norm_mul, Complex.norm_real, Real.norm_eq_abs]
       have hS := walshChar_block_sum_norm_le qIdx k x y
       have hFK : |F K - F k| ≤ maxF := by
         have h1 : F K - F k ≤ maxF := by linarith [hmax K, hnonneg k]
@@ -148,7 +152,7 @@ theorem coupling_bound {q : ℕ} (F : Fin (q + 1) → ℝ)
             maxF * ((qBlock qIdx k).card : ℝ) := by
       apply Finset.sum_congr rfl
       intro k hk
-      rw [if_neg (Finset.ne_of_mem_erase hk)]
+      rw [ite_eq_right (Finset.ne_of_mem_erase hk)]
     rw [hcongr, ← Finset.mul_sum]
     have hsplit := Finset.sum_erase_add (s := (Finset.univ : Finset (Fin (q + 1))))
       (f := fun k => ((qBlock qIdx k).card : ℝ)) (Finset.mem_univ K)
@@ -174,7 +178,7 @@ theorem im_inner_sum_le_sqrt {γ : Reg n → ℂ} (hγ : Normalized γ) (w : Reg
     have h2 := hterm_sq w
     nlinarith [norm_nonneg (γ w)]
   have hcard : (∑ _y : Reg n, (1 : ℝ)) = ((2 : ℕ) ^ n : ℝ) := by
-    simp [Finset.sum_const, card_reg]
+    simp [Finset.sum_const]
   have hnorm_sum : (∑ y : Reg n, ‖γ y‖) ≤ Real.sqrt (((2 : ℕ) ^ n : ℝ)) := by
     calc
       (∑ y : Reg n, ‖γ y‖) = ∑ y : Reg n, (1 : ℝ) * ‖γ y‖ := by simp

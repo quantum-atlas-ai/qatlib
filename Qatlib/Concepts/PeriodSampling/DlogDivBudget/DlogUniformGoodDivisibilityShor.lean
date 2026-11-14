@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PeriodSampling.DlogDivBudget.DlogUniformGoodDivisibilityStat
-import Qatlib.Concepts.PeriodSampling.DlogDivBudget.DlogGoodPairCounting
-import Qatlib.Concepts.PeriodSampling.DlogDivBudget.DlogPrimePowerDivisibilityShor
+module
+
+public import Qatlib.Concepts.PeriodSampling.DlogDivBudget.DlogUniformGoodDivisibilityStat
+public import Qatlib.Concepts.PeriodSampling.DlogDivBudget.DlogGoodPairCounting
+public import Qatlib.Concepts.PeriodSampling.DlogDivBudget.DlogPrimePowerDivisibilityShor
+
+@[expose] public section
 
 /-!
 # Divisibility probabilities for uniform good samples

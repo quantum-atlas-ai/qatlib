@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Tactic
-import Mathlib.Data.Matrix.Mul
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Analysis.InnerProductSpace.Basic
+module
+
+public import Mathlib.Tactic
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Analysis.InnerProductSpace.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

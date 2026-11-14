@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowDefs
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlow
-import Qatlib.Concepts.MbqcFlow.FlowDecision.IsingClusterResource
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowClause2
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowCore
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowCounterexamples
-import Qatlib.Concepts.MbqcFlow.FlowDecision.FlowExtended
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowPreentangled
+module
+
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowDefs
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlow
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.IsingClusterResource
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowClause2
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowCore
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowCounterexamples
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.FlowExtended
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowPreentangled
+
+@[expose] public section
 
 /-!
 # Explicit measurement-gate identities
@@ -81,9 +85,9 @@ private theorem fig2b_pulse_apply (x y : Reg 3) :
   · rw [Finset.sum_eq_zero (fun w _ => by
       by_cases hxw : x = w
       · have hwy : w ≠ y := fun h => hxy (hxw.trans h)
-        rw [if_pos hxw, if_neg hwy, mul_zero]
-      · rw [if_neg hxw, zero_mul])]
-    rw [if_neg hxy]
+        rw [ite_eq_left hxw, ite_eq_right hwy, mul_zero]
+      · rw [ite_eq_right hxw, zero_mul])]
+    rw [ite_eq_right hxy]
 
 /-- Every entry of the zero-angle, false-outcome XY measurement matrix is `1 / 2`. -/
 private theorem plane_basis_XY0_entry (z d : Bool) :
@@ -140,12 +144,12 @@ private theorem fig2b_outmg_apply (z : Bool) (j : Fin 4) (v : Reg 3) :
       · by_cases hk2 : y 2 = v 2
         · exact absurd (funext fun k => by fin_cases k <;> simp [hk0, hk1, hk2]) hy
         · rw [Finset.prod_eq_zero (Finset.mem_erase.mpr ⟨by fin_cases y <;> omega,
-              Finset.mem_univ 2⟩) (by rw [if_neg hk2])]
+              Finset.mem_univ 2⟩) (by rw [ite_eq_right hk2])]
           ring
       · rw [Finset.prod_eq_zero (Finset.mem_erase.mpr ⟨by fin_cases y <;> omega,
-              Finset.mem_univ 1⟩) (by rw [if_neg hk1])]
+              Finset.mem_univ 1⟩) (by rw [ite_eq_right hk1])]
         ring
-    · rw [if_neg hk0]
+    · rw [ite_eq_right hk0]
       ring
   · intro h
     exact absurd (Finset.mem_univ _) h
@@ -161,9 +165,9 @@ private theorem fig2b_outmgpulse_apply (z : Bool) (j : Fin 4) (w : Reg 3) :
   rw [Matrix.mul_apply]
   simp only [fig2b_pulse_apply]
   rw [Finset.sum_eq_single w]
-  · rw [if_pos rfl, fig2b_outmg_apply]
+  · rw [ite_eq_left rfl, fig2b_outmg_apply]
   · intro v _ hv
-    rw [if_neg hv, mul_zero]
+    rw [ite_eq_right hv, mul_zero]
   · intro h
     exact absurd (Finset.mem_univ _) h
 
@@ -199,7 +203,7 @@ private theorem fig2b_kraus_false_entry (z : Bool) (j : Fin 4) (i : Fin 2) :
         (bitVecEquiv 2).symm j 1] : Reg 3) 1 = (bitVecEquiv 2).symm j 0 := rfl
     have hb2 : (![boolEquivFin2.symm i, (bitVecEquiv 2).symm j 0,
         (bitVecEquiv 2).symm j 1] : Reg 3) 2 = (bitVecEquiv 2).symm j 1 := rfl
-    rw [hb0, hb1, hb2, if_pos rfl, if_pos rfl, if_pos rfl]
+    rw [hb0, hb1, hb2, ite_eq_left rfl, ite_eq_left rfl, ite_eq_left rfl]
     have hph : (bitPhase ((bitVecEquiv 2).symm j 0) * bitPhase ((bitVecEquiv 2).symm j 1) *
         bitPhase (boolEquivFin2.symm i && (bitVecEquiv 2).symm j 0) *
         bitPhase (boolEquivFin2.symm i && (bitVecEquiv 2).symm j 1)) =
@@ -214,13 +218,13 @@ private theorem fig2b_kraus_false_entry (z : Bool) (j : Fin 4) (i : Fin 2) :
   · intro w _ hw
     rw [fig2b_outmgpulse_apply]
     by_cases hw0 : w 0 = boolEquivFin2.symm i
-    · rw [if_pos hw0]
+    · rw [ite_eq_left hw0]
       by_cases hw1 : w 1 = (bitVecEquiv 2).symm j 0
       · by_cases hw2 : w 2 = (bitVecEquiv 2).symm j 1
         · exact absurd (funext fun k => by fin_cases k <;> simp [hw0, hw1, hw2]) hw
-        · rw [if_neg hw2]; ring
-      · rw [if_neg hw1]; ring
-    · rw [if_neg hw0, mul_zero]
+        · rw [ite_eq_right hw2]; ring
+      · rw [ite_eq_right hw1]; ring
+    · rw [ite_eq_right hw0, mul_zero]
   · intro h
     exact absurd (Finset.mem_univ _) h
 

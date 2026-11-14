@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OverlapGapGoh26.OgpBridge.GaussianObstruction
+module
+
+public import Qatlib.Papers.OverlapGapGoh26.OgpBridge.GaussianObstruction
+
+@[expose] public section
 
 /-!
 # Energy density margins in overlap gap obstructions

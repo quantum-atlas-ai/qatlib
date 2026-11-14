@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CellularAuto96.MainResults.ActualEvolution
-import Qatlib.Concepts.QcaDynamics.PeriodicNoGo.RadiusBound
+module
+
+public import Qatlib.Papers.CellularAuto96.MainResults.ActualEvolution
+public import Qatlib.Concepts.QcaDynamics.PeriodicNoGo.RadiusBound
+
+@[expose] public section
 
 /-!
 # A coordinatewise finite-lattice no-go theorem

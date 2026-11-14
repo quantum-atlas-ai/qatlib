@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Tactic.NormNum
-import Qatlib.Foundations.FramedBits.FramedCodec.LengthFramedBitsDefs
+module
+
+public import Mathlib.Tactic.NormNum
+public import Qatlib.Foundations.FramedBits.FramedCodec.LengthFramedBitsDefs
+
+@[expose] public section
 
 /-!
 # Correctness and lengths of framed bit encodings

@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.TITCMTReport98.MainResults.PhysicalEvolution
-import Mathlib.Analysis.Asymptotics.AsymptoticEquivalent
-import Mathlib.Analysis.SpecificLimits.Basic
-import Mathlib.Order.Filter.AtTopBot.Field
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Data.Real.Sqrt
+module
+
+public import Qatlib.Papers.TITCMTReport98.MainResults.PhysicalEvolution
+public import Mathlib.Analysis.Asymptotics.AsymptoticEquivalent
+public import Mathlib.Analysis.SpecificLimits.Basic
+public import Mathlib.Order.Filter.AtTopBot.Field
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.Real.Sqrt
+
+@[expose] public section
 
 /-!
 # Two-level gap and quasistatic deficiency

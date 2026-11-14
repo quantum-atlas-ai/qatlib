@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NonlinearDE20.PolynomialStep.PolynomialForcingInteraction
-import Qatlib.Papers.NonlinearDE20.PolynomialStep.PositiveNormalization
+module
+
+public import Qatlib.Papers.NonlinearDE20.PolynomialStep.PolynomialForcingInteraction
+public import Qatlib.Papers.NonlinearDE20.PolynomialStep.PositiveNormalization
+
+@[expose] public section
 
 /-!
 # Variance and normalized error of the polynomial program

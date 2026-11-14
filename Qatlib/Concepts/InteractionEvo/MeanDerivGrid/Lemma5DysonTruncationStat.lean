@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.InteractionEvo.DysonGrid.DysonTruncationGrid
-import Qatlib.Concepts.InteractionEvo.MeanDerivGrid.Lemma5DysonAuxiliary
+module
+
+public import Qatlib.Concepts.InteractionEvo.DysonGrid.DysonTruncationGrid
+public import Qatlib.Concepts.InteractionEvo.MeanDerivGrid.Lemma5DysonAuxiliary
+
+@[expose] public section
 
 /-!
 # Statement of the Dyson truncation error budget

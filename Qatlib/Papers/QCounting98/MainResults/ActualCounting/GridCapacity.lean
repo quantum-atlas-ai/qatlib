@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QCounting98.MainResults.ActualCounting.ExactCountingCost
+module
+
+public import Qatlib.Papers.QCounting98.MainResults.ActualCounting.ExactCountingCost
+
+@[expose] public section
 
 /-!
 # Workspace capacity for adaptive counting grids

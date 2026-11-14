@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.CostRecurrences.UniformCosts
-import Mathlib.Data.Nat.Size
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+module
+
+public import Qatlib.Foundations.CostRecurrences.UniformCosts
+public import Mathlib.Data.Nat.Size
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+
+@[expose] public section
 
 /-!
 # Binary-size workspace bounds

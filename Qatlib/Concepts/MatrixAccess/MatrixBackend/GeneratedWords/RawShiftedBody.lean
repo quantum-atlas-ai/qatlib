@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.ShiftedEncodingModel
-import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.ShiftCoefficients
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.RationalCircle
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.HouseholderRotationTable
-import Qatlib.Concepts.MatrixContour.ContourCalc.ContourModel
+module
+
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.ShiftedEncodingModel
+public import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.ShiftCoefficients
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.RationalCircle
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.HouseholderRotationTable
+public import Qatlib.Concepts.MatrixContour.ContourCalc.ContourModel
+
+@[expose] public section
 
 open Qatlib.Foundations.QueryWordCore.Circuit
 

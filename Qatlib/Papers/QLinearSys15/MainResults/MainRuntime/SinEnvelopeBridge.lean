@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.SinEnvelopeHHLConsumers
-import Qatlib.Concepts.HhlErrorBridge.FilterStability
+module
+
+public import Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.SinEnvelopeHHLConsumers
+public import Qatlib.Concepts.HhlErrorBridge.FilterStability
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

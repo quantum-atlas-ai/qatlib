@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.Basic
-import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
-import Qatlib.Concepts.HhlAlgorithms.UniformHHL.UniformHHLFilter
-import Qatlib.Concepts.SpectralReadout.PhaseReadout.BornPerturbation
-import Qatlib.Concepts.LchsSimulation.StaticLchs.ReadoutError
-import Qatlib.Concepts.PhaseGeometry.RationalCayleyPhase
-import Mathlib.Analysis.Calculus.ContDiff.Deriv
-import Mathlib.Analysis.PSeries
+module
+
+public import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.Basic
+public import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
+public import Qatlib.Concepts.HhlAlgorithms.UniformHHL.UniformHHLFilter
+public import Qatlib.Concepts.SpectralReadout.PhaseReadout.BornPerturbation
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.ReadoutError
+public import Qatlib.Concepts.PhaseGeometry.RationalCayleyPhase
+public import Mathlib.Analysis.Calculus.ContDiff.Deriv
+public import Mathlib.Analysis.PSeries
+
+@[expose] public section
 
 /-!
 # Finite Grid Gradient Readout
@@ -375,7 +379,7 @@ private theorem gradient_qft_ket (M : ℕ) (q x : Fin M) :
       (Real.sqrt (M : ℝ) : ℂ)⁻¹ *
         Complex.exp (2*Real.pi*Complex.I*(((q.val : ℝ)*(x.val : ℝ))/(M : ℝ))) := by
   simp only [ApplyGate, Matrix.mulVec, dotProduct, Ket, mul_ite, mul_one, mul_zero,
-    Finset.sum_ite_eq', Finset.mem_univ, if_true, qftMatrix_apply, primRoot_zpow_eq_exp]
+    Finset.sum_ite_eq', Finset.mem_univ, ite_true, qftMatrix_apply, primRoot_zpow_eq_exp]
   congr 2
   push_cast
   ring
@@ -422,7 +426,7 @@ theorem gradient_offgrid_actual_readout (d M : ℕ) (hM : 0 < M)
   rw [gradientWord, run_append, run_append, run_query, run_nil, hp, gradient_run_smul, hb,
     run_coordinateQFT_adjoint_list d M O _
       (by simpa only [List.nodup_reverse] using! List.nodup_finRange d)]
-  simp only [List.mem_reverse, List.mem_finRange, if_true]
+  simp only [List.mem_reverse, List.mem_finRange, ite_true]
   rfl
 
 /-- Circular phase distance is symmetric in its two arguments. -/

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedMixedState
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedQueryBudget
-import Qatlib.Concepts.HspRecovery.SieveLaw.SharpSelectiveStability
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.ForwardHybrid.PaidCoarse.ProjectiveRisk
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedMixedState
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedQueryBudget
+public import Qatlib.Concepts.HspRecovery.SieveLaw.SharpSelectiveStability
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.ForwardHybrid.PaidCoarse.ProjectiveRisk
+
+@[expose] public section
 
 /-!
 # Trace norm stability of observed record statistics

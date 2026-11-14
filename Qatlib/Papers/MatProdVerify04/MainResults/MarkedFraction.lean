@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MatProdVerify04.MainResults.TrialAmplification
-import Mathlib.Analysis.SpecialFunctions.Exp
+module
+
+public import Qatlib.Papers.MatProdVerify04.MainResults.TrialAmplification
+public import Mathlib.Analysis.SpecialFunctions.Exp
+
+@[expose] public section
 
 /-!
 # Geometric bounds for repeated hits

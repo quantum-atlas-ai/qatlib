@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.AbelianSampling.OrbitFourierIdealGenerationSubgoalStat
-import Qatlib.Concepts.HspRecovery.AbelianSampling.AbelianStabilizerGenerationSubgoalQuan
+module
+
+public import Qatlib.Concepts.HspRecovery.AbelianSampling.OrbitFourierIdealGenerationSubgoalStat
+public import Qatlib.Concepts.HspRecovery.AbelianSampling.AbelianStabilizerGenerationSubgoalQuan
+
+@[expose] public section
 
 /-!
 # Generation of the dual group from ideal Fourier samples
@@ -46,9 +50,11 @@ private noncomputable def additiveBornDist : FinDist (Additive (AddChar E ℂ)) 
     rw [Equiv.sum_comp Additive.toMul (fourierBornDist E).prob]
     exact (fourierBornDist E).sum_one
 
+omit [AddCommGroup E] [Fintype E] [DecidableEq E] in
 /-- Every element of the additive character type has probability equal to the reciprocal of the
 original group cardinality. -/
-private theorem additiveBornDist_prob (x : Additive (AddChar E ℂ)) :
+private theorem additiveBornDist_prob [_group : AddCommGroup E] [_fintype : Fintype E]
+    [_decidableEq : DecidableEq E] (x : Additive (AddChar E ℂ)) :
     (additiveBornDist E).prob x = (Fintype.card E : ℝ)⁻¹ :=
   fourierBornDist_apply E _
 
@@ -103,9 +109,11 @@ private theorem closure_top_iff_closure_top {L : ℕ}
       | neg a _ iha => exact Subgroup.inv_mem _ iha
     exact key (Additive.ofMul y) (by rw [h]; trivial)
 
+omit [AddCommGroup E] [Fintype E] [DecidableEq E] in
 /-- The probability of failure to generate the character group is preserved when the Fourier
 Born distribution and samples are transported to the additive character type. -/
-private theorem probEvent_transport (L : ℕ) :
+private theorem probEvent_transport [_group : AddCommGroup E] [_fintype : Fintype E]
+    [_decidableEq : DecidableEq E] (L : ℕ) :
     Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.probEvent (L := L) (fourierBornDist E)
         (fun hs => Subgroup.closure (Set.range hs) ≠ ⊤)
       = Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.probEvent (L := L) (additiveBornDist E)
@@ -117,9 +125,9 @@ private theorem probEvent_transport (L : ℕ) :
   have hf : ((Equiv.refl (Fin L)).arrowCongr Additive.toMul) ω = Additive.toMul ∘ ω := rfl
   rw [hf]
   by_cases h : AddSubgroup.closure (Set.range ω) = ⊤
-  · rw [if_neg (not_not_intro h),
-      if_neg (not_not_intro ((closure_top_iff_closure_top E ω).mpr h))]
-  · rw [if_pos h, if_pos ((closure_top_iff_closure_top E ω).not.mpr h)]
+  · rw [ite_eq_right (not_not_intro h),
+      ite_eq_right (not_not_intro ((closure_top_iff_closure_top E ω).mpr h))]
+  · rw [ite_eq_left h, ite_eq_left ((closure_top_iff_closure_top E ω).not.mpr h)]
     rfl
 
 /-- For a finite abelian group of size at most `2 ^ n` with `n > 0`, ideal Fourier samples are

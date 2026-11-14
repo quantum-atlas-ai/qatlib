@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Tactic
-import Qatlib.Papers.GrpCommTest05.MainResults.GroupProductCounting
-import Qatlib.Papers.GrpCommTest05.MainResults.CentralizerCommutator
+module
+
+public import Mathlib.Tactic
+public import Qatlib.Papers.GrpCommTest05.MainResults.GroupProductCounting
+public import Qatlib.Papers.GrpCommTest05.MainResults.CentralizerCommutator
+
+@[expose] public section
 
 /-!
 # Counting noncommuting pairs of generator products

@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LocalMachine.LocalTransport.UniformBqpDefs
-import Qatlib.Concepts.LocalMachine.LocalTransport.WitnessComplexityDefs
-import Qatlib.Foundations.StandardModel.WindowSim.QtmSimulationDefs
-import Mathlib.Data.Fintype.Pi
-import Mathlib.Data.Nat.Log
+module
+
+public import Qatlib.Concepts.LocalMachine.LocalTransport.UniformBqpDefs
+public import Qatlib.Concepts.LocalMachine.LocalTransport.WitnessComplexityDefs
+public import Qatlib.Foundations.StandardDefs.WindowSim.QtmSimulationDefs
+public import Mathlib.Data.Fintype.Pi
+public import Mathlib.Data.Nat.Log
+
+@[expose] public section
 
 /-!
 # Local machine and recursive Fourier sampling definitions
@@ -378,7 +382,7 @@ def RfsRestr (x : RfsQuery) : (l : ℕ) → Type
 
 /-- Construct the finite enumeration of recursive Fourier sampling restrictions at a given root
 and depth. -/
-def rfsRestrFintype (x : RfsQuery) : (l : ℕ) → Fintype (RfsRestr x l)
+@[instance_reducible] def rfsRestrFintype (x : RfsQuery) : (l : ℕ) → Fintype (RfsRestr x l)
   | 0 => show Fintype Bool from inferInstance
   | l + 1 =>
       show Fintype ((Reg (rfsKeyLen (l + 1)) → Bool) ×

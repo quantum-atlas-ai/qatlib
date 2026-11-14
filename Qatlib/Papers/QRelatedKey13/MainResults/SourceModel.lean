@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.Reduction.BooleanSimonSampling
+module
+
+public import Qatlib.Concepts.HspRecovery.Reduction.BooleanSimonSampling
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -80,16 +84,16 @@ theorem unorderedPairEncode_comm {N : ℕ} (c c' : BooleanVec N) :
     unorderedPairEncode c c' = unorderedPairEncode c' c := by
   unfold unorderedPairEncode
   by_cases h : booleanVecIndex c ≤ booleanVecIndex c'
-  · rw [if_pos h]
+  · rw [ite_eq_left h]
     by_cases h' : booleanVecIndex c' ≤ booleanVecIndex c
-    · rw [if_pos h']
+    · rw [ite_eq_left h']
       have hc : c = c' := booleanVecIndex_injective (Nat.le_antisymm h h')
       rw [hc]
-    · rw [if_neg h']
-  · rw [if_neg h]
+    · rw [ite_eq_right h']
+  · rw [ite_eq_right h]
     have h' : booleanVecIndex c' ≤ booleanVecIndex c :=
       Nat.le_of_lt (Nat.lt_of_not_ge h)
-    rw [if_pos h']
+    rw [ite_eq_left h']
 
 /-- Equality of the `(min,max)` encodings forces equality of the underlying
 unordered pairs. This is the encoding's uniqueness property used to transfer

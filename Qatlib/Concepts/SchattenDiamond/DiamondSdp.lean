@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FiniteLocc.LOCCProgram.SchattenDiamond
-import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
-import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfacesDefs
+module
+
+public import Qatlib.Concepts.FiniteLocc.LOCCProgram.SchattenDiamond
+public import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
+public import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfacesDefs
+
+@[expose] public section
 
 /-!
 # Binary channel discrimination bounds
@@ -75,7 +79,7 @@ theorem measurementSuccess_eq_half_add_centered {ι : Type} [Fintype ι] [Decida
     measurementSuccess M ρ σ = 1/2 + ((M - (1/2 : ℂ) • 1) * (ρ - σ)).trace.re / 2 := by
   have hexp : measurementSuccess M ρ σ = 1/2 + (M * (ρ - σ)).trace.re / 2 := by
     simp only [measurementSuccess, Matrix.mul_sub, Matrix.sub_mul, Matrix.one_mul,
-      Matrix.trace_sub, Complex.add_re, Complex.sub_re, hσ, Complex.one_re]
+      Matrix.trace_sub, Complex.sub_re, hσ, Complex.one_re]
     ring
   have hsmul : ((1/2 : ℂ) • 1) * (ρ - σ) = (1/2 : ℂ) • (ρ - σ) := by
     rw [smul_mul_assoc, Matrix.one_mul]
@@ -287,8 +291,8 @@ theorem discriminationLaw_success {E : ℕ} (M : Operator E)
       (discriminationLaw (Instrument.ofPOVM (binaryEffectPOVM M hM hMc)) ρ σ hρ hσ)
       (fun z => z.1 = z.2) = measurementSuccess M ρ σ := by
   simp [Qatlib.Concepts.ProbabilityCore.Concentration.eventMass, discriminationLaw, Finset.sum_filter,
-    Fintype.sum_prod_type, Fintype.sum_bool, instrumentProb_ofPOVM, binaryEffectPOVM,
-    measurementSuccess, HermitianMat.mat_one, HermitianMat.mat_sub]
+    Fintype.sum_prod_type, instrumentProb_ofPOVM, binaryEffectPOVM,
+    measurementSuccess]
   ring
 
 /-- If the difference of two quantum channels has finite diamond norm at most nonnegative
@@ -350,7 +354,7 @@ private theorem complement_relabel {ι : Type} [Fintype ι] [DecidableEq ι] {K 
     (1 - Matrix.reindex e e M).PosSemidef := by
   have heq : (1 : Operator K) - Matrix.reindex e e M = Matrix.reindex e e (1 - M) := by
     ext i j
-    simp [Matrix.reindex_apply, Matrix.one_apply, Equiv.apply_eq_iff_eq]
+    simp [Matrix.reindex_apply, Matrix.one_apply]
   rw [heq]
   exact hMc.submatrix e.symm
 
@@ -365,12 +369,14 @@ noncomputable def referenceDiscriminationLaw {D E r : ℕ}
     (hM : M.PosSemidef) (hMc : (1 - M).PosSemidef) : FinDist (Bool × Bool) :=
   let e : (Fin E × Fin r) ≃ Fin (E * r) := finProdFinEquiv
   discriminationLaw (Instrument.ofPOVM (binaryEffectPOVM
-      (Matrix.reindex e e M) (hM.submatrix e.symm) (complement_relabel e M hMc)))
+      (Matrix.reindex e e M) (hM.submatrix e.symm) (by exact complement_relabel e M hMc)))
     (Matrix.reindex e e (tensorLeft T.map X)) (Matrix.reindex e e (tensorLeft S.map X))
-    (density_relabel e _ (tensorLeft_posSemidef T.completelyPositive hX)
-      (by rw [tensorLeft_trace_map T.map T.tracePreserving, hXtr]))
-    (density_relabel e _ (tensorLeft_posSemidef S.completelyPositive hX)
-      (by rw [tensorLeft_trace_map S.map S.tracePreserving, hXtr]))
+    (by
+      exact density_relabel e _ (tensorLeft_posSemidef T.completelyPositive hX)
+        (by rw [tensorLeft_trace_map T.map T.tracePreserving, hXtr]))
+    (by
+      exact density_relabel e _ (tensorLeft_posSemidef S.completelyPositive hX)
+        (by rw [tensorLeft_trace_map S.map S.tracePreserving, hXtr]))
 
 /-- If the channel difference has finite diamond norm at most nonnegative `delta`, the
 correct-label probability in `referenceDiscriminationLaw` is at most `1/2 + delta / 4` for

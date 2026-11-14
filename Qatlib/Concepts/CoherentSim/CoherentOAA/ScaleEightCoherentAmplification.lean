@@ -4,22 +4,26 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Lean.Elab.Tactic.NormCast
-import Lean.Elab.Tactic.Omega
-import Mathlib.Algebra.Order.Ring.Star
-import Mathlib.Analysis.CStarAlgebra.Classes
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.Real.Pi.Bounds
-import Mathlib.Data.Int.Star
-import Mathlib.Algebra.Order.Star.Real
-import Mathlib.Tactic.Convert
-import Mathlib.Tactic.Ext
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Ring
-import Qatlib.Concepts.CoherentSim.CoherentOAA.RobustCoherentImplementation
-import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
+module
+
+public import Lean.Elab.Tactic.NormCast
+public import Lean.Elab.Tactic.Omega
+public import Mathlib.Algebra.Order.Ring.Star
+public import Mathlib.Analysis.CStarAlgebra.Classes
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.Real.Pi.Bounds
+public import Mathlib.Algebra.Order.Star.Int
+public import Mathlib.Algebra.Order.Star.Real
+public import Mathlib.Tactic.Convert
+public import Mathlib.Tactic.Ext
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Ring
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.RobustCoherentImplementation
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
+
+@[expose] public section
 
 /-!
 # Coherent amplification of scale-eight encodings

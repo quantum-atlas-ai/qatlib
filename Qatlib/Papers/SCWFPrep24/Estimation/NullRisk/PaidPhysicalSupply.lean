@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SCWFPrep24.Estimation.NullRisk.PaidFiniteOutput
-import Qatlib.Concepts.SpinorSampling.NativeRecords.LittleEndianEncoding
-import Qatlib.Concepts.SpinorSampling.Retained.PrefixSupply
-import Qatlib.Papers.SCWFPrep24.Estimation.NullRisk.PaidExecutionTrace
+module
+
+public import Qatlib.Papers.SCWFPrep24.Estimation.NullRisk.PaidFiniteOutput
+public import Qatlib.Concepts.SpinorSampling.NativeRecords.LittleEndianEncoding
+public import Qatlib.Concepts.SpinorSampling.Retained.PrefixSupply
+public import Qatlib.Papers.SCWFPrep24.Estimation.NullRisk.PaidExecutionTrace
+
+@[expose] public section
 
 open Qatlib.Concepts.GateVocabulary.LocalReflectionGates
 

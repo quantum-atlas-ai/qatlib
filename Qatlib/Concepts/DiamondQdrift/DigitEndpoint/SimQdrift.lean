@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.DiamondQdrift.DigitEndpoint.SimQdriftDefs
-import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteGatePhaseBoundary
+module
+
+public import Qatlib.Concepts.DiamondQdrift.DigitEndpoint.SimQdriftDefs
+public import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteGatePhaseBoundary
+
+@[expose] public section
 
 /-!
 # Synthesis and phase estimation counterexamples

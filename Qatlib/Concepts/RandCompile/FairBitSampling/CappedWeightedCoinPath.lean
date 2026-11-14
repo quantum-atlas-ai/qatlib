@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
-import Qatlib.Concepts.GibbsMetropolis.RationalBath.RationalRejectionConsumers
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.IndependentWeightedEstimator
+module
+
+public import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+public import Qatlib.Concepts.GibbsMetropolis.RationalBath.RationalRejectionConsumers
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.IndependentWeightedEstimator
+
+@[expose] public section
 
 /-!
 # Capped fair-bit weighted sampling for qDRIFT
@@ -204,11 +208,11 @@ private theorem uniform_event_real {A : Type} [Fintype A] [Nonempty A]
   unfold Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation
   rw [tsum_fintype, ENNReal.toReal_sum (fun a _ => by
     dsimp
-    split_ifs <;> simp [PMF.uniformOfFintype'_apply])]
+    split_ifs <;> simp [])]
   apply Finset.sum_congr rfl
   intro a _
   dsimp
-  by_cases h : E a <;> simp [h, PMF.uniformOfFintype'_apply, ENNReal.toReal_inv]
+  by_cases h : E a <;> simp [h, ENNReal.toReal_inv]
 
 /-- Event probability under a mapped probability law equals the probability of the event's
 preimage under the original law. -/
@@ -343,7 +347,7 @@ theorem fair_bit_qdrift_actual_coin_path_cost (L R : ℕ) (w : Fin L → ℕ) (j
       rw [rationalRejectionRun, ← fairQdriftRawRun_law]
       exact (PMF.mem_support_map_iff _ _ _).mpr
         ⟨ω, PMF.mem_support_uniformOfFintype' ω, rfl⟩
-    simpa only [fairQdriftPick, if_neg (ne_of_gt hW), fallback_bits, fallback_comparisons] using
+    simpa only [fairQdriftPick, ite_eq_right (ne_of_gt hW), fallback_bits, fallback_comparisons] using
       hc.2.2.2.2.2.2 _ hz
   · have he := congrArg (fun p => Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation p (fun z => (z.2.1 : ℝ≥0∞)))
       (fairQdriftPick_law w j0 R hW)

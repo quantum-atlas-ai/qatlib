@@ -4,11 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ConversionCore.WitnessCompile.QueryDirectSumConsumerStat
-import Qatlib.Concepts.GramQueryCore.GammaDuality.FunctionCompositionBoundsQuan
-import Qatlib.Concepts.ConversionCore.WitnessCompile.FunctionEvaluationAdversaryAlgQuan
-import Qatlib.Foundations.PureStateMath.BornBridge.RelabelOperatorNorm
-import Qatlib.Concepts.QueryComplexity.Amplification.PiTensorState
+module
+
+public import Qatlib.Concepts.ConversionCore.WitnessCompile.QueryDirectSumConsumerStat
+public import Qatlib.Concepts.GramQueryCore.GammaDuality.FunctionCompositionBoundsQuan
+public import Qatlib.Concepts.ConversionCore.WitnessCompile.FunctionEvaluationAdversaryAlgQuan
+public import Qatlib.Foundations.PureStateMath.BornBridge.RelabelOperatorNorm
+public import Qatlib.Concepts.QueryComplexity.Amplification.PiTensorState
+
+@[expose] public section
+
+set_option linter.unusedTactic false
+set_option linter.style.haveILetI false
 
 /-!
 # Direct sums of function evaluation queries
@@ -40,7 +47,7 @@ open Qatlib.Concepts.CoherentSim.CoherentOAA Qatlib.Foundations.InstrumentCore.P
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.BlockEncoding.LCU Qatlib.Foundations.PureStateMath.BornBridge Qatlib.Concepts.CopyEvolution.Discriminate
 
-open Qatlib.Concepts.AdversaryBounds.WeightedAdvComp
+open Qatlib.Concepts.AdversaryBounds.WeightedAdvComposition
 open Qatlib.Concepts.GramQueryCore.FilteredNorm
 open Qatlib.Concepts.GramQueryCore.GammaDuality
 open Qatlib.Concepts.GramQueryCore.LowerBoundTools
@@ -242,7 +249,7 @@ theorem sourceFirstDifference_sum {E : Type} [DecidableEq E] {m : ℕ} (a b : Fi
   by_cases he : a=b
   · subst b
     simp
-  rw [if_neg he]
+  rw [ite_eq_right he]
   let s := Finset.univ.filter (fun j : Fin m => a j≠b j)
   have hs : s.Nonempty := by
     obtain ⟨j,hj⟩ := Function.ne_iff.mp he

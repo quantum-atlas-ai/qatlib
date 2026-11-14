@@ -4,7 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownQubitControl
+module
+
+public import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownQubitControl
+
+@[expose] public section
+
+set_option linter.unusedSimpArgs false
 
 /-!
 # Known qubit gates and phase readout
@@ -118,7 +124,7 @@ theorem knownQubitUnitary_knownHadamardAngles :
       qubitEulerPhase_ft, qubitEulerPhase_tf, qubitEulerPhase_tt, qubitEulerRotation_ff,
       qubitEulerRotation_ft, qubitEulerRotation_tf, qubitEulerRotation_tt, Matrix.mul_apply,
       Fintype.sum_bool, PauliZ, Matrix.diagonal_apply, Matrix.smul_apply, Hadamard,
-      Matrix.of_apply, if_true, if_false, Complex.ofReal_zero, zero_div, Complex.exp_zero,
+      Matrix.of_apply, ite_true, ite_false, Complex.ofReal_zero, zero_div, Complex.exp_zero,
       mul_one, zero_mul, neg_zero, mul_zero, zero_add, add_zero]
   · rw [smul_eq_mul, exp_pi_half_mul_I, exp_neg_pi_half_mul_I, keyI_neg,
       show Real.pi / 2 / 2 = Real.pi / 4 from by ring, Real.cos_pi_div_four, sqrt2_half]
@@ -141,8 +147,8 @@ theorem knownQubitUnitary_knownRzAngles (t : ℝ) :
     simp only [knownQubitUnitary, knownRzAngles, qubitEulerPhase_ff, qubitEulerPhase_ft,
       qubitEulerPhase_tf, qubitEulerPhase_tt, qubitEulerRotation_zero, qubitEulerPhase_zero,
       Matrix.mul_one, Matrix.one_mul, Rz, Matrix.diagonal_apply, Matrix.smul_apply,
-      Matrix.one_apply, if_true, if_false]
-  · rw [smul_eq_mul, if_neg (by simp), ← Complex.exp_add,
+      Matrix.one_apply, ite_true, ite_false]
+  · rw [smul_eq_mul, ite_eq_right (by simp), ← Complex.exp_add,
       show ((t / 2 : ℝ) : ℂ) * Complex.I + ((((-t) / 2 : ℝ) : ℂ) * Complex.I) = 0 from by
         push_cast
         ring,
@@ -189,7 +195,7 @@ theorem applyGate_controlledRz_tensorState_ket_true (t : ℝ) (χ : QState Bool)
   rcases c <;> rcases y <;>
     simp [TensorState, Qatlib.Foundations.PureStateMath.Ket, ControlledGate, BlockDiag, Matrix.of_apply, Rz,
       Matrix.diagonal_apply, ApplyGate, Matrix.mulVec, dotProduct, Matrix.mul_apply,
-      Fintype.sum_bool, Fintype.sum_prod_type, Matrix.one_apply, if_true, if_false]
+      Fintype.sum_bool, Fintype.sum_prod_type, Matrix.one_apply, ite_true, ite_false]
 
 /-- The plus state is the normalized sum of the false and true basis states. -/
 theorem plus_eq : Plus = ((Real.sqrt 2 : ℂ)⁻¹) • (Qatlib.Foundations.PureStateMath.Ket false + Qatlib.Foundations.PureStateMath.Ket true) := by
@@ -201,8 +207,8 @@ theorem plus_eq : Plus = ((Real.sqrt 2 : ℂ)⁻¹) • (Qatlib.Foundations.Pure
 theorem measureProb_control_false (χ : QState Bool) :
     MeasureProb (TensorState χ (Qatlib.Foundations.PureStateMath.Ket true)) ({false} ×ˢ (Finset.univ : Finset Bool))
       = ‖χ false‖ ^ 2 := by
-  simp [MeasureProb, Finset.sum_product, Fintype.sum_bool, BornProb, TensorState, Qatlib.Foundations.PureStateMath.Ket,
-    add_zero, mul_one, zero_mul]
+  simp [MeasureProb, Finset.sum_product, BornProb, TensorState, Qatlib.Foundations.PureStateMath.Ket,
+    add_zero, mul_one]
 
 /-- The false amplitude of `Hadamard * Rz t` applied to `Plus` is `(1 + exp (t * I)) / 2`. -/
 theorem hadamard_rz_plus_apply_false (t : ℝ) :
@@ -221,7 +227,7 @@ theorem hadamard_rz_plus_apply_false (t : ℝ) :
         rw [div_eq_inv_mul]
         ring]
   simp only [ApplyGate, Matrix.mulVec, dotProduct, Matrix.mul_apply, Fintype.sum_bool,
-    Plus, Hadamard, Rz, Matrix.diagonal_apply, Matrix.one_apply]
+    Plus, Hadamard, Rz, Matrix.diagonal_apply]
   simpa using! hA
 
 /-- The true amplitude of `Hadamard * Rz t` applied to `Plus` is `(1 - exp (t * I)) / 2`. -/
@@ -242,7 +248,7 @@ theorem hadamard_rz_plus_apply_true (t : ℝ) :
         ring]
     ring
   simp only [ApplyGate, Matrix.mulVec, dotProduct, Matrix.mul_apply, Fintype.sum_bool,
-    Plus, Hadamard, Rz, Matrix.diagonal_apply, Matrix.one_apply]
+    Plus, Hadamard, Rz, Matrix.diagonal_apply]
   simpa using! hA
 
 /-- The squared norm of `(1 + exp (t * I)) / 2` is `(1 + cos t) / 2`. -/
@@ -292,8 +298,7 @@ theorem knownControlledRz_one_bit_phase_actual_consumer :
   · rw [run_knownOneBitPhaseCircuit, measureProb_control_false, hadamard_rz_plus_apply_false,
       norm_one_plus_exp_half]
   · rw [knownOneBitPhaseCircuit]
-    simp only [gateCount_append, gateCount_gate, gateCount_nil,
-      gateCount_knownControlProgramCircuit]
+    simp only [gateCount_append, gateCount_gate, gateCount_nil]
     rfl
   · rw [knownOneBitPhaseCircuit, queryCount_append, queryCount_append, queryCount_gate,
       queryCount_nil, zero_add, add_zero,
@@ -308,7 +313,7 @@ theorem hadamard_rz_rz_plus_apply_false (s t : ℝ) :
     (ApplyGate (Hadamard * (Rz t * Rz s)) Plus) false
       = (1 + Complex.exp (((t + s : ℝ) : ℂ) * Complex.I)) / 2 := by
   simp only [ApplyGate, Matrix.mulVec, dotProduct, Matrix.mul_apply, Fintype.sum_bool,
-    Plus, Hadamard, Rz, Matrix.diagonal_apply, Matrix.one_apply]
+    Plus, Hadamard, Rz, Matrix.diagonal_apply]
   norm_num
   rw [← Complex.exp_add,
     show ((t : ℂ)) * Complex.I + ((s : ℂ)) * Complex.I = ((t + s : ℝ) : ℂ) * Complex.I from by
@@ -336,7 +341,7 @@ theorem hadamard_rz_rz_plus_apply_true (s t : ℝ) :
     (ApplyGate (Hadamard * (Rz t * Rz s)) Plus) true
       = (1 - Complex.exp (((t + s : ℝ) : ℂ) * Complex.I)) / 2 := by
   simp only [ApplyGate, Matrix.mulVec, dotProduct, Matrix.mul_apply, Fintype.sum_bool,
-    Plus, Hadamard, Rz, Matrix.diagonal_apply, Matrix.one_apply]
+    Plus, Hadamard, Rz, Matrix.diagonal_apply]
   norm_num
   rw [← Complex.exp_add,
     show ((t : ℂ)) * Complex.I + ((s : ℂ)) * Complex.I = ((t + s : ℝ) : ℂ) * Complex.I from by
@@ -413,8 +418,7 @@ theorem knownControlledRz_two_rotation_phase_actual_consumer :
   · rw [run_knownTwoRotationPhaseCircuit, measureProb_control_false,
       hadamard_rz_rz_plus_apply_false, norm_one_plus_exp_half']
   · rw [knownTwoRotationPhaseCircuit]
-    simp only [gateCount_append, gateCount_gate, gateCount_nil,
-      gateCount_knownControlProgramCircuit]
+    simp only [gateCount_append, gateCount_gate, gateCount_nil]
     rfl
   · rw [knownTwoRotationPhaseCircuit, queryCount_append, queryCount_append,
       queryCount_append, queryCount_gate, queryCount_nil, zero_add, add_zero]

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.FrameSpectral.SpectralMapSubgoalStat
+module
+
+public import Qatlib.Concepts.WalkSearch.FrameSpectral.SpectralMapSubgoalStat
+
+@[expose] public section
 
 /-!
 # Szegedy spectral rotation planes
@@ -33,6 +37,6 @@ open Qatlib
 orthonormal states on which the Szegedy walk has the stated rotation action at angle `2 * θ`
 [Szegedy2004]. -/
 theorem spectralMapSubgoal : SpectralMapSubgoal :=
-  fun I _ _ P hP v hv θ hs hvD => Qatlib.Concepts.WalkSearch.Spectral.szegedy_spectral_map P hP v hv θ hs hvD
+  fun _I _ _ P hP v hv θ hs hvD => Qatlib.Concepts.WalkSearch.Spectral.szegedy_spectral_map P hP v hv θ hs hvD
 
 end Qatlib.Concepts.WalkSearch.FrameSpectral

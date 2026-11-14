@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowCoreDefs
-import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteGatePhaseBoundary
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowCore
+module
+
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowCoreDefs
+public import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteGatePhaseBoundary
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowCore
+
+@[expose] public section
 
 /-!
 # Counterexamples for flow checking and branch equality
@@ -201,13 +205,13 @@ theorem clause6Aux_shape_one
   · have hEq : g 1 = ({0, 2, 3} : Finset (Fin 4)) := by
       apply Finset.ext
       intro u
-      fin_cases u <;> simp [Finset.mem_insert, Finset.mem_singleton, h1not, h0, h2, h3] at ⊢
+      fin_cases u <;> simp [h1not, h0, h2, h3] at ⊢
     rw [hEq, clause6Aux_odd_zero_two_three] at h1in
     simp at h1in
   · have hEq : g 1 = ({0, 2} : Finset (Fin 4)) := by
       apply Finset.ext
       intro u
-      fin_cases u <;> simp [Finset.mem_insert, Finset.mem_singleton, h1not, h0, h2, h3] at ⊢
+      fin_cases u <;> simp [h1not, h0, h2, h3] at ⊢
     right; right; left
     have hA0 : mbqcRankPrec r 1 0 := hA 0 (by simp [h0]) (by decide)
     have hA2 : mbqcRankPrec r 1 2 := hA 2 (by simp [h2]) (by decide)
@@ -218,7 +222,7 @@ theorem clause6Aux_shape_one
   · have hEq : g 1 = ({0, 3} : Finset (Fin 4)) := by
       apply Finset.ext
       intro u
-      fin_cases u <;> simp [Finset.mem_insert, Finset.mem_singleton, h1not, h0, h2, h3] at ⊢
+      fin_cases u <;> simp [h1not, h0, h2, h3] at ⊢
     right; right; right
     have hA0 : mbqcRankPrec r 1 0 := hA 0 (by simp [h0]) (by decide)
     have hA3 : mbqcRankPrec r 1 3 := hA 3 (by simp [h3]) (by decide)
@@ -229,19 +233,19 @@ theorem clause6Aux_shape_one
   · have hEq : g 1 = ({0} : Finset (Fin 4)) := by
       apply Finset.ext
       intro u
-      fin_cases u <;> simp [Finset.mem_insert, Finset.mem_singleton, h1not, h0, h2, h3] at ⊢
+      fin_cases u <;> simp [h1not, h0, h2, h3] at ⊢
     rw [hEq, clause6Aux_odd_zero] at h1in
     simp at h1in
   · have hEq : g 1 = ({2, 3} : Finset (Fin 4)) := by
       apply Finset.ext
       intro u
-      fin_cases u <;> simp [Finset.mem_insert, Finset.mem_singleton, h1not, h0, h2, h3] at ⊢
+      fin_cases u <;> simp [h1not, h0, h2, h3] at ⊢
     rw [hEq, clause6Aux_odd_two_three] at h1in
     simp at h1in
   · have hEq : g 1 = ({2} : Finset (Fin 4)) := by
       apply Finset.ext
       intro u
-      fin_cases u <;> simp [Finset.mem_insert, Finset.mem_singleton, h1not, h0, h2, h3] at ⊢
+      fin_cases u <;> simp [h1not, h0, h2, h3] at ⊢
     left
     have hA2 : mbqcRankPrec r 1 2 := hA 2 (by simp [h2]) (by decide)
     have hB0 : ¬ mbqcRankPrec r 0 1 :=
@@ -251,7 +255,7 @@ theorem clause6Aux_shape_one
   · have hEq : g 1 = ({3} : Finset (Fin 4)) := by
       apply Finset.ext
       intro u
-      fin_cases u <;> simp [Finset.mem_insert, Finset.mem_singleton, h1not, h0, h2, h3] at ⊢
+      fin_cases u <;> simp [h1not, h0, h2, h3] at ⊢
     right; left
     have hA3 : mbqcRankPrec r 1 3 := hA 3 (by simp [h3]) (by decide)
     have hB0 : ¬ mbqcRankPrec r 0 1 :=
@@ -261,7 +265,7 @@ theorem clause6Aux_shape_one
   · have hEq : g 1 = (∅ : Finset (Fin 4)) := by
       apply Finset.ext
       intro u
-      fin_cases u <;> simp [Finset.mem_insert, Finset.mem_singleton, h1not, h0, h2, h3] at ⊢
+      fin_cases u <;> simp [h1not, h0, h2, h3] at ⊢
     rw [hEq, clause6Aux_odd_empty] at h1in
     simp at h1in
 
@@ -287,19 +291,19 @@ theorem clause6Aux_shape_two
   · have hEq : g 2 = ({0, 1, 3} : Finset (Fin 4)) := by
       apply Finset.ext
       intro u
-      fin_cases u <;> simp [Finset.mem_insert, Finset.mem_singleton, h2not, h0, h1, h3] at ⊢
+      fin_cases u <;> simp [h2not, h0, h1, h3] at ⊢
     rw [hEq, clause6Aux_odd_zero_one_three] at h2in
     simp at h2in
   · have hEq : g 2 = ({0, 1} : Finset (Fin 4)) := by
       apply Finset.ext
       intro u
-      fin_cases u <;> simp [Finset.mem_insert, Finset.mem_singleton, h2not, h0, h1, h3] at ⊢
+      fin_cases u <;> simp [h2not, h0, h1, h3] at ⊢
     rw [hEq, clause6Aux_odd_zero_one] at h2in
     simp at h2in
   · have hEq : g 2 = ({0, 3} : Finset (Fin 4)) := by
       apply Finset.ext
       intro u
-      fin_cases u <;> simp [Finset.mem_insert, Finset.mem_singleton, h2not, h0, h1, h3] at ⊢
+      fin_cases u <;> simp [h2not, h0, h1, h3] at ⊢
     right; right; left
     have hA0 : mbqcRankPrec r 2 0 := hA 0 (by simp [h0]) (by decide)
     have hA3 : mbqcRankPrec r 2 3 := hA 3 (by simp [h3]) (by decide)
@@ -311,7 +315,7 @@ theorem clause6Aux_shape_two
   · have hEq : g 2 = ({0} : Finset (Fin 4)) := by
       apply Finset.ext
       intro u
-      fin_cases u <;> simp [Finset.mem_insert, Finset.mem_singleton, h2not, h0, h1, h3] at ⊢
+      fin_cases u <;> simp [h2not, h0, h1, h3] at ⊢
     left
     have hA0 : mbqcRankPrec r 2 0 := hA 0 (by simp [h0]) (by decide)
     rw [hEq, clause6Aux_odd_zero] at h2in
@@ -322,7 +326,7 @@ theorem clause6Aux_shape_two
   · have hEq : g 2 = ({1, 3} : Finset (Fin 4)) := by
       apply Finset.ext
       intro u
-      fin_cases u <;> simp [Finset.mem_insert, Finset.mem_singleton, h2not, h0, h1, h3] at ⊢
+      fin_cases u <;> simp [h2not, h0, h1, h3] at ⊢
     right; right; right
     have hA1 : mbqcRankPrec r 2 1 := hA 1 (by simp [h1]) (by decide)
     have hA3 : mbqcRankPrec r 2 3 := hA 3 (by simp [h3]) (by decide)
@@ -334,7 +338,7 @@ theorem clause6Aux_shape_two
   · have hEq : g 2 = ({1} : Finset (Fin 4)) := by
       apply Finset.ext
       intro u
-      fin_cases u <;> simp [Finset.mem_insert, Finset.mem_singleton, h2not, h0, h1, h3] at ⊢
+      fin_cases u <;> simp [h2not, h0, h1, h3] at ⊢
     right; left
     have hA1 : mbqcRankPrec r 2 1 := hA 1 (by simp [h1]) (by decide)
     rw [hEq, clause6Aux_odd_one] at h2in
@@ -345,13 +349,13 @@ theorem clause6Aux_shape_two
   · have hEq : g 2 = ({3} : Finset (Fin 4)) := by
       apply Finset.ext
       intro u
-      fin_cases u <;> simp [Finset.mem_insert, Finset.mem_singleton, h2not, h0, h1, h3] at ⊢
+      fin_cases u <;> simp [h2not, h0, h1, h3] at ⊢
     rw [hEq, clause6Aux_odd_three] at h2in
     simp at h2in
   · have hEq : g 2 = (∅ : Finset (Fin 4)) := by
       apply Finset.ext
       intro u
-      fin_cases u <;> simp [Finset.mem_insert, Finset.mem_singleton, h2not, h0, h1, h3] at ⊢
+      fin_cases u <;> simp [h2not, h0, h1, h3] at ⊢
     rw [hEq, clause6Aux_odd_empty] at h2in
     simp at h2in
 
@@ -378,7 +382,7 @@ theorem clause6Aux_shape_three
   · have hEq : g 3 = (Finset.univ : Finset (Fin 4)) := by
       apply Finset.ext
       intro u
-      fin_cases u <;> simp [Finset.mem_insert, Finset.mem_singleton, h3in, h0, h1, h2] at ⊢
+      fin_cases u <;> simp [h3in, h0, h1, h2] at ⊢
     right; right; right
     have hA0 : mbqcRankPrec r 3 0 := hA 0 (by simp [h0]) (by decide)
     have hA1 : mbqcRankPrec r 3 1 := hA 1 (by simp [h1]) (by decide)
@@ -388,7 +392,7 @@ theorem clause6Aux_shape_three
   · have hEq : g 3 = ({0, 1, 3} : Finset (Fin 4)) := by
       apply Finset.ext
       intro u
-      fin_cases u <;> simp [Finset.mem_insert, Finset.mem_singleton, h3in, h0, h1, h2] at ⊢
+      fin_cases u <;> simp [Finset.mem_singleton, h3in, h0, h1, h2] at ⊢
     right; right; left
     have hA0 : mbqcRankPrec r 3 0 := hA 0 (by simp [h0]) (by decide)
     have hA1 : mbqcRankPrec r 3 1 := hA 1 (by simp [h1]) (by decide)
@@ -429,7 +433,7 @@ theorem clause6Aux_shape_three
   · have hEq : g 3 = ({3} : Finset (Fin 4)) := by
       apply Finset.ext
       intro u
-      fin_cases u <;> simp [Finset.mem_insert, Finset.mem_singleton, h3in, h0, h1, h2] at ⊢
+      fin_cases u <;> simp [Finset.mem_singleton, h3in, h0, h1, h2] at ⊢
     left
     rw [hEq, clause6Aux_odd_three] at h3not
     have hB0 : ¬ mbqcRankPrec r 0 3 :=
@@ -1097,10 +1101,10 @@ theorem clause6Aux_regWireGate_comm {n : ℕ} {v w : Fin n} (hvw : v ≠ w)
   by_cases hv : i = v
   · by_cases hw : i = w
     · exact absurd (hv.symm.trans hw) hvw
-    · simp only [if_pos hv, if_neg hw, one_mul, mul_one]
+    · simp only [ite_eq_left hv, ite_eq_right hw, one_mul, mul_one]
   · by_cases hw : i = w
-    · simp only [if_neg hv, if_pos hw, one_mul, mul_one]
-    · simp only [if_neg hv, if_neg hw, one_mul]
+    · simp only [ite_eq_right hv, ite_eq_left hw, one_mul, mul_one]
+    · simp only [ite_eq_right hv, ite_eq_right hw, one_mul]
 
 /-- Embedding single-qubit matrices on the same numbered wire preserves multiplication. -/
 theorem clause6Aux_wireGate_mul {n : ℕ} (v : Fin n) (A B : Operator 2) :
@@ -1177,7 +1181,7 @@ theorem clause6Aux_zcond_s0 (u : Fin 6) :
 theorem clause6Aux_corr_s0 (u : Fin 6) :
     flowCorrection clause6Aux_branchGraph clause6Aux_branchFM clause6Aux_branchS0 u = 1 := by
   unfold flowCorrection
-  rw [if_neg (clause6Aux_xcond_s0 u), if_neg (clause6Aux_zcond_s0 u)]
+  rw [ite_eq_right (clause6Aux_xcond_s0 u), ite_eq_right (clause6Aux_zcond_s0 u)]
   exact one_mul _
 
 /-- A true value of `clause6Aux_branchS1` occurs only at vertex zero or one. -/
@@ -1251,36 +1255,36 @@ theorem clause6Aux_corr_s1_0 : flowCorrection clause6Aux_branchGraph clause6Aux_
   have h2 : ¬((0 : Fin 6) = 2) := by decide
   have h3 : ¬((0 : Fin 6) = 3) := by decide
   have h4 : ¬((0 : Fin 6) = 4) := by decide
-  rw [clause6Aux_corr_s1, if_neg h2, if_neg h3, if_neg h4]
+  rw [clause6Aux_corr_s1, ite_eq_right h2, ite_eq_right h3, ite_eq_right h4]
 
 /-- The flow correction at vertex one for the second outcome assignment is the identity. -/
 theorem clause6Aux_corr_s1_1 : flowCorrection clause6Aux_branchGraph clause6Aux_branchFM clause6Aux_branchS1 1 = 1 := by
   have h2 : ¬((1 : Fin 6) = 2) := by decide
   have h3 : ¬((1 : Fin 6) = 3) := by decide
   have h4 : ¬((1 : Fin 6) = 4) := by decide
-  rw [clause6Aux_corr_s1, if_neg h2, if_neg h3, if_neg h4]
+  rw [clause6Aux_corr_s1, ite_eq_right h2, ite_eq_right h3, ite_eq_right h4]
 
 /-- The flow correction at vertex two for the second outcome assignment is Pauli Z. -/
 theorem clause6Aux_corr_s1_2 : flowCorrection clause6Aux_branchGraph clause6Aux_branchFM clause6Aux_branchS1 2 = pauliZ := by
-  rw [clause6Aux_corr_s1, if_pos rfl]
+  rw [clause6Aux_corr_s1, ite_eq_left rfl]
 
 /-- The flow correction at vertex three for the second outcome assignment is Pauli X. -/
 theorem clause6Aux_corr_s1_3 : flowCorrection clause6Aux_branchGraph clause6Aux_branchFM clause6Aux_branchS1 3 = pauliX := by
   have h2 : ¬((3 : Fin 6) = 2) := by decide
-  rw [clause6Aux_corr_s1, if_neg h2, if_pos rfl]
+  rw [clause6Aux_corr_s1, ite_eq_right h2, ite_eq_left rfl]
 
 /-- The flow correction at vertex four for the second outcome assignment is Pauli X. -/
 theorem clause6Aux_corr_s1_4 : flowCorrection clause6Aux_branchGraph clause6Aux_branchFM clause6Aux_branchS1 4 = pauliX := by
   have h2 : ¬((4 : Fin 6) = 2) := by decide
   have h3 : ¬((4 : Fin 6) = 3) := by decide
-  rw [clause6Aux_corr_s1, if_neg h2, if_neg h3, if_pos rfl]
+  rw [clause6Aux_corr_s1, ite_eq_right h2, ite_eq_right h3, ite_eq_left rfl]
 
 /-- The flow correction at vertex five for the second outcome assignment is the identity. -/
 theorem clause6Aux_corr_s1_5 : flowCorrection clause6Aux_branchGraph clause6Aux_branchFM clause6Aux_branchS1 5 = 1 := by
   have h2 : ¬((5 : Fin 6) = 2) := by decide
   have h3 : ¬((5 : Fin 6) = 3) := by decide
   have h4 : ¬((5 : Fin 6) = 4) := by decide
-  rw [clause6Aux_corr_s1, if_neg h2, if_neg h3, if_neg h4]
+  rw [clause6Aux_corr_s1, ite_eq_right h2, ite_eq_right h3, ite_eq_right h4]
 
 /-- Every entry of the zero-angle XY measurement matrix for outcome `false` equals `1 / 2`. -/
 theorem clause6Aux_plane0 (a b : Fin 2) :
@@ -1288,7 +1292,7 @@ theorem clause6Aux_plane0 (a b : Fin 2) :
   have h : MbqcPlaneBasis MbqcPlane.XY 0 false
       = (2 : ℂ)⁻¹ • ((1 : Operator 2) + pauliX) := by
     unfold MbqcPlaneBasis
-    rw [if_neg (by simp : ¬(false = true))]
+    rw [ite_eq_right (by simp : ¬(false = true))]
     simp only [mbqcPlaneAxisA, mbqcPlaneAxisB]
     rw [Real.cos_zero, Real.sin_zero]
     simp only [Complex.ofReal_one, Complex.ofReal_zero, one_smul, zero_smul, add_zero]
@@ -1303,7 +1307,7 @@ theorem clause6Aux_plane1 (a b : Fin 2) :
   have h : MbqcPlaneBasis MbqcPlane.XY 0 true
       = (2 : ℂ)⁻¹ • ((1 : Operator 2) - pauliX) := by
     unfold MbqcPlaneBasis
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     simp only [mbqcPlaneAxisA, mbqcPlaneAxisB]
     rw [Real.cos_zero, Real.sin_zero]
     simp only [Complex.ofReal_one, Complex.ofReal_zero, one_smul, zero_smul, add_zero,
@@ -1336,10 +1340,10 @@ theorem clause6Aux_local_s0 (v : Fin 6) (a b : Fin 2) :
       = if v ∈ clause6Aux_branchO then (if a = b then (1 : ℂ) else 0) else (2 : ℂ)⁻¹ := by
   unfold clause6Aux_branchLocal
   by_cases hv : v ∈ clause6Aux_branchO
-  · rw [if_pos hv, clause6Aux_corr_s0, Matrix.one_apply]
+  · rw [ite_eq_left hv, clause6Aux_corr_s0, Matrix.one_apply]
     simp [hv]
   · have hs : clause6Aux_branchS0 v = false := rfl
-    rw [if_neg hv, hs, clause6Aux_corr_s0, mul_one, clause6Aux_plane0]
+    rw [ite_eq_right hv, hs, clause6Aux_corr_s0, mul_one, clause6Aux_plane0]
     simp [hv]
 
 /-- The second outcome assignment has the displayed local matrices: signed XY matrices at zero
@@ -1355,29 +1359,29 @@ theorem clause6Aux_local_s1 (v : Fin 6) (a b : Fin 2) :
   by_cases h0 : v = 0
   · subst v
     have hs : clause6Aux_branchS1 0 = true := rfl
-    rw [if_neg (by simp [hO]), clause6Aux_corr_s1_0, mul_one, hs, clause6Aux_plane1]
+    rw [ite_eq_right (by simp [hO]), clause6Aux_corr_s1_0, mul_one, hs, clause6Aux_plane1]
     simp
   · by_cases h1 : v = 1
     · subst v
       have hs : clause6Aux_branchS1 1 = true := rfl
-      rw [if_neg (by simp [hO]), clause6Aux_corr_s1_1, mul_one, hs, clause6Aux_plane1]
+      rw [ite_eq_right (by simp [hO]), clause6Aux_corr_s1_1, mul_one, hs, clause6Aux_plane1]
       simp
     · by_cases h2 : v = 2
       · subst v
         have hs : clause6Aux_branchS1 2 = false := rfl
-        rw [if_neg (by simp [hO]), hs, clause6Aux_corr_s1_2, clause6Aux_plane0Z]
+        rw [ite_eq_right (by simp [hO]), hs, clause6Aux_corr_s1_2, clause6Aux_plane0Z]
         simp
       · by_cases h3 : v = 3
         · subst v
-          rw [if_pos (by simp [hO]), clause6Aux_corr_s1_3, clause6Aux_px]
+          rw [ite_eq_left (by simp [hO]), clause6Aux_corr_s1_3, clause6Aux_px]
           simp
         · by_cases h4 : v = 4
           · subst v
-            rw [if_pos (by simp [hO]), clause6Aux_corr_s1_4, clause6Aux_px]
+            rw [ite_eq_left (by simp [hO]), clause6Aux_corr_s1_4, clause6Aux_px]
             simp
           · by_cases h5 : v = 5
             · subst v
-              rw [if_pos (by simp [hO]), clause6Aux_corr_s1_5, Matrix.one_apply]
+              rw [ite_eq_left (by simp [hO]), clause6Aux_corr_s1_5, Matrix.one_apply]
               simp
             · omega
 
@@ -1413,9 +1417,9 @@ theorem clause6Aux_prod_delta (x y : Reg 6) :
     simp
   · have hex : ∃ i : Fin 6, x i ≠ y i := Function.ne_iff.mp h
     obtain ⟨i, hi⟩ := hex
-    rw [if_neg h]
+    rw [ite_eq_right h]
     apply Finset.prod_eq_zero (Finset.mem_univ i)
-    rw [if_neg hi]
+    rw [ite_eq_right hi]
 
 /-- Every entry of the input frame for the empty-input six-vertex graph equals `(1 / 2) ^ 3`. -/
 theorem clause6Aux_inFrame (x : Fin (2 ^ 6)) (y : Fin (2 ^ clause6Aux_branchI.card)) :
@@ -1434,7 +1438,7 @@ theorem clause6Aux_inFrame (x : Fin (2 ^ 6)) (y : Fin (2 ^ clause6Aux_branchI.ca
       = (∏ v : Fin 6, (Real.sqrt 2 : ℂ)⁻¹) := by
     apply Finset.prod_congr rfl
     intro v hv
-    rw [dif_neg (hI v)]
+    rw [dite_eq_right (hI v)]
   rw [hp, Finset.prod_const, Finset.card_univ, Fintype.card_fin]
   have hs : ((Real.sqrt 2 : ℂ) ^ 2) = 2 := by
     rw [pow_two, ← Complex.ofReal_mul, Real.mul_self_sqrt (by norm_num)]
@@ -1470,12 +1474,12 @@ theorem clause6Aux_outFrame (z : Reg 6) (x : Fin (2 ^ 6)) :
         rfl
       have hrow : clause6Aux_rowZ z v = false := by
         unfold clause6Aux_rowZ
-        rw [if_pos h]
-      rw [dif_pos h, hz1, hrow]
+        rw [ite_eq_left h]
+      rw [dite_eq_left h, hz1, hrow]
     · have hrow : clause6Aux_rowZ z v = z v := by
         unfold clause6Aux_rowZ
-        rw [if_neg h]
-      rw [dif_neg h, hrow]
+        rw [ite_eq_right h]
+      rw [dite_eq_right h, hrow]
   rw [hp]
   exact clause6Aux_prod_delta _ _
 
@@ -1710,16 +1714,16 @@ theorem clause6Aux_kraus_entry (r : Fin 6 → Fin 6) (s : Fin 6 → Bool) (z : F
       by_cases h : (bitVecEquiv 6).symm i = clause6Aux_rowZ z
       · have hi : i = bitVecEquiv 6 (clause6Aux_rowZ z) :=
           (Equiv.symm_apply_eq (bitVecEquiv 6)).mp h
-        rw [if_pos h, one_mul, if_pos hi]
+        rw [ite_eq_left h, one_mul, ite_eq_left hi]
       · have hi : ¬(i = bitVecEquiv 6 (clause6Aux_rowZ z)) := by
           intro hc
           exact h ((Equiv.symm_apply_eq (bitVecEquiv 6)).mpr hc)
-        rw [if_neg h, zero_mul, if_neg hi]
+        rw [ite_eq_right h, zero_mul, ite_eq_right hi]
     rw [Finset.sum_congr rfl (fun i _ => hite i)]
     rw [Finset.sum_ite_eq' (Finset.univ : Finset (Fin (2 ^ 6)))
       (bitVecEquiv 6 (clause6Aux_rowZ z))
       (fun i => relabelGate (bitVecEquiv 6) (pauliProductDensity (clause6Aux_branchLocal s)) i j)]
-    rw [if_pos (Finset.mem_univ _)]
+    rw [ite_eq_left (Finset.mem_univ _)]
   have hpoint : ∀ j k : Fin (2 ^ 6),
       relabelGate (bitVecEquiv 6) (pauliProductDensity (clause6Aux_branchLocal s))
           (bitVecEquiv 6 (clause6Aux_rowZ z)) j
@@ -1747,16 +1751,16 @@ theorem clause6Aux_kraus_entry (r : Fin 6 → Fin 6) (s : Fin 6 → Bool) (z : F
       intro j
       by_cases h : j = k
       · subst h
-        rw [if_pos rfl]
+        rw [ite_eq_left rfl]
         simp
       · have hs : ¬((bitVecEquiv 6).symm j = (bitVecEquiv 6).symm k) :=
           fun hc => h (Equiv.injective (bitVecEquiv 6).symm hc)
-        rw [if_neg hs, mul_zero, if_neg h]
+        rw [ite_eq_right hs, mul_zero, ite_eq_right h]
     rw [Finset.sum_congr rfl (fun j _ => hite j)]
     rw [Finset.sum_ite_eq' (Finset.univ : Finset (Fin (2 ^ 6))) k
       (fun _ => pauliProductDensity (clause6Aux_branchLocal s) (clause6Aux_rowZ z) ((bitVecEquiv 6).symm k)
         * clause6Aux_czSign ((bitVecEquiv 6).symm k))]
-    rw [if_pos (Finset.mem_univ _)]
+    rw [ite_eq_left (Finset.mem_univ _)]
   have hre : (∑ k : Fin (2 ^ 6),
         (∑ j : Fin (2 ^ 6),
             pauliProductDensity (clause6Aux_branchLocal s) (clause6Aux_rowZ z) ((bitVecEquiv 6).symm j)
@@ -1878,7 +1882,7 @@ theorem clause6Aux_branch_entry_eq (s : Fin 6 → Bool) (r : Fin 6 → Fin 6) :
     simp only [Matrix.mul_apply, Matrix.conjTranspose_apply,
       Matrix.one_apply]
     rw [clause6Aux_sum_fin1, clause6Aux_sum_fin1]
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     ring
   exact hsum
 
@@ -1910,15 +1914,15 @@ theorem clause6Aux_localB_s0 (x y : Reg 6) :
   intro i _
   rw [clause6Aux_local_s0]
   by_cases hi : i ∈ clause6Aux_branchO
-  · rw [if_pos hi, if_pos hi]
+  · rw [ite_eq_left hi, ite_eq_left hi]
     by_cases he : x i = y i
-    · rw [if_pos he]
+    · rw [ite_eq_left he]
       have hb : boolEquivFin2 (x i) = boolEquivFin2 (y i) := by rw [he]
-      rw [if_pos hb]
+      rw [ite_eq_left hb]
     · have hb : ¬(boolEquivFin2 (x i) = boolEquivFin2 (y i)) :=
         fun h => he (boolEquivFin2.injective h)
-      rw [if_neg he, if_neg hb]
-  · rw [if_neg hi, if_neg hi]
+      rw [ite_eq_right he, ite_eq_right hb]
+  · rw [ite_eq_right hi, ite_eq_right hi]
 
 /-- Entries of the second local tensor product factor into the displayed signed measurement
 entries, X entries, and identity entry. -/
@@ -1939,37 +1943,37 @@ theorem clause6Aux_localB_s1 (x y : Reg 6) :
     have hb0 : (boolEquivFin2 (y i) = 0) ↔ (y i = false) := by
       cases y i <;> simp [boolEquivFin2]
     by_cases h01 : i = 0 ∨ i = 1
-    · rw [if_pos h01, if_pos h01, if_pos he, if_pos hb]
-    · rw [if_neg h01, if_neg h01]
+    · rw [ite_eq_left h01, ite_eq_left h01, ite_eq_left he, ite_eq_left hb]
+    · rw [ite_eq_right h01, ite_eq_right h01]
       by_cases h2 : i = 2
-      · rw [if_pos h2, if_pos h2]
+      · rw [ite_eq_left h2, ite_eq_left h2]
         rw [if_congr hb0 (by rfl) (by rfl)]
-      · rw [if_neg h2, if_neg h2]
+      · rw [ite_eq_right h2, ite_eq_right h2]
         by_cases h34 : i = 3 ∨ i = 4
-        · rw [if_pos h34, if_pos h34,
-            if_neg (fun h : boolEquivFin2 (x i) ≠ boolEquivFin2 (y i) => h hb),
-            if_neg (fun h : x i ≠ y i => h he)]
-        · rw [if_neg h34, if_neg h34, if_pos he, if_pos hb]
+        · rw [ite_eq_left h34, ite_eq_left h34,
+            ite_eq_right (fun h : boolEquivFin2 (x i) ≠ boolEquivFin2 (y i) => h hb),
+            ite_eq_right (fun h : x i ≠ y i => h he)]
+        · rw [ite_eq_right h34, ite_eq_right h34, ite_eq_left he, ite_eq_left hb]
   · have hb : ¬(boolEquivFin2 (x i) = boolEquivFin2 (y i)) :=
       fun h => he (boolEquivFin2.injective h)
     have hb0 : (boolEquivFin2 (y i) = 0) ↔ (y i = false) := by
       cases y i <;> simp [boolEquivFin2]
     by_cases h01 : i = 0 ∨ i = 1
-    · rw [if_pos h01, if_pos h01, if_neg he, if_neg hb]
-    · rw [if_neg h01, if_neg h01]
+    · rw [ite_eq_left h01, ite_eq_left h01, ite_eq_right he, ite_eq_right hb]
+    · rw [ite_eq_right h01, ite_eq_right h01]
       by_cases h2 : i = 2
-      · rw [if_pos h2, if_pos h2]
+      · rw [ite_eq_left h2, ite_eq_left h2]
         rw [if_congr hb0 (by rfl) (by rfl)]
-      · rw [if_neg h2, if_neg h2]
+      · rw [ite_eq_right h2, ite_eq_right h2]
         by_cases h34 : i = 3 ∨ i = 4
-        · rw [if_pos h34, if_pos h34, if_pos he, if_pos hb]
-        · rw [if_neg h34, if_neg h34, if_neg he, if_neg hb]
+        · rw [ite_eq_left h34, ite_eq_left h34, ite_eq_left he, ite_eq_left hb]
+        · rw [ite_eq_right h34, ite_eq_right h34, ite_eq_right he, ite_eq_right hb]
 
 /-- The register `clause6Aux_rowZ z` is false at every output vertex. -/
 theorem clause6Aux_rowZ_of (z : Fin 6 → Bool) (i : Fin 6) (hi : i ∈ clause6Aux_branchO) :
     clause6Aux_rowZ z i = false := by
   unfold clause6Aux_rowZ
-  rw [if_pos hi]
+  rw [ite_eq_left hi]
 
 /-- A product over `Fin 6` expands into the six factors in increasing index order. -/
 theorem clause6Aux_prod6 {α : Type} [CommMonoid α] (f : Fin 6 → α) :
@@ -1990,7 +1994,7 @@ theorem clause6Aux_s0_ppd_zero (z : Fin 6 → Bool) (y : Reg 6) (i : Fin 6) (hi 
     pauliProductDensity (clause6Aux_branchLocal clause6Aux_branchS0) (clause6Aux_rowZ z) y = 0 := by
   rw [clause6Aux_localB_s0]
   apply Finset.prod_eq_zero (Finset.mem_univ i)
-  rw [if_pos hi, clause6Aux_rowZ_of z i hi, hy]
+  rw [ite_eq_left hi, clause6Aux_rowZ_of z i hi, hy]
   simp
 
 /-- The separated all-false scalar product vanishes if the register is true at an output vertex. -/
@@ -2020,9 +2024,9 @@ theorem clause6Aux_s0_summand (z : Fin 6 → Bool) (y : Reg 6) :
           · exact h3
           · exact h4
           · exact h5
-        rw [if_pos hi, clause6Aux_rowZ_of z i hi, hfalse]
+        rw [ite_eq_left hi, clause6Aux_rowZ_of z i hi, hfalse]
         simp [clause6Aux_s0K, hi]
-      · rw [if_neg hi]
+      · rw [ite_eq_right hi]
         simp [clause6Aux_s0K, hi]
     rw [Finset.prod_congr rfl (fun i _ => hp i)]
   · rw [clause6Aux_s0_ppd_zero z y 5 (by simp [clause6Aux_branchO]) h5, zero_mul,
@@ -2050,11 +2054,11 @@ theorem clause6Aux_s1_ppd_zero (z : Fin 6 → Bool) (y : Reg 6) (i : Fin 6) (hi 
   rcases hi with h | h
   · subst h
     have hc : ((3 : Fin 6) = 3) ∨ ((3 : Fin 6) = 4) := Or.inl rfl
-    rw [if_pos hc, clause6Aux_rowZ_of z 3 (by simp [clause6Aux_branchO]), hy]
+    rw [ite_eq_left hc, clause6Aux_rowZ_of z 3 (by simp [clause6Aux_branchO]), hy]
     simp
   · subst h
     have hc : ((4 : Fin 6) = 3) ∨ ((4 : Fin 6) = 4) := Or.inr rfl
-    rw [if_pos hc, clause6Aux_rowZ_of z 4 (by simp [clause6Aux_branchO]), hy]
+    rw [ite_eq_left hc, clause6Aux_rowZ_of z 4 (by simp [clause6Aux_branchO]), hy]
     simp
 
 /-- The second local tensor-product entry vanishes if the column register is true at vertex
@@ -2066,7 +2070,7 @@ theorem clause6Aux_s1_ppd_zero5 (z : Fin 6 → Bool) (y : Reg 6) (hy : y 5 = tru
   have hc1 : ¬(((5 : Fin 6) = 0) ∨ ((5 : Fin 6) = 1)) := by decide
   have hc2 : ¬((5 : Fin 6) = 2) := by decide
   have hc3 : ¬(((5 : Fin 6) = 3) ∨ ((5 : Fin 6) = 4)) := by decide
-  rw [if_neg hc1, if_neg hc2, if_neg hc3, clause6Aux_rowZ_of z 5 (by simp [clause6Aux_branchO]), hy]
+  rw [ite_eq_right hc1, ite_eq_right hc2, ite_eq_right hc3, clause6Aux_rowZ_of z 5 (by simp [clause6Aux_branchO]), hy]
   simp
 
 /-- The separated second-branch scalar product vanishes if the register is false at vertex three

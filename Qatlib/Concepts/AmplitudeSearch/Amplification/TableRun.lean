@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.Amplification.SortedTable
-import Qatlib.Concepts.AmplitudeSearch.Amplification.RunMoment
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.SortedTable
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.RunMoment
+
+@[expose] public section
 
 /-!
 # Minimum attainment along table runs
@@ -83,16 +87,16 @@ theorem positive_run_is_minimum (T : SortedRankedTable N α) (law : RankedCallLa
     by_cases hx : (law.outputRank x).val < T.skip.next initial
     · have hprod : 0 < law.mass (T.skip.next initial) x *
           law.runMass T.skip (T.skip.next (law.outputRank x)) xs := by
-        simpa only [RankedCallLaw.runMass, if_neg ht, if_pos hx] using hm
+        simpa only [RankedCallLaw.runMass, ite_eq_right ht, ite_eq_left hx] using hm
       have htail : 0 < law.runMass T.skip (T.skip.next (law.outputRank x)) xs := by
         rcases mul_pos_iff.mp hprod with h | h
         · exact h.2
         · linarith [law.mass_nonneg _ htN x, h.1]
       have hlt : T.value (T.indexOfRank (law.outputRank x)) < T.value (T.indexOfRank initial) :=
         (T.smaller_iff_lowerCut initial (law.outputRank x)).mpr hx
-      simp only [tableClockedTrace, List.map_cons, finalCheckedIndex, checkedUpdate, if_pos hlt]
+      simp only [tableClockedTrace, List.map_cons, finalCheckedIndex, checkedUpdate, ite_eq_left hlt]
       exact ih (law.outputRank x) htail
-    · simp only [RankedCallLaw.runMass, if_neg ht, if_neg hx] at hm
+    · simp only [RankedCallLaw.runMass, ite_eq_right ht, ite_eq_right hx] at hm
       linarith
 
 /-- For a nonempty table, every initial run of positive mass yields an index whose value is at

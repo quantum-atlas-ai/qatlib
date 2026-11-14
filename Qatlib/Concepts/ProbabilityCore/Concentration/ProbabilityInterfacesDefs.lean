@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
-import Qatlib.Concepts.SketchArith.TransposeAccess.FinDistTransport
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.IndependentWeightedEstimator
-import Mathlib.Probability.ProbabilityMassFunction.Integrals
-import Mathlib.Probability.ProbabilityMassFunction.Constructions
+module
+
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+public import Qatlib.Concepts.SketchArith.TransposeAccess.FinDistTransport
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.IndependentWeightedEstimator
+public import Mathlib.Probability.ProbabilityMassFunction.Integrals
+public import Mathlib.Probability.ProbabilityMassFunction.Constructions
+
+@[expose] public section
 
 /-!
 # Finite probability interface definitions

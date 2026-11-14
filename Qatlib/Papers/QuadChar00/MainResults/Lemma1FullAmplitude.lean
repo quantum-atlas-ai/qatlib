@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QuadChar00.MainResults.Lemma1ModularFourier
-import Qatlib.Papers.QuadChar00.MainResults.Corollary1ShiftedJacobi
-import Mathlib.NumberTheory.DirichletCharacter.GaussSum
+module
+
+public import Qatlib.Papers.QuadChar00.MainResults.Lemma1ModularFourier
+public import Qatlib.Papers.QuadChar00.MainResults.Corollary1ShiftedJacobi
+public import Mathlib.NumberTheory.DirichletCharacter.GaussSum
+
+@[expose] public section
 
 /-!
 # The Jacobi Fourier amplitude at every frequency
@@ -102,14 +106,14 @@ theorem jacobiDirichlet_not_factorsThrough {n : ℕ} [NeZero n] (hn : Odd n)
     intro h0
     rw [h0, mul_zero] at hmul
     omega
-  haveI : NeZero p := ⟨hp_ne0⟩
-  haveI : NeZero m := ⟨hm_ne0⟩
+  have : NeZero p := ⟨hp_ne0⟩
+  have : NeZero m := ⟨hm_ne0⟩
   have hpsq : ¬ p * p ∣ n := (Nat.squarefree_iff_prime_squarefree.mp hsq) p hp
   have hcop : p.Coprime m := by
     rw [Nat.Prime.coprime_iff_not_dvd hp]
     intro hpm
     exact hpsq (by rw [← hmul]; exact mul_dvd_mul_left p hpm)
-  haveI : Fact p.Prime := ⟨hp⟩
+  have : Fact p.Prime := ⟨hp⟩
   have hchar : ringChar (ZMod p) ≠ 2 := by rw [ZMod.ringChar_zmod_n]; exact hp2
   obtain ⟨r, hr⟩ := quadraticChar_exists_neg_one (F := ZMod p) hchar
   obtain ⟨k, hk1, hk2⟩ := Nat.chineseRemainder hcop r.val 1
@@ -281,9 +285,7 @@ theorem lemma1_amplitude_all (n : ℕ) [NeZero n] (hn : Odd n) (hsq : Squarefree
       (fun u => ZMod.stdAddChar (-(s * y)) *
         (((jacobiCharZMod n u : ℤ) : ℂ) * ZMod.stdAddChar (u * y))) ?_
     intro u
-    change ((jacobiCharZMod n (u + s) : ℤ) : ℂ) * ZMod.stdAddChar (u * y)
-        = ZMod.stdAddChar (-(s * y)) *
-            (((jacobiCharZMod n (u + s) : ℤ) : ℂ) * ZMod.stdAddChar ((u + s) * y))
+
     rw [show (u + s) * y = u * y + s * y by ring, AddChar.map_add_eq_mul]
     have hneg : ZMod.stdAddChar (-(s * y)) * ZMod.stdAddChar (s * y) = 1 := by
       rw [← AddChar.map_add_eq_mul, neg_add_cancel, AddChar.map_zero_eq_one]

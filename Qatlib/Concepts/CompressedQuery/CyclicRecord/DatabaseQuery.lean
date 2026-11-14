@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CompressedQuery.CyclicRecord.Action
-import Mathlib.Logic.Equiv.Prod
+module
+
+public import Qatlib.Concepts.CompressedQuery.CyclicRecord.Action
+public import Mathlib.Logic.Equiv.Prod
+
+@[expose] public section
 
 /-!
 # Recording queries on a full database

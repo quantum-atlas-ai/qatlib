@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Core.KernelRegulatorZeros
+module
+
+public import Qatlib.Foundations.CbmdAnalysis.Core.KernelRegulatorZeros
+
+@[expose] public section
 
 /-!
 # Finite pole sets for integer sampling contours

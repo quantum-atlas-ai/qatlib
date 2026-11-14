@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Sqrt
-import Mathlib.Tactic
+module
+
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Sqrt
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Algebraic data for the Ising partition correspondence
@@ -46,10 +50,10 @@ abbrev F2Vec (R : ℕ) := Fin R → ZMod 2
 def paritySign (x : ZMod 2) : ℝ := if x = 0 then 1 else -1
 
 /-- The parity sign at zero equals `1`. -/
-@[simp] theorem paritySign_zero : paritySign 0 = 1 := if_pos rfl
+@[simp] theorem paritySign_zero : paritySign 0 = 1 := ite_eq_left rfl
 
 /-- The parity sign of a nonzero binary value equals `-1`. -/
-theorem paritySign_ne_zero {x : ZMod 2} (hx : x ≠ 0) : paritySign x = -1 := if_neg hx
+theorem paritySign_ne_zero {x : ZMod 2} (hx : x ≠ 0) : paritySign x = -1 := ite_eq_right hx
 
 /-- The binary quadratic form `∑ i, ∑ j, a i * B i j * a j`. -/
 def quadForm {R : ℕ} (B : Matrix (Fin R) (Fin R) (ZMod 2)) (a : F2Vec R) : ZMod 2 :=

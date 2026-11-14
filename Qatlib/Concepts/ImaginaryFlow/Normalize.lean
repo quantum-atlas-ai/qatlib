@@ -4,146 +4,150 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Algebra.Basic
-import Mathlib.Algebra.Algebra.Defs
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.CharZero.Defs
-import Mathlib.Algebra.Field.Defs
-import Mathlib.Algebra.Group.Action.Defs
-import Mathlib.Algebra.Group.Action.Pi
-import Mathlib.Algebra.Group.Basic
-import Mathlib.Algebra.Group.Defs
-import Mathlib.Algebra.Group.DivInvMonoid
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.Group.Pi.Basic
-import Mathlib.Algebra.Group.Semigroup
-import Mathlib.Algebra.Group.Units.Defs
-import Mathlib.Algebra.GroupWithZero.Action.Defs
-import Mathlib.Algebra.GroupWithZero.Basic
-import Mathlib.Algebra.GroupWithZero.Defs
-import Mathlib.Algebra.GroupWithZero.NeZero
-import Mathlib.Algebra.GroupWithZero.Units.Basic
-import Mathlib.Algebra.Module.Defs
-import Mathlib.Algebra.Module.Equiv.Defs
-import Mathlib.Algebra.Module.LinearMap.Defs
-import Mathlib.Algebra.Module.LinearMap.End
-import Mathlib.Algebra.Module.NatInt
-import Mathlib.Algebra.Module.Pi
-import Mathlib.Algebra.NeZero
-import Mathlib.Algebra.Notation.Pi.Defs
-import Mathlib.Algebra.Order.Archimedean.Real.Basic
-import Mathlib.Algebra.Order.Floor.Defs
-import Mathlib.Algebra.Order.Group.Unbundled.Abs
-import Mathlib.Algebra.Order.GroupWithZero.Basic
-import Mathlib.Algebra.Order.GroupWithZero.Defs
-import Mathlib.Algebra.Order.Monoid.Defs
-import Mathlib.Algebra.Order.Ring.Defs
-import Mathlib.Algebra.Ring.CompTypeclasses
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Algebra.Ring.Hom.Defs
-import Mathlib.Algebra.Ring.Int.Defs
-import Mathlib.Algebra.Ring.IsFormallyReal
-import Mathlib.Algebra.Ring.Nat
-import Mathlib.Analysis.CStarAlgebra.Classes
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.CStarAlgebra.Module.Constructions
-import Mathlib.Analysis.CStarAlgebra.Module.Defs
-import Mathlib.Analysis.Calculus.Deriv.Basic
-import Mathlib.Analysis.Calculus.Deriv.Comp
-import Mathlib.Analysis.Calculus.Deriv.Inv
-import Mathlib.Analysis.Calculus.Deriv.Mul
-import Mathlib.Analysis.Calculus.Deriv.Pow
-import Mathlib.Analysis.Calculus.FDeriv.Linear
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Analysis.Complex.Norm
-import Mathlib.Analysis.Complex.Order
-import Mathlib.Analysis.InnerProductSpace.Basic
-import Mathlib.Analysis.InnerProductSpace.Calculus
-import Mathlib.Analysis.InnerProductSpace.Defs
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Analysis.LocallyConvex.AbsConvexOpen
-import Mathlib.Analysis.LocallyConvex.WithSeminorms
-import Mathlib.Analysis.Normed.Algebra.Exponential
-import Mathlib.Analysis.Normed.Algebra.MatrixExponential
-import Mathlib.Analysis.Normed.Field.Basic
-import Mathlib.Analysis.Normed.Field.Lemmas
-import Mathlib.Analysis.Normed.Group.Basic
-import Mathlib.Analysis.Normed.Group.Defs
-import Mathlib.Analysis.Normed.Group.Real
-import Mathlib.Analysis.Normed.Group.Uniform
-import Mathlib.Analysis.Normed.Lp.PiLp
-import Mathlib.Analysis.Normed.Lp.WithLp
-import Mathlib.Analysis.Normed.Module.Basic
-import Mathlib.Analysis.Normed.MulAction
-import Mathlib.Analysis.Normed.Ring.Basic
-import Mathlib.Analysis.Normed.Ring.Lemmas
-import Mathlib.Analysis.RCLike.Basic
-import Mathlib.Analysis.Real.Sqrt
-import Mathlib.Analysis.SpecialFunctions.Exponential
-import Mathlib.Analysis.SpecialFunctions.Sqrt
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Basic.Complex.Basic
-import Mathlib.Basic.ENNReal.Basic
-import Mathlib.Basic.FunLike.Basic
-import Mathlib.Basic.FunLike.Equiv
-import Mathlib.Basic.Real.Basic
-import Mathlib.Data.Fintype.Basic
-import Mathlib.Data.Fintype.EquivFin
-import Mathlib.Data.Int.Cast.Basic
-import Mathlib.Data.Int.Cast.Defs
-import Mathlib.Data.Int.Cast.Lemmas
-import Mathlib.Data.Matrix.Mul
-import Mathlib.Data.Nat.Cast.Basic
-import Mathlib.Data.Nat.Cast.Defs
-import Mathlib.Data.Nat.Init
-import Mathlib.FieldTheory.Perfect
-import Mathlib.FieldTheory.Separable
-import Mathlib.GroupTheory.GroupAction.Hom
-import Mathlib.LinearAlgebra.Basis.VectorSpace
-import Mathlib.LinearAlgebra.Complex.FiniteDimensional
-import Mathlib.LinearAlgebra.Complex.Module
-import Mathlib.LinearAlgebra.DFinsupp
-import Mathlib.LinearAlgebra.FreeModule.Finite.Basic
-import Mathlib.LinearAlgebra.FreeModule.PID
-import Mathlib.LinearAlgebra.Matrix.Defs
-import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
-import Mathlib.Order.Defs.PartialOrder
-import Mathlib.RingTheory.Algebraic.Integral
-import Mathlib.RingTheory.DedekindDomain.Basic
-import Mathlib.RingTheory.Finiteness.Defs
-import Mathlib.RingTheory.Flat.FaithfullyFlat.Algebra
-import Mathlib.RingTheory.Flat.FaithfullyFlat.Basic
-import Mathlib.RingTheory.Flat.TorsionFree
-import Mathlib.RingTheory.IntegralClosure.Algebra.Basic
-import Mathlib.RingTheory.SimpleRing.Basic
-import Mathlib.RingTheory.SimpleRing.Principal
-import Mathlib.Tactic
-import Mathlib.Tactic.FieldSimp.Lemmas
-import Mathlib.Tactic.Module
-import Mathlib.Tactic.NormNum.Basic
-import Mathlib.Tactic.NormNum.Eq
-import Mathlib.Tactic.NormNum.Inv
-import Mathlib.Tactic.NormNum.Result
-import Mathlib.Tactic.Ring.Basic
-import Mathlib.Tactic.Ring.Common
-import Mathlib.Topology.Algebra.ConstMulAction
-import Mathlib.Topology.Algebra.Field
-import Mathlib.Topology.Algebra.Group.Defs
-import Mathlib.Topology.Algebra.Module.ContinuousLinearMap.Basic
-import Mathlib.Topology.Algebra.Module.FiniteDimension
-import Mathlib.Topology.Algebra.Module.ModuleTopology
-import Mathlib.Topology.Algebra.Monoid.Defs
-import Mathlib.Topology.Algebra.MulAction
-import Mathlib.Topology.Algebra.Ring.Basic
-import Mathlib.Topology.Algebra.Ring.Real
-import Mathlib.Topology.Defs.Basic
-import Mathlib.Topology.Instances.Matrix
-import Mathlib.Topology.MetricSpace.Algebra
-import Mathlib.Topology.MetricSpace.Pseudo.Defs
-import Mathlib.Topology.Separation.Hausdorff
-import Mathlib.Topology.UniformSpace.Defs
-import Mathlib.Topology.UniformSpace.Matrix
-import Mathlib.Topology.UniformSpace.Real
+module
+
+public import Mathlib.Algebra.Algebra.Basic
+public import Mathlib.Algebra.Algebra.Defs
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.CharZero.Defs
+public import Mathlib.Algebra.Field.Defs
+public import Mathlib.Algebra.Group.Action.Defs
+public import Mathlib.Algebra.Group.Action.Pi
+public import Mathlib.Algebra.Group.Basic
+public import Mathlib.Algebra.Group.Defs
+public import Mathlib.Algebra.Group.DivInvMonoid
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.Group.Pi.Basic
+public import Mathlib.Algebra.Group.Semigroup
+public import Mathlib.Algebra.Group.Units.Defs
+public import Mathlib.Algebra.GroupWithZero.Action.Defs
+public import Mathlib.Algebra.GroupWithZero.Basic
+public import Mathlib.Algebra.GroupWithZero.Defs
+public import Mathlib.Algebra.GroupWithZero.NeZero
+public import Mathlib.Algebra.GroupWithZero.Units.Basic
+public import Mathlib.Algebra.Module.Defs
+public import Mathlib.Algebra.Module.Equiv.Defs
+public import Mathlib.Algebra.Module.LinearMap.Defs
+public import Mathlib.Algebra.Module.LinearMap.End
+public import Mathlib.Algebra.Module.NatInt
+public import Mathlib.Algebra.Module.Pi
+public import Mathlib.Algebra.NeZero
+public import Mathlib.Algebra.Notation.Pi.Defs
+public import Mathlib.Algebra.Order.Archimedean.Real.Basic
+public import Mathlib.Algebra.Order.Floor.Defs
+public import Mathlib.Algebra.Order.Group.Unbundled.Abs
+public import Mathlib.Algebra.Order.GroupWithZero.Basic
+public import Mathlib.Algebra.Order.GroupWithZero.Defs
+public import Mathlib.Algebra.Order.Monoid.Defs
+public import Mathlib.Algebra.Order.Ring.Defs
+public import Mathlib.Algebra.Ring.CompTypeclasses
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Algebra.Ring.Hom.Defs
+public import Mathlib.Algebra.Ring.Int.Defs
+public import Mathlib.Algebra.Ring.IsFormallyReal
+public import Mathlib.Algebra.Ring.Nat
+public import Mathlib.Analysis.CStarAlgebra.Classes
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.CStarAlgebra.Module.Constructions
+public import Mathlib.Analysis.CStarAlgebra.Module.Defs
+public import Mathlib.Analysis.Calculus.Deriv.Basic
+public import Mathlib.Analysis.Calculus.Deriv.Comp
+public import Mathlib.Analysis.Calculus.Deriv.Inv
+public import Mathlib.Analysis.Calculus.Deriv.Mul
+public import Mathlib.Analysis.Calculus.Deriv.Pow
+public import Mathlib.Analysis.Calculus.FDeriv.Linear
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Analysis.Complex.Norm
+public import Mathlib.Analysis.Complex.Order
+public import Mathlib.Analysis.InnerProductSpace.Basic
+public import Mathlib.Analysis.InnerProductSpace.Calculus
+public import Mathlib.Analysis.InnerProductSpace.Defs
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Analysis.LocallyConvex.AbsConvexOpen
+public import Mathlib.Analysis.LocallyConvex.WithSeminorms
+public import Mathlib.Analysis.Normed.Algebra.Exponential
+public import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+public import Mathlib.Analysis.Normed.Field.Basic
+public import Mathlib.Analysis.Normed.Field.Lemmas
+public import Mathlib.Analysis.Normed.Group.Basic
+public import Mathlib.Analysis.Normed.Group.Defs
+public import Mathlib.Analysis.Normed.Group.Real
+public import Mathlib.Analysis.Normed.Group.Uniform
+public import Mathlib.Analysis.Normed.Lp.PiLp
+public import Mathlib.Analysis.Normed.Lp.WithLp
+public import Mathlib.Analysis.Normed.Module.Basic
+public import Mathlib.Analysis.Normed.MulAction
+public import Mathlib.Analysis.Normed.Ring.Basic
+public import Mathlib.Analysis.Normed.Ring.Lemmas
+public import Mathlib.Analysis.RCLike.Basic
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Analysis.SpecialFunctions.Exponential
+public import Mathlib.Analysis.SpecialFunctions.Sqrt
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Basic.ENNReal.Basic
+public import Mathlib.Basic.FunLike.Basic
+public import Mathlib.Basic.FunLike.Equiv
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Data.Fintype.Basic
+public import Mathlib.Data.Fintype.EquivFin
+public import Mathlib.Data.Int.Cast.Basic
+public import Mathlib.Data.Int.Cast.Defs
+public import Mathlib.Data.Int.Cast.Lemmas
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.Data.Nat.Cast.Basic
+public import Mathlib.Data.Nat.Cast.Defs
+public import Mathlib.Data.Nat.Init
+public import Mathlib.FieldTheory.Perfect
+public import Mathlib.FieldTheory.Separable
+public import Mathlib.GroupTheory.GroupAction.Hom
+public import Mathlib.LinearAlgebra.Basis.VectorSpace
+public import Mathlib.LinearAlgebra.Complex.FiniteDimensional
+public import Mathlib.LinearAlgebra.Complex.Module
+public import Mathlib.LinearAlgebra.DFinsupp
+public import Mathlib.LinearAlgebra.FreeModule.Finite.Basic
+public import Mathlib.LinearAlgebra.FreeModule.PID
+public import Mathlib.LinearAlgebra.Matrix.Defs
+public import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
+public import Mathlib.Order.Defs.PartialOrder
+public import Mathlib.RingTheory.Algebraic.Integral
+public import Mathlib.RingTheory.DedekindDomain.Basic
+public import Mathlib.RingTheory.Finiteness.Defs
+public import Mathlib.RingTheory.Flat.FaithfullyFlat.Algebra
+public import Mathlib.RingTheory.Flat.FaithfullyFlat.Basic
+public import Mathlib.RingTheory.Flat.TorsionFree
+public import Mathlib.RingTheory.IntegralClosure.Algebra.Basic
+public import Mathlib.RingTheory.SimpleRing.Basic
+public import Mathlib.RingTheory.SimpleRing.Principal
+public import Mathlib.Tactic
+public import Mathlib.Tactic.FieldSimp.Lemmas
+public import Mathlib.Tactic.Module
+public import Mathlib.Tactic.NormNum.Basic
+public import Mathlib.Tactic.NormNum.Eq
+public import Mathlib.Tactic.NormNum.Inv
+public import Mathlib.Tactic.NormNum.Result
+public import Mathlib.Tactic.Ring.Basic
+public import Mathlib.Tactic.Ring.Common
+public import Mathlib.Topology.Algebra.ConstMulAction
+public import Mathlib.Topology.Algebra.Field
+public import Mathlib.Topology.Algebra.Group.Defs
+public import Mathlib.Topology.Algebra.Module.ContinuousLinearMap.Basic
+public import Mathlib.Topology.Algebra.Module.FiniteDimension
+public import Mathlib.Topology.Algebra.Module.ModuleTopology
+public import Mathlib.Topology.Algebra.Monoid.Defs
+public import Mathlib.Topology.Algebra.MulAction
+public import Mathlib.Topology.Algebra.Ring.Basic
+public import Mathlib.Topology.Algebra.Ring.Real
+public import Mathlib.Topology.Defs.Basic
+public import Mathlib.Topology.Instances.Matrix
+public import Mathlib.Topology.MetricSpace.Algebra
+public import Mathlib.Topology.MetricSpace.Pseudo.Defs
+public import Mathlib.Topology.Separation.Hausdorff
+public import Mathlib.Topology.UniformSpace.Defs
+public import Mathlib.Topology.UniformSpace.Matrix
+public import Mathlib.Topology.UniformSpace.Real
+
+@[expose] public section
 
 /-!
 # Normalization of exponential imaginary-time flow
@@ -246,7 +250,7 @@ theorem rawState_complex_scalar {d : ℕ} (H : Op d) (ψ0 : State d) (t : ℝ) :
 state. -/
 theorem rawState_hasDerivAt {d : ℕ} (H : Op d) (ψ0 : State d) (t : ℝ) :
     HasDerivAt (rawState H ψ0) (- Matrix.toEuclideanLin H (rawState H ψ0 t)) t := by
-  letI : NormedAlgebra ℝ (Op d) := NormedAlgebra.restrictScalars ℝ ℂ _
+  let : NormedAlgebra ℝ (Op d) := NormedAlgebra.restrictScalars ℝ ℂ _
   have he : HasDerivAt (fun s : ℝ => NormedSpace.exp ((-s) • H))
       ((-H) * NormedSpace.exp ((-t) • H)) t := by
     simpa only [smul_neg, neg_smul] using

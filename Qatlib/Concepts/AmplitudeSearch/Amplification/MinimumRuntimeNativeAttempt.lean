@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecificLimits.Normed
-import Qatlib.Concepts.SearchStopping.UnknownCount.SearchSchedule
-import Qatlib.Concepts.QftPreparation.LocalQFTImplementation
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.UnboundedExecutionRemainder
-import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.Basic
-import Qatlib.Concepts.AmplitudeSearch.Amplification.MinimumRuntimeDefs
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsRemainder
-import Qatlib.Concepts.AmplitudeSearch.Amplification.SortedTable
-import Mathlib.Data.List.GetD
+module
+
+public import Mathlib.Analysis.SpecificLimits.Normed
+public import Qatlib.Concepts.SearchStopping.UnknownCount.SearchSchedule
+public import Qatlib.Concepts.QftPreparation.LocalQFTImplementation
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.UnboundedExecutionRemainder
+public import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.Basic
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.MinimumRuntimeDefs
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsRemainder
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.SortedTable
+public import Mathlib.Data.List.GetD
+
+@[expose] public section
 
 /-!
 # Native checked search attempts
@@ -96,7 +100,7 @@ undecided state zero. -/
     xs.foldl compareUpdate q = q := by
   induction xs with
   | nil => rfl
-  | cons ab xs ih => simpa only [List.foldl_cons, compareUpdate, if_neg hq] using! ih
+  | cons ab xs ih => simpa only [List.foldl_cons, compareUpdate, ite_eq_right hq] using! ih
 
 /-- The acceptance test after folding the comparison update from state zero equals Boolean
 lexicographic less-than. -/
@@ -860,7 +864,7 @@ theorem hadamardWord_legal (n : ℕ) : finiteWordLegal n (hadamardWord n) = true
 /-- The finite-code Hadamard matrix at a valid wire equals the corresponding local-gate matrix. -/
 theorem finiteCode_h_eq_local {n : ℕ} (i : Fin n) :
     finiteCodeMatrix n (.h i.val) = localGateMatrix (.h i) := by
-  rw [finiteCodeMatrix, dif_pos i.isLt]
+  rw [finiteCodeMatrix, dite_eq_left i.isLt]
   ext x y
   rw [wireGate_apply, localGateMatrix_h]
 
@@ -902,7 +906,7 @@ theorem uniformMinusWord_legal (n : ℕ) : finiteWordLegal (n + 1) (uniformMinus
 `lastOne n` ket. -/
 theorem uniformMinusWord_x (n : ℕ) :
     ApplyGate (finiteCodeMatrix (n + 1) (.x n)) (Qatlib.Foundations.PureStateMath.Ket (ZeroStr (n + 1))) = Qatlib.Foundations.PureStateMath.Ket (lastOne n) := by
-  rw [finiteCodeMatrix, dif_pos (Nat.lt_succ_self n), applyGate_wireGate_ket]
+  rw [finiteCodeMatrix, dite_eq_left (Nat.lt_succ_self n), applyGate_wireGate_ket]
   simp [ZeroStr, PauliX, permMatrix, lastOne]
   rfl
 

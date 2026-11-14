@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.FixedPtSearch14.FixedPoint.OptimalFixedPointExt
+module
+
+public import Qatlib.Papers.FixedPtSearch14.FixedPoint.OptimalFixedPointExt
+
+@[expose] public section
 
 /-!
 # Uniform word and access-ledger predicates

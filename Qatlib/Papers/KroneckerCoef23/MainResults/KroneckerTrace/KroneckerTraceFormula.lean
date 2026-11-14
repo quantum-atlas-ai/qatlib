@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.LinearAlgebra.Matrix.Trace
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.RepresentationTheory.Character
-import Mathlib.Tactic
+module
+
+public import Mathlib.LinearAlgebra.Matrix.Trace
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.RepresentationTheory.Character
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -99,7 +103,7 @@ theorem regMat_mul (σ α : G) : regMat σ * regMat α = regMat (σ * α) := by
   rw [Finset.sum_eq_single (α * y)]
   · simp [mul_assoc]
   · intro z _ hz
-    rw [if_neg hz, mul_zero]
+    rw [ite_eq_right hz, mul_zero]
   · intro h
     exact absurd (Finset.mem_univ _) h
 
@@ -110,7 +114,7 @@ theorem regMat_mul_apply (σ : G) (A : Matrix G G ℂ) (x y : G) :
   rw [Finset.sum_eq_single (σ⁻¹ * x)]
   · simp
   · intro z _ hz
-    rw [if_neg, zero_mul]
+    rw [ite_eq_right, zero_mul]
     intro h
     apply hz
     calc z = σ⁻¹ * (σ * z) := by simp
@@ -128,16 +132,20 @@ theorem sum3_factor {ι κ lam : Type*} [Fintype ι] [Fintype κ] [Fintype lam]
   refine Finset.sum_congr rfl fun k _ => ?_
   rw [← Finset.sum_mul]
 
+omit [Group G] [DecidableEq G] in
+
 /-- The trace of a triple Kronecker product is the product of the traces.  This is the
 factorisation `Tr(A⊗B⊗C) = Tr(A) Tr(B) Tr(C)` used in the proof of Lemma 1. -/
-theorem trace_kron3 (A B C : Matrix G G ℂ) :
+theorem trace_kron3 {G : Type*} [_scopeInst0 : Group G] [_scopeInst1 : Fintype G] [_scopeInst2 : DecidableEq G] (A B C : Matrix G G ℂ) :
     Matrix.trace (kron3 A B C) = Matrix.trace A * Matrix.trace B * Matrix.trace C := by
   simp only [Matrix.trace, Matrix.diag, kron3]
   simp_rw [Fintype.sum_prod_type]
   exact sum3_factor (fun i => A i i) (fun j => B j j) (fun k => C k k)
 
+omit [Group G] [DecidableEq G] in
+
 /-- The triple Kronecker product is multiplicative. -/
-theorem kron3_mul (A1 B1 C1 A2 B2 C2 : Matrix G G ℂ) :
+theorem kron3_mul {G : Type*} [_scopeInst0 : Group G] [_scopeInst1 : Fintype G] [_scopeInst2 : DecidableEq G] (A1 B1 C1 A2 B2 C2 : Matrix G G ℂ) :
     kron3 A1 B1 C1 * kron3 A2 B2 C2 = kron3 (A1 * A2) (B1 * B2) (C1 * C2) := by
   ext x y
   simp only [kron3, Matrix.mul_apply, Fintype.sum_prod_type]
@@ -177,7 +185,7 @@ theorem trace_regMat_mul_leftProjector (σ : G) (χ : G → ℂ) :
     rw [regMat_mul, trace_regMat]
   simp_rw [hterm]
   rw [Finset.sum_eq_single (σ⁻¹)]
-  · simp only [mul_inv_cancel, if_true]
+  · simp only [mul_inv_cancel, ite_true]
     field_simp
   · intro α _ hα
     have hne : σ * α ≠ 1 := by

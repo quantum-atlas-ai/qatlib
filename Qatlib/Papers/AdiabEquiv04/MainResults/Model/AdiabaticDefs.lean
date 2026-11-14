@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Matrix.Spectrum
-import Mathlib.Analysis.Matrix.Order
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.LinearAlgebra.Matrix.Trace
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Data.Complex.Basic
+module
+
+public import Mathlib.Analysis.Matrix.Spectrum
+public import Mathlib.Analysis.Matrix.Order
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.LinearAlgebra.Matrix.Trace
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Basic.Complex.Basic
+
+@[expose] public section
 
 /-!
 # Finite-dimensional adiabatic definitions
@@ -123,7 +127,7 @@ def HasUniqueGroundState (H : Hamiltonian ι) : Prop :=
 variable {σ : Type} [Fintype σ] [DecidableEq σ]
 
 /-- The Hamiltonian with matrix `Vᴴ * H.mat * V`, for an isometric matrix `V`. -/
-def restrict (V : Matrix ι σ ℂ) (H : Hamiltonian ι) (hV : Vᴴ * V = 1) :
+def restrict (V : Matrix ι σ ℂ) (H : Hamiltonian ι) (_hV : Vᴴ * V = 1) :
     Hamiltonian σ :=
   ⟨Vᴴ * H.mat * V, by
     unfold Matrix.IsHermitian

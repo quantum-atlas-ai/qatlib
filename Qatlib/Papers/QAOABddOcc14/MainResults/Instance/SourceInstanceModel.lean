@@ -4,10 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Real.Basic
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Data.Fintype.BigOperators
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+module
+
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Data.Fintype.BigOperators
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

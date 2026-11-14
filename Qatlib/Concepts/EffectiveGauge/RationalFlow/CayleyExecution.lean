@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.RationalFlow.CayleyIntegers
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.RelativeTransport
-import Mathlib.Tactic.FieldSimp
+module
+
+public import Qatlib.Concepts.EffectiveGauge.RationalFlow.CayleyIntegers
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.RelativeTransport
+public import Mathlib.Tactic.FieldSimp
+
+@[expose] public section
 
 /-!
 # Exact Cayley factors and the integer recurrence of the value backend

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QAOASupremacy16.GapModels
-import Mathlib.Algebra.Order.Group.Unbundled.Int
-import Mathlib.Analysis.SpecialFunctions.Complex.Log
-import Mathlib.RingTheory.RootsOfUnity.PrimitiveRoots
+module
+
+public import Qatlib.Papers.QAOASupremacy16.GapModels
+public import Mathlib.Algebra.Order.Group.Unbundled.Int
+public import Mathlib.Analysis.SpecialFunctions.Complex.Log
+public import Mathlib.RingTheory.RootsOfUnity.PrimitiveRoots
+
+@[expose] public section
 
 /-!
 # Fourier inversion of bounded cost counts
@@ -93,7 +97,7 @@ theorem sum_dftChar (S : ℕ) (hS : 0 < S) (k : ℤ) :
     rw [hη, ← Complex.exp_nat_mul, h2]
     exact exp_two_pi_int k
   by_cases hd : (S : ℤ) ∣ k
-  · rw [if_pos hd]
+  · rw [ite_eq_left hd]
     obtain ⟨c, hc⟩ := hd
     have hη1 : η = 1 := by
       rw [hη, Complex.exp_eq_one_iff]
@@ -108,7 +112,7 @@ theorem sum_dftChar (S : ℕ) (hS : 0 < S) (k : ℤ) :
       _ = ∑ r ∈ Finset.range S, (1 : ℂ) := by
           exact Finset.sum_congr rfl fun r _ => by rw [hη1]; simp
       _ = (S : ℂ) := by simp
-  · rw [if_neg hd]
+  · rw [ite_eq_right hd]
     have hηne : η ≠ 1 := by
       intro hcon
       apply hd
@@ -226,8 +230,8 @@ theorem dft_inversion_sum (n m : ℕ) (C : Reg n → ℕ) (hC : ∀ z, C z ≤ m
             v.isLt (Nat.lt_succ_of_le (hC z))
           exact hb.trans eq_comm
         by_cases hv : C z = v.val
-        · rw [if_pos (hdvd.mpr hv), if_pos hv]; ring
-        · rw [if_neg (fun hp => hv (hdvd.mp hp)), if_neg hv]; ring
+        · rw [ite_eq_left (hdvd.mpr hv), ite_eq_left hv]; ring
+        · rw [ite_eq_right (fun hp => hv (hdvd.mp hp)), ite_eq_right hv]; ring
     _ = ((m + 1 : ℕ) : ℂ) * (countVec C v.val : ℂ) := by
         rw [← hind, Finset.mul_sum]
 

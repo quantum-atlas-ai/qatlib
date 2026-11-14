@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.FermionicComp00.MainResults.SwapDefect.Basic
+module
+
+public import Qatlib.Papers.FermionicComp00.MainResults.SwapDefect.Basic
+
+@[expose] public section
 
 /-!
 # Two-mode fermionic matrix units
@@ -64,12 +68,12 @@ theorem one_sub_numberOp_apply {m : ℕ} (i : Fin m) (y x : Reg m) :
       if y = x then (if x i then 0 else 1) else 0 := by
   rw [Matrix.sub_apply, Matrix.one_apply]
   by_cases h : y = x
-  · rw [if_pos h]
+  · rw [ite_eq_left h]
     subst y
     rw [numberOp, Matrix.of_apply]
     simp only [eq_self, true_and, ite_true]
     by_cases hx : x i <;> simp [hx]
-  · rw [if_neg h, numberOp, Matrix.of_apply]
+  · rw [ite_eq_right h, numberOp, Matrix.of_apply]
     simp [h, Ne.symm h]
 
 /-- The product of two vacancy projections is diagonal, with entries given by the product of
@@ -80,10 +84,10 @@ theorem one_sub_numberOp_mul_apply {m : ℕ} (j k : Fin m) (y x : Reg m) :
   rw [Matrix.mul_apply]
   rw [Finset.sum_eq_single x]
   · rw [one_sub_numberOp_apply (i := j) (y := y) (x := x),
-      one_sub_numberOp_apply (i := k) (y := x) (x := x), if_pos rfl]
+      one_sub_numberOp_apply (i := k) (y := x) (x := x), ite_eq_left rfl]
     by_cases h : y = x <;> simp [h]
   · intro b _ hb
-    rw [one_sub_numberOp_apply (i := k) (y := b) (x := x), if_neg hb, mul_zero]
+    rw [one_sub_numberOp_apply (i := k) (y := b) (x := x), ite_eq_right hb, mul_zero]
   · intro h
     simp at h
 
@@ -94,9 +98,9 @@ theorem diagonal_mul_apply {m : ℕ} (d : Reg m → ℂ) (M : Matrix (Reg m) (Re
     (Matrix.diagonal d * M) y x = d y * M y x := by
   rw [Matrix.mul_apply]
   rw [Finset.sum_eq_single y]
-  · rw [Matrix.diagonal, Matrix.of_apply, if_pos rfl]
+  · rw [Matrix.diagonal, Matrix.of_apply, ite_eq_left rfl]
   · intro b _ hb
-    rw [Matrix.diagonal, Matrix.of_apply, if_neg (Ne.symm hb), zero_mul]
+    rw [Matrix.diagonal, Matrix.of_apply, ite_eq_right (Ne.symm hb), zero_mul]
   · intro h
     simp at h
 
@@ -107,9 +111,9 @@ theorem mul_diagonal_apply {m : ℕ} (M : Matrix (Reg m) (Reg m) ℂ) (d : Reg m
     (M * Matrix.diagonal d) y x = M y x * d x := by
   rw [Matrix.mul_apply]
   rw [Finset.sum_eq_single x]
-  · rw [Matrix.diagonal, Matrix.of_apply, if_pos rfl]
+  · rw [Matrix.diagonal, Matrix.of_apply, ite_eq_left rfl]
   · intro b _ hb
-    rw [Matrix.diagonal, Matrix.of_apply, if_neg hb, mul_zero]
+    rw [Matrix.diagonal, Matrix.of_apply, ite_eq_right hb, mul_zero]
   · intro h
     simp at h
 
@@ -125,9 +129,9 @@ theorem mulVec_ket_apply {m : ℕ} (M : Matrix (Reg m) (Reg m) ℂ) (x y : Reg m
     (M *ᵥ ket x) y = M y x := by
   rw [Matrix.mulVec, dotProduct]
   rw [Finset.sum_eq_single x]
-  · rw [ket_apply, if_pos rfl, mul_one]
+  · rw [ket_apply, ite_eq_left rfl, mul_one]
   · intro b _ hb
-    rw [ket_apply, if_neg hb, mul_zero]
+    rw [ket_apply, ite_eq_right hb, mul_zero]
   · intro h
     simp at h
 
@@ -141,9 +145,9 @@ theorem annihilation_mulVec_ket {m : ℕ} (i : Fin m) (x : Reg m) :
   simp only [ite_apply, Pi.smul_apply, Pi.zero_apply, smul_eq_mul, ket_apply]
   by_cases hx : x i
   · by_cases hy : y = Function.update x i false
-    · rw [if_pos ⟨hx, hy⟩, if_pos hx, if_pos hy, mul_one]
-    · rw [if_neg (by simp [hy]), if_pos hx, if_neg hy, mul_zero]
-  · rw [if_neg (by simp [hx]), if_neg hx]
+    · rw [ite_eq_left ⟨hx, hy⟩, ite_eq_left hx, ite_eq_left hy, mul_one]
+    · rw [ite_eq_right (by simp [hy]), ite_eq_left hx, ite_eq_right hy, mul_zero]
+  · rw [ite_eq_right (by simp [hx]), ite_eq_right hx]
 
 /-- Creation sets an unoccupied bit with the Jordan-Wigner sign of the resulting register and
 gives zero on an occupied bit. -/
@@ -155,10 +159,10 @@ theorem creation_mulVec_ket {m : ℕ} (i : Fin m) (x : Reg m) :
   rw [mulVec_ket_apply, creation, Matrix.of_apply]
   simp only [ite_apply, Pi.smul_apply, Pi.zero_apply, smul_eq_mul, ket_apply]
   by_cases hx : x i
-  · rw [if_neg (by simp [hx]), if_pos hx]
+  · rw [ite_eq_right (by simp [hx]), ite_eq_left hx]
   · by_cases hy : y = Function.update x i true
-    · rw [if_pos ⟨hx, hy⟩, if_neg hx, if_pos hy, mul_one, hy]
-    · rw [if_neg (by simp [hy]), if_neg hx, if_neg hy, mul_zero]
+    · rw [ite_eq_left ⟨hx, hy⟩, ite_eq_right hx, ite_eq_left hy, mul_one, hy]
+    · rw [ite_eq_right (by simp [hy]), ite_eq_right hx, ite_eq_right hy, mul_zero]
 
 /-- A basis vector is an eigenvector of the number operator with eigenvalue given by its
 occupation at the selected mode. -/
@@ -309,7 +313,7 @@ theorem sum_qubitUnit2_eq (X : Matrix (Reg 2) (Reg 2) ℂ) :
       · have := congrFun h 1; simpa [Function.update_apply] using! this
     have h0 : qubitUnit2 p x (0 : Fin 2) (1 : Fin 2) y x = 0 := by
       simp only [qubitUnit2, Matrix.of_apply]
-      rw [if_neg (by rintro ⟨-, -, hy⟩; exact hne hy.symm)]
+      rw [ite_eq_right (by rintro ⟨-, -, hy⟩; exact hne hy.symm)]
     rw [h0, mul_zero]
   · intro h; simp at h
 

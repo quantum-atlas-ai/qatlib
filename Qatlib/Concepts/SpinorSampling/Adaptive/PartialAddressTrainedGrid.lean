@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpinorSampling.Adaptive.PartialAddressBoxGridEnergy
-import Qatlib.Concepts.SpinorSampling.Adaptive.PartialAddressAxisCertificate
-import Qatlib.Concepts.SpinorSampling.Adaptive.PartialAddressCountMap
-import Mathlib.Logic.Equiv.Prod
+module
+
+public import Qatlib.Concepts.SpinorSampling.Adaptive.PartialAddressBoxGridEnergy
+public import Qatlib.Concepts.SpinorSampling.Adaptive.PartialAddressAxisCertificate
+public import Qatlib.Concepts.SpinorSampling.Adaptive.PartialAddressCountMap
+public import Mathlib.Logic.Equiv.Prod
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

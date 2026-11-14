@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SingleQuery97.MainResults.RandomRecovery
+module
+
+public import Qatlib.Papers.SingleQuery97.MainResults.RandomRecovery
+
+@[expose] public section
 
 /-!
 # Full database recovery and capped randomized decoding
@@ -87,7 +91,7 @@ theorem capped_error (candidates : Fin k → Fin n → ZMod A)
   split_ifs
   · exact (general_recovery_error_bound candidates hinj t).trans (integer_redundancy_bound k l)
   · rw [fallback_exact candidates hinj t]
-    simp only [PMF.toOuterMeasure_pure_apply, Set.mem_setOf_eq, ne_eq, not_true_eq_false, if_false]
+    simp only [PMF.toOuterMeasure_pure_apply, Set.mem_ofPred_eq, ne_eq, not_true_eq_false, ite_false]
     exact zero_le
 
 end Qatlib.Papers.SingleQuery97.MainResults.FullDatabase

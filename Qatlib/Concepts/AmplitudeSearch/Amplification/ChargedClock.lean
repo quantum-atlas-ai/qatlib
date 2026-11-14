@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.Amplification.BBHTCall
-import Qatlib.Concepts.AmplitudeSearch.Amplification.TiedGroupBounds
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.BBHTCall
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.TiedGroupBounds
+
+@[expose] public section
 
 /-!
 # Charged clocks for minimum finding
@@ -107,12 +111,12 @@ theorem chargedBBHTLaw_moment {N : ℕ} (e : Fin N ≃ Fin N) (hN : 0 < N)
     convert! hs using 1
     · funext x
       simp only [chargedBBHTLaw, bbhtJointLaw,
-        if_pos (show 0 < t ∧ t < N from ⟨ht,htN⟩), chargedCallCost, Nat.cast_add]
+        ite_eq_left (show 0 < t ∧ t < N from ⟨ht,htN⟩), chargedCallCost, Nat.cast_add]
       ring
     · ring
   · have hD : sourceCallEnvelope N t =
         (9/2 : ℝ) * Real.sqrt ((N : ℝ)/t) + binaryLog N := by
-      rw [sourceCallEnvelope, if_neg ht.ne', Real.sqrt_div (Nat.cast_nonneg N)]
+      rw [sourceCallEnvelope, ite_eq_right ht.ne', Real.sqrt_div (Nat.cast_nonneg N)]
       ring
     rw [hD]
     nlinarith

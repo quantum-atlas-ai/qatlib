@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
-import Qatlib.Concepts.ClassicalTape.TapeCompilation.BitMachineTime
-import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
-import Qatlib.Concepts.WalshMoment.Forrelation.UniformVerifierDefs
+module
+
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
+public import Qatlib.Concepts.ClassicalTape.TapeCompilation.BitMachineTime
+public import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
+public import Qatlib.Concepts.WalshMoment.Forrelation.UniformVerifierDefs
+
+@[expose] public section
 
 /-!
 # Witness verifier programs and finite promises
@@ -296,7 +300,7 @@ def witnessPolynomialBound (c d n : ℕ) : ℕ := c * (n + 1) ^ d
 
 /-- Returns a halted Turing-machine configuration reachable within the given transition budget,
 or no result when the budget is exhausted. -/
-private def runUntilHaltWithin {k : ℕ}
+public def runUntilHaltWithin {k : ℕ}
     (machine : Turing.TM0.Machine (Option Bool) (Fin (k + 1))) :
     ℕ → Turing.TM0.Cfg (Option Bool) (Fin (k + 1)) →
       Option (Turing.TM0.Cfg (Option Bool) (Fin (k + 1)))
@@ -308,7 +312,7 @@ private def runUntilHaltWithin {k : ℕ}
 
 /-- Reads Boolean tape symbols until a blank is reached, failing if the prefix exceeds the fuel
 bound. -/
-private def readOutputUntilBlank : ℕ → Turing.ListBlank (Option Bool) → Option (List Bool)
+public def readOutputUntilBlank : ℕ → Turing.ListBlank (Option Bool) → Option (List Bool)
   | 0, tape => if tape.nth 0 = none then some [] else none
   | fuel + 1, tape =>
       match tape.nth 0 with
@@ -317,13 +321,13 @@ private def readOutputUntilBlank : ℕ → Turing.ListBlank (Option Bool) → Op
 
 /-- Parses a natural number encoded by true bits terminated by false, returning the unconsumed
 suffix. -/
-private def parseUnaryField : List Bool → Option (ℕ × List Bool)
+public def parseUnaryField : List Bool → Option (ℕ × List Bool)
   | [] => none
   | false :: rest => some (0, rest)
   | true :: rest => (parseUnaryField rest).map fun (k, tail) => (k + 1, tail)
 
 /-- Parses the specified number of unary natural-number fields and returns the remaining bits. -/
-private def parseManyNatFields : ℕ → List Bool → Option (List ℕ × List Bool)
+public def parseManyNatFields : ℕ → List Bool → Option (List ℕ × List Bool)
   | 0, bits => some ([], bits)
   | count + 1, bits => do
       let (head, rest) ← parseUnaryField bits
@@ -332,7 +336,7 @@ private def parseManyNatFields : ℕ → List Bool → Option (List ℕ × List 
 
 /-- Parses the operands of a fixed gate or oracle instruction from its numerical tag and
 bitstring suffix. -/
-private def parseInstructionFields (tag : ℕ) (bits : List Bool) :
+public def parseInstructionFields (tag : ℕ) (bits : List Bool) :
     Option (WitnessInstruction × List Bool) := do
   if tag = 0 then
     let (w, rest) ← parseUnaryField bits
@@ -359,7 +363,7 @@ private def parseInstructionFields (tag : ℕ) (bits : List Bool) :
     none
 
 /-- Parses a complete instruction list subject to a bound on the number of parsed instructions. -/
-private def parseInstructionListFuel : ℕ → List Bool → Option (List WitnessInstruction)
+public def parseInstructionListFuel : ℕ → List Bool → Option (List WitnessInstruction)
   | 0, [] => some []
   | 0, _ :: _ => none
   | _ + 1, [] => some []
@@ -383,18 +387,18 @@ def decodeWitnessVerifierProgram (bits : List Bool) : Option WitnessVerifierProg
     pure ⟨witnessBits, inputBits, ancillaBits, outputWire, instructions⟩
 
 /-- Encodes a natural-number input as a list of `some true` tape symbols. -/
-private def unaryInput (n : ℕ) : List (Option Bool) :=
+public def unaryInput (n : ℕ) : List (Option Bool) :=
   List.replicate n (some true)
 
 variable (f : WitnessVerifierFamily)
 
 /-- The generator's polynomial transition budget at input length `n`. -/
-private def generatorFuel (f : WitnessVerifierFamily) (n : ℕ) : ℕ :=
+public def generatorFuel (f : WitnessVerifierFamily) (n : ℕ) : ℕ :=
   witnessPolynomialBound f.timeCoefficient f.timeDegree n
 
 /-- The generator's polynomial bound on register width and instruction-list length at input
 length `n`. -/
-private def generatorProgramBound (f : WitnessVerifierFamily) (n : ℕ) : ℕ :=
+def generatorProgramBound (f : WitnessVerifierFamily) (n : ℕ) : ℕ :=
   witnessPolynomialBound f.programCoefficient f.programDegree n
 
 /-- Runs the generator on unary input within its time budget, reads its halted output, and
@@ -503,7 +507,7 @@ def padClassicalWitness {m : ℕ} (w : Reg m) (k : ℕ) : Reg (m + k) :=
   fun i => if h : i.val < m then w ⟨i.val, h⟩ else false
 
 /-- The one-control-state Turing machine that halts immediately on every configuration. -/
-private def immediateHaltMachine :
+def immediateHaltMachine :
     Turing.TM0.Machine (Option Bool) (Fin 1) := fun _ _ => none
 
 /-- The immediately halting family whose unchanged unary input decodes to an empty verifier with

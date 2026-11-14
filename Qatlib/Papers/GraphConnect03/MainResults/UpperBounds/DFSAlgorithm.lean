@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GraphConnect03.MainResults.Defs
-import Mathlib.Data.List.Basic
+module
+
+public import Qatlib.Papers.GraphConnect03.MainResults.Defs
+public import Mathlib.Data.List.Basic
+
+@[expose] public section
 
 /-!
 # A depth-first search state machine

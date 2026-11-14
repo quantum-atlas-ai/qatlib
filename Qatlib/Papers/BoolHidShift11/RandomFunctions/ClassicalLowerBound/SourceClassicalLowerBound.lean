@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.BoolHidShift11.InputModel.BHSPModel.SourceBHSP
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.ClassicalQuery
-import Mathlib.Logic.Equiv.Fintype
+module
+
+public import Qatlib.Papers.BoolHidShift11.InputModel.BHSPModel.SourceBHSP
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.ClassicalQuery
+public import Mathlib.Logic.Equiv.Fintype
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

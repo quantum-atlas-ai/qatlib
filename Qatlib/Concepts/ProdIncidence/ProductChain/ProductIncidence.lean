@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ProdIncidence.ProductChain.ProductIncidenceDefs
-import Mathlib.Data.Fintype.BigOperators
-import Qatlib.Concepts.CodingDecoding.CssTesters.CssCode
-import Qatlib.Concepts.CodingDecoding.CssTesters.CssPauli
+module
+
+public import Qatlib.Concepts.ProdIncidence.ProductChain.ProductIncidenceDefs
+public import Mathlib.Data.Fintype.BigOperators
+public import Qatlib.Concepts.CodingDecoding.CssTesters.CssCode
+public import Qatlib.Concepts.CodingDecoding.CssTesters.CssPauli
+
+@[expose] public section
 
 /-!
 # Product incidence identities and CSS locality

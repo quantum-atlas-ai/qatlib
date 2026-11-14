@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Cbmd26.Algorithms.ComputationalAmplificationBridge
+module
+
+public import Qatlib.Papers.Cbmd26.Algorithms.ComputationalAmplificationBridge
+
+@[expose] public section
 
 /-!
 # Explicit budgets for computational amplification
@@ -119,7 +123,7 @@ theorem computationalAmplificationResult_budget (e : W ≃ Aux × I) (a₀ : Aux
     (hQ : ((4 * staticMassBudget + 1) / η) * (adjointQueryCount cs : ℝ) ≤ Q) :
     BudgetedComputationalAmplificationResult e a₀ O cs B i₀ ψ target ε η R Q := by
   obtain ⟨hm, hcs, hA, hs, hi, hd, hp, hr, ho⟩ := h
-  letI := hm
+  let := hm
   refine ⟨hm, hcs, hA, hs, hi.trans (ENNReal.ofReal_le_ofReal hR),
     hd.trans (ENNReal.ofReal_le_ofReal hQ), ?_, hr, ho⟩
   intro choice

@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Data.Complex.Basic
-import Mathlib.LinearAlgebra.UnitaryGroup
-import Mathlib.Data.Nat.ModEq
-import Mathlib.Tactic
+module
+
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.LinearAlgebra.UnitaryGroup
+public import Mathlib.Data.Nat.ModEq
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Compression of padded cyclic shifts

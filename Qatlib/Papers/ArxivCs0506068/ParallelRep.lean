@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Finset.Powerset
-import Mathlib.Data.Nat.Choose.Sum
-import Mathlib.Algebra.BigOperators.Group.Finset.Powerset
-import Mathlib.Data.Real.Basic
-import Mathlib.Data.Fin.Basic
-import Mathlib.Algebra.Order.BigOperators.Ring.Finset
-import Mathlib.Tactic
+module
+
+public import Mathlib.Data.Finset.Powerset
+public import Mathlib.Data.Nat.Choose.Sum
+public import Mathlib.Algebra.BigOperators.Group.Finset.Powerset
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Data.Fin.Basic
+public import Mathlib.Algebra.Order.BigOperators.Ring.Finset
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Threshold weights for independent repetition
@@ -125,7 +129,7 @@ theorem acceptWeight_one (T : ℕ) :
       exact Finset.prod_eq_zero hi (by norm_num)
     rw [hprod, mul_zero]
   by_cases hT : T ≤ N
-  · rw [if_pos hT]
+  · rw [ite_eq_left hT]
     unfold acceptWeight
     have hmem : (univ : Finset (Fin N)) ∈ (univ : Finset (Fin N)).powerset.filter (fun S => T ≤ S.card) := by
       simp [hT]
@@ -135,7 +139,7 @@ theorem acceptWeight_one (T : ℕ) :
       exact hzero S (Finset.mem_filter.mp hS).1 hSne
     · intro hnot
       exact absurd hmem hnot
-  · rw [if_neg hT]
+  · rw [ite_eq_right hT]
     unfold acceptWeight
     rw [Finset.sum_eq_zero]
     intro S hS
@@ -335,8 +339,8 @@ theorem lowWeightOn_eq (C : Finset ι) (p : ι → ℝ) (T : ℕ) :
   intro t _
   have h : (T ≤ t.card + 1) ↔ (T - 1 ≤ t.card) := by omega
   by_cases hT : T ≤ t.card + 1
-  · rw [if_pos hT, if_pos (h.mp hT)]
-  · rw [if_neg hT, if_neg (fun hc => hT (h.mpr hc))]
+  · rw [ite_eq_left hT, ite_eq_left (h.mp hT)]
+  · rw [ite_eq_right hT, ite_eq_right (fun hc => hT (h.mpr hc))]
 
 /-- Adding a fresh trial expresses acceptance as `(1 - p i)` times the old tail plus `p i` times
 the tail at threshold `T - 1`. -/
@@ -400,8 +404,8 @@ theorem acceptWeightOn_le_of_le_on (C : Finset ι) (p q : ι → ℝ)
           rw [Finset.powerset_empty, Finset.sum_filter, Finset.sum_singleton]
           simp only [Finset.card_empty]
           by_cases hT : T ≤ 0
-          · rw [if_pos hT, if_pos hT]; simp [patternWeightOn]
-          · rw [if_neg hT, if_neg hT]
+          · rw [ite_eq_left hT, ite_eq_left hT]; simp [patternWeightOn]
+          · rw [ite_eq_right hT, ite_eq_right hT]
         rw [hval p, hval q]
     | insert a s ha ih =>
         intro p q hp hp1 hq hq1 hle heq T

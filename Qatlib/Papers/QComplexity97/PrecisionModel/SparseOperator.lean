@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Algebra.Order.Chebyshev
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Algebra.Order.Chebyshev
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Operator norm of a sparse matrix

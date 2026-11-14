@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GrandUnif21.MainResults.PhaseEstimation.DeltaRegion
+module
+
+public import Qatlib.Papers.GrandUnif21.MainResults.PhaseEstimation.DeltaRegion
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -71,7 +75,7 @@ theorem source_lemma13 {Δ : ℝ} (hΔ0 : 0 ≤ Δ)
       (A₂ := Real.arccos (1 / Real.sqrt 2 - Δ / 2)) rfl rfl hA1gt hA2lt hy0 hhalf hreg'
     obtain ⟨hb1, hb2⟩ := hb
     exact Or.inl ⟨by linarith, by linarith⟩
-  · push_neg at hhalf
+  · push Not at hhalf
     have hv0 : 0 ≤ 1 - |y| := by linarith
     have hvhalf : 1 - |y| ≤ 1 / 2 := by linarith
     have hcosv : |Real.cos (π * |y|)| = |Real.cos (π * (1 - |y|))| := by

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QspSimulation.WordModel.Equation1WordBridgeLowc
+module
+
+public import Qatlib.Concepts.QspSimulation.WordModel.Equation1WordBridgeLowc
+
+@[expose] public section
 
 /-!
 # Converting normalized amplitudes to source words
@@ -133,7 +137,7 @@ theorem lcSignalMatrix_one : SignalMatrix 1 = 1 := by
 /-- The phase rotation at angle zero is the identity matrix. -/
 theorem lcPhaseRotation_zero : PhaseRotation 0 = 1 := by
   ext i j
-  fin_cases i <;> fin_cases j <;> simp [phaseRotation_apply, Matrix.one_apply]
+  fin_cases i <;> fin_cases j <;> simp [phaseRotation_apply]
 
 /-- At signal value `1`, `lcQspTilde` is the phase rotation by the sum of its phase list. -/
 theorem lcQspTilde_one (qs : List ℝ) : lcQspTilde qs 1 = PhaseRotation qs.sum := by

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LinearSystems09.HermitianLift.Basic
-import Qatlib.Concepts.QsvtCore.ApproxToolkit.QsvtModulusTransport
-import Qatlib.Foundations.PureStateMath.Qubit
+module
+
+public import Qatlib.Papers.LinearSystems09.HermitianLift.Basic
+public import Qatlib.Concepts.QsvtCore.ApproxToolkit.QsvtModulusTransport
+public import Qatlib.Foundations.PureStateMath.Qubit
+
+@[expose] public section
 
 /-!
 # Non-Hermitian systems and signed singular values

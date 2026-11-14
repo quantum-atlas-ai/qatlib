@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ConversionCore.OptimizedBound.OptimizedAdversaryQueryLowerBoundStat
-import Mathlib.Tactic.NormNum.RealSqrt
+module
+
+public import Qatlib.Concepts.ConversionCore.OptimizedBound.OptimizedAdversaryQueryLowerBoundStat
+public import Mathlib.Tactic.NormNum.RealSqrt
+
+@[expose] public section
 
 /-!
 # Optimized adversary lower bound for Boolean circuits

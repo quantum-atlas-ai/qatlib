@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Core.AuxRegulator
-import Qatlib.Foundations.CbmdAnalysis.Core.FinitePoleBounds
-import Mathlib.Analysis.PSeries
+module
+
+public import Qatlib.Foundations.CbmdAnalysis.Core.AuxRegulator
+public import Qatlib.Foundations.CbmdAnalysis.Core.FinitePoleBounds
+public import Mathlib.Analysis.PSeries
+
+@[expose] public section
 
 /-!
 # Summability of auxiliary sampling weights

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AdversarySrch07.MainResults.Definitions
-import Mathlib.LinearAlgebra.Matrix.Hermitian
-import Mathlib.LinearAlgebra.Matrix.PosDef
-import Mathlib.Analysis.Matrix.Spectrum
+module
+
+public import Qatlib.Papers.AdversarySrch07.MainResults.Definitions
+public import Mathlib.LinearAlgebra.Matrix.Hermitian
+public import Mathlib.LinearAlgebra.Matrix.PosDef
+public import Mathlib.Analysis.Matrix.Spectrum
+
+@[expose] public section
 
 /-!
 # Comparison matrices and symmetric trace norms
@@ -54,12 +58,12 @@ theorem lemmaSixMatrix_isHermitian {n : ℕ} (v w : Fin n → ℝ) :
   intro i j
   simp only [star_trivial, lemmaSixMatrix]
   by_cases hji : j ≤ i
-  · rw [if_pos hji]
+  · rw [ite_eq_left hji]
     by_cases hij : i ≤ j
     · have hEq : i = j := le_antisymm hij hji
-      rw [hEq, if_pos (le_refl j)]
-    · rw [if_neg hij]
-  · rw [if_neg hji, if_pos (le_of_not_ge hji)]
+      rw [hEq, ite_eq_left (le_refl j)]
+    · rw [ite_eq_right hij]
+  · rw [ite_eq_right hji, ite_eq_left (le_of_not_ge hji)]
 
 /-- Swapping the two indices leaves each entry of `lemmaSixMatrix v w` unchanged. -/
 theorem lemmaSixMatrix_comm {n : ℕ} (v w : Fin n → ℝ) (i j : Fin n) :

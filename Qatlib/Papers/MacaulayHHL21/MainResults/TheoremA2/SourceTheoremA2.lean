@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MacaulayHHL21.MainResults.SourceModel
-import Qatlib.Concepts.CoherentSim.CoherentOAA.Pseudoinverse
-import Mathlib.Data.Matrix.Basic
+module
+
+public import Qatlib.Papers.MacaulayHHL21.MainResults.SourceModel
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.Pseudoinverse
+public import Mathlib.Data.Matrix.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Order.Interval.Finset.Nat
-import Mathlib.Data.Nat.Log
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.NormNum
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Order.Interval.Finset.Nat
+public import Mathlib.Data.Nat.Log
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.NormNum
+
+@[expose] public section
 
 /-!
 # Stage-count and window estimates for ordered search

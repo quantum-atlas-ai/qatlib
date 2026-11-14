@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.NumberTheory.GaussSum
-import Mathlib.NumberTheory.LegendreSymbol.AddCharacter
-import Mathlib.Analysis.SpecialFunctions.Complex.CircleAddChar
-import Mathlib.Analysis.SpecialFunctions.Complex.Log
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Analysis.Complex.Norm
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.NumberTheory.GaussSum
+public import Mathlib.NumberTheory.LegendreSymbol.AddCharacter
+public import Mathlib.Analysis.SpecialFunctions.Complex.CircleAddChar
+public import Mathlib.Analysis.SpecialFunctions.Complex.Log
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Analysis.Complex.Norm
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Roots of unity and Gauss sums
@@ -44,12 +48,11 @@ noncomputable section
 def qroot (p : ℕ) : ℂ := Complex.exp (2 * Real.pi * Complex.I / p)
 
 /-- For nonzero `p`, the `t`th power of `qroot p` is `exp(2πi * t / p)`. -/
-theorem qroot_pow_eq' (p t : ℕ) (hp : p ≠ 0) :
+theorem qroot_pow_eq' (p t : ℕ) (_hp : p ≠ 0) :
     qroot p ^ t = Complex.exp (2 * Real.pi * Complex.I * t / p) := by
   unfold qroot
   rw [← Complex.exp_nat_mul]
   congr 1
-  push_cast
   ring
 
 /-- The definition of `qroot` at zero gives one. -/
@@ -80,7 +83,7 @@ theorem stdAddChar_ne_one (p : ℕ) [NeZero p] (hp : 2 ≤ p) :
     (ZMod.stdAddChar (N := p)) ≠ 1 := by
   rw [AddChar.zmod_char_ne_one_iff]
   rw [stdAddChar_eq_qroot_pow]
-  haveI : Fact (1 < p) := ⟨by omega⟩
+  have : Fact (1 < p) := ⟨by omega⟩
   rw [ZMod.val_one, pow_one]
   exact qroot_ne_one p hp
 
@@ -195,7 +198,7 @@ theorem subgroupSum_norm_le (p q : ℕ) (a : (ZMod p)ˣ) (k : ZMod p) :
 theorem subgroupSum_generator_eq_neg_one (p : ℕ) [Fact p.Prime] (hp : 2 ≤ p)
     (a : (ZMod p)ˣ) (ha : orderOf a = p - 1) (k : ZMod p) (hk : k ≠ 0) :
     subgroupSum p a k (p - 1) = -1 := by
-  haveI : NeZero p := ⟨by omega⟩
+  have : NeZero p := ⟨by omega⟩
   have hak : (a : ZMod p) ≠ 0 := a.isUnit.ne_zero
 
   have hinj : ∀ t ∈ Finset.range (p - 1), ∀ s ∈ Finset.range (p - 1),

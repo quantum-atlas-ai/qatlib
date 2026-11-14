@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NonSparseHam09.MainResults.Prop1TreeGauge
+module
+
+public import Qatlib.Papers.NonSparseHam09.MainResults.Prop1TreeGauge
+
+@[expose] public section
 
 /-!
 # Diagonal gauges on rooted matrix forests
@@ -139,8 +143,10 @@ lemma gauge_eq_child (F : RootedForest H) {i : ι} (h : F.parent i ≠ i) :
   rw [gauge]
   simp only [dite_eq_right h]
 
+omit [Fintype ι] [Nonempty ι] in
+
 /-- Every vertex gauge has complex norm one. See [ChildsKothari2010]. -/
-lemma gauge_norm_eq_one (F : RootedForest H) (i : ι) : ‖F.gauge i‖ = 1 := by
+lemma gauge_norm_eq_one {ι : Type*} [_scopeInst0 : Fintype ι] [_scopeInst1 : DecidableEq ι] [_scopeInst2 : Nonempty ι] {H : Matrix ι ι ℂ} (F : RootedForest H) (i : ι) : ‖F.gauge i‖ = 1 := by
   classical
   have key : ∀ d, ∀ i : ι, F.depth i = d → ‖F.gauge i‖ = 1 := by
     intro d

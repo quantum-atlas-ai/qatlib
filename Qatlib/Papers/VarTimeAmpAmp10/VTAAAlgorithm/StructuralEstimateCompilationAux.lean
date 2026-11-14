@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.StructuralEstimateInterface
-import Qatlib.Papers.VarTimeAmpAmp10.StopModel.LiveVtProgramAux
+module
+
+public import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.StructuralEstimateInterface
+public import Qatlib.Papers.VarTimeAmpAmp10.StopModel.LiveVtProgramAux
+
+@[expose] public section
 
 /-!
 # Structural compilation of amplitude estimates
@@ -236,7 +240,7 @@ theorem dataRecordLaw_sum_one (M : ℕ) (hM : 2 ≤ M) (r n : ℕ)
     (hw : ∀ ω i, DataVtWordLegal stages (words ω i))
     (hdep : ∀ i ω ω', (∀ j, j.val < i.val → ω j = ω' j) → words ω i = words ω' i) :
     ∑ ω, dataRecordLaw M hM r n stages history j₀ words ω = 1 := by
-  letI : Inhabited (Fin M) := ⟨⟨0, by omega⟩⟩
+  let : Inhabited (Fin M) := ⟨⟨0, by omega⟩⟩
   apply prefix_kernel_sum_one
   · intro i ω ω' h
     rw [hdep i ω ω' h]
@@ -263,7 +267,7 @@ theorem dataRecordGood_mass (M : ℕ) (hM : 2 ≤ M) (r n : ℕ)
     1-(n : ℝ)*(8/9 : ℝ)^r ≤
       ∑ ω ∈ dataRecordGood M r n stages history j₀ words,
         dataRecordLaw M hM r n stages history j₀ words ω := by
-  letI : Inhabited (Fin M) := ⟨⟨0, by omega⟩⟩
+  let : Inhabited (Fin M) := ⟨⟨0, by omega⟩⟩
   let P := fun ω i x =>
     |vtMedianEstimate M r x-MeasureProb (dataVtWordState stages history j₀ (words ω i)) (liveSet C)| ≤
       dataEstimateRadius (MeasureProb (dataVtWordState stages history j₀ (words ω i)) (liveSet C)) M
@@ -289,8 +293,8 @@ theorem dataRecordGood_mass (M : ℕ) (hM : 2 ≤ M) (r n : ℕ)
       apply Finset.sum_congr rfl
       intro x _
       by_cases hx : P ω i x
-      · simp only [κ, if_pos hx, if_neg (not_not.mpr hx), _root_.add_zero]
-      · simp only [κ, if_neg hx, if_pos hx, _root_.zero_add]
+      · simp only [κ, ite_eq_left hx, ite_eq_right (not_not.mpr hx), _root_.add_zero]
+      · simp only [κ, ite_eq_right hx, ite_eq_left hx, _root_.zero_add]
     have hbad' : (∑ x ∈ Finset.univ.filter (fun x => ¬P ω i x),
         dataFreshKernel M hM r stages history j₀ (words ω i) x) ≤ (8/9 : ℝ)^r := by
       simpa only [P, not_le] using! hbad
@@ -302,7 +306,7 @@ theorem dataRecordGood_mass (M : ℕ) (hM : 2 ≤ M) (r n : ℕ)
     split_ifs with h
     · unfold dataRecordLaw
       apply Finset.prod_congr rfl
-      intro i _; simp only [κ, if_pos (h i)]
+      intro i _; simp only [κ, ite_eq_left (h i)]
     · obtain ⟨i, hi⟩ := not_forall.mp h
       exact Finset.prod_eq_zero (Finset.mem_univ i) (by simp [κ, hi])
   have hsum : (∑ ω, ∏ i, κ ω i (ω i)) =

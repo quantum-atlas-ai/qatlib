@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Basic.Real.Basic
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
+module
+
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+
+@[expose] public section
 
 /-!
 # Registers and solver predicates for lattice reductions

@@ -4,8 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkFind.UniformThree.HiddenSubgroupOracle
-import Qatlib.Concepts.SpectralFilter.PhaseReadout.FourierRecoveryDefs
+module
+
+public import Qatlib.Concepts.WalkFind.UniformThree.HiddenSubgroupOracle
+public import Qatlib.Concepts.SpectralFilter.PhaseReadout.FourierRecoveryDefs
+
+@[expose] public section
+set_option linter.unusedSimpArgs false
+set_option linter.unusedTactic false
+set_option linter.unnecessarySeqFocus false
+set_option linter.unusedVariables false
 
 /-!
 # Arithmetic semantics and finite abelian recovery endpoints
@@ -289,20 +297,20 @@ theorem arithGateFn_cadd_injective {N : ℕ} (i : Fin N) :
   · have ht : t.2.2 i := by rw [← hctrl]; exact hs
     have hadd : s.1.2 = t.1.2 := by
       have h2 := congrArg (fun p => p.1.2) h
-      simp only [arithGateFn, hs, ht, if_true] at h2
+      simp only [arithGateFn, hs, ht, ite_true] at h2
       exact h2
     have hdata : s.1.1 = t.1.1 := by
       have h2 := congrArg (fun p => p.1.1) h
-      simp only [arithGateFn, hs, ht, if_true] at h2
+      simp only [arithGateFn, hs, ht, ite_true] at h2
       rw [← hadd] at h2
       exact add_right_cancel h2
     have hcarry : s.2.1 = t.2.1 := by
       have h2 := congrArg (fun p => p.2.1) h
-      simp only [arithGateFn, hs, ht, if_true] at h2
+      simp only [arithGateFn, hs, ht, ite_true] at h2
       exact h2
     exact arithState_ext hdata hadd hcarry hctrl
   · have ht : ¬ t.2.2 i := by rw [← hctrl]; exact hs
-    simp only [arithGateFn, hs, ht, if_false] at h
+    simp only [arithGateFn, hs, ht, ite_false] at h
     exact h
 
 /-- Controlled subtraction gives an injective arithmetic state update for every control index. -/
@@ -314,21 +322,21 @@ theorem arithGateFn_csub_injective {N : ℕ} (i : Fin N) :
   · have ht : t.2.2 i := by rw [← hctrl]; exact hs
     have hadd : s.1.2 = t.1.2 := by
       have h2 := congrArg (fun p => p.1.2) h
-      simp only [arithGateFn, hs, ht, if_true] at h2
+      simp only [arithGateFn, hs, ht, ite_true] at h2
       exact h2
     have hdata : s.1.1 = t.1.1 := by
       have h2 := congrArg (fun p => p.1.1) h
-      simp only [arithGateFn, hs, ht, if_true] at h2
+      simp only [arithGateFn, hs, ht, ite_true] at h2
       rw [← hadd] at h2
       have h3 : s.1.1 + (-s.1.2) = t.1.1 + (-s.1.2) := by simpa using! h2
       exact add_right_cancel h3
     have hcarry : s.2.1 = t.2.1 := by
       have h2 := congrArg (fun p => p.2.1) h
-      simp only [arithGateFn, hs, ht, if_true] at h2
+      simp only [arithGateFn, hs, ht, ite_true] at h2
       exact h2
     exact arithState_ext hdata hadd hcarry hctrl
   · have ht : ¬ t.2.2 i := by rw [← hctrl]; exact hs
-    simp only [arithGateFn, hs, ht, if_false] at h
+    simp only [arithGateFn, hs, ht, ite_false] at h
     exact h
 
 /-- Controlled multiplication by a unit of `ZMod N` gives an injective arithmetic state update. -/
@@ -340,19 +348,19 @@ theorem arithGateFn_cmulConst_injective {N : ℕ} (i : Fin N) {k : ZMod N} (hk :
   · have ht : t.2.2 i := by rw [← hctrl]; exact hs
     have hdata : s.1.1 = t.1.1 := by
       have h2 := congrArg (fun p => p.1.1) h
-      simp only [arithGateFn, hs, ht, if_true] at h2
+      simp only [arithGateFn, hs, ht, ite_true] at h2
       exact hk.mul_left_cancel h2
     have hadd : s.1.2 = t.1.2 := by
       have h2 := congrArg (fun p => p.1.2) h
-      simp only [arithGateFn, hs, ht, if_true] at h2
+      simp only [arithGateFn, hs, ht, ite_true] at h2
       exact h2
     have hcarry : s.2.1 = t.2.1 := by
       have h2 := congrArg (fun p => p.2.1) h
-      simp only [arithGateFn, hs, ht, if_true] at h2
+      simp only [arithGateFn, hs, ht, ite_true] at h2
       exact h2
     exact arithState_ext hdata hadd hcarry hctrl
   · have ht : ¬ t.2.2 i := by rw [← hctrl]; exact hs
-    simp only [arithGateFn, hs, ht, if_false] at h
+    simp only [arithGateFn, hs, ht, ite_false] at h
     exact h
 
 /-- Matrix semantics for arithmetic gates, using diagonal complex phases for rotations and
@@ -540,7 +548,7 @@ theorem arithGateFn_mulConst_roundtrip {N : ℕ} {k : ZMod N} (hk : IsUnit k) (s
   have hk' : (↑(hk.unit⁻¹) : ZMod N) * k = 1 := by
     calc (↑(hk.unit⁻¹) : ZMod N) * k
         = (↑(hk.unit⁻¹) : ZMod N) * (↑hk.unit : ZMod N) := by rw [hk.unit_spec]
-      _ = 1 := by simpa using! Units.mul_inv hk.unit⁻¹
+      _ = 1 := by exact Units.mul_inv hk.unit⁻¹
   simp only [arithGateFn, ArithState.data]
   rw [← mul_assoc, hk', one_mul]
 
@@ -553,7 +561,7 @@ theorem arithGateFn_cmulConst_roundtrip {N : ℕ} (i : Fin N) {k : ZMod N} (hk :
   have hk' : (↑(hk.unit⁻¹) : ZMod N) * k = 1 := by
     calc (↑(hk.unit⁻¹) : ZMod N) * k
         = (↑(hk.unit⁻¹) : ZMod N) * (↑hk.unit : ZMod N) := by rw [hk.unit_spec]
-      _ = 1 := by simpa using! Units.mul_inv hk.unit⁻¹
+      _ = 1 := by exact Units.mul_inv hk.unit⁻¹
   by_cases hs : s.2.2 i = true
   · simp [arithGateFn, hs, ArithState.data]
     rw [← mul_assoc, hk', one_mul]
@@ -662,7 +670,7 @@ theorem arithProgramFn_cmulList {N : ℕ} (ps : List (Fin N × ZMod N)) (s : Ari
           = p :: ps.filter (fun q => s.ctrl q.1) := by
         rw [List.filter_cons]
         simp only [ArithState.ctrl]
-        rw [if_pos h]
+        rw [ite_eq_left h]
       rw [List.map_cons, arithProgramFn, ih, hctrl', hdata]
       rw [hfilter, List.map_cons, List.prod_cons]
       ring
@@ -680,7 +688,7 @@ theorem arithProgramFn_cmulList {N : ℕ} (ps : List (Fin N × ZMod N)) (s : Ari
           = ps.filter (fun q => s.ctrl q.1) := by
         rw [List.filter_cons]
         simp only [ArithState.ctrl]
-        rw [if_neg (by simpa only [ArithState.ctrl] using! h)]
+        rw [ite_eq_right (by simpa only [ArithState.ctrl] using! h)]
       rw [List.map_cons, arithProgramFn, ih, hctrl', hdata]
       rw [hfilter]
 
@@ -749,7 +757,7 @@ private theorem countKind_foldl {N : ℕ} (acc : ℕ) (gs : List (ArithGate N))
     have hgs : ∀ g' ∈ gs, kind g' = true := by
       intro g' hg'
       exact h g' (List.mem_cons_of_mem _ hg')
-    rw [List.foldl_cons, if_pos hg, ih (acc + 1) hgs, List.length_cons]
+    rw [List.foldl_cons, ite_eq_left hg, ih (acc + 1) hgs, List.length_cons]
     ring
 
 /-- The kind count equals the gate-list length when every gate satisfies the predicate. -/
@@ -770,7 +778,7 @@ private theorem countKind_none {N : ℕ} (gs : List (ArithGate N)) (kind : Arith
       have hgs : ∀ g' ∈ gs, kind g' = false := by
         intro g' hg'
         exact h g' (List.mem_cons_of_mem _ hg')
-      rw [List.foldl_cons, if_neg (by simpa using! hg), ih hgs]
+      rw [List.foldl_cons, ite_eq_right (by simpa using! hg), ih hgs]
   exact this
 
 /-- The modular-exponentiation word has one gate for each set bit of the exponent. -/

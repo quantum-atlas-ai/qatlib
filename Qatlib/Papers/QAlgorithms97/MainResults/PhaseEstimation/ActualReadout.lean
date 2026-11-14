@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QAlgorithms97.MainResults.PhaseEstimation.PoweredProgram
-import Qatlib.Papers.QAlgorithms97.MainResults.PhaseEstimation.PhaseEstimationSuccess
+module
+
+public import Qatlib.Papers.QAlgorithms97.MainResults.PhaseEstimation.PoweredProgram
+public import Qatlib.Papers.QAlgorithms97.MainResults.PhaseEstimation.PhaseEstimationSuccess
+
+@[expose] public section
 
 /-!
 # Readout bounds for the powered phase-estimation circuit

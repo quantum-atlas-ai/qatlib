@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MonteCarloInt20.PrnJump.CompiledJump
+module
+
+public import Qatlib.Papers.MonteCarloInt20.PrnJump.CompiledJump
+
+@[expose] public section
 
 /-!
 # Coherent native PRN jumps and cost receipts

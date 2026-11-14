@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QlsReadoutSpec.WalkQSVT.PolynomialDomainRescalingStat
-import Mathlib.RingTheory.Polynomial.Chebyshev
+module
+
+public import Qatlib.Concepts.QlsReadoutSpec.WalkQSVT.PolynomialDomainRescalingStat
+public import Mathlib.RingTheory.Polynomial.Chebyshev
+
+@[expose] public section
 
 /-!
 # Rescaling the domain of Chebyshev expansions
@@ -123,9 +127,9 @@ original vector. -/
 private theorem toStd_fromStd {n : ℕ} (d : Fin n → ℂ) : toStd (fromStd d) = d := by
   funext k
   by_cases hk : k.val = 0
-  · simp only [toStd_apply, fromStd_apply, if_pos hk]
+  · simp only [toStd_apply, fromStd_apply, ite_eq_left hk]
     field_simp
-  · simp only [toStd_apply, fromStd_apply, if_neg hk]
+  · simp only [toStd_apply, fromStd_apply, ite_eq_right hk]
 
 /-- The polynomial given by the finite sum of standard coefficients times first-kind Chebyshev
 polynomials. -/
@@ -141,12 +145,12 @@ private theorem chebValue_eq {n : ℕ} (c : Fin n → ℂ) (x : ℝ) :
   apply Finset.sum_congr rfl
   intro k _
   by_cases hk0 : k.val = 0
-  · rw [if_pos hk0]
+  · rw [ite_eq_left hk0]
     have h0 : ((chebT x 0 : ℝ) : ℂ) = 1 := by simp [chebT]
     rw [hk0, h0, toStd_apply, hk0]
-    simp only [if_true, smul_eq_mul, mul_one]
+    simp only [ite_true, smul_eq_mul, mul_one]
     field_simp
-  · rw [if_neg hk0, toStd_apply, if_neg hk0]
+  · rw [ite_eq_right hk0, toStd_apply, ite_eq_right hk0]
     rfl
 
 /-- The half-weighted matrix Chebyshev operator equals algebra evaluation of its
@@ -159,14 +163,14 @@ private theorem chebOperator_eq {n : ℕ} (c : Fin n → ℂ)
   apply Finset.sum_congr rfl
   intro k _
   by_cases hk0 : k.val = 0
-  · rw [if_pos hk0]
+  · rw [ite_eq_left hk0]
     have h0 : T ℂ ((0 : ℕ) : ℤ) = 1 := by simp
     rw [hk0, h0, Polynomial.aeval_one]
     rw [toStd_apply, hk0]
-    simp only [if_true]
+    simp only [ite_true]
     rw [smul_smul]
     rw [show (c k * (1 / 2 : ℂ)) = c k / 2 by field_simp]
-  · rw [if_neg hk0, toStd_apply, if_neg hk0, chebMatrix_eq_aeval]
+  · rw [ite_eq_right hk0, toStd_apply, ite_eq_right hk0, chebMatrix_eq_aeval]
 
 /-- The polynomial represented by a coefficient vector of length `n` has degree strictly less
 than `n`. -/
@@ -217,12 +221,12 @@ private theorem comp_degree_lt {n : ℕ} (d : Fin n → ℂ) :
 has a standard Chebyshev coefficient vector of the same length. -/
 private theorem exists_cheb_coeff {n : ℕ} (c : Fin n → ℂ) :
     ∃ e : Fin n → ℂ, chebPolyOf e = (chebPolyOf (toStd c)).comp (2 * X) := by
-  set S : Polynomial.Sequence ℂ := chebyshevTsequence ℂ with hS
+  set S : Polynomial.Sequence ℂ := Polynomial.Chebyshev.chebyshevTSequence ℂ with hS
   have hCoeff : ∀ i, IsUnit (S i).leadingCoeff := by
     intro i
     have h : (S i).leadingCoeff = 2 ^ (i - 1) := by
       rw [hS]
-      simp [chebyshevTsequence, chebyshevTSequence, leadingCoeff_T]
+      simp [Polynomial.Chebyshev.chebyshevTSequence, chebyshevTSequence, leadingCoeff_T]
     rw [h]
     exact (isUnit_iff_ne_zero.mpr two_ne_zero).pow _
   set B : Basis ℕ ℂ ℂ[X] := S.basis hCoeff with hB
@@ -242,7 +246,7 @@ private theorem exists_cheb_coeff {n : ℕ} (c : Fin n → ℂ) :
         have hjne : j ≠ i := ne_of_lt (Set.mem_Iio.mp hj)
         rw [hB]
         rw [← S.basis_eq_self hCoeff j]
-        rw [Basis.coord_apply, Basis.repr_self_apply, if_neg hjne]
+        rw [Basis.coord_apply, Basis.repr_self_apply, ite_eq_right hjne]
       · simp
       · intro x y _ _ hx hy
         rw [map_add, hx, hy, add_zero]
@@ -274,7 +278,7 @@ private theorem exists_cheb_coeff {n : ℕ} (c : Fin n → ℂ) :
   intro k _
   rw [show B k.val = T ℂ (k.val : ℤ) by
       rw [hB, S.basis_eq_self hCoeff, hS]
-      simp [chebyshevTsequence, chebyshevTSequence]]
+      simp [Polynomial.Chebyshev.chebyshevTSequence, chebyshevTSequence]]
 
 /-- Every finite Chebyshev expansion can be rescaled by twice its argument with the same
 coefficient-vector length, preserving the stated interval supremum and matrix-evaluation
@@ -295,7 +299,7 @@ theorem Clause27PolynomialDomainRescaling_answer : Clause27PolynomialDomainResca
     rw [polynomialSup, polynomialSup]
     congr 1
     ext y
-    simp only [Set.mem_setOf_eq]
+    simp only [Set.mem_ofPred_eq]
     constructor
     · intro hy
       obtain ⟨x, hx1, hx2, hxy⟩ := hy

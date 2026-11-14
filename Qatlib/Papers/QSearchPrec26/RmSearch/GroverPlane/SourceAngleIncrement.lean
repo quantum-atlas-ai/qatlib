@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic
-import Mathlib.Tactic.Ring
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -52,7 +56,7 @@ namespace Qatlib.Papers.QSearchPrec26.RmSearch.GroverPlane.Angle
 
 Then `Δ_k ≥ ω* u₀` for every `k`. -/
 theorem lemma10_grover_angle_increment
-    (c ρ Rstar ω u0 : ℝ) (hc : 0 < c) (hc8 : c ≤ 1 / 8)
+    (c ρ Rstar ω u0 : ℝ) (hc : 0 < c) (_hc8 : c ≤ 1 / 8)
     (hρ : 0 < ρ) (hRstar : 0 < Rstar) (hu0 : 0 < u0)
     (hω : ω = min (1 / 48) (c * ρ * Rstar / 4))
     (ϑ qdiff Δ : ℕ → ℝ)
@@ -72,7 +76,7 @@ theorem lemma10_grover_angle_increment
   have hω2 : ω ≤ c * ρ * Rstar / 4 := by
     rw [hω]; exact min_le_right _ _
   by_contra hcon
-  push_neg at hcon
+  push Not at hcon
   -- Positivity of `sin(2ϑ_k)` (from (B27)) and of `sin(Δ_k)`.
   have hsinpos : 0 < Real.sin (2 * ϑ k) := lt_of_lt_of_le (by positivity) (hB27 k)
   have hsinD0 : 0 ≤ Real.sin (Δ k) :=

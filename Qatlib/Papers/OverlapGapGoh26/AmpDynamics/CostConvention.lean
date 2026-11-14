@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OverlapGapGoh26.AmpDynamics.Assumption21
-import Qatlib.Papers.OverlapGapGoh26.GaussianModel.Interpolation
+module
+
+public import Qatlib.Papers.OverlapGapGoh26.AmpDynamics.Assumption21
+public import Qatlib.Papers.OverlapGapGoh26.GaussianModel.Interpolation
+
+@[expose] public section
 
 /-!
 # Maximization and minimization sign conventions

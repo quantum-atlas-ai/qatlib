@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NoisyLearn26.MainResults.Models.InterfaceModels
+module
+
+public import Qatlib.Papers.NoisyLearn26.MainResults.Models.InterfaceModels
+
+@[expose] public section
 
 /-!
 # Noise accumulation and sensing estimates
@@ -59,7 +63,6 @@ theorem noiseJumpProb_interstitial (η τ : ℝ) (n : ℕ) :
   have h1 : (1 : ℝ) - (1 - Real.exp (-(4 * η * τ))) = Real.exp (-(4 * η * τ)) := by ring
   rw [h1, ← Real.exp_nat_mul]
   congr 1
-  push_cast
   ring
 
 /-- For `0 ≤ y ≤ 1`, the quantity `1 - exp(-y)` is at least `y / 2`. -/
@@ -79,7 +82,7 @@ theorem one_sub_exp_neg_ge {y : ℝ} (h0 : 0 ≤ y) (h1 : y ≤ 1) :
   linarith
 
 /-- For nonnegative `y`, the quantity `1 - exp(-y)` is at most `y`. -/
-theorem one_sub_exp_neg_le {y : ℝ} (h0 : 0 ≤ y) : 1 - Real.exp (-y) ≤ y := by
+theorem one_sub_exp_neg_le {y : ℝ} (_h0 : 0 ≤ y) : 1 - Real.exp (-y) ≤ y := by
   have h := Real.add_one_le_exp (-y)
   linarith
 

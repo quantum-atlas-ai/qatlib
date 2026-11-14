@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Core.CosinePropagators
-import Qatlib.Foundations.CbmdAnalysis.Core.CosineRegulatorNorm
-import Mathlib.NumberTheory.Harmonic.Bounds
+module
+
+public import Qatlib.Foundations.CbmdAnalysis.Core.CosinePropagators
+public import Qatlib.Foundations.CbmdAnalysis.Core.CosineRegulatorNorm
+public import Mathlib.NumberTheory.Harmonic.Bounds
+
+@[expose] public section
 
 /-!
 # Cosine weight sums and tail bounds

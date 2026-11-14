@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ContDiscWalk08.MainResults.SimulationComplexity.Theorem2NormBound
-import Qatlib.Papers.ContDiscWalk08.CompressedSim.ArcsinCubic
+module
+
+public import Qatlib.Papers.ContDiscWalk08.MainResults.SimulationComplexity.Theorem2NormBound
+public import Qatlib.Papers.ContDiscWalk08.CompressedSim.ArcsinCubic
+
+@[expose] public section
 
 /-!
 # Compressed walk symbols

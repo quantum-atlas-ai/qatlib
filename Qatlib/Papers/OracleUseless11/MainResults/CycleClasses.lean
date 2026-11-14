@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OracleUseless11.MainResults.OracleProblem
-import Qatlib.Papers.OracleUseless11.MainResults.ClassicalTranscript
-import Mathlib.GroupTheory.Perm.Cycle.Basic
-import Mathlib.GroupTheory.Perm.Support
+module
+
+public import Qatlib.Papers.OracleUseless11.MainResults.OracleProblem
+public import Qatlib.Papers.OracleUseless11.MainResults.ClassicalTranscript
+public import Mathlib.GroupTheory.Perm.Cycle.Basic
+public import Mathlib.GroupTheory.Perm.Support
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -155,12 +159,12 @@ theorem sum_ite_zero_offdiag {Y : Type*} [Fintype Y] [DecidableEq Y] (x : Y) (c 
     omega
   rw [← Finset.sum_erase_add (Finset.univ : Finset Y)
     (fun z => if z = x then (0 : ℝ) else c) (a := x) (Finset.mem_univ x)]
-  have hx : (if x = x then (0 : ℝ) else c) = 0 := if_pos rfl
+  have hx : (if x = x then (0 : ℝ) else c) = 0 := ite_eq_left rfl
   rw [hx, add_zero]
   have hstep : ∑ z ∈ Finset.univ.erase x, (if z = x then (0 : ℝ) else c)
       = ∑ _z ∈ Finset.univ.erase x, c :=
     Finset.sum_congr rfl (fun z hz => by
-      rw [if_neg (by simpa using (Finset.mem_erase.mp hz).1)])
+      rw [ite_eq_right (by simpa using (Finset.mem_erase.mp hz).1)])
   rw [hstep, Finset.sum_const, nsmul_eq_mul,
     Finset.card_erase_of_mem (Finset.mem_univ x), Finset.card_univ]
   push_cast [h1]
@@ -176,7 +180,7 @@ noncomputable def uniformOffDiag {Y : Type*} [Fintype Y] [DecidableEq Y]
     classical
     by_cases h : z = x
     · simp [h]
-    · rw [if_neg h]
+    · rw [ite_eq_right h]
       refine div_nonneg zero_le_one ?_
       have : (2 : ℝ) ≤ (Fintype.card Y : ℝ) := by exact_mod_cast hY
       linarith
@@ -206,7 +210,7 @@ theorem prob_eq_inv_card_sub_one {Y : Type*} [Fintype Y] [DecidableEq Y]
       by_cases hz' : z' = x
       · subst hz'
         simp [h0]
-      · rw [if_neg hz', hconst z' hz']
+      · rw [ite_eq_right hz', hconst z' hz']
     rw [hsum, sum_ite_zero_offdiag]
   rw [p.sum_one] at htotal
   rw [eq_div_iff hne, mul_comm]
@@ -223,7 +227,7 @@ theorem classAnswerLaw_eq_uniformOffDiag {Y : Type*} [Fintype Y] [DecidableEq Y]
   refine FinDist.eq_of_prob_eq (fun z => ?_)
   by_cases hz : z = x
   · rw [hz]
-    haveI : IsEmpty {π : Equiv.Perm Y // P π ∧ π x = x} :=
+    have : IsEmpty {π : Equiv.Perm Y // P π ∧ π x = x} :=
       ⟨fun π => hfree π.1 π.2.1 x π.2.2⟩
     simp [classAnswerLaw, uniformOffDiag]
   · have hconst : ∀ z' : Y, z' ≠ x →
@@ -235,7 +239,7 @@ theorem classAnswerLaw_eq_uniformOffDiag {Y : Type*} [Fintype Y] [DecidableEq Y]
           (Fintype.card {π : Equiv.Perm Y // P π} : ℝ)
       rw [card_class_answer_eq P hP hz' hz]
     have hzero : (classAnswerLaw P x).prob x = 0 := by
-      haveI : IsEmpty {π : Equiv.Perm Y // P π ∧ π x = x} :=
+      have : IsEmpty {π : Equiv.Perm Y // P π ∧ π x = x} :=
         ⟨fun π => hfree π.1 π.2.1 x π.2.2⟩
       simp [classAnswerLaw]
     rw [prob_eq_inv_card_sub_one (classAnswerLaw P x) x hzero hY hz hconst]

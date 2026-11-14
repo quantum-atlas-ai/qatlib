@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QIntegration00.MainResults.Defs
+module
+
+public import Qatlib.Papers.QIntegration00.MainResults.Defs
+
+@[expose] public section
 
 /-!
 # Conditional query order for quantum integration
@@ -39,7 +43,7 @@ open Defs
 
 /-- The assumed inverse-parameter cost and power error estimates bound the complexity by `C *
 c^(1/(1+γ)) * ε^(-1/(1+γ))` for `0 < ε ≤ c`. -/
-theorem query_upper_bound {γ C c : ℝ} (hγ : 0 < γ) (hC : 0 < C) (hc : 0 < c)
+theorem query_upper_bound {γ C c : ℝ} (hγ : 0 < γ) (_hC : 0 < C) (hc : 0 < c)
     {cost error : ℝ → ℝ} (hcost_nn : ∀ t, 0 ≤ cost t)
     (hcost : ∀ t ∈ Set.Ioc (0 : ℝ) 1, cost t ≤ C * t⁻¹)
     (herror : ∀ t ∈ Set.Ioc (0 : ℝ) 1, error t ≤ c * t ^ (1 + γ))
@@ -88,7 +92,7 @@ theorem query_upper_bound {γ C c : ℝ} (hγ : 0 < γ) (hC : 0 < C) (hc : 0 < c
 
 /-- The assumed lower bound at errors `t^(1+1/γ)` gives the lower query bound `c * ε^(-1/(1+γ))`
 for `0 < ε ≤ 1`. -/
-theorem query_lower_bound {γ c : ℝ} (hγ : 0 < γ) (hc : 0 < c)
+theorem query_lower_bound {γ c : ℝ} (hγ : 0 < γ) (_hc : 0 < c)
     {cost error : ℝ → ℝ} {ε : ℝ} (hε : 0 < ε) (hε1 : ε ≤ 1)
     (hnw : ∀ t ∈ Set.Ioc (0 : ℝ) 1,
       c * t ^ (-1 / γ) ≤ complexityOf cost error (t ^ (1 + 1 / γ))) :
@@ -128,7 +132,7 @@ theorem theorem1_query_order {γ c C c_lw : ℝ} (hγ : 0 < γ) (hC : 0 < C) (hc
     (herror : ∀ t ∈ Set.Ioc (0 : ℝ) 1, error t ≤ c * t ^ (1 + γ))
     (hnw : ∀ t ∈ Set.Ioc (0 : ℝ) 1,
       c_lw * t ^ (-1 / γ) ≤ complexityOf cost error (t ^ (1 + 1 / γ)))
-    {ε₀ : ℝ} (hε₀ : 0 < ε₀) (hε₀c : ε₀ ≤ c) (hε₀1 : ε₀ ≤ 1 / 2) :
+    {ε₀ : ℝ} (_hε₀ : 0 < ε₀) (hε₀c : ε₀ ≤ c) (hε₀1 : ε₀ ≤ 1 / 2) :
     IsThetaQuantumQuery γ c_lw (C * c ^ (1 / (1 + γ))) ε₀ (complexityOf cost error) := by
   refine ⟨hclw, mul_pos hC (Real.rpow_pos_of_pos hc _), ?_⟩
   intro ε hε

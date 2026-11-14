@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.TrainQOptim16.MainResults.IsingModel
-import Qatlib.Concepts.TrotterFormula.LieStrang.CommutatorProductFormula
+module
+
+public import Qatlib.Papers.TrainQOptim16.MainResults.IsingModel
+public import Qatlib.Concepts.TrotterFormula.LieStrang.CommutatorProductFormula
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -45,6 +49,24 @@ open Qatlib.Concepts.TrotterFormula.LieStrang
 open Matrix
 open scoped BigOperators Matrix Matrix.Norms.L2Operator
 
+/--
+error: The namespace `Schedule` is duplicated in the declaration `Qatlib.Papers.TrainQOptim16.MainResults.Schedule.Schedule.mk`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+---
+error: The namespace `Schedule` is duplicated in the declaration `Qatlib.Papers.TrainQOptim16.MainResults.Schedule.Schedule.thetaX`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+---
+error: The namespace `Schedule` is duplicated in the declaration `Qatlib.Papers.TrainQOptim16.MainResults.Schedule.Schedule.thetaZ`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+---
+error: The namespace `Schedule` is duplicated in the declaration `Qatlib.Papers.TrainQOptim16.MainResults.Schedule.Schedule`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- A `p`-step schedule: the angles `θjX`, `θjZ` of Eq. (1). -/
 structure Schedule (p : ℕ) where
   /-- The transverse-field angles `θjX`. -/

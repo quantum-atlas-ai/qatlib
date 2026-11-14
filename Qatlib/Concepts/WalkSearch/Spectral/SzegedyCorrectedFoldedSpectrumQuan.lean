@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.Spectral.SzegedyCorrectedFoldedSpectrumStat
+module
+
+public import Qatlib.Concepts.WalkSearch.Spectral.SzegedyCorrectedFoldedSpectrumStat
+
+@[expose] public section
 
 /-!
 # Corrected marked walk folded spectrum
@@ -81,7 +85,7 @@ private theorem corrected_block_split (I : Type) [Fintype I] [DecidableEq I]
       B*ᵥv = Sum.elim (X*ᵥ(v ∘ Sum.inr)) (X*ᵥ(v ∘ Sum.inl)) := by
     intro v
     rw [hdisc', Matrix.fromBlocks_mulVec]
-    simp only [Sum.elim_comp_inl, Sum.elim_comp_inr, Matrix.zero_mulVec, zero_add, add_zero]
+    simp only [ Matrix.zero_mulVec, zero_add, add_zero]
   have hmemf : ∀ u : QState (Unmarked I S), ∀ w : QState (Unmarked I S),
       X*ᵥu = (lam:ℂ)•u → X*ᵥw = -((lam:ℂ)•w) →
       (B-(lam:ℂ)•(1 : Matrix (Unmarked I S⊕Unmarked I S) (Unmarked I S⊕Unmarked I S) ℂ))*ᵥ
@@ -92,7 +96,7 @@ private theorem corrected_block_split (I : Type) [Fintype I] [DecidableEq I]
       Matrix.mulVec_sub, Matrix.mulVec_add, hu, hw]
     have hsmul : (lam:ℂ) • (Sum.elim (u+w) (u-w)) =
         Sum.elim ((lam:ℂ)•(u+w)) ((lam:ℂ)•(u-w)) := by
-      ext (b | b) <;> simp <;> ring
+      ext (b | b) <;> simp; ring
     rw [hsmul]
     congr 1
     · module

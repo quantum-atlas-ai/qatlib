@@ -4,22 +4,26 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LocalMachine.LocalTransport.MatrixRepresentationBridgesDefs
-import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.OrderedSpectralPerturbation
-import Qatlib.Concepts.SignalPrimitive.HermitianQSVT
-import Qatlib.Concepts.SpectralSketch.NearIsometry
-import Qatlib.Concepts.MatrixAccess.FrameFilterUse
-import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownFrameLocalConsumers
-import Qatlib.Concepts.LocalMachine.LocalTransport.ControlledQueryCircuit
-import Qatlib.Concepts.BlockEncoding.EncodingCore.SparseOverlapEncoding
-import Qatlib.Concepts.BlockEncoding.EncodingCore.SparseOverlapEncodingConsumers
-import Qatlib.Concepts.LocalMachine.LocalTransport.LeastSquaresOutputSpec
-import Qatlib.Concepts.LocalMachine.LocalTransport.NumericalDyadicPhase
-import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
-import Qatlib.Concepts.GramQueryCore.GramRealization.GramQueryRealization
-import Mathlib.Analysis.SpecialFunctions.Log.Base
-import Mathlib.Algebra.Order.Floor.Ring
-import Mathlib.Algebra.Ring.BooleanRing
+module
+
+public import Qatlib.Concepts.LocalMachine.LocalTransport.MatrixRepresentationBridgesDefs
+public import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.OrderedSpectralPerturbation
+public import Qatlib.Concepts.SignalPrimitive.HermitianQSVT
+public import Qatlib.Concepts.SpectralSketch.NearIsometry
+public import Qatlib.Concepts.MatrixAccess.FrameFilterUse
+public import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownFrameLocalConsumers
+public import Qatlib.Concepts.LocalMachine.LocalTransport.ControlledQueryCircuit
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.SparseOverlapEncoding
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.SparseOverlapEncodingConsumers
+public import Qatlib.Concepts.LocalMachine.LocalTransport.LeastSquaresOutputSpec
+public import Qatlib.Concepts.LocalMachine.LocalTransport.NumericalDyadicPhase
+public import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
+public import Qatlib.Concepts.GramQueryCore.GramRealization.GramQueryRealization
+public import Mathlib.Analysis.SpecialFunctions.Log.Base
+public import Mathlib.Algebra.Order.Floor.Ring
+public import Mathlib.Algebra.Ring.BooleanRing
+
+@[expose] public section
 
 /-!
 # Matrix representation bridges and counterexamples
@@ -1377,10 +1381,10 @@ private theorem oneWireFlip_not_lift (w : Finset (Fin 1)) : ¬ IsWireLift w oneW
     contradiction
   have haa : oneWireFlipMatrix a a = 0 := by
     change (if a = b then (1:ℂ) else 0) = 0
-    exact if_neg hab
+    exact ite_eq_right hab
   have hab' : oneWireFlipMatrix a b = 1 := by
     change (if a = a then (1:ℂ) else 0) = 1
-    exact if_pos rfl
+    exact ite_eq_left rfl
   by_cases hw : (0 : Fin 1) ∈ w
   · have hz := h.2 a b ⟨0,hw,by decide⟩
     rw [hab'] at hz

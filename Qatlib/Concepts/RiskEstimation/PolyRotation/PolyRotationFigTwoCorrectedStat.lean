@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RiskEstimation.PolyRotation.PolyRotationFigTwoModelCorrected
+module
+
+public import Qatlib.Concepts.RiskEstimation.PolyRotation.PolyRotationFigTwoModelCorrected
+
+@[expose] public section
 
 /-!
 # Specification of corrected Figure 2 rotations

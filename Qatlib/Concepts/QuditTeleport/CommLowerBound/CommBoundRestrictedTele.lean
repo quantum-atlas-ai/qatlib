@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QuditTeleport.CommLowerBound.CommBoundRestrictedStat
-import Qatlib.Concepts.AbelianDecoders.FourierSupport.SparseFourierSupport
-import Qatlib.Concepts.QuditTeleport.CommLowerBound.CommBoundOriginalContracts
+module
+
+public import Qatlib.Concepts.QuditTeleport.CommLowerBound.CommBoundRestrictedStat
+public import Qatlib.Concepts.AbelianDecoders.FourierSupport.SparseFourierSupport
+public import Qatlib.Concepts.QuditTeleport.CommLowerBound.CommBoundOriginalContracts
+
+@[expose] public section
 
 /-!
 # Proofs of restricted teleportation communication bounds
@@ -290,7 +294,7 @@ private theorem comm_corrected_weyl_scalar (n : ℕ) [NeZero n] (o : Fin n × Fi
     (C : Operator n) (z : ℂ) (hz : C * quditBranchKraus n o = z • (1 : Operator n)) :
     (1 / (n : ℂ)) • C = z • (commWeyl n o)ᴴ := by
   have he := congrArg (fun M => M * (commWeyl n o)ᴴ) hz
-  (try dsimp only at he)
+
   have hK : quditBranchKraus n o = (1 / (n : ℂ)) • commWeyl n o :=
     quditBranchKraus_formula n o
   rw [hK, Matrix.mul_smul, Matrix.smul_mul, Matrix.mul_assoc,
@@ -388,10 +392,10 @@ private noncomputable def commBellW (o : Bool × Bool) : Operator 2 :=
 private theorem commBellW_unitary (o : Bool × Bool) : commBellW o∈Matrix.unitaryGroup (Fin 2) ℂ := by
   apply teleportRelabelGate_mem_unitaryGroup
   apply (Matrix.unitaryGroup Bool ℂ).mul_mem
-  · cases o.2 <;> simp only [Bool.false_eq_true,if_false,if_true]
+  · cases o.2 <;> simp only [Bool.false_eq_true,ite_false,ite_true]
     · exact Submonoid.one_mem _
     · exact pauliX_unitary
-  · cases o.1 <;> simp only [Bool.false_eq_true,if_false,if_true]
+  · cases o.1 <;> simp only [Bool.false_eq_true,ite_false,ite_true]
     · exact Submonoid.one_mem _
     · exact pauliZ_unitary
 
@@ -415,9 +419,7 @@ private theorem comm_bell_projective (o o' : Bool × Bool) (z z' : ℂ) (hz : z�
     first
     | exact h00
     | exact h01
-    | exact h10
-    | exact h11
-    | linear_combination (1/2 : ℂ)*h00+(1/2 : ℂ)*h11
+    |  linear_combination (1/2 : ℂ)*h00+(1/2 : ℂ)*h11
     | linear_combination (1/2 : ℂ)*h00-(1/2 : ℂ)*h11
     | linear_combination (1/2 : ℂ)*h01+(1/2 : ℂ)*h10
     | linear_combination (1/2 : ℂ)*h10-(1/2 : ℂ)*h01
@@ -435,7 +437,7 @@ theorem commBoundMessageInjectiveBell : CommBoundMessageInjectiveBell := by
       (hz : C*teleportBranchKraus o=z • (1 : Operator 2)) :
       (1/2 : ℂ) • C=z • (commBellW o)ᴴ := by
     have he := congrArg (fun M => M*(commBellW o)ᴴ) hz
-    (try dsimp only at he)
+
     have hK : teleportBranchKraus o=(1/2 : ℂ) • commBellW o := bell_decoded_branch_operators.2 o
     rw [hK,Matrix.mul_smul,Matrix.smul_mul,Matrix.mul_assoc,
       show commBellW o*(commBellW o)ᴴ=1 from (commBellW_unitary o).2,

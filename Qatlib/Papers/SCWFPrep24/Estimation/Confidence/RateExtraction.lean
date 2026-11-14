@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.FiniteStats.BornEstimator.ConfidenceLog
-import Qatlib.Papers.SCWFPrep24.Estimation.Confidence.WeakPair
-import Qatlib.Papers.SCWFPrep24.Estimation.Confidence.PhysicalScales
+module
+
+public import Qatlib.Foundations.FiniteStats.BornEstimator.ConfidenceLog
+public import Qatlib.Papers.SCWFPrep24.Estimation.Confidence.WeakPair
+public import Qatlib.Papers.SCWFPrep24.Estimation.Confidence.PhysicalScales
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

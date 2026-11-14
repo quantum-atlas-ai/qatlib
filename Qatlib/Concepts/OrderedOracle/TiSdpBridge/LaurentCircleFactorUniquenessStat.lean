@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.OrderedOracle.TiSdpBridge.LaurentCircleFactorization
-import Qatlib.Concepts.OrderedOracle.TiSdpBridge.OrderedSearchSDP
+module
+
+public import Qatlib.Concepts.OrderedOracle.TiSdpBridge.LaurentCircleFactorization
+public import Qatlib.Concepts.OrderedOracle.TiSdpBridge.OrderedSearchSDP
+
+@[expose] public section
 
 /-!
 # Laurent circle factor uniqueness statement

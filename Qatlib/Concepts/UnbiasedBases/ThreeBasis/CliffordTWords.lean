@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Zayn Blore, Qatlib Contributors
 -/
 
-import Qatlib.Concepts.UnbiasedBases.ThreeBasis.CliffordTNet
+module
+
+public import Qatlib.Concepts.UnbiasedBases.ThreeBasis.CliffordTNet
+
+@[expose] public section
 
 /-!
 # Clifford-T Words and Recursive Length Bounds
@@ -161,7 +165,7 @@ noncomputable def wordOf (A : Matrix (Fin 2) (Fin 2) ℂ) : List (Fin 3) :=
 theorem ctEval_wordOf {A : Matrix (Fin 2) (Fin 2) ℂ} (hA : A ∈ cliffordT) :
     ctEval (wordOf A) = A := by
   have hex : ∃ w, ctEval w = A := mem_cliffordT_iff_exists_word.1 hA
-  rw [wordOf, dif_pos hex]
+  rw [wordOf, dite_eq_left hex]
   exact hex.choose_spec
 
 /-- For every positive `ε`, there are a finite family of words and a common length bound such

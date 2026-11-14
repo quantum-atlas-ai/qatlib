@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.LinearSystems.ConstructivePseudoinverse
-import Qatlib.Concepts.QspSimulation.Achievability.CircuitWellFormed
-import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
-import Qatlib.Concepts.QsvtCore.LinearSystems.ExplicitReciprocalCutoff
+module
+
+public import Qatlib.Concepts.QsvtCore.LinearSystems.ConstructivePseudoinverse
+public import Qatlib.Concepts.QspSimulation.Achievability.CircuitWellFormed
+public import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+public import Qatlib.Concepts.QsvtCore.LinearSystems.ExplicitReciprocalCutoff
+
+@[expose] public section
 
 /-!
 # Explicit inverse circuits with noisy oracle access
@@ -181,6 +185,8 @@ theorem parallelOracle_norm (W : Matrix H H ℂ) :
   rw [parallelOracle_eq_kronecker, l2_norm_kronecker, l2_norm_one_eq, one_mul]
 
 omit [Nonempty J] in
+
+omit [Fintype J] [Fintype H] [DecidableEq H] in
 
 /-- Parallel oracle lifting preserves subtraction of matrices. -/
 theorem parallelOracle_sub (U V : Matrix H H ℂ) :

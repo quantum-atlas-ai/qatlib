@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QuantumGibbs.FormAlgebra.DetectionExecutionDefs
+module
+
+public import Qatlib.Concepts.QuantumGibbs.FormAlgebra.DetectionExecutionDefs
+
+@[expose] public section
 
 /-!
 # Decoding and success for marked vertices

@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SignalPrimitive.PhaseFrontend.ComputedPhaseQSVT
-import Qatlib.Concepts.MonteCarloMean.PayoffRotation.RationalPayoffRotation
-import Qatlib.Concepts.QsvtCore.LinearSystems.ExplicitReciprocalCutoff
-import Qatlib.Concepts.QsvtCore.LinearSystems.PseudoinverseState
-import Qatlib.Concepts.LocalMachine.LocalTransport.LeastSquaresOutputSpec
-import Qatlib.Concepts.QsvtCore.LinearSystems.ExplicitNoisyQSVTSolver
-import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
+module
+
+public import Qatlib.Concepts.SignalPrimitive.PhaseFrontend.ComputedPhaseQSVT
+public import Qatlib.Concepts.MonteCarloMean.PayoffRotation.RationalPayoffRotation
+public import Qatlib.Concepts.QsvtCore.LinearSystems.ExplicitReciprocalCutoff
+public import Qatlib.Concepts.QsvtCore.LinearSystems.PseudoinverseState
+public import Qatlib.Concepts.LocalMachine.LocalTransport.LeastSquaresOutputSpec
+public import Qatlib.Concepts.QsvtCore.LinearSystems.ExplicitNoisyQSVTSolver
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
+
+@[expose] public section
 
 /-!
 # Finite rational phase programs for inversion

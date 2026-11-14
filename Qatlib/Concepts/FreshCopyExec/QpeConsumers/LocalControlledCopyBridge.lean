@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FreshCopyExec.QpeConsumers.LocalControlledSwap
-import Qatlib.Concepts.FreshCopyExec.QpeConsumers.LocalCopyCleanFrame
-import Qatlib.Concepts.FreshCopyExec.QpeConsumers.LocalCopyLayout
-import Qatlib.Concepts.FreshCopyExec.QpeConsumers.LocalCopyWordSemantics
+module
+
+public import Qatlib.Concepts.FreshCopyExec.QpeConsumers.LocalControlledSwap
+public import Qatlib.Concepts.FreshCopyExec.QpeConsumers.LocalCopyCleanFrame
+public import Qatlib.Concepts.FreshCopyExec.QpeConsumers.LocalCopyLayout
+public import Qatlib.Concepts.FreshCopyExec.QpeConsumers.LocalCopyWordSemantics
+
+@[expose] public section
 
 /-!
 # Local Controlled-Copy Channel Bridge

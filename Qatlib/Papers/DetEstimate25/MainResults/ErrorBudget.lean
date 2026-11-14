@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.DetEstimate25.MainResults.SpectrumStats
-import Qatlib.Concepts.KrausCompile.BornMoments.IndependentShots
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.SpecialFunctions.Sqrt
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.DetEstimate25.MainResults.SpectrumStats
+public import Qatlib.Concepts.KrausCompile.BornMoments.IndependentShots
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.SpecialFunctions.Sqrt
+public import Mathlib.Tactic
+
+@[expose] public section
 set_option backward.isDefEq.respectTransparency false
 
 /-! Error budget for

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.WalkReduction.BasisExact.Transport
-import Qatlib.Foundations.WalkReduction.CubicSpectrum.FourBlock
+module
+
+public import Qatlib.Foundations.WalkReduction.BasisExact.Transport
+public import Qatlib.Foundations.WalkReduction.CubicSpectrum.FourBlock
+
+@[expose] public section
 
 /-!
 # Exact basis change and leading spectral support

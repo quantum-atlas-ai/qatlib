@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CopyDecision.QubitMeasure.Data.GeneralPOVM
-import Qatlib.Foundations.DecisionRisk.RiskPartition.Partition
+module
+
+public import Qatlib.Concepts.CopyDecision.QubitMeasure.Data.GeneralPOVM
+public import Qatlib.Foundations.DecisionRisk.RiskPartition.Partition
+
+@[expose] public section
 
 /-!
 # Risk Coarsening
@@ -88,7 +92,7 @@ theorem GeneralQubitPOVM.exists_finite_risk_coarsening {Y : Type*} [MeasurableSp
   have hr : ∀ a, (B a).Nonempty → r a ∈ B a := by
     intro a ha
     dsimp only [r]
-    rw [dif_pos ha]
+    rw [dite_eq_left ha]
     exact ha.choose_spec
   refine ⟨m, M.coarsen B hB hd hu, r, ?_⟩
   intro q hq

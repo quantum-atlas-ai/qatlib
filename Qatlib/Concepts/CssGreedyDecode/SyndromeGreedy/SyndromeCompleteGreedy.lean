@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CssGreedyDecode.SyndromeGreedy.QuantumLDPCDecoding
-import Qatlib.Concepts.CodingDecoding.CssTesters.CssCode
-import Qatlib.Concepts.CodingDecoding.CssTesters.CssPauli
+module
+
+public import Qatlib.Concepts.CssGreedyDecode.SyndromeGreedy.QuantumLDPCDecoding
+public import Qatlib.Concepts.CodingDecoding.CssTesters.CssCode
+public import Qatlib.Concepts.CodingDecoding.CssTesters.CssPauli
+
+@[expose] public section
 
 /-!
 # Syndrome complete greedy decoding

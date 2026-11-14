@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QsampleCoup25.MainResults.EdgePreservation
+module
+
+public import Qatlib.Papers.QsampleCoup25.MainResults.EdgePreservation
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -163,7 +167,7 @@ theorem trace_edgeProj (x y : Ω) :
             - 2 * (∑ a : Ω, eVec x a * eVec y a)
             + (∑ a : Ω, eVec y a * eVec y a)) := by rw [hexp]
       _ = (1 / 2 : ℝ) * (1 - 2 * 0 + 1) := by rw [hsq_x, hcross, hsq_y]
-      _ = if x = y then 0 else 1 := by rw [if_neg h]; norm_num
+      _ = if x = y then 0 else 1 := by rw [ite_eq_right h]; norm_num
 
 /-! ## Source Lemma 15: the iteration formula -/
 

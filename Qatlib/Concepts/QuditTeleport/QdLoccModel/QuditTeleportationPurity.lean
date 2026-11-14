@@ -4,21 +4,25 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditTeleportationDefs
-import Qatlib.Concepts.QuditTeleport.TeleportCore.QuditTeleportationInstrument
-import Qatlib.Concepts.QuditTeleport.TeleportCore.CountedQuditTeleportation
-import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditResourceMarginalConverse
-import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditMaxEntCharacterization
-import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditMaxEntResourceTeleportation
-import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditPureResourceMaxEntForm
-import Qatlib.Concepts.QuditTeleport.QdLoccModel.RedundantCodingReliability
-import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditResourceMarginalConverse
-import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditMaxEntCharacterization
-import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditMaxEntResourceTeleportation
-import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditPureResourceMaxEntForm
-import Qatlib.Concepts.QuditTeleport.MessagingBounds.RedundantCodingReliability
-import Qatlib.Concepts.QuditTeleport.CommLowerBound.CommBoundRestrictedTele
-import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditTeleportationBranchMarginal
+module
+
+public import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditTeleportationDefs
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.QuditTeleportationInstrument
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.CountedQuditTeleportation
+public import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditResourceMarginalConverse
+public import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditMaxEntCharacterization
+public import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditMaxEntResourceTeleportation
+public import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditPureResourceMaxEntForm
+public import Qatlib.Concepts.QuditTeleport.QdLoccModel.RedundantCodingReliability
+public import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditResourceMarginalConverse
+public import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditMaxEntCharacterization
+public import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditMaxEntResourceTeleportation
+public import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditPureResourceMaxEntForm
+public import Qatlib.Concepts.QuditTeleport.MessagingBounds.RedundantCodingReliability
+public import Qatlib.Concepts.QuditTeleport.CommLowerBound.CommBoundRestrictedTele
+public import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditTeleportationBranchMarginal
+
+@[expose] public section
 
 /-!
 # Positivity and marginal identities for teleportation resources
@@ -164,7 +168,7 @@ theorem g8p_noSignalling {n : ℕ} {κ : Type} [Fintype κ]
     · have hne : ¬ ((finProdFinEquiv (m := n) (n := n)).symm p
           = (finProdFinEquiv (m := n) (n := n)).symm q) :=
         fun he => h ((finProdFinEquiv (m := n) (n := n)).symm.injective he)
-      rw [if_neg hne, if_neg h]
+      rw [ite_eq_right hne, ite_eq_right h]
   have hc : ∑ k, (V k)ᴴ * V k = 1 := by
     calc ∑ k, (V k)ᴴ * V k
         = ∑ k, TensorGate (1 : Operator n)
@@ -433,7 +437,7 @@ theorem g8p_outerProduct_sum_parallel {I : Type} [Fintype I] [DecidableEq I] {κ
   set z : ℂ := (Real.sqrt c : ℂ) with hzdef
   have hz : z * (starRingEnd ℂ) z = (c : ℂ) := by
     rw [hzdef]
-    simp only [Complex.star_def, Complex.conj_ofReal]
+    simp only [Complex.conj_ofReal]
     rw [← Complex.ofReal_mul, Real.mul_self_sqrt hc]
   have hsz : outerProduct (z • ψ) = (c : ℂ) • outerProduct ψ := by
     ext i j
@@ -476,7 +480,7 @@ theorem g8p_eq_smul_of_forall_smul {n : ℕ} [NeZero n] (A : Operator n)
     have h1 := congrFun hc i
     simp only [mulVec_ket_apply, Pi.smul_apply, smul_eq_mul,
         Qatlib.Foundations.PureStateMath.Ket] at h1
-    rw [if_neg hij, mul_zero] at h1
+    rw [ite_eq_right hij, mul_zero] at h1
     exact h1
   have hdiag : ∀ i : Fin n, A i i = A i0 i0 := by
     intro i
@@ -488,17 +492,17 @@ theorem g8p_eq_smul_of_forall_smul {n : ℕ} [NeZero n] (A : Operator n)
       have h0 := congrFun hc i0
       simp only [Matrix.mulVec_add, mulVec_ket_apply, Pi.add_apply, Pi.smul_apply, smul_eq_mul,
         Qatlib.Foundations.PureStateMath.Ket] at h0
-      rw [if_neg hne, if_true, add_zero, hoff i0 i hne, add_zero, mul_one] at h0
+      rw [ite_eq_right hne, ite_true, add_zero, hoff i0 i hne, add_zero, mul_one] at h0
       have h1 := congrFun hc i
       simp only [Matrix.mulVec_add, mulVec_ket_apply, Pi.add_apply, Pi.smul_apply, smul_eq_mul,
         Qatlib.Foundations.PureStateMath.Ket] at h1
-      rw [if_neg hi, if_true, zero_add, hoff i i0 hi, zero_add, mul_one] at h1
+      rw [ite_eq_right hi, ite_true, zero_add, hoff i i0 hi, zero_add, mul_one] at h1
       rw [h1, h0]
   refine ⟨A i0 i0, ?_⟩
   ext i j
   simp only [Matrix.smul_apply, smul_eq_mul, Matrix.one_apply]
   by_cases hij : i = j
   · subst j
-    rw [hdiag i, if_pos rfl, mul_one]
-  · rw [if_neg hij, mul_zero, hoff i j hij]
+    rw [hdiag i, ite_eq_left rfl, mul_one]
+  · rw [ite_eq_right hij, mul_zero, hoff i j hij]
 end Qatlib.Concepts.QuditTeleport.QdLoccModel

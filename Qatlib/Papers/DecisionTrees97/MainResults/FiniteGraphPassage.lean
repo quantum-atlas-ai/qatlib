@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LchsSimulation.StaticLchs.FinitePassage
-import Qatlib.Concepts.GraphLaplacian.LaplacianPsd.ComplexLaplacian
+module
+
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.FinitePassage
+public import Qatlib.Concepts.GraphLaplacian.LaplacianPsd.ComplexLaplacian
+
+@[expose] public section
 
 /-!
 # Finite graph passage from classical to quantum evolution

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+module
+
+public import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+
+@[expose] public section
 
 /-!
 # Operator norm invariance under basis relabeling
@@ -37,6 +41,7 @@ open scoped Matrix.Norms.L2Operator
 
 variable {I J : Type*} [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
 
+omit [DecidableEq I] [DecidableEq J] in
 /-- Relabeling a finite state basis by an equivalence preserves its Euclidean ℓ² norm. -/
 theorem norm_toEuclidean_relabelState (e : I ≃ J) (w : QState I) :
     ‖toEuclidean_fromVec (relabelState e w)‖ = ‖toEuclidean_fromVec w‖ := by

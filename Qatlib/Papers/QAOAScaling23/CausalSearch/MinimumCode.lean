@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QAOAScaling23.CausalSearch.NativeSearch
-import Qatlib.Foundations.ProbabilityCore.FiniteBranch.ClockedPaid
-import Qatlib.Foundations.ProbabilityCore.FiniteBranch.LawTransport
-import Qatlib.Papers.QAOAScaling23.BudgetPrefix.Budget
-import Qatlib.Papers.QAOAScaling23.BiasedProcess.CostClasses
+module
+
+public import Qatlib.Papers.QAOAScaling23.CausalSearch.NativeSearch
+public import Qatlib.Foundations.ProbabilityCore.FiniteBranch.ClockedPaid
+public import Qatlib.Foundations.ProbabilityCore.FiniteBranch.LawTransport
+public import Qatlib.Papers.QAOAScaling23.BudgetPrefix.Budget
+public import Qatlib.Papers.QAOAScaling23.BiasedProcess.CostClasses
+
+@[expose] public section
 
 /-!
 # Clocked minimum finding and descent risk
@@ -82,11 +86,11 @@ theorem minimum_step_law (cost : I → ℝ) (oracle : I → Code I (Option I))
   funext a
   simp only [Function.comp_def,rowPayload,continuePaid]
   by_cases hc : (rows r).charge a≤B
-  · simp only [hc,if_true]
+  · simp only [hc,ite_true]
     cases hb : (rows r).bad a with
-    | false => simp only [Bool.false_eq_true,if_false,run,Tree.law_map]
-    | true => simp only [if_true,run,Tree.law,PMF.pure_map,charge]; rfl
-  · simp only [hc,if_false,Tree.law]
+    | false => simp only [Bool.false_eq_true,ite_false,run,Tree.law_map]
+    | true => simp only [ite_true,run,Tree.law,PMF.pure_map,charge]; rfl
+  · simp only [hc,ite_false,Tree.law]
 
 /-- The probability that a descent trace from rank `r` contains an oracle failure or has charge
 exceeding `B`. -/
@@ -121,7 +125,7 @@ theorem prehitRisk_step (rows : (r : ℕ) → Row r) (B r : ℕ) :
   congr 1
   cases hb : (rows r).bad a with
   | true =>
-    simp only [if_true]
+    simp only [ite_true]
     calc
       _=(descend rows ((rows r).next a).val).mean (fun _ => 1) := by
         apply Tree.mean_congr
@@ -130,9 +134,9 @@ theorem prehitRisk_step (rows : (r : ℕ) → Row r) (B r : ℕ) :
         simp [prepend]
       _=1 := Tree.mean_const _ _
   | false =>
-    simp only [Bool.false_eq_true,if_false]
+    simp only [Bool.false_eq_true,ite_false]
     by_cases hc : B<(rows r).charge a
-    · simp only [hc,if_true]
+    · simp only [hc,ite_true]
       calc
         _=(descend rows ((rows r).next a).val).mean (fun _ => 1) := by
           apply Tree.mean_congr
@@ -141,9 +145,9 @@ theorem prehitRisk_step (rows : (r : ℕ) → Row r) (B r : ℕ) :
           have hp : B<paid (prepend (r+1) ((rows r).charge a) false a.val tr) := by
             change B<(rows r).charge a+paid tr
             omega
-          simp only [hp,or_true,if_true]
+          simp only [hp,or_true,ite_true]
         _=1 := Tree.mean_const _ _
-    · simp only [hc,if_false,prehitRisk,Tree.probability]
+    · simp only [hc,ite_false,prehitRisk,Tree.probability]
       apply Tree.mean_congr
       apply Tree.all_of_forall
       intro tr
@@ -193,21 +197,21 @@ theorem physical_failure_le_prehitRisk (cost : I → ℝ) (rank : I → ℕ)
           rw [hnext,hr]
           exact ((rows r).next a).isLt
         have hsel : selectLower cost current (candidate r a)=candidate r a :=
-          if_pos ((horder _ _).mp hnextlt)
+          ite_eq_left ((horder _ _).mp hnextlt)
         by_cases hc : (rows r).charge a≤B
-        · simp only [hc,if_true,show ¬B<(rows r).charge a by omega,if_false]
+        · simp only [hc,ite_true,show ¬B<(rows r).charge a by omega,ite_false]
           cases hb : (rows r).bad a with
           | true =>
-            simp only [if_true,Tree.mean,physicalFailure]
+            simp only [ite_true,Tree.mean,physicalFailure]
             simp [hr]
           | false =>
-            simp only [Bool.false_eq_true,if_false,hsel,Tree.mean_map]
+            simp only [Bool.false_eq_true,ite_false,hsel,Tree.mean_map]
             change (run cost (candidate r a) (B-(rows r).charge a)
               (minimumCode oracle fuel (candidate r a))).mean (physicalFailure rank)≤_
             rw [← hnext]
             exact ih (rank (candidate r a)) (by omega) (candidate r a) fuel
               (B-(rows r).charge a) rfl (by omega)
-        · simp only [hc,if_false,Tree.mean,physicalFailure]
+        · simp only [hc,ite_false,Tree.mean,physicalFailure]
           have hcb : B<(rows r).charge a := by omega
           cases hb : (rows r).bad a <;> simp [hcb,hr]
 

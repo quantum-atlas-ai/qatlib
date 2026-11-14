@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GradientOracle.GradientAlgo.CentralDifferenceAnalyticSeries
-import Qatlib.Concepts.GradientOracle.GradientAlgo.AnalyticCentralDifferenceGridErrorStat
-import Mathlib.Analysis.Analytic.Linear
+module
+
+public import Qatlib.Concepts.GradientOracle.GradientAlgo.CentralDifferenceAnalyticSeries
+public import Qatlib.Concepts.GradientOracle.GradientAlgo.AnalyticCentralDifferenceGridErrorStat
+public import Mathlib.Analysis.Analytic.Linear
+
+@[expose] public section
 
 /-!
 # Coordinate tensors and analytic ray expansions

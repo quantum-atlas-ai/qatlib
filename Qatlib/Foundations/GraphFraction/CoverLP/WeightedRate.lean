@@ -4,7 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.GraphFraction.CoverLP.MinimaxDual
+module
+
+public import Qatlib.Foundations.GraphFraction.CoverLP.MinimaxDual
+
+public import Qatlib.Foundations.ProbabilityCore.SimplexWeights
+
+@[expose] public section
 
 /-!
 # Optimal sampling rates from weighted fractional covers
@@ -40,7 +46,7 @@ variable {V : Type*} [Fintype V] [DecidableEq V]
 /-- If the weighted cover value is positive and a context probability distribution covers `T`
 times each demand, then `T` is at most the reciprocal cover value. -/
 theorem rate_le_inverse_cover (G : SimpleGraph V) (a : V → ℝ) (hχ : 0<coverValue G a)
-    (q : Context G → ℝ) (hq : q∈stdSimplex ℝ (Context G)) (T : ℝ)
+    (q : Context G → ℝ) (hq : q∈Qatlib.Foundations.ProbabilityCore.SimplexWeights.weights ℝ (Context G)) (T : ℝ)
     (hT : ∀ i,T*a i ≤ coverage G q i) : T ≤ 1/coverValue G a := by
   by_cases ht : T ≤ 0
   · exact ht.trans (one_div_pos.mpr hχ).le
@@ -65,9 +71,9 @@ a larger rate. This is the weighted fractional-cover sampling characterization i
 [XuEtAl2026]. -/
 theorem optimal_weighted_rate (G : SimpleGraph V) (a : V → ℝ) (ha : ∀ i,0 ≤ a i)
     (i0 : V) (hi0 : 0<a i0) :
-    0<coverValue G a ∧ ∃ q : Context G → ℝ,q∈stdSimplex ℝ (Context G) ∧
+    0<coverValue G a ∧ ∃ q : Context G → ℝ,q∈Qatlib.Foundations.ProbabilityCore.SimplexWeights.weights ℝ (Context G) ∧
       (∀ i,(1/coverValue G a)*a i ≤ coverage G q i) ∧
-      ∀ r : Context G → ℝ,r∈stdSimplex ℝ (Context G) →
+      ∀ r : Context G → ℝ,r∈Qatlib.Foundations.ProbabilityCore.SimplexWeights.weights ℝ (Context G) →
         ∀ T : ℝ,(∀ i,T*a i ≤ coverage G r i) → T ≤ 1/coverValue G a := by
   obtain ⟨hχ,q,hq,hcov⟩ := attained_strategy G a ha i0 hi0
   refine ⟨hχ,q,hq,?_,?_⟩

@@ -4,8 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
-import Qatlib.Concepts.LchsSimulation.TimeOrdered.OrderedFrozenSegment
+module
+
+public import Mathlib.Analysis.Calculus.Deriv.Prod
+public import Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
+public import Qatlib.Concepts.LchsSimulation.TimeOrdered.OrderedFrozenSegment
+
+@[expose] public section
 
 /-!
 # Forced ordered evolution and sampled Hamiltonian programs
@@ -152,7 +157,6 @@ theorem orderedForcedSolution_unique {I : Type} [Fintype I] [DecidableEq I]
     simpa [w, hu] using! hh
   funext t
   have hh := congrArg (fun x => orderedEvolution A s t *ᵥ x) (he t)
-  (try dsimp only at hh)
   rw [Matrix.mulVec_mulVec, orderedEvolution_cocycle A hA t s t,
     orderedEvolution_self, Matrix.one_mulVec, Matrix.mulVec_zero] at hh
   exact sub_eq_zero.mp hh

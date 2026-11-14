@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.UnboundedExecutionRemainderDefs
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ExecutionRemainder
-import Mathlib.Topology.Order.MonotoneConvergence
+module
+
+public import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.UnboundedExecutionRemainderDefs
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ExecutionRemainder
+public import Mathlib.Topology.Order.MonotoneConvergence
+
+@[expose] public section
 
 /-!
 # Limits and terminal laws for capped executions
@@ -694,7 +698,7 @@ theorem fuel_before (M : Program Γ Λ) (N n : ℕ) (bs : List Bool) (cfg : Turi
   have he := run_add M n (N-n) bs cfg
   have hsum : n+(N-n) = N := by omega
   rw [hsum] at he
-  simp only [resume,if_neg hh] at he
+  simp only [resume,ite_eq_right hh] at he
   rw [he] at hs
   have hl := run_steps_le M n bs cfg
   omega
@@ -764,7 +768,7 @@ theorem map_eq_of_mass_le {α β : Type} (p : PMF α) (q : PMF β) (f : α → �
       have he : f a ≠ f a' := fun he => hn (hf he.symm)
       simp [he]
   · have he : ∀ a, b ≠ f a := fun a he => hb ⟨a,he.symm⟩
-    simp only [if_neg (he _),tsum_zero,zero_le]
+    simp only [ite_eq_right (he _),tsum_zero,zero_le]
 
 /-- A result in the support of the native execution law is reproduced by its recorded bits, has
 no unread bits, and never stops for insufficient bits. -/
@@ -906,7 +910,7 @@ theorem truncate_continue (M : Program Γ Λ) (n m : ℕ) (cfg : Turing.TM0.Cfg 
   · obtain ⟨t,_,rfl⟩ := (PMF.mem_support_map_iff _ _ _).mp (by simpa only [continueLaw,hf,↓reduceIte] using! hs)
     have ha := run_append M n r.bits t.bits cfg
     rw [he] at ha
-    simp only [supply,if_neg hn,hu,List.nil_append] at ha
+    simp only [supply,ite_eq_right hn,hu,List.nil_append] at ha
     change {run M n ((Result.appendTrace r.trace t).bits) cfg with unread := []} = r
     have hb : (Result.appendTrace r.trace t).bits = r.bits++t.bits := by
       simp [Result.bits,Result.appendTrace,List.filterMap_append]
@@ -1079,7 +1083,7 @@ theorem finishedMass_mono (M : Program Γ Λ) (cfg : Turing.TM0.Cfg Γ Λ) (r : 
   obtain ⟨m,rfl⟩ := Nat.exists_eq_add_of_le hN
   (try dsimp only)
   by_cases hr : r.stop = .halted
-  · simp only [finishedMass,if_pos hr]
+  · simp only [finishedMass,ite_eq_left hr]
     rw [law_add,PMF.bind_apply]
     simpa [continueLaw,hr] using (ENNReal.le_tsum (f := fun a => law M n cfg a * continueLaw M m a r) r :
       law M n cfg r * continueLaw M m r r ≤ ∑' a, law M n cfg a * continueLaw M m a r)
@@ -1328,9 +1332,9 @@ theorem law_halted_expectation_mono (M : Program Γ Λ) (cfg : Turing.TM0.Cfg Γ
   apply ENNReal.tsum_le_tsum
   intro r
   by_cases hr : r.stop = .halted
-  · simp only [if_pos hr]
+  · simp only [ite_eq_left hr]
     have hm := finishedMass_mono M cfg r hN
-    simp only [finishedMass,if_pos hr] at hm
+    simp only [finishedMass,ite_eq_left hr] at hm
     exact mul_le_mul_left hm _
   · simp [hr]
 

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem6HeuristicStat
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem3QSearchQuan
+module
+
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem6HeuristicStat
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem3QSearchQuan
+
+@[expose] public section
 
 /-!
 # Quantum speedup of heuristic search

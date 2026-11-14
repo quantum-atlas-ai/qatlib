@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.MeasureTheory.Integral.IntegralEqImproper
-import Mathlib.Probability.Distributions.Gamma
-import Mathlib.Tactic
+module
+
+public import Mathlib.MeasureTheory.Integral.IntegralEqImproper
+public import Mathlib.Probability.Distributions.Gamma
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -66,7 +70,7 @@ theorem lemmaF6_chiSquared_shift {a m α : ℝ} (ha : 0 < a) (hα : 0 ≤ α) (h
       ProbabilityTheory.gammaPDFReal a (1 / 2) x = C * (x ^ (a - 1) * Real.exp (-(x / 2))) := by
     intro x hx
     have harg : -((1 / 2 : ℝ) * x) = -(x / 2) := by ring
-    simp only [ProbabilityTheory.gammaPDFReal, if_pos hx.le, harg, hCdef, mul_assoc]
+    simp only [ProbabilityTheory.gammaPDFReal, ite_eq_left hx.le, harg, hCdef, mul_assoc]
   -- left side as `C` times the tilted monomial integral
   have hL : ∫ y in Set.Ioi α, Real.exp (m * y) * ProbabilityTheory.gammaPDFReal a (1 / 2) y
       = C * ∫ y in Set.Ioi α, y ^ (a - 1) * Real.exp (-(lam * y)) := by

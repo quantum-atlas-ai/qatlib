@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.IndependentWeightedEstimator
-import Qatlib.Concepts.HspRecovery.KitaevReadout.EigenphaseHadamardTest
-import Qatlib.Papers.AbelianStabil95.AbelianStabil.PhaseReadout.HadamardWord
+module
+
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.IndependentWeightedEstimator
+public import Qatlib.Concepts.HspRecovery.KitaevReadout.EigenphaseHadamardTest
+public import Qatlib.Papers.AbelianStabil95.AbelianStabil.PhaseReadout.HadamardWord
+
+@[expose] public section
 
 /-!
 # Repeated phase samples with fresh controls
@@ -119,6 +123,7 @@ theorem bornProb_freshControlState (ψ : QState I) (φ : ℝ) (s : ℕ)
     exact Finset.prod_congr rfl fun j _ => (pow_two _).symm
   rw [hsq]
 
+omit [DecidableEq I] in
 /-- For a normalized data state, summing the joint Born probabilities over the data index yields
 the probability of the control record under `eigenphaseSampleLaw`, as used in [Kitaev1995]. -/
 theorem freshControl_controlLaw (ψ : QState I) (hψ : Normalized ψ) (φ : ℝ) (s : ℕ)

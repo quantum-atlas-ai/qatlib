@@ -4,21 +4,25 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryWordCore.QueryMachinery.AcceptancePolynomial
-import Lean.Elab.Tactic.NormCast
-import Lean.Elab.Tactic.Omega
-import Mathlib.Analysis.Normed.Order.Lattice
-import Mathlib.Analysis.RCLike.Basic
-import Mathlib.Basic.Complex.Basic
-import Mathlib.Data.Matrix.Diagonal
-import Mathlib.Data.Nat.Factorial.BigOperators
-import Mathlib.Tactic.Ext
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Ring
-import Mathlib.Topology.Algebra.Polynomial
+module
+
+public import Qatlib.Concepts.QueryWordCore.QueryMachinery.AcceptancePolynomial
+public import Lean.Elab.Tactic.NormCast
+public import Lean.Elab.Tactic.Omega
+public import Mathlib.Analysis.Normed.Order.Lattice
+public import Mathlib.Analysis.RCLike.Basic
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Data.Matrix.Diagonal
+public import Mathlib.Data.Nat.Factorial.BigOperators
+public import Mathlib.Tactic.Ext
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Ring
+public import Mathlib.Topology.Algebra.Polynomial
+
+@[expose] public section
 
 /-!
 # Hamming-layer symmetrization and the parity degree bound

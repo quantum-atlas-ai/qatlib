@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QMedianStats98.MainResults.Model.Basic
+module
+
+public import Qatlib.Papers.QMedianStats98.MainResults.Model.Basic
+
+@[expose] public section
 
 /-!
 # Rank and counting approximation specifications

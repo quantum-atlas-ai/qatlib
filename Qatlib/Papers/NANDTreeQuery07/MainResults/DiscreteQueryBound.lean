@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
-import Qatlib.Concepts.QueryWordCore.QueryMachinery.AcceptancePolynomial
-import Qatlib.Papers.NANDTreeQuery07.MainResults.AssemblyBound
+module
+
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
+public import Qatlib.Concepts.QueryWordCore.QueryMachinery.AcceptancePolynomial
+public import Qatlib.Papers.NANDTreeQuery07.MainResults.AssemblyBound
+
+@[expose] public section
 
 /-!
 # NAND Tree Programs and Conditional Query Bounds
@@ -118,16 +122,16 @@ otherwise. -/
 theorem measureProb_ket {I : Type*} [Fintype I] [DecidableEq I] (p : I) (S : Finset I) :
     MeasureProb (Ket p) S = if p ∈ S then 1 else 0 := by
   by_cases hp : p ∈ S
-  · rw [if_pos hp]
+  · rw [ite_eq_left hp]
     unfold MeasureProb
     rw [Finset.sum_eq_single p (fun b _ hbp => by rw [bornProb_ket]; simp [hbp])
       (fun h => absurd hp h)]
     simp [bornProb_ket]
-  · rw [if_neg hp]
+  · rw [ite_eq_right hp]
     unfold MeasureProb
     refine Finset.sum_eq_zero fun b hb => ?_
     rw [bornProb_ket]
-    rw [if_neg (show ¬ (b = p) from fun h => hp (h ▸ hb))]
+    rw [ite_eq_right (show ¬ (b = p) from fun h => hp (h ▸ hb))]
 
 /-- A circuit block consisting of a query, a gate `U`, and another query has query count two.
 This is the query counting component associated with the simulation construction in
@@ -169,7 +173,7 @@ theorem zero_depth_one_query_program :
         refine Finset.mem_filter.mpr ⟨Finset.mem_univ _, ?_⟩
         simp [nandTree, k0]
       simp only [NandTreeProgram.successProb, hrun, measureProb_ket]
-      rw [if_pos hmem]
+      rw [ite_eq_left hmem]
       norm_num
   · rfl
 

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CopyDecision.CollectiveRisk.Data.CollectiveOptimum
-import Qatlib.Concepts.CopyDecision.FreshPolicies.Data.AntiTrineUpper
-import Mathlib.Analysis.SpecificLimits.Basic
+module
+
+public import Qatlib.Concepts.CopyDecision.CollectiveRisk.Data.CollectiveOptimum
+public import Qatlib.Concepts.CopyDecision.FreshPolicies.Data.AntiTrineUpper
+public import Mathlib.Analysis.SpecificLimits.Basic
+
+@[expose] public section
 
 /-!
 # Asymptotic Ratio

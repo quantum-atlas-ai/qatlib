@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.WalkReduction.CubicSpectrum.Native
+module
+
+public import Qatlib.Foundations.WalkReduction.CubicSpectrum.Native
+
+@[expose] public section
 
 /-!
 # Lifting the cubic spectrum to a four-dimensional block

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.UniversalWalk08.MainResults.Gadgets.GateWidgets
+module
+
+public import Qatlib.Papers.UniversalWalk08.MainResults.Gadgets.GateWidgets
+
+@[expose] public section
 
 /-!
 # The basis-change scattering block

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.RydbergMaxCut26.StateBounds.XProductBasis
-import Qatlib.Papers.RydbergMaxCut26.StateBounds.Variational
+module
+
+public import Qatlib.Papers.RydbergMaxCut26.StateBounds.XProductBasis
+public import Qatlib.Papers.RydbergMaxCut26.StateBounds.Variational
+
+@[expose] public section
 
 /-!
 # Ising ground states in the X product basis

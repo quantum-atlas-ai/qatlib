@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GradientOracle.CentralDiff.CentralDifferenceExactnessStat
-import Qatlib.Concepts.GradientOracle.GradientAlgo.TensorChebyshevGridBoundStat
+module
+
+public import Qatlib.Concepts.GradientOracle.CentralDiff.CentralDifferenceExactnessStat
+public import Qatlib.Concepts.GradientOracle.GradientAlgo.TensorChebyshevGridBoundStat
+
+@[expose] public section
 
 /-!
 # Centered finite grids

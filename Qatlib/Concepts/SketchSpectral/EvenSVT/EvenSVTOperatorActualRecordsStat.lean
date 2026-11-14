@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.HermitianFunctionStability
-import Qatlib.Concepts.SketchArith.TransposeAccess.CompactSketchConsumers
-import Qatlib.Concepts.SketchSpectral.EvenSvtLaw.EvenSVTFrobeniusActualRecordsStat
+module
+
+public import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.HermitianFunctionStability
+public import Qatlib.Concepts.SketchArith.TransposeAccess.CompactSketchConsumers
+public import Qatlib.Concepts.SketchSpectral.EvenSvtLaw.EvenSVTFrobeniusActualRecordsStat
+
+@[expose] public section
 
 /-!
 # Statement of actual-record SVT operator accuracy

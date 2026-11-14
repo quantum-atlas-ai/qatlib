@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SqEstimation.RejectionSample.SQRejectionModels
+module
+
+public import Qatlib.Concepts.SqEstimation.RejectionSample.SQRejectionModels
+
+@[expose] public section
 
 /-!
 # Capped rejection laws and norm estimation
@@ -96,7 +100,7 @@ theorem sqRejectMass_succ {I : Type} [Fintype I] [DecidableEq I]
       (∑ i,sqTrialMass p coin (i,true)*(if some i=o then 1 else 0)) +
       (∑ i,sqTrialMass p coin (i,false))*sqRejectMass p coin B o := by
   rw [sqRejectMass,sq_record_sum_cons,Fintype.sum_prod_type]
-  simp only [Fintype.sum_bool,sqRejectRun_cons,if_true,Bool.false_eq_true,if_false]
+  simp only [Fintype.sum_bool,sqRejectRun_cons,ite_true,Bool.false_eq_true,ite_false]
   have hsum : ∀ i : I,
       (∑ omega : Fin B→I×Bool,sqTrialProduct p coin omega*(if some i=o then 1 else 0)) =
         if some i=o then 1 else 0 := by
@@ -148,7 +152,7 @@ theorem sqRejectMass_closed {I : Type} [Fintype I] [DecidableEq I]
       simp [pow_succ,mul_comm,phi]
     · intro i
       rw [sqRejectMass_succ,hfalse,ih.2 i]
-      simp only [Option.some.injEq,mul_ite,mul_one,mul_zero,Finset.sum_ite_eq',Finset.mem_univ,if_true]
+      simp only [Option.some.injEq,mul_ite,mul_one,mul_zero,Finset.sum_ite_eq',Finset.mem_univ,ite_true]
       rw [hm i,pow_succ]
       ring
 
@@ -176,7 +180,7 @@ theorem sqRejectExpectedCost_succ {I : Type} [Fintype I] [DecidableEq I]
     sqRejectExpectedCost p coin (B+1)=4+
       (∑ i,sqTrialMass p coin (i,false))*sqRejectExpectedCost p coin B := by
   rw [sqRejectExpectedCost,sq_record_sum_cons,Fintype.sum_prod_type]
-  simp only [Fintype.sum_bool,sqRejectRun_cons,Bool.false_eq_true,if_false,if_true,Nat.cast_add,Nat.cast_ofNat]
+  simp only [Fintype.sum_bool,sqRejectRun_cons,Bool.false_eq_true,ite_false,ite_true,Nat.cast_add,Nat.cast_ofNat]
   have hsum : (∑ omega : Fin B→I×Bool,sqTrialProduct p coin omega*(4 : ℝ))=4 := by
     rw [← Finset.sum_mul,sqTrialProduct_sum_one,one_mul]
   simp_rw [mul_add,Finset.sum_add_distrib,hsum]
@@ -268,10 +272,10 @@ theorem sqAcceptBit_moments {I : Type} [Fintype I] (p : FinDist I) (coin : I→F
     (sqTrialLaw p coin).expect (fun z => (sqAcceptBit z-a)^2)=a*(1-a) := by
   (try dsimp only)
   constructor
-  · simp [Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.expect,sqTrialLaw,sqAcceptBit,Fintype.sum_prod_type,Fintype.sum_bool]
+  · simp [Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.expect,sqTrialLaw,sqAcceptBit,Fintype.sum_prod_type]
   · change (∑ z : I×Bool,sqTrialMass p coin z*(sqAcceptBit z-(∑ i,sqTrialMass p coin (i,true)))^2)=_
     rw [Fintype.sum_prod_type]
-    simp only [Fintype.sum_bool,sqAcceptBit,if_true,Bool.false_eq_true,if_false,zero_sub,neg_sq,
+    simp only [Fintype.sum_bool,sqAcceptBit,ite_true,Bool.false_eq_true,ite_false,zero_sub,neg_sq,
       Finset.sum_add_distrib,← Finset.sum_mul]
     rw [sqTrial_false_sum]
     ring

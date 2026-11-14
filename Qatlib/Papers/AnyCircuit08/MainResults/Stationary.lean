@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AnyCircuit08.MainResults.Basic
+module
+
+public import Qatlib.Papers.AnyCircuit08.MainResults.Basic
+
+@[expose] public section
 
 /-!
 # Stationarity of the Pauli weights
@@ -125,8 +129,8 @@ theorem randomCircuitStep_stationary (n : ℕ) :
   funext q
   rw [randomCircuitStep_eq]
   by_cases hn : n < 2
-  · rw [if_pos hn]
-  rw [if_neg hn]
+  · rw [ite_eq_left hn]
+  rw [ite_eq_right hn]
   have hn2 : 2 ≤ n := by omega
 
   have hpair : ∀ i j : Fin n, i ≠ j →
@@ -192,14 +196,14 @@ theorem randomCircuitStep_stationary (n : ℕ) :
           by_cases hpp : p i = 0 ∧ p j = 0
           · have hc : ¬ (¬ (p i = 0 ∧ p j = 0) ∧
                 (∀ k : Fin n, k ≠ i → k ≠ j → q k = p k)) := fun h => h.1 hpp
-            simp [hpp, hc]
+            simp [hpp]
           · by_cases hm : (∀ k : Fin n, k ≠ i → k ≠ j → q k = p k)
             · have hc : ¬ (p i = 0 ∧ p j = 0) ∧
                   (∀ k : Fin n, k ≠ i → k ≠ j → q k = p k) := ⟨hpp, hm⟩
-              simp [hpp, hm, hc]
+              simp [hpp]
             · have hc : ¬ (¬ (p i = 0 ∧ p j = 0) ∧
                   (∀ k : Fin n, k ≠ i → k ≠ j → q k = p k)) := fun h => hm h.2
-              simp [hpp, hm, hc]
+              simp [hpp, hm]
         rw [hfilter]
 
         let S : Finset (Fin 4 × Fin 4) := Finset.univ.erase (0, 0)
@@ -294,7 +298,7 @@ theorem randomCircuitStep_stationary (n : ℕ) :
     intro j _
     by_cases hij : i = j
     · simp [hij]
-    · rw [if_pos hij, if_pos hij]
+    · rw [ite_eq_left hij, ite_eq_left hij]
       exact hpair i j hij
   rw [hsum]
 
@@ -305,7 +309,7 @@ theorem randomCircuitStep_stationary (n : ℕ) :
     rw [← Finset.sum_filter]
     have hfilter : (Finset.univ.filter (fun j : Fin n => i ≠ j))
         = Finset.univ.erase i := by
-      ext j; simp [not_not, eq_comm]
+      ext j; simp [ eq_comm]
     rw [hfilter]
     rw [Finset.sum_const, nsmul_eq_mul]
     congr 1

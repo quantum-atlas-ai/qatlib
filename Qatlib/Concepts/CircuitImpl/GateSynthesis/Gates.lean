@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CircuitImpl.GateSynthesis.GatesDefs
-import Qatlib.Concepts.CircuitImpl.GateSynthesis.GateCounts
+module
+
+public import Qatlib.Concepts.CircuitImpl.GateSynthesis.GatesDefs
+public import Qatlib.Concepts.CircuitImpl.GateSynthesis.GateCounts
+
+@[expose] public section
 
 /-!
 # Gate-synthesis budget interfaces

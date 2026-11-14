@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Normed.Algebra.MatrixExponential
-import Mathlib.LinearAlgebra.Matrix.PosDef
-import Mathlib.RingTheory.Polynomial.Chebyshev
-import Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
+module
+
+public import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+public import Mathlib.LinearAlgebra.Matrix.PosDef
+public import Mathlib.RingTheory.Polynomial.Chebyshev
+public import Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ContDiscWalk08.SineReadout.FidelityCore
-import Qatlib.Papers.ContDiscWalk08.CompressedSim.CompressedSymbol
+module
+
+public import Qatlib.Papers.ContDiscWalk08.SineReadout.FidelityCore
+public import Qatlib.Papers.ContDiscWalk08.CompressedSim.CompressedSymbol
+
+@[expose] public section
 
 /-!
 # Sine-phase readout operators and overlaps
@@ -166,6 +170,7 @@ theorem inner_idealVec_simVec (t : ℝ) (θ φ : ι → ℝ) (w : ι → ℂ) :
           Complex.exp (Complex.I * ((t * (Real.sin (θ i) - Real.sin (φ i)) : ℝ) : ℂ)) := by
         rw [Complex.star_def, ← Complex.normSq_eq_conj_mul_self, Complex.normSq_eq_norm_sq]
 
+omit [DecidableEq ι] in
 /-- The real part of the ideal-simulated overlap is the weighted sum of cosines of the
 sine-phase differences. See [Childs2010]. -/
 theorem inner_idealVec_simVec_re (t : ℝ) (θ φ : ι → ℝ) (w : ι → ℂ) :
@@ -181,6 +186,7 @@ theorem inner_idealVec_simVec_re (t : ℝ) (θ φ : ι → ℝ) (w : ι → ℂ)
     ring
   rw [harg, Complex.exp_ofReal_mul_I_re]
 
+omit [DecidableEq ι] in
 /-- For amplitudes with squared norms summing to one, the real overlap is bounded below by one
 minus half `t ^ 2` times the weighted squared phase error. See [Childs2010]. -/
 theorem readout_fidelity_ge (t : ℝ) (θ φ : ι → ℝ) (w : ι → ℂ)
@@ -193,6 +199,7 @@ theorem readout_fidelity_ge (t : ℝ) (θ φ : ι → ℝ) (w : ι → ℂ)
   calc 1 - t ^ 2 / 2 * (∑ i, ‖w i‖ ^ 2 * (θ i - φ i) ^ 2)
       ≤ ∑ i, ‖w i‖ ^ 2 * Real.cos (t * (Real.sin (θ i) - Real.sin (φ i))) := h
 
+omit [DecidableEq ι] in
 /-- For normalized amplitudes and positive `M`, a weighted phase-error second moment at most
 `186 / M ^ 2` gives real overlap at least `1 - 93 * t ^ 2 / M ^ 2`. See [Childs2010]. -/
 theorem readout_fidelity_of_variance (t M : ℝ) (θ φ : ι → ℝ) (w : ι → ℂ)

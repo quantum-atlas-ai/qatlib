@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommGibbsSamp14.MainResults.Framework.ProjectionCalculus
+module
+
+public import Qatlib.Papers.CommGibbsSamp14.MainResults.Framework.ProjectionCalculus
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -49,7 +53,7 @@ Eq. (63); they are the only structural facts about `E` that the argument needs, 
 in the paper right after Eq. (65). -/
 theorem proposition20_variance_inequality
     [RegionOps Region] (S : PaperSetup V Region) (E : Region → V → V)
-    (hE : E = S.Eρ ∨ E = S.EL) (A B : Region) (eps : ℝ)
+    (_hE : E = S.Eρ ∨ E = S.EL) (A B : Region) (eps : ℝ)
     (hAbsA : ∀ f : V, E (RegionOps.union A B) (E A f) = E (RegionOps.union A B) f)
     (hAbsB : ∀ f : V, E (RegionOps.union A B) (E B f) = E (RegionOps.union A B) f)
     (hBound : ∀ f : V,

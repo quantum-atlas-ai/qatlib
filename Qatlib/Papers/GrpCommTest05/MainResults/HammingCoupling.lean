@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Finset.Basic
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Qatlib.Papers.GrpCommTest05.MainResults.CouplingSpectralGap
+module
+
+public import Mathlib.Data.Finset.Basic
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Qatlib.Papers.GrpCommTest05.MainResults.CouplingSpectralGap
+
+@[expose] public section
 
 /-!
 # Hamming distance under synchronized updates

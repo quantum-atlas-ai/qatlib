@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Complex.Basic
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.Push
+module
+
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.Push
+
+@[expose] public section
 
 /-!
 # GraphNorm — the nonlinear term of a finite-graph discrete nonlinear Schrödinger equation

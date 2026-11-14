@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LinDynamics23.DiscreteObs.CompositeGaussContracts
+module
+
+public import Qatlib.Papers.LinDynamics23.DiscreteObs.CompositeGaussContracts
+
+@[expose] public section
 
 /-!
 # Zero-time composite Gauss error budget

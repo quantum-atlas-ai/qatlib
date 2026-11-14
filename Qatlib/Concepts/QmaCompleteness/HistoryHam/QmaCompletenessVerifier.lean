@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QmaCompleteness.HistoryHam.QmaCompletenessDefs
-import Qatlib.Concepts.QmaCompleteness.HistoryHam.SpectralForrelation
-import Qatlib.Concepts.QmaCompleteness.HistoryHam.QmaCompletenessEnergy
-import Mathlib.Algebra.Ring.BooleanRing
+module
+
+public import Qatlib.Concepts.QmaCompleteness.HistoryHam.QmaCompletenessDefs
+public import Qatlib.Concepts.QmaCompleteness.HistoryHam.SpectralForrelation
+public import Qatlib.Concepts.QmaCompleteness.HistoryHam.QmaCompletenessEnergy
+public import Mathlib.Algebra.Ring.BooleanRing
+
+@[expose] public section
 
 /-!
 # QMA verifier constructions and amplification counterexample
@@ -162,7 +166,7 @@ theorem cnotAux_wireGate1 (U : Matrix Bool Bool ℂ) (w : Fin 1) (p q : Reg 1) :
   rw [wireGate_apply]
   have hvac : ∀ k : Fin 1, k ≠ w → p k = q k := by
     intro k hk; exact absurd (Subsingleton.elim k w) hk
-  rw [if_pos hvac]
+  rw [ite_eq_left hvac]
   have hp : p w = p 0 := congrArg p (Subsingleton.elim w 0)
   have hq : q w = q 0 := congrArg q (Subsingleton.elim w 0)
   rw [hp, hq]
@@ -191,20 +195,20 @@ theorem cnotAux_regSplit00_out (p : Reg 1) : (qmaRegSplit 0 0 p).2 = fun _ => p 
 /-- The zero-qubit computational basis state has amplitude one at the unique register. -/
 theorem cnotAux_ket_zero_0 : Qatlib.Foundations.PureStateMath.Ket (ZeroStr 0) (fun _ => false : Reg 0) = 1 := by
   show (if (fun _ => false : Reg 0) = ZeroStr 0 then (1 : ℂ) else 0) = 1
-  exact if_pos rfl
+  exact ite_eq_left rfl
 
 /-- The one-qubit zero basis state has amplitude one at false and zero at true. -/
 theorem cnotAux_ket_zero_1 (b : Bool) :
     Qatlib.Foundations.PureStateMath.Ket (ZeroStr 1) (fun _ => b : Reg 1) = if b = false then (1 : ℂ) else 0 := by
   show (if (fun _ => b : Reg 1) = ZeroStr 1 then (1 : ℂ) else 0) = _
   by_cases hb : (fun _ => b : Reg 1) = ZeroStr 1
-  · rw [if_pos hb]
+  · rw [ite_eq_left hb]
     have hbf : b = false := congrFun hb 0
-    rw [if_pos hbf]
-  · rw [if_neg hb]
+    rw [ite_eq_left hbf]
+  · rw [ite_eq_right hb]
     have hbf : ¬ b = false := by
       intro h; apply hb; funext i; simp [ZeroStr, h]
-    rw [if_neg hbf]
+    rw [ite_eq_right hbf]
 
 /-- With no witness or auxiliary qubits, initialization multiplies the unique witness amplitude
 by the indicator that the output bit is false. -/
@@ -223,7 +227,7 @@ theorem cnotAux_fc_h_mulVec (φ : QState (Reg 1)) (p : Reg 1) :
     (finiteCodeMatrix 1 (FiniteGateCode.h 0)).mulVec φ p
       = Hadamard (p 0) false * φ (fun _ => false) + Hadamard (p 0) true * φ (fun _ => true) := by
   simp only [finiteCodeMatrix]
-  rw [dif_pos (by omega : (0 : ℕ) < 1)]
+  rw [dite_eq_left (by omega : (0 : ℕ) < 1)]
   exact cnotAux_wireGate1_mulVec Hadamard _ φ p
 
 /-- The encoded T gate on one wire acts by the usual two-term matrix-vector formula. -/
@@ -231,7 +235,7 @@ theorem cnotAux_fc_t_mulVec (φ : QState (Reg 1)) (p : Reg 1) :
     (finiteCodeMatrix 1 (FiniteGateCode.t 0)).mulVec φ p
       = tGate (p 0) false * φ (fun _ => false) + tGate (p 0) true * φ (fun _ => true) := by
   simp only [finiteCodeMatrix]
-  rw [dif_pos (by omega : (0 : ℕ) < 1)]
+  rw [dite_eq_left (by omega : (0 : ℕ) < 1)]
   exact cnotAux_wireGate1_mulVec tGate _ φ p
 
 /-- The encoded Pauli X gate on one wire acts by the usual two-term matrix-vector formula. -/
@@ -239,7 +243,7 @@ theorem cnotAux_fc_x_mulVec (φ : QState (Reg 1)) (p : Reg 1) :
     (finiteCodeMatrix 1 (FiniteGateCode.x 0)).mulVec φ p
       = PauliX (p 0) false * φ (fun _ => false) + PauliX (p 0) true * φ (fun _ => true) := by
   simp only [finiteCodeMatrix]
-  rw [dif_pos (by omega : (0 : ℕ) < 1)]
+  rw [dite_eq_left (by omega : (0 : ℕ) < 1)]
   exact cnotAux_wireGate1_mulVec PauliX _ φ p
 
 /-- The one-wire gate word applying Hadamard, T, Hadamard, and Pauli X in that order. -/
@@ -362,8 +366,8 @@ theorem cnotAux_final_state (ψ : QState (Reg 0)) (p : Reg 1) :
   rw [s1, s2, s3]
   rw [cnotAux_stage4]
   by_cases hp : p 0 = false
-  · rw [if_pos hp, if_pos hp, cnotAux_sqrt2_inv_sq, div_eq_mul_inv]
-  · rw [if_neg hp, if_neg hp, cnotAux_sqrt2_inv_sq, div_eq_mul_inv]
+  · rw [ite_eq_left hp, ite_eq_left hp, cnotAux_sqrt2_inv_sq, div_eq_mul_inv]
+  · rw [ite_eq_right hp, ite_eq_right hp, cnotAux_sqrt2_inv_sq, div_eq_mul_inv]
 
 /-- The true-bit amplitude after `cnotAuxV0prog` is `(1 + cnotAuxOmega) / 2` times the unique
 witness amplitude. -/
@@ -562,8 +566,8 @@ theorem cnotAux_tail_bound {w a m j₀ : ℕ} (Uv : Matrix (Reg (w + a + 1)) (Re
     intro b
     rw [hweight b]
     by_cases hc : j₀ ≤ qmaTrueCount m b
-    · rw [if_pos hc]
-    · rw [if_neg hc]
+    · rw [ite_eq_left hc]
+    · rw [ite_eq_right hc]
       positivity
   have hpow : (∑ p : Fin m → Bool, ∏ j : Fin m, (if p j then ‖c‖ ^ 2 else ‖1 - c‖ ^ 2))
       = (‖c‖ ^ 2 + ‖1 - c‖ ^ 2) ^ m := by
@@ -644,8 +648,7 @@ theorem cnotAux_Q_entry (Uv : Matrix (Reg 1) (Reg 1) ℂ) :
     rw [Matrix.diagonal_apply]
     by_cases h : z = z' <;> simp [h, cnotAux_qmaOutputBit]
   unfold qmaAcceptanceOperator
-  simp only [Matrix.mul_apply, Matrix.conjTranspose_apply, hE, hP, cnotAux_sum_reclause0,
-    cnotAux_sum_reclause1, cnotAux_sum_reclause1_gen]
+  simp only [Matrix.mul_apply, Matrix.conjTranspose_apply, hE, hP, cnotAux_sum_reclause1_gen]
   simp
   ring_nf
   all_goals
@@ -709,7 +712,7 @@ theorem cnotAux_Q_val (x : List Bool) :
   rw [cnotAux_Q_entry, cnotAux_sum_reclause1]
   have hc0 : ¬ ((fun _ : Reg 1 => false) 0 = true) := by decide
   have hc1 : (fun _ : Reg 1 => true) 0 = true := by decide
-  rw [if_neg hc0, if_pos hc1, zero_add]
+  rw [ite_eq_right hc0, ite_eq_left hc1, zero_add]
   have hA : qmaVerifierUnitary cnotAuxV0 x (fun (p : Fin 1) => true) (fun (p : Fin 1) => false)
       = (1 + cnotAuxOmega) / 2 := cnotAuxUv_col_fin x (fun _ => true)
   rw [hA]
@@ -936,7 +939,7 @@ theorem cnotAux_char0 (f : Reg 0 → Bool) (z z' : Reg 0) :
     charProjector 0 f z z' = if f z then 1 else 0 := by
   rw [charProjector, Matrix.diagonal_apply]
   have hzz : z = z' := Subsingleton.elim _ _
-  rw [if_pos hzz]
+  rw [ite_eq_left hzz]
 
 /-- The unique matrix entry of the zero-qubit Hadamard transform is one. -/
 theorem cnotAux_hadamard0 (z z' : Reg 0) : HadamardN 0 z z' = 1 := by
@@ -993,13 +996,13 @@ theorem clause1_clause2_zero : ∀ (S U : Reg 0 → Bool),
     · intro x
       simp [cnotAuxX0, cnotAuxX0prog]
     · intro x ψ
-      rw [cnotAux_forr0, if_pos h]
+      rw [cnotAux_forr0, ite_eq_left h]
       exact cnotAuxX0_accept ψ x
   · refine ⟨cnotAuxE0, 1, fun _ => rfl, ?_, ?_⟩
     · intro x
       simp [cnotAuxE0]
     · intro x ψ
-      rw [cnotAux_forr0, if_neg h]
+      rw [cnotAux_forr0, ite_eq_right h]
       exact cnotAuxE0_accept ψ x
 
 /-- Multiplying two `permMatrix` matrices corresponds to composing their defining functions in
@@ -1013,7 +1016,7 @@ theorem cnotAux_permMatrix_mul {I : Type*} [Fintype I] [DecidableEq I] (σ τ : 
   · intro j _ hj
     by_cases hjk : j = τ k
     · exact absurd hjk hj
-    · rw [if_neg hjk, mul_zero]
+    · rw [ite_eq_right hjk, mul_zero]
   · intro h
     exact absurd (Finset.mem_univ (τ k)) h
 
@@ -1038,7 +1041,7 @@ theorem cnotAux_fwm_append (N : ℕ) (gs hs : List FiniteGateCode) :
 /-- The bounds-checked construction of a gate at an already valid wire equals that wire gate. -/
 theorem cnotAux_dif_wire {N : ℕ} (w : Fin N) (U : Matrix Bool Bool ℂ) :
     (if h : w.val < N then wireGate N ⟨w.val, h⟩ U else 1) = wireGate N w U := by
-  rw [dif_pos w.isLt]
+  rw [dite_eq_left w.isLt]
 
 /-- A Pauli X gate on wire `w` is the permutation matrix that flips the bit at `w`. -/
 theorem cnotAux_wireGate_pauliX (N : ℕ) (w : Fin N) :
@@ -1048,7 +1051,7 @@ theorem cnotAux_wireGate_pauliX (N : ℕ) (w : Fin N) :
   rw [wireGate_apply]
   simp only [permMatrix, Matrix.of_apply]
   by_cases hsupp : ∀ k : Fin N, k ≠ w → x k = y k
-  · rw [if_pos hsupp]
+  · rw [ite_eq_left hsupp]
     have hxy : x = Function.update y w (!y w) ↔ x w = !y w := by
       constructor
       · intro h
@@ -1060,16 +1063,16 @@ theorem cnotAux_wireGate_pauliX (N : ℕ) (w : Fin N) :
         · subst hk; rw [h]; simp [Function.update]
         · rw [Function.update_of_ne hk, hsupp k hk]
     by_cases hx : x w = !y w
-    · rw [if_pos (hxy.2 hx)]
+    · rw [ite_eq_left (hxy.2 hx)]
       simp [PauliX, permMatrix, hx]
     · have hne : x ≠ Function.update y w (!y w) := fun h => hx (hxy.1 h)
-      rw [if_neg hne]
+      rw [ite_eq_right hne]
       simp [PauliX, permMatrix, hx]
-  · rw [if_neg hsupp]
+  · rw [ite_eq_right hsupp]
     have hne : x ≠ Function.update y w (!y w) := by
       intro h
       exact hsupp (fun k hk => by rw [h, Function.update_of_ne hk])
-    rw [if_neg hne]
+    rw [ite_eq_right hne]
 
 /-- The finite code for Pauli X at a valid wire denotes the permutation that flips that wire. -/
 theorem cnotAux_fc_x (N : ℕ) (w : Fin N) :
@@ -1086,7 +1089,7 @@ theorem cnotAux_fc_cx (N : ℕ) (c t : Fin N) (hct : c ≠ t) :
   have hne : c.val ≠ t.val := fun h => hct (Fin.val_injective h)
   have hpos : c.val < N ∧ t.val < N ∧ c.val ≠ t.val := ⟨c.isLt, t.isLt, hne⟩
   have h1 : finiteCodeMatrix N (FiniteGateCode.cx c.val t.val) = cnotGate N c t := by
-    simp only [finiteCodeMatrix, dif_pos hpos]
+    simp only [finiteCodeMatrix, dite_eq_left hpos]
   rw [h1]
   rfl
 
@@ -1113,13 +1116,13 @@ theorem cnotAux_fwm_tofCode (N : ℕ) (a b t : Fin N) (hab : a ≠ b) (hat : a �
       reflectionGateMatrix, finiteCodeMatrix, cnotAux_dif_wire]
     rw [show (if h : a.val < N ∧ b.val < N ∧ a.val ≠ b.val
           then cnotGate N ⟨a.val, h.1⟩ ⟨b.val, h.2.1⟩ else 1) = cnotGate N a b
-        from by rw [dif_pos (⟨a.isLt, b.isLt, hne1⟩ : a.val < N ∧ b.val < N ∧ a.val ≠ b.val)],
+        from by rw [dite_eq_left (⟨a.isLt, b.isLt, hne1⟩ : a.val < N ∧ b.val < N ∧ a.val ≠ b.val)],
       show (if h : b.val < N ∧ t.val < N ∧ b.val ≠ t.val
           then cnotGate N ⟨b.val, h.1⟩ ⟨t.val, h.2.1⟩ else 1) = cnotGate N b t
-        from by rw [dif_pos (⟨b.isLt, t.isLt, hne3⟩ : b.val < N ∧ t.val < N ∧ b.val ≠ t.val)],
+        from by rw [dite_eq_left (⟨b.isLt, t.isLt, hne3⟩ : b.val < N ∧ t.val < N ∧ b.val ≠ t.val)],
       show (if h : a.val < N ∧ t.val < N ∧ a.val ≠ t.val
           then cnotGate N ⟨a.val, h.1⟩ ⟨t.val, h.2.1⟩ else 1) = cnotGate N a t
-        from by rw [dif_pos (⟨a.isLt, t.isLt, hne2⟩ : a.val < N ∧ t.val < N ∧ a.val ≠ t.val)]]
+        from by rw [dite_eq_left (⟨a.isLt, t.isLt, hne2⟩ : a.val < N ∧ t.val < N ∧ a.val ≠ t.val)]]
 
   have hm : reflectionProgramMatrix (toffoliLocalSteps a b t)
       = permMatrix (fun p : Reg N => Function.update p t (p t ^^ (p a && p b))) := by
@@ -1260,8 +1263,8 @@ theorem cnotAux_flipShape_comp {N : ℕ} {fl : Fin N} {σ τ : Reg N → Reg N}
     funext k
     by_cases hk : k = fl
     · subst hk
-      simp [Function.update, Bool.xor_assoc, Bool.xor_comm, Bool.xor_left_comm]
-    · simp [Function.update, hk, Bool.xor_assoc, Bool.xor_comm, Bool.xor_left_comm]
+      simp [Function.update, Bool.xor_comm, Bool.xor_left_comm]
+    · simp [Function.update, hk]
   · intro p b
     show (G (Function.update p fl b) ^^ H (Function.update p fl b)) = (G p ^^ H p)
     rw [hG p b, hH p b]
@@ -1272,7 +1275,7 @@ theorem cnotAux_flipShape_id {N : ℕ} (fl : Fin N) : cnotAuxFlipShape fl (_root
   · intro p
     show p = Function.update p fl (p fl ^^ false)
     funext k
-    by_cases hk : k = fl <;> simp [Function.update, hk, Bool.xor_false]
+    by_cases hk : k = fl <;> simp [Function.update, hk]
   · intro p b; rfl
 
 /-- Conjugating a map satisfying `cnotAuxFlipShape fl` by an involution `τ` preserves this
@@ -1390,7 +1393,7 @@ theorem cnotAux_tofPerm_involutive {N : ℕ} (a b t : Fin N) (_hab : a ≠ b) (h
   have ht : Function.update p t (p t ^^ (p a && p b)) t = (p t ^^ (p a && p b)) :=
     Function.update_self _ _ _
   simp only [cnotAuxMacroPerm, ha, hb, ht]
-  simp [Function.update, Bool.xor_assoc, Bool.xor_self, Bool.xor_false, hat, hbt]
+  simp []
 
 /-- The Toffoli register map on wires `a`, `b`, and `t` commutes with updating a wire `fl`
 distinct from all three. -/
@@ -1478,8 +1481,7 @@ theorem cnotAux_markAll_shape {N : ℕ} (fl : Fin N) :
     | nil =>
       refine ⟨fun _ => true, ?_, ?_, ?_⟩
       · intro p
-        simp [cnotAuxMarkAll, cnotAuxFold, cnotAuxMacroPerm, List.foldl_cons, List.foldl_nil,
-          Function.update, Bool.xor_true]
+        simp [cnotAuxMarkAll, cnotAuxFold, cnotAuxMacroPerm, List.foldl_cons, List.foldl_nil]
       · intro p b; rfl
       · intro p _; rfl
     | cons w ws' =>
@@ -1488,8 +1490,7 @@ theorem cnotAux_markAll_shape {N : ℕ} (fl : Fin N) :
         have hwfl : w ≠ fl := (cnotAux_wiresOK_cons hok).1
         refine ⟨fun p => p w, ?_, ?_, ?_⟩
         · intro p
-          simp [cnotAuxMarkAll, cnotAuxFold, cnotAuxMacroPerm, List.foldl_cons, List.foldl_nil,
-            Function.update]
+          simp [cnotAuxMarkAll, cnotAuxFold, cnotAuxMacroPerm, List.foldl_cons, List.foldl_nil]
         · intro p b
           show (Function.update p fl b) w = p w
           exact Function.update_of_ne hwfl b p
@@ -1624,7 +1625,7 @@ theorem cnotAux_wit_ne_lad {n : ℕ} (i j : Fin n) : cnotAuxWit n i ≠ cnotAuxL
   have h2 := congrArg Fin.val h
   have hi := i.isLt
   have hj := j.isLt
-  simp only [cnotAuxWit, cnotAuxLad, cnotAuxFlS, cnotAuxFlU, cnotAuxOut] at h2
+  simp only [cnotAuxWit, cnotAuxLad] at h2
   clear h
   omega
 
@@ -1633,7 +1634,7 @@ theorem cnotAux_wit_ne_flS {n : ℕ} (i : Fin n) : cnotAuxWit n i ≠ cnotAuxFlS
   intro h
   have h2 := congrArg Fin.val h
   have hi := i.isLt
-  simp only [cnotAuxWit, cnotAuxLad, cnotAuxFlS, cnotAuxFlU, cnotAuxOut] at h2
+  simp only [cnotAuxWit, cnotAuxFlS] at h2
   clear h
   omega
 
@@ -1642,7 +1643,7 @@ theorem cnotAux_wit_ne_flU {n : ℕ} (i : Fin n) : cnotAuxWit n i ≠ cnotAuxFlU
   intro h
   have h2 := congrArg Fin.val h
   have hi := i.isLt
-  simp only [cnotAuxWit, cnotAuxLad, cnotAuxFlS, cnotAuxFlU, cnotAuxOut] at h2
+  simp only [cnotAuxWit, cnotAuxFlU] at h2
   clear h
   omega
 
@@ -1651,7 +1652,7 @@ theorem cnotAux_wit_ne_out {n : ℕ} (i : Fin n) : cnotAuxWit n i ≠ cnotAuxOut
   intro h
   have h2 := congrArg Fin.val h
   have hi := i.isLt
-  simp only [cnotAuxWit, cnotAuxLad, cnotAuxFlS, cnotAuxFlU, cnotAuxOut] at h2
+  simp only [cnotAuxWit, cnotAuxOut] at h2
   clear h
   omega
 
@@ -1661,7 +1662,7 @@ theorem cnotAux_lad_ne_flS {n : ℕ} (j : Fin n) : cnotAuxLad n j ≠ cnotAuxFlS
   intro h
   have h2 := congrArg Fin.val h
   have hj := j.isLt
-  simp only [cnotAuxWit, cnotAuxLad, cnotAuxFlS, cnotAuxFlU, cnotAuxOut] at h2
+  simp only [cnotAuxLad, cnotAuxFlS] at h2
   clear h
   omega
 
@@ -1671,7 +1672,7 @@ theorem cnotAux_lad_ne_flU {n : ℕ} (j : Fin n) : cnotAuxLad n j ≠ cnotAuxFlU
   intro h
   have h2 := congrArg Fin.val h
   have hj := j.isLt
-  simp only [cnotAuxWit, cnotAuxLad, cnotAuxFlS, cnotAuxFlU, cnotAuxOut] at h2
+  simp only [cnotAuxLad, cnotAuxFlU] at h2
   clear h
   omega
 
@@ -1680,7 +1681,7 @@ theorem cnotAux_lad_ne_out {n : ℕ} (j : Fin n) : cnotAuxLad n j ≠ cnotAuxOut
   intro h
   have h2 := congrArg Fin.val h
   have hj := j.isLt
-  simp only [cnotAuxWit, cnotAuxLad, cnotAuxFlS, cnotAuxFlU, cnotAuxOut] at h2
+  simp only [cnotAuxLad, cnotAuxOut] at h2
   clear h
   omega
 
@@ -1688,7 +1689,7 @@ theorem cnotAux_lad_ne_out {n : ℕ} (j : Fin n) : cnotAuxLad n j ≠ cnotAuxOut
 theorem cnotAux_flS_ne_flU {n : ℕ} : cnotAuxFlS n ≠ cnotAuxFlU n := by
   intro h
   have h2 := congrArg Fin.val h
-  simp only [cnotAuxWit, cnotAuxLad, cnotAuxFlS, cnotAuxFlU, cnotAuxOut] at h2
+  simp only [cnotAuxFlS, cnotAuxFlU] at h2
   clear h
   omega
 
@@ -1696,7 +1697,7 @@ theorem cnotAux_flS_ne_flU {n : ℕ} : cnotAuxFlS n ≠ cnotAuxFlU n := by
 theorem cnotAux_flS_ne_out {n : ℕ} : cnotAuxFlS n ≠ cnotAuxOut n := by
   intro h
   have h2 := congrArg Fin.val h
-  simp only [cnotAuxWit, cnotAuxLad, cnotAuxFlS, cnotAuxFlU, cnotAuxOut] at h2
+  simp only [cnotAuxFlS, cnotAuxOut] at h2
   clear h
   omega
 
@@ -1704,7 +1705,7 @@ theorem cnotAux_flS_ne_out {n : ℕ} : cnotAuxFlS n ≠ cnotAuxOut n := by
 theorem cnotAux_flU_ne_out {n : ℕ} : cnotAuxFlU n ≠ cnotAuxOut n := by
   intro h
   have h2 := congrArg Fin.val h
-  simp only [cnotAuxWit, cnotAuxLad, cnotAuxFlS, cnotAuxFlU, cnotAuxOut] at h2
+  simp only [cnotAuxFlU, cnotAuxOut] at h2
   clear h
   omega
 
@@ -1867,13 +1868,13 @@ theorem cnotAux_xConj_perm {n : ℕ} (z : Reg n) (p : Reg (cnotAuxN n)) :
       refine List.mem_map.mpr ⟨i, ?_, rfl⟩
       simp only [List.mem_filter, List.mem_finRange, true_and]
       exact decide_eq_true hzi
-    rw [if_pos hmem, if_pos ⟨i, hi, hzi⟩]
+    rw [ite_eq_left hmem, ite_eq_left ⟨i, hi, hzi⟩]
   · have hmem : k ∉ List.map (cnotAuxWit n) ((List.finRange n).filter (fun i => decide (z i = false))) := by
       intro hh
       obtain ⟨i, hi, heq⟩ := List.mem_map.mp hh
       simp only [List.mem_filter, List.mem_finRange, true_and] at hi
       exact hk ⟨i, heq, of_decide_eq_true hi⟩
-    rw [if_neg hmem, if_neg hk]
+    rw [ite_eq_right hmem, ite_eq_right hk]
 
 /-- At a wire `k`, the fold of `cnotAuxXConj z` returns `Bool.not (p k)` exactly when `k =
 cnotAuxWit n i` for some index with `z i = false`, and returns `p k` otherwise. -/
@@ -1889,9 +1890,9 @@ theorem cnotAux_xConj_involutive {n : ℕ} (z : Reg n) (p : Reg (cnotAuxN n)) :
   funext k
   rw [cnotAux_xConj_perm_apply, cnotAux_xConj_perm_apply]
   by_cases hk : ∃ i : Fin n, cnotAuxWit n i = k ∧ z i = false
-  · rw [if_pos hk, if_pos hk]
+  · rw [ite_eq_left hk, ite_eq_left hk]
     cases p k <;> rfl
-  · rw [if_neg hk, if_neg hk]
+  · rw [ite_eq_right hk, ite_eq_right hk]
 
 /-- Updating a register at wire `a` to `v` and then to `w` equals updating it once at `a` to
 `w`. -/
@@ -1926,7 +1927,7 @@ theorem cnotAux_xConj_fl {n : ℕ} (z : Reg n) (fl : Fin (cnotAuxN n))
     intro hh
     obtain ⟨i, hi, _⟩ := hh
     exact hfl (cnotAuxWit n i) (cnotAux_witL_mem.mpr ⟨i, rfl⟩) hi
-  rw [if_neg hne]
+  rw [ite_eq_right hne]
 
 /-- The fold of `cnotAuxXConj z` commutes with any update to `fl` whenever every wire in
 `cnotAuxWitL n` differs from `fl`. -/
@@ -1941,7 +1942,7 @@ theorem cnotAux_xConj_comm {n : ℕ} (z : Reg n) (fl : Fin (cnotAuxN n))
       intro hh
       obtain ⟨i, hi, _⟩ := hh
       exact hfl (cnotAuxWit n i) (cnotAux_witL_mem.mpr ⟨i, rfl⟩) hi
-    rw [cnotAux_xConj_perm_apply z (Function.update p fl b) fl, if_neg hne,
+    rw [cnotAux_xConj_perm_apply z (Function.update p fl b) fl, ite_eq_right hne,
         Function.update_self fl b p, Function.update_self fl b (cnotAuxFold (cnotAuxXConj z) p)]
   · rw [Function.update_of_ne hk b (cnotAuxFold (cnotAuxXConj z) p),
         cnotAux_xConj_perm_apply z (Function.update p fl b) k,
@@ -1958,7 +1959,7 @@ theorem cnotAux_xConj_lad {n : ℕ} (z : Reg n) (p : Reg (cnotAuxN n)) (hp : cno
     intro hh
     obtain ⟨i, hi, _⟩ := hh
     exact cnotAux_wit_ne_lad i j hi
-  rw [if_neg hne]
+  rw [ite_eq_right hne]
   exact hp j
 
 /-- After folding `cnotAuxXConj z`, the conjunction of all witness bits equals `decide
@@ -1986,7 +1987,7 @@ theorem cnotAux_xConj_allTrue {n : ℕ} (z : Reg n) (p : Reg (cnotAuxN n)) :
       rw [cnotAux_xConj_perm] at hi
       simp only [] at hi
       by_cases hex : ∃ i', cnotAuxWit n i' = cnotAuxWit n i ∧ z i' = false
-      · rw [if_pos hex] at hi
+      · rw [ite_eq_left hex] at hi
         have hzi : z i = false := (hex_iff i).mp hex
         have : p (cnotAuxWit n i) = false := by
           cases hp : p (cnotAuxWit n i) with
@@ -1995,7 +1996,7 @@ theorem cnotAux_xConj_allTrue {n : ℕ} (z : Reg n) (p : Reg (cnotAuxN n)) :
             rw [hp] at hi
             simp at hi
         simp [cnotAuxWitPart, this, hzi]
-      · rw [if_neg hex] at hi
+      · rw [ite_eq_right hex] at hi
         have hzi : z i = true := by
           cases hzi : z i
           · exact absurd ((hex_iff i).mpr hzi) hex
@@ -2011,14 +2012,14 @@ theorem cnotAux_xConj_allTrue {n : ℕ} (z : Reg n) (p : Reg (cnotAuxN n)) :
       rw [cnotAux_xConj_perm]
       simp only []
       by_cases hex : ∃ i', cnotAuxWit n i' = cnotAuxWit n i ∧ z i' = false
-      · rw [if_pos hex]
+      · rw [ite_eq_left hex]
         have hzi : z i = false := (hex_iff i).mp hex
         have : p (cnotAuxWit n i) = false := by
           simp [cnotAuxWitPart] at hi2
           rw [hzi] at hi2
           exact hi2
         simp [Bool.not, this]
-      · rw [if_neg hex]
+      · rw [ite_eq_right hex]
         have hzi : z i = true := by
           cases hzi : z i
           · exact absurd ((hex_iff i).mpr hzi) hex
@@ -2132,7 +2133,7 @@ theorem cnotAux_markWord_shape {n : ℕ} (fl : Fin (cnotAuxN n)) (f : Reg n → 
     refine ⟨fun _ => false, ?_, ?_, ?_⟩
     · intro p
       funext k
-      by_cases hk : k = fl <;> simp [cnotAuxFold, Function.update, hk, Bool.xor_false]
+      by_cases hk : k = fl <;> simp [cnotAuxFold, Function.update, hk]
     · intro p b; rfl
     · intro p _; rfl
   | cons z zs ih =>
@@ -2282,10 +2283,10 @@ theorem cnotAux_permMatrix_mulVec {N : ℕ} {σ : Reg N → Reg N} (hinv : Funct
   simp only [permMatrix, Matrix.of_apply]
   rw [Finset.sum_eq_single (σ p)]
   · have hp : p = σ (σ p) := (hinv p).symm
-    rw [if_pos hp, one_mul]
+    rw [ite_eq_left hp, one_mul]
   · intro b _ hb
     have hne : ¬ (p = σ b) := fun h => hb ((hkey b).mp h)
-    rw [if_neg hne, zero_mul]
+    rw [ite_eq_right hne, zero_mul]
   · intro h
     exact absurd (Finset.mem_univ (σ p)) h
 
@@ -2359,7 +2360,7 @@ theorem cnotAux_join_witPart {n : ℕ} (x : Reg n) (p : Reg (cnotAuxN n)) :
   funext i
   show cnotAuxJoin x p (cnotAuxWit n i) = x i
   simp only [cnotAuxJoin]
-  rw [dif_pos (show (cnotAuxWit n i).val < n from i.isLt)]
+  rw [dite_eq_left (show (cnotAuxWit n i).val < n from i.isLt)]
   rfl
 
 /-- The register `cnotAuxJoin x p` agrees with `p` at every wire whose numeric index is at least
@@ -2367,7 +2368,7 @@ theorem cnotAux_join_witPart {n : ℕ} (x : Reg n) (p : Reg (cnotAuxN n)) :
 theorem cnotAux_join_off {n : ℕ} (x : Reg n) (p : Reg (cnotAuxN n)) {k : Fin (cnotAuxN n)}
     (hk : n ≤ k.val) : cnotAuxJoin x p k = p k := by
   simp only [cnotAuxJoin]
-  rw [dif_neg (by omega : ¬ k.val < n)]
+  rw [dite_eq_right (by omega : ¬ k.val < n)]
 
 /-- For functions into a commutative monoid, agreement on every entry of `ws` implies equality
 of the products of `ws.map f` and `ws.map g`. -/
@@ -2397,16 +2398,16 @@ theorem cnotAux_hWord_apply {N : ℕ} (ws : List (Fin N)) :
         = (1 : Matrix (Reg N) (Reg N) ℂ) from rfl]
     rw [Matrix.one_apply, List.prod_nil, one_mul]
     by_cases h : p = q
-    · rw [if_pos h]
+    · rw [ite_eq_left h]
       have h2 : ∀ k : Fin N, k ∉ ([] : List (Fin N)) → p k = q k := fun k _ => by rw [h]
-      rw [if_pos h2]
-    · rw [if_neg h]
+      rw [ite_eq_left h2]
+    · rw [ite_eq_right h]
       have h2 : ¬ ∀ k : Fin N, k ∉ ([] : List (Fin N)) → p k = q k := by
         intro hh
         apply h
         funext k
         exact hh k List.not_mem_nil
-      rw [if_neg h2]
+      rw [ite_eq_right h2]
   | cons w ws' ih =>
     intro hws p q
     have hnd' : ws'.Nodup := (List.nodup_cons.mp hws).2
@@ -2429,7 +2430,7 @@ theorem cnotAux_hWord_apply {N : ℕ} (ws : List (Fin N)) :
       have hB : (if ∀ k : Fin N, k ≠ w → Function.update q w (p w) k = q k
           then Hadamard (Function.update q w (p w) w) (q w) else 0)
           = Hadamard (p w) (q w) := by
-        rw [if_pos hne, Function.update_self]
+        rw [ite_eq_left hne, Function.update_self]
       have hAv : ∀ v ∈ ws', Function.update q w (p w) v = q v := by
         intro v hv
         have hvw : v ≠ w := by
@@ -2459,11 +2460,11 @@ theorem cnotAux_hWord_apply {N : ℕ} (ws : List (Fin N)) :
             rwa [Function.update_of_ne hk' (p w) q]
       rw [hA p (Function.update q w (p w)), hAprod, hB, List.map_cons, List.prod_cons]
       by_cases hc : ∀ k : Fin N, k ∉ w :: ws' → p k = q k
-      · rw [if_pos (hAcond.mpr hc), if_pos hc]
+      · rw [ite_eq_left (hAcond.mpr hc), ite_eq_left hc]
         ring
       · have hcn : ¬ ∀ k : Fin N, k ∉ ws' → p k = Function.update q w (p w) k :=
           fun hh => hc (hAcond.mp hh)
-        rw [if_neg hcn, if_neg hc]
+        rw [ite_eq_right hcn, ite_eq_right hc]
         ring
     · intro r _ hr
       by_cases hne : ∀ k : Fin N, k ≠ w → r k = q k
@@ -2477,7 +2478,7 @@ theorem cnotAux_hWord_apply {N : ℕ} (ws : List (Fin N)) :
             exact hne k hk
         have hAzero : finiteWordMatrix N (ws'.map (fun v => FiniteGateCode.h v.val)) p r = 0 := by
           rw [hA p r]
-          rw [if_neg]
+          rw [ite_eq_right]
           · exact mul_zero _
           · intro hh
             exact hrw (hh w hw).symm
@@ -2489,7 +2490,7 @@ theorem cnotAux_hWord_apply {N : ℕ} (ws : List (Fin N)) :
           by_contra h2
           exact hh ⟨k, hk, h2⟩
         obtain ⟨k, hk, hkq⟩ := hex
-        rw [if_neg]
+        rw [ite_eq_right]
         · exact mul_zero _
         · intro hh
           exact hkq (hh k hk)
@@ -2521,7 +2522,7 @@ theorem cnotAux_hBlock_apply (n : ℕ) (p q : Reg (cnotAuxN n)) :
 theorem cnotAux_join_wit {n : ℕ} (x : Reg n) (p : Reg (cnotAuxN n)) (i : Fin n) :
     cnotAuxJoin x p (cnotAuxWit n i) = x i := by
   simp only [cnotAuxJoin]
-  rw [dif_pos (show (cnotAuxWit n i).val < n from i.isLt)]
+  rw [dite_eq_left (show (cnotAuxWit n i).val < n from i.isLt)]
   rfl
 
 /-- The register `cnotAuxJoin x p` agrees with `p` at any wire distinct from every witness wire
@@ -2571,9 +2572,9 @@ theorem cnotAux_hBlock_mulVec (n : ℕ) (φ : QState (Reg (cnotAuxN n))) (p : Re
           then HadamardN n (cnotAuxWitPart p) (cnotAuxWitPart q) * φ q else 0) := by
     intro q
     by_cases h : cnotAuxJoin (cnotAuxWitPart q) p = q
-    · rw [if_pos ((cnotAux_offWit_iff_join p q).mp h), if_pos h]
+    · rw [ite_eq_left ((cnotAux_offWit_iff_join p q).mp h), ite_eq_left h]
       ring
-    · rw [if_neg (fun hh => h ((cnotAux_offWit_iff_join p q).mpr hh)), if_neg h]
+    · rw [ite_eq_right (fun hh => h ((cnotAux_offWit_iff_join p q).mpr hh)), ite_eq_right h]
       ring
   rw [show (∑ q : Reg (cnotAuxN n),
         (HadamardN n (cnotAuxWitPart p) (cnotAuxWitPart q)
@@ -2752,20 +2753,20 @@ theorem cnotAux_initState_shape (n : ℕ) (ψ : QState (Reg n)) (p : Reg (cnotAu
       rw [hj]
       rfl
   rw [qmaInitialState, hsplit, TensorState, TensorState]
-  simp only [Prod.mk.eta]
+  simp only []
   have hket1 : (Qatlib.Foundations.PureStateMath.Ket (ZeroStr (n + 2)) (qmaAncillaBits n (n + 2) p) : ℂ)
       = if (∀ j : Fin (n + 2), qmaAncillaBits n (n + 2) p j = false) then 1 else 0 := by
     rw [cnotAux_ket_zero]
     by_cases h : qmaAncillaBits n (n + 2) p = ZeroStr (n + 2)
-    · rw [if_pos h]
+    · rw [ite_eq_left h]
       have hall : ∀ j : Fin (n + 2), qmaAncillaBits n (n + 2) p j = false :=
         (cnotAux_zeroStr_iff _).mp h
-      rw [if_pos hall]
-    · rw [if_neg h]
+      rw [ite_eq_left hall]
+    · rw [ite_eq_right h]
       have hneg : ¬ ∀ j : Fin (n + 2), qmaAncillaBits n (n + 2) p j = false := by
         intro hh
         exact h ((cnotAux_zeroStr_iff _).mpr hh)
-      rw [if_neg hneg]
+      rw [ite_eq_right hneg]
   have hket2 : (Qatlib.Foundations.PureStateMath.Ket (ZeroStr 1) (fun _ : Fin 1 => qmaOutputBit n (n + 2) p) : ℂ)
       = if qmaOutputBit n (n + 2) p = false then 1 else 0 := by
     rw [cnotAux_ket_zero]
@@ -2774,11 +2775,11 @@ theorem cnotAux_initState_shape (n : ℕ) (ψ : QState (Reg n)) (p : Reg (cnotAu
         funext j
         show qmaOutputBit n (n + 2) p = false
         exact h
-      rw [if_pos heq, if_pos h]
+      rw [ite_eq_left heq, ite_eq_left h]
     · have hne : ¬ (fun _ : Fin 1 => qmaOutputBit n (n + 2) p) = ZeroStr 1 := by
         intro heq
         exact h (congrFun heq 0)
-      rw [if_neg hne, if_neg h]
+      rw [ite_eq_right hne, ite_eq_right h]
   rw [hket1, hket2, cnotAux_witnessBits_eq]
   simp only [cnotAux_ancilla_zero_iff, cnotAux_outputBit_eq]
   show (ψ (cnotAuxWitPart p)
@@ -2790,11 +2791,11 @@ theorem cnotAux_initState_shape (n : ℕ) (ψ : QState (Reg n)) (p : Reg (cnotAu
     ⟨fun h => ⟨⟨h.1, h.2.1, h.2.2.1⟩, h.2.2.2⟩, fun h => ⟨h.1.1, h.1.2.1, h.1.2.2, h.2⟩⟩
   by_cases h1 : p (cnotAuxFlS n) = false ∧ p (cnotAuxFlU n) = false ∧ cnotAuxLadZero p
   · by_cases h2 : p (cnotAuxOut n) = false
-    · rw [if_pos h1, if_pos h2, if_pos (hclean.mpr ⟨h1, h2⟩)]
+    · rw [ite_eq_left h1, ite_eq_left h2, ite_eq_left (hclean.mpr ⟨h1, h2⟩)]
       ring
-    · rw [if_pos h1, if_neg h2, if_neg (fun hh => h2 (hclean.mp hh).2)]
+    · rw [ite_eq_left h1, ite_eq_right h2, ite_eq_right (fun hh => h2 (hclean.mp hh).2)]
       ring
-  · rw [if_neg h1, if_neg (fun hh => h1 (hclean.mp hh).1)]
+  · rw [ite_eq_right h1, ite_eq_right (fun hh => h1 (hclean.mp hh).1)]
     ring
 
 /-- The finite gate program that marks `S` in `cnotAuxFlS`, applies Hadamard gates to the
@@ -2826,7 +2827,7 @@ theorem cnotAux_init_ladSupp (n : ℕ) (ψ : QState (Reg n)) : cnotAuxLadSupp (q
   have hne : ¬ cnotAuxClean0 p := by
     intro hc
     exact hp hc.2.2.1
-  rw [if_neg hne] at h
+  rw [ite_eq_right hne] at h
   exact h (mul_zero _)
 
 /-- The witness and ladder wire lists have no repetitions, are disjoint, and both avoid the flag
@@ -3090,8 +3091,8 @@ theorem cnotAux_amp1 (n : ℕ) (S : Reg n → Bool) (ψ : QState (Reg n)) (p : R
       = (if cnotAuxSupp1 S p then (1 : ℂ) else 0) := by
     by_cases hc : cnotAuxClean0
         (Function.update p (cnotAuxFlS n) (p (cnotAuxFlS n) ^^ S (cnotAuxWitPart p)))
-    · rw [if_pos hc, if_pos ((cnotAux_clean0_flS n S p).mp hc)]
-    · rw [if_neg hc, if_neg (fun hh => hc ((cnotAux_clean0_flS n S p).mpr hh))]
+    · rw [ite_eq_left hc, ite_eq_left ((cnotAux_clean0_flS n S p).mp hc)]
+    · rw [ite_eq_right hc, ite_eq_right (fun hh => hc ((cnotAux_clean0_flS n S p).mpr hh))]
   exact congrArg₂ (· * ·) (congrArg ψ hwit) hif
 
 /-- The witness Hadamard stage sends the amplitude formula supported on `cnotAuxSupp1 S` to
@@ -3106,7 +3107,7 @@ theorem cnotAux_amp2 (n : ℕ) (S : Reg n → Bool) (ψ : QState (Reg n)) (p : R
         * (ψ (cnotAuxWitPart (cnotAuxJoin x' p)) * (if cnotAuxSupp1 S (cnotAuxJoin x' p) then (1 : ℂ) else 0)))
       = (if cnotAuxSupp2 p then cnotAuxCSum S ψ (p (cnotAuxFlS n)) (cnotAuxWitPart p) else 0)
   by_cases h : cnotAuxSupp2 p
-  · rw [if_pos h]
+  · rw [ite_eq_left h]
     have hrew : ∀ x' : Reg n,
         HadamardN n (cnotAuxWitPart p) x'
           * (ψ (cnotAuxWitPart (cnotAuxJoin x' p)) * (if cnotAuxSupp1 S (cnotAuxJoin x' p) then (1 : ℂ) else 0))
@@ -3116,17 +3117,17 @@ theorem cnotAux_amp2 (n : ℕ) (S : Reg n → Bool) (ψ : QState (Reg n)) (p : R
       have h1 : cnotAuxSupp1 S (cnotAuxJoin x' p) ↔ (cnotAuxSupp2 p ∧ p (cnotAuxFlS n) = S x') :=
         cnotAux_supp1_join S x' p
       by_cases h2 : p (cnotAuxFlS n) = S x'
-      · rw [if_pos h2, if_pos (h1.mpr ⟨h, h2⟩), mul_one]
-      · rw [if_neg h2, if_neg (fun hh => h2 (h1.mp hh).2)]
+      · rw [ite_eq_left h2, ite_eq_left (h1.mpr ⟨h, h2⟩), mul_one]
+      · rw [ite_eq_right h2, ite_eq_right (fun hh => h2 (h1.mp hh).2)]
         simp
     exact Finset.sum_congr rfl (fun x' _ => hrew x')
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     have hrew0 : ∀ x' : Reg n,
         HadamardN n (cnotAuxWitPart p) x'
           * (ψ (cnotAuxWitPart (cnotAuxJoin x' p)) * (if cnotAuxSupp1 S (cnotAuxJoin x' p) then (1 : ℂ) else 0))
         = 0 := by
       intro x'
-      rw [cnotAux_join_witPart, if_neg (fun hh => h ((cnotAux_supp1_join S x' p).mp hh).1)]
+      rw [cnotAux_join_witPart, ite_eq_right (fun hh => h ((cnotAux_supp1_join S x' p).mp hh).1)]
       simp
     exact Finset.sum_eq_zero (fun x' _ => hrew0 x')
 
@@ -3140,7 +3141,7 @@ theorem cnotAux_amp3 (n : ℕ) (S U : Reg n → Bool) (ψ : QState (Reg n)) (p :
       (fun q => if cnotAuxSupp2 q then cnotAuxCSum S ψ (q (cnotAuxFlS n)) (cnotAuxWitPart q) else 0) := by
     intro q hq
     show (if cnotAuxSupp2 q then cnotAuxCSum S ψ (q (cnotAuxFlS n)) (cnotAuxWitPart q) else 0) = 0
-    exact if_neg (fun hh => hq hh.1)
+    exact ite_eq_right (fun hh => hq hh.1)
   rw [cnotAux_markU_mulVec n U _ hlad]
   show (if cnotAuxSupp2 (Function.update p (cnotAuxFlU n) (p (cnotAuxFlU n) ^^ U (cnotAuxWitPart p)))
       then cnotAuxCSum S ψ
@@ -3154,8 +3155,8 @@ theorem cnotAux_amp3 (n : ℕ) (S U : Reg n → Bool) (ψ : QState (Reg n)) (p :
       = cnotAuxWitPart p := cnotAux_witPart_update_flU n p _
   by_cases hc : cnotAuxSupp2
       (Function.update p (cnotAuxFlU n) (p (cnotAuxFlU n) ^^ U (cnotAuxWitPart p)))
-  · rw [if_pos hc, if_pos ((cnotAux_supp2_update_flU U p).mp hc), hflS, hwit]
-  · rw [if_neg hc, if_neg (fun hh => hc ((cnotAux_supp2_update_flU U p).mpr hh))]
+  · rw [ite_eq_left hc, ite_eq_left ((cnotAux_supp2_update_flU U p).mp hc), hflS, hwit]
+  · rw [ite_eq_right hc, ite_eq_right (fun hh => hc ((cnotAux_supp2_update_flU U p).mpr hh))]
 
 /-- The final Toffoli stage sends the `cnotAuxCSum` amplitude formula supported on `cnotAuxSupp3
 U` to the same formula supported on `cnotAuxSupp4 U`. -/
@@ -3183,8 +3184,8 @@ theorem cnotAux_amp4 (n : ℕ) (S U : Reg n → Bool) (ψ : QState (Reg n)) (p :
     cnotAux_witPart_update_out n p _
   by_cases hc : cnotAuxSupp3 U (Function.update p (cnotAuxOut n)
       (p (cnotAuxOut n) ^^ (p (cnotAuxFlS n) && p (cnotAuxFlU n))))
-  · rw [if_pos hc, if_pos ((cnotAux_supp3_update_out U p).mp hc), hflS, hwit]
-  · rw [if_neg hc, if_neg (fun hh => hc ((cnotAux_supp3_update_out U p).mpr hh))]
+  · rw [ite_eq_left hc, ite_eq_left ((cnotAux_supp3_update_out U p).mp hc), hflS, hwit]
+  · rw [ite_eq_right hc, ite_eq_right (fun hh => hc ((cnotAux_supp3_update_out U p).mpr hh))]
 
 /-- Running `cnotAuxProg n S U` on the initial witness state gives amplitude `cnotAuxCSum S ψ (p
 (cnotAuxFlS n)) (cnotAuxWitPart p)` at registers satisfying `cnotAuxSupp4 U`, and zero
@@ -3236,24 +3237,24 @@ theorem cnotAux_accBase_eq {n : ℕ} (U : Reg n → Bool) (y : Reg n) (k : Fin (
 /-- The `S` flag of `cnotAuxAccBase U y` is true. -/
 theorem cnotAux_accBase_flS {n : ℕ} (U : Reg n → Bool) (y : Reg n) :
     cnotAuxAccBase U y (cnotAuxFlS n) = true := by
-  rw [cnotAux_accBase_eq, if_pos rfl]
+  rw [cnotAux_accBase_eq, ite_eq_left rfl]
 
 /-- The `U` flag of `cnotAuxAccBase U y` equals `U y`. -/
 theorem cnotAux_accBase_flU {n : ℕ} (U : Reg n → Bool) (y : Reg n) :
     cnotAuxAccBase U y (cnotAuxFlU n) = U y := by
-  rw [cnotAux_accBase_eq, if_neg (Ne.symm cnotAux_flS_ne_flU), if_pos rfl]
+  rw [cnotAux_accBase_eq, ite_eq_right (Ne.symm cnotAux_flS_ne_flU), ite_eq_left rfl]
 
 /-- The output bit of `cnotAuxAccBase U y` is true. -/
 theorem cnotAux_accBase_out {n : ℕ} (U : Reg n → Bool) (y : Reg n) :
     cnotAuxAccBase U y (cnotAuxOut n) = true := by
-  rw [cnotAux_accBase_eq, if_neg (Ne.symm cnotAux_flS_ne_out), if_neg (Ne.symm cnotAux_flU_ne_out),
-    if_pos rfl]
+  rw [cnotAux_accBase_eq, ite_eq_right (Ne.symm cnotAux_flS_ne_out), ite_eq_right (Ne.symm cnotAux_flU_ne_out),
+    ite_eq_left rfl]
 
 /-- Every ladder bit of `cnotAuxAccBase U y` is false. -/
 theorem cnotAux_accBase_lad {n : ℕ} (U : Reg n → Bool) (y : Reg n) (j : Fin n) :
     cnotAuxAccBase U y (cnotAuxLad n j) = false := by
-  rw [cnotAux_accBase_eq, if_neg (cnotAux_lad_ne_flS j), if_neg (cnotAux_lad_ne_flU j),
-    if_neg (cnotAux_lad_ne_out j)]
+  rw [cnotAux_accBase_eq, ite_eq_right (cnotAux_lad_ne_flS j), ite_eq_right (cnotAux_lad_ne_flU j),
+    ite_eq_right (cnotAux_lad_ne_out j)]
 
 /-- The witness part of `cnotAuxCanon U y` is exactly `y`. -/
 theorem cnotAuxCanon_wit {n : ℕ} (U : Reg n → Bool) (y : Reg n) :
@@ -3425,7 +3426,7 @@ theorem cnotAux_chain_apply (n : ℕ) (S U : Reg n → Bool) (ψ : QState (Reg n
     by_cases h : S x = true
     · simp [h]
     · have h2 : ¬(true = S x) := fun hh => h hh.symm
-      simp [h, h2]
+      simp [h]
   rw [hsum]
 
 /-- The acceptance mass after `cnotAuxProg n S U` is the sum of `‖cnotAuxCSum S ψ true y‖ ^ 2`
@@ -3455,10 +3456,10 @@ theorem cnotAux_accept_sum_form (n : ℕ) (S U : Reg n → Bool) (ψ : QState (R
     by_cases ho : p (cnotAuxOut n) = true
     · by_cases hs : cnotAuxSupp4 U p
       · have h4 := cnotAux_supp4_accept U p ⟨ho, hs⟩
-        rw [if_pos ho, if_pos hs, if_pos ⟨ho, hs⟩, h4.1]
-      · rw [if_pos ho, if_neg hs, if_neg (fun hh => hs hh.2)]
+        rw [ite_eq_left ho, ite_eq_left hs, ite_eq_left ⟨ho, hs⟩, h4.1]
+      · rw [ite_eq_left ho, ite_eq_right hs, ite_eq_right (fun hh => hs hh.2)]
         simp
-    · rw [if_neg ho, if_neg (fun hh => ho hh.1)]
+    · rw [ite_eq_right ho, ite_eq_right (fun hh => ho hh.1)]
   exact hsum.trans (cnotAux_sum_accept U (fun y => ‖cnotAuxCSum S ψ true y‖ ^ 2))
 
 /-- The witness mass `forrWitnessMass n S U ψ` is the sum of `‖cnotAuxCSum S ψ true y‖ ^ 2` over

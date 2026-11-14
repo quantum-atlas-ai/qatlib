@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.LinearAlgebra.Matrix.Trace
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic
+module
+
+public import Mathlib.LinearAlgebra.Matrix.Trace
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -215,7 +219,7 @@ theorem qCoupDual_one (hmc : MarkovChain P π) (hc : Coupling P C) :
   rw [hval]
   by_cases h : x' = y'
   · subst h
-    simp only [Dmat, Matrix.diagonal_apply, if_true, Matrix.one_apply]
+    simp only [Dmat, Matrix.diagonal_apply, ite_true, Matrix.one_apply]
     rw [← inv_sqrt_cancel hmc x' 1]
     ring
   · have hne : Real.sqrt (π x') ≠ 0 := sqrt_ne_zero hmc x'

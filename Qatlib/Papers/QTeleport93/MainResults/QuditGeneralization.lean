@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QuditTeleport.TeleportCore.QuditTeleportationProtocol
-import Qatlib.Concepts.QuditTeleport.TeleportCore.QuditTeleportationInstrument
-import Qatlib.Concepts.QuditTeleport.TeleportCore.CountedQuditTeleportation
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedCircuit
-import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
+module
+
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.QuditTeleportationProtocol
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.QuditTeleportationInstrument
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.CountedQuditTeleportation
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedCircuit
+public import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
+
+@[expose] public section
 
 /-!
 # Teleportation in arbitrary positive dimension

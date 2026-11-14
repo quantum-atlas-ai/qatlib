@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MpsAdaptation.MpsTransfer.SdpConsumerTransportDefs
-import Qatlib.Concepts.SdpDuality.StrongDuality.SdpDuality
+module
+
+public import Qatlib.Concepts.MpsAdaptation.MpsTransfer.SdpConsumerTransportDefs
+public import Qatlib.Concepts.SdpDuality.StrongDuality.SdpDuality
+
+@[expose] public section
 
 /-!
 # Counterexamples to universal SDP consumer contracts
@@ -36,12 +40,12 @@ open Qatlib.Concepts.SdpDuality.StrongDuality
 
 set_option autoImplicit false
 
-open Qatlib.Concepts.DyadicFloor.FloorRounding Qatlib.Concepts.SdpDuality.StrongDuality
+open Qatlib.Concepts.SdpDuality.StrongDuality
 open scoped Matrix.Norms.L2Operator BigOperators ENNReal
 
 open Qatlib.Foundations.PureStateMath
 
-open Qatlib.Concepts.DyadicFloor.FloorRounding
+open Qatlib.Concepts.SdpDuality.StrongDuality
 open Qatlib.Concepts.GramQueryCore.FilteredCert
 open Qatlib.Concepts.GramQueryCore.GammaDuality
 open Qatlib.Concepts.SchattenDiamond.DiamondNorm Qatlib.Concepts.RandCompile.ChannelBudget

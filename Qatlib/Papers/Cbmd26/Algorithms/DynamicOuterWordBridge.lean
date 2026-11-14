@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Cbmd26.Algorithms.DynamicFreshRegisterBridge
-import Qatlib.Papers.Cbmd26.Algorithms.SelectedOracleWordBridge
+module
+
+public import Qatlib.Papers.Cbmd26.Algorithms.DynamicFreshRegisterBridge
+public import Qatlib.Papers.Cbmd26.Algorithms.SelectedOracleWordBridge
+
+@[expose] public section
 
 /-!
 # Outer dynamic LCU compilation

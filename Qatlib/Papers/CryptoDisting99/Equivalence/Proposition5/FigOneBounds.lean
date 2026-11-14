@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CryptoDisting99.Equivalence.Defs
-import Mathlib.Analysis.SpecialFunctions.BinaryEntropy
-import Mathlib.Analysis.SpecialFunctions.Sqrt
-import Mathlib.Analysis.Calculus.Deriv.MeanValue
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Log.Deriv
+module
+
+public import Qatlib.Papers.CryptoDisting99.Equivalence.Defs
+public import Mathlib.Analysis.SpecialFunctions.BinaryEntropy
+public import Mathlib.Analysis.SpecialFunctions.Sqrt
+public import Mathlib.Analysis.Calculus.Deriv.MeanValue
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Log.Deriv
+
+@[expose] public section
 
 /-!
 # A square-root upper bound for binary entropy

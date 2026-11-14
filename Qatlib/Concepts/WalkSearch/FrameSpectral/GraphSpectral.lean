@@ -4,17 +4,21 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.FrameSpectral.GraphSpectralDefs
-import Qatlib.Concepts.GraphStationary.StationaryLaw
-import Qatlib.Concepts.GraphLaplacian.LaplacianPsd.GraphLaplacian
-import Qatlib.Concepts.DirichletForm.EnergyIdentity
-import Qatlib.Concepts.GraphCutTrial.CutEnergyBound
-import Qatlib.Concepts.GraphEnergy.ZeroEnergy.GraphEnergyKernelConsumers
-import Qatlib.Concepts.WalkSearch.ProjectorCS
-import Qatlib.Concepts.WalkSearch.Th4Expander.SzegedyTheorem4ExpanderChainQuan
-import Qatlib.Concepts.WalkSearch.Th4Expander.SzegedyTheorem4ExpanderGroverQuan
-import Qatlib.Concepts.WalkSearch.WalkDetector.SzegedyTheorem4WalkOracleQuan
-import Qatlib.Concepts.WalkSearch.MnrsAmplify.WalkSearchCompilation
+module
+
+public import Qatlib.Concepts.WalkSearch.FrameSpectral.GraphSpectralDefs
+public import Qatlib.Concepts.GraphStationary.StationaryLaw
+public import Qatlib.Concepts.GraphLaplacian.LaplacianPsd.GraphLaplacian
+public import Qatlib.Concepts.DirichletForm.EnergyIdentity
+public import Qatlib.Concepts.GraphCutTrial.CutEnergyBound
+public import Qatlib.Concepts.GraphEnergy.ZeroEnergy.GraphEnergyKernelConsumers
+public import Qatlib.Concepts.WalkSearch.ProjectorCS
+public import Qatlib.Concepts.WalkSearch.Th4Expander.SzegedyTheorem4ExpanderChainQuan
+public import Qatlib.Concepts.WalkSearch.Th4Expander.SzegedyTheorem4ExpanderGroverQuan
+public import Qatlib.Concepts.WalkSearch.WalkDetector.SzegedyTheorem4WalkOracleQuan
+public import Qatlib.Concepts.WalkSearch.MnrsAmplify.WalkSearchCompilation
+
+@[expose] public section
 
 /-!
 # Graph spectral endpoint theorems

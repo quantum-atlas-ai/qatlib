@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GateVocabulary.LocalReflectionGates
-import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownQubitControl
-import Qatlib.Concepts.CopyEvolution.Discriminate.ControlledCopyEvolution
-import Qatlib.Concepts.FreshCopyExec.QpeConsumers.LocalCopyLayout
+module
+
+public import Qatlib.Concepts.GateVocabulary.LocalReflectionGates
+public import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownQubitControl
+public import Qatlib.Concepts.CopyEvolution.Discriminate.ControlledCopyEvolution
+public import Qatlib.Concepts.FreshCopyExec.QpeConsumers.LocalCopyLayout
+
+@[expose] public section
 
 /-!
 # Local controlled-swap word semantics
@@ -399,18 +403,18 @@ theorem localCopyRegisterSwap_eq_pairLift (n : ℕ) :
     Matrix.of_apply]
   by_cases hx : x = localCopySwapBasis n y
   · obtain ⟨hs, hp⟩ := he.mp hx
-    rw [if_pos hx, if_pos hs]
-    simp only [hp, if_true, Finset.prod_const_one, mul_one]
-  · rw [if_neg hx]
+    rw [ite_eq_left hx, ite_eq_left hs]
+    simp only [hp, ite_true, Finset.prod_const_one, mul_one]
+  · rw [ite_eq_right hx]
     by_cases hs : (localCopyPairSplit n x).1 = (localCopyPairSplit n y).1
-    · rw [if_pos hs, one_mul]
+    · rw [ite_eq_left hs, one_mul]
       obtain ⟨i, hi⟩ : ∃ i, (localCopyPairSplit n x).2 i ≠
           Prod.swap ((localCopyPairSplit n y).2 i) := by
         by_contra h
         push Not at h
         exact hx (he.mpr ⟨hs,h⟩)
-      exact (Finset.prod_eq_zero (Finset.mem_univ i) (if_neg hi)).symm
-    · rw [if_neg hs, zero_mul]
+      exact (Finset.prod_eq_zero (Finset.mem_univ i) (ite_eq_right hi)).symm
+    · rw [ite_eq_right hs, zero_mul]
 
 /-- Every wire in the local copy layout is a control, data, fresh-copy, auxiliary AND, or parity
 wire. -/
@@ -526,21 +530,21 @@ theorem localCopyPairLift_single_apply (n : ℕ) (i : Fin n)
     Equiv.symm_symm, TensorGate, Matrix.kroneckerMap_apply, localCopyPairProduct]
   by_cases h : ∀ k, k ≠ localCopyDataWire n i → k ≠ localCopyFreshWire n i → x k = y k
   · obtain ⟨hs,hp⟩ := (localCopyPairSupport n i x y).mp h
-    rw [if_pos h, Matrix.one_apply, if_pos hs, one_mul, Finset.prod_eq_single i]
+    rw [ite_eq_left h, Matrix.one_apply, ite_eq_left hs, one_mul, Finset.prod_eq_single i]
     · simp [localCopyPairSplit]
     · intro j _ hj
-      rw [if_neg hj, Matrix.one_apply, if_pos (hp j hj)]
+      rw [ite_eq_right hj, Matrix.one_apply, ite_eq_left (hp j hj)]
     · simp
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     by_cases hs : (localCopyPairSplit n x).1 = (localCopyPairSplit n y).1
-    · rw [Matrix.one_apply, if_pos hs, one_mul]
+    · rw [Matrix.one_apply, ite_eq_left hs, one_mul]
       obtain ⟨j,hji,hj⟩ : ∃ j, j ≠ i ∧
           (localCopyPairSplit n x).2 j ≠ (localCopyPairSplit n y).2 j := by
         by_contra he
         push Not at he
         exact h ((localCopyPairSupport n i x y).mpr ⟨hs,he⟩)
       exact Finset.prod_eq_zero (Finset.mem_univ j)
-        (by rw [if_neg hji, Matrix.one_apply_ne hj])
+        (by rw [ite_eq_right hji, Matrix.one_apply_ne hj])
     · rw [Matrix.one_apply_ne hs, zero_mul]
 
 /-- A one-qubit gate on a data wire is the pair lift of `U ⊗ 1` at that position. -/
@@ -561,7 +565,7 @@ theorem localCopyDataGate_eq_pairLift (n : ℕ) (i : Fin n) (U : Matrix Bool Boo
   rw [wireGate_apply, localCopyPairLift_single_apply]
   simp only [he, tensorGate_apply, Matrix.one_apply]
   by_cases hp : P <;> by_cases hf : x (localCopyFreshWire n i) = y (localCopyFreshWire n i) <;>
-    simp_all only [P, and_true, and_false, if_true, if_false, mul_one, mul_zero, ite_self]
+    simp_all only [P, and_true, and_false, ite_true, ite_false, mul_one, mul_zero, ite_self]
 
 /-- CNOT from a data wire to its matching fresh-copy wire is the corresponding single-pair lift
 of CNOT. -/
@@ -664,12 +668,12 @@ private theorem localCopyPairLift_diagonal (n : ℕ) (a : Fin n → Bool × Bool
     have hp : ¬ ((localCopyPairSplit n x).1 = (localCopyPairSplit n y).1 ∧
         (localCopyPairSplit n x).2 = (localCopyPairSplit n y).2) :=
       fun hh => he (Prod.ext hh.1 hh.2)
-    rw [if_neg h]
+    rw [ite_eq_right h]
     by_cases hs : (localCopyPairSplit n x).1 = (localCopyPairSplit n y).1
     · have hd : (localCopyPairSplit n x).2 ≠ (localCopyPairSplit n y).2 :=
         fun hh => hp ⟨hs,hh⟩
-      rw [if_pos hs, if_neg hd, mul_zero]
-    · rw [if_neg hs, zero_mul]
+      rw [ite_eq_left hs, ite_eq_right hd, mul_zero]
+    · rw [ite_eq_right hs, zero_mul]
 
 /-- Conjugating register swap by the local Bell word gives the diagonal sign `(-1)` raised to
 the number of pairs whose two bits are true. -/
@@ -824,10 +828,10 @@ theorem localCopyPhaseWireGate (n : ℕ) (b : Bool) (U : Matrix Bool Bool ℂ) :
         by_cases hk : k = localCopyControlWire n
         · simpa only [hk] using! hc
         · exact h k hk hp
-    simp only [Bool.false_eq_true, if_false, wireGate_apply, localCopyPhaseLift_apply,
+    simp only [Bool.false_eq_true, ite_false, wireGate_apply, localCopyPhaseLift_apply,
       he, tensorGate_apply, Matrix.one_apply]
     by_cases hp : P <;> by_cases hc : x (localCopyControlWire n) = y (localCopyControlWire n) <;>
-      simp_all only [P, and_true, and_false, if_true, if_false, one_mul, zero_mul, ite_self]
+      simp_all only [P, and_true, and_false, ite_true, ite_false, one_mul, zero_mul, ite_self]
   · ext x y
     let P := ∀ k, k ≠ localCopyControlWire n → k ≠ localCopyParityWire n → x k = y k
     have he : (∀ k, k ≠ localCopyControlWire n → x k = y k) ↔
@@ -839,10 +843,10 @@ theorem localCopyPhaseWireGate (n : ℕ) (b : Bool) (U : Matrix Bool Bool ℂ) :
         by_cases hk : k = localCopyParityWire n
         · simpa only [hk] using! hp
         · exact h k hc hk
-    simp only [if_true, wireGate_apply, localCopyPhaseLift_apply,
+    simp only [ite_true, wireGate_apply, localCopyPhaseLift_apply,
       he, tensorGate_apply, Matrix.one_apply]
     by_cases hp : P <;> by_cases ht : x (localCopyParityWire n) = y (localCopyParityWire n) <;>
-      simp_all only [P, and_true, and_false, if_true, if_false, mul_one, mul_zero, ite_self]
+      simp_all only [P, and_true, and_false, ite_true, ite_false, mul_one, mul_zero, ite_self]
 
 /-- CNOT from the control wire to the parity wire is the phase lift of CNOT. -/
 theorem localCopyPhaseCnotGate (n : ℕ) :
@@ -927,12 +931,12 @@ theorem localCopyPhaseLift_diagonal (n : ℕ) (a : Bool × Bool → ℂ) :
     have hp : ¬ ((localCopyPhaseSplit n x).1 = (localCopyPhaseSplit n y).1 ∧
         (localCopyPhaseSplit n x).2 = (localCopyPhaseSplit n y).2) :=
       fun hh => he (Prod.ext hh.1 hh.2)
-    rw [if_neg h]
+    rw [ite_eq_right h]
     by_cases hc : (localCopyPhaseSplit n x).1 = (localCopyPhaseSplit n y).1
     · have hs : (localCopyPhaseSplit n x).2 ≠ (localCopyPhaseSplit n y).2 :=
         fun hh => hp ⟨hc,hh⟩
-      rw [if_pos hc,if_neg hs,mul_zero]
-    · rw [if_neg hc,zero_mul]
+      rw [ite_eq_left hc,ite_eq_right hs,mul_zero]
+    · rw [ite_eq_right hc,zero_mul]
 
 /-- The local controlled-phase word is diagonal, multiplying the true-control, true-parity
 sector by `exp (2 * θ * i)`. -/
@@ -1076,7 +1080,7 @@ theorem localCopyComputeAndParity_sign (n : ℕ) (x : Reg (3*n+2))
         x (localCopyFreshWire n i) then (1 : ℕ) else 0) := by
   rw [localCopyComputeFold_parity n _ (List.nodup_finRange n) x (fun i _ => ha i),
     localCopyXorFold_sign, hp]
-  simp only [Bool.false_eq_true, if_false, pow_zero, one_mul]
+  simp only [Bool.false_eq_true, ite_false, pow_zero, one_mul]
   rw [← List.ofFn_eq_map, List.sum_ofFn]
 
 /-- The full AND-and-parity basis computation preserves the control bit. -/

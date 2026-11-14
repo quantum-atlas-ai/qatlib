@@ -4,7 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorExtDefs
+module
+
+public import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorExtDefs
+
+@[expose] public section
+set_option linter.unusedVariables false
+set_option linter.unusedSimpArgs false
+set_option linter.unusedTactic false
+set_option linter.unreachableTactic false
 
 /-!
 # Ordered derivatives and segment accuracy specifications
@@ -34,6 +42,14 @@ explicit propositions.
 set_option backward.isDefEq.respectTransparency false
 
 set_option autoImplicit false
+
+set_option linter.unusedSimpArgs false
+set_option linter.deprecated false
+set_option linter.unusedSectionVars false
+set_option linter.unusedVariables false
+set_option linter.style.haveILetI false
+set_option linter.unusedTactic false
+set_option linter.unreachableTactic false
 
 open Qatlib.Concepts.TrotterFormula.GeneralOrder
 open Qatlib.Concepts.TrotterFormula.GeneralOrder.ConjugationWordRemainders
@@ -344,7 +360,7 @@ theorem clause51_constant_optimal (X Y : Matrix I I ℂ) (hne : pfComm X Y ≠ 0
   rw [clause51_second_order_norm] at h
   have hpos : 0 < ‖pfComm X Y‖ := norm_pos_iff.mpr hne
   by_contra hcon
-  push_neg at hcon
+  push Not at hcon
   have hlt : c * ‖pfComm X Y‖ < (1 / 2 : ℝ) * ‖pfComm X Y‖ :=
     mul_lt_mul_of_pos_right hcon hpos
   linarith

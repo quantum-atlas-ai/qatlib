@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.StateTransfer03.MainResults.Source.EngineeredChain
+module
+
+public import Qatlib.Papers.StateTransfer03.MainResults.Source.EngineeredChain
+
+@[expose] public section
 
 /-!
 # Spectral amplitudes of engineered chains

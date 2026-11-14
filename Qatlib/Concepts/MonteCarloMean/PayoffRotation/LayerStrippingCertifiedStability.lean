@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PhaseGeometry.RationalCayleyPhase
-import Qatlib.Concepts.FiniteLocc.LOCCProgram.LayerStrippingCertifiedStability
+module
+
+public import Qatlib.Concepts.PhaseGeometry.RationalCayleyPhase
+public import Qatlib.Concepts.FiniteLocc.LOCCProgram.LayerStrippingCertifiedStability
+
+@[expose] public section
 
 /-!
 # Rational certificates for polynomial layer stripping
@@ -102,13 +106,13 @@ theorem ratPoly_coeff (gs : List GaussianRat) (i : ℕ) :
   · have hmem : i ∈ Finset.range gs.length := Finset.mem_range.mpr hi
     rw [ratPoly, Polynomial.finsetSum_coeff,
       Finset.sum_eq_single i
-        (fun b _ hb => by rw [Polynomial.coeff_C_mul_X_pow, if_neg (Ne.symm hb)])
+        (fun b _ hb => by rw [Polynomial.coeff_C_mul_X_pow, ite_eq_right (Ne.symm hb)])
         (fun h => absurd hmem h)]
-    rw [Polynomial.coeff_C_mul_X_pow, if_pos rfl]
+    rw [Polynomial.coeff_C_mul_X_pow, ite_eq_left rfl]
   · rw [ratPoly, Polynomial.finsetSum_coeff,
       Finset.sum_eq_zero (fun b hb => by
         rw [Polynomial.coeff_C_mul_X_pow,
-          if_neg (fun h => by have h1 := Finset.mem_range.mp hb; omega)])]
+          ite_eq_right (fun h => by have h1 := Finset.mem_range.mp hb; omega)])]
     rw [list_getD_default gs i (by omega), gaussianRatComplex_zero]
 
 /-- The list of values of a Gaussian rational sequence at indices zero through `N`. -/

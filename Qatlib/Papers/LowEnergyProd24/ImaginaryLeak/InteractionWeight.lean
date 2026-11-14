@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LowEnergyProd24.ProductError.ActualWord
-import Qatlib.Papers.LowEnergyProd24.ImaginaryLeak.LocalConjugation
+module
+
+public import Qatlib.Papers.LowEnergyProd24.ProductError.ActualWord
+public import Qatlib.Papers.LowEnergyProd24.ImaginaryLeak.LocalConjugation
+
+@[expose] public section
 
 /-!
 # Weighted interaction-picture differential equations

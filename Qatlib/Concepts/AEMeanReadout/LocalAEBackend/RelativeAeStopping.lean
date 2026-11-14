@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.PreparedRelativeAeCertifiedStopping
+module
+
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.PreparedRelativeAeCertifiedStopping
+
+@[expose] public section
 
 /-!
 # Stopping distributions for relative amplitude estimation
@@ -1139,10 +1143,10 @@ theorem freshHistoryFailureMass_le_fixed_split (eps : ℝ) (heps : 0 < eps) (hep
       apply Finset.sum_le_sum
       intro k _
       by_cases hk : k.val < relativeAeLeastFineIndex eps a heps ha0
-      · rw [if_pos hk]
+      · rw [ite_eq_left hk]
         exact freshHistoryStopWindowBadMass_le_coarse eps heps heps1 r0 N A j S hA
           a ha0 ha1 ha hr0 hk k.isLt
-      · rw [if_neg hk]
+      · rw [ite_eq_right hk]
         apply freshHistoryStopWindowBadMass_le_fine_prefix eps heps heps1 r0 N A j S hA
           (by simpa only [ha] using! ha0) (by simpa only [ha] using! ha1)
           (Nat.le_of_not_gt hk) k.isLt
@@ -1166,12 +1170,12 @@ theorem freshHistoryExpectedForward_le_fixed_split (eps : ℝ) (heps : 0 < eps) 
   apply Finset.sum_le_sum
   intro k _
   by_cases hk : k.val ≤ relativeAeLeastFineIndex eps a heps ha0
-  · rw [if_pos hk]
+  · rw [ite_eq_left hk]
     have hm := eventMass_le_one (freshHistoryLaw (fun _ => r0) N A j S hA)
       (fun ω => freshHistoryActive eps (fun _ => r0) ω k)
     simpa only [mul_one] using! mul_le_mul_of_nonneg_left hm
       (show 0 ≤ (freshStageForwardCost (fun _ => r0) k.val : ℝ) by positivity)
-  · rw [if_neg hk]
+  · rw [ite_eq_right hk]
     have hKk : relativeAeLeastFineIndex eps a heps ha0 < k.val := Nat.lt_of_not_ge hk
     have hm := freshHistoryActiveMass_le_fine_prefix eps heps heps1 r0 N A j S hA
       (by simpa only [ha] using! ha0) (by simpa only [ha] using! ha1) hKk k.isLt (by
@@ -1212,14 +1216,14 @@ theorem relativeAe_piecewise_failure_sum_le (P D c : ℝ) (hP : 0 ≤ P) (hD : 0
       apply Finset.sum_congr rfl
       intro k hk
       dsimp [f]
-      rw [if_pos (Finset.mem_range.mp hk)]
+      rw [ite_eq_left (Finset.mem_range.mp hk)]
     have htail : (∑ k ∈ Finset.Ico K N, f k) =
         ∑ n ∈ Finset.range (N - K), c ^ (n + 1) := by
       rw [Finset.sum_Ico_eq_sum_range]
       apply Finset.sum_congr rfl
       intro n _
       dsimp [f]
-      rw [if_neg (by omega : ¬ K + n < K)]
+      rw [ite_eq_right (by omega : ¬ K + n < K)]
       congr 1
       omega
     rw [hpre, htail]
@@ -1231,7 +1235,7 @@ theorem relativeAe_piecewise_failure_sum_le (P D c : ℝ) (hP : 0 ≤ P) (hD : 0
       apply Finset.sum_congr rfl
       intro k hk
       dsimp [f]
-      rw [if_pos ((Finset.mem_range.mp hk).trans_le hNK)]
+      rw [ite_eq_left ((Finset.mem_range.mp hk).trans_le hNK)]
     rw [hcur]
     calc
       _ ≤ ∑ k ∈ Finset.range K,
@@ -1278,14 +1282,14 @@ theorem relativeAe_piecewise_cost_sum_le (P c : ℝ) (hP : 0 ≤ P)
       apply Finset.sum_congr rfl
       intro k hk
       dsimp [f]
-      rw [if_pos (by have := Finset.mem_range.mp hk; omega)]
+      rw [ite_eq_left (by have := Finset.mem_range.mp hk; omega)]
     have htailEq : (∑ k ∈ Finset.Ico (K + 1) N, f k) =
         (P * (adaptiveGrid K : ℝ)) * ∑ n ∈ Finset.range (N - (K + 1)), (2 * c) ^ (n + 1) := by
       rw [Finset.sum_Ico_eq_sum_range, Finset.mul_sum]
       apply Finset.sum_congr rfl
       intro n _
       dsimp [f]
-      rw [if_neg (by omega : ¬ K + 1 + n ≤ K)]
+      rw [ite_eq_right (by omega : ¬ K + 1 + n ≤ K)]
       have hgrid : (adaptiveGrid (K + 1 + n) : ℝ) =
           (adaptiveGrid K : ℝ) * (2 : ℝ) ^ (n + 1) := by
         unfold adaptiveGrid
@@ -1307,7 +1311,7 @@ theorem relativeAe_piecewise_cost_sum_le (P c : ℝ) (hP : 0 ≤ P)
       apply Finset.sum_congr rfl
       intro k hk
       dsimp [f]
-      rw [if_pos (by have := Finset.mem_range.mp hk; omega)]
+      rw [ite_eq_left (by have := Finset.mem_range.mp hk; omega)]
     rw [hcur]
     calc
       _ ≤ ∑ k ∈ Finset.range (K + 1), P * (adaptiveGrid k : ℝ) := by
@@ -1348,10 +1352,10 @@ theorem freshHistoryFailureMass_le_fixed_budget (eps : ℝ) (heps : 0 < eps) (he
       apply Finset.sum_congr rfl
       intro k _
       by_cases hk : k.val < relativeAeLeastFineIndex eps a heps ha0
-      · rw [if_pos hk, if_pos hk]
+      · rw [ite_eq_left hk, ite_eq_left hk]
         dsimp [P, D]
         ring
-      · rw [if_neg hk, if_neg hk]
+      · rw [ite_eq_right hk, ite_eq_right hk]
     _ ≤ _ := relativeAe_piecewise_failure_sum_le P D _ hP hD hc0 hc1 _ N
     _ = _ := by dsimp [P, D]; ring
 
@@ -1378,11 +1382,11 @@ theorem freshHistoryExpectedForward_le_three_grid (eps : ℝ) (heps : 0 < eps) (
       apply Finset.sum_congr rfl
       intro k _
       by_cases hk : k.val ≤ relativeAeLeastFineIndex eps a heps ha0
-      · rw [if_pos hk, if_pos hk]
+      · rw [ite_eq_left hk, ite_eq_left hk]
         unfold freshStageForwardCost
         push_cast
         dsimp [P]
-      · rw [if_neg hk, if_neg hk]
+      · rw [ite_eq_right hk, ite_eq_right hk]
         unfold freshStageForwardCost
         push_cast
         dsimp [P]
@@ -1589,7 +1593,7 @@ afterward. -/
 theorem freshHistoryExpectedForward_le_linear_split (eps : ℝ) (heps : 0 < eps) (heps1 : eps ≤ 1)
     (r0 N : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I) (hA : A ∈ Matrix.unitaryGroup I ℂ)
     (ha0 : 0 < MeasureProb (preparedAAState A j) S)
-    (ha1 : MeasureProb (preparedAAState A j) S ≤ 1) {K : ℕ} (hK : K < N)
+    (ha1 : MeasureProb (preparedAAState A j) S ≤ 1) {K : ℕ} (_hK : K < N)
     (hfineK : relativeAeFineIndex eps (MeasureProb (preparedAAState A j) S) ≤ K) :
     freshHistoryExpectedForward eps (linearFreshSchedule r0) N A j S hA ≤
       ∑ k : Fin N, if k.val ≤ K then (freshStageForwardCost (linearFreshSchedule r0) k.val : ℝ)
@@ -1600,12 +1604,12 @@ theorem freshHistoryExpectedForward_le_linear_split (eps : ℝ) (heps : 0 < eps)
   apply Finset.sum_le_sum
   intro k _
   by_cases hk : k.val ≤ K
-  · rw [if_pos hk]
+  · rw [ite_eq_left hk]
     have hm := eventMass_le_one (freshHistoryLaw (linearFreshSchedule r0) N A j S hA)
       (fun ω => freshHistoryActive eps (linearFreshSchedule r0) ω k)
     simpa only [mul_one] using! mul_le_mul_of_nonneg_left hm
       (show 0 ≤ (freshStageForwardCost (linearFreshSchedule r0) k.val : ℝ) by positivity)
-  · rw [if_neg hk]
+  · rw [ite_eq_right hk]
     have hkpos : 0 < k.val := by omega
     have hfinePrev : relativeAeFineIndex eps (MeasureProb (preparedAAState A j) S)
         ≤ k.val - 1 := by omega

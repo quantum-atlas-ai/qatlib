@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OverlapGapGoh26.GaussianModel.Stationarity
-import Qatlib.Papers.OverlapGapGoh26.SpinDynamics.Feedback
+module
+
+public import Qatlib.Papers.OverlapGapGoh26.GaussianModel.Stationarity
+public import Qatlib.Papers.OverlapGapGoh26.SpinDynamics.Feedback
+
+@[expose] public section
 
 /-!
 # Spin readout paths under Gaussian tensor interpolation

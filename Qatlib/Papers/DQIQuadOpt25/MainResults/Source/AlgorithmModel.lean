@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.DQIQuadOpt25.MainResults.Source.PaperModel
-import Mathlib.Data.Matrix.Diagonal
-import Mathlib.Data.Complex.Basic
-import Mathlib.LinearAlgebra.UnitaryGroup
+module
+
+public import Qatlib.Papers.DQIQuadOpt25.MainResults.Source.PaperModel
+public import Mathlib.Data.Matrix.Diagonal
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.LinearAlgebra.UnitaryGroup
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

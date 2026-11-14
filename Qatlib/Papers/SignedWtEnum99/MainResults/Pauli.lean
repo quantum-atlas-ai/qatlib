@@ -4,56 +4,60 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Defs
-import Mathlib.Algebra.Field.Defs
-import Mathlib.Algebra.Field.ZMod
-import Mathlib.Algebra.Group.Action.Defs
-import Mathlib.Algebra.Group.Basic
-import Mathlib.Algebra.Group.Defs
-import Mathlib.Algebra.Group.DivInvMonoid
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.Group.Nat.Defs
-import Mathlib.Algebra.Group.Semigroup
-import Mathlib.Algebra.GroupWithZero.Defs
-import Mathlib.Algebra.GroupWithZero.NeZero
-import Mathlib.Algebra.NeZero
-import Mathlib.Algebra.Notation.Pi.Defs
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Algebra.Ring.Nat
-import Mathlib.Basic.Complex.Basic
-import Mathlib.Basic.FunLike.Basic
-import Mathlib.Basic.FunLike.Equiv
-import Mathlib.Basic.SetLike.Basic
-import Mathlib.Data.Finset.Basic
-import Mathlib.Data.Finset.Card
-import Mathlib.Data.Finset.Defs
-import Mathlib.Data.Finset.Empty
-import Mathlib.Data.Finset.Filter
-import Mathlib.Data.Finset.Insert
-import Mathlib.Data.Fintype.Basic
-import Mathlib.Data.Fintype.Defs
-import Mathlib.Data.Fintype.Pi
-import Mathlib.Data.Int.Cast.Defs
-import Mathlib.Data.Matrix.Diagonal
-import Mathlib.Data.Matrix.Mul
-import Mathlib.Data.Nat.Cast.Defs
-import Mathlib.Data.Nat.Init
-import Mathlib.Data.Nat.Prime.Defs
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Data.ZMod.Defs
-import Mathlib.GroupTheory.Nilpotent
-import Mathlib.GroupTheory.SpecificGroups.Cyclic
-import Mathlib.GroupTheory.SpecificGroups.Cyclic.Basic
-import Mathlib.LinearAlgebra.Matrix.Defs
-import Mathlib.Logic.Equiv.Defs
-import Mathlib.Tactic
-import Mathlib.Tactic.Abel
-import Mathlib.Tactic.NormNum.Basic
-import Mathlib.Tactic.NormNum.Result
-import Mathlib.Tactic.Ring.Basic
-import Mathlib.Tactic.Ring.Common
-import Mathlib.Tactic.Ring.RingNF
+module
+
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Defs
+public import Mathlib.Algebra.Field.Defs
+public import Mathlib.Algebra.Field.ZMod
+public import Mathlib.Algebra.Group.Action.Defs
+public import Mathlib.Algebra.Group.Basic
+public import Mathlib.Algebra.Group.Defs
+public import Mathlib.Algebra.Group.DivInvMonoid
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.Group.Nat.Defs
+public import Mathlib.Algebra.Group.Semigroup
+public import Mathlib.Algebra.GroupWithZero.Defs
+public import Mathlib.Algebra.GroupWithZero.NeZero
+public import Mathlib.Algebra.NeZero
+public import Mathlib.Algebra.Notation.Pi.Defs
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Algebra.Ring.Nat
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Basic.FunLike.Basic
+public import Mathlib.Basic.FunLike.Equiv
+public import Mathlib.Basic.SetLike.Basic
+public import Mathlib.Data.Finset.Basic
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Data.Finset.Defs
+public import Mathlib.Data.Finset.Empty
+public import Mathlib.Data.Finset.Filter
+public import Mathlib.Data.Finset.Insert
+public import Mathlib.Data.Fintype.Basic
+public import Mathlib.Data.Fintype.Defs
+public import Mathlib.Data.Fintype.Pi
+public import Mathlib.Data.Int.Cast.Defs
+public import Mathlib.Data.Matrix.Diagonal
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.Data.Nat.Cast.Defs
+public import Mathlib.Data.Nat.Init
+public import Mathlib.Data.Nat.Prime.Defs
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Data.ZMod.Defs
+public import Mathlib.GroupTheory.Nilpotent
+public import Mathlib.GroupTheory.SpecificGroups.Cyclic
+public import Mathlib.GroupTheory.SpecificGroups.Cyclic.Basic
+public import Mathlib.LinearAlgebra.Matrix.Defs
+public import Mathlib.Logic.Equiv.Defs
+public import Mathlib.Tactic
+public import Mathlib.Tactic.Abel
+public import Mathlib.Tactic.NormNum.Basic
+public import Mathlib.Tactic.NormNum.Result
+public import Mathlib.Tactic.Ring.Basic
+public import Mathlib.Tactic.Ring.Common
+public import Mathlib.Tactic.Ring.RingNF
+
+@[expose] public section
 
 /-!
 # Binary Pauli pair-vectors and their signed multiplication law
@@ -195,10 +199,10 @@ lemma prod_ite_neg_one {ι : Type} (s : Finset ι) (p : ι → Prop) [DecidableP
   | insert a s ha ih =>
       rw [Finset.prod_insert ha, Finset.filter_insert, ih]
       by_cases hp : p a
-      · rw [if_pos hp, if_pos hp, Finset.card_insert_of_notMem (by simp [Finset.mem_filter, ha])]
+      · rw [ite_eq_left hp, ite_eq_left hp, Finset.card_insert_of_notMem (by simp [Finset.mem_filter, ha])]
         rw [pow_succ]
         ring
-      · rw [if_neg hp, if_neg hp]
+      · rw [ite_eq_right hp, ite_eq_right hp]
         simp
 
 /-- The sign of the binary Y parity equals negative one raised to `yWeight b`. -/
@@ -244,7 +248,7 @@ lemma sMat_zero {n : ℕ} : sMat (0 : PV n) = 1 := by
   · subst h
     have hx : y = xshift (0 : PV n) y := by
       funext i; simp [xshift]
-    rw [if_pos hx, if_pos rfl]
+    rw [ite_eq_left hx, ite_eq_left rfl]
     simp [yWeight, dotz, sgn]
   · have hx : ¬ (y = xshift (0 : PV n) x) := by
       intro hh
@@ -252,7 +256,7 @@ lemma sMat_zero {n : ℕ} : sMat (0 : PV n) = 1 := by
       funext i
       have h2 := congrFun hh i
       simpa [xshift] using h2
-    rw [if_neg hx, if_neg (fun hxy => h hxy.symm)]
+    rw [ite_eq_right hx, ite_eq_right (fun hxy => h hxy.symm)]
 
 /-- The Z pairing is additive in the Pauli pair-vector. -/
 lemma dotz_add {n : ℕ} (b c : PV n) (x : Fin n → ZMod 2) :

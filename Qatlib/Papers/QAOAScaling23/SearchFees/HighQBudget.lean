@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QAOAScaling23.SearchFees.InterleaveComparison
-import Qatlib.Papers.QAOAScaling23.SearchFees.Failure
+module
+
+public import Qatlib.Papers.QAOAScaling23.SearchFees.InterleaveComparison
+public import Qatlib.Papers.QAOAScaling23.SearchFees.Failure
+
+@[expose] public section
 
 /-!
 # Resource bounds for large marked mass
@@ -66,12 +70,12 @@ theorem slot_increment_bound (U:Matrix I I ℂ) (hU:U∈Matrix.unitaryGroup I �
   cases a with
   | none=>
     cases f <;>simp only
-        [increment,Option.isSome_none,Bool.false_eq_true,if_false,Option.map_none,Option.getD_none] <;>omega
+        [increment,Option.isSome_none,Bool.false_eq_true,ite_false,Option.map_none,Option.getD_none] <;>omega
   | some yg=>
     obtain ⟨y,g⟩:=yg
     have hg:g=3*c+1:=hs.2.2.2 y g rfl
     cases f <;>simp only
-        [increment,Option.isSome_some,if_true,Option.map_some,Option.getD_some] <;>omega
+        [increment,Option.isSome_some,ite_true,Option.map_some,Option.getD_some] <;>omega
 
 /-- For positive `m`, the expected single-stage charge in any ledger is at most `5 * m`. -/
 theorem slot_cost_bound (U:Matrix I I ℂ) (hU:U∈Matrix.unitaryGroup I ℂ) (seed:I) (S:Finset I)

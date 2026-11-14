@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ExtraSpecHSP07.MainResults.Defs
-import Mathlib.GroupTheory.OrderOfElement
-import Mathlib.RingTheory.ZMod.UnitsCyclic
-import Mathlib.FieldTheory.Finite.Basic
-import Mathlib.Data.ZMod.Basic
+module
+
+public import Qatlib.Papers.ExtraSpecHSP07.MainResults.Defs
+public import Mathlib.GroupTheory.OrderOfElement
+public import Mathlib.RingTheory.ZMod.UnitsCyclic
+public import Mathlib.FieldTheory.Finite.Basic
+public import Mathlib.Data.ZMod.Basic
+
+@[expose] public section
 
 /-!
 # Weyl automorphism data for extraspecial groups
@@ -83,7 +87,7 @@ theorem z_pow_congr {A B : ℕ} (h : (A : ZMod p) = (B : ZMod p)) :
 /-- An integer power of the central generator equals the natural power specified by its residue
 modulo `p`. -/
 theorem zpow_eq_pow_val (k : ℤ) : W.z ^ k = W.z ^ ((k : ZMod p).val) := by
-  haveI : NeZero p := ⟨W.prime.ne_zero⟩
+  have : NeZero p := ⟨W.prime.ne_zero⟩
   have hpos : (0 : ℤ) < (p : ℤ) := by exact_mod_cast W.prime.pos
   have hnonneg : 0 ≤ k % (p : ℤ) := Int.emod_nonneg k (ne_of_gt hpos)
   have h1 : W.z ^ k = W.z ^ ((k % (p : ℤ)).toNat) := by
@@ -119,7 +123,7 @@ theorem exists_zpow_decomp (h : G) (j : (ZMod p)ˣ) :
 /-- For a unit distinct from one, the difference between the unit and its square is nonzero. -/
 theorem sub_sq_ne_zero (W : WeylData G p) {j : (ZMod p)ˣ} (hj : (j : ZMod p) ≠ 1) :
     (j : ZMod p) - (j : ZMod p) ^ 2 ≠ 0 := by
-  haveI : Fact p.Prime := ⟨W.prime⟩
+  have : Fact p.Prime := ⟨W.prime⟩
   intro h
   have h2 : (j : ZMod p) * (1 - (j : ZMod p)) = 0 := by
     have h' : (j : ZMod p) = (j : ZMod p) ^ 2 := sub_eq_zero.mp h
@@ -136,9 +140,9 @@ theorem phi_eq_pow_mul_zpow (h : G) :
       W.phi j h =
         h ^ (j : ZMod p).val * W.z ^ (((j : ZMod p) - (j : ZMod p) ^ 2) * ℓ).val := by
   classical
-  haveI : Fact p.Prime := ⟨W.prime⟩
-  haveI : NeZero p := ⟨W.prime.ne_zero⟩
-  haveI : IsCyclic (ZMod p)ˣ := ZMod.isCyclic_units_prime W.prime
+  have : Fact p.Prime := ⟨W.prime⟩
+  have : NeZero p := ⟨W.prime.ne_zero⟩
+  have : IsCyclic (ZMod p)ˣ := ZMod.isCyclic_units_prime W.prime
   obtain ⟨j₀, hj₀⟩ := IsCyclic.exists_generator (α := (ZMod p)ˣ)
   have hcard : Fintype.card (ZMod p)ˣ = p - 1 := ZMod.card_units p
   have hord : orderOf j₀ = p - 1 := by

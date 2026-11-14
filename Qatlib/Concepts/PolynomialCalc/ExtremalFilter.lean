@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PolynomialCalc.ChebyshevScale
+module
+
+public import Qatlib.Concepts.PolynomialCalc.ChebyshevScale
+
+@[expose] public section
 
 /-!
 # Admissibility and band edge of Chebyshev filters

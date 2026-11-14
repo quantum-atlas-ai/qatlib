@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GramQueryCore.FilteredNorm.FilteredNormClosureLawsStat
-import Qatlib.Concepts.GramQueryCore.FilteredNorm.FilteredNormBasicLawsQuan
-import Mathlib.Analysis.CStarAlgebra.GelfandDuality
+module
+
+public import Qatlib.Concepts.GramQueryCore.FilteredNorm.FilteredNormClosureLawsStat
+public import Qatlib.Concepts.GramQueryCore.FilteredNorm.FilteredNormBasicLawsQuan
+public import Mathlib.Analysis.CStarAlgebra.GelfandDuality
+
+@[expose] public section
 
 /-!
 # Closure laws of the rectangular filtered norm
@@ -255,8 +259,8 @@ theorem sourceRowColumnDisjoint_norm_add {R S : Type}
     calc
       (Aᴴ*A)*(Bᴴ*B) = Aᴴ*(A*Bᴴ)*B := by simp only [Matrix.mul_assoc]
       _ = 0 := by simp [hab']
-  letI : CompleteSpace (Matrix S S ℂ) := FiniteDimensional.complete ℂ (Matrix S S ℂ)
-  letI : NonUnitalCStarAlgebra (Matrix S S ℂ) := { }
+  let : CompleteSpace (Matrix S S ℂ) := FiniteDimensional.complete ℂ (Matrix S S ℂ)
+  let : NonUnitalCStarAlgebra (Matrix S S ℂ) := { }
   have ha : IsSelfAdjoint (Aᴴ*A) := (Matrix.isHermitian_conjTranspose_mul_self A).isSelfAdjoint
   have hb : IsSelfAdjoint (Bᴴ*B) := (Matrix.isHermitian_conjTranspose_mul_self B).isSelfAdjoint
   have hg := IsSelfAdjoint.norm_add_eq_max (A := Matrix S S ℂ) ha hb horth
@@ -284,7 +288,7 @@ theorem sourceMergeTwo_feasible_iff {R S : Type}
   · intro hm j
     have h01 : max ‖Z 0 ⊙ M‖ ‖Z 1 ⊙ M‖ ≤ 1 := by
       rw [← hn]
-      simpa only [sourceMergeTwo, Fin.val_zero, if_pos rfl] using! hm 0
+      simpa only [sourceMergeTwo, Fin.val_zero, ite_eq_left rfl] using! hm 0
     by_cases h0 : j.val = 0
     · have hj : j = 0 := Fin.ext h0
       simpa only [hj] using! (max_le_iff.mp h01).1
@@ -297,7 +301,7 @@ theorem sourceMergeTwo_feasible_iff {R S : Type}
       apply Fin.ext
       dsimp only [k]
       omega
-    simpa only [sourceMergeTwo, if_neg hk, he] using! hm k
+    simpa only [sourceMergeTwo, ite_eq_right hk, he] using! hm k
   · intro hm j
     unfold sourceMergeTwo
     split_ifs with hj

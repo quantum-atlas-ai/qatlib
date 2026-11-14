@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GibbsSampling25.MainResults.Model.SourceModel
+module
+
+public import Qatlib.Papers.GibbsSampling25.MainResults.Model.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -44,9 +48,9 @@ the hypothesis that a strong local effective Hamiltonian exists (that is the
 content of Appendix A.4.3); they are kept as named parameters to mirror the
 source statement. -/
 def uniform_mcmi_decay {Λ : Type} [Fintype Λ] [DecidableEq Λ]
-    (dist : Λ → Λ → ℝ) (J r κ g β : ℝ) (hJ : 0 ≤ J) (hr : 0 < r) (hκ : 0 ≤ κ)
-    (hg : 0 < g) (mcmi : McmiNorm Λ)
-    (hEff : ∃ (hterm : Finset Λ → Finset Λ → ℝ) (Δ μ : ℝ),
+    (dist : Λ → Λ → ℝ) (J r κ g _β : ℝ) (_hJ : 0 ≤ J) (_hr : 0 < r) (_hκ : 0 ≤ κ)
+    (_hg : 0 < g) (mcmi : McmiNorm Λ)
+    (_hEff : ∃ (hterm : Finset Λ → Finset Λ → ℝ) (Δ μ : ℝ),
       0 ≤ Δ ∧ 0 < μ ∧ IsStrongLocalEffectiveHamiltonian mcmi hterm Δ μ)  : Prop :=
     ∃ K ξ : ℝ, 0 < K ∧ 0 < ξ ∧ ∀ A C Dd : Finset Λ,
       mcmi A C Dd ≤ K * (Fintype.card Λ : ℝ) * Real.exp (- setDistOf dist A C / ξ)
@@ -76,9 +80,9 @@ for any partition `Λ = A ⊔ B ⊔ C ⊔ D`,
 
 `‖H(A:C|D)_σ‖∞ ≤ 4 min{|A|,|C|} Δ e^{-μ dist(A,C)}`. -/
 def mcmi_decay_from_effective_hamiltonian {Λ : Type} [Fintype Λ] [DecidableEq Λ]
-    (dist : Λ → Λ → ℝ) (mcmi : McmiNorm Λ) (Δ μ : ℝ) (hΔ : 0 ≤ Δ) (hμ : 0 < μ)
+    (dist : Λ → Λ → ℝ) (mcmi : McmiNorm Λ) (Δ μ : ℝ) (_hΔ : 0 ≤ Δ) (_hμ : 0 < μ)
     (hterm : Finset Λ → Finset Λ → ℝ)
-    (hEff : IsStrongLocalEffectiveHamiltonian mcmi hterm Δ μ) (A C Dd : Finset Λ)  : Prop :=
+    (_hEff : IsStrongLocalEffectiveHamiltonian mcmi hterm Δ μ) (A C Dd : Finset Λ)  : Prop :=
     mcmi A C Dd ≤ 4 * (min A.card C.card : ℝ) * Δ * Real.exp (- μ * setDistOf dist A C)
   -- Source: arXiv:2412.01732v1, Lemma D.1 (p.46), proof on pp.46–47.
   -- Proof route (fully written out in the paper): insert the definition of
@@ -111,9 +115,9 @@ temperature)**, arXiv:2412.01732v1 p.47. Let `H_Λ` be marginal commuting
 with `μ = (1/r) log(1/(gκ(1+κg)e^{1/2} gJβ))`. -/
 def mcmi_decay_marginal_commuting {Λ : Type} [Fintype Λ] [DecidableEq Λ]
     (dist : Λ → Λ → ℝ) (mcmi : McmiNorm Λ) (g κ J r β : ℝ)
-    (hg : 0 < g) (hκ : 0 ≤ κ) (hr : 0 < r) (hJ : 0 < J) (hβpos : 0 < β)
-    (hβ : β < 1 / (g * κ * (1 + κ * g) * Real.exp (1 / 2) * g * J))
-    (hEff : ∃ (hterm : Finset Λ → Finset Λ → ℝ) (Δ : ℝ), Δ = 1 ∧
+    (_hg : 0 < g) (_hκ : 0 ≤ κ) (_hr : 0 < r) (_hJ : 0 < J) (_hβpos : 0 < β)
+    (_hβ : β < 1 / (g * κ * (1 + κ * g) * Real.exp (1 / 2) * g * J))
+    (_hEff : ∃ (hterm : Finset Λ → Finset Λ → ℝ) (Δ : ℝ), Δ = 1 ∧
       IsStrongLocalEffectiveHamiltonian mcmi hterm Δ
         ((1 / r) * Real.log (1 / (g * κ * (1 + κ * g) * Real.exp (1 / 2) * g * J * β))))
     (A C Dd : Finset Λ)  : Prop :=

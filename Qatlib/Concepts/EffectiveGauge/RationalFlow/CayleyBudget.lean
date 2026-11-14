@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.RationalFlow.CayleySource
-import Mathlib.Data.Rat.Floor
-import Mathlib.Data.Nat.Log
-import Mathlib.Data.Nat.Sqrt
+module
+
+public import Qatlib.Concepts.EffectiveGauge.RationalFlow.CayleySource
+public import Mathlib.Data.Rat.Floor
+public import Mathlib.Data.Nat.Log
+public import Mathlib.Data.Nat.Sqrt
+
+@[expose] public section
 
 /-!
 # Finite rational parameter selection for the integer execution

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalCacheProgram
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalCacheProgram
+
+@[expose] public section
 
 /-!
 # Exact Gaussian-rational row programs
@@ -60,7 +64,7 @@ theorem cacheRun_of_wf (sourceCount : ℕ) (p : List CacheOp) (cs : List Gaussia
     have ht : CacheWf sourceCount rest (cs++[op.eval cs]).length := by
       simpa using! hw.2
     obtain ⟨cs',hr⟩ := ih (cs++[op.eval cs]) ht
-    exact ⟨cs',by simpa only [cacheRun,CacheOp.step,if_pos hv,Option.bind_some] using! hr⟩
+    exact ⟨cs',by simpa only [cacheRun,CacheOp.step,ite_eq_left hv,Option.bind_some] using! hr⟩
 
 /-- Well-formedness of concatenated cache programs is equivalent to well-formedness of each part
 at its corresponding cache length. -/
@@ -241,9 +245,9 @@ theorem cacheRun_preserves (sourceCount : ℕ) (p : List CacheOp) (cs cs' : List
   | cons op rest ih =>
     by_cases hv : op.Valid sourceCount cs.length
     · have ht : cacheRun sourceCount rest (cs++[op.eval cs])=some cs' := by
-        simpa only [cacheRun,CacheOp.step,if_pos hv,Option.bind_some] using! hr
+        simpa only [cacheRun,CacheOp.step,ite_eq_left hv,Option.bind_some] using! hr
       rw [ih _ ht (by simp; omega),List.getD_append cs _ _ i hi]
-    · simp only [cacheRun,CacheOp.step,if_neg hv,Option.bind_none,reduceCtorEq] at hr
+    · simp only [cacheRun,CacheOp.step,ite_eq_right hv,Option.bind_none,reduceCtorEq] at hr
 
 /-- The cache obtained by appending a source entry, its weighted product, and the updated
 dot-product accumulator. -/
@@ -285,11 +289,11 @@ theorem dotStep_run (sourceCount source weight acc : ℕ) (cs : List GaussianCod
       List.getD_append_right c1 [prod] GaussianCode.zero c1.length (Nat.le_refl _),
       Nat.sub_self,List.getD_cons_zero]
     rw [show c1=cs++[a] from rfl,List.getD_append cs [a] GaussianCode.zero acc hab]
-  rw [cacheRun,CacheOp.step,if_pos h0,Option.bind_some]
+  rw [cacheRun,CacheOp.step,ite_eq_left h0,Option.bind_some]
   change cacheRun sourceCount [.multiply cs.length weight,.add acc (cs.length+1)] c1=_
-  rw [cacheRun,CacheOp.step,if_pos h1,Option.bind_some,hm]
+  rw [cacheRun,CacheOp.step,ite_eq_left h1,Option.bind_some,hm]
   change cacheRun sourceCount [.add acc (cs.length+1)] c2=_
-  rw [cacheRun,CacheOp.step,if_pos h2,Option.bind_some,hc]
+  rw [cacheRun,CacheOp.step,ite_eq_left h2,Option.bind_some,hc]
   simp [cacheRun,c2,c1,dotStepState,a,prod,List.append_assoc]
 
 /-- Under the stated index bounds, the dot-product plan executes successfully and stores
@@ -415,9 +419,9 @@ theorem scaleStep_run (sourceCount sourceCache dot : ℕ) (cs : List GaussianCod
     dsimp only [CacheOp.eval,c1]
     rw [List.getD_append_right cs [a] GaussianCode.zero cs.length (Nat.le_refl _),
       Nat.sub_self,List.getD_cons_zero,List.getD_append cs [a] GaussianCode.zero dot hdb]
-  rw [cacheRun,CacheOp.step,if_pos h0,Option.bind_some]
+  rw [cacheRun,CacheOp.step,ite_eq_left h0,Option.bind_some]
   change cacheRun sourceCount [.multiply cs.length dot] c1=_
-  rw [cacheRun,CacheOp.step,if_pos h1,Option.bind_some,hm]
+  rw [cacheRun,CacheOp.step,ite_eq_left h1,Option.bind_some,hm]
   simp [cacheRun,c1,scaleStepState,a,List.append_assoc]
 
 /-- Under the stated index bounds, the scaling plan executes successfully and stores each
@@ -502,7 +506,7 @@ theorem rowPlan_run (sourceCount n source weight acc : ℕ) (cs : List GaussianC
   have hC : cacheRun sourceCount [.copy (dotOutput n cs.length acc)] cd=some ccopy := by
     have hv : CacheOp.Valid sourceCount cd.length (.copy (dotOutput n cs.length acc)) := by
       exact ⟨hdBounds.1,by rw [hdl]; exact hdBounds.2⟩
-    simp only [cacheRun,CacheOp.step,if_pos hv,Option.bind_some,CacheOp.eval]
+    simp only [cacheRun,CacheOp.step,ite_eq_left hv,Option.bind_some,CacheOp.eval]
     rfl
   obtain ⟨cf,hS,hSV⟩ := scalePlan_run sourceCount n cs.length (cs.length+3*n) ccopy
     (by omega) (by rw [hcl]; omega) (by omega) (by rw [hcl]; omega)

@@ -4,7 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QSingValue19.Implementation.QlsQsvtDefs
+module
+
+public import Qatlib.Papers.QSingValue19.Implementation.QlsQsvtDefs
+
+@[expose] public section
+set_option linter.unusedVariables false
 
 /-!
 # QSVT linear systems implementation guarantees

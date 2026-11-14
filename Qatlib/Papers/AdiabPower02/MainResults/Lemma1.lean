@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.Complex.Order
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Tactic
-import Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
-import Qatlib.Foundations.OperatorErrors.OperatorError
+module
+
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.Complex.Order
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Tactic
+public import Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
+public import Qatlib.Foundations.OperatorErrors.OperatorError
+
+@[expose] public section
 
 /-!
 # Duhamel identity and evolution stability

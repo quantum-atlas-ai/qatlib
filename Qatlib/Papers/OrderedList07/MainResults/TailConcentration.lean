@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.OrderedBayes.BayesRatioCore.GeneralizedMarkovQuan
-import Qatlib.Concepts.OrderedBayes.BayesRatioCore.Lemma23Quan
-import Mathlib.Analysis.Complex.ExponentialBounds
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Ring
+module
+
+public import Qatlib.Concepts.OrderedBayes.BayesRatioCore.GeneralizedMarkovQuan
+public import Qatlib.Concepts.OrderedBayes.BayesRatioCore.Lemma23Quan
+public import Mathlib.Analysis.Complex.ExponentialBounds
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 /-!
 # Tail bounds from ordered-search cost estimates

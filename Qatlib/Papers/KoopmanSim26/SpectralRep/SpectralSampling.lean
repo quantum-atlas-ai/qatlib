@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.KoopmanSim26.SpectralRep.DiagonalizedLCHS
+module
+
+public import Qatlib.Papers.KoopmanSim26.SpectralRep.DiagonalizedLCHS
+
+@[expose] public section
 
 /-!
 # Cauchy spectral quadrature error
@@ -87,7 +91,7 @@ private lemma hasDerivAt_cauchyDensity (k : ℝ) :
       ((-(2*k)/(1+k^2)^2) * Real.pi⁻¹) k := hbase.mul_const _
   rw [hfun]
   have hv : ((-(2*k)/(1+k^2)^2) * Real.pi⁻¹) = cauchyDensityDeriv k := by
-    simp only [cauchyDensityDeriv]; field_simp; try ring
+    simp only [cauchyDensityDeriv]; field_simp
   rw [hv] at hmul
   exact hmul
 
@@ -322,7 +326,7 @@ private theorem cauchy_weighted_grid_error (V : ℝ → E) (hVc : Continuous V)
     _ = (2*K^2/(N:ℝ)) * (cauchyLipschitzConst + T/Real.pi) := by
       dsimp only [h]
       field_simp
-      try ring
+
 
 end Quadrature
 
@@ -353,7 +357,7 @@ theorem spectral_sampling_quadrature_error
   have hLh : L.IsHermitian := by simpa using! hL.isHermitian.neg
   let V : ℝ → Matrix I I ℂ := fun k => spectralUnitary L H t k
   have hVc : Continuous V := by
-    letI : NormedAlgebra ℚ (Matrix I I ℂ) := NormedAlgebra.restrictScalars ℚ ℂ _
+    let : NormedAlgebra ℚ (Matrix I I ℂ) := NormedAlgebra.restrictScalars ℚ ℂ _
     have hfun : V = fun k => hamiltonianEvolution ((-H) + k • (-L)) t := by
       funext k; exact spectralUnitary_eq_hamiltonianEvolution L H t k
     rw [hfun]
@@ -431,7 +435,7 @@ theorem spectral_sampling_convergence
   have hCT : cauchyLipschitzConst + t*‖L‖/Real.pi = c/(8*Real.pi) := by
     rw [hc_def, cauchyLipschitzConst]
     field_simp
-    try ring
+
   have hNval : (N:ℝ) = c*K^3/4 := by
     have hKc : c*K^3 = 4*(N:ℝ) := by rw [hK3]; field_simp
     rw [hKc]; ring

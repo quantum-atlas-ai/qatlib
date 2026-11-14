@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OneWayDanos05.MainResults.BiFlowAdjunction
-import Qatlib.Papers.OneWayDanos05.MainResults.FlowFrame
-import Qatlib.Concepts.PauliClifford.ExactRank.MatrixTensor
+module
+
+public import Qatlib.Papers.OneWayDanos05.MainResults.BiFlowAdjunction
+public import Qatlib.Papers.OneWayDanos05.MainResults.FlowFrame
+public import Qatlib.Concepts.PauliClifford.ExactRank.MatrixTensor
+
+@[expose] public section
 
 /-!
 # Commutation identities for Pauli pattern operators
@@ -103,18 +107,18 @@ theorem localZ_eq_ppd (v : Fin n) :
   rw [localZ, Matrix.diagonal_apply, pauliProductDensity, Matrix.of_apply]
   by_cases hxy : x = y
   · subst hxy
-    rw [if_pos rfl, Fintype.prod_eq_single v]
-    · cases hx : x v <;> simp [pauliZ_apply, boolEquivFin2, hx]
+    rw [ite_eq_left rfl, Fintype.prod_eq_single v]
+    · cases hx : x v <;> simp [pauliZ_apply, boolEquivFin2]
     · intro k hk
-      rw [if_neg hk, one2_apply, if_pos rfl]
-  · rw [if_neg hxy]
+      rw [ite_eq_right hk, one2_apply, ite_eq_left rfl]
+  · rw [ite_eq_right hxy]
     symm
     obtain ⟨i, hi⟩ := Function.ne_iff.mp hxy
     exact Finset.prod_eq_zero (Finset.mem_univ i) (by
       by_cases hiv : i = v
       · subst hiv
-        rw [if_pos rfl, pauliZ_apply, if_neg (fun he => hi (boolEquivFin2.injective he))]
-      · rw [if_neg hiv, one2_apply, if_neg (fun he => hi (boolEquivFin2.injective he))])
+        rw [ite_eq_left rfl, pauliZ_apply, ite_eq_right (fun he => hi (boolEquivFin2.injective he))]
+      · rw [ite_eq_right hiv, one2_apply, ite_eq_right (fun he => hi (boolEquivFin2.injective he))])
 
 /-- A local X matrix is the tensor product with Pauli X on its selected wire and identity on
 every other wire. -/
@@ -124,12 +128,12 @@ theorem localX_eq_ppd (v : Fin n) :
   have hL : localX v x y = if x = flipBit v y then (1 : ℂ) else 0 := rfl
   rw [hL, pauliProductDensity, Matrix.of_apply]
   by_cases hxy : x = flipBit v y
-  · rw [if_pos hxy]
+  · rw [ite_eq_left hxy]
     symm
     apply Finset.prod_eq_one
     intro i _
     by_cases hiv : i = v
-    · rw [if_pos hiv]
+    · rw [ite_eq_left hiv]
       have hxv : x i = !(y i) := by
         have hh := congrFun hxy i
         rw [← hiv] at hh
@@ -138,13 +142,13 @@ theorem localX_eq_ppd (v : Fin n) :
         intro h
         rw [h] at hxv
         exact Bool.not_ne_self (y i) hxv.symm
-      rw [pauliX_apply, if_neg (fun he => hne (boolEquivFin2.injective he))]
-    · rw [if_neg hiv, one2_apply]
+      rw [pauliX_apply, ite_eq_right (fun he => hne (boolEquivFin2.injective he))]
+    · rw [ite_eq_right hiv, one2_apply]
       have hxyi : x i = y i := by
         have hh := congrFun hxy i
         simpa [flipBit, hiv] using hh
-      rw [if_pos (by rw [hxyi])]
-  · rw [if_neg hxy]
+      rw [ite_eq_left (by rw [hxyi])]
+  · rw [ite_eq_right hxy]
     symm
     have hnot : ¬ (x v = !(y v) ∧ ∀ i, i ≠ v → x i = y i) := by
       rintro ⟨hv, hrest⟩
@@ -155,13 +159,13 @@ theorem localX_eq_ppd (v : Fin n) :
       · simp [flipBit, hi, hrest i hi]
     by_cases hvv : x v = y v
     · refine Finset.prod_eq_zero (Finset.mem_univ v) ?_
-      rw [if_pos rfl, pauliX_apply, if_pos (by rw [hvv])]
+      rw [ite_eq_left rfl, pauliX_apply, ite_eq_left (by rw [hvv])]
     · have hxv : x v = !(y v) := by cases hx : x v <;> cases hy : y v <;> simp_all
       have hnall : ¬ ∀ i, i ≠ v → x i = y i := fun h => hnot ⟨hxv, h⟩
-      push_neg at hnall
+      push Not at hnall
       obtain ⟨i, hiv, hixy⟩ := hnall
       refine Finset.prod_eq_zero (Finset.mem_univ i) ?_
-      rw [if_neg hiv, one2_apply, if_neg (fun he => hixy (boolEquivFin2.injective he))]
+      rw [ite_eq_right hiv, one2_apply, ite_eq_right (fun he => hixy (boolEquivFin2.injective he))]
 
 /-- The diagonal product of Z phases on a finite wire set equals the tensor product applying
 Pauli Z on exactly those wires. -/
@@ -172,7 +176,7 @@ theorem zDiag_eq_ppd (L : Finset (Fin n)) :
   rw [Matrix.diagonal_apply, pauliProductDensity, Matrix.of_apply]
   by_cases hxy : x = y
   · subst hxy
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     symm
     have hsplit : (∏ k, (if k ∈ L then pauliZ else (1 : Operator 2))
           (boolEquivFin2 (x k)) (boolEquivFin2 (x k)))
@@ -181,21 +185,21 @@ theorem zDiag_eq_ppd (L : Finset (Fin n)) :
       apply Finset.prod_congr rfl
       intro k _
       by_cases hk : k ∈ L
-      · rw [if_pos hk, if_pos hk]
-      · rw [if_neg hk, if_neg hk, one2_apply, if_pos rfl]
+      · rw [ite_eq_left hk, ite_eq_left hk]
+      · rw [ite_eq_right hk, ite_eq_right hk, one2_apply, ite_eq_left rfl]
     rw [hsplit, ← Finset.prod_filter]
     rw [show Finset.univ.filter (fun k => k ∈ L) = L from by ext k; simp]
     apply Finset.prod_congr rfl
     intro k _
     rw [pauliZ_apply]
-    cases hx : x k <;> simp [boolEquivFin2, hx] <;> norm_num
-  · rw [if_neg hxy]
+    cases hx : x k <;> simp [boolEquivFin2]
+  · rw [ite_eq_right hxy]
     symm
     obtain ⟨i, hi⟩ := Function.ne_iff.mp hxy
     exact Finset.prod_eq_zero (Finset.mem_univ i) (by
       by_cases hiL : i ∈ L
-      · rw [if_pos hiL, pauliZ_apply, if_neg (fun he => hi (boolEquivFin2.injective he))]
-      · rw [if_neg hiL, one2_apply, if_neg (fun he => hi (boolEquivFin2.injective he))])
+      · rw [ite_eq_left hiL, pauliZ_apply, ite_eq_right (fun he => hi (boolEquivFin2.injective he))]
+      · rw [ite_eq_right hiL, one2_apply, ite_eq_right (fun he => hi (boolEquivFin2.injective he))])
 
 /-- The dependent Z correction is the tensor product applying Pauli Z to the neighbors of `w`
 other than `v`. -/

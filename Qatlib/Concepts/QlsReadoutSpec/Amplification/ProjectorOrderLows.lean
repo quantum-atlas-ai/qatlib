@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QlsReadoutSpec.Amplification.ProjectorOrderStat
+module
+
+public import Qatlib.Concepts.QlsReadoutSpec.Amplification.ProjectorOrderStat
+
+@[expose] public section
 
 /-!
 # Equivalent order criteria for orthogonal projectors

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SingleQuery97.MainResults.RandomHashLaw
+module
+
+public import Qatlib.Papers.SingleQuery97.MainResults.RandomHashLaw
+
+@[expose] public section
 
 /-!
 # Random linear-code recovery error bounds
@@ -54,7 +58,7 @@ theorem error_implies_collision (candidates : Fin k → Fin n → ZMod A)
     ∃ j : {j : Fin k // j ≠ t}, response g (candidates j) = response g (candidates t) := by
   classical
   have hex : ∃ j, response g (candidates j) = response g (candidates t) := ⟨t,rfl⟩
-  rw [decoder, dif_pos hex] at herr
+  rw [decoder, dite_eq_left hex] at herr
   exact ⟨⟨Classical.choose hex,herr⟩, Classical.choose_spec hex⟩
 
 omit [NeZero k] in

@@ -4,17 +4,21 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.QueryLowerBound.ScalarSignalQueryBounds
-import Qatlib.Concepts.QsvtCore.QueryLowerBound.ScalarSignalConsumers
-import Qatlib.Concepts.LchsSimulation.Quadrature.GaussLegendreRule
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.Orthogonality
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.ChebyshevGauss
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.RootsExtrema
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Arctan
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.ArctanDeriv
-import Mathlib.Analysis.Complex.Trigonometric
-import Mathlib.Algebra.Order.Field.GeomSum
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.FundThmCalculus
+module
+
+public import Qatlib.Concepts.QsvtCore.QueryLowerBound.ScalarSignalQueryBounds
+public import Qatlib.Concepts.QsvtCore.QueryLowerBound.ScalarSignalConsumers
+public import Qatlib.Concepts.LchsSimulation.Quadrature.GaussLegendreRule
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.Orthogonality
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.ChebyshevGauss
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.RootsExtrema
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Arctan
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.ArctanDeriv
+public import Mathlib.Analysis.Complex.Trigonometric
+public import Mathlib.Algebra.Order.Field.GeomSum
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.FundThmCalculus
+
+@[expose] public section
 
 /-!
 # Scalar signal approximation and query complexity
@@ -849,7 +853,7 @@ theorem recipChebCoeff_abs_sum_le (δ : ℝ) (hδ : 0 < δ) (hδ1 : δ ≤ 1) (n
   have hrest : ∀ k : ℕ, |recipChebCoeff δ (k + 1)| =
       (2 / Real.sqrt δ) * recipChebRatio δ ^ (k + 1) := by
     intro k
-    simp only [recipChebCoeff, if_neg (Nat.succ_ne_zero k)]
+    simp only [recipChebCoeff, ite_eq_right (Nat.succ_ne_zero k)]
     rw [abs_mul, abs_pow, abs_neg, abs_of_nonneg hrb.1, abs_of_pos (by positivity)]
   have hsum : ∑ k ∈ Finset.range (n + 1), |recipChebCoeff δ k| =
       1 / Real.sqrt δ + ∑ k ∈ Finset.range n, (2 / Real.sqrt δ) * recipChebRatio δ ^ (k + 1) := by
@@ -937,7 +941,7 @@ theorem recipChebTruncError (δ : ℝ) (hδ : 0 < δ) (hδ1 : δ ≤ 1) (n : ℕ
         exact h
     rw [← hφ, chebTrunc_eval_cos, Complex.re_sum, Finset.sum_range_succ', Finset.sum_range_succ',
       pow_zero, Complex.one_re, hsum]
-    simp only [recipChebCoeff, Nat.succ_ne_zero, if_true, if_false, ← hrdef, ← hsdef,
+    simp only [recipChebCoeff, Nat.succ_ne_zero, ite_true, ite_false, ← hrdef, ← hsdef,
       Nat.cast_zero, zero_mul, Real.cos_zero, mul_one]
     rw [show (∑ k ∈ Finset.range n, (2 / s) * (-(r : ℝ)) ^ (k + 1) * Real.cos (↑(k + 1) * φ)) =
         (2 / s) * ∑ k ∈ Finset.range n, (-(r : ℝ)) ^ (k + 1) * Real.cos (↑(k + 1) * φ) from by
@@ -1263,7 +1267,6 @@ private theorem sq_wave_value_re (θ : ℝ) (hθ : 0 ≤ θ) (hθ2 : θ < Real.p
         (hasDerivAt_const _ _) (ne_of_gt hc)).congr_deriv ?_
       simp only [sub_zero, mul_zero]
       field_simp
-      try ring
     have h2 : HasDerivAt (fun t => (t + Real.sin θ) / Real.cos θ) (1 / Real.cos θ) t := by
       refine (((hasDerivAt_id t).add (hasDerivAt_const _ _)).div
         (hasDerivAt_const _ _) (ne_of_gt hc)).congr_deriv ?_
@@ -1683,13 +1686,13 @@ noncomputable def signChebCoeff : ℕ → ℝ :=
 
 /-- The even-indexed sign Chebyshev coefficients vanish. -/
 theorem signChebCoeff_even (j : ℕ) : signChebCoeff (2 * j) = 0 := by
-  simp only [signChebCoeff, if_neg (show (2 * j) % 2 ≠ 1 by omega)]
+  simp only [signChebCoeff, ite_eq_right (show (2 * j) % 2 ≠ 1 by omega)]
 
 /-- At index `2 * j + 1`, the sign Chebyshev coefficient is `(4 / π) * (-1) ^ j / (2 * j + 1)`. -/
 theorem signChebCoeff_odd (j : ℕ) :
     signChebCoeff (2 * j + 1) =
       (4 / Real.pi) * (-(1 : ℝ)) ^ j / (((2 * j + 1 : ℕ) : ℝ)) := by
-  simp only [signChebCoeff, if_pos (show (2 * j + 1) % 2 = 1 by omega),
+  simp only [signChebCoeff, ite_eq_left (show (2 * j + 1) % 2 = 1 by omega),
     show (2 * j + 1) / 2 = j from by omega]
 
 /-- Chebyshev evaluation at `-x` is `(-1) ^ k` times evaluation at `x`. -/
@@ -2391,7 +2394,7 @@ theorem windowTruncWordTransport (W : Type) [Fintype W] [DecidableEq W]
       have herr : |(1 / 2) * (windowTrunc a b K).eval t -
           ((if t ∈ Set.Ioo a b then (1 : ℝ) else 0) / 2)| ≤
           1 / (((K + 1 : ℕ) : ℝ) * Real.pi * δ) := by
-        rw [if_pos hioo,
+        rw [ite_eq_left hioo,
           show (1 / 2) * (windowTrunc a b K).eval t - (1 : ℝ) / 2 =
             (1 / 2) * ((windowTrunc a b K).eval t - 1) from by ring,
           abs_mul, abs_of_pos (show (0 : ℝ) < 1 / 2 by norm_num), abs_sub_comm]
@@ -2400,23 +2403,23 @@ theorem windowTruncWordTransport (W : Type) [Fintype W] [DecidableEq W]
               mul_le_mul_of_nonneg_left h (show (0 : ℝ) ≤ 1 / 2 by norm_num)
           _ = 1 / (((K + 1 : ℕ) : ℝ) * Real.pi * δ) := by ring
       refine ⟨hx, hx1, ?_, ?_, herr⟩
-      · rw [if_pos hioo]; exact hyhalf1
-      · rw [if_pos hioo]; exact hyhalf2
+      · rw [ite_eq_left hioo]; exact hyhalf1
+      · rw [ite_eq_left hioo]; exact hyhalf2
     · rcases lt_trichotomy t a with hta | hta | hta
       · have hle : t ≤ a - δ := by
           rw [abs_of_nonpos (show (t : ℝ) - a ≤ 0 by linarith)] at hdista
           linarith
         have h := windowTruncErrorOutsideLeft K hb1 hab hδ ht.1 hle
         have hy1 : ((if t ∈ Set.Ioo a b then (1 : ℝ) else 0) / 2) ∈ Set.Icc (-m) m := by
-          rw [if_neg hioo, zero_div]
+          rw [ite_eq_right hioo, zero_div]
           exact hyzero1
         have hy2 : ((if t ∈ Set.Ioo a b then (1 : ℝ) else 0) / 2) ∈ Set.Icc (-1) 1 := by
-          rw [if_neg hioo, zero_div]
+          rw [ite_eq_right hioo, zero_div]
           exact hyzero2
         have herr : |(1 / 2) * (windowTrunc a b K).eval t -
             ((if t ∈ Set.Ioo a b then (1 : ℝ) else 0) / 2)| ≤
             1 / (((K + 1 : ℕ) : ℝ) * Real.pi * δ) := by
-          rw [if_neg hioo, zero_div, sub_zero, abs_mul,
+          rw [ite_eq_right hioo, zero_div, sub_zero, abs_mul,
             abs_of_pos (show (0 : ℝ) < 1 / 2 by norm_num)]
           calc (1 / 2) * |(windowTrunc a b K).eval t| ≤
               (1 / 2) * (2 / (((K + 1 : ℕ) : ℝ) * Real.pi * δ)) :=
@@ -2434,15 +2437,15 @@ theorem windowTruncWordTransport (W : Type) [Fintype W] [DecidableEq W]
             linarith
           have h := windowTruncErrorOutsideRight K ha hab hδ hle ht.2
           have hy1 : ((if t ∈ Set.Ioo a b then (1 : ℝ) else 0) / 2) ∈ Set.Icc (-m) m := by
-            rw [if_neg hioo, zero_div]
+            rw [ite_eq_right hioo, zero_div]
             exact hyzero1
           have hy2 : ((if t ∈ Set.Ioo a b then (1 : ℝ) else 0) / 2) ∈ Set.Icc (-1) 1 := by
-            rw [if_neg hioo, zero_div]
+            rw [ite_eq_right hioo, zero_div]
             exact hyzero2
           have herr : |(1 / 2) * (windowTrunc a b K).eval t -
               ((if t ∈ Set.Ioo a b then (1 : ℝ) else 0) / 2)| ≤
               1 / (((K + 1 : ℕ) : ℝ) * Real.pi * δ) := by
-            rw [if_neg hioo, zero_div, sub_zero, abs_mul,
+            rw [ite_eq_right hioo, zero_div, sub_zero, abs_mul,
               abs_of_pos (show (0 : ℝ) < 1 / 2 by norm_num)]
             calc (1 / 2) * |(windowTrunc a b K).eval t| ≤
                 (1 / 2) * (2 / (((K + 1 : ℕ) : ℝ) * Real.pi * δ)) :=
@@ -2536,7 +2539,7 @@ theorem chebT_eq_scale_nodeProd {N : ℕ} (hN : 0 < N) :
     · have hTdeg : (Polynomial.Chebyshev.T ℝ ((N : ℕ) : ℤ)).degree = (N : WithBot ℕ) := by
         rw [Polynomial.degree_eq_natDegree hTne, chebT_natDegree_eq]
       rw [Polynomial.natDegree_lt_iff_degree_lt hd0, ← hTdeg]
-      exact Polynomial.degree_sub_lt hdegeq hTne hlc
+      exact Polynomial.degree_sub_lt_left hdegeq hTne hlc
   have hzero : Polynomial.Chebyshev.T ℝ ((N : ℕ) : ℤ) -
       Polynomial.C (2 ^ (N - 1)) * chebNodeProd N = 0 := by
     refine Polynomial.eq_zero_of_natDegree_lt_card_of_eval_eq_zero _
@@ -2713,6 +2716,41 @@ theorem chebNodeEvalSum_zero (N : ℕ) :
       = (N : ℝ) := by
   simp [Polynomial.Chebyshev.T_zero]
 
+private lemma cheb_exp_sub_one_ne_zero {n : ℕ} {k : ℤ} (hn : n ≠ 0)
+    (hk : ¬ (2 * n : ℤ) ∣ k) : Complex.exp (k / n * Real.pi * Complex.I) ≠ 1 := by
+  contrapose hk
+  obtain ⟨m, hx⟩ := Complex.exp_eq_one_iff.mp hk
+  have h : k = 2 * n * m := by
+    apply (@Int.cast_inj ℂ _ _).mp
+    linear_combination
+      (norm := (push_cast; field [show (n : ℂ) ≠ 0 by aesop])) hx * (n / Real.pi / Complex.I)
+  use m
+
+private theorem cheb_sum_exp {n : ℕ} {k : ℤ} (hn : n ≠ 0)
+    (hk : ¬ (2 * n : ℤ) ∣ k) :
+    ∑ i ∈ Finset.range n,
+        Complex.exp ((k * ((2 * i + 1) / (2 * n) * Real.pi)) * Complex.I) =
+      (Complex.exp (k / (2 * n) * Real.pi * Complex.I) /
+          (Complex.exp (k / n * Real.pi * Complex.I) - 1)) * ((-1) ^ k - 1) := by
+  suffices (∑ i ∈ Finset.range n,
+      Complex.exp ((k * ((2 * i + 1) / (2 * n) * Real.pi)) * Complex.I)) *
+      Complex.exp (-(k / (2 * n) * Real.pi * Complex.I)) *
+        (Complex.exp (k / n * Real.pi * Complex.I) - 1) = (-1) ^ k - 1 by
+    rw [Complex.exp_neg] at this
+    have hf {s a b t : ℂ} (h : s * a⁻¹ * b = t) (ha : a ≠ 0) (hb : b ≠ 0) :
+        s = a / b * t := by
+      linear_combination (norm := field) h * a / b
+    apply hf this (Complex.exp_ne_zero _) (by grind [cheb_exp_sub_one_ne_zero])
+  convert geom_sum_mul (Complex.exp (k / n * Real.pi * Complex.I)) n using 1
+  · simp_rw [Finset.sum_mul]
+    congr! 1 with i hi
+    rw [← Complex.exp_nat_mul, ← Complex.exp_add]
+    grind
+  · rw [← Complex.exp_nat_mul,
+      show (n * (k / n * Real.pi * Complex.I)) = k * (Real.pi * Complex.I) by
+        field [show (n : ℂ) ≠ 0 by aesop],
+      Complex.exp_int_mul, Complex.exp_pi_mul_I]
+
 /-- The sum of Chebyshev evaluations at `N` nodes vanishes for nonzero integer frequency of
 absolute value less than `2 * N`. -/
 theorem chebNodeEvalSum_eq_zero {N : ℕ} (hN : 0 < N) {r : ℤ} (hr0 : r ≠ 0)
@@ -2731,9 +2769,51 @@ theorem chebNodeEvalSum_eq_zero {N : ℕ} (hN : 0 < N) {r : ℤ} (hr0 : r ≠ 0)
       have hle := mul_le_mul_of_nonneg_left hq1 hpos2.le
       rwa [mul_one] at hle
     linarith
-  have h := Polynomial.Chebyshev.sumZeroes_T_of_not_dvd (n := N) (k := r) hndvd
-  rw [Polynomial.Chebyshev.sumZeroes, mul_eq_zero_iff_left
-    (div_ne_zero Real.pi_ne_zero (Nat.cast_ne_zero.mpr hN.ne'))] at h
+  have hsum2 : ∑ i ∈ Finset.range N,
+      2 * Real.cos (r * ((2 * i + 1) / (2 * N) * Real.pi)) = 0 := by
+    suffices (∑ i ∈ Finset.range N,
+        2 * Real.cos (r * ((2 * i + 1) / (2 * N) * Real.pi)) : ℂ) = 0 by
+      norm_cast at this ⊢
+    suffices ∑ i ∈ Finset.range N,
+        2 * Complex.cos (r * ((2 * i + 1) / (2 * N) * Real.pi)) = 0 by
+      aesop
+    simp_rw [Complex.two_cos, ← neg_mul, ← Int.cast_neg]
+    have hpow : (-1 : ℂ) ^ (-r) = (-1) ^ r := by
+      rw [← Int.cast_negOnePow, ← Int.cast_negOnePow]
+      simp
+    rw [Finset.sum_add_distrib, cheb_sum_exp (n := N) (k := r) hN.ne' hndvd,
+      cheb_sum_exp (n := N) (k := -r) hN.ne' (by
+        intro h
+        apply hndvd
+        simpa [Int.cast_neg] using h),
+      Int.cast_neg, neg_div, neg_mul, neg_mul, Complex.exp_neg,
+      neg_div, neg_mul, neg_mul, Complex.exp_neg, hpow, ← add_mul,
+      mul_eq_zero_of_left]
+    set z := Complex.exp (r / (2 * N) * Real.pi * Complex.I) with hz
+    have hz₂ : Complex.exp (r / N * Real.pi * Complex.I) = z ^ 2 := by
+      rw [hz, ← Complex.exp_nat_mul]
+      grind
+    rw [hz₂, ← inv_pow z 2]
+    field [show z ≠ 0 by grind [Complex.exp_ne_zero],
+      show (z ^ 2 - 1 ≠ 0) ∧ (1 - z ^ 2 ≠ 0) by
+        grind [cheb_exp_sub_one_ne_zero hN.ne' hndvd]]
+  have hsum : ∑ i ∈ Finset.range N,
+      (Polynomial.Chebyshev.T ℝ r).eval
+        (Real.cos ((2 * i + 1) / (2 * N) * Real.pi)) = 0 := by
+    simp only [Polynomial.Chebyshev.T_real_cos]
+    calc
+      ∑ i ∈ Finset.range N,
+          Real.cos (r * ((2 * i + 1) / (2 * N) * Real.pi)) =
+          ∑ i ∈ Finset.range N,
+            (2 * Real.cos (r * ((2 * i + 1) / (2 * N) * Real.pi))) / 2 := by
+        apply Finset.sum_congr rfl
+        intro i hi
+        ring
+      _ = (∑ i ∈ Finset.range N,
+          2 * Real.cos (r * ((2 * i + 1) / (2 * N) * Real.pi))) / 2 := by
+        rw [Finset.sum_div]
+      _ = 0 / 2 := by rw [hsum2]
+      _ = 0 := by norm_num
   have hterm : ∀ j : Fin N, (Polynomial.Chebyshev.T ℝ r).eval (chebGaussNode N j)
       = (Polynomial.Chebyshev.T ℝ r).eval
         (Real.cos ((2 * ((j : ℕ) : ℝ) + 1) / (2 * ((N : ℕ) : ℝ)) * Real.pi)) := by
@@ -2745,7 +2825,7 @@ theorem chebNodeEvalSum_eq_zero {N : ℕ} (hN : 0 < N) {r : ℤ} (hr0 : r ≠ 0)
     Fin.sum_univ_eq_sum_range
       (f := fun i => (Polynomial.Chebyshev.T ℝ r).eval
         (Real.cos ((2 * ((i : ℕ) : ℝ) + 1) / (2 * ((N : ℕ) : ℝ)) * Real.pi)))]
-  exact h
+  exact hsum
 
 /-- The cosine sum over `N` Chebyshev–Gauss angles vanishes for nonzero integer frequency of
 absolute value less than `2 * N`. -/
@@ -2947,7 +3027,6 @@ private theorem chebT_integral_succ_sub (m : ℕ) (hm : 2 ≤ m) :
         have hc1 : ((m : ℕ) : ℤ) + 1 = ((m + 1 : ℕ) : ℤ) := by push_cast; ring
         have hc2 : ((m : ℕ) : ℤ) - 1 = ((m - 1 : ℕ) : ℤ) := by
           have hsub : (m - 1 : ℕ) + 1 = m := by omega
-          push_cast at hsub ⊢
           omega
         rw [hc1, hc2, Int.cast_negOnePow ℝ, Int.cast_negOnePow ℝ, zpow_natCast,
           zpow_natCast]
@@ -3104,7 +3183,7 @@ private theorem fejerCrossSum_eq {N : ℕ} (hN : 0 < N) {k m : ℕ}
   rw [Finset.sum_add_distrib, ← Finset.sum_div, ← Finset.sum_div, hSp, zero_div,
     zero_add]
   by_cases h2k : 2 * k = m
-  · rw [if_pos h2k]
+  · rw [ite_eq_left h2k]
     have hSm : ∑ j : Fin N, (Polynomial.Chebyshev.T ℝ
         (((2 * k : ℕ) : ℤ) - ((m : ℕ) : ℤ))).eval (chebGaussNode N j)
         = ((N : ℝ)) := by
@@ -3112,7 +3191,7 @@ private theorem fejerCrossSum_eq {N : ℕ} (hN : 0 < N) {k m : ℕ}
           push_cast; omega,
         chebNodeEvalSum_zero]
     rw [hSm]
-  · rw [if_neg h2k]
+  · rw [ite_eq_right h2k]
     have hSm : ∑ j : Fin N, (Polynomial.Chebyshev.T ℝ
         (((2 * k : ℕ) : ℤ) - ((m : ℕ) : ℤ))).eval (chebGaussNode N j) = 0 := by
       refine chebNodeEvalSum_eq_zero hN ?_ ?_
@@ -3137,7 +3216,7 @@ theorem fejerQuad_T_zero {N : ℕ} (hN : 0 < N) :
     intro k hkmem
     obtain ⟨hk1, hk2⟩ := Finset.mem_Icc.mp hkmem
     have hc := fejerCrossSum_eq hN hk1 (by omega) (by omega)
-    rw [hc, if_neg (by omega : ¬(2 * k = 0)), zero_div]
+    rw [hc, ite_eq_right (by omega : ¬(2 * k = 0)), zero_div]
   have hN0 : ((N : ℝ)) ≠ 0 := Nat.cast_ne_zero.mpr hN.ne'
   rw [Finset.sum_congr rfl hk, Finset.sum_const_zero, mul_zero, sub_zero,
     div_mul_cancel₀ _ hN0]
@@ -3157,7 +3236,7 @@ theorem fejerQuad_T_of_odd {N : ℕ} (hN : 0 < N) {m : ℕ} (hmN : m < N) (hm : 
     intro k hkmem
     obtain ⟨hk1, hk2⟩ := Finset.mem_Icc.mp hkmem
     have hc := fejerCrossSum_eq hN hk1 (by omega) hmN
-    rw [hc, if_neg (by rcases hm with ⟨t, rfl⟩; omega), zero_div]
+    rw [hc, ite_eq_right (by rcases hm with ⟨t, rfl⟩; omega), zero_div]
   rw [Finset.sum_congr rfl hk, Finset.sum_const_zero, mul_zero, mul_zero]
   norm_num
 
@@ -3182,11 +3261,11 @@ theorem fejerQuad_T_of_even {N : ℕ} (hN : 0 < N) {m : ℕ} (hm2 : 2 ≤ m)
       = (((N : ℝ)) / 2) / (4 * ((((2 * t / 2 : ℕ) : ℝ)) ^ 2) - 1) := by
     rw [Finset.sum_eq_single (2 * t / 2)]
     · rw [fejerCrossSum_eq hN (by omega) (by omega) (by omega),
-        if_pos (by omega : 2 * (2 * t / 2) = 2 * t)]
+        ite_eq_left (by omega : 2 * (2 * t / 2) = 2 * t)]
     · intro k hkmem hkne
       obtain ⟨hk1, hk2⟩ := Finset.mem_Icc.mp hkmem
       rw [fejerCrossSum_eq hN hk1 (by omega) (by omega),
-        if_neg (by omega : ¬(2 * k = 2 * t)), zero_div]
+        ite_eq_right (by omega : ¬(2 * k = 2 * t)), zero_div]
     · intro hnm
       exact absurd hmem hnm
   have hhalf : ((((2 * t / 2 : ℕ) : ℝ)) ^ 2) = (((t : ℕ) : ℝ)) ^ 2 := by
@@ -3223,7 +3302,7 @@ theorem chebT_span {N : ℕ} (p : Polynomial ℝ) (hp : p.natDegree < N) :
       rw [Polynomial.mem_degreeLT]
       exact (Polynomial.natDegree_lt_iff_degree_lt hp0).mp hp
     rw [← Polynomial.Sequence.span_degreeLT
-        (Polynomial.Chebyshev.chebyshevTsequence ℝ) (by simp),
+        (Polynomial.Chebyshev.chebyshevTSequence ℝ) (by simp),
       show (Set.Iio N) = (Finset.range N : Set ℕ) by simp,
       Submodule.mem_span_image_finset_iff_exists_fun'] at hmem
     obtain ⟨c, rfl⟩ := hmem
@@ -3386,20 +3465,20 @@ theorem lagrangeInterpRemainderAbs {N : ℕ} (hN : 0 < N) (a b : ℝ) (hab : a �
       have hiB := i.isLt
       have hjB := j.isLt
       by_cases hi : (i : ℕ) < N
-      · have hii : node' i = node ⟨(i : ℕ), hi⟩ := dif_pos hi
+      · have hii : node' i = node ⟨(i : ℕ), hi⟩ := dite_eq_left hi
         rw [hii] at hij
         by_cases hj : (j : ℕ) < N
-        · have hjj : node' j = node ⟨(j : ℕ), hj⟩ := dif_pos hj
+        · have hjj : node' j = node ⟨(j : ℕ), hj⟩ := dite_eq_left hj
           rw [hjj] at hij
           refine Fin.ext ?_
           simpa using congrArg Fin.val (hinj hij)
-        · have hjj : node' j = x := dif_neg hj
+        · have hjj : node' j = x := dite_eq_right hj
           rw [hjj] at hij
           exact absurd hij (hnx ⟨(i : ℕ), hi⟩)
-      · have hii : node' i = x := dif_neg hi
+      · have hii : node' i = x := dite_eq_right hi
         rw [hii] at hij
         by_cases hj : (j : ℕ) < N
-        · have hjj : node' j = node ⟨(j : ℕ), hj⟩ := dif_pos hj
+        · have hjj : node' j = node ⟨(j : ℕ), hj⟩ := dite_eq_left hj
           rw [hjj] at hij
           exact absurd hij.symm (hnx ⟨(j : ℕ), hj⟩)
         · exact Fin.val_injective (show (i : ℕ) = (j : ℕ) by omega)
@@ -3407,10 +3486,10 @@ theorem lagrangeInterpRemainderAbs {N : ℕ} (hN : 0 < N) (a b : ℝ) (hab : a �
       intro i
       by_cases hi : (i : ℕ) < N
       · show (if hi : (i : ℕ) < N then node ⟨(i : ℕ), hi⟩ else x) ∈ Set.Icc a b
-        rw [dif_pos hi]
+        rw [dite_eq_left hi]
         exact hmem _
       · show (if hi : (i : ℕ) < N then node ⟨(i : ℕ), hi⟩ else x) ∈ Set.Icc a b
-        rw [dif_neg hi]
+        rw [dite_eq_right hi]
         exact hx
     have hzeros : ∀ i (j : ℕ), j < 1 → iteratedDeriv j G (node' i) = 0 := by
       intro i j hjlt
@@ -3418,10 +3497,10 @@ theorem lagrangeInterpRemainderAbs {N : ℕ} (hN : 0 < N) (a b : ℝ) (hab : a �
       rw [hj, iteratedDeriv_zero]
       by_cases hi : (i : ℕ) < N
       · show G (if hi : (i : ℕ) < N then node ⟨(i : ℕ), hi⟩ else x) = 0
-        rw [dif_pos hi]
+        rw [dite_eq_left hi]
         exact hGnode _
       · show G (if hi : (i : ℕ) < N then node ⟨(i : ℕ), hi⟩ else x) = 0
-        rw [dif_neg hi]
+        rw [dite_eq_right hi]
         exact hGx
     have hsum : N + 1 ≤ ∑ i : Fin (N + 1), 1 := by
       rw [Finset.sum_const, Finset.card_univ, Fintype.card_fin]
@@ -4663,9 +4742,9 @@ private theorem pickEntry_isometry : IsIsometry pickEntry := by
     cases i1 <;> simp [pickEntry, Matrix.conjTranspose_apply]
   rw [Matrix.mul_apply, Matrix.one_apply_eq,
     Finset.sum_eq_single ((false, ()) : Bool × Unit)]
-  · rw [hstar (false, ()), if_pos rfl]
+  · rw [hstar (false, ()), ite_eq_left rfl]
   · intro i _ hne
-    rw [hstar i, if_neg hne]
+    rw [hstar i, ite_eq_right hne]
   · intro h
     exact absurd (Finset.mem_univ _) h
 
@@ -4690,16 +4769,16 @@ private theorem compress_pickEntry (V : Matrix (Bool × Unit) (Bool × Unit) ℂ
   rw [compress, step, Finset.sum_eq_single ((false, ()) : Bool × Unit)]
   · rw [Finset.sum_eq_single ((false, ()) : Bool × Unit)]
     · rw [key (false, ()) (false, ()),
-        if_pos (show ((false, ()) : Bool × Unit) = (false, ()) ∧ (false, ()) = (false, ())
+        ite_eq_left (show ((false, ()) : Bool × Unit) = (false, ()) ∧ (false, ()) = (false, ())
           by simp), Matrix.of_apply]
     · intro i _ hne
-      rw [key i (false, ()), if_neg (by rintro ⟨hi, _⟩; exact hne hi)]
+      rw [key i (false, ()), ite_eq_right (by rintro ⟨hi, _⟩; exact hne hi)]
     · intro h
       exact absurd (Finset.mem_univ _) h
   · intro j _ hne
     rw [Finset.sum_eq_zero]
     intro i _
-    rw [key i j, if_neg (by rintro ⟨_, hj⟩; exact hne hj)]
+    rw [key i j, ite_eq_right (by rintro ⟨_, hj⟩; exact hne hj)]
   · intro h
     exact absurd (Finset.mem_univ _) h
 

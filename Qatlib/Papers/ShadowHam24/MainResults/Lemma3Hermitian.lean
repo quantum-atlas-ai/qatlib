@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ShadowHam24.MainResults.Definitions
+module
+
+public import Qatlib.Papers.ShadowHam24.MainResults.Definitions
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -33,9 +37,12 @@ namespace Qatlib.Papers.ShadowHam24.MainResults
 
 variable {N M : Type*} [Fintype N] [DecidableEq N] [Fintype M] [DecidableEq M]
 
+omit [Fintype N] [DecidableEq N] [Fintype M] [DecidableEq M] in
 /-- Hermitian conjugation of the trace in Eq. (19): for Hermitian `H`,
 `conj(tr(O_m^† [H,O_m'])) = tr(O_m'^† [H,O_m])`. -/
-lemma star_trace_commutator (H : Matrix N N ℂ) (O : M → Matrix N N ℂ)
+lemma star_trace_commutator {N M : Type*} [Fintype N] [DecidableEq N]
+    [_fintypeM : Fintype M] [_decidableEqM : DecidableEq M]
+    (H : Matrix N N ℂ) (O : M → Matrix N N ℂ)
     (m m' : M) (hH : H.IsHermitian) :
     star (((O m)ᴴ * (H * O m' - O m' * H)).trace)
       = ((O m')ᴴ * (H * O m - O m * H)).trace := by

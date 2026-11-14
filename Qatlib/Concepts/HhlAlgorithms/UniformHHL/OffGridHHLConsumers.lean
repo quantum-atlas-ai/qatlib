@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HhlAlgorithms.UniformHHL.OffGridSignedHHL
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.FiniteStoppingTail
-import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws
+module
+
+public import Qatlib.Concepts.HhlAlgorithms.UniformHHL.OffGridSignedHHL
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.FiniteStoppingTail
+public import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws
+
+@[expose] public section
 
 /-!
 # Off-grid HHL examples and fresh retries

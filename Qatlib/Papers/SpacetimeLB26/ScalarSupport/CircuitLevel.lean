@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SpacetimeLB26.ScalarSupport.Defs
+module
+
+public import Qatlib.Papers.SpacetimeLB26.ScalarSupport.Defs
+
+@[expose] public section
 
 /-!
 # Conditional circuit achievability and thresholds

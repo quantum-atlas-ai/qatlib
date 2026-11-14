@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GateVocabulary.LocalReflectionGates
-import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownQubitControl
-import Qatlib.Concepts.CopyEvolution.Discriminate.ControlledCopyEvolution
+module
+
+public import Qatlib.Concepts.GateVocabulary.LocalReflectionGates
+public import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownQubitControl
+public import Qatlib.Concepts.CopyEvolution.Discriminate.ControlledCopyEvolution
+
+@[expose] public section
 
 /-!
 # Shared Controlled-Swap Imports

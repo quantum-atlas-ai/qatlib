@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommutLCHS26.MainResults.BCHDynkin
-import Qatlib.Papers.CommutLCHS26.MainResults.FormalPowers
-import Qatlib.Papers.CommutLCHS26.MainResults.SubdivisionPolynomial
-import Mathlib.RingTheory.Polynomial.Pochhammer
-import Mathlib.Algebra.Polynomial.Roots
-import Mathlib.Algebra.Polynomial.Module.Basic
-import Mathlib.Algebra.Polynomial.Eval.SMul
-import Mathlib.Tactic.FieldSimp
+module
+
+public import Qatlib.Papers.CommutLCHS26.MainResults.BCHDynkin
+public import Qatlib.Papers.CommutLCHS26.MainResults.FormalPowers
+public import Qatlib.Papers.CommutLCHS26.MainResults.SubdivisionPolynomial
+public import Mathlib.RingTheory.Polynomial.Pochhammer
+public import Mathlib.Algebra.Polynomial.Roots
+public import Mathlib.Algebra.Polynomial.Module.Basic
+public import Mathlib.Algebra.Polynomial.Eval.SMul
+public import Mathlib.Tactic.FieldSimp
+
+@[expose] public section
 
 /-!
 # Formal logarithms through power polynomials

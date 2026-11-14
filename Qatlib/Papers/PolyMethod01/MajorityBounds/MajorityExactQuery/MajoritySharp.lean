@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.PolyMethod01.MajorityBounds.MajorityExactQuery.Basic
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.MajorityAndRestriction
-import Qatlib.Concepts.QueryComplexity.Amplification.MajorityVote
+module
+
+public import Qatlib.Papers.PolyMethod01.MajorityBounds.MajorityExactQuery.Basic
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.MajorityAndRestriction
+public import Qatlib.Concepts.QueryComplexity.Amplification.MajorityVote
+
+@[expose] public section
 
 /-!
 # Stronger query lower bounds for odd majority

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SpectralAmp17.MainResults.SourceModel.PaperModel
+module
+
+public import Qatlib.Papers.SpectralAmp17.MainResults.SourceModel.PaperModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -33,7 +37,7 @@ Resource and accuracy specification for `corollary3_linearCombination`.
 No circuit, oracle implementation, or execution-cost theorem is supplied here.
 The existential record is a specification, not evidence of an algorithm. -/
 def corollary3_linearCombination_statement (H : Matrix n n ℂ) (ε : ℝ)
-    (hH : H.IsHermitian) (hnorm : ‖H‖ ≤ 1 / 2) (hε0 : 0 < ε) : Prop :=
+    (_hH : H.IsHermitian) (_hnorm : ‖H‖ ≤ 1 / 2) (_hε0 : 0 < ε) : Prop :=
     ∃ (F' : StandardForm n (Fin 4)),
       F'.Uᴴ * F'.U = 1 ∧ 0 ≤ F'.queries ∧ 0 ≤ F'.gates ∧
       F'.α = 1 ∧ ‖F'.H - H‖ ≤ ε ∧

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.VarTimeAmpAmp10.CoherentAA.CoherentAmplificationStat
-import Qatlib.Papers.VarTimeAmpAmp10.CoherentAA.CoherentAmplificationContracts
+module
+
+public import Qatlib.Papers.VarTimeAmpAmp10.CoherentAA.CoherentAmplificationStat
+public import Qatlib.Papers.VarTimeAmpAmp10.CoherentAA.CoherentAmplificationContracts
+
+@[expose] public section
 
 /-!
 # Probability bounds for coherent amplitude amplification

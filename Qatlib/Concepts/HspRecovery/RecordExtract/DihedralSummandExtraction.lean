@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.RecordExtract.DihedralCosetRecord
+module
+
+public import Qatlib.Concepts.HspRecovery.RecordExtract.DihedralCosetRecord
+
+@[expose] public section
 
 /-!
 # Extraction of sum and difference phase qubits
@@ -116,11 +120,11 @@ private theorem extraction_half_conditional (ξ : QState Bool) (hξ : Normalized
     field_simp
   have hp : PostMeasure (fun a => ((1 : ℂ)/Real.sqrt 2)*ξ a) Finset.univ=ξ := by
     ext a
-    simp only [PostMeasure,collapse_apply,Finset.mem_univ,if_true,hmass]
+    simp only [PostMeasure,collapse_apply,Finset.mem_univ,ite_true,hmass]
     rw [← mul_assoc,hs,one_mul]
   have hc : ConditionalState (fun a => ((1 : ℂ)/Real.sqrt 2)*ξ a)=some ξ := by
     unfold ConditionalState
-    rw [hmass,if_pos (by norm_num : (0 : ℝ) < 1/2),hp]
+    rw [hmass,ite_eq_left (by norm_num : (0 : ℝ) < 1/2),hp]
   exact actualRecordState_eq_of_some _ ξ hξ hc
 
 /-- Extracting phase qubits with labels `k` and `ℓ` produces the tagged sum and difference
@@ -156,7 +160,7 @@ theorem dihedralExtractionLaw (N : ℕ) [NeZero N] (s k ℓ : ZMod N) :
     rw [CNOT,applyGate_permMatrix cnotFlip_involutive]
     cases a <;> cases b <;>
       simp only [cnotFlip,TensorState,dihedralQubitState,xiPlus,xiMinus,u,Pi.smul_apply,smul_eq_mul,
-        Bool.xor_false,Bool.xor_true,Bool.not_false,Bool.not_true,Bool.cond_false,Bool.cond_true,Bool.false_eq_true,if_false,if_true]
+        Bool.xor_false,Bool.xor_true,Bool.not_false,Bool.not_true,Bool.cond_false,Bool.cond_true,Bool.false_eq_true,ite_false,ite_true]
     · ring
     · ring
     · rw [hplus]; ring
@@ -193,7 +197,7 @@ theorem dihedralExtractionLaw (N : ℕ) [NeZero N] (s k ℓ : ZMod N) :
   all_goals
     have hn : (2 : NNReal)⁻¹=(4 : NNReal)⁻¹+(4 : NNReal)⁻¹ := by norm_num
     have he := congrArg (fun x : NNReal => (x : ENNReal)) hn
-    (try dsimp only at he)
+
     rw [ENNReal.coe_add,ENNReal.coe_inv (by norm_num : (2 : NNReal) ≠ 0),
       ENNReal.coe_inv (by norm_num : (4 : NNReal) ≠ 0)] at he
     norm_num at he

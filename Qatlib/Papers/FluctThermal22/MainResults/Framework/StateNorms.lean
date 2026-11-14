@@ -4,7 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.FluctThermal22.MainResults.Framework.ThermalWorkModel
+module
+
+public import Qatlib.Papers.FluctThermal22.MainResults.Framework.ThermalWorkModel
+
+@[expose] public section
+set_option linter.unusedSectionVars false
 
 set_option backward.isDefEq.respectTransparency false
 

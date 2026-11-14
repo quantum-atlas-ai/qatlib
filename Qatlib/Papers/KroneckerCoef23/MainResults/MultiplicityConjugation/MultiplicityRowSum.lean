@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.RepresentationTheory.Character
-import Mathlib.Analysis.Complex.Polynomial.Basic
-import Qatlib.Papers.KroneckerCoef23.MainResults.RowSumConjugation.ConjugationRowSum
+module
+
+public import Mathlib.RepresentationTheory.Character
+public import Mathlib.Analysis.Complex.Polynomial.Basic
+public import Qatlib.Papers.KroneckerCoef23.MainResults.RowSumConjugation.ConjugationRowSum
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -73,6 +77,7 @@ theorem centralizerCard_inv (g : G) : centralizerCard g⁻¹ = centralizerCard g
 theorem conjChar_inv (g : G) : conjChar g⁻¹ = conjChar g := by
   simp [conjChar, centralizerCard_inv]
 
+omit [Group G] [Fintype G] [DecidableEq G] in
 /-- **Lemma 7, Eq. (56) form** (fixed arXiv:2302.11454v3, p. 14):
 if the character `χ_c` of the conjugation representation decomposes as
 `χ_c = Σ_λ m_λ χ_λ` over a family of pairwise non-isomorphic irreducibles with real characters
@@ -82,16 +87,17 @@ if the character `χ_c` of the conjugation representation decomposes as
 This is the computation `m_λ = (1/n!) Σ_g χ_λ(g) χ_c(g)` of Eq. (56), obtained from the
 orthonormality of the irreducible characters (`FDRep.char_orthonormal`). -/
 theorem lemma7_multiplicity_eq_character_average
+    {G : Type*} [Group G] [Fintype G] [_decidableEqG : DecidableEq G]
     {ι : Type*} [Fintype ι] [DecidableEq ι]
     (ρ : ι → FDRep ℂ G) (hS : ∀ i, Simple (ρ i))
     (m : ι → ℂ) (χc : G → ℂ)
     (hdecomp : ∀ g, χc g = ∑ i, m i * (ρ i).character g)
-    (hinv : ∀ g, χc g⁻¹ = χc g)
+    (_hinv : ∀ g, χc g⁻¹ = χc g)
     (hcharinv : ∀ i (g : G), (ρ i).character g⁻¹ = (ρ i).character g)
     (hdisj : ∀ i j, Nonempty (ρ i ≅ ρ j) → i = j)
     (i : ι) :
     m i = (Fintype.card G : ℂ)⁻¹ * ∑ g : G, (ρ i).character g * χc g := by
-  haveI : Invertible (Fintype.card G : ℂ) :=
+  have : Invertible (Fintype.card G : ℂ) :=
     invertibleOfNonzero (Nat.cast_ne_zero.mpr Fintype.card_ne_zero)
   -- Orthonormality in the form `(1/|G|) Σ_g χ_i(g) χ_j(g) = δ_{ij}`.
   have horth : ∀ j : ι,
@@ -99,8 +105,8 @@ theorem lemma7_multiplicity_eq_character_average
         = if j = i then 1 else 0 := by
     intro j
     classical
-    haveI hi : Simple (ρ i) := hS i
-    haveI hj : Simple (ρ j) := hS j
+    have hi : Simple (ρ i) := hS i
+    have hj : Simple (ρ j) := hS j
     have h := FDRep.char_orthonormal (ρ i) (ρ j)
     have h' : (Fintype.card G : ℂ)⁻¹ * (∑ g : G, (ρ i).character g * (ρ j).character g)
         = if Nonempty (ρ i ≅ ρ j) then (1 : ℂ) else 0 := by

@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.Execution.WorkspaceCP.WorkspaceCircuit
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.WorkspaceMachine
-import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ResourceBoundsTransportLiveWire
-import Qatlib.Concepts.ReferenceError.DensityToRaw.ChannelTraceContraction
-import Qatlib.Concepts.QsvtCore.QueryLowerBound.ScalarSignalConsumers
+module
+
+public import Qatlib.Concepts.Execution.WorkspaceCP.WorkspaceCircuit
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.WorkspaceMachine
+public import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ResourceBoundsTransportLiveWire
+public import Qatlib.Concepts.ReferenceError.DensityToRaw.ChannelTraceContraction
+public import Qatlib.Concepts.QsvtCore.QueryLowerBound.ScalarSignalConsumers
+
+@[expose] public section
 
 /-!
 # Clean auxiliary release and workspace accounting
@@ -250,7 +254,7 @@ def computeReg (n : ℕ) (i : Fin n) : Matrix (Reg (n+1)) (Reg (n+1)) ℂ :=
 theorem computeReg_code (n : ℕ) (i : Fin n) :
     finiteCodeMatrix (n+1) (.cx i.val n) = computeReg n i := by
   have h : i.val < n+1 ∧ n < n+1 ∧ i.val ≠ n := by omega
-  rw [finiteCodeMatrix, dif_pos h]
+  rw [finiteCodeMatrix, dite_eq_left h]
   rfl
 
 /-- Updating the final register bit by exclusive-or with a selected data bit changes only the
@@ -351,7 +355,7 @@ def codeProduct (n : ℕ) : List FiniteGateCode → Matrix (Reg n) (Reg n) ℂ
 /-- The product of the four phase gate codes equals the enlarged-register phase matrix. -/
 theorem phaseReg_codes (n : ℕ) (i : Fin n) : codeProduct (n+1) (phaseCodes n i) = phaseReg n i := by
   have ht : finiteCodeMatrix (n+1) (.t n) = wireGate (n+1) (Fin.last n) tGate := by
-    rw [finiteCodeMatrix, dif_pos (show n<n+1 by omega)]
+    rw [finiteCodeMatrix, dite_eq_left (show n<n+1 by omega)]
     rfl
   simp only [phaseCodes, codeProduct, Matrix.one_mul, computeReg_code, ht, phaseReg,
       Matrix.mul_assoc]
@@ -743,7 +747,7 @@ theorem wordWidths_peak {n : ℕ} (w : List (CleanOp n)) :
       simp only [wordWidths, List.map_cons, List.map_append, List.foldr_cons,
         List.foldr_append, List.replicate_succ, List.replicate_zero, List.map_nil,
         List.foldr_nil, h1,h2, wordPhases, Nat.add_eq_zero_iff, Nat.one_ne_zero,
-        and_false, if_false, zero_max]
+        and_false, ite_false, zero_max]
       rw [ih]
       split_ifs <;> decide
     | data g hg => simpa only [wordWidths,wordPhases,List.map_cons,List.foldr_cons,h1,zero_max] using! ih
@@ -825,7 +829,7 @@ def qubitReg : Bool ≃ Reg 1 where
 /-- A gate on the unique wire of a one-bit register is its relabeling along `qubitReg`. -/
 theorem wireGate_one (A : Matrix Bool Bool ℂ) : wireGate 1 0 A = relabelGate qubitReg A := by
   ext x y
-  rw [wireGate_apply, if_pos (by intro j hj; fin_cases j; exact (hj rfl).elim)]
+  rw [wireGate_apply, ite_eq_left (by intro j hj; fin_cases j; exact (hj rfl).elim)]
   rfl
 
 /-- Four T gates, grouped into two squares, multiply to Pauli Z. -/

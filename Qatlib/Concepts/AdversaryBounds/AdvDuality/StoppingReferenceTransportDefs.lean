@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.StoppingCore.InterruptBridge.StoppingDefs
-import Qatlib.Concepts.StoppingCore.InterruptBridge.StoppingExt
-import Qatlib.Concepts.StoppingCore.InterruptBridge.QuerySpaceExtensions
+module
+
+public import Qatlib.Concepts.StoppingCore.InterruptBridge.StoppingDefs
+public import Qatlib.Concepts.StoppingCore.InterruptBridge.StoppingExt
+public import Qatlib.Concepts.StoppingCore.InterruptBridge.QuerySpaceExtensions
+
+@[expose] public section
 
 /-!
 # Data for stopping and charged instrument transport

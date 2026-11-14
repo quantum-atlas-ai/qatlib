@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
-import Qatlib.Concepts.ShadowModels.ShadowChannel.ObservedEvent
+module
+
+public import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.ObservedEvent
+
+@[expose] public section
 
 /-!
 # Kraus instruments of observed circuits

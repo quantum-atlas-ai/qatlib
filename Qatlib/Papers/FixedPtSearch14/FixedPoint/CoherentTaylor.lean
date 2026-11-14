@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RandCompile.ChannelBudget.CoherentSimulation
-import Qatlib.Concepts.CoherentSim.FactorialTaylor.FactorialTaylorConsumers
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
-import Mathlib.Data.Int.Order.Lemmas
-import Mathlib.Data.Nat.Size
-import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteGatePhaseBoundary
+module
+
+public import Qatlib.Concepts.RandCompile.ChannelBudget.CoherentSimulation
+public import Qatlib.Concepts.CoherentSim.FactorialTaylor.FactorialTaylorConsumers
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+public import Mathlib.Data.Int.Order.Lemmas
+public import Mathlib.Data.Nat.Size
+public import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteGatePhaseBoundary
+
+@[expose] public section
 
 /-!
 # Coherent Taylor arithmetic and circuit resources
@@ -464,8 +468,8 @@ theorem swapWireWord_run (n : ℕ) (c t : Fin n) (hct : c ≠ t) (x : Reg n) :
   have hne : c.val ≠ t.val := fun h => hct (Fin.ext h)
   simp only [finiteWordRun, hlegal, ↓reduceIte]
   simp only [finiteCodeCircuit, swapWireWord, List.map_cons, List.map_nil, Run]
-  simp only [finiteCodeMatrix, dif_pos (show c.val < n ∧ t.val < n ∧ c.val ≠ t.val from ⟨c.isLt, t.isLt, hne⟩),
-    dif_pos (show t.val < n ∧ c.val < n ∧ t.val ≠ c.val from ⟨t.isLt, c.isLt, Ne.symm hne⟩)]
+  simp only [finiteCodeMatrix, dite_eq_left (show c.val < n ∧ t.val < n ∧ c.val ≠ t.val from ⟨c.isLt, t.isLt, hne⟩),
+    dite_eq_left (show t.val < n ∧ c.val < n ∧ t.val ≠ c.val from ⟨t.isLt, c.isLt, Ne.symm hne⟩)]
   rw [applyGate_cnotGate_ket n c t hct,
     applyGate_cnotGate_ket n t c (Ne.symm hct), applyGate_cnotGate_ket n c t hct]
   rw [three_xors_swap c t hct]
@@ -510,10 +514,10 @@ theorem exchangePrefix_step (n k : ℕ) (hk : k < n) (x : Reg (n + n)) :
       simp only [swappedRecord, Function.update_of_ne hti, Function.update_of_ne hci]
       unfold exchangePrefix
       by_cases hi : i.val < n
-      · simp only [dif_pos hi]
+      · simp only [dite_eq_left hi]
         have he : (i.val < k) = (i.val < k + 1) := propext (by omega)
         simp only [he]
-      · simp only [dif_neg hi]
+      · simp only [dite_eq_right hi]
         have he : (i.val - n < k) = (i.val - n < k + 1) := propext (by omega)
         simp only [he]
 
@@ -661,7 +665,7 @@ theorem cleanPhaseWord_run_support (n : ℕ) (w : Fin n) (k : ℕ)
     (ψ : QState (Reg n)) (hclean : ∀ x : Reg n, x w = true → ψ x = 0) :
     finiteWordRun n (cleanPhaseWord w.val k) ψ = some (fixedTPhase ^ k • ψ) := by
   have hl := (cleanPhaseWord_legal_counts n w k).1
-  rw [finiteWordRun, if_pos hl, finite_phase_word_run, cleanPhaseWord_matrix]
+  rw [finiteWordRun, ite_eq_left hl, finite_phase_word_run, cleanPhaseWord_matrix]
   congr 1
   funext x
   change (Matrix.diagonal (fun y : Reg n => if y w then 1 else fixedTPhase ^ k) *ᵥ ψ) x = _
@@ -720,7 +724,7 @@ theorem tWord_run (n : ℕ) (w : Fin n) (k : ℕ) (ψ : QState (Reg n)) :
       some (fun x => (if x w then fixedTPhase ^ k else 1) * ψ x) := by
   have hl : finiteWordLegal n (List.replicate k (.t w.val)) = true := by
     simp [finiteWordLegal, finiteCodeLegal, w.isLt]
-  rw [finiteWordRun, if_pos hl, finite_phase_word_run, tWord_matrix,
+  rw [finiteWordRun, ite_eq_left hl, finite_phase_word_run, tWord_matrix,
     tGate_pow_diagonal, wireGate_diagonal]
   congr 1
   funext x

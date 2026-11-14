@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.PEPSObs16.MainResults.SourceMainResults
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.PEPSObs16.MainResults.SourceMainResults
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # PEPSObs16 — error chain of Theorem 1, eqs. (11)–(15), and the quasi-polynomial cost
@@ -59,7 +63,7 @@ theorem cond_ratio_bound (Mnorm q κ : ℝ) (hκ : 0 < κ) (hM : 0 < Mnorm)
 normalised discrepancy `|⟨O_X ⊗ M⟩/⟨M⟩ − ⟨O_X⟩|` is at most `e ‖O_X‖ κ²`, which
 is the paper's per-step error `e^{-O(ℓΔ*)} ‖O_X‖ κ(A)^2`. -/
 theorem ratio_error_bound (cross prod q Om M e κ : ℝ)
-    (hq : 0 < q) (he : 0 ≤ e * Om) (hM : 0 < M) (hκ : 0 < κ)
+    (hq : 0 < q) (he : 0 ≤ e * Om) (_hM : 0 < M) (hκ : 0 < κ)
     (hnorm : M / κ ^ 2 ≤ q)
     (h : |cross - prod * q| ≤ e * Om * M) :
     |cross / q - prod| ≤ e * Om * κ ^ 2 := by

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QSPIto26.MainResults.Core.MQSPCore
-import Qatlib.Papers.QSPIto26.MainResults.Lemma8.MQSPPrefixDegree
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+module
+
+public import Qatlib.Papers.QSPIto26.MainResults.Core.MQSPCore
+public import Qatlib.Papers.QSPIto26.MainResults.Lemma8.MQSPPrefixDegree
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

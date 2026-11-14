@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MatProdVerify04.MainResults.MarkedIndependent
-import Mathlib.Data.Finset.Card
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.MatProdVerify04.MainResults.MarkedIndependent
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Combining marked-window probability bounds

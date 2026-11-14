@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QAOAScaling23.SearchPrimitive.NativeResult
+module
+
+public import Qatlib.Papers.QAOAScaling23.SearchPrimitive.NativeResult
+
+@[expose] public section
 
 /-!
 # Born-weight factorization of native search results

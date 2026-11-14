@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MixedFidelity.FidelityMetric.MixedFidelityDefs
-import Qatlib.Concepts.AdaptiveCP.BranchTrace.QuantumChannel
-import Qatlib.Concepts.ReferenceError.DensityToRaw.ChannelTraceContraction
-import Qatlib.Concepts.MixedFidelity.FidelityMetric.RankOneTraceNormBound
-import Qatlib.Foundations.PureStateMath.Tensor
-import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
-import QuantumInfo.States.Mixed.Fidelity
+module
+
+public import Qatlib.Concepts.MixedFidelity.FidelityMetric.MixedFidelityDefs
+public import Qatlib.Concepts.AdaptiveCP.BranchTrace.QuantumChannel
+public import Qatlib.Concepts.ReferenceError.DensityToRaw.ChannelTraceContraction
+public import Qatlib.Concepts.MixedFidelity.FidelityMetric.RankOneTraceNormBound
+public import Qatlib.Foundations.PureStateMath.Tensor
+public import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
+public import QuantumInfo.States.Mixed.Fidelity
+
+@[expose] public section
 
 /-!
 # Root fidelity, purifications, and trace distance
@@ -421,7 +425,7 @@ tensor-product identities for root fidelity and trace distance. The commuting-st
 is stated for a supplied simultaneous unitary diagonalization. -/
 theorem g1 :
   (∀ (D : ℕ) (ρ σ : Operator D), IsDensityOperator ρ → IsDensityOperator σ →
-    (FrootG ρ σ = Froot ρ σ) ∧
+    (Matrix.traceNorm (CFC.sqrt ρ * CFC.sqrt σ) = Froot ρ σ) ∧
     (0 ≤ Froot ρ σ ∧ Froot ρ σ ≤ 1 ∧
       0 ≤ traceDistance ρ σ ∧ traceDistance ρ σ ≤ 1) ∧
     (Froot ρ σ = Froot σ ρ) ∧
@@ -439,7 +443,9 @@ theorem g1 :
       Froot (U * ρ * Uᴴ) (U * σ * Uᴴ) = Froot ρ σ ∧
       traceDistance (U * ρ * Uᴴ) (U * σ * Uᴴ) = traceDistance ρ σ) ∧
     (∀ (E : ℕ) (τ ω : Operator E), IsDensityOperator τ → IsDensityOperator ω →
-      FrootG (TensorGate ρ τ) (TensorGate σ ω) = FrootG ρ σ * FrootG τ ω)) := by
+      Matrix.traceNorm (CFC.sqrt (TensorGate ρ τ) * CFC.sqrt (TensorGate σ ω)) =
+        Matrix.traceNorm (CFC.sqrt ρ * CFC.sqrt σ) *
+          Matrix.traceNorm (CFC.sqrt τ * CFC.sqrt ω))) := by
   intro D ρ σ hρ hσ
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · rfl
@@ -956,9 +962,9 @@ theorem positive_square_difference_trace_le {I : Type} [Fintype I] [DecidableEq 
     simp only [Matrix.sub_apply, Complex.sub_re, Matrix.diagonal_apply_eq,
       Complex.ofReal_re] at hdiag'
     by_cases hl : 0 ≤ l i
-    · simp only [d, if_pos hl, one_mul]
+    · simp only [d, ite_eq_left hl, one_mul]
       nlinarith
-    · simp only [d, if_neg hl, neg_one_mul]
+    · simp only [d, ite_eq_right hl, neg_one_mul]
       nlinarith
   rw [hsqtrace]
   exact (Finset.sum_le_sum (fun i _ => hscalar i)).trans (hentry ▸ hb)

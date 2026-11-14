@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TensorRegisters.RegisterModel.BinaryShift
-import Qatlib.Concepts.TensorRegisters.RegisterModel.RootChars
-import Qatlib.Papers.DiracEquation16.SpinGates.NativeSpin
+module
+
+public import Qatlib.Concepts.TensorRegisters.RegisterModel.BinaryShift
+public import Qatlib.Concepts.TensorRegisters.RegisterModel.RootChars
+public import Qatlib.Papers.DiracEquation16.SpinGates.NativeSpin
+
+@[expose] public section
 
 /-!
 # Finite-register Dirac walk steps

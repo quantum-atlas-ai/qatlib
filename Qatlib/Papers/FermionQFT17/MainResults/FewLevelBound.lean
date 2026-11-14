@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Data.Finset.Card
+module
+
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Data.Finset.Card
+
+@[expose] public section
 
 /-!
 # Few-level approximation error bound (source Theorem 1, Eq. (28))
@@ -141,7 +145,7 @@ theorem norm_offResonantDivisor_le (E : ι → ℝ) (ω : ℝ) (k : ℕ) (μ : �
     have hnorm : ‖((detuningDenominator E ω k μ η : ℂ))⁻¹‖ =
         (|detuningDenominator E ω k μ η|)⁻¹ := by
       rw [norm_inv, Complex.norm_real, Real.norm_eq_abs]
-    rw [if_neg h, hnorm, one_div]
+    rw [ite_eq_right h, hnorm, one_div]
     exact hinv
 
 /-- Source Eq. (B31)--(B36): the spectral norm of the off-resonant resolvent summand

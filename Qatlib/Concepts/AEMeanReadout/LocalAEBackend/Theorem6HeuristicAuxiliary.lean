@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.ENNReal.Basic
-import Mathlib.Data.Real.Sqrt
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem3QSearchStat
+module
+
+public import Mathlib.Basic.ENNReal.Basic
+public import Mathlib.Analysis.Real.Sqrt
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem3QSearchStat
+
+@[expose] public section
 
 /-!
 # Distributional costs of heuristic search

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Qubit
-import Mathlib.Algebra.Group.Subgroup.Finite
-import Mathlib.LinearAlgebra.Matrix.PosDef
-import Mathlib.LinearAlgebra.Matrix.Trace
+module
+
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Mathlib.Algebra.Group.Subgroup.Finite
+public import Mathlib.LinearAlgebra.Matrix.PosDef
+public import Mathlib.LinearAlgebra.Matrix.Trace
+
+@[expose] public section
 
 /-!
 # Coset density and group twirling

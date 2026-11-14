@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.StochasticCalc.LognormalPay.DiscountedMean
+module
+
+public import Qatlib.Foundations.StochasticCalc.LognormalPay.DiscountedMean
+
+@[expose] public section
 
 /-!
 # Gaussian terminal law for geometric Brownian stock

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorDuhamel
-import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.PolynomialPerturbation
+module
+
+public import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorDuhamel
+public import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.PolynomialPerturbation
+
+@[expose] public section
 
 /-!
 # Segmented matched-order product formulas
@@ -51,7 +55,7 @@ theorem pf_segment_word_prod (xs : List (Matrix I I ℂ)) (t : ℝ) (r : ℕ) :
 evolution at time `t`. -/
 theorem pf_segment_ideal_pow (H : Matrix I I ℂ) (t : ℝ) (r : ℕ) (hr : 0<r) :
     NormedSpace.exp ((t/r) • H)^r=NormedSpace.exp (t • H) := by
-  letI : NormedAlgebra ℚ (Matrix I I ℂ) := NormedAlgebra.restrictScalars ℚ ℝ _
+  let : NormedAlgebra ℚ (Matrix I I ℂ) := NormedAlgebra.restrictScalars ℚ ℝ _
   rw [← NormedSpace.exp_nsmul]
   congr 1
   rw [← Nat.cast_smul_eq_nsmul ℝ,smul_smul]

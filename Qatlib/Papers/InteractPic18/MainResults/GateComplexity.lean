@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RandCompile.ChannelBudget.InteractionPicture
+module
+
+public import Qatlib.Concepts.RandCompile.ChannelBudget.InteractionPicture
+
+@[expose] public section
 
 /-!
 # GateComplexity — Theorem 7 of InteractPic18

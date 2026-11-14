@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SketchArith.TransposeAccess.CompactSketchConsumers
-import Qatlib.Concepts.SketchArith.SketchBuild.SketchFrobeniusConcentration
-import Qatlib.Concepts.SketchArith.GramAction.PostMeasurePerturbation
+module
+
+public import Qatlib.Concepts.SketchArith.TransposeAccess.CompactSketchConsumers
+public import Qatlib.Concepts.SketchArith.SketchBuild.SketchFrobeniusConcentration
+public import Qatlib.Concepts.SketchArith.GramAction.PostMeasurePerturbation
+
+@[expose] public section
 
 /-!
 # Counted sketch Gram action and uniform error bounds

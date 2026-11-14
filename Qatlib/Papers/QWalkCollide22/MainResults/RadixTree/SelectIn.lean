@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Finset.Card
-import Mathlib.Data.Finset.Interval
-import Mathlib.Order.Interval.Finset.Basic
-import Mathlib.Order.Interval.Finset.Nat
-import Lean.Elab.Tactic.Omega
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic.Ring
+module
+
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Data.Finset.Interval
+public import Mathlib.Order.Interval.Finset.Basic
+public import Mathlib.Order.Interval.Finset.Nat
+public import Lean.Elab.Tactic.Omega
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -190,11 +194,11 @@ theorem selectIn_spec (S : Finset ℕ) :
       have hcr_le : countIn S (lo + 2 ^ fuel) (2 ^ fuel) ≤ 2 ^ fuel :=
         countIn_le S (lo + 2 ^ fuel) (2 ^ fuel)
       by_cases hbranch : i < 2 ^ fuel - cl
-      · rw [if_pos hbranch]
+      · rw [ite_eq_left hbranch]
         obtain ⟨i1, i2, i3, i4⟩ := ih lo i (by simpa [hcl] using hbranch)
         rw [hpow2]
         exact ⟨i1, by omega, i3, i4⟩
-      · rw [if_neg hbranch]
+      · rw [ite_eq_right hbranch]
         push Not at hbranch
         rw [hpow2]
         have ihb : i - (2 ^ fuel - cl) <

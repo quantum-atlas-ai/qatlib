@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ShadowTomog26.MainResults.Theorem3
+module
+
+public import Qatlib.Papers.ShadowTomog26.MainResults.Theorem3
+
+@[expose] public section
 
 /-!
 # Conditional exact value for block measurements

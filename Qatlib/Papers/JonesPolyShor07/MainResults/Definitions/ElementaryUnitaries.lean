@@ -4,51 +4,55 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Fin
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Defs
-import Mathlib.Algebra.CharZero.Defs
-import Mathlib.Algebra.Field.Defs
-import Mathlib.Algebra.Group.Action.Defs
-import Mathlib.Algebra.Group.Basic
-import Mathlib.Algebra.Group.Defs
-import Mathlib.Algebra.Group.DivInvMonoid
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.Group.Nat.Defs
-import Mathlib.Algebra.GroupWithZero.Basic
-import Mathlib.Algebra.GroupWithZero.Defs
-import Mathlib.Algebra.GroupWithZero.Nat
-import Mathlib.Algebra.Module.NatInt
-import Mathlib.Algebra.NeZero
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Algebra.Ring.Nat
-import Mathlib.Analysis.Complex.Exponential
-import Mathlib.Basic.Complex.Basic
-import Mathlib.Basic.FunLike.Basic
-import Mathlib.Basic.FunLike.Equiv
-import Mathlib.Basic.Real.Basic
-import Mathlib.Basic.SetLike.Basic
-import Mathlib.Basic.Unique
-import Mathlib.Data.Finset.BooleanAlgebra
-import Mathlib.Data.Finset.Card
-import Mathlib.Data.Finset.Defs
-import Mathlib.Data.Finset.Insert
-import Mathlib.Data.Fintype.Basic
-import Mathlib.Data.Fintype.Defs
-import Mathlib.Data.Int.Cast.Defs
-import Mathlib.Data.Matrix.Diagonal
-import Mathlib.Data.Matrix.Mul
-import Mathlib.Data.Nat.Cast.Defs
-import Mathlib.Data.Nat.Init
-import Mathlib.LinearAlgebra.Matrix.Defs
-import Mathlib.Logic.Equiv.Defs
-import Mathlib.Tactic
-import Mathlib.Tactic.NormNum.Basic
-import Mathlib.Tactic.NormNum.Inv
-import Mathlib.Tactic.NormNum.Result
-import Mathlib.Tactic.Ring.Basic
-import Mathlib.Tactic.Ring.Common
-import Qatlib.Papers.JonesPolyShor07.MainResults.Definitions.FibonacciRepresentation
+module
+
+public import Mathlib.Algebra.BigOperators.Fin
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Defs
+public import Mathlib.Algebra.CharZero.Defs
+public import Mathlib.Algebra.Field.Defs
+public import Mathlib.Algebra.Group.Action.Defs
+public import Mathlib.Algebra.Group.Basic
+public import Mathlib.Algebra.Group.Defs
+public import Mathlib.Algebra.Group.DivInvMonoid
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.Group.Nat.Defs
+public import Mathlib.Algebra.GroupWithZero.Basic
+public import Mathlib.Algebra.GroupWithZero.Defs
+public import Mathlib.Algebra.GroupWithZero.Nat
+public import Mathlib.Algebra.Module.NatInt
+public import Mathlib.Algebra.NeZero
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Algebra.Ring.Nat
+public import Mathlib.Analysis.Complex.Exponential
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Basic.FunLike.Basic
+public import Mathlib.Basic.FunLike.Equiv
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Basic.SetLike.Basic
+public import Mathlib.Basic.Unique
+public import Mathlib.Data.Finset.BooleanAlgebra
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Data.Finset.Defs
+public import Mathlib.Data.Finset.Insert
+public import Mathlib.Data.Fintype.Basic
+public import Mathlib.Data.Fintype.Defs
+public import Mathlib.Data.Int.Cast.Defs
+public import Mathlib.Data.Matrix.Diagonal
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.Data.Nat.Cast.Defs
+public import Mathlib.Data.Nat.Init
+public import Mathlib.LinearAlgebra.Matrix.Defs
+public import Mathlib.Logic.Equiv.Defs
+public import Mathlib.Tactic
+public import Mathlib.Tactic.NormNum.Basic
+public import Mathlib.Tactic.NormNum.Inv
+public import Mathlib.Tactic.NormNum.Result
+public import Mathlib.Tactic.Ring.Basic
+public import Mathlib.Tactic.Ring.Common
+public import Qatlib.Papers.JonesPolyShor07.MainResults.Definitions.FibonacciRepresentation
+
+@[expose] public section
 
 /-!
 # Elementary five-dimensional Fibonacci matrices
@@ -131,12 +135,12 @@ theorem Mdiag_mul (α β : ℝ) : Mdiag α * Mdiag β = Mdiag (α + β) := by
   congr 1
   funext i
   by_cases h : i.val = 4
-  · simp only [h, if_true]
+  · simp only [h, ite_true]
     rw [← Complex.exp_add]
     congr 1
     push_cast
     ring
-  · simp only [h, if_false]
+  · simp only [h, ite_false]
     rw [← Complex.exp_add]
     congr 1
     push_cast

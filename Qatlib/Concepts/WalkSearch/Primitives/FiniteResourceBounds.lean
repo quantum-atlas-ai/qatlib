@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Mathlib.Data.Nat.Log
-import Mathlib.Data.Fintype.EquivFin
+module
+
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Mathlib.Data.Nat.Log
+public import Mathlib.Data.Fintype.EquivFin
+
+@[expose] public section
 
 /-!
 # Finite encodings and empty circuits

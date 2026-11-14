@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionEffective
-import Qatlib.Concepts.MonteCarloMean.PayoffRotation.RationalPayoffRotation
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionBounds
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionEffective
+public import Qatlib.Concepts.MonteCarloMean.PayoffRotation.RationalPayoffRotation
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionBounds
+
+@[expose] public section
 
 /-!
 # Certified square-root brackets and stack-machine rounds
@@ -308,12 +312,12 @@ theorem readFramedNat_natBits (n : ℕ) (rest : Bits) :
   unfold readFramedNat
   rw [hread]
   (try dsimp only)
-  rw [if_pos (show (natBits n).length ≤ (natBits n ++ rest).length by simp)]
+  rw [ite_eq_left (show (natBits n).length ≤ (natBits n ++ rest).length by simp)]
   rw [take_append_length]
   rw [hinner]
   (try dsimp only)
   simp only [List.length_nil]
-  simp only [if_true]
+  simp only [ite_true]
   simp
 
 /-- Decode a sign bit and two framed natural numbers as a rational and a suffix, rejecting a
@@ -379,10 +383,10 @@ theorem decRat_encRatWord (r : ℚ) (rest : Bits) :
     decRat (encRatWord r ++ rest) = some (r, rest) := by
   unfold encRatWord
   by_cases h : 0 ≤ r
-  · rw [if_pos h]
+  · rw [ite_eq_left h]
     simp [decRat, readFramedNat_natBits, List.append_assoc, r.den_pos.ne']
     rw [abs_of_nonneg (num_nonneg_of_nonneg r h), Rat.num_div_den]
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     simp [decRat, readFramedNat_natBits, List.append_assoc, r.den_pos.ne']
     rw [abs_of_nonpos (num_nonpos_of_neg r h)]
     rw [show -((-(r.num : ℚ)) / (r.den : ℚ)) = r from by
@@ -447,7 +451,7 @@ theorem bisectStep_scaled (q S : ℚ) (hS : 0 < S) (p : ℚ × ℚ) :
           = (S * S) * (((p.1 + p.2) / 2) * ((p.1 + p.2) / 2)) := by ring
       rw [hmul]
       exact mul_le_mul_of_nonneg_left h hSq.le
-    rw [if_pos h, if_pos h', hmid]
+    rw [ite_eq_left h, ite_eq_left h', hmid]
   · have h' : ¬ ((S * p.1 + S * p.2) / 2) * ((S * p.1 + S * p.2) / 2)
         ≤ S * S * (q / (S * S)) := by
       intro hc
@@ -457,7 +461,7 @@ theorem bisectStep_scaled (q S : ℚ) (hS : 0 < S) (p : ℚ × ℚ) :
           = (S * S) * (((p.1 + p.2) / 2) * ((p.1 + p.2) / 2)) := by ring
       rw [hmul] at hc
       exact (mul_le_mul_iff_of_pos_left hSq).mp hc
-    rw [if_neg h, if_neg h', hmid]
+    rw [ite_eq_right h, ite_eq_right h', hmid]
 
 /-- For positive `S`, iterating bisection from `(0, S)` yields `sqrtInterval q S k`. -/
 theorem bisectStep_iterate_scaled (q S : ℚ) (hS : 0 < S) (k : ℕ) :
@@ -818,8 +822,8 @@ theorem bisectStep_pair (P Q j a : ℕ) (hQ : 0 < Q) :
   by_cases h : (2 * a + 1) ^ 2 * Q ≤ 2 ^ (2 * (j + 1)) * P
   · have hq : ((2 * (a : ℚ) + 1) / 2 ^ (j + 1)) * ((2 * (a : ℚ) + 1) / 2 ^ (j + 1))
         ≤ (P : ℚ) / (Q : ℚ) := (test_iff P Q j a hQ).mpr h
-    rw [if_pos hq]
-    simp only [intStep, if_pos h]
+    rw [ite_eq_left hq]
+    simp only [intStep, ite_eq_left h]
     have hc2 : (((2 * a + 1 : ℕ)) : ℚ) = 2 * (a : ℚ) + 1 := by push_cast; ring
     have hfac : (((a : ℚ) + 1)) / 2 ^ j = (2 * (a : ℚ) + 1 + 1) / 2 ^ (j + 1) := by
       rw [hpow]
@@ -830,8 +834,8 @@ theorem bisectStep_pair (P Q j a : ℕ) (hQ : 0 < Q) :
         ≤ (P : ℚ) / (Q : ℚ) := by
       intro hc
       exact h ((test_iff P Q j a hQ).mp hc)
-    rw [if_neg hq]
-    simp only [intStep, if_neg h]
+    rw [ite_eq_right hq]
+    simp only [intStep, ite_eq_right h]
     have hc2 : (((2 * a : ℕ)) : ℚ) = 2 * (a : ℚ) := by push_cast; ring
     have hfac : (a : ℚ) / 2 ^ j = (2 * (a : ℚ)) / 2 ^ (j + 1) := by
       rw [hpow]
@@ -1121,11 +1125,11 @@ theorem incrStep_a (P Q j : ℕ) (s : IncrState)
   · have hc : incrTrial Q s ≤ s.rhs := (incrBit_eq_one_iff Q s).mp h
     have hcond : (2 * s.a + 1) ^ 2 * Q ≤ 2 ^ (2 * (j + 1)) * P := by
       rwa [incrTrial_eq Q s hsq hlin, hrhs] at hc
-    simp only [incrStep, if_pos h, dblNat_eq, if_pos hcond]
+    simp only [incrStep, ite_eq_left h, dblNat_eq, ite_eq_left hcond]
   · have hc : ¬ incrTrial Q s ≤ s.rhs := (incrBit_ne_one_iff Q s).mp h
     have hcond : ¬ (2 * s.a + 1) ^ 2 * Q ≤ 2 ^ (2 * (j + 1)) * P := by
       rwa [incrTrial_eq Q s hsq hlin, hrhs] at hc
-    simp only [incrStep, if_neg h, dblNat_eq, if_neg hcond, Nat.add_zero]
+    simp only [incrStep, ite_eq_right h, dblNat_eq, ite_eq_right hcond, Nat.add_zero]
 
 /-- The incremental update preserves the square and linear accumulator invariants. -/
 theorem incrStep_invariant (Q : ℕ) (s : IncrState)
@@ -1135,13 +1139,13 @@ theorem incrStep_invariant (Q : ℕ) (s : IncrState)
   by_cases h : incrBit Q s = 1
   · have htr : incrTrial Q s = (2 * s.a + 1) ^ 2 * Q := incrTrial_eq Q s hsq hlin
     constructor
-    · simp only [incrStep, if_pos h, htr, dblNat_eq]
-    · simp only [incrStep, if_pos h, hlin, dblNat_eq]
+    · simp only [incrStep, ite_eq_left h, htr, dblNat_eq]
+    · simp only [incrStep, ite_eq_left h, hlin, dblNat_eq]
       ring
   · constructor
-    · simp only [incrStep, if_neg h, hsq, quadNat_eq, dblNat_eq]
+    · simp only [incrStep, ite_eq_right h, hsq, quadNat_eq, dblNat_eq]
       ring
-    · simp only [incrStep, if_neg h, hlin, dblNat_eq]
+    · simp only [incrStep, ite_eq_right h, hlin, dblNat_eq]
       ring
 
 /-- The incremental update advances the threshold from level `j + 1` to level `j + 2`. -/
@@ -1249,12 +1253,12 @@ theorem incrABits_value (Q : ℕ) (s : IncrState) :
   rw [bitAdd_value, shiftLeft_value,
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.binaryValue_bits]
   by_cases h : incrBit Q s = 1
-  · rw [if_pos h]
-    simp only [binaryValue_singleton, bitNat, if_true]
-    simp only [incrStep, if_pos h, dblNat_eq]
+  · rw [ite_eq_left h]
+    simp only [binaryValue_singleton, bitNat, ite_true]
+    simp only [incrStep, ite_eq_left h, dblNat_eq]
     norm_num
-  · rw [if_neg h]
-    simp only [binaryValue_nil, incrStep, if_neg h, dblNat_eq, Nat.add_zero]
+  · rw [ite_eq_right h]
+    simp only [binaryValue_nil, incrStep, ite_eq_right h, dblNat_eq, Nat.add_zero]
     norm_num
 
 /-- Compute the updated linear accumulator word by doubling its binary expansion and
@@ -1267,16 +1271,16 @@ theorem incrLinBits_value (Q : ℕ) (s : IncrState) :
     binaryValue (incrLinBits Q s) = (incrStep Q s).lin := by
   unfold incrLinBits
   by_cases h : incrBit Q s = 1
-  · rw [if_pos h]
+  · rw [ite_eq_left h]
     rw [bitAdd_value, shiftLeft_value,
       Qatlib.Concepts.BitWordCompiler.CanonicalCodec.binaryValue_bits,
       Qatlib.Concepts.BitWordCompiler.CanonicalCodec.binaryValue_bits]
-    simp only [incrStep, if_pos h, dblNat_eq]
+    simp only [incrStep, ite_eq_left h, dblNat_eq]
     ring
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     rw [bitAdd_value, shiftLeft_value,
       Qatlib.Concepts.BitWordCompiler.CanonicalCodec.binaryValue_bits]
-    simp only [binaryValue_nil, incrStep, if_neg h, dblNat_eq, Nat.add_zero]
+    simp only [binaryValue_nil, incrStep, ite_eq_right h, dblNat_eq, Nat.add_zero]
     norm_num
 
 /-- Collect the incremental bisection invariants, agreement with integer bisection, and
@@ -1528,12 +1532,12 @@ theorem step_cfg (c : ℕ) (os a b d : Bits) (hc : c ≤ 2) :
             store (decide (total c a b d % 2 = 1) :: os) a.tail b.tail d.tail⟩) := by
   unfold cfg
   by_cases h : a = [] ∧ b = [] ∧ d = [] ∧ c = 0
-  · rw [if_pos h]
+  · rw [ite_eq_left h]
     have hs : Local.stalled ⟨a.head?, b.head?, d.head?, (enc c).1, (enc c).2⟩ = true :=
       (stalled_iff c a b d hc).mpr h
     simp only [TM2.step, program, TM2.stepAux, store_update_zero, store_update_one,
       store_update_two, store_zero, store_one, store_two, hs, cond]
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     have hs : Local.stalled ⟨a.head?, b.head?, d.head?, (enc c).1, (enc c).2⟩ = false := by
       cases hh : Local.stalled ⟨a.head?, b.head?, d.head?, (enc c).1, (enc c).2⟩
       · rfl
@@ -1542,7 +1546,7 @@ theorem step_cfg (c : ℕ) (os a b d : Bits) (hc : c ≤ 2) :
       carryVal_enc hc _ _ _
     simp only [TM2.step, program, TM2.stepAux, store_update_zero, store_update_one,
       store_update_two, store_update_three, store_zero, store_one, store_two,
-      store_three, hs, cond_false, Local.nextC0, Local.nextC1,
+      store_three, hs, Bool.cond_false, Local.nextC0, Local.nextC1,
       Local.outBit, Local.total, hc0, total]
 
 /-- Compute the final output stack by repeatedly prepending sum bits while consuming the input
@@ -1588,11 +1592,11 @@ theorem emit_value (c : ℕ) (a b d : Bits) :
     binaryValue (emit c a b d) = binaryValue a + binaryValue b + binaryValue d + c := by
   induction c, a, b, d using emit.induct with
   | case1 c a b d h =>
-    rw [emit.eq_def, if_pos h]
+    rw [emit.eq_def, ite_eq_left h]
     obtain ⟨rfl, rfl, rfl, rfl⟩ := h
     simp
   | case2 c a b d h ih =>
-    rw [emit.eq_def, if_neg h]
+    rw [emit.eq_def, ite_eq_right h]
     rw [Qatlib.Concepts.QueryComplexity.DegreeMethod.ParseFramed.binaryValue_cons, ih]
     set s := stepSum c a b d with hsdef
     have hbit := bitOf_decide_mod s
@@ -1612,14 +1616,14 @@ theorem outWord_eq (c : ℕ) (os a b d : Bits) :
     outWord c os a b d = (emit c a b d).reverse ++ os := by
   induction c, os, a, b, d using outWord.induct with
   | case1 c os a b d h =>
-    rw [outWord.eq_def, if_pos h, emit.eq_def, if_pos h]
+    rw [outWord.eq_def, ite_eq_left h, emit.eq_def, ite_eq_left h]
     simp
   | case2 c os a b d h ih =>
     have hem : emit c a b d =
         decide (stepSum c a b d % 2 = 1) ::
           emit (stepSum c a b d / 2) a.tail b.tail d.tail := by
-      rw [emit.eq_def, if_neg h]
-    rw [outWord.eq_def, if_neg h, ih, hem, List.reverse_cons, List.append_assoc,
+      rw [emit.eq_def, ite_eq_right h]
+    rw [outWord.eq_def, ite_eq_right h, ih, hem, List.reverse_cons, List.append_assoc,
       List.singleton_append]
 
 /-- Bound the addition fuel by twice the sum of input lengths plus the carry and one. -/
@@ -1627,10 +1631,10 @@ theorem fuel_le (c : ℕ) (a b d : Bits) :
     fuel c a b d ≤ 2 * (a.length + b.length + d.length) + c + 1 := by
   induction c, a, b, d using fuel.induct with
   | case1 c a b d h =>
-    rw [fuel.eq_def, if_pos h]
+    rw [fuel.eq_def, ite_eq_left h]
     omega
   | case2 c a b d h ih =>
-    rw [fuel.eq_def, if_neg h]
+    rw [fuel.eq_def, ite_eq_right h]
     have hdec := measure_decrease c a b d h
     omega
 
@@ -1661,27 +1665,27 @@ theorem run_fuel (c : ℕ) (os a b d : Bits) (hc : c ≤ 2) :
     intro os
     obtain ⟨ha, hb, hd, hc0⟩ := h
     subst ha hb hd hc0
-    have hfuel : fuel 0 [] [] [] = 1 := by rw [fuel.eq_def, if_pos ⟨rfl, rfl, rfl, rfl⟩]
+    have hfuel : fuel 0 [] [] [] = 1 := by rw [fuel.eq_def, ite_eq_left ⟨rfl, rfl, rfl, rfl⟩]
     have hout : outWord 0 os [] [] [] = os := by
-      rw [outWord.eq_def, if_pos ⟨rfl, rfl, rfl, rfl⟩]
+      rw [outWord.eq_def, ite_eq_left ⟨rfl, rfl, rfl, rfl⟩]
     have hstep := step_cfg 0 os [] [] [] (by norm_num)
-    rw [if_pos ⟨rfl, rfl, rfl, rfl⟩] at hstep
+    rw [ite_eq_left ⟨rfl, rfl, rfl, rfl⟩] at hstep
     simp only [List.head?_nil, List.tail_nil] at hstep
     rw [hfuel, hout]
     simp only [stackRun, hstep, Option.bind_some, enc_zero_one, enc_zero_two]
   | case2 c a b d h ih =>
     intro os
     have hfuel : fuel c a b d = 1 + fuel (stepSum c a b d / 2) a.tail b.tail d.tail := by
-      rw [fuel.eq_def, if_neg h]
+      rw [fuel.eq_def, ite_eq_right h]
     have hc' : stepSum c a b d / 2 ≤ 2 := by
       have := sum_le_five hc a b d
       omega
     have hstep := step_cfg c os a b d hc
-    rw [if_neg h] at hstep
+    rw [ite_eq_right h] at hstep
     have hout : outWord c os a b d =
         outWord (stepSum c a b d / 2)
           (decide (stepSum c a b d % 2 = 1) :: os) a.tail b.tail d.tail := by
-      rw [outWord.eq_def, if_neg h]
+      rw [outWord.eq_def, ite_eq_right h]
     rw [hfuel, hout, Nat.one_add, stackRun, hstep, Option.bind_some]
     exact ih hc' (decide (stepSum c a b d % 2 = 1) :: os)
 
@@ -1794,7 +1798,7 @@ theorem machine_bounds (a b d : Bits) :
 theorem shift_value (x : Bits) : binaryValue (false :: false :: x) = 4 * binaryValue x := by
   rw [Qatlib.Concepts.QueryComplexity.DegreeMethod.ParseFramed.binaryValue_cons,
     Qatlib.Concepts.QueryComplexity.DegreeMethod.ParseFramed.binaryValue_cons]
-  simp only [Bool.false_eq_true, if_false]
+  simp only [Bool.false_eq_true, ite_false]
   ring
 
 /-- The trial-adder emission represents four times each of the first two input values plus the
@@ -2056,10 +2060,10 @@ theorem fuel_le (st : CState) :
       CState.cval st + 1 := by
   induction st using fuel.induct with
   | case1 st h =>
-    rw [fuel.eq_def, if_pos h]
+    rw [fuel.eq_def, ite_eq_left h]
     omega
   | case2 st h ih =>
-    rw [fuel.eq_def, if_neg h]
+    rw [fuel.eq_def, ite_eq_right h]
     have hdec : 2 * ((CState.step st).a.length + (CState.step st).b.length +
         (CState.step st).d.length + (CState.step st).r.length) + CState.cval (CState.step st) <
         2 * (st.a.length + st.b.length + st.d.length + st.r.length) + CState.cval st :=
@@ -2116,9 +2120,9 @@ theorem CState.step_le_iff (st : CState) (h : CState.cval st ≤ 2) :
   have hstepr : binaryValue (CState.step st).r = binaryValue st.r.tail := rfl
   rw [hv, hw, hr, hstepr]
   by_cases hlt : TrialAdd.bitOf st.r.head? < CState.bit st + CState.wval st
-  · rw [if_pos hlt]
+  · rw [ite_eq_left hlt]
     constructor <;> intro hgoal <;> omega
-  · rw [if_neg hlt]
+  · rw [ite_eq_right hlt]
     constructor <;> intro hgoal <;> omega
 
 /-- For carry at most two, the comparison run halts and its final borrow is false exactly when
@@ -2130,18 +2134,18 @@ theorem CState.run_spec (st : CState) (h : CState.cval st ≤ 2) :
   induction st using CState.run.induct with
   | case1 st hh =>
     intro h
-    rw [CState.run.eq_def, if_pos hh]
+    rw [CState.run.eq_def, ite_eq_left hh]
     refine ⟨hh, ?_⟩
     obtain ⟨ha, hb, hd, hr, hc0, hc1⟩ := hh
     have hvalue : CState.value st = 0 := by
       simp only [CState.value, CState.cval, ha, hb, hd, hc0, hc1, binaryValue_nil, carryOf,
-        Bool.false_eq_true, if_false, Nat.zero_add, Nat.add_zero]
+        Bool.false_eq_true, ite_false, Nat.zero_add, Nat.add_zero]
     rw [hvalue, hr]
     show st.w = false ↔ 0 + (if st.w then 1 else 0) ≤ 0
     by_cases hw : st.w <;> simp [hw]
   | case2 st hh ih =>
     intro h
-    rw [CState.run.eq_def, if_neg hh]
+    rw [CState.run.eq_def, ite_eq_right hh]
     obtain ⟨hh', hspec⟩ := ih (CState.cval_step_le_two st)
     refine ⟨hh', ?_⟩
     rw [hspec]
@@ -2289,7 +2293,7 @@ theorem stalled_iff (st : CState) :
     refine ⟨⟨⟨⟨ha, hb⟩, hd⟩, hr⟩, ?_⟩
     unfold CState.total
     simp only [ha, hb, hd, List.head?_nil, TrialAdd.bitOf, Nat.zero_add, hc0, hc1,
-      carryOf, Bool.false_eq_true, if_false]
+      carryOf, Bool.false_eq_true, ite_false]
 
 /-- The shift step prefixes two zero bits to each of the first two inputs and initializes the
 comparison loop with zero carry and borrow. -/
@@ -2311,7 +2315,7 @@ theorem step_cfg (st : CState) (os : Bits) :
   by_cases h : CState.halted st
   · have hs : Local.stalled ⟨st.a.head?, st.b.head?, st.d.head?, st.r.head?, st.c0, st.c1, st.w⟩
         = true := (stalled_iff st).mpr h
-    rw [if_pos h]
+    rw [ite_eq_left h]
     simp only [TM2.step, program, TM2.stepAux, store_update_zero, store_update_one,
       store_update_two, store_update_three, store_zero, store_one, store_two,
       store_three, hs, cond]
@@ -2319,10 +2323,10 @@ theorem step_cfg (st : CState) (os : Bits) :
     simp only [ha, hb, hd, hr, List.tail_nil, List.head?_nil, hc0, hc1]
   · have hfalse : Local.stalled ⟨st.a.head?, st.b.head?, st.d.head?, st.r.head?, st.c0, st.c1,
         st.w⟩ = false := bool_eq_false (fun hh => h ((stalled_iff st).mp hh))
-    rw [if_neg h]
+    rw [ite_eq_right h]
     simp only [TM2.step, program, TM2.stepAux, store_update_zero, store_update_one,
       store_update_two, store_update_three, store_zero, store_one, store_two,
-      store_three, hfalse, cond_false]
+      store_three, hfalse, Bool.cond_false]
     rfl
 
 /-- Running the comparison loop for its fuel reaches the output label with empty input stacks
@@ -2336,18 +2340,18 @@ theorem run_fuel (st : CState) (os : Bits) :
   induction st using fuel.induct with
   | case1 st h =>
     intro os
-    rw [fuel.eq_def, if_pos h]
-    have hrun : CState.run st = st := by rw [CState.run.eq_def, if_pos h]
+    rw [fuel.eq_def, ite_eq_left h]
+    have hrun : CState.run st = st := by rw [CState.run.eq_def, ite_eq_left h]
     rw [hrun]
-    simp only [stackRun, step_cfg st os, if_pos h, Option.bind_some]
+    simp only [stackRun, step_cfg st os, ite_eq_left h, Option.bind_some]
     obtain ⟨ha, hb, hd, hr, hc0, hc1⟩ := h
     simp only [ha, hb, hd, hr, List.tail_nil]
   | case2 st h ih =>
     intro os
-    rw [fuel.eq_def, if_neg h]
+    rw [fuel.eq_def, ite_eq_right h]
     have hrun : CState.run st = CState.run (CState.step st) := by
-      rw [CState.run.eq_def, if_neg h]
-    rw [hrun, Nat.one_add, stackRun, step_cfg st os, if_neg h]
+      rw [CState.run.eq_def, ite_eq_right h]
+    rw [hrun, Nat.one_add, stackRun, step_cfg st os, ite_eq_right h]
     simp only [Option.bind_some]
     exact ih os
 
@@ -2409,7 +2413,7 @@ theorem fuel_start_le (a b d r : Bits) :
     omega
   rw [hlen] at h
   unfold CState.cval at h
-  simp only [carryOf, Bool.false_eq_true, if_false, Nat.zero_add] at h
+  simp only [carryOf, Bool.false_eq_true, ite_false, Nat.zero_add] at h
   unfold totalTicks
   omega
 
@@ -2422,7 +2426,7 @@ theorem program_nodes_le : programNodes program ≤ 4 := by
   | shift =>
     simp only [program]
     repeat' rw [stackNodes]
-    try omega
+
   | step =>
     simp only [program]
     repeat' rw [stackNodes]
@@ -2524,7 +2528,7 @@ theorem machine_incrBit (Q : ℕ) (s : IncrState) :
       Qatlib.Concepts.BitWordCompiler.CanonicalCodec.binaryValue_bits,
       Qatlib.Concepts.BitWordCompiler.CanonicalCodec.binaryValue_bits,
       Qatlib.Concepts.BitWordCompiler.CanonicalCodec.binaryValue_bits]
-    simp only [carryOf, Bool.false_eq_true, if_false, Nat.zero_add]
+    simp only [carryOf, Bool.false_eq_true, ite_false, Nat.zero_add]
     ring
   have hrval : binaryValue s.rhs.bits = s.rhs :=
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.binaryValue_bits s.rhs
@@ -2613,13 +2617,13 @@ theorem emitT_value (st : CState) (h : CState.cval st ≤ 2) :
   induction st using emitT.induct with
   | case1 st hh =>
     intro h
-    rw [emitT.eq_def, if_pos hh]
+    rw [emitT.eq_def, ite_eq_left hh]
     obtain ⟨ha, hb, hd, hr, hc0, hc1⟩ := hh
     simp only [CState.value, CState.cval, ha, hb, hd, hc0, hc1, binaryValue_nil,
-      TrialCompare.carryOf, Bool.false_eq_true, if_false, Nat.zero_add, Nat.add_zero]
+      TrialCompare.carryOf, Bool.false_eq_true, ite_false, Nat.zero_add, Nat.add_zero]
   | case2 st hh ih =>
     intro h
-    rw [emitT.eq_def, if_neg hh, binaryValue_cons',
+    rw [emitT.eq_def, ite_eq_right hh, binaryValue_cons',
       ih (CState.cval_step_le_two st), CState.value_step st h]
     have hbit : bitNat (decide (CState.total st % 2 = 1)) = CState.bit st := by
       unfold CState.bit
@@ -2631,11 +2635,11 @@ theorem emitT_value (st : CState) (h : CState.cval st ≤ 2) :
 theorem emitS_value (st : CState) : binaryValue (emitS st) = binaryValue st.a := by
   induction st using emitS.induct with
   | case1 st hh =>
-    rw [emitS.eq_def, if_pos hh]
+    rw [emitS.eq_def, ite_eq_left hh]
     obtain ⟨ha, hb, hd, hr, hc0, hc1⟩ := hh
     simp [ha]
   | case2 st hh ih =>
-    rw [emitS.eq_def, if_neg hh, binaryValue_cons', ih,
+    rw [emitS.eq_def, ite_eq_right hh, binaryValue_cons', ih,
       TrialAdd.binaryValue_head_tail st.a, bitOf_getD]
     show 2 * binaryValue (CState.step st).a + bitNat ((List.head? st.a).getD false) = _
     rw [show (CState.step st).a = st.a.tail from rfl]
@@ -2645,11 +2649,11 @@ theorem emitS_value (st : CState) : binaryValue (emitS st) = binaryValue st.a :=
 theorem emitL_value (st : CState) : binaryValue (emitL st) = binaryValue st.b := by
   induction st using emitL.induct with
   | case1 st hh =>
-    rw [emitL.eq_def, if_pos hh]
+    rw [emitL.eq_def, ite_eq_left hh]
     obtain ⟨ha, hb, hd, hr, hc0, hc1⟩ := hh
     simp [hb]
   | case2 st hh ih =>
-    rw [emitL.eq_def, if_neg hh, binaryValue_cons', ih,
+    rw [emitL.eq_def, ite_eq_right hh, binaryValue_cons', ih,
       TrialAdd.binaryValue_head_tail st.b, bitOf_getD]
     show 2 * binaryValue (CState.step st).b + bitNat ((List.head? st.b).getD false) = _
     rw [show (CState.step st).b = st.b.tail from rfl]
@@ -2659,11 +2663,11 @@ theorem emitL_value (st : CState) : binaryValue (emitL st) = binaryValue st.b :=
 theorem emitQ_value (st : CState) : binaryValue (emitQ st) = binaryValue st.d := by
   induction st using emitQ.induct with
   | case1 st hh =>
-    rw [emitQ.eq_def, if_pos hh]
+    rw [emitQ.eq_def, ite_eq_left hh]
     obtain ⟨ha, hb, hd, hr, hc0, hc1⟩ := hh
     simp [hd]
   | case2 st hh ih =>
-    rw [emitQ.eq_def, if_neg hh, binaryValue_cons', ih,
+    rw [emitQ.eq_def, ite_eq_right hh, binaryValue_cons', ih,
       TrialAdd.binaryValue_head_tail st.d, bitOf_getD]
     show 2 * binaryValue (CState.step st).d + bitNat ((List.head? st.d).getD false) = _
     rw [show (CState.step st).d = st.d.tail from rfl]
@@ -2673,11 +2677,11 @@ theorem emitQ_value (st : CState) : binaryValue (emitQ st) = binaryValue st.d :=
 theorem emitR_value (st : CState) : binaryValue (emitR st) = binaryValue st.r := by
   induction st using emitR.induct with
   | case1 st hh =>
-    rw [emitR.eq_def, if_pos hh]
+    rw [emitR.eq_def, ite_eq_left hh]
     obtain ⟨ha, hb, hd, hr, hc0, hc1⟩ := hh
     simp [hr]
   | case2 st hh ih =>
-    rw [emitR.eq_def, if_neg hh, binaryValue_cons', ih,
+    rw [emitR.eq_def, ite_eq_right hh, binaryValue_cons', ih,
       TrialAdd.binaryValue_head_tail st.r, bitOf_getD]
     show 2 * binaryValue (CState.step st).r + bitNat ((List.head? st.r).getD false) = _
     rw [show (CState.step st).r = st.r.tail from rfl]
@@ -2936,7 +2940,7 @@ theorem step_cfg (st : CState) (o : Out) :
   · have hs : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local.stalled
         ⟨st.a.head?, st.b.head?, st.d.head?, st.r.head?, st.c0, st.c1, st.w⟩ = true :=
       (TrialCompare.stalled_iff st).mpr h
-    rw [if_pos h]
+    rw [ite_eq_left h]
     obtain ⟨ha, hb, hd, hr, hc0, hc1⟩ := h
     simp only [TM2.step, program, TM2.stepAux, store_update_zero, store_update_one,
       store_update_two, store_update_three, store_zero, store_one, store_two, store_three,
@@ -2945,12 +2949,12 @@ theorem step_cfg (st : CState) (o : Out) :
   · have hfalse : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local.stalled
         ⟨st.a.head?, st.b.head?, st.d.head?, st.r.head?, st.c0, st.c1, st.w⟩ = false :=
       TrialCompare.bool_eq_false (fun hh => h ((TrialCompare.stalled_iff st).mp hh))
-    rw [if_neg h]
+    rw [ite_eq_right h]
     simp only [TM2.step, program, TM2.stepAux, store_update_zero, store_update_one,
       store_update_two, store_update_three, store_update_five, store_update_six,
       store_update_seven, store_update_eight, store_update_nine, store_update_ten,
       store_zero, store_one, store_two, store_three, store_five, store_six, store_seven,
-      store_eight, store_nine, store_ten, hfalse, cond_false, stepOut, Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local.next,
+      store_eight, store_nine, store_ten, hfalse, Bool.cond_false, stepOut, Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local.next,
       Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local.total, CState.total, CState.step]
     rfl
 
@@ -2971,15 +2975,15 @@ advancing the state and output accumulators together. -/
 theorem apply_step (st : CState) (o : Out) (h : ¬ CState.halted st) :
     apply st o = apply (CState.step st) (stepOut st o) := by
   unfold apply stepOut
-  rw [emitT.eq_def, if_neg h, emitS.eq_def, if_neg h, emitL.eq_def, if_neg h,
-    emitQ.eq_def, if_neg h, emitR.eq_def, if_neg h]
+  rw [emitT.eq_def, ite_eq_right h, emitS.eq_def, ite_eq_right h, emitL.eq_def, ite_eq_right h,
+    emitQ.eq_def, ite_eq_right h, emitR.eq_def, ite_eq_right h]
   simp only [List.reverse_cons, List.append_assoc, List.singleton_append]
 
 /-- A halted comparison state contributes no further emissions to the output accumulators. -/
 theorem apply_halted (st : CState) (o : Out) (h : CState.halted st) : apply st o = o := by
   unfold apply
-  rw [emitT.eq_def, if_pos h, emitS.eq_def, if_pos h, emitL.eq_def, if_pos h,
-    emitQ.eq_def, if_pos h, emitR.eq_def, if_pos h]
+  rw [emitT.eq_def, ite_eq_left h, emitS.eq_def, ite_eq_left h, emitL.eq_def, ite_eq_left h,
+    emitQ.eq_def, ite_eq_left h, emitR.eq_def, ite_eq_left h]
   simp only [List.reverse_nil, List.nil_append]
 
 /-- For carry at most two, running the emission loop for its comparison fuel reaches the
@@ -2995,19 +2999,19 @@ theorem run_fuel (st : CState) (o : Out) (hc : CState.cval st ≤ 2) :
   induction st using TrialCompare.fuel.induct with
   | case1 st hh =>
     intro o hc
-    rw [fuel.eq_def, if_pos hh]
-    have hrun : CState.run st = st := by rw [CState.run.eq_def, if_pos hh]
+    rw [fuel.eq_def, ite_eq_left hh]
+    have hrun : CState.run st = st := by rw [CState.run.eq_def, ite_eq_left hh]
     rw [hrun, apply_halted st o hh]
-    simp only [stackRun, step_cfg st o, if_pos hh, Option.bind_some]
+    simp only [stackRun, step_cfg st o, ite_eq_left hh, Option.bind_some]
     obtain ⟨ha, hb, hd, hr, hc0, hc1⟩ := hh
     simp only [ha, hb, hd, hr, List.tail_nil]
   | case2 st hh ih =>
     intro o hc
-    rw [fuel.eq_def, if_neg hh]
+    rw [fuel.eq_def, ite_eq_right hh]
     have hrun : CState.run st = CState.run (CState.step st) := by
-      rw [CState.run.eq_def, if_neg hh]
+      rw [CState.run.eq_def, ite_eq_right hh]
     have happ : apply st o = apply (CState.step st) (stepOut st o) := apply_step st o hh
-    rw [hrun, happ, Nat.one_add, stackRun, step_cfg st o, if_neg hh]
+    rw [hrun, happ, Nat.one_add, stackRun, step_cfg st o, ite_eq_right hh]
     simp only [Option.bind_some]
     exact ih (stepOut st o) (CState.cval_step_le_two st)
 
@@ -3084,7 +3088,7 @@ theorem fuel_start_le (sq lin q rhs : Bits) :
     omega
   rw [hlen] at h
   unfold CState.cval at h
-  simp only [TrialCompare.carryOf, Bool.false_eq_true, if_false, Nat.zero_add] at h
+  simp only [TrialCompare.carryOf, Bool.false_eq_true, ite_false, Nat.zero_add] at h
   omega
 
 /-- The emission program has `programNodes` at most ten. -/
@@ -3232,7 +3236,7 @@ theorem st0_value (sq lin2 q rhs : Bits) :
       4 * binaryValue sq + 2 * binaryValue lin2 + binaryValue q := by
   unfold CState.value CState.cval st0 TrialCompare.carryOf
   rw [TrialAdd.shift_value, shift_one_value]
-  simp only [Bool.false_eq_true, if_false, Nat.zero_add]
+  simp only [Bool.false_eq_true, ite_false, Nat.zero_add]
   ring
 
 /-- The sum emitted from `st0` represents four times the square-word value plus twice the
@@ -3385,11 +3389,11 @@ theorem mStep_a (P Q j : ℕ) (s : MState) (hsq : s.sq = s.a ^ 2 * Q)
   · have hc : mTrial Q s ≤ s.rhs := (mBit_eq_one_iff Q s).mp h
     have hcond : (2 * s.a + 1) ^ 2 * Q ≤ 2 ^ (2 * (j + 1)) * P := by
       rwa [mTrial_eq Q s hsq hlin, hrhs] at hc
-    simp only [if_pos h, if_pos hcond]
+    simp only [ite_eq_left h, ite_eq_left hcond]
   · have hc : ¬ mTrial Q s ≤ s.rhs := (mBit_ne_one_iff Q s).mp h
     have hcond : ¬ (2 * s.a + 1) ^ 2 * Q ≤ 2 ^ (2 * (j + 1)) * P := by
       rwa [mTrial_eq Q s hsq hlin, hrhs] at hc
-    simp only [if_neg h, if_neg hcond, Nat.add_zero]
+    simp only [ite_eq_right h, ite_eq_right hcond, Nat.add_zero]
 
 /-- The machine-oriented update preserves the square and doubled-linear accumulator invariants. -/
 theorem mStep_invariant (Q : ℕ) (s : MState) (hsq : s.sq = s.a ^ 2 * Q)
@@ -3399,10 +3403,10 @@ theorem mStep_invariant (Q : ℕ) (s : MState) (hsq : s.sq = s.a ^ 2 * Q)
   unfold mStep
   by_cases h : mBit Q s = 1
   · have htr : mTrial Q s = (2 * s.a + 1) ^ 2 * Q := mTrial_eq Q s hsq hlin
-    rw [if_pos h]
+    rw [ite_eq_left h]
     rw [htr, hlin]
     constructor <;> ring
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     rw [hsq, hlin]
     constructor <;> ring
 
@@ -3533,7 +3537,7 @@ theorem step_cfg (b : Bool) (bs dst : Bits) :
       some (cfg bs (b :: dst)) := by
   simp only [TM2.step, program, cfg, TM2.stepAux, store_update_zero, store_update_one,
     store_zero, store_one, List.head?_cons, List.tail_cons, Option.isNone, Option.getD_some,
-    cond_false]
+    Bool.cond_false]
 
 /-- An empty source makes the copy loop enter its terminal label with unchanged destination. -/
 theorem step_cfg_nil (dst : Bits) :
@@ -3897,7 +3901,7 @@ theorem step_cfg (st : CState) (aa : Bits) (o : Out) :
   · have hs : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local.stalled
         ⟨st.a.head?, st.b.head?, st.d.head?, st.r.head?, st.c0, st.c1, st.w⟩ = true :=
       (TrialCompare.stalled_iff st).mpr h
-    rw [if_pos h]
+    rw [ite_eq_left h]
     obtain ⟨ha, hb, hd, hr, hc0, hc1⟩ := h
     simp only [TM2.step, program, TM2.stepAux, TrialEmit.store_update_zero,
       TrialEmit.store_update_one, TrialEmit.store_update_two, TrialEmit.store_update_three,
@@ -3907,7 +3911,7 @@ theorem step_cfg (st : CState) (aa : Bits) (o : Out) :
   · have hfalse : Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local.stalled
         ⟨st.a.head?, st.b.head?, st.d.head?, st.r.head?, st.c0, st.c1, st.w⟩ = false :=
       TrialCompare.bool_eq_false (fun hh => h ((TrialCompare.stalled_iff st).mp hh))
-    rw [if_neg h]
+    rw [ite_eq_right h]
     simp only [TM2.step, program, TM2.stepAux, TrialEmit.store_update_zero,
       TrialEmit.store_update_one, TrialEmit.store_update_two, TrialEmit.store_update_three,
       TrialEmit.store_update_five, TrialEmit.store_update_six, TrialEmit.store_update_seven,
@@ -3915,7 +3919,7 @@ theorem step_cfg (st : CState) (aa : Bits) (o : Out) :
       TrialEmit.store_update_eleven, TrialEmit.store_zero, TrialEmit.store_one,
       TrialEmit.store_two, TrialEmit.store_three, TrialEmit.store_five, TrialEmit.store_six,
       TrialEmit.store_seven, TrialEmit.store_eight, TrialEmit.store_nine, TrialEmit.store_ten,
-      TrialEmit.store_eleven, hfalse, cond_false, stepOut, emitStmt, Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local.next, Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local.total,
+      TrialEmit.store_eleven, hfalse, Bool.cond_false, stepOut, emitStmt, Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local.next, Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain.output2.TrialCompare.Local.total,
       CState.total, CState.nextCarry, CState.nextW, CState.step]
     rfl
 
@@ -3927,7 +3931,7 @@ theorem apply_step (st : CState) (o : Out) (h : ¬ CState.halted st) :
   conv_lhs =>
     rw [TrialEmit.emitL.eq_def, TrialEmit.emitS.eq_def, TrialEmit.emitQ.eq_def,
       TrialEmit.emitR.eq_def]
-    simp only [if_neg h]
+    simp only [ite_eq_right h]
   simp only [List.reverse_cons, List.append_assoc, List.singleton_append]
 
 /-- A halted comparison state leaves the arithmetic-round output accumulators unchanged under
@@ -3937,7 +3941,7 @@ theorem apply_halted (st : CState) (o : Out) (h : CState.halted st) : apply st o
   conv_lhs =>
     rw [TrialEmit.emitL.eq_def, TrialEmit.emitS.eq_def, TrialEmit.emitQ.eq_def,
       TrialEmit.emitR.eq_def]
-    simp only [if_pos h]
+    simp only [ite_eq_left h]
   simp only [List.reverse_nil, List.nil_append]
 
 /-- With carry at most two, the round's comparison-and-emission loop reaches its output label
@@ -3955,19 +3959,19 @@ theorem run_fuel (st : CState) (aa : Bits) (o : Out) (hc : CState.cval st ≤ 2)
     intro aa o hc
     have hsame : cfg st aa o = cfg st aa o := rfl
     rw [hsame]
-    rw [TrialCompare.fuel.eq_def, if_pos hh]
-    have hrun : CState.run st = st := by rw [CState.run.eq_def, if_pos hh]
+    rw [TrialCompare.fuel.eq_def, ite_eq_left hh]
+    have hrun : CState.run st = st := by rw [CState.run.eq_def, ite_eq_left hh]
     rw [hrun, apply_halted st o hh]
-    simp only [stackRun, step_cfg st aa o, if_pos hh, Option.bind_some]
+    simp only [stackRun, step_cfg st aa o, ite_eq_left hh, Option.bind_some]
     obtain ⟨ha, hb, hd, hr, hc0, hc1⟩ := hh
     simp only [ha, hb, hd, hr, List.tail_nil]
   | case2 st hh ih =>
     intro aa o hc
-    rw [TrialCompare.fuel.eq_def, if_neg hh]
+    rw [TrialCompare.fuel.eq_def, ite_eq_right hh]
     have hrun : CState.run st = CState.run (CState.step st) := by
-      rw [CState.run.eq_def, if_neg hh]
+      rw [CState.run.eq_def, ite_eq_right hh]
     have happ : apply st o = apply (CState.step st) (stepOut st o) := apply_step st o hh
-    rw [hrun, happ, Nat.one_add, stackRun, step_cfg st aa o, if_neg hh]
+    rw [hrun, happ, Nat.one_add, stackRun, step_cfg st aa o, ite_eq_right hh]
     simp only [Option.bind_some]
     exact ih aa (stepOut st o) (CState.cval_step_le_two st)
 
@@ -4031,7 +4035,7 @@ theorem emit_fuel_le (s4 l2 q r : Bits) :
       2 * (s4.length + l2.length + q.length + r.length + 1) + 3 := by
   have h := TrialCompare.fuel_le (st0 s4 l2 q r)
   dsimp only [st0, CState.cval] at h ⊢
-  simp only [TrialCompare.carryOf, Bool.false_eq_true, if_false, Nat.zero_add] at h
+  simp only [TrialCompare.carryOf, Bool.false_eq_true, ite_false, Nat.zero_add] at h
   omega
 
 /-- Each instruction of the arithmetic-round program has `stackNodes` at most eleven. -/
@@ -4654,10 +4658,10 @@ theorem AState.fuel_le (st : AState) :
     st.fuel ≤ 2 * (st.x.length + st.y.length + st.z.length) + st.cval + 1 := by
   induction st using AState.fuel.induct with
   | case1 st h =>
-    rw [AState.fuel.eq_def, if_pos h]
+    rw [AState.fuel.eq_def, ite_eq_left h]
     omega
   | case2 st h ih =>
-    rw [AState.fuel.eq_def, if_neg h]
+    rw [AState.fuel.eq_def, ite_eq_right h]
     have hdec := AState.measure_step st h
     show 1 + (AState.next st).fuel ≤
       2 * (st.x.length + st.y.length + st.z.length) + st.cval + 1
@@ -4712,21 +4716,21 @@ theorem AState.run_spec (st : AState) (hc : st.cval ≤ 2) :
     (AState.run st).halted ∧ (AState.run st).value = 0 := by
   induction st using AState.run.induct with
   | case1 st h =>
-    rw [AState.run.eq_def, if_pos h]
+    rw [AState.run.eq_def, ite_eq_left h]
     refine ⟨h, ?_⟩
     obtain ⟨hx, hy, hz, hc0, hc1⟩ := h
     simp [AState.value, AState.cval, hx, hy, hz, hc0, hc1, TrialCompare.carryOf]
   | case2 st h ih =>
-    rw [AState.run.eq_def, if_neg h]
+    rw [AState.run.eq_def, ite_eq_right h]
     exact ih (AState.cval_next_le_two st)
 
 /-- The conditional-addition run preserves the flag `w`. -/
 theorem AState.run_w (st : AState) : (AState.run st).w = st.w := by
   induction st using AState.run.induct with
   | case1 st h =>
-    rw [AState.run.eq_def, if_pos h]
+    rw [AState.run.eq_def, ite_eq_left h]
   | case2 st h ih =>
-    rw [AState.run.eq_def, if_neg h, ih]
+    rw [AState.run.eq_def, ite_eq_right h, ih]
     rfl
 
 /-- For carry at most two, the emitted conditional-addition word represents the state's value. -/
@@ -4734,11 +4738,11 @@ theorem AState.emit_value (st : AState) (hc : st.cval ≤ 2) :
     binaryValue st.emit = st.value := by
   induction st using AState.emit.induct with
   | case1 st h =>
-    rw [AState.emit.eq_def, if_pos h]
+    rw [AState.emit.eq_def, ite_eq_left h]
     obtain ⟨hx, hy, hz, hc0, hc1⟩ := h
     simp [AState.value, AState.cval, hx, hy, hz, hc0, hc1, TrialCompare.carryOf]
   | case2 st h ih =>
-    rw [AState.emit.eq_def, if_neg h]
+    rw [AState.emit.eq_def, ite_eq_right h]
     have hstep := AState.value_step st hc
     rw [Qatlib.Concepts.QueryComplexity.DegreeMethod.ParseFramed.binaryValue_cons,
       ih (AState.cval_next_le_two st), hstep]
@@ -4821,15 +4825,15 @@ theorem addLstep_run (st : AState) (hz : st.z = []) :
   induction st using AState.fuel.induct with
   | case1 st hh =>
     intro hz v a0 a1 a2 a3 a4 a5 a7 a9 a10 a11 h0 h1 hw hvd
-    rw [AState.fuel.eq_def, if_pos hh, AState.run.eq_def, if_pos hh,
-      AState.emit.eq_def, if_pos hh]
+    rw [AState.fuel.eq_def, ite_eq_left hh, AState.run.eq_def, ite_eq_left hh,
+      AState.emit.eq_def, ite_eq_left hh]
     rw [show ((1 : ℕ)) = 0 + 1 from rfl, stackRun,
-      addLstep_step st v hz h0 h1 hw hvd, if_pos hh, Option.bind_some]
+      addLstep_step st v hz h0 h1 hw hvd, ite_eq_left hh, Option.bind_some]
     rfl
   | case2 st hh ih =>
     intro hz v a0 a1 a2 a3 a4 a5 a7 a9 a10 a11 h0 h1 hw hvd
-    rw [AState.fuel.eq_def, if_neg hh, Nat.one_add, stackRun,
-      addLstep_step st v hz h0 h1 hw hvd, if_neg hh, Option.bind_some]
+    rw [AState.fuel.eq_def, ite_eq_right hh, Nat.one_add, stackRun,
+      addLstep_step st v hz h0 h1 hw hvd, ite_eq_right hh, Option.bind_some]
     rw [show List.tail st.x = (AState.next st).x from rfl,
       show List.tail st.y = (AState.next st).y from rfl]
     rw [ih (by simp only [AState.next, hz, List.tail_nil])
@@ -4837,9 +4841,9 @@ theorem addLstep_run (st : AState) (hz : st.z = []) :
         (AState.next st).w⟩ a0 a1 a2 a3 a4 a5 (st.outBit :: a7) a9 a10 a11
       rfl rfl rfl rfl]
     have hrun : AState.run st = AState.run (AState.next st) := by
-      rw [AState.run.eq_def, if_neg hh]
+      rw [AState.run.eq_def, ite_eq_right hh]
     have hemp : AState.emit st = st.outBit :: AState.emit (AState.next st) := by
-      rw [AState.emit.eq_def, if_neg hh]
+      rw [AState.emit.eq_def, ite_eq_right hh]
     rw [hrun, hemp]
     simp only [List.reverse_cons, List.append_assoc, List.singleton_append]
 
@@ -4859,24 +4863,24 @@ theorem addSstep_run (st : AState) :
   induction st using AState.fuel.induct with
   | case1 st hh =>
     intro v a0 a1 a2 a3 a4 a6 a7 a8 a11 h0 h1 hw
-    rw [AState.fuel.eq_def, if_pos hh, AState.run.eq_def, if_pos hh,
-      AState.emit.eq_def, if_pos hh]
+    rw [AState.fuel.eq_def, ite_eq_left hh, AState.run.eq_def, ite_eq_left hh,
+      AState.emit.eq_def, ite_eq_left hh]
     rw [show ((1 : ℕ)) = 0 + 1 from rfl, stackRun,
-      addSstep_step st v h0 h1 hw, if_pos hh, Option.bind_some]
+      addSstep_step st v h0 h1 hw, ite_eq_left hh, Option.bind_some]
     rfl
   | case2 st hh ih =>
     intro v a0 a1 a2 a3 a4 a6 a7 a8 a11 h0 h1 hw
-    rw [AState.fuel.eq_def, if_neg hh, Nat.one_add, stackRun,
-      addSstep_step st v h0 h1 hw, if_neg hh, Option.bind_some]
+    rw [AState.fuel.eq_def, ite_eq_right hh, Nat.one_add, stackRun,
+      addSstep_step st v h0 h1 hw, ite_eq_right hh, Option.bind_some]
     rw [show List.tail st.x = (AState.next st).x from rfl,
       show List.tail st.y = (AState.next st).y from rfl,
       show List.tail st.z = (AState.next st).z from rfl]
     rw [ih ⟨none, none, none, v.orr, (AState.next st).c0, (AState.next st).c1,
         (AState.next st).w⟩ a0 a1 a2 a3 a4 a6 a7 a8 (st.outBit :: a11) rfl rfl rfl]
     have hrun : AState.run st = AState.run (AState.next st) := by
-      rw [AState.run.eq_def, if_neg hh]
+      rw [AState.run.eq_def, ite_eq_right hh]
     have hemp : AState.emit st = st.outBit :: AState.emit (AState.next st) := by
-      rw [AState.emit.eq_def, if_neg hh]
+      rw [AState.emit.eq_def, ite_eq_right hh]
     rw [hrun, hemp]
     simp only [List.reverse_cons, List.append_assoc, List.singleton_append]
 
@@ -5087,7 +5091,7 @@ theorem stS_value (s4 l2 q r : Bits) :
       TrialCompare.carryOf false false = _
   rw [outS_reverse, outB_reverse, outQB_reverse, TrialEmit.emitS_value,
     TrialEmit.emitL_value, TrialEmit.emitQ_value]
-  simp only [st0, TrialCompare.carryOf, Bool.false_eq_true, if_false, Nat.zero_add]
+  simp only [st0, TrialCompare.carryOf, Bool.false_eq_true, ite_false, Nat.zero_add]
   by_cases hw : (runState s4 l2 q r).w
   · simp [hw]
   · have hwf : (runState s4 l2 q r).w = false := TrialCompare.bool_eq_false hw
@@ -5108,7 +5112,7 @@ theorem stL_value (s4 l2 q r : Bits) :
   rw [outL_reverse, outQ2_reverse, TrialEmit.emitL_value]
   unfold TrialEmit.emitQ2
   rw [TrialEmit.shift_one_value, TrialEmit.emitQ_value]
-  simp only [st0, TrialCompare.carryOf, Bool.false_eq_true, if_false, Nat.zero_add,
+  simp only [st0, TrialCompare.carryOf, Bool.false_eq_true, ite_false, Nat.zero_add,
     binaryValue_nil]
   by_cases hw : (runState s4 l2 q r).w <;> simp [hw]
 

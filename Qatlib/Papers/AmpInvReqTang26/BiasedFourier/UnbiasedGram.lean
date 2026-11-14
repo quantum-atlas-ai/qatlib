@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AmpInvReqTang26.BiasedFourier.ActualOverlap
-import Qatlib.Papers.AmpInvReqTang26.RootLaws.Lemma23
-import Qatlib.Foundations.MatrixAlgebra.TorusMoments.RootMoments
-import Qatlib.Foundations.MatrixAlgebra.FrameProject.TensorErrors
+module
+
+public import Qatlib.Papers.AmpInvReqTang26.BiasedFourier.ActualOverlap
+public import Qatlib.Papers.AmpInvReqTang26.RootLaws.Lemma23
+public import Qatlib.Foundations.MatrixAlgebra.TorusMoments.RootMoments
+public import Qatlib.Foundations.MatrixAlgebra.FrameProject.TensorErrors
+
+@[expose] public section
 
 /-!
 # Unbiased Fourier and histogram Gram identities
@@ -83,12 +87,12 @@ theorem unbiased_histogram_gram {H : Type*} [DecidableEq H] {d q : ℕ}
   simp_rw [hi]
   by_cases he : h=k
   · subst k; simp
-  · rw [if_neg he]
+  · rw [ite_eq_right he]
     have hex : ∃i,hist h i≠hist k i := by
       by_contra hn
       push Not at hn
       exact he (hinj (funext hn))
     obtain ⟨i,hi⟩ := hex
-    exact Finset.prod_eq_zero (Finset.mem_univ i) (if_neg hi)
+    exact Finset.prod_eq_zero (Finset.mem_univ i) (ite_eq_right hi)
 
 end Qatlib.Papers.AmpInvReqTang26.BiasedFourier

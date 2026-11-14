@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecificLimits.Basic
-import Mathlib.Topology.Order.OrderClosed
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.SpecificLimits.Basic
+public import Mathlib.Topology.Order.OrderClosed
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -52,7 +56,7 @@ def repetitionSuccessProbability (p : ℝ) (k : ℕ) : ℝ :=
 larger per-run success probability can only lower `(1 − p)^k`.  This is the
 monotonicity used to transfer the paper's `p ≥ 1/8` or `p ≥ 0.04` observations to
 the repetition bound. -/
-theorem failureProbability_anti {p q : ℝ} (hp : 0 ≤ p) (hpq : p ≤ q) (hq1 : q ≤ 1)
+theorem failureProbability_anti {p q : ℝ} (_hp : 0 ≤ p) (hpq : p ≤ q) (hq1 : q ≤ 1)
     (k : ℕ) : failureProbability q k ≤ failureProbability p k := by
   unfold failureProbability
   exact pow_le_pow_left₀ (by linarith) (by linarith) k

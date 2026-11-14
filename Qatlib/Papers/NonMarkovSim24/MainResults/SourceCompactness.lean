@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NonMarkovSim24.MainResults.DQMEModel
-import Mathlib.LinearAlgebra.TensorProduct.Basic
-import Mathlib.LinearAlgebra.Dimension.Constructions
-import Mathlib.LinearAlgebra.Dual.Lemmas
-import Lean.Elab.Tactic.Omega
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic.Positivity
+module
+
+public import Qatlib.Papers.NonMarkovSim24.MainResults.DQMEModel
+public import Mathlib.LinearAlgebra.TensorProduct.Basic
+public import Mathlib.LinearAlgebra.Dimension.Constructions
+public import Mathlib.LinearAlgebra.Dual.Lemmas
+public import Lean.Elab.Tactic.Omega
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic.Positivity
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

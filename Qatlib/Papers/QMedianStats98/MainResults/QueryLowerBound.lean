@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QMedianStats98.MainResults.Model.ActualQuery
-import Qatlib.Papers.QMedianStats98.MainResults.DegreeLowerBound.Symmetrization
-import Qatlib.Papers.QMedianStats98.MainResults.DegreeLowerBound.FirstTerm
+module
+
+public import Qatlib.Papers.QMedianStats98.MainResults.Model.ActualQuery
+public import Qatlib.Papers.QMedianStats98.MainResults.DegreeLowerBound.Symmetrization
+public import Qatlib.Papers.QMedianStats98.MainResults.DegreeLowerBound.FirstTerm
+
+@[expose] public section
 
 /-!
 # From approximate degree to actual query lower bounds

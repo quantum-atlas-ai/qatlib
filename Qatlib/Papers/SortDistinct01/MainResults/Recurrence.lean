@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Log.Base
-import Mathlib.Algebra.Order.Floor.Semiring
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Log.Base
+public import Mathlib.Algebra.Order.Floor.Semiring
+
+@[expose] public section
 
 /-!
 # The ordered-search recurrence size

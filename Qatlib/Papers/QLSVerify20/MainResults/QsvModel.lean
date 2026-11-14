@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.MeasureTheory.Measure.Typeclasses.Probability
-import Qatlib.Foundations.PureStateMath.MixedState
-import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
-import Qatlib.Concepts.MixedFidelity.FidelityMetric.MixedFidelityDefs
-import Qatlib.Concepts.CoherentSim.CoherentOAA.Pseudoinverse
+module
+
+public import Mathlib.MeasureTheory.Measure.Typeclasses.Probability
+public import Qatlib.Foundations.PureStateMath.MixedState
+public import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
+public import Qatlib.Concepts.MixedFidelity.FidelityMetric.MixedFidelityDefs
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.Pseudoinverse
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -116,7 +120,7 @@ def acceptWithin (P : QsvProtocol N Ω) (b σ : QState (Fin N)) (t : ℝ) : ℝ 
   (P.law σ {ω | (P.uses σ ω : ℝ) ≤ t ∧ P.accept b σ ω = true}).toReal
 
 /-- Tail probability `Pr(q_{A,b} > t)`. -/
-def tailProbability (P : QsvProtocol N Ω) (b σ : QState (Fin N)) (t : ℝ) : ℝ :=
+def tailProbability (P : QsvProtocol N Ω) (_b σ : QState (Fin N)) (t : ℝ) : ℝ :=
   (P.law σ {ω | t < (P.uses σ ω : ℝ)}).toReal
 
 /-- The QSV specification of Eq. (3), stated for a "good" set of states:
@@ -246,10 +250,10 @@ theorem one_sub_inner_normSq_le_stateDistance_sq (b b' : QState (Fin N))
   nlinarith [sq_nonneg (1 - z.re), sq_nonneg z.im]
 
 /-- Tail probabilities are antitone in the threshold. -/
-theorem tailProbability_antitone (P : QsvProtocol N Ω) (b σ : QState (Fin N))
+theorem tailProbability_antitone (P : QsvProtocol N Ω) (_b σ : QState (Fin N))
     {t t' : ℝ} (htt' : t ≤ t') :
-    tailProbability P b σ t' ≤ tailProbability P b σ t := by
-  haveI : IsProbabilityMeasure (P.law σ) := P.isProbability σ
+    tailProbability P _b σ t' ≤ tailProbability P _b σ t := by
+  have hprob : IsProbabilityMeasure (P.law σ) := P.isProbability σ
   unfold tailProbability
   apply ENNReal.toReal_mono (measure_ne_top _ _)
   exact measure_mono (fun ω hω => lt_of_le_of_lt htt' hω)

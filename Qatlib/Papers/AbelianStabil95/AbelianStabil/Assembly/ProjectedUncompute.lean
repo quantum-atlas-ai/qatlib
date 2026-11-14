@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.CoherentCompute.ProjectedError.RestrictedUncompute
-import Qatlib.Foundations.CoherentCompute.ProjectedError.ProjectionSuccess
+module
+
+public import Qatlib.Foundations.CoherentCompute.ProjectedError.RestrictedUncompute
+public import Qatlib.Foundations.CoherentCompute.ProjectedError.ProjectionSuccess
+
+@[expose] public section
 
 /-!
 # Projected coherent uncomputation

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.FastForwardLi26.CarlemanEmbed.SourceModel
-import Mathlib.Analysis.Calculus.Deriv.Basic
-import Mathlib.Analysis.Calculus.Deriv.Slope
-import Mathlib.Topology.Order.IntermediateValue
+module
+
+public import Qatlib.Papers.FastForwardLi26.CarlemanEmbed.SourceModel
+public import Mathlib.Analysis.Calculus.Deriv.Basic
+public import Mathlib.Analysis.Calculus.Deriv.Slope
+public import Mathlib.Topology.Order.IntermediateValue
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

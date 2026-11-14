@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.InstrumentCore.Measurement.Basic
-import Mathlib.Algebra.Order.BigOperators.Ring.Finset
-import Mathlib.Analysis.Complex.Basic
+module
+
+public import Qatlib.Foundations.InstrumentCore.Measurement.Basic
+public import Mathlib.Algebra.Order.BigOperators.Ring.Finset
+public import Mathlib.Analysis.Complex.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -82,7 +86,7 @@ theorem restriction_to_event
     apply Finset.sum_le_sum
     intro ω _
     by_cases hB : B ω
-    · simp only [hB, if_true]
+    · simp only [hB, ite_true]
       exact mul_le_mul_of_nonneg_left (hpoint ω) (hμ ω)
     · simp [hB]
   -- Move `L` out, interchange the two sums, and apply the per-anchor hypothesis.
@@ -93,7 +97,7 @@ theorem restriction_to_event
         = if B ω then L * (μ ω * ∑ a, ‖f a ω‖ ^ 2) else 0 := by
       intro ω
       by_cases hB : B ω
-      · simp only [hB, if_true]; ring
+      · simp only [hB, ite_true]; ring
       · simp [hB]
     simp only [h1]
     have hLout : (∑ x, if B x then L * (μ x * ∑ a, ‖f a x‖ ^ 2) else 0)
@@ -102,7 +106,7 @@ theorem restriction_to_event
       apply Finset.sum_congr rfl
       intro x _
       by_cases hB : B x
-      · simp only [hB, if_true]
+      · simp only [hB, ite_true]
       · simp [hB]
     have hswap : (∑ x, if B x then μ x * ∑ a, ‖f a x‖ ^ 2 else 0)
         = ∑ a, ∑ ω, if B ω then μ ω * ‖f a ω‖ ^ 2 else 0 := by
@@ -110,7 +114,7 @@ theorem restriction_to_event
           = ∑ a, if B x then μ x * ‖f a x‖ ^ 2 else 0 := by
         intro x
         by_cases hB : B x
-        · simp only [hB, if_true]
+        · simp only [hB, ite_true]
           rw [Finset.mul_sum]
         · simp [hB]
       simp only [h2]

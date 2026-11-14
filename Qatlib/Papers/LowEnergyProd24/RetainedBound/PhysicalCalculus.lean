@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LowEnergyProd24.LocalModel.FiniteBudget
-import Qatlib.Papers.LowEnergyProd24.CenterTransport.PhysicalWord
-import Qatlib.Papers.LowEnergyProd24.RetainedBound.RetainedIntegral
-import Qatlib.Papers.LowEnergyProd24.RetainedBound.SectorSplit
+module
+
+public import Qatlib.Papers.LowEnergyProd24.LocalModel.FiniteBudget
+public import Qatlib.Papers.LowEnergyProd24.CenterTransport.PhysicalWord
+public import Qatlib.Papers.LowEnergyProd24.RetainedBound.RetainedIntegral
+public import Qatlib.Papers.LowEnergyProd24.RetainedBound.SectorSplit
+
+@[expose] public section
 
 /-!
 # Retained-error calculus for physical Hamiltonians

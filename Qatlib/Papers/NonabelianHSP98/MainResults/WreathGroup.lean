@@ -4,44 +4,48 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Field.Defs
-import Mathlib.Algebra.Field.ZMod
-import Mathlib.Algebra.Group.Basic
-import Mathlib.Algebra.Group.Defs
-import Mathlib.Algebra.Group.DivInvMonoid
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.Group.Semigroup
-import Mathlib.Algebra.Group.Subgroup.Defs
-import Mathlib.Algebra.Group.Submonoid.Defs
-import Mathlib.Algebra.Group.Subsemigroup.Defs
-import Mathlib.Algebra.GroupWithZero.Defs
-import Mathlib.Algebra.Notation.Pi.Defs
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Algebra.Ring.Int.Defs
-import Mathlib.Algebra.Ring.Nat
-import Mathlib.Basic.SetLike.Basic
-import Mathlib.Data.Fintype.Basic
-import Mathlib.Data.Fintype.Defs
-import Mathlib.Data.Fintype.OfMap
-import Mathlib.Data.Fintype.Pi
-import Mathlib.Data.Fintype.Prod
-import Mathlib.Data.Int.Cast.Defs
-import Mathlib.Data.Nat.Cast.Defs
-import Mathlib.Data.Nat.Init
-import Mathlib.Data.Nat.Prime.Defs
-import Mathlib.Data.Set.Defs
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Data.ZMod.Defs
-import Mathlib.Logic.Equiv.Defs
-import Mathlib.Logic.Equiv.PartialEquiv
-import Mathlib.Tactic
-import Mathlib.Tactic.NormNum.Basic
-import Mathlib.Tactic.NormNum.DivMod
-import Mathlib.Tactic.NormNum.Result
-import Mathlib.Tactic.ReduceModChar
-import Mathlib.Tactic.Ring.Basic
-import Mathlib.Tactic.Ring.Common
-import Mathlib.Tactic.Ring.RingNF
+module
+
+public import Mathlib.Algebra.Field.Defs
+public import Mathlib.Algebra.Field.ZMod
+public import Mathlib.Algebra.Group.Basic
+public import Mathlib.Algebra.Group.Defs
+public import Mathlib.Algebra.Group.DivInvMonoid
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.Group.Semigroup
+public import Mathlib.Algebra.Group.Subgroup.Defs
+public import Mathlib.Algebra.Group.Submonoid.Defs
+public import Mathlib.Algebra.Group.Subsemigroup.Defs
+public import Mathlib.Algebra.GroupWithZero.Defs
+public import Mathlib.Algebra.Notation.Pi.Defs
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Algebra.Ring.Int.Defs
+public import Mathlib.Algebra.Ring.Nat
+public import Mathlib.Basic.SetLike.Basic
+public import Mathlib.Data.Fintype.Basic
+public import Mathlib.Data.Fintype.Defs
+public import Mathlib.Data.Fintype.OfMap
+public import Mathlib.Data.Fintype.Pi
+public import Mathlib.Data.Fintype.Prod
+public import Mathlib.Data.Int.Cast.Defs
+public import Mathlib.Data.Nat.Cast.Defs
+public import Mathlib.Data.Nat.Init
+public import Mathlib.Data.Nat.Prime.Defs
+public import Mathlib.Data.Set.Defs
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Data.ZMod.Defs
+public import Mathlib.Logic.Equiv.Defs
+public import Mathlib.Logic.Equiv.PartialEquiv
+public import Mathlib.Tactic
+public import Mathlib.Tactic.NormNum.Basic
+public import Mathlib.Tactic.NormNum.DivMod
+public import Mathlib.Tactic.NormNum.Result
+public import Mathlib.Tactic.ReduceModChar
+public import Mathlib.Tactic.Ring.Basic
+public import Mathlib.Tactic.Ring.Common
+public import Mathlib.Tactic.Ring.RingNF
+
+@[expose] public section
 
 /-!
 # Coordinate model of the binary wreath product
@@ -183,17 +187,14 @@ macro "wext" : tactic => `(tactic| (apply Wreath.ext <;> (first | (funext i; wcl
 
 /-- Block swapping preserves wreath-product multiplication. -/
 lemma swapFun_mul (g h : Wreath n) : swapFun (mulW g h) = mulW (swapFun g) (swapFun h) := by
-  change swapFun (mulW g h) = mulW (swapFun g) (swapFun h)
   wext
 
 /-- Block swapping fixes the identity element. -/
 lemma swapFun_one : swapFun (oneW : Wreath n) = oneW := by
-  change swapFun oneW = oneW
   wext
 
 /-- Block swapping commutes with inversion. -/
 lemma swapFun_inv (g : Wreath n) : swapFun (invW g) = invW (swapFun g) := by
-  change swapFun (invW g) = invW (swapFun g)
   wext
 
 instance : Group (Wreath n) where

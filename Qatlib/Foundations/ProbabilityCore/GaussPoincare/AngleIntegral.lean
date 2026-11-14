@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.ProbabilityCore.GaussPoincare.Directional
+module
+
+public import Qatlib.Foundations.ProbabilityCore.GaussPoincare.Directional
+
+@[expose] public section
 
 /-!
 # Cauchy bounds along rotation paths

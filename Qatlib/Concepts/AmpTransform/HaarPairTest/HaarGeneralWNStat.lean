@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmpTransform.HaarPairTest.HaarPairDefs
-import Qatlib.Foundations.PureStateMath.Tensor
+module
+
+public import Qatlib.Concepts.AmpTransform.HaarPairTest.HaarPairDefs
+public import Qatlib.Foundations.PureStateMath.Tensor
+
+@[expose] public section
 
 /-!
 # Specification of general Haar pair readout

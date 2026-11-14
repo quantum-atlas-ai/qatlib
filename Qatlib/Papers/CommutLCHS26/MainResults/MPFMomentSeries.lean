@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommutLCHS26.MainResults.DysonExpansion
-import Qatlib.Papers.CommutLCHS26.MainResults.ChebyshevNodes
+module
+
+public import Qatlib.Papers.CommutLCHS26.MainResults.DysonExpansion
+public import Qatlib.Papers.CommutLCHS26.MainResults.ChebyshevNodes
+
+@[expose] public section
 
 /-!
 # Moment cancellation in actual multi-product series

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QPowerSimon97.Recovery.NativeRetryConstructionDefs
-import Qatlib.Concepts.HspRecovery.Distinguisher.BoundedErrorNearPeriodSimo
+module
+
+public import Qatlib.Papers.QPowerSimon97.Recovery.NativeRetryConstructionDefs
+public import Qatlib.Concepts.HspRecovery.Distinguisher.BoundedErrorNearPeriodSimo
+
+@[expose] public section
 
 /-!
 # Classical serialization and verification for Simon recovery
@@ -166,11 +170,11 @@ theorem simonClassicalStage_output {n m : ℕ} (f : BooleanVec n → BooleanVec 
       · have hb : simonCompare ((regBooleanEquiv m).symm (f (regBooleanEquiv n t)))
                             ((regBooleanEquiv m).symm (f (0 : BooleanVec n))) = true :=
           (simonCompare_output _ _).2 he
-        rw [if_pos hb, hRHS, if_pos he]
+        rw [ite_eq_left hb, hRHS, ite_eq_left he]
       · have hb : simonCompare ((regBooleanEquiv m).symm (f (regBooleanEquiv n t)))
                             ((regBooleanEquiv m).symm (f (0 : BooleanVec n))) ≠ true :=
           fun h' => he ((simonCompare_output _ _).1 h')
-        rw [if_neg hb, hRHS, if_neg he]
+        rw [ite_eq_right hb, hRHS, ite_eq_right he]
 end
 noncomputable section
 

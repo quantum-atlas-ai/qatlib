@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.Complex.Polynomial.Basic
-import Mathlib.LinearAlgebra.Eigenspace.Basic
-import Mathlib.LinearAlgebra.Matrix.Hermitian
-import Mathlib.LinearAlgebra.Matrix.ToLin
-import Mathlib.Analysis.Matrix.Spectrum
+module
+
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.Complex.Polynomial.Basic
+public import Mathlib.LinearAlgebra.Eigenspace.Basic
+public import Mathlib.LinearAlgebra.Matrix.Hermitian
+public import Mathlib.LinearAlgebra.Matrix.ToLin
+public import Mathlib.Analysis.Matrix.Spectrum
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

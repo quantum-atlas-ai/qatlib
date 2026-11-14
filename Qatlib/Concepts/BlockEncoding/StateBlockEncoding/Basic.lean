@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.BlockEncoding.LinearCombination
-import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
+module
+
+public import Qatlib.Concepts.BlockEncoding.LinearCombination
+public import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
+
+@[expose] public section
 
 /-!
 # Ancilla fibers and exact state block encodings
@@ -334,17 +338,10 @@ def tensorBlockEquiv : (J × I) × (K × L) ≃ (J × K) × (I × L) where
   left_inv _ := rfl
   right_inv _ := rfl
 
+omit [Fintype J] [DecidableEq J] [Fintype I] [DecidableEq I] [Fintype K] [DecidableEq K] [Fintype L] [DecidableEq L] in
 /-- The inverse tensor block equivalence separates paired ancilla and system labels. -/
 theorem tensorBlockEquiv_symm_apply (j : J) (k : K) (i : I) (l : L) :
-    tensorBlockEquiv.symm ((j, k), (i, l)) = ((j, i), (k, l)) := by
-  let _ := (inferInstance : Fintype J)
-  let _ := (inferInstance : DecidableEq J)
-  let _ := (inferInstance : Fintype I)
-  let _ := (inferInstance : DecidableEq I)
-  let _ := (inferInstance : Fintype K)
-  let _ := (inferInstance : DecidableEq K)
-  let _ := (inferInstance : Fintype L)
-  let _ := (inferInstance : DecidableEq L)
+    tensorBlockEquiv.symm ((j, k), (i, l)) = ((j, i), (k, l)) :=
   rfl
 
 /-- Reindexing both matrix indices by the same equivalence commutes with conjugate transpose. -/
@@ -375,7 +372,7 @@ theorem blockCorner_reindex_tensorGate (U : Matrix (J × I) (J × I) ℂ)
         (j₀, k₀)
       = TensorGate (BlockCorner U j₀) (BlockCorner V k₀) := by
   ext ⟨i, l⟩ ⟨i', l'⟩
-  simp [blockCorner_apply, Matrix.reindex_apply, tensorBlockEquiv,
+  simp [blockCorner_apply, Matrix.reindex_apply, tensorBlockEquiv_symm_apply,
     tensorGate_apply]
 
 /-- The tensor product of exact block encodings, with indices regrouped, encodes the tensor

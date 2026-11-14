@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.RationalFlow.ArctanProgram
-import Mathlib.Analysis.SpecialFunctions.Exponential
+module
+
+public import Qatlib.Concepts.EffectiveGauge.RationalFlow.ArctanProgram
+public import Mathlib.Analysis.SpecialFunctions.Exponential
+
+@[expose] public section
 
 /-! # The actual alternating prefix used by exp_negative -/
 

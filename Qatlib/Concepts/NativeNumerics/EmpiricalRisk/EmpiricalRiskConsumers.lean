@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FairRandomBits.EmpiricalWeight
-import Qatlib.Concepts.SpectralReadout.PhaseReadout.BornPerturbation
-import Qatlib.Concepts.RiskEstimation.VaRQuantile.VaRAlgorithmFiniteRestrictedQuan
-import Qatlib.Concepts.RiskEstimation.CVaREstimation.CVaRAlgorithmFiniteRestrictedQuan
-import Qatlib.Concepts.NativeNumerics.EmpiricalRisk.RiskActualAccessLedgerFiniteQuan
+module
+
+public import Qatlib.Concepts.FairRandomBits.EmpiricalWeight
+public import Qatlib.Concepts.SpectralReadout.PhaseReadout.BornPerturbation
+public import Qatlib.Concepts.RiskEstimation.VaRQuantile.VaRAlgorithmFiniteRestrictedQuan
+public import Qatlib.Concepts.RiskEstimation.CVaREstimation.CVaRAlgorithmFiniteRestrictedQuan
+public import Qatlib.Concepts.NativeNumerics.EmpiricalRisk.RiskActualAccessLedgerFiniteQuan
+
+@[expose] public section
 
 /-!
 # Empirical preparation and quantum risk estimates

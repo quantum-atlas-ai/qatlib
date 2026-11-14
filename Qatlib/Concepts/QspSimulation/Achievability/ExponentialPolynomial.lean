@@ -4,20 +4,24 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Polynomial.BigOperators
-import Mathlib.Algebra.Polynomial.Degree.Lemmas
-import Mathlib.Algebra.Polynomial.Coeff
-import Mathlib.Analysis.Complex.Trigonometric
-import Mathlib.Topology.Algebra.Order.Floor
-import Mathlib.Topology.MetricSpace.Pseudo.Basic
-import Lean.Elab.Tactic.NormCast
-import Lean.Elab.Tactic.Omega
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Analysis.Complex.Exponential
-import Mathlib.Tactic.GCongr
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Ring
+module
+
+public import Mathlib.Algebra.Polynomial.BigOperators
+public import Mathlib.Algebra.Polynomial.Degree.Lemmas
+public import Mathlib.Algebra.Polynomial.Coeff
+public import Mathlib.Analysis.Complex.Trigonometric
+public import Mathlib.Topology.Algebra.Order.Floor
+public import Mathlib.Topology.MetricSpace.Pseudo.Basic
+public import Lean.Elab.Tactic.NormCast
+public import Lean.Elab.Tactic.Omega
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Analysis.Complex.Exponential
+public import Mathlib.Tactic.GCongr
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 /-!
 # Taylor polynomials for Hamiltonian phases
@@ -118,7 +122,7 @@ theorem exponentialTaylorPolynomial_natDegree {t : ℝ} (ht : t ≠ 0)
     (exponentialTaylorPolynomial t n).natDegree = n - 1 := by
   apply Polynomial.natDegree_eq_of_le_of_coeff_ne_zero
     (exponentialTaylorPolynomial_natDegree_le t n)
-  rw [exponentialTaylorPolynomial_coeff, if_pos (by omega : n - 1 < n)]
+  rw [exponentialTaylorPolynomial_coeff, ite_eq_left (by omega : n - 1 < n)]
   exact exponentialTaylorCoefficient_ne_zero ht _
 
 /-- The scalar bound `exponentialTaylorError t n` is twice the `n`th power of the absolute value

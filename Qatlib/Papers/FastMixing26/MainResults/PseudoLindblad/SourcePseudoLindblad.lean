@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.FastMixing26.MainResults.Definitions.SourceDefinitions
-import Qatlib.Foundations.DirichletForm.KmsDirichlet.Basic
-import Mathlib.Analysis.SpecialFunctions.Exponential
+module
+
+public import Qatlib.Papers.FastMixing26.MainResults.Definitions.SourceDefinitions
+public import Qatlib.Foundations.DirichletForm.KmsDirichlet.Basic
+public import Mathlib.Analysis.SpecialFunctions.Exponential
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

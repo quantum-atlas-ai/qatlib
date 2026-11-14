@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CopyDecision.CollectiveRisk.Data.CollectivePOVM
+module
+
+public import Qatlib.Concepts.CopyDecision.CollectiveRisk.Data.CollectivePOVM
+
+@[expose] public section
 
 /-!
 # Collective Witness
@@ -72,9 +76,9 @@ lemma trineCollectiveVector_overlap (n : ℕ) (i j : Fin 3) :
 source register. Decision zero retains the entire unused orthogonal complement. -/
 def trineCollectivePOVM (n : ℕ) : POVM (Fin 3) (Fin (n+2) → Fin 2) :=
   orthogonalPairPOVM (trineCollectiveVector n 1) (trineCollectiveVector n 2)
-    (by rw [trineCollectiveVector_gram, if_pos rfl])
-    (by rw [trineCollectiveVector_gram, if_pos rfl])
-    (by rw [trineCollectiveVector_gram, if_neg (by decide)])
+    (by rw [trineCollectiveVector_gram, ite_eq_left rfl])
+    (by rw [trineCollectiveVector_gram, ite_eq_left rfl])
+    (by rw [trineCollectiveVector_gram, ite_eq_right (by decide)])
 
 /-- The stated copy-decision construction satisfies `trineCollectivePOVM_error` with the complete displayed premises. -/
 theorem trineCollectivePOVM_error (n : ℕ) :

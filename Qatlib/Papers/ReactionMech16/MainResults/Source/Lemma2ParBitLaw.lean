@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -45,7 +49,7 @@ noncomputable def parBranchPhase (φ θ : ℝ) (M : ℕ) (b : Bool) : ℂ :=
 theorem parBranchPhase_false (φ θ : ℝ) (M : ℕ) :
     parBranchPhase φ θ M false =
       Complex.exp (Complex.I * ((M : ℝ) * (φ + θ))) := by
-  simp only [parBranchPhase, Bool.false_eq_true, if_false]
+  simp only [parBranchPhase, Bool.false_eq_true, ite_false]
   rw [← Complex.exp_nat_mul]
   congr 1
   push_cast
@@ -55,7 +59,7 @@ theorem parBranchPhase_false (φ θ : ℝ) (M : ℕ) :
 theorem parBranchPhase_true (φ θ : ℝ) (M : ℕ) :
     parBranchPhase φ θ M true =
       Complex.exp (-(Complex.I * ((M : ℝ) * (φ + θ)))) := by
-  simp only [parBranchPhase, if_true]
+  simp only [parBranchPhase, ite_true]
   rw [← Complex.exp_nat_mul]
   congr 1
   push_cast
@@ -85,11 +89,11 @@ theorem parAmplitude_eq_hadamard (φ θ : ℝ) (M : ℕ) :
     simpa [hA, mul_comm] using parBranchPhase_true φ θ M
   constructor
   · rw [parAmplitude, hA, hfalse, htrue]
-    simp only [Bool.false_eq_true, if_false]
+    simp only [Bool.false_eq_true, ite_false]
     rw [Complex.exp_mul_I, ← neg_mul, ← Complex.cos_sub_sin_I]
     ring
   · rw [parAmplitude, hA, hfalse, htrue]
-    simp only [if_true]
+    simp only [ite_true]
     rw [Complex.exp_mul_I, ← neg_mul, ← Complex.cos_sub_sin_I]
     ring
 
@@ -121,8 +125,8 @@ theorem lemma2_par_bit_law (φ θ : ℝ) (M : ℕ) :
     rw [hcos, hsin]
     ring_nf
   refine ⟨?_, ?_, ?_⟩
-  · simpa only [Complex.ofReal_natCast, parAmplitude, Bool.false_eq_true, if_false] using hcos
-  · simpa only [Complex.ofReal_natCast, parAmplitude, if_true] using hsin
-  · simpa only [Complex.ofReal_natCast, parAmplitude, Bool.false_eq_true, if_false, if_true] using hnorm
+  · simpa only [Complex.ofReal_natCast, parAmplitude, Bool.false_eq_true, ite_false] using hcos
+  · simpa only [Complex.ofReal_natCast, parAmplitude, ite_true] using hsin
+  · simpa only [Complex.ofReal_natCast, parAmplitude, Bool.false_eq_true, ite_false, ite_true] using hnorm
 
 end Qatlib.Papers.ReactionMech16.MainResults.Source

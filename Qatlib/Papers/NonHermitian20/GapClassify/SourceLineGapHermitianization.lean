@@ -4,16 +4,20 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Complex.Polynomial.Basic
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.LinearAlgebra.Eigenspace.Triangularizable
-import Mathlib.LinearAlgebra.Matrix.Block
-import Mathlib.LinearAlgebra.Matrix.Hermitian
-import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
-import Mathlib.LinearAlgebra.Matrix.ToLin
-import Mathlib.Topology.Algebra.Module.Basic
-import Mathlib.Topology.Instances.Complex
-import Mathlib.Topology.Instances.Matrix
+module
+
+public import Mathlib.Analysis.Complex.Polynomial.Basic
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.LinearAlgebra.Eigenspace.Triangularizable
+public import Mathlib.LinearAlgebra.Matrix.Block
+public import Mathlib.LinearAlgebra.Matrix.Hermitian
+public import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
+public import Mathlib.LinearAlgebra.Matrix.ToLin
+public import Mathlib.Topology.Algebra.Module.Basic
+public import Mathlib.Topology.Instances.Complex
+public import Mathlib.Topology.Instances.Matrix
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

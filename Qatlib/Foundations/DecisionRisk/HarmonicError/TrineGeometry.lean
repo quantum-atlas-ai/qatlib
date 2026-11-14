@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.DecisionRisk.HarmonicError.WeightedError
-import Mathlib.Tactic.FinCases
+module
+
+public import Qatlib.Foundations.DecisionRisk.HarmonicError.WeightedError
+public import Mathlib.Tactic.FinCases
+
+@[expose] public section
 
 /-!
 # Trine Geometry
@@ -209,8 +213,8 @@ theorem complex_first_copy_lower {ι U V H K : Type*} [Fintype ι]
     letI : InnerProductSpace ℝ U := InnerProductSpace.complexToReal
     t^2/(4*(1+t)) ≤ ∑ a, decisionError (fun k i => (M a).op k (ψ i))
       (fun i => ‖A a (trineInput u v i)‖^2/3) := by
-  letI : InnerProductSpace ℝ U := InnerProductSpace.complexToReal
-  letI : InnerProductSpace ℝ V := InnerProductSpace.complexToReal
+  let : InnerProductSpace ℝ U := InnerProductSpace.complexToReal
+  let : InnerProductSpace ℝ V := InnerProductSpace.complexToReal
   have hreal : inner ℝ u v=0 := by
     change (inner ℂ u v).re=0
     rw [huv]

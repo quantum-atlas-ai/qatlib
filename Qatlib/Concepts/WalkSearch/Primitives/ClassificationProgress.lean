@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.MainResults.ClassificationScan
+module
+
+public import Qatlib.Concepts.WalkSearch.MainResults.ClassificationScan
+
+@[expose] public section
 
 /-!
 # Progress bounds for classification
@@ -81,13 +85,13 @@ theorem classifyScan_high_account (G : UGraph n) (sgs : SGSExecution) (τ dHi dL
     dsimp only at hc ⊢
     have hcard:=drainedPairSet_card_le S τ
     split_ifs with he hl
-    · have hh:=ih (drainedPairSet S τ) (by simpa only [if_pos he] using hc)
+    · have hh:=ih (drainedPairSet S τ) (by simpa only [ite_eq_left he] using hc)
       exact hh.trans (Nat.add_le_add_right hcard _)
-    · have hc' := (by simpa only [if_neg he] using hc :
+    · have hc' := (by simpa only [ite_eq_right he] using hc :
           testCorrectCorrected (presentGraph G (drainedPairSet S τ).edges (drainedPairSet S τ).symm) v dHi dLo K c (ttape v) ∧ _)
-      have hh:=ih (lowRemaining (drainedPairSet S τ) v) (by simpa only [if_pos hl] using hc'.2)
+      have hh:=ih (lowRemaining (drainedPairSet S τ) v) (by simpa only [ite_eq_left hl] using hc'.2)
       exact hh.trans (Nat.add_le_add_right ((lowRemaining_card_le _ v).trans hcard) _)
-    · have hc' := (by simpa only [if_neg he] using hc :
+    · have hc' := (by simpa only [ite_eq_right he] using hc :
           testCorrectCorrected (presentGraph G (drainedPairSet S τ).edges (drainedPairSet S τ).symm) v dHi dLo K c (ttape v) ∧ _)
       have hl' :
           degreeTestLowCorrected
@@ -101,7 +105,7 @@ theorem classifyScan_high_account (G : UGraph n) (sgs : SGSExecution) (τ dHi dL
         omega
       | none =>
         have hh:=ih (highRemaining G (drainedPairSet S τ) v)
-            (by simpa only [if_neg hl,hrun] using hc'.2)
+            (by simpa only [ite_eq_right hl,hrun] using hc'.2)
         have hb:=highRemaining_card_balance G (drainedPairSet S τ) v
         (try dsimp only)
         nlinarith

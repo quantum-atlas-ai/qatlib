@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.OrderedBayes.BayesRatioCore.GeneralizedMarkovStat
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.FiniteStoppingTail
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Ring
+module
+
+public import Qatlib.Concepts.OrderedBayes.BayesRatioCore.GeneralizedMarkovStat
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.FiniteStoppingTail
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 /-!
 # Generalized Markov inequality for discrete laws
@@ -53,10 +57,10 @@ theorem generalizedMarkov_answer : GeneralizedMarkov := by
       ENNReal.ofReal b * (if b ≤ X x then 1 else 0) +
         ENNReal.ofReal (c - b) * (if c < X x then 1 else 0) ≤ ENNReal.ofReal (X x) := by
     by_cases hb : b ≤ X x <;> by_cases hc : c < X x
-    · simp only [if_pos hb, if_pos hc, mul_one]
+    · simp only [ite_eq_left hb, ite_eq_left hc, mul_one]
       rw [← ENNReal.ofReal_add hb0 hd.le]
       exact ENNReal.ofReal_le_ofReal (by linarith)
-    · simp only [if_pos hb, if_neg hc, mul_one, mul_zero, add_zero]
+    · simp only [ite_eq_left hb, ite_eq_right hc, mul_one, mul_zero, add_zero]
       exact ENNReal.ofReal_le_ofReal hb
     · exact False.elim (hb (hbc.le.trans hc.le))
     · simp [hb, hc]

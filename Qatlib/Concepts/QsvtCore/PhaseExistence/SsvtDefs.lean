@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvtDefs
-import Qatlib.Concepts.QsvtCore.QsVtMain.CPPPhaseCompiler
-import Qatlib.Concepts.QsvtCore.QsVtMain.LengthQSVT
+module
+
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvtDefs
+public import Qatlib.Concepts.QsvtCore.QsVtMain.CPPPhaseCompiler
+public import Qatlib.Concepts.QsvtCore.QsVtMain.LengthQSVT
+
+@[expose] public section
 
 /-!
 # Definitions of parity-selected transformation words

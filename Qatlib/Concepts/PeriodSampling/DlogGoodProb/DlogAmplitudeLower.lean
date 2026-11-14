@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PeriodSampling.DlogSamplingLaw.DlogTwoDimSamplingLawAnsw
-import Qatlib.Concepts.PeriodSampling.DlogCRTRecovery.DlogCandidateRecoveryAnsw
-import Qatlib.Concepts.PeriodSampling.DlogGoodProb.PerturbedProgression
+module
+
+public import Qatlib.Concepts.PeriodSampling.DlogSamplingLaw.DlogTwoDimSamplingLawAnsw
+public import Qatlib.Concepts.PeriodSampling.DlogCRTRecovery.DlogCandidateRecoveryAnsw
+public import Qatlib.Concepts.PeriodSampling.DlogGoodProb.PerturbedProgression
+
+@[expose] public section
 
 /-!
 # Lower bounds for good discrete-logarithm amplitudes

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.FreeFermion24.MainResults.SourceModel
+module
+
+public import Qatlib.Papers.FreeFermion24.MainResults.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -120,8 +124,8 @@ The records below carry independent output and resource annotations; this propos
 does not certify an oracle execution, sampling procedure, or gate decomposition. -/
 def theorem9_blockEncoding_thermalM_statement
     (n : ℕ) (s : ℕ) (h : SparseHermitian (2 ^ n) s) (β ε : ℝ) (na : ℕ)
-    (hβpos : 0 < β) (hε : 0 < ε)
-    (hβ : ∃ P : Polynomial ℝ, IsNatNonnegPoly P ∧ β ≤ P.eval (n : ℝ)) : Prop :=
+    (_hβpos : 0 < β) (_hε : 0 < ε)
+    (_hβ : ∃ P : Polynomial ℝ, IsNatNonnegPoly P ∧ β ≤ P.eval (n : ℝ)) : Prop :=
     ∃ B : ControlledBlockEncoding (2 ^ n) (thermalMQuarter h β) 1 ε,
       B.m = n + 5 ∧
       PolyOverEps B.cost.oracleCalls n ε ∧
@@ -136,7 +140,7 @@ does not certify an oracle execution, sampling procedure, or gate decomposition.
 def theorem16_thermalM_resources_statement
     (n : ℕ) (s : ℕ) (h : SparseHermitian (2 ^ n) s)
     (β εPA εp δc : ℝ) (na : ℕ)
-    (hβ : 0 < β) (hεPA : 0 < εPA) (hεp : 0 ≤ εp) (hδ : 0 < δc) : Prop :=
+    (_hβ : 0 < β) (_hεPA : 0 < εPA) (_hεp : 0 ≤ εp) (_hδ : 0 < δc) : Prop :=
     ∃ B : ControlledBlockEncoding (2 ^ n) (thermalMQuarter h β) 1 (εPA + εp + δc),
       B.m = n + 5 ∧
       (if 1 ≤ β * (s : ℝ) / (2 * Real.pi) then

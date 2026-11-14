@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
+module
+
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+
+@[expose] public section
 
 /-!
 # Variance estimates for metrology

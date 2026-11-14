@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NonlinBool08.MainResults.BentCore.BentFacts
-import Qatlib.Papers.NonlinBool08.MainResults.HiddenShift.Theorems
+module
+
+public import Qatlib.Papers.NonlinBool08.MainResults.BentCore.BentFacts
+public import Qatlib.Papers.NonlinBool08.MainResults.HiddenShift.Theorems
+
+@[expose] public section
 
 /-!
 # Reduction of bent hidden shifts to subgroup hiding
@@ -59,7 +63,7 @@ theorem qfun_injective {n : ℕ} {f : BVec n → ZMod 2} (hf : Bent f) :
   rw [hgram] at hsum
   by_cases h : x = x'
   · exact h
-  · rw [if_neg h] at hsum
+  · rw [ite_eq_right h] at hsum
     exact absurd hsum.symm (pow_ne_zero n (by norm_num : (2 : ℤ) ≠ 0))
 
 /-- The two-branch function-valued map selecting a translate of the sign of `f` or `g` according
@@ -74,7 +78,7 @@ lemma hidingFun_one {n : ℕ} {f g : BVec n → ZMod 2} {s : BVec n}
     hidingFun f g 1 x = qfun f (x + s) := by
   funext y
   simp only [hidingFun, qfun]
-  rw [if_neg (by decide : (1 : ZMod 2) ≠ 0)]
+  rw [ite_eq_right (by decide : (1 : ZMod 2) ≠ 0)]
   have hgy : g (x + y) = f (x + y + s) := hg (x + y)
   rw [hgy]
   congr 2

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MixedInstrument.RewindAlgebra.RejectionFailureBoundQuan
-import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
-import Mathlib.Analysis.Matrix.Order
+module
+
+public import Qatlib.Concepts.MixedInstrument.RewindAlgebra.RejectionFailureBoundQuan
+public import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
+public import Mathlib.Analysis.Matrix.Order
+
+@[expose] public section
 
 /-!
 # Finite rewind instruments and failure tails

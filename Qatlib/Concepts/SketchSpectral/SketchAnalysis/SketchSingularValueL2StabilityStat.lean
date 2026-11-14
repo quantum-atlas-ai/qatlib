@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SketchArith.TransposeAccess.CompactSketchConsumers
-import Qatlib.Concepts.RandCompile.ChannelBudget.SingularValues
+module
+
+public import Qatlib.Concepts.SketchArith.TransposeAccess.CompactSketchConsumers
+public import Qatlib.Concepts.RandCompile.ChannelBudget.SingularValues
+
+@[expose] public section
 
 /-!
 # Statement of Euclidean sketch spectral stability

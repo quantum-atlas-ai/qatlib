@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.Endpoint.GaussianMean
-import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.RawMoments
-import Mathlib.Analysis.Calculus.ContDiff.WithLp
+module
+
+public import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.Endpoint.GaussianMean
+public import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.RawMoments
+public import Mathlib.Analysis.Calculus.ContDiff.WithLp
+
+@[expose] public section
 
 /-!
 # Scalar tests of Gaussian spin endpoints

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorExprWordCode
-import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorExprMachineBasis
+module
+
+public import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorExprWordCode
+public import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorExprMachineBasis
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -152,16 +156,16 @@ theorem floorExprRawApprox_value (n : ℕ) (q : FloorExprQueryCode) :
   | h n ih =>
     by_cases hn : n=0
     · subst n
-      rw [floorExprRawApprox,floorExprRawApproxWith,dif_pos rfl]
+      rw [floorExprRawApprox,floorExprRawApproxWith,dite_eq_left rfl]
       have hz : floorExprDecode 0=FloorJetExpr.integer 0 := by rw [floorExprDecode]; simp
       rw [hz]
       simp [floorExprApproxOps,floorRationalCodeNat_value,floorJetApproximation]
     · have hp : (n-1).unpair.2<n := (Nat.unpair_right_le _).trans_lt (by omega)
       have ha := (Nat.unpair_left_le (n-1).unpair.2).trans_lt hp
       have hb := (Nat.unpair_right_le (n-1).unpair.2).trans_lt hp
-      rw [floorExprRawApprox,floorExprRawApproxWith,dif_neg hn]
+      rw [floorExprRawApprox,floorExprRawApproxWith,dite_eq_right hn]
       simp only [floorExprApproxOps]
-      conv_rhs => rw [floorExprDecode,dif_neg hn]
+      conv_rhs => rw [floorExprDecode,dite_eq_right hn]
       dsimp only
       simp only [floorExprRawApprox,floorExprApproxOps] at ih
       generalize ht : (n-1).unpair.1=tag

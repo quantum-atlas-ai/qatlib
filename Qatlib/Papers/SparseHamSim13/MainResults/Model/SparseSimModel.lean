@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Concepts.RiskEstimation.PopulationGap.SimTaylorDefs
-import Qatlib.Concepts.QspSimulation.Achievability.CircuitWellFormed
-import Qatlib.Concepts.CoherentSim.CoherentOAA.AdjointWord
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
+module
+
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.SimTaylorDefs
+public import Qatlib.Concepts.QspSimulation.Achievability.CircuitWellFormed
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.AdjointWord
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

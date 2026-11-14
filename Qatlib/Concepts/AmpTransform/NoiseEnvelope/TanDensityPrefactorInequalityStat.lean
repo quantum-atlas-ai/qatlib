@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmpTransform.NoiseEnvelope.AmplifiedFourierProbabilities
+module
+
+public import Qatlib.Concepts.AmpTransform.NoiseEnvelope.AmplifiedFourierProbabilities
+
+@[expose] public section
 
 /-!
 # Specification of tangent-prefactor gain bounds

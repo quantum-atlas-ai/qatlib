@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Calculus.Deriv.Basic
-import Qatlib.Papers.MethodOfLines26.ParabolicBase.Source.Uniqueness
+module
+
+public import Mathlib.Analysis.Calculus.Deriv.Basic
+public import Qatlib.Papers.MethodOfLines26.ParabolicBase.Source.Uniqueness
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

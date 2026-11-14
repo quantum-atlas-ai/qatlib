@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MacaulayHHL21.MainResults.SourceModel
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.Complex.Exponential
+module
+
+public import Qatlib.Papers.MacaulayHHL21.MainResults.SourceModel
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.Complex.Exponential
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -45,7 +49,7 @@ a fixed element with probability `p ≥ d/(2|S|)`, then after `r ≥ (2|S|/d)·l
 measurements the union-bound failure probability `|S|·(1−p)^r` is at most `ε`. -/
 theorem theorem62_unionBound
     {N d r : ℕ} {ε p : ℝ}
-    (hN : 0 < N) (hd : d ≤ N)
+    (hN : 0 < N) (_hd : d ≤ N)
     (hp_ge : (d : ℝ) / (2 * (N : ℝ)) ≤ p) (hp_le : p ≤ 1)
     (hε : 0 < ε)
     (hr : (N : ℝ) * Real.log ((N : ℝ) / ε) ≤ (d : ℝ) * (r : ℝ) / 2) :
@@ -64,7 +68,6 @@ theorem theorem62_unionBound
       Real.exp (-((d : ℝ) * (r : ℝ) / (2 * (N : ℝ)))) := by
     rw [← Real.exp_nat_mul (-((d : ℝ) / (2 * (N : ℝ)))) r]
     congr 1
-    push_cast
     field_simp
   -- the hypothesis on `r` controls the exponent
   have hlog : Real.log ((N : ℝ) / ε) ≤ (d : ℝ) * (r : ℝ) / (2 * (N : ℝ)) := by

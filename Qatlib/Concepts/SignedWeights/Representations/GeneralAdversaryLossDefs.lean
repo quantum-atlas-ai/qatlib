@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryEffective
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.StoppingReferenceTransport
-import Qatlib.Concepts.StoppingCore.InterruptBridge.StoppingExt
-import QuantumInfo.ForMathlib.HermitianMat.CFC
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryEffective
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.StoppingReferenceTransport
+public import Qatlib.Concepts.StoppingCore.InterruptBridge.StoppingExt
+public import QuantumInfo.ForMathlib.HermitianMat.CFC
+
+@[expose] public section
 
 /-!
 # Definitions for Loss and Query-Cost Certificates

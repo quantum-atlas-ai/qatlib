@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommutLCHS26.MainResults.BCHMassProducts
-import Mathlib.Algebra.BigOperators.Ring.Finset
+module
+
+public import Qatlib.Papers.CommutLCHS26.MainResults.BCHMassProducts
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+
+@[expose] public section
 
 /-!
 # Geometric bounds for nested commutator profiles

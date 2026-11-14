@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeReadoutCoreDefs
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Corollary14Quan
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem15ApproxCountQuan
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem17Quan
+module
+
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeReadoutCoreDefs
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Corollary14Quan
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem15ApproxCountQuan
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem17Quan
+
+@[expose] public section
 
 /-!
 # Rational readout witnesses and effective counting bounds
@@ -60,9 +64,9 @@ def requestMean (r : ReadoutRequest) : ℚ :=
 theorem requestMean_eq_target (r : ReadoutRequest) : (requestMean r : ℝ) = r.target := by
   unfold ReadoutRequest.target
   by_cases h : r.basisSize = 0
-  · rw [if_pos h, requestMean]
+  · rw [ite_eq_left h, requestMean]
     simp [h]
-  · rw [if_neg h, requestMean]
+  · rw [ite_eq_right h, requestMean]
     push_cast
     rfl
 

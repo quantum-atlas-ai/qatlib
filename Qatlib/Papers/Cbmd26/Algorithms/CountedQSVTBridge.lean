@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Cbmd26.Algorithms.FourBranchWordBridge
-import Qatlib.Papers.Cbmd26.Algorithms.StaticExponentialBridge
+module
+
+public import Qatlib.Papers.Cbmd26.Algorithms.FourBranchWordBridge
+public import Qatlib.Papers.Cbmd26.Algorithms.StaticExponentialBridge
+
+@[expose] public section
 
 /-!
 # Counted four-branch polynomial transformation

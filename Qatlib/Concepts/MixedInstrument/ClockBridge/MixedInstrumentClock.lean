@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ShadowModels.ShadowChannel.ObservedInstrument
-import Qatlib.Concepts.FairRandomBits.GeometricRetry
-import Qatlib.Concepts.MixedInstrument.ClockBridge.UnboundedInstrumentLoop
+module
+
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.ObservedInstrument
+public import Qatlib.Concepts.FairRandomBits.GeometricRetry
+public import Qatlib.Concepts.MixedInstrument.ClockBridge.UnboundedInstrumentLoop
+
+@[expose] public section
 
 /-!
 # Mixed-instrument clocks and completely positive limits
@@ -115,7 +119,7 @@ theorem mixed_instrument_positive_clock_stabilization :
         simp only [mixedHaltMap]
         apply Finset.sum_eq_zero
         intro l _
-        rw [if_neg (by have := hp c l; omega)]
+        rw [ite_eq_right (by have := hp c l; omega)]
     | succ k =>
       obtain ⟨m, rfl⟩ : ∃ m, n = m + 1 := ⟨n - 1, by omega⟩
       simp only [mixedHaltMap]
@@ -217,18 +221,18 @@ theorem mixed_event_charge {α : Type} (p : CostedLaw α) (a k : ℕ) (E : α �
       Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_map]
   (try dsimp only)
   by_cases h : a ≤ k
-  · rw [if_pos h]
+  · rw [ite_eq_left h]
     congr 1
     funext z
     have he : a + z.2 = k ↔ z.2 = k-a := by omega
     simp only [he]
     split_ifs <;> rfl
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     unfold Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation
     convert (tsum_zero : (∑' _ : α × ℕ, (0 : ℝ≥0∞)) = 0) using 1
     apply tsum_congr
     intro z
-    simp only [if_neg (show ¬ (a + z.2 = k ∧ E z.1) by omega), mul_zero]
+    simp only [ite_eq_right (show ¬ (a + z.2 = k ∧ E z.1) by omega), mul_zero]
 
 /-- Multiplying a conditional density operator by its outcome probability reconstructs the
 unnormalized instrument branch output. -/

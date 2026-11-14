@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LinearLearning.ConcisePipeline.DataFitSourceContinuation
-import Qatlib.Concepts.LinearLearning.ConcisePipeline.DataFitActualParameterRestrictedQuan
-import Qatlib.Concepts.LinearLearning.ConcisePipeline.DataFitActualQualityRestrictedQuan
-import Qatlib.Concepts.LinearLearning.ConcisePipeline.DataFitConciseSelectionRestrictedQuan
+module
+
+public import Qatlib.Concepts.LinearLearning.ConcisePipeline.DataFitSourceContinuation
+public import Qatlib.Concepts.LinearLearning.ConcisePipeline.DataFitActualParameterRestrictedQuan
+public import Qatlib.Concepts.LinearLearning.ConcisePipeline.DataFitActualQualityRestrictedQuan
+public import Qatlib.Concepts.LinearLearning.ConcisePipeline.DataFitConciseSelectionRestrictedQuan
+
+@[expose] public section
 
 /-!
 # Cost expressions for sparse quantum data fitting

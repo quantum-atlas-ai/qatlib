@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GraphCollis13.QueryBound.TreewidthAlgorithm.SourceTreewidthAlgorithm
-import Mathlib.Combinatorics.SimpleGraph.Clique
-import Mathlib.Combinatorics.SimpleGraph.VertexCover
-import Mathlib.Data.Finset.Max
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.GraphCollis13.QueryBound.TreewidthAlgorithm.SourceTreewidthAlgorithm
+public import Mathlib.Combinatorics.SimpleGraph.Clique
+public import Mathlib.Combinatorics.SimpleGraph.VertexCover
+public import Mathlib.Data.Finset.Max
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -122,7 +126,7 @@ theorem filter_true_indep (G : SimpleGraph (Fin n)) (x : Fin n → Bool)
 /-- The degree sum over the `x_v = 1` vertices of a vertex cover is bounded by
 `D(VC)`.  This is the counting step of the negative-witness estimate. -/
 theorem sum_deg_le_coverWitnessBound (G : SimpleGraph (Fin n)) (x : Fin n → Bool)
-    (C : Finset (Fin n)) (hC : IsCover G C)
+    (C : Finset (Fin n)) (_hC : IsCover G C)
     (hno : ¬ ∃ v w : Fin n, G.Adj v w ∧ x v = true ∧ x w = true) :
     ∑ v ∈ C.filter (fun v => x v = true), deg G v ≤ coverWitnessBound G C := by
   classical

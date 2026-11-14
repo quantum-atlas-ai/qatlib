@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.WalkAlgorithms.FreshCheckerCounting
-import Qatlib.Concepts.WalkSearch.WalkAlgorithms.FreshCheckerSoundness
+module
+
+public import Qatlib.Concepts.WalkSearch.WalkAlgorithms.FreshCheckerCounting
+public import Qatlib.Concepts.WalkSearch.WalkAlgorithms.FreshCheckerSoundness
+
+@[expose] public section
 
 /-!
 # Fresh checker costs and failure counts
@@ -138,13 +142,13 @@ theorem freshSubR_nonempty {n : ℕ} (adj : Fin n → Fin n → Bool) (U : Finse
       else Fintype.equivFin ↥U ⟨u₂, hu₂⟩) 0 ≠
       (fun b : Fin 2 => if hb : b = 0 then Fintype.equivFin ↥U ⟨u₁, hu₁⟩
       else Fintype.equivFin ↥U ⟨u₂, hu₂⟩) 1 := by
-    simp only [dif_neg (show ¬ (1 : Fin 2) = 0 by decide)]
+    simp only [dite_eq_right (show ¬ (1 : Fin 2) = 0 by decide)]
     intro hEq
     exact hne (congrArg Subtype.val ((Fintype.equivFin ↥U).injective hEq))
   refine decide_eq_true ⟨h01, ?_, ?_, ?_⟩
-  · rw [key 0, if_pos rfl]; exact hadj1
-  · rw [key 1, if_neg (by decide : ¬ (1 : Fin 2) = 0)]; exact hadj2
-  · rw [key 0, if_pos rfl, key 1, if_neg (by decide : ¬ (1 : Fin 2) = 0)]; exact hadj3
+  · rw [key 0, ite_eq_left rfl]; exact hadj1
+  · rw [key 1, ite_eq_right (by decide : ¬ (1 : Fin 2) = 0)]; exact hadj2
+  · rw [key 0, ite_eq_left rfl, key 1, ite_eq_right (by decide : ¬ (1 : Fin 2) = 0)]; exact hadj3
 
 /-- If a marked vertex exists, the number of seed pairs on which noisy search returns `none`,
 multiplied by `(n + 1)^ncs.cExp`, is at most the total number of seed pairs. -/
@@ -159,8 +163,8 @@ theorem fresh_E1_card {n : ℕ} (adj : Fin n → Fin n → Bool) (U : Finset (Fi
         (freshTcost kcs (Fintype.card ↥U) r' c₀) n ρ.1 = none).card *
       (n + 1) ^ ncs.cExp ≤
       Fintype.card ncs.seed * Fintype.card (Fin (2 * n * c₀ + 1) → kcs.seed)) := by
-  letI := ncs.seedFin
-  letI := kcs.seedFin
+  let := ncs.seedFin
+  let := kcs.seedFin
   have hfiber : ∀ τ : Fin (2 * n * c₀ + 1) → kcs.seed,
       ((Finset.univ.filter fun ρn : ncs.seed =>
         ncs.run (freshMarked adj U) (freshTest adj U kcs r' c₀
@@ -212,7 +216,7 @@ theorem fresh_E1_card {n : ℕ} (adj : Fin n → Fin n → Bool) (U : Finset (Fi
 /-- Extending a finite seed tape preserves every entry at an index within the original tape. -/
 theorem extSeed_prefix_read {S : Type} [Nonempty S] {B : ℕ} (τ : Fin B → S) (k : ℕ)
     (hk : k < B) : @extSeed B S _ τ k = τ ⟨k, hk⟩ := by
-  rw [extSeed, dif_pos hk]
+  rw [extSeed, dite_eq_left hk]
 
 /-- A vertex-test coordinate `k * c₀ + i` lies in the prefix of length `n * c₀` when `k < n` and
 `i < c₀`. -/
@@ -266,8 +270,8 @@ theorem fresh_E2_fiber_some {n : ℕ} (adj : Fin n → Fin n → Bool) (U : Fins
           (tapeUnsplit π σ) (n * c₀ + i))).1 = none).card *
       (U.card + 1) ^ (c₀ * kcs.cExp) ≤
       Fintype.card kcs.seed ^ (n * c₀ + 1)) := by
-  letI := ncs.seedFin
-  letI := kcs.seedFin
+  let := ncs.seedFin
+  let := kcs.seedFin
   have hn1 : 0 < n := Fin.pos v
   have hnc : c₀ ≤ n * c₀ := Nat.le_mul_of_pos_left c₀ hn1
   have hmarked : freshMarked adj U v = true :=
@@ -492,8 +496,8 @@ theorem fresh_E2_card {n : ℕ} (adj : Fin n → Fin n → Bool) (U : Finset (Fi
         (fun i => @extSeed (2 * n * c₀ + 1) kcs.seed kcs.seedNe ρ.2 (n * c₀ + i))).1 = none).card *
       (U.card + 1) ^ (c₀ * kcs.cExp) ≤
       Fintype.card ncs.seed * Fintype.card (Fin (2 * n * c₀ + 1) → kcs.seed)) := by
-  letI := ncs.seedFin
-  letI := kcs.seedFin
+  let := ncs.seedFin
+  let := kcs.seedFin
 
   have hfib : ∀ ρn : ncs.seed, ∀ π : Fin (n * c₀) → kcs.seed,
       ((Finset.univ.filter fun σ : Fin (n * c₀ + 1) → kcs.seed =>

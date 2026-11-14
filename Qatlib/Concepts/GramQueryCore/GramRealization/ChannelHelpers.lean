@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Tensor
-import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+module
+
+public import Qatlib.Foundations.PureStateMath.Tensor
+public import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+
+@[expose] public section
 
 /-!
 # Gram matrices determine readout marginals
@@ -85,6 +89,7 @@ private theorem wrap_sum (a : I → ℂ) (w : I → Qatlib.Foundations.PureState
 
 omit [DecidableEq I] in
 
+omit [DecidableEq J] [DecidableEq K] in
 /-- Equal Gram matrices of finite state families imply equality of the total squared coordinate
 masses of every common linear combination. -/
 theorem native_gram_determinacy (a : I → ℂ) (w : I → Qatlib.Foundations.PureStateMath.QState J) (v : I → Qatlib.Foundations.PureStateMath.QState K)

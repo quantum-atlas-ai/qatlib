@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.Amplification.RankCost
-import Mathlib.NumberTheory.Harmonic.Bounds
-import Mathlib.Analysis.Complex.ExponentialBounds
-import Mathlib.Analysis.SpecialFunctions.Sqrt
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.RankCost
+public import Mathlib.NumberTheory.Harmonic.Bounds
+public import Mathlib.Analysis.Complex.ExponentialBounds
+public import Mathlib.Analysis.SpecialFunctions.Sqrt
+
+@[expose] public section
 
 /-!
 # Clock bounds for ranked minimum finding

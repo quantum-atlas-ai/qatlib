@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.WalkAlgorithms.FreshValidationCheckerStat
-import Qatlib.Concepts.WalkSearch.WalkAlgorithms.FreshCheckerBudget
+module
+
+public import Qatlib.Concepts.WalkSearch.WalkAlgorithms.FreshValidationCheckerStat
+public import Qatlib.Concepts.WalkSearch.WalkAlgorithms.FreshCheckerBudget
+
+@[expose] public section
 
 /-!
 # Fresh validation checker guarantee
@@ -40,8 +44,8 @@ theorem freshValidationChecker_answer : FreshValidationChecker := by
   refine ⟨fun stape ntape => triCheckFresh_sound adj U kcs ncs r' c₀ stape ntape, ?_,
     fun stape ntape => fresh_cost_le adj U kcs ncs r' c₀ hκn stape ntape⟩
   intro hex
-  letI := ncs.seedFin
-  letI := kcs.seedFin
+  let := ncs.seedFin
+  let := kcs.seedFin
   have hexMarked : ∃ v : Fin n, freshMarked adj U v = true := by
     obtain ⟨v, u₁, hu₁, u₂, hu₂, hne, h1, h2, h3⟩ := hex
     refine ⟨v, ?_⟩

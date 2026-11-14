@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ContDiscWalk08.MainResults.WalkSpectrum.WalkDefs
+module
+
+public import Qatlib.Papers.ContDiscWalk08.MainResults.WalkSpectrum.WalkDefs
+
+@[expose] public section
 
 /-!
 # Bit-query Hamiltonians
@@ -82,6 +86,7 @@ theorem oracleHamiltonian_mulVec (x : I → Bool) (ψ : QState (I × Bool)) :
   funext p
   exact applyGate_permMatrix (oracleFlip_involutive x) ψ p
 
+omit [Fintype I] in
 /-- The bit-query Hamiltonian is Hermitian, as required by the oracle model in [Childs2010]. -/
 theorem oracleHamiltonian_isHermitian (x : I → Bool) :
     (oracleHamiltonian x).IsHermitian :=
@@ -102,6 +107,7 @@ theorem inner_oracleHamiltonian (x : I → Bool) (ψ φ : QState (I × Bool)) :
     Inner (oracleHamiltonian x *ᵥ ψ) (oracleHamiltonian x *ᵥ φ) = Inner ψ φ :=
   inner_applyGate (oracleHamiltonian_unitary x) ψ φ
 
+omit [Fintype I] in
 /-- The matrix entry from `(i, b)` to its bit-flipped oracle image equals one. -/
 theorem oracleHamiltonian_edge (x : I → Bool) (i : I) (b : Bool) :
     oracleHamiltonian x (i, flipBit (x i) b) (i, b) = 1 := by

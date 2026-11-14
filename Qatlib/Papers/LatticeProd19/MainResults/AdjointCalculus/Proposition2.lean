@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Calculus.IteratedDeriv.Defs
-import Mathlib.Data.Nat.Choose.Multinomial
-import Qatlib.Papers.LatticeProd19.MainResults.SourceModel
-import Qatlib.Papers.LatticeProd19.MainResults.AdjointCalculus.Corollary1
+module
+
+public import Mathlib.Analysis.Calculus.IteratedDeriv.Defs
+public import Mathlib.Data.Nat.Choose.Multinomial
+public import Qatlib.Papers.LatticeProd19.MainResults.SourceModel
+public import Qatlib.Papers.LatticeProd19.MainResults.AdjointCalculus.Corollary1
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

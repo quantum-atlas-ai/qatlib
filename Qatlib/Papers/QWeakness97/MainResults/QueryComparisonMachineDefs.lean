@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.QueryModelComparisonDefs
-import Qatlib.Concepts.UniformBqp.OracleAmplify.StandardOracleSequentialCopiesStat
-import Qatlib.Concepts.UniformBqp.OracleAmplify.StandardOracleTidyAmplificationStat
-import Qatlib.Concepts.UniformBqp.OracleAmplify.StandardOracleSequentialCopiesStre
-import Qatlib.Concepts.UniformBqp.OracleAmplify.StandardOracleTidyAmplificationStre
-import Mathlib.Tactic.Linarith
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.QueryModelComparisonDefs
+public import Qatlib.Concepts.UniformBqp.OracleAmplify.StandardOracleSequentialCopiesStat
+public import Qatlib.Concepts.UniformBqp.OracleAmplify.StandardOracleTidyAmplificationStat
+public import Qatlib.Concepts.UniformBqp.OracleAmplify.StandardOracleSequentialCopiesStre
+public import Qatlib.Concepts.UniformBqp.OracleAmplify.StandardOracleTidyAmplificationStre
+public import Mathlib.Tactic.Linarith
+
+@[expose] public section
 
 /-!
 # Finite oracle machine programs

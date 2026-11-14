@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Qubit
-import Mathlib.Dynamics.PeriodicPts.Lemmas
+module
+
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Mathlib.Dynamics.PeriodicPts.Lemmas
+
+@[expose] public section
 
 /-!
 # Bounded orders of permutation eigenvalues

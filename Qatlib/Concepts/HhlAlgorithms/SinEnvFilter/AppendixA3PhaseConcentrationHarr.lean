@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.AppendixA3PhaseConcentrationStat
-import Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.SinEnvelopeHHL
+module
+
+public import Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.AppendixA3PhaseConcentrationStat
+public import Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.SinEnvelopeHHL
+
+@[expose] public section
 
 /-!
 # Sine-envelope phase-concentration certificate

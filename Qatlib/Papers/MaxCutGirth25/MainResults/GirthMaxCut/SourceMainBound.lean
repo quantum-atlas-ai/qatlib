@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MaxCutGirth25.MainResults.GirthMaxCut.SourceCutExpectation
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.MaxCutGirth25.MainResults.GirthMaxCut.SourceCutExpectation
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -76,7 +80,7 @@ cut fraction of `G`.  The paper applies this with `c = c_edge(γ,β)` (Eq. (9)) 
 then with `c = c̃_edge(p)` (Eq. (11)). -/
 theorem paper_eq11_per_graph {V : Type*} [Fintype V] [DecidableEq V]
     (G : SimpleGraph V) [DecidableRel G.Adj] {p : ℕ} {c : ℝ}
-    (hreg : G.IsRegularOfDegree 3) (hgirth : 2 * p + 2 ≤ G.girth)
+    (_hreg : G.IsRegularOfDegree 3) (_hgirth : 2 * p + 2 ≤ G.girth)
     (hE : 0 < edgeCount G) (hQAOA : HasExpectedCutFraction G c) :
     c ≤ maxCutFraction G :=
   expectedCutFraction_le_maxCut_of_has G hE hQAOA
@@ -100,7 +104,7 @@ theorem paper_eq11_Mg {g : ℕ} {c : ℝ}
 /-- **Paper Eq. (11) with its printed range.** For `p ≤ (g − 2)/2`, equivalently
 `2p + 2 ≤ g`, the QAOA per-edge value `c` is a lower bound on `M_g`.  This is the
 literal form of the displayed formula on p. 4. -/
-theorem paper_eq11_girth_range {p g : ℕ} (hpg : 2 * p + 2 ≤ g) {c : ℝ}
+theorem paper_eq11_girth_range {p g : ℕ} (_hpg : 2 * p + 2 ≤ g) {c : ℝ}
     (hne : (regularGraphCutFractions g).Nonempty)
     (h : ∀ (V : Type) [Fintype V] [DecidableEq V]
       (G : SimpleGraph V) [DecidableRel G.Adj],

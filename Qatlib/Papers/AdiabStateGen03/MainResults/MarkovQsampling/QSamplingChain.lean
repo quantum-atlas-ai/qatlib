@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AdiabStateGen03.MainResults.MarkovQsampling.Basic
-import Qatlib.Papers.AdiabStateGen03.MainResults.MarkovQsampling.Overlap
-import Qatlib.Papers.AdiabStateGen03.MainResults.Simulation.TransferChain
+module
+
+public import Qatlib.Papers.AdiabStateGen03.MainResults.MarkovQsampling.Basic
+public import Qatlib.Papers.AdiabStateGen03.MainResults.MarkovQsampling.Overlap
+public import Qatlib.Papers.AdiabStateGen03.MainResults.Simulation.TransferChain
+
+@[expose] public section
 
 /-!
 # State transfer along Markov sampling chains

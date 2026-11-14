@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem7Aux
-import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem5Aux2
-import Qatlib.Concepts.LocalMachine.LocalTransport.LeastSquaresOutputSpec
+module
+
+public import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem7Aux
+public import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem5Aux2
+public import Qatlib.Concepts.LocalMachine.LocalTransport.LeastSquaresOutputSpec
+
+@[expose] public section
 
 /-!
 # History and padding mass of Taylor-system solutions

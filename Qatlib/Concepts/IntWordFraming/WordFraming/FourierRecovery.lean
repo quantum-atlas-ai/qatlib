@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.IntWordFraming.WordFraming.SmithNormalizationDefs
-import Mathlib.GroupTheory.SpecificGroups.Cyclic
-import Mathlib.LinearAlgebra.Isomorphisms
-import Mathlib.Tactic.FinCases
-import Mathlib.Tactic.LinearCombination
-import Mathlib.Tactic.Ring
+module
+
+public import Qatlib.Concepts.IntWordFraming.WordFraming.SmithNormalizationDefs
+public import Mathlib.GroupTheory.SpecificGroups.Cyclic
+public import Mathlib.LinearAlgebra.Isomorphisms
+public import Mathlib.Tactic.FinCases
+public import Mathlib.Tactic.LinearCombination
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 /-!
 # Smith normal form and abelian presentation recovery
@@ -659,7 +663,7 @@ theorem isolatePivotLoop_correct {m n : ℕ} (fuel : ℕ)
       · have hs := clearPivot_correct A hc hr
         cases hsearch : badPivotEntry (clearPivot A).value with
         | none =>
-          rw [if_pos hc, if_pos hr]
+          rw [ite_eq_left hc, ite_eq_left hr]
           dsimp only []
           rw [hsearch]
           refine ⟨?_, hs.2.2.1, hs.2.2.2, (badPivotEntry_none_iff _).mp hsearch⟩
@@ -676,7 +680,7 @@ theorem isolatePivotLoop_correct {m n : ℕ} (fuel : ℕ)
               < fuel := by
             rw [he.1, hs.2.1] at hdec
             omega
-          rw [if_pos hc, if_pos hr]
+          rw [ite_eq_left hc, ite_eq_left hr]
           dsimp only []
           rw [hsearch]
           dsimp only [ColumnEliminationState.toReduction, RowEliminationState.toReduction,
@@ -684,12 +688,12 @@ theorem isolatePivotLoop_correct {m n : ℕ} (fuel : ℕ)
           exact ih _ (rowReduce_pivot_ne_zero 0 _ he0) hnext
       · have hdec := rowReduce_pivot_strict 0 A h0 (not_forall.mp hr)
         have hnext : ((rowReduce 0 A).value 0 0).natAbs < fuel := by omega
-        rw [if_pos hc, if_neg hr]
+        rw [ite_eq_left hc, ite_eq_right hr]
         dsimp only [RowEliminationState.toReduction, PresentationReduction.then]
         exact ih _ (rowReduce_pivot_ne_zero 0 A h0) hnext
     · have hdec := columnReduce_pivot_strict 0 A h0 (not_forall.mp hc)
       have hnext : ((columnReduce 0 A).value 0 0).natAbs < fuel := by omega
-      rw [if_neg hc]
+      rw [ite_eq_right hc]
       dsimp only [ColumnEliminationState.toReduction, PresentationReduction.then]
       exact ih _ (columnReduce_pivot_ne_zero 0 A h0) hnext
 
@@ -1143,8 +1147,8 @@ theorem finite_presentation_iff {m n : ℕ} (A : Matrix (Fin m) (Fin n) ℤ) :
   classical
   constructor
   · intro hA
-    letI := hA
-    letI : Finite (∀ r : Fin m, ZMod (cyclicFactors A r)) :=
+    let := hA
+    let : Finite (∀ r : Fin m, ZMod (cyclicFactors A r)) :=
       Finite.of_equiv (PresentationModule A) (rectangularSmithCyclicEquiv A).toEquiv
     intro r hz
     have hp : Function.Surjective (fun v : (∀ i : Fin m, ZMod (cyclicFactors A i)) => v r) := by
@@ -1154,8 +1158,8 @@ theorem finite_presentation_iff {m n : ℕ} (A : Matrix (Fin m) (Fin n) ℤ) :
     have hf0 : Finite (ZMod 0) := by simpa [hz] using! hf
     exact hf0.false
   · intro h
-    letI (r : Fin m) : NeZero (cyclicFactors A r) := ⟨h r⟩
-    letI : ∀ r : Fin m, Finite (ZMod (cyclicFactors A r)) := fun _ => inferInstance
+    let (r : Fin m) : NeZero (cyclicFactors A r) := ⟨h r⟩
+    let : ∀ r : Fin m, Finite (ZMod (cyclicFactors A r)) := fun _ => inferInstance
     exact Finite.of_equiv (∀ r : Fin m, ZMod (cyclicFactors A r))
       (rectangularSmithCyclicEquiv A).symm.toEquiv
 
@@ -1366,7 +1370,7 @@ theorem SmithForm_principal_det {m n k : ℕ} (A : Matrix (Fin m) (Fin n) ℤ)
     by_cases hij : i = j
     · subst j
       simp [diagonalCoefficient, initialIndex, lt_of_lt_of_le i.isLt hn]
-    · simp only [Matrix.diagonal_apply, if_neg hij, Matrix.submatrix_apply]
+    · simp only [Matrix.diagonal_apply, ite_eq_right hij, Matrix.submatrix_apply]
       exact SmithForm_offDiagonal A hA _ _ (by intro h; exact hij (Fin.ext h))
   rw [he, Matrix.det_diagonal]
   rfl
@@ -1544,7 +1548,7 @@ def normalizedRestrictionEquiv {m n : ℕ} (p : NormalizedSmithData m n) :
     funext r
     by_cases h : p.coeff r ≠ 1
     · simp [inflateNormalized, h]
-    · haveI : Subsingleton (ZMod (p.coeff r)) := by
+    · have : Subsingleton (ZMod (p.coeff r)) := by
         rw [not_ne_iff.mp h]
         infer_instance
       exact Subsingleton.elim _ _
@@ -1583,7 +1587,7 @@ theorem normalizedEncode_decode {m n : ℕ} (rows : Vector (Vector ℤ n) m)
       (fun i => (ZMod.cast (inflateNormalized (normalizedSmith rows) z i) : ℤ)))) r : _) = z r
   rw [Matrix.mulVec_mulVec, (rectangularSmith_encodes (tableMatrix rows)).2.1, Matrix.one_mulVec]
   rw [ZMod.intCast_zmod_cast]
-  simp only [inflateNormalized, dif_pos r.property]
+  simp only [inflateNormalized, dite_eq_left r.property]
 
 /-- Decoding the normalized encoding of an integer vector preserves its quotient class in the
 presentation module. -/
@@ -1722,7 +1726,7 @@ def piTorsionKernelEquiv {ι : Type*} (d : ι → ℕ) (k : ℕ) :
 /-- For nonzero modulus `d`, the number of elements of `ZMod d` killed by `k` is `Nat.gcd d k`. -/
 theorem card_zmod_torsion (d k : ℕ) (hd : d ≠ 0) :
     Nat.card {x : ZMod d // k • x = 0} = Nat.gcd d k := by
-  letI : NeZero d := ⟨hd⟩
+  let : NeZero d := ⟨hd⟩
   change Nat.card (nsmulAddMonoidHom k : ZMod d →+ ZMod d).ker = _
   simpa only [Nat.card_zmod] using! IsAddCyclic.card_nsmulAddMonoidHom_ker (ZMod d) k
 
@@ -1779,7 +1783,7 @@ theorem normalizedSmith_torsionProfile_invariant {m n m' n' : ℕ}
     (k : ℕ) : (normalizedSmith rows).torsionProfile k = (normalizedSmith rows').torsionProfile k := by
   have hf' : (normalizedSmith rows').isFinite = true := by
     apply (normalizedSmith_isFinite rows').mpr
-    letI := (normalizedSmith_isFinite rows).mp hf
+    let := (normalizedSmith_isFinite rows).mp hf
     exact Finite.of_equiv _ e.toEquiv
   rw [normalizedSmith_torsionProfile_correct rows hf,
     normalizedSmith_torsionProfile_correct rows' hf']
@@ -1845,7 +1849,7 @@ theorem normalizedSmith_factorCount_invariant {m n m' n' : ℕ}
     (normalizedSmith rows).factors.length = (normalizedSmith rows').factors.length := by
   have hf' : (normalizedSmith rows').isFinite = true := by
     apply (normalizedSmith_isFinite rows').mpr
-    letI := (normalizedSmith_isFinite rows).mp hf
+    let := (normalizedSmith_isFinite rows).mp hf
     exact Finite.of_equiv _ e.toEquiv
   apply Nat.le_antisymm
   · exact divisorChain_length_le _ _ (normalizedSmith_factors_chain rows)
@@ -1993,7 +1997,7 @@ theorem normalizedSmith_factors_invariant {m n m' n' : ℕ}
     (normalizedSmith rows).factors = (normalizedSmith rows').factors := by
   have hf' : (normalizedSmith rows').isFinite = true := by
     apply (normalizedSmith_isFinite rows').mpr
-    letI := (normalizedSmith_isFinite rows).mp hf
+    let := (normalizedSmith_isFinite rows).mp hf
     exact Finite.of_equiv _ e.toEquiv
   exact divisorChain_eq_of_gcd_profiles _ _
     (normalizedSmith_factors_chain rows) (normalizedSmith_factors_chain rows')
@@ -2058,10 +2062,10 @@ presented group is finite. -/
   rw [normalizedSmith_isFinite]
   constructor
   · intro hf
-    letI := hf
+    let := hf
     exact Finite.of_equiv _ (compactPresentationEquiv p hp).toEquiv
   · intro hf
-    letI := hf
+    let := hf
     exact Finite.of_equiv _ (compactPresentationEquiv p hp).symm.toEquiv
 
 /-- Two valid compact presentations of the same finite abelian group produce identical
@@ -2202,10 +2206,10 @@ theorem smithCheckAllFin_bound {m : ℕ} (P : Fin m → Prop) [DecidablePred P] 
     simp only [countedIsolatePivotLoop, isolatePivotLoop, tableMatrix_matrixTable]
     by_cases hc : ∀ r, A 0 0 ∣ A r 0
     · have hcb := (smithCheckAllFin_true _).mpr hc
-      simp only [hcb, ↓reduceIte, if_pos hc]
+      simp only [hcb, ↓reduceIte, ite_eq_left hc]
       by_cases hr : ∀ c, A 0 0 ∣ A 0 c
       · have hrb := (smithCheckAllFin_true _).mpr hr
-        simp only [hrb, ↓reduceIte, if_pos hr, smithFindCounted_value]
+        simp only [hrb, ↓reduceIte, ite_eq_left hr, smithFindCounted_value]
         cases h : badPivotEntry (clearPivot A).value
         · have hfind := h
           unfold badPivotEntry at hfind
@@ -2398,7 +2402,7 @@ vector. -/
 theorem smithCharge_mono (op : SmithKernelOp) (a b : ℕ) (h : a ≤ b) (k : SmithKernelOp) :
     smithCharge op a k ≤ smithCharge op b k := by
   by_cases hk : k = op
-  · simpa only [smithCharge, if_pos hk] using! h
+  · simpa only [smithCharge, ite_eq_left hk] using! h
   · simp [smithCharge, hk]
 
 /-- Each recorded operation count of rectangular Smith reduction is bounded by the rectangular
@@ -2494,7 +2498,7 @@ theorem smithFindCounted_none {α : Type*} (p : α → Bool) (l : List α)
   | cons a as ih =>
     by_cases hp : p a = true
     · simp [smithFindCounted, hp] at h
-    · simp only [smithFindCounted, if_neg hp] at h ⊢
+    · simp only [smithFindCounted, ite_eq_right hp] at h ⊢
       simpa only [List.length_cons] using! congrArg (fun n => n+1) (ih h)
 
 /-- Counted list search records zero tests exactly when the input list is empty. -/

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.TranscorrChem20.MainResults.ImaginaryTime.MatrixEvolution
-import Qatlib.Concepts.ImaginaryFlow.Normalize
+module
+
+public import Qatlib.Papers.TranscorrChem20.MainResults.ImaginaryTime.MatrixEvolution
+public import Qatlib.Concepts.ImaginaryFlow.Normalize
+
+@[expose] public section
 
 /-!
 # Normalized transcorrelated imaginary-time equation

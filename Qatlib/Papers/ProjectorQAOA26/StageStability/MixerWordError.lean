@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TimeEvolution.DysonPropagator.ContractiveDuhamel
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.Normed.Algebra.MatrixExponential
-import Mathlib.Tactic
+module
+
+public import Qatlib.Concepts.TimeEvolution.DysonPropagator.ContractiveDuhamel
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Perturbation bounds for mixer exponential words

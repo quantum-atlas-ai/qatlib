@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ManyBodyFermi97.MainResults.Measurement
-import Qatlib.Concepts.SpectralFilter.PhaseReadout.PhaseEstimation
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
+module
+
+public import Qatlib.Papers.ManyBodyFermi97.MainResults.Measurement
+public import Qatlib.Concepts.SpectralFilter.PhaseReadout.PhaseEstimation
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+
+@[expose] public section
 
 /-!
 # Bernoulli sample moments and Fourier readout

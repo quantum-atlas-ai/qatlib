@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SketchSpectral.SketchPerturb.SketchSingularValueStabilityStat
-import Qatlib.Concepts.WalkSearch.Spectral.Approximation
+module
+
+public import Qatlib.Concepts.SketchSpectral.SketchPerturb.SketchSingularValueStabilityStat
+public import Qatlib.Concepts.WalkSearch.Spectral.Approximation
+
+@[expose] public section
 
 /-!
 # Squared singular value bounds from two sketch Gram errors

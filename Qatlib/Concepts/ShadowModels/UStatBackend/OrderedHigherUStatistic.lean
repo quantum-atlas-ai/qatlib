@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ShadowModels.UStatBackend.FinitePairUStatistic
-import Mathlib.Data.Fintype.CardEmbedding
-import Mathlib.Data.List.FinRange
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+module
+
+public import Qatlib.Concepts.ShadowModels.UStatBackend.FinitePairUStatistic
+public import Mathlib.Data.Fintype.CardEmbedding
+public import Mathlib.Data.List.FinRange
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+
+@[expose] public section
 
 /-!
 # Ordered higher U-statistics
@@ -271,17 +275,17 @@ private theorem higher_embedding_overlap_count (m r : ℕ) (hm : 0 < m) :
       (if ∃ i j,f i=g j then (1:ℝ) else 0) ≤
         ∑ i : Fin r,∑ j : Fin r,if f i=g j then (1:ℝ) else 0 := by
     by_cases hc : ∃ i j,f i=g j
-    · rw [if_pos hc]
+    · rw [ite_eq_left hc]
       obtain ⟨i,j,hij⟩ := hc
       calc
         1 = if f i=g j then (1:ℝ) else 0 := by simp [hij]
         _ ≤ ∑ j : Fin r,if f i=g j then (1:ℝ) else 0 :=
           Finset.single_le_sum (f:=fun j : Fin r=>if f i=g j then (1:ℝ) else 0)
-            (fun _ _=>by (try dsimp only); split_ifs <;> norm_num) (Finset.mem_univ j)
+            (fun _ _=>by split_ifs <;> norm_num) (Finset.mem_univ j)
         _ ≤ ∑ i : Fin r,∑ j : Fin r,if f i=g j then (1:ℝ) else 0 :=
           Finset.single_le_sum (f:=fun i : Fin r=>∑ j : Fin r,if f i=g j then (1:ℝ) else 0)
             (fun _ _=>Finset.sum_nonneg (fun _ _=>by split_ifs <;> norm_num)) (Finset.mem_univ i)
-    · rw [if_neg hc]
+    · rw [ite_eq_right hc]
       exact Finset.sum_nonneg (fun _ _=>Finset.sum_nonneg (fun _ _=>by split_ifs <;> norm_num))
   have hinner (f : Fin r ↪ Fin m) :
       (∑ g : Fin r ↪ Fin m,∑ i : Fin r,∑ j : Fin r,if f i=g j then (1:ℝ) else 0)=
@@ -309,7 +313,7 @@ private theorem higher_embedding_overlap_count (m r : ℕ) (hm : 0 < m) :
 /-- If the absolute kernel value is at most a nonnegative `B` on lists of length `r`, then its
 independent-sample mean has absolute value at most `B`. -/
 private theorem higherUMean_abs_le {X : Type} [Fintype X] (p : FinDist X)
-    (r : ℕ) (h : List X→ℝ) (B : ℝ) (hB : 0≤B)
+    (r : ℕ) (h : List X→ℝ) (B : ℝ) (_hB : 0≤B)
     (hb : ∀ xs : List X,xs.length=r → |h xs|≤B) : |higherUMean p r h|≤B := by
   classical
   have hn (ω : Fin r→X) : 0≤p.probOf ω := Finset.prod_nonneg (fun _ _=>p.nonneg _)
@@ -385,7 +389,7 @@ private theorem higher_covariance_le_overlap {X : Type} [Fintype X] (p : FinDist
       4*B^2*(if ∃ i j,f i=g j then (1:ℝ) else 0) := by
   classical
   by_cases hc : ∃ i j,f i=g j
-  · rw [if_pos hc,mul_one]
+  · rw [ite_eq_left hc,mul_one]
     have hn (ω : Fin m→X) : 0≤p.probOf ω := Finset.prod_nonneg (fun _ _=>p.nonneg _)
     have hcenter (v : Fin r→X) : |h (List.ofFn v)-higherUMean p r h|≤2*B :=
       (abs_sub _ _).trans (by linarith [hb (List.ofFn v) List.length_ofFn,higherUMean_abs_le p r h B hB hb])
@@ -400,7 +404,7 @@ private theorem higher_covariance_le_overlap {X : Type} [Fintype X] (p : FinDist
         nlinarith
       _ = _ := by rw [← Finset.sum_mul,p.sum_probOf m,one_mul]
   · have hd : ∀ i j,f i≠g j := by intro i j he; exact hc ⟨i,j,he⟩
-    rw [if_neg hc,higher_disjoint_covariance p m r h f g hd,mul_zero]
+    rw [ite_eq_right hc,higher_disjoint_covariance p m r h f g hd,mul_zero]
 
 /-- The counted higher U-statistic equals the sum of kernel values over embeddings divided by
 `m.descFactorial r`. -/

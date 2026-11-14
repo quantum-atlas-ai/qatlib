@@ -4,7 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixGeometry.SpectralCutoff.Projectors
+module
+
+public import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Order
+public import Qatlib.Foundations.MatrixGeometry.SpectralCutoff.Projectors
+
+@[expose] public section
 
 /-!
 # Positive operators compressed to low energies
@@ -97,7 +102,7 @@ theorem compressed_energy_norm (H : Matrix I I ℂ) (hH : H.PosSemidef) (Λ : �
     intro i
     by_cases hi:hH.isHermitian.eigenvalues i ≤ Λ
     · simpa only
-        [if_pos hi,Complex.norm_real,Real.norm_eq_abs,abs_of_nonneg (hH.eigenvalues_nonneg i)] using hi
+        [ite_eq_left hi,Complex.norm_real,Real.norm_eq_abs,abs_of_nonneg (hH.eigenvalues_nonneg i)] using hi
     · simp [hi,hΛ]
   rw [compressed_energy H hH.isHermitian Λ]
   exact hc.trans_le hd

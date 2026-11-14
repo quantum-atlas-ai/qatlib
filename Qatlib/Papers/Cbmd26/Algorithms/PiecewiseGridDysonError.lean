@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Cbmd26.Algorithms.PiecewiseGridFreeze
-import Qatlib.Concepts.InteractionEvo.MeanDerivGrid.DysonMeanDerivativeGrid
+module
+
+public import Qatlib.Papers.Cbmd26.Algorithms.PiecewiseGridFreeze
+public import Qatlib.Concepts.InteractionEvo.MeanDerivGrid.DysonMeanDerivativeGrid
+
+@[expose] public section
 
 /-!
 # Dyson Error on Supplied Piecewise Grids

@@ -4,20 +4,24 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.JuntaLearning07.MainResults.JuntaLearningDefs
-import Mathlib.Algebra.BigOperators.Group.Finset.Defs
-import Mathlib.Algebra.BigOperators.Group.Finset.Sigma
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Algebra.Order.BigOperators.Group.Finset
-import Mathlib.Algebra.Order.Field.Basic
-import Mathlib.Algebra.Order.Floor.Semiring
-import Mathlib.Algebra.Order.GroupWithZero.Unbundled.Basic
-import Mathlib.Analysis.SpecialFunctions.Log.Base
-import Mathlib.Data.Fintype.BigOperators
-import Mathlib.Data.Fintype.Card
-import Mathlib.Data.Finset.Dedup
-import Mathlib.Data.Finset.Powerset
-import Mathlib.Data.Real.Sqrt
+module
+
+public import Qatlib.Papers.JuntaLearning07.MainResults.JuntaLearningDefs
+public import Mathlib.Algebra.BigOperators.Group.Finset.Defs
+public import Mathlib.Algebra.BigOperators.Group.Finset.Sigma
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Algebra.Order.BigOperators.Group.Finset
+public import Mathlib.Algebra.Order.Field.Basic
+public import Mathlib.Algebra.Order.Floor.Semiring
+public import Mathlib.Algebra.Order.GroupWithZero.Basic
+public import Mathlib.Analysis.SpecialFunctions.Log.Base
+public import Mathlib.Data.Fintype.BigOperators
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Data.Finset.Dedup
+public import Mathlib.Data.Finset.Powerset
+public import Mathlib.Analysis.Real.Sqrt
+
+@[expose] public section
 
 /-!
 # Addressing functions far from juntas
@@ -156,19 +160,19 @@ noncomputable def addrSliceEquiv {n r : ℕ} {addr : Fin r → Fin n}
         Finset.mem_image.mpr ⟨j, Finset.mem_univ j, rfl⟩
       have hc : Classical.choose (Finset.mem_image.mp hmem) = j :=
         hadj (Classical.choose_spec (Finset.mem_image.mp hmem)).2
-      simp only [dif_pos hmem, hc]⟩
+      simp only [dite_eq_left hmem, hc]⟩
   left_inv x := by
     ext i
     by_cases h : i ∈ Finset.image addr Finset.univ
     · obtain ⟨j, -, rfl⟩ := Finset.mem_image.mp h
       have hc : Classical.choose (Finset.mem_image.mp h) = j :=
         hadj (Classical.choose_spec (Finset.mem_image.mp h)).2
-      simp only [dif_pos h, hc]
+      simp only [dite_eq_left h, hc]
       exact (x.2 j).symm
-    · simp only [dif_neg h]
+    · simp only [dite_eq_right h]
   right_inv y := by
     ext i
-    simp only [dif_neg i.2]
+    simp only [dite_eq_right i.2]
 
 /-- Fixing the `r` coordinates of an injective address map leaves exactly `2 ^ (n - r)`
 Boolean-cube inputs. -/

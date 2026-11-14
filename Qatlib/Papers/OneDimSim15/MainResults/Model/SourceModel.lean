@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.Normed.Algebra.Exponential
-import Mathlib.Analysis.Calculus.IteratedDeriv.Defs
-import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
+module
+
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.Normed.Algebra.Exponential
+public import Mathlib.Analysis.Calculus.IteratedDeriv.Defs
+public import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

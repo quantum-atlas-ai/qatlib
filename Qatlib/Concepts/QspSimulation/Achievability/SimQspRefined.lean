@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QspSimulation.JacobiAnger.SimQspDefs
-import Qatlib.Concepts.RandCompile.ChannelBudget.QspSimulation
-import Qatlib.Concepts.QspSimulation.Achievability.ComputedSignalConsumers
+module
+
+public import Qatlib.Concepts.QspSimulation.JacobiAnger.SimQspDefs
+public import Qatlib.Concepts.RandCompile.ChannelBudget.QspSimulation
+public import Qatlib.Concepts.QspSimulation.Achievability.ComputedSignalConsumers
+
+@[expose] public section
 
 /-!
 # Refined endpoints for QSP Hamiltonian simulation

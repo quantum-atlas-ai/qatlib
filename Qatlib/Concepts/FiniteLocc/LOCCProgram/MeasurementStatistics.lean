@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FiniteLocc.LOCCProgram.MeasurementStatisticsDefs
+module
+
+public import Qatlib.Concepts.FiniteLocc.LOCCProgram.MeasurementStatisticsDefs
+
+@[expose] public section
 
 /-!
 # Moments and resource bounds for measurement records
@@ -131,7 +135,7 @@ theorem sample_sq_triple_zero_of_ne (E : FinitePOVM O D) (ρ : Operator D)
 /-- The sum of all centered triple-product expectations in a nonempty independent sample equals
 the sample size times the record third central moment. -/
 theorem sample_triple_sum (E : FinitePOVM O D) (ρ : Operator D)
-    (hρ : IsDensityOperator ρ) {n : ℕ} (hn : 0 < n) (h : O → ℝ) :
+    (hρ : IsDensityOperator ρ) {n : ℕ} (_hn : 0 < n) (h : O → ℝ) :
     (∑ i : Fin n, ∑ j : Fin n, ∑ l : Fin n,
         (povmSampleLaw E ρ hρ).expect (fun ω : (Fin n → O) =>
           centredValue (povmRecordLaw E ρ hρ) h (ω i)
@@ -443,9 +447,11 @@ theorem general_sample_confidence (E : FinitePOVM O D) (ρ : Operator D)
   have h1 := FinDist.chebyshev_avg (povmRecordLaw E ρ hρ) h hn ε hε
   exact h1
 
+omit [Fintype O] [DecidableEq O] in
 /-- The second moment minus the variance of a finite-distribution statistic equals the square of
 its mean. -/
-theorem variance_second_moment_gap (p : FinDist O) (h : O → ℝ) :
+theorem variance_second_moment_gap {O : Type} [Fintype O] [_decidableEqO : DecidableEq O]
+    (p : FinDist O) (h : O → ℝ) :
     recordSecondMoment p h - recordVariance p h = (p.expect h) ^ 2 := by
   have h1 := FinDist.expect_centered_sq p h
   unfold recordSecondMoment recordVariance FinDist.variance
@@ -484,8 +490,8 @@ theorem coincidingRecordLaw_expect {m : ℕ} (p : FinDist O) (φ : O → ℝ) :
         (if ∀ i, ω i = ω 0 then p.prob (ω 0) * φ (ω 0) else 0) := by
     refine Finset.sum_congr rfl fun ω _ => ?_
     by_cases h : ∀ i, ω i = ω 0
-    · rw [if_pos h, if_pos h]
-    · rw [if_neg h, if_neg h]
+    · rw [ite_eq_left h, ite_eq_left h]
+    · rw [ite_eq_right h, ite_eq_right h]
       ring
   have h1 := Finset.sum_filter (s := (Finset.univ : Finset (Fin (m+1) → O)))
     (p := fun ω => ∀ i, ω i = ω 0) (f := fun ω => p.prob (ω 0) * φ (ω 0))
@@ -542,7 +548,7 @@ theorem coinciding_record_variance {m : ℕ} (p : FinDist O) (h : O → ℝ) :
           * (h (ω 0) - p.expect h) ^ 2
     refine Finset.sum_congr rfl fun ω _ => ?_
     by_cases hc : ∀ i, ω i = ω 0
-    · rw [if_pos hc]
+    · rw [ite_eq_left hc]
       have heq : ω = fun _ => ω 0 := by
         funext i
         exact hc i
@@ -557,12 +563,14 @@ theorem coinciding_record_variance {m : ℕ} (p : FinDist O) (h : O → ℝ) :
         rw [hsum]
         exact mul_div_cancel_left₀ _ hne
       rw [havg]
-    · rw [if_neg hc]
+    · rw [ite_eq_right hc]
       ring
   rw [hconv, hsq]
 
+omit [Fintype O] [DecidableEq O] in
 /-- The ensemble mean is the setting-probability-weighted sum of the individual setting means. -/
-theorem ensemble_mean_mixture {m : ℕ} (E : Fin m → FinitePOVM O D) (q : FinDist (Fin m))
+theorem ensemble_mean_mixture {O : Type} [Fintype O] [_decidableEqO : DecidableEq O]
+    {D m : ℕ} (E : Fin m → FinitePOVM O D) (q : FinDist (Fin m))
     (ρ : Operator D) (hρ : IsDensityOperator ρ) (h : O → ℝ) :
     ensembleMean E q ρ hρ h = ∑ s : Fin m, q.prob s * settingMean E q ρ hρ h s := by
   unfold ensembleMean settingMean
@@ -580,9 +588,11 @@ theorem ensemble_mean_mixture {m : ℕ} (E : Fin m → FinitePOVM O D) (q : FinD
           refine Finset.sum_congr rfl fun x _ => ?_
           ring
 
+omit [Fintype O] [DecidableEq O] in
 /-- The ensemble second moment is the setting-probability-weighted sum of the individual setting
 second moments. -/
-theorem ensemble_second_moment_mixture {m : ℕ} (E : Fin m → FinitePOVM O D)
+theorem ensemble_second_moment_mixture {O : Type} [Fintype O] [_decidableEqO : DecidableEq O]
+    {D m : ℕ} (E : Fin m → FinitePOVM O D)
     (q : FinDist (Fin m)) (ρ : Operator D) (hρ : IsDensityOperator ρ) (h : O → ℝ) :
     ensembleSecondMoment E q ρ hρ h
       = ∑ s : Fin m, q.prob s * settingSecondMoment E q ρ hρ h s := by
@@ -695,9 +705,11 @@ theorem ensemble_sample_confidence_conservative {m n : ℕ} (E : Fin m → Finit
     _ ≤ (ensembleOutcomeLaw E q ρ hρ).expect (fun x => (h x) ^ 2) / (n * ε ^ 2) := by
           exact mul_le_mul_of_nonneg_right h2 (by positivity)
 
+omit [Fintype O] [DecidableEq O] in
 /-- If the number of distinct index tuples is positive and every injective tuple has deviation
 at most `Δ`, the absolute U-statistic bias is at most `Δ`. -/
-theorem uStatistic_bias_bound {n k : ℕ} (q : FinDist (Fin n → O)) (p : FinDist O)
+theorem uStatistic_bias_bound {O : Type} [Fintype O] [_decidableEqO : DecidableEq O]
+    {n k : ℕ} (q : FinDist (Fin n → O)) (p : FinDist O)
     (h : (Fin k → O) → ℝ) (Δ : ℝ) (hN : 0 < distinctTupleCount n k)
     (hbound : UStatisticDeviationBound q p h Δ) :
     |uStatisticBias q p h| ≤ Δ := by
@@ -752,8 +764,8 @@ theorem uStatistic_bias_bound {n k : ℕ} (q : FinDist (Fin n → O)) (p : FinDi
               - (if Function.Injective t then kernelMeanK p h else 0)) := by
               refine Finset.sum_congr rfl fun t _ => ?_
               by_cases ht : Function.Injective t
-              · simp [ht] <;> ring
-              · simp [ht] <;> ring
+              · simp [ht]
+              · simp [ht]
         _ = (∑ t : (Fin k → Fin n),
             (if Function.Injective t
               then (∑ ω : (Fin n → O), q.prob ω * h (fun s => ω (t s)))
@@ -772,8 +784,8 @@ theorem uStatistic_bias_bound {n k : ℕ} (q : FinDist (Fin n → O)) (p : FinDi
               ((if Function.Injective t then (1 : ℝ) else 0) * kernelMeanK p h) := by
             refine Finset.sum_congr rfl fun t _ => ?_
             by_cases ht : Function.Injective t
-            · simp [ht] <;> ring
-            · simp [ht] <;> ring
+            · simp [ht]
+            · simp [ht]
         _ = (∑ t : (Fin k → Fin n), (if Function.Injective t then (1 : ℝ) else 0))
               * kernelMeanK p h := by rw [← Finset.sum_mul]
         _ = (N : ℝ) * kernelMeanK p h := by rw [hcount]
@@ -795,8 +807,8 @@ theorem uStatistic_bias_bound {n k : ℕ} (q : FinDist (Fin n → O)) (p : FinDi
           (if Function.Injective t then q.prob ω * h (fun s => ω (t s)) else 0)) := by
             refine Finset.sum_congr rfl fun t _ => ?_
             by_cases ht : Function.Injective t
-            · simp [ht] <;> ring
-            · simp [ht] <;> ring
+            · simp [ht]
+            · simp [ht]
       _ = (∑ ω : (Fin n → O), ∑ t : (Fin k → Fin n),
           (if Function.Injective t then q.prob ω * h (fun s => ω (t s)) else 0)) :=
         Finset.sum_comm
@@ -815,8 +827,9 @@ theorem uStatistic_bias_bound {n k : ℕ} (q : FinDist (Fin n → O)) (p : FinDi
                       * q.prob ω) := by
                     refine Finset.sum_congr rfl fun t _ => ?_
                     by_cases ht : Function.Injective t
-                    · simp [ht] <;> ring
-                    · simp [ht] <;> ring
+                    · simp [ht]
+                      ring
+                    · simp [ht]
                 _ = (∑ t : (Fin k → Fin n),
                     (if Function.Injective t then h (fun s => ω (t s)) else 0)) * q.prob ω := by
                     rw [← Finset.sum_mul]
@@ -849,9 +862,9 @@ theorem uStatistic_bias_bound {n k : ℕ} (q : FinDist (Fin n → O)) (p : FinDi
       ≤ (∑ t : (Fin k → Fin n), (if Function.Injective t then Δ else 0)) := by
     refine Finset.sum_le_sum fun t _ => ?_
     by_cases ht : Function.Injective t
-    · rw [if_pos ht, if_pos ht]
+    · rw [ite_eq_left ht, ite_eq_left ht]
       exact hbound t ht
-    · rw [if_neg ht, if_neg ht]
+    · rw [ite_eq_right ht, ite_eq_right ht]
   have hsumΔ : (∑ t : (Fin k → Fin n), (if Function.Injective t then Δ else 0))
       = (N : ℝ) * Δ := by
     calc (∑ t : (Fin k → Fin n), (if Function.Injective t then Δ else 0))
@@ -859,8 +872,8 @@ theorem uStatistic_bias_bound {n k : ℕ} (q : FinDist (Fin n → O)) (p : FinDi
             ((if Function.Injective t then (1 : ℝ) else 0) * Δ) := by
           refine Finset.sum_congr rfl fun t _ => ?_
           by_cases ht : Function.Injective t
-          · simp [ht] <;> ring
-          · simp [ht] <;> ring
+          · simp [ht]
+          · simp [ht]
         _ = (∑ t : (Fin k → Fin n), (if Function.Injective t then (1 : ℝ) else 0)) * Δ := by
           rw [← Finset.sum_mul]
         _ = (N : ℝ) * Δ := by rw [hcount]
@@ -932,12 +945,12 @@ decompositions, and the U-statistic bias bound. -/
 theorem clause6_endpoint :
     (∀ (Ot : Type) [Fintype Ot] [DecidableEq Ot] (Dt : ℕ)
       (E : FinitePOVM Ot Dt) (ρ : Operator Dt) (hρ : IsDensityOperator ρ)
-      {n : ℕ} (hn : 0 < n) (h : Ot → ℝ),
+      {n : ℕ} (_hn : 0 < n) (h : Ot → ℝ),
       (povmSampleLaw E ρ hρ).expect (fun ω : (Fin n → Ot) => FinDist.avg h ω)
         = recordMean (povmRecordLaw E ρ hρ) h) ∧
     (∀ (Ot : Type) [Fintype Ot] [DecidableEq Ot] (Dt : ℕ)
       (E : FinitePOVM Ot Dt) (ρ : Operator Dt) (hρ : IsDensityOperator ρ)
-      {n : ℕ} (hn : 0 < n) (h : Ot → ℝ),
+      {n : ℕ} (_hn : 0 < n) (h : Ot → ℝ),
       (povmSampleLaw E ρ hρ).expect
           (fun ω : (Fin n → Ot) =>
             (FinDist.avg h ω - recordMean (povmRecordLaw E ρ hρ) h) ^ 2)
@@ -955,8 +968,8 @@ theorem clause6_endpoint :
           + q.variance (fun s => settingMean E q ρ hρ h s)) ∧
     (∀ (Ot : Type) [Fintype Ot] [DecidableEq Ot] {n k : ℕ}
       (q : FinDist (Fin n → Ot)) (p : FinDist Ot) (h : (Fin k → Ot) → ℝ)
-      (Δ : ℝ) (hN : 0 < distinctTupleCount n k)
-      (hbound : UStatisticDeviationBound q p h Δ),
+      (Δ : ℝ) (_hN : 0 < distinctTupleCount n k)
+      (_hbound : UStatisticDeviationBound q p h Δ),
       |uStatisticBias q p h| ≤ Δ) := by
   refine ⟨?_, ?_, ?_, ?_, ?_⟩
   · intro Ot inst inst2 Dt E ρ hρ n hn h
@@ -975,23 +988,23 @@ variance formula for fully coinciding records. -/
 theorem clause9_endpoint :
     (∀ (Ot : Type) [Fintype Ot] [DecidableEq Ot] (Dt : ℕ)
       (E : FinitePOVM Ot Dt) (ρ : Operator Dt) (hρ : IsDensityOperator ρ)
-      {n : ℕ} (hn : 0 < n) (h : Ot → ℝ) (ε : ℝ) (hε : 0 < ε),
+      {n : ℕ} (_hn : 0 < n) (h : Ot → ℝ) (ε : ℝ) (_hε : 0 < ε),
       FinDist.probEvent (L := n) (povmRecordLaw E ρ hρ)
           (fun ω : (Fin n → Ot) =>
             ε < |FinDist.avg h ω - recordMean (povmRecordLaw E ρ hρ) h|)
         ≤ recordVariance (povmRecordLaw E ρ hρ) h / (n * ε ^ 2)) ∧
     (∀ (Ot : Type) [Fintype Ot] [DecidableEq Ot] (Dt : ℕ) {m n : ℕ}
       (E : Fin m → FinitePOVM Ot Dt) (q : FinDist (Fin m))
-      (ρ : Operator Dt) (hρ : IsDensityOperator ρ) (hn : 0 < n) (h : Ot → ℝ)
-      (ε : ℝ) (hε : 0 < ε),
+      (ρ : Operator Dt) (hρ : IsDensityOperator ρ) (_hn : 0 < n) (h : Ot → ℝ)
+      (ε : ℝ) (_hε : 0 < ε),
       FinDist.probEvent (L := n) (ensembleOutcomeLaw E q ρ hρ)
           (fun ω : (Fin n → Ot) =>
             ε < |FinDist.avg h ω - ensembleMean E q ρ hρ h|)
         ≤ ensembleVariance E q ρ hρ h / (n * ε ^ 2)) ∧
     (∀ (Ot : Type) [Fintype Ot] [DecidableEq Ot] (Dt : ℕ) {m n : ℕ}
       (E : Fin m → FinitePOVM Ot Dt) (q : FinDist (Fin m))
-      (ρ : Operator Dt) (hρ : IsDensityOperator ρ) (hn : 0 < n) (h : Ot → ℝ)
-      (ε : ℝ) (hε : 0 < ε),
+      (ρ : Operator Dt) (hρ : IsDensityOperator ρ) (_hn : 0 < n) (h : Ot → ℝ)
+      (ε : ℝ) (_hε : 0 < ε),
       FinDist.probEvent (L := n) (ensembleOutcomeLaw E q ρ hρ)
           (fun ω : (Fin n → Ot) =>
             ε < |FinDist.avg h ω - ensembleMean E q ρ hρ h|)

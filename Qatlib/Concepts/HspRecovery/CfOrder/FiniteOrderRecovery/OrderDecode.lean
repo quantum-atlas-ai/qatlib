@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.GroupTheory.OrderOfElement
-import Mathlib.Data.Finset.Max
+module
+
+public import Mathlib.GroupTheory.OrderOfElement
+public import Mathlib.Data.Finset.Max
+
+@[expose] public section
 
 /-!
 # Minimum candidates for finite order decoding

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorExprDiffCode
-import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorSourceSyntax
+module
+
+public import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorExprDiffCode
+public import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorSourceSyntax
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

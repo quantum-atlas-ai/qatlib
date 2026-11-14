@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CircuitImpl.MultiControl.Corollary62Stat
-import Qatlib.Concepts.CircuitImpl.SqrtApprox.UnitarySqrtChain
+module
+
+public import Qatlib.Concepts.CircuitImpl.MultiControl.Corollary62Stat
+public import Qatlib.Concepts.CircuitImpl.SqrtApprox.UnitarySqrtChain
+
+@[expose] public section
 
 /-!
 # Elementary synthesis of doubly controlled unitaries
@@ -148,19 +152,17 @@ private theorem sourceDoubleSteps_action {N : ℕ} (a b t : Fin N)
     diagonal (fun q : Bool => if q then star z else 1) from hEstar]
   simp only [show knownQubitUnitary (knownControlC p) = C from rfl,
     show knownQubitUnitary (knownControlB p) = B from rfl,
-    show knownQubitUnitary (knownControlE p) = E from rfl, hEstar, hE,
+    show knownQubitUnitary (knownControlE p) = E from rfl,  hE,
     multiWireState_phase a t hat, multiWireState_phase b t hbt,
     reflectionApplyGate_smul, multiWireState_single, multiWireState_cnot a t hat,
     multiWireState_cnot b t hbt, fibre_other_cnot b a t hab.symm hbt hat,
     Function.update_of_ne hab.symm, Function.update_self, Function.update_idem, Function.update_eq_self,
     Bool.xor_assoc, Bool.xor_self, Bool.xor_false]
   cases ha : x a <;> cases hb : x b <;>
-    simp only [ha, hb, Bool.false_and, Bool.true_and, Bool.xor_false, Bool.false_xor,
-      Bool.xor_true, Bool.true_xor, Bool.not_true, Bool.not_false,
-      Bool.false_eq_true, if_true, if_false, one_smul, ← applyGate_mul, Matrix.one_mul, Matrix.mul_one,
+    simp only [ Bool.false_and, Bool.true_and, Bool.xor_false, Bool.xor_true, Bool.not_true, Bool.not_false,
+      Bool.false_eq_true, ite_true, ite_false, one_smul, ← applyGate_mul, Matrix.one_mul,
       smul_smul]
-  all_goals try simp only [← Matrix.mul_assoc, hBB, hBB', pauliX_mul_self,
-    Matrix.one_mul, Matrix.mul_one, hABC, hzz, hzz', one_mul, one_smul]
+  all_goals try simp only [← Matrix.mul_assoc, hBB, hBB', pauliX_mul_self, hABC, hzz, hzz', one_mul, one_smul]
   rw [← multiWireState_smul, ← applyGate_smul, ← hV]
   simp only [Matrix.smul_mul, Matrix.mul_smul, smul_smul, Matrix.mul_assoc, hCA']
 

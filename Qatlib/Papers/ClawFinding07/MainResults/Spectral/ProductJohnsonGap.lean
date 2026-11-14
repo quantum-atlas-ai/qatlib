@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ClawFinding07.MainResults.Spectral.JohnsonSpectrum
-import Qatlib.Papers.ClawFinding07.MainResults.Spectral.ProductGap
+module
+
+public import Qatlib.Papers.ClawFinding07.MainResults.Spectral.JohnsonSpectrum
+public import Qatlib.Papers.ClawFinding07.MainResults.Spectral.ProductGap
+
+@[expose] public section
 
 /-!
 # Gap bounds for product Johnson walks
@@ -71,8 +75,8 @@ theorem productJohnson_spectralGap {N M l m : ℕ}
     (hl2 : 2 ≤ l) (hln : 2 * l ≤ N) (hm2 : 2 ≤ m) (hmn : 2 * m ≤ M) :
     SpectralGapAtLeast (chainProduct (johnsonChain N l) (johnsonChain M m))
       (min (1 / (l : ℝ)) (1 / (m : ℝ))) := by
-  haveI : Nonempty (JohnsonVertex N l) := johnsonVertex_nonempty (by omega)
-  haveI : Nonempty (JohnsonVertex M m) := johnsonVertex_nonempty (by omega)
+  have : Nonempty (JohnsonVertex N l) := johnsonVertex_nonempty (by omega)
+  have : Nonempty (JohnsonVertex M m) := johnsonVertex_nonempty (by omega)
   have h1l : 1 / (l : ℝ) ≤ 1 := by
     have hl1 : (1 : ℝ) ≤ (l : ℝ) := by exact_mod_cast (by omega : 1 ≤ l)
     simpa using one_div_le_one_div_of_le (show (0 : ℝ) < 1 by norm_num) hl1

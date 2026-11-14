@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QmaCompleteness.WitnessSampler.TwoOracleDefs
+module
+
+public import Qatlib.Concepts.QmaCompleteness.WitnessSampler.TwoOracleDefs
+
+@[expose] public section
 
 /-!
 # Cumulative witness-sampler specification
@@ -39,7 +43,7 @@ open Qatlib
 divided by `TOQueryCountS C`, when the first phase oracle uses `regOfList n hist` and the
 second uses `U`. This is zero when there are no first oracle queries. -/
 noncomputable def directTransitionMass (n : ℕ) (W : Type) [Fintype W] [DecidableEq W]
-    (S U : Reg n → Bool)
+    (_S U : Reg n → Bool)
     (C : TOCircuit (ForrSpace n W)) (ψ : QState (ForrSpace n W)) (hist : List (Reg n))
     (x : Reg n) : ℝ :=
   1 / (TOQueryCountS C : ℝ) *

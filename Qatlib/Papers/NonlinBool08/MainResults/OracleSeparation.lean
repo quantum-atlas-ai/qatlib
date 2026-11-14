@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NonlinBool08.MainResults.MaioranaMcFarland.SqrtQueries
-import Qatlib.Papers.NonlinBool08.MainResults.HiddenShift.Theorems
+module
+
+public import Qatlib.Papers.NonlinBool08.MainResults.MaioranaMcFarland.SqrtQueries
+public import Qatlib.Papers.NonlinBool08.MainResults.HiddenShift.Theorems
+
+@[expose] public section
 
 /-!
 # Oracle separation and hidden-shift recovery
@@ -81,18 +85,18 @@ theorem hsp_recover (n : ℕ) :
     ⟨s, by
       intro j
       by_cases hj : j < k
-      · rw [dif_pos hj]
+      · rw [dite_eq_left hj]
         exact hs ⟨j, hj⟩
-      · rw [dif_neg hj]
+      · rw [dite_eq_right hj]
         show orth (0, 0) s
         unfold orth
         simp⟩
   (try dsimp only)
-  rw [dif_pos hex]
+  rw [dite_eq_left hex]
   have hcompat : ∀ i : Fin k, orth (t i) (Classical.choose hex) := by
     intro i
     have hi := Classical.choose_spec hex (i : ℕ)
-    rwa [dif_pos i.2] at hi
+    rwa [dite_eq_left i.2] at hi
   refine huniq (Classical.choose hex) s hcompat ?_
   intro i
   exact hs i

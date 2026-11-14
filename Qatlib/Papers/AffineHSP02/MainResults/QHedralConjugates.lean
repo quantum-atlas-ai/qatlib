@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AffineHSP02.MainResults.QHedralGroup
+module
+
+public import Qatlib.Papers.AffineHSP02.MainResults.QHedralGroup
+
+@[expose] public section
 
 /-!
 # Conjugate multiplier subgroups of a q-hedral group
@@ -104,7 +108,7 @@ zero translation coordinate. -/
 theorem conj_translation_eq_of_ne_one [Fact p.Prime] (g : QHG M)
     (hs : (M.m g.s : ZMod p) ≠ 1) :
     ∃ b : ZMod p, translation M b * g * (translation M b)⁻¹ = ⟨0, g.s⟩ := by
-  haveI : NeZero p := ⟨(Fact.out : p.Prime).ne_zero⟩
+  have : NeZero p := ⟨(Fact.out : p.Prime).ne_zero⟩
   have hne : (1 - (M.m g.s : ZMod p)) ≠ 0 := by
     intro h
     exact hs (sub_eq_zero.mp h).symm

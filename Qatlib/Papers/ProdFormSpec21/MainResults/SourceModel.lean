@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Qubit
-import Mathlib.Analysis.SpecialFunctions.Complex.Arg
-import Mathlib.LinearAlgebra.Matrix.Trace
+module
+
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Mathlib.Analysis.SpecialFunctions.Complex.Arg
+public import Mathlib.LinearAlgebra.Matrix.Trace
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -53,12 +57,20 @@ noncomputable def spectralProjector (φ : I → QState I) (A : Finset I) : Matri
 
 /-! ## Bilinearity of the inner product (used by the Corollary 1 decomposition) -/
 
+omit [Fintype I] [DecidableEq I] in
 /-- `⟨u|v+w⟩ = ⟨u|v⟩ + ⟨u|w⟩`. -/
-theorem Inner_add_right (u v w : QState I) : Inner u (v + w) = Inner u v + Inner u w := by
+theorem Inner_add_right {I : Type*}
+    [_instFintypeI : Fintype I]
+    [_instDecidableEqI : DecidableEq I]
+    (u v w : QState I) : Inner u (v + w) = Inner u v + Inner u w := by
   simp only [inner_apply, Pi.add_apply, mul_add, Finset.sum_add_distrib]
 
+omit [Fintype I] [DecidableEq I] in
 /-- `⟨u|c•v⟩ = c·⟨u|v⟩` (linear in the second argument). -/
-theorem Inner_smul_right (u v : QState I) (c : ℂ) : Inner u (c • v) = c * Inner u v := by
+theorem Inner_smul_right {I : Type*}
+    [_instFintypeI : Fintype I]
+    [_instDecidableEqI : DecidableEq I]
+    (u v : QState I) (c : ℂ) : Inner u (c • v) = c * Inner u v := by
   simp only [inner_apply, Pi.smul_apply, smul_eq_mul, Finset.mul_sum]
   refine Finset.sum_congr rfl fun i _ => ?_
   ring

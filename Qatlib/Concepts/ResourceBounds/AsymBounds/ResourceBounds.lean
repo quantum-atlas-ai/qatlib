@@ -4,14 +4,20 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.QueryAlgorithm
-import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.ResourceDerivation
-import Qatlib.Foundations.PureStateMath.BornBridge.BornDistribution
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDistTV
-import Qatlib.Concepts.ResourceBounds.AsymBounds.ResourceBoundsTransportImplBounds
-import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceSearchBounds
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.ParityPolynomialBound
-import Qatlib.Concepts.QueryComplexity.AdversarySearch.CountedParityAlgorithm
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.QueryAlgorithm
+public import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.ResourceDerivation
+public import Qatlib.Foundations.PureStateMath.BornBridge.BornDistribution
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDistTV
+public import Qatlib.Concepts.ResourceBounds.AsymBounds.ResourceBoundsTransportImplBounds
+public import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceSearchBounds
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.ParityPolynomialBound
+public import Qatlib.Concepts.QueryComplexity.AdversarySearch.CountedParityAlgorithm
+
+set_option linter.dupNamespace false
+
+@[expose] public section
 
 /-!
 # Distributional resource bounds for query programs
@@ -188,11 +194,10 @@ theorem outputError_pointMass {Y : Type} [Fintype Y] [DecidableEq Y] (p : FinDis
       ∑ y ∈ Finset.univ.erase v, p.prob y := by
     apply Finset.sum_congr rfl
     intro y hy
-    rw [pointMass_prob,if_neg (Finset.mem_erase.mp hy).1,sub_zero,abs_of_nonneg (p.nonneg y)]
+    rw [pointMass_prob,ite_eq_right (Finset.mem_erase.mp hy).1,sub_zero,abs_of_nonneg (p.nonneg y)]
   have hs := Finset.add_sum_erase Finset.univ
     (fun y => |p.prob y-(pointMass v).prob y|) (Finset.mem_univ v)
-  (try dsimp only at hs)
-  rw [hrest,pointMass_prob,if_pos rfl,abs_of_nonpos (sub_nonpos.mpr hp)] at hs
+  rw [hrest,pointMass_prob,ite_eq_left rfl,abs_of_nonpos (sub_nonpos.mpr hp)] at hs
   have hm := Finset.add_sum_erase Finset.univ p.prob (Finset.mem_univ v)
   rw [p.sum_one] at hm
   simp only [outputError,Qatlib.Concepts.MonteCarloMean.FinDistBounds.tvDist]
@@ -699,12 +704,12 @@ theorem parity_lower_from_success
       simp
     rw [hread']
     by_cases hodd : (Finset.univ.filter (fun i => f i=true)).card % 2=1
-    · rw [if_pos hodd]
+    · rw [ite_eq_left hodd]
       have hs' : 1-(1/3:ℝ) ≤ p.prob true := by
         simpa only [parityBit,hodd,decide_true] using! hs
       apply abs_le.mpr
       constructor <;> linarith [p.nonneg false,p.nonneg true]
-    · rw [if_neg hodd]
+    · rw [ite_eq_right hodd]
       have hs' : 1-(1/3:ℝ) ≤ p.prob false := by
         simpa only [parityBit,hodd,decide_false] using! hs
       apply abs_le.mpr
@@ -781,8 +786,8 @@ theorem parityTwo_correct_point (f : Fin 2→Bool) :
   have ht := parityTwo_true_prob f
   have hsum := bool_mass p
   by_cases hodd : (Finset.univ.filter (fun i => f i=true)).card % 2=1
-  · simpa only [parityBit,hodd,decide_true,if_true] using! ht
-  · have hz : p.prob true=0 := by simpa only [hodd,if_false] using! ht
+  · simpa only [parityBit,hodd,decide_true,ite_true] using! ht
+  · have hz : p.prob true=0 := by simpa only [hodd,ite_false] using! ht
     have hf : p.prob false=1 := by linarith
     simpa only [parityBit,hodd,decide_false] using! hf
 
@@ -820,8 +825,8 @@ theorem parityTwo_actual_nonconstant :
   have h0 : ¬ ((Finset.univ.filter (fun _ : Fin 2 => false=true)).card % 2=1) := by decide
   have h1 : (Finset.univ.filter (fun i : Fin 2 => decide (i=0)=true)).card % 2=1 := by decide
   constructor
-  · simpa only [h0,if_false] using! parityTwo_true_prob (fun _ : Fin 2 => false)
-  · simpa only [h1,if_true] using! parityTwo_true_prob (fun i : Fin 2 => decide (i=0))
+  · simpa only [h0,ite_false] using! parityTwo_true_prob (fun _ : Fin 2 => false)
+  · simpa only [h1,ite_true] using! parityTwo_true_prob (fun i : Fin 2 => decide (i=0))
 
 /-- Combines the one-query two-input parity implementation with a one-query lower bound for
 every implementation in the same workspace. -/

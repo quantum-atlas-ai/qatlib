@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalshMoment.Forrelation.BooleanHadamardPhase
+module
+
+public import Qatlib.Concepts.WalshMoment.Forrelation.BooleanHadamardPhase
+
+@[expose] public section
 
 /-!
 # Hadamard transform as a Boolean Fourier matrix

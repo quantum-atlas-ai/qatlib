@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Instantaneous08.MainResults.XProgram
-import Qatlib.Papers.Instantaneous08.MainResults.ClassicalApprox.YDistribution
-import Mathlib.Analysis.Complex.Exponential
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Data.ZMod.Basic
+module
+
+public import Qatlib.Papers.Instantaneous08.MainResults.XProgram
+public import Qatlib.Papers.Instantaneous08.MainResults.ClassicalApprox.YDistribution
+public import Mathlib.Analysis.Complex.Exponential
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Data.ZMod.Basic
+
+@[expose] public section
 
 /-!
 # Fourier expressions for constant-action bias
@@ -63,7 +67,7 @@ theorem sgn2_add (a b : ZMod 2) : sgn2 (a + b) = sgn2 a * sgn2 b := by
   · norm_num [sgn2]
   · norm_num [sgn2]
   · have h2 : (1 : ZMod 2) + 1 = 0 := by decide
-    simp only [h2, sgn2, if_true]
+    simp only [h2, sgn2, ite_true]
     norm_num
 
 /-- The sign character as a monoid homomorphism from the multiplicative form of the additive
@@ -149,7 +153,7 @@ theorem charSum {n : ℕ} (u : F2Vec n) :
         rcases ClassicalApprox.zmod2_eq_zero_or_one (u j) with h | h
         · exact absurd h hj
         · exact h
-      rw [if_neg hj, h1]
+      rw [ite_eq_right hj, h1]
       have huniv : (Finset.univ : Finset (ZMod 2)) = {0, 1} := by
         apply Finset.ext
         intro b
@@ -161,13 +165,13 @@ theorem charSum {n : ℕ} (u : F2Vec n) :
   by_cases hu : u = 0
   · subst hu
     simp [Finset.prod_const, Fintype.card_fin]
-  · rw [if_neg hu]
+  · rw [ite_eq_right hu]
     obtain ⟨j, hj⟩ : ∃ j, u j ≠ 0 := by
       by_contra h
       exact hu (funext fun j => by
         by_contra hj
         exact h ⟨j, hj⟩)
-    exact Finset.prod_eq_zero (Finset.mem_univ j) (if_neg hj)
+    exact Finset.prod_eq_zero (Finset.mem_univ j) (ite_eq_right hj)
 
 /-- The binary character is one when the dot product is zero and negative one otherwise. -/
 theorem chi_eq_sgn2 {n : ℕ} (p a : F2Vec n) :
@@ -238,10 +242,10 @@ theorem circuit_eq_zAmp {n k : ℕ} (p : Fin k → F2Vec n) (θ : Fin k → ℝ)
         ring
       rw [hcard, charSum x]
       by_cases hx : x = 0
-      · simp only [hx, if_true]
+      · simp only [hx, ite_true]
         have hne : ((2 : ℂ) ^ n) ≠ 0 := pow_ne_zero n (by norm_num)
         field_simp
-      · rw [if_neg hx, if_neg hx]
+      · rw [ite_eq_right hx, ite_eq_right hx]
         simp
   | succ k ih =>
       have hstep : ∀ x : F2Vec n,
@@ -491,14 +495,14 @@ theorem bias_eq_fourier {n k : ℕ} (p : Fin k → F2Vec n) (θ : ℝ) (s : F2Ve
     have hds : dot s x = dot x s := dot_comm s x
     by_cases h : dot x s = 0
     · have hs : dot s x = 0 := by rw [hds, h]
-      rw [if_pos h, chi_eq_sgn2, if_pos hs]
+      rw [ite_eq_left h, chi_eq_sgn2, ite_eq_left hs]
       norm_num
     · have h1 : dot x s = 1 := by
         rcases ClassicalApprox.zmod2_eq_zero_or_one (dot x s) with h0 | h0
         · exact absurd h0 h
         · exact h0
       have hs : dot s x = 1 := by rw [hds, h1]
-      rw [if_neg h, chi_eq_sgn2, if_neg (by rw [hs]; norm_num)]
+      rw [ite_eq_right h, chi_eq_sgn2, ite_eq_right (by rw [hs]; norm_num)]
       norm_num
   have hsum : (∑ x : F2Vec n, (if dot x s = 0 then (prob p (fun _ => θ) x : ℂ) else 0)) =
       (1 / 2 : ℂ) * ((∑ x : F2Vec n, (prob p (fun _ => θ) x : ℂ)) +
@@ -509,8 +513,8 @@ theorem bias_eq_fourier {n k : ℕ} (p : Fin k → F2Vec n) (θ : ℝ) (s : F2Ve
     have hx : (if dot x s = 0 then (prob p (fun _ => θ) x : ℂ) else 0) =
         ((1 + chi s x) / 2) * (prob p (fun _ => θ) x : ℂ) := by
       by_cases h : dot x s = 0
-      · rw [if_pos h, ← hind x, if_pos h]; ring
-      · rw [if_neg h, ← hind x, if_neg h]; ring
+      · rw [ite_eq_left h, ← hind x, ite_eq_left h]; ring
+      · rw [ite_eq_right h, ← hind x, ite_eq_right h]; ring
     rw [hx]
     ring
   rw [hsum]

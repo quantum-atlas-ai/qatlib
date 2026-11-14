@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.BQPMixSparse06.MainResults.Lemma3SparseConversion
-import Mathlib.Data.Complex.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Analysis.SpecialFunctions.Exp
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
+module
+
+public import Qatlib.Papers.BQPMixSparse06.MainResults.Lemma3SparseConversion
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Analysis.SpecialFunctions.Exp
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+
+@[expose] public section
 
 /-!
 # Signed-clock entries and spectral tail bounds

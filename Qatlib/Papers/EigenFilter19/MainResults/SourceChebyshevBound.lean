@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.RingTheory.Polynomial.Chebyshev
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.Basic
-import Mathlib.Analysis.SpecialFunctions.Arcosh
+module
+
+public import Mathlib.RingTheory.Polynomial.Chebyshev
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.Basic
+public import Mathlib.Analysis.SpecialFunctions.Arcosh
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

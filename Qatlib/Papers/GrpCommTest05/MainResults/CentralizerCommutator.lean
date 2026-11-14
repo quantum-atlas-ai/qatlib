@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Group.Subgroup.Basic
-import Mathlib.GroupTheory.Subgroup.Centralizer
+module
+
+public import Mathlib.Algebra.Group.Subgroup.Basic
+public import Mathlib.GroupTheory.Subgroup.Centralizer
+
+@[expose] public section
 
 /-!
 # Centers, centralizers, and noncommuting group elements

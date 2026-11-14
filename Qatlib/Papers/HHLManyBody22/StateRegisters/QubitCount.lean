@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Nat.Log
-import Mathlib.Data.Nat.Choose.Basic
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.NormNum
+module
+
+public import Mathlib.Data.Nat.Log
+public import Mathlib.Data.Nat.Choose.Basic
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.NormNum
+
+@[expose] public section
 
 /-!
 # State-register qubit counts

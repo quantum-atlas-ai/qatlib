@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Core.AuxRegulator
-import Qatlib.Foundations.CbmdAnalysis.Core.KernelPoleSet
-import Qatlib.Foundations.CbmdAnalysis.Core.AnalyticRegulator
+module
+
+public import Qatlib.Foundations.CbmdAnalysis.Core.AuxRegulator
+public import Qatlib.Foundations.CbmdAnalysis.Core.KernelPoleSet
+public import Qatlib.Foundations.CbmdAnalysis.Core.AnalyticRegulator
+
+@[expose] public section
 
 /-!
 # Finite auxiliary-regulator contour identities

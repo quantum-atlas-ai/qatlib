@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QuditTeleport.TeleportCore.QuditTeleportationProtocol
-import Qatlib.Foundations.PureStateMath.BornBridge.PartialTraceCovariance
+module
+
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.QuditTeleportationProtocol
+public import Qatlib.Foundations.PureStateMath.BornBridge.PartialTraceCovariance
+
+@[expose] public section
 
 /-!
 # Operators for the qudit resource converse

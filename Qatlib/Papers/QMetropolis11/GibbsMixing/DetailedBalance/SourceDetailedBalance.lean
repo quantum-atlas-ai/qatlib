@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QuantumGibbs.DetailedBalance.QuantumDetailedBalance
-import Qatlib.Concepts.QuantumGibbs.DetailedBalance.QuantumDetailedBalanceFixedPointQuan
-import Qatlib.Concepts.QuantumGibbs.DetailedBalance.QuantumDetailedBalanceCriterionQuan
+module
+
+public import Qatlib.Concepts.QuantumGibbs.DetailedBalance.QuantumDetailedBalance
+public import Qatlib.Concepts.QuantumGibbs.DetailedBalance.QuantumDetailedBalanceFixedPointQuan
+public import Qatlib.Concepts.QuantumGibbs.DetailedBalance.QuantumDetailedBalanceCriterionQuan
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QLattice03.MainResults.Cor39
+module
+
+public import Qatlib.Papers.QLattice03.MainResults.Cor39
+
+@[expose] public section
 
 /-!
 # Uniform grid ball amplitudes and approximation
@@ -44,7 +48,7 @@ noncomputable def uniformBallAmplitude (n : ℕ) (L : ℕ) (R : ℝ) : (Fin n �
 /-- The proposition that a family of amplitudes has squared error less than `1 / n^(2c)` on
 every specified origin-centered grid ball with grid parameter `2^n`, positive dimension, and
 radius at least one. -/
-def ballSuperposition_efficient (c : ℝ) (hc : 0 < c) : Prop :=
+def ballSuperposition_efficient (c : ℝ) (_hc : 0 < c) : Prop :=
   ∃ (etat : ∀ n : ℕ, (Fin n → ℤ) → ℂ), ∀ (n : ℕ), 0 < n → ∀ (R : ℝ), 1 ≤ R →
     (∑ x ∈ gridBall n (2 ^ n) R (fun _ => 0),
         ‖etat n x - uniformBallAmplitude n (2 ^ n) R x‖ ^ 2) <

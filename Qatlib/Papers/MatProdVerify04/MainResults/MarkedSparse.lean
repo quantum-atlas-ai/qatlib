@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MatProdVerify04.MainResults.MarkedPairs
-import Mathlib.Data.Finset.Card
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Sigma
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.MatProdVerify04.MainResults.MarkedPairs
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Sigma
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Marked windows for sparse error sets
@@ -190,19 +194,19 @@ theorem window_prob_factor {Row Col : Type*} [Fintype Row] [DecidableEq Row]
           = ((Finset.univ : Finset Row).powersetCard r).card
             * ((Finset.univ : Finset Col).powersetCard s).card :=
         Finset.card_product _ _
-      rw [if_pos hmem, if_pos h1, if_pos h2, hcard]
+      rw [ite_eq_left hmem, ite_eq_left h1, ite_eq_left h2, hcard]
       push_cast
       rw [mul_inv]
     · have hmem : RS ∉ ((Finset.univ : Finset Row).powersetCard r).product
           ((Finset.univ : Finset Col).powersetCard s) := by
         intro h
         exact h2 (Finset.mem_product.mp h).2
-      rw [if_neg hmem, if_pos h1, if_neg h2, mul_zero]
+      rw [ite_eq_right hmem, ite_eq_left h1, ite_eq_right h2, mul_zero]
   · have hmem : RS ∉ ((Finset.univ : Finset Row).powersetCard r).product
         ((Finset.univ : Finset Col).powersetCard s) := by
       intro h
       exact h1 (Finset.mem_product.mp h).1
-    rw [if_neg hmem, if_neg h1, zero_mul]
+    rw [ite_eq_right hmem, ite_eq_right h1, zero_mul]
 
 /-- Computes a uniform window event by averaging column subsets against the corresponding row
 event masses. See [BuhrmanSpalek2006]. -/

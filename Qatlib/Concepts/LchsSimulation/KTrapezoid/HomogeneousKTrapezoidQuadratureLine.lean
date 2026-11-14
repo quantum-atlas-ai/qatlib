@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LchsSimulation.KTrapezoid.HomogeneousKTrapezoidQuadratureStat
-import Qatlib.Concepts.LchsSimulation.KTrapezoid.TrapezoidQuadrature
+module
+
+public import Qatlib.Concepts.LchsSimulation.KTrapezoid.HomogeneousKTrapezoidQuadratureStat
+public import Qatlib.Concepts.LchsSimulation.KTrapezoid.TrapezoidQuadrature
+
+@[expose] public section
 
 /-!
 # Trapezoidal LCHS parameter error bounds
@@ -323,7 +327,7 @@ theorem k_trap_lipschitz_cell_error
       have hl := hLip u ⟨hu.1.le, hu.2⟩
       rw [norm_smul, Real.norm_eq_abs]
       apply (mul_le_mul_of_nonneg_left hl (abs_nonneg _)).trans_eq
-      change |u - m| * (C * |u - m|) = C*(u-m)^2
+
       rw [← sq_abs]
       ring))
     ((by fun_prop : Continuous (fun u : ℝ => C*(u-m)^2)).intervalIntegrable _ _)

@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.CStarAlgebra.Classes
-import Mathlib.LinearAlgebra.Matrix.Permutation
-import Mathlib.Tactic.Ext
-import Mathlib.Tactic.SplitIfs
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Foundations.InstrumentCore.Measurement.Basic
+module
+
+public import Mathlib.Analysis.CStarAlgebra.Classes
+public import Mathlib.LinearAlgebra.Matrix.Permutation
+public import Mathlib.Tactic.Ext
+public import Mathlib.Tactic.SplitIfs
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Foundations.InstrumentCore.Measurement.Basic
+
+@[expose] public section
 
 /-!
 # Additive oracle matrices and readout
@@ -85,7 +89,7 @@ omit [Fintype I] [Fintype R] in
 theorem addOracle_eq_permMatrix (f : I → R) :
     AddOracle f = permMatrix (addOracleEquiv f) := by
   ext p q
-  simp [AddOracle, permMatrix, Equiv.toPEquiv_apply, ← Equiv.apply_eq_iff_eq_symm_apply, eq_comm]
+  simp [AddOracle, permMatrix, Equiv.toPEquiv_apply, Equiv.eq_symm_apply, eq_comm]
 
 /-- At output index `(x, z)`, the oracle-transformed amplitude equals the input amplitude at
 `(x, z - f x)`. -/

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MbqcFlow.FlowDecision.AdaptiveQueryLower
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryCompilation
+module
+
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.AdaptiveQueryLower
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryCompilation
+
+@[expose] public section
 
 /-!
 # Adaptive query adversary bounds

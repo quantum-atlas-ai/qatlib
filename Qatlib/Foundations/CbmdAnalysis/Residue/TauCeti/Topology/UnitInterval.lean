@@ -7,10 +7,14 @@ Authors: Kim Morrison, Qatlib Contributors
 Adapted from https://github.com/TauCetiProject/TauCeti@3780371c
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+module
 
-import Mathlib.Topology.UnitInterval
-import Mathlib.Topology.Order.ProjIcc
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+
+public import Mathlib.Topology.UnitInterval
+public import Mathlib.Topology.Order.ProjIcc
+
+@[expose] public section
 
 /-!
 # Unit-interval partitions and clamped steps

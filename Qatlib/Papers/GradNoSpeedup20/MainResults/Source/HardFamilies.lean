@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Analysis.Convex.Function
-import Mathlib.Analysis.Normed.Module.Convex
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Data.Finset.Lattice.Fold
-import Mathlib.MeasureTheory.Measure.MeasureSpaceDef
-import Mathlib.MeasureTheory.Measure.Map
-import Mathlib.MeasureTheory.Measure.ProbabilityMeasure
-import Mathlib.MeasureTheory.Constructions.Pi
+module
+
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Analysis.Convex.Function
+public import Mathlib.Analysis.Normed.Module.Convex
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Data.Finset.Lattice.Fold
+public import Mathlib.MeasureTheory.Measure.MeasureSpaceDef
+public import Mathlib.MeasureTheory.Measure.Map
+public import Mathlib.MeasureTheory.Measure.ProbabilityMeasure
+public import Mathlib.MeasureTheory.Constructions.Pi
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

@@ -28,9 +28,13 @@ Ozawa) is kept outside the paper layer: the resource-bearing solvability
 predicates `ExactHSPSolvable`, `HsmcSolvable` below are *specifications* of the
 paper's model, not a re-implementation of the quantum oracle semantics.
 -/
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Algebra.Group.Subgroup.Basic
-import Qatlib.Papers.ZeroSumImran24.MainResults.SourceModel
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Algebra.Group.Subgroup.Basic
+public import Qatlib.Papers.ZeroSumImran24.MainResults.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

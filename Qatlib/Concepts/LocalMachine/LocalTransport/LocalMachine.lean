@@ -4,11 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LocalMachine.LocalTransport.LocalMachineDefs
-import Qatlib.Concepts.LocalMachine.LocalTransport.UniformBqp
-import Qatlib.Foundations.OperatorErrors.OperatorError
-import Qatlib.Concepts.SpectralReadout.PhaseReadout.BornPerturbation
-import Qatlib.Concepts.LocalMachine.LocalTransport.MatrixRepresentationBridges
+module
+
+public import Qatlib.Concepts.LocalMachine.LocalTransport.LocalMachineDefs
+public import Qatlib.Concepts.LocalMachine.LocalTransport.UniformBqp
+public import Qatlib.Foundations.OperatorErrors.OperatorError
+public import Qatlib.Concepts.SpectralReadout.PhaseReadout.BornPerturbation
+public import Qatlib.Concepts.LocalMachine.LocalTransport.MatrixRepresentationBridges
+
+@[expose] public section
+set_option linter.dupNamespace false
 
 /-!
 # Local machine transport and precision bounds
@@ -292,7 +297,7 @@ theorem fourierRule_not_localWellformed : ¬ fourierRule.LocalWellformed := by
           if q' = FourierState.qb then ((Real.sqrt 2 : ℝ) : ℂ)⁻¹ else 0 := by
     cases q' <;> simp [fourierRule, fourierH]
   simp_rw [hterm] at hc
-  simp only [Finset.sum_ite_eq', Finset.mem_univ, if_true] at hc
+  simp only [Finset.sum_ite_eq', Finset.mem_univ, ite_true] at hc
   apply (inv_ne_zero (show ((Real.sqrt 2 : ℝ) : ℂ) ≠ 0 from ?_)) hc
   exact_mod_cast (Real.sqrt_pos.mpr (show (0 : ℝ) < 2 by norm_num)).ne'
 

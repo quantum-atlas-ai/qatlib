@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.GroupTheory.GroupAction.MultipleTransitivity
+module
+
+public import Mathlib.GroupTheory.GroupAction.MultipleTransitivity
+
+@[expose] public section
 
 /-!
 # Indices of pointwise stabilizers

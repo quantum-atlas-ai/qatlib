@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Order.Chebyshev
-import Qatlib.Papers.TensorNetwork08.MainResults.StatDefs
+module
+
+public import Mathlib.Algebra.Order.Chebyshev
+public import Qatlib.Papers.TensorNetwork08.MainResults.StatDefs
+
+@[expose] public section
 
 /-!
 # Euclidean norms of diagonal tensors and edge weights

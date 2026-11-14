@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AdversarySrch07.MainResults.OptimalBound.OptimalAdversary
+module
+
+public import Qatlib.Papers.AdversarySrch07.MainResults.OptimalBound.OptimalAdversary
+
+@[expose] public section
 
 /-!
 # Finite differences for ordered-search objective values
@@ -85,6 +89,6 @@ theorem xi_sq_le_inv_succ (m : ℕ) : xi m ^ 2 ≤ (1 : ℝ) / ((m : ℝ) + 1) :
           mul_le_mul ih hsq (sq_nonneg _) (by positivity)
       _ = (1 : ℝ) / ((n : ℝ) + 2) := by
           field_simp
-          try ring
+
 
 end Qatlib.Papers.AdversarySrch07.MainResults.Asymptotic

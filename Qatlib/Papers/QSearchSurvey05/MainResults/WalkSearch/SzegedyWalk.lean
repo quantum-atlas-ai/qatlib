@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.Detection.CorrectedSzegedyDetector
-import Mathlib.Analysis.SpecialFunctions.Sqrt
+module
+
+public import Qatlib.Concepts.WalkSearch.Detection.CorrectedSzegedyDetector
+public import Mathlib.Analysis.SpecialFunctions.Sqrt
+
+@[expose] public section
 
 /-!
 # Szegedy walk detection bounds
@@ -69,7 +73,7 @@ theorem theorem43_szegedy_walk
   have hε1 : ε ≤ 1 := le_trans hεp hp01
   have hsqrt1 : Real.sqrt (δ * ε) ≤ 1 := by
     rw [Real.sqrt_le_one]
-    exact mul_le_one₀ hδ1 (le_of_lt hε) hε1
+    nlinarith [hδ1, hε, hε1]
   have hLpos : 0 < L := by
     unfold L
     omega

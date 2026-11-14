@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Analysis.Normed.Module.Basic
-import Mathlib.Analysis.Normed.Group.Basic
-import Mathlib.Data.Real.Sqrt
+module
+
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Analysis.Normed.Module.Basic
+public import Mathlib.Analysis.Normed.Group.Basic
+public import Mathlib.Analysis.Real.Sqrt
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

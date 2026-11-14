@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QDynamics10.MainResults.SourceModel
-import Mathlib.Data.Nat.Basic
+module
+
+public import Qatlib.Papers.QDynamics10.MainResults.SourceModel
+public import Mathlib.Data.Nat.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

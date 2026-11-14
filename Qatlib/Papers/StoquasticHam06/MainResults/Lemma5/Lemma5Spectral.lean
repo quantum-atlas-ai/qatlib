@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.StoquasticHam06.MainResults.Model.HamiltonianDefs
-import Mathlib.Analysis.Complex.ExponentialBounds
-import Mathlib.Algebra.Order.Chebyshev
+module
+
+public import Qatlib.Papers.StoquasticHam06.MainResults.Model.HamiltonianDefs
+public import Mathlib.Analysis.Complex.ExponentialBounds
+public import Mathlib.Algebra.Order.Chebyshev
+
+@[expose] public section
 
 /-!
 # Spectral error bound for the power-method ratio

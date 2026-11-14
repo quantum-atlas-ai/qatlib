@@ -4,11 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QlsReadoutSpec.Amplification.TightDirichletBoundsStat
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
-import Mathlib.Analysis.Real.Pi.Bounds
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Deriv
-import Mathlib.Analysis.Calculus.MeanValue
+module
+
+public import Qatlib.Concepts.QlsReadoutSpec.Amplification.TightDirichletBoundsStat
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+public import Mathlib.Analysis.Real.Pi.Bounds
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Deriv
+public import Mathlib.Analysis.Calculus.MeanValue
+public import Mathlib.Analysis.Calculus.Deriv.Pow
+public import Mathlib.Analysis.Calculus.Deriv.MeanValue
+
+@[expose] public section
 
 /-!
 # Sharp quadratic bounds for amplification gain ratios
@@ -285,7 +291,7 @@ private theorem dirichlet_lower (ρ : ℕ) (θ : ℝ) (hρ : 3 ≤ ρ) (hθ : 0 
   by_cases hθ0 : θ = 0
   · subst hθ0
     simp
-  · rw [if_neg hθ0]
+  · rw [ite_eq_right hθ0]
     have h := sin_rho_theta_ge ρ θ hρ hθ hle
     have hθpos : 0 < θ := lt_of_le_of_ne hθ (Ne.symm hθ0)
     have hθle : θ ≤ Real.pi / 2 := by
@@ -1051,7 +1057,7 @@ private theorem dirichlet_upper (ρ : ℕ) (θ : ℝ) (hρ : 3 ≤ ρ) (hθ : 0 
   by_cases hθ0 : θ = 0
   · subst hθ0
     simp
-  · rw [if_neg hθ0]
+  · rw [ite_eq_right hθ0]
     have hρpos : (0:ℝ) < ρ := by positivity
     have hθpos : 0 < θ := lt_of_le_of_ne hθ (Ne.symm hθ0)
     have hρ3 : (3:ℝ) ≤ ρ := by exact_mod_cast hρ

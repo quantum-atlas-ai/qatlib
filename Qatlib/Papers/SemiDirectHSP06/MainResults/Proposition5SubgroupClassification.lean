@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SemiDirectHSP06.MainResults.Proposition6GeneratedInclusion
-import Mathlib.Algebra.Group.Subgroup.ZPowers.Lemmas
-import Mathlib.GroupTheory.OrderOfElement
+module
+
+public import Qatlib.Papers.SemiDirectHSP06.MainResults.Proposition6GeneratedInclusion
+public import Mathlib.Algebra.Group.Subgroup.ZPowers.Lemmas
+public import Mathlib.GroupTheory.OrderOfElement
+
+@[expose] public section
 
 /-!
 # Subgroup classification for the odd-prime shift semidirect product
@@ -146,7 +150,7 @@ theorem exists_y_part (hp : p.Prime) (hr : 2 ≤ r)
     (hb : b ≤ p - 1) (hφ : φ (Multiplicative.ofAdd 1) = shiftAut p r hp hr)
     (hgen : genX p r φ ^ a * genY p r φ ^ b ∈ H) :
     ∃ c : ℕ, genX p r φ ^ c * genY p r φ ∈ H := by
-  haveI : NeZero p := ⟨hp.ne_zero⟩
+  have : NeZero p := ⟨hp.ne_zero⟩
   have hbne : (b : ZMod p) ≠ 0 := by
     intro h
     have hpdvd : p ∣ b := (ZMod.natCast_eq_zero_iff b p).mp h
@@ -285,8 +289,8 @@ theorem proposition5_subgroup_classification
               Set (SDP p r φ))) := by
   classical
   intro H
-  haveI : NeZero p := ⟨hp.ne_zero⟩
-  haveI : NeZero (2 * p ^ r) :=
+  have : NeZero p := ⟨hp.ne_zero⟩
+  have : NeZero (2 * p ^ r) :=
     ⟨Nat.mul_ne_zero (by norm_num) (pow_ne_zero _ hp.ne_zero)⟩
   have hNpos : 0 < 2 * p ^ r := Nat.mul_pos (by norm_num) (pow_pos hp.pos r)
   set x : SDP p r φ := genX p r φ with hx

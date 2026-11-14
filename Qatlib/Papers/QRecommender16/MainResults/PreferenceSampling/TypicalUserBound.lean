@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Data.Real.Basic
+module
+
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Basic.Real.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -62,7 +66,7 @@ the probabilistic derivation of `G` from the Frobenius concentration of
 Section 3.2 is not modelled. -/
 theorem source_theorem_3_3
     (p : Fin m → ℝ) (G : Finset (Fin m)) (ε δ γ ζ : ℝ)
-    (hε0 : 0 ≤ ε) (hε1 : ε < 1) (hδ : 0 < δ) (hγ : 0 ≤ γ)
+    (_hε0 : 0 ≤ ε) (_hε1 : ε < 1) (hδ : 0 < δ) (_hγ : 0 ≤ γ)
     (hζ0 : 0 ≤ ζ) (hδζ : δ + ζ < 1)
     (hGcard : ((1 - δ) * m : ℝ) ≤ (G.card : ℝ))
     (hGbound : ∀ i ∈ G, p i ≤

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CopyDecision.FreshPolicies.Data.GeneralPolicy
-import Mathlib.Algebra.Order.Archimedean.Basic
+module
+
+public import Qatlib.Concepts.CopyDecision.FreshPolicies.Data.GeneralPolicy
+public import Mathlib.Algebra.Order.Archimedean.Basic
+
+@[expose] public section
 
 /-!
 # General Approximation
@@ -37,7 +41,7 @@ theorem generalPolicy_finite_approximation {n : ℕ} (P : RawGeneralPolicy.{u} n
     simp only [povmPolicyError, generalPolicyError, generalLabelRisk, sub_self, abs_zero]
     exact mul_nonneg hε.le (Finset.sum_nonneg (fun i _ => hq i))
   | @step d Y mY M next ih =>
-    letI := mY
+    let := mY
     let c : Y → Fin 3 → ℝ := fun y i => generalLabelRisk (next y) i
     have hc : ∀ y i, 0 ≤ c y i ∧ c y i ≤ 1 :=
       fun y i => generalLabelRisk_unit (next y) (hP.1 y) i

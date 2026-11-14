@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.EntangleTrans99.MainResults.Majorization.Basic
-import Qatlib.Concepts.Entanglement.Separability.EntanglementLOCC
+module
+
+public import Qatlib.Papers.EntangleTrans99.MainResults.Majorization.Basic
+public import Qatlib.Concepts.Entanglement.Separability.EntanglementLOCC
+
+@[expose] public section
 
 /-!
 # Entropy and the two-dimensional spectral criterion

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ExactSimon97.MainResults.AmplificationHilbert
-import Qatlib.Papers.ExactSimon97.MainResults.Amplification
-import Qatlib.Papers.ExactSimon97.MainResults.ShrinkCoherent
+module
+
+public import Qatlib.Papers.ExactSimon97.MainResults.AmplificationHilbert
+public import Qatlib.Papers.ExactSimon97.MainResults.Amplification
+public import Qatlib.Papers.ExactSimon97.MainResults.ShrinkCoherent
+
+@[expose] public section
 
 /-!
 # State formulas for exact amplitude amplification
@@ -106,10 +110,10 @@ theorem hInner_phaseGood (χ : I → Bool) (ψ : I → ℂ) :
   · rw [Finset.mul_sum]
     refine Finset.sum_congr rfl fun i hi => ?_
     rw [Finset.mem_filter] at hi
-    rw [if_pos hi.2]
+    rw [ite_eq_left hi.2]
   · refine Finset.sum_congr rfl fun i hi => ?_
     rw [Finset.mem_filter] at hi
-    rw [if_neg (by simpa using hi.2)]
+    rw [ite_eq_right (by simpa using hi.2)]
 
 /-- If good and bad masses sum to one, each good amplitude is multiplied by `2 * Complex.I * (1
 - goodMass χ ψ) - 1` by the combined update. -/
@@ -157,11 +161,11 @@ theorem lemma8_general_output (χ : I → Bool) (ψ : I → ℂ)
   funext i
   by_cases hi : χ i = true
   · rw [phase_component_good χ ψ h i hi]
-    simp only [goodPart, badPart, hi, if_true]
+    simp only [goodPart, badPart, hi, ite_true]
     ring
   · have hf : χ i = false := by cases hχ : χ i <;> simp_all
     rw [phase_component_bad χ ψ h i hf]
-    simp only [goodPart, badPart, hf, Bool.false_eq_true, if_false]
+    simp only [goodPart, badPart, hf, Bool.false_eq_true, ite_false]
     ring
 
 /-- When both masses equal one half, every bad amplitude vanishes after the combined phase
@@ -305,7 +309,7 @@ cardinality. -/
 theorem star_normFactor_mul {n : ℕ} (K : Submodule (ZMod 2) (BoolVec n)) :
     star (normFactor K) * normFactor K = ((Nat.card K : ℂ))⁻¹ := by
   have hpos : (0 : ℝ) < (Nat.card K : ℝ) := by
-    haveI : Nonempty K := ⟨0⟩
+    have : Nonempty K := ⟨0⟩
     exact_mod_cast Nat.card_pos
   have hsq : Real.sqrt (Nat.card K : ℝ) * Real.sqrt (Nat.card K : ℝ) =
       (Nat.card K : ℝ) := Real.mul_self_sqrt (le_of_lt hpos)
@@ -344,7 +348,7 @@ theorem star_block_mul {n : ℕ} (K : Submodule (ZMod 2) (BoolVec n))
 /-- The cardinality of a binary submodule is nonzero when viewed as a complex number. -/
 theorem natCard_ne_zero {n : ℕ} (K : Submodule (ZMod 2) (BoolVec n)) :
     (Nat.card K : ℂ) ≠ 0 := by
-  haveI : Nonempty K := ⟨0⟩
+  have : Nonempty K := ⟨0⟩
   have h : Nat.card K ≠ 0 := Nat.card_pos.ne'
   exact_mod_cast h
 
@@ -433,10 +437,10 @@ theorem cosetBlock_good_half {n : ℕ} {S : Type} [Fintype S]
               else 0) =
             star (c s) * c s * (star (normFactor K) * normFactor K) := by
         intro s
-        rw [hxtrue s, if_pos rfl]
+        rw [hxtrue s, ite_eq_left rfl]
         rw [cosetBlockState_apply K t c (x, s) hx.1]
         exact star_block_mul K (t s) (c s) x
-      rw [Finset.sum_congr rfl (fun s _ => hbody s), ← Finset.sum_mul, hc, one_mul, if_pos hx]
+      rw [Finset.sum_congr rfl (fun s _ => hbody s), ← Finset.sum_mul, hc, one_mul, ite_eq_left hx]
     · have hzero : (∑ s : S, (if coordGood (S := S) i (x, s) = true
             then star (cosetBlockState K t c (x, s)) * cosetBlockState K t c (x, s)
             else 0)) = 0 := by
@@ -452,7 +456,7 @@ theorem cosetBlock_good_half {n : ℕ} {S : Type} [Fintype S]
             simp [cosetBlockState, hxK]
           rw [hblk]
           simp
-      rw [hzero, if_neg hx]
+      rw [hzero, ite_eq_right hx]
   rw [Finset.sum_congr rfl (fun x _ => hstep x)]
   rw [← Finset.sum_filter]
   have hfilter : (Finset.univ.filter (fun x : BoolVec n => x ∈ K ∧ x i = 1)) = bitOne K i := by

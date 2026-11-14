@@ -4,18 +4,22 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.MixedState
-import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
-import Qatlib.Concepts.TrotterFormula.LieStrang.CommutatorProductFormula
-import Qatlib.Concepts.TrotterFormula.ImaginaryTime.FiniteImaginaryProduct
-import Qatlib.Concepts.TrotterFormula.FiniteStrang.FiniteStrangCommutatorConsumers
-import Qatlib.Concepts.TrotterFormula.GeneralOrder.NestedCommutatorScaling
-import Qatlib.Concepts.TrotterFormula.GeneralOrder.OrderedCommutatorAlpha
-import Qatlib.Concepts.TrotterFormula.RecursiveSuzuki.RecursiveSuzukiConsumers
-import Qatlib.Concepts.TrotterFormula.SuzukiFourth.SuzukiFourthOrderConsumers
-import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorSegments
-import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.LocalDyadicGate
-import Mathlib.Logic.Equiv.Fin.Basic
+module
+
+public import Qatlib.Foundations.PureStateMath.MixedState
+public import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
+public import Qatlib.Concepts.TrotterFormula.LieStrang.CommutatorProductFormula
+public import Qatlib.Concepts.TrotterFormula.ImaginaryTime.FiniteImaginaryProduct
+public import Qatlib.Concepts.TrotterFormula.FiniteStrang.FiniteStrangCommutatorConsumers
+public import Qatlib.Concepts.TrotterFormula.GeneralOrder.NestedCommutatorScaling
+public import Qatlib.Concepts.TrotterFormula.GeneralOrder.OrderedCommutatorAlpha
+public import Qatlib.Concepts.TrotterFormula.RecursiveSuzuki.RecursiveSuzukiConsumers
+public import Qatlib.Concepts.TrotterFormula.SuzukiFourth.SuzukiFourthOrderConsumers
+public import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorSegments
+public import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.LocalDyadicGate
+public import Mathlib.Logic.Equiv.Fin.Basic
+
+@[expose] public section
 
 /-!
 # Specifications for product-formula source bounds

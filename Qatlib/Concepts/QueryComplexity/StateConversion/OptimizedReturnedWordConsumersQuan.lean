@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GramQueryCore.GramRealization.NoncoherentStateConversion
-import Qatlib.Concepts.QueryComplexity.StateConversion.OptimizedReturnedWordConsumersStat
-import Qatlib.Concepts.GramQueryCore.FilteredNorm.DualNormSDPAndClosureQuan
-import Qatlib.Concepts.QueryComplexity.StateConversion.RealBudgetConversionAlgorithmQuan
+module
+
+public import Qatlib.Concepts.GramQueryCore.GramRealization.NoncoherentStateConversion
+public import Qatlib.Concepts.QueryComplexity.StateConversion.OptimizedReturnedWordConsumersStat
+public import Qatlib.Concepts.GramQueryCore.FilteredNorm.DualNormSDPAndClosureQuan
+public import Qatlib.Concepts.QueryComplexity.StateConversion.RealBudgetConversionAlgorithmQuan
+
+@[expose] public section
 
 /-!
 # Optimized state-conversion words
@@ -63,7 +67,7 @@ open scoped Matrix.Norms.L2Operator in
     (hA : Tendsto A atTop (𝓝 B)) (hab : Tendsto a atTop (𝓝 b))
     (hb : ∀ k, sourceRectValue (A k) Z≤ENNReal.ofReal (a k)) :
     sourceRectValue B Z≤ENNReal.ofReal b := by
-  letI : NormedAddCommGroup (Matrix R S ℂ) := Matrix.instL2OpNormedAddCommGroup
+  let : NormedAddCommGroup (Matrix R S ℂ) := Matrix.instL2OpNormedAddCommGroup
   apply sourceRectValue_le_of_dual_norm_bound
   intro M hM
   have hm (k : ℕ) : ‖A k ⊙ M‖≤a k := (ENNReal.ofReal_le_ofReal_iff (ha k)).mp
@@ -87,7 +91,7 @@ theorem sourceNormalizedPSD_compact (X : Type) [Fintype X] [DecidableEq X] :
   have hc : IsClosed {T : Matrix X X ℂ | T.PosSemidef ∧ ∀ x, T x x=1} := by
     apply IsClosed.inter sourcePSD_closed
     change IsClosed {T : Matrix X X ℂ | ∀ x, T x x=1}
-    rw [Set.setOf_forall]
+    rw [Set.ofPred_forall]
     apply isClosed_iInter
     intro x
     apply isClosed_eq <;> fun_prop
@@ -176,9 +180,9 @@ theorem sourceQNoncoherentDelta_raw_attainment {X : Type} [Fintype X] [Decidable
     obtain ⟨T,hT⟩ := iInf_lt_iff.mp hh
     obtain ⟨K,hK⟩ := iInf_lt_iff.mp hT
     by_cases hd : sourceUnfiltered (T.val-S ⊙ K.val)≤ENNReal.ofReal δ
-    · rw [if_pos hd] at hK
+    · rw [ite_eq_left hd] at hK
       exact ⟨T.val,K.val,T.property,K.property.1,K.property.2,hd,hK⟩
-    · rw [if_neg hd] at hK
+    · rw [ite_eq_right hd] at hK
       exact (not_top_lt hK).elim
   choose T K hTPSD hKPSD hKdiag hFeas hObj using happ
   have htNorm (k : ℕ) : T k ∈ {T : Matrix X X ℂ | T.PosSemidef ∧ ∀ x, T x x=1} :=
@@ -1062,7 +1066,7 @@ theorem sourceRecord_frame_tensor {H Y : Type} [Fintype H] [DecidableEq H]
   rw [Finset.sum_eq_single p.2.1.2]
   · by_cases ha : p.1=(0,0)
     · by_cases ht : p.2.1.1=true
-      · simp only [sourceGarbageTarget,TensorState,Qatlib.Foundations.PureStateMath.Ket,ha,ht,if_true,one_mul,
+      · simp only [sourceGarbageTarget,TensorState,Qatlib.Foundations.PureStateMath.Ket,ha,ht,ite_true,one_mul,
           Matrix.mulVec,dotProduct,sourceBasisFrame,Prod.ext_iff,true_and]
         rw [Finset.mul_sum]
         apply Finset.sum_congr rfl

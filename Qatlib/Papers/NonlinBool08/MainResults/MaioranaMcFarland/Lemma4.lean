@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NonlinBool08.MainResults.BentCore.Basic
+module
+
+public import Qatlib.Papers.NonlinBool08.MainResults.BentCore.Basic
+
+@[expose] public section
 
 /-!
 # Maiorana-McFarland bent functions and their duals
@@ -43,7 +47,7 @@ lemma add_self_bvec {n : ℕ} (u : BVec n) : u + u = 0 := by
 lemma neg_bvec {n : ℕ} (u : BVec n) : -u = u := by
   funext i
   rcases zmod2_cases (u i) with h | h <;>
-    simp [Pi.neg_apply, h, neg_one_zmod2]
+    simp [Pi.neg_apply, h]
 
 /-- The Maiorana-McFarland Boolean function `(x, y) ↦ dot x (π y) + g y`. -/
 def mm {n : ℕ} (π : Equiv.Perm (BVec n)) (g : BVec n → ZMod 2)
@@ -116,9 +120,9 @@ theorem lemma4_maiorana_mcfarland {n : ℕ} (π : Equiv.Perm (BVec n))
               have h1 : -u = π y := add_eq_zero_iff_neg_eq.mp h0
               rw [← h1, neg_bvec u]
             exact hy (by rw [← π.symm_apply_apply y, hpu])
-          rw [if_neg hne, zero_mul]
+          rw [ite_eq_right hne, zero_mul]
       _ = (2 : ℤ) ^ n * eps (mmDual π g u v) := by
-          rw [π.apply_symm_apply, add_self_bvec, if_pos rfl]
+          rw [π.apply_symm_apply, add_self_bvec, ite_eq_left rfl]
           have harg : dot v (π.symm u) + g (π.symm u)
               = dot (π.symm u) v + g (π.symm u) := by
             show dotProduct v (π.symm u) + g (π.symm u)

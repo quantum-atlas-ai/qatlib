@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QWeakness97.MainResults.QueryComparisonMachineDefs
+module
+
+public import Qatlib.Papers.QWeakness97.MainResults.QueryComparisonMachineDefs
+
+@[expose] public section
 
 /-!
 # Sequential oracle copies and tidy amplification

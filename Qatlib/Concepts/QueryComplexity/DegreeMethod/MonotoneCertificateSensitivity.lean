@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.SensitivityCombinatorics
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.QueryDegree
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.SensitivityCombinatorics
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.QueryDegree
+
+@[expose] public section
 
 /-!
 # Certificates and block sensitivity for monotone functions

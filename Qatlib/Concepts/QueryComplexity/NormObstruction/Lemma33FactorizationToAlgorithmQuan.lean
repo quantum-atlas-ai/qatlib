@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.CbDegreeBridge.CbFormsAux
-import Qatlib.Concepts.QueryComplexity.NormObstruction.Lemma33FactorizationToAlgorithmStat
+module
+
+public import Qatlib.Concepts.QueryComplexity.CbDegreeBridge.CbFormsAux
+public import Qatlib.Concepts.QueryComplexity.NormObstruction.Lemma33FactorizationToAlgorithmStat
+
+@[expose] public section
 
 /-!
 # From completely bounded factorizations to query algorithms
@@ -149,7 +153,7 @@ private theorem dil_eigen_nonneg (M : Matrix R R ℂ) (hM : ‖M‖ ≤ 1) (i : 
 
 /-- Applies the real square root to the eigenvalues of a Hermitian matrix in a unitary
 eigenbasis. -/
-private noncomputable def hermSqrt {A : Matrix R R ℂ} (hA : A.IsHermitian) : Matrix R R ℂ :=
+noncomputable def hermSqrt {A : Matrix R R ℂ} (hA : A.IsHermitian) : Matrix R R ℂ :=
   (hA.eigenvectorUnitary : Matrix R R ℂ) *
     Matrix.diagonal (fun i => (Real.sqrt (hA.eigenvalues i) : ℂ)) *
     star (hA.eigenvectorUnitary : Matrix R R ℂ)
@@ -213,8 +217,8 @@ private theorem hermSqrt_hermitian {A : Matrix R R ℂ} (hA : A.IsHermitian) :
   rw [Matrix.conjTranspose_mul, Matrix.conjTranspose_mul, hD, h1, h2, mul_assoc]
 
 /-- The spectral square-root construction for the defect matrix `1 - Mᴴ * M`. -/
-private noncomputable def dilSqrt (M : Matrix R R ℂ) : Matrix R R ℂ :=
-  hermSqrt (dil_hermitian M)
+noncomputable def dilSqrt (M : Matrix R R ℂ) : Matrix R R ℂ :=
+  hermSqrt (A := 1 - Mᴴ * M) (by exact dil_hermitian M)
 
 /-- For a contraction, the square of `dilSqrt M` equals `1 - Mᴴ * M`. -/
 private theorem dilSqrt_mul_self (M : Matrix R R ℂ) (hM : ‖M‖ ≤ 1) :
@@ -226,7 +230,7 @@ private theorem dilSqrt_hermitian (M : Matrix R R ℂ) : (dilSqrt M)ᴴ = dilSqr
   hermSqrt_hermitian (dil_hermitian M)
 
 /-- Stacks `M` above its defect square-root matrix on a doubled output register. -/
-private noncomputable def dilStack (M : Matrix R R ℂ) : Matrix (R ⊕ R) R ℂ :=
+noncomputable def dilStack (M : Matrix R R ℂ) : Matrix (R ⊕ R) R ℂ :=
   Sum.elim M (dilSqrt M)
 
 /-- The first block of the stacked dilation matrix is `M`. -/
@@ -263,7 +267,7 @@ private theorem dilStack_unit (M : Matrix R R ℂ) (hM : ‖M‖ ≤ 1) : (dilSt
 
 /-- The linear embedding into the first summand of the doubled Euclidean space, with zero second
 component. -/
-private noncomputable def embInlLM : EuclideanSpace ℂ R →ₗ[ℂ] EuclideanSpace ℂ (R ⊕ R) where
+noncomputable def embInlLM : EuclideanSpace ℂ R →ₗ[ℂ] EuclideanSpace ℂ (R ⊕ R) where
   toFun x := WithLp.toLp 2 (Sum.elim (WithLp.ofLp x) 0)
   map_add' := fun x y => by
     apply WithLp.ofLp_injective
@@ -294,12 +298,13 @@ private noncomputable def embInlE : EuclideanSpace ℂ R →ₗᵢ[ℂ] Euclidea
     rw [hz, add_zero]
     exact Finset.sum_congr rfl fun r _ => rfl⟩
 
+omit [DecidableEq R] in
 /-- Evaluates the isometric embedding as the original vector followed by a zero component. -/
 private theorem embInlE_apply (x : EuclideanSpace ℂ R) :
     embInlE (R := R) x = WithLp.toLp 2 (Sum.elim (WithLp.ofLp x) 0) := rfl
 
 /-- The linear map on Euclidean spaces represented by the stacked dilation matrix. -/
-private noncomputable def dilIsoLM (M : Matrix R R ℂ) : EuclideanSpace ℂ R →ₗ[ℂ] EuclideanSpace ℂ (R ⊕ R) where
+noncomputable def dilIsoLM (M : Matrix R R ℂ) : EuclideanSpace ℂ R →ₗ[ℂ] EuclideanSpace ℂ (R ⊕ R) where
   toFun x := WithLp.toLp 2 (dilStack M *ᵥ (WithLp.ofLp x))
   map_add' := fun x y => by
     apply WithLp.ofLp_injective
@@ -340,12 +345,14 @@ private noncomputable def dilDomEquiv :
     EuclideanSpace ℂ R ≃ₗ[ℂ] ↥(dilDom (R := R)) :=
   LinearEquiv.ofInjective (embInlLM (R := R)) ((embInlE (R := R)).injective)
 
+omit [DecidableEq R] in
 /-- The underlying vector of `dilDomEquiv x` is the first-summand isometric embedding of `x`. -/
 private theorem dilDomEquiv_apply_val (x : EuclideanSpace ℂ R) :
     ((dilDomEquiv (R := R)) x : EuclideanSpace ℂ (R ⊕ R)) = embInlE (R := R) x :=
   LinearEquiv.ofInjective_apply (f := embInlLM (R := R))
     (h := (embInlE (R := R)).injective) x
 
+omit [DecidableEq R] in
 /-- The inverse domain equivalence recovers a vector from its first-summand embedding. -/
 private theorem dilDomEquiv_symm_emb (x : EuclideanSpace ℂ R) :
     (dilDomEquiv (R := R)).symm ⟨embInlE (R := R) x,
@@ -500,7 +507,7 @@ section Register
 variable {R : Type} [Fintype R] [DecidableEq R] {n t : ℕ}
 
 /-- The position register with `2 * t + 2` slots, each carrying a copy of `R`. -/
-private abbrev Pos (t : ℕ) (R : Type) := Fin (2 * t + 2) × R
+abbrev Pos (t : ℕ) (R : Type) := Fin (2 * t + 2) × R
 
 /-- The position register together with a Boolean branch register. -/
 private abbrev RegB (t : ℕ) (R : Type) := Bool × Pos t R
@@ -537,18 +544,18 @@ private theorem branchMatrix_apply (Af At : Matrix (Pos t R) (Pos t R) ℂ) (x y
       = if x.1 = y.1 then (if x.1 then At x.2 y.2 else Af x.2 y.2) else 0 := rfl
 
 /-- The position indices outside slot zero and the selected slot `k`. -/
-private abbrev RestPos (t : ℕ) (R : Type) (k : Fin (2 * t + 2)) : Type :=
+abbrev RestPos (t : ℕ) (R : Type) (k : Fin (2 * t + 2)) : Type :=
   { p : Pos t R // p.1 ≠ 0 ∧ p.1 ≠ k }
 
 /-- Separates slot zero and slot `k` from the remaining positions. -/
-private def slotFwd (k : Fin (2 * t + 2)) : Pos t R → (R ⊕ R) ⊕ RestPos t R k :=
+def slotFwd (k : Fin (2 * t + 2)) : Pos t R → (R ⊕ R) ⊕ RestPos t R k :=
   fun p => if h : p.1 = 0 then Sum.inl (Sum.inl p.2)
     else if h2 : p.1 = k then Sum.inl (Sum.inr p.2)
     else Sum.inr ⟨p, h, h2⟩
 
 /-- Reassembles the distinguished two slots and the remaining positions into the position
 register. -/
-private def slotBwd (k : Fin (2 * t + 2)) : (R ⊕ R) ⊕ RestPos t R k → Pos t R :=
+def slotBwd (k : Fin (2 * t + 2)) : (R ⊕ R) ⊕ RestPos t R k → Pos t R :=
   fun s => match s with
     | Sum.inl (Sum.inl r) => (0, r)
     | Sum.inl (Sum.inr r) => (k, r)
@@ -638,7 +645,7 @@ omit [Fintype R] [DecidableEq R] in
 
 /-- Extends a matrix on the two distinguished copies of `R` by the identity on all remaining
 positions. -/
-private noncomputable def blockU (k : Fin (2 * t + 2)) (U : Matrix (R ⊕ R) (R ⊕ R) ℂ) :
+noncomputable def blockU (k : Fin (2 * t + 2)) (U : Matrix (R ⊕ R) (R ⊕ R) ℂ) :
     Matrix ((R ⊕ R) ⊕ RestPos t R k) ((R ⊕ R) ⊕ RestPos t R k) ℂ :=
   fun x y => match x with
     | Sum.inl a => match y with
@@ -949,6 +956,7 @@ private theorem figOracle_eq (δ : R → Option (Fin n ⊕ Fin n)) (x : Fin n �
       · exact (Matrix.diagonal_apply_ne _ h2).symm
     · rw [ite_eq_right h1]
 
+omit [DecidableEq R] in
 /-- Embedding two states in the same slot preserves their inner product. -/
 private theorem inner_embSlot (i : Fin (2 * t + 2)) (φ ψ : QState R) :
     Qatlib.Foundations.PureStateMath.Inner (embSlot i φ) (embSlot i ψ) = Qatlib.Foundations.PureStateMath.Inner φ ψ := by
@@ -962,6 +970,7 @@ private theorem inner_embSlot (i : Fin (2 * t + 2)) (φ ψ : QState R) :
   · intro hmem
     exact absurd (Finset.mem_univ i) hmem
 
+omit [DecidableEq R] in
 /-- States embedded in distinct slots have zero inner product. -/
 private theorem inner_embSlot_disjoint {i i' : Fin (2 * t + 2)} (h : i ≠ i') (φ ψ : QState R) :
     Qatlib.Foundations.PureStateMath.Inner (embSlot i φ) (embSlot i' ψ) = 0 :=
@@ -1046,6 +1055,7 @@ private theorem liftP_actOther (k : Fin (2 * t + 2)) (hk : k ≠ 0) (U : Matrix 
         ite_eq_right (fun h => hik h.symm)]
     · rw [slotEquiv_apply, slotFwd_other k i' h0' hik', Sum.elim_inr]
 
+omit [Fintype R] [DecidableEq R] in
 /-- Every position-register state is the sum of its individual slot embeddings. -/
 private theorem pos_decomp (z : QState (Pos t R)) :
     z = ∑ i : Fin (2 * t + 2), embSlot i (fun r => z (i, r)) := by
@@ -1059,6 +1069,7 @@ private theorem pos_decomp (z : QState (Pos t R)) :
   · intro hmem
     exact absurd (Finset.mem_univ i) hmem
 
+omit [Fintype R] [DecidableEq R] in
 /-- Embedding the zero state in any slot gives the zero state. -/
 private theorem embSlot_zero (i : Fin (2 * t + 2)) : embSlot i (0 : QState R) = (0 : QState (Pos t R)) := by
   funext p
@@ -1375,6 +1386,7 @@ private theorem matProdFin_add {k l : ℕ} (M : Fin (k + l) → Matrix R R ℂ) 
 private noncomputable def figOR (δ : R → Option (Fin n ⊕ Fin n)) (x : Fin n → Bool) : Matrix R R ℂ :=
   cbDelta δ (signVecC x)
 
+omit [Fintype R] in
 /-- The signed-variable oracle evaluated on Boolean inputs is Hermitian. -/
 private theorem figOR_hermitian (δ : R → Option (Fin n ⊕ Fin n)) (x : Fin n → Bool) :
     (figOR δ x)ᴴ = figOR δ x := by
@@ -2194,6 +2206,7 @@ omit [Fintype R] in
 private theorem figRounds_succ (dU : Fin (2 * t + 1) → Bool → Matrix (R ⊕ R) (R ⊕ R) ℂ) (j : ℕ) :
     figRounds dU (j + 1) = figRounds dU j ++ [Step.gate (figRoundGate dU j), Step.query] := rfl
 
+omit [Fintype R] in
 /-- The circuit of `j` rounds contains exactly `j` queries. -/
 private theorem figRounds_queryCount (dU : Fin (2 * t + 1) → Bool → Matrix (R ⊕ R) (R ⊕ R) ℂ) (j : ℕ) :
     QueryCount (figRounds dU j) = j := by
@@ -2245,12 +2258,14 @@ private theorem figCircuit_unitary
       rw [h2]
       exact hadGate_unitary
 
+omit [Fintype R] in
 /-- The complete constructed circuit contains exactly `t` queries. -/
 private theorem figCircuit_queryCount (dU : Fin (2 * t + 1) → Bool → Matrix (R ⊕ R) (R ⊕ R) ℂ) :
     QueryCount (figCircuit (t := t) dU) = t := by
   rw [figCircuit, queryCount_append, figRounds_queryCount]
   rfl
 
+omit [DecidableEq R] in
 /-- The initial equal-branch superposition is normalized when both input states are normalized. -/
 private theorem figInit_normalized (hu : Normalized u) (hv : Normalized v) :
     Normalized (figInit (t := t) u v) := by

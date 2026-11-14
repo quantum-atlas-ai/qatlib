@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Core.BesselMixture
-import Mathlib.Analysis.RCLike.Sqrt
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Complex
+module
+
+public import Qatlib.Foundations.CbmdAnalysis.Core.BesselMixture
+public import Mathlib.Analysis.RCLike.Sqrt
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Complex
+
+@[expose] public section
 
 /-!
 # Cosine regulators and their sample poles

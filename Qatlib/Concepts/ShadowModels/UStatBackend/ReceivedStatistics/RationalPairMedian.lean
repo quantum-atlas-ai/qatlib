@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ShadowModels.UStatBackend.FinitePairUStatistic
-import Qatlib.Concepts.MonteCarloMean.LayeredMean.NativeComposedMean
-import Qatlib.Concepts.ShadowModels.SampleBudget.RationalLinearSelection
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.IndependentWeightedEstimator
+module
+
+public import Qatlib.Concepts.ShadowModels.UStatBackend.FinitePairUStatistic
+public import Qatlib.Concepts.MonteCarloMean.LayeredMean.NativeComposedMean
+public import Qatlib.Concepts.ShadowModels.SampleBudget.RationalLinearSelection
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.IndependentWeightedEstimator
+
+@[expose] public section
 
 /-!
 # Rational pair U-statistic medians

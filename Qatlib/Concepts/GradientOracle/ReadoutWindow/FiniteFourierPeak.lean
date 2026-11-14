@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Complex.Trigonometric
-import Mathlib.Analysis.Complex.Norm
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
-import Mathlib.Algebra.Field.GeomSum
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+module
+
+public import Mathlib.Analysis.Complex.Trigonometric
+public import Mathlib.Analysis.Complex.Norm
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+public import Mathlib.Algebra.Field.GeomSum
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+
+@[expose] public section
 
 /-!
 # Finite Fourier peak estimates

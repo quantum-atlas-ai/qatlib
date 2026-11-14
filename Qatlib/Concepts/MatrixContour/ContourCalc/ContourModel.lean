@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixContour.ContourCalc.MatrixResolvent
-import Mathlib.Data.Matrix.Block
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
-import Qatlib.Foundations.OpCalculus.ContourCalc.BanachPolynomial
+module
+
+public import Qatlib.Concepts.MatrixContour.ContourCalc.MatrixResolvent
+public import Mathlib.Data.Matrix.Block
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
+public import Qatlib.Foundations.OpCalculus.ContourCalc.BanachPolynomial
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.MatrixContour.ContourCalc

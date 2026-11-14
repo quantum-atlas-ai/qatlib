@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SketchSpectral.MatrixFunctions.MatrixFunctionDefs
-import Qatlib.Concepts.AmpTransform.LegendreWindow.LegendreCompleteWindow
+module
+
+public import Qatlib.Concepts.SketchSpectral.MatrixFunctions.MatrixFunctionDefs
+public import Qatlib.Concepts.AmpTransform.LegendreWindow.LegendreCompleteWindow
+
+@[expose] public section
 
 /-!
 # Sample budgets and costs for sketch matrix functions

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.ContinuousAdv
-import Qatlib.Papers.LocAdiabSrch01.MainResults.Optimality.Basic
-import Mathlib.Analysis.InnerProductSpace.Calculus
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.FundThmCalculus
+module
+
+public import Qatlib.Concepts.QueryComplexity.ContinuousAdv
+public import Qatlib.Papers.LocAdiabSrch01.MainResults.Optimality.Basic
+public import Mathlib.Analysis.InnerProductSpace.Calculus
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.FundThmCalculus
+
+@[expose] public section
 
 /-!
 # Overlap dynamics for adiabatic search optimality
@@ -47,7 +51,7 @@ to the overlap derivative combine to `I * inner ℂ u (Hm v - Hm' v)` [RolandCer
 theorem overlap_deriv_value
     (Hm Hm' HD : V → V)
     (hHm : ∀ x y, inner ℂ (Hm x) y = inner ℂ x (Hm y))
-    (hHm' : ∀ x y, inner ℂ (Hm' x) y = inner ℂ x (Hm' y))
+    (_hHm' : ∀ x y, inner ℂ (Hm' x) y = inner ℂ x (Hm' y))
     (hHD : ∀ x y, inner ℂ (HD x) y = inner ℂ x (HD y))
     (u v : V) :
     inner ℂ ((-Complex.I) • (Hm u + HD u)) v +
@@ -100,7 +104,7 @@ theorem overlap_functional_hasDerivAt
   have hp : HasDerivAt p (Complex.I * q) t :=
     overlap_hasDerivAt Hm Hm' HD hHm hHm' hHD u v hu hv t
   have hconst : HasDerivAt (fun _ : ℝ => (1 : ℝ)) 0 t := hasDerivAt_const t 1
-  letI : InnerProductSpace ℝ ℂ := InnerProductSpace.complexToReal
+  let : InnerProductSpace ℝ ℂ := InnerProductSpace.complexToReal
   have hnorm := hp.norm_sq
   rw [real_inner_eq_re_inner] at hnorm
   rw [RCLike.inner_apply] at hnorm
@@ -158,7 +162,7 @@ theorem overlap_deriv_abs_le
 `2 * (‖Hm v‖ + ‖Hm' u‖)` [RolandCerf2002]. -/
 theorem overlap_deriv_abs_le_swap
     (Hm Hm' : V → V)
-    (hHm : ∀ x y, inner ℂ (Hm x) y = inner ℂ x (Hm y))
+    (_hHm : ∀ x y, inner ℂ (Hm x) y = inner ℂ x (Hm y))
     (hHm' : ∀ x y, inner ℂ (Hm' x) y = inner ℂ x (Hm' y))
     (u v : V) (hu : ‖u‖ = 1) (hv : ‖v‖ = 1) :
     |(2 * (inner ℂ u (Hm v - Hm' v) * star (inner ℂ u v)).im)| ≤
@@ -377,7 +381,7 @@ theorem optimality_lower_bound_of_overlap
     (hψ_norm : ∀ m t, ‖ψ m t‖ = 1)
     (hs : ∀ t, 0 ≤ s t) (hs1 : ∀ t, s t ≤ 1)
     (hinit : ∀ m, ψ m 0 = ψ0)
-    {ε T : ℝ} (hε : 0 < ε) (hT : 0 ≤ T)
+    {ε T : ℝ} (_hε : 0 < ε) (hT : 0 ≤ T)
     (hdist : ε * ((Fintype.card ι : ℝ) * ((Fintype.card ι : ℝ) - 1))
       ≤ overlapFunctional ψ T) :
     T ≥ ε * ((Fintype.card ι : ℝ) - 1) / (4 * Real.sqrt (Fintype.card ι)) := by

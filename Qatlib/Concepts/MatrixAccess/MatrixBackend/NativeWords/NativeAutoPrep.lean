@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.NativePivotSelection
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.NativeWeightSourceOps
-import Mathlib.Data.Nat.Size
+module
+
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.NativePivotSelection
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.NativeWeightSourceOps
+public import Mathlib.Data.Nat.Size
+
+@[expose] public section
 
 open Qatlib.Concepts.BlockEncoding.LCU
 

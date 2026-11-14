@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Cbmd26.Algorithms.ApproximateQSVTBridge
-import Qatlib.Foundations.CbmdAnalysis.Core.WaveBesselODE
+module
+
+public import Qatlib.Papers.Cbmd26.Algorithms.ApproximateQSVTBridge
+public import Qatlib.Foundations.CbmdAnalysis.Core.WaveBesselODE
+
+@[expose] public section
 
 /-!
 # Spectral Series for Wave and Bessel Propagators

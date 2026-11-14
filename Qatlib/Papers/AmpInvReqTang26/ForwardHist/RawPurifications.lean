@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AmpInvReqTang26.ForwardHist.ActualTensor
-import Qatlib.Papers.AmpInvReqTang26.ForwardHist.ActualNorm
-import Qatlib.Concepts.MixedFidelity.FidelityMetric.BornDomination
+module
+
+public import Qatlib.Papers.AmpInvReqTang26.ForwardHist.ActualTensor
+public import Qatlib.Papers.AmpInvReqTang26.ForwardHist.ActualNorm
+public import Qatlib.Concepts.MixedFidelity.FidelityMetric.BornDomination
+
+@[expose] public section
 
 /-!
 # Weighted phase densities and raw purifications

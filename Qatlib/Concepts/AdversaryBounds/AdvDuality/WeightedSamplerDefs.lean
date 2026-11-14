@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.NativeWeightedSampling
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.NativeWeightedSampling
+
+@[expose] public section
 
 /-!
 # Weighted sampler laws, costs, and truncation
@@ -330,7 +334,7 @@ or the end of the list is reached. -/
 def treePathCost (n : ℕ) : BucketTree → List Bool → ℝ
   | .leaf _, _ => 0
   | .node _ _, [] => 0
-  | .node l r, true :: bs => (totalWeight l : ℝ) + 1 + n + treePathCost n l bs
+  | .node l _r, true :: bs => (totalWeight l : ℝ) + 1 + n + treePathCost n l bs
   | .node l r, false :: bs => (totalWeight l : ℝ) + 1 + n + treePathCost n r bs
 
 /-- The maximum root-to-leaf sum of local cutoff costs `WL + 1 + n`. -/
@@ -419,9 +423,9 @@ with true choosing left. -/
 def stateIsPath {S : Type} : StateBucketTree S → List Bool → Prop
   | .leaf _, [] => True
   | .leaf _, _ => False
-  | .node l r, [] => False
-  | .node l r, true :: bs => stateIsPath l bs
-  | .node l r, false :: bs => stateIsPath r bs
+  | .node _l _r, [] => False
+  | .node l _r, true :: bs => stateIsPath l bs
+  | .node _l r, false :: bs => stateIsPath r bs
 
 /-- Read a state-dependent leaf weight along Boolean choices, returning zero when the choices
 end at an internal node and ignoring excess choices at a leaf. -/

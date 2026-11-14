@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MonteCarloInt20.PrnJump.Recurrence
-import Qatlib.Foundations.PureStateMath.BornBridge.BornDistribution
-import Qatlib.Concepts.LinearLearning.ConcisePipeline.RandomizedCost
+module
+
+public import Qatlib.Papers.MonteCarloInt20.PrnJump.Recurrence
+public import Qatlib.Foundations.PureStateMath.BornBridge.BornDistribution
+public import Qatlib.Concepts.LinearLearning.ConcisePipeline.RandomizedCost
+
+@[expose] public section
 
 /-!
 # Affine instruction words for LCG jumps
@@ -163,7 +167,7 @@ theorem program_basis {n k : ℕ} (a : (ZMod (2^n))ˣ) (c : ZMod (2^n))
     cases h : bits q
     · simpa [exponent, h] using! ih x
     · rw [ih]
-      simp only [exponent, List.map_cons, List.sum_cons, h, if_true, lcg_restart]
+      simp only [exponent, List.map_cons, List.sum_cons, h, ite_true, lcg_restart]
 
 /-- Using each bit position once makes the selected exponent equal to the unsigned little-endian
 value of the input word. -/

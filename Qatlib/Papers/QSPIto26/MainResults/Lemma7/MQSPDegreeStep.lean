@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QSPIto26.MainResults.Core.MQSPCore
-import Qatlib.Papers.QSPIto26.MainResults.Lemma3.MQSPInversion
-import Qatlib.Papers.QSPIto26.MainResults.Lemma4.MQSPDegreeEquality
-import Qatlib.Papers.QSPIto26.MainResults.Lemma6.MQSPParity
+module
+
+public import Qatlib.Papers.QSPIto26.MainResults.Core.MQSPCore
+public import Qatlib.Papers.QSPIto26.MainResults.Lemma3.MQSPInversion
+public import Qatlib.Papers.QSPIto26.MainResults.Lemma4.MQSPDegreeEquality
+public import Qatlib.Papers.QSPIto26.MainResults.Lemma6.MQSPParity
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -133,7 +137,7 @@ lemma degVar_var {m : ℕ} (j j' : Fin m) : degVar j (var j') = if j = j' then 1
   by_cases h : j = j'
   · subst h
     simp
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     simp [h]
 
 /-- Degree of `a_{j'}^{-1}` in variable `a_j`. -/
@@ -143,7 +147,7 @@ lemma degVar_varInv {m : ℕ} (j j' : Fin m) : degVar j (varInv j') = if j = j' 
   by_cases h : j = j'
   · subst h
     simp
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     simp [h]
 
 /-- Negation does not change per-variable degrees. -/
@@ -170,10 +174,10 @@ lemma degVar_varSum_le {m : ℕ} (j s : Fin m) :
   rw [degVar_var, degVar_varInv] at h
   by_cases hjs : j = s
   · subst hjs
-    simp only [if_pos rfl] at h ⊢
+    simp only at h ⊢
     simpa using h
-  · rw [if_neg hjs] at h
-    rw [if_neg hjs]
+  · rw [ite_eq_right hjs] at h
+    rw [ite_eq_right hjs]
     simpa using h
 
 /-- Bound for `a_s - a_s^{-1}`. -/
@@ -183,10 +187,10 @@ lemma degVar_varDiff_le {m : ℕ} (j s : Fin m) :
   rw [degVar_var, degVar_varInv] at h
   by_cases hjs : j = s
   · subst hjs
-    simp only [if_pos rfl] at h ⊢
+    simp only at h ⊢
     simpa using h
-  · rw [if_neg hjs] at h
-    rw [if_neg hjs]
+  · rw [ite_eq_right hjs] at h
+    rw [ite_eq_right hjs]
     simpa using h
 
 /-- Bound for `a_s^{-1} - a_s`. -/
@@ -196,10 +200,10 @@ lemma degVar_varDiff_le' {m : ℕ} (j s : Fin m) :
   rw [degVar_var, degVar_varInv] at h
   by_cases hjs : j = s
   · subst hjs
-    simp only [if_pos rfl] at h ⊢
+    simp only at h ⊢
     simpa using h
-  · rw [if_neg hjs] at h
-    rw [if_neg hjs]
+  · rw [ite_eq_right hjs] at h
+    rw [ite_eq_right hjs]
     simpa using h
 
 /-- Bound for a leading-constant scaled sum of appended-word entry shapes. -/
@@ -284,26 +288,22 @@ lemma signalOp_mul_inv {m : ℕ} (s : Fin m) :
   have h00 : ((signalOp s * signalOpInv s : Matrix (Fin 2) (Fin 2) (MLaurent m))) 0 0
       = (1 : MLaurent m) := by
     rw [signalOp_entry, signalOpInv_entry]
-    simp only [Matrix.mul_apply, Fin.sum_univ_two, Matrix.of_apply, Matrix.cons_val', Matrix.cons_val_zero,
-      Matrix.cons_val_zero', Matrix.cons_val_succ', Matrix.cons_val_one]
+    simp only [Matrix.mul_apply, Fin.sum_univ_two, Matrix.of_apply, Matrix.cons_val', Matrix.cons_val_zero, Matrix.cons_val_one]
     linear_combination C' ((1 / 2 : ℂ)) * C' ((1 / 2 : ℂ)) * varSum_sq s + ha4
   have h01 : ((signalOp s * signalOpInv s : Matrix (Fin 2) (Fin 2) (MLaurent m))) 0 1
       = (0 : MLaurent m) := by
     rw [signalOp_entry, signalOpInv_entry]
-    simp only [Matrix.mul_apply, Fin.sum_univ_two, Matrix.of_apply, Matrix.cons_val', Matrix.cons_val_zero,
-      Matrix.cons_val_zero', Matrix.cons_val_succ', Matrix.cons_val_one]
+    simp only [Matrix.mul_apply, Fin.sum_univ_two, Matrix.of_apply, Matrix.cons_val', Matrix.cons_val_zero, Matrix.cons_val_one]
     ring
   have h10 : ((signalOp s * signalOpInv s : Matrix (Fin 2) (Fin 2) (MLaurent m))) 1 0
       = (0 : MLaurent m) := by
     rw [signalOp_entry, signalOpInv_entry]
-    simp only [Matrix.mul_apply, Fin.sum_univ_two, Matrix.of_apply, Matrix.cons_val', Matrix.cons_val_zero,
-      Matrix.cons_val_zero', Matrix.cons_val_succ', Matrix.cons_val_one]
+    simp only [Matrix.mul_apply, Fin.sum_univ_two, Matrix.of_apply, Matrix.cons_val', Matrix.cons_val_zero, Matrix.cons_val_one]
     ring
   have h11 : ((signalOp s * signalOpInv s : Matrix (Fin 2) (Fin 2) (MLaurent m))) 1 1
       = (1 : MLaurent m) := by
     rw [signalOp_entry, signalOpInv_entry]
-    simp only [Matrix.mul_apply, Fin.sum_univ_two, Matrix.of_apply, Matrix.cons_val', Matrix.cons_val_zero,
-      Matrix.cons_val_zero', Matrix.cons_val_succ', Matrix.cons_val_one]
+    simp only [Matrix.mul_apply, Fin.sum_univ_two, Matrix.of_apply, Matrix.cons_val', Matrix.cons_val_zero, Matrix.cons_val_one]
     linear_combination C' ((1 / 2 : ℂ)) * C' ((1 / 2 : ℂ)) * varSum_sq s + ha4
   refine Matrix.ext fun i j => ?_
   fin_cases i <;> fin_cases j
@@ -385,8 +385,7 @@ lemma append_entry00 {m : ℕ} (P Q : MLaurent m) (s : Fin m) (φ : ℝ) :
       = C' (Complex.exp (Complex.I * (φ : ℂ)) / 2)
           * (P * (var s + varInv s) + Q * (var s - varInv s)) := by
   simp only [appendWord, pairMatrix, signalOp_entry, phaseOp, Matrix.mul_apply,
-    Fin.sum_univ_two, Matrix.of_apply, Matrix.cons_val', Matrix.cons_val_zero, Matrix.cons_val_zero',
-    Matrix.cons_val_succ', Matrix.cons_val_one]
+    Fin.sum_univ_two, Matrix.of_apply, Matrix.cons_val', Matrix.cons_val_zero, Matrix.cons_val_one]
   linear_combination (P * (var s + varInv s) + Q * (var s - varInv s))
     * half_mul_exp (m := m) φ
 
@@ -396,8 +395,7 @@ lemma append_entry01 {m : ℕ} (P Q : MLaurent m) (s : Fin m) (φ : ℝ) :
       = C' (Complex.exp (-(Complex.I * (φ : ℂ))) / 2)
           * (P * (var s - varInv s) + Q * (var s + varInv s)) := by
   simp only [appendWord, pairMatrix, signalOp_entry, phaseOp, Matrix.mul_apply,
-    Fin.sum_univ_two, Matrix.of_apply, Matrix.cons_val', Matrix.cons_val_zero, Matrix.cons_val_zero',
-    Matrix.cons_val_succ', Matrix.cons_val_one]
+    Fin.sum_univ_two, Matrix.of_apply, Matrix.cons_val', Matrix.cons_val_zero, Matrix.cons_val_one]
   linear_combination (P * (var s - varInv s) + Q * (var s + varInv s))
     * half_mul_exp_neg (m := m) φ
 
@@ -407,8 +405,7 @@ lemma append_entry10 {m : ℕ} (P Q : MLaurent m) (s : Fin m) (φ : ℝ) :
       = C' (Complex.exp (Complex.I * (φ : ℂ)) / 2)
           * (starOp P * (var s - varInv s) - starOp Q * (var s + varInv s)) := by
   simp only [appendWord, pairMatrix, signalOp_entry, phaseOp, Matrix.mul_apply,
-    Fin.sum_univ_two, Matrix.of_apply, Matrix.cons_val', Matrix.cons_val_zero, Matrix.cons_val_zero',
-    Matrix.cons_val_succ', Matrix.cons_val_one]
+    Fin.sum_univ_two, Matrix.of_apply, Matrix.cons_val', Matrix.cons_val_zero, Matrix.cons_val_one]
   linear_combination (starOp P * (var s - varInv s) - starOp Q * (var s + varInv s))
     * half_mul_exp (m := m) φ
 
@@ -418,8 +415,7 @@ lemma append_entry11 {m : ℕ} (P Q : MLaurent m) (s : Fin m) (φ : ℝ) :
       = C' (Complex.exp (-(Complex.I * (φ : ℂ))) / 2)
           * (starOp P * (var s + varInv s) - starOp Q * (var s - varInv s)) := by
   simp only [appendWord, pairMatrix, signalOp_entry, phaseOp, Matrix.mul_apply,
-    Fin.sum_univ_two, Matrix.of_apply, Matrix.cons_val', Matrix.cons_val_zero, Matrix.cons_val_zero',
-    Matrix.cons_val_succ', Matrix.cons_val_one]
+    Fin.sum_univ_two, Matrix.of_apply, Matrix.cons_val', Matrix.cons_val_zero, Matrix.cons_val_one]
   linear_combination (starOp P * (var s + varInv s) - starOp Q * (var s - varInv s))
     * half_mul_exp_neg (m := m) φ
 
@@ -534,8 +530,7 @@ theorem lemma7_degree_step {m n : ℕ} (P Q : MLaurent m) (h : Constructible n P
       rw [← hMinv]
       rfl
     rw [← e0]
-    simp only [Matrix.mul_apply, Fin.sum_univ_two, Matrix.of_apply, Matrix.cons_val', Matrix.cons_val_zero,
-      Matrix.cons_val_zero', Matrix.cons_val_succ', Matrix.cons_val_one, phaseOp,
+    simp only [Matrix.mul_apply, Fin.sum_univ_two, Matrix.of_apply, Matrix.cons_val', Matrix.cons_val_zero, Matrix.cons_val_one, phaseOp,
       signalOpInv_entry]
     linear_combination
       M 0 0 * (var s + varInv s) * half_mul_exp (m := m) (-φ)
@@ -552,7 +547,7 @@ theorem lemma7_degree_step {m n : ℕ} (P Q : MLaurent m) (h : Constructible n P
   · -- The j = s case: bounded difference plus Lemma 6 parity.
     have hubb := hub s
     have hrevs := hrev s
-    rw [show (if s = s then 1 else 0 : ℕ) = 1 from if_pos rfl] at hubb hrevs
+    rw [show (if s = s then 1 else 0 : ℕ) = 1 from ite_eq_left rfl] at hubb hrevs
     have hdPs : degVar s P = degVar s Q := hdP s
     have hdMs : degVar s (M 0 0) = degVar s (M 0 1) := hdM s
     have hparOld := Lemma6.lemma6_parity (m := m) φ₀ s₀ P Q hw hlead
@@ -567,7 +562,7 @@ theorem lemma7_degree_step {m n : ℕ} (P Q : MLaurent m) (h : Constructible n P
   · intro j hj
     have hubb := hub j
     have hrevj := hrev j
-    rw [if_neg hj] at hubb hrevj
+    rw [ite_eq_right hj] at hubb hrevj
     have hdPj : degVar j P = degVar j Q := hdP j
     have hdMj : degVar j (M 0 0) = degVar j (M 0 1) := hdM j
     have h1 : degVar j (M 0 0) ≤ degVar j P := by omega

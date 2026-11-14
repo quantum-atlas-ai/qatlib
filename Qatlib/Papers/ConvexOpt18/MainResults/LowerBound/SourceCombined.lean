@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ConvexOpt18.MainResults.Model.SourceComplexityInterface
+module
+
+public import Qatlib.Papers.ConvexOpt18.MainResults.Model.SourceComplexityInterface
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -28,11 +32,11 @@ probability at least `0.8` requires `Ω(√n)` membership queries and `Ω(√n /
 evaluation queries.
 
 The statement records both reductions to the wildcard-search lower bound. -/
-theorem source_theorem_3_4 (n : ℕ) (hn : 2 ≤ n) (Qmem Qeval : QueryComplexityReduction)
+theorem source_theorem_3_4 (n : ℕ) (_hn : 2 ≤ n) (Qmem Qeval : QueryComplexityReduction)
     (hmem : wildcardSearchLowerBound n ≤ Qmem.auxiliary)
     (heval : maxNormLowerBound n ≤ Qeval.auxiliary)
-    (hmem_succ : 4 / 5 ≤ Qmem.spec.success)
-    (heval_succ : 4 / 5 ≤ Qeval.spec.success) :
+    (_hmem_succ : 4 / 5 ≤ Qmem.spec.success)
+    (_heval_succ : 4 / 5 ≤ Qeval.spec.success) :
     wildcardSearchLowerBound n ≤ Qmem.target ∧ maxNormLowerBound n ≤ Qeval.target :=
   ⟨lower_bound_of_reduction hmem, lower_bound_of_reduction heval⟩
 
@@ -42,12 +46,12 @@ at least `0.8` requires `Ω(√n)` membership queries and `Ω(√n / log n)` eva
 
 The statement records the two lower bounds as reductions to the wildcard-search lower
 bound; existence of `K`, `f`, `ε` is absorbed in the complexity quantities `Qmem`, `Qeval`. -/
-theorem source_theorem_1_2 (n : ℕ) (hn : 2 ≤ n) (Qmem Qeval : QueryComplexityReduction)
+theorem source_theorem_1_2 (n : ℕ) (_hn : 2 ≤ n) (Qmem Qeval : QueryComplexityReduction)
     (hmem : wildcardSearchLowerBound n ≤ Qmem.auxiliary)
     (heval : maxNormLowerBound n ≤ Qeval.auxiliary)
-    (hmem_pos : 0 < Qmem.spec.ε) (heval_pos : 0 < Qeval.spec.ε)
-    (hmem_succ : 4 / 5 ≤ Qmem.spec.success)
-    (heval_succ : 4 / 5 ≤ Qeval.spec.success) :
+    (_hmem_pos : 0 < Qmem.spec.ε) (_heval_pos : 0 < Qeval.spec.ε)
+    (_hmem_succ : 4 / 5 ≤ Qmem.spec.success)
+    (_heval_succ : 4 / 5 ≤ Qeval.spec.success) :
     wildcardSearchLowerBound n ≤ Qmem.target ∧ maxNormLowerBound n ≤ Qeval.target :=
   ⟨lower_bound_of_reduction hmem, lower_bound_of_reduction heval⟩
 

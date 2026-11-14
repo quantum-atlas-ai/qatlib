@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.QueryModelComparisonContinuationDefs
-import Mathlib.Tactic.Linarith
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.QueryModelComparisonContinuationDefs
+public import Mathlib.Tactic.Linarith
+
+@[expose] public section
 
 /-!
 # Query convention implications and attained minima
@@ -88,14 +92,14 @@ theorem bounded_convention_success {P : DecisionProgram I W} {f : (I → Bool) �
   intro g
   by_cases hf : f g = true
   · have h1 := h g
-    rw [if_pos hf] at h1
+    rw [ite_eq_left hf] at h1
     rw [abs_le] at h1
-    rw [if_pos hf]
+    rw [ite_eq_left hf]
     linarith
   · have h1 := h g
-    rw [if_neg hf] at h1
+    rw [ite_eq_right hf] at h1
     rw [abs_le] at h1
-    rw [if_neg hf]
+    rw [ite_eq_right hf]
     linarith
 
 /-- A program satisfying `BoundedFor` satisfies `ZeroErrorInconclusiveFor` whenever its
@@ -106,14 +110,14 @@ theorem bounded_convention_inconclusive {P : DecisionProgram I W} {f : (I → Bo
   intro g
   by_cases hf : f g = true
   · have h1 := h g
-    rw [if_pos hf] at h1
+    rw [ite_eq_left hf] at h1
     rw [abs_le] at h1
-    rw [if_pos hf]
+    rw [ite_eq_left hf]
     linarith
   · have h1 := h g
-    rw [if_neg hf] at h1
+    rw [ite_eq_right hf] at h1
     rw [abs_le] at h1
-    rw [if_neg hf]
+    rw [ite_eq_right hf]
     linarith
 
 /-- A program satisfying `SuccessFor` satisfies `ZeroErrorInconclusiveFor` whenever its
@@ -124,12 +128,12 @@ theorem success_convention_inconclusive {P : DecisionProgram I W} {f : (I → Bo
   intro g
   by_cases hf : f g = true
   · have h1 := h g
-    rw [if_pos hf] at h1
-    rw [if_pos hf]
+    rw [ite_eq_left hf] at h1
+    rw [ite_eq_left hf]
     linarith
   · have h1 := h g
-    rw [if_neg hf] at h1
-    rw [if_neg hf]
+    rw [ite_eq_right hf] at h1
+    rw [ite_eq_right hf]
     linarith
 
 /-- The predicates `SuccessFor` and `ZeroErrorInconclusiveFor` with parameter `1 / 3` are
@@ -141,15 +145,15 @@ theorem success_iff_inconclusive_one_third {P : DecisionProgram I W}
   · intro h
     exact success_convention_inconclusive (t := 1 / 3) (by norm_num) h
   · intro h
-    intro g
+     g
     by_cases hf : f g = true
     · have h1 := h g
-      rw [if_pos hf] at h1
-      rw [if_pos hf]
+      rw [ite_eq_left hf] at h1
+      rw [ite_eq_left hf]
       linarith
     · have h1 := h g
-      rw [if_neg hf] at h1
-      rw [if_neg hf]
+      rw [ite_eq_right hf] at h1
+      rw [ite_eq_right hf]
       linarith
 
 /-- The exact comparison convention implies the bounded comparison convention. -/
@@ -351,6 +355,7 @@ theorem conventionMin_exact_eq (M : MachineClass I W) (f : (I → Bool) → Bool
     finsetMinNat_le (s := ConventionCountSet M .exact f) (h := h) hmemC'
   exact le_antisymm h1 h2
 
+omit [Fintype I] [DecidableEq I] in
 /-- A classical program with correct-output probability one satisfies
 `ComputesZeroErrorInconclusive` at every extended nonnegative parameter. -/
 theorem classical_zeroError_inconclusive {prog : ClassicalProgram I Bool}
@@ -361,6 +366,7 @@ theorem classical_zeroError_inconclusive {prog : ClassicalProgram I Bool}
   rw [h1]
   exact tsub_le_self
 
+omit [Fintype I] [DecidableEq I] in
 /-- A classical program with correct-output probability one meets every success threshold at
 most one. -/
 theorem classical_zeroError_success {prog : ClassicalProgram I Bool}
@@ -371,6 +377,7 @@ theorem classical_zeroError_success {prog : ClassicalProgram I Bool}
   rw [h1]
   exact hs
 
+omit [Fintype I] [DecidableEq I] in
 /-- A classical program satisfying `ComputesZeroErrorInconclusive` with parameter `t` meets
 every success threshold at most `1 - t`. -/
 theorem classical_inconclusive_success {prog : ClassicalProgram I Bool}
@@ -381,6 +388,7 @@ theorem classical_inconclusive_success {prog : ClassicalProgram I Bool}
   have h1 := h g
   exact hs.trans h1
 
+omit [Fintype I] [DecidableEq I] in
 /-- The classical zero-error convention implies the parameterized inconclusive convention for
 every extended nonnegative parameter. -/
 theorem classicalConventionStronger_zeroError_inconclusive (t : ℝ≥0∞) :
@@ -389,6 +397,7 @@ theorem classicalConventionStronger_zeroError_inconclusive (t : ℝ≥0∞) :
   simp only [ClassicalConventionHolds] at h ⊢
   exact classical_zeroError_inconclusive (t := t) h
 
+omit [Fintype I] [DecidableEq I] in
 /-- The classical zero-error convention implies the success convention at every threshold at
 most one. -/
 theorem classicalConventionStronger_zeroError_success {s : ℝ≥0∞} (hs : s ≤ 1) :
@@ -397,6 +406,7 @@ theorem classicalConventionStronger_zeroError_success {s : ℝ≥0∞} (hs : s �
   simp only [ClassicalConventionHolds] at h ⊢
   exact classical_zeroError_success (s := s) hs h
 
+omit [Fintype I] [DecidableEq I] in
 /-- A natural number belongs to a randomized machine class's budget set exactly when a program
 satisfying the specified predicate has that worst-case query count. -/
 theorem mem_budgetSet {M : RandomizedMachineClass I} {P : ClassicalProgram I Bool → Prop}
@@ -412,6 +422,7 @@ theorem mem_budgetSet {M : RandomizedMachineClass I} {P : ClassicalProgram I Boo
   · rintro ⟨prog, hPm, hP, hn⟩
     exact ⟨prog, List.mem_filter.mpr ⟨hPm, by simp [hP]⟩, hn⟩
 
+omit [Fintype I] [DecidableEq I] in
 /-- Implication between classical conventions makes the weaker convention's minimum worst-case
 budget no larger, provided both feasible budget sets are nonempty. -/
 theorem classicalMinBudget_antitone {M : RandomizedMachineClass I} {c c' : ClassicalConvention}
@@ -436,6 +447,7 @@ theorem classicalMinBudget_antitone {M : RandomizedMachineClass I} {c c' : Class
   exact finsetMinNat_le (s := M.budgetSet (fun prog => ClassicalConventionHolds c' prog f))
     (h := h') hmem'
 
+omit [Fintype I] [DecidableEq I] in
 /-- A nonempty classical convention budget set has a program realizing its minimum worst-case
 query count. -/
 theorem classicalMinBudget_attained {M : RandomizedMachineClass I}
@@ -453,6 +465,7 @@ theorem classicalMinBudget_attained {M : RandomizedMachineClass I}
       (n := M.minBudget (fun prog => ClassicalConventionHolds c prog f) h)).mp hmem
   exact ⟨prog, hPm, hP, hcnt⟩
 
+omit [Fintype I] [DecidableEq I] in
 /-- On every oracle input, the expected query count of a classical program is at most its
 worst-case query count. -/
 theorem ClassicalProgram.expectedQueries_le (prog : ClassicalProgram I Bool) (o : I → Bool) :

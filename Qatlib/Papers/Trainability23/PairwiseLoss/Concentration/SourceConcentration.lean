@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Trainability23.PairwiseLoss.Basic
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
-import Mathlib.Algebra.Order.Ring.Pow
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.Trainability23.PairwiseLoss.Basic
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+public import Mathlib.Algebra.Order.Ring.Pow
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -77,9 +81,9 @@ theorem collisionMass_le_one {X Θ : Type*} [Fintype X] (q : Θ → FinDist X)
     _ = 1 := (q θ).sum_one
 
 /-- Bernoulli's inequality in the form needed here: `1 - N·m ≤ (1 - m)^N` for `0 ≤ m ≤ 1`. -/
-theorem one_sub_pow_ge {m : ℝ} (hm0 : 0 ≤ m) (hm1 : m ≤ 1) (N : ℕ) :
+theorem one_sub_pow_ge {m : ℝ} (_hm0 : 0 ≤ m) (hm1 : m ≤ 1) (N : ℕ) :
     1 - (N : ℝ) * m ≤ (1 - m) ^ N := by
-  have h := one_add_mul_le_pow (a := -m) (by linarith [hm0, hm1]) N
+  have h := one_add_mul_le_pow (a := -m) (by linarith [hm1]) N
   have e1 : (1 : ℝ) + (N : ℝ) * (-m) = 1 - (N : ℝ) * m := by ring
   have e2 : (1 : ℝ) + (-m) = 1 - m := by ring
   rwa [e1, e2] at h
@@ -133,7 +137,7 @@ concentration of Definition 1 with fixed point `b^{-n}` (`b > 1`), the failure p
 most `N · |P| · b^{-n}`, i.e. `δ ∈ O(poly(n)/c^n)` with `c = b > 1`. -/
 theorem noOverlapProb_ge_one_sub_exponential {X Θ : Type*} [Fintype X] [Fintype Θ]
     (pθ : FinDist Θ) (q : Θ → FinDist X) (P : Finset X) (N n : ℕ) (b : ℝ)
-    (hb : 1 < b) (hμ : ∀ θ, ∀ x ∈ P, (q θ).prob x ≤ b ^ (-(n : ℤ))) :
+    (_hb : 1 < b) (hμ : ∀ θ, ∀ x ∈ P, (q θ).prob x ≤ b ^ (-(n : ℤ))) :
     1 - noOverlapProb pθ q P N ≤ (N : ℝ) * ((P.card : ℝ) * b ^ (-(n : ℤ))) :=
   noOverlapProb_ge_one_sub pθ q P N _ hμ
 

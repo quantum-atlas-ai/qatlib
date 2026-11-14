@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlow
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowCoreDefs
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowCounterexamples
+module
+
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlow
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowCoreDefs
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowCounterexamples
+
+@[expose] public section
 
 /-!
 # Finite searches for MBQC flow and correction data
@@ -473,7 +477,7 @@ theorem mbqcHasFlow_iff_check {n : ℕ} (G : MbqcGraph n) (I O : Finset (Fin n))
       ∃ f : Fin n → Option (Fin n), ∃ r : Fin n → Fin n, mbqcFlowCheck G I O f r := by
   constructor
   · rintro ⟨f, prec, dp, hprec, hflow⟩
-    letI := dp
+    let := dp
     refine ⟨f, mbqcStrictOrderRank prec hprec, ?_⟩
     intro v hv
     obtain ⟨w, hfw, hadj, hwI, hprecvw, hprecvk⟩ := hflow v hv
@@ -591,7 +595,7 @@ theorem mbqcHasGFlowTotal_implies_search {n : ℕ} (G : MbqcGraph n) (I O : Fins
     (lam : Fin n → MbqcPlane) :
     MbqcHasGFlowTotal G I O lam → (mbqcGFlowSearch G I O lam).isSome := by
   rintro ⟨g, prec, dp, hG0, hprec, htot, hG1, hG2, hC⟩
-  letI := dp
+  let := dp
   have hirr : ∀ x : Fin n, ¬ prec x x := fun x => hprec.irrefl x
   have htrans : ∀ (a b c : Fin n), prec a b → prec b c → prec a c :=
     fun a b c h1 h2 => @IsTrans.trans _ _ hprec.toIsTrans a b c h1 h2

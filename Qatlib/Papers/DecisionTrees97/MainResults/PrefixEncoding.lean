@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.List.Basic
-import Mathlib.Data.List.GetD
-import Mathlib.Tactic
+module
+
+public import Mathlib.Data.List.Basic
+public import Mathlib.Data.List.GetD
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Prefix paths and Boolean register encoding
@@ -74,14 +78,14 @@ theorem length_eq_of_encode2n1_eq {n : ℕ} {l₁ l₂ : List Bool}
     have hidx : l₂.length < 2 * n + 1 := by omega
     have he := congrFun h ⟨l₂.length, hidx⟩
     have he' : decide (l₂.length < l₁.length) = decide (l₂.length < l₂.length) := by
-      simpa only [encode2n1, if_pos h₂] using he
+      simpa only [encode2n1, ite_eq_left h₂] using he
     exact absurd ((decide_eq_decide.mp he').mp hlt) (Nat.lt_irrefl _)
   · by_contra hle
     have hlt : l₁.length < l₂.length := Nat.lt_of_not_le hle
     have hidx : l₁.length < 2 * n + 1 := by omega
     have he := congrFun h ⟨l₁.length, hidx⟩
     have he' : decide (l₁.length < l₁.length) = decide (l₁.length < l₂.length) := by
-      simpa only [encode2n1, if_pos h₁] using he
+      simpa only [encode2n1, ite_eq_left h₁] using he
     exact absurd ((decide_eq_decide.mp he').mpr hlt) (Nat.lt_irrefl _)
 
 /-- The register encoding is injective on Boolean lists of length at most `n`. See
@@ -98,7 +102,7 @@ theorem encode2n1_injOn (n : ℕ) :
     have hidx : n + 1 + j < 2 * n + 1 := by omega
     have hgt : ¬ (n + 1 + j ≤ n) := by omega
     have he := congrFun h ⟨n + 1 + j, hidx⟩
-    simp only [encode2n1, if_neg hgt] at he
+    simp only [encode2n1, ite_eq_right hgt] at he
     have hsub : n + 1 + j - (n + 1) = j := by omega
     rw [hsub, List.getD_eq_getElem l₁ false hj₁, List.getD_eq_getElem l₂ false hj₂] at he
     exact he
@@ -108,6 +112,6 @@ theorem encode2n1_injOn (n : ℕ) :
 expressed using `decide`. -/
 theorem encode2n1_level_true {n : ℕ} (l : List Bool) (i : Fin (n + 1)) :
     encode2n1 n l ⟨i, by omega⟩ = decide ((i : ℕ) < l.length) := by
-  simp only [encode2n1, if_pos (by omega : (i : ℕ) ≤ n)]
+  simp only [encode2n1, ite_eq_left (by omega : (i : ℕ) ≤ n)]
 
 end Qatlib.Papers.DecisionTrees97.MainResults

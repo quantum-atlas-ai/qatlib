@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Complex.CauchyIntegral
-import Mathlib.MeasureTheory.Integral.IntegralEqImproper
-import Mathlib.Analysis.SpecialFunctions.Complex.Analytic
-import Mathlib.Analysis.Fourier.FourierTransform
+module
+
+public import Mathlib.Analysis.Complex.CauchyIntegral
+public import Mathlib.MeasureTheory.Integral.IntegralEqImproper
+public import Mathlib.Analysis.SpecialFunctions.Complex.Analytic
+public import Mathlib.Analysis.Fourier.FourierTransform
+
+@[expose] public section
 
 /-!
 # Contour shifts and Fourier decay on strips

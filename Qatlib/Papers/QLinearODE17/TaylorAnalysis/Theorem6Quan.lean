@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem6Aux4
-import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem6Stat
+module
+
+public import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem6Aux4
+public import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem6Stat
+
+@[expose] public section
 
 /-!
 # Taylor history approximation of the ODE solution

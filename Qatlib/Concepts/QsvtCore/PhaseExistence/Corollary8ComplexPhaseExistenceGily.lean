@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.PhaseExistence.Corollary8ComplexPhaseExistenceStat
-import Qatlib.Concepts.QsvtCore.PhaseExistence.ComplexPolynomial
+module
+
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.Corollary8ComplexPhaseExistenceStat
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.ComplexPolynomial
+
+@[expose] public section
 
 /-!
 # Complex QSP phase existence and minimality

@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.LinearAlgebra.Matrix.Trace
-import Mathlib.LinearAlgebra.Matrix.ConjTranspose
-import Mathlib.Data.Matrix.Mul
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Analysis.SpecialFunctions.Complex.CircleAddChar
-import Mathlib.Analysis.Complex.Circle
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Tactic
-import Qatlib.Papers.AffineHSP02.HarmonicCore.GaussSums
+module
+
+public import Mathlib.LinearAlgebra.Matrix.Trace
+public import Mathlib.LinearAlgebra.Matrix.ConjTranspose
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Analysis.SpecialFunctions.Complex.CircleAddChar
+public import Mathlib.Analysis.Complex.Circle
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Tactic
+public import Qatlib.Papers.AffineHSP02.HarmonicCore.GaussSums
+
+@[expose] public section
 
 /-!
 # Phase vectors and normalized projectors

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MixedFidelity.TraceNormRankBound
-import Mathlib.LinearAlgebra.Matrix.Rank
-import Mathlib.Data.Real.Sqrt
+module
+
+public import Qatlib.Foundations.MixedFidelity.TraceNormRankBound
+public import Mathlib.LinearAlgebra.Matrix.Rank
+public import Mathlib.Analysis.Real.Sqrt
+
+@[expose] public section
 
 /-!
 # A trace norm bound for rank-one matrices

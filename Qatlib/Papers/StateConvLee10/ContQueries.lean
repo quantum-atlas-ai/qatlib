@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ConversionCore.WitnessCompile.ContinuousProgram
-import Qatlib.Concepts.ConversionCore.WitnessCompile.ConversionBridges
+module
+
+public import Qatlib.Concepts.ConversionCore.WitnessCompile.ContinuousProgram
+public import Qatlib.Concepts.ConversionCore.WitnessCompile.ConversionBridges
+
+@[expose] public section
 
 /-!
 # Continuous and fractional query comparisons

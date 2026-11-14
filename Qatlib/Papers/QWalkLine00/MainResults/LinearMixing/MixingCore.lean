@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Finset.Card
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic
+module
+
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Finite-set overlap estimates for mixing
@@ -42,7 +46,7 @@ with `β ≥ 0` and `0 ≤ c ≤ 1`. See [NayakVishwanath2000]. -/
 theorem mixing_core {ι : Type*} [DecidableEq ι]
     (s : Finset ι) (p : ι → ℝ) (hcard : 0 < s.card)
     (hp_nonneg : ∀ i ∈ s, 0 ≤ p i) (hp_sum : ∑ i ∈ s, p i = 1)
-    {β c : ℝ} (hβ : 0 ≤ β) (hc : 0 ≤ c) (hc1 : c ≤ 1)
+    {β c : ℝ} (_hβ : 0 ≤ β) (hc : 0 ≤ c) (hc1 : c ≤ 1)
     (G : Finset ι) (hGsub : ∀ i ∈ G, i ∈ s)
     (hGcard : β * (s.card : ℝ) ≤ (G.card : ℝ))
     (hmass : ∀ i ∈ G, c / (s.card : ℝ) ≤ p i) :

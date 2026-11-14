@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SketchSpectral.SketchPerturb.TruncatedSketchIsometryStat
-import Mathlib.LinearAlgebra.Lagrange
+module
+
+public import Qatlib.Concepts.SketchSpectral.SketchPerturb.TruncatedSketchIsometryStat
+public import Mathlib.LinearAlgebra.Lagrange
+
+@[expose] public section
 
 /-!
 # Thresholded sketch pseudoinverses and retained projectors
@@ -111,8 +115,8 @@ theorem truncatedSketchIsometry_product_projector
   have he₀ (i : Fin (Fintype.card RS)) : e i*(if matrixSingularValues B i=0 then (0:ℂ) else 1)*e i = e i := by
     by_cases h : τ ≤ matrixSingularValues B i
     · have hz : matrixSingularValues B i ≠ 0 := (hτ.trans_le h).ne'
-      simp only [e,if_pos h,if_neg hz,mul_one]
-    · simp only [e,if_neg h,zero_mul,mul_zero]
+      simp only [e,ite_eq_left h,ite_eq_right hz,mul_one]
+    · simp only [e,ite_eq_right h,zero_mul,mul_zero]
   have hea : (diagonal e : Matrix (Fin (Fintype.card RS)) (Fin (Fintype.card RS)) ℂ)ᴴ = diagonal e := by
     ext i j
     by_cases hij : i=j

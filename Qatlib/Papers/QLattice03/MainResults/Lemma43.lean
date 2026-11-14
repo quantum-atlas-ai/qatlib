@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QLattice03.MainResults.MatchingDefs
+module
+
+public import Qatlib.Papers.QLattice03.MainResults.MatchingDefs
+
+@[expose] public section
 
 /-!
 # Specification of many pairs with a common gap
@@ -34,9 +38,9 @@ namespace Qatlib.Papers.QLattice03.MainResults
 pairs represented by elements `t ∈ T` with `t + q′ ∈ T`, expressed as an integer cardinality
 inequality. -/
 def exists_pair_gap (N s q : ℕ) [NeZero N] (T : Finset (ZMod N))
-    (hs : 0 < s) (hq : 0 < q)
-    (hsize : (N : ℤ) < (s : ℤ) * (T.card : ℤ))
-    (hqN : 8 * s * q < N) : Prop :=
+    (_hs : 0 < s) (_hq : 0 < q)
+    (_hsize : (N : ℤ) < (s : ℤ) * (T.card : ℤ))
+    (_hqN : 8 * s * q < N) : Prop :=
   ∃ q' ∈ (Finset.Icc 1 s).image (fun k : ℕ => (k * q : ZMod N)),
     (T.filter (fun t => t + q' ∈ T)).card * 32 * s ^ 3 ≥ N
 

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.FrameSpectral.WalkAccessConstructionDefs
+module
+
+public import Qatlib.Concepts.WalkSearch.FrameSpectral.WalkAccessConstructionDefs
+
+@[expose] public section
 
 /-!
 # Finite circuit laws for lazy matching access
@@ -224,7 +228,7 @@ lemma finiteWordRun_of_legal {n : ℕ} {gs : List FiniteGateCode} (h : finiteWor
     (ψ : QState (Reg n)) :
     finiteWordRun n gs ψ = some (Run 1 (finiteCodeCircuit n gs) ψ) := by
   rw [finiteWordRun]
-  rw [if_pos h]
+  rw [ite_eq_left h]
 
 /-- The lazy setup word has one more instruction than `highCnotPairs m`, the update word has the
 same length as that list, and the check word has length one. -/
@@ -300,7 +304,7 @@ bit. -/
 lemma regPad_apply {w a : ℕ} (r : Reg a) (j : Fin w) (h : j.val < a) :
     regPad w a r j = r ⟨j.val, h⟩ := by
   rw [regPad_apply']
-  rw [dif_pos h]
+  rw [dite_eq_left h]
 
 /-- Padding a register to its own width leaves it unchanged. -/
 lemma regPad_self {n : ℕ} (r : Reg n) : regPad n n r = r := by

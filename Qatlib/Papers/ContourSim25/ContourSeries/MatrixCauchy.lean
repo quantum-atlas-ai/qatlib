@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixContour.ResidueFormula.CircleCauchy
+module
+
+public import Qatlib.Concepts.MatrixContour.ResidueFormula.CircleCauchy
+
+@[expose] public section
 
 /-! An actual one-pole circular-contour consumer for source Lemma 1. -/
 set_option autoImplicit false

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QSPIto26.MainResults.Core.MQSPCore
-import Qatlib.Papers.QSPIto26.MainResults.Lemma3.MQSPInversion
-import Qatlib.Papers.QSPIto26.MainResults.Lemma4.MQSPDegreeEquality
+module
+
+public import Qatlib.Papers.QSPIto26.MainResults.Core.MQSPCore
+public import Qatlib.Papers.QSPIto26.MainResults.Lemma3.MQSPInversion
+public import Qatlib.Papers.QSPIto26.MainResults.Lemma4.MQSPDegreeEquality
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

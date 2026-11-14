@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.ApproxToolkit.DolphWindow
+module
+
+public import Qatlib.Concepts.QsvtCore.ApproxToolkit.DolphWindow
+
+@[expose] public section
 
 /-!
 # Extremality and degree bounds for Dolph windows

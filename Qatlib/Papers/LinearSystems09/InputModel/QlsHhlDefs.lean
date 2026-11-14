@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.QlsHhl
-import Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.HamiltonianInputModels
-import Qatlib.Concepts.LocalMachine.LocalTransport.LeastSquaresOutputSpec
+module
+
+public import Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.QlsHhl
+public import Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.HamiltonianInputModels
+public import Qatlib.Concepts.LocalMachine.LocalTransport.LeastSquaresOutputSpec
+
+@[expose] public section
 
 /-!
 # Auxiliary HHL input-model bounds
@@ -105,7 +109,7 @@ theorem leastSquaresDirection_none_of_zero_vector {O I : Type} [Fintype O]
     [DecidableEq O] [Fintype I] [DecidableEq I] (A : Matrix O I ℂ) (b : QState O)
     (h : leastSquaresVector A b = 0) : leastSquaresDirection A b = none := by
   unfold leastSquaresDirection
-  rw [if_pos h]
+  rw [ite_eq_left h]
 
 /-- The sum of the squared real filter amplitudes `filterF` and `filterG`. -/
 def signedKernelMass (F : SignedSinEnvelopeFilter) (d θ : ℝ) : ℝ :=
@@ -137,7 +141,7 @@ theorem signedKernelMass_le_one (F : SignedSinEnvelopeFilter)
     (hF : F.Consistent) (d θ : ℝ) (hd : 0 < d) :
     signedKernelMass F d θ ≤ 1 := by
   have h := hF.2.2.2.2 d θ hd
-  unfold signedKernelMass at h
+
   exact h
 
 /-- At zero spectral parameter, a consistent signed filter with positive `d` has flags zero and

@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Data.Finset.Image
-import Mathlib.Data.Rat.Defs
-import Mathlib.Tactic
+module
+
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Data.Finset.Image
+public import Mathlib.Data.Rat.Defs
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -171,7 +175,7 @@ theorem signChar_add (x z y : Fin n → ZMod 2) :
   rw [dotProd_add]
   rcases zmod2_eq_zero_or_one (dotProd x y) with hx | hx <;>
     rcases zmod2_eq_zero_or_one (dotProd z y) with hz | hz <;>
-    simp [hx, hz] <;> decide
+    simp [hx, hz]; decide
 
 /-- `cutHom` sends `(0,0)` to the zero string. -/
 @[simp] theorem cutHom_zero_zero (C : Finset (Fin n)) :
@@ -243,9 +247,9 @@ theorem fact4_3_fourier_distribution (C : Finset (Fin n)) (hC : C.Nonempty)
       then (4 : ℚ) / (2 : ℚ) ^ n else 0 := by
   rw [fourierWeight, signChar_sum_cutSubgroup_eq C hC hC' y]
   by_cases h : dotProd (cutVector C) y = 0 ∧ dotProd (complVector C) y = 0
-  · simp only [if_pos h]
+  · simp only [ite_eq_left h]
     ring_nf
-  · simp only [if_neg h]
+  · simp only [ite_eq_right h]
     simp
 
 end Qatlib.Papers.StateHSP24.MainResults

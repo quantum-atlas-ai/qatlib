@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Tactic
-import Qatlib.Papers.SpinBosonQAOA26.MainResults.Definitions.SourceDefinitions
+module
+
+public import Mathlib.Tactic
+public import Qatlib.Papers.SpinBosonQAOA26.MainResults.Definitions.SourceDefinitions
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -73,7 +77,7 @@ def applyPrefix {p' p : ℕ} (Dop : (Fin p' → ℂ) → B → B) (L : Matrix (F
 /-- Apply the layers `U_{l+1}, U_{l+2}, …, U_p` to a state (layers are `0`-indexed here,
 so `l` counts the layers already applied). -/
 def applySuffix {p' p : ℕ} (Dop : (Fin p' → ℂ) → B → B) (L : Matrix (Fin p') (Fin p) ℂ)
-    (γ β : Fin p → ℝ) (l : ℕ) (hl : l ≤ p) (s : SBState B) : SBState B :=
+    (γ β : Fin p → ℝ) (l : ℕ) (_hl : l ≤ p) (s : SBState B) : SBState B :=
   (List.finRange p).foldl
     (fun s t => if l ≤ t.val then uLayer Dop L γ β t s else s) s
 

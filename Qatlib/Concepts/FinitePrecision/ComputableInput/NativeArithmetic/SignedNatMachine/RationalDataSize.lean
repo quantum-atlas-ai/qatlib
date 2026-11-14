@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Rat.Lemmas
-import Mathlib.Data.Nat.Log
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.FieldSimp
+module
+
+public import Mathlib.Data.Rat.Lemmas
+public import Mathlib.Data.Nat.Log
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.FieldSimp
+
+@[expose] public section
 
 /-!
 # Size bounds for rational arithmetic

@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
-import Mathlib.Probability.Distributions.Uniform
-import Mathlib.Probability.ProbabilityMassFunction.Constructions
-import Qatlib.Concepts.LinearLearning.ConcisePipeline.RandomizedCost
-import Qatlib.Concepts.AmplitudeSearch.Amplification.Results
+module
+
+public import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+public import Mathlib.Probability.Distributions.Uniform
+public import Mathlib.Probability.ProbabilityMassFunction.Constructions
+public import Qatlib.Concepts.LinearLearning.ConcisePipeline.RandomizedCost
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.Results
+
+@[expose] public section
 
 /-!
 # Dyadic threshold laws and minimum-search ledgers

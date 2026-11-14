@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.QmaCompletenessNativeOutput
-import Qatlib.Concepts.TensorRegisters.RegisterModel.QmaCompletenessLocalEnergy
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.QmaCompletenessNativeOutput
+public import Qatlib.Concepts.TensorRegisters.RegisterModel.QmaCompletenessLocalEnergy
+
+@[expose] public section
 
 /-!
 # Energy lower bounds from finite local tables

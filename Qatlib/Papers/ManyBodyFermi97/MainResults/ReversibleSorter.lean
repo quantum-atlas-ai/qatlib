@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Foundations.CircuitReversal.ReversalAlgebra.CircuitReversalAlgebra
-import Mathlib.GroupTheory.Perm.Sign
+module
+
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Foundations.CircuitReversal.ReversalAlgebra.CircuitReversalAlgebra
+public import Mathlib.GroupTheory.Perm.Sign
+
+@[expose] public section
 
 /-!
 # Reversible exchange words and permutation signs

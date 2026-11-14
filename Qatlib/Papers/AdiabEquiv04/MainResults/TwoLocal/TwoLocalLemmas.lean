@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AdiabEquiv04.MainResults.Model.ComputationDefs
+module
+
+public import Qatlib.Papers.AdiabEquiv04.MainResults.Model.ComputationDefs
+
+@[expose] public section
 
 /-!
 # AdiabEquiv04 — spectral lemmas for the two-local grid construction (Lemmas 4.6, 4.7)
@@ -64,7 +68,7 @@ def lemma_4_6_section4_gapStatement : Prop :=
   ∀ (n L : ℕ) (hL2 : 2 ≤ L) (gates : GateSeq n)
     (S : TotalBasis n L → Prop) [DecidablePred S]
     (H : ℝ → Hamiltonian (TotalBasis n L))
-    (hiso : ∀ s : ℝ, 0 ≤ s → s ≤ 1 →
+    (_hiso : ∀ s : ℝ, 0 ≤ s → s ≤ 1 →
       ∃ (V : Matrix (TotalBasis n L) (TotalBasis n L) ℂ),
         Vᴴ * V = (1 : Matrix (TotalBasis n L) (TotalBasis n L) ℂ) ∧
         (compressFam S H s).mat = V * (HS n L hL2 gates s).mat * Vᴴ),
@@ -86,20 +90,20 @@ restricted gap and the final ground state are provided by Lemma 4.6 via `hS`
 and `hSg`. -/
 def lemma_4_7_section4_full_gapStatement : Prop :=
   ∀ (n L : ℕ) (hL2 : 2 ≤ L) (gates : GateSeq n)
-    (ε J K : ℝ) (hε : 0 < ε) (hJ : 2 * K < J) (hK0 : 0 ≤ K)
+    (ε J K : ℝ) (_hε : 0 < ε) (_hJ : 2 * K < J) (_hK0 : 0 ≤ K)
     (S : TotalBasis n L → Prop) [DecidablePred S]
     (H H₁ H₂ : ℝ → Hamiltonian (TotalBasis n L))
-    (hdecomp : ∀ s : ℝ, 0 ≤ s → s ≤ 1 → (H s).mat = (H₁ s).mat + (H₂ s).mat)
-    (hzero : ∀ s : ℝ, 0 ≤ s → s ≤ 1 →
+    (_hdecomp : ∀ s : ℝ, 0 ≤ s → s ≤ 1 → (H s).mat = (H₁ s).mat + (H₂ s).mat)
+    (_hzero : ∀ s : ℝ, 0 ≤ s → s ≤ 1 →
       compress S (H₂ s) = (0 : Matrix (TotalBasis n L) (TotalBasis n L) ℂ))
-    (hpos : ∀ s : ℝ, 0 ≤ s → s ≤ 1 → ∀ ψ : Vector (TotalBasis n L),
+    (_hpos : ∀ s : ℝ, 0 ≤ s → s ≤ 1 → ∀ ψ : Vector (TotalBasis n L),
       IsNormalized ψ → (∀ i : TotalBasis n L, S i → ψ i = 0) →
       J ≤ rayleigh (H₂ s).mat ψ)
-    (hK : ∀ s : ℝ, 0 ≤ s → s ≤ 1 → ∀ ψ : Vector (TotalBasis n L),
+    (_hK : ∀ s : ℝ, 0 ≤ s → s ≤ 1 → ∀ ψ : Vector (TotalBasis n L),
       IsNormalized ψ → |rayleigh (H₁ s).mat ψ| ≤ K)
-    (hS : ∃ c : ℝ, 0 < c ∧ ∀ s : ℝ, 0 ≤ s → s ≤ 1 →
+    (_hS : ∃ c : ℝ, 0 < c ∧ ∀ s : ℝ, 0 ≤ s → s ≤ 1 →
       GapAtLeast (compressFam S H s) (c / ((L : ℝ) + 1) ^ 3))
-    (hSg : ∃ (V : Matrix (TotalBasis n L) (TotalBasis n L) ℂ),
+    (_hSg : ∃ (V : Matrix (TotalBasis n L) (TotalBasis n L) ℂ),
       Vᴴ * V = (1 : Matrix (TotalBasis n L) (TotalBasis n L) ℂ) ∧
       (compressFam S H 1).mat = V * (HS n L hL2 gates 1).mat * Vᴴ ∧
       IsGroundVector (compressFam S H 1) (V *ᵥ historyState (L := L) gates)),

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
-import Mathlib.Data.ZMod.ValMinAbs
-import Mathlib.Topology.Order.IntermediateValue
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+public import Mathlib.Data.ZMod.ValMinAbs
+public import Mathlib.Topology.Order.IntermediateValue
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Lattice dispersion and the secular function
@@ -117,7 +121,7 @@ theorem dispersion_eq_zero_iff (k : Fin d → ℝ) :
 `Real.pi`. -/
 theorem abs_waveVector_le_pi {n : ℕ} (hn : 0 < n) (m : Fin d → ZMod n) (j : Fin d) :
     |waveVector n m j| ≤ Real.pi := by
-  haveI : NeZero n := ⟨Nat.pos_iff_ne_zero.mp hn⟩
+  have : NeZero n := ⟨Nat.pos_iff_ne_zero.mp hn⟩
   have hmem := (m j).valMinAbs_mem_Ioc
   have h2 : ((m j).valMinAbs : ℝ) * 2 ≤ (n : ℝ) := by exact_mod_cast hmem.2
   have h1 : -((n : ℝ)) ≤ ((m j).valMinAbs : ℝ) * 2 := by

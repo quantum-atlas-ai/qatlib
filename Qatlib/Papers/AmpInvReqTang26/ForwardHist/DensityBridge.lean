@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AmpInvReqTang26.RootLaws.PhasePush
-import Qatlib.Papers.AmpInvReqTang26.ForwardHist.ActualBias
-import Qatlib.Foundations.MatrixAlgebra.TorusMoments.RootMoments
+module
+
+public import Qatlib.Papers.AmpInvReqTang26.RootLaws.PhasePush
+public import Qatlib.Papers.AmpInvReqTang26.ForwardHist.ActualBias
+public import Qatlib.Foundations.MatrixAlgebra.TorusMoments.RootMoments
+
+@[expose] public section
 
 /-!
 # From source ensembles to weighted circuit densities

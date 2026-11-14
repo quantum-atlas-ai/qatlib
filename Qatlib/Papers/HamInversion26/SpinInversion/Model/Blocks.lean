@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HamInversion26.SpinInversion.Model.OracleWord
-import Mathlib.Analysis.Complex.Exponential
+module
+
+public import Qatlib.Papers.HamInversion26.SpinInversion.Model.OracleWord
+public import Mathlib.Analysis.Complex.Exponential
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

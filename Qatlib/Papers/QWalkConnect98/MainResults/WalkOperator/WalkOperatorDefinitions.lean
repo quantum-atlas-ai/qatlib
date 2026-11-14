@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Data.Matrix.Mul
-import Mathlib.Combinatorics.SimpleGraph.Finite
-import Mathlib.Combinatorics.SimpleGraph.Connectivity.Connected
-import Mathlib.Algebra.BigOperators.Field
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.Combinatorics.SimpleGraph.Finite
+public import Mathlib.Combinatorics.SimpleGraph.Connectivity.Connected
+public import Mathlib.Algebra.BigOperators.Field
+
+@[expose] public section
 
 /-!
 # Operators for the regular graph connectivity walk
@@ -75,6 +79,7 @@ theorem closedNbhd_comm {G : SimpleGraph V} [DecidableRel G.Adj] {u v : V} :
 def diagLift (x : V → ℝ) : V × V → ℝ :=
   fun p => if p.1 = p.2 then x p.1 else 0
 
+omit [Fintype V] in
 /-- The diagonal lift at `p` is `x p.1` when the pair is diagonal and zero otherwise. -/
 @[simp]
 theorem diagLift_apply (x : V → ℝ) (p : V × V) :
@@ -125,22 +130,26 @@ def compSet (G : SimpleGraph V) [DecidableRel G.Adj] (u : V) : Finset V := by
 /-- The cardinality of the connected component containing `u`. -/
 def compSize (G : SimpleGraph V) [DecidableRel G.Adj] (u : V) : ℕ := (compSet G u).card
 
+omit [DecidableEq V] in
 /-- Membership in `compSet G u` is equivalent to reachability from `u`. -/
 @[simp]
 theorem mem_compSet {G : SimpleGraph V} [DecidableRel G.Adj] {u v : V} :
     v ∈ compSet G u ↔ G.Reachable u v := by
   simp [compSet]
 
+omit [DecidableEq V] in
 /-- Every vertex belongs to its own component set. -/
 theorem self_mem_compSet (G : SimpleGraph V) [DecidableRel G.Adj] (u : V) :
     u ∈ compSet G u := by
   simp
 
+omit [DecidableEq V] in
 /-- The natural-number cardinality of the component containing `u` is positive. -/
 theorem compSet_pos (G : SimpleGraph V) [DecidableRel G.Adj] (u : V) : 0 < compSize G u := by
   unfold compSize
   exact Finset.card_pos.mpr ⟨u, self_mem_compSet G u⟩
 
+omit [DecidableEq V] in
 /-- The real-valued cardinality of the component containing `u` is positive. -/
 theorem compSize_pos (G : SimpleGraph V) [DecidableRel G.Adj] (u : V) :
     (0 : ℝ) < (compSize G u : ℝ) := by
@@ -177,11 +186,13 @@ theorem l2norm_diagLift (x : V → ℝ) : l2norm (diagLift x) = l2norm x := by
     simp [diagLift_apply]
   simp only [this]
 
+omit [Fintype V] [DecidableEq V] in
 /-- A vertex adjacent to a vertex reachable from `u` is itself reachable from `u`. -/
 theorem reachable_of_adj {G : SimpleGraph V} {u v w : V}
     (huv : G.Reachable u v) (hvw : G.Adj v w) : G.Reachable u w := by
   exact huv.trans hvw.reachable
 
+omit [Fintype V] [DecidableEq V] in
 /-- If `v` is not reachable from `u`, then any vertex adjacent to `v` is also not reachable from
 `u`. -/
 theorem not_reachable_adj {G : SimpleGraph V} {u v w : V}
@@ -192,15 +203,18 @@ theorem not_reachable_adj {G : SimpleGraph V} {u v w : V}
 /-- The coordinate vector equal to one at `u` and zero at every other vertex. -/
 def basisVec (u : V) : V → ℝ := fun v => if v = u then 1 else 0
 
+omit [Fintype V] in
 /-- The coordinate vector `basisVec u` has value one at `u`. -/
 @[simp]
 theorem basisVec_apply_self (u : V) : basisVec u u = 1 := by
   simp [basisVec]
 
+omit [Fintype V] in
 /-- The coordinate vector `basisVec u` vanishes at a vertex different from `u`. -/
 theorem basisVec_apply_of_ne {u v : V} (h : v ≠ u) : basisVec u v = 0 := by
   simp [basisVec, h]
 
+omit [Fintype V] in
 /-- The diagonal lift of `basisVec u` is the coordinate vector supported at the pair `(u, u)`. -/
 theorem diagLift_basisVec (u : V) :
     diagLift (basisVec u) = fun p : V × V => if p = (u, u) then 1 else 0 := by
@@ -218,7 +232,7 @@ theorem diagLift_basisVec (u : V) :
         · exact h2
         · rw [← h1]; exact h2
       · have h2' : ¬ p.2 = u := by rw [← h1]; exact h2
-        simp [diagLift_apply, basisVec, h1, h2, h2']
+        simp [diagLift_apply, basisVec, h1,  h2']
     · simp [diagLift_apply, h1]
 
 end

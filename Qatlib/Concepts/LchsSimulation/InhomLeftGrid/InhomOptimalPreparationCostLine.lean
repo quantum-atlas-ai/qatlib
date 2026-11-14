@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LchsSimulation.InhomLeftGrid.InhomOptimalPreparationCostStat
-import Qatlib.Concepts.LchsSimulation.InhomLeftGrid.InhomogeneousPreparedSolutionLine
+module
+
+public import Qatlib.Concepts.LchsSimulation.InhomLeftGrid.InhomOptimalPreparationCostStat
+public import Qatlib.Concepts.LchsSimulation.InhomLeftGrid.InhomogeneousPreparedSolutionLine
+
+@[expose] public section
 
 /-!
 # Preparation-window cost for inhomogeneous LCHS

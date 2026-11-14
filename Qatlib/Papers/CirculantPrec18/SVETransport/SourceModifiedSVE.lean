@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CirculantPrec18.SVETransport.Model
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+module
+
+public import Qatlib.Papers.CirculantPrec18.SVETransport.Model
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -96,7 +100,7 @@ def source_modified_sve_statement
     (_hU : Uᵀ * U = 1) (_hV : Vᵀ * V = 1)
     (_hσnn : ∀ i, 0 ≤ σ i)
     (_hSVD : A = U * Matrix.diagonal σ * Vᵀ)
-    (ε : ℝ) (hε : 0 < ε) : Prop :=
+    (ε : ℝ) (_hε : 0 < ε) : Prop :=
     ∃ (c : ℕ) (_hc : 0 < c) (pro : ModifiedSVE n),
       0 ≤ pro.cost ∧
       pro.cost ≤ (c : ℝ) * ((Real.log ((n : ℝ) + 1)) + 1) ^ c / ε ∧

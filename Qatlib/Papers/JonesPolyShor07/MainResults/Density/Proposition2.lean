@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.JonesPolyShor07.MainResults.Definitions.FibonacciRepresentation
+module
+
+public import Qatlib.Papers.JonesPolyShor07.MainResults.Definitions.FibonacciRepresentation
+
+@[expose] public section
 
 /-!
 # The two-element four-strand SS basis

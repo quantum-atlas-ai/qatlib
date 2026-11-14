@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.PolyApprox.Lemma25SignApproximationStat
-import Qatlib.Concepts.QsvtCore.LinearSystems.RealPolynomialCompletionClosed
+module
+
+public import Qatlib.Concepts.QsvtCore.PolyApprox.Lemma25SignApproximationStat
+public import Qatlib.Concepts.QsvtCore.LinearSystems.RealPolynomialCompletionClosed
+
+@[expose] public section
 
 /-!
 # Quantitative polynomial approximation of the sign function

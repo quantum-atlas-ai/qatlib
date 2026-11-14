@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.SharpMarkovDerivative
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.SharpMarkovBernstein
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.SharpMarkovDerivative
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.SharpMarkovBernstein
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+
+@[expose] public section
 
 /-!
 # Sharp Markov and algebraic Bernstein inequalities

@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CssGreedyDecode.SyndromeGreedy.QuantumLDPCDecoding
-import Mathlib.Data.Nat.Choose.Bounds
-import Mathlib.Analysis.SpecialFunctions.BinaryEntropy
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.FieldSimp
+module
+
+public import Qatlib.Concepts.CssGreedyDecode.SyndromeGreedy.QuantumLDPCDecoding
+public import Mathlib.Data.Nat.Choose.Bounds
+public import Mathlib.Analysis.SpecialFunctions.BinaryEntropy
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.FieldSimp
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

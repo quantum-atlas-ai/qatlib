@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ChannelTheory.Stinespring.ChannelStructureStinespring
-import Qatlib.Concepts.KrausCompile.BornMoments.BornReadout
-import Mathlib.Tactic
+module
+
+public import Qatlib.Concepts.ChannelTheory.Stinespring.ChannelStructureStinespring
+public import Qatlib.Concepts.KrausCompile.BornMoments.BornReadout
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Sequential weighted Kraus readouts

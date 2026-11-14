@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ManyBodyFermi97.MainResults.TwoParticleAntisym
-import Mathlib.GroupTheory.Perm.Sign
-import Mathlib.Data.Fintype.Perm
+module
+
+public import Qatlib.Papers.ManyBodyFermi97.MainResults.TwoParticleAntisym
+public import Mathlib.GroupTheory.Perm.Sign
+public import Mathlib.Data.Fintype.Perm
+
+@[expose] public section
 
 /-!
 # Signed permutation orbits and normalization

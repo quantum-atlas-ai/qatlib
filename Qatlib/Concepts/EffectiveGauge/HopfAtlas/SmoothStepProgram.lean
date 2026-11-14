@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.NegativeExpProgram
-import Mathlib.Analysis.SpecialFunctions.SmoothTransition
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.NegativeExpProgram
+public import Mathlib.Analysis.SpecialFunctions.SmoothTransition
+
+@[expose] public section
 
 /-! # The rational smooth_step program approximates the actual native cutoff -/
 
@@ -113,7 +117,7 @@ theorem rationalSmoothStep_spec (x tolerance : ℚ) (ht : 0<tolerance) :
     have hsum : 1/8 ≤ A+B := by
       simpa only [A,B,Rat.cast_div,Rat.cast_one,Rat.cast_sub,one_div,Rat.cast_inv] using smoothStep_sum_lower (x : ℝ) hxR
     have htarget : Real.smoothTransition (x : ℝ)=A/(A+B) := by
-      simp only [Real.smoothTransition,expNegInvGlue,if_neg (not_le.mpr hxR),if_neg (not_le.mpr (show 0<1-(x : ℝ) by linarith)),
+      simp only [Real.smoothTransition,expNegInvGlue,ite_eq_right (not_le.mpr hxR),ite_eq_right (not_le.mpr (show 0<1-(x : ℝ) by linarith)),
         A,B,Rat.cast_one,Rat.cast_sub,one_div,Rat.cast_inv]
     have hE64R : (E : ℝ) ≤ 1/64 := by
       have hh : (E : ℝ) ≤ (((1/64 : ℚ) : ℝ)) := Rat.cast_le.mpr hE64

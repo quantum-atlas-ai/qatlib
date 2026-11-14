@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SourceCurvature
-import Mathlib.MeasureTheory.Integral.DivergenceTheorem
-import Mathlib.MeasureTheory.Measure.Haar.InnerProductSpace
-import Mathlib.MeasureTheory.Measure.Haar.NormedSpace
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SourceCurvature
+public import Mathlib.MeasureTheory.Integral.DivergenceTheorem
+public import Mathlib.MeasureTheory.Measure.Haar.InnerProductSpace
+public import Mathlib.MeasureTheory.Measure.Haar.NormedSpace
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -27,9 +31,9 @@ namespace Qatlib.Concepts.EffectiveGauge.RationalFlow
 open Qatlib.Concepts.EffectiveGauge.HopfAtlas
 
 /-- Abbreviation for Coordinate Point in the Rational Flow construction. -/
-private abbrev CoordinatePoint := Fin 3 → ℝ
+abbrev CoordinatePoint := Fin 3 → ℝ
 /-- Definition of coordinate Top in the Rational Flow construction. -/
-private def coordinateTop : CoordinatePoint := fun _ => physicalPeriod
+def coordinateTop : CoordinatePoint := fun _ => physicalPeriod
 
 /-- Definition of physical Cube Integral in the Rational Flow construction. -/
 def physicalCubeIntegral (f : SpatialPoint → ℝ) : ℝ :=
@@ -41,7 +45,7 @@ theorem physicalCubeIntegral_eq_volume (f : SpatialPoint → ℝ) :
   have hset : (WithLp.toLp 2 : CoordinatePoint → SpatialPoint) ⁻¹'
       {x | InFundamentalCube x}=Icc (0 : CoordinatePoint) coordinateTop := by
     ext x
-    simp only [mem_preimage,mem_setOf_eq,InFundamentalCube,mem_Icc,Pi.le_def,coordinateTop]
+    simp only [mem_preimage,Set.mem_ofPred_eq,InFundamentalCube,mem_Icc,Pi.le_def,coordinateTop]
     constructor
     · intro h
       exact ⟨fun i => (h i).1,fun i => (h i).2⟩

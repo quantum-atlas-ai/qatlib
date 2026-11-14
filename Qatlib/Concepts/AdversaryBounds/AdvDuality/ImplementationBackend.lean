@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ImplementationBackendDefs
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ImplementationBackendDefs
+
+@[expose] public section
 
 /-!
 # Dyadic Preparation and Resource Accounting Laws
@@ -516,7 +520,7 @@ theorem clause11_readEntry_count (r : RegId) (b : ℕ) :
       rw [hstep, htrue, ih]
       show 1 + l.length = l.length + 1
       exact Nat.add_comm _ _
-  rw [readEntry, key, List.length_range]
+  simpa only [readEntry] using! key (List.range b) |>.symm
 
 /-- The memory-event semantics satisfies the composition, allocation, release, uncompute, and
 peak-space laws in the memory core contract. -/

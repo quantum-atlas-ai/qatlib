@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.StoppingCore.BranchCostCore.UnboundedFiniteExecution
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.FiniteStoppingTail
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
-import Qatlib.Concepts.LinearLearning.ConcisePipeline.RandomizedCost
+module
+
+public import Qatlib.Concepts.StoppingCore.BranchCostCore.UnboundedFiniteExecution
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.FiniteStoppingTail
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
+public import Qatlib.Concepts.LinearLearning.ConcisePipeline.RandomizedCost
+
+@[expose] public section
 
 /-!
 # Unbounded execution and stopping-time laws
@@ -77,13 +81,13 @@ theorem charge_point_mass (q : CostedLaw α) (n : ℕ) (a : α) (j : ℕ) :
       · intro hw
         subst hw
         exact congrArg (Prod.mk a) (by omega)
-    rw [CostedLaw.event_congr hcongr, event_point_mass, if_pos hn]
+    rw [CostedLaw.event_congr hcongr, event_point_mass, ite_eq_left hn]
   · have hnone : ∀ w : α × ℕ, ¬((w.1, n + w.2) = (a, j)) := by
       intro w hw
       simp only [Prod.mk.injEq] at hw
       obtain ⟨_, h2⟩ := hw
       omega
-    rw [CostedLaw.event_zero _ _ hnone, if_neg hn]
+    rw [CostedLaw.event_zero _ _ hnone, ite_eq_right hn]
 
 end PointMass
 
@@ -107,12 +111,12 @@ theorem tick_point_running (next : S → PMF (Configuration S O)) (s : S)
     have hc1 : ∀ d : Configuration S O, ((d, 1) = (c, 1)) ↔ (d = c) := by
       intro d
       simp only [Prod.mk.injEq, and_true]
-    rw [if_pos rfl, CostedLaw.event_congr hc1, event_point_mass]
+    rw [ite_eq_left rfl, CostedLaw.event_congr hc1, event_point_mass]
   · have hc0 : ∀ d : Configuration S O, ¬((d, 1) = (c, j)) := by
       intro d hd
       simp only [Prod.mk.injEq] at hd
       omega
-    rw [if_neg hj, CostedLaw.event_zero _ _ hc0]
+    rw [ite_eq_right hj, CostedLaw.event_zero _ _ hc0]
 
 /-- A run starting in a running state has zero probability of halting at recorded cost zero. -/
 theorem runFor_point_halt_zero (next : S → PMF (Configuration S O)) :
@@ -141,9 +145,9 @@ theorem runFor_point_halt_zero (next : S → PMF (Configuration S O)) :
           ((Sum.inl o : Configuration S O), (0 : ℕ)) = 0
       by_cases hj : j = 1
       · subst hj
-        rw [tick_point_running, if_pos rfl, charge_point_mass]
+        rw [tick_point_running, ite_eq_left rfl, charge_point_mass]
         simp
-      · rw [tick_point_running, if_neg hj, zero_mul]
+      · rw [tick_point_running, ite_eq_right hj, zero_mul]
 
 /-- A run starting in a running state has zero mass at any running configuration whose recorded
 cost differs from the supplied fuel. -/
@@ -160,8 +164,8 @@ theorem runFor_point_running_off_fuel (next : S → PMF (Configuration S O)) :
       by_cases hs : s = s'
       · subst hs
         simp only [Prod.mk.injEq, true_and]
-        exact if_neg hj
-      · refine if_neg (fun hcon => hs ?_)
+        exact ite_eq_right hj
+      · refine ite_eq_right (fun hcon => hs ?_)
         simp only [Prod.mk.injEq, Sum.inr.injEq] at hcon
         exact hcon.1.symm
   | succ fuel ih =>
@@ -179,19 +183,19 @@ theorem runFor_point_running_off_fuel (next : S → PMF (Configuration S O)) :
           ((Sum.inr s' : Configuration S O), (j : ℕ)) = 0
       by_cases hi1 : i = 1
       · subst hi1
-        rw [tick_point_running, if_pos rfl, charge_point_mass]
+        rw [tick_point_running, ite_eq_left rfl, charge_point_mass]
         rcases Nat.eq_zero_or_pos j with hj0 | hj0
         · subst hj0
           simp
         · have h1j : (1 : ℕ) ≤ j := hj0
-          rw [if_pos h1j]
+          rw [ite_eq_left h1j]
           cases c with
           | inl a =>
               rw [runFor_halted]
               simp [CostedLaw.ret, PMF.pure_apply]
           | inr t =>
               rw [ih t s' (j - 1) (fun h => hj (by omega)), mul_zero]
-      · rw [tick_point_running, if_neg hi1, zero_mul]
+      · rw [tick_point_running, ite_eq_right hi1, zero_mul]
 
 /-- A running output configuration has zero mass at a cost strictly less than the supplied fuel,
 for any initial configuration. -/
@@ -245,14 +249,14 @@ theorem runFor_point_halt_ge (next : S → PMF (Configuration S O))
     · have hsup : j ≤ k :=
         runFor_bounded next k cfg (c, j) ((PMF.mem_support_iff _ _).mp hp)
       by_cases he : (c, j) = ((Sum.inl o : Configuration S O), (k : ℕ))
-      · rw [if_pos he]
+      · rw [ite_eq_left he]
         simp only [Prod.mk.injEq] at he
         obtain ⟨hc, hjk⟩ := he
         subst hc
         subst hjk
-        rw [if_pos (Nat.le_refl j), runFor_halted]
+        rw [ite_eq_left (Nat.le_refl j), runFor_halted]
         simp [CostedLaw.ret, PMF.pure_apply]
-      · rw [if_neg he]
+      · rw [ite_eq_right he]
         have hzero : runFor next m c ((Sum.inl o : Configuration S O), (k - j : ℕ)) = 0 := by
           cases c with
           | inl a =>
@@ -264,7 +268,7 @@ theorem runFor_point_halt_ge (next : S → PMF (Configuration S O))
                 refine he ?_
                 rw [Prod.mk.injEq]
                 exact ⟨congrArg Sum.inl hcon.1.symm, by omega⟩
-              rw [if_neg hne]
+              rw [ite_eq_right hne]
           | inr t =>
               have hjk : j = k := by
                 rcases Nat.lt_trichotomy j k with hlt | heq | hgt
@@ -277,8 +281,8 @@ theorem runFor_point_halt_ge (next : S → PMF (Configuration S O))
               rw [Nat.sub_self]
               exact runFor_point_halt_zero next m t o
         by_cases hjk : j ≤ k
-        · rw [if_pos hjk, hzero]
-        · rw [if_neg hjk]
+        · rw [ite_eq_left hjk, hzero]
+        · rw [ite_eq_right hjk]
   have hmass : ∑' x : Configuration S O × ℕ,
       runFor next k cfg x
           * (if x = ((Sum.inl o : Configuration S O), (k : ℕ)) then (1 : ℝ≥0∞) else 0)
@@ -291,8 +295,8 @@ theorem runFor_point_halt_ge (next : S → PMF (Configuration S O))
     rw [← hbind]
     exact tsum_congr fun x => by
       by_cases hxy : x = ((Sum.inl o : Configuration S O), (k : ℕ))
-      · rw [if_pos hxy, hxy, PMF.pure_apply_self]
-      · rw [if_neg hxy, PMF.pure_apply, if_neg (Ne.symm hxy)]
+      · rw [ite_eq_left hxy, hxy, PMF.pure_apply_self]
+      · rw [ite_eq_right hxy, PMF.pure_apply, ite_eq_right (Ne.symm hxy)]
   exact (tsum_congr hpoint).trans hmass
 
 end RunForPoints
@@ -341,7 +345,7 @@ theorem generalPendingMass_eq_tsum (next : S → PMF (O ⊕ S)) (cfg : O ⊕ S)
         * (if (∃ s : S, (Sum.inl a : O ⊕ S) = Sum.inr s) then (1 : ℝ≥0∞) else 0)) = 0 := by
     intro a
     refine ENNReal.tsum_eq_zero.mpr fun j => ?_
-    rw [if_neg (fun h : (∃ s : S, (Sum.inl a : O ⊕ S) = Sum.inr s) => Sum.inl_ne_inr h.choose_spec),
+    rw [ite_eq_right (fun h : (∃ s : S, (Sum.inl a : O ⊕ S) = Sum.inr s) => Sum.inl_ne_inr h.choose_spec),
       mul_zero]
   have hone : ∀ b : S, (∑' j : ℕ, runFor next fuel cfg ((Sum.inr b : O ⊕ S), (j : ℕ))
         * (if (∃ s : S, (Sum.inr b : O ⊕ S) = Sum.inr s) then (1 : ℝ≥0∞) else 0))
@@ -349,7 +353,7 @@ theorem generalPendingMass_eq_tsum (next : S → PMF (O ⊕ S)) (cfg : O ⊕ S)
     intro b
     refine tsum_congr fun j => ?_
     have hc : (∃ s : S, (Sum.inr b : O ⊕ S) = Sum.inr s) := Exists.intro b rfl
-    rw [if_pos hc, mul_one]
+    rw [ite_eq_left hc, mul_one]
   have hsplit : generalPendingMass next cfg fuel
       = ∑' s : S, ∑' j : ℕ,
         runFor next fuel cfg ((Sum.inr s : Configuration S O), (j : ℕ)) := by
@@ -492,8 +496,8 @@ theorem general_haltJoint_tsum_split (next : S → PMF (Configuration S O)) (cfg
         + haltJoint next cfg o k * (if n < k then (1 : ℝ≥0∞) else 0) := by
     intro k
     by_cases hk : n < k
-    · rw [if_pos hk, if_neg (by omega), zero_add, mul_one]
-    · rw [if_neg hk, mul_zero, add_zero, if_pos (by omega)]
+    · rw [ite_eq_left hk, ite_eq_right (by omega), zero_add, mul_one]
+    · rw [ite_eq_right hk, mul_zero, add_zero, ite_eq_left (by omega)]
   calc (∑' k : ℕ, haltJoint next cfg o k)
       = ∑' k : ℕ, ((if k < n + 1 then haltJoint next cfg o k else 0)
           + haltJoint next cfg o k * (if n < k then (1 : ℝ≥0∞) else 0)) :=
@@ -506,8 +510,8 @@ theorem general_haltJoint_tsum_split (next : S → PMF (Configuration S O)) (cfg
         refine congrArg (· + _) ?_
         exact (tsum_eq_sum (L := SummationFilter.unconditional ℕ) (s := Finset.range (n + 1))
           (f := fun k => if k < n + 1 then haltJoint next cfg o k else 0)
-          (fun k hk => if_neg (Finset.mem_range.not.mp hk))).trans
-          (Finset.sum_congr rfl fun k hk => if_pos (Finset.mem_range.mp hk))
+          (fun k hk => ite_eq_right (Finset.mem_range.not.mp hk))).trans
+          (Finset.sum_congr rfl fun k hk => ite_eq_left (Finset.mem_range.mp hk))
 
 /-- Pending mass at time `n` equals the total halting mass at later times plus the
 nontermination mass. -/
@@ -556,8 +560,8 @@ theorem general_tsum_indicator_lt_ennreal (k : ℕ) :
     ∑' n : ℕ, (if n < k then (1 : ℝ≥0∞) else 0) = (k : ℝ≥0∞) := by
   refine (tsum_eq_sum (L := SummationFilter.unconditional ℕ) (s := Finset.range k)
     (f := fun n => if n < k then (1 : ℝ≥0∞) else 0)
-    (fun n hn => if_neg (Finset.mem_range.not.mp hn))).trans ?_
-  rw [Finset.sum_congr rfl (fun n hn => if_pos (Finset.mem_range.mp hn) :
+    (fun n hn => ite_eq_right (Finset.mem_range.not.mp hn))).trans ?_
+  rw [Finset.sum_congr rfl (fun n hn => ite_eq_left (Finset.mem_range.mp hn) :
       ∀ n ∈ Finset.range k, (if n < k then (1 : ℝ≥0∞) else 0) = 1),
     Finset.sum_const, Finset.card_range, nsmul_eq_mul, mul_one]
 

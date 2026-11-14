@@ -7,15 +7,19 @@ Authors: Kim Morrison, Qatlib Contributors
 Adapted from https://github.com/TauCetiProject/TauCeti@3780371c
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+module
 
-import Mathlib.Topology.Subpath
-import Mathlib.Topology.Homotopy.Contractible
-import Mathlib.AlgebraicTopology.FundamentalGroupoid.SimplyConnected
-import Mathlib.Topology.Connected.LocPathConnected
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Topology.UnitInterval
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
 
-import Mathlib.AlgebraicTopology.FundamentalGroupoid.InducedMaps
+public import Mathlib.Topology.Subpath
+public import Mathlib.Topology.Homotopy.Contractible
+public import Mathlib.AlgebraicTopology.FundamentalGroupoid.SimplyConnected
+public import Mathlib.Topology.Connected.LocallyPathConnected
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Topology.UnitInterval
+
+public import Mathlib.AlgebraicTopology.FundamentalGroupoid.InducedMaps
+
+@[expose] public section
 
 /-!
 # Path restrictions, subdivisions, and homotopies

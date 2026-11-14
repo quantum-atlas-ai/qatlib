@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CoherentSim.EndToEnd
-import Qatlib.Concepts.QuditTeleport.TeleportCore.BellReferenceProtocol
+module
+
+public import Qatlib.Concepts.CoherentSim.EndToEnd
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.BellReferenceProtocol
+
+@[expose] public section
 
 /-!
 # Concrete Taylor simulation and phase readout
@@ -91,7 +95,7 @@ private theorem logTaylor_Z_kernel (j : Fin 2) (z : Fin 4) :
   · have he : -(Real.pi / 2) * (-1 : ℝ) / (2 * Real.pi) = (1 / 4 : ℝ) := by
       field_simp
       norm_num
-    simp only [Fin.ext_iff, Fin.val_zero, Nat.one_ne_zero, if_false]
+    simp only [Fin.ext_iff, Fin.val_zero, Nat.one_ne_zero, ite_false]
     rw [he]
     convert! (offgrid_phase_geometric_and_periodic 4 0 z (by norm_num)).2.2 (1 : Fin 4) using 1
     norm_num
@@ -176,20 +180,17 @@ theorem log_taylor_z_hadamard_actual_readout : ∀ k : ℕ,
         (∑ j : Fin 2, (1/2:ℝ) * (∑ z ∈ E, ‖Ket (if j=0 then (3:Fin 4) else 1) z‖^2))| ≤
       (1/2:ℝ)^k := by
     have hh := (ht E).2.2.2
-    try dsimp only at hh
     simpa only [hc, eig, logTaylor_Z_kernel] using! hh
   have hK : logTaylorCutoff (taylorSegments 1 2) (logTaylorQPEPrecision 4 k) = 2*(k+9) := by
     have hc1 : Nat.clog 2 (max 1 (2*(4-1))) = 3 := by decide
     have hc2 : Nat.clog 2 (max 1 (taylorSegments 1 2)) = 2 := by decide
     simp only [logTaylorCutoff, logTaylorQPEPrecision, hc1, hc2]
-    try omega
   have hn (a z : Fin 4) : ‖Ket a z‖^2 = if z=a then (1:ℝ) else 0 := by
     by_cases hz : z=a <;> simp [Ket, hz]
   have hz13 : (1 : Fin 4) ≠ 3 := by decide
   have hz31 : (3 : Fin 4) ≠ 1 := Ne.symm hz13
   refine ⟨?_, ?_, ?_, ?_⟩
   · have hq := (ht {1,3}).2.1
-    try dsimp only at hq
     conv at hq => rhs; rw [hK]
     norm_num only [taylorSegments] at hq
     change adjointQueryCount (logTaylorQPEPreparedWord h () (Real.pi/2) 1 2 4 k B) =
@@ -198,7 +199,6 @@ theorem log_taylor_z_hadamard_actual_readout : ∀ k : ℕ,
       _ = (4-1)*3*4*(2*(k+9)) := hq
       _ = _ := by ring
   · have hg := (ht {1,3}).2.2.1
-    try dsimp only at hg
     conv at hg => rhs; rw [hK]
     norm_num only [taylorSegments] at hg
     change adjointGateCount (logTaylorQPEPreparedWord h () (Real.pi/2) 1 2 4 k B) =

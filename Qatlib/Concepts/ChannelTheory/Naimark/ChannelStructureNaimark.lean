@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ChannelTheory.Stinespring.ChannelStructureDefs
-import Qatlib.Concepts.ChannelTheory.Stinespring.PhyslibChannels
-import Qatlib.Concepts.ShadowModels.ShadowChannel.QubitConjugationDesign
-import Mathlib.Logic.Equiv.Fin.Basic
-import Mathlib.Analysis.Matrix.Spectrum
-import Mathlib.Analysis.Matrix.PosDef
-import Qatlib.Concepts.ChannelTheory.Naimark.ChannelStructureMeasurement
+module
+
+public import Qatlib.Concepts.ChannelTheory.Stinespring.ChannelStructureDefs
+public import Qatlib.Concepts.ChannelTheory.Stinespring.PhyslibChannels
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.QubitConjugationDesign
+public import Mathlib.Logic.Equiv.Fin.Basic
+public import Mathlib.Analysis.Matrix.Spectrum
+public import Mathlib.Analysis.Matrix.PosDef
+public import Qatlib.Concepts.ChannelTheory.Naimark.ChannelStructureMeasurement
+
+@[expose] public section
 
 /-!
 # Finite POVM dilations and measurement branches
@@ -73,7 +77,7 @@ theorem naimarkP_self (D : ℕ) {O : Type} [Fintype O] [DecidableEq O]
   rcases x with ⟨xi, xk⟩
   rcases y with ⟨yi, yk⟩
   by_cases h1 : xk = e o <;> by_cases h2 : yk = e o <;> by_cases h3 : xi = yi <;>
-    simp [naimarkP, h1, h2, h3, eq_comm, and_comm, and_left_comm, and_assoc]
+    simp [naimarkP, h1, h2, h3, eq_comm, and_comm]
 
 /-- Summing a constant supported at a single index over a finite type gives that constant. -/
 theorem sum_ite_const {α : Type} [Fintype α] [DecidableEq α] (a : α) (c : ℂ) :
@@ -101,7 +105,7 @@ theorem naimarkP_mul_self {D : ℕ} {O : Type} [Fintype O] [DecidableEq O]
       = if xk = e o ∧ yk = e o ∧ xi = yi then (1 : ℂ) else 0 := by
     by_cases h : xk = e o ∧ yk = e o ∧ xi = yi
     · obtain ⟨h1, h2, h3⟩ := h
-      rw [if_pos ⟨h1, h2, h3⟩]
+      rw [ite_eq_left ⟨h1, h2, h3⟩]
       subst h3
       have hmul : ∀ (a : Fin D) (k : Fin (Fintype.card O)),
           (if xk = e o ∧ k = e o ∧ xi = a then (1 : ℂ) else 0) *
@@ -109,7 +113,7 @@ theorem naimarkP_mul_self {D : ℕ} {O : Type} [Fintype O] [DecidableEq O]
           = if k = e o ∧ a = xi then (1 : ℂ) else 0 := by
         intro a k
         by_cases hk : k = e o <;> by_cases ha : a = xi <;>
-          simp [h1, h2, hk, ha, eq_comm, and_comm, and_left_comm, and_assoc]
+          simp [h1, h2, hk, ha,  and_comm]
       simp only [hmul]
       rw [Finset.sum_comm]
       rw [Finset.sum_eq_single (e o)]
@@ -117,7 +121,7 @@ theorem naimarkP_mul_self {D : ℕ} {O : Type} [Fintype O] [DecidableEq O]
         exact sum_ite_const xi 1
       · intro b _ hb; simp [hb]
       · intro habs; exact absurd (Finset.mem_univ _) habs
-    · rw [if_neg h]
+    · rw [ite_eq_right h]
       apply Finset.sum_eq_zero
       intro a _
       apply Finset.sum_eq_zero
@@ -162,7 +166,7 @@ theorem naimarkP_sum {D : ℕ} {O : Type} [Fintype O] [DecidableEq O]
         (xi, xk) (yi, yk)
   simp only [naimarkP, Matrix.one_apply]
   by_cases heq : (xi, xk) = (yi, yk)
-  · rw [if_pos heq]
+  · rw [ite_eq_left heq]
     have h1 : xi = yi := congrArg Prod.fst heq
     have h2 : xk = yk := congrArg Prod.snd heq
     have hrew : ∀ o : O,
@@ -170,15 +174,15 @@ theorem naimarkP_sum {D : ℕ} {O : Type} [Fintype O] [DecidableEq O]
           = if e o = xk then (1 : ℂ) else 0 := by
       intro o
       by_cases hh : e o = xk
-      · rw [if_pos hh, if_pos (by exact ⟨hh.symm, h2.symm.trans hh.symm, h1⟩)]
-      · rw [if_neg hh, if_neg (fun ⟨ha, _, _⟩ => hh ha.symm)]
+      · rw [ite_eq_left hh, ite_eq_left (by exact ⟨hh.symm, h2.symm.trans hh.symm, h1⟩)]
+      · rw [ite_eq_right hh, ite_eq_right (fun ⟨ha, _, _⟩ => hh ha.symm)]
     simp only [hrew]
     rw [Equiv.sum_comp e (fun k => if k = xk then (1 : ℂ) else 0)]
     exact sum_ite_const xk 1
-  · rw [if_neg heq]
+  · rw [ite_eq_right heq]
     apply Finset.sum_eq_zero
     intro o _
-    rw [if_neg (fun hh => heq (Prod.ext hh.2.2 (hh.1.trans hh.2.1.symm)))]
+    rw [ite_eq_right (fun hh => heq (Prod.ext hh.2.2 (hh.1.trans hh.2.1.symm)))]
 
 attribute [-instance] CStarMatrix.instHMulOfFintypeOfMulOfAddCommMonoid in
 
@@ -247,18 +251,18 @@ theorem naimarkV_P_V {D : ℕ} {O : Type} [Fintype O] [DecidableEq O]
       · rw [Equiv.symm_apply_apply]
         by_cases h : xk = e o ∧ xi = a
         · obtain ⟨h1, h2⟩ := h
-          rw [if_pos (by exact ⟨h1, rfl, h2⟩), if_pos ⟨h1, h2⟩, one_mul]
-        · rw [if_neg (fun ⟨hh, _, hh'⟩ => h ⟨hh, hh'⟩), if_neg h, zero_mul]
+          rw [ite_eq_left (by exact ⟨h1, rfl, h2⟩), ite_eq_left ⟨h1, h2⟩, one_mul]
+        · rw [ite_eq_right (fun ⟨hh, _, hh'⟩ => h ⟨hh, hh'⟩), ite_eq_right h, zero_mul]
       · intro k _ hk'
-        rw [if_neg (fun ⟨_, hh, _⟩ => hk' hh), zero_mul]
+        rw [ite_eq_right (fun ⟨_, hh, _⟩ => hk' hh), zero_mul]
       · intro habs; exact absurd (Finset.mem_univ _) habs
     simp only [hk]
     rw [Finset.sum_eq_single xi]
     · by_cases h : xk = e o
-      · rw [if_pos (by exact ⟨h, rfl⟩), if_pos h]
-      · rw [if_neg (fun ⟨hh, _⟩ => h hh), if_neg h]
+      · rw [ite_eq_left (by exact ⟨h, rfl⟩), ite_eq_left h]
+      · rw [ite_eq_right (fun ⟨hh, _⟩ => h hh), ite_eq_right h]
     · intro b _ hb
-      rw [if_neg (fun ⟨_, hh⟩ => hb hh.symm)]
+      rw [ite_eq_right (fun ⟨_, hh⟩ => hb hh.symm)]
     · intro habs; exact absurd (Finset.mem_univ _) habs
   simp only [hinner]
   simp only [Fintype.sum_prod_type]
@@ -269,9 +273,9 @@ theorem naimarkV_P_V {D : ℕ} {O : Type} [Fintype O] [DecidableEq O]
       = star ((Λ.mats o ^ (1 / 2 : ℝ)).mat a i) * ((Λ.mats o ^ (1 / 2 : ℝ)).mat a j) := by
     intro a
     rw [Finset.sum_eq_single (e o)]
-    · rw [Equiv.symm_apply_apply, if_pos rfl]
+    · rw [Equiv.symm_apply_apply, ite_eq_left rfl]
     · intro k _ hk'
-      rw [if_neg hk', mul_zero]
+      rw [ite_eq_right hk', mul_zero]
     · intro habs; exact absurd (Finset.mem_univ _) habs
   simp only [houter]
   have h1 : (∑ a : Fin D,
@@ -321,18 +325,18 @@ theorem naimarkP_mulVec {D : ℕ} {O : Type} [Fintype O] [DecidableEq O]
     rw [Finset.sum_eq_single (e o)]
     · by_cases h : xk = e o ∧ xi = a
       · obtain ⟨h1, h2⟩ := h
-        rw [if_pos (by exact ⟨h1, rfl, h2⟩), if_pos ⟨h1, h2⟩, one_mul]
-      · rw [if_neg (fun ⟨hh, _, hh'⟩ => h ⟨hh, hh'⟩), if_neg h, zero_mul]
+        rw [ite_eq_left (by exact ⟨h1, rfl, h2⟩), ite_eq_left ⟨h1, h2⟩, one_mul]
+      · rw [ite_eq_right (fun ⟨hh, _, hh'⟩ => h ⟨hh, hh'⟩), ite_eq_right h, zero_mul]
     · intro k _ hk'
-      rw [if_neg (fun ⟨_, hh, _⟩ => hk' hh), zero_mul]
+      rw [ite_eq_right (fun ⟨_, hh, _⟩ => hk' hh), zero_mul]
     · intro habs; exact absurd (Finset.mem_univ _) habs
   simp only [hk]
   rw [Finset.sum_eq_single xi]
   · by_cases h : xk = e o
-    · rw [if_pos (by exact ⟨h, rfl⟩), if_pos h]
-    · rw [if_neg (fun ⟨hh, _⟩ => h hh), if_neg h]
+    · rw [ite_eq_left (by exact ⟨h, rfl⟩), ite_eq_left h]
+    · rw [ite_eq_right (fun ⟨hh, _⟩ => h hh), ite_eq_right h]
   · intro b _ hb
-    rw [if_neg (fun ⟨_, hh⟩ => hb hh.symm)]
+    rw [ite_eq_right (fun ⟨_, hh⟩ => hb hh.symm)]
   · intro habs; exact absurd (Finset.mem_univ _) habs
 
 /-- A zero POVM effect gives zero squared norm for its projected dilation output on every input
@@ -349,7 +353,7 @@ theorem naimarkP_V_zero_of_effect {D : ℕ} {O : Type} [Fintype O] [DecidableEq 
       (if x.2 = e o then (naimarkV Λ e *ᵥ ψ) (x.1, e o) else 0) = 0 := by
     intro x
     by_cases hx : x.2 = e o
-    · rw [if_pos hx]
+    · rw [ite_eq_left hx]
       have h1 : (naimarkV Λ e *ᵥ ψ) (x.1, e o)
           = ∑ j : Fin D, ((Λ.mats o ^ (1 / 2 : ℝ)).mat) x.1 j * ψ j := by
         show (∑ j : Fin D, naimarkV Λ e (x.1, e o) j * ψ j) = _
@@ -359,7 +363,7 @@ theorem naimarkP_V_zero_of_effect {D : ℕ} {O : Type} [Fintype O] [DecidableEq 
         rw [e.symm_apply_apply o]
       rw [h1, hs]
       simp
-    · rw [if_neg hx]
+    · rw [ite_eq_right hx]
   rw [naimarkP_mulVec]
   have hzero : (fun x : Fin D × Fin (Fintype.card O) =>
       if x.2 = e o then (naimarkV Λ e *ᵥ ψ) (x.1, e o) else 0) = 0 := by
@@ -402,9 +406,9 @@ theorem normSqVec_block_ite {n m : ℕ} (b : Fin m) (w : Fin n → ℂ) :
       (∑ k : Fin m, ‖if k = b then w a else 0‖ ^ (2 : ℕ)) = ‖w a‖ ^ (2 : ℕ) := by
     intro a
     rw [Finset.sum_eq_single b]
-    · rw [if_pos rfl]
+    · rw [ite_eq_left rfl]
     · intro k _ hk
-      rw [if_neg hk]
+      rw [ite_eq_right hk]
       simp
     · intro habs
       exact absurd (Finset.mem_univ _) habs
@@ -426,7 +430,7 @@ theorem naimark_born {D : ℕ} {O : Type} [Fintype O] [DecidableEq O]
     show (if xk = e o then (naimarkV Λ e *ᵥ ψ) (xi, e o) else 0)
       = if xk = e o then ((Λ.mats o ^ (1 / 2 : ℝ)).mat *ᵥ ψ) xi else 0
     by_cases hk : xk = e o
-    · rw [if_pos hk, if_pos hk]
+    · rw [ite_eq_left hk, ite_eq_left hk]
       have h1 : (naimarkV Λ e *ᵥ ψ) (xi, e o)
           = ∑ j : Fin D, ((Λ.mats o ^ (1 / 2 : ℝ)).mat) xi j * ψ j := by
         show (∑ j : Fin D, naimarkV Λ e (xi, e o) j * ψ j) = _
@@ -436,7 +440,7 @@ theorem naimark_born {D : ℕ} {O : Type} [Fintype O] [DecidableEq O]
         rw [e.symm_apply_apply o]
       show (naimarkV Λ e *ᵥ ψ) (xi, e o) = ((Λ.mats o ^ (1 / 2 : ℝ)).mat *ᵥ ψ) xi
       exact h1
-    · rw [if_neg hk, if_neg hk]
+    · rw [ite_eq_right hk, ite_eq_right hk]
   rw [hvec]
   rw [normSqVec_block_ite (e o) ((Λ.mats o ^ (1 / 2 : ℝ)).mat *ᵥ ψ)]
   have hS : ((Λ.mats o ^ (1 / 2 : ℝ)).mat).conjTranspose * (Λ.mats o ^ (1 / 2 : ℝ)).mat
@@ -665,18 +669,18 @@ theorem naimarkP_mul_apply {D : ℕ} {O : Type} [Fintype O] [DecidableEq O]
     rw [Finset.sum_eq_single (e o)]
     · by_cases h : xk = e o ∧ xi = a
       · obtain ⟨h1, h2⟩ := h
-        rw [if_pos (by exact ⟨h1, rfl, h2⟩), if_pos ⟨h1, h2⟩, one_mul]
-      · rw [if_neg (fun ⟨hh, _, hh'⟩ => h ⟨hh, hh'⟩), if_neg h, zero_mul]
+        rw [ite_eq_left (by exact ⟨h1, rfl, h2⟩), ite_eq_left ⟨h1, h2⟩, one_mul]
+      · rw [ite_eq_right (fun ⟨hh, _, hh'⟩ => h ⟨hh, hh'⟩), ite_eq_right h, zero_mul]
     · intro k _ hk'
-      rw [if_neg (fun ⟨_, hh, _⟩ => hk' hh), zero_mul]
+      rw [ite_eq_right (fun ⟨_, hh, _⟩ => hk' hh), zero_mul]
     · intro habs; exact absurd (Finset.mem_univ _) habs
   simp only [hk]
   rw [Finset.sum_eq_single xi]
   · by_cases h : xk = e o
-    · rw [if_pos (by exact ⟨h, rfl⟩), if_pos h]
-    · rw [if_neg (fun ⟨hh, _⟩ => h hh), if_neg h]
+    · rw [ite_eq_left (by exact ⟨h, rfl⟩), ite_eq_left h]
+    · rw [ite_eq_right (fun ⟨hh, _⟩ => h hh), ite_eq_right h]
   · intro b _ hb
-    rw [if_neg (fun ⟨_, hh⟩ => hb hh.symm)]
+    rw [ite_eq_right (fun ⟨_, hh⟩ => hb hh.symm)]
   · intro habs; exact absurd (Finset.mem_univ _) habs
 
 attribute [-instance] CStarMatrix.instHMulOfFintypeOfMulOfAddCommMonoid in
@@ -702,18 +706,18 @@ theorem naimarkP_mul_right_apply {D : ℕ} {O : Type} [Fintype O] [DecidableEq O
     rw [Finset.sum_eq_single (e o)]
     · by_cases h : xk = e o ∧ a = xi
       · obtain ⟨h1, h2⟩ := h
-        rw [if_pos (by exact ⟨rfl, h1, h2⟩), if_pos ⟨h1, h2⟩, mul_one]
-      · rw [if_neg (fun ⟨_, hh, hh'⟩ => h ⟨hh, hh'⟩), if_neg h, mul_zero]
+        rw [ite_eq_left (by exact ⟨rfl, h1, h2⟩), ite_eq_left ⟨h1, h2⟩, mul_one]
+      · rw [ite_eq_right (fun ⟨_, hh, hh'⟩ => h ⟨hh, hh'⟩), ite_eq_right h, mul_zero]
     · intro k _ hk'
-      rw [if_neg (fun ⟨hh, _, _⟩ => hk' hh), mul_zero]
+      rw [ite_eq_right (fun ⟨hh, _, _⟩ => hk' hh), mul_zero]
     · intro habs; exact absurd (Finset.mem_univ _) habs
   simp only [hk]
   rw [Finset.sum_eq_single xi]
   · by_cases h : xk = e o
-    · rw [if_pos (by exact ⟨h, rfl⟩), if_pos h]
-    · rw [if_neg (fun ⟨hh, _⟩ => h hh), if_neg h]
+    · rw [ite_eq_left (by exact ⟨h, rfl⟩), ite_eq_left h]
+    · rw [ite_eq_right (fun ⟨hh, _⟩ => h hh), ite_eq_right h]
   · intro b _ hb
-    rw [if_neg (fun ⟨_, hh⟩ => hb hh)]
+    rw [ite_eq_right (fun ⟨_, hh⟩ => hb hh)]
   · intro habs; exact absurd (Finset.mem_univ _) habs
 
 attribute [-instance] CStarMatrix.instHMulOfFintypeOfMulOfAddCommMonoid in
@@ -739,16 +743,16 @@ theorem naimarkP_sandwich_apply {D : ℕ} {O : Type} [Fintype O] [DecidableEq O]
     naimarkP_mul_right_apply e o (naimarkP e o * T) (xi, xk) (yi, yk)
   rw [h1]
   by_cases hy : yk = e o
-  · rw [if_pos hy]
+  · rw [ite_eq_left hy]
     have h2 : ((naimarkP e o * T) :
         Matrix (Fin D × Fin (Fintype.card O)) (Fin D × Fin (Fintype.card O)) ℂ) (xi, xk) (yi, e o)
         = if xk = e o then T (xi, e o) (yi, e o) else 0 :=
       naimarkP_mul_apply e o T (xi, xk) (yi, e o)
     rw [h2]
     by_cases hx : xk = e o
-    · rw [if_pos hx, if_pos ⟨hx, hy⟩]
-    · rw [if_neg hx, if_neg (fun ⟨hh, _⟩ => hx hh)]
-  · rw [if_neg hy, if_neg (fun ⟨_, hh⟩ => hy hh)]
+    · rw [ite_eq_left hx, ite_eq_left ⟨hx, hy⟩]
+    · rw [ite_eq_right hx, ite_eq_right (fun ⟨hh, _⟩ => hx hh)]
+  · rw [ite_eq_right hy, ite_eq_right (fun ⟨_, hh⟩ => hy hh)]
 
 attribute [-instance] CStarMatrix.instHMulOfFintypeOfMulOfAddCommMonoid in
 
@@ -775,10 +779,10 @@ theorem naimark_ptrace {D : ℕ} {O : Type} [Fintype O] [DecidableEq O]
       = W (i, e o) (j, e o) := by
     rw [Finset.sum_eq_single (e o)]
     · rw [naimarkP_sandwich_apply]
-      rw [if_pos ⟨rfl, rfl⟩]
+      rw [ite_eq_left ⟨rfl, rfl⟩]
     · intro k _ hk
       rw [naimarkP_sandwich_apply]
-      rw [if_neg (fun ⟨hh, _⟩ => hk hh)]
+      rw [ite_eq_right (fun ⟨hh, _⟩ => hk hh)]
     · intro habs; exact absurd (Finset.mem_univ _) habs
   rw [hsum]
   have hV : ∀ a b : Fin D,

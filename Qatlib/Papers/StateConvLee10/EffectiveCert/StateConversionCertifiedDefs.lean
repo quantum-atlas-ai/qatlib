@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ConversionCore.WitnessCompile.StateConversionEffective
-import Qatlib.Concepts.ConversionCore.WitnessCompile.StateConversionDefs
-import Qatlib.Concepts.BitWordCompiler.WordComposition.FiniteModels
-import Qatlib.Concepts.NumericalWord.MixedWordError.FixedGateSynthesis
-import Qatlib.Concepts.NumericalWord.MixedWordError.FixedGateSynthesisDefs
+module
+
+public import Qatlib.Concepts.ConversionCore.WitnessCompile.StateConversionEffective
+public import Qatlib.Concepts.ConversionCore.WitnessCompile.StateConversionDefs
+public import Qatlib.Concepts.BitWordCompiler.WordComposition.FiniteModels
+public import Qatlib.Concepts.NumericalWord.MixedWordError.FixedGateSynthesis
+public import Qatlib.Concepts.NumericalWord.MixedWordError.FixedGateSynthesisDefs
+
+@[expose] public section
 
 /-!
 # Data for effective state-conversion certificates

@@ -4,18 +4,22 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Lean.Elab.Tactic.NormCast
-import Lean.Elab.Tactic.Omega
-import Mathlib.Algebra.Field.ZMod
-import Mathlib.Algebra.Lie.OfAssociative
-import Mathlib.Algebra.MvPolynomial.Degrees
-import Mathlib.AlgebraicTopology.SimplexCategory.Basic
-import Mathlib.Analysis.RCLike.Basic
-import Mathlib.Tactic.Convert
-import Mathlib.Tactic.LinearCombination
-import Mathlib.Tactic.Ring
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.Theorem46PrimeCaseRestrictedStat
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.ParityPolynomialBound
+module
+
+public import Lean.Elab.Tactic.NormCast
+public import Lean.Elab.Tactic.Omega
+public import Mathlib.Algebra.Field.ZMod
+public import Mathlib.Algebra.Lie.OfAssociative
+public import Mathlib.Algebra.MvPolynomial.Degrees
+public import Mathlib.AlgebraicTopology.SimplexCategory.Basic
+public import Mathlib.Analysis.RCLike.Basic
+public import Mathlib.Tactic.Convert
+public import Mathlib.Tactic.LinearCombination
+public import Mathlib.Tactic.Ring
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.Theorem46PrimeCaseRestrictedStat
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.ParityPolynomialBound
+
+@[expose] public section
 
 /-!
 # Prime-case exact query lower bound
@@ -53,7 +57,7 @@ open scoped BigOperators
 for `k ≤ n`. -/
 private theorem prime_choose (n : ℕ) (hp : Nat.Prime (n + 1)) (k : ℕ) (hk : k ≤ n) :
     (n.choose k : ZMod (n + 1)) = (-1) ^ k := by
-  letI : Fact (Nat.Prime (n + 1)) := ⟨hp⟩
+  let : Fact (Nat.Prime (n + 1)) := ⟨hp⟩
   induction k with
   | zero => simp
   | succ k ih =>
@@ -71,7 +75,7 @@ private theorem prime_choose (n : ℕ) (hp : Nat.Prime (n + 1)) (k : ℕ) (hk : 
       linear_combination hzero
     simp only [Nat.cast_mul] at hrec
     rw [ih hk', hsub] at hrec
-    apply mul_right_cancel₀ hnz <;>
+    apply mul_right_cancel₀ hnz;
       calc
         (n.choose (k + 1) : ZMod (n + 1)) * (k + 1 : ℕ) =
             (-1 : ZMod (n + 1)) ^ k * -((k + 1 : ℕ) : ZMod (n + 1)) := hrec

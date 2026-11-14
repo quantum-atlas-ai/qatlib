@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QuditTeleport.TeleportCore.Transform
-import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteThermal.FiniteThermalUniformH
-import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteGateDecisionConsumers
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.FiniteStoppingTail
-import Qatlib.Concepts.WalkFind.UniformThree.FiniteAbelianState
-import Mathlib.Data.Fintype.EquivFin
+module
+
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.Transform
+public import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteThermal.FiniteThermalUniformH
+public import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteGateDecisionConsumers
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.FiniteStoppingTail
+public import Qatlib.Concepts.WalkFind.UniformThree.FiniteAbelianState
+public import Mathlib.Data.Fintype.EquivFin
+
+@[expose] public section
 
 /-!
 # Character labels and Fourier readout

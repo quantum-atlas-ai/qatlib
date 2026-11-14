@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.Remainder.CollisionCount
+module
+
+public import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.Remainder.CollisionCount
+
+@[expose] public section
 
 /-!
 # Rounding tensor energies to binary configurations
@@ -49,7 +53,7 @@ theorem noRepeat_affine {q N:ℕ} (A:Tensor q N) (u:Fin N→ℝ) (i:Fin N) :
   apply Finset.sum_congr rfl
   intro k _
   by_cases hk:Function.Injective k
-  · simp only [noRepeat,if_pos hk]
+  · simp only [noRepeat,ite_eq_left hk]
     by_cases hi:∃ a,k a=i
     · obtain ⟨a,ha⟩ := hi
       have hprod (t:ℝ) : (∏ b,(Function.update u i t) (k b))=

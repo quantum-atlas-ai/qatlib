@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QAOAScaling23.BiasedProcess.BornMass
+module
+
+public import Qatlib.Papers.QAOAScaling23.BiasedProcess.BornMass
+
+@[expose] public section
 
 /-!
 # Conditional laws on lower cost classes
@@ -59,7 +63,7 @@ theorem lowerClassLaw_real (cost : I → ℝ) (p : PMF I) (k : ℕ)
     (lowerClassLaw cost p k hk hpos j).toReal = weights cost p j.val / prefixSum (weights cost p) k := by
   change (ENNReal.ofReal _).toReal = _
   rw [ENNReal.toReal_ofReal (div_nonneg ENNReal.toReal_nonneg hpos.le)]
-  simp only [weights,dif_pos (lt_of_lt_of_le j.isLt hk)]
+  simp only [weights,dite_eq_left (lt_of_lt_of_le j.isLt hk)]
 
 /-- The candidate's cost rank as an optional element of `Fin k`, absent when that rank is at
 least `k`. -/

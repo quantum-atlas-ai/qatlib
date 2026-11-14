@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AbelianStabil95.AbelianStabil.ReversibleModel.Lemma6Matrix
-import Qatlib.Foundations.PureStateMath.Tensor
+module
+
+public import Qatlib.Papers.AbelianStabil95.AbelianStabil.ReversibleModel.Lemma6Matrix
+public import Qatlib.Foundations.PureStateMath.Tensor
+
+@[expose] public section
 
 /-!
 # Unitarity of the controlled matrix construction

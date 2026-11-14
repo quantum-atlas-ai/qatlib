@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.WalkReduction.CubicSpectrum.FourBlock
+module
+
+public import Qatlib.Foundations.WalkReduction.CubicSpectrum.FourBlock
+
+@[expose] public section
 
 /-!
 # Candidate critical rate and a nearby leading eigenvalue

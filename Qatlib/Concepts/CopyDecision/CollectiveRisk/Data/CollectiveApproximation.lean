@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CopyDecision.CollectiveRisk.Data.CollectivePostprocessing
-import Qatlib.Concepts.CopyDecision.QubitMeasure.Data.RiskCoarsening
-import Qatlib.Concepts.CopyDecision.FreshPolicies.Data.GeneralPolicy
+module
+
+public import Qatlib.Concepts.CopyDecision.CollectiveRisk.Data.CollectivePostprocessing
+public import Qatlib.Concepts.CopyDecision.QubitMeasure.Data.RiskCoarsening
+public import Qatlib.Concepts.CopyDecision.FreshPolicies.Data.GeneralPolicy
+
+@[expose] public section
 
 /-!
 # Collective Approximation
@@ -90,7 +94,7 @@ theorem GeneralJointPOVM.exists_finite_risk_coarsening {N : ℕ} {Y : Type} [Mea
   have hr : ∀ a, (B a).Nonempty → r a ∈ B a := by
     intro a ha
     dsimp only [r]
-    rw [dif_pos ha]
+    rw [dite_eq_left ha]
     exact ha.choose_spec
   refine ⟨m, M.coarsen B hB hd hu, r, ?_⟩
   intro q hq

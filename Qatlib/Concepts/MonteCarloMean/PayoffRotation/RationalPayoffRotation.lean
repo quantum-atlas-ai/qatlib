@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeCore.PayoffMedian.QuantumPayoffEstimation
-import Qatlib.Concepts.PhaseGeometry.RationalCayleyPhase
-import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+module
+
+public import Qatlib.Concepts.AmplitudeCore.PayoffMedian.QuantumPayoffEstimation
+public import Qatlib.Concepts.PhaseGeometry.RationalCayleyPhase
+public import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+
+@[expose] public section
 
 /-!
 # Rational rotations for bounded payoffs
@@ -376,7 +380,7 @@ theorem rationalPayoffRotation_error {I : Type} [Fintype I] [DecidableEq I]
     rw [Matrix.l2_opNorm_diagonal, pi_norm_le_iff_of_nonneg (by positivity)]
     intro p
     rw [Complex.norm_real, Real.norm_eq_abs]
-    cases p.2 <;> simp only [Bool.false_eq_true, if_false, if_true, abs_neg]
+    cases p.2 <;> simp only [Bool.false_eq_true, ite_false, ite_true, abs_neg]
     all_goals exact (rationalPayoffCS_sqrt_error (f p.1) k (hf p.1).1 (hf p.1).2).2
   have hX : ‖X‖ ≤ 1 := l2_norm_unitary_le_one (tensorGate_unitary (by simp) pauliX_unitary)
   rw [herr]

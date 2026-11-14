@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixAlgebra.RankOneSecular.AffineSpectrum
-import Qatlib.Papers.ProjectorQAOA26.FeasibleGap.UniformSecular
+module
+
+public import Qatlib.Foundations.MatrixAlgebra.RankOneSecular.AffineSpectrum
+public import Qatlib.Papers.ProjectorQAOA26.FeasibleGap.UniformSecular
+
+@[expose] public section
 
 /-!
 # Affine reduction of the interpolation gap

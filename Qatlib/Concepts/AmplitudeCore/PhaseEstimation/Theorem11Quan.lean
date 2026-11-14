@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeCore.PhaseEstimation.Theorem11Stat
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
-import Mathlib.Analysis.Real.Pi.Bounds
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Data.Real.Basic
-import Mathlib.Data.Complex.Basic
-import Mathlib.Analysis.Complex.Trigonometric
+module
+
+public import Qatlib.Concepts.AmplitudeCore.PhaseEstimation.Theorem11Stat
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+public import Mathlib.Analysis.Real.Pi.Bounds
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Analysis.Complex.Trigonometric
+
+@[expose] public section
 
 /-!
 # Phase estimation distributions and concentration
@@ -553,7 +557,7 @@ lemma bhmt_phase_estimation_theorem11_window_single (M : ℕ) (ω r : ℝ) (x : 
   have h := Finset.single_le_sum (s := (Finset.univ : Finset (Fin M)))
     (f := fun y => if bhmt11CircleDist (y.val / (M : ℝ)) ω ≤ r
       then bhmt11OutcomeMass M ω y else 0)
-    (fun y _ => by (try dsimp only); split_ifs <;> first | exact bhmt_phase_estimation_theorem11_mass_nonneg M ω y | rfl)
+    (fun y _ => by  split_ifs <;> first | exact bhmt_phase_estimation_theorem11_mass_nonneg M ω y | rfl)
     (Finset.mem_univ x)
   simpa [hx] using h
 
@@ -655,7 +659,7 @@ lemma bhmt_phase_estimation_theorem11_lift_injective (M : ℕ) (ω : ℝ) :
     Function.Injective (bhmt_phase_estimation_theorem11_lift M ω) := by
   intro x y h
   have he := congrArg (fun z : ℤ => z % M) h
-  try dsimp only at he
+
   rw [bhmt_phase_estimation_theorem11_lift_mod, bhmt_phase_estimation_theorem11_lift_mod] at he
   exact Fin.ext (by exact_mod_cast he)
 
@@ -748,7 +752,7 @@ lemma bhmt_phase_estimation_theorem11_tail (M : ℕ) (ω : ℝ) (hM : 0 < M)
     have he := Finset.sum_filter_add_sum_filter_not s (fun x => 0 ≤ g x)
       (fun x => bhmt11OutcomeMass M ω x)
     have hr : (1 / 4 : ℝ) * (1 / (k - 1)) + (1 / 4 : ℝ) * (1 / (k - 1)) =
-        1 / (2 * (k - 1)) := by field_simp <;> ring
+        1 / (2 * (k - 1)) := by field_simp; ring
     linarith
   have htotal : bhmt11WindowMass M ω (k / (M : ℝ)) +
       ∑ x ∈ s, bhmt11OutcomeMass M ω x = 1 := by
@@ -804,7 +808,7 @@ lemma bhmt_phase_estimation_theorem11_scalar_quotient (t : ℝ) (ht : 0 < t) (ht
   rw [show Real.pi * (1 - t) = Real.pi - Real.pi * t by ring, Real.sin_pi_sub]
   convert! div_le_div_of_nonneg_right h
     (show 0 ≤ Real.pi ^ 2 * t ^ 2 * (1 - t) ^ 2 by positivity) using 1 <;>
-    (try field_simp) <;> ring
+    (try field_simp); ring
 
 /-- For `M > 2` and phase in `[0, 1)`, the circular window of radius `1 / M` has mass at least
 `8 / π^2`. -/

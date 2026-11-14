@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Complex.Basic
-import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Lemma2RestrictedQuan
-import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Lemma3RestrictedQuan
-import Mathlib.LinearAlgebra.Matrix.ConjTranspose
+module
+
+public import Mathlib.Basic.Complex.Basic
+public import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Lemma2RestrictedQuan
+public import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Lemma3RestrictedQuan
+public import Mathlib.LinearAlgebra.Matrix.ConjTranspose
+
+@[expose] public section
 
 /-!
 # Specification of the rank-one sign action

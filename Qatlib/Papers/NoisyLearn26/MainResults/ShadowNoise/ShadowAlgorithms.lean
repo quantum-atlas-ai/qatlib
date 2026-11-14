@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NoisyLearn26.MainResults.Models.InterfaceModels
+module
+
+public import Qatlib.Papers.NoisyLearn26.MainResults.Models.InterfaceModels
+
+@[expose] public section
 
 /-!
 # Pauli signs and noisy Bell outcome formulas
@@ -78,7 +82,7 @@ theorem bellSign_self {n : ℕ} (P : Pauli n) : bellSign P P = 1 := by
 
 /-- For noise in `[0, 1]`, `bellOutcomeProb` equals `4^(-n) * (1 + (depolScale lam P)² *
 bellSign s P)`. -/
-theorem bell_law_via_depolScale {n : ℕ} {lam : ℝ} (h0 : 0 ≤ lam) (h1 : lam ≤ 1)
+theorem bell_law_via_depolScale {n : ℕ} {lam : ℝ} (_h0 : 0 ≤ lam) (_h1 : lam ≤ 1)
     (P s : Pauli n) :
     bellOutcomeProb lam P s =
       (4 : ℝ) ^ (-(n : ℝ)) * (1 + depolScale lam P ^ 2 * bellSign s P) := by

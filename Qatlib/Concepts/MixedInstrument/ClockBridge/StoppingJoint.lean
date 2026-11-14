@@ -4,7 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdaptiveCP.BranchTrace.StoppingJointDefs
+module
+
+public import Qatlib.Concepts.AdaptiveCP.BranchTrace.StoppingJointDefs
+
+@[expose] public section
+
+set_option linter.unusedSectionVars false
 
 /-!
 # Joint first-stopping probabilities and quantum maps
@@ -149,9 +155,9 @@ theorem jointStopMap_cp (P : JointProgram S O X D E) :
       | inl o0 =>
           simp only [jointStopMap_zero]
           by_cases h : o0 = o ∧ k = 0
-          · simp only [h, and_self, if_true]
+          · simp only [h, and_self, ite_true]
             exact P.instrument.cp x
-          · simp only [h, if_false]
+          · simp only [h, ite_false]
             exact CompletelyPositive.zero'
       | inr s =>
           simp only [jointStopMap_zero]
@@ -162,20 +168,20 @@ theorem jointStopMap_cp (P : JointProgram S O X D E) :
       | inl o0 =>
           simp only [jointStopMap_succ]
           by_cases h : o0 = o ∧ k = 0
-          · simp only [h, and_self, if_true]
+          · simp only [h, and_self, ite_true]
             exact P.instrument.cp x
-          · simp only [h, if_false]
+          · simp only [h, ite_false]
             exact CompletelyPositive.zero'
       | inr s =>
           simp only [jointStopMap_succ]
           by_cases hk : P.cost s ≤ k
-          · simp only [hk, if_true]
+          · simp only [hk, ite_true]
             refine CompletelyPositive.sum (fun d _ => ?_)
             refine CompletelyPositive.smul ?_ (transitionProb P s d) ?_
             · exact (CompletelyPositive.comp (ih d o x (k - P.cost s))
                 (P.channel s).completelyPositive)
             · exact ENNReal.toReal_nonneg
-          · simp only [hk, if_false]
+          · simp only [hk, ite_false]
             exact CompletelyPositive.zero'
 
 /-- A quantum channel maps density operators to density operators. -/
@@ -200,9 +206,9 @@ theorem jointProb_trace (P : JointProgram S O X D E) :
       | inl o0 =>
           simp only [jointStopMap_zero, jointProb_zero]
           by_cases h : o0 = o ∧ k = 0
-          · simp only [h, and_self, if_true]
+          · simp only [h, and_self, ite_true]
             rw [trace_branch_eq P.instrument hρ.1 x]
-          · simp only [h, if_false]
+          · simp only [h, ite_false]
             simp [Matrix.trace]
       | inr s =>
           simp only [jointStopMap_zero, jointProb_zero]
@@ -213,14 +219,14 @@ theorem jointProb_trace (P : JointProgram S O X D E) :
       | inl o0 =>
           simp only [jointStopMap_succ, jointProb_succ]
           by_cases h : o0 = o ∧ k = 0
-          · simp only [h, and_self, if_true]
+          · simp only [h, and_self, ite_true]
             rw [trace_branch_eq P.instrument hρ.1 x]
-          · simp only [h, if_false]
+          · simp only [h, ite_false]
             simp [Matrix.trace]
       | inr s =>
           simp only [jointStopMap_succ, jointProb_succ]
           by_cases hk : P.cost s ≤ k
-          · simp only [hk, if_true]
+          · simp only [hk, ite_true]
             have hmem : IsDensityOperator ((P.channel s).map ρ) :=
               isDensityOperator_channel (P.channel s) hρ
             calc
@@ -248,7 +254,7 @@ theorem jointProb_trace (P : JointProgram S O X D E) :
                     jointProb P ((P.channel s).map ρ) fuel d o x (k - P.cost s) : ℝ) : ℂ) := by
                 symm
                 exact ofReal_finset_sum Finset.univ _
-          · simp only [hk, if_false]
+          · simp only [hk, ite_false]
             simp [Matrix.trace]
 
 /-- The joint classical mass at a fixed output and charge equals the corresponding cost-weighted
@@ -277,11 +283,11 @@ theorem jointClassicalMass_eq_weightedRunFor (P : JointProgram S O X D E) :
       | inr s =>
           simp only [jointClassicalMass_succ, weightedRunFor_succ_running_point]
           by_cases hk : P.cost s ≤ k
-          · simp only [hk, if_true]
+          · simp only [hk, ite_true]
             rw [tsum_fintype (L := SummationFilter.unconditional _)]
             refine Finset.sum_congr rfl (fun d _ => ?_)
             rw [ih d o (k - P.cost s)]
-          · simp only [hk, if_false]
+          · simp only [hk, ite_false]
 
 /-- Every finite-fuel joint classical output and charge mass is finite. -/
 theorem jointClassicalMass_ne_top (P : JointProgram S O X D E) (fuel : ℕ) (cfg : O ⊕ S)
@@ -309,10 +315,10 @@ theorem jointProb_charge_layer (P : JointProgram S O X D E) :
       | inl o0 =>
           simp only [jointProb_zero, jointClassicalMass_zero]
           by_cases h : o0 = o ∧ k = 0
-          · simp only [h, and_self, if_true]
+          · simp only [h, and_self, ite_true]
             rw [sum_instrumentProb P.instrument ρ]
             simp [hρ.2]
-          · simp only [h, if_false]
+          · simp only [h, ite_false]
             simp
       | inr s =>
           simp only [jointProb_zero, jointClassicalMass_zero]
@@ -323,15 +329,15 @@ theorem jointProb_charge_layer (P : JointProgram S O X D E) :
       | inl o0 =>
           simp only [jointProb_succ, jointClassicalMass_succ]
           by_cases h : o0 = o ∧ k = 0
-          · simp only [h, and_self, if_true]
+          · simp only [h, and_self, ite_true]
             rw [sum_instrumentProb P.instrument ρ]
             simp [hρ.2]
-          · simp only [h, if_false]
+          · simp only [h, ite_false]
             simp
       | inr s =>
           simp only [jointProb_succ, jointClassicalMass_succ]
           by_cases hk : P.cost s ≤ k
-          · simp only [hk, if_true]
+          · simp only [hk, ite_true]
             have hmem : IsDensityOperator ((P.channel s).map ρ) :=
               isDensityOperator_channel (P.channel s) hρ
             have hlayer : ∀ d : O ⊕ S,
@@ -364,7 +370,7 @@ theorem jointProb_charge_layer (P : JointProgram S O X D E) :
             refine Finset.sum_congr rfl (fun d _ => ?_)
             rw [hlayer d]
             rfl
-          · simp only [hk, if_false]
+          · simp only [hk, ite_false]
             simp
 
 /-- A finite sum of completely positive linear maps is completely positive. -/
@@ -390,9 +396,9 @@ theorem jointEventMap_cp (P : JointProgram S O X D E) :
   refine CompletelyPositive.sum (fun x _ => ?_)
   refine CompletelyPositive.finset_sum' _ (fun k _ => ?_)
   by_cases h : Ev (o, x, k)
-  · simp only [h, if_true]
+  · simp only [h, ite_true]
     exact jointStopMap_cp P fuel cfg o x k
-  · simp only [h, if_false]
+  · simp only [h, ite_false]
     exact CompletelyPositive.zero'
 
 /-- A positive semidefinite operator with trace zero is zero. -/
@@ -422,9 +428,9 @@ theorem jointEventMap_trace (P : JointProgram S O X D E) :
         = ((if Ev (o, x, k) then jointProb P ρ fuel cfg o x k else 0 : ℝ) : ℂ) := by
     intro o x k
     by_cases h : Ev (o, x, k)
-    · simp only [h, if_true]
+    · simp only [h, ite_true]
       exact jointProb_trace P fuel cfg o x k ρ hρ
-    · simp only [h, if_false]
+    · simp only [h, ite_false]
       simp
   unfold jointEventMap jointEventProb
   simp only [LinearMap.sum_apply]
@@ -451,7 +457,7 @@ theorem jointNormalizedPost_isDensity (P : JointProgram S O X D E) :
   have hinv : (0 : ℂ) ≤ (((jointEventProb P ρ fuel cfg Ev : ℝ) : ℂ))⁻¹ := by
     rw [← Complex.ofReal_inv]
     exact RCLike.ofReal_nonneg.mpr (inv_nonneg.mpr hpos.le)
-  rw [jointNormalizedPost, if_pos hpos]
+  rw [jointNormalizedPost, ite_eq_left hpos]
   refine ⟨Matrix.PosSemidef.smul hpsd hinv, ?_⟩
   rw [Matrix.trace_smul, htr, smul_eq_mul, inv_mul_cancel₀ hne]
 
@@ -524,7 +530,7 @@ theorem jointLabelPost_isDensity (P : JointProgram S O X D E) :
   have hinv : (0 : ℂ) ≤ (((jointProb P ρ fuel cfg o x k : ℝ) : ℂ))⁻¹ := by
     rw [← Complex.ofReal_inv]
     exact RCLike.ofReal_nonneg.mpr (inv_nonneg.mpr hpos.le)
-  rw [jointLabelPost, if_pos hpos]
+  rw [jointLabelPost, ite_eq_left hpos]
   refine ⟨Matrix.PosSemidef.smul hpsd hinv, ?_⟩
   rw [Matrix.trace_smul, htr, smul_eq_mul, inv_mul_cancel₀ hne]
 
@@ -617,10 +623,10 @@ theorem jointReferenceEventMap_trace (P : JointProgram S O X D E) :
               jointProb P (jointMemoryMarginal D R ρ) fuel cfg o x k else 0 : ℝ) : ℂ) := by
     intro o x k
     by_cases h : Ev (o, x, k)
-    · simp only [h, if_true]
+    · simp only [h, ite_true]
       rw [tensorLeft_trace]
       exact jointProb_trace P fuel cfg o x k (jointMemoryMarginal D R ρ) hρ
-    · simp only [h, if_false]
+    · simp only [h, ite_false]
       rw [tensorLeft_zero]
       simp
   unfold jointReferenceEventMap jointEventMap jointEventProb
@@ -646,9 +652,9 @@ theorem jointClassicalMass_zero_of_charge_gt (P : JointProgram S O X D E) :
       cases cfg with
       | inl o0 =>
           by_cases hc : o0 = o ∧ k = 0
-          · simp only [if_pos hc]
+          · simp only [ite_eq_left hc]
             exact absurd hc.2 (Nat.ne_of_gt (by simpa using! h))
-          · simp only [if_neg hc]
+          · simp only [ite_eq_right hc]
       | inr s => rfl
   | succ fuel ih =>
       intro cfg o k h
@@ -656,12 +662,12 @@ theorem jointClassicalMass_zero_of_charge_gt (P : JointProgram S O X D E) :
       cases cfg with
       | inl o0 =>
           by_cases hc : o0 = o ∧ k = 0
-          · simp only [if_pos hc]
+          · simp only [ite_eq_left hc]
             exact absurd hc.2 (Nat.ne_of_gt (by have h2 := h; omega))
-          · simp only [if_neg hc]
+          · simp only [ite_eq_right hc]
       | inr s =>
           by_cases hk : P.cost s ≤ k
-          · simp only [if_pos hk]
+          · simp only [ite_eq_left hk]
             refine Finset.sum_eq_zero (fun d _ => ?_)
             have hcost : P.cost s ≤ maxCharge P := Finset.le_sup (Finset.mem_univ s)
             have hlt : fuel * maxCharge P < k - P.cost s := by
@@ -675,7 +681,7 @@ theorem jointClassicalMass_zero_of_charge_gt (P : JointProgram S O X D E) :
               omega
             rw [ih d o (k - P.cost s) hlt]
             simp
-          · simp only [if_neg hk]
+          · simp only [ite_eq_right hk]
 
 /-- The non-Zeno Boolean check for the program cost succeeds exactly when that cost satisfies
 `positiveCharge`. -/

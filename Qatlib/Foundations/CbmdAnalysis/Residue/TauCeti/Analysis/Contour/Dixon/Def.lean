@@ -6,10 +6,14 @@ Authors: Chris Birkbeck, Qatlib Contributors
 Adapted from https://github.com/TauCetiProject/TauCeti@3780371c
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+module
 
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Winding.Number.Basic
-import Mathlib.Analysis.Calculus.DSlope
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Winding.Number.Basic
+public import Mathlib.Analysis.Calculus.DSlope
+
+@[expose] public section
 
 /-!
 # Identities for the Dixon contour function
@@ -87,13 +91,13 @@ theorem dixonH1_eq_dixonH2_sub_windingNumber_mul_f {f : ℂ → ℂ} {γ : ℝ �
 @[simp]
 theorem dixonFunction_eq_dixonH1 {f : ℂ → ℂ} {U : Set ℂ} {γ : ℝ → ℂ} {a b : ℝ} {w : ℂ}
     (hw : w ∈ U) : dixonFunction f U γ a b w = dixonH1 f γ a b w := by
-  rw [dixonFunction_def, if_pos hw]
+  rw [dixonFunction_def, ite_eq_left hw]
 
 /-- Outside `U`, the Dixon function equals its Cauchy integral component `dixonH2`. -/
 @[simp]
 theorem dixonFunction_eq_dixonH2 {f : ℂ → ℂ} {U : Set ℂ} {γ : ℝ → ℂ} {a b : ℝ} {w : ℂ}
     (hw : w ∉ U) : dixonFunction f U γ a b w = dixonH2 f γ a b w := by
-  rw [dixonFunction_def, if_neg hw]
+  rw [dixonFunction_def, ite_eq_right hw]
 
 end TauCeti.Contour
 

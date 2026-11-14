@@ -4,10 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Defs
-import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Basic
-import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Kraus
-import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Tools
+module
+
+public import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Defs
+public import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Basic
+public import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Kraus
+public import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Tools
+
+@[expose] public section
+set_option linter.unusedTactic false
+set_option linter.unusedSimpArgs false
+set_option linter.unnecessarySeqFocus false
 
 /-!
 # The two-output cluster-chain isometry
@@ -95,8 +102,8 @@ theorem cnotAux_W_isometry : cnotAux_W.conjTranspose * cnotAux_W = 1 := by
     intro k i
     rw [cnotAux_W_apply]
     by_cases h : ((bitVecEquiv 2).symm k) 0 = !((bitVecEquiv 1).symm i) 0
-    · rw [if_pos h, star_mul', cnotAux_star_bitPhase, cnotAux_star_inv_sqrt2]
-    · rw [if_neg h, star_zero]
+    · rw [ite_eq_left h, star_mul', cnotAux_star_bitPhase, cnotAux_star_inv_sqrt2]
+    · rw [ite_eq_right h, star_zero]
   ext i j
   show (∑ k : Fin 4, (cnotAux_W.conjTranspose i k : ℂ) * cnotAux_W k j)
       = (1 : Matrix (Fin 2) (Fin 2) ℂ) i j
@@ -131,7 +138,7 @@ theorem cnotAux_two_frame (x : Reg 4) :
       = Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (x 1) * Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (x 2)
           * Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (x 3) := by
   rw [Qatlib.Concepts.MbqcFlow.FlowDecision.frameMatrix, Matrix.diagonal_apply,
-      if_pos (rfl : x = x)]
+      ite_eq_left (rfl : x = x)]
   rw [cnotAux_prod_fin4]
   have h0 : Qatlib.Concepts.MbqcFlow.FlowDecision.incomingOdd cnotAux_twoE 0 = false := by decide
   have h1 : Qatlib.Concepts.MbqcFlow.FlowDecision.incomingOdd cnotAux_twoE 1 = true := by decide
@@ -146,7 +153,7 @@ theorem cnotAux_two_cz (x : Reg 4) :
     Qatlib.Concepts.MbqcFlow.FlowDecision.czMatrix cnotAux_twoE x x
       = Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (x 0 && x 1) * Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (x 1 && x 2)
           * Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (x 2 && x 3) := by
-  rw [Qatlib.Concepts.MbqcFlow.FlowDecision.czMatrix, Matrix.diagonal_apply, if_pos (rfl : x = x)]
+  rw [Qatlib.Concepts.MbqcFlow.FlowDecision.czMatrix, Matrix.diagonal_apply, ite_eq_left (rfl : x = x)]
   show (∏ e ∈ cnotAux_twoE, if x e.1 && x e.2 then (-1 : ℂ) else 1) = _
   rw [cnotAux_twoE]
   rw [Finset.prod_insert (by decide), Finset.prod_insert (by decide),
@@ -168,22 +175,22 @@ theorem cnotAux_two_ent_diag (x y : Reg 4) :
   rw [cnotAux_two_entangler]
   by_cases h : x = y
   · subst h
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     rw [Matrix.mul_apply, Finset.sum_eq_single x]
     · rw [cnotAux_two_frame, cnotAux_two_cz]
       rfl
     · intro k _ hk
-      rw [Qatlib.Concepts.MbqcFlow.FlowDecision.frameMatrix, Matrix.diagonal_apply, if_neg (Ne.symm hk),
+      rw [Qatlib.Concepts.MbqcFlow.FlowDecision.frameMatrix, Matrix.diagonal_apply, ite_eq_right (Ne.symm hk),
         zero_mul]
     · intro hh; exact absurd (Finset.mem_univ _) hh
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     rw [Matrix.mul_apply]
     apply Finset.sum_eq_zero
     intro k _
     by_cases hk : k = x
     · subst hk
-      rw [Qatlib.Concepts.MbqcFlow.FlowDecision.czMatrix, Matrix.diagonal_apply, if_neg h, mul_zero]
-    · rw [Qatlib.Concepts.MbqcFlow.FlowDecision.frameMatrix, Matrix.diagonal_apply, if_neg (Ne.symm hk),
+      rw [Qatlib.Concepts.MbqcFlow.FlowDecision.czMatrix, Matrix.diagonal_apply, ite_eq_right h, mul_zero]
+    · rw [Qatlib.Concepts.MbqcFlow.FlowDecision.frameMatrix, Matrix.diagonal_apply, ite_eq_right (Ne.symm hk),
         zero_mul]
 
 /-- Every amplitude of the uniform three-qubit vector is `1 / sqrt 8`. -/
@@ -199,21 +206,21 @@ theorem cnotAux_two_load (d : Reg 4) (y : Reg 1) :
       = if d 0 = y 0 then ((Real.sqrt 8 : ℝ) : ℂ)⁻¹ else 0 := by
   simp only [mpLoadMatrix, mpTwoOutputPattern, Matrix.of_apply]
   by_cases h : ∀ i : Fin 1, d (Fin.castLE (by omega : (1:ℕ) ≤ 2 + 2) i) = y i
-  · rw [if_pos h]
+  · rw [ite_eq_left h]
     have h0 : d 0 = y 0 := h ⟨0, by omega⟩
-    rw [if_pos h0]
+    rw [ite_eq_left h0]
     have hres : Uniform (Reg 3)
         (fun k : Fin 3 => d (Fin.cast (by omega) (Fin.natAdd 1 k))) = ((Real.sqrt 8 : ℝ) : ℂ)⁻¹ :=
       cnotAux_uniform3 _
     rw [hres]
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     have h0 : ¬ d 0 = y 0 := by
       intro hh
       apply h
       intro i
       fin_cases i
       exact hh
-    rw [if_neg h0]
+    rw [ite_eq_right h0]
 
 /-- Entangling the loaded three-qubit uniform resource gives `cnotAux_twoPhase d / sqrt 8` when
 the input bit matches register coordinate zero, and zero otherwise. -/
@@ -225,14 +232,14 @@ theorem cnotAux_two_EL (d : Reg 4) (y : Reg 1) :
         else 0 := by
   rw [Matrix.mul_apply]
   rw [Finset.sum_eq_single d]
-  · rw [cnotAux_two_ent_diag, if_pos rfl, cnotAux_two_load]
+  · rw [cnotAux_two_ent_diag, ite_eq_left rfl, cnotAux_two_load]
     by_cases h : d 0 = y 0
-    · rw [if_pos h, if_pos h]
+    · rw [ite_eq_left h, ite_eq_left h]
       ring
-    · rw [if_neg h, if_neg h]
+    · rw [ite_eq_right h, ite_eq_right h]
       ring
   · intro d' _ hdne
-    rw [cnotAux_two_ent_diag, if_neg (Ne.symm hdne), zero_mul]
+    rw [cnotAux_two_ent_diag, ite_eq_right (Ne.symm hdne), zero_mul]
   · intro h; exact absurd (Finset.mem_univ _) h
 
 /-- Every adaptive measurement angle of the two-output pattern is zero, for every outcome
@@ -326,9 +333,9 @@ theorem cnotAux_two_sum_eq (s : Fin 2 → Bool) (xp : Fin 4) (y : Reg 1) :
           · exact absurd h0 hc
           · exact absurd h2 hc
           · exact absurd h3 hc
-        · rw [if_neg (fun hh => h3 hh.2), mul_zero, zero_mul]
-      · rw [if_neg (fun hh => h2 hh.1), mul_zero, zero_mul]
-    · rw [if_neg h0, mul_zero]
+        · rw [ite_eq_right (fun hh => h3 hh.2), mul_zero, zero_mul]
+      · rw [ite_eq_right (fun hh => h2 hh.1), mul_zero, zero_mul]
+    · rw [ite_eq_right h0, mul_zero]
 
 /-- The first output's `X` correction is controlled by the second measurement outcome `s 1`. -/
 theorem cnotAux_two_xCorr0 (s : Fin 2 → Bool) : mpTwoOutputPattern.xCorr 0 s = s 1 := by

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MixedFidelity.FidelityMetric.MixedFidelityDefs
+module
+
+public import Qatlib.Concepts.MixedFidelity.FidelityMetric.MixedFidelityDefs
+
+@[expose] public section
 
 /-!
 # Average score of the multiple-template measurement
@@ -65,13 +69,13 @@ lemma entrySum_single (i j : Fin d) (c : ℂ) : entrySum (Matrix.single i j c) =
     by_cases ha : i = a
     · subst ha
       simp
-    · rw [if_neg ha]
-      exact Finset.sum_eq_zero fun b _ => by rw [if_neg]; simp [ha]
+    · rw [ite_eq_right ha]
+      exact Finset.sum_eq_zero fun b _ => by rw [ite_eq_right]; simp [ha]
   rw [Finset.sum_congr rfl (fun a _ => hrow a)]
   rw [Finset.sum_eq_single i]
   · simp
   · intro a _ ha
-    rw [if_neg (show ¬ (i = a) from fun h => ha h.symm)]
+    rw [ite_eq_right (show ¬ (i = a) from fun h => ha h.symm)]
   · intro hi; exact absurd (Finset.mem_univ i) hi
 
 /-- The entry sum of a finite sum of operators equals the sum of their entry sums. -/

@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecodingCoreDefs
-import Qatlib.Concepts.CodingDecoding.CssTesters.CssCode
-import Qatlib.Concepts.CodingDecoding.CssTesters.CssTester
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Qatlib.Concepts.CodingDecoding.CssTesters.LogicalNonscalarRestriction
+module
+
+public import Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecodingCoreDefs
+public import Qatlib.Concepts.CodingDecoding.CssTesters.CssCode
+public import Qatlib.Concepts.CodingDecoding.CssTesters.CssTester
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Qatlib.Concepts.CodingDecoding.CssTesters.LogicalNonscalarRestriction
+
+@[expose] public section
 
 /-!
 # CSS recovery correctness
@@ -55,6 +59,12 @@ namespace Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding
 open Matrix
 open scoped Classical
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.bitWeight_eq_zero`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- A binary vector with Hamming weight zero is the zero vector. -/
 theorem bitWeight_eq_zero {κ : Type} [Fintype κ] [DecidableEq κ] {v : κ → ZMod 2}
     (h : bitWeight v = 0) : v = 0 := by
@@ -67,18 +77,36 @@ theorem bitWeight_eq_zero {κ : Type} [Fintype κ] [DecidableEq κ] {v : κ → 
   simp only [bitWeight] at h
   omega
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.bitWeight_pos_of_ne_zero`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- A nonzero binary vector has positive Hamming weight. -/
 theorem bitWeight_pos_of_ne_zero {κ : Type} [Fintype κ] [DecidableEq κ] {v : κ → ZMod 2}
     (h : v ≠ 0) : 0 < bitWeight v := by
   by_contra hn
   exact h (bitWeight_eq_zero (Nat.eq_zero_of_not_pos hn))
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.pauliWeight_zero_zero`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The Pauli label with both components zero has weight zero. -/
 theorem pauliWeight_zero_zero {κ : Type} [Fintype κ] [DecidableEq κ] :
     pauliWeight (0 : κ → ZMod 2) 0 = 0 := by
   unfold pauliWeight
   simp
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.pauliWeight_eq_zero`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- A Pauli label with weight zero has both components zero. -/
 theorem pauliWeight_eq_zero {κ : Type} [Fintype κ] [DecidableEq κ] {x z : κ → ZMod 2}
     (h : pauliWeight x z = 0) : x = 0 ∧ z = 0 := by
@@ -93,18 +121,36 @@ theorem pauliWeight_eq_zero {κ : Type} [Fintype κ] [DecidableEq κ] {x z : κ 
     omega
   exact ⟨funext fun i => (hall i).1, funext fun i => (hall i).2⟩
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.zero_mem_range_mulVecLin`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The zero vector lies in the range of the linear map defined by a binary matrix. -/
 theorem zero_mem_range_mulVecLin {κ κ' : Type} [Fintype κ] [Fintype κ']
     (A : Matrix κ κ' (ZMod 2)) :
     (0 : κ → ZMod 2) ∈ LinearMap.range (Matrix.mulVecLin A) :=
   ⟨(0 : κ' → ZMod 2), map_zero (Matrix.mulVecLin A)⟩
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.isStabilizerLabel_zero`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The zero Pauli label is a stabilizer label for every CSS code. -/
 theorem isStabilizerLabel_zero {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype κZ]
     [DecidableEq ι] [DecidableEq κX] [DecidableEq κZ] (c : CssData ι κX κZ) :
     IsStabilizerLabel c ((0 : ι → ZMod 2), 0) :=
   ⟨zero_mem_range_mulVecLin c.hXᵀ, zero_mem_range_mulVecLin c.hZᵀ⟩
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.one_le_cssDistance`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The extended-natural distance of every CSS code is at least one. -/
 theorem one_le_cssDistance {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype κZ]
     [DecidableEq ι] [DecidableEq κX] [DecidableEq κZ] (c : CssData ι κX κZ) :
@@ -128,18 +174,36 @@ theorem one_le_cssDistance {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Finty
     have : (1 : ℕ) ≤ bitWeight x := Nat.succ_le_of_lt (bitWeight_pos_of_ne_zero hx0)
     exact_mod_cast this
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.trivialCode`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The one-qubit CSS data with one zero X check and one zero Z check. -/
 def trivialCode : CssData (Fin 1) (Fin 1) (Fin 1) where
   hX := 0
   hZ := 0
   hcompat := by simp
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.trivialProg`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The recovery program for `trivialCode` that always chooses zero correction and assigns zero
 decoding time. -/
 def trivialProg : RecoveryProgram trivialCode where
   corr := fun _ => (0, 0)
   decodeTime := fun _ => 0
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.trivialGadget`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- A gadget of the specified kind with one location, unit space and time, and zero ideal and
 residual labels. -/
 def trivialGadget (k : GadgetKind) : GadgetSpec trivialCode where
@@ -150,6 +214,12 @@ def trivialGadget (k : GadgetKind) : GadgetSpec trivialCode where
   ideal := (0, 0)
   residual := fun _ => (0, 0)
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.trivialFtRealization`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The finite fault-tolerance parameter record built from the trivial code, a zero-correction
 decoder, and two trivial gadgets. -/
 noncomputable def trivialFtRealization : FtRealization where
@@ -166,17 +236,35 @@ noncomputable def trivialFtRealization : FtRealization where
   budget := 2
   peak := 1
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.residualLabel_trivialProg`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The trivial recovery program leaves every input Pauli label as its residual. -/
 theorem residualLabel_trivialProg {e : PauliLabel (Fin 1)} :
     residualLabel trivialProg e = e := by
   unfold residualLabel residualFromObserved
   simp [trivialProg, pauliSyndrome]
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.trivialGadget_idealCorrect`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- Every trivial gadget satisfies ideal correctness. -/
 theorem trivialGadget_idealCorrect (k : GadgetKind) :
     (trivialGadget k).IsIdealCorrect :=
   ⟨isStabilizerLabel_zero trivialCode, rfl⟩
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.trivialGadget_faultTolerant`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- Every trivial gadget satisfies the fault-tolerance predicate at tolerance zero. -/
 theorem trivialGadget_faultTolerant (k : GadgetKind) :
     (trivialGadget k).IsFaultTolerantAt 0 := by
@@ -184,6 +272,12 @@ theorem trivialGadget_faultTolerant (k : GadgetKind) :
   show pauliWeight (0 : Fin 1 → ZMod 2) 0 ≤ 0
   simp [pauliWeight]
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.fin1_filter_card_pos`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- For a single fault location, summing over nonempty fault sets equals summing over sets
 containing the full location set. -/
 theorem fin1_filter_card_pos (pp : Finset (Fin 1) → ℝ) :
@@ -206,6 +300,12 @@ theorem fin1_filter_card_pos (pp : Finset (Fin 1) → ℝ) :
       exact Finset.card_pos.mpr ⟨0, hsub h0⟩
   rw [Finset.filter_congr fun F _ => hiff F]
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.gadgetFailureProb_fin1_zero`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- For one fault location under local stochastic noise, the zero-tolerance failure probability
 is bounded by the first-order binomial expression. -/
 theorem gadgetFailureProb_fin1_zero (pp : Finset (Fin 1) → ℝ) (p : ℝ)
@@ -218,6 +318,12 @@ theorem gadgetFailureProb_fin1_zero (pp : Finset (Fin 1) → ℝ) (p : ℝ)
   rw [hg, fin1_filter_card_pos]
   simpa [pow_one] using hsum
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.gadgetFailureProb_adversarial_zero`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- An adversarial fault budget of zero forces the zero-tolerance gadget failure probability to
 vanish. -/
 theorem gadgetFailureProb_adversarial_zero {ζ : ℕ} {pp : Finset (Fin ζ) → ℝ} {a : ℕ}
@@ -236,6 +342,12 @@ theorem gadgetFailureProb_adversarial_zero {ζ : ℕ} {pp : Finset (Fin ζ) → 
   simp only [Finset.mem_filter, Finset.mem_univ, true_and] at hF
   exact hzero F hF
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.g3`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- There exists a finite fault-tolerance realization with decoder correctness, ideal and
 bounded-fault gadget properties, positive noise and error parameters, stochastic and
 adversarial failure bounds, and spacetime and peak-space bounds. -/
@@ -341,6 +453,12 @@ theorem g3 :
   · show peakSpace [trivialGadget .syndromeRound, trivialGadget .gate] ≤ 1
     norm_num [peakSpace, trivialGadget]
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.mem_cssCodespace_iff'`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- A vector belongs to the CSS codespace exactly when every X check and every Z check fixes it. -/
 theorem mem_cssCodespace_iff' {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype κZ]
     [DecidableEq ι] (c : CssData ι κX κZ) (v : (ι → ZMod 2) → ℂ) :
@@ -350,6 +468,12 @@ theorem mem_cssCodespace_iff' {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fi
   simp [cssCodespace, cssXStabilized, cssZStabilized, cssXCheckKernel, cssZCheckKernel,
     sub_eq_zero]
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.cssPauliX_sum_fixes`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- If each X operator in a finite family fixes a vector, the X operator labeled by the sum of
 their labels also fixes it. -/
 theorem cssPauliX_sum_fixes {ι κ : Type} [Fintype ι] [Fintype κ] [DecidableEq ι]
@@ -362,6 +486,12 @@ theorem cssPauliX_sum_fixes {ι κ : Type} [Fintype ι] [Fintype κ] [DecidableE
     rw [Finset.sum_insert hi, ← cssPauliX_mul, ← Matrix.mulVec_mulVec,
       ih (fun j hj => h j (Finset.mem_insert_of_mem hj)), h i (Finset.mem_insert_self i s)]
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.cssPauliZ_sum_fixes`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- If each Z operator in a finite family fixes a vector, the Z operator labeled by the sum of
 their labels also fixes it. -/
 theorem cssPauliZ_sum_fixes {ι κ : Type} [Fintype ι] [Fintype κ] [DecidableEq ι]
@@ -374,6 +504,12 @@ theorem cssPauliZ_sum_fixes {ι κ : Type} [Fintype ι] [Fintype κ] [DecidableE
     rw [Finset.sum_insert hi, ← cssPauliZ_mul, ← Matrix.mulVec_mulVec,
       ih (fun j hj => h j (Finset.mem_insert_of_mem hj)), h i (Finset.mem_insert_self i s)]
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.transpose_mulVec_eq_smul_sum`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- Multiplication by the transpose of a binary matrix is the linear combination of its rows
 with the input coefficients. -/
 theorem transpose_mulVec_eq_smul_sum {ι κ : Type} [Fintype ι] [Fintype κ] [DecidableEq ι]
@@ -384,6 +520,12 @@ theorem transpose_mulVec_eq_smul_sum {ι κ : Type} [Fintype ι] [Fintype κ] [D
     Pi.smul_apply, smul_eq_mul]
   exact Finset.sum_congr rfl (fun i _ => mul_comm _ _)
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.cssPauliX_fixes_row`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- Every X operator labeled by a linear combination of X-check rows fixes every codespace
 vector. -/
 theorem cssPauliX_fixes_row {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype κZ]
@@ -396,6 +538,12 @@ theorem cssPauliX_fixes_row {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fint
   · rw [h, zero_smul, cssPauliX_zero, Matrix.one_mulVec]
   · rw [h, one_smul, hrow]
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.cssPauliZ_fixes_row`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- Every Z operator labeled by a linear combination of Z-check rows fixes every codespace
 vector. -/
 theorem cssPauliZ_fixes_row {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype κZ]
@@ -408,6 +556,12 @@ theorem cssPauliZ_fixes_row {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fint
   · rw [h, zero_smul, cssPauliZ_zero, Matrix.one_mulVec]
   · rw [h, one_smul, hrow]
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.isStabilizerLabel_fixes`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The Pauli operator associated with a stabilizer label fixes every CSS codespace vector. -/
 theorem isStabilizerLabel_fixes {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype κZ]
     [DecidableEq ι] (c : CssData ι κX κZ) {e : PauliLabel ι}
@@ -420,6 +574,12 @@ theorem isStabilizerLabel_fixes {ι κX κZ : Type} [Fintype ι] [Fintype κX] [
   rw [← Matrix.mulVec_mulVec, ← hw', cssPauliZ_fixes_row c w v hv, ← hu',
     cssPauliX_fixes_row c u v hv]
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.logicalReferencePreserved_of_stabilizer`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- Every CSS stabilizer label preserves all matrices whose columns lie in the codespace. -/
 theorem logicalReferencePreserved_of_stabilizer {ι κX κZ : Type} [Fintype ι] [Fintype κX]
     [Fintype κZ] [DecidableEq ι] (c : CssData ι κX κZ) {e : PauliLabel ι}
@@ -433,6 +593,12 @@ theorem logicalReferencePreserved_of_stabilizer {ι κX κZ : Type} [Fintype ι]
     simp [Matrix.mul_apply, Matrix.mulVec, dotProduct]
   rw [hkey, hcol]
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.cssCheck_hermitian`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- Every CSS check operator is Hermitian. -/
 theorem cssCheck_hermitian {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype κZ]
     [DecidableEq ι] (c : CssData ι κX κZ) (k : κX ⊕ κZ) : (cssCheck c k).IsHermitian := by
@@ -440,6 +606,12 @@ theorem cssCheck_hermitian {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Finty
   | inl i => exact cssPauliX_isHermitian (c.hX i)
   | inr j => exact cssPauliZ_isHermitian (c.hZ j)
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.css_check_cross'`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- Every X check commutes with every Z check of compatible CSS data. -/
 theorem css_check_cross' {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype κZ]
     [DecidableEq ι] (c : CssData ι κX κZ) (i : κX) (j : κZ) :
@@ -448,6 +620,12 @@ theorem css_check_cross' {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype
     simpa [bitDot, dotProduct, Matrix.mul_apply] using congrFun (congrFun c.hcompat i) j
   rw [cssPauliXZ_comm, bitDot_comm, h, phaseOfBit_zero, one_smul]
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.cssCheck_commute`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- Any two CSS check operators commute. -/
 theorem cssCheck_commute {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype κZ]
     [DecidableEq ι] (c : CssData ι κX κZ) (k k' : κX ⊕ κZ) :
@@ -469,6 +647,12 @@ theorem cssCheck_commute {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype
       show cssPauliZ (c.hZ j) * cssPauliZ (c.hZ j') = cssPauliZ (c.hZ j') * cssPauliZ (c.hZ j)
       rw [cssPauliZ_mul, cssPauliZ_mul, add_comm]
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.cssCheckProjector_commute`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The outcome projectors of any two CSS checks commute. -/
 theorem cssCheckProjector_commute {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype κZ]
     [DecidableEq ι] (c : CssData ι κX κZ) (k k' : κX ⊕ κZ) (b b' : ZMod 2) :
@@ -481,6 +665,12 @@ theorem cssCheckProjector_commute {ι κX κZ : Type} [Fintype ι] [Fintype κX]
       (Commute.add_right (Commute.one_right _) hS)
   exact (h.smul_left (2⁻¹ : ℂ)).smul_right (2⁻¹ : ℂ)
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.cssCheckProjector_hermitian`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- Every outcome projector of a CSS check is Hermitian. -/
 theorem cssCheckProjector_hermitian {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype κZ]
     [DecidableEq ι] (c : CssData ι κX κZ) (k : κX ⊕ κZ) (b : ZMod 2) :
@@ -488,6 +678,12 @@ theorem cssCheckProjector_hermitian {ι κX κZ : Type} [Fintype ι] [Fintype κ
   (Matrix.isHermitian_one.add ((cssCheck_hermitian c k).smul (phaseOfBit_star b))).smul
     (by simp)
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.list_prod_isHermitian`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The product of a list of pairwise commuting Hermitian matrices is Hermitian. -/
 theorem list_prod_isHermitian {σ : Type} [Fintype σ] [DecidableEq σ] (l : List (Matrix σ σ ℂ))
     (hherm : ∀ S ∈ l, S.IsHermitian) (hcomm : ∀ S ∈ l, ∀ T ∈ l, Commute S T) :
@@ -508,6 +704,12 @@ theorem list_prod_isHermitian {σ : Type} [Fintype σ] [DecidableEq σ] (l : Lis
     show (S * l.prod).conjTranspose = S * l.prod
     rw [h1, hSl.eq]
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.cssSyndromeProjector_isHermitian`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- Every CSS syndrome projector is Hermitian. -/
 theorem cssSyndromeProjector_isHermitian {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype κZ]
     [DecidableEq ι] [DecidableEq κX] [DecidableEq κZ] (c : CssData ι κX κZ)
@@ -521,6 +723,12 @@ theorem cssSyndromeProjector_isHermitian {ι κX κZ : Type} [Fintype ι] [Finty
     obtain ⟨k', _, rfl⟩ := List.mem_map.mp hT
     exact cssCheckProjector_commute c k k' _ _
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.list_prod_mulVec`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- A product of matrices fixes a vector if every matrix in the list fixes it. -/
 theorem list_prod_mulVec {σ : Type} [Fintype σ] [DecidableEq σ] (l : List (Matrix σ σ ℂ))
     (v : σ → ℂ) (h : ∀ S ∈ l, S *ᵥ v = v) : l.prod *ᵥ v = v := by
@@ -530,6 +738,12 @@ theorem list_prod_mulVec {σ : Type} [Fintype σ] [DecidableEq σ] (l : List (Ma
     rw [List.prod_cons, ← Matrix.mulVec_mulVec,
       ih (fun T hT => h T (List.mem_cons_of_mem _ hT)), h S List.mem_cons_self]
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.coeffInner_self`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The coefficient inner product of a vector with itself is its real squared norm, embedded in
 `ℂ`. -/
 theorem coeffInner_self {ι : Type} [Fintype ι] [DecidableEq ι] (ψ : (ι → ZMod 2) → ℂ) :
@@ -541,6 +755,12 @@ theorem coeffInner_self {ι : Type} [Fintype ι] [DecidableEq ι] (ψ : (ι → 
   exact (show (Complex.normSq (ψ i) : ℂ) = starRingEnd ℂ (ψ i) * ψ i from
     Complex.normSq_eq_conj_mul_self).symm
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.coeffInner_add_right`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The coefficient inner product is additive in its second argument. -/
 theorem coeffInner_add_right {ι : Type} [Fintype ι] [DecidableEq ι] (ψ u v : (ι → ZMod 2) → ℂ) :
     coeffInner ψ (u + v) = coeffInner ψ u + coeffInner ψ v := by
@@ -548,6 +768,12 @@ theorem coeffInner_add_right {ι : Type} [Fintype ι] [DecidableEq ι] (ψ u v :
   simp only [coeffInner, Pi.add_apply, mul_add]
   rw [Finset.sum_add_distrib]
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.coeffInner_sum_right`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- A finite sum of coefficient inner products equals the inner product with the sum in the
 second argument. -/
 theorem coeffInner_sum_right {ι κ : Type} [Fintype ι] [Fintype κ] [DecidableEq ι]
@@ -559,6 +785,12 @@ theorem coeffInner_sum_right {ι κ : Type} [Fintype ι] [Fintype κ] [Decidable
   | insert i s hi ih =>
     rw [Finset.sum_insert hi, ih, Finset.sum_insert hi, coeffInner_add_right]
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.coeffInner_mulVec`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- A matrix acting in the first argument of the coefficient inner product transfers to its
 conjugate transpose in the second argument. -/
 theorem coeffInner_mulVec {ι : Type} [Fintype ι] [DecidableEq ι]
@@ -576,6 +808,12 @@ theorem coeffInner_mulVec {ι : Type} [Fintype ι] [DecidableEq ι]
   rw [Finset.sum_comm]
   exact Finset.sum_congr rfl (fun j _ => Finset.sum_congr rfl (fun i _ => by ring))
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.sum_syndromeOutcomeMass`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The masses of all CSS syndrome outcomes sum to the squared norm of the input vector. -/
 theorem sum_syndromeOutcomeMass {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype κZ]
     [DecidableEq ι] [DecidableEq κX] [DecidableEq κZ] (c : CssData ι κX κZ)
@@ -620,6 +858,12 @@ theorem sum_syndromeOutcomeMass {ι κX κZ : Type} [Fintype ι] [Fintype κX] [
     exact hsum
   exact Complex.ofReal_inj.mp hcast
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.clause1Corr`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- A Pauli correction of minimum weight among labels with syndrome `η`, or the zero label when
 that syndrome has no representative. -/
 noncomputable def clause1Corr {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype κZ]
@@ -630,6 +874,12 @@ noncomputable def clause1Corr {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fi
       {e : PauliLabel ι | pauliSyndrome c e = η} h
   else (0, 0)
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.clause1Corr_eq_of_mem`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- For a syndrome represented by `e`, `clause1Corr` is the selected weight minimizer over
 labels with that syndrome. -/
 theorem clause1Corr_eq_of_mem {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype κZ]
@@ -642,8 +892,14 @@ theorem clause1Corr_eq_of_mem {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fi
     Function.argminOn (fun e : PauliLabel ι => pauliWeight e.1 e.2)
       {e : PauliLabel ι | pauliSyndrome c e = η} h
     else (0, 0)) = _
-  rw [dif_pos hne]
+  rw [dite_eq_left hne]
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.clause1Corr_mem`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- For a represented syndrome, the selected minimum-weight correction has that syndrome. -/
 theorem clause1Corr_mem {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype κZ]
     [DecidableEq ι] [DecidableEq κX] [DecidableEq κZ] (c : CssData ι κX κZ)
@@ -655,6 +911,12 @@ theorem clause1Corr_mem {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype 
       {e : PauliLabel ι | pauliSyndrome c e = η}
   exact Function.argminOn_mem (fun e : PauliLabel ι => pauliWeight e.1 e.2) _ _
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.clause1Corr_le`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The selected correction has weight at most that of any Pauli label with the given syndrome. -/
 theorem clause1Corr_le {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype κZ]
     [DecidableEq ι] [DecidableEq κX] [DecidableEq κZ] (c : CssData ι κX κZ)
@@ -664,6 +926,12 @@ theorem clause1Corr_le {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype �
   exact Function.argminOn_le (fun e : PauliLabel ι => pauliWeight e.1 e.2) _
     (show e ∈ {e : PauliLabel ι | pauliSyndrome c e = η} from he)
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.clause1Prog`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The recovery program using `clause1Corr` and assigning zero classical decoding time. -/
 noncomputable def clause1Prog {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype κZ]
     [DecidableEq ι] [DecidableEq κX] [DecidableEq κZ] (c : CssData ι κX κZ) :
@@ -671,6 +939,12 @@ noncomputable def clause1Prog {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fi
   corr := clause1Corr c
   decodeTime := fun _ => 0
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.clause1Prog_minimumWeightSound`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The program using `clause1Corr` satisfies minimum-weight soundness. -/
 theorem clause1Prog_minimumWeightSound {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype κZ]
     [DecidableEq ι] [DecidableEq κX] [DecidableEq κZ] (c : CssData ι κX κZ) :
@@ -679,6 +953,12 @@ theorem clause1Prog_minimumWeightSound {ι κX κZ : Type} [Fintype ι] [Fintype
   show pauliWeight (clause1Corr c η).1 (clause1Corr c η).2 ≤ pauliWeight e.1 e.2
   exact clause1Corr_le c η e he
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.pauliWeight_add_le`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The Pauli weight of a componentwise sum is at most the sum of the Pauli weights. -/
 theorem pauliWeight_add_le {ι : Type} [Fintype ι] [DecidableEq ι]
     (x x' z z' : ι → ZMod 2) :
@@ -699,6 +979,12 @@ theorem pauliWeight_add_le {ι : Type} [Fintype ι] [DecidableEq ι]
   have hz' : z' i = 0 := not_not.mp (not_or.mp h2).2
   rcases hi with h | h <;> simp [Pi.add_apply, hx, hz, hx', hz'] at h
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.isStabilizerLabel_of_syndrome_zero`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- If the CSS distance is at least `2 * t + 1`, a zero-syndrome Pauli label of weight at most
 `2 * t` is a stabilizer label. -/
 theorem isStabilizerLabel_of_syndrome_zero {ι κX κZ : Type} [Fintype ι] [Fintype κX]
@@ -723,6 +1009,12 @@ theorem isStabilizerLabel_of_syndrome_zero {ι κX κZ : Type} [Fintype ι] [Fin
   have h3 : 2 * t + 1 ≤ pauliWeight e.1 e.2 := by exact_mod_cast h2
   omega
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.clause1Prog_correctsUpTo`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The minimum-weight recovery program corrects Pauli labels of weight at most `t` when the CSS
 distance is at least `2 * t + 1`. -/
 theorem clause1Prog_correctsUpTo {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype κZ]
@@ -755,6 +1047,12 @@ theorem clause1Prog_correctsUpTo {ι κX κZ : Type} [Fintype ι] [Fintype κX] 
     omega
   exact isStabilizerLabel_of_syndrome_zero c t (residualLabel (clause1Prog c) e) hsyn0 hw hd
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.densityOf_mul_conjTranspose`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- Conjugating a vector's outer-product matrix by `M` gives the outer-product matrix of `M *ᵥ
 ψ`. -/
 theorem densityOf_mul_conjTranspose {ι : Type} [Fintype ι] [DecidableEq ι]
@@ -778,6 +1076,12 @@ theorem densityOf_mul_conjTranspose {ι : Type} [Fintype ι] [DecidableEq ι]
     (Fintype.sum_mul_sum _ _).symm
   exact hL.trans (key.trans hR.symm)
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.densityOf_mul_hermitian`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- Multiplying a vector's outer-product matrix on both sides by a Hermitian matrix gives the
 outer-product matrix of the transformed vector. -/
 theorem densityOf_mul_hermitian {ι : Type} [Fintype ι] [DecidableEq ι]
@@ -787,6 +1091,12 @@ theorem densityOf_mul_hermitian {ι : Type} [Fintype ι] [DecidableEq ι]
   rw [hH.eq] at h
   exact h
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.densityOf_smul`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- Scaling a vector by `z` scales its outer-product matrix by `z * star z`. -/
 theorem densityOf_smul {ι : Type} [Fintype ι] [DecidableEq ι] (z : ℂ) (ψ : (ι → ZMod 2) → ℂ) :
     densityOf (z • ψ) = (z * star z) • densityOf ψ := by
@@ -796,6 +1106,12 @@ theorem densityOf_smul {ι : Type} [Fintype ι] [DecidableEq ι] (z : ℂ) (ψ :
     Matrix.smul_apply]
   ring
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.densityOf_zero`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The outer-product matrix of the zero vector is zero. -/
 theorem densityOf_zero {ι : Type} [Fintype ι] [DecidableEq ι] :
     densityOf (0 : (ι → ZMod 2) → ℂ) = 0 := by
@@ -803,11 +1119,23 @@ theorem densityOf_zero {ι : Type} [Fintype ι] [DecidableEq ι] :
   ext a b
   simp [densityOf]
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.densityOf_smul_phase`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- Multiplication by a binary phase leaves a vector's outer-product matrix unchanged. -/
 theorem densityOf_smul_phase {ι : Type} [Fintype ι] [DecidableEq ι] (b : ZMod 2)
     (ψ : (ι → ZMod 2) → ℂ) : densityOf (phaseOfBit b • ψ) = densityOf ψ := by
   rw [densityOf_smul, phaseOfBit_star, phaseOfBit_mul_self, one_smul]
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.cssCheckProjector_fixes`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The projector for outcome `b` fixes a vector on which the check acts by `phaseOfBit b`. -/
 theorem cssCheckProjector_fixes {ι : Type} [Fintype ι] [DecidableEq ι]
     (S : Matrix (ι → ZMod 2) (ι → ZMod 2) ℂ) (b : ZMod 2)
@@ -819,6 +1147,12 @@ theorem cssCheckProjector_fixes {ι : Type} [Fintype ι] [DecidableEq ι]
   rw [cssCheckProjector, Matrix.smul_mulVec, h1]
   rw [smul_add, ← add_smul, show (2 : ℂ)⁻¹ + 2⁻¹ = 1 from by ring, one_smul]
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.cssCheck_mulVec_pauli`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- A Pauli error applied to a codespace vector is an eigenvector of each check with eigenvalue
 given by the corresponding syndrome bit. -/
 theorem cssCheck_mulVec_pauli {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype κZ]
@@ -899,6 +1233,12 @@ theorem cssCheck_mulVec_pauli {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fi
       _ = phaseOfBit (Sum.elim (pauliSyndrome c e).1 (pauliSyndrome c e).2 (Sum.inr j)) •
             ((cssPauliX e.1 * cssPauliZ e.2) *ᵥ ψ) := by rw [hph, Sum.elim_inr]
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.syndromeProjector_fixes_pauli`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The projector for the true Pauli syndrome fixes the corrupted codespace vector. -/
 theorem syndromeProjector_fixes_pauli {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype κZ]
     [DecidableEq ι] [DecidableEq κX] [DecidableEq κZ] (c : CssData ι κX κZ) (e : PauliLabel ι)
@@ -912,6 +1252,12 @@ theorem syndromeProjector_fixes_pauli {ι κX κZ : Type} [Fintype ι] [Fintype 
   obtain ⟨k, _, rfl⟩ := List.mem_map.mp hS
   exact cssCheckProjector_fixes _ _ _ (cssCheck_mulVec_pauli c e ψ hψ k)
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.vecNormSq_pauli`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- Applying a binary Pauli operator preserves the squared norm of a vector. -/
 theorem vecNormSq_pauli {ι : Type} [Fintype ι] [DecidableEq ι] (x z : ι → ZMod 2)
     (ψ : (ι → ZMod 2) → ℂ) :
@@ -933,6 +1279,12 @@ theorem vecNormSq_pauli {ι : Type} [Fintype ι] [DecidableEq ι] (x z : ι → 
   have h5 := coeffInner_self ψ
   exact_mod_cast h4.symm.trans (h3.trans h5)
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.syndromeOutcomeMass_pauli`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- For a Pauli-corrupted codespace vector, the true syndrome outcome has mass equal to the
 original squared norm. -/
 theorem syndromeOutcomeMass_pauli {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype κZ]
@@ -946,6 +1298,12 @@ theorem syndromeOutcomeMass_pauli {ι κX κZ : Type} [Fintype ι] [Fintype κX]
   rw [hfix]
   exact vecNormSq_pauli e.1 e.2 ψ
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.recoveryChannel_densityOf`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The recovery channel on a vector's outer-product matrix is the sum of the outer-product
 matrices of its syndrome-projected and corrected vectors. -/
 theorem recoveryChannel_densityOf {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype κZ]
@@ -967,6 +1325,12 @@ theorem recoveryChannel_densityOf {ι κX κZ : Type} [Fintype ι] [Fintype κX]
   rw [densityOf_mul_hermitian (cssSyndromeProjector c η) (cssSyndromeProjector_isHermitian c η) ψ,
     densityOf_mul_conjTranspose]
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.exists_cssEncoding`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- Every CSS code possesses an orthonormal encoding basis indexed by binary strings of length
 `c.encodedQubits`. -/
 theorem exists_cssEncoding {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype κZ]
@@ -1003,6 +1367,12 @@ theorem exists_cssEncoding {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Finty
     rw [map_smul]
     exact Submodule.smul_mem _ _ (Submodule.subset_span ⟨i, rfl⟩)
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.syndromeProjector_other_pauli`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- A syndrome projector different from the true Pauli syndrome annihilates the corrupted
 codespace vector. -/
 theorem syndromeProjector_other_pauli {ι κX κZ : Type} [Fintype ι] [Fintype κX] [Fintype κZ]
@@ -1011,8 +1381,14 @@ theorem syndromeProjector_other_pauli {ι κX κZ : Type} [Fintype ι] [Fintype 
     (η : (κX → ZMod 2) × (κZ → ZMod 2)) (hη : η ≠ pauliSyndrome c e) :
     cssSyndromeProjector c η *ᵥ ((cssPauliX e.1 * cssPauliZ e.2) *ᵥ ψ) = 0 := by
   rw [← syndromeProjector_fixes_pauli c e ψ hψ, Matrix.mulVec_mulVec,
-    cssSyndromeProjector_mul, if_neg hη, Matrix.zero_mulVec]
+    cssSyndromeProjector_mul, ite_eq_right hη, Matrix.zero_mulVec]
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.recoveryChannel_corrects_density`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- If decoding leaves a stabilizer residual, the recovery channel restores the outer-product
 matrix of every codespace vector after the Pauli error. -/
 theorem recoveryChannel_corrects_density {ι κX κZ : Type} [Fintype ι] [Fintype κX]
@@ -1035,6 +1411,12 @@ theorem recoveryChannel_corrects_density {ι κX κZ : Type} [Fintype ι] [Finty
     rw [syndromeProjector_other_pauli c e ψ hψ η hη, Matrix.mulVec_zero, densityOf_zero]
   · simp
 
+/--
+error: The namespace `CodingDecoding` is duplicated in the declaration `Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding.g1`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- A CSS code of distance at least `2 * t + 1` possesses an encoding and a minimum-weight
 recovery program correcting weight-`t` Pauli errors, preserving logical references, and
 restoring encoded basis-state outer products. Syndrome masses obey completeness and

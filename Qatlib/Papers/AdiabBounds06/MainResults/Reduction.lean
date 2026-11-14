@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AdiabBounds06.MainResults.SharpNorm
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.IntegrationByParts
+module
+
+public import Qatlib.Papers.AdiabBounds06.MainResults.SharpNorm
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.IntegrationByParts
+
+@[expose] public section
 
 /-!
 # Unitary evolutions and partial integration

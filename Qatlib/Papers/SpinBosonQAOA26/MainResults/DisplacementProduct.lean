@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Tactic
-import Qatlib.Papers.SpinBosonQAOA26.MainResults.Definitions.SourceDefinitions
+module
+
+public import Mathlib.Tactic
+public import Qatlib.Papers.SpinBosonQAOA26.MainResults.Definitions.SourceDefinitions
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -200,7 +204,7 @@ theorem lemma1_displacement_product {p' p : ℕ} (W : WeylFock p')
         = ((γ ⟨k, hk⟩ * γ ⟨j, hj⟩ * a ⟨k, hk⟩ * a ⟨j, hj⟩ : ℝ) : ℂ)
           * L l ⟨k, hk⟩ * starRingEnd ℂ (L l ⟨j, hj⟩) := by
       intro l
-      simp only [hf, dif_pos hk, dif_pos hj, map_mul]
+      simp only [hf, dite_eq_left hk, dite_eq_left hj, map_mul]
       rw [map_neg, Complex.conj_I, neg_neg, hc, ha]
       have hgroup : (-Complex.I * ((γ ⟨k, hk⟩ : ℝ) : ℂ) * ((a ⟨k, hk⟩ : ℝ) : ℂ)
             * L l ⟨k, hk⟩) * (Complex.I * ((γ ⟨j, hj⟩ : ℝ) : ℂ) * ((a ⟨j, hj⟩ : ℝ) : ℂ)
@@ -248,18 +252,18 @@ theorem lemma1_displacement_product {p' p : ℕ} (W : WeylFock p')
         = (gramSym p' p L r s).im * (γ r * γ s * a r * a s) := by
       intro r s
       rcases lt_trichotomy s r with h | h | h
-      · rw [if_pos h, if_neg (by omega), add_zero]
-      · rw [h, if_neg (lt_irrefl r), hTdiag r]
+      · rw [ite_eq_left h, ite_eq_right (by omega), add_zero]
+      · rw [h, ite_eq_right (lt_irrefl r), hTdiag r]
         ring
-      · rw [if_neg (by omega), if_pos h, zero_add]
+      · rw [ite_eq_right (by omega), ite_eq_left h, zero_add]
     have hA : ∑ r : Fin p, ∑ s : Fin p,
         (if s < r then (gramSym p' p L r s).im * (γ r * γ s * a r * a s) else 0)
         = ∑ r : Fin p, ∑ s : Fin p,
             if s < r then (gramHerm p' p L r s).im * (γ r * γ s * a r * a s) else 0 := by
       refine Finset.sum_congr rfl fun r _ => Finset.sum_congr rfl fun s _ => ?_
       by_cases h : s < r
-      · rw [if_pos h, if_pos h, gramSym_apply_of_gt L (not_le_of_gt h)]
-      · rw [if_neg h, if_neg h]
+      · rw [ite_eq_left h, ite_eq_left h, gramSym_apply_of_gt L (not_le_of_gt h)]
+      · rw [ite_eq_right h, ite_eq_right h]
     have hB : ∑ r : Fin p, ∑ s : Fin p,
         (if r < s then (gramSym p' p L r s).im * (γ r * γ s * a r * a s) else 0)
         = ∑ r : Fin p, ∑ s : Fin p,
@@ -267,9 +271,9 @@ theorem lemma1_displacement_product {p' p : ℕ} (W : WeylFock p')
       rw [Finset.sum_comm]
       refine Finset.sum_congr rfl fun r _ => Finset.sum_congr rfl fun s _ => ?_
       by_cases h : s < r
-      · rw [if_pos h, if_pos h, gramSym_apply_of_le L (le_of_lt h)]
+      · rw [ite_eq_left h, ite_eq_left h, gramSym_apply_of_le L (le_of_lt h)]
         ring
-      · rw [if_neg h, if_neg h]
+      · rw [ite_eq_right h, ite_eq_right h]
     calc ∑ r : Fin p, ∑ s : Fin p,
           (gramSym p' p L r s).im * (γ r * γ s * a r * a s)
         = ∑ r : Fin p, ∑ s : Fin p,
@@ -302,10 +306,10 @@ theorem lemma1_displacement_product {p' p : ℕ} (W : WeylFock p')
                 * (gramHerm p' p L ⟨k, hk⟩ ⟨j, hj⟩).im) else 0 else 0) := by
       intro k hkm
       have hk' : k < p := Finset.mem_range.mp hkm
-      rw [dif_pos hk', hcdotsum, Complex.im_sum, ← Finset.sum_neg_distrib]
+      rw [dite_eq_left hk', hcdotsum, Complex.im_sum, ← Finset.sum_neg_distrib]
       refine Finset.sum_congr rfl fun j hjm => ?_
       have hj' : j < p := lt_of_lt_of_le (Finset.mem_range.mp hjm) (le_of_lt hk')
-      rw [dif_pos hj']
+      rw [dite_eq_left hj']
       exact e2 k j hk' hj'
     have hinner : ∀ (k : ℕ) (h : k ≤ p) (g : ℕ → ℝ),
         ∑ j ∈ Finset.range k, g j
@@ -335,19 +339,19 @@ theorem lemma1_displacement_product {p' p : ℕ} (W : WeylFock p')
         else 0)]
       refine Finset.sum_congr rfl fun r _ => ?_
       have hr : r.val < p := r.isLt
-      rw [dif_pos hr]
+      rw [dite_eq_left hr]
       rw [hinner r.val (Nat.le_of_lt hr) (fun j => if hj : j < p then
         ((γ ⟨r.val, hr⟩ * γ ⟨j, hj⟩ * a ⟨r.val, hr⟩ * a ⟨j, hj⟩ : ℝ)
           * (gramHerm p' p L ⟨r.val, hr⟩ ⟨j, hj⟩).im) else 0)]
       refine Finset.sum_congr rfl fun s _ => ?_
       by_cases hs : s < r
-      · rw [if_pos (show s.val < r.val from hs), if_pos hs,
-          dif_pos (show s.val < p from s.isLt)]
+      · rw [ite_eq_left (show s.val < r.val from hs), ite_eq_left hs,
+          dite_eq_left (show s.val < p from s.isLt)]
         have hre : (⟨r.val, hr⟩ : Fin p) = r := Fin.eta r hr
         have hse : (⟨s.val, s.isLt⟩ : Fin p) = s := Fin.eta s s.isLt
         rw [hre, hse]
         ring
-      · rw [if_neg hs, if_neg (show ¬ s.val < r.val from hs)]
+      · rw [ite_eq_right hs, ite_eq_right (show ¬ s.val < r.val from hs)]
     rw [Finset.sum_congr rfl e1, Finset.sum_neg_distrib, hconv, hpair]
     push_cast
     norm_num

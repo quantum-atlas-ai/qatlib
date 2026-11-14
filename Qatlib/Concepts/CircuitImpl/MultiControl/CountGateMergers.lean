@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CircuitImpl.MultiControl.CountToffoliGadget
+module
+
+public import Qatlib.Concepts.CircuitImpl.MultiControl.CountToffoliGadget
+
+@[expose] public section
 
 /-!
 # Commutation and merging of elementary gates
@@ -84,7 +88,7 @@ theorem source_cnot_control_phase_commute {N : ℕ} (a b : Fin N)
   have hd (y : Reg N) : ApplyGate (wireGate N a (diagonal d)) (Qatlib.Foundations.PureStateMath.Ket y) = d (y a) • Qatlib.Foundations.PureStateMath.Ket y := by
     rw [applyGate_wireGate_ket]
     have hup : Function.update y a (y a) = y := Function.update_eq_self a y
-    cases hy : y a <;> simp only [Matrix.diagonal_apply, hy, if_true, if_false,
+    cases hy : y a <;> simp only [Matrix.diagonal_apply,  ite_true, ite_false,
       Bool.false_eq_true, Bool.true_eq_false, zero_smul, add_zero, zero_add]
     all_goals rw [hy] at hup; rw [hup]
   simp only [applyGate_mul, hd, reflectionApplyGate_smul,
@@ -152,7 +156,7 @@ theorem source_slide_gate {N : ℕ} (g : ReflectionGate N)
     reflectionProgramMatrix (xs ++ [g] ++ ys) =
       reflectionProgramMatrix ([g] ++ xs ++ ys) := by
   simp only [reflectionProgramMatrix_append, reflectionProgramMatrix,
-    Matrix.one_mul, Matrix.mul_assoc]
+    Matrix.one_mul]
   rw [hcomm]
 
 /-- Two consecutive single-wire gates with matrices `U` and `V` can be merged into one gate with
@@ -212,7 +216,7 @@ negated. -/
 private theorem wire_flip_ket {N : ℕ} (t : Fin N) (x : Reg N) :
     ApplyGate (wireGate N t PauliX) (Qatlib.Foundations.PureStateMath.Ket x) = Qatlib.Foundations.PureStateMath.Ket (Function.update x t (!x t)) := by
   rw [applyGate_wireGate_ket]
-  cases hx : x t <;> simp [PauliX, permMatrix, hx]
+  cases hx : x t <;> simp [PauliX, permMatrix]
 
 /-- A signed basis-state action of a legal word avoiding wire `t` remains valid with the same
 scalar after setting that spectator bit to any Boolean value. -/

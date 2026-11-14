@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MbqcFlow.FlowDecision.DegenerateEnergyInstrument
-import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
-import Qatlib.Foundations.PureStateMath.MixedState
-import Qatlib.Concepts.SpectralFilter.PhaseReadout.PhaseEstimation
-import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroup
-import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupCoreDefs
-import Mathlib.Data.Int.Interval
+module
+
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.DegenerateEnergyInstrument
+public import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
+public import Qatlib.Foundations.PureStateMath.MixedState
+public import Qatlib.Concepts.SpectralFilter.PhaseReadout.PhaseEstimation
+public import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroup
+public import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupCoreDefs
+public import Mathlib.Data.Int.Interval
+
+@[expose] public section
 
 /-!
 # Phase readout and quantum Metropolis data
@@ -88,9 +92,9 @@ theorem phaseIndex_round_error (G : PhaseGrid) (t E : ℝ) :
   have hfloor' : phaseIndexReal G t E - 1 / 2 < (phaseIndex G t E : ℝ) := by
     have h := Int.lt_floor_add_one (phaseIndexReal G t E + 1 / 2)
     have h' : phaseIndexReal G t E + 1 / 2 < (⌊phaseIndexReal G t E + 1 / 2⌋ : ℤ) + 1 := by
-      simpa [Int.cast_add, Int.cast_one] using h
+      simp
     have h'' : phaseIndexReal G t E + 1 / 2 < (phaseIndex G t E : ℝ) + 1 := by
-      simpa [phaseIndex, Int.cast_add, Int.cast_one] using h'
+      simp [phaseIndex]
     linarith
   rw [abs_le]
   constructor
@@ -177,9 +181,9 @@ theorem metropolisAcceptWeight_mem (β E E' : ℝ) (hβ : 0 ≤ β) :
     0 ≤ metropolisAcceptWeight β E E' ∧ metropolisAcceptWeight β E E' ≤ 1 := by
   unfold metropolisAcceptWeight
   by_cases h : E' ≤ E
-  · rw [if_pos h]
+  · rw [ite_eq_left h]
     constructor <;> linarith
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     have hE : E < E' := lt_of_not_ge h
     constructor
     · positivity
@@ -191,13 +195,13 @@ theorem metropolisAcceptWeight_mem (β E E' : ℝ) (hβ : 0 ≤ β) :
 theorem metropolisAcceptWeight_one (β E E' : ℝ) (h : E' ≤ E) :
     metropolisAcceptWeight β E E' = 1 := by
   unfold metropolisAcceptWeight
-  rw [if_pos h]
+  rw [ite_eq_left h]
 
 /-- A strictly increasing energy proposal has acceptance weight `exp (-(β * (E' - E)))`. -/
 theorem metropolisAcceptWeight_exp (β E E' : ℝ) (h : E < E') :
     metropolisAcceptWeight β E E' = Real.exp (-(β * (E' - E))) := by
   unfold metropolisAcceptWeight
-  rw [if_neg (not_le_of_gt h)]
+  rw [ite_eq_right (not_le_of_gt h)]
 
 /-- A probability vector on `Fin M` together with a strictly positive minorization parameter. -/
 structure DoeblinData (M : ℕ) where

@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SemidirectHSP07.MainResults.Group
-import Qatlib.Papers.SemidirectHSP07.MainResults.CommutatorStructure
-import Mathlib.GroupTheory.PGroup
-import Mathlib.GroupTheory.Nilpotent
-import Mathlib.GroupTheory.Commutator.Basic
+module
+
+public import Qatlib.Papers.SemidirectHSP07.MainResults.Group
+public import Qatlib.Papers.SemidirectHSP07.MainResults.CommutatorStructure
+public import Mathlib.GroupTheory.PGroup
+public import Mathlib.GroupTheory.Nilpotent
+public import Mathlib.GroupTheory.Commutator.Basic
+
+@[expose] public section
 
 /-!
 # Solvability and normality for the class (1) reduction

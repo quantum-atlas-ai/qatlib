@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SingleQuery97.MainResults.ActualQueryWord
-import Qatlib.Papers.SingleQuery97.MainResults.FourierReadout
+module
+
+public import Qatlib.Papers.SingleQuery97.MainResults.ActualQueryWord
+public import Qatlib.Papers.SingleQuery97.MainResults.FourierReadout
+
+@[expose] public section
 
 /-!
 # A one-query linear-code database circuit

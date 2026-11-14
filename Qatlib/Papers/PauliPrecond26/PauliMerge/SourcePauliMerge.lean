@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.SpecificLimits.Normed
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
-import Mathlib.Algebra.BigOperators.Ring.List
-import Mathlib.Data.Real.Basic
-import Qatlib.Concepts.PauliClifford.PauliAlgebra.PauliCliffordLawsProofs
+module
+
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.SpecificLimits.Normed
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
+public import Mathlib.Algebra.BigOperators.Ring.List
+public import Mathlib.Basic.Real.Basic
+public import Qatlib.Concepts.PauliClifford.PauliAlgebra.PauliCliffordLawsProofs
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdaptiveCP.BranchTrace.AdaptiveHistoryDefs
-import Qatlib.Concepts.AdaptiveCP.BranchTrace.QuantumChannel
+module
+
+public import Qatlib.Concepts.AdaptiveCP.BranchTrace.AdaptiveHistoryDefs
+public import Qatlib.Concepts.AdaptiveCP.BranchTrace.QuantumChannel
+
+@[expose] public section
 
 /-!
 # Complete positivity and trace sums of adaptive branches

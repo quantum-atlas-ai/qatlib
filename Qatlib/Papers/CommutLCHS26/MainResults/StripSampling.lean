@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommutLCHS26.MainResults.PoissonMesh
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.DistLEIntegral
-import Mathlib.MeasureTheory.Integral.Prod
+module
+
+public import Qatlib.Papers.CommutLCHS26.MainResults.PoissonMesh
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.DistLEIntegral
+public import Mathlib.MeasureTheory.Integral.Prod
+
+@[expose] public section
 
 /-!
 # Sampling estimates for analytic strip functions
@@ -157,7 +161,7 @@ theorem integrable_complex_deriv (f : ℂ → E) (ρ M : ℝ) (hρ : 0 < ρ)
     · fun_prop
     · intro p
       have h := hymem p.2
-      simpa only [add_im, ofReal_im, zero_add, mem_setOf_eq] using
+      simpa only [add_im, ofReal_im, zero_add, Set.mem_ofPred_eq] using
         (show -ρ ≤ (circleMap 0 r p.2).im ∧ (circleMap 0 r p.2).im ≤ ρ from ⟨h.1.le, h.2.le⟩)
   have hsplit (x : ℝ) (w : ℂ) : (x : ℂ) + w = ((x + w.re : ℝ) : ℂ) + w.im * I := by
     rw [ofReal_add, add_assoc, re_add_im]

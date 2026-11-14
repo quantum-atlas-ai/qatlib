@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Positivity
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Positivity
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -59,7 +63,7 @@ def kappaOf (Qmin n epsSou : ℝ) : ℝ :=
 Theorem 3 entropy bound with `εs = εsou/4` and the definition (III.37) of a
 `(κ, εsou)`-quantum-proof strong extractor, the protocol is `εsou`-sound. -/
 theorem corollary7_soundness (Qmin n epsSou epsS epsExt kappa dist Hmin : ℝ)
-    (hepsSou : 0 < epsSou) (hn : 1 ≤ n)
+    (_hepsSou : 0 < epsSou) (_hn : 1 ≤ n)
     (hkappa : kappa = kappaOf Qmin n epsSou)
     (hepsS : epsS = epsSou / 4)
     (hlog : Real.log (1 / epsS) ≤ Real.log (1 / epsSou) + 2)

@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Order
-import Mathlib.Analysis.Matrix.Order
-import Mathlib.Analysis.Normed.Algebra.Exponential
-import Mathlib.Analysis.SpecialFunctions.Exponential
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Order
+public import Mathlib.Analysis.Matrix.Order
+public import Mathlib.Analysis.Normed.Algebra.Exponential
+public import Mathlib.Analysis.SpecialFunctions.Exponential
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Koopman actions, scalar shifts, and compression

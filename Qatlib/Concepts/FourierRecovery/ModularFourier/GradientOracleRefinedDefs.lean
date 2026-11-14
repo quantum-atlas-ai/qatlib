@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FourierRecovery.ModularFourier.GradientOracle
+module
+
+public import Qatlib.Concepts.FourierRecovery.ModularFourier.GradientOracle
+
+@[expose] public section
 
 /-!
 # Probability oracles and realized phase definitions
@@ -84,37 +88,37 @@ noncomputable def composedGoodWindow (d M : ℕ) (g : Fin d → ℝ) (w : ℝ) :
 /-- The refined specification for probability phase errors, readout transport, composed success
 probability, and explicit query and gate counts. -/
 def stageB_gradient_oracle_clause2_next_spec : Prop :=
-  (∀ {X : Type} [Fintype X] [DecidableEq X] (p q : X → ℝ) (ε : ℝ) (hε : 0 ≤ ε)
-      (herror : ∀ x, |p x - q x| ≤ ε),
+  (∀ {X : Type} [Fintype X] [DecidableEq X] (p q : X → ℝ) (ε : ℝ) (_hε : 0 ≤ ε)
+      (_herror : ∀ x, |p x - q x| ≤ ε),
       ‖Qatlib.Concepts.FourierRecovery.ModularFourier.probabilityPhaseOperator p
           - Qatlib.Concepts.FourierRecovery.ModularFourier.probabilityPhaseOperator q‖
         ≤ ε) ∧
-  (∀ {X : Type} [Fintype X] [DecidableEq X] (p q : X → ℝ) (ε : ℝ) (hε : 0 ≤ ε)
-      (herror : ∀ x, |p x - q x| ≤ ε) (x : X),
+  (∀ {X : Type} [Fintype X] [DecidableEq X] (p q : X → ℝ) (ε : ℝ) (_hε : 0 ≤ ε)
+      (_herror : ∀ x, |p x - q x| ≤ ε) (x : X),
       |Qatlib.Concepts.FourierRecovery.ModularFourier.probabilityReadoutPhase p x
           - Qatlib.Concepts.FourierRecovery.ModularFourier.probabilityReadoutPhase q x|
         ≤ ε / (2 * Real.pi)) ∧
-  (∀ (d M : ℕ) (hM : 0 < M) (p q : GradientGrid d M → ℝ) (ε : ℝ) (hε : 0 ≤ ε)
-      (herror : ∀ x, |p x - q x| ≤ ε) (S : Finset (GradientGrid d M)),
+  (∀ (d M : ℕ) (hM : 0 < M) (p q : GradientGrid d M → ℝ) (ε : ℝ) (_hε : 0 ≤ ε)
+      (_herror : ∀ x, |p x - q x| ≤ ε) (S : Finset (GradientGrid d M)),
       |MeasureProb (gradientReadout d M hM
             (Qatlib.Concepts.FourierRecovery.ModularFourier.probabilityReadoutPhase p)) S
           - MeasureProb (gradientReadout d M hM
             (Qatlib.Concepts.FourierRecovery.ModularFourier.probabilityReadoutPhase q)) S|
         ≤ 2 * ε) ∧
-  (∀ (d M : ℕ) (hM : 0 < M) (hM2 : 2 ≤ M) (g : Fin d → ℝ) (c w B : ℝ) (hw : 0 < w)
-      (hB : 0 ≤ B) (p q : GradientGrid d M → ℝ) (ε : ℝ) (hε : 0 ≤ ε)
-      (hlin : ∀ x, |Qatlib.Concepts.FourierRecovery.ModularFourier.probabilityReadoutPhase p x
+  (∀ (d M : ℕ) (hM : 0 < M) (_hM2 : 2 ≤ M) (g : Fin d → ℝ) (c w B : ℝ) (_hw : 0 < w)
+      (_hB : 0 ≤ B) (p q : GradientGrid d M → ℝ) (ε : ℝ) (_hε : 0 ≤ ε)
+      (_hlin : ∀ x, |Qatlib.Concepts.FourierRecovery.ModularFourier.probabilityReadoutPhase p x
           - (c + ∑ j : Fin d, g j * (x j).val)| ≤ B)
-      (herror : ∀ x, |p x - q x| ≤ ε),
+      (_herror : ∀ x, |p x - q x| ≤ ε),
       MeasureProb (gradientReadout d M hM
             (Qatlib.Concepts.FourierRecovery.ModularFourier.probabilityReadoutPhase q))
           (composedGoodWindow d M g w)
         ≥ 1 - 16 * (d : ℝ) / ((M : ℝ) * w) - 4 * Real.pi * B - 2 * ε) ∧
   (∀ (X A : Type) [Fintype X] [Fintype A] [DecidableEq X] [DecidableEq A]
-      (U : Matrix (X × A) (X × A) ℂ) (hU : U ∈ Matrix.unitaryGroup (X × A) ℂ)
+      (U : Matrix (X × A) (X × A) ℂ) (_hU : U ∈ Matrix.unitaryGroup (X × A) ℂ)
       (a₀ : A) (good : Finset A)
-      (hlabel : ∀ (x y : X) (a : A), x ≠ y → U (x,a) (y,a₀) = 0) (k : ℕ) (d M : ℕ)
-      (hM : 0 < M),
+      (_hlabel : ∀ (x y : X) (a : A), x ≠ y → U (x,a) (y,a₀) = 0) (k : ℕ) (d M : ℕ)
+      (_hM : 0 < M),
       adjointQueryCount (probabilityPhaseWord (X := X) a₀ good k) = 6912 * k + 110646 ∧
         adjointGateCount (probabilityPhaseWord (X := X) a₀ good k) = 6912 * k + 110861 ∧
         QueryCount (gradientWord d M) = 1 ∧

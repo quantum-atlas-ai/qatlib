@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QPCAAssume18.ClassicalPca.ActualSketch
+module
+
+public import Qatlib.Papers.QPCAAssume18.ClassicalPca.ActualSketch
+
+@[expose] public section
 
 /-!
 # Concentration of the actual PCA sketch
@@ -89,7 +93,7 @@ theorem pca_actual_column_gram_tail {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     rw [hdiv] at ht
     simp only [Matrix.conjTranspose_conjTranspose] at ht
     have hcol : pcaColumnLaw A hA hd (pcaGramSamples K e delta) rows = pcaRowLaw Rᴴ hR := by
-      simp only [pcaColumnLaw, R, dif_pos hR]
+      simp only [pcaColumnLaw, R, dite_eq_left hR]
     rw [hcol]
     apply (pca_event_mono (pcaRowLaw Rᴴ hR) _ _ ?_).trans ht
     intro cols hbad

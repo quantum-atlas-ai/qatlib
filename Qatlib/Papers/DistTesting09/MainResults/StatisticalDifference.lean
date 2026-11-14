@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.DistTesting09.MainResults.Defs
+module
+
+public import Qatlib.Papers.DistTesting09.MainResults.Defs
+
+@[expose] public section
 
 /-!
 # Statistical distance estimation
@@ -103,7 +107,7 @@ theorem midpoint_expect_xRatio (p q : Dist N) :
     · have hp0 : p.prob i = 0 := by linarith
       have hq0 : q.prob i = 0 := by linarith
       simp [midpoint_prob, hp0, hq0]
-    · rw [midpoint_prob, if_neg h]
+    · rw [midpoint_prob, ite_eq_right h]
       field_simp
   calc (midpoint p q).expect (fun i => xRatio p q i)
       = ∑ i, (1 / 2) * |p.prob i - q.prob i| := by

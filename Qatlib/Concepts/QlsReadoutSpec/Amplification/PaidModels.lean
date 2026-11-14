@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QlsReadoutSpec.BlockPrecond.PreconditioningParameters
-import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.LocalDyadicGate
-import Qatlib.Concepts.ClassicalTape.TapeCompilation.ClockedTapeDecision
-import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
-import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
+module
+
+public import Qatlib.Concepts.QlsReadoutSpec.BlockPrecond.PreconditioningParameters
+public import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.LocalDyadicGate
+public import Qatlib.Concepts.ClassicalTape.TapeCompilation.ClockedTapeDecision
+public import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+public import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+
+@[expose] public section
 
 /-!
 # Paid oracle words and tunable amplification models

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic.Ring
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -61,7 +65,7 @@ which is the source's `Ω(∑_i |α_i|² ε² 2^{2j_i}/κ²)` with the absolute
 constant `1/4` made explicit. -/
 theorem source_lemma8 {ι : Type} [Fintype ι]
     (α q : ι → ℝ) (j : ι → ℕ) (ε κ : ℝ)
-    (hε : 0 < ε) (hκ : 0 < κ)
+    (_hε : 0 < ε) (_hκ : 0 < κ)
     (hq : ∀ i, (1 / 4) * (ε ^ 2 * (2 : ℝ) ^ (2 * j i)) / κ ^ 2 ≤ q i) :
     (1 / 4) * (∑ i, α i ^ 2 * (ε ^ 2 * (2 : ℝ) ^ (2 * j i)) / κ ^ 2)
       ≤ ∑ i, α i ^ 2 * q i := by

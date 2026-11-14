@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmpTransform.ErrorStream.DistinctFourierNoise
-import Mathlib.Data.Finset.Powerset
-import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
-import Qatlib.Foundations.QueryWordCore.Circuit
+module
+
+public import Qatlib.Concepts.AmpTransform.ErrorStream.DistinctFourierNoise
+public import Mathlib.Data.Finset.Powerset
+public import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
+public import Qatlib.Foundations.QueryWordCore.Circuit
+
+@[expose] public section
 
 /-!
 # Fourier measurements of distinct noise sets
@@ -158,9 +162,9 @@ theorem distinct_noise_actual_marked_circuit_born (N L : ℕ) [NeZero N] (S : Fi
       ‖distinctNoiseFourier S y‖^2/((N : ℝ)*L) := by
   rw [(distinct_noise_actual_marked_fourier_circuit N S inverse).2.2.2.2]
   cases inverse
-  · simpa only [Bool.false_eq_true, if_false, Pi.neg_apply, norm_neg] using
+  · simpa only [Bool.false_eq_true, ite_false, Pi.neg_apply, norm_neg] using
       (distinct_noise_actual_quantum_fourier_born N L S y hL hS).2
-  · simpa only [if_true, Pi.neg_apply, norm_neg] using
+  · simpa only [ite_true, Pi.neg_apply, norm_neg] using
       distinct_noise_actual_inverse_quantum_fourier_born N L S y hL hS
 
 /-- For a nonzero frequency, the mean marked-circuit Born probability over all `L`-element

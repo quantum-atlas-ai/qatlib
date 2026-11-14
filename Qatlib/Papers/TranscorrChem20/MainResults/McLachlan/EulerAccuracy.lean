@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.TranscorrChem20.MainResults.McLachlan.Basic
-import Qatlib.Concepts.ImaginaryFlow.LeastSquares.EulerError
+module
+
+public import Qatlib.Papers.TranscorrChem20.MainResults.McLachlan.Basic
+public import Qatlib.Concepts.ImaginaryFlow.LeastSquares.EulerError
+
+@[expose] public section
 
 /-!
 # Euler accuracy and a cutoff-rate example

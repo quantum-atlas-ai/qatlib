@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.ResourceDerivation
-import Qatlib.Foundations.CircuitReversal.ReversalAlgebra.CircuitReversal
-import Qatlib.Concepts.QsvtCore.QueryLowerBound.SubroutineExpansion
+module
+
+public import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.ResourceDerivation
+public import Qatlib.Foundations.CircuitReversal.ReversalAlgebra.CircuitReversal
+public import Qatlib.Concepts.QsvtCore.QueryLowerBound.SubroutineExpansion
+
+@[expose] public section
 
 /-!
 # Data for paid adjoint compilation

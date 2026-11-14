@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.RationalFlow.CisApproximation
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.ZeroReference
+module
+
+public import Qatlib.Concepts.EffectiveGauge.RationalFlow.CisApproximation
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.ZeroReference
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -170,7 +174,7 @@ theorem sourceReferenceValue_error (v : SpatialPoint → SpatialPoint) (hv : Con
         (physicalPeriod • rationalSpatialPoint a)‖ ≤ (tau : ℝ) := by
   rw [sourceReferenceValue_eq]
   by_cases hz : m1=0
-  · rw [if_pos hz]
+  · rw [ite_eq_left hz]
     subst m1
     refine ⟨originSeedApproximation (rescaledSpinSamples source 0 m2) (tau/8),rfl,?_⟩
     have hb0 : SourceRescalingBounds v 0 (m2 : ℝ) := by simpa only [Rat.cast_zero] using hb
@@ -178,7 +182,7 @@ theorem sourceReferenceValue_error (v : SpatialPoint → SpatialPoint) (hv : Con
       (scaledUnitPoint_cube _ ha)]
     exact (rescaledOriginSeed_error v hu source hs 0 m2 (tau/8) (by positivity)).trans
       (Rat.cast_le.mpr (by linarith : tau/8 ≤ tau))
-  · rw [if_neg hz]
+  · rw [ite_eq_right hz]
     let u := rationalSpatialPoint a
     let q₀ := rescaledOriginSeed v source m1 m2
     have h₀ : ‖q₀‖=1 := (rescaledOriginSeed_spec v hu source hs m1 m2).1
@@ -203,7 +207,7 @@ theorem sourceReferenceValue_error (v : SpatialPoint → SpatialPoint) (hv : Con
         have hh : (((1-eta : ℚ) : ℝ)) ≤ (a 2 : ℝ) := Rat.cast_le.mpr h
         simpa only [u,rationalSpatialPoint,PiLp.toLp_apply,Rat.cast_sub,Rat.cast_one] using hh
     by_cases hboundary : referenceValueBoundary eta a
-    · rw [if_pos hboundary]
+    · rw [ite_eq_left hboundary]
       refine ⟨originSeedApproximation (rescaledSpinSamples source m1 m2) (tau/8),rfl,?_⟩
       have htarget : sourcePeriodicReference v hv hu source hs m1 m2 eta (physicalPeriod • u)=q₀ := by
         rcases hboundary with h | h | h | h | h
@@ -219,9 +223,9 @@ theorem sourceReferenceValue_error (v : SpatialPoint → SpatialPoint) (hv : Con
       rw [htarget]
       exact (rescaledOriginSeed_error v hu source hs m1 m2 (tau/8) (by positivity)).trans
         (Rat.cast_le.mpr (by linarith : tau/8 ≤ tau))
-    · rw [if_neg hboundary]
+    · rw [ite_eq_right hboundary]
       by_cases hfront : a 0 ≤ 1-eta/2
-      · rw [if_pos hfront]
+      · rw [ite_eq_left hfront]
         refine ⟨rescaledLineValue source m1 m2 a tau,rfl,?_⟩
         have htarget : sourcePeriodicReference v hv hu source hs m1 m2 eta (physicalPeriod • u)=
             sourceLiftSpatialExtension v hv q₀ h₀ (physicalPeriod • u) := by
@@ -231,7 +235,7 @@ theorem sourceReferenceValue_error (v : SpatialPoint → SpatialPoint) (hv : Con
           simpa only [u,rationalSpatialPoint,PiLp.toLp_apply,Rat.cast_sub,Rat.cast_one,Rat.cast_div,Rat.cast_ofNat] using hh
         rw [htarget]
         exact rescaledLineValue_error v hv hu source hs m1 m2 hm1 hm2 hb a ha tau ht ht1
-      · rw [if_neg hfront]
+      · rw [ite_eq_right hfront]
         exact sourceReferenceTransitionValue_error v hv hu hp source hs m1 m2 hm1 hm2 hb B hB mu hm hg hoff
           eta he he1 hmargin a ha (lt_of_not_ge hfront).le tau ht ht1
 

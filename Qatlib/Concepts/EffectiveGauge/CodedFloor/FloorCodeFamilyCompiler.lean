@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Computability.PartrecCode
+module
+
+public import Mathlib.Computability.PartrecCode
+
+@[expose] public section
 
 /-!
 # Floor Code Family Compiler

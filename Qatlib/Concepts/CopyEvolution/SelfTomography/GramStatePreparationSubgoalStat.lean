@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CopyEvolution.SelfTomography.GramFirstRegisterDensityStat
-import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownFrameLocalConsumers
-import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+module
+
+public import Qatlib.Concepts.CopyEvolution.SelfTomography.GramFirstRegisterDensityStat
+public import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownFrameLocalConsumers
+public import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+
+@[expose] public section
 
 /-!
 # The Gram-state preparation specification

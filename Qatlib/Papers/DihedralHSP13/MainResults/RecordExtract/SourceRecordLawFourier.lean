@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Matrix.Mul
-import Mathlib.Data.Matrix.Diagonal
-import Mathlib.LinearAlgebra.Matrix.Trace
-import Mathlib.Data.Fintype.BigOperators
-import Mathlib.Analysis.Fourier.FiniteAbelian.Orthogonality
-import Mathlib.Analysis.Fourier.FiniteAbelian.PontryaginDuality
+module
+
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.Data.Matrix.Diagonal
+public import Mathlib.LinearAlgebra.Matrix.Trace
+public import Mathlib.Data.Fintype.BigOperators
+public import Mathlib.Analysis.Fourier.FiniteAbelian.Orthogonality
+public import Mathlib.Analysis.Fourier.FiniteAbelian.PontryaginDuality
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -66,8 +70,8 @@ open Matrix
 
 section Fourier
 
-variable {J A : Type*} [Fintype J] [DecidableEq J] [AddCommGroup A] [Fintype A]
-  [DecidableEq A]
+variable {J A : Type*} [instFintypeJ : Fintype J] [instDecidableEqJ : DecidableEq J] [AddCommGroup A] [Fintype A]
+  [instDecidableEqA : DecidableEq A]
 
 /-- The Fourier mode `|k⟩ ⊗ |χ⟩` of the register `C[J] ⊗ C[A]`: label `k` together with
 the additive character `χ`.  This is the paper's `|j⟩|b̂⟩` basis vector. -/
@@ -81,8 +85,12 @@ noncomputable def fourierSectorProjector (χ : AddChar A ℂ) :
     Matrix (J × A) (J × A) ℂ :=
   fun p q => if p.1 = q.1 then (1 / (Fintype.card A : ℂ)) * conj (χ p.2) * χ q.2 else 0
 
+omit instDecidableEqA in
 /-- Character orthogonality in the form used below: `∑ a, conj(χ a) χ a = |A|`. -/
-theorem sum_char_conj_mul (χ : AddChar A ℂ) :
+theorem sum_char_conj_mul {A : Type*}
+    [_instAddCommGroupA : AddCommGroup A]
+    [_instFintypeA : Fintype A]
+    [_instDecidableEqA : DecidableEq A] (χ : AddChar A ℂ) :
     (∑ a, (conj (χ a) : ℂ) * χ a) = (Fintype.card A : ℂ) := by
   have h := AddChar.wInner_cWeight_self (R := ℂ) χ
   rw [RCLike.wInner_cWeight_eq_expect] at h
@@ -106,8 +114,8 @@ end Fourier
 
 section Convolution
 
-variable {J A : Type*} [Fintype J] [DecidableEq J] [AddCommGroup A] [Fintype A]
-  [DecidableEq A]
+variable {J A : Type*} [instFintypeJ : Fintype J] [instDecidableEqJ : DecidableEq J] [AddCommGroup A] [Fintype A]
+  [instDecidableEqA : DecidableEq A]
 
 /-- A translation-invariant operator on `C[J] ⊗ C[A]`, written as a convolution with
 kernel `g j k d` acting on the difference `c - a` of the `A` registers.  This is the
@@ -115,9 +123,13 @@ general form of `E(ρ)` established in the paper's proof from translation invari
 def convMatrix (g : J → J → A → ℂ) : Matrix (J × A) (J × A) ℂ :=
   fun p q => g p.1 q.1 (q.2 - p.2)
 
+omit instDecidableEqA in
 /-- Shifting the summation variable turns the convolution kernel into the character
 weight `(∑ d, h d χ d) · χ a`. -/
-theorem sum_shift_chi (h : A → ℂ) (a : A) (χ : AddChar A ℂ) :
+theorem sum_shift_chi {A : Type*}
+    [_instAddCommGroupA : AddCommGroup A]
+    [_instFintypeA : Fintype A]
+    [_instDecidableEqA : DecidableEq A] (h : A → ℂ) (a : A) (χ : AddChar A ℂ) :
     (∑ c, h (c - a) * χ c) = (∑ d, h d * χ d) * χ a := by
   have hc : ∀ c : A, (χ c : ℂ) = χ a * χ (c - a) := by
     intro c
@@ -157,17 +169,17 @@ theorem convMatrix_mulVec_fourierVec (g : J → J → A → ℂ) (k : J) (χ : A
     intro j
     by_cases hjk : j = k
     · subst hjk
-      simp only [convMatrix, fourierVec, if_true]
+      simp only [convMatrix, fourierVec, ite_true]
       exact sum_shift_chi (fun d => g p.1 j d) p.2 χ
     · have h0 : ∀ a : A, fourierVec k χ (j, a) = 0 := by
         intro a
-        simp only [fourierVec, if_neg hjk]
+        simp only [fourierVec, ite_eq_right hjk]
       simp only [h0, mul_zero, Finset.sum_const_zero]
-      exact (if_neg hjk).symm
+      exact (ite_eq_right hjk).symm
   rw [Finset.sum_eq_single k]
   · simpa using hinner k
   · intro j _ hjk
-    rw [hinner j, if_neg hjk]
+    rw [hinner j, ite_eq_right hjk]
   · intro hk
     exact absurd (Finset.mem_univ k) hk
 
@@ -177,7 +189,7 @@ theorem sum_ite_single (d0 : A) (c : ℂ) (χ : AddChar A ℂ) :
   rw [Finset.sum_eq_single d0]
   · simp
   · intro d _ hd
-    rw [if_neg hd, zero_mul]
+    rw [ite_eq_right hd, zero_mul]
   · intro h
     exact absurd (Finset.mem_univ d0) h
 
@@ -187,8 +199,8 @@ end Convolution
 
 section Channel
 
-variable {J A X : Type*} [Fintype J] [DecidableEq J] [AddCommGroup A] [Fintype A]
-  [DecidableEq A]
+variable {J A X : Type*} [instFintypeJ : Fintype J] [instDecidableEqJ : DecidableEq J] [AddCommGroup A] [Fintype A]
+  [instDecidableEqA : DecidableEq A]
 
 /-- The channel `E` of the paper: write `f j a` into the output register and discard it.
 On density matrices this is `E(ρ)(p,q) = ρ(p,q)` when the written values agree and `0`
@@ -214,9 +226,15 @@ translation invariance; injectivity of `f0` gives the support condition. -/
 noncomputable def shiftKernel (σ : Matrix J J ℂ) (ψ : J → A) : J → J → A → ℂ :=
   fun j k d => if d = ψ j - ψ k then σ j k / (Fintype.card A : ℂ) else 0
 
+omit instFintypeJ instDecidableEqJ in
 /-- **Translation invariance, concretely.**  On `ρ = σ ⊗ uniform`, the discarded-output
 channel is the convolution operator with kernel `shiftKernel`. -/
-theorem discardMatrix_rho_eq_convMatrix (f0 : A → X) (hf0 : Function.Injective f0)
+theorem discardMatrix_rho_eq_convMatrix {J A X : Type*}
+    [_instFintypeJ : Fintype J]
+    [_instDecidableEqJ : DecidableEq J]
+    [_instAddCommGroupA : AddCommGroup A]
+    [_instFintypeA : Fintype A]
+    [_instDecidableEqA : DecidableEq A] (f0 : A → X) (hf0 : Function.Injective f0)
     (ψ : J → A) (σ : Matrix J J ℂ) :
     discardMatrix (fShift f0 ψ) (rho σ) = convMatrix (shiftKernel σ ψ) := by
   classical
@@ -259,8 +277,8 @@ end Channel
 
 section Uniform
 
-variable {J A X : Type*} [Fintype J] [DecidableEq J] [AddCommGroup A] [Fintype A]
-  [DecidableEq A]
+variable {J A X : Type*} [instFintypeJ : Fintype J] [instDecidableEqJ : DecidableEq J] [AddCommGroup A] [Fintype A]
+  [instDecidableEqA : DecidableEq A]
 
 /-- **Uniformity from a diagonal `A`-slice.**  If an operator restricted to equal labels
 is diagonal in the `A` register with diagonal values `d j`, then every character sector
@@ -291,7 +309,7 @@ theorem uniform_from_diagonal (d : J → ℂ) (R : Matrix (J × A) (J × A) ℂ)
   intro j _
   rw [Finset.sum_comm]
   rw [Finset.sum_eq_single j]
-  · simp only [if_true]
+  · simp only [ite_true]
     have hstep : ∀ a : A,
         (∑ c, ((1 / (Fintype.card A : ℂ)) * conj (χ a) * χ c) * R (j, c) (j, a))
           = ((1 / (Fintype.card A : ℂ)) * conj (χ a) * χ a) * d j := by
@@ -299,7 +317,7 @@ theorem uniform_from_diagonal (d : J → ℂ) (R : Matrix (J × A) (J × A) ℂ)
       rw [Finset.sum_eq_single a]
       · simp [hR j a a]
       · intro c _ hc
-        rw [hR j a c, if_neg (Ne.symm hc), mul_zero]
+        rw [hR j a c, ite_eq_right (Ne.symm hc), mul_zero]
       · intro h
         exact absurd (Finset.mem_univ a) h
     calc
@@ -317,15 +335,21 @@ theorem uniform_from_diagonal (d : J → ℂ) (R : Matrix (J × A) (J × A) ℂ)
         ((if j = k then (1 / (Fintype.card A : ℂ)) * conj (χ a) * χ c else 0)) *
           R (k, c) (j, a) = 0 := by
       intro a c
-      rw [if_neg (Ne.symm hkj), zero_mul]
+      rw [ite_eq_right (Ne.symm hkj), zero_mul]
     simp only [Finset.sum_congr rfl (fun a _ => Finset.sum_congr rfl (fun c _ => hzero a c)),
       Finset.sum_const_zero]
   · intro h
     exact absurd (Finset.mem_univ j) h
 
+omit instFintypeJ instDecidableEqJ in
 /-- The diagonal `A`-slice of `E(ρ)`: for equal labels `j`, injectivity of `f0` forces
 `a = c`, and the value is `σ j j / |A|`. -/
-theorem discardMatrix_rho_diagonal (f0 : A → X) (hf0 : Function.Injective f0)
+theorem discardMatrix_rho_diagonal {J A X : Type*}
+    [_instFintypeJ : Fintype J]
+    [_instDecidableEqJ : DecidableEq J]
+    [_instAddCommGroupA : AddCommGroup A]
+    [_instFintypeA : Fintype A]
+    [_instDecidableEqA : DecidableEq A] (f0 : A → X) (hf0 : Function.Injective f0)
     (ψ : J → A) (σ : Matrix J J ℂ) (j : J) (a c : A) :
     discardMatrix (fShift f0 ψ) (rho σ) (j, c) (j, a) =
       if a = c then σ j j / (Fintype.card A : ℂ) else 0 := by

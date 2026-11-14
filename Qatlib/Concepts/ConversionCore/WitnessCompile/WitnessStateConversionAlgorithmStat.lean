@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GramQueryCore.LowerBoundTools.WitnessConversionDefs
+module
+
+public import Qatlib.Concepts.GramQueryCore.LowerBoundTools.WitnessConversionDefs
+
+@[expose] public section
 
 /-!
 # Specification of counted witness state conversion

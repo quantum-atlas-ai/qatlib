@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.PEPSObs16.MainResults.SourceMainResults
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.PEPSObs16.MainResults.SourceMainResults
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # PEPSObs16 — patch factorization, eqs. (6), (7), (17), (18)
@@ -65,7 +69,7 @@ index (it is `O ⊗ 1`). -/
 theorem liftObservable_apply_of_ne {ι κ : Type*} [DecidableEq κ]
     (O : Matrix ι ι ℂ) (a b : ι × κ) (h : a.2 ≠ b.2) : liftObservable O a b = 0 := by
   unfold liftObservable
-  rw [if_neg h, mul_zero]
+  rw [ite_eq_right h, mul_zero]
 
 /-- A scalar identity used to cancel the (normalised) remainder weight:
 `(a*w)/(b*w) = a/b` for `w ≠ 0`, including the degenerate case `b = 0` where
@@ -129,8 +133,8 @@ theorem numerator_prodState {ι κ : Type*} [Fintype ι] [Fintype κ] [Decidable
     apply Finset.sum_congr rfl
     intro c _
     rw [Finset.sum_eq_single b]
-    · rw [if_pos rfl]; ring
-    · intro d _ hd; rw [if_neg (fun h : b = d => hd h.symm)]; ring
+    · rw [ite_eq_left rfl]; ring
+    · intro d _ hd; rw [ite_eq_right (fun h : b = d => hd h.symm)]; ring
     · intro hb; exact absurd (Finset.mem_univ b) hb
   have hcore : ∀ a : ι,
       (∑ b : κ, (star (ψ a) * star (χ b)) *

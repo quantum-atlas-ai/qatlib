@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixAlgebra.RankOneSecular.SecularAlgebra
+module
+
+public import Qatlib.Foundations.MatrixAlgebra.RankOneSecular.SecularAlgebra
+
+@[expose] public section
 
 /-!
 # Excluding a unique diagonal pole

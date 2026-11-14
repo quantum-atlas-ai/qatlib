@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.VarTimeAmpAmp10.StopModel.VariableTimeAlgorithmContracts
-import Qatlib.Papers.VarTimeAmpAmp10.StopModel.GrowingStopDefs
+module
+
+public import Qatlib.Papers.VarTimeAmpAmp10.StopModel.VariableTimeAlgorithmContracts
+public import Qatlib.Papers.VarTimeAmpAmp10.StopModel.GrowingStopDefs
+
+@[expose] public section
 
 /-!
 # Structural variable-time programs

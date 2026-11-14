@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalRowProgram
-import Mathlib.Logic.Equiv.Fin.Basic
-import Mathlib.Algebra.BigOperators.Group.List.Basic
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalRowProgram
+public import Mathlib.Logic.Equiv.Fin.Basic
+public import Mathlib.Algebra.BigOperators.Group.List.Basic
+
+@[expose] public section
 
 /-!
 # Batched Gaussian-rational row programs
@@ -56,10 +60,10 @@ theorem cacheRun_suffix (sourceCount : ℕ) (p : List CacheOp) (cs cs' : List Ga
   | cons op rest ih =>
     by_cases hv : op.Valid sourceCount cs.length
     · have ht : cacheRun sourceCount rest (cs++[op.eval cs])=some cs' := by
-        simpa only [cacheRun,CacheOp.step,if_pos hv,Option.bind_some] using! hr
+        simpa only [cacheRun,CacheOp.step,ite_eq_left hv,Option.bind_some] using! hr
       obtain ⟨tail,he⟩ := ih _ ht
       exact ⟨op.eval cs::tail,by simpa [List.append_assoc] using! he⟩
-    · simp only [cacheRun,CacheOp.step,if_neg hv,Option.bind_none,reduceCtorEq] at hr
+    · simp only [cacheRun,CacheOp.step,ite_eq_right hv,Option.bind_none,reduceCtorEq] at hr
 
 /-- Appending cache entries preserves a selected row value when all relevant indices lie in the
 original cache and the choice is valid. -/

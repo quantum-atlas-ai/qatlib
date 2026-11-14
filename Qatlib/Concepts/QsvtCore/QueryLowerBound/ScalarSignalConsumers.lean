@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.QueryLowerBound.ScalarSignalAccess
-import Qatlib.Concepts.QsvtCore.QueryLowerBound.ScalarSignalQueryBounds
-import Qatlib.Concepts.QsvtCore.QueryLowerBound.SubroutineExpansion
-import Qatlib.Concepts.LocalMachine.LocalTransport.ControlledQueryCircuit
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+module
+
+public import Qatlib.Concepts.QsvtCore.QueryLowerBound.ScalarSignalAccess
+public import Qatlib.Concepts.QsvtCore.QueryLowerBound.ScalarSignalQueryBounds
+public import Qatlib.Concepts.QsvtCore.QueryLowerBound.SubroutineExpansion
+public import Qatlib.Concepts.LocalMachine.LocalTransport.ControlledQueryCircuit
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+
+@[expose] public section
 
 /-!
 # Scalar signal circuits and lower-bound examples
@@ -150,7 +154,7 @@ theorem scalar_signal_chebyshev_actual_word : ∀ (n : ℕ) (x : ℝ), x ∈ Set
     have hT : (Polynomial.Chebyshev.T ℝ (n : ℤ)).eval x=Real.cos ((n : ℝ)*Real.arccos x) := by
       simpa only [Real.cos_arccos hx.1 hx.2,Int.cast_natCast] using
           Polynomial.Chebyshev.T_real_cos (Real.arccos x) (n : ℤ)
-    simp only [scalarRotation,if_true,hT]
+    simp only [scalarRotation,ite_true,hT]
 
 /-- For `θ` in `[0, π]`, evaluating the Chebyshev word at `cos θ` gives rotation through `n *
 θ`. -/

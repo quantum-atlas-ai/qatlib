@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.RiccatiWang26.SolutionEnc.Core.PaperModel
+module
+
+public import Qatlib.Papers.RiccatiWang26.SolutionEnc.Core.PaperModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -106,7 +110,7 @@ normalization moved to the left).
 the ancilla block of the difference is no larger than the full output difference. -/
 theorem lemma_H_2_query_hybrid {n : Type*} [Fintype n] [DecidableEq n] {a : ℕ}
     (Y1 Y0 : Sq n) (V1 V0 : Matrix (Fin (2 ^ a) × n) (Fin (2 ^ a) × n) ℂ)
-    (αY ε q δ : ℝ) (hα : 0 < αY) (hq : 0 ≤ q) (hδ : 0 ≤ δ)
+    (αY ε q δ : ℝ) (hα : 0 < αY) (_hq : 0 ≤ q) (_hδ : 0 ≤ δ)
     (hhybrid : ‖V1 - V0‖ ≤ q * δ)
     (hcompress : ‖ancBlock a V1 - ancBlock a V0‖ ≤ ‖V1 - V0‖)
     (h1 : ‖ancBlock a V1 - (αY : ℂ) • Y1‖ ≤ ε)
@@ -133,10 +137,12 @@ lemma dare_readout_lower (p r : ℝ) (hr : r = p ^ 2 / 2) (hp : 2 / 3 ≤ p) : 2
 
 /-! ## Selected-value lemmas and actual normalization (H.3–H.4) -/
 
+omit [Fintype n] [DecidableEq n] in
 /-- Threshold arithmetic associated with Lemma H.3: a supplied scalar readout
 `y` with assumed error `hy` distinguishes the two promised value ranges.
 No measurement procedure or constant-query implementation is constructed. -/
 theorem lemma_H_3_selected_value_oracle
+    [_fintype : Fintype n] [_decidableEq : DecidableEq n]
     (X : Sq n) (x0 : n → ℂ) (αX ε gap tYes tNo : ℝ)
     (hα : 0 < αX) (hα1 : 1 ≤ αX) (hgap : 0 < gap) (hε : ε < gap / 4)
     (hyes : tYes - tNo = gap)

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ThermalRate98.MainResults.PhysicalRateFormula
+module
+
+public import Qatlib.Papers.ThermalRate98.MainResults.PhysicalRateFormula
+
+@[expose] public section
 
 /-!
 # Weighted thermal cutoff bounds
@@ -106,6 +110,7 @@ def tailPairs (E : I → ℝ) (E_c : ℝ) : Finset (I × I) := by
   classical
   exact Finset.univ.filter (fun p => E_c ≤ E p.1 ∨ E_c ≤ E p.2)
 
+omit [Fintype I] [DecidableEq I] in
 /-- For positive inverse temperature and nonnegative energies, a summand with at least one
 energy at or above the cutoff is bounded in norm by the cutoff exponential times the squared
 uniform gap and overlap bounds. See [LidarWang1999]. -/
@@ -139,6 +144,7 @@ theorem eq16Summand_norm_tail_le (β t ħ E_c gap ov : ℝ) (hβ : 0 < β)
         · positivity
         · apply mul_nonneg (Real.exp_pos _).le (sq_nonneg _)
 
+omit [DecidableEq I] in
 /-- For positive inverse temperature, nonnegative energies, and uniform gap and overlap bounds,
 the sum of tail summand norms is at most the squared dimension times the cutoff exponential
 and the squared bounds. See [LidarWang1999]. -/
@@ -176,6 +182,7 @@ theorem weighted_tail_bound (β t ħ E_c gap ov : ℝ) (hβ : 0 < β)
     _ = (Fintype.card I : ℝ) ^ 2 * Real.exp (-(β * E_c) / 2) * gap ^ 2 * ov ^ 2 := by
         ring
 
+omit [DecidableEq I] in
 /-- Under the positivity and uniform bound hypotheses, the stated logarithmic lower bound on
 `E_c` makes the sum of tail summand norms at most positive `ε`. See [LidarWang1999]. -/
 theorem weighted_cutoff_epsilon (β t ħ E_c gap ov ε : ℝ) (hβ : 0 < β) (hε : 0 < ε)

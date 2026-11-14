@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ElecStructure10.MainResults.PauliAlgebra.PauliOperators
+module
+
+public import Qatlib.Papers.ElecStructure10.MainResults.PauliAlgebra.PauliOperators
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

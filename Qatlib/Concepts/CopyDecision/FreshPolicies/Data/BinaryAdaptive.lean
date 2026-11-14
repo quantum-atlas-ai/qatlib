@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CopyDecision.QubitMeasure.Data.BinaryRisk
-import Qatlib.Concepts.CopyDecision.FreshPolicies.Data.GeneralPolicy
+module
+
+public import Qatlib.Concepts.CopyDecision.QubitMeasure.Data.BinaryRisk
+public import Qatlib.Concepts.CopyDecision.FreshPolicies.Data.GeneralPolicy
+
+@[expose] public section
 
 /-!
 # Binary Adaptive
@@ -81,7 +85,7 @@ theorem binaryAdaptive_error (n : ℕ) (i j : Fin 3) (hij : i≠j)
     · simp [guessDecision, h, hij, min_eq_left (le_of_not_ge h)]
   | succ n ih =>
     by_cases hQ : 0 < p+q
-    · rw [binaryAdaptive, dif_pos hQ, povmPolicyError]
+    · rw [binaryAdaptive, dite_eq_left hQ, povmPolicyError]
       simp_rw [pairPrior_update]
       calc
         _ = ∑ a, binaryRisk n (binaryPosteriorP i j hij p q hQ a)

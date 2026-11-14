@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QRiskWoerner18.EmpiricalRisk.EmpiricalNativeCVaRTargetErrorStat
-import Qatlib.Concepts.RiskEstimation.CVaREstimation.NativeCVaRFiniteRestrictedQuan
+module
+
+public import Qatlib.Papers.QRiskWoerner18.EmpiricalRisk.EmpiricalNativeCVaRTargetErrorStat
+public import Qatlib.Concepts.RiskEstimation.CVaREstimation.NativeCVaRFiniteRestrictedQuan
+
+@[expose] public section
 
 /-!
 # Native empirical CVaR target error guarantee

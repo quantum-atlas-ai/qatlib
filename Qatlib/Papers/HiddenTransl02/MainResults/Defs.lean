@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Algebra.Field.ZMod
+module
+
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Algebra.Field.ZMod
+
+@[expose] public section
 
 /-!
 # Circuit models and probabilities for hidden translation
@@ -110,19 +114,25 @@ variable [Fintype Reg] [DecidableEq Reg]
 /-- The sum of Born weights of the amplitude function `ψ` over the event `S`. -/
 def outcomeProb (ψ : QState Reg) (S : Finset Reg) : ℝ := MeasureProb ψ S
 
+omit [Fintype Reg] [DecidableEq Reg] in
+
 /-- Every event has nonnegative Born weight. -/
-theorem outcomeProb_nonneg (ψ : QState Reg) (S : Finset Reg) :
+theorem outcomeProb_nonneg {Reg : Type*} [_scopeInst0 : Fintype Reg] [_scopeInst1 : DecidableEq Reg] (ψ : QState Reg) (S : Finset Reg) :
     0 ≤ outcomeProb ψ S := measureProb_nonneg ψ S
 
+omit [Fintype Reg] [DecidableEq Reg] in
+
 /-- Inclusion of finite outcome events implies an inequality between their Born weights. -/
-theorem outcomeProb_mono {ψ : QState Reg} {S T : Finset Reg} (hST : S ⊆ T) :
+theorem outcomeProb_mono {Reg : Type*} [_scopeInst0 : Fintype Reg] [_scopeInst1 : DecidableEq Reg] {ψ : QState Reg} {S T : Finset Reg} (hST : S ⊆ T) :
     outcomeProb ψ S ≤ outcomeProb ψ T := by
   unfold outcomeProb MeasureProb
   exact Finset.sum_le_sum_of_subset_of_nonneg hST
     (fun i _ _ => bornProb_nonneg ψ i)
 
+omit [DecidableEq Reg] in
+
 /-- A normalized state assigns probability one to the universal event. -/
-theorem outcomeProb_univ {ψ : QState Reg} (hψ : Normalized ψ) :
+theorem outcomeProb_univ {Reg : Type*} [_scopeInst0 : Fintype Reg] [_scopeInst1 : DecidableEq Reg] {ψ : QState Reg} (hψ : Normalized ψ) :
     outcomeProb ψ Finset.univ = 1 :=
   measureProb_univ hψ
 
@@ -132,8 +142,10 @@ theorem outcomeProb_le_one {ψ : QState Reg} (hψ : Normalized ψ) (S : Finset R
   rw [← outcomeProb_univ hψ]
   exact outcomeProb_mono (Finset.subset_univ S)
 
+omit [Fintype Reg] in
+
 /-- The Born weight of a union is at most the sum of the Born weights of the two events. -/
-theorem outcomeProb_union_le (ψ : QState Reg) (S T : Finset Reg) :
+theorem outcomeProb_union_le {Reg : Type*} [_scopeInst0 : Fintype Reg] [_scopeInst1 : DecidableEq Reg] (ψ : QState Reg) (S T : Finset Reg) :
     outcomeProb ψ (S ∪ T) ≤ outcomeProb ψ S + outcomeProb ψ T := by
   unfold outcomeProb MeasureProb
   rw [← Finset.union_sdiff_self_eq_union, Finset.sum_union Finset.disjoint_sdiff]
@@ -191,9 +203,11 @@ theorem circuitOutcomeProb_union_le (oracle : Matrix Reg Reg ℂ) (C : Circuit R
       circuitOutcomeProb oracle C init S + circuitOutcomeProb oracle C init T :=
   outcomeProb_union_le _ _ _
 
+omit [DecidableEq Reg] in
+
 /-- The event weight after the appended circuit `C ++ D` equals that after running `D` on the
 state produced by `C`. -/
-theorem circuitOutcomeProb_append (oracle : Matrix Reg Reg ℂ) (C D : Circuit Reg)
+theorem circuitOutcomeProb_append {Reg : Type*} [_scopeInst0 : Fintype Reg] [_scopeInst1 : DecidableEq Reg] (oracle : Matrix Reg Reg ℂ) (C D : Circuit Reg)
     (init : QState Reg) (S : Finset Reg) :
     circuitOutcomeProb oracle (C ++ D) init S =
       circuitOutcomeProb oracle D (Run oracle C init) S := by

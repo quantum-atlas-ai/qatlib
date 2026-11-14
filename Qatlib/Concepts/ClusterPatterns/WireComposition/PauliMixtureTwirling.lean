@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ReferenceError.RefTraceError.ChannelMixtureComposition
-import Qatlib.Foundations.QueryWordCore.Circuit
+module
+
+public import Qatlib.Concepts.ReferenceError.RefTraceError.ChannelMixtureComposition
+public import Qatlib.Foundations.QueryWordCore.Circuit
+
+@[expose] public section
 
 /-!
 # Pauli mixtures and qubit twirling
@@ -395,7 +399,7 @@ theorem pauliTwirl_correct :
         ChannelMixture (FinDist.independentPair pauliFairBit pauliFairBit)
           (fun jk => pauliZChoice jk.2 * pauliXChoice jk.1) ρ
           = (Matrix.trace ρ / (2 : ℂ)) • (1 : Operator 2)) ∧
-      (∀ (ψ : QState (Fin 2)) (j k : Bool),
+      (∀ (ψ : QState (Fin 2)) (_j _k : Bool),
         ChannelMixture (FinDist.independentPair pauliFairBit pauliFairBit)
           (fun jk => pauliZChoice jk.2 * pauliXChoice jk.1) (outerProduct ψ)
           = ∑ jk : Bool × Bool, (1 / 4 : ℂ) •

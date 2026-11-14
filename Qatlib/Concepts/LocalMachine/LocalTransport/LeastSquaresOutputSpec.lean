@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.LinearSystems.PseudoinverseState
+module
+
+public import Qatlib.Concepts.QsvtCore.LinearSystems.PseudoinverseState
+
+@[expose] public section
 
 /-!
 # Least squares solution states and postselection
@@ -132,6 +136,8 @@ omit [DecidableEq I] in
 theorem Inner_zero_right (u : QState I) : Qatlib.Foundations.PureStateMath.Inner u 0 = 0 := by
     simp [Qatlib.Foundations.PureStateMath.Inner]
 
+omit [DecidableEq I] in
+
 /-- Exchanging the arguments of the pure-state inner product takes its complex conjugate. -/
 theorem Inner_rev (u v : QState I) : Qatlib.Foundations.PureStateMath.Inner v u = (starRingEnd ℂ) (Qatlib.Foundations.PureStateMath.Inner u v) := by
   rw [inner_apply, inner_apply,
@@ -159,6 +165,8 @@ theorem stateVector_norm_sq_sum (ψ : QState I) :
     ‖stateVector ψ‖ ^ 2 = ∑ i, ‖ψ i‖ ^ 2 := by
   rw [stateVector_norm_sq]
   simp [MeasureProb, BornProb]
+
+omit [DecidableEq I] in
 
 /-- The squared Euclidean norm of a state vector equals the real part of its inner product with
 itself. -/

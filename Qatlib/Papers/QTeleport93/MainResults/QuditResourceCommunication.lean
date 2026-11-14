@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QTeleport93.MainResults.QuditResourceCommunicationDefs
-import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditTeleportation
+module
+
+public import Qatlib.Papers.QTeleport93.MainResults.QuditResourceCommunicationDefs
+public import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditTeleportation
+
+@[expose] public section
 
 /-!
 # Qudit resource and communication consequences

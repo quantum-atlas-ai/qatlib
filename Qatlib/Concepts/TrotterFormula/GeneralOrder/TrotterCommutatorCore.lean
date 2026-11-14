@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorDefs
-import Qatlib.Concepts.TrotterFormula.ImaginaryTime.FiniteImaginaryProductConsumers
-import Qatlib.Foundations.OperatorErrors.OperatorError
-import QuantumInfo.ForMathlib.HermitianMat.LogExp
-import Mathlib.Analysis.Matrix.HermitianFunctionalCalculus
-import Mathlib.Analysis.SpecialFunctions.ContinuousFunctionalCalculus.ExpLog.Basic
+module
+
+public import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorDefs
+public import Qatlib.Concepts.TrotterFormula.ImaginaryTime.FiniteImaginaryProductConsumers
+public import Qatlib.Foundations.OperatorErrors.OperatorError
+public import QuantumInfo.ForMathlib.HermitianMat.LogExp
+public import Mathlib.Analysis.Matrix.HermitianFunctionalCalculus
+public import Mathlib.Analysis.SpecialFunctions.ContinuousFunctionalCalculus.ExpLog.Basic
+
+@[expose] public section
 
 /-!
 # Finite Strang synthesis and imaginary-time products
@@ -691,7 +695,7 @@ private theorem diagonal_prod {n : ℕ} (cs : List (Matrix (Reg n) (Reg n) ℂ))
 private theorem regControlEmbed_diagonal {n : ℕ} (U : Matrix (Reg n) (Reg n) ℂ) :
     ∀ u v : Reg (n + 1), u ≠ v → regControlEmbed U u v = 0 := by
   intro u v huv
-  rw [regControlEmbed_apply, if_neg huv]
+  rw [regControlEmbed_apply, ite_eq_right huv]
 
 /-- When the left factor is diagonal, `regControlEmbed` preserves its product with an arbitrary
 right factor. -/
@@ -716,7 +720,7 @@ private theorem regControlEmbed_mul {n : ℕ} (A B : Matrix (Reg n) (Reg n) ℂ)
     · exact diagonal_mul_diag A B hA _
     · rw [one_mul]
     · rw [zero_mul]
-  · rw [regControlEmbed_apply, if_neg hxy, hEB1 x y hxy]
+  · rw [regControlEmbed_apply, ite_eq_right hxy, hEB1 x y hxy]
 
 /-- For a family of diagonal matrices, the product of their embeddings equals the embedding of
 their product. -/
@@ -768,7 +772,7 @@ theorem clause59_block6 :
     have hent : ∀ k : Reg n, Complex.normSq (gateWordMatrix ((synth j).word) k k) = 1 := by
       intro k
       have hxd := normSq_diag_of_unitary_diagonal _ hunit hdiagEB (extendTrue k)
-      rw [regControlEmbed_apply, if_pos rfl, extendTrue_last, if_pos rfl,
+      rw [regControlEmbed_apply, ite_eq_left rfl, extendTrue_last, ite_eq_left rfl,
         extendTrue_castSucc_fun] at hxd
       exact hxd
     intro x y hxy
@@ -911,7 +915,7 @@ private theorem exp_hermitian_posSemidef {d : ℕ} (A : Operator d) (hA : A.IsHe
   let H : HermitianMat (Fin d) ℂ := ⟨A, hA⟩
   have he : H.exp.mat = NormedSpace.exp A := by
     rw [HermitianMat.exp, HermitianMat.mat_cfc]
-    letI : ContinuousFunctionalCalculus ℝ (Operator d) IsSelfAdjoint :=
+    let : ContinuousFunctionalCalculus ℝ (Operator d) IsSelfAdjoint :=
       Matrix.IsHermitian.instContinuousFunctionalCalculus
     exact CFC.real_exp_eq_normedSpace_exp hA
   have hp : H.exp.mat.PosSemidef := HermitianMat.zero_le_iff.mp H.exp_nonneg

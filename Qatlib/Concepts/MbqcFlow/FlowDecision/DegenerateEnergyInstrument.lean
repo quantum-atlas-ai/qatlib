@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
-import Qatlib.Foundations.PureStateMath.Tensor
+module
+
+public import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
+public import Qatlib.Foundations.PureStateMath.Tensor
+
+@[expose] public section
 
 /-!
 # Projective energy readout with degenerate sectors
@@ -86,9 +90,9 @@ theorem energy_projector_actual_orthogonal_resolution (D M : ℕ) (label : Fin D
     simp only [Matrix.conjTranspose_apply, Matrix.diagonal_apply]
     by_cases h : i = j
     · subst h
-      rw [if_pos rfl]
+      rw [ite_eq_left rfl]
       split_ifs <;> simp
-    · rw [if_neg (Ne.symm h), if_neg h, star_zero]
+    · rw [ite_eq_right (Ne.symm h), ite_eq_right h, star_zero]
   have hDD : ∀ a b : Fin M,
       Matrix.diagonal (fun i => if label i = a then (1:ℂ) else 0)
           * Matrix.diagonal (fun i => if label i = b then (1:ℂ) else 0)
@@ -100,7 +104,7 @@ theorem energy_projector_actual_orthogonal_resolution (D M : ℕ) (label : Fin D
       simp only [Matrix.mul_diagonal, Matrix.diagonal_apply]
       split_ifs
       all_goals simp
-    · simp only [Matrix.mul_diagonal, Matrix.diagonal_apply, if_neg h, zero_mul]
+    · simp only [Matrix.mul_diagonal, Matrix.diagonal_apply, ite_eq_right h, zero_mul]
   have hDa : ∀ a : Fin M,
       Matrix.diagonal (fun i => if label i = a then (if label i = a then (1:ℂ) else 0) else 0)
         = Matrix.diagonal (fun i => if label i = a then (1:ℂ) else 0) := by
@@ -109,9 +113,9 @@ theorem energy_projector_actual_orthogonal_resolution (D M : ℕ) (label : Fin D
     simp only [Matrix.diagonal_apply]
     by_cases h : i = j
     · subst h
-      simp only [if_true]
+      simp only [ite_true]
       by_cases h1 : label i = a <;> simp
-    · simp only [if_neg h]
+    · simp only [ite_eq_right h]
   have hDab : ∀ a b : Fin M, a ≠ b →
       Matrix.diagonal (fun i => if label i = a then (if label i = b then (1:ℂ) else 0) else 0)
         = (0 : Operator D) := by
@@ -121,9 +125,9 @@ theorem energy_projector_actual_orthogonal_resolution (D M : ℕ) (label : Fin D
     by_cases h : i = j
     · subst h
       by_cases h1 : label i = a
-      · rw [if_pos h1, if_neg (fun h2 => hab (h1.symm.trans h2)), if_pos rfl, Matrix.zero_apply]
-      · rw [if_neg h1, if_pos rfl, Matrix.zero_apply]
-    · rw [if_neg h, Matrix.zero_apply]
+      · rw [ite_eq_left h1, ite_eq_right (fun h2 => hab (h1.symm.trans h2)), ite_eq_left rfl, Matrix.zero_apply]
+      · rw [ite_eq_right h1, ite_eq_left rfl, Matrix.zero_apply]
+    · rw [ite_eq_right h, Matrix.zero_apply]
   have hmid : ∀ a b : Fin M, energyProjector label V a * energyProjector label V b
       = V * (Matrix.diagonal (fun i => if label i = a then (1:ℂ) else 0)
         * Matrix.diagonal (fun i => if label i = b then (1:ℂ) else 0)) * V.conjTranspose := by
@@ -148,11 +152,11 @@ theorem energy_projector_actual_orthogonal_resolution (D M : ℕ) (label : Fin D
     simp only [Matrix.sum_apply, Matrix.diagonal_apply, Matrix.one_apply]
     by_cases h : i = j
     · subst h
-      simp only [if_true]
+      simp only [ite_true]
       rw [Finset.sum_ite_eq]
       simp
-    · rw [if_neg h]
-      exact Finset.sum_eq_zero fun a _ => by rw [if_neg h]
+    · rw [ite_eq_right h]
+      exact Finset.sum_eq_zero fun a _ => by rw [ite_eq_right h]
   refine ⟨fun _ => rfl, ?_, ?_, ?_⟩
   · intro a
     refine ⟨?_, ?_⟩
@@ -234,13 +238,13 @@ theorem energyLabelPerm_mulVec {D M : ℕ} (label : Fin D → Fin M)
     (energyLabelPerm label *ᵥ v) q = v ((energyLabelEquiv label).symm q) := by
   simp only [Matrix.mulVec, dotProduct, energyLabelPerm, Matrix.of_apply]
   rw [Finset.sum_eq_single ((energyLabelEquiv label).symm q)]
-  · rw [if_pos (Equiv.apply_symm_apply _ _), one_mul]
+  · rw [ite_eq_left (Equiv.apply_symm_apply _ _), one_mul]
   · intro z _ hz
     have hne : ¬(energyLabelEquiv label) z = q := by
       intro h
       exact hz ((Equiv.symm_apply_apply _ z).symm.trans
         (congrArg (energyLabelEquiv label).symm h))
-    rw [if_neg hne, zero_mul]
+    rw [ite_eq_right hne, zero_mul]
   · intro h
     exact absurd (Finset.mem_univ _) h
 
@@ -254,11 +258,11 @@ theorem energyLabelPerm_unitary {D M : ℕ} (label : Fin D → Fin M) :
     by_cases hxy : x = y
     · subst hxy
       simp
-    · rw [if_neg (fun h => hxy (((energyLabelEquiv label).injective h).symm)), if_neg hxy]
+    · rw [ite_eq_right (fun h => hxy (((energyLabelEquiv label).injective h).symm)), ite_eq_right hxy]
       simp
   · intro z _ hz
     simp only [Matrix.conjTranspose_apply, energyLabelPerm, Matrix.of_apply]
-    rw [if_neg (Ne.symm hz), star_zero, zero_mul]
+    rw [ite_eq_right (Ne.symm hz), star_zero, zero_mul]
   · intro h
     exact absurd (Finset.mem_univ _) h
 
@@ -322,9 +326,9 @@ theorem energy_readout_dilation_unitary_and_branch_amplitudes (D M : ℕ) (hM : 
         = ∑ k : Fin D, V i k * v (a, k) := by
       rw [Fintype.sum_prod_type]
       rw [Finset.sum_eq_single a]
-      · exact Finset.sum_congr rfl fun k _ => by rw [if_pos rfl]
+      · exact Finset.sum_congr rfl fun k _ => by rw [ite_eq_left rfl]
       · intro m _ hm
-        exact Finset.sum_eq_zero fun k _ => by rw [if_neg (Ne.symm hm)]
+        exact Finset.sum_eq_zero fun k _ => by rw [ite_eq_right (Ne.symm hm)]
       · intro h
         exact absurd (Finset.mem_univ _) h
     rw [e1, e2, e3]
@@ -366,7 +370,7 @@ theorem energy_readout_dilation_unitary_and_branch_amplitudes (D M : ℕ) (hM : 
         exact hca
       show (if a - label k = (⟨0,hM⟩:Fin M) then (1:ℂ) else 0) * (V.conjTranspose *ᵥ ψ) k
         = (if label k = a then (1:ℂ) else 0) * (V.conjTranspose *ᵥ ψ) k
-      rw [if_neg hne, if_neg h]
+      rw [ite_eq_right hne, ite_eq_right h]
 
   have hvec : energyDilation label V *ᵥ TensorState (Ket (⟨0,hM⟩:Fin M)) ψ
       = (TensorGate (1 : Operator M) V) *ᵥ (energyLabelPerm label *ᵥ
@@ -395,9 +399,9 @@ theorem energy_readout_dilation_unitary_and_branch_amplitudes (D M : ℕ) (hM : 
                 = V i k * (if label k = a then (1:ℂ) else 0) := by
             intro k
             rw [Finset.sum_eq_single k]
-            · rw [Matrix.diagonal_apply, if_pos rfl]
+            · rw [Matrix.diagonal_apply, ite_eq_left rfl]
             · intro x _ hx
-              rw [Matrix.diagonal_apply, if_neg hx, mul_zero]
+              rw [Matrix.diagonal_apply, ite_eq_right hx, mul_zero]
             · intro h
               exact absurd (Finset.mem_univ _) h
           have entry : ∀ m : Fin D,
@@ -509,7 +513,7 @@ theorem energy_readout_preserves_energy_expectation (D M : ℕ) (label : Fin D �
         * Matrix.diagonal (fun i => (E (label i):ℂ)) := by
       ext i j
       simp only [Matrix.mul_diagonal, Matrix.diagonal_apply]
-      by_cases h : i = j <;> simp only [h, if_true, if_false] <;> ring
+      by_cases h : i = j <;> simp only [h, ite_true, ite_false] <;> ring
     show (V * Matrix.diagonal (fun i => (E (label i):ℂ)) * V.conjTranspose)
         * (V * Matrix.diagonal (fun i => if label i = a then (1:ℂ) else 0) * V.conjTranspose)
         = (V * Matrix.diagonal (fun i => if label i = a then (1:ℂ) else 0) * V.conjTranspose)

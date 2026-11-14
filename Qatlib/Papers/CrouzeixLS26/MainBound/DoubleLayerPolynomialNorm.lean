@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixContour.ContourCalc.DoubleLayerResidual
-import Qatlib.Foundations.OpCalculus.PerturbTwo.ScalarTwoPerturbation
-import Qatlib.Papers.CrouzeixLS26.LayerDilation.RationalSupportPolygon
+module
+
+public import Qatlib.Concepts.MatrixContour.ContourCalc.DoubleLayerResidual
+public import Qatlib.Foundations.OpCalculus.PerturbTwo.ScalarTwoPerturbation
+public import Qatlib.Papers.CrouzeixLS26.LayerDilation.RationalSupportPolygon
+
+@[expose] public section
 open Qatlib.Concepts.MatrixContour.ContourCalc
 open Qatlib.Concepts.MatrixContour.ContourCalc.ContourPolygonPrimitive
 open Qatlib.Concepts.MatrixContour.ContourCalc.ContourPolygonResolventReduction
@@ -61,7 +65,7 @@ private theorem mass_from_cauchy (A : Matrix I I ℂ) (z u : J → ℂ) (r : ℝ
   have hi (j : J) : IntervalIntegrable
       (fun t : ℝ => matrixResolvent A (contourPanel (z j) (u j) (-1) 2 t)) volume (-1) 1 := by
     apply ContinuousOn.intervalIntegrable_of_Icc (by norm_num)
-    exact continuousOn_iff_continuous_restrict.mpr (matrixCurve A z u r hr hsep j).continuous
+    exact continuousOn_iff_continuous_domRestrict.mpr (matrixCurve A z u r hr hsep j).continuous
   have hp := hC (1 : Polynomial ℂ)
   simp only [Polynomial.eval_one,one_smul,map_one] at hp
   have hp' : (∑ j,∫ t in (-1 : ℝ)..1,u j • matrixResolvent A (contourPanel (z j) (u j) (-1) 2 t))=

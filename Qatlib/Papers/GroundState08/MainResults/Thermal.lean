@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Exp
-import Mathlib.Algebra.BigOperators.Field
-import Mathlib.Algebra.Order.BigOperators.Group.Finset
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Exp
+public import Mathlib.Algebra.BigOperators.Field
+public import Mathlib.Algebra.Order.BigOperators.Group.Finset
+
+@[expose] public section
 
 /-!
 # Finite Gibbs weights and level probabilities

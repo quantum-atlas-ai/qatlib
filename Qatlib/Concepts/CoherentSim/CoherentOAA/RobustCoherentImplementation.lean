@@ -4,16 +4,20 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.QueryLowerBound.SubroutineExpansion
-import Qatlib.Concepts.CoherentSim.CoherentOAA.ObliviousAmplification
-import Qatlib.Concepts.CoherentSim.CoherentOAA.BlockRobustness
-import Qatlib.Foundations.OperatorErrors.OperatorError
-import Qatlib.Concepts.SharedAncilla.AncillaProduct.SharedAncillaUnitaryProduct
-import Qatlib.Concepts.LchsSimulation.StaticLchs.HybridError
-import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws
-import Qatlib.Concepts.BlockEncoding.Postselection
-import Qatlib.Concepts.CoherentSim.CoherentOAA.Pseudoinverse
-import Qatlib.Concepts.BlockEncoding.Basic
+module
+
+public import Qatlib.Concepts.QsvtCore.QueryLowerBound.SubroutineExpansion
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.ObliviousAmplification
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.BlockRobustness
+public import Qatlib.Foundations.OperatorErrors.OperatorError
+public import Qatlib.Concepts.SharedAncilla.AncillaProduct.SharedAncillaUnitaryProduct
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.HybridError
+public import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws
+public import Qatlib.Concepts.BlockEncoding.Postselection
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.Pseudoinverse
+public import Qatlib.Concepts.BlockEncoding.Basic
+
+@[expose] public section
 
 /-!
 # Robust coherent implementation by cubic amplification

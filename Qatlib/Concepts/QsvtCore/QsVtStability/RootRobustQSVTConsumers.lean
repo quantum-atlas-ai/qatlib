@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.QsVtStability.SquareRootQSVTRobustness
-import Qatlib.Concepts.BlockEncoding.Postselection
+module
+
+public import Qatlib.Concepts.QsvtCore.QsVtStability.SquareRootQSVTRobustness
+public import Qatlib.Concepts.BlockEncoding.Postselection
+
+@[expose] public section
 
 /-!
 # Compiled QSVT with square-root encoding errors

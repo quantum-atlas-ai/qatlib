@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Field
-import Mathlib.Data.Nat.Cast.Order.Field
-import Mathlib.Analysis.SpecialFunctions.Sqrt
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Linarith
+module
+
+public import Mathlib.Algebra.BigOperators.Field
+public import Mathlib.Data.Nat.Cast.Order.Field
+public import Mathlib.Analysis.SpecialFunctions.Sqrt
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Linarith
+
+@[expose] public section
 
 /-!
 # Rounding and normalizing finite weights

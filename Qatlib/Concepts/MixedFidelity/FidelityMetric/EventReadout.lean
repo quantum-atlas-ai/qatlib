@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MixedFidelity.FidelityMetric.EffectTesting
-import Mathlib.MeasureTheory.VectorMeasure.Basic
-import Mathlib.Tactic
+module
+
+public import Qatlib.Concepts.MixedFidelity.FidelityMetric.EffectTesting
+public import Mathlib.MeasureTheory.VectorMeasure.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 open Qatlib.Foundations.PureStateMath.BornBridge
 

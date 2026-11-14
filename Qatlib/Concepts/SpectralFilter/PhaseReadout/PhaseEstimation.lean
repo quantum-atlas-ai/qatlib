@@ -4,22 +4,26 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Lean.Elab.Tactic.NormCast
-import Lean.Elab.Tactic.Omega
-import Mathlib.Algebra.Order.Ring.Star
-import Mathlib.Analysis.CStarAlgebra.Classes
-import Mathlib.Data.Int.Star
-import Mathlib.LinearAlgebra.UnitaryGroup
-import Mathlib.RingTheory.RootsOfUnity.Complex
-import Mathlib.Tactic.Ext
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NoncommRing
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Ring
-import Qatlib.Foundations.PureStateMath.Tensor
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.LocalCapability
+module
+
+public import Lean.Elab.Tactic.NormCast
+public import Lean.Elab.Tactic.Omega
+public import Mathlib.Algebra.Order.Ring.Star
+public import Mathlib.Analysis.CStarAlgebra.Classes
+public import Mathlib.Algebra.Order.Star.Int
+public import Mathlib.LinearAlgebra.UnitaryGroup
+public import Mathlib.RingTheory.RootsOfUnity.Complex
+public import Mathlib.Tactic.Ext
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NoncommRing
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Ring
+public import Qatlib.Foundations.PureStateMath.Tensor
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.LocalCapability
+
+@[expose] public section
 
 /-!
 # Fourier matrices and exact phase estimation
@@ -194,7 +198,7 @@ theorem qftMatrix_unitary (hM : 0 < M) : QFTMatrix M ∈ Matrix.unitaryGroup (Fi
           linarith
       have hval : x'.val = x.val := by omega
       exact Fin.ext hval.symm
-    rw [sum_primRoot_zpow hM hndvd, mul_zero, Matrix.one_apply, if_neg hxx']
+    rw [sum_primRoot_zpow hM hndvd, mul_zero, Matrix.one_apply, ite_eq_right hxx']
 
 /-- The normalized Fourier character state with frequency `k` on `Fin M`. -/
 noncomputable def PhaseState (M : ℕ) (k : ℕ) : QState (Fin M) :=
@@ -333,7 +337,7 @@ theorem controlledPowers_kickback {U : Matrix I I ℂ} {ψ : QState I} {k : ℕ}
         = ((Real.sqrt (M : ℝ) : ℂ)⁻¹) * ((U ^ (x.val : ℕ)) *ᵥ ψ) i := by
       simp only [Matrix.mulVec, dotProduct, Finset.mul_sum]
       exact Finset.sum_congr rfl fun j _ => by ring
-    simp only [if_true]
+    simp only [ite_true]
     rw [hsum, hev, Pi.smul_apply, ← zpow_natCast, ← _root_.zpow_mul]
     ring
   · intro m _ hm
@@ -360,7 +364,7 @@ theorem qpe_exact_readout (hM : 0 < M) {U : Matrix I I ℂ}
       qftMatrix_conjTranspose_mulVec_phaseState hM j, measureProb_tensorState_prod]
     have h1 : MeasureProb (Ket j) ({j} : Finset (Fin M)) = 1 := by
       unfold MeasureProb
-      rw [Finset.sum_singleton, bornProb_ket, if_pos rfl]
+      rw [Finset.sum_singleton, bornProb_ket, ite_eq_left rfl]
     rw [h1, measureProb_univ hψn, mul_one]
 
 /-- Controlled powers and inverse Fourier transform coherently attach each grid phase label to a

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.Lemma2Stat
-import Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.SinEnvelopeHHL
+module
+
+public import Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.Lemma2Stat
+public import Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.SinEnvelopeHHL
+
+@[expose] public section
 
 /-!
 # Certificate for HHL filter Lipschitz continuity

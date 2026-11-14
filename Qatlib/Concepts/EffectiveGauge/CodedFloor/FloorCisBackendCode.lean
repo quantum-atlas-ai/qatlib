@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorCisLoopCode
-import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorNegativeExpBackendCode
+module
+
+public import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorCisLoopCode
+public import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorNegativeExpBackendCode
+
+@[expose] public section
 
 /-!
 # Floor Cis Backend Code

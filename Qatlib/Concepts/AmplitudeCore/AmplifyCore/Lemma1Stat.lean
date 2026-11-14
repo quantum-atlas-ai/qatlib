@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.LinearAlgebra.Span.Defs
-import Mathlib.Data.Complex.Basic
-import Mathlib.Analysis.Normed.Group.Basic
-import Mathlib.Analysis.InnerProductSpace.Basic
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Analysis.Normed.Operator.LinearIsometry
-import Mathlib.Analysis.InnerProductSpace.Projection.Basic
-import Mathlib.Topology.Algebra.Module.Basic
-import Mathlib.Analysis.InnerProductSpace.l2Space
+module
+
+public import Mathlib.LinearAlgebra.Span.Defs
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Analysis.Normed.Group.Basic
+public import Mathlib.Analysis.InnerProductSpace.Basic
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Analysis.Normed.Operator.LinearIsometry
+public import Mathlib.Analysis.InnerProductSpace.Projection.Basic
+public import Mathlib.Topology.Algebra.Module.Basic
+public import Mathlib.Analysis.InnerProductSpace.l2Space
+
+@[expose] public section
 
 /-!
 # Specification of the Grover component action

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Complex.ExponentialBounds
-import Mathlib.Analysis.SpecialFunctions.Log.Base
-import Qatlib.Papers.DihedralHSP04.MainResults.StatisticalAnalysis
+module
+
+public import Mathlib.Analysis.Complex.ExponentialBounds
+public import Mathlib.Analysis.SpecialFunctions.Log.Base
+public import Qatlib.Papers.DihedralHSP04.MainResults.StatisticalAnalysis
+
+@[expose] public section
 
 /-!
 # Subexponential pipeline schedules for the dihedral problem

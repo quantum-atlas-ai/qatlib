@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.LinearAlgebra.Vandermonde
-import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
-import Mathlib.Data.Nat.Choose.Sum
-import Mathlib.Data.Nat.Prime.Factorial
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Data.Fin.Rev
-import Mathlib.Tactic
+module
+
+public import Mathlib.LinearAlgebra.Vandermonde
+public import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
+public import Mathlib.Data.Nat.Choose.Sum
+public import Mathlib.Data.Nat.Prime.Factorial
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Data.Fin.Rev
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Coefficient reconstruction along polynomial lines

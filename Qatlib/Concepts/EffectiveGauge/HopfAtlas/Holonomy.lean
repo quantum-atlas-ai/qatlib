@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.IntegerWinding
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.IntegerWinding
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
+
+@[expose] public section
 
 /-! # Exact coordinate-loop periods of the constant-spin integer family -/
 

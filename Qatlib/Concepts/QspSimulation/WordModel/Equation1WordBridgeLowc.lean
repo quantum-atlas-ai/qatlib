@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QspSimulation.WordModel.Equation1WordBridgeStat
-import Qatlib.Concepts.QspSimulation.WordModel.Lc17AuxWord
-import Qatlib.Concepts.QspSimulation.WordModel.Lc17AuxWordBridge
+module
+
+public import Qatlib.Concepts.QspSimulation.WordModel.Equation1WordBridgeStat
+public import Qatlib.Concepts.QspSimulation.WordModel.Lc17AuxWord
+public import Qatlib.Concepts.QspSimulation.WordModel.Lc17AuxWordBridge
+
+@[expose] public section
 
 /-!
 # Axis-rotation words and the QSP convention
@@ -72,9 +76,8 @@ theorem lcSignalStep_unitary (θ : ℝ) :
   fin_cases a <;> fin_cases b <;>
     (norm_num;
       simp only [Matrix.mul_apply, Matrix.conjTranspose_apply, RCLike.star_def,
-        map_mul, map_neg, Complex.conj_ofReal, Complex.conj_I, neg_neg,
-        Fin.sum_univ_two, Matrix.one_apply, e00, e01, e10, e11, if_true, if_false,
-        sub_zero, mul_zero, add_zero, zero_add, mul_one, one_mul])
+        map_mul, map_neg, Complex.conj_ofReal, Complex.conj_I,
+        Fin.sum_univ_two,  e00, e01, e10, e11])
   · linear_combination hc2 - ((Real.sin (θ/2) : ℂ))^2 * Complex.I_mul_I
   · ring
   · ring

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductCoefficientAux
-import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductCoefficientDiagnostics
+module
+
+public import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductCoefficientAux
+public import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductCoefficientDiagnostics
+
+@[expose] public section
 
 /-!
 # Normalization and moments of multiproduct coefficients
@@ -48,13 +52,13 @@ theorem multiproduct_squared_nodes_injective (k : ℕ) (N : ℝ) (hN : 0 < N)
     (sq_eq_sq₀ (le_of_lt (multiproduct_node_pos k N hN i))
       (le_of_lt (multiproduct_node_pos k N hN j))).mp h
   by_cases hi : i.val < k <;> by_cases hj : j.val < k
-  · simp only [mNode, if_pos hi, if_pos hj] at he
+  · simp only [mNode, ite_eq_left hi, ite_eq_left hj] at he
     apply Fin.ext
     have hn : i.val + 1 = j.val + 1 := by exact_mod_cast he
     omega
-  · simp only [mNode, if_pos hi, if_neg hj] at he
+  · simp only [mNode, ite_eq_left hi, ite_eq_right hj] at he
     exact (hd i hi he.symm).elim
-  · simp only [mNode, if_neg hi, if_pos hj] at he
+  · simp only [mNode, ite_eq_right hi, ite_eq_left hj] at he
     exact (hd j hj he).elim
   · apply Fin.ext
     omega

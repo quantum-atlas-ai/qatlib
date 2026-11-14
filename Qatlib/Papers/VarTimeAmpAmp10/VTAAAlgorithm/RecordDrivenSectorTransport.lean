@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.RecordDrivenVariableTimeAlgorithmStat
-import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.RecordDrivenCascadeAux
-import Qatlib.Papers.VarTimeAmpAmp10.StopModel.AverageStopTailBoundVari
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.InverseDeriv
-import Mathlib.Tactic.NormNum.RealSqrt
+module
+
+public import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.RecordDrivenVariableTimeAlgorithmStat
+public import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.RecordDrivenCascadeAux
+public import Qatlib.Papers.VarTimeAmpAmp10.StopModel.AverageStopTailBoundVari
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.InverseDeriv
+public import Mathlib.Tactic.NormNum.RealSqrt
+
+@[expose] public section
 
 /-!
 # Sector transport through growing-stop cascades
@@ -271,7 +275,7 @@ theorem rdvt_sector_step (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
     growing_stage_fixes_bad history k stages[k] hU old holdsup
   have hlive0 : ∀ p ∈ badSet C, live p = 0 := fun p hp => by
     rw [hlive, collapse_apply]
-    exact if_neg ((nonlive_iff_bad p).mpr (rdvt_bad_flag p hp))
+    exact ite_eq_right ((nonlive_iff_bad p).mpr (rdvt_bad_flag p hp))
   have hold0r : ∀ p ∈ runningSet C, old p = 0 := by
     intro p hp
     by_contra h
@@ -337,13 +341,13 @@ theorem rdvt_sector_step (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
       rw [collapse_apply]
       by_cases hg : p ∈ goodSet C
       · exact (Finset.disjoint_left.mp rdvt_good_bad_disjoint hg hp).elim
-      · rw [if_neg hg]
+      · rw [ite_eq_right hg]
     have hgood0r : ∀ p ∈ runningSet C, Collapse φ (goodSet C) p = 0 := by
       intro p hp
       rw [collapse_apply]
       by_cases hg : p ∈ goodSet C
       · exact (Finset.disjoint_left.mp rdvt_good_running_disjoint hg hp).elim
-      · rw [if_neg hg]
+      · rw [ite_eq_right hg]
     have hbp : MeasureProb (ApplyGate stages[k] live) (badSet C)
         = MeasureProb (ApplyGate stages[k] (Collapse φ (runningSet C))) (badSet C) := by
       rw [hUl]
@@ -559,9 +563,9 @@ theorem rdvt_input_live (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ))
       = (a • Collapse (vtState stages (i+1) (Qatlib.Foundations.PureStateMath.Ket j₀)) (liveSet C)+b) q := by
     intro p hp
     have h0 : (vtState stages i (Qatlib.Foundations.PureStateMath.Ket j₀)-Collapse (vtState stages i (Qatlib.Foundations.PureStateMath.Ket j₀)) (liveSet C)) p = 0 := by
-      simp only [Pi.sub_apply, collapse_apply, if_pos hp, sub_self]
+      simp only [Pi.sub_apply, collapse_apply, ite_eq_left hp, sub_self]
     simp only [Pi.add_apply, Pi.smul_apply, Pi.sub_apply, h0, sub_zero, hb0 p hp, _root_.add_zero,
-      collapse_apply, if_pos hp]
+      collapse_apply, ite_eq_left hp]
   refine ⟨a, ?_⟩
   rw [hword, hstate, rdvt_apply_add, rdvt_apply_smul, hlive, hbfix, rdvt_prob_congr _ hpt,
     rdvt_sector_add_zero_right _ _ _ hb0, rdvt_smul_sector, rdvt_collapse_sector]
@@ -644,9 +648,9 @@ theorem rdvt_cascade_input_live (stages : List (Matrix (VtSpace C) (VtSpace C) �
         = (a • Collapse (vtState stages (i+1) (Qatlib.Foundations.PureStateMath.Ket j₀)) (liveSet C)+b) q := by
       intro p hp
       have h0 : (vtState stages i (Qatlib.Foundations.PureStateMath.Ket j₀)-Collapse (vtState stages i (Qatlib.Foundations.PureStateMath.Ket j₀)) (liveSet C)) p = 0 := by
-        simp only [Pi.sub_apply, collapse_apply, if_pos hp, sub_self]
+        simp only [Pi.sub_apply, collapse_apply, ite_eq_left hp, sub_self]
       simp only [Pi.add_apply, Pi.smul_apply, Pi.sub_apply, h0, sub_zero, hb0 p hp, _root_.add_zero,
-        collapse_apply, if_pos hp]
+        collapse_apply, ite_eq_left hp]
     rw [hword, hstate, rdvt_apply_add, rdvt_apply_smul, hlive, hbfix, rdvt_prob_congr _ hpt,
       rdvt_sector_add_zero_right _ _ _ hb0, rdvt_smul_sector, rdvt_collapse_sector]
 end
@@ -685,7 +689,7 @@ theorem rdvt_cascade_running_zero (stages : List (Matrix (VtSpace C) (VtSpace C)
       Finset.mem_univ, true_and]
     right
     exact hflag
-  rw [Pi.add_apply, Pi.smul_apply, collapse_apply, if_pos hmem, hpsi p hp, smul_zero,
+  rw [Pi.add_apply, Pi.smul_apply, collapse_apply, ite_eq_left hmem, hpsi p hp, smul_zero,
     hb0 p hmem, _root_.add_zero]
 end
 noncomputable section

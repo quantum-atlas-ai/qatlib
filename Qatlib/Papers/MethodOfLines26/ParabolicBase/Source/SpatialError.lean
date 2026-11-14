@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Calculus.Deriv.Basic
-import Mathlib.Analysis.Calculus.Deriv.MeanValue
-import Mathlib.Analysis.Calculus.Deriv.Prod
-import Mathlib.Analysis.SpecialFunctions.Sqrt
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Ring
-import Qatlib.Papers.MethodOfLines26.ParabolicBase.Source.Model
+module
+
+public import Mathlib.Analysis.Calculus.Deriv.Basic
+public import Mathlib.Analysis.Calculus.Deriv.MeanValue
+public import Mathlib.Analysis.Calculus.Deriv.Prod
+public import Mathlib.Analysis.SpecialFunctions.Sqrt
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Ring
+public import Qatlib.Papers.MethodOfLines26.ParabolicBase.Source.Model
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

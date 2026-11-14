@@ -4,22 +4,26 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Lean.Elab.Tactic.NormCast
-import Mathlib.Algebra.Order.Ring.Star
-import Mathlib.AlgebraicTopology.SimplexCategory.Basic
-import Mathlib.Analysis.CStarAlgebra.Classes
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Data.Rat.Star
-import Mathlib.Algebra.Order.Star.Real
-import Mathlib.Tactic.Ext
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.NormNum.RealSqrt
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.SplitIfs
-import Qatlib.Concepts.AEMeanReadout.LayeredMeanLaw.RationalWeightPreparation
-import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
+module
+
+public import Lean.Elab.Tactic.NormCast
+public import Mathlib.Algebra.Order.Ring.Star
+public import Mathlib.AlgebraicTopology.SimplexCategory.Basic
+public import Mathlib.Analysis.CStarAlgebra.Classes
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Algebra.Order.Star.Rat
+public import Mathlib.Algebra.Order.Star.Real
+public import Mathlib.Tactic.Ext
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.NormNum.RealSqrt
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.SplitIfs
+public import Qatlib.Concepts.AEMeanReadout.LayeredMeanLaw.RationalWeightPreparation
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
+
+@[expose] public section
 
 /-!
 # Rationally prepared linear combinations of unitaries
@@ -67,7 +71,7 @@ open scoped Classical BigOperators Matrix.Norms.L2Operator
 set_option autoImplicit false
 set_option maxHeartbeats 2000000
 /-- Matrix multiplication with the finite intermediate index made explicit. -/
-private noncomputable def weightMatrixMul {M N P : Type} [Fintype N]
+noncomputable def weightMatrixMul {M N P : Type} [Fintype N]
     (A : Matrix M N ℂ) (B : Matrix N P ℂ) : Matrix M P ℂ :=
   @HMul.hMul _ _ _ Matrix.instHMulOfFintypeOfMulOfAddCommMonoid A B
 local infixl:70 " *ₘ " => weightMatrixMul
@@ -231,7 +235,7 @@ theorem rational_weight_actual_lcu_error_and_accesses : ∀ (n k : ℕ)
   have hQ : Q ∈ Matrix.unitaryGroup _ ℂ := tensorGate_unitary hideal (by simp)
   have hT : T ∈ Matrix.unitaryGroup _ ℂ := select_unitary U hU
   have hF : IsIsometry F := prepareLift_isIsometry _ (by
-    simp [Ket, Fintype.sum_option])
+    simp [Ket])
   have hsand (R : Matrix (Option (Fin n)) (Option (Fin n)) ℂ) :
       compress F ((TensorGate R (1 : Matrix I I ℂ))ᴴ*T*TensorGate R 1) F =
       lcuMatrix (R *ᵥ Ket none) U := by
@@ -264,8 +268,8 @@ theorem weight_pivot_probability {J I : Type} [Fintype J] [DecidableEq J]
   have hentry (i y : I) : compress (prepareLift (I := I) (Ket j)) A
       (prepareLift (I := I) (Ket j)) i y = A (j,i) (j,y) := by
     simp [compress, Matrix.mul_apply, Matrix.conjTranspose_apply, prepareLift,
-      Ket, Fintype.sum_prod_type, mul_ite, ite_mul, apply_ite]
-  simp only [MeasureProb, BornProb, Finset.sum_filter, Matrix.mulVec_single, Ket]
+      Ket, Fintype.sum_prod_type, ite_mul, apply_ite]
+  simp only [MeasureProb, BornProb, Finset.sum_filter]
   rw [Fintype.sum_prod_type]
   simp [hentry, Matrix.mulVec, dotProduct, Ket, mul_ite]
 

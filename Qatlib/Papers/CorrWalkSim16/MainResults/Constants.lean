@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Complex.ExponentialBounds
-import Mathlib.Topology.Order.IntermediateValue
+module
+
+public import Mathlib.Analysis.Complex.ExponentialBounds
+public import Mathlib.Topology.Order.IntermediateValue
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -100,7 +104,6 @@ theorem exists_zeta_root :
     intermediate_value_Ioo' (show (3 / 2 : ℝ) ≤ 2 by norm_num) hcont ⟨hneg, hpos⟩
   refine ⟨c, hc.1, hc.2, ?_⟩
   have hsub := sub_eq_zero.mp hroot
-  unfold zetaEq at hsub
   linarith
 
 end Qatlib.Papers.CorrWalkSim16.MainResults

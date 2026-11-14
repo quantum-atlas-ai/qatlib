@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.WalkReduction.BasisExact.Orthogonal
-import Mathlib.LinearAlgebra.Eigenspace.Basic
+module
+
+public import Qatlib.Foundations.WalkReduction.BasisExact.Orthogonal
+public import Mathlib.LinearAlgebra.Eigenspace.Basic
+
+@[expose] public section
 
 /-!
 # Transport through the exact walk basis

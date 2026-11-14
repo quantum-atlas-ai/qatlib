@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.ProbabilityCore.FiniteBranch.Composition
+module
+
+public import Qatlib.Foundations.ProbabilityCore.FiniteBranch.Composition
+
+@[expose] public section
 
 /-!
 # Clocked finite-branch programs and transcript replay
@@ -119,9 +123,9 @@ theorem online_prefix_law {I α : Type} (cost : I → ℝ) (c : Code I α) (curr
   | ret a => simp [complete,run,Tree.law,PMF.pure_map,replay]
   | pay n c ih =>
     by_cases hn : n≤B
-    · simpa only [complete,run,hn,if_true,Tree.law_map,PMF.map_comp,Function.comp_def,replay] using
+    · simpa only [complete,run,hn,ite_true,Tree.law_map,PMF.map_comp,Function.comp_def,replay] using
         congrArg (fun p => p.map (charge n)) (ih current (B-n))
-    · simp only [complete,run,hn,if_false,Tree.law_map,PMF.map_comp,Function.comp_def,replay,Tree.law]
+    · simp only [complete,run,hn,ite_false,Tree.law_map,PMF.map_comp,Function.comp_def,replay,Tree.law]
       exact PMF.map_const _ _
   | draw m p c ih =>
     simp only [complete,run,Tree.law,PMF.map_bind]
@@ -136,7 +140,7 @@ theorem online_prefix_law {I α : Type} (cost : I → ℝ) (c : Code I α) (curr
 `selectLower` retains it. -/
 theorem selectLower_preserves_minimum {I : Type} (cost : I → ℝ) (current candidate : I)
     (hmin : ∀ i,cost current≤cost i) : selectLower cost current candidate=current := by
-  exact if_neg (not_lt_of_ge (hmin candidate))
+  exact ite_eq_right (not_lt_of_ge (hmin candidate))
 
 /-- If the initial candidate globally minimizes `cost`, every branch of a budgeted run retains
 it as `best`. -/

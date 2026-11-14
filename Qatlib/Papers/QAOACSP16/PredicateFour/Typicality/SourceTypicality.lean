@@ -4,8 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QAOACSP16.PredicateFour.CSPFamily.SourceCSPFamily
-import Qatlib.Papers.QAOACSP16.TypicalQaoa.QaoaState.SourceQaoaState
+module
+
+public import Qatlib.Papers.QAOACSP16.PredicateFour.CSPFamily.SourceCSPFamily
+public import Qatlib.Papers.QAOACSP16.TypicalQaoa.QaoaState.SourceQaoaState
+
+@[expose] public section
+
+set_option linter.unusedSectionVars false
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -59,8 +65,8 @@ theorem charFun_flipAt (S : Finset V) (z : V → Bool) (v : V) :
   classical
   unfold charFun
   by_cases hv : v ∈ S
-  · rw [if_pos hv, Finset.prod_eq_mul_prod_diff_singleton_of_mem hv,
-      Finset.prod_eq_mul_prod_diff_singleton_of_mem hv, ← neg_mul]
+  · rw [ite_eq_left hv, Finset.prod_eq_mul_prod_sdiff_singleton_of_mem hv,
+      Finset.prod_eq_mul_prod_sdiff_singleton_of_mem hv, ← neg_mul]
     congr 1
     · rw [flipAt, Function.update_self]
       cases z v <;> simp [sgn]
@@ -70,7 +76,7 @@ theorem charFun_flipAt (S : Finset V) (z : V → Bool) (v : V) :
         have := (Finset.mem_sdiff.mp hw).2
         simpa using this
       rw [flipAt, Function.update_of_ne hwv]
-  · rw [if_neg hv]
+  · rw [ite_eq_right hv]
     apply Finset.prod_congr rfl
     intro w hw
     have hwv : w ≠ v := fun h => hv (h ▸ hw)
@@ -86,7 +92,7 @@ theorem sum_charFun_eq_zero {S : Finset V} (hS : S.Nonempty) :
   have hneg : ∀ z : V → Bool, charFun S (flipAt v z) = -charFun S z := by
     intro z
     rw [charFun_flipAt]
-    simp only [hv, if_true]
+    simp only [hv, ite_true]
   rw [Finset.sum_congr rfl (fun z _ => hneg z), Finset.sum_neg_distrib] at h
   linarith
 
@@ -211,10 +217,10 @@ theorem ksat_factor_flip (z z' σ : V → Bool) (v : V) :
     sgn (pointwiseFlip z z' σ v) * sgn (z' v) = sgn (σ v) * sgn (z v) := by
   unfold pointwiseFlip
   by_cases h : z v = z' v
-  · rw [if_pos h, h]
+  · rw [ite_eq_left h, h]
   · have h' : z' v = !(z v) := by
       cases hz : z v <;> cases hz' : z' v <;> simp_all
-    rw [if_neg h, h', sgn_not, sgn_not]
+    rw [ite_eq_right h, h', sgn_not, sgn_not]
     ring
 
 /-- The clause value at `z` with signs `σ` equals the clause value at `z'` with

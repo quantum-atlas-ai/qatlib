@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Gaussian.GaussianIntegral
-import Mathlib.MeasureTheory.Integral.Bochner.Set
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Gaussian.GaussianIntegral
+public import Mathlib.MeasureTheory.Integral.Bochner.Set
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.TensorPCA19.MainResults.Model.SpectralModel
+module
+
+public import Qatlib.Papers.TensorPCA19.MainResults.Model.SpectralModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -53,7 +57,7 @@ theorem lemma2_variational {n : ℕ} (D : SpectralDecomposition n) :
 /-- **Union bound behind Lemma 1** (§2, p.5).  If two events each have probability
 at least `3/4`, then their intersection has probability at least `1/2`. -/
 theorem lemma1_union_bound {Ω : Type*} [MeasurableSpace Ω] (μ : Measure Ω)
-    [IsProbabilityMeasure μ] (A B : Set Ω) (hA : MeasurableSet A) (hB : MeasurableSet B)
+    [IsProbabilityMeasure μ] (A B : Set Ω) (_hA : MeasurableSet A) (hB : MeasurableSet B)
     (hmA : (3 / 4 : ℝ) ≤ (μ A).toReal) (hmB : (3 / 4 : ℝ) ≤ (μ B).toReal) :
     (1 / 2 : ℝ) ≤ (μ (A ∩ B)).toReal := by
   have hsum : (μ (A ∪ B)).toReal + (μ (A ∩ B)).toReal = (μ A).toReal + (μ B).toReal := by

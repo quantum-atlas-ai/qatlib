@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.BosonFock.BosonOperators.BosonPermanent
-import Mathlib.LinearAlgebra.UnitaryGroup
-import Mathlib.Data.Nat.Log
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
-import Mathlib.Analysis.SpecialFunctions.Log.Base
-import Mathlib.Analysis.Complex.Exponential
+module
+
+public import Qatlib.Concepts.BosonFock.BosonOperators.BosonPermanent
+public import Mathlib.LinearAlgebra.UnitaryGroup
+public import Mathlib.Data.Nat.Log
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
+public import Mathlib.Analysis.SpecialFunctions.Log.Base
+public import Mathlib.Analysis.Complex.Exponential
+
+@[expose] public section
 
 /-!
 # Linear optics distributions and complexity models
@@ -111,7 +115,7 @@ private theorem loConjExpIM (ph : ℝ) :
 private theorem loBS_val_ii {m : ℕ} (i j : Fin m) (θ ph : ℝ) (hij : i ≠ j) :
     loBeamSplitter m i j θ ph i i = Complex.ofReal (Real.cos θ) := by
   unfold loBeamSplitter
-  rw [if_neg hij, Matrix.of_apply, if_pos ⟨rfl, rfl⟩]
+  rw [ite_eq_right hij, Matrix.of_apply, ite_eq_left ⟨rfl, rfl⟩]
 
 /-- For distinct beam splitter modes, the entry from column `j` to row `i` is `-exp (ph * I) *
 sin θ`. -/
@@ -119,7 +123,7 @@ private theorem loBS_val_ij {m : ℕ} (i j : Fin m) (θ ph : ℝ) (hij : i ≠ j
     loBeamSplitter m i j θ ph i j = -(Complex.exp (ph * Complex.I)
       * Complex.ofReal (Real.sin θ)) := by
   unfold loBeamSplitter
-  rw [if_neg hij, Matrix.of_apply, if_neg (fun h => hij h.2.symm), if_pos ⟨rfl, rfl⟩]
+  rw [ite_eq_right hij, Matrix.of_apply, ite_eq_right (fun h => hij h.2.symm), ite_eq_left ⟨rfl, rfl⟩]
 
 /-- For distinct beam splitter modes, the entry from column `i` to row `j` is `exp (-ph * I) *
 sin θ`. -/
@@ -127,30 +131,30 @@ private theorem loBS_val_ji {m : ℕ} (i j : Fin m) (θ ph : ℝ) (hij : i ≠ j
     loBeamSplitter m i j θ ph j i = Complex.exp (-(ph * Complex.I))
       * Complex.ofReal (Real.sin θ) := by
   unfold loBeamSplitter
-  rw [if_neg hij, Matrix.of_apply, if_neg (fun h => hij h.1.symm),
-    if_neg (fun h => hij h.1.symm), if_pos ⟨rfl, rfl⟩]
+  rw [ite_eq_right hij, Matrix.of_apply, ite_eq_right (fun h => hij h.1.symm),
+    ite_eq_right (fun h => hij h.1.symm), ite_eq_left ⟨rfl, rfl⟩]
 
 /-- For distinct beam splitter modes, the diagonal entry at `j` is `cos θ`. -/
 private theorem loBS_val_jj {m : ℕ} (i j : Fin m) (θ ph : ℝ) (hij : i ≠ j) :
     loBeamSplitter m i j θ ph j j = Complex.ofReal (Real.cos θ) := by
   unfold loBeamSplitter
-  rw [if_neg hij, Matrix.of_apply, if_neg (fun h => hij h.1.symm),
-    if_neg (fun h => hij h.1.symm), if_neg (fun h => hij h.2.symm), if_pos ⟨rfl, rfl⟩]
+  rw [ite_eq_right hij, Matrix.of_apply, ite_eq_right (fun h => hij h.1.symm),
+    ite_eq_right (fun h => hij h.1.symm), ite_eq_right (fun h => hij h.2.symm), ite_eq_left ⟨rfl, rfl⟩]
 
 /-- A row outside the two distinct beam splitter modes agrees with the corresponding identity
 row. -/
 private theorem loBS_val_off {m : ℕ} (i j : Fin m) (θ ph : ℝ) (hij : i ≠ j) (k c : Fin m)
     (hki : k ≠ i) (hkj : k ≠ j) : loBeamSplitter m i j θ ph k c = if k = c then 1 else 0 := by
   unfold loBeamSplitter
-  rw [if_neg hij, Matrix.of_apply, if_neg (fun h => hki h.1), if_neg (fun h => hki h.1),
-    if_neg (fun h => hkj h.1), if_neg (fun h => hkj h.1)]
+  rw [ite_eq_right hij, Matrix.of_apply, ite_eq_right (fun h => hki h.1), ite_eq_right (fun h => hki h.1),
+    ite_eq_right (fun h => hkj h.1), ite_eq_right (fun h => hkj h.1)]
 
 /-- An off diagonal entry in a column outside the two distinct beam splitter modes is zero. -/
 private theorem loBS_zero_col {m : ℕ} (i j : Fin m) (θ ph : ℝ) (hij : i ≠ j) (k c : Fin m)
     (hci : c ≠ i) (hcj : c ≠ j) (hkc : k ≠ c) : loBeamSplitter m i j θ ph k c = 0 := by
   unfold loBeamSplitter
-  rw [if_neg hij, Matrix.of_apply, if_neg (fun h => hci h.2), if_neg (fun h => hcj h.2),
-    if_neg (fun h => hci h.2), if_neg (fun h => hcj h.2), if_neg hkc]
+  rw [ite_eq_right hij, Matrix.of_apply, ite_eq_right (fun h => hci h.2), ite_eq_right (fun h => hcj h.2),
+    ite_eq_right (fun h => hci h.2), ite_eq_right (fun h => hcj h.2), ite_eq_right hkc]
 
 /-- Every beam splitter matrix belongs to the matrix unitary group. -/
 theorem loBeamSplitter_mem_unitaryGroup (m : ℕ) (i j : Fin m) (θ ph : ℝ) :
@@ -222,11 +226,11 @@ theorem loBeamSplitter_mem_unitaryGroup (m : ℕ) (i j : Fin m) (θ ph : ℝ) :
             intro k _
             by_cases hki : k = i
             · rw [hki]
-              rw [loBS_val_ii i j θ ph hij, loBS_val_off i j θ ph hij b i hbi hbj, if_neg hbi]
+              rw [loBS_val_ii i j θ ph hij, loBS_val_off i j θ ph hij b i hbi hbj, ite_eq_right hbi]
               simp
             · by_cases hkj : k = j
               · rw [hkj]
-                rw [loBS_val_ij i j θ ph hij, loBS_val_off i j θ ph hij b j hbi hbj, if_neg hbj]
+                rw [loBS_val_ij i j θ ph hij, loBS_val_off i j θ ph hij b j hbi hbj, ite_eq_right hbj]
                 simp
               · rw [loBS_zero_col i j θ ph hij i k hki hkj (fun h => hki h.symm)]
                 simp
@@ -277,11 +281,11 @@ theorem loBeamSplitter_mem_unitaryGroup (m : ℕ) (i j : Fin m) (θ ph : ℝ) :
               intro k _
               by_cases hkj : k = j
               · rw [hkj]
-                rw [loBS_val_jj i j θ ph hij, loBS_val_off i j θ ph hij b j hbi hbj, if_neg hbj]
+                rw [loBS_val_jj i j θ ph hij, loBS_val_off i j θ ph hij b j hbi hbj, ite_eq_right hbj]
                 simp
               · by_cases hki : k = i
                 · rw [hki]
-                  rw [loBS_val_ji i j θ ph hij, loBS_val_off i j θ ph hij b i hbi hbj, if_neg hbi]
+                  rw [loBS_val_ji i j θ ph hij, loBS_val_off i j θ ph hij b i hbi hbj, ite_eq_right hbi]
                   simp
                 · rw [loBS_zero_col i j θ ph hij j k hki hkj (fun h => hkj h.symm)]
                   simp
@@ -294,10 +298,10 @@ theorem loBeamSplitter_mem_unitaryGroup (m : ℕ) (i j : Fin m) (θ ph : ℝ) :
             intro k _
             by_cases hka : k = a
             · rw [hka]
-              rw [loBS_val_off i j θ ph hij a a hai haj, if_pos rfl, one_mul,
+              rw [loBS_val_off i j θ ph hij a a hai haj, ite_eq_left rfl, one_mul,
                 loBS_zero_col i j θ ph hij i a hai haj (fun h => hai h.symm)]
               simp
-            · rw [loBS_val_off i j θ ph hij a k hai haj, if_neg (fun h => hka h.symm)]
+            · rw [loBS_val_off i j θ ph hij a k hai haj, ite_eq_right (fun h => hka h.symm)]
               simp
           rw [Finset.sum_eq_zero hzero, Matrix.one_apply_ne hai]
         · by_cases hbj : b = j
@@ -308,10 +312,10 @@ theorem loBeamSplitter_mem_unitaryGroup (m : ℕ) (i j : Fin m) (θ ph : ℝ) :
               intro k _
               by_cases hka : k = a
               · rw [hka]
-                rw [loBS_val_off i j θ ph hij a a hai haj, if_pos rfl, one_mul,
+                rw [loBS_val_off i j θ ph hij a a hai haj, ite_eq_left rfl, one_mul,
                   loBS_zero_col i j θ ph hij j a hai haj (fun h => haj h.symm)]
                 simp
-              · rw [loBS_val_off i j θ ph hij a k hai haj, if_neg (fun h => hka h.symm)]
+              · rw [loBS_val_off i j θ ph hij a k hai haj, ite_eq_right (fun h => hka h.symm)]
                 simp
             rw [Finset.sum_eq_zero hzero, Matrix.one_apply_ne haj]
           · by_cases hab : a = b
@@ -320,10 +324,10 @@ theorem loBeamSplitter_mem_unitaryGroup (m : ℕ) (i j : Fin m) (θ ph : ℝ) :
               have hzero : ∀ k ∈ Finset.univ, k ≠ a →
                   loBeamSplitter m i j θ ph a k * conj (loBeamSplitter m i j θ ph a k) = 0 := by
                 intro k _ hka
-                rw [loBS_val_off i j θ ph hij a k hai haj, if_neg (fun h => hka h.symm)]
+                rw [loBS_val_off i j θ ph hij a k hai haj, ite_eq_right (fun h => hka h.symm)]
                 simp
               rw [Finset.sum_eq_single a hzero (by simp),
-                loBS_val_off i j θ ph hij a a hai haj, if_pos rfl,
+                loBS_val_off i j θ ph hij a a hai haj, ite_eq_left rfl,
                 Matrix.one_apply_eq]
               simp
             · have hzero : ∀ k ∈ Finset.univ,
@@ -331,10 +335,10 @@ theorem loBeamSplitter_mem_unitaryGroup (m : ℕ) (i j : Fin m) (θ ph : ℝ) :
                 intro k _
                 by_cases hka : k = a
                 · rw [hka]
-                  rw [loBS_val_off i j θ ph hij a a hai haj, if_pos rfl, one_mul,
-                    loBS_val_off i j θ ph hij b a hbi hbj, if_neg (fun h => hab h.symm)]
+                  rw [loBS_val_off i j θ ph hij a a hai haj, ite_eq_left rfl, one_mul,
+                    loBS_val_off i j θ ph hij b a hbi hbj, ite_eq_right (fun h => hab h.symm)]
                   simp
-                · rw [loBS_val_off i j θ ph hij a k hai haj, if_neg (fun h => hka h.symm)]
+                · rw [loBS_val_off i j θ ph hij a k hai haj, ite_eq_right (fun h => hka h.symm)]
                   simp
               rw [Finset.sum_eq_zero hzero, Matrix.one_apply_ne hab]
 

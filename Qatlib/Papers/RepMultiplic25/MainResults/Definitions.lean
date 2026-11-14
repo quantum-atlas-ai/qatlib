@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Lean.Elab.Tactic.Omega
-import Mathlib.Algebra.Polynomial.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Combinatorics.Young.YoungDiagram
-import Mathlib.Tactic.Ring
+module
+
+public import Lean.Elab.Tactic.Omega
+public import Mathlib.Algebra.Polynomial.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Combinatorics.Young.YoungDiagram
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -119,7 +123,7 @@ theorem max_first_length_le_size (L : Partition) : max L.firstPart L.length ≤ 
     | nil => simp
     | cons a t =>
       have : a ≤ a + t.sum := Nat.le_add_right _ _
-      simpa [List.headD_cons, List.sum_cons] using this
+      simp [List.sum_cons]
   have h2 : L.length ≤ L.size := by
     have hb : ∀ x ∈ L.parts, 1 ≤ x := fun x hx => L.pos x hx
     have := List.length_le_sum_of_one_le L.parts hb

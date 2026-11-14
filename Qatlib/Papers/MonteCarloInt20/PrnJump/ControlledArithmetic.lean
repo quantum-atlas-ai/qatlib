@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MonteCarloInt20.PrnJump.ModularArithmetic
+module
+
+public import Qatlib.Papers.MonteCarloInt20.PrnJump.ModularArithmetic
+
+@[expose] public section
 
 /-!
 # Controlled native modular arithmetic

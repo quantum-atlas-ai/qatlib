@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CoherentSim.TaylorEncoding.TaylorSimulationDefs
+module
+
+public import Qatlib.Concepts.CoherentSim.TaylorEncoding.TaylorSimulationDefs
+
+@[expose] public section
 
 /-!
 # Coefficient normalization for Taylor simulation
@@ -234,7 +238,7 @@ theorem cubeCoeff_split {J : Type} [Fintype J] (h : ℝ → J → ℝ) (τ : ℝ
   · simp [hz, cubeAmplitude, coefficientPhase]
   · have hn : (0 : ℝ) < ‖cubeCoeff h τ M K x‖ := norm_pos_iff.mpr hz
     rw [cubeAmplitude, ← Complex.ofReal_pow, Real.sq_sqrt (by positivity),
-      coefficientPhase, if_neg hz]
+      coefficientPhase, ite_eq_right hz]
     have hcast : (2 : ℂ) * ((‖cubeCoeff h τ M K x‖ / 2 : ℝ) : ℂ)
         = (‖cubeCoeff h τ M K x‖ : ℂ) := by
       push_cast

@@ -4,9 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Cbmd26.Algorithms.StaticCBMDConsumer
-import Qatlib.Papers.Cbmd26.Algorithms.OriginalAStaticUniformOuter
-import Qatlib.Papers.Cbmd26.Algorithms.StaticFinalQueryBudget
+module
+
+public import Qatlib.Papers.Cbmd26.Algorithms.StaticCBMDConsumer
+public import Qatlib.Papers.Cbmd26.Algorithms.OriginalAStaticUniformOuter
+public import Qatlib.Papers.Cbmd26.Algorithms.StaticFinalQueryBudget
+
+@[expose] public section
+
+set_option linter.style.haveILetI false
 
 /-!
 # Uniform static CBMD circuit parameters

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AbelianStabil95.AbelianStabil.QFTAlgorithm.CharacterTarget
+module
+
+public import Qatlib.Papers.AbelianStabil95.AbelianStabil.QFTAlgorithm.CharacterTarget
+
+@[expose] public section
 
 /-!
 # Matrix constructions for character Fourier readout
@@ -91,7 +95,7 @@ theorem tqMat_mulVec_ket (labels : E ≃ AddChar E ℂ) (a : E) :
   simp only [Matrix.mulVec, dotProduct, Ket, tqMat, Matrix.of_apply, TensorState,
     characterQFT]
   rw [Finset.sum_eq_single (a, (0 : E))]
-  · simp only [characterQFT]
+  · simp only []
     by_cases hp : (p1 = a)
     · simp [hp]
     · simp [hp]

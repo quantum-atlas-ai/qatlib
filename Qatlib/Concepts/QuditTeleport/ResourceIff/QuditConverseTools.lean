@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditResourceConverseAux
-import Qatlib.Concepts.FiniteLocc.LOCCProgram.PositiveBranchDecomposition
+module
+
+public import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditResourceConverseAux
+public import Qatlib.Concepts.FiniteLocc.LOCCProgram.PositiveBranchDecomposition
+
+@[expose] public section
 
 /-!
 # Positivity and no signalling for qudit branches
@@ -111,7 +115,7 @@ theorem quditBobBranchMarginal_no_signalling
     (relabelGate (Equiv.prodAssoc (Fin n) (Fin n) (Fin n)).symm (TensorGate ρ ω))
   have hc : ∑ s, (V s)ᴴ * V s = 1 := by
     have h := congrArg (Matrix.reindexAlgEquiv ℂ ℂ (quditBobFirstEquiv n)) hK
-    simp only [map_sum, map_one, Matrix.reindexAlgEquiv_apply] at h
+    simp only [map_sum, map_one, Matrix.coe_reindexAlgEquiv] at h
     change (∑ s, relabelGate (quditBobFirstEquiv n)
       ((TensorGate (K s) (1 : Operator n))ᴴ * TensorGate (K s) (1 : Operator n))) = 1 at h
     simp only [converse_relabel_mul, converse_relabel_adjoint, quditBobFirst_local_gate] at h

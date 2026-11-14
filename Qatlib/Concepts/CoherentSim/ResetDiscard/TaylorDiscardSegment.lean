@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Complex.ExponentialBounds
-import Qatlib.Concepts.CoherentSim.TaylorEncoding.TaylorLCUProgram
-import Qatlib.Concepts.CoherentSim.GeneralUnitary.GeneralUnitaryTaylorConsumers
-import Qatlib.Concepts.CoherentSim.ResetDiscard.ObliviousAmplitudeAmplification
-import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.Basic
-import Qatlib.Concepts.Execution.WorkspaceCP.ProjectedUnitaryEncoding
+module
+
+public import Mathlib.Analysis.Complex.ExponentialBounds
+public import Qatlib.Concepts.CoherentSim.TaylorEncoding.TaylorLCUProgram
+public import Qatlib.Concepts.CoherentSim.GeneralUnitary.GeneralUnitaryTaylorConsumers
+public import Qatlib.Concepts.CoherentSim.ResetDiscard.ObliviousAmplitudeAmplification
+public import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.Basic
+public import Qatlib.Concepts.Execution.WorkspaceCP.ProjectedUnitaryEncoding
+
+@[expose] public section
 
 /-!
 # Taylor segments for amplified discard simulation
@@ -119,16 +123,16 @@ private theorem compress_delta_frame {X : Type} [Fintype X] [DecidableEq X]
         (Matrix.of fun x i => if x = f i then (1 : ℂ) else 0) p q = A (f p) (f q) := by
   simp only [compress, Matrix.mul_apply, Matrix.conjTranspose_apply, Matrix.of_apply]
   rw [Finset.sum_eq_single (f q)]
-  · rw [if_pos rfl, mul_one]
+  · rw [ite_eq_left rfl, mul_one]
     rw [Finset.sum_eq_single (f p)]
     · simp
     · intro x _ hx
-      rw [if_neg hx]
+      rw [ite_eq_right hx]
       simp
     · intro h
       exact absurd (Finset.mem_univ (f p)) h
   · intro y _ hy
-    rw [if_neg hy, mul_zero]
+    rw [ite_eq_right hy, mul_zero]
   · intro h
     exact absurd (Finset.mem_univ (f q)) h
 
@@ -144,24 +148,24 @@ private theorem delta_rangeProjector_apply {X : Type} [Fintype X] [DecidableEq X
   · subst y
     by_cases hx : ∃ p, x = f p
     · obtain ⟨p, hp⟩ := hx
-      rw [if_pos ⟨rfl, ⟨p, hp⟩⟩, Finset.sum_eq_single p]
+      rw [ite_eq_left ⟨rfl, ⟨p, hp⟩⟩, Finset.sum_eq_single p]
       · rw [hp]
         simp
       · intro q _ hq
-        rw [if_neg (fun hc => hq (hf (hp.symm.trans hc)).symm)]
+        rw [ite_eq_right (fun hc => hq (hf (hp.symm.trans hc)).symm)]
         simp
       · intro hnp
         exact absurd (Finset.mem_univ p) hnp
-    · rw [if_neg (by intro hc; exact hx hc.2)]
+    · rw [ite_eq_right (by intro hc; exact hx hc.2)]
       refine Finset.sum_eq_zero fun q _ => ?_
-      rw [if_neg (fun hc => hx ⟨q, hc⟩)]
+      rw [ite_eq_right (fun hc => hx ⟨q, hc⟩)]
       simp
-  · rw [if_neg (by intro hc; exact hxy hc.1)]
+  · rw [ite_eq_right (by intro hc; exact hxy hc.1)]
     refine Finset.sum_eq_zero fun k _ => ?_
     by_cases hxk : x = f k
-    · rw [if_pos hxk, if_neg (fun hc => hxy (hxk.trans hc.symm))]
+    · rw [ite_eq_left hxk, ite_eq_right (fun hc => hxy (hxk.trans hc.symm))]
       simp
-    · rw [if_neg hxk]
+    · rw [ite_eq_right hxk]
       simp
 
 /-- The selected corner after Taylor-register reassociation equals compression by the original
@@ -233,8 +237,8 @@ theorem relabel_rangeProjector_taylorFrame (J I : Type) [Fintype J] [DecidableEq
     tauto
   by_cases h : ((wl, fl, j) = (taylorEmptyLabel J K, (false, j₀)) ∧
     ((wl, fl, j), i) = ((wl', fl', j'), i'))
-  · rw [if_pos (hiff.mp h), if_pos h]
-  · rw [if_neg (fun hc => h (hiff.mpr hc)), if_neg h]
+  · rw [ite_eq_left (hiff.mp h), ite_eq_left h]
+  · rw [ite_eq_right (fun hc => h (hiff.mpr hc)), ite_eq_right h]
 
 /-- For unitary summands with coefficient mass times duration at most `log 2`, the truncated
 matrix exponential has norm error at most `2 / (K + 1)!`. See [BerryEtAl2015Taylor]. -/
@@ -336,7 +340,7 @@ theorem relabelGate_obliviousAmplitudeAmplification {H G : Type} [Fintype H]
   have heq : ∀ X : Matrix H H ℂ, relabelGate e X = Matrix.reindexAlgEquiv ℂ ℂ e X := fun _ => rfl
   have hstar : (Matrix.reindexAlgEquiv ℂ ℂ e W)ᴴ = Matrix.reindexAlgEquiv ℂ ℂ e Wᴴ := by
     ext a b
-    simp [Matrix.reindexAlgEquiv_apply, Matrix.conjTranspose_apply]
+    simp [Matrix.coe_reindexAlgEquiv, Matrix.conjTranspose_apply]
   simp only [ObliviousAmplitudeAmplification, two_mul]
   simp only [heq, Matrix.star_eq_conjTranspose,
     map_neg, map_mul, hstar, map_sub, map_add, map_one]

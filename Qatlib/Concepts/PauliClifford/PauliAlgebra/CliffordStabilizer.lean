@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PauliClifford.PauliAlgebra.CliffordStabilizerDefs
+module
+
+public import Qatlib.Concepts.PauliClifford.PauliAlgebra.CliffordStabilizerDefs
+
+@[expose] public section
 
 /-!
 # Clifford tableau semantics and code spaces
@@ -235,7 +239,7 @@ theorem zero_row_op {n : ℕ} (i : Fin n) :
     Matrix.diagonal_apply]
   by_cases hbc : b = c
   · subst c
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     have hf : ∀ k, P1 (letter false (decide (k = i))) (b k) (b k) =
         if k = i then (if b i then (-1 : ℂ) else 1) else 1 := by
       intro k
@@ -245,7 +249,7 @@ theorem zero_row_op {n : ℕ} (i : Fin n) :
       · cases b k <;> simp [hk, letter, P1]
     simp_rw [hf]
     simp
-  · rw [if_neg hbc]
+  · rw [ite_eq_right hbc]
     obtain ⟨k, hk⟩ := Function.ne_iff.mp hbc
     apply Finset.prod_eq_zero (Finset.mem_univ k)
     by_cases hki : k = i <;> cases hb : b k <;> cases hc : c k <;>
@@ -272,7 +276,7 @@ theorem mem_zero_code_iff (n : ℕ) (ψ : QState (Reg n)) :
       have hbi : b i = true := by
         cases hh : b i <;> simp_all [ZeroStr]
       have h := congrFun (hψ i) b
-      rw [zero_row_mulVec, hbi, if_pos rfl] at h
+      rw [zero_row_mulVec, hbi, ite_eq_left rfl] at h
       have hz : ψ b = 0 := by linear_combination (-(1 / 2 : ℂ)) * h
       simp [Qatlib.Foundations.PureStateMath.Ket, hb, hz]
   · rintro ⟨c, rfl⟩ i

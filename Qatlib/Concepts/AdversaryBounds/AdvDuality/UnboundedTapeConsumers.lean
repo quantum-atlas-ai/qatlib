@@ -4,8 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.UnboundedCoinTape
-import Qatlib.Concepts.StoppingCore.BranchCostCore.UnboundedExecutionBudget
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.UnboundedCoinTape
+public import Qatlib.Concepts.StoppingCore.BranchCostCore.UnboundedExecutionBudget
+public import Qatlib.Foundations.ProbabilityCore.CoinLaw
+
+@[expose] public section
 
 /-!
 # Expected runtime of coin-tape machines
@@ -163,7 +168,7 @@ private theorem moving_expectation (cfg : Turing.TM0.Cfg (Option Bool) (Fin 2))
       moving_selected cfg h]
   rw [Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation, tsum_fintype,
       Fintype.sum_bool]
-  norm_num [PMF.bernoulli_apply]
+  norm_num [Qatlib.Foundations.ProbabilityCore.CoinLaw.bernoulli_apply]
 
 /-- Starting in control state zero, the mass still pending after `T` kernel steps is `2⁻ᵀ`. -/
 theorem moving_pending (T : ℕ) (cfg : Turing.TM0.Cfg (Option Bool) (Fin 2))
@@ -220,7 +225,7 @@ theorem moving_false_mass (cfg : Turing.TM0.Cfg (Option Bool) (Fin 2))
   rw [← moving_normalize cfg h, ← coinTape_observe_point, coinTape_observed_law, PMF.map_apply]
   apply ENNReal.tsum_eq_zero.mpr
   intro w
-  apply if_neg
+  apply ite_eq_right
   intro he
   exact moving_no_false (List.ofFn w) cfg h (congrArg Prod.fst he.symm)
 
@@ -248,7 +253,7 @@ theorem moving_true_mass (cfg : Turing.TM0.Cfg (Option Bool) (Fin 2))
   cases k with
   | zero => exact Qatlib.Concepts.StoppingCore.BranchCostCore.GeneralExecution.runFor_point_halt_zero _ _ _ _
   | succ k =>
-    rw [if_neg (Nat.succ_ne_zero k)]
+    rw [ite_eq_right (Nat.succ_ne_zero k)]
     have hs := first_stop_mass_add (coinTapeKernel 1 movingGeometricTape movingTapeAccept)
       (k+1) (k+1) cfg (by omega) le_rfl
     rw [bool_first_stop_event] at hs

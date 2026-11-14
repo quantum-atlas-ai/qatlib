@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
-import Qatlib.Papers.CollisionProb97.MainResults.DistinctImageRetry
-import Qatlib.Papers.CollisionProb97.MainResults.RetryClockTransport
+module
+
+public import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+public import Qatlib.Papers.CollisionProb97.MainResults.DistinctImageRetry
+public import Qatlib.Papers.CollisionProb97.MainResults.RetryClockTransport
+
+@[expose] public section
 
 /-!
 # Retry sampling for a new image value
@@ -79,12 +83,12 @@ theorem nextRecord_bad_run (F : X → R) (T : Finset R) (x : X) (hx : F x ∈ T)
    intro y
    dsimp only [Function.comp_def]
    by_cases hy : F y ∉ T
-   · simp only [if_pos hy]
+   · simp only [ite_eq_left hy]
      rw [branchCostRun_halted]
      simp only [CostedLaw.charge, PMF.pure_map, Nat.add_zero]
      have hxy : y ≠ x := by intro h; subst y; exact hy hx
      simp [PMF.pure_apply, Ne.symm hxy]
-   · simp only [if_neg hy]
+   · simp only [ite_eq_right hy]
      rw [Qatlib.Concepts.StoppingCore.BranchCostCore.GeneralExecution.charge_point_mass]
      split_ifs <;> simp [ih]
 

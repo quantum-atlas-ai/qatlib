@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Sqrt
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Sqrt
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -87,7 +91,7 @@ produced by a power-law Liouvillian gap together with bounded Trotter and QPE er
 then the gate count obeys the explicit polynomial bound
 `N_g ≤ t + t log t + 2N + C (N+1)^s (2N+1)^k`. -/
 theorem gateCost_le_polynomial (N t k p : ℕ) {g ετ εp C : ℝ} {s : ℕ}
-    (hg : 0 < g) (hετ : 0 < ετ) (hεp : 0 < εp) (hC : 0 ≤ C)
+    (_hg : 0 < g) (_hετ : 0 < ετ) (_hεp : 0 < εp) (_hC : 0 ≤ C)
     (hden : 1 /
         (g ^ (1 + 1 / (p : ℝ)) * ετ ^ (1 / (p : ℝ)) * εp ^ ((1 : ℝ) / 2))
         ≤ C * ((N : ℝ) + 1) ^ s) :

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Zayn Blore, Qatlib Contributors
 -/
 
-import Qatlib.Concepts.UnbiasedBases.ThreeBasis.CliffordTDensity
-import Mathlib.Analysis.CStarAlgebra.Matrix
+module
+
+public import Qatlib.Concepts.UnbiasedBases.ThreeBasis.CliffordTDensity
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+
+@[expose] public section
 
 /-!
 # Finite Clifford-T Nets for SU(2)

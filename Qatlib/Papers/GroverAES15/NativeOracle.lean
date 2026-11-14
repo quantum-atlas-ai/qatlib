@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CipherCircuits.CipherOracle
-import Qatlib.Concepts.SearchStopping.KnownCount.PreparedSearch
+module
+
+public import Qatlib.Concepts.CipherCircuits.CipherOracle
+public import Qatlib.Concepts.SearchStopping.KnownCount.PreparedSearch
+
+@[expose] public section
 
 /-!
 # Lifting phase-query circuits to a cipher workspace
@@ -92,8 +96,11 @@ theorem run_workCircuit (values : I → Bank J) (target : Bank J) (C : Circuit I
 /-- The auxiliary workspace state is normalized. -/
 theorem normalized_auxiliary : Normalized (auxiliary (J:=J)) := auxiliary_normalized
 
+omit [DecidableEq I] in
 /-- Embedding a normalized state with the auxiliary workspace preserves normalization. -/
-theorem normalized_embed {ψ : I → ℂ} (hψ : Normalized ψ) : Normalized (embed (J:=J) ψ) :=
+theorem normalized_embed {I J : Type*} [Fintype I] [_instDecidableEqI : DecidableEq I]
+    [Fintype J] [DecidableEq J] {ψ : I → ℂ} (hψ : Normalized ψ) :
+    Normalized (embed (J:=J) ψ) :=
   normalized_tensorState hψ normalized_auxiliary
 
 /-- Running a lifted unitary circuit with the workspace oracle on an embedded normalized state
@@ -115,9 +122,11 @@ theorem auxiliary_clean_mass : MeasureProb (auxiliary (J:=J)) cleanEvent = 1 := 
 /-- The joint event consisting of a key event `A` and the clean auxiliary event. -/
 def fullEvent (A : Finset I) : Finset (Whole I J) := A.product cleanEvent
 
+omit [Fintype I] [DecidableEq I] in
 /-- The embedded state assigns to the joint clean-workspace event the same probability that the
 original state assigns to `A`. -/
-theorem measure_embed (ψ : I → ℂ) (A : Finset I) :
+theorem measure_embed {I J : Type*} [_instFintypeI : Fintype I] [_instDecidableEqI : DecidableEq I]
+    [Fintype J] [DecidableEq J] (ψ : I → ℂ) (A : Finset I) :
     MeasureProb (embed (J:=J) ψ) (fullEvent A) = MeasureProb ψ A := by
   calc
     _ = MeasureProb ψ A * MeasureProb (auxiliary (J:=J)) (cleanEvent (J:=J)) :=

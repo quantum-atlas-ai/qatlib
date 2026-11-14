@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryCoreDefs
-import Qatlib.Concepts.AdversaryBounds.OptimizedAdv
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryCoreDefs
+public import Qatlib.Concepts.AdversaryBounds.OptimizedAdv
+
+@[expose] public section
 
 /-!
 # Certificate upper bound for the adversary value
@@ -59,7 +63,7 @@ theorem advValue_le_of_certificates {X κ : Type} [Fintype X] [DecidableEq X]
     have hcposR (x : X) : 0 < ((c x).card : ℝ) := by exact_mod_cast hcpos x
     have hCpos : 0 < C := (hcposR a).trans_le (hcard a)
     obtain ⟨j₀, hj₀, _⟩ := hc a b hab
-    letI : Nonempty κ := ⟨j₀⟩
+    let : Nonempty κ := ⟨j₀⟩
     let p (x : X) (i : κ) : ℝ := if i ∈ c x then 1 / ((c x).card : ℝ) else 0
     have hp0 (x : X) (i : κ) : 0 ≤ p x i := by
       dsimp only [p]
@@ -86,7 +90,7 @@ theorem advValue_le_of_certificates {X κ : Type} [Fintype X] [DecidableEq X]
               ∑ i : κ, if input x i ≠ input y i then Real.sqrt (p x i * p y i) / (1 : ℝ) else 0
             exact Finset.single_le_sum (f := fun (i : κ) =>
               if input x i ≠ input y i then Real.sqrt (p x i * p y i) / (1 : ℝ) else 0)
-              (fun i _ => by (try dsimp only); split_ifs <;> positivity) (Finset.mem_univ j)
+              (fun i _ => by  split_ifs <;> positivity) (Finset.mem_univ j)
     unfold advValue advAlphaR
     refine iSup_le fun Γ => ?_
     by_cases hzero : ‖Γ.val‖ = 0

@@ -4,78 +4,82 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Defs
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Algebra.Field.Defs
-import Mathlib.Algebra.Group.Basic
-import Mathlib.Algebra.Group.Defs
-import Mathlib.Algebra.Group.DivInvMonoid
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.Group.Semigroup
-import Mathlib.Algebra.GroupWithZero.Basic
-import Mathlib.Algebra.GroupWithZero.Defs
-import Mathlib.Algebra.GroupWithZero.NeZero
-import Mathlib.Algebra.GroupWithZero.Units.Basic
-import Mathlib.Algebra.NeZero
-import Mathlib.Algebra.Order.Archimedean.Basic
-import Mathlib.Algebra.Order.Archimedean.Real.Basic
-import Mathlib.Algebra.Order.BigOperators.Group.Finset
-import Mathlib.Algebra.Order.Floor.Defs
-import Mathlib.Algebra.Order.Group.Defs
-import Mathlib.Algebra.Order.Group.Unbundled.Basic
-import Mathlib.Algebra.Order.GroupWithZero.Basic
-import Mathlib.Algebra.Order.GroupWithZero.Defs
-import Mathlib.Algebra.Order.Monoid.Defs
-import Mathlib.Algebra.Order.Monoid.Unbundled.Basic
-import Mathlib.Algebra.Order.Monoid.Unbundled.Defs
-import Mathlib.Algebra.Order.Ring.Defs
-import Mathlib.Algebra.Order.Ring.Unbundled.Basic
-import Mathlib.Algebra.Order.Star.Basic
-import Mathlib.Algebra.Order.Star.Real
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Algebra.Ring.Nat
-import Mathlib.Analysis.Complex.Trigonometric
-import Mathlib.Analysis.Real.Sqrt
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Basic.Real.Basic
-import Mathlib.Basic.Real.Star
-import Mathlib.Basic.SetLike.Basic
-import Mathlib.Data.Finset.Basic
-import Mathlib.Data.Finset.Defs
-import Mathlib.Data.Finset.Empty
-import Mathlib.Data.Finset.Filter
-import Mathlib.Data.Finset.Image
-import Mathlib.Data.Finset.Max
-import Mathlib.Data.Fintype.Defs
-import Mathlib.Data.Int.Cast.Defs
-import Mathlib.Data.Nat.Cast.Defs
-import Mathlib.Data.Nat.Cast.Order.Basic
-import Mathlib.Data.Nat.Init
-import Mathlib.Data.Set.Defs
-import Mathlib.Logic.Function.Defs
-import Mathlib.Order.Basic
-import Mathlib.Order.Bounds.Defs
-import Mathlib.Order.ConditionallyCompleteLattice.Basic
-import Mathlib.Order.ConditionallyCompleteLattice.Defs
-import Mathlib.Order.ConditionallyCompletePartialOrder.Defs
-import Mathlib.Order.Defs.Lattice
-import Mathlib.Order.Defs.LinearOrder
-import Mathlib.Order.Defs.PartialOrder
-import Mathlib.Order.Lattice
-import Mathlib.Tactic
-import Mathlib.Tactic.CancelDenoms.Core
-import Mathlib.Tactic.FieldSimp.Lemmas
-import Mathlib.Tactic.Linarith.Lemmas
-import Mathlib.Tactic.Linarith.Preprocessing
-import Mathlib.Tactic.NormNum.Basic
-import Mathlib.Tactic.NormNum.Eq
-import Mathlib.Tactic.NormNum.Ineq
-import Mathlib.Tactic.NormNum.Inv
-import Mathlib.Tactic.NormNum.Result
-import Mathlib.Tactic.Positivity.Core
-import Mathlib.Tactic.Ring.Basic
-import Mathlib.Tactic.Ring.Common
+module
+
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Defs
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Algebra.Field.Defs
+public import Mathlib.Algebra.Group.Basic
+public import Mathlib.Algebra.Group.Defs
+public import Mathlib.Algebra.Group.DivInvMonoid
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.Group.Semigroup
+public import Mathlib.Algebra.GroupWithZero.Basic
+public import Mathlib.Algebra.GroupWithZero.Defs
+public import Mathlib.Algebra.GroupWithZero.NeZero
+public import Mathlib.Algebra.GroupWithZero.Units.Basic
+public import Mathlib.Algebra.NeZero
+public import Mathlib.Algebra.Order.Archimedean.Basic
+public import Mathlib.Algebra.Order.Archimedean.Real.Basic
+public import Mathlib.Algebra.Order.BigOperators.Group.Finset
+public import Mathlib.Algebra.Order.Floor.Defs
+public import Mathlib.Algebra.Order.Group.Defs
+public import Mathlib.Algebra.Order.Group.Unbundled.Basic
+public import Mathlib.Algebra.Order.GroupWithZero.Basic
+public import Mathlib.Algebra.Order.GroupWithZero.Defs
+public import Mathlib.Algebra.Order.Monoid.Defs
+public import Mathlib.Algebra.Order.Monoid.Unbundled.Basic
+public import Mathlib.Algebra.Order.Monoid.Unbundled.Defs
+public import Mathlib.Algebra.Order.Ring.Defs
+public import Mathlib.Algebra.Order.Ring.Unbundled.Basic
+public import Mathlib.Algebra.Order.Star.Basic
+public import Mathlib.Algebra.Order.Star.Real
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Algebra.Ring.Nat
+public import Mathlib.Analysis.Complex.Trigonometric
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Basic.Real.Star
+public import Mathlib.Basic.SetLike.Basic
+public import Mathlib.Data.Finset.Basic
+public import Mathlib.Data.Finset.Defs
+public import Mathlib.Data.Finset.Empty
+public import Mathlib.Data.Finset.Filter
+public import Mathlib.Data.Finset.Image
+public import Mathlib.Data.Finset.Max
+public import Mathlib.Data.Fintype.Defs
+public import Mathlib.Data.Int.Cast.Defs
+public import Mathlib.Data.Nat.Cast.Defs
+public import Mathlib.Data.Nat.Cast.Order.Basic
+public import Mathlib.Data.Nat.Init
+public import Mathlib.Data.Set.Defs
+public import Mathlib.Logic.Function.Defs
+public import Mathlib.Order.Basic
+public import Mathlib.Order.Bounds.Defs
+public import Mathlib.Order.ConditionallyCompleteLattice.Basic
+public import Mathlib.Order.ConditionallyCompleteLattice.Defs
+public import Mathlib.Order.ConditionallyCompletePartialOrder.Defs
+public import Mathlib.Order.Defs.Lattice
+public import Mathlib.Order.Defs.LinearOrder
+public import Mathlib.Order.Defs.PartialOrder
+public import Mathlib.Order.Lattice
+public import Mathlib.Tactic
+public import Mathlib.Tactic.CancelDenoms.Core
+public import Mathlib.Tactic.FieldSimp.Lemmas
+public import Mathlib.Tactic.Linarith.Lemmas
+public import Mathlib.Tactic.Linarith.Preprocessing
+public import Mathlib.Tactic.NormNum.Basic
+public import Mathlib.Tactic.NormNum.Eq
+public import Mathlib.Tactic.NormNum.Ineq
+public import Mathlib.Tactic.NormNum.Inv
+public import Mathlib.Tactic.NormNum.Result
+public import Mathlib.Tactic.Positivity.Core
+public import Mathlib.Tactic.Ring.Basic
+public import Mathlib.Tactic.Ring.Common
+
+@[expose] public section
 
 /-!
 # Finite spectral hitting laws
@@ -236,7 +240,7 @@ theorem tail_quantile_le (L : HittingLaw J) {ε : ℝ} (hε : 0 ≤ ε) :
     rw [hzero]; exact hε
 
 /-- For a positive threshold `y`, the product of its tail mass with `y` is at most the mean. -/
-theorem tail_mul_le_mean (L : HittingLaw J) {y : ℝ} (hy : 0 < y) :
+theorem tail_mul_le_mean (L : HittingLaw J) {y : ℝ} (_hy : 0 < y) :
     L.tail y * y ≤ L.mean := by
   unfold tail mean
   rw [Finset.sum_mul]
@@ -257,7 +261,7 @@ theorem tail_le_mean_div (L : HittingLaw J) {y : ℝ} (hy : 0 < y) :
 /-- If `0 < ε < 1`, `HT > 0`, and `2 * L.mean ≤ HT`, then `L.quantile ε ≤ HT / (2 * ε)`, as in
 the first comparison of Theorem 2.3 in [MagniezEtAl2008]. -/
 theorem theorem_2_3_first (L : HittingLaw J) (HT ε : ℝ)
-    (hε0 : 0 < ε) (hε1 : ε < 1) (hHT0 : 0 < HT) (hbridge : 2 * L.mean ≤ HT) :
+    (hε0 : 0 < ε) (_hε1 : ε < 1) (hHT0 : 0 < HT) (hbridge : 2 * L.mean ≤ HT) :
     L.quantile ε ≤ HT / (2 * ε) := by
   have hy : 0 < HT / (2 * ε) := by positivity
   have htail : L.tail (HT / (2 * ε)) ≤ ε := by
@@ -298,7 +302,7 @@ theorem theorem_2_3_second (L : HittingLaw J) (HT v1 : ℝ) (j0 : J)
         linarith
       · intro y hy
         by_contra hlt
-        push_neg at hlt
+        push Not at hlt
         have hmem : j0 ∈ Finset.univ.filter (fun j => y < L.val j) := by
           simp only [Finset.mem_filter, Finset.mem_univ, true_and]
           rw [hval]; exact hlt

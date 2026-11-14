@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem5Aux4
-import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem5Aux2
+module
+
+public import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem5Aux4
+public import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem5Aux2
+
+@[expose] public section
 
 /-!
 # Scalar Taylor responses to coordinate sources
@@ -68,7 +72,7 @@ theorem scalarJumpTerm_unit_time (k a s : ℕ) (z : ℂ) :
         omega
       simp [Ne.symm he]
     unfold scalarJumpTerm
-    rw [if_neg hs]
+    rw [ite_eq_right hs]
     rw [Finset.sum_eq_zero (fun i hi => by rw [hz i hi, mul_zero])]
     simp [Pi.single_apply, eq_comm, hmul]
 
@@ -98,11 +102,11 @@ theorem scalarJumpTerm_unit_positive (k a b s : ℕ) (hb : 1 ≤ b) (hbk : b ≤
         omega
       simp only [Pi.single_apply]
       by_cases htest : (s-1)*(k+1)+i+1 = a*(k+1)+b
-      · simp only [if_pos htest, if_pos (he.mp htest.symm)]
+      · simp only [ite_eq_left htest, ite_eq_left (he.mp htest.symm)]
       · have hc : ¬ (s=a+1 ∧ i=b-1) := fun hc => htest (he.mpr hc).symm
-        simp only [if_neg htest, if_neg hc]
+        simp only [ite_eq_right htest, ite_eq_right hc]
     unfold scalarJumpTerm
-    rw [if_neg hs, htime, zero_add]
+    rw [ite_eq_right hs, htime, zero_add]
     rw [Finset.sum_congr rfl (fun i hi => congrArg (fun r => taylorTransPoly k (i+1) z*r) (hterm i hi))]
     by_cases hsa : s=a+1
     · simp [hsa, mul_ite, show b-1 ∈ Finset.range k by simp; omega,

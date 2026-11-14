@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CurveGroups.AffineAdd.NativeCurve
-import Mathlib.GroupTheory.Perm.ViaEmbedding
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Data.BitVec
-import Mathlib.Data.FinEnum
-import Mathlib.Data.Fintype.Prod
-import Mathlib.Data.Fintype.Sigma
-import Mathlib.Data.Fintype.Fin
+module
+
+public import Qatlib.Concepts.CurveGroups.AffineAdd.NativeCurve
+public import Mathlib.GroupTheory.Perm.ViaEmbedding
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Data.BitVec
+public import Mathlib.Data.FinEnum
+public import Mathlib.Data.Fintype.Prod
+public import Mathlib.Data.Fintype.Sigma
+public import Mathlib.Data.Fintype.Fin
+
+@[expose] public section
 
 /-!
 # Field encodings and reversible arithmetic oracles

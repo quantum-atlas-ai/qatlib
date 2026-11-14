@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MixedFidelity.FidelityMetric.RecordMixtures
-import Qatlib.Concepts.QuditTeleport.TeleportCore.InstrumentConditioning
+module
+
+public import Qatlib.Concepts.MixedFidelity.FidelityMetric.RecordMixtures
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.InstrumentConditioning
+
+@[expose] public section
 
 /-!
 # Instrument record representatives and reconstruction

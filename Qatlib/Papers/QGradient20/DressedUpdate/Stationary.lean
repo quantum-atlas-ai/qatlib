@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QGradient20.DressedUpdate.GradientStep
-import Mathlib.LinearAlgebra.Matrix.Hermitian
+module
+
+public import Qatlib.Papers.QGradient20.DressedUpdate.GradientStep
+public import Mathlib.LinearAlgebra.Matrix.Hermitian
+
+@[expose] public section
 
 /-!
 # Stationary points of the decoded update

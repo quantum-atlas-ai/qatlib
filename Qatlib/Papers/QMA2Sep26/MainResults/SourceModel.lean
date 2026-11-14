@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.GroupTheory.Perm.Cycle.Type
-import Mathlib.GroupTheory.Perm.Sign
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Foundations.PureStateMath.Tensor
-import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
+module
+
+public import Mathlib.GroupTheory.Perm.Cycle.Type
+public import Mathlib.GroupTheory.Perm.Sign
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Foundations.PureStateMath.Tensor
+public import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

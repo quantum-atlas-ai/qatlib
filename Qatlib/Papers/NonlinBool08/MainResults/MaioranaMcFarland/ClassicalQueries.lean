@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NonlinBool08.MainResults.MaioranaMcFarland.Lemma4
-import Qatlib.Papers.NonlinBool08.MainResults.BentCore.BentFacts
+module
+
+public import Qatlib.Papers.NonlinBool08.MainResults.MaioranaMcFarland.Lemma4
+public import Qatlib.Papers.NonlinBool08.MainResults.BentCore.BentFacts
+
+@[expose] public section
 
 /-!
 # Classical queries for Maiorana-McFarland shifts

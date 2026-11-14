@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Qatlib.Papers.GrpCommTest05.MainResults.Lemma2Counting
-import Qatlib.Papers.GrpCommTest05.MainResults.HammingCoupling
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Qatlib.Papers.GrpCommTest05.MainResults.Lemma2Counting
+public import Qatlib.Papers.GrpCommTest05.MainResults.HammingCoupling
+
+@[expose] public section
 
 /-!
 # Algebraic cost substitutions for group commutativity testing

@@ -4,21 +4,26 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Lean.Elab.Tactic.NormCast
-import Lean.Elab.Tactic.Omega
-import Mathlib.Algebra.BigOperators.Field
-import Mathlib.AlgebraicTopology.SimplexCategory.Basic
-import Mathlib.Analysis.RCLike.Basic
-import Mathlib.Probability.ProbabilityMassFunction.Constructions
-import Mathlib.Tactic.Ext
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.LinearCombination
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Ring
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.FiniteStoppingTail
-import Qatlib.Concepts.OrderedBayes.BayesRatioCore.BayesLearner
+module
+
+public import Lean.Elab.Tactic.NormCast
+public import Lean.Elab.Tactic.Omega
+public import Mathlib.Algebra.BigOperators.Field
+public import Mathlib.AlgebraicTopology.SimplexCategory.Basic
+public import Mathlib.Analysis.RCLike.Basic
+public import Mathlib.Probability.ProbabilityMassFunction.Constructions
+public import Mathlib.Tactic.Ext
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.LinearCombination
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Ring
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.FiniteStoppingTail
+public import Qatlib.Concepts.OrderedBayes.BayesRatioCore.BayesLearner
+public import Qatlib.Foundations.ProbabilityCore.CoinLaw
+
+@[expose] public section
 
 /-!
 # Truth driven Bayesian ratios and finite run bounds
@@ -66,7 +71,7 @@ noncomputable def trueLearnerNext {n : ℕ} (hn : 0 < n) (j : Fin n) (p ε : ℝ
   fun a =>
     if _h : ∃ i : Fin n, ε ≤ a i then PMF.pure (Sum.inl a)
     else
-      (PMF.bernoulli (truthAnswerProb j (stageTwoCut hn a ε) p) (clampProb_le _)).bind
+      (Qatlib.Foundations.ProbabilityCore.CoinLaw.bernoulli (truthAnswerProb j (stageTwoCut hn a ε) p) (clampProb_le _)).bind
         fun b =>
           PMF.pure (Sum.inr
             (if b then updateTrue a (stageTwoCut hn a ε) p
@@ -105,7 +110,7 @@ posterior. -/
 theorem zoo_bayes_truth_halt {n : ℕ} (hn : 0 < n) (j : Fin n) (p ε : ℝ) (a : Fin n → ℝ)
     (ha : ∃ i : Fin n, ε ≤ a i) :
     trueLearnerNext hn j p ε a = PMF.pure (Sum.inl a) := by
-  simp only [trueLearnerNext, dif_pos ha]
+  simp only [trueLearnerNext, dite_eq_left ha]
 
 /-- For `1 / 2 < p < 1` and nonnegative entries of total mass at most one, both update
 denominators lie strictly between zero and one. -/
@@ -143,15 +148,15 @@ theorem zoo_bayes_truth_update_positivity {n : ℕ} (a : Fin n → ℝ) (c : Fin
   refine ⟨fun m => ?_, fun m => ?_⟩
   · simp only [updateFalse]
     by_cases hm : (m : ℕ) ≤ (c : ℕ)
-    · rw [if_pos hm]
+    · rw [ite_eq_left hm]
       exact div_pos (mul_pos (show (0:ℝ) < p by linarith) (hpos m)) hF0
-    · rw [if_neg hm]
+    · rw [ite_eq_right hm]
       exact div_pos (mul_pos (by linarith) (hpos m)) hF0
   · simp only [updateTrue]
     by_cases hm : (m : ℕ) ≤ (c : ℕ)
-    · rw [if_pos hm]
+    · rw [ite_eq_left hm]
       exact div_pos (mul_pos (by linarith) (hpos m)) hT0
-    · rw [if_neg hm]
+    · rw [ite_eq_right hm]
       exact div_pos (mul_pos (show (0:ℝ) < p by linarith) (hpos m)) hT0
 
 /-- When `u` and `v` lie on the same side of the cut, each update preserves their ratio in cross
@@ -164,24 +169,24 @@ theorem zoo_bayes_update_ratio_same_side {n : ℕ} (a : Fin n → ℝ) (c u v : 
   · simp only [updateFalse]
     by_cases hu : (u : ℕ) ≤ (c : ℕ)
     · have hv : (v : ℕ) ≤ (c : ℕ) := hside ▸ hu
-      rw [if_pos hu, if_pos hv]
+      rw [ite_eq_left hu, ite_eq_left hv]
       by_cases h : normFalse a c p = 0
       · simp [h]
       · field_simp
     · have hv : ¬ ((v : ℕ) ≤ (c : ℕ)) := fun hcon => hu (hside ▸ hcon)
-      rw [if_neg hu, if_neg hv]
+      rw [ite_eq_right hu, ite_eq_right hv]
       by_cases h : normFalse a c p = 0
       · simp [h]
       · field_simp
   · simp only [updateTrue]
     by_cases hu : (u : ℕ) ≤ (c : ℕ)
     · have hv : (v : ℕ) ≤ (c : ℕ) := hside ▸ hu
-      rw [if_pos hu, if_pos hv]
+      rw [ite_eq_left hu, ite_eq_left hv]
       by_cases h : normTrue a c p = 0
       · simp [h]
       · field_simp
     · have hv : ¬ ((v : ℕ) ≤ (c : ℕ)) := fun hcon => hu (hside ▸ hcon)
-      rw [if_neg hu, if_neg hv]
+      rw [ite_eq_right hu, ite_eq_right hv]
       by_cases h : normTrue a c p = 0
       · simp [h]
       · field_simp
@@ -192,7 +197,7 @@ theorem zoo_bayes_update_ratio_across_false {n : ℕ} (a : Fin n → ℝ) (c u v
     (hu : (u : ℕ) ≤ (c : ℕ)) (hv : (c : ℕ) < (v : ℕ)) :
     p * (updateFalse a c p v * a u) = (1 - p) * (a v * updateFalse a c p u) := by
   simp only [updateFalse]
-  rw [if_neg (Nat.not_le.mpr hv), if_pos hu]
+  rw [ite_eq_right (Nat.not_le.mpr hv), ite_eq_left hu]
   by_cases h : normFalse a c p = 0
   · simp [h]
   · field_simp
@@ -203,7 +208,7 @@ theorem zoo_bayes_update_ratio_across_true {n : ℕ} (a : Fin n → ℝ) (c u v 
     (hu : (u : ℕ) ≤ (c : ℕ)) (hv : (c : ℕ) < (v : ℕ)) :
     (1 - p) * (updateTrue a c p v * a u) = p * (a v * updateTrue a c p u) := by
   simp only [updateTrue]
-  rw [if_neg (Nat.not_le.mpr hv), if_pos hu]
+  rw [ite_eq_right (Nat.not_le.mpr hv), ite_eq_left hu]
   by_cases h : normTrue a c p = 0
   · simp [h]
   · field_simp
@@ -255,8 +260,8 @@ theorem zoo_bayes_truth_answer_prob {n : ℕ} (j c : Fin n) (p : ℝ)
     (truthAnswerProb j c p : ℝ) = if (c : ℕ) ≤ (j : ℕ) then p else 1 - p := by
   simp only [truthAnswerProb]
   by_cases h : (c : ℕ) ≤ (j : ℕ)
-  · rw [if_pos h]; exact clampProb_eq hp0 hp1
-  · rw [if_neg h]; exact clampProb_eq (by linarith) (by linarith)
+  · rw [ite_eq_left h]; exact clampProb_eq hp0 hp1
+  · rw [ite_eq_right h]; exact clampProb_eq (by linarith) (by linarith)
 
 /-- The unclamped answer probability formula does not hold for all real values of `p`. -/
 theorem zoo_bayes_unrestricted_answer_prob_false :
@@ -350,15 +355,15 @@ theorem crossingAbsorb_support_inv {n : ℕ} (hn : 0 < n) (j : Fin n) (p ε R : 
     ∀ cfg ∈ (crossingAbsorbNext hn j p ε R u v a).support, truthInv (configPosterior cfg) := by
   intro cfg hcfg
   by_cases habs : R * a v ≤ a u
-  · simp only [crossingAbsorbNext, if_pos habs] at hcfg
+  · simp only [crossingAbsorbNext, ite_eq_left habs] at hcfg
     obtain rfl := (PMF.mem_support_pure_iff _ _).mp hcfg
     exact ha
-  · simp only [crossingAbsorbNext, if_neg habs] at hcfg
+  · simp only [crossingAbsorbNext, ite_eq_right habs] at hcfg
     by_cases hhalt : ∃ m : Fin n, ε ≤ a m
-    · simp only [trueLearnerNext, dif_pos hhalt] at hcfg
+    · simp only [trueLearnerNext, dite_eq_left hhalt] at hcfg
       obtain rfl := (PMF.mem_support_pure_iff _ _).mp hcfg
       exact ha
-    · simp only [trueLearnerNext, dif_neg hhalt] at hcfg
+    · simp only [trueLearnerNext, dite_eq_right hhalt] at hcfg
       obtain ⟨b, hb, hEq⟩ := (PMF.mem_support_bind_iff _ _ cfg).mp hcfg
       rw [PMF.mem_support_pure_iff _ _] at hEq
       obtain rfl := hEq
@@ -402,14 +407,14 @@ theorem expectation_le_of_forall_mem {α : Type} {p : PMF α} {f g : α → ℝ�
 false branch values weighted by `q` and `1 - q`. -/
 theorem expectation_bernoulli_branches {q : ℝ≥0} (hq : q ≤ 1) {α : Type} (F : Bool → α)
     (g : α → ℝ≥0∞) :
-    Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation ((PMF.bernoulli q hq).bind fun b => PMF.pure (F b)) g =
+    Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation ((Qatlib.Foundations.ProbabilityCore.CoinLaw.bernoulli q hq).bind fun b => PMF.pure (F b)) g =
       (q : ℝ≥0∞) * g (F true) + ((1 - q : ℝ≥0) : ℝ≥0∞) * g (F false) := by
   classical
   rw [Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_bind,
     Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.expectation_congr fun b => Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure (F b) g]
   unfold Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation
   rw [tsum_fintype, Fintype.sum_bool]
-  simp only [PMF.bernoulli_apply, Bool.cond_true, Bool.cond_false]
+  simp only [Qatlib.Foundations.ProbabilityCore.CoinLaw.bernoulli_apply, Bool.cond_true, Bool.cond_false]
 
 /-- For nonnegative weights summing to one, the sum of the extended nonnegative conversions of
 their products with `r` is at most `ENNReal.ofReal r`. -/
@@ -547,13 +552,13 @@ theorem crossingAbsorb_one_step_right {n : ℕ} (hn : 0 < n) (j k i : Fin n) {p 
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (crossingAbsorbNext hn j p ε R i k a)
         (ratioPotential i k) ≤ ratioPotential i k (Sum.inr a) := by
   by_cases habs : R * a k ≤ a i
-  · simp only [crossingAbsorbNext, if_pos habs, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure]
+  · simp only [crossingAbsorbNext, ite_eq_left habs, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure]
     exact le_rfl
-  · simp only [crossingAbsorbNext, if_neg habs]
+  · simp only [crossingAbsorbNext, ite_eq_right habs]
     by_cases hhalt : ∃ m : Fin n, ε ≤ a m
-    · simp only [trueLearnerNext, dif_pos hhalt, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure]
+    · simp only [trueLearnerNext, dite_eq_left hhalt, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure]
       exact le_rfl
-    · simp only [trueLearnerNext, dif_neg hhalt]
+    · simp only [trueLearnerNext, dite_eq_right hhalt]
       have hbr := expectation_bernoulli_branches
         (q := truthAnswerProb j (stageTwoCut hn a ε) p)
         (clampProb_le (if (stageTwoCut hn a ε : ℕ) ≤ (j : ℕ) then p else 1 - p))
@@ -575,7 +580,7 @@ theorem crossingAbsorb_one_step_right {n : ℕ} (hn : 0 < n) (j k i : Fin n) {p 
         · have hcj : ¬ ((stageTwoCut hn a ε : ℕ) ≤ (j : ℕ)) := by omega
           obtain ⟨hw1, hw2⟩ := truthAnswerProb_weights j (stageTwoCut hn a ε) hp hp1
           rw [hw1, hw2]
-          simp only [if_neg hcj]
+          simp only [ite_eq_right hcj]
           exact across_one_step_le a (stageTwoCut hn a ε) i k (by linarith) (by linarith)
             (by linarith) (by ring)
             (zoo_bayes_update_ratio_across_true a _ k i p hkc (by omega))
@@ -596,13 +601,13 @@ theorem crossingAbsorb_one_step_left {n : ℕ} (hn : 0 < n) (k i j : Fin n) {p �
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation (crossingAbsorbNext hn j p ε R k i a)
         (ratioPotential k i) ≤ ratioPotential k i (Sum.inr a) := by
   by_cases habs : R * a i ≤ a k
-  · simp only [crossingAbsorbNext, if_pos habs, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure]
+  · simp only [crossingAbsorbNext, ite_eq_left habs, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure]
     exact le_rfl
-  · simp only [crossingAbsorbNext, if_neg habs]
+  · simp only [crossingAbsorbNext, ite_eq_right habs]
     by_cases hhalt : ∃ m : Fin n, ε ≤ a m
-    · simp only [trueLearnerNext, dif_pos hhalt, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure]
+    · simp only [trueLearnerNext, dite_eq_left hhalt, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure]
       exact le_rfl
-    · simp only [trueLearnerNext, dif_neg hhalt]
+    · simp only [trueLearnerNext, dite_eq_right hhalt]
       have hbr := expectation_bernoulli_branches
         (q := truthAnswerProb j (stageTwoCut hn a ε) p)
         (clampProb_le (if (stageTwoCut hn a ε : ℕ) ≤ (j : ℕ) then p else 1 - p))
@@ -624,7 +629,7 @@ theorem crossingAbsorb_one_step_left {n : ℕ} (hn : 0 < n) (k i j : Fin n) {p �
         · have hcj : (stageTwoCut hn a ε : ℕ) ≤ (j : ℕ) := by omega
           obtain ⟨hw1, hw2⟩ := truthAnswerProb_weights j (stageTwoCut hn a ε) hp hp1
           rw [hw1, hw2]
-          simp only [if_pos hcj]
+          simp only [ite_eq_left hcj]
           refine across_one_step_le a (stageTwoCut hn a ε) k i (by linarith) (by linarith)
             (by linarith) (by ring) ?_ ?_
           · calc p * (updateTrue a (stageTwoCut hn a ε) p k * a i)
@@ -662,10 +667,10 @@ theorem ville_event_bound {S A : Type} (kn : S → PMF (Configuration S A))
       intro cfg hI
       rw [runFor_zero, Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.event_ret]
       by_cases hQ : Q cfg
-      · rw [if_pos hQ]
+      · rw [ite_eq_left hQ]
         exact (ENNReal.le_div_iff_mul_le (Or.inl hr0) (Or.inl hrT)).mpr
           (by rw [one_mul]; exact hpoint cfg hI hQ)
-      · rw [if_neg hQ]
+      · rw [ite_eq_right hQ]
         simp
   | succ fuel ih =>
       intro cfg hI
@@ -673,10 +678,10 @@ theorem ville_event_bound {S A : Type} (kn : S → PMF (Configuration S A))
       | inl out =>
           rw [runFor_halted, Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.event_ret]
           by_cases hQ : Q (Sum.inl out)
-          · rw [if_pos hQ]
+          · rw [ite_eq_left hQ]
             exact (ENNReal.le_div_iff_mul_le (Or.inl hr0) (Or.inl hrT)).mpr
               (by rw [one_mul]; exact hpoint _ hI hQ)
-          · rw [if_neg hQ]
+          · rw [ite_eq_right hQ]
             simp
       | inr s =>
           have hunfold : Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (runFor kn (fuel + 1) (Sum.inr s)) (fun x => Q x.1)

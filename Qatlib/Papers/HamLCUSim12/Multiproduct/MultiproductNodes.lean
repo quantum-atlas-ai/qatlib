@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Group.Finset.Defs
-import Mathlib.AlgebraicTopology.SimplexCategory.Basic
-import Mathlib.Data.Real.Basic
+module
+
+public import Mathlib.Algebra.BigOperators.Group.Finset.Defs
+public import Mathlib.AlgebraicTopology.SimplexCategory.Basic
+public import Mathlib.Basic.Real.Basic
+
+@[expose] public section
 
 /-!
 # Multiproduct nodes and coefficients

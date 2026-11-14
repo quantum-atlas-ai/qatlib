@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import QuantumInfo.Entropy.VonNeumann
-import QuantumInfo.Channels.CPTP
-import Mathlib.Analysis.SpecialFunctions.Log.NegMulLog
+module
+
+public import QuantumInfo.Entropy.VonNeumann
+public import QuantumInfo.Channels.CPTP
+public import Mathlib.Analysis.SpecialFunctions.Log.NegMulLog
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -150,7 +154,6 @@ theorem pauliKraus_sum (p : Fin 4 → ℝ) (hp : ∀ k, 0 ≤ p k) (hsum : ∑ k
     rw [sqrt_star_mul (p k) (hp k)]
   simp only [hk]
   rw [← Finset.sum_smul]
-  congr 1
   rw [← Complex.ofReal_sum, hsum, Complex.ofReal_one]
   simp
 
@@ -180,7 +183,7 @@ theorem dephasingKraus_sum (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) :
   ext i j
   fin_cases i <;> fin_cases j <;>
     simp [dephasingKraus, Fin.sum_univ_two, Matrix.mul_apply, Matrix.conjTranspose_apply,
-      Matrix.smul_apply, Matrix.one_apply, Complex.conj_ofReal, Complex.ofReal_mul,
+      Complex.conj_ofReal,
       pauliI, pauliZ, ofReal_sq_sqrt p hp0, ofReal_sq_sqrt (1 - p) hp', Complex.ofReal_one]
 
 /-- The dephasing channel `D_p` of §5.4 as a `CPTPMap`. -/
@@ -202,7 +205,7 @@ theorem amplitudeDampingKraus_sum (g : ℝ) (hg0 : 0 ≤ g) (hg1 : g ≤ 1) :
   ext i j
   fin_cases i <;> fin_cases j <;>
     simp [amplitudeDampingKraus, Matrix.mul_apply, Matrix.conjTranspose_apply, Matrix.sum_apply,
-      Matrix.one_apply, Complex.conj_ofReal, Complex.ofReal_mul, Fin.sum_univ_two,
+      Complex.conj_ofReal, Fin.sum_univ_two,
       ofReal_sq_sqrt (1 - g) hg', ofReal_sq_sqrt g hg0, Complex.ofReal_one]
 
 /-- The amplitude damping channel `A_g = A_{g,0}` of §5.4 as a `CPTPMap`. -/

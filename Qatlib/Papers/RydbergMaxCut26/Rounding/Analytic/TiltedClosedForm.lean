@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.RydbergMaxCut26.Rounding.Analytic.GaussianPairTilt
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.RydbergMaxCut26.Rounding.Analytic.GaussianPairTilt
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Closed forms for tilted Gaussian pair moments

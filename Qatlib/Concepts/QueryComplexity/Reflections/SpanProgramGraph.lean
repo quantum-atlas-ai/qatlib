@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Complex.Basic
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Data.Matrix.ColumnRowPartitioned
-import Mathlib.Data.Real.Sqrt
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
+module
+
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Data.Matrix.ColumnRowPartitioned
+public import Mathlib.Analysis.Real.Sqrt
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
+
+@[expose] public section
 
 /-!
 # Span-program graph and reflection matrices

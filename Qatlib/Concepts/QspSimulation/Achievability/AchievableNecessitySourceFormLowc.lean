@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QspSimulation.Achievability.AchievableNecessitySourceFormStat
-import Qatlib.Concepts.QspSimulation.WordModel.Equation1WordBridgeLowc
+module
+
+public import Qatlib.Concepts.QspSimulation.Achievability.AchievableNecessitySourceFormStat
+public import Qatlib.Concepts.QspSimulation.WordModel.Equation1WordBridgeLowc
+
+@[expose] public section
 
 /-!
 # Necessity for source-form QSP amplitudes
@@ -50,7 +54,7 @@ theorem lcPlusExtract_unitary (phis : List ℝ) (θ : ℝ) :
     ext a b
     fin_cases a <;> fin_cases b <;>
       simp [lcHad, Matrix.conjTranspose_apply, Matrix.cons_val_zero, Matrix.cons_val_one,
-        Matrix.head_cons, RCLike.star_def, Complex.conj_ofReal]
+         RCLike.star_def, Complex.conj_ofReal]
   have hH : lcHad ∈ Matrix.unitaryGroup (Fin 2) ℂ := by
     rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose, hHad, lcHad_mul_self]
   exact Submonoid.mul_mem _ (Submonoid.mul_mem _ hH (equation1WordBridge phis θ).2.2.2) hH
@@ -62,7 +66,7 @@ theorem unitary_entry_normSq_le_one {n : Type} [Fintype n] [DecidableEq n]
     (M i j).re * (M i j).re + (M i j).im * (M i j).im ≤ 1 := by
   have hdiag := congrFun (congrFun hM j) j
   simp only [Matrix.mul_apply, Matrix.conjTranspose_apply, RCLike.star_def] at hdiag
-  rw [Matrix.one_apply, if_pos rfl] at hdiag
+  rw [Matrix.one_apply, ite_eq_left rfl] at hdiag
   have hsumR : (∑ k, Complex.normSq (M k j)) = 1 := by
     have h1 : ((∑ k, Complex.normSq (M k j) : ℝ) : ℂ) = 1 := by
       rw [Complex.ofReal_sum, ← hdiag]

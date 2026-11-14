@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Qubit
+module
+
+public import Qatlib.Foundations.PureStateMath.Qubit
+
+@[expose] public section
 
 /-!
 # Spectral linear-system problems
@@ -63,6 +67,7 @@ structure LinearSystemProblem (I : Type*) [Fintype I] [DecidableEq I] where
 
 variable {I : Type*} [Fintype I] [DecidableEq I]
 
+omit [DecidableEq I] in
 /-- The inner product of a finite linear combination with a fixed state is the sum of the inner
 products weighted by conjugate coefficients. -/
 theorem inner_sum_smul_left (β : I → ℂ) (v : I → QState I) (φ : QState I) :
@@ -78,6 +83,7 @@ theorem inner_sum_smul_left (β : I → ℂ) (v : I → QState I) (φ : QState I
   refine Finset.sum_congr rfl fun i _ => ?_
   rw [← Finset.mul_sum]
 
+omit [DecidableEq I] in
 /-- The inner product with a finite linear combination in the second argument is the
 corresponding coefficient-weighted sum. -/
 theorem inner_sum_smul_right (ψ : QState I) (β : I → ℂ) (v : I → QState I) :

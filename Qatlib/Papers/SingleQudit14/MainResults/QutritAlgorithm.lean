@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SingleQudit14.MainResults.QuditGeneralization
+module
+
+public import Qatlib.Papers.SingleQudit14.MainResults.QuditGeneralization
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -52,7 +56,7 @@ lemma zmod3_one_ne_zero : (1 : ZMod 3) ≠ 0 := by
 
 /-- In `ZMod 3` the residue `-1` (i.e. `2`) is nonzero (so `|-1⟩` is a genuine basis state). -/
 lemma zmod3_neg_one_ne_zero : (-1 : ZMod 3) ≠ 0 := by
-  simpa using (neg_ne_zero.mpr zmod3_one_ne_zero : -(1 : ZMod 3) ≠ 0)
+  simp
 
 /-- Fixed arXiv:1403.5861v3, paragraph after Eq. (3): "we have the state `|1⟩` (even `f_k`)".
 For every even (positive cyclic) qutrit permutation, the final state after the oracle and the
@@ -60,7 +64,7 @@ inverse Fourier transform is `|1⟩`, up to a nonzero scalar. -/
 theorem qutrit_even_outcome_is_one (σ : Equiv.Perm (ZMod 3)) (hσ : IsPositiveCyclic σ) :
     ∃ c : ℂ, c ≠ 0 ∧
       qftInvVec (applyPerm σ (qftVec (1 : ZMod 3))) = c • basisVec (1 : ZMod 3) := by
-  haveI : NeZero 3 := ⟨by decide⟩
+  have : NeZero 3 := ⟨by decide⟩
   exact positive_outcome_basis σ hσ
 
 /-- Fixed arXiv:1403.5861v3, paragraph after Eq. (3): "or `|-1⟩` (odd `f_k`)". For every odd
@@ -69,7 +73,7 @@ transform is `|-1⟩`, up to a nonzero scalar. -/
 theorem qutrit_odd_outcome_is_minus_one (σ : Equiv.Perm (ZMod 3)) (hσ : IsNegativeCyclic σ) :
     ∃ c : ℂ, c ≠ 0 ∧
       qftInvVec (applyPerm σ (qftVec (1 : ZMod 3))) = c • basisVec (-1 : ZMod 3) := by
-  haveI : NeZero 3 := ⟨by decide⟩
+  have : NeZero 3 := ⟨by decide⟩
   exact negative_outcome_basis σ hσ
 
 /-- Fixed arXiv:1403.5861v3, paragraph after Eq. (3): "the final state of the qutrit after
@@ -79,7 +83,7 @@ cyclic qutrit permutation, the `|0⟩`-component of the final state vanishes, so
 theorem qutrit_zero_never_observed (σ : Equiv.Perm (ZMod 3))
     (hσ : IsPositiveCyclic σ ∨ IsNegativeCyclic σ) :
     qftInvVec (applyPerm σ (qftVec (1 : ZMod 3))) (0 : ZMod 3) = 0 := by
-  haveI : NeZero 3 := ⟨by decide⟩
+  have : NeZero 3 := ⟨by decide⟩
   rcases hσ with hp | hn
   · obtain ⟨c, _, hout⟩ := positive_outcome_basis σ hp
     rw [hout, Pi.smul_apply, smul_eq_mul]

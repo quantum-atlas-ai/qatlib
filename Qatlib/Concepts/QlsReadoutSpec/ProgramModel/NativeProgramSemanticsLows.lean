@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QlsReadoutSpec.ProgramModel.NativeProgramSemanticsStat
+module
+
+public import Qatlib.Concepts.QlsReadoutSpec.ProgramModel.NativeProgramSemanticsStat
+
+@[expose] public section
 
 /-!
 # Semantics of native quantum programs
@@ -53,7 +57,7 @@ theorem dataRegister_joinRegisters {h a : ℕ} (x : Reg h) (u : Reg a) :
   funext i
   show joinRegisters x u ⟨i.val, _⟩ = x i
   unfold joinRegisters
-  rw [dif_pos i.isLt]
+  rw [dite_eq_left i.isLt]
 
 /-- Extracting the auxiliary register from joined data and auxiliary registers recovers the
 auxiliary register. -/
@@ -62,7 +66,7 @@ theorem auxRegister_joinRegisters {h a : ℕ} (x : Reg h) (u : Reg a) :
   funext i
   show joinRegisters x u ⟨h + i.val, _⟩ = u i
   unfold joinRegisters
-  rw [dif_neg (by omega : ¬(h + i.val : ℕ) < h)]
+  rw [dite_eq_right (by omega : ¬(h + i.val : ℕ) < h)]
   show u ⟨(h + i.val) - h, _⟩ = u i
   congr 1
   apply Fin.ext
@@ -75,10 +79,10 @@ theorem joinRegisters_dataRegister {h a : ℕ} (w : Reg (h+a)) :
   funext i
   show (if hi : i.val < h then (dataRegister w) ⟨i.val, hi⟩ else (auxRegister w) ⟨i.val - h, _⟩) = w i
   by_cases hi : i.val < h
-  · rw [dif_pos hi]
+  · rw [dite_eq_left hi]
     show w i = w i
     rfl
-  · rw [dif_neg hi]
+  · rw [dite_eq_right hi]
     show w ⟨h + (i.val - h), _⟩ = w i
     congr 1
     apply Fin.ext
@@ -152,17 +156,17 @@ theorem nativePadding_isometry (h a : ℕ) :
       rw [nativePadding_apply, nativePadding_apply]
       by_cases h1 : w = joinRegisters x (ZeroStr a)
       · by_cases h2 : w = joinRegisters x' (ZeroStr a)
-        · rw [if_pos h1, if_pos h2, if_pos (And.intro h1 h2)]
+        · rw [ite_eq_left h1, ite_eq_left h2, ite_eq_left (And.intro h1 h2)]
           simp
-        · rw [if_pos h1, if_neg h2]
+        · rw [ite_eq_left h1, ite_eq_right h2]
           have hn : ¬(w = joinRegisters x (ZeroStr a) ∧ w = joinRegisters x' (ZeroStr a)) :=
             fun hc => h2 hc.2
-          rw [if_neg hn]
+          rw [ite_eq_right hn]
           simp
-      · rw [if_neg h1]
+      · rw [ite_eq_right h1]
         have hn : ¬(w = joinRegisters x (ZeroStr a) ∧ w = joinRegisters x' (ZeroStr a)) :=
           fun hc => h1 hc.1
-        rw [if_neg hn]
+        rw [ite_eq_right hn]
         simp [star_zero]
     rw [Finset.sum_congr rfl fun w _ => hterm w]
     have hinj : joinRegisters x (ZeroStr a) = joinRegisters x' (ZeroStr a) ↔ x = x' :=
@@ -181,7 +185,7 @@ theorem nativePadding_isometry (h a : ℕ) :
         simp [hw]
       · intro hmem
         exact absurd (Finset.mem_univ _) hmem
-    · rw [if_neg heq]
+    · rw [ite_eq_right heq]
       have hz : ∀ w : Reg (h+a),
           (if w = joinRegisters x (ZeroStr a) ∧ w = joinRegisters x' (ZeroStr a) then (1 : ℂ) else 0) = 0 := by
         intro w
@@ -219,12 +223,12 @@ theorem nativePadding_mulVec_normalized {h a : ℕ} (ψ : QState (Reg h)) (hψ :
           intro x
           by_cases hx : x = dataRegister w
           · subst hx
-            rw [if_pos rfl, if_pos hkey]
+            rw [ite_eq_left rfl, ite_eq_left hkey]
           · by_cases hw2 : w = joinRegisters x (ZeroStr a)
             · have : joinRegisters x (ZeroStr a) = joinRegisters (dataRegister w) (ZeroStr a) :=
                 hw2.symm.trans hkey
               have hinj := joinRegisters_injective (ZeroStr a) this
-              rw [if_neg hx]
+              rw [ite_eq_right hx]
               exact absurd hinj hx
             · simp [hx, hw2]
         rw [Finset.sum_congr rfl fun x _ => h1 x]
@@ -234,11 +238,11 @@ theorem nativePadding_mulVec_normalized {h a : ℕ} (ψ : QState (Reg h)) (hψ :
           simp [hx]
         · intro hmem
           exact absurd (Finset.mem_univ _) hmem
-      rw [hsum, if_pos ha]
+      rw [hsum, ite_eq_left ha]
     · have hzero : ∀ x : Reg h, (if w = joinRegisters x (ZeroStr a) then ψ x else 0) = 0 := by
         intro x
         by_cases hw : w = joinRegisters x (ZeroStr a)
-        · rw [if_pos hw]
+        · rw [ite_eq_left hw]
           have ha2 : auxRegister (joinRegisters x (ZeroStr a)) = ZeroStr a :=
             auxRegister_joinRegisters x (ZeroStr a)
           exact absurd (hw ▸ ha2) ha
@@ -282,7 +286,7 @@ theorem normVec_sq_nativeBranch_one {h a : ℕ} (ψ : QState (Reg (h+a))) (u : R
 
 /-- The data-register block for an optionally controlled oracle call, using the oracle or its
 adjoint when active and the identity otherwise. -/
-private def callBlock {h a : ℕ} (oracles : Fin 2 → Matrix (Reg h) (Reg h) ℂ)
+def callBlock {h a : ℕ} (oracles : Fin 2 → Matrix (Reg h) (Reg h) ℂ)
     (j : Fin 2) (c : Option (Fin a)) (value adj : Bool) (u : Reg a) :
     Matrix (Reg h) (Reg h) ℂ :=
   fun z z' =>
@@ -372,10 +376,10 @@ theorem nativeCallMatrix_mul_conjTranspose {h a : ℕ}
           intro u
           by_cases hu : u = auxRegister p
           · subst hu
-            rw [if_pos rfl, if_pos hau.symm]
+            rw [ite_eq_left rfl, ite_eq_left hau.symm]
             simp
           · have hu2 : auxRegister p ≠ u := fun e => hu e.symm
-            rw [if_neg hu2, if_neg hu]
+            rw [ite_eq_right hu2, ite_eq_right hu]
             simp
         rw [Finset.sum_congr rfl fun u _ => hrew u]
         rw [Finset.sum_eq_single (auxRegister p)]
@@ -412,9 +416,9 @@ theorem nativeCallMatrix_mul_conjTranspose {h a : ℕ}
       intro r
       by_cases hp : auxRegister p = auxRegister r
       · have hq : ¬ auxRegister q = auxRegister r := fun e => hau (hp.trans e.symm)
-        rw [if_pos hp, if_neg hq]
+        rw [ite_eq_left hp, ite_eq_right hq]
         simp
-      · rw [if_neg hp]
+      · rw [ite_eq_right hp]
         simp
     have hz2 : (∑ r : Reg (h+a),
         (if auxRegister p = auxRegister r then B (auxRegister p) (dataRegister p) (dataRegister r) else 0)

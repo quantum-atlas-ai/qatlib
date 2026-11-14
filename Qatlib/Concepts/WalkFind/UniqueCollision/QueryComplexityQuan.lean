@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkFind.UniqueCollision.QueryComplexityStat
-import Qatlib.Concepts.WalkFind.WalkSpectrum.WalkPhaseGapQuan
-import Qatlib.Concepts.WalkFind.UniqueCollision.ElementDistinctnessAlgorithmStat
-import Qatlib.Concepts.WalkFind.UniqueCollision.QueryScaleAux
-import Qatlib.Concepts.WalkFind.UniqueCollision.ElementDistinctnessAlgorithmQuan
+module
+
+public import Qatlib.Concepts.WalkFind.UniqueCollision.QueryComplexityStat
+public import Qatlib.Concepts.WalkFind.WalkSpectrum.WalkPhaseGapQuan
+public import Qatlib.Concepts.WalkFind.UniqueCollision.ElementDistinctnessAlgorithmStat
+public import Qatlib.Concepts.WalkFind.UniqueCollision.QueryScaleAux
+public import Qatlib.Concepts.WalkFind.UniqueCollision.ElementDistinctnessAlgorithmQuan
+
+@[expose] public section
 
 /-!
 # Optimized Johnson-walk query bounds

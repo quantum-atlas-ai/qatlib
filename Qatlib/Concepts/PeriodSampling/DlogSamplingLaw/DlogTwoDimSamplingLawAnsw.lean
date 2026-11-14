@@ -4,18 +4,22 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Lean.Elab.Tactic.Omega
-import Mathlib.Algebra.Field.ZMod
-import Mathlib.Algebra.Order.Ring.Star
-import Mathlib.AlgebraicTopology.SimplexCategory.Basic
-import Mathlib.Analysis.CStarAlgebra.Classes
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.NormNum.Prime
-import Mathlib.Tactic.NormNum.RealSqrt
-import Qatlib.Concepts.PeriodSampling.DlogSamplingLaw.DlogTwoDimSamplingLawStat
-import Qatlib.Concepts.PeriodSampling.DlogGoodProb.DlogOriginalContracts
-import Qatlib.Concepts.PeriodSampling.DlogSamplingLaw.DlogFourierLaw
+module
+
+public import Lean.Elab.Tactic.Omega
+public import Mathlib.Algebra.Field.ZMod
+public import Mathlib.Algebra.Order.Ring.Star
+public import Mathlib.AlgebraicTopology.SimplexCategory.Basic
+public import Mathlib.Analysis.CStarAlgebra.Classes
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.NormNum.Prime
+public import Mathlib.Tactic.NormNum.RealSqrt
+public import Qatlib.Concepts.PeriodSampling.DlogSamplingLaw.DlogTwoDimSamplingLawStat
+public import Qatlib.Concepts.PeriodSampling.DlogGoodProb.DlogOriginalContracts
+public import Qatlib.Concepts.PeriodSampling.DlogSamplingLaw.DlogFourierLaw
+
+@[expose] public section
 
 /-!
 # Corrected two-dimensional sampling law
@@ -49,7 +53,7 @@ set_option autoImplicit false
 /-- The legacy two-dimensional sampling-law contract is false. -/
 theorem dlogTwoDimSamplingLaw_false : ¬ DlogTwoDimSamplingLawLegacy := by
   intro h
-  letI : Fact (Nat.Prime 2) := ⟨by decide⟩
+  let : Fact (Nat.Prime 2) := ⟨by decide⟩
   have ho : orderOf (2 : ZMod 3) = 2 :=
     orderOf_eq_prime (by decide) (by decide)
   have hh := (h 3 4 (2 : ZMod 3) (1 : ZMod 3) (by norm_num) (by norm_num)

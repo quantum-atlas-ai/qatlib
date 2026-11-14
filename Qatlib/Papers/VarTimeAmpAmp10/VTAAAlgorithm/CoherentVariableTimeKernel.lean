@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.CoherentVariableTimeDefs
-import Qatlib.Concepts.QsvtCore.QsVtMain.CPPPhaseCompiler
-import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
+module
+
+public import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.CoherentVariableTimeDefs
+public import Qatlib.Concepts.QsvtCore.QsVtMain.CPPPhaseCompiler
+public import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
+
+@[expose] public section
 
 /-!
 # A clean flag implementation of coherent stages

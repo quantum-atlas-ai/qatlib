@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetwork
-import Qatlib.Concepts.QspSimulation.Achievability.MatrixExponentialApproximation
-import Mathlib.Analysis.Normed.Algebra.MatrixExponential
-import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetworkBranch
-import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetworkCore
-import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetworkInstrument
-import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetworkRouting
-import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetworkTransport
+module
+
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetwork
+public import Qatlib.Concepts.QspSimulation.Achievability.MatrixExponentialApproximation
+public import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetworkBranch
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetworkCore
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetworkInstrument
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetworkRouting
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetworkTransport
+
+@[expose] public section
 
 /-!
 # Ising pulses and cluster resource phases

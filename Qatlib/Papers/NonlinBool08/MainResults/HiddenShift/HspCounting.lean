@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NonlinBool08.MainResults.HiddenShift.HspReduction
+module
+
+public import Qatlib.Papers.NonlinBool08.MainResults.HiddenShift.HspReduction
+
+@[expose] public section
 
 /-!
 # Counting informative hidden-shift samples
@@ -86,7 +90,7 @@ theorem card_orth {n : ℕ} (v : BVec n) (hv : v ≠ 0) :
     ring
   have htotal : (∑ x : BVec n, eps (dot x v)) = 0 := by
     have h := sum_eps_dot v
-    rw [if_neg hv] at h
+    rw [ite_eq_right hv] at h
     rw [show (∑ x : BVec n, eps (dot x v)) = ∑ x : BVec n, eps (dot v x) from
       Finset.sum_congr rfl (fun x _ => by rw [dot_swap])]
     exact h

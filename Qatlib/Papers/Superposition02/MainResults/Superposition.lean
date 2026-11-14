@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Analysis.Complex.Norm
-import Mathlib.Data.Real.Sqrt
+module
+
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Analysis.Complex.Norm
+public import Mathlib.Analysis.Real.Sqrt
+
+@[expose] public section
 
 /-!
 # Dyadic probability amplitudes and refinement
@@ -162,7 +166,6 @@ def DyadicMass.ofCDF (F : ℝ → ℝ) (hmono : Monotone F) (h0 : F 0 = 0) (h1 :
       rw [levelSize_succ]
       push_cast
       field_simp
-      try ring
     have hright : (((2 * k + 1 : ℕ) : ℝ) + 1) / (levelSize (m + 1) : ℝ) =
         ((k : ℝ) + 1) / (levelSize m : ℝ) := by
       rw [levelSize_succ]

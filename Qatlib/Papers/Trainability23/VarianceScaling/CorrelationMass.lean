@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ShadowModels.BooleanCubeFourier
-import Qatlib.Papers.Trainability23.VarianceScaling.ProductLaws
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+module
+
+public import Qatlib.Concepts.ShadowModels.BooleanCubeFourier
+public import Qatlib.Papers.Trainability23.VarianceScaling.ProductLaws
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+
+@[expose] public section
 
 /-!
 # Boolean correlation mass bounds

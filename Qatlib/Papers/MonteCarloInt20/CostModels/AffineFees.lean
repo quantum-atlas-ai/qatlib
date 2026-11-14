@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MonteCarloInt20.PrnJump.AffineWord
-import Qatlib.Papers.MonteCarloInt20.CostModels.CorrectedLeadingCost
+module
+
+public import Qatlib.Papers.MonteCarloInt20.PrnJump.AffineWord
+public import Qatlib.Papers.MonteCarloInt20.CostModels.CorrectedLeadingCost
+
+@[expose] public section
 
 /-!
 # Affine jump-word fees

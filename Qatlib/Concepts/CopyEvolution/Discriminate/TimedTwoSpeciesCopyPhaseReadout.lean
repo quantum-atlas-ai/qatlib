@@ -4,9 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FreshCopyExec.QpeConsumers.TwoSpeciesCopyPhaseReadout
-import Qatlib.Concepts.SignalPrimitive.GridGradient.Basic
-import Qatlib.Concepts.GibbsMetropolis.EnergyReadout
+module
+
+public import Qatlib.Concepts.FreshCopyExec.QpeConsumers.TwoSpeciesCopyPhaseReadout
+public import Qatlib.Concepts.SignalPrimitive.GridGradient.Basic
+public import Qatlib.Concepts.GibbsMetropolis.EnergyReadout
+
+@[expose] public section
+set_option linter.style.haveILetI false
+set_option linter.unusedTactic false
 
 /-!
 # Timed two-species phase estimation
@@ -486,7 +492,7 @@ private theorem timedTwoSpecies_input_expansion (D M : ℕ) (hM : 0 < M) (V χ :
     twoSpeciesQPEInput D M χ=∑ j, ∑ k, ((Vᴴ*χ*V) j k) •
       timedTwoSpeciesDyad (TensorState (Ket (⟨0,hM⟩ : Fin M)) (TensorState (Ket false) (fun a => V a j)))
         (TensorState (Ket (⟨0,hM⟩ : Fin M)) (TensorState (Ket false) (fun a => V a k))) := by
-  rw [twoSpeciesQPEInput,dif_pos hM]
+  rw [twoSpeciesQPEInput,dite_eq_left hM]
   conv_lhs => rw [timedTwoSpecies_basis_expansion D V χ hV]
   ext ⟨a,b,i⟩ ⟨c,e,l⟩
   simp only [tensorGate_apply,Matrix.sum_apply,Matrix.smul_apply,outerProduct_apply,

@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
-import QuantumInfo.Measurements.POVM
-import Mathlib.NumberTheory.LegendreSymbol.AddCharacter
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Complex.Circle
+module
+
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
+public import QuantumInfo.Measurements.POVM
+public import Mathlib.NumberTheory.LegendreSymbol.AddCharacter
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Complex.Circle
+
+@[expose] public section
 
 open Qatlib.Foundations.PureStateMath.Reflection
 
@@ -161,11 +165,11 @@ def supportedIn {𝔽 : Type} [Field 𝔽] {n : ℕ} (J : Finset (Fin n)) :
   zero_mem' := by intro i _; rfl
   add_mem' := by
     intro a b ha hb i hi
-    simp only [Pi.add_apply, Set.mem_setOf_eq] at *
+    simp only [Pi.add_apply, Set.mem_ofPred_eq] at *
     rw [ha i hi, hb i hi, add_zero]
   smul_mem' := by
     intro r a ha i hi
-    simp only [Pi.smul_apply, smul_eq_mul, Set.mem_setOf_eq] at *
+    simp only [Pi.smul_apply, smul_eq_mul, Set.mem_ofPred_eq] at *
     rw [ha i hi, mul_zero]
 
 /-- Definition 17: the punctured code `C_J = {c|_J : c ∈ C}`. -/

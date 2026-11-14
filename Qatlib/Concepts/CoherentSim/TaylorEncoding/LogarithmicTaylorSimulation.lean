@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CoherentSim.TaylorBounds
-import Mathlib.Data.Nat.Log
+module
+
+public import Qatlib.Concepts.CoherentSim.TaylorBounds
+public import Mathlib.Data.Nat.Log
+
+@[expose] public section
 
 /-!
 # Taylor simulation with logarithmic segment overhead

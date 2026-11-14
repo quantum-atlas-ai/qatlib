@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ExpSpeedup10.MainResults.Model.SourceComplexity
+module
+
+public import Qatlib.Papers.ExpSpeedup10.MainResults.Model.SourceComplexity
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -40,7 +44,7 @@ open Model
 uniform random circuit give a twirl residual `(1 − 1/(5n²))^k`, which is at
 most `ε` once `5n² log(1/ε) ≤ k`. -/
 theorem proposition_VI_5_uniform_random_circuits
-    (n k : ℕ) (hn : 1 ≤ n) (ε : ℝ) (hε0 : 0 < ε) (hε1 : ε ≤ 1)
+    (n k : ℕ) (hn : 1 ≤ n) (ε : ℝ) (hε0 : 0 < ε) (_hε1 : ε ≤ 1)
     (hk : 5 * (n : ℝ) ^ 2 * Real.log (1 / ε) ≤ (k : ℝ)) :
     sourceUniformCircuitResidual n k ≤ ε := by
   unfold sourceUniformCircuitResidual

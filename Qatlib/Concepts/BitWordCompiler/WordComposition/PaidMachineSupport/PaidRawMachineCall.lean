@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.BitWordCompiler.CanonicalCodec.BitWordCompiler
+module
+
+public import Qatlib.Concepts.BitWordCompiler.CanonicalCodec.BitWordCompiler
+
+@[expose] public section
 
 /-!
 # Clocked calls to raw binary machines
@@ -199,8 +203,7 @@ theorem prepare_call {q : ℕ} (M : TM0.Machine Qatlib.Concepts.BitWordCompiler.
   · intro k; fin_cases k <;> rfl
   · intro k; fin_cases k <;> rfl
   · intro j hj
-    cases j <;> first | rfl | exact (hj 0 rfl).elim | exact (hj 1 rfl).elim |
-      exact (hj 2 rfl).elim | exact (hj 3 rfl).elim
+    cases j <;> first | rfl | exact (hj 0 rfl).elim | exact (hj  3 rfl).elim
 
 /-- The first symbol of an input mapped to optional bits is its optional head. -/
 private theorem mapped_head (input : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) : (input.map some).headI = input.head? := by
@@ -229,7 +232,7 @@ theorem call_call {q : ℕ} (M : TM0.Machine Qatlib.Concepts.BitWordCompiler.Can
   · intro k; fin_cases k <;> rfl
   · intro k; fin_cases k <;> rfl
   · intro j hj
-    cases j <;> first | rfl | exact (hj 0 rfl).elim | exact (hj 1 rfl).elim | exact (hj 2 rfl).elim
+    cases j <;> first | rfl | exact (hj  1 rfl).elim | exact (hj 2 rfl).elim
 
 /-- The raw-call budget, equal to `10050 * (1 + inputLength + time)²`. -/
 def budget (inputLength time : ℕ) : ℕ := 10050 * (1 + inputLength + time) ^ 2

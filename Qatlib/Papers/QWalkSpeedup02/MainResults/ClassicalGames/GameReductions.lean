@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QWalkSpeedup02.MainResults.Common.FiniteProbability
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.QWalkSpeedup02.MainResults.Common.FiniteProbability
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Probability identities for classical game reductions

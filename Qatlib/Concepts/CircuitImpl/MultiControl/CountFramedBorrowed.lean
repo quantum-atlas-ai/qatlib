@@ -4,7 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CircuitImpl.MultiControl.CountBorrowed
+module
+
+public import Qatlib.Concepts.CircuitImpl.MultiControl.CountBorrowed
+
+@[expose] public section
+
+set_option linter.unusedSimpArgs false
 
 /-!
 # Framed borrowed-work cores

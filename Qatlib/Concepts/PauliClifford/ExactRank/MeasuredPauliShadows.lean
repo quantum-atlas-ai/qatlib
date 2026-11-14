@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PauliClifford.ExactRank.MatrixTensor
-import Qatlib.Concepts.ChannelTheory.Stinespring.ShadowEstimator
-import Qatlib.Concepts.ShadowModels.ShadowChannel.ObservedInstrument
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.IndependentWeightedEstimator
-import Qatlib.Foundations.PureStateMath.Tensor
+module
+
+public import Qatlib.Concepts.PauliClifford.ExactRank.MatrixTensor
+public import Qatlib.Concepts.ChannelTheory.Stinespring.ShadowEstimator
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.ObservedInstrument
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.IndependentWeightedEstimator
+public import Qatlib.Foundations.PureStateMath.Tensor
+
+@[expose] public section
 
 /-!
 # Observed Pauli measurements and fresh records

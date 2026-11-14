@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.Projection.Reflection
-import Mathlib.Analysis.SpecialFunctions.Complex.Arg
-import Mathlib.Analysis.SpecialFunctions.Complex.Circle
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+module
+
+public import Mathlib.Analysis.InnerProductSpace.Projection.Reflection
+public import Mathlib.Analysis.SpecialFunctions.Complex.Arg
+public import Mathlib.Analysis.SpecialFunctions.Complex.Circle
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+
+@[expose] public section
 
 /-!
 # Eigenphases of two reflections

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AmpInvReqTang26.ForwardHist.ActualPaths
-import Qatlib.Papers.AmpInvReqTang26.BiasedFourier.ActualGram
-import Qatlib.Foundations.MatrixAlgebra.FrameProject.TensorErrors
-import Qatlib.Concepts.MixedFidelity.FidelityMetric.PurificationErrors
+module
+
+public import Qatlib.Papers.AmpInvReqTang26.ForwardHist.ActualPaths
+public import Qatlib.Papers.AmpInvReqTang26.BiasedFourier.ActualGram
+public import Qatlib.Foundations.MatrixAlgebra.FrameProject.TensorErrors
+public import Qatlib.Concepts.MixedFidelity.FidelityMetric.PurificationErrors
+
+@[expose] public section
 
 /-!
 # Histogram purifications and positive semidefinite domination

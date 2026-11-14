@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixGeometry.LcuFrame.Compression
+module
+
+public import Qatlib.Foundations.MatrixGeometry.LcuFrame.Compression
+
+@[expose] public section
 
 /-!
 # Normalization and signal probabilities of LCU states

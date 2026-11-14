@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.ScalarWordProduct
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.WordAffine
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.Gauge
-import Mathlib.Algebra.BigOperators.Fin
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.ScalarWordProduct
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.WordAffine
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.Gauge
+public import Mathlib.Algebra.BigOperators.Fin
+
+@[expose] public section
 
 /-! # Effective word bounds for the actual quaternion phase exponential -/
 set_option autoImplicit false

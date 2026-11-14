@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.Theorem21RealizedWitnessStat
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.Theorem21RealizedWitnessStat
+
+@[expose] public section
 
 /-!
 # Statement of the realized Kushilevitz query bound

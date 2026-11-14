@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Real.Basic
-import Mathlib.Data.Fintype.Card
-import Mathlib.Data.Fintype.Pi
-import Mathlib.Data.Fintype.BigOperators
-import Mathlib.Data.Finset.Card
-import Mathlib.Algebra.Order.Monoid.Unbundled.Pow
-import Mathlib.Tactic
+module
+
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Data.Fintype.Pi
+public import Mathlib.Data.Fintype.BigOperators
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Algebra.Order.Monoid.Unbundled.Pow
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixAlgebra.CommutatorExp.ExponentialWord
-import Qatlib.Papers.RiemCircuit26.HessianGeometry.ExpTools
+module
+
+public import Qatlib.Foundations.MatrixAlgebra.CommutatorExp.ExponentialWord
+public import Qatlib.Papers.RiemCircuit26.HessianGeometry.ExpTools
+
+@[expose] public section
 
 /-!
 # Unitary product-exponential curves
@@ -41,7 +45,7 @@ def curve {p : ℕ} (ks : List (Mat p)) (U : Mat p) (t : ℝ) : Mat p := word ks
 /-- The exponential of a real multiple of a skew-Hermitian matrix is unitary [LaiEtAl2026]. -/
 theorem exp_unitary {p : ℕ} (Ω : Mat p) (hΩ : Ωᴴ = -Ω) (t : ℝ) :
     NormedSpace.exp (t • Ω) ∈ Matrix.unitaryGroup (Fin p) ℂ := by
-  letI : NormedAlgebra ℚ (Mat p) := NormedAlgebra.restrictScalars ℚ ℝ (Mat p)
+  let : NormedAlgebra ℚ (Mat p) := NormedAlgebra.restrictScalars ℚ ℝ (Mat p)
   apply NormedSpace.exp_mem_unitary_of_mem_skewAdjoint
   change star (t • Ω) = -(t • Ω)
   rw [star_smul, Matrix.star_eq_conjTranspose, hΩ, star_trivial, smul_neg]

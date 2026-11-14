@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QCounting98.MainResults.ActualCounting.StandardProgram
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeReadoutRefinedDefs
+module
+
+public import Qatlib.Papers.QCounting98.MainResults.ActualCounting.StandardProgram
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeReadoutRefinedDefs
+
+@[expose] public section
 
 /-!
 # Expected query cost of adaptive exact counting

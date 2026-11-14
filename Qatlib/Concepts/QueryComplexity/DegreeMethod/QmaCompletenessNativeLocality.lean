@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.QmaCompletenessNativeOutput
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.QmaCompletenessNativeOutput
+
+@[expose] public section
 
 /-!
 # Locality of native propagation coefficients
@@ -80,22 +84,22 @@ theorem controlled_entries {N : ℕ} {T : Type} (z : T)
       if outside S x=outside S y then
         controlled z A f (fill S (mask S x)) (fill S (mask S y)) else z := by
   by_cases hout : outside S x=outside S y
-  · rw [if_pos hout]
+  · rw [ite_eq_left hout]
     have ha := active_fill_iff A S x y hout
     unfold controlled
     by_cases h : AgreeOutside A x y
-    · rw [if_pos h,if_pos (ha.mp h)]
+    · rw [ite_eq_left h,ite_eq_left (ha.mp h)]
       exact hf x y
-    · rw [if_neg h,if_neg (fun h' => h (ha.mpr h'))]
+    · rw [ite_eq_right h,ite_eq_right (fun h' => h (ha.mpr h'))]
   · have ha : ¬AgreeOutside A x y := by
       intro h
       apply hout
       apply (outside_eq_iff S x y).mpr
       intro j hjS
       exact h j (fun hjA => hjS (hAS hjA))
-    rw [if_neg hout]
+    rw [ite_eq_right hout]
     simpa only [controlled] using
-      (if_neg ha : (if AgreeOutside A x y then f x y else z)=z)
+      (ite_eq_right ha : (if AgreeOutside A x y then f x y else z)=z)
 
 /-- A complex controlled entry rule invariant under masking to a support containing `A` equals
 the partition lift of its local table. -/
@@ -362,7 +366,7 @@ theorem cnotTag_strong {n : ℕ} (c t : Fin n) (hct : c≠t) (x y : Reg n) :
       apply bool_eq_of_true_iff
       rw [cnot_regEq_iff c t hct,cnot_regEq_iff c t hct]
       simp only [ho,hf,true_and,hxc,hxt,hyc,hyt]
-    simp only [if_pos ho,hr]
+    simp only [ite_eq_left ho,hr]
   · have hr : regEq x (Function.update y t (y t ^^ y c))=false :=
       bool_false_of_not_true _ (fun h => ho ((cnot_regEq_iff c t hct x y).mp h).1)
     simp [ho,hr]
@@ -382,7 +386,7 @@ theorem rawTag_strong (n : ℕ) (g : FiniteGateCode) (x y : Reg n) :
       exact oneWireTag_strong (⟨w,hw⟩ : Fin n) hCell x y
     · have hs : gateSites n (.h w)=∅:=by simp [gateSites,hw]
       rw [hs]
-      simpa only [rawTag,oneWireTag,dif_neg hw] using identityTag_strong x y
+      simpa only [rawTag,oneWireTag,dite_eq_right hw] using identityTag_strong x y
   | x w =>
     by_cases hw : w < n
     · have hs : gateSites n (.x w)={⟨w,hw⟩}:=by simp [gateSites,hw]
@@ -390,7 +394,7 @@ theorem rawTag_strong (n : ℕ) (g : FiniteGateCode) (x y : Reg n) :
       exact oneWireTag_strong (⟨w,hw⟩ : Fin n) xCell x y
     · have hs : gateSites n (.x w)=∅:=by simp [gateSites,hw]
       rw [hs]
-      simpa only [rawTag,oneWireTag,dif_neg hw] using identityTag_strong x y
+      simpa only [rawTag,oneWireTag,dite_eq_right hw] using identityTag_strong x y
   | t w =>
     by_cases hw : w < n
     · have hs : gateSites n (.t w)={⟨w,hw⟩}:=by simp [gateSites,hw]
@@ -398,7 +402,7 @@ theorem rawTag_strong (n : ℕ) (g : FiniteGateCode) (x y : Reg n) :
       exact oneWireTag_strong (⟨w,hw⟩ : Fin n) tCell x y
     · have hs : gateSites n (.t w)=∅:=by simp [gateSites,hw]
       rw [hs]
-      simpa only [rawTag,oneWireTag,dif_neg hw] using identityTag_strong x y
+      simpa only [rawTag,oneWireTag,dite_eq_right hw] using identityTag_strong x y
   | tdg w =>
     by_cases hw : w < n
     · have hs : gateSites n (.tdg w)={⟨w,hw⟩}:=by simp [gateSites,hw]
@@ -406,7 +410,7 @@ theorem rawTag_strong (n : ℕ) (g : FiniteGateCode) (x y : Reg n) :
       exact oneWireTag_strong (⟨w,hw⟩ : Fin n) tdgCell x y
     · have hs : gateSites n (.tdg w)=∅:=by simp [gateSites,hw]
       rw [hs]
-      simpa only [rawTag,oneWireTag,dif_neg hw] using identityTag_strong x y
+      simpa only [rawTag,oneWireTag,dite_eq_right hw] using identityTag_strong x y
   | cx c t =>
     by_cases hw : c < n ∧ t < n ∧ c≠t
     · have hct : (⟨c,hw.1⟩ : Fin n)≠⟨t,hw.2.1⟩ := by
@@ -414,11 +418,11 @@ theorem rawTag_strong (n : ℕ) (g : FiniteGateCode) (x y : Reg n) :
         exact hw.2.2 (congrArg Fin.val h)
       have hs : gateSites n (.cx c t)={⟨c,hw.1⟩,⟨t,hw.2.1⟩}:=by simp [gateSites,hw]
       rw [hs]
-      simpa only [rawTag,dif_pos hw] using
+      simpa only [rawTag,dite_eq_left hw] using
         cnotTag_strong (⟨c,hw.1⟩ : Fin n) (⟨t,hw.2.1⟩ : Fin n) hct x y
     · have hs : gateSites n (.cx c t)=∅:=by simp [gateSites,hw]
       rw [hs]
-      simpa only [rawTag,dif_neg hw] using identityTag_strong x y
+      simpa only [rawTag,dite_eq_right hw] using identityTag_strong x y
 
 /-- A finite gate's integer coefficient pair is determined by its masked gate support when
 outside registers agree, and is zero otherwise. -/
@@ -429,9 +433,9 @@ theorem rawCoeff_strong (n b : ℕ) (g : FiniteGateCode) (x y : Reg n) :
           (Qatlib.Concepts.TensorRegisters.RegisterModel.fill (gateSites n g) (Qatlib.Concepts.TensorRegisters.RegisterModel.mask (gateSites n g) y)) else (0,0) := by
   have ht := rawTag_strong n g x y
   by_cases ho : Qatlib.Concepts.TensorRegisters.RegisterModel.outside (gateSites n g) x=Qatlib.Concepts.TensorRegisters.RegisterModel.outside (gateSites n g) y
-  · rw [if_pos ho] at ht ⊢
+  · rw [ite_eq_left ho] at ht ⊢
     simp only [rawCoeff,ht]
-  · rw [if_neg ho] at ht ⊢
+  · rw [ite_eq_right ho] at ht ⊢
     simp [rawCoeff,ht,zeroTag,atomNumerator]
 
 /-- The central clock index belongs to its clock support. -/
@@ -447,7 +451,7 @@ theorem nativeBit_left_fill {m : ℕ} (i : Fin m) (c : Clock m) :
   · simp [nativeBit,hz]
   · have hp : 0 < i.val := by omega
     have hm : i.val ≤ m := by omega
-    simp only [nativeBit,dif_neg hz,dif_pos hm]
+    simp only [nativeBit,dite_eq_right hz,dite_eq_left hm]
     apply Qatlib.Concepts.TensorRegisters.RegisterModel.fill_mask_on
     simp [clockSites,hp]
 
@@ -459,7 +463,7 @@ theorem nativeBit_right_fill {m : ℕ} (i : Fin m) (c : Clock m) :
   have hz : i.val+2≠0 := by omega
   by_cases hm : i.val+2 ≤ m
   · have hr : i.val+1 < m := by omega
-    simp only [nativeBit,dif_neg hz,dif_pos hm]
+    simp only [nativeBit,dite_eq_right hz,dite_eq_left hm]
     apply Qatlib.Concepts.TensorRegisters.RegisterModel.fill_mask_on
     have he : (⟨i.val+2-1,by omega⟩ : Fin m)=⟨i.val+1,hr⟩ := by
       apply Fin.ext
@@ -515,7 +519,7 @@ theorem hopBool_strong {m : ℕ} (i : Fin m) (r c : Clock m) :
         hopBool i (Qatlib.Concepts.TensorRegisters.RegisterModel.fill (clockSites i) (Qatlib.Concepts.TensorRegisters.RegisterModel.mask (clockSites i) r))
           (Qatlib.Concepts.TensorRegisters.RegisterModel.fill (clockSites i) (Qatlib.Concepts.TensorRegisters.RegisterModel.mask (clockSites i) c)) else false := by
   by_cases ho : Qatlib.Concepts.TensorRegisters.RegisterModel.outside (clockSites i) r=Qatlib.Concepts.TensorRegisters.RegisterModel.outside (clockSites i) c
-  · rw [if_pos ho]
+  · rw [ite_eq_left ho]
     have he := outsideEq_fill (clockSites i) i r c ho
     simp only [hopBool,(pre_post_fill i r).2,(pre_post_fill i c).1,← he]
   · have hz : hopBool i r c=false := bool_false_of_not_true _ (by
@@ -600,22 +604,22 @@ theorem propagationCoeff_fill {m : ℕ} (n b : ℕ) (i : Fin m) (g : FiniteGateC
   have hhop : hopBool i (flattenEquiv m n x).1 (flattenEquiv m n y).1=
       hopBool i (flattenEquiv m n X).1 (flattenEquiv m n Y).1 := by
     rw [hXc,hYc]
-    simpa only [if_pos hc] using
+    simpa only [ite_eq_left hc] using
       hopBool_strong i (flattenEquiv m n x).1 (flattenEquiv m n y).1
   have hhopRev : hopBool i (flattenEquiv m n y).1 (flattenEquiv m n x).1=
       hopBool i (flattenEquiv m n Y).1 (flattenEquiv m n X).1 := by
     rw [hYc,hXc]
-    simpa only [if_pos hc.symm] using
+    simpa only [ite_eq_left hc.symm] using
       hopBool_strong i (flattenEquiv m n y).1 (flattenEquiv m n x).1
   have hraw : rawCoeff n b g (flattenEquiv m n x).2 (flattenEquiv m n y).2=
       rawCoeff n b g (flattenEquiv m n X).2 (flattenEquiv m n Y).2 := by
     rw [hXw,hYw]
-    simpa only [if_pos hw] using
+    simpa only [ite_eq_left hw] using
       rawCoeff_strong n b g (flattenEquiv m n x).2 (flattenEquiv m n y).2
   have hrawRev : rawCoeff n b g (flattenEquiv m n y).2 (flattenEquiv m n x).2=
       rawCoeff n b g (flattenEquiv m n Y).2 (flattenEquiv m n X).2 := by
     rw [hYw,hXw]
-    simpa only [if_pos hw.symm] using
+    simpa only [ite_eq_left hw.symm] using
       rawCoeff_strong n b g (flattenEquiv m n y).2 (flattenEquiv m n x).2
   have hdiag :
       (regEq (flattenEquiv m n x).1 (flattenEquiv m n y).1 &&
@@ -641,11 +645,11 @@ theorem forwardCoeff_zero_of_outside_ne {m : ℕ} (n b : ℕ) (i : Fin m)
       intro hw
       exact ho ((prop_outside_iff n i g x y).mpr ⟨hc,hw⟩)
     have hr : rawCoeff n b g (flattenEquiv m n x).2 (flattenEquiv m n y).2=(0,0) := by
-      simpa only [if_neg hw] using
+      simpa only [ite_eq_right hw] using
         rawCoeff_strong n b g (flattenEquiv m n x).2 (flattenEquiv m n y).2
     simp only [hr,ite_self]
   · have hh : hopBool i (flattenEquiv m n x).1 (flattenEquiv m n y).1=false := by
-      simpa only [if_neg hc] using
+      simpa only [ite_eq_right hc] using
         hopBool_strong i (flattenEquiv m n x).1 (flattenEquiv m n y).1
     simp [hh]
 
@@ -680,9 +684,9 @@ theorem propagationCoeff_strong {m : ℕ} (n b : ℕ) (i : Fin m) (g : FiniteGat
           (flattenEquiv m n (fill (propSites n i g) (mask (propSites n i g) y)))
       else (0,0) := by
   by_cases ho : outside (propSites n i g) x=outside (propSites n i g) y
-  · rw [if_pos ho]
+  · rw [ite_eq_left ho]
     exact propagationCoeff_fill n b i g x y ho
-  · rw [if_neg ho]
+  · rw [ite_eq_right ho]
     exact propagationCoeff_zero_of_outside_ne n b i g x y ho
 
 end Qatlib.Concepts.QueryComplexity.DegreeMethod

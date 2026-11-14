@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QChemistry14.ScalarModels.Definitions
-import Mathlib.Analysis.Complex.ExponentialBounds
+module
+
+public import Qatlib.Papers.QChemistry14.ScalarModels.Definitions
+public import Mathlib.Analysis.Complex.ExponentialBounds
+
+@[expose] public section
 
 /-!
 # Scalar resource bounds for adiabatic embedding

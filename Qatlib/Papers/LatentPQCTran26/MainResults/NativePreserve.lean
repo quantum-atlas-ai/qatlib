@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LatentPQCTran26.MainResults.ConcentratedMLP
-import Mathlib.MeasureTheory.Integral.Average
+module
+
+public import Qatlib.Papers.LatentPQCTran26.MainResults.ConcentratedMLP
+public import Mathlib.MeasureTheory.Integral.Average
+
+@[expose] public section
 
 /-!
 # Native gradient preservation for tanh decoders

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Core.PropagatorAngularGrowth
-import Qatlib.Foundations.CbmdAnalysis.Core.CosinePropagators
-import Qatlib.Foundations.CbmdAnalysis.Core.CosineCircleDenominator
-import Qatlib.Foundations.CbmdAnalysis.Core.CosineCircleLimit
+module
+
+public import Qatlib.Foundations.CbmdAnalysis.Core.PropagatorAngularGrowth
+public import Qatlib.Foundations.CbmdAnalysis.Core.CosinePropagators
+public import Qatlib.Foundations.CbmdAnalysis.Core.CosineCircleDenominator
+public import Qatlib.Foundations.CbmdAnalysis.Core.CosineCircleLimit
+
+@[expose] public section
 
 /-!
 # Angular comparison with the cosine regulator

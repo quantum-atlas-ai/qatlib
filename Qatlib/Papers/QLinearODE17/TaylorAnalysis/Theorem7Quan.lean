@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem7Stat
-import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem7Aux2
+module
+
+public import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem7Stat
+public import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem7Aux2
+
+@[expose] public section
 
 /-!
 # Terminal block mass in the V2 Taylor system

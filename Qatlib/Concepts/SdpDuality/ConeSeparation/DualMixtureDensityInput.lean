@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MpsAdaptation.MpsTransfer.DualMixtureDensityInput
-import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimization
+module
+
+public import Qatlib.Concepts.MpsAdaptation.MpsTransfer.DualMixtureDensityInput
+public import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimization
+
+@[expose] public section
 
 /-!
 # Density evaluation of SDP dual mixtures

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.RationalFlow.CisApproximation
-import Qatlib.Concepts.EffectiveGauge.TorusFourier.FourierMode
-import Qatlib.Concepts.EffectiveGauge.RationalFlow.MeanLipschitz
+module
+
+public import Qatlib.Concepts.EffectiveGauge.RationalFlow.CisApproximation
+public import Qatlib.Concepts.EffectiveGauge.TorusFourier.FourierMode
+public import Qatlib.Concepts.EffectiveGauge.RationalFlow.MeanLipschitz
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -37,7 +41,7 @@ theorem unitFourierMode_eq_complexPhase (k : SpatialFrequency) (x : SpatialPoint
   rw [complexPhase_eq_exp]
   unfold unitFourierMode fourierModeExponent
   congr 1
-  simp only [ContinuousLinearMap.smul_apply,smul_eq_mul,ContinuousLinearMap.comp_apply,
+  simp only [_root_.smul_apply,smul_eq_mul,ContinuousLinearMap.comp_apply,
     Complex.ofRealCLM_apply,Complex.ofReal_mul]
   ring
 

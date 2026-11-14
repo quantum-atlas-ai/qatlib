@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.TimeEvolution.TelegraphLimit.TelegraphMode
-import Mathlib.Analysis.InnerProductSpace.PiL2
+module
+
+public import Qatlib.Foundations.TimeEvolution.TelegraphLimit.TelegraphMode
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+
+@[expose] public section
 
 /-!
 # Finite-band comparison of telegraph and heat modes

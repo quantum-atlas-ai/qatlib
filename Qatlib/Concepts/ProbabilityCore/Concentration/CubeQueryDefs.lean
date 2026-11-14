@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfacesDefs
-import Qatlib.Concepts.QueryWordCore.QueryMachinery.AcceptancePolynomial
-import Qatlib.Concepts.ProbabilityCore.DistributionAA.CubeDistribution
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+module
+
+public import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfacesDefs
+public import Qatlib.Concepts.QueryWordCore.QueryMachinery.AcceptancePolynomial
+public import Qatlib.Concepts.ProbabilityCore.DistributionAA.CubeDistribution
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+
+@[expose] public section
 
 /-!
 # Finite decision trees and cube laws

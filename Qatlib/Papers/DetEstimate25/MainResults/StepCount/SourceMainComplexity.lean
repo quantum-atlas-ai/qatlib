@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Algebra.Order.Field.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Algebra.Order.Field.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -103,13 +107,11 @@ theorem step_count_product_bound
       ≤ (4 / (Real.log 2) ^ 3) * (κ * (Real.log κ) ^ 2 / ε ^ 3) := by
     calc 16 * κ * Δ ^ 2 / (μ ^ 3 * ε ^ 3) = κ / ε ^ 3 * (16 * Δ ^ 2 / μ ^ 3) := by
           field_simp
-          try ring
       _ ≤ κ / ε ^ 3 * (4 * (Real.log κ) ^ 2 / (Real.log 2) ^ 3) := by
           apply mul_le_mul_of_nonneg_left hcoef0
           positivity
       _ = (4 / (Real.log 2) ^ 3) * (κ * (Real.log κ) ^ 2 / ε ^ 3) := by
           field_simp
-          try ring
   -- multiply by `Nqs`
   have hNqsL : (16 * κ * Δ ^ 2 / (μ ^ 3 * ε ^ 3)) * Nqs
       ≤ ((4 / (Real.log 2) ^ 3) * (κ * (Real.log κ) ^ 2 / ε ^ 3)) * Nqs :=
@@ -128,7 +130,6 @@ theorem step_count_product_bound
           * (κ * (Real.log κ) ^ 2 * s ^ 2 / ε ^ 3 * Real.log n
               * (Real.log (s ^ 2 / ε)) ^ 2) := by
     field_simp
-    try ring
   rw [hprod]
   exact le_trans hNqsL (le_trans hNqsR (le_of_eq hfinal))
 

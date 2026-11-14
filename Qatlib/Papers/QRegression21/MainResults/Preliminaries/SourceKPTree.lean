@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QRegression21.MainResults.Model.SourceModel
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
+module
+
+public import Qatlib.Papers.QRegression21.MainResults.Model.SourceModel
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -80,7 +84,7 @@ theorem theorem_2_11_update_cost_le (K : KPTree d) (a b : ℝ) (j : Fin d) :
 `Realizes` must certify the intended output, error or success event and an
 implementation whose counted operations equal the recorded resources. No such
 implementation is constructed here. The explicit numeric bounds are specifications. -/
-def theorem_2_12_prepare_state_statement (K : KPTree d) (hK : K.rootScalar ≠ 0)
+def theorem_2_12_prepare_state_statement (K : KPTree d) (_hK : K.rootScalar ≠ 0)
     (Realizes : RunProfile → Prop) : Prop :=
     ∃ alg : RunProfile, Realizes alg ∧
       alg.queryCost ≤ (Nat.clog 2 d : ℝ) ∧

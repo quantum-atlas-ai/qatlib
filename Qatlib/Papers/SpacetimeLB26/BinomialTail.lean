@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.ProbabilityCore.SharpBinomial
+module
+
+public import Qatlib.Foundations.ProbabilityCore.SharpBinomial
+
+@[expose] public section
 
 /-!
 # A native binomial Chernoff bound

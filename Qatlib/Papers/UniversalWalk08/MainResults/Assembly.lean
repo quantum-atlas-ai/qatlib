@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.UniversalWalk08.MainResults.WalkModel.Basic
-import Qatlib.Papers.UniversalWalk08.MainResults.CircuitDefs
-import Qatlib.Papers.UniversalWalk08.MainResults.AmplitudeStatistics
-import Qatlib.Papers.UniversalWalk08.MainResults.Composition
-import Qatlib.Papers.UniversalWalk08.MainResults.Parameters.RunParameters
-import Qatlib.Papers.UniversalWalk08.MainResults.Gadgets.GateWidgets
-import Mathlib.LinearAlgebra.UnitaryGroup
+module
+
+public import Qatlib.Papers.UniversalWalk08.MainResults.WalkModel.Basic
+public import Qatlib.Papers.UniversalWalk08.MainResults.CircuitDefs
+public import Qatlib.Papers.UniversalWalk08.MainResults.AmplitudeStatistics
+public import Qatlib.Papers.UniversalWalk08.MainResults.Composition
+public import Qatlib.Papers.UniversalWalk08.MainResults.Parameters.RunParameters
+public import Qatlib.Papers.UniversalWalk08.MainResults.Gadgets.GateWidgets
+public import Mathlib.LinearAlgebra.UnitaryGroup
+
+@[expose] public section
 
 /-!
 # Circuit statistics and quantum-walk resource bounds

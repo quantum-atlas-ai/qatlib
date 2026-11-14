@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Core.CosineSeriesIdentity
-import Qatlib.Foundations.CbmdAnalysis.Core.CosineAngularComparison
+module
+
+public import Qatlib.Foundations.CbmdAnalysis.Core.CosineSeriesIdentity
+public import Qatlib.Foundations.CbmdAnalysis.Core.CosineAngularComparison
+
+@[expose] public section
 
 /-!
 # Cosine sampling formulas for matrix propagators

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.TwoLevelLower
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Foundations.PureStateMath.Tensor
+module
+
+public import Qatlib.Concepts.WalkSearch.TwoLevelLower
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Foundations.PureStateMath.Tensor
+
+@[expose] public section
 
 /-!
 # Szegedy walk-oracle contract

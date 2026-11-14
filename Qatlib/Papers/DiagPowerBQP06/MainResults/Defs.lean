@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Matrix.Spectrum
-import Mathlib.LinearAlgebra.Matrix.Hermitian
-import Mathlib.Data.Real.Basic
-import Mathlib.Data.Matrix.Basic
+module
+
+public import Mathlib.Analysis.Matrix.Spectrum
+public import Mathlib.LinearAlgebra.Matrix.Hermitian
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Data.Matrix.Basic
+
+@[expose] public section
 
 /-!
 # Diagonal-entry promise and resource predicates

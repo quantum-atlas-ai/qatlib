@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Complex.CircleAddChar
-import Mathlib.NumberTheory.LegendreSymbol.AddCharacter
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Complex.CircleAddChar
+public import Mathlib.NumberTheory.LegendreSymbol.AddCharacter
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Finite character sums and orthonormal response states
@@ -129,7 +133,7 @@ theorem sum_vecChar {A m : ℕ} [NeZero A] (z : Fin m → ZMod A) :
       simp only [not_exists, not_not] at h
       exact hz (funext h)
     obtain ⟨i, hi⟩ := hex
-    rw [if_neg hz]
+    rw [ite_eq_right hz]
     refine Finset.prod_eq_zero (Finset.mem_univ i) ?_
     simp [hi]
 
@@ -171,7 +175,7 @@ theorem proj_family_diagonal {ι : Type*} [Fintype ι] [DecidableEq ι]
   rw [horth i j]
   by_cases h : i = j
   · simp [h]
-  · simp only [if_neg h]
+  · simp only [ite_eq_right h]
     funext x
     simp
 
@@ -231,12 +235,12 @@ theorem inner_stateAmp {A m : ℕ} [NeZero A] (hA : 0 < A) (z z' : Fin m → ZMo
   rw [sum_vecChar, normC_mul_self (pow_pos hA m)]
   by_cases h : z' - z = 0
   · have hzz : z' = z := sub_eq_zero.mp h
-    rw [if_pos h, if_pos hzz.symm]
+    rw [ite_eq_left h, ite_eq_left hzz.symm]
     have hA0 : ((A : ℂ)) ≠ 0 := by exact_mod_cast (ne_of_gt hA)
     rw [Nat.cast_pow]
     exact inv_mul_cancel₀ (pow_ne_zero m hA0)
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     have hzz : z' ≠ z := fun he => h (by rw [he, sub_self])
-    rw [if_neg (fun he => hzz he.symm), mul_zero]
+    rw [ite_eq_right (fun he => hzz he.symm), mul_zero]
 
 end Qatlib.Papers.SingleQuery97.MainResults.CharacterSum

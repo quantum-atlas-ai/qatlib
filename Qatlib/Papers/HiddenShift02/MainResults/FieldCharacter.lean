@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HiddenShift02.MainResults.FourierCore
-import Mathlib.NumberTheory.GaussSum
-import Mathlib.NumberTheory.MulChar.Lemmas
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
+module
+
+public import Qatlib.Papers.HiddenShift02.MainResults.FourierCore
+public import Mathlib.NumberTheory.GaussSum
+public import Mathlib.NumberTheory.MulChar.Lemmas
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+
+@[expose] public section
 
 /-!
 # Hidden shifts of finite-field characters
@@ -46,8 +50,10 @@ namespace Qatlib.Papers.HiddenShift02.MainResults.FieldCharacter
 
 variable {F : Type*} [Field F] [Fintype F] [DecidableEq F]
 
+omit [Fintype F] in
+
 /-- A multiplicative character of the field vanishes exactly at zero. -/
-theorem mulChar_eq_zero_iff (χ : MulChar F ℂ) (x : F) : χ x = 0 ↔ x = 0 := by
+theorem mulChar_eq_zero_iff {F : Type*} [_scopeInst0 : Field F] [_scopeInst1 : Fintype F] [_scopeInst2 : DecidableEq F] (χ : MulChar F ℂ) (x : F) : χ x = 0 ↔ x = 0 := by
   constructor
   · intro h
     by_contra hx
@@ -60,7 +66,7 @@ theorem mulChar_eq_zero_iff (χ : MulChar F ℂ) (x : F) : χ x = 0 ↔ x = 0 :=
 theorem norm_mulChar_apply_eq_one (χ : MulChar F ℂ) {x : F} (hx : x ≠ 0) :
     ‖χ x‖ = 1 := by
   classical
-  haveI : NeZero (Fintype.card Fˣ) := ⟨Fintype.card_ne_zero⟩
+  have : NeZero (Fintype.card Fˣ) := ⟨Fintype.card_ne_zero⟩
   have hu : IsUnit x := isUnit_iff_ne_zero.mpr hx
   have hmem : χ.toUnitHom hu.unit ∈ rootsOfUnity (Fintype.card Fˣ) ℂ :=
     χ.apply_mem_rootsOfUnity hu.unit
@@ -69,15 +75,19 @@ theorem norm_mulChar_apply_eq_one (χ : MulChar F ℂ) {x : F} (hx : x ≠ 0) :
   rw [← hval]
   exact Complex.norm_eq_one_of_mem_rootsOfUnity hmem
 
+omit [DecidableEq F] in
+
 /-- Complex conjugation of an additive character value equals the value of the inverse
 character. -/
-theorem conj_addChar_eq_inv (ψ : AddChar F ℂ) (a : F) : conj (ψ a) = ψ⁻¹ a := by
+theorem conj_addChar_eq_inv {F : Type*} [_scopeInst0 : Field F] [_scopeInst1 : Fintype F] [_scopeInst2 : DecidableEq F] (ψ : AddChar F ℂ) (a : F) : conj (ψ a) = ψ⁻¹ a := by
   have hR : 0 < ringChar F := Nat.pos_of_ne_zero (CharP.ringChar_ne_zero_of_finite F)
   exact AddChar.starComp_apply hR a
 
+omit [Fintype F] [DecidableEq F] in
+
 /-- Inverting the multiplicatively shifted inverse additive character gives the shifted original
 character. -/
-theorem inv_mulShift_inv (ψ : AddChar F ℂ) (a : F) :
+theorem inv_mulShift_inv {F : Type*} [_scopeInst0 : Field F] [_scopeInst1 : Fintype F] [_scopeInst2 : DecidableEq F] (ψ : AddChar F ℂ) (a : F) :
     ((ψ⁻¹).mulShift a)⁻¹ = ψ.mulShift a := by
   ext x
   simp [AddChar.mulShift_apply, mul_neg]
@@ -153,7 +163,7 @@ noncomputable def algorithmAmplitude (χ : MulChar F ℂ) (ψ : AddChar F ℂ) (
 /-- For a nontrivial multiplicative character and a primitive additive character, computes the
 final amplitude as the common Fourier factor times |F| − 1 at x = −s and times −1 elsewhere
 ([Theorem 1][VanDamHallgrenIp2006]). -/
-theorem final_amplitude (χ : MulChar F ℂ) (hχ : χ ≠ 1) (ψ : AddChar F ℂ)
+theorem final_amplitude (χ : MulChar F ℂ) (_hχ : χ ≠ 1) (ψ : AddChar F ℂ)
     (hψ : ψ.IsPrimitive) (s x : F) :
     algorithmAmplitude χ ψ s x = fourierScale F * fourier χ ψ *
       ((if x + s = 0 then (Fintype.card F : ℂ) else 0) - 1) := by
@@ -172,9 +182,8 @@ theorem final_amplitude (χ : MulChar F ℂ) (hχ : χ ≠ 1) (ψ : AddChar F �
         intro h
         exact hy ((mulChar_eq_zero_iff χ y).mp h)
       rw [MulChar.inv_apply_eq_inv' χ y]
-      simp only [hy, if_false, one_mul]
+      simp only [hy, ite_false, one_mul]
       field_simp
-      try ring
   have hsum : (∑ y : F,
         ((if y = 0 then (0 : ℂ) else 1) * ((ψ.mulShift y) x * (ψ.mulShift y) s)))
       = ((if x + s = 0 then (Fintype.card F : ℂ) else 0) - 1) := by
@@ -256,7 +265,6 @@ theorem success_probability (χ : MulChar F ℂ) (hχ : χ ≠ 1) (ψ : AddChar 
   have hne : ((Fintype.card F : ℝ) - 1) ≠ 0 := ne_of_gt hq1
   have hqne : (Fintype.card F : ℝ) ≠ 0 := ne_of_gt hcard
   field_simp
-  try ring
 
 /-- The support of the character shifted by `s` is the universal finite set with −s removed. -/
 theorem shiftedChar_filter (χ : MulChar F ℂ) (s : F) :
@@ -284,7 +292,6 @@ theorem prep_probability (χ : MulChar F ℂ) (s : F) (hq : 0 < Fintype.card F) 
   have hq1 : 1 ≤ Fintype.card F := hq
   rw [Nat.cast_sub hq1, Nat.cast_one]
   field_simp
-  try ring
 
 /-- For a nontrivial multiplicative character and primitive additive character, both preparation
 and support-normalized recovery have probability 1 − 1/|F|, and their product is (1 −

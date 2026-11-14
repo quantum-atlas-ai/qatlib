@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AlgGeomCode25.MainResults.DivisorLemmas
-import Qatlib.Papers.AlgGeomCode25.MainResults.HopiFraction
+module
+
+public import Qatlib.Papers.AlgGeomCode25.MainResults.DivisorLemmas
+public import Qatlib.Papers.AlgGeomCode25.MainResults.HopiFraction
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TrotterFormula.GeneralOrder.OrderedCommutatorAlpha
-import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorSegments
-import Qatlib.Concepts.TrotterFormula.TimeOrdered.TrotterErrorTypes
-import Qatlib.Concepts.TrotterFormula.ImaginaryTime.FiniteImaginaryProduct
-import Qatlib.Concepts.TrotterFormula.FiniteStrang.FiniteStrangCommutatorConsumers
-import Qatlib.Concepts.TrotterFormula.RecursiveSuzuki.Basic
-import Qatlib.Concepts.LchsSimulation.TimeOrdered.TimeOrderedConsumers
-import Qatlib.Concepts.LchsSimulation.StaticLchs.StaticLCHSConsumers
-import Qatlib.Foundations.PureStateMath.MixedState
+module
+
+public import Qatlib.Concepts.TrotterFormula.GeneralOrder.OrderedCommutatorAlpha
+public import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorSegments
+public import Qatlib.Concepts.TrotterFormula.TimeOrdered.TrotterErrorTypes
+public import Qatlib.Concepts.TrotterFormula.ImaginaryTime.FiniteImaginaryProduct
+public import Qatlib.Concepts.TrotterFormula.FiniteStrang.FiniteStrangCommutatorConsumers
+public import Qatlib.Concepts.TrotterFormula.RecursiveSuzuki.Basic
+public import Qatlib.Concepts.LchsSimulation.TimeOrdered.TimeOrderedConsumers
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.StaticLCHSConsumers
+public import Qatlib.Foundations.PureStateMath.MixedState
+
+@[expose] public section
 
 /-!
 # Simulation budgets and resource records

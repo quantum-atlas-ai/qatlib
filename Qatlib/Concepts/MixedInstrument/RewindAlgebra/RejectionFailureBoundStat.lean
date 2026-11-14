@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Foundations.PureStateMath.MixedState
-import Qatlib.Concepts.MixedInstrument.RewindAlgebra.RejectionFailureBoundDefs
+module
+
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Foundations.PureStateMath.MixedState
+public import Qatlib.Concepts.MixedInstrument.RewindAlgebra.RejectionFailureBoundDefs
+
+@[expose] public section
 
 /-!
 # Rejection failure bound specification

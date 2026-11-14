@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LchsSimulation.Kernel.NearExponentialLchsKernel
-import Qatlib.Concepts.LchsSimulation.Kernel.NearExponentialModulusAnalytic
+module
+
+public import Qatlib.Concepts.LchsSimulation.Kernel.NearExponentialLchsKernel
+public import Qatlib.Concepts.LchsSimulation.Kernel.NearExponentialModulusAnalytic
+
+@[expose] public section
 
 /-!
 # Modulus bounds for the near-exponential kernel

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.PathTransport
-import Mathlib.Analysis.Calculus.MeanValue
-import Mathlib.Analysis.Calculus.ContDiff.FiniteDimension
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.PathTransport
+public import Mathlib.Analysis.Calculus.MeanValue
+public import Mathlib.Analysis.Calculus.ContDiff.FiniteDimension
+
+@[expose] public section
 
 /-!
 # Smooth source families as continuous paths on the physical time interval

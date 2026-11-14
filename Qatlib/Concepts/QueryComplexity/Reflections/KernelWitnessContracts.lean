@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Complex.Analytic
-import Mathlib.Analysis.Complex.Norm
-import Mathlib.Analysis.Normed.Group.Defs
-import Mathlib.Algebra.BigOperators.Group.Finset.Defs
-import Mathlib.Data.Matrix.Mul
-import Mathlib.LinearAlgebra.Matrix.ConjTranspose
-import Qatlib.Concepts.QueryComplexity.Reflections.SpanProgramGraph
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Complex.Analytic
+public import Mathlib.Analysis.Complex.Norm
+public import Mathlib.Analysis.Normed.Group.Defs
+public import Mathlib.Algebra.BigOperators.Group.Finset.Defs
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.LinearAlgebra.Matrix.ConjTranspose
+public import Qatlib.Concepts.QueryComplexity.Reflections.SpanProgramGraph
+
+@[expose] public section
 
 /-!
 # Uncorrected kernel-witness contract

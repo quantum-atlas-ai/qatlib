@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.MixedState
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
-import Qatlib.Concepts.MixedFidelity.FidelityMetric.SimultaneousDiagonalization
-import Mathlib.Algebra.Ring.Commute
-import Mathlib.Analysis.Complex.Norm
-import Mathlib.Data.Complex.BigOperators
-import Mathlib.Data.Matrix.Basic
-import Mathlib.LinearAlgebra.UnitaryGroup
-import Mathlib.Tactic.Ring
+module
+
+public import Qatlib.Foundations.PureStateMath.MixedState
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+public import Qatlib.Concepts.MixedFidelity.FidelityMetric.SimultaneousDiagonalization
+public import Mathlib.Algebra.Ring.Commute
+public import Mathlib.Analysis.Complex.Norm
+public import Mathlib.Basic.Complex.BigOperators
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.LinearAlgebra.UnitaryGroup
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 /-!
 # Coordinate moments of unitary matrices
@@ -77,7 +81,7 @@ theorem exists_unitary_phase_diagonalization {d : ℕ} (U : Operator d)
     rw [Matrix.conjTranspose_smul, Matrix.conjTranspose_sub,
       Matrix.conjTranspose_conjTranspose]
     have hc : star (-Complex.I / 2 : ℂ) = (Complex.I / 2 : ℂ) := by
-      simp [Complex.star_def]
+      simp []
     rw [hc]
     ext i j
     change (Complex.I / 2) * (U.conjTranspose i j - U i j) =

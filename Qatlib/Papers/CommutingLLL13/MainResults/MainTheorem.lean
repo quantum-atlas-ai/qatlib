@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommutingLLL13.MainResults.Defs
-import Qatlib.Papers.CommutingLLL13.MainResults.EntropyChain
-import Qatlib.Papers.CommutingLLL13.MainResults.FailureBound
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Data.Matrix.Mul
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.CommutingLLL13.MainResults.Defs
+public import Qatlib.Papers.CommutingLLL13.MainResults.EntropyChain
+public import Qatlib.Papers.CommutingLLL13.MainResults.FailureBound
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Conditional failure bounds and commuting sweeps

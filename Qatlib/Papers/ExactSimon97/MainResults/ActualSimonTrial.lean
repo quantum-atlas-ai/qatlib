@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ExactSimon97.MainResults.SimonSubroutine
-import Qatlib.Concepts.HspRecovery.Reduction.CountedSimonDecoder
-import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteThermal.FiniteThermalUniformH
+module
+
+public import Qatlib.Papers.ExactSimon97.MainResults.SimonSubroutine
+public import Qatlib.Concepts.HspRecovery.Reduction.CountedSimonDecoder
+public import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteThermal.FiniteThermalUniformH
+
+@[expose] public section
 
 /-!
 # A finite gate implementation of Simon sampling

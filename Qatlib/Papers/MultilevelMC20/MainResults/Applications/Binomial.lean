@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MultilevelMC20.MainResults.CostModel.CostAsymptotics
+module
+
+public import Qatlib.Papers.MultilevelMC20.MainResults.CostModel.CostAsymptotics
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -40,7 +44,7 @@ open scoped Topology BigOperators
 namespace Qatlib.Papers.MultilevelMC20.MainResults
 
 /-- The distinguished bound `costBound 2 1 0` is `ε^{-2} log (1/ε)` for `ε > 0`. -/
-theorem costBound_two_one_zero {ε : ℝ} (hε : 0 < ε) :
+theorem costBound_two_one_zero {ε : ℝ} (_hε : 0 < ε) :
     costBound 2 1 0 ε = ε ^ (-2 : ℝ) * Real.log ε⁻¹ := by
   unfold costBound
   rw [Real.rpow_one, Real.rpow_zero, mul_one]
@@ -81,6 +85,7 @@ accuracy `ε`) applied to a BOPM sampler of `Õ(1)` cost per call gives `Õ(ε^{
 theorem theorem4 {qcost per : ℝ → ℝ} (hq : CostTildeClass 1 qcost)
     (hper : CostTildeClass 0 per) :
     CostTildeClass 1 (fun ε => qcost ε * per ε) := by
-  convert! costTildeClass_mul hq hper using 1 <;> first | rfl | simp
+  convert! costTildeClass_mul hq hper using 1
+  simp
 
 end Qatlib.Papers.MultilevelMC20.MainResults

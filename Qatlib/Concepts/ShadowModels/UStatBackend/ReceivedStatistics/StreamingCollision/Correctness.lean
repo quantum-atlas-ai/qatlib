@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ShadowModels.UStatBackend.ReceivedStatistics.StreamingCollision.Data
-import Qatlib.Concepts.ShadowModels.UStatBackend.ReceivedStatistics.RationalPairMedian
+module
+
+public import Qatlib.Concepts.ShadowModels.UStatBackend.ReceivedStatistics.StreamingCollision.Data
+public import Qatlib.Concepts.ShadowModels.UStatBackend.ReceivedStatistics.RationalPairMedian
+
+@[expose] public section
 
 /-!
 # Streaming collision correctness

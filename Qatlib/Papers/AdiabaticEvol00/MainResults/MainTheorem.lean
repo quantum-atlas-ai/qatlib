@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AdiabaticEvol00.MainResults.AdiabaticDefs
-import Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
+module
+
+public import Qatlib.Papers.AdiabaticEvol00.MainResults.AdiabaticDefs
+public import Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
+
+@[expose] public section
 
 /-!
 # Exact evolution of fixed Hamiltonian eigenvectors

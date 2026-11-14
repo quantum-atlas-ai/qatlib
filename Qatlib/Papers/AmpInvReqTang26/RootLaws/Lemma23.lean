@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AmpInvReqTang26.AccessModel.Defs
-import Mathlib.RingTheory.RootsOfUnity.Complex
+module
+
+public import Qatlib.Papers.AmpInvReqTang26.AccessModel.Defs
+public import Mathlib.RingTheory.RootsOfUnity.Complex
+
+@[expose] public section
 
 /-!
 # Expectations of finite phase laws

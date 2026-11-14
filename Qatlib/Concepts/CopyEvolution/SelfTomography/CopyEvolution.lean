@@ -4,16 +4,20 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CopyEvolution.SelfTomography.CopyEvolutionCompletionModelCore
-import Qatlib.Concepts.CopyEvolution.SelfTomography.EpsilonCubedSelfTomographyQuan
-import Qatlib.Concepts.CopyEvolution.SelfTomography.SelfTomographyOnGridOutputQuan
-import Qatlib.Concepts.CopyEvolution.CopyExponent.LowRankExponentiationRestrictedQuan
-import Qatlib.Concepts.CopyEvolution.CopyExponent.SupNormTightCopyBudgetQuan
-import Qatlib.Concepts.CopyEvolution.CopyExponent.StateDependentCopyPrecisionQuan
-import Qatlib.Concepts.CopyEvolution.CopyExponent.CommutingCopyExactTightnessQuan
-import Qatlib.Concepts.CopyEvolution.Discriminate.FiniteCopyHelstromDiscriminationQuan
-import Qatlib.Concepts.CopyEvolution.Discriminate.TrainingSetFiniteDiscriminationQuan
-import Qatlib.Concepts.CopyEvolution.SelfTomography.GramFirstRegisterDensityQuan
+module
+
+public import Qatlib.Concepts.CopyEvolution.SelfTomography.CopyEvolutionCompletionModelCore
+public import Qatlib.Concepts.CopyEvolution.SelfTomography.EpsilonCubedSelfTomographyQuan
+public import Qatlib.Concepts.CopyEvolution.SelfTomography.SelfTomographyOnGridOutputQuan
+public import Qatlib.Concepts.CopyEvolution.CopyExponent.LowRankExponentiationRestrictedQuan
+public import Qatlib.Concepts.CopyEvolution.CopyExponent.SupNormTightCopyBudgetQuan
+public import Qatlib.Concepts.CopyEvolution.CopyExponent.StateDependentCopyPrecisionQuan
+public import Qatlib.Concepts.CopyEvolution.CopyExponent.CommutingCopyExactTightnessQuan
+public import Qatlib.Concepts.CopyEvolution.Discriminate.FiniteCopyHelstromDiscriminationQuan
+public import Qatlib.Concepts.CopyEvolution.Discriminate.TrainingSetFiniteDiscriminationQuan
+public import Qatlib.Concepts.CopyEvolution.SelfTomography.GramFirstRegisterDensityQuan
+
+@[expose] public section
 
 /-!
 # Copy evolution and self-tomography

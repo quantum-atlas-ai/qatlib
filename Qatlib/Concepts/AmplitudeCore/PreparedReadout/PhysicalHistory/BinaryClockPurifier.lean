@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.BinaryClockPhysicalTime
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.TensorResidual
+module
+
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.BinaryClockPhysicalTime
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.TensorResidual
+
+@[expose] public section
 
 /-!
 # Purification registers for the physical clock simulator

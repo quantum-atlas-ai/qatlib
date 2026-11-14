@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.Remainder.GridReduction
-import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.Remainder.EntropyLimit
-import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.Remainder.Comparison
+module
+
+public import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.Remainder.GridReduction
+public import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.Remainder.EntropyLimit
+public import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.Remainder.Comparison
+
+@[expose] public section
 
 /-!
 # Subextensive repeated index energies

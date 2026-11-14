@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Normed.Ring.Units
-import Mathlib.Analysis.SpecificLimits.Normed
-import Mathlib.Analysis.Matrix.Normed
-import Mathlib.Data.Matrix.Mul
-import Mathlib.Data.List.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.Normed.Ring.Units
+public import Mathlib.Analysis.SpecificLimits.Normed
+public import Mathlib.Analysis.Matrix.Normed
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.Data.List.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Composition of scattering blocks

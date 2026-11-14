@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Zayn Blore, Qatlib Contributors
 -/
 
-import Qatlib.Concepts.UnbiasedBases.ThreeBasis.CliffordTAngle
-import Mathlib.Topology.Instances.Matrix
+module
+
+public import Qatlib.Concepts.UnbiasedBases.ThreeBasis.CliffordTAngle
+public import Mathlib.Topology.Instances.Matrix
+
+@[expose] public section
 
 /-!
 # Axis rotations and the Clifford–T rotation angle

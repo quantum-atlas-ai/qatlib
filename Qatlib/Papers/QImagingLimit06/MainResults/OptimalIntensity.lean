@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QImagingLimit06.MainResults.FisherCore
-import Mathlib.Algebra.Order.BigOperators.Ring.Finset
+module
+
+public import Qatlib.Papers.QImagingLimit06.MainResults.FisherCore
+public import Mathlib.Algebra.Order.BigOperators.Ring.Finset
+
+@[expose] public section
 
 /-!
 # Optimal gain for intensity readout

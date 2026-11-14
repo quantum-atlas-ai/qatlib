@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Probability.ProbabilityMassFunction.Constructions
+module
+
+public import Mathlib.Probability.ProbabilityMassFunction.Constructions
+
+@[expose] public section
 
 /-!
 # Probability laws with accumulated costs

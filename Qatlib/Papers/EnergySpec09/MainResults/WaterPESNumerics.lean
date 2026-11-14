@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.EnergySpec09.MainResults.SuccessProbability
+module
+
+public import Qatlib.Papers.EnergySpec09.MainResults.SuccessProbability
+
+@[expose] public section
 
 /-!
 # Overlap thresholds along a water potential curve

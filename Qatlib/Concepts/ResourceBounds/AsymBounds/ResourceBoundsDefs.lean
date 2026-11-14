@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.ResourceDerivation
-import Qatlib.Concepts.FreshCopyExec.QpeConsumers.FreshCopyExecutionDefs
-import Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.LcuQsvtDefs
-import Qatlib.Concepts.ResourceBounds.AsymBounds.WeightedStoppingConsumers
-import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceSearchBounds
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.ParityPolynomialBound
-import Qatlib.Concepts.ResourceBounds.AsymBounds.GatesBitDefs
+module
+
+public import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.ResourceDerivation
+public import Qatlib.Concepts.FreshCopyExec.QpeConsumers.FreshCopyExecutionDefs
+public import Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.LcuQsvtDefs
+public import Qatlib.Concepts.ResourceBounds.AsymBounds.WeightedStoppingConsumers
+public import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceSearchBounds
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.ParityPolynomialBound
+public import Qatlib.Concepts.ResourceBounds.AsymBounds.GatesBitDefs
+
+@[expose] public section
 
 /-!
 # Resource accounts and asymptotic specifications

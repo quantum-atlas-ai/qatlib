@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QImagTime19.MainResults.SourceModel
+module
+
+public import Qatlib.Papers.QImagTime19.MainResults.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -65,9 +69,13 @@ matrix `H_L`. -/
 def subspaceGroundEnergy (T : State ι →L[ℂ] State ι) (S : Submodule ℂ (State ι)) : ℝ :=
   ⨅ x : {x : State ι // x ∈ S ∧ x ≠ 0}, T.rayleighQuotient (x : State ι)
 
+omit [Fintype ι] [DecidableEq ι] in
 /-- The Rayleigh quotient over any set of nonzero vectors is bounded below by
 `-‖T‖`, since `|⟨T x, x⟩| / ‖x‖² ≤ ‖T‖` for every `x`. -/
-theorem bddBelow_subspace_rayleigh (T : State ι →L[ℂ] State ι)
+theorem bddBelow_subspace_rayleigh {ι : Type*}
+    [_q37inst0 : Fintype ι]
+    [_q37inst1 : DecidableEq ι]
+    (T : State ι →L[ℂ] State ι)
     (S : Submodule ℂ (State ι)) :
     BddBelow (Set.range fun x : {x : State ι // x ∈ S ∧ x ≠ 0} =>
       T.rayleighQuotient (x : State ι)) := by

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.NativeHybridExecutionDefs
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.NativeHybridExecutionDefs
+
+@[expose] public section
 
 /-!
 # Native and quantum execution compatibility
@@ -155,7 +159,7 @@ theorem resume_bits_partition (M : Program Γ Λ) (extra : ℕ) (r : Result Γ �
     (h : r.stop = .fuel) :
     (resume M extra r).bits ++ (resume M extra r).unread = r.bits ++ r.unread := by
   have hs := run_bits_partition M extra r.unread r.cfg
-  simp only [resume, if_pos h]
+  simp only [resume, ite_eq_left h]
   show (Result.appendTrace r.trace (run M extra r.unread r.cfg)).bits ++
       (Result.appendTrace r.trace (run M extra r.unread r.cfg)).unread = r.bits ++ r.unread
   rw [Result.bits_append, Result.unread_of_append, List.append_assoc, hs]
@@ -165,7 +169,7 @@ original step count. -/
 theorem resume_steps (M : Program Γ Λ) (extra : ℕ) (r : Result Γ Λ)
     (h : r.stop = .fuel) :
     (resume M extra r).steps = r.steps + (run M extra r.unread r.cfg).steps := by
-  simp only [resume, if_pos h]
+  simp only [resume, ite_eq_left h]
   show (Result.appendTrace r.trace (run M extra r.unread r.cfg)).steps =
       r.steps + (run M extra r.unread r.cfg).steps
   rw [Result.steps_append]

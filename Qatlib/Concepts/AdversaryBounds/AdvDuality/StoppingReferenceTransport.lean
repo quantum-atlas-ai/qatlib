@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.StoppingReferenceTransportDefs
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.StoppingReferenceTransportDefs
+
+@[expose] public section
 
 /-!
 # Stopping, sampling, and instrument transport laws
@@ -334,7 +338,7 @@ zero branch output and normalized state, while a positive-probability event has 
 post-state. -/
 theorem walkGoal_correspondence :
     ∀ (X : Type) [Fintype X] [DecidableEq X] (D E : ℕ) (I : Instrument X D E)
-      (ρ : Operator D) (hρ : IsDensityOperator ρ) (Ev : X → Prop) [DecidablePred Ev],
+      (ρ : Operator D) (_hρ : IsDensityOperator ρ) (Ev : X → Prop) [DecidablePred Ev],
       eventBranchMap I Ev ρ = ((eventProb I ρ Ev : ℝ) : ℂ) • normalizedPost I ρ Ev ∧
         (Matrix.trace (eventBranchMap I Ev ρ)).re = eventProb I ρ Ev ∧
         (eventProb I ρ Ev = 0 →
@@ -347,11 +351,11 @@ theorem walkGoal_correspondence :
   · have hnlt : ¬ 0 < eventProb I ρ Ev := by rw [hp]; exact lt_irrefl 0
     refine ⟨?_, htrace, ?_, ?_⟩
     · have hz := eventBranchMap_eq_zero I ρ hρ.1 Ev hp
-      rw [hz, normalizedPost, if_neg hnlt]
+      rw [hz, normalizedPost, ite_eq_right hnlt]
       simp
     · intro _
       refine ⟨eventBranchMap_eq_zero I ρ hρ.1 Ev hp, ?_⟩
-      rw [normalizedPost, if_neg hnlt]
+      rw [normalizedPost, ite_eq_right hnlt]
     · intro hpos
       exact absurd hpos hnlt
   · have hnonneg : 0 ≤ eventProb I ρ Ev := by
@@ -367,11 +371,11 @@ theorem walkGoal_correspondence :
       rw [← Complex.ofReal_inv]
       exact RCLike.ofReal_nonneg.mpr (inv_nonneg.mpr hnonneg)
     refine ⟨?_, htrace, ?_, ?_⟩
-    · rw [normalizedPost, if_pos hpos, smul_smul, mul_inv_cancel₀ hne, one_smul]
+    · rw [normalizedPost, ite_eq_left hpos, smul_smul, mul_inv_cancel₀ hne, one_smul]
     · intro hzero
       exact absurd hzero hp
     · intro _
-      rw [normalizedPost, if_pos hpos]
+      rw [normalizedPost, ite_eq_left hpos]
       refine ⟨Matrix.PosSemidef.smul (eventBranchMap_posSemidef I ρ hρ.1 Ev) hinv, ?_⟩
       rw [Matrix.trace_smul]
       have htr : (∑ x ∈ Finset.univ.filter Ev, Matrix.trace (I.branch x ρ)) =
@@ -423,7 +427,7 @@ positive-probability conditional branch states weighted by their probabilities d
 the event probability. -/
 theorem walkGoal_mixture :
     ∀ (X : Type) [Fintype X] [DecidableEq X] (D E : ℕ) (I : Instrument X D E)
-      (ρ : Operator D) (hρ : IsDensityOperator ρ) (Ev : X → Prop) [DecidablePred Ev],
+      (ρ : Operator D) (_hρ : IsDensityOperator ρ) (Ev : X → Prop) [DecidablePred Ev],
       normalizedPost I ρ Ev =
         ∑ x ∈ Finset.univ.filter Ev,
           if h : 0 < instrumentProb I ρ x then
@@ -441,7 +445,7 @@ theorem walkGoal_mixture :
         Finset.single_le_sum (fun y _ => instrumentProb_nonneg I hρ.1 y) hx
       rw [hsum] at hle
       exact le_antisymm hle (instrumentProb_nonneg I hρ.1 x)
-    rw [normalizedPost, if_neg hnlt]
+    rw [normalizedPost, ite_eq_right hnlt]
     symm
     apply Finset.sum_eq_zero
     intro x hx
@@ -450,7 +454,7 @@ theorem walkGoal_mixture :
       have hz := hzero x hx
       rw [hz] at ho
       exact (lt_irrefl 0 ho)
-    · rw [dif_neg ho]
+    · rw [dite_eq_right ho]
   · have hnonneg : 0 ≤ eventProb I ρ Ev := by
       rw [eventProb_eq_sum]
       exact Finset.sum_nonneg fun x _ => instrumentProb_nonneg I hρ.1 x
@@ -461,20 +465,20 @@ theorem walkGoal_mixture :
     have hne : ((eventProb I ρ Ev : ℝ) : ℂ) ≠ 0 := by
       exact_mod_cast ne_of_gt hpos
     let μ : ℝ := eventProb I ρ Ev
-    rw [normalizedPost, if_pos hpos]
+    rw [normalizedPost, ite_eq_left hpos]
     change (μ : ℂ)⁻¹ • ((∑ x ∈ Finset.univ.filter Ev, I.branch x) ρ) = _
     rw [LinearMap.sum_apply, Finset.smul_sum]
     apply Finset.sum_congr rfl
     intro x _
     by_cases ho : 0 < instrumentProb I ρ x
-    · rw [dif_pos ho, ← (Qatlib.Concepts.QuditTeleport.TeleportCore.Instrument.conditionalState_reconstruction I ρ x ho).1, smul_smul]
+    · rw [dite_eq_left ho, ← (Qatlib.Concepts.QuditTeleport.TeleportCore.Instrument.conditionalState_reconstruction I ρ x ho).1, smul_smul]
       congr 1
       simp only [div_eq_mul_inv, Complex.ofReal_mul, Complex.ofReal_inv]
       dsimp [μ]
       ring
     · have hz : instrumentProb I ρ x = 0 :=
         le_antisymm (not_lt.mp ho) (instrumentProb_nonneg I hρ.1 x)
-      rw [dif_neg ho, (instrumentProb_eq_zero_iff I hρ.1 x).mp hz, smul_zero]
+      rw [dite_eq_right ho, (instrumentProb_eq_zero_iff I hρ.1 x).mp hz, smul_zero]
 
 /-- An event defined by a coarsening fiber has the branch map and probability of that coarse
 outcome. Finite-fuel halting masses for an event and its complement, together with pending
@@ -699,11 +703,11 @@ theorem clause14_nonZenoCheck_iff (S : Type) [Fintype S] [DecidableEq S] (c : S 
 `k` agrees with its weighted halting mass once the fuel is at least `k`. -/
 theorem clause14_charge_stable :
     ∀ (S O : Type) [Fintype S] [DecidableEq S] [Fintype O] [DecidableEq O]
-      (next : S → PMF (O ⊕ S)) (cost : S → ℕ) (hc : ∀ s, 1 ≤ cost s)
+      (next : S → PMF (O ⊕ S)) (cost : S → ℕ) (_hc : ∀ s, 1 ≤ cost s)
       (cfg : O ⊕ S) (o : O) (k fuel : ℕ), k ≤ fuel →
       weightedRunFor next cost fuel cfg (Sum.inl o, k) = weightedHaltJoint next cost cfg o k :=
-  fun S O _ _ _ _ next cost hc cfg o k fuel h =>
-    weightedRunFor_halt_stable next cost hc cfg o k fuel h
+  fun _S _O _ _ _ _ next cost _hc cfg o k fuel h =>
+    weightedRunFor_halt_stable next cost _hc cfg o k fuel h
 
 /-- The sum of halting masses through the fuel bound and the pending mass is one. -/
 theorem clause14_truncation :
@@ -711,7 +715,7 @@ theorem clause14_truncation :
       (next : S → PMF (O ⊕ S)) (cfg : O ⊕ S) (fuel : ℕ),
       (∑ o : O, ∑ k ∈ Finset.range (fuel + 1), haltJoint next cfg o k) +
         pendingMass next cfg fuel = 1 :=
-  fun S O _ _ _ _ next cfg fuel => (unbounded_finite_halt_pending_partition next cfg fuel).2.1
+  fun _S _O _ _ _ _ next cfg fuel => (unbounded_finite_halt_pending_partition next cfg fuel).2.1
 
 /-- The first-stop mass at a fixed outcome and charge is the supremum of finite-fuel halted
 masses, and each finite-fuel law has total halted-plus-running mass one. The finite-fuel
@@ -748,10 +752,10 @@ output unit and zero charge. -/
 theorem clause14_zero_countdown_two :
     weightedRunFor zeroCountdownNext (fun _ => 0) 2 (Sum.inr true) = Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.ret (Sum.inl ()) := by
   rw [weightedRunFor_succ_running]
-  simp only [zeroCountdownNext, if_true, PMF.pure_bind,
+  simp only [zeroCountdownNext, ite_true, PMF.pure_bind,
       Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.charge_zero]
   rw [weightedRunFor_succ_running]
-  simp only [zeroCountdownNext, Bool.false_eq_true, if_false, PMF.pure_bind,
+  simp only [zeroCountdownNext, Bool.false_eq_true, ite_false, PMF.pure_bind,
       Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.charge_zero]
   rfl
 
@@ -782,12 +786,12 @@ theorem clause14_zero_countdown_positive_charge :
       | inr s =>
           cases s with
           | true =>
-              rw [weightedRunFor_succ_running, zeroCountdownNext, if_pos (by simp)]
+              rw [weightedRunFor_succ_running, zeroCountdownNext, ite_eq_left (by simp)]
               simp only [PMF.pure_bind,
                   Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.charge_zero]
               exact ih (Sum.inr false) k hk
           | false =>
-              rw [weightedRunFor_succ_running, zeroCountdownNext, if_neg (by simp)]
+              rw [weightedRunFor_succ_running, zeroCountdownNext, ite_eq_right (by simp)]
               simp only [PMF.pure_bind,
                   Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.charge_zero]
               exact ih (Sum.inl ()) k hk
@@ -796,7 +800,7 @@ theorem clause14_zero_countdown_positive_charge :
 theorem clause14_zero_countdown_pending :
     pendingMass zeroCountdownNext (Sum.inr true) 2 = 0 := by
   have hrun : runFor zeroCountdownNext 2 (Sum.inr true) = PMF.pure ((Sum.inl () : Unit ⊕ Bool), 2) := by
-    simp only [runFor, tick, zeroCountdownNext, if_true, Bool.false_eq_true, if_false,
+    simp only [runFor, tick, zeroCountdownNext, ite_true, Bool.false_eq_true, ite_false,
       PMF.pure_map, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.bind, PMF.pure_bind]
     rw [Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.charge_charge,
         Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.charge_ret]
@@ -866,9 +870,9 @@ theorem clause14_positive_cost_consumers :
   have hhalt : weightedRunFor zeroCountdownNext unitCharge 2 (Sum.inr true) =
       Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.charge 2 (Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.ret (Sum.inl ())) := by
     rw [weightedRunFor_succ_running]
-    simp only [zeroCountdownNext, if_true, PMF.pure_bind]
+    simp only [zeroCountdownNext, ite_true, PMF.pure_bind]
     rw [weightedRunFor_succ_running]
-    simp only [zeroCountdownNext, Bool.false_eq_true, if_false, PMF.pure_bind]
+    simp only [zeroCountdownNext, Bool.false_eq_true, ite_false, PMF.pure_bind]
     rw [Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.charge_charge]
     rfl
   have hfalse : ∀ B : ℕ, weightedBudgetRun zeroCountdownNext unitCharge B (Sum.inr false) =
@@ -884,7 +888,7 @@ theorem clause14_positive_cost_consumers :
         simp only [unitCharge]
         split
         · next h =>
-            simp only [zeroCountdownNext, Bool.false_eq_true, if_false, PMF.pure_bind]
+            simp only [zeroCountdownNext, Bool.false_eq_true, ite_false, PMF.pure_bind]
             rw [weightedBudgetRun_halted,
                 Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.charge_ret]
             rfl
@@ -902,17 +906,17 @@ theorem clause14_positive_cost_consumers :
         simp only [unitCharge]
         split
         · next h =>
-            simp only [zeroCountdownNext, if_true, PMF.pure_bind]
+            simp only [zeroCountdownNext, ite_true, PMF.pure_bind]
             rw [show weightedBudgetRun zeroCountdownNext unitCharge (B + 1 - 1) (Sum.inr false)
               = weightedBudgetRun zeroCountdownNext unitCharge B (Sum.inr false) by
                 rw [Nat.add_sub_cancel]]
             by_cases hb1 : 1 ≤ B
-            · rw [if_pos (by omega : 2 ≤ B + 1)]
-              rw [hfalse B, if_pos hb1]
+            · rw [ite_eq_left (by omega : 2 ≤ B + 1)]
+              rw [hfalse B, ite_eq_left hb1]
               exact Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.charge_charge 1 1
                   (Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.ret (Sum.inl ()))
-            · rw [if_neg (by omega : ¬ 2 ≤ B + 1), if_pos (by omega : 1 ≤ B + 1)]
-              rw [hfalse B, if_neg hb1]
+            · rw [ite_eq_right (by omega : ¬ 2 ≤ B + 1), ite_eq_left (by omega : 1 ≤ B + 1)]
+              rw [hfalse B, ite_eq_right hb1]
         · next h => omega
 
 /-- The bundled nontermination semantics, positive-charge laws, first-stop joint laws, and

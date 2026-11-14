@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SearchStopping.KnownCount.Section3QueryBoundSubgoalAfas
-import Qatlib.Concepts.SearchStopping.KnownCount.SummarySearchOptimalityAfas
-import Qatlib.Concepts.SearchStopping.KnownCount.Section6LowerBoundSubgoalAfas
-import Qatlib.Concepts.SearchStopping.KnownCount.PreparedSearch
-import Mathlib.Analysis.Real.Pi.Bounds
+module
+
+public import Qatlib.Concepts.SearchStopping.KnownCount.Section3QueryBoundSubgoal
+public import Qatlib.Concepts.SearchStopping.KnownCount.SummarySearchOptimality
+public import Qatlib.Concepts.SearchStopping.KnownCount.Section6LowerBoundSubgoal
+public import Qatlib.Concepts.SearchStopping.KnownCount.PreparedSearch
+public import Mathlib.Analysis.Real.Pi.Bounds
+
+@[expose] public section
 
 /-!
 # Upper and lower query bounds for Grover search

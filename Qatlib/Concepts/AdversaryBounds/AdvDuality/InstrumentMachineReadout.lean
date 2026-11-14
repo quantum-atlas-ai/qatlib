@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.InstrumentMachinePrefix
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.InstrumentMachinePrefix
+
+@[expose] public section
 
 /-!
 # Scalar Readout from Instrument Machine Records
@@ -137,7 +141,7 @@ theorem instrumentMachineHaltMass_le_unroll_scalar {D : ℕ} {C : Type*}
       cases h : t.endpoint.halted
       · rfl
       · exact False.elim (hh h)
-    simp only [hh0, Bool.false_and, Bool.false_eq_true, if_false]
+    simp only [hh0, Bool.false_and, Bool.false_eq_true, ite_false]
     split_ifs
     · exact hn
     · exact le_rfl

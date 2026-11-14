@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QHamDescent23.MainResults.SourceModel
-import Mathlib.Analysis.Calculus.Deriv.Prod
-import Mathlib.Analysis.Calculus.Deriv.Mul
-import Mathlib.Analysis.Calculus.Deriv.Star
-import Mathlib.Analysis.Calculus.Deriv.Add
+module
+
+public import Qatlib.Papers.QHamDescent23.MainResults.SourceModel
+public import Mathlib.Analysis.Calculus.Deriv.Prod
+public import Mathlib.Analysis.Calculus.Deriv.Mul
+public import Mathlib.Analysis.Calculus.Deriv.Star
+public import Mathlib.Analysis.Calculus.Deriv.Add
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

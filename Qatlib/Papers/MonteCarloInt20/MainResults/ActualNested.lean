@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MonteCarloInt20.MainResults.InnerOracle
-import Qatlib.Papers.MonteCarloInt20.QaeLaw.ActualMeanPayoff
-import Qatlib.Papers.MonteCarloInt20.MainResults.NestedAccuracy
+module
+
+public import Qatlib.Papers.MonteCarloInt20.MainResults.InnerOracle
+public import Qatlib.Papers.MonteCarloInt20.QaeLaw.ActualMeanPayoff
+public import Qatlib.Papers.MonteCarloInt20.MainResults.NestedAccuracy
+
+@[expose] public section
 
 /-!
 # Finite nested Monte Carlo targets and error bounds

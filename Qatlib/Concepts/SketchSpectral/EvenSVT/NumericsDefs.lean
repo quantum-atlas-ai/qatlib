@@ -4,19 +4,23 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SketchArith.SketchBuild.CompactImportanceSketch
-import Qatlib.Concepts.SketchArith.TransposeAccess.CompactSketchConsumers
-import Qatlib.Concepts.SketchSpectral.SketchAnalysis.SketchOperatorConcentration
-import Qatlib.Concepts.RandCompile.ChannelBudget.SingularValues
-import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.OrderedSpectralPerturbation
-import Qatlib.Concepts.SketchSpectral.MatrixFunctions.HermitianRankLogStability
-import Qatlib.Concepts.MpsAdaptation.MpsTransfer.PositivePolarFactor
-import Mathlib.Algebra.Order.Floor.Ring
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Ring
+module
+
+public import Qatlib.Concepts.SketchArith.SketchBuild.CompactImportanceSketch
+public import Qatlib.Concepts.SketchArith.TransposeAccess.CompactSketchConsumers
+public import Qatlib.Concepts.SketchSpectral.SketchAnalysis.SketchOperatorConcentration
+public import Qatlib.Concepts.RandCompile.ChannelBudget.SingularValues
+public import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.OrderedSpectralPerturbation
+public import Qatlib.Concepts.SketchSpectral.MatrixFunctions.HermitianRankLogStability
+public import Qatlib.Concepts.MpsAdaptation.MpsTransfer.PositivePolarFactor
+public import Mathlib.Algebra.Order.Floor.Ring
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 /-!
 # Numerical definitions and ledgers for even SVT

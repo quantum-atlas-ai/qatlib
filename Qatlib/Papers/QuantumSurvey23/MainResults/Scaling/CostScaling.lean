@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
-import Mathlib.Analysis.SpecialFunctions.Exp
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Data.Nat.Log
-import Mathlib.Data.Nat.Sqrt
-import Mathlib.Order.Filter.AtTopBot.Basic
-import Mathlib.Order.Filter.AtTopBot.Archimedean
-import Mathlib.Topology.Order.Basic
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
+public import Mathlib.Analysis.SpecialFunctions.Exp
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Data.Nat.Log
+public import Mathlib.Data.Nat.Sqrt
+public import Mathlib.Order.Filter.AtTopBot.Basic
+public import Mathlib.Order.Filter.AtTopBot.Archimedean
+public import Mathlib.Topology.Order.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

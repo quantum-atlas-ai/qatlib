@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.TruncTaylor14.Discard.DiscardFiniteDiamondStat
-import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
-import Mathlib.Data.ENNReal.Inv
+module
+
+public import Qatlib.Papers.TruncTaylor14.Discard.DiscardFiniteDiamondStat
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
+public import Mathlib.Basic.ENNReal.Inv
+
+@[expose] public section
 
 /-!
 # A channel guarantee for Taylor simulation with workspace discard

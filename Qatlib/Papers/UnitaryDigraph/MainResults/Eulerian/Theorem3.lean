@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.UnitaryDigraph.MainResults.Complete
-import Qatlib.Papers.UnitaryDigraph.MainResults.LineDigraph.Theorem2
-import Qatlib.Papers.UnitaryDigraph.MainResults.Defs
-import Qatlib.Papers.UnitaryDigraph.MainResults.Quadrangular
+module
+
+public import Qatlib.Papers.UnitaryDigraph.MainResults.Complete
+public import Qatlib.Papers.UnitaryDigraph.MainResults.LineDigraph.Theorem2
+public import Qatlib.Papers.UnitaryDigraph.MainResults.Defs
+public import Qatlib.Papers.UnitaryDigraph.MainResults.Quadrangular
+
+@[expose] public section
 
 /-!
 # Eulerian digraphs and unitary line digraphs

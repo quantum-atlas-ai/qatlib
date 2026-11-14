@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.Reduction.Reductions
-import Qatlib.Concepts.HspRecovery.SieveAlgorithm.DihedralSieveAlgorithmDihe
+module
+
+public import Qatlib.Concepts.HspRecovery.Reduction.Reductions
+public import Qatlib.Concepts.HspRecovery.SieveAlgorithm.DihedralSieveAlgorithmDihe
+
+@[expose] public section
 
 /-!
 # Query budgets for recursive slope recovery

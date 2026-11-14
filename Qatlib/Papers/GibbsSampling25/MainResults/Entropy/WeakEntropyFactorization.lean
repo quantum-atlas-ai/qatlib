@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GibbsSampling25.MainResults.Model.SourceModel
+module
+
+public import Qatlib.Papers.GibbsSampling25.MainResults.Model.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -52,7 +56,7 @@ corresponding partial-trace maps; `mcmiNorm` is `‖H_σ(A:C|D)‖∞` and
 `hσ` records the positivity hypothesis `σ > 0`. -/
 def weak_entropy_factorization (mABC : Density I → Density JABC)
     (mAB : Density I → Density JAB) (mBC : Density I → Density JBC)
-    (ρ σ : Density I) (hσ : σ.val.PosDef) (mcmiNorm : ℝ)  : Prop :=
+    (ρ σ : Density I) (_hσ : σ.val.PosDef) (mcmiNorm : ℝ)  : Prop :=
     condRelEnt mABC ρ σ ≤ condRelEnt mAB ρ σ + condRelEnt mBC ρ σ + mcmiNorm
   -- Source: arXiv:2412.01732v1, Lemma 2.5 (p.5, eq. (5)); proof in Lemma B.1
   -- (Appendix B.1).

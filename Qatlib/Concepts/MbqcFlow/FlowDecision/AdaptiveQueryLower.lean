@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.Execution.CircuitCompile.InstrumentCircuitTransport
-import Qatlib.Concepts.Execution.KnownKraus.KnownKrausMeasurement
+module
+
+public import Qatlib.Concepts.Execution.CircuitCompile.InstrumentCircuitTransport
+public import Qatlib.Concepts.Execution.KnownKraus.KnownKrausMeasurement
+
+@[expose] public section
 
 /-!
 # Completing adaptive trace-nonincreasing circuits
@@ -189,7 +193,7 @@ theorem toInstrument_traces (O : Operator d) (P : TniCircuit d) (rho : Operator 
       · simp [restoreTniRecord, instrumentCircuitMixedTraces]
       · simpa only [Fin.cases_succ, completedInstrument_success, restoreTniRecord,
           Fin.val_succ, Nat.add_sub_cancel, Nat.add_eq_zero_iff, Nat.one_ne_zero, and_false,
-          not_false_eq_true, dif_neg, Fin.isLt, dif_pos, List.map_map, Function.comp_def] using
+          not_false_eq_true, dite_eq_right, Fin.isLt, dite_eq_left, List.map_map, Function.comp_def] using
             congrArg (List.map (fun t : MixedBranchTrace d =>
               {t with gates := t.gates+2, measurements := t.measurements+1, outcomes := (s,i.val)::t.outcomes}))
               (ih i (K i * rho * (K i)ᴴ))

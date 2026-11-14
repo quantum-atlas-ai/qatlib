@@ -4,71 +4,75 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Field.Defs
-import Mathlib.Algebra.Group.Basic
-import Mathlib.Algebra.Group.Defs
-import Mathlib.Algebra.Group.DivInvMonoid
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.Group.Nat.Defs
-import Mathlib.Algebra.Group.Semigroup
-import Mathlib.Algebra.GroupWithZero.Basic
-import Mathlib.Algebra.GroupWithZero.Defs
-import Mathlib.Algebra.GroupWithZero.Units.Basic
-import Mathlib.Algebra.Order.Archimedean.Basic
-import Mathlib.Algebra.Order.Archimedean.Real.Basic
-import Mathlib.Algebra.Order.Field.Basic
-import Mathlib.Algebra.Order.Floor.Defs
-import Mathlib.Algebra.Order.Group.Defs
-import Mathlib.Algebra.Order.Group.Unbundled.Abs
-import Mathlib.Algebra.Order.GroupWithZero.Basic
-import Mathlib.Algebra.Order.GroupWithZero.Defs
-import Mathlib.Algebra.Order.Monoid.Defs
-import Mathlib.Algebra.Order.Monoid.Unbundled.Basic
-import Mathlib.Algebra.Order.Monoid.Unbundled.Defs
-import Mathlib.Algebra.Order.Ring.Defs
-import Mathlib.Algebra.Order.Ring.Star
-import Mathlib.Algebra.Order.Ring.Unbundled.Basic
-import Mathlib.Algebra.Order.Star.Basic
-import Mathlib.Algebra.Order.Star.Real
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Algebra.Ring.Nat
-import Mathlib.Algebra.Star.Basic
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Basic.Complex.Basic
-import Mathlib.Basic.Real.Basic
-import Mathlib.Basic.Real.Star
-import Mathlib.Data.Int.Cast.Defs
-import Mathlib.Data.Nat.Basic
-import Mathlib.Data.Nat.Cast.Basic
-import Mathlib.Data.Nat.Cast.Defs
-import Mathlib.Data.Nat.Cast.Order.Basic
-import Mathlib.Data.Nat.Init
-import Mathlib.LinearAlgebra.Matrix.Defs
-import Mathlib.LinearAlgebra.Matrix.Hermitian
-import Mathlib.Logic.Function.Defs
-import Mathlib.Order.Basic
-import Mathlib.Order.Defs.Lattice
-import Mathlib.Order.Defs.LinearOrder
-import Mathlib.Order.Defs.PartialOrder
-import Mathlib.Order.Filter.AtTopBot.Basic
-import Mathlib.Order.Filter.AtTopBot.Defs
-import Mathlib.Order.Filter.Defs
-import Mathlib.Order.Lattice
-import Mathlib.Tactic
-import Mathlib.Tactic.CancelDenoms.Core
-import Mathlib.Tactic.Linarith.Lemmas
-import Mathlib.Tactic.Linarith.Preprocessing
-import Mathlib.Tactic.NormNum.Basic
-import Mathlib.Tactic.NormNum.Ineq
-import Mathlib.Tactic.NormNum.Inv
-import Mathlib.Tactic.NormNum.Pow
-import Mathlib.Tactic.NormNum.Result
-import Mathlib.Tactic.Positivity.Core
-import Mathlib.Tactic.Ring.Basic
-import Mathlib.Tactic.Ring.Common
-import Qatlib.Foundations.PureStateMath.Qubit
+module
+
+public import Mathlib.Algebra.Field.Defs
+public import Mathlib.Algebra.Group.Basic
+public import Mathlib.Algebra.Group.Defs
+public import Mathlib.Algebra.Group.DivInvMonoid
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.Group.Nat.Defs
+public import Mathlib.Algebra.Group.Semigroup
+public import Mathlib.Algebra.GroupWithZero.Basic
+public import Mathlib.Algebra.GroupWithZero.Defs
+public import Mathlib.Algebra.GroupWithZero.Units.Basic
+public import Mathlib.Algebra.Order.Archimedean.Basic
+public import Mathlib.Algebra.Order.Archimedean.Real.Basic
+public import Mathlib.Algebra.Order.Field.Basic
+public import Mathlib.Algebra.Order.Floor.Defs
+public import Mathlib.Algebra.Order.Group.Defs
+public import Mathlib.Algebra.Order.Group.Unbundled.Abs
+public import Mathlib.Algebra.Order.GroupWithZero.Basic
+public import Mathlib.Algebra.Order.GroupWithZero.Defs
+public import Mathlib.Algebra.Order.Monoid.Defs
+public import Mathlib.Algebra.Order.Monoid.Unbundled.Basic
+public import Mathlib.Algebra.Order.Monoid.Unbundled.Defs
+public import Mathlib.Algebra.Order.Ring.Defs
+public import Mathlib.Algebra.Order.Ring.Star
+public import Mathlib.Algebra.Order.Ring.Unbundled.Basic
+public import Mathlib.Algebra.Order.Star.Basic
+public import Mathlib.Algebra.Order.Star.Real
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Algebra.Ring.Nat
+public import Mathlib.Algebra.Star.Basic
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Basic.Real.Star
+public import Mathlib.Data.Int.Cast.Defs
+public import Mathlib.Data.Nat.Basic
+public import Mathlib.Data.Nat.Cast.Basic
+public import Mathlib.Data.Nat.Cast.Defs
+public import Mathlib.Data.Nat.Cast.Order.Basic
+public import Mathlib.Data.Nat.Init
+public import Mathlib.LinearAlgebra.Matrix.Defs
+public import Mathlib.LinearAlgebra.Matrix.Hermitian
+public import Mathlib.Logic.Function.Defs
+public import Mathlib.Order.Basic
+public import Mathlib.Order.Defs.Lattice
+public import Mathlib.Order.Defs.LinearOrder
+public import Mathlib.Order.Defs.PartialOrder
+public import Mathlib.Order.Filter.AtTopBot.Basic
+public import Mathlib.Order.Filter.AtTopBot.Defs
+public import Mathlib.Order.Filter.Defs
+public import Mathlib.Order.Lattice
+public import Mathlib.Tactic
+public import Mathlib.Tactic.CancelDenoms.Core
+public import Mathlib.Tactic.Linarith.Lemmas
+public import Mathlib.Tactic.Linarith.Preprocessing
+public import Mathlib.Tactic.NormNum.Basic
+public import Mathlib.Tactic.NormNum.Ineq
+public import Mathlib.Tactic.NormNum.Inv
+public import Mathlib.Tactic.NormNum.Pow
+public import Mathlib.Tactic.NormNum.Result
+public import Mathlib.Tactic.Positivity.Core
+public import Mathlib.Tactic.Ring.Basic
+public import Mathlib.Tactic.Ring.Common
+public import Qatlib.Foundations.PureStateMath.Qubit
+
+@[expose] public section
 
 /-!
 # Accuracy dependence and exact counting
@@ -134,8 +138,8 @@ noncomputable def exactCountingPrecision (n : ℕ) : ℝ := 1 / (2 : ℝ) ^ (2 *
 
 /-- Distinct counts between zero and `2^n` have probabilities separated by at least `1 / 2^n`,
 as used in Theorem 6 of [HarrowHassidimLloyd2009]. -/
-theorem countingProbability_separation {n C D : ℕ} (hC : C ≤ 2 ^ n)
-    (hD : D ≤ 2 ^ n) (hne : C ≠ D) :
+theorem countingProbability_separation {n C D : ℕ} (_hC : C ≤ 2 ^ n)
+    (_hD : D ≤ 2 ^ n) (hne : C ≠ D) :
     (1 : ℝ) / (2 : ℝ) ^ n ≤
       |countingProbability n C - countingProbability n D| := by
   have hden : (0 : ℝ) < (2 : ℝ) ^ n := by positivity

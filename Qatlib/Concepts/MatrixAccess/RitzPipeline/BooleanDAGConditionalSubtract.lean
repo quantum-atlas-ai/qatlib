@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGConditionalSubtractData
-import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGAdder
+module
+
+public import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGConditionalSubtractData
+public import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGAdder
+
+@[expose] public section
 
 /-!
 # Correctness of reversible conditional subtraction
@@ -135,7 +139,7 @@ private theorem sub_partial_balance (w i : ℕ) (hi : i ≤ w) (x : Reg (2*w)) :
     simp only [Fin.sum_univ_castSucc,Fin.val_castSucc,Fin.val_last,
       sub_sum_old,pow_succ]
     rw [sub_sum_new,sub_carry_new]
-    (try dsimp only at hweighted)
+
     nlinarith only [hprev,hweighted]
 
 /-- The first half of the combined word input recovers each bit of the left word. -/
@@ -209,11 +213,11 @@ private theorem cond_result_bit (w : ℕ) (a b : Reg w) (j : Fin w) :
     booleanWordCondSubResult w a b j.castSucc =
       if subBorrow w w (Nat.le_refl w) (booleanWordAdderInput w a b) then a j
       else subDiff w w (Nat.le_refl w) (booleanWordAdderInput w a b) j := by
-  simp only [booleanWordCondSubResult,booleanWordCondSubSelect,Fin.val_castSucc,dif_pos j.isLt]
+  simp only [booleanWordCondSubResult,booleanWordCondSubSelect,Fin.val_castSucc,dite_eq_left j.isLt]
   have hj : 2*w+(7*w+1+3*j.val)+2 < 2*w+(7*w+1+3*w) := by
     have := j.isLt
     omega
-  rw [booleanWordCondSubDAG,sub_snoc_value,dif_pos hj]
+  rw [booleanWordCondSubDAG,sub_snoc_value,dite_eq_left hj]
   simpa only [sub_input_left] using! cond_prefix_bit w w (Nat.le_refl w)
     (booleanWordAdderInput w a b) j
 
@@ -242,27 +246,27 @@ theorem boolean_word_cond_sub_value (w : ℕ) (a b : Reg w) :
       (booleanWordAdderInput w a b) (Fin.rev j))).isLt
   cases hc : subBorrow w w (Nat.le_refl w) (booleanWordAdderInput w a b) with
   | false =>
-    simp only [hc,subBit,Bool.false_eq_true,if_false,zero_mul,add_zero] at hbal
+    simp only [hc,subBit,Bool.false_eq_true,ite_false,zero_mul,add_zero] at hbal
     have hle : booleanWordLSBValue w b ≤ booleanWordLSBValue w a := by omega
     have hr : (fun j => booleanWordCondSubResult w a b j.castSucc) =
         subDiff w w (Nat.le_refl w) (booleanWordAdderInput w a b) := by
       funext j
-      simpa only [hc,Bool.false_eq_true,if_false] using! cond_result_bit w a b j
+      simpa only [hc,Bool.false_eq_true,ite_false] using! cond_result_bit w a b j
     (try dsimp only)
     constructor
     · simp [cond_result_flag,hc,hle]
-    · rw [hr,if_pos hle]
+    · rw [hr,ite_eq_left hle]
       omega
   | true =>
-    simp only [hc,subBit,if_true,one_mul] at hbal
+    simp only [hc,subBit,ite_true,one_mul] at hbal
     have hnot : ¬booleanWordLSBValue w b ≤ booleanWordLSBValue w a := by omega
     have hr : (fun j => booleanWordCondSubResult w a b j.castSucc) = a := by
       funext j
-      simpa only [hc,if_true] using! cond_result_bit w a b j
+      simpa only [hc,ite_true] using! cond_result_bit w a b j
     (try dsimp only)
     constructor
     · simp [cond_result_flag,hc,hnot]
-    · rw [hr,if_neg hnot]
+    · rw [hr,ite_eq_right hnot]
 
 /-- If 0 < b and a < 2b in unsigned value, conditional subtraction yields a remainder below b
 and reconstructs a as the flag times b plus that remainder. -/

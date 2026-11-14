@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Normed.Group.InfiniteSum
-import Mathlib.Analysis.Normed.Operator.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.Normed.Group.InfiniteSum
+public import Mathlib.Analysis.Normed.Operator.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Series truncation and accumulated recurrence residuals

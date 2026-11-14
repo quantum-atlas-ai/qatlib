@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CircuitImpl.MultiControl.Corollary710Stat
+module
+
+public import Qatlib.Concepts.CircuitImpl.MultiControl.Corollary710Stat
+
+@[expose] public section
 
 /-!
 # Elementary synthesis of multi-controlled special unitaries
@@ -145,7 +149,7 @@ theorem corollary7_10 : Corollary7_10 := by
         elementary_and_target c m t hct' xs hx,
         multiKnownPairSteps_action (c m) t hlast pa, hpa, noWorkPrefixAnd_succ]
       cases ha : noWorkPrefixAnd (fun i => x (c i)) m <;> cases hb : x (c m) <;>
-        simp only [Bool.false_and, Bool.true_and, if_true, if_false,
+        simp only [Bool.false_and, Bool.true_and, ite_true, ite_false,
           Bool.false_eq_true, applyGate_one, ← applyGate_mul, Matrix.one_mul]
       · rw [← Matrix.mul_assoc, hABC, applyGate_one]
       · rw [pauliX_mul_self, applyGate_one]

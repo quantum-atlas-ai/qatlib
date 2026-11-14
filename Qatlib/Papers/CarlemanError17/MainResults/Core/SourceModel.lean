@@ -4,20 +4,24 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.LinearAlgebra.Matrix.Kronecker
-import Mathlib.Analysis.Matrix.Normed
-import Mathlib.Analysis.Normed.Algebra.MatrixExponential
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
-import Mathlib.Analysis.Calculus.Deriv.Basic
-import Lean.Elab.Tactic.Omega
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.MeasureTheory.Measure.ProbabilityMeasure
-import Mathlib.Tactic.GCongr
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Push
-import Mathlib.Tactic.Ring
+module
+
+public import Mathlib.LinearAlgebra.Matrix.Kronecker
+public import Mathlib.Analysis.Matrix.Normed
+public import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
+public import Mathlib.Analysis.Calculus.Deriv.Basic
+public import Lean.Elab.Tactic.Omega
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.MeasureTheory.Measure.ProbabilityMeasure
+public import Mathlib.Tactic.GCongr
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Push
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -78,7 +82,7 @@ lemma matSup_def {m n : Type*} [Fintype m] [Fintype n]
     matSup A = Finset.univ.sup' (Finset.univ_nonempty_iff.mpr h) fun i => ∑ j, |A i j| := by
   classical
   unfold matSup
-  rw [dif_pos h]
+  rw [dite_eq_left h]
 
 /-- The `matSup_nonneg` result for the CarlemanError17 paper model. -/
 lemma matSup_nonneg {m n : Type*} [Fintype m] [Fintype n] (A : Matrix m n ℝ) :
@@ -91,7 +95,7 @@ lemma matSup_nonneg {m n : Type*} [Fintype m] [Fintype n] (A : Matrix m n ℝ) :
     exact Finset.sum_nonneg fun j _ => abs_nonneg _
   · classical
     unfold matSup
-    rw [dif_neg h]
+    rw [dite_eq_right h]
 
 /-- The `logNorm_def` result for the CarlemanError17 paper model. -/
 lemma logNorm_def {m : Type*} [Fintype m] [DecidableEq m] (A : Matrix m m ℝ) (h : Nonempty m) :
@@ -99,7 +103,7 @@ lemma logNorm_def {m : Type*} [Fintype m] [DecidableEq m] (A : Matrix m m ℝ) (
       fun i => A i i + ∑ j ∈ Finset.univ.erase i, |A i j| := by
   classical
   unfold logNorm
-  rw [dif_pos h]
+  rw [dite_eq_left h]
 
 /-- Suprema over a product indexed by a function of the first coordinate only. -/
 lemma sup'_univ_prod_fst {α β : Type*} [Fintype α] [Fintype β] [Nonempty α] [Nonempty β]
@@ -164,7 +168,7 @@ lemma matSup_submatrix_equiv {m n m' n' : Type*} [Fintype m] [Fintype n]
           (Finset.mem_univ i')
     exact hsup
   · have hm : ¬ Nonempty m := fun h => hm' (h.elim fun x => ⟨e.symm x⟩)
-    simp [matSup, dif_neg hm', dif_neg hm]
+    simp [matSup, dite_eq_right hm', dite_eq_right hm]
 
 /-- Lemma 2.1 (p.4): the supremum norm is a crossnorm, `‖A ⊗ B‖ = ‖A‖ ‖B‖`. -/
 theorem matSup_kronMap {a b c d : Type*} [Fintype a] [Fintype b] [Fintype c] [Fintype d]
@@ -190,9 +194,9 @@ theorem matSup_kronMap {a b c d : Type*} [Fintype a] [Fintype b] [Fintype c] [Fi
         (fun i => Finset.sum_nonneg fun j _ => abs_nonneg _)
         (fun j => Finset.sum_nonneg fun i _ => abs_nonneg _)
     · have hab : ¬ Nonempty (a × b) := fun h => hb (h.elim fun p => ⟨p.2⟩)
-      simp [matSup, dif_neg hab, dif_neg hb]
+      simp [matSup, dite_eq_right hab, dite_eq_right hb]
   · have hab : ¬ Nonempty (a × b) := fun h => ha (h.elim fun p => ⟨p.1⟩)
-    simp [matSup, dif_neg hab, dif_neg ha]
+    simp [matSup, dite_eq_right hab, dite_eq_right ha]
 
 /-- The identity matrix has supremum norm `1` (paper: `‖I_{n×n}‖ = 1`). -/
 theorem matSup_one {α : Type*} [Fintype α] [DecidableEq α] (h : Nonempty α) :
@@ -225,7 +229,7 @@ lemma matSup_add_le {m n : Type*} [Fintype m] [Fintype n]
             + (Finset.univ.sup' (Finset.univ_nonempty_iff.mpr h) fun i => ∑ j, |B i j|) :=
           add_le_add (by simpa using Finset.le_sup' (fun i => ∑ j, |A i j|) (Finset.mem_univ i))
             (by simpa using Finset.le_sup' (fun i => ∑ j, |B i j|) (Finset.mem_univ i))
-  · simp [matSup, dif_neg h]
+  · simp [matSup, dite_eq_right h]
 
 /-! ### Kronecker powers and transfer matrices (paper (5) and (8)) -/
 
@@ -247,8 +251,7 @@ lemma matSup_reindexTP {n a b c d : ℕ} (hab : a = b) (hcd : c = d)
     matSup (reindexTP hab hcd A) = matSup A := by
   subst hab
   subst hcd
-  simpa [reindexTP, tpCast] using
-    matSup_submatrix_equiv (Equiv.refl (TP n a)) (Equiv.refl (TP n c)) A
+  simp [reindexTP, tpCast]
 
 /-- Kronecker product of transfer matrices, with the canonical identification
 `TP n (i+j) ≃ TP n i × TP n j`. -/
@@ -331,7 +334,7 @@ theorem logNorm_kron_identity {n m : Type*} [Fintype n] [Fintype m]
       = A p.1 p.1 + ∑ j ∈ Finset.univ.erase p.1, |A p.1 j| := by
     intro p
     have hdiag : Matrix.kroneckerMap (· * ·) A (1 : Matrix m m ℝ) p p = A p.1 p.1 := by
-      simp [Matrix.kroneckerMap_apply, Matrix.one_apply]
+      simp [Matrix.kroneckerMap_apply]
     have hsum : (∑ j : n × m,
           |Matrix.kroneckerMap (· * ·) A (1 : Matrix m m ℝ) p j|)
         = ∑ s : n, |A p.1 s| := by

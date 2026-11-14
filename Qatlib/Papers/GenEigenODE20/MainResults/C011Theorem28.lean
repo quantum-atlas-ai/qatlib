@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GenEigenODE20.MainResults.SourceModel
-import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryLowerBounds
+module
+
+public import Qatlib.Papers.GenEigenODE20.MainResults.SourceModel
+public import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryLowerBounds
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -69,7 +73,7 @@ identifies one of the `n` marked singular-GEP instances, the number of queries
 is at least `√n / 8`. -/
 theorem theorem28_sqrt_query_lower_bound
     (n : ℕ) (hn : 6 ≤ n)
-    (G : Fin n → SingularGEPQuerySetup n)
+    (_G : Fin n → SingularGEPQuerySetup n)
     (C : Circuit ((Fin n × Bool) × W)) (ψ : QState ((Fin n × Bool) × W))
     (decode : ((Fin n × Bool) × W) → Option (Fin n))
     (hC : IsUnitaryCircuit C) (hψ : Normalized ψ)

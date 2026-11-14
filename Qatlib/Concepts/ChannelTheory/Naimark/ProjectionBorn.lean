@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ChannelTheory.Naimark.ProjectionControl
-import Qatlib.Concepts.ChannelTheory.Naimark.ContractionBorn
+module
+
+public import Qatlib.Concepts.ChannelTheory.Naimark.ProjectionControl
+public import Qatlib.Concepts.ChannelTheory.Naimark.ContractionBorn
+
+@[expose] public section
 
 /-!
 # Born mass after removing one coordinate
@@ -56,7 +60,7 @@ theorem projected_mass (zero : I) (x : EuclideanSpace ℂ I) :
     intro i _
     split_ifs <;> simp
   rw [Finset.sum_add_distrib] at hs
-  simp only [Finset.sum_ite_eq',Finset.mem_univ,if_true] at hs
+  simp only [Finset.sum_ite_eq',Finset.mem_univ,ite_true] at hs
   rw [EuclideanSpace.norm_sq_eq,EuclideanSpace.norm_sq_eq]
   have hproj : (∑ i : I,‖(removeZero zero*ᵥWithLp.ofLp x) i‖^2)=
       ∑ i : I,if i=zero then 0 else ‖x i‖^2 := by

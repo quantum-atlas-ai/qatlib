@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FiniteLocc.LOCCProgram.EntanglementDefs
-import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
-import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditResourceConverseAux
+module
+
+public import Qatlib.Concepts.FiniteLocc.LOCCProgram.EntanglementDefs
+public import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+public import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditResourceConverseAux
+
+@[expose] public section
 
 /-!
 # LOCC teleportation success and resource shapes

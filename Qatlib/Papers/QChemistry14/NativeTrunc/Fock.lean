@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixGeometry.OperatorCutoff.Contraction
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Qatlib.Concepts.FermionAlgebra.CarJordanWigner.Fermion
+module
+
+public import Qatlib.Foundations.MatrixGeometry.OperatorCutoff.Contraction
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Qatlib.Concepts.FermionAlgebra.CarJordanWigner.Fermion
+
+@[expose] public section
 
 /-!
 # Finite Fock ladder operators and norm bounds

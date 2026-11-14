@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Combinatorics.SimpleGraph.Basic
-import Mathlib.Data.Finset.Powerset
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic
+module
+
+public import Mathlib.Combinatorics.SimpleGraph.Basic
+public import Mathlib.Data.Finset.Powerset
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -189,8 +193,8 @@ lemma uniformProb_union_bound {α : Type*} [Fintype α] [Nonempty α]
 /-- Complement law for `uniformProb` on a nonempty space. -/
 lemma uniformProb_compl {α : Type*} [Fintype α] [Nonempty α] (p : α → Prop) :
     uniformProb p + uniformProb (fun s => ¬ p s) = 1 := by
-  letI := Classical.decPred p
-  letI := Classical.decPred (fun s => ¬ p s)
+  let := Classical.decPred p
+  let := Classical.decPred (fun s => ¬ p s)
   have hpos : (0 : ℝ) < (Fintype.card α : ℝ) := by
     exact_mod_cast Fintype.card_pos_iff.mpr ‹Nonempty α›
   have h1 : (Finset.univ.filter p).card

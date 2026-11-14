@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AlgebraicProb08.MainResults.UniformBaseOrder
-import Mathlib.Data.Nat.Prime.Basic
+module
+
+public import Qatlib.Papers.AlgebraicProb08.MainResults.UniformBaseOrder
+public import Mathlib.Data.Nat.Prime.Basic
+
+@[expose] public section
 
 /-!
 # Extracting factors from an even order
@@ -55,7 +59,7 @@ is coprime to `N` exactly when `x = -1` modulo `N`. -/
 theorem alg08_root_predecessor_coprime_iff (N : ℕ) [NeZero N]
     (hN : 1 < N) (hodd : Odd N) (x : (ZMod N)ˣ) (hx : x ^ 2 = 1) :
     (x.val.val - 1).Coprime N ↔ (x : ZMod N) = -1 := by
-  letI : Fact (1 < N) := ⟨hN⟩
+  let : Fact (1 < N) := ⟨hN⟩
   have ht : 1 ≤ x.val.val := by
     have h : x.val.val ≠ 0 := by rw [ZMod.val_ne_zero]; exact x.isUnit.ne_zero
     omega
@@ -86,7 +90,7 @@ theorem alg08_gcd_nontrivial (N : ℕ) [NeZero N] (a : (ZMod N)ˣ)
     1 < Nat.gcd N (((a ^ (orderOf a / 2) : (ZMod N)ˣ) : ZMod N).val - 1) ∧
       Nat.gcd N (((a ^ (orderOf a / 2) : (ZMod N)ˣ) : ZMod N).val - 1) < N ∧
       Nat.gcd N (((a ^ (orderOf a / 2) : (ZMod N)ˣ) : ZMod N).val - 1) ∣ N := by
-  letI : Fact (1 < N) := ⟨hN⟩
+  let : Fact (1 < N) := ⟨hN⟩
   let x : (ZMod N)ˣ := a ^ (orderOf a / 2)
   set t := x.val.val with ht_def
   have ht : 1 ≤ t := by

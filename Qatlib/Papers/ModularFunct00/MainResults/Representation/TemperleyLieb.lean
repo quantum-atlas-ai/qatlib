@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ModularFunct00.MainResults.Representation.JonesSpectrum
-import Mathlib.Analysis.InnerProductSpace.Adjoint
-import Mathlib.Algebra.Algebra.Basic
+module
+
+public import Qatlib.Papers.ModularFunct00.MainResults.Representation.JonesSpectrum
+public import Mathlib.Analysis.InnerProductSpace.Adjoint
+public import Mathlib.Algebra.Algebra.Basic
+
+@[expose] public section
 
 /-!
 # Temperley-Lieb relations for Jones generators

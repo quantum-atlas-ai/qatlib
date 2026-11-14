@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+module
+
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+
+@[expose] public section
 
 /-!
 # Ordered-search weights and conditional step bounds

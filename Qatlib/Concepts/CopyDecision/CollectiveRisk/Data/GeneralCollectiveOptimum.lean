@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CopyDecision.CollectiveRisk.Data.CollectiveApproximation
-import Qatlib.Concepts.CopyDecision.FreshPolicies.Data.BinaryAdaptive
-import Mathlib.MeasureTheory.Integral.Bochner.SumMeasure
+module
+
+public import Qatlib.Concepts.CopyDecision.CollectiveRisk.Data.CollectiveApproximation
+public import Qatlib.Concepts.CopyDecision.FreshPolicies.Data.BinaryAdaptive
+public import Mathlib.MeasureTheory.Integral.Bochner.SumMeasure
+
+@[expose] public section
 
 /-!
 # General Collective Optimum
@@ -29,7 +33,7 @@ def GeneralJointPOVM.ofFinite {N m : ℕ} (Λ : POVM (Fin m) (Fin N → Fin 2)) 
   effects := ∑ a, VectorMeasure.dirac a (Λ.mats a)
   nonneg := by
     intro B hB
-    simp only [VectorMeasure.coe_finsetSum, Finset.sum_apply]
+    simp only [FunLike.coe_sum, Finset.sum_apply]
     apply Finset.sum_nonneg
     intro a _
     by_cases ha : a ∈ B
@@ -106,7 +110,7 @@ lemma GeneralCollectivePolicy.ofFinite_error {N : ℕ} (Λ : POVM (Fin 3) (Fin N
 /-- The stated copy-decision construction satisfies `GeneralCollectivePolicy.error_nonneg` with the complete displayed premises. -/
 lemma GeneralCollectivePolicy.error_nonneg {N : ℕ} (P : GeneralCollectivePolicy N)
     (q : Fin 3 → ℝ) (hq : ∀ i, 0 ≤ q i) : 0 ≤ P.error q := by
-  letI := P.space
+  let := P.space
   unfold GeneralCollectivePolicy.error GeneralJointPOVM.randomizedError
   apply Finset.sum_nonneg
   intro i _
@@ -141,7 +145,7 @@ lemma generalCollectiveRisks_bddBelow (N : ℕ) (q : Fin 3 → ℝ) (hq : ∀ i,
 /-- The stated copy-decision construction satisfies `collectiveOptimum_le_generalError` with the complete displayed premises. -/
 lemma collectiveOptimum_le_generalError {N : ℕ} (P : GeneralCollectivePolicy N)
     (q : Fin 3 → ℝ) (hq : ∀ i, 0 ≤ q i) : collectiveOptimum N q ≤ P.error q := by
-  letI := P.space
+  let := P.space
   by_contra h
   have hgap : 0 < collectiveOptimum N q-P.error q := sub_pos.2 (lt_of_not_ge h)
   have hQ : 0 ≤ ∑ i, q i := Finset.sum_nonneg (fun i _ => hq i)

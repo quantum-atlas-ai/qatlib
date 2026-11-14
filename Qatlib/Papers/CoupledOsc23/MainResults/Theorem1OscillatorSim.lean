@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Calculus.MeanValue
-import Mathlib.Analysis.Calculus.Deriv.MeanValue
-import Mathlib.Analysis.SpecialFunctions.ExpDeriv
-import Qatlib.Papers.CoupledOsc23.MainResults.SourceModel
+module
+
+public import Mathlib.Analysis.Calculus.MeanValue
+public import Mathlib.Analysis.Calculus.Deriv.MeanValue
+public import Mathlib.Analysis.SpecialFunctions.ExpDeriv
+public import Qatlib.Papers.CoupledOsc23.MainResults.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

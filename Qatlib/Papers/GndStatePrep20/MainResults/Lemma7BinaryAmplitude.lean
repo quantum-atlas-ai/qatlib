@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GndStatePrep20.MainResults.SourceModel
+module
+
+public import Qatlib.Papers.GndStatePrep20.MainResults.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -64,7 +68,7 @@ theorem lemma7_threshold {γ₀ γ₁ A est : ℝ} (hΔ : 0 < γ₁ - γ₀)
 `K₁/Δ` applications (`O(1/Δ)`, error `Δ/4`) and the majority-voting stage uses
 `K₂·log(1/δ)` repetitions (`O(log(1/δ))`, Chernoff).  Their product is within
 `(K₁K₂)·(1/Δ)·log(1/δ)`, i.e. `O((1/Δ) log(1/δ))`. -/
-theorem lemma7_total_calls_le {Δ δ K₁ K₂ : ℝ} (hΔ : 0 < Δ) (hδ : 0 < δ) :
+theorem lemma7_total_calls_le {Δ δ K₁ K₂ : ℝ} (_hΔ : 0 < Δ) (_hδ : 0 < δ) :
     (K₁ / Δ) * (K₂ * Real.log (1 / δ)) ≤
       (K₁ * K₂) * (1 / Δ) * Real.log (1 / δ) := by
   have h : (K₁ / Δ) * (K₂ * Real.log (1 / δ)) =
@@ -87,7 +91,7 @@ subroutine ([12, Theorem 12] + Chernoff); it is recorded by
 theorem lemma7_binaryAmplitudeEstimation
     {γ₀ γ₁ Δ δ K₁ K₂ : ℝ} (hΔdef : Δ = γ₁ - γ₀) (hΔ : 0 < γ₁ - γ₀)
     (hδ : 0 < δ) :
-    ∃ (est : ℝ → ℝ) (decide : ℝ → Bool),
+    ∃ (_est : ℝ → ℝ) (decide : ℝ → Bool),
       (∀ A, A ≤ γ₀ → decide A = false) ∧
       (∀ A, γ₁ ≤ A → decide A = true) ∧
       (K₁ / Δ) * (K₂ * Real.log (1 / δ)) ≤

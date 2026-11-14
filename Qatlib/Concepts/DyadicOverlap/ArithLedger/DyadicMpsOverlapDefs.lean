@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.DyadicOverlap.OverlapContract.DyadicMpsOverlap
-import Mathlib.Data.Nat.Log
+module
+
+public import Qatlib.Concepts.DyadicOverlap.OverlapContract.DyadicMpsOverlap
+public import Mathlib.Data.Nat.Log
+
+@[expose] public section
 
 /-!
 # Width envelopes for logged MPS overlaps

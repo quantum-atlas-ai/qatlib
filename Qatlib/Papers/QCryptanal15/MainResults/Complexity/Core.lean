@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Analysis.Real.Pi.Bounds
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Analysis.Real.Pi.Bounds
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Exponential cost identities for quantum cryptanalysis

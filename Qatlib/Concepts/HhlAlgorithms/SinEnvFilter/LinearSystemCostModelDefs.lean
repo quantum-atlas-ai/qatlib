@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.QlsHhlDefs
-import Qatlib.Concepts.HhlAlgorithms.UniformHHL.UniformHHLFilter
+module
+
+public import Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.QlsHhlDefs
+public import Qatlib.Concepts.HhlAlgorithms.UniformHHL.UniformHHLFilter
+
+@[expose] public section
 
 /-!
 # HHL cost models and backend specifications

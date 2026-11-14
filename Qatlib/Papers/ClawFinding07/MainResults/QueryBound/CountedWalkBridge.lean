@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.CountedWalk.CountedSzegedyAccess
-import Qatlib.Concepts.CoherentSim.CoherentOAA.AdjointWord
-import Qatlib.Concepts.QueryWordCore.AdjointCircuits
-import Qatlib.Papers.ClawFinding07.MainResults.QueryBound.CostDefs
+module
+
+public import Qatlib.Concepts.WalkSearch.CountedWalk.CountedSzegedyAccess
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.AdjointWord
+public import Qatlib.Concepts.QueryWordCore.AdjointCircuits
+public import Qatlib.Papers.ClawFinding07.MainResults.QueryBound.CostDefs
+
+@[expose] public section
 
 /-!
 # Counted Szegedy walk costs
@@ -57,7 +61,7 @@ theorem countedSzegedy_repeat_queries {I : Type*} [Fintype I] [DecidableEq I]
 /-- If `CU ≥ 0`, `δ*ε > 0`, and `T ≤ 1/sqrt (δ*ε)+1`, then `CU+4*T` is at most `4*szegedyCost CU
 0 1 δ ε+4`; see [Tani2009]. -/
 theorem countedSzegedy_query_le_cost {CU δ ε : ℝ} (T : ℕ)
-    (hCU : 0 ≤ CU) (hδε : 0 < δ * ε)
+    (hCU : 0 ≤ CU) (_hδε : 0 < δ * ε)
     (hT : (T : ℝ) ≤ 1 / Real.sqrt (δ * ε) + 1) :
     CU + 4 * (T : ℝ) ≤ 4 * szegedyCost CU 0 1 δ ε + 4 := by
   have hcost : szegedyCost CU 0 1 δ ε = CU + 1 / Real.sqrt (δ * ε) := by

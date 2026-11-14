@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.FiniteLaws.FiniteLikelihoodConcentration
+module
+
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.FiniteLaws.FiniteLikelihoodConcentration
+
+@[expose] public section
 
 /-!
 # Maximum likelihood decoding over finite candidates
@@ -82,6 +86,7 @@ theorem decode_maximal {m n : ℕ} (q : Fin (m+1) → Qatlib.Concepts.MonteCarlo
   scan_ge_member (fun c => (q c).probOf w) (List.ofFn (fun c : Fin (m+1) => c)) 0 c
     (List.mem_ofFn.mpr ⟨c, rfl⟩)
 
+omit [DecidableEq X] in
 /-- Under the true candidate law, maximum likelihood decoding error is at most the sum over
 incorrect candidates of the true mass on their supports raised to the record length. -/
 theorem support_error_bound {m n : ℕ} (q : Fin (m+1) → Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X)
@@ -131,7 +136,7 @@ theorem log_error_bound {m n : ℕ} (q : Fin (m+1) → Qatlib.Concepts.MonteCarl
   by_cases hc : c = truth
   · subst c
     simp [E, Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.probEvent]
-  · rw [if_pos hc]
+  · rw [ite_eq_left hc]
     exact (event_mono (q truth) (E c)
       (fun w => (q truth).probOf w ≤ (q c).probOf w) (fun _ h => h.2)).trans
       (FiniteLikelihoodConcentration.log_likelihood_bound (q truth) (q c) n

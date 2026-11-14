@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.NonNormalSpec.ResolventWord.ContinuousModulusGridSchur
-import Qatlib.Concepts.QsvtCore.ApproxToolkit.QsvtCoreRefined
+module
+
+public import Qatlib.Concepts.NonNormalSpec.ResolventWord.ContinuousModulusGridSchur
+public import Qatlib.Concepts.QsvtCore.ApproxToolkit.QsvtCoreRefined
+
+@[expose] public section
 
 /-!
 # Spectral quantization and continuous functional calculus
@@ -272,7 +276,7 @@ theorem gridDividedDifference_index (n : ℕ) (r : I → Fin (n+1)) (c : J → F
   · have hne : (((r i).val:ℂ)-((c j).val:ℂ))≠0 := by
       apply sub_ne_zero.mpr
       exact_mod_cast hrc
-    rw [if_neg hrc,← mul_assoc,div_mul_cancel₀ _ hne]
+    rw [ite_eq_right hrc,← mul_assoc,div_mul_cancel₀ _ hne]
 
 omit [DecidableEq I] in
 

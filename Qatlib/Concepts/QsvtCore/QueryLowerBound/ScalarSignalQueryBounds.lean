@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.QueryLowerBound.ScalarSignalAccess
-import Qatlib.Concepts.QsvtCore.QueryLowerBound.SubroutineExpansion
-import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws
+module
+
+public import Qatlib.Concepts.QsvtCore.QueryLowerBound.ScalarSignalAccess
+public import Qatlib.Concepts.QsvtCore.QueryLowerBound.SubroutineExpansion
+public import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws
+
+@[expose] public section
 
 /-!
 # Query bounds for fixed scalar signal words

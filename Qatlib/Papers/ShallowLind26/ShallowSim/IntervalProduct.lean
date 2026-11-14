@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.Ring.Basic
-import Mathlib.Tactic.Ring
+module
+
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.Ring.Basic
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 /-!
 # Interval products and vacuum projections (Lemma 5.4)

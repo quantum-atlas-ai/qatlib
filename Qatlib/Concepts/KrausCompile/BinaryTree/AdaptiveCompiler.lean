@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ChannelTheory.Stinespring.ChannelStructureStinespring
-import Qatlib.Concepts.Execution.KnownKraus.KrausUnitaryDilation
-import Qatlib.Concepts.DimInstruments.DimTreeExec.DimInstrumentTreeExecution
-import QuantumInfo.ForMathlib.HermitianMat.Sqrt
+module
+
+public import Qatlib.Concepts.ChannelTheory.Stinespring.ChannelStructureStinespring
+public import Qatlib.Concepts.Execution.KnownKraus.KrausUnitaryDilation
+public import Qatlib.Concepts.DimInstruments.DimTreeExec.DimInstrumentTreeExecution
+public import QuantumInfo.ForMathlib.HermitianMat.Sqrt
+
+@[expose] public section
 
 /-!
 # Adaptive binary compilation of Kraus families
@@ -67,7 +71,7 @@ theorem gram_equal_actual_unitary_transport :
       (V W : Matrix H X ℂ), Vᴴ * V = Wᴴ * W →
       ∃ U : Matrix H H ℂ, U ∈ Matrix.unitaryGroup H ℂ ∧ U * V = W := by
   intro H X _ _ _ _ V W hGram
-  letI : InnerProductSpace ℂ (EuclideanSpace ℂ H) := inferInstance
+  let : InnerProductSpace ℂ (EuclideanSpace ℂ H) := inferInstance
   let v := Matrix.toEuclideanLin V
   let w := Matrix.toEuclideanLin W
   have hinner (a b : EuclideanSpace ℂ X) : inner ℂ (v a) (v b) = inner ℂ (w a) (w b) :=
@@ -80,7 +84,7 @@ theorem gram_equal_actual_unitary_transport :
     simpa only [ha, inner_zero_left] using (hinner a a).symm
   let L : v.range →ₗ[ℂ] EuclideanSpace ℂ H :=
     (v.ker.liftQ w hker).comp v.quotKerEquivRange.symm.toLinearMap
-  letI : InnerProductSpace ℂ v.range := Submodule.innerProductSpace v.range
+  let : InnerProductSpace ℂ v.range := Submodule.innerProductSpace v.range
   have hL (a : EuclideanSpace ℂ X) (ha : v a ∈ v.range) : L ⟨v a, ha⟩ = w a := by
     change (v.ker.liftQ w hker) (v.quotKerEquivRange.symm ⟨v a, ha⟩) = w a
     rw [LinearMap.quotKerEquivRange_symm_apply_image]

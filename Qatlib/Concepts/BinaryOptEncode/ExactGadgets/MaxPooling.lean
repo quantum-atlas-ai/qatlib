@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.BinaryOptEncode.ExactGadgets.LocalGadgets
+module
+
+public import Qatlib.Concepts.BinaryOptEncode.ExactGadgets.LocalGadgets
+
+@[expose] public section
 
 /-!
 # Exact maximum-pooling selectors

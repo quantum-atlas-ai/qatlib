@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.RitzPipeline.FixedGateSynthesisDefs
-import Qatlib.Concepts.PhaseGeometry.RationalCayleyPhase
-import Qatlib.Concepts.BitWordCompiler.CanonicalCodec.BitWordCompiler
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.FieldSimp
+module
+
+public import Qatlib.Concepts.MatrixAccess.RitzPipeline.FixedGateSynthesisDefs
+public import Qatlib.Concepts.PhaseGeometry.RationalCayleyPhase
+public import Qatlib.Concepts.BitWordCompiler.CanonicalCodec.BitWordCompiler
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.FieldSimp
+
+@[expose] public section
 
 /-!
 # Partial fixed-gate synthesis and compilation bounds

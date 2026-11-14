@@ -4,9 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.MeasureTheory.Integral.IntegralEqImproper
-import Mathlib.MeasureTheory.Function.JacobianOneDim
-import Mathlib.Analysis.SpecialFunctions.Pow.Deriv
+module
+
+public import Mathlib.MeasureTheory.Integral.IntegralEqImproper
+public import Mathlib.MeasureTheory.Function.JacobianOneDim
+public import Mathlib.Analysis.SpecialFunctions.Pow.Deriv
+public import Mathlib.Analysis.Calculus.Deriv.Pow
+
+@[expose] public section
 
 /-!
 # A change of variables for the positive half-line

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Tactic
-import Mathlib.Data.Rat.Defs
+module
+
+public import Mathlib.Tactic
+public import Mathlib.Data.Rat.Defs
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

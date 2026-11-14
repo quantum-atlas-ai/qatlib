@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QSingValue19.AlgorithmApps.PaperQsvtEndpointDefs
-import Qatlib.Concepts.QsvtCore.ApproxToolkit.Lemma35DolphWindow
-import Qatlib.Concepts.QsvtCore.ApproxToolkit.DolphWindow
+module
+
+public import Qatlib.Papers.QSingValue19.AlgorithmApps.PaperQsvtEndpointDefs
+public import Qatlib.Concepts.QsvtCore.ApproxToolkit.Lemma35DolphWindow
+public import Qatlib.Concepts.QsvtCore.ApproxToolkit.DolphWindow
+
+@[expose] public section
 
 /-!
 # QSVT application endpoint

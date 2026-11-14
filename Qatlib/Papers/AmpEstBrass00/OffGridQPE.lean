@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
-import Qatlib.Concepts.AmplitudeCore.PhaseEstimation.Theorem11Quan
+module
+
+public import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
+public import Qatlib.Concepts.AmplitudeCore.PhaseEstimation.Theorem11Quan
+
+@[expose] public section
 
 /-!
 # Off-grid phase-estimation probabilities and tails

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SdpMmwSolver.BranchProofs.SdpLargerBranchPrimalWitnessStat
+module
+
+public import Qatlib.Concepts.SdpMmwSolver.BranchProofs.SdpLargerBranchPrimalWitnessStat
+
+@[expose] public section
 
 /-!
 # Primal witness for the larger branch
@@ -61,11 +65,11 @@ theorem sdpLargerBranchPrimalWitness : SdpLargerBranchPrimalWitness := by
     have hyn : ∀ j, 0 ≤ y j := by intro j; dsimp [y]; split_ifs <;> positivity
     have hytrace : (∑ j, y j * (Matrix.trace (A j * sigma)).re) = v := by
       change (∑ j, (if j = i then v / a i else 0) * a j) = v
-      simp only [ite_mul, zero_mul, Finset.sum_ite_eq', Finset.mem_univ, if_true]
+      simp only [ite_mul, zero_mul, Finset.sum_ite_eq', Finset.mem_univ, ite_true]
       exact div_mul_cancel₀ v hai.ne'
     have hycost := hsep y hyn (by rw [hytrace])
     change w ≤ ∑ j, (if j = i then v / a i else 0) * b j at hycost
-    simp only [ite_mul, zero_mul, Finset.sum_ite_eq', Finset.mem_univ, if_true] at hycost
+    simp only [ite_mul, zero_mul, Finset.sum_ite_eq', Finset.mem_univ, ite_true] at hycost
     have hlow := mul_le_mul_of_nonneg_right hycost hai.le
     have hidentity : (v / a i * b i) * a i = v * b i := by field_simp
     rw [hidentity] at hlow

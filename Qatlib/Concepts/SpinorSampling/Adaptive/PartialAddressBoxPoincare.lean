@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpinorSampling.Adaptive.PartialAddressPathPoincare
+module
+
+public import Qatlib.Concepts.SpinorSampling.Adaptive.PartialAddressPathPoincare
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -86,16 +90,18 @@ theorem product_variance_bound (p : FinDist X) (q : FinDist Y) (f : X → Y → 
 #print axioms product_variance_bound
 variable [DecidableEq X]
 
-omit [Fintype Y] in
+omit [Fintype X] [Fintype Y] [DecidableEq X] in
 /-- Complete original `cohort_expect_cons` guarantee for `PartialAddressBoxPoincare`; all source hypotheses and output obligations are retained. -/
-theorem cohort_expect_cons {n : ℕ} (p : FinDist X) (F : (Fin (n+1) → X) → ℝ) :
+theorem cohort_expect_cons {X : Type*} [_inst0 : Fintype X] [_inst1 : DecidableEq X]
+    {n : ℕ} (p : FinDist X) (F : (Fin (n+1) → X) → ℝ) :
     (cohortLaw p (n+1)).expect F=
       p.expect (fun a => (cohortLaw p n).expect (fun ω => F (Fin.cons a ω))) :=
   product_expect_cons p F
 
-omit [Fintype Y] in
+omit [Fintype X] [Fintype Y] [DecidableEq X] in
 /-- Complete original `cohort_expect_zero` guarantee for `PartialAddressBoxPoincare`; all source hypotheses and output obligations are retained. -/
-theorem cohort_expect_zero (p : FinDist X) (F : (Fin 0 → X) → ℝ) :
+theorem cohort_expect_zero {X : Type*} [_inst0 : Fintype X] [_inst1 : DecidableEq X]
+    (p : FinDist X) (F : (Fin 0 → X) → ℝ) :
     (cohortLaw p 0).expect F=F (fun i => Fin.elim0 i) := by
   have he (ω : Fin 0 → X) : ω=(fun i => Fin.elim0 i) := Subsingleton.elim _ _
   unfold FinDist.expect cohortLaw

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.LinearAlgebra.Matrix.PosDef
-import Mathlib.LinearAlgebra.Matrix.Rank
-import Mathlib.Tactic
+module
+
+public import Mathlib.LinearAlgebra.Matrix.PosDef
+public import Mathlib.LinearAlgebra.Matrix.Rank
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Deletion incidence and injective-tuple adjacency

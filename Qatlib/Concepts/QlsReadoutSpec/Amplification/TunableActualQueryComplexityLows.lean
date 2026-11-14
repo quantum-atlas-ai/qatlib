@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QlsReadoutSpec.Amplification.TunableActualQueryComplexityStat
-import Qatlib.Concepts.QlsReadoutSpec.ProgramModel.PaidWordSemanticsLows
-import Qatlib.Concepts.QlsReadoutSpec.Amplification.ProjectorOrderLows
-import Qatlib.Concepts.QlsReadoutSpec.Amplification.ClockFlagResolutionsLows
-import Qatlib.Concepts.QlsReadoutSpec.Amplification.ActualNestedAmplificationLows
-import Qatlib.Concepts.QlsReadoutSpec.Amplification.TightDirichletBoundsLows
-import Qatlib.Concepts.QlsReadoutSpec.Amplification.TunableUniversalityLows
-import Qatlib.Concepts.QlsReadoutSpec.Amplification.AmplificationProductsLows
+module
+
+public import Qatlib.Concepts.QlsReadoutSpec.Amplification.TunableActualQueryComplexityStat
+public import Qatlib.Concepts.QlsReadoutSpec.ProgramModel.PaidWordSemanticsLows
+public import Qatlib.Concepts.QlsReadoutSpec.Amplification.ProjectorOrderLows
+public import Qatlib.Concepts.QlsReadoutSpec.Amplification.ClockFlagResolutionsLows
+public import Qatlib.Concepts.QlsReadoutSpec.Amplification.ActualNestedAmplificationLows
+public import Qatlib.Concepts.QlsReadoutSpec.Amplification.TightDirichletBoundsLows
+public import Qatlib.Concepts.QlsReadoutSpec.Amplification.TunableUniversalityLows
+public import Qatlib.Concepts.QlsReadoutSpec.Amplification.AmplificationProductsLows
+
+@[expose] public section
 
 /-!
 # Actual query complexity of tunable amplification
@@ -59,7 +63,7 @@ open scoped Classical BigOperators Matrix.Norms.L2Operator ComplexOrder
 private theorem extendClock_eq {H : Type} (m : ℕ) (P : Fin (m+1) → Matrix H H ℂ)
     {k : ℕ} (hk : k ≤ m) : extendClock m P k = P ⟨k, by omega⟩ := by
   unfold extendClock
-  exact dif_pos hk
+  exact dite_eq_left hk
 
 /-- A stage word is legal when its oracle index is less than `m + 1`. -/
 private theorem legal_stageWord {H : Type} [Fintype H] [DecidableEq H] (m k : ℕ)
@@ -92,7 +96,7 @@ private theorem calls_stageWord {H : Type} (k slot : ℕ) :
 /-- A stage word with nonzero slot makes no calls to slot zero. -/
 private theorem calls_stageWord_zero {H : Type} (k : ℕ) (hk : k ≠ 0) :
     calls (stageWord (H := H) k) 0 = 0 := by
-  rw [calls_stageWord, if_neg hk]
+  rw [calls_stageWord, ite_eq_right hk]
 
 /-- The weighted cost of concatenation is the sum of the constituent weighted costs. -/
 private theorem weightedCost_append {H : Type} (prices : ℕ → ℕ) (C D : Word H 1) :
@@ -511,9 +515,9 @@ private theorem gainLoss_pos {H : Type} [Fintype H] [DecidableEq H] (m : ℕ)
     0 < gainLoss (2*rs (j+1)+1) (preAmplitude (extendClock m P) bad ω U rs j) := by
   unfold gainLoss
   by_cases ha : preAmplitude (extendClock m P) bad ω U rs j = 0
-  · rw [if_pos ha]
+  · rw [ite_eq_left ha]
     norm_num
-  · rw [if_neg ha]
+  · rw [ite_eq_right ha]
     set a := preAmplitude (extendClock m P) bad ω U rs j with haa
     have ha0 : 0 < a := lt_of_le_of_ne (norm_nonneg _) (Ne.symm ha)
     have hno := noOvershoot m P bad U ω α rs htun habove hj
@@ -944,7 +948,7 @@ private theorem gainLoss_ge_five_six {H : Type} [Fintype H] [DecidableEq H] (m :
             (preAmplitude (extendClock m P) bad ω U rs j)) /
           (((2*rs (j+1)+1 : ℕ) : ℝ) * preAmplitude (extendClock m P) bad ω U rs j) := by
       unfold gainLoss
-      rw [if_neg (by positivity)]
+      rw [ite_eq_right (by positivity)]
     rw [hgl]
     set θ := Real.arcsin (preAmplitude (extendClock m P) bad ω U rs j) with hθ
     have hsinθ : Real.sin θ = preAmplitude (extendClock m P) bad ω U rs j := by
@@ -967,7 +971,7 @@ private theorem gainLoss_ge_five_six {H : Type} [Fintype H] [DecidableEq H] (m :
     have hg7 := Clause7TightDirichletBounds_answer.1 (2*rs (j+1)+1) θ
       (by omega) hθ0 hθle
     (try dsimp only at hg7)
-    rw [if_neg hθpos] at hg7
+    rw [ite_eq_right hθpos] at hg7
     have hlo := hg7.1
     rw [hsinθ] at hlo
     have hρa : ((2*rs (j+1)+1 : ℕ) : ℝ) ^ 2
@@ -1259,7 +1263,7 @@ private def markerFn {l : ℕ} (s : Fin (l+2) → ℕ) (m : ℕ) : ℕ → ℕ :
 private theorem markerFn_of {l : ℕ} (s : Fin (l+2) → ℕ) (m : ℕ) {k : ℕ} (hk : k ≤ l+1) :
     markerFn s m k = s ⟨k, by omega⟩ := by
   unfold markerFn
-  rw [dif_pos (by omega : k < l+2)]
+  rw [dite_eq_left (by omega : k < l+2)]
 
 /-- If markers start at zero and end at `m + 1`, every stage after the first marker and at most
 `m` lies between two consecutive extended markers. -/

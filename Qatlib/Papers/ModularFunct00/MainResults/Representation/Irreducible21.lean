@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ModularFunct00.MainResults.Setup
-import Qatlib.Papers.ModularFunct00.MainResults.Examples
-import Mathlib.Algebra.Module.Submodule.Lattice
-import Mathlib.LinearAlgebra.FiniteDimensional.Basic
-import Mathlib.LinearAlgebra.Dimension.Constructions
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.ModularFunct00.MainResults.Setup
+public import Qatlib.Papers.ModularFunct00.MainResults.Examples
+public import Mathlib.Algebra.Module.Submodule.Lattice
+public import Mathlib.LinearAlgebra.FiniteDimensional.Basic
+public import Mathlib.LinearAlgebra.Dimension.Constructions
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Irreducibility of the two-dimensional Jones example

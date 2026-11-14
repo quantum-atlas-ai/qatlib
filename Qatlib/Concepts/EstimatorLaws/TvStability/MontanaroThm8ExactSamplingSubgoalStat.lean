@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EstimatorLaws.TvStability.Theorem8RelativeContracts
-import Qatlib.Concepts.EstimatorLaws.TvStability.MontanaroChebyshevProductIdentityMont
+module
+
+public import Qatlib.Concepts.EstimatorLaws.TvStability.Theorem8RelativeContracts
+public import Qatlib.Concepts.EstimatorLaws.TvStability.MontanaroChebyshevProductIdentityMont
+
+@[expose] public section
 
 /-!
 # Exact-sampling partition-function contract
@@ -59,7 +63,7 @@ def MontanaroTheorem8ExactSamplingSubgoal : Prop :=
     let Y := fun (i : Fin ℓ) (x : Ω) =>
       Real.exp (-((β i.succ - β i.castSucc) * (H x : ℝ)));
     let ps := fun (i : Fin ℓ) => theorem6FactorLaw (As i) (js i) (Y i) B N k r
-      (hAs i) (fun x => (Real.exp_pos _).le);
+      (hAs i) (fun _x => (Real.exp_pos _).le);
     (independentSampleLaw ps).probEvent
       (fun ξ : Fin 1 → (Fin ℓ → (Fin (2 * r + 1) → ((Fin N → Ω) × LayerRecord k))) =>
         ε * partitionFn H (β (Fin.last ℓ))

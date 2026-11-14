@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QspSimulation.Achievability.CountedHamiltonian
-import Qatlib.Concepts.BlockEncoding.Postselection
+module
+
+public import Qatlib.Concepts.QspSimulation.Achievability.CountedHamiltonian
+public import Qatlib.Concepts.BlockEncoding.Postselection
+
+@[expose] public section
 
 /-!
 # Conditional outputs of Hamiltonian simulation

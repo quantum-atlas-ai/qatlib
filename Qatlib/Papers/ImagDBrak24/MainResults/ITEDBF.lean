@@ -3,9 +3,13 @@ Copyright (c) 2026 Qatlib Contributors. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
-import Qatlib.Papers.ImagDBrak24.MainResults.SourceDynamics
-import Mathlib.Analysis.Calculus.Deriv.Prod
-import Mathlib.Analysis.Calculus.Deriv.Star
+module
+
+public import Qatlib.Papers.ImagDBrak24.MainResults.SourceDynamics
+public import Mathlib.Analysis.Calculus.Deriv.Prod
+public import Mathlib.Analysis.Calculus.Deriv.Star
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

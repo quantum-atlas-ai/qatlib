@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QGradient20.DressedUpdate.Stationary
-import Qatlib.Papers.QGradient20.FilterBranch.Operator
-import Qatlib.Concepts.ChannelTheory.Naimark.ContractionBorn
+module
+
+public import Qatlib.Papers.QGradient20.DressedUpdate.Stationary
+public import Qatlib.Papers.QGradient20.FilterBranch.Operator
+public import Qatlib.Concepts.ChannelTheory.Naimark.ContractionBorn
+
+@[expose] public section
 
 /-!
 # Physical readout of a polynomial gradient step

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.InterruptMin.InterruptedCallLawsAqua
-import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchBudgetProbability
-import Qatlib.Concepts.AmplitudeSearch.InterruptMin.RealMass
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.InterruptMin.InterruptedCallLawsAqua
+public import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchBudgetProbability
+public import Qatlib.Concepts.AmplitudeSearch.InterruptMin.RealMass
+
+@[expose] public section
 
 /-!
 # Budgeted search with partial observation

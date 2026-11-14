@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.TensorNetwork08.MainResults.Lemma56
+module
+
+public import Qatlib.Papers.TensorNetwork08.MainResults.Lemma56
+
+@[expose] public section
 
 /-!
 # Normalized partition value of the delta network

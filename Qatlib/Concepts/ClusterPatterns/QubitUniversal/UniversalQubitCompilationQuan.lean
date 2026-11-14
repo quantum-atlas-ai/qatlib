@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ClusterPatterns.QubitUniversal.UniversalQubitCompilationStat
+module
+
+public import Qatlib.Concepts.ClusterPatterns.QubitUniversal.UniversalQubitCompilationStat
+
+@[expose] public section
 
 /-!
 # Proof of universal qubit cluster compilation
@@ -50,7 +54,7 @@ private theorem rz_phase (s : ℝ) :
   rcases i <;> rcases j <;>
     simp only [Rz, Matrix.diagonal_apply, Matrix.smul_apply, smul_eq_mul,
       qubitEulerPhase_ff, qubitEulerPhase_ft, qubitEulerPhase_tf, qubitEulerPhase_tt,
-      Bool.false_eq_true, Bool.true_eq_false, if_false, if_true, mul_zero]
+      Bool.false_eq_true, Bool.true_eq_false, ite_false, ite_true, mul_zero]
   · rw [← Complex.exp_add]
     convert! Complex.exp_zero.symm using 2
     push_cast

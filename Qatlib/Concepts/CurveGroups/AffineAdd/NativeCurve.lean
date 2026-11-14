@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.AlgebraicGeometry.EllipticCurve.Affine.Point
-import Qatlib.Concepts.CurveGroups.AffineAdd.PointAddition
+module
+
+public import Mathlib.AlgebraicGeometry.EllipticCurve.Affine.Point
+public import Qatlib.Concepts.CurveGroups.AffineAdd.PointAddition
+
+@[expose] public section
 
 /-!
 # Affine addition in the native curve group

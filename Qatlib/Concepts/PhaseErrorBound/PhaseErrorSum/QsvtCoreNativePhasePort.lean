@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.QsvtCoreDefs
-import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.SchattenDiamondDefs
-import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
-import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
-import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
-import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.MarkovBrothers
-import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.ScopedOracleWorkspace
-import Qatlib.Concepts.SharedAncilla.AncillaProduct.SharedAncillaUnitaryProduct
-import Qatlib.Concepts.Execution.WorkspaceCP.ProjectedUnitaryEncoding
+module
+
+public import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.QsvtCoreDefs
+public import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.SchattenDiamondDefs
+public import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
+public import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
+public import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
+public import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.MarkovBrothers
+public import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.ScopedOracleWorkspace
+public import Qatlib.Concepts.SharedAncilla.AncillaProduct.SharedAncillaUnitaryProduct
+public import Qatlib.Concepts.Execution.WorkspaceCP.ProjectedUnitaryEncoding
+
+@[expose] public section
 
 /-!
 # Native padded phase programs

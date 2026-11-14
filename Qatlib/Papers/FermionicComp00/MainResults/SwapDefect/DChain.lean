@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.FermionicComp00.MainResults.SwapDefect.TwoLfm
+module
+
+public import Qatlib.Papers.FermionicComp00.MainResults.SwapDefect.TwoLfm
+
+@[expose] public section
 
 /-!
 # Defect-chain conversion of two-mode operators
@@ -43,9 +47,9 @@ theorem jwSign_eq_prod {m : ℕ} (i : Fin m) (x : Reg m) :
   rw [jwSign_eq, ← Finset.prod_pow_eq_pow_sum]
   refine Finset.prod_congr rfl (fun s _ => ?_)
   by_cases hs : s.val < i.val
-  · rw [if_pos hs]
+  · rw [ite_eq_left hs]
     by_cases hx : x s <;> simp [hs, hx]
-  · rw [if_neg hs]; simp [hs]
+  · rw [ite_eq_right hs]; simp [hs]
 
 /-- Updating the bit at `i` does not change its own Jordan-Wigner sign. -/
 theorem jwSign_update_self {m : ℕ} (i : Fin m) (x : Reg m) (b : Bool) :
@@ -53,11 +57,11 @@ theorem jwSign_update_self {m : ℕ} (i : Fin m) (x : Reg m) (b : Bool) :
   rw [jwSign_eq_prod, jwSign_eq_prod]
   refine Finset.prod_congr rfl (fun s _ => ?_)
   by_cases hs : s.val < i.val
-  · rw [if_pos hs, if_pos hs]
+  · rw [ite_eq_left hs, ite_eq_left hs]
     have hsi : s ≠ i := by
       intro h; rw [h] at hs; exact absurd hs (lt_irrefl _)
-    rw [Function.update_apply, if_neg hsi]
-  · rw [if_neg hs, if_neg hs]
+    rw [Function.update_apply, ite_eq_right hsi]
+  · rw [ite_eq_right hs, ite_eq_right hs]
 
 /-- Updating a bit preceding `i` makes the product of the new and old Jordan-Wigner signs equal
 to the product of the new and old occupation signs at that bit. -/
@@ -65,7 +69,7 @@ theorem jwSign_update_lt_mul {m : ℕ} {i t : Fin m} (h : t.val < i.val) (x : Re
     jwSign i (Function.update x t b) * jwSign i x =
       (if b then (-1 : ℂ) else 1) * (if x t then (-1 : ℂ) else 1) := by
   rw [jwSign_eq_prod, jwSign_eq_prod, ← Finset.prod_mul_distrib]
-  rw [Finset.prod_eq_mul_prod_diff_singleton_of_mem (Finset.mem_univ t)]
+  rw [Finset.prod_eq_mul_prod_sdiff_singleton_of_mem (Finset.mem_univ t)]
   have hrest : (∏ s ∈ (Finset.univ : Finset (Fin m)) \ {t},
       ((if s.val < i.val then
           (if (Function.update x t b) s then (-1 : ℂ) else 1) else 1) *
@@ -75,12 +79,12 @@ theorem jwSign_update_lt_mul {m : ℕ} {i t : Fin m} (h : t.val < i.val) (x : Re
       simp only [Finset.mem_sdiff, Finset.mem_singleton] at hs
       exact hs.2
     have hupd : (Function.update x t b) s = x s := by
-      rw [Function.update_apply, if_neg hst]
+      rw [Function.update_apply, ite_eq_right hst]
     rw [hupd]
     by_cases hs2 : s.val < i.val
-    · rw [if_pos hs2]
+    · rw [ite_eq_left hs2]
       by_cases hx : x s <;> simp [hx]
-    · rw [if_neg hs2]; simp
+    · rw [ite_eq_right hs2]; simp
   rw [hrest, mul_one]
   simp [h, Function.update_self]
 
@@ -137,7 +141,7 @@ theorem creation_pow_mulVec_ket {m : ℕ} (i : Fin m) (b : Bool) (x : Reg m) :
         (jwSign i (setBit i b x) ^ bitNat b) • ket (setBit i b x) else 0) := by
   cases b
   · simp [bitNat, setBit]
-  · simp only [bitNat, if_true, pow_one]
+  · simp only [bitNat, ite_true, pow_one]
     rw [creation_mulVec_ket]
     cases x i <;> simp [setBit]
 
@@ -146,16 +150,16 @@ theorem clearBit_apply_ne {m : ℕ} {i k : Fin m} (h : k ≠ i) (b : Bool) (x : 
     clearBit i b x k = x k := by
   unfold clearBit
   by_cases hb : b
-  · rw [if_pos hb, Function.update_apply, if_neg h]
-  · rw [if_neg hb]
+  · rw [ite_eq_left hb, Function.update_apply, ite_eq_right h]
+  · rw [ite_eq_right hb]
 
 /-- Conditional setting leaves every position different from the selected one unchanged. -/
 theorem setBit_apply_ne {m : ℕ} {i k : Fin m} (h : k ≠ i) (b : Bool) (x : Reg m) :
     setBit i b x k = x k := by
   unfold setBit
   by_cases hb : b
-  · rw [if_pos hb, Function.update_apply, if_neg h]
-  · rw [if_neg hb]
+  · rw [ite_eq_left hb, Function.update_apply, ite_eq_right h]
+  · rw [ite_eq_right hb]
 
 /-- Clearing an occupied earlier bit, when requested, multiplies the later Jordan-Wigner sign by
 the corresponding power of negative one. -/
@@ -164,10 +168,10 @@ theorem jwSign_clearBit {m : ℕ} {j k : Fin m} (hjk : j.val < k.val) (q0 : Bool
     jwSign k (clearBit j q0 x) = jwSign k x * (-1 : ℂ) ^ (bitNat q0) := by
   unfold clearBit
   by_cases hb : q0
-  · rw [if_pos hb, jwSign_update_lt hjk]
-    have hxj : x j = true := by rw [if_pos hb] at hj; exact hj
+  · rw [ite_eq_left hb, jwSign_update_lt hjk]
+    have hxj : x j = true := by rw [ite_eq_left hb] at hj; exact hj
     simp [bitNat, hb, hxj]
-  · rw [if_neg hb]
+  · rw [ite_eq_right hb]
     simp [bitNat, hb]
 
 /-- Two Boolean-controlled annihilations at ordered positions clear the selected occupations
@@ -183,16 +187,16 @@ theorem down_mulVec_ket {m : ℕ} {j k : Fin m} (hjk : j.val < k.val) (q0 q1 : B
     intro h; rw [h] at hjk; exact absurd hjk (lt_irrefl _)
   rw [← Matrix.mulVec_mulVec, annihilation_pow_mulVec_ket]
   by_cases hj : (if q0 then x j else true)
-  · rw [if_pos hj, Matrix.mulVec_smul, annihilation_pow_mulVec_ket]
+  · rw [ite_eq_left hj, Matrix.mulVec_smul, annihilation_pow_mulVec_ket]
     have hk_eq : (if q1 then (clearBit j q0 x) k else true) = (if q1 then x k else true) := by
       rw [clearBit_apply_ne hne]
     by_cases hk : (if q1 then x k else true)
-    · rw [hk_eq, if_pos hk, if_pos ⟨hj, hk⟩, smul_smul]
+    · rw [hk_eq, ite_eq_left hk, ite_eq_left ⟨hj, hk⟩, smul_smul]
       congr 1
       rw [jwSign_clearBit hjk q0 x hj, mul_pow, ← pow_mul]
       ring
-    · rw [hk_eq, if_neg hk, if_neg (fun hc => hk hc.2), smul_zero]
-  · rw [if_neg hj, Matrix.mulVec_zero, if_neg (fun hc => hj hc.1)]
+    · rw [hk_eq, ite_eq_right hk, ite_eq_right (fun hc => hk hc.2), smul_zero]
+  · rw [ite_eq_right hj, Matrix.mulVec_zero, ite_eq_right (fun hc => hj hc.1)]
 
 /-- When the selected occupations equal `q0` and `q1`, the two controlled annihilations give the
 cleared basis vector with the specified Jordan-Wigner and crossing signs. -/
@@ -207,15 +211,15 @@ theorem down_mulVec_ket_of {m : ℕ} {j k : Fin m} (hjk : j.val < k.val) (q0 q1 
     constructor
     · rw [hx0]; cases q0 <;> simp
     · rw [hx1]; cases q1 <;> simp
-  rw [if_pos hcond]
+  rw [ite_eq_left hcond]
 
 /-- Conditional setting at `i` leaves the Jordan-Wigner sign at `i` unchanged. -/
 theorem jwSign_setBit_self {m : ℕ} (i : Fin m) (b : Bool) (x : Reg m) :
     jwSign i (setBit i b x) = jwSign i x := by
   unfold setBit
   by_cases hb : b
-  · rw [if_pos hb]; exact jwSign_update_self i x true
-  · rw [if_neg hb]
+  · rw [ite_eq_left hb]; exact jwSign_update_self i x true
+  · rw [ite_eq_right hb]
 
 /-- Conditional setting at a later position leaves an earlier Jordan-Wigner sign unchanged. -/
 theorem jwSign_setBit_gt {m : ℕ} {i k : Fin m} (h : i.val < k.val) (b : Bool) (x : Reg m) :
@@ -223,10 +227,10 @@ theorem jwSign_setBit_gt {m : ℕ} {i k : Fin m} (h : i.val < k.val) (b : Bool) 
   rw [jwSign_eq_prod, jwSign_eq_prod]
   refine Finset.prod_congr rfl (fun s _ => ?_)
   by_cases hs : s.val < i.val
-  · rw [if_pos hs, if_pos hs]
+  · rw [ite_eq_left hs, ite_eq_left hs]
     have hsk : s ≠ k := by intro h'; rw [h'] at hs; omega
     rw [setBit_apply_ne hsk]
-  · rw [if_neg hs, if_neg hs]
+  · rw [ite_eq_right hs, ite_eq_right hs]
 
 /-- On a register vacant at two ordered positions, controlled creation produces the set register
 with the product of the two Jordan-Wigner sign powers. -/
@@ -239,12 +243,12 @@ theorem up_mulVec_ket {m : ℕ} {j k : Fin m} (hjk : j.val < k.val) (p0 p1 : Boo
   rw [← Matrix.mulVec_mulVec, creation_pow_mulVec_ket]
   have hkcond : (if p1 then !x k else true) = true := by
     cases p1 <;> simp [hx.2]
-  rw [if_pos hkcond, Matrix.mulVec_smul, creation_pow_mulVec_ket]
+  rw [ite_eq_left hkcond, Matrix.mulVec_smul, creation_pow_mulVec_ket]
   have hjbit : (setBit k p1 x) j = false := by
     rw [setBit_apply_ne hkj]; exact hx.1
   have hjcond : (if p0 then !(setBit k p1 x) j else true) = true := by
     cases p0 <;> simp [hjbit]
-  rw [if_pos hjcond, smul_smul]
+  rw [ite_eq_left hjcond, smul_smul]
   have hcj : jwSign j (setBit j p0 (setBit k p1 x)) = jwSign j x := by
     rw [jwSign_setBit_self, jwSign_setBit_gt hjk]
   have hck : jwSign k (setBit k p1 x) = jwSign k x := jwSign_setBit_self k p1 x
@@ -297,7 +301,7 @@ theorem jwSign_split {m : ℕ} {j k : Fin m} (hjk : j.val < k.val) (x : Reg m) :
           (fun s : Fin m => ¬ s.val < j.val)
         = Finset.univ.filter (fun s : Fin m => ¬ s.val < j.val ∧ s.val < k.val) := by
       ext s; simp only [Finset.mem_filter, Finset.mem_univ, true_and]; tauto
-    rw [h1, h2, Finset.prod_eq_mul_prod_diff_singleton_of_mem hmem]
+    rw [h1, h2, Finset.prod_eq_mul_prod_sdiff_singleton_of_mem hmem]
     have h3 : (Finset.univ.filter (fun s : Fin m => ¬ s.val < j.val ∧ s.val < k.val)) \ {j}
         = Finset.univ.filter (fun s : Fin m => j < s ∧ s < k) := by
       ext s
@@ -332,7 +336,7 @@ theorem jwSignProd_update {m : ℕ} {j k : Fin m} (a b : Bool) (x : Reg m) :
   simp only [Finset.mem_filter, Finset.mem_univ, true_and] at hs
   have hsj : s ≠ j := by intro h; rw [h] at hs; exact absurd hs.1 (lt_irrefl _)
   have hsk : s ≠ k := by intro h; rw [h] at hs; exact absurd hs.2 (lt_irrefl _)
-  rw [Function.update_apply, if_neg hsk, Function.update_apply, if_neg hsj]
+  rw [Function.update_apply, ite_eq_right hsk, Function.update_apply, ite_eq_right hsj]
 
 /-- The sign coefficient combining endpoint Jordan-Wigner powers and crossing signs for a
 two-mode fermionic matrix unit. -/
@@ -364,7 +368,7 @@ theorem twoCoef_eq_pairCoef {m : ℕ} {j k : Fin m} (hjk : j.val < k.val) (p q :
 
 /-- The product of chain diagonals before and after replacing the endpoint occupations equals
 `pairCoef`, when the second input occupation matches. -/
-theorem chainDiag_update {m : ℕ} {j k : Fin m} (hjk : j.val < k.val) (p q : Reg 2)
+theorem chainDiag_update {m : ℕ} {j k : Fin m} (_hjk : j.val < k.val) (p q : Reg 2)
     (x : Reg m) (hx1 : x k = q 1) :
     chainDiag j k x * chainDiag j k (Function.update (Function.update x j (p 0)) k (p 1))
       = pairCoef p q j k x := by
@@ -376,8 +380,8 @@ theorem jwSign_clearBit_self {m : ℕ} (i : Fin m) (b : Bool) (x : Reg m) :
     jwSign i (clearBit i b x) = jwSign i x := by
   unfold clearBit
   by_cases hb : b
-  · rw [if_pos hb]; exact jwSign_update_self i x false
-  · rw [if_neg hb]
+  · rw [ite_eq_left hb]; exact jwSign_update_self i x false
+  · rw [ite_eq_right hb]
 
 /-- Updating a later position leaves an earlier Jordan-Wigner sign unchanged. -/
 theorem jwSign_update_gt {m : ℕ} {i k : Fin m} (h : i.val < k.val) (b : Bool) (x : Reg m) :
@@ -385,18 +389,18 @@ theorem jwSign_update_gt {m : ℕ} {i k : Fin m} (h : i.val < k.val) (b : Bool) 
   rw [jwSign_eq_prod, jwSign_eq_prod]
   refine Finset.prod_congr rfl (fun s _ => ?_)
   by_cases hs : s.val < i.val
-  · rw [if_pos hs, if_pos hs]
+  · rw [ite_eq_left hs, ite_eq_left hs]
     have hsk : s ≠ k := by intro h'; rw [h'] at hs; omega
-    rw [Function.update_apply, if_neg hsk]
-  · rw [if_neg hs, if_neg hs]
+    rw [Function.update_apply, ite_eq_right hsk]
+  · rw [ite_eq_right hs, ite_eq_right hs]
 
 /-- Conditional clearing at a later position leaves an earlier Jordan-Wigner sign unchanged. -/
 theorem jwSign_clearBit_gt {m : ℕ} {i k : Fin m} (h : i.val < k.val) (b : Bool) (x : Reg m) :
     jwSign i (clearBit k b x) = jwSign i x := by
   unfold clearBit
   by_cases hb : b
-  · rw [if_pos hb]; exact jwSign_update_gt h false x
-  · rw [if_neg hb]
+  · rw [ite_eq_left hb]; exact jwSign_update_gt h false x
+  · rw [ite_eq_right hb]
 
 /-- Replacing a true Boolean by false and leaving a false Boolean unchanged always gives false. -/
 theorem ite_false_self (b : Bool) : (if b then false else b) = false := by
@@ -414,11 +418,10 @@ theorem update_update_eq_setBit {m : ℕ} {j k : Fin m} (hjk : j.val < k.val) (p
   cases hp0 : p 0 <;> cases hp1 : p 1 <;> cases hq0 : q 0 <;> cases hq1 : q 1
   all_goals
     by_cases htj : t = j
-    · simp [setBit, clearBit, Function.update_apply, htj, hkj, hne, hx0, hp0, hp1, hq0, hq1]
+    · simp [setBit, clearBit, htj, hkj, hx0, hq0]
     · by_cases htk : t = k
-      · simp [setBit, clearBit, Function.update_apply, htj, htk, hkj, hne, hx0, hx1, hp0, hp1, hq0,
-          hq1]
-      · simp [setBit, clearBit, Function.update_apply, htj, htk]
+      · simp [setBit, clearBit, htk, hne, hx1, hq1]
+      · simp [setBit, clearBit, htj, htk]
 
 /-- Clearing the matching input occupations leaves both selected modes vacant. -/
 theorem clearBit_pair_vac {m : ℕ} {j k : Fin m} (hjk : j.val < k.val) (q : Reg 2)
@@ -524,7 +527,7 @@ theorem lfmUnit2_mulVec_ket_neg {m : ℕ} {j k : Fin m} (hjk : j.val < k.val) (p
         rw [e]
       · have hx : x k = true := by simpa [hq1] using! hc.2
         rw [hx]
-    rw [if_pos hc, Matrix.mulVec_smul, ← Matrix.mulVec_mulVec]
+    rw [ite_eq_left hc, Matrix.mulVec_smul, ← Matrix.mulVec_mulVec]
     have hvac0 : ((1 - numberOp j) * (1 - numberOp k) : Matrix (Reg m) (Reg m) ℂ) *ᵥ
         ket (clearBit k (q 1) (clearBit j (q 0) x)) = 0 := by
       rw [vacuumProj_mulVec_ket]
@@ -538,7 +541,7 @@ theorem lfmUnit2_mulVec_ket_neg {m : ℕ} {j k : Fin m} (hjk : j.val < k.val) (p
           cases hv : (clearBit k (q 1) (clearBit j (q 0) x)) j <;> simp_all
         rw [h0]; simp
     rw [hvac0, Matrix.mulVec_zero, smul_zero]
-  · rw [if_neg hc, Matrix.mulVec_zero]
+  · rw [ite_eq_right hc, Matrix.mulVec_zero]
 
 /-- A fermionic two-mode matrix unit conditionally replaces the selected occupations with
 coefficient `twoCoef`, and is zero on nonmatching inputs. -/
@@ -549,8 +552,8 @@ theorem lfmUnit2_mulVec_ket {m : ℕ} {j k : Fin m} (hjk : j.val < k.val) (p q :
         twoCoef p q j k x •
           ket (Function.update (Function.update x j (p 0)) k (p 1)) else 0) := by
   by_cases hc : x j = q 0 ∧ x k = q 1
-  · rw [if_pos hc]; exact lfmUnit2_mulVec_ket_pos hjk p q x hc.1 hc.2
-  · rw [if_neg hc]; exact lfmUnit2_mulVec_ket_neg hjk p q x hc
+  · rw [ite_eq_left hc]; exact lfmUnit2_mulVec_ket_pos hjk p q x hc.1 hc.2
+  · rw [ite_eq_right hc]; exact lfmUnit2_mulVec_ket_neg hjk p q x hc
 
 /-- Conjugating a qubit matrix unit by the defect chain conditionally replaces the selected
 occupations with coefficient `pairCoef`. See [BravyiKitaev2002]. -/
@@ -562,9 +565,9 @@ theorem swapDefectChain_conj_mulVec_ket {m : ℕ} {j k : Fin m} (hjk : j.val < k
   rw [← Matrix.mulVec_mulVec, ← Matrix.mulVec_mulVec, swapDefectChain_mulVec_ket,
     Matrix.mulVec_smul, qubitUnit2_mulVec_ket]
   by_cases hc : x j = q 0 ∧ x k = q 1
-  · rw [if_pos hc, Matrix.mulVec_smul, swapDefectChain_mulVec_ket, smul_smul, if_pos hc,
+  · rw [ite_eq_left hc, Matrix.mulVec_smul, swapDefectChain_mulVec_ket, smul_smul, ite_eq_left hc,
       chainDiag_update hjk p q x hc.2]
-  · rw [if_neg hc, smul_zero, Matrix.mulVec_zero, if_neg hc]
+  · rw [ite_eq_right hc, smul_zero, Matrix.mulVec_zero, ite_eq_right hc]
 
 /-- For ordered modes and even total input-output occupation parity, the fermionic matrix unit
 is the qubit matrix unit conjugated by the defect chain. [BravyiKitaev2002] -/
@@ -576,8 +579,8 @@ theorem lfmUnit2_eq_chain {m : ℕ} {j k : Fin m} (hjk : j.val < k.val) (p q : R
     ← mulVec_ket_apply (M := swapDefectChain j k * qubitUnit2 p q j k * swapDefectChain j k),
     lfmUnit2_mulVec_ket hjk p q x, swapDefectChain_conj_mulVec_ket hjk p q x]
   by_cases hc : x j = q 0 ∧ x k = q 1
-  · rw [if_pos hc, if_pos hc, twoCoef_eq_pairCoef hjk p q x hpar hc.1]
-  · rw [if_neg hc, if_neg hc]
+  · rw [ite_eq_left hc, ite_eq_left hc, twoCoef_eq_pairCoef hjk p q x hpar hc.1]
+  · rw [ite_eq_right hc, ite_eq_right hc]
 
 /-- For ordered modes and even total input-output occupation parity, the qubit matrix unit is
 the fermionic matrix unit conjugated by the defect chain. See [BravyiKitaev2002]. -/
@@ -650,7 +653,7 @@ theorem qubitApply2_eq_sum {m : ℕ} (X : Matrix (Reg 2) (Reg 2) ℂ) {j k : Fin
         · simp [xp, e0]
         · simp [xp, e1]
       simp only [qubitUnit2, Matrix.of_apply]
-      rw [if_neg (by rintro ⟨h1, h2, -⟩; exact hq' ⟨h1, h2⟩)]
+      rw [ite_eq_right (by rintro ⟨h1, h2, -⟩; exact hq' ⟨h1, h2⟩)]
       simp
     · intro h
       simp at h
@@ -665,14 +668,14 @@ theorem qubitApply2_eq_sum {m : ℕ} (X : Matrix (Reg 2) (Reg 2) ℂ) {j k : Fin
         have hp0 : p 0 = yp 0 := by
           have h1 := congrFun hupd j
           have h2 : Function.update (Function.update x j (p 0)) k (p 1) j = p 0 := by
-            rw [Function.update_apply, if_neg hjk, Function.update_apply, if_pos rfl]
+            rw [Function.update_apply, ite_eq_right hjk, Function.update_apply, ite_eq_left rfl]
           rw [h2] at h1
           rw [← h1]
           exact hyp0.symm
         have hp1 : p 1 = yp 1 := by
           have h1 := congrFun hupd k
           have h2 : Function.update (Function.update x j (p 0)) k (p 1) k = p 1 := by
-            rw [Function.update_apply, if_pos rfl]
+            rw [Function.update_apply, ite_eq_left rfl]
           rw [h2] at h1
           rw [← h1]
           exact hyp1.symm
@@ -681,7 +684,7 @@ theorem qubitApply2_eq_sum {m : ℕ} (X : Matrix (Reg 2) (Reg 2) ℂ) {j k : Fin
         · exact hp0
         · exact hp1
       · simp only [qubitUnit2, Matrix.of_apply]
-        rw [if_neg (by rintro ⟨-, -, h⟩; exact hupd h)]
+        rw [ite_eq_right (by rintro ⟨-, -, h⟩; exact hupd h)]
         simp
     · intro h
       simp at h
@@ -689,7 +692,7 @@ theorem qubitApply2_eq_sum {m : ℕ} (X : Matrix (Reg 2) (Reg 2) ℂ) {j k : Fin
   by_cases hagree : y = Function.update (Function.update x j (yp 0)) k (yp 1)
   · have hterm : qubitUnit2 yp xp j k y x = (1 : ℂ) := by
       simp only [qubitUnit2, Matrix.of_apply]
-      rw [if_pos ⟨hxp0.symm, hxp1.symm, hagree⟩]
+      rw [ite_eq_left ⟨hxp0.symm, hxp1.symm, hagree⟩]
     rw [hterm, mul_one]
     have hprod : (∏ s ∈ Finset.univ.filter (fun s : Fin m => s ≠ j ∧ s ≠ k),
         (if y s = x s then (1 : ℂ) else 0)) = 1 := by
@@ -699,12 +702,12 @@ theorem qubitApply2_eq_sum {m : ℕ} (X : Matrix (Reg 2) (Reg 2) ℂ) {j k : Fin
       have hyx : y s = x s := by
         have h1 := congrFun hagree s
         rw [h1]
-        rw [Function.update_apply, if_neg hsk, Function.update_apply, if_neg hsj]
-      rw [if_pos hyx]
+        rw [Function.update_apply, ite_eq_right hsk, Function.update_apply, ite_eq_right hsj]
+      rw [ite_eq_left hyx]
     rw [hprod, mul_one]
   · have hterm : qubitUnit2 yp xp j k y x = 0 := by
       simp only [qubitUnit2, Matrix.of_apply]
-      rw [if_neg (by rintro ⟨-, -, h⟩; exact hagree h)]
+      rw [ite_eq_right (by rintro ⟨-, -, h⟩; exact hagree h)]
     rw [hterm, mul_zero]
     have hex : ∃ s, s ≠ j ∧ s ≠ k ∧ y s ≠ x s := by
       by_contra h
@@ -712,19 +715,19 @@ theorem qubitApply2_eq_sum {m : ℕ} (X : Matrix (Reg 2) (Reg 2) ℂ) {j k : Fin
       funext t
       by_cases htj : t = j
       · rw [htj]
-        simp [Function.update_apply, hjk, hyp0]
+        simp [hjk, hyp0]
       · by_cases htk : t = k
         · rw [htk]
-          simp [Function.update_apply, hyp1]
+          simp [hyp1]
         · have hyt : y t = x t := by
             by_contra hne
             exact h ⟨t, htj, htk, hne⟩
-          simp [Function.update_apply, htk, htj, hyt]
+          simp [htk, htj, hyt]
     obtain ⟨s, hsj, hsk, hne⟩ := hex
     have hprod0 : (∏ s' ∈ Finset.univ.filter (fun s' : Fin m => s' ≠ j ∧ s' ≠ k),
         (if y s' = x s' then (1 : ℂ) else 0)) = 0 := by
       refine Finset.prod_eq_zero (Finset.mem_filter.mpr ⟨Finset.mem_univ s, hsj, hsk⟩) ?_
-      rw [if_neg hne]
+      rw [ite_eq_right hne]
     rw [hprod0, mul_zero]
 
 /-- For ordered modes, fermionic placement of a parity-preserving two-mode matrix equals its

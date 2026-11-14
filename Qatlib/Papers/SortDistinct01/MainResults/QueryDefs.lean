@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.NumberTheory.Harmonic.Defs
+module
+
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.NumberTheory.Harmonic.Defs
+
+@[expose] public section
 
 /-!
 # Phase queries and block overlap bounds

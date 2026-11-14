@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FourierRecovery.ModularFourier.GradientSourceContinuation
-import Qatlib.Concepts.FourierRecovery.ModularFourier.GradientOracleRefined
+module
+
+public import Qatlib.Concepts.FourierRecovery.ModularFourier.GradientSourceContinuation
+public import Qatlib.Concepts.FourierRecovery.ModularFourier.GradientOracleRefined
+
+@[expose] public section
 
 /-!
 # Parameters and specifications for Fourier gradient assembly
@@ -98,10 +102,10 @@ def stageB_fourier_gradient_gext_next_spec : Prop :=
         = (1 : ℝ) / (2 : ℝ) ^ (k + 1)) ∧
   (∀ (ε : ℝ) (hε : 0 < ε) (j : ℕ), j < gradientAssemblyK ε hε →
       4 * Real.pi / (2 : ℝ) ^ (j + 1) > ε / 4) ∧
-  (∀ (d : ℕ) (ε : ℝ) (hε : 0 < ε),
+  (∀ (d : ℕ) (ε : ℝ) (_hε : 0 < ε),
       2 ≤ gradientAssemblyM_minimal d ε ∧
         16 * (d : ℝ) / ((gradientAssemblyM_minimal d ε : ℝ) * gradientAssemblyW ε) ≤ ε / 2 ∧
-        (∀ (M' : ℕ) (hM2 : 2 ≤ M'),
+        (∀ (M' : ℕ) (_hM2 : 2 ≤ M'),
           16 * (d : ℝ) / ((M' : ℝ) * gradientAssemblyW ε) ≤ ε / 2 →
             gradientAssemblyM_minimal d ε ≤ M') ∧
         gradientAssemblyM_minimal d ε ≤ gradientAssemblyM d ε ∧
@@ -120,7 +124,7 @@ def centeredOutputBits (M : ℕ) : ℕ := Nat.clog 2 (max 2 M) + 1
 def qftElementaryGates (n : ℕ) : ℕ := n + n * (n - 1) / 2 + n / 2
 
 /-- The known basis setup gate count, equal to zero for `k = 0` and one otherwise. -/
-def knownBasisSetUpGates (K k : ℕ) : ℕ := if k = 0 then 0 else 1
+def knownBasisSetUpGates (_K k : ℕ) : ℕ := if k = 0 then 0 else 1
 
 /-- The permutation interchanging `o` and `a` and fixing every other label. -/
 def knownBasisSwap {I : Type} [DecidableEq I] (o a : I) : I → I :=
@@ -157,14 +161,14 @@ noncomputable def gradientReadoutLoss (d M k : ℕ) (B w : ℝ) : ℝ :=
 /-- The specification for minimal headline grid size, the stationary residual loss ceiling, and
 the accuracy bound implied by a confidence budget. -/
 def stageB_fourier_gradient_gext_next2_spec : Prop :=
-  (∀ (d ε δ : ℝ) (hd : 0 ≤ d) (hε : 0 < ε) (hδ : 0 < δ),
+  (∀ (d ε δ : ℝ) (_hd : 0 ≤ d) (_hε : 0 < ε) (_hδ : 0 < δ),
       2 ≤ gradientHeadlineM d ε δ ∧
       16 * d / ((gradientHeadlineM d ε δ : ℝ) * ε) ≤ δ ∧
-      (∀ (M' : ℕ) (hM2 : 2 ≤ M'),
+      (∀ (M' : ℕ) (_hM2 : 2 ≤ M'),
         16 * d / ((M' : ℝ) * ε) ≤ δ → gradientHeadlineM d ε δ ≤ M')) ∧
-  (∀ (d M k : ℕ) (hM : 0 < M) (B w : ℝ) (hw : 0 < w),
+  (∀ (d M k : ℕ) (_hM : 0 < M) (B w : ℝ) (_hw : 0 < w),
       1 - gradientReadoutLoss d M k B w ≤ 1 - 4 * Real.pi * B) ∧
-  (∀ (d M : ℕ) (hM : 0 < M) (w δ : ℝ) (hw : 0 < w) (hδ : 0 < δ),
+  (∀ (d M : ℕ) (_hM : 0 < M) (w δ : ℝ) (_hw : 0 < w) (_hδ : 0 < δ),
       16 * (d : ℝ) / ((M : ℝ) * w) ≤ δ → w ≥ 16 * (d : ℝ) / ((M : ℝ) * δ))
 
 /-- The specification for basis setup cost, elementary QFT counts, register widths, centered
@@ -185,10 +189,10 @@ def stageB_fourier_gradient_gext_next3_spec : Prop :=
       readoutIntegerBits K k = charRegisterQubits K k) ∧
   (∀ (m : ℕ) (z : Fin (2 ^ m)),
       |(2 : ℝ) ^ m * centeredGridOutput (2 ^ m) z| ≤ (2 : ℝ) ^ (m - 1)) ∧
-  (∀ (d M : ℕ) (hM : 0 < M) (g : Fin d → ℝ) (w : ℝ)
-      (hg : ∀ j : Fin d, |g j| ≤ 1 / 4) (hw : w ≤ 1 / 8)
+  (∀ (d M : ℕ) (_hM : 0 < M) (g : Fin d → ℝ) (w : ℝ)
+      (_hg : ∀ j : Fin d, |g j| ≤ 1 / 4) (_hw : w ≤ 1 / 8)
       (z : GradientGrid d M)
-      (hgood : ∀ j : Fin d, phaseDistance ((z j).val / (M : ℝ)) (g j) ≤ w),
+      (_hgood : ∀ j : Fin d, phaseDistance ((z j).val / (M : ℝ)) (g j) ≤ w),
       ∀ j : Fin d,
         (parameterInterval M w z j).1 ≤ g j ∧ g j ≤ (parameterInterval M w z j).2) ∧
   (∀ (d : ℕ) (g ê : Fin d → ℝ) (w : ℝ),

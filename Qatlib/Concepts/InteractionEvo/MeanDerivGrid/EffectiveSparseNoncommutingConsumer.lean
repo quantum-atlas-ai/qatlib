@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.InteractionEvo.EffCosts.EffectiveDysonDefinitions
+module
+
+public import Qatlib.Concepts.InteractionEvo.EffCosts.EffectiveDysonDefinitions
+
+@[expose] public section
 
 /-!
 # A noncommuting one-qubit Hamiltonian field
@@ -49,7 +53,7 @@ theorem effectiveConsumer_noncommuting :
   have hx : effectivePauliX x y = 1 := by
     unfold effectivePauliX
     simp only [finiteCodeMatrix, show (0 : ℕ)<1 by decide, dite_true]
-    rw [wireGate_apply, if_pos]
+    rw [wireGate_apply, ite_eq_left]
     · rfl
     · intro k hk
       exact (hk (Subsingleton.elim k _)).elim

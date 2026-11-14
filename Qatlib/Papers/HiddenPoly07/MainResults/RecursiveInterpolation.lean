@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.MvPolynomial.Equiv
-import Mathlib.Algebra.MvPolynomial.Degrees
-import Mathlib.Algebra.MvPolynomial.CommRing
-import Mathlib.Algebra.Polynomial.Roots
-import Mathlib.Tactic.LinearCombination
+module
+
+public import Mathlib.Algebra.MvPolynomial.Equiv
+public import Mathlib.Algebra.MvPolynomial.Degrees
+public import Mathlib.Algebra.MvPolynomial.CommRing
+public import Mathlib.Algebra.Polynomial.Roots
+public import Mathlib.Tactic.LinearCombination
+
+@[expose] public section
 
 /-!
 # Recursive interpolation and polynomial slices
@@ -106,9 +110,9 @@ theorem coeff_coeffPoly {R : Type*} [CommSemiring R] {k : ℕ} (α : Fin k →�
   rw [coeffPoly, Polynomial.finsetSum_coeff]
   by_cases hi : i ∈ p.support
   · rw [Finset.sum_eq_single i]
-    · rw [Polynomial.coeff_monomial, if_pos rfl]
+    · rw [Polynomial.coeff_monomial, ite_eq_left rfl]
     · intro b _ hb
-      rw [Polynomial.coeff_monomial, if_neg hb]
+      rw [Polynomial.coeff_monomial, ite_eq_right hb]
     · intro h
       exact absurd hi h
   · have hzero : p.coeff i = 0 := by
@@ -120,7 +124,7 @@ theorem coeff_coeffPoly {R : Type*} [CommSemiring R] {k : ℕ} (α : Fin k →�
       have hbne : ¬ (b = i) := by
         rintro rfl
         exact hi hb
-      rw [Polynomial.coeff_monomial, if_neg hbne]
+      rw [Polynomial.coeff_monomial, ite_eq_right hbne]
     rw [hz, hzero]
     simp
 

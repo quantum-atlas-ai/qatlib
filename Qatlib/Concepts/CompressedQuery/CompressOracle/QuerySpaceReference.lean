@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CompressedQuery.CompressOracle.CompressedOracle
+module
+
+public import Qatlib.Concepts.CompressedQuery.CompressOracle.CompressedOracle
+
+@[expose] public section
 
 /-!
 # Reference registers for bit query simulation
@@ -131,6 +135,7 @@ theorem routed_bare_reference (f : I → Bool) (r : I) (hfr : f r = false)
     cases b <;> simp [route, hfr]
   · simp [Qatlib.Foundations.PureStateMath.Ket, hs]
 
+omit [DecidableEq W] in
 /-- A gate lifted by the identity on the reference register acts only on the algorithm state and
 preserves the reference ket. -/
 theorem lifted_gate_reference (U : Matrix (Data I W) (Data I W) ℂ)

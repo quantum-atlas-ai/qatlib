@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SearchStopping.UnknownCount.SearchSourceSchedule
-import Qatlib.Concepts.SearchStopping.UnknownCount.SearchBudget
-import Qatlib.Concepts.SearchStopping.UnknownCount.SearchTimeout
-import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchQueryCost
+module
+
+public import Qatlib.Concepts.SearchStopping.UnknownCount.SearchSourceSchedule
+public import Qatlib.Concepts.SearchStopping.UnknownCount.SearchBudget
+public import Qatlib.Concepts.SearchStopping.UnknownCount.SearchTimeout
+public import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchQueryCost
+
+@[expose] public section
 
 /-!
 # Statement of the unknown-count search family

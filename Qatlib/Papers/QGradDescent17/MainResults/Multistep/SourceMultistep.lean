@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.LinearAlgebra.Matrix.Hermitian
-import Mathlib.LinearAlgebra.Matrix.PosDef
-import Mathlib.Data.Finset.Max
-import Mathlib.Analysis.Normed.Module.Normalize
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.LinearAlgebra.Matrix.Hermitian
+public import Mathlib.LinearAlgebra.Matrix.PosDef
+public import Mathlib.Data.Finset.Max
+public import Mathlib.Analysis.Normed.Module.Normalize
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -120,7 +124,7 @@ initial error `ε` to at most `(t+1)ε`.  This is the paper's induction
 `‖S^{t−1}(L r₀) − S̃^{t−1}(L̃ r₀)‖ ≤ tε`, shifted by one so that the initial
 discrepancy `‖L r₀ − L̃ r₀‖ ≤ ε` is the base case. -/
 theorem multistep_error_growth (S : E →ₗ[ℝ] E) (hS : ∀ x, ‖S x‖ ≤ ‖x‖)
-    (St : E → E) (ε : ℝ) (hstep : ∀ x, ‖S x - St x‖ ≤ ε) (hε : 0 ≤ ε)
+    (St : E → E) (ε : ℝ) (hstep : ∀ x, ‖S x - St x‖ ≤ ε) (_hε : 0 ≤ ε)
     (x y : E) (hxy : ‖x - y‖ ≤ ε) :
     ∀ n : ℕ, ‖((S : E → E)^[n]) x - (St^[n]) y‖ ≤ (n + 1) * ε := by
   intro n

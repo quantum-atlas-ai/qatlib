@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.DyadicFloor.FloorRounding.SdpDualityDefs
-import Qatlib.Concepts.GramQueryCore.GammaDuality.FilteredGamma2Value
-import Qatlib.Concepts.GramQueryCore.GammaDuality.FilteredGamma2FiniteSDP
-import Qatlib.Concepts.SchattenDiamond.DiamondNorm.FiniteDiamondNorm
+module
+
+public import Qatlib.Concepts.SdpDuality.StrongDuality.SdpDualityDefs
+public import Qatlib.Concepts.GramQueryCore.GammaDuality.FilteredGamma2Value
+public import Qatlib.Concepts.GramQueryCore.GammaDuality.FilteredGamma2FiniteSDP
+public import Qatlib.Concepts.SchattenDiamond.DiamondNorm.FiniteDiamondNorm
+
+@[expose] public section
 
 /-!
 # Rational SDP witnesses and consumer contracts
@@ -41,8 +45,8 @@ set_option autoImplicit false
 
 open Qatlib.Foundations.PureStateMath
 
-open Qatlib.Concepts.DyadicFloor.FloorRounding
-open Qatlib.Concepts.DyadicFloor.FloorRounding.Program
+open Qatlib.Concepts.SdpDuality.StrongDuality
+open Qatlib.Concepts.SdpDuality.StrongDuality.Program
 open Qatlib.Concepts.GramQueryCore.FilteredCert
 open Qatlib.Concepts.GramQueryCore.GammaDuality
 open Qatlib.Concepts.SchattenDiamond.DiamondNorm Qatlib.Concepts.RandCompile.ChannelBudget
@@ -50,7 +54,7 @@ open Qatlib.Concepts.SchattenDiamond.DiamondNorm Qatlib.Concepts.RandCompile.Cha
 namespace Qatlib.Concepts.MpsAdaptation.MpsTransfer
 
 open Matrix Filter Topology
-open Qatlib.Concepts.DyadicFloor.FloorRounding
+open Qatlib.Concepts.SdpDuality.StrongDuality
 open scoped ComplexOrder
 
 /-- The residual tolerance `ε`, independent of the size parameter. -/

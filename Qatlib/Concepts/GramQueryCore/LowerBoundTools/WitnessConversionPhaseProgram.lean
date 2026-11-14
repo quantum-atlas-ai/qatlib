@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GramQueryCore.LowerBoundTools.WitnessConversionGeometry
-import Qatlib.Concepts.SpectralFilter.ZeroPhaseFilter.DegeneratePhaseFilter
+module
+
+public import Qatlib.Concepts.GramQueryCore.LowerBoundTools.WitnessConversionGeometry
+public import Qatlib.Concepts.SpectralFilter.ZeroPhaseFilter.DegeneratePhaseFilter
+
+@[expose] public section
 
 /-!
 # Phase reflection programs for witness conversion
@@ -234,13 +238,13 @@ theorem conversion_phase_low_high_bound
     apply Finset.sum_le_sum
     intro j _
     by_cases hj : j ∈ low
-    · rw [if_pos hj]
+    · rw [ite_eq_left hj]
       have hk := pow_le_pow_left₀ (norm_nonneg (qpeKernel M (φ j) (⟨0, by omega⟩ : Fin M)))
         (conversion_kernel_norm_le_one M (by omega) (φ j) _) (2*k)
       have hm := mul_le_mul_of_nonneg_left hk (sq_nonneg ‖c j‖)
       simp only [one_pow, mul_one] at hm
       exact hm.trans (le_add_of_nonneg_right (by positivity))
-    · rw [if_neg hj, zero_add]
+    · rw [ite_eq_right hj, zero_add]
       have hk := pow_le_pow_left₀ (norm_nonneg (qpeKernel M (φ j) (⟨0, by omega⟩ : Fin M)))
         (phase_detection_zero_label_gap_bound M (by omega) (φ j) η hη (hHigh j hj)) (2*k)
       simpa only [mul_comm] using mul_le_mul_of_nonneg_left hk (sq_nonneg ‖c j‖)
@@ -381,7 +385,7 @@ theorem conversion_qpe_zero_branch
     simp only [Matrix.mulVec, dotProduct, Fintype.sum_prod_type, ControlledPowers,
       Matrix.of_apply, TensorState]
     rw [Finset.sum_eq_single t]
-    · simp only [if_true, ApplyGate, Matrix.mulVec, dotProduct, Finset.mul_sum]
+    · simp only [ite_true, ApplyGate, Matrix.mulVec, dotProduct, Finset.mul_sum]
       apply Finset.sum_congr rfl
       intro j _
       ring
@@ -497,8 +501,8 @@ theorem phaseReflectionEmbed_inner {I : Type} [Fintype I] [DecidableEq I]
     {M : ℕ} (hM : 0 < M) (k : ℕ) (a b : QState I) :
     Qatlib.Foundations.PureStateMath.Inner (phaseReflectionEmbed M k a) (phaseReflectionEmbed M k b) = Qatlib.Foundations.PureStateMath.Inner a b := by
   rw [phaseReflectionEmbed_tensor M k hM a, phaseReflectionEmbed_tensor M k hM b,
-    conversion_tensor_inner, inner_ket_ket, if_pos rfl, one_mul,
-    conversion_tensor_inner, inner_ket_ket, if_pos rfl, one_mul]
+    conversion_tensor_inner, inner_ket_ket, ite_eq_left rfl, one_mul,
+    conversion_tensor_inner, inner_ket_ket, ite_eq_left rfl, one_mul]
 
 /-- The phase reflection state construction commutes with complex scalar multiplication. -/
 theorem phaseReflectionState_smul {I : Type} [Fintype I] [DecidableEq I]
@@ -548,7 +552,7 @@ theorem conversion_detection_single {I : Type} [Fintype I] [DecidableEq I]
       (Ket (phaseZeroIndex M 0 hM)) (fun j : Fin 0 => p.1 j.succ) *
         ((Ket (⟨0, hM⟩ : Fin M)) (p.1 (0 : Fin 1)) * ((Ket false) p.2.1 * ψ p.2.2))
     rw [show (Ket (phaseZeroIndex M 0 hM)) (fun j : Fin 0 => p.1 j.succ) = 1 from
-      if_pos (hsub0.elim _ _), one_mul]
+      ite_eq_left (hsub0.elim _ _), one_mul]
     have hz : (∀ j, (p.1 j).val = 0) ↔ p.1 (0 : Fin 1) = (⟨0, hM⟩ : Fin M) := by
       constructor
       · intro h; exact Fin.ext (h 0)
@@ -586,7 +590,7 @@ theorem conversion_detection_single_apply {I : Type} [Fintype I] [DecidableEq I]
   change (Ket (phaseZeroIndex M 0 hM)) (fun j : Fin 0 => p.1 j.succ) *
     phaseFlagEmbed M (qpeOutput M U ψ) (p.1 (0 : Fin 1), p.2) = _
   rw [show (Ket (phaseZeroIndex M 0 hM)) (fun j : Fin 0 => p.1 j.succ) = 1 from
-    if_pos (hsub0.elim _ _), one_mul]
+    ite_eq_left (hsub0.elim _ _), one_mul]
 
 /-- The single-repetition degenerate zero branch equals the zero-output branch of phase
 estimation. -/

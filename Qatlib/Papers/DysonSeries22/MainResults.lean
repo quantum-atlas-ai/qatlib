@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.DysonSeries22.TimeSteps
-import Qatlib.Papers.DysonSeries22.HistorySystem
+module
+
+public import Qatlib.Papers.DysonSeries22.TimeSteps
+public import Qatlib.Papers.DysonSeries22.HistorySystem
+
+@[expose] public section
 
 /-!
 # Dyson endpoint error bounds

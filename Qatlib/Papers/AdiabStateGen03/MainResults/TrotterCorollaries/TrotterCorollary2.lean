@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AdiabStateGen03.MainResults.Defs
-import Qatlib.Papers.AdiabStateGen03.MainResults.TrotterCorollaries.PowerAccumulation
-import Qatlib.Papers.AdiabStateGen03.MainResults.TrotterCorollaries.TrotterStep
+module
+
+public import Qatlib.Papers.AdiabStateGen03.MainResults.Defs
+public import Qatlib.Papers.AdiabStateGen03.MainResults.TrotterCorollaries.PowerAccumulation
+public import Qatlib.Papers.AdiabStateGen03.MainResults.TrotterCorollaries.TrotterStep
+
+@[expose] public section
 
 /-!
 # Trotter error at an exact step count

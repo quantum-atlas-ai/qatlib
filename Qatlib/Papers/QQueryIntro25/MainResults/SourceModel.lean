@@ -4,20 +4,24 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryMagnitude
-import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceMarkSetHybrid
-import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryLowerBounds
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.SensitivityDefinitions
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.QueryDegree
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.BooleanQueryMinimumDefs
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.SymmetrizationAverageSubgoalBeal
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.ParityPolynomialBound
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.ApproxPolynomialBlockSensitivityBeal
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.AdaptiveBlockSensitivityQueryBoundBeal
-import Qatlib.Concepts.QueryComplexity.Reflections.TwoReflectionQueryAlgorithmRefl
-import Qatlib.Concepts.QueryWordCore.QueryMachinery.NegativeAdversary
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryCoreDefs
+module
+
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryMagnitude
+public import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceMarkSetHybrid
+public import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryLowerBounds
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.SensitivityDefinitions
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.QueryDegree
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.BooleanQueryMinimumDefs
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.SymmetrizationAverageSubgoalBeal
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.ParityPolynomialBound
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.ApproxPolynomialBlockSensitivityBeal
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.AdaptiveBlockSensitivityQueryBoundBeal
+public import Qatlib.Concepts.QueryComplexity.Reflections.TwoReflectionQueryAlgorithmRefl
+public import Qatlib.Concepts.QueryWordCore.QueryMachinery.NegativeAdversary
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryCoreDefs
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

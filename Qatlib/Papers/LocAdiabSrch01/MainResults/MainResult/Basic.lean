@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LocAdiabSrch01.MainResults.GapSchedule.Basic
+module
+
+public import Qatlib.Papers.LocAdiabSrch01.MainResults.GapSchedule.Basic
+
+@[expose] public section
 
 /-!
 # Square-root asymptotic of local adiabatic search

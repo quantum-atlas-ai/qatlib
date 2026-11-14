@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.TauEmbedding.BipartiteTauCorrespondence
-import Qatlib.Concepts.WalkSearch.Detection.CorrectedSzegedyDetector
+module
+
+public import Qatlib.Concepts.WalkSearch.TauEmbedding.BipartiteTauCorrespondence
+public import Qatlib.Concepts.WalkSearch.Detection.CorrectedSzegedyDetector
+
+@[expose] public section
 
 /-!
 # Bipartite spectral correspondence consumers

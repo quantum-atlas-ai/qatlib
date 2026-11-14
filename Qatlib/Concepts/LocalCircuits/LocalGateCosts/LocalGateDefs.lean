@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TensorRegisters.RegisterModel.QmaCompletenessLocalSupport
-import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
-import Qatlib.Foundations.PureStateMath.Tensor
+module
+
+public import Qatlib.Concepts.TensorRegisters.RegisterModel.QmaCompletenessLocalSupport
+public import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
+public import Qatlib.Foundations.PureStateMath.Tensor
+
+@[expose] public section
 
 /-!
 # Local gates on binary registers
@@ -132,7 +136,7 @@ theorem zero_width_offdiagonal {n : ℕ}
   change partitionLift (split (∅ : Finset (Fin n))) V
     ((bitVecEquiv n).symm i) ((bitVecEquiv n).symm j) = 0
   rw [partitionLift_apply]
-  apply if_neg
+  apply ite_eq_right
   intro h
   apply hij
   apply (bitVecEquiv n).symm.injective

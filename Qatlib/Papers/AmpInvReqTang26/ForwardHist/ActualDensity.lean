@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AmpInvReqTang26.ForwardHist.ActualPolynomial
-import Qatlib.Papers.AmpInvReqTang26.RootLaws.Lemma23
-import Qatlib.Foundations.MatrixAlgebra.TorusMoments.RootMoments
+module
+
+public import Qatlib.Papers.AmpInvReqTang26.ForwardHist.ActualPolynomial
+public import Qatlib.Papers.AmpInvReqTang26.RootLaws.Lemma23
+public import Qatlib.Foundations.MatrixAlgebra.TorusMoments.RootMoments
+
+@[expose] public section
 
 /-!
 # Actual circuit densities and phase-twist invariance

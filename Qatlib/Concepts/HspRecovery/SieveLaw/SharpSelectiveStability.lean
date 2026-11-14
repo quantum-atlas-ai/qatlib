@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.SieveLaw.MixedSelectivePerturbation
-import Qatlib.Concepts.HspRecovery.SieveLaw.NormalizedBranchDistance
+module
+
+public import Qatlib.Concepts.HspRecovery.SieveLaw.MixedSelectivePerturbation
+public import Qatlib.Concepts.HspRecovery.SieveLaw.NormalizedBranchDistance
+
+@[expose] public section
 
 /-!
 # Sharp stability of selective quantum operations

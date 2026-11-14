@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CodingDecoding.CssTesters.CssCode
-import Qatlib.Concepts.CodingDecoding.CssTesters.CssTester
+module
+
+public import Qatlib.Concepts.CodingDecoding.CssTesters.CssCode
+public import Qatlib.Concepts.CodingDecoding.CssTesters.CssTester
+
+@[expose] public section
 
 /-!
 # CSS recovery and fault-tolerance data

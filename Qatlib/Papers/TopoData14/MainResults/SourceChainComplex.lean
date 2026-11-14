@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.LinearAlgebra.FiniteDimensional.Lemmas
-import Mathlib.LinearAlgebra.Dimension.Constructions
-import Mathlib.Data.Complex.Basic
+module
+
+public import Mathlib.LinearAlgebra.FiniteDimensional.Lemmas
+public import Mathlib.LinearAlgebra.Dimension.Constructions
+public import Mathlib.Basic.Complex.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

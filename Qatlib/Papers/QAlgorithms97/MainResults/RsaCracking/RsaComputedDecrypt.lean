@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QAlgorithms97.MainResults.RsaCracking
-import Mathlib.GroupTheory.OrderOfElement
-import Mathlib.RingTheory.ZMod.UnitsCyclic
-import Mathlib.Data.ZMod.Units
+module
+
+public import Qatlib.Papers.QAlgorithms97.MainResults.RsaCracking
+public import Mathlib.GroupTheory.OrderOfElement
+public import Mathlib.RingTheory.ZMod.UnitsCyclic
+public import Mathlib.Data.ZMod.Units
+
+@[expose] public section
 
 /-!
 # RSA computed decryption from a recovered order (Appendix A)

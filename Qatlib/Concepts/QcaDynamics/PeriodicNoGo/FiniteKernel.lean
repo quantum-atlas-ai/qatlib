@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QcaDynamics.ScalarNoGo.LocalKernel
-import Mathlib.LinearAlgebra.Matrix.Circulant
-import Mathlib.LinearAlgebra.UnitaryGroup
-import Mathlib.Analysis.Complex.Basic
+module
+
+public import Qatlib.Concepts.QcaDynamics.ScalarNoGo.LocalKernel
+public import Mathlib.LinearAlgebra.Matrix.Circulant
+public import Mathlib.LinearAlgebra.UnitaryGroup
+public import Mathlib.Analysis.Complex.Basic
+
+@[expose] public section
 
 /-!
 # Finite convolution kernels and unitarity
@@ -63,7 +67,7 @@ theorem finiteKernel_unitary_iff {V : Type*} [AddCommGroup V] [Fintype V] [Decid
   constructor
   · intro h d
     have hh := congrArg (fun M : Matrix V V ℂ => M 0 d) h
-    try dsimp only at hh
+
     rw [finiteKernel_gram] at hh
     simpa only [sub_zero, Matrix.one_apply, eq_comm] using hh
   · intro h
@@ -113,8 +117,8 @@ theorem finiteKernel_unitary_of_neighborhood {V : Type*} [AddCommGroup V] [Finty
   rw [correlation_sum_neighborhood E w hs d]
   by_cases hd : d=0
   · subst d
-    simpa only [sub_zero,if_pos rfl] using! hu.1
-  · simpa only [if_neg hd] using hu.2 d hd
+    simpa only [sub_zero,ite_eq_left rfl] using! hu.1
+  · simpa only [ite_eq_right hd] using hu.2 d hd
 
 /-- The matrix `finiteKernel A.weight` is unitary exactly when the finite-neighborhood weight
 model satisfies `Unitary A`. -/

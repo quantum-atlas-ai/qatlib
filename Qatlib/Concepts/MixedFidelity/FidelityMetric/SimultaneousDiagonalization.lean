@@ -4,9 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.JointEigenspace
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Analysis.Matrix.Hermitian
+module
+
+public import Mathlib.Analysis.InnerProductSpace.JointEigenspace
+public import Mathlib.Analysis.InnerProductSpace.Spectrum
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Analysis.Matrix.Hermitian
+
+@[expose] public section
 
 /-!
 # Simultaneous diagonalization of commuting Hermitian matrices
@@ -48,7 +53,7 @@ theorem exists_common_orthonormal_eigenbasis {E ι : Type*}
       LinearMap.IsSymmetric.directSum_isInternal_of_pairwise_commute hT hC
   let S := {χ : ι → ℂ | V χ≠⊥}
   have hs : S.Finite := WellFoundedGT.finite_ne_bot_of_iSupIndep hInt.submodule_iSupIndep
-  letI : Fintype S := hs.fintype
+  let : Fintype S := hs.fintype
   have horth0 := LinearMap.IsSymmetric.orthogonalFamily_iInf_eigenspaces hT
   have horth : OrthogonalFamily ℂ (fun χ : S => V χ) (fun χ => (V χ).subtypeₗᵢ) := by
     intro χ ψ hne x y

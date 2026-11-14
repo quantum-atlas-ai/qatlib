@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Group.Subgroup.Basic
-import Mathlib.GroupTheory.QuotientGroup.Defs
-import Mathlib.GroupTheory.OrderOfElement
-import Mathlib.Tactic
+module
+
+public import Mathlib.Algebra.Group.Subgroup.Basic
+public import Mathlib.GroupTheory.QuotientGroup.Defs
+public import Mathlib.GroupTheory.OrderOfElement
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Lifting subgroup generators through a quotient

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ShadowModels.ShadowVariance.PauliPairRecords
-import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.HermitianFunctionStability
+module
+
+public import Qatlib.Concepts.ShadowModels.ShadowVariance.PauliPairRecords
+public import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.HermitianFunctionStability
+
+@[expose] public section
 
 /-!
 # Real Pauli estimator moments
@@ -189,14 +193,14 @@ private theorem localShadowWeight_prod {n : ℕ} (u v : Fin n → Option (Fin 3)
     ∏ i, localShadowWeight (u i) (v i) =
       if pauliWordsCompatible u v then (3:ℝ)^pauliWordOverlap u v else 0 := by
   by_cases h : pauliWordsCompatible u v
-  · rw [if_pos h, pauliWordOverlap, ← Finset.prod_pow_eq_pow_sum]
+  · rw [ite_eq_left h, pauliWordOverlap, ← Finset.prod_pow_eq_pow_sum]
     apply Finset.prod_congr rfl
     intro i _
     cases hu : u i <;> cases hv : v i <;> simp [localShadowWeight]
     rename_i a b
     have hab := h i a b hu hv
     simp [hab]
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     obtain ⟨i,a,b,hu,hv,hab⟩ := by
       simpa only [pauliWordsCompatible, not_forall, Classical.not_imp] using! h
     apply Finset.prod_eq_zero (Finset.mem_univ i)
@@ -209,7 +213,7 @@ private theorem localShadowMoment_bound {n : ℕ} (ρ : Operator (2^n))
     |sparsePauliMoment ρ u v| ≤ ∏ i, localShadowWeight (u i) (v i) := by
   rw [localShadowWeight_prod]
   by_cases h : pauliWordsCompatible u v
-  · simp only [sparsePauliMoment, if_pos h, abs_mul,
+  · simp only [sparsePauliMoment, ite_eq_left h, abs_mul,
       abs_of_nonneg (show 0 ≤ (3:ℝ)^pauliWordOverlap u v by positivity)]
     exact mul_le_of_le_one_right (by positivity)
       (sparsePauliWord_expectation_abs_le_one n ρ hρ _)
@@ -258,13 +262,13 @@ private theorem localShadowSupportWeight_row {n : ℕ} (S : Finset (Fin n))
         ∏ i, (if i ∈ S ∨ v i=none then localShadowWeight (u i) (v i) else 0) := by
       intro v
       by_cases hv : ∀ i, i ∉ S → v i=none
-      · rw [localShadowSupportWeight, if_pos (And.intro hu hv)]
+      · rw [localShadowSupportWeight, ite_eq_left (And.intro hu hv)]
         apply Finset.prod_congr rfl
         intro i _
         by_cases hi : i ∈ S
         · simp [hi]
         · simp [hv i hi]
-      · rw [localShadowSupportWeight, if_neg (fun h => hv h.2)]
+      · rw [localShadowSupportWeight, ite_eq_right (fun h => hv h.2)]
         obtain ⟨i,hi,hvi⟩ := by simpa only [not_forall,Classical.not_imp] using! hv
         symm
         apply Finset.prod_eq_zero (Finset.mem_univ i)
@@ -277,7 +281,7 @@ private theorem localShadowSupportWeight_row {n : ℕ} (S : Finset (Fin n))
         if i ∈ S then 4 else 1 := by
       intro i
       by_cases hi : i ∈ S
-      · simp only [hi,true_or,if_true]
+      · simp only [hi,true_or,ite_true]
         exact localShadowWeight_sum (u i)
       · simp [hi,localShadowWeight,hu i hi]
     simp_rw [hl]
@@ -332,7 +336,7 @@ theorem realShadow_second_le_coefficient {n q : ℕ} (S : Finset (Fin n))
             mul_le_mul_of_nonneg_left (localShadowMoment_bound ρ hρ u v) (abs_nonneg _)
           _ ≤ _ := by
             dsimp [K]
-            rw [localShadowSupportWeight,if_pos (And.intro hu hv)]
+            rw [localShadowSupportWeight,ite_eq_left (And.intro hu hv)]
             exact mul_le_mul_of_nonneg_right ha
               (Finset.prod_nonneg (fun _ _ => localShadowWeight_nonneg _ _))
       · have hz := realShadowCoefficient_outside S w c hs v hv

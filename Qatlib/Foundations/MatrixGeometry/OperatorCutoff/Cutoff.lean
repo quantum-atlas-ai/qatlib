@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixGeometry.OperatorCutoff.Contraction
+module
+
+public import Qatlib.Foundations.MatrixGeometry.OperatorCutoff.Contraction
+
+@[expose] public section
 
 /-!
 # Coefficient cutoffs and energy error
@@ -98,7 +102,7 @@ their operator-norm distance. -/
 theorem energy_sub_le_opNorm (H K : E →L[ℂ] E) (ψ : E) (hψ : ‖ψ‖ = 1) :
     |energy H ψ - energy K ψ| ≤ ‖H - K‖ := by
   have he : energy H ψ - energy K ψ = (inner ℂ ψ ((H - K) ψ)).re := by
-    simp only [energy, ContinuousLinearMap.sub_apply, inner_sub_right, Complex.sub_re]
+    simp only [energy, _root_.sub_apply, inner_sub_right, Complex.sub_re]
   rw [he]
   calc
     |(inner ℂ ψ ((H - K) ψ)).re| ≤ ‖inner ℂ ψ ((H - K) ψ)‖ := Complex.abs_re_le_norm _

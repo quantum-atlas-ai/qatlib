@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixAlgebra.ProjectiveFix.Instrument
-import Mathlib.LinearAlgebra.Matrix.Kronecker
-import Mathlib.Data.Matrix.Basis
+module
+
+public import Qatlib.Foundations.MatrixAlgebra.ProjectiveFix.Instrument
+public import Mathlib.LinearAlgebra.Matrix.Kronecker
+public import Mathlib.Data.Matrix.Basis
+
+@[expose] public section
 
 /-!
 # Maximally mixed local reset

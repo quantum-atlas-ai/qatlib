@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GramQueryCore.FilteredCert.FilteredGamma2
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryMagnitude
+module
+
+public import Qatlib.Concepts.GramQueryCore.FilteredCert.FilteredGamma2
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryMagnitude
+
+@[expose] public section
 
 /-!
 # Filtered Gram bounds for bit queries

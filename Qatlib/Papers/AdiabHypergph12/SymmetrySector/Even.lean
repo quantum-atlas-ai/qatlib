@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Real.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.Module.Submodule.Basic
-import Mathlib.Algebra.Module.LinearMap.Basic
-import Mathlib.Algebra.Module.Pi
-import Mathlib.LinearAlgebra.Pi
+module
+
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.Module.Submodule.Basic
+public import Mathlib.Algebra.Module.LinearMap.Basic
+public import Mathlib.Algebra.Module.Pi
+public import Mathlib.LinearAlgebra.Pi
+
+@[expose] public section
 
 /-!
 # Even permutation symmetry sectors
@@ -71,11 +75,11 @@ def evenSubspace (σ : ι ≃ ι) : Submodule ℝ (ι → ℝ) where
   zero_mem' := map_zero (permLin σ)
   add_mem' := by
     intro v w hv hw
-    simp only [Set.mem_setOf_eq, IsEven] at hv hw ⊢
+    simp only [Set.mem_ofPred_eq, IsEven] at hv hw ⊢
     rw [map_add, hv, hw]
   smul_mem' := by
     intro c v hv
-    simp only [Set.mem_setOf_eq, IsEven] at hv ⊢
+    simp only [Set.mem_ofPred_eq, IsEven] at hv ⊢
     rw [map_smul, hv]
 
 /-- An even vector belongs to the fixed subspace `evenSubspace σ`. -/

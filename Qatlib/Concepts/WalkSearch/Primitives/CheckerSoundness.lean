@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.WalkAlgorithms.WalkContracts
-import Qatlib.Concepts.WalkSearch.WalkAlgorithms.WalkContractsClassical
+module
+
+public import Qatlib.Concepts.WalkSearch.WalkAlgorithms.WalkContracts
+public import Qatlib.Concepts.WalkSearch.WalkAlgorithms.WalkContractsClassical
+
+@[expose] public section
 
 /-!
 # Soundness of the triangle checker

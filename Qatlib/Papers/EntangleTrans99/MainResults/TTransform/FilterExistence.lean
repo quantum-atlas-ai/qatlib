@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.Entanglement.Separability.EntanglementLOCCDefs
-import Qatlib.Concepts.Entanglement.Separability.EntanglementLOCC
-import Qatlib.Papers.EntangleTrans99.MainResults.TTransform.Basic
+module
+
+public import Qatlib.Concepts.Entanglement.Separability.EntanglementLOCCDefs
+public import Qatlib.Concepts.Entanglement.Separability.EntanglementLOCC
+public import Qatlib.Papers.EntangleTrans99.MainResults.TTransform.Basic
+
+@[expose] public section
 
 /-!
 # Positive filters for T-transforms
@@ -70,7 +74,7 @@ theorem tTransformSpectrum_pos {D : ℕ} (spec : Fin D → ℝ) (θ : ℝ) (k l 
 /-- For a strictly positive spectrum with sum one and a mixing parameter in `[0, 1]`, there is a
 positive `p` making every T-transform filter value lie in `[0, 1]` [Nielsen1999]. -/
 theorem exists_admissible_filter {D : ℕ} (spec : Fin D → ℝ) (θ : ℝ) (k l : Fin D)
-    (hpos : ∀ j, 0 < spec j) (hsum : (∑ j, spec j) = 1)
+    (hpos : ∀ j, 0 < spec j) (_hsum : (∑ j, spec j) = 1)
     (hθ0 : 0 ≤ θ) (hθ1 : θ ≤ 1) :
     ∃ p : ℝ, 0 < p ∧ (∀ j, 0 ≤ tTransformFilter spec p θ k l j) ∧
       (∀ j, tTransformFilter spec p θ k l j ≤ 1) := by

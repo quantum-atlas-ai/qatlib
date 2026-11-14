@@ -4,18 +4,22 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RiskEstimation.PopulationGap.AmplitudeReadoutDefs
-import Qatlib.Concepts.RiskEstimation.PopulationGap.NativeRiskDefs
-import Qatlib.Concepts.NativeNumerics.EmpiricalRisk.EmpiricalRiskConsumers
-import Qatlib.Concepts.RiskEstimation.VaRQuantile.BisectFiniteRoutingSubgoalQuan
-import Qatlib.Concepts.PhaseGeometry.RationalCayleyPhase
-import Qatlib.Concepts.CircuitImpl.MultiControl.NoWorkTwoLevelSynthesis
-import Qatlib.Concepts.RiskEstimation.PopulationGap.Implementation
-import Qatlib.Concepts.RiskEstimation.PopulationGap.ImplementationDefs
-import Qatlib.Concepts.RiskEstimation.PopulationGap.GatesDefs
-import Qatlib.Concepts.RiskEstimation.PopulationGap.OrderShorDefs
-import Qatlib.Concepts.RiskEstimation.PopulationGap.ContinuousMarketCDFDefs
-import Qatlib.Concepts.RiskEstimation.PopulationGap.MarketQuantizationDefs
+module
+
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.AmplitudeReadoutDefs
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.NativeRiskDefs
+public import Qatlib.Concepts.NativeNumerics.EmpiricalRisk.EmpiricalRiskConsumers
+public import Qatlib.Concepts.RiskEstimation.VaRQuantile.BisectFiniteRoutingSubgoalQuan
+public import Qatlib.Concepts.PhaseGeometry.RationalCayleyPhase
+public import Qatlib.Concepts.CircuitImpl.MultiControl.NoWorkTwoLevelSynthesis
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.Implementation
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.ImplementationDefs
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.GatesDefs
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.OrderShorDefs
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.ContinuousMarketCDFDefs
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.MarketQuantizationDefs
+
+@[expose] public section
 
 /-!
 # Market grid scan resource accounting

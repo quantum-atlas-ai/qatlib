@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.BQPJonesPoly06.MainResults.Model.Bridge
-import Mathlib.Analysis.InnerProductSpace.GramSchmidtOrtho
-import Mathlib.LinearAlgebra.Matrix.ToLinearEquiv
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Analysis.InnerProductSpace.LinearMap
-import Mathlib.Analysis.InnerProductSpace.Adjoint
-import Mathlib.Analysis.InnerProductSpace.Projection.Reflection
-import Mathlib.Analysis.CStarAlgebra.Classes
+module
+
+public import Qatlib.Papers.BQPJonesPoly06.MainResults.Model.Bridge
+public import Mathlib.Analysis.InnerProductSpace.GramSchmidtOrtho
+public import Mathlib.LinearAlgebra.Matrix.ToLinearEquiv
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Analysis.InnerProductSpace.LinearMap
+public import Mathlib.Analysis.InnerProductSpace.Adjoint
+public import Mathlib.Analysis.InnerProductSpace.Projection.Reflection
+public import Mathlib.Analysis.CStarAlgebra.Classes
+
+@[expose] public section
 
 /-!
 # Unitary maps between unit vectors
@@ -96,8 +100,8 @@ theorem scaleLine_apply (M : Submodule ℂ E) (lam : ℂ) (x : E) :
 /-- The map `scaleLine M lam` fixes every vector orthogonal to `M`. -/
 theorem scaleLine_eq_self_of_mem_orthogonal (M : Submodule ℂ E) (lam : ℂ) {x : E}
     (hx : x ∈ Mᗮ) : scaleLine M lam x = x := by
-  have h0 : M.orthogonalProjection x = 0 :=
-    (Submodule.orthogonalProjection_eq_zero_iff (K := M)).2 hx
+  have h0 : M.orthogonalProjectionOnto x = 0 :=
+    (Submodule.orthogonalProjectionOnto_eq_zero_iff (K := M)).2 hx
   have h0' : M.starProjection x = 0 := by
     rw [Submodule.starProjection_apply, h0]
     simp
@@ -152,7 +156,7 @@ theorem scaleLine_det (M : Submodule ℂ E) (hM : Module.finrank ℂ M = 1) {lam
     (hlam : ‖lam‖ = 1) :
     LinearMap.det ((scaleLineEquiv M hlam : E ≃ₗᵢ[ℂ] E) : E →ₗ[ℂ] E) = lam := by
   have hMorth : IsCompl M Mᗮ :=
-    Submodule.isCompl_orthogonal_of_hasOrthogonalProjection (K := M)
+    Submodule.isCompl_orthogonal (K := M)
   let ψ : (M × Mᗮ) ≃ₗ[ℂ] E := Submodule.prodEquivOfIsCompl M Mᗮ hMorth
   have hψ : (ψ : (M × Mᗮ) →ₗ[ℂ] E) = M.subtype.coprod Mᗮ.subtype :=
     Submodule.coe_prodEquivOfIsCompl (p := M) (q := Mᗮ) hMorth
@@ -292,17 +296,17 @@ theorem specialUnitary_sphere_transitive (A : Submodule ℂ E)
     change S (e u) = v
     rw [he, hSv]
   let T : E →L[ℂ] E :=
-    (Submodule.subtypeL A).comp ((U.toContinuousLinearMap).comp A.orthogonalProjection) +
+    (Submodule.subtypeL A).comp ((U.toContinuousLinearMap).comp A.orthogonalProjectionOnto) +
       (1 - A.starProjection)
   refine ⟨T, ?_, ?_⟩
   · refine ⟨U, hUdet, fun x => ?_⟩
-    simp [T, ContinuousLinearMap.add_apply, ContinuousLinearMap.sub_apply,
-      ContinuousLinearMap.one_apply, ContinuousLinearMap.comp_apply]
-  · simp only [T, ContinuousLinearMap.add_apply, ContinuousLinearMap.comp_apply,
-      ContinuousLinearMap.sub_apply, ContinuousLinearMap.one_apply,
+    simp [T, _root_.add_apply, _root_.sub_apply,
+      _root_.one_apply_eq_self, ContinuousLinearMap.comp_apply]
+  · simp only [T, _root_.add_apply, ContinuousLinearMap.comp_apply,
+      _root_.sub_apply, _root_.one_apply_eq_self,
       Submodule.coe_subtypeL]
-    rw [show A.orthogonalProjection (u : E) = u from
-        Submodule.orthogonalProjection_mem_subspace_eq_self u,
+    rw [show A.orthogonalProjectionOnto (u : E) = u from
+        Submodule.orthogonalProjectionOnto_mem_subspace_eq_self u,
       show A.starProjection (u : E) = (u : E) from
         Submodule.starProjection_mem_subspace_eq_self u]
     simp only [sub_self, add_zero]

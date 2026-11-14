@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ShadowModels.SampleBudget.QuadraticShadowSourceParametersStat
-import Qatlib.Concepts.ShadowModels.ShadowVariance.PauliQuadraticVarianceSharpSubgoalHuan
-import Mathlib.Data.Finset.Fold
+module
+
+public import Qatlib.Concepts.ShadowModels.SampleBudget.QuadraticShadowSourceParametersStat
+public import Qatlib.Concepts.ShadowModels.ShadowVariance.PauliQuadraticVarianceSharpSubgoalHuan
+public import Mathlib.Data.Finset.Fold
+
+@[expose] public section
 
 /-!
 # Explicit quadratic shadow sample budgets

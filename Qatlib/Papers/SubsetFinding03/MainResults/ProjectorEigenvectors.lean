@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
-import Mathlib.Analysis.Complex.Trigonometric
-import Mathlib.Data.Complex.Basic
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Data.Matrix.Mul
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
+public import Mathlib.Analysis.Complex.Trigonometric
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Two-level eigenvectors for subset finding
@@ -198,9 +202,9 @@ lemma twoByTwo_mulVec_ketPlus (d b : ℝ) :
       ((d : ℂ) + (b : ℂ) * Complex.I) • (![Complex.I, 1] : Fin 2 → ℂ) := by
   funext i
   fin_cases i
-  · simp [Matrix.mulVec, Fin.sum_univ_two, Pi.smul_apply, smul_eq_mul]
+  · simp [Matrix.mulVec, Pi.smul_apply, smul_eq_mul]
     linear_combination (-(b : ℂ)) * Complex.I_sq
-  · simp [Matrix.mulVec, Fin.sum_univ_two, Pi.smul_apply, smul_eq_mul]
+  · simp [Matrix.mulVec, Pi.smul_apply, smul_eq_mul]
     ring
 
 /-- The vector `(-i, 1)` is an eigenvector of the matrix with rows `(d, -b)` and `(b, d)`, with
@@ -210,9 +214,9 @@ lemma twoByTwo_mulVec_ketMinus (d b : ℝ) :
       ((d : ℂ) - (b : ℂ) * Complex.I) • (![-Complex.I, 1] : Fin 2 → ℂ) := by
   funext i
   fin_cases i
-  · simp [Matrix.mulVec, Fin.sum_univ_two, Pi.smul_apply, smul_eq_mul]
+  · simp [Matrix.mulVec, Pi.smul_apply, smul_eq_mul]
     linear_combination (-(b : ℂ)) * Complex.I_sq
-  · simp [Matrix.mulVec, Fin.sum_univ_two, Pi.smul_apply, smul_eq_mul]
+  · simp [Matrix.mulVec, Pi.smul_apply, smul_eq_mul]
     ring
 
 /-- Expresses `twoLevelKetPlus` as `(i, 1)` scaled by `1 / √2`. -/
@@ -220,14 +224,16 @@ lemma twoLevelKetPlus_eq_smul :
     twoLevelKetPlus = (((Real.sqrt 2 : ℝ) : ℂ))⁻¹ • (![Complex.I, 1] : Fin 2 → ℂ) := by
   funext i
   fin_cases i <;>
-    (simp [twoLevelKetPlus, Pi.smul_apply, smul_eq_mul, div_eq_mul_inv] <;> ring)
+    simp [twoLevelKetPlus, Pi.smul_apply, smul_eq_mul, div_eq_mul_inv]
+  ring
 
 /-- Expresses `twoLevelKetMinus` as `(-i, 1)` scaled by `1 / √2`. -/
 lemma twoLevelKetMinus_eq_smul :
     twoLevelKetMinus = (((Real.sqrt 2 : ℝ) : ℂ))⁻¹ • (![-Complex.I, 1] : Fin 2 → ℂ) := by
   funext i
   fin_cases i <;>
-    (simp [twoLevelKetMinus, Pi.smul_apply, smul_eq_mul, div_eq_mul_inv] <;> ring)
+    simp [twoLevelKetMinus, Pi.smul_apply, smul_eq_mul, div_eq_mul_inv]
+  ring
 
 /-- The unscaled vector `(i, 1)` satisfies the plus eigenvector equation for `twoLevelUP c`. -/
 lemma twoLevelUP_mulVec_ketPlus (c : ℝ) :
@@ -398,7 +404,7 @@ lemma norm_inv_sqrt_two_le_one :
   exact inv_le_one_of_one_le₀ h2
 
 /-- Multiplication by `1 / √2` preserves an upper bound `B ≥ 0` on a complex norm. -/
-lemma norm_smul_inv_sqrt_two_le {z : ℂ} {B : ℝ} (hz : ‖z‖ ≤ B) (hB0 : 0 ≤ B) :
+lemma norm_smul_inv_sqrt_two_le {z : ℂ} {B : ℝ} (hz : ‖z‖ ≤ B) (_hB0 : 0 ≤ B) :
     ‖(((Real.sqrt 2 : ℝ) : ℂ))⁻¹ * z‖ ≤ B := by
   rw [norm_mul]
   calc ‖(((Real.sqrt 2 : ℝ) : ℂ))⁻¹‖ * ‖z‖ ≤ 1 * B :=

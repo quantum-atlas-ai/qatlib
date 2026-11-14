@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MatProdVerify04.MainResults.MarkedCombine
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Sqrt
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.MatProdVerify04.MainResults.MarkedCombine
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Sqrt
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Arithmetic bounds for matrix-verification time

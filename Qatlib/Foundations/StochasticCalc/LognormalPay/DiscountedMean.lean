@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.StochasticCalc.LognormalPay.TerminalMean
+module
+
+public import Qatlib.Foundations.StochasticCalc.LognormalPay.TerminalMean
+
+@[expose] public section
 
 /-!
 # Discounted mean of a lognormal terminal level

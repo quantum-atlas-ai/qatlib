@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HhlAlgorithms.Postselection.HHLUnknownSuccessContract
-import Qatlib.Concepts.HhlAlgorithms.Postselection.RationalHHLNoiseRetry
-import Qatlib.Concepts.HhlAlgorithms.Postselection.FreshTrials
-import Qatlib.Concepts.QlsReadoutSpec.LowRankHHL.LowRankHHLConsumers
+module
+
+public import Qatlib.Concepts.HhlAlgorithms.Postselection.HHLUnknownSuccessContract
+public import Qatlib.Concepts.HhlAlgorithms.Postselection.RationalHHLNoiseRetry
+public import Qatlib.Concepts.HhlAlgorithms.Postselection.FreshTrials
+public import Qatlib.Concepts.QlsReadoutSpec.LowRankHHL.LowRankHHLConsumers
+
+@[expose] public section
 
 /-!
 # Rational HHL retries and unknown-success amplification
@@ -620,6 +624,7 @@ theorem countP_map_preparedOfAdjoint (p : PreparedStep I → Bool) (cs : List (A
   intro c _
   cases c <;> rfl
 
+omit [Fintype I] [DecidableEq I] in
 /-- Embedding an adjoint circuit as a prepared word preserves its forward data-oracle count. -/
 theorem dataForwardCalls_map (cs : List (AdjointStep I)) :
     dataForwardCalls (cs.map preparedOfAdjoint) = fwdCount cs := by
@@ -628,6 +633,7 @@ theorem dataForwardCalls_map (cs : List (AdjointStep I)) :
   intro c _
   cases c <;> simp
 
+omit [Fintype I] [DecidableEq I] in
 /-- Embedding an adjoint circuit as a prepared word preserves its backward data-oracle count. -/
 theorem dataBackwardCalls_map (cs : List (AdjointStep I)) :
     dataBackwardCalls (cs.map preparedOfAdjoint) = bwdCount cs := by
@@ -646,6 +652,7 @@ theorem countP_inverseWord (p q : PreparedStep I → Bool)
   rw [inverseWord, List.countP_map, show (p ∘ inverseStep) = q from funext h]
   exact List.countP_reverse
 
+omit [Fintype I] [DecidableEq I] in
 /-- The inverse word has as many forward data calls as the original word has backward data
 calls. -/
 theorem dataForwardCalls_inverseWord (cs : List (PreparedStep I)) :
@@ -653,6 +660,7 @@ theorem dataForwardCalls_inverseWord (cs : List (PreparedStep I)) :
   rw [dataForwardCalls_eq_countP, dataBackwardCalls_eq_countP,
     countP_inverseWord isDataFwd isDataBwd (by intro x; cases x <;> rfl)]
 
+omit [Fintype I] [DecidableEq I] in
 /-- The inverse word has as many backward data calls as the original word has forward data
 calls. -/
 theorem dataBackwardCalls_inverseWord (cs : List (PreparedStep I)) :
@@ -660,6 +668,7 @@ theorem dataBackwardCalls_inverseWord (cs : List (PreparedStep I)) :
   rw [dataBackwardCalls_eq_countP, dataForwardCalls_eq_countP,
     countP_inverseWord isDataBwd isDataFwd (by intro x; cases x <;> rfl)]
 
+omit [Fintype I] [DecidableEq I] in
 /-- The inverse word has as many forward preparation calls as the original word has backward
 preparation calls. -/
 theorem inputForwardCalls_inverseWord (cs : List (PreparedStep I)) :
@@ -667,6 +676,7 @@ theorem inputForwardCalls_inverseWord (cs : List (PreparedStep I)) :
   rw [inputForwardCalls_eq_countP, inputBackwardCalls_eq_countP,
     countP_inverseWord isInpFwd isInpBwd (by intro x; cases x <;> rfl)]
 
+omit [Fintype I] [DecidableEq I] in
 /-- The inverse word has as many backward preparation calls as the original word has forward
 preparation calls. -/
 theorem inputBackwardCalls_inverseWord (cs : List (PreparedStep I)) :
@@ -981,6 +991,7 @@ theorem preparedFixedGates_eq_countP (cs : List (PreparedStep I)) :
   | cons c cs ih =>
       cases c <;> simp [preparedFixedGates, isGate, ih]
 
+omit [Fintype I] [DecidableEq I] in
 /-- Inverting a prepared word preserves its fixed-gate count. -/
 theorem preparedFixedGates_inverseWord (cs : List (PreparedStep I)) :
     preparedFixedGates (inverseWord cs) = preparedFixedGates cs := by

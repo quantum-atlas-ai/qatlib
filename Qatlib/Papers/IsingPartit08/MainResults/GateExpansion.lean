@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.IsingPartit08.MainResults.Defs
-import Mathlib.Data.List.Sublists
+module
+
+public import Qatlib.Papers.IsingPartit08.MainResults.Defs
+public import Mathlib.Data.List.Sublists
+
+@[expose] public section
 
 /-!
 # Binary gate products and sublist expansions

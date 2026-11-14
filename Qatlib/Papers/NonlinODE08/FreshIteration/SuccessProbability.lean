@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
-import Mathlib.Analysis.MeanInequalities
+module
+
+public import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
+public import Mathlib.Analysis.MeanInequalities
+
+@[expose] public section
 
 /-!
 # SuccessProbability — success probability of one iteration round and the `m`-round chain

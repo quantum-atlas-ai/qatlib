@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TensorRegisters.RegisterModel.TensorRegisters
-import Qatlib.Concepts.QueryComplexity.Amplification.PiTensorState
-import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
-import Mathlib.Analysis.Real.Pi.Bounds
-import Mathlib.Tactic
+module
+
+public import Qatlib.Concepts.TensorRegisters.RegisterModel.TensorRegisters
+public import Qatlib.Concepts.QueryComplexity.Amplification.PiTensorState
+public import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+public import Mathlib.Analysis.Real.Pi.Bounds
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Tensor phase witnesses and operator error lower bounds

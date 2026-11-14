@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ReadManyQry11.MainResults.SourceModel
-import Qatlib.Concepts.SearchStopping.UnknownCount.Theorem3CorrectedTigh
+module
+
+public import Qatlib.Papers.ReadManyQry11.MainResults.SourceModel
+public import Qatlib.Concepts.SearchStopping.UnknownCount.Theorem3Corrected
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

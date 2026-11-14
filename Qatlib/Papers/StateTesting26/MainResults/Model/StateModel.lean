@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import QuantumInfo.Measurements.POVM
-import QuantumInfo.States.Mixed.TraceDistance
-import Mathlib.Analysis.CStarAlgebra.Matrix
+module
+
+public import QuantumInfo.Measurements.POVM
+public import QuantumInfo.States.Mixed.TraceDistance
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

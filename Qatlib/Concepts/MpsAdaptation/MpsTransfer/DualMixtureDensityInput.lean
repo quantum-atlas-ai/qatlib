@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.HybridDensityEvaluation
-import Qatlib.Concepts.MpsAdaptation.MpsTransfer.MatrixOptimizationSemantics
-import Qatlib.Concepts.MpsAdaptation.MpsTransfer.DualMixtureMassApproximation
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.HybridDensityEvaluation
+public import Qatlib.Concepts.MpsAdaptation.MpsTransfer.MatrixOptimizationSemantics
+public import Qatlib.Concepts.MpsAdaptation.MpsTransfer.DualMixtureMassApproximation
+
+@[expose] public section
 
 /-!
 # Density evaluation of capped dual mixtures
@@ -314,9 +318,9 @@ theorem dual_mixture_normalized {T D m : ℕ} (F : Family T D m) (j₀ : Fin m)
   simp_rw [div_mul_eq_mul_div]
   rw [← Finset.sum_div]
   by_cases hi : i = j₀
-  · simp only [hi, if_true, mul_one]
+  · simp only [hi, ite_true, mul_one]
     field_simp [hTr.ne', hS.ne']
-  · simp only [hi, if_false, mul_zero, zero_add]
+  · simp only [hi, ite_false, mul_zero, zero_add]
     field_simp [hTr.ne', hS.ne']
     ring
 

@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
-import Qatlib.Concepts.HspRecovery.Distinguisher.BoundedErrorNearPeriodStat
-import Qatlib.Concepts.AbelianDecoders.SimonDecoding.VerifiedSimonRetry
-import Qatlib.Concepts.UniformBqp.Phi3Compile.QtmPhi3WindowSimulationStat
-import Qatlib.Concepts.QtmSimulation.Phi3Compilation.QtmPhi3WireTransport
-import Qatlib.Concepts.QftPreparation.LocalQFTImplementation
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.FiniteStoppingTail
-import Qatlib.Concepts.LinearLearning.ConcisePipeline.RandomizedCost
-import Mathlib.Probability.Distributions.Uniform
+module
+
+public import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+public import Qatlib.Concepts.HspRecovery.Distinguisher.BoundedErrorNearPeriodStat
+public import Qatlib.Concepts.AbelianDecoders.SimonDecoding.VerifiedSimonRetry
+public import Qatlib.Concepts.UniformBqp.Phi3Compile.QtmPhi3WindowSimulationStat
+public import Qatlib.Concepts.QtmSimulation.Phi3Compilation.QtmPhi3WireTransport
+public import Qatlib.Concepts.QftPreparation.LocalQFTImplementation
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.FiniteStoppingTail
+public import Qatlib.Concepts.LinearLearning.ConcisePipeline.RandomizedCost
+public import Mathlib.Probability.Distributions.Uniform
+
+@[expose] public section
 
 /-!
 # Native Simon retry and query-model definitions

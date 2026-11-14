@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDivisionRejection
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionBounds
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDivisionRejection
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionBounds
+
+@[expose] public section
 
 /-!
 # Uniform machine bounds for checked division
@@ -309,7 +313,7 @@ theorem uniform_checked_division_machine :
   cases hv :
       (Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDivisionParsing.parsed sa sb A D B C).valid with
   | true =>
-      simp only [if_true]
+      simp only [ite_true]
       apply hM sa sb A D B C _ _ (successSteps_bound A D B C)
         (success_output_bound sa sb A D B C)
       rw [success_run sa sb A D B C hv]
@@ -319,7 +323,7 @@ theorem uniform_checked_division_machine :
       | inl k => simp [Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDivisionReader.store,emptyWork]
       | inr k => fin_cases k <;> simp [Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDivisionReader.store]
   | false =>
-      simp only [Bool.false_eq_true,if_false]
+      simp only [Bool.false_eq_true,ite_false]
       apply hM sa sb A D B C [false] _ (rejectSteps_bound A D B C)
         (by simp only [List.length_cons,List.length_nil]; dsimp [size]; omega)
       rw [reject_run sa sb A D B C hv]

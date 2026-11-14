@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QuditTeleport.TeleportCore.BellReferenceProtocol
-import Qatlib.Concepts.QuditTeleport.TeleportCore.BellTeleportationInstrument
-import Qatlib.Concepts.QuditTeleport.TeleportCore.CountedBellTeleportation
-import Qatlib.Concepts.QuditTeleport.DepolarizingLaw.SingletConventionBridgeTele
-import Qatlib.Concepts.QuditTeleport.DepolarizingLaw.TeleportGuessingDepolarizingTele
+module
+
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.BellReferenceProtocol
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.BellTeleportationInstrument
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.CountedBellTeleportation
+public import Qatlib.Concepts.QuditTeleport.DepolarizingLaw.SingletConventionBridgeTele
+public import Qatlib.Concepts.QuditTeleport.DepolarizingLaw.TeleportGuessingDepolarizingTele
+
+@[expose] public section
 
 /-!
 # Qubit teleportation with explicit branches and reference recovery

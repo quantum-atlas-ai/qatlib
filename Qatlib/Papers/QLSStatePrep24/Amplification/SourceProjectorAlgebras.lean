@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
-import Qatlib.Concepts.QlsReadoutSpec.Amplification.ProjectorOrderLows
-import Qatlib.Concepts.QlsReadoutSpec.Amplification.ClockFlagResolutionsLows
-import Qatlib.Concepts.QlsReadoutSpec.Amplification.StoppedStageTransportLows
-import Qatlib.Concepts.QlsReadoutSpec.Amplification.AmplifiedSuffixRaysLows
+module
+
+public import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
+public import Qatlib.Concepts.QlsReadoutSpec.Amplification.ProjectorOrderLows
+public import Qatlib.Concepts.QlsReadoutSpec.Amplification.ClockFlagResolutionsLows
+public import Qatlib.Concepts.QlsReadoutSpec.Amplification.StoppedStageTransportLows
+public import Qatlib.Concepts.QlsReadoutSpec.Amplification.AmplifiedSuffixRaysLows
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

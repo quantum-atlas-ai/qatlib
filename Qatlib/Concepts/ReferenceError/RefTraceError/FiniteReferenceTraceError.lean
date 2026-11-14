@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ReferenceError.RefTraceError.ChannelMixtureComposition
-import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
-import Qatlib.Concepts.ReferenceError.RefTraceError.TensorLeft
+module
+
+public import Qatlib.Concepts.ReferenceError.RefTraceError.ChannelMixtureComposition
+public import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+public import Qatlib.Concepts.ReferenceError.RefTraceError.TensorLeft
+
+@[expose] public section
 
 /-!
 # Finite reference error bounds for unitary mixtures

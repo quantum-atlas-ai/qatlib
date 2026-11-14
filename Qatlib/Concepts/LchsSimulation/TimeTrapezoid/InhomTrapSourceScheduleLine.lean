@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LchsSimulation.TimeTrapezoid.InhomTrapSourceScheduleStat
-import Qatlib.Concepts.LchsSimulation.TimeTrapezoid.InhomogeneousTrapezoidSourceQuadrature
+module
+
+public import Qatlib.Concepts.LchsSimulation.TimeTrapezoid.InhomTrapSourceScheduleStat
+public import Qatlib.Concepts.LchsSimulation.TimeTrapezoid.InhomogeneousTrapezoidSourceQuadrature
+
+@[expose] public section
 
 /-!
 # A computed trapezoidal source schedule

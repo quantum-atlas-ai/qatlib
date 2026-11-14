@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.LinearAlgebra.Matrix.Hadamard
-import Mathlib.Data.Finset.Sort
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Sqrt
-import Mathlib.Data.Fintype.EquivFin
+module
+
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.LinearAlgebra.Matrix.Hadamard
+public import Mathlib.Data.Finset.Sort
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Sqrt
+public import Mathlib.Data.Fintype.EquivFin
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

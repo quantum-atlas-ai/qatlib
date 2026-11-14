@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.FreeFermion24.MainResults.SourceModel
+module
+
+public import Qatlib.Papers.FreeFermion24.MainResults.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -43,8 +47,8 @@ does not certify an oracle execution, sampling procedure, or gate decomposition.
 def lemma14_classicalEntryEstimation_statement
     (n K : ℕ) (s : ℕ) (h : SparseHermitian (2 ^ n) s)
     (f : ℝ → ℂ) (p : Polynomial ℝ) (ε : ℝ)
-    (hs : 0 < s) (hε : 0 < ε) (hdeg : p.natDegree ≤ K)
-    (happrox : ∀ x : ℝ, x ∈ Set.Icc (-1 : ℝ) 1 →
+    (_hs : 0 < s) (_hε : 0 < ε) (_hdeg : p.natDegree ≤ K)
+    (_happrox : ∀ x : ℝ, x ∈ Set.Icc (-1 : ℝ) 1 →
       ‖f x - ((p.eval x : ℝ) : ℂ)‖ ≤ ε)
     (i j : Fin (2 ^ n)) : Prop :=
     ∃ E : ClassicalEstimator (2 ^ n),

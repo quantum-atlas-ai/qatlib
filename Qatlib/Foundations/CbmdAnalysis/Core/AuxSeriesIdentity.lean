@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Core.AuxFiniteCircle
-import Qatlib.Foundations.CbmdAnalysis.Core.AuxWeightBounds
-import Qatlib.Foundations.CbmdAnalysis.Core.AuxCircleBounds
-import Qatlib.Foundations.CbmdAnalysis.Core.DysonPiecewiseInput
-import Mathlib.Order.Filter.AtTopBot.Interval
+module
+
+public import Qatlib.Foundations.CbmdAnalysis.Core.AuxFiniteCircle
+public import Qatlib.Foundations.CbmdAnalysis.Core.AuxWeightBounds
+public import Qatlib.Foundations.CbmdAnalysis.Core.AuxCircleBounds
+public import Qatlib.Foundations.CbmdAnalysis.Core.DysonPiecewiseInput
+public import Mathlib.Order.Filter.AtTopBot.Interval
+
+@[expose] public section
 
 /-!
 # Auxiliary-pole sampling series

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AdiabStateGen03.MainResults.Defs
+module
+
+public import Qatlib.Papers.AdiabStateGen03.MainResults.Defs
+
+@[expose] public section
 
 /-!
 # Hermiticity and sparsity of the Markov Hamiltonian
@@ -79,7 +83,7 @@ theorem hm_isHermitian (M : MC n) (π : Dim n → ℝ) (h : StronglySamplable M 
   · subst hij
     simp
   · have hji : j ≠ i := fun h' => hij h'.symm
-    rw [if_neg hij, if_neg hji]
+    rw [ite_eq_right hij, ite_eq_right hji]
     simp only [star_sub, star_zero]
     rw [Complex.star_def, Complex.conj_ofReal]
     rw [hsymm]
@@ -98,11 +102,11 @@ theorem hm_mulVec_sqrt (M : MC n) (π : Dim n → ℝ) (h : StronglySamplable M 
     rw [HM_apply]
     by_cases hij : i = j
     · subst hij
-      rw [if_pos rfl, if_pos rfl]
+      rw [ite_eq_left rfl, ite_eq_left rfl]
       have hs : Real.sqrt (π i) ≠ 0 := (Real.sqrt_pos.mpr (hπ i)).ne'
       push_cast
       field_simp
-    · rw [if_neg hij, if_neg hij]
+    · rw [ite_eq_right hij, ite_eq_right hij]
       have hs : Real.sqrt (π j) ≠ 0 := (Real.sqrt_pos.mpr (hπ j)).ne'
       push_cast
       field_simp
@@ -135,7 +139,7 @@ theorem hm_support (M : MC n) (π : Dim n → ℝ) (i j : Dim n)
   have hM0 : M i j = 0 := by simpa using hM
   have hne0 : ¬ i = j := by simpa using hne
   apply hij
-  rw [HM_apply, if_neg hne0, hM0]
+  rw [HM_apply, ite_eq_right hne0, hM0]
   simp
 
 /-- The Hamiltonian associated with a `StronglySamplable` matrix with row bound `D` has at most

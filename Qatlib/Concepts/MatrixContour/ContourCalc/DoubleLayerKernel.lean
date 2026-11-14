@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixContour.ContourCalc.LocalResolventApproximation
-import Mathlib.Analysis.InnerProductSpace.Positive
-import Mathlib.Tactic.Module
-import Mathlib.Tactic.Ring
+module
+
+public import Qatlib.Concepts.MatrixContour.ContourCalc.LocalResolventApproximation
+public import Mathlib.Analysis.InnerProductSpace.Positive
+public import Mathlib.Tactic.Module
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 open Qatlib.Concepts.MatrixContour.ContourCalc
 open Qatlib.Foundations.OpCalculus.ContourCalc
 

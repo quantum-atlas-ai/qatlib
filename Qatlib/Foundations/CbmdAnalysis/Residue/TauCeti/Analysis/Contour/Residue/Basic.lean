@@ -6,11 +6,15 @@ Authors: Chris Birkbeck, Qatlib Contributors
 Adapted from https://github.com/TauCetiProject/TauCeti@3780371c
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+module
 
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Analysis.Meromorphic.TrailingCoefficient
-import Mathlib.Analysis.Calculus.IteratedDeriv.Lemmas
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Analysis.Meromorphic.TrailingCoefficient
+public import Mathlib.Analysis.Calculus.IteratedDeriv.Lemmas
+
+@[expose] public section
 
 /-!
 # Local residues of meromorphic functions
@@ -71,7 +75,7 @@ theorem residue_eq_of_order_lt_zero {f g : ℂ → ℂ} {z₀ : ℂ} {n : ℤ}
     rw [hn]
     exact_mod_cast hlt
   have huntop : (meromorphicOrderAt f z₀).untop₀ = n := by rw [hn, WithTop.untop₀_coe]
-  rw [residue, dif_pos ⟨hf, hlt'⟩]
+  rw [residue, dite_eq_left ⟨hf, hlt'⟩]
   set g₀ := ((meromorphicOrderAt_ne_top_iff hf).1 (ne_top_of_lt hlt')).choose with hg₀
   rw [huntop]
   obtain ⟨hg₀_an, -, hg₀_eq⟩ :=
@@ -91,7 +95,7 @@ theorem residue_eq_of_order_lt_zero {f g : ℂ → ℂ} {z₀ : ℂ} {n : ℤ}
 @[simp]
 theorem residue_of_not_meromorphicAt {f : ℂ → ℂ} {z₀ : ℂ} (h : ¬ MeromorphicAt f z₀) :
     residue f z₀ = 0 := by
-  rw [residue, dif_neg]
+  rw [residue, dite_eq_right]
   rintro ⟨h1, -⟩
   exact h h1
 
@@ -99,7 +103,7 @@ theorem residue_of_not_meromorphicAt {f : ℂ → ℂ} {z₀ : ℂ} (h : ¬ Mero
 @[simp]
 theorem residue_eq_zero_of_meromorphicOrderAt_nonneg {f : ℂ → ℂ} {z₀ : ℂ}
     (h : 0 ≤ meromorphicOrderAt f z₀) : residue f z₀ = 0 := by
-  rw [residue, dif_neg]
+  rw [residue, dite_eq_right]
   rintro ⟨-, h2⟩
   exact absurd h2 (not_lt.mpr h)
 
@@ -161,11 +165,11 @@ private lemma iteratedDeriv_pow_sub_mul_div_factorial {z₀ : ℂ} (p i : ℕ) {
       = ((p + i).choose p * p.factorial : ℕ) * iteratedDeriv i h z₀ := by
     rw [iteratedDeriv_fun_mul (f := fun z : ℂ ↦ (z - z₀) ^ p) (g := h) (by fun_prop)
         hh.contDiffAt, Finset.sum_eq_single p]
-    · rw [hpow_pd p, Nat.add_sub_cancel_left, if_pos rfl]
+    · rw [hpow_pd p, Nat.add_sub_cancel_left, ite_eq_left rfl]
       push_cast
       ring
     · intro j _ hjp
-      rw [hpow_pd j, if_neg hjp]
+      rw [hpow_pd j, ite_eq_right hjp]
       push_cast
       ring
     · intro hp
@@ -432,8 +436,8 @@ theorem residue_of_laurent_expansion {f g : ℂ → ℂ} {z₀ : ℂ} {N : ℕ} 
   simp only [residue_const_div_sub_pow]
   rcases Nat.eq_zero_or_pos N with rfl | hpos
   · simp
-  · rw [dif_pos hpos, Finset.sum_eq_single ⟨0, hpos⟩ (fun k _ hk ↦ if_neg fun h0 ↦
-      hk (Fin.ext h0)) (by simp), if_pos rfl]
+  · rw [dite_eq_left hpos, Finset.sum_eq_single ⟨0, hpos⟩ (fun k _ hk ↦ ite_eq_right fun h0 ↦
+      hk (Fin.ext h0)) (by simp), ite_eq_left rfl]
 
 end TauCeti.Contour
 

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CollisionProb97.MainResults.ClawExecution
-import Qatlib.Papers.CollisionProb97.MainResults.CollisionExecution
-import Qatlib.Papers.CollisionProb97.MainResults.OraclePairLaw
-import Qatlib.Papers.CollisionProb97.MainResults.Theorem4ClawBijection
+module
+
+public import Qatlib.Papers.CollisionProb97.MainResults.ClawExecution
+public import Qatlib.Papers.CollisionProb97.MainResults.CollisionExecution
+public import Qatlib.Papers.CollisionProb97.MainResults.OraclePairLaw
+public import Qatlib.Papers.CollisionProb97.MainResults.Theorem4ClawBijection
+
+@[expose] public section
 
 /-!
 # Claw finding with a bijective oracle

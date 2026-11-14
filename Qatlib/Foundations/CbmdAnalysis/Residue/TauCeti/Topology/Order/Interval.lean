@@ -6,10 +6,14 @@ Authors: The Tau Ceti contributors, Qatlib Contributors
 Adapted from https://github.com/TauCetiProject/TauCeti@3780371c
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+module
 
-import Mathlib.Topology.Order.IntermediateValue
-import Mathlib.Topology.Order.Compact
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+
+public import Mathlib.Topology.Order.IntermediateValue
+public import Mathlib.Topology.Order.Compact
+
+@[expose] public section
 
 /-!
 # Neighborhood intervals and monotone images

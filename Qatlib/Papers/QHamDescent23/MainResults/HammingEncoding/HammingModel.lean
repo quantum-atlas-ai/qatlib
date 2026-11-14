@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QHamDescent23.MainResults.SourceModel
-import Mathlib.Data.Fintype.Powerset
-import Mathlib.Analysis.SpecialFunctions.Sqrt
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
+module
+
+public import Qatlib.Papers.QHamDescent23.MainResults.SourceModel
+public import Mathlib.Data.Fintype.Powerset
+public import Mathlib.Analysis.SpecialFunctions.Sqrt
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

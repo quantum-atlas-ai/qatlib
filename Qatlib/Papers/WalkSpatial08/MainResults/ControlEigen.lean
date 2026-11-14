@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.WalkSpatial08.MainResults.ControlledWalkDefs
-import Mathlib.Analysis.Complex.Exponential
+module
+
+public import Qatlib.Papers.WalkSpatial08.MainResults.ControlledWalkDefs
+public import Mathlib.Analysis.Complex.Exponential
+
+@[expose] public section
 
 /-!
 # Eigenvectors of the controlled walk

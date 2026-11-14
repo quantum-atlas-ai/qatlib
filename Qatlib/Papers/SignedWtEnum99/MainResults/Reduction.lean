@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SignedWtEnum99.MainResults.Lemma10
+module
+
+public import Qatlib.Papers.SignedWtEnum99.MainResults.Lemma10
+
+@[expose] public section
 
 /-!
 # Preserving signed enumerators under the Lemma 10 reduction
@@ -60,7 +64,7 @@ lemma transpose_mulVec_eq_zero_iff (hn : n ≤ N) (H : Matrix (Fin n) (Fin N) (Z
     · subst hn0
       funext i
       exact Fin.elim0 i
-    · haveI : Nonempty (Fin n) := ⟨⟨0, hnpos⟩⟩
+    · have : Nonempty (Fin n) := ⟨⟨0, hnpos⟩⟩
       have hcol : ∀ j : Fin n,
         (fun i : Fin n => H i (Fin.castLE hn j)) ⬝ᵥ v = 0 := by
         intro j
@@ -119,10 +123,10 @@ theorem qsen_eq_of_reduction (hn : n ≤ N) (H0 H1 H2 : Matrix (Fin n) (Fin N) (
   by_cases hb : H1.mulVec b = 0
   · have hb2 : (H2ᵀ * H1).mulVec b = 0 :=
       (transpose_mulVec_mulVec_eq_zero_iff hn H2 H1 hind b).mpr hb
-    rw [if_pos hb2, if_pos hb]
+    rw [ite_eq_left hb2, ite_eq_left hb]
   · have hb2 : (H2ᵀ * H1).mulVec b ≠ 0 := fun hh =>
       hb ((transpose_mulVec_mulVec_eq_zero_iff hn H2 H1 hind b).mp hh)
-    rw [if_neg hb2, if_neg hb]
+    rw [ite_eq_right hb2, ite_eq_right hb]
 
 /-- Under the initial unit-diagonal pairing hypothesis, Lemma 10 supplies a matrix `H2` whose
 reduced signed enumerator equals the original one. See [KnillLaflamme1999]. -/

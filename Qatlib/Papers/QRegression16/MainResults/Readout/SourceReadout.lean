@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QRegression16.MainResults.SourceModel
-import Mathlib.LinearAlgebra.Matrix.Trace
-import Mathlib.Data.Fintype.BigOperators
+module
+
+public import Qatlib.Papers.QRegression16.MainResults.SourceModel
+public import Mathlib.LinearAlgebra.Matrix.Trace
+public import Mathlib.Data.Fintype.BigOperators
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

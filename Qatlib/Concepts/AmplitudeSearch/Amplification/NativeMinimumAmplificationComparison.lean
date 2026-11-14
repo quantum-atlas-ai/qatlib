@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.Amplification.NativeMinimumConstructionDefs
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.NativeMinimumConstructionDefs
+
+@[expose] public section
 
 /-!
 # Independent repetition and a longer minimum search
@@ -147,7 +151,7 @@ theorem independentRunsLaw_step {N : ℕ} {α : Type*} [LinearOrder α]
     independentRunsLaw T hN (c + 1) = amplifiedStep T hN (independentRunsLaw T hN c) := by
   have h1 : independentRunsLaw T hN (c + 1) =
       independentRunsLawAux T hN c (chargedInitialPMF T hN (chargedBudget N)) := by
-    rw [independentRunsLaw, if_neg (by omega), Nat.add_sub_cancel]
+    rw [independentRunsLaw, ite_eq_right (by omega), Nat.add_sub_cancel]
   have h2 : independentRunsLawAux T hN c (chargedInitialPMF T hN (chargedBudget N)) =
       amplifiedStep T hN
         (independentRunsLawAux T hN (c - 1) (chargedInitialPMF T hN (chargedBudget N))) := by
@@ -155,7 +159,7 @@ theorem independentRunsLaw_step {N : ℕ} {α : Type*} [LinearOrder α]
     rfl
   have h3 : independentRunsLawAux T hN (c - 1) (chargedInitialPMF T hN (chargedBudget N)) =
       independentRunsLaw T hN c := by
-    rw [independentRunsLaw, if_neg (by omega)]
+    rw [independentRunsLaw, ite_eq_right (by omega)]
   rw [h1, h2, h3]
 
 /-- For a positive number `c` of independent runs, the failure-event probability is exactly the
@@ -177,7 +181,7 @@ theorem independent_runs_failure_exact {N : ℕ} {α : Type*} [LinearOrder α]
       · subst hc1
         have hred : independentRunsLaw T hN 1 =
             chargedInitialPMF T hN (chargedBudget N) := by
-          rw [independentRunsLaw, if_neg (by norm_num)]
+          rw [independentRunsLaw, ite_eq_right (by norm_num)]
           rfl
         rw [hred]
         simp
@@ -216,14 +220,14 @@ theorem independent_runs_bounded {N : ℕ} {α : Type*} [LinearOrder α]
       by_cases hc0 : c = 0
       · subst hc0
         intro x hx
-        rw [independentRunsLaw, if_pos (by norm_num)] at hx
+        rw [independentRunsLaw, ite_eq_left (by norm_num)] at hx
         have hx' : x = (⟨0, hN⟩, 0) := (PMF.mem_support_pure_iff (⟨0, hN⟩, 0) x).mp hx
         rw [hx']
         simp
       · by_cases hc1 : c = 1
         · subst hc1
           intro x hx
-          rw [independentRunsLaw, if_neg (by norm_num)] at hx
+          rw [independentRunsLaw, ite_eq_right (by norm_num)] at hx
           have h1 := hrun (chargedBudget N) x hx
           omega
         · have hgt : 1 < c := by omega

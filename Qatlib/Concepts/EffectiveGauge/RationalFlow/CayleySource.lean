@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.RationalFlow.CayleyError
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.MixedTime
+module
+
+public import Qatlib.Concepts.EffectiveGauge.RationalFlow.CayleyError
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.MixedTime
+
+@[expose] public section
 
 /-!
 # Integer Cayley execution approximates the constructed source line

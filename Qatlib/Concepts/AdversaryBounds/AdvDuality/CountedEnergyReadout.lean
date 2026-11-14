@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MbqcFlow.FlowDecision.DegenerateEnergyInstrument
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedCircuit
-import Qatlib.Concepts.ShadowModels.ShadowChannel.ObservedInstrument
+module
+
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.DegenerateEnergyInstrument
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedCircuit
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.ObservedInstrument
+
+@[expose] public section
 
 /-!
 # Counted implementation of energy readout
@@ -100,7 +104,7 @@ theorem energyTransportGate_unitary {D M : ℕ}
   by_cases h : k = l
   · subst h
     simp
-  · rw [if_neg h, if_neg (fun hh => h ((energyRegisterEquiv D M).symm.injective hh))]
+  · rw [ite_eq_right h, ite_eq_right (fun hh => h ((energyRegisterEquiv D M).symm.injective hh))]
 
 /-- The observed energy-readout circuit, consisting of three transported gates followed by
 measurement of the phase label. -/
@@ -137,18 +141,18 @@ theorem energyKrausBlock_eq_projector (D M : ℕ) (hM : 0 < M) (label : Fin D �
         * TensorState (Qatlib.Foundations.PureStateMath.Ket (⟨0,hM⟩:Fin M)) (Qatlib.Foundations.PureStateMath.Ket j) p = _
     rw [tensorState_ket_ket]
     rw [Finset.sum_eq_single (⟨0, hM⟩, j)]
-    · rw [Qatlib.Foundations.PureStateMath.Ket, if_pos rfl, mul_one]
+    · rw [Qatlib.Foundations.PureStateMath.Ket, ite_eq_left rfl, mul_one]
     · intro z _ hz
-      rw [Qatlib.Foundations.PureStateMath.Ket, if_neg hz, mul_zero]
+      rw [Qatlib.Foundations.PureStateMath.Ket, ite_eq_right hz, mul_zero]
     · intro h
       exact absurd (Finset.mem_univ _) h
   have hcolR : (energyProjector label V a *ᵥ Qatlib.Foundations.PureStateMath.Ket j) i = energyProjector label V a i j := by
     show ∑ m :
         Fin D, energyProjector label V a i m * Qatlib.Foundations.PureStateMath.Ket j m = _
     rw [Finset.sum_eq_single j]
-    · rw [Qatlib.Foundations.PureStateMath.Ket, if_pos rfl, mul_one]
+    · rw [Qatlib.Foundations.PureStateMath.Ket, ite_eq_left rfl, mul_one]
     · intro z _ hz
-      rw [Qatlib.Foundations.PureStateMath.Ket, if_neg hz, mul_zero]
+      rw [Qatlib.Foundations.PureStateMath.Ket, ite_eq_right hz, mul_zero]
     · intro h
       exact absurd (Finset.mem_univ _) h
   show energyDilation label V (a, i) (⟨0, hM⟩, j) = energyProjector label V a i j
@@ -206,8 +210,8 @@ theorem energyTransportGate_labelProjector {D M : ℕ} (a : Fin M) :
   by_cases hk : k = l
   · subst hk
     by_cases h : ((energyRegisterEquiv D M).symm k).1 = a <;> simp [h]
-  · rw [if_neg hk,
-      if_neg (fun hc => hk (Equiv.injective (energyRegisterEquiv D M).symm hc))]
+  · rw [ite_eq_right hk,
+      ite_eq_right (fun hc => hk (Equiv.injective (energyRegisterEquiv D M).symm hc))]
 
 /-- The energy program has exactly `M` observed leaves. -/
 theorem observedLeafCount_energyProgram {D M : ℕ} (label : Fin D → Fin M)
@@ -351,7 +355,7 @@ theorem partialTraceFirst_leaf_frame {D M : ℕ} (hM : 0 < M) (label : Fin D →
       by_cases hxy : x = y
       · subst hxy
         by_cases h : x.1 = a <;> simp [h]
-      · rw [if_neg (Ne.symm hxy), if_neg hxy]
+      · rw [ite_eq_right (Ne.symm hxy), ite_eq_right hxy]
         simp
     simp only [energyLeafOperator, Matrix.conjTranspose_mul, hLP]
     calc ((energyLabelProjector a * energyDilation label V) * energyEmbedFrame hM X)
@@ -388,17 +392,17 @@ theorem partialTraceFirst_leaf_frame {D M : ℕ} (hM : 0 < M) (label : Fin D →
     rw [Matrix.mul_apply, Fintype.sum_prod_type]
     simp only [energyEmbedFrame_apply]
     rw [Finset.sum_eq_single (⟨0, hM⟩ : Fin M)]
-    · rw [if_pos rfl, Finset.mul_sum]
+    · rw [ite_eq_left rfl, Finset.mul_sum]
       exact Finset.sum_congr rfl fun s _ => by ring
     · intro r _ hr
-      rw [if_neg hr]
+      rw [ite_eq_right hr]
       simp
     · intro h
       exact absurd (Finset.mem_univ _) h
   simp only [partialTraceFirst, Matrix.traceLeft, Matrix.of_apply]
   rw [Finset.sum_eq_single_of_mem a (Finset.mem_univ a)]
   · rw [hrebracket, energyLabelProjector_sandwich_apply,
-      if_pos (show a = a ∧ a = a from ⟨rfl, rfl⟩), Matrix.mul_apply]
+      ite_eq_left (show a = a ∧ a = a from ⟨rfl, rfl⟩), Matrix.mul_apply]
     simp only [Matrix.conjTranspose_apply, Fintype.sum_prod_type, hDgZ]
     rw [Finset.sum_eq_single_of_mem (⟨0, hM⟩ : Fin M) (Finset.mem_univ _)]
     · rw [Matrix.mul_apply]
@@ -407,7 +411,7 @@ theorem partialTraceFirst_leaf_frame {D M : ℕ} (hM : 0 < M) (label : Fin D →
     · intro u _ hu
       simp [hu]
   · intro p _ hp
-    rw [hrebracket, energyLabelProjector_sandwich_apply, if_neg (fun hh => hp hh.1)]
+    rw [hrebracket, energyLabelProjector_sandwich_apply, ite_eq_right (fun hh => hp hh.1)]
 
 /-- Register transport preserves the matrix trace. -/
 theorem energyTransportGate_trace {D M : ℕ}
@@ -453,11 +457,11 @@ theorem energy_program_branch_frame_measure_discard (D M : ℕ) (hM : 0 < M)
       energyKrausBlock_eq_projector D M hM label V hV a]
   · show (energyInstrument label V hV).branch a X
         = (if hM : 0 < M then conjBranch (energyKrausBlock label V a hM) else 0) X
-    rw [dif_pos hM, energyInstrument, Instrument.ofKraus_branch, conjBranch_apply,
+    rw [dite_eq_left hM, energyInstrument, Instrument.ofKraus_branch, conjBranch_apply,
       energyKrausBlock_eq_projector D M hM label V hV a]
 
 /-- The energy program is well formed when the phase dimension is positive and `V` is unitary. -/
-theorem energyProgram_observedWellFormed (D M : ℕ) (hM : 0 < M)
+theorem energyProgram_observedWellFormed (D M : ℕ) (_hM : 0 < M)
     (label : Fin D → Fin M) (V : Operator D)
     (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) :
     observedWellFormed (energyProgram label V) := by

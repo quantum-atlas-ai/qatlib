@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.PhaseEst07.MainResults.OptimalPOVM
-import Qatlib.Papers.PhaseEst07.MainResults.DiscretePOVM
+module
+
+public import Qatlib.Papers.PhaseEst07.MainResults.OptimalPOVM
+public import Qatlib.Papers.PhaseEst07.MainResults.DiscretePOVM
+
+@[expose] public section
 
 /-!
 # Fourier measurement identities for the Shor example

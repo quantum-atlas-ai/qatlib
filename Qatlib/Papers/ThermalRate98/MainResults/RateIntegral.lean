@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ThermalRate98.MainResults.PhysicalRateFormula
-import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
+module
+
+public import Qatlib.Papers.ThermalRate98.MainResults.PhysicalRateFormula
+public import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
+
+@[expose] public section
 
 /-!
 # Finite time integrals of spectral correlations

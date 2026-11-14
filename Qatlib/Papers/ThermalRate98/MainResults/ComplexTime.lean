@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ThermalRate98.MainResults.ThermalTrace
-import Qatlib.Papers.ThermalRate98.MainResults.EvolutionInit
+module
+
+public import Qatlib.Papers.ThermalRate98.MainResults.ThermalTrace
+public import Qatlib.Papers.ThermalRate98.MainResults.EvolutionInit
+
+@[expose] public section
 
 /-!
 # Complex-time flux correlation identities

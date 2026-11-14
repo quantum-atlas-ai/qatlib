@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Finset.Sort
-import Mathlib.Data.Finset.Powerset
-import Mathlib.Data.Nat.Choose.Basic
-import Mathlib.Algebra.Group.Subgroup.Basic
-import Mathlib.Algebra.Order.Field.Rat
-import Mathlib.Tactic
+module
+
+public import Mathlib.Data.Finset.Sort
+public import Mathlib.Data.Finset.Powerset
+public import Mathlib.Data.Nat.Choose.Basic
+public import Mathlib.Algebra.Group.Subgroup.Basic
+public import Mathlib.Algebra.Order.Field.Rat
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Counting ordered group products outside a subgroup
@@ -360,7 +364,7 @@ theorem card_partQ_eq_partR {k l : ℕ} (hk : 0 < k) {i : Fin k} (hne : i ≠ id
     simp only [Finset.mem_filter, hT, mem_lIndexSets] at hA
     obtain ⟨-, hzA, hiA⟩ := hA
     have hie : i ∉ A.erase (idIdx hk) := hi_erase A hiA
-    try dsimp only
+
     rw [Finset.erase_insert hie, Finset.insert_erase hzA]
   · intro B hB
     simp only [Finset.mem_filter, hT, mem_lIndexSets] at hB
@@ -368,7 +372,7 @@ theorem card_partQ_eq_partR {k l : ℕ} (hk : 0 < k) {i : Fin k} (hne : i ≠ id
     have hze : idIdx hk ∉ B.erase i := by
       intro h
       exact hzB (Finset.mem_of_mem_erase h)
-    try dsimp only
+
     rw [Finset.erase_insert hze, Finset.insert_erase hiB]
 
 end LemmaOne
@@ -421,13 +425,13 @@ theorem card_partR_filter_eq {k l : ℕ} (g : Fin k → G) (K : Subgroup G) {hk 
     simp only [Finset.mem_filter, hT, mem_lIndexSets] at hB
     obtain ⟨⟨-, hzB, hiB⟩, -⟩ := hB
     have hze : idIdx hk ∉ B.erase i := fun h => hzB (Finset.mem_of_mem_erase h)
-    try dsimp only
+
     rw [Finset.erase_insert hze, Finset.insert_erase hiB]
   · intro A hA
     simp only [Finset.mem_filter, hT, mem_lIndexSets] at hA
     obtain ⟨⟨-, hzA, hiA⟩, -⟩ := hA
     have hie : i ∉ A.erase (idIdx hk) := fun h => hiA (Finset.mem_of_mem_erase h)
-    try dsimp only
+
     rw [Finset.erase_insert hie, Finset.insert_erase hzA]
 
 end LemmaOneCounting

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.Waterfill.ExactResampling.ExactResamplingProgram
-import Qatlib.Concepts.Waterfill.LevelSearch.WaterFillingOptimization
-import Qatlib.Concepts.GramQueryCore.GammaDuality.FilteredGamma2Value
-import Qatlib.Concepts.GramQueryCore.LowerBoundTools.QueryDistanceLowerBound
+module
+
+public import Qatlib.Concepts.Waterfill.ExactResampling.ExactResamplingProgram
+public import Qatlib.Concepts.Waterfill.LevelSearch.WaterFillingOptimization
+public import Qatlib.Concepts.GramQueryCore.GammaDuality.FilteredGamma2Value
+public import Qatlib.Concepts.GramQueryCore.LowerBoundTools.QueryDistanceLowerBound
+
+@[expose] public section
 
 /-!
 # Water-level reweighting data and access contracts

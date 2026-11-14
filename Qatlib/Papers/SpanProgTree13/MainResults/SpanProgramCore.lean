@@ -20,11 +20,15 @@ of the available vectors, and the two witness sizes are the squared norms of
 positive and negative witnesses normalised by the projections `Π(x)` and `Π̄(x)`.
 -/
 
-import Mathlib.LinearAlgebra.Span.Basic
-import Mathlib.LinearAlgebra.Projection
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Data.Fintype.BigOperators
-import Mathlib.Data.Real.Basic
+module
+
+public import Mathlib.LinearAlgebra.Span.Basic
+public import Mathlib.LinearAlgebra.Projection
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Data.Fintype.BigOperators
+public import Mathlib.Basic.Real.Basic
+
+@[expose] public section
 
 /-!
 # SpanProgramCore

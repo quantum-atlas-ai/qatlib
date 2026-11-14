@@ -4,60 +4,64 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Defs
-import Mathlib.Algebra.BigOperators.Group.Finset.Powerset
-import Mathlib.Algebra.BigOperators.Group.Finset.Sigma
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Algebra.Group.Basic
-import Mathlib.Algebra.Group.Defs
-import Mathlib.Algebra.Group.DivInvMonoid
-import Mathlib.Algebra.Group.Int.Defs
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.Group.Nat.Defs
-import Mathlib.Algebra.GroupWithZero.Defs
-import Mathlib.Algebra.GroupWithZero.Nat
-import Mathlib.Algebra.Notation.Defs
-import Mathlib.Algebra.Order.Group.Nat
-import Mathlib.Algebra.Order.GroupWithZero.Canonical
-import Mathlib.Algebra.Order.IsBotOne
-import Mathlib.Algebra.Order.Ring.Nat
-import Mathlib.Algebra.Order.Sub.Basic
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Algebra.Ring.Int.Defs
-import Mathlib.Algebra.Ring.Nat
-import Mathlib.Basic.SetLike.Basic
-import Mathlib.Data.Finset.Basic
-import Mathlib.Data.Finset.BooleanAlgebra
-import Mathlib.Data.Finset.Card
-import Mathlib.Data.Finset.Defs
-import Mathlib.Data.Finset.Disjoint
-import Mathlib.Data.Finset.Empty
-import Mathlib.Data.Finset.Erase
-import Mathlib.Data.Finset.Filter
-import Mathlib.Data.Finset.Image
-import Mathlib.Data.Finset.Insert
-import Mathlib.Data.Finset.Lattice.Basic
-import Mathlib.Data.Finset.Powerset
-import Mathlib.Data.Finset.SDiff
-import Mathlib.Data.Fintype.Basic
-import Mathlib.Data.Int.Cast.Defs
-import Mathlib.Data.Nat.Basic
-import Mathlib.Data.Nat.Cast.Defs
-import Mathlib.Data.Nat.Choose.Sum
-import Mathlib.Order.BooleanAlgebra.Basic
-import Mathlib.Order.BoundedOrder.Basic
-import Mathlib.Order.Defs.Lattice
-import Mathlib.Order.Defs.PartialOrder
-import Mathlib.Order.Disjoint
-import Mathlib.Order.Heyting.Basic
-import Mathlib.Order.Notation
-import Mathlib.Order.RelClasses
-import Mathlib.Tactic
-import Mathlib.Tactic.NormNum.Basic
-import Mathlib.Tactic.NormNum.Result
-import Mathlib.Tactic.Ring.Basic
-import Mathlib.Tactic.Ring.Common
+module
+
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Defs
+public import Mathlib.Algebra.BigOperators.Group.Finset.Powerset
+public import Mathlib.Algebra.BigOperators.Group.Finset.Sigma
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Algebra.Group.Basic
+public import Mathlib.Algebra.Group.Defs
+public import Mathlib.Algebra.Group.DivInvMonoid
+public import Mathlib.Algebra.Group.Int.Defs
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.Group.Nat.Defs
+public import Mathlib.Algebra.GroupWithZero.Defs
+public import Mathlib.Algebra.GroupWithZero.Nat
+public import Mathlib.Algebra.Notation.Defs
+public import Mathlib.Algebra.Order.Group.Nat
+public import Mathlib.Algebra.Order.GroupWithZero.Canonical
+public import Mathlib.Algebra.Order.IsBotOne
+public import Mathlib.Algebra.Order.Ring.Nat
+public import Mathlib.Algebra.Order.Sub.Basic
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Algebra.Ring.Int.Defs
+public import Mathlib.Algebra.Ring.Nat
+public import Mathlib.Basic.SetLike.Basic
+public import Mathlib.Data.Finset.Basic
+public import Mathlib.Data.Finset.BooleanAlgebra
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Data.Finset.Defs
+public import Mathlib.Data.Finset.Disjoint
+public import Mathlib.Data.Finset.Empty
+public import Mathlib.Data.Finset.Erase
+public import Mathlib.Data.Finset.Filter
+public import Mathlib.Data.Finset.Image
+public import Mathlib.Data.Finset.Insert
+public import Mathlib.Data.Finset.Lattice.Basic
+public import Mathlib.Data.Finset.Powerset
+public import Mathlib.Data.Finset.SDiff
+public import Mathlib.Data.Fintype.Basic
+public import Mathlib.Data.Int.Cast.Defs
+public import Mathlib.Data.Nat.Basic
+public import Mathlib.Data.Nat.Cast.Defs
+public import Mathlib.Data.Nat.Choose.Sum
+public import Mathlib.Order.BooleanAlgebra.Basic
+public import Mathlib.Order.BoundedOrder.Basic
+public import Mathlib.Order.Defs.Lattice
+public import Mathlib.Order.Defs.PartialOrder
+public import Mathlib.Order.Disjoint
+public import Mathlib.Order.Heyting.Basic
+public import Mathlib.Order.Notation
+public import Mathlib.Order.RelClasses
+public import Mathlib.Tactic
+public import Mathlib.Tactic.NormNum.Basic
+public import Mathlib.Tactic.NormNum.Result
+public import Mathlib.Tactic.Ring.Basic
+public import Mathlib.Tactic.Ring.Common
+
+@[expose] public section
 
 /-!
 # Möbius expansion of clause violation counts
@@ -339,8 +343,8 @@ lemma literalTrue_inter_vars (c : Finset (Literal n)) (l : Literal n)
     simp only [Finset.mem_inter]; exact ⟨fun h => ⟨h, hv⟩, fun h => h.1⟩
   unfold literalTrue
   by_cases hp : l.2
-  · rw [if_pos hp, if_pos hp, decide_eq_decide]; exact hiff
-  · rw [if_neg hp, if_neg hp, decide_eq_decide]; exact not_congr hiff
+  · rw [ite_eq_left hp, ite_eq_left hp, decide_eq_decide]; exact hiff
+  · rw [ite_eq_right hp, ite_eq_right hp, decide_eq_decide]; exact not_congr hiff
 
 /-- Clause satisfaction is unchanged by restricting the assignment to the clause's variables. -/
 lemma clauseSat_inter_vars (c : Finset (Literal n)) (I : Finset (Fin n)) :

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.BQPJonesPoly06.MainResults.Theorem32
+module
+
+public import Qatlib.Papers.BQPJonesPoly06.MainResults.Theorem32
+
+@[expose] public section
 
 /-!
 # Parameter-dependent braid synthesis bounds

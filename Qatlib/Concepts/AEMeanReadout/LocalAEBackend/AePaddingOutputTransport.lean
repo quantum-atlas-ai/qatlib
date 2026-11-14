@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.SearchEstimation
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.SearchStopping
+module
+
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.SearchEstimation
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.SearchStopping
+
+@[expose] public section
 
 /-!
 # Output transport for padded amplitude estimation
@@ -29,6 +33,7 @@ and the fixed gate count.
 -/
 
 set_option backward.isDefEq.respectTransparency false
+set_option linter.unusedVariables false
 
 set_option autoImplicit false
 

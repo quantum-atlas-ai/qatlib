@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.RawMachine.PaidConditionalBoundBankMachine
+module
+
+public import Qatlib.Concepts.EffectiveGauge.RawMachine.PaidConditionalBoundBankMachine
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -75,10 +79,10 @@ theorem emitPrefixBudget_bound (replies : Fin 9 → CanonicalCodec.Bits) (stop :
     have hout : (PaidBoundBank.emitted (activeReplies replies stop) n).length+1≤9*B+1 := by nlinarith
     have hm := Nat.mul_le_mul hr hout
     have hp : 1≤(1+B)^2 := Nat.one_le_pow 2 _ (by omega)
-    rw [emitPrefixBudget,dif_pos hns]
+    rw [emitPrefixBudget,dite_eq_left hns]
     have he : PaidBoundBank.emitBudget (PaidBoundBank.remaining (activeReplies replies stop) n)
         ((PaidBoundBank.emitted (activeReplies replies stop) n).reverse++[flag]) ⟨n,hn9⟩≤30*(1+B)^2 := by
-      simp only [PaidBoundBank.emitBudget,PaidBoundBank.remaining,Nat.lt_irrefl,if_false,
+      simp only [PaidBoundBank.emitBudget,PaidBoundBank.remaining,Nat.lt_irrefl,ite_false,
         List.length_append,List.length_reverse,List.length_singleton]
       nlinarith only [hr2,hr,hm,hp,Nat.zero_le B]
     nlinarith only [hh,he]
@@ -100,19 +104,19 @@ theorem bankBudget_bound (replies : Fin 9 → CanonicalCodec.Bits) (time : Fin 9
   have hp : 1≤(1+B)^2 := Nat.one_le_pow 2 _ (by omega)
   cases flag with
   | false =>
-    simp only [Bool.false_eq_true,if_false] at hsize htime hfirst hz hw2 ⊢
+    simp only [Bool.false_eq_true,ite_false] at hsize htime hfirst hz hw2 ⊢
     have hs : ∀ i,(replies i).length≤B := fun i => hsize i (by have hi := i.isLt; omega)
     have ht : ∀ i,time i≤B := fun i => htime i (by have hi := i.isLt; omega)
     have hh := higherPrefixBudget_bound replies time B hs ht 8
     have he := emitPrefixBudget_bound replies 8 false B hsize 9 (by decide)
     dsimp only [bankBudget]
-    simp only [Bool.false_eq_true,if_false]
+    simp only [Bool.false_eq_true,ite_false]
     nlinarith only [hfirst,hz,hh,he,hw2,hp]
   | true =>
-    simp only [if_true] at hsize htime hfirst hz hw2 ⊢
+    simp only [ite_true] at hsize htime hfirst hz hw2 ⊢
     have he := emitPrefixBudget_bound replies 0 true B hsize 1 (by decide)
     dsimp only [bankBudget]
-    simp only [if_true]
+    simp only [ite_true]
     nlinarith only [hfirst,hz,he,hw2,hp]
 
 /-- One source-specialized binary machine with a bound on exactly the

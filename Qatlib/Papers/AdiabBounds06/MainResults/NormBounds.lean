@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AdiabBounds06.MainResults.Twiddle
+module
+
+public import Qatlib.Papers.AdiabBounds06.MainResults.Twiddle
+
+@[expose] public section
 
 /-!
 # Operator norm estimates for the twiddle transform

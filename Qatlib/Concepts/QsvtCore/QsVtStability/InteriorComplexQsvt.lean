@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.QsVtStability.SquareRootQSVTRobustness
-import Qatlib.Concepts.CoherentSim.CoherentOAA.QueryCircuit
-import Qatlib.Concepts.BlockEncoding.Postselection
-import Qatlib.Concepts.TrotterFormula.SuzukiFourth.QSP
+module
+
+public import Qatlib.Concepts.QsvtCore.QsVtStability.SquareRootQSVTRobustness
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.QueryCircuit
+public import Qatlib.Concepts.BlockEncoding.Postselection
+public import Qatlib.Concepts.TrotterFormula.SuzukiFourth.QSP
+
+@[expose] public section
 
 /-!
 # Interior robustness of complex QSVT

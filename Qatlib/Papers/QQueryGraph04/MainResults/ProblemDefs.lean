@@ -4,23 +4,27 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Defs
-import Mathlib.Algebra.Group.Nat.Defs
-import Mathlib.Basic.Real.Basic
-import Mathlib.Basic.SetLike.Basic
-import Mathlib.Data.Finset.Basic
-import Mathlib.Data.Finset.Card
-import Mathlib.Data.Finset.Dedup
-import Mathlib.Data.Finset.Defs
-import Mathlib.Data.Fintype.Basic
-import Mathlib.Data.Fintype.Defs
-import Mathlib.Data.Fintype.Prod
-import Mathlib.Logic.Relation
-import Mathlib.Tactic
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryMagnitude
+module
+
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Defs
+public import Mathlib.Algebra.Group.Nat.Defs
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Basic.SetLike.Basic
+public import Mathlib.Data.Finset.Basic
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Data.Finset.Dedup
+public import Mathlib.Data.Finset.Defs
+public import Mathlib.Data.Fintype.Basic
+public import Mathlib.Data.Fintype.Defs
+public import Mathlib.Data.Fintype.Prod
+public import Mathlib.Logic.Relation
+public import Mathlib.Tactic
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryMagnitude
+
+@[expose] public section
 
 /-!
 # Algorithm and solution predicates for graph queries

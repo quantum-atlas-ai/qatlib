@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Qubit
-import Mathlib.Algebra.Order.BigOperators.Ring.Finset
+module
+
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Mathlib.Algebra.Order.BigOperators.Ring.Finset
+
+@[expose] public section
 
 /-!
 # Born distribution variation for pure states

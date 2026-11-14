@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixGeometry.TupleDeletion.FullCarrier
-import Qatlib.Foundations.MatrixGeometry.TupleDeletion.PairResampling
+module
+
+public import Qatlib.Foundations.MatrixGeometry.TupleDeletion.FullCarrier
+public import Qatlib.Foundations.MatrixGeometry.TupleDeletion.PairResampling
+
+@[expose] public section
 
 /-!
 # Two-coordinate slices and invalid repairs
@@ -88,7 +92,7 @@ theorem pairSlice_entry (v : InjectiveTuple I L → ℂ) (f : I → L) (i j : I)
     entry (pairSlice v f i j) x y=extend v (Function.update (Function.update f i x) j y) := by
   by_cases hxy : x ≠ y
   · change (if h : x ≠ y then extend v (Function.update (Function.update f i x) j y) else 0)=_
-    rw [dif_pos hxy]
+    rw [dite_eq_left hxy]
   · have he : x=y := not_ne_iff.mp hxy
     have hn : ¬ Function.Injective (Function.update (Function.update f i x) j y) := by
       intro h

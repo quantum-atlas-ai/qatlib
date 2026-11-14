@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Corollary1ExpectedSearchQuan
-import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Theorem4HeuristicSpeedupStat
+module
+
+public import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Corollary1ExpectedSearchQuan
+public import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Theorem4HeuristicSpeedupStat
+
+@[expose] public section
 
 /-!
 # Average search cost for a finite heuristic model

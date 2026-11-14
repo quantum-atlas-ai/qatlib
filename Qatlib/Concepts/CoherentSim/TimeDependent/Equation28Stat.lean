@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.InteractionEvo.DysonGrid.DysonTruncationGrid
-import Qatlib.Concepts.CoherentSim.TimeDependent.Equation28Defs
+module
+
+public import Qatlib.Concepts.InteractionEvo.DysonGrid.DysonTruncationGrid
+public import Qatlib.Concepts.CoherentSim.TimeDependent.Equation28Defs
+
+@[expose] public section
 
 /-!
 # Error bound for a time dependent simulation segment

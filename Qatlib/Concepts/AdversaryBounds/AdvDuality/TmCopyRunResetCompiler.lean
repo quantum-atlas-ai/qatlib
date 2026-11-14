@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ClassicalTape.TapeCompilation.FiniteTapeMajority
-import Qatlib.Concepts.ClassicalTape.TapeCompilation.ClassicalProbabilistic
-import Mathlib.Computability.Partrec
+module
+
+public import Qatlib.Concepts.ClassicalTape.TapeCompilation.FiniteTapeMajority
+public import Qatlib.Concepts.ClassicalTape.TapeCompilation.ClassicalProbabilistic
+public import Mathlib.Computability.Partrec
+
+@[expose] public section
 
 /-!
 # Copy–run–reset compilation of coin-tape machines

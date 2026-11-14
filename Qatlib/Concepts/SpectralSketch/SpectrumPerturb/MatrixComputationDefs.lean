@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.OrderedSpectralPerturbation
-import Mathlib.Data.Matrix.Basic
+module
+
+public import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.OrderedSpectralPerturbation
+public import Mathlib.Data.Matrix.Basic
+
+@[expose] public section
 
 /-!
 # Matrix approximation and frame ledger data

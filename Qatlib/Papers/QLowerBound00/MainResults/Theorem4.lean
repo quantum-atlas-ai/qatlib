@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QLowerBound00.MainResults.Theorem2
+module
+
+public import Qatlib.Papers.QLowerBound00.MainResults.Theorem2
+
+@[expose] public section
 
 /-!
 # Adversary bound for an AND of ORs
@@ -132,8 +136,8 @@ theorem eq_flipAt_of_diff {k : ℕ} {u v : Input (k * k)} {i : Fin (k * k)}
   rw [flipAt_apply]
   by_cases hp : p = i
   · subst hp
-    rw [if_pos rfl, bool_eq_not (Ne.symm hne)]
-  · rw [if_neg hp]; exact (hagree p hp).symm
+    rw [ite_eq_left rfl, bool_eq_not (Ne.symm hne)]
+  · rw [ite_eq_right hp]; exact (hagree p hp).symm
 
 /-- If two inputs agree away from `i` and differ at `i`, the first is obtained by flipping that
 bit of the second. -/
@@ -143,8 +147,8 @@ theorem flipAt_eq_of_diff {k : ℕ} {u v : Input (k * k)} {i : Fin (k * k)}
   rw [flipAt_apply]
   by_cases hp : p = i
   · subst hp
-    rw [if_pos rfl, bool_eq_not hne]
-  · rw [if_neg hp]; exact hagree p hp
+    rw [ite_eq_left rfl, bool_eq_not hne]
+  · rw [ite_eq_right hp]; exact hagree p hp
 
 /-- The finite set of inputs with exactly one true bit in every block. -/
 def Xset (k : ℕ) : Finset (Input (k * k)) := by
@@ -196,7 +200,7 @@ at exactly one position. -/
 theorem mem_Rset_pair {k : ℕ} {x y : Input (k * k)} :
     (x, y) ∈ Rset k ↔ x ∈ Xset k ∧ y ∈ Yset k ∧
       ∃ i : Fin (k * k), x i ≠ y i ∧ ∀ j : Fin (k * k), j ≠ i → x j = y j := by
-  simp only [mem_Rset, Prod.fst, Prod.snd]
+  simp only [mem_Rset]
 
 /-- Zeroing any block of an input in `Xset` produces an input in `Yset`. -/
 theorem zeroBlock_mem_Yset {k : ℕ} {x : Input (k * k)} (hx : x ∈ Xset k)
@@ -204,15 +208,15 @@ theorem zeroBlock_mem_Yset {k : ℕ} {x : Input (k * k)} (hx : x ∈ Xset k)
   rw [mem_Yset]
   refine ⟨b, ?_, ?_⟩
   · intro j
-    rw [zeroBlock_mk, if_pos rfl]
+    rw [zeroBlock_mk, ite_eq_left rfl]
   · intro b' hb'
     obtain ⟨j0, hj0, huniq⟩ := (mem_Xset.mp hx) b'
     refine ⟨j0, ?_, ?_⟩
     · show zeroBlock k x b (@finProdFinEquiv k k (b', j0)) = true
-      rw [zeroBlock_mk, if_neg hb', hj0]
+      rw [zeroBlock_mk, ite_eq_right hb', hj0]
     · intro j' hj'
       have hj'' : zeroBlock k x b (@finProdFinEquiv k k (b', j')) = true := hj'
-      rw [zeroBlock_mk, if_neg hb'] at hj''
+      rw [zeroBlock_mk, ite_eq_right hb'] at hj''
       exact huniq j' hj''
 
 /-- Zeroing a block of an input in `Xset` changes exactly one position. -/
@@ -221,12 +225,12 @@ theorem zeroBlock_diff {k : ℕ} {x : Input (k * k)} (hx : x ∈ Xset k) (b : Fi
       ∀ j : Fin (k * k), j ≠ i → x j = zeroBlock k x b j := by
   obtain ⟨j0, hj0, huniq⟩ := (mem_Xset.mp hx) b
   refine ⟨@finProdFinEquiv k k (b, j0), ?_, ?_⟩
-  · rw [zeroBlock_mk, if_pos rfl, hj0]
+  · rw [zeroBlock_mk, ite_eq_left rfl, hj0]
     exact (by decide : (true : Bool) ≠ false)
   · intro p hp
     show x p = (if blockOf k p = b then false else x p)
     by_cases hpb : blockOf k p = b
-    · rw [if_pos hpb]
+    · rw [ite_eq_left hpb]
       have hp_eq : p = @finProdFinEquiv k k (b, withinBlock k p) := input_eq_mk p hpb rfl
       have hxpt : x p = false := by
         by_contra h
@@ -236,7 +240,7 @@ theorem zeroBlock_diff {k : ℕ} {x : Input (k * k)} (hx : x ∈ Xset k) (b : Fi
         have hwi : withinBlock k p = j0 := huniq (withinBlock k p) harg
         exact hp (by rw [hp_eq, hwi])
       exact hxpt
-    · rw [if_neg hpb]
+    · rw [ite_eq_right hpb]
 
 /-- For a related pair with first component `x ∈ Xset`, the second component is obtained by
 zeroing some block of `x`. -/
@@ -298,11 +302,11 @@ theorem R_pair_eq_zeroBlock {k : ℕ} {x y : Input (k * k)} (hx : x ∈ Xset k)
   show y p = (if blockOf k p = blockOf k i then false else x p)
   by_cases hpi : p = i
   · subst hpi
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     exact hyi
   · rw [← hagree p hpi]
     by_cases hpb : blockOf k p = blockOf k i
-    · rw [if_pos hpb]
+    · rw [ite_eq_left hpb]
       obtain ⟨j0, hj0, huniq⟩ := (mem_Xset.mp hx) (blockOf k p)
       have hp_eq : p = @finProdFinEquiv k k (blockOf k p, withinBlock k p) := input_eq_mk p rfl rfl
       have hi_eq : i = @finProdFinEquiv k k (blockOf k p, withinBlock k i) := by
@@ -319,7 +323,7 @@ theorem R_pair_eq_zeroBlock {k : ℕ} {x y : Input (k * k)} (hx : x ∈ Xset k)
         have hwi' : withinBlock k i = j0 := huniq (withinBlock k i) hargi
         exact absurd (by rw [hp_eq, hi_eq, hwi, hwi']) hpi
       · exact eq_false_of_ne_true hxp
-    · rw [if_neg hpb]
+    · rw [ite_eq_right hpb]
 
 /-- For an input in `Xset`, zeroing different blocks produces different inputs. -/
 theorem zeroBlock_inj {k : ℕ} {x : Input (k * k)} (hx : x ∈ Xset k) :
@@ -330,9 +334,9 @@ theorem zeroBlock_inj {k : ℕ} {x : Input (k * k)} (hx : x ∈ Xset k) :
   have key : zeroBlock k x b (@finProdFinEquiv k k (b', j)) =
       zeroBlock k x b' (@finProdFinEquiv k k (b', j)) := congrFun hbb _
   have h1 : zeroBlock k x b (@finProdFinEquiv k k (b', j)) = true := by
-    rw [zeroBlock_mk, if_neg (Ne.symm hne), hj]
+    rw [zeroBlock_mk, ite_eq_right (Ne.symm hne), hj]
   have h2 : zeroBlock k x b' (@finProdFinEquiv k k (b', j)) = false := by
-    rw [zeroBlock_mk, if_pos rfl]
+    rw [zeroBlock_mk, ite_eq_left rfl]
   rw [h1, h2] at key
   exact absurd key (by decide)
 
@@ -351,7 +355,7 @@ theorem fiber_R_X {k : ℕ} {x : Input (k * k)} (hx : x ∈ Xset k) :
   classical
   ext p
   obtain ⟨a, b⟩ := p
-  simp only [mem_filter, mem_image, mem_univ, true_and, Prod.fst, Prod.snd, Prod.mk.injEq]
+  simp only [mem_filter, mem_image, mem_univ, true_and, Prod.mk.injEq]
   constructor
   · rintro ⟨hpR, rfl⟩
     obtain ⟨bb, hbb⟩ := R_pair_eq_zeroBlock hx hpR
@@ -458,9 +462,9 @@ theorem R_pair_eq_fillBlock {k : ℕ} {x y : Input (k * k)} {b0 : Fin k}
   show x p = (if p = @finProdFinEquiv k k (b0, withinBlock k i) then true else y p)
   have hi_mk : i = @finProdFinEquiv k k (b0, withinBlock k i) := input_eq_mk i hb0i rfl
   by_cases hpi : p = i
-  · rw [hpi, if_pos hi_mk]
+  · rw [hpi, ite_eq_left hi_mk]
     exact hxi
-  · rw [if_neg (by rw [← hi_mk]; exact hpi), hagree p hpi]
+  · rw [ite_eq_right (by rw [← hi_mk]; exact hpi), hagree p hpi]
 
 /-- Filling any position of the specified empty block of `y` produces an input in `Xset`,
 provided every other block has exactly one true bit. -/
@@ -474,19 +478,19 @@ theorem fillBlock_mem_Xset {k : ℕ} {y : Input (k * k)} {b0 : Fin k}
   · rw [hb]
     refine ⟨jj, ?_, ?_⟩
     · show fillBlock k y b0 jj (@finProdFinEquiv k k (b0, jj)) = true
-      rw [fillBlock_apply, if_pos rfl]
+      rw [fillBlock_apply, ite_eq_left rfl]
     · intro j' hj'
       have hj'' : fillBlock k y b0 jj (@finProdFinEquiv k k (b0, j')) = true := hj'
       rw [fillBlock_apply] at hj''
       by_cases h : (@finProdFinEquiv k k (b0, j')) = @finProdFinEquiv k k (b0, jj)
       · exact congrArg Prod.snd ((@finProdFinEquiv k k).injective h)
-      · rw [if_neg h, hzero j'] at hj''
+      · rw [ite_eq_right h, hzero j'] at hj''
         exact absurd hj'' (by decide)
   · obtain ⟨j0, hj0, huniq⟩ := hrest b hb
     refine ⟨j0, ?_, ?_⟩
     · show fillBlock k y b0 jj (@finProdFinEquiv k k (b, j0)) = true
       rw [fillBlock_apply]
-      rw [if_neg]
+      rw [ite_eq_right]
       · exact hj0
       · intro hc
         exact hb (congrArg Prod.fst ((@finProdFinEquiv k k).injective hc))
@@ -495,7 +499,7 @@ theorem fillBlock_mem_Xset {k : ℕ} {y : Input (k * k)} {b0 : Fin k}
       rw [fillBlock_apply] at hj''
       by_cases h : (@finProdFinEquiv k k (b, j')) = @finProdFinEquiv k k (b0, jj)
       · exact absurd (congrArg Prod.fst ((@finProdFinEquiv k k).injective h)) hb
-      · rw [if_neg h] at hj''
+      · rw [ite_eq_right h] at hj''
         exact huniq j' hj''
 
 /-- Filling different positions in an all-false block produces different inputs. -/
@@ -510,7 +514,7 @@ theorem fillBlock_inj {k : ℕ} {y : Input (k * k)} {b : Fin k}
   rw [fillBlock_apply, fillBlock_apply] at key
   by_cases h : (@finProdFinEquiv k k (b, j)) = @finProdFinEquiv k k (b, j')
   · exact hne (congrArg Prod.snd ((@finProdFinEquiv k k).injective h))
-  · rw [if_pos rfl, if_neg h, hz j] at key
+  · rw [ite_eq_left rfl, ite_eq_right h, hz j] at key
     exact absurd key (by decide)
 
 /-- For a fixed input with an all-false block, the pairs obtained by filling different positions
@@ -531,7 +535,7 @@ theorem fiber_R_Y {k : ℕ} {y : Input (k * k)} (hy : y ∈ Yset k) :
   obtain ⟨hzero, hrest⟩ := Classical.choose_spec (mem_Yset.mp hy)
   ext p
   obtain ⟨a, b⟩ := p
-  simp only [mem_filter, mem_image, mem_univ, true_and, Prod.fst, Prod.snd, Prod.mk.injEq]
+  simp only [mem_filter, mem_image, mem_univ, true_and, Prod.mk.injEq]
   constructor
   · rintro ⟨hpR, rfl⟩
     obtain ⟨haX, _, _⟩ := mem_Rset_pair.mp hpR
@@ -540,10 +544,10 @@ theorem fiber_R_Y {k : ℕ} {y : Input (k * k)} (hy : y ∈ Yset k) :
   · rintro ⟨j, rfl, rfl⟩
     refine ⟨mem_Rset_pair.mpr ⟨fillBlock_mem_Xset hzero hrest j, hy, ?_⟩, rfl⟩
     refine ⟨@finProdFinEquiv k k (Classical.choose (mem_Yset.mp hy), j), ?_, ?_⟩
-    · rw [fillBlock_apply, if_pos rfl, hzero j]
+    · rw [fillBlock_apply, ite_eq_left rfl, hzero j]
       exact (by decide : (true : Bool) ≠ false)
     · intro p hp
-      rw [fillBlock_apply, if_neg (by exact hp)]
+      rw [fillBlock_apply, ite_eq_right (by exact hp)]
 
 /-- The relation fiber below each input in `Yset` has cardinality `k`. -/
 theorem card_fiber_Y {k : ℕ} {y : Input (k * k)} (hy : y ∈ Yset k) :
@@ -561,7 +565,7 @@ theorem card_diff_X {k : ℕ} {x : Input (k * k)} (hx : x ∈ Xset k) (i : Fin (
   classical
   refine Finset.card_le_one.mpr ?_
   rintro ⟨a, b⟩ h1 ⟨a', b'⟩ h2
-  simp only [mem_filter, Prod.fst, Prod.snd] at h1 h2
+  simp only [mem_filter] at h1 h2
   obtain ⟨h1R, h1a, h1ne⟩ := h1
   obtain ⟨h2R, h2a, h2ne⟩ := h2
   obtain ⟨haX, hbY, i1, hne1, hagree1⟩ := mem_Rset_pair.mp h1R
@@ -591,7 +595,7 @@ theorem card_diff_Y {k : ℕ} {y : Input (k * k)} (hy : y ∈ Yset k) (i : Fin (
   classical
   refine Finset.card_le_one.mpr ?_
   rintro ⟨a, b⟩ h1 ⟨a', b'⟩ h2
-  simp only [mem_filter, Prod.fst, Prod.snd] at h1 h2
+  simp only [mem_filter] at h1 h2
   obtain ⟨h1R, h1b, h1ne⟩ := h1
   obtain ⟨h2R, h2b, h2ne⟩ := h2
   obtain ⟨haX, hbY, i1, hne1, hagree1⟩ := mem_Rset_pair.mp h1R
@@ -691,7 +695,7 @@ theorem source_theorem4 (k : ℕ) (hk : 1 ≤ k) {ι : Type*} [Fintype ι] [Deci
     have hbitj : bit j = Classical.choose (hquery j hj) := by
       show (if h : j < T then Classical.choose (hquery j h) else ⟨0, hkpos⟩) =
         Classical.choose (hquery j hj)
-      rw [dif_pos hj]
+      rw [dite_eq_left hj]
     rw [hbitj]
     exact hspec
   let φ : ℕ → ι → Input (k * k) → ℂ :=
@@ -740,12 +744,12 @@ theorem source_theorem4 (k : ℕ) (hk : 1 ≤ k) {ι : Type*} [Fintype ι] [Deci
     have hXc : ∑ x ∈ Xset k, (initialAmplitude (Xset k) (Yset k) x) ^ 2 =
         if (Xset k).card = 0 then 0 else 1 / 2 := by
       by_cases h0 : (Xset k).card = 0
-      · rw [if_pos h0, Finset.card_eq_zero.mp h0]; simp
-      · rw [if_neg h0]
+      · rw [ite_eq_left h0, Finset.card_eq_zero.mp h0]; simp
+      · rw [ite_eq_right h0]
         have hterm : ∀ x ∈ Xset k,
             (initialAmplitude (Xset k) (Yset k) x) ^ 2 = (2 * ((Xset k).card : ℝ))⁻¹ := by
           intro x hxm
-          simp only [initialAmplitude, if_pos hxm]
+          simp only [initialAmplitude, ite_eq_left hxm]
           rw [inv_pow, Real.sq_sqrt (by positivity)]
         rw [Finset.sum_congr rfl hterm, Finset.sum_const, nsmul_eq_mul]
         have hXne : ((Xset k).card : ℝ) ≠ 0 := by exact_mod_cast h0
@@ -753,20 +757,20 @@ theorem source_theorem4 (k : ℕ) (hk : 1 ≤ k) {ι : Type*} [Fintype ι] [Deci
     have hYc : ∑ y ∈ Yset k, (initialAmplitude (Xset k) (Yset k) y) ^ 2 =
         if (Yset k).card = 0 then 0 else 1 / 2 := by
       by_cases h0 : (Yset k).card = 0
-      · rw [if_pos h0, Finset.card_eq_zero.mp h0]; simp
-      · rw [if_neg h0]
+      · rw [ite_eq_left h0, Finset.card_eq_zero.mp h0]; simp
+      · rw [ite_eq_right h0]
         have hterm : ∀ y ∈ Yset k,
             (initialAmplitude (Xset k) (Yset k) y) ^ 2 = (2 * ((Yset k).card : ℝ))⁻¹ := by
           intro y hym
           have hyX : y ∉ Xset k := fun h => (Finset.disjoint_left.mp hdisj) h hym
-          simp only [initialAmplitude, if_neg hyX, if_pos hym]
+          simp only [initialAmplitude, ite_eq_right hyX, ite_eq_left hym]
           rw [inv_pow, Real.sq_sqrt (by positivity)]
         rw [Finset.sum_congr rfl hterm, Finset.sum_const, nsmul_eq_mul]
         have hYne : ((Yset k).card : ℝ) ≠ 0 := by exact_mod_cast h0
         field_simp
     rw [hXsum, hYsum, hXc, hYc]
     by_cases hX0 : (Xset k).card = 0 <;> by_cases hY0 : (Yset k).card = 0 <;>
-      (simp [hX0, hY0] <;> norm_num)
+      norm_num [hX0, hY0]
   have hwrong : ∀ x ∈ Xset k,
       (∑ iw ∈ univ.filter (fun iw => ans iw ≠ true), ‖ψ T iw x‖ ^ 2) ≤ ε := by
     intro x hx

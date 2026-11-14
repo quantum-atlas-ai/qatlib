@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QftPreparation.LocalQft
-import Mathlib.Analysis.SpecialFunctions.Complex.CircleAddChar
-import Mathlib.Tactic
-import Qatlib.Papers.QSystemSim96.MainResults.ShortTimeStepFactorization
+module
+
+public import Qatlib.Concepts.QftPreparation.LocalQft
+public import Mathlib.Analysis.SpecialFunctions.Complex.CircleAddChar
+public import Mathlib.Tactic
+public import Qatlib.Papers.QSystemSim96.MainResults.ShortTimeStepFactorization
+
+@[expose] public section
 
 /-!
 # Bridging the local QFT and the lattice kernel

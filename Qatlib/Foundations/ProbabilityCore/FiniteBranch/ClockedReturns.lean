@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.ProbabilityCore.FiniteBranch.ClockedLaws
+module
+
+public import Qatlib.Foundations.ProbabilityCore.FiniteBranch.ClockedLaws
+
+@[expose] public section
 
 /-!
 # Structural return specifications for clocked programs

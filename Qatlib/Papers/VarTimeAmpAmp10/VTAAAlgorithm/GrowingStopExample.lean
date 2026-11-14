@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.VarTimeAmpAmp10.StopModel.StructuralProgram
-import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.ForwardProgram
-import Mathlib.Tactic.NormNum.RealSqrt
+module
+
+public import Qatlib.Papers.VarTimeAmpAmp10.StopModel.StructuralProgram
+public import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.ForwardProgram
+public import Mathlib.Tactic.NormNum.RealSqrt
+
+@[expose] public section
 
 /-!
 # A one-stage growing-stop example

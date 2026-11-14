@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GaussSumEst02.RingEstimate.CharacterSums
-import Mathlib.Algebra.Ring.GeomSum
-import Mathlib.Analysis.SpecialFunctions.Complex.CircleAddChar
-import Mathlib.Data.Nat.Totient
+module
+
+public import Qatlib.Papers.GaussSumEst02.RingEstimate.CharacterSums
+public import Mathlib.Algebra.Ring.GeomSum
+public import Mathlib.Analysis.SpecialFunctions.Complex.CircleAddChar
+public import Mathlib.Data.Nat.Totient
+
+@[expose] public section
 
 /-!
 # Prime-power Ramanujan sums
@@ -105,9 +109,9 @@ theorem sum_primitive_shift {n : ℕ} [NeZero n] (e : AddChar (ZMod n))
     exact Finset.sum_congr rfl fun i _ => hpow i
   rw [hval]
   by_cases hθ : e.toFun β = 1
-  · rw [if_pos (he β hθ)]
+  · rw [ite_eq_left (he β hθ)]
     simp [hθ]
-  · rw [if_neg (fun h => hθ (by rw [h]; exact e.map_zero'))]
+  · rw [ite_eq_right (fun h => hθ (by rw [h]; exact e.map_zero'))]
     have hmul : (∑ i ∈ Finset.range n, (e.toFun β) ^ i) * (e.toFun β - 1) = 0 := by
       rw [geom_sum_mul, hθn, sub_self]
     exact (mul_eq_zero.mp hmul).resolve_right (sub_ne_zero.mpr hθ)
@@ -175,9 +179,9 @@ theorem sum_nonunit_primitive {p r : ℕ} (hp : p.Prime) (hr : 1 ≤ r) [NeZero 
         rw [← ZMod.natCast_zmod_val β, ← Nat.cast_mul, h2]
       rw [h3, e.map_zero']
   by_cases hβ : (p ^ (r - 1) : ℕ) ∣ β.val
-  · rw [if_pos hβ]
+  · rw [ite_eq_left hβ]
     simp [hkey.mpr hβ]
-  · rw [if_neg hβ]
+  · rw [ite_eq_right hβ]
     have hθn : (e.toFun (β * (p : ZMod (p ^ r)))) ^ (p ^ (r - 1)) = 1 := by
       rw [← e.pow_apply (p ^ (r - 1)) (β * (p : ZMod (p ^ r)))]
       have hzero : (p ^ (r - 1) : ℕ) • (β * (p : ZMod (p ^ r))) = 0 := by
@@ -234,8 +238,8 @@ theorem ringGaussSum_trivial_ramanujan {p r : ℕ} (hp : p.Prime) (hr : 1 ≤ r)
     rw [ringGaussSum, ← Finset.sum_sub_distrib]
     refine Finset.sum_congr rfl fun x _ => ?_
     by_cases hx : IsUnit x
-    · rw [if_neg (not_not.mpr hx), hχ x hx, one_mul, sub_zero]
-    · rw [if_pos hx, χ.map_zero_of_not_unit x hx, zero_mul, sub_self]
+    · rw [ite_eq_right (not_not.mpr hx), hχ x hx, one_mul, sub_zero]
+    · rw [ite_eq_left hx, χ.map_zero_of_not_unit x hx, zero_mul, sub_self]
   rw [hsplit, sum_primitive_shift e he β, sum_nonunit_primitive hp hr e he β,
     Nat.cast_pow]
 
@@ -253,7 +257,7 @@ theorem ringGaussSum_trivial_ramanujan_cases {p r : ℕ} (hp : p.Prime) (hr : 1 
   refine ⟨?_, ?_, ?_⟩
   · rw [ringGaussSum_trivial_ramanujan hp hr χ e he hχ 0]
     have h0 : (0 : ZMod (p ^ r)).val = 0 := by simp
-    rw [if_pos rfl, h0, if_pos (dvd_zero _)]
+    rw [ite_eq_left rfl, h0, ite_eq_left (dvd_zero _)]
     have hp1 : p ^ (r - 1) ≤ p ^ r := by
       rw [← pow_pred_mul hr]; exact Nat.le_mul_of_pos_right _ hp.pos
     have hnat : p ^ r - p ^ (r - 1) = p ^ (r - 1) * (p - 1) := by
@@ -264,10 +268,10 @@ theorem ringGaussSum_trivial_ramanujan_cases {p r : ℕ} (hp : p.Prime) (hr : 1 
     simp only [Nat.cast_pow] at hcast
     exact hcast
   · intro β hβ hd
-    rw [ringGaussSum_trivial_ramanujan hp hr χ e he hχ β, if_neg hβ, if_pos hd]
+    rw [ringGaussSum_trivial_ramanujan hp hr χ e he hχ β, ite_eq_right hβ, ite_eq_left hd]
     ring
   · intro β hβ hd
-    rw [ringGaussSum_trivial_ramanujan hp hr χ e he hχ β, if_neg hβ, if_neg hd]
+    rw [ringGaussSum_trivial_ramanujan hp hr χ e he hχ β, ite_eq_right hβ, ite_eq_right hd]
     ring
 
 end Qatlib.Papers.GaussSumEst02.RingEstimate

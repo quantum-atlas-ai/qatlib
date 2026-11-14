@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QWalkGraphs00.MainResults.Core
-import Qatlib.Papers.QWalkGraphs00.MainResults.Distribution
-import Qatlib.Papers.QWalkGraphs00.MainResults.Times
-import Mathlib.Algebra.Star.BigOperators
-import Mathlib.Analysis.Complex.Norm
+module
+
+public import Qatlib.Papers.QWalkGraphs00.MainResults.Core
+public import Qatlib.Papers.QWalkGraphs00.MainResults.Distribution
+public import Qatlib.Papers.QWalkGraphs00.MainResults.Times
+public import Mathlib.Algebra.Star.BigOperators
+public import Mathlib.Analysis.Complex.Norm
+
+@[expose] public section
 
 /-!
 # Quantitative convergence to spectral limits
@@ -69,6 +73,7 @@ theorem geomAvg_one (T : ℕ) (hT : 0 < T) : geomAvg (1 : ℂ) T = 1 := by
   simp only [geomAvg, one_pow, Finset.sum_const, Finset.card_range, nsmul_eq_mul, mul_one]
   field_simp
 
+omit [DecidableEq Coin] [DecidableEq V] in
 /-- The equal-eigenvalue formula for `limitingDist` can be written as a coin-coordinate triple
 sum with an equality indicator. -/
 theorem limitingDist_eq_spectral
@@ -88,9 +93,9 @@ theorem limitingDist_eq_spectral
   apply Finset.sum_congr rfl
   intro j _
   by_cases hP : lam i = lam j
-  · simp only [if_pos hP, mul_one]
+  · simp only [ite_eq_left hP, mul_one]
     rw [Finset.mul_sum]
-  · simp only [if_neg hP, mul_zero, Finset.sum_const, Finset.card_univ, nsmul_zero]
+  · simp only [ite_eq_right hP, mul_zero, Finset.sum_const, Finset.card_univ, nsmul_zero]
 
 omit [Fintype Coin] [Fintype V] [DecidableEq Coin] [DecidableEq V] in
 
@@ -172,16 +177,16 @@ theorem abs_avgNodeProb_sub_limitingDist_le
         ((norm_mul_star_eq_one_iff lam hlam i j).2).mpr hP
       have hGij : G i j = 1 := by
         simp only [hG, hz, geomAvg_one T hT]
-      have hKij : K i j = 1 := by simp only [hK, if_pos hP]
-      rw [hGij, hKij, if_pos hP, sub_self]
-    · have hKij : K i j = 0 := by simp only [hK, if_neg hP]
-      rw [hKij, if_neg hP, sub_zero]
+      have hKij : K i j = 1 := by simp only [hK, ite_eq_left hP]
+      rw [hGij, hKij, ite_eq_left hP, sub_self]
+    · have hKij : K i j = 0 := by simp only [hK, ite_eq_right hP]
+      rw [hKij, ite_eq_right hP, sub_zero]
 
   have hterm : ∀ (c : Coin) (i j : Coin × V), ‖G i j - K i j‖
       ≤ if lam i = lam j then (0 : ℝ) else 2 / ((T : ℝ) * ‖lam i - lam j‖) := by
     intro c i j
     by_cases hP : lam i = lam j
-    · rw [hGK i j, if_pos hP, norm_zero, if_pos hP]
+    · rw [hGK i j, ite_eq_left hP, norm_zero, ite_eq_left hP]
     · have hne : lam i * star (lam j) ≠ 1 :=
         fun h => hP (((norm_mul_star_eq_one_iff lam hlam i j).2).mp h)
       have hzn : ‖lam i * star (lam j)‖ = 1 :=
@@ -197,8 +202,8 @@ theorem abs_avgNodeProb_sub_limitingDist_le
           rw [← hjl, sub_mul]
         rw [hfac, norm_mul, norm_star, hlam j, mul_one]
       have hGij : G i j = geomAvg (lam i * star (lam j)) T := by simp only [hG]
-      have hKij : K i j = 0 := by simp only [hK, if_neg hP]
-      rw [hGij, hKij, sub_zero, if_neg hP]
+      have hKij : K i j = 0 := by simp only [hK, ite_eq_right hP]
+      rw [hGij, hKij, sub_zero, ite_eq_right hP]
       rw [hz1] at hb
       exact hb
   have hstep1 : |avgNodeProb U ψ T v - limitingDist φ lam a v|
@@ -233,6 +238,7 @@ theorem abs_avgNodeProb_sub_limitingDist_le
     simp only [hC, norm_mul, norm_star]
   simpa only [hnormC] using hstep1
 
+omit [DecidableEq Coin] [DecidableEq V] in
 /-- The finite sums over vertices, coin coordinates, and two spectral indices can be reordered
 to put the spectral indices first. -/
 private theorem sum_swap_vcij {α : Type*} [Fintype α]
@@ -338,8 +344,8 @@ theorem sum_v_abs_avgNodeProb_sub_limitingDist_le
     have hb0 : (0 : ℝ) ≤ (if lam i = lam j then (0 : ℝ)
         else 2 / ((T : ℝ) * ‖lam i - lam j‖)) := by
       by_cases hP : lam i = lam j
-      · rw [if_pos hP]
-      · rw [if_neg hP]
+      · rw [ite_eq_left hP]
+      · rw [ite_eq_right hP]
         positivity
     have haa0 : (0 : ℝ) ≤ ‖a i‖ * ‖a j‖ := by positivity
     calc (‖a i‖ * ‖a j‖ *
@@ -378,8 +384,8 @@ theorem lemma_4_3
         = (if lam j = lam i then (0 : ℝ) else 2 / ((T : ℝ) * ‖lam j - lam i‖)) := by
     intro i j
     by_cases hP : lam i = lam j
-    · rw [if_pos hP, if_pos hP.symm]
-    · rw [if_neg hP, if_neg (fun h => hP h.symm), norm_sub_rev]
+    · rw [ite_eq_left hP, ite_eq_left hP.symm]
+    · rw [ite_eq_right hP, ite_eq_right (fun h => hP h.symm), norm_sub_rev]
   have hpair : ∀ i j : Coin × V,
       ‖a i‖ * ‖a j‖ * (if lam i = lam j then (0 : ℝ)
         else 2 / ((T : ℝ) * ‖lam i - lam j‖))
@@ -400,8 +406,8 @@ theorem lemma_4_3
     have hb0 : (0 : ℝ) ≤ (if lam i = lam j then (0 : ℝ)
         else 2 / ((T : ℝ) * ‖lam i - lam j‖)) := by
       by_cases hP : lam i = lam j
-      · rw [if_pos hP]
-      · rw [if_neg hP]; positivity
+      · rw [ite_eq_left hP]
+      · rw [ite_eq_right hP]; positivity
     have hsq : 0 ≤ (‖a i‖ - ‖a j‖) ^ 2 / 2 * (if lam i = lam j then (0 : ℝ)
         else 2 / ((T : ℝ) * ‖lam i - lam j‖)) := by
       apply mul_nonneg _ hb0
@@ -463,8 +469,8 @@ theorem lemma_4_3
     apply Finset.sum_congr rfl; intro j _
     have hi := hns i
     by_cases hP : lam i = lam j
-    · rw [if_pos hP, if_pos hP, mul_zero, mul_zero]
-    · rw [if_neg hP, if_neg hP, hi]
+    · rw [ite_eq_left hP, ite_eq_left hP, mul_zero, mul_zero]
+    · rw [ite_eq_right hP, ite_eq_right hP, hi]
       have hT0 : (0 : ℝ) < (T : ℝ) := by exact_mod_cast hT
       have hd : 0 < ‖lam i - lam j‖ := by
         apply norm_pos_iff.mpr

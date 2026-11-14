@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalArithmetic
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs
-import Mathlib.Analysis.Real.Cardinality
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalArithmetic
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineDefs
+public import Mathlib.Analysis.Real.Cardinality
+
+@[expose] public section
 
 /-!
 # Subroutine calls for the rational word machine

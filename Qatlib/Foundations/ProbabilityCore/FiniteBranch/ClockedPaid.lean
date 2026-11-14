@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.ProbabilityCore.FiniteBranch.ClockedBind
-import Qatlib.Foundations.ProbabilityCore.FiniteBranch.LawTransport
+module
+
+public import Qatlib.Foundations.ProbabilityCore.FiniteBranch.ClockedBind
+public import Qatlib.Foundations.ProbabilityCore.FiniteBranch.LawTransport
+
+@[expose] public section
 
 /-!
 # Joint return-value and fee laws
@@ -82,18 +86,18 @@ theorem run_bind_paid_law {I α β : Type} (cost : I → ℝ) (current : I) (B :
   induction c generalizing current B with
   | ret a =>
     simp only [bindCode,paidTree,Tree.law,PMF.pure_bind,continuePaid,Nat.zero_le,
-      if_true,Nat.sub_zero]
+      ite_true,Nat.sub_zero]
     have hzero : charge (I:=I) (α:=β) 0=id := by funext r; cases r; simp [charge]
     rw [hzero,PMF.map_id]
   | pay n c ih =>
     by_cases hn : n≤B
-    · simp only [bindCode,run,hn,if_true,Tree.law_map,paidTree,PMF.bind_map]
+    · simp only [bindCode,run,hn,ite_true,Tree.law_map,paidTree,PMF.bind_map]
       rw [ih current (B-n) hc,PMF.map_bind]
       apply congrArg (PMF.bind (paidTree cost current c).law)
       funext x
       by_cases hx : x.2≤B-n
       · have hnx : n+x.2≤B := by omega
-        simp only [Function.comp_def,continuePaid,hx,hnx,if_true,PMF.map_comp]
+        simp only [Function.comp_def,continuePaid,hx,hnx,ite_true,PMF.map_comp]
         have he : B-n-x.2=B-(n+x.2) := by omega
         rw [he]
         congr 1
@@ -101,12 +105,12 @@ theorem run_bind_paid_law {I α β : Type} (cost : I → ℝ) (current : I) (B :
         cases r
         simp [charge,Nat.add_assoc]
       · have hnx : ¬n+x.2≤B := by omega
-        simp only [Function.comp_def,continuePaid,hx,hnx,if_false,PMF.pure_map]
+        simp only [Function.comp_def,continuePaid,hx,hnx,ite_false,PMF.pure_map]
         congr 1
         simp only [charge]
         congr 1
         omega
-    · simp only [bindCode,run,hn,if_false,Tree.law,paidTree,Tree.law_map,PMF.bind_map]
+    · simp only [bindCode,run,hn,ite_false,Tree.law,paidTree,Tree.law_map,PMF.bind_map]
       symm
       have he : (fun x : α×ℕ => continuePaid cost current B f (x.1,n+x.2))=
           fun _ => PMF.pure (⟨none,B,current⟩ : Result I β) := by

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CircuitImpl.Phi3Universal.QtmUniformDefs
-import Qatlib.Concepts.QueryComplexity.Amplification.MajorityVote
+module
+
+public import Qatlib.Concepts.CircuitImpl.Phi3Universal.QtmUniformDefs
+public import Qatlib.Concepts.QueryComplexity.Amplification.MajorityVote
+
+@[expose] public section
 
 /-!
 # Concrete quantum-machine simulation and bounds
@@ -40,6 +44,13 @@ stated communication, formula, and concrete-machine results.
 -/
 
 set_option backward.isDefEq.respectTransparency false
+set_option linter.unusedVariables false
+set_option linter.unusedTactic false
+set_option linter.unusedSimpArgs false
+set_option linter.style.haveILetI false
+set_option linter.unreachableTactic false
+set_option linter.unnecessarySeqFocus false
+set_option linter.unnecessarySimpa false
 open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Foundations.StandardDefs.WindowSim
 open Qatlib.Foundations.PureStateMath
@@ -243,7 +254,7 @@ theorem windowStep_zero_of_far {Q : Type} [Fintype Q] [DecidableEq Q] {w : ℕ}
   intro q' _
   refine Finset.sum_eq_zero ?_
   intro b _
-  rw [if_neg]
+  rw [ite_eq_right]
   intro hcond
   rcases hcond with ⟨hmove, -⟩
   obtain ⟨h1, h2⟩ := moveCell_dist dd d.head c.head hmove
@@ -295,7 +306,7 @@ theorem initWindowCfg_tape_at {Q A : Type} [Fintype Q] [DecidableEq Q] [Fintype 
   have hcond : w < j.val ∧ j.val ≤ w + n := by
     rw [hj]
     omega
-  rw [dif_pos hcond]
+  rw [dite_eq_left hcond]
   congr 1
   apply Fin.ext
   show j.val - w - 1 = i.val
@@ -527,28 +538,28 @@ theorem gateLocalQTM_windowStep (U : Matrix Bool Bool ℂ)
       · simp only [moveCell, Option.some.injEq, ↓reduceIte]
         by_cases h1 : (src.head = tgt.head ∧ True ∧
             (∀ j, tgt.tape j = if j = src.head then tgt.tape src.head else src.tape j))
-        · rw [if_pos h1]
+        · rw [ite_eq_left h1]
           by_cases h2 : (src.head = tgt.head ∧
               (∀ j, tgt.tape j = if j = src.head then tgt.tape src.head else src.tape j))
-          · rw [if_pos h2]
-          · rw [if_neg h2]
+          · rw [ite_eq_left h2]
+          · rw [ite_eq_right h2]
             exact (h2 ⟨h1.1, h1.2.2⟩).elim
-        · rw [if_neg h1]
+        · rw [ite_eq_right h1]
           by_cases h2 : (src.head = tgt.head ∧
               (∀ j, tgt.tape j = if j = src.head then tgt.tape src.head else src.tape j))
-          · rw [if_pos h2]
+          · rw [ite_eq_left h2]
             exact (h1 ⟨h2.1, trivial, h2.2⟩).elim
-          · rw [if_neg h2]
+          · rw [ite_eq_right h2]
       · intro b _ hb
         simp only [moveCell, Option.some.injEq, ↓reduceIte]
         by_cases hcon : (src.head = tgt.head ∧ True ∧
             (∀ j, tgt.tape j = if j = src.head then b else src.tape j))
-        · rw [if_pos hcon]
+        · rw [ite_eq_left hcon]
           have hlt : tgt.tape src.head = b := by
             have hstep := hcon.2.2 src.head
             simpa using! hstep
           exact (hb hlt.symm).elim
-        · rw [if_neg hcon]
+        · rw [ite_eq_right hcon]
     · intro q' _ hq
       exact (hq (Subsingleton.elim _ _)).elim
   · intro d _ hd
@@ -558,8 +569,8 @@ theorem gateLocalQTM_windowStep (U : Matrix Bool Bool ℂ)
     intro b _
     by_cases hcon : (moveCell d src.head = some tgt.head ∧ True ∧
         (∀ j, tgt.tape j = if j = src.head then b else src.tape j))
-    · rw [if_pos hcon, if_neg hd]
-    · rw [if_neg hcon]
+    · rw [ite_eq_left hcon, ite_eq_right hd]
+    · rw [ite_eq_right hcon]
 
 /-- The gate machine transition amplitude is the corresponding entry of `U` exactly for a
 `writeHead` target, and zero otherwise. -/
@@ -572,15 +583,15 @@ theorem gateLocalQTM_windowStep_writeHead (U : Matrix Bool Bool ℂ)
   rw [gateLocalQTM_windowStep U hU src tgt]
   by_cases h : src.head = tgt.head ∧
       (∀ j, tgt.tape j = if j = src.head then tgt.tape src.head else src.tape j)
-  · rw [if_pos h]
-    rw [if_pos (Iff.mpr (writeHead_eq_iff src tgt)
+  · rw [ite_eq_left h]
+    rw [ite_eq_left (Iff.mpr (writeHead_eq_iff src tgt)
       ⟨h.1.symm, Subsingleton.elim _ _, h.2⟩)]
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     by_cases hh : (tgt = writeHead src (tgt.tape src.head))
-    · rw [if_pos hh]
+    · rw [ite_eq_left hh]
       have hparts := Iff.mp (writeHead_eq_iff src tgt) hh
       exact (h ⟨hparts.1.symm, hparts.2.2⟩).elim
-    · rw [if_neg hh]
+    · rw [ite_eq_right hh]
 
 /-- One step from a basis configuration applies `U` to the head-cell symbol and has zero
 amplitude on configurations with any other change. -/
@@ -656,10 +667,10 @@ theorem layerAmp_norm {k : ℕ} (Us : Fin k → Matrix Bool Bool ℂ)
   | toInput => cases a <;> simp [layerAmp]
   | layer i =>
       by_cases h : i.val < k
-      · simp only [layerAmp, dif_pos h]
+      · simp only [layerAmp, dite_eq_left h]
         exact gateCol_norm Us hU ⟨i.val, h⟩ a
       · have hn : ¬ (i.val < k) := by omega
-        simp only [layerAmp, dif_neg hn]
+        simp only [layerAmp, dite_eq_right hn]
         cases a <;> simp
   | acc => cases a <;> simp [layerAmp]
   | rej => cases a <;> simp [layerAmp]
@@ -685,17 +696,17 @@ theorem sum_move_mul (x y : ℂ) (d₁ d₂ : QtmMove) :
     · simp
     · intro d _ hd
       simp [hd]
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     apply Finset.sum_eq_zero
     intro d _
     by_cases hd1 : d = d₁ <;> by_cases hd2 : d = d₂
-    · rw [if_pos hd1, if_pos hd2]
+    · rw [ite_eq_left hd1, ite_eq_left hd2]
       exact absurd (hd1.symm.trans hd2) h
-    · rw [if_pos hd1, if_neg hd2]
+    · rw [ite_eq_left hd1, ite_eq_right hd2]
       simp
-    · rw [if_neg hd1, if_pos hd2]
+    · rw [ite_eq_right hd1, ite_eq_left hd2]
       simp
-    · rw [if_neg hd1, if_neg hd2]
+    · rw [ite_eq_right hd1, ite_eq_right hd2]
       simp
 
 /-- The conjugate-product sum of two single-move-supported amplitudes is their conjugate product
@@ -709,17 +720,17 @@ theorem sum_move_mul_star (x y : ℂ) (d₁ d₂ : QtmMove) :
     · simp
     · intro d _ hd
       simp [hd]
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     apply Finset.sum_eq_zero
     intro d _
     by_cases hd1 : d = d₁ <;> by_cases hd2 : d = d₂
-    · rw [if_pos hd1, if_pos hd2]
+    · rw [ite_eq_left hd1, ite_eq_left hd2]
       exact absurd (hd1.symm.trans hd2) h
-    · rw [if_pos hd1, if_neg hd2]
+    · rw [ite_eq_left hd1, ite_eq_right hd2]
       simp
-    · rw [if_neg hd1, if_pos hd2]
+    · rw [ite_eq_right hd1, ite_eq_left hd2]
       simp
-    · rw [if_neg hd1, if_neg hd2]
+    · rw [ite_eq_right hd1, ite_eq_right hd2]
       simp
 
 /-- Distinct deterministic symbol-preserving amplitude rows are orthogonal. -/
@@ -820,7 +831,7 @@ theorem layerAmp_orth {k : ℕ} (Us : Fin k → Matrix Bool Bool ℂ)
                 apply hne
                 exact Prod.ext (congrArg LayerState.layer hij) h
               subst hij
-              simp only [layerAmp, dif_pos hi]
+              simp only [layerAmp, dite_eq_left hi]
               exact gateCol_orth Us hU ⟨i.val, hi⟩ a₁ a₂ ha
             · exfalso
               cases a₂ <;> simp [layerNext, hi, hj] at hnxt
@@ -1019,13 +1030,13 @@ def layerLocalQTM {k : ℕ} (Us : Fin k → Matrix Bool Bool ℂ)
           rw [sum_move_mul_star]
         rw [hsum]
         by_cases hmv : layerMove q₁ = layerMove q₂
-        · simp only [if_pos hmv]
+        · simp only [ite_eq_left hmv]
           exact layerAmp_orth Us hU q₁ q₂ a₁ a₂ hne hnxt
         · have hsum2 : (∑ x : Bool, if layerMove q₁ = layerMove q₂ then star (layerAmp Us q₁ a₁ x) * layerAmp Us q₂ a₂ x else 0)
               = ∑ x : Bool, 0 := by
             apply Finset.sum_congr rfl
             intro x _
-            rw [if_neg hmv]
+            rw [ite_eq_right hmv]
           rw [hsum2]
           simp
       · rw [Finset.sum_eq_zero]
@@ -1034,13 +1045,13 @@ def layerLocalQTM {k : ℕ} (Us : Fin k → Matrix Bool Bool ℂ)
         intro d _
         simp only [layerStep, and_true]
         by_cases h1 : (d = layerMove q₁)
-        · rw [if_pos h1]
+        · rw [ite_eq_left h1]
           by_cases h2 : (d = layerMove q₂ ∧ layerNext q₁ a₁ = layerNext q₂ a₂)
-          · rw [if_pos h2]
+          · rw [ite_eq_left h2]
             exact (hnxt h2.2).elim
-          · rw [if_neg h2]
+          · rw [ite_eq_right h2]
             simp
-        · rw [if_neg h1]
+        · rw [ite_eq_right h1]
           simp
     · intro q' _ hne'
       simp [layerStep, hne']
@@ -1063,17 +1074,17 @@ def layerLocalQTM {k : ℕ} (Us : Fin k → Matrix Bool Bool ℂ)
               = if q' = layerNext q₂ a₂ then layerAmp Us q₂ a₂ d else 0 by
           simp [layerStep, layerMove_eq_stay_of_ne q₂ hq₂]]
         by_cases h1 : q' = .layer 0
-        · rw [if_pos h1]
+        · rw [ite_eq_left h1]
           by_cases h2 : q' = layerNext q₂ a₂
-          · rw [if_pos h2]
+          · rw [ite_eq_left h2]
             exfalso
             have hz : layerNext q₂ a₂ = .layer 0 := by
               rw [← h1]
               exact h2.symm
             exact (layerNext_ne_layer0 q₂ a₂ hq₂ hz).elim
-          · rw [if_neg h2]
+          · rw [ite_eq_right h2]
             simp
-        · rw [if_neg h1]
+        · rw [ite_eq_right h1]
           simp
       · rw [show layerStep Us q₁ a₁ QtmMove.right q' c = 0 by
           simp [layerStep, layerMove_eq_stay_of_ne q₁ hq₁]]
@@ -1084,7 +1095,7 @@ def layerLocalQTM {k : ℕ} (Us : Fin k → Matrix Bool Bool ℂ)
     intro q' _
     have hz : layerStep Us q₂ a₂ QtmMove.left q' d = 0 := by
       unfold layerStep
-      rw [if_neg (by
+      rw [ite_eq_right (by
         intro h
         exact (layerMove_ne_left q₂) h.1.symm)]
     rw [hz]
@@ -1095,7 +1106,7 @@ def layerLocalQTM {k : ℕ} (Us : Fin k → Matrix Bool Bool ℂ)
     intro q' _
     have hz : layerStep Us q₂ a₂ QtmMove.left q' d = 0 := by
       unfold layerStep
-      rw [if_neg (by
+      rw [ite_eq_right (by
         intro h
         exact (layerMove_ne_left q₂) h.1.symm)]
     rw [hz]
@@ -1128,27 +1139,27 @@ theorem layerLocalQTM_windowStep {k : ℕ} (Us : Fin k → Matrix Bool Bool ℂ)
       · by_cases h : (moveCell (layerMove src.state) src.head = some tgt.head ∧
             tgt.state = layerNext src.state (src.tape src.head) ∧
             (∀ j, tgt.tape j = if j = src.head then tgt.tape src.head else src.tape j))
-        · simp only [if_pos h, and_self, eq_self, ↓reduceIte]
-        · simp only [if_neg h]
+        · simp only [ite_eq_left h, and_self, eq_self, ↓reduceIte]
+        · simp only [ite_eq_right h]
       · intro b _ hb
         by_cases hcon : (moveCell (layerMove src.state) src.head = some tgt.head ∧
             tgt.state = layerNext src.state (src.tape src.head) ∧
             (∀ j, tgt.tape j = if j = src.head then b else src.tape j))
-        · rw [if_pos hcon]
+        · rw [ite_eq_left hcon]
           have hlt : tgt.tape src.head = b := by
             have hstep := hcon.2.2 src.head
             simpa using! hstep
           exact (hb hlt.symm).elim
-        · rw [if_neg hcon]
+        · rw [ite_eq_right hcon]
     · intro q' _ hq
       apply Finset.sum_eq_zero
       intro b _
       by_cases hcon : (moveCell (layerMove src.state) src.head = some tgt.head ∧
           tgt.state = q' ∧
           (∀ j, tgt.tape j = if j = src.head then b else src.tape j))
-      · rw [if_pos hcon]
-        rw [if_neg (fun hh => hq hh.2)]
-      · rw [if_neg hcon]
+      · rw [ite_eq_left hcon]
+        rw [ite_eq_right (fun hh => hq hh.2)]
+      · rw [ite_eq_right hcon]
   · intro d _ hd
     apply Finset.sum_eq_zero
     intro q' _
@@ -1156,9 +1167,9 @@ theorem layerLocalQTM_windowStep {k : ℕ} (Us : Fin k → Matrix Bool Bool ℂ)
     intro b _
     by_cases hcon : (moveCell d src.head = some tgt.head ∧ tgt.state = q' ∧
         (∀ j, tgt.tape j = if j = src.head then b else src.tape j))
-    · rw [if_pos hcon]
-      rw [if_neg (fun hh => hd hh.1)]
-    · rw [if_neg hcon]
+    · rw [ite_eq_left hcon]
+      rw [ite_eq_right (fun hh => hd hh.1)]
+    · rw [ite_eq_right hcon]
 
 /-- One step from a layered basis configuration has the prescribed local amplitude on valid
 successor configurations and zero elsewhere. -/
@@ -1247,7 +1258,7 @@ theorem layerLocalQTM_windowStep_norm {k : ℕ} (Us : Fin k → Matrix Bool Bool
       refine ⟨h1, h2, ?_⟩
       intro j hj
       have hj' := h3 j
-      simp only [if_neg hj] at hj'
+      simp only [ite_eq_right hj] at hj'
       exact hj'
     · rintro ⟨h1, h2, h3⟩
       refine ⟨h1, h2, ?_⟩
@@ -1259,10 +1270,10 @@ theorem layerLocalQTM_windowStep_norm {k : ℕ} (Us : Fin k → Matrix Bool Bool
   by_cases h : (moveCell (layerMove src.state) src.head = some tgt.head ∧
       tgt.state = layerNext src.state (src.tape src.head) ∧
       (∀ j, j ≠ src.head → tgt.tape j = src.tape j))
-  · simp only [if_pos h]
-    rw [if_pos (hiff.mpr h)]
-  · simp only [if_neg h]
-    rw [if_neg (fun hh => h (hiff.mp hh))]
+  · simp only [ite_eq_left h]
+    rw [ite_eq_left (hiff.mpr h)]
+  · simp only [ite_eq_right h]
+    rw [ite_eq_right (fun hh => h (hiff.mp hh))]
 
 /-- The amplitude after a layered step from a basis ket is the local amplitude exactly when the
 head move, next state, and off-head tape agreement hold. -/
@@ -1303,28 +1314,28 @@ theorem layerLocalQTM_layerEvolution {k : ℕ} (Us : Fin k → Matrix Bool Bool 
   simp only [Pi.add_apply, Pi.smul_apply]
   rw [layerLocalQTM_windowStep_ket_norm, layerLocalQTM_windowStep_ket_norm]
   simp only [layerCfg_state, layerCfg_head, layerMove, moveCell, layerNext,
-    layerAmp, hj, layerCfg_tape, Option.some.injEq, dif_pos,
-    if_pos]
+    layerAmp, hj, layerCfg_tape, Option.some.injEq, dite_eq_left,
+    ite_eq_left]
   have htab : (∀ j, j ≠ base.head → tgt.tape j = if j = base.head then false else base.tape j)
       ↔ (∀ j, j ≠ base.head → tgt.tape j = if j = base.head then true else base.tape j) := by
     constructor
     · intro h j hj
       have hh := h j hj
-      rw [if_neg hj] at hh
-      rw [if_neg hj]
+      rw [ite_eq_right hj] at hh
+      rw [ite_eq_right hj]
       exact hh
     · intro h j hj
       have hh := h j hj
-      rw [if_neg hj] at hh
-      rw [if_neg hj]
+      rw [ite_eq_right hj] at hh
+      rw [ite_eq_right hj]
       exact hh
   by_cases h : (base.head = tgt.head ∧ tgt.state = .layer ⟨j + 1, by omega⟩ ∧
       (∀ j, j ≠ base.head → tgt.tape j = if j = base.head then false else base.tape j))
-  · rw [if_pos h]
+  · rw [ite_eq_left h]
     have h1 : (base.head = tgt.head ∧ tgt.state = .layer ⟨j + 1, by omega⟩ ∧
         (∀ j, j ≠ base.head → tgt.tape j = if j = base.head then true else base.tape j)) :=
       ⟨h.1, h.2.1, fun j hj => (htab.mp h.2.2) j hj⟩
-    rw [if_pos h1]
+    rw [ite_eq_left h1]
     by_cases hb : tgt.tape base.head = false
     · have htgt : tgt = layerCfg base (.layer ⟨j + 1, by omega⟩) false := by
         apply WindowCfg_eq_of_fields
@@ -1334,14 +1345,14 @@ theorem layerLocalQTM_layerEvolution {k : ℕ} (Us : Fin k → Matrix Bool Bool 
           by_cases hi : i = base.head
           · simp [layerCfg, hi, hb]
           · have hh := h.2.2 i hi
-            simp only [if_neg hi] at hh
+            simp only [ite_eq_right hi] at hh
             simp [layerCfg, hi, hh]
       rw [htgt]
       have hne : layerCfg base (.layer ⟨j + 1, by omega⟩) false
           ≠ layerCfg base (.layer ⟨j + 1, by omega⟩) true :=
         layerCfg_ne base _ (by simp)
       simp only [Qatlib.Foundations.PureStateMath.Ket, ↓reduceIte, layerCfg_tape_at]
-      rw [if_neg hne]
+      rw [ite_eq_right hne]
       ring
     · have htgt : tgt = layerCfg base (.layer ⟨j + 1, by omega⟩) true := by
         apply WindowCfg_eq_of_fields
@@ -1351,20 +1362,20 @@ theorem layerLocalQTM_layerEvolution {k : ℕ} (Us : Fin k → Matrix Bool Bool 
           by_cases hi : i = base.head
           · simp [layerCfg, hi, hb]
           · have hh := h.2.2 i hi
-            simp only [if_neg hi] at hh
+            simp only [ite_eq_right hi] at hh
             simp [layerCfg, hi, hh]
       rw [htgt]
       have hne : layerCfg base (.layer ⟨j + 1, by omega⟩) true
           ≠ layerCfg base (.layer ⟨j + 1, by omega⟩) false :=
         layerCfg_ne base _ (by simp)
       simp only [Qatlib.Foundations.PureStateMath.Ket, ↓reduceIte, layerCfg_tape_at]
-      rw [if_neg hne]
+      rw [ite_eq_right hne]
       ring
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     have h1 : ¬ (base.head = tgt.head ∧ tgt.state = .layer ⟨j + 1, by omega⟩ ∧
         (∀ j, j ≠ base.head → tgt.tape j = if j = base.head then true else base.tape j)) :=
       fun hh => h ⟨hh.1, hh.2.1, fun j hj => (htab.mpr hh.2.2) j hj⟩
-    rw [if_neg h1]
+    rw [ite_eq_right h1]
     by_cases h0 : tgt = layerCfg base (.layer ⟨j + 1, by omega⟩) false
     · exfalso
       have hcond' : base.head = tgt.head ∧
@@ -1446,9 +1457,9 @@ theorem layerLocalQTM_measure_ket {k : ℕ} (Us : Fin k → Matrix Bool Bool ℂ
   simp only [Option.some.injEq]
   by_cases hC : (base.head = tgt.head ∧ tgt.state = (if a then .acc else .rej) ∧
       (∀ j, j ≠ base.head → tgt.tape j = (layerCfg base (.layer ⟨k, by omega⟩) a).tape j))
-  · rw [if_pos hC]
+  · rw [ite_eq_left hC]
     by_cases hflip : tgt.tape base.head = !a
-    · rw [if_pos hflip]
+    · rw [ite_eq_left hflip]
       have hcon : tgt = layerCfg base (if a then .acc else .rej) (!a) := by
         apply WindowCfg_eq_of_fields
         · exact hC.1.symm
@@ -1461,15 +1472,15 @@ theorem layerLocalQTM_measure_ket {k : ℕ} (Us : Fin k → Matrix Bool Bool ℂ
             simp [layerCfg, hj] at hh
             simp [layerCfg, hj]
             exact hh
-      rw [if_pos hcon]
-    · rw [if_neg hflip]
-      rw [if_neg]
+      rw [ite_eq_left hcon]
+    · rw [ite_eq_right hflip]
+      rw [ite_eq_right]
       intro hcon
       have hh := congrArg (fun c => c.tape base.head) hcon
       simp [layerCfg] at hh
       exact hflip hh
-  · rw [if_neg hC]
-    rw [if_neg]
+  · rw [ite_eq_right hC]
+    rw [ite_eq_right]
     intro hcon
     have hstate := congrArg WindowCfg.state hcon
     have htape := congrArg (fun c => c.tape) hcon
@@ -1651,8 +1662,8 @@ theorem ket_eq_wireAmp (x : Reg 1) : Ket x = fun z => wireAmp x (reg1Bool z) := 
   funext z
   simp only [Qatlib.Foundations.PureStateMath.Ket, wireAmp]
   by_cases h : z = x
-  · rw [if_pos h, if_pos (by rw [h]; rfl)]
-  · rw [if_neg h, if_neg (by
+  · rw [ite_eq_left h, ite_eq_left (by rw [h]; rfl)]
+  · rw [ite_eq_right h, ite_eq_right (by
       intro hh
       apply h
       apply reg1_ext
@@ -1690,9 +1701,9 @@ theorem layerLocalQTM_walk {k : ℕ} (Us : Fin k → Matrix Bool Bool ℂ)
   by_cases hcond : (moveCell (layerMove (.toInput : LayerState k)) base.head = some tgt.head ∧
       tgt.state = layerNext (.toInput : LayerState k) b ∧
       (∀ j, j ≠ base.head → tgt.tape j = (layerCfg base (.toInput) b).tape j))
-  · rw [if_pos hcond, hamp]
+  · rw [ite_eq_left hcond, hamp]
     by_cases hsym : tgt.tape base.head = b
-    · rw [if_pos hsym]
+    · rw [ite_eq_left hsym]
       have hEq : tgt = layerWalk (layerCfg base (.toInput) b) h' := by
         refine WindowCfg_eq_of_fields tgt (layerWalk (layerCfg base (.toInput) b) h') ?_ ?_ ?_
         · have h1 := hcond.1
@@ -1713,11 +1724,11 @@ theorem layerLocalQTM_walk {k : ℕ} (Us : Fin k → Matrix Bool Bool ℂ)
             have h1 : (layerWalk (layerCfg base (.toInput) b) h').tape j
                 = (layerCfg base (.toInput) b).tape j := rfl
             have h4 : (layerCfg base (.toInput) b).tape j = base.tape j := by
-              simp only [layerCfg_tape, if_neg hj]
+              simp only [layerCfg_tape, ite_eq_right hj]
             rw [h1, h4]
             exact h3.trans h4
       simp [Qatlib.Foundations.PureStateMath.Ket, hEq]
-    · rw [if_neg hsym]
+    · rw [ite_eq_right hsym]
       have hEq : tgt ≠ layerWalk (layerCfg base (.toInput) b) h' := by
         intro heq
         apply hsym
@@ -1731,7 +1742,7 @@ theorem layerLocalQTM_walk {k : ℕ} (Us : Fin k → Matrix Bool Bool ℂ)
         rw [h2, h3] at h1'
         exact h1'
       simp [Qatlib.Foundations.PureStateMath.Ket, hEq]
-  · rw [if_neg hcond]
+  · rw [ite_eq_right hcond]
     have hEq : tgt ≠ layerWalk (layerCfg base (.toInput) b) h' := by
       intro heq
       have h1 := congrArg WindowCfg.head heq
@@ -1771,7 +1782,7 @@ theorem ket_eq_layerCfgSuper {k w : ℕ} (base : WindowCfg w (LayerState k) Bool
   simp only [Pi.add_apply, Pi.smul_apply]
   by_cases hbf : b = false
   · rw [hbf]
-    rw [if_pos rfl, if_neg (by simp)]
+    rw [ite_eq_left rfl, ite_eq_right (by simp)]
     simp only [one_smul, zero_smul]
     have hcfgF : base = layerCfg base (.layer ⟨0, by omega⟩) false := by
       rw [hbf] at hcfg
@@ -1783,7 +1794,7 @@ theorem ket_eq_layerCfgSuper {k w : ℕ} (base : WindowCfg w (LayerState k) Bool
       | false => exact absurd (by simp : false = false) hbf
       | true => rfl
     rw [hbt]
-    rw [if_neg (by simp), if_pos rfl]
+    rw [ite_eq_right (by simp), ite_eq_left rfl]
     simp only [one_smul, zero_smul]
     have hcfgT : base = layerCfg base (.layer ⟨0, by omega⟩) true := by
       rw [hbt] at hcfg
@@ -2160,10 +2171,10 @@ theorem embedReg1_applyGate {n : ℕ} (hn : 0 < n) (U : Matrix Bool Bool ℂ) (x
     intro j hj
     exact flip0_of_ne hn x hj
   have hψx : ψ x = c (x ⟨0, hn⟩) := by
-    rw [hψ x, agreesOutside, if_pos hagx]
+    rw [hψ x, agreesOutside, ite_eq_left hagx]
     simp
   have hψf : ψ (flip0 hn x) = c ((flip0 hn x) ⟨0, hn⟩) := by
-    rw [hψ (flip0 hn x), agreesOutside, if_pos hagf]
+    rw [hψ (flip0 hn x), agreesOutside, ite_eq_left hagf]
     simp
   have hcond : (AgreesOutside y x) ↔ (AgreesOutside y (flip0 hn x)) := by
     constructor
@@ -2177,14 +2188,14 @@ theorem embedReg1_applyGate {n : ℕ} (hn : 0 < n) (U : Matrix Bool Bool ℂ) (x
   by_cases hA : AgreesOutside y x
   · have hA' : AgreesOutside y (flip0 hn x) := hcond.mp hA
     have hagxy : AgreesOutside x y := (AgreesOutside_comm x y).mpr hA
-    rw [if_pos hA, if_pos hA', if_pos hagxy, mul_one]
+    rw [ite_eq_left hA, ite_eq_left hA', ite_eq_left hagxy, mul_one]
     have hfl := flip0_bit0 hn x
     rw [hfl]
     have hb := sum_bool_pair (f := fun z => U (y ⟨0, hn⟩) z * c z) (x ⟨0, hn⟩)
     rw [hb, mulVec_bool]
   · have hA' : ¬ AgreesOutside y (flip0 hn x) := fun h => hA (hcond.mpr h)
     have hagxy : ¬ AgreesOutside x y := fun h => hA ((AgreesOutside_comm x y).mp h)
-    rw [if_neg hA, if_neg hA', if_neg hagxy]
+    rw [ite_eq_right hA, ite_eq_right hA', ite_eq_right hagxy]
     simp
 
 /-- Applying a gate-list product with first gate `U` equals first applying `U`, then applying
@@ -2250,7 +2261,7 @@ theorem ket_firstWire {n : ℕ} (hn : 0 < n) (x : Reg n) :
         exact hconj ⟨hbit, by rw [h]; exact hagx⟩
       have hag0 : agreesOutside x y = 0 := by
         have : ¬ AgreesOutside x y := fun h => hconj ⟨hbit, h⟩
-        rw [agreesOutside, if_neg this]
+        rw [agreesOutside, ite_eq_right this]
       simp [Qatlib.Foundations.PureStateMath.Ket, hag0, hbit, hyn]
     · have hyn : y ≠ x := by
         intro h
@@ -2307,14 +2318,14 @@ theorem acceptProb_embed {n : ℕ} (hn : 0 < n) (gs : List (Matrix Bool Bool ℂ
       (Finset.univ.filter (fun y : Reg n => y ⟨0, hn⟩ = true)) := by
     simp [setBit0]
   have hag_xTrue1 : agreesOutside x (setBit0 x true) = 1 := by
-    rw [agreesOutside, if_pos hag_xTrue]
+    rw [agreesOutside, ite_eq_left hag_xTrue]
   have hzero : ∀ y ∈ (Finset.univ.filter (fun y : Reg n => y ⟨0, hn⟩ = true)),
       y ≠ setBit0 x true → agreesOutside x y = 0 := by
     intro y hy hne
     have hy' : y ⟨0, hn⟩ = true := (Finset.mem_filter.mp hy).2
     by_cases hag : AgreesOutside x y
     · exact absurd (agreesOutside_accepting_unique hn x y hy' hag) hne
-    · rw [agreesOutside, if_neg hag]
+    · rw [agreesOutside, ite_eq_right hag]
   have hsum : (∑ y ∈ (Finset.univ.filter (fun y : Reg n => y ⟨0, hn⟩ = true)),
         BornProb (Run (1 : Matrix (Reg n) (Reg n) ℂ)
           ((gs.map (fun U => embedReg1 hn U)).map Step.gate) (Ket x)) y)
@@ -2742,12 +2753,12 @@ theorem cellNext_walk_ne_walk {n k tgt : ℕ} (d₁ d₂ : Fin (tgt + 1)) (a₁ 
   · by_cases h2 : d₂.val = tgt
     · have hd' : d₁ = d₂ := Fin.ext (by omega)
       exact (h hd').elim
-    · rw [cellNext_walk d₁ a₁, cellNext_walk d₂ a₂, dif_pos h1, dif_neg h2] at hcon
+    · rw [cellNext_walk d₁ a₁, cellNext_walk d₂ a₂, dite_eq_left h1, dite_eq_right h2] at hcon
       injection hcon
   · by_cases h2 : d₂.val = tgt
-    · rw [cellNext_walk d₁ a₁, cellNext_walk d₂ a₂, dif_neg h1, dif_pos h2] at hcon
+    · rw [cellNext_walk d₁ a₁, cellNext_walk d₂ a₂, dite_eq_right h1, dite_eq_left h2] at hcon
       injection hcon
-    · rw [cellNext_walk d₁ a₁, cellNext_walk d₂ a₂, dif_neg h1, dif_neg h2] at hcon
+    · rw [cellNext_walk d₁ a₁, cellNext_walk d₂ a₂, dite_eq_right h1, dite_eq_right h2] at hcon
       injection hcon with hval
       have hv : d₁.val + 1 = d₂.val + 1 := by
         simpa using! congrArg Fin.val hval
@@ -2765,31 +2776,31 @@ theorem cellNext_walk_ne {n k tgt : ℕ} (d : Fin (tgt + 1)) (a₁ : Bool)
       intro hcon
       by_cases h1 : d.val = tgt
       · by_cases h2 : j₂.val < k
-        · rw [cellNext_walk d a₁, cellNext_gate j₂ a₂, dif_pos h1, dif_pos h2] at hcon
+        · rw [cellNext_walk d a₁, cellNext_gate j₂ a₂, dite_eq_left h1, dite_eq_left h2] at hcon
           injection hcon with hval
           have hv : (0 : ℕ) = j₂.val + 1 := by
             simpa using! congrArg Fin.val hval
           omega
-        · rw [cellNext_walk d a₁, cellNext_gate j₂ a₂, dif_pos h1, dif_neg h2] at hcon
+        · rw [cellNext_walk d a₁, cellNext_gate j₂ a₂, dite_eq_left h1, dite_eq_right h2] at hcon
           cases a₂ <;> injection hcon
       · by_cases h2 : j₂.val < k
-        · rw [cellNext_walk d a₁, cellNext_gate j₂ a₂, dif_neg h1, dif_pos h2] at hcon
+        · rw [cellNext_walk d a₁, cellNext_gate j₂ a₂, dite_eq_right h1, dite_eq_left h2] at hcon
           injection hcon
-        · rw [cellNext_walk d a₁, cellNext_gate j₂ a₂, dif_neg h1, dif_neg h2] at hcon
+        · rw [cellNext_walk d a₁, cellNext_gate j₂ a₂, dite_eq_right h1, dite_eq_right h2] at hcon
           cases a₂ <;> injection hcon
   | acc =>
       intro hcon
       by_cases h1 : d.val = tgt
-      · rw [cellNext_walk d a₁, cellNext_acc a₂, dif_pos h1] at hcon
+      · rw [cellNext_walk d a₁, cellNext_acc a₂, dite_eq_left h1] at hcon
         injection hcon
-      · rw [cellNext_walk d a₁, cellNext_acc a₂, dif_neg h1] at hcon
+      · rw [cellNext_walk d a₁, cellNext_acc a₂, dite_eq_right h1] at hcon
         injection hcon
   | rej =>
       intro hcon
       by_cases h1 : d.val = tgt
-      · rw [cellNext_walk d a₁, cellNext_rej a₂, dif_pos h1] at hcon
+      · rw [cellNext_walk d a₁, cellNext_rej a₂, dite_eq_left h1] at hcon
         injection hcon
-      · rw [cellNext_walk d a₁, cellNext_rej a₂, dif_neg h1] at hcon
+      · rw [cellNext_walk d a₁, cellNext_rej a₂, dite_eq_right h1] at hcon
         injection hcon with hval
         have hv : d.val + 1 = 0 := by
           simpa using! congrArg Fin.val hval
@@ -2797,9 +2808,9 @@ theorem cellNext_walk_ne {n k tgt : ℕ} (d : Fin (tgt + 1)) (a₁ : Bool)
   | meas2 =>
       intro hcon
       by_cases h1 : d.val = tgt
-      · rw [cellNext_walk d a₁, cellNext_meas2 a₂, dif_pos h1] at hcon
+      · rw [cellNext_walk d a₁, cellNext_meas2 a₂, dite_eq_left h1] at hcon
         cases a₂ <;> injection hcon
-      · rw [cellNext_walk d a₁, cellNext_meas2 a₂, dif_neg h1] at hcon
+      · rw [cellNext_walk d a₁, cellNext_meas2 a₂, dite_eq_right h1] at hcon
         cases a₂ <;> injection hcon
 
 /-- Distinct cell-machine gate stages have distinct next states. -/
@@ -2809,16 +2820,16 @@ theorem cellNext_gate_ne {n k tgt : ℕ} (j₁ j₂ : Fin (k + 1)) (a₁ a₂ : 
   intro hcon
   by_cases h1 : j₁.val < k
   · by_cases h2 : j₂.val < k
-    · rw [cellNext_gate j₁ a₁, cellNext_gate j₂ a₂, dif_pos h1, dif_pos h2] at hcon
+    · rw [cellNext_gate j₁ a₁, cellNext_gate j₂ a₂, dite_eq_left h1, dite_eq_left h2] at hcon
       injection hcon with hval
       have hv : j₁.val + 1 = j₂.val + 1 := by
         simpa using! congrArg Fin.val hval
       have hj : j₁ = j₂ := Fin.ext (by omega)
       exact (h hj).elim
-    · rw [cellNext_gate j₁ a₁, cellNext_gate j₂ a₂, dif_pos h1, dif_neg h2] at hcon
+    · rw [cellNext_gate j₁ a₁, cellNext_gate j₂ a₂, dite_eq_left h1, dite_eq_right h2] at hcon
       cases a₂ <;> injection hcon
   · by_cases h2 : j₂.val < k
-    · rw [cellNext_gate j₁ a₁, cellNext_gate j₂ a₂, dif_neg h1, dif_pos h2] at hcon
+    · rw [cellNext_gate j₁ a₁, cellNext_gate j₂ a₂, dite_eq_right h1, dite_eq_left h2] at hcon
       cases a₁ <;> injection hcon
     · have hj : j₁ = j₂ := Fin.ext (by omega)
       exact (h hj).elim
@@ -2860,10 +2871,10 @@ theorem cellAmp_norm {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Bool Bool �
   | walk d => cases a <;> simp [cellAmp]
   | gate j =>
       by_cases h : j.val < k
-      · simp only [cellAmp, dif_pos h]
+      · simp only [cellAmp, dite_eq_left h]
         exact cellGateCol_norm V hV ⟨tgt, htgt⟩ ⟨j.val, h⟩ a
       · have hn : ¬ (j.val < k) := by omega
-        simp only [cellAmp, dif_neg hn]
+        simp only [cellAmp, dite_eq_right hn]
         cases a <;> simp
   | acc => cases a <;> simp [cellAmp]
   | rej => cases a <;> simp [cellAmp]
@@ -2992,7 +3003,7 @@ theorem cellAmp_orth {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Bool Bool �
               apply hne
               exact Prod.ext rfl h
             by_cases h : j₁.val < k
-            · simp only [cellAmp, dif_pos h]
+            · simp only [cellAmp, dite_eq_left h]
               exact cellGateCol_orth V hV ⟨tgt, htgt⟩ ⟨j₁.val, h⟩ a₁ a₂ ha
             · have hn : ¬ (j₁.val < k) := by omega
               exact cellAmp_measure_orth V htgt j₁ hn a₁ a₂ ha
@@ -3004,9 +3015,9 @@ theorem cellAmp_orth {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Bool Bool �
               ≠ cellNext (.acc : CellState n k tgt) a₂ := by
             intro hcon
             by_cases h : j₁.val < k
-            · rw [cellNext_gate j₁ a₁, cellNext_acc a₂, dif_pos h] at hcon
+            · rw [cellNext_gate j₁ a₁, cellNext_acc a₂, dite_eq_left h] at hcon
               injection hcon
-            · rw [cellNext_gate j₁ a₁, cellNext_acc a₂, dif_neg h] at hcon
+            · rw [cellNext_gate j₁ a₁, cellNext_acc a₂, dite_eq_right h] at hcon
               cases a₁ <;> injection hcon
           exact hn hnxt
       | rej =>
@@ -3015,9 +3026,9 @@ theorem cellAmp_orth {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Bool Bool �
               ≠ cellNext (.rej : CellState n k tgt) a₂ := by
             intro hcon
             by_cases h : j₁.val < k
-            · rw [cellNext_gate j₁ a₁, cellNext_rej a₂, dif_pos h] at hcon
+            · rw [cellNext_gate j₁ a₁, cellNext_rej a₂, dite_eq_left h] at hcon
               injection hcon
-            · rw [cellNext_gate j₁ a₁, cellNext_rej a₂, dif_neg h] at hcon
+            · rw [cellNext_gate j₁ a₁, cellNext_rej a₂, dite_eq_right h] at hcon
               cases a₁ <;> injection hcon
           exact hn hnxt
       | meas2 =>
@@ -3026,7 +3037,7 @@ theorem cellAmp_orth {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Bool Bool �
             have hn : cellNext (.gate j₁ : CellState n k tgt) a₁
                 ≠ cellNext (.meas2 : CellState n k tgt) a₂ := by
               intro hcon
-              rw [cellNext_gate j₁ a₁, cellNext_meas2 a₂, dif_pos h] at hcon
+              rw [cellNext_gate j₁ a₁, cellNext_meas2 a₂, dite_eq_left h] at hcon
               cases a₂ <;> injection hcon
             exact hn hnxt
           · have hn : ¬ (j₁.val < k) := by omega
@@ -3034,7 +3045,7 @@ theorem cellAmp_orth {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Bool Bool �
               by_cases ha' : a₁ = a₂
               · exact ha'
               · exfalso
-                rw [cellNext_gate j₁ a₁, cellNext_meas2 a₂, dif_neg hn] at hnxt
+                rw [cellNext_gate j₁ a₁, cellNext_meas2 a₂, dite_eq_right hn] at hnxt
                 cases a₁ <;> cases a₂ <;> simp_all
             exact (cellAmp_meas_orth V htgt j₁ hn a₁ a₂ ha).1
   | acc =>
@@ -3049,9 +3060,9 @@ theorem cellAmp_orth {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Bool Bool �
               ≠ cellNext (.gate j₂ : CellState n k tgt) a₂ := by
             intro hcon
             by_cases h : j₂.val < k
-            · rw [cellNext_acc a₁, cellNext_gate j₂ a₂, dif_pos h] at hcon
+            · rw [cellNext_acc a₁, cellNext_gate j₂ a₂, dite_eq_left h] at hcon
               injection hcon
-            · rw [cellNext_acc a₁, cellNext_gate j₂ a₂, dif_neg h] at hcon
+            · rw [cellNext_acc a₁, cellNext_gate j₂ a₂, dite_eq_right h] at hcon
               cases a₂ <;> injection hcon
           exact hn hnxt
       | acc =>
@@ -3090,9 +3101,9 @@ theorem cellAmp_orth {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Bool Bool �
               ≠ cellNext (.gate j₂ : CellState n k tgt) a₂ := by
             intro hcon
             by_cases h : j₂.val < k
-            · rw [cellNext_rej a₁, cellNext_gate j₂ a₂, dif_pos h] at hcon
+            · rw [cellNext_rej a₁, cellNext_gate j₂ a₂, dite_eq_left h] at hcon
               injection hcon
-            · rw [cellNext_rej a₁, cellNext_gate j₂ a₂, dif_neg h] at hcon
+            · rw [cellNext_rej a₁, cellNext_gate j₂ a₂, dite_eq_right h] at hcon
               cases a₂ <;> injection hcon
           exact hn hnxt
       | acc =>
@@ -3131,7 +3142,7 @@ theorem cellAmp_orth {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Bool Bool �
             have hn : cellNext (.meas2 : CellState n k tgt) a₁
                 ≠ cellNext (.gate j₂ : CellState n k tgt) a₂ := by
               intro hcon
-              rw [cellNext_meas2 a₁, cellNext_gate j₂ a₂, dif_pos h] at hcon
+              rw [cellNext_meas2 a₁, cellNext_gate j₂ a₂, dite_eq_left h] at hcon
               cases a₁ <;> injection hcon
             exact hn hnxt
           · have hn : ¬ (j₂.val < k) := by omega
@@ -3139,7 +3150,7 @@ theorem cellAmp_orth {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Bool Bool �
               by_cases ha' : a₁ = a₂
               · exact ha'
               · exfalso
-                rw [cellNext_meas2 a₁, cellNext_gate j₂ a₂, dif_neg hn] at hnxt
+                rw [cellNext_meas2 a₁, cellNext_gate j₂ a₂, dite_eq_right hn] at hnxt
                 cases a₁ <;> cases a₂ <;> simp_all
             simpa [ha] using! (cellAmp_meas_orth V htgt j₂ hn a₁ a₂ ha).2
       | acc =>
@@ -3210,14 +3221,14 @@ def cellLocalQTM {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Bool Bool ℂ)
           rw [sum_move_mul_star]
         rw [hsum]
         by_cases hmv : cellMove q₁ = cellMove q₂
-        · simp only [if_pos hmv]
+        · simp only [ite_eq_left hmv]
           exact cellAmp_orth V htgt hV q₁ q₂ a₁ a₂ hne hnxt
         · have hsum2 : (∑ x : Bool, if cellMove q₁ = cellMove q₂
               then star (cellAmp V htgt q₁ a₁ x) * cellAmp V htgt q₂ a₂ x else 0)
             = ∑ x : Bool, 0 := by
             apply Finset.sum_congr rfl
             intro x _
-            rw [if_neg hmv]
+            rw [ite_eq_right hmv]
           rw [hsum2]
           simp
       · rw [Finset.sum_eq_zero]
@@ -3226,13 +3237,13 @@ def cellLocalQTM {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Bool Bool ℂ)
         intro d _
         simp only [cellStep, and_true]
         by_cases h1 : (d = cellMove q₁)
-        · rw [if_pos h1]
+        · rw [ite_eq_left h1]
           by_cases h2 : (d = cellMove q₂ ∧ cellNext q₁ a₁ = cellNext q₂ a₂)
-          · rw [if_pos h2]
+          · rw [ite_eq_left h2]
             exact (hnxt h2.2).elim
-          · rw [if_neg h2]
+          · rw [ite_eq_right h2]
             simp
-        · rw [if_neg h1]
+        · rw [ite_eq_right h1]
           simp
     · intro q' _ hne'
       simp [cellStep, hne']
@@ -3263,15 +3274,15 @@ def cellLocalQTM {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Bool Bool ℂ)
           simp [cellStep, hmv]
         rw [hstep, hstay]
         by_cases h2 : q' = cellNext (.walk d₁ : CellState n k tgt) a₁
-        · rw [if_pos h2]
+        · rw [ite_eq_left h2]
           by_cases h3 : q' = cellNext q₂ a₂
-          · rw [if_pos h3]
+          · rw [ite_eq_left h3]
             exfalso
             exact (cellNext_walk_ne d₁ a₁ q₂ (fun d₂' hq => (hq₂ ⟨d₂', hq⟩).elim) a₂)
               (h2.symm.trans h3)
-          · rw [if_neg h3]
+          · rw [ite_eq_right h3]
             simp
-        · rw [if_neg h2]
+        · rw [ite_eq_right h2]
           simp
       · have hmv : cellMove q₁ = QtmMove.stay := by
           cases q₁ with
@@ -3289,7 +3300,7 @@ def cellLocalQTM {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     intro q' _
     have hz : cellStep V htgt q₂ a₂ QtmMove.left q' d = 0 := by
       unfold cellStep
-      rw [if_neg (by
+      rw [ite_eq_right (by
         intro h
         exact (cellMove_ne_left q₂) h.1.symm)]
     rw [hz]
@@ -3300,7 +3311,7 @@ def cellLocalQTM {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Bool Bool ℂ)
     intro q' _
     have hz : cellStep V htgt q₂ a₂ QtmMove.left q' d = 0 := by
       unfold cellStep
-      rw [if_neg (by
+      rw [ite_eq_right (by
         intro h
         exact (cellMove_ne_left q₂) h.1.symm)]
     rw [hz]
@@ -3333,27 +3344,27 @@ theorem cellLocalQTM_windowStep {n k tgt : ℕ} (V : Fin n → Fin k → Matrix 
       · by_cases h : (moveCell (cellMove src.state) src.head = some tgt'.head ∧
             tgt'.state = cellNext src.state (src.tape src.head) ∧
             (∀ j, tgt'.tape j = if j = src.head then tgt'.tape src.head else src.tape j))
-        · simp only [if_pos h, and_self, eq_self, ↓reduceIte]
-        · simp only [if_neg h]
+        · simp only [ite_eq_left h, and_self, eq_self, ↓reduceIte]
+        · simp only [ite_eq_right h]
       · intro b _ hb
         by_cases hcon : (moveCell (cellMove src.state) src.head = some tgt'.head ∧
             tgt'.state = cellNext src.state (src.tape src.head) ∧
             (∀ j, tgt'.tape j = if j = src.head then b else src.tape j))
-        · rw [if_pos hcon]
+        · rw [ite_eq_left hcon]
           have hlt : tgt'.tape src.head = b := by
             have hstep := hcon.2.2 src.head
             simpa using! hstep
           exact (hb hlt.symm).elim
-        · rw [if_neg hcon]
+        · rw [ite_eq_right hcon]
     · intro q' _ hq
       apply Finset.sum_eq_zero
       intro b _
       by_cases hcon : (moveCell (cellMove src.state) src.head = some tgt'.head ∧
           tgt'.state = q' ∧
           (∀ j, tgt'.tape j = if j = src.head then b else src.tape j))
-      · rw [if_pos hcon]
-        rw [if_neg (fun hh => hq hh.2)]
-      · rw [if_neg hcon]
+      · rw [ite_eq_left hcon]
+        rw [ite_eq_right (fun hh => hq hh.2)]
+      · rw [ite_eq_right hcon]
   · intro d _ hd
     apply Finset.sum_eq_zero
     intro q' _
@@ -3361,9 +3372,9 @@ theorem cellLocalQTM_windowStep {n k tgt : ℕ} (V : Fin n → Fin k → Matrix 
     intro b _
     by_cases hcon : (moveCell d src.head = some tgt'.head ∧ tgt'.state = q' ∧
         (∀ j, tgt'.tape j = if j = src.head then b else src.tape j))
-    · rw [if_pos hcon]
-      rw [if_neg (fun hh => hd hh.1)]
-    · rw [if_neg hcon]
+    · rw [ite_eq_left hcon]
+      rw [ite_eq_right (fun hh => hd hh.1)]
+    · rw [ite_eq_right hcon]
 
 /-- A step from a target-cell basis configuration has its local amplitude on valid successor
 configurations and zero elsewhere. -/
@@ -3429,7 +3440,7 @@ theorem cellLocalQTM_windowStep_norm {n k tgt : ℕ} (V : Fin n → Fin k → Ma
       refine ⟨h1, h2, ?_⟩
       intro j hj
       have hj' := h3 j
-      simp only [if_neg hj] at hj'
+      simp only [ite_eq_right hj] at hj'
       exact hj'
     · rintro ⟨h1, h2, h3⟩
       refine ⟨h1, h2, ?_⟩
@@ -3441,10 +3452,10 @@ theorem cellLocalQTM_windowStep_norm {n k tgt : ℕ} (V : Fin n → Fin k → Ma
   by_cases h : (moveCell (cellMove src.state) src.head = some tgt'.head ∧
       tgt'.state = cellNext src.state (src.tape src.head) ∧
       (∀ j, j ≠ src.head → tgt'.tape j = src.tape j))
-  · simp only [if_pos h]
-    rw [if_pos (hiff.mpr h)]
-  · simp only [if_neg h]
-    rw [if_neg (fun hh => h (hiff.mp hh))]
+  · simp only [ite_eq_left h]
+    rw [ite_eq_left (hiff.mpr h)]
+  · simp only [ite_eq_right h]
+    rw [ite_eq_right (fun hh => h (hiff.mp hh))]
 
 /-- The amplitude after a target-cell basis step is its local amplitude exactly when the move,
 next state, and off-head tape agreement hold. -/
@@ -3494,9 +3505,9 @@ theorem cellLocalQTM_walkStep {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Bo
   by_cases hcond : (moveCell (cellMove (.walk d : CellState n k tgt)) h = some tgtC.head ∧
       tgtC.state = cellNext (.walk d : CellState n k tgt) (base.tape h) ∧
       (∀ j, j ≠ h → tgtC.tape j = base.tape j))
-  · rw [if_pos hcond, hamp]
+  · rw [ite_eq_left hcond, hamp]
     by_cases hsym : tgtC.tape h = base.tape h
-    · rw [if_pos hsym]
+    · rw [ite_eq_left hsym]
       have hEq : tgtC = cellWalkStepCfg (cellWalkCfg base d h hh) d h' := by
         refine WindowCfg_eq_of_fields tgtC (cellWalkStepCfg (cellWalkCfg base d h hh) d h') ?_ ?_ ?_
         · have h1 := hcond.1
@@ -3515,7 +3526,7 @@ theorem cellLocalQTM_walkStep {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Bo
           tgtC = (WindowCfg.mk h' (cellNext (.walk d) (base.tape h)) base.tape : WindowCfg w (CellState n k tgt) Bool) := hEq.trans hrec
       rw [hEqrec]
       simp [Qatlib.Foundations.PureStateMath.Ket]
-    · rw [if_neg hsym]
+    · rw [ite_eq_right hsym]
       have hEqrec : tgtC ≠ (WindowCfg.mk h' (cellNext (.walk d) (base.tape h)) base.tape : WindowCfg w (CellState n k tgt) Bool) := by
         intro heq
         apply hsym
@@ -3526,7 +3537,7 @@ theorem cellLocalQTM_walkStep {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Bo
             ((WindowCfg.mk h' (cellNext (.walk d) (base.tape h)) base.tape : WindowCfg w (CellState n k tgt) Bool)).tape h = base.tape h := rfl
         rw [h1', h2]
       simp [Qatlib.Foundations.PureStateMath.Ket, hEqrec]
-  · rw [if_neg hcond]
+  · rw [ite_eq_right hcond]
     have hEqrec : tgtC ≠ (WindowCfg.mk h' (cellNext (.walk d) (base.tape h)) base.tape : WindowCfg w (CellState n k tgt) Bool) := by
       intro heq
       apply hcond
@@ -3598,7 +3609,7 @@ theorem cellLocalQTM_walkIter {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Bo
                 intro hcon
                 have hcon' : e = tgt := by simpa using! hcon
                 omega
-              rw [dif_neg hne]
+              rw [dite_eq_right hne]
             rw [hnext]
             apply congrArg Ket
             refine WindowCfg_eq_of_fields _ _ ?_ ?_ ?_
@@ -3619,7 +3630,7 @@ theorem cellInit_tape_input {n k tgt w : ℕ} (V : Fin n → Fin k → Matrix Bo
   have h1n : 1 + i.val ≤ n := by omega
   have h2 : w + 1 + i.val ≤ w + n := by omega
   simp only [initWindowCfg]
-  rw [dif_pos ⟨by omega, h2⟩]
+  rw [dite_eq_left ⟨by omega, h2⟩]
   have hval : (w + 1 + i.val - w - 1) = i.val := by omega
   have hfin : (⟨w + 1 + i.val - w - 1, by omega⟩ : Fin n) = i := by
     apply Fin.ext
@@ -3672,7 +3683,7 @@ theorem cellLocalQTM_walkArrive {n k tgt : ℕ} (V : Fin n → Fin k → Matrix 
             = .gate ⟨0, by omega⟩ := by
           rw [cellNext_walk]
           have heq : (⟨tgt, by omega⟩ : Fin (tgt + 1)).val = tgt := rfl
-          rw [dif_pos heq]
+          rw [dite_eq_left heq]
         rw [hnext]
         apply congrArg Ket
         refine WindowCfg_eq_of_fields _ _ ?_ ?_ ?_
@@ -3740,27 +3751,27 @@ theorem cellLocalQTM_gateStep {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Bo
   simp only [Pi.add_apply, Pi.smul_apply]
   rw [cellLocalQTM_windowStep_ket_norm, cellLocalQTM_windowStep_ket_norm]
   simp only [cellCfg_state, cellCfg_head, cellMove, moveCell, cellNext,
-    cellAmp, hj, cellCfg_tape, Option.some.injEq, dif_pos, if_pos]
+    cellAmp, hj, cellCfg_tape, Option.some.injEq, dite_eq_left, ite_eq_left]
   have htab : (∀ j, j ≠ base.head → tgt.tape j = if j = base.head then false else base.tape j)
       ↔ (∀ j, j ≠ base.head → tgt.tape j = if j = base.head then true else base.tape j) := by
     constructor
     · intro h j hj
       have hh := h j hj
-      rw [if_neg hj] at hh
-      rw [if_neg hj]
+      rw [ite_eq_right hj] at hh
+      rw [ite_eq_right hj]
       exact hh
     · intro h j hj
       have hh := h j hj
-      rw [if_neg hj] at hh
-      rw [if_neg hj]
+      rw [ite_eq_right hj] at hh
+      rw [ite_eq_right hj]
       exact hh
   by_cases h : (base.head = tgt.head ∧ tgt.state = .gate ⟨j + 1, by omega⟩ ∧
       (∀ j, j ≠ base.head → tgt.tape j = if j = base.head then false else base.tape j))
-  · rw [if_pos h]
+  · rw [ite_eq_left h]
     have h1 : (base.head = tgt.head ∧ tgt.state = .gate ⟨j + 1, by omega⟩ ∧
         (∀ j, j ≠ base.head → tgt.tape j = if j = base.head then true else base.tape j)) :=
       ⟨h.1, h.2.1, fun j hj => (htab.mp h.2.2) j hj⟩
-    rw [if_pos h1]
+    rw [ite_eq_left h1]
     by_cases hb : tgt.tape base.head = false
     · have htgt : tgt = cellCfg base (.gate ⟨j + 1, by omega⟩) false := by
         apply WindowCfg_eq_of_fields
@@ -3770,14 +3781,14 @@ theorem cellLocalQTM_gateStep {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Bo
           by_cases hi : i = base.head
           · simp [cellCfg, hi, hb]
           · have hh := h.2.2 i hi
-            simp only [if_neg hi] at hh
+            simp only [ite_eq_right hi] at hh
             simp [cellCfg, hi, hh]
       rw [htgt]
       have hne : cellCfg base (.gate ⟨j + 1, by omega⟩) false
           ≠ cellCfg base (.gate ⟨j + 1, by omega⟩) true :=
         cellCfg_ne base _
       simp only [Qatlib.Foundations.PureStateMath.Ket, ↓reduceIte, cellCfg_tape_at]
-      rw [if_neg hne]
+      rw [ite_eq_right hne]
       ring
     · have htgt : tgt = cellCfg base (.gate ⟨j + 1, by omega⟩) true := by
         apply WindowCfg_eq_of_fields
@@ -3787,20 +3798,20 @@ theorem cellLocalQTM_gateStep {n k tgt : ℕ} (V : Fin n → Fin k → Matrix Bo
           by_cases hi : i = base.head
           · simp [cellCfg, hi, hb]
           · have hh := h.2.2 i hi
-            simp only [if_neg hi] at hh
+            simp only [ite_eq_right hi] at hh
             simp [cellCfg, hi, hh]
       rw [htgt]
       have hne : cellCfg base (.gate ⟨j + 1, by omega⟩) true
           ≠ cellCfg base (.gate ⟨j + 1, by omega⟩) false :=
         (cellCfg_ne base _).symm
       simp only [Qatlib.Foundations.PureStateMath.Ket, ↓reduceIte, cellCfg_tape_at]
-      rw [if_neg hne]
+      rw [ite_eq_right hne]
       ring
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     have h1 : ¬ (base.head = tgt.head ∧ tgt.state = .gate ⟨j + 1, by omega⟩ ∧
         (∀ j, j ≠ base.head → tgt.tape j = if j = base.head then true else base.tape j)) :=
       fun hh => h ⟨hh.1, hh.2.1, fun j hj => (htab.mpr hh.2.2) j hj⟩
-    rw [if_neg h1]
+    rw [ite_eq_right h1]
     by_cases h0 : tgt = cellCfg base (.gate ⟨j + 1, by omega⟩) false
     · exfalso
       have hcond' : base.head = tgt.head ∧
@@ -3884,9 +3895,9 @@ theorem cellLocalQTM_measure_ket {n k tgt : ℕ} (V : Fin n → Fin k → Matrix
   simp only [Option.some.injEq]
   by_cases hC : (base.head = tgtC.head ∧ tgtC.state = (if a then .acc else .rej) ∧
       (∀ j, j ≠ base.head → tgtC.tape j = (cellCfg base (.gate ⟨k, by omega⟩) a).tape j))
-  · rw [if_pos hC]
+  · rw [ite_eq_left hC]
     by_cases hflip : tgtC.tape base.head = !a
-    · rw [if_pos hflip]
+    · rw [ite_eq_left hflip]
       have hcon : tgtC = cellCfg base (if a then .acc else .rej) (!a) := by
         apply WindowCfg_eq_of_fields
         · exact hC.1.symm
@@ -3899,14 +3910,14 @@ theorem cellLocalQTM_measure_ket {n k tgt : ℕ} (V : Fin n → Fin k → Matrix
             simp [cellCfg, hj, hh]
       rw [hcon]
       simp
-    · rw [if_neg hflip]
+    · rw [ite_eq_right hflip]
       have hne : tgtC ≠ cellCfg base (if a then .acc else .rej) (!a) := by
         intro heq
         apply hflip
         have h1 := congrArg (fun c => c.tape base.head) heq
         simpa [cellCfg] using! h1
       simp [hne]
-  · rw [if_neg hC]
+  · rw [ite_eq_right hC]
     have hne : tgtC ≠ cellCfg base (if a then .acc else .rej) (!a) := by
       intro heq
       apply hC
@@ -3999,7 +4010,7 @@ theorem ket_eq_cellGateSuper {n k tgt w : ℕ} (base : WindowCfg w (CellState n 
   simp only [Pi.add_apply, Pi.smul_apply]
   by_cases hbf : b = false
   · rw [hbf]
-    rw [if_pos rfl, if_neg (by simp)]
+    rw [ite_eq_left rfl, ite_eq_right (by simp)]
     simp only [one_smul, zero_smul]
     have hcfgF : base = cellCfg base (.gate ⟨0, by omega⟩) false := by
       rw [hbf] at hcfg
@@ -4011,7 +4022,7 @@ theorem ket_eq_cellGateSuper {n k tgt w : ℕ} (base : WindowCfg w (CellState n 
       | false => exact absurd (by simp : false = false) hbf
       | true => rfl
     rw [hbt]
-    rw [if_neg (by simp), if_pos rfl]
+    rw [ite_eq_right (by simp), ite_eq_left rfl]
     simp only [one_smul, zero_smul]
     have hcfgT : base = cellCfg base (.gate ⟨0, by omega⟩) true := by
       rw [hbt] at hcfg
@@ -4145,7 +4156,7 @@ theorem ket_wireI {n : ℕ} (i : Fin n) (x : Reg n) :
         intro h
         exact hag (by rw [h]; intro j hj; rfl)
       have hag0 : agreesOutsideI i x y = 0 := by
-        rw [agreesOutsideI, if_neg hag]
+        rw [agreesOutsideI, ite_eq_right hag]
       simp [Qatlib.Foundations.PureStateMath.Ket, hag0, hbit, hyn]
   · have hyn : y ≠ x := by
       intro h
@@ -4188,10 +4199,10 @@ theorem embedRegI_applyGate {n : ℕ} (i : Fin n) (U : Matrix Bool Bool ℂ) (x 
     intro j hj
     exact flipI_of_ne i x hj
   have hψx : ψ x = c (x i) := by
-    rw [hψ x, agreesOutsideI, if_pos hagx]
+    rw [hψ x, agreesOutsideI, ite_eq_left hagx]
     simp
   have hψf : ψ (flipI i x) = c ((flipI i x) i) := by
-    rw [hψ (flipI i x), agreesOutsideI, if_pos hagf]
+    rw [hψ (flipI i x), agreesOutsideI, ite_eq_left hagf]
     simp
   have hcond : (AgreesOutsideI i y x) ↔ (AgreesOutsideI i y (flipI i x)) := by
     constructor
@@ -4205,14 +4216,14 @@ theorem embedRegI_applyGate {n : ℕ} (i : Fin n) (U : Matrix Bool Bool ℂ) (x 
   by_cases hA : AgreesOutsideI i y x
   · have hA' : AgreesOutsideI i y (flipI i x) := hcond.mp hA
     have hagxy : AgreesOutsideI i x y := (AgreesOutsideI_comm i x y).mpr hA
-    rw [if_pos hA, if_pos hA', if_pos hagxy, mul_one]
+    rw [ite_eq_left hA, ite_eq_left hA', ite_eq_left hagxy, mul_one]
     have hfl := flipI_bit i x
     rw [hfl]
     have hb := sum_bool_pair (f := fun z => U (y i) z * c z) (x i)
     rw [hb, mulVec_bool]
   · have hA' : ¬ AgreesOutsideI i y (flipI i x) := fun h => hA (hcond.mpr h)
     have hagxy : ¬ AgreesOutsideI i x y := fun h => hA ((AgreesOutsideI_comm i x y).mp h)
-    rw [if_neg hA, if_neg hA', if_neg hagxy]
+    rw [ite_eq_right hA, ite_eq_right hA', ite_eq_right hagxy]
     simp
 
 /-- Running gates embedded on wire `i` applies their Boolean product to its amplitude vector and
@@ -4246,7 +4257,7 @@ theorem agreesOutsideI_accepting_unique {n : ℕ} (i : Fin n) (x y : Reg n)
   by_cases hj : j = i
   · rw [hj]
     exact hy.trans (setBitI_bit i x true).symm
-  · rw [setBitI, if_neg hj]
+  · rw [setBitI, ite_eq_right hj]
     exact hag j hj
 
 /-- The probability of true at wire `i` after gates embedded there equals the true-component
@@ -4269,14 +4280,14 @@ theorem acceptProb_embedI {n : ℕ} (i : Fin n) (gs : List (Matrix Bool Bool ℂ
       (Finset.univ.filter (fun y : Reg n => y i = true)) := by
     simp [setBitI]
   have hag_xTrue1 : agreesOutsideI i x (setBitI i x true) = 1 := by
-    rw [agreesOutsideI, if_pos hag_xTrue]
+    rw [agreesOutsideI, ite_eq_left hag_xTrue]
   have hzero : ∀ y ∈ (Finset.univ.filter (fun y : Reg n => y i = true)),
       y ≠ setBitI i x true → agreesOutsideI i x y = 0 := by
     intro y hy hne
     have hy' : y i = true := (Finset.mem_filter.mp hy).2
     by_cases hag : AgreesOutsideI i x y
     · exact absurd (agreesOutsideI_accepting_unique i x y hy' hag) hne
-    · rw [agreesOutsideI, if_neg hag]
+    · rw [agreesOutsideI, ite_eq_right hag]
   have hsum : (∑ y ∈ (Finset.univ.filter (fun y : Reg n => y i = true)),
         BornProb (Run (1 : Matrix (Reg n) (Reg n) ℂ)
           ((gs.map (fun U => embedRegI i U)).map Step.gate) (Ket x)) y)
@@ -4524,18 +4535,18 @@ theorem allCellNext_view {n k : ℕ} (hn : 0 < n) (q₁ q₂ : AllCellState n k)
     | serve i j =>
       rw [allCellNext_serve hn i j a₂] at h
       by_cases hj : j.val < k
-      · simp only [dif_pos hj] at h
+      · simp only [dite_eq_left hj] at h
         injection h with _ h2
         have h2v := congrArg Fin.val h2
         simp only [Fin.val_mk] at h2v
         omega
       · by_cases hi : i.val + 1 < n
-        · simp only [dif_neg hj, dif_pos hi] at h
+        · simp only [dite_eq_right hj, dite_eq_left hi] at h
           injection h with h1 _
           have h1v := congrArg Fin.val h1
           simp only [Fin.val_mk] at h1v
           omega
-        · simp only [dif_neg hj, dif_neg hi] at h
+        · simp only [dite_eq_right hj, dite_eq_right hi] at h
           cases a₂ <;> cases h
     | acc =>
       rw [allCellNext_acc hn a₂] at h
@@ -4554,24 +4565,24 @@ theorem allCellNext_view {n k : ℕ} (hn : 0 < n) (q₁ q₂ : AllCellState n k)
     | start =>
       rw [allCellNext_serve hn i₁ j₁ a₁] at h
       by_cases hj : j₁.val < k
-      · simp only [dif_pos hj] at h
+      · simp only [dite_eq_left hj] at h
         injection h with _ h2
         have h2v := congrArg Fin.val h2
         simp only [Fin.val_mk] at h2v
         omega
       · by_cases hi : i₁.val + 1 < n
-        · simp only [dif_neg hj, dif_pos hi] at h
+        · simp only [dite_eq_right hj, dite_eq_left hi] at h
           injection h with h1 _
           have h1v := congrArg Fin.val h1
           simp only [Fin.val_mk] at h1v
           omega
-        · simp only [dif_neg hj, dif_neg hi] at h
+        · simp only [dite_eq_right hj, dite_eq_right hi] at h
           cases a₁ <;> cases h
     | serve i₂ j₂ =>
       by_cases hj1 : j₁.val < k
       · by_cases hj2 : j₂.val < k
         · rw [allCellNext_serve hn i₁ j₁ a₁, allCellNext_serve hn i₂ j₂ a₂] at h
-          simp only [dif_pos hj1, dif_pos hj2] at h
+          simp only [dite_eq_left hj1, dite_eq_left hj2] at h
           injection h with h1 h2
           have h1v := congrArg Fin.val h1
           have h2v := congrArg Fin.val h2
@@ -4582,30 +4593,30 @@ theorem allCellNext_view {n k : ℕ} (hn : 0 < n) (q₁ q₂ : AllCellState n k)
           subst hjeq
           exact Or.inl rfl
         · rw [allCellNext_serve hn i₁ j₁ a₁, allCellNext_serve hn i₂ j₂ a₂] at h
-          simp only [dif_pos hj1, dif_neg hj2] at h
+          simp only [dite_eq_left hj1, dite_eq_right hj2] at h
           by_cases hi2 : i₂.val + 1 < n
-          · simp only [dif_pos hi2] at h
+          · simp only [dite_eq_left hi2] at h
             injection h with _ h2
             have h2v := congrArg Fin.val h2
             simp only [Fin.val_mk] at h2v
             omega
-          · simp only [dif_neg hi2] at h
+          · simp only [dite_eq_right hi2] at h
             cases a₂ <;> cases h
       · by_cases hj2 : j₂.val < k
         · rw [allCellNext_serve hn i₁ j₁ a₁, allCellNext_serve hn i₂ j₂ a₂] at h
-          simp only [dif_neg hj1, dif_pos hj2] at h
+          simp only [dite_eq_right hj1, dite_eq_left hj2] at h
           by_cases hi1 : i₁.val + 1 < n
-          · simp only [dif_pos hi1] at h
+          · simp only [dite_eq_left hi1] at h
             injection h with _ h2
             have h2v := congrArg Fin.val h2
             simp only [Fin.val_mk] at h2v
             omega
-          · simp only [dif_neg hi1] at h
+          · simp only [dite_eq_right hi1] at h
             cases a₁ <;> cases h
         · by_cases hi1 : i₁.val + 1 < n
           · by_cases hi2 : i₂.val + 1 < n
             · rw [allCellNext_serve hn i₁ j₁ a₁, allCellNext_serve hn i₂ j₂ a₂] at h
-              simp only [dif_neg hj1, dif_neg hj2, dif_pos hi1, dif_pos hi2] at h
+              simp only [dite_eq_right hj1, dite_eq_right hj2, dite_eq_left hi1, dite_eq_left hi2] at h
               injection h with h1 _
               have h1v := congrArg Fin.val h1
               simp only [Fin.val_mk] at h1v
@@ -4615,14 +4626,14 @@ theorem allCellNext_view {n k : ℕ} (hn : 0 < n) (q₁ q₂ : AllCellState n k)
               subst hjeq
               exact Or.inl rfl
             · rw [allCellNext_serve hn i₁ j₁ a₁, allCellNext_serve hn i₂ j₂ a₂] at h
-              simp only [dif_neg hj1, dif_neg hj2, dif_pos hi1, dif_neg hi2] at h
+              simp only [dite_eq_right hj1, dite_eq_right hj2, dite_eq_left hi1, dite_eq_right hi2] at h
               cases a₂ <;> cases h
           · by_cases hi2 : i₂.val + 1 < n
             · rw [allCellNext_serve hn i₁ j₁ a₁, allCellNext_serve hn i₂ j₂ a₂] at h
-              simp only [dif_neg hj1, dif_neg hj2, dif_neg hi1, dif_pos hi2] at h
+              simp only [dite_eq_right hj1, dite_eq_right hj2, dite_eq_right hi1, dite_eq_left hi2] at h
               cases a₁ <;> cases a₂ <;> cases h
             · rw [allCellNext_serve hn i₁ j₁ a₁, allCellNext_serve hn i₂ j₂ a₂] at h
-              simp only [dif_neg hj1, dif_neg hj2, dif_neg hi1, dif_neg hi2] at h
+              simp only [dite_eq_right hj1, dite_eq_right hj2, dite_eq_right hi1, dite_eq_right hi2] at h
               by_cases ha : a₁ = a₂
               · have hieq : i₁ = i₂ := Fin.ext (by omega)
                 have hjeq : j₁ = j₂ := Fin.ext (by omega)
@@ -4637,32 +4648,32 @@ theorem allCellNext_view {n k : ℕ} (hn : 0 < n) (q₁ q₂ : AllCellState n k)
     | acc =>
       rw [allCellNext_serve hn i₁ j₁ a₁, allCellNext_acc hn a₂] at h
       by_cases hj : j₁.val < k
-      · simp only [dif_pos hj] at h
+      · simp only [dite_eq_left hj] at h
         cases h
       · by_cases hi : i₁.val + 1 < n
-        · simp only [dif_neg hj, dif_pos hi] at h
+        · simp only [dite_eq_right hj, dite_eq_left hi] at h
           cases h
-        · simp only [dif_neg hj, dif_neg hi] at h
+        · simp only [dite_eq_right hj, dite_eq_right hi] at h
           cases a₁ <;> cases h
     | rej =>
       rw [allCellNext_serve hn i₁ j₁ a₁, allCellNext_rej hn a₂] at h
       by_cases hj : j₁.val < k
-      · simp only [dif_pos hj] at h
+      · simp only [dite_eq_left hj] at h
         cases h
       · by_cases hi : i₁.val + 1 < n
-        · simp only [dif_neg hj, dif_pos hi] at h
+        · simp only [dite_eq_right hj, dite_eq_left hi] at h
           cases h
-        · simp only [dif_neg hj, dif_neg hi] at h
+        · simp only [dite_eq_right hj, dite_eq_right hi] at h
           cases a₁ <;> cases h
     | meas2 =>
       rw [allCellNext_serve hn i₁ j₁ a₁, allCellNext_meas2 hn a₂] at h
       by_cases hj : j₁.val < k
-      · simp only [dif_pos hj] at h
+      · simp only [dite_eq_left hj] at h
         cases a₂ <;> cases h
       · by_cases hi : i₁.val + 1 < n
-        · simp only [dif_neg hj, dif_pos hi] at h
+        · simp only [dite_eq_right hj, dite_eq_left hi] at h
           cases a₂ <;> cases h
-        · simp only [dif_neg hj, dif_neg hi] at h
+        · simp only [dite_eq_right hj, dite_eq_right hi] at h
           by_cases ha : a₁ = a₂
           · exact Or.inr (Or.inl ⟨hmeas1 i₁ j₁ ⟨by omega, by omega⟩, rfl, ha⟩)
           · cases a₁ <;> cases a₂
@@ -4673,12 +4684,12 @@ theorem allCellNext_view {n k : ℕ} (hn : 0 < n) (q₁ q₂ : AllCellState n k)
     | restart =>
       rw [allCellNext_serve hn i₁ j₁ a₁, allCellNext_restart hn a₂] at h
       by_cases hj : j₁.val < k
-      · simp only [dif_pos hj] at h
+      · simp only [dite_eq_left hj] at h
         cases h
       · by_cases hi : i₁.val + 1 < n
-        · simp only [dif_neg hj, dif_pos hi] at h
+        · simp only [dite_eq_right hj, dite_eq_left hi] at h
           cases h
-        · simp only [dif_neg hj, dif_neg hi] at h
+        · simp only [dite_eq_right hj, dite_eq_right hi] at h
           cases a₁ <;> cases h
   | acc =>
     cases q₂ with
@@ -4688,12 +4699,12 @@ theorem allCellNext_view {n k : ℕ} (hn : 0 < n) (q₁ q₂ : AllCellState n k)
     | serve i j =>
       rw [allCellNext_acc hn a₁, allCellNext_serve hn i j a₂] at h
       by_cases hj : j.val < k
-      · simp only [dif_pos hj] at h
+      · simp only [dite_eq_left hj] at h
         cases h
       · by_cases hi : i.val + 1 < n
-        · simp only [dif_neg hj, dif_pos hi] at h
+        · simp only [dite_eq_right hj, dite_eq_left hi] at h
           cases h
-        · simp only [dif_neg hj, dif_neg hi] at h
+        · simp only [dite_eq_right hj, dite_eq_right hi] at h
           cases a₂ <;> cases h
     | acc => exact Or.inl rfl
     | rej =>
@@ -4713,12 +4724,12 @@ theorem allCellNext_view {n k : ℕ} (hn : 0 < n) (q₁ q₂ : AllCellState n k)
     | serve i j =>
       rw [allCellNext_rej hn a₁, allCellNext_serve hn i j a₂] at h
       by_cases hj : j.val < k
-      · simp only [dif_pos hj] at h
+      · simp only [dite_eq_left hj] at h
         cases h
       · by_cases hi : i.val + 1 < n
-        · simp only [dif_neg hj, dif_pos hi] at h
+        · simp only [dite_eq_right hj, dite_eq_left hi] at h
           cases h
-        · simp only [dif_neg hj, dif_neg hi] at h
+        · simp only [dite_eq_right hj, dite_eq_right hi] at h
           cases a₂ <;> cases h
     | acc =>
       rw [allCellNext_rej hn a₁, allCellNext_acc hn a₂] at h
@@ -4738,12 +4749,12 @@ theorem allCellNext_view {n k : ℕ} (hn : 0 < n) (q₁ q₂ : AllCellState n k)
     | serve i j =>
       rw [allCellNext_meas2 hn a₁, allCellNext_serve hn i j a₂] at h
       by_cases hj : j.val < k
-      · simp only [dif_pos hj] at h
+      · simp only [dite_eq_left hj] at h
         cases a₁ <;> cases h
       · by_cases hi : i.val + 1 < n
-        · simp only [dif_neg hj, dif_pos hi] at h
+        · simp only [dite_eq_right hj, dite_eq_left hi] at h
           cases a₁ <;> cases h
-        · simp only [dif_neg hj, dif_neg hi] at h
+        · simp only [dite_eq_right hj, dite_eq_right hi] at h
           by_cases ha : a₁ = a₂
           · exact Or.inr (Or.inr ⟨rfl, hmeas1 i j ⟨by omega, by omega⟩, ha⟩)
           · cases a₁ <;> cases a₂
@@ -4769,12 +4780,12 @@ theorem allCellNext_view {n k : ℕ} (hn : 0 < n) (q₁ q₂ : AllCellState n k)
     | serve i j =>
       rw [allCellNext_restart hn a₁, allCellNext_serve hn i j a₂] at h
       by_cases hj : j.val < k
-      · simp only [dif_pos hj] at h
+      · simp only [dite_eq_left hj] at h
         cases h
       · by_cases hi : i.val + 1 < n
-        · simp only [dif_neg hj, dif_pos hi] at h
+        · simp only [dite_eq_right hj, dite_eq_left hi] at h
           cases h
-        · simp only [dif_neg hj, dif_neg hi] at h
+        · simp only [dite_eq_right hj, dite_eq_right hi] at h
           cases a₂ <;> cases h
     | acc =>
       rw [allCellNext_restart hn a₁, allCellNext_acc hn a₂] at h
@@ -4925,24 +4936,24 @@ def allCellLocalQTM {n k : ℕ} (hn : 0 < n) (V : Fin n → Fin k → Matrix Boo
           rw [sum_move_mul_star]
         rw [hsum]
         by_cases hmv : allCellMove q₁ = allCellMove q₂
-        · simp only [if_pos hmv]
+        · simp only [ite_eq_left hmv]
           exact allCellAmp_orth V hn hV q₁ q₂ a₁ a₂ hne hnxt
         · rw [Finset.sum_eq_zero]
           intro x _
-          rw [if_neg hmv]
+          rw [ite_eq_right hmv]
       · rw [Finset.sum_eq_zero]
         intro x _
         rw [Finset.sum_eq_zero]
         intro d _
         simp only [allCellStep, and_true]
         by_cases h1 : (d = allCellMove q₁)
-        · rw [if_pos h1]
+        · rw [ite_eq_left h1]
           by_cases h2 : (d = allCellMove q₂ ∧ allCellNext hn q₁ a₁ = allCellNext hn q₂ a₂)
-          · rw [if_pos h2]
+          · rw [ite_eq_left h2]
             exact (hnxt h2.2).elim
-          · rw [if_neg h2]
+          · rw [ite_eq_right h2]
             simp
-        · rw [if_neg h1]
+        · rw [ite_eq_right h1]
           simp
     · intro q' _ hne'
       simp [allCellStep, hne']
@@ -5014,27 +5025,27 @@ theorem allCellLocalQTM_windowStep {n k : ℕ} (hn : 0 < n)
       · by_cases h : (moveCell (allCellMove src.state) src.head = some tgt'.head ∧
             tgt'.state = allCellNext hn src.state (src.tape src.head) ∧
             (∀ j, tgt'.tape j = if j = src.head then tgt'.tape src.head else src.tape j))
-        · simp only [if_pos h, and_self, eq_self, ↓reduceIte]
-        · simp only [if_neg h]
+        · simp only [ite_eq_left h, and_self, eq_self, ↓reduceIte]
+        · simp only [ite_eq_right h]
       · intro b _ hb
         by_cases hcon : (moveCell (allCellMove src.state) src.head = some tgt'.head ∧
             tgt'.state = allCellNext hn src.state (src.tape src.head) ∧
             (∀ j, tgt'.tape j = if j = src.head then b else src.tape j))
-        · rw [if_pos hcon]
+        · rw [ite_eq_left hcon]
           have hlt : tgt'.tape src.head = b := by
             have hstep := hcon.2.2 src.head
             simpa using! hstep
           exact (hb hlt.symm).elim
-        · rw [if_neg hcon]
+        · rw [ite_eq_right hcon]
     · intro q' _ hq
       apply Finset.sum_eq_zero
       intro b _
       by_cases hcon : (moveCell (allCellMove src.state) src.head = some tgt'.head ∧
           tgt'.state = q' ∧
           (∀ j, tgt'.tape j = if j = src.head then b else src.tape j))
-      · rw [if_pos hcon]
-        rw [if_neg (fun hh => hq hh.2)]
-      · rw [if_neg hcon]
+      · rw [ite_eq_left hcon]
+        rw [ite_eq_right (fun hh => hq hh.2)]
+      · rw [ite_eq_right hcon]
   · intro d _ hd
     apply Finset.sum_eq_zero
     intro q' _
@@ -5042,9 +5053,9 @@ theorem allCellLocalQTM_windowStep {n k : ℕ} (hn : 0 < n)
     intro b _
     by_cases hcon : (moveCell d src.head = some tgt'.head ∧ tgt'.state = q' ∧
         (∀ j, tgt'.tape j = if j = src.head then b else src.tape j))
-    · rw [if_pos hcon]
-      rw [if_neg (fun hh => hd hh.1)]
-    · rw [if_neg hcon]
+    · rw [ite_eq_left hcon]
+      rw [ite_eq_right (fun hh => hd hh.1)]
+    · rw [ite_eq_right hcon]
 
 /-- An all-cell transition is characterized by its head move, next state, and equality of tape
 symbols away from the source head. -/
@@ -5068,7 +5079,7 @@ theorem allCellLocalQTM_windowStep_norm {n k : ℕ} (hn : 0 < n)
       refine ⟨h1, h2, ?_⟩
       intro j hj
       have hj' := h3 j
-      simp only [if_neg hj] at hj'
+      simp only [ite_eq_right hj] at hj'
       exact hj'
     · rintro ⟨h1, h2, h3⟩
       refine ⟨h1, h2, ?_⟩
@@ -5080,10 +5091,10 @@ theorem allCellLocalQTM_windowStep_norm {n k : ℕ} (hn : 0 < n)
   by_cases h : (moveCell (allCellMove src.state) src.head = some tgt'.head ∧
       tgt'.state = allCellNext hn src.state (src.tape src.head) ∧
       (∀ j, j ≠ src.head → tgt'.tape j = src.tape j))
-  · simp only [if_pos h]
-    rw [if_pos (hiff.mpr h)]
-  · simp only [if_neg h]
-    rw [if_neg (fun hh => h (hiff.mp hh))]
+  · simp only [ite_eq_left h]
+    rw [ite_eq_left (hiff.mpr h)]
+  · simp only [ite_eq_right h]
+    rw [ite_eq_right (fun hh => h (hiff.mp hh))]
 
 /-- One step from an all-cell basis configuration has the prescribed local amplitude on valid
 successors and zero elsewhere. -/
@@ -5141,7 +5152,7 @@ theorem allCellLocalQTM_step_ket {n k w : ℕ} (hn : 0 < n)
   by_cases hcond : (moveCell (allCellMove src.state) src.head = some tgtC.head ∧
       tgtC.state = allCellNext hn src.state a ∧
       (∀ j, tgtC.tape j = if j = src.head then tgtC.tape src.head else src.tape j))
-  · rw [if_pos hcond]
+  · rw [ite_eq_left hcond]
     have hhead : tgtC.head = h' := by
       rw [hmove] at hcond
       exact Option.some.inj hcond.1 |>.symm
@@ -5163,10 +5174,10 @@ theorem allCellLocalQTM_step_ket {n k w : ℕ} (hn : 0 < n)
           have h3 := hcond.2.2 j
           by_cases hj : j = src.head
           · rw [hj]
-            rw [allCellSuccCfg_tape hn src a false h' src.head, if_pos rfl]
+            rw [allCellSuccCfg_tape hn src a false h' src.head, ite_eq_left rfl]
             rw [hb]
-          · rw [allCellSuccCfg_tape hn src a false h' j, if_neg hj]
-            rw [h3, if_neg hj]
+          · rw [allCellSuccCfg_tape hn src a false h' j, ite_eq_right hj]
+            rw [h3, ite_eq_right hj]
       rw [hEq]
       rw [allCellSuccCfg_tape_at hn src a false h']
       simp [Qatlib.Foundations.PureStateMath.Ket, hne, hne', Pi.smul_apply, Pi.add_apply]
@@ -5182,14 +5193,14 @@ theorem allCellLocalQTM_step_ket {n k w : ℕ} (hn : 0 < n)
           have h3 := hcond.2.2 j
           by_cases hj : j = src.head
           · rw [hj]
-            rw [allCellSuccCfg_tape hn src a true h' src.head, if_pos rfl]
+            rw [allCellSuccCfg_tape hn src a true h' src.head, ite_eq_left rfl]
             rw [hb']
-          · rw [allCellSuccCfg_tape hn src a true h' j, if_neg hj]
-            rw [h3, if_neg hj]
+          · rw [allCellSuccCfg_tape hn src a true h' j, ite_eq_right hj]
+            rw [h3, ite_eq_right hj]
       rw [hEq]
       rw [allCellSuccCfg_tape_at hn src a true h']
       simp [Qatlib.Foundations.PureStateMath.Ket, hne, hne', Pi.smul_apply, Pi.add_apply]
-  · rw [if_neg hcond]
+  · rw [ite_eq_right hcond]
     have hneF : tgtC ≠ allCellSuccCfg hn src a false h' := by
       intro hcon
       apply hcond
@@ -5206,9 +5217,9 @@ theorem allCellLocalQTM_step_ket {n k w : ℕ} (hn : 0 < n)
         simp only [allCellSuccCfg_tape hn src a false h' j] at ht
         by_cases hj : j = src.head
         · rw [hj]
-          rw [if_pos rfl]
-        · rw [if_neg hj] at ht
-          rw [if_neg hj]
+          rw [ite_eq_left rfl]
+        · rw [ite_eq_right hj] at ht
+          rw [ite_eq_right hj]
           exact ht
     have hneT : tgtC ≠ allCellSuccCfg hn src a true h' := by
       intro hcon
@@ -5226,9 +5237,9 @@ theorem allCellLocalQTM_step_ket {n k w : ℕ} (hn : 0 < n)
         simp only [allCellSuccCfg_tape hn src a true h' j] at ht
         by_cases hj : j = src.head
         · rw [hj]
-          rw [if_pos rfl]
-        · rw [if_neg hj] at ht
-          rw [if_neg hj]
+          rw [ite_eq_left rfl]
+        · rw [ite_eq_right hj] at ht
+          rw [ite_eq_right hj]
           exact ht
     simp [Qatlib.Foundations.PureStateMath.Ket, hneF, hneT]
 
@@ -5453,16 +5464,16 @@ theorem allCellLocalQTM_measure_super {n k w : ℕ} (hn : 0 < n)
   funext c
   simp only [Pi.add_apply, Pi.smul_apply, Qatlib.Foundations.PureStateMath.Ket]
   by_cases hcf : c = allCellSuccCfg hn (allCellServeCfg base h i j true) true false h
-  · rw [if_pos hcf]
+  · rw [ite_eq_left hcf]
     by_cases hct : c = allCellSuccCfg hn (allCellServeCfg base h i j false) false true h
-    · rw [if_pos hct]
+    · rw [ite_eq_left hct]
       have : allCellSuccCfg hn (allCellServeCfg base h i j true) true false h
           = allCellSuccCfg hn (allCellServeCfg base h i j false) false true h :=
         hcf.symm.trans hct
       exact absurd this hne
-    · rw [if_neg hct]
+    · rw [ite_eq_right hct]
       simp
-  · rw [if_neg hcf]
+  · rw [ite_eq_right hcf]
     simp
 
 /-- From gate stage zero of the final cell, accepting mass after `k+1` steps is the
@@ -5614,9 +5625,9 @@ theorem prod_indicator {n : ℕ} (y x : Reg n) :
         by_contra h2
         exact hc ⟨j, h2⟩
       exact h (funext fun i => hc' i)
-    rw [if_neg h]
+    rw [ite_eq_right h]
     have hsplit := fin_prod_split j (fun j => (if y j = x j then (1 : ℂ) else 0))
-    rw [if_neg hj] at hsplit
+    rw [ite_eq_right hj] at hsplit
     rw [hsplit]
     simp
 
@@ -5668,7 +5679,7 @@ theorem embedRegI_applyGate_tensor {n : ℕ} (i : Fin n) (U : Matrix Bool Bool �
       rcases (agreesOutsideI_iff i y z).mp h with h | h
       · exact hz (by simp [h])
       · exact hz (by simp [h])
-    rw [embedRegI, if_neg hag]
+    rw [embedRegI, ite_eq_right hag]
     simp
   have hsum : (∑ z : Reg n, embedRegI i U y z * ψ z)
       = ∑ z ∈ ({y, flipI i y} : Finset (Reg n)), embedRegI i U y z * ψ z :=
@@ -5681,9 +5692,9 @@ theorem embedRegI_applyGate_tensor {n : ℕ} (i : Fin n) (U : Matrix Bool Bool �
       = embedRegI i U y y * ψ y + embedRegI i U y (flipI i y) * ψ (flipI i y) :=
     Finset.sum_pair (f := fun z => embedRegI i U y z * ψ z) hne
   have hmat1 : embedRegI i U y y = U (y i) (y i) := by
-    rw [embedRegI, if_pos (by intro j hj; rfl)]
+    rw [embedRegI, ite_eq_left (by intro j hj; rfl)]
   have hmat2 : embedRegI i U y (flipI i y) = U (y i) (! (y i)) := by
-    rw [embedRegI, if_pos (by intro j hj; exact flipI_of_ne i y hj)]
+    rw [embedRegI, ite_eq_left (by intro j hj; exact flipI_of_ne i y hj)]
     rw [flipI_bit]
   have hps1 : ψ y = amps i (y i) * ∏ j ∈ (Finset.univ : Finset (Fin n)).erase i, amps j (y j) := by
     rw [hψ y, fin_prod_split i (fun j => amps j (y j))]
@@ -5744,7 +5755,7 @@ theorem acceptProbAt_tensor {n : ℕ} (i : Fin n) (amps : Fin n → Bool → ℂ
       = ∏ j : Fin n, g j (y j) := by
     intro y
     by_cases hy : y i = true
-    · rw [if_pos hy, fin_prod_split i (fun j => ‖amps j (y j)‖ ^ 2),
+    · rw [ite_eq_left hy, fin_prod_split i (fun j => ‖amps j (y j)‖ ^ 2),
         fin_prod_split i (fun j => g j (y j))]
       congr 1
       · simp [hg, hy]
@@ -5752,7 +5763,7 @@ theorem acceptProbAt_tensor {n : ℕ} (i : Fin n) (amps : Fin n → Bool → ℂ
         intro j hj
         have hjne : j ≠ i := (Finset.mem_erase.mp hj).1
         simp [hg, hjne]
-    · rw [if_neg hy, fin_prod_split i (fun j => g j (y j))]
+    · rw [ite_eq_right hy, fin_prod_split i (fun j => g j (y j))]
       simp [hg, hy]
   calc (∑ y ∈ (Finset.univ : Finset (Reg n)).filter (fun y => y i = true),
           ∏ j : Fin n, ‖amps j (y j)‖ ^ 2)
@@ -6051,11 +6062,11 @@ theorem mulVec_norm_preserved_complex {U : Matrix Bool Bool ℂ}
       intro a' _
       by_cases h : a = a'
       · subst h
-        rw [if_pos rfl]
+        rw [ite_eq_left rfl]
         have hcol : (∑ b : Bool, U b a * star (U b a)) = 1 :=
           gateCol_norm_complex (k := 1) (fun _ => U) (fun _ => hU) ⟨0, by omega⟩ a
         rw [hcol]
-      · rw [if_neg h]
+      · rw [ite_eq_right h]
         have hcol : (∑ b : Bool, U b a * star (U b a')) = 0 := by
           have h1 : (∑ b : Bool, U b a * star (U b a')) = ∑ b : Bool, star (U b a') * U b a := by
             apply Finset.sum_congr rfl
@@ -6072,7 +6083,7 @@ theorem mulVec_norm_preserved_complex {U : Matrix Bool Bool ℂ}
         rw [Finset.sum_eq_single_of_mem a (Finset.mem_univ a)]
         · simp
         · intro b _ hb
-          rw [if_neg (Ne.symm hb)]
+          rw [ite_eq_right (Ne.symm hb)]
           ring
       rw [hone]
 
@@ -6241,7 +6252,7 @@ theorem allCellTour_step_advance {n k w : ℕ} (hn : 0 < n)
     have hval : (allCellTourPos i hi hw).val ≠ 2 * w := by
       rw [allCellTourPos_val]
       omega
-    simp only [moveCell, dif_neg hval]
+    simp only [moveCell, dite_eq_right hval]
     congr 1
     apply Fin.ext
     show (allCellTourPos i hi hw).val + 1 = (allCellTourPosNext i hnext hw).val
@@ -6277,17 +6288,17 @@ theorem allCellTour_step_advance {n k w : ℕ} (hn : 0 < n)
           have hval2 := congrArg Fin.val heq
           simp only [allCellTourPos_val] at hval2
           omega
-        rw [if_pos hm, if_neg hm2, if_pos hmval]
+        rw [ite_eq_left hm, ite_eq_right hm2, ite_eq_left hmval]
       · have hm : m ≠ allCellTourPos i hi hw := by
           intro hcon
           apply hmval
           rw [hcon, allCellTourPos_val]
         by_cases hm2 : m = allCellTourPos (i + 1) hnext hw
-        · rw [if_neg hm, if_neg hm, if_pos hm2]
+        · rw [ite_eq_right hm, ite_eq_right hm, ite_eq_left hm2]
           rw [hm2]
           rw [allCellTourTape_at_next base i hnext hw f]
           rw [← hx ⟨i + 1, hnext⟩]
-        · rw [if_neg hm, if_neg hm, if_neg hm2, if_neg hmval]
+        · rw [ite_eq_right hm, ite_eq_right hm, ite_eq_right hm2, ite_eq_right hmval]
   rw [hsucc false, hsucc true]
   rw [allCellTourCfg_state]
 
@@ -6719,9 +6730,9 @@ theorem allCellTour_start_ket {n k w : ℕ} (hn : 0 < n)
     by_cases hm : m = allCellTourPos 0 hn hw
     · subst hm
       have hx0 := hx ⟨0, hn⟩
-      rw [if_pos rfl]
+      rw [ite_eq_left rfl]
       simpa using! hx0
-    · rw [if_neg hm]
+    · rw [ite_eq_right hm]
       simp only [allCellTourTape]
       split
       · rename_i h
@@ -7051,7 +7062,7 @@ theorem allCellTourFinalCfg_inj {n k w : ℕ} (base : WindowCfg w (AllCellState 
       omega
     have hteq := congrFun ht (⟨w + 1 + j.val, by omega⟩ : Fin (2 * w + 1))
     rw [allCellTourFinalCfg_tape, allCellTourFinalCfg_tape] at hteq
-    rw [if_neg hm, if_neg hm] at hteq
+    rw [ite_eq_right hm, ite_eq_right hm] at hteq
     have hv1 : allCellTourTape base i f (⟨w + 1 + j.val, by omega⟩ : Fin (2 * w + 1)) = f j := by
       simp only [allCellTourTape_of_in base i f
         (⟨w + 1 + j.val, by omega⟩ : Fin (2 * w + 1))
@@ -7324,7 +7335,7 @@ theorem allCellTour_acceptMass {n k w : ℕ} (hn : 0 < n)
               have hcontra : (.rej : AllCellState n k) = .acc := by
                 simpa using! hst
               cases hcontra
-        rw [if_neg hne, mul_zero]
+        rw [ite_eq_right hne, mul_zero]
     · intro f' hf'
       apply Finset.sum_eq_zero
       intro b _
@@ -7333,7 +7344,7 @@ theorem allCellTour_acceptMass {n k w : ℕ} (hn : 0 < n)
         obtain ⟨ha, hb, hff'⟩ :=
           allCellTourFinalCfg_inj base i hi hw f f' true b false (!b) hcon
         exact hf' hff'.symm
-      rw [if_neg hne, mul_zero]
+      rw [ite_eq_right hne, mul_zero]
 
   have hsubset : Finset.image g (Finset.univ : Finset (Fin i → Bool))
       ⊆ Finset.univ.filter (fun c => c.state = (.acc : AllCellState n k)) := by
@@ -7371,7 +7382,7 @@ theorem allCellTour_acceptMass {n k w : ℕ} (hn : 0 < n)
         refine Finset.mem_image.mpr ⟨f, Finset.mem_univ _, ?_⟩
         rw [hg]
         exact hcon.symm
-      rw [if_neg hne, mul_zero]
+      rw [ite_eq_right hne, mul_zero]
     rw [happ]
     simp
   rw [allCellTour_final hn V hV base x hw hhead hx i hi hlast]
@@ -7452,18 +7463,18 @@ theorem dLambdaOpsEnc_collision :
 /-- If one deterministic emitter outputs circuit-size descriptions from encoded operation lists,
 equal encodings at the same width force equal size descriptions. -/
 theorem emitterClause_determined_size
-    {enc : (n : ℕ) → List (DLambdaOp n) → List Bool}
+    {enc : (n : ℕ) → List (StandardMachine.DLambdaOp n) → List Bool}
     {q c d : ℕ} {emitter : Turing.TM0.Machine (Option Bool) (Fin (q + 1))}
-    (hclause : ∀ (n : ℕ) (ops : List (DLambdaOp n)),
+    (hclause : ∀ (n : ℕ) (ops : List (StandardMachine.DLambdaOp n)),
       TM0EmitsPoly emitter c d (n.bits ++ [false] ++ enc n ops)
-        ((Size (dLambdaCircuit ops)).bits ++ [false]))
-    (n : ℕ) (ops₁ ops₂ : List (DLambdaOp n)) (henc : enc n ops₁ = enc n ops₂) :
-    (Size (dLambdaCircuit ops₁)).bits ++ [false]
-      = (Size (dLambdaCircuit ops₂)).bits ++ [false] := by
+        ((Size (StandardMachine.dLambdaCircuit ops)).bits ++ [false]))
+    (n : ℕ) (ops₁ ops₂ : List (StandardMachine.DLambdaOp n)) (henc : enc n ops₁ = enc n ops₂) :
+    (Size (StandardMachine.dLambdaCircuit ops₁)).bits ++ [false]
+      = (Size (StandardMachine.dLambdaCircuit ops₂)).bits ++ [false] := by
   have h1 := hclause n ops₁
   have h2 := hclause n ops₂
   have h1' : TM0EmitsPoly emitter c d (n.bits ++ [false] ++ enc n ops₂)
-      ((Size (dLambdaCircuit ops₁)).bits ++ [false]) := by
+      ((Size (StandardMachine.dLambdaCircuit ops₁)).bits ++ [false]) := by
     rw [← henc]
     exact h1
   exact TM0EmitsPoly_output_unique emitter h1' h2
@@ -7472,18 +7483,18 @@ theorem emitterClause_determined_size
 circuit-size descriptions from `dLambdaOpsEnc` inputs. -/
 theorem dLambdaEmitterClause_impossible :
     ¬ ∃ (q c d : ℕ) (emitter : Turing.TM0.Machine (Option Bool) (Fin (q + 1))),
-      ∀ (n : ℕ) (ops : List (DLambdaOp n)),
+      ∀ (n : ℕ) (ops : List (StandardMachine.DLambdaOp n)),
         TM0EmitsPoly emitter c d (n.bits ++ [false] ++ dLambdaOpsEnc ops)
-          ((Size (dLambdaCircuit ops)).bits ++ [false]) := by
+          ((Size (StandardMachine.dLambdaCircuit ops)).bits ++ [false]) := by
   rintro ⟨q, c, d, emitter, h⟩
   have hdet := emitterClause_determined_size (enc := fun n ops => dLambdaOpsEnc ops)
     (hclause := h) 10 [.cnot (2 : Fin 10) 1, .hGate 1] [.cnot (2 : Fin 10) 9]
     dLambdaOpsEnc_collision
-  have hsizeA : Size (dLambdaCircuit [.cnot (2 : Fin 10) 1, .hGate 1]) = 2 := by
-    rw [dLambdaCircuit_size]
+  have hsizeA : Size (StandardMachine.dLambdaCircuit [.cnot (2 : Fin 10) 1, .hGate 1]) = 2 := by
+    rw [StandardMachine.dLambdaCircuit_size]
     rfl
-  have hsizeB : Size (dLambdaCircuit [.cnot (2 : Fin 10) 9]) = 1 := by
-    rw [dLambdaCircuit_size]
+  have hsizeB : Size (StandardMachine.dLambdaCircuit [.cnot (2 : Fin 10) 9]) = 1 := by
+    rw [StandardMachine.dLambdaCircuit_size]
     rfl
   rw [hsizeA, hsizeB] at hdet
   exact absurd hdet (by decide)
@@ -7506,7 +7517,7 @@ theorem trueRun_replicate_succ (m : ℕ) (rest : List Bool) :
 
 /-- The initial true-run length of the modified operation encoding is exactly the operation-list
 length. -/
-theorem dLambdaOpsEnc'_count {n : ℕ} (ops : List (DLambdaOp n)) :
+theorem dLambdaOpsEnc'_count {n : ℕ} (ops : List (StandardMachine.DLambdaOp n)) :
     trueRun (dLambdaOpsEnc' ops) = ops.length := by
   have happ : (List.replicate ops.length true ++ [false]) ++ dLambdaOpsEnc ops
       = List.replicate ops.length true ++ (false :: dLambdaOpsEnc ops) := by
@@ -7516,15 +7527,15 @@ theorem dLambdaOpsEnc'_count {n : ℕ} (ops : List (DLambdaOp n)) :
 
 /-- Equal modified operation encodings at a fixed register width yield equal compiled
 circuit-size descriptions. -/
-theorem dLambdaOpsEnc'_size_desc {n : ℕ} (ops₁ ops₂ : List (DLambdaOp n))
+theorem dLambdaOpsEnc'_size_desc {n : ℕ} (ops₁ ops₂ : List (StandardMachine.DLambdaOp n))
     (h : dLambdaOpsEnc' ops₁ = dLambdaOpsEnc' ops₂) :
-    (Size (dLambdaCircuit ops₁)).bits ++ [false]
-      = (Size (dLambdaCircuit ops₂)).bits ++ [false] := by
+    (Size (StandardMachine.dLambdaCircuit ops₁)).bits ++ [false]
+      = (Size (StandardMachine.dLambdaCircuit ops₂)).bits ++ [false] := by
   have hcount : trueRun (dLambdaOpsEnc' ops₁) = trueRun (dLambdaOpsEnc' ops₂) := by
     rw [h]
   rw [dLambdaOpsEnc'_count ops₁, dLambdaOpsEnc'_count ops₂] at hcount
-  have hsize : Size (dLambdaCircuit ops₁) = Size (dLambdaCircuit ops₂) := by
-    rw [dLambdaCircuit_size, dLambdaCircuit_size, hcount]
+  have hsize : Size (StandardMachine.dLambdaCircuit ops₁) = Size (StandardMachine.dLambdaCircuit ops₂) := by
+    rw [StandardMachine.dLambdaCircuit_size, StandardMachine.dLambdaCircuit_size, hcount]
   rw [hsize]
 
 /-- For every positive `ε`, the geometric factor `(8/9)^ceil(log(1/ε)/log(9/8))` is at most `ε`. -/
@@ -7716,13 +7727,13 @@ theorem clause8_complete :
       (dLambdaOpsEnc [.cnot (2 : Fin 10) 1, .hGate 1]
         = dLambdaOpsEnc [.cnot (2 : Fin 10) 9]) ∧
       (¬ ∃ (q c d : ℕ) (emitter : Turing.TM0.Machine (Option Bool) (Fin (q + 1))),
-        ∀ (n : ℕ) (ops : List (DLambdaOp n)),
+        ∀ (n : ℕ) (ops : List (StandardMachine.DLambdaOp n)),
           TM0EmitsPoly emitter c d (n.bits ++ [false] ++ dLambdaOpsEnc ops)
-            ((Size (dLambdaCircuit ops)).bits ++ [false])) ∧
-      (∀ (n : ℕ) (ops₁ ops₂ : List (DLambdaOp n)),
+            ((Size (StandardMachine.dLambdaCircuit ops)).bits ++ [false])) ∧
+      (∀ (n : ℕ) (ops₁ ops₂ : List (StandardMachine.DLambdaOp n)),
         dLambdaOpsEnc' ops₁ = dLambdaOpsEnc' ops₂ →
-          (Size (dLambdaCircuit ops₁)).bits ++ [false]
-            = (Size (dLambdaCircuit ops₂)).bits ++ [false]) ∧
+          (Size (StandardMachine.dLambdaCircuit ops₁)).bits ++ [false]
+            = (Size (StandardMachine.dLambdaCircuit ops₂)).bits ++ [false]) ∧
       (∀ (ε : ℝ), 0 < ε →
         (8 / 9 : ℝ) ^ Nat.ceil (Real.log (1 / ε) / Real.log (9 / 8)) ≤ ε) ∧
       (∀ (ε : ℝ), 0 < ε → ε ≤ 1 →

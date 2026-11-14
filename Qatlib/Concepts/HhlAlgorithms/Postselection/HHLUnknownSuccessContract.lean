@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HhlAlgorithms.Postselection.RationalHHLNoiseRetry
-import Qatlib.Concepts.LchsSimulation.StaticLchs.BitSampledPreparedSearch
+module
+
+public import Qatlib.Concepts.HhlAlgorithms.Postselection.RationalHHLNoiseRetry
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.BitSampledPreparedSearch
+
+@[expose] public section
 
 /-!
 # Finite HHL search with unknown success mass

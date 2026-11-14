@@ -4,18 +4,22 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
-import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetwork
-import Qatlib.Concepts.MbqcFlow.FlowDecision.IsingClusterResource
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Foundations.PureStateMath.Tensor
-import Qatlib.Foundations.PureStateMath.MixedState
-import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
-import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetworkBranch
-import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetworkCore
-import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetworkInstrument
-import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetworkRouting
-import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetworkTransport
+module
+
+public import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetwork
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.IsingClusterResource
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Foundations.PureStateMath.Tensor
+public import Qatlib.Foundations.PureStateMath.MixedState
+public import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetworkBranch
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetworkCore
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetworkInstrument
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetworkRouting
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetworkTransport
+
+@[expose] public section
 
 /-!
 # Graphs, flow predicates, and MBQC branch semantics
@@ -126,7 +130,7 @@ noncomputable def MbqcPlaneBasis (lam : MbqcPlane) (a : ℝ) (b : Bool) : Operat
 theorem mbqcPlaneBasis_add (lam : MbqcPlane) (a : ℝ) :
     MbqcPlaneBasis lam a false + MbqcPlaneBasis lam a true = 1 := by
   unfold MbqcPlaneBasis
-  rw [if_neg (by simp : ¬(false = true)), if_pos rfl]
+  rw [ite_eq_right (by simp : ¬(false = true)), ite_eq_left rfl]
   module
 
 /-- The strict vertex relation induced by strict comparison of the assigned finite ranks. -/
@@ -297,11 +301,11 @@ theorem mbqcRegWireGate_eq {n : ℕ} (v : Fin n) (U : Operator 2) :
   rw [← Finset.mul_prod_erase (Finset.univ : Finset (Fin n))
     (fun i => (if i = v then U else (1 : Operator 2)) (boolEquivFin2 (x i)) (boolEquivFin2 (y i)))
     (Finset.mem_univ v)]
-  have hv : (if (v : Fin n) = v then U else (1 : Operator 2)) = U := by rw [if_pos rfl]
+  have hv : (if (v : Fin n) = v then U else (1 : Operator 2)) = U := by rw [ite_eq_left rfl]
   rw [hv]
   congr 1
   refine Finset.prod_congr rfl fun i hi => ?_
-  rw [if_neg (Finset.mem_erase.mp hi).1]
+  rw [ite_eq_right (Finset.mem_erase.mp hi).1]
   simp only [Matrix.one_apply]
   by_cases h : x i = y i <;> simp [h]
 
@@ -451,10 +455,10 @@ theorem mbqcPreentangledBranchMap_eq {n : ℕ} (gs : List (ClusterNetworkGate n)
   intro ρ
   rw [mbqcPreentangledBranchMap]
   by_cases hv : networkBranchValid gs hist
-  · rw [if_pos hv, LinearMap.smul_apply,
-      cluster_network_history_actual_branch_formula n gs hg hist ρ, if_pos hv]
-  · rw [if_neg hv, LinearMap.zero_apply,
-      cluster_network_history_actual_branch_formula n gs hg hist ρ, if_neg hv]
+  · rw [ite_eq_left hv, LinearMap.smul_apply,
+      cluster_network_history_actual_branch_formula n gs hg hist ρ, ite_eq_left hv]
+  · rw [ite_eq_right hv, LinearMap.zero_apply,
+      cluster_network_history_actual_branch_formula n gs hg hist ρ, ite_eq_right hv]
 
 /-- The instrument with the prescribed count-weighted logical branch maps for a legal network
 word. -/
@@ -463,9 +467,9 @@ noncomputable def mbqcPreentangledInstrument {n : ℕ} (gs : List (ClusterNetwor
   Instrument.ofBranches (mbqcPreentangledBranchMap gs)
     (fun hist => by
       by_cases hv : networkBranchValid gs hist
-      · rw [mbqcPreentangledBranchMap, if_pos hv, networkHalf_pow_cast]
+      · rw [mbqcPreentangledBranchMap, ite_eq_left hv, networkHalf_pow_cast]
         exact networkCP_const_smul (completelyPositive_conjBranch _) (by positivity)
-      · rw [mbqcPreentangledBranchMap, if_neg hv]
+      · rw [mbqcPreentangledBranchMap, ite_eq_right hv]
         exact networkCP_zero)
     (fun A => by
       have h : ∑ hist : Fin gs.length → Bool × Bool, mbqcPreentangledBranchMap gs hist A

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Normed.Ring.Basic
-import Mathlib.Tactic.NoncommRing
+module
+
+public import Mathlib.Analysis.Normed.Ring.Basic
+public import Mathlib.Tactic.NoncommRing
+
+@[expose] public section
 
 /-!
 # Linear accumulation of errors in contraction powers

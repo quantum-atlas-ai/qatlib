@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LowRankMatrix19.SQFramework.SqClosureEstimationDefs
+module
+
+public import Qatlib.Papers.LowRankMatrix19.SQFramework.SqClosureEstimationDefs
+
+@[expose] public section
 
 /-!
 # Pilot estimation and resource accounting for sample/query closure

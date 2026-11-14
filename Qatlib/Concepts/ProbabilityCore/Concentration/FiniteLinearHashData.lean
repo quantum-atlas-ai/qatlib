@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ProbabilityCore.Concentration.WeightedHashData
-import Mathlib.Data.Matrix.Mul
+module
+
+public import Qatlib.Concepts.ProbabilityCore.Concentration.WeightedHashData
+public import Mathlib.Data.Matrix.Mul
+
+@[expose] public section
 
 /-!
 # Finite matrix hash maps

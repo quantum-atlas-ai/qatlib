@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.Reduction.BooleanHadamardSamplingEvent
-import Mathlib.Algebra.Group.Subgroup.ZPowers.Basic
+module
+
+public import Qatlib.Concepts.HspRecovery.Reduction.BooleanHadamardSamplingEvent
+public import Mathlib.Algebra.Group.Subgroup.ZPowers.Basic
+
+@[expose] public section
 
 /-!
 # Simon promises and Boolean sampling
@@ -196,6 +200,6 @@ theorem marginalProbLeft_hiddenSubgroupSampling_simonReg_bad
   rw [marginalProbLeft_hiddenSubgroupSampling_simonReg f s hf]
   apply Finset.sum_eq_zero
   intro y hy
-  exact if_neg (Finset.mem_filter.mp hy).2
+  exact ite_eq_right (Finset.mem_filter.mp hy).2
 
 end Qatlib.Concepts.HspRecovery.ReductionCore

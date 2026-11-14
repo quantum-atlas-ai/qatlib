@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TrotterFormula.LieStrang.CommutatorProductFormula
-import Mathlib.Analysis.ODE.PicardLindelof
-import Mathlib.Analysis.ODE.ExistUnique
-import Mathlib.Analysis.ODE.Gronwall
-import Mathlib.Analysis.Calculus.SmoothSeries
-import Mathlib.Analysis.Calculus.Deriv.Star
-import Mathlib.Analysis.InnerProductSpace.Calculus
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.FundThmCalculus
-import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
+module
+
+public import Qatlib.Concepts.TrotterFormula.LieStrang.CommutatorProductFormula
+public import Mathlib.Analysis.ODE.PicardLindelof
+public import Mathlib.Analysis.ODE.ExistUnique
+public import Mathlib.Analysis.ODE.Gronwall
+public import Mathlib.Analysis.Calculus.SmoothSeries
+public import Mathlib.Analysis.Calculus.Deriv.Star
+public import Mathlib.Analysis.InnerProductSpace.Calculus
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.FundThmCalculus
+public import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
+
+@[expose] public section
 
 /-!
 # Time-ordered matrix evolution from Dyson series
@@ -295,7 +299,7 @@ theorem ordered_evolution_psd_contraction :
       Continuous A → (∀ u, (A u + (A u)ᴴ).PosSemidef) →
       ∀ s t : ℝ, s ≤ t → ‖orderedEvolution A s t‖ ≤ 1 := by
   intro I _ _ A hA hPSD s t hst
-  letI := InnerProductSpace.rclikeToReal ℂ (EuclideanSpace ℂ I)
+  let := InnerProductSpace.rclikeToReal ℂ (EuclideanSpace ℂ I)
   have hv (v : QState I) :
       ‖toEuclidean_fromVec (orderedEvolution A s t *ᵥ v)‖ ≤ ‖toEuclidean_fromVec v‖ := by
     let f := fun u => toEuclidean_fromVec (orderedEvolution A s u *ᵥ v)

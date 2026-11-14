@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ProbabilityCore.Concentration.FiniteLinearHash
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
-import Qatlib.Concepts.FourierRecovery.ModularFourier.PqcSources.PositiveFourierMass
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Ring
+module
+
+public import Qatlib.Concepts.ProbabilityCore.Concentration.FiniteLinearHash
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+public import Qatlib.Concepts.FourierRecovery.ModularFourier.PqcSources.PositiveFourierMass
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 open Qatlib.Concepts.ProbabilityCore.Concentration
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
@@ -117,7 +121,7 @@ theorem pqc_linear_hash_surjective_of_excess_lt_one
   have hz : pqcLinearSyndromeMass M p y = 0 := by
     apply Finset.sum_eq_zero
     intro v _
-    exact if_neg (hy v)
+    exact ite_eq_right (hy v)
   have hdev := pqc_linear_syndrome_uniform_deviation M p hpos y
   rw [hz] at hdev
   simp only [mul_zero, zero_sub, abs_neg, abs_one] at hdev
@@ -147,9 +151,9 @@ theorem pqc_linear_zero_excess_average
       if v = 0 then 1 else N⁻¹ := by
     by_cases hv : v = 0
     · subst v
-      simp only [hash_zero, if_true]
+      simp only [hash_zero, ite_true]
       exact havg_const 1
-    · simpa only [hv, if_false, hash_zero, N] using
+    · simpa only [hv, ite_false, hash_zero, N] using
         finite_linear_matrix_hash_collision K I J v 0 hv
   have hmass : finiteHashAverage (fun M : Matrix I J K => pqcLinearSyndromeMass M p 0) =
       N⁻¹ + (1-N⁻¹)*p.prob 0 := by
@@ -173,7 +177,7 @@ theorem pqc_linear_zero_excess_average
         N⁻¹*p.prob v + (if v = 0 then (1-N⁻¹)*p.prob 0 else 0) := by
       by_cases hv : v = 0
       · subst v
-        simp only [if_true]
+        simp only [ite_true]
         ring
       · simp [hv]
     simp_rw [hsplit]

@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Complex.Basic
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Algebra.BigOperators.Field
-import Mathlib.LinearAlgebra.Matrix.Hermitian
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.LinearCombination
-import Mathlib.Tactic.IntervalCases
+module
+
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Algebra.BigOperators.Field
+public import Mathlib.LinearAlgebra.Matrix.Hermitian
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.LinearCombination
+public import Mathlib.Tactic.IntervalCases
+
+@[expose] public section
 
 /-!
 # Algebra for Hermitian sampling and cubic filters
@@ -97,9 +101,9 @@ theorem cubic_root_coefficient_projection (ω c : ℂ)
       if n % 3 = 0 then c else 0 := by
   have hf := cubic_root_filter ω hω n
   by_cases h : n % 3 = 0
-  · simp only [h, if_true] at hf ⊢
+  · simp only [h, ite_true] at hf ⊢
     linear_combination c / 3 * hf
-  · simp only [h, if_false] at hf ⊢
+  · simp only [h, ite_false] at hf ⊢
     linear_combination c / 3 * hf
 
 /-- Averaging a finite polynomial at `z`, `ω * z`, and `ω ^ 2 * z` retains precisely the terms

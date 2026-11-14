@@ -4,19 +4,23 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GramQueryCore.ModelSemantics.VolterraAndOracleLogSemanticsStat
-import Qatlib.Concepts.LchsSimulation.StaticLchs.HybridError
-import Mathlib.Analysis.InnerProductSpace.JointEigenspace
-import Mathlib.Analysis.SpecialFunctions.Complex.Arg
-import Mathlib.Tactic.Module
-import Mathlib.MeasureTheory.Function.ContinuousMapDense
-import Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
-import Qatlib.Foundations.PureStateMath.Qubit
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.FundThmCalculus
-import Mathlib.MeasureTheory.Function.AbsolutelyContinuous
-import Mathlib.Topology.ContinuousMap.Compact
-import Mathlib.Topology.MetricSpace.Cauchy
-import Mathlib.Topology.Order.IntermediateValue
+module
+
+public import Qatlib.Concepts.GramQueryCore.ModelSemantics.VolterraAndOracleLogSemanticsStat
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.HybridError
+public import Mathlib.Analysis.InnerProductSpace.JointEigenspace
+public import Mathlib.Analysis.SpecialFunctions.Complex.Arg
+public import Mathlib.Tactic.Module
+public import Mathlib.MeasureTheory.Function.ContinuousMapDense
+public import Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.FundThmCalculus
+public import Mathlib.MeasureTheory.Function.AbsolutelyContinuous
+public import Mathlib.Topology.ContinuousMap.Compact
+public import Mathlib.Topology.MetricSpace.Cauchy
+public import Mathlib.Topology.Order.IntermediateValue
+
+@[expose] public section
 
 /-!
 # Volterra evolution and bounded oracle logarithms
@@ -100,8 +104,8 @@ theorem sourceNormal_euclidean_eigenbasis (I : Type) [Fintype I] [DecidableEq I]
     intro i j hij
     apply Subtype.ext
     exact Prod.ext (congrArg (fun p => p.2.val) hij) (congrArg (fun p => p.1.val) hij)
-  letI : Finite ι := Finite.of_injective embed hembed
-  letI : Fintype ι := Fintype.ofFinite ι
+  let : Finite ι := Finite.of_injective embed hembed
+  let : Fintype ι := Fintype.ofFinite ι
   have horth := (hH.orthogonalFamily_eigenspace_inf_eigenspace hK).comp
     (Subtype.coe_injective : Function.Injective (Subtype.val : ι → ℂ × ℂ))
   have hdecomp : DirectSum.IsInternal (fun i : ι => H.eigenspace i.1.2 ⊓ K.eigenspace i.1.1) := by
@@ -226,7 +230,7 @@ theorem sourceLog_representation (H : Type) [Fintype H] [DecidableEq H]
   let V := Classical.choose hs
   let angles := Classical.choose (Classical.choose_spec hs)
   have hv := Classical.choose_spec (Classical.choose_spec hs)
-  exact ⟨V,angles,hv.1,hv.2.1,hv.2.2,by simp only [sourceLog,dif_pos hs,V,angles]⟩
+  exact ⟨V,angles,hv.1,hv.2.1,hv.2.2,by simp only [sourceLog,dite_eq_left hs,V,angles]⟩
 
 /-- The chosen logarithm of a unitary matrix is Hermitian and has operator norm at most π. -/
 theorem sourceLog_hermitian_norm (H : Type) [Fintype H] [DecidableEq H]
@@ -504,7 +508,7 @@ theorem sourceIntervalPath_eq {H : Type} [Fintype H] [DecidableEq H]
 theorem sourceIntervalPath_continuousOn {H : Type} [Fintype H] [DecidableEq H]
     (T : ℝ) (U : C(Set.Icc 0 T,Matrix H H ℂ)) :
     ContinuousOn (sourceIntervalPath T U) (Set.Icc 0 T) := by
-  rw [continuousOn_iff_continuous_restrict]
+  rw [continuousOn_iff_continuous_domRestrict]
   have he : (Set.Icc 0 T).domRestrict (sourceIntervalPath T U)=U := by
     funext t
     exact sourceIntervalPath_eq T U t.val t.prop
@@ -628,7 +632,7 @@ theorem sourceVolterra_exists (H : Type) [Fintype H] [DecidableEq H]
       intro s hs
       have hc := hRate n ⟨s,hs⟩
       rw [hV] at hc
-      simpa only [F,W,sourceIntervalPath,dif_pos hs] using! hc
+      simpa only [F,W,sourceIntervalPath,dite_eq_left hs] using! hc
     have hR := hpzero.add (hpzero.mul_const (∫ s in (0 : ℝ)..T,‖K s‖))
     simp only [zero_mul,zero_add] at hR
     have hJnorm : Filter.Tendsto (fun n => ‖J n-J0‖) Filter.atTop (nhds 0) :=
@@ -640,9 +644,9 @@ theorem sourceVolterra_exists (H : Type) [Fintype H] [DecidableEq H]
       (hV n _).trans (sourceOrderedEvolution_volterra_integral H (G n) (hG n).1 t)
     simp_rw [he] at hWt
     have hf := tendsto_nhds_unique hWt (hJ.const_add (1 : Matrix H H ℂ))
-    simpa only [F,sourceIntervalPath,dif_pos ht,J0] using! hf
+    simpa only [F,sourceIntervalPath,dite_eq_left ht,J0] using! hf
   refine ⟨F,⟨?_,hFc,?_⟩,?_⟩
-  · simpa only [F,sourceIntervalPath,dif_pos (show (0 : ℝ)∈Set.Icc 0 T from ⟨le_rfl,hT⟩)] using! hU0
+  · simpa only [F,sourceIntervalPath,dite_eq_left (show (0 : ℝ)∈Set.Icc 0 T from ⟨le_rfl,hT⟩)] using! hU0
   · intro t ht
     have hsub : Set.uIcc 0 t⊆Set.uIcc 0 T := by
       rw [Set.uIcc_of_le ht.1,Set.uIcc_of_le hT]
@@ -918,7 +922,7 @@ theorem sourceVolterraMatrix_eq {H : Type} [Fintype H] [DecidableEq H]
     (F : ℝ → Matrix H H ℂ) (hF : sourceVolterra K T F) :
     sourceVolterraMatrix K T=F T := by
   have hex : ∃ U, sourceVolterra K T U := ⟨F,hF⟩
-  rw [sourceVolterraMatrix,dif_pos hex]
+  rw [sourceVolterraMatrix,dite_eq_left hex]
   exact sourceVolterra_unique K (Classical.choose hex) F T hT hi
     (Classical.choose_spec hex) hF T ⟨hT,le_refl T⟩
 
@@ -1036,7 +1040,7 @@ theorem sourceVolterra_const_spectral {H : Type} [Fintype H] [DecidableEq H]
       exact hentryeq i j s
     simp only [Matrix.of_apply,Matrix.add_apply,Matrix.one_apply]
     rw [hintgr,hftc]
-    (try simp only [])
+
     have hW0e : W 0 i j=(if i = j then (1 : ℂ) else 0) := by
       rw [hW01,Matrix.one_apply]
     rw [hW0e]
@@ -1092,10 +1096,10 @@ theorem sourceVolterraMatrix_log_value {H : Type} [Fintype H] [DecidableEq H]
     ext h h'
     simp only [Matrix.diagonal_apply]
     by_cases hc : h=h'
-    · rw [if_pos hc,if_pos hc]
+    · rw [ite_eq_left hc,ite_eq_left hc]
       congr 1
       simp
-    · rw [if_neg hc,if_neg hc]
+    · rw [ite_eq_right hc,ite_eq_right hc]
   rw [hone]
   exact hrep.symm
 
@@ -1150,8 +1154,8 @@ theorem sourceLogOracle_frame (X S : Type) [Fintype S] [DecidableEq S] {n q : �
           (if j'=p.1.1 ∧ w'=p.2 then G1 p.1.1 i'*G2 p.1.1 i' else 0) := by
         intro j' i' w'
         by_cases hc : j'=p.1.1 ∧ w'=p.2
-        · rw [if_pos hc,if_pos hc,if_pos hc]
-        · rw [if_neg hc,if_neg hc,if_neg hc,zero_mul]
+        · rw [ite_eq_left hc,ite_eq_left hc,ite_eq_left hc]
+        · rw [ite_eq_right hc,ite_eq_right hc,ite_eq_right hc,zero_mul]
       simp only [hterm]
       have hj0 : ∀ b : Fin (n+1), b ∈ Finset.univ → b ≠ p.1.1 →
           (∑ i' : Fin (q+1), ∑ w' : S,
@@ -1161,22 +1165,22 @@ theorem sourceLogOracle_frame (X S : Type) [Fintype S] [DecidableEq S] {n q : �
         intro i' _
         rw [Finset.sum_eq_zero]
         intro w' _
-        rw [if_neg (fun hc => hb hc.1)]
+        rw [ite_eq_right (fun hc => hb hc.1)]
       rw [Finset.sum_eq_single p.1.1 hj0 (fun h => absurd (Finset.mem_univ p.1.1) h)]
-      simp only [true_and,Finset.sum_ite_eq',Finset.mem_univ,if_true]
+      simp only [true_and,Finset.sum_ite_eq',Finset.mem_univ,ite_true]
     · have hterm : ∀ (j' : Fin (n+1)) (i' : Fin (q+1)) (w' : S),
           ((if j'=p.1.1 ∧ w'=p.2 then G1 p.1.1 i' else 0)*
            (if j'=t.1.1 ∧ w'=t.2 then G2 t.1.1 i' else 0))=0 := by
         intro j' i' w'
         by_cases h1 : j'=p.1.1 ∧ w'=p.2
-        · rw [if_pos h1]
+        · rw [ite_eq_left h1]
           have h2 : ¬(j'=t.1.1 ∧ w'=t.2) := by
             intro hc
             exact hblk ⟨h1.1.symm.trans hc.1,h1.2.symm.trans hc.2⟩
-          rw [if_neg h2,mul_zero]
-        · rw [if_neg h1,zero_mul]
+          rw [ite_eq_right h2,mul_zero]
+        · rw [ite_eq_right h1,zero_mul]
       simp only [hterm]
-      rw [if_neg hblk]
+      rw [ite_eq_right hblk]
       simp
   have hcollapse2 : ∀ (G1 G2 : Fin (n+1) → Fin (q+1) → ℂ)
       (p t : ((Fin (n+1) × Fin (q+1)) × S)),
@@ -1194,8 +1198,8 @@ theorem sourceLogOracle_frame (X S : Type) [Fintype S] [DecidableEq S] {n q : �
           (if p.1.1=j' ∧ p.2=w' then G1 p.1.1 i'*G2 p.1.1 i' else 0) := by
         intro j' i' w'
         by_cases hc : p.1.1=j' ∧ p.2=w'
-        · rw [if_pos hc,if_pos ⟨hc.1.symm,hc.2.symm⟩,if_pos hc]
-        · rw [if_neg hc,if_neg (fun h' => hc ⟨h'.1.symm,h'.2.symm⟩),if_neg hc,zero_mul]
+        · rw [ite_eq_left hc,ite_eq_left ⟨hc.1.symm,hc.2.symm⟩,ite_eq_left hc]
+        · rw [ite_eq_right hc,ite_eq_right (fun h' => hc ⟨h'.1.symm,h'.2.symm⟩),ite_eq_right hc,zero_mul]
       simp only [hterm]
       have hj0 : ∀ b : Fin (n+1), b ∈ Finset.univ → b ≠ p.1.1 →
           (∑ i' : Fin (q+1), ∑ w' : S,
@@ -1205,22 +1209,22 @@ theorem sourceLogOracle_frame (X S : Type) [Fintype S] [DecidableEq S] {n q : �
         intro i' _
         rw [Finset.sum_eq_zero]
         intro w' _
-        rw [if_neg (fun hc => hb hc.1.symm)]
+        rw [ite_eq_right (fun hc => hb hc.1.symm)]
       rw [Finset.sum_eq_single p.1.1 hj0 (fun h => absurd (Finset.mem_univ p.1.1) h)]
-      simp only [true_and,Finset.sum_ite_eq,Finset.mem_univ,if_true]
+      simp only [true_and,Finset.sum_ite_eq,Finset.mem_univ,ite_true]
     · have hterm : ∀ (j' : Fin (n+1)) (i' : Fin (q+1)) (w' : S),
           ((if p.1.1=j' ∧ p.2=w' then G1 p.1.1 i' else 0)*
            (if j'=t.1.1 ∧ w'=t.2 then G2 t.1.1 i' else 0))=0 := by
         intro j' i' w'
         by_cases h1 : p.1.1=j' ∧ p.2=w'
-        · rw [if_pos h1]
+        · rw [ite_eq_left h1]
           have h2 : ¬(j'=t.1.1 ∧ w'=t.2) := by
             intro hc
             exact hblk ⟨h1.1.trans hc.1,h1.2.trans hc.2⟩
-          rw [if_neg h2,mul_zero]
-        · rw [if_neg h1,zero_mul]
+          rw [ite_eq_right h2,mul_zero]
+        · rw [ite_eq_right h1,zero_mul]
       simp only [hterm]
-      rw [if_neg hblk]
+      rw [ite_eq_right hblk]
       simp
   have hunitL : ∀ j : Fin (n+1), (Vf j)ᴴ*(Vf j)=1 := by
     intro j
@@ -1246,8 +1250,8 @@ theorem sourceLogOracle_frame (X S : Type) [Fintype S] [DecidableEq S] {n q : �
           (if p.1.1=j' ∧ p.2=w' then G1 j' i'*(H ((j',i'),w'))*G2 j' i' else 0) := by
         intro j' i' w'
         by_cases hc : p.1.1=j' ∧ p.2=w'
-        · rw [if_pos hc,if_pos hc,if_pos hc]
-        · rw [if_neg hc,if_neg hc,if_neg hc,zero_mul,zero_mul]
+        · rw [ite_eq_left hc,ite_eq_left hc,ite_eq_left hc]
+        · rw [ite_eq_right hc,ite_eq_right hc,ite_eq_right hc,zero_mul,zero_mul]
       simp only [hterm]
       have hj0 : ∀ b : Fin (n+1), b ∈ Finset.univ → b ≠ p.1.1 →
           (∑ i' : Fin (q+1), ∑ w' : S,
@@ -1257,30 +1261,30 @@ theorem sourceLogOracle_frame (X S : Type) [Fintype S] [DecidableEq S] {n q : �
         intro i' _
         rw [Finset.sum_eq_zero]
         intro w' _
-        rw [if_neg (fun hc => hb hc.1.symm)]
+        rw [ite_eq_right (fun hc => hb hc.1.symm)]
       rw [Finset.sum_eq_single p.1.1 hj0 (fun h => absurd (Finset.mem_univ p.1.1) h)]
-      simp only [true_and,Finset.sum_ite_eq,Finset.mem_univ,if_true]
+      simp only [true_and,Finset.sum_ite_eq,Finset.mem_univ,ite_true]
     · have hterm : ∀ (j' : Fin (n+1)) (i' : Fin (q+1)) (w' : S),
           ((if p.1.1=j' ∧ p.2=w' then G1 j' i' else 0)*
            (H ((j',i'),w'))*
            (if t.1.1=j' ∧ t.2=w' then G2 j' i' else 0))=0 := by
         intro j' i' w'
         by_cases h1 : p.1.1=j' ∧ p.2=w'
-        · rw [if_pos h1]
+        · rw [ite_eq_left h1]
           have h2 : ¬(t.1.1=j' ∧ t.2=w') := by
             intro hc
             exact hblk ⟨h1.1.trans hc.1.symm,h1.2.trans hc.2.symm⟩
-          rw [if_neg h2,mul_zero]
-        · rw [if_neg h1,zero_mul,zero_mul]
+          rw [ite_eq_right h2,mul_zero]
+        · rw [ite_eq_right h1,zero_mul,zero_mul]
       simp only [hterm]
-      rw [if_neg hblk]
+      rw [ite_eq_right hblk]
       simp
   have hentryH (p t : ((Fin (n+1) × Fin (q+1)) × S)) :
       Eᴴ p t=if t.1.1=p.1.1 ∧ t.2=p.2 then star (Vf p.1.1 t.1.2 p.1.2) else 0 := by
     show star (E t p)=_
     by_cases hc : t.1.1=p.1.1 ∧ t.2=p.2
-    · rw [hentry t p,if_pos hc,if_pos hc]
-    · rw [hentry t p,if_neg hc,star_zero,if_neg hc]
+    · rw [hentry t p,ite_eq_left hc,ite_eq_left hc]
+    · rw [hentry t p,ite_eq_right hc,star_zero,ite_eq_right hc]
   have hE : E ∈ Matrix.unitaryGroup _ ℂ := by
     rw [Matrix.mem_unitaryGroup_iff',Matrix.star_eq_conjTranspose]
     ext p t
@@ -1289,21 +1293,21 @@ theorem sourceLogOracle_frame (X S : Type) [Fintype S] [DecidableEq S] {n q : �
     rw [hcollapse (fun j i' => star (Vf j i' p.1.2)) (fun j i' => Vf j i' t.1.2) p t,
       Matrix.one_apply]
     by_cases hblk : p.1.1=t.1.1 ∧ p.2=t.2
-    · rw [if_pos hblk]
+    · rw [ite_eq_left hblk]
       by_cases hdiag : p.1.2=t.1.2
-      · rw [if_pos (Prod.ext (Prod.ext hblk.1 hdiag) hblk.2),← hdiag]
+      · rw [ite_eq_left (Prod.ext (Prod.ext hblk.1 hdiag) hblk.2),← hdiag]
         have hsmall : ((Vf p.1.1)ᴴ*(Vf p.1.1)) p.1.2 p.1.2=(1 : ℂ) := by
-          rw [hunitL p.1.1,Matrix.one_apply,if_pos rfl]
+          rw [hunitL p.1.1,Matrix.one_apply,ite_eq_left rfl]
         simpa only [Matrix.mul_apply,Matrix.conjTranspose_apply] using! hsmall
-      · rw [if_neg (fun h => hdiag (congrArg (fun r => r.1.2) h))]
+      · rw [ite_eq_right (fun h => hdiag (congrArg (fun r => r.1.2) h))]
         have hzero : ((Vf p.1.1)ᴴ*(Vf p.1.1)) p.1.2 t.1.2=(0 : ℂ) := by
-          rw [hunitL p.1.1,Matrix.one_apply,if_neg hdiag]
+          rw [hunitL p.1.1,Matrix.one_apply,ite_eq_right hdiag]
         simpa only [Matrix.mul_apply,Matrix.conjTranspose_apply] using! hzero
-    · rw [if_neg hblk]
+    · rw [ite_eq_right hblk]
       by_cases h1 : p.1.1=t.1.1
       · have h2 : p.2≠t.2 := fun h2 => hblk ⟨h1,h2⟩
-        rw [if_neg (fun he => h2 (congrArg (fun r => r.2) he))]
-      · rw [if_neg (fun he => h1 (congrArg (fun r => r.1.1) he))]
+        rw [ite_eq_right (fun he => h2 (congrArg (fun r => r.2) he))]
+      · rw [ite_eq_right (fun he => h1 (congrArg (fun r => r.1.1) he))]
   refine ⟨E,Θ,hE,fun t => hθf t.1.1 t.1.2,?_,?_⟩
   have hER : E*Eᴴ=1 := by
     simpa only [Matrix.star_eq_conjTranspose] using! Matrix.mem_unitaryGroup_iff.mp hE
@@ -1318,7 +1322,7 @@ theorem sourceLogOracle_frame (X S : Type) [Fintype S] [DecidableEq S] {n q : �
     rw [hcollapse2 (fun j i' => (sourceLog (sourceValueQuery (sourcePaddedSymbol input x j))) p.1.2 i')
       (fun j i' => Vf j i' t.1.2) p t]
     by_cases hblk : p.1.1=t.1.1 ∧ p.2=t.2
-    · rw [if_pos hblk,if_pos hblk]
+    · rw [ite_eq_left hblk,ite_eq_left hblk]
       have hlog : sourceLog (sourceValueQuery (sourcePaddedSymbol input x p.1.1))=
           (Vf p.1.1)*(Matrix.diagonal (fun i => (θf p.1.1 i : ℂ)))*(Vf p.1.1)ᴴ := hlogf p.1.1
       rw [hlog]
@@ -1330,7 +1334,7 @@ theorem sourceLogOracle_frame (X S : Type) [Fintype S] [DecidableEq S] {n q : �
       rw [hprod,Matrix.mul_diagonal _ _ _]
       show (Vf p.1.1) p.1.2 t.1.2*(θf p.1.1 t.1.2 : ℂ)=Vf t.1.1 p.1.2 t.1.2*(θf t.1.1 t.1.2 : ℂ)
       rw [hblk.1]
-    · rw [if_neg hblk,if_neg hblk,zero_mul]
+    · rw [ite_eq_right hblk,ite_eq_right hblk,zero_mul]
   · calc sourceLogOracle (W := S) input x
         = sourceLogOracle (W := S) input x*(E*Eᴴ) := by rw [hER,Matrix.mul_one]
       _ = (sourceLogOracle (W := S) input x*E)*Eᴴ := by rw [Matrix.mul_assoc]
@@ -1345,7 +1349,7 @@ theorem sourceLogOracle_frame (X S : Type) [Fintype S] [DecidableEq S] {n q : �
     rw [hcollapse3 (fun j i' => Vf j p.1.2 i') (fun j i' => star (Vf j t.1.2 i'))
       (fun r => Complex.exp (-Complex.I*(1 : ℝ)*Θ r)) p t]
     by_cases hblk : p.1.1=t.1.1 ∧ p.2=t.2
-    · rw [if_pos hblk]
+    · rw [ite_eq_left hblk]
       simp only [hΘdef]
       have h1 : (Vf p.1.1)*Matrix.diagonal
             (fun i' => Complex.exp (-Complex.I*(1 : ℝ)*θf p.1.1 i'))*(Vf p.1.1)ᴴ=
@@ -1355,10 +1359,10 @@ theorem sourceLogOracle_frame (X S : Type) [Fintype S] [DecidableEq S] {n q : �
           ext h h'
           simp only [Matrix.diagonal_apply]
           by_cases hc : h=h'
-          · rw [if_pos hc,if_pos hc]
+          · rw [ite_eq_left hc,ite_eq_left hc]
             congr 1
             simp
-          · rw [if_neg hc,if_neg hc]
+          · rw [ite_eq_right hc,ite_eq_right hc]
         rw [hone]
         exact (hrepf p.1.1).symm
       calc ∑ i', Vf p.1.1 p.1.2 i'*
@@ -1381,20 +1385,20 @@ theorem sourceLogOracle_frame (X S : Type) [Fintype S] [DecidableEq S] {n q : �
                   exact hpt
                 have hpe : p=((t.1.1, t.1.2+sourcePaddedSymbol input x t.1.1), t.2) :=
                   Prod.ext (Prod.ext hblk.1 hpt') hblk.2
-                rw [if_pos hpt,if_pos hpe]
+                rw [ite_eq_left hpt,ite_eq_left hpe]
               · have hne : p≠((t.1.1, t.1.2+sourcePaddedSymbol input x t.1.1), t.2) := by
                   intro he
                   have hpt' : p.1.2=t.1.2+sourcePaddedSymbol input x t.1.1 :=
                     congrArg (fun r => r.1.2) he
                   rw [← hblk.1] at hpt'
                   exact hpt hpt'
-                rw [if_neg hpt,if_neg hne]
-    · rw [if_neg hblk]
+                rw [ite_eq_right hpt,ite_eq_right hne]
+    · rw [ite_eq_right hblk]
       simp only [sourceAlphabetOracle,permMatrix,Matrix.of_apply]
       by_cases h1 : p.1.1=t.1.1
       · have h2 : p.2≠t.2 := fun h2 => hblk ⟨h1,h2⟩
-        rw [if_neg (fun he => h2 (congrArg (fun r => r.2) he))]
-      · rw [if_neg (fun he => h1 (congrArg (fun r => r.1.1) he))]
+        rw [ite_eq_right (fun he => h2 (congrArg (fun r => r.2) he))]
+      · rw [ite_eq_right (fun he => h1 (congrArg (fun r => r.1.1) he))]
 
 /-- The alphabet-oracle logarithm is Hermitian and has operator norm at most π. -/
 theorem sourceLogOracle_hermitian_norm (X S : Type) [Fintype S] [DecidableEq S] {n q : ℕ}
@@ -1415,7 +1419,7 @@ theorem volterraAndOracleLogSemantics : VolterraAndOracleLogSemantics := by
     obtain ⟨F,hFs,hFu⟩ := sourceVolterra_exists H K T hT hi hh
     have hex : ∃ U, sourceVolterra K T U := ⟨F,hFs⟩
     refine ⟨⟨F,hFs,fun V hV t ht => sourceVolterra_unique K F V T hT hi hFs hV t ht,hFu⟩,?_⟩
-    rw [sourceVolterraMatrix,dif_pos hex,
+    rw [sourceVolterraMatrix,dite_eq_left hex,
       sourceVolterra_unique K (Classical.choose hex) F T hT hi
         (Classical.choose_spec hex) hFs T ⟨hT,le_refl T⟩]
     exact hFu T ⟨hT,le_refl T⟩

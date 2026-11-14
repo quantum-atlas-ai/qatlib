@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.StateConversion
-import Qatlib.Concepts.GramQueryCore.FilteredNorm.AdaptiveModels
-import Qatlib.Concepts.GramQueryCore.ModelSemantics.BooleanValueCompatibilityQuan
-import Qatlib.Concepts.GramQueryCore.ModelSemantics.VolterraAndOracleLogSemanticsQuan
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.DensityPurification
-import Qatlib.Concepts.ConversionCore.WitnessCompile.AdaptiveInstrumentPurificationQuan
-import Qatlib.Concepts.QueryComplexity.StateConversion.OptimizedConversionEndpointsQuan
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.StateConversion
+public import Qatlib.Concepts.GramQueryCore.FilteredNorm.AdaptiveModels
+public import Qatlib.Concepts.GramQueryCore.ModelSemantics.BooleanValueCompatibilityQuan
+public import Qatlib.Concepts.GramQueryCore.ModelSemantics.VolterraAndOracleLogSemanticsQuan
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.DensityPurification
+public import Qatlib.Concepts.ConversionCore.WitnessCompile.AdaptiveInstrumentPurificationQuan
+public import Qatlib.Concepts.QueryComplexity.StateConversion.OptimizedConversionEndpointsQuan
+
+@[expose] public section
 
 /-!
 # Analytic instances for continuous state conversion

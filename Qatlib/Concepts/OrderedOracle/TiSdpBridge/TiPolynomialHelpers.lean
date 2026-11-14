@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.OrderedOracle.TiSdpBridge.TiPolynomialCircuit
-import Qatlib.Concepts.HspRecovery.CyclicRecovery.CyclicPeriodSampling
+module
+
+public import Qatlib.Concepts.OrderedOracle.TiSdpBridge.TiPolynomialCircuit
+public import Qatlib.Concepts.HspRecovery.CyclicRecovery.CyclicPeriodSampling
+
+@[expose] public section
 
 /-!
 # Elementary properties of polynomial ordered-search states
@@ -69,7 +73,7 @@ theorem ti_sum_halves {α : Type*} [AddCommMonoid α] (n : ℕ) (f : Fin (2*n) �
 theorem ti_state_first (n t : ℕ) (p : Fin n → ℂ) (i : Fin n) :
     tiPolynomialState n t p ⟨i.val,by have := i.isLt; omega⟩ =
       (Real.sqrt 2 : ℂ)⁻¹*p i := by
-  simp only [tiPolynomialState,dif_pos i.isLt]
+  simp only [tiPolynomialState,dite_eq_left i.isLt]
 
 /-- Evaluates the second-half coordinate of `tiPolynomialState n t p` at `n+i` as `(-1)^t * p
 i`, scaled by `1 / sqrt 2`. -/
@@ -77,7 +81,7 @@ theorem ti_state_second (n t : ℕ) (p : Fin n → ℂ) (i : Fin n) :
     tiPolynomialState n t p ⟨n+i.val,by have := i.isLt; omega⟩ =
       (Real.sqrt 2 : ℂ)⁻¹*((-1:ℂ)^t*p i) := by
   have hi : ¬n+i.val<n := by omega
-  simp only [tiPolynomialState,dif_neg hi,Nat.add_sub_cancel_left]
+  simp only [tiPolynomialState,dite_eq_right hi,Nat.add_sub_cancel_left]
 
 /-- Shows that `tiPolynomialState n t p` is normalized when the sum of the squared complex norms
 of the coefficients of `p` is one. -/
@@ -153,7 +157,7 @@ theorem ti_transition_phase_eval (n t : ℕ) [NeZero n] (a b : Fin n → ℂ)
       tiPolyEval b (tiMomentumRoot n l) := by
   have he := hm (tiMomentumRoot n l) (ti_momentum_root_active n t l hl)
   unfold tiTransitionPhase
-  rw [if_pos hl]
+  rw [ite_eq_left hl]
   split_ifs with ha
   · have hb : tiPolyEval b (tiMomentumRoot n l)=0 := norm_eq_zero.mp (by simpa [ha] using he.symm)
     simp [ha,hb]
@@ -185,7 +189,7 @@ theorem ti_query_zero_state (n t : ℕ) [NeZero n] (ht : 0<t) (a : Fin n → ℂ
   have hp : (-1:ℂ)^(t-1) = -(-1:ℂ)^t := by
     have he : t-1+1=t := by omega
     have hh := congrArg (fun r => (-1:ℂ)^r) he
-    (try dsimp only at hh)
+
     rw [pow_succ] at hh
     linear_combination -hh
   funext i

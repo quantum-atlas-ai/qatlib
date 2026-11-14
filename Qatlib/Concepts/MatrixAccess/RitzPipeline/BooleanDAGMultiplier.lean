@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGMultiplierData
-import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGSplice
-import Mathlib.Algebra.BigOperators.Fin
+module
+
+public import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGMultiplierData
+public import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGSplice
+public import Mathlib.Algebra.BigOperators.Fin
+
+@[expose] public section
 
 /-!
 # Unsigned multiplication by Boolean DAGs
@@ -63,7 +67,7 @@ private theorem mul_input_value {m n : ℕ} (g : BooleanDAG m n)
   | @snoc n g node ih =>
     rw [mul_snoc_value]
     have hj : j.val < m+n := by have := j.isLt; omega
-    simpa only [Fin.val_castLE,dif_pos hj] using! ih
+    simpa only [Fin.val_castLE,dite_eq_left hj] using! ih
 
 /-- Each computed prefix bit is the conjunction of the corresponding word bit and the common
 control bit. -/
@@ -75,7 +79,7 @@ private theorem mul_and_prefix (w n : ℕ) (hn : n ≤ w) (x : Reg (w+1)) (j : F
   | succ n ih =>
     refine Fin.lastCases ?_ (fun k => ?_) j
     · rw [booleanWordAndPrefix,mul_snoc_value]
-      rw [dif_neg (by change ¬w+1+n < w+1+n; omega)]
+      rw [dite_eq_right (by change ¬w+1+n < w+1+n; omega)]
       change (booleanDAGValue (booleanWordAndPrefix w n (by omega)) x
           (⟨n,by omega⟩ : Fin (w+1+n)) &&
         booleanDAGValue (booleanWordAndPrefix w n (by omega)) x
@@ -85,7 +89,7 @@ private theorem mul_and_prefix (w n : ℕ) (hn : n ≤ w) (x : Reg (w+1)) (j : F
         (mul_input_value (booleanWordAndPrefix w n (by omega)) x (Fin.last w))
     · rw [booleanWordAndPrefix,mul_snoc_value]
       have hk : w+1+k.val < w+1+n := by have := k.isLt; omega
-      simp only [Fin.val_castSucc,dif_pos hk]
+      simp only [Fin.val_castSucc,dite_eq_left hk]
       exact ih (by omega) k
 
 /-- Route the first operand and bit `i` of the second operand into the partial-product masking
@@ -130,7 +134,7 @@ private theorem mul_and_bit (w i : ℕ) (hi : i < w)
   have he : booleanSpliceSource (n := w) r v =
       (⟨2*w+p.nodes+j.val,by have := j.isLt; omega⟩ : Fin (2*w+(p.nodes+w))) := by
     have hv : ¬v.val < w+1 := by dsimp [v]; omega
-    rw [booleanSpliceSource,dif_neg hv]
+    rw [booleanSpliceSource,dite_eq_right hv]
     apply Fin.ext
     dsimp only [v]
     omega
@@ -138,11 +142,11 @@ private theorem mul_and_bit (w i : ℕ) (hi : i < w)
   rw [he] at hs
   have ha : booleanDAGValue p.graph x (r (⟨j.val,by have := j.isLt; omega⟩ : Fin (w+1))) =
       booleanWordAdderLeft w x j := by
-    simp only [r,mulRoundInputs,dif_pos j.isLt,booleanWordAdderLeft]
+    simp only [r,mulRoundInputs,dite_eq_left j.isLt,booleanWordAdderLeft]
     exact mul_input_value p.graph x ⟨j.val,by have := j.isLt; omega⟩
   have hb : booleanDAGValue p.graph x (r (Fin.last w)) =
       booleanWordAdderRight w x ⟨i,hi⟩ := by
-    simp only [r,mulRoundInputs,Fin.val_last,dif_neg (Nat.lt_irrefl w),booleanWordAdderRight]
+    simp only [r,mulRoundInputs,Fin.val_last,dite_eq_right (Nat.lt_irrefl w),booleanWordAdderRight]
     exact mul_input_value p.graph x ⟨w+i,by omega⟩
   calc
     _ = booleanDAGValue (booleanWordAndDAG w)
@@ -176,9 +180,9 @@ private theorem mul_right_value (w i : ℕ) (hi : i < w)
         (booleanWordAdderLeft w x ⟨j.val-i,by have := j.isLt; omega⟩ &&
           booleanWordAdderRight w x ⟨i,hi⟩) := by
   by_cases hj : j.val < i
-  · rw [mulRoundRight,dif_pos hj,dif_pos hj]
+  · rw [mulRoundRight,dite_eq_left hj,dite_eq_left hj]
     exact (mul_and_old w i hi p x p.zero).trans hz
-  · rw [mulRoundRight,dif_neg hj,dif_neg hj]
+  · rw [mulRoundRight,dite_eq_right hj,dite_eq_right hj]
     exact mul_and_bit w i hi p x ⟨j.val-i,by have := j.isLt; omega⟩
 
 /-- Form the word obtained by masking `a` with a Boolean control and shifting it left by `i`
@@ -216,7 +220,7 @@ private theorem mul_shift_value (w i : ℕ) (a : Reg w) (bit : Bool) :
     have hnot : ¬i+j.val < i := by omega
     change (if hj : i+j.val < i then 0 else
       (if a ⟨i+j.val-i,by have := j.isLt; omega⟩ then 1 else 0) * (2 : ℕ)^(i+j.val)) = _
-    rw [dif_neg hnot]
+    rw [dite_eq_right hnot]
     have he : (⟨i+j.val-i,by have := j.isLt; omega⟩ : Fin w) = j := by
       apply Fin.ext
       change i+j.val-i = j.val

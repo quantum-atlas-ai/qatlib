@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Analysis.SpecialFunctions.Gaussian.GaussianIntegral
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
-import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
-import Qatlib.Concepts.LchsSimulation.TimeLchs
+module
+
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Analysis.SpecialFunctions.Gaussian.GaussianIntegral
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
+public import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
+public import Qatlib.Concepts.LchsSimulation.TimeLchs
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

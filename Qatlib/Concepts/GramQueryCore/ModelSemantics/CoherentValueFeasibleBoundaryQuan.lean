@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GramQueryCore.ModelSemantics.CoherentValueFeasibleBoundaryStat
+module
+
+public import Qatlib.Concepts.GramQueryCore.ModelSemantics.CoherentValueFeasibleBoundaryStat
+
+@[expose] public section
 
 /-!
 # Feasible-set form of coherent Gram optimization

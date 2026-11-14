@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.NumberTheory.GaussSum
-import Mathlib.Analysis.SpecialFunctions.Complex.Arg
-import Mathlib.Analysis.Complex.Norm
-import Mathlib.Analysis.Complex.Trigonometric
-import Mathlib.Analysis.SpecialFunctions.Complex.Circle
+module
+
+public import Mathlib.NumberTheory.GaussSum
+public import Mathlib.Analysis.SpecialFunctions.Complex.Arg
+public import Mathlib.Analysis.Complex.Norm
+public import Mathlib.Analysis.Complex.Trigonometric
+public import Mathlib.Analysis.SpecialFunctions.Complex.Circle
+
+@[expose] public section
 
 /-!
 # Gauss-sum phases and approximation error

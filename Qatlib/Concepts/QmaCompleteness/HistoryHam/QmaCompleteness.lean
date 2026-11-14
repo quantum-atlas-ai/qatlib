@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QmaCompleteness.HistoryHam.QmaCompletenessDefs
-import Qatlib.Concepts.QmaCompleteness.HistoryHam.SpectralForrelation
+module
+
+public import Qatlib.Concepts.QmaCompleteness.HistoryHam.QmaCompletenessDefs
+public import Qatlib.Concepts.QmaCompleteness.HistoryHam.SpectralForrelation
+
+@[expose] public section
 
 /-!
 # QMA completeness interface

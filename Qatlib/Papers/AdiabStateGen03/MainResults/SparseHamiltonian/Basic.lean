@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AdiabStateGen03.MainResults.Defs
-import Mathlib.Analysis.Normed.Ring.Basic
-import Mathlib.Tactic.NoncommRing
+module
+
+public import Qatlib.Papers.AdiabStateGen03.MainResults.Defs
+public import Mathlib.Analysis.Normed.Ring.Basic
+public import Mathlib.Tactic.NoncommRing
+
+@[expose] public section
 
 /-!
 # Norm estimates for Hamiltonian simulation

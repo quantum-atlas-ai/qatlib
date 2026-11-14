@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SketchSpectral.EvenSvtLaw.EvenSVTFrobeniusActualRecordsSamp
-import Qatlib.Concepts.SketchArith.SketchBuild.SketchFrobeniusConcentration
-import Qatlib.Concepts.SketchSpectral.EvenSvtLaw.OversampledEvenSVTDefs
+module
+
+public import Qatlib.Concepts.SketchSpectral.EvenSvtLaw.EvenSVTFrobeniusActualRecordsSamp
+public import Qatlib.Concepts.SketchArith.SketchBuild.SketchFrobeniusConcentration
+public import Qatlib.Concepts.SketchSpectral.EvenSvtLaw.OversampledEvenSVTDefs
+
+@[expose] public section
 
 /-!
 # Record identities and Gram tails for oversampled SVT

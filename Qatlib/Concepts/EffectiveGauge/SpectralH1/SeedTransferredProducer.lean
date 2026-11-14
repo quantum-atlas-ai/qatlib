@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.OriginalSeedAtlas
-import Qatlib.Concepts.EffectiveGauge.SpectralH1.TransferredGaugeArtifact
-import Qatlib.Concepts.EffectiveGauge.RationalFlow.SeedTransferBudget
-import Qatlib.Concepts.EffectiveGauge.SpectralH1.StoredGaugeArtifactH1
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.OriginalSeedAtlas
+public import Qatlib.Concepts.EffectiveGauge.SpectralH1.TransferredGaugeArtifact
+public import Qatlib.Concepts.EffectiveGauge.RationalFlow.SeedTransferBudget
+public import Qatlib.Concepts.EffectiveGauge.SpectralH1.StoredGaugeArtifactH1
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

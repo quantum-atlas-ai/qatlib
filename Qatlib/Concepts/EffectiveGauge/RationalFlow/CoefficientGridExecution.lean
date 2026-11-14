@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.RationalFlow.SourceConnectionSampling
-import Qatlib.Concepts.EffectiveGauge.RationalFlow.CoefficientSampling
-import Qatlib.Concepts.EffectiveGauge.TorusFourier.FourierModeApproximation
-import Qatlib.Concepts.EffectiveGauge.RationalFlow.SourceMeanSum
+module
+
+public import Qatlib.Concepts.EffectiveGauge.RationalFlow.SourceConnectionSampling
+public import Qatlib.Concepts.EffectiveGauge.RationalFlow.CoefficientSampling
+public import Qatlib.Concepts.EffectiveGauge.TorusFourier.FourierModeApproximation
+public import Qatlib.Concepts.EffectiveGauge.RationalFlow.SourceMeanSum
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

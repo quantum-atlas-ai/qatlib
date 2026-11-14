@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.MeasureTheory.Integral.Bochner.ContinuousLinearMap
-import Mathlib.MeasureTheory.Integral.Bochner.Set
-import Mathlib.MeasureTheory.Integral.Lebesgue.Markov
-import Mathlib.MeasureTheory.Measure.Real
+module
+
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.MeasureTheory.Integral.Bochner.ContinuousLinearMap
+public import Mathlib.MeasureTheory.Integral.Bochner.Set
+public import Mathlib.MeasureTheory.Integral.Lebesgue.Markov
+public import Mathlib.MeasureTheory.Measure.Real
+
+@[expose] public section
 
 /-!
 # Probability estimates for fine scales
@@ -97,7 +101,7 @@ intersection measure. -/
 theorem prob_inter_ge_sub (P : Measure Ω) {A B : Set Ω}
     (hB : MeasurableSet B) (hfin : P A ≠ ∞) {x : ℝ} (h : P.real (A \ B) ≤ x) :
     P.real A - x ≤ P.real (A ∩ B) := by
-  have hsum := measureReal_diff_add_inter (μ := P) (s := A) (t := B) hB hfin
+  have hsum := MeasureTheory.measureReal_sdiff_add_inter (μ := P) (s := A) (t := B) hB hfin
   linarith
 
 /-- Two successive event-loss bounds give a lower bound on the measure of the triple

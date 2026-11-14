@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.SourceProposer
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.NativeSourceAllPackets
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.NativeSourceAllCheckedWord
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Public
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Verifier
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.RationalCircle
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.HouseholderRotationTable
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.NativeHouseholder
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.NativePhasePrecision
+module
+
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.SourceProposer
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.NativeSourceAllPackets
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.NativeSourceAllCheckedWord
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Public
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Verifier
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.RationalCircle
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.HouseholderRotationTable
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.NativeHouseholder
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.NativePhasePrecision
+
+@[expose] public section
 
 open Qatlib.Foundations.QueryWordCore.Circuit
 
@@ -44,20 +48,20 @@ open Qatlib.Concepts.SignalPrimitive.PhaseFrontend
 open Qatlib.Concepts.TrotterFormula.SuzukiFourth
 
 /-- Data and invariants for Packet in the native generated source packets model. -/
-private structure Packet where
+structure Packet where
   standard : PhaseData
   native : PhaseData
   trace : List ℕ
 
 /-- Construction for zero Check in the native generated source packets model. -/
-private def zeroCheck (cs : List ℚ) (N : ℕ) (E : ℚ) : Bool :=
+def zeroCheck (cs : List ℚ) (N : ℕ) (E : ℚ) : Bool :=
   (List.ofFn (sourceCoefficient cs N E)).all (fun q => decide (q=0))
 
 /-- Construction for pack in the native generated source packets model. -/
-private def pack (standard : PhaseData) : Packet := ⟨standard,nativePacketFromStandard standard,[]⟩
+def pack (standard : PhaseData) : Packet := ⟨standard,nativePacketFromStandard standard,[]⟩
 
 /-- Construction for produce in the native generated source packets model. -/
-private def produce (cs : List ℚ) (N : ℕ) (E : ℚ)
+noncomputable def produce (cs : List ℚ) (N : ℕ) (E : ℚ)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0) : Option Packet :=
   if N=0 then some (pack (sourceZeroDegreeBoundaryPacket cs E))
   else if zeroCheck cs N E=true then some (pack (sourceZeroBoundaryPacket N))
@@ -225,7 +229,7 @@ open Qatlib.Concepts.TrotterFormula.SuzukiFourth
 /-- Source-order N=0, finite rounded-coefficient all-zero, constant and
 nonconstant dispatch. Numerical isolation and accepted factors are internal;
 there is no caller root certificate, phase packet or fuel plan. -/
-def rootProjectionGeneratedPacket (cs : List ℚ) (N : ℕ) (E : ℚ)
+noncomputable def rootProjectionGeneratedPacket (cs : List ℚ) (N : ℕ) (E : ℚ)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0) :
     Option (PhaseData×PhaseData×List ℕ) :=
   (GeneratedSourceInternal.ActualProjectionAllGeneratedPackets.produce cs N E hparity).map

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ClassShadows20.HigherMoments.CubicPauliShadows
+module
+
+public import Qatlib.Papers.ClassShadows20.HigherMoments.CubicPauliShadows
+
+@[expose] public section
 
 /-!
 # Exact cubic shadow evaluation
@@ -81,7 +85,7 @@ private theorem cubic_local_count_fold (vs : List (ℚ × ℚ)) (a : (ℚ × ℚ
       (vs.foldl gaussianRatMul a.1,a.2+vs.length) := by
   induction vs generalizing a with
   | nil => rfl
-  | cons v vs ih => simp [ih,Nat.add_assoc,Nat.add_comm,Nat.add_left_comm]
+  | cons v vs ih => simp [ih,Nat.add_comm,Nat.add_left_comm]
 
 /-- The counted rational kernel returns `cubicKernelRat` and exactly `n` local products. -/
 theorem cubicKernelRatCounted_spec {n : ℕ} (a b c : Fin n → Fin 3 × Bool) :
@@ -112,7 +116,7 @@ private theorem cubic_triple_count_fold {T : Type} (f : T → ℚ × ℕ)
        a.2.1+ts.length,a.2.2+(ts.map (fun t => (f t).2)).sum) := by
   induction ts generalizing a with
   | nil => simp
-  | cons t ts ih => simp [ih,add_assoc,Nat.add_assoc,Nat.add_comm,Nat.add_left_comm]
+  | cons t ts ih => simp [ih,add_assoc,Nat.add_comm]
 
 /-- The counted rational estimator equals the real cubic U-statistic and evaluates `m.choose 3`
 triples and `n * (m.choose 3)` local products. The fresh-record resource tuple is

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Normed.Module.PiTensorProduct.ProjectiveSeminorm
-import Mathlib.Algebra.Order.BigOperators.GroupWithZero.Finset
-import Mathlib.Tactic
-import Qatlib.Papers.SpinBosonQAOA26.MainResults.Definitions.SourceDefinitions
+module
+
+public import Mathlib.Analysis.Normed.Module.PiTensorProduct.ProjectiveSeminorm
+public import Mathlib.Algebra.Order.BigOperators.GroupWithZero.Finset
+public import Mathlib.Tactic
+public import Qatlib.Papers.SpinBosonQAOA26.MainResults.Definitions.SourceDefinitions
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -127,8 +131,8 @@ theorem lemma3_tensor_power_bound
       · have hne : i.val ≠ k := fun h => hi (Fin.ext h)
         simp [Function.update, hi]
         by_cases hlt : i.val < k
-        · rw [if_pos hlt, if_pos (by omega)]
-        · rw [if_neg hlt, if_neg (by omega)]
+        · rw [ite_eq_left hlt, ite_eq_left (by omega)]
+        · rw [ite_eq_right hlt, ite_eq_right (by omega)]
     have hm0 : Function.update (fun i : Fin D => if i.val < k then u + v else u) ⟨k, hkD⟩ u
         = (fun i : Fin D => if i.val < k then u + v else u) := by
       funext i
@@ -178,11 +182,11 @@ theorem lemma3_tensor_power_bound
         have hne : i ≠ ⟨k, hkD⟩ := Finset.ne_of_mem_erase hi
         have hnek : i.val ≠ k := fun h => hne (Fin.ext h)
         rw [hm]
-        simp only [hnek, if_false]
+        simp only [hnek, ite_false]
         by_cases hlt : i.val < k
-        · rw [if_pos hlt]
+        · rw [ite_eq_left hlt]
           exact norm_add_le u v
-        · rw [if_neg hlt]
+        · rw [ite_eq_right hlt]
           exact le_add_of_nonneg_right (norm_nonneg v)
       calc ∏ i ∈ Finset.univ.erase ⟨k, hkD⟩, ‖m i‖
           ≤ ∏ _i ∈ Finset.univ.erase (⟨k, hkD⟩ : Fin D), (‖u‖ + ‖v‖) :=

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Probability.Moments.SubGaussian
-import Mathlib.Probability.Independence.Basic
-import Mathlib.MeasureTheory.Measure.Real
-import Qatlib.Papers.PartitionFunc08.MainResults.Model.SchemeDefs
+module
+
+public import Mathlib.Probability.Moments.SubGaussian
+public import Mathlib.Probability.Independence.Basic
+public import Mathlib.MeasureTheory.Measure.Real
+public import Qatlib.Papers.PartitionFunc08.MainResults.Model.SchemeDefs
+
+@[expose] public section
 
 /-!
 # Median amplification of ratio estimators
@@ -133,7 +137,7 @@ theorem powering_failure_bound
             rw [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul,
               Nat.cast_add, Nat.cast_mul]
             norm_num
-    simp only [Set.mem_setOf_eq] at hω ⊢
+    simp only [Set.mem_ofPred_eq] at hω ⊢
     rw [Finset.sum_sub_distrib, hεdef]
     linarith
   refine (measureReal_mono hsubset).trans ?_
@@ -146,7 +150,7 @@ theorem powering_failure_bound
     rw [hsum_c, show ((((2 * k + 1 : ℕ) : ℝ≥0) * c₀ : ℝ≥0) : ℝ) =
       ((((2 * k + 1 : ℕ) : ℝ≥0) : ℝ) * (c₀ : ℝ)) from NNReal.coe_mul _ _,
       hcR]
-    push_cast <;> ring
+    push_cast; ring
   have htail : Real.exp (-ε ^ 2 / (2 * ((∑ i ∈ (Finset.univ : Finset (Fin (2 * k + 1))),
         c₀) : ℝ≥0) : ℝ))
       ≤ Real.exp (-(2 * ε ^ 2) / (2 * (k : ℝ) + 1)) := by
@@ -159,7 +163,7 @@ theorem powering_failure_bound
 
 /-- The exponential majority-failure bound is at most positive `δ` when its squared deviation
 satisfies the stated logarithmic budget. -/
-theorem powering_delta_bound {k : ℕ} {p δ : ℝ} (hp : 1 / 2 < p) (hδ0 : 0 < δ)
+theorem powering_delta_bound {k : ℕ} {p δ : ℝ} (_hp : 1 / 2 < p) (hδ0 : 0 < δ)
     (h : ((2 * (k : ℝ) + 1) / 2) * Real.log (1 / δ) ≤
       (((k : ℝ) + 1) - (2 * (k : ℝ) + 1) * (1 - p)) ^ 2) :
     Real.exp (-(2 * (((k : ℝ) + 1) - (2 * (k : ℝ) + 1) * (1 - p)) ^ 2) /
@@ -191,7 +195,7 @@ theorem lemma2_powering
     (hX01 : ∀ i ω, X i ω = 0 ∨ X i ω = 1)
     (hindep : iIndepFun X μ)
     (hmean : ∀ i, (∫ ω, X i ω ∂μ) ≤ 1 - p)
-    {q εR : ℝ} (hq0 : 0 < q)
+    {q εR : ℝ} (_hq0 : 0 < q)
     (Z : Fin (2 * k + 1) → Ω → ℝ)
     (hacc : ∀ i ω, X i ω = 0 → (1 - εR) * q ≤ Z i ω ∧ Z i ω ≤ (1 + εR) * q)
     (W : Ω → ℝ) (hWmeas : Measurable W)
@@ -212,7 +216,7 @@ theorem lemma2_powering
   have hcompl_sub : Bᶜ ⊆ {ω | (k : ℝ) + 1 ≤ ∑ i, X i ω} := by
     intro ω hω
     by_contra hF
-    simp only [Set.mem_setOf_eq, not_le] at hF
+    simp only [Set.mem_ofPred_eq, not_le] at hF
 
     have hsum_eq : ∑ i : Fin (2 * k + 1), X i ω =
         ((Finset.univ.filter (fun i => X i ω = 1)).card : ℝ) := by

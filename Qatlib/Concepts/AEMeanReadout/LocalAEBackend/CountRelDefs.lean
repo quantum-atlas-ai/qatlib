@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeCountingConsumers
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem15ApproxCountStat
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem15ApproxCountQuan
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem15ExpectedCostStat
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem15ExpectedCostQuan
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem13K2WindowQuan
-import Mathlib.Analysis.Complex.ExponentialBounds
+module
+
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeCountingConsumers
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem15ApproxCountStat
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem15ApproxCountQuan
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem15ExpectedCostStat
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem15ExpectedCostQuan
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem13K2WindowQuan
+public import Mathlib.Analysis.Complex.ExponentialBounds
+
+@[expose] public section
 
 /-!
 # Adaptive relative quantum counting

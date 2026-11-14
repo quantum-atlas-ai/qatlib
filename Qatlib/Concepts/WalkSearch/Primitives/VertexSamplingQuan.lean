@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.Primitives.VertexSamplingStat
-import Qatlib.Concepts.WalkSearch.Primitives.SamplingTapeBounds
+module
+
+public import Qatlib.Concepts.WalkSearch.Primitives.VertexSamplingStat
+public import Qatlib.Concepts.WalkSearch.Primitives.SamplingTapeBounds
+
+@[expose] public section
 
 /-!
 # Vertex sampling with replacement

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HighOrderODE10.MainResults.SourceModel
+module
+
+public import Qatlib.Papers.HighOrderODE10.MainResults.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -37,7 +41,7 @@ open scoped BigOperators
 /-- Each block bound of Eq. (34) is bounded by `2 + |α| + |β|` whenever
 `0 ≤ h`, `0 ≤ M = ‖A‖` and `hM ≤ 1` (`h = O(1/‖A‖)`). -/
 theorem sourceBlockBound_le_cap (m : SourceMultistepMethod) (h M : ℝ)
-    (hh : 0 ≤ h) (hM : 0 ≤ M) (hprod : h * M ≤ 1) (ℓ : ℕ) :
+    (_hh : 0 ≤ h) (_hM : 0 ≤ M) (hprod : h * M ≤ 1) (ℓ : ℕ) :
     sourceBlockBound m h M ℓ ≤ sourceBlockCap m ℓ := by
   unfold sourceBlockBound sourceBlockCap
   have hbeta : 0 ≤ |betaAt m (sourceCoefIndex m ℓ)| := abs_nonneg _

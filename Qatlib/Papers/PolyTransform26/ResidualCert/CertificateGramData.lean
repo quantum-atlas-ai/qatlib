@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.PolyTransform26.ResidualCert.TransferExtractionData
-import Mathlib.LinearAlgebra.Matrix.Kronecker
+module
+
+public import Qatlib.Papers.PolyTransform26.ResidualCert.TransferExtractionData
+public import Mathlib.LinearAlgebra.Matrix.Kronecker
+
+@[expose] public section
 
 /-!
 # Arrays for residual-certificate Gram calculations

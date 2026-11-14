@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QWalkLine00.MainResults.WalkModel.StationaryAndFamily
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
+module
+
+public import Qatlib.Papers.QWalkLine00.MainResults.WalkModel.StationaryAndFamily
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
+
+@[expose] public section
 
 /-!
 # Positivity and normalization identities for the line walk

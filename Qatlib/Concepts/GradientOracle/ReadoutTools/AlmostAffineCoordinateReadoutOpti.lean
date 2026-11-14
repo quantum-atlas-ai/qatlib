@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GradientOracle.ReadoutTools.AlmostAffineCoordinateReadoutStat
-import Qatlib.Concepts.GradientOracle.ReadoutTools.ExceptionalPhaseGradientTransportOpti
+module
+
+public import Qatlib.Concepts.GradientOracle.ReadoutTools.AlmostAffineCoordinateReadoutStat
+public import Qatlib.Concepts.GradientOracle.ReadoutTools.ExceptionalPhaseGradientTransportOpti
+
+@[expose] public section
 
 /-!
 # Coordinate readout for almost-affine phases
@@ -135,17 +139,17 @@ theorem gridProductState_marginal {d M : ℕ} (v : Fin d → QState (Fin M))
     · refine ⟨fun _ k => ?_, fun _ => hzj⟩
       by_cases h : k = j
       · subst h
-        simpa only [ht, if_pos rfl, Finset.mem_filter, Finset.mem_univ, true_and] using!
+        simpa only [ht, ite_eq_left rfl, Finset.mem_filter, Finset.mem_univ, true_and] using!
           Finset.mem_filter.mpr ⟨Finset.mem_univ _, hzj⟩
-      · simpa only [ht, if_neg h] using! Finset.mem_univ (z k)
+      · simpa only [ht, ite_eq_right h] using! Finset.mem_univ (z k)
     · refine ⟨fun h k => ?_, fun h => ?_⟩
       · by_cases hkj : k = j
         · subst hkj
-          simpa only [ht, if_pos rfl, Finset.mem_filter, Finset.mem_univ, true_and] using!
+          simpa only [ht, ite_eq_left rfl, Finset.mem_filter, Finset.mem_univ, true_and] using!
             Finset.mem_filter.mpr ⟨Finset.mem_univ _, h⟩
-        · simpa only [ht, if_neg hkj] using! Finset.mem_univ (z k)
+        · simpa only [ht, ite_eq_right hkj] using! Finset.mem_univ (z k)
       · have hj : z j ∈ t j := h j
-        simp only [ht, if_pos rfl, Finset.mem_filter, Finset.mem_univ, true_and] at hj
+        simp only [ht, ite_eq_left rfl, Finset.mem_filter, Finset.mem_univ, true_and] at hj
         exact hj
   rw [he]
   simp only [MeasureProb, BornProb, gridProductState, norm_prod, ← Finset.prod_pow]
@@ -155,8 +159,8 @@ theorem gridProductState_marginal {d M : ℕ} (v : Fin d → QState (Fin M))
     intro k
     by_cases hkj : k = j
     · subst hkj; simp [ht]
-    · rw [if_neg hkj]
-      simp only [ht, if_neg hkj]
+    · rw [ite_eq_right hkj]
+      simp only [ht, ite_eq_right hkj]
       exact hvn k
   rw [Finset.prod_congr rfl fun k _ => hsum k]
   simp

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
+module
+
+public import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
+
+@[expose] public section
 
 /-!
 # Two-dimensional discrete-logarithm sampling definitions

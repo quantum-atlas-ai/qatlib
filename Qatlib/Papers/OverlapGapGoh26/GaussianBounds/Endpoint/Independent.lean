@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.Endpoint.Variance
+module
+
+public import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.Endpoint.Variance
+
+@[expose] public section
 
 /-!
 # Independent Gaussian endpoint overlaps

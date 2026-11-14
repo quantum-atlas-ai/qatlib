@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.BornBridge.RelabelOperatorNorm
-import Qatlib.Foundations.OperatorErrors.OperatorError
+module
+
+public import Qatlib.Foundations.PureStateMath.BornBridge.RelabelOperatorNorm
+public import Qatlib.Foundations.OperatorErrors.OperatorError
+
+@[expose] public section
 
 /-!
 # Operator norms of tensor products
@@ -78,6 +82,7 @@ section ProductState
 variable {I J : Type*} [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J]
 
 omit [DecidableEq I] [DecidableEq J] in
+
 /-- The Euclidean norm of a tensor state is the product of the Euclidean norms of its factors. -/
 theorem tensorState_l2_norm (ψ : QState I) (φ : QState J) :
     ‖toEuclidean_fromVec (TensorState ψ φ)‖ = ‖toEuclidean_fromVec ψ‖ * ‖toEuclidean_fromVec φ‖ := by
@@ -122,6 +127,7 @@ theorem kronecker_mulVec_tensorState (A : Matrix O I ℂ) (B : Matrix P J ℂ)
   exact Finset.sum_congr rfl fun i _ => Finset.sum_congr rfl fun j _ => by ring
 
 omit [DecidableEq O] [DecidableEq P] in
+
 /-- The squared Euclidean norm after a Kronecker-product action is bounded by the product of the
 squared operator norms and the squared input norm. -/
 theorem kronecker_mulVec_norm_sq_le (A : Matrix O I ℂ) (B : Matrix P J ℂ) (z : QState (I × J)) :
@@ -177,6 +183,8 @@ theorem kronecker_mulVec_norm_sq_le (A : Matrix O I ℂ) (B : Matrix P J ℂ) (z
     _ ≤ ‖A‖ ^ 2 * (‖B‖ ^ 2 * ‖toEuclidean_fromVec z‖ ^ 2) :=
         mul_le_mul_of_nonneg_left h3 (sq_nonneg _)
 
+omit [DecidableEq O] [DecidableEq P] in
+
 /-- The Euclidean operator norm of a Kronecker product is at most the product of the factor
 norms. -/
 theorem l2_norm_kronecker_le (A : Matrix O I ℂ) (B : Matrix P J ℂ) : ‖A ⊗ₖ B‖ ≤ ‖A‖ * ‖B‖ := by
@@ -193,6 +201,8 @@ theorem l2_norm_kronecker_le (A : Matrix O I ℂ) (B : Matrix P J ℂ) : ‖A �
     _ ≤ ‖A‖ * ‖B‖ * ‖toEuclidean_fromVec z‖ := le_of_eq (by ring)
 
 set_option maxHeartbeats 1000000 in
+
+omit [DecidableEq O] [DecidableEq P] in
 
 /-- The product of the Euclidean operator norms of two matrices is at most the norm of their
 Kronecker product. -/
@@ -313,6 +323,8 @@ theorem l2_norm_kronecker_ge (A : Matrix O I ℂ) (B : Matrix P J ℂ) :
   rw [hnAB, toEuclideanCLMRect_apply] at hle
   exact absurd hle (not_le.mpr hgoal)
 
+omit [DecidableEq O] [DecidableEq P] in
+
 /-- The Euclidean operator norm of a Kronecker product equals the product of the factor norms. -/
 theorem l2_norm_kronecker (A : Matrix O I ℂ) (B : Matrix P J ℂ) : ‖A ⊗ₖ B‖ = ‖A‖ * ‖B‖ :=
   le_antisymm (l2_norm_kronecker_le A B) (l2_norm_kronecker_ge A B)
@@ -357,53 +369,35 @@ theorem l2_norm_unitary_eq_one [Nonempty I] {U : Matrix I I ℂ}
   rw [h2] at h1
   nlinarith [h1, hU', norm_nonneg U, l2_norm_unitary_le_one hU]
 
+omit [Fintype O] [DecidableEq O] [Fintype I] [DecidableEq I] [Fintype P] [DecidableEq P] [Fintype J] [DecidableEq J] in
+
 /-- A difference of Kronecker products with the same right factor is the Kronecker product of
 the left-factor difference. -/
 theorem kronecker_sub_left (A B : Matrix O I ℂ) (C : Matrix P J ℂ) :
     A ⊗ₖ C - B ⊗ₖ C = (A - B) ⊗ₖ C := by
-  let _ := (inferInstance : Fintype O)
-  let _ := (inferInstance : DecidableEq O)
-  let _ := (inferInstance : Fintype I)
-  let _ := (inferInstance : DecidableEq I)
-  let _ := (inferInstance : Fintype P)
-  let _ := (inferInstance : DecidableEq P)
-  let _ := (inferInstance : Fintype J)
-  let _ := (inferInstance : DecidableEq J)
   ext x y
   obtain ⟨a, b⟩ := x
   obtain ⟨c, d⟩ := y
   simp only [Matrix.kronecker_apply, Matrix.sub_apply]
   ring
+
+omit [Fintype O] [DecidableEq O] [Fintype I] [DecidableEq I] [Fintype P] [DecidableEq P] [Fintype J] [DecidableEq J] in
 
 /-- A difference of Kronecker products with the same left factor is the Kronecker product of the
 right-factor difference. -/
 theorem kronecker_sub_right (C : Matrix O I ℂ) (B D : Matrix P J ℂ) :
     C ⊗ₖ B - C ⊗ₖ D = C ⊗ₖ (B - D) := by
-  let _ := (inferInstance : Fintype O)
-  let _ := (inferInstance : DecidableEq O)
-  let _ := (inferInstance : Fintype I)
-  let _ := (inferInstance : DecidableEq I)
-  let _ := (inferInstance : Fintype P)
-  let _ := (inferInstance : DecidableEq P)
-  let _ := (inferInstance : Fintype J)
-  let _ := (inferInstance : DecidableEq J)
   ext x y
   obtain ⟨a, b⟩ := x
   obtain ⟨c, d⟩ := y
   simp only [Matrix.kronecker_apply, Matrix.sub_apply]
   ring
 
+omit [Fintype O] [DecidableEq O] [Fintype I] [DecidableEq I] [Fintype P] [DecidableEq P] [Fintype J] [DecidableEq J] in
+
 /-- Decomposes a difference of two Kronecker products into a sum changing one factor at a time. -/
 theorem kronecker_sub_add_decomp (A C : Matrix O I ℂ) (B D : Matrix P J ℂ) :
     A ⊗ₖ B - C ⊗ₖ D = (A - C) ⊗ₖ B + C ⊗ₖ (B - D) := by
-  let _ := (inferInstance : Fintype O)
-  let _ := (inferInstance : DecidableEq O)
-  let _ := (inferInstance : Fintype I)
-  let _ := (inferInstance : DecidableEq I)
-  let _ := (inferInstance : Fintype P)
-  let _ := (inferInstance : DecidableEq P)
-  let _ := (inferInstance : Fintype J)
-  let _ := (inferInstance : DecidableEq J)
   ext x y
   obtain ⟨a, b⟩ := x
   obtain ⟨c, d⟩ := y
@@ -416,11 +410,15 @@ theorem l2_norm_tensorGate (A : Matrix I I ℂ) (B : Matrix J J ℂ) :
     ‖TensorGate A B‖ = ‖A‖ * ‖B‖ :=
   l2_norm_kronecker A B
 
+omit [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J] in
+
 /-- Subtracting tensor gates with a common right factor tensors the difference of the left
 factors. -/
 theorem tensorGate_sub_left (A B : Matrix I I ℂ) (V : Matrix J J ℂ) :
     TensorGate A V - TensorGate B V = TensorGate (A - B) V :=
   kronecker_sub_left A B V
+
+omit [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J] in
 
 /-- Subtracting tensor gates with a common left factor tensors the difference of the right
 factors. -/
@@ -436,6 +434,8 @@ theorem l2_tensor_ancilla_error [Nonempty J] (A B : Matrix I I ℂ) :
   constructor
   · rw [tensorGate_sub_left, l2_norm_tensorGate, l2_norm_one_eq, mul_one]
   · rw [tensorGate_sub_right, l2_norm_tensorGate, l2_norm_one_eq, one_mul]
+
+omit [DecidableEq O] [DecidableEq P] in
 
 /-- Bounds the norm of a difference of Kronecker products by `‖A - C‖ * ‖B‖ + ‖C‖ * ‖B - D‖`. -/
 theorem l2_kronecker_two_factor_error (A C : Matrix O I ℂ) (B D : Matrix P J ℂ) :

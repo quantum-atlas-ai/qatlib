@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.TorusFourier.FourierEnergyTail
-import Qatlib.Concepts.EffectiveGauge.TorusFourier.FourierResidualParseval
+module
+
+public import Qatlib.Concepts.EffectiveGauge.TorusFourier.FourierEnergyTail
+public import Qatlib.Concepts.EffectiveGauge.TorusFourier.FourierResidualParseval
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -66,13 +70,13 @@ theorem unitFourierResidual_H1_split (f : SpatialPoint → ℂ) (hf : ContDiff �
       (1+frequencyEnergy k)*‖unitFourierCoefficient f hf.continuous hp k-a k‖^2) := by
     have hs : HasSum inside (∑ k∈Finset.Icc (-N : SpatialFrequency) N, inside k) :=
       hasSum_sum_of_ne_finset_zero (s := Finset.Icc (-N : SpatialFrequency) N)
-        (f := inside) (fun k hk => by simp only [inside,if_neg hk])
+        (f := inside) (fun k hk => by simp only [inside,ite_eq_right hk])
     have hsum : (∑ k∈Finset.Icc (-N : SpatialFrequency) N, inside k)=
         ∑ k∈Finset.Icc (-N : SpatialFrequency) N,
           (1+frequencyEnergy k)*‖unitFourierCoefficient f hf.continuous hp k-a k‖^2 := by
       apply Finset.sum_congr rfl
       intro k hk
-      simp only [inside,if_pos hk]
+      simp only [inside,ite_eq_left hk]
     rw [hsum] at hs
     exact hs
   have hres := unitFourierResidual_H1_hasSum f hf hp a N
@@ -88,17 +92,17 @@ theorem unitFourierResidual_H1_split (f : SpatialPoint → ℂ) (hf : ContDiff �
     · exact mul_nonneg (by linarith [frequencyEnergy_nonneg k]) (sq_nonneg _)
   have hle (k : SpatialFrequency) : outside k ≤ total k := by
     by_cases hk : k∈Finset.Icc (-N : SpatialFrequency) N
-    · simp only [outside,total,if_pos hk]
+    · simp only [outside,total,ite_eq_left hk]
       exact mul_nonneg (by linarith [frequencyEnergy_nonneg k]) (sq_nonneg _)
-    · simp only [outside,total,if_neg hk,sub_zero,le_refl]
+    · simp only [outside,total,ite_eq_right hk,sub_zero,le_refl]
   have ht : Summable total := hres.summable
   have ho : Summable outside := Summable.of_nonneg_of_le hnonneg hle ht
   apply hres.unique
   apply HasSum.congr_fun (hi.add ho.hasSum)
   intro k
   by_cases hk : k∈Finset.Icc (-N : SpatialFrequency) N
-  · simp only [inside,outside,if_pos hk,add_zero]
-  · simp only [inside,outside,if_neg hk,zero_add,sub_zero]
+  · simp only [inside,outside,ite_eq_left hk,add_zero]
+  · simp only [inside,outside,ite_eq_right hk,zero_add,sub_zero]
 
 /-- Original `unitFourierResidual_H1_le` guarantee for the `FourierResidualEnergy` construction; the complete source hypotheses are retained. -/
 theorem unitFourierResidual_H1_le (f : SpatialPoint → ℂ) (hf : ContDiff ℝ ∞ f)

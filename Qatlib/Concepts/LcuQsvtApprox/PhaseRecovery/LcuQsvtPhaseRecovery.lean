@@ -4,24 +4,28 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.LcuQsvtDefs
-import Qatlib.Concepts.QsvtCore.PhaseExistence.SignalWordTransportGily
-import Qatlib.Concepts.QsvtCore.PhaseExistence.SingleQubitWordTransportGily
-import Qatlib.Concepts.QsvtCore.PhaseExistence.Theorem5RealCharacterizationGily
-import Qatlib.Concepts.QsvtCore.PhaseExistence.Corollary10RealQSPGily
-import Qatlib.Concepts.QspSimulation.JacobiAnger.JacobiAngerCorrectedDegreeLowc
-import Qatlib.Concepts.QsvtCore.PhaseExistence.Lc17AuxBessel
-import Qatlib.Concepts.QspSimulation.Achievability.Lc17AuxSourceCompilation
-import Qatlib.Concepts.QspSimulation.Achievability.AchievableSufficiencyRestrictedLowc
-import Qatlib.Concepts.QspSimulation.Achievability.QspCompilationRestrictedLowc
-import Qatlib.Concepts.QspSimulation.SparseWalk.SparseWalkEigenphasesRestrictedLowc
-import Qatlib.Concepts.SignalPrimitive.SparseSim.SparseSimCorrectedRestrictedLowc
-import Mathlib.Analysis.Matrix.Spectrum
-import Mathlib.Analysis.Matrix.Order
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.LinearAlgebra.Matrix.PosDef
-import Mathlib.Analysis.SpecialFunctions.ContinuousFunctionalCalculus.Rpow.Basic
-import Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.LcuQsvtShared
+module
+
+public import Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.LcuQsvtDefs
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.SignalWordTransportGily
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.SingleQubitWordTransportGily
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.Theorem5RealCharacterizationGily
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.Corollary10RealQSPGily
+public import Qatlib.Concepts.QspSimulation.JacobiAnger.JacobiAngerCorrectedDegreeLowc
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.Lc17AuxBessel
+public import Qatlib.Concepts.QspSimulation.Achievability.Lc17AuxSourceCompilation
+public import Qatlib.Concepts.QspSimulation.Achievability.AchievableSufficiencyRestrictedLowc
+public import Qatlib.Concepts.QspSimulation.Achievability.QspCompilationRestrictedLowc
+public import Qatlib.Concepts.QspSimulation.SparseWalk.SparseWalkEigenphasesRestrictedLowc
+public import Qatlib.Concepts.SignalPrimitive.SparseSim.SparseSimCorrectedRestrictedLowc
+public import Mathlib.Analysis.Matrix.Spectrum
+public import Mathlib.Analysis.Matrix.Order
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.LinearAlgebra.Matrix.PosDef
+public import Mathlib.Analysis.SpecialFunctions.ContinuousFunctionalCalculus.Rpow.Basic
+public import Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.LcuQsvtShared
+
+@[expose] public section
 
 /-!
 # Jacobi-Anger truncation and finite phase recovery

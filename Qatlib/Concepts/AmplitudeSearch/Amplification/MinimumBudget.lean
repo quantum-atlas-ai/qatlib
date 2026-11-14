@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.Amplification.MinimumBudgetCore
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.MinimumBudgetCore
+
+@[expose] public section
 
 /-!
 # Minimum search with a finite budget
@@ -58,7 +62,7 @@ theorem minimumBudgetEval_eq (T : Fin N → α) (budget : ℕ) (current : Fin N)
           (fun remaining => payoff current remaining) := by
   unfold minimumBudgetEval
   rw [minimumBudgetEvalWithInit]
-  simp only [Nat.zero_le, if_true, Nat.sub_zero, dite_eq_ite]
+  simp only [Nat.zero_le, ite_true, Nat.sub_zero, dite_eq_ite]
 
 /-- A remaining budget strictly below `budget` satisfies `remaining + 1 ≤ budget`. -/
 theorem minimum_success_budget_progress (budget remaining : ℕ) (h : remaining < budget) :

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QWalkGraphs00.MainResults.Amplify.Amplification
-import Qatlib.Papers.QWalkGraphs00.MainResults.Times
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
+module
+
+public import Qatlib.Papers.QWalkGraphs00.MainResults.Amplify.Amplification
+public import Qatlib.Papers.QWalkGraphs00.MainResults.Times
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+
+@[expose] public section
 
 /-!
 # Amplification and relative sampling error

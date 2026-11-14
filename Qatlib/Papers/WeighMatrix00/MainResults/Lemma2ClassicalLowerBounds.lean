@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Finset.Card
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Tactic
-import Qatlib.Papers.WeighMatrix00.MainResults.WeighingMatrix
+module
+
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Tactic
+public import Qatlib.Papers.WeighMatrix00.MainResults.WeighingMatrix
+
+@[expose] public section
 
 /-!
 # Classical query lower bounds for weighing matrices
@@ -71,12 +75,12 @@ theorem branch_eq_one_iff (f : Fin n → ℤ) (i : Fin n) :
     branch f i = 1 ↔ f i = 0 := by
   unfold branch
   by_cases h1 : f i = -1
-  · rw [if_pos h1]
+  · rw [ite_eq_left h1]
     exact ⟨fun h => absurd h (by decide), fun h => absurd h (by omega)⟩
   · by_cases h2 : f i = 0
-    · rw [if_neg h1, if_pos h2]
+    · rw [ite_eq_right h1, ite_eq_left h2]
       exact ⟨fun _ => h2, fun _ => rfl⟩
-    · rw [if_neg h1, if_neg h2]
+    · rw [ite_eq_right h1, ite_eq_right h2]
       exact ⟨fun h => absurd h (by decide), fun h => absurd h h2⟩
 
 /-- Evaluate a query tree by following the branches selected by the oracle function. -/
@@ -236,7 +240,7 @@ def correctSet (t : QueryTree n) : Finset (Fin n) :=
 
 /-- If `k ≤ n`, the number of correctly recovered rows is at most the binary leaf count plus `n
 - k` times the binary node count. -/
-theorem correct_card_le_bin_nat (t : QueryTree n) (hk : k ≤ n) :
+theorem correct_card_le_bin_nat (t : QueryTree n) (_hk : k ≤ n) :
     (M.correctSet t).card ≤ t.binLeaves + t.binNodes * (n - k) := by
   have haux : ∀ (t : QueryTree n) (S : Finset (Fin n)),
       (S.filter (fun s => t.eval (problemFunction M s) = s)).card ≤
@@ -335,7 +339,7 @@ theorem correct_card_le_bin (t : QueryTree n) (hk : k ≤ n) :
   exact hcast
 
 /-- For positive weight `k`, at most `t.depth * k + 1` rows are correctly recovered. -/
-theorem correct_card_le_depth_mul_k_nat (t : QueryTree n) (hk : 0 < k) :
+theorem correct_card_le_depth_mul_k_nat (t : QueryTree n) (_hk : 0 < k) :
     (M.correctSet t).card ≤ t.depth * k + 1 := by
   have haux : ∀ (t : QueryTree n) (S : Finset (Fin n)),
       (S.filter (fun s => t.eval (problemFunction M s) = s)).card ≤ t.depth * k + 1 := by

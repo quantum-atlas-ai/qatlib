@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Module.LinearMap.End
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Algebra.Polynomial.Basic
-import Mathlib.Algebra.Polynomial.AlgebraMap
-import Mathlib.Algebra.Module.Submodule.Bilinear
+module
+
+public import Mathlib.Algebra.Module.LinearMap.End
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Algebra.Polynomial.Basic
+public import Mathlib.Algebra.Polynomial.AlgebraMap
+public import Mathlib.Algebra.Module.Submodule.Bilinear
+
+@[expose] public section
 
 /-!
 # Cyclic shifts and polynomial stability

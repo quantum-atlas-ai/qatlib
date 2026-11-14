@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Cbmd26.Algorithms.DynamicOriginalGridConsumer
-import Qatlib.Papers.Cbmd26.Algorithms.DynamicKernelGridTarget
-import Qatlib.Papers.Cbmd26.Algorithms.ComputationalAmplificationBridge
-import Qatlib.Papers.Cbmd26.Algorithms.DynamicHalfAccuracyBudget
+module
+
+public import Qatlib.Papers.Cbmd26.Algorithms.DynamicOriginalGridConsumer
+public import Qatlib.Papers.Cbmd26.Algorithms.DynamicKernelGridTarget
+public import Qatlib.Papers.Cbmd26.Algorithms.ComputationalAmplificationBridge
+public import Qatlib.Papers.Cbmd26.Algorithms.DynamicHalfAccuracyBudget
+
+@[expose] public section
 
 /-!
 # Dynamic CBMD from the original matrix oracle

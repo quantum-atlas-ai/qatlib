@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Papers.QQueryIntro25.MainResults.SourceModel
+module
+
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Papers.QQueryIntro25.MainResults.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -51,7 +55,7 @@ theorem lemma21_oracle_action_xor (x : I → Bool) (i : I) (b : Bool) (w : W) :
   · subst hu
     by_cases hj : j = i
     · subst hj
-      cases h : x j <;> simp [h]
+      cases h : x j <;> simp
     · simp [hj]
   · simp [hu]
 
@@ -66,6 +70,6 @@ theorem lemma21_oracle_action (x : I → Bool) (i : I) (b : Bool) (w : W) :
       (if x i then Ket (((i, !b), w) : (I × Bool) × W)
        else Ket (((i, b), w) : (I × Bool) × W)) := by
   rw [lemma21_oracle_action_xor]
-  cases h : x i <;> cases b <;> simp [h]
+  cases h : x i <;> cases b <;> simp
 
 end Qatlib.Papers.QQueryIntro25.MainResults

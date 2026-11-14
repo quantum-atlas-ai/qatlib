@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmpTransform.HaarPairTest.HaarPairWordSemanticsAmpl
-import Qatlib.Concepts.SearchStopping.KnownCount.Section3KnownCountSubgoalTigh
+module
+
+public import Qatlib.Concepts.AmpTransform.HaarPairTest.HaarPairWordSemanticsAmplification
+public import Qatlib.Concepts.SearchStopping.KnownCount.Section3KnownCountSubgoal
+
+@[expose] public section
 
 /-!
 # Amplitude identities for Haar pair readout
@@ -53,7 +57,7 @@ theorem haar_pair_fiber (ψ : QState (I × Bool)) (i : I) (b : Bool) :
   rw [Finset.sum_eq_single i]
   · simp
   · intro x _ hx
-    rw [if_neg (fun h : i = x => hx h.symm)]
+    rw [ite_eq_right (fun h : i = x => hx h.symm)]
     simp
   · simp
 

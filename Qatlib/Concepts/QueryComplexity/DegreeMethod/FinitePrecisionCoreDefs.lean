@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ClassicalTape.TapeCompilation.BitMachineTime
-import Mathlib.Computability.TuringMachine.StackTuringMachine
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Arctan
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Data.Real.Sqrt
+module
+
+public import Qatlib.Concepts.ClassicalTape.TapeCompilation.BitMachineTime
+public import Mathlib.Computability.TuringMachine.StackTuringMachine
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Arctan
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.Real.Sqrt
+
+@[expose] public section
 
 /-!
 # Finite-precision inputs and classical backend contracts

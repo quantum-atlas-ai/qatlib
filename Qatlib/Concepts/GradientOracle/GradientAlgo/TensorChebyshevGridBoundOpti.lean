@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GradientOracle.GradientAlgo.TensorChebyshevGridBoundStat
-import Qatlib.Concepts.GradientOracle.GradientAlgo.TensorMomentBounds
+module
+
+public import Qatlib.Concepts.GradientOracle.GradientAlgo.TensorChebyshevGridBoundStat
+public import Qatlib.Concepts.GradientOracle.GradientAlgo.TensorMomentBounds
+
+@[expose] public section
 
 /-!
 # Tensor concentration on finite symmetric grids

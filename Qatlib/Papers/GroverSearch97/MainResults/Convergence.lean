@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
-import Mathlib.Analysis.Real.Pi.Bounds
-import Qatlib.Concepts.SearchStopping.GroverSuccess.Section2HalfIterationsSubgoalTigh
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+public import Mathlib.Analysis.Real.Pi.Bounds
+public import Qatlib.Concepts.SearchStopping.GroverSuccess.Section2HalfIterationsSubgoal
+
+@[expose] public section
 
 /-!
 # A square root convergence bound for singleton search

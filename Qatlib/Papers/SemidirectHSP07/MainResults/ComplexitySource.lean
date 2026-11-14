@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SemidirectHSP07.MainResults.Group
-import Qatlib.Papers.SemidirectHSP07.MainResults.AlgorithmInterface
-import Qatlib.Papers.SemidirectHSP07.MainResults.ReductionSource
+module
+
+public import Qatlib.Papers.SemidirectHSP07.MainResults.Group
+public import Qatlib.Papers.SemidirectHSP07.MainResults.AlgorithmInterface
+public import Qatlib.Papers.SemidirectHSP07.MainResults.ReductionSource
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

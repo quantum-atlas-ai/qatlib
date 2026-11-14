@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QComplexity97.MachineModel.LocalMachineUniformDefs
+module
+
+public import Qatlib.Papers.QComplexity97.MachineModel.LocalMachineUniformDefs
+
+@[expose] public section
 
 /-!
 # Local well-formedness and the normal-form control schedule
@@ -134,8 +138,8 @@ lemma normSq_fourierH (b' b : FourierSymbol) (h1 : b' ≠ FourierSymbol.blank)
     rw [hsq, Real.sq_sqrt (by norm_num : (0 : ℝ) ≤ 2)]
     norm_num
   by_cases h3 : b' = FourierSymbol.bit1 ∧ b = FourierSymbol.bit1
-  · simp [fourierH, h1, h2, h3, hinv]
-  · simp [fourierH, h1, h2, h3, hinv]
+  · simp [fourierH, h3]
+  · simp [fourierH, h1, h2, h3]
 
 /-- The full finite set of normal-form states consists of `scan`, `back`, `zig`, `zin`, and
 `halt`. -/
@@ -285,8 +289,8 @@ theorem nfCtrlRun_back (n : ℕ) : ∀ t, n < t → t ≤ 2 * n →
     · rw [hbase]
       rw [nfCtrlRun_succ, nfCtrlRun_scan n n (by omega)]
       have hnd : ¬ nfDataCell n (1 + n) := by
-        simp [nfDataCell] <;> omega
-      simp [nfCtrlStep, nfCellClass, hnd] <;> omega
+        simp [nfDataCell]
+      simp [nfCtrlStep, nfCellClass, hnd]; omega
     · have hlt : n < t := by omega
       rw [nfCtrlRun_succ, ih hlt (by omega)]
       have hdata : nfDataCell n (2 * n + 1 - t) := by
@@ -353,24 +357,24 @@ theorem nfCtrlRun_schedule (n : ℕ) (hn : 1 ≤ n) (t : ℕ) (h : t ≤ nfBudge
       · have h1' : ¬ (2 * n + 1 ≤ n) := by omega
         have h2' : ¬ (2 * n + 1 ≤ 2 * n) := by omega
         rw [h3, nfCtrlRun_at_2n1 n hn]
-        simp [h1', h2', h3]
+        simp [h1', h2']
       · by_cases h4 : t = 2 * n + 2
         · have h1' : ¬ (2 * n + 2 ≤ n) := by omega
           have h2' : ¬ (2 * n + 2 ≤ 2 * n) := by omega
           rw [h4, nfCtrlRun_at_2n2 n hn]
-          simp [h1', h2', h3, h4]
+          simp [h1', h2']
         · by_cases h5 : t = 2 * n + 3
           · have h1' : ¬ (2 * n + 3 ≤ n) := by omega
             have h2' : ¬ (2 * n + 3 ≤ 2 * n) := by omega
             rw [h5, nfCtrlRun_at_2n3 n hn]
-            simp [h1', h2', h3, h4, h5]
+            simp [h1', h2']
           · have h6 : t = 2 * n + 4 := by omega
             have h1' : ¬ (2 * n + 4 ≤ n) := by omega
             have h2' : ¬ (2 * n + 4 ≤ 2 * n) := by omega
             rw [h6]
             show (nfCtrlRun n (nfBudget n)).1 = _
             rw [nfCtrlRun_halt n hn]
-            simp [h1', h2', h3, h4, h5, h6]
+            simp [h1', h2']
 
 /-- For `n ≥ 1` and time at most `nfBudget n`, the cell index follows the displayed forward
 scan, return scan, and final positions zero, one, two, and one. -/
@@ -393,24 +397,24 @@ theorem nfCtrlRun_cell (n : ℕ) (hn : 1 ≤ n) (t : ℕ) (h : t ≤ nfBudget n)
       · have h1' : ¬ (2 * n + 1 ≤ n) := by omega
         have h2' : ¬ (2 * n + 1 ≤ 2 * n) := by omega
         rw [h3, nfCtrlRun_at_2n1 n hn]
-        simp [h1', h2', h3]
+        simp [h1', h2']
       · by_cases h4 : t = 2 * n + 2
         · have h1' : ¬ (2 * n + 2 ≤ n) := by omega
           have h2' : ¬ (2 * n + 2 ≤ 2 * n) := by omega
           rw [h4, nfCtrlRun_at_2n2 n hn]
-          simp [h1', h2', h3, h4]
+          simp [h1', h2']
         · by_cases h5 : t = 2 * n + 3
           · have h1' : ¬ (2 * n + 3 ≤ n) := by omega
             have h2' : ¬ (2 * n + 3 ≤ 2 * n) := by omega
             rw [h5, nfCtrlRun_at_2n3 n hn]
-            simp [h1', h2', h3, h4, h5]
+            simp [h1', h2']
           · have h6 : t = 2 * n + 4 := by omega
             have h1' : ¬ (2 * n + 4 ≤ n) := by omega
             have h2' : ¬ (2 * n + 4 ≤ 2 * n) := by omega
             rw [h6]
             show (nfCtrlRun n (nfBudget n)).2 = _
             rw [nfCtrlRun_halt n hn]
-            simp [h1', h2', h3, h4, h5, h6]
+            simp [h1', h2']
 
 /-- The machine satisfies the five local conditions, has no stay transitions, and possesses the
 displayed exact control-state and cell schedule, ending at `(.halt, 1)` after `2 * n + 4`
@@ -420,7 +424,7 @@ theorem clause4_complete :
     Qatlib.Concepts.UniformBqp.Phi3Compile.LocalQTMFiveConditions nfRule_toLocal ∧
     (∀ (q : NFState) (a : FourierSymbol) (q' : NFState) (b : FourierSymbol),
       nfRule.step q a QtmMove.stay q' b = 0) ∧
-    (∀ (n : ℕ) (hn : 1 ≤ n) (t : ℕ) (h : t ≤ nfBudget n),
+    (∀ (n : ℕ) (_hn : 1 ≤ n) (t : ℕ) (_h : t ≤ nfBudget n),
       (nfCtrlRun n t).1 =
         (if t ≤ n then NFState.scan
           else if t ≤ 2 * n then NFState.back
@@ -428,7 +432,7 @@ theorem clause4_complete :
           else if t = 2 * n + 2 then NFState.zig
           else if t = 2 * n + 3 then NFState.zin
           else NFState.halt)) ∧
-    (∀ (n : ℕ) (hn : 1 ≤ n) (t : ℕ) (h : t ≤ nfBudget n),
+    (∀ (n : ℕ) (_hn : 1 ≤ n) (t : ℕ) (_h : t ≤ nfBudget n),
       (nfCtrlRun n t).2 =
         (if t ≤ n then 1 + t
           else if t ≤ 2 * n then 2 * n + 1 - t
@@ -436,7 +440,7 @@ theorem clause4_complete :
           else if t = 2 * n + 2 then 1
           else if t = 2 * n + 3 then 2
           else 1)) ∧
-    (∀ (n : ℕ) (hn : 1 ≤ n), nfCtrlRun n (nfBudget n) = (.halt, 1)) ∧
+    (∀ (n : ℕ) (_hn : 1 ≤ n), nfCtrlRun n (nfBudget n) = (.halt, 1)) ∧
     (∀ n : ℕ, nfBudget n = 2 * n + 4) := by
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
   · exact ⟨nfRule_toLocal.wf_norm, nfRule_toLocal.wf_sameCell, nfRule_toLocal.wf_rightStay,

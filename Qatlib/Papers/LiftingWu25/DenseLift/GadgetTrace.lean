@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LiftingWu25.ProtocolSetup.HybridModel
-import Mathlib.Data.Finset.Card
-import Mathlib.Data.Fintype.Card
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Ring
+module
+
+public import Qatlib.Papers.LiftingWu25.ProtocolSetup.HybridModel
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -132,13 +136,13 @@ def vanishEquiv (S Z : Finset ι) (hZ : Z ⊆ S) (b : ℕ) :
     apply Subtype.ext
     funext s
     by_cases h : (s : ι) ∈ Z
-    · simp only [h, dif_pos]
+    · simp only [h, dite_eq_left]
       exact (w.2 ⟨s.1, h⟩).symm
-    · simp only [h, dif_neg, not_false_iff]
+    · simp only [h, dite_eq_right, not_false_iff]
   right_inv v := by
     funext x
     have hx := (Finset.mem_sdiff.mp x.2).2
-    simp only [hx, dif_neg, not_false_iff]
+    simp only [hx, dite_eq_right, not_false_iff]
 
 /-- The number of `Λ`-valued assignments on `S` that vanish on `Z ⊆ S` is
 `2^{b(|S| - |Z|)}`. -/

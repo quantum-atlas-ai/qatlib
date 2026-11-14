@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.OrderedOracle.TiSdpBridge.LaurentGram
-import Qatlib.Concepts.OrderedOracle.TiSdpBridge.OrderedSearchInstance
+module
+
+public import Qatlib.Concepts.OrderedOracle.TiSdpBridge.LaurentGram
+public import Qatlib.Concepts.OrderedOracle.TiSdpBridge.OrderedSearchInstance
+
+@[expose] public section
 
 /-!
 # Source Lemma 29: uniqueness of the initial matrix
@@ -120,9 +124,9 @@ theorem genTrace_cyclic_bridge {n : ℕ} [NeZero n] (A : Matrix (Fin n) (Fin n) 
   apply Finset.sum_congr rfl
   intro i _
   rw [Finset.sum_eq_single ((cycShiftPow n l) i)]
-  · rw [if_pos (cycShiftPow_val n l i)]
+  · rw [ite_eq_left (cycShiftPow_val n l i)]
   · intro b _ hb
-    rw [if_neg]
+    rw [ite_eq_right]
     intro h
     exact hb (Fin.ext (by rw [cycShiftPow_val]; exact h))
   · intro h; exact absurd (Finset.mem_univ _) h

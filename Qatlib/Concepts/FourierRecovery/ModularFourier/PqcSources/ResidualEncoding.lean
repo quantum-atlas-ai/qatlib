@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FourierRecovery.ModularFourier.FiniteHarmonic.State
-import QuantumInfo.ForMathlib.Isometry
+module
+
+public import Qatlib.Concepts.FourierRecovery.ModularFourier.FiniteHarmonic.State
+public import QuantumInfo.ForMathlib.Isometry
+
+@[expose] public section
 
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.FourierRecovery.ModularFourier.FiniteHarmonic

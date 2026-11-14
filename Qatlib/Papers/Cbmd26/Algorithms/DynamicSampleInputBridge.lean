@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Cbmd26.Algorithms.DynamicFreshRegisterBridge
-import Qatlib.Papers.Cbmd26.Algorithms.StaticCBMDParameters
+module
+
+public import Qatlib.Papers.Cbmd26.Algorithms.DynamicFreshRegisterBridge
+public import Qatlib.Papers.Cbmd26.Algorithms.StaticCBMDParameters
+
+@[expose] public section
 
 /-!
 # Normalized dynamic samples from an original encoding
@@ -71,6 +75,8 @@ open scoped Matrix.Norms.L2Operator
 variable {Anc I : Type} [Fintype Anc] [DecidableEq Anc] [Fintype I] [DecidableEq I]
 local instance cbmdDynamicSampleInputBridgeInstance1 (Anc : Type) [DecidableEq Anc] : DecidableEq (DynamicSampleAnc Anc) :=
   inferInstanceAs (DecidableEq (Bool × (Bool × Anc)))
+
+omit [Fintype Anc] [Fintype I] in
 
 /-- Reindexing the doubly false-tagged original ancilla frame gives the encoding fiber at
 `(false, false, a₀)`. -/

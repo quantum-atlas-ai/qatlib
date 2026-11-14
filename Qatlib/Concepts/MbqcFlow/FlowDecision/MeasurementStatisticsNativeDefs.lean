@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementStatisticsExt
+module
+
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementStatisticsExt
+
+@[expose] public section
 
 /-!
 # Native measurement statistics and rational processing
@@ -82,6 +86,7 @@ noncomputable def povmJointLaw (E : FinitePOVM O D) (ρ : Operator D)
       _ = 1 := by
             rw [← Finset.sum_mul, (povmRecordLaw E ρ hρ).sum_one, mul_one]
 
+omit [DecidableEq O] in
 /-- The probability of an outcome pair is the product of its marginal Born probabilities. -/
 theorem povmJointLaw_prob (E : FinitePOVM O D) (ρ : Operator D)
     (hρ : IsDensityOperator ρ) (o₁ o₂ : O) :
@@ -98,6 +103,7 @@ noncomputable def povmKernelMeanDiagonal (E : FinitePOVM O D) (ρ : Operator D)
     (hρ : IsDensityOperator ρ) (h : O → O → ℝ) : ℝ :=
   (povmRecordLaw E ρ hρ).expect (fun o => h o o)
 
+omit [DecidableEq O] in
 /-- The expectation of a product of separate functions under the joint law factors into their
 marginal expectations. -/
 theorem povmJointLaw_expect_separable (E : FinitePOVM O D) (ρ : Operator D)
@@ -240,6 +246,7 @@ theorem probOf_two {n : ℕ} (p : FinDist O)
           rw [hsplit, hfi, hfj]
           ring
 
+omit [DecidableEq O] in
 /-- Evaluating both kernel arguments at one sample coordinate has expectation equal to the
 diagonal kernel mean. -/
 theorem povm_expect_one_record (E : FinitePOVM O D) (ρ : Operator D)
@@ -333,6 +340,7 @@ theorem re_ofReal_pow (x : ℝ) (k : ℕ) : (Complex.ofReal x ^ k).re = x ^ k :=
       rw [show Complex.ofReal x ^ k = ((x ^ k : ℝ) : ℂ) from (Complex.ofReal_pow x k).symm]
     _ = x ^ k := Complex.ofReal_re _
 
+omit [DecidableEq O] in
 /-- The `k`th moment of a reconstruction statistic equals the real trace pairing of its `k`th
 moment effect with the density operator. -/
 theorem povm_expect_statistic_pow (E : FinitePOVM O D)
@@ -474,6 +482,7 @@ theorem povm_expect_UStatistic (E : FinitePOVM O D) (ρ : Operator D)
           have h3 : ((n : ℝ) * (n - 1)) ≠ 0 := hne
           rw [div_eq_mul_inv, mul_assoc, mul_inv_cancel₀ h3, mul_one]
 
+omit [DecidableEq O] in
 /-- Under the product law, a kernel evaluated twice on the first coordinate has expectation
 equal to the diagonal kernel mean. -/
 theorem povmJointLaw_expect_diagonal (E : FinitePOVM O D) (ρ : Operator D)
@@ -500,6 +509,7 @@ theorem povmJointLaw_expect_diagonal (E : FinitePOVM O D) (ρ : Operator D)
           ring
     _ = _ := rfl
 
+omit [DecidableEq O] in
 /-- The diagonal kernel mean minus the independent kernel mean equals the product-law
 expectation of the corresponding pointwise difference. -/
 theorem povmKernelMean_bias (E : FinitePOVM O D) (ρ : Operator D)
@@ -522,6 +532,7 @@ theorem povmKernelMean_bias (E : FinitePOVM O D) (ρ : Operator D)
   rw [h1.symm, h2]
   rfl
 
+omit [DecidableEq O] in
 /-- For the product of two reconstruction statistics, the independent kernel mean is the square
 of the statistic mean. -/
 theorem povmKernelMeanIndependent_product (E : FinitePOVM O D) (ρ : Operator D)
@@ -534,6 +545,7 @@ theorem povmKernelMeanIndependent_product (E : FinitePOVM O D) (ρ : Operator D)
   rw [povmJointLaw_expect_separable]
   ring
 
+omit [DecidableEq O] in
 /-- For the product kernel of a reconstruction statistic, the diagonal kernel mean is the
 statistic's second moment. -/
 theorem povmKernelMeanDiagonal_product (E : FinitePOVM O D) (ρ : Operator D)
@@ -546,6 +558,7 @@ theorem povmKernelMeanDiagonal_product (E : FinitePOVM O D) (ρ : Operator D)
   refine Finset.sum_congr rfl fun o _ => ?_
   ring
 
+omit [DecidableEq O] in
 /-- For the product kernel of a reconstruction statistic, diagonal bias equals the second moment
 minus the squared mean. -/
 theorem povmKernelMean_bias_variance (E : FinitePOVM O D) (ρ : Operator D)
@@ -574,6 +587,7 @@ theorem sum_delta_right {α : Type} [Fintype α] [DecidableEq α] (a : α) (g : 
 def campaignFlatten {K L : ℕ} (ω : Fin K → Fin L → O) : List O :=
   (List.ofFn (fun k : Fin K => List.ofFn (ω k))).flatten
 
+omit [Fintype O] [DecidableEq O] in
 /-- Flattening `K` blocks of `L` outcomes produces a list of length `K * L`. -/
 theorem campaignFlatten_length {K L : ℕ} (ω : Fin K → Fin L → O) :
     (campaignFlatten ω).length = K * L := by
@@ -639,8 +653,8 @@ noncomputable def nativeDrawnAxisLaw : FinDist (Fin 3) where
                   refine Finset.sum_congr rfl fun idx _ => ?_
                   by_cases h : idx = a
                   · subst h
-                    rw [hd, if_pos rfl]
-                  · rw [hd, if_neg h]
+                    rw [hd, ite_eq_left rfl]
+                  · rw [hd, ite_eq_right h]
         _ = nativeUniformIndex.prob a := by
           rw [sum_delta_right]
     rw [Finset.sum_congr rfl fun a _ => key a]
@@ -661,8 +675,8 @@ theorem nativeDrawnAxisLaw_prob (a : Fin 3) :
                 refine Finset.sum_congr rfl fun idx _ => ?_
                 by_cases h : idx = b
                 · subst h
-                  rw [hd, if_pos rfl]
-                · rw [hd, if_neg h]
+                  rw [hd, ite_eq_left rfl]
+                · rw [hd, ite_eq_right h]
       _ = nativeUniformIndex.prob b := by
         rw [sum_delta_right]
   exact key a
@@ -711,6 +725,7 @@ def nativeRationalFold (payoff : O → ℚ) : List O → ℚ × ℕ × ℕ
     let s := nativeRationalFold payoff os
     (payoff o + s.1, s.2.1 + 1, s.2.2 + 1)
 
+omit [Fintype O] [DecidableEq O] in
 /-- The rational fold returns the payoff sum and read and addition counts equal to the list
 length. -/
 theorem nativeRationalFold_spec (payoff : O → ℚ) (os : List O) :
@@ -802,6 +817,7 @@ def nativeRationalMedianOfMeansCounted (payoff : O → ℚ) {K L : ℕ}
   (sort.1.getD (K / 2) 0, (groups.map fun g => g.2.1).sum,
     (groups.map fun g => g.2.2).sum, sort.2)
 
+omit [Fintype O] [DecidableEq O] in
 /-- Rational median-of-means processing uses `K * L` reads and additions and at most `K * K`
 comparisons. -/
 theorem nativeRationalMedianOfMeansCounted_spec (payoff : O → ℚ) {K L : ℕ}

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GaussSumEst02.MainResults.Source.GaussSumCore
+module
+
+public import Qatlib.Papers.GaussSumEst02.MainResults.Source.GaussSumCore
+
+@[expose] public section
 
 /-!
 # Character walks and their sampling bias
@@ -238,10 +242,10 @@ theorem sum_walkStep_conj_shift [Fintype K] (χ : MultChar K) (e : AddChar K) (h
         else χ.toFun (x / (x + s)) * e.toFun (-s) := by
     intro x
     by_cases hx : x = 0
-    · rw [if_pos (Or.inl hx), hx, walkStep_zero, zero_mul]
+    · rw [ite_eq_left (Or.inl hx), hx, walkStep_zero, zero_mul]
     · by_cases hxs : x + s = 0
-      · rw [if_pos (Or.inr hxs), hxs, walkStep_zero, map_zero, mul_zero]
-      · rw [if_neg (by tauto)]
+      · rw [ite_eq_left (Or.inr hxs), hxs, walkStep_zero, map_zero, mul_zero]
+      · rw [ite_eq_right (by tauto)]
         have hχinv : conj (χ.toFun (x + s)) = χ.toFun ((x + s)⁻¹) := by
           rw [χ.conj_apply hxs, χ.inv_apply hxs]
         have he : e.toFun x * conj (e.toFun (x + s)) = e.toFun (-s) := by
@@ -260,8 +264,8 @@ theorem sum_walkStep_conj_shift [Fintype K] (χ : MultChar K) (e : AddChar K) (h
     refine Finset.sum_congr rfl fun x _ => ?_
     rw [hterm]
     by_cases h : x = 0 ∨ x + s = 0
-    · rw [if_pos h, if_neg (by tauto)]
-    · rw [if_neg h, if_pos (by tauto)]
+    · rw [ite_eq_left h, ite_eq_right (by tauto)]
+    · rw [ite_eq_right h, ite_eq_left (by tauto)]
   rw [hfilter, ← Finset.sum_mul, sum_char_mul_conj_shift χ hnt hs]
   ring
 

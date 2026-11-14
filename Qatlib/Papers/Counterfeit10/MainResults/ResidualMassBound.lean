@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Counterfeit10.MainResults.ParityRestrictedIP
+module
+
+public import Qatlib.Papers.Counterfeit10.MainResults.ParityRestrictedIP
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

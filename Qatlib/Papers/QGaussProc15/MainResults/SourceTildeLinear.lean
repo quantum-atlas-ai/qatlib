@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QGaussProc15.MainResults.SourceCostModel
+module
+
+public import Qatlib.Papers.QGaussProc15.MainResults.SourceCostModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -57,7 +61,7 @@ theorem dense_variance_eq_repetitions_mul (v ε : ℝ) (hε : ε ≠ 0) (n : ℕ
 the total cost of the repeated QLA estimation, `R · qlaRunCost C n`, is
 soft-linear `Õ(n)`: bounded by `n^{1+δ}` up to a constant for every
 `δ > 0`. -/
-theorem repeated_run_cost_isTildeLinear (v ε C : ℝ) (hε : 0 < ε) :
+theorem repeated_run_cost_isTildeLinear (v ε C : ℝ) (_hε : 0 < ε) :
     IsTildeLinear (repeatedRunCost v ε C) := by
   intro δ hδ
   have hbase : (fun n : ℕ => (n : ℝ) * (Real.log ((n : ℝ) + 1)) ^ 2) =o[atTop]

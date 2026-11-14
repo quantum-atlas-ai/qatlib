@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ProbabilityCore.Concentration.CountingComplexityDefs
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.EffectiveCounting
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.EffectiveCountingDefs
+module
+
+public import Qatlib.Concepts.ProbabilityCore.Concentration.CountingComplexityDefs
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.EffectiveCounting
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.EffectiveCountingDefs
+
+@[expose] public section
 
 /-!
 # Hash-based counting estimates and failure bounds
@@ -130,9 +134,9 @@ theorem ccOverEstimate_count_le_half {L ℓ : ℕ} (R : Set (Fin L → Bool))
         ≤ CcEstimate R s := by
     intro s
     by_cases hs : 2 * EcRelCount R ≤ CcEstimate R s
-    · rw [if_pos hs]
+    · rw [ite_eq_left hs]
       exact hs
-    · rw [if_neg hs]
+    · rw [ite_eq_right hs]
       exact Nat.zero_le _
   have h1 : (∑ s ∈ (Finset.univ : Finset (EcHashSeed L ℓ)),
         (if 2 * EcRelCount R ≤ CcEstimate R s then 2 * EcRelCount R else 0))
@@ -302,8 +306,8 @@ theorem ccRowParity_flip {L : ℕ} (d row : Fin L → Bool) (j₀ : Fin L)
     · subst hj
       simp only [CcFlipAt]
       exact ccBool_not_xor (row j)
-    · rw [CcFlipAt, if_neg hj]
-      rw [if_neg hj]
+    · rw [CcFlipAt, ite_eq_right hj]
+      rw [ite_eq_right hj]
       exact (ccBool_xor_false _).symm
   have h1 : (∑ j : Fin L, (CcFlipAt row j₀ j && d j))
       = (∑ j : Fin L, ((row j ^^ (if j = j₀ then true else false)) && d j)) := by
@@ -324,7 +328,7 @@ theorem ccRowParity_flip {L : ℕ} (d row : Fin L → Bool) (j₀ : Fin L)
       by_cases hj : j = j₀
       · subst hj
         simp
-      · rw [if_neg hj, if_neg hj]
+      · rw [ite_eq_right hj, ite_eq_right hj]
         exact ccBool_false_zero
     rw [hconv]
     rw [Finset.sum_ite_eq' (Finset.univ : Finset (Fin L)) j₀ (fun j => d j)]
@@ -459,8 +463,8 @@ theorem ccRowEvenCount_eq {L : ℕ} (d : Fin L → Bool) (hd : ∃ j : Fin L, d 
             apply Finset.sum_congr rfl
             intro r _
             rcases ccRowParity_eq_false_or_true d r with hr | hr
-            · rw [if_pos hr, if_neg (ccBool_ne_true_of_eq_false hr)]
-            · rw [if_neg (ccBool_ne_false_of_eq_true hr), if_pos hr]
+            · rw [ite_eq_left hr, ite_eq_right (ccBool_ne_true_of_eq_false hr)]
+            · rw [ite_eq_right (ccBool_ne_false_of_eq_true hr), ite_eq_left hr]
       _ = 2 ^ L := by
             calc (∑ r : Fin L → Bool, 1) = (Finset.univ : Finset (Fin L → Bool)).card := by
                   symm
@@ -508,14 +512,14 @@ theorem ccMatrixEvenCount_eq {L ℓ : ℕ} (d : Fin L → Bool) (hd : ∃ j : Fi
         = (if (∀ i : Fin ℓ, CcRowParity d (x i) = false) then 1 else 0) := by
     intro x
     by_cases h : ∀ i : Fin ℓ, CcRowParity d (x i) = false
-    · rw [if_pos h]
+    · rw [ite_eq_left h]
       apply Finset.prod_eq_one
       intro i _
-      rw [if_pos (h i)]
-    · rw [if_neg h]
+      rw [ite_eq_left (h i)]
+    · rw [ite_eq_right h]
       obtain ⟨i, hi⟩ := not_forall.mp h
       refine Finset.prod_eq_zero (Finset.mem_univ i) ?_
-      rw [if_neg hi]
+      rw [ite_eq_right hi]
   have hprod := Fintype.prod_sum (ι := Fin ℓ) (κ := fun _ => (Fin L → Bool))
     (f := fun (_ : Fin ℓ) (r : Fin L → Bool) =>
       (if CcRowParity d r = false then 1 else 0 : ℕ))
@@ -586,7 +590,7 @@ theorem ccHashJointZeroCount_eq {L ℓ : ℕ} (w w' : Fin L → Bool) :
         = (if CcMatrixParityAgree w w' mat then 1 else 0) := by
       intro mat
       by_cases hag : CcMatrixParityAgree w w' mat
-      · rw [if_pos hag]
+      · rw [ite_eq_left hag]
         have hstep : (∑ off : Fin ℓ → Bool,
             if (∀ i : Fin ℓ, off i = CcRowParity w (mat i))
               ∧ CcMatrixParityAgree w w' mat then 1 else 0)
@@ -595,14 +599,14 @@ theorem ccHashJointZeroCount_eq {L ℓ : ℕ} (w w' : Fin L → Bool) :
           apply Finset.sum_congr rfl
           intro off _
           by_cases hc : ∀ i : Fin ℓ, off i = CcRowParity w (mat i)
-          · rw [if_pos (And.intro hc hag), if_pos hc]
-          · rw [if_neg (fun h => hc h.1), if_neg hc]
+          · rw [ite_eq_left (And.intro hc hag), ite_eq_left hc]
+          · rw [ite_eq_right (fun h => hc h.1), ite_eq_right hc]
         rw [hstep]
         exact ccOffsetUnique (fun i => CcRowParity w (mat i))
-      · rw [if_neg hag]
+      · rw [ite_eq_right hag]
         apply Finset.sum_eq_zero
         intro off _
-        rw [if_neg (fun h => hag h.2)]
+        rw [ite_eq_right (fun h => hag h.2)]
     have hmain : CcHashJointZeroCount ℓ w w'
         = ∑ mat : Fin ℓ → Fin L → Bool,
             (if CcMatrixParityAgree w w' mat then 1 else 0) := by
@@ -631,8 +635,8 @@ theorem ccHashJointZeroCount_eq {L ℓ : ℕ} (w w' : Fin L → Bool) :
       apply Finset.sum_congr rfl
       intro mat _
       by_cases h : CcMatrixParityAgree w w' mat
-      · rw [if_pos h, if_pos ((ccMatrixParityAgree_iff w w' mat).mp h)]
-      · rw [if_neg h, if_neg (fun hh => h ((ccMatrixParityAgree_iff w w' mat).mpr hh))]
+      · rw [ite_eq_left h, ite_eq_left ((ccMatrixParityAgree_iff w w' mat).mp h)]
+      · rw [ite_eq_right h, ite_eq_right (fun hh => h ((ccMatrixParityAgree_iff w w' mat).mpr hh))]
     have hnotall : ¬ (∀ j : Fin L, CcWitnessDiff w w' j = false) := by
       intro h
       exact hww ((ccWitnessDiff_eq_zero_iff w w').mp h)
@@ -1302,11 +1306,11 @@ theorem ccFailureCount_bound {L ℓ : ℕ} (R : Set (Fin L → Bool)) (hm : 0 < 
             then (EcRelCount R : ℝ) ^ 2 / 4 else 0) := by
     intro s
     by_cases hb : |(CcEstimate R s : ℝ) - (EcRelCount R : ℝ)| > (EcRelCount R : ℝ) / 2
-    · rw [if_pos hb]
+    · rw [ite_eq_left hb]
       have h3 := hsq ((CcEstimate R s : ℝ) - (EcRelCount R : ℝ)) hb
       have h4 : ((EcRelCount R : ℝ) / 2) ^ 2 = (EcRelCount R : ℝ) ^ 2 / 4 := by ring
       linarith
-    · rw [if_neg hb]
+    · rw [ite_eq_right hb]
       exact sq_nonneg _
   have hsumlower : (∑ s : EcHashSeed L ℓ, ((CcEstimate R s : ℝ) - (EcRelCount R : ℝ)) ^ 2)
       ≥ (∑ s : EcHashSeed L ℓ,
@@ -1462,10 +1466,10 @@ theorem ccBadSeedCount_bound {L ℓ : ℕ} (R : Set (Fin L → Bool)) (hm : 0 < 
         ≥ (if |(CcEstimate R s : ℝ) - (EcRelCount R : ℝ)| > τ then τ ^ 2 else 0) := by
     intro s
     by_cases hb : |(CcEstimate R s : ℝ) - (EcRelCount R : ℝ)| > τ
-    · rw [if_pos hb]
+    · rw [ite_eq_left hb]
       have h3 := hsq ((CcEstimate R s : ℝ) - (EcRelCount R : ℝ)) hb
       linarith
-    · rw [if_neg hb]
+    · rw [ite_eq_right hb]
       exact sq_nonneg _
   have hsumlower : (∑ s : EcHashSeed L ℓ, ((CcEstimate R s : ℝ) - (EcRelCount R : ℝ)) ^ 2)
       ≥ (∑ s : EcHashSeed L ℓ,

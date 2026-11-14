@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OverlapGapGoh26.UniformGrid.SpinEnergy
-import Mathlib.Topology.Maps.Proper.Basic
+module
+
+public import Qatlib.Papers.OverlapGapGoh26.UniformGrid.SpinEnergy
+public import Mathlib.Topology.Maps.Proper.Basic
+
+@[expose] public section
 
 /-!
 # Probability reduction for spin energy paths
@@ -119,7 +123,7 @@ theorem continuous_spinEnergyPath {r N : ℕ} (M : ℝ) (s : ℕ → ℝ) (T : �
 theorem isClosed_spin_continuum_energy {r N : ℕ} (M : ℝ) (s : ℕ → ℝ) (T : ℕ) (c : ℝ) :
     IsClosed {w : Sample r N | ∃ τ∈Set.Icc (0:ℝ) 1,c≤ spinEnergyPath M s T w τ} := by
   let I := Set.Icc (0:ℝ) 1
-  letI : CompactSpace I := isCompact_iff_compactSpace.mp (isCompact_Icc : IsCompact (Set.Icc (0:ℝ) 1))
+  let : CompactSpace I := isCompact_iff_compactSpace.mp (isCompact_Icc : IsCompact (Set.Icc (0:ℝ) 1))
   have hc : Continuous (fun p : Sample r N × I => spinEnergyPath M s T p.1 p.2) :=
     (continuous_spinEnergyPath M s T).comp
       (continuous_fst.prodMk (continuous_subtype_val.comp continuous_snd))

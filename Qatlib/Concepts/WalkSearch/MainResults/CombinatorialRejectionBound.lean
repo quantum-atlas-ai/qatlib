@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.MainResults.CombinatorialCallScopes
-import Qatlib.Concepts.WalkSearch.MainResults.SearchEventBounds
-import Qatlib.Concepts.WalkSearch.MainResults.ClassificationAdaptiveTape
+module
+
+public import Qatlib.Concepts.WalkSearch.MainResults.CombinatorialCallScopes
+public import Qatlib.Concepts.WalkSearch.MainResults.SearchEventBounds
+public import Qatlib.Concepts.WalkSearch.MainResults.ClassificationAdaptiveTape
+
+@[expose] public section
 
 /-!
 # Successful tapes prevent combinatorial rejection
@@ -79,7 +83,7 @@ theorem sourceComb_good_tape_not_reject {n : ℕ} (G : UGraph n) (sgs : SGSExecu
     (try dsimp only)
     change ¬ (match (if _ then _ else _ : CombOut n) with | CombOut.tri _ _ _ _ => False | CombOut.reject _ => True)
     rw [hc]
-    simp only [Bool.false_eq_true, if_false]
+    simp only [Bool.false_eq_true, ite_false]
     have hG := preparationScan_survivors_contain_graph G sgs t.2.1 t.1 hprep hp
     have hspec := (classifySpec_source_complete n G sgs τ dHi dLo K c tThin
       hn hdLo hhi hτ t.2.2.1 t.2.2.2.1 S hG hsample htest).2

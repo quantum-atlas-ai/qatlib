@@ -4,14 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkFind.SearchAlgorithm.NativeSourceDefs
-import Qatlib.Concepts.WalkFind.UniqueCollision.GeneralQueryMemory
-import Qatlib.Concepts.WalkFind.WalkSpectrum.GeneralOptimizedQueries
-import Qatlib.Concepts.WalkFind.SearchAlgorithm.Algorithm3Native
-import Qatlib.Concepts.WalkFind.WalkSpectrum.ElementDistinctnessDefs
-import Qatlib.Concepts.WalkFind.WalkSpectrum.ElementDistinctness
-import Qatlib.Concepts.WalkFind.WalkSpectrum.EffectiveQRAMImplementation
-import Mathlib.NumberTheory.Bertrand
+module
+
+public import Qatlib.Concepts.WalkFind.SearchAlgorithm.NativeSourceDefs
+public import Qatlib.Concepts.WalkFind.UniqueCollision.GeneralQueryMemory
+public import Qatlib.Concepts.WalkFind.WalkSpectrum.GeneralOptimizedQueries
+public import Qatlib.Concepts.WalkFind.SearchAlgorithm.Algorithm3Native
+public import Qatlib.Concepts.WalkFind.WalkSpectrum.ElementDistinctnessDefs
+public import Qatlib.Concepts.WalkFind.WalkSpectrum.ElementDistinctness
+public import Qatlib.Concepts.WalkFind.WalkSpectrum.EffectiveQRAMImplementation
+public import Mathlib.NumberTheory.Bertrand
+
+@[expose] public section
+set_option linter.unusedVariables false
 
 /-!
 # Collision-search specifications and residual obligations

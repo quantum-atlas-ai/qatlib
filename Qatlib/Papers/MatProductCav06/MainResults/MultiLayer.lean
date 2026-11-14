@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MatProductCav06.MainResults.SequentialDefs
+module
+
+public import Qatlib.Papers.MatProductCav06.MainResults.SequentialDefs
+
+@[expose] public section
 
 /-!
 # Layers of local gates and bond dimensions

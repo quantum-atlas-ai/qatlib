@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OrderedInsert99.MainResults.InvariantDefs
+module
+
+public import Qatlib.Papers.OrderedInsert99.MainResults.InvariantDefs
+
+@[expose] public section
 
 /-!
 # Monotonicity and fixed points of the greedy update

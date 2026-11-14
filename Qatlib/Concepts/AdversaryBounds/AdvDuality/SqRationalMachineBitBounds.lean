@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineSteps
-import Mathlib.Algebra.Order.BigOperators.Group.List
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineSteps
+public import Mathlib.Algebra.Order.BigOperators.Group.List
+
+@[expose] public section
 
 /-!
 # Bit-length bounds for rational machine execution

@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorRationalCode
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.NegativeExpProgram
-import Mathlib.Algebra.Order.Floor.Div
-import Mathlib.Data.Rat.Floor
-import Mathlib.Data.Nat.Log
+module
+
+public import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorRationalCode
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.NegativeExpProgram
+public import Mathlib.Algebra.Order.Floor.Div
+public import Mathlib.Data.Rat.Floor
+public import Mathlib.Data.Nat.Log
+
+@[expose] public section
 
 /-!
 # Floor Rational Scalar Code

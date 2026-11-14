@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
-import Qatlib.Papers.QPowerSimon97.Recovery.NativeRetryConstructionDefs
-import Qatlib.Concepts.HspRecovery.Distinguisher.BoundedErrorNearPeriodSimo
-import Qatlib.Papers.QPowerSimon97.Recovery.NativeRetryConstructionAmplification
+module
+
+public import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+public import Qatlib.Papers.QPowerSimon97.Recovery.NativeRetryConstructionDefs
+public import Qatlib.Concepts.HspRecovery.Distinguisher.BoundedErrorNearPeriodSimo
+public import Qatlib.Papers.QPowerSimon97.Recovery.NativeRetryConstructionAmplification
+
+@[expose] public section
 
 /-!
 # Oracle transcript bounds for Simon's separation
@@ -240,7 +244,7 @@ lemma simonTwoToOneDist_of_pos {n : ℕ} (hn : 1 ≤ n) (s : BooleanVec n)
           (g : BooleanVec n → BooleanVec n))
         (@PMF.uniformOfFintype' _ (Fintype.ofFinite _) hne)) f := by
     unfold simonTwoToOneDist
-    rw [dif_pos hne]
+    rw [dite_eq_left hne]
     simp [PMF.map, PMF.bind_apply, PMF.pure_apply, Function.comp_def,
       PMF.monad_map_eq_map, PMF.uniformOfFintype'_apply]
   rw [hlink, happly, ne_eq, ENNReal.tsum_eq_zero] at hpos
@@ -249,7 +253,7 @@ lemma simonTwoToOneDist_of_pos {n : ℕ} (hn : 1 ≤ n) (s : BooleanVec n)
   by_cases heq : f = (u : BooleanVec n → BooleanVec n)
   · rw [heq]
     exact u.property
-  · rw [if_neg heq] at hu
+  · rw [ite_eq_right heq] at hu
     exact absurd rfl hu
 end
 noncomputable section
@@ -302,7 +306,7 @@ lemma strict_collision_period {n : ℕ} {s x x' : BooleanVec n}
     rcases hz with rfl | rfl | rfl
     · simp [S]
     · simpa [S] using! (hf.1 x).symm
-    · rw [Set.mem_setOf]
+    · rw [Set.mem_ofPred]
       exact heq.symm
   have hthree : 3 ≤ Nat.card S := by
     rw [Nat.card_eq_fintype_card, ← Set.toFinset_card S]
@@ -356,7 +360,7 @@ lemma twoToOneLaw_pair_le {n : ℕ} (hn : 1 ≤ n) {x x' : BooleanVec n} (hneq :
       beta_reduce
       by_cases heq : f x = f x'
       · exact (hsx (strict_collision_period hf hs0 hneq heq)).elim
-      · rw [if_neg heq, mul_zero]
+      · rw [ite_eq_right heq, mul_zero]
   have hsum : ∑ s : BooleanVec n,
       event (simonTwoToOneDist s) (fun f => f x = f x') ≤ 2 := by
     have hsubset : bad ⊆ Finset.univ := Finset.subset_univ bad
@@ -427,7 +431,7 @@ lemma uniform_period_hit {n : ℕ} (μ : PMF (BooleanVec n × BooleanVec n)) :
       · simp [PMF.uniformOfFintype'_apply]
       · intro s hs
         beta_reduce
-        rw [if_neg hs, mul_zero]
+        rw [ite_eq_right hs, mul_zero]
     · have hfalse : ∀ s, ¬ (ab.1 ≠ ab.2 ∧ ab.1 + ab.2 = s) := by
         intro s hs
         exact hne hs.1
@@ -480,12 +484,12 @@ lemma queries_period_hit {n q : ℕ} (μ : PMF (List (BooleanVec n))) :
       apply mul_le_mul_of_nonneg_left
       · beta_reduce
         by_cases hex : ∃ ij : Fin q × Fin q, E ij p
-        · rw [if_pos hex]
+        · rw [ite_eq_left hex]
           obtain ⟨ij, hij⟩ := hex
           refine le_trans ?_ (Finset.single_le_sum
             (fun _ _ => by split_ifs <;> exact bot_le) (Finset.mem_univ ij))
           simp [hij]
-        · rw [if_neg hex]
+        · rw [ite_eq_right hex]
           exact bot_le
       · exact bot_le
     · have hswap := expectation_sum ν Finset.univ
@@ -710,7 +714,7 @@ private lemma uniform_map_equiv {α : Type} [Fintype α] [Nonempty α] (e : α �
   rw [tsum_eq_single (e.symm b)]
   · simp only [Equiv.apply_symm_apply, ite_true, PMF.uniformOfFintype'_apply]
   · intro a ha
-    exact if_neg fun h => ha (e.injective (h.symm.trans (e.apply_symm_apply b).symm))
+    exact ite_eq_right fun h => ha (e.injective (h.symm.trans (e.apply_symm_apply b).symm))
 end
 noncomputable section
 
@@ -723,7 +727,7 @@ lemma strict_postcompose {n : ℕ} {s : BooleanVec n}
   have hset : {x : BooleanVec n | (π ∘ f) x = y} =
       {x : BooleanVec n | f x = π.symm y} := by
     ext x
-    exact π.apply_eq_iff_eq_symm_apply
+    exact π.eq_symm_apply.symm
   rw [hset]
   exact hf.2 (π.symm y)
 end
@@ -752,15 +756,15 @@ lemma simonTwoToOneDist_postcompose {n : ℕ} (hn : 1 ≤ n)
     (simonTwoToOneDist s).map (fun f => π ∘ f) = simonTwoToOneDist s := by
   classical
   let Ω := {f : BooleanVec n → BooleanVec n // SimonStrictTwoToOne s f}
-  letI : Fintype Ω := Fintype.ofFinite Ω
-  letI : Nonempty Ω := simonStrictTwoToOne_nonempty hn s
+  let : Fintype Ω := Fintype.ofFinite Ω
+  let : Nonempty Ω := simonStrictTwoToOne_nonempty hn s
   have h := congrArg (fun p : PMF Ω => p.map (fun g => g.val))
     (uniform_map_equiv (strictLabelEquiv s π))
   simp only [PMF.map_comp] at h
   have hlaw : simonTwoToOneDist s =
       (PMF.uniformOfFintype' Ω).map (fun g => g.val) := by
     unfold simonTwoToOneDist
-    rw [dif_pos (simonStrictTwoToOne_nonempty hn s)]
+    rw [dite_eq_left (simonStrictTwoToOne_nonempty hn s)]
     ext f
     simp [PMF.map, PMF.bind_apply, PMF.pure_apply, Function.comp_def,
       PMF.monad_map_eq_map, ← Nat.card_eq_fintype_card, Ω]
@@ -777,7 +781,7 @@ private lemma map_equiv_apply {α : Type} (p : PMF α) (e : α ≃ α) (a : α) 
   rw [PMF.map_apply, tsum_eq_single a]
   · simp
   · intro b hb
-    exact if_neg fun h => hb (e.injective h).symm
+    exact ite_eq_right fun h => hb (e.injective h).symm
 end
 noncomputable section
 
@@ -933,7 +937,7 @@ lemma simonTwoToOneDist_period_pair_mass {n : ℕ} (hn : 1 ≤ n)
       by_cases hf : simonTwoToOneDist s f = 0
       · simp [hf]
       · beta_reduce
-        rw [if_pos ((simonTwoToOneDist_of_pos hn s hf).1 x), mul_one]
+        rw [ite_eq_left ((simonTwoToOneDist_of_pos hn s hf).1 x), mul_one]
     _ = 1 := PMF.tsum_coe _
 end
 noncomputable section

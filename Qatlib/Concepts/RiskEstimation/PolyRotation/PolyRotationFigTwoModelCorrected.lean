@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RiskEstimation.PolyRotation.PolyRotationFigTwoDefs
-import Qatlib.Concepts.RiskEstimation.PolyRotation.PolyControlledRotationCorrected
-import Mathlib.Algebra.Polynomial.Taylor
-import Mathlib.Algebra.BigOperators.Group.Finset.Powerset
-import Mathlib.Data.Nat.Choose.Bounds
+module
+
+public import Qatlib.Concepts.RiskEstimation.PolyRotation.PolyRotationFigTwoDefs
+public import Qatlib.Concepts.RiskEstimation.PolyRotation.PolyControlledRotationCorrected
+public import Mathlib.Algebra.Polynomial.Taylor
+public import Mathlib.Algebra.BigOperators.Group.Finset.Powerset
+public import Mathlib.Data.Nat.Choose.Bounds
+
+@[expose] public section
 
 /-!
 # Subset coefficients for polynomial rotation angles
@@ -104,7 +108,7 @@ theorem figPolynomial_difference_degree (p : Polynomial ℝ) (h : ℝ) (k : ℕ)
   by_cases hd : Polynomial.taylor h p-p=0
   · simp [hd]
   have ht : Polynomial.taylor h p≠0 := (Polynomial.taylor_eq_zero h p).not.mpr hz
-  have hl:=Polynomial.degree_sub_lt (Polynomial.degree_taylor p h) ht
+  have hl:=Polynomial.degree_sub_lt_left (Polynomial.degree_taylor p h) ht
     (Polynomial.leadingCoeff_taylor (r := h) (f := p))
   rw [Polynomial.degree_eq_natDegree hd,Polynomial.degree_taylor,Polynomial.degree_eq_natDegree hz] at hl
   have hn : (Polynomial.taylor h p-p).natDegree < p.natDegree := by exact_mod_cast hl

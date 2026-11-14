@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.DiscreteSim08.MainResults.Defs
-import Qatlib.Papers.DiscreteSim08.MainResults.Theorem1
-import Qatlib.Papers.DiscreteSim08.MainResults.Budget
+module
+
+public import Qatlib.Papers.DiscreteSim08.MainResults.Defs
+public import Qatlib.Papers.DiscreteSim08.MainResults.Theorem1
+public import Qatlib.Papers.DiscreteSim08.MainResults.Budget
+
+@[expose] public section
 
 /-!
 # Source-witness query and known-unitary bounds

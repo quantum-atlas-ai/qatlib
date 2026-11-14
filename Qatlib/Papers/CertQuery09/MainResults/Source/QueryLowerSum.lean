@@ -4,24 +4,28 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Group.DivInvMonoid
-import Mathlib.Algebra.Order.Archimedean.Real.Basic
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.Normed.Group.Defs
-import Mathlib.Analysis.Normed.Ring.Basic
-import Mathlib.Analysis.RCLike.Basic
-import Mathlib.Basic.Real.Basic
-import Mathlib.Basic.SetLike.Basic
-import Mathlib.Data.Finset.Basic
-import Mathlib.Data.Finset.Defs
-import Mathlib.Data.Finset.Lattice.Fold
-import Mathlib.Data.Fintype.Basic
-import Mathlib.Data.Fintype.Defs
-import Mathlib.Data.Set.Defs
-import Mathlib.LinearAlgebra.Matrix.Defs
-import Mathlib.LinearAlgebra.Matrix.Hadamard
-import Mathlib.Order.Bounds.Defs
-import Mathlib.Tactic
+module
+
+public import Mathlib.Algebra.Group.DivInvMonoid
+public import Mathlib.Algebra.Order.Archimedean.Real.Basic
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.Normed.Group.Defs
+public import Mathlib.Analysis.Normed.Ring.Basic
+public import Mathlib.Analysis.RCLike.Basic
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Basic.SetLike.Basic
+public import Mathlib.Data.Finset.Basic
+public import Mathlib.Data.Finset.Defs
+public import Mathlib.Data.Finset.Lattice.Fold
+public import Mathlib.Data.Fintype.Basic
+public import Mathlib.Data.Fintype.Defs
+public import Mathlib.Data.Set.Defs
+public import Mathlib.LinearAlgebra.Matrix.Defs
+public import Mathlib.LinearAlgebra.Matrix.Hadamard
+public import Mathlib.Order.Bounds.Defs
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Nonnegative adversary values and product inputs
@@ -93,8 +97,8 @@ theorem diffMatrix_symm {ι : Type*} {n : ℕ} (bit : ι → Fin n → Bool) (i 
   intro x y
   unfold diffMatrix
   by_cases h : bit x i = bit y i
-  · rw [if_pos h, if_pos h.symm]
-  · rw [if_neg h, if_neg (fun hh => h hh.symm)]
+  · rw [ite_eq_left h, ite_eq_left h.symm]
+  · rw [ite_eq_right h, ite_eq_right (fun hh => h hh.symm)]
 
 /-- The entrywise product of two symmetric real matrices is symmetric. -/
 theorem hadamard_symm {ι : Type*} (A B : Matrix ι ι ℝ)

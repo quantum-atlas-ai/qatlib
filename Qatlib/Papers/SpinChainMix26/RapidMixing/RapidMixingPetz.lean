@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SpinChainMix26.RapidMixing.RapidMixingPetzCoreDefs
-import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
-import Mathlib.Analysis.Matrix.Order
-import Mathlib.Analysis.SpecialFunctions.ContinuousFunctionalCalculus.Rpow.Basic
-import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Order
-import Mathlib.Tactic.NoncommRing
+module
+
+public import Qatlib.Papers.SpinChainMix26.RapidMixing.RapidMixingPetzCoreDefs
+public import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
+public import Mathlib.Analysis.Matrix.Order
+public import Mathlib.Analysis.SpecialFunctions.ContinuousFunctionalCalculus.Rpow.Basic
+public import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Order
+public import Mathlib.Tactic.NoncommRing
+
+@[expose] public section
 
 /-!
 # Petz heat-bath identities and zero-Hamiltonian evolution
@@ -227,7 +231,7 @@ lemma partialTrace_smul_one {D E : ℕ} (c : ℂ) :
     have hL : (∑ a : Fin E, c * if (i, a) = (j, a) then 1 else 0) = 0 := by
       simp [h1]
     have hR : (c * (E : ℂ)) * (if i = j then 1 else 0) = 0 := by
-      rw [if_neg hij, mul_zero]
+      rw [ite_eq_right hij, mul_zero]
     rw [hL, hR]
 
 /-- Simultaneous reindexing of both matrix indices preserves the identity matrix. -/
@@ -646,7 +650,7 @@ lemma petzHeatBath_smul_one_diag {n ℓ d : ℕ} (c : PetzCut n ℓ) (k : ℝ) (
       ρ (e.symm (configEquiv (n - ℓ) d (cutSplitConfig c g).1, b))
         (e.symm (configEquiv (n - ℓ) d (cutSplitConfig c g).1, b)))
     (fun h => by
-      beta_reduce
+
       rw [matrixEquiv_symm_recombine])).symm
 
 /-- The inverse configuration-splitting equivalence is `recombine`. -/
@@ -799,7 +803,7 @@ lemma sum_re_diag_recombine {n ℓ d : ℕ} (c : PetzCut n ℓ) (ρ : Operator (
       simp only [siteMarginalMass]
       exact Finset.sum_congr rfl (fun y _ => by
         by_cases hy : y i = out <;> simp [hy])
-    rw [hchain, if_neg]
+    rw [hchain, ite_eq_right]
     rintro ⟨j, hj⟩
     simp at hj
   · have hiv : ∀ (u : Fin (n - ℓ) → Fin d) (v : Fin ℓ → Fin d),
@@ -840,7 +844,7 @@ lemma sum_re_diag_recombine {n ℓ d : ℕ} (c : PetzCut n ℓ) (ρ : Operator (
       rw [huhsplit (fun y : SiteConfig n d =>
         (ρ (configEquiv n d y) (configEquiv n d y)).re)]
       exact sum_re_diag_configEquiv ρ
-    rw [hsum, if_pos ⟨j, rfl⟩]
+    rw [hsum, ite_eq_left ⟨j, rfl⟩]
 
 /-- For a positive scalar reference and `d > 0`, a Petz update sets block-site marginal masses
 to `Re (trace ρ) / d` and preserves complementary-site marginal masses. -/
@@ -878,9 +882,9 @@ lemma siteMarginalMass_petzHeatBath_smul_one {n ℓ d : ℕ} (c : PetzCut n ℓ)
                 (configEquiv n d (recombine c (cutSplitConfig c g).1 h))).re) := by
     intro g
     by_cases hg : g i = out
-    · rw [if_pos hg, if_pos hg]
+    · rw [ite_eq_left hg, ite_eq_left hg]
       simp
-    · rw [if_neg hg, if_neg hg]
+    · rw [ite_eq_right hg, ite_eq_right hg]
       simp
   have hA : (∑ g : SiteConfig n d,
         (if g i = out then (((d ^ ℓ : ℕ) : ℝ)⁻¹) *
@@ -911,7 +915,7 @@ lemma siteMarginalMass_petzHeatBath_smul_one {n ℓ d : ℕ} (c : PetzCut n ℓ)
   rw [hB, sum_re_diag_recombine c ρ i out]
   by_cases hb : ∃ j : Fin ℓ, c.siteSplit i = Sum.inr j
   · obtain ⟨j, hj⟩ := hb
-    simp only [if_pos (show ∃ j : Fin ℓ, c.siteSplit i = Sum.inr j from ⟨j, hj⟩)]
+    simp only [ite_eq_left (show ∃ j : Fin ℓ, c.siteSplit i = Sum.inr j from ⟨j, hj⟩)]
     have hL : (d : ℝ) ^ ℓ = (d : ℝ) ^ (ℓ - 1) * d := by
       have h0 : 0 < ℓ := Fin.pos j
       conv_lhs => rw [← Nat.succ_pred_eq_of_pos h0]
@@ -922,7 +926,7 @@ lemma siteMarginalMass_petzHeatBath_smul_one {n ℓ d : ℕ} (c : PetzCut n ℓ)
     have hco : (((d ^ ℓ : ℕ) : ℝ)⁻¹) * (d : ℝ) ^ (ℓ - 1) = (d : ℝ)⁻¹ := by
       rw [Nat.cast_pow, hL, mul_inv_rev, mul_assoc, inv_mul_cancel₀ hpow0, mul_one]
     rw [← mul_assoc, hco, one_div]
-  · simp only [if_neg hb]
+  · simp only [ite_eq_right hb]
     have hco2 : (((d ^ ℓ : ℕ) : ℝ)⁻¹) * (d : ℝ) ^ ℓ = 1 := by
       rw [Nat.cast_pow]
       exact inv_mul_cancel₀ (pow_ne_zero _ (by positivity))
@@ -1013,10 +1017,10 @@ lemma siteMarginalMass_petzGenerator_zero {n ℓ d : ℕ} (β : ℝ) (hd : 0 < d
     by_cases hb : ∃ j : Fin ℓ, (cuts s).siteSplit i = Sum.inr j
     · obtain ⟨j, hj⟩ := hb
       have hmod : (i + n - s.val) % n < ℓ := (hc s i).mp ⟨j, hj⟩
-      simp only [if_pos (show ∃ j : Fin ℓ, (cuts s).siteSplit i = Sum.inr j from ⟨j, hj⟩),
-        if_pos hmod]
+      simp only [ite_eq_left (show ∃ j : Fin ℓ, (cuts s).siteSplit i = Sum.inr j from ⟨j, hj⟩),
+        ite_eq_left hmod]
     · have hmod : ¬ (i + n - s.val) % n < ℓ := fun hh => hb ((hc s i).mpr hh)
-      simp only [if_neg hb, if_neg hmod, sub_self]
+      simp only [ite_eq_right hb, ite_eq_right hmod, sub_self]
   have hscalar : ((1 : ℂ) / ℓ) = (((((ℓ : ℕ) : ℝ)⁻¹ : ℝ) : ℂ)) := by
     rw [one_div]
     exact cast_inv_nat _
@@ -1234,11 +1238,11 @@ lemma tensorProductConfig_pureZero_diag {n d : ℕ} (g : SiteConfig n d) :
   simp only [h1]
   by_cases h : ∀ i : Fin n, (g i).val = 0
   · have h2 : ∀ i : Fin n, (if (g i).val = 0 then (1 : ℂ) else 0) = 1 :=
-      fun i => if_pos (h i)
+      fun i => ite_eq_left (h i)
     simp only [h2, Finset.prod_const_one]
-    rw [if_pos h]
+    rw [ite_eq_left h]
   · obtain ⟨i0, hi0⟩ := not_forall.mp h
-    rw [if_neg h]
+    rw [ite_eq_right h]
     apply Finset.prod_eq_zero (i := i0)
     · exact Finset.mem_univ i0
     · simp [hi0]
@@ -1255,7 +1259,7 @@ lemma tensorProductOp_pureZero_diag {n d : ℕ} (g : SiteConfig n d) :
 /-- For `d > 0`, the indicator of the all-zero site configuration sums to one. -/
 lemma sum_ite_all_zero {n d : ℕ} (hd : 0 < d) :
     (∑ g : SiteConfig n d, if ∀ i : Fin n, (g i).val = 0 then (1 : ℂ) else 0) = 1 := by
-  haveI : NeZero d := NeZero.of_pos hd
+  have : NeZero d := NeZero.of_pos hd
   have hmem : ∀ g : SiteConfig n d,
       (∀ i : Fin n, (g i).val = 0) ↔ g = fun _ => (0 : Fin d) := by
     intro g
@@ -1295,7 +1299,7 @@ zero and zero otherwise. -/
 lemma siteMarginalMass_pureZero {n d : ℕ} (hd : 0 < d) (i : Fin n) (out : Fin d) :
     siteMarginalMass (tensorProductOp (fun _ : Fin n => pureZero d)) i out
       = if out.val = 0 then (1 : ℝ) else 0 := by
-  haveI : NeZero d := NeZero.of_pos hd
+  have : NeZero d := NeZero.of_pos hd
   simp only [siteMarginalMass]
   have hdiag : ∀ g : SiteConfig n d,
       (tensorProductOp (fun _ : Fin n => pureZero d) (configEquiv n d g) (configEquiv n d g)).re
@@ -1308,8 +1312,8 @@ lemma siteMarginalMass_pureZero {n d : ℕ} (hd : 0 < d) (i : Fin n) (out : Fin 
         = (if ∀ j : Fin n, (g j).val = 0 then (1 : ℝ) else 0) := by
     intro g
     by_cases hh : ∀ j : Fin n, (g j).val = 0
-    · rw [if_pos hh, if_pos hh, Complex.one_re]
-    · rw [if_neg hh, if_neg hh, Complex.zero_re]
+    · rw [ite_eq_left hh, ite_eq_left hh, Complex.one_re]
+    · rw [ite_eq_right hh, ite_eq_right hh, Complex.zero_re]
   simp only [hre]
   have hcom : ∀ g : SiteConfig n d,
       (if g i = out then (if ∀ j : Fin n, (g j).val = 0 then (1 : ℝ) else 0) else 0)
@@ -1320,7 +1324,7 @@ lemma siteMarginalMass_pureZero {n d : ℕ} (hd : 0 < d) (i : Fin n) (out : Fin 
     · simp [h1]
   simp only [hcom]
   by_cases hout : out.val = 0
-  · rw [if_pos hout]
+  · rw [ite_eq_left hout]
     have hC : ∀ g : SiteConfig n d,
         (g i = out ∧ ∀ j : Fin n, (g j).val = 0) ↔ g = fun _ => (0 : Fin d) := by
       intro g
@@ -1342,7 +1346,7 @@ lemma siteMarginalMass_pureZero {n d : ℕ} (hd : 0 < d) (i : Fin n) (out : Fin 
       intro g _
       simp only [hC]
     rw [h2, Fintype.sum_ite_eq']
-  · rw [if_neg hout]
+  · rw [ite_eq_right hout]
     have hC : ∀ g : SiteConfig n d, ¬ (g i = out ∧ ∀ j : Fin n, (g j).val = 0) := by
       intro g ⟨h1, h2⟩
       have hgi : (g i).val = 0 := h2 i
@@ -1350,7 +1354,7 @@ lemma siteMarginalMass_pureZero {n d : ℕ} (hd : 0 < d) (i : Fin n) (out : Fin 
       exact hout (by simpa using hgi)
     rw [Finset.sum_eq_zero]
     intro g _
-    exact if_neg (hC g)
+    exact ite_eq_right (hC g)
 
 /-- For a positive scalar reference and `d > 0`, the Petz heat-bath map preserves trace. -/
 lemma trace_petzHeatBath_smul_one {n ℓ d : ℕ} (c : PetzCut n ℓ) (k : ℝ) (hk : 0 < k)
@@ -1400,7 +1404,7 @@ lemma trace_iterate_petzGenerator_zero {n ℓ d : ℕ} (β : ℝ) (hd : 0 < d)
   | zero => simp
   | succ k ih =>
     rw [Function.iterate_succ_apply', trace_petzGenerator_zero β hd cuts,
-      if_neg (Nat.succ_ne_zero k)]
+      ite_eq_right (Nat.succ_ne_zero k)]
 
 /-- For cyclic cuts with `d > 0` and `0 < ℓ ≤ n`, positive iterates of the zero-Hamiltonian
 generator alternate the initial site's deviation from `1 / d` on trace-one inputs. -/
@@ -1425,12 +1429,12 @@ lemma siteMarginalMass_iterate_petzGenerator_zero {n ℓ d : ℕ} (β : ℝ) (hd
       by_cases hk : k = 0 <;> simp [hk, htr]
     rw [Function.iterate_succ_apply',
       siteMarginalMass_petzGenerator_zero β hd hℓ hle cuts hc, htrk, ih,
-      if_neg (by omega : ¬(k + 1 = 0))]
+      ite_eq_right (by omega : ¬(k + 1 = 0))]
     have hd0 : (d : ℝ) ≠ 0 := by positivity
     by_cases hk : k = 0
     · rw [hk]
       simp
-    · rw [if_neg hk, if_neg hk, pow_succ]
+    · rw [ite_eq_right hk, ite_eq_right hk, pow_succ]
       ring
 
 end Qatlib.Papers.SpinChainMix26.RapidMixing.RapidMixingPetz
@@ -1562,7 +1566,7 @@ entries divided by factorials. -/
 lemma exp_matrix_entry {D : ℕ} (x : Matrix (Fin D) (Fin D) ℂ) (i j : Fin D) :
     NormedSpace.exp x i j
       = ∑' k : ℕ, ((k.factorial : ℂ)⁻¹ * (x ^ k) i j) := by
-  letI : CompleteSpace (Matrix (Fin D) (Fin D) ℂ) := inferInstance
+  let : CompleteSpace (Matrix (Fin D) (Fin D) ℂ) := inferInstance
   have hsum : Summable (fun k : ℕ => ((k.factorial : ℂ)⁻¹ • x ^ k)) :=
     NormedSpace.expSeries_summable' (𝕂 := ℂ) x
   have hexp : NormedSpace.exp x = ∑' k : ℕ, ((k.factorial : ℂ)⁻¹ • x ^ k) := by
@@ -1588,10 +1592,10 @@ lemma exp_matrix_entry_gen {m : Type*} [Fintype m] [DecidableEq m]
     (x : Matrix m m ℂ) (i j : m) :
     NormedSpace.exp x i j
       = ∑' k : ℕ, ((k.factorial : ℂ)⁻¹ * (x ^ k) i j) := by
-  letI : NormedAddCommGroup (Matrix m m ℂ) := Matrix.linftyOpNormedAddCommGroup
-  letI : NormedRing (Matrix m m ℂ) := Matrix.linftyOpNormedRing
-  letI : NormedAlgebra ℂ (Matrix m m ℂ) := Matrix.linftyOpNormedAlgebra
-  letI : CompleteSpace (Matrix m m ℂ) := inferInstance
+  let : NormedAddCommGroup (Matrix m m ℂ) := Matrix.linftyOpNormedAddCommGroup
+  let : NormedRing (Matrix m m ℂ) := Matrix.linftyOpNormedRing
+  let : NormedAlgebra ℂ (Matrix m m ℂ) := Matrix.linftyOpNormedAlgebra
+  let : CompleteSpace (Matrix m m ℂ) := inferInstance
   have hsum : Summable (fun k : ℕ => ((k.factorial : ℂ)⁻¹ • x ^ k)) :=
     NormedSpace.expSeries_summable' (𝕂 := ℂ) x
   have hexp : NormedSpace.exp x = ∑' k : ℕ, ((k.factorial : ℂ)⁻¹ • x ^ k) := by
@@ -1667,10 +1671,10 @@ summable at every real time. -/
 lemma summable_coeff_pow {m : Type*} [Fintype m] [DecidableEq m]
     (t : ℝ) (M : Matrix m m ℂ) (p q : m) :
     Summable (fun k : ℕ => (((t : ℝ) ^ k / (k.factorial : ℝ) : ℝ) : ℂ) * ((M ^ k) p q)) := by
-  letI : NormedAddCommGroup (Matrix m m ℂ) := Matrix.linftyOpNormedAddCommGroup
-  letI : NormedRing (Matrix m m ℂ) := Matrix.linftyOpNormedRing
-  letI : NormedAlgebra ℂ (Matrix m m ℂ) := Matrix.linftyOpNormedAlgebra
-  letI : CompleteSpace (Matrix m m ℂ) := inferInstance
+  let : NormedAddCommGroup (Matrix m m ℂ) := Matrix.linftyOpNormedAddCommGroup
+  let : NormedRing (Matrix m m ℂ) := Matrix.linftyOpNormedRing
+  let : NormedAlgebra ℂ (Matrix m m ℂ) := Matrix.linftyOpNormedAlgebra
+  let : CompleteSpace (Matrix m m ℂ) := inferInstance
   have hsum : Summable (fun k : ℕ => ((k.factorial : ℂ)⁻¹ • ((t : ℂ) • M) ^ k)) :=
     NormedSpace.expSeries_summable' (𝕂 := ℂ) ((t : ℂ) • M)
   have hs1 : Summable (fun k : ℕ =>
@@ -1988,7 +1992,7 @@ lemma siteMarginalMass_superExp_zero {n ℓ d : ℕ} (hd : 0 < d) (hℓ : 0 < �
             * (siteMarginalMass ρ0 i out - 1 / (d : ℝ)) := by
     intro k
     rw [hiter (k + 1)]
-    rw [if_neg (by omega : ¬(k + 1 = 0))]
+    rw [ite_eq_right (by omega : ¬(k + 1 = 0))]
     ring
   have hg : Summable (fun n : ℕ => ((-(t : ℝ)) ^ n / (n.factorial : ℝ))) :=
     summable_pow_div_factorial (-(t : ℝ))
@@ -2045,7 +2049,7 @@ minus one otherwise. -/
 lemma probeSign_diag_configEquiv {n d : ℕ} (i : Fin n) (out : Fin d) (g : SiteConfig n d) :
     probeSign i out (configEquiv n d g) (configEquiv n d g)
       = if g i = out then (1 : ℂ) else -1 := by
-  rw [probeSign_apply, if_pos rfl, Equiv.symm_apply_apply]
+  rw [probeSign_apply, ite_eq_left rfl, Equiv.symm_apply_apply]
 
 /-- The conjugate transpose of a sign probe times the probe is the identity. -/
 lemma probeSign_mul_conjTranspose {n d : ℕ} (i : Fin n) (out : Fin d) :
@@ -2057,9 +2061,9 @@ lemma probeSign_mul_conjTranspose {n d : ℕ} (i : Fin n) (out : Fin d) :
         * (if (configEquiv n d).symm j i = out then (1 : ℂ) else -1) = 1 := by
     intro j
     by_cases h : (configEquiv n d).symm j i = out
-    · rw [if_pos h]
+    · rw [ite_eq_left h]
       norm_num
-    · rw [if_neg h]
+    · rw [ite_eq_right h]
       norm_num
   rw [← Matrix.diagonal_one, Matrix.diagonal_eq_diagonal_iff]
   intro j
@@ -2090,7 +2094,7 @@ lemma trace_probeSign_mul_re {n d : ℕ} (X : Operator (d ^ n)) (i : Fin n) (out
     intro j
     refine Finset.sum_eq_single j (fun k _ hk => ?_) (fun hj => absurd (Finset.mem_univ j) hj)
     show probeSign i out j k * X k j = 0
-    rw [probeSign_apply, if_neg (Ne.symm hk), zero_mul]
+    rw [probeSign_apply, ite_eq_right (Ne.symm hk), zero_mul]
   have hre : ((probeSign i out * X).trace).re
       = ∑ g : SiteConfig n d,
           ((probeSign i out (configEquiv n d g) (configEquiv n d g))
@@ -2114,9 +2118,9 @@ lemma trace_probeSign_mul_re {n d : ℕ} (X : Operator (d ^ n)) (i : Fin n) (out
     intro g
     rw [probeSign_diag_configEquiv]
     by_cases hg : g i = out
-    · rw [if_pos hg, if_pos hg, if_pos hg]
+    · rw [ite_eq_left hg, ite_eq_left hg, ite_eq_left hg]
       simp
-    · rw [if_neg hg, if_neg hg, if_neg hg]
+    · rw [ite_eq_right hg, ite_eq_right hg, ite_eq_right hg]
       simp
   have hm : siteMarginalMass X i out
       = ∑ g : SiteConfig n d,
@@ -2218,7 +2222,7 @@ lemma siteMarginalMass_gibbsState_zero {n d : ℕ} (hd : 0 < d) (hn : 0 < n) (β
   simp only [Nat.cast_pow]
   rw [hpow]
   field_simp
-  try ring
+
 
 /-- Summing a site's marginal masses over all its outcomes gives the real part of the operator
 trace. -/
@@ -2281,8 +2285,8 @@ lemma trace_re_superExp_zero {n ℓ d : ℕ} (hd : 0 < d) (hℓ : 0 < ℓ) (hle 
         = ∑ out : Fin d, if out = (⟨0, hd⟩ : Fin d) then (1 : ℝ) else 0 := by
       refine Finset.sum_congr rfl (fun out _ => ?_)
       by_cases h : out.val = 0
-      · rw [if_pos h, if_pos ((hz out).1 h)]
-      · rw [if_neg h, if_neg (fun hh => h ((hz out).2 hh))]
+      · rw [ite_eq_left h, ite_eq_left ((hz out).1 h)]
+      · rw [ite_eq_right h, ite_eq_right (fun hh => h ((hz out).2 hh))]
     rw [h3]
     exact Fintype.sum_ite_eq' (⟨0, hd⟩ : Fin d) (fun _ => (1 : ℝ))
   have hconst : (∑ out : Fin d, (1 / (d : ℝ))) = ((d : ℝ) * (1 / (d : ℝ))) := by
@@ -2296,7 +2300,7 @@ lemma trace_re_superExp_zero {n ℓ d : ℕ} (hd : 0 < d) (hℓ : 0 < ℓ) (hle 
 lemma siteOutputMass_zero_zero (d : ℕ) (t : ℝ) (hd : (d : ℝ) ≠ 0) :
     siteOutputMass d t 0 0 = Real.exp (-t) * (1 - 1 / (d : ℝ)) + 1 / (d : ℝ) := by
   simp only [siteOutputMass]
-  rw [if_pos (trivial : True)]
+  rw [ite_eq_left (trivial : True)]
   field_simp
   ring
 
@@ -3370,9 +3374,9 @@ lemma petzHeatBath_smul_one_entry {n ℓ d : ℕ} (c : PetzCut n ℓ) (k : ℝ) 
       = (if (cutSplitConfig c g).2 = (cutSplitConfig c h).2 then (1 : ℂ) else 0) := by
     rw [Matrix.one_apply]
     by_cases heq : (cutSplitConfig c g).2 = (cutSplitConfig c h).2
-    · rw [if_pos ((configEquiv ℓ d).injective.eq_iff.mpr heq), if_pos heq]
-    · rw [if_neg (fun hcon => heq ((configEquiv ℓ d).injective.eq_iff.mp hcon)),
-        if_neg heq]
+    · rw [ite_eq_left ((configEquiv ℓ d).injective.eq_iff.mpr heq), ite_eq_left heq]
+    · rw [ite_eq_right (fun hcon => heq ((configEquiv ℓ d).injective.eq_iff.mp hcon)),
+        ite_eq_right heq]
   rw [hone]
   have hpt : (PartialTrace (Matrix.reindex e e ρ))
         (configEquiv (n - ℓ) d (cutSplitConfig c g).1)
@@ -3396,12 +3400,12 @@ lemma petzHeatBath_smul_one_entry {n ℓ d : ℕ} (c : PetzCut n ℓ) (k : ℝ) 
         ρ (e.symm (configEquiv (n - ℓ) d (cutSplitConfig c g).1, b))
           (e.symm (configEquiv (n - ℓ) d (cutSplitConfig c h).1, b)))
       (fun b => by
-        beta_reduce
+
         rw [matrixEquiv_symm_recombine, matrixEquiv_symm_recombine])).symm
   rw [hsum]
   by_cases heq : (cutSplitConfig c g).2 = (cutSplitConfig c h).2
-  · rw [if_pos heq, if_pos heq, mul_one]
-  · rw [if_neg heq, if_neg heq]
+  · rw [ite_eq_left heq, ite_eq_left heq, mul_one]
+  · rw [ite_eq_right heq, ite_eq_right heq]
     simp [mul_zero]
 
 end Qatlib.Papers.SpinChainMix26.RapidMixing.RapidMixingPetz
@@ -3580,7 +3584,7 @@ lemma petzHeatBath_smul_one_eq_resetOn {n ℓ d : ℕ} (c : PetzCut n ℓ) (k : 
       rw [cutSplitConfig_snd_apply, cutSplitConfig_snd_apply]
       exact this
   by_cases hδg : ∀ i ∈ cutBlockSites c, g i = h i
-  · rw [if_pos (hδ.mpr hδg), if_pos hδg, cutBlockSites_card]
+  · rw [ite_eq_left (hδ.mpr hδg), ite_eq_left hδg, cutBlockSites_card]
     congr 1
     have hsum : (∑ b : Fin ℓ → Fin d,
           ρ (configEquiv n d (recombine c (cutSplitConfig c g).1 b))
@@ -3632,18 +3636,18 @@ lemma petzHeatBath_smul_one_eq_resetOn {n ℓ d : ℕ} (c : PetzCut n ℓ) (k : 
             obtain ⟨j', hj'⟩ := hm
             rw [hh] at hj'
             exact absurd hj' (by simp)
-          rw [if_neg hmem, cutSplitConfig_fst_apply]
+          rw [ite_eq_right hmem, cutSplitConfig_fst_apply]
           rw [← hh, Equiv.symm_apply_apply]
         | inr jj =>
           rw [recombine_apply_inr _ _ _ hh]
           have hmem : i ∈ cutBlockSites c := by
             simp only [cutBlockSites, Finset.mem_filter, Finset.mem_univ, true_and]
             exact ⟨jj, by simp [hh]⟩
-          rw [if_pos hmem]
+          rw [ite_eq_left hmem]
           show b jj = recombine c (cutSplitConfig c g).1 b i
           rw [recombine_apply_inr _ _ _ hh]
     rw [hsum]
-  · rw [if_neg (fun heq => hδg (hδ.mp heq)), if_neg hδg]
+  · rw [ite_eq_right (fun heq => hδg (hδ.mp heq)), ite_eq_right hδg]
 
 end Qatlib.Papers.SpinChainMix26.RapidMixing.RapidMixingPetz
 
@@ -3672,12 +3676,12 @@ lemma matchEquivInv_mem {n d : ℕ} (U B : Finset (Fin n)) (g a : SiteConfig n d
   · intro i hiB
     unfold matchEquivInv
     by_cases hiU : i ∈ U
-    · rw [dif_pos hiU, dif_neg hiB]
-    · rw [dif_neg hiU]
+    · rw [dite_eq_left hiU, dite_eq_right hiB]
+    · rw [dite_eq_right hiU]
       exact hval i (by simp [Finset.mem_union, hiU, hiB])
   · intro i hiU
     unfold matchEquivInv
-    rw [dif_neg hiU]
+    rw [dite_eq_right hiU]
 
 /-- Configurations agreeing with `g` outside `B` and with `a` outside `U` number `d ^ (U ∩
 B).card` when the exterior data agree, and zero otherwise. -/
@@ -3687,7 +3691,7 @@ lemma card_configs_match {n d : ℕ} (U B : Finset (Fin n)) (g a : SiteConfig n 
     = if (∀ i ∉ (U ∪ B), a i = g i) then d ^ (U ∩ B).card else 0 := by
   classical
   by_cases hval : ∀ i ∉ (U ∪ B), a i = g i
-  · rw [if_pos hval]
+  · rw [ite_eq_left hval]
     have e : {c : SiteConfig n d // (∀ i ∉ B, c i = g i) ∧ (∀ i ∉ U, c i = a i)}
         ≃ (↥(U ∩ B) → Fin d) :=
       { toFun := fun c i => c.1 i
@@ -3700,10 +3704,10 @@ lemma card_configs_match {n d : ℕ} (U B : Finset (Fin n)) (g a : SiteConfig n 
           by_cases hiU : i ∈ U
           · by_cases hiB : i ∈ B
             · have hi : i ∈ U ∩ B := Finset.mem_inter.mpr ⟨hiU, hiB⟩
-              simp only [matchEquivInv, dif_pos hiU, dif_pos hiB]
-            · simp only [matchEquivInv, dif_pos hiU, dif_neg hiB]
+              simp only [matchEquivInv, dite_eq_left hiU, dite_eq_left hiB]
+            · simp only [matchEquivInv, dite_eq_left hiU, dite_eq_right hiB]
               exact (hc.1 i hiB).symm
-          · simp only [matchEquivInv, dif_neg hiU]
+          · simp only [matchEquivInv, dite_eq_right hiU]
             by_cases hiB : i ∈ B
             · exact (hc.2 i hiU).symm
             · have hi : i ∉ U ∪ B := by simp [Finset.mem_union, hiU, hiB]
@@ -3715,7 +3719,7 @@ lemma card_configs_match {n d : ℕ} (U B : Finset (Fin n)) (g a : SiteConfig n 
           have hi' := Finset.mem_inter.mp hi
           have hiU : i0 ∈ U := hi'.1
           have hiB : i0 ∈ B := hi'.2
-          simp only [matchEquivInv, dif_pos hiU, dif_pos hiB] }
+          simp only [matchEquivInv, dite_eq_left hiU, dite_eq_left hiB] }
     have hcard1 : (Finset.univ.filter (fun c : SiteConfig n d =>
         (∀ i ∉ B, c i = g i) ∧ (∀ i ∉ U, c i = a i))).card
         = Fintype.card {c : SiteConfig n d // (∀ i ∉ B, c i = g i) ∧ (∀ i ∉ U, c i = a i)} := by
@@ -3743,7 +3747,7 @@ lemma card_configs_match {n d : ℕ} (U B : Finset (Fin n)) (g a : SiteConfig n 
         Fintype.card_coe _
       rw [hcoe]
     rw [hcard1, hcard2, hcard3]
-  · rw [if_neg hval]
+  · rw [ite_eq_right hval]
     rw [Finset.card_eq_zero, Finset.eq_empty_iff_forall_notMem]
     intro c hc
     simp only [Finset.mem_filter, Finset.mem_univ, true_and] at hc
@@ -3776,11 +3780,11 @@ lemma comp_second_arg {n d : ℕ} (U B : Finset (Fin n)) (a c h : SiteConfig n d
       = (fun i => if i ∈ U ∪ B then a i else h i) := by
   funext i
   by_cases hiU : i ∈ U
-  · rw [if_pos hiU, if_pos (by simp [Finset.mem_union, hiU] : i ∈ U ∪ B)]
+  · rw [ite_eq_left hiU, ite_eq_left (by simp [Finset.mem_union, hiU] : i ∈ U ∪ B)]
   · by_cases hiB : i ∈ B
-    · rw [if_neg hiU, if_pos hiB, if_pos (by simp [Finset.mem_union, hiB] : i ∈ U ∪ B)]
+    · rw [ite_eq_right hiU, ite_eq_left hiB, ite_eq_left (by simp [Finset.mem_union, hiB] : i ∈ U ∪ B)]
       exact (hmatch i hiU).symm ▸ rfl
-    · rw [if_neg hiU, if_neg hiB, if_neg (by simp [Finset.mem_union, hiU, hiB] : i ∉ U ∪ B)]
+    · rw [ite_eq_right hiU, ite_eq_right hiB, ite_eq_right (by simp [Finset.mem_union, hiU, hiB] : i ∉ U ∪ B)]
 
 /-- Under agreement of `c` and `g` outside `B`, the reset matching condition on `U` reduces to
 agreement of `g` and `h` on `U` outside `B`. -/
@@ -3793,13 +3797,13 @@ lemma delta_comp {n d : ℕ} (U B : Finset (Fin n)) (g c h : SiteConfig n d)
     have hc : c i = (if i ∈ B then c i else h i) := by
       show c i = (fun j => if j ∈ B then c j else h j) i
       exact hall i hiU
-    rw [if_neg hiB] at hc
+    rw [ite_eq_right hiB] at hc
     rw [← hc, hcg i hiB]
   · intro hall i hiU
     show c i = if i ∈ B then c i else h i
     by_cases hiB : i ∈ B
-    · rw [if_pos hiB]
-    · rw [if_neg hiB]
+    · rw [ite_eq_left hiB]
+    · rw [ite_eq_right hiB]
       rw [hcg i hiB]
       exact hall i hiU hiB
 
@@ -3863,7 +3867,7 @@ lemma sum_sum_count {n d : ℕ} (U B : Finset (Fin n)) (g : SiteConfig n d)
     apply Finset.sum_congr rfl
     intro c _
     by_cases hc : ∀ i ∉ B, c i = g i
-    · rw [if_pos hc]
+    · rw [ite_eq_left hc]
       have hq : (Finset.univ.filter
             (fun a : SiteConfig n d => (∀ i ∉ B, c i = g i) ∧ (∀ i ∉ U, a i = c i)))
           = (Finset.univ.filter (fun a : SiteConfig n d => (∀ i ∉ U, a i = c i))) := by
@@ -3871,12 +3875,12 @@ lemma sum_sum_count {n d : ℕ} (U B : Finset (Fin n)) (g : SiteConfig n d)
         intro a _
         exact ⟨fun h => h.2, fun h => ⟨hc, h⟩⟩
       rw [← Finset.sum_filter, ← Finset.sum_filter, hq]
-    · rw [if_neg hc]
+    · rw [ite_eq_right hc]
       have hz : (∑ a : SiteConfig n d,
           (if (∀ i ∉ B, c i = g i) ∧ (∀ i ∉ U, a i = c i) then F a else 0)) = 0 := by
         rw [Finset.sum_eq_zero]
         intro a _
-        rw [if_neg (fun hconj => hc hconj.1)]
+        rw [ite_eq_right (fun hconj => hc hconj.1)]
       rw [hz]
   rw [hswap, Finset.sum_comm]
   have hper : ∀ a : SiteConfig n d,
@@ -3889,8 +3893,8 @@ lemma sum_sum_count {n d : ℕ} (U B : Finset (Fin n)) (g : SiteConfig n d)
     apply Finset.sum_congr rfl
     intro c _
     by_cases hconj : (∀ i ∉ B, c i = g i) ∧ (∀ i ∉ U, a i = c i)
-    · rw [if_pos hconj, if_pos hconj, mul_one]
-    · rw [if_neg hconj, if_neg hconj, mul_zero]
+    · rw [ite_eq_left hconj, ite_eq_left hconj, mul_one]
+    · rw [ite_eq_right hconj, ite_eq_right hconj, mul_zero]
   simp only [hper]
   have hcount : ∀ a : SiteConfig n d,
       (∑ c : SiteConfig n d,
@@ -3913,8 +3917,8 @@ lemma sum_sum_count {n d : ℕ} (U B : Finset (Fin n)) (g : SiteConfig n d)
       simp only [eq_comm]
     rw [h1, hp, card_configs_match]
     by_cases hval : ∀ i ∉ (U ∪ B), a i = g i
-    · rw [if_pos hval, if_pos hval]
-    · rw [if_neg hval, if_neg hval]
+    · rw [ite_eq_left hval, ite_eq_left hval]
+    · rw [ite_eq_right hval, ite_eq_right hval]
       simp
   simp only [hcount]
   have hz : (∑ a : SiteConfig n d,
@@ -3925,8 +3929,8 @@ lemma sum_sum_count {n d : ℕ} (U B : Finset (Fin n)) (g : SiteConfig n d)
     apply Finset.sum_congr rfl
     intro a _
     by_cases hval : ∀ i ∉ (U ∪ B), a i = g i
-    · rw [if_pos hval, if_pos hval, mul_comm]
-    · rw [if_neg hval, if_neg hval]
+    · rw [ite_eq_left hval, ite_eq_left hval, mul_comm]
+    · rw [ite_eq_right hval, ite_eq_right hval]
       simp [mul_zero]
   rw [hz]
 
@@ -3988,7 +3992,7 @@ lemma resetOn_comp {n d : ℕ} (U B : Finset (Fin n)) (ρ : Operator (d ^ n)) (h
     have hD : ∀ i ∈ U, i ∉ B → g i = h i := by
       intro i hiU hiB
       exact hδUB i (by simp [Finset.mem_union, hiU])
-    rw [if_pos hδB, if_pos hδUB]
+    rw [ite_eq_left hδB, ite_eq_left hδUB]
     have hsumform : ∀ c : SiteConfig n d, (∀ i ∉ B, c i = g i) →
         (resetOn U ρ) (configEquiv n d c) (configEquiv n d (fun i => if i ∈ B then c i else h i))
           = (((d ^ U.card : ℕ) : ℂ)⁻¹) *
@@ -3997,16 +4001,16 @@ lemma resetOn_comp {n d : ℕ} (U B : Finset (Fin n)) (ρ : Operator (d ^ n)) (h
       rw [hsplit c]
       have hδ : (∀ i ∈ U, c i = (fun j => if j ∈ B then c j else h j) i) :=
         (delta_comp U B g c h hc).mpr hD
-      rw [if_pos hδ]
+      rw [ite_eq_left hδ]
       congr 1
       apply Finset.sum_congr rfl
       intro a _
       by_cases hpa : ∀ i ∉ U, a i = c i
-      · rw [if_pos hpa, if_pos hpa]
+      · rw [ite_eq_left hpa, ite_eq_left hpa]
         rw [hF]
         congr 1
         exact congrArg (configEquiv n d) (comp_second_arg U B a c h hpa)
-      · rw [if_neg hpa, if_neg hpa]
+      · rw [ite_eq_right hpa, ite_eq_right hpa]
     have hrew : (∑ c : SiteConfig n d,
           (if ∀ i ∉ B, c i = g i then
             (resetOn U ρ) (configEquiv n d c)
@@ -4026,8 +4030,8 @@ lemma resetOn_comp {n d : ℕ} (U B : Finset (Fin n)) (ρ : Operator (d ^ n)) (h
         apply Finset.sum_congr rfl
         intro c _
         by_cases hc : ∀ i ∉ B, c i = g i
-        · rw [if_pos hc, if_pos hc, hsumform c hc]
-        · rw [if_neg hc, if_neg hc]
+        · rw [ite_eq_left hc, ite_eq_left hc, hsumform c hc]
+        · rw [ite_eq_right hc, ite_eq_right hc]
       rw [h1]
       have hL : (∑ c : SiteConfig n d,
             (if ∀ i ∉ B, c i = g i then
@@ -4048,9 +4052,9 @@ lemma resetOn_comp {n d : ℕ} (U B : Finset (Fin n)) (ρ : Operator (d ^ n)) (h
       have hsc := cast_pow_inv_scalar hcards hd
       exact hsc
     rw [← mul_assoc, ← mul_assoc, hkey]
-  · rw [if_neg hδUB]
+  · rw [ite_eq_right hδUB]
     by_cases hδB : ∀ i ∈ B, g i = h i
-    · rw [if_pos hδB]
+    · rw [ite_eq_left hδB]
       have hDneg : ¬∀ i ∈ U, i ∉ B → g i = h i := by
         intro hall
         apply hδUB
@@ -4066,9 +4070,9 @@ lemma resetOn_comp {n d : ℕ} (U B : Finset (Fin n)) (ρ : Operator (d ^ n)) (h
             intro hall
             apply hDneg
             exact (delta_comp U B g c h hpc).mp hall
-          rw [if_pos hpc, hsplit c, if_neg hδ]
-        · rw [if_neg hpc]
+          rw [ite_eq_left hpc, hsplit c, ite_eq_right hδ]
+        · rw [ite_eq_right hpc]
       rw [hz, mul_zero]
-    · rw [if_neg hδB]
+    · rw [ite_eq_right hδB]
 
 end Qatlib.Papers.SpinChainMix26.RapidMixing.RapidMixingPetz

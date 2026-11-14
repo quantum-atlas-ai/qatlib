@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QCircuitYao93.QuantumComm.ProtocolLowerBound
+module
+
+public import Qatlib.Papers.QCircuitYao93.QuantumComm.ProtocolLowerBound
+
+@[expose] public section
 
 /-!
 # Feature counts and iterated logarithmic bounds

@@ -4,17 +4,21 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.QuantumAccess.ResidualDiagnosticContracts
-import Qatlib.Concepts.WalkSearch.QuantumAccess.SafeGroverNative
-import Qatlib.Concepts.WalkSearch.QuantumAccess.NoisySearchNative
-import Qatlib.Concepts.WalkSearch.Primitives.KCollisionNative
-import Qatlib.Concepts.WalkSearch.Primitives.StoredSubgraphSUC
-import Qatlib.Concepts.WalkSearch.WalkAlgorithms.StoredSubgraphSUCSourceCorrectedQuan
-import Qatlib.Concepts.WalkSearch.Primitives.Th5Numeric
-import Qatlib.Concepts.WalkSearch.WalkAlgorithms.Th5NumericPolylogQuan
-import Qatlib.Concepts.WalkSearch.CollisionSearch.RealExponentTransportQuan
-import Qatlib.Concepts.WalkSearch.Primitives.DLoNonvacuityQuan
-import Qatlib.Concepts.WalkSearch.Primitives.FiniteResourceBounds
+module
+
+public import Qatlib.Concepts.WalkSearch.QuantumAccess.ResidualDiagnosticContracts
+public import Qatlib.Concepts.WalkSearch.QuantumAccess.SafeGroverNative
+public import Qatlib.Concepts.WalkSearch.QuantumAccess.NoisySearchNative
+public import Qatlib.Concepts.WalkSearch.Primitives.KCollisionNative
+public import Qatlib.Concepts.WalkSearch.Primitives.StoredSubgraphSUC
+public import Qatlib.Concepts.WalkSearch.WalkAlgorithms.StoredSubgraphSUCSourceCorrectedQuan
+public import Qatlib.Concepts.WalkSearch.Primitives.Th5Numeric
+public import Qatlib.Concepts.WalkSearch.WalkAlgorithms.Th5NumericPolylogQuan
+public import Qatlib.Concepts.WalkSearch.CollisionSearch.RealExponentTransportQuan
+public import Qatlib.Concepts.WalkSearch.Primitives.DLoNonvacuityQuan
+public import Qatlib.Concepts.WalkSearch.Primitives.FiniteResourceBounds
+
+@[expose] public section
 
 /-!
 # Specifications for triangle search diagnostics

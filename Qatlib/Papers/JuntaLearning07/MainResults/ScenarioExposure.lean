@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.JuntaLearning07.MainResults.InfluenceIdentification
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.Complex.Exponential
+module
+
+public import Qatlib.Papers.JuntaLearning07.MainResults.InfluenceIdentification
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.Complex.Exponential
+
+@[expose] public section
 
 /-!
 # Exposing influential coordinates by Fourier sampling

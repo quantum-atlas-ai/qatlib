@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.FiniteLaws.FiniteRationalLikelihood
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.FiniteLaws.SampleEventVariation
+module
+
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.FiniteLaws.FiniteRationalLikelihood
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.FiniteLaws.SampleEventVariation
+
+@[expose] public section
 
 /-!
 # Transporting rational likelihood risk

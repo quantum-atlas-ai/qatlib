@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HamLCUSim12.LCUDeferred.NearbyLCUCorrectedDefinitions
-import Qatlib.Concepts.CoherentSim.ResetDiscard.Theorem13CorrectedHami
-import Qatlib.Concepts.BlockEncoding.Postselection
+module
+
+public import Qatlib.Papers.HamLCUSim12.LCUDeferred.NearbyLCUCorrectedDefinitions
+public import Qatlib.Concepts.CoherentSim.ResetDiscard.Theorem13CorrectedHami
+public import Qatlib.Concepts.BlockEncoding.Postselection
+
+@[expose] public section
 
 /-!
 # Output fibers of the corrected two-unitary circuit
@@ -70,7 +74,7 @@ omit [Fintype I] in
 system identity. -/
 private theorem oneBit_rot_eq (V : Matrix (Fin 2) (Fin 2) ℂ) :
     rotGateCorrected (I := I) 1 0 V = relabelGate (oneLCUBitEquiv (I := I)).symm (TensorGate V 1) := by
-  letI : IsEmpty {j : Fin 1 // j≠0} := ⟨by rintro ⟨j,hj⟩; exact hj (Subsingleton.elim _ _)⟩
+  let : IsEmpty {j : Fin 1 // j≠0} := ⟨by rintro ⟨j,hj⟩; exact hj (Subsingleton.elim _ _)⟩
   ext ⟨z,x⟩ ⟨w,y⟩
   have hr : (fun j : {j : Fin 1 // j≠0} => z j)=(fun j : {j : Fin 1 // j≠0} => w j) :=
     Subsingleton.elim _ _

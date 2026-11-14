@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ShadowModels.UStatBackend.FinitePairUStatistic
+module
+
+public import Qatlib.Concepts.ShadowModels.UStatBackend.FinitePairUStatistic
+
+@[expose] public section
 
 /-!
 # The (S66) upper bound from the exact finite-pair variance identity

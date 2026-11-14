@@ -4,104 +4,108 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Algebra.Defs
-import Mathlib.Algebra.CharZero.Defs
-import Mathlib.Algebra.Field.Defs
-import Mathlib.Algebra.Group.Basic
-import Mathlib.Algebra.Group.Defs
-import Mathlib.Algebra.Group.DivInvMonoid
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.Group.Semigroup
-import Mathlib.Algebra.GroupWithZero.Action.Defs
-import Mathlib.Algebra.GroupWithZero.Basic
-import Mathlib.Algebra.GroupWithZero.Defs
-import Mathlib.Algebra.GroupWithZero.NeZero
-import Mathlib.Algebra.GroupWithZero.Units.Basic
-import Mathlib.Algebra.Module.Defs
-import Mathlib.Algebra.NeZero
-import Mathlib.Algebra.Notation.Pi.Defs
-import Mathlib.Algebra.Order.Archimedean.Real.Basic
-import Mathlib.Algebra.Order.Floor.Defs
-import Mathlib.Algebra.Order.Group.Defs
-import Mathlib.Algebra.Order.Group.Unbundled.Abs
-import Mathlib.Algebra.Order.Group.Unbundled.Basic
-import Mathlib.Algebra.Order.GroupWithZero.Basic
-import Mathlib.Algebra.Order.GroupWithZero.Defs
-import Mathlib.Algebra.Order.Monoid.Defs
-import Mathlib.Algebra.Order.Monoid.Unbundled.Basic
-import Mathlib.Algebra.Order.Monoid.Unbundled.Defs
-import Mathlib.Algebra.Order.Monoid.Unbundled.ExistsOfLE
-import Mathlib.Algebra.Order.Ring.Abs
-import Mathlib.Algebra.Order.Ring.Basic
-import Mathlib.Algebra.Order.Ring.Defs
-import Mathlib.Algebra.Order.Ring.Unbundled.Basic
-import Mathlib.Algebra.Order.Star.Basic
-import Mathlib.Algebra.Order.Star.Real
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Algebra.Ring.IsFormallyReal
-import Mathlib.Algebra.Ring.Nat
-import Mathlib.Algebra.Ring.Parity
-import Mathlib.Analysis.Calculus.Deriv.Add
-import Mathlib.Analysis.Calculus.Deriv.Basic
-import Mathlib.Analysis.Calculus.Deriv.Mul
-import Mathlib.Analysis.InnerProductSpace.Basic
-import Mathlib.Analysis.InnerProductSpace.Defs
-import Mathlib.Analysis.LocallyConvex.AbsConvexOpen
-import Mathlib.Analysis.LocallyConvex.WithSeminorms
-import Mathlib.Analysis.Normed.Field.Basic
-import Mathlib.Analysis.Normed.Group.Defs
-import Mathlib.Analysis.Normed.Group.Real
-import Mathlib.Analysis.Normed.Module.Basic
-import Mathlib.Analysis.Normed.Ring.Basic
-import Mathlib.Analysis.RCLike.Basic
-import Mathlib.Analysis.Real.Sqrt
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Arctan
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.ArctanDeriv
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Basic.Real.Basic
-import Mathlib.Basic.Real.Star
-import Mathlib.Data.Int.Cast.Defs
-import Mathlib.Data.Nat.Cast.Defs
-import Mathlib.Data.Nat.Init
-import Mathlib.Data.Set.Defs
-import Mathlib.Logic.Function.Defs
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.FundThmCalculus
-import Mathlib.MeasureTheory.Measure.Haar.OfBasis
-import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
-import Mathlib.MeasureTheory.Measure.MeasureSpaceDef
-import Mathlib.Order.Defs.Lattice
-import Mathlib.Order.Defs.LinearOrder
-import Mathlib.Order.Defs.PartialOrder
-import Mathlib.Order.Interval.Set.UnorderedInterval
-import Mathlib.Order.Lattice
-import Mathlib.Tactic
-import Mathlib.Tactic.CancelDenoms.Core
-import Mathlib.Tactic.FieldSimp.Lemmas
-import Mathlib.Tactic.Linarith.Lemmas
-import Mathlib.Tactic.NormNum.Basic
-import Mathlib.Tactic.NormNum.Eq
-import Mathlib.Tactic.NormNum.Ineq
-import Mathlib.Tactic.NormNum.Inv
-import Mathlib.Tactic.NormNum.Pow
-import Mathlib.Tactic.NormNum.Result
-import Mathlib.Tactic.Positivity.Core
-import Mathlib.Tactic.Ring.Basic
-import Mathlib.Tactic.Ring.Common
-import Mathlib.Topology.Algebra.Field
-import Mathlib.Topology.Algebra.Group.Defs
-import Mathlib.Topology.Algebra.GroupWithZero
-import Mathlib.Topology.Algebra.Module.ModuleTopology
-import Mathlib.Topology.Algebra.Monoid
-import Mathlib.Topology.Algebra.Monoid.Defs
-import Mathlib.Topology.Algebra.MulAction
-import Mathlib.Topology.Algebra.Ring.Basic
-import Mathlib.Topology.Algebra.Ring.Real
-import Mathlib.Topology.Continuous
-import Mathlib.Topology.Defs.Basic
-import Mathlib.Topology.MetricSpace.Pseudo.Defs
-import Mathlib.Topology.UniformSpace.Defs
-import Mathlib.Topology.UniformSpace.Real
+module
+
+public import Mathlib.Algebra.Algebra.Defs
+public import Mathlib.Algebra.CharZero.Defs
+public import Mathlib.Algebra.Field.Defs
+public import Mathlib.Algebra.Group.Basic
+public import Mathlib.Algebra.Group.Defs
+public import Mathlib.Algebra.Group.DivInvMonoid
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.Group.Semigroup
+public import Mathlib.Algebra.GroupWithZero.Action.Defs
+public import Mathlib.Algebra.GroupWithZero.Basic
+public import Mathlib.Algebra.GroupWithZero.Defs
+public import Mathlib.Algebra.GroupWithZero.NeZero
+public import Mathlib.Algebra.GroupWithZero.Units.Basic
+public import Mathlib.Algebra.Module.Defs
+public import Mathlib.Algebra.NeZero
+public import Mathlib.Algebra.Notation.Pi.Defs
+public import Mathlib.Algebra.Order.Archimedean.Real.Basic
+public import Mathlib.Algebra.Order.Floor.Defs
+public import Mathlib.Algebra.Order.Group.Defs
+public import Mathlib.Algebra.Order.Group.Unbundled.Abs
+public import Mathlib.Algebra.Order.Group.Unbundled.Basic
+public import Mathlib.Algebra.Order.GroupWithZero.Basic
+public import Mathlib.Algebra.Order.GroupWithZero.Defs
+public import Mathlib.Algebra.Order.Monoid.Defs
+public import Mathlib.Algebra.Order.Monoid.Unbundled.Basic
+public import Mathlib.Algebra.Order.Monoid.Unbundled.Defs
+public import Mathlib.Algebra.Order.Monoid.Unbundled.ExistsOfLE
+public import Mathlib.Algebra.Order.Ring.Abs
+public import Mathlib.Algebra.Order.Ring.Basic
+public import Mathlib.Algebra.Order.Ring.Defs
+public import Mathlib.Algebra.Order.Ring.Unbundled.Basic
+public import Mathlib.Algebra.Order.Star.Basic
+public import Mathlib.Algebra.Order.Star.Real
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Algebra.Ring.IsFormallyReal
+public import Mathlib.Algebra.Ring.Nat
+public import Mathlib.Algebra.Ring.Parity
+public import Mathlib.Analysis.Calculus.Deriv.Add
+public import Mathlib.Analysis.Calculus.Deriv.Basic
+public import Mathlib.Analysis.Calculus.Deriv.Mul
+public import Mathlib.Analysis.InnerProductSpace.Basic
+public import Mathlib.Analysis.InnerProductSpace.Defs
+public import Mathlib.Analysis.LocallyConvex.AbsConvexOpen
+public import Mathlib.Analysis.LocallyConvex.WithSeminorms
+public import Mathlib.Analysis.Normed.Field.Basic
+public import Mathlib.Analysis.Normed.Group.Defs
+public import Mathlib.Analysis.Normed.Group.Real
+public import Mathlib.Analysis.Normed.Module.Basic
+public import Mathlib.Analysis.Normed.Ring.Basic
+public import Mathlib.Analysis.RCLike.Basic
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Arctan
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.ArctanDeriv
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Basic.Real.Star
+public import Mathlib.Data.Int.Cast.Defs
+public import Mathlib.Data.Nat.Cast.Defs
+public import Mathlib.Data.Nat.Init
+public import Mathlib.Data.Set.Defs
+public import Mathlib.Logic.Function.Defs
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.FundThmCalculus
+public import Mathlib.MeasureTheory.Measure.Haar.OfBasis
+public import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
+public import Mathlib.MeasureTheory.Measure.MeasureSpaceDef
+public import Mathlib.Order.Defs.Lattice
+public import Mathlib.Order.Defs.LinearOrder
+public import Mathlib.Order.Defs.PartialOrder
+public import Mathlib.Order.Interval.Set.UnorderedInterval
+public import Mathlib.Order.Lattice
+public import Mathlib.Tactic
+public import Mathlib.Tactic.CancelDenoms.Core
+public import Mathlib.Tactic.FieldSimp.Lemmas
+public import Mathlib.Tactic.Linarith.Lemmas
+public import Mathlib.Tactic.NormNum.Basic
+public import Mathlib.Tactic.NormNum.Eq
+public import Mathlib.Tactic.NormNum.Ineq
+public import Mathlib.Tactic.NormNum.Inv
+public import Mathlib.Tactic.NormNum.Pow
+public import Mathlib.Tactic.NormNum.Result
+public import Mathlib.Tactic.Positivity.Core
+public import Mathlib.Tactic.Ring.Basic
+public import Mathlib.Tactic.Ring.Common
+public import Mathlib.Topology.Algebra.Field
+public import Mathlib.Topology.Algebra.Group.Defs
+public import Mathlib.Topology.Algebra.GroupWithZero
+public import Mathlib.Topology.Algebra.Module.ModuleTopology
+public import Mathlib.Topology.Algebra.Monoid
+public import Mathlib.Topology.Algebra.Monoid.Defs
+public import Mathlib.Topology.Algebra.MulAction
+public import Mathlib.Topology.Algebra.Ring.Basic
+public import Mathlib.Topology.Algebra.Ring.Real
+public import Mathlib.Topology.Continuous
+public import Mathlib.Topology.Defs.Basic
+public import Mathlib.Topology.MetricSpace.Pseudo.Defs
+public import Mathlib.Topology.UniformSpace.Defs
+public import Mathlib.Topology.UniformSpace.Real
+
+@[expose] public section
 
 /-!
 # Search gap and inverse-gap integral
@@ -165,7 +169,7 @@ theorem searchGap_half {N : ℝ} (hN : 1 ≤ N) :
   simp
 
 /-- For `N ≥ 1` and `0 ≤ s ≤ 1`, the search gap is at least `1 / sqrt N`. -/
-theorem searchGap_ge_min {N s : ℝ} (hN : 1 ≤ N) (hs0 : 0 ≤ s) (hs1 : s ≤ 1) :
+theorem searchGap_ge_min {N s : ℝ} (hN : 1 ≤ N) (_hs0 : 0 ≤ s) (_hs1 : s ≤ 1) :
     1 / Real.sqrt N ≤ searchGap N s := by
   have hNpos : 0 < N := by linarith
   have hleft : (1 : ℝ) / Real.sqrt N = Real.sqrt (1 / N) := by

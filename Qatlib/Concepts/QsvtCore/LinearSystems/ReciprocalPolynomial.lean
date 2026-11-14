@@ -4,18 +4,22 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Polynomial.BigOperators
-import Mathlib.Algebra.Polynomial.Degree.Lemmas
-import Mathlib.Algebra.Polynomial.Degree.Domain
-import Mathlib.Algebra.Ring.GeomSum
-import Mathlib.Data.Complex.Basic
-import Lean.Elab.Tactic.Omega
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Tactic.Convert
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.NormNum.BigOperators
-import Mathlib.Tactic.Ring
+module
+
+public import Mathlib.Algebra.Polynomial.BigOperators
+public import Mathlib.Algebra.Polynomial.Degree.Lemmas
+public import Mathlib.Algebra.Polynomial.Degree.Domain
+public import Mathlib.Algebra.Ring.GeomSum
+public import Mathlib.Basic.Complex.Basic
+public import Lean.Elab.Tactic.Omega
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Tactic.Convert
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.NormNum.BigOperators
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 /-!
 # Geometric reciprocal polynomials

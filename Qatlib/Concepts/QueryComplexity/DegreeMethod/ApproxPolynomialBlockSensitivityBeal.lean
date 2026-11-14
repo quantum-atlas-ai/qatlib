@@ -4,9 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.ApproxPolynomialBlockSensitivityStat
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.BlockSubstitution
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.DiscreteNodeDerivative
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.ApproxPolynomialBlockSensitivityStat
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.BlockSubstitution
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.DiscreteNodeDerivative
+public import Mathlib.Analysis.Calculus.Deriv.MeanValue
+
+@[expose] public section
 
 /-!
 # Block sensitivity bounds from approximating polynomials
@@ -81,7 +86,7 @@ theorem approximatePolynomialBlockSensitivity_of_discrete
     have hz (y : F → Bool) (hy : boolWeight y = 0) : r.eval (boolPoint y) ≤ ε := by
       rw [block_zero_weight y hy,heval,sensitiveBlockPoint_zero]
       have herr := (hpoly x).2.2
-      cases hfx : f x <;> simp only [hfx,Bool.false_eq_true,if_true,if_false] at herr ⊢
+      cases hfx : f x <;> simp only [hfx,Bool.false_eq_true,ite_true,ite_false] at herr ⊢
       all_goals have hab := abs_le.mp herr; linarith [hab.1,hab.2]
     have ho (y : F → Bool) (hy : boolWeight y = 1) : 1-ε ≤ r.eval (boolPoint y) := by
       obtain ⟨B,hB⟩ := block_one_weight y hy
@@ -91,7 +96,7 @@ theorem approximatePolynomialBlockSensitivity_of_discrete
       cases hfx : f x <;> cases hfb : f (flipBlock x B.val) <;>
         simp only [BlockSensitive,hfx,hfb,ne_eq,not_true_eq_false] at hsens
       all_goals
-        simp only [hfb,Bool.false_eq_true,if_true,if_false] at herr ⊢
+        simp only [hfb,Bool.false_eq_true,ite_true,ite_false] at herr ⊢
         have hab := abs_le.mp herr
         linarith [hab.1,hab.2]
     have hq0 : q.eval 0 ≤ ε := by
@@ -109,7 +114,8 @@ theorem approximatePolynomialBlockSensitivity_of_discrete
       rw [← layerAverage_eq_avgPoly r k hk]
       exact block_layerAverage_bounds r k hk 0 1 (fun y _ => hrange y)
     obtain ⟨z,hzI,hzDeriv⟩ := exists_hasDerivAt_eq_slope (fun t => q.eval t)
-      (fun t => q.derivative.eval t) (by norm_num : (0:ℝ) < 1) q.continuous.continuousOn
+      (fun t => q.derivative.eval t) (by norm_num : (0:ℝ) < 1)
+      (q.continuous.continuousOn.mono (fun _ _ => Set.mem_univ _))
       (fun t _ => q.hasDerivAt t)
     have hzInterval : z ∈ Set.Icc (0:ℝ) (Fintype.card F:ℝ) := by
       have hc : (1:ℝ) ≤ Fintype.card F := by exact_mod_cast hcard

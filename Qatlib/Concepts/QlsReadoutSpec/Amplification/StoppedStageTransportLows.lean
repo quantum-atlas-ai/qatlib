@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QlsReadoutSpec.Amplification.StoppedStageTransportStat
-import Qatlib.Concepts.QlsReadoutSpec.Amplification.ProjectorOrderLows
-import Qatlib.Concepts.QlsReadoutSpec.Amplification.ClockFlagResolutionsLows
+module
+
+public import Qatlib.Concepts.QlsReadoutSpec.Amplification.StoppedStageTransportStat
+public import Qatlib.Concepts.QlsReadoutSpec.Amplification.ProjectorOrderLows
+public import Qatlib.Concepts.QlsReadoutSpec.Amplification.ClockFlagResolutionsLows
+
+@[expose] public section
 
 /-!
 # Transport past stopped stages
@@ -261,7 +265,7 @@ there. -/
 private theorem extendClock_eq {H : Type} (m : ℕ) (P : Fin (m + 1) → Matrix H H ℂ)
     (j : Fin (m + 1)) : extendClock m P j.val = P j := by
   unfold extendClock
-  rw [dif_pos (Nat.le_of_lt_succ j.isLt)]
+  rw [dite_eq_left (Nat.le_of_lt_succ j.isLt)]
 
 /-- Establishes the stopped-projector identities, preservation of earlier potential norms by
 suffixes, and monotonicity of plain amplitudes stated in `Clause4StoppedStageTransport`. See

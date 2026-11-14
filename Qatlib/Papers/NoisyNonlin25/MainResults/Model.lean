@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.Adjoint
-import Mathlib.Analysis.InnerProductSpace.Positive
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Sqrt
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.InnerProductSpace.Adjoint
+public import Mathlib.Analysis.InnerProductSpace.Positive
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Sqrt
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -89,7 +93,7 @@ theorem gap_le (ψ : H) : M.lam1 * ‖ψ‖ ^ 2 ≤ expect M.A ψ := M.gap ψ
 theorem expect_A_sq_nonneg (ψ : H) : 0 ≤ expect (M.A * M.A) ψ := by
   rw [expect]
   have h1 : inner ℂ ψ ((M.A * M.A) ψ) = inner ℂ (M.A ψ) (M.A ψ) := by
-    rw [ContinuousLinearMap.mul_apply]
+    rw [_root_.mul_apply_eq_comp]
     exact (M.A_pos.inner_left_eq_inner_right ψ (M.A ψ)).symm
   rw [h1]
   exact inner_self_nonneg (𝕜 := ℂ) (x := M.A ψ)

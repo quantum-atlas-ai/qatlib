@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.LinearAlgebra.Matrix.PosDef
-import Mathlib.LinearAlgebra.Matrix.Trace
-import Mathlib.Basic.Complex.BigOperators
-import Mathlib.Analysis.InnerProductSpace.Positive
+module
+
+public import Mathlib.LinearAlgebra.Matrix.PosDef
+public import Mathlib.LinearAlgebra.Matrix.Trace
+public import Mathlib.Basic.Complex.BigOperators
+public import Mathlib.Analysis.InnerProductSpace.Positive
+
+@[expose] public section
 
 /-!
 # A finite measurement optimality criterion
@@ -66,11 +70,12 @@ theorem dotProduct_star_comm (x y : n → ℂ) :
   apply Finset.sum_congr rfl; intro i _
   simp [mul_comm]
 
+omit [DecidableEq n] in
 /-- The real part of the trace of a product of two positive semidefinite complex matrices is
 nonnegative. -/
 theorem trace_mul_nonneg {A B : Matrix n n ℂ} (hA : A.PosSemidef) (hB : B.PosSemidef) :
     0 ≤ Complex.re ((A * B).trace) := by
-  let _ := (inferInstance : DecidableEq n)
+
   obtain ⟨m, v, rfl⟩ := Matrix.posSemidef_iff_eq_sum_vecMulVec.mp hA
   obtain ⟨p, w, rfl⟩ := Matrix.posSemidef_iff_eq_sum_vecMulVec.mp hB
   rw [Finset.sum_mul_sum]

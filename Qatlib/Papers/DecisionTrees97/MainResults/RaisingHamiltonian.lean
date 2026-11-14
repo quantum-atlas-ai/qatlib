@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TensorRegisters.RegisterModel.TensorLocality
-import Mathlib.Tactic
+module
+
+public import Qatlib.Concepts.TensorRegisters.RegisterModel.TensorLocality
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Raising-operator tree Hamiltonian

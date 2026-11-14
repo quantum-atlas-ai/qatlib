@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MonteCarloInt20.MainResults.SequentialLoop
-import Qatlib.Papers.MonteCarloInt20.MainResults.CoherentBody
-import Qatlib.Papers.MonteCarloInt20.MainResults.ActualNested
+module
+
+public import Qatlib.Papers.MonteCarloInt20.MainResults.SequentialLoop
+public import Qatlib.Papers.MonteCarloInt20.MainResults.CoherentBody
+public import Qatlib.Papers.MonteCarloInt20.MainResults.ActualNested
+
+@[expose] public section
 
 /-!
 # Sequential finite Monte Carlo preparation

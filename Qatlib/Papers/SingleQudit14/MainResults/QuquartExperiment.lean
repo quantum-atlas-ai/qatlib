@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SingleQudit14.MainResults.QuditGeneralization
+module
+
+public import Qatlib.Papers.SingleQudit14.MainResults.QuditGeneralization
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -51,7 +55,7 @@ after the oracle and the inverse Fourier transform is `|2⟩ = basisVec (1 : ZMo
 theorem ququart_positive_outcome_is_two (σ : Equiv.Perm (ZMod 4)) (hσ : IsPositiveCyclic σ) :
     ∃ c : ℂ, c ≠ 0 ∧
       qftInvVec (applyPerm σ (qftVec (1 : ZMod 4))) = c • basisVec (1 : ZMod 4) := by
-  haveI : NeZero 4 := ⟨by decide⟩
+  have : NeZero 4 := ⟨by decide⟩
   exact positive_outcome_basis σ hσ
 
 /-- Fixed arXiv:1403.5861v3, Eqs. (6) and following: "while `|4⟩` means that the permutation
@@ -61,7 +65,7 @@ up to a nonzero scalar. -/
 theorem ququart_negative_outcome_is_four (σ : Equiv.Perm (ZMod 4)) (hσ : IsNegativeCyclic σ) :
     ∃ c : ℂ, c ≠ 0 ∧
       qftInvVec (applyPerm σ (qftVec (1 : ZMod 4))) = c • basisVec (-1 : ZMod 4) := by
-  haveI : NeZero 4 := ⟨by decide⟩
+  have : NeZero 4 := ⟨by decide⟩
   exact negative_outcome_basis σ hσ
 
 /-- The abstract outcome label `-1` in `ZMod 4` is the position-4 index `3`, i.e.
@@ -84,7 +88,7 @@ theorem ququart_eight_cyclic_permutations :
       Function.Injective (rotPerm : ZMod 4 → Equiv.Perm (ZMod 4)) ∧
       Function.Injective (reflPerm : ZMod 4 → Equiv.Perm (ZMod 4)) ∧
       (∀ s c : ZMod 4, rotPerm s ≠ reflPerm c) := by
-  haveI : NeZero 4 := ⟨by decide⟩
+  have : NeZero 4 := ⟨by decide⟩
   refine ⟨ZMod.card 4, rotPerm_injective, reflPerm_injective, ?_⟩
   intro s c
   exact rotPerm_ne_reflPerm (by norm_num) s c

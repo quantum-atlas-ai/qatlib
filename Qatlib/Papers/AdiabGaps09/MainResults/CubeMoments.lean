@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Data.Finset.Card
-import Mathlib.Data.Fintype.Card
-import Mathlib.Order.Filter.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Order.Filter.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Moments and sign symmetry on the Boolean cube
@@ -320,12 +324,12 @@ theorem cubeMean_Tsum_sq {n : ℕ} (d : Fin n → ℝ) :
     intro i j
     by_cases h : i = j
     · subst h
-      rw [if_pos rfl]
+      rw [ite_eq_left rfl]
       rw [show (fun z : Fin n → Bool => d i * d i * (X (z i) * X (z i)))
             = fun z => (d i * d i) * (X (z i) * X (z i)) from by funext z; ring]
       rw [cubeMean_smul, cubeMean_Xsq]
       ring
-    · rw [if_neg h]
+    · rw [ite_eq_right h]
       rw [show (fun z : Fin n → Bool => d i * d j * (X (z i) * X (z j)))
             = fun z => (d i * d j) * (X (z i) * X (z j)) from by funext z; ring]
       rw [cubeMean_smul, cubeMean_Xmul h, mul_zero]
@@ -335,7 +339,7 @@ theorem cubeMean_Tsum_sq {n : ℕ} (d : Fin n → ℝ) :
   rw [Finset.sum_eq_single i]
   · simp
   · intro j _ hji
-    simp only [if_neg (fun h : i = j => hji h.symm)]
+    simp only [ite_eq_right (fun h : i = j => hji h.symm)]
   · intro hi
     exact absurd (Finset.mem_univ i) hi
 
@@ -538,11 +542,11 @@ theorem cubeMean_Tsum_mul {n : ℕ} (dq dr : Fin n → ℝ) :
     intro i j
     by_cases h : i = j
     · subst h
-      rw [if_pos rfl]
+      rw [ite_eq_left rfl]
       rw [show (fun z : Fin n → Bool => dq i * dr i * (X (z i) * X (z i)))
             = fun z => (dq i * dr i) * (X (z i) * X (z i)) from by funext z; ring]
       rw [cubeMean_smul, cubeMean_Xsq, mul_one]
-    · rw [if_neg h]
+    · rw [ite_eq_right h]
       rw [show (fun z : Fin n → Bool => dq i * dr j * (X (z i) * X (z j)))
             = fun z => (dq i * dr j) * (X (z i) * X (z j)) from by funext z; ring]
       rw [cubeMean_smul, cubeMean_Xmul h, mul_zero]
@@ -552,7 +556,7 @@ theorem cubeMean_Tsum_mul {n : ℕ} (dq dr : Fin n → ℝ) :
   rw [Finset.sum_eq_single i]
   · simp
   · intro j _ hji
-    simp only [if_neg (fun h : i = j => hji h.symm)]
+    simp only [ite_eq_right (fun h : i = j => hji h.symm)]
   · intro hi
     exact absurd (Finset.mem_univ i) hi
 

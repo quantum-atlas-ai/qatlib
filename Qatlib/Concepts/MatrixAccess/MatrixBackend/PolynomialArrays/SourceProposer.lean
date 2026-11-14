@@ -4,46 +4,50 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Nat.Find
-import Mathlib.Data.Option.Basic
-import Mathlib.Data.List.Basic
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.NativeSourcePosterior
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.NativeSourceCheckedWord
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootDecodedCertificate
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootReturnedCompleteness
-import Mathlib.Data.Nat.Size
-import Mathlib.Data.Rat.Lemmas
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.NativeSourceBitPrecision
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootIntegerList
-import Mathlib.Analysis.Polynomial.MahlerMeasure
-import Mathlib.Data.Nat.Choose.Bounds
-import Mathlib.Data.List.Nodup
-import Mathlib.RingTheory.Polynomial.Resultant.Basic
-import Mathlib.Data.Fin.Rev
-import Mathlib.Data.List.FinRange
-import Mathlib.LinearAlgebra.Matrix.Polynomial
-import Mathlib.Data.Nat.Choose.Basic
-import Mathlib.RingTheory.Polynomial.Pochhammer
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootIntegerPolynomial
-import Mathlib.Topology.Algebra.Polynomial
-import Mathlib.Topology.LocallyConstant.Basic
-import Mathlib.Analysis.Polynomial.CauchyBound
-import Mathlib.Algebra.Order.Archimedean.Basic
-import Mathlib.Data.List.Sort
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootProjectionBudget
-import Mathlib.FieldTheory.Separable
-import Mathlib.RingTheory.EuclideanDomain
-import Mathlib.Data.List.Induction
-import Mathlib.Data.List.ToFinsupp
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeSourceIntegerization
-import Mathlib.RingTheory.Polynomial.GaussLemma
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.NativeSourceRootCount
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Public
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Verifier
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.RationalCircle
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.HouseholderRotationTable
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.NativeHouseholder
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.NativePhasePrecision
+module
+
+public import Mathlib.Data.Nat.Find
+public import Mathlib.Data.Option.Basic
+public import Mathlib.Data.List.Basic
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.NativeSourcePosterior
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.NativeSourceCheckedWord
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootDecodedCertificate
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootReturnedCompleteness
+public import Mathlib.Data.Nat.Size
+public import Mathlib.Data.Rat.Lemmas
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.NativeSourceBitPrecision
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootIntegerList
+public import Mathlib.Analysis.Polynomial.MahlerMeasure
+public import Mathlib.Data.Nat.Choose.Bounds
+public import Mathlib.Data.List.Nodup
+public import Mathlib.RingTheory.Polynomial.Resultant.Basic
+public import Mathlib.Data.Fin.Rev
+public import Mathlib.Data.List.FinRange
+public import Mathlib.LinearAlgebra.Matrix.Polynomial
+public import Mathlib.Data.Nat.Choose.Basic
+public import Mathlib.RingTheory.Polynomial.Pochhammer
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootIntegerPolynomial
+public import Mathlib.Topology.Algebra.Polynomial
+public import Mathlib.Topology.LocallyConstant.Basic
+public import Mathlib.Analysis.Polynomial.CauchyBound
+public import Mathlib.Algebra.Order.Archimedean.Basic
+public import Mathlib.Data.List.Sort
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootProjectionBudget
+public import Mathlib.FieldTheory.Separable
+public import Mathlib.RingTheory.EuclideanDomain
+public import Mathlib.Data.List.Induction
+public import Mathlib.Data.List.ToFinsupp
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeSourceIntegerization
+public import Mathlib.RingTheory.Polynomial.GaussLemma
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.NativeSourceRootCount
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Public
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Verifier
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.RationalCircle
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.HouseholderRotationTable
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.NativeHouseholder
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.NativePhasePrecision
+
+@[expose] public section
 
 open Qatlib.Foundations.QueryWordCore.Circuit
 
@@ -143,7 +147,7 @@ open ActualYunPrimitiveContent ActualYunContentSupply ActualYunProductArrays
 open ActualYunArrayLoop ActualYunArrayStep ActualYunContentGuard ActualYunOriginalTarget
 
 /-- Construction for prepare in the source proposer model. -/
-private def prepare (a : List ℤ) : Option (ℤ×List Context) :=
+def prepare (a : List ℤ) : Option (ℤ×List Context) :=
   (squarefreeArrays (a.map (fun z : ℤ => (z : ℚ)))).bind (fun fs =>
     let product := factorsProduct fs [1]
     let content := (a.getD (a.length-1) 0 : ℚ)/product.getD (product.length-1) 0
@@ -341,7 +345,7 @@ open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data
 open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data.SourceInput
 
 /-- Construction for factor Record in the source proposer model. -/
-private def factorRecord (ctx : Context) (r : ℚ) (ix iy : List (ℚ×ℚ)) : Record :=
+def factorRecord (ctx : Context) (r : ℚ) (ix iy : List (ℚ×ℚ)) : Record :=
   ⟨ctx.factor,ctx.exponent,(retained ctx.factor r ix iy).map (fun c => (c,r))⟩
 
 /-- Construction for round in the source proposer model. -/
@@ -442,7 +446,7 @@ open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data
 open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data.SourceInput
 
 /-- Construction for stored Axes in the source proposer model. -/
-private def storedAxes (ctx : Context) (P fx fy : ℕ) : Option (List (ℚ×ℚ)×List (ℚ×ℚ)) :=
+def storedAxes (ctx : Context) (P fx fy : ℕ) : Option (List (ℚ×ℚ)×List (ℚ×ℚ)) :=
   (intervals (lift ctx.xProjection) P fx).bind (fun ix =>
     (intervals (lift ctx.yProjection) P fy).map (fun iy => (ix,iy)))
 
@@ -452,7 +456,7 @@ private theorem stored_axes_eq (ctx : Context) (hgood : ContextGood ctx) (P fx f
   simp only [storedAxes,isolateAxes,hgood.2.1]
 
 /-- Construction for round Stored in the source proposer model. -/
-private def roundStored : List Context → ℕ → ℚ → List (ℕ×ℕ) → Option (List Record)
+def roundStored : List Context → ℕ → ℚ → List (ℕ×ℕ) → Option (List Record)
   | [],_,_,_ => some []
   | _::_,_,_,[] => none
   | ctx::cs,P,r,(fx,fy)::fuels =>
@@ -474,7 +478,7 @@ private theorem stored_round_eq (todo : List Context) (P : ℕ) (r : ℚ) (fuels
       rw [he]
 
 /-- Construction for at Cap Stored in the source proposer model. -/
-private def atCapStored (target : List ℤ) (bits : ℕ) (gap : ℚ) (fuels : List (ℕ×ℕ)) : Option (ℤ×List Record) :=
+def atCapStored (target : List ℤ) (bits : ℕ) (gap : ℚ) (fuels : List (ℕ×ℕ)) : Option (ℤ×List Record) :=
   (prepare target).bind (fun pair =>
     (roundStored pair.2 (cap pair.2 bits gap) (radius pair.2 bits gap) fuels).map (fun records => (pair.1,records)))
 
@@ -2029,15 +2033,15 @@ end ActualProjectionRawVerifier
 
 namespace ActualProjectionPrecisionLoop
 /-- Abbreviation for Points in the source proposer model. -/
-private abbrev Points := List (ℚ×ℚ)
+abbrev Points := List (ℚ×ℚ)
 /-- Abbreviation for Result in the source proposer model. -/
-private abbrev Result := Points×List ℕ
+abbrev Result := Points×List ℕ
 
 /-- Construction for next in the source proposer model. -/
-private def next (cap P : ℕ) : ℕ := min (2*P) cap
+def next (cap P : ℕ) : ℕ := min (2*P) cap
 
 /-- Construction for run in the source proposer model. -/
-private def run (round : ℕ → Option Points) (cap : ℕ) : ℕ → ℕ → Option Result
+def run (round : ℕ → Option Points) (cap : ℕ) : ℕ → ℕ → Option Result
   | 0,_ => none
   | fuel+1,P =>
     match round P with
@@ -2128,16 +2132,16 @@ open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data
 open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data.SourceInput
 
 /-- Abbreviation for Fuel Plan in the source proposer model. -/
-private abbrev FuelPlan := List (List (ℕ×ℕ))
+abbrev FuelPlan := List (List (ℕ×ℕ))
 
 /-- Construction for round Value in the source proposer model. -/
-private def roundValue (H : List ℤ) (bits inside : ℕ) (c : ℤ) (contexts : List Context)
+def roundValue (H : List ℤ) (bits inside : ℕ) (c : ℤ) (contexts : List Context)
     (plan : FuelPlan) (P : ℕ) : Option Points :=
   (roundStored contexts P (1/(2 : ℚ)^(P/2)) (plan.getD P [])).bind
     (verifyRecords H bits inside c)
 
 /-- Construction for propose in the source proposer model. -/
-private def propose (H : List ℤ) (bits inside : ℕ) (gap : ℚ) (plan : FuelPlan) : Option Result :=
+def propose (H : List ℤ) (bits inside : ℕ) (gap : ℚ) (plan : FuelPlan) : Option Result :=
   (prepare H).bind (fun pair =>
     let limit := cap pair.2 bits gap
     run (roundValue H bits inside pair.1 pair.2 plan) limit (limit+1) (2*bits+16))
@@ -2262,7 +2266,7 @@ open ActualProjectionContexts ActualProjectionSturmAxes ActualProjectionStoredRo
 open ActualProjectionCapRound ActualRootProjectionCap
 
 /-- Construction for axes in the source proposer model. -/
-private def axes (ctx : Context) (hg : ContextGood ctx) (P : ℕ) : List (ℚ×ℚ)×List (ℚ×ℚ) :=
+def axes (ctx : Context) (hg : ContextGood ctx) (P : ℕ) : List (ℚ×ℚ)×List (ℚ×ℚ) :=
   (searched (lift ctx.xProjection) hg.2.2.1.1 hg.2.2.1.2.1 hg.2.2.1.2.2.1 P,
    searched (lift ctx.yProjection) hg.2.2.2.1 hg.2.2.2.2.1 hg.2.2.2.2.2.1 P)
 
@@ -2289,7 +2293,7 @@ private theorem axes_of_run (ctx : Context) (hg : ContextGood ctx) (P fx fy : �
       rw [searched_of_run _ _ _ _ P fx xs hx,searched_of_run _ _ _ _ P fy ys hy]
 
 /-- Construction for records in the source proposer model. -/
-private def records : (contexts : List Context) → (∀ ctx∈contexts,ContextGood ctx) → ℕ → ℚ → List Record
+def records : (contexts : List Context) → (∀ ctx∈contexts,ContextGood ctx) → ℕ → ℚ → List Record
   | [],_,_,_ => []
   | ctx::tail,hg,P,r =>
     let pair := axes ctx (hg ctx (by simp)) P
@@ -2334,16 +2338,16 @@ open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data
 open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data.SourceInput
 
 /-- Construction for Preparation Good in the source proposer model. -/
-private def PreparationGood (H : List ℤ) : Prop :=
+def PreparationGood (H : List ℤ) : Prop :=
   ∀ c contexts,prepare H=some (c,contexts) → ∀ ctx∈contexts,ContextGood ctx
 
 /-- Construction for round Value in the source proposer model. -/
-private def roundValue (H : List ℤ) (bits inside : ℕ) (c : ℤ) (contexts : List Context)
+def roundValue (H : List ℤ) (bits inside : ℕ) (c : ℤ) (contexts : List Context)
     (hg : ∀ ctx∈contexts,ContextGood ctx) (P : ℕ) : Option Points :=
   verifyRecords H bits inside c (records contexts hg P (1/(2 : ℚ)^(P/2)))
 
 /-- Construction for propose in the source proposer model. -/
-private def propose (H : List ℤ) (bits inside : ℕ) (gap : ℚ) (good : PreparationGood H) : Option Result :=
+def propose (H : List ℤ) (bits inside : ℕ) (gap : ℚ) (good : PreparationGood H) : Option Result :=
   match hp : prepare H with
   | none => none
   | some pair =>
@@ -2365,13 +2369,13 @@ private theorem propose_of_prepare (H : List ℤ) (bits inside : ℕ) (gap : ℚ
     rfl
 
 /-- The finite construction in `SourceProposer` satisfies `original_preparation_good` under the displayed hypotheses. -/
-private theorem original_preparation_good (cs : List ℚ) (N : ℕ) (E : ℚ)
+theorem original_preparation_good (cs : List ℚ) (N : ℕ) (E : ℚ)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)
     (hd : 0 < sourceDegree cs N E) : PreparationGood (sourceIntegerComplement cs N E) :=
   fun c contexts hp => original_contexts_good cs N E hparity hd c contexts hp
 
 /-- Construction for original Propose in the source proposer model. -/
-private def originalPropose (cs : List ℚ) (N : ℕ) (E : ℚ)
+def originalPropose (cs : List ℚ) (N : ℕ) (E : ℚ)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)
     (hd : 0 < sourceDegree cs N E) : Option Result :=
   propose (sourceIntegerComplement cs N E) (sourceInputR cs N E) (sourceDegree cs N E)
@@ -2445,13 +2449,13 @@ namespace ActualProjectionPayloadLoop
 universe u
 variable {α : Type u}
 /-- Abbreviation for Result in the source proposer model. -/
-private abbrev Result (α : Type u) := α×List ℕ
+abbrev Result (α : Type u) := α×List ℕ
 
 /-- Construction for next in the source proposer model. -/
-private def next (cap P : ℕ) : ℕ := min (2*P) cap
+def next (cap P : ℕ) : ℕ := min (2*P) cap
 
 /-- Construction for run in the source proposer model. -/
-private def run (round : ℕ → Option α) (cap : ℕ) : ℕ → ℕ → Option (Result α)
+def run (round : ℕ → Option α) (cap : ℕ) : ℕ → ℕ → Option (Result α)
   | 0,_ => none
   | fuel+1,P =>
     match round P with
@@ -2466,7 +2470,7 @@ private theorem next_bounds (cap P : ℕ) (hP : 0 < P) (hcap : P < cap) :
   omega
 
 /-- The finite construction in `SourceProposer` satisfies `run_success` under the displayed hypotheses. -/
-private theorem run_success (round : ℕ → Option α) (cap fuel P : ℕ) (hP : 0 < P) (hcap : P ≤ cap)
+theorem run_success (round : ℕ → Option α) (cap fuel P : ℕ) (hP : 0 < P) (hcap : P ≤ cap)
     (points : α) (trace : List ℕ) (h : run round cap fuel P=some (points,trace)) :
     ∃ Q,round Q=some points ∧ P ≤ Q ∧ Q ≤ cap ∧ trace≠[] ∧
       trace.head?=some P ∧ trace.getLast?=some Q ∧ trace.Pairwise (· < ·) := by
@@ -2513,7 +2517,7 @@ private theorem run_success (round : ℕ → Option α) (cap fuel P : ℕ) (hP :
           omega
 
 /-- The finite construction in `SourceProposer` satisfies `run_reaches_cap` under the displayed hypotheses. -/
-private theorem run_reaches_cap (round : ℕ → Option α) (cap fuel P : ℕ)
+theorem run_reaches_cap (round : ℕ → Option α) (cap fuel P : ℕ)
     (hP : 0 < P) (hcap : P ≤ cap) (hbudget : cap-P < fuel)
     (capValue : α) (hterminal : round cap=some capValue) :
     ∃ points trace,run round cap fuel P=some (points,trace) := by
@@ -2545,22 +2549,22 @@ open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data
 open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data.SourceInput
 
 /-- Data and invariants for Certificate in the source proposer model. -/
-private structure Certificate where
+structure Certificate where
   content : ℤ
   factors : List RootIntegerFactorData
   points : List (ℚ×ℚ)
 
 /-- Construction for checked Records in the source proposer model. -/
-private def checkedRecords (H : List ℤ) (bits inside : ℕ) (c : ℤ) (raw : List Record) : Option Certificate :=
+def checkedRecords (H : List ℤ) (bits inside : ℕ) (c : ℤ) (raw : List Record) : Option Certificate :=
   (decode raw).bind (fun fs => (verify H bits inside c fs).map (fun points => ⟨c,fs,points⟩))
 
 /-- Construction for round Value in the source proposer model. -/
-private def roundValue (H : List ℤ) (bits inside : ℕ) (c : ℤ) (contexts : List Context)
+def roundValue (H : List ℤ) (bits inside : ℕ) (c : ℤ) (contexts : List Context)
     (hg : ∀ ctx∈contexts,ContextGood ctx) (P : ℕ) : Option Certificate :=
   checkedRecords H bits inside c (records contexts hg P (1/(2 : ℚ)^(P/2)))
 
 /-- Construction for propose in the source proposer model. -/
-private def propose (H : List ℤ) (bits inside : ℕ) (gap : ℚ) (good : PreparationGood H) : Option (Certificate×List ℕ) :=
+def propose (H : List ℤ) (bits inside : ℕ) (gap : ℚ) (good : PreparationGood H) : Option (Certificate×List ℕ) :=
   match hp : prepare H with
   | none => none
   | some pair =>
@@ -2569,7 +2573,7 @@ private def propose (H : List ℤ) (bits inside : ℕ) (gap : ℚ) (good : Prepa
       limit (limit+1) (2*bits+16)
 
 /-- Construction for original Propose in the source proposer model. -/
-private def originalPropose (cs : List ℚ) (N : ℕ) (E : ℚ)
+def originalPropose (cs : List ℚ) (N : ℕ) (E : ℚ)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)
     (hd : 0 < sourceDegree cs N E) : Option (Certificate×List ℕ) :=
   propose (sourceIntegerComplement cs N E) (sourceInputR cs N E) (sourceDegree cs N E)
@@ -2660,7 +2664,8 @@ private theorem original_certificate_loop (cs : List ℚ) (N : ℕ) (E : ℚ) (h
     (roundValue H bits inside c contexts hg) limit (limit+1) (2*bits+16) hP hcap (by omega) _ hterminal
   obtain ⟨Q,hQ,_,hQc,_,hhead,hlast,hpair⟩ := ActualProjectionPayloadLoop.run_success
     _ limit (limit+1) _ hP hcap result trace hrun
-  obtain ⟨hcontent,hv⟩ := checked_spec H bits inside c _ result hQ
+  obtain ⟨hcontent,hv⟩ := checked_spec H bits inside c _ result (by
+    simpa only [roundValue] using hQ)
   obtain ⟨hcn,hproduct,hguards,hpoints,hcount,_⟩ :=
     accepted_guards H bits inside result.content result.factors result.points hv
   have he : (if inside=0 then (0 : ℚ) else 1/(2 : ℚ)^bits)=sourceInputEta cs N E := by
@@ -2683,19 +2688,19 @@ open Qatlib.Concepts.SignalPrimitive.PhaseFrontend
 open Qatlib.Concepts.TrotterFormula.SuzukiFourth
 
 /-- Data and invariants for Packet Return in the source proposer model. -/
-private structure PacketReturn where
+structure PacketReturn where
   certificate : Certificate
   standard : PhaseData
   native : PhaseData
   trace : List ℕ
 
 /-- Construction for finish in the source proposer model. -/
-private def finish (cs : List ℚ) (N : ℕ) (E : ℚ) (certificate : Certificate) (trace : List ℕ) : PacketReturn :=
+def finish (cs : List ℚ) (N : ℕ) (E : ℚ) (certificate : Certificate) (trace : List ℕ) : PacketReturn :=
   let standard := sourceBoundaryPacket cs N E (family certificate.factors)
   ⟨certificate,standard,nativePacketFromStandard standard,trace⟩
 
 /-- Construction for produce in the source proposer model. -/
-private def produce (cs : List ℚ) (N : ℕ) (E : ℚ)
+def produce (cs : List ℚ) (N : ℕ) (E : ℚ)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)
     (hd : 0 < sourceDegree cs N E) : Option PacketReturn :=
   (originalPropose cs N E hparity hd).map (fun result => finish cs N E result.1 result.2)
@@ -2894,7 +2899,7 @@ private theorem projection_output_public (cs out : List ℤ)
   exact ⟨by simpa only [RootYunInternal.ActualSturmArrayTools.lift, RootYunInternal.ActualYunRationalArray.poly, List.length_map] using hlen,hn,hd,hcoord⟩
 
 /-- Construction for root Projection Publish Record in the source proposer model. -/
-private def rootProjectionPublishRecord (r : RootYunInternal.ActualProjectionCapRound.Record) :
+def rootProjectionPublishRecord (r : RootYunInternal.ActualProjectionCapRound.Record) :
     RootProjectionFactorRecord := ⟨r.factor,r.exponent,r.disks⟩
 
 /-- Actual Yun content/full-array guard and generated stored projection contexts. -/

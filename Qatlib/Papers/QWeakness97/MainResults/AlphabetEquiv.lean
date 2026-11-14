@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LocalMachine.LocalTransport.LocalMachineDefs
-import Mathlib.Logic.Equiv.Basic
+module
+
+public import Qatlib.Concepts.LocalMachine.LocalTransport.LocalMachineDefs
+public import Mathlib.Logic.Equiv.Basic
+
+@[expose] public section
 
 /-!
 # Alphabet equivalences for finite-window quantum machines
@@ -61,6 +65,7 @@ preserving the internal state and head position. -/
 def reindexCfg (e : A ≃ C) (c : QtmCfg Q A w) : QtmCfg Q C w :=
   (c.1, c.2.1, fun i => e (c.2.2 i))
 
+omit [Fintype Q] [DecidableEq Q] [Fintype A] [DecidableEq A] [Fintype C] [DecidableEq C] in
 /-- Relabelling configurations by an alphabet equivalence is injective, so distinct original
 configurations remain distinct after transport. -/
 theorem reindexCfg_injective (e : A ≃ C) :
@@ -73,6 +78,7 @@ theorem reindexCfg_injective (e : A ≃ C) :
   funext i
   exact e.injective (congrFun htp i)
 
+omit [Fintype A] [DecidableEq A] [Fintype C] [DecidableEq C] in
 /-- Relabelling a tape commutes with updating one cell when the replacement symbol is relabelled
 by the same equivalence. -/
 theorem update_reindex (e : A ≃ C) (f : Fin w → A) (i : Fin w) (a : A) :
@@ -84,6 +90,9 @@ theorem update_reindex (e : A ≃ C) (f : Fin w → A) (i : Fin w) (a : A) :
     simp [Function.update]
   · simp [Function.update, h]
 
+omit [Fintype Q] [DecidableEq Q] in
+
+omit [Fintype A] [DecidableEq A] [Fintype C] [DecidableEq C] in
 /-- Computing a transition target after relabelling gives the relabelled original target. The
 optional target also preserves failure when the head move leaves the finite window. -/
 theorem stepTarget_reindex (e : A ≃ C) (c : QtmCfg Q A w) (d : QtmMove)
@@ -96,6 +105,9 @@ theorem stepTarget_reindex (e : A ≃ C) (c : QtmCfg Q A w) (d : QtmMove)
   · simp
     rw [update_reindex]
 
+omit [Fintype Q] [DecidableEq Q] in
+
+omit [Fintype A] [DecidableEq A] [Fintype C] [DecidableEq C] in
 /-- A move and symbol write reach a specified relabelled configuration exactly when the original
 move and write reach the corresponding original configuration. -/
 theorem stepTarget_reindex_eq_some (e : A ≃ C) (c c' : QtmCfg Q A w)
@@ -140,8 +152,8 @@ theorem reindex_stepAmplitude (R : QtmRule Q A) (e : A ≃ C) (w : ℕ)
     simp [reindexCfg]
   · refine Finset.sum_congr rfl fun a' _ => ?_
     by_cases h : QtmRule.stepTarget c d q' a' = some c'
-    · rw [if_pos h]
-    · rw [if_neg h]
+    · rw [ite_eq_left h]
+    · rw [ite_eq_right h]
 
 /-- Transport by an alphabet equivalence preserves all local wellformedness conditions of the
 machine rule. This supplies the wellformedness part of the finite-window relabelling
@@ -182,6 +194,7 @@ original amplitude on the image. -/
 def reindexState (e : A ≃ C) (ψ : QState (QtmCfg Q A w)) : QState (QtmCfg Q C w) :=
   fun d => ∑ c, if reindexCfg e c = d then ψ c else 0
 
+omit [DecidableEq A] [Fintype C] in
 /-- The transported state has the original amplitude at every relabelled configuration. -/
 theorem reindexState_apply (e : A ≃ C) (ψ : QState (QtmCfg Q A w))
     (c : QtmCfg Q A w) : reindexState e ψ (reindexCfg e c) = ψ c := by
@@ -195,6 +208,7 @@ theorem reindexState_apply (e : A ≃ C) (ψ : QState (QtmCfg Q A w))
   · intro h
     exact absurd (Finset.mem_univ c) h
 
+omit [DecidableEq A] [Fintype C] in
 /-- The transported state has zero amplitude at any configuration outside the image of
 configuration relabelling. -/
 theorem reindexState_eq_zero (e : A ≃ C) (ψ : QState (QtmCfg Q A w))
@@ -219,7 +233,7 @@ theorem reindex_stepAmplitude_eq_zero (R : QtmRule Q A) (e : A ≃ C) (w : ℕ)
     conv_lhs => rw [show cOut = e (e.symm cOut) from (e.apply_symm_apply cOut).symm]
     rw [stepTarget_reindex]
   by_cases h : QtmRule.stepTarget (reindexCfg e c) d' q' cOut = some d
-  · rw [if_pos h]
+  · rw [ite_eq_left h]
     have hcfg : ∃ z : QtmCfg Q A w, reindexCfg e z = d := by
       rw [hstep] at h
       cases hm : QtmRule.stepTarget c d' q' (e.symm cOut) with

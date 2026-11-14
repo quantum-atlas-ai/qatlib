@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.NumberTheory.LucasPrimality
-import Mathlib.Data.Nat.Factorization.Basic
-import Mathlib.Data.Nat.Totient
-import Mathlib.Algebra.BigOperators.Associated
+module
+
+public import Mathlib.NumberTheory.LucasPrimality
+public import Mathlib.Data.Nat.Factorization.Basic
+public import Mathlib.Data.Nat.Totient
+public import Mathlib.Algebra.BigOperators.Associated
+
+@[expose] public section
 
 /-!
 # Lucas primality certificates with separate witnesses
@@ -50,7 +54,7 @@ theorem forcedValuation {m d q : ℕ} (hm : m ≠ 0) (hq : q.Prime)
     rw [hq.factorization_self]
     omega
   · have hzero : q.factorization p = 0 := by
-      rw [Nat.Prime.factorization hq, Finsupp.single_apply, if_neg (Ne.symm hp)]
+      rw [Nat.Prime.factorization hq, Finsupp.single_apply, ite_eq_right (Ne.symm hp)]
     rw [hzero, Nat.sub_zero]
     exact hle p
 
@@ -80,7 +84,7 @@ theorem separateLucas (N : ℕ)
     have hz : N - 1 = 0 := by omega
     obtain ⟨a, _, ha⟩ := hw 2 Nat.prime_two (by rw [hz]; exact dvd_zero _)
     simp [hz] at ha
-  haveI : NeZero N := ⟨by omega⟩
+  have : NeZero N := ⟨by omega⟩
   rw [Nat.prime_iff_card_units]
   apply (Nat.card_units_zmod_lt_sub_one hN).antisymm
   have hdiv : N - 1 ∣ Fintype.card (ZMod N)ˣ := by

@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Calculus.ContDiff.FTaylorSeries
-import Mathlib.Analysis.Calculus.Deriv.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.SpecialFunctions.Sqrt
-import Mathlib.MeasureTheory.Integral.Bochner.Set
-import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
-import Mathlib.Order.ConditionallyCompleteLattice.Basic
-import Mathlib.Data.Matrix.Basic
+module
+
+public import Mathlib.Analysis.Calculus.ContDiff.FTaylorSeries
+public import Mathlib.Analysis.Calculus.Deriv.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.SpecialFunctions.Sqrt
+public import Mathlib.MeasureTheory.Integral.Bochner.Set
+public import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
+public import Mathlib.Order.ConditionallyCompleteLattice.Basic
+public import Mathlib.Data.Matrix.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

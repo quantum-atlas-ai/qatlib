@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.QuerySpaceCompiler
-import Qatlib.Concepts.StoppingCore.InterruptBridge.QuerySpaceExtensionsDefs
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.QuerySpaceCompiler
+public import Qatlib.Concepts.StoppingCore.InterruptBridge.QuerySpaceExtensionsDefs
+
+@[expose] public section
 
 /-!
 # Resource ledgers for query-space compilation

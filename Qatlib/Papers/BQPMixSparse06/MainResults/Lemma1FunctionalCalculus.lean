@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.BQPMixSparse06.MainResults.Defs
+module
+
+public import Qatlib.Papers.BQPMixSparse06.MainResults.Defs
+
+@[expose] public section
 
 /-!
 # Error estimates for bounded spectral functions
@@ -80,7 +84,7 @@ M + 2 * π * K * η`. -/
 theorem lemma1_ideal_error {Ω : Type*} [Fintype Ω]
     (q : Ω → ℝ) (hq0 : ∀ a, 0 ≤ q a) (hq1 : ∑ a, q a = 1)
     (post : Ω → ℝ) (target M K θ η : ℝ)
-    (hM : 0 ≤ M) (hK : 0 ≤ K) (hθ : 0 ≤ θ) (hη : 0 ≤ η)
+    (hM : 0 ≤ M) (hK : 0 ≤ K) (_hθ : 0 ≤ θ) (hη : 0 ≤ η)
     (good : Finset Ω)
     (hmass : 1 - θ ≤ ∑ a ∈ good, q a)
     (hgood : ∀ a ∈ good, |post a - target| ≤ 2 * Real.pi * η * K)
@@ -149,7 +153,7 @@ theorem lemma1_ideal_error {Ω : Type*} [Fintype Ω]
 itself bounded in absolute value by `E`. -/
 theorem lemma1_mixture_error {ι : Type*} [Fintype ι]
     (w : ι → ℝ) (hw0 : ∀ j, 0 ≤ w j) (hw1 : ∑ j, w j = 1)
-    (e : ι → ℝ) (E : ℝ) (hE : 0 ≤ E) (h : ∀ j, |e j| ≤ E) :
+    (e : ι → ℝ) (E : ℝ) (_hE : 0 ≤ E) (h : ∀ j, |e j| ≤ E) :
     |∑ j, w j * e j| ≤ E := by
   calc |∑ j, w j * e j| ≤ ∑ j, |w j * e j| := Finset.abs_sum_le_sum_abs _ _
     _ = ∑ j, w j * |e j| := by
@@ -204,8 +208,8 @@ theorem lemma1_error_bound {Ω : Type*} [Fintype Ω]
 distribution error `D`, the expectation of the clamped outcomes differs from `f lam` by at
 most `(2 * θ + D) * M + 2 * π * K * η` [JanzingWocjan2006, Lemma 1][JanzingWocjan2006]. -/
 theorem lemma1_continuous_functional_calculus {Ω : Type*} [Fintype Ω]
-    (q qt : Ω → ℝ) (hq0 : ∀ a, 0 ≤ q a) (hqt0 : ∀ a, 0 ≤ qt a)
-    (hq1 : ∑ a, q a = 1) (hqt1 : ∑ a, qt a = 1)
+    (q qt : Ω → ℝ) (_hq0 : ∀ a, 0 ≤ q a) (hqt0 : ∀ a, 0 ≤ qt a)
+    (_hq1 : ∑ a, q a = 1) (hqt1 : ∑ a, qt a = 1)
     (outcome : Ω → ℝ) (lo hi : ℝ) (hlo : lo ≤ hi) (lam : ℝ)
     (hlam : lam ∈ Set.Icc lo hi) (f : ℝ → ℝ) (K M θ η D : ℝ)
     (hK : 0 ≤ K) (hM : 0 ≤ M) (hθ : 0 ≤ θ) (hη : 0 ≤ η)
@@ -258,7 +262,7 @@ theorem lemma1_delta_bound {Ω : Type*} [Fintype Ω]
     (good : Finset Ω)
     (hmass : 1 - θ ≤ ∑ a ∈ good, qt a)
     (hdev : ∀ a ∈ good, |outcome a - lam| < 2 * Real.pi * η)
-    (p : ℕ) (δ : ℝ) (hδ : 0 ≤ δ)
+    (p : ℕ) (δ : ℝ) (_hδ : 0 ≤ δ)
     (hD : ∑ a, |q a - qt a| ≤ (2 : ℝ) ^ (p + 2) * δ) :
     |∑ a, q a * f (clamp lo hi (outcome a)) - f lam| ≤
       (2 * θ + (2 : ℝ) ^ (p + 2) * δ) * M + 2 * Real.pi * K * η :=

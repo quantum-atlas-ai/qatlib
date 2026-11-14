@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SignalPrimitive.PhaseFrontend.ComputedPhaseQSVT
-import Qatlib.Concepts.NonNormalSpec.ResolventWord.ThresholdIntegralDefs
-import Mathlib.Algebra.Order.Floor.Ring
-import Mathlib.Data.Nat.Log
+module
+
+public import Qatlib.Concepts.SignalPrimitive.PhaseFrontend.ComputedPhaseQSVT
+public import Qatlib.Concepts.NonNormalSpec.ResolventWord.ThresholdIntegralDefs
+public import Mathlib.Algebra.Order.Floor.Ring
+public import Mathlib.Data.Nat.Log
+
+@[expose] public section
 
 /-!
 # Rational data for threshold integral amplification

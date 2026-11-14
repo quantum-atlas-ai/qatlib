@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpinorSampling.Retained.PhysicalBell
-import Qatlib.Papers.SCWFPrep24.Estimation.NullRisk.Checkerboard
-import Qatlib.Concepts.StoppingCore.InterruptBridge.QuerySpaceExtensions
+module
+
+public import Qatlib.Concepts.SpinorSampling.Retained.PhysicalBell
+public import Qatlib.Papers.SCWFPrep24.Estimation.NullRisk.Checkerboard
+public import Qatlib.Concepts.StoppingCore.InterruptBridge.QuerySpaceExtensions
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

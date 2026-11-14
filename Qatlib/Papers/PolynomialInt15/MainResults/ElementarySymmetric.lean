@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.RingTheory.Polynomial.Vieta
-import Mathlib.RingTheory.MvPolynomial.Symmetric.Defs
-import Mathlib.Algebra.BigOperators.Fin
-import Mathlib.Tactic
+module
+
+public import Mathlib.RingTheory.Polynomial.Vieta
+public import Mathlib.RingTheory.MvPolynomial.Symmetric.Defs
+public import Mathlib.Algebra.BigOperators.Fin
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -147,24 +151,19 @@ theorem sum_Icc_one_eq_sum_range {M : Type*} [AddCommMonoid M] (f : ℕ → M) (
   refine Finset.sum_nbij' (fun a => a - 1) (fun b => b + 1) ?_ ?_ ?_ ?_ ?_
   · intro a ha
     rw [Finset.mem_Icc] at ha
-    beta_reduce
     rw [Finset.mem_range]
     omega
   · intro b hb
     rw [Finset.mem_range] at hb
-    beta_reduce
     rw [Finset.mem_Icc]
     omega
   · intro a ha
     rw [Finset.mem_Icc] at ha
-    beta_reduce
     omega
   · intro b _
-    beta_reduce
     omega
   · intro a ha
     rw [Finset.mem_Icc] at ha
-    beta_reduce
     have h : a - 1 + 1 = a := by omega
     rw [h]
 

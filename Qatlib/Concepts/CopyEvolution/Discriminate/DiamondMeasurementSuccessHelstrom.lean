@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SchattenDiamond.DiamondSdp
-import Qatlib.Concepts.CopyEvolution.Discriminate.FiniteCopyHelstromDiscriminationQuan
+module
+
+public import Qatlib.Concepts.SchattenDiamond.DiamondSdp
+public import Qatlib.Concepts.CopyEvolution.Discriminate.FiniteCopyHelstromDiscriminationQuan
+
+@[expose] public section
 
 /-!
 # Helstrom success and diamond-norm bounds

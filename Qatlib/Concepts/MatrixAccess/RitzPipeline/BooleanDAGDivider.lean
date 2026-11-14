@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGDividerData
-import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGConditionalSubtract
-import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGSplice
-import Mathlib.Algebra.BigOperators.Fin
+module
+
+public import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGDividerData
+public import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGConditionalSubtract
+public import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGSplice
+public import Mathlib.Algebra.BigOperators.Fin
+
+@[expose] public section
 
 /-!
 # Unsigned division by Boolean DAGs
@@ -127,7 +131,7 @@ private theorem div_input_value {m n : ℕ} (g : BooleanDAG m n)
   | @snoc n g node ih =>
     rw [div_snoc_value]
     have hj : j.val < m+n := by have := j.isLt; omega
-    simpa only [Fin.val_castLE,dif_pos hj] using! ih
+    simpa only [Fin.val_castLE,dite_eq_left hj] using! ih
 
 /-- One more divisor nonzero-test stage preserves all wires of the preceding prefix. -/
 private theorem div_nz_old (w i : ℕ) (hi : i+1 ≤ w) (x : Reg (2*w))
@@ -175,7 +179,7 @@ private theorem div_or_positive (s p : ℕ) (hp : 0 < p) (b : Bool) :
   | false => simp
   | true =>
     have hpos : 0 < s+p := by omega
-    simp only [if_true,one_mul,Bool.xor_true,Bool.and_true,decide_eq_true hpos]
+    simp only [ite_true,one_mul,Bool.xor_true,Bool.and_true,decide_eq_true hpos]
     cases (decide (0 < s)) <;> rfl
 
 /-- The prefix nonzero flag detects whether the unsigned value of the first `i` divisor bits is
@@ -227,11 +231,11 @@ private theorem div_round_input_left (w i : ℕ) (hi : i < w)
     booleanDAGValue p.graph x (divRoundInputs w i hi p ⟨j.val,by have := j.isLt; omega⟩) =
       divA w i hi p x j := by
   refine Fin.cases ?_ (fun k => ?_) j
-  · simp only [divRoundInputs,Fin.val_zero,show (0:ℕ) < w+i+1 by omega,dif_pos,
+  · simp only [divRoundInputs,Fin.val_zero,show (0:ℕ) < w+i+1 by omega,dite_eq_left,
       divA,Fin.cons_zero]
     exact div_input_value p.graph x ⟨w-1-i,by omega⟩
   · have hk : k.val+1 < w+i+1 := by have := k.isLt; omega
-    simp only [divRoundInputs,Fin.val_succ,dif_pos hk,Nat.succ_ne_zero,dite_false,
+    simp only [divRoundInputs,Fin.val_succ,dite_eq_left hk,Nat.succ_ne_zero,dite_false,
       Nat.add_sub_cancel,divA,Fin.cons_succ,divR]
 
 /-- If the state's zero wire is false, the right operand routed into a division round evaluates
@@ -243,11 +247,11 @@ private theorem div_round_input_right (w i : ℕ) (hi : i < w)
       (divRoundInputs w i hi p ⟨w+i+1+j.val,by have := j.isLt; omega⟩) =
       divB w i x j := by
   have hnot : ¬w+i+1+j.val < w+i+1 := by omega
-  simp only [divRoundInputs,dif_neg hnot,Nat.add_sub_cancel_left,divB,divExtend]
+  simp only [divRoundInputs,dite_eq_right hnot,Nat.add_sub_cancel_left,divB,divExtend]
   by_cases hj : j.val < w
-  · simp only [dif_pos hj,booleanWordAdderRight]
+  · simp only [dite_eq_left hj,booleanWordAdderRight]
     exact div_input_value p.graph x ⟨w+j.val,by omega⟩
-  · simp only [dif_neg hj]
+  · simp only [dite_eq_right hj]
     exact hz
 
 /-- If the zero wire is false, the round's routed inputs are the packed operands `divA` and
@@ -259,7 +263,7 @@ private theorem div_round_inputs_value (w i : ℕ) (hi : i < w)
       booleanWordAdderInput (w+i+1) (divA w i hi p x) (divB w i x) := by
   funext j
   by_cases hj : j.val < w+i+1
-  · simpa only [booleanWordAdderInput,dif_pos hj] using!
+  · simpa only [booleanWordAdderInput,dite_eq_left hj] using!
       div_round_input_left w i hi p x ⟨j.val,hj⟩
   · have hk : j.val-(w+i+1) < w+i+1 := by have := j.isLt; omega
     have he : (⟨w+i+1+(j.val-(w+i+1)),by omega⟩ : Fin (2*(w+i+1))) = j := by
@@ -268,7 +272,7 @@ private theorem div_round_inputs_value (w i : ℕ) (hi : i < w)
       omega
     have h := div_round_input_right w i hi p x hz ⟨j.val-(w+i+1),hk⟩
     rw [he] at h
-    simpa only [booleanWordAdderInput,dif_neg hj] using! h
+    simpa only [booleanWordAdderInput,dite_eq_right hj] using! h
 
 /-- If the zero wire is false, the spliced conditional-subtraction output evaluates to
 `divTrial`. -/
@@ -507,7 +511,7 @@ private theorem div_and_prefix (w n : ℕ) (hn : n ≤ w) (x : Reg (w+1)) (j : F
   | succ n ih =>
     refine Fin.lastCases ?_ (fun k => ?_) j
     · rw [booleanWordAndPrefix,div_snoc_value]
-      rw [dif_neg (by change ¬w+1+n < w+1+n; omega)]
+      rw [dite_eq_right (by change ¬w+1+n < w+1+n; omega)]
       change (booleanDAGValue (booleanWordAndPrefix w n (by omega)) x
           (⟨n,by omega⟩ : Fin (w+1+n)) &&
         booleanDAGValue (booleanWordAndPrefix w n (by omega)) x
@@ -517,7 +521,7 @@ private theorem div_and_prefix (w n : ℕ) (hn : n ≤ w) (x : Reg (w+1)) (j : F
         (div_input_value (booleanWordAndPrefix w n (by omega)) x (Fin.last w))
     · rw [booleanWordAndPrefix,div_snoc_value]
       have hk : w+1+k.val < w+1+n := by have := k.isLt; omega
-      simp only [Fin.val_castSucc,dif_pos hk]
+      simp only [Fin.val_castSucc,dite_eq_left hk]
       exact ih (by omega) k
 
 /-- Route the final quotient wires and divisor nonzero flag into the quotient-masking graph. -/
@@ -538,7 +542,7 @@ private theorem div_mask_bit (w : ℕ) (x : Reg (2*w)) (j : Fin w) :
   have he : booleanSpliceSource (n := w) r v =
       (⟨2*w+p.nodes+j.val,by have := j.isLt; omega⟩ : Fin (2*w+(p.nodes+w))) := by
     have hnot : ¬v.val < w+1 := by dsimp [v]; omega
-    rw [booleanSpliceSource,dif_neg hnot]
+    rw [booleanSpliceSource,dite_eq_right hnot]
     apply Fin.ext
     dsimp only [v,p]
     omega
@@ -565,7 +569,7 @@ private theorem div_quotient_word (w : ℕ) (a b : Reg w) :
         booleanDAGValue (booleanWordDivProgram w).graph (booleanWordAdderInput w a b)
           (booleanWordDivProgram w).nonzero := by
   funext j
-  simp only [booleanWordDivQuotient,booleanWordDivResult,booleanWordDivSelect,dif_pos j.isLt]
+  simp only [booleanWordDivQuotient,booleanWordDivResult,booleanWordDivSelect,dite_eq_left j.isLt]
   exact div_mask_bit w (booleanWordAdderInput w a b) j
 
 /-- Masking a word by a Boolean gives its unsigned value when the control is true and zero
@@ -593,7 +597,7 @@ private theorem div_remainder_bit (w : ℕ) (a b : Reg w) (j : Fin (2*w)) :
         ⟨j.val,by have := j.isLt; omega⟩ := by
   have hnot : ¬w+j.val < w := by omega
   simp only [booleanWordDivRemainder,booleanWordDivResult,booleanWordDivSelect,
-    dif_neg hnot,Nat.add_sub_cancel_left]
+    dite_eq_right hnot,Nat.add_sub_cancel_left]
   exact boolean_dag_splice_prefix _ _ _ _ _
 
 /-- The selected remainder has the unsigned value of the final division state's remainder word. -/
@@ -643,7 +647,7 @@ theorem boolean_word_div_value (w : ℕ) (a b : Reg w) :
   rw [hn] at hq
   have hr := div_remainder_value w a b
   by_cases hb : booleanWordLSBValue w b = 0
-  · simp only [hb,lt_self_iff_false,decide_false,Bool.false_eq_true,if_false] at hq
+  · simp only [hb,lt_self_iff_false,decide_false,Bool.false_eq_true,ite_false] at hq
     have hR : booleanWordLSBValue w a = booleanWordLSBValue (w+w) (divR p x) := by
       simpa only [hb,mul_zero,zero_add] using! hbalance
     constructor
@@ -659,7 +663,7 @@ theorem boolean_word_div_value (w : ℕ) (a b : Reg w) :
         booleanWordLSBValue (w+w) (divR p x) := by
       rw [Nat.mod_eq_sub_mul_div,hdiv,hbalance,Nat.mul_comm
         (booleanWordLSBValue w (divQ p x)) (booleanWordLSBValue w b),Nat.add_sub_cancel_left]
-    simp only [decide_eq_true hpos,if_true] at hq
+    simp only [decide_eq_true hpos,ite_true] at hq
     exact ⟨hq.trans hdiv.symm,hr.trans hmod.symm⟩
 
 end Qatlib.Concepts.MatrixAccess.RitzPipeline

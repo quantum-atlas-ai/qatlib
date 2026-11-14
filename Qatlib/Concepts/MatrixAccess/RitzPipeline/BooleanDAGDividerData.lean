@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGMultiplierData
-import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGConditionalSubtractData
+module
+
+public import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGMultiplierData
+public import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGConditionalSubtractData
+
+@[expose] public section
 
 /-!
 # Boolean DAG constructions for unsigned division

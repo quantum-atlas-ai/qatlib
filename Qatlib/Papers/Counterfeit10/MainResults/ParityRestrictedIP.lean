@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Data.Fintype.Pi
-import Mathlib.Algebra.Ring.Parity
-import Mathlib.Algebra.Order.Field.Rat
-import Mathlib.Tactic
+module
+
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Data.Fintype.Pi
+public import Mathlib.Algebra.Ring.Parity
+public import Mathlib.Algebra.Order.Field.Rat
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -88,27 +92,27 @@ lemma sum_prod_factor {N : ℕ} {R : Type*} [CommRing R] (g : Fin N → Bool →
 lemma prod_ite_two {N : ℕ} (p : Fin N → Prop) [DecidablePred p] :
     (∏ i : Fin N, (if p i then (2 : ℚ) else 0)) = if (∀ i, p i) then (2 : ℚ) ^ N else 0 := by
   by_cases h : ∀ i, p i
-  · rw [if_pos h]
-    have hstep : ∀ i : Fin N, (if p i then (2 : ℚ) else 0) = 2 := fun i => if_pos (h i)
+  · rw [ite_eq_left h]
+    have hstep : ∀ i : Fin N, (if p i then (2 : ℚ) else 0) = 2 := fun i => ite_eq_left (h i)
     rw [Finset.prod_congr rfl (fun i _ => hstep i), Finset.prod_const, Finset.card_univ,
       Fintype.card_fin]
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     obtain ⟨i, hi⟩ : ∃ i, ¬ p i := by
       by_contra h'
       exact h fun i => by by_contra hi; exact h' ⟨i, hi⟩
-    exact Finset.prod_eq_zero (Finset.mem_univ i) (if_neg hi)
+    exact Finset.prod_eq_zero (Finset.mem_univ i) (ite_eq_right hi)
 
 /-- Halving an indicator-weighted power of two subtracts one from the exponent. -/
 lemma half_ite_pow {N : ℕ} (hN : 0 < N) (P : Prop) [Decidable P] :
     (if P then (2 : ℚ) ^ N else 0) / 2 = if P then (2 : ℚ) ^ (N - 1) else 0 := by
   by_cases h : P
-  · rw [if_pos h, if_pos h]
+  · rw [ite_eq_left h, ite_eq_left h]
     have hpow : (2 : ℚ) ^ (N - 1) = 2 ^ N / 2 := by
       cases N with
       | zero => exact absurd hN (Nat.lt_irrefl 0)
       | succ n => rw [Nat.add_sub_cancel]; ring
     rw [hpow]
-  · rw [if_neg h, if_neg h]; ring
+  · rw [ite_eq_right h, ite_eq_right h]; ring
 
 /-- The phase `(-1)^{q·x}` that the inner-product (IP) oracle applies to the query `q`. -/
 noncomputable def ipPhase {N : ℕ} (x q : CoinString N) : ℚ :=
@@ -200,8 +204,8 @@ theorem sum_twisted_prod_ipPhase_eq_indicator {N : ℕ} (x w : CoinString N) :
 lemma even_indicator {N : ℕ} (q : CoinString N) :
     (if Even (coinWeight q) then (1 : ℚ) else 0) = (1 + (-1 : ℚ) ^ coinWeight q) / 2 := by
   rcases Nat.even_or_odd (coinWeight q) with h | h
-  · rw [if_pos h, h.neg_one_pow]; ring
-  · rw [if_neg (Nat.not_even_iff_odd.mpr h), h.neg_one_pow]; ring
+  · rw [ite_eq_left h, h.neg_one_pow]; ring
+  · rw [ite_eq_right (Nat.not_even_iff_odd.mpr h), h.neg_one_pow]; ring
 
 /-- A sum over `Q_even` is the corresponding even-weight-indicator weighted sum over the whole cube. -/
 lemma sum_evenQueries_eq {N : ℕ} (f : CoinString N → ℚ) :
@@ -359,13 +363,13 @@ theorem parityRestricted_orthonormal {N : ℕ} (hN : 0 < N) {x y : CoinString N}
   · subst hxy
     have hne : x ≠ compl x := ne_compl_self hx
     have hne' : compl x ≠ x := fun hc => hne hc.symm
-    simp only [if_true, if_neg hne, if_neg hne']
+    simp only [ite_true, ite_eq_right hne, ite_eq_right hne']
     norm_num
   · have h1 : ¬ (x = compl y) := ne_compl_of_weight hx hy
     have h2 : ¬ (compl x = y) := fun hc => ne_compl_of_weight hy hx hc.symm
     have h3 : ¬ (compl x = compl y) := fun hc =>
       hxy (by rw [← compl_compl x, hc, compl_compl y])
-    simp only [if_neg hxy, if_neg h1, if_neg h2, if_neg h3]
+    simp only [ite_eq_right hxy, ite_eq_right h1, ite_eq_right h2, ite_eq_right h3]
     norm_num
 
 /-- Corollary of Lemma 1: the parity-restricted readout is injective on the set `S_{<N/2}`. -/
@@ -373,7 +377,7 @@ theorem parityRestricted_injective {N : ℕ} (hN : 0 < N) {x y : CoinString N}
     (hx : coinWeight x < N / 2) (hy : coinWeight y < N / 2)
     (hamp : (∑ z : CoinString N, amp x z * amp y z) ≠ 0) : x = y := by
   by_contra hxy
-  exact hamp (by rw [parityRestricted_orthonormal hN hx hy, if_neg hxy])
+  exact hamp (by rw [parityRestricted_orthonormal hN hx hy, ite_eq_right hxy])
 
 /-- The all-fair oracle string. -/
 def zeroString {N : ℕ} : CoinString N := fun _ => false
@@ -397,7 +401,7 @@ lemma evenQueries_card {N : ℕ} (hN : 0 < N) : (evenQueries N).card = 2 ^ (N - 
     intro h1
     have := h1 ⟨0, hN⟩
     exact Bool.false_ne_true this
-  rw [if_pos hz, if_neg ho, add_zero] at h
+  rw [ite_eq_left hz, ite_eq_right ho, add_zero] at h
   have hcast : ((evenQueries N).card : ℚ) = ((2 ^ (N - 1) : ℕ) : ℚ) := by
     rw [h]; push_cast; ring
   exact_mod_cast hcast

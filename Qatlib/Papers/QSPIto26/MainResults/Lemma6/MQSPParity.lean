@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QSPIto26.MainResults.Core.MQSPCore
-import Qatlib.Papers.QSPIto26.MainResults.Lemma5.MQSPNonzero
+module
+
+public import Qatlib.Papers.QSPIto26.MainResults.Core.MQSPCore
+public import Qatlib.Papers.QSPIto26.MainResults.Lemma5.MQSPNonzero
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -102,32 +106,32 @@ lemma substNeg_C' {m : ℕ} (j : Fin m) (c : ℂ) : substNeg j (C' c) = C' c := 
 
 /-- `substNeg` negates `a_j`. -/
 lemma substNeg_var {m : ℕ} (j : Fin m) : substNeg j (var j) = -var j := by
-  rw [var, substNeg_mono, negAtMon, Pi.single_apply, if_pos rfl, zpow_one]
+  rw [var, substNeg_mono, negAtMon, Pi.single_apply, ite_eq_left rfl, zpow_one]
   exact neg_one_smul _
 
 /-- `substNeg` negates `a_j^{-1}`. -/
 lemma substNeg_varInv {m : ℕ} (j : Fin m) : substNeg j (varInv j) = -varInv j := by
-  rw [varInv, substNeg_mono, negAtMon, Pi.single_apply, if_pos rfl, zpow_neg, zpow_one]
+  rw [varInv, substNeg_mono, negAtMon, Pi.single_apply, ite_eq_left rfl, zpow_neg, zpow_one]
   have h1 : ((-1 : ℂ))⁻¹ = -1 := by norm_num
   rw [h1]
   exact neg_one_smul _
 
 /-- `substNeg` fixes `a_{j'}` for `j' ≠ j`. -/
 lemma substNeg_var_of_ne {m : ℕ} (j j' : Fin m) (h : j ≠ j') : substNeg j (var j') = var j' := by
-  rw [var, substNeg_mono, negAtMon, Pi.single_apply, if_neg h, zpow_zero, one_smul]
+  rw [var, substNeg_mono, negAtMon, Pi.single_apply, ite_eq_right h, zpow_zero, one_smul]
 
 /-- `substNeg` fixes `a_{j'}^{-1}` for `j' ≠ j`. -/
 lemma substNeg_varInv_of_ne {m : ℕ} (j j' : Fin m) (h : j ≠ j') :
     substNeg j (varInv j') = varInv j' := by
-  rw [varInv, substNeg_mono, negAtMon, Pi.single_apply, if_neg h, zpow_zero, one_smul]
+  rw [varInv, substNeg_mono, negAtMon, Pi.single_apply, ite_eq_right h, zpow_zero, one_smul]
 
 /-- Coefficient of the sign-twisted monomial. -/
 lemma negAtMon_apply {m : ℕ} (j : Fin m) (b k : ExpVec m) :
     (negAtMon j b).coeff k = if k = b then (-1 : ℂ)^(b j) else 0 := by
   by_cases h : k = b
   · subst h
-    simp [negAtMon, mono, AddMonoidAlgebra.coeff_single, Finsupp.single_apply, eq_comm]
-  · simp [negAtMon, mono, AddMonoidAlgebra.coeff_single, Finsupp.single_apply, eq_comm, h]
+    simp [negAtMon, mono, AddMonoidAlgebra.coeff_single]
+  · simp [negAtMon, mono, AddMonoidAlgebra.coeff_single, Finsupp.single_apply, eq_comm]
 
 /-! ### Action on the operators -/
 
@@ -137,7 +141,7 @@ lemma substNeg_signalOp {m : ℕ} (j j' : Fin m) :
       = if j' = j then -signalOp j' else signalOp j' := by
   by_cases h : j' = j
   · subst h
-    rw [if_pos rfl, RingHom.mapMatrix_apply]
+    rw [ite_eq_left rfl, RingHom.mapMatrix_apply]
     ext i i''
     fin_cases i <;> fin_cases i'' <;>
       simp [Matrix.cons_val', signalOp, Matrix.map_apply, substNeg_C',
@@ -145,7 +149,7 @@ lemma substNeg_signalOp {m : ℕ} (j j' : Fin m) :
     all_goals simp only [Lemma3.C'_smul]
     all_goals simp
     all_goals ring
-  · rw [if_neg h, RingHom.mapMatrix_apply]
+  · rw [ite_eq_right h, RingHom.mapMatrix_apply]
     ext i i''
     fin_cases i <;> fin_cases i'' <;>
       simp [Matrix.map_apply, Matrix.cons_val', signalOp, substNeg_C',
@@ -182,9 +186,9 @@ lemma substNeg_wordMatrix {m n : ℕ} (j : Fin m) (φ : Fin (n + 1) → ℝ) (s 
                 • (signalOp p.1 * phaseOp p.2 : Matrix (Fin 2) (Fin 2) (MLaurent m))) := by
           by_cases hp : p.1 = j
           · subst hp
-            rw [map_mul, substNeg_signalOp, substNeg_phaseOp, if_pos rfl, if_pos rfl, neg_mul,
+            rw [map_mul, substNeg_signalOp, substNeg_phaseOp, ite_eq_left rfl, ite_eq_left rfl, neg_mul,
               ← neg_one_smul_matrix]
-          · rw [map_mul, substNeg_signalOp, substNeg_phaseOp, if_neg hp, if_neg hp, one_smul]
+          · rw [map_mul, substNeg_signalOp, substNeg_phaseOp, ite_eq_right hp, ite_eq_right hp, one_smul]
         have hlen : (((p :: L).filter (fun q => q.1 = j)).length : ℤ)
             = ((L.filter (fun q => q.1 = j)).length : ℤ)
               + (if p.1 = j then (1 : ℤ) else 0) := by
@@ -192,10 +196,10 @@ lemma substNeg_wordMatrix {m n : ℕ} (j : Fin m) (φ : Fin (n + 1) → ℝ) (s 
         rw [List.map_cons, List.prod_cons, map_mul, hsign, ih,
           smul_mul_assoc, mul_smul_comm, smul_smul, hlen]
         by_cases hp : p.1 = j
-        · rw [if_pos hp, if_pos hp, zpow_add₀ (by norm_num : (-1 : ℂ) ≠ 0), zpow_one]
+        · rw [ite_eq_left hp, ite_eq_left hp, zpow_add₀ (by norm_num : (-1 : ℂ) ≠ 0), zpow_one]
           congr 1
           ring
-        · rw [if_neg hp, if_neg hp, add_zero, one_mul]
+        · rw [ite_eq_right hp, ite_eq_right hp, add_zero, one_mul]
   have hlist : (List.ofFn fun k : Fin n => signalOp (s k) * phaseOp (φ k.succ))
       = (List.ofFn fun k : Fin n => (s k, φ k.succ)).map
           (fun p => signalOp p.1 * phaseOp p.2) := by

@@ -21,9 +21,13 @@ construction (a parent map with a unique root), together with the telescoping
 identity that makes Eq. (11) a statement about root-to-leaf chains.
 -/
 
-import Mathlib.Data.Fintype.BigOperators
-import Mathlib.Data.Real.Basic
-import Mathlib.Data.Set.Basic
+module
+
+public import Mathlib.Data.Fintype.BigOperators
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Data.Set.Basic
+
+@[expose] public section
 
 /-!
 # RootedTreeChain

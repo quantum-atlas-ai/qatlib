@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.InteractionEvo.MeanDerivGrid.EffectivePrimitiveExecution
-import Qatlib.Concepts.InteractionEvo.SegmentProduct.EffectiveProductPerturbationHami
-import Qatlib.Concepts.InteractionEvo.MeanDerivGrid.EffectiveMeanDerivativeGridErrorHami
-import Qatlib.Concepts.InteractionEvo.EffCosts.EffectiveInteractionGateRateHami
-import Qatlib.Concepts.InteractionEvo.MeanDerivGrid.EffectiveRobustOAA
+module
+
+public import Qatlib.Concepts.InteractionEvo.MeanDerivGrid.EffectivePrimitiveExecution
+public import Qatlib.Concepts.InteractionEvo.SegmentProduct.EffectiveProductPerturbationHami
+public import Qatlib.Concepts.InteractionEvo.MeanDerivGrid.EffectiveMeanDerivativeGridErrorHami
+public import Qatlib.Concepts.InteractionEvo.EffCosts.EffectiveInteractionGateRateHami
+public import Qatlib.Concepts.InteractionEvo.MeanDerivGrid.EffectiveRobustOAA
+
+@[expose] public section
 
 /-!
 # Concatenation laws for effective programs

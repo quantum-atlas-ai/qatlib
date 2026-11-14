@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CountingClasses.ClassTransport.CountingComplexityDefs
-import Qatlib.Concepts.CountingClasses.ClassTransport.LinearOpticsComplexityModelsDefs
-import Qatlib.Concepts.BosonFock.PermAnalysis.BosonDistributionNormalizationThec
-import Mathlib.Data.List.GetD
+module
+
+public import Qatlib.Concepts.CountingClasses.ClassTransport.CountingComplexityDefs
+public import Qatlib.Concepts.CountingClasses.ClassTransport.LinearOpticsComplexityModelsDefs
+public import Qatlib.Concepts.BosonFock.PermAnalysis.BosonDistributionNormalizationThec
+public import Mathlib.Data.List.GetD
+
+@[expose] public section
 
 /-!
 # Class transport in the counting bit-machine model
@@ -163,10 +167,10 @@ private lemma pad_cut_tail {T0 T1 : ℕ} (h : T0 ≤ T1) (ω : Fin T1 → Bool) 
   funext j
   have hj1 : (j : ℕ) < T1 := j.isLt
   by_cases hj : (j : ℕ) < T0
-  · rw [padCoins, dif_pos hj]
+  · rw [padCoins, dite_eq_left hj]
     show ω ⟨(j : ℕ), lt_of_lt_of_le hj h⟩ = ω j
     exact congrArg ω (Fin.ext rfl)
-  · rw [padCoins, dif_neg hj]
+  · rw [padCoins, dite_eq_right hj]
     have hval : T0 + ((j : ℕ) - T0) < T1 := by omega
     have hval2 : T0 + ((j : ℕ) - T0) = (j : ℕ) := by omega
     show ω (⟨T0 + ((j : ℕ) - T0), hval⟩ : Fin T1) = ω j
@@ -181,7 +185,7 @@ private lemma cut_pad {T0 T1 : ℕ} (h : T0 ≤ T1) (b : Fin T0 → Bool) (u : F
   have hd2 : padCoins h b u ⟨(i : ℕ), hi1⟩
       = if hx : (i : ℕ) < T0 then b ⟨(i : ℕ), hx⟩ else u ⟨(i : ℕ) - T0, by omega⟩ := rfl
   show padCoins h b u ⟨(i : ℕ), hi1⟩ = b i
-  rw [hd2, dif_pos hi]
+  rw [hd2, dite_eq_left hi]
 
 /-- Extracting the suffix of a concatenated finite bit string recovers its given suffix. -/
 private lemma tail_pad {T0 T1 : ℕ} (h : T0 ≤ T1) (b : Fin T0 → Bool) (u : Fin (T1 - T0) → Bool) :
@@ -195,7 +199,7 @@ private lemma tail_pad {T0 T1 : ℕ} (h : T0 ≤ T1) (b : Fin T0 → Bool) (u : 
       = if hx : (T0 + (j : ℕ)) < T0 then b ⟨T0 + (j : ℕ), hx⟩
         else u ⟨T0 + (j : ℕ) - T0, hm⟩ := rfl
   show padCoins h b u ⟨T0 + (j : ℕ), hT⟩ = u j
-  rw [hd2, dif_neg (by omega)]
+  rw [hd2, dite_eq_right (by omega)]
   exact congrArg u (Fin.ext hval2)
 
 /-- The number of Boolean words of a fixed finite length is two raised to that length. -/
@@ -1094,10 +1098,10 @@ private lemma pad_cut_tail' {t1 t2 : ℕ} (h : t1 ≤ t2) (ω : Fin t2 → Bool)
     padBits h (cutBits h ω) (tailBits h ω) = ω := by
   funext j
   by_cases hj : (j : ℕ) < t1
-  · rw [padBits, dif_pos hj]
+  · rw [padBits, dite_eq_left hj]
     show ω ⟨(j : ℕ), lt_of_lt_of_le hj h⟩ = ω j
     exact congrArg ω (Fin.ext rfl)
-  · rw [padBits, dif_neg hj]
+  · rw [padBits, dite_eq_right hj]
     have hval2 : t1 + ((j : ℕ) - t1) = (j : ℕ) := by omega
     show ω (⟨t1 + ((j : ℕ) - t1), _⟩ : Fin t2) = ω j
     exact congrArg ω (Fin.ext hval2)
@@ -1111,7 +1115,7 @@ private lemma cut_pad' {t1 t2 : ℕ} (h : t1 ≤ t2) (b : Fin t1 → Bool) (u : 
   have hd2 : padBits h b u ⟨(i : ℕ), hi1⟩
       = if hx : (i : ℕ) < t1 then b ⟨(i : ℕ), hx⟩ else u ⟨(i : ℕ) - t1, by omega⟩ := rfl
   show padBits h b u ⟨(i : ℕ), hi1⟩ = b i
-  rw [hd2, dif_pos hi]
+  rw [hd2, dite_eq_left hi]
 
 /-- Extracting the suffix of a concatenated finite bit string recovers its given suffix. -/
 private lemma tail_pad' {t1 t2 : ℕ} (h : t1 ≤ t2) (b : Fin t1 → Bool) (u : Fin (t2 - t1) → Bool) :
@@ -1125,7 +1129,7 @@ private lemma tail_pad' {t1 t2 : ℕ} (h : t1 ≤ t2) (b : Fin t1 → Bool) (u :
       = if hx : (t1 + (j : ℕ)) < t1 then b ⟨t1 + (j : ℕ), hx⟩
         else u ⟨(t1 + (j : ℕ)) - t1, by omega⟩ := rfl
   show padBits h b u ⟨t1 + (j : ℕ), hj⟩ = u j
-  rw [hd2, dif_neg (by omega)]
+  rw [hd2, dite_eq_right (by omega)]
   exact congrArg u (Fin.ext hval2)
 
 /-- A program that branches on the initial tape bit and then accepts if it is true or rejects if
@@ -1253,7 +1257,7 @@ private lemma clause1_accScale {q : ℕ} (M : CcProgram q) (c k : ℕ)
         ccCoinString ω i = ccCoinString (cutBits hle ω) i := by
       intro i hi
       simp only [ccCoinString, cutBits]
-      rw [dif_pos (by omega : i < t2), dif_pos hi]
+      rw [dite_eq_left (by omega : i < t2), dite_eq_left hi]
     have hrun : ccRun M ccZeroOracle (ccCoinString ω) [false] t1
         = ccRun M ccZeroOracle (ccCoinString (cutBits hle ω)) [] t1 := by
       have h1 : ccRun M ccZeroOracle (ccCoinString ω) [false] t1
@@ -1636,10 +1640,10 @@ private theorem clause11Aux_pad_cut_tail {T0 T1 : ℕ} (h : T0 ≤ T1) (ω : Fin
     clause11Aux_padCoins h (clause11Aux_cutCoins h ω) (clause11Aux_tailCoins h ω) = ω := by
   funext j
   by_cases hj : (j : ℕ) < T0
-  · rw [clause11Aux_padCoins, dif_pos hj]
+  · rw [clause11Aux_padCoins, dite_eq_left hj]
     show ω ⟨(j : ℕ), lt_of_lt_of_le hj h⟩ = ω j
     exact congrArg ω (Fin.ext rfl)
-  · rw [clause11Aux_padCoins, dif_neg hj]
+  · rw [clause11Aux_padCoins, dite_eq_right hj]
     have hval : T0 + ((j : ℕ) - T0) < T1 := by omega
     have hval2 : T0 + ((j : ℕ) - T0) = (j : ℕ) := by omega
     show ω (⟨T0 + ((j : ℕ) - T0), hval⟩ : Fin T1) = ω j
@@ -1654,7 +1658,7 @@ private theorem clause11Aux_cut_pad {T0 T1 : ℕ} (h : T0 ≤ T1) (b : Fin T0 �
   have hd2 : clause11Aux_padCoins h b u ⟨(i : ℕ), hi1⟩
       = if hx : (i : ℕ) < T0 then b ⟨(i : ℕ), hx⟩ else u ⟨(i : ℕ) - T0, by omega⟩ := rfl
   show clause11Aux_padCoins h b u ⟨(i : ℕ), hi1⟩ = b i
-  rw [hd2, dif_pos hi]
+  rw [hd2, dite_eq_left hi]
 
 /-- Extracting the suffix of a concatenated finite bit string recovers its given suffix. -/
 private theorem clause11Aux_tail_pad {T0 T1 : ℕ} (h : T0 ≤ T1) (b : Fin T0 → Bool)
@@ -1667,7 +1671,7 @@ private theorem clause11Aux_tail_pad {T0 T1 : ℕ} (h : T0 ≤ T1) (b : Fin T0 �
       = if hx : (T0 + (j : ℕ)) < T0 then b ⟨T0 + (j : ℕ), hx⟩
         else u ⟨T0 + (j : ℕ) - T0, hm⟩ := rfl
   show clause11Aux_padCoins h b u ⟨T0 + (j : ℕ), hT⟩ = u j
-  rw [hd2, dif_neg (by omega)]
+  rw [hd2, dite_eq_right (by omega)]
   exact congrArg u (Fin.ext hval2)
 
 /-- The number of Boolean words of a fixed finite length is two raised to that length. -/
@@ -1760,7 +1764,7 @@ private theorem clause11Aux_good_conflict {qE : ℕ} (E : CcProgram qE) (cE kE d
         ccCoinString ω i = ccCoinString (clause11Aux_cutCoins hle ω) i := by
       intro i hi
       simp only [ccCoinString]
-      rw [dif_pos (show i < cE * 1 ^ kE + cE from by omega), dif_pos hi]
+      rw [dite_eq_left (show i < cE * 1 ^ kE + cE from by omega), dite_eq_left hi]
       rfl
     have hrun0 : ccRun E A (ccCoinString ω) [] (cE * 0 ^ kE + cE)
         = ccRun E A (ccCoinString (clause11Aux_cutCoins hle ω)) [] (cE * 0 ^ kE + cE) :=
@@ -2057,7 +2061,7 @@ theorem ccAlt_succ_robust {plen : ℕ} {D : List Bool → Prop} (h : RobustAlt p
     unfold ccAlt
     cases ex with
     | true =>
-      rw [if_pos rfl]
+      rw [ite_eq_left rfl]
       show (∃ w : Fin plen → Bool, D (z ++ List.ofFn w)) ↔ D z
       constructor
       · intro hx
@@ -2066,7 +2070,7 @@ theorem ccAlt_succ_robust {plen : ℕ} {D : List Bool → Prop} (h : RobustAlt p
       · intro hd
         exact ⟨fun _ => false, (h z _).mpr hd⟩
     | false =>
-      rw [if_neg (by decide)]
+      rw [ite_eq_right (by decide)]
       show (∀ w : Fin plen → Bool, D (z ++ List.ofFn w)) ↔ D z
       constructor
       · intro hx
@@ -2078,7 +2082,7 @@ theorem ccAlt_succ_robust {plen : ℕ} {D : List Bool → Prop} (h : RobustAlt p
     unfold ccAlt
     cases ex with
     | true =>
-      rw [if_pos rfl, if_pos rfl]
+      rw [ite_eq_left rfl, ite_eq_left rfl]
       show (∃ w : Fin plen → Bool, ccAlt false plen D (k + 1) (z ++ List.ofFn w))
         ↔ (∃ w : Fin plen → Bool, ccAlt false plen D k (z ++ List.ofFn w))
       constructor
@@ -2089,7 +2093,7 @@ theorem ccAlt_succ_robust {plen : ℕ} {D : List Bool → Prop} (h : RobustAlt p
         obtain ⟨w, hw⟩ := hx
         exact ⟨w, (ih false (z ++ List.ofFn w)).mpr hw⟩
     | false =>
-      rw [if_neg (by decide), if_neg (by decide)]
+      rw [ite_eq_right (by decide), ite_eq_right (by decide)]
       show (∀ w : Fin plen → Bool, ccAlt true plen D (k + 1) (z ++ List.ofFn w))
         ↔ (∀ w : Fin plen → Bool, ccAlt true plen D k (z ++ List.ofFn w))
       constructor
@@ -2499,12 +2503,12 @@ theorem clause1Aux_getD_ofFn {m : ℕ} (f : Fin m → Bool) (j : ℕ) :
 /-- Within the domain, lookup in `List.ofFn f` returns the corresponding value of `f`. -/
 theorem clause1Aux_getD_ofFn_lt {m : ℕ} (f : Fin m → Bool) (j : ℕ) (hj : j < m) :
     (List.ofFn f).getD j false = f ⟨j, hj⟩ := by
-  rw [clause1Aux_getD_ofFn f, dif_pos hj]
+  rw [clause1Aux_getD_ofFn f, dite_eq_left hj]
 
 /-- At or beyond its length, lookup in `List.ofFn f` with default `false` returns `false`. -/
 theorem clause1Aux_getD_ofFn_ge {m : ℕ} (f : Fin m → Bool) (j : ℕ) (hj : m ≤ j) :
     (List.ofFn f).getD j false = false := by
-  rw [clause1Aux_getD_ofFn f, dif_neg (by omega)]
+  rw [clause1Aux_getD_ofFn f, dite_eq_right (by omega)]
 
 /-- Every lookup with default `false` in a list of false bits returns `false`. -/
 theorem clause1Aux_getD_replicate_false (n j : ℕ) :
@@ -2522,7 +2526,7 @@ list at the shifted index. -/
 theorem clause1Aux_getD_append_right {z r : List Bool} (i : ℕ) (hi : z.length ≤ i) :
     (z ++ r).getD i false = r.getD (i - z.length) false := by
   simp only [List.getD, List.getElem?_append]
-  rw [if_neg (by omega : ¬i < z.length)]
+  rw [ite_eq_right (by omega : ¬i < z.length)]
 
 /-- Appending a list whose default-false lookups are all false preserves every default-false
 lookup in the original list. -/
@@ -2577,12 +2581,12 @@ theorem clause1Aux_getD_ofFn_pad {m d : ℕ} (f : Fin m → Bool) (j : ℕ) :
       clause1Aux_getD_ofFn_lt (fun k : Fin (m + d) => if h : (k : ℕ) < m then f ⟨k, h⟩ else false) j
         (lt_of_lt_of_le h2 (Nat.le_add_right m d))]
     show f ⟨j, h2⟩ = (if hlt : j < m then f ⟨j, hlt⟩ else false)
-    rw [dif_pos h2]
+    rw [dite_eq_left h2]
   · rw [clause1Aux_getD_ofFn_ge f j (by omega)]
     by_cases h3 : j < m + d
     · rw [clause1Aux_getD_ofFn_lt (fun k : Fin (m + d) => if h : (k : ℕ) < m then f ⟨k, h⟩ else false) j h3]
       show (false : Bool) = (if hlt : j < m then f ⟨j, hlt⟩ else false)
-      rw [dif_neg h2]
+      rw [dite_eq_right h2]
     · rw [clause1Aux_getD_ofFn_ge (fun k : Fin (m + d) => if h : (k : ℕ) < m then f ⟨k, h⟩ else false) j
         (by omega)]
 
@@ -2632,7 +2636,7 @@ theorem clause1Aux_alt_zero_exists {plen : ℕ} {D : List Bool → Prop}
     intro z
     show ccAlt true plen D 0 z → ccAlt true plen D (0 + 1) z
     intro hD
-    rw [clause1Aux_alt_succ (ex := true) 0 z, if_pos rfl]
+    rw [clause1Aux_alt_succ (ex := true) 0 z, ite_eq_left rfl]
     exact ⟨fun _ => false, (hz z).mpr hD⟩
   | succ n ih =>
     intro z h
@@ -2640,14 +2644,14 @@ theorem clause1Aux_alt_zero_exists {plen : ℕ} {D : List Bool → Prop}
     have hp : 2 * (n + 1) + 1 = (2 * n + 2) + 1 := by omega
     rw [hp]
     rw [hq] at h
-    rw [clause1Aux_alt_succ (ex := true) (2 * n + 1) z, if_pos rfl] at h
+    rw [clause1Aux_alt_succ (ex := true) (2 * n + 1) z, ite_eq_left rfl] at h
     obtain ⟨w, hw⟩ := h
     rw [show (2 * n + 1) = (2 * n) + 1 from by omega,
-      clause1Aux_alt_succ (ex := false) (2 * n) (z ++ List.ofFn w), if_neg (by decide)] at hw
-    rw [clause1Aux_alt_succ (ex := true) (2 * n + 2) z, if_pos rfl]
+      clause1Aux_alt_succ (ex := false) (2 * n) (z ++ List.ofFn w), ite_eq_right (by decide)] at hw
+    rw [clause1Aux_alt_succ (ex := true) (2 * n + 2) z, ite_eq_left rfl]
     refine ⟨w, ?_⟩
     rw [show (2 * n + 2) = (2 * n + 1) + 1 from by omega,
-      clause1Aux_alt_succ (ex := false) (2 * n + 1) (z ++ List.ofFn w), if_neg (by decide)]
+      clause1Aux_alt_succ (ex := false) (2 * n + 1) (z ++ List.ofFn w), ite_eq_right (by decide)]
     intro w'
     exact ih ((z ++ List.ofFn w) ++ List.ofFn w') (hw w')
 
@@ -2662,10 +2666,10 @@ theorem clause1Aux_alt_zero_forall {plen : ℕ} {D : List Bool → Prop}
     intro z
     show ccAlt true plen D (0 + 1 + 1) z → ccAlt true plen D (0 + 1) z
     intro h
-    rw [clause1Aux_alt_succ (ex := true) (0 + 1) z, if_pos rfl] at h
+    rw [clause1Aux_alt_succ (ex := true) (0 + 1) z, ite_eq_left rfl] at h
     obtain ⟨w, hw⟩ := h
-    rw [clause1Aux_alt_succ (ex := false) 0 (z ++ List.ofFn w), if_neg (by decide)] at hw
-    rw [clause1Aux_alt_succ (ex := true) 0 z, if_pos rfl]
+    rw [clause1Aux_alt_succ (ex := false) 0 (z ++ List.ofFn w), ite_eq_right (by decide)] at hw
+    rw [clause1Aux_alt_succ (ex := true) 0 z, ite_eq_left rfl]
     refine ⟨w, ?_⟩
     rw [clause1Aux_alt_zero]
     exact (hz (z ++ List.ofFn w)).mp (hw fun _ => false)
@@ -2675,14 +2679,14 @@ theorem clause1Aux_alt_zero_forall {plen : ℕ} {D : List Bool → Prop}
     have hp : 2 * (n + 1) + 1 = (2 * n + 2) + 1 := by omega
     rw [hp]
     rw [hq] at h
-    rw [clause1Aux_alt_succ (ex := true) (2 * n + 3) z, if_pos rfl] at h
+    rw [clause1Aux_alt_succ (ex := true) (2 * n + 3) z, ite_eq_left rfl] at h
     obtain ⟨w, hw⟩ := h
     rw [show (2 * n + 3) = (2 * n + 2) + 1 from by omega,
-      clause1Aux_alt_succ (ex := false) (2 * n + 2) (z ++ List.ofFn w), if_neg (by decide)] at hw
-    rw [clause1Aux_alt_succ (ex := true) (2 * n + 2) z, if_pos rfl]
+      clause1Aux_alt_succ (ex := false) (2 * n + 2) (z ++ List.ofFn w), ite_eq_right (by decide)] at hw
+    rw [clause1Aux_alt_succ (ex := true) (2 * n + 2) z, ite_eq_left rfl]
     refine ⟨w, ?_⟩
     rw [show (2 * n + 2) = (2 * n + 1) + 1 from by omega,
-      clause1Aux_alt_succ (ex := false) (2 * n + 1) (z ++ List.ofFn w), if_neg (by decide)]
+      clause1Aux_alt_succ (ex := false) (2 * n + 1) (z ++ List.ofFn w), ite_eq_right (by decide)]
     intro w'
     exact ih ((z ++ List.ofFn w) ++ List.ofFn w') (hw w')
 
@@ -2768,7 +2772,7 @@ theorem clause1Aux_alt_width0 {D : List Bool → Prop} :
     have hw0 : Fin 0 → Bool := fun i => absurd i.isLt (by omega)
     cases ex with
     | true =>
-      rw [clause1Aux_alt_succ (ex := true) m z, if_pos rfl]
+      rw [clause1Aux_alt_succ (ex := true) m z, ite_eq_left rfl]
       constructor
       · rintro ⟨w, hw⟩
         rw [← hnil w]
@@ -2778,7 +2782,7 @@ theorem clause1Aux_alt_width0 {D : List Bool → Prop} :
         rw [hnil hw0]
         exact (ih false z).mpr hD
     | false =>
-      rw [clause1Aux_alt_succ (ex := false) m z, if_neg (by decide)]
+      rw [clause1Aux_alt_succ (ex := false) m z, ite_eq_right (by decide)]
       constructor
       · intro h
         have h0 := h hw0
@@ -2884,9 +2888,9 @@ private theorem clause1Aux_priv_agree_step {q : ℕ} (P : CcProgram q) (A : List
       show (if i = c₁.head then b else c₁.tape i) = (if i = c₂.head then b else c₂.tape i)
       by_cases hie : i = c₁.head
       · subst hie
-        rw [hhead, if_pos rfl, if_pos rfl]
+        rw [hhead, ite_eq_left rfl, ite_eq_left rfl]
       · have hie2 : ¬i = c₂.head := by rw [← hhead]; exact hie
-        rw [if_neg hie, if_neg hie2, htape i hi]
+        rw [ite_eq_right hie, ite_eq_right hie2, htape i hi]
   | branch qt qf =>
     simp only [ccStep, hs, hst]
     refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, fun i hi => htape i hi⟩
@@ -2934,9 +2938,9 @@ private theorem clause1Aux_priv_agree_step {q : ℕ} (P : CcProgram q) (A : List
           = (if i = c₂.head then A c₂.query else c₂.tape i)
       by_cases hie : i = c₁.head
       · subst hie
-        rw [hhead, hquery, if_pos rfl, if_pos rfl]
+        rw [hhead, hquery, ite_eq_left rfl, ite_eq_left rfl]
       · have hie2 : ¬i = c₂.head := by rw [← hhead]; exact hie
-        rw [if_neg hie, if_neg hie2, htape i hi]
+        rw [ite_eq_right hie, ite_eq_right hie2, htape i hi]
   | accept =>
     simp only [ccStep, hs, hst]
     exact ⟨hstate, hhead, hquery, hcoin, htime, hqueries, hqbits, hcoins, htape⟩
@@ -3212,7 +3216,7 @@ theorem clause1Aux_firstBit_inBPP : InBPP (fun x : List Bool => x.getD 0 false =
     show (Finset.univ.filter (fun ω : Fin 2 → Bool =>
       ccResult clause1BadV ccZeroOracle (ccCoinString ω) x 2 = some true)).card = _
     by_cases hx : x.getD 0 false = true
-    · rw [if_pos hx]
+    · rw [ite_eq_left hx]
       have hfilter : (Finset.univ.filter (fun ω : Fin 2 → Bool =>
           ccResult clause1BadV ccZeroOracle (ccCoinString ω) x 2 = some true)) = Finset.univ := by
         ext ω
@@ -3220,7 +3224,7 @@ theorem clause1Aux_firstBit_inBPP : InBPP (fun x : List Bool => x.getD 0 false =
         exact ⟨fun _ => trivial, fun _ => (hpred ω).mpr hx⟩
       rw [hfilter, Finset.card_univ]
       exact clause1Aux_card_fin_bool 2
-    · rw [if_neg hx]
+    · rw [ite_eq_right hx]
       have hfilter : (Finset.univ.filter (fun ω : Fin 2 → Bool =>
           ccResult clause1BadV ccZeroOracle (ccCoinString ω) x 2 = some true)) = (∅ : Finset _) := by
         rw [Finset.filter_eq_empty_iff]
@@ -3229,10 +3233,10 @@ theorem clause1Aux_firstBit_inBPP : InBPP (fun x : List Bool => x.getD 0 false =
       rw [hfilter, Finset.card_empty]
   constructor
   · intro hx
-    rw [hb, hcount, if_pos hx]
+    rw [hb, hcount, ite_eq_left hx]
     norm_num
   · intro hx
-    rw [hb, hcount, if_neg hx]
+    rw [hb, hcount, ite_eq_right hx]
     norm_num
 
 /-- The conjunction of the stated relation-count estimator, affine-hash collision, and
@@ -3450,10 +3454,17 @@ position. The resulting bit and branch state distinguish zero from positive init
 position. -/
 theorem clause1Aux_zeroProbe_steps (A : List Bool → Bool) (ρ : ℕ → Bool) (c : CcConfig 9)
     (hs : (c.state : ℕ) = 0) :
-    let c8 := clause1Aux_step8 clause1Aux_zeroProbe A ρ c
+    let c8 := ccStep clause1Aux_zeroProbe A ρ (ccStep clause1Aux_zeroProbe A ρ
+      (ccStep clause1Aux_zeroProbe A ρ (ccStep clause1Aux_zeroProbe A ρ
+        (ccStep clause1Aux_zeroProbe A ρ (ccStep clause1Aux_zeroProbe A ρ
+          (ccStep clause1Aux_zeroProbe A ρ (ccStep clause1Aux_zeroProbe A ρ c)))))))
     (c8.head = if c.head = 0 then 1 else c.head) ∧
       ((c8.tape c8.head = true) ↔ (c.head ≠ 0)) ∧
       ((c8.state : ℕ) = if c.head = 0 then 9 else 8) := by
+  change (let c8 := clause1Aux_step8 clause1Aux_zeroProbe A ρ c
+    (c8.head = if c.head = 0 then 1 else c.head) ∧
+      ((c8.tape c8.head = true) ↔ (c.head ≠ 0)) ∧
+      ((c8.state : ℕ) = if c.head = 0 then 9 else 8))
   have hs' : c.state = (⟨0, by omega⟩ : Fin 10) := Fin.ext hs
   simp only [clause1Aux_step8, ccStep, clause1Aux_zeroProbe, hs']
   by_cases h : c.head = 0
@@ -3463,7 +3474,7 @@ theorem clause1Aux_zeroProbe_steps (A : List Bool → Bool) (ρ : ℕ → Bool) 
     have e3 : c.head - 1 + 1 = c.head := by omega
     have e4 : ¬(c.head = c.head - 1) := by omega
     have e5 : ¬(c.head = c.head + 1) := by omega
-    rw [e1, e3, if_neg e4, if_neg e5, if_pos rfl, if_pos rfl]
+    rw [e1, e3, ite_eq_right e4, ite_eq_right e5, ite_eq_left rfl, ite_eq_left rfl]
     simp [h]
 
 /-- A final head at position one and tape bit `b` at position zero imply singleton output `[b]`. -/
@@ -3530,10 +3541,10 @@ theorem clause1Aux_clause6_of_wrap (L : List Bool → Prop) (hin : InBPP L)
   have hcnt := hcount x
   have hg := hgap x
   by_cases hx : L x
-  · have hF : (fun x => if L x then [true] else [false]) x = [true] := if_pos hx
+  · have hF : (fun x => if L x then [true] else [false]) x = [true] := ite_eq_left hx
     rw [hF, hcnt.1]
     exact clause1Aux_count_transfer_pos hg ((hbnd x).1 hx)
-  · have hF : (fun x => if L x then [true] else [false]) x = [false] := if_neg hx
+  · have hF : (fun x => if L x then [true] else [false]) x = [false] := ite_eq_right hx
     rw [hF, hcnt.2]
     exact clause1Aux_count_transfer_neg hg ((hbnd x).2 hx)
 
@@ -3603,7 +3614,40 @@ private def clause1Aux_wrapStates {q : ℕ} (M : CcProgram q) (i : Fin ((q + 26)
 /-- The program obtained by adding two output gadgets to `M`, converting its decision into a
 singleton Boolean output. -/
 def clause1Aux_wrapProg {q : ℕ} (M : CcProgram q) : CcProgram (q + 26) where
-  states := clause1Aux_wrapStates M
+  states := fun i =>
+    let upFin : Fin (q + 1) → Fin ((q + 26) + 1) := fun j => ⟨(j : ℕ), by omega⟩
+    let liftAct : CcAct (q + 1) → CcAct ((q + 26) + 1) := fun a =>
+      match a with
+      | CcAct.moveL j => CcAct.moveL (upFin j)
+      | CcAct.moveR j => CcAct.moveR (upFin j)
+      | CcAct.write b j => CcAct.write b (upFin j)
+      | CcAct.branch jt jf => CcAct.branch (upFin jt) (upFin jf)
+      | CcAct.coinFlip jt jf => CcAct.coinFlip (upFin jt) (upFin jf)
+      | CcAct.queryPush j => CcAct.queryPush (upFin j)
+      | CcAct.oracleCall jt jf => CcAct.oracleCall (upFin jt) (upFin jf)
+      | CcAct.accept => CcAct.branch ⟨q + 14, by omega⟩ ⟨q + 14, by omega⟩
+      | CcAct.reject => CcAct.branch ⟨q + 1, by omega⟩ ⟨q + 1, by omega⟩
+    let gadStates (base : ℕ) (b : Bool) (hbase : base + 12 < (q + 26) + 1) :
+        ℕ → CcAct ((q + 26) + 1)
+      | 0 => CcAct.moveR ⟨base + 1, by omega⟩
+      | 1 => CcAct.write false ⟨base + 2, by omega⟩
+      | 2 => CcAct.moveL ⟨base + 3, by omega⟩
+      | 3 => CcAct.write true ⟨base + 4, by omega⟩
+      | 4 => CcAct.moveL ⟨base + 5, by omega⟩
+      | 5 => CcAct.write false ⟨base + 6, by omega⟩
+      | 6 => CcAct.moveR ⟨base + 7, by omega⟩
+      | 7 => CcAct.branch ⟨base + 8, by omega⟩ ⟨base + 9, by omega⟩
+      | 8 => CcAct.moveL ⟨base + 0, by omega⟩
+      | 9 => CcAct.moveL ⟨base + 10, by omega⟩
+      | 10 => CcAct.write b ⟨base + 11, by omega⟩
+      | 11 => CcAct.moveR ⟨base + 12, by omega⟩
+      | _ => CcAct.accept
+    if h : (i : ℕ) ≤ q then
+      liftAct (M.states ⟨(i : ℕ), by omega⟩)
+    else if h2 : (i : ℕ) < q + 14 then
+      gadStates (q + 1) false (by omega) ((i : ℕ) - (q + 1))
+    else
+      gadStates (q + 14) true (by omega) ((i : ℕ) - (q + 14))
 
 /-- Embeds a configuration into the wrapper state space while preserving its tape, head, query,
 coin index, and resource counters. -/
@@ -3664,7 +3708,7 @@ private lemma clause1Aux_wrap_states_sim {q : ℕ} (M : CcProgram q) (i : Fin (q
     omega
   show clause1Aux_wrapStates M (clause1Aux_wrap_upFin i) = _
   simp only [clause1Aux_wrapStates]
-  rw [dif_pos hle]
+  rw [dite_eq_left hle]
   rfl
 
 /-- Embedding an original initial configuration gives the wrapper's initial configuration on the
@@ -3769,7 +3813,7 @@ private lemma clause1Aux_wrap_gadStates_false {q : ℕ} (M : CcProgram q) (d : �
       = clause1Aux_gadStates (base := q + 1) (b := false) (by omega) d := by
   show clause1Aux_wrapStates M ⟨q + 1 + d, by omega⟩ = _
   simp only [clause1Aux_wrapStates]
-  rw [dif_neg (by omega : ¬(q + 1 + d ≤ q)), dif_pos (by omega : q + 1 + d < q + 14)]
+  rw [dite_eq_right (by omega : ¬(q + 1 + d ≤ q)), dite_eq_left (by omega : q + 1 + d < q + 14)]
   have hsub : q + 1 + d - (q + 1) = d := by omega
   rw [hsub]
 
@@ -3780,8 +3824,8 @@ private lemma clause1Aux_wrap_gadStates_true {q : ℕ} (M : CcProgram q) (d : �
       = clause1Aux_gadStates (base := q + 14) (b := true) (by omega) d := by
   show clause1Aux_wrapStates M ⟨q + 14 + d, by omega⟩ = _
   simp only [clause1Aux_wrapStates]
-  rw [dif_neg (by omega : ¬(q + 14 + d ≤ q)),
-    dif_neg (by omega : ¬(q + 14 + d < q + 14))]
+  rw [dite_eq_right (by omega : ¬(q + 14 + d ≤ q)),
+    dite_eq_right (by omega : ¬(q + 14 + d < q + 14))]
   have hsub : q + 14 + d - (q + 14) = d := by omega
   rw [hsub]
 
@@ -3848,7 +3892,7 @@ private lemma clause1Aux_wrap_probeCore {Q : ℕ} (P : CcProgram Q) (base : ℕ)
     have e3 : c.head - 1 + 1 = c.head := by omega
     have e4 : ¬(c.head = c.head - 1) := by omega
     have e5 : ¬(c.head = c.head + 1) := by omega
-    rw [e1, e3, if_neg e4, if_neg e5, if_pos rfl, if_pos rfl]
+    rw [e1, e3, ite_eq_right e4, ite_eq_right e5, ite_eq_left rfl, ite_eq_left rfl]
     simp [h]
 
 /-- A matching output gadget starting at head position `h` reaches its final state after `9 * h
@@ -3872,9 +3916,9 @@ private lemma clause1Aux_wrap_gadCore {Q : ℕ} (P : CcProgram Q) (base : ℕ) (
     have h0 : c.head = 0 := by omega
     have hp := clause1Aux_wrap_probeCore P base b hbase hact A ρ c hs
     have hp1 : (clause1Aux_wrap_runN P A ρ c 8).head = 1 := by
-      rw [hp.1, if_pos h0]
+      rw [hp.1, ite_eq_left h0]
     have hp2 : ((clause1Aux_wrap_runN P A ρ c 8).state : ℕ) = base + 9 := by
-      rw [hp.2.1, if_pos h0]
+      rw [hp.2.1, ite_eq_left h0]
     have hp3 : (clause1Aux_wrap_runN P A ρ c 8).time = c.time + 8 := hp.2.2
     have hst9 : (clause1Aux_wrap_runN P A ρ c 8).state = (⟨base + 9, by omega⟩ : Fin (Q + 1)) :=
       Fin.ext (by rw [hp2])
@@ -3955,9 +3999,9 @@ private lemma clause1Aux_wrap_gadCore {Q : ℕ} (P : CcProgram Q) (base : ℕ) (
     have hpos : c.head ≠ 0 := by omega
     have hp := clause1Aux_wrap_probeCore P base b hbase hact A ρ c hs
     have hp1 : (clause1Aux_wrap_runN P A ρ c 8).head = c.head := by
-      rw [hp.1, if_neg hpos]
+      rw [hp.1, ite_eq_right hpos]
     have hp2 : ((clause1Aux_wrap_runN P A ρ c 8).state : ℕ) = base + 8 := by
-      rw [hp.2.1, if_neg hpos]
+      rw [hp.2.1, ite_eq_right hpos]
     have hp3 : (clause1Aux_wrap_runN P A ρ c 8).time = c.time + 8 := hp.2.2
     have hst8 : (clause1Aux_wrap_runN P A ρ c 8).state = (⟨base + 8, by omega⟩ : Fin (Q + 1)) :=
       Fin.ext (by rw [hp2])
@@ -4315,10 +4359,10 @@ private lemma clause1Aux_wrap_pad_cut_tail {T0 T1 : ℕ} (h : T0 ≤ T1) (ω : F
   funext j
   have hj1 : (j : ℕ) < T1 := j.isLt
   by_cases hj : (j : ℕ) < T0
-  · rw [clause1Aux_wrap_pad, dif_pos hj]
+  · rw [clause1Aux_wrap_pad, dite_eq_left hj]
     show ω ⟨(j : ℕ), lt_of_lt_of_le hj h⟩ = ω j
     exact congrArg ω (Fin.ext rfl)
-  · rw [clause1Aux_wrap_pad, dif_neg hj]
+  · rw [clause1Aux_wrap_pad, dite_eq_right hj]
     have hval : T0 + ((j : ℕ) - T0) < T1 := by omega
     have hval2 : T0 + ((j : ℕ) - T0) = (j : ℕ) := by omega
     show ω (⟨T0 + ((j : ℕ) - T0), hval⟩ : Fin T1) = ω j
@@ -4333,7 +4377,7 @@ private lemma clause1Aux_wrap_cut_pad {T0 T1 : ℕ} (h : T0 ≤ T1) (b : Fin T0 
   have hd2 : clause1Aux_wrap_pad h b u ⟨(i : ℕ), hi1⟩
       = if hx : (i : ℕ) < T0 then b ⟨(i : ℕ), hx⟩ else u ⟨(i : ℕ) - T0, by omega⟩ := rfl
   show clause1Aux_wrap_pad h b u ⟨(i : ℕ), hi1⟩ = b i
-  rw [hd2, dif_pos hi]
+  rw [hd2, dite_eq_left hi]
 
 /-- Extracting the suffix of a concatenated finite bit string recovers its given suffix. -/
 private lemma clause1Aux_wrap_tail_pad {T0 T1 : ℕ} (h : T0 ≤ T1) (b : Fin T0 → Bool)
@@ -4347,7 +4391,7 @@ private lemma clause1Aux_wrap_tail_pad {T0 T1 : ℕ} (h : T0 ≤ T1) (b : Fin T0
       = if hx : (T0 + (j : ℕ)) < T0 then b ⟨T0 + (j : ℕ), hx⟩
         else u ⟨T0 + (j : ℕ) - T0, hm⟩ := rfl
   show clause1Aux_wrap_pad h b u ⟨T0 + (j : ℕ), hT⟩ = u j
-  rw [hd2, dif_neg (by omega)]
+  rw [hd2, dite_eq_right (by omega)]
   exact congrArg u (Fin.ext hval2)
 
 /-- The number of longer bit strings satisfying a condition on their prefix is the number of
@@ -4484,9 +4528,9 @@ theorem clause1Aux_hwrap (L : List Bool → Prop) :
         rw [hout ω, hcut ω]
         by_cases hc : ccResult M ccZeroOracle
             (ccCoinString (clause1Aux_wrap_cut hle ω)) x t = some true
-        · rw [if_pos hc]
+        · rw [ite_eq_left hc]
           simp [hc]
-        · rw [if_neg hc]
+        · rw [ite_eq_right hc]
           simp [hc]
       rw [hfeq]
       exact clause1Aux_wrap_card_fiber (T0 := t) (T1 := t') hle
@@ -4501,9 +4545,9 @@ theorem clause1Aux_hwrap (L : List Bool → Prop) :
         rw [hout ω, hcut ω]
         by_cases hc : ccResult M ccZeroOracle
             (ccCoinString (clause1Aux_wrap_cut hle ω)) x t = some true
-        · rw [if_pos hc]
+        · rw [ite_eq_left hc]
           simp [hc]
-        · rw [if_neg hc]
+        · rw [ite_eq_right hc]
           simp [hc]
       rw [hfeq]
       have hcomp : (Finset.univ.filter (fun b : Fin t → Bool =>

@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Sqrt
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Algebra.BigOperators.Fin
-import Mathlib.LinearAlgebra.Matrix.Hadamard
-import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
+module
+
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Sqrt
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Algebra.BigOperators.Fin
+public import Mathlib.LinearAlgebra.Matrix.Hadamard
+public import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

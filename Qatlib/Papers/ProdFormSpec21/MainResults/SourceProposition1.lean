@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ProdFormSpec21.MainResults.SourceModel
+module
+
+public import Qatlib.Papers.ProdFormSpec21.MainResults.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -95,7 +99,7 @@ core (Appendix F); they are not themselves active Claims, so we state Eq (35) as
 combination step with those estimates as hypotheses. -/
 theorem proposition1_leading_bound
     (εtro εadb εtot D C1 lam T M : ℝ)
-    (hlam : 0 < lam) (hD : 0 < D) (hC1 : 0 < C1) (hT : 0 < T) (hM : 0 < M)
+    (_hlam : 0 < lam) (_hD : 0 < D) (_hC1 : 0 < C1) (_hT : 0 < T) (_hM : 0 < M)
     (htri : εtro ≤ εadb + εtot)
     (hadb : εadb ≤ D ^ 2 / (T * lam ^ 3))
     (htot : εtot ≤ C1 ^ 2 * T / (M ^ 2 * lam ^ 3)) :

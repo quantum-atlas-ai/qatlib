@@ -4,71 +4,75 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Defs
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Algebra.CharZero.Defs
-import Mathlib.Algebra.Field.Defs
-import Mathlib.Algebra.Group.AddChar
-import Mathlib.Algebra.Group.Basic
-import Mathlib.Algebra.Group.Defs
-import Mathlib.Algebra.Group.DivInvMonoid
-import Mathlib.Algebra.Group.Equiv.Defs
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.Group.Nat.Defs
-import Mathlib.Algebra.Group.Semigroup
-import Mathlib.Algebra.Group.Subgroup.Defs
-import Mathlib.Algebra.Group.Subgroup.Finite
-import Mathlib.Algebra.Group.Units.Equiv
-import Mathlib.Algebra.GroupWithZero.Basic
-import Mathlib.Algebra.GroupWithZero.Defs
-import Mathlib.Algebra.GroupWithZero.NeZero
-import Mathlib.Algebra.GroupWithZero.Units.Basic
-import Mathlib.Algebra.NeZero
-import Mathlib.Algebra.Order.Archimedean.Real.Basic
-import Mathlib.Algebra.Order.Floor.Defs
-import Mathlib.Algebra.Order.Monoid.Defs
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Algebra.Ring.Nat
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Analysis.Fourier.FiniteAbelian.Orthogonality
-import Mathlib.Analysis.Real.Sqrt
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Basic.Complex.Basic
-import Mathlib.Basic.FunLike.Basic
-import Mathlib.Basic.FunLike.Equiv
-import Mathlib.Basic.Real.Basic
-import Mathlib.Basic.SetLike.Basic
-import Mathlib.Data.Finset.Basic
-import Mathlib.Data.Finset.Defs
-import Mathlib.Data.Fintype.Card
-import Mathlib.Data.Fintype.Defs
-import Mathlib.Data.Fintype.EquivFin
-import Mathlib.Data.Int.Cast.Defs
-import Mathlib.Data.Nat.Cast.Basic
-import Mathlib.Data.Nat.Cast.Defs
-import Mathlib.Data.Nat.Cast.Order.Basic
-import Mathlib.Data.Nat.Init
-import Mathlib.Data.Set.Basic
-import Mathlib.Data.Set.Defs
-import Mathlib.Logic.Equiv.Defs
-import Mathlib.Order.Basic
-import Mathlib.Order.Defs.LinearOrder
-import Mathlib.Order.Defs.PartialOrder
-import Mathlib.RingTheory.SimpleRing.Basic
-import Mathlib.RingTheory.SimpleRing.Principal
-import Mathlib.Tactic
-import Mathlib.Tactic.CancelDenoms.Core
-import Mathlib.Tactic.FieldSimp.Lemmas
-import Mathlib.Tactic.Linarith.Lemmas
-import Mathlib.Tactic.Linarith.Preprocessing
-import Mathlib.Tactic.NormNum.Basic
-import Mathlib.Tactic.NormNum.Inv
-import Mathlib.Tactic.NormNum.Result
-import Mathlib.Tactic.Ring.Basic
-import Mathlib.Tactic.Ring.Common
-import Qatlib.Concepts.QuditTeleport.TeleportCore.Transform
-import Qatlib.Concepts.HspRecovery.BackendAudit.CharacterTableRecoveryProbability
+module
+
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Defs
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Algebra.CharZero.Defs
+public import Mathlib.Algebra.Field.Defs
+public import Mathlib.Algebra.Group.AddChar
+public import Mathlib.Algebra.Group.Basic
+public import Mathlib.Algebra.Group.Defs
+public import Mathlib.Algebra.Group.DivInvMonoid
+public import Mathlib.Algebra.Group.Equiv.Defs
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.Group.Nat.Defs
+public import Mathlib.Algebra.Group.Semigroup
+public import Mathlib.Algebra.Group.Subgroup.Defs
+public import Mathlib.Algebra.Group.Subgroup.Finite
+public import Mathlib.Algebra.Group.Units.Equiv
+public import Mathlib.Algebra.GroupWithZero.Basic
+public import Mathlib.Algebra.GroupWithZero.Defs
+public import Mathlib.Algebra.GroupWithZero.NeZero
+public import Mathlib.Algebra.GroupWithZero.Units.Basic
+public import Mathlib.Algebra.NeZero
+public import Mathlib.Algebra.Order.Archimedean.Real.Basic
+public import Mathlib.Algebra.Order.Floor.Defs
+public import Mathlib.Algebra.Order.Monoid.Defs
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Algebra.Ring.Nat
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Analysis.Fourier.FiniteAbelian.Orthogonality
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Basic.FunLike.Basic
+public import Mathlib.Basic.FunLike.Equiv
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Basic.SetLike.Basic
+public import Mathlib.Data.Finset.Basic
+public import Mathlib.Data.Finset.Defs
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Data.Fintype.Defs
+public import Mathlib.Data.Fintype.EquivFin
+public import Mathlib.Data.Int.Cast.Defs
+public import Mathlib.Data.Nat.Cast.Basic
+public import Mathlib.Data.Nat.Cast.Defs
+public import Mathlib.Data.Nat.Cast.Order.Basic
+public import Mathlib.Data.Nat.Init
+public import Mathlib.Data.Set.Basic
+public import Mathlib.Data.Set.Defs
+public import Mathlib.Logic.Equiv.Defs
+public import Mathlib.Order.Basic
+public import Mathlib.Order.Defs.LinearOrder
+public import Mathlib.Order.Defs.PartialOrder
+public import Mathlib.RingTheory.SimpleRing.Basic
+public import Mathlib.RingTheory.SimpleRing.Principal
+public import Mathlib.Tactic
+public import Mathlib.Tactic.CancelDenoms.Core
+public import Mathlib.Tactic.FieldSimp.Lemmas
+public import Mathlib.Tactic.Linarith.Lemmas
+public import Mathlib.Tactic.Linarith.Preprocessing
+public import Mathlib.Tactic.NormNum.Basic
+public import Mathlib.Tactic.NormNum.Inv
+public import Mathlib.Tactic.NormNum.Result
+public import Mathlib.Tactic.Ring.Basic
+public import Mathlib.Tactic.Ring.Common
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.Transform
+public import Qatlib.Concepts.HspRecovery.BackendAudit.CharacterTableRecoveryProbability
+
+@[expose] public section
 
 /-!
 # Character orthogonality and subgroup Fourier sampling
@@ -131,7 +135,7 @@ def annihilatorKet {G : Type*} [AddCommGroup G] [Fintype G]
     else 0
 
 /-- For positive natural numbers a and b with ba = c, the complex-cast ratio √a/√c equals 1/√b. -/
-theorem sqrt_card_ratio (a b c : ℕ) (ha : 0 < a) (hb : 0 < b) (h : b * a = c) :
+theorem sqrt_card_ratio (a b c : ℕ) (ha : 0 < a) (_hb : 0 < b) (h : b * a = c) :
     (Real.sqrt (a : ℝ) : ℂ) * ((Real.sqrt (c : ℝ) : ℂ))⁻¹ =
       ((Real.sqrt (b : ℝ) : ℂ))⁻¹ := by
   have hc : (c : ℝ) = (b : ℝ) * (a : ℝ) := by
@@ -164,14 +168,14 @@ theorem theorem3_11 (G : Type*) [AddCommGroup G] [Fintype G]
   change abelianQFT (abelianCosetState H 0) χ = annihilatorKet H χ
   rw [abelianQFT_cosetState H 0 χ]
   by_cases hχ : χ ∈ characterAnnihilator H
-  · rw [if_pos hχ, AddChar.map_zero_eq_one, one_mul]
-    simp only [annihilatorKet, hχ, if_true]
+  · rw [ite_eq_left hχ, AddChar.map_zero_eq_one, one_mul]
+    simp only [annihilatorKet, hχ, ite_true]
     exact sqrt_card_ratio (Fintype.card H) (Fintype.card (characterAnnihilator H))
       (Fintype.card G)
       (Fintype.card_pos_iff.mpr ⟨0⟩)
       (Fintype.card_pos_iff.mpr ⟨0⟩)
       (card_characterAnnihilator H)
-  · rw [if_neg hχ]
+  · rw [ite_eq_right hχ]
     simp [annihilatorKet, hχ]
 
 /-- Translation of an amplitude function by `t`, sending `x` to `u (x - t)`. -/
@@ -202,7 +206,7 @@ theorem theorem3_12_eq67 {G : Type*} [AddCommGroup G] (h : AddChar G ℂ) (t : G
   simp only [translation, phase]
   rw [AddChar.map_sub_eq_div]
   have ht : h t ≠ 0 := (AddChar.val_isUnit h t).ne_zero
-  field_simp [ht] <;> ring_nf
+  field_simp [ht]
 
 /-- Applying the Fourier transform after the phase `h` equals translating the Fourier transform
 by −h on the dual group ([Theorem 3.12 (Commutative laws of the G-operators)][Lomont2004]). -/
@@ -211,7 +215,7 @@ theorem theorem3_12_eq68 {G : Type*} [AddCommGroup G] [Fintype G]
     abelianQFT (phase h u) = translationDual (-h) (abelianQFT u) := by
   funext χ
   simp only [abelianQFT, abelianQFTMatrix, Matrix.mulVec, dotProduct, phase, translationDual,
-    sub_neg_eq_add, Pi.add_apply, AddChar.add_apply]
+    sub_neg_eq_add, AddChar.add_apply]
   apply Finset.sum_congr rfl
   intro x _
   ring

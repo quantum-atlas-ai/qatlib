@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfacesDefs
-import Mathlib.Algebra.Order.Floor.Ring
-import Mathlib.Data.Rat.Floor
-import Mathlib.Data.Complex.Basic
+module
+
+public import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfacesDefs
+public import Mathlib.Algebra.Order.Floor.Ring
+public import Mathlib.Data.Rat.Floor
+public import Mathlib.Basic.Complex.Basic
+
+@[expose] public section
 
 /-!
 # Dyadic encodings of complex matrices

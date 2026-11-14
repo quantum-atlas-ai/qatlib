@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.BlackBoxHam09.MainResults.Defs
+module
+
+public import Qatlib.Papers.BlackBoxHam09.MainResults.Defs
+
+@[expose] public section
 
 /-!
 # Theorem 11 Hermitian block embedding
@@ -123,11 +127,11 @@ theorem theorem11_eps_le {N : ℕ} {Λ1 Λmax X : ℝ} (hN : 0 < N) (hΛ1 : 0 < 
 
 /-- For positive `N`, `Λmax`, and `c`, the bound `X ≤ 2 * Λmax` implies `c * (N * X) ≤ (2 * c) *
 (N * Λmax)`. See [Berry and Childs, Theorem 11][BerryChilds2012]. -/
-theorem theorem11_query_transfer {N : ℕ} {Λmax X c : ℝ} (hN : 0 < N) (hΛmax : 0 < Λmax)
+theorem theorem11_query_transfer {N : ℕ} {Λmax X c : ℝ} (_hN : 0 < N) (_hΛmax : 0 < Λmax)
     (hc : 0 < c) (hX : X ≤ 2 * Λmax) :
     c * ((N : ℝ) * X) ≤ (2 * c) * ((N : ℝ) * Λmax) := by
   have hNpos : (0 : ℝ) ≤ (N : ℝ) := Nat.cast_nonneg N
-  nlinarith [hc, hΛmax, hNpos, mul_nonneg hNpos (le_of_lt hΛmax),
+  nlinarith [hc, _hΛmax, hNpos, mul_nonneg hNpos (le_of_lt _hΛmax),
     mul_le_mul_of_nonneg_left hX (mul_nonneg (le_of_lt hc) hNpos)]
 
 /-- For unitary `U` and `Λmax ≤ X ≤ 2 * Λmax`, collect the Hermitian, involution, unitary, and
@@ -135,7 +139,7 @@ block entry properties of `blockHam U` with the scalar parameter and cost compar
 are algebraic ingredients for Theorem 11 of [BerryChilds2012]. -/
 theorem theorem11_exact_unitary_implementation
     {N : ℕ} (U : Matrix (Fin N) (Fin N) ℂ) (hU : U ∈ Matrix.unitaryGroup (Fin N) ℂ)
-    (hN : 0 < N) {Λmax : ℝ} (hΛmax : unitaryMaxEntry U ≤ Λmax) (hΛmax0 : 0 < Λmax)
+    (hN : 0 < N) {Λmax : ℝ} (_hΛmax : unitaryMaxEntry U ≤ Λmax) (hΛmax0 : 0 < Λmax)
     {Λ1 X : ℝ} (hΛ1 : 0 < Λ1) (hX : Λmax ≤ X) (hX2 : X ≤ 2 * Λmax) :
     (blockHam U).IsHermitian ∧ blockHam U * blockHam U = 1 ∧
       blockHam U ∈ Matrix.unitaryGroup (Fin N ⊕ Fin N) ℂ ∧

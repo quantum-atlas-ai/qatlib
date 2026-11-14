@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import QuantumInfo.ForMathlib.HermitianMat.CFC
-import Mathlib.Analysis.Normed.Algebra.Exponential
-import Mathlib.Analysis.CStarAlgebra.Basic
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.LinearAlgebra.Matrix.PosDef
+module
+
+public import QuantumInfo.ForMathlib.HermitianMat.CFC
+public import Mathlib.Analysis.Normed.Algebra.Exponential
+public import Mathlib.Analysis.CStarAlgebra.Basic
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.LinearAlgebra.Matrix.PosDef
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -62,8 +66,10 @@ Defined by CFC with the indicator of `(Λ, ∞)`. -/
 def projGT (H : HermitianMat n ℂ) (Λ : ℝ) : Matrix n n ℂ :=
   (H.cfc (fun x : ℝ => if Λ < x then (1 : ℝ) else 0)).mat
 
+omit [Nonempty n] in
 /-- The complementary relation `Π_{≤Λ} + Π_{>Λ} = 1`. -/
-theorem projLE_add_projGT (H : HermitianMat n ℂ) (Λ : ℝ) :
+theorem projLE_add_projGT {n : Type*}
+    [Fintype n] [DecidableEq n] [_nonempty : Nonempty n] (H : HermitianMat n ℂ) (Λ : ℝ) :
     projLE H Λ + projGT H Λ = 1 := by
   have hfun : (fun x : ℝ => (if x ≤ Λ then (1 : ℝ) else 0) +
         (if Λ < x then (1 : ℝ) else 0)) = (fun _ : ℝ => (1 : ℝ)) := by
@@ -87,8 +93,10 @@ theorem one_sub_projLE (H : HermitianMat n ℂ) (Λ : ℝ) :
   rw [← h]
   abel
 
+omit [Nonempty n] in
 /-- `Π_{≤Λ}` is idempotent. -/
-theorem projLE_mul_self (H : HermitianMat n ℂ) (Λ : ℝ) :
+theorem projLE_mul_self {n : Type*}
+    [Fintype n] [DecidableEq n] [_nonempty : Nonempty n] (H : HermitianMat n ℂ) (Λ : ℝ) :
     projLE H Λ * projLE H Λ = projLE H Λ := by
   have hfun : (fun x : ℝ => (if x ≤ Λ then (1 : ℝ) else 0) *
         (if x ≤ Λ then (1 : ℝ) else 0)) =
@@ -98,8 +106,10 @@ theorem projLE_mul_self (H : HermitianMat n ℂ) (Λ : ℝ) :
   show (H.cfc _).mat * (H.cfc _).mat = (H.cfc _).mat
   rw [← HermitianMat.mat_cfc_mul_apply, hfun]
 
+omit [Nonempty n] in
 /-- `Π_{>Λ}` is idempotent. -/
-theorem projGT_mul_self (H : HermitianMat n ℂ) (Λ : ℝ) :
+theorem projGT_mul_self {n : Type*}
+    [Fintype n] [DecidableEq n] [_nonempty : Nonempty n] (H : HermitianMat n ℂ) (Λ : ℝ) :
     projGT H Λ * projGT H Λ = projGT H Λ := by
   have hfun : (fun x : ℝ => (if Λ < x then (1 : ℝ) else 0) *
         (if Λ < x then (1 : ℝ) else 0)) =
@@ -109,24 +119,30 @@ theorem projGT_mul_self (H : HermitianMat n ℂ) (Λ : ℝ) :
   show (H.cfc _).mat * (H.cfc _).mat = (H.cfc _).mat
   rw [← HermitianMat.mat_cfc_mul_apply, hfun]
 
+omit [Nonempty n] in
 /-- A self-adjoint idempotent matrix is a contraction (this is the spectral-projector
 norm bound `‖Π_{≤Λ}‖ = 1` used throughout the paper). -/
-theorem norm_le_one_of_idempotent_selfAdjoint (P : Matrix n n ℂ)
+theorem norm_le_one_of_idempotent_selfAdjoint {n : Type*}
+    [Fintype n] [DecidableEq n] [_nonempty : Nonempty n] (P : Matrix n n ℂ)
     (hidem : P * P = P) (hsa : star P = P) : ‖P‖ ≤ 1 := by
   have hsq : ‖P‖ * ‖P‖ = ‖P‖ := by
     rw [← CStarRing.norm_star_mul_self, hsa, hidem]
   have hnn := norm_nonneg P
   nlinarith [sq_nonneg (‖P‖ - 1)]
 
+omit [Nonempty n] in
 /-- `Π_{≤Λ}` is self-adjoint. -/
-theorem star_projLE (H : HermitianMat n ℂ) (Λ : ℝ) : star (projLE H Λ) = projLE H Λ := by
+theorem star_projLE {n : Type*}
+    [Fintype n] [DecidableEq n] [_nonempty : Nonempty n] (H : HermitianMat n ℂ) (Λ : ℝ) : star (projLE H Λ) = projLE H Λ := by
   rw [Matrix.star_eq_conjTranspose]
   rw [projLE, HermitianMat.mat_cfc]
   exact HermitianMat.conjTranspose_cfc (A := H)
     (f := fun x : ℝ => if x ≤ Λ then (1 : ℝ) else 0)
 
+omit [Nonempty n] in
 /-- `Π_{>Λ}` is self-adjoint. -/
-theorem star_projGT (H : HermitianMat n ℂ) (Λ : ℝ) : star (projGT H Λ) = projGT H Λ := by
+theorem star_projGT {n : Type*}
+    [Fintype n] [DecidableEq n] [_nonempty : Nonempty n] (H : HermitianMat n ℂ) (Λ : ℝ) : star (projGT H Λ) = projGT H Λ := by
   rw [Matrix.star_eq_conjTranspose]
   rw [projGT, HermitianMat.mat_cfc]
   exact HermitianMat.conjTranspose_cfc (A := H)
@@ -146,11 +162,13 @@ theorem norm_projGT_le_one (H : HermitianMat n ℂ) (Λ : ℝ) : ‖projGT H Λ�
 def evU (A : Matrix n n ℂ) (s : ℝ) : Matrix n n ℂ :=
   NormedSpace.exp ((-((s : ℂ) * Complex.I)) • A)
 
+omit [Nonempty n] in
 /-- `(e^{-isA})` is unitary when `A` is Hermitian. -/
-theorem evU_mem_unitary (A : Matrix n n ℂ) (hA : A.IsHermitian) (s : ℝ) :
+theorem evU_mem_unitary {n : Type*}
+    [Fintype n] [DecidableEq n] [_nonempty : Nonempty n] (A : Matrix n n ℂ) (hA : A.IsHermitian) (s : ℝ) :
     evU A s ∈ unitary (Matrix n n ℂ) := by
   unfold evU
-  letI : NormedAlgebra ℚ (Matrix n n ℂ) := NormedAlgebra.restrictScalars ℚ ℂ (Matrix n n ℂ)
+  let : NormedAlgebra ℚ (Matrix n n ℂ) := NormedAlgebra.restrictScalars ℚ ℂ (Matrix n n ℂ)
   refine NormedSpace.exp_mem_unitary_of_mem_skewAdjoint ?_
   rw [skewAdjoint.mem_iff]
   have hstarA : star A = A := by
@@ -232,9 +250,11 @@ def tel (P E : ℕ → Matrix n n ℂ) (Pinit : Matrix n n ℂ) : ℕ → Matrix
       E q * tel P E Pinit q +
         (1 - P q) * E q * (projWordProd P E q * Pinit)
 
+omit [Nonempty n] in
 /-- Telescoping identity (paper Eq. (40), with the initial projector `Π_{≤Δ}` inserted):
 `W Π - W^Λ Π` is the sum of the one-step leakage defects. -/
-theorem wordProd_mul_sub_projWordProd_mul (P E : ℕ → Matrix n n ℂ) (Pinit : Matrix n n ℂ) :
+theorem wordProd_mul_sub_projWordProd_mul {n : Type*}
+    [Fintype n] [DecidableEq n] [_nonempty : Nonempty n] (P E : ℕ → Matrix n n ℂ) (Pinit : Matrix n n ℂ) :
     ∀ q : ℕ,
       wordProd E q * Pinit - projWordProd P E q * Pinit = tel P E Pinit q := by
   intro q
@@ -244,8 +264,10 @@ theorem wordProd_mul_sub_projWordProd_mul (P E : ℕ → Matrix n n ℂ) (Pinit 
       rw [wordProd, projWordProd, tel, ← ih]
       noncomm_ring
 
+omit [Nonempty n] in
 /-- The projected product including the initial projector has norm at most one. -/
-theorem norm_projWordProd_mul_le_one (P E : ℕ → Matrix n n ℂ) (Pinit : Matrix n n ℂ)
+theorem norm_projWordProd_mul_le_one {n : Type*}
+    [Fintype n] [DecidableEq n] [_nonempty : Nonempty n] (P E : ℕ → Matrix n n ℂ) (Pinit : Matrix n n ℂ)
     (hP : ∀ i, ‖P i‖ ≤ 1) (hE : ∀ i, ‖E i‖ ≤ 1) (hPinit : ‖Pinit‖ ≤ 1) :
     ∀ q : ℕ, ‖projWordProd P E q * Pinit‖ ≤ 1 := by
   intro q
@@ -312,9 +334,11 @@ theorem norm_defect_succ_le (P E : ℕ → Matrix n n ℂ) (Pinit : Matrix n n �
             linarith [norm_nonneg ((1 - P (q + 1)) * E (q + 1) * P q)])
     _ = b := mul_one _
 
+omit [Nonempty n] in
 /-- Norm bound for the telescoping sum: if every one-step defect is bounded by `b i`,
 then `‖W Π - W^Λ Π‖ ≤ ∑_{i<q} b i`. -/
-theorem norm_tel_le (P E : ℕ → Matrix n n ℂ) (Pinit : Matrix n n ℂ) (b : ℕ → ℝ)
+theorem norm_tel_le {n : Type*}
+    [Fintype n] [DecidableEq n] [_nonempty : Nonempty n] (P E : ℕ → Matrix n n ℂ) (Pinit : Matrix n n ℂ) (b : ℕ → ℝ)
     (hE : ∀ i, ‖E i‖ ≤ 1)
     (hb : ∀ i, ‖(1 - P i) * E i * (projWordProd P E i * Pinit)‖ ≤ b i) :
     ∀ q : ℕ, ‖tel P E Pinit q‖ ≤ ∑ i ∈ Finset.range q, b i := by
@@ -348,16 +372,20 @@ theorem norm_wordProd_sub_projWordProd_mul_le (P E : ℕ → Matrix n n ℂ)
     _ = ‖tel P E Pinit q‖ := by rw [htel]
     _ ≤ ∑ i ∈ Finset.range q, b i := norm_tel_le P E Pinit b hE hb q
 
+omit [Nonempty n] in
 /-- The projected product is the ordered product of the combined factors `P_i E_i`. -/
-theorem wordProd_mul_eq_projWordProd (P E : ℕ → Matrix n n ℂ) :
+theorem wordProd_mul_eq_projWordProd {n : Type*}
+    [Fintype n] [DecidableEq n] [_nonempty : Nonempty n] (P E : ℕ → Matrix n n ℂ) :
     ∀ q : ℕ, wordProd (fun i => P i * E i) q = projWordProd P E q := by
   intro q
   induction q with
   | zero => simp [wordProd, projWordProd]
   | succ q ih => simp [wordProd, projWordProd, ih]
 
+omit [Nonempty n] in
 /-- A product of contractions times the initial projector has norm at most one. -/
-theorem norm_wordProd_mul_le_one (E : ℕ → Matrix n n ℂ) (Pinit : Matrix n n ℂ)
+theorem norm_wordProd_mul_le_one {n : Type*}
+    [Fintype n] [DecidableEq n] [_nonempty : Nonempty n] (E : ℕ → Matrix n n ℂ) (Pinit : Matrix n n ℂ)
     (hE : ∀ i, ‖E i‖ ≤ 1) (hinit : ‖Pinit‖ ≤ 1) :
     ∀ q : ℕ, ‖wordProd E q * Pinit‖ ≤ 1 := by
   intro q
@@ -373,9 +401,11 @@ theorem norm_wordProd_mul_le_one (E : ℕ → Matrix n n ℂ) (Pinit : Matrix n 
         _ ≤ 1 * 1 := mul_le_mul (hE q) ih (norm_nonneg _) (by norm_num)
         _ = 1 := one_mul 1
 
+omit [Nonempty n] in
 /-- Range-restricted version of `norm_tel_le`: the one-step bounds are only required for
 the indices that actually occur in the sum. -/
-theorem norm_tel_le_range (P E : ℕ → Matrix n n ℂ) (Pinit : Matrix n n ℂ) (b : ℕ → ℝ)
+theorem norm_tel_le_range {n : Type*}
+    [Fintype n] [DecidableEq n] [_nonempty : Nonempty n] (P E : ℕ → Matrix n n ℂ) (Pinit : Matrix n n ℂ) (b : ℕ → ℝ)
     (hE : ∀ i, ‖E i‖ ≤ 1) (q : ℕ)
     (hb : ∀ i, i < q → ‖(1 - P i) * E i * (projWordProd P E i * Pinit)‖ ≤ b i) :
     ‖tel P E Pinit q‖ ≤ ∑ i ∈ Finset.range q, b i := by
@@ -420,9 +450,11 @@ def telDiff (F G : ℕ → Matrix n n ℂ) (Pinit : Matrix n n ℂ) : ℕ → Ma
   | 0 => 0
   | q + 1 => F q * telDiff F G Pinit q + (F q - G q) * (wordProd G q * Pinit)
 
+omit [Nonempty n] in
 /-- Difference identity for ordered products (paper Eqs. (46) and (52) in telescoping
 form). -/
-theorem wordProd_sub_wordProd_mul (F G : ℕ → Matrix n n ℂ) (Pinit : Matrix n n ℂ) :
+theorem wordProd_sub_wordProd_mul {n : Type*}
+    [Fintype n] [DecidableEq n] [_nonempty : Nonempty n] (F G : ℕ → Matrix n n ℂ) (Pinit : Matrix n n ℂ) :
     ∀ q : ℕ, wordProd F q * Pinit - wordProd G q * Pinit = telDiff F G Pinit q := by
   intro q
   induction q with
@@ -431,10 +463,12 @@ theorem wordProd_sub_wordProd_mul (F G : ℕ → Matrix n n ℂ) (Pinit : Matrix
       rw [wordProd, wordProd, telDiff, ← ih]
       noncomm_ring
 
+omit [Nonempty n] in
 /-- Norm bound for the difference telescope: if each one-step defect
 `(F_j - G_j) (G_{j-1}⋯G_0 Π)` is bounded by `b j`, the whole difference is bounded by
 `∑_{j<q} b j`. -/
-theorem norm_telDiff_le_range (F G : ℕ → Matrix n n ℂ) (Pinit : Matrix n n ℂ) (b : ℕ → ℝ)
+theorem norm_telDiff_le_range {n : Type*}
+    [Fintype n] [DecidableEq n] [_nonempty : Nonempty n] (F G : ℕ → Matrix n n ℂ) (Pinit : Matrix n n ℂ) (b : ℕ → ℝ)
     (hF : ∀ i, ‖F i‖ ≤ 1) (q : ℕ)
     (hb : ∀ i, i < q → ‖(F i - G i) * (wordProd G i * Pinit)‖ ≤ b i) :
     ‖telDiff F G Pinit q‖ ≤ ∑ i ∈ Finset.range q, b i := by

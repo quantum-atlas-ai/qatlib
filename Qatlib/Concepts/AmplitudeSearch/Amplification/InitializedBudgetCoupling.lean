@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.Amplification.MinimumBudgetCore
-import Qatlib.Concepts.AmplitudeSearch.Amplification.CompletionLaw
-import Qatlib.Concepts.AmplitudeSearch.Amplification.QueryClock
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.MinimumBudgetCore
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.CompletionLaw
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.QueryClock
+
+@[expose] public section
 
 /-!
 # Initialized budget coupling for BBHT runs
@@ -62,7 +66,7 @@ theorem minimumBudgetSuccessWithInit_step (T : Fin N → α) (hN1 : N ≠ 1)
         (fun candidate remaining => if remaining < budget then
           minimumBudgetSuccessWithInit T initialization remaining (checkedUpdate T current candidate) else 0)
         (fun _ => if ∀ j, T current ≤ T j then 1 else 0) := by
-  rw [minimumBudgetSuccessWithInit, minimumBudgetEvalWithInit, if_neg hN1, if_pos hpaid]
+  rw [minimumBudgetSuccessWithInit, minimumBudgetEvalWithInit, ite_eq_right hN1, ite_eq_left hpaid]
   rfl
 
 /-- For a sorted ranked table, completion mass under initialization-plus-query charges is
@@ -109,7 +113,7 @@ theorem initializedCompletion_le_actual_success (T : SortedRankedTable N α) (hN
           have hm (x : SearchTrace N) : law.mass (t + 1) x =
               TerminalMass A (ExponentialSizes N) x := by
             simp only [law, initializedBBHTLaw, bbhtJointLaw,
-              if_pos (show 0 < t + 1 ∧ t + 1 < N from ⟨by omega, htN⟩), ← hmarked]
+              ite_eq_left (show 0 < t + 1 ∧ t + 1 < N from ⟨by omega, htN⟩), ← hmarked]
           have hS (i : Fin N) (r : ℕ) : 0 ≤ S i r ∧ S i r ≤ 1 := by
             dsimp [S]
             split_ifs
@@ -137,7 +141,7 @@ theorem initializedCompletion_le_actual_success (T : SortedRankedTable N α) (hN
             dsimp [f]
             by_cases hcost : TerminalBooleanQueries (ExponentialSizes N) x ≤ b - initialization
             · have htotal : charge x ≤ b := by dsimp [charge]; omega
-              simp only [if_pos hcost, if_pos htotal]
+              simp only [ite_eq_left hcost, ite_eq_left htotal]
               rw [← hm]
               have hr : (b - initialization) - TerminalBooleanQueries (ExponentialSizes N) x < b := by
                 have hp := terminalQueries_pos x
@@ -146,7 +150,7 @@ theorem initializedCompletion_le_actual_success (T : SortedRankedTable N α) (hN
                   (b - initialization) - TerminalBooleanQueries (ExponentialSizes N) x := by
                 dsimp [charge]
                 omega
-              simp only [S, if_pos hr]
+              simp only [S, ite_eq_left hr]
               rw [hrem]
               by_cases hx : (law.outputRank x).val < t + 1
               · have hnext : T.skip.next (law.outputRank x) < t + 1 :=
@@ -158,7 +162,7 @@ theorem initializedCompletion_le_actual_success (T : SortedRankedTable N α) (hN
                 have hout : T.indexOfRank (law.outputRank x) = TerminalOutput x :=
                   T.indexOfRank.apply_symm_apply _
                 have hcheck : checkedUpdate T.value (T.indexOfRank y) (TerminalOutput x) = TerminalOutput x := by
-                  apply if_pos
+                  apply ite_eq_left
                   rwa [hout] at hlow
                 rw [hcheck]
                 apply mul_le_mul_of_nonneg_left _ (law.mass_nonneg (t + 1) htN x)
@@ -168,7 +172,7 @@ theorem initializedCompletion_le_actual_success (T : SortedRankedTable N α) (hN
               · rw [law.lower_support (t + 1) (by omega) htN x hx]
                 simp
             · have htotal : ¬ charge x ≤ b := by dsimp [charge]; omega
-              simp only [if_neg hcost, if_neg htotal, le_refl]
+              simp only [ite_eq_right hcost, ite_eq_right htotal, le_refl]
           have hsums := Summable.tsum_le_tsum hpoint hc.summable hfs
           rw [hc.tsum_eq] at hsums
           have hdom := search_finite_budget_eval_dominates_terminal (by simpa using hN)
@@ -184,7 +188,7 @@ theorem initializedCompletion_le_actual_success (T : SortedRankedTable N α) (hN
               fun _ => 0 := by
             funext x
             have hx : ¬ charge x ≤ b := by dsimp [charge]; omega
-            simp only [if_neg hx]
+            simp only [ite_eq_right hx]
           rw [heq] at hc
           have hz := hc.unique (hasSum_zero : HasSum (fun _ : SearchTrace N => (0 : ℝ)) 0)
           rw [hz]

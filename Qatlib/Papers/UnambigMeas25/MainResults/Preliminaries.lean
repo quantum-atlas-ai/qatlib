@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.UnambigMeas25.MainResults.Definitions
+module
+
+public import Qatlib.Papers.UnambigMeas25.MainResults.Definitions
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -62,9 +66,9 @@ theorem shiftX_mul_shiftX {n : ℕ} (a b : F2Vec n) :
     by_cases hzy : z = y + b <;> simp [hzy]
   rw [Finset.sum_congr rfl (fun z _ => hz z), Finset.sum_eq_single (y + b)]
   · have hyy : (y + b) + a = y + (a + b) := by rw [add_assoc, add_comm b a]
-    rw [if_pos rfl, hyy]
+    rw [ite_eq_left rfl, hyy]
   · intro z _ hzne
-    rw [if_neg hzne]
+    rw [ite_eq_right hzne]
   · intro h
     exact absurd (Finset.mem_univ _) h
 
@@ -77,13 +81,13 @@ theorem shiftX_conjTranspose {n : ℕ} (a : F2Vec n) :
   by_cases hy : y = x + a
   · have hx : x = y + a := by
       rw [hy, add_assoc, addSelf_zero, add_zero]
-    rw [if_pos hy, if_pos hx]
+    rw [ite_eq_left hy, ite_eq_left hx]
     simp
   · have hx : ¬(x = y + a) := by
       intro h'
       apply hy
       rw [h', add_assoc, addSelf_zero, add_zero]
-    rw [if_neg hy, if_neg hx]
+    rw [ite_eq_right hy, ite_eq_right hx]
     simp
 
 /-- `X_a` is a unitary (an involution), since `X_a X_a = X_{a+a} = X_0`. -/
@@ -108,7 +112,7 @@ theorem prop5_shift_qft {n : ℕ} (b : F2Vec n) :
   rw [Finset.sum_congr rfl (fun z _ => hl z), Finset.sum_eq_single (x + b)]
   · have hxx : x = (x + b) + b := by
       rw [add_assoc, addSelf_zero, add_zero]
-    rw [if_pos hxx]
+    rw [ite_eq_left hxx]
     have hr : ∀ z : F2Vec n,
         (((Real.sqrt 2)⁻¹ ^ n : ℝ) * phase (dotF2 x z))
             * (if z = y then phase (dotF2 z b) else 0)
@@ -118,13 +122,13 @@ theorem prop5_shift_qft {n : ℕ} (b : F2Vec n) :
       intro z
       by_cases h : z = y <;> simp [h]
     rw [Finset.sum_congr rfl (fun z _ => hr z), Finset.sum_eq_single y]
-    · rw [if_pos rfl]
+    · rw [ite_eq_left rfl]
       have hd : dotF2 (x + b) y = dotF2 x y + dotF2 y b := by
         rw [dotF2_add_left, dotF2_comm b y]
       rw [hd, phase_mul]
       ring
     · intro z _ hzne
-      rw [if_neg hzne]
+      rw [ite_eq_right hzne]
     · intro h
       exact absurd (Finset.mem_univ _) h
   · intro z _ hzne
@@ -132,7 +136,7 @@ theorem prop5_shift_qft {n : ℕ} (b : F2Vec n) :
       intro h
       apply hzne
       rw [h, add_assoc, addSelf_zero, add_zero]
-    rw [if_neg hxz]
+    rw [ite_eq_right hxz]
   · intro h
     exact absurd (Finset.mem_univ _) h
 
@@ -149,7 +153,7 @@ theorem prop5_qft_shift {n : ℕ} (b : F2Vec n) :
     intro z
     by_cases h : z = y + b <;> simp [h]
   rw [Finset.sum_congr rfl (fun z _ => hl z), Finset.sum_eq_single (y + b)]
-  · rw [if_pos rfl]
+  · rw [ite_eq_left rfl]
     have hr : ∀ z : F2Vec n,
         (if x = z then phase (dotF2 x b) else 0)
             * (((Real.sqrt 2)⁻¹ ^ n : ℝ) * phase (dotF2 z y))
@@ -159,16 +163,16 @@ theorem prop5_qft_shift {n : ℕ} (b : F2Vec n) :
       intro z
       by_cases h : x = z <;> simp [h]
     rw [Finset.sum_congr rfl (fun z _ => hr z), Finset.sum_eq_single x]
-    · rw [if_pos rfl]
+    · rw [ite_eq_left rfl]
       have hd : dotF2 x (y + b) = dotF2 x y + dotF2 x b := dotF2_add_right x y b
       rw [hd, phase_mul]
       ring
     · intro z _ hzne
-      rw [if_neg (fun h => hzne h.symm)]
+      rw [ite_eq_right (fun h => hzne h.symm)]
     · intro h
       exact absurd (Finset.mem_univ _) h
   · intro z _ hzne
-    rw [if_neg hzne]
+    rw [ite_eq_right hzne]
   · intro h
     exact absurd (Finset.mem_univ _) h
 

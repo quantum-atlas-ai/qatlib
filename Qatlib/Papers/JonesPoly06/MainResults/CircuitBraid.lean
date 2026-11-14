@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.JonesPoly06.MainResults.AmplitudeApprox
+module
+
+public import Qatlib.Papers.JonesPoly06.MainResults.AmplitudeApprox
+
+@[expose] public section
 
 /-!
 # Word evaluation and accumulated compilation error
@@ -53,7 +57,7 @@ theorem wordEval_singleton {α M : Type*} [Monoid M] (g : α → M) (a : α) :
 
 /-- A real list whose entries are bounded above by nonnegative c has sum at most its length
 times c. -/
-theorem list_sum_le_length_mul {l : List ℝ} {c : ℝ} (hc : 0 ≤ c)
+theorem list_sum_le_length_mul {l : List ℝ} {c : ℝ} (_hc : 0 ≤ c)
     (h : ∀ x ∈ l, x ≤ c) : l.sum ≤ l.length * c := by
   induction l with
   | nil => simp

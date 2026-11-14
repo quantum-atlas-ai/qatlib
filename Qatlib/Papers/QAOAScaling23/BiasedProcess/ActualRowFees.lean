@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QAOAScaling23.BiasedProcess.ActualOracle
-import Qatlib.Papers.QAOAScaling23.SearchFees.ActualFees
+module
+
+public import Qatlib.Papers.QAOAScaling23.BiasedProcess.ActualOracle
+public import Qatlib.Papers.QAOAScaling23.SearchFees.ActualFees
+
+@[expose] public section
 
 /-!
 # Expected charges and failures of actual oracle rows
@@ -121,7 +125,7 @@ theorem actual_bad_mean (U : Matrix I I ℂ) (hU : U ∈ Matrix.unitaryGroup I �
       (Tree.indexedLeafValue (receiptTree U hU seed cost current (1::ms)) a).result.isNone := by
     cases hi : (Tree.indexedLeafValue (receiptTree U hU seed cost current (1::ms)) a).result with
     | none => rfl
-    | some i => simp only [Option.bind_some,Qatlib.Papers.QAOAScaling23.BiasedProcess.Born.lowerRank,dif_pos (indexed_sound U hU seed cost current (1::ms) r hr a i hi),Option.isNone_some]
+    | some i => simp only [Option.bind_some,Qatlib.Papers.QAOAScaling23.BiasedProcess.Born.lowerRank,dite_eq_left (indexed_sound U hU seed cost current (1::ms) r hr a i hi),Option.isNone_some]
   simp_rw [he]
   rw [finite_bad_mean]
   congr 1

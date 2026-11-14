@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixGeometry.BranchUnitary.Defs
+module
+
+public import Qatlib.Foundations.MatrixGeometry.BranchUnitary.Defs
+
+@[expose] public section
 
 /-!
 # Overlap bounds for truncated coherent branches
@@ -99,7 +103,7 @@ theorem truncation_real_overlap (U : C → Matrix S S ℂ)
         (normalized_iff_inner _).1 (unitary_normalized _ (hU c) _ (hφ c))
       simp [truncated, h, Nat.not_lt.mpr h, hi]
     · have ht : cutoff < q c := Nat.lt_of_not_ge h
-      simp only [truncated, if_neg h, Matrix.one_mulVec, if_pos ht]
+      simp only [truncated, ite_eq_right h, Matrix.one_mulVec, ite_eq_left ht]
       have hp := branch_real_overlap (U c) (hU c) (φ c) (hφ c)
       have hw := sq_nonneg ‖α c‖
       nlinarith
@@ -142,10 +146,10 @@ theorem tailMass_le_mean (α : C → ℂ) (q : C → ℕ) (cutoff : ℕ) (hcut :
   apply Finset.sum_le_sum
   intro c _
   by_cases h : cutoff < q c
-  · simp only [if_pos h]
+  · simp only [ite_eq_left h]
     apply mul_le_mul_of_nonneg_left _ (sq_nonneg _)
     exact_mod_cast Nat.le_of_lt h
-  · simp only [if_neg h, zero_mul]
+  · simp only [ite_eq_right h, zero_mul]
     positivity
 
 end Qatlib.Foundations.MatrixGeometry.BranchUnitary

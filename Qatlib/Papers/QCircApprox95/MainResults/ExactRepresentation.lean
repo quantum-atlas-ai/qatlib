@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LocalCircuits.LocalGateCosts.Costs
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.LinearAlgebra.FiniteDimensional.Lemmas
-import Mathlib.LinearAlgebra.Matrix.ToLin
-import Mathlib.Tactic
+module
+
+public import Qatlib.Concepts.LocalCircuits.LocalGateCosts.Costs
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.LinearAlgebra.FiniteDimensional.Lemmas
+public import Mathlib.LinearAlgebra.Matrix.ToLin
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Parameter counts and prefix projection kernels

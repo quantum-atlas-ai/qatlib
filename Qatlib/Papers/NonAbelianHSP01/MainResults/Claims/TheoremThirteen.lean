@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NonAbelianHSP01.MainResults.Defs
-import Qatlib.Papers.NonAbelianHSP01.MainResults.ElementaryAbelianTwo
-import Qatlib.Papers.NonAbelianHSP01.MainResults.Reductions
+module
+
+public import Qatlib.Papers.NonAbelianHSP01.MainResults.Defs
+public import Qatlib.Papers.NonAbelianHSP01.MainResults.ElementaryAbelianTwo
+public import Qatlib.Papers.NonAbelianHSP01.MainResults.Reductions
+
+@[expose] public section
 
 /-!
 # Coset reductions for elementary abelian two subgroups

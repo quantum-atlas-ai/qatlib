@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.WeightEnum07.MainResults.Proposition1
-import Mathlib.Data.Finset.Card
-import Mathlib.Data.Fintype.Card
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+module
+
+public import Qatlib.Papers.WeightEnum07.MainResults.Proposition1
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+
+@[expose] public section
 
 /-!
 # Recovering weight multiplicities from representatives
@@ -52,7 +56,7 @@ theorem card_weight_eq_sum_rep {ι : Type*} [Fintype ι] [DecidableEq ι]
   set T : Finset ι := Finset.univ.filter (fun b => rep b = b) with hT
   have hmap : ((Finset.univ.filter (fun x => W x = w) : Finset ι) : Set ι).MapsTo rep T := by
     intro x hx
-    simp only [Finset.coe_filter, Finset.mem_univ, true_and, Set.mem_setOf_eq, hT] at hx ⊢
+    simp only [Finset.coe_filter, Finset.mem_univ, true_and, Set.mem_ofPred_eq, hT] at hx ⊢
     exact hidem x
   rw [Finset.card_eq_sum_card_fiberwise hmap]
 

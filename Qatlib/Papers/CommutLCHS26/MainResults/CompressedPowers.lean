@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CoherentSim.CoherentOAA.RobustCoherentImplementation
+module
+
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.RobustCoherentImplementation
+
+@[expose] public section
 
 /-!
 # Errors of powers of compressed amplified operators

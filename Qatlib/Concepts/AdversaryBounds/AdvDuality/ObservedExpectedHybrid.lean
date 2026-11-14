@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedExpectedDistance
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedMetadataHybrid
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedExpectedDistance
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedMetadataHybrid
+
+@[expose] public section
 
 /-!
 # Expected query hybrid theorem

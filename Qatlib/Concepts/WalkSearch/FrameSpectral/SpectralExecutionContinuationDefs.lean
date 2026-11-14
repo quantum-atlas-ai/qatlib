@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.FrameSpectral.SpectralBounds
-import Qatlib.Concepts.WalkSearch.FrameSpectral.WalkAccessConstruction
+module
+
+public import Qatlib.Concepts.WalkSearch.FrameSpectral.SpectralBounds
+public import Qatlib.Concepts.WalkSearch.FrameSpectral.WalkAccessConstruction
+
+@[expose] public section
 
 /-!
 # Execution refinements of spectral specifications
@@ -165,7 +169,7 @@ def Clause6BusySpectrumTransport : Prop :=
 
 /-- The requirement that the phase search ledger is `(2 * k * t * (M - 1), t, 1)` for `M ≥ 2`. -/
 def Clause32ScheduleResidual : Prop :=
-  ∀ (M k t : ℕ) (hM : 2 ≤ M),
+  ∀ (M k t : ℕ) (_hM : 2 ≤ M),
     phaseSearchLedger M k t = (2 * k * t * (M - 1), t, 1)
 
 /-- The phase band classifier requirement with the stated separation margins, together with the
@@ -487,9 +491,9 @@ def fib : ℕ → ℕ
 
 /-- The number of Euclidean remainder steps, terminating when the second argument is zero. -/
 def cfSteps : ℕ → ℕ → ℕ
-  | a, 0 => 0
+  | _a, 0 => 0
   | a, b + 1 => 1 + cfSteps (b + 1) (a % (b + 1))
-termination_by p q => q
+termination_by _ q => q
 decreasing_by
   simp_wf
   have h : a % (b + 1) < b + 1 := Nat.mod_lt a (by omega)

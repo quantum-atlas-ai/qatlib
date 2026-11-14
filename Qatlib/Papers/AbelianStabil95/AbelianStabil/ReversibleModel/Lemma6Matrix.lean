@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AbelianStabil95.AbelianStabil.ReversibleModel.ReversibleOperationDefs
+module
+
+public import Qatlib.Papers.AbelianStabil95.AbelianStabil.ReversibleModel.ReversibleOperationDefs
+
+@[expose] public section
 
 /-!
 # Matrix realization of a controlled operation
@@ -111,7 +115,7 @@ theorem applyGate_uBMat {n : ℕ} (U : Matrix (Reg n) (Reg n) ℂ)
     · simp
     · intro x _ hx
       obtain ⟨x1, x2, x3⟩ := x
-      simp [Ket, hx]
+      simp [ hx]
     · intro h
       exact absurd (Finset.mem_univ (a, ξ, η)) h
   rw [hL]
@@ -119,7 +123,7 @@ theorem applyGate_uBMat {n : ℕ} (U : Matrix (Reg n) (Reg n) ℂ)
   by_cases h : a' = a ∧ ξ' = ξ
   · obtain ⟨ha, hξ⟩ := h
     rw [ha, hξ]
-    rw [if_pos ⟨rfl, rfl⟩]
+    rw [ite_eq_left ⟨rfl, rfl⟩]
     rw [Finset.sum_eq_single η']
     · simp
     · intro b _ hb
@@ -129,7 +133,7 @@ theorem applyGate_uBMat {n : ℕ} (U : Matrix (Reg n) (Reg n) ℂ)
       simp [hne]
     · intro hh
       exact absurd (Finset.mem_univ η') hh
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     apply Eq.symm
     apply Finset.sum_eq_zero
     intro b _
@@ -162,7 +166,7 @@ theorem liftState_eq_sum {n : ℕ} (a : Bool) (ψ : QState (Reg n)) :
   by_cases h : a' = a ∧ η' = ZeroStr n
   · obtain ⟨ha, hη⟩ := h
     rw [ha, hη]
-    rw [if_pos ⟨rfl, rfl⟩]
+    rw [ite_eq_left ⟨rfl, rfl⟩]
     rw [Finset.sum_eq_single ξ']
     · simp
     · intro b _ hb
@@ -172,7 +176,7 @@ theorem liftState_eq_sum {n : ℕ} (a : Bool) (ψ : QState (Reg n)) :
       simp [hne]
     · intro hh
       exact absurd (Finset.mem_univ ξ') hh
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     apply Eq.symm
     apply Finset.sum_eq_zero
     intro b _
@@ -227,10 +231,10 @@ theorem lemma6Mat_liftState {n : ℕ} (U : Matrix (Reg n) (Reg n) ℂ)
       liftState a (if a then U *ᵥ ψ else ψ) := by
   rw [liftState_eq_sum, applyGate_sum_smul]
   cases a
-  · simp only [Bool.false_eq_true, if_false]
+  · simp only [Bool.false_eq_true, ite_false]
     rw [Finset.sum_congr rfl (fun ξ _ => by rw [lemma6Mat_ket_false U hU0 ξ])]
     rw [liftState_eq_sum]
-  · simp only [if_true]
+  · simp only [ite_true]
     rw [Finset.sum_congr rfl (fun ξ _ => by rw [lemma6Mat_ket_true U ξ])]
     rw [liftState_eq_sum]
     simp only [Matrix.mulVec, dotProduct]

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.PolynomialInt15.MainResults.PowerSumRecurrence
-import Mathlib.LinearAlgebra.Vandermonde
-import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
+module
+
+public import Qatlib.Papers.PolynomialInt15.MainResults.PowerSumRecurrence
+public import Mathlib.LinearAlgebra.Vandermonde
+public import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -94,7 +98,7 @@ theorem sum_fin_val_eq_sum_range {M : Type*} [AddCommMonoid M] (f : ℕ → M) :
   rw [Finset.sum_fin_eq_sum_range]
   refine Finset.sum_congr rfl ?_
   intro j hj
-  rw [dif_pos (Finset.mem_range.mp hj)]
+  rw [dite_eq_left (Finset.mem_range.mp hj)]
 
 /-- Equation (47) of arXiv:1509.09271v2 in matrix form: the recurrence
 coefficients `a_j = -(-1)^{k-j} e_{k-j}` solve the Hankel system. -/

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HhlAlgorithms.GridExactHHL.LinearSystem
-import Qatlib.Concepts.SpectralFilter.PhaseReadout.PhaseEstimation
+module
+
+public import Qatlib.Concepts.HhlAlgorithms.GridExactHHL.LinearSystem
+public import Qatlib.Concepts.SpectralFilter.PhaseReadout.PhaseEstimation
+
+@[expose] public section
 
 /-!
 # Restricted spectral HHL specification

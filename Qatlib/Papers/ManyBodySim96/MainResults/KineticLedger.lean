@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ManyBodySim96.MainResults.Basic
-import Qatlib.Papers.ManyBodySim96.MainResults.LocalEvolution
-import Qatlib.Concepts.QftPreparation.LocalQft
-import Qatlib.Concepts.QftPreparation.LocalQFTImplementation
-import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.LocalDyadicGate
-import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
-import Qatlib.Concepts.TensorRegisters.RegisterModel.TensorRegistersDefs
-import Qatlib.Concepts.SpectralFilter.PhaseReadout.PhaseEstimation
+module
+
+public import Qatlib.Papers.ManyBodySim96.MainResults.Basic
+public import Qatlib.Papers.ManyBodySim96.MainResults.LocalEvolution
+public import Qatlib.Concepts.QftPreparation.LocalQft
+public import Qatlib.Concepts.QftPreparation.LocalQFTImplementation
+public import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.LocalDyadicGate
+public import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
+public import Qatlib.Concepts.TensorRegisters.RegisterModel.TensorRegistersDefs
+public import Qatlib.Concepts.SpectralFilter.PhaseReadout.PhaseEstimation
+
+@[expose] public section
 
 /-!
 # Kinetic Fourier-transform costs and position grids

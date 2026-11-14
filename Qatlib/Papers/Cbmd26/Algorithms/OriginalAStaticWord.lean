@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Cbmd26.Algorithms.RegisterLCUBridge
-import Qatlib.Papers.Cbmd26.Algorithms.CountedQSVTBridge
-import Qatlib.Papers.Cbmd26.Algorithms.SeparateOracleBridge
+module
+
+public import Qatlib.Papers.Cbmd26.Algorithms.RegisterLCUBridge
+public import Qatlib.Papers.Cbmd26.Algorithms.CountedQSVTBridge
+public import Qatlib.Papers.Cbmd26.Algorithms.SeparateOracleBridge
+
+@[expose] public section
 
 /-!
 # Static Words over the Original Matrix Oracle

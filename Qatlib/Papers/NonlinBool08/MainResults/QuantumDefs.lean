@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NonlinBool08.MainResults.BentCore.BentFacts
+module
+
+public import Qatlib.Papers.NonlinBool08.MainResults.BentCore.BentFacts
+
+@[expose] public section
 
 /-!
 # Amplitude semantics for Boolean oracle circuits
@@ -124,8 +128,8 @@ theorem hadamard_hadamard {n : ℕ} (hn : Even n) (ψ : State n) :
     simp only [hterm]
     rw [sum_eps_dot_c]
     by_cases hxz : x = z
-    · rw [if_pos hxz, if_pos (by rw [hxz, BentCore.add_self_bvec])]
-    · rw [if_neg hxz, if_neg]
+    · rw [ite_eq_left hxz, ite_eq_left (by rw [hxz, BentCore.add_self_bvec])]
+    · rw [ite_eq_right hxz, ite_eq_right]
       intro h0
       exact hxz ((add_eq_zero_iff_eq_bvec z x).mp h0).symm
   have hswap : (∑ y : BVec n, (eps (dot z y) : ℂ) * (hnorm n * ∑ x : BVec n,
@@ -142,12 +146,12 @@ theorem hadamard_hadamard {n : ℕ} (hn : Even n) (ψ : State n) :
   rw [hswap]
   simp only [hinner]
   rw [Finset.sum_eq_single z]
-  · rw [if_pos rfl]
+  · rw [ite_eq_left rfl]
     rw [show hnorm n * (hnorm n * (ψ z * (2 : ℂ) ^ n))
         = ψ z * (hnorm n * hnorm n * (2 : ℂ) ^ n) from by ring, hnorm_sq_mul hn,
       mul_one]
   · intro x _ hx
-    rw [if_neg hx, mul_zero]
+    rw [ite_eq_right hx, mul_zero]
   · intro hmem
     simp at hmem
 
@@ -174,7 +178,7 @@ theorem hadamard_const {n : ℕ} (hn : Even n) (v : ℂ) (y : BVec n) :
       = (∑ x : BVec n, (eps (dot y x) : ℂ)) * v from by rw [Finset.sum_mul]]
   rw [sum_eps_dot_c]
   by_cases hy : y = 0
-  · rw [if_pos hy, if_pos hy]
+  · rw [ite_eq_left hy, ite_eq_left hy]
     have h2 : (2 : ℂ) ^ (n / 2) ≠ 0 := pow_ne_zero _ (by norm_num)
     have hsq : (2 : ℂ) ^ n = (2 : ℂ) ^ (n / 2) * (2 : ℂ) ^ (n / 2) :=
       (pow_half_mul_c hn).symm
@@ -183,7 +187,7 @@ theorem hadamard_const {n : ℕ} (hn : Even n) (v : ℂ) (y : BVec n) :
     rw [show ((2 : ℂ) ^ (n / 2))⁻¹ * ((2 : ℂ) ^ (n / 2) * (2 : ℂ) ^ (n / 2) * v)
         = (2 : ℂ) ^ (n / 2) * v from by
       rw [← mul_assoc, ← mul_assoc, inv_mul_cancel₀ h2, one_mul]]
-  · rw [if_neg hy, if_neg hy]
+  · rw [ite_eq_right hy, ite_eq_right hy]
     simp
 
 /-- The gate type consisting of a Hadamard transform or a phase oracle for a Boolean function. -/

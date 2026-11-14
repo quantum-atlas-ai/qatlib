@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ExpSpeedup10.MainResults.Model.SourceComplexity
+module
+
+public import Qatlib.Papers.ExpSpeedup10.MainResults.Model.SourceComplexity
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -43,7 +47,7 @@ theorem theorem_VI_approximately_sparse
     (n : ℕ) (hn : 0 < n)
     (U : Matrix (Fin (2 ^ n)) (Fin (2 ^ n)) ℂ)
     (s : ℕ) (δ : ℝ)
-    (hsparse : IsApproximatelySparse U s δ) :
+    (_hsparse : IsApproximatelySparse U s δ) :
     ∃ q : ℝ, 0 < q ∧ q ≤ sourceSparseQueryBound n s := by
   refine ⟨sourceSparseQueryBound n s, ?_, le_rfl⟩
   unfold sourceSparseQueryBound

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CircuitImpl.Phi3Universal.QtmUniform
+module
+
+public import Qatlib.Concepts.CircuitImpl.Phi3Universal.QtmUniform
+
+@[expose] public section
 
 /-!
 # Acceptance of an all-cell QTM tour

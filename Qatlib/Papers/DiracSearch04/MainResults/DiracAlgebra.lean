@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Matrix.Basis
-import Mathlib.Data.Matrix.Mul
-import Mathlib.Data.Fin.SuccPred
-import Mathlib.Data.Complex.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Data.Matrix.Basis
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.Data.Fin.SuccPred
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Dirac matrix relations on the distinguished search vector
@@ -90,8 +94,8 @@ theorem unitVec_succ_succ (d : ℕ) (j k : Fin d) :
   unfold unitVec
   rw [Pi.single_apply]
   by_cases h : Fin.succ j = Fin.succ k
-  · rw [if_pos h, if_pos (Fin.succ_inj.mp h)]
-  · rw [if_neg h, if_neg (fun hjk => h (by rw [hjk]))]
+  · rw [ite_eq_left h, ite_eq_left (Fin.succ_inj.mp h)]
+  · rw [ite_eq_right h, ite_eq_right (fun hjk => h (by rw [hjk]))]
 
 /-- The matrix unit at entry `(0, 0)` fixes the distinguished vector. -/
 theorem single_zero_zero_mulVec_eta (d : ℕ) :
@@ -129,11 +133,11 @@ theorem single_zero_succ_mulVec_unit (d : ℕ) (j k : Fin d) :
     rw [one_mul]]
   rw [update_zero_eq_single]
   by_cases h : j = k
-  · rw [if_pos h] at *
-    rw [if_pos h]
+  · rw [ite_eq_left h] at *
+    rw [ite_eq_left h]
     rfl
-  · rw [if_neg h] at *
-    rw [if_neg h]
+  · rw [ite_eq_right h] at *
+    rw [ite_eq_right h]
     simp
 
 /-- The matrix unit at entry `(Fin.succ j, 0)` annihilates every successor coordinate vector. -/
@@ -182,9 +186,9 @@ theorem anticomm_alpha_alpha (d : ℕ) (j k : Fin d) :
     alpha_mulVec_unit_succ, alpha_mulVec_eta, alpha_mulVec_unit_succ]
   by_cases h : j = k
   · subst h
-    simp only [if_true, mul_one]
+    simp only [ite_true, mul_one]
     rw [two_smul ℂ]
-  · rw [if_neg h, if_neg (Ne.symm h), if_neg h]
+  · rw [ite_eq_right h, ite_eq_right (Ne.symm h), ite_eq_right h]
     simp
 
 /-- The anticommutator of an alpha matrix and beta annihilates the distinguished vector. -/
@@ -215,7 +219,7 @@ theorem alpha_sq_mulVec_eta (d : ℕ) (j : Fin d) :
     alpha d j *ᵥ (alpha d j *ᵥ eta d) = eta d := by
   rw [mulVec_mulVec]
   have h := anticomm_alpha_alpha d j j
-  rw [if_pos rfl, mul_one, add_mulVec, two_smul] at h
+  rw [ite_eq_left rfl, mul_one, add_mulVec, two_smul] at h
   have h2 : (2 : ℂ) • ((alpha d j * alpha d j) *ᵥ eta d) = (2 : ℂ) • eta d := by
     rw [two_smul, two_smul]
     exact h
@@ -238,9 +242,9 @@ theorem sum_alpha_mulVec_eta (d : ℕ) (c : Fin d → ℂ) :
 theorem sum_alpha_mulVec_unit (d : ℕ) (c : Fin d → ℂ) (k : Fin d) :
     (∑ j : Fin d, c j • alpha d j) *ᵥ unitVec d (Fin.succ k) = c k • eta d := by
   rw [Matrix.sum_mulVec, Finset.sum_eq_single k]
-  · rw [Matrix.smul_mulVec, alpha_mulVec_unit_succ, if_pos rfl]
+  · rw [Matrix.smul_mulVec, alpha_mulVec_unit_succ, ite_eq_left rfl]
   · intro j _ hj
-    rw [Matrix.smul_mulVec, alpha_mulVec_unit_succ, if_neg hj, smul_zero]
+    rw [Matrix.smul_mulVec, alpha_mulVec_unit_succ, ite_eq_right hj, smul_zero]
   · intro hk
     exact absurd (Finset.mem_univ k) hk
 

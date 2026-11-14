@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ElemGates95.QubitControl.Section4
-import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownQubitControl
+module
+
+public import Qatlib.Papers.ElemGates95.QubitControl.Section4
+public import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownQubitControl
+
+@[expose] public section
 
 /-!
 # Controlled one-qubit gate decompositions
@@ -399,7 +403,7 @@ theorem corollary5_6 (U : Matrix Bool Bool ℂ) (hU : U ∈ Matrix.unitaryGroup 
     rw [controlledFamily_target_product, controlledFamily_target_product]
     apply congrArg (fun F : Bool → Matrix Bool Bool ℂ => BlockDiag F)
     funext b
-    cases b <;> simp only [Bool.false_eq_true, if_false, if_true]
+    cases b <;> simp only [Bool.false_eq_true, ite_false, ite_true]
     · simp only [A, B, C, Matrix.mul_assoc, ← Matrix.mul_assoc Q P, hQP, Matrix.one_mul]
     · simp only [A, B, C, hVP, Matrix.mul_assoc, ← Matrix.mul_assoc Q P, hQP, Matrix.one_mul]
   have hmatrix : TensorGate E (1 : Matrix Bool Bool ℂ) *

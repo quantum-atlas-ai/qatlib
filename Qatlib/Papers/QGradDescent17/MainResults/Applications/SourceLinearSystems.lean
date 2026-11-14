@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.LinearAlgebra.Matrix.Hermitian
-import Mathlib.LinearAlgebra.Matrix.PosDef
-import Mathlib.Data.Finset.Max
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.LinearAlgebra.Matrix.Hermitian
+public import Mathlib.LinearAlgebra.Matrix.PosDef
+public import Mathlib.Data.Finset.Max
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -45,7 +49,7 @@ open scoped BigOperators Matrix
 def SoftBigO (f g : ℝ) : Prop := ∃ C : ℝ, ∃ D : ℕ, 0 < C ∧ f ≤ C * (1 + g) ^ D
 
 /-- A nonnegative cost is bounded by itself in the polynomial overhead relation. -/
-theorem softBigO_self {g : ℝ} (hg : 0 ≤ g) : SoftBigO g g := by
+theorem softBigO_self {g : ℝ} (_hg : 0 ≤ g) : SoftBigO g g := by
   refine ⟨1, 1, one_pos, ?_⟩
   rw [pow_one]
   linarith

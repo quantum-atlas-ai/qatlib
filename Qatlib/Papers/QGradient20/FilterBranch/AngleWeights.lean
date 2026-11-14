@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QGradient20.FilterBranch.ActualVector
+module
+
+public import Qatlib.Papers.QGradient20.FilterBranch.ActualVector
+
+@[expose] public section
 
 /-!
 # Trigonometric weights of the successful branch

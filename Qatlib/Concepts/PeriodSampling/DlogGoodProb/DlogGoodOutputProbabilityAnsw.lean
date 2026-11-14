@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PeriodSampling.DlogGoodProb.DlogGoodOutputProbabilityStat
-import Qatlib.Concepts.PeriodSampling.DlogGoodProb.DlogOriginalContracts
-import Qatlib.Concepts.PeriodSampling.DlogGoodProb.DlogAmplitudeLower
-import Qatlib.Concepts.PeriodSampling.DlogGoodProb.DlogGoodPairCountingAnsw
-import Qatlib.Concepts.PeriodSampling.DlogGoodProb.MeasureImageBounds
+module
+
+public import Qatlib.Concepts.PeriodSampling.DlogGoodProb.DlogGoodOutputProbabilityStat
+public import Qatlib.Concepts.PeriodSampling.DlogGoodProb.DlogOriginalContracts
+public import Qatlib.Concepts.PeriodSampling.DlogGoodProb.DlogAmplitudeLower
+public import Qatlib.Concepts.PeriodSampling.DlogGoodProb.DlogGoodPairCountingAnsw
+public import Qatlib.Concepts.PeriodSampling.DlogGoodProb.MeasureImageBounds
+
+@[expose] public section
 
 /-!
 # Good-output probabilities and a legacy counterexample

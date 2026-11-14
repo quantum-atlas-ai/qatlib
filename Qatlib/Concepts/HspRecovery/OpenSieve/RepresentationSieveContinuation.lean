@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
-import Qatlib.Concepts.HspRecovery.OpenSieve.RepresentationSieveContinuationDefs
+module
+
+public import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+public import Qatlib.Concepts.HspRecovery.OpenSieve.RepresentationSieveContinuationDefs
+
+@[expose] public section
 
 /-!
 # Representation transport and sieve continuation
@@ -83,7 +87,7 @@ theorem clause1_joint_mass_is_prop8_1 {N : ℕ} [NeZero N] {S : Type} [Fintype S
     (row : Fin (dimFixed (family.irrep V) s)) :
     repJointMass (family.irrep V) row.val = ((family.irrep V).dim : ℝ) / N := by
   have h := w.joint V row
-  simpa only [repJointMass] using! h
+  simp only [repJointMass]
 
 /-- Summing the actual record masses over a transported representation label and row gives the
 representation dimension divided by `N`. -/
@@ -483,7 +487,7 @@ theorem clause2_actual_miss_mass {N : ℕ} [NeZero N] {S : Type} [Fintype S]
             = ∑' _L : List (ActualHalfWidthRecord N), (0 : ℝ≥0∞) := by
           apply tsum_congr
           intro L
-          rw [missWeight_cons, if_pos hr]
+          rw [missWeight_cons, ite_eq_left hr]
           simp
         rw [hz]
         simp [hr]
@@ -493,7 +497,7 @@ theorem clause2_actual_miss_mass {N : ℕ} [NeZero N] {S : Type} [Fintype S]
               (actualHalfWidthRecords f w i) L * idealMissWeight L := by
           apply tsum_congr
           intro L
-          rw [missWeight_cons, if_neg hr]
+          rw [missWeight_cons, ite_eq_right hr]
         rw [hz]
         simp [actualMissMass, hr]
     have hbind := pmf_bind_expectation (actualFreshRecord f w)
@@ -1342,17 +1346,17 @@ theorem val_sub_formula {n : ℕ} [NeZero n] (x y : ZMod n) :
   by_cases hx : x = 0
   · subst x
     simp
-  · haveI : NeZero x := ⟨hx⟩
+  · have : NeZero x := ⟨hx⟩
     rw [show y - x = y + (-x) from sub_eq_add_neg _ _, ZMod.val_add,
       ZMod.val_neg_of_ne_zero x]
     have hxnlt : x.val < n := ZMod.val_lt x
     have hynlt : y.val < n := ZMod.val_lt y
     by_cases h : x.val ≤ y.val
-    · rw [if_pos h]
+    · rw [ite_eq_left h]
       have hlt : y.val - x.val < n := by omega
       have heq : y.val + (n - x.val) = (y.val - x.val) + n := by omega
       rw [heq, Nat.mod_eq_sub_mod (by omega), Nat.add_sub_cancel, Nat.mod_eq_of_lt hlt]
-    · rw [if_neg h]
+    · rw [ite_eq_right h]
       have hlt : n - (x.val - y.val) < n := by omega
       have heq : y.val + (n - x.val) = n - (x.val - y.val) := by omega
       rw [heq, Nat.mod_eq_of_lt hlt]
@@ -1395,53 +1399,53 @@ theorem topBit_sub {n : ℕ} (hn : 1 ≤ n) (x y : ZMod (2 ^ n)) :
     · rcases hτ'c with hτ'0 | hτ'1
       · simp only [hτ0, hτ'0] at hX hY ⊢
         by_cases hle : x.val ≤ y.val
-        · rw [hsub, if_pos hle]
+        · rw [hsub, ite_eq_left hle]
           have hlt : y.val - x.val < 2 ^ (n - 1) := by omega
           rw [div_eq_zero_of_lt hlt]
-          simp only [if_neg (by omega : ¬ lowPart y < lowPart x)]
-        · rw [hsub, if_neg (by omega : ¬ x.val ≤ y.val)]
+          simp only [ite_eq_right (by omega : ¬ lowPart y < lowPart x)]
+        · rw [hsub, ite_eq_right (by omega : ¬ x.val ≤ y.val)]
           have h1 : 0 < x.val - y.val := by omega
           have h2 : x.val - y.val < 2 ^ (n - 1) := by omega
           have h3 : 2 ^ (n - 1) ≤ 2 ^ n - (x.val - y.val) := by omega
           have h4 : 2 ^ n - (x.val - y.val) < 2 ^ n := by omega
           rw [div_eq_one_of_lt_two_mul h3 (by omega)]
-          simp only [if_pos (by omega : lowPart y < lowPart x)]
+          simp only [ite_eq_left (by omega : lowPart y < lowPart x)]
       · simp only [hτ0, hτ'1] at hX hY ⊢
         have hle' : x.val ≤ y.val := by omega
-        rw [hsub, if_pos hle']
+        rw [hsub, ite_eq_left hle']
         by_cases h : lowPart x ≤ lowPart y
         · have hlt : 2 ^ (n - 1) ≤ y.val - x.val := by omega
           have hlt2 : y.val - x.val < 2 ^ n := by omega
           rw [div_eq_one_of_lt_two_mul hlt (by omega)]
-          simp only [if_neg (by omega : ¬ lowPart y < lowPart x)]
+          simp only [ite_eq_right (by omega : ¬ lowPart y < lowPart x)]
         · have hlt : y.val - x.val < 2 ^ (n - 1) := by omega
           rw [div_eq_zero_of_lt hlt]
-          simp only [if_pos (by omega : lowPart y < lowPart x)]
+          simp only [ite_eq_left (by omega : lowPart y < lowPart x)]
     · rcases hτ'c with hτ'0 | hτ'1
       · simp only [hτ1, hτ'0] at hX hY ⊢
         have hgt' : y.val < x.val := by omega
-        rw [hsub, if_neg (by omega : ¬ x.val ≤ y.val)]
+        rw [hsub, ite_eq_right (by omega : ¬ x.val ≤ y.val)]
         by_cases h : lowPart x ≤ lowPart y
         · have hlt : 2 ^ (n - 1) ≤ 2 ^ n - (x.val - y.val) := by omega
           have hlt2 : 2 ^ n - (x.val - y.val) < 2 ^ n := by omega
           rw [div_eq_one_of_lt_two_mul hlt (by omega)]
-          simp only [if_neg (by omega : ¬ lowPart y < lowPart x)]
+          simp only [ite_eq_right (by omega : ¬ lowPart y < lowPart x)]
         · have hlt : 2 ^ n - (x.val - y.val) < 2 ^ (n - 1) := by omega
           rw [div_eq_zero_of_lt hlt]
-          simp only [if_pos (by omega : lowPart y < lowPart x)]
+          simp only [ite_eq_left (by omega : lowPart y < lowPart x)]
       · simp only [hτ1, hτ'1] at hX hY ⊢
         by_cases hle : x.val ≤ y.val
-        · rw [hsub, if_pos hle]
+        · rw [hsub, ite_eq_left hle]
           have hlt : y.val - x.val < 2 ^ (n - 1) := by omega
           rw [div_eq_zero_of_lt hlt]
-          simp only [if_neg (by omega : ¬ lowPart y < lowPart x)]
-        · rw [hsub, if_neg (by omega : ¬ x.val ≤ y.val)]
+          simp only [ite_eq_right (by omega : ¬ lowPart y < lowPart x)]
+        · rw [hsub, ite_eq_right (by omega : ¬ x.val ≤ y.val)]
           have h1 : 0 < x.val - y.val := by omega
           have h2 : x.val - y.val < 2 ^ (n - 1) := by omega
           have h3 : 2 ^ (n - 1) ≤ 2 ^ n - (x.val - y.val) := by omega
           have h4 : 2 ^ n - (x.val - y.val) < 2 ^ n := by omega
           rw [div_eq_one_of_lt_two_mul h3 (by omega)]
-          simp only [if_pos (by omega : lowPart y < lowPart x)]
+          simp only [ite_eq_left (by omega : lowPart y < lowPart x)]
   rw [topBit_eq_highPart hn (y - x), topBit_eq_highPart hn y, topBit_eq_highPart hn x]
   apply Fin.ext
   show (y - x).val / 2 ^ (n - 1) = ((highPart y + highPart x) % 2 + (borrowBit x y).val) % 2
@@ -1523,7 +1527,7 @@ private theorem erase_junction {α : Type} [DecidableEq α] (as bs : List α) (a
   | cons x xs ih =>
     simp only [List.cons_append, List.erase_cons]
     have hxa : x ≠ a := hno x (by simp)
-    rw [if_neg (by simp [hxa])]
+    rw [ite_eq_right (by simp [hxa])]
     congr 1
     exact ih (fun y hy => hno y (by simp [hy]))
 
@@ -1797,13 +1801,13 @@ theorem lowPart_sub {n : ℕ} (hn : 1 ≤ n) (x y : ZMod (2 ^ n)) :
       have hyv : y.val = lowPart y := by omega
       rw [hxv, hyv]
       by_cases hle : lowPart x ≤ lowPart y
-      · rw [if_pos hle]
+      · rw [ite_eq_left hle]
         have hlt : lowPart y - lowPart x < 2 ^ (n - 1) := by omega
         rw [Nat.mod_eq_of_lt hlt]
         have h1 : lowPart y + 2 ^ (n - 1) - lowPart x = 2 ^ (n - 1) + (lowPart y - lowPart x) := by
           omega
         rw [h1, mod_add_self, Nat.mod_eq_of_lt hlt]
-      · rw [if_neg hle]
+      · rw [ite_eq_right hle]
         have h1 : 2 ^ n - (lowPart x - lowPart y)
             = (2 ^ (n - 1) - lowPart x + lowPart y) + 2 ^ (n - 1) * 1 := by
           rw [h2n]
@@ -1818,7 +1822,7 @@ theorem lowPart_sub {n : ℕ} (hn : 1 ≤ n) (x y : ZMod (2 ^ n)) :
       have hyv : y.val = 2 ^ (n - 1) + lowPart y := by omega
       rw [hxv, hyv]
       have hle : lowPart x ≤ 2 ^ (n - 1) + lowPart y := by omega
-      rw [if_pos hle]
+      rw [ite_eq_left hle]
       by_cases hle' : lowPart x ≤ lowPart y
       · have h1 : (2 ^ (n - 1) + lowPart y) - lowPart x = 2 ^ (n - 1) + (lowPart y - lowPart x) := by
           omega
@@ -1841,7 +1845,7 @@ theorem lowPart_sub {n : ℕ} (hn : 1 ≤ n) (x y : ZMod (2 ^ n)) :
       have hyv : y.val = lowPart y := by omega
       rw [hxv, hyv]
       have hgt : 2 ^ (n - 1) + lowPart x > lowPart y := by omega
-      rw [if_neg (by omega : ¬ 2 ^ (n - 1) + lowPart x ≤ lowPart y)]
+      rw [ite_eq_right (by omega : ¬ 2 ^ (n - 1) + lowPart x ≤ lowPart y)]
       by_cases hle' : lowPart x ≤ lowPart y
       · have h1 : 2 ^ n - ((2 ^ (n - 1) + lowPart x) - lowPart y)
             = 2 ^ (n - 1) + (lowPart y - lowPart x) := by
@@ -1868,7 +1872,7 @@ theorem lowPart_sub {n : ℕ} (hn : 1 ≤ n) (x y : ZMod (2 ^ n)) :
       have hyv : y.val = 2 ^ (n - 1) + lowPart y := by omega
       rw [hxv, hyv]
       by_cases hle : 2 ^ (n - 1) + lowPart x ≤ 2 ^ (n - 1) + lowPart y
-      · rw [if_pos hle]
+      · rw [ite_eq_left hle]
         have h1 : (2 ^ (n - 1) + lowPart y) - (2 ^ (n - 1) + lowPart x) = lowPart y - lowPart x := by
           omega
         rw [h1]
@@ -1877,7 +1881,7 @@ theorem lowPart_sub {n : ℕ} (hn : 1 ≤ n) (x y : ZMod (2 ^ n)) :
         have h2 : lowPart y + 2 ^ (n - 1) - lowPart x = 2 ^ (n - 1) + (lowPart y - lowPart x) := by
           omega
         rw [h2, mod_add_self, Nat.mod_eq_of_lt hlt]
-      · rw [if_neg hle]
+      · rw [ite_eq_right hle]
         have h1 : 2 ^ n - ((2 ^ (n - 1) + lowPart x) - (2 ^ (n - 1) + lowPart y))
             = (2 ^ (n - 1) - lowPart x + lowPart y) + 2 ^ (n - 1) * 1 := by
           rw [h2n]
@@ -1982,16 +1986,16 @@ private theorem sievePairWith_pairwise {α : Type} [DecidableEq α] (n : ℕ)
           exact h1.1 rfl
         refine ⟨?_, ?_, ?_, ?_⟩
         · intro h
-          simp only [Prod.fst, Prod.snd] at h
+          change r = q.1 at h
           exact hnr (h ▸ hq1')
         · intro h
-          simp only [Prod.fst, Prod.snd] at h
+          change r = q.2 at h
           exact hnr (h ▸ hq2')
         · intro h
-          simp only [Prod.fst, Prod.snd] at h
+          change r' = q.1 at h
           exact hnr' (h ▸ hq1)
         · intro h
-          simp only [Prod.fst, Prod.snd] at h
+          change r' = q.2 at h
           exact hnr' (h ▸ hq2)
 
 /-- On an input list without duplicates, each selected pair has distinct parents. -/
@@ -2028,7 +2032,7 @@ private theorem sievePairWith_parents_ne {α : Type} [DecidableEq α] (n : ℕ)
         rcases hp with hpr | hp
         · subst hpr
           intro hEq
-          simp only [Prod.fst, Prod.snd] at hEq
+          change r = r' at hEq
           exact hnr (hEq ▸ hmem)
         · exact ih (rest.erase r').length hlenlt (rest.erase r') rfl (hrestnd.erase r') p hp
 
@@ -2193,17 +2197,14 @@ theorem decFresh_invariant {n R : ℕ} (hn : 1 ≤ n) (low : Fin R → ZMod (2 ^
   refine ⟨?_, ?_, ?_⟩
   · refine (List.pairwise_ofFn).2 ?_
     intro i j hij
-    simp only [decFresh]
     exact Finset.disjoint_singleton.mpr (by omega)
   · intro x hx
     obtain ⟨i, hi⟩ := List.mem_ofFn.mp hx
     rw [← hi]
-    simp only [decFresh]
     exact ⟨i, Finset.mem_singleton_self i⟩
   · intro x hx
     obtain ⟨i, hi⟩ := List.mem_ofFn.mp hx
     rw [← hi]
-    simp only [decFresh]
     rw [topBit_skeletonLabel hn (low i) (top i)]
     rw [Finset.sum_singleton]
     simp
@@ -2418,7 +2419,7 @@ private theorem list_ext_getD {α : Type} :
 private theorem getD_ofFn {α : Type} {n : ℕ} (f : Fin n → α) (i : ℕ) (d : α) (h : i < n) :
     (List.ofFn f).getD i d = f ⟨i, h⟩ := by
   have hq : (List.ofFn f)[i]? = some (f ⟨i, h⟩) := by
-    rw [List.getElem?_ofFn, dif_pos h]
+    rw [List.getElem?_ofFn, dite_eq_left h]
   show (List.ofFn f)[i]?.getD d = f ⟨i, h⟩
   rw [hq]
   rfl
@@ -2436,7 +2437,7 @@ private theorem ofFn_congr {α : Type} {n : ℕ} {f g : Fin n → α} (h : ∀ i
 
 /-- Distinct valid indices in a list without duplicates have unequal defaulted entries. -/
 private theorem nodup_getD_ne {α : Type} :
-    ∀ (L : List α) (h : L.Nodup) (d : α) (i j : ℕ), i ≠ j → i < L.length → j < L.length →
+    ∀ (L : List α) (_h : L.Nodup) (d : α) (i j : ℕ), i ≠ j → i < L.length → j < L.length →
       L.getD i d ≠ L.getD j d := by
   intro L
   induction L with
@@ -2679,7 +2680,7 @@ private theorem decTapeLayer_shadow {n m j R : ℕ} (hn : 1 ≤ n) (tape : List 
             if p.2 = 1 then some (shChild (decShadow p.1.1, decShadow p.1.2)) else none) := by
       funext x
       by_cases h : x.2 = 1
-      · simp only [h, if_pos, Option.map_some]
+      · simp only [h, ite_eq_left, Option.map_some]
         rw [decShadow_decChild hn]
       · simp [h]
     rw [hfun]
@@ -2772,7 +2773,7 @@ private theorem decSkel_shadow_getD {n m R : ℕ} (hn : 1 ≤ n)
 theorem topBitBundle_nonempty {n m R : ℕ} (hn : 1 ≤ n)
     (low : Fin R → ZMod (2 ^ (n - 1))) (tape : Fin m → List (Fin 2))
     (i : Fin (shSkel low tape).length) :
-    (shGet low tape i.val).sup.Nonempty := by
+    ((shSkel low tape).getD i.val (decShadow (⟨0, ∅, 0⟩ : DecLabel n R))).sup.Nonempty := by
   set top₀ : Fin R → Fin 2 := fun _ => (0 : Fin 2) with htop₀
   have hinv := decSkel_invariant hn low tape top₀
   have hsh := decSkel_shadow hn low tape top₀
@@ -2796,7 +2797,8 @@ theorem topBitBundle_nonempty {n m R : ℕ} (hn : 1 ≤ n)
 theorem topBitBundle_disjoint {n m R : ℕ} (hn : 1 ≤ n)
     (low : Fin R → ZMod (2 ^ (n - 1))) (tape : Fin m → List (Fin 2))
     (i j : Fin (shSkel low tape).length) (hij : i ≠ j) :
-    Disjoint (shGet low tape i.val).sup (shGet low tape j.val).sup := by
+    Disjoint ((shSkel low tape).getD i.val (decShadow (⟨0, ∅, 0⟩ : DecLabel n R))).sup
+      ((shSkel low tape).getD j.val (decShadow (⟨0, ∅, 0⟩ : DecLabel n R))).sup := by
   set top₀ : Fin R → Fin 2 := fun _ => (0 : Fin 2) with htop₀
   have hinv := decSkel_invariant hn low tape top₀
   have hsh0 := decSkel_shadow hn low tape top₀
@@ -2830,8 +2832,8 @@ shadow skeleton. -/
 noncomputable def topBitBundle {n m R : ℕ} (hn : 1 ≤ n)
     (low : Fin R → ZMod (2 ^ (n - 1))) (tape : Fin m → List (Fin 2)) :
     TopBitBundle R (shSkel low tape).length where
-  sup := fun i => (shGet low tape i.val).sup
-  off := fun i => (shGet low tape i.val).off
+  sup := fun i => ((shSkel low tape).getD i.val (decShadow (⟨0, ∅, 0⟩ : DecLabel n R))).sup
+  off := fun i => ((shSkel low tape).getD i.val (decShadow (⟨0, ∅, 0⟩ : DecLabel n R))).off
   nonempty := fun i => topBitBundle_nonempty hn low tape i
   disjoint := fun i j hij => topBitBundle_disjoint hn low tape i j hij
 

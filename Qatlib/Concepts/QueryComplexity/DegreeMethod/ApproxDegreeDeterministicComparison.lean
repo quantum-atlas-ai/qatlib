@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.AdaptiveClassicalSimulationBeal
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.ApproxPolynomialBlockSensitivityBeal
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.QueryDegree
+module
+
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.AdaptiveClassicalSimulationBeal
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.ApproxPolynomialBlockSensitivityBeal
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.QueryDegree
+
+@[expose] public section
 
 /-!
 # Approximate degree and deterministic query complexity
@@ -129,16 +133,16 @@ private theorem tunableGoalTreeFrom_run {n : ℕ} (is : List (Fin n)) (base x : 
       split_ifs <;> rfl
     rw [hrun]
     by_cases hx : x i = true
-    · rw [if_pos hx, ih (Function.update base i true)]
+    · rw [ite_eq_left hx, ih (Function.update base i true)]
       congr 1
       funext j
       by_cases hj : j = i <;> by_cases hjr : j ∈ rest <;>
-        simp [hj, hjr, hx, List.mem_cons, Function.update_apply]
-    · rw [if_neg hx, ih (Function.update base i false)]
+        simp [hj, hjr, hx, List.mem_cons]
+    · rw [ite_eq_right hx, ih (Function.update base i false)]
       congr 1
       funext j
       by_cases hj : j = i <;> by_cases hjr : j ∈ rest <;>
-        simp [hj, hjr, hx, List.mem_cons, Function.update_apply]
+        simp [hj, hjr, hx, List.mem_cons]
 
 /-- The list of all coordinates of `Fin n` in their canonical order. -/
 private def tunableGoalFullList (n : ℕ) : List (Fin n) := List.ofFn (fun i => i)

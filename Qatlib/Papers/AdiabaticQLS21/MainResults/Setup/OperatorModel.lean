@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.CStarAlgebra.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Analysis.Normed.Ring.Basic
+module
+
+public import Mathlib.Analysis.CStarAlgebra.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Analysis.Normed.Ring.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -75,7 +79,7 @@ def IsUnitary {R : Type*} [Ring R] [StarRing R] (u : R) : Prop :=
 
 section Unitary
 
-variable {R : Type*} [NormedRing R] [NormOneClass R] [StarRing R] [CStarRing R]
+variable {R : Type*} [NormedRing R] [instNormOneClassR : NormOneClass R] [StarRing R] [instCStarRingR : CStarRing R]
 
 /-- A unitary element of a C*-algebra has norm one. -/
 lemma IsUnitary.norm_eq_one {u : R} (hu : IsUnitary u) : ‖u‖ = 1 := by
@@ -85,8 +89,13 @@ lemma IsUnitary.norm_eq_one {u : R} (hu : IsUnitary u) : ‖u‖ = 1 := by
     exact h.symm
   nlinarith [norm_nonneg u]
 
+omit instNormOneClassR instCStarRingR in
 /-- The adjoint of a unitary is a unitary. -/
-lemma IsUnitary.star {u : R} (hu : IsUnitary u) : IsUnitary (star u) := by
+lemma IsUnitary.star {R : Type*}
+    [_instNormedRingR : NormedRing R]
+    [_instNormOneClassR : NormOneClass R]
+    [_instStarRingR : StarRing R]
+    [_instCStarRingR : CStarRing R] {u : R} (hu : IsUnitary u) : IsUnitary (star u) := by
   constructor
   · rw [star_star]
     exact hu.2

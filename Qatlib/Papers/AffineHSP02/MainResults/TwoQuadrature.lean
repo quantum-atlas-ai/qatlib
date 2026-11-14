@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Two quadratures distinguish opposite phases
@@ -104,7 +108,7 @@ theorem measProb_sum (p : ℕ) (m b : ℤ) :
   have hx := xOutcomes_sum p m b
   have hy := yOutcomes_sum p m b
   simp only [Fintype.sum_prod_type, Fintype.sum_bool, measProb, Bool.false_eq_true,
-    if_true, if_false]
+    ite_true, ite_false]
   nlinarith [hx, hy]
 
 /-- Negating `b` leaves each cosine-quadrature measurement weight unchanged. -/
@@ -125,7 +129,7 @@ theorem measProb_ne_neg_b (p : ℕ) (m b : ℤ)
   have hY : measProb p m b (false, true) = measProb p m (-b) (false, true) := by
     rw [h]
   rw [measProb_Y_neg_b, Bool.not_true] at hY
-  simp only [measProb, Bool.false_eq_true, if_false, if_true] at hY
+  simp only [measProb, Bool.false_eq_true, ite_false, ite_true] at hY
   have hsin0 : Real.sin (phase p m b) = 0 := by
     unfold yPlus yMinus at hY
     linarith

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GraphConnect03.MainResults.Defs
-import Qatlib.Papers.GraphConnect03.MainResults.LowerBounds.AmbainisMethod
-import Qatlib.Papers.GraphConnect03.MainResults.LowerBounds.ParityReduction
+module
+
+public import Qatlib.Papers.GraphConnect03.MainResults.Defs
+public import Qatlib.Papers.GraphConnect03.MainResults.LowerBounds.AmbainisMethod
+public import Qatlib.Papers.GraphConnect03.MainResults.LowerBounds.ParityReduction
+
+@[expose] public section
 
 /-!
 # Neighbor lists for the parity-clique gadget
@@ -63,20 +67,20 @@ theorem gadgetNbr_injective {p k : ℕ} [NeZero k] (b : ZMod p → Bool)
       obtain ⟨i, l⟩ := vl
       by_cases hj : j = jf i l <;> by_cases hj' : j' = jf i l
       · rw [hj, hj']
-      · simp only [gadgetNbr, if_pos hj, if_neg hj'] at h
+      · simp only [gadgetNbr, ite_eq_left hj, ite_eq_right hj'] at h
         exact absurd h (by simp)
-      · simp only [gadgetNbr, if_neg hj, if_pos hj'] at h
+      · simp only [gadgetNbr, ite_eq_right hj, ite_eq_left hj'] at h
         exact absurd h (by simp)
-      · simp only [gadgetNbr, if_neg hj, if_neg hj'] at h
+      · simp only [gadgetNbr, ite_eq_right hj, ite_eq_right hj'] at h
         exact Sum.inr.inj h
   | inr i =>
       by_cases hj : j = 0 <;> by_cases hj' : j' = 0
       · rw [hj, hj']
-      · simp only [gadgetNbr, if_pos hj, if_neg hj'] at h
+      · simp only [gadgetNbr, ite_eq_left hj, ite_eq_right hj'] at h
         exact absurd h (by simp)
-      · simp only [gadgetNbr, if_neg hj, if_pos hj'] at h
+      · simp only [gadgetNbr, ite_eq_right hj, ite_eq_left hj'] at h
         exact absurd h (by simp)
-      · simp only [gadgetNbr, if_neg hj, if_neg hj'] at h
+      · simp only [gadgetNbr, ite_eq_right hj, ite_eq_right hj'] at h
         exact add_left_cancel (Sum.inr.inj h)
 
 end Qatlib.Papers.GraphConnect03.MainResults.LowerBounds

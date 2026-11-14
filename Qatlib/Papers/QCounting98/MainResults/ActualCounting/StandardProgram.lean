@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QCounting98.MainResults.ActualCounting.OracleTransport
-import Qatlib.Papers.QCounting98.MainResults.CountingWindow
+module
+
+public import Qatlib.Papers.QCounting98.MainResults.ActualCounting.OracleTransport
+public import Qatlib.Papers.QCounting98.MainResults.CountingWindow
+
+@[expose] public section
 
 /-!
 # Standard Boolean-oracle amplitude-estimation program

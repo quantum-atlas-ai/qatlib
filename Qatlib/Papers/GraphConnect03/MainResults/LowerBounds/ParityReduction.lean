@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.ZMod.Basic
-import Qatlib.Papers.GraphConnect03.MainResults.Defs
+module
+
+public import Mathlib.Data.ZMod.Basic
+public import Qatlib.Papers.GraphConnect03.MainResults.Defs
+
+@[expose] public section
 
 /-!
 # The parity permutation gadget

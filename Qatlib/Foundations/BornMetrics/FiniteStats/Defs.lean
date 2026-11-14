@@ -4,17 +4,21 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.ENat.Lattice
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.InnerProductSpace.EuclideanDist
-import Mathlib.MeasureTheory.Constructions.HaarToSphere
-import Mathlib.MeasureTheory.Measure.Hausdorff
-import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
-import Mathlib.MeasureTheory.Constructions.BorelSpace.Basic
-import Mathlib.Analysis.Normed.Lp.MeasurableSpace
-import Mathlib.MeasureTheory.Measure.Haar.OfBasis
-import Mathlib.Algebra.BigOperators.Group.List.Defs
+module
+
+public import Mathlib.Data.ENat.Lattice
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.InnerProductSpace.EuclideanDist
+public import Mathlib.MeasureTheory.Constructions.HaarToSphere
+public import Mathlib.MeasureTheory.Measure.Hausdorff
+public import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
+public import Mathlib.MeasureTheory.Constructions.BorelSpace.Basic
+public import Mathlib.Analysis.Normed.Lp.MeasurableSpace
+public import Mathlib.MeasureTheory.Measure.Haar.OfBasis
+public import Mathlib.Algebra.BigOperators.Group.List.Defs
+
+@[expose] public section
 
 /-!
 # Finite measurement distances and column norms

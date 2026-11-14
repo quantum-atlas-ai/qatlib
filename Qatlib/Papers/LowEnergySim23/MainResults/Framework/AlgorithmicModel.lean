@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Qatlib.Papers.LowEnergySim23.MainResults.Framework.Core
-import Qatlib.Foundations.PureStateMath.Qubit
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Qatlib.Papers.LowEnergySim23.MainResults.Framework.Core
+public import Qatlib.Foundations.PureStateMath.Qubit
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.WordIntegral
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.WordAffine
-import Qatlib.Concepts.EffectiveGauge.RationalFlow.MeanLipschitz
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.WordIntegral
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.WordAffine
+public import Qatlib.Concepts.EffectiveGauge.RationalFlow.MeanLipschitz
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -76,7 +80,7 @@ theorem spatialWordPartial_coordinatePrimitiveSource (gamma : SpatialPoint → �
   have hf : ContDiff ℝ ∞ f :=
     (contDiff_coordinatePrimitiveSource gamma hg).comp (contDiff_id.prodMk contDiff_const)
   have hface := congrFun (spatialWordPartial_coordinateFace f hf 1 (x 1) w) x
-  simp only [if_neg hw,coordinateFace_at_coordinate] at hface
+  simp only [ite_eq_right hw,coordinateFace_at_coordinate] at hface
   have heq : (fun y => f (coordinateFace 1 (x 1) y))=
       fun y => (x 1/physicalPeriod) • gamma (coordinateFace 1 ((x 1/physicalPeriod)*t) y) := by
     funext y
@@ -88,7 +92,7 @@ theorem spatialWordPartial_coordinatePrimitiveSource (gamma : SpatialPoint → �
       (fun y => gamma (coordinateFace 1 ((x 1/physicalPeriod)*t) y))
       (hg.comp (contDiff_coordinateFace 1 ((x 1/physicalPeriod)*t))) (x 1/physicalPeriod) w,
     spatialWordPartial_coordinateFace gamma hg]
-  simp only [if_neg hw,smul_eq_mul]
+  simp only [ite_eq_right hw,smul_eq_mul]
 
 /-- Original `coordinatePrimitive_transverse_word_bound` guarantee for the `WordPrimitive` construction; the complete source hypotheses are retained. -/
 theorem coordinatePrimitive_transverse_word_bound (gamma : SpatialPoint → ℝ)

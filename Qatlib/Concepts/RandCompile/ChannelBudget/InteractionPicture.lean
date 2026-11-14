@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.InteractionEvo.MeanDerivGrid.InteractionPictureDefs
-import Mathlib.Analysis.Complex.ExponentialBounds
+module
+
+public import Qatlib.Concepts.InteractionEvo.MeanDerivGrid.InteractionPictureDefs
+public import Mathlib.Analysis.Complex.ExponentialBounds
+
+@[expose] public section
 
 /-!
 # Interaction picture cutoffs and program resources
@@ -103,7 +107,7 @@ theorem ipClosedFormK_eq (k : ℕ) : ipClosedFormK k = computedDysonCutoff k := 
 /-- The closed-form grid meets `ipSourceGridCondition` whenever the stated real grid-size
 expression is nonnegative. -/
 theorem ipSourceGridCondition_holds (t Λ χ : ℝ) (k : ℕ)
-    (h : 0 ≤ 16 * t ^ 2 * (χ + Λ ^ 2) * (2 : ℝ) ^ k) :
+    (_h : 0 ≤ 16 * t ^ 2 * (χ + Λ ^ 2) * (2 : ℝ) ^ k) :
     ipSourceGridCondition t Λ χ k := by
   have hM : ipClosedFormM t Λ χ k =
       max (max 1 ((ipClosedFormK k) ^ 2))
@@ -172,7 +176,7 @@ theorem ipCollisionCube_two {I : Type} [Fintype I] [DecidableEq I]
     · exfalso
       apply hw
       intro a b hval
-      fin_cases a <;> fin_cases b <;> simp_all [h]
+      fin_cases a <;> fin_cases b <;> simp_all
   have hsplit : (∑ v : Fin 2 → Fin M,
       if Function.Injective v then 0 else effectiveSortedWord H t M 2 v)
       = ∑ v ∈ Finset.univ.filter (fun v : Fin 2 → Fin M => v 0 = v 1),
@@ -181,16 +185,16 @@ theorem ipCollisionCube_two {I : Type} [Fintype I] [DecidableEq I]
     apply Finset.sum_congr rfl
     intro v _
     by_cases h : Function.Injective v
-    · rw [if_pos h]
+    · rw [ite_eq_left h]
       have hne : ¬ (v 0 = v 1) := by
         intro hc
         have heq : (0 : Fin 2) = (1 : Fin 2) := h hc
         have hz : ¬ ((0 : Fin 2) = (1 : Fin 2)) := by decide
         exact hz heq
-      simp only [if_neg hne]
+      simp only [ite_eq_right hne]
     · have hne : v 0 = v 1 := key v h
-      rw [if_neg h]
-      simp only [hne, if_true]
+      rw [ite_eq_right h]
+      simp only [hne, ite_true]
   rw [hsplit]
   refine Finset.sum_bij (fun v _ => v 0) ?_ ?_ ?_ ?_
   · intro v _; simp
@@ -224,7 +228,7 @@ theorem ipCollisionCube_two {I : Type} [Fintype I] [DecidableEq I]
       simp only [List.pairwise_cons]
       constructor
       · simp [hne]
-      · simp [hne]
+      · simp
     simp only [effectiveSortedWord]
     rw [hof, hms]
     simp [hne]
@@ -240,7 +244,7 @@ theorem ipSortedIndexList_pairwise (M k : ℕ) (v : Fin k → Fin M) :
     simp only [decide_eq_true_eq] at hab hbc ⊢
     exact le_trans hab hbc
   · intro a b
-    simp only [decide_eq_true_eq, Bool.or_eq_true, decide_eq_false_iff_not]
+    simp only [decide_eq_true_eq, Bool.or_eq_true]
     by_cases h : a ≤ b
     · exact Or.inl h
     · exact Or.inr (le_of_not_ge h)
@@ -277,7 +281,7 @@ theorem ipSegmentQueryList_gen (p : EffectiveSegmentParameters) (K : ℕ) :
   | zero => simp
   | succ m ih =>
     rw [List.range_succ, List.flatMap_append, List.filter_append, ih]
-    simp [List.range_succ]
+    simp
 
 /-- Filtering fixed and phase gates from `K` query-phase pairs yields precisely the list of
 phase gates. -/
@@ -293,7 +297,7 @@ theorem ipSegmentGateList_gen (p : EffectiveSegmentParameters) (K : ℕ) :
   | zero => simp
   | succ m ih =>
     rw [List.range_succ, List.flatMap_append, List.filter_append, ih]
-    simp [List.range_succ]
+    simp
 
 /-- The query steps of the segment are exactly the duplicated-wire queries indexed by
 `ipSegmentCopies p`. -/
@@ -316,7 +320,7 @@ theorem ipSegmentGateList (p : EffectiveSegmentParameters) :
 theorem ipSegmentProgram_queries (p : EffectiveSegmentParameters) :
     effectiveQueries (ipSegmentProgram p) = ipSegmentQueries p := by
   have h := ipSegmentQueryList p
-  simp only [ipSegmentProgram, EffectiveProgram.steps, effectiveQueries, ipSegmentQueries]
+  simp only [ipSegmentProgram, effectiveQueries, ipSegmentQueries]
   calc (List.filter (fun s => match s with | .query .. => true | _ => false)
         (ipSegmentSteps p)).length
       = ((List.range (ipSegmentCopies p)).map
@@ -329,7 +333,7 @@ theorem ipSegmentProgram_queries (p : EffectiveSegmentParameters) :
 theorem ipSegmentProgram_gates (p : EffectiveSegmentParameters) :
     effectiveGates (ipSegmentProgram p) = ipSegmentCopies p := by
   have h := ipSegmentGateList p
-  simp only [ipSegmentProgram, EffectiveProgram.steps, effectiveGates, ipSegmentCopies]
+  simp only [ipSegmentProgram, effectiveGates, ipSegmentCopies]
   calc (List.filter (fun s => match s with | .fixed .. | .phase .. => true | _ => false)
         (ipSegmentSteps p)).length
       = ((List.range (ipSegmentCopies p)).map
@@ -412,7 +416,7 @@ theorem ipLogLogRate : ∃ C m0 : ℕ, ∀ k : ℕ, m0 ≤ k →
 
 /-- Under the stated per-time cost bound, the sum of costs over dyadic times is bounded by twice
 the full-time logarithmic cost term plus `nd + 1`. -/
-theorem ipGateRateTotal (p : EffectiveSegmentParameters) (gamma : ℝ) (hgamma : 0 < gamma)
+theorem ipGateRateTotal (_p : EffectiveSegmentParameters) (gamma : ℝ) (hgamma : 0 < gamma)
     (tau delta : ℚ) (nd : ℕ) (CA : ℝ) (hτ : 0 ≤ tau) (hδ : 0 < delta) (hCA : 0 ≤ CA)
     (cost : ℕ → ℕ)
     (hcost : ∀ j ≤ nd, (cost j : ℝ) ≤

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MaxCutGirth25.MainResults.GirthMaxCut.SourceIndependence
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.MaxCutGirth25.MainResults.GirthMaxCut.SourceIndependence
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

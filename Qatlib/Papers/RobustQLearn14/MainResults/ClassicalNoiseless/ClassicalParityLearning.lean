@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.LinearAlgebra.Matrix.GeneralLinearGroup.Card
-import Mathlib.Algebra.Field.GeomSum
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Algebra.Field.ZMod
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
+module
+
+public import Mathlib.LinearAlgebra.Matrix.GeneralLinearGroup.Card
+public import Mathlib.Algebra.Field.GeomSum
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Algebra.Field.ZMod
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

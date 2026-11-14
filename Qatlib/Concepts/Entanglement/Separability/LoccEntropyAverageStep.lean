@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.Entanglement.Separability.LoccAverageEntropy
+module
+
+public import Qatlib.Concepts.Entanglement.Separability.LoccAverageEntropy
+
+@[expose] public section
 
 /-!
 # Average pure-state entanglement under finite LOCC
@@ -118,7 +122,7 @@ theorem rightKrausBranchMass_eq_zero_iff (ψ : QState (Fin D × Fin E))
 /-- Rescales a positive-mass second-subsystem Kraus branch by the reciprocal square root of its
 mass. -/
 noncomputable def normalizedRightKrausBranch (ψ : QState (Fin D × Fin E))
-    (K : KrausInstrument E n) (i : Fin n) (hp : 0 < rightKrausBranchMass ψ K i) :
+    (K : KrausInstrument E n) (i : Fin n) (_hp : 0 < rightKrausBranchMass ψ K i) :
     QState (Fin D × Fin E) :=
   ((Real.sqrt (rightKrausBranchMass ψ K i))⁻¹ : ℝ) • rightKrausBranch ψ K i
 
@@ -283,7 +287,7 @@ theorem rightKrausAverageBranchEntropy_le_of_concavity
       ∑ i, rightKrausBranchMass ψ K i * Sᵥₙ (rightBranchFirstMarginalFamily ψ K hψ i) := by
     refine Finset.sum_congr rfl fun i _ => ?_
     by_cases hp : 0 < rightKrausBranchMass ψ K i
-    · simp only [hp, dif_pos]
+    · simp only [hp, dite_eq_left]
       have hfam : rightBranchFirstMarginalFamily ψ K hψ i =
           rightBranchFirstMarginalMixed ψ K i hp := by
         simp [rightBranchFirstMarginalFamily, hp]
@@ -291,7 +295,7 @@ theorem rightKrausAverageBranchEntropy_le_of_concavity
     · have hz : rightKrausBranchMass ψ K i = 0 :=
         le_antisymm (le_of_not_gt hp) (rightKrausBranchMass_nonneg ψ K i)
       have hd : (if hp : 0 < rightKrausBranchMass ψ K i
-          then rightKrausBranchEntropy ψ K i hp else 0) = 0 := by rw [dif_neg hp]
+          then rightKrausBranchEntropy ψ K i hp else 0) = 0 := by rw [dite_eq_right hp]
       rw [hd, hz, zero_mul, zero_mul]
   rw [rightKrausAverageBranchEntropy, hsum]
   exact hconc'.trans_eq (entropy_eq_firstMarginalMixed ψ hψ).symm
@@ -345,13 +349,13 @@ noncomputable def alternatingTreeAverageEntropy {D E : ℕ} {side : LoccParty}
     (hψ : Normalized ψ) : ℝ :=
   match T with
   | .halt => Qatlib.Concepts.UnbiasedBases.ThreeBasis.entropy ψ hψ
-  | .stepA n K next =>
+  | .stepA _n K next =>
       ∑ i, krausBranchMass ψ K i *
         (if hp : 0 < krausBranchMass ψ K i then
             alternatingTreeAverageEntropy (next i) (normalizedKrausBranch ψ K i hp)
               (normalizedKrausBranch_normalized ψ K i hp)
           else 0)
-  | .stepB n K next =>
+  | .stepB _n K next =>
       ∑ i, rightKrausBranchMass ψ K i *
         (if hp : 0 < rightKrausBranchMass ψ K i then
             alternatingTreeAverageEntropy (next i) (normalizedRightKrausBranch ψ K i hp)
@@ -381,7 +385,7 @@ theorem alternatingTreeAverageEntropy_le {D E : ℕ} {side : LoccParty} :
             (if hp : 0 < krausBranchMass ψ K i then krausBranchEntropy ψ K i hp else 0) := by
             refine Finset.sum_le_sum fun i _ => ?_
             by_cases hp : 0 < krausBranchMass ψ K i
-            · simp only [hp, dif_pos]
+            · simp only [hp, dite_eq_left]
               exact mul_le_mul_of_nonneg_left (ih i _ _)
                 (krausBranchMass_nonneg ψ K i)
             · simp only [hp]
@@ -402,7 +406,7 @@ theorem alternatingTreeAverageEntropy_le {D E : ℕ} {side : LoccParty} :
                 rightKrausBranchEntropy ψ K i hp else 0) := by
             refine Finset.sum_le_sum fun i _ => ?_
             by_cases hp : 0 < rightKrausBranchMass ψ K i
-            · simp only [hp, dif_pos]
+            · simp only [hp, dite_eq_left]
               exact mul_le_mul_of_nonneg_left (ih i _ _)
                 (rightKrausBranchMass_nonneg ψ K i)
             · simp only [hp]
@@ -460,7 +464,7 @@ theorem pureStateBornMass_eq_zero_iff {I : Type*} [Fintype I] (ψ : QState I) :
 /-- Rescales a positive-mass finite pure-state vector by the reciprocal square root of its Born
 mass. -/
 noncomputable def normalizedPureState {I : Type*} [Fintype I] (ψ : QState I)
-    (hp : 0 < pureStateBornMass ψ) : QState I :=
+    (_hp : 0 < pureStateBornMass ψ) : QState I :=
   ((Real.sqrt (pureStateBornMass ψ))⁻¹ : ℝ) • ψ
 
 /-- Every positive-mass finite pure-state vector becomes normalized after reciprocal-square-root
@@ -558,9 +562,9 @@ noncomputable def alternatingTreeExecutionStates {D E : ℕ} {side : LoccParty}
     List (QState (Fin D × Fin E)) :=
   match T with
   | .halt => [ψ]
-  | .stepA n K next => Finset.univ.toList.flatMap fun i =>
+  | .stepA _n K next => Finset.univ.toList.flatMap fun i =>
       alternatingTreeExecutionStates (next i) (krausBranch ψ K i)
-  | .stepB n K next => Finset.univ.toList.flatMap fun i =>
+  | .stepB _n K next => Finset.univ.toList.flatMap fun i =>
       alternatingTreeExecutionStates (next i) (rightKrausBranch ψ K i)
 
 /-- Recursive execution of an alternating tree produces the same ordered list of terminal state
@@ -620,7 +624,7 @@ theorem frontier1 (D E : ℕ) :
       (ψ φ : QState (Fin D × Fin E)), φ ∈ alternatingTreeLeafStates T ψ →
       ∀ (hp : 0 < pureStateBornMass φ), Normalized (normalizedPureState φ hp)) ∧
     (∀ (side : LoccParty) (T : AlternatingLoccTree D E side)
-      (ψ : QState (Fin D × Fin E)) (hψ : Normalized ψ),
+      (ψ : QState (Fin D × Fin E)) (_hψ : Normalized ψ),
       (alternatingTreeLeafBornWeights T ψ).sum = 1) ∧
     (∀ (P : Qatlib.Concepts.FiniteLocc.LOCCProgram.LoccProtocol D E) (ψ : QState (Fin D × Fin E)),
       Qatlib.Concepts.FiniteLocc.LOCCProgram.LoccChannel P (outerProduct ψ) =

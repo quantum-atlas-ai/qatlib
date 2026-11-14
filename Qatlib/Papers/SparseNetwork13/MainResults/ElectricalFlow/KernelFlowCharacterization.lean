@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SparseNetwork13.MainResults.Model.ElectricalNetwork
+module
+
+public import Qatlib.Papers.SparseNetwork13.MainResults.Model.ElectricalNetwork
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -50,7 +54,7 @@ def modifiedCAction (G : ElecNetwork V E) (lam : ℝ) (iext : V → ℝ) (beta0 
 with `√(2λ)·β·i_ext`, i.e. `B_G f = √(2λ)β·i_ext`.  This is the paper's reduction of
 `ker(C_{G′})` to scaled flows. -/
 theorem lemma8_kernel_characterization (G : ElecNetwork V E) (lam : ℝ) (iext : V → ℝ)
-    (hlam : 0 < lam) (beta0 : ℝ) (be : E → ℝ) :
+    (_hlam : 0 < lam) (beta0 : ℝ) (be : E → ℝ) :
     (∀ v, modifiedCAction G lam iext beta0 be v = 0) ↔
       (incident G *ᵥ (fun e => Real.sqrt (G.w e) * be e)
         = fun v => Real.sqrt (2 * lam) * beta0 * iext v) := by

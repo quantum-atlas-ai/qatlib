@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QcaDynamics.PairWeights
+module
+
+public import Qatlib.Concepts.QcaDynamics.PairWeights
+
+@[expose] public section
 
 /-!
 # Classification of two-step radius-one solutions

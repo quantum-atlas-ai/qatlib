@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowCoreDefs
+module
+
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowCoreDefs
+
+@[expose] public section
 
 /-!
 # Measurement plane observables and outcome reversal
@@ -157,11 +161,11 @@ theorem mbqcPlaneBasis_conj_anachronical (lam : MbqcPlane) (a : ℝ) (b : Bool) 
   cases b
   · simp only [Bool.not_false]
     rw [mbqcPlaneBasis_eq_observable (b := false), mbqcPlaneBasis_eq_observable (b := true)]
-    simp only [Bool.false_eq_true, if_false, if_true]
+    simp only [Bool.false_eq_true, ite_false, ite_true]
     exact conj_proj_plus hcm hsq
   · simp only [Bool.not_true]
     rw [mbqcPlaneBasis_eq_observable (b := true), mbqcPlaneBasis_eq_observable (b := false)]
-    simp only [Bool.false_eq_true, if_false, if_true]
+    simp only [Bool.false_eq_true, ite_false, ite_true]
     exact conj_proj_minus hcm hsq
 
 /-- If `M` and `s` square to their respective identities, right multiplication of `(1 + s • M) /

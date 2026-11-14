@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AdiabEquiv04.MainResults.Model.HistoryProperties
+module
+
+public import Qatlib.Papers.AdiabEquiv04.MainResults.Model.HistoryProperties
+
+@[expose] public section
 
 /-!
 # Clock spectral-gap statements and the initial ground vector
@@ -74,7 +78,7 @@ theorem rayleigh_S0Init (L : ℕ) (ψ : Vector (Fin (L + 1))) :
   refine Finset.sum_congr rfl (fun i _ => ?_)
   by_cases h : i.val = 0
   · simp [h]
-  · simp only [h, if_false]
+  · simp only [h, ite_false]
     have : ((star ψ) i) * ψ i = ((Complex.normSq (ψ i) : ℝ) : ℂ) := by
       rw [Pi.star_apply, Complex.star_def, ← Complex.normSq_eq_conj_mul_self]
     rw [show ((star ψ) i * (1 * ψ i)) = ((star ψ) i * ψ i) by ring, this]

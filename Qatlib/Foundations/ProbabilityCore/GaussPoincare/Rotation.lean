@@ -4,10 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Probability.Distributions.Gaussian.Multivariate
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Deriv
-import Mathlib.Analysis.Calculus.Deriv.Mul
-import Mathlib.Probability.Independence.Basic
+module
+
+public import Mathlib.Probability.Distributions.Gaussian.Multivariate
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Deriv
+public import Mathlib.Analysis.Calculus.Deriv.Mul
+public import Mathlib.Probability.Independence.Basic
+
+public import Mathlib.Probability.Distributions.Fernique
+public import Mathlib.Probability.Distributions.Gaussian.Fernique
+
+@[expose] public section
 
 /-!
 # Gaussian pair rotations and observable derivatives

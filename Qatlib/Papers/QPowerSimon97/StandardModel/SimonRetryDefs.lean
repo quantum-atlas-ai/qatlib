@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QPowerSimon97.Recovery.NativeRetryConstruction
-import Qatlib.Concepts.QftPreparation.LocalQFTImplementation
-import Qatlib.Concepts.AbelianDecoders.SimonDecoding.VerifiedSimonRetry
-import Qatlib.Concepts.HspRecovery.Reduction.CountedSimonDecoder
-import Qatlib.Papers.QPowerSimon97.StandardModel.SimonMachineDefs
+module
+
+public import Qatlib.Papers.QPowerSimon97.Recovery.NativeRetryConstruction
+public import Qatlib.Concepts.QftPreparation.LocalQFTImplementation
+public import Qatlib.Concepts.AbelianDecoders.SimonDecoding.VerifiedSimonRetry
+public import Qatlib.Concepts.HspRecovery.Reduction.CountedSimonDecoder
+public import Qatlib.Papers.QPowerSimon97.StandardModel.SimonMachineDefs
+
+@[expose] public section
 
 /-!
 # Schedules and exact ledgers for Simon retries

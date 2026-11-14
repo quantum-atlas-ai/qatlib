@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Schrodinger25.MainResults.Model
+module
+
+public import Qatlib.Papers.Schrodinger25.MainResults.Model
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -40,11 +44,13 @@ open Qatlib.Papers.Schrodinger25.MainResults
 
 variable {ι : Type*} [Fintype ι]
 
+omit [Fintype ι] in
 /-- **Lemma 5.1** (p. 26).  Finite propagation speed: if the initial profile
 vanishes on `[p*, R]`, then at time `T` the solution vanishes on the open cone
 `(p* + λ⁺ T, R − λ⁻ T)`, where `λ⁺ ≥ λ_j ≥ −λ⁻` for every eigenvalue.  This is
 the paper's localization argument (5.1) reduced to characteristics. -/
 theorem lemma_five_one_vanishing_on_cone
+    {ι : Type*} [_fintypeI : Fintype ι]
     (ψ : ℝ → ℂ) (lam : ι → ℝ) (u : ι → ℂ)
     (pstar R lamPos lamNeg T : ℝ)
     (hT : 0 ≤ T)
@@ -63,12 +69,14 @@ theorem lemma_five_one_vanishing_on_cone
   have hq2 : p - lam j * T < R := by linarith [hp.2, hge]
   simp [hzero (p - lam j * T) ⟨hq1, hq2⟩]
 
+omit [Fintype ι] in
 /-- **Theorem 5.1** (p. 27).  Exact recovery: if `ψ(q) = e^{−q}` on `(0,R)` and
 every backward characteristic footpoint `p − λ_j T` of the recovery point `p`
 remains in `(0,R)`, then `e^p w(T,p) = u_f(T)` componentwise (in the H₁
 eigenbasis), i.e. `u_f(T) = e^p w(T,p)` on
 `(λ⁺ T, R − λ⁻ T)`. -/
 theorem theorem_five_one_exact_recovery
+    {ι : Type*} [_fintypeI : Fintype ι]
     (ψ : ℝ → ℂ) (lam : ι → ℝ) (u : ι → ℂ) (R T p : ℝ)
     (hexp : ∀ q, q ∈ Set.Ioo (0 : ℝ) R → ψ q = Complex.exp (-(q : ℂ)))
     (hin : ∀ j, p - lam j * T ∈ Set.Ioo (0 : ℝ) R) :

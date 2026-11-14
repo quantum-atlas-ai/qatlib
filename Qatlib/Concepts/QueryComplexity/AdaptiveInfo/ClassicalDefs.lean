@@ -4,61 +4,65 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Defs
-import Mathlib.Algebra.BigOperators.Group.Finset.Piecewise
-import Mathlib.Algebra.BigOperators.Group.Finset.Sigma
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Algebra.CharZero.Defs
-import Mathlib.Algebra.Field.Defs
-import Mathlib.Algebra.Group.Basic
-import Mathlib.Algebra.Group.DivInvMonoid
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.Group.Nat.Defs
-import Mathlib.Algebra.GroupWithZero.Basic
-import Mathlib.Algebra.GroupWithZero.Defs
-import Mathlib.Algebra.GroupWithZero.Nat
-import Mathlib.Algebra.GroupWithZero.NeZero
-import Mathlib.Algebra.GroupWithZero.Units.Basic
-import Mathlib.Algebra.NeZero
-import Mathlib.Algebra.Order.Archimedean.Real.Basic
-import Mathlib.Algebra.Order.BigOperators.Group.Finset
-import Mathlib.Algebra.Order.Floor.Defs
-import Mathlib.Algebra.Order.Group.Nat
-import Mathlib.Algebra.Order.GroupWithZero.Basic
-import Mathlib.Algebra.Order.GroupWithZero.Canonical
-import Mathlib.Algebra.Order.GroupWithZero.Defs
-import Mathlib.Algebra.Order.IsBotOne
-import Mathlib.Algebra.Order.Monoid.Defs
-import Mathlib.Algebra.Order.Ring.Defs
-import Mathlib.Algebra.Order.Ring.Nat
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Basic.Real.Basic
-import Mathlib.Basic.SetLike.Basic
-import Mathlib.Data.Finset.Basic
-import Mathlib.Data.Finset.Card
-import Mathlib.Data.Finset.Defs
-import Mathlib.Data.Finset.Empty
-import Mathlib.Data.Finset.Filter
-import Mathlib.Data.Finset.Insert
-import Mathlib.Data.Finset.Lattice.Fold
-import Mathlib.Data.Finset.Union
-import Mathlib.Data.Fintype.Card
-import Mathlib.Data.Fintype.Defs
-import Mathlib.Data.Int.Cast.Defs
-import Mathlib.Data.Nat.Basic
-import Mathlib.Data.Nat.Cast.Defs
-import Mathlib.Data.Nat.Cast.Order.Basic
-import Mathlib.Order.Basic
-import Mathlib.Order.Defs.Lattice
-import Mathlib.Order.Defs.PartialOrder
-import Mathlib.Order.Lattice.Nat
-import Mathlib.Order.Nat
-import Mathlib.Order.RelClasses
-import Mathlib.Tactic
-import Mathlib.Tactic.FieldSimp.Lemmas
-import Mathlib.Tactic.NormNum.Basic
-import Mathlib.Tactic.Positivity.Core
+module
+
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Defs
+public import Mathlib.Algebra.BigOperators.Group.Finset.Piecewise
+public import Mathlib.Algebra.BigOperators.Group.Finset.Sigma
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Algebra.CharZero.Defs
+public import Mathlib.Algebra.Field.Defs
+public import Mathlib.Algebra.Group.Basic
+public import Mathlib.Algebra.Group.DivInvMonoid
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.Group.Nat.Defs
+public import Mathlib.Algebra.GroupWithZero.Basic
+public import Mathlib.Algebra.GroupWithZero.Defs
+public import Mathlib.Algebra.GroupWithZero.Nat
+public import Mathlib.Algebra.GroupWithZero.NeZero
+public import Mathlib.Algebra.GroupWithZero.Units.Basic
+public import Mathlib.Algebra.NeZero
+public import Mathlib.Algebra.Order.Archimedean.Real.Basic
+public import Mathlib.Algebra.Order.BigOperators.Group.Finset
+public import Mathlib.Algebra.Order.Floor.Defs
+public import Mathlib.Algebra.Order.Group.Nat
+public import Mathlib.Algebra.Order.GroupWithZero.Basic
+public import Mathlib.Algebra.Order.GroupWithZero.Canonical
+public import Mathlib.Algebra.Order.GroupWithZero.Defs
+public import Mathlib.Algebra.Order.IsBotOne
+public import Mathlib.Algebra.Order.Monoid.Defs
+public import Mathlib.Algebra.Order.Ring.Defs
+public import Mathlib.Algebra.Order.Ring.Nat
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Basic.SetLike.Basic
+public import Mathlib.Data.Finset.Basic
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Data.Finset.Defs
+public import Mathlib.Data.Finset.Empty
+public import Mathlib.Data.Finset.Filter
+public import Mathlib.Data.Finset.Insert
+public import Mathlib.Data.Finset.Lattice.Fold
+public import Mathlib.Data.Finset.Union
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Data.Fintype.Defs
+public import Mathlib.Data.Int.Cast.Defs
+public import Mathlib.Data.Nat.Basic
+public import Mathlib.Data.Nat.Cast.Defs
+public import Mathlib.Data.Nat.Cast.Order.Basic
+public import Mathlib.Order.Basic
+public import Mathlib.Order.Defs.Lattice
+public import Mathlib.Order.Defs.PartialOrder
+public import Mathlib.Order.Lattice.Nat
+public import Mathlib.Order.Nat
+public import Mathlib.Order.RelClasses
+public import Mathlib.Tactic
+public import Mathlib.Tactic.FieldSimp.Lemmas
+public import Mathlib.Tactic.NormNum.Basic
+public import Mathlib.Tactic.Positivity.Core
+
+@[expose] public section
 
 /-!
 # Classical query trees and recovery bounds

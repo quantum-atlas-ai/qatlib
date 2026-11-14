@@ -4,16 +4,20 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.VarTimeAmpAmp10.CoherentAA.VariableTimeAmplificationDefs
-import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.VariableTimeAlgorithmVari
-import Qatlib.Papers.VarTimeAmpAmp10.StopModel.VariableTimeModelWellFormedVari
-import Qatlib.Papers.VarTimeAmpAmp10.Estimate.StructuralEstimateCompilationVari
-import Qatlib.Papers.VarTimeAmpAmp10.StopModel.CascadePrefixTransportVari
-import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.RecordDrivenVariableTimeAlgorithmVari
-import Qatlib.Papers.VarTimeAmpAmp10.Estimate.EstimateSandwichVari
-import Qatlib.Papers.VarTimeAmpAmp10.StopModel.AverageStopTailBoundVari
-import Qatlib.Concepts.QlsReadoutSpec.PrepLowerBound.InitialStatePrepLowerBoundLows
-import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedAmplitudeAmplification
+module
+
+public import Qatlib.Papers.VarTimeAmpAmp10.CoherentAA.VariableTimeAmplificationDefs
+public import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.VariableTimeAlgorithmVari
+public import Qatlib.Papers.VarTimeAmpAmp10.StopModel.VariableTimeModelWellFormedVari
+public import Qatlib.Papers.VarTimeAmpAmp10.Estimate.StructuralEstimateCompilationVari
+public import Qatlib.Papers.VarTimeAmpAmp10.StopModel.CascadePrefixTransportVari
+public import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.RecordDrivenVariableTimeAlgorithmVari
+public import Qatlib.Papers.VarTimeAmpAmp10.Estimate.EstimateSandwichVari
+public import Qatlib.Papers.VarTimeAmpAmp10.StopModel.AverageStopTailBoundVari
+public import Qatlib.Concepts.QlsReadoutSpec.PrepLowerBound.InitialStatePrepLowerBoundLows
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedAmplitudeAmplification
+
+@[expose] public section
 
 /-!
 # Estimation and linear-system amplification guarantees
@@ -118,7 +122,7 @@ theorem clause65 : StructuralEstimateCompilation ∧
     show ENNReal.ofReal (1 - (2 : ℝ)⁻¹ ^ k) ≤
       Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event (PMF.pure q) (fun qhat => estimateAccurate c q qhat)
     rw [Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event,
-        Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure, if_pos hacc]
+        Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure, ite_eq_left hacc]
     calc
       ENNReal.ofReal (1 - (2 : ℝ)⁻¹ ^ k) ≤ ENNReal.ofReal 1 :=
         ENNReal.ofReal_le_ofReal (sub_le_self _ (pow_nonneg (inv_nonneg.mpr (by norm_num)) k))
@@ -138,8 +142,8 @@ private noncomputable def unitPhase (c : ℂ) : ℂ :=
 private theorem norm_unitPhase (c : ℂ) : ‖unitPhase c‖ = 1 := by
   unfold unitPhase
   by_cases hc : c = 0
-  · rw [if_pos hc, norm_one]
-  · rw [if_neg hc, norm_mul, norm_inv, Complex.norm_real, Real.norm_eq_abs,
+  · rw [ite_eq_left hc, norm_one]
+  · rw [ite_eq_right hc, norm_mul, norm_inv, Complex.norm_real, Real.norm_eq_abs,
       abs_of_nonneg (norm_nonneg c)]
     exact mul_inv_cancel₀ (norm_ne_zero_iff.mpr hc)
 
@@ -152,9 +156,9 @@ private theorem unitPhase_mul_star (c : ℂ) : unitPhase c * star (unitPhase c) 
 private theorem star_unitPhase_mul (c : ℂ) : star (unitPhase c) * c = (‖c‖ : ℂ) := by
   unfold unitPhase
   by_cases hc : c = 0
-  · rw [if_pos hc]
+  · rw [ite_eq_left hc]
     simp [hc]
-  · rw [if_neg hc, star_mul, star_inv₀]
+  · rw [ite_eq_right hc, star_mul, star_inv₀]
     have hre : star ((‖c‖ : ℝ) : ℂ) = ((‖c‖ : ℝ) : ℂ) := by
       rw [RCLike.star_def, Complex.conj_ofReal]
     rw [hre]
@@ -518,9 +522,9 @@ private theorem clean_normalized {H : Type} [Fintype H] {r : ℕ} (hr : 0 < r)
       = if t = ⟨0, hr⟩ then ‖ψ h‖ ^ 2 else 0 := by
     intro h t
     by_cases ht : t = ⟨0, hr⟩
-    · rw [if_pos ht, ht]
+    · rw [ite_eq_left ht, ht]
       simp [clean]
-    · rw [if_neg ht]
+    · rw [ite_eq_right ht]
       have hz : clean r hr ψ (h, t) = 0 := by simp [clean, ht]
       rw [hz]
       simp

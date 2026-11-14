@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CopyEvolution.Discriminate.FiniteCopyHelstromDiscriminationStat
-import Qatlib.Concepts.CopyEvolution.Discriminate.FiniteTwoSpeciesSignReadoutQuan
+module
+
+public import Qatlib.Concepts.CopyEvolution.Discriminate.FiniteCopyHelstromDiscriminationStat
+public import Qatlib.Concepts.CopyEvolution.Discriminate.FiniteTwoSpeciesSignReadoutQuan
+
+@[expose] public section
 
 /-!
 # Finite-copy Helstrom discrimination
@@ -51,7 +55,7 @@ private theorem sign_diagonal_traceNorm {I R : Type*} [Fintype I] [DecidableEq I
     Matrix.traceNorm (Matrix.diagonal (fun j => (x j : R))) = ∑ j, |x j| := by
   let A : Matrix I I R := Matrix.diagonal (fun j => (x j : R))
   change Matrix.traceNorm A = _
-  letI : DecidableEq I := Classical.decEq _
+  let : DecidableEq I := Classical.decEq _
   have hsq : Aᴴ*A = Matrix.diagonal (fun j => (((x j)^2 : ℝ) : R)) := by
     dsimp only [A]
     simp only [Matrix.diagonal_conjTranspose, Matrix.diagonal_mul_diagonal]
@@ -159,12 +163,12 @@ theorem finiteCopyHelstromDiscrimination : FiniteCopyHelstromDiscrimination := b
     rw [hs]
     have hh : Vᴴ*V=1 := by
       simpa only [Matrix.star_eq_conjTranspose] using! (Matrix.mem_unitaryGroup_iff').mp hV
-    letI : DecidableEq (Fin d) := Classical.decEq _
+    let : DecidableEq (Fin d) := Classical.decEq _
     have hi : V.Isometry := by
       change Vᴴ*V=1
       convert! hh using 1
       first
-        | exact Subsingleton.elim _ _
+
         | (ext i j; simp [Matrix.one_apply])
     rw [Matrix.traceNorm_isometry_right hi, Matrix.traceNorm_isometry_left hi]
     exact @sign_diagonal_traceNorm (Fin d) ℂ (Fin.fintype d)
@@ -172,8 +176,8 @@ theorem finiteCopyHelstromDiscrimination : FiniteCopyHelstromDiscrimination := b
   have hsrel : s = Matrix.traceNorm (ρ-σ)/2 := by
     have heach (j : Fin d) : |x j| = 2*(if 0 < x j then x j else 0)-x j := by
       by_cases hj : 0 < x j
-      · rw [if_pos hj, abs_of_pos hj]; ring
-      · rw [if_neg hj, abs_of_nonpos (le_of_not_gt hj)]; ring
+      · rw [ite_eq_left hj, abs_of_pos hj]; ring
+      · rw [ite_eq_right hj, abs_of_nonpos (le_of_not_gt hj)]; ring
     have he : (∑ j, |x j|) = 2*s-(∑ j, x j) := by
       simp only [heach, Finset.sum_sub_distrib, ← Finset.mul_sum]
       rw [← Finset.sum_filter]
@@ -205,9 +209,9 @@ theorem finiteCopyHelstromDiscrimination : FiniteCopyHelstromDiscrimination := b
       intro j _
       have hd := sign_effect_diag d V A hV hA hAc j
       by_cases hj : 0 < x j
-      · rw [if_pos hj]
+      · rw [ite_eq_left hj]
         nlinarith [hd.2]
-      · rw [if_neg hj]
+      · rw [ite_eq_right hj]
         exact mul_nonpos_of_nonpos_of_nonneg (le_of_not_gt hj) hd.1
     rw [sign_effect_score d A ρ σ hσ.2, ht]
     linarith [hb, hsrel]

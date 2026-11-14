@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ImagDBrak24.MainResults.SourceModel
+module
+
+public import Qatlib.Papers.ImagDBrak24.MainResults.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -103,7 +107,7 @@ theorem lemma12_energyOverVariance
     (hnonneg : ∀ i, 0 ≤ lam i)
     (hupper : ∀ i, lam i ≤ Λ)
     (hΛpos : 0 < Λ)
-    (ψ : ι → ℂ) (hψ : normSq ψ = 1)
+    (ψ : ι → ℂ) (_hψ : normSq ψ = 1)
     (hVpos : 0 < energyVariance lam ψ) :
     1 / Λ ≤ expectedEnergy lam ψ / energyVariance lam ψ := by
   -- `E - V/Λ ≥ 0`, proved by non-negativity of each spectral term

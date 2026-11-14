@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OverlapGapGoh26.AmpDynamics.NormStability
-import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.LipschitzMoments
+module
+
+public import Qatlib.Papers.OverlapGapGoh26.AmpDynamics.NormStability
+public import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.LipschitzMoments
+
+@[expose] public section
 
 /-!
 # Norm bounds for raw spin energy

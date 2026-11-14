@@ -22,11 +22,15 @@ We state the final deterministic-witness form below; the size envelope is the
 paper's `p^{O(p log p)} n^{O(p)}`, represented by an unspecified constant `C`
 (the big-O quantifier) with `Nat.log 2 p` standing for `log p`.
 -/
-import Mathlib.Data.Fintype.BigOperators
-import Mathlib.Data.Fintype.Pigeonhole
-import Mathlib.Data.Fintype.Powerset
-import Mathlib.Data.Nat.Log
-import Qatlib.Papers.ZeroSumImran24.MainResults.SourceModel
+module
+
+public import Mathlib.Data.Fintype.BigOperators
+public import Mathlib.Data.Fintype.Pigeonhole
+public import Mathlib.Data.Fintype.Powerset
+public import Mathlib.Data.Nat.Log
+public import Qatlib.Papers.ZeroSumImran24.MainResults.SourceModel
+
+@[expose] public section
 
 /-!
 # Deterministic Nontrivial Signed Zero-Sum Subsets over `ℤ_p^n`

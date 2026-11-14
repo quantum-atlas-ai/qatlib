@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Star.Unitary
-import Mathlib.Tactic.NoncommRing
-import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.Basic
-import Mathlib.LinearAlgebra.Matrix.DotProduct
+module
+
+public import Mathlib.Algebra.Star.Unitary
+public import Mathlib.Tactic.NoncommRing
+public import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.Basic
+public import Mathlib.LinearAlgebra.Matrix.DotProduct
+
+@[expose] public section
 
 /-!
 # Algebra of oblivious amplitude amplification

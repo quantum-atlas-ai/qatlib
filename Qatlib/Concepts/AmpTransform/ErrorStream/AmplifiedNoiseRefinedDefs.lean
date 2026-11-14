@@ -4,20 +4,24 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmpTransform.ErrorStream.AmplifiedNoiseExecutionDefs
-import Qatlib.Concepts.AmplitudeCore.InvFreeSampling.AmplifiedNoiseExecution
-import Qatlib.Concepts.AmpTransform.ErrorStream.Lemma20RestrictedAmpl
-import Qatlib.Concepts.AmpTransform.ErrorStream.Lemma20ProbabilityBoundAmpl
-import Qatlib.Concepts.AmpTransform.FullLayerCF.WrapUnknownMRecovery
-import Qatlib.Concepts.QftPreparation.LocalQft
-import Qatlib.Concepts.AmpTransform.HaarPairTest.HaarGeneralWNAmpl
-import Qatlib.Concepts.AmpTransform.NoiseEnvelope.ErrorExpectationMinimizedAtMinLAmpl
-import Qatlib.Concepts.AmpTransform.ErrorStream.ErrorStreamGeometricSumZeroAmpl
-import Qatlib.Concepts.AmpTransform.NoiseEnvelope.ExpectedNoiseEnvelopeBridgeAmpl
-import Qatlib.Concepts.AmpTransform.LegendreWindow.LegendreFullBoundaryAmpl
-import Qatlib.Concepts.AmpTransform.LegendreWindow.LegendreCompleteWindow
-import Qatlib.Concepts.AmpTransform.FullLayerCF.FullLayerCFDenoiseUniquePAmpl
-import Mathlib.NumberTheory.DiophantineApproximation.Basic
+module
+
+public import Qatlib.Concepts.AmpTransform.ErrorStream.AmplifiedNoiseExecutionDefs
+public import Qatlib.Concepts.AmplitudeCore.InvFreeSampling.AmplifiedNoiseExecution
+public import Qatlib.Concepts.AmpTransform.ErrorStream.Lemma20RestrictedAmplification
+public import Qatlib.Concepts.AmpTransform.ErrorStream.Lemma20ProbabilityBoundAmplification
+public import Qatlib.Concepts.AmpTransform.FullLayerCF.WrapUnknownMRecovery
+public import Qatlib.Concepts.QftPreparation.LocalQft
+public import Qatlib.Concepts.AmpTransform.HaarPairTest.HaarGeneralWNAmplification
+public import Qatlib.Concepts.AmpTransform.NoiseEnvelope.ErrorExpectationMinimizedAtMinLAmplification
+public import Qatlib.Concepts.AmpTransform.ErrorStream.ErrorStreamGeometricSumZeroAmplification
+public import Qatlib.Concepts.AmpTransform.NoiseEnvelope.ExpectedNoiseEnvelopeBridgeAmplification
+public import Qatlib.Concepts.AmpTransform.LegendreWindow.LegendreFullBoundaryAmplification
+public import Qatlib.Concepts.AmpTransform.LegendreWindow.LegendreCompleteWindow
+public import Qatlib.Concepts.AmpTransform.FullLayerCF.FullLayerCFDenoiseUniquePAmplification
+public import Mathlib.NumberTheory.DiophantineApproximation.Basic
+
+@[expose] public section
 
 /-!
 # Refined error-stream recovery statements

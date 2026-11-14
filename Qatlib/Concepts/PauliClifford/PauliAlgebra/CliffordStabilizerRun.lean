@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PauliClifford.PauliAlgebra.CliffordStabilizerConjugation
-import Qatlib.Concepts.PauliClifford.PauliAlgebra.CliffordStabilizerDensity
+module
+
+public import Qatlib.Concepts.PauliClifford.PauliAlgebra.CliffordStabilizerConjugation
+public import Qatlib.Concepts.PauliClifford.PauliAlgebra.CliffordStabilizerDensity
+
+@[expose] public section
 
 /-!
 # Preservation of stabilizer data under Clifford runs

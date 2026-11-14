@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QuantumGibbs.FormAlgebra.ParentWeight
+module
+
+public import Qatlib.Concepts.QuantumGibbs.FormAlgebra.ParentWeight
+
+@[expose] public section
 
 /-!
 # Spectral formulas for Gibbs parent weights
@@ -60,8 +64,8 @@ theorem CFC_sqrt_diagonal (f : Fin D → ℝ) (hf : ∀ i, 0 ≤ f i) :
   rw [Matrix.diagonal_apply, Matrix.diagonal_apply]
   by_cases hij : i = j
   · subst hij
-    rw [if_pos rfl, if_pos rfl, ← Complex.ofReal_mul, Real.mul_self_sqrt (hf i)]
-  · rw [if_neg hij, if_neg hij]
+    rw [ite_eq_left rfl, ite_eq_left rfl, ← Complex.ofReal_mul, Real.mul_self_sqrt (hf i)]
+  · rw [ite_eq_right hij, ite_eq_right hij]
 
 /-- The fourth root of a diagonal matrix with nonnegative real entries is obtained by taking two
 real square roots entrywise. -/

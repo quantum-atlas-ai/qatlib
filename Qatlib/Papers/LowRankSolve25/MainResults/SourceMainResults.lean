@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SketchArith.SketchBuild.SketchFrobeniusConcentration
-import Mathlib.Analysis.CStarAlgebra.Matrix
+module
+
+public import Qatlib.Concepts.SketchArith.SketchBuild.SketchFrobeniusConcentration
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -261,12 +265,12 @@ theorem sourceStep_eq_of_forall_ne (A : Matrix (Fin n) (Fin d) ℂ) (b : Fin n �
       else 0)) = 0 := by
     apply Finset.sum_eq_zero
     intro r _
-    rw [if_neg (hrow r), mul_zero]
+    rw [ite_eq_right (hrow r), mul_zero]
   have h1 : (∑ r : Fin R, (p.prob (rows r) : ℂ)⁻¹ *
       (if rows r = i then b (rows r) else 0)) = 0 := by
     apply Finset.sum_eq_zero
     intro r _
-    rw [if_neg (hrow r), mul_zero]
+    rw [ite_eq_right (hrow r), mul_zero]
   simp only [sourceStep, hy]
   rw [h0, h1]
   ring
@@ -379,13 +383,13 @@ in `lemma21_second_moment`, `lemma22_conditional_second_moment` and
 Scope note: this declaration defines the expected-error proposition; the
 contraction recursion and its iteration are not proved in this file. -/
 def theorem16_expected_error (A : Matrix (Fin n) (Fin d) ℂ) (b : Fin n → ℂ)
-    (hA : sketchSquared A ≠ 0) (ε : ℝ) (hε : 0 < ε) (_hε4 : ε < 1 / 4)
-    (pinvNorm : ℝ) (xstar : Fin d → ℂ) (K R C : ℕ) (hK : 0 < K) (hR : 0 < R)
-    (hC : 0 < C)
-    (hRparam : 2 * kappaF A pinvNorm ^ 2 / kappa A pinvNorm ^ 2 ≤ (R : ℝ))
-    (hCparam : 10 * kappaF A pinvNorm ^ 2 / ε ^ 2 ≤ (C : ℝ))
-    (hKparam : 4 * (kappa A pinvNorm) ^ 2 * Real.log (1 / ε) ≤ (K : ℝ))
-    (hxstar : Aᴴ.mulVec (A.mulVec xstar) = Aᴴ.mulVec b) : Prop :=
+    (hA : sketchSquared A ≠ 0) (ε : ℝ) (_hε : 0 < ε) (_hε4 : ε < 1 / 4)
+    (pinvNorm : ℝ) (xstar : Fin d → ℂ) (K R C : ℕ) (hK : 0 < K) (_hR : 0 < R)
+    (_hC : 0 < C)
+    (_hRparam : 2 * kappaF A pinvNorm ^ 2 / kappa A pinvNorm ^ 2 ≤ (R : ℝ))
+    (_hCparam : 10 * kappaF A pinvNorm ^ 2 / ε ^ 2 ≤ (C : ℝ))
+    (_hKparam : 4 * (kappa A pinvNorm) ^ 2 * Real.log (1 / ε) ≤ (K : ℝ))
+    (_hxstar : Aᴴ.mulVec (A.mulVec xstar) = Aᴴ.mulVec b) : Prop :=
     (∑ rows : Fin K → Fin R → Fin n, ∑ cols : Fin K → Fin C → Fin d,
       runProb (rowDist A hA) (colDist A hA) K R C rows cols *
         eNormSq (xstar - sourceX A (sourceIterate A b (paramAlpha A)
@@ -408,11 +412,11 @@ Scope note: this declaration defines the probability-bound proposition; the exac
 first-moment computation of `φ` and the Markov step over the finite run law are
 outside the scope of this file. -/
 def theorem17_phi_bound (A : Matrix (Fin n) (Fin d) ℂ) (b : Fin n → ℂ)
-    (hA : sketchSquared A ≠ 0) (ε : ℝ) (hε : 0 < ε) (_hε4 : ε < 1 / 4)
-    (pinvNorm : ℝ) (K R C : ℕ) (hK : 0 < K) (hR : 0 < R) (hC : 0 < C)
-    (hRparam : 2 * kappaF A pinvNorm ^ 2 / kappa A pinvNorm ^ 2 ≤ (R : ℝ))
-    (hCparam : 10 * kappaF A pinvNorm ^ 2 / ε ^ 2 ≤ (C : ℝ))
-    (hKparam : 4 * (kappa A pinvNorm) ^ 2 * Real.log (1 / ε) ≤ (K : ℝ)) : Prop :=
+    (hA : sketchSquared A ≠ 0) (ε : ℝ) (_hε : 0 < ε) (_hε4 : ε < 1 / 4)
+    (pinvNorm : ℝ) (K R C : ℕ) (hK : 0 < K) (_hR : 0 < R) (_hC : 0 < C)
+    (_hRparam : 2 * kappaF A pinvNorm ^ 2 / kappa A pinvNorm ^ 2 ≤ (R : ℝ))
+    (_hCparam : 10 * kappaF A pinvNorm ^ 2 / ε ^ 2 ≤ (C : ℝ))
+    (_hKparam : 4 * (kappa A pinvNorm) ^ 2 * Real.log (1 / ε) ≤ (K : ℝ)) : Prop :=
     ∃ const : ℝ, 0 < const ∧
       (9 : ℝ) / 10 ≤ runProbEvent (rowDist A hA) (colDist A hA) K R C
         (fun rows cols =>
@@ -459,7 +463,7 @@ as in `sketchProduct_entry_parts`.
 Scope note: this declaration defines the second-moment identity as a proposition;
 the independent-draw expansion is not proved in this file. -/
 def lemma21_second_moment (A : Matrix (Fin n) (Fin d) ℂ) (hA : sketchSquared A ≠ 0)
-    (R : ℕ) (hR : 0 < R) (i : Fin d) (j : Fin d) : Prop :=
+    (R : ℕ) (_hR : 0 < R) (i : Fin d) (j : Fin d) : Prop :=
     (∑ ω : Fin R → Fin n, (((rowDist A hA).probOf ω : ℝ) : ℂ) *
         ((sourceM A (rowDist A hA) R ω) * (sourceM A (rowDist A hA) R ω)) i j)
       = (1 / (R : ℂ)) * (sketchSquared A : ℂ) * (Aᴴ * A) i j
@@ -481,7 +485,7 @@ double sum as an iterated expectation evaluates each inner sum with
 Scope note: this declaration defines the unbiasedness proposition; the iterated
 expectation calculation is not proved in this file. -/
 def lemma22_conditional_unbiased (A : Matrix (Fin n) (Fin d) ℂ) (hA : sketchSquared A ≠ 0)
-    (R C : ℕ) (hR : 0 < R) (hC : 0 < C) (x : Fin d → ℂ) (i : Fin d) : Prop :=
+    (R C : ℕ) (_hR : 0 < R) (_hC : 0 < C) (x : Fin d → ℂ) (i : Fin d) : Prop :=
     (∑ rows : Fin R → Fin n, ∑ cols : Fin C → Fin d,
       (((rowDist A hA).probOf rows * (colDist A hA).probOf cols : ℝ) : ℂ) *
         gradNoise A (rowDist A hA) (colDist A hA) R C rows cols x i) = 0
@@ -500,7 +504,7 @@ operator-norm inequality `eNormSq (A.mulVec x) ≤ opNormSq A * eNormSq x` (from
 Scope note: this declaration defines the second-moment bound as a proposition;
 the variance and operator-norm estimates are not assembled here. -/
 def lemma22_conditional_second_moment (A : Matrix (Fin n) (Fin d) ℂ)
-    (hA : sketchSquared A ≠ 0) (R C : ℕ) (hR : 0 < R) (hC : 0 < C) (x : Fin d → ℂ) : Prop :=
+    (hA : sketchSquared A ≠ 0) (R C : ℕ) (_hR : 0 < R) (_hC : 0 < C) (x : Fin d → ℂ) : Prop :=
     (∑ rows : Fin R → Fin n, ∑ cols : Fin C → Fin d,
       ((rowDist A hA).probOf rows * (colDist A hA).probOf cols) *
         eNormSq (gradNoise A (rowDist A hA) (colDist A hA) R C rows cols x))
@@ -523,7 +527,7 @@ operator-norm estimate supplied by `Matrix.l2_opNorm_mulVec`.
 Scope note: this declaration defines the second-moment bound as a proposition;
 the combination of these estimates is not proved in this file. -/
 def lemma23_Du_second_moment (A : Matrix (Fin n) (Fin d) ℂ) (hA : sketchSquared A ≠ 0)
-    (R C : ℕ) (hR : 0 < R) (hC : 0 < C) (x : Fin d → ℂ) : Prop :=
+    (R C : ℕ) (_hR : 0 < R) (_hC : 0 < C) (x : Fin d → ℂ) : Prop :=
     (∑ rows : Fin R → Fin n, ∑ cols : Fin C → Fin d,
       ((rowDist A hA).probOf rows * (colDist A hA).probOf cols) *
         eNormSq ((sourceD A).mulVec (sourceU A (rowDist A hA) (colDist A hA) R C rows cols x)))
@@ -545,7 +549,7 @@ Related expectation identities are `expect_avg` and `expect_prod`.
 Scope note: this declaration defines the second-moment bound as a proposition;
 the weighted-mean calculation is not proved in this file. -/
 def lemma24_Dv_second_moment (A : Matrix (Fin n) (Fin d) ℂ) (b : Fin n → ℂ)
-    (hA : sketchSquared A ≠ 0) (R : ℕ) (hR : 0 < R) : Prop :=
+    (hA : sketchSquared A ≠ 0) (R : ℕ) (_hR : 0 < R) : Prop :=
     (∑ rows : Fin R → Fin n, (rowDist A hA).probOf rows *
         eNormSq ((sourceD A).mulVec (sourceV b (rowDist A hA) R rows)))
       ≤ (sketchSquared A / (R : ℝ) + opNormSq A) * eNormSq b
@@ -569,11 +573,11 @@ parameter inequalities, using `paramAlpha A = 1 / opNormSq A` and
 Scope note: this declaration defines the variance-bound proposition; the
 combination of the component estimates is not proved in this file. -/
 def lemma25_alpha_squared_bound (A : Matrix (Fin n) (Fin d) ℂ) (b : Fin n → ℂ)
-    (hA : sketchSquared A ≠ 0) (ε : ℝ) (hε : 0 < ε) (_hε4 : ε < 1 / 4)
-    (pinvNorm : ℝ) (xstar : Fin d → ℂ) (R C : ℕ) (hR : 0 < R) (hC : 0 < C)
-    (hRparam : 2 * kappaF A pinvNorm ^ 2 / kappa A pinvNorm ^ 2 ≤ (R : ℝ))
-    (hCparam : 10 * kappaF A pinvNorm ^ 2 / ε ^ 2 ≤ (C : ℝ))
-    (hb : eNormSq b ≤ opNormSq A * eNormSq xstar) : Prop :=
+    (hA : sketchSquared A ≠ 0) (ε : ℝ) (_hε : 0 < ε) (_hε4 : ε < 1 / 4)
+    (pinvNorm : ℝ) (xstar : Fin d → ℂ) (R C : ℕ) (_hR : 0 < R) (_hC : 0 < C)
+    (_hRparam : 2 * kappaF A pinvNorm ^ 2 / kappa A pinvNorm ^ 2 ≤ (R : ℝ))
+    (_hCparam : 10 * kappaF A pinvNorm ^ 2 / ε ^ 2 ≤ (C : ℝ))
+    (_hb : eNormSq b ≤ opNormSq A * eNormSq xstar) : Prop :=
     (paramAlpha A) ^ 2 * (∑ rows : Fin R → Fin n, ∑ cols : Fin C → Fin d,
       ((rowDist A hA).probOf rows * (colDist A hA).probOf cols) *
         eNormSq ((sourceD A).mulVec
@@ -633,14 +637,14 @@ theorem cAvg_re {X : Type*} {m : ℕ} (f : X → ℂ) (ω : Fin m → X) :
     (cAvg f ω).re = FinDist.avg (fun x => (f x).re) ω := by
   simp only [cAvg, FinDist.avg, Complex.div_natCast_re]
   congr 1
-  simpa using Complex.re_sum (s := Finset.univ) (f := fun k : Fin m => f (ω k))
+  simp
 
 /-- Imaginary part of the complex empirical average. -/
 theorem cAvg_im {X : Type*} {m : ℕ} (f : X → ℂ) (ω : Fin m → X) :
     (cAvg f ω).im = FinDist.avg (fun x => (f x).im) ω := by
   simp only [cAvg, FinDist.avg, Complex.div_natCast_im]
   congr 1
-  simpa using Complex.im_sum (s := Finset.univ) (f := fun k : Fin m => f (ω k))
+  simp
 
 /-- Complex scalar core of Lemma A.1: the second moment of the complex empirical
 mean, in terms of `Complex.normSq`. -/
@@ -777,13 +781,13 @@ uses a tail-to-expectation passage.
 Scope note: this declaration defines the combined main-result proposition;
 the expected-error analysis and tail-to-expectation passage are not proved here. -/
 def main_result (A : Matrix (Fin n) (Fin d) ℂ) (b : Fin n → ℂ)
-    (hA : sketchSquared A ≠ 0) (ε : ℝ) (hε : 0 < ε) (hε4 : ε < 1 / 4)
-    (pinvNorm : ℝ) (hκ : kappa A pinvNorm ≠ 0) (xstar : Fin d → ℂ)
-    (K R C : ℕ) (hK : 0 < K) (hR : 0 < R) (hC : 0 < C)
-    (hRparam : 2 * kappaF A pinvNorm ^ 2 / kappa A pinvNorm ^ 2 ≤ (R : ℝ))
-    (hCparam : 10 * kappaF A pinvNorm ^ 2 / ε ^ 2 ≤ (C : ℝ))
-    (hKparam : 4 * (kappa A pinvNorm) ^ 2 * Real.log (1 / ε) ≤ (K : ℝ))
-    (hxstar : Aᴴ.mulVec (A.mulVec xstar) = Aᴴ.mulVec b) : Prop :=
+    (hA : sketchSquared A ≠ 0) (ε : ℝ) (_hε : 0 < ε) (_hε4 : ε < 1 / 4)
+    (pinvNorm : ℝ) (_hκ : kappa A pinvNorm ≠ 0) (xstar : Fin d → ℂ)
+    (K R C : ℕ) (hK : 0 < K) (_hR : 0 < R) (_hC : 0 < C)
+    (_hRparam : 2 * kappaF A pinvNorm ^ 2 / kappa A pinvNorm ^ 2 ≤ (R : ℝ))
+    (_hCparam : 10 * kappaF A pinvNorm ^ 2 / ε ^ 2 ≤ (C : ℝ))
+    (_hKparam : 4 * (kappa A pinvNorm) ^ 2 * Real.log (1 / ε) ≤ (K : ℝ))
+    (_hxstar : Aᴴ.mulVec (A.mulVec xstar) = Aᴴ.mulVec b) : Prop :=
     (∀ rows : Fin K → Fin R → Fin n, ∀ cols : Fin K → Fin C → Fin d,
         (supportFinset (sourceIterate A b (paramAlpha A) (rowDist A hA) (colDist A hA)
           R C (liftBatch hK rows) (liftBatch hK cols) K)).card ≤ K * R) ∧

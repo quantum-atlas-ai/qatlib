@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Concepts.HspRecovery.KitaevReadout.HadamardTestBitLawSubgoalQuan
+module
+
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Concepts.HspRecovery.KitaevReadout.HadamardTestBitLawSubgoalQuan
+
+@[expose] public section
 
 /-!
 # A circuit word for the Hadamard test

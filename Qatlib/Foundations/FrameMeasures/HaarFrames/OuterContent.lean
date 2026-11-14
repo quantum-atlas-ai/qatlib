@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.FrameMeasures.HaarFrames.MeasureDefs
+module
+
+public import Qatlib.Foundations.FrameMeasures.HaarFrames.MeasureDefs
+
+@[expose] public section
 
 /-!
 # Outer measure content through observation maps

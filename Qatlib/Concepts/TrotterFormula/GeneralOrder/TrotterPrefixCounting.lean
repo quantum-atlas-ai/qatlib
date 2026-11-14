@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TrotterFormula.GeneralOrder.NestedCommutatorScalingCorrected
+module
+
+public import Qatlib.Concepts.TrotterFormula.GeneralOrder.NestedCommutatorScalingCorrected
+
+@[expose] public section
 
 /-!
 # Counting prefix commutator tuples
@@ -53,7 +57,7 @@ theorem pfPrefixTuple_injective (p m : ℕ) :
     funext i
     have hi : ¬i.succ.val=0 := by simp only [Fin.val_succ];omega
     have hh := congrFun he i.succ
-    simp only [pfPrefixTuple,dif_neg hi] at hh
+    simp only [pfPrefixTuple,dite_eq_right hi] at hh
     apply Fin.ext
     have hl := congrArg Fin.val hh
     change (v i).val=(v' i).val at hl
@@ -96,7 +100,7 @@ theorem pfChosenList_prefix_tuple (xs : List (Matrix I I ℂ)) (j : Fin xs.lengt
   apply congrArg List.ofFn
   funext i
   have hi : ¬i.succ.val=0 := by simp only [Fin.val_succ];omega
-  simp only [pfPrefixTuple,dif_neg hi]
+  simp only [pfPrefixTuple,dite_eq_right hi]
   rfl
 
 /-- The sum of prefix commutator budgets is bounded by the full self-commutator statistic at

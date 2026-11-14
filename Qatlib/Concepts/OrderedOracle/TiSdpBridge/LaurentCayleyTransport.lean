@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.OrderedOracle.TiSdpBridge.LaurentCircleFactorization
+module
+
+public import Qatlib.Concepts.OrderedOracle.TiSdpBridge.LaurentCircleFactorization
+
+@[expose] public section
 
 /-!
 # Cayley transport for Laurent circle factors
@@ -240,11 +244,11 @@ private theorem complexLaurentCoefficient_neg {n : ℕ} (a : Fin n → ℂ)
       · simp [h0]
     · by_cases hneg : j<0
       · have hn : ¬ -j<0 := by omega
-        simp only [complexLaurentCoefficient,Int.natAbs_neg,dif_pos hj,
-          if_pos hneg,if_neg hn,star_star]
+        simp only [complexLaurentCoefficient,Int.natAbs_neg,dite_eq_left hj,
+          ite_eq_left hneg,ite_eq_right hn,star_star]
       · have hn : -j<0 := by omega
-        simp only [complexLaurentCoefficient,Int.natAbs_neg,dif_pos hj,
-          if_neg hneg,if_pos hn]
+        simp only [complexLaurentCoefficient,Int.natAbs_neg,dite_eq_left hj,
+          ite_eq_right hneg,ite_eq_left hn]
   · simp [complexLaurentCoefficient,Int.natAbs_neg,hj]
 
 /-- The polynomial obtained by clearing Cayley denominators in the Laurent coefficient window,
@@ -492,11 +496,11 @@ theorem complexLaurentEval_ofReal {n : ℕ} (c : Fin n → ℝ) (z : ℂ) :
   intro i _
   have hc := complexLaurentCoefficient_nat (fun i => (c i : ℂ)) i
   by_cases hi : i.val=0
-  · rw [if_pos hi,if_pos hi]
+  · rw [ite_eq_left hi,ite_eq_left hi]
     have hz : (i.val : ℤ)=0 := by exact_mod_cast hi
     rw [hz] at hc
     simp only [hc,zpow_zero,mul_one]
-  · rw [if_neg hi,if_neg hi]
+  · rw [ite_eq_right hi,ite_eq_right hi]
     have hn := complexLaurentCoefficient_neg (fun i => (c i : ℂ)) h0 (i.val : ℤ)
     rw [hc] at hn
     rw [hc,hn]

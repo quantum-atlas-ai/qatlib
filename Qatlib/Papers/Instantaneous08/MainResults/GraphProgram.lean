@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Instantaneous08.MainResults.ConstantAction.Bias
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Complex
+module
+
+public import Qatlib.Papers.Instantaneous08.MainResults.ConstantAction.Bias
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Complex
+
+@[expose] public section
 
 /-!
 # Graph-program simulation of X-programs
@@ -223,12 +227,12 @@ theorem sum_zx {n k : ℕ} (p : Fin k → F2Vec n) (x : F2Vec n) (zy : F2Vec k) 
             rw [show (fun j => x j + ∑ i, p i j * zy i) = x + lin p zy from rfl,
               add_eq_zero_iff_eq_vec]
             exact h
-          rw [if_pos hc, if_pos h]
+          rw [ite_eq_left hc, ite_eq_left h]
         · have hc : ¬ ((fun j => x j + ∑ i, p i j * zy i) = 0) := by
             rw [show (fun j => x j + ∑ i, p i j * zy i) = x + lin p zy from rfl,
               add_eq_zero_iff_eq_vec]
             exact h
-          rw [if_neg hc, if_neg h]
+          rw [ite_eq_right hc, ite_eq_right h]
 
 /-- Expresses the measurement amplitude as `plusAmp k` times the X-rotation sum constrained by
 `lin p zy = x`. See [ShepherdBremner2009]. -/
@@ -296,13 +300,13 @@ theorem measAmp_eq {n k : ℕ} (p : Fin k → F2Vec n) (θ : Fin k → ℝ)
         apply Finset.sum_congr rfl
         intro zy _
         by_cases h : x = lin p zy
-        · rw [if_pos h, if_pos h.symm]
+        · rw [ite_eq_left h, ite_eq_left h.symm]
           rw [show (∏ i, xExpAmp (θ i) (y i) (zy i)) *
               (plusAmp (n + k) * (plusAmp n * (2 : ℂ) ^ n)) =
               (plusAmp (n + k) * (plusAmp n * (2 : ℂ) ^ n)) *
                 (∏ i, xExpAmp (θ i) (y i) (zy i)) by ring]
           rw [hconst]
-        · rw [if_neg h, if_neg (Ne.symm h)]
+        · rw [ite_eq_right h, ite_eq_right (Ne.symm h)]
           simp
 
 /-- The measurement probability is `2 ^ k` inverse times the squared norm of the constrained
@@ -334,8 +338,8 @@ theorem xExpAmp_shift (θ : ℝ) (a b : ZMod 2) :
       intro h
       have h2 : a + 0 = a + 1 := by rw [add_zero]; exact h
       exact one_ne_zero (add_left_cancel h2).symm
-    rw [if_neg hne, if_pos rfl]
-    rw [if_neg (one_ne_zero (α := ZMod 2))]
+    rw [ite_eq_right hne, ite_eq_left rfl]
+    rw [ite_eq_right (one_ne_zero (α := ZMod 2))]
 
 /-- The shifted X-rotation amplitude equals the Boolean path coefficient for the condition `b =
 1`. -/
@@ -391,14 +395,14 @@ theorem sum_shift_constraint {n k : ℕ} (p : Fin k → F2Vec n) (θ : Fin k →
     · intro h
       rw [h]
   by_cases h : lin p a = x'
-  · rw [if_pos h, if_pos (hcond.mpr h)]
+  · rw [ite_eq_left h, ite_eq_left (hcond.mpr h)]
     apply Finset.prod_congr rfl
     intro i _
     have harg : (a + u) i = u i + a i := by
       simp only [Pi.add_apply]
       rw [add_comm]
     rw [harg, xExpAmp_shift_eq_pathCoeff]
-  · rw [if_neg h, if_neg (fun hh => h (hcond.mp hh))]
+  · rw [ite_eq_right h, ite_eq_right (fun hh => h (hcond.mp hh))]
 
 /-- Reindexes a sum over binary vectors as a sum over Boolean vectors using the coordinate tests
 for equality to `1`. -/
@@ -451,8 +455,8 @@ theorem outDist_eq_prob {n k : ℕ} (p : Fin k → F2Vec n) (θ : Fin k → ℝ)
             apply Finset.sum_congr rfl
             intro b _
             by_cases h : pathSample p b = y'
-            · rw [if_pos h, if_pos h, mul_one]
-            · rw [if_neg h, if_neg h, mul_zero]
+            · rw [ite_eq_left h, ite_eq_left h, mul_one]
+            · rw [ite_eq_right h, ite_eq_right h, mul_zero]
         _ = pathSum p θ y' := rfl
     rw [hstep]
   simp_rw [hterm]

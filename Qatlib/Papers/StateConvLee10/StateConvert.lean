@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ConversionCore.WitnessCompile.EffectiveSpectralGapQuan
-import Qatlib.Concepts.ConversionCore.WitnessCompile.WitnessSpectralMassesQuan
-import Qatlib.Concepts.QueryComplexity.StateConversion.RealBudgetConversionAlgorithmQuan
+module
+
+public import Qatlib.Concepts.ConversionCore.WitnessCompile.EffectiveSpectralGapQuan
+public import Qatlib.Concepts.ConversionCore.WitnessCompile.WitnessSpectralMassesQuan
+public import Qatlib.Concepts.QueryComplexity.StateConversion.RealBudgetConversionAlgorithmQuan
+
+@[expose] public section
 
 /-!
 # State-conversion algorithms and spectral estimates
@@ -83,7 +87,8 @@ theorem source_state_conversion :
           Real.sqrt (1-ε)) ∧
       (ε ≤ W → ∀ x, ‖toEuclidean_fromVec (sourceWordMatrix (sourceAlphabetOracle input x) C *ᵥ
         sourceClean n q r hr false (ρ x)-sourceClean n q r hr true (σ x))‖ < 4*ε) := by
-  exact Qatlib.Concepts.QueryComplexity.StateConversion.realBudgetConversionAlgorithm
+  simpa only [RealBudgetConversionAlgorithm] using
+    Qatlib.Concepts.QueryComplexity.StateConversion.realBudgetConversionAlgorithm
 
 /-- For the displayed spectral decomposition of a product of projector reflections, if `L w = 0`
 and `Θ ≥ 0`, the small-phase component of `P w` has norm at most `(Θ / 2) * ‖w‖`

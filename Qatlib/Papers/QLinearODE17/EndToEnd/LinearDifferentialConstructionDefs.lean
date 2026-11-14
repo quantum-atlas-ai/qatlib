@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.BlockEncoding.EncodingCore.PairedPrepareAccess
-import Qatlib.Concepts.BlockEncoding.EncodingCore.SparseOverlapEncoding
-import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedAmplitudeAmplification
-import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem7Quan
-import Qatlib.Papers.QLinearODE17.Structure.Theorem9Quan
-import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem5Aux2
+module
+
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.PairedPrepareAccess
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.SparseOverlapEncoding
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedAmplitudeAmplification
+public import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem7Quan
+public import Qatlib.Papers.QLinearODE17.Structure.Theorem9Quan
+public import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem5Aux2
+
+@[expose] public section
 
 /-!
 # Resource and finite-digit definitions for ODE construction

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Zayn Blore, Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.PiL2
+module
+
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+
+@[expose] public section
 
 /-!
 # Finite quantum registers and basis probabilities

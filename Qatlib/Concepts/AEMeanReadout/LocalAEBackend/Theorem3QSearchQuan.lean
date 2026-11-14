@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem3QSearchStat
-import Qatlib.Concepts.WalkSearch.QuantumAccess.GeometricSearchBudget
+module
+
+public import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem3QSearchStat
+public import Qatlib.Concepts.WalkSearch.QuantumAccess.GeometricSearchBudget
+
+@[expose] public section
 
 /-!
 # Finite-horizon bounds for quantum search

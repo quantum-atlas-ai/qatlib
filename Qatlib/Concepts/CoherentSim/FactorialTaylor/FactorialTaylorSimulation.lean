@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CoherentSim.TaylorEncoding.LogarithmicTaylorSimulation
+module
+
+public import Qatlib.Concepts.CoherentSim.TaylorEncoding.LogarithmicTaylorSimulation
+
+@[expose] public section
 
 /-!
 # Factorial Taylor cutoff and remainder estimates

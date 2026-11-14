@@ -4,137 +4,141 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.KoopmanSim26.SpectralRep.DiagonalizedLCHS
-import Qatlib.Concepts.KoopmanFlow.FlowAction
-import Mathlib.Analysis.Normed.Algebra.MatrixExponential
-import Mathlib.Analysis.Matrix.Spectrum
-import Mathlib.Algebra.Algebra.Basic
-import Mathlib.Algebra.Algebra.Defs
-import Mathlib.Algebra.Algebra.Rat
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.Field.Defs
-import Mathlib.Algebra.Group.Action.Defs
-import Mathlib.Algebra.Group.Action.Pi
-import Mathlib.Algebra.Group.Basic
-import Mathlib.Algebra.Group.Defs
-import Mathlib.Algebra.Group.DivInvMonoid
-import Mathlib.Algebra.Group.Hom.Defs
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.Group.Semigroup
-import Mathlib.Algebra.Group.Submonoid.Defs
-import Mathlib.Algebra.Group.Units.Defs
-import Mathlib.Algebra.GroupWithZero.Action.Defs
-import Mathlib.Algebra.GroupWithZero.Basic
-import Mathlib.Algebra.GroupWithZero.Defs
-import Mathlib.Algebra.GroupWithZero.Units.Basic
-import Mathlib.Algebra.Module.Defs
-import Mathlib.Algebra.Module.NatInt
-import Mathlib.Algebra.Notation.Defs
-import Mathlib.Algebra.Order.Archimedean.Real.Basic
-import Mathlib.Algebra.Order.Floor.Defs
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Algebra.Ring.Hom.Defs
-import Mathlib.Algebra.Ring.Int.Defs
-import Mathlib.Algebra.Ring.Nat
-import Mathlib.Algebra.Ring.Pi
-import Mathlib.Algebra.Star.Basic
-import Mathlib.Algebra.Star.SelfAdjoint
-import Mathlib.Algebra.Star.Unitary
-import Mathlib.Analysis.CStarAlgebra.Classes
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Analysis.Complex.Exponential
-import Mathlib.Analysis.Complex.Order
-import Mathlib.Analysis.InnerProductSpace.Basic
-import Mathlib.Analysis.InnerProductSpace.Defs
-import Mathlib.Analysis.LocallyConvex.AbsConvexOpen
-import Mathlib.Analysis.LocallyConvex.WithSeminorms
-import Mathlib.Analysis.Matrix.Order
-import Mathlib.Analysis.Normed.Algebra.Exponential
-import Mathlib.Analysis.Normed.Field.Basic
-import Mathlib.Analysis.Normed.Field.Lemmas
-import Mathlib.Analysis.Normed.Group.Continuity
-import Mathlib.Analysis.Normed.Group.Defs
-import Mathlib.Analysis.Normed.Group.Uniform
-import Mathlib.Analysis.Normed.Module.Basic
-import Mathlib.Analysis.Normed.Module.FiniteDimension
-import Mathlib.Analysis.Normed.Ring.Basic
-import Mathlib.Analysis.Normed.Ring.Lemmas
-import Mathlib.Analysis.RCLike.Basic
-import Mathlib.Analysis.SpecialFunctions.Exponential
-import Mathlib.Analysis.SpecialFunctions.ImproperIntegrals
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Basic.Complex.Basic
-import Mathlib.Basic.FunLike.Basic
-import Mathlib.Basic.Real.Basic
-import Mathlib.Basic.Real.Star
-import Mathlib.Basic.SetLike.Basic
-import Mathlib.Data.Fintype.Defs
-import Mathlib.Data.Fintype.EquivFin
-import Mathlib.Data.Int.Cast.Basic
-import Mathlib.Data.Int.Cast.Defs
-import Mathlib.Data.Int.Cast.Lemmas
-import Mathlib.Data.Matrix.Diagonal
-import Mathlib.Data.Matrix.Mul
-import Mathlib.Data.Nat.Cast.Basic
-import Mathlib.Data.Nat.Cast.Defs
-import Mathlib.Data.Nat.Init
-import Mathlib.FieldTheory.Perfect
-import Mathlib.FieldTheory.Separable
-import Mathlib.GroupTheory.GroupAction.Ring
-import Mathlib.LinearAlgebra.Basis.VectorSpace
-import Mathlib.LinearAlgebra.Complex.FiniteDimensional
-import Mathlib.LinearAlgebra.Complex.Module
-import Mathlib.LinearAlgebra.FreeModule.Finite.Basic
-import Mathlib.LinearAlgebra.FreeModule.PID
-import Mathlib.LinearAlgebra.Matrix.ConjTranspose
-import Mathlib.LinearAlgebra.Matrix.Defs
-import Mathlib.LinearAlgebra.Matrix.Hermitian
-import Mathlib.LinearAlgebra.Matrix.PosDef
-import Mathlib.LinearAlgebra.UnitaryGroup
-import Mathlib.MeasureTheory.Constructions.BorelSpace.Basic
-import Mathlib.MeasureTheory.Function.L1Space.Integrable
-import Mathlib.MeasureTheory.Function.StronglyMeasurable.AEStronglyMeasurable
-import Mathlib.MeasureTheory.Integral.Bochner.Basic
-import Mathlib.MeasureTheory.Measure.Haar.OfBasis
-import Mathlib.MeasureTheory.Measure.MeasureSpaceDef
-import Mathlib.MeasureTheory.OuterMeasure.AE
-import Mathlib.Order.Filter.Basic
-import Mathlib.RingTheory.Algebraic.Integral
-import Mathlib.RingTheory.DedekindDomain.Basic
-import Mathlib.RingTheory.Flat.FaithfullyFlat.Algebra
-import Mathlib.RingTheory.Flat.FaithfullyFlat.Basic
-import Mathlib.RingTheory.Flat.TorsionFree
-import Mathlib.RingTheory.IntegralClosure.Algebra.Basic
-import Mathlib.RingTheory.SimpleRing.Basic
-import Mathlib.RingTheory.SimpleRing.Principal
-import Mathlib.Tactic
-import Mathlib.Tactic.Module
-import Mathlib.Tactic.NormNum.Basic
-import Mathlib.Tactic.NormNum.Inv
-import Mathlib.Tactic.NormNum.Result
-import Mathlib.Tactic.Ring.Basic
-import Mathlib.Tactic.Ring.Common
-import Mathlib.Topology.Algebra.ConstMulAction
-import Mathlib.Topology.Algebra.Field
-import Mathlib.Topology.Algebra.Monoid
-import Mathlib.Topology.Algebra.Monoid.Defs
-import Mathlib.Topology.Algebra.MulAction
-import Mathlib.Topology.Algebra.Ring.Basic
-import Mathlib.Topology.Bases
-import Mathlib.Topology.Constructions
-import Mathlib.Topology.Continuous
-import Mathlib.Topology.Defs.Basic
-import Mathlib.Topology.EMetricSpace.Defs
-import Mathlib.Topology.Instances.Matrix
-import Mathlib.Topology.MetricSpace.Algebra
-import Mathlib.Topology.MetricSpace.Basic
-import Mathlib.Topology.MetricSpace.ProperSpace
-import Mathlib.Topology.MetricSpace.Pseudo.Defs
-import Mathlib.Topology.Metrizable.Uniformity
-import Mathlib.Topology.UniformSpace.Cauchy
-import Mathlib.Topology.UniformSpace.Defs
-import Mathlib.Topology.UniformSpace.Matrix
+module
+
+public import Qatlib.Papers.KoopmanSim26.SpectralRep.DiagonalizedLCHS
+public import Qatlib.Concepts.KoopmanFlow.FlowAction
+public import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+public import Mathlib.Analysis.Matrix.Spectrum
+public import Mathlib.Algebra.Algebra.Basic
+public import Mathlib.Algebra.Algebra.Defs
+public import Mathlib.Algebra.Algebra.Rat
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.Field.Defs
+public import Mathlib.Algebra.Group.Action.Defs
+public import Mathlib.Algebra.Group.Action.Pi
+public import Mathlib.Algebra.Group.Basic
+public import Mathlib.Algebra.Group.Defs
+public import Mathlib.Algebra.Group.DivInvMonoid
+public import Mathlib.Algebra.Group.Hom.Defs
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.Group.Semigroup
+public import Mathlib.Algebra.Group.Submonoid.Defs
+public import Mathlib.Algebra.Group.Units.Defs
+public import Mathlib.Algebra.GroupWithZero.Action.Defs
+public import Mathlib.Algebra.GroupWithZero.Basic
+public import Mathlib.Algebra.GroupWithZero.Defs
+public import Mathlib.Algebra.GroupWithZero.Units.Basic
+public import Mathlib.Algebra.Module.Defs
+public import Mathlib.Algebra.Module.NatInt
+public import Mathlib.Algebra.Notation.Defs
+public import Mathlib.Algebra.Order.Archimedean.Real.Basic
+public import Mathlib.Algebra.Order.Floor.Defs
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Algebra.Ring.Hom.Defs
+public import Mathlib.Algebra.Ring.Int.Defs
+public import Mathlib.Algebra.Ring.Nat
+public import Mathlib.Algebra.Ring.Pi
+public import Mathlib.Algebra.Star.Basic
+public import Mathlib.Algebra.Star.SelfAdjoint
+public import Mathlib.Algebra.Star.Unitary
+public import Mathlib.Analysis.CStarAlgebra.Classes
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Analysis.Complex.Exponential
+public import Mathlib.Analysis.Complex.Order
+public import Mathlib.Analysis.InnerProductSpace.Basic
+public import Mathlib.Analysis.InnerProductSpace.Defs
+public import Mathlib.Analysis.LocallyConvex.AbsConvexOpen
+public import Mathlib.Analysis.LocallyConvex.WithSeminorms
+public import Mathlib.Analysis.Matrix.Order
+public import Mathlib.Analysis.Normed.Algebra.Exponential
+public import Mathlib.Analysis.Normed.Field.Basic
+public import Mathlib.Analysis.Normed.Field.Lemmas
+public import Mathlib.Analysis.Normed.Group.Continuity
+public import Mathlib.Analysis.Normed.Group.Defs
+public import Mathlib.Analysis.Normed.Group.Uniform
+public import Mathlib.Analysis.Normed.Module.Basic
+public import Mathlib.Analysis.Normed.Module.FiniteDimension
+public import Mathlib.Analysis.Normed.Ring.Basic
+public import Mathlib.Analysis.Normed.Ring.Lemmas
+public import Mathlib.Analysis.RCLike.Basic
+public import Mathlib.Analysis.SpecialFunctions.Exponential
+public import Mathlib.Analysis.SpecialFunctions.ImproperIntegrals
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Basic.FunLike.Basic
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Basic.Real.Star
+public import Mathlib.Basic.SetLike.Basic
+public import Mathlib.Data.Fintype.Defs
+public import Mathlib.Data.Fintype.EquivFin
+public import Mathlib.Data.Int.Cast.Basic
+public import Mathlib.Data.Int.Cast.Defs
+public import Mathlib.Data.Int.Cast.Lemmas
+public import Mathlib.Data.Matrix.Diagonal
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.Data.Nat.Cast.Basic
+public import Mathlib.Data.Nat.Cast.Defs
+public import Mathlib.Data.Nat.Init
+public import Mathlib.FieldTheory.Perfect
+public import Mathlib.FieldTheory.Separable
+public import Mathlib.GroupTheory.GroupAction.Ring
+public import Mathlib.LinearAlgebra.Basis.VectorSpace
+public import Mathlib.LinearAlgebra.Complex.FiniteDimensional
+public import Mathlib.LinearAlgebra.Complex.Module
+public import Mathlib.LinearAlgebra.FreeModule.Finite.Basic
+public import Mathlib.LinearAlgebra.FreeModule.PID
+public import Mathlib.LinearAlgebra.Matrix.ConjTranspose
+public import Mathlib.LinearAlgebra.Matrix.Defs
+public import Mathlib.LinearAlgebra.Matrix.Hermitian
+public import Mathlib.LinearAlgebra.Matrix.PosDef
+public import Mathlib.LinearAlgebra.UnitaryGroup
+public import Mathlib.MeasureTheory.Constructions.BorelSpace.Basic
+public import Mathlib.MeasureTheory.Function.L1Space.Integrable
+public import Mathlib.MeasureTheory.Function.StronglyMeasurable.AEStronglyMeasurable
+public import Mathlib.MeasureTheory.Integral.Bochner.Basic
+public import Mathlib.MeasureTheory.Measure.Haar.OfBasis
+public import Mathlib.MeasureTheory.Measure.MeasureSpaceDef
+public import Mathlib.MeasureTheory.OuterMeasure.AE
+public import Mathlib.Order.Filter.Basic
+public import Mathlib.RingTheory.Algebraic.Integral
+public import Mathlib.RingTheory.DedekindDomain.Basic
+public import Mathlib.RingTheory.Flat.FaithfullyFlat.Algebra
+public import Mathlib.RingTheory.Flat.FaithfullyFlat.Basic
+public import Mathlib.RingTheory.Flat.TorsionFree
+public import Mathlib.RingTheory.IntegralClosure.Algebra.Basic
+public import Mathlib.RingTheory.SimpleRing.Basic
+public import Mathlib.RingTheory.SimpleRing.Principal
+public import Mathlib.Tactic
+public import Mathlib.Tactic.Module
+public import Mathlib.Tactic.NormNum.Basic
+public import Mathlib.Tactic.NormNum.Inv
+public import Mathlib.Tactic.NormNum.Result
+public import Mathlib.Tactic.Ring.Basic
+public import Mathlib.Tactic.Ring.Common
+public import Mathlib.Topology.Algebra.ConstMulAction
+public import Mathlib.Topology.Algebra.Field
+public import Mathlib.Topology.Algebra.Monoid
+public import Mathlib.Topology.Algebra.Monoid.Defs
+public import Mathlib.Topology.Algebra.MulAction
+public import Mathlib.Topology.Algebra.Ring.Basic
+public import Mathlib.Topology.Bases
+public import Mathlib.Topology.Constructions
+public import Mathlib.Topology.Continuous
+public import Mathlib.Topology.Defs.Basic
+public import Mathlib.Topology.EMetricSpace.Defs
+public import Mathlib.Topology.Instances.Matrix
+public import Mathlib.Topology.MetricSpace.Algebra
+public import Mathlib.Topology.MetricSpace.Basic
+public import Mathlib.Topology.MetricSpace.ProperSpace
+public import Mathlib.Topology.MetricSpace.Pseudo.Defs
+public import Mathlib.Topology.Metrizable.Uniformity
+public import Mathlib.Topology.UniformSpace.Cauchy
+public import Mathlib.Topology.UniformSpace.Defs
+public import Mathlib.Topology.UniformSpace.Matrix
+
+@[expose] public section
 
 /-!
 # Actual spectral diagonalization for LCHS
@@ -200,9 +204,11 @@ theorem hermitian_exp_spectral (G : Matrix I I ℂ) (hG : G.IsHermitian) (z : �
   rw [hd]
   rfl
 
+omit [Fintype I] [DecidableEq I] in
+
 /-- The frequency matrix `H + k L` is Hermitian whenever `L` and `H` are Hermitian and `k` is
 real. -/
-def frequency_hermitian (L H : Matrix I I ℂ) (hL : L.IsHermitian) (hH : H.IsHermitian)
+theorem frequency_hermitian (L H : Matrix I I ℂ) (hL : L.IsHermitian) (hH : H.IsHermitian)
     (k : ℝ) : (H + k • L).IsHermitian :=
   hH.add (hL.smul (R := ℝ) (IsSelfAdjoint.all k))
 
@@ -289,8 +295,10 @@ theorem generator_reconstruction (A : Matrix I I ℂ) : generatorL A+Complex.I �
   push_cast
   ring
 
+omit [Fintype I] [DecidableEq I] in
+
 /-- If `-L` is positive semidefinite, then `L` is Hermitian. -/
-def dissipativeHermitian (L : Matrix I I ℂ) (hL : (-L).PosSemidef) : L.IsHermitian := by
+theorem dissipativeHermitian (L : Matrix I I ℂ) (hL : (-L).PosSemidef) : L.IsHermitian := by
   simpa using hL.isHermitian.neg
 
 local instance matrixNormedAddCommGroup : NormedAddCommGroup (Matrix I I ℂ) :=
@@ -307,7 +315,7 @@ theorem spectral_integrand_integrable (L H : Matrix I I ℂ)
     simpa only [div_eq_mul_inv, _root_.mul_inv_rev, one_mul, mul_comm] using
       integrable_inv_one_add_sq.const_mul Real.pi⁻¹
   have hc : Continuous (spectralUnitary L H t) := by
-    letI : NormedAlgebra ℚ (Matrix I I ℂ) := NormedAlgebra.restrictScalars ℚ ℂ _
+    let _hNormedAlgebra : NormedAlgebra ℚ (Matrix I I ℂ) := NormedAlgebra.restrictScalars ℚ ℂ _
     unfold spectralUnitary
     have h1 : Continuous (fun k : ℝ => (Complex.I * (t : ℂ)) • (H + k • L)) := by fun_prop
     exact NormedSpace.exp_continuous.comp h1

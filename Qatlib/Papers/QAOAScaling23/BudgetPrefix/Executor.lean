@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QAOAScaling23.BudgetPrefix.BadUnion
+module
+
+public import Qatlib.Papers.QAOAScaling23.BudgetPrefix.BadUnion
+
+@[expose] public section
 
 /-!
 # Budgeted execution of descent receipts
@@ -136,8 +140,8 @@ theorem descend_budget_correct (rows : (r : ℕ) → Row r) (r : ℕ) :
       have hremain : paid tr≤B-(rows r).charge a := by
         change (rows r).charge a+paid tr≤B at hpaid
         omega
-      rw [receipts_prepend _ _ _ _ _ _ ht.2,execute,if_pos hcost,hb.1]
-      simp only [Bool.false_eq_true,if_false]
+      rw [receipts_prepend _ _ _ _ _ _ ht.2,execute,ite_eq_left hcost,hb.1]
+      simp only [Bool.false_eq_true,ite_false]
       rw [min_eq_right (Nat.le_of_lt ((rows r).next a).isLt)]
       exact ht.1 _ hremain hb.2
 end Qatlib.Papers.QAOAScaling23.BudgetPrefix

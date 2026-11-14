@@ -4,11 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SparseUnitary09.MainResults.Model.SourceSparseUnitaryModel
-import Mathlib.LinearAlgebra.Matrix.Permutation
-import Mathlib.LinearAlgebra.UnitaryGroup
-import Mathlib.Data.Matrix.PEquiv
-import Qatlib.Concepts.UniformBqp.Phi3Compile.QtmPhi3WindowSimulationQuan
+module
+
+public import Qatlib.Papers.SparseUnitary09.MainResults.Model.SourceSparseUnitaryModel
+public import Mathlib.LinearAlgebra.Matrix.Permutation
+public import Mathlib.LinearAlgebra.UnitaryGroup
+public import Mathlib.Data.Matrix.PEquiv
+public import Qatlib.Concepts.UniformBqp.Phi3Compile.QtmPhi3WindowSimulationQuan
+
+@[expose] public section
+set_option linter.unusedTactic false
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -107,7 +112,7 @@ theorem gateFamilyContained_of_sparse {ι : Type*} [Fintype ι] [DecidableEq ι]
 /-- Entry formula for the permutation matrix of `σ`. -/
 theorem permMatrix_apply {ι : Type*} [DecidableEq ι] (σ : Equiv.Perm ι) (i j : ι) :
     σ.permMatrix ℂ i j = if j = σ i then (1 : ℂ) else 0 := by
-  simpa [Equiv.Perm.permMatrix, PEquiv.toMatrix_apply, Equiv.toPEquiv_apply, eq_comm]
+    simp [Equiv.Perm.permMatrix, PEquiv.toMatrix_apply, Equiv.toPEquiv_apply, eq_comm]
 
 /-- A permutation matrix is 1-row-sparse (exactly one nonzero per row). -/
 theorem permMatrix_rowSparse {ι : Type*} [Fintype ι] [DecidableEq ι]

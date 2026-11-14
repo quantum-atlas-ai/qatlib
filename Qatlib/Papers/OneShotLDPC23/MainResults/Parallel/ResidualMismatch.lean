@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OneShotLDPC23.MainResults.Sequential.Decomposability
+module
+
+public import Qatlib.Papers.OneShotLDPC23.MainResults.Sequential.Decomposability
+
+@[expose] public section
 /-!
 # Residual Mismatch Bound for Parallel Tanner Decoding (Lemma 4.19)
 

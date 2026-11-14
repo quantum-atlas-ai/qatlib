@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.NativeNumerics.WaterFilling
-import Qatlib.Concepts.SketchArith.GramAction.PostMeasurePerturbation
+module
+
+public import Qatlib.Concepts.NativeNumerics.WaterFilling
+public import Qatlib.Concepts.SketchArith.GramAction.PostMeasurePerturbation
+
+@[expose] public section
 
 /-!
 # Coherent water filling and amplification
@@ -61,7 +65,7 @@ private theorem water_real_family_normSq (m D : ℕ) (c : Fin m → ℝ)
     ‖toEuclidean_fromVec (fun p : (Fin m × Fin D) × Bool => if p.2 then (c p.1.1 : ℂ)*xi p.1.1 p.1.2 else 0)‖^2 =
       ∑ i, c i^2 := by
   rw [norm_toEuclidean_fromVec_sq]
-  simp only [Fintype.sum_prod_type, Fintype.sum_bool, Bool.false_eq_true, if_false, if_true,
+  simp only [Fintype.sum_prod_type, Fintype.sum_bool, Bool.false_eq_true, ite_false, ite_true,
     norm_zero, zero_pow (by omega : 2 ≠ 0), add_zero, norm_mul, mul_pow,
     Complex.norm_real, Real.norm_eq_abs, sq_abs]
   have hxisum (i : Fin m) : ∑ d, ‖xi i d‖^2 = 1 := hxi i
@@ -90,7 +94,7 @@ theorem water_ideal_conditional_distance (m D : ℕ) (pi sigma : Fin m → ℚ) 
     rw [hc]
     funext z
     obtain ⟨⟨i,d⟩,b⟩ := z
-    cases b <;> simp only [waterTarget, Pi.sub_apply, if_false, if_true, Bool.false_eq_true,
+    cases b <;> simp only [waterTarget, Pi.sub_apply, ite_false, ite_true, Bool.false_eq_true,
         mul_zero, sub_zero]
     dsimp only [R, p]
     push_cast

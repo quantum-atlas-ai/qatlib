@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Qatlib.Concepts.SchattenDiamond.DiamondNorm.FiniteDiamondNorm
-import Qatlib.Concepts.AdaptiveCP.BranchTrace.QuantumChannel
-import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
+module
+
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Qatlib.Concepts.SchattenDiamond.DiamondNorm.FiniteDiamondNorm
+public import Qatlib.Concepts.AdaptiveCP.BranchTrace.QuantumChannel
+public import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
+
+@[expose] public section
 
 /-!
 # Schatten quantities and superoperator factorizations

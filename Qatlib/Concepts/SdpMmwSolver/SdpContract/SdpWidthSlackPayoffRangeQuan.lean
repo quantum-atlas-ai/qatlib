@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SdpMmwSolver.SdpContract.SdpWidthSlackPayoffRangeStat
-import Qatlib.Concepts.SdpMmwSolver.OracleError.ResidualDiagnosticContracts
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Module
-import Mathlib.Tactic.Positivity
+module
+
+public import Qatlib.Concepts.SdpMmwSolver.SdpContract.SdpWidthSlackPayoffRangeStat
+public import Qatlib.Concepts.SdpMmwSolver.OracleError.ResidualDiagnosticContracts
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Module
+public import Mathlib.Tactic.Positivity
+
+@[expose] public section
 
 /-!
 # Payoff range with corrected width slack
@@ -118,7 +122,7 @@ theorem sdpWidthSlackPayoffRange : SdpWidthSlackPayoffRange := by
         δ * α / (2 * R) * b j₀ +
           (∑ t ∈ Finset.range T, ∑ i, y t i * b i) / T := by
       simp only [sdpDualCertificate, add_mul, div_mul_eq_mul_div, Finset.sum_add_distrib,
-        ite_mul, zero_mul, Finset.sum_ite_eq', Finset.mem_univ, if_true]
+        ite_mul, zero_mul, Finset.sum_ite_eq', Finset.mem_univ, ite_true]
       congr 1
       simp only [Finset.sum_mul, ← Finset.sum_div]
       rw [Finset.sum_comm]

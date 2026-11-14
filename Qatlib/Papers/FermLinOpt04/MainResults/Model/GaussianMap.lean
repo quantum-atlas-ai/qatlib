@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.FermLinOpt04.MainResults.Model.Basic
-import Qatlib.Concepts.FermionAlgebra.CarJordanWigner.Fermion
+module
+
+public import Qatlib.Papers.FermLinOpt04.MainResults.Model.Basic
+public import Qatlib.Concepts.FermionAlgebra.CarJordanWigner.Fermion
+
+@[expose] public section
 
 /-!
 # Gaussian-map parameters and correlation updates

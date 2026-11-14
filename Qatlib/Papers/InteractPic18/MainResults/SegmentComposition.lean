@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.InteractionEvo.SegmentProduct.Corollary4CompositeErrorHami
-import Qatlib.Concepts.InteractionEvo.SegmentProduct.Lemma6SegmentCompositeHami
-import Qatlib.Concepts.InteractionEvo.MeanDerivGrid.InteractionPictureDefs
-import Qatlib.Concepts.RandCompile.ChannelBudget.InteractionPicture
-import Qatlib.Papers.InteractPic18.MainResults.InteractionPicture.InteractionPictureIdentities
+module
+
+public import Qatlib.Concepts.InteractionEvo.SegmentProduct.Corollary4CompositeErrorHami
+public import Qatlib.Concepts.InteractionEvo.SegmentProduct.Lemma6SegmentCompositeHami
+public import Qatlib.Concepts.InteractionEvo.MeanDerivGrid.InteractionPictureDefs
+public import Qatlib.Concepts.RandCompile.ChannelBudget.InteractionPicture
+public import Qatlib.Papers.InteractPic18.MainResults.InteractionPicture.InteractionPictureIdentities
+
+@[expose] public section
 
 /-!
 # SegmentComposition — Corollary 4 and Lemma 6 of InteractPic18

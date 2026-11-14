@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QAOAScaling23.CausalSearch.NativeOracle
-import Qatlib.Papers.QAOAScaling23.BiasedProcess.ClassMass
-import Qatlib.Papers.QAOAScaling23.SearchPrimitive.NativeMassLaw
+module
+
+public import Qatlib.Papers.QAOAScaling23.CausalSearch.NativeOracle
+public import Qatlib.Papers.QAOAScaling23.BiasedProcess.ClassMass
+public import Qatlib.Papers.QAOAScaling23.SearchPrimitive.NativeMassLaw
+
+@[expose] public section
 
 /-!
 # Prepared Born mass and lower-cost prefixes

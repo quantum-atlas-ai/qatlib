@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.DiscreteSim08.MainResults.Defs
-import Qatlib.Concepts.ConversionCore.WitnessCompile.ConversionBridges
+module
+
+public import Qatlib.Papers.DiscreteSim08.MainResults.Defs
+public import Qatlib.Concepts.ConversionCore.WitnessCompile.ConversionBridges
+
+@[expose] public section
 
 /-!
 # Gram-distance bounds for source evolution

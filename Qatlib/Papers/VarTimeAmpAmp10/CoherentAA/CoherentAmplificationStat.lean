@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.VarTimeAmpAmp10.CoherentAA.CoherentAmplificationContracts
+module
+
+public import Qatlib.Papers.VarTimeAmpAmp10.CoherentAA.CoherentAmplificationContracts
+
+@[expose] public section
 
 /-!
 # The coherent amplification proposition

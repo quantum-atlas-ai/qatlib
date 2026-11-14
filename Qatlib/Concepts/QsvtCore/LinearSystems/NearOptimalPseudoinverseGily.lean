@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.LinearSystems.NearOptimalPseudoinverseStat
-import Qatlib.Concepts.QsvtCore.LinearSystems.NearOptimalPseudoinverseLine
-import Qatlib.Concepts.LocalMachine.LocalTransport.LeastSquaresOutputSpec
+module
+
+public import Qatlib.Concepts.QsvtCore.LinearSystems.NearOptimalPseudoinverseStat
+public import Qatlib.Concepts.QsvtCore.LinearSystems.NearOptimalPseudoinverseLine
+public import Qatlib.Concepts.LocalMachine.LocalTransport.LeastSquaresOutputSpec
+
+@[expose] public section
 
 /-!
 # Near optimal QSVT pseudoinverse theorem

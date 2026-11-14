@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.LinearAlgebra.Matrix.PosDef
-import Mathlib.LinearAlgebra.Matrix.Trace
-import Mathlib.Tactic
+module
+
+public import Mathlib.LinearAlgebra.Matrix.PosDef
+public import Mathlib.LinearAlgebra.Matrix.Trace
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Kraus maps and projective measurement branches

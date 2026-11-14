@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Reflection.Basic
-import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
-import Qatlib.Concepts.SearchStopping.KnownCount.Section3RotationSubgoal
-import Qatlib.Foundations.PureStateMath.Qubit
+module
+
+public import Qatlib.Foundations.PureStateMath.Reflection.Basic
+public import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
+public import Qatlib.Concepts.SearchStopping.KnownCount.Section3RotationSubgoal
+public import Qatlib.Foundations.PureStateMath.Qubit
+
+@[expose] public section
 
 /-!
 # Grover circuits from a source preparation gate

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.PolyApprox.Lemma29RectangleApproximationStat
-import Qatlib.Concepts.QsvtCore.PolyApprox.Lemma25SignApproximationGily
+module
+
+public import Qatlib.Concepts.QsvtCore.PolyApprox.Lemma29RectangleApproximationStat
+public import Qatlib.Concepts.QsvtCore.PolyApprox.Lemma25SignApproximationGily
+
+@[expose] public section
 
 /-!
 # Quantitative polynomial approximation of a rectangle

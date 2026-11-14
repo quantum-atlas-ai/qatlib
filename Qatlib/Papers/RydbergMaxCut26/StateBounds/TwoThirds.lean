@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.RydbergMaxCut26.StateBounds.IsingGround
+module
+
+public import Qatlib.Papers.RydbergMaxCut26.StateBounds.IsingGround
+
+@[expose] public section
 
 /-!
 # A conditional two-thirds energy guarantee

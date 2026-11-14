@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CliffordGroup03.MainResults.Definitions
+module
+
+public import Qatlib.Papers.CliffordGroup03.MainResults.Definitions
+
+@[expose] public section
 
 /-!
 # Binary Pauli multiplication
@@ -94,10 +98,7 @@ lemma tau1_mul (v1 w1 v2 w2 : ZMod 2) :
       zero_add, add_zero, one_add_one_zmod2, one_mul, zero_mul, mul_zero,
       zmod2_val_zero, zmod2_val_one, pow_zero, pow_one, one_smul] <;>
     ext x y <;> cases x <;> cases y <;>
-    simp [P1, Matrix.mul_apply, Fintype.sum_bool, Matrix.smul_apply, smul_eq_mul] <;>
-    ring_nf <;>
-    simp only [pow_two, Complex.I_mul_I] <;>
-    ring
+    simp [P1, Matrix.mul_apply,  Matrix.smul_apply, smul_eq_mul]
 
 /-- The complex sign `(-1)^x.val` associated with a binary scalar. -/
 def signZ2 (x : ZMod 2) : ℂ := (-1 : ℂ) ^ x.val
@@ -108,7 +109,7 @@ lemma signZ2_zero : signZ2 0 = 1 := by simp [signZ2]
 /-- Addition of binary scalars corresponds to multiplication of their complex signs. -/
 lemma signZ2_add (x y : ZMod 2) : signZ2 (x + y) = signZ2 x * signZ2 y := by
   rcases zmod2_cases x with rfl | rfl <;> rcases zmod2_cases y with rfl | rfl <;>
-    simp [signZ2, zmod2_val_zero, zmod2_val_one, one_add_one_zmod2, pow_two]
+    simp [signZ2,  zmod2_val_one, one_add_one_zmod2]
 
 /-- The product of finitely many binary signs equals the sign of the sum of their binary
 exponents. -/
@@ -153,7 +154,7 @@ lemma delta_epsilon_law (δ1 δ2 ε1 ε2 b : ZMod 2) :
     rcases zmod2_cases ε2 with rfl | rfl <;>
     rcases zmod2_cases b with rfl | rfl <;>
     simp only [zmod2_val_zero, zmod2_val_one, one_add_one_zmod2, zero_add, add_zero,
-      pow_one, pow_zero, one_mul, mul_one, zero_mul, mul_zero] <;>
+      pow_one, pow_zero, one_mul, mul_one,  mul_zero] <;>
     ring_nf <;>
     simp only [pow_two, Complex.I_mul_I] <;>
     ring

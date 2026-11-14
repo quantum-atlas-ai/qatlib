@@ -4,10 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Data.Real.Basic
-import Mathlib.LinearAlgebra.Matrix.Symmetric
-import Qatlib.Papers.HamEvoPrec13.MainResults.SparseMatching
+module
+
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.LinearAlgebra.Matrix.Symmetric
+public import Mathlib.Tactic.Ring
+public import Qatlib.Papers.HamEvoPrec13.MainResults.SparseMatching
+
+@[expose] public section
 
 /-!
 # Matched block Hamiltonians
@@ -63,30 +68,38 @@ of the paper. -/
 def matchedBlock (mate : n → n) (d y : n → ℝ) : Matrix n n ℝ :=
   fun a b => if b = a then d a else if b = mate a then y a else 0
 
+omit [Fintype n] in
+
 /-- The diagonal entry of a matched block matrix is the diagonal coefficient. -/
 @[simp]
-theorem matchedBlock_diag (mate : n → n) (d y : n → ℝ) (a : n) :
+theorem matchedBlock_diag {n : Type*} [_scopeInst0 : Fintype n] [_scopeInst1 : DecidableEq n] (mate : n → n) (d y : n → ℝ) (a : n) :
     matchedBlock mate d y a a = d a := by
   simp [matchedBlock]
 
+omit [Fintype n] in
+
 /-- At a non-fixed point the off-diagonal entry in row `a` is the off-diagonal coefficient. -/
-theorem matchedBlock_off {mate : n → n} {d y : n → ℝ} {a : n} (h : mate a ≠ a) :
+theorem matchedBlock_off {n : Type*} [_scopeInst0 : Fintype n] [_scopeInst1 : DecidableEq n] {mate : n → n} {d y : n → ℝ} {a : n} (h : mate a ≠ a) :
     matchedBlock mate d y a (mate a) = y a := by
   rw [matchedBlock]
-  rw [if_neg h, if_pos rfl]
+  rw [ite_eq_right h, ite_eq_left rfl]
+
+omit [Fintype n] in
 
 /-- By symmetry of the matching the transposed off-diagonal entry agrees with the
 off-diagonal coefficient of the partner. -/
-theorem matchedBlock_off' {mate : n → n} {d y : n → ℝ} (hinv : ∀ a, mate (mate a) = a)
+theorem matchedBlock_off' {n : Type*} [_scopeInst0 : Fintype n] [_scopeInst1 : DecidableEq n] {mate : n → n} {d y : n → ℝ} (hinv : ∀ a, mate (mate a) = a)
     {a : n} (h : mate a ≠ a) : matchedBlock mate d y (mate a) a = y (mate a) := by
   rw [matchedBlock]
-  rw [if_neg (Ne.symm h), if_pos (hinv a).symm]
+  rw [ite_eq_right (Ne.symm h), ite_eq_left (hinv a).symm]
+
+omit [Fintype n] in
 
 /-- Entries of a matched block matrix outside the diagonal and the matching vanish. -/
-theorem matchedBlock_other {mate : n → n} {d y : n → ℝ} {a b : n} (hb : b ≠ a)
+theorem matchedBlock_other {n : Type*} [_scopeInst0 : Fintype n] [_scopeInst1 : DecidableEq n] {mate : n → n} {d y : n → ℝ} {a b : n} (hb : b ≠ a)
     (hm : b ≠ mate a) : matchedBlock mate d y a b = 0 := by
   rw [matchedBlock]
-  rw [if_neg hb, if_neg hm]
+  rw [ite_eq_right hb, ite_eq_right hm]
 
 /-- A sum of a function supported on `{a, mate a}` with `mate a ≠ a` reduces to two terms. -/
 private theorem sum_univ_eq_pair {mate : n → n} {f : n → ℝ} {a : n} (h : mate a ≠ a)
@@ -101,8 +114,10 @@ private theorem sum_univ_eq_pair {mate : n → n} {f : n → ℝ} {a : n} (h : m
   rw [Finset.sum_insert (by simpa [Finset.mem_singleton, eq_comm] using h),
     Finset.sum_singleton]
 
+omit [DecidableEq n] in
+
 /-- A sum of a function supported on a fixed point reduces to one term. -/
-private theorem sum_univ_eq_self {f : n → ℝ} {a : n}
+private theorem sum_univ_eq_self {n : Type*} [_scopeInst0 : Fintype n] [_scopeInst1 : DecidableEq n] {f : n → ℝ} {a : n}
     (hz : ∀ c, c ≠ a → f c = 0) : ∑ c, f c = f a := by
   refine Finset.sum_eq_single a ?_ ?_
   · intro c _ hc; exact hz c hc
@@ -164,7 +179,7 @@ theorem matchedBlock_mul_self {mate : n → n} {d y : n → ℝ} (h : MatchedUni
   rw [Matrix.mul_apply]
   by_cases hba : b = a
   · subst b
-    rw [Matrix.one_apply, if_pos rfl]
+    rw [Matrix.one_apply, ite_eq_left rfl]
     rcases eq_or_ne (mate a) a with hma | hma
     · rw [sum_univ_eq_self (a := a)
         (f := fun c => matchedBlock mate d y a c * matchedBlock mate d y c a)
@@ -175,27 +190,27 @@ theorem matchedBlock_mul_self {mate : n → n} {d y : n → ℝ} (h : MatchedUni
       exact hunit
     · rw [sum_univ_eq_pair (a := a) hma
         (f := fun c => matchedBlock mate d y a c * matchedBlock mate d y c a)
-        (by intro c hc hcm; simp [matchedBlock, hc, Ne.symm hc, hcm, Ne.symm hcm])]
+        (by intro c hc hcm; simp [matchedBlock, hc, Ne.symm hc, hcm])]
       simp only [matchedBlock_diag, matchedBlock_off hma, matchedBlock_off' h.inv hma,
         h.off_pair a]
       exact h.unit a
-  · rw [Matrix.one_apply, if_neg (Ne.symm hba)]
+  · rw [Matrix.one_apply, ite_eq_right (Ne.symm hba)]
     by_cases hbm : b = mate a
     · subst b
       rw [sum_univ_eq_pair (a := a) hba
         (f := fun c => matchedBlock mate d y a c * matchedBlock mate d y c (mate a))
-        (by intro c hc hcm; simp [matchedBlock, hc, Ne.symm hc, hcm, Ne.symm hcm])]
+        (by intro c hc hcm; simp [matchedBlock, hc, hcm, Ne.symm hcm])]
       simp only [matchedBlock_diag, matchedBlock_off hba,
         h.diag_pair a, h.orthogonal a, mul_comm (y a) (d a)]
       simp
     · rcases eq_or_ne (mate a) a with hma | hma
       · rw [sum_univ_eq_self (a := a)
           (f := fun c => matchedBlock mate d y a c * matchedBlock mate d y c b)
-          (by intro c hc; simp [matchedBlock, hc, Ne.symm hc, hma])]
-        simp [matchedBlock, hba, hbm, hma]
+          (by intro c hc; simp [matchedBlock, hc, hma])]
+        simp [matchedBlock, hba, hma]
       · rw [sum_univ_eq_pair (a := a) hma
           (f := fun c => matchedBlock mate d y a c * matchedBlock mate d y c b)
-          (by intro c hc hcm; simp [matchedBlock, hc, Ne.symm hc, hcm, Ne.symm hcm])]
+          (by intro c hc hcm; simp [matchedBlock, hc, hcm])]
         simp [matchedBlock, hba, hbm, hma, h.inv a]
 
 /-- Two matched block matrices with the same matching commute: every block lies in the
@@ -224,43 +239,42 @@ theorem matchedBlock_mul_comm {mate : n → n} {d y d' y' : n → ℝ}
         sum_univ_eq_pair (a := a) hma
           (f := fun c => matchedBlock mate d' y' a c * matchedBlock mate d y c a)]
       · simp only [matchedBlock_diag, matchedBlock_off hma, matchedBlock_off' h.inv hma,
-          matchedBlock_off' h'.inv hma, h'.off_pair a, h.off_pair a]
+          h'.off_pair a, h.off_pair a]
         ring
       · intro c hc hcm
-        simp [matchedBlock, hc, Ne.symm hc, hcm, Ne.symm hcm]
+        simp [matchedBlock, hc, Ne.symm hc, hcm]
       · intro c hc hcm
-        simp [matchedBlock, hc, Ne.symm hc, hcm, Ne.symm hcm]
+        simp [matchedBlock, hc, Ne.symm hc, hcm]
   · by_cases hbm : b = mate a
     · subst b
       rw [sum_univ_eq_pair (a := a) hba
             (f := fun c => matchedBlock mate d y a c * matchedBlock mate d' y' c (mate a)),
           sum_univ_eq_pair (a := a) hba
             (f := fun c => matchedBlock mate d' y' a c * matchedBlock mate d y c (mate a))]
-      · simp only [matchedBlock_diag, matchedBlock_off hba, matchedBlock_off' h'.inv hba,
-          matchedBlock_off' h.inv hba, h'.diag_pair a, h.diag_pair a]
+      · simp only [matchedBlock_diag, matchedBlock_off hba, h'.diag_pair a, h.diag_pair a]
         ring
       · intro c hc hcm
-        simp [matchedBlock, hc, Ne.symm hc, hcm, Ne.symm hcm]
+        simp [matchedBlock, hc, hcm, Ne.symm hcm]
       · intro c hc hcm
-        simp [matchedBlock, hc, Ne.symm hc, hcm, Ne.symm hcm]
+        simp [matchedBlock, hc, hcm, Ne.symm hcm]
     · rcases eq_or_ne (mate a) a with hma | hma
       · rw [sum_univ_eq_self (a := a)
             (f := fun c => matchedBlock mate d y a c * matchedBlock mate d' y' c b),
           sum_univ_eq_self (a := a)
             (f := fun c => matchedBlock mate d' y' a c * matchedBlock mate d y c b)]
-        · simp [matchedBlock, hba, hbm, hma]
+        · simp [matchedBlock, hba, hma]
         · intro c hc
-          simp [matchedBlock, hc, Ne.symm hc, hma]
+          simp [matchedBlock, hc, hma]
         · intro c hc
-          simp [matchedBlock, hc, Ne.symm hc, hma]
+          simp [matchedBlock, hc, hma]
       · rw [sum_univ_eq_pair (a := a) hma
             (f := fun c => matchedBlock mate d y a c * matchedBlock mate d' y' c b),
           sum_univ_eq_pair (a := a) hma
             (f := fun c => matchedBlock mate d' y' a c * matchedBlock mate d y c b)]
         · simp [matchedBlock, hba, hbm, hma, h.inv a]
         · intro c hc hcm
-          simp [matchedBlock, hc, Ne.symm hc, hcm, Ne.symm hcm]
+          simp [matchedBlock, hc, hcm]
         · intro c hc hcm
-          simp [matchedBlock, hc, Ne.symm hc, hcm, Ne.symm hcm]
+          simp [matchedBlock, hc, hcm]
 
 end Qatlib.Papers.HamEvoPrec13.MainResults

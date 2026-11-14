@@ -4,16 +4,20 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Data.Set.Operations
-import Mathlib.LinearAlgebra.Span.Defs
-import Mathlib.Logic.Relation
-import Mathlib.Analysis.Normed.Operator.LinearIsometry
-import Mathlib.Analysis.InnerProductSpace.Basic
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Data.Complex.Basic
-import Mathlib.Analysis.InnerProductSpace.Projection.Basic
-import Qatlib.Concepts.WalkSearch.MnrsAmplify.Proposition2Defs
+module
+
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Data.Set.Operations
+public import Mathlib.LinearAlgebra.Span.Defs
+public import Mathlib.Logic.Relation
+public import Mathlib.Analysis.Normed.Operator.LinearIsometry
+public import Mathlib.Analysis.InnerProductSpace.Basic
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Analysis.InnerProductSpace.Projection.Basic
+public import Qatlib.Concepts.WalkSearch.MnrsAmplify.Proposition2Defs
+
+@[expose] public section
 
 /-!
 # Walk-with-data circuit specification

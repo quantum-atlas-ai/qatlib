@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Probability.Moments.Variance
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Data.Fintype.BigOperators
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.FieldSimp
+module
+
+public import Mathlib.Probability.Moments.Variance
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Data.Fintype.BigOperators
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.FieldSimp
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -113,7 +117,7 @@ theorem localField_flip {n : ℕ} (J : Fin n → Fin n → ℝ) (z : Fin n → �
       simp only [flipSpin, Function.update_self, ite_true]
       ring
     · simp only [flipSpin]
-      rw [Function.update_of_ne hjk, if_neg hjk]
+      rw [Function.update_of_ne hjk, ite_eq_right hjk]
       ring
   have hsingle :
       ∑ j : Fin n, (if j = k then -2 * pairWeight J i k * z k else 0)
@@ -146,7 +150,7 @@ theorem skEnergy_flip_sub {n : ℕ} (J : Fin n → Fin n → ℝ) (h : Fin n →
     · rw [hik]
       simp only [flipSpin, Function.update_self, ite_true]
     · simp only [flipSpin]
-      rw [Function.update_of_ne hik, if_neg hik]
+      rw [Function.update_of_ne hik, ite_eq_right hik]
   have hL : ∀ i, localField J (flipSpin k z) i =
       localField J z i - 2 * pairWeight J i k * z k := fun i =>
     localField_flip J z k hz i
@@ -158,7 +162,7 @@ theorem skEnergy_flip_sub {n : ℕ} (J : Fin n → Fin n → ℝ) (h : Fin n →
   have hfk : (h k + (1 / 2) * localField J z k) * z k -
       (h k + (1 / 2) * localField J (flipSpin k z) k) * flipSpin k z k =
       2 * z k * h k + z k * localField J z k := by
-    rw [hL k, hflip k, if_pos rfl, hWkk]
+    rw [hL k, hflip k, ite_eq_left rfl, hWkk]
     ring
   have herase : ∑ i ∈ Finset.univ.erase k,
       ((h i + (1 / 2) * localField J z i) * z i -
@@ -172,7 +176,7 @@ theorem skEnergy_flip_sub {n : ℕ} (J : Fin n → Fin n → ℝ) (h : Fin n →
       intro i hi
       have hik : i ≠ k := by
         simpa using hi
-      rw [hL i, hflip i, if_neg hik]
+      rw [hL i, hflip i, ite_eq_right hik]
       ring
     rw [Finset.sum_congr rfl hterm]
     -- By symmetry this is `z_k` times the local field at `k`.
@@ -310,9 +314,9 @@ theorem variance_deltaEnergy {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
     · have hfun : deltaTerm J h z k (some i)
           = fun ω => (2 * z k * z i / Real.sqrt (n : ℝ)) * J ω k i := by
         funext ω
-        simp only [deltaTerm, if_neg hik]
+        simp only [deltaTerm, ite_eq_right hik]
       rw [hfun, variance_const_mul, hvarJ i hik]
-      rw [if_neg hik]
+      rw [ite_eq_right hik]
       have hnpos : 0 < n := Nat.lt_of_le_of_lt (Nat.zero_le k.val) k.isLt
       have hn0 : (n : ℝ) ≠ 0 := by exact_mod_cast (ne_of_gt hnpos)
       have hs : (Real.sqrt (n : ℝ)) ^ 2 = (n : ℝ) := Real.sq_sqrt (by positivity)

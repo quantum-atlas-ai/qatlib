@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.SieveAlgorithm.DihedralSieveBridge
-import Qatlib.Concepts.HspRecovery.SieveAlgorithm.DihedralSieveAlgorithmStat
+module
+
+public import Qatlib.Concepts.HspRecovery.SieveAlgorithm.DihedralSieveBridge
+public import Qatlib.Concepts.HspRecovery.SieveAlgorithm.DihedralSieveAlgorithmStat
+
+@[expose] public section
 
 /-!
 # Correctness and success bound for the dihedral sieve
@@ -54,7 +58,7 @@ private theorem clause5_readout_hit (n : ℕ) (s : ZMod (2 ^ n)) (L : List (ZMod
           decide (r = ((2 ^ (n - 1) : ℕ) : ZMod (2 ^ n)))).1 hF _ hmem) (by simp)
       show (PMF.pure (none : Option Bool)) (some (decide (s.val % 2 = 1)))
           = if ((2 ^ (n - 1) : ℕ) : ZMod (2 ^ n)) ∈ L then 1 else 0
-      rw [PMF.pure_apply, if_neg (by simp), if_neg hnm]
+      rw [PMF.pure_apply, ite_eq_right (by simp), ite_eq_right hnm]
   | some r =>
       have hr : r = ((2 ^ (n - 1) : ℕ) : ZMod (2 ^ n)) :=
         of_decide_eq_true (List.find?_some (p := fun x =>
@@ -66,7 +70,7 @@ private theorem clause5_readout_hit (n : ℕ) (s : ZMod (2 ^ n)) (L : List (ZMod
           (normalized_dihedralQubitState (2 ^ n) s r)).map some
           (some (decide (s.val % 2 = 1)))
           = if ((2 ^ (n - 1) : ℕ) : ZMod (2 ^ n)) ∈ L then 1 else 0
-      rw [hr, dihedralParityReadoutPure, PMF.pure_map, PMF.pure_apply, if_pos hmem]
+      rw [hr, dihedralParityReadoutPure, PMF.pure_map, PMF.pure_apply, ite_eq_left hmem]
       simp
 
 /-- The ideal run's correct-parity probability equals the total probability mass of final label
@@ -83,8 +87,8 @@ private theorem clause5_run_success_eq_hit (n m : ℕ) (s : ZMod (2 ^ n)) :
   refine tsum_congr fun L => ?_
   rw [clause5_readout_hit n s L]
   by_cases hL : ((2 ^ (n - 1) : ℕ) : ZMod (2 ^ n)) ∈ L
-  · rw [if_pos hL, if_pos hL, mul_one]
-  · rw [if_neg hL, if_neg hL, mul_zero]
+  · rw [ite_eq_left hL, ite_eq_left hL, mul_one]
+  · rw [ite_eq_right hL, ite_eq_right hL, mul_zero]
 
 /-- The `DihedralSieveAlgorithm` specification holds: with the prescribed square-root window
 parameter, incorrect parity outputs have zero probability, correct parity satisfies the

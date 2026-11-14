@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.NativeKnownWord
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.NativeWeightProgram
+module
+
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.NativeKnownWord
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.NativeWeightProgram
+
+@[expose] public section
 
 open Qatlib.Concepts.GateVocabulary.LocalReflectionGates
 

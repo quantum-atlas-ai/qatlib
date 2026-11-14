@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Tactic
-import Qatlib.Papers.SpinBosonQAOA26.MainResults.Definitions.SourceStates
+module
+
+public import Mathlib.Tactic
+public import Qatlib.Papers.SpinBosonQAOA26.MainResults.Definitions.SourceStates
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

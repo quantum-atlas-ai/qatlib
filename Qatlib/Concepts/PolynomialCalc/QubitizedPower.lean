@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixGeometry.StochasticFrame.Reflection
-import Mathlib.RingTheory.Polynomial.Chebyshev
-import Mathlib.Algebra.Polynomial.AlgebraMap
+module
+
+public import Qatlib.Foundations.MatrixGeometry.StochasticFrame.Reflection
+public import Mathlib.RingTheory.Polynomial.Chebyshev
+public import Mathlib.Algebra.Polynomial.AlgebraMap
+
+@[expose] public section
 
 /-!
 # Chebyshev compression of qubitized walk powers
@@ -84,7 +88,7 @@ U * C * signal C U` minus `C`. -/
 theorem walk_square_frame (C : Matrix M N ℂ) (U : Matrix M M ℂ) (hC : Cᴴ*C=1)
     (hU2 : U*U=1) : walk C U^2*C=(2 : ℂ)•(walk C U*C*signal C U)-C := by
   have hs := congrArg (fun X : Matrix M N ℂ => walk C U*X) (walk_frame_sum C U)
-  try dsimp only at hs
+
   rw [Matrix.mul_add,walk_backward C U hC hU2,Matrix.mul_smul] at hs
   simp only [← Matrix.mul_assoc,pow_two] at hs ⊢
   exact eq_sub_of_add_eq hs

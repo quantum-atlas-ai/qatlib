@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.BivarHidPoly13.MainResults.HiddenPolyModel
-import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
-import Mathlib.Tactic.LinearCombination
+module
+
+public import Qatlib.Papers.BivarHidPoly13.MainResults.HiddenPolyModel
+public import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
+public import Mathlib.Tactic.LinearCombination
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
-import Qatlib.Concepts.BlockEncoding.EncodingCore.PrepareUnitary
-import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
-import Mathlib.Analysis.PSeries
-import Qatlib.Concepts.HhlErrorBridge.FilterStability
+module
+
+public import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.PrepareUnitary
+public import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+public import Mathlib.Analysis.PSeries
+public import Qatlib.Concepts.HhlErrorBridge.FilterStability
+
+@[expose] public section
 
 /-!
 # Sine-envelope preparation and phase-estimation bounds
@@ -898,7 +902,7 @@ theorem sin_envelope_kernel_second_moment (M : ℕ) (φ : ℝ) (hM : 2 ≤ M) :
     have hp : 0 ≤ p z := sq_nonneg _
     have hd : 0 ≤ d z := abs_nonneg _
     by_cases hr : 1/(M:ℝ) ≤ d z
-    · rw [if_pos hr]
+    · rw [ite_eq_left hr]
       have hdpos : 0 < d z := lt_of_lt_of_le (by positivity) hr
       have ht := sin_envelope_kernel_far_label_precise M φ z hM hr
       have hh := mul_le_mul_of_nonneg_right ht (sq_nonneg (2*Real.pi*(M:ℝ)*d z))
@@ -909,7 +913,7 @@ theorem sin_envelope_kernel_second_moment (M : ℕ) (φ : ℝ) (hM : 2 ≤ M) :
       change p z*(2*Real.pi*(M:ℝ)*d z)^2 ≤ _ at hh
       rw [he] at hh
       exact hh.trans (le_add_of_nonneg_left (by positivity))
-    · rw [if_neg hr,add_zero]
+    · rw [ite_eq_right hr,add_zero]
       have hmd : (M:ℝ)*d z ≤ 1 := by
         have hh := (lt_div_iff₀ hm0).mp (lt_of_not_ge hr)
         linarith only [hh]

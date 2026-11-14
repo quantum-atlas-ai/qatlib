@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.Theorem1ActualProgramCorrectedHarr
-import Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.QlsHhl
-import Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.SinEnvelopeHHLConsumers
-import Qatlib.Foundations.InstrumentCore.Measurement.Basic
-import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Foundations.PureStateMath.MixedState
+module
+
+public import Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.Theorem1ActualProgramCorrectedHarr
+public import Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.QlsHhl
+public import Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.SinEnvelopeHHLConsumers
+public import Qatlib.Foundations.InstrumentCore.Measurement.Basic
+public import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Foundations.PureStateMath.MixedState
+
+@[expose] public section
 
 /-!
 # Sine-envelope HHL theorem interfaces

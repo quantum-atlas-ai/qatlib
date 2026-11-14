@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QPCAAssume18.ClassCentroid.GeneralInput
+module
+
+public import Qatlib.Papers.QPCAAssume18.ClassCentroid.GeneralInput
+
+@[expose] public section
 
 /-!
 # Tensor sampling for general centroid inputs
@@ -251,7 +255,7 @@ theorem normalizeInput_probability {d : ℕ} (anchor v : Fin d → ℂ)
     (hv : vectorEnergy v ≠ 0) (i : Fin d) :
     Complex.normSq (normalizeInput anchor v i) =
       Complex.normSq (v i) / vectorEnergy v := by
-  rw [normalizeInput, if_neg hv]
+  rw [normalizeInput, ite_eq_right hv]
   simp only [Complex.normSq_mul, Complex.normSq_inv, Complex.normSq_ofReal]
   rw [show Real.sqrt (vectorEnergy v) * Real.sqrt (vectorEnergy v) = vectorEnergy v by
     exact Real.mul_self_sqrt (vectorEnergy_nonneg v)]

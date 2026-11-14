@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.Execution.WorkspaceCP.WorkspaceEmbedding
-import Qatlib.Concepts.Execution.CircuitCompile.InstrumentCircuit
-import Qatlib.Concepts.Execution.WorkspaceCP.InstrumentIsometryPadding
-import Mathlib.Logic.Equiv.Fin.Basic
+module
+
+public import Qatlib.Concepts.Execution.WorkspaceCP.WorkspaceEmbedding
+public import Qatlib.Concepts.Execution.CircuitCompile.InstrumentCircuit
+public import Qatlib.Concepts.Execution.WorkspaceCP.InstrumentIsometryPadding
+public import Mathlib.Logic.Equiv.Fin.Basic
+
+@[expose] public section
 
 /-!
 # Compilation of circuits with changing workspace
@@ -200,7 +204,7 @@ theorem workspaceFits_of_capacity_le {d k : ℕ} (P : WorkspaceCircuit d k) (K :
 
 /-- The fixed-workspace version of an instrument, with one extra outcome for the complement of
 the embedded input space. -/
-private noncomputable def workspacePaddedInstrument {d k l K s : ℕ}
+noncomputable def workspacePaddedInstrument {d k l K s : ℕ}
     (hk : k ≤ K) (hl : l ≤ K) (I : Instrument (Fin s) (d*k) (d*l)) :
     Instrument (Fin (s+1)) (d*K) (d*K) :=
   Instrument.ofBranches
@@ -283,7 +287,7 @@ theorem compileWorkspaceCircuit_wellFormed {d k : ℕ} (K : ℕ) (P : WorkspaceC
       simp only [compileWorkspaceCircuit, instrumentCircuitWellFormed]
       intro a
       cases h : finSuccEquiv s a with
-      | none => simp only [h, instrumentCircuitWellFormed]
+      | none => simp only [instrumentCircuitWellFormed]
       | some o => simpa only [h] using! ih o (hfit.2.2 o) (hP o)
 
 /-- Compilation preserves every trace-weighted payoff depending on acceptance, query count, and
@@ -326,7 +330,7 @@ private theorem workspace_compile_payoff {d k : ℕ} (U : Operator d) (K : ℕ)
       have h := ih o (hfit.2.2 o) (I.branch o rho)
         (fun b q rec => f b q ((s,o.val)::rec))
       simpa only [restoreWorkspaceRecord, Fin.val_succ, Fin.isLt, Nat.succ_lt_succ_iff,
-        dif_pos, finSuccEquiv_succ, workspaceMass] using! h
+        dite_eq_left, finSuccEquiv_succ, workspaceMass] using! h
 
 /-- Compilation preserves every trace-weighted statistic of acceptance and restored instrument
 outcomes. -/

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MbqcFlow.FlowDecision.DiagonalTraceDistance
-import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
-import Mathlib.Tactic.Linarith
+module
+
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.DiagonalTraceDistance
+public import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
+public import Mathlib.Tactic.Linarith
+
+@[expose] public section
 
 /-!
 # Quadratic forms controlled by trace distance

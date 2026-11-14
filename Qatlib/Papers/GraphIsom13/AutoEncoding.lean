@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GraphIsom13.GiCost
-import Mathlib.SetTheory.Cardinal.Finite
+module
+
+public import Qatlib.Papers.GraphIsom13.GiCost
+public import Mathlib.SetTheory.Cardinal.Finite
+
+@[expose] public section
 
 /-!
 # Automorphisms and zero-cost strings

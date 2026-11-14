@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutator
-import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorCoreDefs
+module
+
+public import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutator
+public import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorCoreDefs
+
+@[expose] public section
 
 /-!
 # Layer bookkeeping for Trotter schedules

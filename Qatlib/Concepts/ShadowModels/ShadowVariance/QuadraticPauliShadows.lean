@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ShadowModels.UStatBackend.FinitePairUStatistic
-import Qatlib.Concepts.ShadowModels.ShadowChannel.TensorPauliShadowStatistics
-import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
+module
+
+public import Qatlib.Concepts.ShadowModels.UStatBackend.FinitePairUStatistic
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.TensorPauliShadowStatistics
+public import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
+
+@[expose] public section
 
 /-!
 # Purity kernels from tensor Pauli shadows

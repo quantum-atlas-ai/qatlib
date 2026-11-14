@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HamLCUSim12.LCUDeferred.Theorem3LCUFiberCorrectedStat
-import Qatlib.Papers.HamLCUSim12.LCUDeferred.DeferredLCUCorrectedProtocol
+module
+
+public import Qatlib.Papers.HamLCUSim12.LCUDeferred.Theorem3LCUFiberCorrectedStat
+public import Qatlib.Papers.HamLCUSim12.LCUDeferred.DeferredLCUCorrectedProtocol
+
+@[expose] public section
 
 /-!
 # Success fiber of the corrected signed LCU protocol

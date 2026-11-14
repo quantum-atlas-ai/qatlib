@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QlsReadoutSpec.Amplification.ClockFlagResolutionsStat
-import Qatlib.Concepts.QlsReadoutSpec.Amplification.ProjectorOrderLows
+module
+
+public import Qatlib.Concepts.QlsReadoutSpec.Amplification.ClockFlagResolutionsStat
+public import Qatlib.Concepts.QlsReadoutSpec.Amplification.ProjectorOrderLows
+
+@[expose] public section
 
 /-!
 # Clock and flag projector resolutions
@@ -140,7 +144,7 @@ theorem Clause3ClockFlagResolutions_answer : Clause3ClockFlagResolutions := by
     have hf_le : ∀ k (hk : k ≤ m), f k = P ⟨k, by omega⟩ := by
       intro k hk
       show (if h : k ≤ m then P ⟨k, by omega⟩ else 1) = P ⟨k, by omega⟩
-      exact dif_pos hk
+      exact dite_eq_left hk
     have hsum_eq : ∑ j : Fin m, (P ⟨j.val + 1, by omega⟩ - P ⟨j.val, by omega⟩) =
         ∑ i ∈ Finset.range m, (f (i + 1) - f i) := by
       have step1 : ∑ j : Fin m, (P ⟨j.val + 1, by omega⟩ - P ⟨j.val, by omega⟩) =

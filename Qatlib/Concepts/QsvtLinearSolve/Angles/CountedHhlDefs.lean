@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.SinEnvelopeHHL
-import Qatlib.Concepts.NativeNumerics.LayeredMean.CountedHHLProgram
-import Qatlib.Concepts.HhlAlgorithms.Postselection.RationalHHLNoiseConsumers
-import Qatlib.Concepts.CoherentSim.CoherentOAA.AdjointWord
-import Qatlib.Concepts.LocalMachine.LocalTransport.ControlledQueryCircuit
-import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
+module
+
+public import Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.SinEnvelopeHHL
+public import Qatlib.Concepts.NativeNumerics.LayeredMean.CountedHHLProgram
+public import Qatlib.Concepts.HhlAlgorithms.Postselection.RationalHHLNoiseConsumers
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.AdjointWord
+public import Qatlib.Concepts.LocalMachine.LocalTransport.ControlledQueryCircuit
+public import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
+
+@[expose] public section
 
 /-!
 # Access ledgers for counted HHL circuits

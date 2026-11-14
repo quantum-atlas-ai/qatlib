@@ -4,93 +4,97 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Defs
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Algebra.CharZero.Defs
-import Mathlib.Algebra.Field.Defs
-import Mathlib.Algebra.Field.GeomSum
-import Mathlib.Algebra.Group.Basic
-import Mathlib.Algebra.Group.Defs
-import Mathlib.Algebra.Group.DivInvMonoid
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.Group.Nat.Defs
-import Mathlib.Algebra.Group.Semigroup
-import Mathlib.Algebra.GroupWithZero.Basic
-import Mathlib.Algebra.GroupWithZero.Defs
-import Mathlib.Algebra.GroupWithZero.Nat
-import Mathlib.Algebra.GroupWithZero.NeZero
-import Mathlib.Algebra.GroupWithZero.Units.Basic
-import Mathlib.Algebra.NeZero
-import Mathlib.Algebra.Order.Archimedean.Real.Basic
-import Mathlib.Algebra.Order.BigOperators.Group.Finset
-import Mathlib.Algebra.Order.Floor.Defs
-import Mathlib.Algebra.Order.Group.Defs
-import Mathlib.Algebra.Order.Group.Nat
-import Mathlib.Algebra.Order.Group.Unbundled.Basic
-import Mathlib.Algebra.Order.GroupWithZero.Basic
-import Mathlib.Algebra.Order.GroupWithZero.Canonical
-import Mathlib.Algebra.Order.GroupWithZero.Defs
-import Mathlib.Algebra.Order.Monoid.Defs
-import Mathlib.Algebra.Order.Monoid.Unbundled.Basic
-import Mathlib.Algebra.Order.Monoid.Unbundled.Defs
-import Mathlib.Algebra.Order.Ring.Defs
-import Mathlib.Algebra.Order.Ring.Nat
-import Mathlib.Algebra.Order.Ring.Star
-import Mathlib.Algebra.Order.Star.Basic
-import Mathlib.Algebra.Order.Sub.Basic
-import Mathlib.Algebra.Order.Sub.Defs
-import Mathlib.Algebra.Order.ZeroLEOne
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Algebra.Ring.Nat
-import Mathlib.Algebra.Star.Basic
-import Mathlib.Analysis.Real.Sqrt
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Basic.Real.Basic
-import Mathlib.Basic.SetLike.Basic
-import Mathlib.Data.Finset.Basic
-import Mathlib.Data.Finset.Card
-import Mathlib.Data.Finset.Defs
-import Mathlib.Data.Finset.Disjoint
-import Mathlib.Data.Finset.Empty
-import Mathlib.Data.Finset.Filter
-import Mathlib.Data.Finset.Insert
-import Mathlib.Data.Finset.Lattice.Basic
-import Mathlib.Data.Finset.Lattice.Lemmas
-import Mathlib.Data.Finset.Max
-import Mathlib.Data.Finset.Range
-import Mathlib.Data.Finset.SDiff
-import Mathlib.Data.Fintype.Defs
-import Mathlib.Data.Int.Cast.Defs
-import Mathlib.Data.Nat.Basic
-import Mathlib.Data.Nat.Cast.Basic
-import Mathlib.Data.Nat.Cast.Defs
-import Mathlib.Data.Nat.Cast.Order.Basic
-import Mathlib.Data.Nat.Cast.Order.Ring
-import Mathlib.Data.Nat.Init
-import Mathlib.Logic.Relation
-import Mathlib.Order.Basic
-import Mathlib.Order.Defs.Lattice
-import Mathlib.Order.Defs.LinearOrder
-import Mathlib.Order.Defs.PartialOrder
-import Mathlib.Order.Disjoint
-import Mathlib.Order.Lattice
-import Mathlib.Order.RelClasses
-import Mathlib.Tactic
-import Mathlib.Tactic.CancelDenoms.Core
-import Mathlib.Tactic.FieldSimp.Lemmas
-import Mathlib.Tactic.Linarith.Lemmas
-import Mathlib.Tactic.NormNum.Basic
-import Mathlib.Tactic.NormNum.Ineq
-import Mathlib.Tactic.NormNum.Inv
-import Mathlib.Tactic.NormNum.Result
-import Mathlib.Tactic.Positivity.Core
-import Mathlib.Tactic.Ring.Basic
-import Mathlib.Tactic.Ring.Common
-import Qatlib.Papers.QQueryGraph04.MainResults.Model.Basic
-import Qatlib.Papers.QQueryGraph04.MainResults.Model.SupportBounds
-import Qatlib.Papers.QQueryGraph04.MainResults.ProblemDefs
+module
+
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Defs
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Algebra.CharZero.Defs
+public import Mathlib.Algebra.Field.Defs
+public import Mathlib.Algebra.Field.GeomSum
+public import Mathlib.Algebra.Group.Basic
+public import Mathlib.Algebra.Group.Defs
+public import Mathlib.Algebra.Group.DivInvMonoid
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.Group.Nat.Defs
+public import Mathlib.Algebra.Group.Semigroup
+public import Mathlib.Algebra.GroupWithZero.Basic
+public import Mathlib.Algebra.GroupWithZero.Defs
+public import Mathlib.Algebra.GroupWithZero.Nat
+public import Mathlib.Algebra.GroupWithZero.NeZero
+public import Mathlib.Algebra.GroupWithZero.Units.Basic
+public import Mathlib.Algebra.NeZero
+public import Mathlib.Algebra.Order.Archimedean.Real.Basic
+public import Mathlib.Algebra.Order.BigOperators.Group.Finset
+public import Mathlib.Algebra.Order.Floor.Defs
+public import Mathlib.Algebra.Order.Group.Defs
+public import Mathlib.Algebra.Order.Group.Nat
+public import Mathlib.Algebra.Order.Group.Unbundled.Basic
+public import Mathlib.Algebra.Order.GroupWithZero.Basic
+public import Mathlib.Algebra.Order.GroupWithZero.Canonical
+public import Mathlib.Algebra.Order.GroupWithZero.Defs
+public import Mathlib.Algebra.Order.Monoid.Defs
+public import Mathlib.Algebra.Order.Monoid.Unbundled.Basic
+public import Mathlib.Algebra.Order.Monoid.Unbundled.Defs
+public import Mathlib.Algebra.Order.Ring.Defs
+public import Mathlib.Algebra.Order.Ring.Nat
+public import Mathlib.Algebra.Order.Ring.Star
+public import Mathlib.Algebra.Order.Star.Basic
+public import Mathlib.Algebra.Order.Sub.Basic
+public import Mathlib.Algebra.Order.Sub.Defs
+public import Mathlib.Algebra.Order.ZeroLEOne
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Algebra.Ring.Nat
+public import Mathlib.Algebra.Star.Basic
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Basic.SetLike.Basic
+public import Mathlib.Data.Finset.Basic
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Data.Finset.Defs
+public import Mathlib.Data.Finset.Disjoint
+public import Mathlib.Data.Finset.Empty
+public import Mathlib.Data.Finset.Filter
+public import Mathlib.Data.Finset.Insert
+public import Mathlib.Data.Finset.Lattice.Basic
+public import Mathlib.Data.Finset.Lattice.Lemmas
+public import Mathlib.Data.Finset.Max
+public import Mathlib.Data.Finset.Range
+public import Mathlib.Data.Finset.SDiff
+public import Mathlib.Data.Fintype.Defs
+public import Mathlib.Data.Int.Cast.Defs
+public import Mathlib.Data.Nat.Basic
+public import Mathlib.Data.Nat.Cast.Basic
+public import Mathlib.Data.Nat.Cast.Defs
+public import Mathlib.Data.Nat.Cast.Order.Basic
+public import Mathlib.Data.Nat.Cast.Order.Ring
+public import Mathlib.Data.Nat.Init
+public import Mathlib.Logic.Relation
+public import Mathlib.Order.Basic
+public import Mathlib.Order.Defs.Lattice
+public import Mathlib.Order.Defs.LinearOrder
+public import Mathlib.Order.Defs.PartialOrder
+public import Mathlib.Order.Disjoint
+public import Mathlib.Order.Lattice
+public import Mathlib.Order.RelClasses
+public import Mathlib.Tactic
+public import Mathlib.Tactic.CancelDenoms.Core
+public import Mathlib.Tactic.FieldSimp.Lemmas
+public import Mathlib.Tactic.Linarith.Lemmas
+public import Mathlib.Tactic.NormNum.Basic
+public import Mathlib.Tactic.NormNum.Ineq
+public import Mathlib.Tactic.NormNum.Inv
+public import Mathlib.Tactic.NormNum.Result
+public import Mathlib.Tactic.Positivity.Core
+public import Mathlib.Tactic.Ring.Basic
+public import Mathlib.Tactic.Ring.Common
+public import Qatlib.Papers.QQueryGraph04.MainResults.Model.Basic
+public import Qatlib.Papers.QQueryGraph04.MainResults.Model.SupportBounds
+public import Qatlib.Papers.QQueryGraph04.MainResults.ProblemDefs
+
+@[expose] public section
 
 /-!
 # Strong connectivity and tier estimates
@@ -552,7 +556,7 @@ theorem stepSucc_zero [DecidableEq V] (T : ℕ → Finset V) (i : ℕ) (R : Fins
 theorem stepSucc_pos [DecidableEq V] (T : ℕ → Finset V) (i : ℕ) (R : Finset V) (v : V)
     (j : ℕ) (hj : j ≠ 0) :
     tierStepSucc T i R v j = if j = i then T i \ R else T j := by
-  simp only [tierStepSucc, if_neg hj]
+  simp only [tierStepSucc, ite_eq_right hj]
 
 /-- For disjoint tiers and valid step data, a failed update subtracts the size of R at tier i
 and adds it at tier i + 1. -/
@@ -563,14 +567,14 @@ theorem stepFail_card [DecidableEq V] {T : ℕ → Finset V} {i : ℕ} {R : Fins
       else if j = i + 1 then (T (i + 1)).card + R.card else (T j).card := by
   unfold tierStepFail
   by_cases h1 : j = i
-  · rw [if_pos h1, if_pos h1, card_sdiff_subset h.1]
-  · rw [if_neg h1, if_neg h1]
+  · rw [ite_eq_left h1, ite_eq_left h1, card_sdiff_subset h.1]
+  · rw [ite_eq_right h1, ite_eq_right h1]
     by_cases h2 : j = i + 1
-    · rw [if_pos h2, if_pos h2]
+    · rw [ite_eq_left h2, ite_eq_left h2]
       have hdis : Disjoint (T (i + 1)) R :=
         (hdisj (i + 1) i (by omega)).mono_right h.1
       exact Finset.card_union_of_disjoint hdis
-    · rw [if_neg h2, if_neg h2]
+    · rw [ite_eq_right h2, ite_eq_right h2]
 
 /-- For disjoint tiers, valid step data, and a fresh vertex v, a successful update increases the
 cumulative size by one and also by the size of R below tier i [DurrEtAl2006]. -/
@@ -593,7 +597,7 @@ theorem stepSucc_total [DecidableEq V] {T : ℕ → Finset V} {i : ℕ} {R : Fin
         have hv0 : v ∉ T 0 ∪ R := by simp [Finset.mem_union, hv 0, hvR]
         rw [Finset.card_union_of_disjoint (Finset.disjoint_singleton_right.mpr hv0),
           Finset.card_union_of_disjoint hd0, Finset.card_singleton,
-          if_pos hi0]
+          ite_eq_left hi0]
   | succ j ih =>
       rw [tierTotal_succ, tierTotal_succ, ih,
         stepSucc_pos T i R v (j + 1) (Nat.succ_ne_zero j)]
@@ -601,16 +605,16 @@ theorem stepSucc_total [DecidableEq V] {T : ℕ → Finset V} {i : ℕ} {R : Fin
       by_cases h1 : j + 1 = i
       · have hjt : j < i := by omega
         have hT : (T (j + 1)).card = (T i).card := by rw [h1]
-        rw [if_pos h1, if_pos hjt, card_sdiff_subset h.1, hT,
-          if_neg (by omega : ¬ j + 1 < i)]
+        rw [ite_eq_left h1, ite_eq_left hjt, card_sdiff_subset h.1, hT,
+          ite_eq_right (by omega : ¬ j + 1 < i)]
         omega
-      · rw [if_neg h1]
+      · rw [ite_eq_right h1]
         by_cases h2 : j + 1 < i
         · have hjt : j < i := by omega
-          rw [if_pos h2, if_pos hjt]
+          rw [ite_eq_left h2, ite_eq_left hjt]
           omega
         · have hjt : ¬ j < i := by omega
-          rw [if_neg h2, if_neg hjt]
+          rw [ite_eq_right h2, ite_eq_right hjt]
           omega
 
 /-- For disjoint tiers and valid step data, a failed update decreases the cumulative size by the
@@ -623,11 +627,11 @@ theorem stepFail_total [DecidableEq V] {T : ℕ → Finset V} {i : ℕ} {R : Fin
       rw [tierTotal_zero, tierTotal_zero, stepFail_card h hdisj 0]
       rcases Nat.eq_zero_or_pos i with hi | hi
       · subst hi
-        rw [if_pos rfl]
+        rw [ite_eq_left rfl]
         simp
       · have h0 : ¬ (0 : ℕ) = i := by omega
         have h1 : ¬ (0 : ℕ) = i + 1 := by omega
-        rw [if_neg h0, if_neg h1, if_neg h0]
+        rw [ite_eq_right h0, ite_eq_right h1, ite_eq_right h0]
         simp
   | succ j ih =>
       rw [tierTotal_succ, tierTotal_succ, ih, stepFail_card h hdisj (j + 1)]
@@ -635,7 +639,7 @@ theorem stepFail_total [DecidableEq V] {T : ℕ → Finset V} {i : ℕ} {R : Fin
       by_cases h1 : j + 1 = i
       · have hji : ¬ j = i := by omega
         have hT : (T (j + 1)).card = (T i).card := by rw [h1]
-        simp only [if_pos h1, if_neg hji, hT]
+        simp only [ite_eq_left h1, ite_eq_right hji, hT]
         omega
       · by_cases h2 : j + 1 = i + 1
         · have hji : j = i := by omega
@@ -647,10 +651,10 @@ theorem stepFail_total [DecidableEq V] {T : ℕ → Finset V} {i : ℕ} {R : Fin
           have hRt : R.card ≤ tierTotal T j := by
             rw [hji]
             exact le_trans h.card_le hsingle
-          simp only [if_pos h2, if_pos hji, hT, if_neg h1]
+          simp only [ite_eq_left h2, ite_eq_left hji, hT, ite_eq_right h1]
           omega
         · have hji : ¬ j = i := by omega
-          simp only [if_neg h1, if_neg h2, if_neg hji]
+          simp only [ite_eq_right h1, ite_eq_right h2, ite_eq_right hji]
           omega
 
 /-- The highest nonempty tier in `TierInv` has cardinality at least 2^(ell − 1). -/
@@ -675,11 +679,11 @@ theorem tier_cumul_succ [DecidableEq V] {T : ℕ → Finset V} {k ell i : ℕ} {
   have htot := stepSucc_total hstep h.hdisj hv j
   rw [htot]
   by_cases hji : j < i
-  · rw [if_pos hji]
+  · rw [ite_eq_left hji]
     have h2 : 2 ^ j ≤ 2 ^ i := Nat.pow_le_pow_right (by norm_num) (le_of_lt hji)
     have hR := hstep.card_ge
     omega
-  · rw [if_neg hji]
+  · rw [ite_eq_right hji]
     have hkj : k ≤ j := by omega
     have hcum := h.hcum j hkj hjell
     omega
@@ -694,7 +698,7 @@ theorem tier_cumul_fail_leftover [DecidableEq V] {T : ℕ → Finset V} {k ell i
   have htot := stepFail_total hstep h.hdisj j
   rw [htot]
   by_cases hji : j = i
-  · rw [hji, if_pos rfl]
+  · rw [hji, ite_eq_left rfl]
     have hbig := (hstep.proper_card hne).1
     have hRc := (hstep.proper_card hne).2
     have hsingle : (T i).card ≤ tierTotal T i := by
@@ -703,7 +707,7 @@ theorem tier_cumul_fail_leftover [DecidableEq V] {T : ℕ → Finset V} {k ell i
         (Finset.mem_range.mpr (Nat.lt_succ_self i))
     have hpow : 2 ^ (i + 1) = 2 * 2 ^ i := by rw [pow_succ]; ring
     omega
-  · rw [if_neg hji]
+  · rw [ite_eq_right hji]
     have hcum := h.hcum j hkj hjell
     omega
 
@@ -715,7 +719,7 @@ theorem tier_cumul_fail_inherit [DecidableEq V] {T : ℕ → Finset V} {k ell i 
     ∀ j, k ≤ j → j ≠ i → j < ell → 2 ^ j ≤ tierTotal (tierStepFail T i R) j := by
   intro j hkj hji hjell
   have htot := stepFail_total hstep h.hdisj j
-  rw [htot, if_neg hji]
+  rw [htot, ite_eq_right hji]
   have hcum := h.hcum j hkj hjell
   omega
 
@@ -726,7 +730,7 @@ theorem tier_top_succ [DecidableEq V] {T : ℕ → Finset V} {k ell i : ℕ} {R 
     2 ^ (ell - 1) ≤ (tierStepSucc T i R v ell).card := by
   have hell0 : ell ≠ 0 := by omega
   have helli : ¬ ell = i := by omega
-  rw [stepSucc_pos T i R v ell hell0, if_neg helli]
+  rw [stepSucc_pos T i R v ell hell0, ite_eq_right helli]
   exact h.card_top
 
 /-- A valid failed update strictly below the top tier preserves its power-of-two size lower
@@ -735,13 +739,13 @@ theorem tier_top_fail [DecidableEq V] {T : ℕ → Finset V} {k ell i : ℕ} {R 
     (h : TierInv T k ell) (hielt : i < ell) (hstep : StepData T i R) :
     2 ^ (ell - 1) ≤ (tierStepFail T i R ell).card := by
   have helli : ¬ ell = i := by omega
-  rw [stepFail_card hstep h.hdisj ell, if_neg helli]
+  rw [stepFail_card hstep h.hdisj ell, ite_eq_right helli]
   by_cases h1 : ell = i + 1
-  · rw [if_pos h1]
+  · rw [ite_eq_left h1]
     have hcast : (T (i + 1)).card = (T ell).card := by rw [h1]
     rw [hcast]
     exact le_trans h.card_top (Nat.le_add_right _ _)
-  · rw [if_neg h1]
+  · rw [ite_eq_right h1]
     exact h.card_top
 
 /-- The family consisting of the singleton {v0} at tier zero and empty higher tiers satisfies

@@ -4,17 +4,21 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.CStarAlgebra.Classes
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Algebra.Order.Star.Real
-import Mathlib.Tactic.GCongr
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.NormNum.RealSqrt
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Ring
-import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
-import Qatlib.Concepts.BlockEncoding.Postselection
+module
+
+public import Mathlib.Analysis.CStarAlgebra.Classes
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Algebra.Order.Star.Real
+public import Mathlib.Tactic.GCongr
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.NormNum.RealSqrt
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Ring
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
+public import Qatlib.Concepts.BlockEncoding.Postselection
+
+@[expose] public section
 
 /-!
 # Products of unitary block encodings with shared ancillas

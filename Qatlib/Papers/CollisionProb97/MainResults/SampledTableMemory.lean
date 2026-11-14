@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CollisionProb97.MainResults.DistinctImageTable
-import Qatlib.Papers.CollisionProb97.MainResults.ReadOnlyTable
+module
+
+public import Qatlib.Papers.CollisionProb97.MainResults.DistinctImageTable
+public import Qatlib.Papers.CollisionProb97.MainResults.ReadOnlyTable
+
+@[expose] public section
 
 /-!
 # Converting sampled records to table memory

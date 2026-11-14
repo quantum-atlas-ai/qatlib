@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.BinaryClockProjectorReadout
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.ProjectorPhysicalBudget
+module
+
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.BinaryClockProjectorReadout
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.ProjectorPhysicalBudget
+
+@[expose] public section
 
 /-!
 # Accuracy budget for the physical projector history

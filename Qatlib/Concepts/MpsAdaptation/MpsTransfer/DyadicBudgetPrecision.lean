@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecificLimits.Normed
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Positivity
+module
+
+public import Mathlib.Analysis.SpecificLimits.Normed
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Positivity
+
+@[expose] public section
 
 /-!
 # Dyadic precision for rational budgets

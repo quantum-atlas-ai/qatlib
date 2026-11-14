@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Complex.ExponentialBounds
-import Qatlib.Papers.GraphCollis12.MainResults.SourceTheorem1
+module
+
+public import Mathlib.Analysis.Complex.ExponentialBounds
+public import Qatlib.Papers.GraphCollis12.MainResults.SourceTheorem1
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -51,8 +55,8 @@ namespace Qatlib.Papers.GraphCollis12.MainResults
 **Status: statement registered as a `Prop`-valued definition; the proof is a
 substantive gap** because it depends on the unproved Chernoff/union-bound core
 `lemma8`. -/
-def theorem9 (n : ℕ) (hn : 1 ≤ n) (Q : SimpleGraph (Fin n) → ℝ)
-    (hT1 : ∃ c : ℝ, 0 < c ∧
+def theorem9 (n : ℕ) (_hn : 1 ≤ n) (Q : SimpleGraph (Fin n) → ℝ)
+    (_hT1 : ∃ c : ℝ, 0 < c ∧
       ∀ G, Q G ≤ c * (Real.sqrt (n : ℝ) + Real.sqrt (alphaStar G : ℝ))) : Prop :=
   ∃ C : ℝ, 0 < C ∧ ∀ p : ℝ, 0 < p → p ≤ 1 → ∀ t : ℝ,
     40 * (n : ℝ) * Real.log (n : ℝ) ≤ t →
@@ -78,10 +82,10 @@ the graph collision problem on `G ∼ μ_{n,p(n)}` is almost always
 
 **Status: statement registered as a `Prop`-valued definition; the proof is a
 substantive gap** because it depends on the unproved `theorem9` / `lemma8`. -/
-def corollary2 (n : ℕ) (hn : 3 ≤ n) (Q : SimpleGraph (Fin n) → ℝ)
-    (hT1 : ∃ c : ℝ, 0 < c ∧
+def corollary2 (n : ℕ) (_hn : 3 ≤ n) (Q : SimpleGraph (Fin n) → ℝ)
+    (_hT1 : ∃ c : ℝ, 0 < c ∧
       ∀ G, Q G ≤ c * (Real.sqrt (n : ℝ) + Real.sqrt (alphaStar G : ℝ)))
-    (pfun : ℕ → ℝ) (hp0 : 0 < pfun n) (hp1 : pfun n ≤ 1) : Prop :=
+    (pfun : ℕ → ℝ) (_hp0 : 0 < pfun n) (_hp1 : pfun n ≤ 1) : Prop :=
   ∃ C : ℝ, 0 < C ∧
     muPr (pfun n) (fun (G : SimpleGraph (Fin n)) =>
         C * Real.sqrt ((n : ℝ) * Real.log (n : ℝ)) < Q G) ≤

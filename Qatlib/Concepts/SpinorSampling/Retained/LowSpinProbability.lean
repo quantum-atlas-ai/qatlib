@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpinorSampling.Retained.LowSpinPlan
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Logic.Function.Basic
+module
+
+public import Qatlib.Concepts.SpinorSampling.Retained.LowSpinPlan
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Logic.Function.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

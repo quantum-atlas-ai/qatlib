@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.RationalFlow.MeanLipschitz
+module
+
+public import Qatlib.Concepts.EffectiveGauge.RationalFlow.MeanLipschitz
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -65,7 +69,7 @@ theorem spatial_partial_norm_lipschitz {E : Type*} [NormedAddCommGroup E] [Norme
     have hline := (((hasDerivAt_const t (1 : ℝ)).sub (hasDerivAt_id t)).smul_const a).add
       ((hasDerivAt_id t).smul_const b)
     have hd : HasDerivAt path (b-a) t := by
-      convert hline using 1 <;> first | rfl | simp [path,sub_eq_add_neg,add_comm]
+      convert hline using 1 <;> first | rfl | simp [sub_eq_add_neg,add_comm]
     exact ((hf.differentiable (by simp) (path t)).hasFDerivAt.comp_hasDerivAt t hd)
   have hbound (t : ℝ) (_ht : t ∈ Ico (0 : ℝ) 1) :
       ‖fderiv ℝ f (path t) (b-a)‖ ≤ D*(|a 0-b 0|+|a 1-b 1|+|a 2-b 2|) := by

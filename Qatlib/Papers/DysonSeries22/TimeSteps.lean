@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.DysonSeries22.Truncation
+module
+
+public import Qatlib.Papers.DysonSeries22.Truncation
+
+@[expose] public section
 
 /-!
 # Dyson time marching and local defects
@@ -116,7 +120,7 @@ theorem finiteMarch_residual (A : ℝ → Matrix I I ℂ) (b : ℝ → QState I)
       (Matrix.toEuclideanCLM (𝕜 := ℂ) (n := I)) (V-W) (y n) +
       (truncatedSource A b (t n) (t (n+1)) K - exactDriving A b t n) := by
     rw [map_sub]
-    simp only [ContinuousLinearMap.sub_apply]
+    simp only [_root_.sub_apply]
     abel
   rw [he]
   exact (norm_add_le _ _).trans (by

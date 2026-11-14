@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SchattenDiamond.DiamondNorm.DiamondStabilization
-import Qatlib.Concepts.QuditTeleport.TeleportCore.QuditTeleportationProtocol
-import Qatlib.Concepts.RandCompile.ChannelBudget.FiniteDiamondQdriftCore
+module
+
+public import Qatlib.Concepts.SchattenDiamond.DiamondNorm.DiamondStabilization
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.QuditTeleportationProtocol
+public import Qatlib.Concepts.RandCompile.ChannelBudget.FiniteDiamondQdriftCore
+
+@[expose] public section
 
 /-!
 # Diamond-norm stabilization and qDRIFT consumers
@@ -152,7 +156,7 @@ transpose of its outer product has trace norm `D`. -/
 theorem diamond_transpose_maximally_entangled (D : ℕ) (hD : 0 < D) :
     Normalized (maximallyEntangled D) ∧
     Matrix.traceNorm (tensorLeft (transposeMap D) (outerProduct (maximallyEntangled D))) = (D : ℝ) := by
-  letI : NeZero D := ⟨ne_of_gt hD⟩
+  let _ : NeZero D := ⟨ne_of_gt hD⟩
   have hn : Normalized (maximallyEntangled D) := quditResource_normalized D
   refine ⟨hn,?_⟩
   let W : Matrix (Fin D × Fin D) (Fin D × Fin D) ℂ := permMatrix (Equiv.prodComm _ _)

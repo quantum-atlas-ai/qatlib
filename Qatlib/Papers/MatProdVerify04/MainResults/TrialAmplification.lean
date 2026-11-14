@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Exp
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Exp
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+
+@[expose] public section
 
 /-!
 # Amplification by sixteen independent trials

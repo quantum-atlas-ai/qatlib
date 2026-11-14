@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.StoppingCore.BranchCostCore.BranchCostExecution
-import Mathlib.Tactic
+module
+
+public import Qatlib.Concepts.StoppingCore.BranchCostCore.BranchCostExecution
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Transporting retry executions and clocks

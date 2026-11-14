@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OverlapGapGoh26.UniformGrid.AmpStability
-import Qatlib.Papers.OverlapGapGoh26.UniformGrid.AdaptiveEnergy
+module
+
+public import Qatlib.Papers.OverlapGapGoh26.UniformGrid.AmpStability
+public import Qatlib.Papers.OverlapGapGoh26.UniformGrid.AdaptiveEnergy
+
+@[expose] public section
 
 /-!
 # Hölder continuity of AMP energy paths

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SdpMmwSolver.OracleError.SdpAlphaRescaleLemma2Quan
+module
+
+public import Qatlib.Concepts.SdpMmwSolver.OracleError.SdpAlphaRescaleLemma2Quan
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -88,8 +92,8 @@ Then the truncated vector `(y_1,…,y_m)` satisfies `∑ i, b i * y i ≤ opt + 
 The `(R+1) * (ylast + ∑ y)` terms cancel exactly, which is the content of
 Eq. (108). -/
 theorem lemma2_samplingConversion (m : ℕ) (b z y : Fin m → ℝ) (ylast opt R δ r : ℝ)
-    (hopt : opt = ∑ i, b i * z i)
-    (hconstraint : r ≤ ylast + ∑ i, y i)
+    (_hopt : opt = ∑ i, b i * z i)
+    (_hconstraint : r ≤ ylast + ∑ i, y i)
     (hδopt : (∑ i, b i * y i) + (R + 1) * (ylast + ∑ i, y i) ≤
       opt + (R + 1) * (ylast + ∑ i, y i) + δ) :
     ∑ i, b i * y i ≤ opt + δ := by
@@ -124,8 +128,8 @@ This chains the rescale (cancelling the `C/r`) and the sampling conversion
 Eq. (108) and the final `C/r` paragraph of Appendix A. -/
 theorem lemma2_source (m : ℕ) (b z y : Fin m → ℝ) (ylast opt R r δ : ℝ)
     (hr : 0 < r)
-    (hopt : opt = ∑ i, b i * z i)
-    (hconstraint : r ≤ ylast + ∑ i, y i)
+    (_hopt : opt = ∑ i, b i * z i)
+    (_hconstraint : r ≤ ylast + ∑ i, y i)
     (hδoptScaled :
       (((∑ i, b i * y i) + (R + 1) * (ylast + ∑ i, y i)) / r) -
         ((opt + (R + 1) * (ylast + ∑ i, y i)) / r) ≤ δ / r) :

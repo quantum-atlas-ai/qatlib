@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CryptoDisting99.Equivalence.Defs
-import Qatlib.Papers.CryptoDisting99.Equivalence.Proposition2
-import Qatlib.Papers.CryptoDisting99.Equivalence.Proposition1.HelstromAchievability
-import Qatlib.Concepts.MixedFidelity.FidelityMetric.ChannelHelpers.FinitePOVMTraceDistance
+module
+
+public import Qatlib.Papers.CryptoDisting99.Equivalence.Defs
+public import Qatlib.Papers.CryptoDisting99.Equivalence.Proposition2
+public import Qatlib.Papers.CryptoDisting99.Equivalence.Proposition1.HelstromAchievability
+public import Qatlib.Concepts.MixedFidelity.FidelityMetric.ChannelHelpers.FinitePOVMTraceDistance
+
+@[expose] public section
 
 /-!
 # Optimal quantum discrimination error

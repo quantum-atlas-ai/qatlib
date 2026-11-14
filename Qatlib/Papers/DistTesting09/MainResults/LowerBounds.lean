@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.DistTesting09.MainResults.Defs
+module
+
+public import Qatlib.Papers.DistTesting09.MainResults.Defs
+
+@[expose] public section
 
 /-!
 # Lower bound estimates for distribution testing
@@ -46,7 +50,7 @@ variable {N : ℕ}
 /-- A collision query lower bound of `c * N^(1/3)` transfers to `QC` whenever the supplied
 reduction satisfies `collQC ≤ QC`. See [Bravyi et al., 2011, Theorem
 4][BravyiHarrowHassidim2011]. -/
-theorem theorem4_orthogonality_lower_bound (N : ℕ) (c : ℝ) (hc : 0 < c)
+theorem theorem4_orthogonality_lower_bound (N : ℕ) (c : ℝ) (_hc : 0 < c)
     (QC collQC : ℝ) (hred : collQC ≤ QC)
     (hcoll : c * (N : ℝ) ^ ((1 : ℝ) / 3) ≤ collQC) :
     c * (N : ℝ) ^ ((1 : ℝ) / 3) ≤ QC := by
@@ -80,7 +84,7 @@ theorem lemma9_average_acceptance (S : ℕ) (Pacc : (Fin S → Fin S) → ℝ)
 η` when every acceptance probability is at least `2/3`. See [Bravyi et al., 2011, Lemma
 9][BravyiHarrowHassidim2011]. -/
 theorem lemma9_classical_to_sampling (S : ℕ) (Pacc : (Fin S → Fin S) → ℝ)
-    (Psamp η : ℝ) (hη : 0 ≤ η)
+    (Psamp η : ℝ) (_hη : 0 ≤ η)
     (hacc : ∀ σ, (2 : ℝ) / 3 ≤ Pacc σ)
     (hclose : |Psamp - (1 / (S.factorial : ℝ)) *
       ∑ σ : Equiv.Perm (Fin S), Pacc σ| ≤ η) :
@@ -127,12 +131,12 @@ theorem l1_hard_uniform [NeZero N] (p : Dist N)
     intro i
     rw [hp i, uniform_prob]
     by_cases h : (i : ℕ) < N / 2
-    · rw [if_pos h]
+    · rw [ite_eq_left h]
       have hdiff : (2 : ℝ) / (N : ℝ) - (N : ℝ)⁻¹ = (N : ℝ)⁻¹ := by
         field_simp
         ring
       rw [hdiff, abs_of_nonneg (by positivity)]
-    · rw [if_neg h]
+    · rw [ite_eq_right h]
       rw [zero_sub, abs_neg, abs_of_nonneg (by positivity)]
   unfold l1
   rw [Finset.sum_congr rfl (fun i _ => hterm i)]
@@ -212,7 +216,7 @@ theorem hard_moment_scaled_five (N k : ℕ) (hk : 2 ≤ k) (hN : 1 ≤ N) :
 
 /-- For positive `N` and `k ≥ 1`, the uniform moment expression is at most the hard moment
 expression. -/
-theorem unifMoment_le_hardMoment (N k : ℕ) (hN : 1 ≤ N) (hk : 1 ≤ k) :
+theorem unifMoment_le_hardMoment (N k : ℕ) (hN : 1 ≤ N) (_hk : 1 ≤ k) :
     unifMoment N k ≤ hardMoment N k := by
   have hNpos : (0:ℝ) < (N:ℝ) := by exact_mod_cast hN
   unfold unifMoment hardMoment
@@ -327,7 +331,6 @@ theorem tsum_paired_shift :
     (f := fun k : ℕ => (1:ℝ) / (((k+1) / 2).factorial : ℝ)) hS1
   have h0 : (1:ℝ) / (((0) / 2).factorial : ℝ) = 1 := by norm_num
   have h01 : (1:ℝ) / (((0+1) / 2).factorial : ℝ) = 1 := by norm_num
-  (try simp only at hA); (try simp only at hB)
   have hA' : (∑' b : ℕ, (1:ℝ) / (((b+1) / 2).factorial : ℝ)) = 2 * Real.exp 1 - 1 := by
     rw [tsum_paired_factorial, h0] at hA; linarith
   have hB' : (∑' b : ℕ, (1:ℝ) / ((((b+1)+1) / 2).factorial : ℝ)) = 2 * Real.exp 1 - 2 := by
@@ -424,8 +427,8 @@ def hardDist (N : ℕ) [NeZero N] (hN2 : 2 * (N / 2) = N) : Dist N where
   prob i := if (i:ℕ) < N / 2 then 2 / (N:ℝ) else 0
   nonneg i := by
     by_cases h : (i:ℕ) < N / 2
-    · simp only [if_pos h]; positivity
-    · simp only [if_neg h]; exact le_refl 0
+    · simp only [ite_eq_left h]; positivity
+    · simp only [ite_eq_right h]; exact le_refl 0
   sum_one := by
     have hN : (N:ℝ) ≠ 0 := Nat.cast_ne_zero.mpr (NeZero.ne N)
     have hcard := card_filter_lt N (N/2) (Nat.div_le_self N 2)
@@ -453,8 +456,8 @@ theorem moment_hard (N k : ℕ) [NeZero N] (hN2 : 2 * (N/2) = N) (hk : 1 ≤ k) 
     intro i
     show (if (i:ℕ) < N/2 then 2/(N:ℝ) else 0)^k = _
     by_cases h : (i:ℕ) < N/2
-    · simp only [if_pos h]
-    · simp only [if_neg h, zero_pow (by omega : k ≠ 0)]
+    · simp only [ite_eq_left h]
+    · simp only [ite_eq_right h, zero_pow (by omega : k ≠ 0)]
   rw [Finset.sum_congr rfl (fun i _ => hpt i)]
   rw [← Finset.sum_filter]
   rw [Finset.sum_const, hcard, nsmul_eq_mul]

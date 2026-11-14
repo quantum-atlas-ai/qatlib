@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommutLCHS26.MainResults.GeneralMPF
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
-import Mathlib.NumberTheory.Harmonic.Bounds
-import Mathlib.LinearAlgebra.Lagrange
+module
+
+public import Qatlib.Papers.CommutLCHS26.MainResults.GeneralMPF
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+public import Mathlib.NumberTheory.Harmonic.Bounds
+public import Mathlib.LinearAlgebra.Lagrange
+
+@[expose] public section
 
 /-!
 # Rounded Chebyshev nodes and interpolation weights

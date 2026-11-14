@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SearchStopping.KnownCount.Section3QueryBoundSubgoalAfas
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+module
+
+public import Qatlib.Concepts.SearchStopping.KnownCount.Section3QueryBoundSubgoal
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+
+@[expose] public section
 
 /-!
 # Grover search query upper bound

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GraphStationary.StationaryLaw
+module
+
+public import Qatlib.Concepts.GraphStationary.StationaryLaw
+
+@[expose] public section
 
 /-!
 # Dirichlet energy as squared transition differences

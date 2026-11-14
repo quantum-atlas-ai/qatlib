@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RationalScan.Step2Scan.MatrixOptimizationAlgorithmsDefs
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.FieldSimp
-import Qatlib.Concepts.RationalScan.Step2Scan.MatrixOptimizationAlgorithms
+module
+
+public import Qatlib.Concepts.RationalScan.Step2Scan.MatrixOptimizationAlgorithmsDefs
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.FieldSimp
+public import Qatlib.Concepts.RationalScan.Step2Scan.MatrixOptimizationAlgorithms
+
+@[expose] public section
 
 /-!
 # Counterexamples to frozen matrix optimization clauses
@@ -143,7 +147,7 @@ theorem not_clause16_frozen : ¬ Clause16Frozen := by
       intro l _
       have hk : k = l := Subsingleton.elim k l
       have hAx : Aext j = (1 : Operator 1) := rfl
-      rw [hk, hAx, Matrix.one_apply, if_pos rfl]
+      rw [hk, hAx, Matrix.one_apply, ite_eq_left rfl]
       exact one_ne_zero
     rw [hfilter]
     norm_num
@@ -350,7 +354,7 @@ theorem not_walkGoal_sparsify : ¬ sparsifyClauseFrozen := by
         ∑ tab : Fin 1 → Fin 2, q (tab 0) := by
       apply Finset.sum_congr rfl
       intro tab _
-      rw [if_pos (hP tab), Fin.prod_univ_one]
+      rw [ite_eq_left (hP tab), Fin.prod_univ_one]
     rw [hstep, hqsum]
   have htail : matrixHoeffdingTail 1 1 (sparsifyDeviation 1) (sparsifySummandBound 1 1)
       = Real.exp (-1 / 32) := by

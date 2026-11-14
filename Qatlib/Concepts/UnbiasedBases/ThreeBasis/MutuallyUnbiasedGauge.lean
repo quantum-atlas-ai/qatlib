@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.UnbiasedBases.ThreeBasis.MutuallyUnbiased
+module
+
+public import Qatlib.Concepts.UnbiasedBases.ThreeBasis.MutuallyUnbiased
+
+@[expose] public section
 
 /-!
 # Phase gauges for mutually unbiased bases
@@ -168,7 +172,7 @@ theorem normalize_first_row
   · intro r hr j
     change c r j * B r j a = (q : ℂ)
     dsimp [c]
-    rw [if_neg hr]
+    rw [ite_eq_right hr]
     apply alignPhase_mul hq
     rw [hq2]
     exact coordinate_normSq_of_ket_basis B hB r₀ r hzero (Ne.symm hr) a j
@@ -215,14 +219,14 @@ theorem normalize_phase_gauge
     funext i
     change (if r₀ = r₀ then (starRingEnd ℂ) (ρ j) else 1) *
       (ρ i * D r₀ j i) = Qatlib.Foundations.PureStateMath.Ket j i
-    rw [if_pos rfl, hD0 j]
+    rw [ite_eq_left rfl, hD0 j]
     by_cases hij : i = j
     · subst i
       simp [Qatlib.Foundations.PureStateMath.Ket, ← Complex.normSq_eq_conj_mul_self, hρ]
     · simp [Qatlib.Foundations.PureStateMath.Ket, hij]
   · intro r hr j
     change c r j * (ρ a * D r j a) = (q : ℂ)
-    simp only [c, if_neg hr, hρa, one_mul, hDa r hr j]
+    simp only [c, ite_eq_right hr, hρa, one_mul, hDa r hr j]
   · intro i
     change c r₁ a * (ρ i * D r₁ a i) = (q : ℂ)
     rw [show c r₁ a = 1 by simp [c, hne], one_mul]

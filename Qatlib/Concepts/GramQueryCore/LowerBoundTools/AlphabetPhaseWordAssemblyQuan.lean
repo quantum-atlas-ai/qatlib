@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GramQueryCore.LowerBoundTools.AlphabetPhaseWordAssemblyStat
-import Qatlib.Concepts.GramQueryCore.ModelSemantics.AlphabetWordSemanticsQuan
-import Qatlib.Concepts.GramQueryCore.LowerBoundTools.AlphabetWitnessGeometryQuan
-import Qatlib.Concepts.GramQueryCore.LowerBoundTools.PhaseDetectionQuan
+module
+
+public import Qatlib.Concepts.GramQueryCore.LowerBoundTools.AlphabetPhaseWordAssemblyStat
+public import Qatlib.Concepts.GramQueryCore.ModelSemantics.AlphabetWordSemanticsQuan
+public import Qatlib.Concepts.GramQueryCore.LowerBoundTools.AlphabetWitnessGeometryQuan
+public import Qatlib.Concepts.GramQueryCore.LowerBoundTools.PhaseDetectionQuan
+
+@[expose] public section
 
 /-!
 # Assembly of alphabet oracle walk words

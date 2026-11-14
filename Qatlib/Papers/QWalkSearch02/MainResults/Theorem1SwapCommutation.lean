@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QWalkSearch02.MainResults.WalkDefs
+module
+
+public import Qatlib.Papers.QWalkSearch02.MainResults.WalkDefs
+
+@[expose] public section
 
 /-!
 # Coordinate-swap symmetry of the search walk
@@ -60,7 +64,7 @@ lemma coinOp_swap {n : ℕ} (i j : Fin n) (v : FullIdx n → ℂ) :
   · have hx' : swapBits i j x ≠ zeroVec n := by
       intro h
       exact hx ((swapBits_eq_zero_iff i j x).mp h)
-    simp only [hx, hx', if_false, swapDir]
+    simp only [hx, hx', ite_false, swapDir]
 
     conv_rhs =>
       rw [← Equiv.sum_comp (Equiv.swap i j)

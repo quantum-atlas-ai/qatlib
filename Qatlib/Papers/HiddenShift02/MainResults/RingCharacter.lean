@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HiddenShift02.MainResults.FourierCore
-import Mathlib.NumberTheory.GaussSum
-import Mathlib.NumberTheory.MulChar.Lemmas
-import Mathlib.Data.Nat.Totient
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
+module
+
+public import Qatlib.Papers.HiddenShift02.MainResults.FourierCore
+public import Mathlib.NumberTheory.GaussSum
+public import Mathlib.NumberTheory.MulChar.Lemmas
+public import Mathlib.Data.Nat.Totient
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+
+@[expose] public section
 
 /-!
 # Hidden shifts of characters over finite rings
@@ -190,7 +194,7 @@ theorem algorithm_amplitude_neg (R : Type*) [CommRing R] [Fintype R] [DecidableE
     · have hunit : IsUnit y := (mulChar_apply_ne_zero_iff R χ y).mp h0
       have hshift := fourier_shift (fun z => χ z) s (ψ.mulShift y)
       rw [hshift, fourier_mulShift_char R χ ψ hunit]
-      simp only [h0, if_false, one_mul]
+      simp only [h0, ite_false, one_mul]
       rw [MulChar.inv_apply_eq_inv' χ y]
       field_simp
   have hterm_one : ∀ y : R, (ψ.mulShift y) (-s) * (ψ.mulShift y) s = 1 := by
@@ -263,8 +267,8 @@ second, their displayed product is at least (φ(n)/n)³ ([Theorem 2][VanDamHallg
 theorem source_theorem2 {n ell : ℕ} [NeZero n] [NeZero ell]
     (χ : MulChar (ZMod n) ℂ) (ψ : AddChar (ZMod n) ℂ) (s : ZMod n)
     (χ' : MulChar (ZMod ell) ℂ) (ψ' : AddChar (ZMod ell) ℂ) (s' : ZMod ell)
-    (hUn : 0 < Fintype.card (ZMod n)ˣ) (hUl : 0 < Fintype.card (ZMod ell)ˣ)
-    (hψ : ‖fourier χ ψ‖ = 1) (hψ' : ‖fourier χ' ψ'‖ = 1)
+    (_hUn : 0 < Fintype.card (ZMod n)ˣ) (hUl : 0 < Fintype.card (ZMod ell)ˣ)
+    (_hψ : ‖fourier χ ψ‖ = 1) (hψ' : ‖fourier χ' ψ'‖ = 1)
     (hmono : (Nat.totient n : ℝ) / (n : ℝ) ≤ (Nat.totient ell : ℝ) / (ell : ℝ)) :
     ((Finset.univ.filter (fun x : ZMod n => χ (x + s) ≠ 0)).card : ℝ) /
         (Fintype.card (ZMod n) : ℝ)

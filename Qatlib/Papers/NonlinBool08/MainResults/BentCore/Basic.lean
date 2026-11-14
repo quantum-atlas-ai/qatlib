@@ -4,63 +4,67 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Defs
-import Mathlib.Algebra.CharZero.Defs
-import Mathlib.Algebra.Field.Defs
-import Mathlib.Algebra.Field.ZMod
-import Mathlib.Algebra.Group.AddChar
-import Mathlib.Algebra.Group.Basic
-import Mathlib.Algebra.Group.Defs
-import Mathlib.Algebra.Group.DivInvMonoid
-import Mathlib.Algebra.Group.Even
-import Mathlib.Algebra.Group.Int.Defs
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.Group.Nat.Defs
-import Mathlib.Algebra.Group.Pi.Basic
-import Mathlib.Algebra.Group.Semigroup
-import Mathlib.Algebra.GroupWithZero.Defs
-import Mathlib.Algebra.GroupWithZero.NeZero
-import Mathlib.Algebra.NeZero
-import Mathlib.Algebra.Notation.Pi.Basic
-import Mathlib.Algebra.Notation.Pi.Defs
-import Mathlib.Algebra.Order.Group.Unbundled.Abs
-import Mathlib.Algebra.Order.Ring.Abs
-import Mathlib.Algebra.Order.Ring.Star
-import Mathlib.Algebra.Order.Star.Int
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Algebra.Ring.Int.Defs
-import Mathlib.Algebra.Ring.Nat
-import Mathlib.Algebra.Ring.Parity
-import Mathlib.Algebra.Star.Basic
-import Mathlib.Basic.FunLike.Basic
-import Mathlib.Basic.SetLike.Basic
-import Mathlib.Data.Finset.Basic
-import Mathlib.Data.Finset.Card
-import Mathlib.Data.Finset.Defs
-import Mathlib.Data.Fintype.Basic
-import Mathlib.Data.Fintype.BigOperators
-import Mathlib.Data.Fintype.Card
-import Mathlib.Data.Fintype.Defs
-import Mathlib.Data.Fintype.Pi
-import Mathlib.Data.Int.Cast.Defs
-import Mathlib.Data.Int.Order.Basic
-import Mathlib.Data.Matrix.Mul
-import Mathlib.Data.Nat.Cast.Basic
-import Mathlib.Data.Nat.Cast.Defs
-import Mathlib.Data.Nat.Init
-import Mathlib.Data.Nat.Prime.Defs
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Data.ZMod.Defs
-import Mathlib.GroupTheory.Nilpotent
-import Mathlib.GroupTheory.SpecificGroups.Cyclic
-import Mathlib.GroupTheory.SpecificGroups.Cyclic.Basic
-import Mathlib.Order.Defs.Lattice
-import Mathlib.Order.Lattice
-import Mathlib.Tactic
-import Mathlib.Tactic.NormNum.Basic
-import Mathlib.Tactic.NormNum.Result
-import Mathlib.Tactic.Push
+module
+
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Defs
+public import Mathlib.Algebra.CharZero.Defs
+public import Mathlib.Algebra.Field.Defs
+public import Mathlib.Algebra.Field.ZMod
+public import Mathlib.Algebra.Group.AddChar
+public import Mathlib.Algebra.Group.Basic
+public import Mathlib.Algebra.Group.Defs
+public import Mathlib.Algebra.Group.DivInvMonoid
+public import Mathlib.Algebra.Group.Even
+public import Mathlib.Algebra.Group.Int.Defs
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.Group.Nat.Defs
+public import Mathlib.Algebra.Group.Pi.Basic
+public import Mathlib.Algebra.Group.Semigroup
+public import Mathlib.Algebra.GroupWithZero.Defs
+public import Mathlib.Algebra.GroupWithZero.NeZero
+public import Mathlib.Algebra.NeZero
+public import Mathlib.Algebra.Notation.Pi.Basic
+public import Mathlib.Algebra.Notation.Pi.Defs
+public import Mathlib.Algebra.Order.Group.Unbundled.Abs
+public import Mathlib.Algebra.Order.Ring.Abs
+public import Mathlib.Algebra.Order.Ring.Star
+public import Mathlib.Algebra.Order.Star.Int
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Algebra.Ring.Int.Defs
+public import Mathlib.Algebra.Ring.Nat
+public import Mathlib.Algebra.Ring.Parity
+public import Mathlib.Algebra.Star.Basic
+public import Mathlib.Basic.FunLike.Basic
+public import Mathlib.Basic.SetLike.Basic
+public import Mathlib.Data.Finset.Basic
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Data.Finset.Defs
+public import Mathlib.Data.Fintype.Basic
+public import Mathlib.Data.Fintype.BigOperators
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Data.Fintype.Defs
+public import Mathlib.Data.Fintype.Pi
+public import Mathlib.Data.Int.Cast.Defs
+public import Mathlib.Data.Int.Order.Basic
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.Data.Nat.Cast.Basic
+public import Mathlib.Data.Nat.Cast.Defs
+public import Mathlib.Data.Nat.Init
+public import Mathlib.Data.Nat.Prime.Defs
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Data.ZMod.Defs
+public import Mathlib.GroupTheory.Nilpotent
+public import Mathlib.GroupTheory.SpecificGroups.Cyclic
+public import Mathlib.GroupTheory.SpecificGroups.Cyclic.Basic
+public import Mathlib.Order.Defs.Lattice
+public import Mathlib.Order.Lattice
+public import Mathlib.Tactic
+public import Mathlib.Tactic.NormNum.Basic
+public import Mathlib.Tactic.NormNum.Result
+public import Mathlib.Tactic.Push
+
+@[expose] public section
 
 /-!
 # Binary characters and the Walsh transform
@@ -131,7 +135,7 @@ lemma eps_add (a b : ZMod 2) : eps (a + b) = eps a * eps b := by
 
 /-- Negating a binary value leaves its sign character unchanged. -/
 lemma eps_neg (z : ZMod 2) : eps (-z) = eps z := by
-  rcases zmod2_cases z with rfl | rfl <;> simp [eps, neg_one_zmod2]
+  rcases zmod2_cases z with rfl | rfl <;> simp [eps]
 
 /-- The sign of a binary difference equals the sign of the corresponding sum. -/
 lemma eps_sub (a b : ZMod 2) : eps (a - b) = eps (a + b) := by
@@ -160,7 +164,7 @@ lemma dot_single {n : ℕ} (w : BVec n) (i : Fin n) (c : ZMod 2) :
   rw [dot, dotProduct, Finset.sum_eq_single i]
   · simp
   · intro j _ hj
-    simp [Pi.single_apply, hj]
+    simp [ hj]
   · intro hi
     simp at hi
 
@@ -175,7 +179,7 @@ lemma wchi_eq_zero_iff {n : ℕ} (w : BVec n) : wchi w = 0 ↔ w = 0 := by
     by_contra hw
     obtain ⟨i, hi⟩ : ∃ i, w i ≠ 0 := by
       by_contra hc
-      push_neg at hc
+      push Not at hc
       exact hw (funext fun j => hc j)
     have hw1 : w i = 1 := by
       rcases zmod2_cases (w i) with h0 | h1
@@ -210,9 +214,9 @@ lemma sum_eps_dot {n : ℕ} (v : BVec n) :
   rw [hsum, AddChar.sum_eq_ite]
   by_cases hv : v = 0
   · have hz : wchi v = 0 := (wchi_eq_zero_iff v).mpr hv
-    rw [if_pos hz, if_pos hv, card_bvec]
+    rw [ite_eq_left hz, ite_eq_left hv, card_bvec]
   · have hz : wchi v ≠ 0 := fun h => hv ((wchi_eq_zero_iff v).mp h)
-    rw [if_neg hz, if_neg hv]
+    rw [ite_eq_right hz, ite_eq_right hv]
 
 /-- The unnormalized integer Walsh coefficient obtained by summing the product of the frequency
 character and the sign of `f`. -/

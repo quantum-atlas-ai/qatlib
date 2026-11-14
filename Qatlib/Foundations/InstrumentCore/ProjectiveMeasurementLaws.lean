@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
-import Qatlib.Foundations.InstrumentCore.Measurement.MeasurementLaws
-import Qatlib.Foundations.PureStateMath.Qubit
+module
+
+public import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
+public import Qatlib.Foundations.InstrumentCore.Measurement.MeasurementLaws
+public import Qatlib.Foundations.PureStateMath.Qubit
+
+@[expose] public section
 
 /-!
 # Conservation of projective measurement mass
@@ -81,6 +85,7 @@ private theorem inner_add_right (ψ φ χ : QState I) :
   simp only [Qatlib.Foundations.PureStateMath.Inner, dotProduct, Pi.add_apply, mul_add,
       Finset.sum_add_distrib]
 
+omit [DecidableEq I] in
 /-- The real part of a state's inner product with itself is its total Born mass. -/
 private theorem inner_self_re (ψ : QState I) :
     (Inner ψ ψ).re = MeasureProb ψ Finset.univ := by

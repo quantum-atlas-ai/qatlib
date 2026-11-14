@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.GraphModelMath.SrgQuotient.Normalization
-import Mathlib.LinearAlgebra.Matrix.Hermitian
+module
+
+public import Qatlib.Foundations.GraphModelMath.SrgQuotient.Normalization
+public import Mathlib.LinearAlgebra.Matrix.Hermitian
+
+@[expose] public section
 
 /-!
 # Normalized Hamiltonians for strongly regular graph search

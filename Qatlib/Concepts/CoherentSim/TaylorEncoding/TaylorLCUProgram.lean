@@ -4,23 +4,27 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Lean.Elab.Tactic.NormCast
-import Lean.Elab.Tactic.Omega
-import Mathlib.Algebra.Lie.OfAssociative
-import Mathlib.AlgebraicTopology.SimplexCategory.Basic
-import Mathlib.Analysis.CStarAlgebra.CStarMatrix
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.LinearAlgebra.Matrix.Hermitian
-import Mathlib.Tactic.Ext
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Ring
-import Qatlib.Concepts.QspSimulation.Achievability.MatrixExponentialApproximation
-import Qatlib.Concepts.CoherentSim.CoherentOAA.RobustCoherentImplementation
-import Qatlib.Concepts.BlockEncoding.EncodingCore.PrepareUnitary
-import Qatlib.Concepts.LocalMachine.LocalTransport.ControlledQueryCircuit
+module
+
+public import Lean.Elab.Tactic.NormCast
+public import Lean.Elab.Tactic.Omega
+public import Mathlib.Algebra.Lie.OfAssociative
+public import Mathlib.AlgebraicTopology.SimplexCategory.Basic
+public import Mathlib.Analysis.CStarAlgebra.CStarMatrix
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.LinearAlgebra.Matrix.Hermitian
+public import Mathlib.Tactic.Ext
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Ring
+public import Qatlib.Concepts.QspSimulation.Achievability.MatrixExponentialApproximation
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.RobustCoherentImplementation
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.PrepareUnitary
+public import Qatlib.Concepts.LocalMachine.LocalTransport.ControlledQueryCircuit
+
+@[expose] public section
 
 /-!
 # Taylor LCU circuits with balanced coefficients
@@ -911,8 +915,10 @@ private theorem taylorBranchWord_prefix (U : J → Matrix I I ℂ) (K : ℕ) :
       rw [ih (Nat.le_of_succ_le hn) l w (Nat.le_of_succ_le hl)]
       rfl
 
-/-- Once the number of branch steps reaches the word length, the branch operator equals the full
-matrix word. -/
+ omit [Fintype J] [DecidableEq J] in
+
+ /-- Once the number of branch steps reaches the word length, the branch operator equals the full
+ matrix word. -/
 private theorem taylorBranchWord_saturated (U : J → Matrix I I ℂ) (K : ℕ) :
     ∀ (n : ℕ) (hn : n ≤ K) (l : Fin (K + 1)) (w : Fin l.val → J) (_hl : l.val ≤ n),
       taylorBranchWord U K n hn (Sum.inl ⟨l, w⟩) = taylorMatrixWord U l.val w := by
@@ -970,6 +976,8 @@ private theorem taylor_sum_matrix_words (h : J → ℝ) (U : J → Matrix I I �
           intro w _
           simp only [Matrix.smul_mul, Matrix.mul_smul, smul_smul]
         _ = _ := by rw [ih, ← Finset.sum_mul, pow_succ']
+
+omit [DecidableEq J] in
 
 /-- The sum of all padded Taylor coefficients times their branch-word operators equals the
 exponential Taylor polynomial evaluated at the weighted summand matrix. -/
@@ -1071,7 +1079,9 @@ theorem taylor_derived_matrix_exponential_remainder
       simp [pow_succ]
       ring
 
-/-- The Taylor LCU word uses exactly `K` queries and `2 * K + 3` gates. -/
+ omit [Fintype I] in
+
+ /-- The Taylor LCU word uses exactly `K` queries and `2 * K + 3` gates. -/
 theorem taylorLCUWord_counts (h : J → ℝ) (j0 : J) (τ : ℝ) (K : ℕ) :
     adjointQueryCount (taylorLCUWord (I := I) h j0 τ K) = K ∧
       adjointGateCount (taylorLCUWord (I := I) h j0 τ K) = 2 * K + 3 := by

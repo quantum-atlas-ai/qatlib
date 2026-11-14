@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QuadChar00.MainResults.Defs
+module
+
+public import Qatlib.Papers.QuadChar00.MainResults.Defs
+
+@[expose] public section
 
 /-!
 # Uniqueness of the shift in a Jacobi character
@@ -90,8 +94,8 @@ lemma shift_prime_congruent {n : ℕ} [NeZero n] (hn : Odd n) (hsq : Squarefree 
     rw [h0, mul_zero] at hmul
     omega
   have hp_ne0 : p ≠ 0 := hp.ne_zero
-  haveI : NeZero m := ⟨hm_ne0⟩
-  haveI : NeZero p := ⟨hp_ne0⟩
+  have : NeZero m := ⟨hm_ne0⟩
+  have : NeZero p := ⟨hp_ne0⟩
   have hpsq : ¬ p * p ∣ n := (Nat.squarefree_iff_prime_squarefree.mp hsq) p hp
   have hcop : p.Coprime m := by
     rw [Nat.Prime.coprime_iff_not_dvd hp]

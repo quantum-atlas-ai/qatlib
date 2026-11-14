@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.BayesianPDEAn26.LossBounds.LossDefinitions
+module
+
+public import Qatlib.Papers.BayesianPDEAn26.LossBounds.LossDefinitions
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -31,11 +35,14 @@ noncomputable section
 
 namespace Qatlib.Papers.BayesianPDEAn26.LossBounds
 
-variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℝ E]
+variable {E : Type*} [NormedAddCommGroup E] [instInnerProductSpaceRealE : InnerProductSpace ℝ E]
 
+omit instInnerProductSpaceRealE in
 /-- **Lemma 4.2** (arXiv:2608.27028v1, pp.13–14). Deterministic error of the
 physical loss from the forward-solver error `‖u_T − ũ_T‖ ≤ ε_app`. -/
-theorem physicalLoss_error_bound
+theorem physicalLoss_error_bound {E : Type*}
+    [_instNormedAddCommGroupE : NormedAddCommGroup E]
+    [_instInnerProductSpaceRealE : InnerProductSpace ℝ E]
     (uObs uT uTtilde : E) (εapp : ℝ)
     (happ : ‖uT - uTtilde‖ ≤ εapp) (hε0 : 0 ≤ εapp) :
     |physicalLoss uObs uT - physicalLoss uObs uTtilde| ≤
@@ -75,7 +82,7 @@ theorem physicalLoss_error_bound_of_close
     (uObs uT uTtilde : E) (εapp δ : ℝ)
     (happ : ‖uT - uTtilde‖ ≤ εapp)
     (hclose : ‖uT - uObs‖ ≤ δ * ‖uObs‖)
-    (hδ0 : 0 < δ) (hδ1 : δ < 1) (hε0 : 0 ≤ εapp) :
+    (_hδ0 : 0 < δ) (_hδ1 : δ < 1) (hε0 : 0 ≤ εapp) :
     |physicalLoss uObs uT - physicalLoss uObs uTtilde| ≤
       2 * δ * ‖uObs‖ * εapp + εapp ^ 2 := by
   have hmain := physicalLoss_error_bound uObs uT uTtilde εapp happ hε0

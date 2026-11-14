@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TrotterFormula.LieStrang.CommutatorProductFormula
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Foundations.PureStateMath.MixedState
-import Mathlib.Data.Nat.Bitwise
+module
+
+public import Qatlib.Concepts.TrotterFormula.LieStrang.CommutatorProductFormula
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Foundations.PureStateMath.MixedState
+public import Mathlib.Data.Nat.Bitwise
+
+@[expose] public section
 
 /-!
 # Qubit operators for the pairing Hamiltonian
@@ -50,7 +54,7 @@ def flipFun (N : ℕ) (m : Fin N) (x : Fin (2 ^ N)) : Fin (2 ^ N) :=
 theorem flipFun_involutive (N : ℕ) (m : Fin N) : Function.Involutive (flipFun N m) := by
   intro x
   apply Fin.ext
-  simp [flipFun]
+  simp [flipFun, Nat.xor_assoc]
 
 /-- Bit flips at any two positions commute. -/
 theorem flipFun_comm (N : ℕ) (m l : Fin N) :
@@ -261,10 +265,10 @@ theorem pairingHI_isHermitian (N : ℕ) (V : Fin N → Fin N → ℝ) :
   rw [Matrix.conjTranspose_sum]
   refine Finset.sum_congr rfl (fun l _ => ?_)
   by_cases hml : m < l
-  · rw [if_pos hml, Matrix.conjTranspose_smul, (pairTerm_isHermitian N (ne_of_lt hml))]
+  · rw [ite_eq_left hml, Matrix.conjTranspose_smul, (pairTerm_isHermitian N (ne_of_lt hml))]
     congr 1
     simp
-  · rw [if_neg hml]
+  · rw [ite_eq_right hml]
     simp
 
 /-- The full pairing Hamiltonian, equal to the sum of `pairingH0` and `pairingHI`. -/

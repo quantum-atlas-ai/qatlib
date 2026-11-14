@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.WordProduct
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.WordProduct
+
+@[expose] public section
 
 /-! # Coordinate-face restrictions and quaternion-linear operations on actual words -/
 set_option autoImplicit false
@@ -63,7 +67,7 @@ theorem spatialWordPartial_coordinateFace {E : Type*} [NormedAddCommGroup E] [No
     by_cases hw : j∈w
     · simp [spatialWordPartial,ih,hw]
     · have heq : (fun y => if j∈w then 0 else spatialWordPartial f w (coordinateFace j a y))=
-          (fun y => spatialWordPartial f w (coordinateFace j a y)) := by simp only [if_neg hw]
+          (fun y => spatialWordPartial f w (coordinateFace j a y)) := by simp only [ite_eq_right hw]
       simp only [spatialWordPartial,ih,heq]
       have hd := (((contDiff_spatialWordPartial f hf w).differentiable (by simp)
         (coordinateFace j a x)).hasFDerivAt).comp x (coordinateFace_hasFDerivAt j a x)

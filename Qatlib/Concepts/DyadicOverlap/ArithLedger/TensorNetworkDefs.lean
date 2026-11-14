@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MpsAdaptation.MpsTransfer.TensorNetworkExt
-import Mathlib.Data.Nat.Log
-import Mathlib.Logic.Equiv.Fin.Basic
+module
+
+public import Qatlib.Concepts.MpsAdaptation.MpsTransfer.TensorNetworkExt
+public import Mathlib.Data.Nat.Log
+public import Mathlib.Logic.Equiv.Fin.Basic
+
+@[expose] public section
 
 /-!
 # Integer tensor networks and arithmetic ledgers
@@ -281,7 +285,7 @@ def finConsEquiv {m : ℕ} {X : Type*} : (Fin (m + 1) → X) ≃ X × (Fin m →
     refine Fin.cases ?_ (fun j' => ?_) j
     · rfl
     · have hne : j'.succ ≠ 0 := Fin.succ_ne_zero _
-      simp only [dif_neg hne]
+      simp only [dite_eq_right hne]
       congr 1
   right_inv := by
     intro p
@@ -293,7 +297,7 @@ def finConsEquiv {m : ℕ} {X : Type*} : (Fin (m + 1) → X) ≃ X × (Fin m →
         intro h
         have hh := congrArg Fin.val h
         simp at hh
-      simp only [dif_neg hne]
+      simp only [dite_eq_right hne]
       congr 1
 
 /-- Contract the selected MPS matrices between zero boundary indices and return the result with
@@ -439,7 +443,7 @@ def BitLocalObs (d : ℕ) : Type := Matrix (Fin d) (Fin d) ℤ
 tensors unchanged. -/
 def bitObsMps {n d D : ℕ} (A : BitMps n d D) (z : Fin n) (O : BitLocalObs d) :
     BitMps n d D :=
-  fun i s => if h : i = z then Matrix.of fun a b => ∑ y : Fin d, O s y * A z y a b
+  fun i s => if _ : i = z then Matrix.of fun a b => ∑ y : Fin d, O s y * A z y a b
     else A i s
 
 /-- The integer overlap of `A` with the MPS obtained by applying `O` at site `z`. -/
@@ -492,27 +496,27 @@ def splitEquiv {n d : ℕ} (k : ℕ) (hk : k ≤ n) :
     intro f
     funext j
     by_cases h : j.val < k
-    · simp only [splitInv, dif_pos h]
+    · simp only [splitInv, dite_eq_left h]
     · have hle : k ≤ j.val := by omega
       have hval : k + (j.val - k) = j.val := by omega
       have heq : (⟨k + (j.val - k), by omega⟩ : Fin n) = j := by
         apply Fin.ext
         exact hval
-      simp only [splitInv, dif_neg h]
+      simp only [splitInv, dite_eq_right h]
       exact congrArg f heq
   right_inv := by
     intro p
     apply Prod.ext
     · funext j
       have hjlt : j.val < k := j.isLt
-      simp only [splitInv, dif_pos hjlt]
+      simp only [splitInv, dite_eq_left hjlt]
     · funext j
       have hjge : ¬ k + j.val < k := by omega
       have hval : k + j.val - k = j.val := by omega
       have heq : (⟨k + j.val - k, by omega⟩ : Fin (n - k)) = j := by
         apply Fin.ext
         exact hval
-      simp only [splitInv, dif_neg hjge]
+      simp only [splitInv, dite_eq_right hjge]
       exact congrArg p.2 heq
 
 /-- Fix the physical tensor choices along prefix `lo` and at the next symbol `s`, retaining the

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ProjectorQAOA26.FeasibleGap.UniformMixerSpectrum
-import Qatlib.Papers.ProjectorQAOA26.FeasibleGap.AffineGap
-import Qatlib.Papers.ProjectorQAOA26.FeasibleGap.RankOneSeparation
+module
+
+public import Qatlib.Papers.ProjectorQAOA26.FeasibleGap.UniformMixerSpectrum
+public import Qatlib.Papers.ProjectorQAOA26.FeasibleGap.AffineGap
+public import Qatlib.Papers.ProjectorQAOA26.FeasibleGap.RankOneSeparation
+
+@[expose] public section
 
 /-!
 # A global lower bound for the interpolation gap

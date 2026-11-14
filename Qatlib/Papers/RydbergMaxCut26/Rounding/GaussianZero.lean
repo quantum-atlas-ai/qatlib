@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.RydbergMaxCut26.Rounding.GaussianEndpoints
-import Mathlib.Analysis.SpecialFunctions.OrdinaryHypergeometric
+module
+
+public import Qatlib.Papers.RydbergMaxCut26.Rounding.GaussianEndpoints
+public import Mathlib.Analysis.SpecialFunctions.OrdinaryHypergeometric
+
+@[expose] public section
 
 /-!
 # The rank-three BOV kernel at zero correlation

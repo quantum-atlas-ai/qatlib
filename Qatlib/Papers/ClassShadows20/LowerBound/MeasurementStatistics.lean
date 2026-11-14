@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SdpDuality.ConeSeparation.MeasurementStatisticsDefs
-import Qatlib.Concepts.ShadowModels.SampleBudget.QuadraticShadowSourceParametersHuan
-import Qatlib.Concepts.RiskEstimation.VaRQuantile.ReadoutMedianFiniteSubgoalQuan
+module
+
+public import Qatlib.Concepts.SdpDuality.ConeSeparation.MeasurementStatisticsDefs
+public import Qatlib.Concepts.ShadowModels.SampleBudget.QuadraticShadowSourceParametersHuan
+public import Qatlib.Concepts.RiskEstimation.VaRQuantile.ReadoutMedianFiniteSubgoalQuan
+
+@[expose] public section
 
 /-!
 # Measurement statistics resource guarantees

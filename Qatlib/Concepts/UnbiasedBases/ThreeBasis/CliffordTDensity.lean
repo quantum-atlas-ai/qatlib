@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Zayn Blore, Qatlib Contributors
 -/
 
-import Qatlib.Concepts.UnbiasedBases.ThreeBasis.EulerDecomposition
-import Mathlib.FieldTheory.Minpoly.IsIntegrallyClosed
-import Mathlib.Algebra.GCDMonoid.IntegrallyClosed
-import Mathlib.Tactic.ComputeDegree
-import Mathlib.NumberTheory.Real.Irrational
-import Qatlib.Concepts.UnbiasedBases.ThreeBasis.CliffordTAngle
+module
+
+public import Qatlib.Concepts.UnbiasedBases.ThreeBasis.EulerDecomposition
+public import Mathlib.FieldTheory.Minpoly.IsIntegrallyClosed
+public import Mathlib.Algebra.GCDMonoid.IntegrallyClosed
+public import Mathlib.Tactic.ComputeDegree
+public import Mathlib.NumberTheory.Real.Irrational
+public import Qatlib.Concepts.UnbiasedBases.ThreeBasis.CliffordTAngle
+
+@[expose] public section
 
 /-!
 # Clifford-T Density in SU(2)

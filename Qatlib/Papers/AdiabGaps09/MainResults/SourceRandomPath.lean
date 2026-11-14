@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Sqrt
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.Order.Archimedean.Basic
-import Mathlib.Tactic
-import Qatlib.Papers.AdiabGaps09.MainResults.RandomPath
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Sqrt
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.Order.Archimedean.Basic
+public import Mathlib.Tactic
+public import Qatlib.Papers.AdiabGaps09.MainResults.RandomPath
+
+@[expose] public section
 
 
 set_option backward.isDefEq.respectTransparency false

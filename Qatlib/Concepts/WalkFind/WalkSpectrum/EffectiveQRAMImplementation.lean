@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkFind.SearchAlgorithm.NativeSourceDefs
-import Qatlib.Concepts.WalkFind.QRAMModel.QRAMImplementation
+module
+
+public import Qatlib.Concepts.WalkFind.SearchAlgorithm.NativeSourceDefs
+public import Qatlib.Concepts.WalkFind.QRAMModel.QRAMImplementation
+
+@[expose] public section
 
 /-!
 # From effective descriptions to QRAM implementation bounds

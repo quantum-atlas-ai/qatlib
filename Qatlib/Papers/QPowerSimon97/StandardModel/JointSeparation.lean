@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
-import Qatlib.Papers.QPowerSimon97.StandardModel.Theorem34Separation
-import Qatlib.Papers.QPowerSimon97.Recovery.NativeRetryConstructionOracle
+module
+
+public import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+public import Qatlib.Papers.QPowerSimon97.StandardModel.Theorem34Separation
+public import Qatlib.Papers.QPowerSimon97.Recovery.NativeRetryConstructionOracle
+
+@[expose] public section
 
 /-!
 # Joint quantum and classical bounds for Simon oracles
@@ -82,9 +86,9 @@ lemma simonQuantumSuccess_add_fail (n k r : ℕ)
   have hle : (simonAmplifiedReject g (n + k) r) true ≤ 1 :=
     PMF.coe_le_one (simonAmplifiedReject g (n + k) r) true
   cases b
-  · simp only [simonQuantumSuccess, simonQuantumFail, Bool.false_eq_true, if_false]
+  · simp only [simonQuantumSuccess, simonQuantumFail, Bool.false_eq_true, ite_false]
     exact tsub_add_cancel_of_le hle
-  · simp only [simonQuantumSuccess, simonQuantumFail, if_true]
+  · simp only [simonQuantumSuccess, simonQuantumFail, ite_true]
     rw [add_comm]
     exact tsub_add_cancel_of_le hle
 
@@ -145,7 +149,7 @@ theorem simonQuantumFail_decomp (n k r : ℕ) :
   apply expectation_congr
   intro s
   rw [expectation_bind, expectation_uniform_bool]
-  simp only [Bool.false_eq_true, if_false, if_true, expectation_map]
+  simp only [Bool.false_eq_true, ite_false, ite_true, expectation_map]
   rw [mul_add]
   congr 1
   congr 1
@@ -217,13 +221,13 @@ lemma expectation_uniform_zero_indicator (n : ℕ) :
       (2 ^ n : ℝ≥0∞)⁻¹ := by
   rw [expectation, tsum_fintype]
   rw [Finset.sum_eq_single (0 : BooleanVec n)]
-  · rw [if_pos rfl, mul_one, PMF.uniformOfFintype'_apply]
+  · rw [ite_eq_left rfl, mul_one, PMF.uniformOfFintype'_apply]
     have hcard : ((Fintype.card (BooleanVec n) : ℕ) : ℝ≥0∞) = (2 ^ n : ℝ≥0∞) := by
       rw [show Fintype.card (BooleanVec n) = 2 ^ n from by simp [BooleanVec, ZMod.card]]
       norm_num
     rw [hcard]
   · intro b _ hb
-    rw [if_neg hb, mul_zero]
+    rw [ite_eq_right hb, mul_zero]
   · intro h0
     exact absurd (Finset.mem_univ (0 : BooleanVec n)) h0
 
@@ -278,7 +282,7 @@ theorem simonQuantumFail_le (n k r : ℕ) (hn : 1 ≤ n) (h2 : 2 ≤ n + k) :
           (if s = (0 : BooleanVec n) then 1 else 0) := by
       by_cases hs : s = 0
       · subst hs
-        rw [if_pos rfl]
+        rw [ite_eq_left rfl]
         calc
           expectation (simonTwoToOneDist (0 : BooleanVec n))
                 (fun f => 1 - (simonAmplifiedReject f (n + k) r) true) +
@@ -295,7 +299,7 @@ theorem simonQuantumFail_le (n k r : ℕ) (hn : 1 ≤ n) (h2 : 2 ≤ n + k) :
                           ENNReal.ofReal ((3 / 4 : ℝ) ^ r) := le_add_right le_rfl
                   _ = ENNReal.ofReal ((3 / 4 : ℝ) ^ r) +
                         ENNReal.ofReal ((r : ℝ) * (1 / 2 : ℝ) ^ k) + 1 := by ac_rfl
-      · rw [if_neg hs]
+      · rw [ite_eq_right hs]
         calc
           expectation (simonTwoToOneDist s)
                 (fun f => 1 - (simonAmplifiedReject f (n + k) r) true) +

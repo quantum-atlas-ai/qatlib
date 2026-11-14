@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.Gauge
-import Mathlib.Analysis.InnerProductSpace.Calculus
-import Mathlib.Analysis.Calculus.Deriv.Star
-import Mathlib.Analysis.ODE.Gronwall
-import Mathlib.Tactic.NoncommRing
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.Gauge
+public import Mathlib.Analysis.InnerProductSpace.Calculus
+public import Mathlib.Analysis.Calculus.Deriv.Star
+public import Mathlib.Analysis.ODE.Gronwall
+public import Mathlib.Tactic.NoncommRing
+
+@[expose] public section
 
 /-!
 # Conditional correctness of the actual horizontal-coordinate ODE

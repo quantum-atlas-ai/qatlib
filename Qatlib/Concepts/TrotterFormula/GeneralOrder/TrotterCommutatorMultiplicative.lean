@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorCoreDefs
-import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+module
+
+public import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorCoreDefs
+public import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+
+@[expose] public section
 
 /-!
 # Multiplicative defects of product formulas
@@ -97,7 +101,7 @@ theorem suzuki_multiplicative_representation {I : Type} [Fintype I]
 /-- A matrix exponential multiplied by its ring inverse is the identity. -/
 theorem exp_mul_inverse_cancel {I : Type} [Fintype I] (H : Matrix I I ℂ) (t : ℝ) :
     NormedSpace.exp (t • H) * Ring.inverse (NormedSpace.exp (t • H)) = 1 := by
-  letI : NormedAlgebra ℚ (Matrix I I ℂ) := NormedAlgebra.restrictScalars ℚ ℝ _
+  let : NormedAlgebra ℚ (Matrix I I ℂ) := NormedAlgebra.restrictScalars ℚ ℝ _
   exact Ring.mul_inverse_cancel _ (NormedSpace.isUnit_exp (t • H))
 
 /-- The segmented word product factors as the target exponential multiplied by one plus its
@@ -161,7 +165,7 @@ theorem segmentMultiplicativeDefect_eq_inverse_mul_sub
     segmentMultiplicativeDefect xs H t r =
       Ring.inverse (NormedSpace.exp (t • H)) *
         ((segmentWord xs t r).prod - NormedSpace.exp (t • H)) := by
-  letI : NormedAlgebra ℚ (Matrix I I ℂ) := NormedAlgebra.restrictScalars ℚ ℝ _
+  let : NormedAlgebra ℚ (Matrix I I ℂ) := NormedAlgebra.restrictScalars ℚ ℝ _
   have hmul : Ring.inverse (NormedSpace.exp (t • H)) * NormedSpace.exp (t • H) = 1 :=
     Ring.inverse_mul_cancel _ (NormedSpace.isUnit_exp (t • H))
   unfold segmentMultiplicativeDefect
@@ -178,7 +182,7 @@ theorem segmentMultiplicativeDefect_norm_le
       (p.factorial : ℝ) * pfCommAlphaSelf xs (p + 1) * |t| ^ (p + 1) /
         (((p + 1).factorial : ℝ) * (r : ℝ) ^ p) *
         Real.exp (4 * |t| * (suzukiMass xs + ‖H‖) + |t| * ‖H‖) := by
-  letI : NormedAlgebra ℚ (Matrix I I ℂ) := NormedAlgebra.restrictScalars ℚ ℝ _
+  let : NormedAlgebra ℚ (Matrix I I ℂ) := NormedAlgebra.restrictScalars ℚ ℝ _
   have hinv : Ring.inverse (NormedSpace.exp (t • H)) = NormedSpace.exp (-(t • H)) :=
     Ring.inverse_exp (t • H)
   have hnorm : ‖Ring.inverse (NormedSpace.exp (t • H))‖ ≤ Real.exp (|t| * ‖H‖) := by

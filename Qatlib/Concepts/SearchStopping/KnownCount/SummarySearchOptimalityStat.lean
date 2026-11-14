@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SearchStopping.KnownCount.Section3QueryBoundSubgoalStat
-import Qatlib.Concepts.SearchStopping.KnownCount.Section6LowerBoundSubgoalStat
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.Complexity
-import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
+module
+
+public import Qatlib.Concepts.SearchStopping.KnownCount.Section3QueryBoundSubgoalStat
+public import Qatlib.Concepts.SearchStopping.KnownCount.Section6LowerBoundSubgoalStat
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.Complexity
+public import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
+
+@[expose] public section
 
 /-!
 # Search optimality contract

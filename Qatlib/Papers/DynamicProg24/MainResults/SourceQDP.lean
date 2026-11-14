@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.DynamicProg24.MainResults.SourceModel
+module
+
+public import Qatlib.Papers.DynamicProg24.MainResults.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -37,7 +41,7 @@ emulated iterate to the fixed point, each step adding at most `η` over the exac
 `δ (n+1) ≤ h (δ n) + η`.  Then `δ N ≤ h^[N] (δ 0) + η / (1 - r)`.
 
 This is the quantitative core of Theorem 9 used at every level of the paper's nesting. -/
-theorem accumulated_error_le {h : ℝ → ℝ} {r : ℝ} (hr0 : 0 ≤ r) (hr1 : r < 1)
+theorem accumulated_error_le {h : ℝ → ℝ} {r : ℝ} (_hr0 : 0 ≤ r) (hr1 : r < 1)
     (hmono : Monotone h)
     (hlip : ∀ x e : ℝ, 0 ≤ e → h (x + e) ≤ h x + r * e)
     (δ : ℕ → ℝ) {η : ℝ} (hη : 0 ≤ η)
@@ -101,7 +105,6 @@ theorem theorem9_epsilon_depth {K r ε : ℝ} (hε : 0 < ε) (hr1 : r < 1) (N : 
   have hN : ((N : ℝ) + 1) ≠ 0 := by positivity
   have hεr : ε * (1 - r) ≠ 0 := mul_ne_zero hε.ne' (by linarith)
   field_simp
-  try ring
 
 /-- Theorem 12 (arXiv:2403.09187, p. 18, Eq. (S55)): *efficient QDP for pure states*.
 
@@ -119,8 +122,8 @@ theorem theorem12_pure_state_qdp {d : ℕ}
     (τ : Matrix (Fin d) (Fin d) ℂ) (h : ℝ → ℝ) {r : ℝ}
     (hFSC : FastSpectralConvergence U τ h r)
     (hmono : Monotone h)
-    {ε pth : ℝ} (hε0 : 0 < ε) (hε23 : ε < 2 / 3) (hpth0 : 0 < pth) (hpth1 : pth < 1)
-    (ψ : ℕ → Matrix (Fin d) (Fin d) ℂ) (hpure0 : ψ 0 * ψ 0 = ψ 0)
+    {ε pth : ℝ} (hε0 : 0 < ε) (_hε23 : ε < 2 / 3) (_hpth0 : 0 < pth) (_hpth1 : pth < 1)
+    (ψ : ℕ → Matrix (Fin d) (Fin d) ℂ) (_hpure0 : ψ 0 * ψ 0 = ψ 0)
     (hstep : ∀ n : ℕ,
       traceDistance (ψ (n + 1)) τ ≤ h (traceDistance (ψ n) τ) + ε * (1 - r))
     (K : ℝ) (N : ℕ) :

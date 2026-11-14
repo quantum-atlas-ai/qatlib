@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SearchStopping.Gate.Section6SourceGateSubgoalTigh
-import Qatlib.Concepts.SearchStopping.GroverSuccess.Section2HalfIterationsSubgoalTigh
-import Qatlib.Foundations.PureStateMath.BornBridge.BornDistribution
-import Qatlib.Concepts.FairRandomBits.GeometricRetry
+module
+
+public import Qatlib.Concepts.SearchStopping.Gate.Section6SourceGateSubgoal
+public import Qatlib.Concepts.SearchStopping.GroverSuccess.Section2HalfIterationsSubgoal
+public import Qatlib.Foundations.PureStateMath.BornBridge.BornDistribution
+public import Qatlib.Concepts.FairRandomBits.GeometricRetry
+
+@[expose] public section
 
 /-!
 # Circuits and transitions for paid Grover restarts

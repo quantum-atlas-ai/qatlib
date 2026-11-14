@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Trainability23.VarianceScaling.CorrelationMass
-import Mathlib.Analysis.SpecialFunctions.Exp
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+module
+
+public import Qatlib.Papers.Trainability23.VarianceScaling.CorrelationMass
+public import Mathlib.Analysis.SpecialFunctions.Exp
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+
+@[expose] public section
 
 /-!
 # Bandwidth bounds for correlation variance

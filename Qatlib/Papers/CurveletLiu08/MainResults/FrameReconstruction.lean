@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.LinearMap
-import Mathlib.MeasureTheory.Integral.Bochner.ContinuousLinearMap
+module
+
+public import Mathlib.Analysis.InnerProductSpace.LinearMap
+public import Mathlib.MeasureTheory.Integral.Bochner.ContinuousLinearMap
+
+@[expose] public section
 
 /-!
 # Curvelet frame reconstruction
@@ -84,6 +88,7 @@ theorem curvelet_reconstruction (V : Submodule ℝ H) (μ : Measure I) (v : I �
     rw [inner_sub_left, hpair _ hxV, sub_self]
   exact sub_eq_zero.mp hx0
 
+omit [CompleteSpace H] in
 /-- For a vector in the frame subspace, the integral of squared coefficients equals its squared
 norm under `IsCurveletFrame`. See [Liu2009]. -/
 theorem curvelet_parseval (V : Submodule ℝ H) (μ : Measure I) (v : I → H)

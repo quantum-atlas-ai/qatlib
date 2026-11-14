@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.FermLinOpt04.MainResults.Model.GaussianMap
-import Qatlib.Concepts.MpsAdaptation.MpsTransfer.FermionMatchgateConjugation
+module
+
+public import Qatlib.Papers.FermLinOpt04.MainResults.Model.GaussianMap
+public import Qatlib.Concepts.MpsAdaptation.MpsTransfer.FermionMatchgateConjugation
+
+@[expose] public section
 
 /-!
 # Parity closure for Gaussian operators

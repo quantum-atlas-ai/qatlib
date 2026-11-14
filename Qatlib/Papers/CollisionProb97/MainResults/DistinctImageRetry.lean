@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
-import Qatlib.Concepts.FairRandomBits.GeometricRetry
-import Mathlib.Probability.Distributions.Uniform
-import Mathlib.Tactic
+module
+
+public import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+public import Qatlib.Concepts.FairRandomBits.GeometricRetry
+public import Mathlib.Probability.Distributions.Uniform
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Retrying for a new image value

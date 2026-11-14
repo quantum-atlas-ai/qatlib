@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Real.Basic
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.Positivity
+module
+
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.Positivity
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -59,7 +63,7 @@ theorem lemma17_kappa_ratio (xi Mprime nu eta : ℝ)
 
 /-- **Lemma 17, the `ε/32` bound** (Eq. I.51 with `ξ = ε/32`): the no-case
 count is at most `(1 - ε/32)` times the yes-case lower count. -/
-theorem lemma17_kappa_gap (eps Mprime nu eta : ℝ) (heps : 0 ≤ eps)
+theorem lemma17_kappa_gap (eps Mprime nu eta : ℝ) (_heps : 0 ≤ eps)
     (hbase : 0 < (1 - eps / 32) * Mprime * (nu - eta)) :
     ((1 - eps / 32) ^ 2 * Mprime * (nu - eta)) / ((1 - eps / 32) * Mprime * (nu - eta)) =
       1 - eps / 32 :=
@@ -69,7 +73,7 @@ theorem lemma17_kappa_gap (eps Mprime nu eta : ℝ) (heps : 0 ≤ eps)
 `[κ, (1+O(ε))κ]` and the no-case count is at most `κ′`, then for
 `κ′ ≤ (1-ε/32)κ` the gap is at least `ε/32·κ`; this is the form used by the
 `R = 64ακ/ε` choice in the proof of Theorem 8. -/
-theorem lemma17_counting_gap (eps kappa kappa' : ℝ) (heps : 0 ≤ eps)
+theorem lemma17_counting_gap (eps kappa kappa' : ℝ) (_heps : 0 ≤ eps)
     (h : kappa' ≤ (1 - eps / 32) * kappa) :
     eps / 32 * kappa ≤ kappa - kappa' := by
   linarith

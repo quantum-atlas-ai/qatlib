@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.FiniteLaws.FiniteMaximumLikelihood
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.GroupTheory.FiniteAbelian.Duality
-import Mathlib.RingTheory.RootsOfUnity.AlgebraicallyClosed
-import Mathlib.Analysis.Complex.Polynomial.Basic
+module
+
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.FiniteLaws.FiniteMaximumLikelihood
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.GroupTheory.FiniteAbelian.Duality
+public import Mathlib.RingTheory.RootsOfUnity.AlgebraicallyClosed
+public import Mathlib.Analysis.Complex.Polynomial.Basic
+
+@[expose] public section
 
 /-!
 # Sample identification and finite abelian characters
@@ -85,9 +89,9 @@ theorem borel_hsp_efficient (m : ℕ) (hq : 3 ≤ m + 1)
     intro c x
     rw [hlawR c x]
     by_cases hx : x = c
-    · rw [if_pos hx, show (1 : ℝ) - 1 / r = (r - 1) / r by field_simp]
+    · rw [ite_eq_left hx, show (1 : ℝ) - 1 / r = (r - 1) / r by field_simp]
       exact div_pos hr1 hr0
-    · rw [if_neg hx]; exact div_pos (by norm_num) hden
+    · rw [ite_eq_right hx]; exact div_pos (by norm_num) hden
 
   have hpSne : (1 : ℝ) - 1 / r ≠ 0 := by
     have h : (1 : ℝ) - 1 / r = (r - 1) / r := by field_simp
@@ -109,12 +113,12 @@ theorem borel_hsp_efficient (m : ℕ) (hq : 3 ≤ m + 1)
     rw [hlawR c x, hlawR truth x]
     by_cases hxc : x = c
     · have hxt : ¬ (x = truth) := by rw [hxc]; exact hc
-      simp only [if_pos hxc, if_neg hxt]
+      simp only [ite_eq_left hxc, ite_eq_right hxt]
       linarith [hdiff]
     · by_cases hxt : x = truth
-      · simp only [if_neg hxc, if_pos hxt]
+      · simp only [ite_eq_right hxc, ite_eq_left hxt]
         linarith [hdiff']
-      · simp only [if_neg hxc, if_neg hxt]
+      · simp only [ite_eq_right hxc, ite_eq_right hxt]
         ring
 
   have hmeanVal : ∀ (c truth : Fin (m + 1)), c ≠ truth →
@@ -122,9 +126,9 @@ theorem borel_hsp_efficient (m : ℕ) (hq : 3 ≤ m + 1)
         (fun x => Real.log ((law c).prob x) - Real.log ((law truth).prob x)) = -D := by
     intro c truth hc
     have hPc : (law truth).prob c = 1 / (r * (r - 1)) := by
-      rw [hlawR truth c, if_neg hc]
+      rw [hlawR truth c, ite_eq_right hc]
     have hPt : (law truth).prob truth = 1 - 1 / r := by
-      rw [hlawR truth truth, if_pos rfl]
+      rw [hlawR truth truth, ite_eq_left rfl]
     have hDS : 1 / (r * (r - 1)) - (1 - 1 / r) = -R := by
       rw [hR]
       have h : (1 : ℝ) - 1 / r = (r - 1) / r := by field_simp
@@ -132,16 +136,16 @@ theorem borel_hsp_efficient (m : ℕ) (hq : 3 ≤ m + 1)
     have hSumC : ∑ x : Fin (m + 1),
         (law truth).prob x * (if x = c then 2 * L else 0) = (law truth).prob c * (2 * L) := by
       rw [Finset.sum_eq_single (a := c)
-        (fun x _ hx => by rw [if_neg hx, mul_zero])
+        (fun x _ hx => by rw [ite_eq_right hx, mul_zero])
         (fun hx => absurd (Finset.mem_univ c) hx)]
-      rw [if_pos rfl]
+      rw [ite_eq_left rfl]
     have hSumT : ∑ x : Fin (m + 1),
         (law truth).prob x * (if x = truth then -(2 * L) else 0) =
         (law truth).prob truth * (-(2 * L)) := by
       rw [Finset.sum_eq_single (a := truth)
-        (fun x _ hx => by rw [if_neg hx, mul_zero])
+        (fun x _ hx => by rw [ite_eq_right hx, mul_zero])
         (fun hx => absurd (Finset.mem_univ truth) hx)]
-      rw [if_pos rfl]
+      rw [ite_eq_left rfl]
     rw [FinDist.expect]
     calc ∑ x, (law truth).prob x *
             (Real.log ((law c).prob x) - Real.log ((law truth).prob x))
@@ -253,14 +257,14 @@ theorem borel_hsp_efficient (m : ℕ) (hq : 3 ≤ m + 1)
               ∨ (if x = c then 2 * L else 0) + (if x = truth then -(2 * L) else 0) = 0 := by
             by_cases hxc : x = c
             · left
-              rw [if_pos hxc, if_neg (by rw [hxc]; exact hc)]
+              rw [ite_eq_left hxc, ite_eq_right (by rw [hxc]; exact hc)]
               ring
             · by_cases hxt : x = truth
               · right; left
-                rw [if_neg hxc, if_pos hxt]
+                rw [ite_eq_right hxc, ite_eq_left hxt]
                 ring
               · right; right
-                rw [if_neg hxc, if_neg hxt]
+                rw [ite_eq_right hxc, ite_eq_right hxt]
                 ring
           rcases hval with h | h | h <;> rw [h] <;> constructor <;> linarith [hLpos]
 
@@ -284,10 +288,10 @@ theorem characters_separate_points (A : Type*) [CommGroup A] [Fintype A]
     ∀ a b : A, a ≠ b → ∃ χ : A →* ℂˣ, χ a ≠ χ b := by
 
   intro a b hab
-  haveI : Finite A := Finite.of_fintype A
-  haveI : NeZero (Monoid.exponent A) :=
+  have : Finite A := Finite.of_fintype A
+  have : NeZero (Monoid.exponent A) :=
     ⟨Monoid.exponent_ne_zero_of_finite⟩
-  haveI : HasEnoughRootsOfUnity ℂ (Monoid.exponent A) :=
+  have : HasEnoughRootsOfUnity ℂ (Monoid.exponent A) :=
     IsSepClosed.hasEnoughRootsOfUnity ℂ (Monoid.exponent A)
   by_contra h
   simp only [not_exists, not_not] at h

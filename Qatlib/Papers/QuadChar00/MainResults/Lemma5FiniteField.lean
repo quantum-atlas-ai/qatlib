@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QuadChar00.MainResults.Defs
-import Mathlib.NumberTheory.GaussSum
-import Mathlib.NumberTheory.LegendreSymbol.QuadraticChar.GaussSum
-import Mathlib.FieldTheory.Finite.Trace
+module
+
+public import Qatlib.Papers.QuadChar00.MainResults.Defs
+public import Mathlib.NumberTheory.GaussSum
+public import Mathlib.NumberTheory.LegendreSymbol.QuadraticChar.GaussSum
+public import Mathlib.FieldTheory.Finite.Trace
+
+@[expose] public section
 
 /-!
 # Quadratic Gauss sums over finite fields

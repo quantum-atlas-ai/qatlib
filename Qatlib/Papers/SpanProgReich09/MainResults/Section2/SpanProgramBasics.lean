@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Papers.SpanProgReich09.MainResults.Definitions.SpanProgramModel
-import Mathlib.Analysis.InnerProductSpace.Projection.FiniteDimensional
+module
+
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Papers.SpanProgReich09.MainResults.Definitions.SpanProgramModel
+public import Mathlib.Analysis.InnerProductSpace.Projection.FiniteDimensional
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

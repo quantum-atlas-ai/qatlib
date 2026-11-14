@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SemidirectHSP05.MainResults.MatrixSumCount.AppendixB
-import Qatlib.Papers.SemidirectHSP05.MainResults.SuccessProbability.Lemma2
+module
+
+public import Qatlib.Papers.SemidirectHSP05.MainResults.MatrixSumCount.AppendixB
+public import Qatlib.Papers.SemidirectHSP05.MainResults.SuccessProbability.Lemma2
+
+@[expose] public section
 
 /-!
 # A constant success bound for the vector-space case
@@ -39,7 +43,7 @@ theorem theorem6_success_ge_sixteenth (p r : ℕ) (hp : p.Prime) [NeZero p] :
       SuccessProbability.pgmSuccess p r
         (fun x w => (MatrixSumCount.solutions p r x w).card) := by
   classical
-  haveI : Fact p.Prime := ⟨hp⟩
+  have : Fact p.Prime := ⟨hp⟩
 
   have hcount : ∀ x : Fin r → Fin r → ZMod p,
       ∑ w : Fin r → ZMod p, (MatrixSumCount.solutions p r x w).card = p ^ r := by

@@ -4,8 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.BinaryClockProjectorAccuracy
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.RationalMultiSourceAE
+module
+
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.BinaryClockProjectorAccuracy
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.RationalMultiSourceAE
+
+@[expose] public section
+set_option linter.unusedSectionVars false
 
 /-!
 # Paid purification and history-state initialization

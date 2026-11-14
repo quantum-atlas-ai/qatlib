@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OneWayDanos05.MainResults.FlowRewrite
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowCore
+module
+
+public import Qatlib.Papers.OneWayDanos05.MainResults.FlowRewrite
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowCore
+
+@[expose] public section
 
 /-!
 # Outcome-dependent corrections in the paper convention
@@ -62,17 +66,17 @@ theorem paperCorrection_pauliWire (G : MbqcGraph n) (f : Fin n → Option (Fin n
     MbqcPauliWire (paperCorrection G f s u) := by
   unfold paperCorrection
   by_cases hx : ∃ v : Fin n, s v = true ∧ f v = some u
-  · rw [if_pos hx]
+  · rw [ite_eq_left hx]
     by_cases hz : Odd (zContributors G f s u).card
-    · rw [if_pos hz]
+    · rw [ite_eq_left hz]
       exact Or.inr (Or.inr (Or.inr rfl))
-    · rw [if_neg hz, mul_one]
+    · rw [ite_eq_right hz, mul_one]
       exact Or.inr (Or.inl rfl)
-  · rw [if_neg hx, one_mul]
+  · rw [ite_eq_right hx, one_mul]
     by_cases hz : Odd (zContributors G f s u).card
-    · rw [if_pos hz]
+    · rw [ite_eq_left hz]
       exact Or.inr (Or.inr (Or.inl rfl))
-    · rw [if_neg hz]
+    · rw [ite_eq_right hz]
       exact Or.inl rfl
 
 /-- If flow successors and their other neighbors are later in `prec`, the paper-convention

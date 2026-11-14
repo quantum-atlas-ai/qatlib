@@ -4,21 +4,25 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Lean.Elab.Tactic.NormCast
-import Lean.Elab.Tactic.Omega
-import Mathlib.Algebra.BigOperators.Field
-import Mathlib.Analysis.Complex.Exponential
-import Mathlib.Analysis.RCLike.Basic
-import Mathlib.Algebra.Order.Star.Real
-import Mathlib.Probability.ProbabilityMassFunction.Constructions
-import Mathlib.Tactic.Convert
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.SimpRw
-import Mathlib.Tactic.SplitIfs
-import Qatlib.Concepts.SketchArith.TransposeAccess.FinDistTransport
-import Qatlib.Concepts.StoppingCore.BranchCostCore.GeneralUnboundedExecution
+module
+
+public import Lean.Elab.Tactic.NormCast
+public import Lean.Elab.Tactic.Omega
+public import Mathlib.Algebra.BigOperators.Field
+public import Mathlib.Analysis.Complex.Exponential
+public import Mathlib.Analysis.RCLike.Basic
+public import Mathlib.Algebra.Order.Star.Real
+public import Mathlib.Probability.ProbabilityMassFunction.Constructions
+public import Mathlib.Tactic.Convert
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.SimpRw
+public import Mathlib.Tactic.SplitIfs
+public import Qatlib.Concepts.SketchArith.TransposeAccess.FinDistTransport
+public import Qatlib.Concepts.StoppingCore.BranchCostCore.GeneralUnboundedExecution
+
+@[expose] public section
 
 /-!
 # Native weighted coefficient selection
@@ -218,7 +222,7 @@ theorem closure_positive_rate {τ : ℕ} (q : Fin τ → ℝ) (hnn : ∀ t, 0 �
     nlinarith
   · exact (div_le_one hden).mpr hb.2.2.2
   · intro t
-    simp only [closureAccept, if_neg hC.ne']
+    simp only [closureAccept, ite_eq_right hC.ne']
     exact ⟨div_nonneg (hnn t) hC.le, (div_le_one hC).mpr (hb.2.1 t)⟩
 
 /-- For nonzero scale `C`, the probability of selecting `t` in one attempt is the uniform
@@ -227,7 +231,7 @@ private theorem closureChoiceNext_inl {τ : ℕ} (rand : ClosureNativeRandom)
     (q : Fin τ → ℝ) (C : ℝ) (hC : C ≠ 0) (t : Fin τ) :
     closureChoiceNext rand q C () (.inl t) =
       closurePMF (rand.uniform τ) (some t)*closurePMF (rand.coin (q t/C)) true := by
-  simp [closureChoiceNext, if_neg hC, PMF.bind_apply, PMF.map_apply,
+  simp [closureChoiceNext, ite_eq_right hC, PMF.bind_apply, PMF.map_apply,
     tsum_fintype, Fintype.sum_option, eq_comm]
 
 /-- The real values of a PMF on a finite type sum to one. -/
@@ -333,7 +337,7 @@ private theorem closure_run_pending {O : Type} [Fintype O]
   | zero => simp [RandomizedExecution.runFor_zero, Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.event_ret]
   | succ T ih =>
     rw [closure_run_event_step next T (fun c => c = .inr ())]
-    simp only [Sum.inl_ne_inr, if_false, mul_zero, Finset.sum_const_zero, zero_add, ih]
+    simp only [Sum.inl_ne_inr, ite_false, mul_zero, Finset.sum_const_zero, zero_add, ih]
     rw [pow_succ']
 
 /-- The probability of output `o` within `T` single-state attempts is its one-step halting
@@ -348,7 +352,7 @@ private theorem closure_run_halt {O : Type} [Fintype O] [DecidableEq O]
   | succ T ih =>
     rw [closure_run_event_step next T (fun c => c = .inl o), ih, geom_sum_succ]
     simp only [Sum.inl.injEq, mul_ite, mul_one, mul_zero,
-      Finset.sum_ite_eq', Finset.mem_univ, if_true]
+      Finset.sum_ite_eq', Finset.mem_univ, ite_true]
     ring
 
 /-- The general pending mass for a single-state transition equals the `T`th power of its
@@ -443,17 +447,17 @@ private theorem closure_unbounded_event {O : Type} [Fintype O] [DecidableEq O]
   unfold Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation
   rw [closure_tsum_option_split]
   have hnone : ¬∃ k : ℕ, (none : Option (O × ℕ)) = some (o,k) := by simp
-  simp only [if_neg hnone, mul_zero, zero_add]
+  simp only [ite_eq_right hnone, mul_zero, zero_add]
   rw [tsum_prod_type']
   have hsome (j : O) (k : ℕ) : (∃ k', some (j,k) = some (o,k')) ↔ j = o := by simp
   apply (tsum_eq_single o (fun j hj => ?_)).trans
   · apply tsum_congr
     intro k
-    rw [if_pos (by exact ⟨k,rfl⟩), mul_one]
+    rw [ite_eq_left (by exact ⟨k,rfl⟩), mul_one]
     rfl
   · apply ENNReal.tsum_eq_zero.mpr
     intro k
-    rw [if_neg (fun h => hj ((hsome j k).mp h)), mul_zero]
+    rw [ite_eq_right (fun h => hj ((hsome j k).mp h)), mul_zero]
 
 /-- When nontermination has zero mass, the expected recorded stopping time of the unbounded law
 equals `generalUnboundedTime`. -/
@@ -551,13 +555,13 @@ theorem native_coefficient_choice_joint_halt_and_cost (τ : ℕ) (rand : Closure
     rw [ht.1]
     exact (ENNReal.ofReal_le_ofReal hinv).trans_eq (by simp)
   have hfinite : (Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectedCost (closureChoiceRun rand q T)) ≤ (τ : ℝ≥0∞) := by
-    rw [closureChoiceRun, if_neg hC.ne',
+    rw [closureChoiceRun, ite_eq_right hC.ne',
       (general_unbounded_actual_expected_time Unit (Fin τ) next (.inr ())).2.2]
     exact (ENNReal.sum_le_tsum _).trans htimebound
   refine ⟨?_, ?_, ?_, ?_, ?_, ht.2.1, ?_, ?_, ?_⟩
-  · rw [closureChoiceRun, if_neg hC.ne', closure_run_pending, ENNReal.toReal_pow, hr]
+  · rw [closureChoiceRun, ite_eq_right hC.ne', closure_run_pending, ENNReal.toReal_pow, hr]
   · intro t
-    rw [closureChoiceRun, if_neg hC.ne', closure_run_halt, ENNReal.toReal_mul,
+    rw [closureChoiceRun, ite_eq_right hC.ne', closure_run_halt, ENNReal.toReal_mul,
       hstep.2.2.2.1 t]
     rw [ENNReal.toReal_sum (fun k _ => ne_of_lt (lt_of_le_of_lt
       (pow_le_one' ((next ()).coe_le_one (.inr ())) k) ENNReal.one_lt_top))]
@@ -567,7 +571,7 @@ theorem native_coefficient_choice_joint_halt_and_cost (τ : ℕ) (rand : Closure
     have hrnext : (next () (.inr ())).toReal = 1-closureRate q := hr
     simp_rw [hrnext]
     rw [geom_sum_eq (by linarith : 1-closureRate q ≠ 1) T]
-    rw [closureSuccess, if_neg hC.ne']
+    rw [closureSuccess, ite_eq_right hC.ne']
     unfold closureRate
     field_simp [hs.ne', hC.ne', hτ.ne']
     ring
@@ -583,7 +587,7 @@ theorem native_coefficient_choice_joint_halt_and_cost (τ : ℕ) (rand : Closure
         have hmul := mul_le_mul_of_nonneg_left hstep.2.1.1 (Nat.cast_nonneg T)
         simp only [div_eq_mul_inv, one_mul] at hmul ⊢
         nlinarith
-  · rw [closureChoiceRun, if_neg hC.ne']
+  · rw [closureChoiceRun, ite_eq_right hC.ne']
     exact RandomizedExecution.runFor_bounded next T (.inr ())
   · intro t
     unfold closureChoiceUnbounded
@@ -736,7 +740,7 @@ theorem closureUnboundedDraw_native_calls {τ : ℕ} {X : Type} [Fintype X] [Dec
   rw [hfun]
   unfold Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation
   rw [closure_tsum_option_split]
-  simp only [if_true, mul_zero, Option.some_ne_none, if_false, mul_one, zero_add]
+  simp only [ite_true, mul_zero, Option.some_ne_none, ite_false, mul_one, zero_add]
   exact hsum
 
 /-- The product of an event probability and a converted native sample probability is finite. -/

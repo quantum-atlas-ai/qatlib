@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Combinatorics.SimpleGraph.Clique
-import Mathlib.Combinatorics.SimpleGraph.Finite
-import Mathlib.Data.Sym.Card
-import Mathlib.Data.Finset.Sym
-import Mathlib.Data.Fintype.Powerset
-import Mathlib.Data.Fintype.Card
+module
+
+public import Mathlib.Combinatorics.SimpleGraph.Clique
+public import Mathlib.Combinatorics.SimpleGraph.Finite
+public import Mathlib.Data.Sym.Card
+public import Mathlib.Data.Finset.Sym
+public import Mathlib.Data.Fintype.Powerset
+public import Mathlib.Data.Fintype.Card
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -51,7 +55,6 @@ def graphOfEdgeFinset [DecidableEq V] (E : Finset (Sym2 V))
     (hE : ∀ e ∈ E, ¬ e.IsDiag) : SimpleGraph V where
   Adj u v := s(u, v) ∈ E
   symm := ⟨fun u v huv => by
-    change s(v, u) ∈ E
     rwa [Sym2.eq_swap]⟩
   loopless := ⟨fun v hv => hE s(v, v) hv (Sym2.mk_isDiag_iff.mpr rfl)⟩
 

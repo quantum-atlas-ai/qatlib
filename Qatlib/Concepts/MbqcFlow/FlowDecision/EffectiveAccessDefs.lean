@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MbqcFlow.FlowDecision.FiniteDataAccess
-import Qatlib.Concepts.TableAccess.LookupCompile.FiniteTableAccess
-import Qatlib.Concepts.BlockEncoding.Postselection
+module
+
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.FiniteDataAccess
+public import Qatlib.Concepts.TableAccess.LookupCompile.FiniteTableAccess
+public import Qatlib.Concepts.BlockEncoding.Postselection
+
+@[expose] public section
 
 /-!
 # Certified amplitude tables and access accounting
@@ -200,8 +204,8 @@ def QramContract.totalCharge {D : ℕ} (c : QramContract D) (n : ℕ) : ℕ :=
 /-- The Euclidean remainder sequence starting at `a` and `b`, remaining zero after a zero
 remainder is reached. -/
 def remSeq : ℕ → ℕ → ℕ → ℕ
-  | 0, a, b => a
-  | 1, a, b => b
+  | 0, a, _b => a
+  | 1, _a, b => b
   | n + 2, a, b => if remSeq (n + 1) a b = 0 then 0
     else remSeq n a b % remSeq (n + 1) a b
 

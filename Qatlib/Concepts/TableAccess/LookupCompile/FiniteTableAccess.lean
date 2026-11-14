@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TableAccess.LookupCompile.FiniteTableAccessDefs
-import Mathlib.Data.Nat.Bitwise
+module
+
+public import Qatlib.Concepts.TableAccess.LookupCompile.FiniteTableAccessDefs
+public import Mathlib.Data.Nat.Bitwise
+
+@[expose] public section
 
 /-!
 # Coherent compilation of finite table lookup

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PrimalityCerts.PrimePowerOrder.OrderCounts
-import Mathlib.RingTheory.ZMod.UnitsCyclic
-import Mathlib.Algebra.Field.ZMod
-import Mathlib.Data.ZMod.Defs
+module
+
+public import Qatlib.Foundations.PrimalityCerts.PrimePowerOrder.OrderCounts
+public import Mathlib.RingTheory.ZMod.UnitsCyclic
+public import Mathlib.Algebra.Field.ZMod
+public import Mathlib.Data.ZMod.Defs
+
+@[expose] public section
 
 /-!
 # Counting Lucas witnesses modulo a prime
@@ -41,7 +45,7 @@ theorem units_pow_eq_one_card (N d : ℕ) [NeZero N] (hN : N.Prime) (_hd : 0 < d
     (Finset.univ.filter (fun u : (ZMod N)ˣ => u ^ d = 1)).card
       = Nat.gcd (N - 1) d := by
   classical
-  haveI hcyc : IsCyclic (ZMod N)ˣ := ZMod.isCyclic_units_prime hN
+  have hcyc : IsCyclic (ZMod N)ˣ := ZMod.isCyclic_units_prime hN
   have hcard : Fintype.card (ZMod N)ˣ = N - 1 :=
     (Nat.prime_iff_card_units N).mp hN
   calc (Finset.univ.filter (fun u : (ZMod N)ˣ => u ^ d = 1)).card
@@ -59,7 +63,7 @@ theorem zmod_pow_eq_one_card (N d : ℕ) [NeZero N] (hN : N.Prime) (hd : 0 < d) 
     (Finset.univ.filter (fun a : ZMod N => a ^ d = 1)).card
       = Nat.gcd (N - 1) d := by
   classical
-  haveI : Fact N.Prime := ⟨hN⟩
+  have : Fact N.Prime := ⟨hN⟩
   have hset : (Finset.univ.filter (fun a : ZMod N => a ^ d = 1))
       = (Finset.univ.filter (fun u : (ZMod N)ˣ => u ^ d = 1)).image Units.val := by
     ext a

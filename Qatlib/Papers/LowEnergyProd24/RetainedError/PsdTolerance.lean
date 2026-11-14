@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LowEnergyProd24.RetainedError.PsdChain
-import Mathlib.Algebra.Polynomial.Eval.Defs
-import Mathlib.Analysis.SpecialFunctions.Exp
+module
+
+public import Qatlib.Papers.LowEnergyProd24.RetainedError.PsdChain
+public import Mathlib.Algebra.Polynomial.Eval.Defs
+public import Mathlib.Analysis.SpecialFunctions.Exp
+
+@[expose] public section
 
 /-!
 # Choosing cutoff gaps for a prescribed tolerance

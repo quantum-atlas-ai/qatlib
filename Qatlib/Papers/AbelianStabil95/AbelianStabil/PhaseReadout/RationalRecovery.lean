@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Complex.Log
-import Qatlib.Concepts.HspRecovery.KitaevReadout.EigenphaseHadamardTest
-import Qatlib.Papers.AbelianStabil95.AbelianStabil.PhaseReadout.CycleSpectra
-import Qatlib.Papers.AbelianStabil95.AbelianStabil.PhaseReadout.PrecisionArithmetic
-import Qatlib.Papers.AbelianStabil95.AbelianStabil.PhaseReadout.MultiscaleBisection
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Complex.Log
+public import Qatlib.Concepts.HspRecovery.KitaevReadout.EigenphaseHadamardTest
+public import Qatlib.Papers.AbelianStabil95.AbelianStabil.PhaseReadout.CycleSpectra
+public import Qatlib.Papers.AbelianStabil95.AbelianStabil.PhaseReadout.PrecisionArithmetic
+public import Qatlib.Papers.AbelianStabil95.AbelianStabil.PhaseReadout.MultiscaleBisection
+
+@[expose] public section
 
 /-!
 # Rational recovery of permutation phases

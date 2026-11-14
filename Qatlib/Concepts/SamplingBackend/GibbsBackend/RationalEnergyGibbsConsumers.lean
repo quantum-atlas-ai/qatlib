@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GibbsMetropolis.RationalBath.ApproximateRationalGibbs
-import Qatlib.Concepts.GibbsMetropolis.RationalBath.CountedRationalHeatBath
+module
+
+public import Qatlib.Concepts.GibbsMetropolis.RationalBath.ApproximateRationalGibbs
+public import Qatlib.Concepts.GibbsMetropolis.RationalBath.CountedRationalHeatBath
+
+@[expose] public section
 
 /-!
 # Counted consumers of rational-energy Gibbs preparation
@@ -176,11 +180,11 @@ theorem rationalEnergyPreparation_spec {N : ℕ} (K : ℕ) (E : Fin N → ℚ) :
 /-- Every specified observed leaf of the rational heat-bath program has zero queries, one gate,
 and one measurement, independently of the energy and precision parameters. -/
 theorem rational_energy_gibbs_same_record_quantum_cost :
-    ∀ (N k : ℕ) (E : Fin N → ℚ) (c : Option (Fin N)) (i : Fin N),
+    ∀ (N _k : ℕ) (_E : Fin N → ℚ) (c : Option (Fin N)) (i : Fin N),
       let leaf := observedLeaf (1:Operator N) (rationalHeatBathProgram c)
         (Fin.cast (rationalHeatBathProgram_spec c).2.symm i)
       leaf.queries=0 ∧ leaf.gates=1 ∧ leaf.measurements=1 := by
-  intro N k E c i
+  intro N _k _E c i
   exact rationalHeatBath_leaf_cost c _
 
 /-- For a supported one-step rejection history using degree-`k + 3` Boltzmann weights and `k +

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LchsSimulation.Kernel.NearExponentialLchsKernel
-import Mathlib.Analysis.Complex.Liouville
-import Mathlib.Analysis.Complex.RealDeriv
-import Mathlib.MeasureTheory.Integral.IntegrableOn
+module
+
+public import Qatlib.Concepts.LchsSimulation.Kernel.NearExponentialLchsKernel
+public import Mathlib.Analysis.Complex.Liouville
+public import Mathlib.Analysis.Complex.RealDeriv
+public import Mathlib.MeasureTheory.Integral.IntegrableOn
+
+@[expose] public section
 
 /-!
 # Analytic extension of the kernel modulus

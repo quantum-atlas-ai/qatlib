@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalArithmetic
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionExt
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalArithmetic
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionExt
+
+@[expose] public section
 
 /-!
 # Gaussian expressions and their word programs

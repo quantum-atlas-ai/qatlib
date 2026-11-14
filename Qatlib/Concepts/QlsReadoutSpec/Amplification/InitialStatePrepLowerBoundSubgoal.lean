@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QlsReadoutSpec.Amplification.InitialStatePreparationContracts
+module
+
+public import Qatlib.Concepts.QlsReadoutSpec.Amplification.InitialStatePreparationContracts
+
+@[expose] public section
 
 /-!
 # Initial-state oracle obstruction

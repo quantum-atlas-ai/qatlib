@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QPCAAssume18.ClassicalPca.ActualSketch
+module
+
+public import Qatlib.Papers.QPCAAssume18.ClassicalPca.ActualSketch
+
+@[expose] public section
 
 /-!
 # Column sampling from actual PCA sketches
@@ -123,7 +127,7 @@ theorem pcaColumnMixture_entry {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     ring
   rw [hentry]
   by_cases hrow : 0 < sketchRowSquared A (rows t)
-  · simp only [pcaRawCoordinateLaw, dif_pos hrow, pcaCachedRowEnergy]
+  · simp only [pcaRawCoordinateLaw, dite_eq_left hrow, pcaCachedRowEnergy]
     field_simp
   · have hzero : sketchRowSquared A (rows t) = 0 :=
       le_antisymm (le_of_not_gt hrow) (sketchRowSquared_nonneg A _)
@@ -137,7 +141,7 @@ theorem pcaColumnMixture_probability {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ
   by_cases hR : 0 < sketchSquared (pcaRowSketch A hA q rows)
   · have hRH : 0 < sketchSquared (pcaRowSketch A hA q rows)ᴴ := by
       rwa [sketchSquared_adjoint]
-    simp only [pcaColumnMixture, dif_pos hR, pcaColumnLaw, dif_pos hRH, pcaRowLaw]
+    simp only [pcaColumnMixture, dite_eq_left hR, pcaColumnLaw, dite_eq_left hRH, pcaRowLaw]
     rw [sketchSquared_adjoint]
     calc
       _ = (∑ t, sketchRowSquared (pcaRowSketch A hA q rows) t *
@@ -152,6 +156,6 @@ theorem pcaColumnMixture_probability {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ
             Complex.normSq_conj]
   · have hRH : ¬ 0 < sketchSquared (pcaRowSketch A hA q rows)ᴴ := by
       simpa only [sketchSquared_adjoint] using! hR
-    simp only [pcaColumnMixture, dif_neg hR, pcaColumnLaw, dif_neg hRH]
+    simp only [pcaColumnMixture, dite_eq_right hR, pcaColumnLaw, dite_eq_right hRH]
 
 end Qatlib.Papers.QPCAAssume18.ClassicalPca

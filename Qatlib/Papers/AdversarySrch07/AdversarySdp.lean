@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AdversarySrch07.MainResults.OptimalBound.SpectralBound
-import Mathlib.LinearAlgebra.Matrix.PosDef
-import Mathlib.Analysis.Matrix.Spectrum
-import Mathlib.Analysis.CStarAlgebra.Matrix
+module
+
+public import Qatlib.Papers.AdversarySrch07.MainResults.OptimalBound.SpectralBound
+public import Mathlib.LinearAlgebra.Matrix.PosDef
+public import Mathlib.Analysis.Matrix.Spectrum
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+
+@[expose] public section
 
 /-!
 # Even-size ordered-search SDP certificates
@@ -66,9 +70,9 @@ theorem uEven_symm (m : ℕ) (k : Fin (2 * m)) :
     uEven m k = uEven m ⟨2 * m - 1 - k.val, by omega⟩ := by
   unfold uEven
   by_cases hk : k.val < m
-  · rw [if_pos hk, if_neg (by omega : ¬ 2 * m - 1 - k.val < m)]
+  · rw [ite_eq_left hk, ite_eq_right (by omega : ¬ 2 * m - 1 - k.val < m)]
     rw [show 2 * m - 1 - (2 * m - 1 - k.val) = k.val by omega]
-  · rw [if_neg hk, if_pos (by omega : 2 * m - 1 - k.val < m)]
+  · rw [ite_eq_right hk, ite_eq_left (by omega : 2 * m - 1 - k.val < m)]
 
 /-- The sequence `xi` is nonincreasing between any two ordered natural indices. -/
 theorem xi_antitone_le {a b : ℕ} (h : a ≤ b) : xi b ≤ xi a := by
@@ -83,8 +87,8 @@ theorem xi_antitone_le {a b : ℕ} (h : a ≤ b) : xi b ≤ xi a := by
 theorem xi_le_uEven (m : ℕ) (k : Fin (2 * m)) : xi k.val ≤ uEven m k := by
   unfold uEven
   by_cases hk : k.val < m
-  · rw [if_pos hk]
-  · rw [if_neg hk]
+  · rw [ite_eq_left hk]
+  · rw [ite_eq_right hk]
     exact xi_antitone_le (by omega)
 
 /-- The natural-indexed extension of the reflected sequence used to define `uEven m`. -/
@@ -111,7 +115,7 @@ theorem sum_uEven_sq (m : ℕ) :
     apply Finset.sum_congr rfl
     intro i hi
     have him : i < m := Finset.mem_range.mp hi
-    rw [uVal, if_pos him]
+    rw [uVal, ite_eq_left him]
   have hhigh : (∑ i ∈ Finset.Ico m (2 * m), uVal m i ^ 2) =
       ∑ i ∈ Finset.range m, xi i ^ 2 := by
     have hstep : (∑ i ∈ Finset.Ico m (2 * m), uVal m i ^ 2) =
@@ -119,7 +123,7 @@ theorem sum_uEven_sq (m : ℕ) :
       apply Finset.sum_congr rfl
       intro i hi
       have him : ¬ i < m := by have := (Finset.mem_Ico.mp hi).1; omega
-      rw [uVal, if_neg him]
+      rw [uVal, ite_eq_right him]
     rw [hstep]
     have hreflect := Finset.sum_Ico_reflect
       (fun j => xi j ^ 2) m (m := 2 * m) (n := 2 * m - 1) (by omega)
@@ -162,9 +166,9 @@ theorem diagSum_outerVec_ge_one (m : ℕ) (i : ℕ) (hi : i < 2 * m) :
     have h2 : xi (2 * m - 1 - i - j.val) ≤ uEven m ⟨j.val + i, by omega⟩ := by
       unfold uEven
       by_cases hc : j.val + i < m
-      · rw [if_pos hc]
+      · rw [ite_eq_left hc]
         exact xi_antitone_le (a := j.val + i) (b := 2 * m - 1 - i - j.val) (by omega)
-      · rw [if_neg hc]
+      · rw [ite_eq_right hc]
         rw [show 2 * m - 1 - (j.val + i) = 2 * m - 1 - i - j.val by omega]
     have hnn : 0 ≤ xi (2 * m - 1 - i - j.val) := le_of_lt (xi_pos _)
     exact mul_le_mul h1 h2 hnn (le_of_lt (uEven_pos m ⟨j.val, by omega⟩))
@@ -174,7 +178,7 @@ theorem diagSum_outerVec_ge_one (m : ℕ) (i : ℕ) (hi : i < 2 * m) :
     have hsimp : ∀ j ∈ Finset.range (2 * m - i),
         (if h : j < 2 * m - i then xi j * xi (2 * m - 1 - i - j) else 0) =
           xi j * xi (2 * m - 1 - i - j) := by
-      intro j hj; rw [dif_pos (Finset.mem_range.mp hj)]
+      intro j hj; rw [dite_eq_left (Finset.mem_range.mp hj)]
     rw [Finset.sum_congr rfl hsimp]
     have h := source_proposition_four (2 * m - 1 - i)
     rw [show 2 * m - 1 - i + 1 = 2 * m - i by omega] at h

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.NumberTheory.GaussSum
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Qatlib.Papers.QZetaZeroes04.MainResults.ZetaHypersurfaceDefs
+module
+
+public import Mathlib.NumberTheory.GaussSum
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Qatlib.Papers.QZetaZeroes04.MainResults.ZetaHypersurfaceDefs
+
+@[expose] public section
 
 /-!
 # Gauss products and the zeta-root circle

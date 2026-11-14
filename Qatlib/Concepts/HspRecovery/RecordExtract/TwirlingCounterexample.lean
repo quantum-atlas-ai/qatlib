@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.Reduction.TwirlingCounterexample
-import Mathlib.Tactic.FinCases
-import Mathlib.Tactic.NormNum
-import Qatlib.Concepts.HspRecovery.Reduction.OracleTwirling
+module
+
+public import Qatlib.Concepts.HspRecovery.Reduction.TwirlingCounterexample
+public import Mathlib.Tactic.FinCases
+public import Mathlib.Tactic.NormNum
+public import Qatlib.Concepts.HspRecovery.Reduction.OracleTwirling
+
+@[expose] public section
 
 /-!
 # A two-point counterexample for twirling recovery
@@ -79,7 +83,7 @@ private theorem bot_projector : sourceFixedProjector SourceTwoPointGroup ⊥ = 1
 /-- The fixed-space projector for the full two-point group is the plus density. -/
 private theorem top_projector : sourceFixedProjector SourceTwoPointGroup ⊤ = sourcePlusDensity := by
   classical
-  letI : DecidableEq SourceTwoPointGroup := Classical.decEq _
+  let : DecidableEq SourceTwoPointGroup := Classical.decEq _
   ext p q
   simp only [sourceFixedProjector, Matrix.smul_apply, Matrix.sum_apply, permMatrix,
     Matrix.of_apply, sourcePlusDensity]
@@ -103,7 +107,7 @@ private theorem plus_square : sourcePlusDensity * sourcePlusDensity = sourcePlus
 private theorem plus_twirl : sourceRightTwirl SourceTwoPointGroup sourcePlusDensity =
     sourcePlusDensity := by
   classical
-  letI : DecidableEq SourceTwoPointGroup := Classical.decEq _
+  let : DecidableEq SourceTwoPointGroup := Classical.decEq _
   have hleft (g : SourceTwoPointGroup) :
       permMatrix (fun a => a * g) * sourcePlusDensity = sourcePlusDensity := by
     ext p q

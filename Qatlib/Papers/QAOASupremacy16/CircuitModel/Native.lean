@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QAOASupremacy16.CircuitModel.Source
-import Qatlib.Foundations.MatrixAlgebra.PhaseUnitary
+module
+
+public import Qatlib.Papers.QAOASupremacy16.CircuitModel.Source
+public import Qatlib.Foundations.MatrixAlgebra.PhaseUnitary
+
+@[expose] public section
 
 /-!
 # Normalization and uniformity at zero mixer angle

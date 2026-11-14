@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CoherentSim.ResetDiscard.Ln2Definitions
-import Qatlib.Concepts.CoherentSim.ResetDiscard.ResetDiscardSegmentation
-import Qatlib.Concepts.CoherentSim.FactorialTaylor.FactorialTaylorSimulation
-import Mathlib.Analysis.Complex.ExponentialBounds
+module
+
+public import Qatlib.Concepts.CoherentSim.ResetDiscard.Ln2Definitions
+public import Qatlib.Concepts.CoherentSim.ResetDiscard.ResetDiscardSegmentation
+public import Qatlib.Concepts.CoherentSim.FactorialTaylor.FactorialTaylorSimulation
+public import Mathlib.Analysis.Complex.ExponentialBounds
+
+@[expose] public section
 
 /-!
 # Obstruction to raw log-two segmentation

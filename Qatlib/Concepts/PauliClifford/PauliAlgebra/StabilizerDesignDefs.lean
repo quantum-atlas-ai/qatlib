@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Concepts.TensorRegisters.RegisterModel.TensorRegisters
-import Qatlib.Concepts.PauliClifford.PauliAlgebra.CliffordStabilizer
-import Qatlib.Concepts.PauliClifford.PauliAlgebra.CliffordStabilizerCoreDefs
-import Qatlib.Concepts.PauliClifford.PauliAlgebra.CliffordTableauConstruction
-import Qatlib.Concepts.PauliClifford.PauliAlgebra.CliffordTableauConstructionDefs
-import Qatlib.Concepts.PauliClifford.PauliAlgebra.PauliCliffordLaws
-import Qatlib.Concepts.PauliClifford.PauliAlgebra.PauliCliffordLawsProofs
-import Qatlib.Concepts.PauliClifford.ExactRank.StabilizerRank
+module
+
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Concepts.TensorRegisters.RegisterModel.TensorRegisters
+public import Qatlib.Concepts.PauliClifford.PauliAlgebra.CliffordStabilizer
+public import Qatlib.Concepts.PauliClifford.PauliAlgebra.CliffordStabilizerCoreDefs
+public import Qatlib.Concepts.PauliClifford.PauliAlgebra.CliffordTableauConstruction
+public import Qatlib.Concepts.PauliClifford.PauliAlgebra.CliffordTableauConstructionDefs
+public import Qatlib.Concepts.PauliClifford.PauliAlgebra.PauliCliffordLaws
+public import Qatlib.Concepts.PauliClifford.PauliAlgebra.PauliCliffordLawsProofs
+public import Qatlib.Concepts.PauliClifford.ExactRank.StabilizerRank
+
+@[expose] public section
 
 /-!
 # Algebra and constructions for stabilizer tableaux

@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QcaDynamics.PairWeights
-import Qatlib.Concepts.QcaDynamics.ParityWeights
-import Mathlib.LinearAlgebra.Matrix.Notation
-import Mathlib.LinearAlgebra.UnitaryGroup
-import Mathlib.Analysis.Complex.Norm
-import Mathlib.Data.Complex.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+module
+
+public import Qatlib.Concepts.QcaDynamics.PairWeights
+public import Qatlib.Concepts.QcaDynamics.ParityWeights
+public import Mathlib.LinearAlgebra.Matrix.Notation
+public import Mathlib.LinearAlgebra.UnitaryGroup
+public import Mathlib.Analysis.Complex.Norm
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+
+@[expose] public section
 
 /-!
 # Parity reduction and staggered cell pairs

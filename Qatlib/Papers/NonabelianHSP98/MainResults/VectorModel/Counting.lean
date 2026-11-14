@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NonabelianHSP98.MainResults.VectorModel.Orthogonal
+module
+
+public import Qatlib.Papers.NonabelianHSP98.MainResults.VectorModel.Orthogonal
+
+@[expose] public section
 
 /-!
 # Counting binary pairing values
@@ -142,7 +146,7 @@ theorem card_dot_zero_eq_one (W : Submodule (ZMod 2) (Vec n)) (y : Vec n)
   · intro a _ b _ h
     apply Subtype.ext
     have h' := congrArg (fun z : W => (z : Vec n)) h
-    simp only [Subtype.coe_mk] at h'
+    simp only [] at h'
     exact add_right_cancel h'
   · intro z hz
     simp only [mem_filter, mem_univ, true_and] at hz
@@ -151,7 +155,7 @@ theorem card_dot_zero_eq_one (W : Submodule (ZMod 2) (Vec n)) (y : Vec n)
       rw [dot_add_right, hz, hd₀]
       decide
     · apply Subtype.ext
-      simp only [Subtype.coe_mk]
+      simp only []
       rw [add_assoc, add_self_eq_zero, add_zero]
 
 /-- A nonzero binary dot-product functional sums to zero in `ZMod 2` over a subspace whose
@@ -195,8 +199,7 @@ theorem sum_dot_eq_zero (W : Submodule (ZMod 2) (Vec n)) (y : Vec n)
           · simp [h]
           · simp [h]
       _ = ((univ.filter (fun w : W => dot y (w : Vec n) = 1)).card : ZMod 2) := by
-          simpa using (Finset.sum_boole (univ : Finset W)
-            (fun w : W => dot y (w : Vec n) = 1))
+          simp
   rw [hsum]
   obtain ⟨m, hm⟩ := hB
   rw [hm, Nat.cast_mul]

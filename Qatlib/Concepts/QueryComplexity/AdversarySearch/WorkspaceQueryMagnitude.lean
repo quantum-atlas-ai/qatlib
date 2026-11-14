@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
-import Qatlib.Concepts.LchsSimulation.StaticLchs.HybridError
-import Qatlib.Concepts.SketchArith.GramAction.PostMeasurePerturbation
+module
+
+public import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.HybridError
+public import Qatlib.Concepts.SketchArith.GramAction.PostMeasurePerturbation
+
+@[expose] public section
 
 /-!
 # Workspace query magnitude estimates
@@ -155,6 +159,8 @@ theorem workspace_query_inputs_accounting (C : Circuit ((I × Bool) × W))
         · subst hφψ
           exact ⟨hψ, measureProb_sum_workspaceQueryFiber hψ⟩
         · exact hmem φ hφC
+
+omit [Fintype I] [Fintype W] in
 
 /-- The workspace bit oracle for the constantly false function is the identity matrix. -/
 theorem workspaceBitOracle_null : workspaceBitOracle (I := I) (W := W) (fun _ => false) = 1 := by

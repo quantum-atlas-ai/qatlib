@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MonteCarloInt20.MainResults.SequentialProgram
-import Qatlib.Papers.MonteCarloInt20.MainResults.ExecutedAccuracy
+module
+
+public import Qatlib.Papers.MonteCarloInt20.MainResults.SequentialProgram
+public import Qatlib.Papers.MonteCarloInt20.MainResults.ExecutedAccuracy
+
+@[expose] public section
 
 /-!
 # Sequential amplitude-estimation readout and query counts

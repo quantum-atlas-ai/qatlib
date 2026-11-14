@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.TensorNormProbability
+module
+
+public import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.TensorNormProbability
+
+@[expose] public section
 
 /-!
 # Normalized Gaussian tensor norms
@@ -75,7 +79,7 @@ theorem normalized_tail {r N : ℕ} (hr : 0<r) (hN : 0<N) (t : ℝ) (ht : 0≤t)
   have hset : {A : Tensor (r+1) N | t<normalizedNorm A}=
       {A : Tensor (r+1) N | 2*(t/2)*Real.sqrt ((N:ℝ)/(N:ℝ)^r)<‖tensorForm A‖} := by
     ext A
-    simp only [Set.mem_setOf_eq,normalizedNorm]
+    simp only [Set.mem_ofPred_eq,normalizedNorm]
     conv_rhs => rw [← mul_lt_mul_iff_left₀ hS]
     have he : 2*(t/2)*Real.sqrt ((N:ℝ)/(N:ℝ)^r)*(Real.sqrt (N:ℝ))^(r-1)=t := by
       calc

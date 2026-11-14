@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MbqcFlow.FlowDecision.FiniteDataAccess
+module
+
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.FiniteDataAccess
+
+@[expose] public section
 
 /-!
 # Effective preparation and amplitude amplification
@@ -119,13 +123,13 @@ private theorem diagonal_mem_unitaryGroup {n : Type*} [Fintype n] [DecidableEq n
   rw [Matrix.mul_apply, Matrix.one_apply]
   by_cases hxy : x = y
   · subst hxy
-    rw [if_pos rfl, Finset.sum_eq_single x]
+    rw [ite_eq_left rfl, Finset.sum_eq_single x]
     · simpa [Matrix.star_apply, mul_comm] using! hd x
     · intro k _ hk
       simp [Matrix.star_apply, Ne.symm hk]
     · intro hx
       exact absurd (Finset.mem_univ x) hx
-  · rw [if_neg hxy]
+  · rw [ite_eq_right hxy]
     refine Finset.sum_eq_zero fun k _ => ?_
     by_cases hkx : k = x
     · subst hkx
@@ -607,7 +611,7 @@ theorem blockSelect_unitary {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
   by_cases hbc : b = c
   · subst hbc
     rw [Finset.sum_eq_single b]
-    · simp only [Matrix.conjTranspose_apply, blockSelect, if_true]
+    · simp only [Matrix.conjTranspose_apply, blockSelect, ite_true]
       have hentry : (∑ x : X, Star.star (U b x y) * U b x z)
           = ((U b)ᴴ * U b) y z := by
         rw [Matrix.mul_apply]
@@ -616,7 +620,7 @@ theorem blockSelect_unitary {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
       rw [hentry, hUb b]
       simp [Matrix.one_apply]
     · intro a _ hab
-      simp only [Matrix.conjTranspose_apply, blockSelect, if_neg hab, star_zero,
+      simp only [Matrix.conjTranspose_apply, blockSelect, ite_eq_right hab, star_zero,
         mul_zero, Finset.sum_const_zero]
     · intro hb
       exact absurd (Finset.mem_univ b) hb
@@ -627,8 +631,8 @@ theorem blockSelect_unitary {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
       intro x _
       simp only [Matrix.conjTranspose_apply, blockSelect]
       by_cases hab : a = b
-      · rw [if_pos hab, if_neg (fun h => hbc (hab ▸ h)), mul_zero]
-      · rw [if_neg hab, star_zero, zero_mul]
+      · rw [ite_eq_left hab, ite_eq_right (fun h => hbc (hab ▸ h)), mul_zero]
+      · rw [ite_eq_right hab, star_zero, zero_mul]
 
 /-- Approximate and exact preparation sandwiches around a unitary selector differ in norm by at
 most `64 * (D + 1) / 2^k`. -/
@@ -1028,14 +1032,14 @@ theorem lcuSandwich_entry {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     · rw [Finset.sum_eq_single x]
       · simp
       · intro t _ ht
-        rw [if_neg (Ne.symm ht)]
+        rw [ite_eq_right (Ne.symm ht)]
         ring
       · intro hx
         exact absurd (Finset.mem_univ x) hx
     · intro b _ hb
       rw [Finset.sum_eq_zero]
       intro t _
-      rw [if_neg hb]
+      rw [ite_eq_right hb]
       ring
     · intro ha
       exact absurd (Finset.mem_univ a) ha
@@ -1055,10 +1059,10 @@ theorem lcuSandwich_entry {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
           Finset.sum_congr rfl fun z _ => by rw [hinner2 a z]
       _ = starRingEnd ℂ (P a none) * P a none * U a x y := by
           rw [Finset.sum_eq_single y]
-          · rw [if_pos (rfl : y = y), mul_one]
+          · rw [ite_eq_left (rfl : y = y), mul_one]
             ring
           · intro z _ hzy
-            rw [if_neg hzy]
+            rw [ite_eq_right hzy]
             ring
           · intro hy
             exact absurd (Finset.mem_univ y) hy
@@ -1736,7 +1740,7 @@ theorem reflectNone_tensor_apply {D : ℕ} {X : Type*} [Fintype X] [DecidableEq 
   · have hket : (TensorState (Qatlib.Foundations.PureStateMath.Ket a) φ) (b, y) = if b = a then φ y else 0 := by
       simp [Qatlib.Foundations.PureStateMath.TensorState,
           Qatlib.Foundations.PureStateMath.Ket]
-    rw [hket, if_neg hba]
+    rw [hket, ite_eq_right hba]
     simp
 
 /-- The single-gate circuit word implementing `reflectNone`. -/
@@ -1852,7 +1856,7 @@ theorem reflectNone_mul_noneRow {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X
   rw [Finset.sum_eq_single (none, x)]
   · simp
   · intro s _ hs
-    rw [if_neg (fun h => absurd h.symm hs)]
+    rw [ite_eq_right (fun h => absurd h.symm hs)]
     simp
   · intro hs
     exact absurd (Finset.mem_univ (none, x)) hs
@@ -1887,12 +1891,12 @@ theorem colBlock_reflectNone_mul {D : ℕ} {X : Type*} [Fintype X] [DecidableEq 
     rw [Finset.sum_eq_single p]
     · simp
     · intro s _ hs
-      rw [if_neg (fun h => absurd h.symm hs)]
+      rw [ite_eq_right (fun h => absurd h.symm hs)]
       simp
     · intro hs
       exact absurd (Finset.mem_univ p) hs
   simp only [colBlock, hd]
-  rw [if_neg ha]
+  rw [ite_eq_right ha]
   simp [colBlock]
 
 /-- For unitary `U`, the `none` block of `reflectNone * Uᴴ * reflectNone * U` equals `2 •
@@ -2234,7 +2238,7 @@ theorem mul_cleanEmbed_apply {D : ℕ} {X Y : Type*} [Fintype X] [DecidableEq X]
   rw [Finset.sum_eq_single (none, y)]
   · simp
   · intro q _ hq
-    rw [if_neg (fun h => hq h)]
+    rw [ite_eq_right (fun h => hq h)]
     simp
   · intro h
     exact absurd (Finset.mem_univ (none, y)) h
@@ -2251,13 +2255,13 @@ private theorem cleanEmbed_mul_apply {D : ℕ} {X : Type*} [Fintype X] [Decidabl
       rw [Finset.sum_eq_single b]
       · simp
       · intro z _ hz
-        rw [if_neg (by simp [Ne.symm hz])]
+        rw [ite_eq_right (by simp [Ne.symm hz])]
         simp
       · intro h
         exact absurd (Finset.mem_univ b) h
   | some i =>
       refine Finset.sum_eq_zero fun z _ => ?_
-      rw [if_neg (by simp)]
+      rw [ite_eq_right (by simp)]
       simp
 
 /-- Left multiplication by the conjugate transpose of `cleanEmbed` selects the rows with control
@@ -2277,7 +2281,7 @@ theorem conjTranspose_cleanEmbed_mul_apply {D : ℕ} {X : Type*} [Fintype X] [De
   rw [Finset.sum_eq_single (none, x)]
   · simp
   · intro p _ hp
-    rw [if_neg (fun h => hp h)]
+    rw [ite_eq_right (fun h => hp h)]
     simp
   · intro h
     exact absurd (Finset.mem_univ (none, x)) h
@@ -2307,7 +2311,7 @@ theorem blockNone_eq {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X]
     rw [Finset.sum_eq_single (none, x)]
     · simp
     · intro p _ hp
-      rw [if_neg (fun h => hp h)]
+      rw [ite_eq_right (fun h => hp h)]
       simp
     · intro h
       exact absurd (Finset.mem_univ (none, x)) h
@@ -2336,18 +2340,18 @@ theorem reflectNone_mul_cleanEmbed {D : ℕ} {X : Type*} [Fintype X] [DecidableE
     rw [Finset.sum_eq_single (a, b)]
     · simp
     · intro q _ hq
-      rw [if_neg (fun h => absurd h.symm hq)]
+      rw [ite_eq_right (fun h => absurd h.symm hq)]
       simp
     · intro h
       exact absurd (Finset.mem_univ (a, b)) h
   rw [hd]
   cases a with
-  | none => rw [if_pos rfl]; simp
+  | none => rw [ite_eq_left rfl]; simp
   | some i =>
-      rw [if_neg (by simp)]
+      rw [ite_eq_right (by simp)]
       have hE : (cleanEmbed (D := D) (X := X)) (some i, b) y = 0 := by
         simp only [cleanEmbed]
-        exact if_neg (by simp)
+        exact ite_eq_right (by simp)
       rw [hE]
       simp
 
@@ -2364,17 +2368,17 @@ theorem reflectNone_mul_of_noneRow_zero {D : ℕ} {X : Type*} [Fintype X] [Decid
     rw [Finset.sum_eq_single (a, b)]
     · simp
     · intro q _ hq
-      rw [if_neg (fun h => absurd h.symm hq)]
+      rw [ite_eq_right (fun h => absurd h.symm hq)]
       simp
     · intro h
       exact absurd (Finset.mem_univ (a, b)) h
   rw [hd]
   cases a with
   | none =>
-      rw [if_pos rfl]
+      rw [ite_eq_left rfl]
       simp [Matrix.neg_apply, hM b y]
   | some i =>
-      rw [if_neg (by simp)]
+      rw [ite_eq_right (by simp)]
       simp [Matrix.neg_apply]
 
 /-- The matrix `reflectNone * Uᴴ * reflectNone * U` for a Grover round associated with `U`. -/
@@ -3061,7 +3065,7 @@ theorem groverPower_state_exact {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X
   rw [Finset.sum_eq_single x]
   · simp
   · intro z _ hz
-    rw [if_neg (Ne.symm hz)]
+    rw [ite_eq_right (Ne.symm hz)]
     simp
   · intro h
     exact absurd (Finset.mem_univ x) h
@@ -3855,9 +3859,9 @@ theorem reflectPhase_unitary {D : ℕ} {X : Type*} [Fintype X] [DecidableEq X] {
     reflectPhase (D := D) (X := X) z ∈ Matrix.unitaryGroup (Option (Fin D) × X) ℂ := by
   refine diagonal_mem_unitaryGroup _ fun p => ?_
   by_cases h : p.1 = none
-  · simp only [if_pos h]
+  · simp only [ite_eq_left h]
     norm_num
-  · simp only [if_neg h]
+  · simp only [ite_eq_right h]
     exact star_mul_self_of_norm_one hz
 
 /-- The single-gate circuit word implementing `reflectPhase z`. -/
@@ -3890,7 +3894,7 @@ theorem reflectPhase_mul_noneRow {D : ℕ} {X : Type*} [Fintype X] [DecidableEq 
   rw [Finset.sum_eq_single (none, x)]
   · simp
   · intro s _ hs
-    rw [if_neg (fun h => absurd h.symm hs)]
+    rw [ite_eq_right (fun h => absurd h.symm hs)]
     simp
   · intro hs
     exact absurd (Finset.mem_univ (none, x)) hs
@@ -3926,12 +3930,12 @@ theorem colBlock_reflectPhase_mul {D : ℕ} {X : Type*} [Fintype X] [DecidableEq
     rw [Finset.sum_eq_single p]
     · simp
     · intro s _ hs
-      rw [if_neg (fun h => absurd h.symm hs)]
+      rw [ite_eq_right (fun h => absurd h.symm hs)]
       simp
     · intro hs
       exact absurd (Finset.mem_univ p) hs
   simp only [colBlock, hd]
-  rw [if_neg ha]
+  rw [ite_eq_right ha]
   simp [colBlock]
 
 /-- Every phase reflection fixes the clean embedding. -/
@@ -3948,18 +3952,18 @@ theorem reflectPhase_mul_cleanEmbed {D : ℕ} {X : Type*} [Fintype X] [Decidable
     rw [Finset.sum_eq_single (a, b)]
     · simp
     · intro q _ hq
-      rw [if_neg (fun h => absurd h.symm hq)]
+      rw [ite_eq_right (fun h => absurd h.symm hq)]
       simp
     · intro hq
       exact absurd (Finset.mem_univ (a, b)) hq
   rw [hd]
   cases a with
-  | none => rw [if_pos rfl]; simp
+  | none => rw [ite_eq_left rfl]; simp
   | some i =>
-      rw [if_neg (by simp)]
+      rw [ite_eq_right (by simp)]
       have hE : (cleanEmbed (D := D) (X := X)) (some i, b) y = 0 := by
         simp only [cleanEmbed]
-        exact if_neg (by simp)
+        exact ite_eq_right (by simp)
       rw [hE]
       simp
 
@@ -3977,17 +3981,17 @@ theorem reflectPhase_mul_of_noneRow_zero {D : ℕ} {X : Type*} [Fintype X] [Deci
     rw [Finset.sum_eq_single (a, b)]
     · simp
     · intro q _ hq
-      rw [if_neg (fun h => absurd h.symm hq)]
+      rw [ite_eq_right (fun h => absurd h.symm hq)]
       simp
     · intro hq
       exact absurd (Finset.mem_univ (a, b)) hq
   rw [hd]
   cases a with
   | none =>
-      rw [if_pos rfl]
+      rw [ite_eq_left rfl]
       simp [Matrix.smul_apply, hM b y]
   | some i =>
-      rw [if_neg (by simp)]
+      rw [ite_eq_right (by simp)]
       simp [Matrix.smul_apply, smul_eq_mul]
 
 /-- The matrix `reflectPhase z * Uᴴ * reflectPhase z * U` for a phase-modified Grover round. -/
@@ -4475,15 +4479,15 @@ private theorem cleanEmbed_mulVec_state {D : ℕ} {X : Type*} [Fintype X] [Decid
       · intro z _ hz
         have hne : (none (α := Fin D), y) ≠ (none, z) := by
           simp [Ne.symm hz]
-        rw [if_neg hne]
+        rw [ite_eq_right hne]
         simp
       · intro h
         exact absurd (Finset.mem_univ y) h
   | some i =>
-      rw [if_neg (by simp : ¬(some i : Option (Fin D)) = none)]
+      rw [ite_eq_right (by simp : ¬(some i : Option (Fin D)) = none)]
       exact Finset.sum_eq_zero fun z _ => by
         have hne : ((some i : Option (Fin D)), y) ≠ (none, z) := by simp
-        rw [if_neg hne]
+        rw [ite_eq_right hne]
         simp
 
 /-- For squared `none` block `s • 1` with `s > 1 / 2`, two exact phase rounds preserve a
@@ -5622,11 +5626,11 @@ theorem sparseMass {D : ℕ} : ∀ (L : List (Fin D × ℂ)), (L.map Prod.fst).N
       intro x f
       rw [add_comm, Finset.sum_erase_add Finset.univ f (Finset.mem_univ x)]
     have hcenter : ‖sparseAmp (e :: L) (some e.1)‖ ^ 2 = ‖e.2‖ ^ 2 := by
-      rw [sparseAmp_cons, if_pos rfl, hz, add_zero]
+      rw [sparseAmp_cons, ite_eq_left rfl, hz, add_zero]
     have hoff : ∀ a : Option (Fin D), a ≠ some e.1 →
         ‖sparseAmp (e :: L) a‖ ^ 2 = ‖sparseAmp L a‖ ^ 2 := by
       intro a ha
-      rw [sparseAmp_cons, if_neg ha, zero_add]
+      rw [sparseAmp_cons, ite_eq_right ha, zero_add]
     calc cmplxMass (sparseAmp (e :: L))
         = ‖sparseAmp (e :: L) (some e.1)‖ ^ 2
             + ∑ a ∈ Finset.univ.erase (some e.1), ‖sparseAmp (e :: L) a‖ ^ 2 :=

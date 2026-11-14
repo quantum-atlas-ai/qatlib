@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PreparedAmplitudeEstimation
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.HeterogeneousBlockMedian
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+module
+
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PreparedAmplitudeEstimation
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.HeterogeneousBlockMedian
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+
+@[expose] public section
 
 /-!
 # Quantum estimation of bounded payoffs
@@ -111,7 +115,7 @@ theorem payoffRotation_mem_unitaryGroup {I : Type} [Fintype I] [DecidableEq I] (
           Prod.mk.injEq, and_false, reduceCtorEq] <;>
         first
         | exact hdiag (f i) (1 - f i) hv hu (by ring)
-        | (rw [neg_mul_neg]; exact hdiag (1 - f i) (f i) hu hv (by ring))
+        | simpa only [neg_mul_neg]using hdiag (1 - f i) (f i) hu hv (by ring)
         | ring
     · intro k _ hki
       simp [hki]

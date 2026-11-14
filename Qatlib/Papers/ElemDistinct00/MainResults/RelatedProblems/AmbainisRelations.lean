@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ElemDistinct00.MainResults.RelatedProblems.FibreCounting
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.ElemDistinct00.MainResults.RelatedProblems.FibreCounting
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Counting one-coordinate collision relations
@@ -122,7 +126,7 @@ theorem sum_ite_eq_single {α : Type*} [Fintype α] [DecidableEq α]
   have h0 : ∀ b ∈ (Finset.univ : Finset α), b ≠ c →
       (if c = b then h b else 0) = 0 := by
     intro b _ hb
-    rw [if_neg (Ne.symm hb)]
+    rw [ite_eq_right (Ne.symm hb)]
   have h1 : c ∉ (Finset.univ : Finset α) → (if c = c then h c else 0) = 0 := by
     intro hc
     exact absurd (Finset.mem_univ c) hc
@@ -317,14 +321,14 @@ theorem card_loss_one (f : Fin N → Fin N) (h2 : FibresLeTwo f) :
       = if (fibre f (f x)).card = 2 then fibreMult f 0 else 0 := by
     intro x
     by_cases hx : (fibre f (f x)).card = 2
-    · rw [if_pos hx]
+    · rw [ite_eq_left hx]
       have : (Finset.univ.filter fun w =>
           (fibre f (f x)).card = 2 ∧ (fibre f w).card = 0)
           = (Finset.univ.filter fun w => (fibre f w).card = 0) := by
         ext w
         simp [hx]
       rw [this, fibreMult]
-    · rw [if_neg hx]
+    · rw [ite_eq_right hx]
       have : (Finset.univ.filter fun w =>
           (fibre f (f x)).card = 2 ∧ (fibre f w).card = 0) = ∅ := by
         ext w

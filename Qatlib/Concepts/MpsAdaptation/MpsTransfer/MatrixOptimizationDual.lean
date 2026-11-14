@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MpsAdaptation.MpsTransfer.MatrixOptimizationReceipt
-import Qatlib.Concepts.MpsAdaptation.MpsTransfer.MatrixOptimizationWeights
+module
+
+public import Qatlib.Concepts.MpsAdaptation.MpsTransfer.MatrixOptimizationReceipt
+public import Qatlib.Concepts.MpsAdaptation.MpsTransfer.MatrixOptimizationWeights
+
+@[expose] public section
 
 /-!
 # Exact sampling of normalized dual vectors
@@ -152,7 +156,7 @@ theorem dualVector_sum (F : Family T D m) (j₀ : Fin m) (a : ℝ) (μ : Fin T �
     (∑ i, dualVector F j₀ a μ i) = dualScale T a μ := by
   classical
   simp only [dualVector, dualScale, Finset.sum_add_distrib]
-  rw [Finset.sum_ite_eq', if_pos (Finset.mem_univ j₀), ← Finset.sum_div,
+  rw [Finset.sum_ite_eq', ite_eq_left (Finset.mem_univ j₀), ← Finset.sum_div,
     Finset.sum_comm]
   simp_rw [← Finset.mul_sum, F.realOutput_sum, mul_one]
 
@@ -192,9 +196,9 @@ theorem dual_actual_output (F : Family T D m) (j₀ : Fin m) (hT : 0 < T)
   simp_rw [div_mul_eq_mul_div]
   rw [← Finset.sum_div]
   by_cases hi : i = j₀
-  · simp only [hi, if_true, mul_one]
+  · simp only [hi, ite_true, mul_one]
     field_simp [hTr.ne', hden, hden']
-  · simp only [hi, if_false, mul_zero, zero_add]
+  · simp only [hi, ite_false, mul_zero, zero_add]
     field_simp [hTr.ne', hden, hden']
     ring
 

@@ -4,14 +4,20 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RiskEstimation.PopulationGap.OrderShorDefs
-import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.ResidueFairBitSamplerShor
-import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.FactoringPreprocessingShor
-import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.ResidueFactoringAlgorithmShor
-import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.SampledAttemptSuccessShor
-import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.ResidueGcdBranchShor
-import Qatlib.Concepts.PeriodSampling.OrderRecovery.PairLCMOrderRecovery
-import Qatlib.Concepts.QftPreparation.LocalQFTImplementation
+module
+
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.OrderShorDefs
+public import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.ResidueFairBitSamplerShor
+public import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.FactoringPreprocessingShor
+public import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.ResidueFactoringAlgorithmShor
+public import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.SampledAttemptSuccessShor
+public import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.ResidueGcdBranchShor
+public import Qatlib.Concepts.PeriodSampling.OrderRecovery.PairLCMOrderRecovery
+public import Qatlib.Concepts.QftPreparation.LocalQFTImplementation
+
+set_option linter.style.haveILetI false
+
+@[expose] public section
 
 /-!
 # Order-finding implementation bounds and contract checks
@@ -347,7 +353,7 @@ theorem modExpCostedStep_foldl (N : ℕ) (hN : 0 < N) :
         rw [show bitsValue (b :: l) = (if b then 1 else 0) + 2 * bitsValue l from rfl]
         cases hb : b with
         | true =>
-            simp only [if_true]
+            simp only [ite_true]
             have e : ((res * sq % N) * (sq * sq % N) ^ bitsValue l)
                 ≡ ((res * sq) * (sq * sq) ^ bitsValue l) [MOD N] :=
               (Nat.mod_modEq _ _).mul ((Nat.mod_modEq (sq * sq) N).pow _)
@@ -530,7 +536,7 @@ theorem euclidGcd_eq_gcd :
       have hb0 : ¬ b = 0 := by omega
       rw [show euclidGcd (f0 + 1) a b = euclidGcd f0 b (a % b) from by
         show (if b = 0 then a else euclidGcd f0 b (a % b)) = _
-        rw [if_neg hb0]]
+        rw [ite_eq_right hb0]]
       by_cases hr : a % b = 0
       · rw [hr, euclidGcd_zero_right]
         have h1 : Nat.gcd b (a % b) = b := by rw [hr, Nat.gcd_zero_right]
@@ -552,7 +558,7 @@ theorem euclidGcd_eq_gcd :
               have := shorBitLength_pos b
               omega]
             show (if a % b = 0 then b else euclidGcd (f0 - 1) (a % b) (b % (a % b))) = _
-            rw [if_neg hr]]
+            rw [ite_eq_right hr]]
           by_cases hs : b % (a % b) = 0
           · rw [hs, euclidGcd_zero_right]
             have h1 : Nat.gcd b (a % b) = a % b := by
@@ -1014,7 +1020,7 @@ theorem trajectory_ledger_sandwich (N M k R : ℕ) [NeZero N]
       have := Finset.mem_range.mp hj
       omega
     show k ≤ (if h : j < R then (attemptOutcomeLedger N M k (ω ⟨j, h⟩)).1 else 0)
-    rw [dif_pos hjR]
+    rw [dite_eq_left hjR]
     exact ledger_bit_ge N M k _
   · unfold trajectoryLedgerSum
     have hle : ∀ j ∈ Finset.range n,
@@ -1024,7 +1030,7 @@ theorem trajectory_ledger_sandwich (N M k R : ℕ) [NeZero N]
       have hjR : j < R := by
         have := Finset.mem_range.mp hj
         omega
-      rw [dif_pos hjR]
+      rw [dite_eq_left hjR]
       exact (ledger_le N M k _).1
     have := Finset.sum_le_card_nsmul (Finset.range n) _ (attemptLedgerBound N M k).1 hle
     rw [hcard, Nat.nsmul_eq_mul] at this
@@ -1037,7 +1043,7 @@ theorem trajectory_ledger_sandwich (N M k R : ℕ) [NeZero N]
       have hjR : j < R := by
         have := Finset.mem_range.mp hj
         omega
-      rw [dif_pos hjR]
+      rw [dite_eq_left hjR]
       exact (ledger_le N M k _).2.2.1
     have := Finset.sum_le_card_nsmul (Finset.range n) _ (attemptLedgerBound N M k).2.2.1 hle
     rw [hcard, Nat.nsmul_eq_mul] at this

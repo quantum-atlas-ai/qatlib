@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GraphEnergy.ZeroEnergy.GraphEnergyKernelProofs
+module
+
+public import Qatlib.Concepts.GraphEnergy.ZeroEnergy.GraphEnergyKernelProofs
+
+@[expose] public section
 
 /-!
 # Zero graph energy and connected components
@@ -108,7 +112,7 @@ theorem edgeWithIsolate_stationary_two : stationary edgeWithIsolate 2 = 0 := by
     rw [edgeWithIsolate_degree_zero] at hle
     exact hle
   have hv : volume edgeWithIsolate ≠ 0 := by linarith
-  rw [stationary, if_neg hv, edgeWithIsolate_degree_two, zero_div]
+  rw [stationary, ite_eq_right hv, edgeWithIsolate_degree_two, zero_div]
 
 /-- The lazy kernel of the edgeless graph on three vertices is the identity kernel. -/
 theorem botFin3_kernel :
@@ -156,7 +160,7 @@ theorem singleEdgeFin2_volume : volume singleEdgeFin2 = 2 := by
 
 /-- Each vertex of `singleEdgeFin2` has stationary weight one half. -/
 theorem singleEdgeFin2_stationary (i : Fin 2) : stationary singleEdgeFin2 i = 1 / 2 := by
-  rw [stationary, if_neg (by rw [singleEdgeFin2_volume]; norm_num), singleEdgeFin2_degree,
+  rw [stationary, ite_eq_right (by rw [singleEdgeFin2_volume]; norm_num), singleEdgeFin2_degree,
     singleEdgeFin2_volume]
 
 /-- The vertex-value function on `singleEdgeFin2` has energy one quarter. -/
@@ -212,7 +216,7 @@ theorem reachable_kernel_and_consumers :
   · rw [(energy_zero_iff_edge_constant V G f).2.1]
     exact edge_constant_iff_reachable_constant G f
   · intro hconn
-    haveI hne : Nonempty V := inferInstance
+    have hne : Nonempty V := inferInstance
     obtain ⟨x₀⟩ := hne
     constructor
     · intro h0

@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.FrameSpectral.SzegedyLemma4FrameReflectionQuan
-import Qatlib.Concepts.WalkSearch.FrameSpectral.SzegedyLemma5NormBoundQuan
-import Qatlib.Concepts.WalkSearch.FrameSpectral.SzegedyLemma6BlockActionQuan
-import Qatlib.Concepts.WalkSearch.FrameSpectral.SzegedyLemma7EigenSymmetryQuan
-import Qatlib.Concepts.WalkSearch.TauEmbedding.SzegedyLemma10PairingQuan
-import Qatlib.Concepts.WalkSearch.TauEmbedding.SzegedyTheorem5InteriorNormQuan
-import Qatlib.Concepts.WalkSearch.TauEmbedding.BipartiteTauCorrespondence
-import Qatlib.Concepts.SpectralFilter.BusySpectrum.BipartiteSpectrumConsumers
+module
+
+public import Qatlib.Concepts.WalkSearch.FrameSpectral.SzegedyLemma4FrameReflectionQuan
+public import Qatlib.Concepts.WalkSearch.FrameSpectral.SzegedyLemma5NormBoundQuan
+public import Qatlib.Concepts.WalkSearch.FrameSpectral.SzegedyLemma6BlockActionQuan
+public import Qatlib.Concepts.WalkSearch.FrameSpectral.SzegedyLemma7EigenSymmetryQuan
+public import Qatlib.Concepts.WalkSearch.TauEmbedding.SzegedyLemma10PairingQuan
+public import Qatlib.Concepts.WalkSearch.TauEmbedding.SzegedyTheorem5InteriorNormQuan
+public import Qatlib.Concepts.WalkSearch.TauEmbedding.BipartiteTauCorrespondence
+public import Qatlib.Concepts.SpectralFilter.BusySpectrum.BipartiteSpectrumConsumers
+
+@[expose] public section
 
 /-!
 # Source lemmas for bipartite walk spectra

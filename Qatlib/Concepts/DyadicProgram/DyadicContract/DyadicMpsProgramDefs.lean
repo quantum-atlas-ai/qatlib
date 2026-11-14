@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.List.OfFn
-import Mathlib.Algebra.BigOperators.Group.List.Basic
-import Mathlib.Data.Nat.Log
-import Qatlib.Foundations.PureStateMath.Qubit
+module
+
+public import Mathlib.Data.List.OfFn
+public import Mathlib.Algebra.BigOperators.Group.List.Basic
+public import Mathlib.Data.Nat.Log
+public import Qatlib.Foundations.PureStateMath.Qubit
+
+@[expose] public section
 
 /-!
 # Gaussian integer programs for dyadic contractions

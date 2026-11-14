@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
-import Mathlib.Logic.Equiv.Set
+module
+
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
+public import Mathlib.Logic.Equiv.Set
+
+@[expose] public section
 
 /-!
 # Three-wire unitary gates
@@ -105,8 +109,8 @@ private theorem phi3GateMatrix_tensor {n : ℕ} (g : Phi3Gate n) :
         (fun k : {k : Fin n // k ∉ Set.range g.wires} => y k)
   rw [Matrix.one_apply]
   by_cases h : ∀ k : Fin n, (∀ q : Fin 3, g.wires q ≠ k) → x k = y k
-  · rw [if_pos h, if_pos ((phi3Off_iff g.wires x y).mp h), mul_one]
-  · rw [if_neg h, if_neg (fun he => h ((phi3Off_iff g.wires x y).mpr he)), mul_zero]
+  · rw [ite_eq_left h, ite_eq_left ((phi3Off_iff g.wires x y).mp h), mul_one]
+  · rw [ite_eq_right h, ite_eq_right (fun he => h ((phi3Off_iff g.wires x y).mpr he)), mul_zero]
 
 /-- The ambient matrix of a three-wire gate is unitary. -/
 theorem phi3GateMatrix_unitary {n : ℕ} (g : Phi3Gate n) :

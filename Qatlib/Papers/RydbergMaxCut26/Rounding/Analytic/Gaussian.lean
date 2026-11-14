@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.RydbergMaxCut26.Rounding.Analytic.GaussianScalarMoments
-import Mathlib.MeasureTheory.Integral.Prod
+module
+
+public import Qatlib.Papers.RydbergMaxCut26.Rounding.Analytic.GaussianScalarMoments
+public import Mathlib.MeasureTheory.Integral.Prod
+
+@[expose] public section
 
 /-!
 # Conditional Gaussian quadratic tilts

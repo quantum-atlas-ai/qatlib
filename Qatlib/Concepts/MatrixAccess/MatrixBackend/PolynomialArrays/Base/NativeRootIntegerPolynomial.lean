@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootSharedHorner
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootIntegerCoordinate
-import Qatlib.Concepts.OrderedOracle.TiSdpBridge.LaurentCircleFactorization
+module
+
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootSharedHorner
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootIntegerCoordinate
+public import Qatlib.Concepts.OrderedOracle.TiSdpBridge.LaurentCircleFactorization
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

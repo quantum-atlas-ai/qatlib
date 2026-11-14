@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FreshCopyExec.QpeConsumers.FreshCopyExecutionDefs
+module
+
+public import Qatlib.Concepts.FreshCopyExec.QpeConsumers.FreshCopyExecutionDefs
+
+@[expose] public section
 
 /-!
 # Fresh-Copy Execution and Exact Costs

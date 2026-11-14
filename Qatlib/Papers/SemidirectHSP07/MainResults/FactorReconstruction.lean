@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SemidirectHSP07.MainResults.FactorReduction
-import Mathlib.Algebra.Group.Subgroup.Map
-import Mathlib.Algebra.Group.Subgroup.ZPowers.Basic
+module
+
+public import Qatlib.Papers.SemidirectHSP07.MainResults.FactorReduction
+public import Mathlib.Algebra.Group.Subgroup.Map
+public import Mathlib.Algebra.Group.Subgroup.ZPowers.Basic
+
+@[expose] public section
 
 /-!
 # Hidden subgroup reconstruction from coprime factors

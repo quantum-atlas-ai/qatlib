@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Real.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.Order.BigOperators.Group.Finset
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Data.Sym.Sym2
+module
+
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.Order.BigOperators.Group.Finset
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Data.Sym.Sym2
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -99,15 +103,19 @@ def piece (part : E → ι) (i : ι) : Finset E :=
 def ConsistentWith (G : LearningGraph V E Y) (part : E → ι) : Prop :=
   ∀ y y' i, edgeSum G (piece part i) y = edgeSum G (piece part i) y'
 
+omit [Fintype E] in
 /-- The `negComplexityW_nonneg` result for the LearningGraph11 paper model. -/
-theorem negComplexityW_nonneg (len : E → ℕ) {w : E → ℝ} (hw : ∀ e, 0 ≤ w e)
+theorem negComplexityW_nonneg {E : Type*} [_instFintypeE : Fintype E]
+    (len : E → ℕ) {w : E → ℝ} (hw : ∀ e, 0 ≤ w e)
     (S : Finset E) : 0 ≤ negComplexityW len w S := by
   apply Finset.sum_nonneg
   intro e _
   exact mul_nonneg (Nat.cast_nonneg _) (hw e)
 
+omit [Fintype E] in
 /-- The `posComplexityAtW_nonneg` result for the LearningGraph11 paper model. -/
-theorem posComplexityAtW_nonneg (len : E → ℕ) {w : E → ℝ} (hw : ∀ e, 0 < w e)
+theorem posComplexityAtW_nonneg {E : Type*} [_instFintypeE : Fintype E]
+    (len : E → ℕ) {w : E → ℝ} (hw : ∀ e, 0 < w e)
     (p : E → ℝ) (S : Finset E) : 0 ≤ posComplexityAtW len w p S := by
   unfold posComplexityAtW
   split_ifs
@@ -129,8 +137,11 @@ theorem posComplexityW_nonneg (len : E → ℕ) {w : E → ℝ} (hw : ∀ e, 0 <
     Finset.le_sup' (fun y => posComplexityAtW len w (p y) S) (Finset.mem_univ y0)
   exact h1.trans h2
 
+omit [Fintype E] [Fintype Y] [Nonempty Y] in
 /-- The `complexityW_nonneg` result for the LearningGraph11 paper model. -/
-theorem complexityW_nonneg (len : E → ℕ) {w : E → ℝ} (hw : ∀ e, 0 < w e)
+theorem complexityW_nonneg {E Y : Type*}
+    [_instFintypeE : Fintype E] [_instFintypeY : Fintype Y] [_instNonemptyY : Nonempty Y]
+    (len : E → ℕ) {w : E → ℝ} (_hw : ∀ e, 0 < w e)
     (p : Y → E → ℝ) (S : Finset E) : 0 ≤ complexityW len w p S :=
   Real.sqrt_nonneg _
 
@@ -145,8 +156,13 @@ theorem sum_piece (part : E → ι) (f : E → ℝ) :
     ∑ i, ∑ e ∈ piece part i, f e = ∑ e, f e := by
   simpa [piece] using (Finset.sum_fiberwise (Finset.univ : Finset E) part f)
 
+omit [Fintype V] [Fintype E] [Fintype Y] [Fintype ι] [DecidableEq ι] [Nonempty Y] in
 /-- `p_y` of the whole edge set is the sum of the piece masses. -/
-theorem edgeSum_univ_eq_sum_piece (G : LearningGraph V E Y) (part : E → ι) (y : Y) :
+theorem edgeSum_univ_eq_sum_piece {V E Y ι : Type*}
+    [_instFintypeV : Fintype V] [_instFintypeE : Fintype E] [_instFintypeY : Fintype Y]
+    [_instFintypeIota : Fintype ι] [_instDecidableEqIota : DecidableEq ι]
+    [_instNonemptyY : Nonempty Y]
+    (G : LearningGraph V E Y) (part : E → ι) (y : Y) :
     ∑ i, edgeSum G (piece part i) y = edgeSum G (Finset.univ : Finset E) y := by
   simpa [edgeSum] using sum_piece part (fun e => G.flow y e)
 

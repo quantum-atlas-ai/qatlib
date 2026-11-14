@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QChemistry14.NativeTrunc.Fock
-import Qatlib.Foundations.MatrixGeometry.OperatorCutoff.Cutoff
+module
+
+public import Qatlib.Papers.QChemistry14.NativeTrunc.Fock
+public import Qatlib.Foundations.MatrixGeometry.OperatorCutoff.Cutoff
+
+@[expose] public section
 
 /-!
 # Coefficient cutoff bounds for Fock Hamiltonians

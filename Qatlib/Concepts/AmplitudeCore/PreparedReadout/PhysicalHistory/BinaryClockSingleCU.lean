@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.BinaryClockSignalWord
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.BinaryClockSignalCost
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.SingleControlledOracleBridge
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.CleanSubstitution
-import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
+module
+
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.BinaryClockSignalWord
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.BinaryClockSignalCost
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.SingleControlledOracleBridge
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.CleanSubstitution
+public import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
+
+@[expose] public section
 
 /-!
 # Lowering binary clock words to one controlled oracle
@@ -90,9 +94,9 @@ noncomputable local instance newDecidableEq (q : ℕ) (H : Type) [DecidableEq H]
     DecidableEq (New q H) :=
   @instDecidableEqProd Bool (Old q H) inferInstance (oldDecidableEq q H)
 
-/-- Rectangular complex matrix multiplication with its finite intermediate index type specified
-explicitly. -/
-private noncomputable abbrev matmul {X Y Z : Type*} [Fintype Y]
+/- Rectangular matrix multiplication is public because exported declarations use it in their
+types. -/
+noncomputable def matrixMul {X Y Z : Type*} [Fintype Y]
     (A : Matrix X Y ℂ) (B : Matrix Y Z ℂ) : Matrix X Z ℂ :=
   @HMul.hMul (Matrix X Y ℂ) (Matrix Y Z ℂ) (Matrix X Z ℂ)
     Matrix.instHMulOfFintypeOfMulOfAddCommMonoid A B
@@ -265,53 +269,53 @@ theorem reference_transport (q : ℕ) (U : Matrix H H ℂ) :
 reindexing of a rectangular matrix. -/
 private theorem reindex_left {X X' Y Y' : Type} [Fintype X] [Fintype X']
     (e : X ≃ X') (f : Y ≃ Y') (M : Matrix X X ℂ) (R : Matrix X Y ℂ) :
-    matmul (relabelGate e M) (Matrix.reindex e f R) = Matrix.reindex e f (matmul M R) := by
+    matrixMul (relabelGate e M) (Matrix.reindex e f R) = Matrix.reindex e f (matrixMul M R) := by
   exact Matrix.submatrix_mul_equiv M R e.symm e.symm f.symm
 
 /-- Right multiplication by a relabeled square matrix commutes with simultaneous row and column
 reindexing of a rectangular matrix. -/
 private theorem reindex_right {X X' Y Y' : Type} [Fintype Y] [Fintype Y']
     (e : X ≃ X') (f : Y ≃ Y') (R : Matrix X Y ℂ) (M : Matrix Y Y ℂ) :
-    matmul (Matrix.reindex e f R) (relabelGate f M) = Matrix.reindex e f (matmul R M) := by
+    matrixMul (Matrix.reindex e f R) (relabelGate f M) = Matrix.reindex e f (matrixMul R M) := by
   exact Matrix.submatrix_mul_equiv R M e.symm f.symm f.symm
 
 /-- On the canonical frame, the spectator-extended bridge evaluation agrees with the
 spectator-extended reference oracle. -/
 private theorem canonical_forward (q : ℕ) (U : Matrix H H ℂ) :
-    matmul (parallelOracle (J := Spectators q)
+    matrixMul (parallelOracle (J := Spectators q)
       (evaluate (SingleControlledOracleBridge.supplied U)
         (SingleControlledOracleBridge.word false))) (canonicalFrame q) =
-    matmul (canonicalFrame q)
+    matrixMul (canonicalFrame q)
       (parallelOracle (J := Spectators q) (SingleControlledOracleBridge.reference U)) := by
   have hd := SingleControlledOracleBridge.word_intertwining U false
-  change matmul (evaluate (SingleControlledOracleBridge.supplied U)
+  change matrixMul (evaluate (SingleControlledOracleBridge.supplied U)
       (SingleControlledOracleBridge.word false)) SingleControlledOracleBridge.frame =
-    matmul SingleControlledOracleBridge.frame (SingleControlledOracleBridge.reference U) at hd
-  unfold matmul at hd
-  simp only [parallelOracle_eq_kronecker, canonicalFrame, matmul]
+    matrixMul SingleControlledOracleBridge.frame (SingleControlledOracleBridge.reference U) at hd
+  simp only [parallelOracle_eq_kronecker, canonicalFrame]
+  simp only [matrixMul] at hd ⊢
   rw [← Matrix.mul_kronecker_mul, ← Matrix.mul_kronecker_mul, hd]
 
 /-- The evaluated bridge body intertwines the nested signal oracle through the false-ancilla
 frame. -/
 theorem body_forward (q : ℕ) (U : Matrix H H ℂ) :
-    matmul (evaluate (oracle q U) (body q)) Qatlib.Concepts.AmplitudeCore.PreparedReadout.CleanOracleSubstitution.frame =
-      matmul Qatlib.Concepts.AmplitudeCore.PreparedReadout.CleanOracleSubstitution.frame (BinaryClockSignalWord.nestedOracle q U) := by
+    matrixMul (evaluate (oracle q U) (body q)) Qatlib.Concepts.AmplitudeCore.PreparedReadout.CleanOracleSubstitution.frame =
+      matrixMul Qatlib.Concepts.AmplitudeCore.PreparedReadout.CleanOracleSubstitution.frame (BinaryClockSignalWord.nestedOracle q U) := by
   let B := evaluate (SingleControlledOracleBridge.supplied U)
     (SingleControlledOracleBridge.word false)
   let O := parallelOracle (J := Spectators q) (SingleControlledOracleBridge.reference U)
   let e := (coordinates q H).symm
   let f := (oldRead q H).symm
   calc
-    _ = matmul (relabelGate e (parallelOracle (J := Spectators q) B))
+    _ = matrixMul (relabelGate e (parallelOracle (J := Spectators q) B))
         (Matrix.reindex e f (canonicalFrame q)) := by
-      exact congrArg₂ (fun M R => matmul M R)
+      exact congrArg₂ (fun M R => matrixMul M R)
         (body_evaluate q U) (frame_transport q).symm
     _ = Matrix.reindex e f
-        (matmul (parallelOracle (J := Spectators q) B) (canonicalFrame q)) :=
+        (matrixMul (parallelOracle (J := Spectators q) B) (canonicalFrame q)) :=
       reindex_left e f _ _
-    _ = Matrix.reindex e f (matmul (canonicalFrame q) O) := by
+    _ = Matrix.reindex e f (matrixMul (canonicalFrame q) O) := by
       rw [canonical_forward]
-    _ = matmul (Matrix.reindex e f (canonicalFrame q)) (relabelGate f O) :=
+    _ = matrixMul (Matrix.reindex e f (canonicalFrame q)) (relabelGate f O) :=
       (reindex_right e f _ _).symm
     _ = _ := by rw [frame_transport, reference_transport]
 
@@ -324,8 +328,8 @@ noncomputable def lower (q : ℕ) (cs : List (AdjointStep (Old q H))) :
 the bridge frame. -/
 theorem lower_intertwining (q : ℕ) (U : Matrix H H ℂ)
     (hU : U ∈ Matrix.unitaryGroup H ℂ) (cs : List (AdjointStep (Old q H))) :
-    matmul (evaluate (oracle q U) (lower q cs)) Qatlib.Concepts.AmplitudeCore.PreparedReadout.CleanOracleSubstitution.frame =
-      matmul Qatlib.Concepts.AmplitudeCore.PreparedReadout.CleanOracleSubstitution.frame (evaluate (BinaryClockSignalWord.nestedOracle q U) cs) :=
+    matrixMul (evaluate (oracle q U) (lower q cs)) (Qatlib.Concepts.AmplitudeCore.PreparedReadout.CleanOracleSubstitution.frame) =
+      matrixMul (Qatlib.Concepts.AmplitudeCore.PreparedReadout.CleanOracleSubstitution.frame) (evaluate (BinaryClockSignalWord.nestedOracle q U) cs) :=
   Qatlib.Concepts.AmplitudeCore.PreparedReadout.CleanOracleSubstitution.intertwining (oracle q U) (BinaryClockSignalWord.nestedOracle q U)
     (body q) cs (oracle_unitary q hU) (BinaryClockSignalWord.nestedOracle_unitary q U hU)
     (body_wellFormed q) (body_forward q U)
@@ -371,8 +375,8 @@ the original adjoint evaluation through the bridge frame. -/
 theorem lower_inverse_intertwining (q : ℕ) (U : Matrix H H ℂ)
     (hU : U ∈ Matrix.unitaryGroup H ℂ) (cs : List (AdjointStep (Old q H)))
     (hcs : WellFormedAdjointCircuit cs) :
-    matmul (evaluate (oracle q U) (adjointCircuit (lower q cs))) Qatlib.Concepts.AmplitudeCore.PreparedReadout.CleanOracleSubstitution.frame =
-      matmul Qatlib.Concepts.AmplitudeCore.PreparedReadout.CleanOracleSubstitution.frame
+    matrixMul (evaluate (oracle q U) (adjointCircuit (lower q cs))) (Qatlib.Concepts.AmplitudeCore.PreparedReadout.CleanOracleSubstitution.frame) =
+      matrixMul (Qatlib.Concepts.AmplitudeCore.PreparedReadout.CleanOracleSubstitution.frame)
         (evaluate (BinaryClockSignalWord.nestedOracle q U) (adjointCircuit cs)) :=
   Qatlib.Concepts.AmplitudeCore.PreparedReadout.CleanOracleSubstitution.inverse_intertwining (oracle q U) (BinaryClockSignalWord.nestedOracle q U)
     (body q) cs (oracle_unitary q hU) (BinaryClockSignalWord.nestedOracle_unitary q U hU)
@@ -392,7 +396,7 @@ noncomputable def instructions (q : ℕ) (F : Matrix H I ℂ) (τ : ℚ) (k : �
 /-- Compose the bridge's false-ancilla frame with the binary clock signal word's common frame. -/
 noncomputable def initialFrame (q : ℕ) (F : Matrix H I ℂ) :
     Matrix (New q H) (Reg q × I) ℂ :=
-  matmul Qatlib.Concepts.AmplitudeCore.PreparedReadout.CleanOracleSubstitution.frame (BinaryClockSignalWord.commonFrame q F)
+  matrixMul (Qatlib.Concepts.AmplitudeCore.PreparedReadout.CleanOracleSubstitution.frame) (BinaryClockSignalWord.commonFrame q F)
 
 /-- The lowered simulator's initial frame is an isometry for the stated projected unitary
 encoding. -/

@@ -4,17 +4,21 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Polynomial.Degree.Lemmas
-import Mathlib.Algebra.Polynomial.Degree.Domain
-import Mathlib.Algebra.Polynomial.Roots
-import Mathlib.Analysis.SpecificLimits.Basic
-import Mathlib.Data.Real.Sign
-import Mathlib.Topology.MetricSpace.Pseudo.Basic
-import Lean.Elab.Tactic.Omega
-import Mathlib.Analysis.RCLike.Basic
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Ring
+module
+
+public import Mathlib.Algebra.Polynomial.Degree.Lemmas
+public import Mathlib.Algebra.Polynomial.Degree.Domain
+public import Mathlib.Algebra.Polynomial.Roots
+public import Mathlib.Analysis.SpecificLimits.Basic
+public import Mathlib.Basic.Real.Sign
+public import Mathlib.Topology.MetricSpace.Pseudo.Basic
+public import Lean.Elab.Tactic.Omega
+public import Mathlib.Analysis.RCLike.Basic
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 /-!
 # Iterated Cubic Sign Polynomials

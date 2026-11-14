@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QAOAScaling23.SearchFees.Failure
+module
+
+public import Qatlib.Papers.QAOAScaling23.SearchFees.Failure
+
+@[expose] public section
 
 /-!
 # Geometric schedule confidence bounds

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.BlockEncoding.LinearCombination
-import Qatlib.Concepts.CoherentSim.ResetDiscard.Theorem13Figure3Defs
+module
+
+public import Qatlib.Concepts.BlockEncoding.LinearCombination
+public import Qatlib.Concepts.CoherentSim.ResetDiscard.Theorem13Figure3Defs
+
+@[expose] public section
 
 /-!
 # Statement of the LCU success bound

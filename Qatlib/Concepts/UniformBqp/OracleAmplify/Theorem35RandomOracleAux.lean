@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.UniformBqp.OracleAmplify.Theorem35RandomOracleFiniteStat
+module
+
+public import Qatlib.Concepts.UniformBqp.OracleAmplify.Theorem35RandomOracleFiniteStat
+
+@[expose] public section
 
 /-!
 # Counting lemmas for random-oracle failure
@@ -46,8 +50,8 @@ private theorem predicate_card_partition {X : Type} [Fintype X] (p q : X → Pro
       right_inv := by
         intro x
         cases x with
-        | inl x => (try dsimp only); simp only [Sum.elim_inl]; rw [dif_pos x.property.2]
-        | inr x => (try dsimp only); simp only [Sum.elim_inr]; rw [dif_neg x.property.2] }
+        | inl x => (try dsimp only); simp only [Sum.elim_inl]; rw [dite_eq_left x.property.2]
+        | inr x => (try dsimp only); simp only [Sum.elim_inr]; rw [dite_eq_right x.property.2] }
   simpa only [Fintype.card_sum] using Fintype.card_congr e
 
 /-- If each successful oracle avoiding `t` has at most half the domain marked and updating any

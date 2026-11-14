@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchBudgetBridge
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchBudgetBridge
+
+@[expose] public section
 
 /-!
 # Payoff evaluation for finite-budget search
@@ -61,11 +65,11 @@ theorem search_finite_budget_eval_nonneg {I : Type*} [Fintype I] [DecidableEq I]
     intro x _
     apply mul_nonneg ((search_joint_attempt_law hN A (sizes stage) (hsizes stage)).1 x)
     by_cases hc : x.1.val+1 ≤ budget
-    · simp only [dif_pos hc]
+    · simp only [dite_eq_left hc]
       cases hx : x.2 with
       | some i => exact hs i _
       | none => exact ih _ (search_budget_progress _ _ hc) (stage+1)
-    · simpa only [dif_neg hc] using ht budget
+    · simpa only [dite_eq_right hc] using ht budget
 
 /-- The finite-budget evaluator sends constant-one success and timeout payoffs to one. -/
 theorem search_finite_budget_eval_one {I : Type*} [Fintype I] [DecidableEq I]
@@ -80,7 +84,7 @@ theorem search_finite_budget_eval_one {I : Type*} [Fintype I] [DecidableEq I]
         apply Finset.sum_congr rfl
         intro x _
         by_cases hc : x.1.val+1 ≤ budget
-        · simp only [dif_pos hc]
+        · simp only [dite_eq_left hc]
           cases hx : x.2 with
           | some i => simp
           | none => rw [ih _ (search_budget_progress _ _ hc) (stage+1)]; simp
@@ -102,7 +106,7 @@ theorem search_finite_budget_eval_indicator {I : Type*} [Fintype I] [DecidableEq
     intro x _
     congr 1
     by_cases hc : x.1.val+1 ≤ budget
-    · simp only [dif_pos hc]
+    · simp only [dite_eq_left hc]
       cases hx : x.2 with
       | some i => rfl
       | none => exact ih _ (search_budget_progress _ _ hc) (stage+1)
@@ -124,7 +128,7 @@ theorem search_finite_budget_eval_congr {I : Type*} [Fintype I] [DecidableEq I]
     intro x _
     congr 1
     by_cases hc : x.1.val+1 ≤ budget
-    · simp only [dif_pos hc]
+    · simp only [dite_eq_left hc]
       have hb := search_budget_progress _ _ hc
       cases hx : x.2 with
       | some i => exact hs i _ hb
@@ -132,7 +136,7 @@ theorem search_finite_budget_eval_congr {I : Type*} [Fintype I] [DecidableEq I]
         exact ih _ hb (stage+1)
           (fun i r hr => hs i r (lt_trans hr hb))
           (fun r hr => ht r (le_trans hr hb.le))
-    · simp only [dif_neg hc]
+    · simp only [dite_eq_right hc]
       exact ht budget le_rfl
 
 /-- Setting the success payoff to zero at remaining budgets at least the initial budget leaves
@@ -163,7 +167,7 @@ theorem search_finite_budget_eval_shift {I : Type*} [Fintype I] [DecidableEq I]
     intro x _
     congr 1
     by_cases hc : x.1.val+1 ≤ budget
-    · simp only [dif_pos hc]
+    · simp only [dite_eq_left hc]
       cases hx : x.2 with
       | some i => rfl
       | none => exact ih _ (search_budget_progress _ _ hc) (stage+1)
@@ -210,7 +214,7 @@ theorem search_budget_reward_succ {I : Type*} [Fintype I] [DecidableEq I]
     else 0)) = _
   simp_rw [(search_history_head A sizes n j _).1, (search_history_head A sizes n j _).2]
   by_cases hc : j.val+1 ≤ budget
-  · rw [if_pos hc, Finset.mul_sum]
+  · rw [ite_eq_left hc, Finset.mul_sum]
     apply Finset.sum_congr rfl
     intro h _
     rw [Finset.mul_sum]
@@ -225,14 +229,14 @@ theorem search_budget_reward_succ {I : Type*} [Fintype I] [DecidableEq I]
         (budget-(j.val+1))-(HistoryIterations (TailSizes sizes) n h + k.val + (n+1)) := by omega
     simp only [heq, hr]
     split_ifs <;> ring
-  · rw [if_neg hc]
+  · rw [ite_eq_right hc]
     apply Finset.sum_eq_zero
     intro h _
     apply Finset.sum_eq_zero
     intro k _
     apply Finset.sum_eq_zero
     intro i _
-    rw [if_neg (by omega)]
+    rw [ite_eq_right (by omega)]
 
 /-- The sum of budget-fitting success rewards over terminal stages below `depth`. -/
 noncomputable def BudgetRewardPrefix {I : Type*} [Fintype I] [DecidableEq I]
@@ -255,7 +259,7 @@ theorem search_budget_reward_prefix_succ {I : Type*} [Fintype I] [DecidableEq I]
   apply Finset.sum_congr rfl
   intro j _
   by_cases hc : j.val+1 ≤ budget
-  · simp only [if_pos hc]
+  · simp only [ite_eq_left hc]
     rw [← Finset.mul_sum]
     ring
   · simp [hc]
@@ -276,11 +280,11 @@ theorem search_finite_budget_eval_step {I : Type*} [Fintype I] [DecidableEq I]
   intro j _
   rw [search_finite_budget_eval_shift]
   by_cases hc : j.val+1 ≤ budget
-  · simp only [dif_pos hc, if_pos hc]
+  · simp only [dite_eq_left hc, ite_eq_left hc]
     rw [Fintype.sum_option]
     simp only
     ring
-  · simp only [dif_neg hc, if_neg hc]
+  · simp only [dite_eq_right hc, ite_eq_right hc]
     rw [Finset.sum_mul]
 
 /-- For nonnegative payoffs, every finite prefix of budget-fitting terminal rewards is bounded
@@ -299,12 +303,12 @@ theorem search_budget_reward_prefix_le {I : Type*} [Fintype I] [DecidableEq I]
     apply Finset.sum_le_sum
     intro j _
     by_cases hc : j.val+1 ≤ budget
-    · rw [if_pos hc, if_pos hc]
+    · rw [ite_eq_left hc, ite_eq_left hc]
       apply add_le_add le_rfl
       apply mul_le_mul_of_nonneg_left
       · exact ih (TailSizes sizes) (fun k => hsizes (k+1)) (budget-(j.val+1))
       · exact (search_joint_attempt_law hN A (sizes 0) (hsizes 0)).1 (j,none)
-    · rw [if_neg hc, if_neg hc]
+    · rw [ite_eq_right hc, ite_eq_right hc]
       apply mul_nonneg _ (ht budget)
       exact Finset.sum_nonneg (fun out _ =>
         (search_joint_attempt_law hN A (sizes 0) (hsizes 0)).1 (j,out))

@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Lean.Elab.Tactic.NormCast
-import Mathlib.Analysis.RCLike.Basic
-import Mathlib.Data.Fintype.Perm
-import Mathlib.Logic.Equiv.Fintype
-import Mathlib.Tactic.Ext
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.SimpRw
-import Qatlib.Concepts.ProbabilityCore.DistributionAA.CubeSymmetry
-import Qatlib.Concepts.ProbabilityCore.DistributionAA.CubeDistribution
+module
+
+public import Lean.Elab.Tactic.NormCast
+public import Mathlib.Analysis.RCLike.Basic
+public import Mathlib.Data.Fintype.Perm
+public import Mathlib.Logic.Equiv.Fintype
+public import Mathlib.Tactic.Ext
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.SimpRw
+public import Qatlib.Concepts.ProbabilityCore.DistributionAA.CubeSymmetry
+public import Qatlib.Concepts.ProbabilityCore.DistributionAA.CubeDistribution
+
+@[expose] public section
 
 /-!
 # Permutation averages on Hamming slices

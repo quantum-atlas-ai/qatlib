@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.Basic
-import Mathlib.Analysis.Normed.Algebra.MatrixExponential
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Data.Matrix.Diagonal
-import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
+module
+
+public import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.Basic
+public import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Data.Matrix.Diagonal
+public import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

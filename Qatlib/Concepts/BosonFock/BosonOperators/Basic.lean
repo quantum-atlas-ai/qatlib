@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.BosonFock.BosonOperators.BosonPermanent
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Data.Fintype.Perm
-import Mathlib.Data.Complex.BigOperators
+module
+
+public import Qatlib.Concepts.BosonFock.BosonOperators.BosonPermanent
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Data.Fintype.Perm
+public import Mathlib.Basic.Complex.BigOperators
+
+@[expose] public section
 
 /-!
 # Finite bosonic sectors and second quantization
@@ -110,7 +114,7 @@ private theorem occupation_add_le {m n : ℕ} (s : Occupation m n) {j i : Fin m}
   have h1 := Finset.add_le_sum (f := fun k : Fin m => (s.val k : ℕ))
     (fun _ _ => Nat.zero_le _) (Finset.mem_univ j) (Finset.mem_univ i) hji
   have h2 := s.property
-  try dsimp at h1
+
   omega
 
 /-- The occupation obtained by adding one particle in mode `i`. -/
@@ -219,13 +223,13 @@ private theorem annihilate_mul_create_entry {m n : ℕ} (i j : Fin m) (r s : Occ
       else 0 := by
   rw [Matrix.mul_apply]
   rw [Finset.sum_eq_single (bump s j)]
-  · rw [annihilate_apply_bump, create_apply_bump, if_pos rfl]
+  · rw [annihilate_apply_bump, create_apply_bump, ite_eq_left rfl]
     by_cases h : bump r i = bump s j
-    · rw [if_pos h.symm, if_pos h]
+    · rw [ite_eq_left h.symm, ite_eq_left h]
     · have h' : bump s j ≠ bump r i := fun hs => h hs.symm
-      rw [if_neg h', if_neg h, zero_mul]
+      rw [ite_eq_right h', ite_eq_right h, zero_mul]
   · intro t _ ht
-    rw [create_apply_bump, if_neg ht, mul_zero]
+    rw [create_apply_bump, ite_eq_right ht, mul_zero]
   · intro h
     exact absurd (Finset.mem_univ _) h
 
@@ -240,10 +244,10 @@ private theorem create_mul_annihilate_entry {m n : ℕ} (i j : Fin m) (r s : Occ
       else 0 := by
   rw [Matrix.mul_apply]
   by_cases h : 0 < (s.val i : ℕ)
-  · rw [dif_pos h, Finset.sum_eq_single (unbump s i h)]
-    · rw [create_apply_bump, annihilate_apply_bump, if_pos (bump_unbump s i h).symm]
+  · rw [dite_eq_left h, Finset.sum_eq_single (unbump s i h)]
+    · rw [create_apply_bump, annihilate_apply_bump, ite_eq_left (bump_unbump s i h).symm]
       have hval : (((unbump s i h).val i : ℕ) : ℝ) + 1 = (s.val i : ℕ) := by
-        rw [unbump_val, if_pos rfl]
+        rw [unbump_val, ite_eq_left rfl]
         exact_mod_cast Nat.sub_add_cancel h
       rw [hval]
       split_ifs <;> ring
@@ -253,17 +257,17 @@ private theorem create_mul_annihilate_entry {m n : ℕ} (i j : Fin m) (r s : Occ
         apply hu
         apply bump_injective i
         rw [bump_unbump, hsu]
-      rw [annihilate_apply_bump, if_neg hne, mul_zero]
+      rw [annihilate_apply_bump, ite_eq_right hne, mul_zero]
     · intro hm
       exact absurd (Finset.mem_univ _) hm
-  · rw [dif_neg h]
+  · rw [dite_eq_right h]
     refine Finset.sum_eq_zero fun u _ => ?_
     have hne : s ≠ bump u i := by
       intro hsu
       apply h
-      rw [hsu, bump_val, if_pos rfl]
+      rw [hsu, bump_val, ite_eq_left rfl]
       omega
-    rw [annihilate_apply_bump, if_neg hne, mul_zero]
+    rw [annihilate_apply_bump, ite_eq_right hne, mul_zero]
 
 /-- On the vacuum sector, annihilation in mode `i` after creation in mode `j` is the identity
 times the Kronecker delta of the modes. -/
@@ -276,15 +280,15 @@ private theorem ccr_zero {m : ℕ} (i j : Fin m) :
   rw [annihilate_mul_create_entry, Matrix.smul_apply, Matrix.one_apply]
   by_cases hij : i = j
   · subst hij
-    rw [if_pos (by rw [hrs]), if_pos rfl, if_pos hrs, hr0 i, hs0 i]
+    rw [ite_eq_left (by rw [hrs]), ite_eq_left rfl, ite_eq_left hrs, hr0 i, hs0 i]
     simp
   · have hne : bump r i ≠ bump s j := by
       intro h
       have hi := congrArg (fun t : Occupation m 1 => (t.val i : ℕ)) h
       dsimp [bump] at hi
-      rw [hr0 i, hs0 i, if_pos rfl, if_neg hij] at hi
+      rw [hr0 i, hs0 i, ite_eq_left rfl, ite_eq_right hij] at hi
       omega
-    rw [if_neg hne, if_neg hij, zero_smul]
+    rw [ite_eq_right hne, ite_eq_right hij, zero_smul]
 
 /-- On each positive particle sector, annihilation followed by creation minus creation followed
 by annihilation equals the identity times the mode Kronecker delta. -/
@@ -296,18 +300,18 @@ private theorem ccr_succ {m n : ℕ} (i j : Fin m) :
     Matrix.smul_apply, Matrix.one_apply]
   by_cases hij : i = j
   · subst hij
-    rw [if_pos rfl, one_smul]
+    rw [ite_eq_left rfl, one_smul]
     by_cases hrs : r = s
     · subst hrs
-      rw [if_pos rfl, if_pos rfl]
+      rw [ite_eq_left rfl, ite_eq_left rfl]
       have hsq1 : (Real.sqrt ((r.val i : ℕ) + 1) : ℂ) * (Real.sqrt ((r.val i : ℕ) + 1) : ℂ) =
           ((r.val i : ℕ) : ℂ) + 1 := by
         norm_cast
         rw [Real.mul_self_sqrt (by positivity)]
       by_cases hpos : 0 < (r.val i : ℕ)
-      · rw [dif_pos hpos, if_pos (bump_unbump r i hpos).symm]
+      · rw [dite_eq_left hpos, ite_eq_left (bump_unbump r i hpos).symm]
         have hval : (((unbump r i hpos).val i : ℕ) : ℝ) + 1 = (r.val i : ℕ) := by
-          rw [unbump_val, if_pos rfl]
+          rw [unbump_val, ite_eq_left rfl]
           exact_mod_cast Nat.sub_add_cancel hpos
         rw [hval, hsq1]
         have hsq2 : (Real.sqrt (r.val i : ℕ) : ℂ) * (Real.sqrt (r.val i : ℕ) : ℂ) =
@@ -316,17 +320,17 @@ private theorem ccr_succ {m n : ℕ} (i j : Fin m) :
           rw [Real.mul_self_sqrt (by positivity)]
         rw [hsq2]
         ring
-      · rw [dif_neg hpos, hsq1]
+      · rw [dite_eq_right hpos, hsq1]
         have hz : (r.val i : ℕ) = 0 := by omega
         simp [hz]
     · have hne1 : bump r i ≠ bump s i := fun h => hrs (bump_injective i h)
-      rw [if_neg hne1, if_neg hrs]
+      rw [ite_eq_right hne1, ite_eq_right hrs]
       by_cases hpos : 0 < (s.val i : ℕ)
-      · rw [dif_pos hpos, bump_unbump s i hpos, if_neg hrs, sub_zero]
-      · rw [dif_neg hpos, sub_zero]
-  · rw [if_neg hij, zero_smul, sub_eq_zero]
+      · rw [dite_eq_left hpos, bump_unbump s i hpos, ite_eq_right hrs, sub_zero]
+      · rw [dite_eq_right hpos, sub_zero]
+  · rw [ite_eq_right hij, zero_smul, sub_eq_zero]
     by_cases hpos : 0 < (s.val i : ℕ)
-    · rw [dif_pos hpos]
+    · rw [dite_eq_left hpos]
       have heq_iff : bump r i = bump s j ↔ r = bump (unbump s i hpos) j := by
         constructor
         · intro h
@@ -336,27 +340,27 @@ private theorem ccr_succ {m n : ℕ} (i j : Fin m) :
           rw [← bump_comm, bump_unbump]
       by_cases hb : bump r i = bump s j
       · have hr : r = bump (unbump s i hpos) j := heq_iff.mp hb
-        rw [if_pos hb, if_pos hr]
+        rw [ite_eq_left hb, ite_eq_left hr]
         have h1 : ((unbump s i hpos).val j : ℕ) = (s.val j : ℕ) := by
-          rw [unbump_val, if_neg (Ne.symm hij), Nat.sub_zero]
+          rw [unbump_val, ite_eq_right (Ne.symm hij), Nat.sub_zero]
         have h2 : (r.val i : ℕ) + 1 = (s.val i : ℕ) := by
           have hi := congrArg (fun t : Occupation m (n + 2) => (t.val i : ℕ)) hb
           dsimp [bump] at hi
-          rw [if_pos rfl, if_neg hij, Nat.add_zero] at hi
+          rw [ite_eq_left rfl, ite_eq_right hij, Nat.add_zero] at hi
           exact hi
         rw [h1]
         have h2' : ((r.val i : ℕ) : ℝ) + 1 = (s.val i : ℕ) := by exact_mod_cast h2
         rw [h2', mul_comm]
       · have hr : r ≠ bump (unbump s i hpos) j := fun h => hb (heq_iff.mpr h)
-        rw [if_neg hb, if_neg hr]
-    · rw [dif_neg hpos]
+        rw [ite_eq_right hb, ite_eq_right hr]
+    · rw [dite_eq_right hpos]
       have hne : bump r i ≠ bump s j := by
         intro hb
         have hi := congrArg (fun t : Occupation m (n + 2) => (t.val i : ℕ)) hb
         dsimp [bump] at hi
-        rw [if_pos rfl, if_neg hij, Nat.add_zero] at hi
+        rw [ite_eq_left rfl, ite_eq_right hij, Nat.add_zero] at hi
         omega
-      rw [if_neg hne]
+      rw [ite_eq_right hne]
 
 /-- Creation in two modes commutes as a map between the corresponding graded sectors. -/
 private theorem create_comm {m n : ℕ} (i j : Fin m) :
@@ -364,21 +368,21 @@ private theorem create_comm {m n : ℕ} (i j : Fin m) :
   ext t s
   rw [Matrix.mul_apply, Matrix.mul_apply]
   rw [Finset.sum_eq_single (bump s j), Finset.sum_eq_single (bump s i)]
-  · simp only [create_apply_bump, bump_comm s i j, if_true]
+  · simp only [create_apply_bump, bump_comm s i j, ite_true]
     split_ifs with h
     · by_cases hij : i = j
       · subst hij; rfl
       · have h1 : ((bump s j).val i : ℕ) = (s.val i : ℕ) := by
-          rw [bump_val, if_neg hij, Nat.add_zero]
+          rw [bump_val, ite_eq_right hij, Nat.add_zero]
         have h2 : ((bump s i).val j : ℕ) = (s.val j : ℕ) := by
-          rw [bump_val, if_neg (Ne.symm hij), Nat.add_zero]
+          rw [bump_val, ite_eq_right (Ne.symm hij), Nat.add_zero]
         rw [h1, h2, mul_comm]
     · ring
   · intro u _ hu
-    rw [create_apply_bump i, if_neg hu, mul_zero]
+    rw [create_apply_bump i, ite_eq_right hu, mul_zero]
   · intro h; exact absurd (Finset.mem_univ _) h
   · intro u _ hu
-    rw [create_apply_bump j, if_neg hu, mul_zero]
+    rw [create_apply_bump j, ite_eq_right hu, mul_zero]
   · intro h; exact absurd (Finset.mem_univ _) h
 
 /-- Below the cutoff, the same-sector entries of adjoint cutoff creation times cutoff creation
@@ -393,17 +397,17 @@ private theorem cutCreate_conjTranspose_mul_entry {m Q : ℕ} (i j : Fin m)
   rw [Finset.sum_eq_single u₀]
   · change star (cutCreate m Q i u₀ ⟨k, t₂⟩) * cutCreate m Q j u₀ ⟨k, s₂⟩ = _
     unfold cutCreate
-    simp only [u₀, step_iff_eq_bump, true_and, and_self, if_true]
+    simp only [u₀, step_iff_eq_bump, true_and, and_self, ite_true]
     rw [annihilate_mul_create_entry]
     by_cases hb : bump t₂ i = bump s₂ j
-    · rw [if_pos hb.symm, if_pos hb]
+    · rw [ite_eq_left hb.symm, ite_eq_left hb]
       simp
     · have hb' : bump s₂ j ≠ bump t₂ i := fun h => hb h.symm
-      rw [if_neg hb', if_neg hb, star_zero, zero_mul]
+      rw [ite_eq_right hb', ite_eq_right hb, star_zero, zero_mul]
   · rintro ⟨uk, u₂⟩ _ hu
     have hcz : cutCreate m Q j ⟨uk, u₂⟩ ⟨k, s₂⟩ = 0 := by
       unfold cutCreate
-      rw [if_neg]
+      rw [ite_eq_right]
       rintro ⟨huk, hstep⟩
       apply hu
       have huk' : uk = ⟨k.val + 1, hk1⟩ := Fin.ext huk
@@ -422,7 +426,7 @@ private theorem cutCreate_mul_conjTranspose_entry_zero {m Q : ℕ} (i j : Fin m)
   refine Finset.sum_eq_zero fun u _ => ?_
   have hcz : cutCreate m Q j ⟨k, t₂⟩ u = 0 := by
     unfold cutCreate
-    rw [if_neg]
+    rw [ite_eq_right]
     rintro ⟨h1, _⟩
     dsimp at h1
     omega
@@ -436,22 +440,22 @@ private theorem cutCreate_mul_conjTranspose_entry_succ {m Q n : ℕ} (i j : Fin 
       (create m n j * annihilate m n i) t₂ s₂ := by
   rw [Matrix.mul_apply, create_mul_annihilate_entry]
   by_cases hpos : 0 < (s₂.val i : ℕ)
-  · rw [dif_pos hpos]
+  · rw [dite_eq_left hpos]
     let u₀ : CutBasis m Q := ⟨⟨n, by omega⟩, unbump s₂ i hpos⟩
     rw [Finset.sum_eq_single u₀]
     · change cutCreate m Q j ⟨⟨n + 1, hklt⟩, t₂⟩ u₀ * star (cutCreate m Q i ⟨⟨n + 1, hklt⟩, s₂⟩ u₀) = _
       unfold cutCreate
       simp only [u₀, step_iff_eq_bump, true_and]
-      rw [if_pos (bump_unbump s₂ i hpos).symm]
+      rw [ite_eq_left (bump_unbump s₂ i hpos).symm]
       have hval : (((unbump s₂ i hpos).val i : ℕ) : ℝ) + 1 = (s₂.val i : ℕ) := by
-        rw [unbump_val, if_pos rfl]
+        rw [unbump_val, ite_eq_left rfl]
         exact_mod_cast Nat.sub_add_cancel hpos
       rw [hval]
       split_ifs <;> simp
     · rintro ⟨⟨uk, huklt⟩, u₂⟩ _ hu
       have hcz : cutCreate m Q i ⟨⟨n + 1, hklt⟩, s₂⟩ ⟨⟨uk, huklt⟩, u₂⟩ = 0 := by
         unfold cutCreate
-        rw [if_neg]
+        rw [ite_eq_right]
         rintro ⟨huk, hsu⟩
         have huk' : uk = n := by dsimp at huk; omega
         subst huk'
@@ -465,17 +469,17 @@ private theorem cutCreate_mul_conjTranspose_entry_succ {m Q n : ℕ} (i j : Fin 
       change _ * star (cutCreate m Q i ⟨⟨n + 1, hklt⟩, s₂⟩ ⟨⟨uk, huklt⟩, u₂⟩) = 0
       rw [hcz, star_zero, mul_zero]
     · intro hm; exact absurd (Finset.mem_univ _) hm
-  · rw [dif_neg hpos]
+  · rw [dite_eq_right hpos]
     refine Finset.sum_eq_zero fun ⟨⟨uk, huklt⟩, u₂⟩ _ => ?_
     have hcz : cutCreate m Q i ⟨⟨n + 1, hklt⟩, s₂⟩ ⟨⟨uk, huklt⟩, u₂⟩ = 0 := by
       unfold cutCreate
-      rw [if_neg]
+      rw [ite_eq_right]
       rintro ⟨huk, hsu⟩
       have huk' : uk = n := by dsimp at huk; omega
       subst huk'
       have hs₂ : s₂ = bump u₂ i := step_iff_eq_bump.mp hsu
       apply hpos
-      rw [hs₂, bump_val, if_pos rfl]
+      rw [hs₂, bump_val, ite_eq_left rfl]
       omega
     change _ * star (cutCreate m Q i ⟨⟨n + 1, hklt⟩, s₂⟩ ⟨⟨uk, huklt⟩, u₂⟩) = 0
     rw [hcz, star_zero, mul_zero]
@@ -514,7 +518,7 @@ theorem graded_creation_annihilation :
         if i=j ∧ t=s then 1 else 0) := by
   refine ⟨fun m n s t => inner_basis s t, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · intro m
-    rw [norm_eq_sqrt_re_inner (𝕜 := ℂ), inner_basis, if_pos rfl]
+    rw [norm_eq_sqrt_re_inner (𝕜 := ℂ), inner_basis, ite_eq_left rfl]
     simp
   · intro m n i
     refine ⟨rfl, annihilate_apply_formula i, ?_⟩
@@ -568,9 +572,9 @@ private theorem annihilate_mulVec_apply {m n : ℕ} (i : Fin m) (y : Occupation 
     (s : Occupation m n) :
     (annihilate m n i).mulVec y s = (Real.sqrt ((s.val i : ℕ) + 1) : ℂ) * y (bump s i) := by
   rw [Matrix.mulVec, dotProduct, Finset.sum_eq_single (bump s i)]
-  · rw [annihilate_apply_bump, if_pos rfl]
+  · rw [annihilate_apply_bump, ite_eq_left rfl]
   · intro t _ ht
-    rw [annihilate_apply_bump, if_neg ht, zero_mul]
+    rw [annihilate_apply_bump, ite_eq_right ht, zero_mul]
   · intro hm; exact absurd (Finset.mem_univ _) hm
 
 /-- The squared norm of a weighted annihilation output is bounded by `n + 1` times the
@@ -608,7 +612,7 @@ private theorem weighted_annihilate_mulVec_sq (m n : ℕ) (u : Fin m → ℂ)
           · refine Finset.sum_congr rfl fun i _ => ?_
             rw [mul_pow, Real.sq_sqrt (by positivity)]
             have hb : (((bump s i).val i : ℕ) : ℝ) = (s.val i : ℕ) + 1 := by
-              rw [bump_val, if_pos rfl]
+              rw [bump_val, ite_eq_left rfl]
               push_cast
               rfl
             rw [hb]
@@ -671,17 +675,17 @@ private theorem cutCreate_conjTranspose_mulVec_apply {m Q : ℕ} (i : Fin m)
         (annihilate m k.val i).mulVec (fun t₂ => y ⟨⟨k.val + 1, Nat.succ_lt_succ h⟩, t₂⟩) s₂
       else 0 := by
   by_cases h : k.val < Q
-  · rw [dif_pos h, annihilate_mulVec_apply]
+  · rw [dite_eq_left h, annihilate_mulVec_apply]
     let t₀ : CutBasis m Q := ⟨⟨k.val + 1, Nat.succ_lt_succ h⟩, bump s₂ i⟩
     rw [Matrix.mulVec, dotProduct, Finset.sum_eq_single t₀]
     · change star (cutCreate m Q i t₀ ⟨k, s₂⟩) * y t₀ = _
       unfold cutCreate
-      simp only [t₀, step_iff_eq_bump, and_self, if_true]
+      simp only [t₀, step_iff_eq_bump, and_self, ite_true]
       simp
     · rintro ⟨⟨tk, htk⟩, t₂⟩ _ ht
       have hcz : cutCreate m Q i ⟨⟨tk, htk⟩, t₂⟩ ⟨k, s₂⟩ = 0 := by
         unfold cutCreate
-        rw [if_neg]
+        rw [ite_eq_right]
         rintro ⟨htk', hstep⟩
         dsimp at htk'
         subst htk'
@@ -691,11 +695,11 @@ private theorem cutCreate_conjTranspose_mulVec_apply {m Q : ℕ} (i : Fin m)
       change star (cutCreate m Q i ⟨⟨tk, htk⟩, t₂⟩ ⟨k, s₂⟩) * _ = 0
       rw [hcz, star_zero, zero_mul]
     · intro hm; exact absurd (Finset.mem_univ _) hm
-  · rw [dif_neg h, Matrix.mulVec, dotProduct]
+  · rw [dite_eq_right h, Matrix.mulVec, dotProduct]
     refine Finset.sum_eq_zero fun ⟨⟨tk, htk⟩, t₂⟩ _ => ?_
     have hcz : cutCreate m Q i ⟨⟨tk, htk⟩, t₂⟩ ⟨k, s₂⟩ = 0 := by
       unfold cutCreate
-      rw [if_neg]
+      rw [ite_eq_right]
       rintro ⟨htk', _⟩
       dsimp at htk'
       omega
@@ -728,14 +732,14 @@ private theorem weighted_cutCreate_norm_le (m Q : ℕ) (u : Fin m → ℂ) :
         if h : k.val < Q then (Q : ℝ) * U * g ⟨k.val + 1, Nat.succ_lt_succ h⟩ else 0 := by
     intro k
     by_cases h : k.val < Q
-    · rw [dif_pos h]
+    · rw [dite_eq_left h]
       have hB : ∀ s₂ : Occupation m k.val,
           B.mulVec y ⟨k, s₂⟩ =
             (∑ i, star (u i) • annihilate m k.val i).mulVec
               (fun t₂ => y ⟨⟨k.val + 1, Nat.succ_lt_succ h⟩, t₂⟩) s₂ := by
         intro s₂
         simp only [B, Matrix.sum_mulVec, Finset.sum_apply, Matrix.smul_mulVec,
-          Pi.smul_apply, cutCreate_conjTranspose_mulVec_apply, dif_pos h]
+          Pi.smul_apply, cutCreate_conjTranspose_mulVec_apply, dite_eq_left h]
       simp only [hB]
       have hsq := weighted_annihilate_mulVec_sq m k.val u
         (fun t₂ => y ⟨⟨k.val + 1, Nat.succ_lt_succ h⟩, t₂⟩)
@@ -743,11 +747,11 @@ private theorem weighted_cutCreate_norm_le (m Q : ℕ) (u : Fin m → ℂ) :
       have hg_pos : 0 ≤ g ⟨k.val + 1, Nat.succ_lt_succ h⟩ := hg_nonneg _
       exact hsq.trans (mul_le_mul_of_nonneg_right
         (mul_le_mul_of_nonneg_right hkQ hU) hg_pos)
-    · rw [dif_neg h]
+    · rw [dite_eq_right h]
       have hB0 : ∀ s₂ : Occupation m k.val, B.mulVec y ⟨k, s₂⟩ = 0 := by
         intro s₂
         simp [B, Matrix.sum_mulVec, Finset.sum_apply, Matrix.smul_mulVec,
-          cutCreate_conjTranspose_mulVec_apply, dif_neg h]
+          cutCreate_conjTranspose_mulVec_apply, dite_eq_right h]
       simp [hB0]
   rw [Fintype.sum_sigma, Fintype.sum_sigma]
   calc ∑ k : Fin (Q + 1), ∑ s₂ : Occupation m k.val, ‖B.mulVec y ⟨k, s₂⟩‖ ^ 2
@@ -757,10 +761,10 @@ private theorem weighted_cutCreate_norm_le (m Q : ℕ) (u : Fin m → ℂ) :
     _ = ∑ j : Fin Q, (Q : ℝ) * U * g (Fin.succ j) := by
         rw [Fin.sum_univ_castSucc]
         have hlast : ¬ ((Fin.last Q).val < Q) := Nat.lt_irrefl Q
-        rw [dif_neg hlast, add_zero]
+        rw [dite_eq_right hlast, add_zero]
         refine Finset.sum_congr rfl fun j _ => ?_
         have hj : (Fin.castSucc j).val < Q := j.isLt
-        rw [dif_pos hj]
+        rw [dite_eq_left hj]
         rfl
     _ ≤ (Q : ℝ) * U * ∑ k' : Fin (Q + 1), g k' := by
         rw [Fin.sum_univ_succ, mul_add]
@@ -996,8 +1000,8 @@ private theorem card_perm_fiber {m n : ℕ} (f g : Fin n → Fin m) :
     Fintype.card { τ : Equiv.Perm (Fin n) // ∀ j, f (τ j) = g j }
       = if occFn f = occFn g then ∏ i, (occFn f i).factorial else 0 := by
   by_cases h : occFn f = occFn g
-  · rw [if_pos h, perm_fiber_card f g h]
-  · rw [if_neg h, Fintype.card_eq_zero_iff]
+  · rw [ite_eq_left h, perm_fiber_card f g h]
+  · rw [ite_eq_right h, Fintype.card_eq_zero_iff]
     refine ⟨fun τ => h ?_⟩
     have h2 : (fun j => f ((τ : Equiv.Perm (Fin n)) j)) = g := funext fun j => τ.2 j
     exact (occFn_comp_perm f (τ : Equiv.Perm (Fin n))).symm.trans (by rw [h2])
@@ -1040,8 +1044,8 @@ private theorem sum_perm_comp {m n : ℕ} (f₀ : Fin n → Fin m) (Φ : (Fin n 
         (fun τ => funext_iff),
       card_perm_fiber f₀ F]
     by_cases h : occFn f₀ = occFn F
-    · rw [if_pos h, if_pos h.symm]; ring
-    · rw [if_neg h, if_neg (fun hc => h hc.symm), Nat.cast_zero, zero_mul, zero_mul]
+    · rw [ite_eq_left h, ite_eq_left h.symm]; ring
+    · rw [ite_eq_right h, ite_eq_right (fun hc => h hc.symm), Nat.cast_zero, zero_mul, zero_mul]
   rw [Finset.sum_congr rfl (fun F _ => hterm F), ← Finset.sum_mul]
   exact mul_comm _ _
 
@@ -1210,7 +1214,7 @@ private theorem gamma_one (m n : ℕ) :
     by_cases hgs : g = rowAt s
     · subst hgs
       simp
-    · rw [if_neg hgs]
+    · rw [ite_eq_right hgs]
       have hne : ∃ b : Fin n, g b ≠ rowAt s b := by
         by_contra hc
         apply hgs
@@ -1222,7 +1226,7 @@ private theorem gamma_one (m n : ℕ) :
       simp [hb₀]
   simp only [hprod]
   rw [Finset.sum_eq_single (rowAt s)]
-  · rw [if_pos rfl, mul_one, occOf_rowAt]
+  · rw [ite_eq_left rfl, mul_one, occOf_rowAt]
     by_cases hrs : r = s
     · subst hrs
       simp only [ite_true, mul_one]
@@ -1233,9 +1237,9 @@ private theorem gamma_one (m n : ℕ) :
       rw [hsq, div_self]
       exact_mod_cast ne_of_gt (Finset.prod_pos fun i _ => Nat.factorial_pos _)
     · have hsr : s ≠ r := fun h => hrs h.symm
-      rw [if_neg hsr, if_neg hrs, mul_zero, zero_div]
+      rw [ite_eq_right hsr, ite_eq_right hrs, mul_zero, zero_div]
   · intro g _ hg
-    rw [if_neg hg, mul_zero]
+    rw [ite_eq_right hg, mul_zero]
   · intro hm; exact absurd (Finset.mem_univ _) hm
 
 /-- The permanent of a conjugate transpose is the complex conjugate of the permanent. -/
@@ -1290,8 +1294,8 @@ private theorem gamma_mul (m n : ℕ) (U V : Matrix (Fin m) (Fin m) ℂ) :
       rw [Finset.mul_sum]
       refine Finset.sum_congr rfl fun h _ => ?_
       by_cases hhs : occOf h = s
-      · rw [if_pos hhs, if_pos hhs, one_mul, perm_col_replace U r s h hhs]
-      · rw [if_neg hhs, if_neg hhs, zero_mul, mul_zero]
+      · rw [ite_eq_left hhs, ite_eq_left hhs, one_mul, perm_col_replace U r s h hhs]
+      · rw [ite_eq_right hhs, ite_eq_right hhs, zero_mul, mul_zero]
     rw [← hFs_sq, ← hsum_eq]
     generalize Matrix.permanent (occupationMatrix U r s) = P
     generalize (∑ h : Fin n → Fin m, (if occOf h = s then (1 : ℂ) else 0) *
@@ -1333,11 +1337,11 @@ private theorem factProd_bump {m n : ℕ} (u : Occupation m n) (j : Fin m) :
   unfold factProd
   rw [← Finset.mul_prod_erase Finset.univ _ (Finset.mem_univ j),
     ← Finset.mul_prod_erase Finset.univ _ (Finset.mem_univ j),
-    bump_val, if_pos rfl, Nat.factorial_succ]
+    bump_val, ite_eq_left rfl, Nat.factorial_succ]
   have hrest : (∏ k ∈ Finset.univ.erase j, (((bump u j).val k : ℕ).factorial : ℝ)) =
       ∏ k ∈ Finset.univ.erase j, ((u.val k : ℕ).factorial : ℝ) := by
     refine Finset.prod_congr rfl fun k hk => ?_
-    rw [bump_val, if_neg (Finset.ne_of_mem_erase hk), Nat.add_zero]
+    rw [bump_val, ite_eq_right (Finset.ne_of_mem_erase hk), Nat.add_zero]
   rw [hrest]
   push_cast
   ring
@@ -1372,7 +1376,7 @@ private theorem gamma_create (m n : ℕ) (U : Matrix (Fin m) (Fin m) ℂ) (i : F
           ∏ b : Fin (n + 1), U (g b) (snocMode (rowAt s) i b)) /
         ((Real.sqrt (factProd r) : ℂ) * (Real.sqrt (factProd s) : ℂ)) := by
     rw [Matrix.mul_apply, Finset.sum_eq_single (bump s i)]
-    · rw [create_apply_bump, if_pos rfl, gamma_apply_factProd, factProd_bump s i,
+    · rw [create_apply_bump, ite_eq_left rfl, gamma_apply_factProd, factProd_bump s i,
         Real.sqrt_mul (by positivity), Complex.ofReal_mul]
       have hper : Matrix.permanent (occupationMatrix U r (bump s i)) =
           ((∏ k, (r.val k : ℕ).factorial : ℕ) : ℂ) *
@@ -1398,7 +1402,7 @@ private theorem gamma_create (m n : ℕ) (U : Matrix (Fin m) (Fin m) ℂ) (i : F
             (Real.sqrt ((s.val i : ℕ) + 1) : ℂ)) := by ring
       rw [hdiv, mul_div_mul_right _ _ hsi_ne]
     · intro t _ ht
-      rw [create_apply_bump, if_neg ht, mul_zero]
+      rw [create_apply_bump, ite_eq_right ht, mul_zero]
     · intro hm; exact absurd (Finset.mem_univ _) hm
   have hRHS_inner : ∀ (j : Fin m) (u : Occupation m n),
       create m n j r u * gamma m n U u s =
@@ -1411,7 +1415,7 @@ private theorem gamma_create (m n : ℕ) (U : Matrix (Fin m) (Fin m) ℂ) (i : F
     intro j u
     rw [create_apply_bump, gamma_apply_factProd, permanent_occupationMatrix_row_sum U u s]
     by_cases hru : r = bump u j
-    · rw [if_pos hru]
+    · rw [ite_eq_left hru]
       have hFr : factProd r = ((u.val j : ℕ) + 1 : ℝ) * factProd u := by
         rw [hru, factProd_bump]
       have hFu_sq : ((Real.sqrt (factProd u) : ℂ) * (Real.sqrt (factProd u) : ℂ)) =
@@ -1446,7 +1450,7 @@ private theorem gamma_create (m n : ℕ) (U : Matrix (Fin m) (Fin m) ℂ) (i : F
       rw [hsum_simp, hFr_cast, ← hFu_sq, ← huj_sq, hR_split]
       rw [← mul_div_assoc, ← mul_div_mul_left _ _ huj_ne]
       ring
-    · rw [if_neg hru, zero_mul]
+    · rw [ite_eq_right hru, zero_mul]
       have hzero : (∑ g₀ : Fin n → Fin m,
           if occOf g₀ = u ∧ r = bump u j then ∏ a : Fin n, U (g₀ a) (rowAt s a) else 0) = 0 := by
         refine Finset.sum_eq_zero fun g₀ _ => ?_
@@ -1473,11 +1477,11 @@ private theorem gamma_create (m n : ℕ) (U : Matrix (Fin m) (Fin m) ℂ) (i : F
     refine Finset.sum_congr rfl fun g₀ _ => ?_
     rw [Finset.sum_eq_single (occOf g₀)]
     · by_cases hbr : r = bump (occOf g₀) j
-      · rw [if_pos ⟨rfl, hbr⟩, if_pos hbr.symm, one_mul]
+      · rw [ite_eq_left ⟨rfl, hbr⟩, ite_eq_left hbr.symm, one_mul]
       · have hbr' : bump (occOf g₀) j ≠ r := fun h => hbr h.symm
-        rw [if_neg (fun h => hbr h.2), if_neg hbr', zero_mul, mul_zero]
+        rw [ite_eq_right (fun h => hbr h.2), ite_eq_right hbr', zero_mul, mul_zero]
     · intro u _ hu
-      rw [if_neg (fun h => hu h.1.symm)]
+      rw [ite_eq_right (fun h => hu h.1.symm)]
     · intro hm; exact absurd (Finset.mem_univ _) hm
   rw [Finset.sum_congr rfl fun j _ => hcollapse j]
   rw [← Fintype.sum_prod_type']

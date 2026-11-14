@@ -4,52 +4,56 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Algebra.Basic
-import Mathlib.Algebra.Algebra.Defs
-import Mathlib.Algebra.Algebra.Hom
-import Mathlib.Algebra.Algebra.NonUnitalHom
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Defs
-import Mathlib.Algebra.Group.Action.Defs
-import Mathlib.Algebra.Group.Action.Pi
-import Mathlib.Algebra.Group.Basic
-import Mathlib.Algebra.Group.Defs
-import Mathlib.Algebra.Group.DivInvMonoid
-import Mathlib.Algebra.Group.Hom.Defs
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.Group.Pi.Basic
-import Mathlib.Algebra.Group.Semigroup
-import Mathlib.Algebra.GroupWithZero.Action.Defs
-import Mathlib.Algebra.GroupWithZero.Defs
-import Mathlib.Algebra.GroupWithZero.Hom
-import Mathlib.Algebra.Module.Defs
-import Mathlib.Algebra.Module.LinearMap.Defs
-import Mathlib.Algebra.Module.LinearMap.End
-import Mathlib.Algebra.Module.Pi
-import Mathlib.Algebra.Module.Submodule.Basic
-import Mathlib.Algebra.Module.Submodule.Defs
-import Mathlib.Algebra.Module.Submodule.LinearMap
-import Mathlib.Algebra.Polynomial.AlgebraMap
-import Mathlib.Algebra.Polynomial.Basic
-import Mathlib.Algebra.Polynomial.Degree.Defs
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Algebra.Ring.Hom.Defs
-import Mathlib.Algebra.Ring.Nat
-import Mathlib.Basic.FunLike.Basic
-import Mathlib.Basic.SetLike.Basic
-import Mathlib.Data.Finset.Defs
-import Mathlib.Data.Finset.Range
-import Mathlib.Data.Finsupp.Defs
-import Mathlib.Data.Int.Cast.Defs
-import Mathlib.Data.Nat.Cast.Defs
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Data.ZMod.Defs
-import Mathlib.GroupTheory.GroupAction.Hom
-import Mathlib.Tactic
-import Mathlib.Tactic.NormNum.Basic
-import Mathlib.Tactic.NormNum.Result
-import Mathlib.Tactic.Ring.Basic
-import Mathlib.Tactic.Ring.Common
+module
+
+public import Mathlib.Algebra.Algebra.Basic
+public import Mathlib.Algebra.Algebra.Defs
+public import Mathlib.Algebra.Algebra.Hom
+public import Mathlib.Algebra.Algebra.NonUnitalHom
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Defs
+public import Mathlib.Algebra.Group.Action.Defs
+public import Mathlib.Algebra.Group.Action.Pi
+public import Mathlib.Algebra.Group.Basic
+public import Mathlib.Algebra.Group.Defs
+public import Mathlib.Algebra.Group.DivInvMonoid
+public import Mathlib.Algebra.Group.Hom.Defs
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.Group.Pi.Basic
+public import Mathlib.Algebra.Group.Semigroup
+public import Mathlib.Algebra.GroupWithZero.Action.Defs
+public import Mathlib.Algebra.GroupWithZero.Defs
+public import Mathlib.Algebra.GroupWithZero.Hom
+public import Mathlib.Algebra.Module.Defs
+public import Mathlib.Algebra.Module.LinearMap.Defs
+public import Mathlib.Algebra.Module.LinearMap.End
+public import Mathlib.Algebra.Module.Pi
+public import Mathlib.Algebra.Module.Submodule.Basic
+public import Mathlib.Algebra.Module.Submodule.Defs
+public import Mathlib.Algebra.Module.Submodule.LinearMap
+public import Mathlib.Algebra.Polynomial.AlgebraMap
+public import Mathlib.Algebra.Polynomial.Basic
+public import Mathlib.Algebra.Polynomial.Degree.Defs
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Algebra.Ring.Hom.Defs
+public import Mathlib.Algebra.Ring.Nat
+public import Mathlib.Basic.FunLike.Basic
+public import Mathlib.Basic.SetLike.Basic
+public import Mathlib.Data.Finset.Defs
+public import Mathlib.Data.Finset.Range
+public import Mathlib.Data.Finsupp.Defs
+public import Mathlib.Data.Int.Cast.Defs
+public import Mathlib.Data.Nat.Cast.Defs
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Data.ZMod.Defs
+public import Mathlib.GroupTheory.GroupAction.Hom
+public import Mathlib.Tactic
+public import Mathlib.Tactic.NormNum.Basic
+public import Mathlib.Tactic.NormNum.Result
+public import Mathlib.Tactic.Ring.Basic
+public import Mathlib.Tactic.Ring.Common
+
+@[expose] public section
 
 /-!
 # Cyclic codes and polynomial shift invariance
@@ -165,6 +169,6 @@ theorem isCyclicCode_iff (C : Submodule R (ZMod n → R)) :
     IsCyclicCode C ↔
       ∀ (p : Polynomial R) (v : ZMod n → R), v ∈ C →
         Polynomial.aeval (shiftEnd (n := n) (R := R)) p v ∈ C :=
-  ⟨fun hC p v hv => aeval_mem C hC p hv, fun h => isCyclicCode_of_aeval C h⟩
+  ⟨fun hC p _v hv => aeval_mem C hC p hv, fun h => isCyclicCode_of_aeval C h⟩
 
 end Qatlib.Papers.PottsPartEval07.CodeStructure

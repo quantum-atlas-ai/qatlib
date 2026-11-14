@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Field.GeomSum
-import Mathlib.Tactic
+module
+
+public import Mathlib.Algebra.Field.GeomSum
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # IterationError — accumulated simulation error of the polynomial-iteration algorithm

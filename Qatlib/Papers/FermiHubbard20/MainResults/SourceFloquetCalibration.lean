@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FermionAlgebra.CarJordanWigner.FermionHubbard
+module
+
+public import Qatlib.Concepts.FermionAlgebra.CarJordanWigner.FermionHubbard
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -56,7 +60,7 @@ lemma eim_euler (a : ℝ) :
 lemma epos_euler (a : ℝ) :
     epos a = (Real.cos a : ℂ) + Complex.I * (Real.sin a : ℂ) := by
   unfold epos
-  have harg : (Complex.I) * (a : ℂ) = (a : ℝ) * Complex.I := by push_cast; ring
+  have harg : (Complex.I) * (a : ℂ) = (a : ℝ) * Complex.I := by ring
   rw [harg, Complex.exp_ofReal_mul_I]
   ring
 

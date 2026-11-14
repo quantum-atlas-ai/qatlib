@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.BooleanEnergy.PenaltyExact.Pair
+module
+
+public import Qatlib.Foundations.BooleanEnergy.PenaltyExact.Pair
+
+@[expose] public section
 
 /-!
 # Exact penalties for global Hadamard energies

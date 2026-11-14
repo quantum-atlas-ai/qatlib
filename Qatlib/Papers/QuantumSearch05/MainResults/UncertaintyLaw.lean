@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QuantumSearch05.MainResults.Basic
-import Qatlib.Foundations.BornMetrics.EventProbability
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
+module
+
+public import Qatlib.Papers.QuantumSearch05.MainResults.Basic
+public import Qatlib.Foundations.BornMetrics.EventProbability
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
+
+@[expose] public section
 
 /-!
 # Search failure laws with uncertain marked fraction

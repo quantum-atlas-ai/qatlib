@@ -4,8 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GraphStationary.StationaryLaw
-import Mathlib.Combinatorics.SimpleGraph.LapMatrix
+module
+
+public import Qatlib.Concepts.GraphStationary.StationaryLaw
+public import Mathlib.Combinatorics.SimpleGraph.LapMatrix
+public import Mathlib.Algebra.Order.Star.Real
+
+@[expose] public section
 
 /-!
 # The stationary weighted graph Laplacian

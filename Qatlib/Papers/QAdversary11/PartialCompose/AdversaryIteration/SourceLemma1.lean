@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryIteration
-import Qatlib.Concepts.GramQueryCore.LowerBoundTools.ResidualModels
-import Qatlib.Concepts.GramQueryCore.FilteredNorm.AdaptiveModels
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryIteration
+public import Qatlib.Concepts.GramQueryCore.LowerBoundTools.ResidualModels
+public import Qatlib.Concepts.GramQueryCore.FilteredNorm.AdaptiveModels
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -72,8 +76,8 @@ theorem sourceAlphabetDelta_boolean (n : ℕ) (j : Fin n) :
   ext x y
   simp only [sourceAlphabetDelta, booleanInput]
   by_cases h : x j = y j
-  · rw [if_pos (congrArg sourceBooleanSymbol h), if_neg (by simpa [h] using h)]
-  · rw [if_neg (sourceBooleanSymbol_ne h), if_pos h]
+  · rw [ite_eq_left (congrArg sourceBooleanSymbol h), ite_eq_right (by simp [h])]
+  · rw [ite_eq_right (sourceBooleanSymbol_ne h), ite_eq_left h]
 
 /-- The Boolean query filter `genAdvFilter` is the Hadamard product with the
 alphabet mask `sourceAlphabetDelta`. -/
@@ -112,10 +116,10 @@ theorem weightedAdvGamma_im_zero {k : ℕ} {X : Fin k → Type}
     (Gf : Matrix (Fin k → Bool) (Fin k → Bool) ℂ)
     (Gg : (i : Fin k) → Matrix (X i) (X i) ℂ)
     (hGf : ∀ x y, (Gf x y).im = 0) (hGg : ∀ i x y, (Gg i x y).im = 0) :
-    ∀ x y, (Qatlib.Concepts.AdversaryBounds.WeightedAdvComp.weightedAdvGamma
+    ∀ x y, (Qatlib.Concepts.AdversaryBounds.WeightedAdvComposition.weightedAdvGamma
       g f Gf Gg x y).im = 0 := by
   intro x y
-  unfold Qatlib.Concepts.AdversaryBounds.WeightedAdvComp.weightedAdvGamma
+  unfold Qatlib.Concepts.AdversaryBounds.WeightedAdvComposition.weightedAdvGamma
   rw [Complex.mul_im]
   have hf0 : (Gf (fun i => g i (x i)) (fun i => g i (y i))).im = 0 := hGf _ _
   have hprod : (∏ i, (Matrix.diagonal (fun _ : X i => (‖Gg i‖ : ℂ)) + Gg i) (x i) (y i)).im

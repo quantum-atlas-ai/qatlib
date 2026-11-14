@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LocalMachine.LocalTransport.LocalMachine
-import Qatlib.Concepts.LocalMachine.LocalTransport.LocalMachineDefs
-import Qatlib.Foundations.StandardModel.WindowSim.QtmSimulationDefs
-import Qatlib.Concepts.UniformBqp.Phi3Compile.StandardModelDefs
+module
+
+public import Qatlib.Concepts.LocalMachine.LocalTransport.LocalMachine
+public import Qatlib.Concepts.LocalMachine.LocalTransport.LocalMachineDefs
+public import Qatlib.Foundations.StandardDefs.WindowSim.QtmSimulationDefs
+public import Qatlib.Concepts.UniformBqp.Phi3Compile.StandardModelDefs
+
+@[expose] public section
 
 /-!
 # Normal-form scan rules and control trace definitions

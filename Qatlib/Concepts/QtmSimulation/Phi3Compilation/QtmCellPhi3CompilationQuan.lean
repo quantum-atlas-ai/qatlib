@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QtmSimulation.Phi3Compilation.QtmCellPhi3CompilationStat
-import Qatlib.Concepts.QtmSimulation.Phi3Compilation.QtmPhi3RoundCompilation
+module
+
+public import Qatlib.Concepts.QtmSimulation.Phi3Compilation.QtmCellPhi3CompilationStat
+public import Qatlib.Concepts.QtmSimulation.Phi3Compilation.QtmPhi3RoundCompilation
+
+@[expose] public section
 
 /-!
 # Compilation of QTM cell windows into Φ3 gates
@@ -148,7 +152,7 @@ compilation component associated with [Yao, Theorem 2][Yao1993]. -/
 theorem qtmCellPhi3Compilation : QtmCellPhi3Compilation := by
   intro Q _ _ A _ _ b t k e G he hG
   rcases isEmpty_or_nonempty (CellState Q A) with hEmpty | hNonempty
-  · letI : IsEmpty (CellState Q A) := hEmpty
+  · let : IsEmpty (CellState Q A) := hEmpty
     have hsame (ψ : QState (WReg t Q A)) :
         Run 1 (RepeatCircuit (kRoundCircuit t G) k) ψ = ψ := by
       funext r

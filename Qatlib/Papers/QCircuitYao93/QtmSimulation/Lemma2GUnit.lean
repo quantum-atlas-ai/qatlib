@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.StandardModel.WindowSim.GUnitExistenceQuan
+module
+
+public import Qatlib.Foundations.StandardDefs.WindowSim.GUnitExistenceQuan
+
+@[expose] public section
 
 /-!
 # Existence of the local simulation unitary

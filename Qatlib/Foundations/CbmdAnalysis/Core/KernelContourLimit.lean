@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Core.KernelContourBounds
+module
+
+public import Qatlib.Foundations.CbmdAnalysis.Core.KernelContourBounds
+
+@[expose] public section
 
 /-!
 # Vanishing square boundary integrals

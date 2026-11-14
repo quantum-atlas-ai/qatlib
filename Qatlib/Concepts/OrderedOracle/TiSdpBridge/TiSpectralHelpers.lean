@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.OrderedOracle.TiSdpBridge.TiReadoutHelpers
+module
+
+public import Qatlib.Concepts.OrderedOracle.TiSdpBridge.TiReadoutHelpers
+
+@[expose] public section
 
 /-!
 # Fourier characterization of translation-invariant unitaries

@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Lean.Elab.Tactic.Omega
-import Mathlib.Algebra.Ring.BooleanRing
-import Mathlib.AlgebraicTopology.SimplexCategory.Basic
-import Mathlib.Basic.Complex.Basic
-import Mathlib.Algebra.Order.Archimedean.Real.Basic
-import Mathlib.LinearAlgebra.UnitaryGroup
-import Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.Theorem1ActualProgramCorrectedStat
-import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedAmplitudeAmplification
+module
+
+public import Lean.Elab.Tactic.Omega
+public import Mathlib.Algebra.Ring.BooleanRing
+public import Mathlib.AlgebraicTopology.SimplexCategory.Basic
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Algebra.Order.Archimedean.Real.Basic
+public import Mathlib.LinearAlgebra.UnitaryGroup
+public import Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.Theorem1ActualProgramCorrectedStat
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedAmplitudeAmplification
+
+@[expose] public section
 
 /-!
 # HHL amplification events and runtime specifications

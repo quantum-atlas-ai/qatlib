@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpectralFilter.PhaseReadout.PhaseEstimation
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Analysis.Complex.Trigonometric
-import Mathlib.Tactic
+module
+
+public import Qatlib.Concepts.SpectralFilter.PhaseReadout.PhaseEstimation
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Analysis.Complex.Trigonometric
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Finite trigonometric sums for phase states

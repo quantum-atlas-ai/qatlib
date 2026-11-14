@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.Reduction.AlgebraicRecoveryDefs
-import Qatlib.Concepts.HspRecovery.Reduction.CompactPresentationRecovery
+module
+
+public import Qatlib.Concepts.HspRecovery.Reduction.AlgebraicRecoveryDefs
+public import Qatlib.Concepts.HspRecovery.Reduction.CompactPresentationRecovery
+
+@[expose] public section
 
 /-!
 # Algebraic hidden subgroup recovery endpoints

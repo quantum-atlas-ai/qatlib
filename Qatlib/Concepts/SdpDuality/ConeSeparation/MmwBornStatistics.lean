@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SdpDuality.ConeSeparation.SharedMatrixOptimization
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Series
+module
+
+public import Qatlib.Concepts.SdpDuality.ConeSeparation.SharedMatrixOptimization
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Series
+
+@[expose] public section
 
 /-!
 # Adaptive Born statistics for matrix multiplicative weights
@@ -60,7 +64,7 @@ structure MmwAdaptiveRun (O D T : ℕ) where
   round : (t : ℕ) → (ht : t < T) → (Fin t → Fin O) → MmwRound O D
 
 /-- The restriction of a complete transcript to the first `t` outcomes. -/
-def MmwAdaptiveRun.prefixOf {O D T : ℕ} (R : MmwAdaptiveRun O D T)
+def MmwAdaptiveRun.prefixOf {O D T : ℕ} (_R : MmwAdaptiveRun O D T)
     (t : ℕ) (ht : t < T) (ω : Fin T → Fin O) : Fin t → Fin O :=
   fun s => ω ⟨(s : ℕ), Nat.lt_trans s.isLt ht⟩
 
@@ -178,7 +182,7 @@ theorem sum_transcripts_snoc {O : ℕ} {M : Type} [AddCommMonoid M] {T : ℕ}
 /-- A sum over empty transcripts equals the value at the unique empty transcript. -/
 theorem sum_transcripts_zero {O : ℕ} (g : (Fin 0 → Fin O) → ℝ) :
     (∑ ω : Fin 0 → Fin O, g ω) = g (fun i => Fin.elim0 i) := by
-  haveI : Unique (Fin 0 → Fin O) :=
+  have : Unique (Fin 0 → Fin O) :=
     ⟨⟨fun i => Fin.elim0 i⟩, fun a => funext fun i => Fin.elim0 i⟩
   rw [Finset.univ_unique, Finset.sum_singleton]
   exact congrArg g (Subsingleton.elim _ _)
@@ -605,7 +609,7 @@ theorem upperTail_exp {O D T : ℕ} (R : MmwAdaptiveRun O D T) (δ : ℝ)
 /-- For nonnegative `δ` and nonpositive `lam`, the lower tail below `-δ` is bounded by `exp (T *
 lam² / 2 + lam * δ)`. -/
 theorem lowerTail_bound {O D T : ℕ} (R : MmwAdaptiveRun O D T) (δ lam : ℝ)
-    (hδ : 0 ≤ δ) (hlam : lam ≤ 0) :
+    (_hδ : 0 ≤ δ) (hlam : lam ≤ 0) :
     R.eventMass ((Finset.univ : Finset (Fin T → Fin O)).filter
       (fun ω => R.cumDev ω ≤ -δ))
       ≤ Real.exp ((T : ℝ) * lam ^ 2 / 2 + lam * δ) := by
@@ -833,7 +837,7 @@ theorem pointwise_gibbs_regret {O D T : ℕ} (R : MmwAdaptiveRun O D T)
     have hst := hG ω t
     have hloss : R.lossSequence ω (t : ℕ) = (R.roundAt t ω).observable := by
       unfold MmwAdaptiveRun.lossSequence MmwAdaptiveRun.roundAt
-      rw [dif_pos t.isLt]
+      rw [dite_eq_left t.isLt]
     rw [hloss, ← hst]
     rfl
   have hlhs : η * (∑ t ∈ Finset.range T,
@@ -848,7 +852,7 @@ theorem pointwise_gibbs_regret {O D T : ℕ} (R : MmwAdaptiveRun O D T)
         = (Matrix.trace (R.lossAt t (R.prefixOf (t : ℕ) t.isLt ω) * σ)).re := by
     intro t
     unfold MmwAdaptiveRun.lossSequence MmwAdaptiveRun.lossAt
-    rw [dif_pos t.isLt]
+    rw [dite_eq_left t.isLt]
   have hrhs : η * (∑ t ∈ Finset.range T,
       (Matrix.trace (R.lossSequence ω t * σ)).re)
       = η * R.comparatorLoss σ ω := by

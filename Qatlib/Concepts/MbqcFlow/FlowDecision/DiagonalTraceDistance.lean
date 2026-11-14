@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MixedFidelity.TraceNormRankBound
+module
+
+public import Qatlib.Foundations.MixedFidelity.TraceNormRankBound
+
+@[expose] public section
 
 /-!
 # Diagonal entries controlled by trace distance
@@ -50,7 +54,7 @@ theorem abs_diagonal_re_le_half_traceNorm
     have he (j : I) : (if j = i then (1 : ℂ) else -1) * X j j =
         2 * (if j = i then X i i else 0) - X j j := by
       by_cases h : j = i
-      · rw [if_pos h]
+      · rw [ite_eq_left h]
         subst j
         simp only [ite_true]
         ring
@@ -58,7 +62,7 @@ theorem abs_diagonal_re_le_half_traceNorm
     change (∑ j, (U * X) j j) = _
     simp only [U, Matrix.diagonal_mul, he, Finset.sum_sub_distrib,
       ← Finset.mul_sum]
-    rw [Finset.sum_ite_eq', if_pos (Finset.mem_univ i)]
+    rw [Finset.sum_ite_eq', ite_eq_left (Finset.mem_univ i)]
     change 2 * X i i - X.trace = _
     rw [htrace, sub_zero]
   have hb := Matrix.abs_trace_le_traceNorm (U * X)

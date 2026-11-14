@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Reflection.Basic
-import Qatlib.Foundations.QueryWordCore.Circuit
+module
+
+public import Qatlib.Foundations.PureStateMath.Reflection.Basic
+public import Qatlib.Foundations.QueryWordCore.Circuit
+
+@[expose] public section
 
 /-!
 # Expanded Grover circuit definitions

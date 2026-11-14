@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.FrameSpectral.StationaryFixpointSubgoalStat
+module
+
+public import Qatlib.Concepts.WalkSearch.FrameSpectral.StationaryFixpointSubgoalStat
+
+@[expose] public section
 
 /-!
 # Reversible states fixed by the Szegedy walk
@@ -32,7 +36,7 @@ open Qatlib
 /-- For a transition matrix and a nonnegative normalized reversible distribution, the Szegedy
 embedded state is normalized and fixed by the walk [Szegedy2004]. -/
 theorem stationaryFixpointSubgoal : StationaryFixpointSubgoal :=
-  fun I _ _ P hP π hπ hsum hrev =>
+  fun _I _ _ P hP _π hπ hsum hrev =>
     ⟨Qatlib.Concepts.WalkSearch.TwoLevelLower.normalized_szegedyEmbedState P hP hπ hsum,
       Qatlib.Concepts.WalkSearch.TwoLevelLower.szegedyWalk_fixes_stationary P hP hrev⟩
 

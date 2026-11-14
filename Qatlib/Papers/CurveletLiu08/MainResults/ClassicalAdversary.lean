@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Data.Real.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+
+@[expose] public section
 
 /-!
 # Averaging a classical adversary bound
@@ -39,7 +43,7 @@ namespace Qatlib.Papers.CurveletLiu08.MainResults
 some input has randomized failure at least the same threshold under the given probability
 weights. This is the averaging step associated with Theorem 8 of [Liu2009]. -/
 theorem source_theorem8
-    (n R δ μ m ℓ : ℝ) (_hR : 0 < R) (_hμ : 0 < μ)
+    (n R _δ μ m ℓ : ℝ) (_hR : 0 < R) (_hμ : 0 < μ)
     (_hm : m = Real.log (R / μ) / Real.log 2)
     (_hℓ : ℓ ≤ (1 / 2 * n * m) / (Real.log (1 / 2 * n * m) / Real.log 2))
     (_hnm : 4 ≤ n * m)
@@ -57,11 +61,11 @@ theorem source_theorem8
   have hAne : Nonempty A := by
     by_contra h
     rw [not_nonempty_iff] at h
-    haveI : IsEmpty A := h
+    have : IsEmpty A := h
     have hz : (∑ a : A, ν a) = 0 := by simp
     rw [hνsum] at hz
     norm_num at hz
-  haveI := hAne
+  have := hAne
   set g : I → ℝ := fun i => ∑ a, ν a * fail a i with hgdef
   have hcardI : (0 : ℝ) < (Fintype.card I : ℝ) := by
     exact_mod_cast hI

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.NonNormalSpec.ResolventWord.EffectiveBesselCutoff
-import Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvt
-import Qatlib.Concepts.QsvtCore.HamiltonianSim.SimulationCostBoundsGily
+module
+
+public import Qatlib.Concepts.NonNormalSpec.ResolventWord.EffectiveBesselCutoff
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvt
+public import Qatlib.Concepts.QsvtCore.HamiltonianSim.SimulationCostBoundsGily
+
+@[expose] public section
 
 /-!
 # Effective Bessel truncation for trigonometric polynomials

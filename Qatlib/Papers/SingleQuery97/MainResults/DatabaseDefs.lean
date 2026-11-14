@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Data.Complex.Basic
-import Mathlib.Data.Nat.ModEq
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Tactic
+module
+
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Data.Nat.ModEq
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Binary database queries and even answer registers

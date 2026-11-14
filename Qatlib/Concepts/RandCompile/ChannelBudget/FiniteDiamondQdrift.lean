@@ -4,7 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RandCompile.ChannelBudget.FiniteDiamondQdriftDefs
+module
+
+public import Qatlib.Concepts.RandCompile.ChannelBudget.FiniteDiamondQdriftDefs
+
+@[expose] public section
+set_option linter.unusedVariables false
+set_option linter.unusedSimpArgs false
+set_option linter.unusedTactic false
 
 /-!
 # Certified qDRIFT budgets and postselection
@@ -621,7 +628,8 @@ theorem tightCount_achievable (W T : ℕ) (eQ : ℚ) (he : 0 < eQ) :
       exact h1'
     have hmul' : 2 * (W : ℚ) ^ 2 * (T : ℚ) ^ 2 ≤ ((n0 : ℚ) * eQ) / 2 := by
       have h := (div_le_div_iff_of_pos_right (by norm_num : (0 : ℚ) < 2)).mpr hmul
-      convert! h using 1 <;> ring
+      convert! h using 1
+      all_goals ring
     have hfuel : eQ * ((2 : ℚ) ^ R) ≥ 2 * (n0 : ℚ) := by
       have hmul := mul_le_mul_of_nonneg_right hge (le_of_lt he)
       have hmul' : (2 * (n0 : ℚ) / eQ) * eQ = 2 * (n0 : ℚ) := by field_simp
@@ -630,7 +638,8 @@ theorem tightCount_achievable (W T : ℕ) (eQ : ℚ) (he : 0 < eQ) :
     have hA : 2 * (W : ℚ) ^ 2 * (T : ℚ) ^ 2 * ((2 : ℚ) ^ R)
         ≤ (eQ * (n0 : ℚ) * ((2 : ℚ) ^ R)) / 2 := by
       have h := mul_le_mul_of_nonneg_right hmul' hP
-      convert! h using 1 <;> ring
+      convert! h using 1
+      all_goals ring
     have hB : (n0 : ℚ) ^ 2 ≤ (eQ * ((2 : ℚ) ^ R) * (n0 : ℚ)) / 2 := by
       have h := mul_le_mul_of_nonneg_right hfuel hN
       have h3 : (0 : ℚ) ≤ (n0 : ℚ) ^ 2 := by positivity
@@ -690,7 +699,8 @@ theorem tightCount_real_budget (W T : ℕ) (eQ : ℚ) (R n : ℕ)
     have hNP : (0 : ℝ) < (n : ℝ) * ((2 : ℝ) ^ R) := by positivity
     have h1' : 2 * (W : ℝ) ^ 2 * (T : ℝ) ^ 2 * ((2 : ℝ) ^ R) + (n : ℝ) ^ 2
         ≤ (eQ : ℝ) * ((n : ℝ) * ((2 : ℝ) ^ R)) := by
-      convert! h1 using 1 <;> ring
+      convert! h1 using 1
+      all_goals ring
     have h2 := (div_le_iff₀ hNP).mpr h1'
     have heq : (2 * (W : ℝ) ^ 2 * (T : ℝ) ^ 2 * ((2 : ℝ) ^ R) + (n : ℝ) ^ 2)
         / ((n : ℝ) * ((2 : ℝ) ^ R))
@@ -818,7 +828,7 @@ theorem fairQdriftPickReport_exhausted {L : ℕ} (w : Fin L → ℕ) (j0 : Fin L
       ∃ BD : ℕ × ℕ,
         (fairQdriftRawRun w (Nat.clog 2 (weightTotal w)) R ω (.inr (0, 0))).1 = .inr BD := by
   unfold fairQdriftPickReport
-  rw [if_neg (ne_of_gt hW)]
+  rw [ite_eq_right (ne_of_gt hW)]
   cases hcfg : (fairQdriftRawRun w (Nat.clog 2 (weightTotal w)) R ω (.inr (0, 0))).1 with
   | inl out => simp [fairQdriftExhausted, hcfg]
   | inr BD => simp [fairQdriftExhausted, hcfg]
@@ -828,7 +838,7 @@ theorem fairQdriftPick_exhausted_is_fallback {L : ℕ} (w : Fin L → ℕ) (j0 :
     (hW : 0 < weightTotal w) (ω : Fin R → Reg (Nat.clog 2 (weightTotal w)))
     (hex : fairQdriftPickReport w j0 R ω = true) :
     (fairQdriftPick w j0 R ω).1 = j0 := by
-  rw [fairQdriftPick, if_neg (ne_of_gt hW)]
+  rw [fairQdriftPick, ite_eq_right (ne_of_gt hW)]
   cases hcfg : (fairQdriftRawRun w (Nat.clog 2 (weightTotal w)) R ω (.inr (0, 0))).1 with
   | inl out =>
     have hfalse : fairQdriftPickReport w j0 R ω = false := by
@@ -1012,7 +1022,7 @@ theorem postSelect_vs_capped_sampling_bound {L D : ℕ} (w : Fin L → ℕ) (j0 
     (fairQdriftActualMap w j0 n R K t) (postSelectedQdriftMap w hW n K t)
     (2 * (n : ℝ) * ((2 : ℝ)⁻¹)^R) (by positivity) (by
       intro r X
-      rw [fairQdriftActualMap, if_neg (ne_of_gt hW), postSelectedQdriftMap, exactQdriftMap,
+      rw [fairQdriftActualMap, ite_eq_right (ne_of_gt hW), postSelectedQdriftMap, exactQdriftMap,
         tensorLeft_mixturePowerMap, tensorLeft_mixturePowerMap]
       exact postSelect_iterated_sampling_error w j0 R hW
         (fun j => HamiltonianEvolution (K j) (t*(weightTotal w : ℝ)/(n : ℝ)))
@@ -1342,7 +1352,7 @@ theorem dilatedTermBlk_pow (D : ℕ) (K : Operator D) (n : ℕ) (hn : 0 < n) :
       = (fun b : Fin 2 => if b = 0 then (0 : Operator D) else K ^ n)
   funext b
   by_cases hb : b = 0
-  · simp only [hb, if_pos, zero_pow (Nat.ne_of_gt hn)]
+  · simp only [hb, ite_eq_left, zero_pow (Nat.ne_of_gt hn)]
   · simp [hb]
 
 /-- Gives the controlled operator's entries: identity in the zero-control block, `U` in the
@@ -1436,7 +1446,7 @@ theorem majorityFailure_tilt (m : ℕ) (q t : ℝ) (hq0 : 0 < q) (hq1 : q < 1)
           (mul_le_mul_of_nonneg_right hge (show (0 : ℝ) ≤ q ^ i by positivity))
       have hc : 0 ≤ (Nat.choose (2 * m + 1) i : ℝ) := by positivity
       have hcp : 0 ≤ (1 - q) ^ ((2 * m + 1) - i) := by positivity
-      simp only [if_pos hmi]
+      simp only [ite_eq_left hmi]
       calc (Nat.choose (2 * m + 1) i : ℝ) * q ^ i * (1 - q) ^ ((2 * m + 1) - i)
           = (Nat.choose (2 * m + 1) i : ℝ) * (q ^ i * (1 - q) ^ ((2 * m + 1) - i)) := by ring
         _ ≤ (Nat.choose (2 * m + 1) i : ℝ) *
@@ -1445,7 +1455,7 @@ theorem majorityFailure_tilt (m : ℕ) (q t : ℝ) (hq0 : 0 < q) (hq1 : q < 1)
                 (mul_le_mul_of_nonneg_right hqpow hcp) hc
         _ = t⁻¹ ^ (m + 1) * ((Nat.choose (2 * m + 1) i : ℝ) *
               ((t * q) ^ i * (1 - q) ^ ((2 * m + 1) - i))) := by ring
-    · simp only [if_neg hmi]
+    · simp only [ite_eq_right hmi]
       positivity
   unfold majorityFailure
   rw [hdiv]
@@ -1749,8 +1759,8 @@ theorem outerProduct_ket_diag (i j : Fin D) :
     Qatlib.Foundations.PureStateMath.Reflection.outerProduct (Qatlib.Foundations.PureStateMath.Ket i) j j = if j = i then 1 else 0 := by
   rw [outerProduct_ket_apply]
   by_cases h : j = i
-  · rw [if_pos h, if_pos ⟨h, h⟩]
-  · rw [if_neg h, if_neg (fun h2 => h h2.1)]
+  · rw [ite_eq_left h, ite_eq_left ⟨h, h⟩]
+  · rw [ite_eq_right h, ite_eq_right (fun h2 => h h2.1)]
 
 /-- The diagonal of a matrix times a basis-ket outer product is zero away from that basis label
 and equals the selected matrix entry there. -/
@@ -1795,9 +1805,9 @@ theorem traceNorm_outerProduct_ket (i : Fin D) :
       (Qatlib.Foundations.PureStateMath.Reflection.outerProduct (Qatlib.Foundations.PureStateMath.Ket i)) := by
     have hsum : ∑ j : Fin D, (if j = i then (1 : ℂ) else 0) = 1 := by
       rw [Finset.sum_eq_single i]
-      · rw [if_pos rfl]
+      · rw [ite_eq_left rfl]
       · intro l _ hl
-        rw [if_neg hl]
+        rw [ite_eq_right hl]
       · simp
     have htr : (Qatlib.Foundations.PureStateMath.Reflection.outerProduct (Qatlib.Foundations.PureStateMath.Ket i)).trace = 1 := by
       simp only [Matrix.trace, Matrix.diag_apply]

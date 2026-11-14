@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Rat.Floor
-import Mathlib.Data.Nat.Sqrt
-import Mathlib.Data.Nat.Size
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Tactic
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.RationalCircle
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.HouseholderRotationTable
-import Qatlib.Concepts.MatrixContour.ContourCalc.ContourModel
+module
+
+public import Mathlib.Data.Rat.Floor
+public import Mathlib.Data.Nat.Sqrt
+public import Mathlib.Data.Nat.Size
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Tactic
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.RationalCircle
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.HouseholderRotationTable
+public import Qatlib.Concepts.MatrixContour.ContourCalc.ContourModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

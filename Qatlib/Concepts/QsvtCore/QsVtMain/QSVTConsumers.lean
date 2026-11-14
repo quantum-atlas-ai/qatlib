@@ -4,24 +4,28 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Lie.OfAssociative
-import Mathlib.Algebra.Order.Ring.Star
-import Mathlib.AlgebraicTopology.SimplexCategory.Basic
-import Mathlib.Analysis.CStarAlgebra.Classes
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Data.Real.Sign
-import Mathlib.Algebra.Order.Star.Real
-import Mathlib.Tactic.Ext
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.FinCases
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.NormNum.RealSqrt
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Ring
-import Qatlib.Concepts.QsvtCore.QsVtMain.LengthQSVT
-import Qatlib.Concepts.SignalPrimitive.PhaseFrontend.SignPolynomial
-import Qatlib.Concepts.BlockEncoding.Postselection
+module
+
+public import Mathlib.Algebra.Lie.OfAssociative
+public import Mathlib.Algebra.Order.Ring.Star
+public import Mathlib.AlgebraicTopology.SimplexCategory.Basic
+public import Mathlib.Analysis.CStarAlgebra.Classes
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Basic.Real.Sign
+public import Mathlib.Algebra.Order.Star.Real
+public import Mathlib.Tactic.Ext
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.FinCases
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.NormNum.RealSqrt
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Ring
+public import Qatlib.Concepts.QsvtCore.QsVtMain.LengthQSVT
+public import Qatlib.Concepts.SignalPrimitive.PhaseFrontend.SignPolynomial
+public import Qatlib.Concepts.BlockEncoding.Postselection
+
+@[expose] public section
 
 /-!
 # Postselection examples for compiled QSVT
@@ -122,7 +126,7 @@ private theorem source_conditional_positive_smul {I : Type} [Fintype I] [Decidab
       abs_of_pos hc,mul_one]
   refine ⟨hm,?_⟩
   have hp : 0 < c^2 := sq_pos_of_pos hc
-  rw [ConditionalState,hm,if_pos hp]
+  rw [ConditionalState,hm,ite_eq_left hp]
   congr 1
   have hn : ‖stateVector ((c : ℂ) • ψ)‖ = c := by
     have he := stateVector_norm_sq ((c : ℂ) • ψ)
@@ -177,11 +181,9 @@ theorem cpp_unknown_scalar_fixed_point_postselection : ∀ (H : Type) [Fintype H
       (sourceAverageClean L) (sourceAverageClean R) (Ket ()) = c^2 := by
     rw [postselectionProbability_eq_norm_sq hv.left_isometry, hb, stateVector_norm_sq,hcond.1]
   refine ⟨Φ,hlen,?_,?_,?_⟩
-  · (try dsimp only)
-    rw [hm]
+  · rw [hm]
     nlinarith
-  · (try dsimp only)
-    rw [postselectionOutput,hb,hcond.2]
+  · rw [postselectionOutput,hb,hcond.2]
   · exact congrArg Prod.fst hcounts
 
 /-- A length-two compiled word for `sourceKernelMatrix` has compressed diagonal `(1, 3 / 4)`,
@@ -249,9 +251,7 @@ theorem cpp_even_full_kernel_consumer : ∀ (H : Type) [Fintype H] [DecidableEq 
     field_simp
     nlinarith
   refine ⟨Φ,hlen,hv.encoded,?_,?_,hcounts⟩
-  · (try dsimp only)
-    rw [postselectionProbability_eq_norm_sq hv.left_isometry,hbvec,stateVector_norm_sq,hcond.1,hc2]
-  · (try dsimp only)
-    rw [postselectionOutput,hbvec,hcond.2]
+  · rw [postselectionProbability_eq_norm_sq hv.left_isometry,hbvec,stateVector_norm_sq,hcond.1,hc2]
+  · rw [postselectionOutput,hbvec,hcond.2]
 
 end Qatlib.Concepts.QsvtCore.QsVtMain

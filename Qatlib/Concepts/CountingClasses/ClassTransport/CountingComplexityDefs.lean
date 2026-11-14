@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Ring.BooleanRing
-import Mathlib.Data.Fintype.BigOperators
-import Mathlib.Data.Fintype.Pi
-import Mathlib.Data.Matrix.Basic
+module
+
+public import Mathlib.Algebra.Ring.BooleanRing
+public import Mathlib.Data.Fintype.BigOperators
+public import Mathlib.Data.Fintype.Pi
+public import Mathlib.Data.Matrix.Basic
+
+@[expose] public section
 
 /-!
 # Bit machines and counting complexity

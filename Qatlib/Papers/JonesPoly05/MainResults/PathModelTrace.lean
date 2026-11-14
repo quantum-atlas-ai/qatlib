@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.JonesPoly05.MainResults.CircuitCompilation
-import Mathlib.Data.Matrix.Basic
-import Mathlib.LinearAlgebra.Matrix.Trace
+module
+
+public import Qatlib.Papers.JonesPoly05.MainResults.CircuitCompilation
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.LinearAlgebra.Matrix.Trace
+
+@[expose] public section
 
 /-!
 # Trace identities under a path-model trace hypothesis

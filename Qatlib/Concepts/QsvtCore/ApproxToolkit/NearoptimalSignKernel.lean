@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.NonNormalSpec.ResolventWord.ThresholdIntegralAmplification
-import Qatlib.Concepts.NonNormalSpec.ResolventWord.NativeThresholdIntegralCoefficients
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
-import Qatlib.Concepts.RandCompile.EffectiveInput.QuantizedCoefficientQDrift
-import Mathlib.Analysis.Real.Pi.Bounds
-import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
+module
+
+public import Qatlib.Concepts.NonNormalSpec.ResolventWord.ThresholdIntegralAmplification
+public import Qatlib.Concepts.NonNormalSpec.ResolventWord.NativeThresholdIntegralCoefficients
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+public import Qatlib.Concepts.RandCompile.EffectiveInput.QuantizedCoefficientQDrift
+public import Mathlib.Analysis.Real.Pi.Bounds
+public import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
+
+@[expose] public section
 
 /-!
 # Chebyshev kernels for sign separation

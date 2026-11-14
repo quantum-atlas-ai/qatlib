@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QCryptanal15.MainResults.Complexity.Core
-import Qatlib.Concepts.SearchStopping.GroverSuccess.Section2HalfIterationsSubgoalTigh
+module
+
+public import Qatlib.Papers.QCryptanal15.MainResults.Complexity.Core
+public import Qatlib.Concepts.SearchStopping.GroverSuccess.Section2HalfIterationsSubgoal
+
+@[expose] public section
 
 /-!
 # Q2 simple-differential distinguisher scales

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Residual bounds for isolated eigenvectors
@@ -57,7 +61,7 @@ theorem phase_mul (z : ℂ) : phase z*z = (‖z‖:ℂ) := by
   · have hm : star z*z = ((‖z‖^2:ℝ):ℂ) := by
       rw [Complex.star_def,← Complex.normSq_eq_conj_mul_self,Complex.normSq_eq_norm_sq]
     have hn : (‖z‖:ℂ)≠0 := Complex.ofReal_ne_zero.mpr (norm_ne_zero_iff.mpr hz)
-    rw [phase,if_neg hz,div_mul_eq_mul_div,hm,Complex.ofReal_pow]
+    rw [phase,ite_eq_right hz,div_mul_eq_mul_div,hm,Complex.ofReal_pow]
     apply (div_eq_iff hn).mpr
     ring
 

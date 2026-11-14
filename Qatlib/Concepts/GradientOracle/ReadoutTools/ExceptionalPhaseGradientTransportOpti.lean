@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GradientOracle.ReadoutTools.ExceptionalPhaseGradientTransportStat
-import Qatlib.Concepts.GradientOracle.ReadoutTools.PureStateEventLipschitzOpti
+module
+
+public import Qatlib.Concepts.GradientOracle.ReadoutTools.ExceptionalPhaseGradientTransportStat
+public import Qatlib.Concepts.GradientOracle.ReadoutTools.PureStateEventLipschitzOpti
+
+@[expose] public section
 
 /-!
 # Transport of phase errors with exceptional points
@@ -171,7 +175,7 @@ private theorem qft_ket_factor_sq (M : ℕ) (_hM : 0 < M) (q y : Fin M) :
       = (Real.sqrt (M : ℝ) : ℂ)⁻¹ *
         Complex.exp (2*Real.pi*Complex.I*((((q.val : ℝ)*(y.val : ℝ))/(M : ℝ) : ℝ) : ℂ)) := by
     simp only [ApplyGate, Matrix.mulVec, dotProduct, Qatlib.Foundations.PureStateMath.Ket, mul_ite, mul_one, mul_zero,
-      Finset.sum_ite_eq', Finset.mem_univ, if_true, qftMatrix_apply,
+      Finset.sum_ite_eq', Finset.mem_univ, ite_true, qftMatrix_apply,
       primRoot_zpow_eq_exp]
     congr 2
     push_cast

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.DenseOutSim26.FreeTruncation.Core.DenseOutput
+module
+
+public import Qatlib.Papers.DenseOutSim26.FreeTruncation.Core.DenseOutput
+
+@[expose] public section
 
 /-!
 # Resource bounds for local dense-output estimation
@@ -54,8 +58,8 @@ interface: an estimator `Ĵ` within `ε_est`, and the query counts bounded by th
 Lemma's expressions with a common constant. -/
 theorem lemma7_coherent_estimation
     {J Jhat QH Qpsi QO alphaH T εest δ C : ℝ}
-    (hε : 0 < εest) (hεT : εest < T) (hδ : 0 < δ) (hδ3 : δ < 1 / 3)
-    (hC : 0 < C) (hT : 0 ≤ T)
+    (_hε : 0 < εest) (_hεT : εest < T) (_hδ : 0 < δ) (_hδ3 : δ < 1 / 3)
+    (_hC : 0 < C) (_hT : 0 ≤ T)
     (herror : |Jhat - J| ≤ εest)
     (hQH : QH ≤ C * QHest alphaH T δ εest)
     (hQψ : Qpsi ≤ C * QpsiEst T δ εest)
@@ -82,12 +86,12 @@ estimator within `ε/2` of the truncated output, the guarantee
 evaluated at the truncation radius `R_ε`. -/
 theorem theorem13_local_resource_bound
     {Jhat JHR JH Pr ε δ QH Qpsi QO alphaH Rε T C : ℝ}
-    (hPr0 : 0 ≤ Pr) (hPr1 : Pr ≤ 1) (hPr : 1 - δ ≤ Pr)
+    (_hPr0 : 0 ≤ Pr) (_hPr1 : Pr ≤ 1) (hPr : 1 - δ ≤ Pr)
     (h1 : |Jhat - JHR| ≤ ε / 2) (h2 : |JH - JHR| ≤ ε / 2)
-    (hε : 0 < ε) (hδ : 0 < δ) (hδ3 : δ < 1 / 3) (hC : 0 < C)
+    (_hε : 0 < ε) (_hδ : 0 < δ) (_hδ3 : δ < 1 / 3) (_hC : 0 < C)
     (hQH : QH ≤ C * QHest (alphaH * Rε) T δ ε)
-    (hQψ : Qpsi ≤ C * QpsiEst T δ ε)
-    (hQO : QO ≤ C * QpsiEst T δ ε) :
+    (_hQψ : Qpsi ≤ C * QpsiEst T δ ε)
+    (_hQO : QO ≤ C * QpsiEst T δ ε) :
     1 - δ ≤ Pr ∧ |Jhat - JH| ≤ ε ∧ QH ≤ C * QHest (alphaH * Rε) T δ ε :=
   ⟨hPr, theorem13_triangle h1 h2, hQH⟩
 

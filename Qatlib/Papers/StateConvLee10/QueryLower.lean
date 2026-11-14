@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GramQueryCore.LowerBoundTools.GeneralOutputGramBridgesQuan
-import Qatlib.Concepts.GramQueryCore.LowerBoundTools.QueryDistanceLowerBound
+module
+
+public import Qatlib.Concepts.GramQueryCore.LowerBoundTools.GeneralOutputGramBridgesQuan
+public import Qatlib.Concepts.GramQueryCore.LowerBoundTools.QueryDistanceLowerBound
+
+@[expose] public section
 
 /-!
 # Query lower bounds through Gram changes

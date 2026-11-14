@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Complex.Basic
-import Mathlib.Data.Matrix.Mul
-import Mathlib.LinearAlgebra.Matrix.ConjTranspose
-import Mathlib.LinearAlgebra.UnitaryGroup
+module
+
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.LinearAlgebra.Matrix.ConjTranspose
+public import Mathlib.LinearAlgebra.UnitaryGroup
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

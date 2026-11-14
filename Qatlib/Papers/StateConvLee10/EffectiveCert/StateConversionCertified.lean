@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.StateConvLee10.EffectiveCert.StateConversionCertifiedDefs
+module
+
+public import Qatlib.Papers.StateConvLee10.EffectiveCert.StateConversionCertifiedDefs
+
+@[expose] public section
 
 /-!
 # Certified rational scales and frame synthesis
@@ -216,11 +220,11 @@ theorem scaleSearch_sound {M δ : ℚ} (hM : 0 ≤ M) {fuel : ℕ} {t : ℚ}
   | succ n ih =>
       simp only [scaleSearch] at h
       by_cases hc : newtonScale M n ^ 2 - M ≤ δ
-      · simp only [if_pos hc] at h
+      · simp only [ite_eq_left hc] at h
         have ht : newtonScale M n = t := Option.some.inj h
         subst ht
         exact ⟨n, rfl, newtonScale_sq_ge hM n, hc, newtonScale_pos hM n⟩
-      · simp only [if_neg hc] at h
+      · simp only [ite_eq_right hc] at h
         exact ih h
 
 /-- Every natural number `m` is strictly smaller than `4 ^ m`. -/
@@ -262,7 +266,7 @@ theorem scaleSearch_exists {M δ : ℚ} (hM : 0 ≤ M) (hδ : 0 < δ) :
     linarith [hq]
   refine ⟨n + 1, newtonScale M n, ?_⟩
   simp only [scaleSearch]
-  rw [if_pos (by linarith [herr, hquot])]
+  rw [ite_eq_left (by linarith [herr, hquot])]
 
 /-- The source-access wire list has no repeated indices. -/
 theorem sourceAccessWires_nodup (d : SourceRationalProblem) (w : ℕ)
@@ -302,14 +306,14 @@ theorem emit_fixed {w : ℕ} (g : LocalQFTGate w) (k : ℕ) :
       by_cases he : e ≤ 3
       · intro h hmem
         simp only [emittedWord] at hmem
-        rw [if_pos he] at hmem
+        rw [ite_eq_left he] at hmem
         simp only [List.mem_singleton] at hmem
         subst hmem
         simp only [sourceFixedGate]
         exact he
       · intro h hmem
         simp only [emittedWord] at hmem
-        rw [if_neg he] at hmem
+        rw [ite_eq_right he] at hmem
         simp at hmem
 
 /-- Lifting a gate to a larger width preserves `sourceFixedGate`. -/

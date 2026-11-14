@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkFind.WalkSpectrum.NormalSpectralPerturbationStat
-import Qatlib.Concepts.LchsSimulation.StaticLchs.HybridError
-import Mathlib.Combinatorics.Hall.Finite
+module
+
+public import Qatlib.Concepts.WalkFind.WalkSpectrum.NormalSpectralPerturbationStat
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.HybridError
+public import Mathlib.Combinatorics.Hall.Finite
+
+@[expose] public section
 
 /-!
 # Spectral matching for normal matrices
@@ -97,8 +101,8 @@ theorem normal_euclidean_eigenbasis (m : ℕ) (U : Matrix (Fin m) (Fin m) ℂ)
     intro i j hij
     apply Subtype.ext
     exact Prod.ext (congrArg (fun p => p.2.val) hij) (congrArg (fun p => p.1.val) hij)
-  letI : Finite ι := Finite.of_injective embed hembed
-  letI : Fintype ι := Fintype.ofFinite ι
+  let : Finite ι := Finite.of_injective embed hembed
+  let : Fintype ι := Fintype.ofFinite ι
   have horth := (hH.orthogonalFamily_eigenspace_inf_eigenspace hK).comp
     (Subtype.coe_injective : Function.Injective (Subtype.val : ι → ℂ × ℂ))
   have hdecomp : DirectSum.IsInternal (fun i : ι => H.eigenspace i.1.2 ⊓ K.eigenspace i.1.1) := by
@@ -189,7 +193,7 @@ theorem balanced_permutation_cost (n : ℕ) (W cost : Matrix (Fin n) (Fin n) ℝ
   by_cases hn : n = 0
   · subst n
     exact ⟨Equiv.refl _, by simp⟩
-  letI : Nonempty (Fin n) := ⟨⟨0, Nat.pos_of_ne_zero hn⟩⟩
+  let : Nonempty (Fin n) := ⟨⟨0, Nat.pos_of_ne_zero hn⟩⟩
   let support (M : Matrix (Fin n) (Fin n) ℝ) :=
     (Finset.univ : Finset (Fin n × Fin n)).filter (fun z => 0 < M z.1 z.2)
   have main : ∀ m : ℕ, ∀ M : Matrix (Fin n) (Fin n) ℝ, (support M).card = m →

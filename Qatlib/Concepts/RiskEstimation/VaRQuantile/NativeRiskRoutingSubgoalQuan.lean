@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RiskEstimation.VaRQuantile.NativeRiskRoutingSubgoalStat
-import Qatlib.Concepts.RiskEstimation.CDFEstimation.NativeCDFReadoutRestrictedQuan
+module
+
+public import Qatlib.Concepts.RiskEstimation.VaRQuantile.NativeRiskRoutingSubgoalStat
+public import Qatlib.Concepts.RiskEstimation.CDFEstimation.NativeCDFReadoutRestrictedQuan
+
+@[expose] public section
 
 /-!
 # Transport of rational quantile routing
@@ -45,15 +49,15 @@ theorem risk_native_bisect_transport (sampler : ℚ → PMF ℚ) (xs : List ℚ)
   | zero => rfl
   | succ fuel ih =>
     by_cases hstop : hi ≤ lo
-    · simp only [riskNativeBisect, riskBisect, if_pos hstop]
+    · simp only [riskNativeBisect, riskBisect, ite_eq_left hstop]
     · conv_lhs =>
         unfold riskNativeBisect
-        simp only [if_neg hstop]
+        simp only [ite_eq_right hstop]
       change (sampler (xs.getD ((lo+hi)/2) 0)).bind (fun z =>
           (if q ≤ z then riskNativeBisect sampler xs q fuel lo ((lo+hi)/2)
             else riskNativeBisect sampler xs q fuel ((lo+hi)/2+1) hi).map
               (fun out => (out.1,out.2+1))) = _
-      rw [riskBisect, if_neg hstop]
+      rw [riskBisect, ite_eq_right hstop]
       rw [PMF.bind_map (sampler (xs.getD ((lo+hi)/2) 0)) (fun z : ℚ => (z : ℝ))]
       apply congrArg (fun f : ℚ → PMF (ℕ × ℕ) => (sampler (xs.getD ((lo+hi)/2) 0)).bind f)
       funext z

@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Field.GeomSum
-import Mathlib.Analysis.Fourier.ZMod
-import Mathlib.Analysis.SpecialFunctions.Complex.CircleAddChar
-import Mathlib.Analysis.Complex.Exponential
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
-import Qatlib.Papers.QLearningGeom03.MainResults.Battleship
+module
+
+public import Mathlib.Algebra.Field.GeomSum
+public import Mathlib.Analysis.Fourier.ZMod
+public import Mathlib.Analysis.SpecialFunctions.Complex.CircleAddChar
+public import Mathlib.Analysis.Complex.Exponential
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+public import Qatlib.Papers.QLearningGeom03.MainResults.Battleship
+
+@[expose] public section
 
 /-!
 # Sine formulas for cyclic ship windows

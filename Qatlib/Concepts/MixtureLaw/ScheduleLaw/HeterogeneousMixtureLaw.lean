@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MixtureLaw.ScheduleLaw.MixturePowerLawPerturbation
-import Qatlib.Concepts.MixtureLaw.ScheduleLaw.MixtureScheduleDefs
+module
+
+public import Qatlib.Concepts.MixtureLaw.ScheduleLaw.MixturePowerLawPerturbation
+public import Qatlib.Concepts.MixtureLaw.ScheduleLaw.MixtureScheduleDefs
+
+@[expose] public section
 
 /-!
 # Perturbing heterogeneous unitary mixture schedules

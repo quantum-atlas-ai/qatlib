@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.JonesPoly05.MainResults.KauffmanStateSum
-import Mathlib.Algebra.FreeAlgebra
-import Mathlib.RingTheory.Congruence.Basic
-import Mathlib.RingTheory.Congruence.Hom
+module
+
+public import Qatlib.Papers.JonesPoly05.MainResults.KauffmanStateSum
+public import Mathlib.Algebra.FreeAlgebra
+public import Mathlib.RingTheory.Congruence.Basic
+public import Mathlib.RingTheory.Congruence.Hom
+
+@[expose] public section
 
 /-!
 # Temperley–Lieb quotients and a conditional geometric equivalence

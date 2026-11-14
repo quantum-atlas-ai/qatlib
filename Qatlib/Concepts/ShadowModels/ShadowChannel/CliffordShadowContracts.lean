@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ShadowModels.ShadowChannel.TensorPauliRecords
-import Qatlib.Foundations.PureStateMath.MixedState
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+module
+
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.TensorPauliRecords
+public import Qatlib.Foundations.PureStateMath.MixedState
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+
+@[expose] public section
 
 /-!
 # Legacy Clifford shadow contracts
@@ -55,10 +59,10 @@ def CliffordMomentHypothesis (d : ℕ) (I : Type) [Fintype I] [DecidableEq I]
 /-- The legacy proposition asserting the actual basis channel formula and unbiased inverse
 reconstruction from `CliffordMomentHypothesis` and supportwise unitarity. -/
 def CliffordBasisShadowChannelSubgoalLegacy : Prop :=
-  ∀ (d : ℕ) (hd : 2 ≤ d) (I : Type) [Fintype I] [DecidableEq I]
+  ∀ (d : ℕ) (_hd : 2 ≤ d) (I : Type) [Fintype I] [DecidableEq I]
     (μ : FinDist I) (Uf : I → Operator d)
-    (hκU : ∀ i, 0 < μ.prob i → Uf i ∈ Matrix.unitaryGroup (Fin d) ℂ)
-    (h35 : CliffordMomentHypothesis d I μ Uf),
+    (_hκU : ∀ i, 0 < μ.prob i → Uf i ∈ Matrix.unitaryGroup (Fin d) ℂ)
+    (_h35 : CliffordMomentHypothesis d I μ Uf),
     (∀ ρ : Operator d, IsDensityOperator ρ →
       (∑ b, ∑ i, (μ.prob i *
           (Matrix.trace (basisProjector b * (Uf i * ρ * (Uf i)ᴴ))).re) •
@@ -74,10 +78,10 @@ def CliffordBasisShadowChannelSubgoalLegacy : Prop :=
 /-- The legacy proposition asserting the Born-weighted second-moment bound for traceless
 Hermitian observables from the displayed forward-conjugation third-moment condition. -/
 def CliffordBasisShadowNormSubgoalLegacy : Prop :=
-  ∀ (d : ℕ) (hd : 2 ≤ d) (I : Type) [Fintype I] [DecidableEq I]
+  ∀ (d : ℕ) (_hd : 2 ≤ d) (I : Type) [Fintype I] [DecidableEq I]
     (μ : FinDist I) (Uf : I → Operator d)
-    (hκU : ∀ i, 0 < μ.prob i → Uf i ∈ Matrix.unitaryGroup (Fin d) ℂ)
-    (h36 : ∀ Pp : Operator d, IsPureDensityOperator Pp →
+    (_hκU : ∀ i, 0 < μ.prob i → Uf i ∈ Matrix.unitaryGroup (Fin d) ℂ)
+    (_h36 : ∀ Pp : Operator d, IsPureDensityOperator Pp →
       ∀ B₀ C₀ : Operator d, B₀.IsHermitian → C₀.IsHermitian →
         Matrix.trace B₀ = 0 → Matrix.trace C₀ = 0 →
       (∑ i, (μ.prob i * (Matrix.trace (B₀ * (Uf i * Pp * (Uf i)ᴴ))).re *
@@ -86,8 +90,8 @@ def CliffordBasisShadowNormSubgoalLegacy : Prop :=
         ((Matrix.trace (B₀ * C₀)).re /
             ((d : ℝ) * ((d : ℝ) + 1) * ((d : ℝ) + 2))) • 1 +
         (1 / ((d : ℝ) * ((d : ℝ) + 1) * ((d : ℝ) + 2))) • (B₀ * C₀ + C₀ * B₀))
-    (σ : Operator d) (hσ : IsDensityOperator σ)
-    (Oo : Operator d) (hO : Oo.IsHermitian) (hO0 : Matrix.trace Oo = 0),
+    (σ : Operator d) (_hσ : IsDensityOperator σ)
+    (Oo : Operator d) (_hO : Oo.IsHermitian) (_hO0 : Matrix.trace Oo = 0),
     (∑ b, ∑ i, (μ.prob i *
         (Matrix.trace (basisProjector b * (Uf i * σ * (Uf i)ᴴ))).re) *
         (((d : ℝ) + 1) *

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Computability.PartrecCode
-import Mathlib.Data.Rat.Defs
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Positivity
+module
+
+public import Mathlib.Computability.PartrecCode
+public import Mathlib.Data.Rat.Defs
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Positivity
+
+@[expose] public section
 
 /-!
 # Floor Program Amplitude
@@ -58,7 +62,7 @@ theorem floorProgramAmplitude_spec (c : Nat.Partrec.Code) :
       (0<floorProgramAmplitude c ↔ ∃ k, floorProgramHaltsWithin c k=true) := by
   classical
   by_cases h : ∃ k, floorProgramHaltsWithin c k=true
-  · rw [floorProgramAmplitude,dif_pos h]
+  · rw [floorProgramAmplitude,dite_eq_left h]
     have hp : (0 : ℚ)<2^(Nat.find h+4) := pow_pos (by norm_num) _
     have hb : (16 : ℚ) ≤ 2^(Nat.find h+4) := by
       have hpow := pow_le_pow_right₀ (by norm_num : (1 : ℚ) ≤ 2) (by omega : 4 ≤ Nat.find h+4)
@@ -66,7 +70,7 @@ theorem floorProgramAmplitude_spec (c : Nat.Partrec.Code) :
       exact hpow
     exact ⟨(one_div_pos.mpr hp).le,one_div_le_one_div_of_le (by norm_num) hb,
       iff_of_true (one_div_pos.mpr hp) h⟩
-  · rw [floorProgramAmplitude,dif_neg h]
+  · rw [floorProgramAmplitude,dite_eq_right h]
     simp [h]
 
 /-- Original `floorProgramAmplitudeApprox_eq_of_seen` guarantee for the `FloorProgramAmplitude` construction; the complete source hypotheses are retained. -/
@@ -93,8 +97,8 @@ theorem floorProgramAmplitudeApprox_eq_of_seen (c : Nat.Partrec.Code) (b : ℕ)
       have hseen := floorProgramHaltsWithin_mono c t k (by omega) ht
       rw [hseen] at hnone
       contradiction
-  rw [floorProgramAmplitudeApprox,if_pos hb,hmax]
-  rw [floorProgramAmplitude,dif_pos h]
+  rw [floorProgramAmplitudeApprox,ite_eq_left hb,hmax]
+  rw [floorProgramAmplitude,dite_eq_left h]
   congr 2
   omega
 
@@ -105,16 +109,16 @@ theorem floorProgramAmplitudeApprox_error (c : Nat.Partrec.Code) (b : ℕ) :
   by_cases hb : floorProgramHaltsWithin c b=true
   · rw [floorProgramAmplitudeApprox_eq_of_seen c b hb,sub_self,abs_zero]
     positivity
-  · rw [floorProgramAmplitudeApprox,if_neg hb,zero_sub,abs_neg,abs_of_nonneg (floorProgramAmplitude_spec c).1]
+  · rw [floorProgramAmplitudeApprox,ite_eq_right hb,zero_sub,abs_neg,abs_of_nonneg (floorProgramAmplitude_spec c).1]
     by_cases h : ∃ k, floorProgramHaltsWithin c k=true
-    · rw [floorProgramAmplitude,dif_pos h]
+    · rw [floorProgramAmplitude,dite_eq_left h]
       have ht : floorProgramHaltsWithin c (Nat.find h)=true := Nat.find_spec h
       have hbt : b<Nat.find h := by
         by_contra hn
         exact hb (floorProgramHaltsWithin_mono c (Nat.find h) b (by omega) ht)
       apply one_div_le_one_div_of_le (pow_pos (by norm_num) b)
       exact pow_le_pow_right₀ (by norm_num : (1 : ℚ) ≤ 2) (by omega)
-    · rw [floorProgramAmplitude,dif_neg h]
+    · rw [floorProgramAmplitude,dite_eq_right h]
       positivity
 
 /-- Original `floorProgramHaltsWithin_iff_dom` guarantee for the `FloorProgramAmplitude` construction; the complete source hypotheses are retained. -/

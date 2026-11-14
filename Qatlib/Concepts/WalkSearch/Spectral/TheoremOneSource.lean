@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpectralFilter.BusySpectrum.BipartiteDiscriminantSpectrum
-import Qatlib.Concepts.SpectralReadout.PhaseReadout.BoundarySpectralSectors
-import Qatlib.Concepts.WalkSearch.FrameSpectral.StationaryFixpointSubgoalQuan
+module
+
+public import Qatlib.Concepts.SpectralFilter.BusySpectrum.BipartiteDiscriminantSpectrum
+public import Qatlib.Concepts.SpectralReadout.PhaseReadout.BoundarySpectralSectors
+public import Qatlib.Concepts.WalkSearch.FrameSpectral.StationaryFixpointSubgoalQuan
+
+@[expose] public section
 
 /-!
 # Source spectral map and the uniform fixed point

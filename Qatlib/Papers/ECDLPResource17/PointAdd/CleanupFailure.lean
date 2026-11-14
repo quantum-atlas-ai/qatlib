@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CurveGroups.AffineAdd.NativeXor
+module
+
+public import Qatlib.Concepts.CurveGroups.AffineAdd.NativeXor
+
+@[expose] public section
 
 /-!
 # A point addition cleanup counterexample
@@ -42,6 +46,7 @@ private instance primeFive : Fact (Nat.Prime 5) := ⟨by decide⟩
 slope register equal to the nonzero encoding of one. See [Roetteler et al., 2017, Algorithm1
 / Fig10: reversible controlled affine point addition][RoettelerEtAl2017]. -/
 theorem source_cleanup_counterexample :
+    letI : Fact (Nat.Prime 5) := ⟨by decide⟩
     let E := primeFieldEncoding 5 3 (by decide)
     ∃ h1 : (shortCurve (2 : ZMod 5) 1).Nonsingular 1 2,
     ∃ h2 : (shortCurve (2 : ZMod 5) 1).Nonsingular 0 1,

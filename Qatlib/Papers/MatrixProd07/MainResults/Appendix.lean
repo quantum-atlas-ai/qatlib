@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MatrixProd07.MainResults.Defs
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Data.Fin.Tuple.Basic
-import Mathlib.Data.List.OfFn
-import Mathlib.LinearAlgebra.Dimension.Constructions
-import Mathlib.LinearAlgebra.FiniteDimensional.Lemmas
+module
+
+public import Qatlib.Papers.MatrixProd07.MainResults.Defs
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Data.Fin.Tuple.Basic
+public import Mathlib.Data.List.OfFn
+public import Mathlib.LinearAlgebra.Dimension.Constructions
+public import Mathlib.LinearAlgebra.FiniteDimensional.Lemmas
+
+@[expose] public section
 
 /-!
 # Word span growth and appendix propositions

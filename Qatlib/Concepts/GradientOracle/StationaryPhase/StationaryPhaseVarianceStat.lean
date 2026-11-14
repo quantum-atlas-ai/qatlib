@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.MeasureTheory.Integral.Pi
-import Mathlib.Data.Matrix.Basic
-import Qatlib.Concepts.GradientOracle.StationaryPhase.StationaryPhaseVarianceDefs
+module
+
+public import Mathlib.MeasureTheory.Integral.Pi
+public import Mathlib.Data.Matrix.Basic
+public import Qatlib.Concepts.GradientOracle.StationaryPhase.StationaryPhaseVarianceDefs
+
+@[expose] public section
 
 /-!
 # Specification of stationary-phase variance formulas

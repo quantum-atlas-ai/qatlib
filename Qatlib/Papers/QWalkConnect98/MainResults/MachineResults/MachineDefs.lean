@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Combinatorics.SimpleGraph.Finite
-import Mathlib.Combinatorics.SimpleGraph.Connectivity.Connected
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Data.Nat.Log
-import Mathlib.Data.List.Basic
+module
+
+public import Mathlib.Combinatorics.SimpleGraph.Finite
+public import Mathlib.Combinatorics.SimpleGraph.Connectivity.Connected
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Data.Nat.Log
+public import Mathlib.Data.List.Basic
+
+@[expose] public section
 
 /-!
 # Abstract machine and connectivity interfaces

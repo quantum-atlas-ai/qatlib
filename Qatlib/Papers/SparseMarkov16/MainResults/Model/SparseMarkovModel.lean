@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Normed.Algebra.MatrixExponential
-import Qatlib.Foundations.PureStateMath.MixedState
-import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupCoreDefs
-import Qatlib.Concepts.AdaptiveCP.BranchTrace.QuantumChannel
-import Qatlib.Concepts.ChannelTheory.Stinespring.ChannelStructureDefs
-import Qatlib.Concepts.SchattenDiamond.DiamondNorm.FiniteDiamondNorm
+module
+
+public import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+public import Qatlib.Foundations.PureStateMath.MixedState
+public import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupCoreDefs
+public import Qatlib.Concepts.AdaptiveCP.BranchTrace.QuantumChannel
+public import Qatlib.Concepts.ChannelTheory.Stinespring.ChannelStructureDefs
+public import Qatlib.Concepts.SchattenDiamond.DiamondNorm.FiniteDiamondNorm
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

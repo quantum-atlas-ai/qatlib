@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QmaCompleteness.WitnessSampler.TwoOracleDefs
-import Qatlib.Concepts.WalshMoment.Forrelation.StrongYesInstancePropertyStat
-import Qatlib.Concepts.QmaCompleteness.WitnessSampler.Theorem62CumulativeSamplerStat
+module
+
+public import Qatlib.Concepts.QmaCompleteness.WitnessSampler.TwoOracleDefs
+public import Qatlib.Concepts.WalshMoment.Forrelation.StrongYesInstancePropertyStat
+public import Qatlib.Concepts.QmaCompleteness.WitnessSampler.Theorem62CumulativeSamplerStat
+
+@[expose] public section
 
 /-!
 # Oracle sampler and fresh-search definitions

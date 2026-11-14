@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MatProductCav06.MainResults.SequentialDefs
-import Qatlib.Concepts.GramQueryCore.GramRealization.GramQueryRealization
+module
+
+public import Qatlib.Papers.MatProductCav06.MainResults.SequentialDefs
+public import Qatlib.Concepts.GramQueryCore.GramRealization.GramQueryRealization
+
+@[expose] public section
 
 /-!
 # Unitary realization of qubit sequential steps
@@ -94,7 +98,7 @@ theorem stdEmbed_gram (D : ℕ) : (stdEmbed D)ᴴ * (stdEmbed D) = 1 := by
     show (stdEmbed D)ᴴ a (d, 0) * (stdEmbed D) (d, 0) b +
         (stdEmbed D)ᴴ a (d, 1) * (stdEmbed D) (d, 1) b = if a = d ∧ b = d then 1 else 0
     simp only [stdEmbed, Matrix.conjTranspose_apply]
-    rw [if_neg (by norm_num : ¬ ((1:Fin 2) = 0))]
+    rw [ite_eq_right (by norm_num : ¬ ((1:Fin 2) = 0))]
     simp only [star_zero]
     by_cases ha : a = d
     · by_cases hb : b = d

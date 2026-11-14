@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NonlinearDE20.HistorySystem.FiniteClockInverse
+module
+
+public import Qatlib.Papers.NonlinearDE20.HistorySystem.FiniteClockInverse
+
+@[expose] public section
 
 /-!
 # Euler recurrence encoded by a finite history system

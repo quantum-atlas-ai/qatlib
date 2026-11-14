@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GroverSearch96.MainResults.DiffusionAmplitudes
-import Qatlib.Concepts.SearchStopping.KnownCount.Section3RotationSubgoal
-import Qatlib.Concepts.SearchStopping.KnownCount.Theorem3Counterexample
-import Qatlib.Concepts.SearchStopping.KnownCount.Corollary21Counterexample
+module
+
+public import Qatlib.Papers.GroverSearch96.MainResults.DiffusionAmplitudes
+public import Qatlib.Concepts.SearchStopping.KnownCount.Section3RotationSubgoal
+public import Qatlib.Concepts.SearchStopping.KnownCount.Theorem3Counterexample
+public import Qatlib.Concepts.SearchStopping.KnownCount.Corollary21Counterexample
+
+@[expose] public section
 
 /-!
 # Small register counterexamples for Grover search

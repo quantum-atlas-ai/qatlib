@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.UnambigMeas25.MainResults.Definitions.UnambigMeasModel
+module
+
+public import Qatlib.Papers.UnambigMeas25.MainResults.Definitions.UnambigMeasModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

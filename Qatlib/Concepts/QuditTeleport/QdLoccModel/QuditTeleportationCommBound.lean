@@ -4,21 +4,25 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditTeleportationDefs
-import Qatlib.Concepts.QuditTeleport.TeleportCore.QuditTeleportationInstrument
-import Qatlib.Concepts.QuditTeleport.TeleportCore.CountedQuditTeleportation
-import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditResourceMarginalConverse
-import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditMaxEntCharacterization
-import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditMaxEntResourceTeleportation
-import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditPureResourceMaxEntForm
-import Qatlib.Concepts.QuditTeleport.QdLoccModel.RedundantCodingReliability
-import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditResourceMarginalConverse
-import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditMaxEntCharacterization
-import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditMaxEntResourceTeleportation
-import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditPureResourceMaxEntForm
-import Qatlib.Concepts.QuditTeleport.MessagingBounds.RedundantCodingReliability
-import Qatlib.Concepts.QuditTeleport.CommLowerBound.CommBoundRestrictedTele
-import Mathlib.Combinatorics.Pigeonhole
+module
+
+public import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditTeleportationDefs
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.QuditTeleportationInstrument
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.CountedQuditTeleportation
+public import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditResourceMarginalConverse
+public import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditMaxEntCharacterization
+public import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditMaxEntResourceTeleportation
+public import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditPureResourceMaxEntForm
+public import Qatlib.Concepts.QuditTeleport.QdLoccModel.RedundantCodingReliability
+public import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditResourceMarginalConverse
+public import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditMaxEntCharacterization
+public import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditMaxEntResourceTeleportation
+public import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditPureResourceMaxEntForm
+public import Qatlib.Concepts.QuditTeleport.MessagingBounds.RedundantCodingReliability
+public import Qatlib.Concepts.QuditTeleport.CommLowerBound.CommBoundRestrictedTele
+public import Mathlib.Combinatorics.Pigeonhole
+
+@[expose] public section
 
 /-!
 # Qudit message guessing and communication bounds
@@ -164,7 +168,7 @@ theorem clause4_clause3 : ∀ (κ σ : Type) (_hκ : Fintype κ) (_hd : Decidabl
   constructor
   · have hkne : Nonempty κ := by
       by_contra hc
-      haveI : IsEmpty κ := not_nonempty_iff.mp hc
+      have : IsEmpty κ := not_nonempty_iff.mp hc
       have h0 : ∑ k, p k = 0 := by
         rw [Finset.univ_eq_empty, Finset.sum_empty]
       rw [h0] at hsum
@@ -336,7 +340,7 @@ theorem clause4_clause6 : ∀ (n : ℕ) (h : NeZero n),
     Function.Injective (quditMessage n (Nat.clog 2 n)) ∧
     n ≤ 2 ^ Nat.clog 2 n := by
   intro n h
-  haveI h' := h
+  have h' := h
   obtain ⟨hmsg, hinj, _, hle⟩ :=
     qudit_actual_fixed_width_message n (Nat.clog 2 n) (Nat.le_pow_clog (by decide) n)
   refine ⟨fun rho o => quditActualBranchCore_uniform n o rho, ?_, hmsg, hinj, hle⟩

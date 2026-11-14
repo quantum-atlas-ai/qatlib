@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Concepts.GkslBridge.GkslBridge.QuantumMixingSourceBoundsDefs
-import Qatlib.Concepts.SchattenDiamond.DiamondNorm.FiniteDiamondNorm
-import Mathlib.Analysis.Matrix.Order
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
-import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+module
+
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Concepts.GkslBridge.GkslBridge.QuantumMixingSourceBoundsDefs
+public import Qatlib.Concepts.SchattenDiamond.DiamondNorm.FiniteDiamondNorm
+public import Mathlib.Analysis.Matrix.Order
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
+public import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+
+@[expose] public section
 
 open Qatlib.Foundations.PureStateMath.BornBridge
 

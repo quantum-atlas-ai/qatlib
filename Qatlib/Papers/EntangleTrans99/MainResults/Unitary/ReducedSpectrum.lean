@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.EntangleTrans99.MainResults.Unitary.SchmidtUnitary
+module
+
+public import Qatlib.Papers.EntangleTrans99.MainResults.Unitary.SchmidtUnitary
+
+@[expose] public section
 
 /-!
 # Reduced spectra and local unitary conjugation

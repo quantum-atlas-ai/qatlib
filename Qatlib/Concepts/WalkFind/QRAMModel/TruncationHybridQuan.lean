@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkFind.QRAMModel.TruncationHybridStat
-import Qatlib.Concepts.LchsSimulation.StaticLchs.HybridError
-import Mathlib.Tactic.Abel
-import Mathlib.Tactic.Linarith
+module
+
+public import Qatlib.Concepts.WalkFind.QRAMModel.TruncationHybridStat
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.HybridError
+public import Mathlib.Tactic.Abel
+public import Mathlib.Tactic.Linarith
+
+@[expose] public section
 
 /-!
 # Hybrid bound for truncated unitary evolution
@@ -111,7 +115,7 @@ theorem truncationHybrid_answer : TruncationHybrid := by
         (Run 1 (((List.ofFn V).take n).map Step.gate) ψ)
         (bad ⟨n,hlt⟩) (hU _) (hV _) (hgood ⟨n,hlt⟩)
       have hprev := ih (by omega)
-      simp only [cost, dif_pos hlt]
+      simp only [cost, dite_eq_left hlt]
       linarith
   have h := hprefix T le_rfl
   rw [List.take_of_length_le (by simp), List.take_of_length_le (by simp)] at h

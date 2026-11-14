@@ -6,9 +6,13 @@ Authors: The Tau Ceti contributors, Qatlib Contributors
 Adapted from https://github.com/TauCetiProject/TauCeti@3780371c
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+module
 
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Angle
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Angle
+
+@[expose] public section
 
 /-!
 # Angle representatives and trigonometric identities

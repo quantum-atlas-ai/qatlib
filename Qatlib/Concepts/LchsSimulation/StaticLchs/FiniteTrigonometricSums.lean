@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Lean.Elab.Tactic.NormCast
-import Mathlib.Analysis.Complex.Trigonometric
-import Mathlib.Analysis.RCLike.Basic
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Ring
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Lean.Elab.Tactic.NormCast
+public import Mathlib.Analysis.Complex.Trigonometric
+public import Mathlib.Analysis.RCLike.Basic
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 /-!
 # Finite cosine sums for amplification windows

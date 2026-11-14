@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QuadHamilton24.MainResults.QuadHamiltonModel
+module
+
+public import Qatlib.Papers.QuadHamilton24.MainResults.QuadHamiltonModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -33,26 +37,30 @@ open scoped BigOperators Matrix.Norms.L2Operator
 
 variable {N M : Type*} [Fintype N] [Fintype M] [DecidableEq N] [DecidableEq M]
 
+omit [Fintype N] [Fintype M] [DecidableEq N] [DecidableEq M] in
 /-- **Lemma 9, (5.6), `(1,1)` block.** -/
-theorem lemma9_toBlocks₁₁ (F₁ : Matrix N N ℂ) (F₀ : Matrix N M ℂ) (F₂ : Matrix M N ℂ)
+theorem lemma9_toBlocks₁₁ {N M : Type*} [_inst0 : Fintype N] [_inst1 : Fintype M] [_inst2 : DecidableEq N] [_inst3 : DecidableEq M] (F₁ : Matrix N N ℂ) (F₀ : Matrix N M ℂ) (F₂ : Matrix M N ℂ)
     (F₃ : Matrix M M ℂ) :
     (blockA F₁ F₀ F₂ F₃).toBlocks₁₁ = F₁ := by
   simp [blockA, Matrix.toBlocks_fromBlocks₁₁]
 
+omit [Fintype N] [Fintype M] [DecidableEq N] [DecidableEq M] in
 /-- **Lemma 9, (5.6), `(1,2)` block (the `F₀` slot).** -/
-theorem lemma9_toBlocks₁₂ (F₁ : Matrix N N ℂ) (F₀ : Matrix N M ℂ) (F₂ : Matrix M N ℂ)
+theorem lemma9_toBlocks₁₂ {N M : Type*} [_inst0 : Fintype N] [_inst1 : Fintype M] [_inst2 : DecidableEq N] [_inst3 : DecidableEq M] (F₁ : Matrix N N ℂ) (F₀ : Matrix N M ℂ) (F₂ : Matrix M N ℂ)
     (F₃ : Matrix M M ℂ) :
     (blockA F₁ F₀ F₂ F₃).toBlocks₁₂ = F₀ := by
   simp [blockA, Matrix.toBlocks_fromBlocks₁₂]
 
+omit [Fintype N] [Fintype M] [DecidableEq N] [DecidableEq M] in
 /-- **Lemma 9, (5.6), `(2,1)` block (the `F₂` slot).** -/
-theorem lemma9_toBlocks₂₁ (F₁ : Matrix N N ℂ) (F₀ : Matrix N M ℂ) (F₂ : Matrix M N ℂ)
+theorem lemma9_toBlocks₂₁ {N M : Type*} [_inst0 : Fintype N] [_inst1 : Fintype M] [_inst2 : DecidableEq N] [_inst3 : DecidableEq M] (F₁ : Matrix N N ℂ) (F₀ : Matrix N M ℂ) (F₂ : Matrix M N ℂ)
     (F₃ : Matrix M M ℂ) :
     (blockA F₁ F₀ F₂ F₃).toBlocks₂₁ = F₂ := by
   simp [blockA, Matrix.toBlocks_fromBlocks₂₁]
 
+omit [Fintype N] [Fintype M] [DecidableEq N] [DecidableEq M] in
 /-- **Lemma 9, (5.6), `(2,2)` block.** -/
-theorem lemma9_toBlocks₂₂ (F₁ : Matrix N N ℂ) (F₀ : Matrix N M ℂ) (F₂ : Matrix M N ℂ)
+theorem lemma9_toBlocks₂₂ {N M : Type*} [_inst0 : Fintype N] [_inst1 : Fintype M] [_inst2 : DecidableEq N] [_inst3 : DecidableEq M] (F₁ : Matrix N N ℂ) (F₀ : Matrix N M ℂ) (F₂ : Matrix M N ℂ)
     (F₃ : Matrix M M ℂ) :
     (blockA F₁ F₀ F₂ F₃).toBlocks₂₂ = F₃ := by
   simp [blockA, Matrix.toBlocks_fromBlocks₂₂]

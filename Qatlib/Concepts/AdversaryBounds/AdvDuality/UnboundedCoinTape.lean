@@ -4,11 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
-import Qatlib.Concepts.StoppingCore.BranchCostCore.GeneralUnboundedExecution
-import Qatlib.Concepts.ClassicalTape.FairCoinTape
-import Mathlib.Probability.Distributions.Uniform
-import Qatlib.Concepts.AmplitudeSearch.InterruptMin.RealMass
+module
+
+public import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+public import Qatlib.Concepts.StoppingCore.BranchCostCore.GeneralUnboundedExecution
+public import Qatlib.Concepts.ClassicalTape.FairCoinTape
+public import Mathlib.Probability.Distributions.Uniform
+public import Qatlib.Concepts.AmplitudeSearch.InterruptMin.RealMass
+public import Qatlib.Foundations.ProbabilityCore.CoinLaw
+
+@[expose] public section
 
 /-!
 # Coin-tape kernels and finite random words
@@ -72,7 +77,7 @@ noncomputable def coinTapeKernel (q : ℕ)
     (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (q+1)))
     (accept : Fin (q+1) → Bool) (cfg : Turing.TM0.Cfg (Option Bool) (Fin (q+1))) :
     PMF (Bool ⊕ Turing.TM0.Cfg (Option Bool) (Fin (q+1))) :=
-  (PMF.bernoulli (1/2) (by norm_num)).map (coinTapeSelected q M accept cfg)
+  (Qatlib.Foundations.ProbabilityCore.CoinLaw.bernoulli (1/2) (by norm_num)).map (coinTapeSelected q M accept cfg)
 
 /-- Observe a costed configuration as an optional Boolean result with the same cost. -/
 def coinTapeObserve {q : ℕ}
@@ -81,15 +86,15 @@ def coinTapeObserve {q : ℕ}
 
 /-- A Bernoulli bit with parameter `1/2` has the uniform distribution on `Bool`. -/
 private theorem fairBit_uniform :
-    PMF.bernoulli (1/2) (by norm_num) = PMF.uniformOfFintype' Bool := by
+    Qatlib.Foundations.ProbabilityCore.CoinLaw.bernoulli (1/2) (by norm_num) = PMF.uniformOfFintype' Bool := by
   ext b
-  cases b <;> norm_num [PMF.bernoulli_apply, PMF.uniformOfFintype'_apply]
+  cases b <;> norm_num [Qatlib.Foundations.ProbabilityCore.CoinLaw.bernoulli_apply, PMF.uniformOfFintype'_apply]
 
 /-- A uniform Boolean word of length `n + 1` can be sampled by adjoining a fair head bit to an
 independent uniform tail. -/
 private theorem uniform_bits_cons (n : ℕ) :
     PMF.uniformOfFintype' (Fin (n+1) → Bool) =
-      (PMF.bernoulli (1/2) (by norm_num)).bind
+      (Qatlib.Foundations.ProbabilityCore.CoinLaw.bernoulli (1/2) (by norm_num)).bind
         (fun c => (PMF.uniformOfFintype' (Fin n → Bool)).map (Fin.cons c)) := by
   ext w
   rw [PMF.bind_apply, fairBit_uniform]
@@ -126,14 +131,14 @@ theorem coinTape_observed_law (q : ℕ)
       <;> exact (PMF.map_const _ _).symm
   | succ n ih =>
     by_cases hh : coinHalt M cfg = true
-    · simp only [coinTapeNormalize, hh, if_true, runFor_halted, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.ret,
+    · simp only [coinTapeNormalize, hh, ite_true, runFor_halted, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.ret,
         PMF.pure_map, coinTapeObserve]
       simp only [coinTapeRunAux_of_coinHalt M accept _ cfg hh]
       exact (PMF.map_const _ _).symm
-    · rw [coinTapeNormalize, if_neg hh, runFor]
+    · rw [coinTapeNormalize, ite_eq_right hh, runFor]
       have hstep : Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.bind (tick (coinTapeKernel q M accept) (Sum.inr cfg))
           (runFor (coinTapeKernel q M accept) n) =
-          (PMF.bernoulli (1/2) (by norm_num)).bind (fun c =>
+          (Qatlib.Foundations.ProbabilityCore.CoinLaw.bernoulli (1/2) (by norm_num)).bind (fun c =>
             Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.charge 1 (runFor (coinTapeKernel q M accept) n
               (coinTapeSelected q M accept cfg c))) := by
         simp [tick, coinTapeKernel, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.bind,
@@ -151,7 +156,7 @@ theorem coinTape_observed_law (q : ℕ)
         simp only [coinTapeSelected, hs]
         rw [observe_charge, ih]
         simp only [Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.charge, PMF.map_comp, Function.comp_def, List.ofFn_cons,
-          coinTapeRunAux, if_neg hh, hs]
+          coinTapeRunAux, ite_eq_right hh, hs]
         congr 1
         funext w
         simp [Prod.map, Nat.add_comm]

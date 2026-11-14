@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SU2Fourier26.MainResults.SourceSetup.SourceNLFTModel
-import Mathlib.Analysis.Normed.Ring.Units
-import Mathlib.Analysis.SpecificLimits.Normed
+module
+
+public import Qatlib.Papers.SU2Fourier26.MainResults.SourceSetup.SourceNLFTModel
+public import Mathlib.Analysis.Normed.Ring.Units
+public import Mathlib.Analysis.SpecificLimits.Normed
+
+@[expose] public section
 
 /-!
 # Lemma 5: convergence of the truncated NLFT data (c009)

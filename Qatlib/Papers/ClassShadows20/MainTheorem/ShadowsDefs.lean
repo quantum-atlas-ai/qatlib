@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ClassShadows20.MainTheorem.GlobalShadowEffectiveDefs
+module
+
+public import Qatlib.Papers.ClassShadows20.MainTheorem.GlobalShadowEffectiveDefs
+
+@[expose] public section
 
 /-!
 # General samplers and computational basis packing
@@ -62,19 +66,16 @@ theorem basis_distance_sq (d : ℕ) (i j : Fin d) (h : i ≠ j) :
     by_cases hki : k = i
     · by_cases hkj : k = j
       · exact absurd (hki.symm.trans hkj) h
-      · simp [Qatlib.Foundations.PureStateMath.Ket, hki, hkj, h, Complex.normSq, Complex.norm_real,
-          Real.norm_eq_abs]
+      · simp [Qatlib.Foundations.PureStateMath.Ket, hki,  h]
     · by_cases hkj : k = j
-      · simp [Qatlib.Foundations.PureStateMath.Ket, hki, hkj, h, Ne.symm h, Complex.normSq,
-          Complex.norm_real, Real.norm_eq_abs]
-      · simp [Qatlib.Foundations.PureStateMath.Ket, hki, hkj, h, Ne.symm h, Complex.normSq,
-          Complex.norm_real, Real.norm_eq_abs]
+      · simp [Qatlib.Foundations.PureStateMath.Ket,  hkj, Ne.symm h]
+      · simp [Qatlib.Foundations.PureStateMath.Ket, hki, hkj]
   rw [Finset.sum_congr rfl (fun k _ => hcoord k)]
   have hone : (∑ k : Fin d, (if k = i then (1 : ℝ) else 0)) = 1 := by
-    rw [Finset.sum_eq_single i (fun k _ hk => by simp [hk]) (by simp [Ne.symm h])]
+    rw [Finset.sum_eq_single i (fun k _ hk => by simp [hk]) (by simp [])]
     simp
   have htwo : (∑ k : Fin d, (if k = j then (1 : ℝ) else 0)) = 1 := by
-    rw [Finset.sum_eq_single j (fun k _ hk => by simp [hk]) (by simp [Ne.symm h])]
+    rw [Finset.sum_eq_single j (fun k _ hk => by simp [hk]) (by simp [])]
     simp
   rw [Finset.sum_add_distrib, hone, htwo]
   norm_num

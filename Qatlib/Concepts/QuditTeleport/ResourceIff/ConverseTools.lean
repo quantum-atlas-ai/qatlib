@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QuditTeleport.ResourceIff.Eq9Aux
-import Qatlib.Concepts.FiniteLocc.LOCCProgram.PositiveBranchDecomposition
+module
+
+public import Qatlib.Concepts.QuditTeleport.ResourceIff.Eq9Aux
+public import Qatlib.Concepts.FiniteLocc.LOCCProgram.PositiveBranchDecomposition
+
+@[expose] public section
 
 /-!
 # Qubit branch marginals and no-signalling
@@ -113,7 +117,7 @@ theorem bobBranchMarginal_no_signalling
     (relabelGate (Equiv.prodAssoc (Fin 2) (Fin 2) (Fin 2)).symm (TensorGate ρ ω))
   have hc : ∑ s, (V s)ᴴ * V s = 1 := by
     have h := congrArg (Matrix.reindexAlgEquiv ℂ ℂ bobFirstEquiv) hK
-    simp only [map_sum, map_one, Matrix.reindexAlgEquiv_apply] at h
+    simp only [map_sum, map_one, Matrix.coe_reindexAlgEquiv] at h
     change (∑ s, relabelGate bobFirstEquiv
       ((TensorGate (K s) (1 : Operator 2))ᴴ * TensorGate (K s) (1 : Operator 2))) = 1 at h
     simp only [converse_relabel_mul, converse_relabel_adjoint, bobFirst_local_gate] at h

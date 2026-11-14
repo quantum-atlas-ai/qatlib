@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Tactic
-import Qatlib.Papers.BettiNumber25.MainResults.TracePower
-import Qatlib.Papers.BettiNumber25.MainResults.PowerSandwich
-import Qatlib.Papers.BettiNumber25.MainResults.ComplementBlock
+module
+
+public import Mathlib.Tactic
+public import Qatlib.Papers.BettiNumber25.MainResults.TracePower
+public import Qatlib.Papers.BettiNumber25.MainResults.PowerSandwich
+public import Qatlib.Papers.BettiNumber25.MainResults.ComplementBlock
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

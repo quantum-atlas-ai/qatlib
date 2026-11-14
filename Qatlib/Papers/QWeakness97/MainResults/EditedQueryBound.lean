@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.AdversarySearch.TimeVaryHybrid
+module
+
+public import Qatlib.Concepts.QueryComplexity.AdversarySearch.TimeVaryHybrid
+
+@[expose] public section
 
 /-!
 # Bounds for time-dependent oracle edits

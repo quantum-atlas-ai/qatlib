@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommutLCHS26.MainResults.MPFRemainder
-import Qatlib.Papers.CommutLCHS26.MainResults.FormalPowers
-import Mathlib.RingTheory.PowerSeries.Order
-import Mathlib.RingTheory.Polynomial.Pochhammer
-import Mathlib.Algebra.Polynomial.Reverse
-import Mathlib.Algebra.Polynomial.Roots
-import Mathlib.RingTheory.PowerSeries.Exp
-import Mathlib.RingTheory.PowerSeries.Inverse
+module
+
+public import Qatlib.Papers.CommutLCHS26.MainResults.MPFRemainder
+public import Qatlib.Papers.CommutLCHS26.MainResults.FormalPowers
+public import Mathlib.RingTheory.PowerSeries.Order
+public import Mathlib.RingTheory.Polynomial.Pochhammer
+public import Mathlib.Algebra.Polynomial.Reverse
+public import Mathlib.Algebra.Polynomial.Roots
+public import Mathlib.RingTheory.PowerSeries.Exp
+public import Mathlib.RingTheory.PowerSeries.Inverse
+
+@[expose] public section
 
 /-!
 # Subdivision polynomials and cancellation moments
@@ -210,7 +214,7 @@ theorem powerPolynomial_zero (f : PowerSeries (Matrix I I ℂ)) (hf : f.constant
     (n : ℕ) (hn : 0 < n) (i j : I) : (powerPolynomial f n i j).coeff 0 = 0 := by
   have h := powerPolynomial_eval f hf n 0 i j
   simpa only [Nat.cast_zero, Polynomial.coeff_zero_eq_eval_zero, pow_zero, PowerSeries.coeff_one,
-    if_neg (by omega : n ≠ 0), Matrix.zero_apply] using! h
+    ite_eq_right (by omega : n ≠ 0), Matrix.zero_apply] using! h
 
 /-- The formal power series of the Strang word `[X / 2, Y, X / 2]`. -/
 def strangSeries (X Y : Matrix I I ℂ) : PowerSeries (Matrix I I ℂ) :=
@@ -261,7 +265,7 @@ theorem subdivisionPolynomial_eval (X Y : Matrix I I ℂ) (n q : ℕ) (hq : 0 < 
     (subdivisionPolynomial X Y n i j).eval ((q : ℂ)⁻¹) =
       suzukiSeries (strangRepeats X Y q) n i j := by
   have hq0 : (q : ℂ) ≠ 0 := by exact_mod_cast Nat.ne_of_gt hq
-  letI : Invertible (q : ℂ) := invertibleOfNonzero hq0
+  let : Invertible (q : ℂ) := invertibleOfNonzero hq0
   have hp := Polynomial.eval₂_reflect_mul_pow (RingHom.id ℂ) (q : ℂ) n
     (powerPolynomial (strangSeries X Y) n i j) (powerPolynomial_degree _ _ _ _)
   simp only [Polynomial.eval₂_id, invOf_eq_inv] at hp

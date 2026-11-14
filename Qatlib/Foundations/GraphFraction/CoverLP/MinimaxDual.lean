@@ -4,8 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.GraphFraction.CoverLP.WeightedCover
-import QuantumInfo.ForMathlib.Minimax
+module
+
+public import Qatlib.Foundations.GraphFraction.CoverLP.WeightedCover
+public import QuantumInfo.ForMathlib.Minimax
+
+public import Qatlib.Foundations.ProbabilityCore.SimplexWeights
+
+@[expose] public section
 
 /-!
 # Minimax duality for independent-set covers
@@ -87,7 +93,7 @@ theorem context_le_support (G : SimpleGraph V) (w : V → ℝ) (I : Context G) :
 
 /-- The payoff against a context probability vector is at most the independent-set support. -/
 theorem payoff_le_support (G : SimpleGraph V) (w : V → ℝ) (q : Context G → ℝ)
-    (hq : q∈stdSimplex ℝ (Context G)) : payoff G w q  ≤  independentSupport G w := by
+    (hq : q∈Qatlib.Foundations.ProbabilityCore.SimplexWeights.weights ℝ (Context G)) : payoff G w q  ≤  independentSupport G w := by
   calc _  ≤  ∑ I,q I*independentSupport G w := by
          apply Finset.sum_le_sum
          intro I _
@@ -103,13 +109,16 @@ theorem payoff_dirac (G : SimpleGraph V) (w : V → ℝ) (I : Context G) :
 /-- The independent-set support equals the supremum of the payoff over context probability
 vectors. -/
 theorem support_eq_context_sup (G : SimpleGraph V) (w : V → ℝ) :
-    independentSupport G w = ⨆ q : stdSimplex ℝ (Context G),payoff G w q := by
-  have hb : BddAbove (Set.range (fun q : stdSimplex ℝ (Context G) => payoff G w q)) :=
+    independentSupport G w = ⨆ q : Qatlib.Foundations.ProbabilityCore.SimplexWeights.weights ℝ (Context G),payoff G w q := by
+  have : Nonempty (Qatlib.Foundations.ProbabilityCore.SimplexWeights.weights ℝ (Context G)) :=
+    ⟨⟨Pi.single (Classical.choice (contextNonempty G)) 1,
+      Qatlib.Foundations.ProbabilityCore.SimplexWeights.single_mem_weights ℝ _⟩⟩
+  have hb : BddAbove (Set.range (fun q : Qatlib.Foundations.ProbabilityCore.SimplexWeights.weights ℝ (Context G) => payoff G w q)) :=
     ⟨independentSupport G w,by rintro _ ⟨q,rfl⟩;exact payoff_le_support G w q q.2⟩
   apply le_antisymm
   · apply csSup_le (Set.range_nonempty _)
     rintro _ ⟨I,rfl⟩
-    have h := le_ciSup hb (⟨Pi.single I 1,single_mem_stdSimplex ℝ I⟩ : stdSimplex ℝ (Context G))
+    have h := le_ciSup hb (⟨Pi.single I 1,Qatlib.Foundations.ProbabilityCore.SimplexWeights.single_mem_weights ℝ I⟩ : Qatlib.Foundations.ProbabilityCore.SimplexWeights.weights ℝ (Context G))
     change payoff G w (Pi.single I 1)  ≤  _ at h
     rw [payoff_dirac] at h
     exact h
@@ -120,13 +129,13 @@ theorem support_eq_context_sup (G : SimpleGraph V) (w : V → ℝ) :
 /-- For a nonempty vertex type, minimizing over vertex probability vectors and maximizing over
 context probability vectors can be interchanged. -/
 theorem context_game_minimax (G : SimpleGraph V) [Nonempty V] :
-    (⨅ w : stdSimplex ℝ V,⨆ q : stdSimplex ℝ (Context G),payoff G w q) =
-      ⨆ q : stdSimplex ℝ (Context G),⨅ w : stdSimplex ℝ V,payoff G w q := by
-  exact minimax (gamePair G) (stdSimplex ℝ (Context G)) (stdSimplex ℝ V)
-    (isCompact_stdSimplex ℝ _) (isCompact_stdSimplex ℝ _)
-    (convex_stdSimplex ℝ _) (convex_stdSimplex ℝ _)
-    (by exact ⟨Pi.single (Classical.choice (contextNonempty G)) 1,single_mem_stdSimplex ℝ _⟩)
-    (by exact ⟨Pi.single (Classical.choice ‹Nonempty V›) 1,single_mem_stdSimplex ℝ _⟩)
+    (⨅ w : Qatlib.Foundations.ProbabilityCore.SimplexWeights.weights ℝ V,⨆ q : Qatlib.Foundations.ProbabilityCore.SimplexWeights.weights ℝ (Context G),payoff G w q) =
+      ⨆ q : Qatlib.Foundations.ProbabilityCore.SimplexWeights.weights ℝ (Context G),⨅ w : Qatlib.Foundations.ProbabilityCore.SimplexWeights.weights ℝ V,payoff G w q := by
+  exact minimax (gamePair G) (Qatlib.Foundations.ProbabilityCore.SimplexWeights.weights ℝ (Context G)) (Qatlib.Foundations.ProbabilityCore.SimplexWeights.weights ℝ V)
+    (Qatlib.Foundations.ProbabilityCore.SimplexWeights.weights_compact ℝ _) (Qatlib.Foundations.ProbabilityCore.SimplexWeights.weights_compact ℝ _)
+    (Qatlib.Foundations.ProbabilityCore.SimplexWeights.weights_convex ℝ _) (Qatlib.Foundations.ProbabilityCore.SimplexWeights.weights_convex ℝ _)
+    (by exact ⟨Pi.single (Classical.choice (contextNonempty G)) 1,Qatlib.Foundations.ProbabilityCore.SimplexWeights.single_mem_weights ℝ _⟩)
+    (by exact ⟨Pi.single (Classical.choice ‹Nonempty V›) 1,Qatlib.Foundations.ProbabilityCore.SimplexWeights.single_mem_weights ℝ _⟩)
 
 /-- The payoff is the sum of vertex weights times their context coverages. -/
 theorem payoff_eq_coverage (G : SimpleGraph V) (w : V → ℝ) (q : Context G → ℝ) :
@@ -149,7 +158,7 @@ theorem payoff_vertex_dirac (G : SimpleGraph V) (q : Context G → ℝ) (i : V) 
 
 /-- The payoff of vertex and context probability vectors is nonnegative. -/
 theorem payoff_nonneg (G : SimpleGraph V) (w : V → ℝ) (q : Context G → ℝ)
-    (hw : w∈stdSimplex ℝ V) (hq : q∈stdSimplex ℝ (Context G)) : 0 ≤ payoff G w q := by
+    (hw : w∈Qatlib.Foundations.ProbabilityCore.SimplexWeights.weights ℝ V) (hq : q∈Qatlib.Foundations.ProbabilityCore.SimplexWeights.weights ℝ (Context G)) : 0 ≤ payoff G w q := by
   unfold payoff
   apply Finset.sum_nonneg
   intro I _
@@ -168,7 +177,7 @@ theorem payoff_le_mass_support (G : SimpleGraph V) (w : V → ℝ) (x : Context 
 /-- For a vertex probability vector and a feasible unit-demand cover, the support times the
 cover's total mass is at least one. -/
 theorem one_le_support_mass (G : SimpleGraph V) (w : V → ℝ)
-    (hw : w∈stdSimplex ℝ V) (x : Context G → ℝ) (hx : Feasible G (fun _ => 1) x) :
+    (hw : w∈Qatlib.Foundations.ProbabilityCore.SimplexWeights.weights ℝ V) (x : Context G → ℝ) (hx : Feasible G (fun _ => 1) x) :
     1 ≤ independentSupport G w*(∑ I,x I) := by
   have hl : 1 ≤ payoff G w x := by
     rw [payoff_eq_coverage]
@@ -206,30 +215,30 @@ theorem unweighted_cover_pos (G : SimpleGraph V) [Nonempty V] : 0<coverValue G (
 /-- For every context probability vector, the infimum of its payoff over vertex probability
 vectors is at most the reciprocal unit-demand cover value. -/
 theorem context_min_le_inverse_cover (G : SimpleGraph V) [Nonempty V]
-    (q : stdSimplex ℝ (Context G)) :
-    (⨅ w : stdSimplex ℝ V,payoff G w q)  ≤  1/coverValue G (fun _ => 1) := by
+    (q : Qatlib.Foundations.ProbabilityCore.SimplexWeights.weights ℝ (Context G)) :
+    (⨅ w : Qatlib.Foundations.ProbabilityCore.SimplexWeights.weights ℝ V,payoff G w q)  ≤  1/coverValue G (fun _ => 1) := by
   have hc := unweighted_cover_pos G
-  let t : ℝ := ⨅ w : stdSimplex ℝ V,payoff G w q
-  have hb : BddBelow (Set.range (fun w : stdSimplex ℝ V => payoff G w q)) :=
+  let t : ℝ := ⨅ w : Qatlib.Foundations.ProbabilityCore.SimplexWeights.weights ℝ V,payoff G w q
+  have hb : BddBelow (Set.range (fun w : Qatlib.Foundations.ProbabilityCore.SimplexWeights.weights ℝ V => payoff G w q)) :=
     ⟨0,by rintro _ ⟨w,rfl⟩;exact payoff_nonneg G w q w.2 q.2⟩
   change t ≤ _
   by_cases ht : t ≤ 0
   · exact ht.trans (one_div_pos.mpr hc).le
   · have htp : 0<t := lt_of_not_ge ht
     have hi (i : V) : t ≤ coverage G q i := by
-      have h := ciInf_le hb (⟨Pi.single i 1,single_mem_stdSimplex ℝ i⟩ : stdSimplex ℝ V)
+      have h := ciInf_le hb (⟨Pi.single i 1,Qatlib.Foundations.ProbabilityCore.SimplexWeights.single_mem_weights ℝ i⟩ : Qatlib.Foundations.ProbabilityCore.SimplexWeights.weights ℝ V)
       change t ≤ payoff G (Pi.single i 1) q at h
       rw [payoff_vertex_dirac] at h
       exact h
-    have hf : Feasible G (fun _ => 1) (fun I => q I/t) := by
+    have hf : Feasible G (fun _ => 1) (fun I => q.val I/t) := by
       refine ⟨fun I => div_nonneg (q.2.1 I) htp.le,?_⟩
       intro i
       rw [coverage_div]
       exact (le_div_iff₀ htp).mpr (by simpa using hi i)
-    have hmass : (∑ I,q I/t)=1/t := by
+    have hmass : (∑ I,q.val I/t)=1/t := by
       rw [← Finset.sum_div]
       exact congrArg (fun r : ℝ => r/t) q.2.2
-    have hc' := coverValue_le_mass G (fun _ => 1) (fun I => q I/t) hf
+    have hc' := coverValue_le_mass G (fun _ => 1) (fun I => q.val I/t) hf
     rw [hmass] at hc'
     apply (le_div_iff₀ hc).mpr
     have hh := (le_div_iff₀ htp).mp hc'
@@ -238,7 +247,13 @@ theorem context_min_le_inverse_cover (G : SimpleGraph V) [Nonempty V]
 /-- On a nonempty finite vertex type, the infimum of independent-set support over vertex
 probability vectors equals the reciprocal unit-demand fractional cover value. -/
 theorem support_min_eq_inverse_cover (G : SimpleGraph V) [Nonempty V] :
-    (⨅ w : stdSimplex ℝ V,independentSupport G w)=1/coverValue G (fun _ => 1) := by
+    (⨅ w : Qatlib.Foundations.ProbabilityCore.SimplexWeights.weights ℝ V,independentSupport G w)=1/coverValue G (fun _ => 1) := by
+  have : Nonempty (Qatlib.Foundations.ProbabilityCore.SimplexWeights.weights ℝ (Context G)) :=
+    ⟨⟨Pi.single (Classical.choice (contextNonempty G)) 1,
+      Qatlib.Foundations.ProbabilityCore.SimplexWeights.single_mem_weights ℝ _⟩⟩
+  have : Nonempty (Qatlib.Foundations.ProbabilityCore.SimplexWeights.weights ℝ V) :=
+    ⟨⟨Pi.single (Classical.choice ‹Nonempty V›) 1,
+      Qatlib.Foundations.ProbabilityCore.SimplexWeights.single_mem_weights ℝ _⟩⟩
   have hc := unweighted_cover_pos G
   apply le_antisymm
   · simp_rw [support_eq_context_sup]

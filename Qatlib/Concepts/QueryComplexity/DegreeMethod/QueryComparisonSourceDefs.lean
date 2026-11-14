@@ -4,20 +4,24 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.QueryModelComparisonDefs
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.PermutationLayerAverage
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.ParityPolynomialBound
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.QueryDegree
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.DegreeAndOr
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.OrExactDegreeSubgoalBeal
-import Qatlib.Concepts.QueryComplexity.AdversarySearch.OrZeroErrorQueryLowerBoundBeal
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.SymmetrizationAverageSubgoalBeal
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.Theorem46PrimeCaseRestrictedBeal
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.MajorityExactLowerBoundRestrictedBeal
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.FieldSimp
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.QueryModelComparisonDefs
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.PermutationLayerAverage
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.ParityPolynomialBound
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.QueryDegree
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.DegreeAndOr
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.OrExactDegreeSubgoalBeal
+public import Qatlib.Concepts.QueryComplexity.AdversarySearch.OrZeroErrorQueryLowerBoundBeal
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.SymmetrizationAverageSubgoalBeal
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.Theorem46PrimeCaseRestrictedBeal
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.MajorityExactLowerBoundRestrictedBeal
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.FieldSimp
+
+@[expose] public section
 
 /-!
 # OR polynomials and comparison-model programs

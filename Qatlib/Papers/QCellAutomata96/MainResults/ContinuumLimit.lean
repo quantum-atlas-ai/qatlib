@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QCellAutomata96.MainResults.ConfluentSeries
-import Mathlib.Analysis.Normed.Group.FunctionSeries
-import Mathlib.Analysis.SpecificLimits.Normed
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.ArctanDeriv
-import Mathlib.Analysis.Calculus.Deriv.Slope
-import Mathlib.Topology.MetricSpace.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
+module
+
+public import Qatlib.Papers.QCellAutomata96.MainResults.ConfluentSeries
+public import Mathlib.Analysis.Normed.Group.FunctionSeries
+public import Mathlib.Analysis.SpecificLimits.Normed
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.ArctanDeriv
+public import Mathlib.Analysis.Calculus.Deriv.Slope
+public import Mathlib.Topology.MetricSpace.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+
+@[expose] public section
 
 /-!
 # Limits of confluent propagator amplitudes

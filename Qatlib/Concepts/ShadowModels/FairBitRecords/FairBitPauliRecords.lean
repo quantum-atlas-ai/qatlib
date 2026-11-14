@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ShadowModels.FairBitRecords.SharpLocalPauliShadows
-import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
-import Qatlib.Concepts.NativeNumerics.LayeredMean.NativeLayeredMean
+module
+
+public import Qatlib.Concepts.ShadowModels.FairBitRecords.SharpLocalPauliShadows
+public import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+public import Qatlib.Concepts.NativeNumerics.LayeredMean.NativeLayeredMean
+
+@[expose] public section
 
 /-!
 # Pauli measurement records from bounded fair-bit tapes
@@ -136,7 +140,7 @@ theorem fair_pauli_axis_exact_law_and_actual_cost :
   | zero => fin_cases a <;> simp [fairPauliAxisProb, fairPauliAxis]
   | succ R ih =>
     rw [fairPauliAxisProb_succ, ih, pow_succ, _root_.mul_inv_rev]
-    by_cases ha : a = 0 <;> simp only [ha, if_true, if_false] <;> ring
+    by_cases ha : a = 0 <;> simp only [ha, ite_true, ite_false] <;> ring
 
 /-- Every decoded-axis probability is nonnegative. -/
 theorem fairPauliAxisProb_nonneg (R : ℕ) (a : Fin 3) : 0 ≤ fairPauliAxisProb R a := by
@@ -154,7 +158,7 @@ noncomputable def fairPauliAxisLaw (R : ℕ) : FinDist (Fin 3) where
     ring
 
 /-- The uniform finite distribution on the three Pauli axes. -/
-private noncomputable def pauliUniformAxisLaw : FinDist (Fin 3) where
+noncomputable def pauliUniformAxisLaw : FinDist (Fin 3) where
   prob _ := 1 / 3
   nonneg _ := by norm_num
   sum_one := by norm_num

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.RiccatiWang26.SolutionEnc.Core.PaperModel
+module
+
+public import Qatlib.Papers.RiccatiWang26.SolutionEnc.Core.PaperModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -71,6 +75,7 @@ theorem TildeO_mono {f g g' ε : ℝ} (h : TildeO f g ε) (hg : g ≤ g')
 
 /-! ## Lemmas B.1 and B.3: rank geometry -/
 
+omit [Fintype n] [DecidableEq n] [Nonempty n] in
 /-- RiccatiWang26, Lemma B.3 (p. 54), Eqs. (B.5)–(B.6).  For a rank-`n` projector `PiProj` on
 `ℂ^{2n}` and `R ∈ ℂ^{2n×n}` of full column rank, the smallest principal angle and the
 compressed singular value satisfy
@@ -80,8 +85,9 @@ with `R₀ = [I; P₀]`,
 `dist(R₀u, ran[I;X]) = ‖(I+X²)^{-1/2}(P₀-X)u‖` and
 `dist(R₀u, ran[-Y;I]) = ‖(I+Y²)^{-1/2}(I+YP₀)u‖`. -/
 theorem lemma_B_3_initial_column_geometry
+    [_fintype : Fintype n] [_decidableEq : DecidableEq n] [_nonempty : Nonempty n]
     (PiProj : Matrix (Sum n n) (Sum n n) ℂ) (R : Matrix (Sum n n) n ℂ)
-    (X Y P0 : Sq n) (u : n → ℂ) :
+    (X _Y P0 : Sq n) (u : n → ℂ) :
     (FullColumnRank (PiProj * R) ↔ ∀ v : n → ℂ, PiProj *ᵥ (R *ᵥ v) = 0 → v = 0) ∧
       (0 : ℝ) ≤ ‖P0 - X‖ ^ 2 * ‖u‖ ^ 2 := by
   -- Source: Lemma B.3 (p. 54).  The angle bound is the standard two-sided estimate for the

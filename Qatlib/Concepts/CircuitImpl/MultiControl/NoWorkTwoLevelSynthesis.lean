@@ -4,12 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownFrameLocalSynthesis
-import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
-import Qatlib.Foundations.PureStateMath.Tensor
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Basic
-import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Unitary
+module
+
+public import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownFrameLocalSynthesis
+public import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
+public import Qatlib.Foundations.PureStateMath.Tensor
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Basic
+public import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Unitary
+
+@[expose] public section
+set_option linter.style.haveILetI false
+set_option linter.unusedSimpArgs false
 
 /-!
 # Synthesis without work qubits
@@ -131,7 +137,7 @@ theorem noWork_unitary_square_root {I : Type} [Fintype I] [DecidableEq I] [Nonem
 theorem noWork_one_wire_matrix (U : Matrix Bool Bool ℂ) :
     wireGate 1 0 U = relabelGate noWorkOneBitEquiv.symm U := by
   ext x y
-  rw [wireGate_apply, if_pos]
+  rw [wireGate_apply, ite_eq_left]
   · rfl
   · intro k hk
     exact (hk (Subsingleton.elim _ _)).elim
@@ -255,10 +261,10 @@ theorem noWork_zero_control_table (p : KnownQubitAngles) :
   let U := knownQubitUnitary p
   have hmat : wireGate 1 0 U = relabelGate (noWorkControlSplit 0).symm (multiKnownGate 0 U) := by
     ext x y
-    rw [wireGate_apply, if_pos (by intro k hk; exact (hk (Subsingleton.elim _ _)).elim)]
+    rw [wireGate_apply, ite_eq_left (by intro k hk; exact (hk (Subsingleton.elim _ _)).elim)]
     change U (x 0) (y 0) = if (noWorkControlSplit 0 x).1 = (noWorkControlSplit 0 y).1 then
       if allControlTrue 0 (noWorkControlSplit 0 y).1 then U (x 0) (y 0) else (1 : Matrix Bool Bool ℂ) (x 0) (y 0) else 0
-    rw [if_pos (Subsingleton.elim _ _)]
+    rw [ite_eq_left (Subsingleton.elim _ _)]
     simp [allControlTrue]
   refine ⟨[.inl (0,U)], ?_, rfl, queryCount_reflectionCompile _, rfl, ?_⟩
   · intro g hg
@@ -390,9 +396,9 @@ theorem noWorkDirtyPrefixBits_spec (c d : ℕ → Bool) (r i : ℕ) :
     · subst i
       simp only [noWorkDirtyPrefixStage, Function.update_self]
       rw [ih_next, ih_next]
-      simp only [lt_self_iff_false, if_false, Nat.add_sub_cancel_right,
-        show r < r+1 from by omega, if_true, Function.update_self]
-      simp only [show r+1 < r+2 from by omega, if_true]
+      simp only [lt_self_iff_false, ite_false, Nat.add_sub_cancel_right,
+        show r < r+1 from by omega, ite_true, Function.update_self]
+      simp only [show r+1 < r+2 from by omega, ite_true]
       rw [noWorkPrefixAnd_succ c (r+2)]
       cases h0 : c (r+2) <;> cases h1 : d r <;>
         cases h2 : noWorkPrefixAnd c (r+2) <;> cases h3 : d (r+1) <;>
@@ -857,12 +863,12 @@ theorem noWork_single_dirty_and_table {N : ℕ} (c : ℕ → Fin N) (s t : Fin N
       change i < b+1 at hi
       change j < b+1 at hj
       by_cases hib : i < b <;> by_cases hjb : j < b
-      · simp only [cb,if_pos hib,if_pos hjb] at he
+      · simp only [cb,ite_eq_left hib,ite_eq_left hjb] at he
         have hv : a+i = a+j := hc (show a+i < m from by omega) (show a+j < m from by omega) he
         omega
-      · simp only [cb,if_pos hib,if_neg hjb] at he
+      · simp only [cb,ite_eq_left hib,ite_eq_right hjb] at he
         exact (hcs (a+i) (by omega) he).elim
-      · simp only [cb,if_neg hib,if_pos hjb] at he
+      · simp only [cb,ite_eq_right hib,ite_eq_left hjb] at he
         exact (hcs (a+j) (by omega) he.symm).elim
       · omega
     have hwb : Set.InjOn wb (Set.Iio (b+1-2)) := by
@@ -872,15 +878,15 @@ theorem noWork_single_dirty_and_table {N : ℕ} (c : ℕ → Fin N) (s t : Fin N
     have hcbwb : ∀ i < b+1, ∀ j < b+1-2, cb i ≠ wb j := by
       intro i hi j hj
       by_cases hib : i < b
-      · simp only [cb,if_pos hib,wb]
+      · simp only [cb,ite_eq_left hib,wb]
         exact hne (a+i) j (by omega) (by omega) (by omega)
-      · simp only [cb,if_neg hib,wb]
+      · simp only [cb,ite_eq_right hib,wb]
         exact (hcs j (by omega)).symm
     have hcbt : ∀ i < b+1, cb i ≠ t := by
       intro i hi
       by_cases hib : i < b
-      · simpa only [cb,if_pos hib] using! hct (a+i) (by omega)
-      · simpa only [cb,if_neg hib] using! hst
+      · simpa only [cb,ite_eq_left hib] using! hct (a+i) (by omega)
+      · simpa only [cb,ite_eq_right hib] using! hst
     obtain ⟨bs,hbs,hblen,hrB⟩ := noWork_many_borrowed_and_table cb wb t (b+1)
       hcb hwb hcbwb hcbt (fun j hj => hct j (by omega))
     let A : Reg N → Bool := fun x => noWorkPrefixAnd (fun i => x (c i)) a
@@ -899,7 +905,7 @@ theorem noWork_single_dirty_and_table {N : ℕ} (c : ℕ → Fin N) (s t : Fin N
       congr 2
       rw [noWorkPrefixAnd_succ]
       have hp : noWorkPrefixAnd (fun i => x (cb i)) b = B x :=
-        noWorkPrefixAnd_congr _ _ _ (fun i hi => by simp only [cb,if_pos hi])
+        noWorkPrefixAnd_congr _ _ _ (fun i hi => by simp only [cb,ite_eq_left hi])
       rw [hp]
       simp [cb]
     refine ⟨as ++ bs ++ as ++ bs,?_,?_,?_⟩
@@ -1023,14 +1029,14 @@ private theorem noWorkControlWires_inj (n k : ℕ) :
   intro i hi j hj he
   change i < n at hi
   change j < n at hj
-  simpa only [noWorkControlWires,dif_pos hi,dif_pos hj] using! congrArg Fin.val he
+  simpa only [noWorkControlWires,dite_eq_left hi,dite_eq_left hj] using! congrArg Fin.val he
 
 /-- Every selected control wire with index below `n` differs from the target wire. -/
 private theorem noWorkControlWires_ne_target (n k : ℕ) (i : ℕ) (hi : i < n) :
     noWorkControlWires n k i ≠ (⟨n,by omega⟩ : Fin (n+1+k)) := by
   intro he
   have hv := congrArg Fin.val he
-  simp only [noWorkControlWires,dif_pos hi] at hv
+  simp only [noWorkControlWires,dite_eq_left hi] at hv
   omega
 
 /-- The conjunction on the selected wires of a joined register equals `allControlTrue` on its
@@ -1041,7 +1047,7 @@ private theorem noWork_prefix_allControl (n : ℕ) (x : Reg n) (b : Bool) :
   have hcoord (i : ℕ) (hi : i < n) :
       (noWorkControlSplit n).symm (x,b) (noWorkControlWires n 0 i) = x ⟨i,hi⟩ := by
     rw [noWorkControlSplit_symm_data]
-    simp only [noWorkControlWires,dif_pos hi]
+    simp only [noWorkControlWires,dite_eq_left hi]
     exact knownDataEquiv_control n x b ⟨i,hi⟩
   rw [allControlTrue_eq_decide]
   apply Bool.eq_iff_iff.mpr
@@ -1262,7 +1268,7 @@ theorem single_ancilla_known_control_local_table_and_cost (n : ℕ) (p : KnownQu
   have hcs : ∀ i < n, c i ≠ s := by
     intro i hi he
     have hv := congrArg Fin.val he
-    simp only [c,noWorkControlWires,dif_pos hi,s] at hv
+    simp only [c,noWorkControlWires,dite_eq_left hi,s] at hv
     omega
   have hst : s ≠ t := by intro he; have hv := congrArg Fin.val he; dsimp [s,t] at hv; omega
   obtain ⟨gs,hgs,hlen,hr⟩ := noWork_single_clean_wire_table n c s t
@@ -1279,7 +1285,7 @@ theorem single_ancilla_known_control_local_table_and_cost (n : ℕ) (p : KnownQu
       apply Bool.eq_iff_iff.mpr
       simp only [noWorkPrefixAnd,List.all_eq_true,List.mem_range,decide_eq_true_eq]
       have hcoord (i : ℕ) (hi : i < n) : q (c i) = x ⟨i,hi⟩ := by
-        simp only [q,c,noWorkControlWires,dif_pos hi]
+        simp only [q,c,noWorkControlWires,dite_eq_left hi]
         exact singleAncillaJoin_control n x b _ ⟨i,hi⟩
       constructor
       · intro hall i

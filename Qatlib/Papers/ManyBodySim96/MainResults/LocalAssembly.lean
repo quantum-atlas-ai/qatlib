@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ManyBodySim96.MainResults.FirstOrderSelection
-import Qatlib.Papers.ManyBodySim96.MainResults.LocalEvolution
-import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
-import Qatlib.Foundations.PureStateMath.BornBridge.RelabelOperatorNorm
-import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
-import Qatlib.Concepts.GateVocabulary.LocalReflectionGates
-import Qatlib.Concepts.TensorRegisters.RegisterModel.TensorRegistersDefs
+module
+
+public import Qatlib.Papers.ManyBodySim96.MainResults.FirstOrderSelection
+public import Qatlib.Papers.ManyBodySim96.MainResults.LocalEvolution
+public import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+public import Qatlib.Foundations.PureStateMath.BornBridge.RelabelOperatorNorm
+public import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
+public import Qatlib.Concepts.GateVocabulary.LocalReflectionGates
+public import Qatlib.Concepts.TensorRegisters.RegisterModel.TensorRegistersDefs
+
+@[expose] public section
 
 /-!
 # Lifting and compiling local product formulas

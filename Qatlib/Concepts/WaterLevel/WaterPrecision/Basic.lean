@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WaterLevel.WaterPrecision.Defs
+module
+
+public import Qatlib.Concepts.WaterLevel.WaterPrecision.Defs
+
+@[expose] public section
 
 /-!
 # Perturbation bounds for water-level fidelity
@@ -162,7 +166,7 @@ theorem g2 :
   obtain ⟨_, heM, heD⟩ := g1 m p s p' s' B L δ γ hB hL hδ hγ hγL hp hp' hi
   have hpos : 0<realMass p s γ := hρ.trans_le hm
   have hpos' : 0<realMass p' s' γ := hρ.trans_le hm'
-  rw [realFidelity,realFidelity,if_neg (ne_of_gt hpos),if_neg (ne_of_gt hpos')]
+  rw [realFidelity,realFidelity,ite_eq_right (ne_of_gt hpos),ite_eq_right (ne_of_gt hpos')]
   exact quotient_error _ _ _ _ _ _ _ _
     (dot_bounds hB hγ hp).1 (dot_bounds hB hγ hp').1
     (dot_bounds hB hγ hp).2 (dot_bounds hB hγ hp').2
@@ -252,7 +256,7 @@ theorem g3 :
   obtain ⟨ht,hf,hn,hgap⟩ := classify (residual p s γ a) (residualRat q r γ a) _ he hx
   refine ⟨ht,hf,hn,hgap,?_⟩
   intro ha hm
-  rw [realFidelity,if_neg (ne_of_gt hm)]
+  rw [realFidelity,ite_eq_right (ne_of_gt hm)]
   apply (lt_div_iff₀ hm).mpr
   have hh := ht ha
   unfold residual at hh

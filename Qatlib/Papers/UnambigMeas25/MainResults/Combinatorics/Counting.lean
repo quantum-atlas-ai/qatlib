@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.UnambigMeas25.MainResults.Definitions.UnambigMeasModel
+module
+
+public import Qatlib.Papers.UnambigMeas25.MainResults.Definitions.UnambigMeasModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -66,13 +70,13 @@ theorem lemma3 {n k : ℕ} (f : Fin k → Fin n) (s : complementIndex f → ZMod
   · -- (i) the leader lies in the coset `D_H(s)`
     intro j
     show (if h : j.1 ∈ Set.range f then (0 : ZMod 2) else s ⟨j.1, h⟩) = s j
-    rw [dif_neg j.2]
+    rw [dite_eq_right j.2]
     exact congrArg s (Subtype.ext rfl)
   · -- (ii) its support is contained in `Sᶜ`
     intro j hj hmem
     have h0 : cosetLeader f s j = 0 := by
       show (if h : j ∈ Set.range f then (0 : ZMod 2) else s ⟨j, h⟩) = 0
-      rw [dif_pos hmem]
+      rw [dite_eq_left hmem]
     exact hj h0
   · -- (iii) minimality: nonzero coordinates of the leader are nonzero in `x`
     intro x hx
@@ -83,11 +87,11 @@ theorem lemma3 {n k : ℕ} (f : Fin k → Fin n) (s : complementIndex f → ZMod
     by_cases hmem : a ∈ Set.range f
     · have h0 : cosetLeader f s a = 0 := by
         show (if h : a ∈ Set.range f then (0 : ZMod 2) else s ⟨a, h⟩) = 0
-        rw [dif_pos hmem]
+        rw [dite_eq_left hmem]
       exact absurd h0 ha
     · have hval : cosetLeader f s a = s ⟨a, hmem⟩ := by
         show (if h : a ∈ Set.range f then (0 : ZMod 2) else s ⟨a, h⟩) = s ⟨a, hmem⟩
-        rw [dif_neg hmem]
+        rw [dite_eq_right hmem]
       have hx' : x a = s ⟨a, hmem⟩ := hx ⟨a, hmem⟩
       rw [hx']
       exact hval ▸ ha

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ExecutionRemainder
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ExecutionRemainder
+
+@[expose] public section
 
 /-!
 # Weighted hybrid-program execution receipts
@@ -65,12 +69,12 @@ theorem stop_marginal (w : Fin K → ℕ) (b : ℕ)
   rw [Finset.sum_eq_single u]
   swap
   · intro x _ hx
-    simp only [if_neg (Ne.symm hx), tsum_zero]
+    simp only [ite_eq_right (Ne.symm hx), tsum_zero]
   swap
   · simp
   rw [tsum_eq_zero_add' ENNReal.summable]
-  simp only [rationalStopLaw_apply, rationalStopMass, if_true,
-    Nat.add_eq_zero_iff, Nat.one_ne_zero, and_false, if_false,
+  simp only [rationalStopLaw_apply, rationalStopMass, ite_true,
+    Nat.add_eq_zero_iff, Nat.one_ne_zero, and_false, ite_false,
     Nat.add_sub_cancel, zero_add]
   exact (rational_unbounded_actual_first_stop_law K w b hW hb).2.2.1 u |>.2.1
 
@@ -358,7 +362,7 @@ theorem capped_some (F : Family K D m) (w : Fin K → ℕ) (b fuel : ℕ)
   classical
   rw [capped_output_bind, PMF.bind_apply, tsum_fintype, Fintype.sum_sum_type]
   simp only [outcomeNext, map_some_apply, PMF.pure_apply,
-    reduceCtorEq, if_false, mul_zero, Finset.sum_const_zero, add_zero]
+    reduceCtorEq, ite_false, mul_zero, Finset.sum_const_zero, add_zero]
   simp_rw [selector_success w b fuel hW hb]
   rw [Finset.mul_sum]
   exact Finset.sum_congr rfl fun u _ => by ring
@@ -371,7 +375,7 @@ theorem capped_none (F : Family K D m) (w : Fin K → ℕ) (b fuel : ℕ)
   classical
   rw [capped_output_bind, PMF.bind_apply, tsum_fintype, Fintype.sum_sum_type]
   simp only [outcomeNext, map_some_none,
-    mul_zero, Finset.sum_const_zero, PMF.pure_apply, if_true, mul_one,
+    mul_zero, Finset.sum_const_zero, PMF.pure_apply, ite_true, mul_one,
     Fintype.sum_unique, zero_add]
   exact selector_timeout w b fuel hb
 

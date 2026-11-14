@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AdiabEquiv04.MainResults.Model.ComputationDefs
+module
+
+public import Qatlib.Papers.AdiabEquiv04.MainResults.Model.ComputationDefs
+
+@[expose] public section
 
 /-!
 # AdiabEquiv04 — simulation theorems (Theorems 1.1, 1.3, 3.1, 3.15, 4.1 and Corollary 1.2)

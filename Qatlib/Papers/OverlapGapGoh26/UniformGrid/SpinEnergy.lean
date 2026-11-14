@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OverlapGapGoh26.UniformGrid.FixedInstance
-import Qatlib.Papers.OverlapGapGoh26.GaussianModel.SpinPath
+module
+
+public import Qatlib.Papers.OverlapGapGoh26.UniformGrid.FixedInstance
+public import Qatlib.Papers.OverlapGapGoh26.GaussianModel.SpinPath
+
+@[expose] public section
 
 /-!
 # Explicit grids for spin-readout energy

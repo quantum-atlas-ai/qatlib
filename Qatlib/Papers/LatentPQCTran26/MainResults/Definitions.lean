@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.MeasureTheory.Integral.Bochner.Set
-import Mathlib.MeasureTheory.Measure.Real
-import Mathlib.MeasureTheory.Measure.Map
+module
+
+public import Mathlib.MeasureTheory.Integral.Bochner.Set
+public import Mathlib.MeasureTheory.Measure.Real
+public import Mathlib.MeasureTheory.Measure.Map
+
+@[expose] public section
 
 /-!
 # Measures and transport costs for latent circuits

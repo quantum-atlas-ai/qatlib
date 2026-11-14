@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ZetaCurves04.MainResults.Model.CurveZetaDefs
-import Qatlib.Papers.ZetaCurves04.MainResults.Model.CoinDefs
+module
+
+public import Qatlib.Papers.ZetaCurves04.MainResults.Model.CurveZetaDefs
+public import Qatlib.Papers.ZetaCurves04.MainResults.Model.CoinDefs
+
+@[expose] public section
 
 /-!
 # Class number algorithm composition
@@ -117,7 +121,7 @@ theorem proposition11_compose
   constructor
   · apply CoinAlgo.isMC_bind Ag _ hAg
     intro T hT
-    exact ⟨ord T hT, by simp [orderPostprocess, dif_pos hT], hord T hT⟩
+    exact ⟨ord T hT, by simp [orderPostprocess, dite_eq_left hT], hord T hT⟩
   · change Ag.cost + orderCost = _
     exact congrArg (fun n => Ag.cost + n) implementation.cost_eq
 

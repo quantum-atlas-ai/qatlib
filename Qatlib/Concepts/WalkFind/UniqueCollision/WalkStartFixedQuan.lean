@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkFind.UniqueCollision.WalkStartFixedStat
-import Qatlib.Concepts.WalkFind.WalkSpectrum.AlphaFromInputQuan
-import Qatlib.Concepts.WalkFind.WalkSpectrum.JohnsonDiffusionAux
-import Qatlib.Concepts.WalkFind.WalkSpectrum.WalkTypeTransportQuan
+module
+
+public import Qatlib.Concepts.WalkFind.UniqueCollision.WalkStartFixedStat
+public import Qatlib.Concepts.WalkFind.WalkSpectrum.AlphaFromInputQuan
+public import Qatlib.Concepts.WalkFind.WalkSpectrum.JohnsonDiffusionAux
+public import Qatlib.Concepts.WalkFind.WalkSpectrum.WalkTypeTransportQuan
+
+@[expose] public section
 
 /-!
 # The fixed Johnson-walk starting state
@@ -131,10 +135,10 @@ theorem jwStep2_start_fixed (k N r : ℕ) (hkr : k ≤ r) (hkNr : k < N-r) :
   have hv (b : Bool) : jwStart k N r (jwPairIndex k b j).rev =
       if b then (Real.sqrt B : ℂ) else (Real.sqrt A : ℂ) := by
     cases b
-    · simp only [jwStart, coords, Bool.false_eq_true, if_false, Nat.sub_zero]
+    · simp only [jwStart, coords, Bool.false_eq_true, ite_false, Nat.sub_zero]
       rw [jwCnt_inserted_false k N r l hlr hlk (le_of_lt hkNr)]
       simp [A,c,Nat.cast_mul]
-    · simp only [jwStart, coords, if_true]
+    · simp only [jwStart, coords, ite_true]
       rw [jwCnt_inserted_true k N r l hl (by omega) hlk]
       simp [B,c,Nat.cast_mul]
   rw [hv false, hv true, hv a, ← he]

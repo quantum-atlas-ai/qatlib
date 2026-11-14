@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QPowerSimon97.StandardModel.SimonRetryDefs
-import Qatlib.Papers.QPowerSimon97.Recovery.NativeRetryConstructionAssembly
+module
+
+public import Qatlib.Papers.QPowerSimon97.StandardModel.SimonRetryDefs
+public import Qatlib.Papers.QPowerSimon97.Recovery.NativeRetryConstructionAssembly
+
+@[expose] public section
 
 /-!
 # Local gate ledgers and two-sided Simon separation

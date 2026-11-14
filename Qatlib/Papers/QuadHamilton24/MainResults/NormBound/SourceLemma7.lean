@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QuadHamilton24.MainResults.QuadHamiltonModel
-import Mathlib.Analysis.Calculus.Deriv.MeanValue
-import Mathlib.Analysis.InnerProductSpace.Calculus
-import Mathlib.Analysis.SpecialFunctions.Exponential
-import Mathlib.Analysis.SpecialFunctions.ExpDeriv
+module
+
+public import Qatlib.Papers.QuadHamilton24.MainResults.QuadHamiltonModel
+public import Mathlib.Analysis.Calculus.Deriv.MeanValue
+public import Mathlib.Analysis.InnerProductSpace.Calculus
+public import Mathlib.Analysis.SpecialFunctions.Exponential
+public import Mathlib.Analysis.SpecialFunctions.ExpDeriv
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QLattice03.MainResults.Defs
-import Qatlib.Papers.QLattice03.MainResults.Reductions
-import Qatlib.Papers.QLattice03.MainResults.Reduction.RadixEncoding
+module
+
+public import Qatlib.Papers.QLattice03.MainResults.Defs
+public import Qatlib.Papers.QLattice03.MainResults.Reductions
+public import Qatlib.Papers.QLattice03.MainResults.Reduction.RadixEncoding
+
+@[expose] public section
 
 /-!
 # Radix reduction from DCP to the two-point problem

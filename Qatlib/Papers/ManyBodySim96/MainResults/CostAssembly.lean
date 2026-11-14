@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ManyBodySim96.MainResults.LocalAssembly
-import Qatlib.Papers.ManyBodySim96.MainResults.MeasurementSampling
-import Qatlib.Papers.ManyBodySim96.MainResults.KineticLedger
-import Qatlib.Concepts.CircuitImpl.MultiControl.NoWorkTwoLevelSynthesis
+module
+
+public import Qatlib.Papers.ManyBodySim96.MainResults.LocalAssembly
+public import Qatlib.Papers.ManyBodySim96.MainResults.MeasurementSampling
+public import Qatlib.Papers.ManyBodySim96.MainResults.KineticLedger
+public import Qatlib.Concepts.CircuitImpl.MultiControl.NoWorkTwoLevelSynthesis
+
+@[expose] public section
 
 /-!
 # Gate-cost assembly for many-body simulation

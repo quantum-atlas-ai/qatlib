@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic.Convert
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Ring
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic.Convert
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -135,7 +139,7 @@ theorem source_lemma6 {ι : Type} [Fintype ι]
       have h1 : ‖α i‖ * (c * lamhat i) / (κ * lam i * lamhat i)
           = ‖α i‖ * c / (κ * lam i) := by
         have h := mul_div_mul_right (‖α i‖ * c) (κ * lam i) (ne_of_gt (hlamhat i))
-        convert h using 2 <;> ring
+        convert h using 2; ring
       rw [h1]
       field_simp [hden2]
     exact hbound.trans hfinal.le

@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.TemplMatch01.MainResults.MultiTemplate.MaximumAverageScore
-import Qatlib.Papers.TemplMatch01.MainResults.MultiTemplate.SquareRootMeasurement
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.RingTheory.RootsOfUnity.Complex
-import Mathlib.RingTheory.RootsOfUnity.PrimitiveRoots
-import Mathlib.Algebra.Field.GeomSum
-import Mathlib.LinearAlgebra.Matrix.Trace
-import Mathlib.LinearAlgebra.Matrix.PosDef
+module
+
+public import Qatlib.Papers.TemplMatch01.MainResults.MultiTemplate.MaximumAverageScore
+public import Qatlib.Papers.TemplMatch01.MainResults.MultiTemplate.SquareRootMeasurement
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.RingTheory.RootsOfUnity.Complex
+public import Mathlib.RingTheory.RootsOfUnity.PrimitiveRoots
+public import Mathlib.Algebra.Field.GeomSum
+public import Mathlib.LinearAlgebra.Matrix.Trace
+public import Mathlib.LinearAlgebra.Matrix.PosDef
+
+@[expose] public section
 
 /-!
 # Covariant optimality conditions for multiple templates
@@ -214,7 +218,7 @@ theorem Gamma_apply (hM : 0 < M) (hNM : N < M) (hζ : IsPrimitiveRoot (zeta M) M
     have hsum1 : ∑ m ∈ range M, (zeta M ^ i.1 * (zeta M ^ i.1)⁻¹) ^ m = (M : ℂ) := by
       rw [hx1]
       simp [Finset.sum_const, nsmul_eq_mul]
-    rw [if_pos rfl, hsum1, inv_mul_cancel₀ hMne, one_mul]
+    rw [ite_eq_left rfl, hsum1, inv_mul_cancel₀ hMne, one_mul]
   · have hbase_ne : zeta M ^ i.1 * (zeta M ^ j.1)⁻¹ ≠ 1 := by
       intro h
       have hji : zeta M ^ i.1 = zeta M ^ j.1 := by
@@ -234,7 +238,7 @@ theorem Gamma_apply (hM : 0 < M) (hNM : N < M) (hζ : IsPrimitiveRoot (zeta M) M
     have hsum0 : ∑ m ∈ range M, (zeta M ^ i.1 * (zeta M ^ j.1)⁻¹) ^ m = 0 := by
       rw [geom_sum_eq hbase_ne M, hbase_M]
       simp
-    rw [if_neg hij, hsum0]
+    rw [ite_eq_right hij, hsum0]
     simp
 
 /-- The diagonal matrix obtained from the scaled identity by adding the two endpoint
@@ -299,10 +303,10 @@ lemma sum_ite_row (a b : Fin (N+1)) (i : Fin (N+1)) :
     (∑ p : Fin (N+1), (if a = i ∧ b = p then (1 : ℂ) else 0))
       = if a = i then (1 : ℂ) else 0 := by
   by_cases ha : a = i
-  · rw [if_pos ha]
+  · rw [ite_eq_left ha]
     simp only [ha, true_and]
-    simpa using (Finset.sum_ite_eq (Finset.univ : Finset (Fin (N+1))) b (1 : ℂ))
-  · rw [if_neg ha]
+    simp
+  · rw [ite_eq_right ha]
     refine Finset.sum_eq_zero ?_
     intro p _
     simp [ha]
@@ -351,14 +355,14 @@ theorem Gamma_eq_gammaD (hM : 0 < M) (hNM : N < M) (hζ : IsPrimitiveRoot (zeta 
     Gamma_apply N M hM hNM hζ i j, gammaD_apply]
   by_cases hij : i = j
   · subst hij
-    rw [if_pos rfl, if_pos rfl, gammaW0_rowsum]
+    rw [ite_eq_left rfl, ite_eq_left rfl, gammaW0_rowsum]
     congr 1
     congr 1
     apply Finset.sum_congr rfl
     intro k _
     simp only [and_self]
     ac_rfl
-  · rw [if_neg hij, if_neg hij]
+  · rw [ite_eq_right hij, ite_eq_right hij]
     have hz : (∑ k : Fin N, (acoeff N k : ℂ) *
         ((if Fin.castSucc k = i ∧ Fin.castSucc k = j then 1 else 0) +
          (if Fin.succ k = i ∧ Fin.succ k = j then 1 else 0))) = 0 := by
@@ -425,7 +429,7 @@ theorem gammaMu_eq_mulVec (m : ℕ) :
   rw [Finset.sum_eq_single k]
   · simp [mul_comm]
   · intro b _ hb
-    rw [if_neg (Ne.symm hb), zero_mul]
+    rw [ite_eq_right (Ne.symm hb), zero_mul]
   · intro hk
     simp at hk
 

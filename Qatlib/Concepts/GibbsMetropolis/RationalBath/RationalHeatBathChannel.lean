@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
-import Qatlib.Concepts.ReferenceError.RefTraceError.FiniteReferenceTraceError
-import Qatlib.Concepts.ShadowModels.ShadowChannel.ObservedInstrument
-import Qatlib.Concepts.GibbsMetropolis.RationalBath.RationalRejectionConsumers
-import Qatlib.Concepts.GibbsMetropolis.RationalBath.DiagonalMetropolisKernel
+module
+
+public import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
+public import Qatlib.Concepts.ReferenceError.RefTraceError.FiniteReferenceTraceError
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.ObservedInstrument
+public import Qatlib.Concepts.GibbsMetropolis.RationalBath.RationalRejectionConsumers
+public import Qatlib.Concepts.GibbsMetropolis.RationalBath.DiagonalMetropolisKernel
+
+@[expose] public section
 
 /-!
 # Rational heat-bath instruments and mixing
@@ -55,7 +59,7 @@ open scoped ComplexOrder Classical BigOperators Matrix.Norms.L2Operator ENNReal
 
 /-- The diagonal density with entries equal to the integer weights divided by their positive
 total. -/
-noncomputable def rationalHeatBathDensity {N : ℕ} (w : Fin N → ℕ) (hW : 0 < weightTotal w) :
+noncomputable def rationalHeatBathDensity {N : ℕ} (w : Fin N → ℕ) (_hW : 0 < weightTotal w) :
     Operator N :=
   Matrix.diagonal fun i => Complex.ofReal ((w i : ℝ) / (weightTotal w : ℝ))
 
@@ -86,7 +90,7 @@ noncomputable def rationalHeatBathReject {N : ℕ} (w : Fin N → ℕ) : ℝ :=
 
 /-- The event that a sampler configuration returns the specified label, or remains pending when
 the choice is `none`. -/
-noncomputable def rationalHeatBathEvent {N : ℕ} (R : ℕ) (choice : Option (Fin N)) :
+noncomputable def rationalHeatBathEvent {N : ℕ} (_R : ℕ) (choice : Option (Fin N)) :
     (Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution.Configuration (ℕ × ℕ) (Fin N × ℕ × ℕ) × ℕ) → Prop :=
   fun z => match choice with
     | some j => rejectionOutcome z.1 = Sum.inl j
@@ -439,7 +443,7 @@ theorem rationalHeatBathInstrument_map {N : ℕ} (w : Fin N → ℕ)
       rationalHeatBathDensity, Matrix.trace, Matrix.diag_apply]
     simp only [mul_ite, mul_zero, Complex.ofReal_mul, Complex.ofReal_sub, Complex.ofReal_one,
         Complex.ofReal_pow]
-    simp only [Finset.sum_add_distrib, Finset.sum_ite_eq, Finset.mem_univ, if_true]
+    simp only [Finset.sum_add_distrib, Finset.sum_ite_eq, Finset.mem_univ, ite_true]
     rw [← Finset.mul_sum]
     ring
   · simp [rationalHeatBathDensity, hab]

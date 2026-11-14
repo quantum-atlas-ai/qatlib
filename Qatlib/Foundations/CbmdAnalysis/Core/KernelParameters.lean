@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Core.KernelTail
-import Qatlib.Foundations.CbmdAnalysis.Core.KernelAuxiliary
+module
+
+public import Qatlib.Foundations.CbmdAnalysis.Core.KernelTail
+public import Qatlib.Foundations.CbmdAnalysis.Core.KernelAuxiliary
+
+@[expose] public section
 
 /-!
 # Choosing integer-kernel approximation parameters

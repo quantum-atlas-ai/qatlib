@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QStringMatch00.MainResults.MainResult
-import Qatlib.Papers.QStringMatch00.MainResults.DeterministicSample
+module
+
+public import Qatlib.Papers.QStringMatch00.MainResults.MainResult
+public import Qatlib.Papers.QStringMatch00.MainResults.DeterministicSample
+
+@[expose] public section
 
 /-!
 # Deterministic-sample cost bridge for QStringMatch00

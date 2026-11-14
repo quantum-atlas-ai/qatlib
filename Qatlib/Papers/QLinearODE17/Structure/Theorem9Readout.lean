@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QLinearODE17.Structure.Theorem9QLS
-import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem7Quan
+module
+
+public import Qatlib.Papers.QLinearODE17.Structure.Theorem9QLS
+public import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem7Quan
+
+@[expose] public section
 
 /-!
 # Block normalization and Taylor success mass

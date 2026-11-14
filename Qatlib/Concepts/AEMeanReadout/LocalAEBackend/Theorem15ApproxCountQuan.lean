@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem15ApproxCountStat
+module
+
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem15ApproxCountStat
+
+@[expose] public section
 
 /-!
 # Success probability of Basic Approx Count
@@ -287,7 +291,7 @@ theorem basicApproxCount_product_defect {X : Type*} [DecidableEq X]
     nlinarith
 
 /-- The loop-law probability mass of labels whose observed scaled amplitude estimate is zero. -/
-private noncomputable def loopZeroMass {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
+noncomputable def loopZeroMass {N : ℕ} (hN : 0 < N) (S : Finset (Fin N))
     (l : Fin (basicApproxCountLoopCap N)) : ℝ :=
   ∑ z : Fin (2 * 2 ^ l.val),
     if (N : ℝ) * aeEstimate (2 * 2 ^ l.val) z = 0 then (basicApproxCountLoopLaw hN S l).prob z else 0
@@ -313,12 +317,12 @@ private theorem loopZeroMass_ge_label_zero {N : ℕ} (hN : 0 < N) (S : Finset (F
   have h := Finset.single_le_sum (s := Finset.univ)
     (f := fun z : Fin (2 * 2 ^ l.val) => if (N : ℝ) * aeEstimate (2 * 2 ^ l.val) z = 0
       then (basicApproxCountLoopLaw hN S l).prob z else 0)
-    (fun z _ => by (try dsimp only); split_ifs <;> first | exact (basicApproxCountLoopLaw hN S l).nonneg z | exact le_rfl)
+    (fun z _ => by split_ifs <;> first | exact (basicApproxCountLoopLaw hN S l).nonneg z | exact le_rfl)
     (show (⟨0, by positivity⟩ : Fin (2 * 2 ^ l.val)) ∈ Finset.univ by simp)
-  simpa only [if_pos hz] using! h
+  simpa only [ite_eq_left hz] using! h
 
 /-- The condition that every loop observation with index below `n` is zero. -/
-private noncomputable def prefixZero (N n : ℕ)
+noncomputable def prefixZero (N n : ℕ)
     (ω : (l : Fin (basicApproxCountLoopCap N)) → Fin (2 * 2 ^ l.val)) : Prop :=
   ∀ l : Fin (basicApproxCountLoopCap N), l.val < n → basicApproxCountObserved N ω l = 0
 
@@ -346,14 +350,14 @@ theorem basicApproxCount_prefix_zero_factor {N : ℕ} (hN : 0 < N) (S : Finset (
   apply Finset.prod_congr rfl
   intro l _
   by_cases hl : l.val < n
-  · simp only [if_pos hl]
+  · simp only [ite_eq_left hl]
     unfold loopZeroMass
     apply Finset.sum_congr rfl
     intro z _
     dsimp [q]
     simp only [hl, true_implies]
     split_ifs <;> simp
-  · simp only [if_neg hl]
+  · simp only [ite_eq_right hl]
     have hsum := (basicApproxCountLoopLaw hN S l).sum_one
     simpa [q, hl] using! hsum
 
@@ -405,7 +409,7 @@ theorem basicApproxCount_prefix_zero_lower {N : ℕ} (hN : 0 < N) (S : Finset (F
         (mul_le_mul_of_nonneg_right hpow hθ0.le).trans hsmall
       have hlabel := basicApproxCount_loop_zero_lower hN S θ hθ0 hθ1 ha l hθsmall
       have hz := loopZeroMass_ge_label_zero hN S l
-      simp only [p, if_pos hl]
+      simp only [p, ite_eq_left hl]
       linarith
     · simp [p, hl]
   have hsum := Finset.sum_le_sum (fun l (_ : l ∈ Finset.univ) => herr l)
@@ -552,7 +556,7 @@ theorem bhmt_basic_approx_count_positive {N : ℕ} (hN : 0 < N) (S : Finset (Fin
     · rw [hn0]
       have hz (ω : (l : Fin (basicApproxCountLoopCap N)) → Fin (2 * 2 ^ l.val)) :
           prefixZero N 0 ω := by intro l hl; omega
-      simp only [if_pos (hz _), basicApproxCountPrefixWeight_sum]
+      simp only [ite_eq_left (hz _), basicApproxCountPrefixWeight_sum]
       norm_num
     · have hpow : (1 : ℝ) ≤ (2 : ℝ) ^ n := one_le_pow₀ (by norm_num)
       have hθsmall : θ ≤ 1 / 5 := by nlinarith
@@ -565,7 +569,7 @@ theorem bhmt_basic_approx_count_positive {N : ℕ} (hN : 0 < N) (S : Finset (Fin
       (if prefixZero N n ω then basicApproxCountPrefixWeight hN S ω else 0) * (8 / Real.pi ^ 2) ≤
         basicApproxCountPrefixWeight hN S ω * basicApproxCountFinalGood hN S ε ω (hω ω) := by
     by_cases hz : prefixZero N n ω
-    · rw [if_pos hz]
+    · rw [ite_eq_left hz]
       have hstop := basicApproxCountStop_of_prefix hn ω hz
       have hp : (2 : ℝ) ^ (n + 1) ≤ (2 : ℝ) ^ basicApproxCountStop N ω :=
         pow_le_pow_right₀ (by norm_num) hstop
@@ -574,7 +578,7 @@ theorem bhmt_basic_approx_count_positive {N : ℕ} (hN : 0 < N) (S : Finset (Fin
       have hprec := basicApproxCount_precision_of_stop hN S ε θ hε hθ0 hangle ω hstopθ
       exact mul_le_mul_of_nonneg_left
         (basicApproxCountFinalGood_of_precision hN S hS ε hε hε1 ω (hω ω) hprec) (hp0 ω)
-    · rw [if_neg hz, zero_mul]
+    · rw [ite_eq_right hz, zero_mul]
       exact mul_nonneg (hp0 ω) (Finset.sum_nonneg
         (fun y _ => (basicApproxCountFinalLaw hN S ε ω (hω ω)).nonneg y))
   have hsum := Finset.sum_le_sum (fun ω (_ : ω ∈ Finset.univ) => hpoint ω)

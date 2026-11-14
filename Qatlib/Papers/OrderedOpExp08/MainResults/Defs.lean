@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TrotterFormula.RecursiveSuzuki.RecursiveSuzukiConsumers
-import Qatlib.Concepts.TrotterFormula.GeneralOrder.GroupedOrderedSegments
-import Qatlib.Concepts.InteractionEvo.DysonGrid.DysonTruncationGrid
-import Mathlib.Analysis.Calculus.IteratedDeriv.Defs
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Exp
+module
+
+public import Qatlib.Concepts.TrotterFormula.RecursiveSuzuki.RecursiveSuzukiConsumers
+public import Qatlib.Concepts.TrotterFormula.GeneralOrder.GroupedOrderedSegments
+public import Qatlib.Concepts.InteractionEvo.DysonGrid.DysonTruncationGrid
+public import Mathlib.Analysis.Calculus.IteratedDeriv.Defs
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Exp
+
+@[expose] public section
 
 /-!
 # Definitions for ordered operator decompositions

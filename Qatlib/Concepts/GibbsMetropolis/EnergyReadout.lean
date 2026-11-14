@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpectralReadout.PhaseReadout.CleanSubroutinePhaseReadout
-import Qatlib.Concepts.QspSimulation.Achievability.CleanSignalSimulation
-import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopyDrivenPhaseReadout
-import Qatlib.Concepts.ChannelTheory.Stinespring.ShadowEstimator
-import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopyPureReadout
-import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopySpectralReadout
+module
+
+public import Qatlib.Concepts.SpectralReadout.PhaseReadout.CleanSubroutinePhaseReadout
+public import Qatlib.Concepts.QspSimulation.Achievability.CleanSignalSimulation
+public import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopyDrivenPhaseReadout
+public import Qatlib.Concepts.ChannelTheory.Stinespring.ShadowEstimator
+public import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopyPureReadout
+public import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopySpectralReadout
+
+@[expose] public section
 
 /-!
 # Compiled energy readout with resource counts
@@ -101,7 +105,7 @@ theorem signalEnergy_evolution_spectral (D : ℕ) (A V : Operator D) (eig : Fin 
   let W : unitary (Operator D) := ⟨V, hV⟩
   let f := Unitary.conjStarAlgAut ℂ (Operator D) W
   let B := Matrix.diagonal (fun i => -Complex.I * (t : ℂ) * (eig i : ℂ))
-  letI : NormedAlgebra ℚ (Operator D) := NormedAlgebra.restrictScalars ℚ ℂ _
+  let : NormedAlgebra ℚ (Operator D) := NormedAlgebra.restrictScalars ℚ ℂ _
   have hm := NormedSpace.map_exp f f.toAlgEquiv.toLinearMap.continuous_of_finiteDimensional B
   have he : f B = (-Complex.I * (t : ℂ)) • A := by
     rw [hs]
@@ -254,7 +258,7 @@ private theorem signalEnergy_Z_kernel (j : Fin 2) (z : Fin 4) :
   · have he : -(Real.pi / 2) * (-1 : ℝ) / (2 * Real.pi) = (1 / 4 : ℝ) := by
       field_simp
       norm_num
-    simp only [Fin.ext_iff, Fin.val_zero, Nat.one_ne_zero, if_false]
+    simp only [Fin.ext_iff, Fin.val_zero, Nat.one_ne_zero, ite_false]
     rw [he]
     convert! (offgrid_phase_geometric_and_periodic 4 0 z (by norm_num)).2.2 (1 : Fin 4) using 1
     norm_num

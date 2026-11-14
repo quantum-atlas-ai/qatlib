@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.MarkingOracle
-import Qatlib.Papers.AmpInvReqTang26.AccessModel.ActualAccess
-import Qatlib.Papers.AmpInvReqTang26.BiasedFourier.UnbiasedGram
+module
+
+public import Qatlib.Concepts.QueryComplexity.MarkingOracle
+public import Qatlib.Papers.AmpInvReqTang26.AccessModel.ActualAccess
+public import Qatlib.Papers.AmpInvReqTang26.BiasedFourier.UnbiasedGram
+
+@[expose] public section
 
 /-!
 # Preparation circuits for normalized traces
@@ -105,7 +109,7 @@ theorem tracePreparation_good_entry (d : ℕ) (hd : 0<d) (u : Fin d → ℂ) (i 
   rw [h]
   by_cases hi : i=(⟨0,hd⟩:Fin d)
   · subst i
-    simp only [decide_true,if_true]
+    simp only [decide_true,ite_true]
     simpa only [Fintype.card_fin] using! conjugated_uniform_mean (sourcePreparation d) u ⟨0,hd⟩
       (sourcePreparation_first d hd)
   · simp [hi]
@@ -116,9 +120,9 @@ theorem tracePreparation_amplitude (d : ℕ) (hd : 0<d) (u : Fin d → ℂ) :
       ‖(d:ℂ)⁻¹*∑k,u k‖ := by
   unfold preparationAmplitude preparationGoodMass
   simp only [Fintype.sum_prod_type,Fintype.sum_bool,Bool.not_true,Bool.not_false,
-    Bool.false_eq_true,if_false,if_true,zero_add,tracePreparation_good_entry]
+    Bool.false_eq_true,ite_false,ite_true,zero_add,tracePreparation_good_entry]
   simp only [apply_ite norm,ite_pow,norm_zero,zero_pow (by norm_num : (2:ℕ)≠0)]
-  simp only [Finset.sum_ite_eq',Finset.mem_univ,if_true,Real.sqrt_sq_eq_abs,abs_norm]
+  simp only [Finset.sum_ite_eq',Finset.mem_univ,ite_true,Real.sqrt_sq_eq_abs,abs_norm]
 
 /-- The flagged conjugation circuit marking both data indices zero and one. -/
 def twoTracePreparation (d : ℕ) (hd : 1<d) (u : Fin d → ℂ) :
@@ -147,12 +151,12 @@ theorem twoTracePreparation_good_entry (d : ℕ) (hd : 1<d) (u : Fin d → ℂ) 
   rw [h]
   by_cases hi0 : i=(⟨0,by omega⟩:Fin d)
   · subst i
-    simp only [true_or,decide_true,if_true]
+    simp only [true_or,decide_true,ite_true]
     simpa only [Fintype.card_fin] using! conjugated_uniform_mean (sourcePreparation d) u ⟨0,by omega⟩
       (sourcePreparation_first d (by omega))
   · by_cases hi1 : i=(⟨1,hd⟩:Fin d)
     · subst i
-      simp only [or_true,decide_true,if_true,if_neg hi0]
+      simp only [or_true,decide_true,ite_true,ite_eq_right hi0]
       simpa only [Fintype.card_fin] using! conjugated_phase_mean (sourcePreparation d) u (phase d)
         ⟨0,by omega⟩ ⟨1,hd⟩ (sourcePreparation_first d (by omega)) (sourcePreparation_second d hd)
     · simp [hi0,hi1]

@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Zayn Blore, Qatlib Contributors
 -/
 
-import Qatlib.Concepts.UnbiasedBases.ThreeBasis.Magic
-import Mathlib.Topology.Instances.AddCircle.DenseSubgroup
-import Mathlib.RingTheory.IntegralClosure.IntegrallyClosed
-import Mathlib.Algebra.GCDMonoid.IntegrallyClosed
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
-import Mathlib.LinearAlgebra.Matrix.Trace
-import Mathlib.LinearAlgebra.Matrix.Determinant.Basic
+module
+
+public import Qatlib.Concepts.UnbiasedBases.ThreeBasis.Magic
+public import Mathlib.Topology.Instances.AddCircle.DenseSubgroup
+public import Mathlib.RingTheory.IntegralClosure.IntegrallyClosed
+public import Mathlib.Algebra.GCDMonoid.IntegrallyClosed
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
+public import Mathlib.LinearAlgebra.Matrix.Trace
+public import Mathlib.LinearAlgebra.Matrix.Determinant.Basic
+
+@[expose] public section
 
 /-!
 # An Irrational Clifford-T Rotation Angle

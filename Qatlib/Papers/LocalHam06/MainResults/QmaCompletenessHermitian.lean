@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LocalHam06.MainResults.QmaCompletenessEncoding
-import Qatlib.Papers.LocalHam06.MainResults.QmaCompletenessNative
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.QmaCompletenessNativeBoundary
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.QmaCompletenessNativeEnergy
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.QmaCompletenessEntryBounds
+module
+
+public import Qatlib.Papers.LocalHam06.MainResults.QmaCompletenessEncoding
+public import Qatlib.Papers.LocalHam06.MainResults.QmaCompletenessNative
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.QmaCompletenessNativeBoundary
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.QmaCompletenessNativeEnergy
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.QmaCompletenessEntryBounds
+
+@[expose] public section
 
 /-!
 # Hermiticity of encoded history terms
@@ -147,10 +151,10 @@ theorem outputTerms_each_hermitian (n b : ℕ) (gs : List FiniteGateCode)
     exact (physicalPropagation_hermitian i (qmaRoundedGate n b (gs.get i))).reindex
       (flattenEquiv gs.length n).symm
   · rw [boundaryTerm_value]
-    simpa only [boundaryTarget, Bool.false_eq_true, if_false] using
+    simpa only [boundaryTarget, Bool.false_eq_true, ite_false] using
       (physicalInput_hermitian (m:=gs.length) j).reindex (flattenEquiv gs.length n).symm
   · rw [boundaryTerm_value]
-    simpa only [boundaryTarget, if_true] using
+    simpa only [boundaryTarget, ite_true] using
       (physicalOutput_hermitian (m:=gs.length) out).reindex (flattenEquiv gs.length n).symm
   · rw [clockPairTerm_value]
     exact (weighted_clockPair_hermitian (n:=n)

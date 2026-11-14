@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem6Aux2
+module
+
+public import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem6Aux2
+
+@[expose] public section
 
 /-!
 # Closed formulas for Taylor blocks and exact evolution
@@ -177,7 +181,7 @@ theorem taylorV2_inBlockClosed (m k p : ℕ) (M : Matrix N N ℂ) (h : ℝ) (x_i
     · subst h0
       simp
     · have him1 : ¬(i + 1 = 1) := by omega
-      rw [if_neg (by omega : ¬(i = 0)), if_neg him1, if_neg (by omega : ¬(i + 1 = 0)), add_zero]
+      rw [ite_eq_right (by omega : ¬(i = 0)), ite_eq_right him1, ite_eq_right (by omega : ¬(i + 1 = 0)), add_zero]
       have hexp : M ^ ((i + 1) - 1) = M ^ i := by
         congr 1
       rw [hexp]

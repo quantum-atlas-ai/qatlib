@@ -4,9 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.StoppingCore.BranchCostCore.GeneralCostClock
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.UnboundedTapeConsumers
-import Mathlib.Analysis.SpecificLimits.Normed
+module
+
+public import Qatlib.Concepts.StoppingCore.BranchCostCore.GeneralCostClock
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.UnboundedTapeConsumers
+public import Qatlib.Foundations.ProbabilityCore.CoinLaw
+public import Mathlib.Analysis.SpecificLimits.Normed
+
+@[expose] public section
 
 /-!
 # Increasing transition charges on a geometric tape process
@@ -57,7 +62,7 @@ def movingPriceSelect (s : ℕ × Turing.TM0.Cfg (Option Bool) (Fin 2))
 /-- The next-state probability mass function obtained from a fair coin and `movingPriceSelect`. -/
 noncomputable def movingPriceNext (s : ℕ × Turing.TM0.Cfg (Option Bool) (Fin 2)) :
     PMF (Bool ⊕ (ℕ × Turing.TM0.Cfg (Option Bool) (Fin 2))) :=
-  (PMF.bernoulli (1/2) (by norm_num)).map (movingPriceSelect s)
+  (Qatlib.Foundations.ProbabilityCore.CoinLaw.bernoulli (1/2) (by norm_num)).map (movingPriceSelect s)
 
 /-- The active initial tape configuration with its transition counter set to zero. -/
 def movingPriceInit (input : List Bool) :
@@ -86,7 +91,7 @@ theorem movingPrice_expectation (m : ℕ) (cfg : Turing.TM0.Cfg (Option Bool) (F
   simp only [movingPriceNext, Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_map]
   rw [Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation, tsum_fintype,
       Fintype.sum_bool]
-  norm_num [movingPriceSelect, movingPrice_selected cfg hq, PMF.bernoulli_apply]
+  norm_num [movingPriceSelect, movingPrice_selected cfg hq, Qatlib.Foundations.ProbabilityCore.CoinLaw.bernoulli_apply]
 
 /-- The sum of `n` consecutive transition prices starting at counter `m`. -/
 def movingPriceBlock (m n : ℕ) : ℕ := ∑ i ∈ Finset.range n, (m+i+1)

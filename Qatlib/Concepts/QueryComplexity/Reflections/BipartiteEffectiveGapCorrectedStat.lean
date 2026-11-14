@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.Reflections.SpanProgram
-import Qatlib.Concepts.Execution.WorkspaceCP.ProjectedUnitaryEncoding
-import Qatlib.Foundations.PureStateMath.Qubit
+module
+
+public import Qatlib.Concepts.QueryComplexity.Reflections.SpanProgram
+public import Qatlib.Concepts.Execution.WorkspaceCP.ProjectedUnitaryEncoding
+public import Qatlib.Foundations.PureStateMath.Qubit
+
+@[expose] public section
 
 /-!
 # Corrected bipartite gap contract

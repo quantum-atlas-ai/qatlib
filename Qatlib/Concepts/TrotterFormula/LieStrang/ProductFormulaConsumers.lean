@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TrotterFormula.LieStrang.CommutatorProductFormula
+module
+
+public import Qatlib.Concepts.TrotterFormula.LieStrang.CommutatorProductFormula
+
+@[expose] public section
 
 /-!
 # Consequences of finite product-formula error bounds
@@ -164,7 +168,7 @@ theorem product_formula_disjoint_local_tensor_consumer
   constructor
   · simp only [pfComm, tensorGate_mul, Matrix.mul_one, Matrix.one_mul, sub_self]
   · simp only [List.ofFn_succ, List.ofFn_zero, List.foldl_cons, List.foldl_nil, mul_one]
-    simp only [Fin.succ_ne_zero, if_true, if_false]
+    simp only [Fin.succ_ne_zero, ite_true, ite_false]
     rw [pfEvolution_tensor_left, pfEvolution_tensor_right, tensorGate_mul, Matrix.one_mul, Matrix.mul_one,
       pfTensor_pow, pf_evolution_pow, pf_evolution_pow]
     congr 2 <;> field_simp

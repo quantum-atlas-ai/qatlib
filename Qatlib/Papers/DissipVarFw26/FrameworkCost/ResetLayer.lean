@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ChannelTheory.Stinespring.ChannelStructureStinespring
+module
+
+public import Qatlib.Concepts.ChannelTheory.Stinespring.ChannelStructureStinespring
+
+@[expose] public section
 
 /-!
 # Reset channels from joint unitary evolution

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.Amplification.SortedTable
-import Qatlib.Concepts.AmplitudeSearch.Amplification.ClockEnvelope
-import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchQueryCost
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.SortedTable
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.ClockEnvelope
+public import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchQueryCost
+
+@[expose] public section
 
 /-!
 # Ranked BBHT call laws
@@ -122,19 +126,19 @@ noncomputable def bbhtJointLaw {N : ℕ} (e : Fin N ≃ Fin N)
   mass_nonneg := by
     intro t htN x
     by_cases ht : 0 < t
-    · simpa only [if_pos (show 0 < t ∧ t < N from ⟨ht, htN⟩)] using
+    · simpa only [ite_eq_left (show 0 < t ∧ t < N from ⟨ht, htN⟩)] using
         (bbht_prefix_law e t ht htN).2 x |>.1
     · simp [ht]
   normalized := by
     intro t ht htN
-    simpa only [if_pos (show 0 < t ∧ t < N from ⟨ht, htN⟩)] using (bbht_prefix_law e t ht htN).1
+    simpa only [ite_eq_left (show 0 < t ∧ t < N from ⟨ht, htN⟩)] using (bbht_prefix_law e t ht htN).1
   lower_support := by
     intro t ht htN x hx
-    simpa only [if_pos (show 0 < t ∧ t < N from ⟨ht, htN⟩)] using
+    simpa only [ite_eq_left (show 0 < t ∧ t < N from ⟨ht, htN⟩)] using
         (bbht_prefix_law e t ht htN).2 x |>.2 hx
   output_uniform := by
     intro t ht htN i
-    simpa only [if_pos (show 0 < t ∧ t < N from ⟨ht, htN⟩)] using bbht_prefix_output e t ht htN i
+    simpa only [ite_eq_left (show 0 < t ∧ t < N from ⟨ht, htN⟩)] using bbht_prefix_output e t ht htN i
 
 /-- The ranked BBHT call law charging terminal cost plus `binaryLog N`. -/
 noncomputable def sourceBBHTLaw {N : ℕ} (e : Fin N ≃ Fin N) (hN : 0 < N) :
@@ -162,10 +166,10 @@ theorem sourceBBHTLaw_moment {N : ℕ} (e : Fin N ≃ Fin N) (hN : 0 < N)
   · have hs := hq.add ((bbht_prefix_law e t ht htN).1.mul_right (binaryLog N))
     convert! hs using 1
     · funext x
-      simp only [sourceBBHTLaw, bbhtJointLaw, if_pos (show 0 < t ∧ t < N from ⟨ht, htN⟩)]
+      simp only [sourceBBHTLaw, bbhtJointLaw, ite_eq_left (show 0 < t ∧ t < N from ⟨ht, htN⟩)]
       ring
     · ring
-  · rw [sourceCallEnvelope, if_neg (Nat.ne_of_gt ht)]
+  · rw [sourceCallEnvelope, ite_eq_right (Nat.ne_of_gt ht)]
     rw [Real.sqrt_div (Nat.cast_nonneg N)] at hqb
     convert! add_le_add hqb (le_refl (binaryLog N)) using 1
     ring

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.SearchStopping
-import Qatlib.Concepts.LchsSimulation.StaticLchs.BitSampledPreparedSearch
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Search
-import Qatlib.Concepts.FairRandomBits.GeometricRetry
+module
+
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.SearchStopping
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.BitSampledPreparedSearch
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Search
+public import Qatlib.Concepts.FairRandomBits.GeometricRetry
+
+@[expose] public section
 
 /-!
 # Expected costs of Born-distributed restart search
@@ -270,14 +274,14 @@ theorem records_actual_mass (coin : PMF Bool) (hp : 0 < coin true) (j step init 
     records coin hp j step init verify (n+1,j*(n+1),(step*j+init+verify)*(n+1))=
       branchHaltJoint (branchRetryNext coin 1 1) (.inr ()) true (n+1) := by
   rw [records,PMF.map_apply,tsum_eq_single n]
-  · simpa only [if_pos rfl] using! stopPMF_actual coin hp n
+  · simpa only [ite_eq_left rfl] using! stopPMF_actual coin hp n
   · intro k hk
     have hne : (n+1,j*(n+1),(step*j+init+verify)*(n+1)) ≠
         (k+1,j*(k+1),(step*j+init+verify)*(k+1)) := by
       intro he
       have he' := congrArg Prod.fst he
       omega
-    simp only [if_neg hne]
+    simp only [ite_eq_right hne]
 
 /-- With positive success mass and positive per-trial fee, the measured paid retry process
 terminates with probability one and its expected time equals `meanFee`. -/

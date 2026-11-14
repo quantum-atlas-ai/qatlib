@@ -6,13 +6,17 @@ Authors: The Tau Ceti contributors, Qatlib Contributors
 Adapted from https://github.com/TauCetiProject/TauCeti@3780371c
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+module
 
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Winding.Number.AbsolutelyContinuous
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.MeasureTheory.Function.AbsolutelyContinuous.Comp
-import Mathlib.Analysis.SpecialFunctions.ExpDeriv
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.LebesgueDifferentiationThm
-import Mathlib.Analysis.Complex.RealDeriv
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Winding.Number.AbsolutelyContinuous
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.MeasureTheory.Function.AbsolutelyContinuous.Composition
+public import Mathlib.Analysis.SpecialFunctions.ExpDeriv
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.LebesgueDifferentiationThm
+public import Mathlib.Analysis.Complex.RealDeriv
+
+@[expose] public section
 
 /-!
 # Integer winding numbers for absolutely continuous curves

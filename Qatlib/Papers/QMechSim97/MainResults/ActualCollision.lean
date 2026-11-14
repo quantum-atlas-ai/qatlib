@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QMechSim97.MainResults.OneDimContinuum
-import Qatlib.Foundations.PureStateMath.Tensor
-import Mathlib.LinearAlgebra.UnitaryGroup
+module
+
+public import Qatlib.Papers.QMechSim97.MainResults.OneDimContinuum
+public import Qatlib.Foundations.PureStateMath.Tensor
+public import Mathlib.LinearAlgebra.UnitaryGroup
+
+@[expose] public section
 
 /-!
 # Two-qubit collisions and number sectors

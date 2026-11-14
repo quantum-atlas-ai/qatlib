@@ -4,11 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Probability.Moments.Variance
-import Mathlib.MeasureTheory.Measure.Dirac
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Data.Finset.Card
+module
+
+public import Mathlib.Probability.Moments.Variance
+public import Mathlib.MeasureTheory.Measure.Dirac.Def
+public import Mathlib.MeasureTheory.Measure.Dirac.Basic
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Data.Finset.Card
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

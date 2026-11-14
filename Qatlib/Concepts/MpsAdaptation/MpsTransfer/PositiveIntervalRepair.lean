@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MpsAdaptation.MpsTransfer.PositiveIntervalRepairDefs
-import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Order
-import Mathlib.Tactic.Abel
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Ring
+module
+
+public import Qatlib.Concepts.MpsAdaptation.MpsTransfer.PositiveIntervalRepairDefs
+public import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Order
+public import Mathlib.Tactic.Abel
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 /-!
 # Repair into a positive matrix interval
@@ -58,6 +62,7 @@ private theorem repair_weight_properties (q r : ℝ) (hq : 0 ≤ q) (hr : 0 < r)
     change (1-q/(q+2*r))*q = 2*(q/(q+2*r))*r
     nlinarith [hm]⟩
 
+omit [Fintype N] in
 /-- Multiplying the identity matrix by ordered real scalars preserves their order in the
 positive semidefinite matrix order. -/
 private theorem repair_smul_one_mono {a b : ℝ} (hab : a ≤ b) :
@@ -105,6 +110,7 @@ private theorem repair_norm_le_of_order_bounds (H : Matrix N N ℂ) (c : ℝ)
     exact abs_le.mpr ⟨hls x hx, hus x hx⟩
   simpa only [cfc_id ℝ H hH.isSelfAdjoint] using hn
 
+omit [Fintype N] in
 /-- For nonnegative `q` and positive `r`, the repaired matrix is positive semidefinite and
 bounded above by `q • 1`. -/
 theorem positive_interval_repair_mem (M : Matrix N N ℂ) (q r : ℝ)
@@ -113,7 +119,7 @@ theorem positive_interval_repair_mem (M : Matrix N N ℂ) (q r : ℝ)
     (q • (1 : Matrix N N ℂ) - positiveIntervalRepair M q r).PosSemidef := by
   obtain ⟨ht0, ht1, hm, hb⟩ := repair_weight_properties q r hq hr
   by_cases hg : positiveIntervalRepairGuard M q r
-  · rw [positiveIntervalRepair, if_pos hg]
+  · rw [positiveIntervalRepair, ite_eq_left hg]
     constructor
     · exact hg.1.smul ht0
     · have he : q • (1 : Matrix N N ℂ) -
@@ -125,9 +131,10 @@ theorem positive_interval_repair_mem (M : Matrix N N ℂ) (q r : ℝ)
         abel
       rw [he]
       exact hg.2.smul ht0
-  · simp only [positiveIntervalRepair, if_neg hg, sub_zero]
+  · simp only [positiveIntervalRepair, ite_eq_right hg, sub_zero]
     exact ⟨Matrix.PosSemidef.zero, Matrix.PosSemidef.one.smul hq⟩
 
+omit [Fintype N] in
 /-- Repair with upper endpoint zero returns the zero matrix for every input and radius. -/
 theorem positive_interval_repair_zero (M : Matrix N N ℂ) (r : ℝ) :
     positiveIntervalRepair M 0 r = 0 := by
@@ -136,12 +143,12 @@ theorem positive_interval_repair_zero (M : Matrix N N ℂ) (r : ℝ) :
 /-- A Hermitian matrix within operator-norm distance `r` of a positive matrix bounded above by
 `q • 1` satisfies the repair guard when `q ≥ 0` and `r > 0`. -/
 theorem positive_interval_repair_guard_of_error (M E : Matrix N N ℂ) (q r : ℝ)
-    (hq : 0 ≤ q) (hr : 0 < r) (hM : M.IsHermitian) (hE : E.PosSemidef)
+    (_hq : 0 ≤ q) (_hr : 0 < r) (hM : M.IsHermitian) (hE : E.PosSemidef)
     (hcap : (q • (1 : Matrix N N ℂ) - E).PosSemidef) (herr : ‖M-E‖ ≤ r) :
     positiveIntervalRepairGuard M q r := by
   have hb := repair_norm_order_bounds (M-E) r (hM.sub hE.isHermitian) herr
   constructor
-  · convert hb.1.add hE using 1 <;> abel
+  · convert hb.1.add hE using 1; abel
   · convert hcap.add hb.2 using 1
     rw [add_smul]
     abel
@@ -176,7 +183,7 @@ theorem positive_interval_repair_error (M E : Matrix N N ℂ) (q r : ℝ)
     repair_norm_le_of_order_bounds K (t*r) (mul_nonneg ht0 hr.le) hK hKl hKu
   have hg := positive_interval_repair_guard_of_error M E q r hq hr hM hE hcap herr
   have he : positiveIntervalRepair M q r - E = t • (M-E) + K := by
-    rw [positiveIntervalRepair, if_pos hg]
+    rw [positiveIntervalRepair, ite_eq_left hg]
     change t • (M + r • (1 : Matrix N N ℂ)) - E = t • (M-E) + K
     dsimp only [K]
     rw [smul_add, smul_sub, smul_smul, sub_smul, one_smul]

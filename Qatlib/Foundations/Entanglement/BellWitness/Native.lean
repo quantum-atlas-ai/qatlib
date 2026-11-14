@@ -4,87 +4,91 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Algebra.Basic
-import Mathlib.Algebra.Algebra.Defs
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Defs
-import Mathlib.Algebra.BigOperators.Group.Finset.Sigma
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Algebra.Field.Defs
-import Mathlib.Algebra.Group.Action.Defs
-import Mathlib.Algebra.Group.Action.Pi
-import Mathlib.Algebra.Group.Basic
-import Mathlib.Algebra.Group.Defs
-import Mathlib.Algebra.Group.DivInvMonoid
-import Mathlib.Algebra.Group.Hom.Defs
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.Group.Semigroup
-import Mathlib.Algebra.Group.Submonoid.Defs
-import Mathlib.Algebra.GroupWithZero.Action.Defs
-import Mathlib.Algebra.GroupWithZero.Basic
-import Mathlib.Algebra.GroupWithZero.Defs
-import Mathlib.Algebra.GroupWithZero.Hom
-import Mathlib.Algebra.Module.Defs
-import Mathlib.Algebra.Module.NatInt
-import Mathlib.Algebra.Notation.Defs
-import Mathlib.Algebra.Notation.Pi.Defs
-import Mathlib.Algebra.Order.Archimedean.Real.Basic
-import Mathlib.Algebra.Order.Floor.Defs
-import Mathlib.Algebra.Order.Group.Unbundled.Abs
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Algebra.Ring.Hom.Defs
-import Mathlib.Algebra.Ring.Int.Defs
-import Mathlib.Algebra.Ring.Nat
-import Mathlib.Algebra.Star.Basic
-import Mathlib.Algebra.Star.BigOperators
-import Mathlib.Analysis.CStarAlgebra.Classes
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Analysis.Complex.Norm
-import Mathlib.Analysis.Normed.Field.Basic
-import Mathlib.Analysis.Normed.Group.Defs
-import Mathlib.Analysis.Normed.Ring.Basic
-import Mathlib.Analysis.RCLike.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Basic.Complex.Basic
-import Mathlib.Basic.Complex.BigOperators
-import Mathlib.Basic.FunLike.Basic
-import Mathlib.Basic.FunLike.Equiv
-import Mathlib.Basic.Real.Basic
-import Mathlib.Basic.SetLike.Basic
-import Mathlib.Data.Finset.Basic
-import Mathlib.Data.Finset.Defs
-import Mathlib.Data.Fintype.BigOperators
-import Mathlib.Data.Fintype.Defs
-import Mathlib.Data.Fintype.Prod
-import Mathlib.Data.Int.Cast.Basic
-import Mathlib.Data.Int.Cast.Defs
-import Mathlib.Data.Int.Cast.Lemmas
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Data.Matrix.Diagonal
-import Mathlib.Data.Matrix.Mul
-import Mathlib.Data.Nat.Cast.Basic
-import Mathlib.Data.Nat.Cast.Defs
-import Mathlib.Data.Nat.Init
-import Mathlib.GroupTheory.GroupAction.Ring
-import Mathlib.Lean.Meta.CongrTheorems
-import Mathlib.LinearAlgebra.Matrix.ConjTranspose
-import Mathlib.LinearAlgebra.Matrix.Defs
-import Mathlib.LinearAlgebra.Matrix.Trace
-import Mathlib.LinearAlgebra.UnitaryGroup
-import Mathlib.Logic.Equiv.Defs
-import Mathlib.Order.Defs.LinearOrder
-import Mathlib.Order.Defs.PartialOrder
-import Mathlib.Tactic
-import Mathlib.Tactic.CancelDenoms.Core
-import Mathlib.Tactic.Linarith.Lemmas
-import Mathlib.Tactic.Module
-import Mathlib.Tactic.NormNum.Basic
-import Mathlib.Tactic.NormNum.Ineq
-import Mathlib.Tactic.NormNum.Inv
-import Mathlib.Tactic.NormNum.Result
-import Mathlib.Tactic.Ring.Basic
-import Mathlib.Tactic.Ring.Common
-import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
+module
+
+public import Mathlib.Algebra.Algebra.Basic
+public import Mathlib.Algebra.Algebra.Defs
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Defs
+public import Mathlib.Algebra.BigOperators.Group.Finset.Sigma
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Algebra.Field.Defs
+public import Mathlib.Algebra.Group.Action.Defs
+public import Mathlib.Algebra.Group.Action.Pi
+public import Mathlib.Algebra.Group.Basic
+public import Mathlib.Algebra.Group.Defs
+public import Mathlib.Algebra.Group.DivInvMonoid
+public import Mathlib.Algebra.Group.Hom.Defs
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.Group.Semigroup
+public import Mathlib.Algebra.Group.Submonoid.Defs
+public import Mathlib.Algebra.GroupWithZero.Action.Defs
+public import Mathlib.Algebra.GroupWithZero.Basic
+public import Mathlib.Algebra.GroupWithZero.Defs
+public import Mathlib.Algebra.GroupWithZero.Hom
+public import Mathlib.Algebra.Module.Defs
+public import Mathlib.Algebra.Module.NatInt
+public import Mathlib.Algebra.Notation.Defs
+public import Mathlib.Algebra.Notation.Pi.Defs
+public import Mathlib.Algebra.Order.Archimedean.Real.Basic
+public import Mathlib.Algebra.Order.Floor.Defs
+public import Mathlib.Algebra.Order.Group.Unbundled.Abs
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Algebra.Ring.Hom.Defs
+public import Mathlib.Algebra.Ring.Int.Defs
+public import Mathlib.Algebra.Ring.Nat
+public import Mathlib.Algebra.Star.Basic
+public import Mathlib.Algebra.Star.BigOperators
+public import Mathlib.Analysis.CStarAlgebra.Classes
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Analysis.Complex.Norm
+public import Mathlib.Analysis.Normed.Field.Basic
+public import Mathlib.Analysis.Normed.Group.Defs
+public import Mathlib.Analysis.Normed.Ring.Basic
+public import Mathlib.Analysis.RCLike.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Basic.Complex.BigOperators
+public import Mathlib.Basic.FunLike.Basic
+public import Mathlib.Basic.FunLike.Equiv
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Basic.SetLike.Basic
+public import Mathlib.Data.Finset.Basic
+public import Mathlib.Data.Finset.Defs
+public import Mathlib.Data.Fintype.BigOperators
+public import Mathlib.Data.Fintype.Defs
+public import Mathlib.Data.Fintype.Prod
+public import Mathlib.Data.Int.Cast.Basic
+public import Mathlib.Data.Int.Cast.Defs
+public import Mathlib.Data.Int.Cast.Lemmas
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Data.Matrix.Diagonal
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.Data.Nat.Cast.Basic
+public import Mathlib.Data.Nat.Cast.Defs
+public import Mathlib.Data.Nat.Init
+public import Mathlib.GroupTheory.GroupAction.Ring
+public import Mathlib.Lean.Meta.CongrTheorems
+public import Mathlib.LinearAlgebra.Matrix.ConjTranspose
+public import Mathlib.LinearAlgebra.Matrix.Defs
+public import Mathlib.LinearAlgebra.Matrix.Trace
+public import Mathlib.LinearAlgebra.UnitaryGroup
+public import Mathlib.Logic.Equiv.Defs
+public import Mathlib.Order.Defs.LinearOrder
+public import Mathlib.Order.Defs.PartialOrder
+public import Mathlib.Tactic
+public import Mathlib.Tactic.CancelDenoms.Core
+public import Mathlib.Tactic.Linarith.Lemmas
+public import Mathlib.Tactic.Module
+public import Mathlib.Tactic.NormNum.Basic
+public import Mathlib.Tactic.NormNum.Ineq
+public import Mathlib.Tactic.NormNum.Inv
+public import Mathlib.Tactic.NormNum.Result
+public import Mathlib.Tactic.Ring.Basic
+public import Mathlib.Tactic.Ring.Common
+public import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
+
+@[expose] public section
 
 /-!
 # Finite state vectors and rank-one projectors

@@ -4,17 +4,21 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Int.GCD
-import Mathlib.LinearAlgebra.Matrix.Notation
-import Mathlib.Data.Matrix.Mul
-import Mathlib.LinearAlgebra.Matrix.ToLin
-import Mathlib.LinearAlgebra.Quotient.Basic
-import Init.Data.Vector.OfFn
-import Mathlib.LinearAlgebra.Quotient.Pi
-import Mathlib.Data.ZMod.QuotientRing
-import Mathlib.SetTheory.Cardinal.Finite
-import Mathlib.LinearAlgebra.Matrix.Determinant.Basic
-import Mathlib.Data.Finset.Sort
+module
+
+public import Mathlib.Data.Int.GCD
+public import Mathlib.LinearAlgebra.Matrix.Notation
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.LinearAlgebra.Matrix.ToLin
+public import Mathlib.LinearAlgebra.Quotient.Basic
+public import Init.Data.Vector.OfFn
+public import Mathlib.LinearAlgebra.Quotient.Pi
+public import Mathlib.Data.ZMod.QuotientRing
+public import Mathlib.SetTheory.Cardinal.Finite
+public import Mathlib.LinearAlgebra.Matrix.Determinant.Basic
+public import Mathlib.Data.Finset.Sort
+
+@[expose] public section
 
 /-!
 # Integer presentation reduction and Smith coordinates

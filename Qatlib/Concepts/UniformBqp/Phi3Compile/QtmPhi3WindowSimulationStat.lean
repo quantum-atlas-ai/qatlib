@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QtmSimulation.Phi3Compilation.QtmCellPhi3CompilationStat
+module
+
+public import Qatlib.Concepts.QtmSimulation.Phi3Compilation.QtmCellPhi3CompilationStat
+
+@[expose] public section
 
 /-!
 # Specification of Phi3 window simulation

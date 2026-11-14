@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.ProbabilityCore.ErasureAdaptive.SurvivalDP
-import Qatlib.Foundations.ProbabilityCore.ErasureAdaptive.Allocation
+module
+
+public import Qatlib.Foundations.ProbabilityCore.ErasureAdaptive.SurvivalDP
+public import Qatlib.Foundations.ProbabilityCore.ErasureAdaptive.Allocation
+
+@[expose] public section
 
 /-!
 # Exponential survival bounds for adaptive erasure policies

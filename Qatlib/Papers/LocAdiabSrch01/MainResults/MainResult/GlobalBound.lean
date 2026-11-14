@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LocAdiabSrch01.MainResults.GapSchedule.Spectrum
+module
+
+public import Qatlib.Papers.LocAdiabSrch01.MainResults.GapSchedule.Spectrum
+
+@[expose] public section
 
 /-!
 # A global adiabatic condition for search

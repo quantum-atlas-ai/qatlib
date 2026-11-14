@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Group.Subgroup.Basic
-import Mathlib.Algebra.Group.Subgroup.Map
-import Mathlib.Algebra.Group.Prod
-import Mathlib.Data.Nat.ChineseRemainder
-import Mathlib.Data.Nat.ModEq
-import Mathlib.GroupTheory.OrderOfElement
-import Mathlib.Tactic
+module
+
+public import Mathlib.Algebra.Group.Subgroup.Basic
+public import Mathlib.Algebra.Group.Subgroup.Map
+public import Mathlib.Algebra.Group.Prod
+public import Mathlib.Data.Nat.ChineseRemainder
+public import Mathlib.Data.Nat.ModEq
+public import Mathlib.GroupTheory.OrderOfElement
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Subgroups of products of finite groups of coprime orders

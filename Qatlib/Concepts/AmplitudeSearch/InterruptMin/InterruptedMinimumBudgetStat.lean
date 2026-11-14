@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.InterruptMin.InterruptedMinimumCore
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.InterruptMin.InterruptedMinimumCore
+
+@[expose] public section
 
 /-!
 # The interrupted minimum-search budget contract

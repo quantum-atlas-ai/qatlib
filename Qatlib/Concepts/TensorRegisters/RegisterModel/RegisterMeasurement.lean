@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TensorRegisters.RegisterModel.RegisterMeasurementDefs
-import Qatlib.Concepts.InstrumentCore.PovmBridge.MeasurementNetwork
+module
+
+public import Qatlib.Concepts.TensorRegisters.RegisterModel.RegisterMeasurementDefs
+public import Qatlib.Concepts.InstrumentCore.PovmBridge.MeasurementNetwork
+
+@[expose] public section
 
 /-!
 # Encoded projective measurements and qudit teleportation
@@ -64,12 +68,12 @@ theorem relabel_projective_branch {I J : Type*} [Fintype I] [DecidableEq I]
   have he : (if o then Projector (S.map e.toEmbedding) else 1 - Projector (S.map e.toEmbedding)) =
       relabelGate e (if o then Projector S else 1 - Projector S) := by
     cases o
-    · simp only [Bool.false_eq_true, if_false]
+    · simp only [Bool.false_eq_true, ite_false]
       rw [← relabel_projector e S]
       change 1 - Matrix.reindex e e (Projector S) = Matrix.reindex e e (1 - Projector S)
       ext i j
       simp [Matrix.reindex_apply, Matrix.one_apply, e.symm.injective.eq_iff]
-    · simp only [if_true, relabel_projector]
+    · simp only [ite_true, relabel_projector]
   unfold ProjectiveBranch
   rw [he, applyGate_relabelGate]
 
@@ -112,7 +116,7 @@ theorem basis_event_mixed_branch {D : ℕ} (U : Operator D)
   have he : ((eventPOVM S).mats o).mat =
       (if o then Projector S else 1 - Projector S) := by cases o <;> rfl
   rw [he, conjBranch_apply]
-  cases o <;> simp only [Bool.false_eq_true, if_false, if_true,
+  cases o <;> simp only [Bool.false_eq_true, ite_false, ite_true,
     Matrix.conjTranspose_sub, Matrix.conjTranspose_one, projector_conjTranspose]
 
 /-- The encoded event branch of a relabeled pure state is the relabeled outer product of its
@@ -151,7 +155,7 @@ theorem encoded_event_conditional {I : Type*} [Fintype I] [DecidableEq I] {D : �
   have hpos : 0 < MeasureProb (ProjectiveBranch (Projector S) o (ApplyGate U ψ))
       Finset.univ := by simpa only [hm, ProjectiveBranchMass] using hp
   refine ⟨PostMeasure (ProjectiveBranch (Projector S) o (ApplyGate U ψ)) Finset.univ, ?_, ?_⟩
-  · exact if_pos hpos
+  · exact ite_eq_left hpos
   · rw [Instrument.conditionalState, encoded_event_pure_branch,
       outerProduct_postMeasure_univ _ hpos, hm]
     rfl
@@ -166,7 +170,7 @@ theorem encoded_event_zero {I : Type*} [Fintype I] [DecidableEq I] {D : ℕ}
       (encodedEventInstrument e U hU S).branch o (relabelGate e (outerProduct ψ)) = 0 := by
   constructor
   · unfold ProjectiveConditionalState ConditionalState
-    apply if_neg
+    apply ite_eq_right
     change ¬ 0 < ProjectiveBranchMass (Projector S) o (ApplyGate U ψ)
     rw [hz]
     exact lt_irrefl 0
@@ -190,11 +194,11 @@ theorem relabel_event_effect {I J : Type*} [Fintype I] [DecidableEq I]
     (if o then Projector (S.map e.toEmbedding) else 1 - Projector (S.map e.toEmbedding)) =
       relabelGate e (if o then Projector S else 1 - Projector S) := by
   cases o
-  · simp only [Bool.false_eq_true, if_false]
+  · simp only [Bool.false_eq_true, ite_false]
     rw [← relabel_projector e S]
     ext i j
     simp [relabelGate, Matrix.one_apply, e.symm.injective.eq_iff]
-  · simp only [if_true, relabel_projector]
+  · simp only [ite_true, relabel_projector]
 
 /-- Relabeling a matrix commutes with taking its conjugate transpose. -/
 theorem relabel_adjoint {I J : Type*} [Fintype I] [DecidableEq I]
@@ -249,7 +253,7 @@ theorem qudit_coarse_branch (n : ℕ) [NeZero n] (ψ : QState (Fin n))
     (quditCoarseInstrument n o).branch true (outerProduct (quditDecodedState n ψ)) =
       outerProduct (Collapse (quditDecodedState n ψ) (quditOutcomeEvent n o)) := by
   rw [quditCoarseInstrument, basis_event_pure_branch]
-  simp only [ProjectiveBranch, if_true, ApplyGate, Matrix.one_mulVec]
+  simp only [ProjectiveBranch, ite_true, ApplyGate, Matrix.one_mulVec]
   rfl
 
 /-- Tracing out the measured registers from a coarse qudit branch yields the outer product of
@@ -274,7 +278,7 @@ theorem qudit_coarse_mass (n : ℕ) [NeZero n] (ψ : QState (Fin n))
     instrumentProb (quditCoarseInstrument n o) (outerProduct (quditDecodedState n ψ)) true =
       MeasureProb (quditBranchKraus n o *ᵥ ψ) Finset.univ := by
   have ht := congrArg (fun A => (Matrix.trace A).re) (qudit_coarse_bob n ψ o)
-  (try dsimp only at ht)
+
   rw [Matrix.traceLeft_trace, Matrix.reindex_apply, Matrix.trace_submatrix,
       trace_outerProduct] at ht
   exact ht

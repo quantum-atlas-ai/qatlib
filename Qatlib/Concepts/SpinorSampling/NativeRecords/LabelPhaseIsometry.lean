@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Qubit
-import Mathlib.LinearAlgebra.Matrix.Permutation
-import Mathlib.Data.Fintype.BigOperators
-import Mathlib.Data.Real.Sqrt
+module
+
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Mathlib.LinearAlgebra.Matrix.Permutation
+public import Mathlib.Data.Fintype.BigOperators
+public import Mathlib.Analysis.Real.Sqrt
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

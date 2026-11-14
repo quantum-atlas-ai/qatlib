@@ -23,13 +23,17 @@ matrix on `CG` is `ρ x y = ∑_w ψ x w · conj(ψ y w)`, and the subgroup stat
 the fibers gives the required inner products, and the squared norm of their
 difference proves that fibers in the same coset are equal.
 -/
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.InnerProductSpace.Projection.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Algebra.Group.Subgroup.Basic
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Ring
-import Qatlib.Papers.ZeroSumImran24.MainResults.SourceModel
+module
+
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.InnerProductSpace.Projection.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Algebra.Group.Subgroup.Basic
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Ring
+public import Qatlib.Papers.ZeroSumImran24.MainResults.SourceModel
+
+@[expose] public section
 
 /-!
 # Coset-Factorized Characterization of Subgroup-State Purifications

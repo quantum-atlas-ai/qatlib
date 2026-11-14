@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CopyEvolution.Discriminate.FiniteTwoSpeciesSignReadoutStat
-import Qatlib.Concepts.CopyEvolution.Discriminate.TimedTwoSpeciesSpectralReadoutQuan
+module
+
+public import Qatlib.Concepts.CopyEvolution.Discriminate.FiniteTwoSpeciesSignReadoutStat
+public import Qatlib.Concepts.CopyEvolution.Discriminate.TimedTwoSpeciesSpectralReadoutQuan
+
+@[expose] public section
 
 /-!
 # Finite two-species sign readout
@@ -66,7 +70,7 @@ private theorem sign_bad_label_distance (M : ℕ) (γ x : ℝ) (z : Fin M)
   let c : ℤ := ⌊-x/4 - (z.val : ℝ)/(M : ℝ) + 1/2⌋
   change γ/8 < |-x/4 - (z.val : ℝ)/(M : ℝ) - (c : ℝ)|
   by_cases hp : 0 < x
-  · rw [if_pos hp] at hbad
+  · rw [ite_eq_left hp] at hbad
     have hz : (z.val : ℝ)/(M : ℝ) ≤ 1/2 := by
       have hb : (z.val : ℝ) ≤ (M : ℝ)/2 := by
         simpa only [twoSpeciesPositiveLabels, Finset.mem_filter, Finset.mem_univ,
@@ -79,7 +83,7 @@ private theorem sign_bad_label_distance (M : ℕ) (γ x : ℝ) (z : Fin M)
       exact lt_of_lt_of_le (by linarith) (le_abs_self _)
     · have hc' : 0 ≤ (c : ℝ) := by exact_mod_cast (show 0 ≤ c by omega)
       exact lt_of_lt_of_le (by linarith) (neg_le_abs _)
-  · rw [if_neg hp] at hbad
+  · rw [ite_eq_right hp] at hbad
     have hz : 1/2 < (z.val : ℝ)/(M : ℝ) := by
       have hb : (M : ℝ)/2 < (z.val : ℝ) := by
         simpa only [twoSpeciesPositiveLabels, Finset.mem_filter, Finset.mem_univ,
@@ -130,7 +134,7 @@ private theorem sign_kernel_positive_error (M : ℕ) (γ x : ℝ) (hM : 0 < M)
       simp [hk, Qatlib.Foundations.PureStateMath.Ket, Fin.ext_iff, hne]
     change |p - (if 0 < (0 : ℝ) then 1 else 0)| ≤ _
     rw [hp]
-    simp only [lt_self_iff_false, if_false, sub_zero, abs_zero]
+    simp only [lt_self_iff_false, ite_false, sub_zero, abs_zero]
     positivity
   · let B := if 0 < x then (twoSpeciesPositiveLabels M)ᶜ else twoSpeciesPositiveLabels M
     have hsub : B ⊆ Finset.univ.filter (fun z : Fin M =>
@@ -139,16 +143,16 @@ private theorem sign_kernel_positive_error (M : ℕ) (γ x : ℝ) (hM : 0 < M)
       refine Finset.mem_filter.mpr ⟨Finset.mem_univ _, ?_⟩
       apply sign_bad_label_distance M γ x z hM hγ hγ1 hx (hgap hzero)
       by_cases hp : 0 < x
-      · simpa only [B, if_pos hp, Finset.mem_compl] using! hz
-      · simpa only [B, if_neg hp] using! hz
+      · simpa only [B, ite_eq_left hp, Finset.mem_compl] using! hz
+      · simpa only [B, ite_eq_right hp] using! hz
     have hb : (∑ z ∈ B, ‖qpeKernel M (-x/4) z‖^2) ≤ 128/((M : ℝ)*γ) :=
       (Finset.sum_le_sum_of_subset_of_nonneg hsub (fun z _ _ => sq_nonneg _)).trans ht
     change |p - (if 0 < x then 1 else 0)| ≤ _
     by_cases hp : 0 < x
-    · simp only [B, if_pos hp] at hb ⊢
+    · simp only [B, ite_eq_left hp] at hb ⊢
       rw [abs_of_nonpos (by linarith : p-1 ≤ 0)]
       linarith
-    · simp only [B, if_neg hp] at hb ⊢
+    · simp only [B, ite_eq_right hp] at hb ⊢
       rw [sub_zero, abs_of_nonneg hp0]
       exact hb
 
@@ -243,9 +247,9 @@ theorem finiteTwoSpeciesSignReadout : FiniteTwoSpeciesSignReadout := by
     rw [hw] at h
     have hsum := timedTwoSpecies_sign_masses_sum d M n ρ σ _ (by omega) hρ hσ hχ
     by_cases hp : 0 < x j
-    · simp only [if_pos hp] at h ⊢
+    · simp only [ite_eq_left hp] at h ⊢
       linarith [(abs_le.mp h).1]
-    · simp only [if_neg hp, sub_zero] at h ⊢
+    · simp only [ite_eq_right hp, sub_zero] at h ⊢
       linarith [(abs_le.mp h).2]
   refine ⟨hmain, heigen, ?_⟩
   intro hbudget j hj

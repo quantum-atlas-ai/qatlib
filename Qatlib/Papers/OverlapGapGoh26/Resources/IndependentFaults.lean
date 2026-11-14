@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.MeasureTheory.Constructions.Pi
+module
+
+public import Mathlib.MeasureTheory.Constructions.Pi
+
+@[expose] public section
 
 /-!
 # Independent gate fault measures

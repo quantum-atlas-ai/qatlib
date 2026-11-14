@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.TITCMTReport98.MainResults.GammaModulus
-import Mathlib.Analysis.Asymptotics.AsymptoticEquivalent
-import Mathlib.Analysis.SpecificLimits.Basic
-import Mathlib.Order.Filter.AtTopBot.Field
+module
+
+public import Qatlib.Papers.TITCMTReport98.MainResults.GammaModulus
+public import Mathlib.Analysis.Asymptotics.AsymptoticEquivalent
+public import Mathlib.Analysis.SpecificLimits.Basic
+public import Mathlib.Order.Filter.AtTopBot.Field
+
+@[expose] public section
 
 /-!
 # Conditional limit for the square-root-schedule complement

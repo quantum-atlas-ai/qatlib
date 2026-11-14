@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ReferenceError.DensityToRaw.ChannelTraceContraction
-import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
-import Qatlib.Concepts.AmplitudeCore.InvFreePhase.Qubitization
+module
+
+public import Qatlib.Concepts.ReferenceError.DensityToRaw.ChannelTraceContraction
+public import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+public import Qatlib.Concepts.AmplitudeCore.InvFreePhase.Qubitization
+
+@[expose] public section
 
 /-!
 # Entrywise bounds relative to a pure state
@@ -40,6 +44,7 @@ open scoped BigOperators ComplexOrder
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+omit [DecidableEq I] in
 /-- The quadratic form of a pure outer product minus a positive semidefinite matrix is
 nonpositive on vectors orthogonal to the pure vector. -/
 theorem pureTarget_sub_quadratic_nonpos
@@ -146,12 +151,12 @@ theorem halfTraceNorm_eq_positive_eigenvalue_or_zero
         -hE.eigenvalues j + if j = i then 2 * hE.eigenvalues i else 0 := by
       by_cases hji : j = i
       · subst j
-        rw [if_pos rfl, abs_of_pos hi]
+        rw [ite_eq_left rfl, abs_of_pos hi]
         ring
       · have hj : hE.eigenvalues j ≤ 0 := by
           by_contra hn
           exact hji (hunique j i (lt_of_not_ge hn) hi)
-        rw [if_neg hji, abs_of_nonpos hj, add_zero]
+        rw [ite_eq_right hji, abs_of_nonpos hj, add_zero]
     rw [Matrix.traceNorm_Hermitian_eq_sum_abs_eigenvalues hE]
     simp_rw [hterm]
     rw [Finset.sum_add_distrib, Finset.sum_neg_distrib, hsum]

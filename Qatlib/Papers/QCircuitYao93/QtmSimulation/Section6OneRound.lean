@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.StandardModel.WindowSim.OneRoundWindowSimulationQuan
+module
+
+public import Qatlib.Foundations.StandardDefs.WindowSim.OneRoundWindowSimulationQuan
+
+@[expose] public section
 
 /-!
 # One-round finite-window simulation

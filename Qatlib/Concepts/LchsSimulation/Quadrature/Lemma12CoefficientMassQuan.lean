@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LchsSimulation.Quadrature.Lemma12CoefficientMassStat
-import Qatlib.Concepts.LchsSimulation.Quadrature.GaussLegendreRule
-import Qatlib.Concepts.LchsSimulation.Kernel.NearExponentialKernelModulus
-import Qatlib.Concepts.LchsSimulation.Quadrature.CompositeGaussAlgebra
+module
+
+public import Qatlib.Concepts.LchsSimulation.Quadrature.Lemma12CoefficientMassStat
+public import Qatlib.Concepts.LchsSimulation.Quadrature.GaussLegendreRule
+public import Qatlib.Concepts.LchsSimulation.Kernel.NearExponentialKernelModulus
+public import Qatlib.Concepts.LchsSimulation.Quadrature.CompositeGaussAlgebra
+
+@[expose] public section
 
 /-!
 # Coefficient mass for composite Gauss LCHS
@@ -154,7 +158,7 @@ private theorem node_omega_prod_integral (Q : ℕ) (hQ : 1 ≤ Q) (node weight :
     · have hdeq : W.degree = W₁.degree := by
         rw [Polynomial.degree_eq_natDegree hWne, hWdeg,
           Polynomial.degree_eq_natDegree hW₁ne, hW₁deg]
-      have hdlt := Polynomial.degree_sub_lt (p := W) (q := W₁) hdeq hWne
+      have hdlt := Polynomial.degree_sub_lt_left (p := W) (q := W₁) hdeq hWne
         (by rw [hWmonic.leadingCoeff, hW₁monic.leadingCoeff])
       rw [Polynomial.degree_eq_natDegree hWne, hWdeg] at hdlt
       exact (Polynomial.natDegree_lt_iff_degree_lt h0).mpr hdlt
@@ -165,7 +169,7 @@ private theorem node_omega_prod_integral (Q : ℕ) (hQ : 1 ≤ Q) (node weight :
   have hWeq : W = W₁ := by
     by_contra hne
     have hrne : W - W₁ ≠ 0 := sub_ne_zero.mpr hne
-    obtain ⟨y, hy⟩ := ((Set.Ioo_infinite (by norm_num : (-1 : ℝ) < 1)).diff
+    obtain ⟨y, hy⟩ := ((Set.Ioo_infinite (by norm_num : (-1 : ℝ) < 1)).sdiff
       ((W - W₁).roots.toFinset.finite_toSet)).nonempty
     have hyev : (W - W₁).eval y ≠ 0 := by
       intro h0
@@ -246,14 +250,14 @@ theorem lemma12CoefficientMass : Lemma12CoefficientMass := by
         ≤ ((2 * Q).factorial : ℝ) * (32 : ℝ) ^ (2 * Q) / highKernelC β := by
       intro k
       by_cases hk : k ∈ Icc a (a + h)
-      · haveI : Nonempty (k ∈ Icc a (a + h)) := ⟨hk⟩
+      · have : Nonempty (k ∈ Icc a (a + h)) := ⟨hk⟩
         rw [ciSup_le_iff (f := fun _j : k ∈ Icc a (a + h) => |iteratedDeriv (2 * Q) g k|)
           (bddAbove_def.mpr ⟨((2 * Q).factorial : ℝ) * (32 : ℝ) ^ (2 * Q) / highKernelC β,
             fun x hx => by
               obtain ⟨j, rfl⟩ := Set.mem_range.mp hx
               exact hmem k j⟩)]
         exact fun j => hmem k j
-      · haveI : IsEmpty (k ∈ Icc a (a + h)) := ⟨fun hj => hk hj⟩
+      · have : IsEmpty (k ∈ Icc a (a + h)) := ⟨fun hj => hk hj⟩
         rw [iSup_of_empty', Real.sSup_empty]
         exact div_nonneg (by positivity) hCpos.le
     exact ciSup_le hinner
@@ -380,8 +384,7 @@ theorem lemma12CoefficientMass : Lemma12CoefficientMass := by
     intro m _
     apply Finset.sum_congr rfl
     intro q _
-    change ‖((h : ℂ) / 2 * (weight q : ℂ)) *
-      highKernelG β (-K + h * ((m : ℝ) + (node q + 1) / 2))‖ = _
+
     simp only [norm_mul, norm_div, Complex.norm_real, Real.norm_eq_abs, Complex.norm_ofNat,
       abs_of_pos hpos, abs_of_pos (hw q)]
     rfl

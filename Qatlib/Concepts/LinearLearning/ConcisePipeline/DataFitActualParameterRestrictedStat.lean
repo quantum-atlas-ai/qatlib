@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.LinearSystems.FiniteInversePhaseConsumers
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PreparedAmplitudeEstimation
+module
+
+public import Qatlib.Concepts.QsvtCore.LinearSystems.FiniteInversePhaseConsumers
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PreparedAmplitudeEstimation
+
+@[expose] public section
 
 /-!
 # Specification of restricted data-fitting parameter preparation

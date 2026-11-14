@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GradientOracle.CentralDiff.CentralDifferencePowerSumBoundOpti
-import Mathlib.Analysis.SpecialFunctions.Stirling
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
-import Mathlib.Analysis.Real.Pi.Bounds
+module
+
+public import Qatlib.Concepts.GradientOracle.CentralDiff.CentralDifferencePowerSumBoundOpti
+public import Mathlib.Analysis.SpecialFunctions.Stirling
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+public import Mathlib.Analysis.Real.Pi.Bounds
+
+@[expose] public section
 
 /-!
 # Taylor jets for central-difference remainders

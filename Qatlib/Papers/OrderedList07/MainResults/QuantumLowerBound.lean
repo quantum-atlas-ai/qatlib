@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.OrderedBayes.BayesRatioCore.ContractModels
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.FieldSimp
+module
+
+public import Qatlib.Concepts.OrderedBayes.BayesRatioCore.ContractModels
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.FieldSimp
+
+@[expose] public section
 
 /-!
 # Information-theoretic ordered-search lower bounds
@@ -57,7 +61,7 @@ lemma source_theorem4_2_noise_entropy (k : ℕ) (hk : 0 < k) (δ : ℝ) :
         = -((δ / (k : ℝ)) * (Real.log (δ / (k : ℝ)) / Real.log 2)) := by
     intro i hi
     have hi0 : i ≠ 0 := (Finset.mem_erase.mp hi).1
-    simp only [sourceTheorem4_2Noise, if_neg hi0]
+    simp only [sourceTheorem4_2Noise, ite_eq_right hi0]
   have hErase : (∑ i ∈ (Finset.univ.erase (0 : Fin (k + 1))),
       -((sourceTheorem4_2Noise k δ i)
           * (Real.log (sourceTheorem4_2Noise k δ i) / Real.log 2)))

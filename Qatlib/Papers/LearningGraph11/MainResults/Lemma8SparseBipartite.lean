@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LearningGraph11.MainResults.SourceLearningGraphModel
+module
+
+public import Qatlib.Papers.LearningGraph11.MainResults.SourceLearningGraphModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -57,7 +61,7 @@ theorem double_count_edge_blocks
   have hleft : ∑ h ∈ Copies, h.card = Copies.card * sr := by
     calc ∑ h ∈ Copies, h.card = ∑ h ∈ Copies, sr :=
           Finset.sum_congr rfl (fun h hh => hblock h hh)
-      _ = Copies.card * sr := by simp [Finset.sum_const, nsmul_eq_mul]
+      _ = Copies.card * sr := by simp [Finset.sum_const]
   have hstep1 : ∑ h ∈ Copies, h.card =
       ∑ e : Ee, (Copies.filter (fun h => e ∈ h)).card := by
     calc ∑ h ∈ Copies, h.card
@@ -76,7 +80,7 @@ theorem double_count_edge_blocks
   calc Copies.card * sr = ∑ h ∈ Copies, h.card := hleft.symm
     _ = ∑ e : Ee, (Copies.filter (fun h => e ∈ h)).card := hstep1
     _ = ∑ _e : Ee, p := Finset.sum_congr rfl (fun e _ => hmult e)
-    _ = Fintype.card Ee * p := by simp [Finset.sum_const, nsmul_eq_mul]
+    _ = Fintype.card Ee * p := by simp [Finset.sum_const]
 
 /-- The double-counting identity of Lemma 8 in probability form: in a family of
 `c > 0` copies of a bipartite graph of type `({(r,rs)},{(r,rs)})`, each copy having

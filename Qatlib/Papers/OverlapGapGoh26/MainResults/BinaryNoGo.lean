@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OverlapGapGoh26.MainResults.RawNoGo
-import Qatlib.Papers.OverlapGapGoh26.MainResults.ActualMFContract
-import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.Remainder.Supremum
+module
+
+public import Qatlib.Papers.OverlapGapGoh26.MainResults.RawNoGo
+public import Qatlib.Papers.OverlapGapGoh26.MainResults.ActualMFContract
+public import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.Remainder.Supremum
+
+@[expose] public section
 
 /-!
 # Conditional binary energy obstruction for raw dynamics

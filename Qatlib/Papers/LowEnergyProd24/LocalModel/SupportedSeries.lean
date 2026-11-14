@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LowEnergyProd24.LocalModel.Expansion
+module
+
+public import Qatlib.Papers.LowEnergyProd24.LocalModel.Expansion
+
+@[expose] public section
 
 /-!
 # Supported commutator expansions for selected interactions
@@ -120,7 +124,7 @@ theorem selected_commutator (h : Hamiltonian N R M k d J) (e : Finset (Fin R)) (
   by_cases hn:i∈h.neighbors s
   · simp [hn]
   · have hc:=h.nonneighbor_commute s A hA i hn
-    simp only [hn,if_false,hc.eq,sub_self]
+    simp only [hn,ite_false,hc.eq,sub_self]
 
 /-- The connected interaction words for successive selected label sets, extending each tail by a
 label whose support meets its current region. -/

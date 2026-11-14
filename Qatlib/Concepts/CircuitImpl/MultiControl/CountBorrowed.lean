@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CircuitImpl.MultiControl.CountCompressedLadders
-import Qatlib.Concepts.CircuitImpl.MultiControl.CountToffoliFrames
+module
+
+public import Qatlib.Concepts.CircuitImpl.MultiControl.CountCompressedLadders
+public import Qatlib.Concepts.CircuitImpl.MultiControl.CountToffoliFrames
+
+@[expose] public section
 
 /-!
 # Borrowed-work conjunction words and relative signs

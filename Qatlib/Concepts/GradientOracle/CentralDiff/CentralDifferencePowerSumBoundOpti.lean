@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GradientOracle.CentralDiff.CentralDifferencePowerSumBoundStat
-import Mathlib.Analysis.Complex.ExponentialBounds
-import Qatlib.Concepts.GradientOracle.CentralDiff.CentralDifferenceExactnessOpti
-import Qatlib.Concepts.GradientOracle.CentralDiff.CentralDifferenceBinomialBounds
+module
+
+public import Qatlib.Concepts.GradientOracle.CentralDiff.CentralDifferencePowerSumBoundStat
+public import Mathlib.Analysis.Complex.ExponentialBounds
+public import Qatlib.Concepts.GradientOracle.CentralDiff.CentralDifferenceExactnessOpti
+public import Qatlib.Concepts.GradientOracle.CentralDiff.CentralDifferenceBinomialBounds
+
+@[expose] public section
 
 /-!
 # Absolute power-sum bounds for central differences
@@ -64,7 +68,7 @@ theorem centralDiff_power_weight_abs (m l k : ℕ) (hl : 0<l) :
       ((Nat.choose m l : ℝ)/(Nat.choose (m+l) l : ℝ))*(l : ℝ)^k := by
   have hlz : (l : ℤ)≠0 := by exact_mod_cast hl.ne'
   have hlr : (l : ℝ)≠0 := by exact_mod_cast hl.ne'
-  rw [centralDiffCoeff,if_neg hlz]
+  rw [centralDiffCoeff,ite_eq_right hlz]
   simp only [Int.natAbs_natCast,Int.cast_natCast,abs_mul,abs_div,abs_pow,abs_neg,
     abs_one,one_pow,abs_of_nonneg (Nat.cast_nonneg l : (0 : ℝ)≤l),abs_of_nonneg (Nat.cast_nonneg (Nat.choose m l) : (0 : ℝ)≤Nat.choose m l),
     abs_of_nonneg (Nat.cast_nonneg (Nat.choose (m+l) l) : (0 : ℝ)≤Nat.choose (m+l) l)]

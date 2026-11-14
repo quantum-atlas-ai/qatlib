@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.TauEmbedding.SzegedyTauScaledIsometryStat
-import Qatlib.Concepts.WalkSearch.TauEmbedding.SzegedyLemma10PairingQuan
+module
+
+public import Qatlib.Concepts.WalkSearch.TauEmbedding.SzegedyTauScaledIsometryStat
+public import Qatlib.Concepts.WalkSearch.TauEmbedding.SzegedyLemma10PairingQuan
+
+@[expose] public section
 
 /-!
 # Scaled isometry of the signed τ maps

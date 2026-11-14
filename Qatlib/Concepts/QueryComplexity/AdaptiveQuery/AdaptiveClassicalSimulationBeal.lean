@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.AdaptiveClassicalSimulationStat
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.AdaptiveBlockSensitivityQueryBoundBeal
-import Qatlib.Concepts.QueryComplexity.DecisionTrees.SensitivityDominanceCorollaryBeal
+module
+
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.AdaptiveClassicalSimulationStat
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.AdaptiveBlockSensitivityQueryBoundBeal
+public import Qatlib.Concepts.QueryComplexity.DecisionTrees.SensitivityDominanceCorollaryBeal
+
+@[expose] public section
 
 /-!
 # Classical simulation of adaptive quantum queries

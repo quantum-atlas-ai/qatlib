@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CircuitImpl.SqrtApprox.Lemma78Stat
-import Qatlib.Concepts.CircuitImpl.SqrtApprox.UnitarySqrtChain
-import Qatlib.Concepts.CircuitImpl.SqrtApprox.Lemma78
-import Qatlib.Concepts.CircuitImpl.SqrtApprox.TruncatedMultiControl
-import Qatlib.Concepts.SpectralReadout.PhaseReadout.BornPerturbation
+module
+
+public import Qatlib.Concepts.CircuitImpl.SqrtApprox.Lemma78Stat
+public import Qatlib.Concepts.CircuitImpl.SqrtApprox.UnitarySqrtChain
+public import Qatlib.Concepts.CircuitImpl.SqrtApprox.Lemma78
+public import Qatlib.Concepts.CircuitImpl.SqrtApprox.TruncatedMultiControl
+public import Qatlib.Concepts.SpectralReadout.PhaseReadout.BornPerturbation
+
+@[expose] public section
 
 /-!
 # Elementary synthesis for approximate multi-controlled gates

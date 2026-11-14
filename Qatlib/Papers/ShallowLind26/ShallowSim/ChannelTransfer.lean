@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RawChannelWord.CptpWordBound.RawChannelWord
-import Qatlib.Concepts.SchattenDiamond.DiamondNorm.FiniteDiamondNorm
+module
+
+public import Qatlib.Concepts.RawChannelWord.CptpWordBound.RawChannelWord
+public import Qatlib.Concepts.SchattenDiamond.DiamondNorm.FiniteDiamondNorm
+
+@[expose] public section
 
 /-!
 # Channel transfer and composition (Lemma 2.1)

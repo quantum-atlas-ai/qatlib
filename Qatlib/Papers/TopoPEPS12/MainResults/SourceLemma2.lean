@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.Rayleigh
-import Mathlib.Analysis.InnerProductSpace.Positive
-import Mathlib.Analysis.Normed.Operator.Basic
+module
+
+public import Mathlib.Analysis.InnerProductSpace.Rayleigh
+public import Mathlib.Analysis.InnerProductSpace.Positive
+public import Mathlib.Analysis.Normed.Operator.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -56,16 +60,28 @@ per-state image overlap `imageOverlap A ψ`. -/
 def dMinImage (A : V →L[ℂ] V) : ℝ :=
   ⨅ ψ : {ψ : V // ‖ψ‖ = 1}, imageOverlap A ψ
 
+omit [NormedAddCommGroup V] [InnerProductSpace ℂ V] [FiniteDimensional ℂ V] [Nontrivial V] in
 /-- The infimum defining `sigmaMin` is attained over the nonempty set of nonzero vectors. -/
-theorem sigmaMin_nonempty : Nonempty {ψ : V // ψ ≠ 0} := by
+theorem sigmaMin_nonempty {V : Type*}
+    [_inst0 : NormedAddCommGroup V]
+    [_inst1 : InnerProductSpace ℂ V]
+    [_inst2 : FiniteDimensional ℂ V]
+    [_inst3 : Nontrivial V]
+    : Nonempty {ψ : V // ψ ≠ 0} := by
   obtain ⟨x, hx⟩ := exists_ne (0 : V)
   exact ⟨⟨x, hx⟩⟩
 
 /-- A nontrivial space has a nonempty subtype of nonzero vectors. -/
 instance sigmaNonzeroNonempty : Nonempty {ψ : V // ψ ≠ 0} := sigmaMin_nonempty
 
+omit [NormedAddCommGroup V] [InnerProductSpace ℂ V] [FiniteDimensional ℂ V] [Nontrivial V] in
 /-- The unit sphere of a nontrivial normed space is nonempty. -/
-theorem unitSphere_nonempty : Nonempty {ψ : V // ‖ψ‖ = 1} := by
+theorem unitSphere_nonempty {V : Type*}
+    [_inst0 : NormedAddCommGroup V]
+    [_inst1 : InnerProductSpace ℂ V]
+    [_inst2 : FiniteDimensional ℂ V]
+    [_inst3 : Nontrivial V]
+    : Nonempty {ψ : V // ‖ψ‖ = 1} := by
   obtain ⟨x, hx⟩ := exists_ne (0 : V)
   have hxnorm : ‖x‖ ≠ 0 := norm_ne_zero_iff.mpr hx
   refine ⟨⟨(‖x‖ : ℂ)⁻¹ • x, ?_⟩⟩
@@ -83,8 +99,14 @@ vectors, i.e. the smallest eigenvalue via the variational characterisation. -/
 def sigmaMin (A : V →L[ℂ] V) : ℝ :=
   ⨅ ψ : {ψ : V // ψ ≠ 0}, A.rayleighQuotient ψ
 
+omit [NormedAddCommGroup V] [InnerProductSpace ℂ V] [FiniteDimensional ℂ V] [Nontrivial V] in
 /-- The Rayleigh quotients are bounded below by `-‖A‖`, so the defining infimum exists. -/
-theorem bddBelow_rayleigh (A : V →L[ℂ] V) :
+theorem bddBelow_rayleigh {V : Type*}
+    [_inst0 : NormedAddCommGroup V]
+    [_inst1 : InnerProductSpace ℂ V]
+    [_inst2 : FiniteDimensional ℂ V]
+    [_inst3 : Nontrivial V]
+    (A : V →L[ℂ] V) :
     BddBelow (Set.range fun ψ : {ψ : V // ψ ≠ 0} => A.rayleighQuotient ψ) := by
   refine ⟨-‖A‖, ?_⟩
   rintro _ ⟨ψ, rfl⟩

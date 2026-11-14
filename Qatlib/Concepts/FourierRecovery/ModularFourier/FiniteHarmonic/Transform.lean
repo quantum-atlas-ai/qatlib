@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.LinearAlgebra.Matrix.ConjTranspose
-import Mathlib.Tactic.Ring
-import Mathlib.Analysis.Fourier.FiniteAbelian.PontryaginDuality
+module
+
+public import Mathlib.LinearAlgebra.Matrix.ConjTranspose
+public import Mathlib.Tactic.Ring
+public import Mathlib.Analysis.Fourier.FiniteAbelian.PontryaginDuality
+
+@[expose] public section
 
 /-!
 # Quantum-normalized Fourier transform on a finite abelian group

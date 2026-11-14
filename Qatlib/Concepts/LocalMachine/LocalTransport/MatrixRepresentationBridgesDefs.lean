@@ -4,18 +4,22 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SignalPrimitive.PhaseFrontend.ComputedPhaseQSVT
-import Qatlib.Concepts.QsvtLinearSolve.RangeDataFit.ComputedRangeConsumers
-import Qatlib.Concepts.QsvtCore.LinearSystems.FiniteInversePhaseProgram
-import Qatlib.Concepts.LocalMachine.LocalTransport.LeastSquaresOutputSpec
-import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownFrameLocalSynthesis
-import Qatlib.Concepts.MatrixAccess.FrameFilterUse
-import Qatlib.Concepts.LocalMachine.LocalTransport.ControlledQueryCircuit
-import Qatlib.Concepts.LocalMachine.LocalTransport.NumericalDyadicPhase
-import Qatlib.Concepts.SpectralSketch.NearIsometry
-import Qatlib.Concepts.BlockEncoding.EncodingCore.SparseOverlapEncoding
-import Qatlib.Concepts.BlockEncoding.EncodingCore.SparseOverlapEncodingConsumers
-import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.OrderedSpectralPerturbation
+module
+
+public import Qatlib.Concepts.SignalPrimitive.PhaseFrontend.ComputedPhaseQSVT
+public import Qatlib.Concepts.QsvtLinearSolve.RangeDataFit.ComputedRangeConsumers
+public import Qatlib.Concepts.QsvtCore.LinearSystems.FiniteInversePhaseProgram
+public import Qatlib.Concepts.LocalMachine.LocalTransport.LeastSquaresOutputSpec
+public import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownFrameLocalSynthesis
+public import Qatlib.Concepts.MatrixAccess.FrameFilterUse
+public import Qatlib.Concepts.LocalMachine.LocalTransport.ControlledQueryCircuit
+public import Qatlib.Concepts.LocalMachine.LocalTransport.NumericalDyadicPhase
+public import Qatlib.Concepts.SpectralSketch.NearIsometry
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.SparseOverlapEncoding
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.SparseOverlapEncodingConsumers
+public import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.OrderedSpectralPerturbation
+
+@[expose] public section
 
 /-!
 # Data for matrix representation and resource bridges

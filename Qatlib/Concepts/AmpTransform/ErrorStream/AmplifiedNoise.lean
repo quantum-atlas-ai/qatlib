@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmpTransform.ErrorStream.AmplifiedNoiseDefs
+module
+
+public import Qatlib.Concepts.AmpTransform.ErrorStream.AmplifiedNoiseDefs
+
+@[expose] public section
 
 /-!
 # Amplified Fourier noise and boundary results

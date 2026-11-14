@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Log.Base
-import Mathlib.Data.Nat.Choose.Bounds
-import Mathlib.Algebra.BigOperators.Intervals
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Log.Base
+public import Mathlib.Data.Nat.Choose.Bounds
+public import Mathlib.Algebra.BigOperators.Intervals
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.LinearAlgebra.Matrix.Trace
-import Qatlib.Papers.KroneckerCoef23.MainResults.KroneckerTrace.KroneckerTraceFormula
+module
+
+public import Mathlib.LinearAlgebra.Matrix.Trace
+public import Qatlib.Papers.KroneckerCoef23.MainResults.KroneckerTrace.KroneckerTraceFormula
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -39,10 +43,12 @@ selected effect `P`, outcome `false` is its complement `I − P`. -/
 def binaryEffect (P : Matrix V V ℂ) : Bool → Matrix V V ℂ :=
   fun b => if b then P else 1 - P
 
+omit [Fintype V] [DecidableEq V] in
 /-- The two outcomes of a binary measurement are exhaustive: `P + (I − P) = I`. -/
-theorem binaryEffect_total (P : Matrix V V ℂ) :
+theorem binaryEffect_total {V : Type*} [_fintypeV : Fintype V] [DecidableEq V]
+    (P : Matrix V V ℂ) :
     binaryEffect P true + binaryEffect P false = 1 := by
-  simp only [binaryEffect, Bool.false_eq_true, if_false, if_true]
+  simp only [binaryEffect, Bool.false_eq_true, ite_false, ite_true]
   abel
 
 /-- The selected outcome of a binary measurement is idempotent whenever its effect is. -/
@@ -54,7 +60,7 @@ theorem binaryEffect_true_idempotent (P : Matrix V V ℂ) (hP : P * P = P) :
 `(1 − P)(1 − P) = 1 − P`, so the binary measurement is projective. -/
 theorem binaryEffect_false_idempotent (P : Matrix V V ℂ) (hP : P * P = P) :
     binaryEffect P false * binaryEffect P false = binaryEffect P false := by
-  simp only [binaryEffect, Bool.false_eq_true, if_false]
+  simp only [binaryEffect, Bool.false_eq_true, ite_false]
   calc (1 - P) * (1 - P) = 1 * (1 - P) - P * (1 - P) := by rw [Matrix.sub_mul]
     _ = (1 - P) - (P * 1 - P * P) := by rw [Matrix.one_mul, Matrix.mul_sub]
     _ = (1 - P) - (P - P) := by rw [Matrix.mul_one, hP]
@@ -64,7 +70,7 @@ theorem binaryEffect_false_idempotent (P : Matrix V V ℂ) (hP : P * P = P) :
 idempotent effect: this is the operator form of "apply `F`, project, apply `F†`"
 (the structure of Lemma 6). -/
 theorem conjugated_idempotent (F P : Matrix V V ℂ) (hP : P * P = P)
-    (hF : F * Fᴴ = 1) (hF' : Fᴴ * F = 1) :
+    (_hF : F * Fᴴ = 1) (hF' : Fᴴ * F = 1) :
     (F * P * Fᴴ) * (F * P * Fᴴ) = F * P * Fᴴ := by
   calc (F * P * Fᴴ) * (F * P * Fᴴ) = F * P * (Fᴴ * F) * P * Fᴴ := by
         noncomm_ring

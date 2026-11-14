@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommutLCHS26.MainResults.MPFMomentSeries
-import Qatlib.Papers.CommutLCHS26.MainResults.ChebyshevCondition
+module
+
+public import Qatlib.Papers.CommutLCHS26.MainResults.MPFMomentSeries
+public import Qatlib.Papers.CommutLCHS26.MainResults.ChebyshevCondition
+
+@[expose] public section
 
 /-!
 # Commutator-profile bounds for actual multi-product errors

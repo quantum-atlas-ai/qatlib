@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EstimatorLaws.TvStability.ClassicalChebyshevSubgoalStat
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+module
+
+public import Qatlib.Concepts.EstimatorLaws.TvStability.ClassicalChebyshevSubgoalStat
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+
+@[expose] public section
 
 /-!
 # Classical sample-mean Chebyshev bound
@@ -35,6 +39,6 @@ open Qatlib
 /-- Proves the classical Chebyshev contract for a finite probability law by applying
 `FinDist.chebyshev_avg` to a positive sample count and positive deviation threshold. -/
 theorem classicalChebyshevSubgoal : ClassicalChebyshevSubgoal :=
-  fun X _ _ p f L hL ε hε => Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.chebyshev_avg p f hL ε hε
+  fun _X _ _ p f _L hL ε hε => Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.chebyshev_avg p f hL ε hε
 
 end Qatlib.Concepts.EstimatorLaws.TvStability

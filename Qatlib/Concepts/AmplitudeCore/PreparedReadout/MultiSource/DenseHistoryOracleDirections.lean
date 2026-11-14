@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSource.DenseHistoryThreeSourceAE
+module
+
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSource.DenseHistoryThreeSourceAE
+
+@[expose] public section
 
 /-!
 # Directional counts for multiple oracle sources
@@ -118,11 +122,13 @@ theorem queryCount_directions (s : Qatlib.Concepts.AmplitudeCore.PreparedReadout
 section PhysicalWords
 variable [Fintype H] [DecidableEq H]
 
+omit [Fintype H] [DecidableEq H] in
 /-- Tensor lifting a word preserves its per-source forward query count. -/
 theorem forwardCount_tensor (J : Type) [Fintype J] [DecidableEq J]
     (s : Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.Source) (w : List (Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.Step H)) : Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleDirections.forwardCount s (Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.tensorWord J w) = Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleDirections.forwardCount s w :=
   Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleDirections.forwardCount_lift _ s w
 
+omit [Fintype H] [DecidableEq H] in
 /-- Tensor lifting a word preserves its per-source inverse query count. -/
 theorem backwardCount_tensor (J : Type) [Fintype J] [DecidableEq J]
     (s : Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.Source) (w : List (Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.Step H)) : Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleDirections.backwardCount s (Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.tensorWord J w) = Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleDirections.backwardCount s w :=
@@ -136,10 +142,11 @@ theorem grover_directions (Aword : List (Qatlib.Concepts.AmplitudeCore.PreparedR
   simp only [Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleGrover.instructions, Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleDirections.forwardCount_append, Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleDirections.backwardCount_append,
     Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleDirections.forwardCount_adjoint, Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleDirections.backwardCount_adjoint, Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleDirections.forwardCount_tensor, Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleDirections.backwardCount_tensor]
   simp only [Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleDirections.forwardCount, Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleDirections.backwardCount, Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleDirections.forwardFlag, Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleDirections.backwardFlag, List.map_cons,
-    List.map_nil, List.sum_cons, List.sum_nil, Nat.add_zero, Nat.zero_add]
+    List.map_nil, List.sum_cons, List.sum_nil, Nat.add_zero]
   simp only [Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleDirections.queryCount_directions, Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleDirections.forwardCount, Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleDirections.backwardCount]
   simp [Nat.add_comm]
 
+omit [Fintype H] [DecidableEq H] in
 /-- For a body balanced in forward and inverse uses of source `s`, substitution multiplies each
 directional count by the total outer adjoint query count. -/
 theorem substitute_balanced (body : List (Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSourceAmplitudeEstimation.DenseHistoryOracleWord.Step H)) (outer : List (Qatlib.Concepts.CoherentSim.CoherentOAA.AdjointStep H))

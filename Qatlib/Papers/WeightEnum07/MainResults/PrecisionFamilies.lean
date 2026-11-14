@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.ZMod.Basic
-import Mathlib.GroupTheory.OrderOfElement
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
-import Mathlib.Order.Filter.Basic
+module
+
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.GroupTheory.OrderOfElement
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
+public import Mathlib.Order.Filter.Basic
+
+@[expose] public section
 
 /-!
 # Modular orders and fixed-precision families

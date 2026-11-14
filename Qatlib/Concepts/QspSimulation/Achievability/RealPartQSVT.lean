@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QspSimulation.Achievability.RealPartResponse
-import Qatlib.Concepts.CoherentSim.CoherentOAA.OddApproximation
-import Qatlib.Concepts.BlockEncoding.LCU
+module
+
+public import Qatlib.Concepts.QspSimulation.Achievability.RealPartResponse
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.OddApproximation
+public import Qatlib.Concepts.BlockEncoding.LCU
+
+@[expose] public section
 
 /-!
 # Real parts of QSVT responses by averaging

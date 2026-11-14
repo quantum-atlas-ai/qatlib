@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Real.Basic
-import Mathlib.Logic.Function.Iterate
-import Mathlib.Tactic
-import Mathlib.Tactic.Ring
+module
+
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Logic.Function.Iterate
+public import Mathlib.Tactic
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -95,8 +99,8 @@ search is performed by evaluating `q_k^temp`, not by quantum sampling).  The con
 `trialQ` and `advance` from `M_k(t)` (steps 2–5) is data of the classical process, and the
 conclusion states that this process alone reproduces the entire trajectory. -/
 theorem theorem4_classically_simulable
-    (q0 δ c ρ : ℝ) (hq0 : 0 < q0) (hq01 : q0 ≤ 1)
-    (hδ : 0 < δ) (hc : 0 < c) (hρ0 : 0 < ρ) (hρ1 : ρ < 1)
+    (q0 δ c ρ : ℝ) (_hq0 : 0 < q0) (_hq01 : q0 ≤ 1)
+    (_hδ : 0 < δ) (_hc : 0 < c) (_hρ0 : 0 < ρ) (_hρ1 : ρ < 1)
     (trialQ : GroverState → ℝ → ℝ) (advance : GroverState → ℝ → GroverState)
     (coeffs : ℕ → GroverState)
     (hinit : coeffs 0 = GroverState.init q0)

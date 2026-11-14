@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
-import Mathlib.RingTheory.Polynomial.Chebyshev
-import Mathlib.Analysis.SpecialFunctions.Arcosh
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Arctan
+module
+
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
+public import Mathlib.RingTheory.Polynomial.Chebyshev
+public import Mathlib.Analysis.SpecialFunctions.Arcosh
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Arctan
+
+@[expose] public section
 
 /-!
 # Two-level fixed-point search definitions

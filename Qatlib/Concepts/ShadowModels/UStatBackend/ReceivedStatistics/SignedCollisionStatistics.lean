@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ShadowModels.UStatBackend.FinitePairUStatistic
-import Qatlib.Concepts.ShadowModels.UStatBackend.ReceivedStatistics.GroupedPairStatistics
+module
+
+public import Qatlib.Concepts.ShadowModels.UStatBackend.FinitePairUStatistic
+public import Qatlib.Concepts.ShadowModels.UStatBackend.ReceivedStatistics.GroupedPairStatistics
+
+@[expose] public section
 
 /-!
 # Signed record laws and collision moments
@@ -45,7 +49,7 @@ theorem signed_record_cell_mass (m : S → ℝ) (x : S) :
     (∑ b : Bool, Qatlib.Concepts.ShadowModels.UStatBackend.SignedCollisionStatistics.signedRecordWeight m (x,b)) = 1/(Fintype.card S : ℝ) := by
   have hM : (Fintype.card S : ℝ) ≠ 0 := by exact_mod_cast Fintype.card_ne_zero
   simp only [Fintype.sum_bool, Qatlib.Concepts.ShadowModels.UStatBackend.SignedCollisionStatistics.signedRecordWeight, Qatlib.Concepts.ShadowModels.UStatBackend.SignedCollisionStatistics.recordSign, Bool.false_eq_true,
-    if_false, if_true]
+    ite_false, ite_true]
   field_simp
   ring
 
@@ -72,7 +76,7 @@ theorem signed_record_cell_mean (m u : S → ℝ) (α β : ℝ) (x : S) :
       (α*m x-β*u x)/(Fintype.card S : ℝ) := by
   have hM : (Fintype.card S : ℝ) ≠ 0 := by exact_mod_cast Fintype.card_ne_zero
   simp only [Fintype.sum_bool, Qatlib.Concepts.ShadowModels.UStatBackend.SignedCollisionStatistics.signedRecordWeight, Qatlib.Concepts.ShadowModels.UStatBackend.SignedCollisionStatistics.recordSign, Bool.false_eq_true,
-    if_false, if_true]
+    ite_false, ite_true]
   field_simp
   ring
 

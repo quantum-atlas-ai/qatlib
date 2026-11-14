@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Order.Floor.Defs
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Data.Matrix.Diagonal
-import Mathlib.Data.Matrix.Mul
-import Mathlib.Data.Nat.Choose.Basic
-import Mathlib.Data.Real.Sqrt
-import Mathlib.LinearAlgebra.Matrix.Defs
-import Mathlib.Data.Real.Basic
+module
+
+public import Mathlib.Algebra.Order.Floor.Defs
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Data.Matrix.Diagonal
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.Data.Nat.Choose.Basic
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.LinearAlgebra.Matrix.Defs
+public import Mathlib.Basic.Real.Basic
+
+@[expose] public section
 
 /-!
 # Johnson walk matrices and collision-search states

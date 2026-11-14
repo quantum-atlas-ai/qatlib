@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CopyDecision.FreshPolicies.Data.FinitePolicy
-import Mathlib.Order.ConditionallyCompleteLattice.Basic
+module
+
+public import Qatlib.Concepts.CopyDecision.FreshPolicies.Data.FinitePolicy
+public import Mathlib.Order.ConditionallyCompleteLattice.Basic
+
+@[expose] public section
 
 /-!
 # Finite Optimum
@@ -27,7 +31,7 @@ lemma trine_root_weight_moment (A : Qubit →ₗ[ℂ] Qubit) :
       (‖A (trineState 2)‖^2/3)^2 ≤
       (‖A (trineState 0)‖^2/3+‖A (trineState 1)‖^2/3+
         ‖A (trineState 2)‖^2/3)^2/2 := by
-  letI : InnerProductSpace ℝ Qubit := InnerProductSpace.complexToReal
+  let : InnerProductSpace ℝ Qubit := InnerProductSpace.complexToReal
   have h0 : A (trineState 0)=A basisZero := by
     rw [trineState_eq_input, trineInput_zero]
   have h1 : A (trineState 1)=(-1/2:ℝ) • A basisZero+

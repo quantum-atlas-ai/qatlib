@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ClusterPatterns.WireComposition.CountedClusterCZ
-import Qatlib.Concepts.ShadowModels.ShadowChannel.TensorPauliRecords
-import Qatlib.Concepts.ClusterPatterns.AdaptiveEuler.ClusterSequenceInstrument
+module
+
+public import Qatlib.Concepts.ClusterPatterns.WireComposition.CountedClusterCZ
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.TensorPauliRecords
+public import Qatlib.Concepts.ClusterPatterns.AdaptiveEuler.ClusterSequenceInstrument
+
+@[expose] public section
 
 /-!
 # Logical gates for local cluster networks
@@ -118,7 +122,7 @@ theorem networkCzGateB_comm {n : ℕ} (i j : Fin n) :
   by_cases hxy : x = y
   · subst hxy
     rw [Bool.and_comm]
-  · rw [if_neg hxy, if_neg hxy]
+  · rw [ite_eq_right hxy, ite_eq_right hxy]
 
 /-- Exchanging the two endpoints leaves the finite-indexed controlled-Z gate unchanged. -/
 theorem networkCzGate_comm {n : ℕ} (i j : Fin n) :

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.WildcardSrch12.MainResults.Model.GramOverlap
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Data.Nat.Choose.Sum
+module
+
+public import Qatlib.Papers.WildcardSrch12.MainResults.Model.GramOverlap
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Data.Nat.Choose.Sum
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

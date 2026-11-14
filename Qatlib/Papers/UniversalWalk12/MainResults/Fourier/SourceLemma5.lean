@@ -4,17 +4,21 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
-import Mathlib.Analysis.Real.Pi.Bounds
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.FundThmCalculus
-import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
-import Mathlib.Algebra.Ring.GeomSum
-import Mathlib.Basic.Complex.Basic
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.Periodic
-import Mathlib.MeasureTheory.Integral.Prod
-import Qatlib.Papers.UniversalWalk12.MainResults.Model.SourceModel
+module
+
+public import Mathlib.Analysis.InnerProductSpace.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+public import Mathlib.Analysis.Real.Pi.Bounds
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.FundThmCalculus
+public import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
+public import Mathlib.Algebra.Ring.GeomSum
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.Periodic
+public import Mathlib.MeasureTheory.Integral.Prod
+public import Qatlib.Papers.UniversalWalk12.MainResults.Model.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmpTransform.ErrorStream.AmplifiedNoiseRefinedDefs
-import Qatlib.Concepts.AmpTransform.ErrorStream.BernoulliZeroModeTransportAmpl
-import Qatlib.Concepts.AmpTransform.SuccessRatio.AmplifiedPeriodRecovery
-import Qatlib.Concepts.AmpTransform.NoiseEnvelope.AmplifiedProgression
+module
+
+public import Qatlib.Concepts.AmpTransform.ErrorStream.AmplifiedNoiseRefinedDefs
+public import Qatlib.Concepts.AmpTransform.ErrorStream.BernoulliZeroModeTransportAmplification
+public import Qatlib.Concepts.AmpTransform.SuccessRatio.AmplifiedPeriodRecovery
+public import Qatlib.Concepts.AmpTransform.NoiseEnvelope.AmplifiedProgression
+
+@[expose] public section
 
 /-!
 # Refined period-recovery interfaces and resource ledgers

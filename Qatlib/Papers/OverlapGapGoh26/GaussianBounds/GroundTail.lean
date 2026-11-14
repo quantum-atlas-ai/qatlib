@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.LinearTail
-import Qatlib.Papers.OverlapGapGoh26.OgpBridge.GaussianObstruction
+module
+
+public import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.LinearTail
+public import Qatlib.Papers.OverlapGapGoh26.OgpBridge.GaussianObstruction
+
+@[expose] public section
 
 /-!
 # Gaussian lower tails of the binary ground energy
@@ -93,7 +97,7 @@ theorem binary_ground_left_tail {r N : ℕ} (hN : 0<N) (a : ℝ) (ha : 0≤a) :
   have he : {A : Tensor (r+1) N | binaryGround A≤-a*(N:ℝ)}=
       ⋃ z : Fin N → Bool, {A | tensorEnergy A (binarySpin z)≤-a*(N:ℝ)} := by
     ext A
-    simp only [Set.mem_setOf_eq, Set.mem_iUnion, binaryGround, Finset.inf'_le_iff,
+    simp only [Set.mem_ofPred_eq, Set.mem_iUnion, binaryGround, Finset.inf'_le_iff,
       Finset.mem_univ, true_and]
     rfl
   rw [he]

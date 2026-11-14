@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
-import Qatlib.Concepts.SpectralFilter.PhaseReadout.PhaseEstimation
-import Qatlib.Concepts.StabilizerAlg.NearUniformGen.CompositeMeasurementNearUniformQuan
-import Qatlib.Concepts.StabilizerAlg.NearUniformGen.NearUniformGenerationSubgoalQuan
-import Qatlib.Concepts.HspRecovery.AbelianSampling.MeasuredGenerationSubgoalQuan
-import Qatlib.Concepts.HspRecovery.AbelianSampling.OrbitFourierBasis
+module
+
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+public import Qatlib.Concepts.SpectralFilter.PhaseReadout.PhaseEstimation
+public import Qatlib.Concepts.StabilizerAlg.NearUniformGen.CompositeMeasurementNearUniformQuan
+public import Qatlib.Concepts.StabilizerAlg.NearUniformGen.NearUniformGenerationSubgoalQuan
+public import Qatlib.Concepts.HspRecovery.AbelianSampling.MeasuredGenerationSubgoalQuan
+public import Qatlib.Concepts.HspRecovery.AbelianSampling.OrbitFourierBasis
+
+@[expose] public section
 
 /-!
 # Measurement records and bisection for abelian stabilizers

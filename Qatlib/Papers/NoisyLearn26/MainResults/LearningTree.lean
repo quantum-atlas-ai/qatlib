@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NoisyLearn26.MainResults.Models.InterfaceModels
+module
+
+public import Qatlib.Papers.NoisyLearn26.MainResults.Models.InterfaceModels
+
+@[expose] public section
 
 /-!
 # Distinguishability in finite learning trees
@@ -137,7 +141,7 @@ theorem pathProb_sum_one {A : Type*} [Fintype A] {N : ℕ} (T : LayerTree A N) :
 prefix, the leaf distributions differ by at most `ε * N` [CotlerGongKannan2025]. -/
 theorem distinguishability_propagation
     {A : Type*} [Fintype A] [DecidableEq A] {N : ℕ}
-    (T T' : LayerTree A N) (ε : ℝ) (hε : 0 ≤ ε)
+    (T T' : LayerTree A N) (ε : ℝ) (_hε : 0 ≤ ε)
     (hstep : ∀ (i : Fin N) (u : Fin i.val → A),
       tvDist (T.kernel i u) (T'.kernel i u) ≤ ε) :
     leafTV T T' ≤ ε * N := by

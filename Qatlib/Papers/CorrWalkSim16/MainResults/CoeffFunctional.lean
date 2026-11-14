@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Analysis.Normed.Group.InfiniteSum
-import Mathlib.Analysis.Normed.Ring.InfiniteSum
-import Mathlib.Topology.Algebra.InfiniteSum.Constructions
+module
+
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Analysis.Normed.Group.InfiniteSum
+public import Mathlib.Analysis.Normed.Ring.InfiniteSum
+public import Mathlib.Topology.Algebra.InfiniteSum.Constructions
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

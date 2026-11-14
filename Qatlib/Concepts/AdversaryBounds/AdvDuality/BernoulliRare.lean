@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeCore.InvFreeSampling.BernoulliTail
-import Mathlib.Algebra.Order.Floor.Semiring
-import Mathlib.Data.Real.Archimedean
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+module
+
+public import Qatlib.Concepts.AmplitudeCore.InvFreeSampling.BernoulliTail
+public import Mathlib.Algebra.Order.Floor.Semiring
+public import Mathlib.Algebra.Order.Archimedean.Real.Basic
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+
+@[expose] public section
 
 /-!
 # Bernoulli frequency estimates for rare outcomes

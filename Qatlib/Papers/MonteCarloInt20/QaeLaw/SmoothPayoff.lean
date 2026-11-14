@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MonteCarloInt20.QaeLaw.PayoffError
+module
+
+public import Qatlib.Papers.MonteCarloInt20.QaeLaw.PayoffError
+
+@[expose] public section
 
 /-!
 # Smooth nonlinear QAE payoff bounds
@@ -82,7 +86,7 @@ theorem smooth_payoff_error (M : ℕ) (θ D : ℝ) (hM : 0 < M)
   rw [he]
   have hR (k : Fin M) : |R k| ≤ (K:ℝ)*D^2*(estimate M k-target θ)^2 := by
     have h := quadratic_remainder g gp K hg hgp (D*target θ) (D*estimate M k)
-    convert! h using 1; (try dsimp only [R]); ring
+    convert! h using 1;  ring
   calc
     _ ≤ |gp (D*target θ)*D*(∑ k,phaseMass M θ k*(estimate M k-target θ))|+
       |∑ k,phaseMass M θ k*R k| := abs_add_le _ _

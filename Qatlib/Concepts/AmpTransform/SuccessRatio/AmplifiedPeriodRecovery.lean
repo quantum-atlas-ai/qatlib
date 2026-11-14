@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmpTransform.ErrorStream.AmplifiedProgressionWindow
-import Qatlib.Concepts.HspRecovery.CfOrder.CountedContinuedFractionDecoder
+module
+
+public import Qatlib.Concepts.AmpTransform.ErrorStream.AmplifiedProgressionWindow
+public import Qatlib.Concepts.HspRecovery.CfOrder.CountedContinuedFractionDecoder
+
+@[expose] public section
 
 /-!
 # Verified period recovery from amplified Fourier samples

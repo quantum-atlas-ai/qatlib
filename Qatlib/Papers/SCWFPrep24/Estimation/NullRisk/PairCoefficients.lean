@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Data.Complex.Basic
-import Mathlib.Data.Complex.BigOperators
-import Mathlib.Data.Fintype.BigOperators
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Positivity
+module
+
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Basic.Complex.BigOperators
+public import Mathlib.Data.Fintype.BigOperators
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Positivity
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

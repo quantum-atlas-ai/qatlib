@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NonSparseHam09.MainResults.Prop2Arboricity
+module
+
+public import Qatlib.Papers.NonSparseHam09.MainResults.Prop2Arboricity
+
+@[expose] public section
 
 /-!
 # Assembling norm bounds from star decompositions
@@ -39,6 +43,7 @@ namespace Qatlib.Papers.NonSparseHam09.MainResults
 
 variable {ι : Type*} [Fintype ι] [DecidableEq ι] [Nonempty ι]
 
+omit [Nonempty ι] in
 /-- The spectral norm of a complex matrix is at most that of its complex entrywise
 absolute-value matrix [ChildsKothari2010]. -/
 lemma specNorm_le_specNorm_absComplex (H : Matrix ι ι ℂ) :
@@ -89,6 +94,7 @@ lemma specNorm_le_specNorm_absComplex (H : Matrix ι ι ℂ) :
     simp [hw, Complex.norm_real]
   exact hdom.trans (hstep.trans_eq (by rw [hveq]))
 
+omit [Nonempty ι] in
 /-- The spectral norm of a finite sum of matrices is at most the sum of their spectral norms
 [ChildsKothari2010]. -/
 lemma specNorm_sum_le {m : ℕ} (S : Fin m → Matrix ι ι ℂ) :

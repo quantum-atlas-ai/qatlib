@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ClusterPatterns.ClusterCompile.IsingClusterPulseCompilationStat
+module
+
+public import Qatlib.Concepts.ClusterPatterns.ClusterCompile.IsingClusterPulseCompilationStat
+
+@[expose] public section
 
 /-!
 # Ising cluster pulse compilation

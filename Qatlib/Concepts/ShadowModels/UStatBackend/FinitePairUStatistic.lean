@@ -4,24 +4,28 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Lean.Elab.Tactic.NormCast
-import Lean.Elab.Tactic.Omega
-import Mathlib.Algebra.BigOperators.Field
-import Mathlib.Algebra.EuclideanDomain.Basic
-import Mathlib.Algebra.EuclideanDomain.Field
-import Mathlib.AlgebraicTopology.SimplexCategory.Basic
-import Mathlib.Analysis.RCLike.Basic
-import Mathlib.Data.Nat.Choose.Cast
-import Mathlib.Algebra.Order.Star.Real
-import Mathlib.Tactic.Convert
-import Mathlib.Tactic.Ext
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.FinCases
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.SimpRw
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+module
+
+public import Lean.Elab.Tactic.NormCast
+public import Lean.Elab.Tactic.Omega
+public import Mathlib.Algebra.BigOperators.Field
+public import Mathlib.Algebra.EuclideanDomain.Basic
+public import Mathlib.Algebra.EuclideanDomain.Field
+public import Mathlib.AlgebraicTopology.SimplexCategory.Basic
+public import Mathlib.Analysis.RCLike.Basic
+public import Mathlib.Data.Nat.Choose.Cast
+public import Mathlib.Algebra.Order.Star.Real
+public import Mathlib.Tactic.Convert
+public import Mathlib.Tactic.Ext
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.FinCases
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.SimpRw
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+
+@[expose] public section
 
 /-!
 # Finite pair U-statistics

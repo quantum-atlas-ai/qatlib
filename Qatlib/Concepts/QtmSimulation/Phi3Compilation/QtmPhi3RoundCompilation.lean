@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QtmSimulation.Phi3Compilation.QtmPhi3LocalTransport
+module
+
+public import Qatlib.Concepts.QtmSimulation.Phi3Compilation.QtmPhi3LocalTransport
+
+@[expose] public section
 
 /-!
 # Assembly of QTM round compilation tables
@@ -139,7 +143,7 @@ theorem qtmMarkerCell_ket {Q A : Type} [Fintype Q] [DecidableEq Q]
     simpa [ApplyGate,Matrix.mulVec,dotProduct,Qatlib.Foundations.PureStateMath.Ket,qtmLocalMarker] using! h
   rw [qtmMarkerCell,qtmCellGate_ket]
   simp only [qtmSingleCell,Function.Embedding.coeFn_mk,hcoeff]
-  simp only [Qatlib.Foundations.PureStateMath.Ket,ite_smul,one_smul,zero_smul,Finset.sum_ite_eq',Finset.mem_univ,if_true]
+  simp only [Qatlib.Foundations.PureStateMath.Ket,ite_smul,one_smul,zero_smul,Finset.sum_ite_eq',Finset.mem_univ,ite_true]
   congr 1
   funext i
   by_cases hi : i=j

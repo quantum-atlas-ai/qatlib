@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FiniteLocc.LOCCProgram.LocalResourceNetwork
+module
+
+public import Qatlib.Concepts.FiniteLocc.LOCCProgram.LocalResourceNetwork
+
+@[expose] public section
 
 /-!
 # Dev-side typed adapter for the finite LOCC resource witness

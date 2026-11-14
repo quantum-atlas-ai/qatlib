@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.FiniteStats.BornEstimator.InvolutionProj
-import Qatlib.Foundations.GraphFraction.CoverLP.WeightedCover
+module
+
+public import Qatlib.Foundations.FiniteStats.BornEstimator.InvolutionProj
+public import Qatlib.Foundations.GraphFraction.CoverLP.WeightedCover
+
+@[expose] public section
 
 /-!
 # Joint apparatus for commuting observable contexts
@@ -71,14 +75,14 @@ theorem contextBranch_idempotent (S : V → HermitianMat d ℂ) (hS : ∀ i,(S i
     (I : Context (commutationGraph S)) (j : Fin (Fintype.card V)) (b : Bool) :
     (contextBranch S I j b).mat*(contextBranch S I j b).mat=(contextBranch S I j b).mat := by
   by_cases hi : (Fintype.equivFin V).symm j∈I.val
-  · simpa only [contextBranch,if_pos hi] using involutionProjector_idempotent _ (hS _) b
+  · simpa only [contextBranch,ite_eq_left hi] using involutionProjector_idempotent _ (hS _) b
   · cases b <;> simp [contextBranch,hi]
 
 /-- The two context branches at any coordinate sum to the identity. -/
 theorem contextBranch_sum (S : V → HermitianMat d ℂ) (I : Context (commutationGraph S)) (j : Fin (Fintype.card V)) :
     (contextBranch S I j false).mat+(contextBranch S I j true).mat=1 := by
   by_cases hi : (Fintype.equivFin V).symm j∈I.val
-  · simpa only [contextBranch,if_pos hi,HermitianMat.mat_add,HermitianMat.mat_one] using
+  · simpa only [contextBranch,ite_eq_left hi,HermitianMat.mat_add,HermitianMat.mat_one] using
       congrArg HermitianMat.mat (involutionProjector_sum (S ((Fintype.equivFin V).symm j)))
   · simp [contextBranch,hi]
 
@@ -88,7 +92,7 @@ theorem contextBranch_commute (S : V → HermitianMat d ℂ) (I : Context (commu
     Commute (contextBranch S I i a).mat (contextBranch S I j b).mat := by
   by_cases hi : (Fintype.equivFin V).symm i∈I.val
   · by_cases hj : (Fintype.equivFin V).symm j∈I.val
-    · simpa only [contextBranch,if_pos hi,if_pos hj] using
+    · simpa only [contextBranch,ite_eq_left hi,ite_eq_left hj] using
         involutionProjector_commute _ _ (context_observables_commute S I _ _ hi hj) a b
     · cases b <;> simp [contextBranch,hi,hj,Commute,SemiconjBy]
   · cases a <;> simp [contextBranch,hi,Commute,SemiconjBy]

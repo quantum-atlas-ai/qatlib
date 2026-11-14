@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FreshFallback.BitScanLedger.ClassicalOracleWitnessBoundsDefs
-import Mathlib.Data.List.Nodup
-import Mathlib.Data.List.Perm.Subperm
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.Linarith
-import Qatlib.Concepts.QmaCompleteness.WitnessSampler.Theorem62CumulativeSamplerSepa
+module
+
+public import Qatlib.Concepts.FreshFallback.BitScanLedger.ClassicalOracleWitnessBoundsDefs
+public import Mathlib.Data.List.Nodup
+public import Mathlib.Data.List.Perm.Subperm
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.Linarith
+public import Qatlib.Concepts.QmaCompleteness.WitnessSampler.Theorem62CumulativeSamplerSepa
+
+@[expose] public section
 
 /-!
 # Classical oracle witness bounds
@@ -348,7 +352,7 @@ theorem strongWeight_sum (n ℓ : ℕ) (κ : ℝ) (s : Fin ℓ → Reg n) :
       intro y _
       by_cases hy : y = ZeroStr n
       · subst y; simp [factor, hU]
-      · simp only [factor, if_neg hy]
+      · simp only [factor, ite_eq_right hy]
   simp_rw [heq]
   have hsum : (∑ U : Reg n → Bool, ∏ y, factor y (U y)) =
       ∏ y : Reg n, ∑ b : Bool, factor y b := by
@@ -576,10 +580,10 @@ theorem occupied_born_le_moment {I : Type} [Fintype I] [DecidableEq I] {ℓ v : 
   have hnn : 0 ≤ BornProb φ s := sq_nonneg ‖φ s‖
   have hbound := occupied_indicator_le_moment guesses s
   by_cases h : allOccupied guesses s
-  · rw [if_pos h] at hbound ⊢
+  · rw [ite_eq_left h] at hbound ⊢
     have hreal : (1 : ℝ) ≤ (occupationMoment guesses s : ℝ) := by exact_mod_cast hbound
     exact (mul_one (BornProb φ s)).symm.trans_le (mul_le_mul_of_nonneg_left hreal hnn)
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     exact mul_nonneg hnn (Nat.cast_nonneg _)
 
 end Qatlib.Concepts.FreshFallback.BitScanLedger

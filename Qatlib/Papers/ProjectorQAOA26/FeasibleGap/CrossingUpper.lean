@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ProjectorQAOA26.FeasibleGap.GlobalLower
-import Qatlib.Papers.ProjectorQAOA26.FeasibleGap.CrossingSpectrum
+module
+
+public import Qatlib.Papers.ProjectorQAOA26.FeasibleGap.GlobalLower
+public import Qatlib.Papers.ProjectorQAOA26.FeasibleGap.CrossingSpectrum
+
+@[expose] public section
 
 /-!
 # Upper and lower bounds for the minimum gap

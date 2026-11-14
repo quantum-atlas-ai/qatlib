@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkFind.SearchAlgorithm.NativeSourceDefs
-import Mathlib.LinearAlgebra.Lagrange
-import Mathlib.GroupTheory.Index
-import Mathlib.LinearAlgebra.Basis.VectorSpace
-import Mathlib.FieldTheory.Finite.GaloisField
+module
+
+public import Qatlib.Concepts.WalkFind.SearchAlgorithm.NativeSourceDefs
+public import Mathlib.LinearAlgebra.Lagrange
+public import Mathlib.GroupTheory.Index
+public import Mathlib.LinearAlgebra.Basis.VectorSpace
+public import Mathlib.FieldTheory.Finite.GaloisField
+
+@[expose] public section
 
 /-!
 # Independent binary hashes from finite-field polynomials
@@ -228,7 +232,7 @@ theorem polynomialBinaryHash_independent {K : Type*} [Field K] [Fintype K]
       (seeds s)).val.eval (nodes (i j)))) = values j) ↔
       (fun j => coordinate (((Polynomial.degreeLTEquiv K d).symm
         (seeds s)).val.eval (nodes (i j)))) = (fun j => bits.symm (values j))
-    simp only [funext_iff, Equiv.apply_eq_iff_eq_symm_apply]
+    simp only [funext_iff, ← Equiv.eq_symm_apply]
   calc
     _ = eventProbability (fun s =>
         sampledPolynomialBinaryEvaluation d m (nodes ∘ i) coordinate (seeds s) =
@@ -257,7 +261,7 @@ theorem logarithmicSeedBinaryHash_exists (N d : ℕ) (hN : 2 ≤ N) :
     simp only [pow_zero] at hpow
     omega
   let K := GaloisField 2 width
-  letI : Fintype K := Fintype.ofFinite K
+  let : Fintype K := Fintype.ofFinite K
   have hK : Fintype.card K = 2^width := by
     simpa only [Nat.card_eq_fintype_card] using! GaloisField.card 2 width hwidth
   let fieldEncoding : K ≃ Fin (2^width) := Fintype.equivFinOfCardEq hK

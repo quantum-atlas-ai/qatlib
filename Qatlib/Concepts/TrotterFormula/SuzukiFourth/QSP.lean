@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PhaseGeometry.Phase
+module
+
+public import Qatlib.Concepts.PhaseGeometry.Phase
+
+@[expose] public section
 
 /-!
 # Polynomial responses for quantum signal processing

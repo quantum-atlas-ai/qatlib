@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Concepts.ChannelTheory.Stinespring.ShadowEstimator
-import QuantumInfo.ForMathlib.HermitianMat.Sqrt
-import Mathlib.Tactic
+module
+
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Concepts.ChannelTheory.Stinespring.ShadowEstimator
+public import QuantumInfo.ForMathlib.HermitianMat.Sqrt
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Tensor algebra for finite qubit registers

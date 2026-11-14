@@ -4,20 +4,25 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryDefs
-import Mathlib.Algebra.Order.Floor.Semiring
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.AdaptiveQueryPurification
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.KrausCircuitCompile
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedRelabel
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedPairedExecution
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedPurification
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.DensityPurification
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.KrausCircuitMixed
-import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
-import Qatlib.Concepts.Execution.CircuitCompile.InstrumentCircuitTransport
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.VariableKrausStatistics
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.InstrumentMachinePrefix
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryPhaseOracle
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryDefs
+public import Mathlib.Algebra.Order.Floor.Semiring
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.AdaptiveQueryPurification
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.KrausCircuitCompile
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedRelabel
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedPairedExecution
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedPurification
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.DensityPurification
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.KrausCircuitMixed
+public import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
+public import Qatlib.Concepts.Execution.CircuitCompile.InstrumentCircuitTransport
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.VariableKrausStatistics
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.InstrumentMachinePrefix
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryPhaseOracle
+
+@[expose] public section
+set_option linter.unusedSimpArgs false
 
 /-!
 # Compiling adaptive circuits for adversary bounds
@@ -1334,9 +1339,9 @@ theorem instrumentQueryTail_le_expected (O : Operator d) (P : InstrumentCircuit 
       simp only [List.map_cons,List.sum_cons,add_mul]
       apply add_le_add ?_ hi
       by_cases hq : K ≤ t.queries
-      · simp only [if_pos hq]
+      · simp only [ite_eq_left hq]
         exact mul_le_mul_of_nonneg_left (Nat.cast_le.mpr hq) ht
-      · simp only [if_neg hq,zero_mul]
+      · simp only [ite_eq_right hq,zero_mul]
         exact mul_nonneg ht (Nat.cast_nonneg _)
   exact hs _ hm
 end

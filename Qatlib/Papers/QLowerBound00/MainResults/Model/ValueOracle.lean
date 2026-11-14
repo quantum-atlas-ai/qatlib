@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Basic.Complex.Basic
-import Mathlib.Data.Finset.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Data.Finset.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Finite-alphabet value-query model

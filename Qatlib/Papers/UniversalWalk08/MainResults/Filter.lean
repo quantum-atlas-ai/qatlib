@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.UniversalWalk08.MainResults.WalkModel.MomentumStates
-import Mathlib.Data.Matrix.Mul
-import Mathlib.LinearAlgebra.Matrix.Determinant.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Deriv
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.UniversalWalk08.MainResults.WalkModel.MomentumStates
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.LinearAlgebra.Matrix.Determinant.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Deriv
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Transfer matrices for the momentum filter
@@ -59,7 +63,7 @@ theorem transferMatrix_sq (a : ℝ) (y : ℂ) :
       ((a : ℂ) - y) • transferMatrix a y - 1 := by
   ext i j
   fin_cases i <;> fin_cases j <;>
-    simp [transferMatrix, Matrix.mul_apply, Fin.sum_univ_two] <;> ring
+    simp [transferMatrix, Matrix.mul_apply, Fin.sum_univ_two]; ring
 
 /-- The pair of consecutive amplitudes stored as the vector `(u1, u0)`. -/
 def ampVec (u0 u1 : ℂ) : Fin 2 → ℂ := ![u1, u0]

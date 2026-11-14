@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Cbmd26.Algorithms.ApproximationAiry
-import Qatlib.Papers.Cbmd26.Algorithms.ApproximationPropagators
-import Qatlib.Papers.Cbmd26.Algorithms.PropagatorSpectralBridge
+module
+
+public import Qatlib.Papers.Cbmd26.Algorithms.ApproximationAiry
+public import Qatlib.Papers.Cbmd26.Algorithms.ApproximationPropagators
+public import Qatlib.Papers.Cbmd26.Algorithms.PropagatorSpectralBridge
+
+@[expose] public section
 
 /-!
 # Uniform polynomial approximation of second-order propagators

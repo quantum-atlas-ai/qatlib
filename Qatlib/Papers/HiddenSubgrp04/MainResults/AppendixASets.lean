@@ -4,68 +4,72 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.CharZero.Defs
-import Mathlib.Algebra.Field.Defs
-import Mathlib.Algebra.Group.Basic
-import Mathlib.Algebra.Group.Defs
-import Mathlib.Algebra.Group.DivInvMonoid
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.Group.Semigroup
-import Mathlib.Algebra.GroupWithZero.Basic
-import Mathlib.Algebra.GroupWithZero.Defs
-import Mathlib.Algebra.GroupWithZero.NeZero
-import Mathlib.Algebra.GroupWithZero.Units.Basic
-import Mathlib.Algebra.NeZero
-import Mathlib.Algebra.Order.Archimedean.Real.Basic
-import Mathlib.Algebra.Order.Floor.Defs
-import Mathlib.Algebra.Order.Floor.Ring
-import Mathlib.Algebra.Order.Group.Abs
-import Mathlib.Algebra.Order.Group.Defs
-import Mathlib.Algebra.Order.Group.Unbundled.Abs
-import Mathlib.Algebra.Order.GroupWithZero.Defs
-import Mathlib.Algebra.Order.Monoid.Defs
-import Mathlib.Algebra.Order.Ring.Abs
-import Mathlib.Algebra.Order.Ring.Cast
-import Mathlib.Algebra.Order.Ring.Defs
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Algebra.Ring.Int.Defs
-import Mathlib.Algebra.Ring.Nat
-import Mathlib.Basic.Real.Basic
-import Mathlib.Basic.SetLike.Basic
-import Mathlib.Data.Finset.Basic
-import Mathlib.Data.Finset.Card
-import Mathlib.Data.Finset.Defs
-import Mathlib.Data.Finset.Empty
-import Mathlib.Data.Finset.Filter
-import Mathlib.Data.Finset.Range
-import Mathlib.Data.Int.Cast.Basic
-import Mathlib.Data.Int.Cast.Defs
-import Mathlib.Data.Int.Order.Basic
-import Mathlib.Data.Nat.Cast.Defs
-import Mathlib.Data.Nat.Cast.Order.Basic
-import Mathlib.Data.Nat.Init
-import Mathlib.Data.Set.Defs
-import Mathlib.Order.Defs.Lattice
-import Mathlib.Order.Defs.LinearOrder
-import Mathlib.Order.Defs.PartialOrder
-import Mathlib.Order.Disjoint
-import Mathlib.Order.Interval.Set.Defs
-import Mathlib.Order.Lattice
-import Mathlib.Order.RelClasses
-import Mathlib.Tactic
-import Mathlib.Tactic.CancelDenoms.Core
-import Mathlib.Tactic.FieldSimp.Lemmas
-import Mathlib.Tactic.Linarith.Lemmas
-import Mathlib.Tactic.Linarith.Preprocessing
-import Mathlib.Tactic.NormNum.Basic
-import Mathlib.Tactic.NormNum.Ineq
-import Mathlib.Tactic.NormNum.Inv
-import Mathlib.Tactic.NormNum.Result
-import Mathlib.Tactic.Ring.Basic
-import Mathlib.Tactic.Ring.Common
-import Mathlib.Tactic.Ring.RingNF
-import Qatlib.Papers.HiddenSubgrp04.MainResults.Defs
+module
+
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.CharZero.Defs
+public import Mathlib.Algebra.Field.Defs
+public import Mathlib.Algebra.Group.Basic
+public import Mathlib.Algebra.Group.Defs
+public import Mathlib.Algebra.Group.DivInvMonoid
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.Group.Semigroup
+public import Mathlib.Algebra.GroupWithZero.Basic
+public import Mathlib.Algebra.GroupWithZero.Defs
+public import Mathlib.Algebra.GroupWithZero.NeZero
+public import Mathlib.Algebra.GroupWithZero.Units.Basic
+public import Mathlib.Algebra.NeZero
+public import Mathlib.Algebra.Order.Archimedean.Real.Basic
+public import Mathlib.Algebra.Order.Floor.Defs
+public import Mathlib.Algebra.Order.Floor.Ring
+public import Mathlib.Algebra.Order.Group.Abs
+public import Mathlib.Algebra.Order.Group.Defs
+public import Mathlib.Algebra.Order.Group.Unbundled.Abs
+public import Mathlib.Algebra.Order.GroupWithZero.Defs
+public import Mathlib.Algebra.Order.Monoid.Defs
+public import Mathlib.Algebra.Order.Ring.Abs
+public import Mathlib.Algebra.Order.Ring.Cast
+public import Mathlib.Algebra.Order.Ring.Defs
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Algebra.Ring.Int.Defs
+public import Mathlib.Algebra.Ring.Nat
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Basic.SetLike.Basic
+public import Mathlib.Data.Finset.Basic
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Data.Finset.Defs
+public import Mathlib.Data.Finset.Empty
+public import Mathlib.Data.Finset.Filter
+public import Mathlib.Data.Finset.Range
+public import Mathlib.Data.Int.Cast.Basic
+public import Mathlib.Data.Int.Cast.Defs
+public import Mathlib.Data.Int.Order.Basic
+public import Mathlib.Data.Nat.Cast.Defs
+public import Mathlib.Data.Nat.Cast.Order.Basic
+public import Mathlib.Data.Nat.Init
+public import Mathlib.Data.Set.Defs
+public import Mathlib.Order.Defs.Lattice
+public import Mathlib.Order.Defs.LinearOrder
+public import Mathlib.Order.Defs.PartialOrder
+public import Mathlib.Order.Disjoint
+public import Mathlib.Order.Interval.Set.Defs
+public import Mathlib.Order.Lattice
+public import Mathlib.Order.RelClasses
+public import Mathlib.Tactic
+public import Mathlib.Tactic.CancelDenoms.Core
+public import Mathlib.Tactic.FieldSimp.Lemmas
+public import Mathlib.Tactic.Linarith.Lemmas
+public import Mathlib.Tactic.Linarith.Preprocessing
+public import Mathlib.Tactic.NormNum.Basic
+public import Mathlib.Tactic.NormNum.Ineq
+public import Mathlib.Tactic.NormNum.Inv
+public import Mathlib.Tactic.NormNum.Result
+public import Mathlib.Tactic.Ring.Basic
+public import Mathlib.Tactic.Ring.Common
+public import Mathlib.Tactic.Ring.RingNF
+public import Qatlib.Papers.HiddenSubgrp04.MainResults.Defs
+
+@[expose] public section
 
 /-!
 # Rounded cells and modular-distance estimates
@@ -166,8 +170,8 @@ theorem abs_distMod_sub_le {M : ℝ} (hM : 0 < M) (x y : ℝ) :
 
 /-- The proposition that the two specified distinct cells have equal cardinality and are
 disjoint, under N > 2, M ≥ 2N, and valid index hypotheses. -/
-def lemma_A4Statement (M N : ℕ) (hN : 2 < N) (hM : 2 * N ≤ M)
-    (i1 i2 : ℕ) (h1 : i1 < N) (h2 : i2 < N) (hne : i1 ≠ i2) : Prop :=
+def lemma_A4Statement (M N : ℕ) (_hN : 2 < N) (_hM : 2 * N ≤ M)
+    (i1 i2 : ℕ) (_h1 : i1 < N) (_h2 : i2 < N) (_hne : i1 ≠ i2) : Prop :=
     (cell M N i1).card = (cell M N i2).card ∧
       Disjoint (cell M N i1) (cell M N i2)
 
@@ -182,8 +186,8 @@ def lemma_A5Statement (M N : ℕ) : Prop :=
 
 /-- If `k` is outside the i-th cell and the size and index hypotheses hold, its modular distance
 from Mi/N is at least M/(2N) − 1 ([Lemma A.6][Lomont2004]). -/
-theorem lemma_A6 (M N i k : ℕ) (hN : 2 < N) (hM : 2 * N ≤ M)
-    (hi : i < N) (hk : k < M) (hnot : k ∉ cell M N i) :
+theorem lemma_A6 (M N i k : ℕ) (hN : 2 < N) (_hM : 2 * N ≤ M)
+    (_hi : i < N) (hk : k < M) (hnot : k ∉ cell M N i) :
     (M : ℝ) / (2 * (N : ℝ)) - 1 ≤
       distMod (M : ℝ) ((k : ℝ) - (M : ℝ) / (N : ℝ) * (i : ℝ)) := by
   have hNpos : (0 : ℝ) < (N : ℝ) := by exact_mod_cast (by omega : 0 < N)

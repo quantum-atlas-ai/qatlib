@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HermitianMap26.Construction.Basic
-import Qatlib.Papers.HermitianMap26.Construction.PostProcessing
+module
+
+public import Qatlib.Papers.HermitianMap26.Construction.Basic
+public import Qatlib.Papers.HermitianMap26.Construction.PostProcessing
+
+@[expose] public section
 
 /-!
 # Exact signed post-processing of a CPTP compilation

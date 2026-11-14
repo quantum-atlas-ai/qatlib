@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.FiniteLaws.FiniteDistributionVariation
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.FiniteLaws.FinitePinsker
+module
+
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.FiniteLaws.FiniteDistributionVariation
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.FiniteLaws.FinitePinsker
+
+@[expose] public section
 
 /-!
 # Distinguishability of finite output laws
@@ -45,6 +49,7 @@ def advantage (p q : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X) : �
 theorem testGap_le (p q : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X) (f : X → Bool) : testGap p q f ≤ tv p q :=
   FiniteDistributionVariation.event_distance p q (Finset.univ.filter fun x => f x=true)
 
+omit [DecidableEq X] in
 /-- The test accepting exactly where the mass of `p` is at least the mass of `q` attains their
 total variation distance. -/
 theorem positive_test_attains (p q : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X) :

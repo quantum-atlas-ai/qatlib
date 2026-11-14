@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LinDynamics23.DiscreteObs.Proposition20HybridObservableBiasStat
-import Qatlib.Papers.LinDynamics23.DiscreteObs.Proposition20HybridObservableEstDefs
+module
+
+public import Qatlib.Papers.LinDynamics23.DiscreteObs.Proposition20HybridObservableBiasStat
+public import Qatlib.Papers.LinDynamics23.DiscreteObs.Proposition20HybridObservableEstDefs
+
+@[expose] public section
 
 /-!
 # Hybrid observable estimation statement

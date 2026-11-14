@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SearchStopping.KnownCount.Section3BoundarySubgoal
-import Qatlib.Concepts.SearchStopping.KnownCount.Section3KnownCountSubgoalTigh
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.LocalCapability
-import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.ResourceDerivation
-import Qatlib.Concepts.LchsSimulation.StaticLchs.ReadoutError
+module
+
+public import Qatlib.Concepts.SearchStopping.KnownCount.Section3BoundarySubgoal
+public import Qatlib.Concepts.SearchStopping.KnownCount.Section3KnownCountSubgoal
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.LocalCapability
+public import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.ResourceDerivation
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.ReadoutError
+
+@[expose] public section
 
 /-!
 # Prepared Grover search from the zero register

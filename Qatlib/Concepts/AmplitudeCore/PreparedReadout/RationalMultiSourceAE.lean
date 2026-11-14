@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.SmallProbabilitySchedule
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSource.DenseHistoryThreeSourceAE
+module
+
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.SmallProbabilitySchedule
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.MultiSource.DenseHistoryThreeSourceAE
+
+@[expose] public section
 
 /-!
 # Rational readout for three-source amplitude estimation

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ShadowTomog26.MainResults.Core
-import Qatlib.Papers.ShadowTomog26.MainResults.Theorem1
+module
+
+public import Qatlib.Papers.ShadowTomog26.MainResults.Core
+public import Qatlib.Papers.ShadowTomog26.MainResults.Theorem1
+
+@[expose] public section
 
 /-!
 # Block-product graph-body minimax bounds

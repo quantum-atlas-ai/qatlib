@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Normed.Algebra.Exponential
-import Mathlib.Analysis.Normed.Operator.Basic
-import Mathlib.Analysis.InnerProductSpace.Basic
-import Mathlib.Analysis.InnerProductSpace.Adjoint
-import Mathlib.Basic.Complex.Basic
-import Mathlib.Analysis.SpecialFunctions.Exponential
-import Mathlib.Analysis.CStarAlgebra.Basic
+module
+
+public import Mathlib.Analysis.Normed.Algebra.Exponential
+public import Mathlib.Analysis.Normed.Operator.Basic
+public import Mathlib.Analysis.InnerProductSpace.Basic
+public import Mathlib.Analysis.InnerProductSpace.Adjoint
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Analysis.SpecialFunctions.Exponential
+public import Mathlib.Analysis.CStarAlgebra.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

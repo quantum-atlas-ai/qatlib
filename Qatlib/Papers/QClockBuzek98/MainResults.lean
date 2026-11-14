@@ -4,103 +4,107 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Algebra.Basic
-import Mathlib.Algebra.Algebra.Defs
-import Mathlib.Algebra.BigOperators.Field
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Defs
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Algebra.CharZero.Defs
-import Mathlib.Algebra.Field.Defs
-import Mathlib.Algebra.Group.Action.Defs
-import Mathlib.Algebra.Group.Basic
-import Mathlib.Algebra.Group.Defs
-import Mathlib.Algebra.Group.DivInvMonoid
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.Group.Nat.Defs
-import Mathlib.Algebra.Group.Semigroup
-import Mathlib.Algebra.GroupWithZero.Action.Defs
-import Mathlib.Algebra.GroupWithZero.Basic
-import Mathlib.Algebra.GroupWithZero.Defs
-import Mathlib.Algebra.GroupWithZero.Nat
-import Mathlib.Algebra.GroupWithZero.NeZero
-import Mathlib.Algebra.GroupWithZero.Units.Basic
-import Mathlib.Algebra.Module.Defs
-import Mathlib.Algebra.NeZero
-import Mathlib.Algebra.Order.Archimedean.Real.Basic
-import Mathlib.Algebra.Order.BigOperators.Group.Finset
-import Mathlib.Algebra.Order.Field.Basic
-import Mathlib.Algebra.Order.Floor.Defs
-import Mathlib.Algebra.Order.GroupWithZero.Basic
-import Mathlib.Algebra.Order.GroupWithZero.Defs
-import Mathlib.Algebra.Order.Monoid.Defs
-import Mathlib.Algebra.Order.Monoid.Unbundled.Basic
-import Mathlib.Algebra.Order.Monoid.Unbundled.Defs
-import Mathlib.Algebra.Order.Ring.Defs
-import Mathlib.Algebra.Order.Ring.Star
-import Mathlib.Algebra.Order.Ring.Unbundled.Basic
-import Mathlib.Algebra.Order.Star.Basic
-import Mathlib.Algebra.Order.Star.Real
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Algebra.Ring.Nat
-import Mathlib.Algebra.Star.Basic
-import Mathlib.Analysis.Complex.Trigonometric
-import Mathlib.Analysis.Convex.Jensen
-import Mathlib.Analysis.Normed.Field.Basic
-import Mathlib.Analysis.Normed.Ring.Basic
-import Mathlib.Analysis.RCLike.Basic
-import Mathlib.Analysis.Real.Sqrt
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.SpecialFunctions.Log.NegMulLog
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
-import Mathlib.Basic.Real.Basic
-import Mathlib.Basic.Real.Star
-import Mathlib.Basic.SetLike.Basic
-import Mathlib.Data.Finset.Basic
-import Mathlib.Data.Finset.Card
-import Mathlib.Data.Finset.Defs
-import Mathlib.Data.Finset.Range
-import Mathlib.Data.Fintype.Basic
-import Mathlib.Data.Fintype.BigOperators
-import Mathlib.Data.Fintype.Card
-import Mathlib.Data.Fintype.Defs
-import Mathlib.Data.Fintype.Prod
-import Mathlib.Data.Int.Cast.Basic
-import Mathlib.Data.Int.Cast.Defs
-import Mathlib.Data.Nat.Basic
-import Mathlib.Data.Nat.Cast.Basic
-import Mathlib.Data.Nat.Cast.Defs
-import Mathlib.Data.Nat.Cast.Order.Basic
-import Mathlib.Data.Nat.Cast.Order.Ring
-import Mathlib.Data.Nat.Choose.Basic
-import Mathlib.Data.Nat.Choose.Sum
-import Mathlib.Data.Nat.Init
-import Mathlib.Logic.Function.Defs
-import Mathlib.Order.Basic
-import Mathlib.Order.Defs.Lattice
-import Mathlib.Order.Defs.LinearOrder
-import Mathlib.Order.Defs.PartialOrder
-import Mathlib.Order.Interval.Set.Defs
-import Mathlib.Order.Lattice
-import Mathlib.RingTheory.Etale.Weakly
-import Mathlib.RingTheory.Flat.TorsionFree
-import Mathlib.RingTheory.TotallySplit
-import Mathlib.Tactic
-import Mathlib.Tactic.CancelDenoms.Core
-import Mathlib.Tactic.FieldSimp.Lemmas
-import Mathlib.Tactic.Linarith.Lemmas
-import Mathlib.Tactic.Linarith.Preprocessing
-import Mathlib.Tactic.LinearCombination.Lemmas
-import Mathlib.Tactic.NormNum.Basic
-import Mathlib.Tactic.NormNum.Eq
-import Mathlib.Tactic.NormNum.Ineq
-import Mathlib.Tactic.NormNum.Inv
-import Mathlib.Tactic.NormNum.Pow
-import Mathlib.Tactic.NormNum.Result
-import Mathlib.Tactic.Positivity.Core
-import Mathlib.Tactic.Ring.Basic
-import Mathlib.Tactic.Ring.Common
+module
+
+public import Mathlib.Algebra.Algebra.Basic
+public import Mathlib.Algebra.Algebra.Defs
+public import Mathlib.Algebra.BigOperators.Field
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Defs
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Algebra.CharZero.Defs
+public import Mathlib.Algebra.Field.Defs
+public import Mathlib.Algebra.Group.Action.Defs
+public import Mathlib.Algebra.Group.Basic
+public import Mathlib.Algebra.Group.Defs
+public import Mathlib.Algebra.Group.DivInvMonoid
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.Group.Nat.Defs
+public import Mathlib.Algebra.Group.Semigroup
+public import Mathlib.Algebra.GroupWithZero.Action.Defs
+public import Mathlib.Algebra.GroupWithZero.Basic
+public import Mathlib.Algebra.GroupWithZero.Defs
+public import Mathlib.Algebra.GroupWithZero.Nat
+public import Mathlib.Algebra.GroupWithZero.NeZero
+public import Mathlib.Algebra.GroupWithZero.Units.Basic
+public import Mathlib.Algebra.Module.Defs
+public import Mathlib.Algebra.NeZero
+public import Mathlib.Algebra.Order.Archimedean.Real.Basic
+public import Mathlib.Algebra.Order.BigOperators.Group.Finset
+public import Mathlib.Algebra.Order.Field.Basic
+public import Mathlib.Algebra.Order.Floor.Defs
+public import Mathlib.Algebra.Order.GroupWithZero.Basic
+public import Mathlib.Algebra.Order.GroupWithZero.Defs
+public import Mathlib.Algebra.Order.Monoid.Defs
+public import Mathlib.Algebra.Order.Monoid.Unbundled.Basic
+public import Mathlib.Algebra.Order.Monoid.Unbundled.Defs
+public import Mathlib.Algebra.Order.Ring.Defs
+public import Mathlib.Algebra.Order.Ring.Star
+public import Mathlib.Algebra.Order.Ring.Unbundled.Basic
+public import Mathlib.Algebra.Order.Star.Basic
+public import Mathlib.Algebra.Order.Star.Real
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Algebra.Ring.Nat
+public import Mathlib.Algebra.Star.Basic
+public import Mathlib.Analysis.Complex.Trigonometric
+public import Mathlib.Analysis.Convex.Jensen
+public import Mathlib.Analysis.Normed.Field.Basic
+public import Mathlib.Analysis.Normed.Ring.Basic
+public import Mathlib.Analysis.RCLike.Basic
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.SpecialFunctions.Log.NegMulLog
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Basic.Real.Star
+public import Mathlib.Basic.SetLike.Basic
+public import Mathlib.Data.Finset.Basic
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Data.Finset.Defs
+public import Mathlib.Data.Finset.Range
+public import Mathlib.Data.Fintype.Basic
+public import Mathlib.Data.Fintype.BigOperators
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Data.Fintype.Defs
+public import Mathlib.Data.Fintype.Prod
+public import Mathlib.Data.Int.Cast.Basic
+public import Mathlib.Data.Int.Cast.Defs
+public import Mathlib.Data.Nat.Basic
+public import Mathlib.Data.Nat.Cast.Basic
+public import Mathlib.Data.Nat.Cast.Defs
+public import Mathlib.Data.Nat.Cast.Order.Basic
+public import Mathlib.Data.Nat.Cast.Order.Ring
+public import Mathlib.Data.Nat.Choose.Basic
+public import Mathlib.Data.Nat.Choose.Sum
+public import Mathlib.Data.Nat.Init
+public import Mathlib.Logic.Function.Defs
+public import Mathlib.Order.Basic
+public import Mathlib.Order.Defs.Lattice
+public import Mathlib.Order.Defs.LinearOrder
+public import Mathlib.Order.Defs.PartialOrder
+public import Mathlib.Order.Interval.Set.Defs
+public import Mathlib.Order.Lattice
+public import Mathlib.RingTheory.Etale.Weakly
+public import Mathlib.RingTheory.Flat.TorsionFree
+public import Mathlib.RingTheory.TotallySplit
+public import Mathlib.Tactic
+public import Mathlib.Tactic.CancelDenoms.Core
+public import Mathlib.Tactic.FieldSimp.Lemmas
+public import Mathlib.Tactic.Linarith.Lemmas
+public import Mathlib.Tactic.Linarith.Preprocessing
+public import Mathlib.Tactic.LinearCombination.Lemmas
+public import Mathlib.Tactic.NormNum.Basic
+public import Mathlib.Tactic.NormNum.Eq
+public import Mathlib.Tactic.NormNum.Ineq
+public import Mathlib.Tactic.NormNum.Inv
+public import Mathlib.Tactic.NormNum.Pow
+public import Mathlib.Tactic.NormNum.Result
+public import Mathlib.Tactic.Positivity.Core
+public import Mathlib.Tactic.Ring.Basic
+public import Mathlib.Tactic.Ring.Common
+
+@[expose] public section
 
 /-!
 # Clock amplitude costs and entropy estimates
@@ -320,7 +324,7 @@ theorem sine_interior_eigen (N : ℕ) {m : ℕ} (hm0 : 0 < m) (hmN : m < N) :
   have hm1 : m + 1 ≤ N := by omega
   have hmle : 1 ≤ m := hm0
   unfold costOp sineAmplitude
-  rw [if_pos hm1, if_pos hmle]
+  rw [ite_eq_left hm1, ite_eq_left hmle]
 
   have hsub : (((m - 1 : ℕ)) : ℝ) = (m:ℝ) - 1 := by
     rw [Nat.cast_pred hm0]
@@ -339,7 +343,7 @@ theorem sine_left_boundary (N : ℕ) (hN : 1 ≤ N) :
       (2 - 2 * Real.cos (theta N)) * sineAmplitude N 0 - sineAmplitude N 0 := by
   have h1N : 0 + 1 ≤ N := by simpa using hN
   unfold costOp sineAmplitude
-  rw [if_pos h1N, if_neg (by norm_num : ¬ (1:ℕ) ≤ 0)]
+  rw [ite_eq_left h1N, ite_eq_right (by norm_num : ¬ (1:ℕ) ≤ 0)]
 
   have hv0 : theta N * ((0:ℕ) + 1/2) = theta N / 2 := by push_cast; ring
   have hv1 : theta N * (((1:ℕ)) + 1/2) = 3 * theta N / 2 := by push_cast; ring
@@ -369,21 +373,21 @@ theorem costForm_offdiag (N : ℕ) (a : ℕ → ℝ) :
       = ∑ m ∈ range N, a m * a (m+1) := by
     rw [Finset.sum_range_succ]
     have hz : a N * (if N + 1 ≤ N then a (N + 1) else 0) = 0 := by
-      rw [if_neg (by omega)]; ring
+      rw [ite_eq_right (by omega)]; ring
     rw [show (∑ m ∈ range N, a m * (if m + 1 ≤ N then a (m + 1) else 0))
           = ∑ m ∈ range N, a m * a (m+1) from by
           apply Finset.sum_congr rfl; intro m hm
-          rw [if_pos (Nat.succ_le_of_lt (Finset.mem_range.mp hm))], hz]
+          rw [ite_eq_left (Nat.succ_le_of_lt (Finset.mem_range.mp hm))], hz]
     ring
   have hC : (∑ m ∈ range (N+1), a m * (if 1 ≤ m then a (m-1) else 0))
       = ∑ m ∈ range N, a m * a (m+1) := by
     rw [Finset.sum_range_succ']
     rw [show (a 0 * (if 1 ≤ (0:ℕ) then a (0-1) else 0)) = 0 from by
-          rw [if_neg (by norm_num)]; ring]
+          rw [ite_eq_right (by norm_num)]; ring]
     rw [show (∑ m ∈ range N, a (m+1) * (if 1 ≤ m+1 then a (m+1-1) else 0))
           = ∑ m ∈ range N, a m * a (m+1) from by
           apply Finset.sum_congr rfl; intro m _
-          rw [if_pos (by omega)]
+          rw [ite_eq_left (by omega)]
           have h : m + 1 - 1 = m := by omega
           rw [h]; ring]
     ring

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.BQPMixSparse06.MainResults.Theorem2PathsReduction
+module
+
+public import Qatlib.Papers.BQPMixSparse06.MainResults.Theorem2PathsReduction
+
+@[expose] public section
 
 /-!
 # State identities and separated decay thresholds
@@ -59,7 +63,7 @@ theorem graphLaplacian_mulVec {ι : Type*} [Fintype ι] [DecidableEq ι]
     rw [Finset.sum_eq_single i]
     · simp
     · intro x _ hx
-      rw [if_neg (Ne.symm hx)]
+      rw [ite_eq_right (Ne.symm hx)]
       simp
     · intro h
       exact absurd (Finset.mem_univ i) h

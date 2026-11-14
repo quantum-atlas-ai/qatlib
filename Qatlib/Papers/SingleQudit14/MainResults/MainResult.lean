@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SingleQudit14.MainResults.QuditGeneralization
+module
+
+public import Qatlib.Papers.SingleQudit14.MainResults.QuditGeneralization
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -89,7 +93,7 @@ classical algorithm that chooses a query point `x`, reads the single value `f x`
 verdict `A x (f x)` that is correct for every cyclic permutation; at the queried point `x` the
 positive rotation `rotPerm 0` and the negative reflection `reflPerm (2 * x)` both equal `x`,
 forcing the same answer to be both `true` and `false`. -/
-theorem classical_one_query_insufficient (hd : 3 ≤ d) :
+theorem classical_one_query_insufficient (_hd : 3 ≤ d) :
     ¬ ∃ (A : ZMod d → ZMod d → Bool) (x : ZMod d),
         (∀ f : Equiv.Perm (ZMod d), IsPositiveCyclic f → A x (f x) = true) ∧
         (∀ f : Equiv.Perm (ZMod d), IsNegativeCyclic f → A x (f x) = false) := by

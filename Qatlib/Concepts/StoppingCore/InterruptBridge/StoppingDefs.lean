@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.StoppingCore.InterruptBridge.Stopping
-import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
-import Qatlib.Concepts.QuditTeleport.TeleportCore.InstrumentConditioning
-import Qatlib.Concepts.ZeroCostLimit.FirstHitMass.ZeroCostLimit
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
-import Qatlib.Concepts.StoppingCore.InterruptBridge.WeightedStoppingBudget
-import Qatlib.Concepts.StoppingCore.InterruptBridge.QuerySpaceExtensions
-import Qatlib.Concepts.QuditTeleport.TeleportCore.BellReferenceProtocol
-import Qatlib.Concepts.FiniteLocc.LOCCProgram.EntanglementDefs
+module
+
+public import Qatlib.Concepts.StoppingCore.InterruptBridge.Stopping
+public import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.InstrumentConditioning
+public import Qatlib.Concepts.ZeroCostLimit.FirstHitMass.ZeroCostLimit
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+public import Qatlib.Concepts.StoppingCore.InterruptBridge.WeightedStoppingBudget
+public import Qatlib.Concepts.StoppingCore.InterruptBridge.QuerySpaceExtensions
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.BellReferenceProtocol
+public import Qatlib.Concepts.FiniteLocc.LOCCProgram.EntanglementDefs
+
+@[expose] public section
 
 /-!
 # Specifications for interruption and conditioned execution
@@ -260,7 +264,7 @@ def ZeroCostNonZenoLaws : Prop :=
   (∀ (S : Type) [Fintype S] [DecidableEq S] (c : S → ℕ),
       nonZenoCheck c = true ↔ positiveCharge c) ∧
   (∀ (S O : Type) [Fintype S] [DecidableEq S] [Fintype O] [DecidableEq O]
-    (next : S → PMF (O ⊕ S)) (cost : S → ℕ) (hc : ∀ s, 1 ≤ cost s)
+    (next : S → PMF (O ⊕ S)) (cost : S → ℕ) (_hc : ∀ s, 1 ≤ cost s)
     (cfg : O ⊕ S) (o : O) (k fuel : ℕ), k ≤ fuel →
       weightedRunFor next cost fuel cfg (Sum.inl o, k) =
         weightedHaltJoint next cost cfg o k) ∧
@@ -348,7 +352,7 @@ noncomputable def residualsOf {S O : Type} [Fintype S] [DecidableEq S] [Fintype 
 including trace, zero-probability, and density-operator properties. -/
 def ConditionCorrespondence : Prop :=
   ∀ (X : Type) [Fintype X] [DecidableEq X] (D E : ℕ) (I : Instrument X D E)
-    (ρ : Operator D) (hρ : IsDensityOperator ρ) (Ev : X → Prop) [DecidablePred Ev],
+    (ρ : Operator D) (_hρ : IsDensityOperator ρ) (Ev : X → Prop) [DecidablePred Ev],
     eventBranchMap I Ev ρ = ((eventProb I ρ Ev : ℝ) : ℂ) • normalizedPost I ρ Ev ∧
       (Matrix.trace (eventBranchMap I Ev ρ)).re = eventProb I ρ Ev ∧
       (eventProb I ρ Ev = 0 → eventBranchMap I Ev ρ = 0 ∧ normalizedPost I ρ Ev = 0) ∧
@@ -358,7 +362,7 @@ def ConditionCorrespondence : Prop :=
 individual conditional instrument states. -/
 def ConditionMixture : Prop :=
   ∀ (X : Type) [Fintype X] [DecidableEq X] (D E : ℕ) (I : Instrument X D E)
-    (ρ : Operator D) (hρ : IsDensityOperator ρ) (Ev : X → Prop) [DecidablePred Ev],
+    (ρ : Operator D) (_hρ : IsDensityOperator ρ) (Ev : X → Prop) [DecidablePred Ev],
     normalizedPost I ρ Ev =
       ∑ x ∈ Finset.univ.filter Ev,
         if h : 0 < instrumentProb I ρ x then

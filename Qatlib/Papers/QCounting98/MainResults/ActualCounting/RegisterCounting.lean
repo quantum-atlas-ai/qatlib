@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.Execution.WorkspaceCP.WorkspaceWord
-import Qatlib.Papers.QCounting98.MainResults.ActualCounting.GridCapacity
-import Mathlib.Logic.Equiv.Fin.Basic
+module
+
+public import Qatlib.Concepts.Execution.WorkspaceCP.WorkspaceWord
+public import Qatlib.Papers.QCounting98.MainResults.ActualCounting.GridCapacity
+public import Mathlib.Logic.Equiv.Fin.Basic
+
+@[expose] public section
 
 /-!
 # Counting circuits on a common binary register

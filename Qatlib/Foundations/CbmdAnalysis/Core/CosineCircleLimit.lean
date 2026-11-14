@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Core.CosineFiniteCircle
-import Mathlib.Order.Filter.AtTopBot.Field
-import Mathlib.Order.Filter.AtTopBot.Ring
+module
+
+public import Qatlib.Foundations.CbmdAnalysis.Core.CosineFiniteCircle
+public import Mathlib.Order.Filter.AtTopBot.Field
+public import Mathlib.Order.Filter.AtTopBot.Ring
+
+@[expose] public section
 
 /-!
 # Vanishing cosine contour integrals

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+module
+
+public import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+
+@[expose] public section
 
 /-!
 # Partial trace under local matrix evolution
@@ -57,7 +61,7 @@ theorem partialTrace_mul_tensorLeft (D E : ℕ) (A : Operator D)
   ext i j
   simp only [PartialTrace, Matrix.mul_apply, tensorGate_apply, Matrix.one_apply,
     Fintype.sum_prod_type, mul_ite, ite_mul, mul_one, mul_zero, zero_mul, Finset.sum_ite_eq,
-    Finset.mem_univ, if_true, Finset.mul_sum]
+    Finset.mem_univ, ite_true, Finset.mul_sum]
   rw [Finset.sum_comm]
 
 /-- Right multiplication by `A ⊗ 1` passes through the partial trace as right multiplication by
@@ -68,7 +72,7 @@ theorem partialTrace_tensorLeft_mul (D E : ℕ) (A : Operator D)
   ext i j
   simp only [PartialTrace, Matrix.mul_apply, tensorGate_apply, Matrix.one_apply,
     Fintype.sum_prod_type, mul_ite, mul_one, mul_zero, Finset.sum_ite_eq', Finset.mem_univ,
-    if_true, Finset.sum_mul]
+    ite_true, Finset.sum_mul]
   rw [Finset.sum_comm]
 
 /-- The partial trace of a matrix sandwiched between `A ⊗ 1` and the adjoint of `B ⊗ 1` is `A *

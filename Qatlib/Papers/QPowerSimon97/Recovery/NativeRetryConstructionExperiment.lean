@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QPowerSimon97.Recovery.NativeRetryConstructionDefs
-import Qatlib.Concepts.HspRecovery.Distinguisher.BoundedErrorNearPeriodSimo
+module
+
+public import Qatlib.Papers.QPowerSimon97.Recovery.NativeRetryConstructionDefs
+public import Qatlib.Concepts.HspRecovery.Distinguisher.BoundedErrorNearPeriodSimo
+
+@[expose] public section
 
 /-!
 # Native circuits for Simon experiments and verification
@@ -158,7 +162,7 @@ private theorem experiment_extend_encoding {n m : ℕ} (x : BooleanVec n) (y : B
     have hij : experimentFirstWires n m j = i := Fin.ext rfl
     rw [← hij, qtmWireContextExtend_at]
     simp only [regBooleanEquiv_symm_apply, simonEncodePair, simonEncodeContext,
-      experimentFirstWires, Function.Embedding.coeFn_mk, dif_pos j.isLt]
+      experimentFirstWires, Function.Embedding.coeFn_mk, dite_eq_left j.isLt]
     change boolZModEquiv.symm (x j) = decide (x j = 1)
     have hx := (boolZModEquiv.apply_symm_apply (x j))
     cases h : boolZModEquiv.symm (x j)
@@ -207,7 +211,7 @@ private theorem experiment_hadamard_encode {n m : ℕ} (x : BooleanVec n) (y : B
   simp only [qtmWireContextEmbed, simonEncodeState, Fintype.sum_prod_type,
     TensorGate, Matrix.kroneckerMap_apply, Matrix.one_apply]
   simp only [mul_ite, mul_one, mul_zero, ite_smul, zero_smul,
-    Finset.sum_ite_eq', Finset.mem_univ, if_true]
+    Finset.sum_ite_eq', Finset.mem_univ, ite_true]
   rw [← Equiv.sum_comp (regBooleanEquiv n)]
   apply Finset.sum_congr rfl
   intro a _
@@ -422,7 +426,7 @@ noncomputable section
 theorem simonCopySteps_legal (n m : ℕ) (rev : Bool) : reflectionLegal (simonCopySteps n m rev) := by
   rintro g hg
   obtain ⟨i,_,rfl⟩ := List.mem_map.mp hg
-  cases rev <;> simp only [simonCopyGate,Bool.false_eq_true,if_false,if_true,reflectionGateLegal]
+  cases rev <;> simp only [simonCopyGate,Bool.false_eq_true,ite_false,ite_true,reflectionGateLegal]
   all_goals intro h; have e:=congrArg Fin.val h; dsimp at e; omega
 end
 noncomputable section
@@ -443,7 +447,7 @@ theorem simonCopyGate_action {n m : ℕ} (x : Reg n) (y : Reg m) (c : Reg n)
     ApplyGate (reflectionGateMatrix (simonCopyGate n m rev i))
       (Qatlib.Foundations.PureStateMath.Ket (simonCopyBasis x y c a b rev is)) =
     Qatlib.Foundations.PureStateMath.Ket (simonCopyBasis x y c a b rev (i::is)) := by
-  cases rev <;> simp only [simonCopyGate,Bool.false_eq_true,if_false,if_true,reflectionGateMatrix]
+  cases rev <;> simp only [simonCopyGate,Bool.false_eq_true,ite_false,ite_true,reflectionGateMatrix]
   all_goals
     rw [applyGate_cnotGate_ket _ _ _ (by intro h; have e:=congrArg Fin.val h; dsimp at e; omega)]
     congr 1
@@ -559,7 +563,7 @@ theorem simonEqualityFlips_action (m : ℕ) (y : Reg m) (b : Bool) (a : Reg (m-1
     change (if multiKnownControlWire m i ∈ _ then _ else _) = _
     have hm : multiKnownControlWire m i ∈ (List.finRange m).map (multiKnownControlWire m) :=
       List.mem_map.mpr ⟨i,List.mem_finRange i,rfl⟩
-    rw [if_pos hm]
+    rw [ite_eq_left hm]
     change Bool.not ((multiKnownSplit m).symm ((y,b),a) (multiKnownControlWire m i)) = Bool.not
         (y i)
     rw [multiKnownJoin_control]
@@ -570,7 +574,7 @@ theorem simonEqualityFlips_action (m : ℕ) (y : Reg m) (b : Bool) (a : Reg (m-1
       have hv:=congrArg Fin.val hi
       dsimp at hv
       omega
-    rw [if_neg h]
+    rw [ite_eq_right h]
     change (multiKnownSplit m).symm ((y,b),a) (multiKnownTargetWire m) = b
     exact multiKnownJoin_target m y b a
   · funext i
@@ -581,7 +585,7 @@ theorem simonEqualityFlips_action (m : ℕ) (y : Reg m) (b : Bool) (a : Reg (m-1
       have hv:=congrArg Fin.val hj
       dsimp at hv
       omega
-    rw [if_neg h]
+    rw [ite_eq_right h]
     change (multiKnownSplit m).symm ((y,b),a) (multiKnownWorkWire m i) = a i
     exact multiKnownJoin_work m y b a i
 end
@@ -794,7 +798,7 @@ remaining wires. -/
       omega
     change Function.extend (knownPrefixWires (simonDataWidth n m) 3) (simonPack x y c a b)
         (fun _=>false) i = _
-    rw [Function.extend_apply' _ _ _ he,dif_neg hi]
+    rw [Function.extend_apply' _ _ _ he,dite_eq_right hi]
 end
 noncomputable section
 
@@ -808,7 +812,7 @@ theorem simonEncodeContext_pack {n m : ℕ} (x x' : Reg n) (y y' : Reg m)
   simp only [simonEncodeContext,simonFullPack_apply,regBooleanEquiv_apply]
   dsimp [simonDataWidth] at *
   split_ifs
-  all_goals first | omega | simp (disch := omega) only [simonPack,dif_pos,dif_neg]
+  all_goals first | omega | simp (disch := omega) only [simonPack,dite_eq_left,dite_eq_right]
   all_goals apply Bool.eq_iff_iff.mpr
   all_goals simp only [decide_eq_true_eq]
   all_goals rw [← boolZModEquiv_true]
@@ -900,8 +904,8 @@ theorem simonVerifyWord_exists {n m : ℕ} (f : BooleanVec n → BooleanVec m)
   apply Bool.eq_iff_iff.mpr
   simp only [decide_eq_true_eq,simonXor_eq_false]
   have hz : regBooleanEquiv n (fun _=>false)=(0 : BooleanVec n) := by ext; simp
-  simp only [simonFBits,hz,Equiv.apply_eq_iff_eq_symm_apply]
-  simp only [Equiv.symm_symm,Equiv.apply_symm_apply]
+  simp only [simonFBits,hz,Equiv.eq_symm_apply]
+  simp only [Equiv.apply_symm_apply]
 end
 noncomputable section
 
@@ -938,7 +942,7 @@ theorem simonFullPack_decision {n m : ℕ} (x : Reg n) (b : Bool) :
   by_cases hd : i.val=2*(n+m)
   · simp [hd,simonPack,show ¬2*(n+m)<n by omega,show ¬2*(n+m)<n+m by omega,
       show ¬2*(n+m)<2*n+m by omega]
-  · simp only [hd,if_false]
+  · simp only [hd,ite_false]
     split_ifs with hi
     · simp only [simonPack]
       split_ifs <;> first | rfl | omega

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MonteCarloInt20.PrnJump.ControlledArithmetic
-import Qatlib.Papers.MonteCarloInt20.PrnJump.AffineWord
+module
+
+public import Qatlib.Papers.MonteCarloInt20.PrnJump.ControlledArithmetic
+public import Qatlib.Papers.MonteCarloInt20.PrnJump.AffineWord
+
+@[expose] public section
 
 /-!
 # Shared layouts for controlled PRN arithmetic

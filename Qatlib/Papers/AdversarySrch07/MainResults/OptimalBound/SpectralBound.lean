@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Int.NatAbs
-import Mathlib.Analysis.Matrix.Spectrum
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Qatlib.Papers.AdversarySrch07.MainResults.OptimalBound.OptimalAdversary
+module
+
+public import Mathlib.Data.Int.NatAbs
+public import Mathlib.Analysis.Matrix.Spectrum
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Qatlib.Papers.AdversarySrch07.MainResults.OptimalBound.OptimalAdversary
+
+@[expose] public section
 
 /-!
 # Spectral norm of the even ordered-search matrix
@@ -185,12 +189,12 @@ theorem toeplitz_row_sum_aux (m p : ℕ) (_hp : p < 2 * m) (G : ℕ → ℝ)
       refine Finset.sum_congr rfl (fun i hi => ?_)
       have hi' : i < m - p := Finset.mem_range.mp hi
       rw [hG (2 * m - 1 - i)]
-      rw [if_neg (by omega : ¬(2 * m - 1 - i < m))]
+      rw [ite_eq_right (by omega : ¬(2 * m - 1 - i < m))]
       rw [Int.natAbs_natCast_sub_natCast_of_le (by omega : p ≤ 2 * m - 1 - i)]
       rw [show 2 * m - ((2 * m - 1 - i) - p) = (i + p) + 1 by omega]
       rw [show 2 * m - 1 - (2 * m - 1 - i) = i by omega]
       rw [gammaEven_apply_succ m (i + p)]
-    rw [hstep1, hmap, hstep3, if_pos hpm]
+    rw [hstep1, hmap, hstep3, ite_eq_left hpm]
     exact eigen_identity m p hpm
   · have hzero : ∀ q ∈ Finset.range (2 * m), q ∉ Finset.range (p - m + 1) → G q = 0 := by
       intro q hq hqnot
@@ -218,10 +222,10 @@ theorem toeplitz_row_sum_aux (m p : ℕ) (_hp : p < 2 * m) (G : ℕ → ℝ)
       have hqle' : q ≤ p := by omega
       have hd : Int.natAbs ((p : ℤ) - (q : ℤ)) = p - q :=
         Int.natAbs_natCast_sub_natCast_of_ge hqle'
-      rw [hG q, if_pos hqm, hd]
+      rw [hG q, ite_eq_left hqm, hd]
       rw [show 2 * m - (p - q) = (q + (m - (p - m) - 1)) + 1 by omega]
       rw [gammaEven_apply_succ m (q + (m - (p - m) - 1))]
-    rw [hstep1, hstep2, if_neg (by omega : ¬ p < m)]
+    rw [hstep1, hstep2, ite_eq_right (by omega : ¬ p < m)]
     have hj : m - (p - m) - 1 < m := by omega
     have hrange : m - (m - (p - m) - 1) = p - m + 1 := by omega
     have harg : m - (p - m) - 1 = 2 * m - 1 - p := by omega
@@ -255,7 +259,7 @@ theorem toeplitz_mulVec_uEven (m : ℕ) :
             (if q < m then xi q else xi (2 * m - 1 - q)) := by
         rw [Finset.sum_fin_eq_sum_range]
         refine Finset.sum_congr rfl (fun q hq => ?_)
-        rw [dif_pos (Finset.mem_range.mp hq)]
+        rw [dite_eq_left (Finset.mem_range.mp hq)]
         simp [toeplitz, uEven]
     _ = (if p.val < m then xi p.val else xi (2 * m - 1 - p.val)) :=
         toeplitz_row_sum m p.val p.isLt
@@ -266,7 +270,7 @@ one. See [ChildsLee2008]. -/
 theorem toeplitz_eigenvalue_abs_le_one (m : ℕ) (hm : 0 < m) (lam : ℝ)
     (hlam : ∃ v : Fin (2 * m) → ℝ, v ≠ 0 ∧
       (toeplitz (2 * m) (gammaEven m)).mulVec v = lam • v) : |lam| ≤ 1 := by
-  haveI : Nonempty (Fin (2 * m)) := ⟨⟨0, by omega⟩⟩
+  have : Nonempty (Fin (2 * m)) := ⟨⟨0, by omega⟩⟩
   exact abs_eigenvalue_le_of_pos_eigenvector (toeplitz (2 * m) (gammaEven m))
     (toeplitz (2 * m) (gammaEven m)) (uEven m) 1
     (toeplitz_gammaEven_nonneg m) (fun i j => le_rfl) (uEven_pos m) zero_lt_one
@@ -347,7 +351,7 @@ theorem l2_opNorm_le_one_of_eigenvalue_mem {ι : Type*} [Fintype ι] [DecidableE
 [ChildsLee2008]. -/
 theorem toeplitz_l2_opNorm_le_one (m : ℕ) (hm : 0 < m) :
     ‖(toeplitz (2 * m) (gammaEven m) : Matrix (Fin (2 * m)) (Fin (2 * m)) ℝ)‖ ≤ 1 := by
-  haveI : Nonempty (Fin (2 * m)) := ⟨⟨0, by omega⟩⟩
+  have : Nonempty (Fin (2 * m)) := ⟨⟨0, by omega⟩⟩
   exact l2_opNorm_le_one_of_eigenvalue_mem _
     (toeplitz_isHermitian m) (fun lam hlam => toeplitz_eigenvalue_abs_le_one m hm lam hlam)
 

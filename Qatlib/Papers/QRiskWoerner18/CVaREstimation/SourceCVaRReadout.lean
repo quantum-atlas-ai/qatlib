@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QRiskWoerner18.VaRQuantile.SourceVaRBisection
+module
+
+public import Qatlib.Papers.QRiskWoerner18.VaRQuantile.SourceVaRBisection
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -60,12 +64,12 @@ theorem sourceCVaRPayoff_mem_Icc (l : ℕ) (hl : 0 < l) (i : ℕ) :
   have hlR : (0 : ℝ) < (l : ℝ) := by exact_mod_cast hl
   unfold sourceCVaRPayoff sourceThresholdPayoff
   by_cases h : i ≤ l
-  · rw [if_pos h]
+  · rw [ite_eq_left h]
     refine ⟨mul_nonneg (by positivity) (by norm_num), ?_⟩
     have hi : (i : ℝ) ≤ (l : ℝ) := by exact_mod_cast h
     rw [mul_one]
     exact div_le_one hlR |>.mpr hi
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     norm_num
 
 /-- **Source Eq. (6).** For `l > 0`, applying the CVaR payoff to the actual Eq. (3)

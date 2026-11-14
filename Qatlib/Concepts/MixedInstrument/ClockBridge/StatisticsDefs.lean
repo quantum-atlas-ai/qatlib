@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MixedInstrument.ClockBridge.StatisticalConfidence
+module
+
+public import Qatlib.Concepts.MixedInstrument.ClockBridge.StatisticalConfidence
+
+@[expose] public section
 
 /-!
 # Space quantities for confidence budgets

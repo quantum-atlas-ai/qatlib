@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MacaulayHHL21.MainResults.SourceModel
+module
+
+public import Qatlib.Papers.MacaulayHHL21.MainResults.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -90,7 +94,7 @@ theorem lemma43_affineHull_l2_lowerBound
         rw [hyk k]
         apply Finset.sum_eq_zero
         intro i _
-        push_neg at hex
+        push Not at hex
         rw [hex i, mul_zero]
     have hcard : (univ.filter (fun k => y k ≠ 0)).card ≤
         ∑ i : Fin t, (univ.filter (fun k => Y i k ≠ 0)).card :=

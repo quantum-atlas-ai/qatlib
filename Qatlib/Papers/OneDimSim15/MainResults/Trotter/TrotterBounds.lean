@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OneDimSim15.MainResults.Model.SourceModel
-import Mathlib.Logic.Function.Iterate
+module
+
+public import Qatlib.Papers.OneDimSim15.MainResults.Model.SourceModel
+public import Mathlib.Logic.Function.Iterate
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

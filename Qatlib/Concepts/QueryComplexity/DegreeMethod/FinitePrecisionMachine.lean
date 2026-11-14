@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionBounds
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionExecution
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionBounds
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionExecution
+
+@[expose] public section
 
 /-!
 # Uniform binary multiplication machine

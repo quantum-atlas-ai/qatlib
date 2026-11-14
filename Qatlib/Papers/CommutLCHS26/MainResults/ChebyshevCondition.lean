@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommutLCHS26.MainResults.ChebyshevNodes
-import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.Basic
+module
+
+public import Qatlib.Papers.CommutLCHS26.MainResults.ChebyshevNodes
+public import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.Basic
+
+@[expose] public section
 
 /-!
 # Conditioning of Chebyshev multi-product formulas

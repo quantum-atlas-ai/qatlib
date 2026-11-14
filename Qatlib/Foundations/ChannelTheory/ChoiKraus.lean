@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import QuantumInfo.Channels.CPTP
+module
+
+public import QuantumInfo.Channels.CPTP
+
+@[expose] public section
 
 /-!
 # Choi matrices with input-output index order

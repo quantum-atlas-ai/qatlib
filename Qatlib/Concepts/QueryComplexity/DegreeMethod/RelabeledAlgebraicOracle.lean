@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
-import Qatlib.Concepts.HspRecovery.CyclicRecovery.AlgebraicOracle
+module
+
+public import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
+public import Qatlib.Concepts.HspRecovery.CyclicRecovery.AlgebraicOracle
+
+@[expose] public section
 
 /-!
 # Relabeled additive oracle readout

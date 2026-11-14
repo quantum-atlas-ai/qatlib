@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.LocalCapability
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.LocalCapability
+
+@[expose] public section
 
 /-!
 # Local unitaries and partial trace
@@ -38,11 +42,11 @@ variable {D E : ℕ}
 
 /-- An off-diagonal entry of the identity matrix is zero. -/
 private theorem one_apply_zero {i p : Fin D} (h : p ≠ i) : (1 : Matrix (Fin D) (Fin D) ℂ) i p = 0 := by
-  rw [Matrix.one_apply, if_neg (Ne.symm h)]
+  rw [Matrix.one_apply, ite_eq_right (Ne.symm h)]
 
 /-- Every diagonal entry of the identity matrix is one. -/
 private theorem one_apply_one (i : Fin D) : (1 : Matrix (Fin D) (Fin D) ℂ) i i = 1 := by
-  rw [Matrix.one_apply, if_pos rfl]
+  rw [Matrix.one_apply, ite_eq_left rfl]
 
 /-- A unitary matrix multiplied on the left by its conjugate transpose gives the identity. -/
 private theorem conjTranspose_mul_eq (V : Matrix (Fin E) (Fin E) ℂ)
@@ -89,7 +93,7 @@ theorem sum_contract_conj (V : Matrix (Fin E) (Fin E) ℂ)
     refine Finset.sum_congr rfl fun q _ => ?_
     calc (∑ l : Fin E, (c q l) * (if l = q then 1 else 0))
         = (c q q) * (if q = q then 1 else 0) :=
-          Fintype.sum_eq_single q fun l hl => by rw [if_neg hl, mul_zero]
+          Fintype.sum_eq_single q fun l hl => by rw [ite_eq_right hl, mul_zero]
       _ = c q q := by simp
   exact ((hswap1.trans hswap2).trans hpull).trans (horth.trans hdiag)
 
@@ -116,9 +120,9 @@ theorem conj_tensorRight_apply (ρ : Matrix (Fin D × Fin E) (Fin D × Fin E) �
     intro l
     have hz : ∀ k : Fin D, k ≠ j → (∑ q : Fin E, (V a q) * ρ (i, q) (k, l)) * (starRingEnd ℂ ((1 : Matrix (Fin D) (Fin D) ℂ) j k * V a l)) = 0 := by
       intro k hk
-      rw [hone l k, if_neg (Ne.symm hk), map_zero, mul_zero]
+      rw [hone l k, ite_eq_right (Ne.symm hk), map_zero, mul_zero]
     refine (Fintype.sum_eq_single j hz).trans ?_
-    rw [hone l j, if_pos rfl]
+    rw [hone l j, ite_eq_left rfl]
 
   have hexpand : (TensorGate (1 : Matrix (Fin D) (Fin D) ℂ) V * ρ * (TensorGate (1 : Matrix (Fin D) (Fin D) ℂ) V)ᴴ) (i, a) (j, a) = (∑ k : Fin D, (∑ l : Fin E, (∑ p : Fin D, (∑ q : Fin E, ((1 : Matrix (Fin D) (Fin D) ℂ) i p * V a q) * ρ (p, q) (k, l))) * (starRingEnd ℂ ((1 : Matrix (Fin D) (Fin D) ℂ) j k * V a l)))) := by
     simp only [Matrix.mul_apply, Fintype.sum_prod_type, tensorGate_apply,

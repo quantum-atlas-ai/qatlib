@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.OrderedOracle.TiSdpBridge.OrderedSearchInstance
-import Qatlib.Concepts.OrderedOracle.TiSdpBridge.OrderedSearchSDP
-import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
-import Qatlib.Concepts.SpectralFilter.PhaseReadout.PhaseEstimation
+module
+
+public import Qatlib.Concepts.OrderedOracle.TiSdpBridge.OrderedSearchInstance
+public import Qatlib.Concepts.OrderedOracle.TiSdpBridge.OrderedSearchSDP
+public import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
+public import Qatlib.Concepts.SpectralFilter.PhaseReadout.PhaseEstimation
+
+@[expose] public section
 
 /-!
 # Polynomial states and circuits for invariant ordered search

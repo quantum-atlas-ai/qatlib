@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SketchArith.SketchBuild.CompactImportanceSketch
+module
+
+public import Qatlib.Concepts.SketchArith.SketchBuild.CompactImportanceSketch
+
+@[expose] public section
 
 /-!
 # Statement of the two-stage sketch access ledger

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SemiDirectHSP06.MainResults.Defs
-import Qatlib.Papers.SemiDirectHSP06.MainResults.Lemma1Componentwise
-import Qatlib.Papers.SemiDirectHSP06.MainResults.SdpSplitTrivialFirst
-import Mathlib.GroupTheory.SpecificGroups.Cyclic
+module
+
+public import Qatlib.Papers.SemiDirectHSP06.MainResults.Defs
+public import Qatlib.Papers.SemiDirectHSP06.MainResults.Lemma1Componentwise
+public import Qatlib.Papers.SemiDirectHSP06.MainResults.SdpSplitTrivialFirst
+public import Mathlib.GroupTheory.SpecificGroups.Cyclic
+
+@[expose] public section
 
 /-!
 # Splitting a coprime cyclic factor from a semidirect product
@@ -67,8 +71,8 @@ lemma sdp_second_coord_trivial (hp : p.Prime) (hq : q.Prime) (hpq : p ≠ q)
       MulAut (Multiplicative (ZMod (q ^ s)) × Multiplicative (ZMod (p ^ r))))
     (g : Multiplicative (ZMod p)) (a : Multiplicative (ZMod (q ^ s))) :
     (φ g (a, 1)).2 = 1 := by
-  haveI : NeZero (q ^ s) := ⟨pow_ne_zero _ hq.ne_zero⟩
-  haveI : NeZero (p ^ r) := ⟨pow_ne_zero _ hp.ne_zero⟩
+  have : NeZero (q ^ s) := ⟨pow_ne_zero _ hq.ne_zero⟩
+  have : NeZero (p ^ r) := ⟨pow_ne_zero _ hp.ne_zero⟩
   have hpair : ((a, 1) : Multiplicative (ZMod (q ^ s)) ×
       Multiplicative (ZMod (p ^ r))) ^ (q ^ s) = 1 := by
     ext <;> simp [ofAdd_pow_card]
@@ -86,8 +90,8 @@ lemma sdp_first_coord_trivial (hp : p.Prime) (hq : q.Prime) (hpq : p ≠ q)
       MulAut (Multiplicative (ZMod (q ^ s)) × Multiplicative (ZMod (p ^ r))))
     (g : Multiplicative (ZMod p)) (b : Multiplicative (ZMod (p ^ r))) :
     (φ g (1, b)).1 = 1 := by
-  haveI : NeZero (q ^ s) := ⟨pow_ne_zero _ hq.ne_zero⟩
-  haveI : NeZero (p ^ r) := ⟨pow_ne_zero _ hp.ne_zero⟩
+  have : NeZero (q ^ s) := ⟨pow_ne_zero _ hq.ne_zero⟩
+  have : NeZero (p ^ r) := ⟨pow_ne_zero _ hp.ne_zero⟩
   have hpair : ((1, b) : Multiplicative (ZMod (q ^ s)) ×
       Multiplicative (ZMod (p ^ r))) ^ (p ^ r) = 1 := by
     ext <;> simp [ofAdd_pow_card]
@@ -142,8 +146,8 @@ lemma sdpFstHom_surjective (hq : q.Prime)
     (hA : ∀ (g : Multiplicative (ZMod p)) (a : Multiplicative (ZMod (q ^ s))),
       (φ g (a, 1)).2 = 1)
     (g : Multiplicative (ZMod p)) : Function.Surjective (sdpFstHom φ g) := by
-  haveI : NeZero (q ^ s) := ⟨pow_ne_zero _ hq.ne_zero⟩
-  haveI : Finite (Multiplicative (ZMod (q ^ s))) := inferInstance
+  have : NeZero (q ^ s) := ⟨pow_ne_zero _ hq.ne_zero⟩
+  have : Finite (Multiplicative (ZMod (q ^ s))) := inferInstance
   exact (Finite.injective_iff_surjective).mp (sdpFstHom_injective φ hA g)
 
 /-- The automorphism of the first cyclic factor obtained from the induced homomorphism under the
@@ -207,11 +211,11 @@ lemma sdp_action_trivial_first (hp : p.Prime) (hq : q.Prime) (hpq : p ≠ q)
       MulAut (Multiplicative (ZMod (q ^ s)) × Multiplicative (ZMod (p ^ r)))) :
     ∀ (g : Multiplicative (ZMod p)) (a : Multiplicative (ZMod (q ^ s))),
       φ g (a, 1) = (a, 1) := by
-  haveI : NeZero p := ⟨hp.ne_zero⟩
-  haveI : NeZero (q ^ s) := ⟨pow_ne_zero _ hq.ne_zero⟩
+  have : NeZero p := ⟨hp.ne_zero⟩
+  have : NeZero (q ^ s) := ⟨pow_ne_zero _ hq.ne_zero⟩
   have hA := sdp_second_coord_trivial hp hq hpq φ
-  haveI : Finite (Multiplicative (ZMod (q ^ s))) := inferInstance
-  haveI : IsCyclic (Multiplicative (ZMod (q ^ s))) := inferInstance
+  have : Finite (Multiplicative (ZMod (q ^ s))) := inferInstance
+  have : IsCyclic (Multiplicative (ZMod (q ^ s))) := inferInstance
   have hcardN1 : Nat.card (Multiplicative (ZMod (q ^ s))) = q ^ s := by
     rw [Nat.card_eq_fintype_card, Fintype.card_multiplicative, ZMod.card]
   have hcardAut : Nat.card (MulAut (Multiplicative (ZMod (q ^ s)))) =

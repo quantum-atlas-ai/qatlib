@@ -4,14 +4,26 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MbqcFlow.FlowDecision.FiniteDataAccessDefs
-import Qatlib.Foundations.OperatorErrors.OperatorError
-import Qatlib.Concepts.BlockEncoding.Postselection
-import Qatlib.Concepts.CoherentSim.CoherentOAA.AdjointWord
-import Qatlib.Concepts.QspSimulation.Achievability.CircuitWellFormed
-import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownFrameLocalSynthesis
-import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
-import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.ScopedOracleWorkspace
+module
+
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.FiniteDataAccessDefs
+public import Qatlib.Foundations.OperatorErrors.OperatorError
+public import Qatlib.Concepts.BlockEncoding.Postselection
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.AdjointWord
+public import Qatlib.Concepts.QspSimulation.Achievability.CircuitWellFormed
+public import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownFrameLocalSynthesis
+public import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
+public import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.ScopedOracleWorkspace
+
+set_option linter.unusedVariables false
+set_option linter.unusedSectionVars false
+set_option linter.unusedSimpArgs false
+set_option linter.unusedTactic false
+set_option linter.unreachableTactic false
+set_option linter.unnecessarySeqFocus false
+set_option linter.deprecated false
+
+@[expose] public section
 
 /-!
 # Finite data loading and access guarantees
@@ -167,7 +179,7 @@ theorem phaseApprox_unit (z : RatComplex) (k : ℕ) :
   by_cases hz : z = ratZero
   · subst hz
     simp [phaseApprox, ratZero]
-  · simp only [phaseApprox, if_neg hz]
+  · simp only [phaseApprox, ite_eq_right hz]
     have hc := rationalPayoffCS_circle (z.1 ^ 2 / ratSq z) k
     have h1 : (ratSign z.1) ^ 2 = 1 := ratSign_sq z.1
     have h2 : (ratSign z.2) ^ 2 = 1 := ratSign_sq z.2
@@ -218,7 +230,7 @@ private theorem phaseApprox_re_abs (z : RatComplex) (k : ℕ) (hz : z ≠ ratZer
         = (ratSign z.1 : ℝ) *
             (((rationalPayoffCS (z.1 ^ 2 / ratSq z) k).2 : ℝ)
               - |(z.1 : ℝ)| / Real.sqrt (ratSq z : ℝ)) := by
-    simp only [phaseApprox, if_neg hz]
+    simp only [phaseApprox, ite_eq_right hz]
     rw [hcs', hcast, habs]
     field_simp <;> ring
   rw [hkey, abs_mul, ratSign_abs, one_mul]
@@ -271,7 +283,7 @@ private theorem phaseApprox_im_abs (z : RatComplex) (k : ℕ) (hz : z ≠ ratZer
         = (ratSign z.2 : ℝ) *
             (((rationalPayoffCS (z.1 ^ 2 / ratSq z) k).1 : ℝ)
               - |(z.2 : ℝ)| / Real.sqrt (ratSq z : ℝ)) := by
-    simp only [phaseApprox, if_neg hz]
+    simp only [phaseApprox, ite_eq_right hz]
     rw [hcs', hcast, habs]
     field_simp <;> ring
   rw [hkey, abs_mul, ratSign_abs, one_mul]
@@ -290,7 +302,7 @@ theorem exactPhase_norm (z : RatComplex) (hz : z ≠ ratZero) : ‖exactPhase z�
     ring
   have hnonneg : (0 : ℝ) ≤ ‖exactPhase z‖ := norm_nonneg _
   have hsq' : ‖exactPhase z‖ ^ 2 = 1 := by
-    rw [exactPhase, if_neg hz]
+    rw [exactPhase, ite_eq_right hz]
     rw [complexAbs_sq]
     field_simp
     rw [hsq, hcast] <;> ring
@@ -298,7 +310,7 @@ theorem exactPhase_norm (z : RatComplex) (hz : z ≠ ratZero) : ‖exactPhase z�
 
 /-- The phase assigned to zero has norm one. -/
 theorem exactPhase_zero : ‖exactPhase ratZero‖ = 1 := by
-  rw [exactPhase, if_pos rfl]
+  rw [exactPhase, ite_eq_left rfl]
   simp
 
 /-- The complex phase approximation differs from the exact phase by at most `32 / 2 ^ k` in
@@ -314,7 +326,7 @@ theorem phaseApprox_error (z : RatComplex) (k : ℕ) :
     have hsq' : ‖ratToComplex (phaseApprox z k) - exactPhase z‖ ^ 2
         = (((phaseApprox z k).1 : ℝ) - (z.1 : ℝ) / Real.sqrt (ratSq z : ℝ)) ^ 2
           + (((phaseApprox z k).2 : ℝ) - (z.2 : ℝ) / Real.sqrt (ratSq z : ℝ)) ^ 2 := by
-      simp only [ratToComplex, exactPhase, if_neg hz]
+      simp only [ratToComplex, exactPhase, ite_eq_right hz]
       rw [complexDiff_sq]
     have hre2 :
         (((phaseApprox z k).1 : ℝ) - (z.1 : ℝ) / Real.sqrt (ratSq z : ℝ)) ^ 2
@@ -352,7 +364,7 @@ theorem exactPhaseDiagonal_norm_le {D : ℕ} (amp : Option (Fin D) → RatComple
   rw [exactPhaseDiagonal, Matrix.l2_opNorm_diagonal, pi_norm_le_iff_of_nonneg (by norm_num)]
   intro a
   by_cases hz : amp a = ratZero
-  · rw [exactPhase, if_pos hz] <;> simp
+  · rw [exactPhase, ite_eq_left hz] <;> simp
   · rw [exactPhase_norm _ hz] <;> norm_num
 
 /-- The approximate phase diagonal differs from the exact phase diagonal by at most `32 / 2 ^ k`
@@ -428,7 +440,7 @@ theorem exactPhase_mul_abs (z : RatComplex) :
   · have hr2 : (0 : ℚ) < ratSq z := ratSq_pos_of_ne z hz
     have hr2r : (0 : ℝ) < (ratSq z : ℝ) := by exact_mod_cast hr2
     have hr : Real.sqrt (ratSq z : ℝ) ≠ 0 := ne_of_gt (Real.sqrt_pos.2 hr2r)
-    rw [exactPhase, if_neg hz, ratAbs]
+    rw [exactPhase, ite_eq_right hz, ratAbs]
     (try dsimp only)
     rw [ofReal_scale, ratToComplex]
     field_simp
@@ -691,7 +703,7 @@ theorem loadSparse_rejects_illegal (D : ℕ) (es : List SparseEntry) (e : Sparse
     intro h
     have := h e hmem
     omega
-  rw [loadSparse, if_neg hne]
+  rw [loadSparse, ite_eq_right hne]
 
 /-- For legal positions and nonzero resolved mass, sparse loading returns the resolved
 amplitudes and charges one read per list entry. -/
@@ -700,7 +712,7 @@ theorem loadSparse_spec (D : ℕ) (es : List SparseEntry)
     (hm : (∑ i : Fin D, ratSq (sparseResolve es i)) ≠ 0) :
     (loadSparse D es).map (fun L => (L.amplitude, L.reads))
       = some ((fun a => sparseResolve es a), es.length) := by
-  rw [loadSparse, if_pos hleg, if_neg hm]
+  rw [loadSparse, ite_eq_left hleg, ite_eq_right hm]
   rfl
 
 /-- The scoped bit oracle has the stated XOR matrix entries and is unitary. -/
@@ -753,13 +765,13 @@ private theorem diagonal_unitaryGroup {n : Type*} [Fintype n] [DecidableEq n] (d
   rw [Matrix.mul_apply, Matrix.one_apply]
   by_cases hxy : x = y
   · subst hxy
-    rw [if_pos rfl, Finset.sum_eq_single x]
+    rw [ite_eq_left rfl, Finset.sum_eq_single x]
     · simpa [Matrix.star_apply, Matrix.diagonal_apply, mul_comm] using! hd x
     · intro k _ hk
       simp [Matrix.star_apply, Matrix.diagonal_apply, Ne.symm hk]
     · intro hx
       exact absurd (Finset.mem_univ x) hx
-  · rw [if_neg hxy]
+  · rw [ite_eq_right hxy]
     refine Finset.sum_eq_zero fun k _ => ?_
     by_cases hkx : k = x
     · subst hkx
@@ -853,9 +865,9 @@ theorem scopedLogicalMatrix_unitary {n : ℕ} (f : Reg n → Bool) (w : List (Sc
           apply diagonal_unitaryGroup
           intro x
           by_cases hfx : f x
-          · simp only [hfx, if_pos]
+          · simp only [hfx, ite_eq_left]
             exact hstar
-          · simp only [hfx, if_neg]
+          · simp only [hfx, ite_eq_right]
             simp [starRingEnd_apply]
         simpa [scopedStepMatrix, scopedPhaseGate] using! hdiagonal
     have hUw : ∀ U, ScopedOracleStep.data U ∈ w → U ∈ Matrix.unitaryGroup (Reg n) ℂ := by
@@ -1020,8 +1032,8 @@ private theorem relabelState_ket {I J : Type*} [Fintype I] [Fintype J]
   funext j
   simp only [relabelState_apply, Qatlib.Foundations.PureStateMath.Ket]
   by_cases h : e.symm j = x
-  · rw [if_pos h, if_pos ((Equiv.symm_apply_eq e).mp h)]
-  · rw [if_neg h, if_neg (fun h' => h ((Equiv.symm_apply_eq e).mpr h'))]
+  · rw [ite_eq_left h, ite_eq_left ((Equiv.symm_apply_eq e).mp h)]
+  · rw [ite_eq_right h, ite_eq_right (fun h' => h ((Equiv.symm_apply_eq e).mpr h'))]
 
 /-- Relabeling a finite state preserves its Euclidean norm. -/
 private theorem stateVector_relabelState_norm {I J : Type*} [Fintype I] [Fintype J]
@@ -1073,7 +1085,7 @@ theorem physPhaseDiagonal_eq (D w : ℕ) (xs : DenseTable D) (k : ℕ) :
       intro h
       apply hjj
       exact (slotEquiv w).injective h
-    simp only [if_neg hne, if_neg hjj]
+    simp only [ite_eq_right hne, ite_eq_right hjj]
 
 /-- The physical preparation matrix is the option-slot preparation matrix relabeled onto the
 register. -/
@@ -1171,7 +1183,7 @@ theorem phaseApprox_bracket_comparisons (z : RatComplex) (k : ℕ) (hz : z ≠ r
   have hr2 : 0 < ratSq z := by
     have hz1 : z.1 ≠ 0 ∨ z.2 ≠ 0 := by
       by_contra h
-      push_neg at h
+      push Not at h
       exact hz (Prod.ext h.1 h.2)
     rcases hz1 with h | h
     · have hp : 0 < z.1 ^ 2 + z.2 ^ 2 := by positivity
@@ -1267,7 +1279,7 @@ theorem buildBoolTable_spec (D : ℕ) (es : List (ℕ × Bool))
     ∃ T : Fin D → Bool, buildBoolTable D es = some T ∧
       ∀ a, T a = es.foldl (fun acc e => if e.1 = a.val then e.2 else acc) false := by
   refine ⟨fun a => es.foldl (fun acc e => if e.1 = a.val then e.2 else acc) false, ?_, ?_⟩
-  · rw [buildBoolTable, if_pos hleg]
+  · rw [buildBoolTable, ite_eq_left hleg]
   · intro a
     rfl
 
@@ -1303,7 +1315,7 @@ theorem buildBoolTable_rejects_illegal (D : ℕ) (es : List (ℕ × Bool)) (p : 
     intro h
     have := h (p, v) hmem
     omega
-  rw [buildBoolTable, if_neg hne]
+  rw [buildBoolTable, ite_eq_right hne]
 
 /-- The chosen address width provides strictly more basis states than the table size. -/
 theorem addressBitsFor_covers (D : ℕ) : D < 2 ^ addressBitsFor D :=

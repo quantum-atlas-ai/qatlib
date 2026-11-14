@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.TorusFourier.PoissonEquation
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.WordPeriodic
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SourceCurvature
+module
+
+public import Qatlib.Concepts.EffectiveGauge.TorusFourier.PoissonEquation
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.WordPeriodic
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SourceCurvature
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

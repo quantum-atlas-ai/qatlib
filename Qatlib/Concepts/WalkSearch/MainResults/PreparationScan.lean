@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.Primitives.ClassificationSoundness
-import Qatlib.Concepts.WalkSearch.Primitives.ClassificationLedger
-import Qatlib.Concepts.WalkSearch.Primitives.VertexSamplingQuan
+module
+
+public import Qatlib.Concepts.WalkSearch.Primitives.ClassificationSoundness
+public import Qatlib.Concepts.WalkSearch.Primitives.ClassificationLedger
+public import Qatlib.Concepts.WalkSearch.Primitives.VertexSamplingQuan
+
+@[expose] public section
 
 /-!
 # Preparation scans for triangle finding

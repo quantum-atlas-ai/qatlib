@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.BQPMixSparse06.SignedClock.ClockSpectral
-import Mathlib.Analysis.SpecialFunctions.Exponential
-import Mathlib.Analysis.SpecialFunctions.ExpDeriv
-import Mathlib.Analysis.Calculus.MeanValue
-import Mathlib.Analysis.Convex.Basic
+module
+
+public import Qatlib.Papers.BQPMixSparse06.SignedClock.ClockSpectral
+public import Mathlib.Analysis.SpecialFunctions.Exponential
+public import Mathlib.Analysis.SpecialFunctions.ExpDeriv
+public import Mathlib.Analysis.Calculus.MeanValue
+public import Mathlib.Analysis.Convex.Basic
+
+@[expose] public section
 
 /-!
 # Finite heat kernels and decay estimates
@@ -188,7 +192,7 @@ theorem heatTest_lipschitz {C mu T : ℝ} (hC : 0 < C) (hT : 0 ≤ T)
       |(C * x - mu) * T - (C * y - mu) * T| := by
     unfold heatTest
     have h := abs_expNeg_sub_le hux hvy
-    convert h using 2 <;> ring_nf
+    convert h using 2; ring_nf
   have hval : |(C * x - mu) * T - (C * y - mu) * T| = C * T * |x - y| := by
     have hrew : (C * x - mu) * T - (C * y - mu) * T = T * (C * (x - y)) := by ring
     rw [hrew, abs_mul, abs_mul, abs_of_pos hC, abs_of_nonneg hT]

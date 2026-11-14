@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LowEnergyProd24.ImaginaryLeak.NestedLeakage
-import Qatlib.Foundations.MatrixGeometry.SpectralCutoff.NestedCutoffs
+module
+
+public import Qatlib.Papers.LowEnergyProd24.ImaginaryLeak.NestedLeakage
+public import Qatlib.Foundations.MatrixGeometry.SpectralCutoff.NestedCutoffs
+
+@[expose] public section
 
 /-!
 # A cutoff step for nested commutators

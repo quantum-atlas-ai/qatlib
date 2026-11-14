@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Algebra.Group.AddChar
-import Mathlib.Data.Matrix.Mul
-import Mathlib.Tactic
+module
+
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Algebra.Group.AddChar
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Winnie Li adjacency and centered sphere states
@@ -83,11 +87,13 @@ otherwise. -/
 def adj (d : ℕ) : Matrix (Fin d → F) (Fin d → F) ℂ :=
   fun x y => if quadForm (x - y) = 1 then 1 else 0
 
+omit [Fintype F] in
 /-- Translating both vertices by the same vector preserves their adjacency-matrix entry. -/
 theorem adj_add {d : ℕ} (a x y : Fin d → F) : adj d (x + a) (y + a) = adj d x y := by
   have h : x + a - (y + a) = x - y := by abel
   simp only [adj, h]
 
+omit [Fintype F] in
 /-- The adjacency matrix is symmetric in its two vertices. -/
 theorem adj_comm {d : ℕ} (x y : Fin d → F) : adj d x y = adj d y x := by
   have h : y - x = -(x - y) := by abel
@@ -151,13 +157,13 @@ theorem mulVec_adj_sphereState {d : ℕ} (x y : Fin d → F) :
   · have h2 : x + s + t = y := by
       rw [show x + s + t = x + t + s by abel, ← h]
       abel
-    rw [if_pos h, if_pos h2]
+    rw [ite_eq_left h, ite_eq_left h2]
   · have h2 : x + s + t ≠ y := by
       intro hh
       apply h
       rw [← hh]
       abel
-    rw [if_neg h, if_neg h2]
+    rw [ite_eq_right h, ite_eq_right h2]
 
 /-- The center coefficient of adjacency applied to `sphereState x` equals the number of points
 on the unit sphere. -/
@@ -170,7 +176,7 @@ theorem center_coefficient {d : ℕ} (x : Fin d → F) :
     rw [sphereState, Finset.sum_apply]
     rw [Finset.sum_eq_single (-s)]
     · have hxs : x + -s = x - s := by abel
-      simp only [Pi.single_apply, hxs, if_true]
+      simp only [Pi.single_apply, hxs, ite_true]
     · intro t _ hne
       by_cases ht : x + t = x - s
       · have hneg : x + t = x + -s := by
@@ -191,7 +197,7 @@ theorem sphere_one_nonempty {d : ℕ} (hd : 0 < d) :
   rw [Finset.sum_eq_single (⟨0, hd⟩ : Fin d)]
   · simp
   · intro j _ hj
-    simp only [Pi.single_apply, hj, if_false, ne_eq, OfNat.ofNat_ne_zero, not_false_eq_true,
+    simp only [Pi.single_apply, hj, ite_false, ne_eq, OfNat.ofNat_ne_zero, not_false_eq_true,
       zero_pow]
   · intro h
     exact absurd (Finset.mem_univ _) h
@@ -205,6 +211,7 @@ noncomputable def adjBar (d : ℕ) : Matrix (Fin d → F) (Fin d → F) ℂ :=
   adj d - (((sphere (F := F) (d := d) 1).card : ℂ) /
       (Fintype.card (Fin d → F) : ℂ)) • onesMat d
 
+omit [Field F] [DecidableEq F] in
 /-- Every coordinate of the all-ones matrix applied to a vector equals the sum of that vector's
 coordinates. -/
 theorem onesMat_mulVec (d : ℕ) (v : (Fin d → F) → ℂ) (x : Fin d → F) :

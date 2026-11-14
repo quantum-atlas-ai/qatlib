@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedSeedCompiler
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedSeedCompiler
+
+@[expose] public section
 
 /-!
 # Observed circuits with seed-dependent inputs
@@ -46,6 +50,7 @@ noncomputable def seedDependentInput (p : FinDist (Fin s))
     (psi : Fin s → QState I) : QState (I × Fin s) :=
   fun x => psi x.2 x.1 * (Real.sqrt (p.prob x.2) : ℂ)
 
+omit [Fintype I] [DecidableEq I] in
 /-- A constant family of data states gives the seed input `seedObservedInput`. -/
 theorem seedDependentInput_const (p : FinDist (Fin s)) (psi : QState I) :
     seedDependentInput p (fun _ => psi) = seedObservedInput p psi := rfl
@@ -55,6 +60,7 @@ private theorem sqrt_mass (p : FinDist (Fin s)) (j : Fin s) :
     Complex.normSq (Real.sqrt (p.prob j) : ℂ) = p.prob j := by
   rw [Complex.normSq_ofReal, Real.mul_self_sqrt (p.nonneg j)]
 
+omit [DecidableEq I] in
 /-- The mass of the seed-dependent input is the sum of the masses of `psi j` weighted by `p.prob
 j`. -/
 theorem seedDependentInput_mass (p : FinDist (Fin s)) (psi : Fin s → QState I) :
@@ -69,6 +75,7 @@ theorem seedDependentInput_mass (p : FinDist (Fin s)) (psi : Fin s → QState I)
   rw [Finset.mul_sum]
   exact Finset.sum_congr rfl (fun _ _ => mul_comm _ _)
 
+omit [DecidableEq I] in
 /-- The seed-dependent input is normalized when every component data state is normalized. -/
 theorem seedDependentInput_normalized (p : FinDist (Fin s))
     (psi : Fin s → QState I) (hpsi : ∀ j, Normalized (psi j)) :
@@ -89,8 +96,9 @@ private theorem input_collapse (p : FinDist (Fin s)) (psi : Fin s → QState I)
   by_cases h : a = j
   · subst a
     simp [collapse_apply, seedDependentInput, TensorState]
-  · simp [collapse_apply, seedDependentInput, TensorState, h]
+  · simp [collapse_apply,  TensorState, h]
 
+omit [Fintype I] [DecidableEq I] in
 /-- The constant hidden-table oracle equals the data oracle tensored with the identity on the
 seed register. -/
 private theorem hiddenOracle (O : Matrix I I ℂ) :
@@ -99,7 +107,7 @@ private theorem hiddenOracle (O : Matrix I I ℂ) :
   rcases x with ⟨i,a⟩
   rcases y with ⟨k,b⟩
   by_cases h : a = b <;>
-    simp [hiddenTableOracle, tensorGate_apply, Matrix.one_apply, h]
+    simp [hiddenTableOracle, tensorGate_apply,  h]
 
 /-- A seed amplitude supported at `j` has squared norm `p.prob j` there and zero at every other
 seed. -/

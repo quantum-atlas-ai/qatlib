@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ReactionMech16.MainResults.Source.Lemma3SmallestEigenvalueStability
-import Qatlib.Papers.ReactionMech16.MainResults.Source.Lemma4EvoErrorToGenerator
+module
+
+public import Qatlib.Papers.ReactionMech16.MainResults.Source.Lemma3SmallestEigenvalueStability
+public import Qatlib.Papers.ReactionMech16.MainResults.Source.Lemma4EvoErrorToGenerator
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -70,7 +74,8 @@ theorem hermitian_sum {I : Type} [Fintype I] [DecidableEq I] {M : ℕ}
     (∑ j : Fin M, Hs j).IsHermitian := by
   classical
   induction (Finset.univ : Finset (Fin M)) using Finset.induction with
-  | empty => simpa using (Matrix.isHermitian_zero : (0 : Matrix I I ℂ).IsHermitian)
+  | empty => simpa only [Finset.sum_empty] using
+      (Matrix.isHermitian_zero : (0 : Matrix I I ℂ).IsHermitian)
   | insert a s ha ih =>
     rw [Finset.sum_insert ha]
     exact (hH a).add ih

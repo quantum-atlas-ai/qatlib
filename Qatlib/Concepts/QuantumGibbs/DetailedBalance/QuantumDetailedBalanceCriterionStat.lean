@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QuantumGibbs.DetailedBalance.QuantumDetailedBalance
-import Qatlib.Concepts.QuantumGibbs.DetailedBalance.QuantumDetailedBalanceCriterionDefs
+module
+
+public import Qatlib.Concepts.QuantumGibbs.DetailedBalance.QuantumDetailedBalance
+public import Qatlib.Concepts.QuantumGibbs.DetailedBalance.QuantumDetailedBalanceCriterionDefs
+
+@[expose] public section
 
 /-!
 # The basis criterion for quantum detailed balance

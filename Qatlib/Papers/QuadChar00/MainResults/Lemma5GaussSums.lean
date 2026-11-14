@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QuadChar00.MainResults.Defs
-import Qatlib.Papers.QuadChar00.MainResults.Lemma4JacobiSum
-import Mathlib.NumberTheory.DirichletCharacter.GaussSum
+module
+
+public import Qatlib.Papers.QuadChar00.MainResults.Defs
+public import Qatlib.Papers.QuadChar00.MainResults.Lemma4JacobiSum
+public import Mathlib.NumberTheory.DirichletCharacter.GaussSum
+
+@[expose] public section
 
 /-!
 # Quadratic Gauss sums for prime moduli

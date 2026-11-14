@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkFind.UniqueCollision.ElementDistinctnessAlgorithmQuan
-import Qatlib.Concepts.WalkFind.UniqueCollision.QueryComplexityQuan
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.AlphabetInterrogation
-import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
-import Qatlib.Concepts.WalkFind.SearchAlgorithm.FiniteBasisPadding
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
-import Mathlib.Topology.Algebra.Order.Field
+module
+
+public import Qatlib.Concepts.WalkFind.UniqueCollision.ElementDistinctnessAlgorithmQuan
+public import Qatlib.Concepts.WalkFind.UniqueCollision.QueryComplexityQuan
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.AlphabetInterrogation
+public import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
+public import Qatlib.Concepts.WalkFind.SearchAlgorithm.FiniteBasisPadding
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
+public import Mathlib.Topology.Algebra.Order.Field
+
+@[expose] public section
 
 /-!
 # Native search contracts and source models

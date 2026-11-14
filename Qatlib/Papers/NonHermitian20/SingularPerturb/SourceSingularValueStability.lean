@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Matrix.Spectrum
-import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.OrderedSpectralPerturbation
+module
+
+public import Mathlib.Analysis.Matrix.Spectrum
+public import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.OrderedSpectralPerturbation
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

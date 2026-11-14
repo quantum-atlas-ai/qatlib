@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RiskEstimation.VaRQuantile.ExactQuantileNoMargin
-import Qatlib.Concepts.RiskEstimation.VaRQuantile.VaRAlgorithmFiniteRestrictedQuan
+module
+
+public import Qatlib.Concepts.RiskEstimation.VaRQuantile.ExactQuantileNoMargin
+public import Qatlib.Concepts.RiskEstimation.VaRQuantile.VaRAlgorithmFiniteRestrictedQuan
+
+@[expose] public section
 
 /-!
 # Exact quantile bisection without a margin

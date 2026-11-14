@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.RandCertLiu25.MainResults.EventProbabilityTools
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Positivity
+module
+
+public import Qatlib.Papers.RandCertLiu25.MainResults.EventProbabilityTools
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Positivity
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -48,7 +52,7 @@ probability at most `η/(2·|X|)`, then the ℓ∞-approximation event has
 probability at least `1 - η/2`. -/
 theorem lemma15_l_infty_union_bound {X : Type*} [Fintype X] [DecidableEq X] [Nonempty X]
     (P : FinDist X) (K : ℕ) (phat : (Fin K → X) → X → ℝ)
-    (delta eta : ℝ) (heta : 0 ≤ eta)
+    (delta eta : ℝ) (_heta : 0 ≤ eta)
     (hpoint : ∀ x, P.probEvent (fun ω => delta / 2 < |phat ω x - P.prob x|) ≤
       eta / (2 * (Fintype.card X : ℝ))) :
     1 - eta / 2 ≤ P.probEvent (fun ω => ∀ x, |phat ω x - P.prob x| ≤ delta / 2) := by

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GibbsMetropolis.RationalBath.RationalHeatBathChannel
+module
+
+public import Qatlib.Concepts.GibbsMetropolis.RationalBath.RationalHeatBathChannel
+
+@[expose] public section
 
 /-!
 # Resource ledgers for rational heat baths
@@ -46,11 +50,11 @@ together with its execution cost. -/
 abbrev HeatBathSamplerRecord (N : ℕ) := ((Fin N × ℕ × ℕ) ⊕ (ℕ × ℕ)) × ℕ
 
 /-- The sum of the recorded random-bit costs over a heat-bath sampling history. -/
-def rationalHeatBathCoins {N : ℕ} (w : Fin N → ℕ) (R m : ℕ)
+def rationalHeatBathCoins {N : ℕ} (_w : Fin N → ℕ) (_R m : ℕ)
     (hist : Fin m → HeatBathSamplerRecord N) : ℕ := ∑ k, rejectionBits (hist k).1
 
 /-- The sum of the recorded comparison costs over a heat-bath sampling history. -/
-def rationalHeatBathComparisons {N : ℕ} (w : Fin N → ℕ) (R m : ℕ)
+def rationalHeatBathComparisons {N : ℕ} (_w : Fin N → ℕ) (_R m : ℕ)
     (hist : Fin m → HeatBathSamplerRecord N) : ℕ := ∑ k, rejectionComparisons (hist k).1
 
 /-- Strictly positive integer weights define the Gibbs density for energies `-Real.log (w j)` at
@@ -84,7 +88,7 @@ theorem rationalHeatBath_leaf_cost {N : ℕ} (c : Option (Fin N))
 /-- The quantum leaf costs are fixed, while any supported history of `m` cutoff-`R` samples uses
 at most `m * Nat.clog 2 (weightTotal w) * R` bits and `m * N * R` comparisons. -/
 theorem rational_heat_bath_actual_leaf_and_classical_ledgers :
-    ∀ (N R m : ℕ) (w : Fin N → ℕ) (hW : 0 < weightTotal w)
+    ∀ (N R m : ℕ) (w : Fin N → ℕ) (_hW : 0 < weightTotal w)
       (c : Option (Fin N)) (l : Fin (observedLeafCount (rationalHeatBathProgram c))),
       (observedLeaf 1 (rationalHeatBathProgram c) l).queries = 0 ∧
       (observedLeaf 1 (rationalHeatBathProgram c) l).gates = 1 ∧

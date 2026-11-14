@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QlsReadoutSpec.Amplification.ActualNestedAmplificationStat
-import Qatlib.Concepts.QlsReadoutSpec.ProgramModel.PaidWordSemanticsLows
+module
+
+public import Qatlib.Concepts.QlsReadoutSpec.Amplification.ActualNestedAmplificationStat
+public import Qatlib.Concepts.QlsReadoutSpec.ProgramModel.PaidWordSemanticsLows
+
+@[expose] public section
 
 /-!
 # Amplitude amplification words and exact costs
@@ -825,7 +829,7 @@ private theorem good_amplified {H : Type} [Fintype H] [DecidableEq H]
 private theorem gainLoss_mul (ρ : ℕ) (a : ℝ) (ha : a ≠ 0) :
     ((ρ : ℝ) * gainLoss ρ a) = Real.sin ((ρ : ℝ) * Real.arcsin a) / a := by
   unfold gainLoss
-  rw [if_neg ha]
+  rw [ite_eq_right ha]
   rcases Nat.eq_zero_or_pos ρ with hρ | hρ
   · subst hρ
     simp
@@ -950,7 +954,7 @@ private theorem sine_law {H : Type} [Fintype H] [DecidableEq H]
       have hgain : gainLoss (2 * s + 1) 1
           = Real.sin (((2 * s + 1 : ℕ) : ℝ) * Real.arcsin 1) / (((2 * s + 1 : ℕ) : ℝ) * 1) := by
         unfold gainLoss
-        rw [if_neg (by norm_num : (1:ℝ) ≠ 0)]
+        rw [ite_eq_right (by norm_num : (1:ℝ) ≠ 0)]
       have harc : Real.arcsin (1:ℝ) = Real.pi / 2 := Real.arcsin_one
       have hre : (((2 * s + 1 : ℕ) : ℝ)
           * (Real.sin (((2 * s + 1 : ℕ) : ℝ) * (Real.pi / 2)) / (((2 * s + 1 : ℕ) : ℝ) * 1)))

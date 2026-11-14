@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SemiDirectHSP06.MainResults.Proposition3Presentation
-import Mathlib.Algebra.Group.Subgroup.ZPowers.Basic
+module
+
+public import Qatlib.Papers.SemiDirectHSP06.MainResults.Proposition3Presentation
+public import Mathlib.Algebra.Group.Subgroup.ZPowers.Basic
+
+@[expose] public section
 
 /-!
 # Finite power descriptions of cyclic subgroups
@@ -187,7 +191,7 @@ theorem proposition4_cyclic_subgroup
     {p r : ℕ} (hp : p.Prime) (hr : 2 ≤ r)
     (φ : Multiplicative (ZMod p) →* MulAut (Multiplicative (ZMod (2 * p ^ r))))
     (hφ : φ (Multiplicative.ofAdd 1) = shiftAut p r hp hr)
-    (a b : ℕ) (ha : a ≤ 2 * p ^ r - 1) (hb : b ≤ p - 1) :
+    (a b : ℕ) (_ha : a ≤ 2 * p ^ r - 1) (hb : b ≤ p - 1) :
     (Subgroup.zpowers (genX p r φ ^ a * genY p r φ ^ b) : Set (SDP p r φ)) =
       if p ^ r ∣ a ∧ b ≠ 0 then
         {g | ∃ i : ℕ,
@@ -198,7 +202,7 @@ theorem proposition4_cyclic_subgroup
             i ≤ 2 * p ^ r / Nat.gcd a (2 * p ^ r) - 1 ∧
               g = (genX p r φ ^ a * genY p r φ ^ b) ^ i} := by
   by_cases hc : p ^ r ∣ a ∧ b ≠ 0
-  · rw [if_pos hc]
+  · rw [ite_eq_left hc]
     have hN : 0 < 2 * p ^ (r + 1) / Nat.gcd a (2 * p ^ r) := pos_div_gcd_mul_p hp a
     have hone := pow_eq_one_branch1 hp hr φ hφ a b
     rw [zpowers_eq_range_of_pow_eq_one _ hN hone]
@@ -208,7 +212,7 @@ theorem proposition4_cyclic_subgroup
       exact ⟨i, by omega, rfl⟩
     · rintro ⟨i, hi, rfl⟩
       exact ⟨i, by omega, rfl⟩
-  · rw [if_neg hc]
+  · rw [ite_eq_right hc]
     have hN : 0 < 2 * p ^ r / Nat.gcd a (2 * p ^ r) := pos_div_gcd hp a
     rcases not_and_or.mp hc with hpr | hb0
     · have hone := pow_eq_one_branch2 hp hr φ hφ (a := a) (b := b) hpr

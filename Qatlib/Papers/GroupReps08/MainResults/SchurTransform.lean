@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.Basic
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Analysis.Normed.Operator.NormedSpace
-import Qatlib.Papers.GroupReps08.MainResults.Common
+module
+
+public import Mathlib.Analysis.InnerProductSpace.Basic
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Analysis.Normed.Operator.NormedSpace
+public import Qatlib.Papers.GroupReps08.MainResults.Common
+
+@[expose] public section
 
 /-!
 # Matrix-element estimates for Schur-transform applications

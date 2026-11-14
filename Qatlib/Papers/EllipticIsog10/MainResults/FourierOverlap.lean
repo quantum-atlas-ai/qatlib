@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Analysis.Complex.Norm
-import Mathlib.Analysis.SpecialFunctions.Sqrt
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.FieldSimp
+module
+
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Analysis.Complex.Norm
+public import Mathlib.Analysis.SpecialFunctions.Sqrt
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.FieldSimp
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -91,9 +95,9 @@ theorem lemmaA1_overlap_sum (N k s : ℕ) (ω : ℂ) (hω : ‖ω‖ = 1)
            else 0) := by
     intro y
     by_cases hy : y < 2 ^ k
-    · rw [if_pos hy, if_pos hy, map_mul, Complex.conj_ofReal]
+    · rw [ite_eq_left hy, ite_eq_left hy, map_mul, Complex.conj_ofReal]
       exact conj_mul_of_norm_one (hphase y) _ _
-    · rw [if_neg hy, if_neg hy]
+    · rw [ite_eq_right hy, ite_eq_right hy]
       simp
   rw [Finset.sum_congr rfl (fun y _ => hterm y)]
   rw [← Finset.sum_filter]

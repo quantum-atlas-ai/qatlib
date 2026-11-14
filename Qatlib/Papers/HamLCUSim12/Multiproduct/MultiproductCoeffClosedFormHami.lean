@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductMomentHami
+module
+
+public import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductMomentHami
+
+@[expose] public section
 
 /-!
 # Factorial closed form for multiproduct coefficients
@@ -60,7 +64,7 @@ private theorem minus_product_factorial (k q : ℕ) (hq : q < k) :
       _ = ∏ j ∈ Finset.range q, (q-j : ℝ) := by
         apply Finset.prod_congr rfl
         intro j hj
-        rw [if_neg (by have h := Finset.mem_range.mp hj; omega)]
+        rw [ite_eq_right (by have h := Finset.mem_range.mp hj; omega)]
       _ = _ := by
         rw [Finset.prod_range_natCast_sub]
         norm_cast
@@ -71,7 +75,7 @@ private theorem minus_product_factorial (k q : ℕ) (hq : q < k) :
       _ = ∏ j ∈ Finset.range (k-q-1), (-1 : ℝ)*(j+1) := by
         apply Finset.prod_congr rfl
         intro j _
-        rw [if_neg (by omega)]
+        rw [ite_eq_right (by omega)]
         ring
       _ = _ := by
         rw [Finset.prod_mul_distrib]
@@ -100,7 +104,7 @@ private theorem denominator_factorial (k q : ℕ) (hq : q < k) :
     rw [← Finset.prod_mul_distrib]
     apply Finset.prod_congr rfl
     intro j _
-    by_cases h : j=q <;> simp only [h, if_true, if_false]
+    by_cases h : j=q <;> simp only [h, ite_true, ite_false]
     all_goals ring
   have ha : a = (q.factorial : ℝ)*(-1 : ℝ)^(k-q-1)*((k-q-1).factorial : ℝ) :=
     minus_product_factorial k q hq
@@ -115,7 +119,7 @@ private theorem denominator_factorial (k q : ℕ) (hq : q < k) :
         simp only [ite_true, mul_one]
         apply Finset.prod_congr rfl
         intro j hj
-        rw [if_neg (Finset.mem_erase.mp hj).1]
+        rw [ite_eq_right (Finset.mem_erase.mp hj).1]
       rw [hb']
       ring
     rw [he]
@@ -144,7 +148,7 @@ private theorem small_product_numerator (k q : ℕ) (hq : q < k) :
       _ = ∏ _j ∈ (Finset.range k).erase q, (q+1 : ℝ)^2 := by
         apply Finset.prod_congr rfl
         intro j hj
-        rw [if_neg (Finset.mem_erase.mp hj).1]
+        rw [ite_eq_right (Finset.mem_erase.mp hj).1]
       _ = _ := by simp [Finset.card_erase_of_mem (Finset.mem_range.mpr hq)]
   rw [← Finset.prod_mul_distrib]
   calc
@@ -153,7 +157,7 @@ private theorem small_product_numerator (k q : ℕ) (hq : q < k) :
       intro j hj
       by_cases h : j=q
       · simp [h]
-      · simp only [if_neg h]
+      · simp only [ite_eq_right h]
         have hd : (q+1 : ℝ)^2-(j+1 : ℝ)^2 ≠ 0 := by
           apply sub_ne_zero.mpr
           intro he

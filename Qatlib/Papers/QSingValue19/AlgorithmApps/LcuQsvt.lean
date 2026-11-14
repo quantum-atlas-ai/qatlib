@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QSingValue19.AlgorithmApps.LcuQsvtDefs
-import Qatlib.Concepts.QsvtCore.ApproxToolkit.QsvtModulusTransport
-import Qatlib.Concepts.LcuQsvtApprox.SparseWalkFrame
+module
+
+public import Qatlib.Papers.QSingValue19.AlgorithmApps.LcuQsvtDefs
+public import Qatlib.Concepts.QsvtCore.ApproxToolkit.QsvtModulusTransport
+public import Qatlib.Concepts.LcuQsvtApprox.SparseWalkFrame
+
+@[expose] public section
 
 /-!
 # LCU and QSVT application guarantees
@@ -579,7 +583,7 @@ private theorem clause8_canonical_coefficients (η : ℝ) (k : ℕ) :
   have hq' : q ≠ k + 1 := by
     have h1 := Finset.mem_Icc.mp hq
     omega
-  simp only [clause8CanonicalC, if_neg hq', abs_zero]
+  simp only [clause8CanonicalC, ite_eq_right hq', abs_zero]
   have h1 : (0:ℝ) ≤ 2 ^ (1 / 2 : ℝ) * (k : ℝ) ^ (3 / 2 : ℝ) *
       Real.exp (2 * (k : ℝ) * (1 + Real.log η / 2 - correctedGamma η k)) := by
     positivity

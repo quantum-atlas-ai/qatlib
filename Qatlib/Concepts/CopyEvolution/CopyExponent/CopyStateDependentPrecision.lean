@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CopyEvolution.Discriminate.CopyExponentialPrecision
-import Qatlib.Concepts.ReferenceError.DensityToRaw.ChannelTraceContraction
-import Qatlib.Concepts.ReferenceError.RefTraceError.FiniteReferenceTraceError
+module
+
+public import Qatlib.Concepts.CopyEvolution.Discriminate.CopyExponentialPrecision
+public import Qatlib.Concepts.ReferenceError.DensityToRaw.ChannelTraceContraction
+public import Qatlib.Concepts.ReferenceError.RefTraceError.FiniteReferenceTraceError
+
+@[expose] public section
 
 /-!
 # State-dependent precision of fresh-copy evolution

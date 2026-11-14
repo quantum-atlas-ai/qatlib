@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.MeasureTheory.Function.Holder
-import Mathlib.MeasureTheory.Function.L2Space
-import Mathlib.MeasureTheory.Function.LpSpace.ContinuousFunctions
-import Mathlib.Analysis.InnerProductSpace.Adjoint
-import Mathlib.Tactic.NormNum
+module
+
+public import Mathlib.MeasureTheory.Function.Holder
+public import Mathlib.MeasureTheory.Function.L2Space
+public import Mathlib.MeasureTheory.Function.LpSpace.ContinuousFunctions
+public import Mathlib.Analysis.InnerProductSpace.Adjoint
+public import Mathlib.Tactic.NormNum
+
+@[expose] public section
 
 
 /-! Actual bounded multiplication on scalar L2, with pointwise semantics for
@@ -27,7 +31,8 @@ private def scalarB : ℂ →L[ℂ] ℂ →L[ℂ] ℂ := lsmul ℂ ℂ
 
 /-- Construction for multiplication in the double layer l2 multiplier model. -/
 def multiplication (g : C(X,ℂ)) : Lp ℂ 2 μ →L[ℂ] Lp ℂ 2 μ :=
-  scalarB.holderL μ ⊤ 2 2 (ContinuousMap.toLp ⊤ μ ℂ g)
+  (lsmul ℂ ℂ : ℂ →L[ℂ] ℂ →L[ℂ] ℂ).holderL μ ⊤ 2 2
+    (ContinuousMap.toLp ⊤ μ ℂ g)
 
 /-- The identity or estimate `multiplication_ae` holds with the displayed separation, geometry and norm hypotheses. -/
 theorem multiplication_ae (g : C(X,ℂ)) (f : Lp ℂ 2 μ) :
@@ -62,7 +67,7 @@ theorem multiplication_pow_ae (g : C(X,ℂ)) (n : ℕ) (f : Lp ℂ 2 μ) :
   induction n with
   | zero => exact Filter.Eventually.of_forall (fun x => by simp)
   | succ n ih =>
-    rw [pow_succ',ContinuousLinearMap.mul_apply]
+    rw [pow_succ',_root_.mul_apply_eq_comp]
     filter_upwards [multiplication_ae μ g (((multiplication μ g)^n) f),ih] with x hx hi
     rw [hx,hi,smul_smul,pow_succ']
 

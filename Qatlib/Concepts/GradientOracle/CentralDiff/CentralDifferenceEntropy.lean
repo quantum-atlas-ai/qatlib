@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Log.Deriv
-import Mathlib.Analysis.Calculus.Deriv.MeanValue
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Log.Deriv
+public import Mathlib.Analysis.Calculus.Deriv.MeanValue
+
+@[expose] public section
 
 /-!
 # Entropy estimates for central-difference weights
@@ -71,7 +75,8 @@ private theorem cdEven_deriv (y : ℝ) : HasDerivAt cdEven (cdOdd y) y := by
 
 /-- For `0 ≤ y < 1`, the polynomial `cdOdd y` bounds `log (1 + y) - log (1 - y)` from below. -/
 theorem centralDiff_log_ratio_lower (y : ℝ) (hy : 0≤y) (hy1 : y<1) :
-    cdOdd y≤Real.log (1+y)-Real.log (1-y) := by
+    2*y+(2/3)*y^3+(2/5)*y^5+(2/7)*y^7 ≤ Real.log (1+y)-Real.log (1-y) := by
+  change cdOdd y ≤ Real.log (1+y)-Real.log (1-y)
   let F := fun u : ℝ => Real.log (1+u)-Real.log (1-u)-cdOdd u
   have hd (u : ℝ) (hu : u∈Set.Icc 0 y) : HasDerivAt F (2*u^8/(1-u^2)) u := by
     have hp : 0<1+u := by linarith [hu.1]
@@ -95,7 +100,8 @@ theorem centralDiff_log_ratio_lower (y : ℝ) (hy : 0≤y) (hy1 : y<1) :
 
 /-- For `0 ≤ y < 1`, `cdEven y` is a lower bound for `centralDiffBinaryEntropy y`. -/
 theorem centralDiff_entropy_lower (y : ℝ) (hy : 0≤y) (hy1 : y<1) :
-    cdEven y≤centralDiffBinaryEntropy y := by
+    y^2+y^4/6+y^6/15+y^8/28 ≤ centralDiffBinaryEntropy y := by
+  change cdEven y ≤ centralDiffBinaryEntropy y
   let F := fun u : ℝ => centralDiffBinaryEntropy u-cdEven u
   have hd (u : ℝ) (hu : u∈Set.Icc 0 y) :
       HasDerivAt F (Real.log (1+u)-Real.log (1-u)-cdOdd u) u := by
@@ -111,6 +117,7 @@ theorem centralDiff_entropy_lower (y : ℝ) (hy : 0≤y) (hy1 : y<1) :
   have hs (u : ℝ) (hu : u∈Set.Icc 0 y) :
       0≤Real.log (1+u)-Real.log (1-u)-cdOdd u := by
     have h := centralDiff_log_ratio_lower u hu.1 (lt_of_le_of_lt hu.2 hy1)
+    change cdOdd u ≤ Real.log (1+u)-Real.log (1-u) at h
     linarith
   have h := cd_increasing_endpoints F (fun u => Real.log (1+u)-Real.log (1-u)-cdOdd u) 0 y hy hd hs
   have hzero : F 0=0 := by norm_num [F,cdEven,centralDiffBinaryEntropy]
@@ -163,7 +170,6 @@ theorem centralDiff_entropy_exponent (y : ℝ) (hy : 0<y) (hy1 : y<1) :
   norm_num only [Nat.cast_ofNat] at hl
   have he := centralDiff_entropy_lower y hy.le hy1
   have hp := centralDiff_entropy_polynomial (y^2) hz.le hz1
-  dsimp [cdEven] at he
   nlinarith
 
 /-- The natural logarithm of two is at least two thirds. -/
@@ -173,7 +179,7 @@ theorem centralDiff_log_two_lower : (2/3 : ℝ)≤Real.log 2 := by
     rw [← Real.log_div (by norm_num : (1+(1/3 : ℝ))≠0) (by norm_num : (1-(1/3 : ℝ))≠0)]
     norm_num
   rw [he] at h
-  norm_num [cdOdd] at h
+  norm_num at h
   linarith
 
 end Qatlib.Concepts.GradientOracle.CentralDiff

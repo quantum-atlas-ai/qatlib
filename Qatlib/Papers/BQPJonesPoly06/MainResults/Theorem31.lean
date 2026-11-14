@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.BQPJonesPoly06.MainResults.Model.Encoding
+module
+
+public import Qatlib.Papers.BQPJonesPoly06.MainResults.Model.Encoding
+
+@[expose] public section
 
 /-!
 # Fixed-parameter Jones hardness reduction
@@ -54,7 +58,7 @@ structure BraidEncoding (n : ℕ) where
 /-- A braid encoding with error at most `1 / 20` yields BQP hardness of the Jones promise
 problem when the scale is positive and Jones magnitudes equal scaled encoding amplitudes
 [AharonovArad2011, Theorem 3.1][AharonovArad2011]. -/
-theorem theorem31_reduction (k n : ℕ) (hk : 4 < k) (V : JonesValue n)
+theorem theorem31_reduction (k n : ℕ) (_hk : 4 < k) (V : JonesValue n)
     (E : BraidEncoding n) (hΔ : 0 < deltaScale k n)
     (hscale : ∀ b : BraidWord n, ‖V b‖ = deltaScale k n * E.amp b)
     (heps : E.eps ≤ 1 / 20) :

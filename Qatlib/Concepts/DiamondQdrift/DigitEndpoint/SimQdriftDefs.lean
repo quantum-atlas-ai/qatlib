@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RandCompile.ChannelBudget.FiniteDiamondQdriftCore
-import Qatlib.Concepts.DiamondQdrift.DigitEndpoint.DigitBudgetQDriftSubgoalCamp
-import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
+module
+
+public import Qatlib.Concepts.RandCompile.ChannelBudget.FiniteDiamondQdriftCore
+public import Qatlib.Concepts.DiamondQdrift.DigitEndpoint.DigitBudgetQDriftSubgoalCamp
+public import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
+
+@[expose] public section
 
 /-!
 # qDRIFT parameters and implementation cost models

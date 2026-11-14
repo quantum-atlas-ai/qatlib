@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.VarTimeAmpAmp10.CoherentAA.VariableTimeAmplificationDefs
-import Qatlib.Concepts.QlsReadoutSpec.BlockPrecond.OptimalCoefficientBlockEncodingStat
-import Qatlib.Concepts.QlsReadoutSpec.BlockPrecond.BlockPrecondCorrectedSubgoalStat
-import Qatlib.Concepts.QlsReadoutSpec.BlockPrecond.OptimalCoefficientBlockEncodingLows
-import Qatlib.Concepts.QlsReadoutSpec.BlockPrecond.BlockPrecondCorrectedSubgoalLows
+module
+
+public import Qatlib.Papers.VarTimeAmpAmp10.CoherentAA.VariableTimeAmplificationDefs
+public import Qatlib.Concepts.QlsReadoutSpec.BlockPrecond.OptimalCoefficientBlockEncodingStat
+public import Qatlib.Concepts.QlsReadoutSpec.BlockPrecond.BlockPrecondCorrectedSubgoalStat
+public import Qatlib.Concepts.QlsReadoutSpec.BlockPrecond.OptimalCoefficientBlockEncodingLows
+public import Qatlib.Concepts.QlsReadoutSpec.BlockPrecond.BlockPrecondCorrectedSubgoalLows
+
+@[expose] public section
 
 /-!
 # Algebra for variable-time applications
@@ -314,7 +318,7 @@ theorem run_stageWord_one {H : Type} [Fintype H] [DecidableEq H]
   funext p
   have hp : p.2 = (⟨0, hr⟩ : Fin 1) := Subsingleton.elim _ _
   by_cases hpk : p.2 = (⟨0, hr⟩ : Fin 1)
-  · rw [if_pos hpk]
+  · rw [ite_eq_left hpk]
     show (wordMatrix (pairOracles UA UB) (stageWord 1) *ᵥ clean 1 hr ω) p = _
     rw [hw]
     show (∑ q : H × Fin 1, controlled UB Finset.univ p q * clean 1 hr ω q) = _
@@ -324,13 +328,13 @@ theorem run_stageWord_one {H : Type} [Fintype H] [DecidableEq H]
       refine Finset.sum_congr rfl fun h _ => ?_
       rw [Finset.sum_eq_single ⟨0, hr⟩]
       · show controlled UB Finset.univ p (h, ⟨0, hr⟩) * clean 1 hr ω (h, ⟨0, hr⟩) = _
-        simp only [controlled, clean, Finset.mem_univ, if_true]
+        simp only [controlled, clean, Finset.mem_univ, ite_true]
         rw [hpk]
         simp
       · intro k _ hk
         show controlled UB Finset.univ p (h, k) * clean 1 hr ω (h, k) = _
-        simp only [controlled, clean, Finset.mem_univ, if_true]
-        rw [if_neg hk, mul_zero]
+        simp only [controlled, clean, Finset.mem_univ, ite_true]
+        rw [ite_eq_right hk, mul_zero]
       · intro hmem
         exact absurd (Finset.mem_univ _) hmem
     rw [hsum]
@@ -390,7 +394,7 @@ theorem clause116_zero_time : ∃ K : ℝ, 0 < K ∧
       exact (normalized_iff_stateVector_norm ψ).mp hψ
     have hne : Nonempty I := by
       by_contra hne
-      haveI : IsEmpty I := not_nonempty_iff.mp hne
+      have : IsEmpty I := not_nonempty_iff.mp hne
       have hsq : ‖stateVector ψ‖ ^ 2 = ∑ i : I, ‖ψ i‖ ^ 2 := norm_toEuclidean_fromVec_sq ψ
       simp at hsq
       have hn : ‖stateVector ψ‖ = 1 := (normalized_iff_stateVector_norm ψ).mp hψ
@@ -464,7 +468,7 @@ theorem slotFlip_entry_zero {H : Type} [DecidableEq H] (hr : 0 < 2) (h t : H) :
     simp at hval
   show ((slotFlip H).toPEquiv.toMatrix) (h, ⟨0, hr⟩) (t, ⟨0, hr⟩) = _
   rw [PEquiv.toMatrix_toPEquiv_apply, Pi.single_apply]
-  exact if_neg hne
+  exact ite_eq_right hne
 
 /-- The permutation matrix of `slotFlip` is unitary. -/
 theorem slotFlip_unitary {H : Type} [Fintype H] [DecidableEq H] :

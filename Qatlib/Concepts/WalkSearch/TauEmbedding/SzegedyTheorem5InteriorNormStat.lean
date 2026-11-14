@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.TauEmbedding.SzegedyTauScaledIsometryStat
+module
+
+public import Qatlib.Concepts.WalkSearch.TauEmbedding.SzegedyTauScaledIsometryStat
+
+@[expose] public section
 
 /-!
 # Normalized τ-image norm contract

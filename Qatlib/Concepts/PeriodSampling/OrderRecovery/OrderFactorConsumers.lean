@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PeriodSampling.OrderRecovery.BoundedRationalOrderDecoder
+module
+
+public import Qatlib.Concepts.PeriodSampling.OrderRecovery.BoundedRationalOrderDecoder
+
+@[expose] public section
 
 /-!
 # Factor extraction from modular order candidates
@@ -85,7 +89,7 @@ theorem modular_order_fifteen_factor :
 theorem orderFactor_half_power_val_ne_zero (N : ℕ) [NeZero N] (a : (ZMod N)ˣ)
     (hN : 1 < N) (r : ℕ) :
     ((orderVerificationProduct N a (r / 2) : (ZMod N)ˣ) : ZMod N).val ≠ 0 := by
-  letI : Fact (1 < N) := ⟨hN⟩
+  let : Fact (1 < N) := ⟨hN⟩
   rw [ZMod.val_ne_zero]
   exact (orderVerificationProduct N a (r / 2)).isUnit.ne_zero
 

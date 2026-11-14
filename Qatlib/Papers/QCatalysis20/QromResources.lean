@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QCatalysis20.MainResults.Definitions
+module
+
+public import Qatlib.Papers.QCatalysis20.MainResults.Definitions
+
+@[expose] public section
 
 /-!
 # Conditional sparse lookup resource ledgers

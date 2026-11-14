@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.BitWordCompiler.CanonicalCodec.BitWordCompiler
+module
+
+public import Qatlib.Concepts.BitWordCompiler.CanonicalCodec.BitWordCompiler
+
+@[expose] public section
 
 /-!
 # Exact execution counts for canonical natural number words
@@ -95,7 +99,7 @@ theorem canonical_execution_exact (n : ℕ) (rest output : Bits) (v : Local) :
     rw [lastField_none]
     exact (canonical_iff n.bits).mp (by rw [binaryValue_bits])
   rw [field_data] at hf
-  simp only [if_pos hlast] at hf
+  simp only [ite_eq_left hlast] at hf
   have ha : Stacks.stackRun program 1
       ⟨some .accept,(false,lastField n.bits none),
         Parsing.triple rest [] (n.bits.reverse++output)⟩ =

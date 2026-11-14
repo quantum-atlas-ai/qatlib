@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.BKFermion17.FermionEdge.Defs
+module
+
+public import Qatlib.Papers.BKFermion17.FermionEdge.Defs
+
+@[expose] public section
 
 /-!
 # Relations of fermionic edge generators

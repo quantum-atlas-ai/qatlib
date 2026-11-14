@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Normed.Algebra.MatrixExponential
-import Mathlib.Analysis.Complex.Trigonometric
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.LinearAlgebra.Matrix.Notation
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Qatlib.Papers.Connectivity14.MainResults.TwoLevel
+module
+
+public import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+public import Mathlib.Analysis.Complex.Trigonometric
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.LinearAlgebra.Matrix.Notation
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Qatlib.Papers.Connectivity14.MainResults.TwoLevel
+
+@[expose] public section
 
 /-!
 # An effective model for joined complete graphs
@@ -102,7 +106,7 @@ theorem joinedInit_decomp :
       (2⁻¹ : ℂ) • jPsi0 + (halfSqrt : ℂ) • jPsi1 + (2⁻¹ : ℂ) • jPsi2 := by
   ext i
   fin_cases i <;>
-    simp [joinedInit, jPsi0, jPsi1, jPsi2] <;> ring
+    simp [joinedInit, jPsi0, jPsi1, jPsi2]; ring
 
 /-- Expresses the evolution of `joinedInit` under `joinedEff3 N` as its three eigenvector
 components multiplied by their respective exponential phases. -/

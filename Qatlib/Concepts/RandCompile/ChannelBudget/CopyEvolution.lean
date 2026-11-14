@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CopyEvolution.SelfTomography.CopyEvolutionDefs
+module
+
+public import Qatlib.Concepts.CopyEvolution.SelfTomography.CopyEvolutionDefs
+
+@[expose] public section
 
 /-!
 # Copy-evolution loading and sampling guarantees
@@ -28,6 +32,9 @@ The mathematical background is described in [LloydMohseniRebentrost2014].
 -/
 
 set_option backward.isDefEq.respectTransparency false
+set_option linter.unusedVariables false
+set_option linter.style.haveILetI false
+set_option linter.unusedSimpArgs false
 open Qatlib.Concepts.FreshCopyExec.QpeConsumers
 open Qatlib.Concepts.LchsSimulation.StaticLchs Qatlib.Foundations.PureStateMath.Reflection
 open Qatlib.Foundations.PureStateMath

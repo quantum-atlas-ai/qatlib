@@ -4,16 +4,20 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SketchArith.SketchBuild.SketchFrobeniusConcentration
-import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.OrderedSpectralPerturbation
-import Mathlib.LinearAlgebra.Matrix.PosDef
-import Mathlib.Analysis.Convex.SpecificFunctions.Deriv
-import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
-import Qatlib.Concepts.MatrixWeights.WeightsCore
-import Mathlib.Analysis.MeanInequalitiesPow
-import Mathlib.LinearAlgebra.Matrix.Rank
-import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Order
-import Mathlib.Analysis.Complex.ExponentialBounds
+module
+
+public import Qatlib.Concepts.SketchArith.SketchBuild.SketchFrobeniusConcentration
+public import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.OrderedSpectralPerturbation
+public import Mathlib.LinearAlgebra.Matrix.PosDef
+public import Mathlib.Analysis.Convex.SpecificFunctions.Deriv
+public import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
+public import Qatlib.Concepts.MatrixWeights.WeightsCore
+public import Mathlib.Analysis.MeanInequalitiesPow
+public import Mathlib.LinearAlgebra.Matrix.Rank
+public import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Order
+public import Mathlib.Analysis.Complex.ExponentialBounds
+
+@[expose] public section
 
 /-!
 # Operator concentration for sampled Gram matrices
@@ -827,7 +831,7 @@ theorem sketch_covariance_variance_norm {C : Type} [Fintype C] [DecidableEq C] {
     (hy : ∀ i, ‖toEuclidean_fromVec (y i)‖ ≤ R) :
     ‖∑ i,(Matrix.vecMulVec (y i) (star (y i)))^2‖ ≤
       R^2*‖∑ i,Matrix.vecMulVec (y i) (star (y i))‖ := by
-  letI : CStarAlgebra (Matrix C C ℂ) := {}
+  let : CStarAlgebra (Matrix C C ℂ) := {}
   let B := fun i => Matrix.vecMulVec (y i) (star (y i))
   have hB (i : Fin r) : (B i).PosSemidef := Matrix.posSemidef_vecMulVec_self_star _
   have he (i : Fin r) : (B i)^2=‖toEuclidean_fromVec (y i)‖^2 • B i := by

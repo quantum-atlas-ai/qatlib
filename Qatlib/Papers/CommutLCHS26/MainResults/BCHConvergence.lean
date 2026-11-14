@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommutLCHS26.MainResults.BCHFormal
-import Qatlib.Papers.CommutLCHS26.MainResults.PerturbationDyson
-import Mathlib.Analysis.Analytic.ChangeOrigin
+module
+
+public import Qatlib.Papers.CommutLCHS26.MainResults.BCHFormal
+public import Qatlib.Papers.CommutLCHS26.MainResults.PerturbationDyson
+public import Mathlib.Analysis.Analytic.ChangeOrigin
+
+@[expose] public section
 
 /-!
 # Convergence of matrix BCH logarithms
@@ -327,7 +331,7 @@ theorem word_sub_one_bound (ws : List (Matrix I I ℂ)) (z : ℂ) :
     cases n with
     | zero => simp [scaled, wordSeries]
     | succ n =>
-      simpa only [scaled, map_sub, PowerSeries.coeff_one, Nat.succ_ne_zero, if_false,
+      simpa only [scaled, map_sub, PowerSeries.coeff_one, Nat.succ_ne_zero, ite_false,
         sub_zero] using! norm_scaled_word_le ws z (n + 1)
   have hs := hmajor.summable.of_nonneg_of_le (fun _ => norm_nonneg _) hbound
   exact ⟨hs, (hs.tsum_le_tsum hbound hmajor.summable).trans_eq hmajor.tsum_eq⟩

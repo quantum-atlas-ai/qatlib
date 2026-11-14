@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RiskEstimation.VaRQuantile.RiskDefs
-import Qatlib.Concepts.AEMeanReadout.LayeredMeanLaw.RationalWeightPreparation
-import Qatlib.Concepts.MonteCarloMean.PayoffRotation.RationalPayoffRotation
+module
+
+public import Qatlib.Concepts.RiskEstimation.VaRQuantile.RiskDefs
+public import Qatlib.Concepts.AEMeanReadout.LayeredMeanLaw.RationalWeightPreparation
+public import Qatlib.Concepts.MonteCarloMean.PayoffRotation.RationalPayoffRotation
+
+@[expose] public section
 
 /-!
 # Rational market distribution loading specification

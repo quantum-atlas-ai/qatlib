@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.OpCalculus.ContourCalc.PolygonWindingEdges
-import Qatlib.Concepts.MatrixContour.ContourCalc.PolygonResolventPrincipal
+module
+
+public import Qatlib.Foundations.OpCalculus.ContourCalc.PolygonWindingEdges
+public import Qatlib.Concepts.MatrixContour.ContourCalc.PolygonResolventPrincipal
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.MatrixContour.ContourCalc

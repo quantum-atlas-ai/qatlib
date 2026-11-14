@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EstimatorLaws.MergedEstimator.MontanaroLemma18RestrictedSubgoalStat
-import Qatlib.Concepts.EstimatorLaws.TvStability.MontanaroLemma18AELawTVSubgoalMont
-import Qatlib.Concepts.SketchArith.TransposeAccess.FinDistTransport
+module
+
+public import Qatlib.Concepts.EstimatorLaws.MergedEstimator.MontanaroLemma18RestrictedSubgoalStat
+public import Qatlib.Concepts.EstimatorLaws.TvStability.MontanaroLemma18AELawTVSubgoalMont
+public import Qatlib.Concepts.SketchArith.TransposeAccess.FinDistTransport
+
+@[expose] public section
 
 /-!
 # Restricted signed-estimator transport
@@ -87,14 +91,14 @@ private theorem fresh_pushforward_test {X Y : Type} [Fintype X] [DecidableEq X]
       (if (fun i => g (ξ i)) = η then ∏ i, p.prob (ξ i) else 0) =
         ∏ i, if g (ξ i) = η i then p.prob (ξ i) else 0 := by
     by_cases h : (fun i => g (ξ i)) = η
-    · simp only [congrFun h, if_true]
-    · rw [if_neg h]
+    · simp only [congrFun h, ite_true]
+    · rw [ite_eq_right h]
       obtain ⟨i, hi⟩ : ∃ i, g (ξ i) ≠ η i := by
         by_contra hn
         exact h (funext (fun i => by simpa using! (not_exists.mp hn) i))
       symm
       apply Finset.prod_eq_zero (Finset.mem_univ i)
-      exact if_neg hi
+      exact ite_eq_right hi
   change (∏ i : Fin n, q.prob (η i)) =
     ∑ ξ : Fin n → X, if (fun i => g (ξ i)) = η then ∏ i, p.prob (ξ i) else 0
   simp_rw [hpoint]
@@ -206,11 +210,11 @@ private theorem native_value_record_fiber {I : Type} [Fintype I] [DecidableEq I]
           (centeredLayerLaw A j f σ k hA v.val false).prob w else 0 := by
     by_cases hi : f i = v.val
     · simp only [hv, hi, true_and]
-      simp only [ite_and, Finset.sum_ite_irrel, Finset.sum_ite_eq', Finset.mem_univ, if_true,
+      simp only [ite_and, Finset.sum_ite_irrel, Finset.sum_ite_eq', Finset.mem_univ, ite_true,
         Finset.sum_const_zero]
       simp only [canonicalSignedLaw, nativeSignedLaw, centeredLayerLaw, hi, Bool.false_eq_true,
-        if_true, if_false, ApplyGate]
-    · simp only [hv, hi, false_and, if_false, Finset.sum_const_zero]
+        ite_true, ite_false, ApplyGate]
+    · simp only [hv, hi, false_and, ite_false, Finset.sum_const_zero]
   simp_rw [ht]
   rw [Finset.sum_filter]
   simp only [Finset.sum_mul, ite_mul, zero_mul]

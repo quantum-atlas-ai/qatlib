@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QuadHamilton24.MainResults.QuadHamiltonModel
+module
+
+public import Qatlib.Papers.QuadHamilton24.MainResults.QuadHamiltonModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -42,12 +46,13 @@ open scoped Matrix.Norms.L2Operator
 
 variable {N M : Type*} [Fintype N] [Fintype M] [DecidableEq N] [DecidableEq M]
 
+omit [DecidableEq N] in
 /-- **Proposition 1 (§2.6, (2.60)–(2.68)).**  If `u, v` satisfy the linear system
 `u̇ = F₁ u + F₀ v + F₁ w`, `v̇ = F₂ u + F₃ v + F₂ w` (i.e. (2.65)–(2.66) with
 `e = F₁ w`, `f = F₂ w`), then `y = (u + w) v⁻¹` has derivative
 `u̇ v⁻¹ − (u + w) v⁻¹ v̇ v⁻¹ = F₀ + F₁ y − y F₂ y − y F₃`, i.e. it solves the
 Riccati equation in the sign convention of (2.59) and of the source proof (2.67). -/
-theorem proposition1_mobius
+theorem proposition1_mobius {N M : Type*} [_inst0 : Fintype N] [_inst1 : Fintype M] [_inst2 : DecidableEq N] [_inst3 : DecidableEq M]
     (F₁ : Matrix N N ℂ) (F₀ : Matrix N M ℂ) (F₂ : Matrix M N ℂ) (F₃ : Matrix M M ℂ)
     (u : Matrix N M ℂ) (v : Matrix M M ℂ) (w : Matrix N M ℂ)
     (du : Matrix N M ℂ) (dv : Matrix M M ℂ)
@@ -63,12 +68,13 @@ theorem proposition1_mobius
   simp only [Matrix.add_mul, Matrix.mul_add, Matrix.mul_assoc, hv1, Matrix.mul_one]
   abel
 
+omit [DecidableEq N] [DecidableEq M] in
 /-- **Proposition 1, relation between printed (2.68) and derived (2.67) right-hand
 sides.**  The printed right-hand side exceeds the actual derivative by
 `2 (y F₂ y + y F₃)`, where `y = (u + w) v⁻¹`.  Consequently the printed equation
 holds exactly when `y F₂ y + y F₃ = 0`; in particular it holds with the printed signs
 when `F₂ = 0` **and** `F₃ = 0`. -/
-theorem proposition1_printed_vs_derived
+theorem proposition1_printed_vs_derived {N M : Type*} [_inst0 : Fintype N] [_inst1 : Fintype M] [_inst2 : DecidableEq N] [_inst3 : DecidableEq M]
     (F₁ : Matrix N N ℂ) (F₀ : Matrix N M ℂ) (F₂ : Matrix M N ℂ) (F₃ : Matrix M M ℂ)
     (y : Matrix N M ℂ) :
     riccatiRHS F₁ F₀ F₂ F₃ y =
@@ -76,18 +82,20 @@ theorem proposition1_printed_vs_derived
   unfold riccatiRHS riccatiRHSMinus
   abel
 
+omit [DecidableEq N] [DecidableEq M] in
 /-- **Proposition 1, printed form in the degenerate case `F₂ = F₃ = 0`.**  Then
 `F₀ + F₁ y + y F₂ y + y F₃ = F₀ + F₁ y − y F₂ y − y F₃`, so the printed equation
 (2.60)/(2.68) coincides with the derived one. -/
-theorem proposition1_printed_collapse
+theorem proposition1_printed_collapse {N M : Type*} [_inst0 : Fintype N] [_inst1 : Fintype M] [_inst2 : DecidableEq N] [_inst3 : DecidableEq M]
     (F₁ : Matrix N N ℂ) (F₀ : Matrix N M ℂ) (y : Matrix N M ℂ) :
     riccatiRHS F₁ F₀ 0 0 y = riccatiRHSMinus F₁ F₀ 0 0 y := by
   unfold riccatiRHS riccatiRHSMinus
   simp [Matrix.mul_zero, Matrix.zero_mul]
 
+omit [Fintype N] [DecidableEq N] in
 /-- **Proposition 1, initial condition.**  `y(0) = u(0) v(0)⁻¹ = y₀ + w` when
 `u(0) = y₀` and `v(0) = I`, matching `y = (u + w) v⁻¹` at the start of the proof. -/
-theorem proposition1_initial (u₀ : Matrix N M ℂ) (v₀ : Matrix M M ℂ) (w : Matrix N M ℂ)
+theorem proposition1_initial {N M : Type*} [_inst0 : Fintype N] [_inst1 : Fintype M] [_inst2 : DecidableEq N] [_inst3 : DecidableEq M] (u₀ : Matrix N M ℂ) (v₀ : Matrix M M ℂ) (w : Matrix N M ℂ)
     (hv₀ : v₀ = 1) :
     (u₀ + w) * v₀⁻¹ = u₀ + w := by
   subst hv₀

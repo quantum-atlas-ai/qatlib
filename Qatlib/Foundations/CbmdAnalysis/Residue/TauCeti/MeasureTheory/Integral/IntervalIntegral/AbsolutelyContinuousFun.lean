@@ -6,19 +6,23 @@ Authors: The Tau Ceti contributors, Qatlib Contributors
 Adapted from https://github.com/TauCetiProject/TauCeti@3780371c
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+module
 
-import Mathlib.Analysis.Calculus.ContDiff.Defs
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.AbsolutelyContinuousFun
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.MeasureTheory.Function.AbsolutelyContinuous.Comp
-import Mathlib.MeasureTheory.Integral.DivergenceTheorem
-import Mathlib.Analysis.Calculus.ContDiff.Basic
-import Mathlib.Analysis.Calculus.ContDiff.Operations
-import Mathlib.Analysis.Calculus.Deriv.Comp
-import Mathlib.Analysis.LocallyConvex.SeparatingDual
-import Mathlib.MeasureTheory.SpecificCodomains.Pi
-import Mathlib.Analysis.SpecialFunctions.Log.Deriv
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+
+public import Mathlib.Analysis.Calculus.ContDiff.Defs
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.AbsolutelyContinuousFun
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.MeasureTheory.Function.AbsolutelyContinuous.Composition
+public import Mathlib.MeasureTheory.Integral.DivergenceTheorem
+public import Mathlib.Analysis.Calculus.ContDiff.Basic
+public import Mathlib.Analysis.Calculus.ContDiff.Operations
+public import Mathlib.Analysis.Calculus.Deriv.Comp
+public import Mathlib.Analysis.LocallyConvex.SeparatingDual
+public import Mathlib.MeasureTheory.SpecificCodomains.Pi
+public import Mathlib.Analysis.SpecialFunctions.Log.Deriv
+
+@[expose] public section
 
 /-!
 # Integration along absolutely continuous curves
@@ -79,7 +83,7 @@ theorem intervalIntegrable_of_ae_hasDerivAt [FiniteDimensional ℝ F]
   intro i
   let L : F →L[ℝ] ℝ := (ContinuousLinearMap.proj (R := ℝ) (φ := fun _ ↦ ℝ) i).comp (e : F →L[ℝ] _)
   refine (intervalIntegrable_iff.1
-    (LipschitzWith.comp_absolutelyContinuousOnInterval L.lipschitz hγ).intervalIntegrable_deriv).congr ?_
+    (LipschitzWith.comp_absolutelyContinuousOnInterval L.lipschitzWith hγ).intervalIntegrable_deriv).congr ?_
   rw [Filter.EventuallyEq, ae_restrict_iff' measurableSet_uIoc]
   filter_upwards [hV] with t ht hmem
   exact (L.hasFDerivAt.comp_hasDerivAt t (ht hmem)).deriv

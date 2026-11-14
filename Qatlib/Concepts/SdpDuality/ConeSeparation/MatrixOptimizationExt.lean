@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationDefs
-import Qatlib.Concepts.MatrixWeights.WeightsCore
-import Mathlib.Tactic.FinCases
+module
+
+public import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationDefs
+public import Qatlib.Concepts.MatrixWeights.WeightsCore
+public import Mathlib.Tactic.FinCases
+
+@[expose] public section
 
 /-!
 # Sampled SDP width bounds and their boundary
@@ -65,16 +69,16 @@ one. -/
 private noncomputable def Wy : ℕ → Fin 2 → ℝ := fun _ i => if i = 0 then (4:ℝ) else (0:ℝ)
 
 /-- The first constraint bound in `Wb` is one. -/
-private theorem hWb0 : Wb 0 = (1:ℝ) := if_pos rfl
+private theorem hWb0 : Wb 0 = (1:ℝ) := ite_eq_left rfl
 
 /-- The second constraint bound in `Wb` is two. -/
-private theorem hWb1 : Wb 1 = (2:ℝ) := if_neg (by decide)
+private theorem hWb1 : Wb 1 = (2:ℝ) := ite_eq_right (by decide)
 
 /-- At every time, `Wy` assigns weight four to constraint zero. -/
-private theorem hWy0 (t : ℕ) : Wy t 0 = (4:ℝ) := if_pos rfl
+private theorem hWy0 (t : ℕ) : Wy t 0 = (4:ℝ) := ite_eq_left rfl
 
 /-- At every time, `Wy` assigns weight zero to constraint one. -/
-private theorem hWy1 (t : ℕ) : Wy t 1 = (0:ℝ) := if_neg (by decide)
+private theorem hWy1 (t : ℕ) : Wy t 1 = (0:ℝ) := ite_eq_right (by decide)
 
 /-- Every index in `Fin 2` is zero or one. -/
 private theorem hfin2 : ∀ i : Fin 2, i = 0 ∨ i = 1 := by
@@ -238,7 +242,7 @@ theorem clause29 : (
   have heval : (∑ i, sdpDualCertificate m δ α R j₀ y T i * b i) =
       δ * α / (2 * R) * b j₀ + (∑ t ∈ Finset.range T, ∑ i, y t i * b i) / T := by
     simp only [sdpDualCertificate, add_mul, div_mul_eq_mul_div, Finset.sum_add_distrib,
-      ite_mul, zero_mul, Finset.sum_ite_eq', Finset.mem_univ, if_true]
+      ite_mul, zero_mul, Finset.sum_ite_eq', Finset.mem_univ, ite_true]
     congr 1
     simp only [Finset.sum_mul, ← Finset.sum_div]
     rw [Finset.sum_comm]

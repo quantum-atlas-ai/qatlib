@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpinorSampling.Retained.RetainedBellLowMean
-import Qatlib.Papers.SCWFPrep24.Estimation.Confidence.SharedInput
-import Qatlib.Papers.SCWFPrep24.Estimation.Confidence.WeakPair
+module
+
+public import Qatlib.Concepts.SpinorSampling.Retained.RetainedBellLowMean
+public import Qatlib.Papers.SCWFPrep24.Estimation.Confidence.SharedInput
+public import Qatlib.Papers.SCWFPrep24.Estimation.Confidence.WeakPair
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

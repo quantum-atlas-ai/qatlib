@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.NativeChebyshevCertificate
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.Orthogonality
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Public
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Verifier
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.RationalCircle
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.HouseholderRotationTable
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.NativeHouseholder
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.NativePhasePrecision
+module
+
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.NativeChebyshevCertificate
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.Orthogonality
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Public
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Verifier
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.RationalCircle
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.HouseholderRotationTable
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.NativeHouseholder
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.NativePhasePrecision
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -130,7 +134,7 @@ theorem nativeChebyshevMass_of_uniform (cs : List ℚ) (u : ℝ)
     (hu : ∀ x∈Set.Icc (-1 : ℝ) 1,
       |(nativeChebyshevPolynomialFrom 0 cs).eval x|≤u) :
     (nativeChebyshevMass cs : ℝ)≤2*(cs.length : ℝ)*u := by
-  have hs := List.sum_le_card_nsmul (cs.map (fun q : ℚ => |(q : ℝ)|)) (2*u) (by
+  have hs := List.sum_le_length_nsmul (cs.map (fun q : ℚ => |(q : ℝ)|)) (2*u) (by
     intro a ha
     obtain ⟨c,hc,rfl⟩ := List.mem_map.mp ha
     obtain ⟨k,hk⟩ := List.mem_iff_getElem?.mp hc

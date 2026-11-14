@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.BKFermion17.H2Edge.GraphAdapter
+module
+
+public import Qatlib.Papers.BKFermion17.H2Edge.GraphAdapter
+
+@[expose] public section
 
 /-!
 # The hydrogen loop code projector

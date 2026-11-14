@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TrotterFormula.SuzukiFourth.QSP
-import Qatlib.Concepts.CoherentSim.CoherentOAA.Qubitization
+module
+
+public import Qatlib.Concepts.TrotterFormula.SuzukiFourth.QSP
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.Qubitization
+
+@[expose] public section
 
 /-!
 # Phased alternating sequences for QSVT

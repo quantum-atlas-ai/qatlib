@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Matrix.Normed
-import Mathlib.Analysis.SpecificLimits.Normed
-import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
-import Mathlib.Topology.Algebra.Module.FiniteDimension
+module
+
+public import Mathlib.Analysis.Matrix.Normed
+public import Mathlib.Analysis.SpecificLimits.Normed
+public import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
+public import Mathlib.Topology.Algebra.Module.FiniteDimension
+
+@[expose] public section
 
 /-!
 # Killed-chain hitting-time formulas

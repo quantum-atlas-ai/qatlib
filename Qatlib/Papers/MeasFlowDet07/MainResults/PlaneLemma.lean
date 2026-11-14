@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowCoreDefs
-import Qatlib.Papers.MeasFlowDet07.MainResults.PlaneAnachronical
+module
+
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowCoreDefs
+public import Qatlib.Papers.MeasFlowDet07.MainResults.PlaneAnachronical
+
+@[expose] public section
 
 /-!
 # Proportionality tests for measurement-plane projections

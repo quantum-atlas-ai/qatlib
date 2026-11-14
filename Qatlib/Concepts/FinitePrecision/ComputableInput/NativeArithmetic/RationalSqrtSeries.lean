@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Analytic.Binomial
-import Mathlib.Topology.Algebra.InfiniteSum.Real
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Linarith
+module
+
+public import Mathlib.Analysis.Analytic.Binomial
+public import Mathlib.Topology.Algebra.InfiniteSum.Real
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Linarith
+
+@[expose] public section
 
 /-!
 # Rational square-root series and truncation bounds

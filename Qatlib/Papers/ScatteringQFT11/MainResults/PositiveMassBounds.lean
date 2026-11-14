@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ScatteringQFT11.MainResults.ExpectationCore
+module
+
+public import Qatlib.Papers.ScatteringQFT11.MainResults.ExpectationCore
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -62,9 +66,12 @@ noncomputable def phi4Hamiltonian (d : ℕ) (a m0sq lam : ℝ)
     (gradSq phi piOp : sites → Matrix n n ℂ) : Matrix n n ℂ :=
   ∑ y : sites, ((a ^ d : ℝ) : ℂ) • phi4LocalTerm m0sq lam gradSq phi piOp y
 
+omit [Fintype n] [DecidableEq n] [Fintype sites] [DecidableEq sites] in
 /-- Expansion of the energy functional of the lattice Hamiltonian (4) into the
 four contributions of every site. -/
-theorem expectation_phi4Hamiltonian (d : ℕ) (a m0sq lam : ℝ)
+theorem expectation_phi4Hamiltonian {n : Type*} [Fintype n] [DecidableEq n]
+    {sites : Type*} [Fintype sites] [_decidableEqSites : DecidableEq sites]
+    (d : ℕ) (a m0sq lam : ℝ)
     (gradSq phi piOp : sites → Matrix n n ℂ) (ψ : QState n) :
     expectation (phi4Hamiltonian d a m0sq lam gradSq phi piOp) ψ
       = ∑ y : sites, a ^ d *
@@ -78,10 +85,13 @@ theorem expectation_phi4Hamiltonian (d : ℕ) (a m0sq lam : ℝ)
   rw [expectation_smul_real, phi4LocalTerm]
   simp only [expectation_add, expectation_smul_real]
 
+omit [Fintype n] [DecidableEq n] [Fintype sites] [DecidableEq sites] in
 /-- The energy functional of the local density is nonnegative in the
 positive-mass regime `m₀² > 0`, `λ₀ ≥ 0`: every contribution is a nonnegative
 multiple of an expectation of a positive semidefinite operator. -/
-theorem expectation_phi4LocalTerm_nonneg (m0sq lam : ℝ) (hm : 0 < m0sq) (hl : 0 ≤ lam)
+theorem expectation_phi4LocalTerm_nonneg {n : Type*} [Fintype n] [DecidableEq n]
+    {sites : Type*} [_fintypeSites : Fintype sites] [_decidableEqSites : DecidableEq sites]
+    (m0sq lam : ℝ) (hm : 0 < m0sq) (hl : 0 ≤ lam)
     (gradSq phi piOp : sites → Matrix n n ℂ)
     (hgrad : ∀ y, (gradSq y).PosSemidef) (hphi : ∀ y, (phi y)ᴴ = phi y)
     (hpi : ∀ y, (piOp y)ᴴ = piOp y) (ψ : QState n) (y : sites) :
@@ -188,21 +198,26 @@ theorem phi4_positive_mass_momentum_bound (d : ℕ) (a m0sq lam : ℝ)
   rw [le_div_iff₀ haD]
   nlinarith [hchain]
 
+omit [Fintype n] [DecidableEq n] in
 /-- The discretized derivative of a Hermitian field is Hermitian, so its square is
 positive semidefinite: this is the gradient term `(∇ₐφ)²(y)` of equation (5). -/
-theorem diff_sq_posSemidef {A B : Matrix n n ℂ} (hA : Aᴴ = A) (hB : Bᴴ = B) :
+theorem diff_sq_posSemidef {n : Type*} [Fintype n] [_decidableEqN : DecidableEq n]
+    {A B : Matrix n n ℂ} (hA : Aᴴ = A) (hB : Bᴴ = B) :
     ((A - B) * (A - B)).PosSemidef := by
   have h : (A - B)ᴴ = A - B := by
     rw [Matrix.conjTranspose_sub, hA, hB]
   have h' := Matrix.posSemidef_conjTranspose_mul_self (A - B)
   rwa [h] at h'
 
+omit [Fintype n] [DecidableEq n] [Fintype sites] [DecidableEq sites] in
 /-- The discretized gradient energy of equation (5) is positive semidefinite: every
 direction contributes the square of the Hermitian difference
 `(φ(y + ar̂ⱼ) − φ(y))/a`, whose square is positive semidefinite, and a finite sum of
 positive semidefinite matrices is positive semidefinite. This is the hypothesis
 `hgrad` used by Propositions 3 and 4, derived from the Hermiticity of the field. -/
-theorem grad_term_posSemidef {dirs : Type*} [Fintype dirs] (a : ℝ)
+theorem grad_term_posSemidef {n : Type*} [Fintype n] [DecidableEq n]
+    {sites : Type*} [_fintypeSites : Fintype sites] [_decidableEqSites : DecidableEq sites]
+    {dirs : Type*} [Fintype dirs] (a : ℝ)
     (nbr : sites → dirs → sites) (phi : sites → Matrix n n ℂ) (hphi : ∀ y, (phi y)ᴴ = phi y)
     (y : sites) :
     (∑ j : dirs, (((a⁻¹ : ℝ) : ℂ) • (phi (nbr y j) - phi y)) ^ 2).PosSemidef := by

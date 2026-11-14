@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ConversionCore.WitnessCompile.AdaptiveInstrumentPurificationStat
-import Qatlib.Concepts.GramQueryCore.LowerBoundTools.AlphabetPhaseWordAssemblyQuan
-import Mathlib.Algebra.BigOperators.Pi
-import Mathlib.Data.List.GetD
-import Qatlib.Concepts.ConversionCore.WitnessCompile.AdaptiveInstrumentPurificationAux
-import Qatlib.Concepts.ConversionCore.WitnessCompile.AdaptiveInstrumentPurificationConstr
-import Qatlib.Concepts.ConversionCore.WitnessCompile.AdaptiveInstrumentPurificationProgram
+module
+
+public import Qatlib.Concepts.ConversionCore.WitnessCompile.AdaptiveInstrumentPurificationStat
+public import Qatlib.Concepts.GramQueryCore.LowerBoundTools.AlphabetPhaseWordAssemblyQuan
+public import Mathlib.Algebra.BigOperators.Pi
+public import Mathlib.Data.List.GetD
+public import Qatlib.Concepts.ConversionCore.WitnessCompile.AdaptiveInstrumentPurificationAux
+public import Qatlib.Concepts.ConversionCore.WitnessCompile.AdaptiveInstrumentPurificationConstr
+public import Qatlib.Concepts.ConversionCore.WitnessCompile.AdaptiveInstrumentPurificationProgram
+
+@[expose] public section
 
 /-!
 # Adaptive purification in an enlarged source space
@@ -62,13 +66,13 @@ def sourcePurifyCode {L r n : ℕ} (p : Fin L × Fin r × Fin (n+1)) : ℕ :=
 `l.val*r+j.val`. -/
 @[simp] theorem sourcePurifyCode_top {L r n : ℕ} (l : Fin L) (j : Fin r) :
     sourcePurifyCode (l,j,(⟨n,Nat.lt_succ_self n⟩ : Fin (n+1)))=l.val*r+j.val := by
-  simp only [sourcePurifyCode,if_true]
+  simp only [sourcePurifyCode,ite_true]
 
 /-- A spare address other than `n` is encoded as `L*r+(l.val*r+j.val)*n+w.val`. -/
 @[simp] theorem sourcePurifyCode_off {L r n : ℕ} (l : Fin L) (j : Fin r)
     (w : Fin (n+1)) (hw : w.val≠n) :
     sourcePurifyCode (l,j,w)=L*r+(l.val*r+j.val)*n+w.val := by
-  simp only [sourcePurifyCode,if_neg hw]
+  simp only [sourcePurifyCode,ite_eq_right hw]
 
 /-- For positive workspace and record sizes, the purification code is below `L*r*(n+1)`. -/
 theorem sourcePurifyCode_lt {L r n : ℕ} (_hr : 0<r) (_hL : 0<L)
@@ -82,8 +86,8 @@ theorem sourcePurifyCode_lt {L r n : ℕ} (_hr : 0<r) (_hL : 0<L)
   have hE : L*r*(n+1)=L*r+L*r*n := by ring
   unfold sourcePurifyCode
   by_cases hw : p.2.2.val=n
-  · rw [if_pos hw]; omega
-  · rw [if_neg hw]
+  · rw [ite_eq_left hw]; omega
+  · rw [ite_eq_right hw]
     have h3 : (p.1.val*r+p.2.1.val)*n+p.2.2.val<L*r*n := by
       have ha : ((p.1.val*r+p.2.1.val)+1)*n≤L*r*n := Nat.mul_le_mul_right n (by omega)
       have hb : ((p.1.val*r+p.2.1.val)+1)*n=(p.1.val*r+p.2.1.val)*n+n := by ring
@@ -96,7 +100,7 @@ theorem sourcePurifyCode_injective {L r n : ℕ} (hr : 0<r) :
   intro a b hab
   unfold sourcePurifyCode at hab
   by_cases hwa : a.2.2.val=n <;> by_cases hwb : b.2.2.val=n
-  · rw [if_pos hwa,if_pos hwb] at hab
+  · rw [ite_eq_left hwa,ite_eq_left hwb] at hab
     have h1 : a.2.1.val=b.2.1.val := by
       have ha' : (a.1.val*r+a.2.1.val)%r=a.2.1.val := by
         rw [Nat.add_comm (a.1.val*r) a.2.1.val,Nat.add_mul_mod_self_right,
@@ -111,7 +115,7 @@ theorem sourcePurifyCode_injective {L r n : ℕ} (hr : 0<r) :
     have h2 : a.1.val*r=b.1.val*r := by omega
     exact Prod.ext (Fin.ext (Nat.eq_of_mul_eq_mul_right hr h2))
       (Prod.ext (Fin.ext h1) (Fin.ext (by omega)))
-  · rw [if_pos hwa,if_neg hwb] at hab
+  · rw [ite_eq_left hwa,ite_eq_right hwb] at hab
     exfalso
     have ha : a.1.val*r+a.2.1.val<L*r := by
       have h1 : (a.1.val+1)*r≤L*r := Nat.mul_le_mul_right r (by have := a.1.isLt; omega)
@@ -120,7 +124,7 @@ theorem sourcePurifyCode_injective {L r n : ℕ} (hr : 0<r) :
       omega
     have hb : b.2.2.val<n := by have := b.2.2.isLt; omega
     omega
-  · rw [if_neg hwa,if_pos hwb] at hab
+  · rw [ite_eq_right hwa,ite_eq_left hwb] at hab
     exfalso
     have hb : b.1.val*r+b.2.1.val<L*r := by
       have h1 : (b.1.val+1)*r≤L*r := Nat.mul_le_mul_right r (by have := b.1.isLt; omega)
@@ -129,7 +133,7 @@ theorem sourcePurifyCode_injective {L r n : ℕ} (hr : 0<r) :
       omega
     have ha : a.2.2.val<n := by have := a.2.2.isLt; omega
     omega
-  · rw [if_neg hwa,if_neg hwb] at hab
+  · rw [ite_eq_right hwa,ite_eq_right hwb] at hab
     have hna : a.2.2.val<n := by have := a.2.2.isLt; omega
     have hnb : b.2.2.val<n := by have := b.2.2.isLt; omega
     have hstrip : (a.1.val*r+a.2.1.val)*n+a.2.2.val=
@@ -245,7 +249,7 @@ theorem sourcePurifySpaceEquiv_code {H : Type} {n q r L : ℕ} (hr : 0<r) (hL : 
       sourceTreeCode n q r L (L*r*(n+1)) hRle (l,s)
   simp only [sourcePurifyFullMap,sourceTreeCode]
   exact Prod.ext rfl (Prod.ext rfl (Fin.ext (by
-    simp only [sourcePurifyCode,if_true])))
+    simp only [sourcePurifyCode,ite_true])))
 
 /-- Relabeling the lifted purification oracle by the workspace equivalence gives the alphabet
 oracle on the enlarged source space. -/
@@ -317,9 +321,9 @@ theorem adaptiveInstrumentPurification : AdaptiveInstrumentPurification := by
       rw [Finset.sum_eq_single s]
       · by_cases hl : l=(⟨0,hL⟩ : Fin (max 1 (sourceAdaptiveLeaves T)))
         · subst hl; simp
-        · rw [if_neg hl,if_neg (fun h => hl (Prod.ext_iff.mp h).1)]
+        · rw [ite_eq_right hl,ite_eq_right (fun h => hl (Prod.ext_iff.mp h).1)]
       · intro t _ ht
-        rw [if_neg (fun h => ht (Prod.ext_iff.mp h).2.symm),zero_mul]
+        rw [ite_eq_right (fun h => ht (Prod.ext_iff.mp h).2.symm),zero_mul]
       · intro hs; exact absurd (Finset.mem_univ s) hs
     have hin : (sourceTreeFrame (H := H) n q r (max 1 (sourceAdaptiveLeaves T)) R)*ᵥ
         TensorState (Ket (⟨0,hL⟩ : Fin (max 1 (sourceAdaptiveLeaves T)))) ψ=

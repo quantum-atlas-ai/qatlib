@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem5AltAux
-import Mathlib.Analysis.Complex.ExponentialBounds
-import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem6Aux2
-import Mathlib.Analysis.Calculus.Taylor
-import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
+module
+
+public import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem5AltAux
+public import Mathlib.Analysis.Complex.ExponentialBounds
+public import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem6Aux2
+public import Mathlib.Analysis.Calculus.Taylor
+public import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
+
+@[expose] public section
 
 /-!
 # Scalar Taylor polynomial bounds

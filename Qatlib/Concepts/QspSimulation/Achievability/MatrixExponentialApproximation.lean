@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QspSimulation.Achievability.ExponentialPolynomial
-import Qatlib.Concepts.BlockEncoding.Basic
-import Mathlib.Analysis.Normed.Algebra.Exponential
+module
+
+public import Qatlib.Concepts.QspSimulation.Achievability.ExponentialPolynomial
+public import Qatlib.Concepts.BlockEncoding.Basic
+public import Mathlib.Analysis.Normed.Algebra.Exponential
+
+@[expose] public section
 
 /-!
 # Matrix exponential approximation by Taylor polynomials

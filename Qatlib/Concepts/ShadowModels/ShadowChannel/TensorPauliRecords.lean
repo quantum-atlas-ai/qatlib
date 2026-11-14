@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PauliClifford.ExactRank.PauliShadowStatistics
-import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+module
+
+public import Qatlib.Concepts.PauliClifford.ExactRank.PauliShadowStatistics
+public import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+
+@[expose] public section
 
 /-!
 # Tensor Pauli record instruments and circuits
@@ -177,7 +181,7 @@ theorem tensorPauliWireGate_unitary (n : ℕ) (i : Fin n) (U : Operator 2)
   congr 1
   funext j
   by_cases h : j = i
-  · simp only [if_pos h]
+  · simp only [ite_eq_left h]
     have hh := Matrix.mem_unitaryGroup_iff'.mp hU
     simpa only [Matrix.star_eq_conjTranspose] using hh
   · simp [h]
@@ -317,7 +321,7 @@ theorem tensorPauliWiresLeaf_agree (n : ℕ) (a : Fin n → Fin 3)
     simp only [tensorPauliWiresLeaf] at he
     have hi : b i = c i := by
       cases hbi : b i <;> cases hci : c i <;>
-        simp_all only [Bool.false_eq_true, if_false, if_true, zero_add]
+        simp_all only [Bool.false_eq_true, ite_false, ite_true, zero_add]
       all_goals omega
     have ht : tensorPauliWiresLeaf n a is b = tensorPauliWiresLeaf n a is c := by
       apply Fin.ext

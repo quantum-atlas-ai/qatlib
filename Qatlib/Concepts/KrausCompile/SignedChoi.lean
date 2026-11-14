@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ChannelTheory.Stinespring.ChannelStructureKraus
-import Qatlib.Concepts.ChannelTheory.Stinespring.ChannelStructureStinespring
-import Mathlib.Analysis.Matrix.Spectrum
-import Mathlib.Tactic
+module
+
+public import Qatlib.Concepts.ChannelTheory.Stinespring.ChannelStructureKraus
+public import Qatlib.Concepts.ChannelTheory.Stinespring.ChannelStructureStinespring
+public import Mathlib.Analysis.Matrix.Spectrum
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Signed Kraus representations from Hermitian Choi matrices

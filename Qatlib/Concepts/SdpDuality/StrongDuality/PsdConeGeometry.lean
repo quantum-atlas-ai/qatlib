@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SdpDuality.StrongDuality.SdpDuality
+module
+
+public import Qatlib.Concepts.SdpDuality.StrongDuality.SdpDuality
+
+@[expose] public section
 
 /-!
 # Finite PSD cone geometry and SDP duality
@@ -32,8 +36,8 @@ see [Watrous2018] for SDP background.
 -/
 
 set_option backward.isDefEq.respectTransparency false
-open Qatlib.Concepts.DyadicFloor.FloorRounding
-open Qatlib.Concepts.DyadicFloor.FloorRounding.Program
+open Qatlib.Concepts.SdpDuality.StrongDuality
+open Qatlib.Concepts.SdpDuality.StrongDuality.Program
 
 set_option autoImplicit false
 noncomputable section

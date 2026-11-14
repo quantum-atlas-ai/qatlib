@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.TensorNetwork08.MainResults.StatDefs
-import Qatlib.Concepts.QueryComplexity.NormObstruction.Lemma33FactorizationToAlgorithmQuan
+module
+
+public import Qatlib.Papers.TensorNetwork08.MainResults.StatDefs
+public import Qatlib.Concepts.QueryComplexity.NormObstruction.Lemma33FactorizationToAlgorithmQuan
+
+@[expose] public section
 
 /-!
 # Unitary dilation of a normalized linear map

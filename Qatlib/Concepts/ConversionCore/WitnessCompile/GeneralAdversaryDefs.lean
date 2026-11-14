@@ -4,16 +4,20 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
-import Qatlib.Foundations.PureStateMath.MixedState
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Concepts.LinearLearning.ConcisePipeline.RandomizedCost
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
-import Qatlib.Concepts.StoppingCore.BranchCostCore.UnboundedFiniteExecution
-import Qatlib.Concepts.ClassicalTape.TapeCompilation.BitMachineTime
-import Qatlib.Concepts.QueryWordCore.QueryMachinery.NegativeAdversary
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.AlphabetInterrogation
-import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
+module
+
+public import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
+public import Qatlib.Foundations.PureStateMath.MixedState
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Concepts.LinearLearning.ConcisePipeline.RandomizedCost
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
+public import Qatlib.Concepts.StoppingCore.BranchCostCore.UnboundedFiniteExecution
+public import Qatlib.Concepts.ClassicalTape.TapeCompilation.BitMachineTime
+public import Qatlib.Concepts.QueryWordCore.QueryMachinery.NegativeAdversary
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.AlphabetInterrogation
+public import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
+
+@[expose] public section
 
 /-!
 # Definitions for general adversary bookkeeping

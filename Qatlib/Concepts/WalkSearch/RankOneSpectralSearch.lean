@@ -4,19 +4,24 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Lean.Elab.Tactic.NormCast
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.CStarAlgebra.Module.Constructions
-import Mathlib.Analysis.Normed.Algebra.MatrixExponential
-import Mathlib.LinearAlgebra.Matrix.FiniteDimensional
-import Mathlib.Tactic.Ext
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.LinearCombination
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Ring
-import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+module
+
+public import Lean.Elab.Tactic.NormCast
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.CStarAlgebra.Module.Constructions
+public import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+public import Mathlib.Analysis.SpecialFunctions.Exponential
+public import Mathlib.LinearAlgebra.Matrix.FiniteDimensional
+public import Mathlib.Tactic.Ext
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.LinearCombination
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Ring
+public import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+
+@[expose] public section
 
 /-!
 # Rank-one spectral search
@@ -56,39 +61,89 @@ namespace Qatlib.Concepts.WalkSearch.RankOneSpectralSearch.RankOneSpectralSearch
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
+/--
+error: The namespace `RankOneSpectralSearch` is duplicated in the declaration `Qatlib.Concepts.WalkSearch.RankOneSpectralSearch.RankOneSpectralSearch.rankOneProjector`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The outer-product matrix of a state with its conjugate; it is a rank-one orthogonal
 projector when the state is normalized. -/
 noncomputable def rankOneProjector (ψ : QState I) : Matrix I I ℂ :=
   Matrix.of fun i j => ψ i * (starRingEnd ℂ) (ψ j)
 
+/--
+error: The namespace `RankOneSpectralSearch` is duplicated in the declaration `Qatlib.Concepts.WalkSearch.RankOneSpectralSearch.RankOneSpectralSearch.spectralHamiltonian`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The Hermitian matrix `V * diagonal lam * Vᴴ` associated with real spectral coefficients. -/
 noncomputable def spectralHamiltonian (V : Matrix I I ℂ) (lam : I → ℝ) : Matrix I I ℂ :=
   V * Matrix.diagonal (fun i => (lam i : ℂ)) * V.conjTranspose
 
+/--
+error: The namespace `RankOneSpectralSearch` is duplicated in the declaration `Qatlib.Concepts.WalkSearch.RankOneSpectralSearch.RankOneSpectralSearch.spectralGapParam`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The rescaled spectral gap parameter `(1 - c) / (1 + c)`. -/
 noncomputable def spectralGapParam (c : ℝ) : ℝ := (1 - c) / (1 + c)
 
+/--
+error: The namespace `RankOneSpectralSearch` is duplicated in the declaration `Qatlib.Concepts.WalkSearch.RankOneSpectralSearch.RankOneSpectralSearch.searchOverlapBound`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The small-overlap threshold given by the minimum of `spectralGapParam c` to the power `3/2`,
 divided by eight, and one half. -/
 noncomputable def searchOverlapBound (c : ℝ) : ℝ :=
   min ((spectralGapParam c) ^ (3 / 2 : ℝ) / 8) (1 / 2)
 
+/--
+error: The namespace `RankOneSpectralSearch` is duplicated in the declaration `Qatlib.Concepts.WalkSearch.RankOneSpectralSearch.RankOneSpectralSearch.rescaledEigenvalue`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The affine spectral rescaling `(1 + r) * lam i - r`. -/
 def rescaledEigenvalue (lam : I → ℝ) (r : ℝ) (i : I) : ℝ := (1 + r) * lam i - r
 
+/--
+error: The namespace `RankOneSpectralSearch` is duplicated in the declaration `Qatlib.Concepts.WalkSearch.RankOneSpectralSearch.RankOneSpectralSearch.searchHamiltonian`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The affinely rescaled spectral Hamiltonian with the outer product of the marked state added. -/
 noncomputable def searchHamiltonian (V : Matrix I I ℂ) (lam : I → ℝ) (r : ℝ)
     (w : QState I) : Matrix I I ℂ :=
   (1 + r) • spectralHamiltonian V lam - r • (1 : Matrix I I ℂ) + rankOneProjector w
 
+/--
+error: The namespace `RankOneSpectralSearch` is duplicated in the declaration `Qatlib.Concepts.WalkSearch.RankOneSpectralSearch.RankOneSpectralSearch.rankOneSecularFunction`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The sum of squared spectral overlaps divided by the differences between a trial eigenvalue
 and the rescaled eigenvalues. -/
 noncomputable def rankOneSecularFunction (V : Matrix I I ℂ) (lam : I → ℝ)
     (r : ℝ) (w : QState I) (ℓ : ℝ) : ℝ :=
   ∑ i, ‖Qatlib.Foundations.PureStateMath.Inner (fun j => V j i) w‖ ^ 2 / (ℓ - rescaledEigenvalue lam r i)
 
+omit [Fintype I] [DecidableEq I] in
+/--
+error: The namespace `RankOneSpectralSearch` is duplicated in the declaration `Qatlib.Concepts.WalkSearch.RankOneSpectralSearch.RankOneSpectralSearch.rankOneProjector_mulVec`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The outer-product matrix of `w` maps `x` to its inner product with `w`, multiplied by `w`. -/
-theorem rankOneProjector_mulVec (w x : QState I) :
+theorem rankOneProjector_mulVec {I : Type} [Fintype I] [_unusedDecidableEqI : DecidableEq I]
+    (w x : QState I) :
     rankOneProjector w *ᵥ x = Qatlib.Foundations.PureStateMath.Inner w x • w := by
   ext i
   simp only [rankOneProjector, Matrix.mulVec, dotProduct, Matrix.of_apply,
@@ -100,12 +155,24 @@ theorem rankOneProjector_mulVec (w x : QState I) :
 
 omit [Fintype I] [DecidableEq I] in
 
+/--
+error: The namespace `RankOneSpectralSearch` is duplicated in the declaration `Qatlib.Concepts.WalkSearch.RankOneSpectralSearch.RankOneSpectralSearch.rankOneProjector_isHermitian`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The outer-product matrix of any state is Hermitian. -/
 theorem rankOneProjector_isHermitian (w : QState I) :
     (rankOneProjector w).IsHermitian := by
   ext i j
   simp [rankOneProjector, Matrix.conjTranspose_apply, mul_comm]
 
+/--
+error: The namespace `RankOneSpectralSearch` is duplicated in the declaration `Qatlib.Concepts.WalkSearch.RankOneSpectralSearch.RankOneSpectralSearch.spectralHamiltonian_isHermitian`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- Real diagonal coefficients make `spectralHamiltonian V lam` Hermitian for every matrix `V`. -/
 theorem spectralHamiltonian_isHermitian (V : Matrix I I ℂ) (lam : I → ℝ) :
     (spectralHamiltonian V lam).IsHermitian := by
@@ -115,6 +182,12 @@ theorem spectralHamiltonian_isHermitian (V : Matrix I I ℂ) (lam : I → ℝ) :
   intro i
   simp [IsSelfAdjoint]
 
+/--
+error: The namespace `RankOneSpectralSearch` is duplicated in the declaration `Qatlib.Concepts.WalkSearch.RankOneSpectralSearch.RankOneSpectralSearch.spectralHamiltonian_eigen`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- For unitary `V`, its column indexed by `i` is an eigenvector of `spectralHamiltonian V lam`
 with eigenvalue `lam i`. -/
 theorem spectralHamiltonian_eigen (V : Matrix I I ℂ) (lam : I → ℝ) (i : I)
@@ -131,6 +204,12 @@ theorem spectralHamiltonian_eigen (V : Matrix I I ℂ) (lam : I → ℝ) (i : I)
 
 omit [DecidableEq I] in
 
+/--
+error: The namespace `RankOneSpectralSearch` is duplicated in the declaration `Qatlib.Concepts.WalkSearch.RankOneSpectralSearch.RankOneSpectralSearch.inner_mulVec_adjoint`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- Move a matrix acting on the second inner-product argument to its adjoint acting on the
 first. -/
 theorem inner_mulVec_adjoint (M : Matrix I I ℂ) (s x : QState I) :
@@ -140,6 +219,12 @@ theorem inner_mulVec_adjoint (M : Matrix I I ℂ) (s x : QState I) :
 
 omit [DecidableEq I] in
 
+/--
+error: The namespace `RankOneSpectralSearch` is duplicated in the declaration `Qatlib.Concepts.WalkSearch.RankOneSpectralSearch.RankOneSpectralSearch.inner_smul_state`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The state inner product is complex-linear in its second argument. -/
 theorem inner_smul_state (s x : QState I) (a : ℂ) :
     Qatlib.Foundations.PureStateMath.Inner s (a • x) = a * Qatlib.Foundations.PureStateMath.Inner s x := by
@@ -147,24 +232,48 @@ theorem inner_smul_state (s x : QState I) (a : ℂ) :
 
 omit [DecidableEq I] in
 
+/--
+error: The namespace `RankOneSpectralSearch` is duplicated in the declaration `Qatlib.Concepts.WalkSearch.RankOneSpectralSearch.RankOneSpectralSearch.inner_add_state`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The state inner product preserves addition in its second argument. -/
 theorem inner_add_state (s x y : QState I) : Qatlib.Foundations.PureStateMath.Inner s (x + y) = Qatlib.Foundations.PureStateMath.Inner s x + Qatlib.Foundations.PureStateMath.Inner s y :=
   dotProduct_add _ _ _
 
 omit [DecidableEq I] in
 
+/--
+error: The namespace `RankOneSpectralSearch` is duplicated in the declaration `Qatlib.Concepts.WalkSearch.RankOneSpectralSearch.RankOneSpectralSearch.inner_sub_state`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The state inner product preserves subtraction in its second argument. -/
 theorem inner_sub_state (s x y : QState I) : Qatlib.Foundations.PureStateMath.Inner s (x - y) = Qatlib.Foundations.PureStateMath.Inner s x - Qatlib.Foundations.PureStateMath.Inner s y :=
   dotProduct_sub _ _ _
 
 omit [DecidableEq I] in
 
+/--
+error: The namespace `RankOneSpectralSearch` is duplicated in the declaration `Qatlib.Concepts.WalkSearch.RankOneSpectralSearch.RankOneSpectralSearch.inner_conj_state`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- Complex conjugation exchanges the arguments of the state inner product. -/
 theorem inner_conj_state (s x : QState I) : star (Qatlib.Foundations.PureStateMath.Inner s x) = Qatlib.Foundations.PureStateMath.Inner x s := by
   rw [← inner_euclidean_fromVec, Qatlib.Foundations.PureStateMath.BornBridge.inner_conj_symm,
       inner_euclidean_fromVec]
   rfl
 
+/--
+error: The namespace `RankOneSpectralSearch` is duplicated in the declaration `Qatlib.Concepts.WalkSearch.RankOneSpectralSearch.RankOneSpectralSearch.spectral_weights_sum`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The squared overlaps of a normalized state with the columns of a unitary matrix sum to one. -/
 theorem spectral_weights_sum (V : Matrix I I ℂ) (w : QState I)
     (hV : V ∈ Matrix.unitaryGroup I ℂ) (hw : Normalized w) :
@@ -178,6 +287,12 @@ theorem spectral_weights_sum (V : Matrix I I ℂ) (w : QState I)
     rfl
   simpa only [Normalized, ApplyGate, hi] using hn
 
+/--
+error: The namespace `RankOneSpectralSearch` is duplicated in the declaration `Qatlib.Concepts.WalkSearch.RankOneSpectralSearch.RankOneSpectralSearch.rank_one_calibration_exists`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- Under the spectral and normalization hypotheses, there is a rescaling parameter between `-c
 / (1 + c)` and `c / (1 - c)` for which the weighted reciprocal gap sum equals the weight
 outside the distinguished column. -/
@@ -262,6 +377,12 @@ theorem rank_one_calibration_exists
 
 omit [Fintype I] [DecidableEq I] in
 
+/--
+error: The namespace `RankOneSpectralSearch` is duplicated in the declaration `Qatlib.Concepts.WalkSearch.RankOneSpectralSearch.RankOneSpectralSearch.rank_one_weighted_second_moment_bounds`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- For calibrated nonnegative weights and gaps at least `ν > 0`, the reciprocal second moment
 lies between the total weight and that weight divided by `ν`. -/
 theorem rank_one_weighted_second_moment_bounds
@@ -291,6 +412,12 @@ theorem rank_one_weighted_second_moment_bounds
 
 omit [Fintype I] [DecidableEq I] in
 
+/--
+error: The namespace `RankOneSpectralSearch` is duplicated in the declaration `Qatlib.Concepts.WalkSearch.RankOneSpectralSearch.RankOneSpectralSearch.rank_one_shifted_moment_bounds`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- Shifting gaps by `y ∈ [0, ν / 2]` bounds the mixed reciprocal moments between two thirds and
 one times the unshifted second moment for the positive shift, and between one and two times
 it for the negative shift. -/
@@ -346,6 +473,12 @@ set_option maxHeartbeats 800000
 
 omit [Fintype I] [DecidableEq I] in
 
+/--
+error: The namespace `RankOneSpectralSearch` is duplicated in the declaration `Qatlib.Concepts.WalkSearch.RankOneSpectralSearch.RankOneSpectralSearch.rank_one_scalar_two_roots`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- Under the calibration, gap, and small-overlap hypotheses, the two scalar secular equations
 have positive shifts between `ε * sqrt (ν / 2)` and `ν / 2`. -/
 theorem rank_one_scalar_two_roots
@@ -486,6 +619,12 @@ end ScalarRoots
 
 omit [Fintype I] [DecidableEq I] in
 
+/--
+error: The namespace `RankOneSpectralSearch` is duplicated in the declaration `Qatlib.Concepts.WalkSearch.RankOneSpectralSearch.RankOneSpectralSearch.rank_one_shifted_sum_identity`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- Express a shifted reciprocal sum as the unshifted sum minus the shift times a mixed
 reciprocal sum, when all denominators are nonzero. -/
 theorem rank_one_shifted_sum_identity (S : Finset I) (a g : I → ℝ) (y : ℝ)
@@ -504,6 +643,12 @@ set_option maxHeartbeats 800000
 
 omit [Fintype I] [DecidableEq I] in
 
+/--
+error: The namespace `RankOneSpectralSearch` is duplicated in the declaration `Qatlib.Concepts.WalkSearch.RankOneSpectralSearch.RankOneSpectralSearch.rank_one_scalar_overlap_bounds`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- For calibrated secular roots in the stated intervals, the inverse second moments are at
 least `ν / 3` and `ν / 6`, and their distinguished-weight contributions are at least `4 / 9`
 and `1 / 9`. -/
@@ -630,6 +775,12 @@ set_option maxHeartbeats 800000
 
 omit [Fintype I] [DecidableEq I] in
 
+/--
+error: The namespace `RankOneSpectralSearch` is duplicated in the declaration `Qatlib.Concepts.WalkSearch.RankOneSpectralSearch.RankOneSpectralSearch.rank_one_scalar_remainder_bound`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- Under the calibration and secular-root hypotheses, the weighted mixed-denominator remainder
 is at most `4 * ε^2 / ν^2`. -/
 theorem rank_one_scalar_remainder_bound
@@ -719,10 +870,22 @@ theorem rank_one_scalar_remainder_bound
 
 end ScalarRemainder
 
+/--
+error: The namespace `RankOneSpectralSearch` is duplicated in the declaration `Qatlib.Concepts.WalkSearch.RankOneSpectralSearch.RankOneSpectralSearch.spectral_gap_param_pos`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The rescaled spectral gap parameter is positive for `0 ≤ c < 1`. -/
 theorem spectral_gap_param_pos {c : ℝ} (hc0 : 0 ≤ c) (hc1 : c < 1) :
     0 < spectralGapParam c := div_pos (by linarith) (by linarith)
 
+/--
+error: The namespace `RankOneSpectralSearch` is duplicated in the declaration `Qatlib.Concepts.WalkSearch.RankOneSpectralSearch.RankOneSpectralSearch.spectral_gap_param_le_one`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The rescaled spectral gap parameter is at most one for nonnegative `c`. -/
 theorem spectral_gap_param_le_one {c : ℝ} (hc0 : 0 ≤ c) (_hc1 : c < 1) :
     spectralGapParam c ≤ 1 := by
@@ -732,6 +895,12 @@ theorem spectral_gap_param_le_one {c : ℝ} (hc0 : 0 ≤ c) (_hc1 : c < 1) :
 
 omit [Fintype I] [DecidableEq I] in
 
+/--
+error: The namespace `RankOneSpectralSearch` is duplicated in the declaration `Qatlib.Concepts.WalkSearch.RankOneSpectralSearch.RankOneSpectralSearch.rescaled_spectral_gap_lower_bound`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- An eigenvalue of absolute value at most `c < 1` has rescaled gap at least `spectralGapParam
 c` when `r ≥ -c / (1 + c)`. -/
 theorem rescaled_spectral_gap_lower_bound
@@ -749,6 +918,12 @@ theorem rescaled_spectral_gap_lower_bound
     _ ≤ (1+r)*(1-lam i) := mul_le_mul hrl hgi hcm.le hrp.le
     _ = 1-rescaledEigenvalue lam r i := by unfold rescaledEigenvalue; ring
 
+/--
+error: The namespace `RankOneSpectralSearch` is duplicated in the declaration `Qatlib.Concepts.WalkSearch.RankOneSpectralSearch.RankOneSpectralSearch.spectral_weights_off_top`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The spectral weight outside a distinguished unitary column equals one minus the squared
 overlap with that column. -/
 theorem spectral_weights_off_top
@@ -767,6 +942,12 @@ theorem spectral_weights_off_top
   rw [Finset.sdiff_singleton_eq_erase]
   linarith
 
+/--
+error: The namespace `RankOneSpectralSearch` is duplicated in the declaration `Qatlib.Concepts.WalkSearch.RankOneSpectralSearch.RankOneSpectralSearch.rankOneSecularFunction_shift_split`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- At a trial eigenvalue `1 + y`, separate the distinguished eigenvalue-one contribution from
 the remaining terms of the secular function. -/
 theorem rankOneSecularFunction_shift_split
@@ -790,6 +971,12 @@ theorem rankOneSecularFunction_shift_split
   congr 1
   ring
 
+/--
+error: The namespace `RankOneSpectralSearch` is duplicated in the declaration `Qatlib.Concepts.WalkSearch.RankOneSpectralSearch.RankOneSpectralSearch.rank_one_second_moment_shift_split`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- Separate the distinguished eigenvalue-one contribution from the reciprocal second moment at
 `1 + y`. -/
 theorem rank_one_second_moment_shift_split
@@ -812,6 +999,12 @@ theorem rank_one_second_moment_shift_split
   congr 2
   ring
 
+/--
+error: The namespace `RankOneSpectralSearch` is duplicated in the declaration `Qatlib.Concepts.WalkSearch.RankOneSpectralSearch.RankOneSpectralSearch.rank_one_two_level_positioning`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- Under calibration and a sufficiently small positive marked-state overlap, the secular
 function equals one at two points on opposite sides of one, with the stated gap-dependent
 bounds on their shifts. -/
@@ -861,6 +1054,12 @@ theorem rank_one_two_level_positioning
       rankOneSecularFunction_shift_split V lam r w σ hlamσ (-δm)]
     simpa only [sub_eq_add_neg, div_neg, S, a, g, ε] using hrootm
 
+/--
+error: The namespace `RankOneSpectralSearch` is duplicated in the declaration `Qatlib.Concepts.WalkSearch.RankOneSpectralSearch.RankOneSpectralSearch.rankOneSecularState`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The state obtained by weighting each spectral column by its overlap with `w` divided by the
 trial eigenvalue minus the rescaled eigenvalue. -/
 noncomputable def rankOneSecularState (V : Matrix I I ℂ) (lam : I → ℝ)
@@ -868,9 +1067,17 @@ noncomputable def rankOneSecularState (V : Matrix I I ℂ) (lam : I → ℝ)
   V *ᵥ (fun i => Qatlib.Foundations.PureStateMath.Inner (fun j => V j i) w /
     ((ℓ : ℂ) - (rescaledEigenvalue lam r i : ℂ)))
 
+omit [Fintype I] [DecidableEq I] in
+/--
+error: The namespace `RankOneSpectralSearch` is duplicated in the declaration `Qatlib.Concepts.WalkSearch.RankOneSpectralSearch.RankOneSpectralSearch.rankOneSecularState_overlap`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The overlap of `w` with its secular state equals the real secular function, viewed as a
 complex number. -/
-theorem rankOneSecularState_overlap (V : Matrix I I ℂ) (lam : I → ℝ)
+theorem rankOneSecularState_overlap {I : Type} [Fintype I] [_unusedDecidableEqI : DecidableEq I]
+    (V : Matrix I I ℂ) (lam : I → ℝ)
     (r : ℝ) (w : QState I) (ℓ : ℝ) :
     Qatlib.Foundations.PureStateMath.Inner w (rankOneSecularState V lam r w ℓ) =
       (rankOneSecularFunction V lam r w ℓ : ℂ) := by
@@ -884,6 +1091,12 @@ theorem rankOneSecularState_overlap (V : Matrix I I ℂ) (lam : I → ℝ)
   rw [hi, ← mul_div_assoc, ← Complex.normSq_eq_conj_mul_self,
     Complex.normSq_eq_norm_sq, Complex.ofReal_div, Complex.ofReal_sub]
 
+/--
+error: The namespace `RankOneSpectralSearch` is duplicated in the declaration `Qatlib.Concepts.WalkSearch.RankOneSpectralSearch.RankOneSpectralSearch.rank_one_secular_state_eigen`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- A secular root away from all rescaled eigenvalues gives an eigenvector of the search
 Hamiltonian with that root as eigenvalue. -/
 theorem rank_one_secular_state_eigen
@@ -931,6 +1144,12 @@ theorem rank_one_secular_state_eigen
     Complex.ofReal_add, Complex.ofReal_one]
   ring
 
+/--
+error: The namespace `RankOneSpectralSearch` is duplicated in the declaration `Qatlib.Concepts.WalkSearch.RankOneSpectralSearch.RankOneSpectralSearch.rankOneSecularState_norm_sq`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- For unitary `V`, the squared norm of the secular state is its weighted reciprocal second
 moment. -/
 theorem rankOneSecularState_norm_sq
@@ -950,6 +1169,12 @@ theorem rankOneSecularState_norm_sq
   simp only [b, norm_div, ← Complex.ofReal_sub, Complex.norm_real,
     Real.norm_eq_abs, div_pow, sq_abs]
 
+/--
+error: The namespace `RankOneSpectralSearch` is duplicated in the declaration `Qatlib.Concepts.WalkSearch.RankOneSpectralSearch.RankOneSpectralSearch.rank_one_normalized_secular_state`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- A secular root away from the rescaled spectrum yields a normalized search-Hamiltonian
 eigenstate whose squared overlap with `w` is the inverse reciprocal second moment. -/
 theorem rank_one_normalized_secular_state
@@ -986,6 +1211,12 @@ theorem rank_one_normalized_secular_state
     congr 1
     exact rankOneSecularState_norm_sq V lam r w ℓ hV
 
+/--
+error: The namespace `RankOneSpectralSearch` is duplicated in the declaration `Qatlib.Concepts.WalkSearch.RankOneSpectralSearch.RankOneSpectralSearch.search_eigenstate_overlap_identity`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- For a search eigenstate with eigenvalue different from one, express its overlap with the
 distinguished eigenvalue-one column using its overlap with `w` and the spectral shift. -/
 theorem search_eigenstate_overlap_identity
@@ -1014,6 +1245,12 @@ theorem search_eigenstate_overlap_identity
       ((ℓ : ℂ) - 1) = Qatlib.Foundations.PureStateMath.Inner s w * Qatlib.Foundations.PureStateMath.Inner w x
   linear_combination -hh
 
+/--
+error: The namespace `RankOneSpectralSearch` is duplicated in the declaration `Qatlib.Concepts.WalkSearch.RankOneSpectralSearch.RankOneSpectralSearch.search_eigenstate_top_overlap_sq`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The squared overlap of a search eigenstate with the distinguished column equals its squared
 overlap with `w` times the distinguished weight divided by the squared spectral shift. -/
 theorem search_eigenstate_top_overlap_sq
@@ -1033,6 +1270,12 @@ theorem search_eigenstate_top_overlap_sq
   rw [hs, hd]
   ring
 
+/--
+error: The namespace `RankOneSpectralSearch` is duplicated in the declaration `Qatlib.Concepts.WalkSearch.RankOneSpectralSearch.RankOneSpectralSearch.rank_one_two_level_states`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- Under the spectral, calibration, small-overlap, and root hypotheses, construct normalized
 eigenstates at `1 + δp` and `1 - δm` with explicit lower bounds on their overlaps with both
 `w` and the distinguished column. -/
@@ -1115,6 +1358,12 @@ theorem rank_one_two_level_states
       (by linarith) heum, show (1-δm-1) ^ 2 = δm ^ 2 by ring, hγm]
     exact hb.2.2.2
 
+/--
+error: The namespace `RankOneSpectralSearch` is duplicated in the declaration `Qatlib.Concepts.WalkSearch.RankOneSpectralSearch.RankOneSpectralSearch.operator_norm_overlap_stability`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- If a matrix is within operator norm `η` of the outer product of `s`, a normalized
 eigenvector with real eigenvalue `ℓ` has squared overlap with `s` at least `ℓ - η`. -/
 theorem operator_norm_overlap_stability
@@ -1145,6 +1394,12 @@ theorem operator_norm_overlap_stability
   rw [hact, Complex.norm_real, Real.norm_eq_abs] at hcs
   linarith [(le_abs_self (ℓ - ‖Qatlib.Foundations.PureStateMath.Inner s x‖ ^ 2)).trans hcs]
 
+/--
+error: The namespace `RankOneSpectralSearch` is duplicated in the declaration `Qatlib.Concepts.WalkSearch.RankOneSpectralSearch.RankOneSpectralSearch.matrix_exp_mulVec_of_eigen`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The matrix exponential acts on an eigenvector by the scalar exponential of its eigenvalue. -/
 theorem matrix_exp_mulVec_of_eigen (A : Matrix I I ℂ) (u : QState I) (z : ℂ)
     (hu : A *ᵥ u = z • u) :
@@ -1169,6 +1424,12 @@ theorem matrix_exp_mulVec_of_eigen (A : Matrix I I ℂ) (u : QState I) (z : ℂ)
   rw [← Complex.exp_eq_exp_ℂ] at hs
   exact hm.unique hs
 
+/--
+error: The namespace `RankOneSpectralSearch` is duplicated in the declaration `Qatlib.Concepts.WalkSearch.RankOneSpectralSearch.RankOneSpectralSearch.hamiltonianEvolution_eigenvector`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- Hamiltonian evolution multiplies an eigenvector of real eigenvalue `ℓ` by the phase `exp (-i
 * t * ℓ)`. -/
 theorem hamiltonianEvolution_eigenvector
@@ -1182,6 +1443,12 @@ theorem hamiltonianEvolution_eigenvector
 
 omit [DecidableEq I] in
 
+/--
+error: The namespace `RankOneSpectralSearch` is duplicated in the declaration `Qatlib.Concepts.WalkSearch.RankOneSpectralSearch.RankOneSpectralSearch.inner_smul_left_state`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- Scaling the first state-inner-product argument multiplies the result by the conjugate
 scalar. -/
 theorem inner_smul_left_state (s x : QState I) (a : ℂ) :
@@ -1191,6 +1458,12 @@ theorem inner_smul_left_state (s x : QState I) (a : ℂ) :
   rw [inner_smul_left, inner_euclidean_fromVec]
   rfl
 
+/--
+error: The namespace `RankOneSpectralSearch` is duplicated in the declaration `Qatlib.Concepts.WalkSearch.RankOneSpectralSearch.RankOneSpectralSearch.hamiltonianEvolution_conjTranspose`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- For a Hermitian Hamiltonian, the adjoint of evolution at time `t` equals evolution at time
 `-t`. -/
 theorem hamiltonianEvolution_conjTranspose
@@ -1201,6 +1474,12 @@ theorem hamiltonianEvolution_conjTranspose
   congr 2
   simp [RCLike.star_def, Complex.ofReal_neg]
 
+/--
+error: The namespace `RankOneSpectralSearch` is duplicated in the declaration `Qatlib.Concepts.WalkSearch.RankOneSpectralSearch.RankOneSpectralSearch.hamiltonianEvolution_shift_mulVec`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- Adding a real scalar multiple of the identity to a Hamiltonian changes its evolution only by
 the corresponding global phase. -/
 theorem hamiltonianEvolution_shift_mulVec
@@ -1220,6 +1499,12 @@ theorem hamiltonianEvolution_shift_mulVec
     matrix_exp_mulVec_of_eigen ((z*(a : ℂ)) • (1 : Matrix I I ℂ)) u (z*(a : ℂ))
       (by rw [Matrix.smul_mulVec, Matrix.one_mulVec]), Matrix.mulVec_smul]
 
+/--
+error: The namespace `RankOneSpectralSearch` is duplicated in the declaration `Qatlib.Concepts.WalkSearch.RankOneSpectralSearch.RankOneSpectralSearch.hamiltonianEvolution_rank_one_reciprocity`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- For Hermitian `H` satisfying `H s = s + a • w` with nonzero `a`, the transition amplitudes
 from `s` to `w` have equal magnitudes at opposite times. -/
 theorem hamiltonianEvolution_rank_one_reciprocity
@@ -1247,6 +1532,12 @@ theorem hamiltonianEvolution_rank_one_reciprocity
   simp only [norm_star, hformula, norm_mul] at hn
   exact (mul_left_cancel₀ (norm_ne_zero_iff.2 ha) hn).symm
 
+/--
+error: The namespace `RankOneSpectralSearch` is duplicated in the declaration `Qatlib.Concepts.WalkSearch.RankOneSpectralSearch.RankOneSpectralSearch.rankOneResonantCoefficient`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The coefficient `δp * δm` divided by the distinguished-column overlap with `w` and by `δp +
 δm`. -/
 noncomputable def rankOneResonantCoefficient (V : Matrix I I ℂ) (w : QState I)
@@ -1255,6 +1546,12 @@ noncomputable def rankOneResonantCoefficient (V : Matrix I I ℂ) (w : QState I)
 
 omit [DecidableEq I] in
 
+/--
+error: The namespace `RankOneSpectralSearch` is duplicated in the declaration `Qatlib.Concepts.WalkSearch.RankOneSpectralSearch.RankOneSpectralSearch.rankOneResonantCoefficient_norm`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- For positive shifts, the norm of the resonant coefficient is `δp * δm` divided by the
 overlap magnitude times `δp + δm`. -/
 theorem rankOneResonantCoefficient_norm (V : Matrix I I ℂ) (w : QState I)
@@ -1266,6 +1563,12 @@ theorem rankOneResonantCoefficient_norm (V : Matrix I I ℂ) (w : QState I)
   simp only [rankOneResonantCoefficient, norm_div, norm_mul, Complex.norm_real,
     Real.norm_eq_abs, abs_of_pos hp, abs_of_pos hm, abs_of_pos (add_pos hp hm), hs]
 
+/--
+error: The namespace `RankOneSpectralSearch` is duplicated in the declaration `Qatlib.Concepts.WalkSearch.RankOneSpectralSearch.RankOneSpectralSearch.unitary_mulVec_euclidean_norm_sq`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- Multiplication by a unitary matrix preserves the squared Euclidean norm of a state. -/
 theorem unitary_mulVec_euclidean_norm_sq
     (V : Matrix I I ℂ) (x : QState I) (hV : V ∈ Matrix.unitaryGroup I ℂ) :
@@ -1276,6 +1579,12 @@ theorem unitary_mulVec_euclidean_norm_sq
 section ResonantRemainder
 set_option maxHeartbeats 1000000
 
+/--
+error: The namespace `RankOneSpectralSearch` is duplicated in the declaration `Qatlib.Concepts.WalkSearch.RankOneSpectralSearch.RankOneSpectralSearch.rank_one_resonant_remainder_norm_sq`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- Express the squared error in representing the distinguished column by a scaled difference of
 two secular states as an explicit weighted sum over the other columns. -/
 theorem rank_one_resonant_remainder_norm_sq
@@ -1358,6 +1667,12 @@ theorem rank_one_resonant_remainder_norm_sq
 
 end ResonantRemainder
 
+/--
+error: The namespace `RankOneSpectralSearch` is duplicated in the declaration `Qatlib.Concepts.WalkSearch.RankOneSpectralSearch.RankOneSpectralSearch.rank_one_resonant_remainder_bound`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- Under calibration, spectral-gap, and secular-root hypotheses, the squared resonant
 approximation error is at most four times the distinguished overlap squared divided by
 `ν^2`. -/
@@ -1392,6 +1707,12 @@ theorem rank_one_resonant_remainder_bound
   exact rank_one_scalar_remainder_bound S a g ν ε δp δm (fun i _ => sq_nonneg _)
     hν hg hε hεhalf hp hm hpHi hmHi htot hca hrp hrm
 
+/--
+error: The namespace `RankOneSpectralSearch` is duplicated in the declaration `Qatlib.Concepts.WalkSearch.RankOneSpectralSearch.RankOneSpectralSearch.rank_one_resonant_phase_flip`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- At time `π / (δp + δm)`, the phases associated with eigenvalues `1 - δm` and `1 + δp` differ
 by a minus sign. -/
 theorem rank_one_resonant_phase_flip (δp δm : ℝ) (hp : 0 < δp) (hm : 0 < δm) :
@@ -1406,6 +1727,12 @@ theorem rank_one_resonant_phase_flip (δp δm : ℝ) (hp : 0 < δp) (hm : 0 < δ
     ring
   rw [he, Complex.exp_add_pi_mul_I]
 
+/--
+error: The namespace `RankOneSpectralSearch` is duplicated in the declaration `Qatlib.Concepts.WalkSearch.RankOneSpectralSearch.RankOneSpectralSearch.rank_one_resonant_main_amplitude`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- If the two eigenstates have overlap one with `w`, evolution of `k • (up - um)` at the
 resonant time has overlap magnitude `2 * ‖k‖` with `w`. -/
 theorem rank_one_resonant_main_amplitude
@@ -1430,6 +1757,12 @@ theorem rank_one_resonant_main_amplitude
   rw [show k*(p-(-p)) = (2 : ℂ)*k*p by ring, norm_mul, norm_mul, hp1]
   norm_num
 
+/--
+error: The namespace `RankOneSpectralSearch` is duplicated in the declaration `Qatlib.Concepts.WalkSearch.RankOneSpectralSearch.RankOneSpectralSearch.rank_one_resonant_probability_bound`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- For a Hermitian Hamiltonian, the stated lower bound on the resonant coefficient and upper
 bound on the approximation remainder imply squared transition amplitude at least `ν / 8` at
 the resonant time. -/

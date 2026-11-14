@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SCWFPrep24.Estimation.NullRisk.TensorEffects
-import Qatlib.Papers.SCWFPrep24.Estimation.NullRisk.SuppliedEffects
-import QuantumInfo.Measurements.POVM
+module
+
+public import Qatlib.Papers.SCWFPrep24.Estimation.NullRisk.TensorEffects
+public import Qatlib.Papers.SCWFPrep24.Estimation.NullRisk.SuppliedEffects
+public import QuantumInfo.Measurements.POVM
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

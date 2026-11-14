@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ConversionCore.WitnessCompile.AdaptiveInstrumentPurificationStat
-import Qatlib.Concepts.GramQueryCore.LowerBoundTools.AlphabetPhaseWordAssemblyQuan
-import Mathlib.Algebra.BigOperators.Pi
-import Mathlib.Data.List.GetD
+module
+
+public import Qatlib.Concepts.ConversionCore.WitnessCompile.AdaptiveInstrumentPurificationStat
+public import Qatlib.Concepts.GramQueryCore.LowerBoundTools.AlphabetPhaseWordAssemblyQuan
+public import Mathlib.Algebra.BigOperators.Pi
+public import Mathlib.Data.List.GetD
+
+@[expose] public section
 
 /-!
 # Auxiliary constructions for adaptive purification
@@ -190,7 +194,7 @@ theorem sourceAdaptive_pure_mass {H : Type} [Fintype H] [DecidableEq H]
     ∑ p : H, ‖((sourceAdaptiveBranches O T ψ).getD i.val 0) p‖^2)=_
   simp_rw [← norm_toEuclidean_fromVec_sq]
   rw [sourceList_sum_getD (sourceAdaptiveBranches O T ψ) (0 : QState H)
-    (fun φ => ‖toEuclidean_fromVec φ‖^2) (by (try dsimp only); rw [norm_toEuclidean_fromVec_sq]; simp) _
+    (fun φ => ‖toEuclidean_fromVec φ‖^2) (by  rw [norm_toEuclidean_fromVec_sq]; simp) _
     (by rw [sourceAdaptive_branches_length]; exact le_max_right _ _)]
   exact sourceAdaptive_branches_mass O hO T hT ψ
 end
@@ -219,7 +223,7 @@ theorem sourceTreeCode_injective {H : Type} (n q old records new : ℕ) (h : rec
   have hget (i : ℕ) (j : Fin old) : (i*old+j.val)/old=i := by
     rw [Nat.add_comm,Nat.add_mul_div_right _ _ ho,Nat.div_eq_of_lt j.isLt,zero_add]
   have hdiv := congrArg (fun z => z/old) hc
-  (try dsimp only at hdiv)
+
   rw [hget,hget] at hdiv
   have hrec : a.1=b.1 := Fin.ext hdiv
   have hold : a.2.2.2=b.2.2.2 := by
@@ -369,7 +373,7 @@ theorem sourceAdaptivePureMatrix_isometry {H : Type} [Fintype H] [DecidableEq H]
   simp only [sourceAdaptivePureMatrix,Matrix.mul_apply,Matrix.conjTranspose_apply,Fintype.sum_prod_type]
   change (∑ i : Fin (max 1 (sourceAdaptiveLeaves T)),
     (((sourceAdaptiveOperators O T).getD i.val 0)ᴴ*((sourceAdaptiveOperators O T).getD i.val 0)) p t)=(1 : Matrix H H ℂ) p t
-  (try dsimp only at he)
+
   rw [he]
   have hh := congrFun (congrFun ht p) t
   simpa only [sourceKrausTotal,sourceMatrixList_sum_apply,List.map_map,Function.comp_def] using! hh

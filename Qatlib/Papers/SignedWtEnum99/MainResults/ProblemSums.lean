@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SignedWtEnum99.MainResults.Factorization
+module
+
+public import Qatlib.Papers.SignedWtEnum99.MainResults.Factorization
+
+@[expose] public section
 
 /-!
 # Matrix factorizations for the signed-enumerator problems
@@ -49,9 +53,9 @@ lemma qsen_congr {m m' n : ℕ} {A : Matrix (Fin m) (Fin n) (ZMod 2)}
   apply Finset.sum_congr rfl
   intro b _
   by_cases h1 : A.mulVec b = 0
-  · rw [if_pos h1, if_pos ((hA b).mp h1)]
+  · rw [ite_eq_left h1, ite_eq_left ((hA b).mp h1)]
   · have h1' : ¬ A'.mulVec b = 0 := fun hh => h1 ((hA b).mpr hh)
-    rw [if_neg h1, if_neg h1']
+    rw [ite_eq_right h1, ite_eq_right h1']
 
 /-- Injectivity of a binary matrix's linear map implies linear independence of its columns. -/
 lemma linearIndependent_cols_of_injective {N k : ℕ} (X : Matrix (Fin N) (Fin k) (ZMod 2))
@@ -108,7 +112,7 @@ theorem exists_indep_cols_factorization (C : Matrix (Fin N) (Fin N) (ZMod 2)) :
   classical
   let f : (Fin N → ZMod 2) →ₗ[ZMod 2] (Fin N → ZMod 2) := Matrix.mulVecLin C
   let W : Submodule (ZMod 2) (Fin N → ZMod 2) := LinearMap.range f
-  haveI hWfin : Module.Finite (ZMod 2) W :=
+  have hWfin : Module.Finite (ZMod 2) W :=
     Module.Finite.of_injective W.subtype Subtype.val_injective
   let bW : Module.Basis (Fin (Module.finrank (ZMod 2) W)) (ZMod 2) W :=
     Module.finBasis (ZMod 2) W

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CopyDecision.FreshPolicies.Data.GeneralApproximation
-import Mathlib.MeasureTheory.Integral.Bochner.SumMeasure
+module
+
+public import Qatlib.Concepts.CopyDecision.FreshPolicies.Data.GeneralApproximation
+public import Mathlib.MeasureTheory.Integral.Bochner.SumMeasure
+
+@[expose] public section
 
 /-!
 # Finite Embedding
@@ -27,7 +31,7 @@ def GeneralQubitPOVM.ofFinite {m : ℕ} (Λ : POVM (Fin m) (Fin 2)) : GeneralQub
   effects := ∑ a, VectorMeasure.dirac a (Λ.mats a)
   nonneg := by
     intro B hB
-    simp only [VectorMeasure.coe_finsetSum, Finset.sum_apply]
+    simp only [FunLike.coe_sum, Finset.sum_apply]
     apply Finset.sum_nonneg
     intro a _
     by_cases ha : a ∈ B

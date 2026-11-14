@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GradientOracle.StepSizes.ClassicalQuantumStepSizesStat
-import Mathlib.Data.Nat.Factorial.Basic
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Tactic.Convert
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Ring
+module
+
+public import Qatlib.Concepts.GradientOracle.StepSizes.ClassicalQuantumStepSizesStat
+public import Mathlib.Data.Nat.Factorial.Basic
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Tactic.Convert
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 /-!
 # Classical and quantum step-size identities

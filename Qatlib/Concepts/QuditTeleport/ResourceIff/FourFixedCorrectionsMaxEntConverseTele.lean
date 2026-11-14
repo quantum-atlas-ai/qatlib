@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QuditTeleport.ResourceIff.FourFixedCorrectionsMaxEntConverseStat
-import Qatlib.Concepts.QuditTeleport.ResourceIff.FourFixedCorrectionsMaxEntConverse
-import Qatlib.Concepts.QuditTeleport.ResourceIff.ConverseTools
+module
+
+public import Qatlib.Concepts.QuditTeleport.ResourceIff.FourFixedCorrectionsMaxEntConverseStat
+public import Qatlib.Concepts.QuditTeleport.ResourceIff.FourFixedCorrectionsMaxEntConverse
+public import Qatlib.Concepts.QuditTeleport.ResourceIff.ConverseTools
+
+@[expose] public section
 
 /-!
 # The four-correction marginal converse and positivity
@@ -160,7 +164,10 @@ theorem fourFixedCorrectionsMaxEntConverse : FourFixedCorrectionsMaxEntConverse 
   linear_combination -he / 2
 
 /-- The matrix `indefiniteResource` is not positive semidefinite. -/
-theorem indefiniteResource_not_positive : ¬ indefiniteResource.PosSemidef := by
+theorem indefiniteResource_not_positive :
+    ¬ (( !![1,0,0,1/2; 0,0,0,0; 0,0,0,0; 1/2,0,0,0] : Matrix (Fin 4) (Fin 4) ℂ).submatrix
+      finProdFinEquiv finProdFinEquiv : Matrix (Fin 2 × Fin 2) (Fin 2 × Fin 2) ℂ).PosSemidef := by
+  change ¬ indefiniteResource.PosSemidef
   intro h
   let v : Fin 2 × Fin 2 → ℂ := fun x => (![1, 0, 0, -2] : Fin 4 → ℂ) (finProdFinEquiv x)
   have hh := h.re_dotProduct_nonneg v

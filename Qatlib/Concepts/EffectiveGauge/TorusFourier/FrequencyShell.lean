@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.TorusFourier.FourierMode
-import Mathlib.Data.Pi.Interval
-import Mathlib.Order.Interval.Finset.Box
+module
+
+public import Qatlib.Concepts.EffectiveGauge.TorusFourier.FourierMode
+public import Mathlib.Data.Pi.Interval
+public import Mathlib.Order.Interval.Finset.Box
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

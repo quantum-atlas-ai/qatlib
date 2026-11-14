@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.SingularValues
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Logic.Relation
+module
+
+public import Mathlib.Analysis.InnerProductSpace.SingularValues
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Logic.Relation
+
+@[expose] public section
 
 /-!
 # Discriminant singular-value specification

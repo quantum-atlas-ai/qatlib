@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QDecoding25.MainResults.FourierShift
-import Qatlib.Papers.QDecoding25.MainResults.Distinguishing
-import Qatlib.Papers.QDecoding25.MainResults.MetricDistribution
+module
+
+public import Qatlib.Papers.QDecoding25.MainResults.FourierShift
+public import Qatlib.Papers.QDecoding25.MainResults.Distinguishing
+public import Qatlib.Papers.QDecoding25.MainResults.MetricDistribution
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

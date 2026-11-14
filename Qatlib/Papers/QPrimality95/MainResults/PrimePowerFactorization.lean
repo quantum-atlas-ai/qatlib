@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PrimalityCerts.PrimePowerOrder.OrderCounts
-import Qatlib.Foundations.PrimalityCerts.PrimePowerOrder.ExponentRecovery
-import Qatlib.Papers.QPrimality95.MainResults.ComplexityAssembly
+module
+
+public import Qatlib.Foundations.PrimalityCerts.PrimePowerOrder.OrderCounts
+public import Qatlib.Foundations.PrimalityCerts.PrimePowerOrder.ExponentRecovery
+public import Qatlib.Papers.QPrimality95.MainResults.ComplexityAssembly
+
+@[expose] public section
 
 /-!
 # Prime-power extraction probabilities and cost bounds

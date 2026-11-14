@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -188,7 +192,7 @@ theorem zmod_val_add_carry (n : ℕ) [NeZero n] (x y : ZMod n) :
   rw [ZMod.val_add, Nat.mod_eq_sub]
   have hdiv : (x.val + y.val) / n = if n ≤ x.val + y.val then 1 else 0 := by
     by_cases h : n ≤ x.val + y.val
-    · rw [if_pos h]
+    · rw [ite_eq_left h]
       have h1 : 1 ≤ (x.val + y.val) / n := by
         rw [Nat.le_div_iff_mul_le hn]
         simpa using h
@@ -196,13 +200,13 @@ theorem zmod_val_add_carry (n : ℕ) [NeZero n] (x y : ZMod n) :
         rw [Nat.div_lt_iff_lt_mul hn]
         omega
       omega
-    · rw [if_neg h]
+    · rw [ite_eq_right h]
       exact Nat.div_eq_of_lt (by omega)
   rw [hdiv]
   by_cases h : n ≤ x.val + y.val
-  · rw [if_pos h]
+  · rw [ite_eq_left h]
     omega
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     omega
 
 /-- The carry identity in `ℤ`, the form consumed by Lemma 3.8. -/
@@ -211,11 +215,11 @@ theorem zmod_val_add_carry_z (n : ℕ) [NeZero n] (x y : ZMod n) :
       = (x.val : ℤ) + (y.val : ℤ) := by
   have hnat := zmod_val_add_carry n x y
   by_cases h : n ≤ x.val + y.val
-  · rw [if_pos h, Nat.mul_one] at hnat
-    rw [if_pos h, mul_one]
+  · rw [ite_eq_left h, Nat.mul_one] at hnat
+    rw [ite_eq_left h, mul_one]
     exact_mod_cast hnat
-  · rw [if_neg h, Nat.mul_zero, Nat.add_zero] at hnat
-    rw [if_neg h, mul_zero, add_zero]
+  · rw [ite_eq_right h, Nat.mul_zero, Nat.add_zero] at hnat
+    rw [ite_eq_right h, mul_zero, add_zero]
     exact_mod_cast hnat
 
 end Qatlib.Papers.GroupExtTest13.MainResults

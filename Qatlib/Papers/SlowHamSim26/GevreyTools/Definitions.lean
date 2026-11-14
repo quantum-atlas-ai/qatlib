@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Calculus.IteratedDeriv.Defs
-import Mathlib.Analysis.SpecialFunctions.Exponential
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Data.Complex.Basic
+module
+
+public import Mathlib.Analysis.Calculus.IteratedDeriv.Defs
+public import Mathlib.Analysis.SpecialFunctions.Exponential
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Basic.Complex.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

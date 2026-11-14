@@ -4,18 +4,22 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.Amplification.Lemma1
-import Qatlib.Concepts.AmplitudeSearch.Amplification.Lemma1RankProcessSubgoalAqua
-import Qatlib.Concepts.AmplitudeSearch.Amplification.Lemma2
-import Qatlib.Concepts.AmplitudeSearch.Amplification.Theorem1ChargedBudgetCorrected
-import Qatlib.Concepts.AmplitudeSearch.Amplification.Theorem1QueryBudgetCorrected
-import Qatlib.Concepts.AmplitudeSearch.Amplification.MinimumBudgetProbability
-import Qatlib.Concepts.AmplitudeSearch.Amplification.FinalRemarksAmplificationAqua
+module
 
-import Qatlib.Concepts.AmplitudeSearch.InterruptMin.InterruptedCallLawsAqua
-import Qatlib.Concepts.AmplitudeSearch.InterruptMin.InterruptedSearchAttemptAqua
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.Lemma1
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.Lemma1RankProcessSubgoalAqua
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.Lemma2
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.Theorem1ChargedBudgetCorrected
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.Theorem1QueryBudgetCorrected
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.MinimumBudgetProbability
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.FinalRemarksAmplificationAqua
 
-import Qatlib.Concepts.AmplitudeSearch.InterruptMin.InterruptedMinimumBudgetAqua
+public import Qatlib.Concepts.AmplitudeSearch.InterruptMin.InterruptedCallLawsAqua
+public import Qatlib.Concepts.AmplitudeSearch.InterruptMin.InterruptedSearchAttemptAqua
+
+public import Qatlib.Concepts.AmplitudeSearch.InterruptMin.InterruptedMinimumBudgetAqua
+
+@[expose] public section
 
 /-!
 # Minimum-finding and amplification results

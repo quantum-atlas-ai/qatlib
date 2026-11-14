@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem5Aux
+module
+
+public import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem5Aux
+
+@[expose] public section
 
 /-!
 # Row and block identities for the V2 Taylor system
@@ -290,23 +294,23 @@ theorem taylorV2_row_step (r : Fin (m * (k + 1) + p + 1)) (hrj : 1 ≤ r.val % (
         refine ⟨hrm, hrj, ?_⟩
         have := Nat.mod_le r.val (k + 1)
         omega
-      rw [if_pos hstep, if_neg hjc, if_neg hpad]
+      rw [ite_eq_left hstep, ite_eq_right hjc, ite_eq_right hpad]
       have hne : ¬ ((r, n) = c) := by
         intro he
         have h1 := congrArg Prod.fst he
         have h2 := congrArg Fin.val h1
         simp only [Fin.val_eq_val] at h2
         omega
-      rw [if_neg hne, if_pos hcc]
+      rw [ite_eq_right hne, ite_eq_left hcc]
       rw [div_eq_inv_mul]
       ring
     · have hstep : ¬ (r.val < m * (k + 1) ∧ 1 ≤ r.val % (k + 1) ∧ c.1.val + 1 = r.val) := by
         omega
-      rw [if_neg hstep, if_neg hjc, if_neg hpad, if_neg hcc]
+      rw [ite_eq_right hstep, ite_eq_right hjc, ite_eq_right hpad, ite_eq_right hcc]
       by_cases hdiag : (r, n) = c
-      · rw [if_pos hdiag]
+      · rw [ite_eq_left hdiag]
         ring
-      · rw [if_neg hdiag]
+      · rw [ite_eq_right hdiag]
         ring
   have hS2 : ∑ c : Fin (m * (k + 1) + p + 1) × N,
       (if c.1.val = r.val - 1 then ((r.val % (k + 1) : ℕ) : ℂ)⁻¹ * M n c.2 else 0) * x c =
@@ -373,7 +377,7 @@ theorem taylorV2_row_jump (r : Fin (m * (k + 1) + p + 1)) (hr0 : 0 < r.val)
                 (if n = c.2 then (1 : ℂ) else 0) else 0)
             - (if m * (k + 1) < r.val ∧ c.1.val + 1 = r.val then
                 (if n = c.2 then (1 : ℂ) else 0) else 0) := rfl
-    rw [entry, if_neg hstep, if_neg hpad]
+    rw [entry, ite_eq_right hstep, ite_eq_right hpad]
     simp only [hjc]
     ring
   simp only [Matrix.mulVec, dotProduct]
@@ -392,10 +396,10 @@ theorem taylorV2_row_jump (r : Fin (m * (k + 1) + p + 1)) (hr0 : 0 < r.val)
     apply Finset.sum_congr rfl
     intro c1 _
     by_cases hwin : r.val - (k + 1) ≤ c1.val ∧ c1.val < r.val
-    · rw [if_pos hwin]
-      simp only [ite_mul, one_mul, zero_mul, hwin, and_self, if_true]
+    · rw [ite_eq_left hwin]
+      simp only [ite_mul, one_mul, zero_mul, hwin, and_self, ite_true]
       simp
-    · simp only [hwin, if_false, zero_mul, Finset.sum_const_zero]
+    · simp only [hwin, ite_false, zero_mul, Finset.sum_const_zero]
   rw [hS1, hS2]
 
 /-- Beyond m(k + 1), the matrix action is the current entry minus the entry at the preceding
@@ -430,7 +434,7 @@ theorem taylorV2_row_pad (r : Fin (m * (k + 1) + p + 1)) (hrg : m * (k + 1) < r.
                 (if n = c.2 then (1 : ℂ) else 0) else 0)
             - (if m * (k + 1) < r.val ∧ c.1.val + 1 = r.val then
                 (if n = c.2 then (1 : ℂ) else 0) else 0) := rfl
-    rw [entry, if_neg hstep, if_neg hjc]
+    rw [entry, ite_eq_right hstep, ite_eq_right hjc]
     simp only [hpad]
     ring
   simp only [Matrix.mulVec, dotProduct]

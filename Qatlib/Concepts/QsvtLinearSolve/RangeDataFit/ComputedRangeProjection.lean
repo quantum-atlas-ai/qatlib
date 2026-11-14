@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.LinearSystems.FiniteInversePhaseConsumers
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PreparedAmplitudeEstimation
+module
+
+public import Qatlib.Concepts.QsvtCore.LinearSystems.FiniteInversePhaseConsumers
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PreparedAmplitudeEstimation
+
+@[expose] public section
 
 /-!
 # Computed range projection by QSVT
@@ -294,20 +298,20 @@ theorem fit_left_support {O I : Type} [Fintype O] [DecidableEq O] [Fintype I] [D
     A*matrixPseudoinverse A = leftSingularTransform A (fun x => if x=0 then 0 else 1) := by
   apply eq_spectralDiagonal_of_action (leftSingularBasis A)
   intro j
-  (try dsimp only)
   by_cases hj : 0 < matrixSingularValues A j
   · have hr := (matrixSingularValues_pos_iff_lt_finrank_range A).mp hj
-    rw [if_neg (ne_of_gt hj), one_smul, leftSingularBasis_apply_of_lt A j hr, leftSingularVector,
+    change _ = (if matrixSingularValues A j = 0 then 0 else 1) • _
+    rw [ite_eq_right (ne_of_gt hj), one_smul, leftSingularBasis_apply_of_lt A j hr, leftSingularVector,
         map_smul]
     congr 1
     have he := congrArg (fun M : Matrix O I ℂ => M.toEuclideanLin)
       (mul_matrixPseudoinverse_mul A)
-    (try dsimp only at he)
     rw [Matrix.toLpLin_mul_same] at he
     exact congrArg (fun T : EuclideanSpace ℂ I →ₗ[ℂ] EuclideanSpace ℂ O =>
       T (rightSingularBasis A ⟨j, by have := A.toEuclideanLin.finrank_range_le; simpa using! hr.trans_le this⟩)) he
   · have hz : matrixSingularValues A j=0 := le_antisymm (le_of_not_gt hj) (matrixSingularValues_nonneg A j)
-    rw [if_pos hz, zero_smul]
+    change _ = (if matrixSingularValues A j = 0 then 0 else 1) • _
+    rw [ite_eq_left hz, zero_smul]
     have hk := adjoint_apply_leftSingularBasis_of_rank_le A j
       (le_of_not_gt (by simpa only [← matrixSingularValues_pos_iff_lt_finrank_range A] using! hj))
     have hkb : Aᴴ*ᵥ(⇑(leftSingularBasis A j))=0 := by
@@ -342,7 +346,7 @@ theorem nativeRange_left_support_error {O I : Type} [Fintype O] [DecidableEq O]
     have hg := (computed_range_native_polynomial_and_gap κ k hκ).2.2
       (matrixSingularValues A j) (by rw [abs_of_pos hp]; exact hgap ⟨j,hi⟩ hp)
       (by rw [abs_of_pos hp]; exact (encoded_singularValues_mem_unitInterval henc j.val).2)
-    simp only [if_neg hz]
+    simp only [ite_eq_right hz]
     rw [show (1:ℂ)=((1:ℝ):ℂ) from rfl, ← Complex.ofReal_sub, Complex.norm_real, Real.norm_eq_abs, abs_sub_comm]
     exact hg
 

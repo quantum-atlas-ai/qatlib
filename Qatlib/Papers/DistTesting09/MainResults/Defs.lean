@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
-import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
+module
+
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+public import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
+
+@[expose] public section
 
 /-!
 # Finite distributions for distribution testing
@@ -237,7 +241,7 @@ def renormalizeOff (p : Dist N) (B : Finset (Fin N)) (h : massOf p B < 1) : Dist
   nonneg i := by
     by_cases hi : i ∈ B
     · simp [hi]
-    · simp only [hi, if_false]
+    · simp only [hi, ite_false]
       exact div_nonneg (p.nonneg i) (by linarith [h])
   sum_one := by
     have hw : massOf p B < 1 := h
@@ -285,7 +289,7 @@ theorem l1_renormalizeOff_le (p : Dist N) (B : Finset (Fin N)) (h : massOf p B <
     · have hz : (renormalizeOff p B h).prob i = 0 := by simp [renormalizeOff, hi]
       rw [hz, sub_zero, abs_of_nonneg (p.nonneg i)]
       simp [hi]
-    · simp only [renormalizeOff, hi, if_false]
+    · simp only [renormalizeOff, hi, ite_false]
       have hm0 : 0 ≤ massOf p B := Finset.sum_nonneg fun j _ => p.nonneg j
       have hge : p.prob i ≤ p.prob i / (1 - massOf p B) := by
         rw [le_div_iff₀ hw1]
@@ -343,7 +347,7 @@ theorem indicator_variance_le (p : Dist N) (B : Finset (Fin N)) :
       = p.expect (fun x => if x ∈ B then (1 : ℝ) else 0) := by
     apply Finset.sum_congr rfl
     intro x _
-    by_cases h : x ∈ B <;> simp [FinDist.expect, h]
+    by_cases h : x ∈ B <;> simp [ h]
   rw [hsq, expect_indicator]
   nlinarith [sq_nonneg (∑ x ∈ B, p.prob x), hw0]
 

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QuditTeleport.TeleportCore.BellReferenceProtocol
-import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
-import Qatlib.Concepts.QuditTeleport.TeleportCore.InstrumentConditioning
+module
+
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.BellReferenceProtocol
+public import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.InstrumentConditioning
+
+@[expose] public section
 
 /-!
 # Bell teleportation instruments and conditional recovery
@@ -69,11 +73,11 @@ theorem teleportPauliProd_conj_mul (a b : Bool) :
     intro α; cases α <;> simp [pauliZ_conjTranspose]
   have hXX : (if b then PauliX else 1) * (if b then PauliX else 1) = 1 := by
     cases b
-    · simp only [if_neg (by decide : ¬(false = true)), one_mul]
+    · simp only [ite_eq_right (by decide : ¬(false = true)), one_mul]
     · exact permMatrix_mul_self Bool.not_not
   have hZZ : (if a then PauliZ else 1) * (if a then PauliZ else 1) = 1 := by
     cases a
-    · simp only [if_neg (by decide : ¬(false = true)), one_mul]
+    · simp only [ite_eq_right (by decide : ¬(false = true)), one_mul]
     · exact pauliZ_mul_self
   rw [Matrix.conjTranspose_mul, hX, hZ, Matrix.mul_assoc,
     ← Matrix.mul_assoc (if b then PauliX else 1) (if b then PauliX else 1)
@@ -170,7 +174,7 @@ theorem bell_corrected_channel_and_mass :
 /-- For every density operator, each Bell outcome has probability one quarter and its
 conditional corrected state equals the input [BennettEtAl1993Teleportation]. -/
 theorem bell_conditional_recovery :
-    ∀ (ρ : Operator 2) (hρ : IsDensityOperator ρ) (o : Bool × Bool),
+    ∀ (ρ : Operator 2) (_hρ : IsDensityOperator ρ) (o : Bool × Bool),
       instrumentProb teleportCorrectedInstrument ρ o = 1/4 ∧
       (∀ h : 0 < instrumentProb teleportCorrectedInstrument ρ o,
         teleportCorrectedInstrument.conditionalState ρ o h = ρ) := by

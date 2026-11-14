@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SemiDirectHSP06.MainResults.Defs
-import Mathlib.GroupTheory.OrderOfElement
+module
+
+public import Qatlib.Papers.SemiDirectHSP06.MainResults.Defs
+public import Mathlib.GroupTheory.OrderOfElement
+
+@[expose] public section
 
 /-!
 # Power relations and element orders in the shift semidirect product
@@ -187,7 +191,7 @@ lemma genY_pow_mul_genX_pow (hp : p.Prime) (hr : 2 ≤ r)
 
 /-- For prime `p` and `r ≥ 2`, the `b`th power of the shift residue equals `2 * b * p ^ (r - 1)
 + 1` modulo `2 * p ^ r`. -/
-lemma shiftVal_pow_mod (hp : p.Prime) (hr : 2 ≤ r) (b : ℕ) :
+lemma shiftVal_pow_mod (_hp : p.Prime) (hr : 2 ≤ r) (b : ℕ) :
     ((shiftVal p r : ℕ) : ZMod (2 * p ^ r)) ^ b =
       ((2 * b * p ^ (r - 1) + 1 : ℕ) : ZMod (2 * p ^ r)) := by
   induction b with
@@ -343,8 +347,8 @@ and `a`. -/
 lemma orderOf_pow_genX (hp : p.Prime) (hr : 2 ≤ r)
     (φ : Multiplicative (ZMod p) →* MulAut (Multiplicative (ZMod (2 * p ^ r)))) (a : ℕ) :
     orderOf (genX p r φ ^ a) = 2 * p ^ r / Nat.gcd (2 * p ^ r) a := by
-  haveI : NeZero p := ⟨hp.ne_zero⟩
-  haveI : NeZero (2 * p ^ r) := ⟨Nat.mul_ne_zero (by norm_num) (pow_ne_zero _ hp.ne_zero)⟩
+  have : NeZero p := ⟨hp.ne_zero⟩
+  have : NeZero (2 * p ^ r) := ⟨Nat.mul_ne_zero (by norm_num) (pow_ne_zero _ hp.ne_zero)⟩
   rw [orderOf_pow, orderOf_genX hp hr]
 
 /-- The order of `genX ^ a` is `2 * p ^ r / Nat.gcd a (2 * p ^ r)`. -/
@@ -386,8 +390,8 @@ lemma orderOf_genX_mul_genY_ne_zero (hp : p.Prime) (hr : 2 ≤ r)
     {a b : ℕ} (hb0 : b ≠ 0) (hb : b ≤ p - 1) :
     orderOf (genX p r φ ^ a * genY p r φ ^ b) =
       p * (2 * p ^ r / Nat.gcd (2 * p ^ r) (a * p)) := by
-  haveI : NeZero p := ⟨hp.ne_zero⟩
-  haveI : NeZero (2 * p ^ r) :=
+  have : NeZero p := ⟨hp.ne_zero⟩
+  have : NeZero (2 * p ^ r) :=
     ⟨Nat.mul_ne_zero (by norm_num) (pow_ne_zero _ hp.ne_zero)⟩
   have hpdvd := p_dvd_orderOf_genX_mul_genY (a := a) hp φ hb0 hb
   calc orderOf (genX p r φ ^ a * genY p r φ ^ b)
@@ -499,7 +503,7 @@ lemma orderOf_genX_mul_genY_formula {p r : ℕ} (hp : p.Prime) (hr : 2 ≤ r)
         2 * p ^ (r + 1) / Nat.gcd a (2 * p ^ r)
       else 2 * p ^ r / Nat.gcd a (2 * p ^ r) := by
   by_cases h : p ^ r ∣ a ∧ b ≠ 0
-  · rw [if_pos h]
+  · rw [ite_eq_left h]
     obtain ⟨hd, hb0⟩ := h
     rcases Nat.eq_zero_or_pos a with ha0 | hapos
     · subst ha0
@@ -517,7 +521,7 @@ lemma orderOf_genX_mul_genY_formula {p r : ℕ} (hp : p.Prime) (hr : 2 ≤ r)
         rw [pow_succ]
         ring
       rw [hgcd, h2pr, Nat.mul_div_cancel (2 * p) (pow_pos hp.pos r)]
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     by_cases hb0 : b = 0
     · subst hb0
       exact orderOf_genX_pow_mul_genY_zero hp hr φ a
@@ -548,6 +552,6 @@ theorem proposition3_presentation
   ⟨fun a b => genY_pow_mul_genX_pow_paper hp hr φ hφ a b,
    fun a b k => pow_genX_mul_genY hp hr φ hφ a b k,
    fun a b => pow_p_eq hp hr hodd φ hφ a b,
-   fun a b ha hb => orderOf_genX_mul_genY_formula hp hr hodd φ hφ ha hb⟩
+   fun _a _b ha hb => orderOf_genX_mul_genY_formula hp hr hodd φ hφ ha hb⟩
 
 end Qatlib.Papers.SemiDirectHSP06.MainResults

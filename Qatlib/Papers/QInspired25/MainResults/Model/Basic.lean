@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Matrix.Normed
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Data.Nat.Log
-import Mathlib.Data.Real.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Algebra.Order.Floor.Ring
-import Mathlib.LinearAlgebra.Matrix.Kronecker
+module
+
+public import Mathlib.Analysis.Matrix.Normed
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Data.Nat.Log
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Algebra.Order.Floor.Ring
+public import Mathlib.LinearAlgebra.Matrix.Kronecker
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -55,13 +59,13 @@ namespace Qatlib.Papers.QInspired25.MainResults.Model
 def logBits (n : ℕ) : ℕ := Nat.log 2 n + 1
 
 /-- `logBits n` is large enough that `n < 2 ^ logBits n`. -/
-theorem lt_two_pow_logBits {n : ℕ} (hn : n ≠ 0) : n < 2 ^ logBits n := by
+theorem lt_two_pow_logBits {n : ℕ} (_hn : n ≠ 0) : n < 2 ^ logBits n := by
   unfold logBits
   have := Nat.lt_pow_succ_log_self (b := 2) (by norm_num) n
   simpa [Nat.succ_eq_add_one] using this
 
 /-- A positive input gives a positive bit count. -/
-theorem logBits_pos {n : ℕ} (hn : 0 < n) : 0 < logBits n := by
+theorem logBits_pos {n : ℕ} (_hn : 0 < n) : 0 < logBits n := by
   unfold logBits
   omega
 

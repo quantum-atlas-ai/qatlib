@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.TorusFourier.FourierDecay
-import Qatlib.Concepts.EffectiveGauge.TorusFourier.FrequencyShell
-import Mathlib.Analysis.PSeries
+module
+
+public import Qatlib.Concepts.EffectiveGauge.TorusFourier.FourierDecay
+public import Qatlib.Concepts.EffectiveGauge.TorusFourier.FrequencyShell
+public import Mathlib.Analysis.PSeries
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

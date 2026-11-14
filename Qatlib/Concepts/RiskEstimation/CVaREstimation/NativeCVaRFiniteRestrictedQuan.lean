@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RiskEstimation.CVaREstimation.NativeCVaRFiniteRestrictedStat
-import Qatlib.Concepts.RiskEstimation.VaRQuantile.NativeVaRFiniteRestrictedQuan
+module
+
+public import Qatlib.Concepts.RiskEstimation.CVaREstimation.NativeCVaRFiniteRestrictedStat
+public import Qatlib.Concepts.RiskEstimation.VaRQuantile.NativeVaRFiniteRestrictedQuan
+
+@[expose] public section
 
 /-!
 # Native conditional risk readout and access counts

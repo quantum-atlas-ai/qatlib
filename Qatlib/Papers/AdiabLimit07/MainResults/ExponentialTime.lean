@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AdiabLimit07.MainResults.ProbabilityFlow
+module
+
+public import Qatlib.Papers.AdiabLimit07.MainResults.ProbabilityFlow
+
+@[expose] public section
 
 /-!
 # Probability bounds for a diagonal binary driver
@@ -67,9 +71,9 @@ theorem finalProjector_im (E1 : ℝ) (w x y : Reg n) :
 /-- Every off-diagonal entry of the final projector is zero. -/
 theorem finalProjector_offdiag {E1 : ℝ} {w : Reg n} {x y : Reg n} (hxy : x ≠ y) :
     finalProjector E1 w x y = 0 := by
-  rw [finalProjector_apply, if_neg hxy]
+  rw [finalProjector_apply, ite_eq_right hxy]
   have hconj : ¬ (x = w ∧ y = w) := fun h => hxy (h.1.trans h.2.symm)
-  rw [if_neg hconj]
+  rw [ite_eq_right hconj]
   ring
 
 /-- Every off-diagonal entry of the binary driver is zero. -/
@@ -79,7 +83,7 @@ theorem binaryDriver_offdiag (Fdiag : Reg n → ℝ) (E1 : ℝ) (w : Reg n) (s :
   unfold binaryDriver
   rw [Matrix.add_apply, Matrix.smul_apply, Matrix.smul_apply]
   have h1 : Matrix.diagonal (fun z => (Fdiag z : ℂ)) x y = 0 := by
-    rw [Matrix.diagonal_apply, if_neg hxy]
+    rw [Matrix.diagonal_apply, ite_eq_right hxy]
   rw [h1, finalProjector_offdiag (E1 := E1) (w := w) hxy]
   simp
 
@@ -125,7 +129,7 @@ theorem abs_sub_le_of_deriv_bound {p : ℝ → ℝ} {T B : ℝ} (hT : 0 ≤ T)
 /-- The assumed lower bound at `u`, two-probability inequality, and basis overlap formula imply
 the upper bound `(2 * E1 * T + 1) / sqrt (2 ^ n)` at `w`. -/
 theorem eq30_from_28_29 {E1 T : ℝ} (ψ : QState (Reg n)) (w u : Reg n)
-    (hE1 : 0 ≤ E1) (hT : 0 ≤ T)
+    (_hE1 : 0 ≤ E1) (_hT : 0 ≤ T)
     (h28 : 1 - 2 * E1 * T / Real.sqrt (((2 : ℕ) ^ n : ℝ))
               ≤ BornProb ψ u)
     (h29 : BornProb ψ w + BornProb ψ u
@@ -170,7 +174,7 @@ theorem beta0_flow_bound {Fdiag : Reg n → ℝ} {E1 : ℝ} (w u : Reg n)
     (s : ℝ → ℝ) (hE1 : 0 ≤ E1)
     (ψ : ℝ → QState (Reg n)) (T : ℝ)
     (hSchrod : SchrodingerIVP (fun t => binaryDriver Fdiag E1 w (s t)) ψ T)
-    (hs0 : ∀ t, 0 ≤ s t) (hs1 : ∀ t, s t ≤ 1) :
+    (_hs0 : ∀ t, 0 ≤ s t) (_hs1 : ∀ t, s t ≤ 1) :
     ∀ t ∈ Set.Icc 0 T,
       |deriv (fun τ => BornProb (ψ τ) u) t| ≤ 2 * E1 / Real.sqrt (((2 : ℕ) ^ n : ℝ)) := by
   intro t ht
@@ -183,7 +187,7 @@ theorem beta0_lower_bound {Fdiag : Reg n → ℝ} {E1 : ℝ} (w u : Reg n)
     (s : ℝ → ℝ) (hE1 : 0 ≤ E1)
     (ψ : ℝ → QState (Reg n)) (T : ℝ)
     (hSchrod : SchrodingerIVP (fun t => binaryDriver Fdiag E1 w (s t)) ψ T)
-    (hs0 : ∀ t, 0 ≤ s t) (hs1 : ∀ t, s t ≤ 1)
+    (_hs0 : ∀ t, 0 ≤ s t) (_hs1 : ∀ t, s t ≤ 1)
     (hT : 0 ≤ T)
     (hinit : BornProb (ψ 0) u = 1) :
     1 - 2 * E1 * T / Real.sqrt (((2 : ℕ) ^ n : ℝ)) ≤ BornProb (ψ T) u := by
@@ -213,7 +217,7 @@ theorem orthogonality_ineq (ψ : QState (Reg n)) (w u : Reg n) (hψ : Normalized
   have htot : (∑ z : Reg n, BornProb ψ z) = 1 := by
     simpa [BornProb] using! hψ
   by_cases huw : u = w
-  · rw [huw, inner_ket_ket, if_pos rfl]
+  · rw [huw, inner_ket_ket, ite_eq_left rfl]
     have hw : BornProb ψ w ≤ 1 := by
       have hle : BornProb ψ w ≤ ∑ z : Reg n, BornProb ψ z :=
         Finset.single_le_sum (f := fun z => BornProb ψ z)
@@ -222,7 +226,7 @@ theorem orthogonality_ineq (ψ : QState (Reg n)) (w u : Reg n) (hψ : Normalized
     have hone : ‖(1 : ℂ)‖ = 1 := by simp
     rw [hone]
     nlinarith [hw, bornProb_nonneg ψ w]
-  · rw [inner_ket_ket, if_neg huw]
+  · rw [inner_ket_ket, ite_eq_right huw]
     simp only [norm_zero, add_zero]
     have hpair : BornProb ψ w + BornProb ψ u
         = ∑ z ∈ ({w, u} : Finset (Reg n)), BornProb ψ z := by

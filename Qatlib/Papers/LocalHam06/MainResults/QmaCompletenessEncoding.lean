@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.QmaCompletenessNativeOutput
-import Qatlib.Concepts.QmaCompleteness.HistoryHam.QmaCompletenessRefined
-import Mathlib.Data.List.OfFn
-import Mathlib.Data.List.FinRange
-import Mathlib.Data.Nat.Log
-import Mathlib.Tactic
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.QmaCompletenessNativeOutput
+public import Qatlib.Concepts.QmaCompleteness.HistoryHam.QmaCompletenessRefined
+public import Mathlib.Data.List.OfFn
+public import Mathlib.Data.List.FinRange
+public import Mathlib.Data.Nat.Log
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Encoding integer local terms as Hamiltonian data
@@ -150,7 +154,7 @@ theorem lhEmbedTerm_toLhTerm {N : ℕ} (b : ℕ) (t : IntegerLocalTerm N) :
   rw [Qatlib.Concepts.TensorRegisters.RegisterModel.partitionLift_apply]
   simp only [nativeIndexDecode_lhBitIndex]
   by_cases ho : outside t.support x=outside t.support y
-  · rw [if_pos ((lhAgreeOutside_nativeWires_iff t.support x y).mpr ho),if_pos ho]
+  · rw [ite_eq_left ((lhAgreeOutside_nativeWires_iff t.support x y).mpr ho),ite_eq_left ho]
   · have ha : lhAgreeOutside (nativeWires t.support) x y=false := by
       cases h : lhAgreeOutside (nativeWires t.support) x y
       · rfl

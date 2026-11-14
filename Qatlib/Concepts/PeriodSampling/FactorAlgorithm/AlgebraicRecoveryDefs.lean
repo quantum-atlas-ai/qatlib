@@ -4,16 +4,20 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.ZMod.Basic
-import Qatlib.Concepts.HspRecovery.CfOrder.CountedContinuedFractionDecoder
-import Qatlib.Concepts.WalkFind.UniformThree.FiniteAbelianState
-import Qatlib.Concepts.QftPreparation.LocalQFTImplementation
-import Qatlib.Concepts.RiskEstimation.PopulationGap.OrderShorDefs
-import Qatlib.Concepts.PeriodSampling.OrderRecovery.RandomBaseFactor
-import Qatlib.Concepts.ClassicalTape.TapeCompilation.BitMachineTime
-import Qatlib.Concepts.HspRecovery.AbelianSampling.ClassicalBasisRecovery
-import Qatlib.Concepts.PeriodSampling.DlogDivBudget.DlogRecoveryPrograms
-import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.FactoringPrograms
+module
+
+public import Mathlib.Data.ZMod.Basic
+public import Qatlib.Concepts.HspRecovery.CfOrder.CountedContinuedFractionDecoder
+public import Qatlib.Concepts.WalkFind.UniformThree.FiniteAbelianState
+public import Qatlib.Concepts.QftPreparation.LocalQFTImplementation
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.OrderShorDefs
+public import Qatlib.Concepts.PeriodSampling.OrderRecovery.RandomBaseFactor
+public import Qatlib.Concepts.ClassicalTape.TapeCompilation.BitMachineTime
+public import Qatlib.Concepts.HspRecovery.AbelianSampling.ClassicalBasisRecovery
+public import Qatlib.Concepts.PeriodSampling.DlogDivBudget.DlogRecoveryPrograms
+public import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.FactoringPrograms
+
+@[expose] public section
 
 /-!
 # Algebraic recovery interfaces and resource predicates

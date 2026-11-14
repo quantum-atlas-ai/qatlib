@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MUBProduct12.TripleClassify.ProductModel
+module
+
+public import Qatlib.Papers.MUBProduct12.TripleClassify.ProductModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -112,9 +116,9 @@ representative of one of the four structural families `P0`, `P1`, `P2`, `P3`.
 Registered as a `Prop`-valued definition; the proof is not formalised. -/
 def lemma3_pair_classification
     (A B : Fin 6 → QState (Fin 2 × Fin 3))
-    (hA : OrthonormalFamily A) (hB : OrthonormalFamily B)
-    (hAprod : ∀ k, IsProductState (A k)) (hBprod : ∀ k, IsProductState (B k))
-    (hMU : ∀ i j, Complex.normSq (Inner (A i) (B j)) = 1 / 6) : Prop :=
+    (_hA : OrthonormalFamily A) (_hB : OrthonormalFamily B)
+    (_hAprod : ∀ k, IsProductState (A k)) (_hBprod : ∀ k, IsProductState (B k))
+    (_hMU : ∀ i j, Complex.normSq (Inner (A i) (B j)) = 1 / 6) : Prop :=
   (∃ A' B', ShapeP0 A' B' ∧ ProductEquivPair A B A' B') ∨
   (∃ A' B', ShapeP1 A' B' ∧ ProductEquivPair A B A' B') ∨
   (∃ A' B', ShapeP2 A' B' ∧ ProductEquivPair A B A' B') ∨

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.InteractionEvo.ComputedGrid.Lemma5DysonComputedParametersStat
-import Qatlib.Concepts.InteractionEvo.EffCosts.EffectiveDysonDefinitions
+module
+
+public import Qatlib.Concepts.InteractionEvo.ComputedGrid.Lemma5DysonComputedParametersStat
+public import Qatlib.Concepts.InteractionEvo.EffCosts.EffectiveDysonDefinitions
+
+@[expose] public section
 
 /-!
 # Accuracy of computed Dyson parameters

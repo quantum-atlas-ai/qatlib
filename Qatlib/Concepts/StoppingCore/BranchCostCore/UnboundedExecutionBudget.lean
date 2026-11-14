@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.StoppingCore.BranchCostCore.UnboundedFiniteExecution
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.FiniteStoppingTail
-import Qatlib.Concepts.LinearLearning.ConcisePipeline.RandomizedCost
+module
+
+public import Qatlib.Concepts.StoppingCore.BranchCostCore.UnboundedFiniteExecution
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.FiniteStoppingTail
+public import Qatlib.Concepts.LinearLearning.ConcisePipeline.RandomizedCost
+
+@[expose] public section
 
 /-!
 # Expected time and cutoffs for unbounded execution
@@ -368,6 +372,7 @@ theorem unbounded_expected_time_tail_sum (next : S → PMF (Configuration S O))
   rw [h2, ENNReal.top_mul hN, add_top] at hlt
   exact absurd hlt (lt_irrefl _)
 
+omit [Fintype O] in
 /-- The pending mass after `fuel` steps is bounded by the expected time divided by `fuel + 1`,
 with the equivalent multiplicative bound. -/
 theorem unbounded_online_cutoff_markov (next : S → PMF (Configuration S O))
@@ -427,6 +432,7 @@ theorem unbounded_output_event_cutoff_gap (next : S → PMF (Configuration S O))
                 exact le_self_add
         exact add_le_add (le_refl _) htail
 
+omit [Fintype O] in
 /-- A uniform continuation probability bound `q < 1` gives geometric pending-mass decay, zero
 nontermination mass, and expected time at most `(1 - q)⁻¹`. -/
 theorem unbounded_geometric_kernel_runtime (next : S → PMF (Configuration S O))

@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis
-import Qatlib.Concepts.QspSimulation.Achievability.RealPolynomial
-import Mathlib.Algebra.Polynomial.Eval.Degree
-import Mathlib.Analysis.Complex.Circle
-import Mathlib.Analysis.SpecificLimits.Basic
-import Mathlib.Data.List.OfFn
-import Mathlib.Topology.Sequences
+module
+
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis
+public import Qatlib.Concepts.QspSimulation.Achievability.RealPolynomial
+public import Mathlib.Algebra.Polynomial.Eval.Degree
+public import Mathlib.Analysis.Complex.Circle
+public import Mathlib.Analysis.SpecificLimits.Basic
+public import Mathlib.Data.List.OfFn
+public import Mathlib.Topology.Sequences
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

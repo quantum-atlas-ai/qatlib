@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QcaDynamics.PathCoeffs
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Data.Complex.Basic
-import Mathlib.Data.Nat.Choose.Basic
-import Mathlib.Data.Finsupp.Basic
+module
+
+public import Qatlib.Concepts.QcaDynamics.PathCoeffs
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Data.Nat.Choose.Basic
+public import Mathlib.Data.Finsupp.Basic
+
+@[expose] public section
 
 /-!
 # Path sums and hypergeometric propagators

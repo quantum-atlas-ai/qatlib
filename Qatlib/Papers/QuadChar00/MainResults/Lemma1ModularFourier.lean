@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QuadChar00.MainResults.Lemma4JacobiSum
+module
+
+public import Qatlib.Papers.QuadChar00.MainResults.Lemma4JacobiSum
+
+@[expose] public section
 
 /-!
 # Jacobi Fourier amplitudes at zero and unit frequencies
@@ -133,9 +137,7 @@ theorem lemma1_amplitude_unit (n : ℕ) [NeZero n] (_hn : Odd n) (_hsq : Squaref
       (fun u => ZMod.stdAddChar (-(s * (yu : ZMod n))) *
         (((jacobiCharZMod n u : ℤ) : ℂ) * ZMod.stdAddChar (u * (yu : ZMod n)))) ?_
     intro u
-    change ((jacobiCharZMod n (u + s) : ℤ) : ℂ) * ZMod.stdAddChar (u * (yu : ZMod n))
-        = ZMod.stdAddChar (-(s * (yu : ZMod n))) *
-            (((jacobiCharZMod n (u + s) : ℤ) : ℂ) * ZMod.stdAddChar ((u + s) * (yu : ZMod n)))
+
     rw [show (u + s) * (yu : ZMod n) = u * (yu : ZMod n) + s * (yu : ZMod n) by ring, AddChar.map_add_eq_mul]
     have hneg : ZMod.stdAddChar (-(s * (yu : ZMod n))) * ZMod.stdAddChar (s * (yu : ZMod n)) = 1 := by
       rw [← AddChar.map_add_eq_mul, neg_add_cancel, AddChar.map_zero_eq_one]

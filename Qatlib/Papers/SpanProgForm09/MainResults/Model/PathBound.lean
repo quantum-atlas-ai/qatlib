@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SpanProgForm09.MainResults.Model.Formula
+module
+
+public import Qatlib.Papers.SpanProgForm09.MainResults.Model.Formula
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -150,12 +154,14 @@ theorem list_foldr_max_le {l : List ℝ} {M : ℝ} (h0 : 0 ≤ M) (h : ∀ x ∈
         intro x hx
         exact h x (by simp [hx])
 
+omit [Fintype I] [DecidableEq I] in
 /-- `height` of a node is one plus the supremum of its children's heights. -/
 theorem height_node (k : ℕ) (g : G.gate k) (ch : Fin k → Formula I G) :
     Formula.height (Formula.node k g ch) =
       1 + (Finset.univ : Finset (Fin k)).sup (fun j => Formula.height (ch j)) := by
   rw [Formula.height]
 
+omit [Fintype I] [DecidableEq I] in
 /-- Each child of an internal node has strictly smaller height than the node, provided the
 node has at least one child. -/
 theorem height_child_lt (k : ℕ) (g : G.gate k) (ch : Fin k → Formula I G) (j : Fin k) :
@@ -196,7 +202,7 @@ theorem geometric_path_bound (c r : ℝ) (hc1 : 1 < c) (hrc : r = c⁻¹)
       rw [Formula.NodeArityPos] at hnz
       obtain ⟨hsub, hone, hratio⟩ := hφ
       obtain ⟨hkpos, hnzsub⟩ := hnz
-      haveI : Nonempty (Fin k) := ⟨⟨0, hkpos⟩⟩
+      have : Nonempty (Fin k) := ⟨⟨0, hkpos⟩⟩
       have hchild : ∀ j : Fin k,
           (advPlus (ch j))⁻¹ ≤ r ^ Formula.height (ch j) ∧
             pathSum (ch j) ≤ geomSum r (Formula.height (ch j)) :=

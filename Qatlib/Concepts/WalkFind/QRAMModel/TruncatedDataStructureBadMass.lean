@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkFind.SearchAlgorithm.NativeSourceDefs
-import Mathlib.Data.Finset.Sort
+module
+
+public import Qatlib.Concepts.WalkFind.SearchAlgorithm.NativeSourceDefs
+public import Mathlib.Data.Finset.Sort
+
+@[expose] public section
 
 /-!
 # Runtime and bad-mass estimates for collision data structures

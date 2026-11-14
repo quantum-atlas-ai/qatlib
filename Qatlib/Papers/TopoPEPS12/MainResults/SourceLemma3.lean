@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MixedInstrument.RewindAlgebra.RejectionFailureBoundQuan
-import Mathlib.Algebra.Order.Field.Basic
+module
+
+public import Qatlib.Concepts.MixedInstrument.RewindAlgebra.RejectionFailureBoundQuan
+public import Mathlib.Algebra.Order.Field.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -70,7 +74,6 @@ theorem perBlock_failure_bound (d : ℝ) (hd0 : 0 < d) (hd1 : d ≤ 1) (m : ℕ)
       _ ≤ 1 := step
   have hmono : 1 / (2 * d * ((m : ℝ) + 1)) ≤ 1 / (2 * d * (m : ℝ)) := by
     apply one_div_le_one_div_of_le (by positivity : (0 : ℝ) < 2 * d * (m : ℝ))
-    push_cast
     nlinarith [hd0]
   exact le_trans htight hmono
 

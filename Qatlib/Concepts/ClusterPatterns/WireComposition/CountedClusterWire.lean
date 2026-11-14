@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ClusterPatterns.WireComposition.ClusterWireInstrument
-import Qatlib.Concepts.QuditTeleport.TeleportCore.CountedBellTeleportation
+module
+
+public import Qatlib.Concepts.ClusterPatterns.WireComposition.ClusterWireInstrument
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.CountedBellTeleportation
+
+@[expose] public section
 
 /-!
 # Counted cluster wire circuits
@@ -81,8 +85,8 @@ theorem traceLeft_matOuter_supported {I J : Type*} [Fintype I] [DecidableEq I]
       = matOuter f g := by
   ext c c'
   simp only [Matrix.traceLeft, Matrix.of_apply, matOuter, Matrix.of_apply]
-  rw [Fintype.sum_eq_single o (fun p hp => by rw [if_neg hp, if_neg hp, zero_mul]),
-    if_pos rfl, if_pos rfl]
+  rw [Fintype.sum_eq_single o (fun p hp => by rw [ite_eq_right hp, ite_eq_right hp, zero_mul]),
+    ite_eq_left rfl, ite_eq_left rfl]
 
 /-- The relabeled projector for Boolean outcome `k` retains exactly the amplitudes with `comp q
 = k`. -/
@@ -104,12 +108,12 @@ theorem applyGate_relabelBoolProjector {I : Type*} [Fintype I] [DecidableEq I]
     by_cases hq : q' = q
     · rw [hq]
       by_cases hc : comp q = k <;> simp [hc]
-    · rw [Equiv.symm_symm, if_neg (fun hc => hq (Equiv.injective _ hc).symm),
-        if_neg hq]
+    · rw [Equiv.symm_symm, ite_eq_right (fun hc => hq (Equiv.injective _ hc).symm),
+        ite_eq_right hq]
   funext q
   simp only [ApplyGate, Matrix.mulVec, dotProduct]
-  rw [Fintype.sum_eq_single q (fun k' hk => by rw [hentry q k', if_neg hk, zero_mul]),
-    hentry q q, if_pos rfl]
+  rw [Fintype.sum_eq_single q (fun k' hk => by rw [hentry q k', ite_eq_right hk, zero_mul]),
+    hentry q q, ite_eq_left rfl]
   simp
 
 /-- The partial trace over the first Boolean register preserves addition. -/
@@ -191,9 +195,9 @@ theorem clusterWireXbB_apply' (b : Bool) (ψ : QState (Bool × Bool)) :
     applyGate_secondFactor]
   funext p
   cases b
-  · simp only [if_neg (by decide : ¬(false = true))]
+  · simp only [ite_eq_right (by decide : ¬(false = true))]
     exact congrFun (applyGate_one _) p.2
-  · simp only [if_true]
+  · simp only [ite_true]
     exact applyGate_permMatrix Bool.not_not (fun j => ψ (p.1, j)) p.2
 
 /-- The conditional X correction acts on amplitudes by XOR with `b` in the second Boolean
@@ -210,9 +214,9 @@ theorem clusterWireXbGate_unitary (b : Bool) :
   refine teleportRelabelGate_mem_unitaryGroup ?_ _
   unfold clusterWireXbB
   cases b
-  · simp only [if_neg (by decide : ¬(false = true))]
+  · simp only [ite_eq_right (by decide : ¬(false = true))]
     exact tensorGate_unitary (Submonoid.one_mem _) (Submonoid.one_mem _)
-  · simp only [if_true]
+  · simp only [ite_true]
     exact tensorGate_unitary (Submonoid.one_mem _) pauliX_unitary
 
 /-- The operator of the selected cluster wire leaf is the ordered product of its preparation
@@ -297,10 +301,10 @@ theorem clusterWireActualBranchCore_matUnit (ζ : ℂ) (b : Bool) (i j : Fin 2) 
       intro a
       rw [Fintype.sum_eq_single i]
       · by_cases haj : a = j
-        · rw [if_pos ⟨rfl, haj⟩, mul_one, if_pos haj]
-        · rw [if_neg (fun hc => haj hc.2), mul_zero, if_neg haj]
+        · rw [ite_eq_left ⟨rfl, haj⟩, mul_one, ite_eq_left haj]
+        · rw [ite_eq_right (fun hc => haj hc.2), mul_zero, ite_eq_right haj]
       · intro b' hb'
-        rw [if_neg (fun hc => hb' hc.1), mul_zero]
+        rw [ite_eq_right (fun hc => hb' hc.1), mul_zero]
     have houter : ∀ a : Fin 2,
         ((∑ b' : Fin 2, clusterWireInitialFrame r b'
               * (if b' = i ∧ a = j then (1 : ℂ) else 0))
@@ -311,9 +315,9 @@ theorem clusterWireActualBranchCore_matUnit (ζ : ℂ) (b : Bool) (i j : Fin 2) 
     simp only [Matrix.mul_apply, conjTranspose_apply, teleportMatUnit, Matrix.of_apply,
       matOuter, Matrix.of_apply, RCLike.star_def]
     rw [Finset.sum_congr rfl fun a _ => houter a, Fintype.sum_eq_single j]
-    · rw [if_pos rfl]
+    · rw [ite_eq_left rfl]
     · intro a ha
-      rw [if_neg ha, zero_mul]
+      rw [ite_eq_right ha, zero_mul]
   have hJcol : ∀ m : Fin 2,
       relabelState boolEquivFin2.symm
         (((Real.sqrt 2 : ℂ)⁻¹) • ((clusterJ ζ) *ᵥ Qatlib.Foundations.PureStateMath.Ket m))
@@ -322,8 +326,8 @@ theorem clusterWireActualBranchCore_matUnit (ζ : ℂ) (b : Bool) (i j : Fin 2) 
     funext c
     simp only [relabelState, Function.comp_apply, Equiv.symm_symm, Pi.smul_apply,
       smul_eq_mul, mulVec, dotProduct, ket_apply]
-    rw [Fintype.sum_eq_single m (fun k hk => by rw [if_neg hk, mul_zero]),
-      if_pos rfl, mul_one]
+    rw [Fintype.sum_eq_single m (fun k hk => by rw [ite_eq_right hk, mul_zero]),
+      ite_eq_left rfl, mul_one]
   have hreal : (starRingEnd ℂ) ((Real.sqrt 2 : ℂ)⁻¹) = (Real.sqrt 2 : ℂ)⁻¹ := by
     have h := Complex.conj_ofReal ((Real.sqrt 2 : ℝ)⁻¹)
     rw [Complex.ofReal_inv] at h
@@ -411,14 +415,15 @@ theorem cluster_wire_actual_counts :
     · intro a b hab
       have hv : (clusterWireLeaf ζ a).val = (clusterWireLeaf ζ b).val :=
         congrArg Fin.val hab
-      cases a <;> cases b <;> simp_all [clusterWireLeaf, boolEquivFin2, Fin.val_cast]
+      cases a <;> cases b <;> simp_all [clusterWireLeaf, boolEquivFin2]
     · intro j
       refine ⟨boolEquivFin2.symm (j.cast (rfl : observedLeafCount (clusterWireProgram ζ) = 2)),
         ?_⟩
       have hval : (clusterWireLeaf ζ
           (boolEquivFin2.symm (j.cast (rfl : observedLeafCount (clusterWireProgram ζ) = 2)))).val
           = j.val := by
-        fin_cases j <;> simp [clusterWireLeaf] <;> rfl
+        fin_cases j <;> simp [clusterWireLeaf]
+        rfl
       exact Fin.eq_of_val_eq hval
 
 /-- The permutation that flips the middle Boolean register and leaves the other two registers
@@ -438,10 +443,10 @@ theorem permMatrix_mul_diagonal_permMatrix {I : Type*} [Fintype I] [DecidableEq 
     permMatrix σ * Matrix.diagonal d * permMatrix σ = Matrix.diagonal (d ∘ σ) := by
   ext i j
   simp only [Matrix.mul_apply, permMatrix, Matrix.of_apply, Matrix.diagonal_apply]
-  rw [Fintype.sum_eq_single (σ j) (fun k hk => by rw [if_neg hk, mul_zero]),
-    if_pos rfl, mul_one,
-    Fintype.sum_eq_single (σ j) (fun k hk => by rw [if_neg hk, mul_zero]),
-    if_pos rfl, hσ j]
+  rw [Fintype.sum_eq_single (σ j) (fun k hk => by rw [ite_eq_right hk, mul_zero]),
+    ite_eq_left rfl, mul_one,
+    Fintype.sum_eq_single (σ j) (fun k hk => by rw [ite_eq_right hk, mul_zero]),
+    ite_eq_left rfl, hσ j]
   by_cases hij : i = j <;> simp [hij]
 
 /-- The conditional Pauli X correction on the middle register of a three-qubit Boolean basis. -/
@@ -522,13 +527,13 @@ middle-to-final controlled-Z gate in the Boolean basis. -/
 theorem clusterBob_byproduct_transport_bool (a : Bool) :
     clusterBobXbB a * teleportZcB a * clusterCZbcB * clusterBobXbB a = clusterCZbcB := by
   cases a
-  · simp only [clusterBobXbB, teleportZcB, if_neg (by decide : ¬(false = true)), tensorGate_one]
+  · simp only [clusterBobXbB, teleportZcB, ite_eq_right (by decide : ¬(false = true)), tensorGate_one]
     rw [Matrix.one_mul, Matrix.one_mul, Matrix.mul_one]
   · have hX : clusterBobXbB true = permMatrix clusterBobFlip := clusterBobXbB_true_eq_permMatrix
     have hZ : teleportZcB true
         = Matrix.diagonal (fun p : ((Bool × Bool) × Bool) => if p.2 then (-1 : ℂ) else 1) := by
       ext ⟨⟨a1, a2⟩, a3⟩ ⟨⟨b1, b2⟩, b3⟩
-      simp only [teleportZcB, if_true, tensorGate_apply, Matrix.one_apply, PauliZ,
+      simp only [teleportZcB, ite_true, tensorGate_apply, Matrix.one_apply, PauliZ,
         Matrix.diagonal_apply]
       cases a1 <;> cases b1 <;> cases a2 <;> cases b2 <;> cases a3 <;> cases b3 <;> simp
     have hZC : Matrix.diagonal (fun p : ((Bool × Bool) × Bool) => if p.2 then (-1 : ℂ) else 1)
@@ -546,7 +551,7 @@ theorem clusterBob_byproduct_transport_bool (a : Bool) :
     · subst hpq
       obtain ⟨⟨a1, a2⟩, a3⟩ := p
       cases a2 <;> cases a3 <;> simp [clusterBobFlip]
-    · rw [if_neg hpq, if_neg hpq]
+    · rw [ite_eq_right hpq, ite_eq_right hpq]
 
 /-- The relabeled conditional corrections satisfy the controlled-Z byproduct transport identity
 and are unitary. This gives the preentangled wire correction law used in
@@ -740,9 +745,7 @@ theorem clusterTwoDecoded (ζ : ℂ) (x : Bool) :
   obtain ⟨⟨a1, a2⟩, a3⟩ := p
   cases a1 <;> cases a2 <;> cases a3 <;> cases x <;>
     simp [Qatlib.Foundations.PureStateMath.Ket, sqrt2_inv_sq, mul_comm, mul_left_comm] <;>
-    first
-    | rfl
-    | ring
+    ring
 
 set_option maxHeartbeats 2000000 in
 
@@ -821,9 +824,7 @@ theorem clusterTwoLeafColumn (ζ ξ : ℂ) (a b : Bool) (i : Fin 2) :
   subst hi
   cases a' <;> cases b' <;> cases c' <;> cases a <;> cases b <;> cases x <;>
     simp [Function.comp_apply, relabelState, Equiv.symm_apply_apply, clusterJ_mul_entry] <;>
-    first
-    | rfl
-    | (ring_nf; rw [sqrt2_inv_pow_two]; ring)
+    (ring_nf; rw [sqrt2_inv_pow_two]; ring)
 
 /-- For unit-modulus phases, the selected leaf composed with the input frame has entries equal
 to one half of `clusterJ ξ * clusterJ ζ` at its recorded outcomes. This realizes two-step
@@ -876,8 +877,8 @@ theorem clusterTwoMcol (ζ ξ : ℂ) (m : Fin 2) :
   funext c
   simp only [relabelState, Function.comp_apply, Equiv.symm_symm, Pi.smul_apply, smul_eq_mul,
     mulVec, dotProduct, ket_apply]
-  rw [Fintype.sum_eq_single m (fun k hk => by rw [if_neg hk, mul_zero]),
-    if_pos rfl, mul_one]
+  rw [Fintype.sum_eq_single m (fun k hk => by rw [ite_eq_right hk, mul_zero]),
+    ite_eq_left rfl, mul_one]
 
 /-- On a matrix unit, the actual two-step wire branch is one quarter of conjugation by `clusterJ
 ξ * clusterJ ζ`. -/
@@ -1102,7 +1103,8 @@ theorem cluster_wire_classical_feedback_cost :
             (j.cast (rfl : observedLeafCount (clusterTwoProgram ζ ξ) = 4))).1
           (teleportOutcomeEquiv.symm
             (j.cast (rfl : observedLeafCount (clusterTwoProgram ζ ξ) = 4))).2).val = j.val := by
-        fin_cases j <;> simp [clusterTwoLeaf] <;> rfl
+        fin_cases j <;> simp [clusterTwoLeaf]
+        rfl
       exact Fin.eq_of_val_eq hval
 
 end Qatlib.Concepts.ClusterPatterns.WireComposition

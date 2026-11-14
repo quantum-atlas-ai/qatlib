@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QuantumGibbs.DetailedBalance.QuantumDetailedBalanceCriterionStat
-import Qatlib.Concepts.QuantumGibbs.DetailedBalance.QuantumDetailedBalanceFixedPointQuan
-import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
-import Mathlib.Analysis.CStarAlgebra.PositiveLinearMap
+module
+
+public import Qatlib.Concepts.QuantumGibbs.DetailedBalance.QuantumDetailedBalanceCriterionStat
+public import Qatlib.Concepts.QuantumGibbs.DetailedBalance.QuantumDetailedBalanceFixedPointQuan
+public import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+public import Mathlib.Analysis.CStarAlgebra.PositiveLinearMap
+
+@[expose] public section
 
 /-!
 # A basis criterion for quantum detailed balance
@@ -141,7 +145,7 @@ private theorem basis_density {D : ℕ} (psi : Fin D → QState (Fin D))
   rw [he]
   refine ⟨basisDiag_psd psi p hp, ?_⟩
   simp only [basisDiag, Matrix.trace_sum, Matrix.trace_smul, trace_ketbra, horth,
-    if_true, smul_eq_mul, mul_one, ← Complex.ofReal_sum, hsum, Complex.ofReal_one]
+    ite_true, smul_eq_mul, mul_one, ← Complex.ofReal_sum, hsum, Complex.ofReal_one]
 
 /-- For an orthonormal family with nonnegative normalized weights, the square root of
 `gibbsBasis` has the pointwise square-root weights. -/
@@ -218,7 +222,7 @@ private theorem basis_expansion {D : ℕ} (psi : Fin D → QState (Fin D))
 /-- A quantum channel preserves conjugate transpose. -/
 private theorem channel_star {D : ℕ} (T : QuantumChannel D D) (A : Operator D) :
     T.map Aᴴ = (T.map A)ᴴ := by
-  letI : CStarAlgebra (Operator D) := {}
+  let : CStarAlgebra (Operator D) := {}
   let P : Operator D →ₚ[ℂ] Operator D := PositiveLinearMap.mk₀ T.map
     (fun X hX => Matrix.nonneg_iff_posSemidef.mpr
       (T.completelyPositive.positive (Matrix.nonneg_iff_posSemidef.mp hX)))

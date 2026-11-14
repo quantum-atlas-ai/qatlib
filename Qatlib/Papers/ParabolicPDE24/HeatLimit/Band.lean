@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ParabolicPDE24.HeatLimit.ModeState
-import Qatlib.Papers.ParabolicPDE24.FourierModel.FourierSystem
+module
+
+public import Qatlib.Papers.ParabolicPDE24.HeatLimit.ModeState
+public import Qatlib.Papers.ParabolicPDE24.FourierModel.FourierSystem
+
+@[expose] public section
 
 /-!
 # Finite-band heat approximation

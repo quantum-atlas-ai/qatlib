@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.BQPMixSparse06.MainResults.Lemma1FunctionalCalculus
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Algebra.Order.Archimedean.Basic
+module
+
+public import Qatlib.Papers.BQPMixSparse06.MainResults.Lemma1FunctionalCalculus
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Algebra.Order.Archimedean.Basic
+
+@[expose] public section
 
 /-!
 # Spectral moment bounds and support

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FinitePrecision.ComputableInput.SavedTable.Traversal
-import Mathlib.Tactic.Ring
-import Mathlib.Algebra.Order.BigOperators.Group.Finset
-import Mathlib.Data.Fintype.Card
+module
+
+public import Qatlib.Concepts.FinitePrecision.ComputableInput.SavedTable.Traversal
+public import Mathlib.Tactic.Ring
+public import Mathlib.Algebra.Order.BigOperators.Group.Finset
+public import Mathlib.Data.Fintype.Card
+
+@[expose] public section
 
 /-!
 # Saved table tabulation and resource ledgers

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QlsReadoutSpec.WalkQSVT.ApplicationModels
+module
+
+public import Qatlib.Concepts.QlsReadoutSpec.WalkQSVT.ApplicationModels
+
+@[expose] public section
 
 /-!
 # Native linear-system inputs and program semantics

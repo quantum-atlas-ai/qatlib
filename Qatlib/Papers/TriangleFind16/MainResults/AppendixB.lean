@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Order.BigOperators.Expect
-import Mathlib.Data.Finset.Powerset
-import Mathlib.Data.Nat.Choose.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Algebra.Order.BigOperators.Expect
+public import Mathlib.Data.Finset.Powerset
+public import Mathlib.Data.Nat.Choose.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -188,7 +192,6 @@ theorem sum_sq_card_inter (N V1 : Finset α) (hN : N ⊆ V1) {x : ℕ} (hx : 2 �
       rw [Nat.cast_sub (by omega : 1 ≤ N.card)]
       norm_num
     try rw [hcast]
-    try ring
 
   calc ∑ X ∈ V1.powersetCard x, (((N ∩ X).card : ℕ) : ℝ) ^ 2
       = ∑ X ∈ V1.powersetCard x, ∑ u ∈ N, ∑ v ∈ N,

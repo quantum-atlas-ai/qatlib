@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.InstrumentCore.Measurement.Basic
+module
+
+public import Qatlib.Foundations.InstrumentCore.Measurement.Basic
+
+@[expose] public section
 
 /-!
 # Compact registers for supported sectors
@@ -70,7 +74,7 @@ theorem cross_block_entry_zero {U : Matrix I I ℂ} {S T : Finset I}
     U i j = 0 := by
   have hentry : (Projector S * U * Projector T) i j = U i j := by
     unfold Projector
-    rw [Matrix.mul_diagonal, Matrix.diagonal_mul, if_pos hi, if_pos hj]
+    rw [Matrix.mul_diagonal, Matrix.diagonal_mul, ite_eq_left hi, ite_eq_left hj]
     ring
   rw [hblock] at hentry
   simpa using hentry.symm

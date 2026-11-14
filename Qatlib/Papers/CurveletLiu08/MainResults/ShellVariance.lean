@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CurveletLiu08.MainResults.RadialVariance
+module
+
+public import Qatlib.Papers.CurveletLiu08.MainResults.RadialVariance
+
+@[expose] public section
 
 /-!
 # Shell variance estimates
@@ -71,12 +75,12 @@ parallel variance bounds when the cutoff probability is positive. This is the no
 step for Theorem 4 of [Liu2009]. -/
 theorem source_theorem4
     (n : ℕ) (_hn : 4 ≤ n) (β βtilde δ ε ηc S : ℝ)
-    (_hβ : 0 < β) (_hβt : 0 < βtilde) (_hδ : δ = ε * β) (hS : 1 ≤ S)
-    (hβle : β ≤ βtilde)
-    (hηc : ηc = (δ / βtilde) * ((n : ℝ) - 2) / Real.exp 1)
+    (_hβ : 0 < β) (_hβt : 0 < βtilde) (_hδ : δ = ε * β) (_hS : 1 ≤ S)
+    (_hβle : β ≤ βtilde)
+    (_hηc : ηc = (δ / βtilde) * ((n : ℝ) - 2) / Real.exp 1)
     {Ω : Type*} [MeasurableSpace Ω] (P : Measure Ω)
     (a : Ω → ℝ) (b θ : Ω → EuclideanSpace ℝ (Fin n))
-    (C₁ C₂ : ℝ) (hC₁ : 0 ≤ C₁) (hC₂ : 0 ≤ C₂)
+    (C₁ C₂ : ℝ) (_hC₁ : 0 ≤ C₁) (_hC₂ : 0 ≤ C₂)
     (hPr : 0 < PrScaleLe P a ηc)
     (horth : ∫ ω in {ω | a ω ≤ ηc}, orthVar (b ω) (θ ω) ∂P ≤
         ((n : ℝ) - 1) * ε * β ^ 2 * (507 + C₁ / (n : ℝ)) * S * PrScaleLe P a ηc)

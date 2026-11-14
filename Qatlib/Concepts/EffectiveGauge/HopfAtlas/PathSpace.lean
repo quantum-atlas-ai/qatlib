@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.RelativeTransport
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SpinRepresentation
-import Mathlib.Topology.ContinuousMap.Star
-import Mathlib.Topology.ContinuousMap.Compact
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.RelativeTransport
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SpinRepresentation
+public import Mathlib.Topology.ContinuousMap.Star
+public import Mathlib.Topology.ContinuousMap.Compact
+
+@[expose] public section
 
 /-!
 # Continuous paths on the physical transport interval
@@ -101,7 +105,9 @@ private theorem volterraPath_norm (f : QuaternionPath) : ‖volterraPath f‖ �
 /-- Bounded real-linear indefinite integration on the physical interval. -/
 def pathVolterra : QuaternionPath →L[ℝ] QuaternionPath :=
   LinearMap.mkContinuous
-    { toFun := volterraPath
+    { toFun := fun f =>
+        { toFun := fun t => ∫ u in (0 : ℝ)..(t : ℝ), extendPath f u
+          continuous_toFun := by exact (volterraPath f).continuous }
       map_add' := by
         intro f g
         apply ContinuousMap.ext
@@ -115,7 +121,7 @@ def pathVolterra : QuaternionPath →L[ℝ] QuaternionPath :=
         intro t
         change (∫ u in (0 : ℝ)..(t : ℝ), c • extendPath f u) = _
         exact integral_smul c (extendPath f) }
-    physicalPeriod volterraPath_norm
+    physicalPeriod (by exact volterraPath_norm)
 
 /-- Original `pathVolterra_apply` guarantee for the `PathSpace` construction; the complete source hypotheses are retained. -/
 @[simp] theorem pathVolterra_apply (f : QuaternionPath) (t : TransportTime) :

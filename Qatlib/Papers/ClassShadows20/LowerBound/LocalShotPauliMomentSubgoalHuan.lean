@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ClassShadows20.LowerBound.LocalMomentContracts
-import Qatlib.Papers.ClassShadows20.LowerBound.LocalShotPauliMomentSubgoalStat
-import Qatlib.Concepts.ShadowModels.ShadowChannel.QubitConjugationDesign
-import Qatlib.Papers.ClassShadows20.LowerBound.LocalProductMoments
+module
+
+public import Qatlib.Papers.ClassShadows20.LowerBound.LocalMomentContracts
+public import Qatlib.Papers.ClassShadows20.LowerBound.LocalShotPauliMomentSubgoalStat
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.QubitConjugationDesign
+public import Qatlib.Papers.ClassShadows20.LowerBound.LocalProductMoments
+
+@[expose] public section
 
 /-!
 # Local Pauli moment identities

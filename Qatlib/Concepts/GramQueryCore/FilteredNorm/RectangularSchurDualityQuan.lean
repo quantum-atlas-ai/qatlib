@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GramQueryCore.FilteredNorm.RectangularSchurDualityStat
-import Qatlib.Concepts.GramQueryCore.FilteredNorm.RectangularBudgetRealizationQuan
+module
+
+public import Qatlib.Concepts.GramQueryCore.FilteredNorm.RectangularSchurDualityStat
+public import Qatlib.Concepts.GramQueryCore.FilteredNorm.RectangularBudgetRealizationQuan
+
+@[expose] public section
 
 /-!
 # Rectangular Schur multiplier duality

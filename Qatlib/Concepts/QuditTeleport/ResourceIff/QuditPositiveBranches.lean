@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FiniteLocc.LOCCProgram.PositiveBranchDecomposition
-import Qatlib.Concepts.BlockEncoding.LinearCombination
+module
+
+public import Qatlib.Concepts.FiniteLocc.LOCCProgram.PositiveBranchDecomposition
+public import Qatlib.Concepts.BlockEncoding.LinearCombination
+
+@[expose] public section
 
 /-!
 # Positive decompositions of the identity map

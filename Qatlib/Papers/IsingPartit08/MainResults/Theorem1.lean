@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.IsingPartit08.MainResults.Defs
-import Qatlib.Papers.IsingPartit08.MainResults.ParityCollapse
-import Qatlib.Papers.IsingPartit08.MainResults.Containment
-import Qatlib.Papers.IsingPartit08.MainResults.GateExpansion
-import Qatlib.Papers.IsingPartit08.MainResults.QWGT
-import Qatlib.Papers.IsingPartit08.MainResults.Universality
+module
+
+public import Qatlib.Papers.IsingPartit08.MainResults.Defs
+public import Qatlib.Papers.IsingPartit08.MainResults.ParityCollapse
+public import Qatlib.Papers.IsingPartit08.MainResults.Containment
+public import Qatlib.Papers.IsingPartit08.MainResults.GateExpansion
+public import Qatlib.Papers.IsingPartit08.MainResults.QWGT
+public import Qatlib.Papers.IsingPartit08.MainResults.Universality
+
+@[expose] public section
 
 /-!
 # Numerical additive estimates for Ising sums

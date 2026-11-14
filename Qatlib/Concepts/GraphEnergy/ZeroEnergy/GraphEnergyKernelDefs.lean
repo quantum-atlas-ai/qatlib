@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GraphEnergy.ZeroEnergy.LazyGraphDefs
-import Mathlib.Combinatorics.SimpleGraph.LapMatrix
-import Mathlib.Combinatorics.SimpleGraph.Connectivity.Connected
+module
+
+public import Qatlib.Concepts.GraphEnergy.ZeroEnergy.LazyGraphDefs
+public import Mathlib.Combinatorics.SimpleGraph.LapMatrix
+public import Mathlib.Combinatorics.SimpleGraph.Connectivity.Connected
+
+@[expose] public section
 
 /-!
 # Dirichlet sums and finite graph examples

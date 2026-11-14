@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Sqrt
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Sqrt
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -178,13 +182,13 @@ theorem semicircleFraction_mono_left {ε₁ ε₂ α : ℝ} (hε₁ : 0 ≤ ε�
 theorem hopiSatisfactionFraction_eq_semicircleFraction {ε α : ℝ} (h : α ≤ 1 - ε) :
     hopiSatisfactionFraction ε α = semicircleFraction ε α := by
   unfold hopiSatisfactionFraction
-  rw [if_pos h]
+  rw [ite_eq_left h]
 
 /-- Outside the semicircle regime the paper assigns full satisfaction `1`. -/
 theorem hopiSatisfactionFraction_eq_one {ε α : ℝ} (h : ¬ α ≤ 1 - ε) :
     hopiSatisfactionFraction ε α = 1 := by
   unfold hopiSatisfactionFraction
-  rw [if_neg h]
+  rw [ite_eq_right h]
 
 /-- The piecewise fraction is nonnegative for every pair of rates. -/
 theorem hopiSatisfactionFraction_nonneg (ε α : ℝ) : 0 ≤ hopiSatisfactionFraction ε α := by

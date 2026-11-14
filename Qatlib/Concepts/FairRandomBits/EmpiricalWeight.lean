@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AEMeanReadout.LayeredMeanLaw.RationalWeightPreparation
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.IndependentWeightedEstimator
+module
+
+public import Qatlib.Concepts.AEMeanReadout.LayeredMeanLaw.RationalWeightPreparation
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.IndependentWeightedEstimator
+
+@[expose] public section
 
 /-!
 # Empirical weights and preparation counts
@@ -75,7 +79,7 @@ theorem empirical_count_sum {α : Type} [Fintype α] [BEq α] [LawfulBEq α]
       by_cases h : a=x
       · simp [h]
       · simp [h, Ne.symm h]
-    simp only [add_mul, he, Finset.sum_add_distrib, Finset.sum_ite_eq', Finset.mem_univ, if_true]
+    simp only [add_mul, he, Finset.sum_add_distrib, Finset.sum_ite_eq', Finset.mem_univ, ite_true]
     rw [ih, add_comm]
 
 /-- Empirical weights are nonnegative with total mass `N`; their preparation uses `2 * n * bits`
@@ -115,7 +119,7 @@ theorem empiricalNativeCounts_correct {n : ℕ} (xs : List (Option (Fin n))) :
     · simp only [empiricalNativeCounts, ih.1, List.map_map, Function.comp_def,
         List.count_cons, beq_iff_eq]
     · simp [empiricalNativeCounts, ih.2.1]
-    · simp [empiricalNativeCounts, ih.1, ih.2.2, Nat.mul_add, Nat.mul_one, add_comm]
+    · simp [empiricalNativeCounts, ih.1, ih.2.2, Nat.mul_add,  add_comm]
 
 /-- On `List.ofFn ω`, the native counts reproduce the empirical rational weights and record `N`
 samples and `(n + 1) * N` comparisons. -/

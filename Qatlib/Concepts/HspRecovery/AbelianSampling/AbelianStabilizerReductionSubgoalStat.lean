@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpectralFilter.PhaseReadout.PhaseEstimation
+module
+
+public import Qatlib.Concepts.SpectralFilter.PhaseReadout.PhaseEstimation
+
+@[expose] public section
 
 /-!
 # Specification of exact stabilizer phase readout

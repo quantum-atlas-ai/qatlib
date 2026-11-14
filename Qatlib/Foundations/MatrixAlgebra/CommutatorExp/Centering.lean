@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixAlgebra.CommutatorExp.GeneratorSeries
+module
+
+public import Qatlib.Foundations.MatrixAlgebra.CommutatorExp.GeneratorSeries
+
+@[expose] public section
 
 /-!
 # Central shifts of commutator expansions
@@ -116,12 +120,12 @@ theorem generatorCoefficient_central_shift (ps : List (A×A))
     · subst n
       rw [generatorCoefficient_zero,generatorCoefficient_zero]
       exact sum_stage_shifts (p::ps)
-    · simp only [List.map_cons,generatorCoefficient,if_neg hn,zero_add,add_zero]
+    · simp only [List.map_cons,generatorCoefficient,ite_eq_right hn,zero_add,add_zero]
       apply Finset.sum_congr rfl
       intro ij hij
       rw [adIter_add_central_left p.1 _ p.2 hhead,ih htail ij.2]
       by_cases hj : ij.2=0
-      · rw [if_pos hj]
+      · rw [ite_eq_left hj]
         have hi : 0 < ij.1 := by have hs := Finset.mem_antidiagonal.mp hij;omega
         have hc : Central ((ps.map Prod.snd).sum) :=
           central_sum _ (by
@@ -129,7 +133,7 @@ theorem generatorCoefficient_central_shift (ps : List (A×A))
             obtain ⟨q,hq,rfl⟩ := List.mem_map.mp hz
             exact htail q hq)
         rw [adIter_add_central_right p.1 _ _ hc ij.1 hi]
-      · rw [if_neg hj,add_zero]
+      · rw [ite_eq_right hj,add_zero]
 variable [CompleteSpace A]
 
 /-- Adding a central element to the generator leaves exponential conjugation unchanged. -/

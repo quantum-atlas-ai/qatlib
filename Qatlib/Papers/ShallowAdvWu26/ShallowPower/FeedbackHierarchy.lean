@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Fintype.Card
-import Mathlib.Data.Finset.Card
-import Mathlib.Logic.Function.Basic
-import Mathlib.Algebra.Ring.Parity
-import Mathlib.Tactic.Order
-import Qatlib.Papers.ShallowAdvWu26.ShallowPower.LightCone
+module
+
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Logic.Function.Basic
+public import Mathlib.Algebra.Ring.Parity
+public import Mathlib.Tactic.Order
+public import Qatlib.Papers.ShallowAdvWu26.ShallowPower.LightCone
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -114,7 +118,7 @@ theorem parity_update_single {N : ℕ} (i : Fin N) :
 
 /-- **Parity needs every input bit.**  If `N > 0` and `parity` depends on `S`,
 then `S` is the full input set. -/
-theorem parity_depends_on_univ {N : ℕ} (hN : 0 < N) {S : Finset (Fin N)}
+theorem parity_depends_on_univ {N : ℕ} (_hN : 0 < N) {S : Finset (Fin N)}
     (hS : DependsOn parity S) : S = Finset.univ := by
   classical
   by_contra hproper

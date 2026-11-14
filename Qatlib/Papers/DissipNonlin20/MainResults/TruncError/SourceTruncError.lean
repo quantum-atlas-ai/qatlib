@@ -4,16 +4,20 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.ODE.Gronwall
-import Mathlib.Analysis.SpecialFunctions.ExpDeriv
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Lean.Elab.Tactic.Omega
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Ring
+module
+
+public import Mathlib.Analysis.ODE.Gronwall
+public import Mathlib.Analysis.SpecialFunctions.ExpDeriv
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Lean.Elab.Tactic.Omega
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -55,7 +59,7 @@ open Set
 /-- **Eq. (4.25), scalar form.**  For `ν < 0` and `t ≥ 0`,
 `(1 - e^{νt}) / (-ν) ≤ t`.  This is the only estimate used to turn the integral of the
 comparison equation into the linear-in-time forcing term of (4.26). -/
-theorem exp_integral_le_time (ν t : ℝ) (hν : ν < 0) (ht : 0 ≤ t) :
+theorem exp_integral_le_time (ν t : ℝ) (hν : ν < 0) (_ht : 0 ≤ t) :
     (1 - Real.exp (ν * t)) / (-ν) ≤ t := by
   have hνne : ν ≠ 0 := ne_of_lt hν
   have hpos : 0 < -ν := by linarith
@@ -118,7 +122,7 @@ theorem lemma2_error_bound (N : ℕ) (F2 uin ν T : ℝ)
     (hη0 : ηNorm 0 = 0)
     (hbound : ∀ t ∈ Ico 0 T,
       ηNorm' t ≤ ν * ηNorm t + (N : ℝ) * F2 * uin ^ (N + 1))
-    (hnonneg : ∀ t ∈ Icc 0 T, 0 ≤ ηNorm t) :
+    (_hnonneg : ∀ t ∈ Icc 0 T, 0 ≤ ηNorm t) :
     ∀ t ∈ Icc 0 T, ηNorm t ≤ t * (N : ℝ) * F2 * uin ^ (N + 1) := by
   have hC : 0 ≤ (N : ℝ) * F2 * uin ^ (N + 1) := by positivity
   have h0 : ηNorm 0 ≤ 0 := by rw [hη0]
@@ -131,7 +135,7 @@ theorem lemma2_error_bound (N : ℕ) (F2 uin ν T : ℝ)
 
 /-- **Factorial cancellation in (4.39).**  The two factorial prefactors coming from (4.37) and
 (4.38) multiply to one. -/
-theorem factorial_ratio_cancel (j N : ℕ) (hj : 1 ≤ j) :
+theorem factorial_ratio_cancel (j N : ℕ) (_hj : 1 ≤ j) :
     ((N.factorial : ℝ) / ((j - 1).factorial : ℝ)) *
         (((j - 1).factorial : ℝ) / (N.factorial : ℝ)) = 1 := by
   have hN : (N.factorial : ℝ) ≠ 0 := by
@@ -145,7 +149,7 @@ theorem factorial_ratio_cancel (j N : ℕ) (hj : 1 ≤ j) :
 With `u = ‖u_in‖`, `F = ‖F₂‖`, `λ = |Re(λ₁)| > 0` and `R = u F / λ`, the `j`-th error bound
 `u^{N+1} F^{N+1-j} / λ^{N+1-j}` equals `u^j R^{N+1-j}`.  This is the final step of (4.39). -/
 theorem corollary1_geometric_bound (u F lam : ℝ) (hu : u ≠ 0) (hlam : lam ≠ 0)
-    (j N : ℕ) (hj : 1 ≤ j) (hjn : j ≤ N + 1) :
+    (j N : ℕ) (_hj : 1 ≤ j) (hjn : j ≤ N + 1) :
     F ^ (N + 1 - j) * u ^ (N + 1) / lam ^ (N + 1 - j) =
       u ^ j * (u * F / lam) ^ (N + 1 - j) := by
   have hpow : N + 1 = j + (N + 1 - j) := by omega
@@ -177,8 +181,8 @@ iterated integral (4.37), and the eigenvalue-norm identity `‖e^{A_j^j t}‖ = 
 The algebra of the final step is proved in `corollary1_geometric_bound`; the `j = 1` refinement
 (4.41) reduces to the closed-form integral (4.40), which needs the same block-matrix machinery. -/
 theorem corollary1_error_bound
-    (N j : ℕ) (uin F2 lam : ℝ) (hlam : lam < 0) (huin : 0 ≤ uin) (huin0 : uin ≠ 0)
-    (hF2 : 0 ≤ F2) (hj : 1 ≤ j) (hjn : j ≤ N + 1)
+    (N j : ℕ) (uin F2 lam : ℝ) (hlam : lam < 0) (_huin : 0 ≤ uin) (huin0 : uin ≠ 0)
+    (_hF2 : 0 ≤ F2) (hj : 1 ≤ j) (hjn : j ≤ N + 1)
     (etaNorm : ℝ → ℝ) (T : ℝ)
     (hint : ∀ t ∈ Icc 0 T, etaNorm t ≤
       ((N.factorial : ℝ) / ((j - 1).factorial : ℝ)) * F2 ^ (N + 1 - j) *

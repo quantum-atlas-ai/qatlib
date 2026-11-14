@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.SpectralH1.GaugeArtifactPhysicalH1
-import Qatlib.Concepts.EffectiveGauge.SpectralH1.SourceGaugeFourierArtifact
-import Qatlib.Concepts.EffectiveGauge.RationalFlow.GaugeSpectralBudget
+module
+
+public import Qatlib.Concepts.EffectiveGauge.SpectralH1.GaugeArtifactPhysicalH1
+public import Qatlib.Concepts.EffectiveGauge.SpectralH1.SourceGaugeFourierArtifact
+public import Qatlib.Concepts.EffectiveGauge.RationalFlow.GaugeSpectralBudget
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

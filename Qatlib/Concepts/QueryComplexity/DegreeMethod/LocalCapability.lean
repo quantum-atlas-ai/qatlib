@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.QueryAlgorithm
-import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
-import Qatlib.Concepts.HspRecovery.RecordExtract.ExecutionSemantics
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.QueryAlgorithm
+public import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+public import Qatlib.Concepts.HspRecovery.RecordExtract.ExecutionSemantics
+
+@[expose] public section
 
 /-!
 # Local capabilities for query circuits
@@ -190,6 +194,7 @@ theorem HasControlled.unitary {U : Matrix I I ℂ} (h : HasControlled U) : HasUn
     _ = (1 : Matrix I I ℂ) i j := by simp [Matrix.one_apply]
 
 omit [Fintype I] in
+
 /-- If `U` is not the identity, `TensorGate 1 U` fails the controlled gate specification for
 `U`. Its `false` control block still applies `U`, whereas the specification requires the
 identity there. -/
@@ -459,6 +464,7 @@ theorem size_liftCircuitTo (J : Type*) [Fintype J] [DecidableEq J] (C : Circuit 
   | cons s C ih => cases s <;> simp [ih]
 
 omit [DecidableEq I] in
+
 /-- Running a lifted circuit with oracle `W ⊗ 1` on a product input equals the original run with
 `W`, tensored with the untouched second state. -/
 theorem run_liftCircuitTo_liftedOracle (J : Type*) [Fintype J] [DecidableEq J]
@@ -603,6 +609,7 @@ theorem measureProb_actsOnLeft_right {U : Matrix I I ℂ} (hU : HasUnitary U)
     measureProb_tensorState_right (normalized_applyGate hU hψ)]
 
 omit [Fintype I] [DecidableEq I] [Fintype J] [Fintype K] in
+
 /-- Reassociating two successive identity-register extensions of `U` gives the single extension
 `U ⊗ 1` on the combined ancillary register. -/
 theorem actsOnLeft_lift (U : Matrix I I ℂ) :

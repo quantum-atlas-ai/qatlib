@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CopyDecision.FreshPolicies.Data.POVMPolicy
-import Mathlib.MeasureTheory.VectorMeasure.Operations
-import Mathlib.MeasureTheory.VectorMeasure.Order
-import Mathlib.MeasureTheory.Integral.Bochner.Basic
+module
+
+public import Qatlib.Concepts.CopyDecision.FreshPolicies.Data.POVMPolicy
+public import Mathlib.MeasureTheory.VectorMeasure.Operations
+public import Mathlib.MeasureTheory.VectorMeasure.Order
+public import Mathlib.MeasureTheory.Integral.Bochner.Basic
+
+@[expose] public section
 
 /-!
 # General POVM

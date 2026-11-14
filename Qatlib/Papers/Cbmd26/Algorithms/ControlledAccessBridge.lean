@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Cbmd26.Algorithms.CommonNormalizationBridge
+module
+
+public import Qatlib.Papers.Cbmd26.Algorithms.CommonNormalizationBridge
+
+@[expose] public section
 
 /-!
 # Masked oracle access with a clean control register

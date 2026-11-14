@@ -4,9 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.BooleanQueryMinimumDefs
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.MajorityAndRestrictionDegree
-import Qatlib.Concepts.QueryComplexity.Amplification.MajorityVote
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.BooleanQueryMinimumDefs
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.MajorityAndRestrictionDegree
+public import Qatlib.Concepts.QueryComplexity.Amplification.MajorityVote
+
+set_option linter.style.haveILetI false
+set_option linter.unusedSectionVars false
+
+@[expose] public section
 
 /-!
 # Majority lower bounds by restriction

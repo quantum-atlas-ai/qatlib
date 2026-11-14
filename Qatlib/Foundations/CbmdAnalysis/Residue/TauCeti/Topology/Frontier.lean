@@ -6,9 +6,13 @@ Authors: The Tau Ceti contributors, Qatlib Contributors
 Adapted from https://github.com/TauCetiProject/TauCeti@3780371c
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+module
 
-import Mathlib.Topology.Connected.Basic
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+
+public import Mathlib.Topology.Connected.Basic
+
+@[expose] public section
 
 /-!
 # Frontiers of preconnected sets and images
@@ -113,9 +117,9 @@ frontier together with an exceptional set, under the stated closure inclusion. -
 theorem frontier_image_subset_of_closure_subset (hf : IsOpenMap f) (hfi : Function.Injective f)
     (hcl : closure (f '' s) ⊆ f '' closure s ∪ t) :
     frontier (f '' s) ⊆ f '' frontier s ∪ t := by
-  refine (Set.diff_subset_diff hcl (hf.image_interior_subset s)).trans ?_
-  rw [Set.union_diff_distrib, ← Set.image_diff hfi]
-  exact Set.union_subset_union_right _ Set.diff_subset
+  refine (Set.sdiff_subset_sdiff hcl (hf.image_interior_subset s)).trans ?_
+  rw [Set.union_sdiff_distrib, ← Set.image_sdiff hfi]
+  exact Set.union_subset_union_right _ Set.sdiff_subset
 
 end OpenInjectiveImage
 

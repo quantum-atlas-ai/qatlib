@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LindbladFlow.GkslSemigroup.MeasuredMetropolisChannel
+module
+
+public import Qatlib.Concepts.LindbladFlow.GkslSemigroup.MeasuredMetropolisChannel
+
+@[expose] public section
 
 /-!
 # Concrete diagonal Gibbs-channel examples
@@ -73,7 +77,7 @@ theorem zero_beta_gibbs_reference_reset_consumer (D : ℕ) (hD : 0 < D) (r : ℕ
       show (if i = j then
             1 - ∑ j' ∈ Finset.univ.erase i, thermalAcceptance E 0 i j' / ((D:ℕ) : ℝ)
           else thermalAcceptance E 0 i j / ((D:ℕ) : ℝ)) = _
-      rw [if_pos hij, h2, h3]
+      rw [ite_eq_left hij, h2, h3]
       field_simp
       ring
     · simp [thermalKernel, hij, hacc]
@@ -200,7 +204,7 @@ theorem two_level_gibbs_actual_consumer (n : ℕ) (hn : 0 < n) :
     rw [(diagonal_gibbs_weight_density 2 (by omega) E β).2.1]
     ext a b
     fin_cases a <;> fin_cases b <;>
-      simp [Matrix.diagonal_apply, hp0, hp1]
+      simp [hp0, hp1]
   have h2 : (thermalPowerChannel 2 (by omega) E β (m+1)).map (outerProduct (Qatlib.Foundations.PureStateMath.Ket (0 : Fin 2))) =
       Matrix.diagonal (fun i : Fin 2 => if i=0 then 2/3+(1/3)*(1/4 : ℂ)^(m+1) else 1/3-(1/3)*(1/4 : ℂ)^(m+1)) := by
     rw [thermalPowerChannel_eq_kernelDiagMap 2 (by omega) E β m, kernelDiagMap_apply]
@@ -231,7 +235,7 @@ theorem two_level_gibbs_actual_consumer (n : ℕ) (hn : 0 < n) :
         fin_cases i <;> fin_cases x <;> simp <;> field_simp <;> ring
     ext x y
     fin_cases x <;> fin_cases y <;>
-      simp [Matrix.diagonal_apply, hσ, hind, Matrix.sum_apply]
+      simp [hσ, hind]
   refine ⟨h1, h2, ?_⟩
   rw [h2, h1]
   have hdiff : Matrix.diagonal (fun i : Fin 2 =>
@@ -247,14 +251,13 @@ theorem two_level_gibbs_actual_consumer (n : ℕ) (hn : 0 < n) :
     have hsq : (Matrix.diagonal (![(1:ℂ), -1]))ᴴ * Matrix.diagonal (![(1:ℂ), -1]) = 1 := by
       ext a b
       fin_cases a <;> fin_cases b <;>
-        simp [Matrix.mul_apply, Matrix.diagonal_apply, Matrix.conjTranspose_apply]
+        simp [Matrix.mul_apply, Matrix.diagonal_apply]
     unfold Matrix.traceNorm
     rw [hsq, CFC.sqrt_one]
     simp
   rw [htn]
   rw [Complex.norm_real, Real.norm_eq_abs,
     abs_of_nonneg (by positivity : 0 ≤ (1/3)*((1/4:ℝ)^(m+1)))]
-  push_cast
   ring
 
 end Qatlib.Concepts.AdversaryBounds.AdvDuality

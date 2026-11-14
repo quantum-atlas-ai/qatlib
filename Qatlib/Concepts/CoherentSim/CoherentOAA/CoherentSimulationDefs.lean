@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CoherentSim.CoherentOAA.ScaleEightCoherentAmplification
-import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
-import Qatlib.Concepts.BlockEncoding.Basic
-import Qatlib.Concepts.Execution.WorkspaceCP.ProjectedUnitaryEncoding
+module
+
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.ScaleEightCoherentAmplification
+public import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
+public import Qatlib.Concepts.BlockEncoding.Basic
+public import Qatlib.Concepts.Execution.WorkspaceCP.ProjectedUnitaryEncoding
+
+@[expose] public section
 
 /-!
 # Data for coherent simulation and amplification

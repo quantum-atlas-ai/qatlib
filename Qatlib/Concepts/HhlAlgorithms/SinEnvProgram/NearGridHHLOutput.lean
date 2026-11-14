@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.NativeNumerics.LayeredMean.CountedHHLProgram
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+module
+
+public import Qatlib.Concepts.NativeNumerics.LayeredMean.CountedHHLProgram
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+
+@[expose] public section
 
 /-!
 # Near-grid perturbation bounds for HHL output

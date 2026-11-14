@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CoherentSim.CoherentOAA.BlockRobustness
-import Mathlib.Analysis.Calculus.MeanValue
-import Mathlib.Analysis.Calculus.Deriv.Polynomial
-import Mathlib.Analysis.Complex.RealDeriv
-import Mathlib.Analysis.Matrix.Spectrum
+module
+
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.BlockRobustness
+public import Mathlib.Analysis.Calculus.MeanValue
+public import Mathlib.Analysis.Calculus.Deriv.Polynomial
+public import Mathlib.Analysis.Complex.RealDeriv
+public import Mathlib.Analysis.Matrix.Spectrum
+
+@[expose] public section
 
 /-!
 # Polynomial secants on Hermitian matrices

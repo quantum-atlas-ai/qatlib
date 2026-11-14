@@ -4,79 +4,83 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Field.Defs
-import Mathlib.Algebra.Group.Basic
-import Mathlib.Algebra.Group.Defs
-import Mathlib.Algebra.Group.DivInvMonoid
-import Mathlib.Algebra.Group.Hom.Defs
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.Group.Subgroup.Defs
-import Mathlib.Algebra.Group.Submonoid.Defs
-import Mathlib.Algebra.GroupWithZero.Action.Defs
-import Mathlib.Algebra.GroupWithZero.Defs
-import Mathlib.Algebra.Module.Defs
-import Mathlib.Algebra.Module.LinearMap.Defs
-import Mathlib.Algebra.Ring.CompTypeclasses
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Algebra.Ring.Hom.Defs
-import Mathlib.Analysis.CStarAlgebra.Classes
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Analysis.Complex.Norm
-import Mathlib.Analysis.InnerProductSpace.Basic
-import Mathlib.Analysis.Normed.Field.Basic
-import Mathlib.Analysis.Normed.Group.Defs
-import Mathlib.Analysis.Normed.Group.Real
-import Mathlib.Analysis.Normed.Group.Uniform
-import Mathlib.Analysis.Normed.Module.Basic
-import Mathlib.Analysis.Normed.Operator.LinearIsometry
-import Mathlib.Analysis.Normed.Ring.Basic
-import Mathlib.Analysis.RCLike.Basic
-import Mathlib.Analysis.RCLike.Lemmas
-import Mathlib.Basic.Complex.Basic
-import Mathlib.Basic.ENNReal.Basic
-import Mathlib.Basic.FunLike.Basic
-import Mathlib.Basic.FunLike.Equiv
-import Mathlib.Basic.Real.Basic
-import Mathlib.Basic.SetLike.Basic
-import Mathlib.Data.Fin.SuccPred
-import Mathlib.Data.Fin.Tuple.Basic
-import Mathlib.Data.Fintype.Basic
-import Mathlib.Data.Nat.Cast.Defs
-import Mathlib.Data.Nat.Init
-import Mathlib.Data.Prod.Basic
-import Mathlib.Dynamics.Ergodic.MeasurePreserving
-import Mathlib.Logic.Equiv.Defs
-import Mathlib.Logic.Function.Basic
-import Mathlib.MeasureTheory.Constructions.BorelSpace.Basic
-import Mathlib.MeasureTheory.Constructions.Pi
-import Mathlib.MeasureTheory.Function.AEEqFun
-import Mathlib.MeasureTheory.Function.LpSpace.Basic
-import Mathlib.MeasureTheory.Group.Arithmetic
-import Mathlib.MeasureTheory.Group.Measure
-import Mathlib.MeasureTheory.MeasurableSpace.Constructions
-import Mathlib.MeasureTheory.MeasurableSpace.Defs
-import Mathlib.MeasureTheory.MeasurableSpace.Embedding
-import Mathlib.MeasureTheory.MeasurableSpace.Instances
-import Mathlib.MeasureTheory.Measure.Haar.OfBasis
-import Mathlib.MeasureTheory.Measure.Map
-import Mathlib.MeasureTheory.Measure.MeasureSpaceDef
-import Mathlib.MeasureTheory.Measure.Prod
-import Mathlib.MeasureTheory.Measure.Typeclasses.SFinite
-import Mathlib.MeasureTheory.OuterMeasure.AE
-import Mathlib.Order.Filter.Basic
-import Mathlib.Order.Filter.Defs
-import Mathlib.Tactic
-import Mathlib.Topology.Algebra.Group.Basic
-import Mathlib.Topology.Algebra.Group.Defs
-import Mathlib.Topology.Algebra.Monoid.Defs
-import Mathlib.Topology.Algebra.Ring.Basic
-import Mathlib.Topology.Algebra.Ring.Real
-import Mathlib.Topology.Bases
-import Mathlib.Topology.Compactness.LocallyCompact
-import Mathlib.Topology.MetricSpace.Algebra
-import Mathlib.Topology.MetricSpace.ProperSpace
-import Mathlib.Topology.MetricSpace.Pseudo.Defs
-import Mathlib.Topology.UniformSpace.Defs
+module
+
+public import Mathlib.Algebra.Field.Defs
+public import Mathlib.Algebra.Group.Basic
+public import Mathlib.Algebra.Group.Defs
+public import Mathlib.Algebra.Group.DivInvMonoid
+public import Mathlib.Algebra.Group.Hom.Defs
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.Group.Subgroup.Defs
+public import Mathlib.Algebra.Group.Submonoid.Defs
+public import Mathlib.Algebra.GroupWithZero.Action.Defs
+public import Mathlib.Algebra.GroupWithZero.Defs
+public import Mathlib.Algebra.Module.Defs
+public import Mathlib.Algebra.Module.LinearMap.Defs
+public import Mathlib.Algebra.Ring.CompTypeclasses
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Algebra.Ring.Hom.Defs
+public import Mathlib.Analysis.CStarAlgebra.Classes
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Analysis.Complex.Norm
+public import Mathlib.Analysis.InnerProductSpace.Basic
+public import Mathlib.Analysis.Normed.Field.Basic
+public import Mathlib.Analysis.Normed.Group.Defs
+public import Mathlib.Analysis.Normed.Group.Real
+public import Mathlib.Analysis.Normed.Group.Uniform
+public import Mathlib.Analysis.Normed.Module.Basic
+public import Mathlib.Analysis.Normed.Operator.LinearIsometry
+public import Mathlib.Analysis.Normed.Ring.Basic
+public import Mathlib.Analysis.RCLike.Basic
+public import Mathlib.Analysis.RCLike.Lemmas
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Basic.ENNReal.Basic
+public import Mathlib.Basic.FunLike.Basic
+public import Mathlib.Basic.FunLike.Equiv
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Basic.SetLike.Basic
+public import Mathlib.Data.Fin.SuccPred
+public import Mathlib.Data.Fin.Tuple.Basic
+public import Mathlib.Data.Fintype.Basic
+public import Mathlib.Data.Nat.Cast.Defs
+public import Mathlib.Data.Nat.Init
+public import Mathlib.Data.Prod.Basic
+public import Mathlib.Dynamics.Ergodic.MeasurePreserving
+public import Mathlib.Logic.Equiv.Defs
+public import Mathlib.Logic.Function.Basic
+public import Mathlib.MeasureTheory.Constructions.BorelSpace.Basic
+public import Mathlib.MeasureTheory.Constructions.Pi
+public import Mathlib.MeasureTheory.Function.AEEqFun
+public import Mathlib.MeasureTheory.Function.LpSpace.Basic
+public import Mathlib.MeasureTheory.Group.Arithmetic
+public import Mathlib.MeasureTheory.Group.Measure
+public import Mathlib.MeasureTheory.MeasurableSpace.Constructions
+public import Mathlib.MeasureTheory.MeasurableSpace.Defs
+public import Mathlib.MeasureTheory.MeasurableSpace.Embedding
+public import Mathlib.MeasureTheory.MeasurableSpace.Instances
+public import Mathlib.MeasureTheory.Measure.Haar.OfBasis
+public import Mathlib.MeasureTheory.Measure.Map
+public import Mathlib.MeasureTheory.Measure.MeasureSpaceDef
+public import Mathlib.MeasureTheory.Measure.Prod
+public import Mathlib.MeasureTheory.Measure.Typeclasses.SFinite
+public import Mathlib.MeasureTheory.OuterMeasure.AE
+public import Mathlib.Order.Filter.Basic
+public import Mathlib.Order.Filter.Defs
+public import Mathlib.Tactic
+public import Mathlib.Topology.Algebra.Group.Basic
+public import Mathlib.Topology.Algebra.Group.Defs
+public import Mathlib.Topology.Algebra.Monoid.Defs
+public import Mathlib.Topology.Algebra.Ring.Basic
+public import Mathlib.Topology.Algebra.Ring.Real
+public import Mathlib.Topology.Bases
+public import Mathlib.Topology.Compactness.LocallyCompact
+public import Mathlib.Topology.MetricSpace.Algebra
+public import Mathlib.Topology.MetricSpace.ProperSpace
+public import Mathlib.Topology.MetricSpace.Pseudo.Defs
+public import Mathlib.Topology.UniformSpace.Defs
+
+@[expose] public section
 
 /-!
 # Volume-preserving coordinate shears on L2

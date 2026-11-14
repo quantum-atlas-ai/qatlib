@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.ClockDefinitions
-import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
+module
+
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.ClockDefinitions
+public import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
+
+@[expose] public section
 
 /-!
 # Lipschitz error bounds for midpoint quadrature
@@ -172,7 +176,7 @@ theorem midpointMean₂_error (F : ℝ → ℝ → E) (hF : Continuous F.uncurry
       ‖F u v-F u v'‖ ≤ Lv*|v-v'|) :
     ‖(∫ u in (0 : ℝ)..1, ∫ v in (0 : ℝ)..1, F u v) - midpointMean₂ N F‖ ≤
       (Lu+Lv)/(4*N) := by
-  letI : NeZero N := ⟨Nat.ne_of_gt hN⟩
+  let : NeZero N := ⟨Nat.ne_of_gt hN⟩
   have hcont (u : ℝ) : Continuous (F u) := hF.comp (continuous_const.prodMk continuous_id)
   have hint : Continuous (fun u => ∫ v in (0 : ℝ)..1, F u v) :=
     intervalIntegral.continuous_parametric_intervalIntegral_of_continuous'

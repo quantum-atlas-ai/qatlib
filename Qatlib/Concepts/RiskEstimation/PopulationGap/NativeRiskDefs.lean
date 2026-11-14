@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RiskEstimation.CVaREstimation.CVaRAlgorithmFiniteRestrictedQuan
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.NativeAeReadout
+module
+
+public import Qatlib.Concepts.RiskEstimation.CVaREstimation.CVaRAlgorithmFiniteRestrictedQuan
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.NativeAeReadout
+
+@[expose] public section
 
 /-!
 # Native probabilistic risk estimation programs

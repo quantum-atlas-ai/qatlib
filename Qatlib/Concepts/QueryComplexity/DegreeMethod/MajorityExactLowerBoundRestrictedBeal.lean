@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.MajorityExactLowerBoundRestrictedStat
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.DegreeAndOr
-import Qatlib.Concepts.QueryWordCore.QueryMachinery.AcceptancePolynomial
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.MajorityExactLowerBoundRestrictedStat
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.DegreeAndOr
+public import Qatlib.Concepts.QueryWordCore.QueryMachinery.AcceptancePolynomial
+
+@[expose] public section
 
 /-!
 # A restricted majority lower bound from acceptance degree

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AdiabStateGen03.MainResults.Defs
-import Qatlib.Papers.AdiabStateGen03.MainResults.TrotterCorollaries.PowerAccumulation
+module
+
+public import Qatlib.Papers.AdiabStateGen03.MainResults.Defs
+public import Qatlib.Papers.AdiabStateGen03.MainResults.TrotterCorollaries.PowerAccumulation
+
+@[expose] public section
 
 /-!
 # Symmetric Trotter steps and exact evolution powers
@@ -56,7 +60,7 @@ def trotterStep {n M : ℕ} (Hs : Fin M → Ham n) (δ : ℝ) : Op n :=
 theorem timeEvolution_pow_nat {n : ℕ} (H : Ham n) (t : ℝ) (N : ℕ) :
     timeEvolution H t ^ N = timeEvolution H ((N : ℝ) * t) := by
 
-  haveI : NormedAlgebra ℚ (Op n) := NormedAlgebra.restrictScalars ℚ ℂ (Op n)
+  have : NormedAlgebra ℚ (Op n) := NormedAlgebra.restrictScalars ℚ ℂ (Op n)
   unfold timeEvolution
   rw [← NormedSpace.exp_nsmul]
   congr 1

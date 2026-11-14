@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchProbability
-import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchBudgetEval
-import Qatlib.Concepts.AmplitudeSearch.InterruptMin.PlannedRetry
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchProbability
+public import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchBudgetEval
+public import Qatlib.Concepts.AmplitudeSearch.InterruptMin.PlannedRetry
+
+@[expose] public section
 
 /-!
 # Probability semantics of finite-budget search
@@ -88,11 +92,11 @@ theorem search_planned_eval_eq (hN : 0 < Fintype.card I) (A : Finset I)
     intro o _
     congr 1
     by_cases hc : j.val + 1 ≤ budget
-    · simp only [dif_pos hc]
+    · simp only [dite_eq_left hc]
       cases o with
       | some i => rfl
       | none => exact ih _ (search_budget_progress _ _ hc) (stage + 1)
-    · simp only [dif_neg hc]
+    · simp only [dite_eq_right hc]
 
 /-- The finite-budget search law on optional outputs and remaining budgets, obtained from
 `searchPlan`. -/
@@ -163,7 +167,7 @@ theorem finiteBudgetPMF_success_mem (hN : 0 < Fintype.card I) (A : Finset I)
     rw [PlannedRetry.run] at hx
     obtain ⟨j, _, hj⟩ := (PMF.mem_support_bind_iff _ _ (some i, r)).mp hx
     by_cases hc : ((searchPlan hN A sizes hsizes).cost stage j : ℕ) ≤ budget
-    · rw [dif_pos hc] at hj
+    · rw [dite_eq_left hc] at hj
       obtain ⟨o, ho, hx⟩ := (PMF.mem_support_bind_iff _ _ (some i, r)).mp hj
       cases o with
       | none => exact ih _ (search_budget_progress _ _ hc) (stage + 1) hx
@@ -174,9 +178,9 @@ theorem finiteBudgetPMF_success_mem (hN : 0 < Fintype.card I) (A : Finset I)
         by_contra hi
         have hz : checkedOutcomePMF hN A j.val (some i) = 0 := by
           change ENNReal.ofReal (CheckedOutputMass A j.val i) = 0
-          rw [(search_checked_attempt hN A j.val).2.1 i, if_neg hi, ENNReal.ofReal_zero]
+          rw [(search_checked_attempt hN A j.val).2.1 i, ite_eq_right hi, ENNReal.ofReal_zero]
         exact (PMF.mem_support_iff _ _).mp ho hz
-    · rw [dif_neg hc] at hj
+    · rw [dite_eq_right hc] at hj
       have heq := (PMF.mem_support_pure_iff _ _).mp hj
       simp at heq
 

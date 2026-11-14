@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.SharpMarkovHelpers
-import Mathlib.Tactic.IntervalCases
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.SharpMarkovBernstein
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.SharpMarkovLobatto
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
-import Mathlib.Data.Real.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.SharpMarkovHelpers
+public import Mathlib.Tactic.IntervalCases
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.SharpMarkovBernstein
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.SharpMarkovLobatto
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+
+@[expose] public section
 
 /-!
 # Sharp Markov derivative bound

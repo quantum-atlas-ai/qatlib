@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.QsVtMain.ConventionBridge
-import Qatlib.Concepts.CopyEvolution.Discriminate.ParallelQSVT
-import Qatlib.Concepts.QsvtCore.QsVtMain.CPPPhaseCompiler
-import Qatlib.Concepts.QsvtCore.LinearSystems.FiniteInversePhaseProgram
-import Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.ConventionBridgeConsumers
+module
+
+public import Qatlib.Concepts.QsvtCore.QsVtMain.ConventionBridge
+public import Qatlib.Concepts.CopyEvolution.Discriminate.ParallelQSVT
+public import Qatlib.Concepts.QsvtCore.QsVtMain.CPPPhaseCompiler
+public import Qatlib.Concepts.QsvtCore.LinearSystems.FiniteInversePhaseProgram
+public import Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.ConventionBridgeConsumers
+
+@[expose] public section
 
 /-!
 # Absorbing a terminal phase in QSVT

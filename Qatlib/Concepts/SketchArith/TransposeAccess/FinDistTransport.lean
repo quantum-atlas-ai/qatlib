@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Normed.Ring.Basic
-import Mathlib.Probability.ProbabilityMassFunction.Constructions
-import Mathlib.Tactic.Ext
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+module
+
+public import Mathlib.Analysis.Normed.Ring.Basic
+public import Mathlib.Probability.ProbabilityMassFunction.Constructions
+public import Mathlib.Tactic.Ext
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+
+@[expose] public section
 
 /-!
 # Transport of finite probability distributions
@@ -109,6 +113,7 @@ theorem expect_eq_of_pushforward (p : FinDist X) (q : FinDist Y) (f : X → Y) (
         Finset.sum_congr rfl fun x _ => fiber_mass_mul f (p.prob x) h x
     _ = p.expect (fun x => h (f x)) := rfl
 
+omit [DecidableEq X] in
 /-- Variance under the stated pushforward law equals variance of the observable composed with
 the map. -/
 theorem variance_eq_of_pushforward (p : FinDist X) (q : FinDist Y) (f : X → Y) (h : Y → ℝ)
@@ -140,6 +145,7 @@ theorem exists_pmf (p : FinDist X) :
     exact hof.symm
   exact ⟨PMF.ofFintype (fun x => ENNReal.ofReal (p.prob x)) hsum, fun x => rfl⟩
 
+omit [DecidableEq X] in
 /-- Constructs finite and `PMF` pushforward representations simultaneously, with compatible
 masses, `PMF.map`, and expectation transport. -/
 theorem exists_pushforward_pmf (p : FinDist X) (f : X → Y) :

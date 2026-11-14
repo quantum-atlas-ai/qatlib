@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GinibrePerm26.MainResults.LinearOpticsComplexityModelsDefs
+module
+
+public import Qatlib.Papers.GinibrePerm26.MainResults.LinearOpticsComplexityModelsDefs
+
+@[expose] public section
 open Qatlib.Concepts.BosonFock.PermAnalysis
 open Qatlib.Papers.GinibrePerm26.MainResults
 
@@ -30,8 +34,11 @@ def IsBigOInProbability (X : ℕ → Measure ℝ) (a : ℕ → ℝ) : Prop :=
 /-- Logarithmic asymptotics of the permanent (Corollary 1.2):
 `log|per_𝕂 G_n| = ½ log(n!) + O_P(log n) = (n/2) log n − n/2 + O_P(log n)`.
 On the null set `{per = 0}` Mathlib's `Real.log` is `0`. -/
-def LogarithmicPermanentAsymptotics (S : Type*) [NormedDivisionRing S] [NormedAlgebra ℝ S]
-    [InnerProductSpace ℝ S] [FiniteDimensional ℝ S] [MeasurableSpace S] [BorelSpace S] : Prop :=
+def LogarithmicPermanentAsymptotics (S : Type*) [NormedDivisionRing S]
+    [realInner : InnerProductSpace ℝ S] [FiniteDimensional ℝ S] [MeasurableSpace S] [BorelSpace S]
+    (realAlgebra : NormedAlgebra ℝ S := by infer_instance) : Prop :=
+  let : NormedAlgebra ℝ S := realAlgebra
+  let : InnerProductSpace ℝ S := realInner
   IsBigOInProbability
     (fun n => Measure.map
       (fun G : Matrix (Fin n) (Fin n) S =>

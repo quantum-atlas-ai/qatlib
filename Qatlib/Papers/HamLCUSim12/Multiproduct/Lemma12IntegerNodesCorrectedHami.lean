@@ -4,20 +4,24 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Int.Order.Lemmas
-import Lean.Elab.Tactic.NormCast
-import Lean.Elab.Tactic.Omega
-import Mathlib.Algebra.Order.Ring.Star
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Data.Real.StarOrdered
-import Mathlib.Tactic.Ext
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.NormNum.BigOperators
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Ring
-import Qatlib.Papers.HamLCUSim12.Multiproduct.Lemma12IntegerNodesCorrectedStat
+module
+
+public import Mathlib.Data.Int.Order.Lemmas
+public import Lean.Elab.Tactic.NormCast
+public import Lean.Elab.Tactic.Omega
+public import Mathlib.Algebra.Order.Ring.Star
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Algebra.Order.Star.Real
+public import Mathlib.Tactic.Ext
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.NormNum.BigOperators
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Ring
+public import Qatlib.Papers.HamLCUSim12.Multiproduct.Lemma12IntegerNodesCorrectedStat
+
+@[expose] public section
 
 /-!
 # Bounds for rounded multiproduct nodes
@@ -718,8 +722,8 @@ private lemma coeff_consequences {η : ℝ} (h1 : 305/1000 < η) (h2 : η < 312/
         ≤ ∑ q ∈ Finset.Icc 1 k, |C q| :=
       Finset.sum_le_sum (fun q _ => by
         by_cases hq : C q < 0
-        · rw [if_pos hq]
-        · rw [if_neg hq]
+        · rw [ite_eq_left hq]
+        · rw [ite_eq_right hq]
           exact abs_nonneg _)
     exact le_trans hmono hsum8
   have hpart1 := Finset.sum_filter_add_sum_filter_not (Finset.Icc 1 (k+1))
@@ -732,9 +736,9 @@ private lemma coeff_consequences {η : ℝ} (h1 : 305/1000 < η) (h2 : η < 312/
     refine Finset.sum_congr rfl ?_
     intro q _
     rcases lt_trichotomy (C q) 0 with hq | hq | hq
-    · rw [if_pos (not_lt.mpr (le_of_lt hq)), if_pos hq]
+    · rw [ite_eq_left (not_lt.mpr (le_of_lt hq)), ite_eq_left hq]
     · simp [hq]
-    · rw [if_neg (fun h => h hq), if_neg (fun h => absurd hq (not_lt.mpr (le_of_lt h)))]
+    · rw [ite_eq_right (fun h => h hq), ite_eq_right (fun h => absurd hq (not_lt.mpr (le_of_lt h)))]
   have hneg : ∑ q ∈ (Finset.Icc 1 (k+1)).filter (fun q => ¬(0 < C q)), C q
       = -∑ q ∈ (Finset.Icc 1 (k+1)).filter (fun q => C q < 0), |C q| := by
     have h1' : ∀ q ∈ (Finset.Icc 1 (k+1)).filter (fun q => ¬(0 < C q)),
@@ -762,8 +766,8 @@ private lemma coeff_consequences {η : ℝ} (h1 : 305/1000 < η) (h2 : η < 312/
 
 /-- For k ≥ 1, m ≥ 1, positive h, t, ε, and 0 < β < 1, `retryCount` is at least 1 and dominates
 both the accuracy-dependent bound and 13 log(2 / β). -/
-private lemma retry_bounds {m h t ε β : ℝ} (hm : 1 ≤ m) (hh : 0 < h) (ht : 0 < t)
-    (hε : 0 < ε) (hβ : 0 < β) (hβ1 : β < 1) {k : ℕ} (hk : 1 ≤ k) :
+private lemma retry_bounds {m h t ε β : ℝ} (_hm : 1 ≤ m) (_hh : 0 < h) (_ht : 0 < t)
+    (_hε : 0 < ε) (hβ : 0 < β) (hβ1 : β < 1) {k : ℕ} (_hk : 1 ≤ k) :
     1 ≤ retryCount m h t ε β k
     ∧ ((4*m*((5:ℝ)/3)^(k-1)*h*t)^(1 + 1/((4:ℝ)*(k:ℝ)))
         / ((errorBudget m h t ε β k/5)^(1/((4:ℝ)*(k:ℝ)))))
@@ -1139,10 +1143,8 @@ example (η : ℝ) (h1 : 305/1000 < η) (h2 : η < 312/1000) :
     rw [← Real.rpow_add hposN]
     norm_num
   have h4' := congrArg (fun x : ℝ => x * x) hz
-  try dsimp only at h4'
   rw [p2] at h4'
   have h5' := congrArg (fun x : ℝ => x * x) h4'
-  (try dsimp only at h5')
   rw [p1] at h5'
   have ec := Real.rpow_natCast ((Int.ceil (Real.exp ((gammaReq η 4)^(4:ℝ))) : ℤ):ℝ) 5
   rw [show ((5:ℝ)) = (((5:ℕ)):ℝ) from by push_cast; norm_num] at h5'

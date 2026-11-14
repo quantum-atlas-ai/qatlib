@@ -4,22 +4,26 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Lean.Elab.Tactic.NormCast
-import Lean.Elab.Tactic.Omega
-import Mathlib.Algebra.Order.Ring.Star
-import Mathlib.AlgebraicTopology.SimplexCategory.Basic
-import Mathlib.Analysis.CStarAlgebra.Classes
-import Mathlib.Data.Int.Star
-import Mathlib.Algebra.Order.Star.Real
-import Mathlib.Tactic.Ext
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.SimpRw
-import Mathlib.Tactic.SplitIfs
-import Qatlib.Concepts.SqEstimation.InnerProduct.FiniteSQAccess
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.HeterogeneousBlockMedian
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+module
+
+public import Lean.Elab.Tactic.NormCast
+public import Lean.Elab.Tactic.Omega
+public import Mathlib.Algebra.Order.Ring.Star
+public import Mathlib.AlgebraicTopology.SimplexCategory.Basic
+public import Mathlib.Analysis.CStarAlgebra.Classes
+public import Mathlib.Algebra.Order.Star.Int
+public import Mathlib.Algebra.Order.Star.Real
+public import Mathlib.Tactic.Ext
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.SimpRw
+public import Mathlib.Tactic.SplitIfs
+public import Qatlib.Concepts.SqEstimation.InnerProduct.FiniteSQAccess
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.HeterogeneousBlockMedian
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+
+@[expose] public section
 
 /-!
 # Complex inner-product estimation with sample-and-query access
@@ -147,7 +151,7 @@ theorem sqImportanceValue_weighted {X : Type} [Fintype X]
   · have hw : (sqSquaredNorm a.envelope : ℂ) ≠ 0 := by
       exact_mod_cast a.envelope_pos.ne'
     have hi' : (Complex.normSq (a.envelope i) : ℂ) ≠ 0 := by exact_mod_cast hi
-    rw [a.sample_spec, sqImportanceValue, if_neg hi, a.norm_spec]
+    rw [a.sample_spec, sqImportanceValue, ite_eq_right hi, a.norm_spec]
     push_cast
     field_simp
 
@@ -158,11 +162,11 @@ theorem sqImportanceValue_secondMoment_le {X : Type} [Fintype X]
     a.samples.prob i * Complex.normSq (sqImportanceValue a v i) ≤
       sqSquaredNorm a.envelope * Complex.normSq (v i) := by
   by_cases hi : Complex.normSq (a.envelope i) = 0
-  · simp only [sqImportanceValue, if_pos hi, Complex.normSq_zero, mul_zero]
+  · simp only [sqImportanceValue, ite_eq_left hi, Complex.normSq_zero, mul_zero]
     exact mul_nonneg a.envelope_pos.le (Complex.normSq_nonneg _)
   · have hp : 0 < Complex.normSq (a.envelope i) :=
       lt_of_le_of_ne (Complex.normSq_nonneg _) (Ne.symm hi)
-    rw [a.sample_spec, sqImportanceValue, if_neg hi, a.norm_spec]
+    rw [a.sample_spec, sqImportanceValue, ite_eq_right hi, a.norm_spec]
     simp only [Complex.normSq_div, Complex.normSq_mul, Complex.normSq_ofReal,
       Complex.star_def, Complex.normSq_conj, ← pow_two]
     have heq : Complex.normSq (a.envelope i) / sqSquaredNorm a.envelope *
@@ -525,7 +529,7 @@ private theorem sq_sorted_rank (xs : List ℝ) (hs : xs.SortedLE)
       refine ⟨List.mem_cons_of_mem _ hr.1, ?_, ?_⟩
       · simp only [List.countP_cons]
         split <;> omega
-      · simp only [List.countP_cons, decide_eq_true hxv, if_true]
+      · simp only [List.countP_cons, decide_eq_true hxv, ite_true]
         omega
 
 /-- Selecting a valid entry from the counted insertion-sort output gives the corresponding order
@@ -546,14 +550,14 @@ theorem sqRank_unique {xs : List ℝ} {k : ℕ} {u v : ℝ}
   · by_contra h
     have hc := sq_count_mono xs (fun x => x ≤ v) (fun x => x < u)
       (fun x _ hx => lt_of_le_of_lt hx (lt_of_not_ge h))
-    try dsimp only at hc
+
     have h1 := hu.2.1
     have h2 := hv.2.2
     omega
   · by_contra h
     have hc := sq_count_mono xs (fun x => x ≤ u) (fun x => x < v)
       (fun x _ hx => lt_of_le_of_lt hx (lt_of_not_ge h))
-    try dsimp only at hc
+
     have h1 := hv.2.1
     have h2 := hu.2.2
     omega
@@ -665,30 +669,30 @@ private theorem sq_partition_fold (p : ℝ) (xs : List ℝ)
   | cons x xs ih =>
     simp only [List.foldl_cons]
     by_cases hlt : x < p
-    · simp only [if_pos hlt]
+    · simp only [ite_eq_left hlt]
       have h := ih (x::z.1,z.2.1,z.2.2.1,z.2.2.2+1)
       have hn : ¬p < x := not_lt_of_ge hlt.le
       have hne : x ≠ p := hlt.ne
       simp only [List.filter_cons, decide_eq_true hlt, decide_eq_false hn,
-        decide_eq_false hne, if_true, Bool.false_eq_true, if_false,
+        decide_eq_false hne, ite_true, Bool.false_eq_true, ite_false,
         List.reverse_cons, List.append_assoc, List.singleton_append,
         List.length_cons] at h ⊢
       exact ⟨h.1, h.2.1, h.2.2.1, by omega⟩
-    · simp only [if_neg hlt]
+    · simp only [ite_eq_right hlt]
       by_cases hgt : p < x
-      · simp only [if_pos hgt]
+      · simp only [ite_eq_left hgt]
         have h := ih (z.1,z.2.1,x::z.2.2.1,z.2.2.2+2)
         have hne : x ≠ p := Ne.symm hgt.ne
         simp only [List.filter_cons, decide_eq_false hlt, decide_eq_true hgt,
-          decide_eq_false hne, if_true, Bool.false_eq_true, if_false,
+          decide_eq_false hne, ite_true, Bool.false_eq_true, ite_false,
           List.reverse_cons, List.append_assoc, List.singleton_append,
           List.length_cons] at h ⊢
         exact ⟨h.1, h.2.1, h.2.2.1, by omega⟩
-      · simp only [if_neg hgt]
+      · simp only [ite_eq_right hgt]
         have heq : x = p := le_antisymm (le_of_not_gt hgt) (le_of_not_gt hlt)
         have h := ih (z.1,x::z.2.1,z.2.2.1,z.2.2.2+2)
         simp only [List.filter_cons, decide_eq_false hlt, decide_eq_false hgt,
-          decide_eq_true heq, if_true, Bool.false_eq_true, if_false,
+          decide_eq_true heq, ite_true, Bool.false_eq_true, ite_false,
           List.reverse_cons, List.append_assoc, List.singleton_append,
           List.length_cons] at h ⊢
         exact ⟨h.1, h.2.1, h.2.2.1, by omega⟩
@@ -766,17 +770,17 @@ private theorem sq_count_lt_eq_le (xs : List ℝ) (p : ℝ) :
   | cons x xs ih =>
     rcases lt_trichotomy x p with hx | hx | hx
     · simp only [List.countP_cons, decide_eq_true hx, decide_eq_false hx.ne,
-        decide_eq_true hx.le, if_true, Bool.false_eq_true, if_false]
+        decide_eq_true hx.le, ite_true, Bool.false_eq_true, ite_false]
       omega
     · subst x
       simp only [List.countP_cons, lt_self_iff_false, decide_false, decide_true,
-        le_refl, if_true, Bool.false_eq_true, if_false]
+        le_refl, ite_true, Bool.false_eq_true, ite_false]
       omega
     · have hn := not_lt_of_ge hx.le
       have hne := Ne.symm hx.ne
       have hnle := not_le_of_gt hx
       simp only [List.countP_cons, decide_eq_false hn, decide_eq_false hne,
-        decide_eq_false hnle, Bool.false_eq_true, if_false]
+        decide_eq_false hnle, Bool.false_eq_true, ite_false]
       exact ih
 
 /-- The partition lengths recover the strict and non-strict lower counts, and the three lengths
@@ -801,7 +805,7 @@ theorem sqSelectFuel_rank (fuel : ℕ) (xs : List ℝ) (k : ℕ) (hk : k < xs.le
   | zero => exact sq_insertion_rank xs k hk
   | succ fuel ih =>
     by_cases hs : xs.length ≤ 1000
-    · simpa only [sqSelectFuel, if_pos hs] using! sq_insertion_rank xs k hk
+    · simpa only [sqSelectFuel, ite_eq_left hs] using! sq_insertion_rank xs k hk
     · have hprops := sqChunks5_properties xs.length xs (le_refl _)
       have hg : 0 < (sqPivots xs).length := by
         rw [sqPivots_length]
@@ -819,7 +823,7 @@ theorem sqSelectFuel_rank (fuel : ℕ) (xs : List ℝ) (k : ℕ) (hk : k < xs.le
         apply List.map_congr_left
         intro g _
         simp [sqGroupMedian, insertionSortCounted_length]
-      rw [sqSelectFuel, if_neg hs]
+      rw [sqSelectFuel, ite_eq_right hs]
       simp only [hpiv]
       split_ifs with hl he
       · change k < (sqPartition p xs).1.length at hl
@@ -901,16 +905,16 @@ private theorem sq_chunks_discard (fuel : ℕ) (xs : List ℝ) (hf : xs.length �
         · by_cases hm : sqGroupMedian g ≤ p
           · have hc := sq_count_mono g (fun y => y ≤ sqGroupMedian g) (fun y => y ≤ p)
               (fun y _ hy => hy.trans hm)
-            try dsimp only at hc
-            simp only [decide_eq_true hm, if_true]
+
+            simp only [decide_eq_true hm, ite_true]
             have h := hsides.1
             omega
           · simp [hm]
         · by_cases hm : p ≤ sqGroupMedian g
           · have hc := sq_count_mono g (fun y => sqGroupMedian g ≤ y) (fun y => p ≤ y)
               (fun y _ hy => hm.trans hy)
-            try dsimp only at hc
-            simp only [decide_eq_true hm, if_true]
+
+            simp only [decide_eq_true hm, ite_true]
             have h := hsides.2
             have hgl : 0 < g.length-g.length/2 := by omega
             omega
@@ -929,23 +933,23 @@ private theorem sq_chunks_discard (fuel : ℕ) (xs : List ℝ) (hf : xs.length �
           by_cases hm : sqGroupMedian g ≤ p
           · have hc := sq_count_mono g (fun y => y ≤ sqGroupMedian g) (fun y => y ≤ p)
               (fun y _ hy => hy.trans hm)
-            try dsimp only at hc
-            simp only [decide_eq_true hm, if_true]
+
+            simp only [decide_eq_true hm, ite_true]
             have h := hsides.1
             rw [hgl] at h
             omega
-          · simp only [decide_eq_false hm, Bool.false_eq_true, if_false]
+          · simp only [decide_eq_false hm, Bool.false_eq_true, ite_false]
             omega
         · have htail := ht.2
           by_cases hm : p ≤ sqGroupMedian g
           · have hc := sq_count_mono g (fun y => sqGroupMedian g ≤ y) (fun y => p ≤ y)
               (fun y _ hy => hm.trans hy)
-            try dsimp only at hc
-            simp only [decide_eq_true hm, if_true]
+
+            simp only [decide_eq_true hm, ite_true]
             have h := hsides.2
             rw [hgl] at h
             omega
-          · simp only [decide_eq_false hm, Bool.false_eq_true, if_false]
+          · simp only [decide_eq_false hm, Bool.false_eq_true, ite_false]
             omega
 
 /-- A median of the group medians bounds the combined pivot-list and either strict partition
@@ -995,7 +999,7 @@ theorem sqSelectFuel_cost (fuel : ℕ) (xs : List ℝ) (k : ℕ)
   | zero => omega
   | succ fuel ih =>
     by_cases hs : xs.length ≤ 1000
-    · rw [sqSelectFuel, if_pos hs]
+    · rw [sqSelectFuel, ite_eq_left hs]
       have hcost := insertionSortCounted_cost_le xs
       (try dsimp only)
       nlinarith
@@ -1039,7 +1043,7 @@ theorem sqSelectFuel_cost (fuel : ℕ) (xs : List ℝ) (k : ℕ)
         apply List.map_congr_left
         intro g _
         simp [sqGroupMedian, insertionSortCounted_length]
-      rw [sqSelectFuel, if_neg hs]
+      rw [sqSelectFuel, ite_eq_right hs]
       simp only [hpiv]
       split_ifs with hl he
       · change k < (sqPartition p xs).1.length at hl

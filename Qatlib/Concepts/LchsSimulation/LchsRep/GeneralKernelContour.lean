@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LchsSimulation.Kernel.NearExponentialLchsKernel
-import Mathlib.MeasureTheory.Integral.Asymptotics
-import Mathlib.Analysis.SpecialFunctions.JapaneseBracket
-import Mathlib.Analysis.Normed.Module.Dual
+module
+
+public import Qatlib.Concepts.LchsSimulation.Kernel.NearExponentialLchsKernel
+public import Mathlib.MeasureTheory.Integral.Asymptotics
+public import Mathlib.Analysis.SpecialFunctions.JapaneseBracket
+public import Mathlib.Analysis.Normed.Module.Dual
+
+@[expose] public section
 
 /-!
 # Cauchy contour formulas for power-decaying kernels

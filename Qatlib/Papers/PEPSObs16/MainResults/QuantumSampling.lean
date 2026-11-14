@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
-import Mathlib.Tactic
+module
+
+public import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # PEPSObs16 — quantum sampling cost of Theorem 1 (p. 3)

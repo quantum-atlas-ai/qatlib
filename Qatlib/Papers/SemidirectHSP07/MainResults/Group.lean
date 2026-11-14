@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.GroupTheory.SemidirectProduct
-import Mathlib.GroupTheory.SpecificGroups.Cyclic
-import Mathlib.Data.ZMod.Aut
-import Mathlib.GroupTheory.Solvable
-import Mathlib.GroupTheory.Nilpotent
-import Mathlib.GroupTheory.PGroup
-import Mathlib.GroupTheory.Commutator.Basic
-import Mathlib.GroupTheory.OrderOfElement
-import Mathlib.Data.Nat.Totient
+module
+
+public import Mathlib.GroupTheory.SemidirectProduct
+public import Mathlib.GroupTheory.SpecificGroups.Cyclic
+public import Mathlib.Data.ZMod.Aut
+public import Mathlib.GroupTheory.Solvable
+public import Mathlib.GroupTheory.Nilpotent
+public import Mathlib.GroupTheory.PGroup
+public import Mathlib.GroupTheory.Commutator.Basic
+public import Mathlib.GroupTheory.OrderOfElement
+public import Mathlib.Data.Nat.Totient
+
+@[expose] public section
 
 /-!
 # Cyclic semidirect products and subgroup forms

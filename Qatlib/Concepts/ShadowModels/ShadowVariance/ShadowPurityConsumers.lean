@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ShadowModels.ShadowVariance.QuadraticPauliShadows
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.HeterogeneousBlockMedian
+module
+
+public import Qatlib.Concepts.ShadowModels.ShadowVariance.QuadraticPauliShadows
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.HeterogeneousBlockMedian
+
+@[expose] public section
 
 /-!
 # Purity estimation and counted postprocessing

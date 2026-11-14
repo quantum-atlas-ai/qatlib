@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Complex.Trigonometric
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Data.Real.Basic
+module
+
+public import Mathlib.Analysis.Complex.Trigonometric
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Basic.Real.Basic
+
+@[expose] public section
 
 /-!
 # Restricted amplitude separation contract

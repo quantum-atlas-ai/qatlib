@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.BlockEncoding.Basic
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.InnerProductSpace.Adjoint
-import Mathlib.Analysis.InnerProductSpace.PiL2
+module
+
+public import Qatlib.Concepts.BlockEncoding.Basic
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.InnerProductSpace.Adjoint
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -64,7 +68,7 @@ lemma norm_qform_le {n : Type*} [Fintype n] [DecidableEq n] (v : EuclideanSpace 
 /-- Quadratic forms are additive in the matrix. -/
 lemma qform_sub {n : Type*} [Fintype n] [DecidableEq n] (v : EuclideanSpace ℂ n)
     (A B : Matrix n n ℂ) : qform v (A - B) = qform v A - qform v B := by
-  simp [qform, map_sub, ContinuousLinearMap.sub_apply, inner_sub_right]
+  simp [qform, map_sub, _root_.sub_apply, inner_sub_right]
 
 /-- Conversion of the two quadratic-form presentations. -/
 lemma qform_eq_qformFn {n : Type*} [Fintype n] [DecidableEq n] (v : EuclideanSpace ℂ n)

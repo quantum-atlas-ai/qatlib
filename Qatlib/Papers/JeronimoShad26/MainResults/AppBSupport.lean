@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.JeronimoShad26.MainResults.SourceModel.Basic
-import Mathlib.Analysis.Matrix.PosDef
+module
+
+public import Qatlib.Papers.JeronimoShad26.MainResults.SourceModel.Basic
+public import Mathlib.Analysis.Matrix.PosDef
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

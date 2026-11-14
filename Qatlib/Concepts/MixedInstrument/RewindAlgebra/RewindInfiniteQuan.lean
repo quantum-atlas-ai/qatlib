@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MixedInstrument.RewindAlgebra.RewindInfiniteStat
-import Qatlib.Concepts.MixedInstrument.ClockBridge.MixedInstrumentClock
-import Mathlib.Analysis.SpecialFunctions.ContinuousFunctionalCalculus.PosPart.Basic
+module
+
+public import Qatlib.Concepts.MixedInstrument.RewindAlgebra.RewindInfiniteStat
+public import Qatlib.Concepts.MixedInstrument.ClockBridge.MixedInstrumentClock
+public import Mathlib.Analysis.SpecialFunctions.ContinuousFunctionalCalculus.PosPart.Basic
+
+@[expose] public section
 
 /-!
 # Infinite completion of rejection rewinding

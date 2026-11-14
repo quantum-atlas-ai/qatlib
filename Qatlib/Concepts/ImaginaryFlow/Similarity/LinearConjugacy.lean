@@ -4,34 +4,38 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Algebra.Basic
-import Mathlib.Algebra.Algebra.Defs
-import Mathlib.Algebra.Field.Defs
-import Mathlib.Algebra.Group.Action.Defs
-import Mathlib.Algebra.Group.Basic
-import Mathlib.Algebra.Group.Defs
-import Mathlib.Algebra.Group.DivInvMonoid
-import Mathlib.Algebra.Group.Equiv.Defs
-import Mathlib.Algebra.Group.Hom.Defs
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.GroupWithZero.Action.Defs
-import Mathlib.Algebra.Module.Defs
-import Mathlib.Algebra.Module.Equiv.Defs
-import Mathlib.Algebra.Module.LinearMap.Defs
-import Mathlib.Algebra.Module.LinearMap.End
-import Mathlib.Algebra.Module.Submodule.Defs
-import Mathlib.Algebra.Ring.CompTypeclasses
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Algebra.Ring.Hom.Defs
-import Mathlib.Basic.FunLike.Basic
-import Mathlib.Basic.FunLike.Equiv
-import Mathlib.Basic.SetLike.Basic
-import Mathlib.GroupTheory.GroupAction.Hom
-import Mathlib.GroupTheory.GroupAction.Ring
-import Mathlib.LinearAlgebra.DFinsupp
-import Mathlib.LinearAlgebra.Dual.Defs
-import Mathlib.LinearAlgebra.Eigenspace.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Algebra.Algebra.Basic
+public import Mathlib.Algebra.Algebra.Defs
+public import Mathlib.Algebra.Field.Defs
+public import Mathlib.Algebra.Group.Action.Defs
+public import Mathlib.Algebra.Group.Basic
+public import Mathlib.Algebra.Group.Defs
+public import Mathlib.Algebra.Group.DivInvMonoid
+public import Mathlib.Algebra.Group.Equiv.Defs
+public import Mathlib.Algebra.Group.Hom.Defs
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.GroupWithZero.Action.Defs
+public import Mathlib.Algebra.Module.Defs
+public import Mathlib.Algebra.Module.Equiv.Defs
+public import Mathlib.Algebra.Module.LinearMap.Defs
+public import Mathlib.Algebra.Module.LinearMap.End
+public import Mathlib.Algebra.Module.Submodule.Defs
+public import Mathlib.Algebra.Ring.CompTypeclasses
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Algebra.Ring.Hom.Defs
+public import Mathlib.Basic.FunLike.Basic
+public import Mathlib.Basic.FunLike.Equiv
+public import Mathlib.Basic.SetLike.Basic
+public import Mathlib.GroupTheory.GroupAction.Hom
+public import Mathlib.GroupTheory.GroupAction.Ring
+public import Mathlib.LinearAlgebra.DFinsupp
+public import Mathlib.LinearAlgebra.Dual.Defs
+public import Mathlib.LinearAlgebra.Eigenspace.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Eigenvalue transport under linear similarity

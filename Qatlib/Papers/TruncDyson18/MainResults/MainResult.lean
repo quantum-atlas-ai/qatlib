@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.TruncDyson18.MainResults.SourceParameters
-import Qatlib.Papers.TruncDyson18.MainResults.TruncationBudget
-import Qatlib.Foundations.OperatorErrors.OperatorError
+module
+
+public import Qatlib.Papers.TruncDyson18.MainResults.SourceParameters
+public import Qatlib.Papers.TruncDyson18.MainResults.TruncationBudget
+public import Qatlib.Foundations.OperatorErrors.OperatorError
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

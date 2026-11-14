@@ -4,19 +4,23 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.FrameSpectral.DetectionDefs
-import Qatlib.Concepts.WalkSearch.FrameSpectral.WalkSpectralBounds
-import Qatlib.Concepts.WalkSearch.Spectral.SzegedySpectral
-import Qatlib.Concepts.WalkSearch.Detection.CorrectedSzegedyDetector
-import Qatlib.Concepts.WalkSearch.ProjectorCS
-import Qatlib.Concepts.WalkSearch.TauEmbedding.SzegedyTheorem5InteriorNormQuan
-import Qatlib.Concepts.WalkSearch.Th4Expander.SzegedyTheorem4ExpanderChainQuan
-import Qatlib.Concepts.WalkSearch.Th4Expander.SzegedyTheorem4ExpanderGroverQuan
-import Qatlib.Concepts.WalkSearch.WalkDetector.SzegedyTheorem4WalkOracleQuan
-import Qatlib.Concepts.WalkSearch.MnrsAmplify.WalkSearchCompilation
-import Qatlib.Concepts.WalkSearch.MnrsAmplify.Theorem3
-import Qatlib.Concepts.WalkSearch.MnrsAmplify.Proposition3
-import Qatlib.Concepts.WalkFind.UniformThree.PhaseReflectionSearch
+module
+
+public import Qatlib.Concepts.WalkSearch.FrameSpectral.DetectionDefs
+public import Qatlib.Concepts.WalkSearch.FrameSpectral.WalkSpectralBounds
+public import Qatlib.Concepts.WalkSearch.Spectral.SzegedySpectral
+public import Qatlib.Concepts.WalkSearch.Detection.CorrectedSzegedyDetector
+public import Qatlib.Concepts.WalkSearch.ProjectorCS
+public import Qatlib.Concepts.WalkSearch.TauEmbedding.SzegedyTheorem5InteriorNormQuan
+public import Qatlib.Concepts.WalkSearch.Th4Expander.SzegedyTheorem4ExpanderChainQuan
+public import Qatlib.Concepts.WalkSearch.Th4Expander.SzegedyTheorem4ExpanderGroverQuan
+public import Qatlib.Concepts.WalkSearch.WalkDetector.SzegedyTheorem4WalkOracleQuan
+public import Qatlib.Concepts.WalkSearch.MnrsAmplify.WalkSearchCompilation
+public import Qatlib.Concepts.WalkSearch.MnrsAmplify.Theorem3
+public import Qatlib.Concepts.WalkSearch.MnrsAmplify.Proposition3
+public import Qatlib.Concepts.WalkFind.UniformThree.PhaseReflectionSearch
+
+@[expose] public section
 
 /-!
 # Source detection endpoint theorems

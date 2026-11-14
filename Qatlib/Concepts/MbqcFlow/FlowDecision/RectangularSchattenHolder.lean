@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.SchattenDiamond
-import QuantumInfo.ForMathlib.HermitianMat.Schatten
-import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Unique
-import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
-import Qatlib.Concepts.MatrixExpTrace.ExpPerturbation
+module
+
+public import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.SchattenDiamond
+public import QuantumInfo.ForMathlib.HermitianMat.Schatten
+public import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Unique
+public import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+public import Qatlib.Concepts.MatrixExpTrace.ExpPerturbation
+
+@[expose] public section
 
 /-!
 # Rectangular Schatten inequalities and isometric embeddings
@@ -140,6 +144,7 @@ theorem schatten_embed (p : ℝ) (hp : 0 < p)
     (by simp [Real.zero_rpow hp.ne'])
   simpa only [← hg] using! he
 
+omit [DecidableEq D] in
 /-- A matrix with orthonormal columns has operator norm at most one. -/
 theorem isometry_norm_le (U : Matrix D M ℂ) (hU : Uᴴ*U=1) : ‖U‖ ≤ 1 := by
   have h := Matrix.l2_opNorm_conjTranspose_mul_self U
@@ -147,6 +152,7 @@ theorem isometry_norm_le (U : Matrix D M ℂ) (hU : Uᴴ*U=1) : ‖U‖ ≤ 1 :=
   have h₁ : ‖(1 : Matrix M M ℂ)‖ ≤ 1 := Qatlib.Foundations.OperatorErrors.OperatorError.l2_norm_one_le
   nlinarith [norm_nonneg U]
 
+omit [DecidableEq D] in
 /-- Multiplying a matrix on the left and right by operator-norm contractions does not increase
 its operator norm. -/
 theorem norm_two_contractions (L : Matrix D M ℂ) (R : Matrix N E ℂ) (A : Matrix M N ℂ)
@@ -157,6 +163,7 @@ theorem norm_two_contractions (L : Matrix D M ℂ) (R : Matrix N E ℂ) (A : Mat
     _ ≤ (1*‖A‖)*1 := by gcongr
     _ = _ := by ring
 
+omit [DecidableEq D] [DecidableEq E] in
 /-- Multiplying an isometric embedding by the left isometry's adjoint and the right isometry
 recovers the original matrix. -/
 theorem extract_embed (U : Matrix D M ℂ) (V : Matrix E N ℂ)
@@ -296,6 +303,7 @@ theorem sqrt_ne_zero_iff (x : ℝ) (hx : 0 ≤ x) : Real.sqrt x ≠ 0 ↔ x ≠ 
     apply hn
     nlinarith [Real.sq_sqrt hx]
 
+omit [DecidableEq M] in
 /-- The nonzero singular-value multiset is obtained from the nonzero roots of the Gram
 characteristic polynomial by taking square roots of their real parts. -/
 theorem nonzeroSingularValues_eq_roots (A : Matrix M N ℂ) :
@@ -320,6 +328,7 @@ theorem nonzeroSingularValues_eq_roots (A : Matrix M N ℂ) :
     simp only [not_not] at he
     simp [he]
 
+omit [DecidableEq D] in
 /-- An embedding with isometric left and right factors preserves nonzero singular values with
 their multiplicities. -/
 theorem nonzero_singular_embed (U : Matrix D M ℂ) (V : Matrix E N ℂ)
@@ -413,26 +422,30 @@ theorem unitary_transport (p : ℝ) (hp : 0 < p) (A : Matrix M N ℂ)
   have hv : Vᴴ*V=1 := ((Matrix.mem_unitaryGroup_iff_isometry V).mp hV).1
   exact ⟨schatten_embed p hp U V hu hv A, opnorm_embed U V hu hv A⟩
 
+omit [DecidableEq M] in
 /-- Every eigenvalue of the Gram matrix of the zero rectangular matrix is zero. -/
 theorem gram_zero_eigenvalues :
     (Matrix.isHermitian_conjTranspose_mul_self (0 : Matrix M N ℂ)).eigenvalues = 0 := by
   exact (Matrix.IsHermitian.eigenvalues_eq_zero_iff
     (Matrix.isHermitian_conjTranspose_mul_self (0 : Matrix M N ℂ))).mpr (by simp)
 
+omit [DecidableEq M] [DecidableEq N] in
 /-- For positive `p`, the zero rectangular matrix has `schattenPower p` equal to zero. -/
 theorem schatten_zero (p : ℝ) (hp : 0 < p) : schattenPower p (0 : Matrix M N ℂ)=0 := by
-  letI : DecidableEq M := Classical.decEq M
-  letI : DecidableEq N := Classical.decEq N
+  let : DecidableEq M := Classical.decEq M
+  let : DecidableEq N := Classical.decEq N
   dsimp only [schattenPower]
   rw [gram_zero_eigenvalues (M:=M) (N:=N)]
   simp [Real.zero_rpow hp.ne', Real.zero_rpow (inv_pos.mpr hp).ne']
 
+omit [DecidableEq M] in
 /-- The zero rectangular matrix has empty nonzero singular-value multiset. -/
 theorem singular_zero : nonzeroSingularValues (0 : Matrix M N ℂ) = 0 := by
   unfold nonzeroSingularValues singularMultiset
   rw [gram_zero_eigenvalues (M:=M) (N:=N)]
   simp [Multiset.mem_replicate]
 
+omit [DecidableEq M] in
 /-- If either matrix index type is empty, its positive-exponent Schatten quantity and operator
 norm vanish and its nonzero singular-value multiset is empty. -/
 theorem zero_dimensions (p : ℝ) (hp : 0 < p) (A : Matrix M N ℂ) (h : IsEmpty M ∨ IsEmpty N) :

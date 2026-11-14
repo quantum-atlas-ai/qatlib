@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Real.Basic
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Ring
+module
+
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -55,7 +59,7 @@ exactly `(k/N)·p` and the yes-case expectation dominates
 `b·(p+q-1)/p`. -/
 theorem lemma11_gap_ratio (b k N p q mu1 mu0 : ℝ)
     (hb : 0 < b) (hk : 0 < k) (hN : 0 < N) (hp : 0 < p)
-    (hpq : 0 ≤ p + q - 1)
+    (_hpq : 0 ≤ p + q - 1)
     (hmu0 : mu0 = (k / N) * p)
     (hmu1 : (b * k / N) * (p + q - 1) ≤ mu1) :
     b * ((p + q - 1) / p) ≤ mu1 / mu0 := by

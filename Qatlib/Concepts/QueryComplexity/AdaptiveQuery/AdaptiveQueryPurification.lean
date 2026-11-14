@@ -4,25 +4,29 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Lean.Elab.Tactic.Omega
-import Mathlib.Algebra.Order.Ring.Star
-import Mathlib.Algebra.Ring.IsFormallyReal
-import Mathlib.AlgebraicTopology.SimplexCategory.Basic
-import Mathlib.Analysis.CStarAlgebra.Module.Constructions
-import Mathlib.Data.Int.Star
-import Mathlib.Data.List.GetD
-import Mathlib.RingTheory.PicardGroup
-import Mathlib.Tactic.Convert
-import Mathlib.Tactic.Ext
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.SplitIfs
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedQueryBudget
-import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryMagnitude
-import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.Basic
-import Qatlib.Concepts.QueryWordCore.QueryMachinery.AcceptancePolynomial
-import Mathlib.Data.List.NodupEquivFin
-import Mathlib.Data.List.OfFn
+module
+
+public import Lean.Elab.Tactic.Omega
+public import Mathlib.Algebra.Order.Ring.Star
+public import Mathlib.Algebra.Ring.IsFormallyReal
+public import Mathlib.AlgebraicTopology.SimplexCategory.Basic
+public import Mathlib.Analysis.CStarAlgebra.Module.Constructions
+public import Mathlib.Algebra.Order.Star.Int
+public import Mathlib.Data.List.GetD
+public import Mathlib.RingTheory.PicardGroup
+public import Mathlib.Tactic.Convert
+public import Mathlib.Tactic.Ext
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.SplitIfs
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedQueryBudget
+public import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryMagnitude
+public import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.Basic
+public import Qatlib.Concepts.QueryWordCore.QueryMachinery.AcceptancePolynomial
+public import Mathlib.Data.List.NodupEquivFin
+public import Mathlib.Data.List.OfFn
+
+@[expose] public section
 
 /-!
 # Purification and polynomials for adaptive query circuits
@@ -928,7 +932,7 @@ theorem adaptiveLeafHistoryMatrix_apply (P : ObservedCircuit I) (ψ : QState I)
     have hr := congrFun (adaptiveBranchMatrix_apply 1
       ((observedBranchWords P).get ⟨x.2.val, h⟩).2 ψ) x.1
     simpa only [ApplyGate, Matrix.mulVec, dotProduct, adaptiveLeafHistoryMatrix,
-      dif_pos h] using! hr
+      dite_eq_left h] using! hr
   · rw [List.getD_eq_default _ _ (by simpa using Nat.le_of_not_gt h)]
     simp [adaptiveLeafHistoryMatrix, h, Matrix.mulVec, dotProduct]
 
@@ -1057,7 +1061,7 @@ next query or at a halt. -/
   | .project _ P Q, j => adaptiveFrontierType P j ⊕ adaptiveFrontierType Q j
 
 /-- A finite type instance for the histories at each adaptive query frontier. -/
-@[reducible] private noncomputable def adaptiveFrontierFintype {I : Type} :
+@[reducible] noncomputable def adaptiveFrontierFintype {I : Type} :
     (P : ObservedCircuit I) → (j : ℕ) → Fintype (adaptiveFrontierType P j)
   | .halt _, _ => inferInstance
   | .step (.gate _) P, j => adaptiveFrontierFintype P j

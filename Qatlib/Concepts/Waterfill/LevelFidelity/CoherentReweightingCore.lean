@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.Waterfill.LevelFidelity.CoherentReweightingDefs
-import Qatlib.Concepts.Waterfill.ExactResampling.ExactResamplingUpperQuan
+module
+
+public import Qatlib.Concepts.Waterfill.LevelFidelity.CoherentReweightingDefs
+public import Qatlib.Concepts.Waterfill.ExactResampling.ExactResamplingUpperQuan
+
+@[expose] public section
 
 /-!
 # Coherent reweighting identities and application bounds

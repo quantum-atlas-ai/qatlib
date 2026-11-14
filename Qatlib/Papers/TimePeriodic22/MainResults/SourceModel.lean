@@ -4,22 +4,26 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Exp
-import Mathlib.Analysis.SpecialFunctions.Stirling
-import Mathlib.Data.Nat.Factorial.Basic
-import Mathlib.Algebra.Order.Floor.Defs
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Lean.Elab.Tactic.Omega
-import Mathlib.Analysis.Complex.Trigonometric
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.RepresentationTheory.Basic
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Push
-import Mathlib.Tactic.Ring
+module
+
+public import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Exp
+public import Mathlib.Analysis.SpecialFunctions.Stirling
+public import Mathlib.Data.Nat.Factorial.Basic
+public import Mathlib.Algebra.Order.Floor.Defs
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Lean.Elab.Tactic.Omega
+public import Mathlib.Analysis.Complex.Trigonometric
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.RepresentationTheory.Basic
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Push
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

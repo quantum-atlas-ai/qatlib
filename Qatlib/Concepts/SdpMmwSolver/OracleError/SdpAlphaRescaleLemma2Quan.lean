@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SdpMmwSolver.OracleError.SdpAlphaRescaleLemma2Stat
-import Qatlib.Concepts.SdpMmwSolver.OracleError.ResidualDiagnosticContracts
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.FieldSimp
+module
+
+public import Qatlib.Concepts.SdpMmwSolver.OracleError.SdpAlphaRescaleLemma2Stat
+public import Qatlib.Concepts.SdpMmwSolver.OracleError.ResidualDiagnosticContracts
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.FieldSimp
+
+@[expose] public section
 
 /-!
 # Corrected SDP objective rescaling

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NoisyLearn26.MainResults.Models.InterfaceModels
-import Mathlib.LinearAlgebra.Matrix.Trace
+module
+
+public import Qatlib.Papers.NoisyLearn26.MainResults.Models.InterfaceModels
+public import Mathlib.LinearAlgebra.Matrix.Trace
+
+@[expose] public section
 
 /-!
 # Partial swap and the finite matrix trace identity
@@ -49,6 +53,7 @@ def swapEquiv : ((I × C) × (I × C)) ≃ ((I × C) × (I × C)) where
   left_inv := by rintro ⟨⟨i1, c1⟩, ⟨i2, c2⟩⟩; rfl
   right_inv := by rintro ⟨⟨i1, c1⟩, ⟨i2, c2⟩⟩; rfl
 
+omit [Fintype I] [DecidableEq I] [Fintype C] [DecidableEq C] in
 /-- Applying the partial-swap permutation twice returns the original pair. -/
 @[simp] theorem swapEquiv_swapEquiv (x : (I × C) × (I × C)) :
     swapEquiv (swapEquiv x) = x := by
@@ -64,10 +69,12 @@ def kron (ρ : Matrix (I × C) (I × C) ℂ) :
     Matrix ((I × C) × (I × C)) ((I × C) × (I × C)) ℂ :=
   fun x y => ρ x.1 y.1 * ρ x.2 y.2
 
+omit [Fintype I] [DecidableEq I] [Fintype C] [DecidableEq C] in
 /-- The first output pair of `swapEquiv ((i1, c1), (i2, c2))` is `(i2, c1)`. -/
 theorem swapEquiv_fst (i1 i2 : I) (c1 c2 : C) :
     (swapEquiv ((i1, c1), (i2, c2))).1 = (i2, c1) := rfl
 
+omit [Fintype I] [DecidableEq I] [Fintype C] [DecidableEq C] in
 /-- The second output pair of `swapEquiv ((i1, c1), (i2, c2))` is `(i1, c2)`. -/
 theorem swapEquiv_snd (i1 i2 : I) (c1 c2 : C) :
     (swapEquiv ((i1, c1), (i2, c2))).2 = (i1, c2) := rfl

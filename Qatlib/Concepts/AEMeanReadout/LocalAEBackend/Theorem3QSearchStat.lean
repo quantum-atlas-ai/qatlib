@@ -4,16 +4,20 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.ENNReal.Basic
-import Mathlib.Data.Fintype.Defs
-import Mathlib.Data.Real.Sqrt
-import Mathlib.LinearAlgebra.UnitaryGroup
-import Mathlib.Order.Basic
-import Mathlib.Probability.Distributions.Uniform
-import Mathlib.Probability.ProbabilityMassFunction.Monad
-import Qatlib.Concepts.LchsSimulation.StaticLchs.BitSampledPreparedSearch
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeCountingConsumers
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem3QSearchAuxiliary
+module
+
+public import Mathlib.Basic.ENNReal.Basic
+public import Mathlib.Data.Fintype.Defs
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.LinearAlgebra.UnitaryGroup
+public import Mathlib.Order.Basic
+public import Mathlib.Probability.Distributions.Uniform
+public import Mathlib.Probability.ProbabilityMassFunction.Monad
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.BitSampledPreparedSearch
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeCountingConsumers
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem3QSearchAuxiliary
+
+@[expose] public section
 
 /-!
 # Finite quantum search specification

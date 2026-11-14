@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QMetropolis11.AcceptanceCoin.CoherentInstrumentSubgoalStat
+module
+
+public import Qatlib.Papers.QMetropolis11.AcceptanceCoin.CoherentInstrumentSubgoalStat
+
+@[expose] public section
 
 /-!
 # Correctness of the coherent Metropolis coin

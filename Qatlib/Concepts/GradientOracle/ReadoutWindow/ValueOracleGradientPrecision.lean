@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GradientOracle.C2GradientAlg.ValueOracleGradientConsumers
-import Qatlib.Concepts.QuditTeleport.TeleportCore.Transform
+module
+
+public import Qatlib.Concepts.GradientOracle.C2GradientAlg.ValueOracleGradientConsumers
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.Transform
+
+@[expose] public section
 
 /-!
 # Rounded value oracles and gradient precision
@@ -136,7 +140,7 @@ theorem gradient_char_prep_inverse_qft :
   have hchar : ApplyGate ((zmodQFTGate (N := Q))ᴴ) (Ket 1)=gradientKickState Q := by
     ext y
     simp only [ApplyGate,Matrix.mulVec,dotProduct,Ket,mul_ite,mul_one,mul_zero,
-      Finset.sum_ite_eq',Finset.mem_univ,if_true,Matrix.conjTranspose_apply,zmodQFTGate_apply,
+      Finset.sum_ite_eq',Finset.mem_univ,ite_true,Matrix.conjTranspose_apply,zmodQFTGate_apply,
       one_mul,gradientKickState,star_mul,Complex.star_def]
     simp [mul_comm]
   constructor

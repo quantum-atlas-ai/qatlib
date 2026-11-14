@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QmaCompleteness.HistoryHam.QmaCompletenessRefined
-import Mathlib.Tactic
+module
+
+public import Qatlib.Concepts.QmaCompleteness.HistoryHam.QmaCompletenessRefined
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Identity padding and history energy thresholds

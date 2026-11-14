@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Matrix.PosDef
-import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
-import Qatlib.Concepts.QlsReadoutSpec.PseudoInverse
-import Qatlib.Foundations.PureStateMath.MixedState
+module
+
+public import Mathlib.Analysis.Matrix.PosDef
+public import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
+public import Qatlib.Concepts.QlsReadoutSpec.PseudoInverse
+public import Qatlib.Foundations.PureStateMath.MixedState
+
+@[expose] public section
 
 /-!
 # Inverse quadratic forms for LCC correlation energy
@@ -68,7 +72,7 @@ theorem lccCorrelationEnergy_eq_neg_inner
     {A : Matrix N N ℂ} (hA : IsUnit A.det) {x b : N → ℂ} (hx : A *ᵥ x = b) :
     lccCorrelationEnergy A b = - (star b ⬝ᵥ x) := by
   have hinv : A⁻¹ *ᵥ b = x := by
-    letI := Matrix.invertibleOfIsUnitDet A hA
+    let := Matrix.invertibleOfIsUnitDet A hA
     exact Matrix.inv_mulVec_eq_vec hx.symm
   rw [lccCorrelationEnergy_def, hinv]
 
@@ -151,7 +155,7 @@ theorem lccCorrelationEnergy_continuousHHLMatrix_eq_pseudoinverse
   have hspec : spectralSupport eig V = 1 := by
     unfold spectralSupport
     have hdiag : (fun i => if eig i = 0 then (0 : ℂ) else 1) = fun _ => 1 := by
-      funext i; rw [if_neg (hne i)]
+      funext i; rw [ite_eq_right (hne i)]
     rw [hdiag, Matrix.diagonal_one, Matrix.mul_one]
     exact Matrix.mem_unitaryGroup_iff.mp hV
   have hAR : continuousHHLMatrix eig V * matrixPseudoinverse (continuousHHLMatrix eig V) = 1 := by

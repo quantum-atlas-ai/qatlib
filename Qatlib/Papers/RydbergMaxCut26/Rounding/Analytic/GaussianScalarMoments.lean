@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Probability.Distributions.Gaussian.Real
-import Mathlib.Analysis.SpecialFunctions.Gaussian.GaussianIntegral
+module
+
+public import Mathlib.Probability.Distributions.Gaussian.Real
+public import Mathlib.Analysis.SpecialFunctions.Gaussian.GaussianIntegral
+
+@[expose] public section
 
 /-!
 # Scalar Gaussian moments at fixed precision

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedQueryBudget
-import Mathlib.Tactic.Linarith
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedQueryBudget
+public import Mathlib.Tactic.Linarith
+
+@[expose] public section
 
 /-!
 # Event bounds for query-truncated observed circuits

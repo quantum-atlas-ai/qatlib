@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MpsAdaptation.MpsTransfer.PositiveComplementSqrt
-import Mathlib.Analysis.Normed.Ring.Units
+module
+
+public import Qatlib.Concepts.MpsAdaptation.MpsTransfer.PositiveComplementSqrt
+public import Mathlib.Analysis.Normed.Ring.Units
+
+@[expose] public section
 
 /-!
 # Unitary polar factor from a positive Gram complement

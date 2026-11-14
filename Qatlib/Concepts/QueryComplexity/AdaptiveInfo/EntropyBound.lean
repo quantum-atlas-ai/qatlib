@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.AdaptiveInfo.ClassicalDefs
-import Mathlib.Analysis.SpecialFunctions.Log.NegMulLog
-import Mathlib.Analysis.SpecialFunctions.Log.Base
+module
+
+public import Qatlib.Concepts.QueryComplexity.AdaptiveInfo.ClassicalDefs
+public import Mathlib.Analysis.SpecialFunctions.Log.NegMulLog
+public import Mathlib.Analysis.SpecialFunctions.Log.Base
+
+@[expose] public section
 
 /-!
 # Entropy lower bounds for classical queries

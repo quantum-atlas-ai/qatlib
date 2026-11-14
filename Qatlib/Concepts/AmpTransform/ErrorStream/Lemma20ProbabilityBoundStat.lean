@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmpTransform.ErrorStream.ConditionalAmplifiedNoiseConsumers
-import Qatlib.Concepts.AmpTransform.NoiseEnvelope.AmplifiedProgression
+module
+
+public import Qatlib.Concepts.AmpTransform.ErrorStream.ConditionalAmplifiedNoiseConsumers
+public import Qatlib.Concepts.AmpTransform.NoiseEnvelope.AmplifiedProgression
+
+@[expose] public section
 
 /-!
 # Specification of a resonant Fourier probability bound

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SharedAncilla.AncillaProduct.UnitaryFamilyWord
+module
+
+public import Qatlib.Concepts.SharedAncilla.AncillaProduct.UnitaryFamilyWord
+
+@[expose] public section
 
 /-!
 # Shared Ancilla Word Postselection

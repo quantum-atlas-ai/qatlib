@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Nat.Totient
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
+module
+
+public import Mathlib.Data.Nat.Totient
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+
+@[expose] public section
 
 /-!
 # Appendix E, GCD probabilities: Lemmas E.2 and E.3
@@ -67,7 +71,7 @@ counting identity for `Pr[max = c]` by summing `2c+1` over the matrix entries,
 then replicate (233)--(235); the `n ≤ 93` range can be discharged by `decide`
 or `norm_num` on rational arithmetic.  Note `Nat.Coprime 0 0` is false, as in
 the paper (`gcd(0,0) = 0 ≠ 1`). -/
-def lemma_E2Statement (n : ℕ) (hn : 0 < n) : Prop :=
+def lemma_E2Statement (n : ℕ) (_hn : 0 < n) : Prop :=
     (1 : ℝ) / 2 ≤ coprimePairProb n
 
 /-! ## Lemma E.3: `k` samples are coprime with exponentially high probability -/
@@ -90,7 +94,7 @@ inequality), and `Nat.floor_le`.  Suggested handoff: identify
 `Fin k → Fin d` with `(Fin 2 → Fin d)^{k/2}` on the paired coordinates and
 apply Lemma E.2 to each pair; then bound `(1/2)^{⌊k/2⌋}` by
 `(1/2)^{k/2}` using `Real.rpow_le_rpow_of_exponent_le` with `1/2 ≤ 1`. -/
-def lemma_E3Statement (k d : ℕ) (hk : 2 ≤ k) (hd : 2 ≤ d) : Prop :=
+def lemma_E3Statement (k d : ℕ) (_hk : 2 ≤ k) (_hd : 2 ≤ d) : Prop :=
     1 - Real.rpow (1 / 2 : ℝ) ((k : ℝ) / 2) ≤ gcdAllProb k d
 
 end

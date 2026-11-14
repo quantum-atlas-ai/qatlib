@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionCore
-import Mathlib.Data.Complex.Basic
-import Mathlib.Tactic.FieldSimp
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionCore
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Tactic.FieldSimp
+
+@[expose] public section
 
 /-!
 # Gaussian rational arithmetic and word expressions

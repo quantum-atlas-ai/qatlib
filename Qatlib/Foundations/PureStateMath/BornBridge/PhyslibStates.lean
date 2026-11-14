@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.MixedState
-import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
-import QuantumInfo.States.Mixed.MState
+module
+
+public import Qatlib.Foundations.PureStateMath.MixedState
+public import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+public import QuantumInfo.States.Mixed.MState
+
+@[expose] public section
 
 /-!
 # Equivalences with Physlib state representations

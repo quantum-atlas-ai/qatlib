@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.MnrsAmplify.Lemma1Stat
+module
+
+public import Qatlib.Concepts.WalkSearch.MnrsAmplify.Lemma1Stat
+
+@[expose] public section
 
 /-!
 # States and success for tolerant amplification
@@ -35,7 +39,7 @@ namespace Qatlib.Concepts.WalkSearch.MnrsAmplify
 /-- The component of `ψ` remaining after subtracting its orthogonal projection onto the marked
 subspace `M`. -/
 noncomputable def unmarkedPart (M : Submodule ℂ W) (ψ : W) : W :=
-  ψ - (M.subtypeL.comp M.orthogonalProjection) ψ
+  ψ - (M.subtypeL.comp M.orthogonalProjectionOnto) ψ
 
 /-- The unmarked component of `ψ`, scaled by the reciprocal of its norm; a zero component
 remains zero. -/

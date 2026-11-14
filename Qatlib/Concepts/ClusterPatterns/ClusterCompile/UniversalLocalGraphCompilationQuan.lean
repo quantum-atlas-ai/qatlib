@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ClusterPatterns.ClusterCompile.UniversalLocalGraphCompilationStat
-import Qatlib.Concepts.ClusterPatterns.QubitUniversal.UniversalQubitCompilationQuan
-import Qatlib.Concepts.ClusterPatterns.ClusterCompile.UniversalLocalCompilationAux
+module
+
+public import Qatlib.Concepts.ClusterPatterns.ClusterCompile.UniversalLocalGraphCompilationStat
+public import Qatlib.Concepts.ClusterPatterns.QubitUniversal.UniversalQubitCompilationQuan
+public import Qatlib.Concepts.ClusterPatterns.ClusterCompile.UniversalLocalCompilationAux
+
+@[expose] public section
 
 /-!
 # Correctness of universal local graph compilation

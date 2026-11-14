@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.AdversarySearch.SymmetricZeroErrorQueryLowerBoundStat
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.ParityPolynomialBound
-import Qatlib.Concepts.QueryWordCore.QueryMachinery.AcceptancePolynomial
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Foundations.PureStateMath.Qubit
+module
+
+public import Qatlib.Concepts.QueryComplexity.AdversarySearch.SymmetricZeroErrorQueryLowerBoundStat
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.ParityPolynomialBound
+public import Qatlib.Concepts.QueryWordCore.QueryMachinery.AcceptancePolynomial
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Foundations.PureStateMath.Qubit
+
+@[expose] public section
 
 /-!
 # Symmetric zero error query lower bound

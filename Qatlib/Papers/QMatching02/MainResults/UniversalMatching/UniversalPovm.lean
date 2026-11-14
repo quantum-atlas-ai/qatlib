@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.LinearAlgebra.Matrix.PosDef
-import Mathlib.LinearAlgebra.Matrix.Trace
-import Mathlib.Basic.Complex.BigOperators
-import Mathlib.Analysis.InnerProductSpace.Positive
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Data.Nat.Choose.Basic
+module
+
+public import Mathlib.LinearAlgebra.Matrix.PosDef
+public import Mathlib.LinearAlgebra.Matrix.Trace
+public import Mathlib.Basic.Complex.BigOperators
+public import Mathlib.Analysis.InnerProductSpace.Positive
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Data.Nat.Choose.Basic
+
+@[expose] public section
 
 /-!
 # Universal matching scores and positive effects

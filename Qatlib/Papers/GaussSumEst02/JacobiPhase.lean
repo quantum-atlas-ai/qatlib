@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GaussSumEst02.MainResults.Source.Jacobi
-import Qatlib.Papers.GaussSumEst02.MainResults.Source.GaussSumCore
+module
+
+public import Qatlib.Papers.GaussSumEst02.MainResults.Source.Jacobi
+public import Qatlib.Papers.GaussSumEst02.MainResults.Source.GaussSumCore
+
+@[expose] public section
 
 /-!
 # Symmetry and special values of Jacobi sums
@@ -98,8 +102,8 @@ theorem jacobiSum_trivial_trivial {K : Type*} [Field K] [Fintype K] :
   simp_rw [hpt]
   rw [Finset.sum_sub_distrib, Finset.sum_sub_distrib,
     Finset.sum_const, Finset.card_univ, nsmul_eq_mul, mul_one,
-    Finset.sum_ite_eq', if_pos (Finset.mem_univ (0 : K)),
-    Finset.sum_ite_eq', if_pos (Finset.mem_univ (1 : K))]
+    Finset.sum_ite_eq', ite_eq_left (Finset.mem_univ (0 : K)),
+    Finset.sum_ite_eq', ite_eq_left (Finset.mem_univ (1 : K))]
   have hcast : ((Fintype.card K : ℕ) : ℂ) - 1 - 1
       = ((Fintype.card K - 2 : ℕ) : ℂ) := by
     rw [Nat.cast_sub hcard]
@@ -123,7 +127,7 @@ theorem jacobiSum_trivial_left {K : Type*} [Field K] [Fintype K] (ψ : MultChar 
       simp [trivialMultChar]
     · simp [trivialMultChar, hx]
   simp_rw [hpt]
-  rw [Finset.sum_sub_distrib, Finset.sum_ite_eq', if_pos (Finset.mem_univ (0 : K)),
+  rw [Finset.sum_sub_distrib, Finset.sum_ite_eq', ite_eq_left (Finset.mem_univ (0 : K)),
     ψ.map_one', sum_reflect, multChar_sum_eq_zero ψ hψ]
   ring
 

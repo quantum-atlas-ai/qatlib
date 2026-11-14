@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.JonesPoly06.MainResults.SamplingSigns
-import Qatlib.Papers.JonesPoly06.MainResults.ChernoffConcentration
-import Qatlib.Papers.JonesPoly06.MainResults.HadamardTest
+module
+
+public import Qatlib.Papers.JonesPoly06.MainResults.SamplingSigns
+public import Qatlib.Papers.JonesPoly06.MainResults.ChernoffConcentration
+public import Qatlib.Papers.JonesPoly06.MainResults.HadamardTest
+
+@[expose] public section
 
 /-!
 # Sampling a Hadamard-test sign observable

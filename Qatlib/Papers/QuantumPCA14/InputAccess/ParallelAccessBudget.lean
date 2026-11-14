@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QuantumPCA14.InputAccess.IndexedColumnLoad
-import Qatlib.Concepts.CopyEvolution.Discriminate.CopyExponentialPrecision
+module
+
+public import Qatlib.Papers.QuantumPCA14.InputAccess.IndexedColumnLoad
+public import Qatlib.Concepts.CopyEvolution.Discriminate.CopyExponentialPrecision
+
+@[expose] public section
 
 /-!
 # Parallel access and copy-protocol gate budgets

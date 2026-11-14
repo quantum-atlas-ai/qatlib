@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SearchStopping.RestartLaw.Section3RestartStationaritySubgoalTigh
-import Qatlib.Concepts.SearchStopping.RestartLaw.Section3OptimalAngleSubgoalTigh
-import Qatlib.Concepts.SearchStopping.RestartLaw.Section3OptimalConstantsSubgoalTigh
-import Qatlib.Concepts.SearchStopping.PaidRestart.Section3StrictImprovementSubgoalTigh
-import Qatlib.Concepts.SearchStopping.PaidRestart.ActualRestartExpectedReceiptTigh
-import Mathlib.Tactic
+module
+
+public import Qatlib.Concepts.SearchStopping.RestartLaw.Section3RestartStationaritySubgoal
+public import Qatlib.Concepts.SearchStopping.RestartLaw.Section3OptimalAngleSubgoal
+public import Qatlib.Concepts.SearchStopping.RestartLaw.Section3OptimalConstantsSubgoal
+public import Qatlib.Concepts.SearchStopping.PaidRestart.Section3StrictImprovementSubgoal
+public import Qatlib.Concepts.SearchStopping.PaidRestart.ActualRestartExpectedReceipt
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Certified restart constants and a finite search example

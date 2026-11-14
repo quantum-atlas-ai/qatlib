@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QuadChar00.MainResults.Lemma2TraceFourier
-import Mathlib.Algebra.CharP.Algebra
-import Mathlib.NumberTheory.LegendreSymbol.QuadraticChar.Basic
+module
+
+public import Qatlib.Papers.QuadChar00.MainResults.Lemma2TraceFourier
+public import Mathlib.Algebra.CharP.Algebra
+public import Mathlib.NumberTheory.LegendreSymbol.QuadraticChar.Basic
+
+@[expose] public section
 
 /-!
 # Shift recovery for finite field quadratic characters
@@ -50,7 +54,7 @@ theorem theorem3_traceFourier_amplitude (p : ℕ) [Fact p.Prime]
       = finiteFieldGaussSum p F * traceAddChar p F (-(s * y)) *
           ((finiteFieldQuadChar F y : ℤ) : ℂ) := by
   classical
-  haveI : CharP F p :=
+  have : CharP F p :=
     charP_of_injective_algebraMap (algebraMap (ZMod p) F).injective p
   have hF : ringChar F ≠ 2 := by
     rw [ringChar.eq F p]

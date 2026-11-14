@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.CircuitReversal.ReversalAlgebra.CircuitReversal
+module
+
+public import Qatlib.Foundations.CircuitReversal.ReversalAlgebra.CircuitReversal
+
+@[expose] public section
 
 /-!
 # Compute copy and reverse subroutines
@@ -67,6 +71,8 @@ private theorem inner_ket_left (i : I) (φ : QState I) : Inner (Ket i) φ = φ i
     simp [Ket, hk]
   · simp
 
+omit [Fintype I] [DecidableEq I] in
+
 /-- Lifting circuits to an additional answer bit preserves concatenation. -/
 private theorem liftCircuit_append (C D : Circuit I) :
     LiftCircuit (C ++ D) = LiftCircuit C ++ LiftCircuit D := by
@@ -76,6 +82,8 @@ private theorem liftCircuit_append (C D : Circuit I) :
     cases s with
     | gate U => rw [List.cons_append, liftCircuit_gate, liftCircuit_gate, ih]; rfl
     | query => rw [List.cons_append, liftCircuit_query, liftCircuit_query, ih]; rfl
+
+omit [Fintype I] [DecidableEq I] in
 
 /-- Lifting a gate to an additional answer bit commutes with conjugate transposition. -/
 private theorem liftGate_conjTranspose (U : Matrix I I ℂ) :
@@ -126,6 +134,8 @@ private theorem inner_run_liftCircuit (O : Matrix I I ℂ) (hO : O ∈ Matrix.un
         rfl
       rw [liftCircuit_query, run_query, ih hC' (ApplyGate (LiftGate O) χ) φ,
         inner_applyGate_conjTranspose (liftGate_unitary hO), liftGate_conjTranspose, hOH, hkey]
+
+omit [DecidableEq I] in
 
 /-- Running a lifted circuit with a lifted oracle on a tensor state applies the original
 execution to the first factor. -/

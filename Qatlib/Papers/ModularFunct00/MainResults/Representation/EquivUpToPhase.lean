@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ModularFunct00.MainResults.Setup
+module
+
+public import Qatlib.Papers.ModularFunct00.MainResults.Setup
+
+@[expose] public section
 
 /-!
 # Unitary equivalence up to phase and Jones labels

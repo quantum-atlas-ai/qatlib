@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.OrderedSpectralPerturbation
-import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+module
+
+public import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.OrderedSpectralPerturbation
+public import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+
+@[expose] public section
 
 /-!
 # Statement of the Gibbs trace lower bound
@@ -34,7 +38,7 @@ open scoped Matrix.Norms.L2Operator
 /-- The proposition that `spectralFrobenius H ^ 2 ≤ card I / 4` implies `card I / 2 ≤ Re (trace
 (exp H))` for every Hermitian matrix `H`. -/
 def GibbsTraceLowerBound : Prop :=
-  ∀ (I : Type) [Fintype I] [DecidableEq I] (H : Matrix I I ℂ) (hH : H.IsHermitian),
+  ∀ (I : Type) [Fintype I] [DecidableEq I] (H : Matrix I I ℂ) (_hH : H.IsHermitian),
     (Qatlib.Concepts.SpectralSketch.SpectrumPerturb.spectralFrobenius H)^2 ≤ (Fintype.card I)/4 →
     ((Fintype.card I : ℝ))/2 ≤ (Matrix.trace (exp H)).re
 

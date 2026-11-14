@@ -4,19 +4,23 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Complex.Exponential
-import Mathlib.Analysis.Complex.Norm
-import Mathlib.Analysis.Complex.Trigonometric
-import Mathlib.Analysis.SpecialFunctions.Complex.Arg
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Data.Complex.Basic
-import Mathlib.LinearAlgebra.Matrix.Defs
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Ring
-import Qatlib.Concepts.SpectralFilter.PhaseReadout.PhaseEstimation
-import Qatlib.Foundations.PureStateMath.Tensor
-import Qatlib.Concepts.SketchArith.SketchBuild.FiniteBoundedDifferences
+module
+
+public import Mathlib.Analysis.Complex.Exponential
+public import Mathlib.Analysis.Complex.Norm
+public import Mathlib.Analysis.Complex.Trigonometric
+public import Mathlib.Analysis.SpecialFunctions.Complex.Arg
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.LinearAlgebra.Matrix.Defs
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Ring
+public import Qatlib.Concepts.SpectralFilter.PhaseReadout.PhaseEstimation
+public import Qatlib.Foundations.PureStateMath.Tensor
+public import Qatlib.Concepts.SketchArith.SketchBuild.FiniteBoundedDifferences
+
+@[expose] public section
 
 /-!
 # Hadamard test sampling and phase decoding

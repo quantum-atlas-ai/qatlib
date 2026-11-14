@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.NativeQuantumMachineDefs
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Tactic
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.NativeQuantumMachineDefs
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Sparse transition amplitude bounds
@@ -164,6 +168,7 @@ theorem ruleAction_sub (A A' : ι → κ → ℂ) (ψ : ι → ℂ) :
   funext k
   simp only [ruleAction, Pi.sub_apply, sub_mul, sum_sub_distrib]
 
+omit [DecidableEq ι] [DecidableEq κ] in
 /-- For nonnegative `R` and `ε`, entrywise differences bounded by `ε` and supported on at most
 `R` connections at every input and output yield action error at most `R * ε` times the input
 Euclidean norm. -/
@@ -184,6 +189,7 @@ state `q`, and restoring symbol `a` at the former head position. -/
 def preConfig (d : Config Q A blank) (m : Move) (q : Q) (a : A) : Config Q A blank :=
   ⟨q, d.tape.write (d.head - m.offset) a, d.head - m.offset⟩
 
+omit [Fintype Q] [Fintype A] in
 /-- Reversing a target transition with its move, the original state, and the original scanned
 symbol recovers the source configuration. -/
 theorem preConfig_target (c : Config Q A blank) (t : Move × Q × A) :
@@ -197,6 +203,7 @@ theorem preConfig_target (c : Config Q A blank) (t : Move × Q × A) :
   · simpa [preConfig, hhead] using htape
   · exact hhead
 
+omit [Fintype Q] [Fintype A] in
 /-- Every predecessor of `d` lying in `S` belongs to the image of `preConfig d` over all
 move-state-symbol triples. -/
 theorem pred_subset_image (d : Config Q A blank) (S : Set (Config Q A blank)) :

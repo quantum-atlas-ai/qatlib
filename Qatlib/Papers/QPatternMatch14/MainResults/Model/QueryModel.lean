@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.SpecialFunctions.Log.Base
-import Mathlib.Analysis.SpecialFunctions.Pow.Deriv
-import Mathlib.Analysis.SpecialFunctions.Sqrt
-import Mathlib.Data.Real.Basic
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
-import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
-import Qatlib.Papers.QPatternMatch14.MainResults.Model.PatternStrings
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.SpecialFunctions.Log.Base
+public import Mathlib.Analysis.SpecialFunctions.Pow.Deriv
+public import Mathlib.Analysis.SpecialFunctions.Sqrt
+public import Mathlib.Basic.Real.Basic
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+public import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
+public import Qatlib.Papers.QPatternMatch14.MainResults.Model.PatternStrings
+
+@[expose] public section
 
 /-!
 # Abstract query algorithms and the paper's complexity expressions

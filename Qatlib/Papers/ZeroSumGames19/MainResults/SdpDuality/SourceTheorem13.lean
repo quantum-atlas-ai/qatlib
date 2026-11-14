@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ZeroSumGames19.MainResults.GameModel.SourceGameModel
+module
+
+public import Qatlib.Papers.ZeroSumGames19.MainResults.GameModel.SourceGameModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -50,7 +54,7 @@ open Qatlib.Papers.ZeroSumGames19.MainResults.GameModel
 theorem source_theorem13_cost_composition
     {n m s : ℕ} (hn : 0 < n) (hm : 0 < m) (hs : 0 < s)
     (data : LPGameReduction n m) {ε δ : ℝ}
-    (hε : 0 < ε) (hδ0 : 0 < δ) (hδ1 : δ < 1)
+    (hε : 0 < ε) (_hδ0 : 0 < δ) (_hδ1 : δ < 1)
     (hR : 0 < data.R) (hr : 0 ≤ data.r)
     (implD implS : QuantumImplementation n m)
     (hsuccD : 1 - δ ≤ implD.successProb) (hsuccS : 1 - δ ≤ implS.successProb)

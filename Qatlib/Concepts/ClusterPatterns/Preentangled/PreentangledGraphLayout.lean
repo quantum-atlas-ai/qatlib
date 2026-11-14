@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ClusterPatterns.PauliNetwork.DeferredPauliNetwork
-import Qatlib.Concepts.ClusterPatterns.PauliNetwork.DeferredPauliNetworkConsumers
+module
+
+public import Qatlib.Concepts.ClusterPatterns.PauliNetwork.DeferredPauliNetwork
+public import Qatlib.Concepts.ClusterPatterns.PauliNetwork.DeferredPauliNetworkConsumers
+
+@[expose] public section
 
 /-!
 # Physical layouts for preentangled graph patterns
@@ -519,11 +523,11 @@ theorem graphMessage_injective {n L : ℕ} (gs : GraphWord n L) :
     | cons s ts ih =>
       intro h k he t ht
       cases hs : graphWireAt gs s
-      · simp only [List.filterMap_cons, hs, Bool.false_eq_true, if_false] at he
+      · simp only [List.filterMap_cons, hs, Bool.false_eq_true, ite_false] at he
         rcases List.mem_cons.mp ht with rfl | ht
         · rw [h.2 t hs, k.2 t hs]
         · exact ih h k he t ht
-      · simp only [List.filterMap_cons, hs, if_true, List.cons.injEq] at he
+      · simp only [List.filterMap_cons, hs, ite_true, List.cons.injEq] at he
         rcases List.mem_cons.mp ht with rfl | ht
         · exact he.1
         · exact ih h k he.2 t ht
@@ -594,7 +598,7 @@ theorem graph_wire_entry_zero {N : ℕ} (q k : Fin N) (U : Operator 2)
   unfold pauliProductDensity
   apply Finset.prod_eq_zero (Finset.mem_univ k)
   (try dsimp only)
-  rw [if_neg hk]
+  rw [ite_eq_right hk]
   exact Matrix.one_apply_ne (fun h => hxy (boolEquivFin2.injective h))
 
 /-- A physical CZ commutes with any one-qubit gate on a wire distinct from both endpoints. -/

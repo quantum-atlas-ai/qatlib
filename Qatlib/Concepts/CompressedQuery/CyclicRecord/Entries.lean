@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CompressedQuery.CyclicRecord.PhaseQuery
+module
+
+public import Qatlib.Concepts.CompressedQuery.CyclicRecord.PhaseQuery
+
+@[expose] public section
 
 /-!
 # Entries of the uniform swap and recording matrix
@@ -72,7 +76,7 @@ theorem sum_delta_sub (f : L → ℂ) (a : ℂ) (x y : L) :
     (∑ k : L, ((if x=k then 1 else 0)-a)*f k*((if k=y then 1 else 0)-a))=
       (if x=y then f x else 0)-a*f x-a*f y+a^2*∑ k, f k := by
   simp_rw [sub_mul,mul_sub,ite_mul,mul_ite,one_mul,mul_one,zero_mul,mul_zero]
-  simp only [ite_self,Finset.sum_sub_distrib,Finset.sum_ite_eq,Finset.sum_ite_eq',Finset.mem_univ,if_true]
+  simp only [ite_self,Finset.sum_sub_distrib,Finset.sum_ite_eq,Finset.sum_ite_eq',Finset.mem_univ,ite_true]
   simp only [← Finset.mul_sum,← Finset.sum_mul]
   ring
 

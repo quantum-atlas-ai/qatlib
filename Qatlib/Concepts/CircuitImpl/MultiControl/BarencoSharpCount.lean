@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CircuitImpl.MultiControl.BarencoSharpDefs
-import Mathlib.Topology.MetricSpace.HausdorffDimension
-import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.MultiKnownQubitControl
-import Qatlib.Concepts.CircuitImpl.MultiControl.NoWorkTwoLevelSynthesis
-import Qatlib.Concepts.GateTables.GrayUniversal.GrayCodeSynthesis
+module
+
+public import Qatlib.Concepts.CircuitImpl.MultiControl.BarencoSharpDefs
+public import Mathlib.Topology.MetricSpace.HausdorffDimension
+public import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.MultiKnownQubitControl
+public import Qatlib.Concepts.CircuitImpl.MultiControl.NoWorkTwoLevelSynthesis
+public import Qatlib.Concepts.GateTables.GrayUniversal.GrayCodeSynthesis
+
+@[expose] public section
 
 /-!
 # Legality and semantics of the Corollary 7.4 word
@@ -148,12 +152,12 @@ theorem cor74_word_package {N : ℕ} (m : ℕ) (c : ℕ → Fin N) (s t : Fin N)
     change i < b+1 at hi
     change j < b+1 at hj
     by_cases hib : i < b <;> by_cases hjb : j < b
-    · simp only [cb, if_pos hib, if_pos hjb] at he
+    · simp only [cb, ite_eq_left hib, ite_eq_left hjb] at he
       have heq : a+i=a+j := hc (show a+i < m from by omega) (show a+j < m from by omega) he
       omega
-    · simp only [cb, if_pos hib, if_neg hjb] at he
+    · simp only [cb, ite_eq_left hib, ite_eq_right hjb] at he
       exact (hcs (a+i) (by omega) he).elim
-    · simp only [cb, if_neg hib, if_pos hjb] at he
+    · simp only [cb, ite_eq_right hib, ite_eq_left hjb] at he
       exact (hcs (a+j) (by omega) he.symm).elim
     · omega
   have hwb : Set.InjOn wb (Set.Iio rb) := by
@@ -163,9 +167,9 @@ theorem cor74_word_package {N : ℕ} (m : ℕ) (c : ℕ → Fin N) (s t : Fin N)
   have hcrossB : ∀ i < b+1, ∀ j < rb, cb i ≠ wb j := by
     intro i hi j hj
     by_cases hib : i < b
-    · simp only [cb, if_pos hib, wb]
+    · simp only [cb, ite_eq_left hib, wb]
       exact hne (a+i) j (by omega) (by omega) (by omega)
-    · simp only [cb, if_neg hib, wb]
+    · simp only [cb, ite_eq_right hib, wb]
       exact (hcs j (by omega)).symm
   have hLB : noWorkDirtyPrefixLayout cb wb rb := by
     refine ⟨?_,hwb,?_⟩
@@ -177,8 +181,8 @@ theorem cor74_word_package {N : ℕ} (m : ℕ) (c : ℕ → Fin N) (s t : Fin N)
   have hBcT : ∀ i < rb+2, cb i ≠ t := by
     intro i hi
     by_cases hib : i < b
-    · simpa only [cb, if_pos hib] using! hct (a+i) (by omega)
-    · simpa only [cb, if_neg hib] using! hst
+    · simpa only [cb, ite_eq_left hib] using! hct (a+i) (by omega)
+    · simpa only [cb, ite_eq_right hib] using! hst
   have hBwT : ∀ j < rb, wb j ≠ t := fun j hj => hct j (by omega)
   have hBlast : ∀ j < rb, cb (rb+1) ≠ wb j := fun j hj => hcrossB _ (by omega) j hj
   have hBfirst : ∀ i < rb+1, cb (rb+1) ≠ cb i := by
@@ -209,7 +213,7 @@ theorem cor74_word_package {N : ℕ} (m : ℕ) (c : ℕ → Fin N) (s t : Fin N)
   have hBconj (x : Reg N) : noWorkPrefixAnd (fun i => x (cb i)) (rb+2)=(B x && x s) := by
     rw [heb, noWorkPrefixAnd_succ]
     have hp : noWorkPrefixAnd (fun i => x (cb i)) b = B x :=
-      and_congr _ _ _ (fun i hi => by simp only [cb, if_pos hi])
+      and_congr _ _ _ (fun i hi => by simp only [cb, ite_eq_left hi])
     rw [hp, show cb b=s from by simp [cb]]
   have hRB (x : Reg N) : Run (1 : Matrix (Reg N) (Reg N) ℂ) (reflectionCompile br) (Qatlib.Foundations.PureStateMath.Ket x) =
       Qatlib.Foundations.PureStateMath.Ket (Function.update x t (x t ^^ (B x && x s))) := by

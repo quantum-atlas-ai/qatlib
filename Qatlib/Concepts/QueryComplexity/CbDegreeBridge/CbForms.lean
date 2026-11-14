@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.CStarAlgebra.Classes
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Foundations.QueryWordCore.Circuit
+module
+
+public import Mathlib.Analysis.CStarAlgebra.Classes
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Foundations.QueryWordCore.Circuit
+
+@[expose] public section
 
 /-!
 # Completely bounded tensors and query biases

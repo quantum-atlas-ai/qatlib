@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.Entanglement.Separability.EntanglementLOCCDefs
-import Qatlib.Papers.EntangleTrans99.MainResults.Majorization.Basic
+module
+
+public import Qatlib.Concepts.Entanglement.Separability.EntanglementLOCCDefs
+public import Qatlib.Papers.EntangleTrans99.MainResults.Majorization.Basic
+
+@[expose] public section
 
 /-!
 # T-transform coordinates and spectral bounds

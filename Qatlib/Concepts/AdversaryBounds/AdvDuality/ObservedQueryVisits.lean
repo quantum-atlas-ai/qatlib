@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedQueryBudget
-import Mathlib.Algebra.BigOperators.Group.List.Basic
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedQueryBudget
+public import Mathlib.Algebra.BigOperators.Group.List.Basic
+
+@[expose] public section
 
 /-!
 # Query visits and expected query counts
@@ -151,7 +155,7 @@ theorem observedQueryVisits_mass (O : Matrix I I ℂ)
   | measure n label next ih =>
     rw [expectedObservedQueries_measure]
     simp only [observedQueryVisits, List.map_flatten, List.sum_flatten,
-      List.map_map, Function.comp_def, List.map_ofFn, List.sum_ofFn]
+       Function.comp_def, List.map_ofFn, List.sum_ofFn]
     have hnext (o : Fin n) := ih o (hP o)
     simp only [hnext]
   | project M onFalse onTrue ihFalse ihTrue =>

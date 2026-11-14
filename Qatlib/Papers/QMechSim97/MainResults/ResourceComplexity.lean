@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QMechSim97.MainResults.Defs
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.QMechSim97.MainResults.Defs
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Lattice simulation resource arithmetic

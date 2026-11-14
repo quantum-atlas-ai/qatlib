@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ResourceBoundsTransport
-import Qatlib.Concepts.FreshCopyExec.QpeConsumers.FreshCopyExecution
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ResourceBoundsTransport
+public import Qatlib.Concepts.FreshCopyExec.QpeConsumers.FreshCopyExecution
+
+@[expose] public section
 
 /-!
 # Definitions for execution resource accounting

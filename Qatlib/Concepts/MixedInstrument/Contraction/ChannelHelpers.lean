@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ReferenceError.DensityToRaw.ChannelTraceContraction
-import Qatlib.Concepts.GibbsMetropolis.RationalBath.ApproximateRationalGibbs
+module
+
+public import Qatlib.Concepts.ReferenceError.DensityToRaw.ChannelTraceContraction
+public import Qatlib.Concepts.GibbsMetropolis.RationalBath.ApproximateRationalGibbs
+
+@[expose] public section
 
 /-!
 # Warm starts and accumulated channel error

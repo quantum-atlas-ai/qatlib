@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
-import Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
-import Qatlib.Papers.LinDynamics23.DiscreteObs.DiscreteLchsCost
+module
+
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+public import Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
+public import Qatlib.Papers.LinDynamics23.DiscreteObs.DiscreteLchsCost
+
+@[expose] public section
 
 /-!
 # Hybrid observable bias statement

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.RationalFlow.MeanCell
-import Mathlib.Tactic.FieldSimp
+module
+
+public import Qatlib.Concepts.EffectiveGauge.RationalFlow.MeanCell
+public import Mathlib.Tactic.FieldSimp
+
+@[expose] public section
 
 /-!
 # Mean Interval

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TensorRegisters.RegisterModel.TensorRegisters
-import Qatlib.Concepts.TrotterFormula.RecursiveSuzuki.RecursiveSuzukiConsumers
-import Mathlib.Tactic
+module
+
+public import Qatlib.Concepts.TensorRegisters.RegisterModel.TensorRegisters
+public import Qatlib.Concepts.TrotterFormula.RecursiveSuzuki.RecursiveSuzukiConsumers
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Tensor factorization of interleaved Suzuki words

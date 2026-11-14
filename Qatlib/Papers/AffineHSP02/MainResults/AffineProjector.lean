@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Analysis.SpecialFunctions.Complex.CircleAddChar
-import Mathlib.Tactic
-import Qatlib.Papers.AffineHSP02.MainResults.AffineGroup
+module
+
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Analysis.SpecialFunctions.Complex.CircleAddChar
+public import Mathlib.Tactic
+public import Qatlib.Papers.AffineHSP02.MainResults.AffineGroup
+
+@[expose] public section
 
 /-!
 # Entries and trace of the affine subgroup average
@@ -61,7 +65,7 @@ theorem affProj_diag (q : ℕ) (a : (ZMod p)ˣ) (b : ZMod p) (hq : orderOf a = q
     rw [Finset.sum_eq_single 0]
     · simp
     · intro t ht hne
-      rw [if_neg]
+      rw [ite_eq_right]
       intro h
       apply hne
       have ht' : t < orderOf a := by rw [hq]; exact Finset.mem_range.mp ht
@@ -99,7 +103,7 @@ theorem affProj_apply_of_mem (q : ℕ) (a : (ZMod p)ˣ) (b : ZMod p)
     have hpoweq : a ^ t = a ^ t₀ := mul_right_cancel (h1.trans h2.symm)
     exact pow_injOn_Iio_orderOf ht' ht₀' hpoweq
   rw [Finset.sum_eq_single t₀]
-  · rw [if_pos hk]
+  · rw [ite_eq_left hk]
     congr 1
     have hphase : (1 - (a : ZMod p) ^ t₀) * b * (j : ZMod p)
         = b * ((j : ZMod p) - (k : ZMod p)) := by
@@ -107,7 +111,7 @@ theorem affProj_apply_of_mem (q : ℕ) (a : (ZMod p)ˣ) (b : ZMod p)
       ring
     rw [hphase]
   · intro t ht hne
-    rw [if_neg]
+    rw [ite_eq_right]
     exact fun h => hne (huniq t ht h)
   · intro hnot
     exact absurd (Finset.mem_range.mpr ht₀) hnot
@@ -122,7 +126,7 @@ theorem affProj_apply_of_not_mem (q : ℕ) (a : (ZMod p)ˣ) (b : ZMod p)
   rw [Finset.sum_eq_zero]
   · simp
   · intro t ht
-    rw [if_neg]
+    rw [ite_eq_right]
     exact h t (Finset.mem_range.mp ht)
 
 /-- For prime `p` and `a` of order `q`, the trace of `affProj q a b` is `(p - 1) * q⁻¹`. -/

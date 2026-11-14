@@ -4,10 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.FreeAlgebra
-import Mathlib.Algebra.BigOperators.Ring.List
-import Mathlib.LinearAlgebra.Finsupp.LinearCombination
-import Mathlib.Tactic.NoncommRing
+module
+
+public import Mathlib.Algebra.FreeAlgebra
+public import Mathlib.Algebra.BigOperators.Ring.List
+public import Mathlib.LinearAlgebra.Finsupp.LinearCombination
+public import Mathlib.Tactic.NoncommRing
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 /-!
 # Dynkin maps and primitive word elements

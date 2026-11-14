@@ -4,7 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.StoppingCore.InterruptBridge.StoppingDefs
+module
+
+public import Qatlib.Concepts.StoppingCore.InterruptBridge.StoppingDefs
+
+@[expose] public section
+
+set_option linter.unusedSectionVars false
+set_option linter.unusedSimpArgs false
+set_option linter.unusedVariables false
 
 /-!
 # Exact prefix laws for interruptible circuits
@@ -192,7 +200,7 @@ theorem micro_runFor_point (O : Matrix I I ℂ) (k : ℕ) (cfg : InterruptConfig
       rw [microNext_cons O s cs ψ r lg]
       cases hc : cs with
       | nil =>
-        rw [if_pos rfl, PMF.pure_map, CostedLaw.bind, PMF.pure_bind, runFor_halted,
+        rw [ite_eq_left rfl, PMF.pure_map, CostedLaw.bind, PMF.pure_bind, runFor_halted,
           CostedLaw.charge_ret]
         have hstep : (microStep O ⟨s :: [], ψ, r, lg⟩).word = [] := by
           rw [microStep_cons]; cases s <;> rfl
@@ -200,7 +208,7 @@ theorem micro_runFor_point (O : Matrix I I ℂ) (k : ℕ) (cfg : InterruptConfig
           microAfter_succ, microAfter_empty O k (microStep O ⟨s :: [], ψ, r, lg⟩) hstep]
         rw [show min (k + 1) (List.length [s]) = 1 from by simp [List.length]]
       | cons s2 cs2 =>
-        rw [if_neg (by simp [hc]), PMF.pure_map, CostedLaw.bind, PMF.pure_bind]
+        rw [ite_eq_right (by simp [hc]), PMF.pure_map, CostedLaw.bind, PMF.pure_bind]
         have ih' := ih (microStep O ⟨s :: s2 :: cs2, ψ, r, lg⟩)
         have hstep : (microStep O ⟨s :: s2 :: cs2, ψ, r, lg⟩).word = s2 :: cs2 := by
           rw [microStep_cons]; cases s <;> rfl
@@ -366,8 +374,8 @@ theorem consumers : InterruptConsumers := by
     have htt := congrFun hEq (true, true)
     simp only [TensorState] at hff hft htt
     rw [teleportBellResource_apply'] at hff hft htt
-    rw [if_pos rfl] at hff htt
-    rw [if_neg (by decide : (false : Bool) ≠ true)] at hft
+    rw [ite_eq_left rfl] at hff htt
+    rw [ite_eq_right (by decide : (false : Bool) ≠ true)] at hft
     have hb : (Real.sqrt 2 : ℂ)⁻¹ ≠ 0 :=
       inv_ne_zero (Complex.ofReal_ne_zero.mpr (Real.sqrt_ne_zero'.mpr (by norm_num)))
     rw [eq_comm, mul_eq_zero] at hft

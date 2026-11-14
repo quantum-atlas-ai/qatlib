@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QlsReadoutSpec.Amplification.PaidModels
-import Mathlib.Analysis.Normed.Algebra.Exponential
+module
+
+public import Qatlib.Concepts.QlsReadoutSpec.Amplification.PaidModels
+public import Mathlib.Analysis.Normed.Algebra.Exponential
+
+@[expose] public section
 
 /-!
 # Models for walk-based linear-algebra applications

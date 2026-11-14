@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ManyBodyFermi97.MainResults.ParallelBlocks
-import Qatlib.Papers.ManyBodyFermi97.MainResults.Defs
-import Mathlib.Analysis.Normed.Algebra.MatrixExponential
-import Mathlib.Analysis.SpecialFunctions.Exponential
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
+module
+
+public import Qatlib.Papers.ManyBodyFermi97.MainResults.ParallelBlocks
+public import Qatlib.Papers.ManyBodyFermi97.MainResults.Defs
+public import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+public import Mathlib.Analysis.SpecialFunctions.Exponential
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+
+@[expose] public section
 
 /-!
 # Exact synthesis of parallel hopping blocks

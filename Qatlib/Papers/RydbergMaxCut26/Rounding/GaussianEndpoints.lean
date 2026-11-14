@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.RydbergMaxCut26.Rounding.GaussianMatrix
-import Mathlib.Analysis.InnerProductSpace.Projection.Reflection
+module
+
+public import Qatlib.Papers.RydbergMaxCut26.Rounding.GaussianMatrix
+public import Mathlib.Analysis.InnerProductSpace.Projection.Reflection
+
+@[expose] public section
 
 /-!
 # Endpoint and orthogonality cases of Gaussian rounding

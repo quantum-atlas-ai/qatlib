@@ -4,24 +4,28 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.ReceivedStats.GroupedPairStatistics
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.ReceivedStats.SignedCollisionStatistics
-import Qatlib.Concepts.FinitePrecision.ComputableInput.NativeArithmetic.RationalPiEnclosure
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
-import Mathlib.Data.Fintype.BigOperators
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Analysis.Real.Pi.Bounds
-import Mathlib.Analysis.SpecialFunctions.Complex.Arctan
-import Mathlib.Analysis.SpecificLimits.Normed
-import Mathlib.Data.Nat.Size
-import Mathlib.Data.Rat.Floor
-import Mathlib.Data.List.AList
-import Mathlib.Data.Real.Basic
-import Mathlib.Tactic.LinearCombination
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.SplitIfs
+module
+
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.ReceivedStats.GroupedPairStatistics
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.ReceivedStats.SignedCollisionStatistics
+public import Qatlib.Concepts.FinitePrecision.ComputableInput.NativeArithmetic.RationalPiEnclosure
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+public import Mathlib.Data.Fintype.BigOperators
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Analysis.Real.Pi.Bounds
+public import Mathlib.Analysis.SpecialFunctions.Complex.Arctan
+public import Mathlib.Analysis.SpecificLimits.Normed
+public import Mathlib.Data.Nat.Size
+public import Mathlib.Data.Rat.Floor
+public import Mathlib.Data.List.AList
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Tactic.LinearCombination
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.SplitIfs
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -251,6 +255,7 @@ open scoped BigOperators
 open Qatlib
 variable {X : Type*} [Fintype X] [DecidableEq X]
 
+omit [DecidableEq X] in
 /-- Complete original `expect_distinct_coordinate_product` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
 theorem expect_distinct_coordinate_product {n : ℕ} (p : FinDist X)
     (i j : Fin n) (hij : i ≠ j) (f g : X → ℝ) :
@@ -1064,6 +1069,7 @@ open scoped BigOperators
 open Qatlib
 variable {X : Type*} [Fintype X] [DecidableEq X]
 
+omit [DecidableEq X] in
 /-- Complete original `centered_pair_second_moment` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
 theorem centered_pair_second_moment (p : FinDist X) (H : X → X → ℝ)
     (hH : ∀ x y, H x y=H y x) :
@@ -1811,6 +1817,7 @@ theorem finite_bad_indicator_mean (p : FinDist X) (f : X → ℝ) (c ε : ℝ) :
   rw [Finset.sum_filter]
   simp only [mul_ite, mul_one, mul_zero]
 
+omit [DecidableEq X] in
 /-- Complete original `finite_median_power_bound` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
 theorem finite_median_power_bound {K : ℕ} (p : FinDist X) (f : X → ℝ) (c ε : ℝ)
     (hK : 0 < K) (hbad : finiteBadMass p f c ε ≤ 3/16) :
@@ -1857,6 +1864,7 @@ theorem finite_median_power_bound {K : ℕ} (p : FinDist X) (f : X → ℝ) (c �
     _ ≤ (25/16 : ℝ)^K/(2 : ℝ)^K := div_le_div_of_nonneg_right hmoment (by positivity)
     _ = (25/32 : ℝ)^K := by rw [← div_pow]; norm_num
 
+omit [DecidableEq X] in
 /-- Complete original `finite_median_confidence` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
 theorem finite_median_confidence {K : ℕ} (p : FinDist X) (f : X → ℝ) (c ε ρ : ℝ)
     (hK0 : 0 < K) (hρ : 0 < ρ) (hbad : finiteBadMass p f c ε ≤ 3/16)

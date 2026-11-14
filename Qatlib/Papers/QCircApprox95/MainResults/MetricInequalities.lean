@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.BornMetrics.FiniteStats.MetricCore
-import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.OrderedSpectralPerturbation
-import Qatlib.Foundations.OperatorErrors.OperatorError
-import Mathlib.Tactic
+module
+
+public import Qatlib.Foundations.BornMetrics.FiniteStats.MetricCore
+public import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.OrderedSpectralPerturbation
+public import Qatlib.Foundations.OperatorErrors.OperatorError
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Measurement metrics and composition errors

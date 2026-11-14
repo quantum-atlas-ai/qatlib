@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QWalkConnect98.MainResults.WalkOperator.WalkOperatorDefinitions
+module
+
+public import Qatlib.Papers.QWalkConnect98.MainResults.WalkOperator.WalkOperatorDefinitions
+
+@[expose] public section
 
 /-!
 # Action of the projected connectivity walk
@@ -52,7 +56,7 @@ theorem walkP_mulVec_apply (y : V × V → ℝ) (p : V × V) :
     (walkP *ᵥ y) p = if p.1 = p.2 then y p else 0 := by
   simp only [Matrix.mulVec, dotProduct, walkP, Matrix.of_apply]
   by_cases h : p.1 = p.2
-  · rw [if_pos h]
+  · rw [ite_eq_left h]
     have hterm : ∀ q : V × V,
         (if p = q ∧ p.1 = p.2 then (1 : ℝ) else 0) * y q =
           (if p = q then y q else 0) := by
@@ -63,7 +67,7 @@ theorem walkP_mulVec_apply (y : V × V → ℝ) (p : V × V) :
       · simp [hq]
     simp only [hterm]
     simp
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     apply Finset.sum_eq_zero
     intro q _
     have h' : ¬ (p = q ∧ p.1 = p.2) := fun hc => h hc.2
@@ -75,8 +79,8 @@ theorem walkP_mulVec_diagLift (x : V → ℝ) :
   funext p
   rw [walkP_mulVec_apply]
   by_cases hp : p.1 = p.2
-  · rw [if_pos hp, diagLift_apply, if_pos hp]
-  · rw [if_neg hp, diagLift_apply, if_neg hp]
+  · rw [ite_eq_left hp, diagLift_apply, ite_eq_left hp]
+  · rw [ite_eq_right hp, diagLift_apply, ite_eq_right hp]
 
 /-- The swap matrix `walkX` exchanges the two coordinates of each pair when acting on a vector. -/
 theorem walkX_mulVec_apply (y : V × V → ℝ) (p : V × V) :
@@ -113,7 +117,7 @@ theorem walkF_mulVec_apply (G : SimpleGraph V) [DecidableRel G.Adj] (d : ℝ)
           (((if b = p.2 then 1 else 0) - (if b ∈ closedNbhd G p.1 then 2 / (d + 1) else 0)) *
             x (p.1, b)) := by
         intro b
-        simp only [walkF, Matrix.of_apply, hmem, if_true]
+        simp only [walkF, Matrix.of_apply, hmem, ite_true]
       simp only [hb]
       have hsplit : ∀ b : V,
           ((if b = p.2 then (1 : ℝ) else 0) -
@@ -124,29 +128,29 @@ theorem walkF_mulVec_apply (G : SimpleGraph V) [DecidableRel G.Adj] (d : ℝ)
         by_cases h1 : b = p.2
         · subst h1
           by_cases h2 : p.2 ∈ closedNbhd G p.1
-          · simp only [h2, if_true]
+          · simp only [h2, ite_true]
             ring
-          · simp only [h2, if_true, if_false]
+          · simp only [h2, ite_true, ite_false]
             ring
         · by_cases h2 : b ∈ closedNbhd G p.1
-          · simp only [h1, h2, if_true, if_false]
+          · simp only [h1, h2, ite_true, ite_false]
             ring
-          · simp only [h1, h2, if_true, if_false]
+          · simp only [h1, h2,  ite_false]
             ring
       simp only [hsplit, Finset.sum_sub_distrib]
-      rw [Finset.sum_ite_eq', if_pos (Finset.mem_univ p.2), Finset.sum_ite_mem,
+      rw [Finset.sum_ite_eq', ite_eq_left (Finset.mem_univ p.2), Finset.sum_ite_mem,
         Finset.univ_inter, ← Finset.mul_sum]
-      rw [if_pos hmem]
+      rw [ite_eq_left hmem]
     · have hb : ∀ b : V, walkF G d p (p.1, b) * x (p.1, b) =
           (if b = p.2 then x (p.1, b) else 0) := by
         intro b
         by_cases h1 : b = p.2
-        · simp only [walkF, Matrix.of_apply, hmem, h1, if_true, if_false]
+        · simp only [walkF, Matrix.of_apply, hmem, h1, ite_true, ite_false]
           ring
-        · simp only [walkF, Matrix.of_apply, hmem, h1, if_true, if_false]
+        · simp only [walkF, Matrix.of_apply, hmem, h1, ite_true, ite_false]
           ring
       simp only [hb]
-      rw [Finset.sum_ite_eq', if_pos (Finset.mem_univ p.2), if_neg hmem]
+      rw [Finset.sum_ite_eq', ite_eq_left (Finset.mem_univ p.2), ite_eq_right hmem]
   · intro a _ ha
     apply Finset.sum_eq_zero
     intro b _
@@ -166,17 +170,17 @@ theorem walkF_diagLift_apply (G : SimpleGraph V) [DecidableRel G.Adj] (d : ℝ)
       else 0) := by
   rw [walkF_mulVec_apply]
   by_cases hv : v ∈ closedNbhd G u
-  · rw [if_pos hv, if_pos hv]
+  · rw [ite_eq_left hv, ite_eq_left hv]
     have hsum : (∑ w ∈ closedNbhd G u, diagLift x (u, w)) = x u := by
       simp only [diagLift_apply]
-      rw [Finset.sum_ite_eq, if_pos (self_mem_closedNbhd G u)]
+      rw [Finset.sum_ite_eq, ite_eq_left (self_mem_closedNbhd G u)]
     rw [hsum, diagLift_apply]
     by_cases huv : u = v
     · subst huv
       simp
       ring
     · simp [huv]
-  · rw [if_neg hv, if_neg hv]
+  · rw [ite_eq_right hv, ite_eq_right hv]
     have huv : ¬ (u = v) := fun h => hv (h ▸ self_mem_closedNbhd G u)
     simp [diagLift_apply, huv]
 
@@ -203,7 +207,7 @@ theorem walkF_X_F_diagLift_apply (G : SimpleGraph V) [DecidableRel G.Adj] (d : �
     (walkF G d *ᵥ (walkX *ᵥ (walkF G d *ᵥ diagLift x))) (u, u) =
       walkA d * x u + walkB d * ∑ w ∈ G.neighborFinset u, x w := by
   rw [walkF_mulVec_apply]
-  rw [if_pos (self_mem_closedNbhd G u)]
+  rw [ite_eq_left (self_mem_closedNbhd G u)]
   have hw : ∀ b : V, (walkX *ᵥ (walkF G d *ᵥ diagLift x)) (u, b) =
       (if u ∈ closedNbhd G b then ((if b = u then 1 else 0) - 2 / (d + 1)) * x b
         else 0) := by
@@ -220,7 +224,7 @@ theorem walkF_X_F_diagLift_apply (G : SimpleGraph V) [DecidableRel G.Adj] (d : �
         = ∑ w ∈ closedNbhd G u, ((if w = u then 1 else 0) - 2 / (d + 1)) * x w := by
       apply Finset.sum_congr rfl
       intro w hwmem
-      rw [if_pos (closedNbhd_comm.mp hwmem)]
+      rw [ite_eq_left (closedNbhd_comm.mp hwmem)]
     rw [hcongr]
     have hone : ∀ w : V, ((if w = u then (1 : ℝ) else 0) - 2 / (d + 1)) * x w =
         (if w = u then x w else 0) - (2 / (d + 1)) * x w := by
@@ -229,10 +233,10 @@ theorem walkF_X_F_diagLift_apply (G : SimpleGraph V) [DecidableRel G.Adj] (d : �
       · subst hw'
         simp
         ring
-      · rw [if_neg hw', if_neg hw']
+      · rw [ite_eq_right hw', ite_eq_right hw']
         ring
     simp only [hone, Finset.sum_sub_distrib]
-    rw [Finset.sum_ite_eq', if_pos (self_mem_closedNbhd G u)]
+    rw [Finset.sum_ite_eq', ite_eq_left (self_mem_closedNbhd G u)]
     simp only [closedNbhd]
     rw [Finset.sum_insert (G.notMem_neighborFinset_self u)]
     rw [← Finset.mul_sum]
@@ -241,11 +245,12 @@ theorem walkF_X_F_diagLift_apply (G : SimpleGraph V) [DecidableRel G.Adj] (d : �
   have hhead : (if u ∈ closedNbhd G u then
       ((if True then (1 : ℝ) else 0) - 2 / (d + 1)) * x u else 0) =
         (1 - 2 / (d + 1)) * x u := by
-    rw [if_pos (self_mem_closedNbhd G u)]
+    rw [ite_eq_left (self_mem_closedNbhd G u)]
     norm_num
   rw [hhead, walkA, walkB]
   exact walkA_identity (2 / (d + 1)) (x u) (∑ w ∈ G.neighborFinset u, x w)
 
+omit [DecidableEq V] in
 /-- The adjacency matrix applied to `x` sums `x` over the neighbors of the selected vertex. -/
 theorem adjMatrix_mulVec_apply (G : SimpleGraph V) [DecidableRel G.Adj]
     (x : V → ℝ) (u : V) :
@@ -281,10 +286,10 @@ theorem walkQ_mulVec_diagLift (G : SimpleGraph V) [DecidableRel G.Adj] (d : ℝ)
   funext p
   rw [walkP_mulVec_apply]
   by_cases hp : p.1 = p.2
-  · rw [if_pos hp, diagLift_apply, if_pos hp]
+  · rw [ite_eq_left hp, diagLift_apply, ite_eq_left hp]
     have hp' : p = (p.1, p.1) := by ext <;> simp [hp]
     rw [hp', walkF_X_F_diagLift_apply, walkM_mulVec_apply]
-  · rw [if_neg hp, diagLift_apply, if_neg hp]
+  · rw [ite_eq_right hp, diagLift_apply, ite_eq_right hp]
 
 /-- Every power of the projected walk intertwines with the corresponding power of the
 vertex-space walk through `diagLift`. -/
@@ -309,10 +314,10 @@ theorem walkQ_pow_apply_diag (G : SimpleGraph V) [DecidableRel G.Adj] (d : ℝ)
   have h1 : (walkQ G d ^ k *ᵥ diagLift (basisVec s)) (v, v) =
       (walkQ G d ^ k) (v, v) (s, s) := by
     simp only [Matrix.mulVec, dotProduct, diagLift_basisVec, mul_ite, mul_one, mul_zero]
-    rw [Finset.sum_ite_eq', if_pos (Finset.mem_univ (s, s))]
+    rw [Finset.sum_ite_eq', ite_eq_left (Finset.mem_univ (s, s))]
   have h2 : diagLift ((walkM G d ^ k) *ᵥ basisVec s) (v, v) =
       ((walkM G d ^ k) *ᵥ basisVec s) v := by
-    rw [diagLift_apply, if_pos rfl]
+    rw [diagLift_apply, ite_eq_left rfl]
   rw [h1, h2] at h
   exact h
 
@@ -324,9 +329,9 @@ theorem walkQ_pow_apply_offdiag (G : SimpleGraph V) [DecidableRel G.Adj] (d : �
   have h1 : (walkQ G d ^ k *ᵥ diagLift (basisVec s)) p =
       (walkQ G d ^ k) p (s, s) := by
     simp only [Matrix.mulVec, dotProduct, diagLift_basisVec, mul_ite, mul_one, mul_zero]
-    rw [Finset.sum_ite_eq', if_pos (Finset.mem_univ (s, s))]
+    rw [Finset.sum_ite_eq', ite_eq_left (Finset.mem_univ (s, s))]
   have h2 : diagLift ((walkM G d ^ k) *ᵥ basisVec s) p = 0 := by
-    rw [diagLift_apply, if_neg hp]
+    rw [diagLift_apply, ite_eq_right hp]
   rw [h1, h2] at h
   exact h
 

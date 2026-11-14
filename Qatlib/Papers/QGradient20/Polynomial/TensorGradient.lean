@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixAlgebra.TensorDiff
+module
+
+public import Qatlib.Foundations.MatrixAlgebra.TensorDiff
+
+@[expose] public section
 
 /-!
 # Tensor polynomial objectives and gradient matrices
@@ -146,7 +150,7 @@ theorem objective_partial {p : ℕ} {I : Type*} [Fintype I] [DecidableEq I]
   apply Finset.sum_congr rfl
   intro k _
   by_cases h : u k = i
-  · simp [Pi.single_apply, h]
+  · simp [ h]
   · simp [h]
 
 /-- The matrix obtained by contracting both tensor indices of `A` with environments, leaving the

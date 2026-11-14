@@ -4,25 +4,29 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Lean.Elab.Tactic.NormCast
-import Lean.Elab.Tactic.Omega
-import Mathlib.Algebra.Order.Ring.Star
-import Mathlib.AlgebraicTopology.SimplexCategory.Basic
-import Mathlib.Analysis.CStarAlgebra.Classes
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
-import Mathlib.RingTheory.RootsOfUnity.PrimitiveRoots
-import Mathlib.Tactic.Ext
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.LinearCombination
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Ring
-import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.LocalDyadicGate
-import Qatlib.Concepts.SpectralFilter.PhaseReadout.PhaseEstimation
-import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
-import Qatlib.Foundations.OperatorErrors.OperatorError
+module
+
+public import Lean.Elab.Tactic.NormCast
+public import Lean.Elab.Tactic.Omega
+public import Mathlib.Algebra.Order.Ring.Star
+public import Mathlib.AlgebraicTopology.SimplexCategory.Basic
+public import Mathlib.Analysis.CStarAlgebra.Classes
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+public import Mathlib.RingTheory.RootsOfUnity.PrimitiveRoots
+public import Mathlib.Tactic.Ext
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.LinearCombination
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Ring
+public import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.LocalDyadicGate
+public import Qatlib.Concepts.SpectralFilter.PhaseReadout.PhaseEstimation
+public import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+public import Qatlib.Foundations.OperatorErrors.OperatorError
+
+@[expose] public section
 
 /-!
 # Local quantum Fourier transform implementation
@@ -103,7 +107,7 @@ theorem bitVecEquiv_val_eq_regValue :
   induction m with
   | zero =>
       intro x
-      haveI : Subsingleton (Fin (2 ^ 0)) := by rw [pow_zero]; infer_instance
+      have : Subsingleton (Fin (2 ^ 0)) := by rw [pow_zero]; infer_instance
       have hz : (bitVecEquiv 0 x) = 0 := Subsingleton.elim _ _
       rw [hz, Fin.val_zero]
       simp [regValue]
@@ -159,7 +163,7 @@ theorem localProgramMatrix_map_h (ws : List (Fin n)) (hnd : ws.Nodup) :
       rw [Matrix.one_apply]
       by_cases hxy : x = y
       · subst hxy; simp
-      · rw [if_neg hxy, if_neg]
+      · rw [ite_eq_right hxy, ite_eq_right]
         exact fun h => hxy (funext fun k => h k (by simp))
   | cons w ws ih =>
       rcases List.nodup_cons.mp hnd with ⟨hw, hws⟩
@@ -193,11 +197,11 @@ theorem localProgramMatrix_map_h (ws : List (Fin n)) (hnd : ws.Nodup) :
               then (ws.map fun w' => Hadamard (x w') (z₀ w')).prod else 0) *
             (if (∀ k : Fin n, k ≠ w → z₀ k = y k) then Hadamard (z₀ w) (y w) else 0)
             = (ws.map fun w' => Hadamard (x w') (y w')).prod * Hadamard (x w) (y w) := by
-          rw [if_pos hsupp, hmap,
-            if_pos (fun k hk => by rw [hz₀, Function.update_of_ne hk]),
+          rw [ite_eq_left hsupp, hmap,
+            ite_eq_left (fun k hk => by rw [hz₀, Function.update_of_ne hk]),
             hz₀, Function.update_self]
         rw [Finset.sum_eq_single z₀]
-        · rw [hterm, if_pos hcond, List.map_cons, List.prod_cons, mul_comm]
+        · rw [hterm, ite_eq_left hcond, List.map_cons, List.prod_cons, mul_comm]
         · intro z _ hz
           by_cases hzsupp : ∀ k : Fin n, k ≠ w → z k = y k
           · have hzw : z w ≠ x w := by
@@ -207,10 +211,10 @@ theorem localProgramMatrix_map_h (ws : List (Fin n)) (hnd : ws.Nodup) :
               by_cases hkw : k = w
               · subst hkw; rw [hz₀, Function.update_self]; exact h
               · rw [hz₀, Function.update_of_ne hkw]; exact hzsupp k hkw
-            rw [if_neg (fun h => hzw (h w hw).symm), zero_mul]
-          · rw [if_neg hzsupp, mul_zero]
+            rw [ite_eq_right (fun h => hzw (h w hw).symm), zero_mul]
+          · rw [ite_eq_right hzsupp, mul_zero]
         · intro h; exact absurd (Finset.mem_univ z₀) h
-      · rw [if_neg hcond]
+      · rw [ite_eq_right hcond]
         refine Finset.sum_eq_zero fun z _ => ?_
         by_cases hzsupp : ∀ k : Fin n, k ≠ w → z k = y k
         · obtain ⟨k₀, hk₀, hne⟩ : ∃ k : Fin n, k ∉ (w :: ws) ∧ x k ≠ y k := by
@@ -222,15 +226,15 @@ theorem localProgramMatrix_map_h (ws : List (Fin n)) (hnd : ws.Nodup) :
             subst hw'
             exact hk₀ List.mem_cons_self
           have hk₀ws : k₀ ∉ ws := fun h => hk₀ (List.mem_cons_of_mem w h)
-          rw [if_neg (fun h => hne ((h k₀ hk₀ws).trans (hzsupp k₀ hk₀w))), zero_mul]
-        · rw [if_neg hzsupp, mul_zero]
+          rw [ite_eq_right (fun h => hne ((h k₀ hk₀ws).trans (hzsupp k₀ hk₀w))), zero_mul]
+        · rw [ite_eq_right hzsupp, mul_zero]
 
 /-- The matrix of the local Hadamard program equals the tensor Hadamard matrix `HadamardN n`. -/
 theorem localProgramMatrix_localHadamard (n : ℕ) :
     localProgramMatrix (localHadamard n) = HadamardN n := by
   ext x y
   rw [localHadamard, localProgramMatrix_map_h _ (List.nodup_finRange n) x y,
-    if_pos (fun k hk => absurd (List.mem_finRange k) hk)]
+    ite_eq_left (fun k hk => absurd (List.mem_finRange k) hk)]
   show (List.map (fun w => Hadamard (x w) (y w)) (List.finRange n)).prod = _
   rw [← List.ofFn_eq_map, List.prod_ofFn]
   rfl
@@ -438,7 +442,7 @@ theorem localQFTRows_zero (n : ℕ) : localQFTRows n 0 = [] := rfl
 /-- For `r < n`, the next Fourier prefix appends `localQFTRow n r` to the first `r` rows. -/
 theorem localQFTRows_succ (n r : ℕ) (hr : r < n) :
     localQFTRows n (r + 1) = localQFTRows n r ++ localQFTRow n r hr :=
-  dif_pos hr
+  dite_eq_left hr
 
 /-- The recursively assembled prefix of outer-wire swaps used to reverse the register order. -/
 def localQFTSwapPrefix (n : ℕ) : (m : ℕ) → List (LocalQFTGate n)
@@ -452,7 +456,7 @@ def localQFTSwapPrefix (n : ℕ) : (m : ℕ) → List (LocalQFTGate n)
 theorem localQFTSwapPrefix_succ (n m : ℕ) (hm : m + 1 ≤ n / 2) :
     localQFTSwapPrefix n (m + 1)
       = localQFTSwapPrefix n m ++ [LocalQFTGate.swap ⟨m, by omega⟩ ⟨n - 1 - m, by omega⟩] :=
-  dif_pos hm
+  dite_eq_left hm
 
 /-- The full register-reversal program, consisting of `n / 2` outer-wire swaps. -/
 def localQFTSwaps (n : ℕ) : List (LocalQFTGate n) := localQFTSwapPrefix n (n / 2)
@@ -499,11 +503,11 @@ theorem localQFTCpPhaseSum_eq_filter_range (n : ℕ) (a : Fin n) (u : Reg n) :
     intro j
     show (if a.val < j.val then _ else 0) = if a.val < j.val then _ else 0
     by_cases h : a.val < j.val
-    · rw [if_pos h, if_pos h]
+    · rw [ite_eq_left h, ite_eq_left h]
       show (u a).toNat * (u j).toNat * 2 ^ _
         = (u a).toNat * (if hc : j.val < n then (u ⟨j.val, hc⟩).toNat else 0) * 2 ^ _
-      rw [dif_pos j.isLt]
-    · rw [if_neg h, if_neg h]
+      rw [dite_eq_left j.isLt]
+    · rw [ite_eq_right h, ite_eq_right h]
   show ∑ j : Fin n, (if a.val < j.val then (u a).toNat * (u j).toNat * 2 ^ (n - 1 - j.val + a.val)
       else 0) = _
   rw [Finset.sum_filter, ← Fin.sum_univ_eq_sum_range
@@ -532,7 +536,7 @@ theorem pmap_phase_sum_eq_map_sum (n a : ℕ) (ha : a < n) (u : Reg n)
         = cpExpSummand n ⟨a, ha⟩ u x.1 := by
     intro x _
     show _ = (u ⟨a, ha⟩).toNat * (if hc : x.1 < n then (u ⟨x.1, hc⟩).toNat else 0) * 2 ^ _
-    rw [dif_pos (H x.1 x.2)]
+    rw [dite_eq_left (H x.1 x.2)]
   rw [List.map_congr_left hx, List.attach_map_val]
 
 /-- The interval phase sum for all wires after `a` equals `localQFTCpPhaseSum`. -/
@@ -554,7 +558,7 @@ def localQFTPhaseNum (n r : ℕ) (z x : Reg n) : ℕ :=
 
 /-- The Fourier phase numerator for zero rows is zero. -/
 theorem localQFTPhaseNum_zero (n : ℕ) (z x : Reg n) : localQFTPhaseNum n 0 z x = 0 :=
-  Finset.sum_eq_zero fun i _ => if_neg (Nat.not_lt_zero i.val)
+  Finset.sum_eq_zero fun i _ => ite_eq_right (Nat.not_lt_zero i.val)
 
 /-- For `r < n`, the next phase numerator adds the contribution of output bit `r` paired with
 input bits at or after `r`. -/
@@ -575,19 +579,19 @@ theorem localQFTPhaseNum_succ (n r : ℕ) (hr : r < n) (z x : Reg n) :
     intro i
     by_cases h1 : i.val < r
     · have hne : i ≠ ⟨r, hr⟩ := fun h => by rw [h] at h1; simp at h1
-      rw [if_pos (by omega), if_pos h1, if_neg hne, add_zero]
+      rw [ite_eq_left (by omega), ite_eq_left h1, ite_eq_right hne, add_zero]
     · by_cases h2 : i = ⟨r, hr⟩
       · subst h2
-        rw [if_pos (Nat.lt_succ_self r),
-          if_neg (Nat.lt_irrefl r), if_pos rfl, zero_add]
+        rw [ite_eq_left (Nat.lt_succ_self r),
+          ite_eq_right (Nat.lt_irrefl r), ite_eq_left rfl, zero_add]
       · have h3 : i.val ≠ r := fun h => h2 (Fin.ext h)
-        rw [if_neg (by omega), if_neg h1, if_neg h2, add_zero]
+        rw [ite_eq_right (by omega), ite_eq_right h1, ite_eq_right h2, add_zero]
   show (∑ i : Fin n, if i.val < r + 1 then _ else 0) = _
   rw [show localQFTPhaseNum n r z x = ∑ i : Fin n, (if i.val < r then (z i).toNat *
       (∑ j : Fin n, if i ≤ j then (x j).toNat * 2 ^ (n - 1 - j.val + i.val) else 0) else 0)
     from rfl]
   rw [Finset.sum_congr rfl (fun i _ => hsplit i), Finset.sum_add_distrib]
-  simp only [Finset.sum_ite_eq', Finset.mem_univ, if_true]
+  simp only [Finset.sum_ite_eq', Finset.mem_univ, ite_true]
 
 /-- Splits the row phase sum into the diagonal bit contribution and the contributions from
 strictly later wires. -/
@@ -603,15 +607,15 @@ theorem localQFTPhaseNum_inner_split (n r : ℕ) (hr : r < n) (x : Reg n) :
     by_cases h1 : r < j.val
     · have hne : j ≠ ⟨r, hr⟩ := fun h => by rw [h] at h1; simp at h1
       have hle : ⟨r, hr⟩ ≤ j := by show r ≤ j.val; omega
-      rw [if_pos hle, if_neg hne, if_pos h1, zero_add]
+      rw [ite_eq_left hle, ite_eq_right hne, ite_eq_left h1, zero_add]
     · by_cases h2 : j = ⟨r, hr⟩
       · subst h2
-        rw [if_pos (le_refl _), if_pos rfl, if_neg h1, add_zero]
+        rw [ite_eq_left (le_refl _), ite_eq_left rfl, ite_eq_right h1, add_zero]
       · have h3 : j.val ≠ r := fun h => h2 (Fin.ext h)
         have hle : ¬ ⟨r, hr⟩ ≤ j := by show ¬ r ≤ j.val; omega
-        rw [if_neg hle, if_neg h2, if_neg h1, add_zero]
+        rw [ite_eq_right hle, ite_eq_right h2, ite_eq_right h1, add_zero]
   rw [Finset.sum_congr rfl (fun j _ => hsplit j), Finset.sum_add_distrib]
-  simp only [Finset.sum_ite_eq', Finset.mem_univ, if_true]
+  simp only [Finset.sum_ite_eq', Finset.mem_univ, ite_true]
   show (x ⟨r, hr⟩).toNat * 2 ^ (n - 1 - r + r) + _ = _
   rw [show n - 1 - r + r = n - 1 from by omega]
 
@@ -636,8 +640,8 @@ theorem localQFT_h_step_sum (n r : ℕ) (hr : r < n) (z x : Reg n) (g : Reg n �
     have hHsupp : ∀ k : Fin n, k ≠ ⟨r, hr⟩ → z k = w₀ k := fun k hk => by
       rw [hw₀, Function.update_of_ne hk]
     rw [Finset.sum_eq_single w₀]
-    · rw [localGateMatrix_h, if_pos hHsupp, hw₀, Function.update_self, if_pos hMsupp, hg,
-        if_pos hsupp]
+    · rw [localGateMatrix_h, ite_eq_left hHsupp, hw₀, Function.update_self, ite_eq_left hMsupp, hg,
+        ite_eq_left hsupp]
     · intro w _ hw
       by_cases hH : ∀ k : Fin n, k ≠ ⟨r, hr⟩ → z k = w k
       · have hwr : w ⟨r, hr⟩ ≠ x ⟨r, hr⟩ := by
@@ -647,10 +651,10 @@ theorem localQFT_h_step_sum (n r : ℕ) (hr : r < n) (z x : Reg n) (g : Reg n �
           by_cases hkr : k = ⟨r, hr⟩
           · subst hkr; rw [hw₀, Function.update_self]; exact h
           · rw [hw₀, Function.update_of_ne hkr]; exact (hH k hkr).symm
-        rw [if_neg (fun hM => hwr (hM ⟨r, hr⟩ (le_refl _))), mul_zero]
-      · rw [localGateMatrix_h, if_neg hH, zero_mul]
+        rw [ite_eq_right (fun hM => hwr (hM ⟨r, hr⟩ (le_refl _))), mul_zero]
+      · rw [localGateMatrix_h, ite_eq_right hH, zero_mul]
     · intro h; exact absurd (Finset.mem_univ w₀) h
-  · rw [if_neg hsupp]
+  · rw [ite_eq_right hsupp]
     refine Finset.sum_eq_zero fun w _ => ?_
     by_cases hH : ∀ k : Fin n, k ≠ ⟨r, hr⟩ → z k = w k
     · obtain ⟨i₀, hi₀, hne⟩ : ∃ i : Fin n, r + 1 ≤ i.val ∧ z i ≠ x i := by
@@ -658,8 +662,8 @@ theorem localQFT_h_step_sum (n r : ℕ) (hr : r < n) (z x : Reg n) (g : Reg n �
         push Not at h
         exact absurd h hsupp
       have hi₀r : i₀ ≠ ⟨r, hr⟩ := fun h => by rw [h] at hi₀; simp at hi₀
-      rw [if_neg (fun hM => hne ((hH i₀ hi₀r).trans (hM i₀ (by omega)))), mul_zero]
-    · rw [localGateMatrix_h, if_neg hH, zero_mul]
+      rw [ite_eq_right (fun hM => hne ((hH i₀ hi₀r).trans (hM i₀ (by omega)))), mul_zero]
+    · rw [localGateMatrix_h, ite_eq_right hH, zero_mul]
 
 /-- For `r ≤ n`, the first `r` Fourier rows have entries given by the normalization factor and
 `localQFTPhaseNum`, with zero entries when unprocessed bits disagree. -/
@@ -676,8 +680,8 @@ theorem localProgramMatrix_localQFTRows (n : ℕ) :
     show (1 : Matrix (Reg n) (Reg n) ℂ) z x = _
     rw [Matrix.one_apply, localQFTPhaseNum_zero, pow_zero, pow_zero, one_mul]
     by_cases hz : z = x
-    · subst hz; rw [if_pos rfl, if_pos (fun i _ => rfl)]
-    · rw [if_neg hz, if_neg (fun h => hz (funext fun i => h i (Nat.zero_le _)))]
+    · subst hz; rw [ite_eq_left rfl, ite_eq_left (fun i _ => rfl)]
+    · rw [ite_eq_right hz, ite_eq_right (fun h => hz (funext fun i => h i (Nat.zero_le _)))]
   | succ r ih =>
     intro hr z x
     have hrlt : r < n := by omega
@@ -713,10 +717,10 @@ theorem localProgramMatrix_localQFTRows (n : ℕ) :
       apply Finset.sum_congr rfl
       intro i _
       by_cases hi : i.val < r
-      · rw [if_pos hi, if_pos hi]
+      · rw [ite_eq_left hi, ite_eq_left hi]
         have hne : i ≠ ⟨r, hrlt⟩ := fun h => by rw [h] at hi; simp at hi
         rw [Function.update_of_ne hne]
-      · rw [if_neg hi, if_neg hi]
+      · rw [ite_eq_right hi, ite_eq_right hi]
     have hcollapse := localQFT_h_step_sum n r hrlt z x
       (fun w => ((Real.sqrt 2 : ℂ)⁻¹) ^ r * primRoot (2 ^ n) ^ localQFTPhaseNum n r w x)
       (by
@@ -727,7 +731,7 @@ theorem localProgramMatrix_localQFTRows (n : ℕ) :
     rw [Finset.sum_congr rfl (fun w _ => congrArg
       (fun t => localGateMatrix (LocalQFTGate.h ⟨r, hrlt⟩) z w * t) (hIH w)), hcollapse]
     by_cases hsupp : ∀ i : Fin n, r + 1 ≤ i.val → z i = x i
-    · rw [if_pos hsupp, if_pos hsupp, hadamard_entry_eq n (by omega) (z ⟨r, hrlt⟩) (x ⟨r, hrlt⟩)]
+    · rw [ite_eq_left hsupp, ite_eq_left hsupp, hadamard_entry_eq n (by omega) (z ⟨r, hrlt⟩) (x ⟨r, hrlt⟩)]
       have hexp : localQFTCpListPhaseSum n ⟨r, hrlt⟩ z (r + 1) (n - 1 - r) H
           + (z ⟨r, hrlt⟩).toNat * (x ⟨r, hrlt⟩).toNat * 2 ^ (n - 1)
           + localQFTPhaseNum n r z x
@@ -742,8 +746,8 @@ theorem localProgramMatrix_localQFTRows (n : ℕ) :
           apply Finset.sum_congr rfl
           intro j _
           by_cases hj : r < j.val
-          · rw [if_pos hj, if_pos hj, hsupp j (by omega)]
-          · rw [if_neg hj, if_neg hj]
+          · rw [ite_eq_left hj, ite_eq_left hj, hsupp j (by omega)]
+          · rw [ite_eq_right hj, ite_eq_right hj]
         have hdistrib : (∑ j : Fin n, (z ⟨r, hrlt⟩).toNat *
             (if r < j.val then (x j).toNat * 2 ^ (n - 1 - j.val + r) else 0))
             = ∑ j : Fin n, if r < j.val then
@@ -751,8 +755,8 @@ theorem localProgramMatrix_localQFTRows (n : ℕ) :
           apply Finset.sum_congr rfl
           intro j _
           by_cases hj : r < j.val
-          · rw [mul_ite, if_pos hj, if_pos hj, mul_assoc]
-          · rw [mul_ite, if_neg hj, if_neg hj, mul_zero]
+          · rw [mul_ite, ite_eq_left hj, ite_eq_left hj, mul_assoc]
+          · rw [mul_ite, ite_eq_right hj, ite_eq_right hj, mul_zero]
         rw [hD, hdistrib]
         ring
       have hscal : primRoot (2 ^ n) ^ localQFTCpListPhaseSum n ⟨r, hrlt⟩ z (r + 1) (n - 1 - r) H
@@ -767,7 +771,7 @@ theorem localProgramMatrix_localQFTRows (n : ℕ) :
           intro a b c d e; ring
         rw [hcomm, ← pow_succ, ← pow_add, ← pow_add]
       rw [hscal, hexp]
-    · rw [if_neg hsupp, mul_zero, if_neg hsupp]
+    · rw [ite_eq_right hsupp, mul_zero, ite_eq_right hsupp]
 
 /-- The product of two register permutation matrices is the matrix associated with their
 composed maps. -/
@@ -778,7 +782,7 @@ theorem permMatrix_mul (σ τ : Reg n → Reg n) :
   rw [Finset.sum_eq_single (τ j)]
   · simp
   · intro k _ hk
-    rw [if_neg hk, mul_zero]
+    rw [ite_eq_right hk, mul_zero]
   · intro h; exact absurd (Finset.mem_univ _) h
 
 /-- Left multiplication by the matrix of an involutive register map evaluates the left matrix
@@ -788,10 +792,10 @@ theorem permMatrix_mul_apply (σ : Reg n → Reg n) (hσ : Function.Involutive �
     (permMatrix σ * M) y x = M (σ y) x := by
   rw [Matrix.mul_apply, Finset.sum_eq_single (σ y)]
   · simp only [permMatrix, Matrix.of_apply]
-    rw [show σ (σ y) = y from hσ y, if_pos rfl, one_mul]
+    rw [show σ (σ y) = y from hσ y, ite_eq_left rfl, one_mul]
   · intro w _ hw
     show (if y = σ w then (1 : ℂ) else 0) * M w x = 0
-    rw [if_neg (fun h => hw (((congrArg σ h).trans (hσ w)).symm)), zero_mul]
+    rw [ite_eq_right (fun h => hw (((congrArg σ h).trans (hσ w)).symm)), zero_mul]
   · intro h; exact absurd (Finset.mem_univ _) h
 
 /-- The wire map reversing indices in the first or last `m` positions and fixing the other
@@ -807,13 +811,13 @@ theorem qftSwapPerm_val (n m : ℕ) (i : Fin n) :
   show (if i.val < m ∨ n - 1 - i.val < m then (⟨n - 1 - i.val, by omega⟩ : Fin n) else i).val
     = _
   by_cases h : i.val < m ∨ n - 1 - i.val < m
-  · rw [if_pos h, if_pos h]
-  · rw [if_neg h, if_neg h]
+  · rw [ite_eq_left h, ite_eq_left h]
+  · rw [ite_eq_right h, ite_eq_right h]
 
 /-- The zero-swap wire map fixes every wire. -/
 theorem qftSwapPerm_zero (n : ℕ) (i : Fin n) : qftSwapPerm n 0 i = i := by
   show (if i.val < 0 ∨ n - 1 - i.val < 0 then _ else i) = i
-  rw [if_neg (by simp)]
+  rw [ite_eq_right (by simp)]
 
 /-- Composing the current wire map with the next outer-wire swap gives the successor swap map
 when `m + 1 ≤ n / 2`. -/
@@ -829,17 +833,17 @@ theorem qftSwapPerm_step (n m : ℕ) (hm : m + 1 ≤ n / 2) (i : Fin n) :
   rw [qftSwapPerm_val, qftSwapPerm_val]
   by_cases h1 : i.val < m
   · rw [Equiv.swap_apply_of_ne_of_ne (hne_of_val _ (by omega)) (hne_of_val _ (by omega)),
-      if_pos (Or.inl h1), if_pos (by omega)]
+      ite_eq_left (Or.inl h1), ite_eq_left (by omega)]
   · by_cases h2 : n - 1 - i.val < m
     · rw [Equiv.swap_apply_of_ne_of_ne (hne_of_val _ (by omega)) (hne_of_val _ (by omega)),
-        if_pos (Or.inr h2), if_pos (by omega)]
+        ite_eq_left (Or.inr h2), ite_eq_left (by omega)]
     · by_cases h3 : i.val = m
       · have hi3 : i = (⟨m, by omega⟩ : Fin n) := Fin.ext h3
         rw [hi3, Equiv.swap_apply_left]
         show (if n - 1 - m < m ∨ n - 1 - (n - 1 - m) < m then n - 1 - (n - 1 - m)
               else n - 1 - m)
           = if m < m + 1 ∨ n - 1 - m < m + 1 then n - 1 - m else m
-        rw [if_neg (by omega), if_pos (by omega)]
+        rw [ite_eq_right (by omega), ite_eq_left (by omega)]
       · by_cases h4 : n - 1 - i.val = m
         · have hi4v : i.val = n - 1 - m := by omega
           have hi4 : i = (⟨n - 1 - m, by omega⟩ : Fin n) := Fin.ext hi4v
@@ -847,19 +851,19 @@ theorem qftSwapPerm_step (n m : ℕ) (hm : m + 1 ≤ n / 2) (i : Fin n) :
           show (if m < m ∨ n - 1 - m < m then n - 1 - m else m)
             = if n - 1 - m < m + 1 ∨ n - 1 - (n - 1 - m) < m + 1 then n - 1 - (n - 1 - m)
               else n - 1 - m
-          rw [if_neg (by omega), if_pos (by omega)]
+          rw [ite_eq_right (by omega), ite_eq_left (by omega)]
           omega
         · rw [Equiv.swap_apply_of_ne_of_ne (hne_of_val _ h3) (hne_of_val _ (by omega)),
-            if_neg (fun h => h.elim h1 h2), if_neg (by omega)]
+            ite_eq_right (fun h => h.elim h1 h2), ite_eq_right (by omega)]
 
 /-- After `n / 2` swaps, the wire map is `Fin.rev`. -/
 theorem qftSwapPerm_half (n : ℕ) (i : Fin n) : qftSwapPerm n (n / 2) i = Fin.rev i := by
   apply Fin.ext
   rw [qftSwapPerm_val, Fin.val_rev]
   by_cases h : i.val < n / 2 ∨ n - 1 - i.val < n / 2
-  · rw [if_pos h]
+  · rw [ite_eq_left h]
     omega
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     have hi := i.isLt
     have h1 : ¬ i.val < n / 2 := fun h1 => h (Or.inl h1)
     have h2 : ¬ n - 1 - i.val < n / 2 := fun h2 => h (Or.inr h2)
@@ -937,7 +941,7 @@ theorem localQFTPhaseNum_full (n : ℕ) (z x : Reg n) :
         (∑ j : Fin n, if i ≤ j then (x j).toNat * 2 ^ (n - 1 - j.val + i.val) else 0) := by
   apply Finset.sum_congr rfl
   intro i _
-  rw [if_pos i.isLt]
+  rw [ite_eq_left i.isLt]
 
 /-- The product of the two register encodings equals the full Fourier phase numerator plus `2 ^
 n` times an explicit integer correction. -/
@@ -964,8 +968,8 @@ theorem regValue_mul_regValueLsb (n : ℕ) (x z : Reg n) :
         + (if a < c then (x a).toNat * (z c).toNat * 2 ^ (n - 1 - a.val + c.val) else 0) := by
     intro a c
     by_cases h : c ≤ a
-    · rw [if_pos h, if_neg (by omega), add_zero]
-    · rw [if_neg h, if_pos (by omega), zero_add]
+    · rw [ite_eq_left h, ite_eq_right (by omega), add_zero]
+    · rw [ite_eq_right h, ite_eq_left (by omega), zero_add]
   have hB : (∑ a : Fin n, ∑ c : Fin n, if c ≤ a then
       (x a).toNat * (z c).toNat * 2 ^ (n - 1 - a.val + c.val) else 0)
       = localQFTPhaseNum n n z x := by
@@ -976,8 +980,8 @@ theorem regValue_mul_regValueLsb (n : ℕ) (x z : Reg n) :
     apply Finset.sum_congr rfl
     intro a _
     by_cases h : c ≤ a
-    · rw [if_pos h, if_pos h]; ring
-    · rw [if_neg h, if_neg h, mul_zero]
+    · rw [ite_eq_left h, ite_eq_left h]; ring
+    · rw [ite_eq_right h, ite_eq_right h, mul_zero]
   have hG : (∑ a : Fin n, ∑ c : Fin n, if a < c then
       (x a).toNat * (z c).toNat * 2 ^ (n - 1 - a.val + c.val) else 0)
       = 2 ^ n * (∑ a : Fin n, ∑ c : Fin n, if a < c then
@@ -989,10 +993,10 @@ theorem regValue_mul_regValueLsb (n : ℕ) (x z : Reg n) :
     apply Finset.sum_congr rfl
     intro c _
     by_cases h : a < c
-    · rw [if_pos h, mul_ite, if_pos h,
+    · rw [ite_eq_left h, mul_ite, ite_eq_left h,
         show n - 1 - a.val + c.val = n + (c.val - 1 - a.val) from by omega, pow_add]
       ring
-    · rw [if_neg h, mul_ite, if_neg h, mul_zero]
+    · rw [ite_eq_right h, mul_ite, ite_eq_right h, mul_zero]
   rw [hprod, Finset.sum_congr rfl (fun a _ => Finset.sum_congr rfl (fun c _ => hsplit a c)),
     Finset.sum_congr rfl (fun a _ => Finset.sum_add_distrib), Finset.sum_add_distrib,
     hB, hG]
@@ -1023,7 +1027,7 @@ theorem localProgramMatrix_localQFT (n : ℕ) :
   rw [localProgramMatrix_localQFTSwaps,
     permMatrix_mul_apply _ (reg_rev_involutive n) _ y x,
     localProgramMatrix_localQFTRows n n (le_refl n) _ x,
-    if_pos (fun i hi => by have := i.isLt; omega)]
+    ite_eq_left (fun i hi => by have := i.isLt; omega)]
   show ((Real.sqrt 2 : ℂ)⁻¹) ^ n * primRoot (2 ^ n) ^ localQFTPhaseNum n n _ x = _
   rw [← primRoot_pow_regValue_mul_lsb n x (fun i => y (Fin.rev i)),
     regValueLsb_comp_rev n y]
@@ -1120,9 +1124,9 @@ theorem localQFTRows_class_counts (n : ℕ) :
       simp
     rw [localQFTRows_succ n r hrlt]
     refine ⟨?_, ?_, ?_⟩
-    · rw [List.countP_append, hrowH, ihH]
-    · rw [List.countP_append, hrowCp, ihCp, Finset.sum_range_succ]
-    · rw [List.countP_append, hrowSwap, ihSwap]
+    · erw [List.countP_append, hrowH, ihH]
+    · erw [List.countP_append, hrowCp, ihCp, Finset.sum_range_succ]
+    · erw [List.countP_append, hrowSwap, ihSwap]
 
 /-- A valid prefix of `m` reversal swaps contains no Hadamards or controlled phases and exactly
 `m` swaps. -/
@@ -1239,7 +1243,7 @@ theorem mem_localQFTSwapPrefix_swap (n m : ℕ) (a c : Fin n)
         exact ⟨by omega, by omega, rfl⟩
     · rw [show localQFTSwapPrefix n (m + 1) = (if h : m + 1 ≤ n / 2 then
           localQFTSwapPrefix n m ++ [LocalQFTGate.swap ⟨m, by omega⟩ ⟨n - 1 - m, by omega⟩]
-        else []) from rfl, dif_neg hm] at hg
+        else []) from rfl, dite_eq_right hm] at hg
       exact absurd hg (by simp)
 
 /-- No controlled phase gate occurs in a reversal swap prefix. -/
@@ -1255,7 +1259,7 @@ theorem no_cp_mem_localQFTSwapPrefix (n m : ℕ) (a c : Fin n) (k : ℕ) (neg : 
       · nomatch h
     · rw [show localQFTSwapPrefix n (m + 1) = (if h : m + 1 ≤ n / 2 then
           localQFTSwapPrefix n m ++ [LocalQFTGate.swap ⟨m, by omega⟩ ⟨n - 1 - m, by omega⟩]
-        else []) from rfl, dif_neg hm] at hg
+        else []) from rfl, dite_eq_right hm] at hg
       exact absurd hg (by simp)
 
 /-- Every controlled phase in the full Fourier program joins increasing wires with exponent
@@ -1315,9 +1319,9 @@ theorem countP_range'_sub_le (l : ℕ) (s r b : ℕ) :
     show (List.countP _ (s :: List.range' (s + 1) l)) = min (l + 1) (r + b + 2 - s)
     rw [List.countP_cons, ih (s + 1)]
     by_cases h : s - r + 1 ≤ b + 2
-    · rw [if_pos ((decide_eq_true_iff).mpr h)]
+    · rw [ite_eq_left ((decide_eq_true_iff).mpr h)]
       omega
-    · rw [if_neg (fun hd => absurd ((decide_eq_true_iff).mp hd) h)]
+    · rw [ite_eq_right (fun hd => absurd ((decide_eq_true_iff).mp hd) h)]
       omega
 
 /-- The number of controlled phases retained from a valid target interval is `min l (r + b + 2 -
@@ -1346,9 +1350,9 @@ theorem countP_keep_cpPmap (n r b : ℕ) (hr : r < n) :
             (fun c hc => LocalQFTGate.cp ⟨r, hr⟩ ⟨c, hc⟩ (c - r + 1) false) Hrest from rfl,
       List.countP_cons, ih (s + 1) (by omega) Hrest]
     by_cases h : s - r + 1 ≤ b + 2
-    · rw [if_pos ((decide_eq_true_iff).mpr h)]
+    · rw [ite_eq_left ((decide_eq_true_iff).mpr h)]
       omega
-    · rw [if_neg (fun hd => absurd ((decide_eq_true_iff).mp hd) h)]
+    · rw [ite_eq_right (fun hd => absurd ((decide_eq_true_iff).mp hd) h)]
       omega
 
 /-- After truncation, the phase list after wire `r` contains `min (n - 1 - r) (b + 1)`
@@ -1373,7 +1377,7 @@ theorem countP_isCp_filter_keep_cpPmap (n r b : ℕ) (hr : r < n)
     rw [List.mem_pmap] at hg
     obtain ⟨c, hc, rfl⟩ := hg.1
     rfl
-  rw [h1, ← List.countP_eq_length_filter,
+  erw [h1, ← List.countP_eq_length_filter,
     countP_keep_cpPmap n r b hr (r + 1) (n - 1 - r) (by omega) H,
     show r + b + 2 - (r + 1) = b + 1 from by omega]
 
@@ -1494,16 +1498,17 @@ theorem approxLocalQFT_actual_filter_and_cost (n b : ℕ) :
   have happrox : approxLocalQFT n b = (localQFTRows n n).filter (fun g => match g with
         | .cp _ _ k _ => decide (k ≤ b + 2) | _ => true) ++ localQFTSwaps n := by
     show (localQFT n).filter _ = _
-    rw [localQFT, List.filter_append, hswapkeep]
+    erw [localQFT, List.filter_append, hswapkeep]
+    rfl
   refine ⟨rfl, ?_, ?_, ?_, ?_⟩
   · show ((approxLocalQFT n b).filter _).length = _
-    rw [happrox, List.filter_append, List.length_append, ← List.countP_eq_length_filter,
+    erw [happrox, List.filter_append, List.length_append, ← List.countP_eq_length_filter,
       countP_isCp_filter_keep_localQFTRows n b n (le_refl n), hswapCp, Nat.add_zero]
   · show GateCount (localProgramCircuit (approxLocalQFT n b)) = _
-    rw [gc, happrox, List.length_append, ← List.countP_eq_length_filter,
+    erw [gc, happrox, List.length_append, ← List.countP_eq_length_filter,
       countP_keep_localQFTRows n b n (le_refl n), hswaplen]
   · show GateCount (localProgramCircuit (approxLocalQFT n b)) ≤ n + n * (b + 1) + n / 2
-    rw [gc, happrox, List.length_append, ← List.countP_eq_length_filter,
+    erw [gc, happrox, List.length_append, ← List.countP_eq_length_filter,
       countP_keep_localQFTRows n b n (le_refl n), hswaplen]
     have hle : (∑ i ∈ Finset.range n, min (n - 1 - i) (b + 1)) ≤ n * (b + 1) := by
       rw [show n * (b + 1) = ∑ i ∈ Finset.range n, (b + 1) from by
@@ -1557,12 +1562,12 @@ theorem localDyadicPhase_omission_operator_error (n : ℕ) (a c : Fin n) (k : �
     show (if x a && x c then Complex.exp (dyadicPhaseAngle k neg * Complex.I) else 1) - 1
       = if x a && x c then Complex.exp (dyadicPhaseAngle k neg * Complex.I) - 1 else 0
     by_cases h : x a && x c
-    · rw [if_pos h, if_pos h]
-    · rw [if_neg h, if_neg h, sub_self]
+    · rw [ite_eq_left h, ite_eq_left h]
+    · rw [ite_eq_right h, ite_eq_right h, sub_self]
   rw [hdiag, Matrix.l2_opNorm_diagonal, pi_norm_le_iff_of_nonneg (by positivity)]
   intro x
   by_cases h : x a && x c
-  · rw [if_pos h,
+  · rw [ite_eq_left h,
       show (↑(dyadicPhaseAngle k neg) : ℂ) * Complex.I
         = Complex.I * ↑(dyadicPhaseAngle k neg) from mul_comm _ _,
       Complex.norm_exp_I_mul_ofReal_sub_one]
@@ -1582,7 +1587,7 @@ theorem localDyadicPhase_omission_operator_error (n : ℕ) (a c : Fin n) (k : �
         rw [abs_div, abs_of_nonneg (by norm_num : (0 : ℝ) ≤ 2)]
         field_simp
       _ = 2 * Real.pi / (2 ^ k : ℝ) := hθ
-  · rw [if_neg h, norm_zero]
+  · rw [ite_eq_right h, norm_zero]
     positivity
 
 /-- The reversed matrix product of a filtered program equals the reversed product of the full
@@ -1597,9 +1602,9 @@ theorem prod_filter_reverse (P : LocalQFTGate n → Bool) (gs : List (LocalQFTGa
     · rw [List.filter_cons_of_pos hg, List.reverse_cons, List.map_append, List.map_cons,
         List.map_nil, List.prod_append, List.prod_cons, List.prod_nil, mul_one, ih,
         List.reverse_cons, List.map_append, List.map_cons, List.map_nil, List.prod_append,
-        List.prod_cons, List.prod_nil, mul_one, if_pos hg]
+        List.prod_cons, List.prod_nil, mul_one, ite_eq_left hg]
     · rw [List.filter_cons_of_neg hg, ih, List.reverse_cons, List.map_append, List.map_cons,
-        List.map_nil, List.prod_append, List.prod_cons, List.prod_nil, mul_one, if_neg hg,
+        List.map_nil, List.prod_append, List.prod_cons, List.prod_nil, mul_one, ite_eq_right hg,
         mul_one]
 
 /-- Bounds the sum of omitted dyadic phase estimates on a target interval by the geometric tail
@@ -1616,14 +1621,14 @@ theorem sum_range'_omitted_phase_le (l : ℕ) (s r b : ℕ) :
     rw [show List.range' s (l + 1) = s :: List.range' (s + 1) l from rfl, List.map_cons,
       List.sum_cons]
     by_cases h : s - r + 1 ≤ b + 2
-    · rw [if_pos ((decide_eq_true_iff).mpr h)]
+    · rw [ite_eq_left ((decide_eq_true_iff).mpr h)]
       have hmax : max (s - r + 1) (b + 3) = b + 3 := by omega
       have hmax' : max (s + 1 - r + 1) (b + 3) = b + 3 := by omega
       rw [hmax, show b + 3 - 1 = b + 2 from by omega]
       have hiht := ih (s + 1)
       rw [hmax', show b + 3 - 1 = b + 2 from by omega] at hiht
       linarith [hiht]
-    · rw [if_neg (fun hd => absurd ((decide_eq_true_iff).mp hd) h)]
+    · rw [ite_eq_right (fun hd => absurd ((decide_eq_true_iff).mp hd) h)]
       have hmax : max (s - r + 1) (b + 3) = s - r + 1 := by omega
       have hmax' : max (s + 1 - r + 1) (b + 3) = s + 1 - r + 1 := by omega
       have hiht := ih (s + 1)
@@ -1644,10 +1649,10 @@ theorem gate_error_le (n b : ℕ) (a c : Fin n) (k : ℕ) :
       (if decide (k ≤ b + 2) then localGateMatrix (.cp a c k false) else 1)‖
       ≤ if decide (k ≤ b + 2) then (0 : ℝ) else 2 * Real.pi / 2 ^ k := by
   by_cases h : k ≤ b + 2
-  · rw [if_pos ((decide_eq_true_iff).mpr h), if_pos ((decide_eq_true_iff).mpr h), sub_self,
+  · rw [ite_eq_left ((decide_eq_true_iff).mpr h), ite_eq_left ((decide_eq_true_iff).mpr h), sub_self,
       norm_zero]
-  · rw [if_neg (fun hd => absurd ((decide_eq_true_iff).mp hd) h),
-      if_neg (fun hd => absurd ((decide_eq_true_iff).mp hd) h)]
+  · rw [ite_eq_right (fun hd => absurd ((decide_eq_true_iff).mp hd) h),
+      ite_eq_right (fun hd => absurd ((decide_eq_true_iff).mp hd) h)]
     exact localDyadicPhase_omission_operator_error n a c k false
 
 /-- The sum of controlled-phase replacement errors on a valid target interval is bounded by the
@@ -1755,7 +1760,7 @@ theorem sum_gate_errors_swaps (n m b : ℕ) :
       rw [sub_self, norm_zero, zero_add, add_zero]
     · rw [show localQFTSwapPrefix n (m + 1) = (if h : m + 1 ≤ n / 2 then
           localQFTSwapPrefix n m ++ [LocalQFTGate.swap ⟨m, by omega⟩ ⟨n - 1 - m, by omega⟩]
-        else []) from rfl, dif_neg hm]
+        else []) from rfl, dite_eq_right hm]
       rfl
 
 /-- The sum of gate replacement errors in the complete Fourier program is at most `π * n / 2 ^
@@ -1790,8 +1795,8 @@ theorem approxLocalQFT_operator_error_forward (n b : ℕ) :
       rw [l2_opNorm_of_mem_unitaryGroup _ (localGateMatrix_unitary g)]
       refine ⟨le_refl 1, ?_⟩
       by_cases hg : P g
-      · rw [if_pos hg, l2_opNorm_of_mem_unitaryGroup _ (localGateMatrix_unitary g)]
-      · rw [if_neg hg]
+      · rw [ite_eq_left hg, l2_opNorm_of_mem_unitaryGroup _ (localGateMatrix_unitary g)]
+      · rw [ite_eq_right hg]
         exact norm_one.le)
   have hfst : ((List.map Prod.fst ((localQFT n).reverse.map fun g =>
         (localGateMatrix g, if P g then localGateMatrix g else 1))).prod)

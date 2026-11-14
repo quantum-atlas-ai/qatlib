@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.PottsPartEval07.MainResults.MainTheorem
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
+module
+
+public import Qatlib.Papers.PottsPartEval07.MainResults.MainTheorem
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -41,14 +45,14 @@ Contract inspired by Theorem 2, relative to an externally supplied interpreter
 No interpreter implementation, uniform asymptotic bound or quantum success
 analysis is proved here. -/
 def theorem2_main_statement
-    (q : ℕ) (hq : 2 ≤ q) (ε : ℝ) (hε0 : 0 < ε) (hε1 : ε < 1)
+    (q : ℕ) (_hq : 2 ≤ q) (ε : ℝ) (_hε0 : 0 < ε) (_hε1 : ε < 1)
     (s : ℕ → ℕ)
     {V E : Type*} [Fintype V] [DecidableEq V] [Fintype E]
     (ends : E → V × V) (J : E → ℝ)
     (Call : Type*) (execute : List Call → ℝ × ℝ)
-    (n k : ℕ) (hn : n = Fintype.card E)
-    (hk : k = Fintype.card E - Fintype.card V + 1)
-    (hk1 : 1 ≤ k) (hiccc : IsIccc q n k ε) : Prop :=
+    (n k : ℕ) (_hn : n = Fintype.card E)
+    (_hk : k = Fintype.card E - Fintype.card V + 1)
+    (_hk1 : 1 ≤ k) (_hiccc : IsIccc q n k ε) : Prop :=
     ∃ (scheme : PottsScheme q ends J) (calls : List Call) (C : ℝ),
       scheme.output = (execute calls).1 ∧
       scheme.successProb = (execute calls).2 ∧

@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ConversionCore.WitnessCompile.ActualNativeNonzeroQueryConsumerStat
-import Qatlib.Concepts.GramQueryCore.ModelSemantics.NativeCodeSemanticsQuan
-import Qatlib.Concepts.BlockEncoding.LinearCombination
-import Mathlib.Tactic.FinCases
-import Mathlib.Data.Nat.Size
-import Qatlib.Concepts.GateVocabulary.LocalReflectionGates
+module
+
+public import Qatlib.Concepts.ConversionCore.WitnessCompile.ActualNativeNonzeroQueryConsumerStat
+public import Qatlib.Concepts.GramQueryCore.ModelSemantics.NativeCodeSemanticsQuan
+public import Qatlib.Concepts.BlockEncoding.LinearCombination
+public import Mathlib.Tactic.FinCases
+public import Mathlib.Data.Nat.Size
+public import Qatlib.Concepts.GateVocabulary.LocalReflectionGates
+
+@[expose] public section
 
 /-!
 # A native program with a nonzero query count
@@ -112,13 +116,13 @@ theorem nativeWireLift_perm_ket {w : ℕ} (ws : List (Fin w)) (hws : ws.Nodup)
     (if t=e.symm (f (e z).1,(e z).2) then 1 else 0)
   by_cases ha : (e t).1=f (e z).1
   · by_cases hb : (e t).2=(e z).2
-    · rw [if_pos (hother.mpr hb),if_pos ha,if_pos (hpoint.mpr ⟨ha,hb⟩)]
-    · rw [if_neg (fun h => hb (hother.mp h)),if_neg (fun h => hb (hpoint.mp h).2)]
+    · rw [ite_eq_left (hother.mpr hb),ite_eq_left ha,ite_eq_left (hpoint.mpr ⟨ha,hb⟩)]
+    · rw [ite_eq_right (fun h => hb (hother.mp h)),ite_eq_right (fun h => hb (hpoint.mp h).2)]
   · have hp : ¬t=e.symm (f (e z).1,(e z).2) := fun h => ha (hpoint.mp h).1
-    rw [if_neg hp]
+    rw [ite_eq_right hp]
     by_cases hb : ∀ i : Fin w, i ∉ ws → t i=z i
-    · rw [if_pos hb,if_neg ha]
-    · rw [if_neg hb]
+    · rw [ite_eq_left hb,ite_eq_right ha]
+    · rw [ite_eq_right hb]
 
 /-- The native clean embedding of a basis state is the basis state at its encoded frame index. -/
 theorem nativeFrame_ket (d : SourceRationalProblem) (w : ℕ) (tag : Bool) (h : Fin d.dimension) :
@@ -163,7 +167,7 @@ theorem nativeTwoLabel_query (x : Fin 2) :
       nativeWireLift ws hws (permMatrix (nativeValueAction sourceTwoLabelProblem x)) := by
     ext p t
     rw [nativeWireLift_apply]
-    simp only [sourceNativeStepMatrix,dif_pos hlen,Bool.false_eq_true,↓reduceIte,sourceNativeValueOracle_eq]
+    simp only [sourceNativeStepMatrix,dite_eq_left hlen,Bool.false_eq_true,↓reduceIte,sourceNativeValueOracle_eq]
     rfl
   rw [hmatrix,nativeWireLift_perm_ket]
   congr 1
@@ -283,10 +287,10 @@ theorem nativeConst_write (out : List Bool) (r : ℕ) (hr : 0<r) (hrL : r ≤ ou
   have hi : out.length-1-(2*(out.length-r))/2 = r-1 := by omega
   by_cases hzero : out.length=r
   · have hh := hhead hzero
-    simp only [nativeConstantTM,if_pos (by omega : 2*(out.length-r)=0),hh]
-    simp only [nativeConstEmit,dif_pos hb,he,↓reduceIte,hi]
-  · simp only [nativeConstantTM,if_neg (by omega : ¬2*(out.length-r)=0)]
-    simp only [nativeConstEmit,dif_pos hb,he,↓reduceIte,hi]
+    simp only [nativeConstantTM,ite_eq_left (by omega : 2*(out.length-r)=0),hh]
+    simp only [nativeConstEmit,dite_eq_left hb,he,↓reduceIte,hi]
+  · simp only [nativeConstantTM,ite_eq_right (by omega : ¬2*(out.length-r)=0)]
+    simp only [nativeConstEmit,dite_eq_left hb,he,↓reduceIte,hi]
 
 /-- At an emission move state with more than one bit remaining, the constant-output machine
 moves left and advances its control state. -/
@@ -296,8 +300,8 @@ theorem nativeConst_moveLeft (out : List Bool) (r : ℕ) (hr : 1<r) (hrL : r ≤
       some (⟨2*(out.length-r)+2,by omega⟩,.move .left) := by
   have hb : 2*(out.length-r)+1 < 2*out.length-1 := by omega
   have he : (2*(out.length-r)+1)%2≠0 := by omega
-  simp only [nativeConstantTM,if_neg (by omega : ¬2*(out.length-r)+1=0)]
-  simp only [nativeConstEmit,dif_pos hb,he,↓reduceIte]
+  simp only [nativeConstantTM,ite_eq_right (by omega : ¬2*(out.length-r)+1=0)]
+  simp only [nativeConstEmit,dite_eq_left hb,he,↓reduceIte]
 
 /-- For nonempty output, the final emission control state has no successor transition. -/
 theorem nativeConst_halt (out : List Bool) (hL : 0<out.length) (head : Option Bool) :
@@ -443,7 +447,7 @@ theorem native_phase_eq_wire {n : ℕ} (a : Fin n) :
   by_cases he : x=y
   · subst y
     cases hx : x a <;> simp [PauliZ,hang,Complex.exp_pi_mul_I]
-  · rw [if_neg he]
+  · rw [ite_eq_right he]
     by_cases hs : ∀ k : Fin n, k≠a → x k=y k
     · have ha : x a≠y a := by
         intro h
@@ -452,9 +456,9 @@ theorem native_phase_eq_wire {n : ℕ} (a : Fin n) :
         by_cases hk : k=a
         · subst k;exact h
         · exact hs k hk
-      rw [if_pos hs]
+      rw [ite_eq_left hs]
       simp [PauliZ,ha]
-    · rw [if_neg hs]
+    · rw [ite_eq_right hs]
 
 /-- Conjugating Pauli Z by the Hadamard matrix gives Pauli X. -/
 theorem native_hzh : Hadamard * PauliZ * Hadamard=PauliX := by

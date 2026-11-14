@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.Amplification.NativeMinimumConstructionDefs
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.NativeMinimumConstructionDefs
+
+@[expose] public section
 
 /-!
 # Source deadlines and charged minimum-search costs
@@ -294,7 +298,7 @@ theorem charged_cost_total_gt_source_total (N : ℕ) (xs : List (SearchTrace N))
 
 /-- If a nonempty trace list has total terminal search duration equal to the source timeout, its
 charged cost strictly exceeds that timeout. -/
-theorem source_deadline_exhausted_not_charged (N : ℕ) (hN : 0 < N)
+theorem source_deadline_exhausted_not_charged (N : ℕ) (_hN : 0 < N)
     (xs : List (SearchTrace N)) (hne : xs ≠ [])
     (hexhaust : sourceDurationTotal N xs = sourceTimeout N) :
     (chargedCostTotal N xs : ℝ) > sourceTimeout N := by

@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HammingDist09.MainResults.Basic
-import Mathlib.Analysis.Complex.Order
-import Mathlib.Analysis.Matrix.Order
-import Mathlib.Data.Complex.BigOperators
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.HammingDist09.MainResults.Basic
+public import Mathlib.Analysis.Complex.Order
+public import Mathlib.Analysis.Matrix.Order
+public import Mathlib.Basic.Complex.BigOperators
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Perfect discrimination and constant-distance codes
@@ -148,8 +152,8 @@ lemma queryState_gram_card (f : C → X → ZMod 2) (u : ZMod 2 → Fin 2 → �
       star (u (f c x)) ⬝ᵥ u (f c' x) = if f c x = f c' x then (1 : ℂ) else (lam : ℂ) := by
     intro x
     by_cases h : f c x = f c' x
-    · rw [if_pos h, h, hu]
-    · rw [if_neg h, huv _ _ h]
+    · rw [ite_eq_left h, h, hu]
+    · rw [ite_eq_right h, huv _ _ h]
   rw [Finset.sum_congr rfl (fun x _ => hinner x)]
   have hdN : hammingDist f c c' ≤ Fintype.card X := by
     rw [hammingDist]

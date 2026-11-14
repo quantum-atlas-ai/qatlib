@@ -4,25 +4,29 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Group.Finset.Defs
-import Mathlib.Algebra.Group.AddChar
-import Mathlib.Algebra.Group.Defs
-import Mathlib.Algebra.Group.DivInvMonoid
-import Mathlib.Algebra.Group.End
-import Mathlib.Algebra.Group.Equiv.Defs
-import Mathlib.Algebra.Group.Hom.Defs
-import Mathlib.Algebra.Group.Hom.Instances
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.Group.Semigroup
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Basic.Complex.Basic
-import Mathlib.Basic.FunLike.Basic
-import Mathlib.Basic.FunLike.Equiv
-import Mathlib.Data.Finset.Basic
-import Mathlib.Data.Finset.Range
-import Mathlib.Data.Fintype.Defs
-import Mathlib.Logic.Equiv.Defs
-import Mathlib.Tactic
+module
+
+public import Mathlib.Algebra.BigOperators.Group.Finset.Defs
+public import Mathlib.Algebra.Group.AddChar
+public import Mathlib.Algebra.Group.Defs
+public import Mathlib.Algebra.Group.DivInvMonoid
+public import Mathlib.Algebra.Group.End
+public import Mathlib.Algebra.Group.Equiv.Defs
+public import Mathlib.Algebra.Group.Hom.Defs
+public import Mathlib.Algebra.Group.Hom.Instances
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.Group.Semigroup
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Basic.FunLike.Basic
+public import Mathlib.Basic.FunLike.Equiv
+public import Mathlib.Data.Finset.Basic
+public import Mathlib.Data.Finset.Range
+public import Mathlib.Data.Fintype.Defs
+public import Mathlib.Logic.Equiv.Defs
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Dual maps for finite sums of automorphism iterates

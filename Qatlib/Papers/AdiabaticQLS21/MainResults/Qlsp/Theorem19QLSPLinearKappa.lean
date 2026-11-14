@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AdiabaticQLS21.MainResults.Setup.OperatorModel
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.Complex.ExponentialBounds
+module
+
+public import Qatlib.Papers.AdiabaticQLS21.MainResults.Setup.OperatorModel
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.Complex.ExponentialBounds
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

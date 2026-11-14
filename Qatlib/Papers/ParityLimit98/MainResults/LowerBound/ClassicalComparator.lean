@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ParityLimit98.MainResults.LowerBound.ParityBalance
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.ClassicalQuery
+module
+
+public import Qatlib.Papers.ParityLimit98.MainResults.LowerBound.ParityBalance
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.ClassicalQuery
+
+@[expose] public section
 
 /-!
 # Classical exact parity query lower bound
@@ -46,7 +50,7 @@ theorem inspected_card_le_calls {I O : Type} [DecidableEq I]
   | halt o => simp [inspected, BoolQueryTree.Run]
   | ask i a b ha hb =>
     cases hf : f i <;> simp only [inspected, BoolQueryTree.Run, hf, Bool.false_eq_true,
-      if_false, if_true]
+      ite_false, ite_true]
     · exact (Finset.card_insert_le _ _).trans (Nat.add_le_add_right ha 1)
     · exact (Finset.card_insert_le _ _).trans (Nat.add_le_add_right hb 1)
 
@@ -63,11 +67,11 @@ theorem classical_run_eq_of_inspected_agreement {I O : Type} [DecidableEq I]
     · have hg : g i = false := hi.symm.trans hf
       have ht : ∀ j ∈ inspected f a, f j = g j := fun j hj =>
         h j (Finset.mem_insert_of_mem (by simpa [hf] using hj))
-      simp only [BoolQueryTree.Run, hf, hg, Bool.false_eq_true, if_false, ha ht]
+      simp only [BoolQueryTree.Run, hf, hg, Bool.false_eq_true, ite_false, ha ht]
     · have hg : g i = true := hi.symm.trans hf
       have ht : ∀ j ∈ inspected f b, f j = g j := fun j hj =>
         h j (Finset.mem_insert_of_mem (by simpa [hf] using hj))
-      simp only [BoolQueryTree.Run, hf, hg, if_true, hb ht]
+      simp only [BoolQueryTree.Run, hf, hg, ite_true, hb ht]
 
 /-- Flipping a single input bit changes its Boolean parity. -/
 theorem parityOddB_flip_ne {I : Type} [Fintype I] [DecidableEq I] (i : I) (f : I → Bool) :

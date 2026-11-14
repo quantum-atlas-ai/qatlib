@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.Basic
-import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedAmplitudeAmplification
-import Qatlib.Papers.AdiabaticQLS23.MainResults.BlockEncoding
-import Mathlib.Tactic
+module
+
+public import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.Basic
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedAmplitudeAmplification
+public import Qatlib.Papers.AdiabaticQLS23.MainResults.BlockEncoding
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Prepared reflections and clean ancilla frames

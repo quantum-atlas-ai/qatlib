@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.SpectralH1.GaugeArtifactDecode
-import Qatlib.Concepts.EffectiveGauge.SpectralH1.GaugeArtifactPolynomial
+module
+
+public import Qatlib.Concepts.EffectiveGauge.SpectralH1.GaugeArtifactDecode
+public import Qatlib.Concepts.EffectiveGauge.SpectralH1.GaugeArtifactPolynomial
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

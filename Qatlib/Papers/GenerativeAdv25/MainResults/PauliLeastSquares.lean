@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Tactic
-import Mathlib.Analysis.InnerProductSpace.PiL2
+module
+
+public import Mathlib.Tactic
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

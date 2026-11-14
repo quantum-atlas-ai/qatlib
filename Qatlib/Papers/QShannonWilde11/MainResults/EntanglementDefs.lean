@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.UnbiasedBases.ThreeBasis.EntanglementEntropy
-import Qatlib.Concepts.Entanglement.Separability.EntanglementSeparability
+module
+
+public import Qatlib.Concepts.UnbiasedBases.ThreeBasis.EntanglementEntropy
+public import Qatlib.Concepts.Entanglement.Separability.EntanglementSeparability
+
+@[expose] public section
 
 /-!
 # Entanglement witness expectations

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EstimatorLaws.TvStability.MontanaroGibbsOverlapContracts
-import Qatlib.Concepts.EstimatorLaws.TvStability.MontanaroChebyshevProductIdentityMont
-import Qatlib.Concepts.EstimatorLaws.TvStability.MontanaroChiSqOverlapSubgoalMont
+module
+
+public import Qatlib.Concepts.EstimatorLaws.TvStability.MontanaroGibbsOverlapContracts
+public import Qatlib.Concepts.EstimatorLaws.TvStability.MontanaroChebyshevProductIdentityMont
+public import Qatlib.Concepts.EstimatorLaws.TvStability.MontanaroChiSqOverlapSubgoalMont
+
+@[expose] public section
 
 /-!
 # Gibbs normalization and schedule overlap

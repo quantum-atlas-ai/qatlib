@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LchsSimulation.WindowLchs.TimeDependentLCHSConsumers
-import Qatlib.Concepts.LchsSimulation.StaticLchs.StaticLCHSConsumers
+module
+
+public import Qatlib.Concepts.LchsSimulation.WindowLchs.TimeDependentLCHSConsumers
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.StaticLCHSConsumers
+
+@[expose] public section
 
 /-!
 # Time-dependent LCHS windows and conditional outputs

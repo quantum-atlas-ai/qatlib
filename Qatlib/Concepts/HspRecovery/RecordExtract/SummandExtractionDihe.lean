@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.RecordExtract.SummandExtractionStat
-import Qatlib.Concepts.HspRecovery.RecordExtract.ExecutionSemantics
-import Mathlib.Tactic.SimpRw
+module
+
+public import Qatlib.Concepts.HspRecovery.RecordExtract.SummandExtractionStat
+public import Qatlib.Concepts.HspRecovery.RecordExtract.ExecutionSemantics
+public import Mathlib.Tactic.SimpRw
+
+@[expose] public section
 
 /-!
 # Unitary regular summand extraction

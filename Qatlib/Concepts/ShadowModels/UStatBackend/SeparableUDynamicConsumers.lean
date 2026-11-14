@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ShadowModels.UStatBackend.SeparableUDynamic
-import Qatlib.Concepts.ShadowModels.FairBitRecords.SharpLocalPauliShadows
+module
+
+public import Qatlib.Concepts.ShadowModels.UStatBackend.SeparableUDynamic
+public import Qatlib.Concepts.ShadowModels.FairBitRecords.SharpLocalPauliShadows
+
+@[expose] public section
 
 /-!
 # Separable U-statistics for Pauli observables

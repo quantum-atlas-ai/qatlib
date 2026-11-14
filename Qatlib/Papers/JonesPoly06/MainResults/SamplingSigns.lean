@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
-import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Data.Complex.Basic
-import Mathlib.Tactic
+module
+
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+public import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # A finite distribution for complex sign sampling

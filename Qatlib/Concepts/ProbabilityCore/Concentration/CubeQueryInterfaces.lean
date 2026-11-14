@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.BornMetrics.EventProbability
-import Qatlib.Concepts.ProbabilityCore.Concentration.CubeQueryDefs
-import Qatlib.Concepts.ProbabilityCore.DistributionAA.CubeMvPolynomial
-import Qatlib.Concepts.ProbabilityCore.DistributionAA.DegreeInfluenceBounds
-import Qatlib.Concepts.ProbabilityCore.DistributionAA.CubeProductPoincare
-import Qatlib.Concepts.ProbabilityCore.DistributionAA.CubeSlicePoincare
+module
+
+public import Qatlib.Foundations.BornMetrics.EventProbability
+public import Qatlib.Concepts.ProbabilityCore.Concentration.CubeQueryDefs
+public import Qatlib.Concepts.ProbabilityCore.DistributionAA.CubeMvPolynomial
+public import Qatlib.Concepts.ProbabilityCore.DistributionAA.DegreeInfluenceBounds
+public import Qatlib.Concepts.ProbabilityCore.DistributionAA.CubeProductPoincare
+public import Qatlib.Concepts.ProbabilityCore.DistributionAA.CubeSlicePoincare
+
+@[expose] public section
 
 /-!
 # Query algorithms and cube influence
@@ -74,7 +78,7 @@ theorem queries_le_depth {n : ℕ} (t : FiniteDecisionTree n) (x : Fin n → Boo
   | leaf b => simp [depth]
   | query i l r hl hr =>
     rw [queries_query]
-    cases x i <;> simp only [Bool.false_eq_true, if_false, if_true, depth] <;> omega
+    cases x i <;> simp only [Bool.false_eq_true, ite_false, ite_true, depth] <;> omega
 
 /-- Every answer in an execution trace equals the corresponding input bit. -/
 theorem execute_answers {n : ℕ} (t : FiniteDecisionTree n) (x : Fin n → Bool) :
@@ -83,12 +87,12 @@ theorem execute_answers {n : ℕ} (t : FiniteDecisionTree n) (x : Fin n → Bool
   | leaf b => simp [execute]
   | query i l r hl hr =>
     cases h : x i
-    · simp only [execute, h, Bool.false_eq_true, if_false]
+    · simp only [execute, h, Bool.false_eq_true, ite_false]
       intro v hv
       rcases List.mem_cons.mp hv with hv | hv
       · subst v; exact h.symm
       · exact hl v hv
-    · simp only [execute, h, if_true]
+    · simp only [execute, h, ite_true]
       intro v hv
       rcases List.mem_cons.mp hv with hv | hv
       · subst v; exact h.symm

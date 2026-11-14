@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ClassShadows20.MainTheorem.ShadowsDefs
-import Qatlib.Papers.ClassShadows20.MainTheorem.GlobalShadowEffective
+module
+
+public import Qatlib.Papers.ClassShadows20.MainTheorem.ShadowsDefs
+public import Qatlib.Papers.ClassShadows20.MainTheorem.GlobalShadowEffective
+
+@[expose] public section
 
 /-!
 # General finite sampling and basis packing
@@ -153,12 +157,12 @@ theorem clause6_endpoint :
 /-- Collects separation and size of the computational basis family and the conditional
 demand-versus-allowance inequality for a supplied separated family. -/
 theorem clause7_endpoint :
-    (∀ (d : ℕ) (hd : 0 < d), (basisPackingFamily d).Separated) ∧
+    (∀ (d : ℕ) (_hd : 0 < d), (basisPackingFamily d).Separated) ∧
     (∀ (d : ℕ), (basisPackingFamily d).size = d) ∧
-    (∀ {d : ℕ} (P : PackingFamily d) (hP : P.Separated) (N r : ℕ) (δ α : ℝ)
-      (hr : 0 < r) (hrd : r ≤ d) (hα : 0 < α)
-      (hallow : 0 < Qatlib.Papers.ClassShadows20.LowerBound.theorem5WrapperAllowance d r α)
-      (hN : (N : ℝ) ≥ Qatlib.Papers.ClassShadows20.LowerBound.theorem5WrapperDemand P.size δ /
+    (∀ {d : ℕ} (P : PackingFamily d) (_hP : P.Separated) (N r : ℕ) (δ α : ℝ)
+      (_hr : 0 < r) (_hrd : r ≤ d) (_hα : 0 < α)
+      (_hallow : 0 < Qatlib.Papers.ClassShadows20.LowerBound.theorem5WrapperAllowance d r α)
+      (_hN : (N : ℝ) ≥ Qatlib.Papers.ClassShadows20.LowerBound.theorem5WrapperDemand P.size δ /
           Qatlib.Papers.ClassShadows20.LowerBound.theorem5WrapperAllowance d r α),
       Qatlib.Papers.ClassShadows20.LowerBound.theorem5WrapperDemand P.size δ ≤
         (N : ℝ) * Qatlib.Papers.ClassShadows20.LowerBound.theorem5WrapperAllowance d r α) := by

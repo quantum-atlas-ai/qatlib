@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.PetzRecovery26.VirtualAdjoint.Model
+module
+
+public import Qatlib.Papers.PetzRecovery26.VirtualAdjoint.Model
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -105,7 +109,8 @@ operator: the paper's affine transformation
 `(α⁺, α⁻, C⁺, C⁻) = ((p+1)/2, (p−1)/2, (S+C̃)/2, (S−C̃)/2)` is a bijection
 between feasible points, and both objectives evaluate to the same real number
 (`Tr(S)/d = Tr(C⁺)/d + Tr(C⁻)/d`). -/
-theorem baseNormValues_eq_diamondNormValues (C : Matrix ι ι ℂ) (d : ℝ) :
+theorem baseNormValues_eq_diamondNormValues {ι : Type*} [Fintype ι]
+    [_baseNormDecidableEq : DecidableEq ι] (C : Matrix ι ι ℂ) (d : ℝ) :
     baseNormValues C d = diamondNormValues C d := by
   ext v
   constructor

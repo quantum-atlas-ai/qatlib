@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.Model
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Deriv
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.Model
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Deriv
+
+@[expose] public section
 
 /-! # Gauge covariance for actual derivatives, including nonunit inputs -/
 
@@ -37,7 +41,7 @@ theorem gauge_hasDerivAt {q : ℝ → ℍ} {theta : ℝ → ℝ} {v : ℍ} {a t 
   have hp := (phase_hasDerivAt (theta t)).scomp t ht
   have hh := hp.mul hq
   apply hh.congr_deriv
-  apply Quaternion.ext <;> simp [Function.comp_def, phase, iAxis] <;> ring
+  apply Quaternion.ext <;> simp [phase, iAxis] <;> ring
 
 /-- Definition of curve Connection in the Hopf Atlas construction. -/
 def curveConnection (q : ℝ → ℍ) (t : ℝ) : ℝ :=

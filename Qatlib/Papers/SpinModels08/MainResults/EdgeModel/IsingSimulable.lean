@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SpinModels08.MainResults.EdgeModel.UniversalGateSet
+module
+
+public import Qatlib.Papers.SpinModels08.MainResults.EdgeModel.UniversalGateSet
+
+@[expose] public section
 
 /-!
 # Ising weights and rotation gate identities

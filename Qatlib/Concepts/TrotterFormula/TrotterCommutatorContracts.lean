@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TrotterFormula.GeneralOrder.NestedCommutatorScaling
+module
+
+public import Qatlib.Concepts.TrotterFormula.GeneralOrder.NestedCommutatorScaling
+
+@[expose] public section
 
 /-!
 # Commutator-scaling specification for product formulas

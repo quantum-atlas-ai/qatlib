@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Logic.Function.Basic
-import Mathlib.Data.Bool.Basic
-import Mathlib.Data.Nat.Basic
+module
+
+public import Mathlib.Logic.Function.Basic
+public import Mathlib.Data.Bool.Basic
+public import Mathlib.Data.Nat.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -71,7 +75,7 @@ def copyToTarget (s : LayerState) : LayerState :=
 
 /-- Uncompute step `V_α†`: on the image of `V_α` (work qubit holds `f(data)`)
 this erases the work qubit. -/
-def uncompute (f : (ℕ → Bool) → Bool) (s : LayerState) : LayerState :=
+def uncompute (_f : (ℕ → Bool) → Bool) (s : LayerState) : LayerState :=
   { s with work := false }
 
 /-- The compute–copy–uncompute gate `U_α = V_α† · CNOT · V_α`. -/
@@ -95,7 +99,7 @@ theorem layerGate_involutive_on_clean (f : (ℕ → Bool) → Bool) (s : LayerSt
   obtain ⟨data, work, target⟩ := s
   simp only at hs
   subst work
-  simp [layerGate, uncompute, compute, copyToTarget, Bool.xor_assoc]
+  simp [layerGate, uncompute, compute, copyToTarget]
 
 /-- **Lemma 12 (compute–copy–uncompute arithmetic layer).**  For every layer
 function `f_α` there is a reversible gate `U_α` such that

@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Polynomial.Basic
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.Complex.Trigonometric
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Tactic.FinCases
-import Mathlib.Tactic.Linarith
+module
+
+public import Mathlib.Algebra.Polynomial.Basic
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.Complex.Trigonometric
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Tactic.FinCases
+public import Mathlib.Tactic.Linarith
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -107,7 +111,7 @@ noncomputable def primitiveGate (φ θ : ℝ) : Matrix (Fin 2) (Fin 2) ℂ :=
 @[simp] theorem primitiveGate_zero (φ : ℝ) : primitiveGate φ 0 = 1 := by
   ext i j
   fin_cases i <;> fin_cases j <;>
-    simp [primitiveGate, idMat]
+    simp [primitiveGate]
 
 /-! ## Composite response `U(θ)` (Eq. 2)
 

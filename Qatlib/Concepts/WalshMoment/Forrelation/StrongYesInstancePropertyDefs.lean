@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalshMoment.Forrelation.StrongDistributionAuxiliary
-import Qatlib.Concepts.QmaCompleteness.HistoryHam.SpectralForrelation
-import Qatlib.Concepts.HspRecovery.Reduction.BooleanGaussianDecoder
+module
+
+public import Qatlib.Concepts.WalshMoment.Forrelation.StrongDistributionAuxiliary
+public import Qatlib.Concepts.QmaCompleteness.HistoryHam.SpectralForrelation
+public import Qatlib.Concepts.HspRecovery.Reduction.BooleanGaussianDecoder
+
+@[expose] public section
 
 /-!
 # Strong spectral yes instances and failure weights

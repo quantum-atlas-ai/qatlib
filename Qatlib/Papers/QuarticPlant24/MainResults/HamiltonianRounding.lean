@@ -4,17 +4,21 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
-import Qatlib.Concepts.BlockEncoding.EncodingCore.SparseOverlapEncoding
-import Mathlib.Analysis.CStarAlgebra.Exponential
-import Mathlib.Analysis.Normed.Algebra.MatrixExponential
-import Mathlib.Analysis.SpecialFunctions.Exponential
-import Mathlib.Analysis.Calculus.Deriv.Mul
-import Mathlib.Analysis.Calculus.Deriv.Add
-import Mathlib.Analysis.Calculus.Deriv.Comp
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.FundThmCalculus
+module
+
+public import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.SparseOverlapEncoding
+public import Mathlib.Analysis.CStarAlgebra.Exponential
+public import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+public import Mathlib.Analysis.SpecialFunctions.Exponential
+public import Mathlib.Analysis.Calculus.Deriv.Mul
+public import Mathlib.Analysis.Calculus.Deriv.Add
+public import Mathlib.Analysis.Calculus.Deriv.Comp
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.FundThmCalculus
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

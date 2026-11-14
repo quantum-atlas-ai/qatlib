@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FermionAlgebra.CarJordanWigner.Fermion
+module
+
+public import Qatlib.Concepts.FermionAlgebra.CarJordanWigner.Fermion
+
+@[expose] public section
 
 /-!
 # Fermionic swap defects
@@ -50,9 +54,9 @@ theorem swapDefect_mul_self {m : ℕ} (l r : Fin m) :
   rw [Matrix.diagonal, Matrix.of_apply, Matrix.one_apply]
   by_cases h : y = x
   · subst h
-    rw [if_pos rfl, if_pos rfl]
+    rw [ite_eq_left rfl, ite_eq_left rfl]
     exact neg_one_pow_mul_self _
-  · rw [if_neg h, if_neg h]
+  · rw [ite_eq_right h, ite_eq_right h]
 
 /-- The two-mode fermionic swap matrix, expressed using number, creation, and annihilation
 operators. -/
@@ -135,10 +139,10 @@ theorem swapDefectChain_mul_self {m : ℕ} (j k : Fin m) :
   rw [Matrix.diagonal, Matrix.of_apply, Matrix.one_apply]
   by_cases h : y = x
   · subst h
-    rw [if_pos rfl, if_pos rfl]
+    rw [ite_eq_left rfl, ite_eq_left rfl]
     rw [← Finset.prod_mul_distrib]
     refine Finset.prod_eq_one (fun s _ => ?_)
     exact neg_one_pow_mul_self _
-  · rw [if_neg h, if_neg h]
+  · rw [ite_eq_right h, ite_eq_right h]
 
 end Qatlib.Papers.FermionicComp00.MainResults.SwapDefect

@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Fin
-import Mathlib.Data.Complex.Basic
-import Mathlib.Data.Matrix.Basic
-import Mathlib.LinearAlgebra.Matrix.Notation
-import Mathlib.Tactic
+module
+
+public import Mathlib.Algebra.BigOperators.Fin
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.LinearAlgebra.Matrix.Notation
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -118,8 +122,7 @@ theorem vacProj_eq :
   unfold vacProj
   ext i j
   fin_cases i <;> fin_cases j <;>
-    simp [nUp, nDown, Fin.sum_univ_four] <;>
-    norm_num
+    simp [nUp, nDown]
 
 /-- `n↑ + n↓ - 2 n↑n↓ = diag(0,1,1,0)`, the singly-occupied projector. -/
 theorem numberSum_eq :
@@ -130,7 +133,7 @@ theorem numberSum_eq :
            0, 0, 0, 0] := by
   ext i j
   fin_cases i <;> fin_cases j <;>
-    simp [nUp, nDown, Fin.sum_univ_four] <;>
+    simp [nUp, nDown];
     norm_num
 
 /-- **Operator form of the collide operator** (Appendix C, first boxed display):
@@ -149,10 +152,9 @@ theorem upsilon4_operator_decomposition (b s B ec : ℂ) (hec : ec = b + s) :
   subst hec
   ext i j
   fin_cases i <;> fin_cases j <;>
-    simp [upsilon4, vacProj, hop, hopDag, nUp, nDown, Matrix.mul_apply,
-      Fin.sum_univ_four] <;>
-    try ring <;>
-    simp
+    simp [upsilon4, vacProj, hop, hopDag, nUp, nDown] <;>
+    try ring
+  simp
 
 /-- **Tri-idempotence of the generator** (Appendix C): for a phase `B`
 (`B B* = 1`), `N³ = N`. -/
@@ -167,8 +169,8 @@ theorem N4_tri_idempotent (B : ℂ) (hB : B * star B = 1) :
   rw [hstar]
   ext i j
   fin_cases i <;> fin_cases j <;>
-    simp [Matrix.mul_apply, Fin.sum_univ_four] <;>
-    try field_simp <;> ring
+    simp [Matrix.mul_apply, Fin.sum_univ_four];
+    try field_simp
 
 /-- `N² = diag(0,1,1,1)` for a phase `B` (Appendix C). -/
 theorem N4_sq (B : ℂ) (hB : B * star B = 1) :
@@ -186,7 +188,7 @@ theorem N4_sq (B : ℂ) (hB : B * star B = 1) :
   ext i j
   fin_cases i <;> fin_cases j <;>
     simp [Matrix.mul_apply, Fin.sum_univ_four] <;>
-    try field_simp <;> ring
+    try field_simp
 
 /-- **Closed form = tri-idempotent generator expansion** (Appendix C, pp. 29–30):
 for a phase `B`, the collide operator equals `1 + sinh z · N + (cosh z - 1) · N²`,
@@ -203,8 +205,9 @@ theorem upsilon4_eq_generator_expansion (b s B : ℂ) (hB : B * star B = 1) :
   rw [hstar]
   ext i j
   fin_cases i <;> fin_cases j <;>
-    simp [pow_two, Matrix.mul_apply, Fin.sum_univ_four] <;>
-    try field_simp <;> ring
+    simp [pow_two] <;>
+    try field_simp
+  all_goals ring
 
 /-- The closed form is a one-parameter (semi)group in `(cosh z, sinh z)`:
 composing two `Υ`'s composes the parameters by the addition formulas, which is
@@ -222,7 +225,11 @@ theorem upsilon4_mul (b s b' s' B : ℂ) (hB : B * star B = 1) :
   ext i j
   fin_cases i <;> fin_cases j <;>
     simp [Matrix.mul_apply, Fin.sum_univ_four] <;>
-    try field_simp <;> ring
+    try field_simp; ring
+  · calc
+      B⁻¹ * s * (s' * B) = (B⁻¹ * B) * (s * s') := by ring
+      _ = s * s' := by rw [inv_mul_cancel₀ hBne, one_mul]
+  · ring
 
 end
 

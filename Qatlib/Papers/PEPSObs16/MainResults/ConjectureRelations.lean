@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.PEPSObs16.MainResults.SourceMainResults
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.PEPSObs16.MainResults.SourceMainResults
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # PEPSObs16 — logical structure of the two PEPS conjectures
@@ -79,7 +83,7 @@ theorem densExpect_ketBra {N d : ℕ} (a : Fin N → Fin d) (O : Observable N d)
     densExpect (ketBra a) O = O a a := by
   unfold densExpect ketBra
   rw [Finset.sum_eq_single a]
-  · simp only [if_true]
+  · simp only [ite_true]
     rw [Finset.sum_eq_single a]
     · simp
     · intro j _ hj
@@ -88,7 +92,7 @@ theorem densExpect_ketBra {N d : ℕ} (a : Fin N → Fin d) (O : Observable N d)
   · intro i _ hi
     have hz : ∀ j, (if i = a then (if j = a then (1 : ℂ) else 0) else 0) * O j i = 0 := by
       intro j
-      rw [if_neg hi, zero_mul]
+      rw [ite_eq_right hi, zero_mul]
     simp only [hz, Finset.sum_const, smul_zero]
   · intro ha; exact absurd (Finset.mem_univ a) ha
 
@@ -145,7 +149,7 @@ theorem densExpect_ketBra_siteObs (a : Fin 2 → Fin 2) (f : Fin 2 → ℂ) :
     densExpect (ketBra a) (siteObs f) = f (a 0) := by
   rw [densExpect_ketBra]
   unfold siteObs
-  rw [if_pos rfl]
+  rw [ite_eq_left rfl]
 
 /-- **The mixture still matches `ρ` on every first-site observable.** For
 `ρ = |00⟩⟨00|` and `η = |01⟩⟨01|` the mixture has expectation `f 0`, exactly as
@@ -173,7 +177,7 @@ theorem densExpect_ket00_zz : densExpect ket00 zzOp = 1 := by
   unfold ket00
   rw [densExpect_ketBra]
   unfold zzOp
-  rw [if_pos rfl]
+  rw [ite_eq_left rfl]
   simp
 
 /-- `η = |01⟩⟨01|` has `Z ⊗ Z` correlation `−1`. -/
@@ -181,7 +185,7 @@ theorem densExpect_ket01_zz : densExpect ket01 zzOp = -1 := by
   unfold ket01
   rw [densExpect_ketBra]
   unfold zzOp
-  rw [if_pos rfl]
+  rw [ite_eq_left rfl]
   simp
 
 /-- **The mixture's two-site correlation differs from `ρ`'s.** Although

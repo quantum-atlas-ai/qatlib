@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Tactic.Linarith
-import Qatlib.Foundations.ClockedOracle.StackProgram.ClockedOracleStackDefs
+module
+
+public import Mathlib.Tactic.Linarith
+public import Qatlib.Foundations.ClockedOracle.StackProgram.ClockedOracleStackDefs
+
+@[expose] public section
 
 /-!
 # Execution and cost bounds for oracle stack programs

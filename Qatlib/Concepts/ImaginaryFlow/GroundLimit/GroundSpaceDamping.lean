@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ImaginaryFlow.GroundLimit.SpectralDamping
+module
+
+public import Qatlib.Concepts.ImaginaryFlow.GroundLimit.SpectralDamping
+
+@[expose] public section
 
 /-!
 # Finite damping with degenerate lowest energy
@@ -53,14 +57,14 @@ theorem gaugeFixedState_tendsto_groundspace {ι : Type*} [Fintype ι]
   apply tendsto_finsetSum
   intro i _
   by_cases hi : eig i = eig i0
-  · simp only [hi, sub_self, neg_zero, zero_mul, Real.exp_zero, one_mul, if_true]
+  · simp only [hi, sub_self, neg_zero, zero_mul, Real.exp_zero, one_mul, ite_true]
     exact tendsto_const_nhds
   · have hgap : 0 < eig i - eig i0 := sub_pos.mpr (lt_of_le_of_ne (hmin i) (Ne.symm hi))
     have hinner : Tendsto (fun t : ℝ => -(eig i - eig i0) * t) atTop atBot := by
       exact (Filter.tendsto_const_mul_atBot_of_neg (by linarith : -(eig i - eig i0) < 0)).mpr tendsto_id
     have he : Tendsto (fun t : ℝ => Real.exp (-(eig i - eig i0) * t)) atTop (𝓝 0) :=
       Real.tendsto_exp_atBot.comp hinner
-    simpa only [if_neg hi, zero_mul, zero_smul] using
+    simpa only [ite_eq_right hi, zero_mul, zero_smul] using
       (he.mul (tendsto_const_nhds (x := c i))).smul (tendsto_const_nhds (x := v i))
 
 /-- If the energy at `i0` is minimal and the retained sum is nonzero, normalized finite damping

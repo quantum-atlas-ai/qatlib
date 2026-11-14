@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CodingDecoding.CssTesters.CssCode
+module
+
+public import Qatlib.Concepts.CodingDecoding.CssTesters.CssCode
+
+@[expose] public section
 
 /-!
 # Binary product incidence data

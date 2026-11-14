@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeCore.PhaseEstimation.Lemma10Stat
-import Qatlib.Concepts.AmplitudeCore.PhaseEstimation.Lemma18Ampl
+module
+
+public import Qatlib.Concepts.AmplitudeCore.PhaseEstimation.Lemma10Stat
+public import Qatlib.Concepts.AmplitudeCore.PhaseEstimation.Lemma18Amplification
+
+@[expose] public section
 
 /-!
 # Overlap of finite Fourier phase states

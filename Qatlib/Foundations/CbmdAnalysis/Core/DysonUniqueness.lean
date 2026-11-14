@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Core.DysonConstruction
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.AbsolutelyContinuousFun
-import Mathlib.Analysis.Calculus.ContDiff.Deriv
+module
+
+public import Qatlib.Foundations.CbmdAnalysis.Core.DysonConstruction
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.AbsolutelyContinuousFun
+public import Mathlib.Analysis.Calculus.ContDiff.Deriv
+
+@[expose] public section
 
 /-!
 # Uniqueness for almost-everywhere matrix evolution

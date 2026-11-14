@@ -7,10 +7,14 @@ Authors: Qatlib Contributors
 /-
 Copyright (c) 2026. All rights reserved.
 -/
-import Mathlib.Data.Real.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.Order.BigOperators.Group.Finset
-import Mathlib.Tactic
+module
+
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.Order.BigOperators.Group.Finset
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -41,7 +45,7 @@ namespace Qatlib.Papers.BettiHardness26.MainResults.Reduction
 
 open Finset
 
-variable {Γ : Type*} [Fintype Γ]
+variable {Γ : Type*} [instFintypeGamma : Fintype Γ]
 
 /-- The `{0,1}`-valued real indicator of a decidable event. -/
 def ind (P : Γ → Prop) [DecidablePred P] (g : Γ) : ℝ := if P g then 1 else 0
@@ -54,24 +58,34 @@ def detector (est : Γ → ℝ) (η : ℝ) : Γ → ℝ := fun g => ind (fun g =
 def prob (mu : Γ → ℝ) (P : Γ → Prop) [DecidablePred P] : ℝ :=
   ∑ g, mu g * ind P g
 
+omit instFintypeGamma in
 /-- The indicator function is nonnegative. -/
-lemma ind_nonneg (P : Γ → Prop) [DecidablePred P] (g : Γ) : 0 ≤ ind P g := by
+lemma ind_nonneg {Γ : Type*}
+    [_instFintypeGamma : Fintype Γ] (P : Γ → Prop) [DecidablePred P] (g : Γ) : 0 ≤ ind P g := by
   unfold ind; split_ifs <;> norm_num
 
+omit instFintypeGamma in
 /-- The indicator function is at most one. -/
-lemma ind_le_one (P : Γ → Prop) [DecidablePred P] (g : Γ) : ind P g ≤ 1 := by
+lemma ind_le_one {Γ : Type*}
+    [_instFintypeGamma : Fintype Γ] (P : Γ → Prop) [DecidablePred P] (g : Γ) : ind P g ≤ 1 := by
   unfold ind; split_ifs <;> norm_num
 
+omit instFintypeGamma in
 /-- The indicator of a true proposition equals one. -/
-lemma ind_of_true (P : Γ → Prop) [DecidablePred P] {g : Γ} (h : P g) : ind P g = 1 := by
+lemma ind_of_true {Γ : Type*}
+    [_instFintypeGamma : Fintype Γ] (P : Γ → Prop) [DecidablePred P] {g : Γ} (h : P g) : ind P g = 1 := by
   unfold ind; simp [h]
 
+omit instFintypeGamma in
 /-- The indicator of a false proposition equals zero. -/
-lemma ind_of_false (P : Γ → Prop) [DecidablePred P] {g : Γ} (h : ¬ P g) : ind P g = 0 := by
+lemma ind_of_false {Γ : Type*}
+    [_instFintypeGamma : Fintype Γ] (P : Γ → Prop) [DecidablePred P] {g : Γ} (h : ¬ P g) : ind P g = 0 := by
   unfold ind; simp [h]
 
+omit instFintypeGamma in
 /-- The indicator of a complement is one minus the indicator. -/
-lemma ind_compl (P : Γ → Prop) [DecidablePred P] (g : Γ) :
+lemma ind_compl {Γ : Type*}
+    [_instFintypeGamma : Fintype Γ] (P : Γ → Prop) [DecidablePred P] (g : Γ) :
     ind (fun g => ¬ P g) g = 1 - ind P g := by
   unfold ind; by_cases h : P g <;> simp [h]
 
@@ -104,8 +118,8 @@ error `< η` with success probability `≥ ½ + δ` over the balanced mixture yi
 `η ≤ est` with advantage at least `δ`. (Here `0 ≤ δ` is the positive-advantage parameter.) -/
 theorem reduction_threshold
     (mu0 mu1 : Γ → ℝ) (hmu0 : ∀ g, 0 ≤ mu0 g) (hmu1 : ∀ g, 0 ≤ mu1 g)
-    (hmu0sum : ∑ g, mu0 g = 1) (hmu1sum : ∑ g, mu1 g = 1)
-    (beta est : Γ → ℝ) (η g0 δ : ℝ) (hη : 0 ≤ η) (hgap : 2 * η ≤ g0) (hδ : 0 ≤ δ)
+    (hmu0sum : ∑ g, mu0 g = 1) (_hmu1sum : ∑ g, mu1 g = 1)
+    (beta est : Γ → ℝ) (η g0 δ : ℝ) (_hη : 0 ≤ η) (hgap : 2 * η ≤ g0) (hδ : 0 ≤ δ)
     (hNull : ∀ g, mu0 g ≠ 0 → beta g = 0)
     (hPlanted : ∀ g, mu1 g ≠ 0 → g0 ≤ beta g)
     (hHyp : (prob mu0 (fun g => |est g - beta g| < η)
@@ -175,7 +189,7 @@ approximation `β/C ≤ est ≤ C β` separates `β = 0` from `β ≥ 1`: with `
 least `δ`. -/
 theorem multiplicative_yields_distinguisher
     (mu0 mu1 : Γ → ℝ) (hmu0 : ∀ g, 0 ≤ mu0 g) (hmu1 : ∀ g, 0 ≤ mu1 g)
-    (hmu0sum : ∑ g, mu0 g = 1) (hmu1sum : ∑ g, mu1 g = 1)
+    (hmu0sum : ∑ g, mu0 g = 1) (_hmu1sum : ∑ g, mu1 g = 1)
     (beta est : Γ → ℝ) (C : ℝ) (hC : 1 ≤ C) (delta : ℝ) (hδ : 0 ≤ delta)
     (hNull : ∀ g, mu0 g ≠ 0 → beta g = 0)
     (hPlanted : ∀ g, mu1 g ≠ 0 → 1 ≤ beta g)

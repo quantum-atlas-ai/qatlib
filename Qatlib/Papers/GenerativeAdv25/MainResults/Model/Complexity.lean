@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GenerativeAdv25.MainResults.Model.FiniteLaws
-import Qatlib.Papers.GenerativeAdv25.MainResults.Model.ParameterizedSwap
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Algebra.BigOperators.Fin
-import Mathlib.Data.Nat.Log
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.GenerativeAdv25.MainResults.Model.FiniteLaws
+public import Qatlib.Papers.GenerativeAdv25.MainResults.Model.ParameterizedSwap
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Algebra.BigOperators.Fin
+public import Mathlib.Data.Nat.Log
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -63,7 +67,7 @@ def bornLaw {n : ℕ} (U : QOp (Bit n))
   nonneg y := Complex.normSq_nonneg _
   sum_one := by
     have h := congrFun (congrFun hU (zeroBits n)) (zeroBits n)
-    rw [Matrix.mul_apply, Matrix.one_apply, if_pos rfl] at h
+    rw [Matrix.mul_apply, Matrix.one_apply, ite_eq_left rfl] at h
     have hε : ((∑ x, Complex.normSq (U x (zeroBits n)) : ℝ) : ℂ) = ((1 : ℝ) : ℂ) := by
       push_cast
       simp only [Complex.normSq_eq_conj_mul_self]

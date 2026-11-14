@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowCore
-import Qatlib.Concepts.MbqcFlow.FlowDecision.IsingClusterResource
+module
+
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MbqcFlowCore
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.IsingClusterResource
+
+@[expose] public section
 
 /-!
 # Local Pauli rewrites across the graph entangler

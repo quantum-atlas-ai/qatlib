@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Foundations.PureStateMath.Tensor
+module
+
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Foundations.PureStateMath.Tensor
+
+@[expose] public section
 
 /-!
 # Composite measurement operators
@@ -108,6 +112,7 @@ theorem measOp_apply (branch : A → Ω) (U : Ω → Matrix D D ℂ) (ψ : QStat
   · intro a' _ ha'; simp [Ne.symm ha']
   · intro h; exact absurd (Finset.mem_univ a) h
 
+omit [Fintype Ω] [DecidableEq Ω] in
 /-- The Born weight after composite measurement factors into the branch-register weight and the
 corresponding branch data-register weight. -/
 theorem bornProb_measOp (branch : A → Ω) (U : Ω → Matrix D D ℂ) (ψ : QState A) (d0 : D)
@@ -179,6 +184,7 @@ theorem measOp_conjTranspose (branch : A → Ω) (U : Ω → Matrix D D ℂ) :
   · have h0 : ¬ (a' = a) := fun h => ha h.symm
     simp [ha, h0]
 
+omit [Fintype Ω] [DecidableEq Ω] in
 /-- If every branch matrix satisfies `U V * (U V)ᴴ = 1`, the composite measurement operator
 satisfies the same identity. This supplies the branchwise unitarity calculation associated
 with [Kitaev, Lemma 8][Kitaev1995]. -/

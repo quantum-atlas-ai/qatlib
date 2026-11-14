@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.InstrumentCore.PatternCompile.UniversalRawFrameReadoutStat
-import Qatlib.Concepts.InstrumentCore.PatternCompile.UniversalRawGraphAux
+module
+
+public import Qatlib.Concepts.InstrumentCore.PatternCompile.UniversalRawFrameReadoutStat
+public import Qatlib.Concepts.InstrumentCore.PatternCompile.UniversalRawGraphAux
+
+@[expose] public section
 
 /-!
 # Raw graph branches and Pauli-frame readout
@@ -86,7 +90,7 @@ theorem mbqcFrameDecode_support {n : ℕ} (F : PauliFrame n) (r c : Fin (2^n))
   rw [frame_entry] at h
   have hs : (bitVecEquiv n).symm r=frameShift F ((bitVecEquiv n).symm c) := by
     by_contra hn
-    exact h (if_neg hn)
+    exact h (ite_eq_right hn)
   apply (bitVecEquiv n).symm.injective
   funext i
   simp only [mbqcFrameDecode,Equiv.symm_apply_apply] at ⊢

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Tensor
-import Qatlib.Concepts.AdaptiveQuery.RawProcess.ObservedCircuitLaws
-import Mathlib.Tactic.SimpRw
+module
+
+public import Qatlib.Foundations.PureStateMath.Tensor
+public import Qatlib.Concepts.AdaptiveQuery.RawProcess.ObservedCircuitLaws
+public import Mathlib.Tactic.SimpRw
+
+@[expose] public section
 
 /-!
 # Hidden environments for observed circuits
@@ -93,6 +97,7 @@ def hiddenTableOracle (O : E → Matrix I I ℂ) :
     Matrix (I × E) (I × E) ℂ :=
   fun x y => if x.2 = y.2 then O x.2 x.1 y.1 else 0
 
+omit [DecidableEq I] in
 /-- Tensoring an orthogonal projector with the environment identity preserves the orthogonal
 projector property. -/
 private theorem observedEnvironment_projector_lift (Q : Matrix I I ℂ)
@@ -129,6 +134,7 @@ theorem liftObservedEnvironment_wellFormed (P : ObservedCircuit I)
       exact ⟨observedEnvironment_projector_lift Q hP.1,
         ihFalse hP.2.1, ihTrue hP.2.2⟩
 
+omit [Fintype I] [Fintype E] in
 /-- Tensoring the complementary system projector with the environment identity equals the
 complement of the lifted matrix. -/
 private theorem observedEnvironment_complement (Q : Matrix I I ℂ) :
@@ -144,6 +150,7 @@ private theorem observedEnvironment_complement (Q : Matrix I I ℂ) :
     simp only [tensorGate_apply, Matrix.sub_apply, sub_mul]
   simpa only [tensorGate_one] using h
 
+omit [Fintype I] [Fintype E] in
 /-- Selecting a binary measurement branch commutes with tensoring its system matrix with the
 environment identity. -/
 private theorem observedEnvironment_selector (Q : Matrix I I ℂ)
@@ -177,8 +184,7 @@ private theorem observedEnvironment_label_projector {n : ℕ}
   rcases x with ⟨i, a⟩
   rcases y with ⟨j, b⟩
   by_cases hij : i = j <;> by_cases hab : a = b <;>
-    simp [Projector, tensorGate_apply, Matrix.diagonal_apply,
-      Matrix.one_apply, Prod.mk.injEq, hij, hab]
+    simp [Projector, tensorGate_apply,  Prod.mk.injEq, hij, hab]
 
 /-- Collapsing on a system label commutes with applying a matrix to the environment component. -/
 private theorem observedEnvironment_collapse_commute {n : ℕ}
@@ -277,6 +283,7 @@ theorem observed_environment_intertwining (W : Matrix E E ℂ)
             (ihTrue
               (ProjectiveBranch (TensorGate Q (1 : Matrix E E ℂ)) true psi)))
 
+omit [DecidableEq I] in
 /-- Taking a fixed environment slice after a lifted system gate agrees with applying the
 original gate to that slice. -/
 private theorem observedEnvironment_gate_slice (G : Matrix I I ℂ)
@@ -290,6 +297,7 @@ private theorem observedEnvironment_gate_slice (G : Matrix I I ℂ)
   intro j _
   simp [mul_ite, ite_mul]
 
+omit [DecidableEq I] in
 /-- The slice at environment coordinate `a` of a hidden table oracle application is the
 application of `O a` to the corresponding input slice. -/
 private theorem observedEnvironment_oracle_slice (O : E → Matrix I I ℂ)
@@ -392,6 +400,6 @@ theorem hiddenTableOracle_unitary (O : E → Matrix I I ℂ)
     simpa [Matrix.mul_apply, Matrix.conjTranspose_apply, hiddenTableOracle,
       Fintype.sum_prod_type, Matrix.one_apply, Prod.mk.injEq, ite_mul, mul_ite] using he
   · simp [Matrix.mul_apply, Matrix.conjTranspose_apply, hiddenTableOracle,
-      Fintype.sum_prod_type, Matrix.one_apply, Prod.mk.injEq, hab, Ne.symm hab, ite_mul, mul_ite]
+      Fintype.sum_prod_type,  Prod.mk.injEq, hab, Ne.symm hab,  mul_ite]
 
 end Qatlib.Concepts.AdversaryBounds.AdvDuality

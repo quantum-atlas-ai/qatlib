@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.TensorPCA19.MainResults.Model.TensorPCAConfig
-import Mathlib.MeasureTheory.Integral.Bochner.Basic
+module
+
+public import Qatlib.Papers.TensorPCA19.MainResults.Model.TensorPCAConfig
+public import Mathlib.MeasureTheory.Integral.Bochner.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

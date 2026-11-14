@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TrotterFormula.GeneralOrder.GeneralTrotterOrderConsumers
-import Mathlib.Tactic.FinCases
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Ring
+module
+
+public import Qatlib.Concepts.TrotterFormula.GeneralOrder.GeneralTrotterOrderConsumers
+public import Mathlib.Tactic.FinCases
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 /-!
 # An explicit cubic product-formula error family

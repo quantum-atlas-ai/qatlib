@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.OrderedBayes.BayesRatioCore.BayesTruthDefs
+module
+
+public import Qatlib.Concepts.OrderedBayes.BayesRatioCore.BayesTruthDefs
+
+@[expose] public section
 
 /-!
 # Statement of the left posterior ratio bound

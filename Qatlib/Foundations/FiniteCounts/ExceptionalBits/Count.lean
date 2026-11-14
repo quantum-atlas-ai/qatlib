@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Nat.Log
-import Mathlib.Algebra.Order.BigOperators.Group.Finset
-import Mathlib.Data.Finset.Interval
-import Mathlib.Order.Interval.Finset.Nat
-import Mathlib.Tactic
+module
+
+public import Mathlib.Data.Nat.Log
+public import Mathlib.Algebra.Order.BigOperators.Group.Finset
+public import Mathlib.Data.Finset.Interval
+public import Mathlib.Order.Interval.Finset.Nat
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Counting exceptional binary doubling events
@@ -64,7 +68,7 @@ noncomputable def ExceptionalDoublingScalars (n a r : ℕ) : Finset (Fin (n + 1)
 private theorem bitAt_eq_if {n : ℕ} (k : Fin (n + 1) → Bool) {j : ℕ} (hj : j < n + 1) :
     bitAt k j = if k ⟨j, hj⟩ then 1 else 0 := by
   rw [bitAt]
-  exact dif_pos hj
+  exact dite_eq_left hj
 
 /-- Every value of `bitAt` is at most one. -/
 private theorem bitAt_le_one {n : ℕ} (k : Fin (n + 1) → Bool) (j : ℕ) : bitAt k j ≤ 1 := by
@@ -748,7 +752,7 @@ theorem exceptionalDoubling_count_le (n a r : ℕ)
         _ = 2 ^ (n - Nat.clog 2 a) +
               ∑ m ∈ Finset.Icc (Nat.clog 2 r) n,
                 ((2 ^ m - a) / r) * 2 ^ (n - m) := by
-              try dsimp only at hsplit
+
               rw [Nat.add_mul, one_mul]
               omega
 

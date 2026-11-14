@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.EntangleTrans99.MainResults.Majorization.PermMix
-import Qatlib.Papers.EntangleTrans99.MainResults.TTransform.Basic
-import Mathlib.Analysis.Convex.Birkhoff
+module
+
+public import Qatlib.Papers.EntangleTrans99.MainResults.Majorization.PermMix
+public import Qatlib.Papers.EntangleTrans99.MainResults.TTransform.Basic
+public import Mathlib.Analysis.Convex.Birkhoff
+
+@[expose] public section
 
 /-!
 # Doubly stochastic mixing of spectra

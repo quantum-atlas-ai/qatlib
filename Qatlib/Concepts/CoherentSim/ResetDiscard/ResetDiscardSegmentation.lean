@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CoherentSim.ResetDiscard.ResetDiscardDefinitions
-import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.FiberBridge
-import Qatlib.Concepts.CoherentSim.ResetDiscard.Theorem13CorrectedHami
+module
+
+public import Qatlib.Concepts.CoherentSim.ResetDiscard.ResetDiscardDefinitions
+public import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.FiberBridge
+public import Qatlib.Concepts.CoherentSim.ResetDiscard.Theorem13CorrectedHami
+
+@[expose] public section
 
 /-!
 # Raw reset-and-discard identities and obstructions
@@ -110,7 +114,7 @@ theorem scaled_identity_encoding_exists (s : ℝ) (hs : 1 ≤ s) :
   let v : QState Bool := fun b => if b then (Real.sqrt (1-s⁻¹^2) : ℂ) else (s⁻¹ : ℂ)
   have hv : ∑ b : Bool, ‖v b‖^2=1 := by
     rw [Fintype.sum_bool]
-    simp only [v, if_pos rfl, if_neg Bool.false_ne_true,
+    simp only [v, ite_eq_left rfl, ite_eq_right Bool.false_ne_true,
       norm_inv, Complex.norm_real, Real.norm_eq_abs, sq_abs]
     rw [Real.sq_sqrt (by linarith : 0 ≤ 1-s⁻¹^2)]
     rw [abs_of_pos hspos]

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+module
+
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+
+@[expose] public section
 
 /-!
 # Finite likelihood support bounds
@@ -48,6 +52,7 @@ private theorem event_mono (p : Qatlib.Concepts.MonteCarloMean.FinDistBounds.Fin
   · intro w _ _
     exact Finset.prod_nonneg fun i _ => p.nonneg _
 
+omit [DecidableEq X] in
 /-- The probability that all `k` independent observations satisfy `A` is the `k`th power of its
 one sample probability. -/
 theorem all_samples_mass (p : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X) (k : ℕ) (A : X → Prop) [DecidablePred A] :
@@ -59,12 +64,13 @@ theorem all_samples_mass (p : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDi
     by_cases hw : ∀ i, A (w i)
     · simp [hw]
     · obtain ⟨i, hi⟩ := not_forall.mp hw
-      rw [if_neg hw]
+      rw [ite_eq_right hw]
       exact Finset.prod_eq_zero (Finset.mem_univ i) (by simp [hi])
   simp only [hi, Finset.prod_const, Finset.card_univ, Fintype.card_fin] at h
   simpa only [Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.probEvent, Finset.sum_filter, mul_ite, mul_one, mul_zero,
     ite_mul, one_mul, zero_mul] using h
 
+omit [DecidableEq X] in
 /-- The probability under `p` that a `k` sample record has likelihood no larger than under `q`
 is at most the `k`th power of the `p` mass on the support of `q`. -/
 theorem support_bound (p q : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X) (k : ℕ) :
@@ -88,11 +94,12 @@ theorem support_bound (p q : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDis
         rw [hzero] at hbeat
         linarith
       simp [hbeat, hall]
-    · simp only [if_neg hbeat]
+    · simp only [ite_eq_right hbeat]
       split_ifs
       · exact hpos.le
       · exact le_refl _
 
+omit [DecidableEq X] in
 /-- If each incorrect decoder output has likelihood at least the `p` likelihood of the record,
 its error probability is at most the sum of the competing support mass powers. -/
 theorem decoder_error_bound (p : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X) {k m : ℕ}
@@ -113,7 +120,7 @@ theorem decoder_error_bound (p : Qatlib.Concepts.MonteCarloMean.FinDistBounds.Fi
   by_cases hc : c = truth
   · subst c
     simp [E, Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.probEvent]
-  · rw [if_pos hc]
+  · rw [ite_eq_left hc]
     exact (event_mono p (E c) (fun w => p.probOf w ≤ (q c).probOf w)
       (fun _ h => h.2)).trans (support_bound p (q c) k)
 

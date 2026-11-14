@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QAdversary11.PartialCompose.AdversaryIteration.SourceLemma1
-import Qatlib.Concepts.ConversionCore.WitnessCompile.FunctionEvaluationAdversaryAlgQuan
+module
+
+public import Qatlib.Papers.QAdversary11.PartialCompose.AdversaryIteration.SourceLemma1
+public import Qatlib.Concepts.ConversionCore.WitnessCompile.FunctionEvaluationAdversaryAlgQuan
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -68,8 +72,8 @@ can be evaluated with at most `C · (K · J)` queries.
 The constant `C` is the square of the universal `Q = Θ(ADV)` constant of
 Lemma 2, and is independent of `f`, `n`, `d`, `J`, `K`. -/
 theorem nonconstructive_upper_bound :
-    ∃ C : ℝ≥0∞, 1 ≤ C ∧ ∀ (n : ℕ) (hn : 0 < n) (f : (Fin n → Bool) → Bool)
-      (d : ℕ) (hd : 1 ≤ d) (J K : ℝ≥0∞) (hK : 1 ≤ K),
+    ∃ C : ℝ≥0∞, 1 ≤ C ∧ ∀ (n : ℕ) (_hn : 0 < n) (f : (Fin n → Bool) → Bool)
+      (d : ℕ) (_hd : 1 ≤ d) (J K : ℝ≥0∞) (_hK : 1 ≤ K),
       sourceFunctionQ (booleanInput (n := n^d)) (iterateTotal f d) ≤ K * J ^ d →
       sourceFunctionQ (booleanInput (n := n)) f ≤ C * (K * J) := by
   obtain ⟨c, hc0, hspec⟩ := functionEvaluationAdversaryAlgorithm

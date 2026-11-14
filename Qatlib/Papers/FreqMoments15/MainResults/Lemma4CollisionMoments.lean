@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.FreqMoments15.MainResults.FrequencyMomentModel
-import Mathlib.Data.Fintype.Card
-import Mathlib.Data.Fintype.BigOperators
-import Mathlib.Algebra.BigOperators.Group.Finset.Piecewise
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Logic.Equiv.Basic
-import Mathlib.Data.Finset.Interval
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.FreqMoments15.MainResults.FrequencyMomentModel
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Data.Fintype.BigOperators
+public import Mathlib.Algebra.BigOperators.Group.Finset.Piecewise
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Logic.Equiv.Basic
+public import Mathlib.Data.Finset.Interval
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -80,10 +84,12 @@ theorem card_subtype_congr {α : Type*} [Fintype α] {p q : α → Prop}
     Fintype.card {x // p x} = Fintype.card {x // q x} :=
   Fintype.card_congr (Equiv.subtypeEquivRight h)
 
+omit [NeZero m] in
 /-- The number of samples whose values on `T` are all equal to a fixed value `v` is
 `(freq v)^{|T|} · n^{ℓ−|T|}`: on `T` the entry is forced to `v` (`freq v` choices), off
 `T` it is free (`n` choices).  This is the combinatorial content of (2) in Appendix A. -/
-theorem card_fiber {ℓ : ℕ} (a : Stream n m) (v : ZMod m) (T : Finset (Fin ℓ)) :
+theorem card_fiber {n m : ℕ} [_neZeroM : NeZero m] {ℓ : ℕ}
+    (a : Stream n m) (v : ZMod m) (T : Finset (Fin ℓ)) :
     Fintype.card {s : Sample ℓ n // ∀ i ∈ T, a (s i) = v}
       = freq a v ^ T.card * n ^ (ℓ - T.card) := by
   classical
@@ -96,11 +102,11 @@ theorem card_fiber {ℓ : ℕ} (a : Stream n m) (v : ZMod m) (T : Finset (Fin �
       Fintype.card {x : Fin n // (i ∈ T → a x = v)} = if i ∈ T then freq a v else n := by
     intro i
     by_cases hi : i ∈ T
-    · rw [if_pos hi]
+    · rw [ite_eq_left hi]
       rw [card_subtype_congr (q := fun x => a x = v) (fun x => by simp [hi])]
       rw [Fintype.card_subtype]
       simp [freq]
-    · rw [if_neg hi]
+    · rw [ite_eq_right hi]
       rw [card_subtype_congr (q := fun _ => True) (fun x => by simp [hi])]
       simp
   rw [Finset.prod_congr rfl (fun i _ => hfib i)]
@@ -126,7 +132,7 @@ theorem sum_indicator_const {ℓ k : ℕ} (a : Stream n m) {T : Finset (Fin ℓ)
         = ∑ v : ZMod m, (if ∀ i ∈ T, a (s i) = v then (1 : ℝ) else 0) := by
     intro s
     by_cases h : ∀ i ∈ T, ∀ j ∈ T, a (s i) = a (s j)
-    · rw [if_pos h]
+    · rw [ite_eq_left h]
       have hw : ∀ i ∈ T, a (s i) = a (s hne.choose) :=
         fun i hi => h i hi _ hne.choose_spec
       have hsingle :
@@ -135,16 +141,16 @@ theorem sum_indicator_const {ℓ k : ℕ} (a : Stream n m) {T : Finset (Fin ℓ)
                 (1 : ℝ) else 0) := by
         refine Finset.sum_eq_single (a (s hne.choose)) ?_ ?_
         · intro v _ hv
-          rw [if_neg]
+          rw [ite_eq_right]
           intro hp
           exact hv ((hp _ hne.choose_spec).symm.trans (hw _ hne.choose_spec))
         · intro hmem
           exact absurd (Finset.mem_univ _) hmem
-      rw [hsingle, if_pos (fun i hi => hw i hi)]
-    · rw [if_neg h]
+      rw [hsingle, ite_eq_left (fun i hi => hw i hi)]
+    · rw [ite_eq_right h]
       rw [Finset.sum_eq_zero]
       intro v _
-      rw [if_neg]
+      rw [ite_eq_right]
       exact fun hp => h (fun i hi j hj => (hp i hi).trans (hp j hj).symm)
   rw [Finset.sum_congr rfl (fun s _ => hpoint s)]
   rw [Finset.sum_comm]
@@ -235,8 +241,8 @@ pp. 18–19).  The variance of the collision count is at most
 **Status.** The statement is registered as a `Prop`-valued definition; the second-moment
 argument of Appendix A (pair counting, power-mean monotonicity and algebraic
 rearrangement) is not formalised here. -/
-def lemma4_variance_statement {ℓ k : ℕ} (a : Stream n m) (hk : 0 < k) (hkl : k ≤ ℓ)
-    (hℓn : ℓ ≤ n) : Prop :=
+def lemma4_variance_statement {ℓ k : ℕ} (a : Stream n m) (_hk : 0 < k) (_hkl : k ≤ ℓ)
+    (_hℓn : ℓ ≤ n) : Prop :=
   sampleVar (fun s : Sample ℓ n => (collCount a k s : ℝ))
     ≤ ∑ q ∈ Finset.Icc k (2 * k - 1),
         ((ℓ : ℝ) * Real.rpow (Fk a k : ℝ) (1 / (k : ℝ)) / (n : ℝ)) ^ q

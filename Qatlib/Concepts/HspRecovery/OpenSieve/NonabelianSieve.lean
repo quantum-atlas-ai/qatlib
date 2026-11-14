@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.RecordExtract.Nonabelian
-import Qatlib.Concepts.HspRecovery.SieveAlgorithm.DihedralSieveAlgorithmDihe
-import Qatlib.Concepts.BlockEncoding.LinearCombination
-import Mathlib.Data.Fintype.Sigma
-import Mathlib.Data.Fintype.Prod
-import Mathlib.Data.Fintype.Sum
-import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
-import Mathlib.LinearAlgebra.Matrix.Reindex
+module
+
+public import Qatlib.Concepts.HspRecovery.RecordExtract.Nonabelian
+public import Qatlib.Concepts.HspRecovery.SieveAlgorithm.DihedralSieveAlgorithmDihe
+public import Qatlib.Concepts.BlockEncoding.LinearCombination
+public import Mathlib.Data.Fintype.Sigma
+public import Mathlib.Data.Fintype.Prod
+public import Mathlib.Data.Fintype.Sum
+public import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
+public import Mathlib.LinearAlgebra.Matrix.Reindex
+
+@[expose] public section
 
 /-!
 # Representation Fourier transport and the physical dihedral sieve
@@ -103,12 +107,12 @@ theorem representationFourier_kernel (k a : ZMod N) (b t : Bool) :
   simp only [Matrix.mul_apply, Fintype.sum_prod_type, Select, Matrix.of_apply,
     TensorGate, Matrix.kroneckerMap, Matrix.one_apply]
   rw [Finset.sum_eq_single k]
-  · simp only [if_true, mul_ite, mul_one, mul_zero]
-    rw [Finset.sum_ite_eq', if_pos (Finset.mem_univ t), zmodQFTGate_apply]
+  · simp only [ite_true, mul_ite, mul_one, mul_zero]
+    rw [Finset.sum_ite_eq', ite_eq_left (Finset.mem_univ t), zmodQFTGate_apply]
     ring
   · intro j _ hj
     have hkj : k ≠ j := Ne.symm hj
-    simp only [if_neg hkj, zero_mul, Finset.sum_const_zero]
+    simp only [ite_eq_right hkj, zero_mul, Finset.sum_const_zero]
   · intro hk
     exact (hk (Finset.mem_univ k)).elim
 
@@ -155,12 +159,12 @@ theorem representationJoint_apply (f : DihedralReg N → S) (k : ZMod N) (b : Bo
   simp only [representationJoint, ApplyGate, Matrix.mulVec, dotProduct,
     Fintype.sum_prod_type, representationRecordGate, TensorGate, Matrix.kroneckerMap,
     Matrix.of_apply, Select, Matrix.one_apply, mul_ite, ite_mul, mul_one, mul_zero, zero_mul]
-  simp_rw [Finset.sum_ite_eq, if_pos (Finset.mem_univ z)]
+  simp_rw [Finset.sum_ite_eq, ite_eq_left (Finset.mem_univ z)]
   rw [Finset.sum_eq_single k]
-  · simp only [if_true]
+  · simp only [ite_true]
   · intro j _ hj
     have hkj : k ≠ j := Ne.symm hj
-    simp only [if_neg hkj, Finset.sum_const_zero]
+    simp only [ite_eq_right hkj, Finset.sum_const_zero]
   · intro hk
     exact (hk (Finset.mem_univ k)).elim
 
@@ -272,7 +276,7 @@ theorem decode_self (k : SelfFreq N) (b : Bool) :
     decode (k.1, b) =
       ⟨.inl (k, b), ((0 : Fin 1), (0 : Fin 1))⟩ := by
   dsimp only [decode]
-  rw [dif_pos k.2]
+  rw [dite_eq_left k.2]
 
 /-- Decoding a canonical pair representative gives row zero of its two-dimensional block and
 preserves the Boolean column index. -/
@@ -280,7 +284,7 @@ theorem decode_positive (k : PairFreq N) (b : Bool) :
     decode (k.1, b) =
       ⟨.inr k, ((0 : Fin 2), boolEquivFin2 b)⟩ := by
   dsimp only [decode]
-  rw [dif_neg (pair_not_self k), dif_pos k.2]
+  rw [dite_eq_right (pair_not_self k), dite_eq_left k.2]
 
 /-- Decoding the negative of a canonical pair representative gives row one of the same block and
 preserves the Boolean column index. -/
@@ -295,7 +299,7 @@ theorem decode_negative (k : PairFreq N) (b : Bool) :
     rw [neg_neg]
     exact not_lt_of_ge k.2.le
   dsimp only [decode]
-  rw [dif_neg hs, dif_neg hp]
+  rw [dite_eq_right hs, dite_eq_right hp]
   apply Sigma.ext
   · apply congrArg Sum.inr
     apply Subtype.ext
@@ -1101,7 +1105,7 @@ theorem basis_positive (k : PairFreq N) : representationBasisGate k.1 = 1 := by
     have hk := k.2
     omega
   have hn : ¬(-k.1).val < k.1.val := not_lt_of_ge k.2.le
-  rw [representationBasisGate, if_neg hs, if_neg hn]
+  rw [representationBasisGate, ite_eq_right hs, ite_eq_right hn]
 
 omit [NeZero N] in
 
@@ -1115,14 +1119,14 @@ theorem basis_negative (k : PairFreq N) : representationBasisGate (-k.1) = Pauli
     simp only [neg_neg] at hv
     omega
   have hn : (-(-k.1)).val < (-k.1).val := by simpa only [neg_neg] using! k.2
-  rw [representationBasisGate, if_neg hs, if_pos hn]
+  rw [representationBasisGate, ite_eq_right hs, ite_eq_left hn]
 
 /-- At a self-opposite frequency, the representation Fourier kernel is the one-dimensional
 coefficient scaled by `1 / sqrt N` and `1 / sqrt 2`. -/
 theorem kernel_self (k : SelfFreq N) (a : ZMod N) (b t : Bool) :
     representationFourier (k.1, b) (a, t) =
       (Real.sqrt (N : ℝ) : ℂ)⁻¹ * (Real.sqrt 2 : ℂ)⁻¹ * selfCoefficient k b a t := by
-  rw [representationFourier_kernel, representationBasisGate, if_pos k.2]
+  rw [representationFourier_kernel, representationBasisGate, ite_eq_left k.2]
   cases b <;> cases t <;> simp [Hadamard, selfCoefficient, epsilon] <;> ring
 
 /-- At a chosen paired frequency representative, the representation Fourier kernel is `1 / sqrt
@@ -1202,7 +1206,7 @@ theorem self_hadamard_state (k : SelfFreq N) (s : ZMod N) (b : Bool) :
   have hformula : (representationBasisGate k.1 *ᵥ dihedralQubitState N s k.1) b =
       ((Real.sqrt 2 : ℂ)⁻¹ * (Real.sqrt 2 : ℂ)⁻¹) *
         (1 + epsilon b * dihedralQubitPhase N s k.1) := by
-    rw [representationBasisGate, if_pos k.2]
+    rw [representationBasisGate, ite_eq_left k.2]
     cases b <;>
       simp [Matrix.mulVec, dotProduct, Hadamard,
         dihedralQubitState, epsilon, one_div] <;> ring
@@ -1252,7 +1256,7 @@ theorem zmodQFT_prepares_uniform (N : ℕ) [NeZero N] :
     ApplyGate (zmodQFTGate (N := N)) (Ket (0 : ZMod N)) = Uniform (ZMod N) := by
   funext k
   simp only [ApplyGate, Matrix.mulVec, dotProduct, Ket, mul_ite, mul_one, mul_zero,
-    Finset.sum_ite_eq', Finset.mem_univ, if_true, zmodQFTGate_apply, Uniform, ZMod.card,
+    Finset.sum_ite_eq', Finset.mem_univ, ite_true, zmodQFTGate_apply, Uniform, ZMod.card,
     AddChar.map_zero_eq_one]
 
 /-- The Hadamard gate sends the `false` basis state to the uniform Boolean state. -/
@@ -1484,9 +1488,9 @@ theorem self_character_mass (f : DihedralReg N → S) (s : ZMod N)
   obtain ⟨gamma, hn, hfct⟩ := representationJoint_factor f s k.1 hf
   simp_rw [hfct, self_readout_ket k s bit hbit, Ket]
   by_cases hb : b = bit
-  · simp only [hb, if_true, mul_one]
+  · simp only [hb, ite_true, mul_one]
     exact hn
-  · simp only [if_neg hb, mul_zero, norm_zero, zero_pow (by decide : 2 ≠ 0), Finset.sum_const_zero]
+  · simp only [ite_eq_right hb, mul_zero, norm_zero, zero_pow (by decide : 2 ≠ 0), Finset.sum_const_zero]
 
 end RowTransport
 
@@ -1931,7 +1935,7 @@ theorem qubit_density_projector (s k : ZMod N) :
       smul_eq_mul, Matrix.add_apply, Matrix.one_apply, Matrix.mul_apply,
       rotation, Matrix.diagonal_apply, signed, PauliX, permMatrix, Matrix.of_apply,
       Fintype.sum_bool, Bool.false_eq_true, Bool.true_eq_false, Bool.not_false, Bool.not_true,
-      if_true, if_false, mul_one, one_mul, mul_zero, zero_mul, add_zero, zero_add]
+      ite_true, ite_false, mul_one, one_mul, mul_zero, zero_mul, add_zero, zero_add]
   · exact hh
   · rw [← mul_assoc, hh, phase_conj]
   · rw [mul_assoc, mul_comm (dihedralQubitPhase N s k), ← mul_assoc, hh,
@@ -2079,7 +2083,7 @@ theorem actual_self_label (f : DihedralReg N → S) (s : ZMod N)
   · subst b
     simp
   · have he : epsilon bit ≠ epsilon b := fun h => hb (epsilon_injective h).symm
-    rw [if_neg hb, if_neg he]
+    rw [ite_eq_right hb, ite_eq_right he]
 
 /-- The Born mass assigned to a Fourier label, summing the relevant self-frequency entry or both
 rows of a canonical frequency pair over the oracle-output register. -/
@@ -2146,9 +2150,9 @@ theorem labelEventMass_eq_typed (f : DihedralReg N → S) (L : Label N) :
   rw [show labelEventMass f L = ∑ j : Typed N, h j from he]
   rw [Fintype.sum_sigma]
   apply (Finset.sum_eq_single L ?_ ?_).trans
-  · simp only [h, if_true, Fintype.sum_prod_type]
+  · simp only [h, ite_true, Fintype.sum_prod_type]
   · intro K _ hK
-    simp only [h, if_neg hK, Finset.sum_const_zero]
+    simp only [h, ite_eq_right hK, Finset.sum_const_zero]
   · intro hL
     exact (hL (Finset.mem_univ L)).elim
 
@@ -2164,7 +2168,7 @@ theorem labelEventMass_eq_born (f : DihedralReg N → S) (L : Label N) :
   | inr k =>
     simp only [dim, Fin.sum_univ_two, encode, FixedSubspace.labelBornMass,
       Fintype.sum_bool]
-    simp only [if_true, show (1 : Fin 2) ≠ 0 by decide, if_false]
+    simp only [ite_true, show (1 : Fin 2) ≠ 0 by decide, ite_false]
     change (∑ z : S, ‖representationJoint f ((k.1,false),z)‖^2) +
         (∑ z : S, ‖representationJoint f ((k.1,true),z)‖^2) +
         ((∑ z : S, ‖representationJoint f ((-k.1,false),z)‖^2) +

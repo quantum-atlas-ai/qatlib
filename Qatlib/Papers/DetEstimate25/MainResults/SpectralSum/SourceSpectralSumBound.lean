@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Algebra.Order.Field.Basic
-import Mathlib.Data.Fintype.Card
-import Mathlib.Tactic
+module
+
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Algebra.Order.Field.Basic
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

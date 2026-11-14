@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Data.Finset.SymmDiff
-import Mathlib.Data.Nat.Choose.Basic
-import Mathlib.Data.Nat.BitIndices
+module
+
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Data.Finset.SymmDiff
+public import Mathlib.Data.Nat.Choose.Basic
+public import Mathlib.Data.Nat.BitIndices
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -296,7 +300,7 @@ def degreeRegular {ri rj : ℕ} (fij : ℕ) (Fij : Finset (Fin ri × Fin rj)) : 
 `|{u∈Vᵢ | (u,v)∈Fᵢⱼ, (u,w)∈Fᵢₖ}| ≤ 11 fᵢⱼfᵢₖ/(rᵢrⱼrₖ)`. -/
 def pairTripleBound {ri rj rk : ℕ} (fij fik : ℕ)
     (Fij : Finset (Fin ri × Fin rj)) (Fik : Finset (Fin ri × Fin rk))
-    (Fjk : Finset (Fin rj × Fin rk)) : Prop :=
+    (_Fjk : Finset (Fin rj × Fin rk)) : Prop :=
   ∀ v : Fin rj, ∀ w : Fin rk,
     (((Fij.filter (fun p => p.2 = v)).filter (fun p => (p.1, w) ∈ Fik)).card : ℝ) ≤
       11 * (fij : ℝ) * (fik : ℝ) / ((ri : ℝ) * (rj : ℝ) * (rk : ℝ))
@@ -410,7 +414,7 @@ theorem boolOracleMatrix_mem_unitaryGroup {σ : Type*} [Fintype σ] [DecidableEq
         fun h => hpq (hinj h)
       simp [hpq, hne]
   · intro b _ hb
-    rw [if_neg hb, zero_mul]
+    rw [ite_eq_right hb, zero_mul]
   · intro hmem
     simp at hmem
 

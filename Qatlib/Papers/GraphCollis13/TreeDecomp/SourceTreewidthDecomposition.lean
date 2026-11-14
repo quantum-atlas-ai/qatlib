@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Combinatorics.SimpleGraph.Acyclic
-import Mathlib.Combinatorics.SimpleGraph.Finite
-import Mathlib.Data.Finset.Lattice.Fold
-import Mathlib.Data.Finset.Range
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic
+module
+
+public import Mathlib.Combinatorics.SimpleGraph.Acyclic
+public import Mathlib.Combinatorics.SimpleGraph.Finite
+public import Mathlib.Data.Finset.Lattice.Fold
+public import Mathlib.Data.Finset.Range
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -70,11 +74,13 @@ smoothing transformation (the paper quotes Bodlaender [4]). -/
 def HasTreewidthAtMost (G : SimpleGraph V) (t : ℕ) : Prop :=
   ∃ m : ℕ, Nonempty (SmoothTreeDecomposition G t m)
 
+omit [Fintype V] in
 /-- Along a walk in a smooth decomposition, the union of `k ≥ 1` consecutive bags
 has at most `t + k` vertices.  This is the cardinality estimate underlying the
 paper's `|W_i| ≤ 2t + 1` claim: a block of `t` consecutive bags spans at most
 `t + t = 2t` vertices. -/
-theorem union_consecutive_bags_card_le {G : SimpleGraph V} {t m : ℕ}
+theorem union_consecutive_bags_card_le {V : Type*} [_instFintype : Fintype V] [DecidableEq V]
+    {G : SimpleGraph V} {t m : ℕ}
     (D : SmoothTreeDecomposition G t m) (u : ℕ → Fin m)
     (hadj : ∀ j : ℕ, D.tree.Adj (u j) (u (j + 1))) (k : ℕ) (hk : 1 ≤ k) :
     ((Finset.range k).biUnion (fun j => D.bag (u j))).card ≤ t + k := by
@@ -123,10 +129,12 @@ theorem union_consecutive_bags_card_le {G : SimpleGraph V} {t m : ℕ}
         _ ≤ (t + k) + 1 := by omega
         _ = t + (k + 1) := by ring
 
+omit [Fintype V] in
 /-- A traversal of the decomposition tree that visits every node induces, for each
 graph edge, a block whose union of bags contains both endpoints.  This is the
 edge-coverage half of the paper's Lemma 1 proof. -/
-theorem edge_mem_union_of_visit {G : SimpleGraph V} {t m : ℕ}
+theorem edge_mem_union_of_visit {V : Type*} [_instFintype : Fintype V] [DecidableEq V]
+    {G : SimpleGraph V} {t m : ℕ}
     (D : SmoothTreeDecomposition G t m) (u : ℕ → Fin m)
     (hvisit : ∀ i : Fin m, ∃ j : ℕ, u j = i) {v w : V} (h : G.Adj v w) :
     ∃ j : ℕ, v ∈ D.bag (u j) ∧ w ∈ D.bag (u j) := by
@@ -150,8 +158,8 @@ smooth-decomposition count `|I| = |V| − t` are outside its scope.
 The traversal can be obtained by depth-first search on the tree, and the count
 `m = Fintype.card V - t` follows from the standard incidence identity
 `Σ_i |X_i| − Σ_{edges of T} |X_i ∩ X_j| = |V|`. -/
-def lemma1_treewidth_decomposition (G : SimpleGraph V) (t : ℕ) (ht : 0 < t)
-    (h : HasTreewidthAtMost G t) : Prop :=
+def lemma1_treewidth_decomposition (G : SimpleGraph V) (t : ℕ) (_ht : 0 < t)
+    (_h : HasTreewidthAtMost G t) : Prop :=
     ∃ (mW : ℕ) (W : Fin mW → Finset V),
       mW = Nat.ceil (((2 * (Fintype.card V : ℝ)) - 2 * (t : ℝ) - 1) / (t : ℝ)) ∧
       (∀ i : Fin mW, (W i).card ≤ 2 * t + 1) ∧

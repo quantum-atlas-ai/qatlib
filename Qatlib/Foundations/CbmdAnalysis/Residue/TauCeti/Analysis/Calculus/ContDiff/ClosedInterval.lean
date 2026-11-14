@@ -6,10 +6,14 @@ Authors: The Tau Ceti contributors, Qatlib Contributors
 Adapted from https://github.com/TauCetiProject/TauCeti@3780371c
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+module
 
-import Mathlib.Analysis.Calculus.FDeriv.Extend
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Calculus.IteratedDerivWithin
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+
+public import Mathlib.Analysis.Calculus.FDeriv.Extend
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Calculus.IteratedDerivWithin
+
+@[expose] public section
 
 /-!
 # Continuous jets on closed intervals

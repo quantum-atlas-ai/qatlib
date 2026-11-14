@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Qubit
-import Mathlib.GroupTheory.Index
-import Mathlib.GroupTheory.Coset.Basic
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Analysis.InnerProductSpace.PiL2
+module
+
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Mathlib.GroupTheory.Index
+public import Mathlib.GroupTheory.Coset.Basic
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+
+@[expose] public section
 
 /-!
 # Subgroup tests and hidden subgroup success bounds
@@ -308,10 +312,11 @@ noncomputable def coupletAvgLM (K : Subgroup G) :
 
 omit [DecidableEq β] in
 
+omit [DecidableEq G] in
 /-- Averaging the first register does not increase the sum of squared amplitude norms. -/
 theorem coupletAvg_contract (K : Subgroup G) (ψ : QState (G × β)) :
     (∑ p : G × β, ‖coupletAvg K ψ p‖ ^ 2) ≤ ∑ p : G × β, ‖ψ p‖ ^ 2 := by
-  let _ := (inferInstance : DecidableEq G)
+
 
   rw [Fintype.sum_prod_type, Fintype.sum_prod_type]
 
@@ -386,14 +391,14 @@ noncomputable def projSLM (K : Subgroup G) (s : ℕ) :
   map_add' := projS_add K s
   map_smul' := projS_smul K s
 
+omit [DecidableEq G] [Fintype β] in
 /-- Subgroup averaging fixes every tensor power of the oracle graph state of a `K`-periodic
 function. -/
 theorem projS_fixes_multisetState_of_periodic {K : Subgroup G} {f : G → β}
     (hf : IsHPeriodic f K) (s : ℕ) :
     projS K s (multisetState (initialCouplet f) s) =
       multisetState (initialCouplet f) s := by
-  let _ := (inferInstance : DecidableEq G)
-  let _ := (inferInstance : Fintype β)
+
   rw [projS_multisetState, coupletAvg_eq_self_of_periodic hf]
 
 omit [Group G] [DecidableEq G] [DecidableEq β] in
@@ -419,13 +424,13 @@ theorem multisetState_normSq (ψ : QState (G × β)) (s : ℕ) :
     _ = (∑ q : G × β, ‖ψ q‖ ^ 2) ^ s := by
           rw [Finset.prod_const, Finset.card_univ, Fintype.card_fin]
 
+omit [DecidableEq G] [DecidableEq β] in
 /-- If one averaged copy has squared norm at most `1 / 2`, then the averaged `s`-fold tensor
 power has squared norm at most `(1 / 2) ^ s`. -/
 theorem projS_normSq_le (K : Subgroup G) (ψ : QState (G × β)) (s : ℕ)
     (h : ∑ q : G × β, ‖coupletAvg K ψ q‖ ^ 2 ≤ (1/2 : ℝ)) :
     ∑ p : Fin s → G × β, ‖projS K s (multisetState ψ s) p‖ ^ 2 ≤ (1/2 : ℝ) ^ s := by
-  let _ := (inferInstance : DecidableEq G)
-  let _ := (inferInstance : DecidableEq β)
+
   rw [projS_multisetState, multisetState_normSq]
   exact pow_le_pow_left₀ (by positivity) h s
 
@@ -610,13 +615,14 @@ theorem sum_fiberCard (f : G → β) (K : Subgroup G) (g : G) :
   rw [Finset.sum_comm]
   simp
 
+omit [DecidableEq G] in
 /-- For a strictly `H`-periodic function, the sum of squared fiber cardinalities on `g * K`
 equals `|K ∩ H| * |K|`. -/
 theorem sum_sq_fiberCard {H : Subgroup G} {f : G → β} (hf : IsStrictlyHPeriodic f H)
     (K : Subgroup G) (g : G) :
     (∑ b : β, (fiberCard f K g b : ℝ) ^ 2) =
       (Fintype.card ↥(K ⊓ H) : ℝ) * (Fintype.card ↥K : ℝ) := by
-  let _ := (inferInstance : DecidableEq G)
+
   have hsq : ∀ b : β, (fiberCard f K g b : ℝ) ^ 2 =
       (Fintype.card ↥(K ⊓ H) : ℝ) * (fiberCard f K g b : ℝ) := by
     intro b
@@ -662,14 +668,14 @@ theorem sum_initialCouplet_eq_card {f : G → β} (K : Subgroup G) (g : G) (b : 
   simp only [fiberCard]
   rw [mul_comm]
 
+omit [DecidableEq G] [Fintype β] in
 /-- The squared amplitude of the averaged oracle graph state is the squared fiber cardinality
 times the squared averaging and normalization factors. -/
 theorem norm_sq_couplet_eq {f : G → β} (K : Subgroup G) (g : G) (b : β) :
     ‖coupletAvg K (initialCouplet f) (g, b)‖ ^ 2 =
       (((Real.sqrt (Fintype.card G : ℝ))⁻¹) ^ 2 * (Fintype.card ↥K : ℝ)⁻¹ ^ 2) *
         (fiberCard f K g b : ℝ) ^ 2 := by
-  let _ := (inferInstance : DecidableEq G)
-  let _ := (inferInstance : Fintype β)
+
   rw [coupletAvg, sum_initialCouplet_eq_card]
   have hG : ‖(((Real.sqrt (Fintype.card G : ℝ) : ℂ))⁻¹)‖ =
       ((Real.sqrt (Fintype.card G : ℝ))⁻¹) := by
@@ -681,6 +687,7 @@ theorem norm_sq_couplet_eq {f : G → β} (K : Subgroup G) (g : G) (b : β) :
   rw [norm_mul, norm_mul, hK, hG, hn, mul_pow, mul_pow]
   ring
 
+omit [DecidableEq G] in
 /-- For a strictly `H`-periodic function, the squared norm of its `K`-averaged oracle graph
 state equals `|K ∩ H| / |K|`. -/
 theorem coupletAvg_initialCouplet_normSq {H : Subgroup G} {f : G → β}
@@ -726,6 +733,7 @@ noncomputable def subgroupOfInfEquiv (K H : Subgroup G) :
   left_inv x := by cases x with | mk _ _ => rfl
   right_inv y := by cases y with | mk _ _ => rfl
 
+omit [DecidableEq G] in
 /-- If a strictly `H`-periodic function is not `K`-periodic, its averaged oracle graph state has
 squared norm at most `1 / 2`. -/
 theorem coupletAvg_initialCouplet_le_half {H : Subgroup G} {f : G → β}
@@ -773,6 +781,7 @@ theorem sqrt_inv_two_pow (s : ℕ) :
   rw [Real.rpow_mul (by norm_num : (0:ℝ) ≤ 1/2)]
   rw [Real.rpow_natCast]
 
+omit [DecidableEq G] [Fintype β] in
 /-- A test for a period subgroup transports the first factor from `q` to `q'` whenever `Q q =
 q'`. See [EttingerHoyerKnill2004]. -/
 theorem lemma3_test_transport
@@ -785,6 +794,7 @@ theorem lemma3_test_transport
     projS_fixes_multisetState_of_periodic hf s
   rw [testFun_prodState_of_fixed Q (projSLM K s) q _ hP, hQ]
 
+omit [DecidableEq G] in
 /-- For normalized `q` and a norm-preserving `Q`, testing a nonperiod subgroup changes the
 tensor-product state by norm at most `2 * (1 / 2) ^ (s / 2)`. See [EttingerHoyerKnill2004]. -/
 theorem lemma4_distance_bound {σ : Type*} [Fintype σ]
@@ -1080,6 +1090,7 @@ theorem exists_test_count (r : ℕ) (hr : 1 ≤ r) (ε : ℝ) (hε : 0 < ε) :
   rw [mul_div_cancel₀ _ (ne_of_gt hrR)] at h
   exact le_of_lt h
 
+omit [Group G] [DecidableEq G] [DecidableEq β] in
 /-- For `r ≥ 1` and positive `ε`, chooses `s` so that normalized states satisfying the specified
 ideal-support and distance hypotheses have outcome probability at least `1 - ε`. See
 [EttingerHoyerKnill2004]. -/
@@ -1089,9 +1100,7 @@ theorem theorem1_reduction {r : ℕ} (hr : 1 ≤ r) (ε : ℝ) (hε : 0 < ε) :
       (∀ p, p.1 ≠ ν → Φ p = 0) →
       stateNorm (Ψ - Φ) ≤ 2 * (r : ℝ) * (1/2 : ℝ) ^ ((s : ℝ) / 2) →
       1 - ε ≤ outcomeProb Ψ ν := by
-  let _ := (inferInstance : Group G)
-  let _ := (inferInstance : DecidableEq G)
-  let _ := (inferInstance : DecidableEq β)
+
   obtain ⟨s, hs⟩ := exists_test_count r hr ε hε
   refine ⟨s, ?_⟩
   intro Ψ Φ ν hΨ hΦ hΦ0 hdist

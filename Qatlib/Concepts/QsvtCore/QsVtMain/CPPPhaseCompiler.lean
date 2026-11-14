@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CopyEvolution.Discriminate.ParallelQSVT
-import Qatlib.Concepts.MatrixAccess.FrameFilterProd
+module
+
+public import Qatlib.Concepts.CopyEvolution.Discriminate.ParallelQSVT
+public import Qatlib.Concepts.MatrixAccess.FrameFilterProd
+
+@[expose] public section
 
 /-!
 # Compilation of controlled projector phases

@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.GroupTheory.Commutator.Basic
-import Mathlib.GroupTheory.Frattini
-import Mathlib.GroupTheory.SpecificGroups.Cyclic.Basic
-import Mathlib.GroupTheory.Subgroup.Center
-import Mathlib.GroupTheory.QuotientGroup.Defs
-import Mathlib.GroupTheory.Coset.Card
+module
+
+public import Mathlib.GroupTheory.Commutator.Basic
+public import Mathlib.GroupTheory.Frattini
+public import Mathlib.GroupTheory.SpecificGroups.Cyclic.Basic
+public import Mathlib.GroupTheory.Subgroup.Center
+public import Mathlib.GroupTheory.QuotientGroup.Defs
+public import Mathlib.GroupTheory.Coset.Card
+
+@[expose] public section
 
 /-!
 # Extraspecial groups and hidden subgroup interfaces

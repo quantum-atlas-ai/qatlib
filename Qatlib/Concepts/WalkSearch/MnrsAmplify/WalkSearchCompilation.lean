@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.MnrsAmplify.WalkSearchCompilationDefs
-import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteGatePhaseBoundary
+module
+
+public import Qatlib.Concepts.WalkSearch.MnrsAmplify.WalkSearchCompilationDefs
+public import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteGatePhaseBoundary
+
+@[expose] public section
 
 /-!
 # Walk compilation and resource boundaries
@@ -241,15 +245,16 @@ lemma addressed_frame_completion {H I : Type} [Fintype H] [DecidableEq H]
   have ve (j : I) : v (e j) = WithLp.toLp 2 (fun i => F i j) := by
     have hj : ∃ k, e k = e j := ⟨j, rfl⟩
     dsimp only [v]
-    rw [dif_pos hj]
+    rw [dite_eq_left hj]
     have he : Classical.choose hj = j := e.injective (Classical.choose_spec hj)
     rw [he]
-  have hv : Orthonormal ℂ ((Set.range e).restrict v) := by
+  have hv : Orthonormal ℂ ((Set.range e).domRestrict v) := by
     rw [orthonormal_iff_ite]
     intro ⟨x,hx⟩ ⟨y,hy⟩
     obtain ⟨j,rfl⟩ := hx
     obtain ⟨k,rfl⟩ := hy
-    dsimp only [Set.restrict, Set.domRestrict]; rw [ve, ve, EuclideanSpace.inner_eq_star_dotProduct]
+    simp only [Set.domRestrict_apply]
+    rw [ve, ve, EuclideanSpace.inner_eq_star_dotProduct]
     have hh := congrArg (fun M : Matrix I I ℂ => M j k) hF
     simpa [IsIsometry, Matrix.mul_apply, Matrix.conjTranspose_apply, Matrix.one_apply,
       dotProduct, e.injective.eq_iff, Subtype.ext_iff, mul_comm, WithLp.ofLp_toLp] using! hh

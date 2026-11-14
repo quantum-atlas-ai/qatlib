@@ -4,20 +4,24 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Nat.Size
-import Mathlib.Data.Rat.Lemmas
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Ring
-import Lean.Elab.Tactic.Omega
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Public
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Verifier
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.RationalCircle
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.HouseholderRotationTable
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.NativeHouseholder
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.NativePhasePrecision
+module
+
+public import Mathlib.Data.Nat.Size
+public import Mathlib.Data.Rat.Lemmas
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Ring
+public import Lean.Elab.Tactic.Omega
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Public
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Verifier
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.RationalCircle
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.HouseholderRotationTable
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.NativeHouseholder
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.NativePhasePrecision
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

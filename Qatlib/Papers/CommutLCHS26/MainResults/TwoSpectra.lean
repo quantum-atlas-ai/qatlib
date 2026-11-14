@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommutLCHS26.MainResults.PolynomialSecant
-import Qatlib.Concepts.CoherentSim.CoherentOAA.RobustCoherentImplementation
+module
+
+public import Qatlib.Papers.CommutLCHS26.MainResults.PolynomialSecant
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.RobustCoherentImplementation
+
+@[expose] public section
 
 /-!
 # Polynomial estimates for two spectral sectors
@@ -185,10 +189,10 @@ theorem two_sector_bound (T E Gp Gm : Matrix I I ℂ) (hT : T ∈ unitaryGroup I
   let b := Matrix.toEuclideanCLM (n := I) (𝕜 := ℂ) (minus T) x
   have hs : ‖a‖ + ‖b‖ ≤ (3 / 2 : ℝ) * ‖x‖ := by
     simpa only [a, b, plus, minus, map_smul, map_add, map_sub, map_one,
-      ContinuousLinearMap.smul_apply, ContinuousLinearMap.add_apply, ContinuousLinearMap.sub_apply,
-      ContinuousLinearMap.one_apply] using
+      _root_.smul_apply, _root_.add_apply, _root_.sub_apply,
+      _root_.one_apply_eq_self] using
       split_vectors_bound x (Matrix.toEuclideanCLM (n := I) (𝕜 := ℂ) T x) (unitary_action_norm T hT x)
-  simp only [map_add, map_mul, ContinuousLinearMap.add_apply, ContinuousLinearMap.mul_apply]
+  simp only [map_add, map_mul, _root_.add_apply, _root_.mul_apply_eq_comp]
   calc
     _ ≤ ‖Matrix.toEuclideanCLM (n := I) (𝕜 := ℂ) Gp (Matrix.toEuclideanCLM (n := I) (𝕜 := ℂ) E a)‖ +
         ‖Matrix.toEuclideanCLM (n := I) (𝕜 := ℂ) Gm (Matrix.toEuclideanCLM (n := I) (𝕜 := ℂ) E b)‖ := norm_add_le _ _

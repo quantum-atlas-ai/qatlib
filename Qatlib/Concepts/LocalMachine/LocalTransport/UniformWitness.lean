@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LocalMachine.LocalTransport.UniformWitnessDefs
+module
+
+public import Qatlib.Concepts.LocalMachine.LocalTransport.UniformWitnessDefs
+
+@[expose] public section
 
 /-!
 # Encoding, initialization, and padding of uniform witness families
@@ -66,51 +70,23 @@ set_option autoImplicit false
 
 /-- Parses a false-terminated unary natural number, returning its value and the unconsumed
 suffix or `none`. -/
-def modelParseUnaryField : List Bool → Option (ℕ × List Bool) := by
-  run_tac do
-    let moduleName :=
-        ("_private.Qatlib.Concepts.LocalMachine.LocalTransport.WitnessComplexityDefs").splitOn "."
-    let root := Lean.Name.mkNum (moduleName.foldl (init := Lean.Name.anonymous) Lean.Name.mkStr) 0
-    let name :=
-        ("Qatlib.Concepts.LocalMachine.LocalTransport.WitnessComplexityDefs.parseUnaryField").splitOn "."
-    let constant := name.foldl (init := root) Lean.Name.mkStr
-    Lean.Elab.Tactic.closeMainGoal Lean.Name.anonymous (Lean.mkConst constant)
+def modelParseUnaryField : List Bool → Option (ℕ × List Bool) :=
+  Qatlib.Concepts.LocalMachine.LocalTransport.WitnessComplexityDefs.parseUnaryField
 
 /-- Parses the specified number of consecutive unary natural-number fields, returning their
 values and the remaining bits. -/
-def modelParseManyNatFields : ℕ → List Bool → Option (List ℕ × List Bool) := by
-  run_tac do
-    let moduleName :=
-        ("_private.Qatlib.Concepts.LocalMachine.LocalTransport.WitnessComplexityDefs").splitOn "."
-    let root := Lean.Name.mkNum (moduleName.foldl (init := Lean.Name.anonymous) Lean.Name.mkStr) 0
-    let name :=
-        ("Qatlib.Concepts.LocalMachine.LocalTransport.WitnessComplexityDefs.parseManyNatFields").splitOn "."
-    let constant := name.foldl (init := root) Lean.Name.mkStr
-    Lean.Elab.Tactic.closeMainGoal Lean.Name.anonymous (Lean.mkConst constant)
+def modelParseManyNatFields : ℕ → List Bool → Option (List ℕ × List Bool) :=
+  Qatlib.Concepts.LocalMachine.LocalTransport.WitnessComplexityDefs.parseManyNatFields
 
 /-- Parses the fields selected by an instruction tag, returning the instruction and remaining
 bits or `none` for invalid data. -/
-def modelParseInstructionFields : ℕ → List Bool → Option (WitnessInstruction × List Bool) := by
-  run_tac do
-    let moduleName :=
-        ("_private.Qatlib.Concepts.LocalMachine.LocalTransport.WitnessComplexityDefs").splitOn "."
-    let root := Lean.Name.mkNum (moduleName.foldl (init := Lean.Name.anonymous) Lean.Name.mkStr) 0
-    let name :=
-        ("Qatlib.Concepts.LocalMachine.LocalTransport.WitnessComplexityDefs.parseInstructionFields").splitOn "."
-    let constant := name.foldl (init := root) Lean.Name.mkStr
-    Lean.Elab.Tactic.closeMainGoal Lean.Name.anonymous (Lean.mkConst constant)
+def modelParseInstructionFields : ℕ → List Bool → Option (WitnessInstruction × List Bool) :=
+  Qatlib.Concepts.LocalMachine.LocalTransport.WitnessComplexityDefs.parseInstructionFields
 
 /-- Parses an entire encoded instruction list with the given instruction fuel, failing on
 malformed data or insufficient fuel. -/
-def modelParseInstructionListFuel : ℕ → List Bool → Option (List WitnessInstruction) := by
-  run_tac do
-    let moduleName :=
-        ("_private.Qatlib.Concepts.LocalMachine.LocalTransport.WitnessComplexityDefs").splitOn "."
-    let root := Lean.Name.mkNum (moduleName.foldl (init := Lean.Name.anonymous) Lean.Name.mkStr) 0
-    let name :=
-        ("Qatlib.Concepts.LocalMachine.LocalTransport.WitnessComplexityDefs.parseInstructionListFuel").splitOn "."
-    let constant := name.foldl (init := root) Lean.Name.mkStr
-    Lean.Elab.Tactic.closeMainGoal Lean.Name.anonymous (Lean.mkConst constant)
+def modelParseInstructionListFuel : ℕ → List Bool → Option (List WitnessInstruction) :=
+  Qatlib.Concepts.LocalMachine.LocalTransport.WitnessComplexityDefs.parseInstructionListFuel
 
 /-- Parsing a unary field from the empty list fails. -/
 theorem modelParseUnaryField_nil : modelParseUnaryField [] = none := rfl
@@ -259,19 +235,19 @@ theorem modelParseInstructionFields_encode (i : WitnessInstruction) (rest : List
   | fixed gate =>
       cases gate with
       | h w =>
-          simp only [witnessInstructionTag, encodeWitnessFields, List.append_assoc]
+          simp only [witnessInstructionTag, encodeWitnessFields]
           rw [modelParseInstructionFields_h, modelParseUnaryField_unaryNat]
           simp only [Option.bind_some]
       | x w =>
-          simp only [witnessInstructionTag, encodeWitnessFields, List.append_assoc]
+          simp only [witnessInstructionTag, encodeWitnessFields]
           rw [modelParseInstructionFields_x, modelParseUnaryField_unaryNat]
           simp only [Option.bind_some]
       | t w =>
-          simp only [witnessInstructionTag, encodeWitnessFields, List.append_assoc]
+          simp only [witnessInstructionTag, encodeWitnessFields]
           rw [modelParseInstructionFields_t, modelParseUnaryField_unaryNat]
           simp only [Option.bind_some]
       | tdg w =>
-          simp only [witnessInstructionTag, encodeWitnessFields, List.append_assoc]
+          simp only [witnessInstructionTag, encodeWitnessFields]
           rw [modelParseInstructionFields_tdg, modelParseUnaryField_unaryNat]
           simp only [Option.bind_some]
       | cx c t =>
@@ -320,7 +296,8 @@ theorem modelParseInstructionListFuel_ge (instrs : List WitnessInstruction) :
       have hfields : (encodeWitnessFields i).length ≥ 1 := by
         cases i with
         | fixed gate =>
-            cases gate <;> simp [encodeWitnessFields, unaryNat] <;> omega
+            cases gate <;> simp [encodeWitnessFields, unaryNat]
+            all_goals omega
         | oracle addresses target =>
             simp [encodeWitnessFields, unaryNat]
             omega
@@ -387,7 +364,7 @@ theorem decode_encodeWitnessProgram (p : WitnessVerifierProgram) :
       (modelParseUnaryField rest'').bind fun (outputWire, instructionsBits) =>
       (modelParseInstructionListFuel instructionsBits.length instructionsBits).bind fun instructions =>
         some ⟨witnessBits, inputBits, ancillaBits, outputWire, instructions⟩) = some p
-  rw [if_neg hnotall]
+  rw [ite_eq_right hnotall]
   simp only [encodeWitnessProgram, List.append_assoc]
   rw [modelParseUnaryField_unaryNat]
   simp only [Option.bind_some]
@@ -494,8 +471,8 @@ theorem verifierInputDensity_add (p : WitnessVerifierProgram) (x : Reg p.inputBi
   simp only [verifierInputDensity, Matrix.of_apply, Matrix.add_apply]
   by_cases h : inputRestrict p z = x ∧ inputRestrict p z' = x ∧
       ancillaZero p z ∧ ancillaZero p z'
-  · rw [if_pos h, if_pos h, if_pos h]
-  · rw [if_neg h, if_neg h, if_neg h]
+  · rw [ite_eq_left h, ite_eq_left h, ite_eq_left h]
+  · rw [ite_eq_right h, ite_eq_right h, ite_eq_right h]
     simp
 
 /-- Verifier input initialization commutes with multiplication of the witness matrix by any
@@ -508,8 +485,8 @@ theorem verifierInputDensity_smul (p : WitnessVerifierProgram) (x : Reg p.inputB
   simp only [verifierInputDensity, Matrix.of_apply, Matrix.smul_apply]
   by_cases h : inputRestrict p z = x ∧ inputRestrict p z' = x ∧
       ancillaZero p z ∧ ancillaZero p z'
-  · rw [if_pos h, if_pos h]
-  · rw [if_neg h, if_neg h]
+  · rw [ite_eq_left h, ite_eq_left h]
+  · rw [ite_eq_right h, ite_eq_right h]
     norm_num
 
 /-- Acceptance is additive in the witness matrix for a fixed oracle, program, and input. -/
@@ -599,7 +576,7 @@ theorem programBitLedger_eq (p : WitnessVerifierProgram) :
 /-- The identity matrix on the zero-bit register equals the density matrix of its unique
 classical witness. -/
 theorem uniformBQP_witness_isQCMA (f : UniformWitnessFamily) (x : List Bool)
-    (hw : f.witnessWidth x.length = 0) :
+    (_hw : f.witnessWidth x.length = 0) :
     (1 : Matrix (Reg 0) (Reg 0) ℂ) = classicalWitnessDensity (fun _ => false) := by
   rw [matrix_one_eq_pure_zero]
   rfl
@@ -785,17 +762,17 @@ theorem padProgram_legal (p : WitnessVerifierProgram) (k : ℕ)
               by_cases h1 : a < p.witnessBits
               · by_cases h2 : b < p.witnessBits
                 · unfold padWire at hab
-                  rw [if_pos h1, if_pos h2] at hab
+                  rw [ite_eq_left h1, ite_eq_left h2] at hab
                   exact hab
                 · unfold padWire at hab
-                  rw [if_pos h1, if_neg h2] at hab
+                  rw [ite_eq_left h1, ite_eq_right h2] at hab
                   omega
               · by_cases h2 : b < p.witnessBits
                 · unfold padWire at hab
-                  rw [if_neg h1, if_pos h2] at hab
+                  rw [ite_eq_right h1, ite_eq_left h2] at hab
                   omega
                 · unfold padWire at hab
-                  rw [if_neg h1, if_neg h2] at hab
+                  rw [ite_eq_right h1, ite_eq_right h2] at hab
                   exact Nat.add_right_cancel hab
             · exact hleg'.2.2.2
           exact hnodup

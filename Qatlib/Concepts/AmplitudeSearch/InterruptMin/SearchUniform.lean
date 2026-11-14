@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchRetry
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.SearchAttempt
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.SearchCircuit
-import Qatlib.Concepts.SearchStopping.UnknownCount.SearchSchedule
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchRetry
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.SearchAttempt
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.SearchCircuit
+public import Qatlib.Concepts.SearchStopping.UnknownCount.SearchSchedule
+
+@[expose] public section
 
 /-!
 # Uniform output of repeated quantum search
@@ -52,10 +56,10 @@ theorem search_checked_output_uniform {I : Type*} [Fintype I] [DecidableEq I]
       ne_of_gt (Real.sin_pos_of_pos_of_lt_pi hθ0 (by linarith [Real.pi_pos]))
   have hc : Real.cos θ ≠ 0 := ne_of_gt (Real.cos_pos_of_mem_Ioo ⟨by linarith [Real.pi_pos], hθp⟩)
   rw [(search_checked_attempt hN A j).2.1 i, (search_checked_attempt hN A j).2.1 k,
-    if_pos hi, if_pos hk]
+    ite_eq_left hi, ite_eq_left hk]
   change BornProb (GroverState A j) i = BornProb (GroverState A j) k
   rw [search_grover_state hN A θ hdensity hs hc j]
-  simp only [BornProb, MarkedVector, if_pos hi, if_pos hk]
+  simp only [BornProb, MarkedVector, ite_eq_left hi, ite_eq_left hk]
 
 /-- At each retry stage, the output mass is the first-success mass divided equally among marked
 indices, with zero mass on unmarked indices. -/
@@ -67,11 +71,11 @@ theorem search_stage_output_uniform {I : Type*} [Fintype I] [DecidableEq I]
   have hzero (k : I) (hk : k ∉ A) : RetryOutputMass A sizes s k = 0 := by
     unfold RetryOutputMass
     have hz (j : ℕ) : CheckedOutputMass A j k = 0 := by
-      rw [(search_checked_attempt hN A j).2.1 k, if_neg hk]
+      rw [(search_checked_attempt hN A j).2.1 k, ite_eq_right hk]
     simp_rw [hz]
     simp
   by_cases hi : i ∈ A
-  · rw [if_pos hi]
+  · rw [ite_eq_left hi]
     have hequal (k : I) (hk : k ∈ A) : RetryOutputMass A sizes s k = RetryOutputMass A sizes s i := by
       unfold RetryOutputMass
       congr 2
@@ -94,7 +98,7 @@ theorem search_stage_output_uniform {I : Type*} [Fintype I] [DecidableEq I]
     have hAr : (A.card : ℝ) ≠ 0 := by exact_mod_cast (Nat.ne_of_gt hA)
     apply (eq_div_iff hAr).2
     nlinarith [hsum, hsumA]
-  · rw [if_neg hi]
+  · rw [ite_eq_right hi]
     exact hzero i hi
 
 /-- For a nonempty proper marked set, the output masses summed over the exponential retry
@@ -106,9 +110,9 @@ theorem search_final_output_uniform {I : Type*} [Fintype I] [DecidableEq I]
   have heach := search_stage_output_uniform A hA hproper (ExponentialSizes (Fintype.card I))
   simp_rw [heach]
   by_cases hi : i ∈ A
-  · simp only [if_pos hi]
+  · simp only [ite_eq_left hi]
     exact (search_all_density_termination A hA hproper).div_const _
-  · simp only [if_neg hi]
+  · simp only [ite_eq_right hi]
     exact hasSum_zero
 
 end Qatlib.Concepts.AmplitudeSearch.InterruptMin

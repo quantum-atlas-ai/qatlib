@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QWalkConnect98.MainResults.SpectralMixing.MixingContraction
-import Mathlib.Algebra.Order.Chebyshev
-import Mathlib.Combinatorics.SimpleGraph.Paths
+module
+
+public import Qatlib.Papers.QWalkConnect98.MainResults.SpectralMixing.MixingContraction
+public import Mathlib.Algebra.Order.Chebyshev
+public import Mathlib.Combinatorics.SimpleGraph.Paths
+
+@[expose] public section
 
 /-!
 # An elementary component spectral-gap bound
@@ -88,6 +92,7 @@ theorem dotProduct_adjMatrix_self (G : SimpleGraph V) [DecidableRel G.Adj] (x : 
   · simp [hv]
   · simp [hv]
 
+omit [DecidableEq V] in
 /-- The edge energy is twice the degree-weighted sum of coordinate squares minus twice the
 adjacency quadratic form. -/
 theorem edgeEnergy_eq (G : SimpleGraph V) [DecidableRel G.Adj] (x : V → ℝ) :
@@ -386,6 +391,7 @@ theorem poincare_edgeEnergy {G : SimpleGraph V} [DecidableRel G.Adj] {u : V} (x 
         exact mul_le_mul_of_nonneg_left hdiff_sq' (Nat.cast_nonneg _)
     _ = (compSize G u : ℝ) * ((compSize G u : ℝ) - 1) * edgeEnergy G x / 4 := by ring
 
+omit [DecidableEq V] in
 /-- On a regular graph, the edge energy is at most `4 * d` times the sum of coordinate squares. -/
 theorem edgeEnergy_le (G : SimpleGraph V) [DecidableRel G.Adj] {d : ℝ}
     (hreg : RegularDegree G d) (x : V → ℝ) :

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OGPQAOAGoh25.MainResults.Model.SourceModel
+module
+
+public import Qatlib.Papers.OGPQAOAGoh25.MainResults.Model.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -44,7 +48,7 @@ conclusion, with the paper's Chernoff/moment estimate supplying the hypothesis.
 -/
 theorem lemma44
     (removed : ℕ → ℕ) (lam : ℝ) (hlam : 1 < lam)
-    (c : ℝ) (hc : 0 < c) (C : ℝ) (hC : 0 < C)
+    (c : ℝ) (_hc : 0 < c) (C : ℝ) (hC : 0 < C)
     (hbound : ∀ᶠ n : ℕ in atTop,
       (removed n : ℝ) ≤ (n : ℝ) * C * Real.rpow lam (-(c * Real.log lam))) :
     ∃ K : ℝ, 0 < K ∧ ∀ᶠ n : ℕ in atTop, (removed n : ℝ) ≤ (n : ℝ) * K := by

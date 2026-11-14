@@ -4,10 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Probability.ProbabilityMassFunction.Constructions
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.FiniteStoppingTail
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Probability.ProbabilityMassFunction.Constructions
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.FiniteStoppingTail
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
+public import Qatlib.Foundations.ProbabilityCore.CoinLaw
+
+@[expose] public section
 
 /-!
 # Bayesian learner kernels for ordered search
@@ -105,7 +110,7 @@ noncomputable def learnerNext {n : ℕ} (hn : 0 < n) (p ε : ℝ) :
   fun a =>
     if _h : ∃ i : Fin n, ε ≤ a i then PMF.pure (Sum.inl (haltCut hn a ε))
     else
-      (PMF.bernoulli
+      (Qatlib.Foundations.ProbabilityCore.CoinLaw.bernoulli
           (clampProb (normTrue a (stageTwoCut hn a ε) p)) (clampProb_le _)).bind
         fun b =>
           PMF.pure

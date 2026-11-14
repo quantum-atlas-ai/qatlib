@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ShadowModels.ProductPOVM.PauliOrbitPOVM
+module
+
+public import Qatlib.Concepts.ShadowModels.ProductPOVM.PauliOrbitPOVM
+
+@[expose] public section
 
 /-!
 # Pauli involutions and traces

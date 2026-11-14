@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.SpecificLimits.Normed
-import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
-import Mathlib.LinearAlgebra.Matrix.Determinant.Basic
-import Mathlib.Data.ENNReal.Basic
+module
+
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.SpecificLimits.Normed
+public import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
+public import Mathlib.LinearAlgebra.Matrix.Determinant.Basic
+public import Mathlib.Basic.ENNReal.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -68,13 +72,13 @@ theorem kappaEff_of_isUnit {M : Matrix (Fin N) (Fin N) ℂ} {α : ℝ≥0}
     (hM : IsUnit M.det) :
     kappaEff M α = (α : ℝ≥0∞) * (‖M⁻¹‖₊ : ℝ≥0∞) := by
   unfold kappaEff
-  rw [if_pos hM]
+  rw [ite_eq_left hM]
 
 /-- On the singular branch the effective condition parameter is `+∞`. -/
 theorem kappaEff_of_not_isUnit {M : Matrix (Fin N) (Fin N) ℂ} {α : ℝ≥0}
     (hM : ¬ IsUnit M.det) : kappaEff M α = ⊤ := by
   unfold kappaEff
-  rw [if_neg hM]
+  rw [ite_eq_right hM]
 
 /-- Theorem 3, left-composition step: for an invertible `A`, the inverse of the
 left product satisfies `A⁻¹ = (PA)⁻¹ P`, hence

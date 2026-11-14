@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Fin.Basic
-import Mathlib.Data.Fintype.Pi
-import Mathlib.Order.ConditionallyCompleteLattice.Basic
-import Qatlib.Concepts.CoherentSim.TaylorEncoding.TaylorLCUProgram
-import Qatlib.Concepts.CoherentSim.FactorialTaylor.FactorialTaylorConsumers
-import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
-import Qatlib.Concepts.CoherentSim.TimeDependent.Equation28Stat
-import Qatlib.Concepts.CoherentSim.ResetDiscard.Equation16Stat
+module
+
+public import Mathlib.Data.Fin.Basic
+public import Mathlib.Data.Fintype.Pi
+public import Mathlib.Order.ConditionallyCompleteLattice.Basic
+public import Qatlib.Concepts.CoherentSim.TaylorEncoding.TaylorLCUProgram
+public import Qatlib.Concepts.CoherentSim.FactorialTaylor.FactorialTaylorConsumers
+public import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
+public import Qatlib.Concepts.CoherentSim.TimeDependent.Equation28Stat
+public import Qatlib.Concepts.CoherentSim.ResetDiscard.Equation16Stat
+
+@[expose] public section
 
 /-!
 # Finite data Taylor simulation specifications

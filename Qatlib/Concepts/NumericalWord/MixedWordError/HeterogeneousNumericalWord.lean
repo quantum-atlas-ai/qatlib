@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.NumericalWord.MixedWordError.HeterogeneousNumericalWordDefs
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.LocalCapability
-import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
-import Qatlib.Foundations.OperatorErrors.OperatorError
-import Qatlib.Concepts.SpectralReadout.PhaseReadout.BornPerturbation
+module
+
+public import Qatlib.Concepts.NumericalWord.MixedWordError.HeterogeneousNumericalWordDefs
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.LocalCapability
+public import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
+public import Qatlib.Foundations.OperatorErrors.OperatorError
+public import Qatlib.Concepts.SpectralReadout.PhaseReadout.BornPerturbation
+
+@[expose] public section
 
 /-!
 # Errors for heterogeneous numerical gate words
@@ -70,7 +74,7 @@ def split {n w : ℕ} (hw : w≤n) : Reg n ≃ Reg (n-w) × Reg w where
     apply Prod.ext
     · funext i
       simp only [auxBits, join]
-      rw [dif_neg (by omega)]
+      rw [dite_eq_right (by omega)]
       apply congrArg p.1
       apply Fin.ext
       change w+i.val-w=i.val

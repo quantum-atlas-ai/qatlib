@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MixedFidelity.FidelityMetric.ComplexArrowTraceNorm.BlockDefs
-import Mathlib.Analysis.Matrix.Spectrum
-import Mathlib.Tactic
+module
+
+public import Qatlib.Concepts.MixedFidelity.FidelityMetric.ComplexArrowTraceNorm.BlockDefs
+public import Mathlib.Analysis.Matrix.Spectrum
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Trace norms of complex arrow blocks
@@ -81,9 +85,9 @@ private lemma traceNorm_fromBlocks_diagonal {I J : Type*} [Fintype I] [Decidable
     [Fintype J] [DecidableEq J] (A : Matrix I I ℂ) (D : Matrix J J ℂ) :
     Matrix.traceNorm (Matrix.fromBlocks A 0 0 D) = A.traceNorm + D.traceNorm := by
   classical
-  letI : DecidableEq I := Classical.decEq I
-  letI : DecidableEq J := Classical.decEq J
-  letI : DecidableEq (I ⊕ J) := Classical.decEq (I ⊕ J)
+  let : DecidableEq I := Classical.decEq I
+  let : DecidableEq J := Classical.decEq J
+  let : DecidableEq (I ⊕ J) := Classical.decEq (I ⊕ J)
   let L : Matrix (I ⊕ J) I ℂ := fun a b => match a with
     | .inl i => if i = b then 1 else 0
     | .inr _ => 0

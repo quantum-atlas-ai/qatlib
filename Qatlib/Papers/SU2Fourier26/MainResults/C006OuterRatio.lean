@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SU2Fourier26.MainResults.SourceSetup.SourceBeurlingWeight
+module
+
+public import Qatlib.Papers.SU2Fourier26.MainResults.SourceSetup.SourceBeurlingWeight
+
+@[expose] public section
 
 /-!
 # Lemma 2: `(a, b) ∈ A_w` with `‖b‖_∞ < 1` iff `b/a* ∈ A_w` (c006)

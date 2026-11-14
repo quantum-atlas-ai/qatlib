@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Finset.Lattice.Fold
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic.FieldSimp
+module
+
+public import Mathlib.Data.Finset.Lattice.Fold
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic.FieldSimp
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -52,8 +56,8 @@ theorem lemma17_kronecker_condition_number
         (fun p : Fin n × Fin n => σ p.1 * σ p.2))
       = ((Finset.univ.sup' ⟨⟨0, hn⟩, Finset.mem_univ _⟩ (fun i : Fin n => σ i))
           / (Finset.univ.inf' ⟨⟨0, hn⟩, Finset.mem_univ _⟩ (fun i : Fin n => σ i))) ^ 2 := by
-  haveI : Nonempty (Fin n) := ⟨⟨0, hn⟩⟩
-  haveI : Nonempty (Fin n × Fin n) := inferInstance
+  have : Nonempty (Fin n) := ⟨⟨0, hn⟩⟩
+  have : Nonempty (Fin n × Fin n) := inferInstance
   set a : ℝ := Finset.univ.sup' Finset.univ_nonempty (fun i : Fin n => σ i) with ha
   set b : ℝ := Finset.univ.inf' Finset.univ_nonempty (fun i : Fin n => σ i) with hb
   have haub : ∀ i, σ i ≤ a := by

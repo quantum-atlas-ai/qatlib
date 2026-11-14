@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.KrausCircuitDefs
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.KrausMemoryReset
-import Qatlib.Concepts.Execution.KnownKraus.KrausUnitaryDilation
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.KrausCircuitDefs
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.KrausMemoryReset
+public import Qatlib.Concepts.Execution.KnownKraus.KrausUnitaryDilation
+
+@[expose] public section
 
 /-!
 # Compiling Kraus circuits to observed circuits

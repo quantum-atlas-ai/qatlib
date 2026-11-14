@@ -4,13 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Tactic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
-import Mathlib.Analysis.Normed.Algebra.MatrixExponential
-import Mathlib.Analysis.Asymptotics.Lemmas
-import Mathlib.Analysis.Calculus.ContDiff.Basic
-import Mathlib.MeasureTheory.Integral.Bochner.Basic
+module
+
+public import Mathlib.Tactic
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
+public import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+public import Mathlib.Analysis.Asymptotics.Lemmas
+public import Mathlib.Analysis.Calculus.ContDiff.Basic
+public import Mathlib.MeasureTheory.Integral.Bochner.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -216,8 +221,8 @@ class `E`, `τ E` its speciality, `p x` the flow on `G(x)` and `typical x E` the
 set `G(E,x)` of typical arcs (all with respect to a fixed positive input `x`). -/
 structure AlmostSymmetric {n m : ℕ} (G : LearningGraph n m) (k : ℕ)
     (f : Input n m → Bool) {ι : Type} [DecidableEq ι]
-    (cls : Arc n → ι) (τ π : ι → ℝ) (p : ∀ x : Input n m, Arc n → ℝ)
-    (typical : ∀ x : Input n m, ι → Finset (Arc n)) : Prop where
+    (cls : Arc n → ι) (τ π : ι → ℝ) (p : ∀ _x : Input n m, Arc n → ℝ)
+    (typical : ∀ _x : Input n m, ι → Finset (Arc n)) : Prop where
   τ_pos : ∀ E, 0 < τ E
   π_pos : ∀ E, 0 < π E
   p_nonneg : ∀ x e, 0 ≤ p x e
@@ -233,7 +238,7 @@ structure AlmostSymmetric {n m : ℕ} (G : LearningGraph n m) (k : ℕ)
 
 /-- The typical flow `μ(E) = π(E) · max_x |G(E,x)|` of §4.4. -/
 def mu {n m : ℕ} {ι : Type} [Fintype ι] [DecidableEq ι] (π : ι → ℝ)
-    (typical : ∀ x : Input n m, ι → Finset (Arc n)) (E : ι) : ℝ :=
+    (typical : ∀ _x : Input n m, ι → Finset (Arc n)) (E : ι) : ℝ :=
   π E * ((univ.sup (fun x : Input n m => (typical x E).card) : ℕ) : ℝ)
 
 /-! ## The specification schedule of Algorithm 1 (§5.2) -/
@@ -292,7 +297,7 @@ def runLoads (k : ℕ) : Specification k → List ℕ → Specification k
 
 /-- The loads performed before stage `i` (stage `i` consists of repeated blocks
 `(1, …, i)`, so the prefix before it is the first stage plus stages `2, …, i-1`). -/
-def stagePrefixLoads (k i : ℕ) (r : ℕ → ℕ) : List ℕ :=
+def stagePrefixLoads (_k i : ℕ) (r : ℕ → ℕ) : List ℕ :=
   List.replicate (r 1) 1 ++ (List.range (i - 2)).flatMap (fun d => stageBlock (d + 2) r)
 
 /-- `b` is a valid specification at stage `i`: it is what the specification update
@@ -321,7 +326,7 @@ def meanType {n m : ℕ} (k : ℕ) (x : Input n m) (A : Finset (Fin n))
 
 /-- A type matrix is typical for the expectation `ε` when it lies in the
 `C √r₁`-ball of `ε` (§5.4). -/
-def IsTypicalType {n m : ℕ} (k : ℕ) (ε : Matrix (Fin (k - 1)) (Fin k) ℝ)
+def IsTypicalType {_n _m : ℕ} (k : ℕ) (ε : Matrix (Fin (k - 1)) (Fin k) ℝ)
     (C r1 : ℝ) (M : Matrix (Fin (k - 1)) (Fin k) ℝ) : Prop :=
   ∀ t s, |M t s - ε t s| ≤ C * Real.sqrt r1
 

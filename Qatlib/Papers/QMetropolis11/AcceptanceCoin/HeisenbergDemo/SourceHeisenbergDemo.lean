@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.SpecialFunctions.Exponential
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Tactic.FinCases
-import Mathlib.Tactic.Push
-import Mathlib.Tactic.Ring
-import Qatlib.Foundations.PureStateMath.Qubit
+module
+
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.SpecialFunctions.Exponential
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Tactic.FinCases
+public import Mathlib.Tactic.Push
+public import Mathlib.Tactic.Ring
+public import Qatlib.Foundations.PureStateMath.Qubit
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

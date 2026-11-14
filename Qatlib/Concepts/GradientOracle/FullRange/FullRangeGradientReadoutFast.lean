@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GradientOracle.FullRange.FullRangeGradientReadoutStat
-import Qatlib.Concepts.GradientOracle.FullRange.FullRangeGradientLaws
+module
+
+public import Qatlib.Concepts.GradientOracle.FullRange.FullRangeGradientReadoutStat
+public import Qatlib.Concepts.GradientOracle.FullRange.FullRangeGradientLaws
+
+@[expose] public section
 
 /-!
 # Full-range gradient readout

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.Reduction.AlgebraicRecoveryRefinedDefs
+module
+
+public import Qatlib.Concepts.HspRecovery.Reduction.AlgebraicRecoveryRefinedDefs
+
+@[expose] public section
 
 /-!
 # Algebraic recovery certificates and costs
@@ -31,6 +35,7 @@ the hypotheses of its underlying recovery component.
 -/
 
 set_option backward.isDefEq.respectTransparency false
+set_option linter.unusedVariables false
 open Qatlib.Concepts.IntWordFraming.WordFraming
 open Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
 open Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum

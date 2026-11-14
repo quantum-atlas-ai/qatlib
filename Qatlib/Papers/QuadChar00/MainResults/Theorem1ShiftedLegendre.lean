@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QuadChar00.MainResults.Defs
+module
+
+public import Qatlib.Papers.QuadChar00.MainResults.Defs
+
+@[expose] public section
 
 /-!
 # The shifted Legendre algorithm
@@ -74,9 +78,7 @@ theorem legendre_amplitude (p : ℕ) [Fact p.Prime] [NeZero p] (hp : p ≠ 2) (s
       (fun u => ZMod.stdAddChar (-(s * y)) *
         (((quadCharZMod p u : ℤ) : ℂ) * ZMod.stdAddChar (u * y))) ?_
     intro u
-    change ((quadCharZMod p (u + s) : ℤ) : ℂ) * ZMod.stdAddChar (u * y)
-        = ZMod.stdAddChar (-(s * y)) *
-            (((quadCharZMod p (u + s) : ℤ) : ℂ) * ZMod.stdAddChar ((u + s) * y))
+
     rw [show (u + s) * y = u * y + s * y by ring, AddChar.map_add_eq_mul]
     have hneg : ZMod.stdAddChar (-(s * y)) * ZMod.stdAddChar (s * y) = 1 := by
       rw [← AddChar.map_add_eq_mul, neg_add_cancel, AddChar.map_zero_eq_one]

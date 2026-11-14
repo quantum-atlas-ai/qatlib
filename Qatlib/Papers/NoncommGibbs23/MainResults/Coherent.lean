@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NoncommGibbs23.MainResults.Model
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Module
+module
+
+public import Qatlib.Papers.NoncommGibbs23.MainResults.Model
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Module
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

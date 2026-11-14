@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.StoppingCore.InterruptBridge.FiniteTraceQueries
-import Qatlib.Papers.QCounting98.MainResults.ActualCounting.StandardProgram
+module
+
+public import Qatlib.Concepts.StoppingCore.InterruptBridge.FiniteTraceQueries
+public import Qatlib.Papers.QCounting98.MainResults.ActualCounting.StandardProgram
+
+@[expose] public section
 
 /-!
 # The zero-count query boundary

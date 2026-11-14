@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RandCompile.EffectiveInput.QdriftSimulationDefs
-import Qatlib.Concepts.RandCompile.ChannelBudget.FiniteDiamondQdrift
+module
+
+public import Qatlib.Concepts.RandCompile.EffectiveInput.QdriftSimulationDefs
+public import Qatlib.Concepts.RandCompile.ChannelBudget.FiniteDiamondQdrift
+
+@[expose] public section
 
 /-!
 # Certified qDRIFT simulation budgets
@@ -29,6 +33,7 @@ a coherent-control obstruction.
 
 open Qatlib.Concepts.SchattenDiamond.DiamondNorm
 set_option backward.isDefEq.respectTransparency false
+set_option linter.unusedVariables false
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Concepts.FairRandomBits.RationalReject
 open Qatlib.Concepts.MatrixAccess.KnownFrameSynth

@@ -4,16 +4,20 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SearchStopping.RestartLaw.Section3OptimalAngleSubgoalTigh
-import Qatlib.Concepts.SearchStopping.RestartLaw.Section3OptimalConstantsSubgoalTigh
-import Qatlib.Concepts.SearchStopping.RestartLaw.Section3RestartStationaritySubgoalTigh
-import Mathlib.Analysis.Calculus.Deriv.MeanValue
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.ArctanDeriv
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.InverseDeriv
-import Mathlib.Analysis.Real.Pi.Bounds
-import Mathlib.Topology.Order.IntermediateValue
-import Mathlib.Tactic
+module
+
+public import Qatlib.Concepts.SearchStopping.RestartLaw.Section3OptimalAngleSubgoal
+public import Qatlib.Concepts.SearchStopping.RestartLaw.Section3OptimalConstantsSubgoal
+public import Qatlib.Concepts.SearchStopping.RestartLaw.Section3RestartStationaritySubgoal
+public import Mathlib.Analysis.Calculus.Deriv.MeanValue
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.ArctanDeriv
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.InverseDeriv
+public import Mathlib.Analysis.Real.Pi.Bounds
+public import Mathlib.Topology.Order.IntermediateValue
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Sparse-limit asymptotics for search restarts

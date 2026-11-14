@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AdiabaticEvol00.MainResults.AdiabaticDefs
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Sinc
-import Mathlib.Analysis.SpecificLimits.Basic
+module
+
+public import Qatlib.Papers.AdiabaticEvol00.MainResults.AdiabaticDefs
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Sinc
+public import Mathlib.Analysis.SpecificLimits.Basic
+
+@[expose] public section
 
 /-!
 # Two-dimensional block formulas for ring 2-SAT

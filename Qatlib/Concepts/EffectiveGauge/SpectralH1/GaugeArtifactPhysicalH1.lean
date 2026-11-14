@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.SpectralH1.GaugeArtifactH1Bound
+module
+
+public import Qatlib.Concepts.EffectiveGauge.SpectralH1.GaugeArtifactH1Bound
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NonSparseHam09.MainResults.Lemma4PromiseProbability
+module
+
+public import Qatlib.Papers.NonSparseHam09.MainResults.Lemma4PromiseProbability
+
+@[expose] public section
 
 /-!
 # Counting sign-sum promise strings
@@ -47,8 +51,7 @@ lemma signSum_eq (M : ℕ) (b : Fin M → Bool) :
       = 2 * ((Finset.univ.filter (fun i => b i)).card : ℝ) - (M : ℝ) := by
   have hpt : ∀ i : Fin M, signVec b i = 2 * (if b i then (1 : ℝ) else 0) - 1 := by
     intro i
-    cases hbi : b i <;> simp [signVec, signOf, hbi]
-    norm_num
+    cases hbi : b i <;> simp [signVec, signOf, hbi]; norm_num
   have hcount : (∑ i : Fin M, (if b i then (1 : ℝ) else 0))
       = ((Finset.univ.filter (fun i => b i)).card : ℝ) := by
     rw [← Finset.sum_filter]

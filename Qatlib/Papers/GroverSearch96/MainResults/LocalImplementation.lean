@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CircuitImpl.ReflectionCompile.LocalPreparedAmplification
-import Mathlib.Tactic
-import Qatlib.Papers.GroverSearch96.MainResults.Theorem1Decomposition
-import Qatlib.Papers.GroverSearch96.MainResults.SearchBounds
+module
+
+public import Qatlib.Concepts.CircuitImpl.ReflectionCompile.LocalPreparedAmplification
+public import Mathlib.Tactic
+public import Qatlib.Papers.GroverSearch96.MainResults.Theorem1Decomposition
+public import Qatlib.Papers.GroverSearch96.MainResults.SearchBounds
+
+@[expose] public section
 
 /-!
 # Local implementation and readout of Grover search
@@ -153,7 +157,7 @@ theorem measure_clean_embed (n : ℕ) (ψ : QState (Reg n)) (S : Finset (Reg n))
       split_ifs <;> simp_all
     _ = ∑ x ∈ S, BornProb ψ x := by
       rw [Fintype.sum_prod_type]
-      simp only [Finset.sum_ite_eq', Finset.mem_univ, if_true]
+      simp only [Finset.sum_ite_eq', Finset.mem_univ, ite_true]
       rw [← Finset.sum_filter]
       simp
 

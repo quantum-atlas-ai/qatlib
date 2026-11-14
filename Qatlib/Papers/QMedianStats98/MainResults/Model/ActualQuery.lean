@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QMedianStats98.MainResults.Model.Basic
-import Qatlib.Concepts.ProbabilityCore.Concentration.CubeQueryInterfaces
-import Qatlib.Concepts.ProbabilityCore.Concentration.ActualPolynomial
+module
+
+public import Qatlib.Papers.QMedianStats98.MainResults.Model.Basic
+public import Qatlib.Concepts.ProbabilityCore.Concentration.CubeQueryInterfaces
+public import Qatlib.Concepts.ProbabilityCore.Concentration.ActualPolynomial
+
+@[expose] public section
 
 /-!
 # Boolean-oracle query experiments and acceptance polynomials

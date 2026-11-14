@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
-import Qatlib.Concepts.FairRandomBits.RationalReject.RationalRejectionSampling
-import Qatlib.Concepts.ClassicalTape.FairCoinTape
-import Mathlib.Data.Nat.Sqrt
+module
+
+public import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+public import Qatlib.Concepts.FairRandomBits.RationalReject.RationalRejectionSampling
+public import Qatlib.Concepts.ClassicalTape.FairCoinTape
+public import Mathlib.Data.Nat.Sqrt
+
+@[expose] public section
 
 /-!
 # Finite coin-code and rejection-sampler definitions

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FourierRecovery.ModularFourier.GradientOracle
-import Qatlib.Concepts.FourierRecovery.ModularFourier.GradientOracleRefinedDefs
+module
+
+public import Qatlib.Concepts.FourierRecovery.ModularFourier.GradientOracle
+public import Qatlib.Concepts.FourierRecovery.ModularFourier.GradientOracleRefinedDefs
+
+@[expose] public section
 
 /-!
 # Refined probability phases and gradient readout bounds
@@ -54,6 +58,8 @@ open Qatlib.Concepts.SignalPrimitive.GridGradient
 
 set_option autoImplicit false
 set_option maxHeartbeats 800000
+set_option linter.unusedVariables false
+set_option linter.unusedSimpArgs false
 
 namespace Qatlib.Concepts.FourierRecovery.ModularFourier.GradientOracleRefined
 

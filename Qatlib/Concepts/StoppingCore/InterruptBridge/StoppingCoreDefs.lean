@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Concepts.StoppingCore.BranchCostCore.WeightedUnboundedExecution
+module
+
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Concepts.StoppingCore.BranchCostCore.WeightedUnboundedExecution
+
+@[expose] public section
 
 /-!
 # Resumable quantum execution configurations

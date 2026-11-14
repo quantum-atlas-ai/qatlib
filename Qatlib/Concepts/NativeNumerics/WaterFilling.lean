@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MonteCarloMean.PayoffRotation.RationalPayoffRotation
-import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedAmplitudeAmplification
-import Qatlib.Concepts.HhlAlgorithms.Postselection.FreshTrials
+module
+
+public import Qatlib.Concepts.MonteCarloMean.PayoffRotation.RationalPayoffRotation
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedAmplitudeAmplification
+public import Qatlib.Concepts.HhlAlgorithms.Postselection.FreshTrials
+
+@[expose] public section
 
 /-!
 # Numerical coherent water filling
@@ -227,7 +231,7 @@ theorem water_ideal_collapse (m D : ℕ) (pi sigma : Fin m → ℚ) (lam : ℚ)
   · have hgamma : Real.sqrt ((waterGamma pi sigma lam i : ℝ)^2) = (waterGamma pi sigma lam i : ℝ) :=
       Real.sqrt_sq (by exact_mod_cast (hg i).2.2.1)
     simp only [collapse_apply, waterEvent, Finset.mem_filter, Finset.mem_univ, and_true,
-      if_true, if_false, Bool.false_eq_true, waterTarget, payoffRotation_apply, hgamma, hcol]
+      ite_true, ite_false, Bool.false_eq_true, waterTarget, payoffRotation_apply, hgamma, hcol]
     have hmul : (pi i : ℂ)*(waterGamma pi sigma lam i : ℂ) = (waterFill pi sigma lam i : ℂ) := by
       exact_mod_cast (hg i).2.2.2.2
     rw [Complex.ofReal_ratCast]
@@ -240,7 +244,7 @@ the squared amplitudes. -/
 theorem water_target_normSq (m D : ℕ) (c : Fin m → ℚ) (xi : Fin m → QState (Fin D))
     (hxi : ∀ i, Normalized (xi i)) :
     ∑ p, Complex.normSq (waterTarget c xi p) = ∑ i, (c i : ℝ)^2 := by
-  simp only [Fintype.sum_prod_type, Fintype.sum_bool, waterTarget, Bool.false_eq_true, if_false, if_true,
+  simp only [Fintype.sum_prod_type, Fintype.sum_bool, waterTarget, Bool.false_eq_true, ite_false, ite_true,
     Complex.normSq_zero, add_zero, Complex.normSq_mul, Complex.normSq_ratCast]
   have hxisq (i : Fin m) : (∑ d, Complex.normSq (xi i d)) = 1 := by
     simpa only [← Complex.sq_norm] using! hxi i

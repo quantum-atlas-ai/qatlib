@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QDynamics10.MainResults.SourceModel
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
+module
+
+public import Qatlib.Papers.QDynamics10.MainResults.SourceModel
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -177,9 +181,9 @@ evolution to within `ε/2`.
 cocycle decomposition of the exact evolution, which holds by
 `orderedEvolution_cocycle`. -/
 theorem lemma7 {I : Type} [Fintype I] [DecidableEq I]
-    (r k d : ℕ) (ε : ℝ)
+    (r k _d : ℕ) (ε : ℝ)
     (Uexact : Matrix I I ℂ) (U V : List (Matrix I I ℂ))
-    (hk : 1 ≤ k) (hr : 1 ≤ r) (hε : 0 < ε) (hε1 : ε ≤ 1)
+    (_hk : 1 ≤ k) (hr : 1 ≤ r) (hε : 0 < ε) (_hε1 : ε ≤ 1)
     (hCocycle : Uexact = U.prod)
     (hUr : U.length = r)
     (hU : ∀ x ∈ U, ‖x‖ ≤ 1) (hV : ∀ x ∈ V, ‖x‖ ≤ 1)

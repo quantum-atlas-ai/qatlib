@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FinitePrecision.ComputableInput.BitRational.Erased
-import Qatlib.Concepts.FinitePrecision.ComputableInput.FiniteTailProgram.Semantics
-import Mathlib.Algebra.QuadraticAlgebra.Basic
+module
+
+public import Qatlib.Concepts.FinitePrecision.ComputableInput.BitRational.Erased
+public import Qatlib.Concepts.FinitePrecision.ComputableInput.FiniteTailProgram.Semantics
+public import Mathlib.Algebra.QuadraticAlgebra.Basic
+
+@[expose] public section
 
 /-!
 # Rational arithmetic kernels for finite table programs
@@ -194,7 +198,15 @@ private theorem gateKernel_refines : Refines (algebraKernel Scalar) gateKernel :
 arithmetic work as scheduled gates. -/
 def gateDriver {k r : ℕ} (v : Vector Scalar r) (A : Vector (Table Scalar r) k) (D : ℕ) :
     GateRun (Vector (Table Scalar r) (D+1)) :=
-  let out := Metered.driver gateKernel v A D
+  let observe {α : Type} (r : GateRun α) :
+      Qatlib.Concepts.FinitePrecision.ComputableInput.SavedTable.Observed α :=
+    ⟨⟨r.value,r.scheduledGates,0⟩,0⟩
+  let kernel : ObservedKernel Scalar :=
+    { zero := 0
+      add := fun x y => observe (gateAdd x y)
+      mul := fun x y => observe (gateMul x y)
+      conj := fun x => observe (gateConj x) }
+  let out := Metered.driver kernel v A D
   ⟨out.arithmetic.value,out.arithmetic.work⟩
 
 /-- The value returned by the gate-counted driver equals the plain value-kernel driver output. -/

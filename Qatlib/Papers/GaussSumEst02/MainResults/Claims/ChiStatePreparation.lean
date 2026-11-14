@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GaussSumEst02.MainResults.Source.GaussSumCore
-import Qatlib.Papers.GaussSumEst02.MainResults.Source.Cost
+module
+
+public import Qatlib.Papers.GaussSumEst02.MainResults.Source.GaussSumCore
+public import Qatlib.Papers.GaussSumEst02.MainResults.Source.Cost
+
+@[expose] public section
 
 /-!
 # Normalized multiplicative-character states
@@ -42,7 +46,7 @@ amplitudes equal to the character values divided by `√(card K - 1)`. Polylogar
 discrete-logarithm and Fourier-transform costs yield a polylogarithmic sum cost with an
 additional constant overhead [VanDamSeroussi2002]. -/
 theorem lemma1_chiStatePreparation {K : Type*} [Field K] [Fintype K] (χ : MultChar K)
-    (hnt : χ.IsNontrivial)
+    (_hnt : χ.IsNontrivial)
     (dlog qft : ℕ → ℕ) (hdlog : PolyLog dlog) (hqft : PolyLog qft) :
     (∑ x : K, ‖chiState χ x‖ ^ 2 = 1) ∧
     (∀ x : K, chiState χ x

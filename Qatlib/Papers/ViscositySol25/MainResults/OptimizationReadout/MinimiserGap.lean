@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Ring
+module
+
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -48,13 +52,13 @@ The proof is exactly the paper's chain: strong convexity gives
 `Sν m − Sν mν ≤ 2ε^2`; combining yields `‖m − mν‖² ≤ 4ε^2/μ`. -/
 theorem lemma19_minimiser_distance
     (S Sν f : E → ℝ) (g : E → E) (m mν : E) (μ K ε : ℝ)
-    (hμ : 0 < μ) (hε : 0 ≤ ε) (hK : 0 ≤ K)
+    (hμ : 0 < μ) (hε : 0 ≤ ε) (_hK : 0 ≤ K)
     (hmin : ∀ y, S m ≤ S y)
-    (hminν : ∀ y, Sν mν ≤ Sν y)
+    (_hminν : ∀ y, Sν mν ≤ Sν y)
     (hstrong : ∀ x y, Sν x + ⟪g x, y - x⟫_ℝ + (μ / 2) * ‖y - x‖ ^ 2 ≤ Sν y)
     (hgrad : g mν = 0)
     (happrox : ∀ y, |Sν y - S y| ≤ ε ^ 2)
-    (hlip : ∀ x y, |f x - f y| ≤ K * ‖x - y‖) :
+    (_hlip : ∀ x y, |f x - f y| ≤ K * ‖x - y‖) :
     ‖m - mν‖ ≤ 2 * ε / Real.sqrt μ := by
   -- Step 1: value-error chain `Sν m − Sν mν ≤ 2ε²`.
   have hval : Sν m - Sν mν ≤ 2 * ε ^ 2 := by

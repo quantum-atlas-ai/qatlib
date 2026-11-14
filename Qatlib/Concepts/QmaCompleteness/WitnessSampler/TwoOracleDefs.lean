@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QmaCompleteness.HistoryHam.SpectralForrelation
-import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
+module
+
+public import Qatlib.Concepts.QmaCompleteness.HistoryHam.SpectralForrelation
+public import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
+
+@[expose] public section
 
 /-!
 # Two-oracle circuits for witness sampling

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SingleQuery97.MainResults.ResourceProgram
-import Qatlib.Papers.SingleQuery97.MainResults.FullDatabase
+module
+
+public import Qatlib.Papers.SingleQuery97.MainResults.ResourceProgram
+public import Qatlib.Papers.SingleQuery97.MainResults.FullDatabase
+
+@[expose] public section
 
 /-!
 # Resource bounds for randomized one-query recovery

@@ -25,9 +25,13 @@ This file establishes:
 * Proposition 9: a symmetric set with full dual support is linearly
   independent, and the Fourier kets lie in its span.
 -/
-import Qatlib.Papers.UnambigMeas25.MainResults.Preliminaries
-import Qatlib.Papers.UnambigMeas25.MainResults.Fourier
-import Qatlib.Papers.UnambigMeas25.MainResults.Symmetrization
+module
+
+public import Qatlib.Papers.UnambigMeas25.MainResults.Preliminaries
+public import Qatlib.Papers.UnambigMeas25.MainResults.Fourier
+public import Qatlib.Papers.UnambigMeas25.MainResults.Symmetrization
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -56,12 +60,12 @@ lemma exists_pair_one {n : ℕ} (w : F2Vec n) (hw : w ≠ 0) :
   refine ⟨fun s => if s = t then (1 : ZMod 2) else 0, ?_⟩
   simp only [dotF2]
   rw [Finset.sum_eq_single t]
-  · rw [if_pos rfl]
+  · rw [ite_eq_left rfl]
     rcases zmod2_cases (w t) with h0 | h1
     · exact absurd h0 ht
     · rw [h1, one_mul]
   · intro s _ hst
-    rw [if_neg hst, mul_zero]
+    rw [ite_eq_right hst, mul_zero]
   · intro h
     exact absurd (Finset.mem_univ _) h
 
@@ -96,9 +100,9 @@ lemma phaseZ_mul_entry {n : ℕ} (c : F2Vec n) (M : Matrix (F2Vec n) (F2Vec n) �
     intro x
     simp only [phaseZ]
     rw [Finset.sum_eq_single i]
-    · rw [if_pos rfl]
+    · rw [ite_eq_left rfl]
     · intro y _ hyi
-      rw [if_neg (Ne.symm hyi), zero_mul]
+      rw [ite_eq_right (Ne.symm hyi), zero_mul]
     · intro h
       exact absurd (Finset.mem_univ _) h
   have h2 : ∀ x : F2Vec n,
@@ -109,9 +113,9 @@ lemma phaseZ_mul_entry {n : ℕ} (c : F2Vec n) (M : Matrix (F2Vec n) (F2Vec n) �
   simp only [Matrix.mul_apply]
   rw [Finset.sum_congr rfl (fun x _ => by rw [h1 x]),
     Finset.sum_congr rfl (fun x _ => h2 x), Finset.sum_eq_single j]
-  · rw [if_pos rfl]
+  · rw [ite_eq_left rfl]
   · intro x _ hxj
-    rw [if_neg hxj]
+    rw [ite_eq_right hxj]
   · intro h
     exact absurd (Finset.mem_univ _) h
 
@@ -246,9 +250,9 @@ theorem prop8_fourier_diag {n : ℕ} {F : Idx n → Matrix (F2Vec n) (F2Vec n) �
       = if i = j then ((2 ^ (idx.k : ℕ) : ℕ) : ℂ) * hatM (F idx) i i else 0 := by
   by_cases hij : i = j
   · subst hij
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     exact prop8_diag hsymm hfull i
-  · rw [if_neg hij]
+  · rw [ite_eq_right hij]
     exact prop8_offdiag hsymm idx hij
 
 /-! ### Linear-algebra helpers for the Fourier expansion -/
@@ -258,13 +262,13 @@ lemma shiftX_mulVec_apply {n : ℕ} (a : F2Vec n) (v : F2Vec n → ℂ) (j : F2V
     (shiftX a *ᵥ v) j = v (j + a) := by
   simp only [Matrix.mulVec, dotProduct, shiftX]
   rw [Finset.sum_eq_single (j + a)]
-  · rw [if_pos (by rw [add_assoc, addSelf_zero, add_zero]), one_mul]
+  · rw [ite_eq_left (by rw [add_assoc, addSelf_zero, add_zero]), one_mul]
   · intro z _ hz
     have h' : ¬(j = z + a) := by
       intro h
       apply hz
       rw [h, add_assoc, addSelf_zero, add_zero]
-    rw [if_neg h', zero_mul]
+    rw [ite_eq_right h', zero_mul]
   · intro h
     exact absurd (Finset.mem_univ _) h
 
@@ -322,9 +326,9 @@ lemma mulVec_single {n : ℕ} (M : Matrix (F2Vec n) (F2Vec n) ℂ) (j k : F2Vec 
     (M *ᵥ Pi.single j (1 : ℂ)) k = M k j := by
   simp only [Matrix.mulVec, dotProduct, Pi.single_apply]
   rw [Finset.sum_eq_single j]
-  · rw [if_pos rfl, mul_one]
+  · rw [ite_eq_left rfl, mul_one]
   · intro l _ hlj
-    rw [if_neg hlj, mul_zero]
+    rw [ite_eq_right hlj, mul_zero]
   · intro h
     exact absurd (Finset.mem_univ _) h
 
@@ -334,9 +338,9 @@ lemma innerVec_single_single {n : ℕ} (M : Matrix (F2Vec n) (F2Vec n) ℂ)
     innerVec (Pi.single i (1 : ℂ)) (M *ᵥ Pi.single j (1 : ℂ)) = M i j := by
   simp only [innerVec, mulVec_single M j, Pi.single_apply]
   rw [Finset.sum_eq_single i]
-  · rw [if_pos rfl, map_one, one_mul]
+  · rw [ite_eq_left rfl, map_one, one_mul]
   · intro k _ hki
-    rw [if_neg hki, map_zero, zero_mul]
+    rw [ite_eq_right hki, map_zero, zero_mul]
   · intro h
     exact absurd (Finset.mem_univ _) h
 
@@ -409,11 +413,11 @@ theorem fourier_expansion {n : ℕ} (ψ0 : F2Vec n → ℂ) (j : F2Vec n) :
           char_sum_full (k + j)]
     _ = ψ0 j := by
         rw [Finset.sum_eq_single j]
-        · rw [addSelf_zero j, if_pos rfl, qft_coeff_sq_coe, mul_assoc,
+        · rw [addSelf_zero j, ite_eq_left rfl, qft_coeff_sq_coe, mul_assoc,
           inv_two_pow_mul_two_pow, mul_one]
         · intro k _ hkj
           have hne : k + j ≠ 0 := fun h0 => hkj (add_eq_zero_iff_eq k j |>.mp h0)
-          rw [if_neg hne, mul_zero]
+          rw [ite_eq_right hne, mul_zero]
         · intro h
           exact absurd (Finset.mem_univ _) h
 
@@ -661,9 +665,9 @@ lemma fourier_invert {n : ℕ} (c : F2Vec n → ℂ) (x₀ : F2Vec n) :
         c x * (if x + x₀ = 0 then ((2 ^ n : ℕ) : ℂ) else 0)
         = ((2 ^ n : ℕ) : ℂ) * c x₀ := by
       rw [Finset.sum_eq_single x₀]
-      · rw [addSelf_zero x₀, if_pos rfl, mul_comm]
+      · rw [addSelf_zero x₀, ite_eq_left rfl, mul_comm]
       · intro x _ hxx₀
-        rw [if_neg (fun h0 => hxx₀ (add_eq_zero_iff_eq x x₀ |>.mp h0)), mul_zero]
+        rw [ite_eq_right (fun h0 => hxx₀ (add_eq_zero_iff_eq x x₀ |>.mp h0)), mul_zero]
       · intro h
         exact absurd (Finset.mem_univ _) h
     rw [Finset.sum_congr rfl (fun y _ => step1 y), Finset.sum_comm,
@@ -757,7 +761,7 @@ theorem prop9_span_witness {n : ℕ} {ψ : F2Vec n → F2Vec n → ℂ}
         * (fourierCoeff (ψ 0) i * hatKet i j)), char_sum_full (i + y₀)]
     by_cases hiy : i + y₀ = 0
     · have hiy₀ : i = y₀ := (add_eq_zero_iff_eq i y₀).mp hiy
-      rw [if_pos hiy, hiy₀, addSelf_zero y₀, if_pos rfl]
+      rw [ite_eq_left hiy, hiy₀, addSelf_zero y₀, ite_eq_left rfl]
       calc ((((2 : ℝ)⁻¹ ^ n : ℝ) : ℂ) * (fourierCoeff (ψ 0) y₀)⁻¹
             * (fourierCoeff (ψ 0) y₀ * hatKet y₀ j)) * ((2 ^ n : ℕ) : ℂ)
           = ((((2 : ℝ)⁻¹ ^ n : ℝ) : ℂ) * ((2 ^ n : ℕ) : ℂ))
@@ -767,7 +771,7 @@ theorem prop9_span_witness {n : ℕ} {ψ : F2Vec n → F2Vec n → ℂ}
               * hatKet y₀ j) := by rw [inv_two_pow_mul_two_pow]
         _ = 1 * (1 * hatKet y₀ j) := by rw [inv_mul_cancel₀ (hfull y₀)]
         _ = 1 * hatKet y₀ j := by ring
-    · rw [if_neg hiy, if_neg hiy, mul_zero, zero_mul]
+    · rw [ite_eq_right hiy, ite_eq_right hiy, mul_zero, zero_mul]
   have hstep : ∀ x : F2Vec n,
       ((((2 : ℝ)⁻¹ ^ n : ℝ) : ℂ) * phase (dotF2 x y₀)
           * (fourierCoeff (ψ 0) y₀)⁻¹) * ψ x j
@@ -778,9 +782,9 @@ theorem prop9_span_witness {n : ℕ} {ψ : F2Vec n → F2Vec n → ℂ}
     rw [hpsi x, Finset.mul_sum]
   rw [Finset.sum_congr rfl (fun x _ => hstep x), Finset.sum_comm,
     Finset.sum_congr rfl (fun i _ => hmain i), Finset.sum_eq_single y₀]
-  · rw [addSelf_zero y₀, if_pos rfl, one_mul]
+  · rw [addSelf_zero y₀, ite_eq_left rfl, one_mul]
   · intro i _ hiy
-    rw [if_neg (fun h0 => hiy ((add_eq_zero_iff_eq i y₀).mp h0)), zero_mul]
+    rw [ite_eq_right (fun h0 => hiy ((add_eq_zero_iff_eq i y₀).mp h0)), zero_mul]
   · intro h
     exact absurd (Finset.mem_univ _) h
 

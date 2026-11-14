@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Qatlib.Concepts.WalkSearch.Spectral.SzegedySpectral
-import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
-import Qatlib.Concepts.AmplitudeCore.InvFreePhase.Qubitization
+module
+
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Qatlib.Concepts.WalkSearch.Spectral.SzegedySpectral
+public import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+public import Qatlib.Concepts.AmplitudeCore.InvFreePhase.Qubitization
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -44,7 +48,7 @@ open Qatlib.Concepts.AmplitudeCore.InvFreePhase
 
 namespace Qatlib.Papers.ConvexVolEst19.MainResults.SpectralWalk
 
-variable {I : Type*} [Fintype I] [DecidableEq I]
+variable {I : Type*} [Fintype I] [instDecidableEqI : DecidableEq I]
 
 /-- The paper's continuous-space walk operator `W = S(2Π - I)` of Eq. (3.10), with
 `Π = T Tᴴ` the projector onto the embedding and `S` the register swap.  It is the
@@ -66,9 +70,12 @@ theorem gram_eq_discriminant_map (P : I → I → ℝ) (hP : IsTransitionMatrix 
   have h := szegedy_gram_eq_discriminant P hP
   rwa [SzegedyIsometryB] at h
 
+omit instDecidableEqI in
 /-- A real discriminant eigenvector, complexified, is a complex eigenvector of the
 complexified discriminant. -/
-theorem discriminant_mulVec_complex (P : I → I → ℝ) (v : I → ℝ) (lam : ℝ)
+theorem discriminant_mulVec_complex {I : Type*}
+    [_instFintypeI : Fintype I]
+    [_instDecidableEqI : DecidableEq I] (P : I → I → ℝ) (v : I → ℝ) (lam : ℝ)
     (hvD : SzegedyDiscriminant P *ᵥ v = lam • v) :
     ((SzegedyDiscriminant P).map Complex.ofReal) *ᵥ (fun i => ((v i : ℂ)))
       = ((lam : ℂ)) • (fun i => ((v i : ℂ))) := by
@@ -174,13 +181,13 @@ theorem walkMu_sq (lam : ℝ) (hlam : lam ^ 2 ≤ 1) (sgn : Bool) :
         * ((Real.sqrt (1 - lam ^ 2) : ℝ) : ℂ) = 1 - (lam : ℂ) ^ 2 := by
     rw [← pow_two]; exact hs2
   cases sgn
-  · simp only [Bool.false_eq_true, if_false, μ]
+  · simp only [Bool.false_eq_true, ite_false, μ]
     have hcc : (-Complex.I) * (-Complex.I) = (-1 : ℂ) := by
       rw [neg_mul_neg]; exact Complex.I_mul_I
     linear_combination (norm := ring_nf)
       (((Real.sqrt (1 - lam ^ 2) : ℝ) : ℂ) * ((Real.sqrt (1 - lam ^ 2) : ℝ) : ℂ)) * hcc
       - hs2'
-  · simp only [if_true, μ]
+  · simp only [ite_true, μ]
     have hcc : Complex.I * Complex.I = (-1 : ℂ) := Complex.I_mul_I
     linear_combination (norm := ring_nf)
       (((Real.sqrt (1 - lam ^ 2) : ℝ) : ℂ) * ((Real.sqrt (1 - lam ^ 2) : ℝ) : ℂ)) * hcc

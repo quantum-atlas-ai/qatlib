@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.SingularValues
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Probability.Distributions.Gaussian.Real
-import Mathlib.MeasureTheory.Constructions.Pi
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
+module
+
+public import Mathlib.Analysis.InnerProductSpace.SingularValues
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Probability.Distributions.Gaussian.Real
+public import Mathlib.MeasureTheory.Constructions.Pi
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -205,7 +209,7 @@ of every matrix-loading subroutine: the composed positive witness size is the
 source one scaled by the positive cost, the negative one by the negative cost,
 and the total is their geometric mean. -/
 theorem geometricWitnessSize_scale (a b w1 w0 : ℝ) (ha : 0 ≤ a) (hb : 0 ≤ b)
-    (h1 : 0 ≤ w1) (h0 : 0 ≤ w0) :
+    (h1 : 0 ≤ w1) (_h0 : 0 ≤ w0) :
     geometricWitnessSize (a * w1) (b * w0)
       = Real.sqrt a * Real.sqrt b * geometricWitnessSize w1 w0 := by
   unfold geometricWitnessSize

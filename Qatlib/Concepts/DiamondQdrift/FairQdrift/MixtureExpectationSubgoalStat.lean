@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ReferenceError.RefTraceError.ChannelMixture
-import Qatlib.Foundations.PureStateMath.MixedState
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+module
+
+public import Qatlib.Concepts.ReferenceError.RefTraceError.ChannelMixture
+public import Qatlib.Foundations.PureStateMath.MixedState
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+
+@[expose] public section
 
 /-!
 # Unitary mixture state preservation specification

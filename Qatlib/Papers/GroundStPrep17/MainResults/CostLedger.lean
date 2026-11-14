@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GroundStPrep17.MainResults.SourceModel
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.Complex.ExponentialBounds
+module
+
+public import Qatlib.Papers.GroundStPrep17.MainResults.SourceModel
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.Complex.ExponentialBounds
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -129,7 +133,7 @@ lemma lcuRuns_le (N : ℕ) {Δ ε φ0 χ : ℝ}
 also Theorem 4 eq. (5))**: the ledger `(Λ/Δ + Φ)√L/χ` is
 `Õ(Λ/(χΔ^{3/2}) + Φ/(χ√Δ))`. -/
 theorem unknownEnergyGateCost_le (N : ℕ) {Λ Φ Δ χ ε φ0 : ℝ}
-    (hΛ : 0 < Λ) (hΦ : 0 < Φ) (hΔ : 0 < Δ) (hΔ1 : Δ ≤ 1)
+    (hΛ : 0 < Λ) (hΦ : 0 < Φ) (hΔ : 0 < Δ) (_hΔ1 : Δ ≤ 1)
     (hχ : 0 < χ) (hχ1 : χ ≤ 1) (hε : 0 < ε) (hε1 : ε ≤ 1) (hφ0 : 0 < φ0) :
     IsTildeO (unknownEnergyGateCost Λ Φ Δ χ ε)
       (unknownEnergyBound Λ Φ Δ χ) (polylogScale N Δ ε φ0 χ) := by
@@ -144,7 +148,7 @@ theorem unknownEnergyGateCost_le (N : ℕ) {Λ Φ Δ χ ε φ0 : ℝ}
       = (1 + P) * unknownEnergyBound Λ Φ Δ χ := by
     rw [Real.sqrt_inv]
     unfold unknownEnergyBound
-    field_simp [hΔ.ne', (Real.sqrt_pos.mpr hΔ).ne', hχ.ne'] <;> ring
+    field_simp [hΔ.ne', (Real.sqrt_pos.mpr hΔ).ne', hχ.ne']
   have hB : 0 ≤ unknownEnergyBound Λ Φ Δ χ := by
     unfold unknownEnergyBound
     have hs : 0 < Real.sqrt Δ := Real.sqrt_pos.mpr hΔ
@@ -171,13 +175,13 @@ def knownEnergyPEGateCost (Λ Φ φ0 Δ ε : ℝ) : ℝ :=
 /-- **Proposition 2, eq. (A1)**: the phase-estimation ledger is
 `Õ(Λ/(χ³ξ) + Φ/χ)`. -/
 theorem peRunCost_le (N : ℕ) {Λ Φ Δ ε φ0 χ ξ : ℝ}
-    (hΛ : 0 < Λ) (hΦ : 0 < Φ) (hΔ : 0 < Δ) (hχ : 0 < χ) (hχ1 : χ ≤ 1)
-    (hε : 0 < ε) (hφ0 : 0 < φ0) (hξ : 0 < ξ) :
+    (hΛ : 0 < Λ) (_hΦ : 0 < Φ) (_hΔ : 0 < Δ) (hχ : 0 < χ) (hχ1 : χ ≤ 1)
+    (_hε : 0 < ε) (_hφ0 : 0 < φ0) (hξ : 0 < ξ) :
     IsTildeO (peRunCost Λ Φ χ ξ) (Λ / (χ ^ 3 * ξ) + Φ / χ)
       (polylogScale N Δ ε φ0 χ) := by
   refine ⟨1, one_pos, 0, ?_⟩
   have h1 : (1 / χ) * (Λ / (χ * ξ)) = Λ / (χ ^ 2 * ξ) := by
-    field_simp [hχ.ne', hξ.ne'] <;> ring
+    field_simp [hχ.ne', hξ.ne']
   have h2 : (1 / χ) * Φ = Φ / χ := by
     ring
   have hstep : Λ / (χ ^ 2 * ξ) ≤ Λ / (χ ^ 3 * ξ) := by
@@ -194,15 +198,15 @@ theorem peRunCost_le (N : ℕ) {Λ Φ Δ ε φ0 χ ξ : ℝ}
 `Λ/(|φ₀|²Δε) + Φ/|φ₀|` exactly. -/
 theorem knownEnergyPEGateCost_le (N : ℕ) {Λ Φ Δ ε φ0 χ : ℝ}
     (hΛ : 0 < Λ) (hΦ : 0 < Φ) (hΔ : 0 < Δ) (hε : 0 < ε)
-    (hφ0 : 0 < φ0) (hχ : 0 < χ) (hε1 : ε ≤ 1) (hφ01 : φ0 ≤ 1) :
+    (hφ0 : 0 < φ0) (_hχ : 0 < χ) (_hε1 : ε ≤ 1) (_hφ01 : φ0 ≤ 1) :
     IsTildeO (knownEnergyPEGateCost Λ Φ φ0 Δ ε)
       (Λ / (φ0 ^ 2 * Δ * ε) + Φ / φ0) (polylogScale N Δ ε φ0 χ) := by
   refine ⟨1, one_pos, 0, ?_⟩
   have heq : knownEnergyPEGateCost Λ Φ φ0 Δ ε
       = Λ / (φ0 ^ 2 * Δ * ε) + Φ / φ0 := by
     unfold knownEnergyPEGateCost
-    field_simp [hφ0.ne'] <;> ring
-  simpa [heq]
+    field_simp [hφ0.ne']
+  simp [heq]
 
 /-! ## The combined phase-estimation + search ledgers: eqs. (4), (6), (C38) -/
 
@@ -259,7 +263,7 @@ lemma minLabelSearchCost_eq {Δ : ℝ} (hΔ : 0 < Δ) (κ : ℝ) (Λ Φ χ : ℝ
   rw [sqrt_rpow_div_eq hΔ κ]
   have hsplit : (Λ / Δ + Φ) * (Δ ^ ((κ - 1) / 2) / χ)
       = (Λ * (Δ⁻¹ * Δ ^ ((κ - 1) / 2)) + Φ * Δ ^ ((κ - 1) / 2)) / χ := by
-    field_simp [hΔ.ne', hχ] <;> ring
+    field_simp [hΔ.ne', hχ]
   rw [hsplit, hΛ, hΦ]
   field_simp [hpowA, hpowB]
 
@@ -267,9 +271,9 @@ lemma minLabelSearchCost_eq {Δ : ℝ} (hΔ : 0 < Δ) (κ : ℝ) (Λ Φ χ : ℝ
 combined ledger is `Õ(Λ/(χ³Δ^κ) + Λ/(χΔ^{(3-κ)/2}) + Φ/(χΔ^{(1-κ)/2}))` for
 `κ ∈ [0,1]`. -/
 theorem combinedGateCost_le (N : ℕ) {Λ Φ Δ χ ε φ0 κ : ℝ}
-    (hΛ : 0 < Λ) (hΦ : 0 < Φ) (hΔ : 0 < Δ) (hΔ1 : Δ ≤ 1)
-    (hχ : 0 < χ) (hχ1 : χ ≤ 1) (hε : 0 < ε) (hφ0 : 0 < φ0)
-    (hκ0 : 0 ≤ κ) (hκ1 : κ ≤ 1) :
+    (hΛ : 0 < Λ) (_hΦ : 0 < Φ) (hΔ : 0 < Δ) (_hΔ1 : Δ ≤ 1)
+    (hχ : 0 < χ) (hχ1 : χ ≤ 1) (_hε : 0 < ε) (_hφ0 : 0 < φ0)
+    (_hκ0 : 0 ≤ κ) (_hκ1 : κ ≤ 1) :
     IsTildeO (combinedGateCost Λ Φ Δ χ κ) (combinedBound Λ Φ Δ χ κ)
       (polylogScale N Δ ε φ0 χ) := by
   refine ⟨1, one_pos, 0, ?_⟩
@@ -277,7 +281,7 @@ theorem combinedGateCost_le (N : ℕ) {Λ Φ Δ χ ε φ0 κ : ℝ}
   have hΔκ : 0 < Δ ^ κ := Real.rpow_pos_of_pos hΔ κ
   have hprior1 : (1 / χ) * (Λ / (χ * Δ ^ κ)) ≤ Λ / (χ ^ 3 * Δ ^ κ) := by
     have heq : (1 / χ) * (Λ / (χ * Δ ^ κ)) = Λ / (χ ^ 2 * Δ ^ κ) := by
-      field_simp [hχ.ne', hΔκ.ne'] <;> ring
+      field_simp [hχ.ne', hΔκ.ne']
     rw [heq, div_le_div_iff₀ (by positivity) (by positivity)]
     have hχ3 : χ ^ 3 ≤ χ ^ 2 := by nlinarith [hχ, hχ1]
     nlinarith [mul_pos hΛ hΔκ, sq_pos_of_pos hχ]
@@ -345,7 +349,7 @@ lemma filteringEta_nonneg {χ ε : ℝ} (hχ : 0 < χ) (hε : 0 < ε) (hχε : �
 
 /-- The filtering truncation parameter is bounded by the common polylogarithmic scale. -/
 lemma filteringEta_le_polylog (N : ℕ) {Δ ε φ0 χ : ℝ}
-    (hΔ : 0 < Δ) (hε : 0 < ε) (hε1 : ε ≤ 1) (hφ0 : 0 < φ0) (hχ : 0 < χ) (hχ1 : χ ≤ 1)
+    (hΔ : 0 < Δ) (hε : 0 < ε) (_hε1 : ε ≤ 1) (hφ0 : 0 < φ0) (hχ : 0 < χ) (_hχ1 : χ ≤ 1)
     (hχε : χ * ε ≤ 1) (hL : Real.exp 1 ≤ Real.log (1 / (χ * ε))) :
     filteringEta χ ε ≤ polylogScale N Δ ε φ0 χ := by
   have hP0 : 0 ≤ polylogScale N Δ ε φ0 χ := polylogScale_nonneg N hΔ hε hφ0 hχ
@@ -365,7 +369,7 @@ lemma filteringEta_le_polylog (N : ℕ) {Δ ε φ0 χ : ℝ}
 
 /-- The filtering gap logarithm is bounded by the common polylogarithmic scale. -/
 lemma filteringK_le_polylog (N : ℕ) {Δ ε φ0 χ : ℝ}
-    (hΔ : 0 < Δ) (hε : 0 < ε) (hφ0 : 0 < φ0) (hχ : 0 < χ) :
+    (_hΔ : 0 < Δ) (hε : 0 < ε) (hφ0 : 0 < φ0) (hχ : 0 < χ) :
     filteringK Δ ≤ polylogScale N Δ ε φ0 χ := by
   unfold filteringK polylogScale
   have h1 : 0 < Real.log ((N : ℝ) + 2) := Real.log_pos (one_lt_nat_add_two N)
@@ -425,7 +429,7 @@ theorem filteringGateCost_le (N : ℕ) {Λ Φ Δ χ ε φ0 : ℝ}
               _ ≤ (1 + P) ^ 3 * (Λ / Δ) :=
                   mul_le_mul_of_nonneg_left hΛle (by positivity)
         _ = (Λ / (φ0 * Δ)) * (1 + P) ^ 3 := by
-            field_simp [hφ0.ne'] <;> ring
+            field_simp [hφ0.ne']
     have hB : (1 / φ0) * Φ ≤ (Φ / φ0) * (1 + P) ^ 3 := by
       have heq : (1 / φ0) * Φ = Φ / φ0 := by ring
       rw [heq]
@@ -489,7 +493,7 @@ lemma filteringQubitLedger_bigO (N : ℕ) {χ ε Δ : ℝ}
 
 /-- Adding one to the precision-dependent filtering qubit ledger preserves its big-O bound. -/
 lemma filteringQubitXiLedger_bigO (N : ℕ) {χ ξ : ℝ}
-    (hχ : 0 < χ) (hχ1 : χ ≤ 1) (hξ : 0 < ξ)
+    (_hχ : 0 < χ) (_hχ1 : χ ≤ 1) (hξ : 0 < ξ)
     (hL : Real.exp 1 ≤ Real.log (χ⁻¹)) :
     IsBigO (filteringQubitXiLedger N χ ξ + 1) (filteringQubitXiLedger N χ ξ) := by
   apply isBigO_add_one_of_half_le
@@ -550,7 +554,7 @@ theorem minLabelCallCost_le {n : ℕ} {ζ δ : ℝ}
         apply div_le_div_of_nonneg_right _ (le_of_lt hζ)
         exact mul_le_mul_of_nonneg_left hstep (le_of_lt hn0)
     _ = 2 * (((n : ℝ) / ζ) * (Real.log ((n : ℝ) / δ)) ^ 2) := by
-        field_simp [hζ.ne'] <;> ring
+        field_simp [hζ.ne']
 
 /-- **Proposition 1, eq. (32)**: the elementary-gate count is
 `O(poly(q,n,m)/ζ log²(n/δ))`. -/

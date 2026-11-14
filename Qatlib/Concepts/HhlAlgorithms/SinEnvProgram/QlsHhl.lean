@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
-import Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.QlsHhlDefs
-import Qatlib.Concepts.HhlErrorBridge.FilterStability
-import Qatlib.Concepts.HhlAlgorithms.GridExactHHL.SpecRestrictedSubgoalHarr
-import Qatlib.Concepts.HhlAlgorithms.GridExactHHL.CostRestrictedSubgoalHarr
+module
+
+public import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+public import Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.QlsHhlDefs
+public import Qatlib.Concepts.HhlErrorBridge.FilterStability
+public import Qatlib.Concepts.HhlAlgorithms.GridExactHHL.SpecRestrictedSubgoalHarr
+public import Qatlib.Concepts.HhlAlgorithms.GridExactHHL.CostRestrictedSubgoalHarr
+
+@[expose] public section
 
 /-!
 # Correctness and limitations of sine-envelope HHL
@@ -194,12 +198,12 @@ private theorem qls_flag_mass_low (d x : ℝ) (hd : 0 < d) (hx : x ≤ 2*d) :
     norm_num
   · have hw : ¬ 2*d ≤ x := by intro h; exact he (le_antisymm hx h)
     unfold sinEnvelopeFlagMass sinEnvelopeFilterF sinEnvelopeFilterG
-    simp only [if_neg hw]
+    simp only [ite_eq_right hw]
     by_cases hl : d ≤ x
     · have hsin := Real.sin_sq_add_cos_sq (Real.pi/2*(x-d)/d)
-      simp only [if_pos hl]
+      simp only [ite_eq_left hl]
       nlinarith [hsin]
-    · simp only [if_neg hl]
+    · simp only [ite_eq_right hl]
       norm_num
 
 /-- Below the threshold `d > 0`, the filters have values zero and `1/2`. -/
@@ -207,19 +211,19 @@ private theorem qls_filter_const_le (d x : ℝ) (hd : 0 < d) (hx : x ≤ d) :
     sinEnvelopeFilterF d x = 0 ∧ sinEnvelopeFilterG d x = 1/2 := by
   have h2 : ¬ 2*d ≤ x := by intro h; linarith
   unfold sinEnvelopeFilterF sinEnvelopeFilterG
-  simp only [if_neg h2]
+  simp only [ite_eq_right h2]
   by_cases hl : d ≤ x
   · have he : x = d := le_antisymm hx hl
     rw [he]
     have hz : (Real.pi/2*(d-d)/d) = 0 := by
       rw [sub_self]; simp
-    simp only [if_pos (le_refl d)]
+    simp only [ite_eq_left (le_refl d)]
     rw [hz, Real.sin_zero, Real.cos_zero]
     norm_num
-  · simp [if_neg hl]
+  · simp [ite_eq_right hl]
 
 /-- For a phase in `[0, 1/4]`, the flag mass is at least `min (1/4) (16*d^2)` when `d > 0`. -/
-private theorem qls_flag_mass_lower (d θ : ℝ) (hd : 0 < d) (hθ : 0 ≤ θ) (hθ' : θ ≤ 1/4) :
+private theorem qls_flag_mass_lower (d θ : ℝ) (hd : 0 < d) (_hθ : 0 ≤ θ) (hθ' : θ ≤ 1/4) :
     min (1/4) (16*d^2) ≤ sinEnvelopeFlagMass d θ := by
   rcases le_or_gt θ (2*d) with hlow | hhigh
   · rw [qls_flag_mass_low d θ hd hlow]
@@ -434,18 +438,18 @@ private theorem qls_ideal_joint_mass {D : ℕ} (M : ℕ) (hM : 2 ≤ M) (eig : F
     cases b with
     | true =>
       have hk : Ket false true = (0:ℂ) := by simp [Qatlib.Foundations.PureStateMath.Ket]
-      simp [sinEnvelopeHHLIdeal, TensorState, hk, norm_mul, mul_pow,
+      simp [sinEnvelopeHHLIdeal, TensorState, hk,
         zero_pow (by norm_num : (2:ℕ) ≠ 0)]
     | false =>
       have hk : Ket false false = (1:ℂ) := by simp [Qatlib.Foundations.PureStateMath.Ket]
-      simp only [sinEnvelopeHHLIdeal, TensorState, hk, mul_one]
+      simp only [sinEnvelopeHHLIdeal, TensorState, hk]
       by_cases hz : z = (⟨0, by omega⟩ : Fin M)
       · have hz' : Ket (⟨0, by omega⟩ : Fin M) z = (1:ℂ) := by simp [Qatlib.Foundations.PureStateMath.Ket, hz]
-        rw [hz', if_pos hz]
+        rw [hz', ite_eq_left hz]
         simp [one_mul]
       · have hz' : Ket (⟨0, by omega⟩ : Fin M) z = (0:ℂ) := by simp [Qatlib.Foundations.PureStateMath.Ket, hz]
-        rw [hz', if_neg hz]
-        simp [norm_mul, mul_pow, zero_pow (by norm_num : (2:ℕ) ≠ 0)]
+        rw [hz', ite_eq_right hz]
+        simp [zero_pow (by norm_num : (2:ℕ) ≠ 0)]
   have hconv (p : Fin M × (Bool × (Fin 3 × Fin D))) :
       (if p.2.2.1 = 1 ∨ p.2.2.1 = 2 then
           ((if p.1 = (⟨0, by omega⟩ : Fin M) then (1:ℝ) else 0) * (if p.2.1 then (0:ℝ) else 1) *
@@ -861,12 +865,12 @@ private theorem qls_blockDiag_mulVec {C : Type} [Fintype C] [DecidableEq C] {n :
   rw [Finset.sum_eq_single c]
   · rw [show (∑ x : Fin n, BlockDiag W (c, i) (c, x) * v (c, x)) =
         ∑ x : Fin n, W c i x * v (c, x) from Finset.sum_congr rfl fun x _ => by
-      rw [Qatlib.Concepts.QueryComplexity.DegreeMethod.blockDiag_apply, if_pos rfl]]
+      rw [Qatlib.Concepts.QueryComplexity.DegreeMethod.blockDiag_apply, ite_eq_left rfl]]
     rfl
   · intro c' _ hc'
     apply Finset.sum_eq_zero
     intro x _
-    rw [Qatlib.Concepts.QueryComplexity.DegreeMethod.blockDiag_apply, if_neg (fun h => hc' h.symm),
+    rw [Qatlib.Concepts.QueryComplexity.DegreeMethod.blockDiag_apply, ite_eq_right (fun h => hc' h.symm),
         zero_mul]
   · intro h
     exact absurd (Finset.mem_univ c) h
@@ -1266,7 +1270,7 @@ private theorem qls_diff_parseval_joint {D M : ℕ} (eig : Fin D → ℝ)
     have z0 : ¬((0 : Fin 3) = 1 ∨ (0 : Fin 3) = 2) := by decide
     have z1 : ((1 : Fin 3) = 1 ∨ (1 : Fin 3) = 2) := by decide
     have z2 : ((2 : Fin 3) = 1 ∨ (2 : Fin 3) = 2) := by decide
-    simp [z0, z1, z2]
+    simp
   have hz : (∑ z : Fin M, ‖sinEnvelopeKernel M (eig i) z‖^2 *
         ∑ s : Fin 3, (if s = 1 ∨ s = 2 then (1:ℝ) else 0) *
           ‖sinEnvelopeHVector d (sinEnvelopeDecode M z) s -
@@ -1348,16 +1352,16 @@ private theorem qls_flag_diag_oracleLift {D M : ℕ} (U : Operator D) :
   simp only [controlOracle, Qatlib.Concepts.BlockEncoding.LCU.select, Matrix.of_apply]
   by_cases hb : b = b'
   · subst hb
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     cases b
     · have hif : (if (false : Bool) = true then
-          TensorGate (1 : Matrix (Fin 3) (Fin 3) ℂ) U else 1) = 1 := if_neg (by decide)
+          TensorGate (1 : Matrix (Fin 3) (Fin 3) ℂ) U else 1) = 1 := ite_eq_right (by decide)
       rw [hif, Matrix.one_apply_ne (fun he => h (Prod.ext_iff.mp he).1)]
     · have hif : (if (true : Bool) = true then
           TensorGate (1 : Matrix (Fin 3) (Fin 3) ℂ) U else 1) =
-          TensorGate (1 : Matrix (Fin 3) (Fin 3) ℂ) U := if_pos rfl
+          TensorGate (1 : Matrix (Fin 3) (Fin 3) ℂ) U := ite_eq_left rfl
       rw [hif, tensorGate_apply, Matrix.one_apply_ne h, zero_mul]
-  · rw [if_neg hb]
+  · rw [ite_eq_right hb]
 
 /-- Every instruction in the phase-threshold loop preserves the three-level flag coordinate. -/
 private theorem qls_flag_diag_loop_step {D : ℕ} (M n : ℕ) (U : Operator D) :
@@ -1371,7 +1375,7 @@ private theorem qls_flag_diag_loop_step {D : ℕ} (M n : ℕ) (U : Operator D) :
     simp only [phaseThresholdLoop, List.mem_append] at hs
     rcases hs with hs | hs
     · exact ih s hs
-    · simp only [phaseThresholdBlock, List.mem_cons, List.mem_singleton, List.not_mem_nil,
+    · simp only [phaseThresholdBlock, List.mem_cons, List.not_mem_nil,
         or_false] at hs
       rcases hs with rfl | rfl | rfl
       · exact qls_flag_diag_perm n
@@ -1419,14 +1423,14 @@ private theorem qls_measureProb_flag_diag_joint {D M : ℕ}
     funext p
     rw [collapse_apply]
     by_cases hp : p ∈ sinEnvelopeJointSet D M
-    · rw [if_pos hp]
+    · rw [ite_eq_left hp]
       show (∑ p', G p p' * v p') =
           ∑ p', G p p' * Collapse v (sinEnvelopeJointSet D M) p'
       apply Finset.sum_congr rfl
       intro p' _
       by_cases hp' : p' ∈ sinEnvelopeJointSet D M
-      · rw [collapse_apply, if_pos hp']
-      · rw [collapse_apply, if_neg hp', mul_zero]
+      · rw [collapse_apply, ite_eq_left hp']
+      · rw [collapse_apply, ite_eq_right hp', mul_zero]
         have h1 : p.2.2.1 = 1 ∨ p.2.2.1 = 2 := (Finset.mem_filter.mp hp).2
         have h2 : ¬(p'.2.2.1 = 1 ∨ p'.2.2.1 = 2) :=
           fun hh => hp' (Finset.mem_filter.mpr ⟨Finset.mem_univ _, hh⟩)
@@ -1434,13 +1438,13 @@ private theorem qls_measureProb_flag_diag_joint {D M : ℕ}
           intro hh
           exact h2 (by rw [← hh]; exact h1)
         rw [hG p p' hne, zero_mul]
-    · rw [if_neg hp]
+    · rw [ite_eq_right hp]
       show (0 : ℂ) = ∑ p', G p p' * Collapse v (sinEnvelopeJointSet D M) p'
       symm
       apply Finset.sum_eq_zero
       intro p' _
       by_cases hp' : p' ∈ sinEnvelopeJointSet D M
-      · rw [collapse_apply, if_pos hp']
+      · rw [collapse_apply, ite_eq_left hp']
         have h2 : p'.2.2.1 = 1 ∨ p'.2.2.1 = 2 := (Finset.mem_filter.mp hp').2
         have h1 : ¬(p.2.2.1 = 1 ∨ p.2.2.1 = 2) :=
           fun hh => hp (Finset.mem_filter.mpr ⟨Finset.mem_univ _, hh⟩)
@@ -1448,7 +1452,7 @@ private theorem qls_measureProb_flag_diag_joint {D M : ℕ}
           intro hh
           exact h1 (by rw [hh]; exact h2)
         rw [hG p p' hne, zero_mul]
-      · rw [collapse_apply, if_neg hp', mul_zero]
+      · rw [collapse_apply, ite_eq_right hp', mul_zero]
   rw [← sum_normSq_collapse, ← sum_normSq_collapse, hcol]
   simp only [← Complex.normSq_eq_norm_sq]
   exact sum_normSq_mulVec_of_mem_unitaryGroup hGu _
@@ -1933,17 +1937,17 @@ private theorem qls_ket_prod {I : Type} [Fintype I] [DecidableEq I] (j j' : I) :
       Finset.sum_congr rfl fun i _ => by rw [qls_star_ket]]
   by_cases h : j = j'
   · subst h
-    rw [if_pos rfl, Finset.sum_eq_single j]
+    rw [ite_eq_left rfl, Finset.sum_eq_single j]
     · simp [Qatlib.Foundations.PureStateMath.Ket]
     · intro i _ hi; simp [Qatlib.Foundations.PureStateMath.Ket, hi]
     · intro hh; exact absurd (Finset.mem_univ j) hh
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     apply Finset.sum_eq_zero
     intro i _
     by_cases hi : i = j
     · subst hi
-      rw [ket_apply, if_pos rfl, ket_apply, if_neg h, mul_zero]
-    · rw [ket_apply, if_neg hi, zero_mul]
+      rw [ket_apply, ite_eq_left rfl, ket_apply, ite_eq_right h, mul_zero]
+    · rw [ket_apply, ite_eq_right hi, zero_mul]
 
 /-- A unitary matrix preserves the coordinate inner product of finite states. -/
 private theorem qls_inner_mulVec {I : Type} [Fintype I] [DecidableEq I]
@@ -1995,9 +1999,9 @@ private theorem qls_inner_mulVec {I : Type} [Fintype I] [DecidableEq I]
             ((starRingEnd ℂ) (x j) * y j) * (if j = j then (1 : ℂ) else 0) := by
           apply Finset.sum_eq_single j
           · intro k _ hk
-            rw [if_neg (Ne.symm hk), mul_zero]
+            rw [ite_eq_right (Ne.symm hk), mul_zero]
           · intro hh; exact absurd (Finset.mem_univ j) hh
-        rw [hs, if_pos rfl, mul_one]
+        rw [hs, ite_eq_left rfl, mul_one]
 
 /-- Every finite state is the sum of its coordinates times the computational basis kets. -/
 private theorem qls_ket_basis {D : ℕ} (ψ : QState (Fin D)) :
@@ -2007,7 +2011,7 @@ private theorem qls_ket_basis {D : ℕ} (ψ : QState (Fin D)) :
   rw [Finset.sum_eq_single k]
   · simp [Qatlib.Foundations.PureStateMath.Ket]
   · intro j _ hj
-    rw [ket_apply, if_neg (Ne.symm hj), mul_zero]
+    rw [ket_apply, ite_eq_right (Ne.symm hj), mul_zero]
   · intro hh; exact absurd (Finset.mem_univ k) hh
 
 /-- A finite complex sum with two independent factors splits into the product of their sums and
@@ -2182,7 +2186,7 @@ private theorem qls_ket_self {I : Type} [Fintype I] [DecidableEq I] (j : I) :
   rw [show (∑ i : I, Qatlib.Foundations.PureStateMath.Ket j i * Qatlib.Foundations.PureStateMath.Ket j i) =
       ∑ i : I, (starRingEnd ℂ) (Qatlib.Foundations.PureStateMath.Ket j i) * Qatlib.Foundations.PureStateMath.Ket j i from
     Finset.sum_congr rfl fun i _ => by rw [qls_star_ket]]
-  rw [h, if_pos rfl]
+  rw [h, ite_eq_left rfl]
 
 /-- Scaling both arguments of a complex inner-product term multiplies it by the squared norm of
 the scalar. -/
@@ -2197,7 +2201,7 @@ private theorem qls_mulVec_sum_smul {H ι : Type} [Fintype H] [DecidableEq H] [F
     (A : Matrix H H ℂ) (β : ι → ℂ) (g : ι → QState H) :
     A *ᵥ (∑ i, β i • g i) = ∑ i, β i • (A *ᵥ g i) :=
   (qls_mulVec_sum A (fun i => β i • g i)).trans
-    (Finset.sum_congr rfl fun i _ => Matrix.mulVec_smul _ _ _)
+    (Finset.sum_congr rfl fun _i _ => Matrix.mulVec_smul _ _ _)
 
 /-- Matrix action on a state is the linear combination of its columns with the state's
 coordinates. -/
@@ -2568,7 +2572,7 @@ private theorem qls_cleanOp_bound {D M : ℕ} (hM : 2 ≤ M) (eig : Fin D → �
           (continuous_hhl_oracle_unitary eig V hV)))
     exact hf.evaluate_unitary ho
   have hcalc : (21 : ℝ) / (d * (21 / (d * (M : ℝ)))) = (M : ℝ) := by
-    field_simp [hd0, hM0] <;> ring
+    field_simp [hd0, hM0]
   have hper : ∀ i : Fin D,
       ‖(Vᴴ *ᵥ (B *ᵥ v)) i‖ ^ 2 *
         (∑ z : Fin M, ‖sinEnvelopeKernel M (eig i) z‖ ^ 2 *
@@ -2999,7 +3003,6 @@ theorem quarter_scalar_overlap : leastSquaresOverlap
   have hr : A * matrixPseudoinverse A = 1 := by
     have h := congrArg (fun B : Operator 1 => B*((4:ℂ) • (1 : Operator 1)))
       (mul_matrixPseudoinverse_mul A)
-    (try dsimp only at h)
     rw [Matrix.mul_assoc (A * matrixPseudoinverse A),hi,Matrix.mul_one] at h
     exact h
   change ‖Qatlib.Concepts.BlockEncoding.Postselection.stateVector

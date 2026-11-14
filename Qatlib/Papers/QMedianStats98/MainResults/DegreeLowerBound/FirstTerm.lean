@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QMedianStats98.MainResults.DegreeLowerBound.GridMarkov
-import Qatlib.Papers.QMedianStats98.MainResults.DegreeLowerBound.Symmetrization
-import Mathlib.Algebra.Polynomial.Degree.Lemmas
+module
+
+public import Qatlib.Papers.QMedianStats98.MainResults.DegreeLowerBound.GridMarkov
+public import Qatlib.Papers.QMedianStats98.MainResults.DegreeLowerBound.Symmetrization
+public import Mathlib.Algebra.Polynomial.Degree.Lemmas
+
+@[expose] public section
 
 /-!
 # The first approximate-degree lower bound

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TensorNetwork.GaugeInvariance
-import Qatlib.Concepts.TensorNetwork.CanonicalMPS
+module
+
+public import Qatlib.Concepts.TensorNetwork.GaugeInvariance
+public import Qatlib.Concepts.TensorNetwork.CanonicalMPS
+
+@[expose] public section
 
 /-!
 # Tensor-network relabelling and MPS transfer identities
@@ -343,7 +347,7 @@ theorem mpsPhysLegIdx_val (n : ℕ) (i : Fin n) :
 /-- Every physical half-edge of an open-boundary MPS network is unpaired. -/
 theorem mpsPartner_physLegIdx_none (n : ℕ) (i : Fin n) :
     mpsPartner n (mpsPhysLegIdx n i) = none := by
-  rw [mpsPartner, dif_neg (by
+  rw [mpsPartner, dite_eq_right (by
     show ¬(2 * (n + 1) + (i : ℕ) < 2 * (n + 1))
     have := i.isLt
     omega)]
@@ -359,7 +363,7 @@ theorem mpsNet_dims_physLeg (n d D : ℕ)
     (A : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ) (i : Fin n) :
     (mpsNet n d D A).dims (mpsPhysLeg n d D A i).val = d := by
   show mpsDim n d D (2 * (n + 1) + (i : ℕ)) = d
-  rw [mpsDim, if_neg (by
+  rw [mpsDim, ite_eq_right (by
     show ¬(2 * (n + 1) + (i : ℕ) < 2 * (n + 1))
     have := i.isLt
     omega)]
@@ -387,7 +391,7 @@ theorem mpsEnc_physLeg (n d D : ℕ) (A : Fin n → Fin d → Matrix (Fin D) (Fi
       have := i.isLt
       omega⟩).cast (by
       show d = mpsDim n d D (2 * (n + 1) + (i : ℕ))
-      rw [mpsDim, if_neg (by
+      rw [mpsDim, ite_eq_right (by
         show ¬(2 * (n + 1) + (i : ℕ) < 2 * (n + 1))
         have := i.isLt
         omega)])).cast (mpsNet_dims_physLeg n d D A i) = x i
@@ -418,9 +422,9 @@ theorem mpsEnc_openDecode (n d D : ℕ) (A : Fin n → Fin d → Matrix (Fin D) 
       show (o.val : ℕ) - 2 * (n + 1) < n
       omega⟩)).cast (by
       show mpsDim n d D (2 * (n + 1) + ((o.val : ℕ) - 2 * (n + 1))) = d
-      rw [mpsDim, if_neg (by omega)])).cast (by
+      rw [mpsDim, ite_eq_right (by omega)])).cast (by
       show d = mpsDim n d D (o.val : ℕ)
-      rw [mpsDim, if_neg (by omega)]) = y o
+      rw [mpsDim, ite_eq_right (by omega)]) = y o
   refine Fin.ext ?_
   simp only [Fin.val_cast]
   exact congrArg (fun l => (y l).val) hleg
@@ -500,7 +504,7 @@ theorem perPhysLegIdx_val (n : ℕ) (i : Fin n) :
 /-- Every physical half-edge of a periodic MPS network is unpaired. -/
 theorem perPartner_perPhysLegIdx_none (n : ℕ) (i : Fin n) :
     perPartner n (perPhysLegIdx n i) = none := by
-  rw [perPartner, dif_neg (by
+  rw [perPartner, dite_eq_right (by
     show ¬(2 * n + (i : ℕ) < 2 * n)
     have := i.isLt
     omega)]
@@ -516,7 +520,7 @@ theorem perNet_dims_physLeg (n d D : ℕ)
     (A : Fin n → Fin d → Matrix (Fin D) (Fin D) ℂ) (i : Fin n) :
     (perNet n d D A).dims (perPhysLeg n d D A i).val = d := by
   show perDim n d D (2 * n + (i : ℕ)) = d
-  rw [perDim, if_neg (by
+  rw [perDim, ite_eq_right (by
     show ¬(2 * n + (i : ℕ) < 2 * n)
     have := i.isLt
     omega)]
@@ -544,7 +548,7 @@ theorem perEnc_physLeg (n d D : ℕ) [NeZero D]
       have := i.isLt
       omega⟩).cast (by
       show d = perDim n d D (2 * n + (i : ℕ))
-      rw [perDim, if_neg (by
+      rw [perDim, ite_eq_right (by
         show ¬(2 * n + (i : ℕ) < 2 * n)
         have := i.isLt
         omega)])).cast (perNet_dims_physLeg n d D A i) = x i
@@ -576,9 +580,9 @@ theorem perEnc_perOpenDecode (n d D : ℕ) [NeZero D]
       show (o.val : ℕ) - 2 * n < n
       omega⟩)).cast (by
       show perDim n d D (2 * n + ((o.val : ℕ) - 2 * n)) = d
-      rw [perDim, if_neg (by omega)])).cast (by
+      rw [perDim, ite_eq_right (by omega)])).cast (by
       show d = perDim n d D (o.val : ℕ)
-      rw [perDim, if_neg (by omega)]) = y o
+      rw [perDim, ite_eq_right (by omega)]) = y o
   refine Fin.ext ?_
   simp only [Fin.val_cast]
   exact congrArg (fun l => (y l).val) hleg
@@ -760,7 +764,7 @@ theorem snocPath_castSucc {ι : Type} {n : ℕ} (w : Fin n → ι) (b : ι) (j :
   have hval : ((Fin.castSucc j : Fin (n + 1)) : ℕ) = (j : ℕ) := Fin.val_castSucc j
   have hlt : ((Fin.castSucc j : Fin (n + 1)) : ℕ) < n := by omega
   simp only [snocPath]
-  rw [dif_pos hlt]
+  rw [dite_eq_left hlt]
   exact congrArg w (Fin.ext hval)
 
 /-- The successor of an embedded old index in an extended path reads the corresponding successor
@@ -772,7 +776,7 @@ theorem snocPath_succ_castSucc {ι : Type} {n : ℕ} (w : Fin (n + 1) → ι) (b
     simp only [Fin.val_succ, Fin.val_castSucc]
   have hlt : ((Fin.succ (Fin.castSucc i) : Fin (n + 2)) : ℕ) < n + 1 := by omega
   simp only [snocPath]
-  rw [dif_pos hlt]
+  rw [dite_eq_left hlt]
   exact congrArg w (Fin.ext (by simp only [Fin.val_succ, Fin.val_castSucc]))
 
 /-- The successor of the old final index in an extended path reads the appended endpoint. -/
@@ -782,7 +786,7 @@ theorem snocPath_succ_last {ι : Type} {n : ℕ} (w : Fin (n + 1) → ι) (b : �
     simp only [Fin.val_succ, Fin.val_last]
     omega
   simp only [snocPath]
-  rw [dif_neg hnge]
+  rw [dite_eq_right hnge]
 
 /-- At a successor index still inside the original path, `snocPath` reads the corresponding
 original entry. -/
@@ -792,7 +796,7 @@ theorem snocPath_succ_of_lt {ι : Type} {n : ℕ} (w : Fin n → ι) (b : ι) (i
   have hval : ((Fin.succ i : Fin (n + 1)) : ℕ) = (i : ℕ) + 1 := Fin.val_succ i
   have hlt : ((Fin.succ i : Fin (n + 1)) : ℕ) < n := by omega
   simp only [snocPath]
-  rw [dif_pos hlt]
+  rw [dite_eq_left hlt]
   exact congrArg w (Fin.ext hval)
 
 /-- The last entry of a path extended by `snocPath` is the appended endpoint. -/
@@ -802,7 +806,7 @@ theorem snocPath_last {ι : Type} {n : ℕ} (w : Fin n → ι) (b : ι) :
     simp only [Fin.val_last]
     omega
   simp only [snocPath]
-  rw [dif_neg hnge]
+  rw [dite_eq_right hnge]
 
 /-- For a nonempty original path, appending an endpoint preserves its initial entry. -/
 theorem snocPath_zero {ι : Type} {n : ℕ} [NeZero n] (w : Fin n → ι) (b : ι) :
@@ -811,7 +815,7 @@ theorem snocPath_zero {ι : Type} {n : ℕ} [NeZero n] (w : Fin n → ι) (b : �
   have hval : ((0 : Fin (n + 1)) : ℕ) = 0 := by simp
   have hlt : ((0 : Fin (n + 1)) : ℕ) < n := by rw [hval]; exact hn
   simp only [snocPath]
-  rw [dif_pos hlt]
+  rw [dite_eq_left hlt]
   exact congrArg w (Fin.ext (hval.trans (Nat.zero_mod n).symm))
 
 /-- The ordered product of the first `m` matrices of a sequence, starting with the identity at
@@ -862,7 +866,7 @@ theorem sum_subtype_dite {κ : Type} [Fintype κ] [DecidableEq κ]
   have h1 : ∑ w : {w : κ // q w}, F w
       = ∑ w : {w : κ // q w},
           dite (q w.1) (fun h => F ⟨w.1, h⟩) (fun _ => 0) :=
-    Finset.sum_congr rfl fun w _ => by rw [dif_pos w.2]
+    Finset.sum_congr rfl fun w _ => by rw [dite_eq_left w.2]
   have h2 : ∑ w : {w : κ // q w},
         dite (q w.1) (fun h => F ⟨w.1, h⟩) (fun _ => 0)
       = ∑ w ∈ Finset.univ.filter q,
@@ -873,8 +877,8 @@ theorem sum_subtype_dite {κ : Type} [Fintype κ] [DecidableEq κ]
   rw [h1, h2, Finset.sum_filter]
   refine Finset.sum_congr rfl fun w _ => ?_
   by_cases hw : q w
-  · rw [if_pos hw, dif_pos hw]
-  · rw [if_neg hw, dif_neg hw]
+  · rw [ite_eq_left hw, dite_eq_left hw]
+  · rw [ite_eq_right hw, dite_eq_right hw]
 
 /-- Two finite complex sums may be interchanged. -/
 theorem sum_swap_fintype {ι κ : Type} [Fintype ι] [Fintype κ] (F : ι → κ → ℂ) :
@@ -902,11 +906,11 @@ theorem sum_fiber_subtype {ι κ : Type} [Fintype ι] [Fintype κ] [DecidableEq 
           = ite (g w = c) (F c ⟨w, hw⟩) 0 := by
         intro c
         by_cases hc : g w = c
-        · rw [dif_pos ⟨hw, hc⟩, if_pos hc]
-        · rw [dif_neg (fun h => hc h.2), if_neg hc]
-      rw [dif_pos hw, Finset.sum_congr rfl (fun c _ => hrw c), Finset.sum_ite_eq]
+        · rw [dite_eq_left ⟨hw, hc⟩, ite_eq_left hc]
+        · rw [dite_eq_right (fun h => hc h.2), ite_eq_right hc]
+      rw [dite_eq_left hw, Finset.sum_congr rfl (fun c _ => hrw c), Finset.sum_ite_eq]
       simp
-    · rw [dif_neg hw, Finset.sum_eq_zero (M := ℂ) fun c _ => dif_neg (fun h => hw h.1)]
+    · rw [dite_eq_right hw, Finset.sum_eq_zero (M := ℂ) fun c _ => dite_eq_right (fun h => hw h.1)]
   simp only [e1]
   rw [sum_swap_fintype (F := fun (c : ι) (w : κ) =>
     dite (P w ∧ g w = c) (fun h => F c ⟨w, h.1⟩) (fun _ => 0))]
@@ -935,7 +939,7 @@ theorem chainProd_apply_eq_pathSum {ι : Type} [Fintype ι] [DecidableEq ι] :
     intro M a b
     show (if a = b then (1 : ℂ) else 0) = _
     rcases eq_or_ne a b with hab | hab
-    · rw [if_pos hab]
+    · rw [ite_eq_left hab]
       let w0 : {w : Fin (0 + 1) → ι // w 0 = a ∧ w (Fin.last 0) = b} :=
         ⟨fun _ => a, by simp [hab]⟩
       have hval : (∏ i : Fin 0, M (i : ℕ)
@@ -946,7 +950,7 @@ theorem chainProd_apply_eq_pathSum {ι : Type} [Fintype ι] [DecidableEq ι] :
       have hj : j = 0 := by omega
       rw [hj]
       exact hw0
-    · rw [if_neg hab]
+    · rw [ite_eq_right hab]
       refine Eq.symm (Finset.sum_eq_zero (M := ℂ) fun w _ => ?_)
       exact absurd (w.2.1.symm.trans w.2.2) hab
   | succ m ih =>
@@ -1095,7 +1099,7 @@ theorem periodicMpsAmplitude_eq_trace {n d D : ℕ} [NeZero n] [NeZero D]
             simp only [Fin.val_succ]
             omega
           simp only [snocPath]
-          rw [dif_neg hnge]
+          rw [dite_eq_right hnge]
           have hi : (i : ℕ) = n - 1 := by have := i.isLt; omega
           rw [hi]
           have hz : (n - 1 + 1) % n = 0 := by
@@ -1305,7 +1309,7 @@ theorem chainProd_trace_eq_ringSum {n : ℕ} [NeZero n] {ι : Type} [Fintype ι]
             simp only [Fin.val_succ]
             omega
           simp only [snocPath]
-          rw [dif_neg hnge]
+          rw [dite_eq_right hnge]
           have hi : (i : ℕ) = n - 1 := by have := i.isLt; omega
           rw [hi]
           have hz : (n - 1 + 1) % n = 0 := by
@@ -1479,7 +1483,7 @@ theorem perObsTensor_self {n d D : ℕ}
     (O : Matrix (Fin d) (Fin d) ℂ) :
     perObsTensor A z O z = Matrix.of fun u l r => ∑ y : Fin d, O u y * A z y l r := by
   show (if z = z then Matrix.of fun u l r => ∑ y : Fin d, O u y * A z y l r else A z) = _
-  rw [if_pos rfl]
+  rw [ite_eq_left rfl]
 
 /-- The tensor family `perObsTensor` agrees with `A` away from the selected site. -/
 theorem perObsTensor_of_ne {n d D : ℕ}
@@ -1487,7 +1491,7 @@ theorem perObsTensor_of_ne {n d D : ℕ}
     (O : Matrix (Fin d) (Fin d) ℂ) {i : Fin n} (hi : i ≠ z) :
     perObsTensor A z O i = A i := by
   show (if i = z then Matrix.of fun u l r => ∑ y : Fin d, O u y * A i y l r else A i) = _
-  rw [if_neg hi]
+  rw [ite_eq_right hi]
 
 /-- Applying a single-site operator in the amplitude sum equals evaluating the periodic
 amplitude with the corresponding modified tensor. -/
@@ -1565,13 +1569,13 @@ theorem perObsExpectation_eq_trace {n d D : ℕ} [NeZero n] [NeZero D]
         (A ⟨k % n, Nat.mod_lt k (NeZero.pos n)⟩)
       = (if (k % n) = (z : ℕ) then perEO O (A z)
           else perE (A ⟨k % n, Nat.mod_lt k (NeZero.pos n)⟩))
-    rw [if_pos hz, hke, perObsTensor_self]
+    rw [ite_eq_left hz, hke, perObsTensor_self]
     rfl
   · show perED (perObsTensor A z O ⟨k % n, Nat.mod_lt k (NeZero.pos n)⟩)
         (A ⟨k % n, Nat.mod_lt k (NeZero.pos n)⟩)
       = (if (k % n) = (z : ℕ) then perEO O (A z)
           else perE (A ⟨k % n, Nat.mod_lt k (NeZero.pos n)⟩))
-    rw [if_neg hz, perObsTensor_of_ne A z O
+    rw [ite_eq_right hz, perObsTensor_of_ne A z O
       (fun h => hz (congrArg (fun i : Fin n => (i : ℕ)) h))]
     exact congrArg₂ perED rfl rfl
 
@@ -1594,8 +1598,8 @@ theorem pepsPartner_of_phys (a b : ℕ) {j : Fin (pepsNh a b)}
     pepsPartner a b j = none := by
   unfold pepsPartner
   by_cases hz : a = 0 ∨ b = 0
-  · rw [dif_pos hz]
-  · rw [dif_neg hz, dif_pos hreg, dif_pos hmod]
+  · rw [dite_eq_left hz]
+  · rw [dite_eq_right hz, dite_eq_left hreg, dite_eq_left hmod]
 
 /-- The open physical leg of a vertex in the rectangular PEPS network. -/
 noncomputable def pepsPhysLeg (a b d D : ℕ) [NeZero D]
@@ -1625,7 +1629,7 @@ theorem pepsNet_dims_internal (a b d D : ℕ) [NeZero D]
     have hn : (pepsNet a b d D T).partner i.val = none := by
       show pepsPartner a b i.val = none
       unfold pepsPartner
-      rw [dif_pos hz]
+      rw [dite_eq_left hz]
     rw [hn] at hk
     exact absurd hk (by simp)
   · by_cases hreg : (i.val : ℕ) < 5 * a * b
@@ -1635,8 +1639,8 @@ theorem pepsNet_dims_internal (a b d D : ℕ) [NeZero D]
           pepsPartner_of_phys a b hreg hmod
         rw [hn] at hk
         exact absurd hk (by simp)
-      · rw [pepsDim, if_neg (fun hc => hmod hc.2)]
-    · rw [pepsDim, if_neg (fun hc => absurd hc.1 hreg)]
+      · rw [pepsDim, ite_eq_right (fun hc => hmod hc.2)]
+    · rw [pepsDim, ite_eq_right (fun hc => absurd hc.1 hreg)]
 
 /-- The assignment of the zero bond index to an internal edge of the PEPS network, with its
 dimension cast appropriately. -/
@@ -1692,8 +1696,8 @@ theorem pepsTensor_congr_ports (a b d D : ℕ) [NeZero D]
   congr 1
   · exact congrArg _ hphys
   · by_cases h1 : (v : ℕ) / b = 0
-    · rw [dif_pos h1, dif_pos h1]
-    · rw [dif_neg h1, dif_neg h1]
+    · rw [dite_eq_left h1, dite_eq_left h1]
+    · rw [dite_eq_right h1, dite_eq_right h1]
       refine congrArg _ (hbond ⟨⟨5 * (v : ℕ) + 1,
           pepsLeg_lt_nh a b (v : ℕ) 1 v.isLt (by omega)⟩,
           pepsSite_leg a b v 1 (by omega)⟩ ?_)
@@ -1701,8 +1705,8 @@ theorem pepsTensor_congr_ports (a b d D : ℕ) [NeZero D]
       rw [Nat.mul_one] at hle
       simp [pepsPartner_left_bond a b (v : ℕ) ha hb (by omega) v.isLt]
   · by_cases h2 : (v : ℕ) / b + 1 = a
-    · rw [if_pos h2, if_pos h2]
-    · rw [if_neg h2, if_neg h2]
+    · rw [ite_eq_left h2, ite_eq_left h2]
+    · rw [ite_eq_right h2, ite_eq_right h2]
       refine congrArg _ (hbond ⟨⟨5 * (v : ℕ) + 2,
           pepsLeg_lt_nh a b (v : ℕ) 2 v.isLt (by omega)⟩,
           pepsSite_leg a b v 2 (by omega)⟩ ?_)
@@ -1716,15 +1720,15 @@ theorem pepsTensor_congr_ports (a b d D : ℕ) [NeZero D]
       have hexp : b * ((v : ℕ) / b + 1) = b * ((v : ℕ) / b) + b := by ring
       simp [pepsPartner_right_bond a b (v : ℕ) ha hb (by omega) ]
   · by_cases h3 : (v : ℕ) % b + 1 = b
-    · rw [if_pos h3, if_pos h3]
-    · rw [if_neg h3, if_neg h3]
+    · rw [ite_eq_left h3, ite_eq_left h3]
+    · rw [ite_eq_right h3, ite_eq_right h3]
       refine congrArg _ (hbond ⟨⟨5 * (v : ℕ) + 3,
           pepsLeg_lt_nh a b (v : ℕ) 3 v.isLt (by omega)⟩,
           pepsSite_leg a b v 3 (by omega)⟩ ?_)
       simp [pepsPartner_down_bond a b (v : ℕ) ha hb (by omega) v.isLt]
   · by_cases h4 : (v : ℕ) % b = 0
-    · rw [dif_pos h4, dif_pos h4]
-    · rw [dif_neg h4, dif_neg h4]
+    · rw [dite_eq_left h4, dite_eq_left h4]
+    · rw [dite_eq_right h4, dite_eq_right h4]
       refine congrArg _ (hbond ⟨⟨5 * (v : ℕ) + 4,
           pepsLeg_lt_nh a b (v : ℕ) 4 v.isLt (by omega)⟩,
           pepsSite_leg a b v 4 (by omega)⟩ ?_)
@@ -1870,7 +1874,7 @@ theorem netContract_pepsNet_eval (a b d D : ℕ) [NeZero D]
     have hnh : (pepsNet a b d D T).nh = 0 := pepsNh_of_zero hz
     have hnc : netContract (pepsNet a b d D T) y = 1 :=
       netContract_of_empty_net hnv hnh y
-    haveI hempty : IsEmpty (Fin a × Fin b) := ⟨fun p =>
+    have hempty : IsEmpty (Fin a × Fin b) := ⟨fun p =>
       match hz with
       | Or.inl h => absurd p.1.isLt (by omega)
       | Or.inr h => absurd p.2.isLt (by omega)⟩
@@ -1914,8 +1918,8 @@ theorem pepsPhysMap_val (a b : ℕ) (σ : Fin (a * b) ≃ Fin (a * b)) (j : Fin 
             Nat.div_lt_of_lt_mul (by rw [← Nat.mul_assoc]; exact h.1)⟩ : Fin (a * b)) : ℕ)
         else (j : ℕ) := by
   by_cases h : (j : ℕ) < 5 * a * b ∧ (j : ℕ) % 5 = 0
-  · simp only [pepsPhysMap, dif_pos h]
-  · simp only [pepsPhysMap, dif_neg h]
+  · simp only [pepsPhysMap, dite_eq_left h]
+  · simp only [pepsPhysMap, dite_eq_right h]
 
 /-- On a physical half-edge, `pepsPhysMap` acts by applying the vertex permutation. -/
 theorem pepsPhysMap_phys (a b : ℕ) (σ : Fin (a * b) ≃ Fin (a * b)) (v : Fin (a * b)) :
@@ -1934,7 +1938,7 @@ theorem pepsPhysMap_phys (a b : ℕ) (σ : Fin (a * b) ≃ Fin (a * b)) (v : Fin
       Nat.div_lt_of_lt_mul (by rw [← Nat.mul_assoc]; exact h.1)⟩ : Fin (a * b)) : ℕ)
       = ((σ v : Fin (a * b)) : ℕ) :=
     congrArg (fun w : Fin (a * b) => (σ w : ℕ)) hw
-  simp only [pepsPhysMap, dif_pos h]
+  simp only [pepsPhysMap, dite_eq_left h]
   refine Fin.ext ?_
   show 5 * ((σ ⟨(pepsPhysLegIdx a b v : ℕ) / 5,
       Nat.div_lt_of_lt_mul (by rw [← Nat.mul_assoc]; exact h.1)⟩ : Fin (a * b)) : ℕ)
@@ -1945,7 +1949,7 @@ theorem pepsPhysMap_phys (a b : ℕ) (σ : Fin (a * b) ≃ Fin (a * b)) (v : Fin
 theorem pepsPhysMap_nonphys (a b : ℕ) (σ : Fin (a * b) ≃ Fin (a * b))
     (j : Fin (pepsNh a b)) (h : ¬((j : ℕ) < 5 * a * b ∧ (j : ℕ) % 5 = 0)) :
     pepsPhysMap a b σ j = j := by
-  simp only [pepsPhysMap, dif_neg h]
+  simp only [pepsPhysMap, dite_eq_right h]
 
 /-- The half-edge equivalence induced by permuting the physical vertices of a PEPS network. -/
 def pepsPhysLegPerm (a b : ℕ) (ρ : Fin (a * b) ≃ Fin (a * b)) :
@@ -2025,12 +2029,12 @@ noncomputable def pepsOpenCombine (a b d D : ℕ) [NeZero D]
           Nat.div_lt_of_lt_mul (by rw [← Nat.mul_assoc]; exact h.1)⟩).2).cast
         (by
           show d = pepsDim a b d D (o.val : ℕ)
-          rw [pepsDim, if_pos h])
+          rw [pepsDim, ite_eq_left h])
     else
       (p.2 ⟨o.val, o.property, h⟩).cast
         (by
           show D = pepsDim a b d D (o.val : ℕ)
-          rw [pepsDim, if_neg h])
+          rw [pepsDim, ite_eq_right h])
 
 /-- Decoding a PEPS assignment reads the index on each vertex's physical leg. -/
 theorem pepsOpenDecode_site (a b d D : ℕ) [NeZero D]
@@ -2057,7 +2061,7 @@ theorem pepsOpenCombine_factor (a b d D : ℕ) [NeZero D]
     pepsOpenCombine a b d D T (pepsOpenDecode a b d D T y, pepsBoundaryRead a b d D T y) = y := by
   funext o
   by_cases h : (o.val : ℕ) < 5 * a * b ∧ (o.val : ℕ) % 5 = 0
-  · simp only [pepsOpenCombine, dif_pos h]
+  · simp only [pepsOpenCombine, dite_eq_left h]
     refine Fin.ext ?_
     simp only [Fin.val_cast]
     rw [pepsOpenDecode_site a b d D T y ⟨(o.val : ℕ) / 5,
@@ -2070,7 +2074,7 @@ theorem pepsOpenCombine_factor (a b d D : ℕ) [NeZero D]
       have hm := h.2
       omega
     exact congrArg (fun l : OpenLeg (pepsNet a b d D T) => (y l).val) hleg
-  · simp only [pepsOpenCombine, dif_neg h]
+  · simp only [pepsOpenCombine, dite_eq_right h]
     refine Fin.ext ?_
     simp only [Fin.val_cast, pepsBoundaryRead]
     rfl
@@ -2094,7 +2098,7 @@ theorem pepsOpenDecode_combine (a b d D : ℕ) [NeZero D]
         ∧ ((5 : ℕ) * ((i : ℕ) * b + (c : ℕ))) % 5 = 0
       exact ⟨pepsLeg_lt a b ((i : ℕ) * b + (c : ℕ)) 0
         (peps_ib_lt a b (i : ℕ) (c : ℕ) i.isLt c.isLt) (by omega), Nat.mul_mod_right 5 _⟩
-    simp only [pepsOpenCombine, dif_pos hphys, Fin.val_cast]
+    simp only [pepsOpenCombine, dite_eq_left hphys, Fin.val_cast]
     have hv : (⟨((pepsPhysLeg a b d D T ⟨(i : ℕ) * b + (c : ℕ),
             peps_ib_lt a b (i : ℕ) (c : ℕ) i.isLt c.isLt⟩).val : ℕ) / 5,
           Nat.div_lt_of_lt_mul (by rw [← Nat.mul_assoc]; exact hphys.1)⟩ : Fin (a * b))
@@ -2114,7 +2118,6 @@ theorem pepsOpenDecode_combine (a b d D : ℕ) [NeZero D]
       omega
     refine Eq.trans
       (congrArg (fun u : Fin (a * b) => (p.1 (pepsP a b u).1 (pepsP a b u).2).val) hv) ?_
-    (try simp only [])
     rw [peps_site_idx_coord a b hb i c]
   · funext i c
     exfalso
@@ -2133,7 +2136,7 @@ theorem pepsBoundaryRead_combine (a b d D : ℕ) [NeZero D]
     pepsBoundaryRead a b d D T (pepsOpenCombine a b d D T p) = p.2 := by
   funext o
   refine Fin.ext ?_
-  simp only [Fin.val_cast, pepsBoundaryRead, pepsOpenCombine, dif_neg o.property.2]
+  simp only [Fin.val_cast, pepsBoundaryRead, pepsOpenCombine, dite_eq_right o.property.2]
   rfl
 
 /-- The equivalence factoring PEPS open assignments into physical configurations and boundary
@@ -2519,7 +2522,7 @@ theorem siteObsW_cons_self {n d : ℕ} (z : Fin n) (O : Matrix (Fin d) (Fin d) �
       match siteObsW rest z with
       | none => some O
       | some W₀ => some (rowScaleBy O W₀) else siteObsW rest z) = _
-  rw [if_pos rfl]
+  rw [ite_eq_left rfl]
 
 /-- Prepending an operator at a different site leaves the effective matrix at `w` unchanged. -/
 theorem siteObsW_cons_of_ne {n d : ℕ} (z : Fin n) (O : Matrix (Fin d) (Fin d) ℂ)
@@ -2529,7 +2532,7 @@ theorem siteObsW_cons_of_ne {n d : ℕ} (z : Fin n) (O : Matrix (Fin d) (Fin d) 
       match siteObsW rest w with
       | none => some O
       | some W₀ => some (rowScaleBy O W₀) else siteObsW rest w) = _
-  rw [if_neg (Ne.symm hw)]
+  rw [ite_eq_right (Ne.symm hw)]
 
 /-- A singleton operator list has its given matrix as the effective matrix at its site. -/
 theorem siteObsW_single {n d : ℕ} (z : Fin n) (O : Matrix (Fin d) (Fin d) ℂ) :
@@ -2560,12 +2563,12 @@ theorem obsMix_one {d D : ℕ} (M : Fin d → Matrix (Fin D) (Fin D) ℂ) :
       = if u = y then M u l r else 0 := by
     intro y
     by_cases hy : u = y
-    · rw [if_pos hy]
+    · rw [ite_eq_left hy]
       have h1 : (1 : Matrix (Fin d) (Fin d) ℂ) u y = 1 := by
         rw [hy]
         exact Matrix.one_apply_eq y
       rw [h1, one_mul, hy]
-    · rw [if_neg hy]
+    · rw [ite_eq_right hy]
       have h0 : (1 : Matrix (Fin d) (Fin d) ℂ) u y = 0 := Matrix.one_apply_ne hy
       rw [h0, zero_mul]
   show (∑ y : Fin d, (1 : Matrix (Fin d) (Fin d) ℂ) u y * M y l r) = M u l r
@@ -2763,12 +2766,12 @@ theorem perObsExpectation_eq_trace_of_chained {n d D : ℕ} [NeZero n] [NeZero D
         (A ⟨k % n, Nat.mod_lt k (NeZero.pos n)⟩)
       = (if (k % n) = (z : ℕ) then perEO O (A z)
           else perE (A ⟨k % n, Nat.mod_lt k (NeZero.pos n)⟩))
-    rw [if_pos hz, hke, perObsTensor_self_eq_obsMix, perED_obsMix_eq_perEO]
+    rw [ite_eq_left hz, hke, perObsTensor_self_eq_obsMix, perED_obsMix_eq_perEO]
   · show perED (perObsTensor A z O ⟨k % n, Nat.mod_lt k (NeZero.pos n)⟩)
         (A ⟨k % n, Nat.mod_lt k (NeZero.pos n)⟩)
       = (if (k % n) = (z : ℕ) then perEO O (A z)
           else perE (A ⟨k % n, Nat.mod_lt k (NeZero.pos n)⟩))
-    rw [if_neg hz, perObsTensor_of_ne A z O
+    rw [ite_eq_right hz, perObsTensor_of_ne A z O
       (fun h => hz (congrArg (fun i : Fin n => (i : ℕ)) h))]
     exact perED_self _
 
@@ -2868,21 +2871,21 @@ theorem netBondDimension_pepsNet_eq (a b d D : ℕ) [NeZero D]
     (T : Fin a → Fin b → Fin d → Fin D → Fin D → Fin D → Fin D → ℂ) :
     netBondDimension (pepsNet a b d D T) = if a = 0 ∨ b = 0 then 0 else D := by
   by_cases hz : a = 0 ∨ b = 0
-  · rw [if_pos hz]
+  · rw [ite_eq_left hz]
     have hempty : IsEmpty (InternalEdge (pepsNet a b d D T)) := by
       refine ⟨fun i => ?_⟩
       obtain ⟨j, ⟨k, hk, -⟩⟩ := i
       have hnone : (pepsNet a b d D T).partner j = none := by
         show pepsPartner a b j = none
         simp only [pepsPartner]
-        rw [dif_pos hz]
+        rw [dite_eq_left hz]
       rw [hnone] at hk
       simp at hk
     have huniv : (Finset.univ : Finset (InternalEdge (pepsNet a b d D T))) = ∅ := by
       simp
     rw [netBondDimension, huniv, Finset.sup_empty]
     rfl
-  · rw [if_neg hz]
+  · rw [ite_eq_right hz]
     have ha : 0 < a := Nat.pos_of_ne_zero (fun h => hz (Or.inl h))
     have hb : 0 < b := Nat.pos_of_ne_zero (fun h => hz (Or.inr h))
     have hnh := pepsNh_of_pos ha hb
@@ -2901,7 +2904,7 @@ theorem netBondDimension_pepsNet_eq (a b d D : ℕ) [NeZero D]
     have hdims : (pepsNet a b d D T).dims
         (⟨5 * a * b, hb1⟩ : Fin (pepsNet a b d D T).nh) = D := by
       show pepsDim a b d D (5 * a * b) = D
-      rw [pepsDim, if_neg (fun h => Nat.lt_irrefl _ h.1)]
+      rw [pepsDim, ite_eq_right (fun h => Nat.lt_irrefl _ h.1)]
     refine le_antisymm (Finset.sup_le fun i _ => (pepsNet_dims_internal a b d D T i).le) ?_
     calc D = (pepsNet a b d D T).dims
           (⟨5 * a * b, hb1⟩ : Fin (pepsNet a b d D T).nh) := hdims.symm
@@ -3056,9 +3059,9 @@ theorem cutMatrix_apply_digits {d : ℕ} [NeZero d] {n : ℕ}
   rw [cutMatrix_apply]
   refine congrArg ψ (funext fun k => ?_)
   by_cases h : (k : ℕ) < c
-  · simp only [dif_pos h]
+  · simp only [dite_eq_left h]
     exact finPowEnc_symm_apply i ⟨(k : ℕ), h⟩
-  · simp only [dif_neg h]
+  · simp only [dite_eq_right h]
     exact finPowEnc_symm_apply j ⟨(k : ℕ) - c, by omega⟩
 
 /-- The cut matrix of a product amplitude is the outer product of its left and right
@@ -3083,7 +3086,7 @@ theorem cutMatrix_prod_eq_vecMulVec {n d : ℕ} (g : Fin n → Fin d → ℂ) (c
         ⟨(k : ℕ), by omega⟩
       = g ⟨(k : ℕ), by omega⟩ ((finPowEnc d c).symm i k) := by
     intro k
-    simp only [dif_pos k.isLt]
+    simp only [dite_eq_left k.isLt]
   have hR : ∀ m : Fin (n - c),
       (fun k : Fin n =>
           g k (if h : (k : ℕ) < c then (finPowEnc d c).symm i ⟨(k : ℕ), h⟩
@@ -3092,7 +3095,7 @@ theorem cutMatrix_prod_eq_vecMulVec {n d : ℕ} (g : Fin n → Fin d → ℂ) (c
       = g ⟨c + (m : ℕ), by omega⟩ ((finPowEnc d (n - c)).symm j m) := by
     intro m
     have hnl : ¬((c + (m : ℕ) : ℕ) < c) := by omega
-    simp only [dif_neg hnl]
+    simp only [dite_eq_right hnl]
     have hidx : (⟨(c + (m : ℕ)) - c, by omega⟩ : Fin (n - c)) = m :=
       Fin.ext (by show c + (m : ℕ) - c = (m : ℕ); omega)
     rw [hidx]
@@ -3336,10 +3339,10 @@ theorem sum_two_support {n : ℕ} {M : Type*} [AddCommMonoid M] (z o : Fin n →
       f x = (if x = z then f z else 0) + (if x = o then f o else 0) := by
     intro x
     by_cases hxz : x = z
-    · rw [hxz, if_pos rfl, if_neg hzo, add_zero]
+    · rw [hxz, ite_eq_left rfl, ite_eq_right hzo, add_zero]
     · by_cases hxo : x = o
-      · rw [hxo, if_neg (fun he => hxz (hxo.trans he)), if_pos rfl, zero_add]
-      · rw [if_neg hxz, if_neg hxo, hf x hxz hxo]
+      · rw [hxo, ite_eq_right (fun he => hxz (hxo.trans he)), ite_eq_left rfl, zero_add]
+      · rw [ite_eq_right hxz, ite_eq_right hxo, hf x hxz hxo]
         simp
   rw [Finset.sum_congr rfl (fun x _ => hsplit x), Finset.sum_add_distrib,
     Finset.sum_ite_eq' Finset.univ z (fun _ => f z),
@@ -3371,7 +3374,6 @@ theorem twoValue_prod_normSq_ge_half {n : ℕ} (hn : 2 ≤ n) {c : ℂ}
       sum_two_support (fun _ => 0) (fun _ => 1) hzo
         (fun x => conj (ψ x) * ∏ k, w k (x k))
         (fun x hx0 hx1 => by
-          (try simp only [])
           rw [hrest x hx0 hx1]
           simp)
     rw [key, hz, ho, hφz, hφo]
@@ -3382,7 +3384,6 @@ theorem twoValue_prod_normSq_ge_half {n : ℕ} (hn : 2 ≤ n) {c : ℂ}
       sum_two_support (fun _ => 0) (fun _ => 1) hzo
         (fun x => Complex.normSq (ψ x))
         (fun x hx0 hx1 => by
-          (try simp only [])
           rw [hrest x hx0 hx1]
           simp)
     rw [key, hz, ho, hc]
@@ -3472,8 +3473,8 @@ private theorem ortho_family_conj {α : Type*} [Fintype α] {r : ℕ} (u : Fin r
     exact Finset.sum_congr rfl fun x _ => by rw [map_mul, Complex.conj_conj]
   rw [← hmap, hu i j]
   by_cases hij : i = j
-  · rw [if_pos hij, map_one]
-  · rw [if_neg hij, map_zero]
+  · rw [ite_eq_left hij, map_one]
+  · rw [ite_eq_right hij, map_zero]
 
 /-- The scalar product of two nonnegative finite real families is bounded by the product of
 their Euclidean norms. -/
@@ -3578,8 +3579,8 @@ theorem schmidt_family_normSq_eq {α : Type*} [Fintype α] {r : ℕ}
     intro i j
     by_cases hij : i = j
     · subst hij
-      rw [if_pos rfl, mul_one, Complex.mul_conj, Complex.ofReal_re, if_pos rfl]
-    · rw [if_neg hij, mul_zero, Complex.zero_re, if_neg hij]
+      rw [ite_eq_left rfl, mul_one, Complex.mul_conj, Complex.ofReal_re, ite_eq_left rfl]
+    · rw [ite_eq_right hij, mul_zero, Complex.zero_re, ite_eq_right hij]
   rw [Finset.sum_congr rfl (fun x _ => hexp x), Finset.sum_comm]
   rw [Finset.sum_congr rfl (fun i _ => Finset.sum_comm
       (f := fun x j => (q i * conj (q j) * (v i x * conj (v j x))).re))]
@@ -3646,7 +3647,7 @@ theorem schmidt_pair_normSq_eq {α β : Type*} [Fintype α] [Fintype β] {r : �
   have hunorm : ∀ i, ∑ x, Complex.normSq (u i x) = 1 := by
     intro i
     have h := hu i i
-    rw [if_pos rfl] at h
+    rw [ite_eq_left rfl] at h
     have hc : ((∑ x, Complex.normSq (u i x) : ℝ) : ℂ) = 1 := by
       rw [Complex.ofReal_sum,
         Finset.sum_congr rfl (fun x _ => by
@@ -3757,7 +3758,6 @@ theorem schmidt_prod_error_ge_of_top {α β : Type*} [Fintype α] [Fintype β] {
     have hsq2 : (∑ i : Fin r, ‖(∑ y, conj (v i y) * b y)‖ ^ 2)
         = ∑ i, Complex.normSq (∑ y, conj (v i y) * b y) :=
       Finset.sum_congr rfl fun i _ => Complex.sq_norm _
-    (try simp only [] at hcs)
     rw [hsq1, hsq2] at hcs
     calc ‖∑ i, conj (c i) * (∑ x, conj (u i x) * a x) * (∑ y, conj (v i y) * b y)‖
         ≤ ∑ i, ‖c j‖ * (‖(∑ x, conj (u i x) * a x)‖ * ‖(∑ y, conj (v i y) * b y)‖) :=
@@ -3818,8 +3818,8 @@ theorem schmidt_trunc_error_eq {α β : Type*} [Fintype α] [Fintype β] {r : �
           + (if i = j then c i * u i p.1 * v i p.2 else 0) := by
       intro i
       by_cases h : i = j
-      · rw [if_pos h, if_pos h, zero_mul, zero_mul, zero_add]
-      · rw [if_neg h, if_neg h, add_zero]
+      · rw [ite_eq_left h, ite_eq_left h, zero_mul, zero_mul, zero_add]
+      · rw [ite_eq_right h, ite_eq_right h, add_zero]
     rw [Finset.sum_congr rfl (fun i _ => hsplit i), Finset.sum_add_distrib,
       Finset.sum_ite_eq' Finset.univ j (fun i => c i * u i p.1 * v i p.2)]
     simp
@@ -3834,7 +3834,7 @@ theorem schmidt_trunc_error_eq {α β : Type*} [Fintype α] [Fintype β] {r : �
       · subst h
         simp
       · (try simp only [])
-        rw [if_neg h, if_neg h, add_zero]
+        rw [ite_eq_right h, ite_eq_right h, add_zero]
     rw [Finset.sum_congr rfl (fun i _ => hsplit i), Finset.sum_add_distrib,
       Finset.sum_ite_eq' Finset.univ j (fun _ => Complex.normSq (c j))]
     simp
@@ -4052,7 +4052,7 @@ theorem schmidt_orthoFeet_error_ge_of_topset {α β : Type*} [Fintype α] [Finty
   have hvnorm : ∀ i : Fin r, (∑ y, Complex.normSq (v i y) : ℝ) = 1 := by
     intro i
     have h := hv i i
-    rw [if_pos rfl] at h
+    rw [ite_eq_left rfl] at h
     have hc : ((∑ y, Complex.normSq (v i y) : ℝ) : ℂ) = 1 := by
       rw [Complex.ofReal_sum,
         Finset.sum_congr rfl (fun y _ => by
@@ -4061,7 +4061,7 @@ theorem schmidt_orthoFeet_error_ge_of_topset {α β : Type*} [Fintype α] [Finty
   have htnorm : ∀ a : Fin D, (∑ y, Complex.normSq (t a y) : ℝ) = 1 := by
     intro a
     have h := ht a a
-    rw [if_pos rfl] at h
+    rw [ite_eq_left rfl] at h
     have hc : ((∑ y, Complex.normSq (t a y) : ℝ) : ℂ) = 1 := by
       rw [Complex.ofReal_sum,
         Finset.sum_congr rfl (fun y _ => by
@@ -4136,12 +4136,12 @@ theorem schmidt_multiTrunc_error_eq {α β : Type*} [Fintype α] [Fintype β] {r
         ((if i ∈ Finset.image e Finset.univ then c i else 0) * u i p.1 * v i p.2)
           = 0 := by
       intro i hi
-      rw [if_neg (Finset.mem_compl.mp hi), zero_mul, zero_mul]
+      rw [ite_eq_right (Finset.mem_compl.mp hi), zero_mul, zero_mul]
     have hpos : ∀ i ∈ Finset.image e Finset.univ,
         ((if i ∈ Finset.image e Finset.univ then c i else 0) * u i p.1 * v i p.2)
           = c i * u i p.1 * v i p.2 := by
       intro i hi
-      rw [if_pos hi]
+      rw [ite_eq_left hi]
     rw [Finset.sum_eq_zero hzero, Finset.sum_congr rfl hpos, add_zero]
   have hzero : ∀ p : α × β,
       (∑ i, c i * u i p.1 * v i p.2)
@@ -4152,8 +4152,8 @@ theorem schmidt_multiTrunc_error_eq {α β : Type*} [Fintype α] [Fintype β] {r
     rw [hkept p, ← Finset.sum_sub_distrib]
     refine Finset.sum_congr rfl fun i _ => ?_
     by_cases hi : i ∈ Finset.image e Finset.univ
-    · rw [if_pos hi, if_pos hi, sub_self, zero_mul, zero_mul]
-    · rw [if_neg hi, if_neg hi, zero_mul, zero_mul, sub_zero]
+    · rw [ite_eq_left hi, ite_eq_left hi, sub_self, zero_mul, zero_mul]
+    · rw [ite_eq_right hi, ite_eq_right hi, zero_mul, zero_mul, sub_zero]
   rw [Finset.sum_congr rfl (fun p _ => by rw [hzero p]),
     schmidt_pair_normSq_eq
       (fun i => if i ∈ Finset.image e Finset.univ then (0 : ℂ) else c i) u v hu hv]
@@ -4180,28 +4180,28 @@ theorem mpsSite_legs {n : ℕ} (i : ℕ) (hi : i < n) {j : Fin (3 * n + 2)}
     (j : ℕ) = 2 * i ∨ (j : ℕ) = 2 * i + 3 ∨ (j : ℕ) = 2 * (n + 1) + i := by
   simp only [mpsSite] at hj
   by_cases h1 : (j : ℕ) = 1
-  · rw [if_pos h1] at hj
+  · rw [ite_eq_left h1] at hj
     have hval : n = i := congrArg Fin.val hj
     omega
-  · rw [if_neg h1] at hj
+  · rw [ite_eq_right h1] at hj
     by_cases h2 : (j : ℕ) = 2 * n
-    · rw [if_pos h2] at hj
+    · rw [ite_eq_left h2] at hj
       have hval : n + 1 = i := congrArg Fin.val hj
       omega
-    · rw [if_neg h2] at hj
+    · rw [ite_eq_right h2] at hj
       by_cases h3 : (j : ℕ) < 2 * (n + 1)
-      · rw [dif_pos h3] at hj
+      · rw [dite_eq_left h3] at hj
         by_cases h4 : (j : ℕ) % 2 = 0
-        · rw [dif_pos h4] at hj
+        · rw [dite_eq_left h4] at hj
           left
           have hval : (j : ℕ) / 2 = i := congrArg Fin.val hj
           omega
-        · rw [dif_neg h4] at hj
+        · rw [dite_eq_right h4] at hj
           right
           left
           have hval : ((j : ℕ) - 3) / 2 = i := congrArg Fin.val hj
           omega
-      · rw [dif_neg h3] at hj
+      · rw [dite_eq_right h3] at hj
         right
         right
         have hval : (j : ℕ) - (2 * (n + 1)) = i := congrArg Fin.val hj
@@ -4229,7 +4229,7 @@ theorem mpsSitePos_left_leg (n d D : ℕ) (i : ℕ) (hi : i < n) (l : Fin D) (r 
     mpsSitePos n d D i hi l r x ⟨⟨2 * i, by omega⟩, by rw [mpsSite_left n i hi]⟩
       = l.cast ((mpsDim_bond n d D (by omega : 2 * i < 2 * (n + 1))).symm) := by
   simp only [mpsSitePos]
-  rw [dif_pos trivial]
+  rw [dite_eq_left trivial]
 
 /-- The local MPS assignment reads as the supplied right bond index on the right leg. -/
 theorem mpsSitePos_right_leg (n d D : ℕ) (i : ℕ) (hi : i < n) (l : Fin D) (r : Fin D)
@@ -4237,7 +4237,7 @@ theorem mpsSitePos_right_leg (n d D : ℕ) (i : ℕ) (hi : i < n) (l : Fin D) (r
     mpsSitePos n d D i hi l r x ⟨⟨2 * i + 3, by omega⟩, by rw [mpsSite_right n i hi]⟩
       = r.cast ((mpsDim_bond n d D (by omega : 2 * i + 3 < 2 * (n + 1))).symm) := by
   simp only [mpsSitePos]
-  rw [dif_neg (by omega), dif_pos trivial]
+  rw [dite_eq_right (by omega), dite_eq_left trivial]
 
 /-- The local MPS assignment reads as the supplied physical index on the physical leg. -/
 theorem mpsSitePos_phys_leg (n d D : ℕ) (i : ℕ) (hi : i < n) (l : Fin D) (r : Fin D)
@@ -4245,7 +4245,7 @@ theorem mpsSitePos_phys_leg (n d D : ℕ) (i : ℕ) (hi : i < n) (l : Fin D) (r 
     mpsSitePos n d D i hi l r x ⟨⟨2 * (n + 1) + i, by omega⟩, by rw [mpsSite_phys n i hi]⟩
       = x.cast ((mpsDim_phys n d D i (by omega)).symm) := by
   simp only [mpsSitePos]
-  rw [dif_neg (by omega), dif_neg (by omega)]
+  rw [dite_eq_right (by omega), dite_eq_right (by omega)]
 
 /-- The equivalence between local MPS port assignments and triples of left bond, right bond, and
 physical indices. -/
@@ -4266,14 +4266,14 @@ def mpsSitePosEquiv (n d D : ℕ) (i : ℕ) (hi : i < n) :
     · have hE : h = ⟨⟨2 * i, by omega⟩, by rw [mpsSite_left n i hi]⟩ :=
         Subtype.ext (Fin.ext hL)
       simp only [mpsSitePos]
-      rw [dif_pos hL]
+      rw [dite_eq_left hL]
       apply Fin.ext
       exact (congrArg (fun h' => (a h').val) hE).symm
     · by_cases hR : h.val.val = 2 * i + 3
       · have hE : h = ⟨⟨2 * i + 3, by omega⟩, by rw [mpsSite_right n i hi]⟩ :=
           Subtype.ext (Fin.ext hR)
         simp only [mpsSitePos]
-        rw [dif_neg hL, dif_pos hR]
+        rw [dite_eq_right hL, dite_eq_left hR]
         apply Fin.ext
         exact (congrArg (fun h' => (a h').val) hE).symm
       · have he : h.val.val = 2 * (n + 1) + i := by
@@ -4281,7 +4281,7 @@ def mpsSitePosEquiv (n d D : ℕ) (i : ℕ) (hi : i < n) :
         have hE : h = ⟨⟨2 * (n + 1) + i, by omega⟩, by rw [mpsSite_phys n i hi]⟩ :=
           Subtype.ext (Fin.ext he)
         simp only [mpsSitePos]
-        rw [dif_neg hL, dif_neg hR]
+        rw [dite_eq_right hL, dite_eq_right hR]
         apply Fin.ext
         exact (congrArg (fun h' => (a h').val) hE).symm
   right_inv t := by
@@ -4300,7 +4300,7 @@ theorem mpsTensor_site_read {n d D : ℕ} (A : Fin n → Fin d → Matrix (Fin D
     (mpsNet n d D A).tensor ⟨i, by show i < n + 2; omega⟩ (mpsSitePosEquiv n d D i hi |>.symm ((l, r), x))
       = A ⟨i, hi⟩ x l r := by
   show mpsTensor n d D A ⟨i, by omega⟩ (mpsSitePos n d D i hi l r x) = _
-  rw [mpsTensor, dif_pos hi]
+  rw [mpsTensor, dite_eq_left hi]
   show A ⟨i, hi⟩
       (Fin.cast (mpsDim_phys n d D i (by omega))
         (mpsSitePos n d D i hi l r x
@@ -4352,22 +4352,22 @@ theorem mpsSite_capL_leg {n : ℕ} {j : Fin (3 * n + 2)}
   simp only [mpsSite] at hj
   by_cases h1 : (j : ℕ) = 1
   · exact h1
-  · rw [if_neg h1] at hj
+  · rw [ite_eq_right h1] at hj
     by_cases h2 : (j : ℕ) = 2 * n
-    · rw [if_pos h2] at hj
+    · rw [ite_eq_left h2] at hj
       have hval : n + 1 = n := congrArg Fin.val hj
       omega
-    · rw [if_neg h2] at hj
+    · rw [ite_eq_right h2] at hj
       by_cases h3 : (j : ℕ) < 2 * (n + 1)
-      · rw [dif_pos h3] at hj
+      · rw [dite_eq_left h3] at hj
         by_cases h4 : (j : ℕ) % 2 = 0
-        · rw [dif_pos h4] at hj
+        · rw [dite_eq_left h4] at hj
           have hval : (j : ℕ) / 2 = n := congrArg Fin.val hj
           omega
-        · rw [dif_neg h4] at hj
+        · rw [dite_eq_right h4] at hj
           have hval : ((j : ℕ) - 3) / 2 = n := congrArg Fin.val hj
           omega
-      · rw [dif_neg h3] at hj
+      · rw [dite_eq_right h3] at hj
         have hval : (j : ℕ) - (2 * (n + 1)) = n := congrArg Fin.val hj
         omega
 
@@ -4376,23 +4376,23 @@ theorem mpsSite_capR_leg {n : ℕ} {j : Fin (3 * n + 2)}
     (hj : mpsSite n j = ⟨n + 1, by omega⟩) : (j : ℕ) = 2 * n := by
   simp only [mpsSite] at hj
   by_cases h1 : (j : ℕ) = 1
-  · rw [if_pos h1] at hj
+  · rw [ite_eq_left h1] at hj
     have hval : n = n + 1 := congrArg Fin.val hj
     omega
-  · rw [if_neg h1] at hj
+  · rw [ite_eq_right h1] at hj
     by_cases h2 : (j : ℕ) = 2 * n
     · exact h2
-    · rw [if_neg h2] at hj
+    · rw [ite_eq_right h2] at hj
       by_cases h3 : (j : ℕ) < 2 * (n + 1)
-      · rw [dif_pos h3] at hj
+      · rw [dite_eq_left h3] at hj
         by_cases h4 : (j : ℕ) % 2 = 0
-        · rw [dif_pos h4] at hj
+        · rw [dite_eq_left h4] at hj
           have hval : (j : ℕ) / 2 = n + 1 := congrArg Fin.val hj
           omega
-        · rw [dif_neg h4] at hj
+        · rw [dite_eq_right h4] at hj
           have hval : ((j : ℕ) - 3) / 2 = n + 1 := congrArg Fin.val hj
           omega
-      · rw [dif_neg h3] at hj
+      · rw [dite_eq_right h3] at hj
         have hval : (j : ℕ) - (2 * (n + 1)) = n + 1 := congrArg Fin.val hj
         omega
 
@@ -4430,7 +4430,7 @@ theorem mpsCapLTensor_read {n d D : ℕ} (A : Fin n → Fin d → Matrix (Fin D)
     (mpsNet n d D A).tensor ⟨n, by show n < n + 2; omega⟩ (mpsCapLPosEquiv n d D |>.symm k)
       = if (k : ℕ) = 0 then (1 : ℂ) else 0 := by
   show mpsTensor n d D A ⟨n, by omega⟩ (mpsCapLPos n d D k) = _
-  rw [mpsTensor, dif_neg (by show ¬(n < n); omega), dif_pos (by show n = n; omega)]
+  rw [mpsTensor, dite_eq_right (by show ¬(n < n); omega), dite_eq_left (by show n = n; omega)]
   show (if (mpsCapLPos n d D k ⟨⟨1, by omega⟩, by rw [mpsSite_capL n]⟩).val = 0
       then (1 : ℂ) else 0) = if (k : ℕ) = 0 then (1 : ℂ) else 0
   have hval : (mpsCapLPos n d D k ⟨⟨1, by omega⟩, by rw [mpsSite_capL n]⟩).val = (k : ℕ) := rfl
@@ -4453,9 +4453,9 @@ theorem tensorSumNorm_mpsNet_capL {n d D : ℕ} [NeZero D]
     (fun a => ‖(mpsNet n d D A).tensor ⟨n, by show n < n + 2; omega⟩ a‖)
     (fun k => ‖if (k : ℕ) = 0 then (1 : ℂ) else 0‖) hvals]
   rw [Finset.sum_eq_single_of_mem (0 : Fin D) (Finset.mem_univ 0) ?_]
-  · rw [if_pos (by simp), norm_one]
+  · rw [ite_eq_left (by simp), norm_one]
   · intro b _ hb
-    rw [if_neg (fun h => hb (Fin.ext (h.trans (Fin.val_zero D).symm))), norm_zero]
+    rw [ite_eq_right (fun h => hb (Fin.ext (h.trans (Fin.val_zero D).symm))), norm_zero]
 
 /-- Construct a right-cap port assignment from a single bond index. -/
 def mpsCapRPos (n d D : ℕ) (k : Fin D) :
@@ -4491,7 +4491,7 @@ theorem mpsCapRTensor_read {n d D : ℕ} (A : Fin n → Fin d → Matrix (Fin D)
     (mpsNet n d D A).tensor ⟨n + 1, by show n + 1 < n + 2; omega⟩ (mpsCapRPosEquiv n d D |>.symm k)
       = if (k : ℕ) = 0 then (1 : ℂ) else 0 := by
   show mpsTensor n d D A ⟨n + 1, by omega⟩ (mpsCapRPos n d D k) = _
-  rw [mpsTensor, dif_neg (by show ¬(n + 1 < n); omega), dif_neg (by show ¬(n + 1 = n); omega)]
+  rw [mpsTensor, dite_eq_right (by show ¬(n + 1 < n); omega), dite_eq_right (by show ¬(n + 1 = n); omega)]
   show (if (mpsCapRPos n d D k ⟨⟨2 * n, by omega⟩, by rw [mpsSite_capR n]⟩).val = 0
       then (1 : ℂ) else 0) = if (k : ℕ) = 0 then (1 : ℂ) else 0
   have hval : (mpsCapRPos n d D k ⟨⟨2 * n, by omega⟩, by rw [mpsSite_capR n]⟩).val = (k : ℕ) := rfl
@@ -4514,9 +4514,9 @@ theorem tensorSumNorm_mpsNet_capR {n d D : ℕ} [NeZero D]
     (fun a => ‖(mpsNet n d D A).tensor ⟨n + 1, by show n + 1 < n + 2; omega⟩ a‖)
     (fun k => ‖if (k : ℕ) = 0 then (1 : ℂ) else 0‖) hvals]
   rw [Finset.sum_eq_single_of_mem (0 : Fin D) (Finset.mem_univ 0) ?_]
-  · rw [if_pos (by simp), norm_one]
+  · rw [ite_eq_left (by simp), norm_one]
   · intro b _ hb
-    rw [if_neg (fun h => hb (Fin.ext (h.trans (Fin.val_zero D).symm))), norm_zero]
+    rw [ite_eq_right (fun h => hb (Fin.ext (h.trans (Fin.val_zero D).symm))), norm_zero]
 
 /-- The product of all MPS network tensor sum norms equals the product of the physical-site
 entrywise norm sums, since both caps contribute one. -/
@@ -4540,13 +4540,13 @@ theorem perSite_legs {n : ℕ} [NeZero n] (v : Fin n) {j : Fin (3 * n)}
       ∨ (j : ℕ) = 2 * n + (v : ℕ) := by
   simp only [perSite] at hj
   by_cases h3 : (j : ℕ) < 2 * n
-  · rw [dif_pos h3] at hj
+  · rw [dite_eq_left h3] at hj
     by_cases h4 : (j : ℕ) % 2 = 0
-    · rw [if_pos h4] at hj
+    · rw [ite_eq_left h4] at hj
       left
       have hval : (j : ℕ) / 2 = (v : ℕ) := congrArg Fin.val hj
       omega
-    · rw [if_neg h4] at hj
+    · rw [ite_eq_right h4] at hj
       have hval : ((j : ℕ) / 2 + n - 1) % n = (v : ℕ) := congrArg Fin.val hj
       have hk : (j : ℕ) / 2 < n := by omega
       right
@@ -4576,7 +4576,7 @@ theorem perSite_legs {n : ℕ} [NeZero n] (v : Fin n) {j : Fin (3 * n)}
             Nat.mod_eq_of_lt (show (j : ℕ) / 2 - 1 < n by omega)] at hval
           rw [hvm]
           omega
-  · rw [dif_neg h3] at hj
+  · rw [dite_eq_right h3] at hj
     right
     right
     have hval : (j : ℕ) - 2 * n = (v : ℕ) := congrArg Fin.val hj
@@ -4607,7 +4607,7 @@ theorem perSitePos_left_leg (n d D : ℕ) [NeZero n] (v : Fin n) (l : Fin D) (r 
     perSitePos n d D v l r x ⟨⟨2 * (v : ℕ), by omega⟩, by rw [perSite_left n (v : ℕ) v.isLt]⟩
       = l.cast ((perDim_bond n d D (by omega : 2 * (v : ℕ) < 2 * n)).symm) := by
   simp only [perSitePos]
-  rw [dif_pos trivial]
+  rw [dite_eq_left trivial]
 
 /-- The periodic MPS port assignment reads the supplied right bond index on the cyclic right
 leg. -/
@@ -4620,10 +4620,10 @@ theorem perSitePos_right_leg (n d D : ℕ) [NeZero n] (v : Fin n) (l : Fin D) (r
           show 2 * (((v : ℕ) + 1) % n) + 1 < 2 * n
           omega)).symm) := by
   simp only [perSitePos]
-  rw [dif_neg (by
+  rw [dite_eq_right (by
         show 2 * (((v : ℕ) + 1) % n) + 1 ≠ 2 * (v : ℕ)
         have := Nat.mod_lt ((v : ℕ) + 1) (NeZero.pos n)
-        omega), dif_pos trivial]
+        omega), dite_eq_left trivial]
 
 /-- The periodic MPS port assignment reads the supplied physical index on the physical leg. -/
 theorem perSitePos_phys_leg (n d D : ℕ) [NeZero n] (v : Fin n) (l : Fin D) (r : Fin D) (x : Fin d) :
@@ -4632,8 +4632,8 @@ theorem perSitePos_phys_leg (n d D : ℕ) [NeZero n] (v : Fin n) (l : Fin D) (r 
           show ¬(2 * n + (v : ℕ) < 2 * n)
           omega)).symm) := by
   simp only [perSitePos]
-  rw [dif_neg (by show 2 * n + (v : ℕ) ≠ 2 * (v : ℕ); omega),
-    dif_neg (by
+  rw [dite_eq_right (by show 2 * n + (v : ℕ) ≠ 2 * (v : ℕ); omega),
+    dite_eq_right (by
       show 2 * n + (v : ℕ) ≠ 2 * (((v : ℕ) + 1) % n) + 1
       have := Nat.mod_lt ((v : ℕ) + 1) (NeZero.pos n)
       omega)]
@@ -4663,7 +4663,7 @@ def perSitePosEquiv (n d D : ℕ) [NeZero n] (v : Fin n) :
     · have hE : h = ⟨⟨2 * (v : ℕ), by omega⟩, by rw [perSite_left n (v : ℕ) v.isLt]⟩ :=
         Subtype.ext (Fin.ext hL)
       simp only [perSitePos]
-      rw [dif_pos hL]
+      rw [dite_eq_left hL]
       apply Fin.ext
       exact (congrArg (fun h' => (a h').val) hE).symm
     · by_cases hR : h.val.val = 2 * (((v : ℕ) + 1) % n) + 1
@@ -4671,7 +4671,7 @@ def perSitePosEquiv (n d D : ℕ) [NeZero n] (v : Fin n) :
             by rw [perSite_right' n (v : ℕ) v.isLt (NeZero.pos n)]⟩ :=
           Subtype.ext (Fin.ext hR)
         simp only [perSitePos]
-        rw [dif_neg hL, dif_pos hR]
+        rw [dite_eq_right hL, dite_eq_left hR]
         apply Fin.ext
         exact (congrArg (fun h' => (a h').val) hE).symm
       · have he : h.val.val = 2 * n + (v : ℕ) := by
@@ -4679,7 +4679,7 @@ def perSitePosEquiv (n d D : ℕ) [NeZero n] (v : Fin n) :
         have hE : h = ⟨⟨2 * n + (v : ℕ), by omega⟩, by rw [perSite_phys n (v : ℕ) v.isLt]⟩ :=
           Subtype.ext (Fin.ext he)
         simp only [perSitePos]
-        rw [dif_neg hL, dif_neg hR]
+        rw [dite_eq_right hL, dite_eq_right hR]
         apply Fin.ext
         exact (congrArg (fun h' => (a h').val) hE).symm
   right_inv t := by
@@ -4763,15 +4763,15 @@ theorem pepsSite_legs_mem {a b : ℕ} (v : Fin (a * b)) {j : Fin (pepsNh a b)}
       exact absurd v.isLt (by omega)
     · subst h
       exact absurd v.isLt (by omega)
-  · rw [dif_neg hz] at hj
+  · rw [dite_eq_right hz] at hj
     by_cases hreg : (j : ℕ) < 5 * a * b
-    · rw [dif_pos hreg] at hj
+    · rw [dite_eq_left hreg] at hj
       left
       have hval : (j : ℕ) / 5 = (v : ℕ) := congrArg Fin.val hj
       refine ⟨(j : ℕ) % 5, Nat.mod_lt _ (by omega), ?_⟩
       have := Nat.div_add_mod (j : ℕ) 5
       omega
-    · rw [dif_neg hreg] at hj
+    · rw [dite_eq_right hreg] at hj
       right
       omega
 
@@ -4832,7 +4832,7 @@ theorem pepsSitePos_phys_leg (a b d D : ℕ) (v : Fin (a * b)) (x : Fin d) (l r 
       = x.cast (pepsDim_phys a b d D (pepsLeg_lt a b (v : ℕ) 0 v.isLt (by omega))
           (pepsLeg_mod (v : ℕ) 0 (by omega))).symm := by
   simp only [pepsSitePos]
-  rw [dif_pos trivial]
+  rw [dite_eq_left trivial]
 
 /-- The PEPS vertex assignment reads the supplied left bond index on its left leg. -/
 theorem pepsSitePos_left_leg (a b d D : ℕ) (v : Fin (a * b)) (x : Fin d) (l r dn up : Fin D)
@@ -4842,7 +4842,7 @@ theorem pepsSitePos_left_leg (a b d D : ℕ) (v : Fin (a * b)) (x : Fin d) (l r 
           pepsSite_leg a b v 1 (by omega)⟩
       = l.cast (pepsDim_bond_leg a b d D (v : ℕ) 1 (by omega) (by omega)).symm := by
   simp only [pepsSitePos]
-  rw [dif_neg (by omega), dif_pos trivial]
+  rw [dite_eq_right (by omega), dite_eq_left trivial]
 
 /-- The PEPS vertex assignment reads the supplied right bond index on its right leg. -/
 theorem pepsSitePos_right_leg (a b d D : ℕ) (v : Fin (a * b)) (x : Fin d) (l r dn up : Fin D)
@@ -4852,7 +4852,7 @@ theorem pepsSitePos_right_leg (a b d D : ℕ) (v : Fin (a * b)) (x : Fin d) (l r
           pepsSite_leg a b v 2 (by omega)⟩
       = r.cast (pepsDim_bond_leg a b d D (v : ℕ) 2 (by omega) (by omega)).symm := by
   simp only [pepsSitePos]
-  rw [dif_neg (by omega), dif_neg (by omega), dif_pos trivial]
+  rw [dite_eq_right (by omega), dite_eq_right (by omega), dite_eq_left trivial]
 
 /-- The PEPS vertex assignment reads the supplied downward bond index on its downward leg. -/
 theorem pepsSitePos_down_leg (a b d D : ℕ) (v : Fin (a * b)) (x : Fin d) (l r dn up : Fin D)
@@ -4862,7 +4862,7 @@ theorem pepsSitePos_down_leg (a b d D : ℕ) (v : Fin (a * b)) (x : Fin d) (l r 
           pepsSite_leg a b v 3 (by omega)⟩
       = dn.cast (pepsDim_bond_leg a b d D (v : ℕ) 3 (by omega) (by omega)).symm := by
   simp only [pepsSitePos]
-  rw [dif_neg (by omega), dif_neg (by omega), dif_neg (by omega), dif_pos trivial]
+  rw [dite_eq_right (by omega), dite_eq_right (by omega), dite_eq_right (by omega), dite_eq_left trivial]
 
 /-- The PEPS vertex assignment reads the supplied upward bond index on its upward leg. -/
 theorem pepsSitePos_up_leg (a b d D : ℕ) (v : Fin (a * b)) (x : Fin d) (l r dn up : Fin D)
@@ -4872,8 +4872,8 @@ theorem pepsSitePos_up_leg (a b d D : ℕ) (v : Fin (a * b)) (x : Fin d) (l r dn
           pepsSite_leg a b v 4 (by omega)⟩
       = up.cast (pepsDim_bond_leg a b d D (v : ℕ) 4 (by omega) (by omega)).symm := by
   simp only [pepsSitePos]
-  rw [dif_neg (by omega), dif_neg (by omega), dif_neg (by omega), dif_neg (by omega),
-    dif_pos trivial]
+  rw [dite_eq_right (by omega), dite_eq_right (by omega), dite_eq_right (by omega), dite_eq_right (by omega),
+    dite_eq_left trivial]
 
 /-- The PEPS vertex assignment reads the supplied additional-leg assignment on each additional
 leg. -/
@@ -4888,8 +4888,8 @@ theorem pepsSitePos_dummy_leg (a b d D : ℕ) (v : Fin (a * b)) (x : Fin d) (l r
   have hlt4 := pepsLeg_lt a b (v : ℕ) 4 v.isLt (by omega)
   have hge := h'.property.1
   simp only [pepsSitePos]
-  rw [dif_neg (by omega), dif_neg (by omega), dif_neg (by omega), dif_neg (by omega),
-    dif_neg (by omega)]
+  rw [dite_eq_right (by omega), dite_eq_right (by omega), dite_eq_right (by omega), dite_eq_right (by omega),
+    dite_eq_right (by omega)]
   rfl
 
 /-- The equivalence expressing a PEPS vertex assignment as a physical index, four bond indices,
@@ -4922,35 +4922,35 @@ def pepsSitePosEquiv (a b d D : ℕ) (v : Fin (a * b)) :
     · have hE : h = ⟨⟨5 * (v : ℕ), pepsLeg_lt_nh a b (v : ℕ) 0 v.isLt (by omega)⟩,
           pepsSite_leg a b v 0 (by omega)⟩ := Subtype.ext (Fin.ext h0)
       simp only [pepsSitePos]
-      rw [dif_pos h0]
+      rw [dite_eq_left h0]
       apply Fin.ext
       exact (congrArg (fun h' => (α h').val) hE).symm
     · by_cases h1 : h.val.val = 5 * (v : ℕ) + 1
       · have hE : h = ⟨⟨5 * (v : ℕ) + 1, pepsLeg_lt_nh a b (v : ℕ) 1 v.isLt (by omega)⟩,
             pepsSite_leg a b v 1 (by omega)⟩ := Subtype.ext (Fin.ext h1)
         simp only [pepsSitePos]
-        rw [dif_neg h0, dif_pos h1]
+        rw [dite_eq_right h0, dite_eq_left h1]
         apply Fin.ext
         exact (congrArg (fun h' => (α h').val) hE).symm
       · by_cases h2 : h.val.val = 5 * (v : ℕ) + 2
         · have hE : h = ⟨⟨5 * (v : ℕ) + 2, pepsLeg_lt_nh a b (v : ℕ) 2 v.isLt (by omega)⟩,
               pepsSite_leg a b v 2 (by omega)⟩ := Subtype.ext (Fin.ext h2)
           simp only [pepsSitePos]
-          rw [dif_neg h0, dif_neg h1, dif_pos h2]
+          rw [dite_eq_right h0, dite_eq_right h1, dite_eq_left h2]
           apply Fin.ext
           exact (congrArg (fun h' => (α h').val) hE).symm
         · by_cases h3 : h.val.val = 5 * (v : ℕ) + 3
           · have hE : h = ⟨⟨5 * (v : ℕ) + 3, pepsLeg_lt_nh a b (v : ℕ) 3 v.isLt (by omega)⟩,
                 pepsSite_leg a b v 3 (by omega)⟩ := Subtype.ext (Fin.ext h3)
             simp only [pepsSitePos]
-            rw [dif_neg h0, dif_neg h1, dif_neg h2, dif_pos h3]
+            rw [dite_eq_right h0, dite_eq_right h1, dite_eq_right h2, dite_eq_left h3]
             apply Fin.ext
             exact (congrArg (fun h' => (α h').val) hE).symm
           · by_cases h4 : h.val.val = 5 * (v : ℕ) + 4
             · have hE : h = ⟨⟨5 * (v : ℕ) + 4, pepsLeg_lt_nh a b (v : ℕ) 4 v.isLt (by omega)⟩,
                   pepsSite_leg a b v 4 (by omega)⟩ := Subtype.ext (Fin.ext h4)
               simp only [pepsSitePos]
-              rw [dif_neg h0, dif_neg h1, dif_neg h2, dif_neg h3, dif_pos h4]
+              rw [dite_eq_right h0, dite_eq_right h1, dite_eq_right h2, dite_eq_right h3, dite_eq_left h4]
               apply Fin.ext
               exact (congrArg (fun h' => (α h').val) hE).symm
             · have hge : 5 * a * b ≤ h.val.val := by
@@ -4958,7 +4958,7 @@ def pepsSitePosEquiv (a b d D : ℕ) (v : Fin (a * b)) :
                 · omega
                 · exact hge
               simp only [pepsSitePos]
-              rw [dif_neg h0, dif_neg h1, dif_neg h2, dif_neg h3, dif_neg h4]
+              rw [dite_eq_right h0, dite_eq_right h1, dite_eq_right h2, dite_eq_right h3, dite_eq_right h4]
               apply Fin.ext
               rfl
   right_inv t := by
@@ -5043,14 +5043,14 @@ theorem pepsTensor_read {a b d D : ℕ} [NeZero D]
       pepsSitePos_down_leg, pepsSitePos_up_leg, fin_cast_cast', fin_cast_cast',
       fin_cast_cast', fin_cast_cast', fin_cast_cast']
   by_cases hL : ((pepsP a b v).1 : ℕ) = 0
-  · rw [dif_pos hL, if_pos hL]
+  · rw [dite_eq_left hL, ite_eq_left hL]
     by_cases hUp : ((pepsP a b v).2 : ℕ) = 0
-    · rw [dif_pos hUp, if_pos hUp]
-    · rw [dif_neg hUp, if_neg hUp]
-  · rw [dif_neg hL, if_neg hL]
+    · rw [dite_eq_left hUp, ite_eq_left hUp]
+    · rw [dite_eq_right hUp, ite_eq_right hUp]
+  · rw [dite_eq_right hL, ite_eq_right hL]
     by_cases hUp : ((pepsP a b v).2 : ℕ) = 0
-    · rw [dif_pos hUp, if_pos hUp]
-    · rw [dif_neg hUp, if_neg hUp]
+    · rw [dite_eq_left hUp, ite_eq_left hUp]
+    · rw [dite_eq_right hUp, ite_eq_right hUp]
 
 /-- In tuple coordinates, the PEPS network tensor is the corresponding entry of `T` with outward
 boundary indices fixed to zero. -/

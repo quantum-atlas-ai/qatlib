@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Normed.Algebra.MatrixExponential
-import Qatlib.Concepts.ChannelTheory.Stinespring.ShadowEstimator
-import Qatlib.Foundations.PureStateMath.Qubit
+module
+
+public import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+public import Qatlib.Concepts.ChannelTheory.Stinespring.ShadowEstimator
+public import Qatlib.Foundations.PureStateMath.Qubit
+
+@[expose] public section
 
 /-!
 # Occupation-basis fermionic operators

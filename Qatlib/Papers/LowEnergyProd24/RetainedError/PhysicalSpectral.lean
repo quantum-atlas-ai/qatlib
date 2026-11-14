@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LowEnergyProd24.CenterTransport.PhysicalCoefficients
-import Qatlib.Papers.LowEnergyProd24.LocalModel.FiniteBudget
-import Qatlib.Papers.LowEnergyProd24.ImaginaryLeak.NestedLeakage
-import Qatlib.Papers.LowEnergyProd24.RetainedError.CutoffChain
+module
+
+public import Qatlib.Papers.LowEnergyProd24.CenterTransport.PhysicalCoefficients
+public import Qatlib.Papers.LowEnergyProd24.LocalModel.FiniteBudget
+public import Qatlib.Papers.LowEnergyProd24.ImaginaryLeak.NestedLeakage
+public import Qatlib.Papers.LowEnergyProd24.RetainedError.CutoffChain
+
+@[expose] public section
 
 /-!
 # Spectral bounds for original physical commutators
@@ -75,7 +79,7 @@ theorem nested_centered (h : PhysicalHamiltonian N R M k d J) (seed : Fin M) (xs
     rw [ad_add_central_left _ _ _ hza]
     have he := adIter_add_central_right (h.normalized.grouped a) (RetainedError.nested h.normalized seed xs)
       (if xs=[] then (h.groupCenter seed : ℂ) • 1 else 0) hz 1 (by norm_num)
-    simpa only [adIter, ad, RetainedError.nested, List.cons_ne_nil, if_false, add_zero] using he
+    simpa only [adIter, ad, RetainedError.nested, List.cons_ne_nil, ite_false, add_zero] using he
 
 /-- For `Δ ≤ Λ`, replacing the original nested commutator by its normalized-model counterpart
 preserves the block from energies below `Δ` to energies above `Λ`. -/

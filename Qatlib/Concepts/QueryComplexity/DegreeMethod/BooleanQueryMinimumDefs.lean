@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.QueryDegree
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.AlphabetInterrogation
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.LocalCapability
-import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.QueryDegree
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.AlphabetInterrogation
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.LocalCapability
+public import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
+
+@[expose] public section
 
 /-!
 # Attained minima for Boolean quantum query programs
@@ -329,8 +333,8 @@ theorem read_all_feasible (f : (Fin n→Bool)→Bool) : ExactFeasible f n := by
 theorem exactFeasible_bounded (f : (Fin n→Bool)→Bool) (t : ℕ) (h : ExactFeasible f t) :
     BoundedFeasible f t := by
   obtain ⟨S,hS,dS,P,hq,hp⟩ := h
-  letI := hS
-  letI := dS
+  let _ := hS
+  let _ := dS
   exact ⟨S,hS,dS,P,hq,exact_bounded P f hp⟩
 
 /-- Every total Boolean function has an exact feasible query count. -/
@@ -459,12 +463,12 @@ theorem minimum_degree_bounds (f : (Fin n→Bool)→Bool) :
     exactDegree f≤2*exactMinimum f ∧ approxDegree f≤2*boundedMinimum f := by
   constructor
   · obtain ⟨S,hS,dS,P,hq,hp⟩ := exactMinimum_attained f
-    letI := hS
-    letI := dS
+    let _ := hS
+    let _ := dS
     simpa only [hq] using! exact_degree_program P f hp
   · obtain ⟨S,hS,dS,P,hq,hp⟩ := boundedMinimum_attained f
-    letI := hS
-    letI := dS
+    let _ := hS
+    let _ := dS
     simpa only [hq] using! approximate_degree_program P f hp
 
 /-- The exact and bounded-error minima are attained, are ordered below the input length, and
@@ -583,8 +587,8 @@ convention. -/
 theorem exactFeasible_zeroError (strict : Bool) (f : (Fin n→Bool)→Bool) (t : ℕ)
     (h : ExactFeasible f t) : ZeroErrorFeasible strict f t := by
   obtain ⟨S,hS,dS,P,hq,hp⟩ := h
-  letI := hS
-  letI := dS
+  let _ := hS
+  let _ := dS
   exact ⟨S,hS,dS,P,P.acceptᶜ,hq,exact_zeroError strict P f hp⟩
 
 /-- Every total Boolean function has a feasible query count under either zero-error convention. -/
@@ -613,8 +617,8 @@ theorem zeroError_minima_order (f : (Fin n→Bool)→Bool) :
       zeroErrorMinimum true f≤exactMinimum f := by
   constructor
   · obtain ⟨S,hS,dS,P,E0,hq,hp⟩ := zeroErrorMinimum_attained true f
-    letI := hS
-    letI := dS
+    let _ := hS
+    let _ := dS
     exact zeroErrorMinimum_le false f _ ⟨S,hS,dS,P,E0,hq,zeroError_strict_weak P E0 f hp⟩
   · exact zeroErrorMinimum_le true f _
       (exactFeasible_zeroError true f _ (exactMinimum_attained f))
@@ -688,6 +692,7 @@ workspace. -/
 def coinAssoc : (Space n W×Bool)≃Space n (W×Bool) :=
   Equiv.prodAssoc (Address n×Bool) W Bool
 
+omit [Fintype W] in
 /-- Reassociating the workspace and coin registers identifies the lifted bit oracle with the bit
 oracle on the enlarged workspace. -/
 theorem coin_oracle (x : Fin n→Bool) :
@@ -769,8 +774,8 @@ theorem zeroError_guess_bounded (P : Program n W) (E0 : Finset (Space n W))
 theorem zeroErrorFeasible_bounded (f : (Fin n→Bool)→Bool) (t : ℕ)
     (h : ZeroErrorFeasible false f t) : BoundedFeasible f t := by
   obtain ⟨S,hS,dS,P,E0,hq,hp⟩ := h
-  letI := hS
-  letI := dS
+  let _ := hS
+  let _ := dS
   exact ⟨S×Bool,inferInstance,inferInstance,guessProgram P E0,
     (guessProgram_counts P E0).1.trans hq,zeroError_guess_bounded P E0 f hp⟩
 
@@ -810,8 +815,8 @@ theorem nonconstant_minima_positive (f : (Fin n→Bool)→Bool)
     1≤boundedMinimum f ∧ 1≤zeroErrorMinimum false f ∧
       1≤zeroErrorMinimum true f ∧ 1≤exactMinimum f := by
   obtain ⟨S,hS,dS,P,hq,hp⟩ := boundedMinimum_attained f
-  letI := hS
-  letI := dS
+  let _ := hS
+  let _ := dS
   have hb : 1≤boundedMinimum f := hq ▸ nonconstant_program_positive P f hp x y hx hy
   have ho := minimum_order_all f
   exact ⟨hb,hb.trans ho.1,(hb.trans ho.1).trans ho.2.1,

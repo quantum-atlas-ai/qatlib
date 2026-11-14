@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Ring
+module
+
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -69,29 +73,37 @@ the summand of an index with `p_z = q_z = 0` is zero, which is Lean's `x / 0 = 0
 noncomputable def potential (p q : I → ℝ) : ℝ :=
   ∑ z, (p z - q z) ^ 2 / (2 * (p z + q z))
 
+omit [DecidableEq I] in
+
 /-- The potential of two nonnegative weight functions is nonnegative. -/
-theorem potential_nonneg (p q : I → ℝ) (hp : ∀ z, 0 ≤ p z) (hq : ∀ z, 0 ≤ q z) :
+theorem potential_nonneg {I : Type*} [_scopeInst0 : Fintype I] [_scopeInst1 : DecidableEq I] (p q : I → ℝ) (hp : ∀ z, 0 ≤ p z) (hq : ∀ z, 0 ≤ q z) :
     0 ≤ potential p q := by
   unfold potential
   refine Finset.sum_nonneg fun z _ => ?_
   exact div_nonneg (sq_nonneg _) (by linarith [hp z, hq z])
 
+omit [DecidableEq I] in
+
 /-- The potential is symmetric in its two arguments. -/
-theorem potential_comm (p q : I → ℝ) : potential p q = potential q p := by
+theorem potential_comm {I : Type*} [_scopeInst0 : Fintype I] [_scopeInst1 : DecidableEq I] (p q : I → ℝ) : potential p q = potential q p := by
   unfold potential
   refine Finset.sum_congr rfl fun z _ => ?_
   rw [show q z - p z = -(p z - q z) by ring, show q z + p z = p z + q z by ring]
   ring
 
+omit [DecidableEq I] in
+
 /-- The potential of a distribution with itself vanishes. -/
-theorem potential_self (p : I → ℝ) : potential p p = 0 := by
+theorem potential_self {I : Type*} [_scopeInst0 : Fintype I] [_scopeInst1 : DecidableEq I] (p : I → ℝ) : potential p p = 0 := by
   unfold potential
   simp
+
+omit [DecidableEq I] in
 
 /-- **The complementary form of the potential.** For probability distributions
 `∑_z p_z = ∑_z q_z = 1`, `1 − M(p,q) = ∑_z 2 p_z q_z / (p_z + q_z)`: pointwise this is
 `(p − q)² / (2 (p + q)) = (p + q)/2 − 2 p q / (p + q)`. -/
-theorem one_sub_potential (p q : I → ℝ) (hp : ∀ z, 0 ≤ p z) (hq : ∀ z, 0 ≤ q z)
+theorem one_sub_potential {I : Type*} [_scopeInst0 : Fintype I] [_scopeInst1 : DecidableEq I] (p q : I → ℝ) (hp : ∀ z, 0 ≤ p z) (hq : ∀ z, 0 ≤ q z)
     (hp1 : ∑ z, p z = 1) (hq1 : ∑ z, q z = 1) :
     1 - potential p q = ∑ z, 2 * (p z * q z) / (p z + q z) := by
   have hterm : ∀ z, (p z - q z) ^ 2 / (2 * (p z + q z))
@@ -116,9 +128,11 @@ theorem one_sub_potential (p q : I → ℝ) (hp : ∀ z, 0 ≤ p z) (hq : ∀ z,
 
 /-! ## §2 Cauchy–Schwarz: `TV² ≤ M` and the affinity bound -/
 
+omit [DecidableEq I] in
+
 /-- **Weighted Cauchy–Schwarz for square roots.** For nonnegative `u, v` the squared sum
 of `√(u_z v_z)` is at most the product of the sums. -/
-theorem sq_sum_sqrt_mul_le (u v : I → ℝ) (hu : ∀ z, 0 ≤ u z) (hv : ∀ z, 0 ≤ v z) :
+theorem sq_sum_sqrt_mul_le {I : Type*} [_scopeInst0 : Fintype I] [_scopeInst1 : DecidableEq I] (u v : I → ℝ) (hu : ∀ z, 0 ≤ u z) (hv : ∀ z, 0 ≤ v z) :
     (∑ z, Real.sqrt (u z * v z)) ^ 2 ≤ (∑ z, u z) * (∑ z, v z) := by
   have h := Finset.sum_mul_sq_le_sq_mul_sq (s := Finset.univ)
     (fun z => Real.sqrt (u z)) (fun z => Real.sqrt (v z))
@@ -176,15 +190,19 @@ theorem potential_ge_one_ninth_of_tv (p q : I → ℝ) (hp : ∀ z, 0 ≤ p z)
   have h := tv_sq_le_potential p q hp hq hsum
   nlinarith
 
+omit [Fintype I] [DecidableEq I] in
+
 /-- The square root of a product of Born probabilities is the product of the moduli of
 the amplitudes. -/
-theorem sqrt_born_mul (ψ0 ψ1 : QState I) (z : I) :
+theorem sqrt_born_mul {I : Type*} [_scopeInst0 : Fintype I] [_scopeInst1 : DecidableEq I] (ψ0 ψ1 : QState I) (z : I) :
     Real.sqrt (BornProb ψ0 z * BornProb ψ1 z) = ‖ψ0 z‖ * ‖ψ1 z‖ := by
   rw [BornProb, BornProb, ← mul_pow, Real.sqrt_sq_eq_abs, abs_of_nonneg (by positivity)]
 
+omit [DecidableEq I] in
+
 /-- The modulus of the inner product is bounded by the sum of the products of the moduli
 of the amplitudes (triangle inequality). -/
-theorem inner_norm_le_sum_mul (ψ0 ψ1 : QState I) :
+theorem inner_norm_le_sum_mul {I : Type*} [_scopeInst0 : Fintype I] [_scopeInst1 : DecidableEq I] (ψ0 ψ1 : QState I) :
     ‖∑ z, ψ0 z * (starRingEnd ℂ) (ψ1 z)‖ ≤ ∑ z, ‖ψ0 z‖ * ‖ψ1 z‖ := by
   calc ‖∑ z, ψ0 z * (starRingEnd ℂ) (ψ1 z)‖
       ≤ ∑ z, ‖ψ0 z * (starRingEnd ℂ) (ψ1 z)‖ := norm_sum_le _ _
@@ -260,9 +278,11 @@ theorem inner_norm_sq_le_one_sub_potential (ψ0 ψ1 : QState I)
     _ ≤ 1 - potential (BornProb ψ0) (BornProb ψ1) :=
         sum_sqrt_born_sq_le_one_sub_potential ψ0 ψ1 h0 h1
 
+omit [DecidableEq I] in
+
 /-- **The squared distance formula.** For normalised amplitude vectors,
 `‖|ψ₀⟩ − |ψ₁⟩‖² = ∑_z ‖ψ₀(z) − ψ₁(z)‖² = 2 − 2 Re ∑_z ψ₀(z) conj ψ₁(z)`. -/
-theorem norm_sub_sq_toEuclidean (ψ0 ψ1 : QState I) (h0 : Normalized ψ0)
+theorem norm_sub_sq_toEuclidean {I : Type*} [_scopeInst0 : Fintype I] [_scopeInst1 : DecidableEq I] (ψ0 ψ1 : QState I) (h0 : Normalized ψ0)
     (h1 : Normalized ψ1) :
     ‖toEuclidean_fromVec ψ0 - toEuclidean_fromVec ψ1‖ ^ 2
       = 2 - 2 * (∑ z, ψ0 z * (starRingEnd ℂ) (ψ1 z)).re := by
@@ -270,8 +290,7 @@ theorem norm_sub_sq_toEuclidean (ψ0 ψ1 : QState I) (h0 : Normalized ψ0)
       = ‖ψ0 z‖ ^ 2 + ‖ψ1 z‖ ^ 2 - 2 * (ψ0 z * (starRingEnd ℂ) (ψ1 z)).re := by
     intro z
     rw [Complex.sq_norm, Complex.sq_norm, Complex.sq_norm]
-    simp [Complex.normSq_apply, Complex.mul_re, Complex.mul_im,
-      Complex.sub_re, Complex.sub_im, Complex.conj_re, Complex.conj_im]
+    simp [Complex.normSq_apply, Complex.mul_re, Complex.sub_re, Complex.sub_im, Complex.conj_re, Complex.conj_im]
     ring
   have htransport : toEuclidean_fromVec ψ0 - toEuclidean_fromVec ψ1
       = toEuclidean_fromVec (ψ0 - ψ1) := rfl
@@ -324,10 +343,12 @@ measurement outcome under `U₀` and `U₁`, the conditional progress is
 noncomputable def conditionalProgress (a : ℝ) (r s : I → ℝ) : ℝ :=
   ∑ z, (a * r z - (1 - a) * s z) ^ 2 / (a * r z + (1 - a) * s z)
 
+omit [DecidableEq I] in
+
 /-- **The complementary conditional progress.** `1 − M_{t+1}(h)` equals
 `4 a (1 − a) ∑_z r_z s_z / w_z` with the mixture weights `w_z = a r_z + (1 − a) s_z`, the
 identity that the proof of Lemma 1 uses. -/
-theorem one_sub_conditionalProgress (a : ℝ) (r s : I → ℝ)
+theorem one_sub_conditionalProgress {I : Type*} [_scopeInst0 : Fintype I] [_scopeInst1 : DecidableEq I] (a : ℝ) (r s : I → ℝ)
     (ha0 : 0 ≤ a) (ha1 : a ≤ 1) (hr : ∀ z, 0 ≤ r z) (hs : ∀ z, 0 ≤ s z)
     (hr1 : ∑ z, r z = 1) (hs1 : ∑ z, s z = 1) :
     1 - conditionalProgress a r s

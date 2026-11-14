@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ConversionCore.WitnessCompile.FunctionEvaluationAdversaryAlgStat
-import Qatlib.Concepts.QueryComplexity.StateConversion.RealBudgetConversionAlgorithmQuan
-import Qatlib.Concepts.GramQueryCore.LowerBoundTools.GeneralOutputGramBridgesQuan
-import Qatlib.Concepts.GramQueryCore.FilteredNorm.FunctionEvaluationNormSandwichQuan
-import Qatlib.Concepts.GramQueryCore.FilteredNorm.FilteredNormCompositionAndProductsQuan
-import Qatlib.Concepts.GramQueryCore.GammaDuality.FunctionCompositionBoundsQuan
-import Qatlib.Concepts.QueryWordCore.QueryMachinery.NegativeAdversary
-import Mathlib.Logic.Equiv.Bool
+module
+
+public import Qatlib.Concepts.ConversionCore.WitnessCompile.FunctionEvaluationAdversaryAlgStat
+public import Qatlib.Concepts.QueryComplexity.StateConversion.RealBudgetConversionAlgorithmQuan
+public import Qatlib.Concepts.GramQueryCore.LowerBoundTools.GeneralOutputGramBridgesQuan
+public import Qatlib.Concepts.GramQueryCore.FilteredNorm.FunctionEvaluationNormSandwichQuan
+public import Qatlib.Concepts.GramQueryCore.FilteredNorm.FilteredNormCompositionAndProductsQuan
+public import Qatlib.Concepts.GramQueryCore.GammaDuality.FunctionCompositionBoundsQuan
+public import Qatlib.Concepts.QueryWordCore.QueryMachinery.NegativeAdversary
+public import Mathlib.Logic.Equiv.Bool
+
+@[expose] public section
 
 /-!
 # Function evaluation from the general adversary bound
@@ -45,7 +49,7 @@ open Qatlib.Concepts.CoherentSim.CoherentOAA Qatlib.Foundations.InstrumentCore.P
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.BlockEncoding.LCU Qatlib.Foundations.PureStateMath.BornBridge Qatlib.Concepts.CopyEvolution.Discriminate
 
-open Qatlib.Concepts.AdversaryBounds.WeightedAdvComp
+open Qatlib.Concepts.AdversaryBounds.WeightedAdvComposition
 open Qatlib.Concepts.GramQueryCore.FilteredCert
 open Qatlib.Concepts.GramQueryCore.FilteredNorm
 open Qatlib.Concepts.GramQueryCore.GammaDuality
@@ -123,7 +127,7 @@ theorem sourceBoolean_actual_word_lower {X H : Type}
   by_cases hg0 : ‖G‖=0
   · rw [hg0]
     positivity
-  letI : Nonempty X := weightedAdv_nonempty_of_norm_pos G (lt_of_le_of_ne (norm_nonneg _) (Ne.symm hg0))
+  let : Nonempty X := weightedAdv_nonempty_of_norm_pos G (lt_of_le_of_ne (norm_nonneg _) (Ne.symm hg0))
   obtain ⟨weight,lam,hw,hlam,_,hStart⟩ :=
       negative_adversary_extreme_eigenvector_and_start X _ G ψ hG hn
   let out := fun x => sourceWordMatrix (sourceAlphabetOracle input x) C *ᵥ ψ
@@ -332,7 +336,7 @@ theorem sourceAdversary_ge_one_of_nonconstant {X E : Type}
     · rcases hs with ⟨rfl,rfl⟩ | ⟨rfl,rfl⟩
       · exact (hxy he).elim
       · exact (hxy he.symm).elim
-    · simp only [G,if_neg hs]
+    · simp only [G,ite_eq_right hs]
   have hnorm : ‖G‖ ≤ 1 := by
     rw [hcut]
     exact (sourceBooleanCut_norm_le P h).trans
@@ -340,12 +344,12 @@ theorem sourceAdversary_ge_one_of_nonconstant {X E : Type}
   have hf (j : Fin n) : ‖G ⊙ sourceAlphabetDelta input j‖ ≤ 1 := by
     have he : G ⊙ sourceAlphabetDelta input j=if input x j=input y j then 0 else G := by
       by_cases hi : input x j=input y j
-      · rw [if_pos hi]
+      · rw [ite_eq_left hi]
         ext u v
         by_cases hs : (u=x ∧ v=y) ∨ (u=y ∧ v=x)
         · rcases hs with ⟨rfl,rfl⟩ | ⟨rfl,rfl⟩ <;> simp [G,sourceAlphabetDelta,Matrix.hadamard_apply,hi,eq_comm]
         · simp [G,hs,Matrix.hadamard_apply]
-      · rw [if_neg hi]
+      · rw [ite_eq_right hi]
         ext u v
         by_cases hs : (u=x ∧ v=y) ∨ (u=y ∧ v=x)
         · rcases hs with ⟨rfl,rfl⟩ | ⟨rfl,rfl⟩ <;> simp [G,sourceAlphabetDelta,Matrix.hadamard_apply,hi,eq_comm]

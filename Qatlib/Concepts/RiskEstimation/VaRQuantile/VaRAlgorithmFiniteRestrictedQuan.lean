@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RiskEstimation.VaRQuantile.VaRAlgorithmFiniteRestrictedStat
-import Qatlib.Concepts.RiskEstimation.VaRQuantile.ReadoutMedianFiniteSubgoalQuan
-import Qatlib.Concepts.RiskEstimation.VaRQuantile.BisectFiniteRoutingSubgoalQuan
-import Qatlib.Concepts.RiskEstimation.VaRQuantile.RiskDefs
+module
+
+public import Qatlib.Concepts.RiskEstimation.VaRQuantile.VaRAlgorithmFiniteRestrictedStat
+public import Qatlib.Concepts.RiskEstimation.VaRQuantile.ReadoutMedianFiniteSubgoalQuan
+public import Qatlib.Concepts.RiskEstimation.VaRQuantile.BisectFiniteRoutingSubgoalQuan
+public import Qatlib.Concepts.RiskEstimation.VaRQuantile.RiskDefs
+
+@[expose] public section
 
 /-!
 # Finite value-at-risk bisection accuracy
@@ -67,7 +71,7 @@ theorem riskCDF_last {I : Type} [Fintype I] [DecidableEq I]
     simp only [Option.getD_some, List.getLast_eq_getElem]
     exact hs.getElem_le_getElem_of_le (by omega)
   rw [riskCDF_eq]
-  simp only [riskCDFPayoff, if_pos (hb _), mul_one]
+  simp only [riskCDFPayoff, ite_eq_left (hb _), mul_one]
   exact bornProb_sum_eq_one (normalized_applyGate hA (normalized_ket j))
 
 /-- If the readout window fits within the tolerance, `riskVaR` violates the approximate quantile

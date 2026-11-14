@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QlsReadoutSpec.WalkQSVT.ChebyshevDifferenceBoundStat
-import Mathlib.RingTheory.Polynomial.Chebyshev
-import Mathlib.Analysis.Complex.Norm
-import Mathlib.Data.Real.Sqrt
+module
+
+public import Qatlib.Concepts.QlsReadoutSpec.WalkQSVT.ChebyshevDifferenceBoundStat
+public import Mathlib.RingTheory.Polynomial.Chebyshev
+public import Mathlib.Analysis.Complex.Norm
+public import Mathlib.Analysis.Real.Sqrt
+
+@[expose] public section
 
 /-!
 # Chebyshev coefficient-difference bounds
@@ -97,27 +101,27 @@ private theorem tVal_eq_half_U (x : ℝ) (k : ℕ) :
   unfold tVal
   by_cases hk : k = 0
   · subst hk
-    simp only [if_true]
+    simp only [ite_true]
     have hU : (U ℂ ((0 : ℕ) : ℤ)).eval (x : ℂ) = 1 := by
       have h0 : ((0 : ℕ) : ℤ) = 0 := by norm_cast
       rw [h0, U_zero]
       simp
     rw [hU]
     norm_num
-  · rw [if_neg hk, if_neg hk, chebT_eq_half_U]
+  · rw [ite_eq_right hk, ite_eq_right hk, chebT_eq_half_U]
 
 /-- The zero-extended coefficient is zero at every index outside the original finite range. -/
 private theorem extendCoefficient_of_not_lt {n : ℕ} (c : Fin n → ℂ) (k : ℕ)
     (h : ¬(k < n)) : extendCoefficient c k = 0 := by
   show (if _ : k < n then _ else 0) = 0
-  rw [dif_neg h]
+  rw [dite_eq_right h]
 
 /-- The zero-extended coefficient agrees with the original coefficient at every index in its
 finite range. -/
 private theorem extendCoefficient_eq {n : ℕ} (c : Fin n → ℂ) (k : ℕ) (h : k < n) :
     extendCoefficient c k = c ⟨k, h⟩ := by
   show (if _ : k < n then _ else 0) = _
-  rw [dif_pos h]
+  rw [dite_eq_left h]
 
 /-- Each finite coefficient equals its zero extension evaluated at its natural index. -/
 private theorem c_eq_extend {n : ℕ} (c : Fin n → ℂ) (k : Fin n) :
@@ -182,7 +186,7 @@ private theorem sum_extend_shift_range {n : ℕ} (c : Fin n → ℂ) (x : ℝ) :
         apply Finset.sum_congr rfl
         intro m hm
         have hm2 : (2 + m : ℕ) ≠ 0 := by omega
-        rw [if_neg hm2]
+        rw [ite_eq_right hm2]
         have hcast : (((2 + m : ℕ) : ℤ) - 2) = (m : ℤ) := by push_cast; omega
         have hadd : (2 + m : ℕ) = m + 2 := by omega
         rw [hcast, hadd]
@@ -537,7 +541,7 @@ theorem Clause21ChebyshevDifferenceBound_answer : Clause21ChebyshevDifferenceBou
       have hset : {y : ℝ | ∃ x : ℝ, -(1 / 2) ≤ x ∧ x ≤ 1 / 2 ∧ y = ‖chebValue c x‖}
           = ({0} : Set ℝ) := by
         ext y
-        simp only [Set.mem_setOf_eq, Set.mem_singleton_iff]
+        simp only [Set.mem_ofPred_eq, Set.mem_singleton_iff]
         constructor
         · intro hy
           obtain ⟨x, _, _, hxy⟩ := hy

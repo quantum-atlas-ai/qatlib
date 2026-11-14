@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.AbelianSampling.OrbitCharacterCoordsSubgoalStat
+module
+
+public import Qatlib.Concepts.HspRecovery.AbelianSampling.OrbitCharacterCoordsSubgoalStat
+
+@[expose] public section
 
 /-!
 # Character coordinates on a generating family
@@ -79,7 +83,7 @@ theorem orbitCharacterCoordsSubgoal : OrbitCharacterCoordsSubgoal := by
     exact mul_inv_eq_one.mp this
   · intro χ j
     have hq : Fintype.card E ≠ 0 := Fintype.card_ne_zero
-    haveI : NeZero (Fintype.card E) := ⟨hq⟩
+    have : NeZero (Fintype.card E) := ⟨hq⟩
     obtain ⟨i, hi, hpi⟩ :=
       (isPrimitiveRoot_primRoot hq).eq_pow_of_pow_eq_one (addChar_apply_pow_card E χ (V j))
     refine ⟨⟨i, hi⟩, ?_⟩

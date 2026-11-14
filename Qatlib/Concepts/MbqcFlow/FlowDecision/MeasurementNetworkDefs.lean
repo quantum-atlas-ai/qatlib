@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
-import Qatlib.Concepts.QuditTeleport.TeleportCore.QuditTeleportationInstrument
-import Qatlib.Concepts.FiniteLocc.LOCCProgram.EntanglementDefs
-import Qatlib.Concepts.QuditTeleport.TeleportCore.CountedQuditTeleportation
+module
+
+public import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.QuditTeleportationInstrument
+public import Qatlib.Concepts.FiniteLocc.LOCCProgram.EntanglementDefs
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.CountedQuditTeleportation
+
+@[expose] public section
 
 /-!
 # Finite measurement networks and message trees

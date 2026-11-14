@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PeriodSampling.OrderRecovery.RandomBaseFactor
-import Mathlib.Algebra.Order.GroupWithZero.Basic
-import Mathlib.Data.Nat.PrimeFin
+module
+
+public import Qatlib.Concepts.PeriodSampling.OrderRecovery.RandomBaseFactor
+public import Mathlib.Algebra.Order.GroupWithZero.Basic
+public import Mathlib.Data.Nat.PrimeFin
+
+@[expose] public section
 
 /-!
 # Probability of a good factoring base

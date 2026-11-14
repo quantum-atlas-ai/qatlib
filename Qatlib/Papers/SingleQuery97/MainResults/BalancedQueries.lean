@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SingleQuery97.MainResults.PrefixProgram
-import Qatlib.Papers.SingleQuery97.MainResults.EncoderCircuit
+module
+
+public import Qatlib.Papers.SingleQuery97.MainResults.PrefixProgram
+public import Qatlib.Papers.SingleQuery97.MainResults.EncoderCircuit
+
+@[expose] public section
 
 /-!
 # Balanced binary encoders for prefix queries
@@ -65,10 +69,10 @@ theorem oriented_row_weight (label : Fin N → Fin m → ZMod 2) (i : Fin m) :
     2*rowWeight (oriented label) i ≤ N := by
   classical
   by_cases h : 2*rowWeight label i ≤ N
-  · have hf : flip label i = 0 := by rw [flip, if_pos h]
+  · have hf : flip label i = 0 := by rw [flip, ite_eq_left h]
     simpa only [rowWeight, oriented, hf, add_zero] using h
   · have hb : ∀ b : ZMod 2, b+1 ≠ 0 ↔ ¬(b ≠ 0) := by decide
-    have hf : flip label i = 1 := by rw [flip, if_neg h]
+    have hf : flip label i = 1 := by rw [flip, ite_eq_right h]
     have hc : rowWeight (oriented label) i = N-rowWeight label i := by
       simp only [rowWeight, oriented, hf, hb, Finset.filter_not,
         Finset.card_sdiff, Finset.inter_univ, Finset.card_univ, Fintype.card_fin]

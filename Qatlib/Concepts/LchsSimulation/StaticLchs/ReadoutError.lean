@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LchsSimulation.StaticLchs.HybridError
-import Qatlib.Concepts.SpectralReadout.PhaseReadout.BornPerturbation
+module
+
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.HybridError
+public import Qatlib.Concepts.SpectralReadout.PhaseReadout.BornPerturbation
+
+@[expose] public section
 
 /-!
 # Born readout error from oracle perturbations

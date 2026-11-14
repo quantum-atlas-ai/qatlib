@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LowEnergyProd24.RetainedBound.Duhamel
+module
+
+public import Qatlib.Papers.LowEnergyProd24.RetainedBound.Duhamel
+
+@[expose] public section
 
 /-!
 # Projected defect and retained kernel bounds

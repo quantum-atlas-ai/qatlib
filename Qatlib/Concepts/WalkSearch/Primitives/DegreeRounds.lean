@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.Primitives.FiniteMajority
-import Qatlib.Concepts.WalkSearch.Primitives.TriangleSearchCorrectedDefinitions
+module
+
+public import Qatlib.Concepts.WalkSearch.Primitives.FiniteMajority
+public import Qatlib.Concepts.WalkSearch.Primitives.TriangleSearchCorrectedDefinitions
+
+@[expose] public section
 
 /-!
 # Sampling bounds for degree-test rounds

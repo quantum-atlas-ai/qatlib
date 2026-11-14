@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AmpInvReqTang26.TraceConcent.Concentration
-import Qatlib.Papers.AmpInvReqTang26.RootLaws.Lemma23
+module
+
+public import Qatlib.Papers.AmpInvReqTang26.TraceConcent.Concentration
+public import Qatlib.Papers.AmpInvReqTang26.RootLaws.Lemma23
+
+@[expose] public section
 
 /-!
 # Normalized traces distinguish the phase ensembles

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QspSimulation.Achievability.MatrixExponentialApproximation
-import Qatlib.Concepts.QspSimulation.Achievability.TrigApproximation
-import Qatlib.Concepts.QspSimulation.Achievability.RealPolynomial
-import Qatlib.Concepts.QspSimulation.Achievability.RealPartQSVT
+module
+
+public import Qatlib.Concepts.QspSimulation.Achievability.MatrixExponentialApproximation
+public import Qatlib.Concepts.QspSimulation.Achievability.TrigApproximation
+public import Qatlib.Concepts.QspSimulation.Achievability.RealPolynomial
+public import Qatlib.Concepts.QspSimulation.Achievability.RealPartQSVT
+
+@[expose] public section
 
 /-!
 # Hamiltonian simulation from polynomial phases

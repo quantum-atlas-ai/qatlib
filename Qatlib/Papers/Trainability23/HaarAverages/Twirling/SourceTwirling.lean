@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Trainability23.HaarAverages.HaarMeasure
-import Mathlib.Data.Matrix.Mul
-import Mathlib.Data.Complex.Basic
-import Mathlib.LinearAlgebra.Matrix.ConjTranspose
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.Trainability23.HaarAverages.HaarMeasure
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.LinearAlgebra.Matrix.ConjTranspose
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -297,9 +301,9 @@ theorem suppProp4_cross_moment {M : ℕ} (crossMoment : (Fin M → Bool) → ℝ
       = if B = B' then cliffordAvg (fun αc => (1 / 3 : ℝ) ^ (ΔB αc)) else 0 := by
   by_cases h : B = B'
   · subst h
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     exact cliffordAvg_congr fun αc => heq rfl αc
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     unfold cliffordAvg
     rw [Finset.sum_eq_zero fun αc _ => hne h αc, mul_zero]
 
@@ -316,8 +320,8 @@ theorem cliffordAngle_cases {M : ℕ} (αc : Fin M → Bool) (k : Fin M) :
     cliffordAngle αc k = 0 ∨ cliffordAngle αc k = Real.pi / 2 := by
   unfold cliffordAngle
   by_cases h : αc k
-  · exact Or.inr (if_pos h)
-  · exact Or.inl (if_neg h)
+  · exact Or.inr (ite_eq_left h)
+  · exact Or.inl (ite_eq_right h)
 
 /-!
 ## Derivation and scope of the twirling identities

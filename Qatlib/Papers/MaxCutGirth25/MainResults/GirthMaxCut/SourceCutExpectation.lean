@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Real.Basic
-import Mathlib.Combinatorics.SimpleGraph.Girth
-import Mathlib.Combinatorics.SimpleGraph.Finite
-import Mathlib.Combinatorics.SimpleGraph.Clique
-import Mathlib.Combinatorics.SimpleGraph.DegreeSum
+module
+
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Combinatorics.SimpleGraph.Girth
+public import Mathlib.Combinatorics.SimpleGraph.Finite
+public import Mathlib.Combinatorics.SimpleGraph.Clique
+public import Mathlib.Combinatorics.SimpleGraph.DegreeSum
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -154,9 +158,12 @@ theorem expectedCutFraction_le_maxCut_of_has (G : SimpleGraph V) [DecidableRel G
   rw [← hc]
   exact expectedCutFraction_le_maxCutFraction G μ hμ hE
 
+omit [Fintype V] [DecidableEq V] in
 /-- Three-regular graphs have `2 |E| = 3 |V|` (the handshaking identity of
 `SimpleGraph.sum_degrees_eq_twice_card_edges`, p. 9/11 of the paper). -/
-theorem two_mul_edgeCount_eq_three_mul_card
+theorem two_mul_edgeCount_eq_three_mul_card {V : Type*}
+    [_m19inst0 : Fintype V]
+    [_m19inst1 : DecidableEq V]
     (G : SimpleGraph V) [DecidableRel G.Adj] (hreg : G.IsRegularOfDegree 3) :
     2 * edgeCount G = 3 * Fintype.card V := by
   have hsum := SimpleGraph.sum_degrees_eq_twice_card_edges (G := G)

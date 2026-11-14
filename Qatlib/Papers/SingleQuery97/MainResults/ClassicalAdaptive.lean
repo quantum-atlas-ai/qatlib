@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.AdaptiveInfo.ClassicalDefs
-import Mathlib.Analysis.SpecialFunctions.Log.Base
-import Qatlib.Papers.SingleQuery97.MainResults.CoinProgram
+module
+
+public import Qatlib.Concepts.QueryComplexity.AdaptiveInfo.ClassicalDefs
+public import Mathlib.Analysis.SpecialFunctions.Log.Base
+public import Qatlib.Papers.SingleQuery97.MainResults.CoinProgram
+
+@[expose] public section
 
 /-!
 # Adaptive classical query bounds for coin weighing

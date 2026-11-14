@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
+module
+
+public import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
+
+@[expose] public section
 
 /-!
 # Instrument coarse-graining laws
@@ -62,10 +66,10 @@ theorem sum_fiber_compose {α β γ M : Type*} [Fintype α] [Fintype β] [Decida
       = ∑ o' : β, ∑ o : α, (if g o' = q ∧ f o = o' then F o else 0) := by
     refine Finset.sum_congr rfl fun o' _ => ?_
     by_cases h : g o' = q
-    · rw [if_pos h]
+    · rw [ite_eq_left h]
       refine Finset.sum_congr rfl fun o _ => ?_
       simp [h]
-    · rw [if_neg h]
+    · rw [ite_eq_right h]
       symm
       refine Finset.sum_eq_zero fun o _ => ?_
       simp [h]
@@ -80,7 +84,7 @@ theorem sum_fiber_compose {α β γ M : Type*} [Fintype α] [Fintype β] [Decida
           rw [Finset.sum_filter]
           refine Finset.sum_congr rfl fun o' _ => ?_
           by_cases h : g o' = q
-          · simp only [if_pos h]
+          · simp only [ite_eq_left h]
             exact (Finset.sum_filter _ _).symm
           · simp [h]
 
@@ -102,10 +106,10 @@ theorem sum_fiber_pair {α β γ δ M : Type*} [Fintype α] [Fintype β] [Decida
       = ∑ x : α, ∑ y : β, (if u x = a ∧ v y = b then F x y else 0) := by
     refine Finset.sum_congr rfl fun x _ => ?_
     by_cases hx : u x = a
-    · rw [if_pos hx]
+    · rw [ite_eq_left hx]
       refine Finset.sum_congr rfl fun y _ => ?_
       simp [hx]
-    · rw [if_neg hx]
+    · rw [ite_eq_right hx]
       symm
       refine Finset.sum_eq_zero fun y _ => ?_
       simp [hx]
@@ -120,7 +124,7 @@ theorem sum_fiber_pair {α β γ δ M : Type*} [Fintype α] [Fintype β] [Decida
           rw [Finset.sum_filter]
           refine Finset.sum_congr rfl fun x _ => ?_
           by_cases hx : u x = a
-          · simp only [if_pos hx]
+          · simp only [ite_eq_left hx]
             exact (Finset.sum_filter _ _).symm
           · simp [hx]
 

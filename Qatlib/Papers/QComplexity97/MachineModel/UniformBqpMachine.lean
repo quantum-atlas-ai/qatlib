@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QComplexity97.MachineModel.UniformBqpMachineDefs
+module
+
+public import Qatlib.Papers.QComplexity97.MachineModel.UniformBqpMachineDefs
+
+@[expose] public section
 
 /-!
 # Explicit machines for uniform finite gate families
@@ -179,7 +183,7 @@ theorem scan_run (n k : ℕ) (hk : k ≤ n) :
       replicate_headI_of_ne_zero (a := some true) hne
     rw [Qatlib.Concepts.LocalMachine.LocalTransport.UniformBqp.iterStep_succ, ih (by omega)]
     simp only [Turing.TM0.step, echoMachine, Option.bind_some, Echo.val, Fin.val_zero, tapeOf_head,
-      hhead, if_pos, Option.map_some]
+      hhead, ite_eq_left, Option.map_some]
     rw [tapeOf_move_right]
     simp only [hhead]
     have hleft : some true :: List.replicate k (some true) = List.replicate (k + 1) (some true) :=
@@ -309,50 +313,47 @@ def cfgDone (n : ℕ) : Turing.TM0.Cfg (Option Bool) (Fin (10 + 1)) :=
 /-- One step of `echoMachine` takes `cfgScan n` to `cfgWidthBit n`. -/
 theorem step_cfgScan (n : ℕ) :
     Turing.TM0.step echoMachine (cfgScan n) = some (cfgWidthBit n) := by
-  simp [cfgScan, cfgWidthBit, Turing.TM0.step, echoMachine, Echo.val, tapeOf_head,
-    replicate_headI_zero, tapeOf_write]
+  simp [cfgScan, cfgWidthBit, Turing.TM0.step, echoMachine, Echo.val, tapeOf_head, tapeOf_write]
 
 /-- One step of `echoMachine` takes `cfgWidthBit n` to `cfgWidth n`. -/
 theorem step_cfgWidthBit (n : ℕ) :
     Turing.TM0.step echoMachine (cfgWidthBit n) = some (cfgWidth n) := by
-  simp [cfgWidthBit, cfgWidth, Turing.TM0.step, echoMachine, Echo.val, tapeOf_head,
+  simp [cfgWidthBit, cfgWidth, Turing.TM0.step, echoMachine, Echo.val,
     tapeOf_write]
 
 /-- One step of `echoMachine` takes `cfgWidth n` to `cfgWidthStep n`. -/
 theorem step_cfgWidth (n : ℕ) :
     Turing.TM0.step echoMachine (cfgWidth n) = some (cfgWidthStep n) := by
-  simp [cfgWidth, cfgWidthStep, Turing.TM0.step, echoMachine, Echo.val, tapeOf_head,
+  simp [cfgWidth, cfgWidthStep, Turing.TM0.step, echoMachine, Echo.val,
     tapeOf_move_right]
 
 /-- One step of `echoMachine` takes `cfgWidthStep n` to `cfgTerm n`. -/
 theorem step_cfgWidthStep (n : ℕ) :
     Turing.TM0.step echoMachine (cfgWidthStep n) = some (cfgTerm n) := by
-  simp [cfgWidthStep, cfgTerm, Turing.TM0.step, echoMachine, Echo.val, tapeOf_head,
+  simp [cfgWidthStep, cfgTerm, Turing.TM0.step, echoMachine, Echo.val,
     tapeOf_write]
 
 /-- One step of `echoMachine` takes `cfgTerm n` to `cfgTermStep n`. -/
 theorem step_cfgTerm (n : ℕ) :
     Turing.TM0.step echoMachine (cfgTerm n) = some (cfgTermStep n) := by
-  simp [cfgTerm, cfgTermStep, Turing.TM0.step, echoMachine, Echo.val, tapeOf_head,
+  simp [cfgTerm, cfgTermStep, Turing.TM0.step, echoMachine, Echo.val,
     tapeOf_move_right]
 
 /-- One step of `echoMachine` takes `cfgTermStep n` to `cfgGate0 n`. -/
 theorem step_cfgTermStep (n : ℕ) :
     Turing.TM0.step echoMachine (cfgTermStep n) = some (cfgGate0 n) := by
-  simp [cfgTermStep, cfgGate0, Turing.TM0.step, echoMachine, Echo.val, tapeOf_head,
-    tapeOf_move_right]
+  simp [cfgTermStep, cfgGate0, Turing.TM0.step, echoMachine, Echo.val]
 
 /-- One step of `echoMachine` takes `cfgGate0 n` to `cfgGateStep n`. -/
 theorem step_cfgGate0 (n : ℕ) :
     Turing.TM0.step echoMachine (cfgGate0 n) = some (cfgGateStep n) := by
-  simp [cfgGate0, cfgGateStep, Turing.TM0.step, echoMachine, Echo.val, tapeOf_head,
+  simp [cfgGate0, cfgGateStep, Turing.TM0.step, echoMachine, Echo.val,
     tapeOf_write]
 
 /-- One step of `echoMachine` takes `cfgGateStep n` to `cfgGate1 n`. -/
 theorem step_cfgGateStep (n : ℕ) :
     Turing.TM0.step echoMachine (cfgGateStep n) = some (cfgGate1 n) := by
-  simp [cfgGateStep, cfgGate1, Turing.TM0.step, echoMachine, Echo.val, tapeOf_head,
-    tapeOf_move_right]
+  simp [cfgGateStep, cfgGate1, Turing.TM0.step, echoMachine, Echo.val]
 
 /-- One step of `echoMachine` takes `cfgGate1 n` to `cfgRewind1 n`. -/
 theorem step_cfgGate1 (n : ℕ) :
@@ -380,7 +381,7 @@ theorem step_cfgRewind (n j : ℕ) (hj : 3 ≤ j) (hj' : j ≤ n + 2) :
   have hhead : (List.replicate (n + 3 - j) (some true)).headI = some true :=
     replicate_headI_of_ne_zero (a := some true) hne
   simp [cfgRewind, Turing.TM0.step, echoMachine, Echo.val, tapeOf_head, tapeOf_move_left,
-    List.headI_cons, List.tail_cons, List.tail_append]
+    List.headI_cons, List.tail_cons]
   rw [hhead]
   congr 1
   · congr 1
@@ -393,7 +394,7 @@ theorem scan_reaches (n : ℕ) :
     Qatlib.Concepts.LocalMachine.LocalTransport.UniformBqp.iterStep echoMachine (Turing.TM0.init (uniformBqpUnaryInput n)) n
       = some (cfgScan n) := by
   rw [scan_run n n (le_refl n)]
-  simp [cfgScan, Nat.sub_self]
+  simp [cfgScan]
 
 /-- On unary input `n`, iterating `echoMachine` for `n + 1` steps reaches `cfgWidthBit n`. -/
 theorem emit_step1 (n : ℕ) :
@@ -514,7 +515,7 @@ def cfgBack (n : ℕ) : Turing.TM0.Cfg (Option Bool) (Fin (10 + 1)) :=
 theorem step_cfgRewindLast (n : ℕ) :
     Turing.TM0.step echoMachine (cfgRewind n (n + 3)) = some (cfgBlank n) := by
   simp [cfgRewind, cfgBlank, Turing.TM0.step, echoMachine, Echo.val, tapeOf_head,
-    tapeOf_move_left, List.headI_cons, List.tail_cons, List.tail_append]
+    tapeOf_move_left, List.headI_cons, List.tail_cons]
 
 /-- One step of `echoMachine` takes `cfgBlank n` to `cfgBack n`. -/
 theorem step_cfgBlank (n : ℕ) :
@@ -525,7 +526,7 @@ theorem step_cfgBlank (n : ℕ) :
 /-- One step of `echoMachine` takes `cfgBack n` to `cfgDone n`. -/
 theorem step_cfgBack (n : ℕ) :
     Turing.TM0.step echoMachine (cfgBack n) = some (cfgDone n) := by
-  simp [cfgBack, cfgDone, Turing.TM0.step, echoMachine, Echo.val, tapeOf_head,
+  simp [cfgBack, cfgDone, Turing.TM0.step, echoMachine, Echo.val,
     tapeOf_move_right]
 
 /-- Starting at `cfgGate1 n`, the echo machine reaches `cfgRewind n (n + 3)` after `n + 3`
@@ -575,7 +576,7 @@ theorem echoEncoding_eq (n : ℕ) :
     (some true :: (List.replicate n (some true) ++ [some false, some false, some false])).map
         (fun o => o.getD false)
       = encodeUniformBqpWord (n + 1) [echoGate] := by
-  simp [echoEncoding, echoGate, encodeUniformBqpWord, encodeUnaryField,
+  simp [ echoGate, encodeUniformBqpWord, encodeUnaryField,
     encodeFiniteGateCode]
   rw [← replicate_succ' (a := true), List.cons_append]
 
@@ -602,7 +603,7 @@ theorem echo_read (n : ℕ) :
         · simp
         · rcases List.mem_cons.mp ha with rfl | ha
           · simp
-          · rcases List.mem_singleton.mp ha with rfl <;> simp
+          · rcases List.mem_singleton.mp ha with rfl; simp
   simp only [cfgDone]
   rw [tapeOf_right₀]
   simp only [List.headI_cons, List.tail_cons]
@@ -660,7 +661,7 @@ theorem echo_clocked : generatorClocked echoGenerator := by
   refine ⟨14, 1, ?_⟩
   intro n
   refine ⟨2 * n + 14, ?_, echo_halts_at n⟩
-  simp [echoGenerator, uniformBqpTimeBound, uniformBqpPolynomial]
+  simp [ uniformBqpPolynomial]
   omega
 
 /-- The echo generator halts on every unary input, and the encoding length of its totalized
@@ -670,7 +671,7 @@ theorem echo_bitTm_backend : bitTmBackendPremise echoGenerator := by
   refine ⟨4, 1, ?_⟩
   intro n
   have h := echo_generated n
-  simp [uniformBqpGeneratedTotal, h, echoEncoding, encodeUniformBqpWord, encodeUnaryField,
+  simp [uniformBqpGeneratedTotal, h, encodeUniformBqpWord, encodeUnaryField,
     encodeFiniteGateCode, echoGate, uniformBqpPolynomial]
   omega
 
@@ -688,7 +689,7 @@ theorem echo_valid : uniformBqpGeneratorValid echoGenerator := by
     simp [echoGenerator, uniformBqpSpaceBound, uniformBqpPolynomial]
   have henc : (encodeUniformBqpWord (n + 1) [echoGate]).length
       ≤ n + uniformBqpTimeBound echoGenerator n := by
-    simp [echoGenerator, uniformBqpTimeBound, uniformBqpPolynomial, echoEncoding,
+    simp [echoGenerator, uniformBqpTimeBound, uniformBqpPolynomial,
       encodeUniformBqpWord, encodeUnaryField, encodeFiniteGateCode, echoGate]
     omega
   exact ⟨n + 1, [echoGate], hgen, ⟨2 * n + 14, htime, echo_halts_at n⟩, echo_word_legal n,
@@ -703,23 +704,23 @@ theorem echo_unidirectional : tm0Unidirectional echoMachine := by
   interval_cases v
   · simp only [echoMachine, Echo.val] at har hbs
     by_cases ha : a = some true
-    · simp only [ha, if_true] at har
+    · simp only [ha, ite_true] at har
       cases har
       by_cases hb : b = some true
-      · simp only [hb, if_true] at hbs
+      · simp only [hb, ite_true] at hbs
         cases hbs
         rfl
       · by_cases hb0 : b = none
-        · simp only [hb, hb0, if_false, if_true] at hbs
+        · simp only [ hb0, ite_true] at hbs
           cases hbs
           simp at hms
-        · simp only [hb, hb0, if_false, if_false] at hbs
+        · simp only [hb, hb0, ite_false, ite_false] at hbs
           simp at hbs
     · by_cases ha0 : a = none
-      · simp only [ha, ha0, if_false, if_true] at har
+      · simp only [ ha0, ite_true] at har
         cases har
         simp at hmr
-      · simp only [ha, ha0, if_false, if_false] at har
+      · simp only [ha, ha0, ite_false, ite_false] at har
         simp at har
   · simp only [echoMachine, Echo.val] at har
     cases har
@@ -747,23 +748,23 @@ theorem echo_unidirectional : tm0Unidirectional echoMachine := by
     simp at hmr
   · simp only [echoMachine, Echo.val] at har hbs
     by_cases ha : a = none
-    · simp only [ha, if_true] at har
+    · simp only [ha, ite_true] at har
       cases har
       simp at hmr
-    · simp only [ha, if_false] at har
+    · simp only [ha, ite_false] at har
       cases har
       by_cases hb : b = none
-      · simp only [hb, if_true] at hbs
+      · simp only [hb, ite_true] at hbs
         cases hbs
         simp at hms
-      · simp only [hb, if_false] at hbs
+      · simp only [hb, ite_false] at hbs
         cases hbs
         rfl
   · simp only [echoMachine, Echo.val] at har hbs
     cases har
     cases hbs
     rfl
-  · simp only [echoMachine, Echo.val] at har
+  · simp only [echoMachine] at har
     simp at har
 
 /-- The echo generator satisfies `generatorNormalForm`, the unidirectionality condition on its
@@ -810,7 +811,8 @@ theorem hadamard_finiteDigit (a b : Bool) :
   by_cases ha : a = true <;> by_cases hb : b = true <;>
     simp only [Hadamard, Matrix.of_apply, ha, hb, Bool.false_and, Bool.true_and,
       ite_true, inv_sqrt2_half] <;>
-    simp [finiteDigitVal] <;> ring
+    simp [finiteDigitVal]
+  all_goals ring
 
 /-- The finite-digit amplitude with real numerator `1` when `b = !a` and `0` otherwise, zero
 imaginary numerator, and no square-root or denominator factor equals `PauliX a b`. -/
@@ -836,14 +838,10 @@ theorem exp_pi_div_four : Complex.exp (((Real.pi / 4 : ℝ) : ℂ) * Complex.I)
     = ((Real.sqrt 2 / 2 : ℝ) : ℂ) * (1 + Complex.I) := by
   apply Complex.ext
   · rw [Complex.exp_re]
-    simp only [Complex.mul_re, Complex.mul_im, Complex.ofReal_re, Complex.ofReal_im,
-      Complex.one_re, Complex.one_im, Complex.zero_re, Complex.zero_im, Real.exp_zero,
-      Real.cos_pi_div_four]
+    simp only [Complex.mul_re, Complex.mul_im, Complex.ofReal_re, Complex.ofReal_im]
     norm_num
   · rw [Complex.exp_im]
-    simp only [Complex.mul_re, Complex.mul_im, Complex.ofReal_re, Complex.ofReal_im,
-      Complex.one_re, Complex.one_im, Complex.zero_re, Complex.zero_im, Real.exp_zero,
-      Real.sin_pi_div_four]
+    simp only [Complex.mul_re, Complex.mul_im, Complex.ofReal_re, Complex.ofReal_im]
     norm_num
 
 /-- The complex exponential of `I * (-(pi / 4))` equals `(Real.sqrt 2 / 2) * (1 - I)`. -/
@@ -851,14 +849,10 @@ theorem exp_neg_pi_div_four : Complex.exp (((-(Real.pi / 4) : ℝ) : ℂ) * Comp
     = ((Real.sqrt 2 / 2 : ℝ) : ℂ) * (1 - Complex.I) := by
   apply Complex.ext
   · rw [Complex.exp_re]
-    simp only [Complex.mul_re, Complex.mul_im, Complex.ofReal_re, Complex.ofReal_im,
-      Complex.neg_re, Complex.neg_im, Complex.one_re, Complex.one_im, Complex.zero_re,
-      Complex.zero_im, Real.exp_zero, Real.cos_neg, Real.cos_pi_div_four]
+    simp only [Complex.mul_re, Complex.mul_im, Complex.ofReal_re, Complex.ofReal_im]
     norm_num
   · rw [Complex.exp_im]
-    simp only [Complex.mul_re, Complex.mul_im, Complex.ofReal_re, Complex.ofReal_im,
-      Complex.neg_re, Complex.neg_im, Complex.one_re, Complex.one_im, Complex.zero_re,
-      Complex.zero_im, Real.exp_zero, Real.sin_neg, Real.sin_pi_div_four]
+    simp only [Complex.mul_re, Complex.mul_im, Complex.ofReal_re, Complex.ofReal_im]
     norm_num
 
 /-- Dividing the complex embedding of `Real.sqrt 2` by the embedded natural number two equals
@@ -917,53 +911,53 @@ theorem fixedGate_finiteDigit {n : ℕ} (g : FiniteGateCode)
   cases g with
   | h w =>
     have hw : w < n := by simpa [finiteCodeLegal] using! hg
-    simp only [finiteCodeMatrix, dif_pos hw]
+    simp only [finiteCodeMatrix, dite_eq_left hw]
     rw [wireGate_apply]
     by_cases hsame : ∀ k : Fin n, k ≠ (⟨w, hw⟩ : Fin n) → i k = j k
     case pos =>
-      simp only [if_pos hsame]
+      simp only [ite_eq_left hsame]
       refine ⟨⟨(if i ⟨w, hw⟩ && j ⟨w, hw⟩ then -1 else 1 : ℤ), 0, true, 1⟩, ?_⟩
       rw [hadamard_finiteDigit]
     case neg =>
-      exact ⟨⟨0, 0, false, 0⟩, by simp [if_neg hsame, finiteDigitVal]⟩
+      exact ⟨⟨0, 0, false, 0⟩, by simp [ite_eq_right hsame, finiteDigitVal]⟩
   | x w =>
     have hw : w < n := by simpa [finiteCodeLegal] using! hg
-    simp only [finiteCodeMatrix, dif_pos hw]
+    simp only [finiteCodeMatrix, dite_eq_left hw]
     rw [wireGate_apply]
     by_cases hsame : ∀ k : Fin n, k ≠ (⟨w, hw⟩ : Fin n) → i k = j k
     case pos =>
-      simp only [if_pos hsame]
+      simp only [ite_eq_left hsame]
       refine ⟨⟨(if j ⟨w, hw⟩ = !i ⟨w, hw⟩ then 1 else 0 : ℤ), 0, false, 0⟩, ?_⟩
       rw [pauliX_finiteDigit]
     case neg =>
-      exact ⟨⟨0, 0, false, 0⟩, by simp [if_neg hsame, finiteDigitVal]⟩
+      exact ⟨⟨0, 0, false, 0⟩, by simp [ite_eq_right hsame, finiteDigitVal]⟩
   | t w =>
     have hw : w < n := by simpa [finiteCodeLegal] using! hg
-    simp only [finiteCodeMatrix, dif_pos hw]
+    simp only [finiteCodeMatrix, dite_eq_left hw]
     rw [wireGate_apply]
     by_cases hsame : ∀ k : Fin n, k ≠ (⟨w, hw⟩ : Fin n) → i k = j k
     case pos =>
-      simp only [if_pos hsame]
+      simp only [ite_eq_left hsame]
       exact ⟨(tGate_finiteDigit (i ⟨w, hw⟩) (j ⟨w, hw⟩)).choose,
         (tGate_finiteDigit (i ⟨w, hw⟩) (j ⟨w,hw⟩)).choose_spec⟩
     case neg =>
-      exact ⟨⟨0, 0, false, 0⟩, by simp [if_neg hsame, finiteDigitVal]⟩
+      exact ⟨⟨0, 0, false, 0⟩, by simp [ite_eq_right hsame, finiteDigitVal]⟩
   | tdg w =>
     have hw : w < n := by simpa [finiteCodeLegal] using! hg
-    simp only [finiteCodeMatrix, dif_pos hw]
+    simp only [finiteCodeMatrix, dite_eq_left hw]
     rw [wireGate_apply]
     by_cases hsame : ∀ k : Fin n, k ≠ (⟨w, hw⟩ : Fin n) → i k = j k
     case pos =>
-      simp only [if_pos hsame]
+      simp only [ite_eq_left hsame]
       exact ⟨(tGateAdj_finiteDigit (i ⟨w, hw⟩) (j ⟨w, hw⟩)).choose,
         (tGateAdj_finiteDigit (i ⟨w, hw⟩) (j ⟨w,hw⟩)).choose_spec⟩
     case neg =>
-      exact ⟨⟨0, 0, false, 0⟩, by simp [if_neg hsame, finiteDigitVal]⟩
+      exact ⟨⟨0, 0, false, 0⟩, by simp [ite_eq_right hsame, finiteDigitVal]⟩
   | cx c t =>
     have hct : c < n ∧ t < n ∧ c ≠ t := by simpa [finiteCodeLegal] using! hg
     obtain ⟨hc, ht, hne⟩ := hct
     have hct' : c < n ∧ t < n ∧ c ≠ t := ⟨hc, ht, hne⟩
-    simp only [finiteCodeMatrix, dif_pos hct']
+    simp only [finiteCodeMatrix, dite_eq_left hct']
     refine ⟨⟨(if i = Function.update j ⟨t, ht⟩ (j ⟨t, ht⟩ ^^ j ⟨c, hc⟩) then 1 else 0 : ℤ),
       0, false, 0⟩, ?_⟩
     rw [cnot_finiteDigit]
@@ -1128,7 +1122,7 @@ theorem genStep (P : GateProgram) (c : PControl P) (tape : Tape (Option Bool)) :
               (Fin (genControlSize P.gateCount (P.bitCount + 2) + 1)))) := by
   have hlt : (genVal P c).val < genControlSize P.gateCount (P.bitCount + 2) := by
     have h := (genEncode P.gateCount (P.bitCount + 2) c).isLt
-    simpa [genVal] using! h
+    simp [genVal]
   have hdec : genDecode P.gateCount (P.bitCount + 2) ⟨(genVal P c).val, hlt⟩ = c := by
     have hval : (genVal P c).val = (genEncode P.gateCount (P.bitCount + 2) c).val := by
       simp [genVal]
@@ -1138,17 +1132,13 @@ theorem genStep (P : GateProgram) (c : PControl P) (tape : Tape (Option Bool)) :
       exact hval
     rw [hfin, genDecode_encode]
   unfold Turing.TM0.step
-  simp only [genMachine, dif_pos hlt]
+  simp only [genMachine, dite_eq_left hlt]
   rw [hdec]
   cases hstep : genStepCore P c tape.head with
-  | none => simp [hstep]
+  | none => simp
   | some p =>
-    simp only [hstep, Option.map_some, genVal]
-    first
-    | rfl
-    | (cases p.2 <;> rfl)
-    | (congr 1 <;> rfl)
-    | simp
+    simp only [Option.map_some, genVal]
+    cases p.2 <;> rfl
 
 /-- Encoding a core configuration commutes with one generator step, leaving the tape unchanged
 by the encoding map. -/
@@ -1182,11 +1172,7 @@ theorem genStep_transport (P : GateProgram)
     congr 1
     funext p
     simp only [Function.comp_apply]
-    first
-    | rfl
-    | (cases p.2 <;> rfl)
-    | (congr 1 <;> rfl)
-    | simp
+    cases p.2 <;> rfl
   rw [h1, h2]
 
 /-- Mapping the result of an optional computation commutes with binding its input option. -/
@@ -1219,7 +1205,7 @@ theorem genCoreIter_transfer (P : GateProgram)
 
 /-- The scan control with counter `min k P.gateCount` and bit index zero. The parameter `n` does
 not affect this control. -/
-def genCtrlScan (P : GateProgram) (n k : ℕ) : PControl P :=
+def genCtrlScan (P : GateProgram) (_n k : ℕ) : PControl P :=
   ⟨.scan, ⟨min k P.gateCount, by omega⟩, ⟨0, by omega⟩⟩
 
 /-- The initial core-generator configuration, with scan counter zero and a tape containing `n`
@@ -1322,7 +1308,7 @@ def genCfgRewind (P : GateProgram) (n : ℕ) (l : List (Option Bool))
 
 /-- The rewind configuration with the encoded bit at index `j` under the head and `genEmitLeft P
 n j` to the left. -/
-def genCfgRewindStart (P : GateProgram) (n : ℕ) (j : ℕ) (hj : j < genBitCount P n) :
+def genCfgRewindStart (P : GateProgram) (n : ℕ) (j : ℕ) (_hj : j < genBitCount P n) :
     Turing.TM0.Cfg (Option Bool) (PControl P) :=
   ⟨⟨.rewind, ⟨min n P.gateCount, by omega⟩, ⟨0, by omega⟩⟩,
     tapeOf (genEmitLeft P n j) ((genBits P n).getD j false :: [])⟩
@@ -1360,7 +1346,7 @@ theorem genStepRaw (P : GateProgram) (c : PControl P) (a : Option Bool) :
       = (genStepCore P c a).map (fun p => (genVal P p.1, p.2)) := by
   have hlt : (genVal P c).val < genControlSize P.gateCount (P.bitCount + 2) := by
     have h := (genEncode P.gateCount (P.bitCount + 2) c).isLt
-    simpa [genVal] using! h
+    simp [genVal]
   have hdec : genDecode P.gateCount (P.bitCount + 2) ⟨(genVal P c).val, hlt⟩ = c := by
     have hval : (genVal P c).val = (genEncode P.gateCount (P.bitCount + 2) c).val := by
       simp [genVal]
@@ -1370,12 +1356,9 @@ theorem genStepRaw (P : GateProgram) (c : PControl P) (a : Option Bool) :
       exact hval
     rw [hfin, genDecode_encode]
   unfold genMachine
-  simp only [dif_pos hlt]
+  simp only [dite_eq_left hlt]
   rw [hdec]
-  first
-  | rfl
-  | (cases _ <;> rfl)
-  | simp
+  rfl
 
 /-- Any two successful core transitions from the same control that both issue moves have equal
 move instructions, regardless of the scanned symbols. -/
@@ -1392,23 +1375,23 @@ theorem gen_core_unidirectional (P : GateProgram) :
   | scan =>
       intro a b pa pb ha1 hb1 hpa hpb
       by_cases ha : a = some true
-      · simp only [genStepCore, ha, if_true] at ha1
+      · simp only [genStepCore, ha, ite_true] at ha1
         cases ha1
         by_cases hb : b = some true
-        · simp only [genStepCore, hb, if_true] at hb1
+        · simp only [genStepCore, hb, ite_true] at hb1
           cases hb1
           rfl
         · by_cases hb0 : b = none
-          · simp only [genStepCore, hb, hb0, if_false, if_true] at hb1
+          · simp only [genStepCore, hb0, ite_true] at hb1
             cases hb1
             simp at hpb
-          · simp only [genStepCore, hb, hb0, if_false, if_false] at hb1
+          · simp only [genStepCore, hb, hb0, ite_false, ite_false] at hb1
             simp at hb1
       · by_cases ha0 : a = none
-        · simp only [genStepCore, ha, ha0, if_false, if_true] at ha1
+        · simp only [genStepCore, ha0, ite_true] at ha1
           cases ha1
           simp at hpa
-        · simp only [genStepCore, ha, ha0, if_false, if_false] at ha1
+        · simp only [genStepCore, ha, ha0, ite_false, ite_false] at ha1
           simp at ha1
   | mark =>
       intro a b pa pb ha1 hb1 hpa hpb
@@ -1424,44 +1407,44 @@ theorem gen_core_unidirectional (P : GateProgram) :
   | afterTerm =>
       intro a b pa pb ha1 hb1 hpa hpb
       by_cases hk : P.prefixBitCount cnt.val = 0
-      · simp only [genStepCore, hk, if_true, if_false] at ha1 hb1
+      · simp only [genStepCore, hk, ite_true] at ha1 hb1
         cases ha1
         simp at hpa
-      · simp only [genStepCore, hk, if_false] at ha1 hb1
+      · simp only [genStepCore, hk, ite_false] at ha1 hb1
         cases ha1
         cases hb1
         rfl
   | emitWrite =>
       intro a b pa pb ha1 hb1 hpa hpb
       by_cases hk : idx.val < P.prefixBitCount cnt.val
-      · simp only [genStepCore, hk, if_true, if_false] at ha1 hb1
+      · simp only [genStepCore, hk] at ha1 hb1
         cases ha1
         simp at hpa
-      · simp only [genStepCore, hk, if_false] at ha1 hb1
+      · simp only [genStepCore, hk] at ha1 hb1
         cases ha1
         simp at hpa
   | emitAdvance =>
       intro a b pa pb ha1 hb1 hpa hpb
       by_cases hk : idx.val + 1 < P.prefixBitCount cnt.val
-      · simp only [genStepCore, hk, if_true, if_false] at ha1 hb1
+      · simp only [genStepCore, hk] at ha1 hb1
         cases ha1
         cases hb1
         rfl
-      · simp only [genStepCore, hk, if_false] at ha1 hb1
+      · simp only [genStepCore, hk] at ha1 hb1
         cases ha1
         simp at hpa
   | rewind =>
       intro a b pa pb ha1 hb1 hpa hpb
       by_cases ha : a = none
-      · simp only [genStepCore, ha, if_true] at ha1
+      · simp only [genStepCore, ha, ite_true] at ha1
         cases ha1
         simp at hpa
-      · simp only [genStepCore, ha, if_false] at ha1
+      · simp only [genStepCore, ha, ite_false] at ha1
         by_cases hb : b = none
-        · simp only [genStepCore, hb, if_true] at hb1
+        · simp only [genStepCore, hb, ite_true] at hb1
           cases hb1
           simp at hpb
-        · simp only [genStepCore, hb, if_false] at hb1
+        · simp only [genStepCore, hb, ite_false] at hb1
           cases ha1
           cases hb1
           rfl
@@ -1485,7 +1468,7 @@ theorem genStepDecoded (P : GateProgram)
       = (genStepCore P (genDecode P.gateCount (P.bitCount + 2) ⟨q.val, hlt⟩) a).map
         (fun p => (Fin.castSucc (genEncode P.gateCount (P.bitCount + 2) p.1), p.2)) := by
   unfold genMachine
-  simp only [dif_pos hlt]
+  simp only [dite_eq_left hlt]
 
 /-- The encoded generator is unidirectional: move transitions from a fixed control state have
 the same direction for all scanned symbols. -/
@@ -1543,9 +1526,9 @@ theorem genStepCore_step (P : GateProgram) (c : PControl P) (tape : Tape (Option
   unfold Turing.TM0.step
   simp only [genCoreMachine]
   cases h : genStepCore P c tape.head with
-  | none => simp [h]
+  | none => simp
   | some p =>
-    simp only [h, Option.map_some]
+    simp only [ Option.map_some]
     cases p.2 <;> rfl
 
 /-- If core iteration reaches `c'` after `a` steps, iteration for `a + b` steps equals iteration
@@ -1686,7 +1669,7 @@ theorem reverse_take_succ_getD (l : List Bool) (j : ℕ) (hj : j < l.length) :
       have hj' : j < t.length := by simpa using! hj
       simp only [List.take_succ_cons, List.getD_cons_succ]
       rw [List.reverse_cons, ih j hj']
-      simp only [List.reverse_cons, List.append_assoc, List.cons_append, List.nil_append]
+      simp only [List.reverse_cons, List.cons_append]
 
 /-- Reversing a list of `n` copies of one element leaves it unchanged. -/
 theorem replicate_reverse {α : Type} (n : ℕ) (a : α) :
@@ -1713,11 +1696,9 @@ theorem cappedSucc_scan {L S : ℕ} (k : ℕ) :
   simp only [GenControl.cappedSucc]
   by_cases hk : k < L
   · rw [Nat.min_eq_left (by omega), Nat.min_eq_left (by omega)]
-    congr 1
     omega
   · have hle : L ≤ k := by omega
     rw [Nat.min_eq_right hle, Nat.min_eq_right (by omega)]
-    congr 1
     omega
 
 /-- Before the end of the unary input, one core step advances the scan configuration from
@@ -1742,14 +1723,12 @@ theorem genStep_scan (P : GateProgram) (n k : ℕ) (hk : k < n) :
         = List.replicate (n - (k + 1)) (some true) := by
       rw [replicate_tail_of_ne_zero (a := some true) hne]
       congr 1
-      all_goals omega
     rw [hleft, hright]
   rw [genStepCore_step]
   simp only [genCfgScan, genCtrlScan, tapeOf_head, hhead]
   rw [genStepCore_scan P ⟨min k P.gateCount, min_lt_succ k P.gateCount⟩ ⟨0, by omega⟩]
   simp only [Option.map_some]
   rw [hctrl, htape]
-  all_goals rfl
 
 /-- For `k ≤ n`, exactly `k` core steps from the initial configuration reach `genCfgScan P n k`. -/
 theorem genScan_run (P : GateProgram) (n k : ℕ) (hk : k ≤ n) :
@@ -1764,7 +1743,6 @@ theorem genScan_run (P : GateProgram) (n k : ℕ) (hk : k ≤ n) :
     rw [genCoreIter_succ, ih (by omega)]
     simp only [Option.bind_some]
     rw [genStep_scan P n k hk']
-    all_goals rfl
 
 /-- At the end of the unary input, one core step changes the scan configuration into the mark
 configuration. -/
@@ -1831,7 +1809,7 @@ theorem genStep_afterTerm (P : GateProgram) (n : ℕ) (hm : 0 < genBitCount P n)
     show 0 < genBitCount P n
     exact hm
   rw [genStepCore_step]
-  simp only [genCfgAfterTerm, genCtrlScan, tapeOf_head, replicate_headI_zero]
+  simp only [genCfgAfterTerm, tapeOf_head]
   rw [genStepCore_afterTerm P ⟨min n P.gateCount, min_lt_succ n P.gateCount⟩ ⟨0, by omega⟩ _
     hcount]
   simp only [Option.map_some]
@@ -1881,9 +1859,8 @@ theorem genStep_adv (P : GateProgram) (n j : ℕ) (hj : j + 1 < genBitCount P n)
   simp only [Option.map_some]
   rw [tapeOf_move_right]
   simp only [List.headI_cons, List.tail_cons]
-  simp only [genCfgWrite, tapeOf_head, List.headI_nil, default_optionBool]
+  simp only [genCfgWrite]
   rw [genEmitLeft_succ P n j (by omega)]
-  all_goals rfl
 
 /-- When `j` is the last encoded bit index, one core step from its advance configuration reaches
 the corresponding rewind-start configuration. -/
@@ -1917,7 +1894,6 @@ theorem genEmit_run (P : GateProgram) (n j : ℕ) (hj : j < genBitCount P n) :
     rw [genCoreIter_succ, genCoreIter_zero]
     simp only [Option.bind_some]
     rw [genStep_write P n 0 (by omega)]
-    all_goals rfl
   | succ j ih =>
     have hj' : j + 1 < genBitCount P n := by omega
     rw [show 2 * (j + 1) + 1 = (2 * j + 1) + 2 by omega]
@@ -1927,7 +1903,6 @@ theorem genEmit_run (P : GateProgram) (n j : ℕ) (hj : j < genBitCount P n) :
     rw [genStep_adv P n j (by omega)]
     simp only [Option.bind_some]
     rw [genStep_write P n (j + 1) hj']
-    all_goals rfl
 
 /-- A nonempty list of optional Boolean symbols is reconstructed by placing its default head
 before its tail. -/
@@ -1950,7 +1925,7 @@ theorem genStep_rewind_left (P : GateProgram) (n : ℕ) (l : List (Option Bool))
       simp only [List.headI_cons]
       exact hne a (by simp [hr'])
   rw [genStepCore_step]
-  simp only [genCfgRewind, tapeOf_head, hhead]
+  simp only [genCfgRewind, tapeOf_head]
   rw [genStepCore_rewind P ⟨min n P.gateCount, min_lt_succ n P.gateCount⟩ ⟨0, by omega⟩ r.headI hhead]
   simp only [Option.map_some]
   rw [tapeOf_move_left]
@@ -2011,7 +1986,7 @@ theorem genStep_back (P : GateProgram) (n : ℕ) :
 theorem genStep_done (P : GateProgram) (n : ℕ) :
     Turing.TM0.step (genCoreMachine P) (genCfgDone P n) = none := by
   rw [genStepCore_step]
-  simp only [genCfgDone, tapeOf_head, List.headI_cons]
+  simp only [genCfgDone, tapeOf_head]
   rw [genStepCore]
   rfl
 
@@ -2056,7 +2031,7 @@ theorem genStep_afterTerm_empty (P : GateProgram) (n : ℕ) (hm : genBitCount P 
     show genBitCount P n = 0
     exact hm
   rw [genStepCore_step]
-  simp only [genCfgAfterTerm, genCtrlScan, tapeOf_head, List.headI_cons]
+  simp only [genCfgAfterTerm, tapeOf_head, List.headI_cons]
   rw [genStepCore_afterTerm_empty P ⟨min n P.gateCount, min_lt_succ n P.gateCount⟩
     ⟨0, by omega⟩ _ hcount]
   simp only [Option.map_some]

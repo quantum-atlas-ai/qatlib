@@ -4,20 +4,24 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDefs
-import Qatlib.Concepts.SchattenDiamond.DiamondNorm.FiniteDiamondNorm
-import Qatlib.Concepts.RawChannelWord.CptpWordBound.RawChannelWord
-import Qatlib.Concepts.BitWordCompiler.CanonicalCodec.BitWordCompiler
-import Mathlib.Data.List.TakeDrop
-import Mathlib.Analysis.Calculus.MeanValue
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.NormNum
-import Mathlib.Order.Basic
-import Mathlib.Algebra.Order.Field.Basic
-import Mathlib.Algebra.Order.Ring.Abs
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDefs
+public import Qatlib.Concepts.SchattenDiamond.DiamondNorm.FiniteDiamondNorm
+public import Qatlib.Concepts.RawChannelWord.CptpWordBound.RawChannelWord
+public import Qatlib.Concepts.BitWordCompiler.CanonicalCodec.BitWordCompiler
+public import Mathlib.Data.List.TakeDrop
+public import Mathlib.Analysis.Calculus.MeanValue
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Order.Basic
+public import Mathlib.Algebra.Order.Field.Basic
+public import Mathlib.Algebra.Order.Ring.Abs
+
+@[expose] public section
 
 /-!
 # Finite-precision arithmetic and machine constructions
@@ -1180,7 +1184,6 @@ theorem clause1_v2_div_lift : Clause1V2DivLift := by
       (by exact_mod_cast hgap.1 : (0:ℝ) < gap) hgap.2 hbge ea eb hcondR
     have hunit : (unit (p + s) : ℝ) * ((2:ℝ) ^ s) = (unit p : ℝ) := by
       have hus := unit_succ_split p s
-      push_cast at hus
       exact hus
     have hbound : |(Nx.approx (p + s) / Ny.approx (p + s) : ℝ) - x / y|
         ≤ (unit p : ℝ) := by
@@ -2227,9 +2230,9 @@ theorem inc_return (left right : Bits) :
   induction left generalizing right with
   | nil =>
     apply SourceTrace.one
-    · simp only [TM1.step,incProgram,show (1 : Fin 2)≠0 by decide,if_false,TM1.stepAux]
+    · simp only [TM1.step,incProgram,show (1 : Fin 2)≠0 by decide,ite_false,TM1.stepAux]
       rw [show ((Tape.mk₂ ([].map some) (right.map some)).move .left).head=none by rfl]
-      simp only [Option.isSome_none,cond_false,Tape.move_left_right,
+      simp only [Option.isSome_none,Bool.cond_false,Tape.move_left_right,
         List.reverse_nil,List.nil_append,List.map_nil,Tape.mk₁]
     · simp [incProgram,Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.stmtShift,
         Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.stmtOffset,Tape.mk₂,Tape.move_left_mk',
@@ -2238,7 +2241,7 @@ theorem inc_return (left right : Bits) :
     have ht := (ih (b::right)).prepend (l := (1 : Fin 2))
       (tape := Tape.mk₂ ((b::left).map some) (right.map some))
       (by
-        simp only [TM1.step,incProgram,show (1 : Fin 2)≠0 by decide,if_false,TM1.stepAux]
+        simp only [TM1.step,incProgram,show (1 : Fin 2)≠0 by decide,ite_false,TM1.stepAux]
         have hm : (Tape.mk₂ ((b::left).map some) (right.map some)).move .left =
             Tape.mk₂ (left.map some) ((b::right).map some) := by
           simp [Tape.mk₂,Tape.move_left_mk',ListBlank.cons_mk]
@@ -2537,8 +2540,8 @@ theorem dec_positive (acc cnt : Bits) (v : Counter.Local) (hp : 0 < binaryValue 
     (cntFrame acc) (cntFrame_at acc) (cntFrame_update acc) (fun _ _ => by rfl) (fun _ _ _ => rfl)
     Counter.program addProgram (fun _ => rfl) v ticks _ _ hr
   simp only [StackCall.cfg, Option.map_some, Option.getD_some, Option.map_none,
-    Option.getD_none, id_eq, Stacks.stackPair_zero, Stacks.stackPair_one, fullStore,
-    cntFrame] at hN hNC
+    Option.getD_none
+    ] at hN hNC
   exact ⟨ticks, next, hlen, hval, hN, hNC.trans_le hc⟩
 
 /-- A zero-valued counter becomes an all-ones word of the same length and reaches the branch
@@ -2555,8 +2558,8 @@ theorem dec_zero (acc cnt : Bits) (v : Counter.Local) (hz : binaryValue cnt = 0)
     (cntFrame acc) (cntFrame_at acc) (cntFrame_update acc) (fun _ _ => by rfl) (fun _ _ _ => rfl)
     Counter.program addProgram (fun _ => rfl) v (2*cnt.length+2) _ _ hr
   simp only [StackCall.cfg, Option.map_some, Option.getD_some, Option.map_none,
-    Option.getD_none, id_eq, Stacks.stackPair_zero, Stacks.stackPair_one, fullStore,
-    cntFrame] at hN hNC
+    Option.getD_none
+    ] at hN hNC
   exact ⟨hN, hNC.trans_le hc⟩
 
 /-- The addition-loop branch selects accumulator increment when the flag is true and the done
@@ -2570,8 +2573,7 @@ theorem branch_step (v : Counter.Local) (acc cnt : Bits) :
 theorem branch_clock (v : Counter.Local) (acc cnt : Bits) :
     Stacks.stackRunClock addProgram 1 ⟨some .branch, v, fullStore acc cnt⟩ ≤ 2 := by
   rcases hv : v.1 with _ | _ <;>
-    simp [Stacks.stackRunClock, Stacks.stackRun, addProgram, TM2.step, Stacks.stackClock, hv] <;>
-    omega
+    simp [Stacks.stackRunClock, addProgram, TM2.step, Stacks.stackClock, hv]
 
 /-- The addition-loop done label halts in one step without changing the local state or stacks. -/
 theorem halt_run (v : Counter.Local) (acc cnt : Bits) :
@@ -2582,7 +2584,7 @@ theorem halt_run (v : Counter.Local) (acc cnt : Bits) :
 /-- One step at the addition-loop done label has clock at most one. -/
 theorem halt_clock (v : Counter.Local) (acc cnt : Bits) :
     Stacks.stackRunClock addProgram 1 ⟨some .done, v, fullStore acc cnt⟩ ≤ 1 := by
-  simp [Stacks.stackRunClock, Stacks.stackRun, addProgram, TM2.step, Stacks.stackClock]
+  simp [Stacks.stackRunClock,  addProgram, TM2.step, Stacks.stackClock]
 
 /-- The accumulator increment subroutine returns to counter decrement with the counter and
 Boolean flag preserved, using clock at most `50 * (1 + acc.length) ^ 2`. -/
@@ -2598,8 +2600,8 @@ theorem inc_call (acc cnt : Bits) (b : Bool) :
     (accFrame cnt) (accFrame_at cnt) (accFrame_update cnt) (fun _ _ => by rfl) (fun _ _ _ => rfl)
     Increment.program addProgram (fun _ => rfl) (b, none) ticks _ _ hr
   simp only [StackCall.cfg, Option.map_some, Option.getD_some, Option.map_none,
-    Option.getD_none, Stacks.stackPair_zero, Stacks.stackPair_one, List.reverse_nil,
-    List.nil_append, fullStore_eq, accFrame] at hN hNC
+    Option.getD_none,   List.reverse_nil,
+    List.nil_append] at hN hNC
   exact ⟨ticks, hN, hNC.trans_le hc⟩
 
 /-- Starting with counter value `n`, the addition loop halts with the accumulator incremented
@@ -2776,72 +2778,72 @@ def readFrame (S : Fin 2 → Bits) : PSlot → Bits :=
   pstore (S 0) (S 1) [] [] [] [] []
 /-- Evaluating `readFrame` at a slot selected by `readCode` recovers the corresponding transfer
 stack. -/
-def readFrame_at (S : Fin 2 → Bits) (k : Fin 2) : readFrame S (readCode k) = S k := by
+theorem readFrame_at (S : Fin 2 → Bits) (k : Fin 2) : readFrame S (readCode k) = S k := by
   fin_cases k <;> simp [readFrame, readCode, pstore]
 /-- Updating an input-transfer stack commutes with embedding it through `readFrame`. -/
-def readFrame_update (S : Fin 2 → Bits) (k : Fin 2) (bits : Bits) :
+theorem readFrame_update (S : Fin 2 → Bits) (k : Fin 2) (bits : Bits) :
     readFrame (Function.update S k bits) = Function.update (readFrame S) (readCode k) bits := by
   funext j
-  fin_cases k <;> cases j <;> simp [readFrame, readCode, pstore, Function.update_apply]
+  fin_cases k <;> cases j <;> simp [readFrame, readCode, pstore]
 /-- Embeds the natural-number parser's three stacks into the framed-parser store with the
 specified background stacks. -/
-def natFrame (raw spare acc1 acc : Bits) (S : Fin 3 → Bits) : PSlot → Bits :=
+def natFrame (raw _spare acc1 acc : Bits) (S : Fin 3 → Bits) : PSlot → Bits :=
   pstore raw (S 0) (S 2) [] (S 1) acc1 acc
 /-- Evaluating `natFrame` at a slot selected by `natCode` recovers the corresponding
 natural-number parser stack. -/
-def natFrame_at (raw spare acc1 acc : Bits) (S : Fin 3 → Bits) (k : Fin 3) :
+theorem natFrame_at (raw spare acc1 acc : Bits) (S : Fin 3 → Bits) (k : Fin 3) :
     natFrame raw spare acc1 acc S (natCode k) = S k := by
   fin_cases k <;> simp [natFrame, natCode, pstore]
 /-- Updating a natural-number parser stack commutes with embedding it through `natFrame`. -/
-def natFrame_update (raw spare acc1 acc : Bits) (S : Fin 3 → Bits) (k : Fin 3) (bits : Bits) :
+theorem natFrame_update (raw spare acc1 acc : Bits) (S : Fin 3 → Bits) (k : Fin 3) (bits : Bits) :
     natFrame raw spare acc1 acc (Function.update S k bits)
       = Function.update (natFrame raw spare acc1 acc S) (natCode k) bits := by
   funext j
-  fin_cases k <;> cases j <;> simp [natFrame, natCode, pstore, Function.update_apply]
+  fin_cases k <;> cases j <;> simp [natFrame, natCode, pstore]
 /-- Embeds the counter subroutine's two stacks into the framed-parser store with the specified
 background stacks. -/
-def tkFrame (raw parse num spare acc1 acc : Bits) (S : Fin 2 → Bits) : PSlot → Bits :=
+def tkFrame (raw parse num _spare acc1 acc : Bits) (S : Fin 2 → Bits) : PSlot → Bits :=
   pstore raw parse num (S 0) (S 1) acc1 acc
 /-- Evaluating `tkFrame` at a slot selected by `tkCode` recovers the corresponding counter
 stack. -/
-def tkFrame_at (raw parse num spare acc1 acc : Bits) (S : Fin 2 → Bits) (k : Fin 2) :
+theorem tkFrame_at (raw parse num spare acc1 acc : Bits) (S : Fin 2 → Bits) (k : Fin 2) :
     tkFrame raw parse num spare acc1 acc S (tkCode k) = S k := by
   fin_cases k <;> simp [tkFrame, tkCode, pstore]
 /-- Updating a counter stack commutes with embedding it through `tkFrame`. -/
-def tkFrame_update (raw parse num spare acc1 acc : Bits) (S : Fin 2 → Bits) (k : Fin 2) (bits : Bits) :
+theorem tkFrame_update (raw parse num spare acc1 acc : Bits) (S : Fin 2 → Bits) (k : Fin 2) (bits : Bits) :
     tkFrame raw parse num spare acc1 acc (Function.update S k bits)
       = Function.update (tkFrame raw parse num spare acc1 acc S) (tkCode k) bits := by
   funext j
-  fin_cases k <;> cases j <;> simp [tkFrame, tkCode, pstore, Function.update_apply]
+  fin_cases k <;> cases j <;> simp [tkFrame, tkCode, pstore]
 /-- Embeds the length-reversal store into the parser store with the specified background stacks. -/
 def nflipFrame (raw parse spare acc1 acc : Bits) (S : Fin 2 → Bits) : PSlot → Bits :=
   pstore raw parse (S 0) (S 1) spare acc1 acc
 /-- Evaluating `nflipFrame` at a slot selected by `nflipCode` recovers the corresponding
 length-reversal stack. -/
-def nflipFrame_at (raw parse spare acc1 acc : Bits) (S : Fin 2 → Bits) (k : Fin 2) :
+theorem nflipFrame_at (raw parse spare acc1 acc : Bits) (S : Fin 2 → Bits) (k : Fin 2) :
     nflipFrame raw parse spare acc1 acc S (nflipCode k) = S k := by
   fin_cases k <;> simp [nflipFrame, nflipCode, pstore]
 /-- Updating a length-reversal stack commutes with embedding it through `nflipFrame`. -/
-def nflipFrame_update (raw parse spare acc1 acc : Bits) (S : Fin 2 → Bits) (k : Fin 2) (bits : Bits) :
+theorem nflipFrame_update (raw parse spare acc1 acc : Bits) (S : Fin 2 → Bits) (k : Fin 2) (bits : Bits) :
     nflipFrame raw parse spare acc1 acc (Function.update S k bits)
       = Function.update (nflipFrame raw parse spare acc1 acc S) (nflipCode k) bits := by
   funext j
-  fin_cases k <;> cases j <;> simp [nflipFrame, nflipCode, pstore, Function.update_apply]
+  fin_cases k <;> cases j <;> simp [nflipFrame, nflipCode, pstore]
 /-- Embeds the payload-reversal store into the parser store with the specified background
 stacks. -/
 def flipFrame (raw parse num num2 spare : Bits) (S : Fin 2 → Bits) : PSlot → Bits :=
   pstore raw parse num num2 spare (S 0) (S 1)
 /-- Evaluating `flipFrame` at a slot selected by `flipCode` recovers the corresponding
 payload-reversal stack. -/
-def flipFrame_at (raw parse num num2 spare : Bits) (S : Fin 2 → Bits) (k : Fin 2) :
+theorem flipFrame_at (raw parse num num2 spare : Bits) (S : Fin 2 → Bits) (k : Fin 2) :
     flipFrame raw parse num num2 spare S (flipCode k) = S k := by
   fin_cases k <;> simp [flipFrame, flipCode, pstore]
 /-- Updating a payload-reversal stack commutes with embedding it through `flipFrame`. -/
-def flipFrame_update (raw parse num num2 spare : Bits) (S : Fin 2 → Bits) (k : Fin 2) (bits : Bits) :
+theorem flipFrame_update (raw parse num num2 spare : Bits) (S : Fin 2 → Bits) (k : Fin 2) (bits : Bits) :
     flipFrame raw parse num num2 spare (Function.update S k bits)
       = Function.update (flipFrame raw parse num num2 spare S) (flipCode k) bits := by
   funext j
-  fin_cases k <;> cases j <;> simp [flipFrame, flipCode, pstore, Function.update_apply]
+  fin_cases k <;> cases j <;> simp [flipFrame, flipCode, pstore]
 set_option maxHeartbeats 1000000 in
 
 /-- The input-transfer call moves the raw word in reverse order to the parsing stack and reaches
@@ -2860,8 +2862,8 @@ theorem read_call (raw : Bits) :
     Stacks.transferProgram parseProgram (fun _ => rfl) ((false,none),none)
     (raw.length+1) _ _ hr
   simp only [StackCall.cfg, Option.map_some, Option.getD_some, Option.map_none,
-    Option.getD_none, id_eq, Stacks.stackPair_zero, Stacks.stackPair_one, readFrame,
-    pstore, List.reverse_nil, List.nil_append, List.append_nil] at hN hNC
+    Option.getD_none,  Stacks.stackPair_zero, Stacks.stackPair_one, readFrame,
+       List.append_nil] at hN hNC
   refine ⟨raw.length+1, hN, ?_⟩
   have hb := Stacks.transfer_clock raw [] none
   simp only [List.length_nil, Nat.add_zero] at hb
@@ -2889,9 +2891,9 @@ theorem nat_call (w rest : Bits) :
     Parsing.natProgram parseProgram (fun _ => rfl) ((false,none),none)
     (2*w.length.bits.length+3) _ _ hr
   simp only [StackCall.cfg, Option.map_some, Option.getD_some, Option.map_none,
-    Option.getD_none, id_eq, Stacks.stackPair_zero, Stacks.stackPair_one,
-    Parsing.triple_two, Parsing.triple_one, Parsing.triple_zero, natFrame, pstore,
-    List.append_nil, List.reverse_nil, List.nil_append, List.append_nil] at hN hNC
+    Option.getD_none,
+    Parsing.triple_two, Parsing.triple_one, Parsing.triple_zero, natFrame,
+    List.append_nil, List.append_nil] at hN hNC
   exact ⟨2*w.length.bits.length+3, hN, hNC.trans_le hc⟩
 set_option maxHeartbeats 1000000 in
 
@@ -2916,8 +2918,8 @@ theorem nflip_call (w rest : Bits) :
     Stacks.transferProgram parseProgram (fun _ => rfl) ((false,none),none)
     (w.length.bits.reverse.length+1) _ _ hr
   simp only [StackCall.cfg, Option.map_some, Option.getD_some, Option.map_none,
-    Option.getD_none, id_eq, Stacks.stackPair_zero, Stacks.stackPair_one, nflipFrame,
-    pstore, List.reverse_nil, List.nil_append, List.append_nil,
+    Option.getD_none,  Stacks.stackPair_zero, Stacks.stackPair_one, nflipFrame,
+       List.append_nil,
     List.length_reverse] at hN hNC
   refine ⟨w.length.bits.length+1, hN, ?_⟩
   have hb := Stacks.transfer_clock w.length.bits.reverse [] none
@@ -2945,8 +2947,8 @@ theorem tk_dec_positive (drop num numw acc1 raw acc : Bits) (v : PLocal)
     (tkFrame_update raw drop num [] acc1 acc) (fun _ _ => rfl) (fun _ _ _ => rfl)
     Counter.program parseProgram (fun _ => rfl) v ticks _ _ hr
   simp only [StackCall.cfg, Option.map_some, Option.getD_some, Option.map_none,
-    Option.getD_none, id_eq, Stacks.stackPair_zero, Stacks.stackPair_one, tkFrame,
-    pstore, List.append_nil, List.reverse_nil, List.nil_append] at hN hNC
+    Option.getD_none,  Stacks.stackPair_zero, Stacks.stackPair_one, tkFrame
+    ] at hN hNC
   exact ⟨ticks, next, hlen, hval, hN, hNC.trans_le hc⟩
 set_option maxHeartbeats 1000000 in
 
@@ -2968,8 +2970,8 @@ theorem tk_dec_zero (drop num numw acc1 raw acc : Bits) (v : PLocal)
     (tkFrame_update raw drop num [] acc1 acc) (fun _ _ => rfl) (fun _ _ _ => rfl)
     Counter.program parseProgram (fun _ => rfl) v (2*numw.length+2) _ _ hr
   simp only [StackCall.cfg, Option.map_some, Option.getD_some, Option.map_none,
-    Option.getD_none, id_eq, Stacks.stackPair_zero, Stacks.stackPair_one, tkFrame,
-    pstore, List.append_nil, List.reverse_nil, List.nil_append] at hN hNC
+    Option.getD_none,  Stacks.stackPair_zero, Stacks.stackPair_one, tkFrame
+    ] at hN hNC
   exact ⟨hN, hNC.trans_le hc⟩
 
 /-- The parser branch selects payload extraction when the counter flag is true and local-state
@@ -2983,8 +2985,8 @@ theorem pbranch_step (v : PLocal) (st : PSlot → Bits) :
 theorem pbranch_clock (v : PLocal) (st : PSlot → Bits) :
     Stacks.stackRunClock parseProgram 1 ⟨some .pbranch, v, st⟩ ≤ 2 := by
   rcases hv : v.1.1 with _ | _ <;>
-    simp [Stacks.stackRunClock, Stacks.stackRun, parseProgram, TM2.step,
-      Stacks.stackClock, hv] <;> omega
+    simp [Stacks.stackRunClock,  parseProgram, TM2.step,
+      Stacks.stackClock, hv]
 
 /-- The parser's clear label resets the saved bit to `none` and enters payload reversal without
 changing the stacks. -/
@@ -2996,20 +2998,20 @@ theorem clear_step (v : PLocal) (st : PSlot → Bits) :
 /-- One parser clear step has clock at most two. -/
 theorem clear_clock (v : PLocal) (st : PSlot → Bits) :
     Stacks.stackRunClock parseProgram 1 ⟨some .clear, v, st⟩ ≤ 2 := by
-  simp [Stacks.stackRunClock, Stacks.stackRun, parseProgram, TM2.step, Stacks.stackClock]
+  simp [Stacks.stackRunClock,  parseProgram, TM2.step, Stacks.stackClock]
 
 /-- Updating the parsing slot of `pstore` replaces exactly its parsing word. -/
 theorem pstore_upd_parse (raw parse num num2 spare acc1 acc drop : Bits) :
     Function.update (pstore raw parse num num2 spare acc1 acc) PSlot.parse drop
       = pstore raw drop num num2 spare acc1 acc := by
   funext j
-  cases j <;> simp [pstore, Function.update_apply]
+  cases j <;> simp [pstore]
 
 /-- Updating the parsing slot of `pstore` leaves its intermediate accumulator unchanged. -/
 theorem pstore_upd_parse_acc1 (raw parse num num2 spare acc1 acc drop : Bits) :
     (Function.update (pstore raw parse num num2 spare acc1 acc) PSlot.parse drop) PSlot.acc1
       = acc1 := by
-  simp [pstore, Function.update_apply]
+  simp [pstore]
 
 /-- Popping the parsing word's head and pushing it onto the intermediate accumulator produces
 the corresponding updated `pstore`. -/
@@ -3020,7 +3022,7 @@ theorem tkbody_store (b : Bool) (raw drop num num2 spare acc1 acc : Bits) :
         PSlot.parse drop) PSlot.acc1)
       = pstore raw drop num num2 spare (b::acc1) acc := by
   funext j
-  cases j <;> simp [pstore, Function.update_apply]
+  cases j <;> simp [pstore]
 
 /-- A payload-extraction step moves the leading parsing bit to the intermediate accumulator and
 returns to counter decrement. -/
@@ -3038,7 +3040,7 @@ theorem tkbody_clock (b : Bool) (raw drop num num2 spare acc1 acc : Bits) (v : P
         ⟨some .tkBody, v, pstore raw (b::drop) num num2 spare acc1 acc⟩ ≤
       2*((b::drop).length+acc1.length)+10 := by
   simp only [Stacks.stackRunClock, parseProgram, TM2.step,
-    Stacks.stackClock, pstore, List.head?_cons, List.tail_cons,
+    Stacks.stackClock, pstore,  List.tail_cons,
     pstore_upd_parse_acc1, List.length_cons]
   omega
 set_option maxHeartbeats 1000000 in
@@ -3155,21 +3157,21 @@ theorem tk_loop : ∀ (k : ℕ) (drop rest numw acc1 raw num acc : Bits) (v : PL
           ≤ (1+(b::(drop'++rest)).length+acc1.length+(k+1))^2 := by
         have h1 : 1+(drop'++rest).length+(b::acc1).length+k
             ≤ 1+(b::(drop'++rest)).length+acc1.length+(k+1) := by
-          simp only [List.cons_append, List.length_cons]
+          simp only [ List.length_cons]
           omega
         have h0 : 0 ≤ 1+(drop'++rest).length+(b::acc1).length+k := by
           simp only [List.length_cons]
           omega
         have h0' : 0 ≤ 1+(b::(drop'++rest)).length+acc1.length+(k+1) := by
-          simp only [List.cons_append, List.length_cons]
+          simp only [ List.length_cons]
           omega
         nlinarith only [h1, h0, h0']
       have hP : (drop'++rest).length+(b::acc1).length
           ≤ (b::(drop'++rest)).length+acc1.length+1 := by
-        simp only [List.cons_append, List.length_cons]
+        simp only [ List.length_cons]
         omega
       have hnn : (0:ℕ) ≤ 1+(b::(drop'++rest)).length+acc1.length+(k+1) := by
-        simp only [List.cons_append, List.length_cons]
+        simp only [ List.length_cons]
         omega
       have hkk : (0:ℕ) ≤ 2*k+4 := by omega
       have hmul : (2*k+4)*(10*(1+numw.length)^2
@@ -3188,7 +3190,7 @@ theorem tk_loop : ∀ (k : ℕ) (drop rest numw acc1 raw num acc : Bits) (v : PL
               +(2*k+4)*(50*(1+(b::(drop'++rest)).length+acc1.length+(k+1))^2)
               +(2*k+4)*10 := by ring
         rw [he1, he2]
-        gcongr <;> linarith
+        gcongr
       have hlin : 2*((b::(drop'++rest)).length)+2*acc1.length
           ≤ 100*(1+(b::(drop'++rest)).length+acc1.length+(k+1))^2 := by
         have h1 : (b::(drop'++rest)).length
@@ -3239,8 +3241,8 @@ theorem flip_call (acc1 raw parse num num2 spare : Bits) :
     Stacks.transferProgram parseProgram (fun _ => rfl) ((false,none),none)
     (acc1.length+1) _ _ hr
   simp only [StackCall.cfg, Option.map_some, Option.getD_some, Option.map_none,
-    Option.getD_none, id_eq, Stacks.stackPair_zero, Stacks.stackPair_one, flipFrame,
-    pstore, List.reverse_nil, List.nil_append, List.append_nil] at hN hNC
+    Option.getD_none,  Stacks.stackPair_zero, Stacks.stackPair_one, flipFrame,
+       List.append_nil] at hN hNC
   refine ⟨acc1.length+1, hN, ?_⟩
   have hb := Stacks.transfer_clock acc1 [] none
   simp only [List.length_nil, Nat.add_zero] at hb
@@ -3256,7 +3258,7 @@ theorem pdone_run (st : PSlot → Bits) :
 /-- One step at the parser done label has clock at most one. -/
 theorem pdone_clock (st : PSlot → Bits) :
     Stacks.stackRunClock parseProgram 1 ⟨some .pdone, ((false,none),none), st⟩ ≤ 1 := by
-  simp [Stacks.stackRunClock, Stacks.stackRun, parseProgram, TM2.step, Stacks.stackClock]
+  simp [Stacks.stackRunClock,  parseProgram, TM2.step, Stacks.stackClock]
 set_option maxHeartbeats 1000000 in
 
 /-- Parsing the reversed raw encoding of `framed w ++ rest` halts with payload `w` and
@@ -3737,7 +3739,7 @@ theorem mvFrame_update (d1 d2 : Bits) (S : Fin 2 → Bits) (k : Fin 2) (bits : B
     mvFrame d1 d2 (Function.update S k bits)
       = Function.update (mvFrame d1 d2 S) (mvCode k) bits := by
   funext j
-  fin_cases k <;> cases j <;> simp [mvFrame, mvCode, cstore, Function.update_apply]
+  fin_cases k <;> cases j <;> simp [mvFrame, mvCode, cstore]
 
 /-- The transfer phase empties the source into the temporary stack in reverse order and reaches
 copying with clock at most `9 * (1 + w.length) ^ 2`. -/
@@ -3752,8 +3754,8 @@ theorem mv_run (w d1 d2 : Bits) (v : Symbol) :
     (mvFrame d1 d2) (mvFrame_at d1 d2) (mvFrame_update d1 d2) (fun _ _ => rfl) (fun _ _ _ => rfl)
     Stacks.transferProgram program (fun _ => rfl) v (w.length+1) _ _ hr
   simp only [StackCall.cfg, Option.map_some, Option.getD_some, Option.map_none,
-    Option.getD_none, id_eq, Stacks.stackPair_zero, Stacks.stackPair_one,
-    mvFrame, cstore] at hN hNC
+    Option.getD_none,  Stacks.stackPair_zero, Stacks.stackPair_one,
+    mvFrame] at hN hNC
   refine ⟨w.length+1, hN, ?_⟩
   have hb := Stacks.transfer_clock w [] v
   simp only [List.length_nil, Nat.add_zero] at hb
@@ -3767,26 +3769,26 @@ theorem cp_store (b : Bool) (src rest d1 d2 : Bits) :
         Slot.tmp rest) Slot.d1 (b::d1)) Slot.d2 (b::d2)
       = cstore src rest (b::d1) (b::d2) := by
   funext j
-  cases j <;> simp [cstore, Function.update_apply]
+  cases j <;> simp [cstore]
 
 /-- Updating the temporary slot after removing its leading bit replaces only that stack. -/
 theorem cstore_upd_tmp (b : Bool) (src rest d1 d2 : Bits) :
     Function.update (cstore src (b::rest) d1 d2) Slot.tmp rest = cstore src rest d1 d2 := by
   funext j
-  cases j <;> simp [cstore, Function.update_apply]
+  cases j <;> simp [cstore]
 
 /-- Pushing a bit to the first destination gives the corresponding update of `cstore`. -/
 theorem cstore_upd_d1 (b : Bool) (src rest d1 d2 : Bits) :
     Function.update (cstore src rest d1 d2) Slot.d1 (b::d1) = cstore src rest (b::d1) d2 := by
   funext j
-  cases j <;> simp [cstore, Function.update_apply]
+  cases j <;> simp [cstore]
 
 /-- Pushing a bit to the second destination gives the corresponding update of `cstore`. -/
 theorem cstore_upd_d2 (b : Bool) (src rest d1 d2 : Bits) :
     Function.update (cstore src rest (b::d1) d2) Slot.d2 (b::d2)
       = cstore src rest (b::d1) (b::d2) := by
   funext j
-  cases j <;> simp [cstore, Function.update_apply]
+  cases j <;> simp [cstore]
 
 /-- A copying step removes the leading temporary bit and pushes it onto both destination stacks. -/
 theorem cp_step (b : Bool) (src rest d1 d2 : Bits) (v : Symbol) :
@@ -3809,7 +3811,7 @@ theorem cp_step_clock (src tmp d1 d2 : Bits) (v : Symbol) :
   | nil => simp [Stacks.stackRunClock, program, TM2.step, Stacks.stackClock, cstore]
   | cons b rest =>
     simp only [Stacks.stackRunClock, program, TM2.step, TM2.stepAux, Stacks.stackClock,
-      cstore, List.head?_cons, List.tail_cons, Option.isSome_some, if_true, Option.getD_some,
+      cstore, List.head?_cons, List.tail_cons, Option.isSome_some, ite_true, Option.getD_some,
       List.length_cons, cstore_upd_tmp, cstore_upd_d1, cstore_upd_d2]
     omega
 
@@ -3946,14 +3948,14 @@ theorem incFrame_update (src : Bits) (S : Fin 2 → Bits) (k : Fin 2) (bits : Bi
     incFrame src (Function.update S k bits)
       = Function.update (incFrame src S) (incCode k) bits := by
   funext j
-  fin_cases k <;> cases j <;> simp [incFrame, incCode, cstore, Function.update_apply]
+  fin_cases k <;> cases j <;> simp [incFrame, incCode, cstore]
 
 /-- Removing the source word's leading bit gives the corresponding update of the length-counting
 store. -/
 theorem check_store (b : Bool) (rest cnt tmp : Bits) :
     Function.update (cstore (b::rest) cnt tmp) Slot.src rest = cstore rest cnt tmp := by
   funext j
-  cases j <;> simp [cstore, Function.update_apply]
+  cases j <;> simp [cstore]
 
 /-- Checking a nonempty source removes its leading bit and enters the increment subroutine. -/
 theorem check_step (b : Bool) (rest cnt tmp : Bits) (v : Symbol) :
@@ -3976,8 +3978,8 @@ theorem check_step_clock (src cnt tmp : Bits) (v : Symbol) :
   | nil => simp [Stacks.stackRunClock, program, TM2.step, Stacks.stackClock, cstore]
   | cons b rest =>
     simp only [Stacks.stackRunClock, program, TM2.step, TM2.stepAux, Stacks.stackClock,
-      cstore, Function.update_apply, List.head?_cons, List.tail_cons, Option.isSome_some,
-      if_true, List.length_cons]
+      cstore,  List.head?_cons, List.tail_cons, Option.isSome_some,
+      ite_true, List.length_cons]
     omega
 
 /-- The length-counting program's done label halts in one step without changing the local state
@@ -4001,7 +4003,7 @@ theorem inc_call (src cnt : Bits) (v : Symbol) :
     Increment.program program (fun _ => rfl) v ticks _ _ hr
   simp only [StackCall.cfg, Option.map_some, Option.getD_some, Option.map_none,
     Option.getD_none, Stacks.stackPair_zero, Stacks.stackPair_one,
-    incFrame, cstore, List.reverse_nil, List.nil_append, List.append_nil] at hN hNC
+    incFrame,  List.reverse_nil, List.nil_append] at hN hNC
   exact ⟨ticks, hN, hNC.trans_le hc⟩
 
 /-- Binary increment increases the length of a word by at most one. -/
@@ -4029,7 +4031,7 @@ theorem count_loop (w cnt : Bits) (v : Symbol) :
     have hstep := check_empty cnt [] v
     have hrun : Stacks.stackRun program 1 ⟨some .check, v, cstore [] cnt []⟩ =
         some ⟨some .done, none, cstore [] ((Increment.word^[0]) cnt) []⟩ := by
-      simpa [Stacks.stackRun, hstep]
+      simp [Stacks.stackRun, hstep]
     refine ⟨1, hrun, ?_⟩
     have h1c := check_step_clock [] cnt [] v
     simp only [List.length_nil, Nat.zero_add, Nat.add_zero, Nat.one_mul] at h1c ⊢
@@ -4115,7 +4117,7 @@ theorem binaryValue_replicate_false (m : ℕ) :
   induction m with
   | zero => rfl
   | succ m ih =>
-    rw [List.replicate_succ, binaryValue_cons, if_neg (by decide : ¬(false = true)), ih,
+    rw [List.replicate_succ, binaryValue_cons, ite_eq_right (by decide : ¬(false = true)), ih,
       Nat.mul_zero, Nat.add_zero]
 
 /-- Appending false bits does not change the binary value of a word. -/
@@ -4189,7 +4191,7 @@ theorem unary_empty_step (count : Bits) (saved : Option Bool) :
       (⟨some 0, saved, Stacks.stackPair ([] : Bits) count⟩ :
         TM2.Cfg (fun _ : Fin 2 => Bool) (Fin 1) (Option Bool)) =
       some ⟨none, none, Stacks.stackPair [] count⟩ := by
-  simp [Parsing.unaryProgram, TM2.step, TM2.stepAux, Stacks.stackPair, Function.update_apply]
+  simp [Parsing.unaryProgram, TM2.step, TM2.stepAux, Stacks.stackPair]
 
 /-- The unary parser halts after removing a leading false bit, saving that bit and preserving
 the count stack. -/
@@ -4198,7 +4200,7 @@ theorem unary_false_step (s count : Bits) (saved : Option Bool) :
       (⟨some 0, saved, Stacks.stackPair (false :: s) count⟩ :
         TM2.Cfg (fun _ : Fin 2 => Bool) (Fin 1) (Option Bool)) =
       some ⟨none, some false, Stacks.stackPair s count⟩ := by
-  simp [Parsing.unaryProgram, TM2.step, TM2.stepAux, Stacks.stackPair, Function.update_apply]
+  simp [Parsing.unaryProgram, TM2.step, TM2.stepAux, Stacks.stackPair]
 
 /-- The unary parser consumes the leading true run and its terminator when present, prefixing
 that many true bits to the count stack. It runs for `countTrues s + 1` steps with the
@@ -4220,7 +4222,7 @@ theorem unary_total : ∀ (s count : Bits) (saved : Option Bool),
     intro count saved
     have hstep := unary_empty_step count saved
     refine ⟨?_, ?_⟩
-    · simpa [countTrues, Stacks.stackRun, hstep]
+    · simp [countTrues, Stacks.stackRun, hstep]
     · have hc : Stacks.stackRunClock Parsing.unaryProgram 1
           (⟨some 0, saved, Stacks.stackPair ([] : Bits) count⟩ :
             TM2.Cfg (fun _ : Fin 2 => Bool) (Fin 1) (Option Bool)) = 3 := by
@@ -4243,7 +4245,7 @@ theorem unary_total : ∀ (s count : Bits) (saved : Option Bool),
     | false =>
       have hstep := unary_false_step s count saved
       refine ⟨?_, ?_⟩
-      · simpa [countTrues, Stacks.stackRun, hstep]
+      · simp [countTrues, Stacks.stackRun, hstep]
       · have hc : Stacks.stackRunClock Parsing.unaryProgram 1
             (⟨some 0, saved, Stacks.stackPair (false :: s) count⟩ :
               TM2.Cfg (fun _ : Fin 2 => Bool) (Fin 1) (Option Bool)) =
@@ -4310,7 +4312,7 @@ theorem field_nil_step (count out : Bits) (saved : Option Bool) :
       (⟨some 0, saved, Parsing.triple ([] : Bits) (true::count) out⟩ :
         TM2.Cfg (fun _ : Fin 3 => Bool) (Fin 1) (Option Bool)) =
       some ⟨some 0, none, Parsing.triple [] count (false::out)⟩ := by
-  simp [Parsing.fieldProgram, TM2.step, TM2.stepAux, Parsing.triple, Function.update_apply]
+  simp [Parsing.fieldProgram, TM2.step, TM2.stepAux, Parsing.triple]
 
 /-- With a leading input bit and a nonempty true count stack, the field parser moves the bit to
 output and removes one count bit. -/
@@ -4319,7 +4321,7 @@ theorem field_cons_step (b : Bool) (r count out : Bits) (saved : Option Bool) :
       (⟨some 0, saved, Parsing.triple (b::r) (true::count) out⟩ :
         TM2.Cfg (fun _ : Fin 3 => Bool) (Fin 1) (Option Bool)) =
       some ⟨some 0, some b, Parsing.triple r count (b::out)⟩ := by
-  simp [Parsing.fieldProgram, TM2.step, TM2.stepAux, Parsing.triple, Function.update_apply]
+  simp [Parsing.fieldProgram, TM2.step, TM2.stepAux, Parsing.triple]
 
 /-- The field parser extracts `k` bits, pads missing bits with false, and prefixes the reversed
 result to output in `k + 1` steps, with the displayed clock bound. -/
@@ -4339,7 +4341,7 @@ theorem field_total : ∀ (k : ℕ) (r out : Bits) (saved : Option Bool),
     intro r out saved
     have hstep := field_empty_count r out saved
     refine ⟨?_, ?_⟩
-    · simpa [Stacks.stackRun, hstep, List.replicate_zero]
+    · simp [Stacks.stackRun, hstep, List.replicate_zero]
     · have hc : Stacks.stackRunClock Parsing.fieldProgram 1
         (⟨some 0, saved, Parsing.triple r (List.replicate 0 true) out⟩ :
           TM2.Cfg (fun _ : Fin 3 => Bool) (Fin 1) (Option Bool)) = 3 := by
@@ -4383,10 +4385,10 @@ theorem field_total : ∀ (k : ℕ) (r out : Bits) (saved : Option Bool),
         omega
       have hkey : 2*k+2*out.length+10 ≤ 2*(k+out.length+1)+10 := by omega
       refine ⟨hrun, ?_⟩
-      simp only [List.drop_nil, List.take_nil, List.nil_append, List.length_nil,
-        Nat.sub_zero, List.reverse_replicate] at hs hIC h1
-      simp only [List.drop_nil, List.take_nil, List.nil_append, List.length_nil,
-        Nat.sub_zero, List.reverse_replicate]
+      simp only [   List.length_nil
+        ] at hs hIC h1
+      simp only [   List.length_nil
+        ]
       rw [Nat.add_comm 1 (k+1)] at hs
       simp only [List.length_cons] at hIC
       nlinarith only [hs, hIC, h1, hkey]
@@ -4420,10 +4422,10 @@ theorem field_total : ∀ (k : ℕ) (r out : Bits) (saved : Option Bool),
         simp [Parsing.fieldProgram, Stacks.stackClock, Parsing.triple]
         omega
       refine ⟨hrun, ?_⟩
-      simp only [List.drop_succ_cons, List.take_succ_cons, List.length_cons,
-        Nat.add_sub_cancel] at hs hIC h1
-      simp only [List.drop_succ_cons, List.take_succ_cons, List.length_cons,
-        Nat.add_sub_cancel]
+      simp only [  List.length_cons
+        ] at hs hIC h1
+      simp only [  List.length_cons
+        ]
       rw [Nat.add_comm 1 (k+1)] at hs
       nlinarith only [hs, hIC, h1]
 
@@ -4433,8 +4435,8 @@ theorem countTrues_le (s : Bits) : countTrues s ≤ s.length := by
   | nil => rfl
   | cons b s ih =>
     cases b with
-    | false => simp [countTrues] <;> omega
-    | true => simp [countTrues] <;> omega
+    | false => simp [countTrues]
+    | true => simp [countTrues]; omega
 
 /-- A payload-extraction store update on empty parsing input pushes false to the intermediate
 accumulator. -/
@@ -4445,7 +4447,7 @@ theorem tkbody_store_empty (raw num num2 spare acc1 acc : Bits) :
         PSlot.parse []) PSlot.acc1)
       = pstore raw ([] : Bits) num num2 spare (false::acc1) acc := by
   funext j
-  cases j <;> simp [pstore, Function.update_apply]
+  cases j <;> simp [pstore]
 
 /-- A payload-extraction step pops the parsing head when present, pushes its value or false onto
 the intermediate accumulator, and returns to counter decrement. -/
@@ -4472,11 +4474,11 @@ theorem tkbody_clock_gen (raw s num num2 spare acc1 acc : Bits) (v : PLocal) :
   cases s with
   | nil =>
     simp only [Stacks.stackRunClock, parseProgram, TM2.step, Stacks.stackClock, pstore,
-      List.head?_nil, List.tail_nil, Option.getD_none, pstore_upd_parse_acc1, List.length_nil]
+       List.tail_nil,  pstore_upd_parse_acc1, List.length_nil]
     omega
   | cons b s' =>
     simp only [Stacks.stackRunClock, parseProgram, TM2.step, Stacks.stackClock, pstore,
-      List.head?_cons, List.tail_cons, Option.getD_some, pstore_upd_parse_acc1,
+       List.tail_cons,  pstore_upd_parse_acc1,
       List.length_cons]
     omega
 
@@ -4597,14 +4599,16 @@ theorem tk_loop_gen : ∀ (k : ℕ) (s numw acc1 raw num acc : Bits) (v : PLocal
     rw [hlen] at hIclock
     have h1 : 1+s.tail.length+(s.head?.getD false :: acc1).length+k
         ≤ 1+s.length+acc1.length+(k+1) := by
-      cases s <;> simp [List.length_cons, List.tail_cons, List.head?_cons, List.length_nil,
-        List.tail_nil, List.head?_nil] <;> omega
+      cases s with
+      | nil => simp; omega
+      | cons a t =>
+        simp
+        omega
     have h0 : (0:ℕ) ≤ 1+s.tail.length+(s.head?.getD false :: acc1).length+k := by
-      cases s <;> simp [List.length_cons, List.tail_cons, List.head?_cons, List.length_nil,
-        List.tail_nil, List.head?_nil] <;> omega
+      cases s <;> simp
     have h0' : (0:ℕ) ≤ 1+s.length+acc1.length+(k+1) := by
-      cases s <;> simp [List.length_cons, List.tail_cons, List.head?_cons, List.length_nil,
-        List.tail_nil, List.head?_nil] <;> omega
+      cases s <;> simp [List.length_cons,   List.length_nil
+        ]
     have hmono : (1+s.tail.length+(s.head?.getD false :: acc1).length+k)^2
         ≤ (1+s.length+acc1.length+(k+1))^2 := by
       nlinarith only [h1, h0, h0']
@@ -4624,7 +4628,7 @@ theorem tk_loop_gen : ∀ (k : ℕ) (s numw acc1 raw num acc : Bits) (v : PLocal
             +(2*k+4)*(50*(1+s.length+acc1.length+(k+1))^2)
             +(2*k+4)*10 := by ring
       rw [he1, he2]
-      gcongr <;> linarith
+      gcongr
     have hlin : 2*s.length+2*acc1.length+12
         ≤ 100*(1+s.length+acc1.length+(k+1))^2 := by
       have h1' : s.length ≤ 1+s.length+acc1.length+(k+1) := by omega
@@ -4672,8 +4676,8 @@ theorem nflip_total (ps num spare acc1 acc : Bits) :
     Stacks.transferProgram parseProgram (fun _ => rfl) ((false,none),none)
     (num.length+1) _ _ hr
   simp only [StackCall.cfg, Option.map_some, Option.getD_some, Option.map_none,
-    Option.getD_none, id_eq, Stacks.stackPair_zero, Stacks.stackPair_one, nflipFrame,
-    pstore, List.reverse_nil, List.nil_append, List.append_nil] at hN hNC
+    Option.getD_none,  Stacks.stackPair_zero, Stacks.stackPair_one, nflipFrame,
+       List.append_nil] at hN hNC
   refine ⟨num.length+1, hN, ?_⟩
   have hb := Stacks.transfer_clock num [] none
   simp only [List.length_nil, Nat.add_zero] at hb
@@ -4703,7 +4707,7 @@ theorem natProgram_total (s out : Bits) (saved : Option Bool) :
     (Parsing.unaryFrame_update out) (fun _ _ => rfl) (fun _ _ _ => rfl)
     Parsing.unaryProgram Parsing.natProgram hcodeU saved (countTrues s+1) _ _ hu
   simp only [StackCall.cfg, Option.map_some, Option.getD_some, Option.map_none,
-    Option.getD_none, id_eq, Parsing.unaryFrame, Stacks.stackPair_zero, Stacks.stackPair_one,
+    Option.getD_none,  Parsing.unaryFrame, Stacks.stackPair_zero, Stacks.stackPair_one,
     List.append_nil] at hN hNC
   obtain ⟨hf, hfc⟩ := field_total (countTrues s) (s.drop (countTrues s+1)) out
     ((s.drop (countTrues s)).head?)
@@ -4798,9 +4802,9 @@ theorem nat_total (s : Bits) :
     Parsing.natProgram parseProgram (fun _ => rfl) ((false,none),none)
     (2*countTrues s+3) _ _ hr
   simp only [StackCall.cfg, Option.map_some, Option.getD_some, Option.map_none,
-    Option.getD_none, id_eq, Stacks.stackPair_zero, Stacks.stackPair_one,
-    Parsing.triple_two, Parsing.triple_one, Parsing.triple_zero, natFrame, pstore,
-    List.append_nil, List.reverse_nil, List.nil_append] at hN hNC
+    Option.getD_none,
+    Parsing.triple_two, Parsing.triple_one, Parsing.triple_zero, natFrame,
+    List.append_nil] at hN hNC
   refine ⟨2*countTrues s+3, hN, ?_⟩
   simp only [List.length_nil, Nat.add_zero] at hrc
   exact hNC.trans_le hrc
@@ -5056,14 +5060,14 @@ instance : Fintype ParseFramed.PLabel where
   complete := by
     intro x
     cases x with
-    | read l => fin_cases l <;> simp
+    | read l => fin_cases l; simp
     | nat l => fin_cases l <;> simp
-    | nflip l => fin_cases l <;> simp
+    | nflip l => fin_cases l; simp
     | tk l => cases l <;> simp
     | pbranch => simp
     | tkBody => simp
     | clear => simp
-    | flip l => fin_cases l <;> simp
+    | flip l => fin_cases l; simp
     | pdone => simp
 
 instance : Fintype AddLoop.Label where
@@ -5082,7 +5086,7 @@ instance : Fintype PairCopy.Label where
   complete := by
     intro x
     cases x with
-    | mv l => fin_cases l <;> simp
+    | mv l => fin_cases l; simp
     | cp => simp
     | done => simp
 
@@ -5233,7 +5237,7 @@ theorem pFrame1_update (live keep tmp work lout out : Bits) (S : ParseFramed.PSl
     pFrame1 live keep tmp work lout out (Function.update S k bits)
       = Function.update (pFrame1 live keep tmp work lout out S) (pCode1 k) bits := by
   funext j
-  cases k <;> cases j <;> simp [pFrame1, astore, pCode1, Function.update_apply]
+  cases k <;> cases j <;> simp [pFrame1, astore, pCode1]
 
 /-- Embeds the second parser's store into the pair-assembly store with the specified background
 stacks. -/
@@ -5253,7 +5257,7 @@ theorem pFrame2_update (acc live keep tmp lout out : Bits) (S : ParseFramed.PSlo
     pFrame2 acc live keep tmp lout out (Function.update S k bits)
       = Function.update (pFrame2 acc live keep tmp lout out S) (pCode2 k) bits := by
   funext j
-  cases k <;> cases j <;> simp [pFrame2, astore, pCode2, Function.update_apply]
+  cases k <;> cases j <;> simp [pFrame2, astore, pCode2]
 
 /-- Embeds the first copying subroutine's store into the pair-assembly store with the specified
 background stacks. -/
@@ -5275,7 +5279,7 @@ theorem cFrame1_update (raw parse num num2 spare acc1 acc lout out : Bits)
       = Function.update (cFrame1 raw parse num num2 spare acc1 acc lout out S)
           (cCode1 k) bits := by
   funext j
-  cases k <;> cases j <;> simp [cFrame1, astore, cCode1, Function.update_apply]
+  cases k <;> cases j <;> simp [cFrame1, astore, cCode1]
 
 /-- Embeds the second copying subroutine's store into the pair-assembly store with the specified
 background stacks. -/
@@ -5297,7 +5301,7 @@ theorem cFrame2_update (parse num num2 spare acc1 live keep lout out : Bits)
       = Function.update (cFrame2 parse num num2 spare acc1 live keep lout out S)
           (cCode2 k) bits := by
   funext j
-  cases k <;> cases j <;> simp [cFrame2, astore, cCode2, Function.update_apply]
+  cases k <;> cases j <;> simp [cFrame2, astore, cCode2]
 
 /-- Embeds the addition-loop store into the pair-assembly store with the specified background
 stacks. -/
@@ -5319,7 +5323,7 @@ theorem aFrame_update (raw parse num num2 spare acc1 keep work lout out : Bits)
       = Function.update (aFrame raw parse num num2 spare acc1 keep work lout out S)
           (aCode k) bits := by
   funext j
-  cases k <;> cases j <;> simp [aFrame, astore, aCode, Function.update_apply]
+  cases k <;> cases j <;> simp [aFrame, astore, aCode]
 
 /-- Embeds the first length-counting store into the pair-assembly store with the specified
 background stacks. -/
@@ -5341,7 +5345,7 @@ theorem lFrame1_update (raw parse num num2 spare acc1 acc live keep out : Bits)
       = Function.update (lFrame1 raw parse num num2 spare acc1 acc live keep out S)
           (lCode1 k) bits := by
   funext j
-  cases k <;> cases j <;> simp [lFrame1, astore, lCode1, Function.update_apply]
+  cases k <;> cases j <;> simp [lFrame1, astore, lCode1]
 
 /-- Embeds the second length-counting store into the pair-assembly store with the specified
 background stacks. -/
@@ -5363,7 +5367,7 @@ theorem lFrame2_update (raw parse num num2 spare acc1 acc keep work out : Bits)
       = Function.update (lFrame2 raw parse num num2 spare acc1 acc keep work out S)
           (lCode2 k) bits := by
   funext j
-  cases k <;> cases j <;> simp [lFrame2, astore, lCode2, Function.update_apply]
+  cases k <;> cases j <;> simp [lFrame2, astore, lCode2]
 
 /-- Embeds the length-prefix emission store into the pair-assembly store with the specified
 background stacks. -/
@@ -5385,7 +5389,7 @@ theorem nFrameL_update (raw parse num2 spare acc1 acc live keep tmp work : Bits)
       = Function.update (nFrameL raw parse num2 spare acc1 acc live keep tmp work S)
           (nCodeL k) bits := by
   funext j
-  fin_cases k <;> cases j <;> simp [nFrameL, astore, nCodeL, Function.update_apply]
+  fin_cases k <;> cases j <;> simp [nFrameL, astore, nCodeL]
 
 /-- Embeds the raw-word emission store into the pair-assembly store with the specified
 background stacks. -/
@@ -5407,7 +5411,7 @@ theorem nFrameR_update (parse num2 spare acc1 acc live keep tmp work lout : Bits
       = Function.update (nFrameR parse num2 spare acc1 acc live keep tmp work lout S)
           (nCodeR k) bits := by
   funext j
-  fin_cases k <;> cases j <;> simp [nFrameR, astore, nCodeR, Function.update_apply]
+  fin_cases k <;> cases j <;> simp [nFrameR, astore, nCodeR]
 
 /-- Embeds the preserved-word emission store into the pair-assembly store with the specified
 background stacks. -/
@@ -5429,7 +5433,7 @@ theorem nFrameK_update (raw parse num2 spare acc1 acc live tmp work lout : Bits)
       = Function.update (nFrameK raw parse num2 spare acc1 acc live tmp work lout S)
           (nCodeK k) bits := by
   funext j
-  fin_cases k <;> cases j <;> simp [nFrameK, astore, nCodeK, Function.update_apply]
+  fin_cases k <;> cases j <;> simp [nFrameK, astore, nCodeK]
 
 /-- The first embedded parser extracts `w` from the reversed raw encoding of `framed w ++ rest`,
 stores it in `acc`, and reaches counter cleanup with the displayed clock bound. -/

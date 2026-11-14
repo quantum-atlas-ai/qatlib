@@ -4,26 +4,30 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QuditTeleport.ResourceIff.MeasurementPatternsDefs
-import Qatlib.Foundations.PureStateMath.BornBridge.PartialTraceCovariance
-import Qatlib.Concepts.FiniteLocc.LOCCProgram.PositiveBranchDecomposition
-import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
-import Qatlib.Concepts.QuditTeleport.TeleportCore.QuditTeleportationInstrument
-import Qatlib.Concepts.QuditTeleport.TeleportCore.BellTeleportationInstrument
-import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditResourceMarginalConverse
-import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditMaxEntResourceTeleportation
-import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditPureResourceMaxEntForm
-import Qatlib.Concepts.QuditTeleport.CommLowerBound.CommBoundRestrictedStat
-import Qatlib.Concepts.QuditTeleport.QdLoccModel.RedundantCodingReliability
-import Qatlib.Concepts.QuditTeleport.MessagingBounds.PrearrivalMessageGuessingStat
-import Qatlib.Concepts.QuditTeleport.MessagingBounds.CollapsedMessageGuessingStat
-import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditResourceMarginalConverse
-import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditMaxEntResourceTeleportation
-import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditPureResourceMaxEntForm
-import Qatlib.Concepts.QuditTeleport.CommLowerBound.CommBoundRestrictedTele
-import Qatlib.Concepts.QuditTeleport.MessagingBounds.PrearrivalMessageGuessingTele
-import Qatlib.Concepts.QuditTeleport.MessagingBounds.CollapsedMessageGuessingTele
-import Qatlib.Concepts.QuditTeleport.MessagingBounds.RedundantCodingReliability
+module
+
+public import Qatlib.Concepts.QuditTeleport.ResourceIff.MeasurementPatternsDefs
+public import Qatlib.Foundations.PureStateMath.BornBridge.PartialTraceCovariance
+public import Qatlib.Concepts.FiniteLocc.LOCCProgram.PositiveBranchDecomposition
+public import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.QuditTeleportationInstrument
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.BellTeleportationInstrument
+public import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditResourceMarginalConverse
+public import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditMaxEntResourceTeleportation
+public import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditPureResourceMaxEntForm
+public import Qatlib.Concepts.QuditTeleport.CommLowerBound.CommBoundRestrictedStat
+public import Qatlib.Concepts.QuditTeleport.QdLoccModel.RedundantCodingReliability
+public import Qatlib.Concepts.QuditTeleport.MessagingBounds.PrearrivalMessageGuessingStat
+public import Qatlib.Concepts.QuditTeleport.MessagingBounds.CollapsedMessageGuessingStat
+public import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditResourceMarginalConverse
+public import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditMaxEntResourceTeleportation
+public import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditPureResourceMaxEntForm
+public import Qatlib.Concepts.QuditTeleport.CommLowerBound.CommBoundRestrictedTele
+public import Qatlib.Concepts.QuditTeleport.MessagingBounds.PrearrivalMessageGuessingTele
+public import Qatlib.Concepts.QuditTeleport.MessagingBounds.CollapsedMessageGuessingTele
+public import Qatlib.Concepts.QuditTeleport.MessagingBounds.RedundantCodingReliability
+
+@[expose] public section
 
 /-!
 # LOCC teleportation branches and resource bounds
@@ -267,7 +271,7 @@ private theorem matrix_eq_sum_ketBra {n : ℕ} (σ : Operator n) :
     · have hz : ∀ x_1, σ x x_1 * (Qatlib.Foundations.PureStateMath.Ket x i * star (Qatlib.Foundations.PureStateMath.Ket x_1 j)) = 0 := by
         intro x_1
         simp [Qatlib.Foundations.PureStateMath.Ket, hix]
-      simp only [hz, Finset.sum_const_zero, if_neg hix]
+      simp only [hz, Finset.sum_const_zero, ite_eq_right hix]
   rw [Finset.sum_congr rfl (fun x _ => hx x)]
   simp
 
@@ -1076,12 +1080,15 @@ private def loccJointEquiv (n : ℕ) : (Fin n × (Fin n × Fin n)) ≃ (Fin (n *
 into the LOCC register convention. -/
 theorem teleportLoccJoint_eq_relabel {n : ℕ} (ρ : Operator n)
     (ω : Matrix (Fin n × Fin n) (Fin n × Fin n) ℂ) :
-    teleportLoccJoint n ρ ω = relabelGate (loccJointEquiv n) (TensorGate ρ ω) := by
+    teleportLoccJoint n ρ ω = relabelGate
+      ((Equiv.prodAssoc (Fin n) (Fin n) (Fin n)).symm.trans
+        ((finProdFinEquiv (m := n) (n := n)).prodCongr (Equiv.refl (Fin n))))
+      (TensorGate ρ ω) := by
   ext x y
   obtain ⟨u, b⟩ := x
   obtain ⟨v, d⟩ := y
   simp [teleportLoccJoint, tensorGate_apply, relabelGate, Matrix.reindex_apply,
-    loccJointEquiv, Equiv.prodAssoc, Equiv.prodCongr, finProdFinEquiv]
+    Equiv.prodAssoc, Equiv.prodCongr, finProdFinEquiv]
 
 /-- A local leaf map with a positive semidefinite resource sends positive semidefinite inputs to
 positive semidefinite outputs. -/

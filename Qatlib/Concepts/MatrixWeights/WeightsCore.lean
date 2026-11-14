@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.MixedState
-import QuantumInfo.ForMathlib.HermitianMat.LogExp
-import Mathlib.Analysis.SpecialFunctions.ContinuousFunctionalCalculus.ExpLog.Basic
-import QuantumInfo.ForMathlib.HermitianMat.Schatten
-import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
-import Qatlib.Concepts.LchsSimulation.LchsRep.ImaginaryTimeProduct
-import Mathlib.Analysis.Convex.SpecificFunctions.Basic
+module
+
+public import Qatlib.Foundations.PureStateMath.MixedState
+public import QuantumInfo.ForMathlib.HermitianMat.LogExp
+public import Mathlib.Analysis.SpecialFunctions.ContinuousFunctionalCalculus.ExpLog.Basic
+public import QuantumInfo.ForMathlib.HermitianMat.Schatten
+public import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
+public import Qatlib.Concepts.LchsSimulation.LchsRep.ImaginaryTimeProduct
+public import Mathlib.Analysis.Convex.SpecificFunctions.Basic
+
+@[expose] public section
 
 /-!
 # Noncommuting matrix multiplicative weights
@@ -78,11 +82,11 @@ theorem mmw_exp_positive_trace (D : ℕ) (A : Operator D) (hD : 0 < D)
     (hA : A.IsHermitian) :
     (NormedSpace.exp A).PosSemidef ∧ 0 < (Matrix.trace (NormedSpace.exp A)).re ∧
       Matrix.trace (NormedSpace.exp A) = ((Matrix.trace (NormedSpace.exp A)).re : ℂ) := by
-  letI : Nonempty (Fin D) := ⟨⟨0,hD⟩⟩
+  let : Nonempty (Fin D) := ⟨⟨0,hD⟩⟩
   let H : HermitianMat (Fin D) ℂ := ⟨A,hA⟩
   have he : H.exp.mat = NormedSpace.exp A := by
     rw [HermitianMat.exp, HermitianMat.mat_cfc]
-    letI : ContinuousFunctionalCalculus ℝ (Operator D) IsSelfAdjoint :=
+    let : ContinuousFunctionalCalculus ℝ (Operator D) IsSelfAdjoint :=
       Matrix.IsHermitian.instContinuousFunctionalCalculus
     exact CFC.real_exp_eq_normedSpace_exp hA
   have hp : H.exp.mat.PosSemidef := HermitianMat.zero_le_iff.mp H.exp_nonneg
@@ -310,7 +314,7 @@ theorem mmw_exp_scalar_shift (D : ℕ) (A : Operator D) (c : ℝ) :
 identity produces a positive semidefinite operator. -/
 theorem mmw_shift_posSemidef (D : ℕ) (A : Operator D) (hA : A.IsHermitian) (hD : 0 < D) :
     (‖A‖ • (1 : Operator D) - A).PosSemidef := by
-  letI : Nonempty (Fin D) := ⟨⟨0,hD⟩⟩
+  let : Nonempty (Fin D) := ⟨⟨0,hD⟩⟩
   have h : A ≤ ‖A‖ • (1 : Operator D) :=
     (Matrix.PosSemidef.le_smul_one_of_eigenvalues_iff hA ‖A‖).mp fun i =>
       (le_abs_self _).trans (by
@@ -365,7 +369,7 @@ above in matrix order by `(1 + eta^2) I - eta M`. -/
 theorem mmw_loss_exp_order (D : ℕ) (M : Operator D) (η : ℝ)
     (hD : 0<D) (hM : M.IsHermitian) (hn : ‖M‖ ≤ 1) (hη : 0<η) (hη1 : η≤1) :
     (NormedSpace.exp (-η • M)) ≤ (1+η^2) • (1 : Operator D) - η • M := by
-  letI : Nonempty (Fin D) := ⟨⟨0,hD⟩⟩
+  let : Nonempty (Fin D) := ⟨⟨0,hD⟩⟩
   let H : HermitianMat (Fin D) ℂ := ⟨M,hM⟩
   have hc : H.cfc (fun x => Real.exp (-η*x)) ≤ H.cfc (fun x => (1+η^2)-η*x) := by
     rw [← sub_nonneg, ← HermitianMat.cfc_sub_apply, HermitianMat.cfc_nonneg_iff]
@@ -384,7 +388,7 @@ theorem mmw_loss_exp_order (D : ℕ) (M : Operator D) (η : ℝ)
   rw [he, hr] at hc
   have hmat : ((-η) • H).exp.mat = NormedSpace.exp (-η • M) := by
     rw [HermitianMat.exp, HermitianMat.mat_cfc]
-    letI : ContinuousFunctionalCalculus ℝ (Operator D) IsSelfAdjoint :=
+    let : ContinuousFunctionalCalculus ℝ (Operator D) IsSelfAdjoint :=
       Matrix.IsHermitian.instContinuousFunctionalCalculus
     exact CFC.real_exp_eq_normedSpace_exp (hM.smul (by simp [IsSelfAdjoint]))
   simpa only [HermitianMat.le_iff, HermitianMat.mat_sub, HermitianMat.mat_smul,
@@ -482,7 +486,7 @@ exponential of the underlying matrix. -/
 theorem mmw_hermitian_exp_mat {d : Type*} [Fintype d] [DecidableEq d]
     (H : HermitianMat d ℂ) : H.exp.mat = NormedSpace.exp H.mat := by
   rw [HermitianMat.exp, HermitianMat.mat_cfc]
-  letI : ContinuousFunctionalCalculus ℝ (Matrix d d ℂ) IsSelfAdjoint :=
+  let : ContinuousFunctionalCalculus ℝ (Matrix d d ℂ) IsSelfAdjoint :=
     Matrix.IsHermitian.instContinuousFunctionalCalculus
   exact CFC.real_exp_eq_normedSpace_exp H.H
 

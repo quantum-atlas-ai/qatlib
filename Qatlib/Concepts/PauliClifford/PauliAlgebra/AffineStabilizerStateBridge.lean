@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PauliClifford.PauliAlgebra.CliffordStabilizerExt
-import Qatlib.Concepts.HspRecovery.Reduction.BooleanRecoveryRank
-import Qatlib.Concepts.HspRecovery.Reduction.BooleanGaussianDecoder
-import Mathlib.LinearAlgebra.LinearIndependent.Lemmas
-import Mathlib.LinearAlgebra.Matrix.SesquilinearForm
+module
+
+public import Qatlib.Concepts.PauliClifford.PauliAlgebra.CliffordStabilizerExt
+public import Qatlib.Concepts.HspRecovery.Reduction.BooleanRecoveryRank
+public import Qatlib.Concepts.HspRecovery.Reduction.BooleanGaussianDecoder
+public import Mathlib.LinearAlgebra.LinearIndependent.Lemmas
+public import Mathlib.LinearAlgebra.Matrix.SesquilinearForm
+
+@[expose] public section
 
 /-!
 # Affine amplitudes and physical stabilizer states
@@ -218,7 +222,7 @@ theorem translationRow_op {n : ℕ} (x : BooleanVec n) :
   simp only [translationRow, Row.decode, ZMod.val_zero, pow_zero, one_mul]
   by_cases hs : s = Qatlib.Concepts.HspRecovery.ReductionCore.regXor r (vecToReg x)
   · subst s
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     have hf : ∀ k, P1 (letter (vecToReg x k) false) (r k)
         (Qatlib.Concepts.HspRecovery.ReductionCore.regXor r (vecToReg x) k) = (1 : ℂ) := by
       intro k
@@ -226,7 +230,7 @@ theorem translationRow_op {n : ℕ} (x : BooleanVec n) :
         simp [letter, P1, Qatlib.Concepts.HspRecovery.ReductionCore.regXor, hx, hr]
     simp_rw [hf]
     simp
-  · rw [if_neg hs]
+  · rw [ite_eq_right hs]
     obtain ⟨k, hk⟩ := Function.ne_iff.mp hs
     apply Finset.prod_eq_zero (Finset.mem_univ k)
     cases hx : vecToReg x k <;> cases hr : r k <;> cases hs' : s k <;>
@@ -249,7 +253,7 @@ theorem diagonalRow_op {n : ℕ} (z : BooleanVec n) (sign : ZMod 2) :
   simp only [diagonalRow, Row.decode, Matrix.diagonal_apply]
   by_cases hrs : r = s
   · subst s
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     have hchar :=
         Qatlib.Concepts.WalshMoment.Forrelation.booleanCharacter_regBooleanEquiv_sign
         (vecToReg z) r
@@ -265,7 +269,7 @@ theorem diagonalRow_op {n : ℕ} (z : BooleanVec n) (sign : ZMod 2) :
     simp_rw [hf]
     rw [← hchar]
     by_cases h : sign = 0 <;> simp [h, zmod4_val_two]
-  · rw [if_neg hrs]
+  · rw [ite_eq_right hrs]
     obtain ⟨k, hk⟩ := Function.ne_iff.mp hrs
     have hzero : (∏ k, P1 (letter false (vecToReg z k)) (r k) (s k)) = 0 := by
       apply Finset.prod_eq_zero (Finset.mem_univ k)
@@ -295,7 +299,7 @@ theorem rawDiagonalRow_op {n : ℕ} (z : BooleanVec n) (phase : Phase4) :
   simp only [rawDiagonalRow, Row.decode, Matrix.diagonal_apply]
   by_cases hrs : r = s
   · subst s
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     have hchar :=
         Qatlib.Concepts.WalshMoment.Forrelation.booleanCharacter_regBooleanEquiv_sign
         (vecToReg z) r
@@ -310,7 +314,7 @@ theorem rawDiagonalRow_op {n : ℕ} (z : BooleanVec n) (phase : Phase4) :
         simp [letter, P1]
     simp_rw [hf]
     rw [← hchar]
-  · rw [if_neg hrs]
+  · rw [ite_eq_right hrs]
     obtain ⟨k, hk⟩ := Function.ne_iff.mp hrs
     have hzero : (∏ k, P1 (letter false (vecToReg z k)) (r k) (s k)) = 0 := by
       apply Finset.prod_eq_zero (Finset.mem_univ k)
@@ -634,7 +638,7 @@ theorem diagonalRow_uniformAffineState {n : ℕ} {D : Submodule (ZMod 2) (Boolea
         booleanCharacter z p = 1 := by
       rcases Qatlib.Concepts.PauliClifford.PauliAlgebra.StabilizerDesign.zmod2_eq_zero_or_one (booleanDot z p) with h | h <;>
         simp [h, Qatlib.Concepts.PauliClifford.ExactRank.booleanCharacter_apply]
-    simp only [uniformAffineState, uniformAffineFun, stateOfFn, hr, if_pos, mul_one]
+    simp only [uniformAffineState, uniformAffineFun, stateOfFn, hr, ite_eq_left, mul_one]
     rw [hchar]
     exact hsign
   · simp [uniformAffineState, uniformAffineFun, stateOfFn, hr]
@@ -714,7 +718,7 @@ theorem basis_row_symp {n : ℕ} (p : Reg n) (i : Fin n) :
   · funext j
     by_cases h : j = i <;>
       simp [rowSympVec, symplecticVec, basisTableau, Row.decode, letter, symplecticZ,
-        Pi.single_apply, h]
+        h]
 
 /-- The tableau associated with a computational basis register is consistent. -/
 theorem basisTableau_consistent {n : ℕ} (p : Reg n) :
@@ -750,7 +754,7 @@ theorem basis_row_op {n : ℕ} (p : Reg n) (i : Fin n) :
   simp only [basisTableau, Row.decode, Matrix.diagonal_apply]
   by_cases hbc : b = c
   · subst c
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     have hf : ∀ k, P1 (letter false (decide (k = i))) (b k) (b k) =
         if k = i then (if b k then (-1 : ℂ) else 1) else 1 := by
       intro k
@@ -761,7 +765,7 @@ theorem basis_row_op {n : ℕ} (p : Reg n) (i : Fin n) :
     simp_rw [hf]
     by_cases hb : b i <;> by_cases hp : p i <;>
       simp [hb, hp, zmod4_val_two]
-  · rw [if_neg hbc]
+  · rw [ite_eq_right hbc]
     have hzero : (∏ k, P1 (letter false (decide (k = i))) (b k) (c k)) = 0 := by
       obtain ⟨k, hk⟩ := Function.ne_iff.mp hbc
       apply Finset.prod_eq_zero (Finset.mem_univ k)
@@ -791,7 +795,7 @@ theorem mem_basis_code_iff {n : ℕ} (p : Reg n) (ψ : QState (Reg n)) :
       simp [Qatlib.Foundations.PureStateMath.Ket]
     · obtain ⟨i, hi⟩ := Function.ne_iff.mp hb
       have h := congrFun (hψ i) b
-      rw [basis_row_mulVec, if_neg hi] at h
+      rw [basis_row_mulVec, ite_eq_right hi] at h
       have hz : ψ b = 0 := by linear_combination (-(1 / 2 : ℂ)) * h
       simp [Qatlib.Foundations.PureStateMath.Ket, hb, hz]
   · rintro ⟨c, rfl⟩ i
@@ -1456,7 +1460,7 @@ theorem affinePauliRow_stabilizerAffineState {n : ℕ} {D : Submodule (ZMod 2) (
   rw [mem_mk'_regXor_translation hd, regToVec_regXor_vecToReg,
     stabilizerPhase_add, stabilizerPhaseSign_adjust]
   by_cases hr : regToVec r ∈ AffineSubspace.mk' p D
-  · simp only [hr, if_pos, mul_one]
+  · simp only [hr, ite_eq_left, mul_one]
     calc
       _ = ((Complex.I ^ (stabilizerPhaseTarget a Q b d).val : ℂ) *
             Complex.I ^ (booleanDot a d).val * (-1 : ℂ) ^ (quadFun Q b 0 d).val) *
@@ -1494,7 +1498,7 @@ theorem diagonalRow_stabilizerAffineState {n : ℕ} {D : Submodule (ZMod 2) (Boo
         booleanCharacter z p = 1 := by
       rcases Qatlib.Concepts.PauliClifford.PauliAlgebra.StabilizerDesign.zmod2_eq_zero_or_one (booleanDot z p) with h | h <;>
         simp [h, Qatlib.Concepts.PauliClifford.ExactRank.booleanCharacter_apply]
-    simp only [stabilizerAffineState, stabilizerAffineFun, stateOfFn, hr, if_pos, mul_one]
+    simp only [stabilizerAffineState, stabilizerAffineFun, stateOfFn, hr, ite_eq_left, mul_one]
     rw [hchar, hsign, one_mul]
   · simp [stabilizerAffineState, stabilizerAffineFun, stateOfFn, hr]
 

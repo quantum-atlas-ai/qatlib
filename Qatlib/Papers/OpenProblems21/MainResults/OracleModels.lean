@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.BitColumnAccess.ColumnAssemble.BitColumnValueAccess
+module
+
+public import Qatlib.Concepts.BitColumnAccess.ColumnAssemble.BitColumnValueAccess
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -127,7 +131,7 @@ theorem erasingMatrix_conjTranspose_mul_self {X Y : Type*} [Fintype X] [Fintype 
   rw [Finset.sum_eq_single (f x')]
   · simp
   · intro y _ hy
-    rw [if_neg (fun h : f x' = y => hy h.symm), mul_zero]
+    rw [ite_eq_right (fun h : f x' = y => hy h.symm), mul_zero]
   · intro h
     exact absurd (Finset.mem_univ (f x')) h
 
@@ -144,7 +148,7 @@ theorem erasingMatrix_isometry_iff_injective {X Y : Type*} [Fintype X] [Fintype 
     rw [erasingMatrix_conjTranspose_mul_self, Matrix.one_apply] at hentry
     simp only [Matrix.of_apply] at hentry
     by_contra hne
-    rw [if_pos hxy, if_neg hne] at hentry
+    rw [ite_eq_left hxy, ite_eq_right hne] at hentry
     exact one_ne_zero hentry
   · intro hf
     rw [erasingMatrix_conjTranspose_mul_self]
@@ -154,7 +158,7 @@ theorem erasingMatrix_isometry_iff_injective {X Y : Type*} [Fintype X] [Fintype 
     · subst h
       simp
     · have h' : f x ≠ f y := fun hfxy => h (hf hfxy)
-      rw [if_neg h, if_neg h']
+      rw [ite_eq_right h, ite_eq_right h']
 
 /-- If `f` is not injective, the erasing oracle annihilates a nonzero state:
 the paper's "erasing" oracle cannot be inverted once two inputs collide. (arXiv:2109.06917v1, §9, p. 6). -/
@@ -189,6 +193,6 @@ theorem erasingMatrix_mulVec_ket_eq_zero_of_not_mem_range {X Y : Type*}
     (erasingMatrix f *ᵥ Ket x) y = 0 := by
   rw [erasingMatrix_mulVec_ket]
   simp only [Ket]
-  rw [if_neg (fun h : y = f x => hy x h.symm)]
+  rw [ite_eq_right (fun h : y = f x => hy x h.symm)]
 
 end Qatlib.Papers.OpenProblems21.MainResults

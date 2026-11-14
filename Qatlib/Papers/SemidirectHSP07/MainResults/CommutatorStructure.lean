@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SemidirectHSP07.MainResults.Group
-import Mathlib.GroupTheory.SpecificGroups.Cyclic
-import Mathlib.GroupTheory.PGroup
-import Mathlib.GroupTheory.SemidirectProduct
-import Mathlib.Data.ZMod.Basic
+module
+
+public import Qatlib.Papers.SemidirectHSP07.MainResults.Group
+public import Mathlib.GroupTheory.SpecificGroups.Cyclic
+public import Mathlib.GroupTheory.PGroup
+public import Mathlib.GroupTheory.SemidirectProduct
+public import Mathlib.Data.ZMod.Basic
+
+@[expose] public section
 
 /-!
 # Commutator containment for the class (1) action

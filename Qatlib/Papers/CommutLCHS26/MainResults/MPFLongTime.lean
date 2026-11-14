@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommutLCHS26.MainResults.MPFSegments
-import Qatlib.Papers.CommutLCHS26.QuadratureCmp.RawMPF
-import Mathlib.Analysis.Complex.ExponentialBounds
-import Mathlib.Analysis.Real.Pi.Bounds
+module
+
+public import Qatlib.Papers.CommutLCHS26.MainResults.MPFSegments
+public import Qatlib.Papers.CommutLCHS26.QuadratureCmp.RawMPF
+public import Mathlib.Analysis.Complex.ExponentialBounds
+public import Mathlib.Analysis.Real.Pi.Bounds
+
+@[expose] public section
 
 /-!
 # Long-time accuracy of repeated multi-product formulas

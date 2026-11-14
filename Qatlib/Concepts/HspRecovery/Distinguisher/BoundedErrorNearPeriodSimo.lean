@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.Distinguisher.BoundedErrorNearPeriodStat
-import Qatlib.Concepts.HspRecovery.Distinguisher.BooleanNearPeriodSampling
+module
+
+public import Qatlib.Concepts.HspRecovery.Distinguisher.BoundedErrorNearPeriodStat
+public import Qatlib.Concepts.HspRecovery.Distinguisher.BooleanNearPeriodSampling
+
+@[expose] public section
 
 /-!
 # Simon decoding as a near-period distinguisher

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ManyBodyFermi97.MainResults.ParallelBlocks
+module
+
+public import Qatlib.Papers.ManyBodyFermi97.MainResults.ParallelBlocks
+
+@[expose] public section
 
 /-!
 # Odd hopping blocks on an open chain
@@ -55,7 +59,7 @@ theorem oddSite_injective (k : ℕ) : Function.Injective (oddSite k) := by
   rcases x with ⟨b,a⟩
   rcases y with ⟨d,c⟩
   cases b <;> cases d <;>
-    simp only [oddSite, Bool.false_eq_true, if_false, if_true] at hv
+    simp only [oddSite, Bool.false_eq_true, ite_false, ite_true] at hv
   all_goals first
     | omega
     | (have hac : a = c := Fin.ext (by omega); subst c; rfl)
@@ -77,7 +81,7 @@ theorem oddSite_ne_zero (k : ℕ) (hk : 1 ≤ k) (x : Bool × Fin (k-1)) :
   intro h
   have hv := congrArg Fin.val h
   rcases x with ⟨b,a⟩
-  cases b <;> simp only [oddSite, Bool.false_eq_true, if_false, if_true] at hv
+  cases b <;> simp only [oddSite, Bool.false_eq_true, ite_false, ite_true] at hv
   all_goals omega
 
 /-- The interior block indexing never reaches the last site. -/
@@ -86,7 +90,7 @@ theorem oddSite_ne_last (k : ℕ) (x : Bool × Fin (k-1)) :
   intro h
   have hv := congrArg Fin.val h
   rcases x with ⟨b,a⟩
-  cases b <;> simp only [oddSite, Bool.false_eq_true, if_false, if_true] at hv
+  cases b <;> simp only [oddSite, Bool.false_eq_true, ite_false, ite_true] at hv
   all_goals omega
 
 /-- The odd hopping matrix has entry `t` between the two sites of each interior pair.
@@ -96,24 +100,24 @@ theorem oddBlocks_interior (k : ℕ) (hk : 1 ≤ k) (t : ℝ) (a : Fin (k-1)) :
       ⟨2*a.val+2, by have := a.isLt; omega⟩ = (t : ℂ) := by
   unfold oddBlocks chainHopping
   have hne : (2*a.val+1)/2 ≠ (2*a.val+2)/2 := by omega
-  rw [if_pos hne]
-  rw [if_pos (by
+  rw [ite_eq_left hne]
+  rw [ite_eq_left (by
     left
-    simp only [Fin.val_mk]
+    simp only []
     push_cast
     omega)]
 
 /-- Every diagonal entry of the odd hopping matrix is zero. -/
 theorem oddBlocks_diagonal_zero (m : ℕ) (t : ℝ) (i : Fin m) :
     oddBlocks m t i i = 0 := by
-  simp [oddBlocks, chainHopping]
+  simp [oddBlocks]
 
 /-- A chain hopping matrix entry vanishes when its two sites are not adjacent. -/
 theorem chainHopping_eq_zero_of_not_adj (m : ℕ) (t : ℂ) {i j : Fin m}
     (h : ¬ ((i.val : ℤ) + 1 = (j.val : ℤ) ∨ (j.val : ℤ) + 1 = (i.val : ℤ))) :
     chainHopping m t i j = 0 := by
   unfold chainHopping
-  rw [if_neg h]
+  rw [ite_eq_right h]
 
 /-- The first row of the odd hopping matrix vanishes on an even open chain with `1 ≤ k`.
 [AbramsLloyd1997] -/
@@ -121,9 +125,9 @@ theorem oddBlocks_zero_site (k : ℕ) (hk : 1 ≤ k) (t : ℝ) (j : Fin (2*k)) :
     oddBlocks (2*k) t (⟨0, by omega⟩ : Fin (2*k)) j = 0 := by
   by_cases h : ((⟨0, by omega⟩ : Fin (2*k)).val / 2 = j.val / 2)
   · unfold oddBlocks
-    rw [if_neg (by omega)]
+    rw [ite_eq_right (by omega)]
   · unfold oddBlocks
-    rw [if_pos (by omega)]
+    rw [ite_eq_left (by omega)]
     refine chainHopping_eq_zero_of_not_adj _ _ (by
       have h0 : (((⟨0, by omega⟩ : Fin (2*k))).val : ℤ) = 0 := by simp
       rw [h0]
@@ -135,9 +139,9 @@ theorem oddBlocks_zero_last (k : ℕ) (hk : 1 ≤ k) (t : ℝ) (j : Fin (2*k)) :
     oddBlocks (2*k) t ⟨2*k - 1, by omega⟩ j = 0 := by
   by_cases h : ((⟨2*k - 1, by omega⟩ : Fin (2*k)).val / 2 = j.val / 2)
   · unfold oddBlocks
-    rw [if_neg (by omega)]
+    rw [ite_eq_right (by omega)]
   · unfold oddBlocks
-    rw [if_pos (by omega)]
+    rw [ite_eq_left (by omega)]
     refine chainHopping_eq_zero_of_not_adj _ _ (by
       have hlast : (((⟨2*k - 1, by omega⟩ : Fin (2*k))).val : ℤ) = (k : ℤ) * 2 - 1 := by
         simp; omega

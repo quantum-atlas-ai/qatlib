@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QAOAScaling23.SearchFees.ResourceBudget
-import Qatlib.Papers.QAOAScaling23.SearchFees.Confidence
+module
+
+public import Qatlib.Papers.QAOAScaling23.SearchFees.ResourceBudget
+public import Qatlib.Papers.QAOAScaling23.SearchFees.Confidence
+
+@[expose] public section
 
 /-!
 # Actual search ledger and confidence bounds

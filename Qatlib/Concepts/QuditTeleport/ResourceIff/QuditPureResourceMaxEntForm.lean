@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditPureResourceMaxEntForm
-import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditResourceMarginalConverse
-import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditMaxEntCharacterization
+module
+
+public import Qatlib.Concepts.QuditTeleport.QdLoccModel.QuditPureResourceMaxEntForm
+public import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditResourceMarginalConverse
+public import Qatlib.Concepts.QuditTeleport.ResourceIff.QuditMaxEntCharacterization
+
+@[expose] public section
 
 /-!
 # Maximally entangled form of pure teleportation resources

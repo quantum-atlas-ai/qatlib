@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CollisionProb97.MainResults.SearchReceipt
-import Qatlib.Papers.CollisionProb97.MainResults.TableRecords
-import Qatlib.Papers.CollisionProb97.MainResults.CollisionCounting
+module
+
+public import Qatlib.Papers.CollisionProb97.MainResults.SearchReceipt
+public import Qatlib.Papers.CollisionProb97.MainResults.TableRecords
+public import Qatlib.Papers.CollisionProb97.MainResults.CollisionCounting
+
+@[expose] public section
 
 /-!
 # Claw search against a read-only table

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.Reduction.SmithWholePivotRun
+module
+
+public import Qatlib.Concepts.HspRecovery.Reduction.SmithWholePivotRun
+
+@[expose] public section
 
 /-!
 # Bit bounds for binary Smith runs

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.TensorPCA19.MainResults.Model.SpectralModel
-import Qatlib.Papers.TensorPCA19.MainResults.Source.RecoverySampling
+module
+
+public import Qatlib.Papers.TensorPCA19.MainResults.Model.SpectralModel
+public import Qatlib.Papers.TensorPCA19.MainResults.Source.RecoverySampling
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -49,7 +53,7 @@ Proof (source, p.24): Markov's inequality applied to `λ₁ − H(T₀)` gives
 `((1/8)(E₀ − E_max))/((1/8)E₀ + (7/8)E_max) ≥ c/(16(1+c))`.  This is the
 formal counterpart of the source's `Ω(1)·c/(1+c)`. -/
 theorem lemma8_projection_mass {n : ℕ} (D : SpectralDecomposition n) {E0 Emax c : ℝ}
-    (hE0 : 0 < E0) (hEm : 0 < Emax) (hc : 0 < c)
+    (_hE0 : 0 < E0) (hEm : 0 < Emax) (hc : 0 < c)
     (hsep : (1 + c) * Emax ≤ E0)
     (henergy : E0 ≤ D.energy) (hlam : D.lamMax ≤ E0 + Emax) :
     c / (16 * (1 + c)) ≤ D.projMass ((7 / 8) * E0 + (1 / 8) * Emax) := by
@@ -61,7 +65,7 @@ theorem lemma8_projection_mass {n : ℕ} (D : SpectralDecomposition n) {E0 Emax 
     unfold SpectralDecomposition.projMass
     exact Finset.sum_nonneg fun i _ => D.weight_nonneg i
   have hE0Em : Emax < E0 := by nlinarith
-  have htE0 : t < E0 := by rw [ht]; nlinarith [hE0, hEm]
+  have htE0 : t < E0 := by rw [ht]; nlinarith [_hE0, hEm]
   have htlt : t < D.lamMax :=
     lt_of_lt_of_le (lt_of_lt_of_le htE0 henergy) (lemma2_variational D)
   have hmarkov : (D.energy - t) / (D.lamMax - t) ≤ p := by

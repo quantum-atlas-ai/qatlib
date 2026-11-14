@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Data.Matrix.Mul
-import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
-import Mathlib.Tactic
+module
+
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Weighing matrices and column sparsity
@@ -64,9 +68,9 @@ theorem gram_apply_rat (s r : Fin n) :
       if s = r then (k : ℚ) else 0 := by
   have h := M.gram_apply s r
   by_cases hsr : s = r
-  · rw [if_pos hsr] at h ⊢
+  · rw [ite_eq_left hsr] at h ⊢
     exact_mod_cast h
-  · rw [if_neg hsr] at h ⊢
+  · rw [ite_eq_right hsr] at h ⊢
     exact_mod_cast h
 
 /-- The weighing matrix with its entries cast to rational numbers. -/

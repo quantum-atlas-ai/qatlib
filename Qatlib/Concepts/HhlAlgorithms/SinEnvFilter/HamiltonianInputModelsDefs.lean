@@ -4,17 +4,21 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MbqcFlow.FlowDecision.PureToMixedConditionalDefs
-import Qatlib.Concepts.HhlErrorBridge.FilterStability
-import Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.SinEnvelopeHHLConsumers
-import Qatlib.Concepts.HhlAlgorithms.UniformHHL.OffGridSignedHHL
-import Qatlib.Concepts.HhlAlgorithms.Postselection.RationalHHLNoiseRetry
-import Qatlib.Concepts.CoherentSim.CoherentOAA.Pseudoinverse
-import Qatlib.Concepts.LocalMachine.LocalTransport.LeastSquaresOutputSpec
-import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
-import Qatlib.Concepts.RandCompile.FairBitSampling.DiamondStabilizationConsumers
-import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
-import Qatlib.Concepts.BlockEncoding.Basic
+module
+
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.PureToMixedConditionalDefs
+public import Qatlib.Concepts.HhlErrorBridge.FilterStability
+public import Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.SinEnvelopeHHLConsumers
+public import Qatlib.Concepts.HhlAlgorithms.UniformHHL.OffGridSignedHHL
+public import Qatlib.Concepts.HhlAlgorithms.Postselection.RationalHHLNoiseRetry
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.Pseudoinverse
+public import Qatlib.Concepts.LocalMachine.LocalTransport.LeastSquaresOutputSpec
+public import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
+public import Qatlib.Concepts.RandCompile.FairBitSampling.DiamondStabilizationConsumers
+public import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
+public import Qatlib.Concepts.BlockEncoding.Basic
+
+@[expose] public section
 
 /-!
 # HHL input models and resource records

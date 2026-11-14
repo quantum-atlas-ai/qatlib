@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Normed.Algebra.MatrixExponential
-import Mathlib.Data.Matrix.Block
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.LinearAlgebra.Matrix.Hermitian
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Analysis.Complex.Trigonometric
-import Mathlib.Analysis.SpecialFunctions.Exponential
+module
+
+public import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+public import Mathlib.Data.Matrix.Block
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.LinearAlgebra.Matrix.Hermitian
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Analysis.Complex.Trigonometric
+public import Mathlib.Analysis.SpecialFunctions.Exponential
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -51,8 +55,10 @@ variable {ι : Type*} [Fintype ι] [DecidableEq ι]
 def unitaryDilation (U : Matrix ι ι ℂ) : Matrix (ι ⊕ ι) (ι ⊕ ι) ℂ :=
   Matrix.fromBlocks (0 : Matrix ι ι ℂ) U Uᴴ (0 : Matrix ι ι ℂ)
 
+omit [Fintype ι] [DecidableEq ι] in
+
 /-- Paper arXiv:0904.2211v2, p. 1: `H` is Hermitian (`H = H†`), for any `U`. -/
-theorem unitaryDilation_isHermitian (U : Matrix ι ι ℂ) :
+theorem unitaryDilation_isHermitian {ι : Type*} [_scopeInst0 : Fintype ι] [_scopeInst1 : DecidableEq ι] (U : Matrix ι ι ℂ) :
     (unitaryDilation U).IsHermitian := by
   show (unitaryDilation U)ᴴ = unitaryDilation U
   rw [unitaryDilation, Matrix.fromBlocks_conjTranspose]
@@ -209,8 +215,10 @@ def anc0 (ψ : ι → ℂ) : ι ⊕ ι → ℂ := Sum.elim ψ (0 : ι → ℂ)
 /-- `|1⟩|ψ⟩` on the ancilla-system space `ι ⊕ ι`. -/
 def anc1 (ψ : ι → ℂ) : ι ⊕ ι → ℂ := Sum.elim (0 : ι → ℂ) ψ
 
+omit [DecidableEq ι] in
+
 /-- `H·(|1⟩|ψ⟩) = |0⟩(U|ψ⟩)` for the dilation `H`. -/
-theorem unitaryDilation_mulVec_anc1 (U : Matrix ι ι ℂ) (ψ : ι → ℂ) :
+theorem unitaryDilation_mulVec_anc1 {ι : Type*} [_scopeInst0 : Fintype ι] [_scopeInst1 : DecidableEq ι] (U : Matrix ι ι ℂ) (ψ : ι → ℂ) :
     unitaryDilation U *ᵥ anc1 ψ = anc0 (U *ᵥ ψ) := by
   rw [unitaryDilation, Matrix.fromBlocks_mulVec]
   ext k

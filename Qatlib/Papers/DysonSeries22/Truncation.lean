@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.DysonSeries22.ExactSource
-import Qatlib.Foundations.TimeEvolution.DysonError.SeriesSteps
-import Qatlib.Foundations.TimeEvolution.DysonError.FactorialTail
-import Qatlib.Papers.DysonSeries22.PureDistance
+module
+
+public import Qatlib.Papers.DysonSeries22.ExactSource
+public import Qatlib.Foundations.TimeEvolution.DysonError.SeriesSteps
+public import Qatlib.Foundations.TimeEvolution.DysonError.FactorialTail
+public import Qatlib.Papers.DysonSeries22.PureDistance
+
+@[expose] public section
 
 /-!
 # Truncated Dyson solutions and error bounds

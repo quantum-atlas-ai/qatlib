@@ -4,16 +4,20 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkFind.GroverInterp.GroverGeometryAux
-import Qatlib.Concepts.WalkFind.GroverInterp.UnitarySpectrumAux
-import Qatlib.Concepts.WalkFind.GroverInterp.GroverTrigAux
-import Mathlib.Topology.Order.IntermediateValue
-import Qatlib.Concepts.WalkFind.GroverInterp.GroverResolventAux
-import Qatlib.Concepts.WalkFind.GroverInterp.GroverInterpolationStat
-import Mathlib.Analysis.SpecialFunctions.Complex.Log
-import Mathlib.Analysis.Normed.Ring.Units
-import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
-import Mathlib.Topology.Instances.Matrix
+module
+
+public import Qatlib.Concepts.WalkFind.GroverInterp.GroverGeometryAux
+public import Qatlib.Concepts.WalkFind.GroverInterp.UnitarySpectrumAux
+public import Qatlib.Concepts.WalkFind.GroverInterp.GroverTrigAux
+public import Mathlib.Topology.Order.IntermediateValue
+public import Qatlib.Concepts.WalkFind.GroverInterp.GroverResolventAux
+public import Qatlib.Concepts.WalkFind.GroverInterp.GroverInterpolationStat
+public import Mathlib.Analysis.SpecialFunctions.Complex.Log
+public import Mathlib.Analysis.Normed.Ring.Units
+public import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
+public import Mathlib.Topology.Instances.Matrix
+
+@[expose] public section
 
 /-!
 # Grover interpolation via secular equations
@@ -615,10 +619,10 @@ theorem grover_secular_nonfixed_eigenbasis (m : ℕ) (α β : ℝ)
     apply Finset.sum_congr rfl
     intro j _
     by_cases hj : μ j = 1
-    · simp only [hj, ne_eq, not_true_eq_false, if_false]
+    · simp only [hj, ne_eq, not_true_eq_false, ite_false]
       rw [show (star B *ᵥ b) j = 0 from hzero j hj]
       simp
-    · simp only [hj, ne_eq, not_false_eq_true, if_true]
+    · simp only [hj, ne_eq, not_false_eq_true, ite_true]
       rw [← neg_sub (Real.cos β) (μ j).re, div_neg]
   rw [hsum] at hbscalar
   rw [grover_secular_orthogonal_decomposition m α β U start good hu hstart hsn hoverlap hz hinv]

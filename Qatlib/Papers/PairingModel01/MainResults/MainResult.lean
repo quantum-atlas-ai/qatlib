@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.PairingModel01.MainResults.StepCount
-import Qatlib.Papers.PairingModel01.MainResults.ShortTimeApproximation
-import Qatlib.Papers.PairingModel01.MainResults.AdiabaticProduct
+module
+
+public import Qatlib.Papers.PairingModel01.MainResults.StepCount
+public import Qatlib.Papers.PairingModel01.MainResults.ShortTimeApproximation
+public import Qatlib.Papers.PairingModel01.MainResults.AdiabaticProduct
+
+@[expose] public section
 
 /-!
 # Pairing-model register and resource bounds

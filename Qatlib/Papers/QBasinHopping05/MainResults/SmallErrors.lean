@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Tactic
+module
+
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Small-error amplitude and success bounds
@@ -135,7 +139,7 @@ theorem optimal_error_rate (N Nγ Nβ : ℝ) (hN : 0 < N) (hNγ : 0 < Nγ) :
 /-- The amplitude lower bound `1 - (π / 2) * sqrt (Nβ / Nγ)` implies squared amplitude at least
 `1 - π * sqrt (Nβ / Nγ)` for positive `Nγ` [Bulger2005]. -/
 theorem success_probability_from_noise_rate
-    (amp Nβ Nγ : ℝ) (hNγ : 0 < Nγ)
+    (amp Nβ Nγ : ℝ) (_hNγ : 0 < Nγ)
     (hle : 1 - (Real.pi / 2) * Real.sqrt (Nβ / Nγ) ≤ amp) :
     1 - Real.pi * Real.sqrt (Nβ / Nγ) ≤ amp ^ 2 := by
   set s := Real.sqrt (Nβ / Nγ) with hs
@@ -146,7 +150,7 @@ theorem success_probability_from_noise_rate
   · have hamp : 1 - e ≤ amp := by rw [he]; linarith
     have h := success_probability_of_amplitude amp e h1 hamp
     linarith [h, h2e]
-  · push_neg at h1
+  · push Not at h1
     have hneg : 1 - Real.pi * s < 0 := by nlinarith [h2e, h1]
     nlinarith [sq_nonneg amp, hneg]
 

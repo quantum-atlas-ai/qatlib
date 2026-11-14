@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RandCompile.FairBitSampling.FairBitQDrift
-import Qatlib.Concepts.ChannelTheory.Stinespring.ShadowEstimator
+module
+
+public import Qatlib.Concepts.RandCompile.FairBitSampling.FairBitQDrift
+public import Qatlib.Concepts.ChannelTheory.Stinespring.ShadowEstimator
+
+@[expose] public section
 
 /-!
 # Computed budgets for fair-bit qDRIFT

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NonabelianHSP98.MainResults.Pairing
+module
+
+public import Qatlib.Papers.NonabelianHSP98.MainResults.Pairing
+
+@[expose] public section
 
 /-!
 # Random generation of finite groups
@@ -51,7 +55,7 @@ theorem closure_range_eq_top_iff (G : Type) [Fintype G] [Group G] {i : ℕ}
   constructor
   · intro h K hK
     by_contra hnot
-    push_neg at hnot
+    push Not at hnot
     have hle : Subgroup.closure (Set.range S) ≤ K := by
       rw [Subgroup.closure_le]
       rintro x ⟨j, rfl⟩

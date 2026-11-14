@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OrderedSearch25.MainResults.CyclicTrace
-import Qatlib.Papers.OrderedSearch25.MainResults.SourceProp22BlockDiagonal
-import Qatlib.Concepts.OrderedOracle.TiSdpBridge.TiSectorHelpers
+module
+
+public import Qatlib.Papers.OrderedSearch25.MainResults.CyclicTrace
+public import Qatlib.Papers.OrderedSearch25.MainResults.SourceProp22BlockDiagonal
+public import Qatlib.Concepts.OrderedOracle.TiSdpBridge.TiSectorHelpers
+
+@[expose] public section
 
 /-!
 # Proposition 23: swapping the diagonal blocks of the block-form solution
@@ -55,7 +59,8 @@ theorem cycTrace_neg (A : Matrix (Fin N) (Fin N) ℂ) (j : Fin N) :
   simp only [Matrix.neg_apply, Finset.sum_neg_distrib]
 
 /-- Equality of `Fin` indices gives equality of cyclic traces. -/
-theorem cycTrace_congr (A : Matrix (Fin N) (Fin N) ℂ) {i j : Fin N}
+theorem cycTrace_congr {N : ℕ} [_cycNeZero : NeZero N]
+    (A : Matrix (Fin N) (Fin N) ℂ) {i j : Fin N}
     (h : (i : ℕ) = (j : ℕ)) : cycTrace A i = cycTrace A j := by
   congr 1
   exact Fin.ext h
@@ -86,14 +91,14 @@ noncomputable def shiftHalf (n : ℕ) [NeZero n] : Equiv.Perm (Fin (2 * n)) :=
 /-- The half turn sends the first half to the second half. -/
 theorem shiftHalf_first (n : ℕ) [NeZero n] (i : Fin n) :
     shiftHalf n (halfL n i) = halfR n i := by
-  haveI : NeZero (2 * n) := ⟨by have h : 0 < n := NeZero.pos n; omega⟩
+  have : NeZero (2 * n) := ⟨by have h : 0 < n := NeZero.pos n; omega⟩
   have h := ti_shift_half_first n i
   simpa only [shiftHalf, cycShiftPow, halfL, halfR] using h
 
 /-- The half turn sends the second half to the first half. -/
 theorem shiftHalf_second (n : ℕ) [NeZero n] (i : Fin n) :
     shiftHalf n (halfR n i) = halfL n i := by
-  haveI : NeZero (2 * n) := ⟨by have h : 0 < n := NeZero.pos n; omega⟩
+  have : NeZero (2 * n) := ⟨by have h : 0 < n := NeZero.pos n; omega⟩
   have h := ti_shift_half_second n i
   simpa only [shiftHalf, cycShiftPow, halfL, halfR] using h
 
@@ -120,7 +125,7 @@ theorem cycTrace_submatrix_half (n : ℕ) [NeZero n]
     (A : Matrix (Fin (2 * n)) (Fin (2 * n)) ℂ) (j : Fin (2 * n)) :
     cycTrace (A.submatrix id (shiftHalf n)) j
       = cycTrace A (shiftResidue (2 * n) (halfIdx n) j) := by
-  haveI : NeZero (2 * n) := ⟨by have h : 0 < n := NeZero.pos n; omega⟩
+  have : NeZero (2 * n) := ⟨by have h : 0 < n := NeZero.pos n; omega⟩
   have hhalf : shiftHalf n = cycShiftPow (2 * n) n := rfl
   rw [hhalf]
   have h := cycTrace_submatrix_right (N := 2 * n) A (halfIdx n) j
@@ -137,14 +142,14 @@ theorem cycTrace_submatrix_half (n : ℕ) [NeZero n]
 theorem bssE0_comm (n : ℕ) (a b : Fin (2 * n)) : bssE0 n a b = bssE0 n b a := by
   simp only [bssE0, Matrix.of_apply]
   by_cases h : ((a : ℕ) < n) = ((b : ℕ) < n)
-  · rw [if_pos h, if_pos h.symm]
-  · rw [if_neg h, if_neg (Ne.symm h)]
+  · rw [ite_eq_left h, ite_eq_left h.symm]
+  · rw [ite_eq_right h, ite_eq_right (Ne.symm h)]
 
 /-- Swapping the column by a half turn flips the phase sign:
 `E_0[a, T^n b] = -E_0[a, b]`. -/
 theorem bssE0_colShift (n : ℕ) [NeZero n] (a b : Fin (2 * n)) :
     bssE0 n a (shiftHalf n b) = - bssE0 n a b := by
-  haveI : NeZero (2 * n) := ⟨by have h : 0 < n := NeZero.pos n; omega⟩
+  have : NeZero (2 * n) := ⟨by have h : 0 < n := NeZero.pos n; omega⟩
   have hhalf : shiftHalf n = cycShiftPow (2 * n) n := rfl
   rw [hhalf, bssE0_comm n a, bssE0_comm n a,
     bssE0_rowShift n b a]

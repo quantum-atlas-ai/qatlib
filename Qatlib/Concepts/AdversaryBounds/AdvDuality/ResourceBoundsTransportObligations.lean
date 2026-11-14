@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ResourceBounds.AsymBounds.ResourceBoundsTransportDefs
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ResourceBoundsTransportFreshCopy
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ResourceBoundsTransportGrowth
-import Qatlib.Concepts.ResourceBounds.AsymBounds.ResourceBoundsTransportImplBounds
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ResourceBoundsTransportLiveWire
+module
+
+public import Qatlib.Concepts.ResourceBounds.AsymBounds.ResourceBoundsTransportDefs
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ResourceBoundsTransportFreshCopy
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ResourceBoundsTransportGrowth
+public import Qatlib.Concepts.ResourceBounds.AsymBounds.ResourceBoundsTransportImplBounds
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ResourceBoundsTransportLiveWire
+
+@[expose] public section
 
 /-!
 # Completed resource-bound transport obligations

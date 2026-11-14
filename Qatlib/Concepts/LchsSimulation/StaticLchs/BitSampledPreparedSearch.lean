@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedAmplitudeAmplification
-import Qatlib.Concepts.LchsSimulation.StaticLchs.CountedPlanSampling
-import Qatlib.Concepts.LchsSimulation.StaticLchs.FiniteTrigonometricSums
+module
+
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedAmplitudeAmplification
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.CountedPlanSampling
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.FiniteTrigonometricSums
+
+@[expose] public section
 
 /-!
 # Prepared amplitude amplification sampled with fair bits

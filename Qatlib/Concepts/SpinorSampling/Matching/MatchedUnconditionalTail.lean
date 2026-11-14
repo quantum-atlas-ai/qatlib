@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpinorSampling.Matching.MatchedIntersectionConcentration
-import Qatlib.Concepts.SpinorSampling.Matching.MatchedSignedConditionalTail
+module
+
+public import Qatlib.Concepts.SpinorSampling.Matching.MatchedIntersectionConcentration
+public import Qatlib.Concepts.SpinorSampling.Matching.MatchedSignedConditionalTail
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

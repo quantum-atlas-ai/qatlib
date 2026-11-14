@@ -24,8 +24,12 @@ input vector whose endpoints are not in admissible blocks is simply never
 available.
 -/
 
-import Qatlib.Papers.SpanProgTree13.MainResults.SpanProgramCore
-import Qatlib.Papers.SpanProgTree13.MainResults.RootedTreeChain
+module
+
+public import Qatlib.Papers.SpanProgTree13.MainResults.SpanProgramCore
+public import Qatlib.Papers.SpanProgTree13.MainResults.RootedTreeChain
+
+@[expose] public section
 
 /-!
 # TreeDetectionProgram
@@ -123,9 +127,9 @@ omit [Fintype VT] [Fintype VG] in
 theorem basis_eq_vec {u : VG ⊕ Bool} {f : VT} (p : Coord VG VT) :
     basis u f p = vec u {f} p := by
   by_cases hp : p = (u, f)
-  · rw [basis, if_pos hp, vec, if_pos]
+  · rw [basis, ite_eq_left hp, vec, ite_eq_left]
     exact ⟨by rw [hp], by rw [hp]; simp⟩
-  · rw [basis, if_neg hp, vec, if_neg]
+  · rw [basis, ite_eq_right hp, vec, ite_eq_right]
     rintro ⟨h1, h2⟩
     exact hp (Prod.ext h1 (Finset.mem_singleton.mp h2))
 

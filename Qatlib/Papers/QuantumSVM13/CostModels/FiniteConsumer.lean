@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QuantumSVM13.CostModels.MainResult
-import Qatlib.Papers.QuantumSVM13.MinusReadout.SwapTest
+module
+
+public import Qatlib.Papers.QuantumSVM13.CostModels.MainResult
+public import Qatlib.Papers.QuantumSVM13.MinusReadout.SwapTest
+
+@[expose] public section
 
 /-!
 # A finite scalar cost consumer (QuantumSVM13)

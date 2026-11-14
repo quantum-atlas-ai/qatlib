@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HHLManyBody22.AdaptHhl.AdaptScaling
-import Qatlib.Concepts.HhlAlgorithms.GridExactHHL.GridHHLSolutionOutput
-import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
+module
+
+public import Qatlib.Papers.HHLManyBody22.AdaptHhl.AdaptScaling
+public import Qatlib.Concepts.HhlAlgorithms.GridExactHHL.GridHHLSolutionOutput
+public import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
+
+@[expose] public section
 
 /-!
 # AdaptHHL scaling on an exact spectral grid

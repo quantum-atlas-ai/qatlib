@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.BackendAudit.CountedCharacterTableDecoder
-import Qatlib.Concepts.BlockEncoding.EncodingCore.PrepareUnitary
+module
+
+public import Qatlib.Concepts.HspRecovery.BackendAudit.CountedCharacterTableDecoder
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.PrepareUnitary
+
+@[expose] public section
 
 /-!
 # Prime-order discrete logarithm Fourier sampling

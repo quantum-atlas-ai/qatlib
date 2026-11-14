@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ShadowTomog26.MainResults.Duality
+module
+
+public import Qatlib.Papers.ShadowTomog26.MainResults.Duality
+
+@[expose] public section
 
 /-!
 # Global graph bounds for the shadow parameter

@@ -4,8 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RandCompile.ChannelBudget.InteractionPictureDefs
-import Qatlib.Concepts.AmpTransform.LegendreWindow.LegendreCompleteWindow
+module
+
+public import Qatlib.Concepts.RandCompile.ChannelBudget.InteractionPictureDefs
+public import Qatlib.Concepts.AmpTransform.LegendreWindow.LegendreCompleteWindow
+
+@[expose] public section
+set_option linter.unusedSimpArgs false
 
 /-!
 # Interaction-picture resource bounds and index sorting
@@ -183,7 +188,7 @@ theorem ip25_index_compare_idem {M k : ℕ} (i j : Fin k) (v : Fin k → Fin M) 
   show (if (ip25IndexCompare i j v) i ≤ (ip25IndexCompare i j v) j
       then ip25IndexCompare i j v else ip25IndexSwap i j (ip25IndexCompare i j v))
     = ip25IndexCompare i j v
-  rw [if_pos hcond]
+  rw [ite_eq_left hcond]
 
 /-- For each input vector, the compare operation acts by an involutive permutation of its
 positions. -/
@@ -524,14 +529,14 @@ theorem ip25_sort_run_eq_mergeSort {α : Type} (le : α → α → Bool) :
       intro xs h
       have hxs : xs.length = 0 := by omega
       have hnil : xs = [] := List.eq_nil_of_length_eq_zero hxs
-      simp [ip25SortRunAt, hnil, List.mergeSort]
+      simp [ip25SortRunAt, hnil]
   | succ fuel ih =>
       intro xs h
       cases xs with
-      | nil => simp [ip25SortRunAt, List.mergeSort]
+      | nil => simp [ip25SortRunAt]
       | cons a xs =>
           cases xs with
-          | nil => simp [ip25SortRunAt, List.mergeSort]
+          | nil => simp [ip25SortRunAt]
           | cons b xs =>
               have hn : (a :: b :: xs).length ≤ fuel + 1 := by simpa using! h
               have hpos : 2 ≤ fuel + 1 := by simp at hn; omega
@@ -546,7 +551,12 @@ theorem ip25_sort_run_eq_mergeSort {α : Type} (le : α → α → Bool) :
               simp only [ip25SortRunAt]
               rw [ih _ _ hl, ih _ _ hr]
               rw [ip25_merge_run_eq_merge le off]
-              · simp [List.mergeSort, List.MergeSort.Internal.splitInTwo, List.splitAt_eq]
+              · have hs := List.mergeSort_append (le := le)
+                    ((a :: b :: xs).take (((a :: b :: xs).length + 1) / 2))
+                    ((a :: b :: xs).drop (((a :: b :: xs).length + 1) / 2))
+                    (by simp only [List.length_drop, List.length_take]; omega)
+                    (by simp only [List.length_drop, List.length_take]; omega)
+                simpa only [List.take_append_drop, List.nil_append] using hs.symm
               · rw [List.length_mergeSort, List.length_mergeSort]
 
 /-- The natural ceiling binary logarithm is monotone. -/

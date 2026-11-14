@@ -4,16 +4,20 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.StoppingCore.InterruptBridge.QuerySpaceExtensions
-import Qatlib.Concepts.StoppingCore.InterruptBridge.QuerySpaceExtensionsDefs
-import Qatlib.Concepts.QueryWordCore.QueryMachinery.NegativeAdversary
-import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
-import Qatlib.Concepts.HspRecovery.CyclicRecovery.AlgebraicOracle
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.LocalCapability
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.AdaptiveQueryPurification
-import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Ring
+module
+
+public import Qatlib.Concepts.StoppingCore.InterruptBridge.QuerySpaceExtensions
+public import Qatlib.Concepts.StoppingCore.InterruptBridge.QuerySpaceExtensionsDefs
+public import Qatlib.Concepts.QueryWordCore.QueryMachinery.NegativeAdversary
+public import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
+public import Qatlib.Concepts.HspRecovery.CyclicRecovery.AlgebraicOracle
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.LocalCapability
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.AdaptiveQueryPurification
+public import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 /-!
 # Refined assumptions for query-space transport

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
-import Qatlib.Concepts.LocalMachine.LocalTransport.WitnessComplexityDefs
-import Qatlib.Concepts.LocalMachine.LocalTransport.UniformBqp
-import Qatlib.Concepts.LocalMachine.LocalTransport.UniformBqpDefs
+module
+
+public import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
+public import Qatlib.Concepts.LocalMachine.LocalTransport.WitnessComplexityDefs
+public import Qatlib.Concepts.LocalMachine.LocalTransport.UniformBqp
+public import Qatlib.Concepts.LocalMachine.LocalTransport.UniformBqpDefs
+
+@[expose] public section
 
 /-!
 # Uniform circuit generator definitions

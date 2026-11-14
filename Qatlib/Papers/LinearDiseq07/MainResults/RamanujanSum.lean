@@ -4,18 +4,22 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Complex.Basic
-import Mathlib.NumberTheory.ArithmeticFunction.Moebius
-import Mathlib.NumberTheory.ArithmeticFunction.Zeta
-import Mathlib.NumberTheory.Divisors
-import Mathlib.Data.Nat.Totient
-import Mathlib.Data.Nat.Squarefree
-import Mathlib.Algebra.Squarefree.Basic
-import Mathlib.Data.Nat.PrimeFin
-import Mathlib.Data.Nat.GCD.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.Ring.GeomSum
-import Mathlib.RingTheory.RootsOfUnity.PrimitiveRoots
+module
+
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.NumberTheory.ArithmeticFunction.Moebius
+public import Mathlib.NumberTheory.ArithmeticFunction.Zeta
+public import Mathlib.NumberTheory.Divisors
+public import Mathlib.Data.Nat.Totient
+public import Mathlib.Data.Nat.Squarefree
+public import Mathlib.Algebra.Squarefree.Basic
+public import Mathlib.Data.Nat.PrimeFin
+public import Mathlib.Data.Nat.GCD.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.Ring.GeomSum
+public import Mathlib.RingTheory.RootsOfUnity.PrimitiveRoots
+
+@[expose] public section
 
 /-!
 # Ramanujan sums by Möbius inversion
@@ -116,8 +120,8 @@ lemma geom_inner {w : ℂ} {m0 d m : ℕ} (hw : IsPrimitiveRoot w m0)
   have hpow : ∀ i, w ^ (d * i) = (w ^ d) ^ i := fun i => by rw [pow_mul]
   simp only [hpow]
   by_cases hx : w ^ d = 1
-  · rw [if_pos hx]; simp [hx]
-  · rw [if_neg hx]
+  · rw [ite_eq_left hx]; simp [hx]
+  · rw [ite_eq_right hx]
     have hxn : (w ^ d) ^ (m / d) = 1 := by
       rw [← pow_mul, Nat.mul_div_cancel' hdm]
       exact (hw.pow_eq_one_iff_dvd m).mpr hm
@@ -175,8 +179,8 @@ theorem ramanujan_divisor_sum {w : ℂ} {m0 : ℕ} (hw : IsPrimitiveRoot w m0)
     rw [hfilter, geom_inner hw hdm hm]
     have hiff : w ^ d = 1 ↔ m0 ∣ d := hw.pow_eq_one_iff_dvd d
     by_cases hmd : m0 ∣ d
-    · rw [if_pos (hiff.mpr hmd), if_pos hmd]
-    · rw [if_neg (fun h => hmd (hiff.mp h)), if_neg hmd]
+    · rw [ite_eq_left (hiff.mpr hmd), ite_eq_left hmd]
+    · rw [ite_eq_right (fun h => hmd (hiff.mp h)), ite_eq_right hmd]
       simp
 
 /-- For positive `n`, the divisor sum of `moebius d * (n / d)` equals Euler's totient, viewed as
@@ -324,7 +328,7 @@ theorem source_lemma1_ramanujan_sum {w : ℂ} {m0 : ℕ} (hw : IsPrimitiveRoot w
       rw [hμ, zero_mul]
   rw [← hreplace]
   by_cases h0 : m0 ∣ m1
-  · rw [if_pos h0]
+  · rw [ite_eq_left h0]
     have hm1eq : m1 = m0 * (m1 / m0) := (Nat.mul_div_cancel' h0).symm
     have hrpos : 0 < m1 / m0 := Nat.div_pos (Nat.le_of_dvd hm1pos h0) hm0
 
@@ -377,7 +381,7 @@ theorem source_lemma1_ramanujan_sum {w : ℂ} {m0 : ℕ} (hw : IsPrimitiveRoot w
     rw [Finset.sum_congr rfl hterm]
     rw [← Finset.mul_sum]
     rw [sum_moebius_mul_div_eq_totient_complex hrpos]
-  · rw [if_neg h0]
+  · rw [ite_eq_right h0]
     apply Finset.sum_eq_zero
     intro d hd
     rw [Finset.mem_filter] at hd

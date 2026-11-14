@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Basic.Real.Basic
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Data.Matrix.Block
-import Mathlib.Data.Matrix.Mul
-import Mathlib.Tactic
-import Qatlib.Papers.PersistentHom22.MainResults.PersistentDiracOperator
+module
+
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Data.Matrix.Block
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.Tactic
+public import Qatlib.Papers.PersistentHom22.MainResults.PersistentDiracOperator
+
+@[expose] public section
 
 /-!
 # Eigenspace Correspondence Between the Persistent Dirac Operator and Laplacian

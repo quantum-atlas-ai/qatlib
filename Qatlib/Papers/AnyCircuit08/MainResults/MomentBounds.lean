@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AnyCircuit08.MainResults.Basic
+module
+
+public import Qatlib.Papers.AnyCircuit08.MainResults.Basic
+
+@[expose] public section
 
 /-!
 # Weighted moment inequalities
@@ -183,7 +187,7 @@ theorem exists_ge_of_average_ge {X : Type} [Fintype X] (hX : 0 < Fintype.card X)
     (h : c ≤ (∑ x, f x) / (Fintype.card X : ℝ)) : ∃ x, c ≤ f x := by
   by_contra hc
   have hc' : ∀ x, f x < c := fun x => not_le.mp (fun hle => hc ⟨x, hle⟩)
-  haveI : Nonempty X := Fintype.card_pos_iff.mp hX
+  have : Nonempty X := Fintype.card_pos_iff.mp hX
   have hlt : (∑ x, f x) < (Fintype.card X : ℝ) * c := by
     have hsum : (∑ x, f x) < ∑ _x : X, c :=
       Finset.sum_lt_sum_of_nonempty (s := Finset.univ) Finset.univ_nonempty

@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetwork
-import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetworkBranch
-import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetworkCore
-import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetworkInstrument
-import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetworkRouting
-import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetworkTransport
+module
+
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetwork
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetworkBranch
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetworkCore
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetworkInstrument
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetworkRouting
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetworkTransport
+
+@[expose] public section
 
 /-!
 # Resource counts and adjoints for cluster networks
@@ -127,7 +131,7 @@ theorem networkCzProgramLeafFields {n : ℕ} (i j : Fin n) (h : (i : ℕ) ≠ (j
   have hP : networkPhysicalStepProgram (.inr (i, j))
       = networkStepLift
           (eCzFin n (networkCzLo i j) (networkCzHi i j) (networkCzLo_lt_hi i j h))
-          clusterCZProgram := dif_pos h
+          clusterCZProgram := dite_eq_left h
   rw [hP] at hL
   have hLift : observedKrausLeaves (1 : Operator (2 ^ (n + 2)))
       (networkStepLift
@@ -192,14 +196,14 @@ theorem networkLeafCost_inr_valid {n : ℕ} (i j : Fin n) (h : (i : ℕ) ≠ (j 
   obtain ⟨a, d⟩ := o
   obtain ⟨_, hq, hg, hm⟩ := networkCzLiftedLeaf_fields (networkCzLo i j) (networkCzHi i j)
     (networkCzLo_lt_hi i j h) a d
-  simp only [networkLeafCost, dif_pos h, hq, hg, hm]
+  simp only [networkLeafCost, dite_eq_left h, hq, hg, hm]
   simp [clusterCZMessage]
 
 /-- A CZ gate with coincident endpoints has the zero cost tuple for every outcome pair. -/
 theorem networkLeafCost_inr_self {n : ℕ} (i : Fin n) (o : Bool × Bool) :
     networkLeafCost (.inr (i, i)) o = (0, 0, 0, 0) := by
   obtain ⟨a, d⟩ := o
-  simp only [networkLeafCost, dif_neg (fun h : (i : ℕ) ≠ (i : ℕ) => h rfl)]
+  simp only [networkLeafCost, dite_eq_right (fun h : (i : ℕ) ≠ (i : ℕ) => h rfl)]
 
 /-- The maximum branch length before halting, counting each circuit step, measurement, or
 projection as one and a halt as zero. -/
@@ -370,7 +374,7 @@ theorem networkLedgerGeneric {n : ℕ} (cost : ClusterNetworkGate n → Bool × 
 when empty and `n + 2` otherwise. These are the costs of the concrete cluster programs used
 here in the measurement-based framework of [RaussendorfBriegel2000]. -/
 theorem cluster_network_actual_leaf_feedback_and_peak_ledger :
-    ∀ (n : ℕ) (gs : List (ClusterNetworkGate n)) (hgs : networkLegal gs)
+    ∀ (n : ℕ) (gs : List (ClusterNetworkGate n)) (_hgs : networkLegal gs)
       (hist : Fin gs.length → Bool × Bool),
       networkBranchValid gs hist →
       (∑ i, (networkLeafCost (gs.get i) (hist i)).1) = 0 ∧

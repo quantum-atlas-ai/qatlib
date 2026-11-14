@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PeriodSampling.OrderRecovery.BoundedRationalOrderDecoder
-import Mathlib.NumberTheory.DiophantineApproximation.Basic
+module
+
+public import Qatlib.Concepts.PeriodSampling.OrderRecovery.BoundedRationalOrderDecoder
+public import Mathlib.NumberTheory.DiophantineApproximation.Basic
+
+@[expose] public section
 
 /-!
 # Counted continued fraction decoding

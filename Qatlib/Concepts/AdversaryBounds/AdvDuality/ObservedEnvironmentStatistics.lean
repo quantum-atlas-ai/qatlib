@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedEnvironment
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedMixedState
-import Qatlib.Concepts.FiniteLocc.LOCCProgram.LocalUnitaryDiscard
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedEnvironment
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedMixedState
+public import Qatlib.Concepts.FiniteLocc.LOCCProgram.LocalUnitaryDiscard
+
+@[expose] public section
 
 /-!
 # Statistics under environment transformations

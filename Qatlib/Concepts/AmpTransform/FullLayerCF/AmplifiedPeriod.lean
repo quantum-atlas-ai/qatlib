@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmpTransform.ErrorStream.AmplifiedPeriodRefinedDefs
-import Qatlib.Concepts.AmplitudeCore.InvFreeSampling.AmplifiedNoiseExecution
-import Qatlib.Concepts.FourierRecovery.ModularFourier.AmplifiedNoise
-import Qatlib.Concepts.AmpTransform.FullLayerCF.FullLayerCFDenoiseUniquePAmpl
+module
+
+public import Qatlib.Concepts.AmpTransform.ErrorStream.AmplifiedPeriodRefinedDefs
+public import Qatlib.Concepts.AmplitudeCore.InvFreeSampling.AmplifiedNoiseExecution
+public import Qatlib.Concepts.FourierRecovery.ModularFourier.AmplifiedNoise
+public import Qatlib.Concepts.AmpTransform.FullLayerCF.FullLayerCFDenoiseUniquePAmplification
+
+@[expose] public section
 
 /-!
 # Refined period recovery and layer costs

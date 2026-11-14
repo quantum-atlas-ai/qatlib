@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GradientOracle.ValueKickback
+module
+
+public import Qatlib.Concepts.GradientOracle.ValueKickback
+
+@[expose] public section
 
 /-!
 # Smooth gradient readout from value-oracle phases

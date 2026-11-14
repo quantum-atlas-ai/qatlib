@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LinearLearning.MistakeUpdates
-import Mathlib.Analysis.InnerProductSpace.PiL2
+module
+
+public import Qatlib.Concepts.LinearLearning.MistakeUpdates
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+
+@[expose] public section
 
 /-!
 # Coordinate perceptron updates and stopping
@@ -67,7 +71,7 @@ theorem native_update (features : Fin N → Feature d) (labels : Fin N → Bool)
     run (trainingData features labels) (n+1)=run (trainingData features labels) n+
       labelSign labels ((mistakes (trainingData features labels) (run (trainingData features labels) n)).min' h) •
         features ((mistakes (trainingData features labels) (run (trainingData features labels) n)).min' h) := by
-  rw [run,increment,dif_pos h]
+  rw [run,increment,dite_eq_left h]
   congr 1
   unfold signedDatum trainingData labelSign
   split_ifs <;> simp

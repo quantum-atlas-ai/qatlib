@@ -4,19 +4,23 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryWordCore.QueryMachinery.AcceptancePolynomial
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.ClassicalQuery
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.ClassicalQueryLaws
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.QueryDegree
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.ExactDegreeQueryLowerBoundBeal
-import Mathlib.Algebra.MvPolynomial.Degrees
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.FieldSimp
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Foundations.PureStateMath.Qubit
+module
+
+public import Qatlib.Concepts.QueryWordCore.QueryMachinery.AcceptancePolynomial
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.ClassicalQuery
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.ClassicalQueryLaws
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.QueryDegree
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.ExactDegreeQueryLowerBoundBeal
+public import Mathlib.Algebra.MvPolynomial.Degrees
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.FieldSimp
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Foundations.PureStateMath.Qubit
+
+@[expose] public section
 
 /-!
 # Decision programs and query minima
@@ -313,7 +317,7 @@ theorem treeAcceptPolynomial_eval {I : Type} [DecidableEq I] (t : BoolQueryTree 
         simp [Qatlib.Concepts.QueryComplexity.DegreeMethod.BoolQueryTree.Run, hgi]
       rw [hrun]
       simp only [MvPolynomial.eval_add, MvPolynomial.eval_mul, MvPolynomial.eval_sub,
-        MvPolynomial.eval_X, oraclePoint, if_pos hgi]
+        MvPolynomial.eval_X, oraclePoint, ite_eq_left hgi]
       rw [ihTrue]
       simp
     · have hrun : (Qatlib.Concepts.QueryComplexity.DegreeMethod.BoolQueryTree.Run g (.ask i onFalse onTrue)).1
@@ -321,7 +325,7 @@ theorem treeAcceptPolynomial_eval {I : Type} [DecidableEq I] (t : BoolQueryTree 
         simp [Qatlib.Concepts.QueryComplexity.DegreeMethod.BoolQueryTree.Run, hgi]
       rw [hrun]
       simp only [MvPolynomial.eval_add, MvPolynomial.eval_mul, MvPolynomial.eval_sub,
-        MvPolynomial.eval_X, oraclePoint, if_neg hgi]
+        MvPolynomial.eval_X, oraclePoint, ite_eq_right hgi]
       rw [ihFalse]
       simp
 

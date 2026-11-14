@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.LinearAlgebra.UnitaryGroup
-import Mathlib.Algebra.Algebra.Subalgebra.Basic
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.LinearAlgebra.UnitaryGroup
+public import Mathlib.Algebra.Algebra.Subalgebra.Basic
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Basic data for modular-functor matrix calculations

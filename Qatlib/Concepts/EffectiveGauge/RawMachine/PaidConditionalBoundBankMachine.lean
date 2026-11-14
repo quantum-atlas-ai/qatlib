@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.RawMachine.PaidConditionalBoundBankExecution
+module
+
+public import Qatlib.Concepts.EffectiveGauge.RawMachine.PaidConditionalBoundBankExecution
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -73,7 +77,7 @@ private theorem output_false (answers : Fin 9 → RedundantRational.Frac) :
   have ha : activeReplies (fun i => PaidRationalBridge.encode (answers i)) 8=
       (fun i => PaidRationalBridge.encode (answers i)) := by
     funext j
-    exact if_pos (by have hj := j.isLt; omega)
+    exact ite_eq_left (by have hj := j.isLt; omega)
   dsimp only [bankOutput]
   rw [ha]
   change false::PaidBoundBank.bankOutput (fun i => PaidRationalBridge.encode (answers i))=_
@@ -91,14 +95,14 @@ theorem read_bank (answers : Fin 9 → RedundantRational.Frac) (flag : Bool) (ta
     have ht : (List.ofFn answers).take 9=List.ofFn answers := by
       apply List.take_of_length_le
       simp
-    simp only [Bool.false_eq_true,if_false,output_false,List.cons_append,readBank,hr,ht]
+    simp only [Bool.false_eq_true,ite_false,output_false,List.cons_append,readBank,hr,ht]
     rfl
   | true =>
     have hr := PaidBoundBank.readMany_complete [answers 0] tail
     have ht : (List.ofFn answers).take 1=[answers 0] := by
       rw [List.ofFn_succ]
       rfl
-    simp only [if_true,output_true,List.cons_append,readBank,ht]
+    simp only [ite_true,output_true,List.cons_append,readBank,ht]
     simp only [List.length_singleton,List.flatMap_cons,List.flatMap_nil,List.append_nil] at hr
     rw [hr]
     rfl

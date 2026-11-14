@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SusyCohom21.MainResults.SusyModel
+module
+
+public import Qatlib.Papers.SusyCohom21.MainResults.SusyModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -37,7 +41,7 @@ variable {ι : Type} [Fintype ι] [DecidableEq ι]
 a row-sparse supercharge `Q` is Hermitian PSD, has zero energy exactly on
 `ker (Q + Q†)`, and its energy is `‖(Q + Q†)ψ‖²`. -/
 theorem susy_klocal_hamiltonian_in_qma
-    (k : ℕ) (S : Supercharge ι) (s : ℕ) (_hsparse : RowSparse s S.Q) :
+    (_k : ℕ) (S : Supercharge ι) (s : ℕ) (_hsparse : RowSparse s S.Q) :
     S.hamiltonian.IsHermitian ∧
     S.hamiltonian.PosSemidef ∧
     (∀ ψ : State ι, energy S.hamiltonian ψ = 0 ↔ S.shift *ᵥ ψ = 0) ∧

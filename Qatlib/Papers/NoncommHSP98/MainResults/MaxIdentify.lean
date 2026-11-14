@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NoncommHSP98.MainResults.Basic
-import Mathlib.Order.Interval.Finset.Nat
-import Mathlib.Data.Finset.CastCard
+module
+
+public import Qatlib.Papers.NoncommHSP98.MainResults.Basic
+public import Mathlib.Order.Interval.Finset.Nat
+public import Mathlib.Data.Finset.CastCard
+
+@[expose] public section
 
 /-!
 # Identification by maximal sampled statistics
@@ -268,10 +272,10 @@ theorem kRep_mem_Candidates {N : ℕ} [NeZero N] {k0 : ZMod N} (hk0 : k0 ≠ 0) 
   · exact Finset.mem_univ _
   · unfold kRep
     by_cases hle : k0.val ≤ N / 2
-    · rw [if_pos hle]
+    · rw [ite_eq_left hle]
       exact ⟨ZMod.val_pos.mpr hk0, hle⟩
-    · rw [if_neg hle]
-      haveI : NeZero k0 := ⟨hk0⟩
+    · rw [ite_eq_right hle]
+      have : NeZero k0 := ⟨hk0⟩
       rw [ZMod.val_neg_of_ne_zero (a := k0)]
       have hlt : k0.val < N := ZMod.val_lt k0
       constructor
@@ -299,7 +303,7 @@ theorem candidate_ne_kRep {N : ℕ} [NeZero N] {k0 k : ZMod N} (_hk0 : k0 ≠ 0)
   rw [Finset.mem_filter] at hC
   have hkval : k0.val ≤ N / 2 := by rw [← h]; exact hC.2.2
   unfold kRep at hne
-  rw [if_pos hkval] at hne
+  rw [ite_eq_left hkval] at hne
   exact hne h
 
 /-- A candidate different from `kRep N k0` is also different from `-k0`, provided `k0` is
@@ -314,9 +318,9 @@ theorem candidate_ne_neg_kRep {N : ℕ} [NeZero N] {k0 k : ZMod N} (hk0 : k0 ≠
   rw [Finset.mem_filter] at hC
   have hkval : k.val ≤ N / 2 := hC.2.2
   by_cases hle : k0.val ≤ N / 2
-  · have hr : kRep N k0 = k0 := by unfold kRep; rw [if_pos hle]
+  · have hr : kRep N k0 = k0 := by unfold kRep; rw [ite_eq_left hle]
     rw [hr] at hne
-    haveI : NeZero k0 := ⟨hk0⟩
+    have : NeZero k0 := ⟨hk0⟩
     have hnegval : (-k0).val = N - k0.val := ZMod.val_neg_of_ne_zero (a := k0)
     have hval : k.val = N - k0.val := by rw [h, hnegval]
     have hkey : N - k0.val ≤ N / 2 := by rw [← hval]; exact hkval
@@ -327,7 +331,7 @@ theorem candidate_ne_neg_kRep {N : ℕ} [NeZero N] {k0 k : ZMod N} (hk0 : k0 ≠
       omega
     have heq : -k0 = k0 := ZMod.val_injective N hveq
     exact hne (by rw [h, heq])
-  · have hr : kRep N k0 = -k0 := by unfold kRep; rw [if_neg hle]
+  · have hr : kRep N k0 = -k0 := by unfold kRep; rw [ite_eq_right hle]
     exact hne (by rw [h, hr])
 
 /-- There are at most `N / 2` candidate residues. -/

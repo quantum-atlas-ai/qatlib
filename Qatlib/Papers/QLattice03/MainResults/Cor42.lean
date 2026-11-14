@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QLattice03.MainResults.MatchingDefs
+module
+
+public import Qatlib.Papers.QLattice03.MainResults.MatchingDefs
+
+@[expose] public section
 
 /-!
 # Subset sum success-set fraction specification
@@ -34,10 +38,10 @@ namespace Qatlib.Papers.QLattice03.MainResults
 /-- The proposition that some positive constant `c` bounds below, by `c / log(N)^cs`, the
 fraction of input vectors whose success sets have size at least `N / (4 * log(N)^cs)`. -/
 def subsetSum_solver_fraction_bound
-    (S : SubsetSumRoutine) (r : ℕ → ℕ) (hr : ∀ N, 8 * N < 2 ^ (r N))
-    (δ : ℕ → ℝ) (cs : ℝ) (hcs : 0 < cs)
-    (hδ : ∀ N : ℕ, 1 / (Real.log (N : ℝ)) ^ cs ≤ δ N)
-    (hfrac : ∀ (N : ℕ) [NeZero N],
+    (S : SubsetSumRoutine) (r : ℕ → ℕ) (_hr : ∀ N, 8 * N < 2 ^ (r N))
+    (δ : ℕ → ℝ) (cs : ℝ) (_hcs : 0 < cs)
+    (_hδ : ∀ N : ℕ, 1 / (Real.log (N : ℝ)) ^ cs ≤ δ N)
+    (_hfrac : ∀ (N : ℕ) [NeZero N],
       δ N * (legalCard N (r N) : ℝ) ≤ (solvedCard S N (r N) : ℝ)) : Prop :=
   ∃ c : ℝ, 0 < c ∧ ∀ (N : ℕ) [NeZero N],
     c / (Real.log (N : ℝ)) ^ cs ≤

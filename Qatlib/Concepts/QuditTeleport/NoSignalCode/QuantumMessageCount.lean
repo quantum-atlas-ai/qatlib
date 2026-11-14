@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QuditTeleport.NoSignalCode.NoSignallingMessageCount
-import Qatlib.Concepts.MixedFidelity.FidelityMetric.ChannelHelpers.FinitePOVMTraceDistance
+module
+
+public import Qatlib.Concepts.QuditTeleport.NoSignalCode.NoSignallingMessageCount
+public import Qatlib.Concepts.MixedFidelity.FidelityMetric.ChannelHelpers.FinitePOVMTraceDistance
+
+@[expose] public section
 
 /-!
 # Message counts for quantum assemblages

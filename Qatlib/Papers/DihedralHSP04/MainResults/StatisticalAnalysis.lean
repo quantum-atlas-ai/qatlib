@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.DihedralHSP04.MainResults.CombinationProbability
+module
+
+public import Qatlib.Papers.DihedralHSP04.MainResults.CombinationProbability
+
+@[expose] public section
 
 /-!
 # Moments and success probability of mask matching
@@ -144,9 +148,9 @@ theorem finite_chebyshev {Ω : Type} [Fintype Ω] [Nonempty Ω]
   have hterm : ∀ x, (if t ≤ |f x - μ| then (1 : ℝ) else 0) ≤ (f x - μ) ^ 2 / t ^ 2 := by
     intro x
     by_cases h : t ≤ |f x - μ|
-    · rw [if_pos h, le_div_iff₀ (by positivity), one_mul]
+    · rw [ite_eq_left h, le_div_iff₀ (by positivity), one_mul]
       nlinarith [sq_abs (f x - μ), abs_nonneg (f x - μ), ht, h]
-    · rw [if_neg h]
+    · rw [ite_eq_right h]
       positivity
   have hsum := Finset.sum_le_sum (fun x (_ : x ∈ Finset.univ) => hterm x)
   rw [sum_indicator_gen (fun x => t ≤ |f x - μ|)] at hsum
@@ -273,7 +277,7 @@ theorem second_moment (l : ℕ) (z : ZMod (2 ^ l)) :
     intro b hb b' hb'
     rw [sum_indicator_mul]
     by_cases hbb : b = b'
-    · rw [if_pos hbb]
+    · rw [ite_eq_left hbb]
       subst hbb
       rw [show (Finset.univ.filter (fun y : SampleSpace l => dotMod l b y = z ∧ dotMod l b y = z))
             = (Finset.univ.filter (fun y : SampleSpace l => dotMod l b y = z)) by
@@ -281,7 +285,7 @@ theorem second_moment (l : ℕ) (z : ZMod (2 ^ l)) :
           intro y _
           exact ⟨fun h => h.1, fun h => ⟨h, h⟩⟩]
       rw [linForm_fiber_card (Finset.ne_of_mem_erase (hS ▸ hb)) z, hA]
-    · rw [if_neg hbb]
+    · rw [ite_eq_right hbb]
       rw [pairForm_fiber_card (Finset.ne_of_mem_erase (hS ▸ hb))
             (Finset.ne_of_mem_erase (hS ▸ hb')) hbb z z, hB]
   have hinner : ∀ b ∈ S,
@@ -290,11 +294,11 @@ theorem second_moment (l : ℕ) (z : ZMod (2 ^ l)) :
     intro b hb
     rw [Finset.sum_congr rfl (fun b' hb' => hG b hb b' hb')]
     rw [← Finset.add_sum_erase S (fun b' => if b = b' then A else B) hb]
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     have hrest : (∑ x ∈ S.erase b, (if b = x then A else B)) = ∑ _x ∈ S.erase b, B := by
       apply Finset.sum_congr rfl
       intro x hx
-      rw [if_neg]
+      rw [ite_eq_right]
       exact (Finset.ne_of_mem_erase hx).symm
     rw [hrest, Finset.sum_const, nsmul_eq_mul, Finset.card_erase_of_mem hb]
   rw [hexp, Finset.sum_congr rfl hinner, Finset.sum_const, nsmul_eq_mul, card_nonzeroMasks]
@@ -442,7 +446,7 @@ theorem combination_success_probability (l : ℕ) (_hl : 0 < l)
       uniformProb (fun y : SampleSpace l =>
         14 ≤ |matchStat l y z - (16 - ((2 : ℝ) ^ l)⁻¹)|) :=
     uniformProb_mono (fun y hy => failure_imp_cheb l z y hy)
-  haveI : Nonempty (SampleSpace l) := ⟨0⟩
+  have : Nonempty (SampleSpace l) := ⟨0⟩
   have hcompl : uniformProb (fun y : SampleSpace l => ¬ combinationSucceeds l y z) =
       1 - uniformProb (fun y : SampleSpace l => combinationSucceeds l y z) :=
     uniformProb_not _

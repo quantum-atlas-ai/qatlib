@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LowEnergyProd24.WordLeakage.ActualLeakage
+module
+
+public import Qatlib.Papers.LowEnergyProd24.WordLeakage.ActualLeakage
+
+@[expose] public section
 
 /-!
 # First-order Lie product-word leakage
@@ -46,7 +50,7 @@ theorem actual_zero_coefficient (h : Hamiltonian N R M k d J) (stages : List (â„
   | cons stage stages ih =>
     rw [computedCoefficient_cons]
     simpa only [Finset.Nat.antidiagonal_zero, Finset.sum_singleton, Nat.factorial_zero, Nat.cast_one,
-      one_div_one, adIter, one_smul, if_pos rfl, List.map_cons, List.sum_cons] using!
+      one_div_one, adIter, one_smul, ite_eq_left rfl, List.map_cons, List.sum_cons] using!
       congrArg (fun A => stageGenerator h stage+A) ih
 
 /-- The stage list obtained by enumerating every group in `Fin M` once with coefficient one. -/

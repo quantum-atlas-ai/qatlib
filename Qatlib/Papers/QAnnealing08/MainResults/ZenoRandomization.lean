@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Complex.Trigonometric
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
-import Mathlib.Algebra.Field.GeomSum
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic
-import Qatlib.Papers.QAnnealing08.MainResults.SzegedyPhaseGap
+module
+
+public import Mathlib.Analysis.Complex.Trigonometric
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
+public import Mathlib.Algebra.Field.GeomSum
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic
+public import Qatlib.Papers.QAnnealing08.MainResults.SzegedyPhaseGap
+
+@[expose] public section
 
 /-!
 # Randomized phases and annealing error budgets

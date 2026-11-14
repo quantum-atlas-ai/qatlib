@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Quaternion
-import Mathlib.Data.Real.Basic
-import Mathlib.Tactic.NoncommRing
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Abel
-import Mathlib.Tactic.FieldSimp
+module
+
+public import Mathlib.Algebra.Quaternion
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Tactic.NoncommRing
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Abel
+public import Mathlib.Tactic.FieldSimp
+
+@[expose] public section
 
 /-!
 # Quaternionic braid relations
@@ -96,7 +100,7 @@ lemma phi_re_zero {g P : ℍ[ℝ]} (hg : normSq g = 1) (hP : P.re = 0) : (phi g 
 /-- The square of a pure unit quaternion equals minus one. -/
 lemma sq_eq_neg_one {u : ℍ[ℝ]} (hu : u.re = 0) (hn : normSq u = 1) :
     u * u = ((-1 : ℝ) : ℍ[ℝ]) := by
-  ext <;> simp [re_mul, imI_mul, imJ_mul, imK_mul, hu, normSq_def'] at * <;> nlinarith
+  ext <;> simp [ hu, normSq_def'] at * <;> nlinarith
 
 /-- For pure quaternions `u` and `v`, the sum `u * v + v * u` is the real scalar `-2 * qdot u
 v`. -/
@@ -189,8 +193,7 @@ lemma phi_diff {a b : ℝ} {u v : ℍ[ℝ]} (hu : u.re = 0) (hv : v.re = 0)
     rw [show ((-b:ℝ):ℍ[ℝ]) = -(b:ℍ[ℝ]) by rw [Quaternion.coe_neg]]
     noncomm_ring
   rw [h1, h2, uvu_eq hu hv hnu, vuv_eq hu hv hnv]
-  ext <;> simp [re_mul, imI_mul, imJ_mul, imK_mul, re_add, imI_add, imJ_add, imK_add,
-    re_sub, imI_sub, imJ_sub, imK_sub, qdot, pow_two, smul_eq_mul] <;> ring
+  ext <;> simp [ qdot, pow_two, smul_eq_mul] <;> ring
 
 /-- A nonzero real number remains nonzero when embedded in the real quaternions. -/
 lemma coe_real_ne_zero {b : ℝ} (hb : b ≠ 0) : ((b:ℝ):ℍ[ℝ]) ≠ 0 := by

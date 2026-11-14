@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.WeightedAdvComp
-import Qatlib.Foundations.PureStateMath.Qubit
+module
+
+public import Qatlib.Concepts.AdversaryBounds.WeightedAdvComposition
+public import Qatlib.Foundations.PureStateMath.Qubit
+
+@[expose] public section
 
 /-!
 # Norms and Eigenvectors of Composed Witnesses
@@ -42,7 +46,7 @@ namespace Qatlib.Concepts.SignedWeights.Representations.Composition
 
 open Qatlib
 open Qatlib.Foundations.PureStateMath
-open Qatlib.Concepts.AdversaryBounds.WeightedAdvComp
+open Qatlib.Concepts.AdversaryBounds.WeightedAdvComposition
 
 noncomputable section
 

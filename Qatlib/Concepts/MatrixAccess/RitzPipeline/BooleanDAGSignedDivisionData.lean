@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGDividerData
+module
+
+public import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGDividerData
+
+@[expose] public section
 
 /-!
 # Boolean DAG constructions for signed division

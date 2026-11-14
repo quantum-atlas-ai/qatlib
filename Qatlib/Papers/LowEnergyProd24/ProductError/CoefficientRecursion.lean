@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LowEnergyProd24.ProductError.CoefficientBounds
+module
+
+public import Qatlib.Papers.LowEnergyProd24.ProductError.CoefficientBounds
+
+@[expose] public section
 
 /-!
 # Recursion for evaluated generator coefficients

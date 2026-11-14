@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GroverSearch96.MainResults.LocalImplementation
-import Qatlib.Papers.GroverSearch96.MainResults.GainConvergence
+module
+
+public import Qatlib.Papers.GroverSearch96.MainResults.LocalImplementation
+public import Qatlib.Papers.GroverSearch96.MainResults.GainConvergence
+
+@[expose] public section
 
 /-!
 # An initialized local Grover search program

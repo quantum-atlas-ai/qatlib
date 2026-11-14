@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.CStarAlgebra.Classes
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.NormNum.RealSqrt
-import Mathlib.Tactic.SplitIfs
-import Qatlib.Concepts.SqEstimation.RejectionSample.SQRejectionAndNorm
+module
+
+public import Mathlib.Analysis.CStarAlgebra.Classes
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.NormNum.RealSqrt
+public import Mathlib.Tactic.SplitIfs
+public import Qatlib.Concepts.SqEstimation.RejectionSample.SQRejectionAndNorm
+
+@[expose] public section
 
 /-!
 # A cancellation example for rejection sampling
@@ -60,12 +64,12 @@ theorem sqClosureToyInputs_envelope (j : Bool) : SQEnvelope (sqClosureToyInputs 
   cases j <;> constructor
   all_goals first
     | norm_num [sqClosureToyInputs,sqClosureToyEnvelope,Fintype.sum_bool,Complex.normSq_apply]
-    | (intro b;cases b <;> norm_num [sqClosureToyInputs,sqClosureToyEnvelope,Complex.normSq_apply])
+
 
 /-- The unit-coefficient sum of the two input vectors equals two at `true` and zero at `false`. -/
 theorem sqClosureToy_linear (b : Bool) :
     sqLinearValue (fun _ : Bool => (1 : ℂ)) sqClosureToyInputs b=if b then 2 else 0 := by
-  cases b <;> simp [sqLinearValue,sqClosureToyInputs,Fintype.sum_bool]
+  cases b <;> simp [sqLinearValue,sqClosureToyInputs]
 
 /-- The linear-combination envelope in the Boolean example equals two at both coordinates. -/
 theorem sqClosureToy_linearEnvelope (b : Bool) :

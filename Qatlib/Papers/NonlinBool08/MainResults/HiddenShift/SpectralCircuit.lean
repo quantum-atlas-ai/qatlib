@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NonlinBool08.MainResults.QuantumDefs
-import Qatlib.Papers.NonlinBool08.MainResults.HiddenShift.Theorems
+module
+
+public import Qatlib.Papers.NonlinBool08.MainResults.QuantumDefs
+public import Qatlib.Papers.NonlinBool08.MainResults.HiddenShift.Theorems
+
+@[expose] public section
 
 /-!
 # Two-query spectral hidden-shift circuit
@@ -138,13 +142,13 @@ theorem progA1_correct {n : ℕ} (hn : Even n) {f g ft : BVec n → ZMod 2} {s :
   rw [finalAmp_eq hd hg hn z]
   simp only [basisState]
   by_cases hz : z = s
-  · rw [if_pos hz, if_pos hz]
+  · rw [ite_eq_left hz, ite_eq_left hz]
     push_cast
     rw [show hnorm n * (hnorm n * hnorm n)
           * (((2 : ℂ) ^ (n / 2)) * (2 : ℂ) ^ n)
         = hnorm n * hnorm n * hnorm n * (2 : ℂ) ^ (n / 2) * (2 : ℂ) ^ n from by ring,
       hnorm_cube_mul hn]
-  · rw [if_neg hz, if_neg hz]
+  · rw [ite_eq_right hz, ite_eq_right hz]
     simp
 
 /-- In even dimension and under the dual and hidden-shift promises, the output has probability

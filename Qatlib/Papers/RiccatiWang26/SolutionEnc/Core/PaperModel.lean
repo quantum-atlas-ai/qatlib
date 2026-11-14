@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.Matrix.Spectrum
-import Mathlib.Analysis.Calculus.Deriv.Basic
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.Matrix.Spectrum
+public import Mathlib.Analysis.Calculus.Deriv.Basic
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -181,16 +185,16 @@ def darePencilM {n : Type*} [Fintype n] [DecidableEq n] (A G : Sq n) :
     match i, j with
     | Sum.inl i, Sum.inl j => A i j
     | Sum.inl i, Sum.inr j => -G i j
-    | Sum.inr i, Sum.inl j => 0
+    | Sum.inr _i, Sum.inl _j => 0
     | Sum.inr i, Sum.inr j => (1 : Sq n) i j
 
 /-- Companion `L` of the DARE pencil `M - zL` (Eq. (3.24)). -/
-def darePencilL {n : Type*} [Fintype n] [DecidableEq n] (A G Q : Sq n) :
+def darePencilL {n : Type*} [Fintype n] [DecidableEq n] (A _G Q : Sq n) :
     Matrix (Sum n n) (Sum n n) ℂ :=
   fun i j =>
     match i, j with
     | Sum.inl i, Sum.inl j => (1 : Sq n) i j
-    | Sum.inl i, Sum.inr j => 0
+    | Sum.inl _i, Sum.inr _j => 0
     | Sum.inr i, Sum.inl j => Q i j
     | Sum.inr i, Sum.inr j => Aᴴ i j
 

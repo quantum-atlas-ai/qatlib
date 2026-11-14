@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.OrdinaryHypergeometric
-import Mathlib.Analysis.PSeries
-import Mathlib.Analysis.SpecificLimits.Normed
-import Mathlib.Analysis.SpecialFunctions.Gamma.Beta
-import Mathlib.Analysis.Real.Pi.Bounds
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.SpecialFunctions.OrdinaryHypergeometric
+public import Mathlib.Analysis.PSeries
+public import Mathlib.Analysis.SpecificLimits.Normed
+public import Mathlib.Analysis.SpecialFunctions.Gamma.Beta
+public import Mathlib.Analysis.Real.Pi.Bounds
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Rational bounds for the rounding hypergeometric function

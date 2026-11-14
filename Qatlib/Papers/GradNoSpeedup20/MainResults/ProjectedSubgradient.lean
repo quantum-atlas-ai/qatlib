@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GradNoSpeedup20.MainResults.Source.HardFamilies
-import Mathlib.Analysis.Convex.Jensen
-import Mathlib.Analysis.InnerProductSpace.Basic
+module
+
+public import Qatlib.Papers.GradNoSpeedup20.MainResults.Source.HardFamilies
+public import Mathlib.Analysis.Convex.Jensen
+public import Mathlib.Analysis.InnerProductSpace.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MCMontanaro15.MonteCarlo.MonteCarloRefinedDefs
+module
+
+public import Qatlib.Papers.MCMontanaro15.MonteCarlo.MonteCarloRefinedDefs
+
+@[expose] public section
 
 /-!
 # Refined Monte Carlo truncation and resource bounds

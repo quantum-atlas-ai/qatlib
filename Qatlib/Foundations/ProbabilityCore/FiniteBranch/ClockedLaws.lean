@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.ProbabilityCore.FiniteBranch.ClockedCode
+module
+
+public import Qatlib.Foundations.ProbabilityCore.FiniteBranch.ClockedCode
+
+@[expose] public section
 
 /-!
 # Value laws and full replay of clocked programs
@@ -126,6 +130,6 @@ theorem replay_complete {I α : Type} (cost : I → ℝ) (current : I) (B : ℕ)
     | save i => exact ih _ _ hcost
     | pay n =>
       have hn : n≤B := by change n+transcriptCost es≤B at hcost; omega
-      rw [replay,if_pos hn,replayFull]
+      rw [replay,ite_eq_left hn,replayFull]
       rw [ih current (B-n) (by change n+transcriptCost es≤B at hcost; omega)]
 end Qatlib.Foundations.ProbabilityCore.FiniteBranch.ClockedCode

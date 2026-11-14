@@ -4,16 +4,20 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Matrix.Mul
-import Mathlib.Data.Matrix.Basic
-import Mathlib.LinearAlgebra.Matrix.ConjTranspose
-import Mathlib.Data.Complex.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.Star.BigOperators
-import Mathlib.Data.Finset.Basic
-import Mathlib.Data.List.Basic
-import Mathlib.Data.Fintype.Basic
-import Mathlib.Tactic.Abel
+module
+
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.LinearAlgebra.Matrix.ConjTranspose
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.Star.BigOperators
+public import Mathlib.Data.Finset.Basic
+public import Mathlib.Data.List.Basic
+public import Mathlib.Data.Fintype.Basic
+public import Mathlib.Tactic.Abel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

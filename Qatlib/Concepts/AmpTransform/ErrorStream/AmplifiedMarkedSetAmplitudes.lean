@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmpTransform.NoiseEnvelope.AmplifiedFourierProbabilities
+module
+
+public import Qatlib.Concepts.AmpTransform.NoiseEnvelope.AmplifiedFourierProbabilities
+
+@[expose] public section
 
 /-!
 # Fourier amplitudes of arbitrary marked sets
@@ -78,13 +82,13 @@ theorem aq_marked_nonzero_amplitude (N : ℕ) (hN : 0 < N) (T : ℕ)
       ApplyGate (QFTMatrix N)ᴴ (Collapse (preparedAAState (QFTMatrix N) ⟨0,hN⟩) A) y = _
   rw [aq_inverse_uniform, aq_inverse_selected]
   have hy0 : y ≠ (⟨0,hN⟩ : Fin N) := by intro h; exact hy (congrArg Fin.val h)
-  simp only [Ket, if_neg hy0, zero_sub]
+  simp only [Ket, ite_eq_right hy0, zero_sub]
   have hc : Real.cos theta ≠ 0 := ht.2.2.2.2.2.ne'
   have hs : Real.sin theta ≠ 0 := ht.2.2.2.2.1.ne'
   have hNR : (N:ℝ) ≠ 0 := by exact_mod_cast hN.ne'
   have hm : (T:ℝ) = (N:ℝ)*(Real.sin theta)^2 := by
     have h := congrArg (fun z : ℝ => z*(N:ℝ)) ht.2.2.2.1
-    (try dsimp only at h)
+
     rw [div_mul_cancel₀ _ hNR] at h
     simpa only [mul_comm] using! h.symm
   have hdiff : Real.sin ((2*(k:ℝ)+1)*theta)/Real.sin theta -
@@ -135,7 +139,7 @@ theorem aq_marked_phase_amplitude (N : ℕ) (hN : 0 < N) (B : Finset (Fin N))
       ∑ x ∈ B, aqPhase N x.val y.val := by
   rw [aq_marked_phase_all]
   have hy0 : y ≠ (⟨0,hN⟩ : Fin N) := by intro he; exact hy (congrArg Fin.val he)
-  simp only [Ket, if_neg hy0]
+  simp only [Ket, ite_eq_right hy0]
   push_cast
   ring
 
@@ -144,7 +148,7 @@ theorem aq_marked_phase_zero_amplitude (N : ℕ) (hN : 0 < N) (B : Finset (Fin N
     BornProb (aqPhaseBaseline N hN B) ⟨0,hN⟩=(1-2*(B.card : ℝ)/(N : ℝ))^2 := by
   have he : aqPhaseBaseline N hN B ⟨0,hN⟩=((1-2*(B.card : ℝ)/(N : ℝ) : ℝ) : ℂ) := by
     rw [aq_marked_phase_all]
-    simp only [Ket, if_true]
+    simp only [Ket, ite_true]
     simp [aqPhase]
     ring
   rw [BornProb, he, Complex.norm_real, Real.norm_eq_abs, sq_abs]
@@ -180,8 +184,8 @@ theorem aq_marked_qhs_amplitudes (N : ℕ) (hN : 0 < N) (B : Finset (Fin N))
     aqQHSBaseline N hN f (y,true)=(N : ℂ)⁻¹*∑ x ∈ B, aqPhase N x.val y.val ∧
     aqQHSBaseline N hN f (y,false)=-((N : ℂ)⁻¹*∑ x ∈ B, aqPhase N x.val y.val) := by
   constructor
-  · rw [aq_marked_qhs_slices N hN B f hmark y true, if_pos rfl, aq_inverse_selected]
-  · rw [aq_marked_qhs_slices N hN B f hmark y false, if_neg Bool.false_ne_true]
+  · rw [aq_marked_qhs_slices N hN B f hmark y true, ite_eq_left rfl, aq_inverse_selected]
+  · rw [aq_marked_qhs_slices N hN B f hmark y false, ite_eq_right Bool.false_ne_true]
     simp only [ApplyGate, Matrix.mulVec_sub, Pi.sub_apply]
     change ApplyGate (QFTMatrix N)ᴴ (preparedAAState (QFTMatrix N) ⟨0,hN⟩) y-
       ApplyGate (QFTMatrix N)ᴴ (Collapse (preparedAAState (QFTMatrix N) ⟨0,hN⟩) B) y = _
@@ -196,11 +200,11 @@ theorem aq_marked_qhs_zero_amplitude (N : ℕ) (hN : 0 < N) (B : Finset (Fin N))
     MeasureProb (aqQHSBaseline N hN f) ({⟨0,hN⟩} ×ˢ Finset.univ)=
       ((B.card : ℝ)/(N : ℝ))^2+(1-(B.card : ℝ)/(N : ℝ))^2 := by
   have ht : aqQHSBaseline N hN f (⟨0,hN⟩,true)=(((B.card : ℝ)/(N : ℝ) : ℝ) : ℂ) := by
-    rw [aq_marked_qhs_slices N hN B f hmark ⟨0,hN⟩ true, if_pos rfl,
+    rw [aq_marked_qhs_slices N hN B f hmark ⟨0,hN⟩ true, ite_eq_left rfl,
       aq_inverse_selected_zero]
     simp only [Complex.ofReal_div, Complex.ofReal_natCast]
   have hf : aqQHSBaseline N hN f (⟨0,hN⟩,false)=((1-(B.card : ℝ)/(N : ℝ) : ℝ) : ℂ) := by
-    rw [aq_marked_qhs_slices N hN B f hmark ⟨0,hN⟩ false, if_neg Bool.false_ne_true]
+    rw [aq_marked_qhs_slices N hN B f hmark ⟨0,hN⟩ false, ite_eq_right Bool.false_ne_true]
     simp only [ApplyGate, Matrix.mulVec_sub, Pi.sub_apply]
     change ApplyGate (QFTMatrix N)ᴴ (preparedAAState (QFTMatrix N) ⟨0,hN⟩) ⟨0,hN⟩-
       ApplyGate (QFTMatrix N)ᴴ (Collapse (preparedAAState (QFTMatrix N) ⟨0,hN⟩) B) ⟨0,hN⟩ = _

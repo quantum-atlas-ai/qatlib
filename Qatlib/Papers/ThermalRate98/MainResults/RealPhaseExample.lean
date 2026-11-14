@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ThermalRate98.MainResults.MeasurementBorn
-import Qatlib.Papers.ThermalRate98.MainResults.EvolutionInit
+module
+
+public import Qatlib.Papers.ThermalRate98.MainResults.MeasurementBorn
+public import Qatlib.Papers.ThermalRate98.MainResults.EvolutionInit
+
+@[expose] public section
 
 /-!
 # A real state evolving to complex amplitudes
@@ -44,7 +48,7 @@ theorem diagonal_mulVec (d : I → ℂ) (v : QState I) :
   rw [Finset.sum_eq_single i]
   · simp
   · intro j _ hj
-    simp only [if_neg (Ne.symm hj), zero_mul]
+    simp only [ite_eq_right (Ne.symm hj), zero_mul]
   · intro h
     exact absurd (Finset.mem_univ i) h
 
@@ -88,7 +92,7 @@ theorem real_initial_can_become_complex :
   have hexp : Complex.exp ((-Complex.I * ((Real.pi / 4 : ℝ) : ℂ)) *
       ((if (false : Bool) then (-1 : ℝ) else 1) : ℂ)) =
       ((Real.sqrt 2 / 2 : ℝ) : ℂ) - ((Real.sqrt 2 / 2 : ℝ) : ℂ) * Complex.I := by
-    simp only [Bool.false_eq_true, if_false, Complex.ofReal_one, mul_one]
+    simp only [Bool.false_eq_true, ite_false,  mul_one]
     rw [show -Complex.I * ((Real.pi / 4 : ℝ) : ℂ) = (-(Real.pi / 4)) * Complex.I by
       push_cast; ring]
     rw [Complex.exp_mul_I]

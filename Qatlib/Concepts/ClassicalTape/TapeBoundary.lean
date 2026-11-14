@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ClassicalTape.TapeCompilation.ClassicalProbabilisticDefs
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
-import Qatlib.Concepts.ClassicalTape.TapeCompilation.BitMachineTime
-import Mathlib.Data.List.TakeWhile
-import Qatlib.Concepts.ClassicalTape.TapeCompilation.ClassicalProbabilistic
-import Qatlib.Concepts.ClassicalTape.FairCoinTape
+module
+
+public import Qatlib.Concepts.ClassicalTape.TapeCompilation.ClassicalProbabilisticDefs
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+public import Qatlib.Concepts.ClassicalTape.TapeCompilation.BitMachineTime
+public import Mathlib.Data.List.TakeWhile
+public import Qatlib.Concepts.ClassicalTape.TapeCompilation.ClassicalProbabilistic
+public import Qatlib.Concepts.ClassicalTape.FairCoinTape
+
+@[expose] public section
 
 /-!
 # Tape-computation boundary examples and concentration
@@ -289,7 +293,7 @@ theorem sum_or_snoc (m : ℕ) :
         (Fin.snoc u b)) = ∑ _b : Bool, if (u 0 || u 1) = false then (1 : ℝ) else 0 :=
       Finset.sum_congr rfl (fun b _ => key b)
     rw [h2']
-    simp [Finset.sum_const]
+    simp
   rw [Finset.sum_congr rfl (fun u _ => h2 u)]
   rw [← Finset.mul_sum]
 
@@ -334,7 +338,7 @@ theorem naive_ofFn12 (input : List (Tracks 2)) (ω : Fin 51 → Bool) :
     simp [List.ofFn_succ]
   rw [h]
   have hlen : 4 * 12 ≤ ((List.ofFn ω).drop 3).length := by
-    simp []
+    simp
   exact naive_run 12 (by norm_num) input (ω 0) (ω 1) (ω 2) ((List.ofFn ω).drop 3) hlen
 
 /-- The repeated-read machine with parameter 12 returns a decision on every 51-coin path. -/

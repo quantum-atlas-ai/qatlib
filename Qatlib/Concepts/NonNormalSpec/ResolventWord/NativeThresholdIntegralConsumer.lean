@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.NonNormalSpec.ResolventWord.NativeThresholdIntegralCoefficients
-import Qatlib.Concepts.NonNormalSpec.ResolventWord.NativeThresholdIntegralCutoff
-import Qatlib.Concepts.NonNormalSpec.ResolventWord.ThresholdIntegralConsumer
+module
+
+public import Qatlib.Concepts.NonNormalSpec.ResolventWord.NativeThresholdIntegralCoefficients
+public import Qatlib.Concepts.NonNormalSpec.ResolventWord.NativeThresholdIntegralCutoff
+public import Qatlib.Concepts.NonNormalSpec.ResolventWord.ThresholdIntegralConsumer
+
+@[expose] public section
 
 /-!
 # Native threshold amplifier circuits

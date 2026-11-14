@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
-import Qatlib.Concepts.MbqcFlow.FlowDecision.IsingClusterResource
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
+module
+
+public import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.IsingClusterResource
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
+
+@[expose] public section
 
 /-!
 # Cluster measurement patterns and their branch semantics
@@ -331,7 +335,7 @@ noncomputable def mpBitTime {n w m : ℕ} (P : MpPattern n w m) : ℕ :=
     2 * w + m + (MpDependency P).card
 
 /-- The peak-space count given by the full number `w + m` of measured and output qubits. -/
-def mpPeakSpace {n w m : ℕ} (P : MpPattern n w m) : ℕ := w + m
+def mpPeakSpace {n w m : ℕ} (_P : MpPattern n w m) : ℕ := w + m
 
 /-- The communication-bit count defined as the cardinality of the pattern's classical dependency
 set. -/

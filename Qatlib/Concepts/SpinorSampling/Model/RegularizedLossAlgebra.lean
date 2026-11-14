@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Real.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Data.Fin.Basic
-import Mathlib.Data.Fintype.Fin
-import Mathlib.Tactic.LinearCombination
+module
+
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Data.Fin.Basic
+public import Mathlib.Data.Fintype.Fin
+public import Mathlib.Tactic.LinearCombination
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

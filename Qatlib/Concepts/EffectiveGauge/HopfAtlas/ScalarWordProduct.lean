@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.WordProduct
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.WordProduct
+
+@[expose] public section
 
 /-! # The same binomial coordinate-word bound for real phase products -/
 set_option autoImplicit false

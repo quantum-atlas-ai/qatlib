@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.TranscorrChem20.MainResults.ImaginaryTime.NormalizedEvolution
-import Qatlib.Papers.TranscorrChem20.MainResults.ImaginaryTime.GroundSpace
-import Qatlib.Papers.TranscorrChem20.MainResults.TCSimilarity.MetricObservables
+module
+
+public import Qatlib.Papers.TranscorrChem20.MainResults.ImaginaryTime.NormalizedEvolution
+public import Qatlib.Papers.TranscorrChem20.MainResults.ImaginaryTime.GroundSpace
+public import Qatlib.Papers.TranscorrChem20.MainResults.TCSimilarity.MetricObservables
+
+@[expose] public section
 
 /-!
 # Physical and adjoint transcorrelated trajectories

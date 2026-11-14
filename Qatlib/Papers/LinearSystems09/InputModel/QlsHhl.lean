@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LinearSystems09.InputModel.QlsHhlDefs
+module
+
+public import Qatlib.Papers.LinearSystems09.InputModel.QlsHhlDefs
+
+@[expose] public section
 
 /-!
 # HHL input-model interface statements
@@ -79,17 +83,17 @@ theorem clause55_endpoint :
 /-- Collects evenness, agreement with the unsigned mass on nonnegative inputs, the unit mass
 bound, zero-mode flags, and normalization of consistent signed filters at positive `d`. -/
 theorem clause60_endpoint :
-    (∀ (F : SignedSinEnvelopeFilter) (hF : F.Consistent) (d θ : ℝ) (hd : 0 < d),
+    (∀ (F : SignedSinEnvelopeFilter) (_hF : F.Consistent) (d θ : ℝ) (_hd : 0 < d),
       signedKernelMass F d θ = signedKernelMass F d (-θ)) ∧
-    (∀ (F : SignedSinEnvelopeFilter) (hF : F.Consistent) (d θ : ℝ) (hd : 0 < d)
-      (hθ : 0 ≤ θ),
+    (∀ (F : SignedSinEnvelopeFilter) (_hF : F.Consistent) (d θ : ℝ) (_hd : 0 < d)
+      (_hθ : 0 ≤ θ),
       signedKernelMass F d θ =
         sinEnvelopeFilterF d θ ^ 2 + sinEnvelopeFilterG d θ ^ 2) ∧
-    (∀ (F : SignedSinEnvelopeFilter) (hF : F.Consistent) (d θ : ℝ) (hd : 0 < d),
+    (∀ (F : SignedSinEnvelopeFilter) (_hF : F.Consistent) (d θ : ℝ) (_hd : 0 < d),
       signedKernelMass F d θ ≤ 1) ∧
-    (∀ (F : SignedSinEnvelopeFilter) (hF : F.Consistent) (d : ℝ) (hd : 0 < d),
+    (∀ (F : SignedSinEnvelopeFilter) (_hF : F.Consistent) (d : ℝ) (_hd : 0 < d),
       F.filterF d 0 = 0 ∧ F.filterG d 0 = 1 / 2) ∧
-    (∀ (F : SignedSinEnvelopeFilter) (hF : F.Consistent) (d θ : ℝ) (hd : 0 < d),
+    (∀ (F : SignedSinEnvelopeFilter) (_hF : F.Consistent) (d θ : ℝ) (_hd : 0 < d),
       ∑ s : Fin 3, ‖F.hVector d θ s‖ ^ 2 = 1) := by
   refine ⟨?_, ?_, ?_, ?_, ?_⟩
   · intro F hF d θ hd
@@ -125,7 +129,7 @@ theorem clause57_endpoint :
 /-- Collects reflection symmetry of the sine envelope, the pointwise-to-Euclidean error bound,
 and the preparation angle-bit and stage-count bounds. -/
 theorem clause53_endpoint :
-    (∀ (M : ℕ) (hM : 0 < M) (τ : Fin M),
+    (∀ (M : ℕ) (_hM : 0 < M) (τ : Fin M),
       envelopeAmplitude M τ =
         envelopeAmplitude M ⟨M - 1 - τ.val, by omega⟩) ∧
     (∀ (M : ℕ) (ψ χ : QState (Fin M)) {δ : ℝ}, 0 ≤ δ →

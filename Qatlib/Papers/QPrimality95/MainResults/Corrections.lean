@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.CostRecurrences.FiniteWeights
-import Mathlib.Analysis.Complex.ExponentialBounds
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Tactic
+module
+
+public import Qatlib.Foundations.CostRecurrences.FiniteWeights
+public import Mathlib.Analysis.Complex.ExponentialBounds
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Corrections to logarithmic primality-cost estimates

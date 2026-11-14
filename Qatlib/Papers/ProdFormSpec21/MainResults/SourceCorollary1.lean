@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ProdFormSpec21.MainResults.SourceModel
+module
+
+public import Qatlib.Papers.ProdFormSpec21.MainResults.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -63,7 +67,7 @@ the conclusions of Corollary 1 hold:
 and `|θ| ≤ L h δt² + 2π (hδt/lam)² = O(L h δt²)` (Eq (16)). -/
 theorem corollary1_eigenstate
     (h δt lam θ ΔE f ε : ℝ) (L : ℕ) (t : ℝ)
-    (hh : 0 ≤ h) (hδt : 0 ≤ δt) (hlam : 0 < lam) (ht : t = (L : ℝ) * δt)
+    (_hh : 0 ≤ h) (hδt : 0 ≤ δt) (_hlam : 0 < lam) (ht : t = (L : ℝ) * δt)
     (hε_lem1 : ε ≤ (h * δt / lam) ^ 2)
     (hΔE : ΔE ≤ h * δt)
     (hf : f ≤ 4 * ε)
@@ -93,8 +97,8 @@ This is the elementary Gram–Schmidt content of the displayed equation; the
 non-trivial numerical content is the bound theorem above. -/
 theorem corollary1_decomposition
     (Uψ Tψ w : QState I) (f θ : ℝ)
-    (hU : Normalized Uψ) (hT : Normalized Tψ)
-    (hf0 : 0 ≤ f) (hf1 : f ≤ 1)
+    (hU : Normalized Uψ) (_hT : Normalized Tψ)
+    (_hf0 : 0 ≤ f) (_hf1 : f ≤ 1)
     (horth : Inner Uψ w = 0)
     (hdecomp : Tψ = (Real.sqrt (1 - f) : ℂ) • ((Complex.exp (Complex.I * θ)) • Uψ)
         + (Real.sqrt f : ℂ) • w) :

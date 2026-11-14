@@ -4,17 +4,21 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Complex.Exponential
-import Mathlib.Analysis.Complex.Trigonometric
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Data.Complex.Basic
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Data.Set.Operations
-import Qatlib.Concepts.AmplitudeCore.PhaseEstimation.Lemma18Ampl
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Analysis.Normed.Lp.PiLp
-import Mathlib.Analysis.InnerProductSpace.l2Space
-import Qatlib.Concepts.AmplitudeCore.PhaseEstimation.Lemma10Defs
+module
+
+public import Mathlib.Analysis.Complex.Exponential
+public import Mathlib.Analysis.Complex.Trigonometric
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Data.Set.Operations
+public import Qatlib.Concepts.AmplitudeCore.PhaseEstimation.Lemma18Amplification
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Analysis.Normed.Lp.PiLp
+public import Mathlib.Analysis.InnerProductSpace.l2Space
+public import Qatlib.Concepts.AmplitudeCore.PhaseEstimation.Lemma10Defs
+
+@[expose] public section
 
 /-!
 # Specification of the phase state overlap formula

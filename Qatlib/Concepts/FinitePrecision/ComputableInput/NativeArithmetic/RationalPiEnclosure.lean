@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Complex.Arctan
-import Mathlib.Analysis.Real.Pi.Bounds
-import Mathlib.Analysis.SpecificLimits.Normed
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Complex.Arctan
+public import Mathlib.Analysis.Real.Pi.Bounds
+public import Mathlib.Analysis.SpecificLimits.Normed
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Rational enclosures of pi from Machin series
@@ -254,7 +258,7 @@ theorem pi_candidate_guard (bits : ℕ) :
 theorem pi_initial_iteration_returns (bits : ℕ) :
     piInitialIterationQ bits=some (piCandidateQ bits) := by
   unfold piInitialIterationQ
-  rw [if_pos (pi_candidate_guard bits)]
+  rw [ite_eq_left (pi_candidate_guard bits)]
 
 /-- For `bits ≥ 1`, the candidate interval contains π and both endpoints lie strictly between
 three and four. -/

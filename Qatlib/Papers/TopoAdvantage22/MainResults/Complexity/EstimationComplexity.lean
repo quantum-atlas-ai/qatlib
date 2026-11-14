@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Data.Nat.Log
-import Mathlib.Data.Nat.Factorial.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.Order.Interval.Finset.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Data.Nat.Log
+public import Mathlib.Data.Nat.Factorial.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.Order.Interval.Finset.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -111,8 +115,8 @@ the asymptotic approximation and a costed Dicke-preparation circuit are outside
 its scope. The telescoping identity for `firstSchemeProb` can be analysed by Abel
 summation, with the `1/(2c)` expansion expressed through limits and big-O bounds.
 The related `Qatlib.Concepts.AmplitudeCore` results concern amplitude amplification. -/
-theorem lemma2_dicke_preparation (c n k nseed : ℕ) (hc : 0 < c) (hn : 0 < n)
-    (hseed : nseed = Nat.log2 (c * n)) :
+theorem lemma2_dicke_preparation (c n k nseed : ℕ) (_hc : 0 < c) (_hn : 0 < n)
+    (_hseed : nseed = Nat.log2 (c * n)) :
     (dickePrepCostFirst n nseed = (nseed + 1) * (n / 2 * (nseed + 2) + Nat.log2 n)) ∧
     (secondSchemeCost n k = (k + 2) * n + k * (4 * Nat.log2 n - 1) + Nat.log2 k) := by
   exact ⟨rfl, rfl⟩
@@ -149,8 +153,8 @@ these are outside the scope of this file. Related results are in
 The windowed guarantee at `P = ⌈π/(ε)·√(1+α²)⌉` is related to
 `|â - a| ≤ ε` through monotonicity of `sin`; the refinement involves logarithmic
 asymptotics. -/
-theorem lemma4_amplitude_estimation (a α ε δ : ℝ) (ha0 : 0 < a) (ha1 : a < 1)
-    (hε : 0 < ε) (hδ0 : 0 < δ) (hδ1 : δ < 1) :
+theorem lemma4_amplitude_estimation (a α ε δ : ℝ) (_ha0 : 0 < a) (_ha1 : a < 1)
+    (hε : 0 < ε) (_hδ0 : 0 < δ) (_hδ1 : δ < 1) :
     ∃ N : ℝ, N = Real.pi / ε * Real.sqrt (1 + α ^ 2) ∧
       0 ≤ N := by
   refine ⟨Real.pi / ε * Real.sqrt (1 + α ^ 2), rfl, ?_⟩
@@ -218,7 +222,7 @@ of estimating `β_{k-1}` is the product of the amplitude-estimation repetition
 count, the clique-amplification factor and the per-iteration cost.  We record the
 structural identity relating this product to `lemma1IterCostFirst`. -/
 theorem lemma1_total_complexity (n k : ℕ) (edges cliques betti r2 r3 lamMin δ2 : ℝ)
-    (hcliques : 0 < cliques) (hbetti : 0 < betti) (hr2 : 0 < r2) :
+    (_hcliques : 0 < cliques) (_hbetti : 0 < betti) (_hr2 : 0 < r2) :
     (Real.log (1 / δ2) / r2) * Real.sqrt (cliques / betti) *
         lemma1IterCostFirst n k edges cliques betti r3 lamMin =
       (Real.log (1 / δ2) / r2) * Real.sqrt (cliques / betti) *

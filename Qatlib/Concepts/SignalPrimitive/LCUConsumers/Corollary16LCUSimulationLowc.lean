@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SignalPrimitive.LCUConsumers.Corollary16LCUSimulationStat
-import Qatlib.Concepts.SignalPrimitive.MainResults.Theorem1TaylorTruncationLowc
-import Qatlib.Concepts.SignalPrimitive.MainResults.Theorem1Simulation
-import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.FiberBridge
+module
+
+public import Qatlib.Concepts.SignalPrimitive.LCUConsumers.Corollary16LCUSimulationStat
+public import Qatlib.Concepts.SignalPrimitive.MainResults.Theorem1TaylorTruncationLowc
+public import Qatlib.Concepts.SignalPrimitive.MainResults.Theorem1Simulation
+public import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.FiberBridge
+
+@[expose] public section
 
 /-!
 # Simulation of Hermitian Unitary Combinations

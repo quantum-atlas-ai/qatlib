@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QCircApprox95.MainResults.QuantitativeNet
-import Qatlib.Papers.QCircApprox95.MainResults.ProblemCounting
-import Qatlib.Concepts.LocalCircuits.LocalGateCosts.Costs
-import Qatlib.Foundations.OperatorErrors.OperatorError
-import Qatlib.Foundations.PureStateMath.BornBridge.RelabelOperatorNorm
-import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.QCircApprox95.MainResults.QuantitativeNet
+public import Qatlib.Papers.QCircApprox95.MainResults.ProblemCounting
+public import Qatlib.Concepts.LocalCircuits.LocalGateCosts.Costs
+public import Qatlib.Foundations.OperatorErrors.OperatorError
+public import Qatlib.Foundations.PureStateMath.BornBridge.RelabelOperatorNorm
+public import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Gate word covers and problem counts
@@ -70,7 +74,7 @@ theorem placeLocalGate_l2_norm {n : ℕ} (S : Finset (Fin n))
   change ‖relabelGate (split S).symm
     (V ⊗ₖ (1 : Matrix (Outside n S) (Outside n S) ℂ))‖ = ‖V‖
   rw [l2_norm_relabelGate]
-  haveI : Nonempty (Outside n S) := ⟨fun _ => false⟩
+  have : Nonempty (Outside n S) := ⟨fun _ => false⟩
   rw [Qatlib.Concepts.ReferenceError.RefTraceError.l2_norm_kronecker,
     Qatlib.Concepts.ReferenceError.RefTraceError.l2_norm_one_eq, mul_one]
 
@@ -145,11 +149,11 @@ theorem repBy_covered_by_words {g n b : ℕ} {δ : ℝ} (hδ : 0 ≤ δ)
     fun G => if h : G ∈ gateSet g n then Classical.choose (hC G h) else G
   have choose_mem : ∀ G (hG : G ∈ gateSet g n), choose_c G ∈ C := by
     intro G hG
-    simp only [choose_c, dif_pos hG]
+    simp only [choose_c, dite_eq_left hG]
     exact (Classical.choose_spec (hC G hG)).1
   have choose_close : ∀ G (hG : G ∈ gateSet g n), ‖G - choose_c G‖ ≤ δ := by
     intro G hG
-    simp only [choose_c, dif_pos hG]
+    simp only [choose_c, dite_eq_left hG]
     exact (Classical.choose_spec (hC G hG)).2
   let pairs : List (Matrix (Fin (2 ^ n)) (Fin (2 ^ n)) ℂ ×
       Matrix (Fin (2 ^ n)) (Fin (2 ^ n)) ℂ) :=

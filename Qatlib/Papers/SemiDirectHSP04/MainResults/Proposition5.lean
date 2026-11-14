@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SemiDirectHSP04.MainResults.Model.SemidirectGroup
-import Mathlib.GroupTheory.SpecificGroups.Cyclic
-import Mathlib.GroupTheory.OrderOfElement
+module
+
+public import Qatlib.Papers.SemiDirectHSP04.MainResults.Model.SemidirectGroup
+public import Mathlib.GroupTheory.SpecificGroups.Cyclic
+public import Mathlib.GroupTheory.OrderOfElement
+
+@[expose] public section
 
 /-!
 # Isomorphic cyclic semidirect products from equal-order units
@@ -84,10 +88,10 @@ theorem prop5_isomorphic_of_same_order
     Nonempty (Pqr q (p ^ r) u hu ≃* Pqr q (p ^ r) v hv) := by
   classical
   have _ := hr
-  haveI : NeZero q := ⟨hq.ne_zero⟩
-  haveI : NeZero (p ^ r) := ⟨pow_ne_zero r hp.ne_zero⟩
-  haveI : Fact p.Prime := ⟨hp⟩
-  haveI : IsCyclic (ZMod (p ^ r))ˣ := ZMod.isCyclic_units_of_prime_pow p hp hp2 r
+  have : NeZero q := ⟨hq.ne_zero⟩
+  have : NeZero (p ^ r) := ⟨pow_ne_zero r hp.ne_zero⟩
+  have : Fact p.Prime := ⟨hp⟩
+  have : IsCyclic (ZMod (p ^ r))ˣ := ZMod.isCyclic_units_of_prime_pow p hp hp2 r
 
   set K : Subgroup (ZMod (p ^ r))ˣ := (powMonoidHom q).ker with hK
   have hKcard_le : Nat.card K ≤ q := by

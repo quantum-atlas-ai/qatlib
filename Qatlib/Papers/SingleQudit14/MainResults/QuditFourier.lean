@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Complex.CircleAddChar
-import Mathlib.Data.ZMod.Basic
-import Mathlib.GroupTheory.Perm.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Complex.CircleAddChar
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.GroupTheory.Perm.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -90,18 +94,24 @@ def IsPositiveCyclic (σ : Equiv.Perm (ZMod d)) : Prop := ∃ s : ZMod d, σ = r
 /-- `σ` is a negative cyclic permutation (a reflection of the `d`-cycle). -/
 def IsNegativeCyclic (σ : Equiv.Perm (ZMod d)) : Prop := ∃ c : ZMod d, σ = reflPerm c
 
+omit [NeZero d] in
+
 /-- The permutation action evaluates by composition with the permutation. -/
 @[simp]
-lemma applyPerm_apply (σ : Equiv.Perm (ZMod d)) (v : ZMod d → ℂ) (i : ZMod d) :
+lemma applyPerm_apply {d : ℕ} [_scopeInst0 : NeZero d] (σ : Equiv.Perm (ZMod d)) (v : ZMod d → ℂ) (i : ZMod d) :
     applyPerm σ v i = v (σ i) := rfl
+
+omit [NeZero d] in
 
 /-- A cyclic rotation acts by addition of its shift. -/
 @[simp]
-lemma rotPerm_apply (s j : ZMod d) : rotPerm s j = j + s := rfl
+lemma rotPerm_apply {d : ℕ} [_scopeInst0 : NeZero d] (s j : ZMod d) : rotPerm s j = j + s := rfl
+
+omit [NeZero d] in
 
 /-- A reflection subtracts the input from its center. -/
 @[simp]
-lemma reflPerm_apply (c j : ZMod d) : reflPerm c j = c - j := rfl
+lemma reflPerm_apply {d : ℕ} [_scopeInst0 : NeZero d] (c j : ZMod d) : reflPerm c j = c - j := rfl
 
 /-- Fixed arXiv:1403.5861v3, Eq. (7) + following sentence. A positive cyclic permutation
 `j ↦ j + s` scales the Fourier column `|ψ_{k+1}⟩` by the phase `stdAddChar (s * k)`;
@@ -151,9 +161,9 @@ lemma sum_stdAddChar_mul (t : ZMod d) :
   rw [hshift, AddChar.sum_eq_ite, ZMod.card]
   by_cases ht : t = 0
   · have hm : AddChar.mulShift (ZMod.stdAddChar (N := d)) t = 0 := hiff.mpr ht
-    rw [if_pos hm, if_pos ht]
+    rw [ite_eq_left hm, ite_eq_left ht]
   · have hm : ¬ (AddChar.mulShift (ZMod.stdAddChar (N := d)) t = 0) := fun h => ht (hiff.mp h)
-    rw [if_neg hm, if_neg ht]
+    rw [ite_eq_right hm, ite_eq_right ht]
 
 /-- `U_FT† ∘ U_FT` on a basis column returns `d` times the basis state: the inverse Fourier
 transform of `|ψ_{k+1}⟩ = U_FT |k⟩` is (up to the common normalisation) the basis vector
@@ -176,7 +186,7 @@ lemma qftInvVec_qftVec (k : ZMod d) :
     simp
   · have hki : k - i ≠ 0 := sub_ne_zero.mpr h
     have hik : i ≠ k := fun hc => h hc.symm
-    rw [if_neg hki, if_neg hik, mul_zero]
+    rw [ite_eq_right hki, ite_eq_right hik, mul_zero]
 
 /-- The inverse Fourier transform commutes with scalar multiplication. -/
 @[simp]
@@ -193,24 +203,30 @@ nonzero, i.e. the final pointer state is a genuine state, not the zero vector. -
 lemma natCast_ne_zero_complex (n : ℕ) [NeZero n] : (n : ℂ) ≠ 0 :=
   Nat.cast_ne_zero.mpr (NeZero.ne n)
 
+omit [NeZero d] in
+
 /-- Helper: distinct basis indices give distinct computational basis vectors `|k⟩`. -/
-lemma basisVec_ne_of_ne {a b : ZMod d} (h : a ≠ b) : basisVec a ≠ basisVec b := by
+lemma basisVec_ne_of_ne {d : ℕ} [_scopeInst0 : NeZero d] {a b : ZMod d} (h : a ≠ b) : basisVec a ≠ basisVec b := by
   intro he
-  have hb : basisVec b b = 1 := by simp [basisVec, Pi.single_apply]
-  have ha : basisVec a b = 0 := by simp [basisVec, Pi.single_apply, h, Ne.symm h]
+  have hb : basisVec b b = 1 := by simp [basisVec]
+  have ha : basisVec a b = 0 := by simp [basisVec, Ne.symm h]
   rw [he] at ha
   rw [hb] at ha
   exact one_ne_zero ha
 
+omit [NeZero d] in
+
 /-- Helper: the `0`-component of a computational basis vector `|k⟩` is `0` whenever `k ≠ 0`;
 equivalently, measuring `|k⟩` in the `|0⟩` outcome never fires for `k ≠ 0`. -/
-lemma basisVec_apply_zero_of_ne {k : ZMod d} (h : k ≠ 0) : basisVec k (0 : ZMod d) = 0 := by
-  simp [basisVec, Pi.single_apply, h, Ne.symm h]
+lemma basisVec_apply_zero_of_ne {d : ℕ} [_scopeInst0 : NeZero d] {k : ZMod d} (h : k ≠ 0) : basisVec k (0 : ZMod d) = 0 := by
+  simp [basisVec, Ne.symm h]
+
+omit [NeZero d] in
 
 /-- For `d ≥ 3` the two outcome labels `1` and `-1` of the algorithm are distinct residues
 (so the final pointer states `|1⟩` and `|d-1⟩` are genuinely different, and the algorithm
 distinguishes the two parities). Proved by `2 ≡ 0 (mod d) ⟹ d ∣ 2` against `d ≥ 3`. -/
-lemma one_ne_neg_one (hd : 3 ≤ d) : (1 : ZMod d) ≠ -1 := by
+lemma one_ne_neg_one {d : ℕ} [_scopeInst0 : NeZero d] (hd : 3 ≤ d) : (1 : ZMod d) ≠ -1 := by
   intro h
   have h2 : (2 : ZMod d) = 0 := by
     have hthis : (1 : ZMod d) + 1 = (-1 : ZMod d) + 1 := congrArg (fun x => x + 1) h
@@ -221,16 +237,20 @@ lemma one_ne_neg_one (hd : 3 ≤ d) : (1 : ZMod d) ≠ -1 := by
   have hle : d ≤ 2 := Nat.le_of_dvd (by norm_num) hdvd
   omega
 
+omit [NeZero d] in
+
 /-- The rotation family `s ↦ rotPerm s` is injective: distinct shifts give distinct
 permutations of the `d`-cycle. -/
-lemma rotPerm_injective : Function.Injective (rotPerm : ZMod d → Equiv.Perm (ZMod d)) := by
+lemma rotPerm_injective {d : ℕ} [_scopeInst0 : NeZero d] : Function.Injective (rotPerm : ZMod d → Equiv.Perm (ZMod d)) := by
   intro s t h
   have hh := congrFun (congrArg (fun e : Equiv.Perm (ZMod d) => (e : ZMod d → ZMod d)) h) 0
   simpa using hh
 
+omit [NeZero d] in
+
 /-- The reflection family `c ↦ reflPerm c` is injective: distinct reflections of the
 `d`-cycle are distinct permutations. -/
-lemma reflPerm_injective : Function.Injective (reflPerm : ZMod d → Equiv.Perm (ZMod d)) := by
+lemma reflPerm_injective {d : ℕ} [_scopeInst0 : NeZero d] : Function.Injective (reflPerm : ZMod d → Equiv.Perm (ZMod d)) := by
   intro s t h
   have hh := congrFun (congrArg (fun e : Equiv.Perm (ZMod d) => (e : ZMod d → ZMod d)) h) 0
   simpa using hh

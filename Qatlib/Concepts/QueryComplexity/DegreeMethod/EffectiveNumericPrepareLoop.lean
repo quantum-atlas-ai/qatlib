@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain
-import Qatlib.Concepts.BitWordCompiler.CanonicalCodec.BitWordCompiler
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareChain
+public import Qatlib.Concepts.BitWordCompiler.CanonicalCodec.BitWordCompiler
+
+@[expose] public section
 
 /-!
 # Bounded binary preparation loop
@@ -368,9 +372,9 @@ theorem compare_fuel_le (m : ℕ) (st : TrialCompare.CState)
     omega
   | succ m ih =>
     by_cases hh : st.halted
-    · rw [TrialCompare.fuel.eq_def,if_pos hh]
+    · rw [TrialCompare.fuel.eq_def,ite_eq_left hh]
       omega
-    · rw [TrialCompare.fuel.eq_def,if_neg hh]
+    · rw [TrialCompare.fuel.eq_def,ite_eq_right hh]
       have hf := ih (TrialCompare.CState.step st)
         (by change st.a.tail.length ≤ m; simp only [List.length_tail]; omega)
         (by change st.b.tail.length ≤ m; simp only [List.length_tail]; omega)
@@ -391,9 +395,9 @@ theorem addition_fuel_le (m : ℕ) (st : TrialRound.AState)
     omega
   | succ m ih =>
     by_cases hh : st.halted
-    · rw [TrialRound.AState.fuel.eq_def,if_pos hh]
+    · rw [TrialRound.AState.fuel.eq_def,ite_eq_left hh]
       omega
-    · rw [TrialRound.AState.fuel.eq_def,if_neg hh]
+    · rw [TrialRound.AState.fuel.eq_def,ite_eq_right hh]
       have hf := ih (TrialRound.AState.next st)
         (by change st.x.tail.length ≤ m; simp only [List.length_tail]; omega)
         (by change st.y.tail.length ≤ m; simp only [List.length_tail]; omega)
@@ -408,34 +412,34 @@ theorem compare_emit_lengths (st : TrialCompare.CState) :
     (TrialEmit.emitR st).length ≤ TrialCompare.fuel st := by
   induction st using TrialCompare.fuel.induct with
   | case1 st hh =>
-    have hf : TrialCompare.fuel st=1 := by rw [TrialCompare.fuel.eq_def,if_pos hh]
+    have hf : TrialCompare.fuel st=1 := by rw [TrialCompare.fuel.eq_def,ite_eq_left hh]
     refine ⟨?_,?_,?_,?_⟩
-    · rw [TrialEmit.emitS.eq_def,if_pos hh,hf]; simp
-    · rw [TrialEmit.emitL.eq_def,if_pos hh,hf]; simp
-    · rw [TrialEmit.emitQ.eq_def,if_pos hh,hf]; simp
-    · rw [TrialEmit.emitR.eq_def,if_pos hh,hf]; simp
+    · rw [TrialEmit.emitS.eq_def,ite_eq_left hh,hf]; simp
+    · rw [TrialEmit.emitL.eq_def,ite_eq_left hh,hf]; simp
+    · rw [TrialEmit.emitQ.eq_def,ite_eq_left hh,hf]; simp
+    · rw [TrialEmit.emitR.eq_def,ite_eq_left hh,hf]; simp
   | case2 st hh ih =>
     have hf : TrialCompare.fuel st=1+TrialCompare.fuel (TrialCompare.CState.step st) := by
-      rw [TrialCompare.fuel.eq_def,if_neg hh]
+      rw [TrialCompare.fuel.eq_def,ite_eq_right hh]
     obtain ⟨hs,hl,hq,hr⟩ := ih
     refine ⟨?_,?_,?_,?_⟩
-    · rw [TrialEmit.emitS.eq_def,if_neg hh,List.length_cons,hf]
+    · rw [TrialEmit.emitS.eq_def,ite_eq_right hh,List.length_cons,hf]
       omega
-    · rw [TrialEmit.emitL.eq_def,if_neg hh,List.length_cons,hf]
+    · rw [TrialEmit.emitL.eq_def,ite_eq_right hh,List.length_cons,hf]
       omega
-    · rw [TrialEmit.emitQ.eq_def,if_neg hh,List.length_cons,hf]
+    · rw [TrialEmit.emitQ.eq_def,ite_eq_right hh,List.length_cons,hf]
       omega
-    · rw [TrialEmit.emitR.eq_def,if_neg hh,List.length_cons,hf]
+    · rw [TrialEmit.emitR.eq_def,ite_eq_right hh,List.length_cons,hf]
       omega
 
 /-- The word emitted by an addition state has length at most its fuel. -/
 theorem addition_emit_length (st : TrialRound.AState) : st.emit.length ≤ st.fuel := by
   induction st using TrialRound.AState.fuel.induct with
   | case1 st hh =>
-    rw [TrialRound.AState.fuel.eq_def,TrialRound.AState.emit.eq_def,if_pos hh]
+    rw [TrialRound.AState.fuel.eq_def,TrialRound.AState.emit.eq_def,ite_eq_left hh]
     simp
   | case2 st hh ih =>
-    rw [TrialRound.AState.fuel.eq_def,TrialRound.AState.emit.eq_def,if_neg hh,if_neg hh,List.length_cons]
+    rw [TrialRound.AState.fuel.eq_def,TrialRound.AState.emit.eq_def,ite_eq_right hh,ite_eq_right hh,List.length_cons]
     omega
 
 /-- The seven intermediate output lengths of a trial round are bounded by the input width plus

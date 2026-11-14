@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FiniteLocc.LOCCProgram.MbqcCausalGraphDefs
-import Qatlib.Concepts.ClusterPatterns.Preentangled.PreentangledGraphCompiler
-import Qatlib.Concepts.ClusterPatterns.Preentangled.PreentangledGraphConsumers
+module
+
+public import Qatlib.Concepts.FiniteLocc.LOCCProgram.MbqcCausalGraphDefs
+public import Qatlib.Concepts.ClusterPatterns.Preentangled.PreentangledGraphCompiler
+public import Qatlib.Concepts.ClusterPatterns.Preentangled.PreentangledGraphConsumers
+
+@[expose] public section
 
 /-!
 # Causal flow examples and preentangled graph resources
@@ -197,7 +201,7 @@ theorem clause1OddC_one : mbqcOdd clause1GraphNoGFlow ({1} : Finset (Fin 2)) = (
 theorem clause1NoGFlowC (lam : Fin 2 → MbqcPlane) :
     ¬ MbqcHasGFlow clause1GraphNoGFlow clause1InputC clause1OutputC lam := by
   rintro ⟨g, prec, dp, hG0, _, _, _, hC⟩
-  letI := dp
+  let _ := dp
 
   have hg0 : g 0 = (∅ : Finset (Fin 2)) := by
     ext u
@@ -358,7 +362,7 @@ theorem clause2ClusterBranch_eq {n L : ℕ} (gs : GraphWord n L)
   rw [graphActualBranch_formula n L gs hlegal h ρ]
   rw [cluster_network_history_actual_branch_formula n (List.ofFn gs) hlegal
     (clause2ClusterLabelCast gs h) ρ]
-  rw [if_pos (clause2ClusterLabel_valid gs h)]
+  rw [ite_eq_left (clause2ClusterLabel_valid gs h)]
   have hscale : (2:ℂ)^(2 * (networkCounts (List.ofFn gs)).2) *
         ((2:ℂ)⁻¹)^((networkCounts (List.ofFn gs)).1 + 2 * (networkCounts (List.ofFn gs)).2)
       = (1/2 : ℂ)^(networkCounts (List.ofFn gs)).1 := by
@@ -737,12 +741,12 @@ theorem clause13PreTailGates_eq {n L : ℕ} (gs : GraphWord n L) (h : GraphHisto
     cases hg : gs t with
     | inl p =>
       obtain ⟨i, ζ⟩ := p
-      simp only [clause13PreTailGates, hg, graphFrameAdvance, graphTailLeaf, if_true,
+      simp only [clause13PreTailGates, hg, graphFrameAdvance, graphTailLeaf, ite_true,
         ObservedKrausLeaf.prepend]
       rw [ih]
     | inr p =>
       obtain ⟨i, j⟩ := p
-      simp only [clause13PreTailGates, hg, graphFrameAdvance, graphTailLeaf, if_true,
+      simp only [clause13PreTailGates, hg, graphFrameAdvance, graphTailLeaf, ite_true,
         ObservedKrausLeaf.prepend]
       rw [ih]
 
@@ -758,12 +762,12 @@ theorem clause13SeqTailGates_eq {n L : ℕ} (gs : GraphWord n L) (h : GraphHisto
     | inl p =>
       obtain ⟨i, ζ⟩ := p
       simp only [clause13SeqTailGates, hg, graphFrameAdvance, graphTailLeaf, Bool.false_eq_true,
-        if_false, ObservedKrausLeaf.prepend]
+        ite_false, ObservedKrausLeaf.prepend]
       rw [ih]
     | inr p =>
       obtain ⟨i, j⟩ := p
       simp only [clause13SeqTailGates, hg, graphFrameAdvance, graphTailLeaf, Bool.false_eq_true,
-        if_false, ObservedKrausLeaf.prepend]
+        ite_false, ObservedKrausLeaf.prepend]
       rw [ih]
 
 /-- The number of listed steps strictly before the first wire step, or the list length if there
@@ -788,7 +792,7 @@ theorem clause13LeadingTrailing_sum {n L : ℕ} (gs : GraphWord n L) (ts : List 
   | cons t ts ih =>
     cases hwt : graphWireAt gs t with
     | true =>
-      simp only [clause13LeadingSteps, clause13TrailingSteps, hwt, if_true, List.length_cons]
+      simp only [clause13LeadingSteps, clause13TrailingSteps, hwt, ite_true, List.length_cons]
       omega
     | false =>
       have hw' : ∃ t' ∈ ts, graphWireAt gs t' = true := by
@@ -798,7 +802,7 @@ theorem clause13LeadingTrailing_sum {n L : ℕ} (gs : GraphWord n L) (ts : List 
         · exact absurd ht'cond (by rw [hwt]; simp)
         · exact ⟨t', ht'mem, ht'cond⟩
       have h := ih hw'
-      simp only [clause13LeadingSteps, clause13TrailingSteps, hwt, Bool.false_eq_true, if_false,
+      simp only [clause13LeadingSteps, clause13TrailingSteps, hwt, Bool.false_eq_true, ite_false,
         List.length_cons]
       omega
 
@@ -830,13 +834,13 @@ theorem clause13SeqTailGates_value {n L : ℕ} (gs : GraphWord n L) (h : GraphHi
     | inl p =>
       obtain ⟨i, ζ⟩ := p
       simp only [clause13SeqTailGates, clause13WireCountIn, hg, graphFrameAdvance, graphWireAt,
-        List.foldl_cons, List.length_cons, if_true]
+        List.foldl_cons, List.length_cons, ite_true]
       rw [ih]
       all_goals omega
     | inr p =>
       obtain ⟨i, j⟩ := p
       simp only [clause13SeqTailGates, clause13WireCountIn, hg, graphFrameAdvance, graphWireAt,
-        List.foldl_cons, List.length_cons, Bool.false_eq_true, if_false]
+        List.foldl_cons, List.length_cons, Bool.false_eq_true, ite_false]
       rw [ih]
       all_goals omega
 
@@ -853,13 +857,13 @@ theorem clause13PreTailGates_value {n L : ℕ} (gs : GraphWord n L) (h : GraphHi
     | inl p =>
       obtain ⟨i, ζ⟩ := p
       simp only [clause13PreTailGates, clause13WireCountIn, hg, graphFrameAdvance, graphWireAt,
-        List.foldl_cons, if_true]
+        List.foldl_cons, ite_true]
       rw [ih]
       all_goals omega
     | inr p =>
       obtain ⟨i, j⟩ := p
       simp only [clause13PreTailGates, clause13WireCountIn, hg, graphFrameAdvance, graphWireAt,
-        List.foldl_cons, Bool.false_eq_true, if_false]
+        List.foldl_cons, Bool.false_eq_true, ite_false]
       rw [ih]
       all_goals omega
 
@@ -884,7 +888,7 @@ theorem clause13CommandExchangeCharge_eq {n L : ℕ} (gs : GraphWord n L) (h : G
         = graphPrependLeaf (graphFreshGates n L)
             (graphTailLeaf false gs h (List.ofFn (fun t : Fin L => t)) (zeroPauliFrame n)) := by
       rw [graphProgramLeaf_eq]
-      simp only [Bool.false_eq_true, if_false]
+      simp only [Bool.false_eq_true, ite_false]
     rw [hleaf, graphPrependLeaf_gates, ← clause13SeqTailGates_eq, clause13SeqTailGates_value]
     have hcorr := graphCorrectionGates_length gs (graphFinalFrame gs h)
     have hfold : (List.ofFn (fun t : Fin L => t)).foldl (graphFrameAdvance gs h)
@@ -932,11 +936,11 @@ theorem clause13Tail_gatesBeforeMeasure {n L : ℕ} (gs : GraphWord n L)
     cases hg : gs t with
     | inl p =>
       obtain ⟨i, ζ⟩ := p
-      simp only [clause13TailGatesBeforeMeasure, graphWireAt, hg, if_true]
+      simp only [clause13TailGatesBeforeMeasure, graphWireAt, hg, ite_true]
       simp [graphTail, hg, clause13GatesBeforeFirstMeasure]
     | inr p =>
       obtain ⟨i, j⟩ := p
-      simp only [clause13TailGatesBeforeMeasure, graphWireAt, hg, Bool.false_eq_true, if_false]
+      simp only [clause13TailGatesBeforeMeasure, graphWireAt, hg, Bool.false_eq_true, ite_false]
       have hw' : ∃ t' ∈ ts, graphWireAt gs t' = true := by
         obtain ⟨t', ht'mem, ht'cond⟩ := hw
         simp only [List.mem_cons] at ht'mem

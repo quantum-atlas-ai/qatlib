@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.OrderedBayes.BayesRatioCore.LearnerCutBridgeStat
-import Qatlib.Concepts.OrderedBayes.BayesRatioCore.Lemma21RestrictedQuan
-import Qatlib.Concepts.OrderedBayes.BayesRatioCore.Lemma23Quan
-import Mathlib.Tactic.Linarith
-import Lean.Elab.Tactic.Omega
-import Mathlib.Tactic.Positivity
+module
+
+public import Qatlib.Concepts.OrderedBayes.BayesRatioCore.LearnerCutBridgeStat
+public import Qatlib.Concepts.OrderedBayes.BayesRatioCore.Lemma21RestrictedQuan
+public import Qatlib.Concepts.OrderedBayes.BayesRatioCore.Lemma23Quan
+public import Mathlib.Tactic.Linarith
+public import Lean.Elab.Tactic.Omega
+public import Mathlib.Tactic.Positivity
+
+@[expose] public section
 
 /-!
 # Balanced cuts for the Bayesian learner
@@ -70,7 +74,7 @@ theorem learnerCutBridge_answer : LearnerCutBridge := by
     simp only [cutSet, Finset.mem_filter, Finset.mem_univ, true_and]
     simpa only [hprefix] using hband
   have hcut : stageTwoCut (lt_of_lt_of_le zero_lt_two hn) a ε ∈ cutSet a ε := by
-    simp only [stageTwoCut, dif_pos hne]
+    simp only [stageTwoCut, dite_eq_left hne]
     exact Finset.min'_mem _ hne
   have hcutband := (Finset.mem_filter.mp hcut).2
   have hinv := zoo_bayes_posterior_invariants a

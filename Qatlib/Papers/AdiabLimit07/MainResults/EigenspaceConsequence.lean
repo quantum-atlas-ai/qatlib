@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AdiabLimit07.MainResults.RuntimeBound
+module
+
+public import Qatlib.Papers.AdiabLimit07.MainResults.RuntimeBound
+
+@[expose] public section
 
 /-!
 # A complement dimension consequence of the runtime bound
@@ -38,7 +42,7 @@ variable {n : ℕ}
 /-- Under the stated positivity assumptions and `T ≥ 0`, a runtime lower bound yields `(c * sqrt
 N - cardP0 / sqrt N) / (2 * cardP0 * maxF * T) ≤ compDim` [IoannouMosca2008]. -/
 theorem complement_dim_ge {c cardP0 maxF compDim T N : ℝ}
-    (hN : 0 < N) (hT : 0 ≤ T) (hcard : 0 < cardP0) (hmaxF : 0 < maxF)
+    (_hN : 0 < N) (hT : 0 ≤ T) (hcard : 0 < cardP0) (hmaxF : 0 < maxF)
     (hcomp : 0 < compDim)
     (h : (c * Real.sqrt N - cardP0 / Real.sqrt N)
             / (2 * cardP0 * maxF * compDim) ≤ T) :

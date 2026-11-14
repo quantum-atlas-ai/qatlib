@@ -4,20 +4,24 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.LocalCapability
-import Qatlib.Concepts.HspRecovery.CyclicRecovery.AlgebraicOracle
-import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
-import Qatlib.Concepts.QueryWordCore.QueryMachinery.NegativeAdversary
-import Qatlib.Concepts.StoppingCore.InterruptBridge.BitToPhaseSameInput
-import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryMagnitude
-import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.AdaptiveQueryPurification
-import Qatlib.Concepts.ShadowModels.ShadowChannel.ObservedEvent
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedQueryBudget
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.FiniteStoppingTail
-import Qatlib.Concepts.StoppingCore.InterruptBridge.WeightedStoppingBudget
-import Qatlib.Concepts.StoppingCore.BranchCostCore.UnboundedFiniteExecution
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.LocalCapability
+public import Qatlib.Concepts.HspRecovery.CyclicRecovery.AlgebraicOracle
+public import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
+public import Qatlib.Concepts.QueryWordCore.QueryMachinery.NegativeAdversary
+public import Qatlib.Concepts.StoppingCore.InterruptBridge.BitToPhaseSameInput
+public import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryMagnitude
+public import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.AdaptiveQueryPurification
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.ObservedEvent
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedQueryBudget
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.FiniteStoppingTail
+public import Qatlib.Concepts.StoppingCore.InterruptBridge.WeightedStoppingBudget
+public import Qatlib.Concepts.StoppingCore.BranchCostCore.UnboundedFiniteExecution
+
+@[expose] public section
 
 /-!
 # Specifications for query-space extensions

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QDataFit12.SparseHHL.SourceClaims.SourceCostModel
-import Qatlib.Papers.QDataFit12.SparseHHL.DataFitting
+module
+
+public import Qatlib.Papers.QDataFit12.SparseHHL.SourceClaims.SourceCostModel
+public import Qatlib.Papers.QDataFit12.SparseHHL.DataFitting
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

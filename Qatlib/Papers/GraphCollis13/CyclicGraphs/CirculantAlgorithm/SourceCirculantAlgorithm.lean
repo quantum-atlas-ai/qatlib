@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GraphCollis13.CyclicGraphs.ChunkCollision.SourceChunkCollision
-import Qatlib.Papers.GraphCollis13.QueryBound.TreewidthAlgorithm.SourceTreewidthAlgorithm
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.GraphCollis13.CyclicGraphs.ChunkCollision.SourceChunkCollision
+public import Qatlib.Papers.GraphCollis13.QueryBound.TreewidthAlgorithm.SourceTreewidthAlgorithm
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -135,8 +139,8 @@ file.  Its `SUB` routine combines two MIN calls with Grover search; the
 chunk-level search also requires the corrected Proposition 1 reduction of
 `ChunkCollision` and a query bound for MIN, followed by Grover composition as
 in Theorem 1. -/
-def theorem5_circulant_algorithm (n a b : ℕ) (hn : 0 < n) (ha : 0 < a) (hab : a < b)
-    (hb : b ≤ n / 2) (adj : Fin n → Fin n → Bool) (hCI : adjGraph adj = CI n a b) : Prop :=
+def theorem5_circulant_algorithm (n a b : ℕ) (_hn : 0 < n) (_ha : 0 < a) (_hab : a < b)
+    (_hb : b ≤ n / 2) (adj : Fin n → Fin n → Bool) (_hCI : adjGraph adj = CI n a b) : Prop :=
   ∃ q : ℕ, GraphCollisionQueryUpperBound adj q ∧
     (q : ℝ) ≤ 8 * Real.sqrt (n : ℝ)
 

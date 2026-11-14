@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Complex.Exponential
-import Mathlib.Analysis.Complex.Trigonometric
-import Mathlib.Analysis.Complex.Norm
-import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
-import Mathlib.Algebra.Order.Chebyshev
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.Complex.Exponential
+public import Mathlib.Analysis.Complex.Trigonometric
+public import Mathlib.Analysis.Complex.Norm
+public import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
+public import Mathlib.Algebra.Order.Chebyshev
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Spectral estimates for time-averaged hitting
@@ -153,7 +157,7 @@ lemma star_mul_eigenPhase_pair (a b E F t : ℝ) :
 lemma phaseKernel_norm_le (θ τ : ℝ) (hθ : θ ≠ 0) :
     ‖phaseKernel θ τ‖ ≤ 2 / |θ| := by
   unfold phaseKernel
-  rw [if_neg hθ, norm_div]
+  rw [ite_eq_right hθ, norm_div]
   have hnum : ‖Complex.exp ((θ * τ) * Complex.I) - 1‖ ≤ 2 := by
     calc ‖Complex.exp ((θ * τ) * Complex.I) - 1‖
         ≤ ‖Complex.exp ((θ * τ) * Complex.I)‖ + ‖(1 : ℂ)‖ := norm_sub_le _ _
@@ -176,7 +180,7 @@ lemma integral_exp_pos (θ τ : ℝ) :
   · subst hθ
     simp [phaseKernel]
   · unfold phaseKernel
-    rw [if_neg hθ]
+    rw [ite_eq_right hθ]
     have hc : (θ : ℂ) * Complex.I ≠ 0 := by
       intro h
       rcases mul_eq_zero.mp h with h0 | hI
@@ -353,9 +357,9 @@ lemma abs_offDiagonal_le (S : SpectralWalk n N) {ΔE : ℝ} (hΔE : 0 < ΔE)
     intro i j
     by_cases hij : i = j
     · subst hij
-      simp only [if_true, abs_zero]
+      simp only [ite_true, abs_zero]
       positivity
-    · rw [if_neg hij]
+    · rw [ite_eq_right hij]
       have hθ : S.energy i - S.energy j ≠ 0 := by
         intro h
         exact hij (S.energy_injective (sub_eq_zero.mp h))
@@ -456,7 +460,7 @@ lemma rawSpectralSum_diag_off (S : SpectralWalk n N) (τ : ℝ) :
   · rw [Finset.mul_sum]
     apply Finset.sum_congr rfl
     intro i _
-    simp only [phaseKernel, sub_self, if_true, Complex.ofReal_re]
+    simp only [phaseKernel, sub_self, ite_true, Complex.ofReal_re]
     ring
 
 /-- With at most `2*n` spectral indices and energy separation at least a positive `ΔE`, every

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QPreimage16.ConditionalCost.Defs
+module
+
+public import Qatlib.Papers.QPreimage16.ConditionalCost.Defs
+
+@[expose] public section
 
 /-!
 # Conditional SHA3-256 preimage-search resource bounds

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LowRankMatrix19.SQFramework.GeneralSvtDefs
-import Qatlib.Concepts.WalkSearch.Spectral.Approximation
-import Qatlib.Concepts.AmpTransform.LegendreWindow.LegendreCompleteWindow
+module
+
+public import Qatlib.Papers.LowRankMatrix19.SQFramework.GeneralSvtDefs
+public import Qatlib.Concepts.WalkSearch.Spectral.Approximation
+public import Qatlib.Concepts.AmpTransform.LegendreWindow.LegendreCompleteWindow
+
+@[expose] public section
 
 /-!
 # General singular-value transformation estimates
@@ -287,14 +291,14 @@ theorem clause18_thresholdSvt_bounds (sigma eta lam : ℝ) (hsigma : 0 ≤ sigma
     have := mul_nonneg hsigma (by linarith : 0 ≤ 1 + eta)
     linarith
   by_cases h1 : sigma * (1 + eta) ≤ lam
-  · rw [thresholdSvt, if_pos h1]
+  · rw [thresholdSvt, ite_eq_left h1]
     constructor
     · linarith
     · exact le_rfl
   · by_cases h2 : lam < sigma * (1 - eta)
-    · rw [thresholdSvt, if_neg h1, if_pos h2]
+    · rw [thresholdSvt, ite_eq_right h1, ite_eq_left h2]
       constructor <;> linarith
-    · rw [thresholdSvt, if_neg h1, if_neg h2]
+    · rw [thresholdSvt, ite_eq_right h1, ite_eq_right h2]
       have hmid : sigma * (1 - eta) ≤ lam := by linarith
       have hden : 0 < sigma * (1 + eta) - sigma * (1 - eta) := by linarith
       have hnum : 0 ≤ (sigma * (1 + eta)) * (lam - sigma * (1 - eta)) := by
@@ -317,11 +321,11 @@ theorem clause18_thresholdRatio_bounds (sigma eta x : ℝ) (hsigma : 0 ≤ sigma
     (heta1 : eta ≤ 1) (hx0 : 0 ≤ x) :
     0 ≤ thresholdRatio sigma eta x ∧ thresholdRatio sigma eta x ≤ 1 := by
   by_cases hx : x = 0
-  · rw [thresholdRatio, if_pos hx]
+  · rw [thresholdRatio, ite_eq_left hx]
     constructor <;> linarith
   · have hxpos : 0 < x := lt_of_le_of_ne hx0 (Ne.symm hx)
     have hsqrt : 0 < Real.sqrt x := Real.sqrt_pos.2 hxpos
-    rw [thresholdRatio, if_neg hx]
+    rw [thresholdRatio, ite_eq_right hx]
     have hb := clause18_thresholdSvt_bounds sigma eta (Real.sqrt x) hsigma heta heta1 hsqrt.le
     constructor
     · exact div_nonneg hb.1 hsqrt.le
@@ -442,12 +446,12 @@ inputs. -/
 theorem clause20_spectralFilter_bounds (lambdaHat gap x : ℝ) :
     0 ≤ cor612SpectralFilter lambdaHat gap x ∧ cor612SpectralFilter lambdaHat gap x ≤ 1 := by
   by_cases h1 : |x - lambdaHat| ≤ gap / 8
-  · rw [cor612SpectralFilter, if_pos h1]
+  · rw [cor612SpectralFilter, ite_eq_left h1]
     constructor <;> linarith
   · by_cases h2 : gap / 4 ≤ |x - lambdaHat|
-    · rw [cor612SpectralFilter, if_neg h1, if_pos h2]
+    · rw [cor612SpectralFilter, ite_eq_right h1, ite_eq_left h2]
       constructor <;> linarith
-    · rw [cor612SpectralFilter, if_neg h1, if_neg h2]
+    · rw [cor612SpectralFilter, ite_eq_right h1, ite_eq_right h2]
       have hnum : 0 ≤ gap / 4 - |x - lambdaHat| := by linarith
       have hden : 0 < gap / 4 - gap / 8 := by linarith
       constructor
@@ -554,7 +558,7 @@ theorem clause25_even_odd_scalar (lam : ℝ) :
   · subst h
     simp [fCos, fSinc]
   · have hne : lam ^ 2 ≠ 0 := ne_of_gt (sq_pos_of_ne_zero h)
-    rw [fCos, fSinc, if_neg hne]
+    rw [fCos, fSinc, ite_eq_right hne]
     have hsqrt : Real.sqrt (lam ^ 2) = |lam| := Real.sqrt_sq_eq_abs lam
     rw [hsqrt]
     rcases lt_or_gt_of_ne h with hneg | hpos
@@ -593,12 +597,12 @@ theorem clause28_fsqrt_branches (sigma x : ℝ) (hsigma : 0 < sigma) :
   have hhalf : sigma ^ 2 / 2 < sigma ^ 2 := by nlinarith [sq_pos_of_pos hsigma]
   constructor
   · intro h
-    rw [fSqrt, if_pos h]
+    rw [fSqrt, ite_eq_left h]
   constructor
   · intro h1 h2
-    rw [fSqrt, if_neg (not_lt_of_ge h1), if_pos h2]
+    rw [fSqrt, ite_eq_right (not_lt_of_ge h1), ite_eq_left h2]
   · intro h1
-    rw [fSqrt, if_neg (not_lt_of_ge (le_of_lt (lt_of_lt_of_le hhalf h1))), if_neg (not_lt_of_ge h1)]
+    rw [fSqrt, ite_eq_right (not_lt_of_ge (le_of_lt (lt_of_lt_of_le hhalf h1))), ite_eq_right (not_lt_of_ge h1)]
 
 /-- For positive `sigma`, the regularized inverse is zero below `sigma ^ 2 / 2`, follows the
 stated linear formula up to `sigma ^ 2`, and equals `1 / x` above it. -/
@@ -610,12 +614,12 @@ theorem clause28_finv_branches (sigma x : ℝ) (hsigma : 0 < sigma) :
   have hhalf : sigma ^ 2 / 2 < sigma ^ 2 := by nlinarith [sq_pos_of_pos hsigma]
   constructor
   · intro h
-    rw [fInv, if_pos h]
+    rw [fInv, ite_eq_left h]
   constructor
   · intro h1 h2
-    rw [fInv, if_neg (not_lt_of_ge h1), if_pos h2]
+    rw [fInv, ite_eq_right (not_lt_of_ge h1), ite_eq_left h2]
   · intro h1
-    rw [fInv, if_neg (not_lt_of_ge (le_of_lt (lt_of_lt_of_le hhalf h1))), if_neg (not_lt_of_ge h1)]
+    rw [fInv, ite_eq_right (not_lt_of_ge (le_of_lt (lt_of_lt_of_le hhalf h1))), ite_eq_right (not_lt_of_ge h1)]
 
 /-- For nonzero `eps` and `sigma`, the Corollary 6.31 sample expression equals the square of its
 row budget multiplied by `eps ^ 2`. -/

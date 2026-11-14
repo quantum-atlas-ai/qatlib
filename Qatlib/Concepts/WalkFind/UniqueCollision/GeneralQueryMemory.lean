@@ -4,10 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkFind.SearchAlgorithm.NativeSourceDefs
-import Mathlib.Logic.Equiv.Fintype
-import Mathlib.Data.Finset.Sort
-import Mathlib.Data.Nat.Choose.Bounds
+module
+
+public import Qatlib.Concepts.WalkFind.SearchAlgorithm.NativeSourceDefs
+public import Mathlib.Logic.Equiv.Fintype
+public import Mathlib.Data.Finset.Sort
+public import Mathlib.Data.Nat.Choose.Bounds
+
+@[expose] public section
+
+set_option linter.style.haveILetI false
 
 /-!
 # Native query algorithms and compact collision memory
@@ -256,7 +262,7 @@ def interrogationDecode (N M : ℕ) [NeZero M] (z : Reg (N*Nat.clog 2 (M+1))) : 
 theorem interrogationDecode_code (N M : ℕ) [NeZero M] (x : Fin N → ZMod M) :
     interrogationDecode N M (interrogationCode N M x) = x := by
   unfold interrogationDecode
-  rw [dif_pos (show ∃ y, interrogationCode N M y = interrogationCode N M x from ⟨x,rfl⟩)]
+  rw [dite_eq_left (show ∃ y, interrogationCode N M y = interrogationCode N M x from ⟨x,rfl⟩)]
   apply (interrogationCode N M).injective
   exact Classical.choose_spec
       (show ∃ y, interrogationCode N M y = interrogationCode N M x from ⟨x,rfl⟩)
@@ -414,11 +420,11 @@ theorem nativeReadAll_probability (N M k : ℕ) [NeZero M] (hN : 0 < N) (x : Fin
       (Finset.univ.filter (verifiedOutput x)) = if HasCollision k x then 1 else 0 := by
     unfold MeasureProb
     by_cases h : HasCollision k x
-    · rw [if_pos h,Finset.sum_eq_single (nativeVerifiedLabel N M k ⟨0,hN⟩ x)]
+    · rw [ite_eq_left h,Finset.sum_eq_single (nativeVerifiedLabel N M k ⟨0,hN⟩ x)]
       · simp [BornProb,Qatlib.Foundations.PureStateMath.Ket]
       · intro q _ hq; simp [BornProb,Qatlib.Foundations.PureStateMath.Ket,hq]
       · simp [nativeVerifiedLabel_verified,h]
-    · rw [if_neg h]
+    · rw [ite_eq_right h]
       apply Finset.sum_eq_zero
       intro q hq
       have hne : q ≠ nativeVerifiedLabel N M k ⟨0,hN⟩ x := by
@@ -452,7 +458,7 @@ address. -/
 theorem nativeCompactDecode_at {N M r : ℕ} (p : JRState N r) (values : Fin (r+1) → ZMod M) (j : Fin (r+1)) :
     nativeCompactDecode p values (((nativeCompactDomain p).orderIsoOfFin (nativeCompactDomain_card p) j).val) = values j := by
   unfold nativeCompactDecode
-  rw [dif_pos ((nativeCompactDomain p).orderIsoOfFin (nativeCompactDomain_card p) j).property]
+  rw [dite_eq_left ((nativeCompactDomain p).orderIsoOfFin (nativeCompactDomain_card p) j).property]
   congr 1
   exact ((nativeCompactDomain p).orderIsoOfFin (nativeCompactDomain_card p)).symm_apply_apply j
 

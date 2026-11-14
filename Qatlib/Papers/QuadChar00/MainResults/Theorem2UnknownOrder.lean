@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QuadChar00.MainResults.Defs
-import Qatlib.Papers.QuadChar00.MainResults.Lemma1FullAmplitude
+module
+
+public import Qatlib.Papers.QuadChar00.MainResults.Defs
+public import Qatlib.Papers.QuadChar00.MainResults.Lemma1FullAmplitude
+
+@[expose] public section
 
 /-!
 # Fourier support and denominator recovery
@@ -68,7 +72,7 @@ theorem theorem2_unit_fraction_den (n y : ℕ) (hn : 0 < n) (hcop : Nat.Coprime 
   have hdg : (y : ℤ).gcd (n : ℤ) = 1 := by
     rw [Int.gcd_def, Int.natAbs_natCast, Int.natAbs_natCast]
     exact hcop
-  rw [Rat.natCast_div_eq_divInt y n, Rat.den_divInt, if_neg hn0, Int.natAbs_natCast]
+  rw [Rat.natCast_div_eq_divInt y n, Rat.den_divInt, ite_eq_right hn0, Int.natAbs_natCast]
   have hgn : (n : ℤ).gcd (y : ℤ) = 1 := by
     rw [Int.gcd_def, Int.natAbs_natCast, Int.natAbs_natCast, Nat.gcd_comm]
     exact hcop

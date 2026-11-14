@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ElemDistinct00.MainResults.Defs
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Sigma
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Data.Finset.Card
-import Mathlib.Data.Finset.Disjoint
-import Mathlib.Data.Int.Basic
-import Mathlib.Data.Nat.Choose.Basic
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.ElemDistinct00.MainResults.Defs
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Sigma
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Data.Finset.Disjoint
+public import Mathlib.Data.Int.Basic
+public import Mathlib.Data.Nat.Choose.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Fibre counts and collision-sum updates
@@ -107,9 +111,9 @@ theorem card_fibre_update (f : Fin N → Fin N) (x w z : Fin N) :
     intro y hy1
     rw [Finset.mem_erase] at hy1
     by_cases hz : z = w
-    · rw [if_pos hz]
+    · rw [ite_eq_left hz]
       simpa using hy1.1
-    · rw [if_neg hz]
+    · rw [ite_eq_right hz]
       simp
   rw [Finset.card_union_of_disjoint hdisj]
   by_cases hx : x ∈ fibre f z
@@ -119,7 +123,7 @@ theorem card_fibre_update (f : Fin N → Fin N) (x w z : Fin N) :
     have hifcard : (if z = w then ({x} : Finset (Fin N)) else ∅).card
         = (if z = w then 1 else 0) := by
       by_cases hz : z = w <;> simp [hz]
-    have hzz : (if z = z then (1 : ℕ) else 0) = 1 := if_pos rfl
+    have hzz : (if z = z then (1 : ℕ) else 0) = 1 := ite_eq_left rfl
     rw [hifcard, hzz]
     clear hifcard hzz hfz hx hdisj
     omega
@@ -129,7 +133,7 @@ theorem card_fibre_update (f : Fin N → Fin N) (x w z : Fin N) :
         = (if z = w then 1 else 0) := by
       by_cases hz : z = w <;> simp [hz]
     have hzfx : (if z = f x then (1 : ℕ) else 0) = 0 := by
-      rw [if_neg (Ne.symm hfz)]
+      rw [ite_eq_right (Ne.symm hfz)]
     rw [hifcard, hzfx]
     simp
 
@@ -185,7 +189,7 @@ theorem collSum_update_delta (f : Fin N → Fin N) (x w : Fin N) (hw : w ≠ f x
   have hzcard : (fibre (Function.update f x w) (f x)).card
       = (fibre f (f x)).card - 1 := by
     rw [card_fibre_update f x w (f x)]
-    have h1 : (if f x = w then (1 : ℕ) else 0) = 0 := by rw [if_neg (Ne.symm hw)]
+    have h1 : (if f x = w then (1 : ℕ) else 0) = 0 := by rw [ite_eq_right (Ne.symm hw)]
     rw [h1]
     simp
   have hchoose_succ : ((fibre f w).card + 1).choose 2
@@ -220,7 +224,7 @@ theorem collSum_update_delta (f : Fin N → Fin N) (x w : Fin N) (hw : w ≠ f x
       rw [hchoose_pred]
     rw [Nat.cast_add, hsub] at h1
     exact h1
-  try dsimp only
+
   rw [hsucc', hpred']
   ring
 

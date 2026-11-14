@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.WalkAlgorithms.Theorem5Quan
+module
+
+public import Qatlib.Concepts.WalkSearch.WalkAlgorithms.Theorem5Quan
+
+@[expose] public section
 
 /-!
 # Verified collision and subgraph reductions
@@ -58,7 +62,7 @@ theorem gcAlg_complete {n : ℕ} (G : OGraph n) (f : Fin n → Bool)
     haveI := kcs.seedFin
     (Finset.univ.filter fun ρ : kcs.seed => (gcAlg G f kcs r ρ).1=none).card*
       (n+1)^kcs.cExp≤Fintype.card kcs.seed := by
-  haveI := kcs.seedFin
+  have := kcs.seedFin
   simpa only [gcAlg_none_iff] using kcs.finds r (gcRel G f) r 1 0 hex
 
 /-- The subgraph algorithm returns `none` exactly when its initial collision-solver call returns
@@ -95,7 +99,7 @@ theorem hAlg_complete {n k : ℕ} (adj : Fin n → Fin n → Bool) (H : OGraph k
     haveI := kcs.seedFin
     (Finset.univ.filter fun ρ : kcs.seed => (hAlg adj H hv kcs r qH (fun _ => ρ)).1=none).card*
       (n+1)^kcs.cExp≤Fintype.card kcs.seed := by
-  haveI := kcs.seedFin
+  have := kcs.seedFin
   simpa only [hAlg_none_iff] using kcs.finds r (hCandRel adj H hv) (r*r) r qH hex
 
 /-- A successful subgraph output implies the existence of an injective map preserving every edge

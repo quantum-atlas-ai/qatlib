@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.Theorem1ActualProgramCorrectedHarr
-import Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.SectionIIAmplifiedRuntimeCorrectedHarr
-import Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.SignedQuantizationAuxiliary
-import Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.SinEnvelopeProgramDefinitions
-import Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.SinEnvelopeAmplifiedDefinitions
-import Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.HamiltonianInputModels
-import Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.LinearSystemCostDefs
-import Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.QlsHhl
-import Qatlib.Concepts.LocalMachine.LocalTransport.LeastSquaresOutputSpec
+module
+
+public import Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.Theorem1ActualProgramCorrectedHarr
+public import Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.SectionIIAmplifiedRuntimeCorrectedHarr
+public import Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.SignedQuantizationAuxiliary
+public import Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.SinEnvelopeProgramDefinitions
+public import Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.SinEnvelopeAmplifiedDefinitions
+public import Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.HamiltonianInputModels
+public import Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.LinearSystemCostDefs
+public import Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.QlsHhl
+public import Qatlib.Concepts.LocalMachine.LocalTransport.LeastSquaresOutputSpec
+
+@[expose] public section
 
 /-!
 # Explicit HHL resource and preparation data
@@ -150,7 +154,7 @@ noncomputable def halfGridSymmetrized (M : ℕ) : QState (Fin M) :=
   fun τ => (halfGridChirp M τ + halfGridChirp M (halfGridMirrorIndex M τ)) / 2
 
 /-- The preparation gate-count model `3 * M`. -/
-def prepGateCount (M k : ℕ) : ℕ := 3 * M
+def prepGateCount (M _k : ℕ) : ℕ := 3 * M
 
 /-- The preparation workspace model `M`. -/
 def prepWorkspace (M : ℕ) : ℕ := M

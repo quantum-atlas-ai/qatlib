@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QMechSim97.MainResults.ActualCollision
-import Qatlib.Papers.QMechSim97.MainResults.QLGAContinuum
-import Mathlib.LinearAlgebra.UnitaryGroup
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.QMechSim97.MainResults.ActualCollision
+public import Qatlib.Papers.QMechSim97.MainResults.QLGAContinuum
+public import Mathlib.LinearAlgebra.UnitaryGroup
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Diagonal collision modes and occupation exchange

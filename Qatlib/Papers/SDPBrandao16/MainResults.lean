@@ -4,12 +4,22 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixWeights.ApproxGibbs
-import Qatlib.Concepts.SdpMmwSolver.OracleError.SdpStep2SampledOracle
-import Qatlib.Concepts.SdpMmwSolver.SdpContract.SdpWidthSlackPayoffRangeQuan
-import Qatlib.Concepts.SdpMmwSolver.SdpContract.SdpConvexCombinationSamplingQuan
-import Qatlib.Concepts.SdpMmwSolver.OracleError.SdpAlphaRescaleLemma2Quan
-import Qatlib.Concepts.SdpDuality.ConeSeparation.SharedMatrixOptimization
+module
+
+public import Qatlib.Concepts.MatrixWeights.ApproxGibbs
+public import Qatlib.Concepts.SdpMmwSolver.OracleError.SdpStep2SampledOracle
+public import Qatlib.Concepts.SdpMmwSolver.SdpContract.SdpWidthSlackPayoffRangeQuan
+public import Qatlib.Concepts.SdpMmwSolver.SdpContract.SdpConvexCombinationSamplingQuan
+public import Qatlib.Concepts.SdpMmwSolver.OracleError.SdpAlphaRescaleLemma2Quan
+public import Qatlib.Concepts.SdpDuality.ConeSeparation.SharedMatrixOptimization
+
+@[expose] public section
+set_option linter.unusedVariables false
+set_option linter.unusedSimpArgs false
+set_option linter.unusedTactic false
+set_option linter.style.haveILetI false
+set_option linter.unreachableTactic false
+set_option linter.unnecessarySeqFocus false
 
 /-!
 # Search decisions, sampling, and resource accounts for semidefinite programming
@@ -149,8 +159,7 @@ theorem clause21_no_output_universal {D m γ Nmax M L Q : ℕ}
     ∀ z : Fin m → ℝ, (∀ i, 0 ≤ z i) →
       eq75Threshold Cv ρ α ε ≤ ∑ i, z i * (Matrix.trace (A i * ρ)).re →
       ¬ (∑ i, z i * b i < Qatlib.Concepts.SdpDuality.ConeSeparation.noCheapWidth α R ε) := by
-  intro z hz hsep
-  intro hcheap
+  intro z hz hsep hcheap
   obtain ⟨k, N, hacc⟩ := hsel z hz hsep hcheap
   exact (step2NoOutput_iff S b α R κ ν).mp hno k N hacc
 
@@ -555,9 +564,9 @@ theorem clause30_dual_mixture_identity {m T : ℕ} (j₀ : Fin m) (a : ℝ) (μ 
   rw [hsum2]
   rw [hsum1]
   by_cases hi : i = j₀
-  · simp only [hi, if_true]
+  · simp only [hi, ite_true]
     field_simp [hscne, hTne] <;> ring
-  · simp only [hi, if_false]
+  · simp only [hi, ite_false]
     field_simp [hscne, hTne] <;> ring
 
 /-- A dyadic list representation of the dual mixture weights and exact component trees yield an

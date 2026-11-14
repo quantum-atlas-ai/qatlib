@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.UniformBqp.Phi3Compile.StandardMachine
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.NativeStandardDefs
-import Qatlib.Concepts.UniformBqp.Phi3Compile.NativeModelFixedGate
-import Qatlib.Concepts.UniformBqp.Phi3Compile.NativeModelFixedGateDefs
-import Qatlib.Concepts.UniformBqp.Phi3Compile.StandardModelDefs
-import Qatlib.Concepts.UniformBqp.Phi3Compile.StandardDefs
+module
+
+public import Qatlib.Concepts.UniformBqp.Phi3Compile.StandardMachine
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.NativeStandardDefs
+public import Qatlib.Concepts.UniformBqp.Phi3Compile.NativeModelFixedGate
+public import Qatlib.Concepts.UniformBqp.Phi3Compile.NativeModelFixedGateDefs
+public import Qatlib.Concepts.UniformBqp.Phi3Compile.StandardModelDefs
+public import Qatlib.Concepts.UniformBqp.Phi3Compile.StandardDefs
+
+@[expose] public section
 
 /-!
 # Local quantum Turing machine simulation data
@@ -406,7 +410,7 @@ theorem allCellSuccCfg_tape_at {n k w : ℕ} (hn : 0 < n)
     (allCellSuccCfg hn src a b h').tape src.head = b := by
   have h : (allCellSuccCfg hn src a b h').tape src.head
       = (if src.head = src.head then b else src.tape src.head) := rfl
-  rw [h, if_pos rfl]
+  rw [h, ite_eq_left rfl]
 
 /-- The successor tape writes `b` at the source head and preserves every other cell. -/
 theorem allCellSuccCfg_tape {n k w : ℕ} (hn : 0 < n)
@@ -436,7 +440,7 @@ theorem allCellServeCfg_tape_at {n k w : ℕ} (base : WindowCfg w (AllCellState 
     (allCellServeCfg base h i j b).tape (allCellServeCfg base h i j b).head = b := by
   rw [allCellServeCfg_head]
   rw [show (allCellServeCfg base h i j b).tape h
-      = (if h = h then b else base.tape h) from rfl, if_pos rfl]
+      = (if h = h then b else base.tape h) from rfl, ite_eq_left rfl]
 
 /-- The start configuration's tape is the base tape, expressed as an update by its existing head
 symbol. -/
@@ -458,7 +462,7 @@ theorem allCellStartCfg_tape_at {n k w : ℕ} (base : WindowCfg w (AllCellState 
   rw [allCellStartCfg_head]
   rw [show (allCellStartCfg base).tape base.head
       = (if base.head = base.head then base.tape base.head else base.tape base.head) from rfl,
-    if_pos rfl]
+    ite_eq_left rfl]
 
 /-- The first step configuration serves cell zero at layer zero. -/
 theorem allCellStartStepCfg_state {n k w : ℕ} (hn : 0 < n)
@@ -520,9 +524,9 @@ theorem allCellSuccCfg_serve_tape {n k w : ℕ} (hn : 0 < n)
           else (allCellServeCfg base h i j a).tape m) := allCellSuccCfg_tape hn _ _ _ _ m
   rw [h1, hh]
   by_cases hm : m = h
-  · simp only [if_pos hm]
-  · simp only [if_neg hm]
-    rw [allCellServeCfg_tape base h i j a m, if_neg hm]
+  · simp only [ite_eq_left hm]
+  · simp only [ite_eq_right hm]
+    rw [allCellServeCfg_tape base h i j a m, ite_eq_right hm]
 
 /-- A successor of the start configuration that rewrites the existing head symbol preserves the
 base tape. -/
@@ -538,10 +542,10 @@ theorem allCellSuccCfg_start_tape {n k w : ℕ} (hn : 0 < n)
           else (allCellStartCfg base).tape m) := allCellSuccCfg_tape hn _ _ _ _ m
   rw [h1, hh]
   by_cases hm : m = base.head
-  · simp only [if_pos hm]
+  · simp only [ite_eq_left hm]
     rw [hm]
-  · simp only [if_neg hm]
-    rw [allCellStartCfg_tape base m, if_neg hm]
+  · simp only [ite_eq_right hm]
+    rw [allCellStartCfg_tape base m, ite_eq_right hm]
 
 /-- A successor that rewrites a serving configuration's existing head symbol preserves the base
 tape. -/
@@ -560,10 +564,10 @@ theorem allCellSuccCfg_advance_tape {n k w : ℕ} (hn : 0 < n)
     allCellSuccCfg_tape hn _ _ _ _ m
   rw [h1, hh]
   by_cases hm : m = h
-  · simp only [if_pos hm]
+  · simp only [ite_eq_left hm]
     rw [hm]
-  · simp only [if_neg hm]
-    rw [allCellServeCfg_tape base h i j (base.tape h) m, if_neg hm]
+  · simp only [ite_eq_right hm]
+    rw [allCellServeCfg_tape base h i j (base.tape h) m, ite_eq_right hm]
 
 /-- The window position `w + 1 + i` corresponding to input cell `i`. -/
 def allCellTourPos {n w : ℕ} (i : ℕ) (hi : i < n) (hw : n ≤ w) : Fin (2 * w + 1) :=
@@ -587,7 +591,7 @@ theorem allCellTourTape_of_in {n k w : ℕ} (base : WindowCfg w (AllCellState n 
     allCellTourTape base i f m = f ⟨m.val - w - 1, by omega⟩ := by
   have h : w + 1 ≤ m.val ∧ m.val ≤ w + i := ⟨h1, h2⟩
   simp only [allCellTourTape]
-  rw [dif_pos h]
+  rw [dite_eq_left h]
 
 /-- Outside the processed prefix, the tour tape agrees with the base tape. -/
 theorem allCellTourTape_of_lt {n k w : ℕ} (base : WindowCfg w (AllCellState n k) Bool)
@@ -595,7 +599,7 @@ theorem allCellTourTape_of_lt {n k w : ℕ} (base : WindowCfg w (AllCellState n 
     (h : ¬ (w + 1 ≤ m.val ∧ m.val ≤ w + i)) :
     allCellTourTape base i f m = base.tape m := by
   simp only [allCellTourTape]
-  rw [dif_neg h]
+  rw [dite_eq_right h]
 
 /-- Extending the processed prefix by `a` changes only position `w + 1 + i`. -/
 theorem allCellTourTape_extend {n k w : ℕ} (base : WindowCfg w (AllCellState n k) Bool)
@@ -608,7 +612,7 @@ theorem allCellTourTape_extend {n k w : ℕ} (base : WindowCfg w (AllCellState n
     have h2 : m.val ≤ w + (i + 1) := by omega
     have h3 : m.val - w - 1 ≠ i := by omega
     rw [allCellTourTape_of_in base (i + 1) (Fin.extendLast f a) m h1 h2]
-    rw [if_neg hne]
+    rw [ite_eq_right hne]
     rw [allCellTourTape_of_in base i f m (by omega) (by omega)]
     simp [Fin.extendLast, h3]
   · by_cases heq : m.val = w + 1 + i
@@ -616,11 +620,11 @@ theorem allCellTourTape_extend {n k w : ℕ} (base : WindowCfg w (AllCellState n
       have h2 : m.val ≤ w + (i + 1) := by omega
       have hsub : m.val - w - 1 = i := by omega
       rw [allCellTourTape_of_in base (i + 1) (Fin.extendLast f a) m h1 h2]
-      rw [if_pos heq]
+      rw [ite_eq_left heq]
       simp [Fin.extendLast, hsub]
     · have h1 : ¬ (w + 1 ≤ m.val ∧ m.val ≤ w + (i + 1)) := by omega
       rw [allCellTourTape_of_lt base (i + 1) (Fin.extendLast f a) m h1]
-      rw [if_neg heq]
+      rw [ite_eq_right heq]
       rw [allCellTourTape_of_lt base i f m hin]
 
 /-- Construct a serving configuration at cell `i`, retaining the processed prefix and setting
@@ -655,7 +659,7 @@ theorem allCellTourCfg_tape_at {n k w : ℕ} (base : WindowCfg w (AllCellState n
     (allCellTourCfg base i hi hw j f b).tape (allCellTourCfg base i hi hw j f b).head = b := by
   rw [allCellTourCfg_head]
   rw [allCellTourCfg_tape]
-  rw [if_pos rfl]
+  rw [ite_eq_left rfl]
 
 /-- Layer zero as an element of `Fin (k + 1)`. -/
 def allCellTourLayer0 (k : ℕ) : Fin (k + 1) := ⟨0, by omega⟩
@@ -831,25 +835,25 @@ def compositeCellCircuit {n k : ℕ} (V : Fin n → Fin k → Matrix Bool Bool �
   (List.finRange n).flatMap (cellGateList V)
 
 /-- Encode a fixed-gate operation as a Boolean list using gate tags and binary wire indices. -/
-def dLambdaOpEnc {n : ℕ} : DLambdaOp n → List Bool
+def dLambdaOpEnc {n : ℕ} : StandardMachine.DLambdaOp n → List Bool
   | .hGate i => false :: false :: i.val.bits
   | .tGate i => false :: true :: i.val.bits
   | .tGateAdj i => false :: true :: false :: i.val.bits
   | .cnot i j => true :: (i.val.bits ++ [false] ++ j.val.bits)
 
 /-- Encode a list of fixed-gate operations by concatenating their individual encodings. -/
-def dLambdaOpsEnc {n : ℕ} (ops : List (DLambdaOp n)) : List Bool :=
+def dLambdaOpsEnc {n : ℕ} (ops : List (StandardMachine.DLambdaOp n)) : List Bool :=
   ops.flatMap dLambdaOpEnc
 
 /-- Prefix the operation-list encoding by its unary length and a false delimiter. -/
-def dLambdaOpsEnc' {n : ℕ} (ops : List (DLambdaOp n)) : List Bool :=
+def dLambdaOpsEnc' {n : ℕ} (ops : List (StandardMachine.DLambdaOp n)) : List Bool :=
   (List.replicate ops.length true ++ [false]) ++ dLambdaOpsEnc ops
 
 /-- The existence of one polynomial-time bit-tape machine that emits the size of each encoded
 fixed-gate circuit. -/
 def DLambdaBitTMUniformity : Prop :=
   ∃ (q c d : ℕ) (emitter : Turing.TM0.Machine (Option Bool) (Fin (q + 1))),
-    ∀ (n : ℕ) (ops : List (DLambdaOp n)),
+    ∀ (n : ℕ) (ops : List (StandardMachine.DLambdaOp n)),
       TM0EmitsPoly emitter c d (n.bits ++ [false] ++ dLambdaOpsEnc' ops)
         ((Size (dLambdaCircuit ops)).bits ++ [false])
 

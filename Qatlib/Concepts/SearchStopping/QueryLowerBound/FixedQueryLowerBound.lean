@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SearchStopping.QueryLowerBound.Lemma6Tigh
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Algebra.Order.Floor.Ring
+module
+
+public import Qatlib.Concepts.SearchStopping.QueryLowerBound.Lemma6
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Algebra.Order.Floor.Ring
+
+@[expose] public section
 
 /-!
 # Fixed-query quantum search lower bounds

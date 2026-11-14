@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OrderedInsert99.MainResults.InvariantDefs
-import Qatlib.Papers.OrderedInsert99.MainResults.PolynomialEquivalence
+module
+
+public import Qatlib.Papers.OrderedInsert99.MainResults.InvariantDefs
+public import Qatlib.Papers.OrderedInsert99.MainResults.PolynomialEquivalence
+
+@[expose] public section
 
 /-!
 # Laurent sequence conditions for ordered insertion

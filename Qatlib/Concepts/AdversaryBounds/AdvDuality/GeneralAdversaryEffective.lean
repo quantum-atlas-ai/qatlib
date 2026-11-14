@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryEffectiveDefs
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryEffectiveDefs
+
+@[expose] public section
 
 /-!
 # Effective adversary bounds with loss and truncation
@@ -147,12 +151,12 @@ private theorem instrumentEventMass_mono {d : ℕ} (O : Operator d) (P : Instrum
   intro t ht
   by_cases h1 : E₁ t.accepted t.outcomes = true
   · have h2 : E₂ t.accepted t.outcomes = true := h t ht h1
-    simp only [if_pos h1, if_pos h2]
+    simp only [ite_eq_left h1, ite_eq_left h2]
     exact le_rfl
   · by_cases h2 : E₂ t.accepted t.outcomes = true
-    · simp only [if_neg h1, if_pos h2]
+    · simp only [ite_eq_right h1, ite_eq_left h2]
       exact hm t ht
-    · simp only [if_neg h1, if_neg h2]
+    · simp only [ite_eq_right h1, ite_eq_right h2]
       exact le_rfl
 
 /-- Summing a function over a flattened list equals the sum of its sums over the constituent
@@ -193,7 +197,7 @@ private theorem instrument_gate_mass {d : ℕ} (O : Operator d) (G : Operator d)
     intro t
     simp [mixedMass]
   simp only [instrumentCircuitEventMass, instrumentCircuitMixedTraces, List.map_map,
-    Function.comp_def, if_true]
+    Function.comp_def, ite_true]
   rw [show (fun t : MixedBranchTrace d => mixedMass {t with gates := t.gates + 1}) = mixedMass
     from funext hmass]
 
@@ -208,7 +212,7 @@ private theorem instrument_query_mass {d : ℕ} (O : Operator d) (P : Instrument
     intro t
     simp [mixedMass]
   simp only [instrumentCircuitEventMass, instrumentCircuitMixedTraces, List.map_map,
-    Function.comp_def, if_true]
+    Function.comp_def, ite_true]
   rw [show (fun t : MixedBranchTrace d => mixedMass {t with queries := t.queries + 1}) = mixedMass
     from funext hmass]
 
@@ -222,7 +226,7 @@ private theorem instrument_instrument_mass {d s : ℕ} (O : Operator d) (I : Ins
   have hmass : ∀ (o : Fin s) (t : MixedBranchTrace d), mixedMass {t with gates := t.gates + 2, measurements := t.measurements + 1, outcomes := (s, o.val) :: t.outcomes} = mixedMass t := by
     intro o t
     simp [mixedMass]
-  simp only [instrumentCircuitEventMass, instrumentCircuitMixedTraces, if_true]
+  simp only [instrumentCircuitEventMass, instrumentCircuitMixedTraces, ite_true]
   have h1 : (List.map (fun t => mixedMass t) (List.ofFn fun o : Fin s => (instrumentCircuitMixedTraces O (next o) (I.branch o rho)).map fun t => {t with gates := t.gates + 2, measurements := t.measurements + 1, outcomes := (s, o.val) :: t.outcomes}).flatten).sum = ∑ o : Fin s, (((instrumentCircuitMixedTraces O (next o) (I.branch o rho)).map fun t => {t with gates := t.gates + 2, measurements := t.measurements + 1, outcomes := (s, o.val) :: t.outcomes}).map (fun t => mixedMass t)).sum :=
     instrument_ofFn_flatten_mass _ _
   rw [h1]
@@ -330,7 +334,7 @@ theorem instrument_lossTag_loss_queries_le_expected {d : ℕ} {Y : Type} (O : Op
   apply List.sum_le_sum
   intro t ht
   by_cases h : instrumentLossTagLossEvent decode t.accepted t.outcomes
-  · simp only [h, if_true]
+  · simp only [h, ite_true]
     exact le_rfl
   · simp only [h]
     exact mul_nonneg (hm t ht) (Nat.cast_nonneg _)
@@ -417,7 +421,7 @@ theorem lossTag_loss_queries_le_expected {I Y : Type} [Fintype I] [DecidableEq I
         ≤ branchMass t.state * (t.queries : ℝ) := by
     intro t
     by_cases h : lossTagLossEvent decode t
-    · simp only [h, if_true]
+    · simp only [h, ite_true]
       exact le_rfl
     · simp only [h]
       exact mul_nonneg (branchMass_nonneg t.state) (Nat.cast_nonneg _)
@@ -490,7 +494,7 @@ theorem gen_witness_le_filteredGamma2 {X E : Type} [Fintype X] [DecidableEq X]
 /-- If the maximum adversary filter norm is zero, every adversary filter matrix is zero. -/
 theorem gen_degenerate_filter {X E : Type} [Fintype X] [DecidableEq X]
     [Fintype E] [DecidableEq E] {n : ℕ} {A : Type} [Fintype A] [DecidableEq A]
-    (input : X → Fin n → A) (f : X → E) (Γ : Matrix X X ℂ)
+    (input : X → Fin n → A) (_f : X → E) (Γ : Matrix X X ℂ)
     (hm : maxFilterNorm input Γ = 0) :
     ∀ j, genAdvFilter input Γ j = 0 := by
   intro j
@@ -713,7 +717,7 @@ theorem certifiedCutCost_le_of_separating {X κ A : Type} [Fintype X] [Decidable
   have hj : j ∈ separatingCoords input x y :=
     Finset.mem_filter.mpr ⟨Finset.mem_univ _, hsep⟩
   unfold certifiedCutCost
-  rw [dif_pos ⟨j, hj⟩]
+  rw [dite_eq_left ⟨j, hj⟩]
   exact Finset.inf'_le _ hj
 
 /-- If a separating coordinate exists, some separating coordinate attains the certified cut cost
@@ -729,7 +733,7 @@ theorem certifiedCutCost_attained {X κ A : Type} [Fintype X] [DecidableEq X]
     (s := separatingCoords input x y) hne (fun j : κ => (β j).toReal)
   refine ⟨j', Finset.mem_filter.mp hj'mem |>.2, ?_⟩
   unfold certifiedCutCost
-  rw [dif_pos hne]
+  rw [dite_eq_left hne]
   exact hjval.symm
 
 /-- If the output function takes two different values, a pair with different outputs attains the
@@ -746,7 +750,7 @@ theorem effectiveCertifiedValue_attained {X E κ A : Type} [Fintype X] [Decidabl
     (fun p : X × X => certifiedCutCost input β p.1 p.2)
   refine ⟨p.1, p.2, (Finset.mem_filter.mp hp).2, ?_⟩
   unfold effectiveCertifiedValue
-  rw [dif_pos hne]
+  rw [dite_eq_left hne]
   exact hpval.symm
 
 /-- Every pair with different outputs has certified cut cost at most the effective certified
@@ -758,7 +762,7 @@ theorem effectiveCertifiedValue_ge_of_pair {X E κ A : Type} [Fintype X] [Decida
   have hmem : (x, y) ∈ crossOutputPairs g := Finset.mem_filter.mpr ⟨Finset.mem_univ _, hgy⟩
   have hne : (crossOutputPairs g).Nonempty := ⟨(x, y), hmem⟩
   unfold effectiveCertifiedValue
-  rw [dif_pos hne]
+  rw [dite_eq_left hne]
   exact Finset.le_sup' (fun p : X × X => certifiedCutCost input β p.1 p.2) hmem
 
 /-- A separated pair with different outputs provides a separating coordinate with cost at least

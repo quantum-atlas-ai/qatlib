@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GWSpeedupYuan25.MainResults.Definitions
+module
+
+public import Qatlib.Papers.GWSpeedupYuan25.MainResults.Definitions
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -80,13 +84,12 @@ private theorem chi_sum (n : ℕ) (s : Reg n) :
                 (if false = true ∧ b = true then (-1 : ℂ) else 1)) = 2
             rw [Fintype.univ_bool]
             simp
-            try ring
-          rw [if_pos rfl, Finset.prod_congr rfl (fun i _ => hfac i), Finset.prod_const,
+          rw [ite_eq_left rfl, Finset.prod_congr rfl (fun i _ => hfac i), Finset.prod_const,
             Finset.card_univ, Fintype.card_fin]
         · obtain ⟨i₀, hi₀⟩ : ∃ i₀ : Fin n, s i₀ = true := by
-            by_contra hcon; push_neg at hcon
+            by_contra hcon; push Not at hcon
             exact hs (funext fun i => Bool.eq_false_iff.mpr (hcon i))
-          rw [Finset.prod_eq_zero (Finset.mem_univ i₀) (by simp [hi₀]; try ring)]
+          rw [Finset.prod_eq_zero (Finset.mem_univ i₀) (by simp [hi₀])]
           simp [hs]
 
 /-- Dual orthogonality of the characters: summing the pointwise product
@@ -122,15 +125,16 @@ private theorem chi_dual (n : ℕ) (x y : Reg n) :
                 (if b = true ∧ x i = true then (-1 : ℂ) else 1)) = 2 := by
             intro i
             rw [Fintype.univ_bool]
-            cases hx : x i <;> simp [hx] <;> try ring
-          rw [if_pos rfl, Finset.prod_congr rfl (fun i _ => hfac i), Finset.prod_const,
+            cases hx : x i <;> simp
+            norm_num
+          rw [ite_eq_left rfl, Finset.prod_congr rfl (fun i _ => hfac i), Finset.prod_const,
             Finset.card_univ, Fintype.card_fin]
         · obtain ⟨i₀, hi₀⟩ : ∃ i₀ : Fin n, x i₀ ≠ y i₀ := by
-            by_contra hcon; push_neg at hcon; exact hxy (funext hcon)
+            by_contra hcon; push Not at hcon; exact hxy (funext hcon)
           rw [Finset.prod_eq_zero (Finset.mem_univ i₀) ?_]
           · simp [hxy]
           · revert hi₀
-            cases hx : x i₀ <;> cases hy : y i₀ <;> simp <;> try ring
+            cases hx : x i₀ <;> cases hy : y i₀ <;> simp
 
 /-- The diagonal trace identity `tr[Z_A ρ] = ∑_x z_A(x) ρ_xx`. -/
 private theorem zMat_trace (n : ℕ) (A : Finset (Fin n))
@@ -143,7 +147,7 @@ private theorem zMat_trace (n : ℕ) (A : Finset (Fin n))
 constant diagonal `2^{-n}` forces all traceless constraints `tr[Z_A ρ] = 0`
 (`A ≠ ∅`). -/
 theorem lemma10_diagonal_implies_traces (n : ℕ) (ρ : Matrix (Reg n) (Reg n) ℂ)
-    (hρ : IsDensity ρ)
+    (_hρ : IsDensity ρ)
     (hdiag : ∀ x : Reg n, ρ x x = ((2 : ℂ) ^ n)⁻¹) :
     ∀ A : Finset (Fin n), A ≠ ∅ → (ZMat n A * ρ).trace = 0 := by
   intro A hA
@@ -151,7 +155,7 @@ theorem lemma10_diagonal_implies_traces (n : ℕ) (ρ : Matrix (Reg n) (Reg n) �
     have h2 : ∑ x : Reg n, zSign n A x
         = ∑ x : Reg n, chi n (fun i => decide (i ∈ A)) x :=
       Finset.sum_congr rfl fun x _ => (chi_eq_zSign n A x).symm
-    rw [h2, chi_sum n (fun i => decide (i ∈ A)), if_neg ?_]
+    rw [h2, chi_sum n (fun i => decide (i ∈ A)), ite_eq_right ?_]
     intro hc
     refine hA (Finset.ext fun i => ?_)
     have := congrFun hc i
@@ -181,7 +185,7 @@ theorem lemma10_traces_implies_diagonal (n : ℕ) (ρ : Matrix (Reg n) (Reg n) �
       rw [Finset.sum_congr rfl (fun y _ => by rw [hchi0 y, one_mul])]
       simpa [Matrix.trace, Matrix.diag] using hρ.2
     · obtain ⟨i, hi⟩ : ∃ i : Fin n, s i = true := by
-        by_contra hcon; push_neg at hcon
+        by_contra hcon; push Not at hcon
         exact hs (funext fun i => Bool.eq_false_iff.mpr (hcon i))
       have hAmem : i ∈ Finset.univ.filter (fun i => s i = true) :=
         Finset.mem_filter.mpr ⟨Finset.mem_univ i, hi⟩
@@ -195,7 +199,7 @@ theorem lemma10_traces_implies_diagonal (n : ℕ) (ρ : Matrix (Reg n) (Reg n) �
         by_cases hsi : s i = true
         · simp [hsi, Finset.mem_filter]
         · simp [hsi, Finset.mem_filter]
-      rw [if_neg hs, ← h1]
+      rw [ite_eq_right hs, ← h1]
       refine Finset.sum_congr rfl fun y _ => ?_
       have h2 := chi_eq_zSign n (Finset.univ.filter (fun i => s i = true)) y
       conv_lhs => rw [hsA]

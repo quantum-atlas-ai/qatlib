@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Public
+module
+
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Public
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -56,7 +60,7 @@ open Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays
 open Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Gaussian
 
 /-- Typeclass instance for coordinate Decidable in the verifier model. -/
-private instance coordinateDecidable (n : ℕ) (v w : GaussianIntegerFraction) (r : ℚ) :
+instance coordinateDecidable (n : ℕ) (v w : GaussianIntegerFraction) (r : ℚ) :
     Decidable (rootIntegerCoordinateBound n v w r) := by
   unfold rootIntegerCoordinateBound
   infer_instance
@@ -158,7 +162,7 @@ theorem previous_check_of_guards (f : RootIntegerFactorData) (eta : ℚ)
   have hki : k < i.val := by rw [List.length_take] at hk; omega
   have hjk : j.val=k := by
     have hh := congrArg Fin.val he
-    simpa only [List.getElem_take,List.getElem_finRange, Fin.coe_cast] using hh.symm
+    simpa only [List.getElem_take,List.getElem_finRange, Fin.val_cast] using hh.symm
   apply decide_eq_true
   exact h.separation i j (fun h => by have hv := congrArg Fin.val h; omega)
 
@@ -322,7 +326,7 @@ theorem prior_member (n : ℕ) (i j : Fin n) (hji : j.val < i.val) :
   · rw [List.length_take,List.length_finRange]
     omega
   · apply Fin.ext
-    simp only [List.getElem_take,List.getElem_finRange, Fin.coe_cast]
+    simp only [List.getElem_take,List.getElem_finRange, Fin.val_cast]
 
 /-- The finite construction in `raw polynomial certificate checker` satisfies `separation_of_checks` under the displayed hypotheses. -/
 theorem separation_of_checks (f : RootIntegerFactorData)

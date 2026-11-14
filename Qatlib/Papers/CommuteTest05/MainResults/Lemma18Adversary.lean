@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Algebra.Order.Ring.Unbundled.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Data.Real.Sqrt
+module
+
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Algebra.Order.Ring.Unbundled.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.Real.Sqrt
+
+@[expose] public section
 
 /-!
 # A one-query adversary increment estimate
@@ -39,7 +43,7 @@ theorem lemma18_increment_bound
     {ι X Y : Type*} (R : Finset (X × Y)) (d : X × Y → ι)
     (a : X → ι → ℝ) (b : Y → ι → ℝ) {m m' : ℝ}
     (hm : 0 < m) (hm' : 0 < m')
-    (hnn : ∀ p ∈ R, 0 ≤ a p.1 (d p) ∧ 0 ≤ b p.2 (d p))
+    (_hnn : ∀ p ∈ R, 0 ≤ a p.1 (d p) ∧ 0 ≤ b p.2 (d p))
     (hmassX : ∑ p ∈ R, a p.1 (d p) ^ 2 ≤ (R.card : ℝ) / m)
     (hmassY : ∑ p ∈ R, b p.2 (d p) ^ 2 ≤ (R.card : ℝ) / m') :
     2 * (∑ p ∈ R, a p.1 (d p) * b p.2 (d p)) ≤

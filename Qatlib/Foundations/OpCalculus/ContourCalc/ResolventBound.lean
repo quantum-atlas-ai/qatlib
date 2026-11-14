@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.OpCalculus.ContourCalc.NumericalRange
-import Mathlib.Analysis.Normed.Module.FiniteDimension
-import Mathlib.Tactic.Linarith
+module
+
+public import Qatlib.Foundations.OpCalculus.ContourCalc.NumericalRange
+public import Mathlib.Analysis.Normed.Module.FiniteDimension
+public import Mathlib.Tactic.Linarith
+
+@[expose] public section
 open Qatlib.Foundations.OpCalculus.ContourCalc
 
 /-!

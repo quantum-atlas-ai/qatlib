@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QuadHamilton24.MainResults.QuadHamiltonModel
+module
+
+public import Qatlib.Papers.QuadHamilton24.MainResults.QuadHamiltonModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -44,8 +48,8 @@ theorem lemma10Eps_nonneg (ε1 yNorm uNorm : ℝ) (hε1 : 0 ≤ ε1)
 /-- **Lemma 10, (5.29) ⇒ (5.24).**  From the derived bound
 `δ ≤ ε₁(1 + 1/‖y‖ + 1/‖u‖)` and the triangle split factor `2` of (5.32), the solution
 error satisfies `e ≤ ε` with `ε = lemma10Eps ε₁ ‖y‖ ‖u‖`. -/
-theorem lemma10_error_le_eps (ε1 δ e yNorm uNorm : ℝ) (hε1 : 0 ≤ ε1)
-    (hy : 0 < yNorm) (hu : 0 < uNorm)
+theorem lemma10_error_le_eps (ε1 δ e yNorm uNorm : ℝ) (_hε1 : 0 ≤ ε1)
+    (_hy : 0 < yNorm) (_hu : 0 < uNorm)
     (hδ : δ ≤ ε1 * (1 + 1 / yNorm + 1 / uNorm))
     (he : e ≤ 2 * δ) :
     e ≤ lemma10Eps ε1 yNorm uNorm := by
@@ -59,8 +63,8 @@ Scope note: the vector, projection, matrix-inverse, and normalised-state stabili
 estimates in (5.25)–(5.34) require a concrete block-vector model; this theorem
 records the resulting scalar implication once those estimates are available. -/
 theorem lemma10_relative_error (ε1 xNorm xhatNorm yErr yNorm uNorm : ℝ)
-    (hε1 : 0 ≤ ε1) (hy : 0 < yNorm) (hu : 0 < uNorm)
-    (hx : |xNorm - xhatNorm| ≤ ε1 * xNorm)
+    (_hε1 : 0 ≤ ε1) (_hy : 0 < yNorm) (_hu : 0 < uNorm)
+    (_hx : |xNorm - xhatNorm| ≤ ε1 * xNorm)
     (hxy : yErr ≤ 2 * ε1 * (1 + 1 / yNorm + 1 / uNorm)) :
     yErr ≤ lemma10Eps ε1 yNorm uNorm := by
   unfold lemma10Eps

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
+module
+
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
+
+@[expose] public section
 
 /-!
 # Sparse matrix encodings from overlap frames
@@ -112,7 +116,7 @@ private theorem sparse_left_isometry {I O : Type} [Fintype I] [Fintype O]
   · subst p
     simp only [apply_ite star, star_zero, ite_mul, zero_mul, mul_ite, mul_zero,
       ← ite_and, and_self, Finset.sum_ite_irrel, Finset.sum_ite_eq', Finset.mem_univ,
-      if_true, Finset.sum_const_zero,
+      ite_true, Finset.sum_const_zero,
       add_zero, Matrix.one_apply_eq]
     have hr : 0 ≤ 1 - (∑ i, ‖A o i‖) / s := by
       have := (div_le_one hs).mpr (hrow o)
@@ -136,7 +140,7 @@ private theorem sparse_right_isometry {I O : Type} [Fintype I] [Fintype O]
   by_cases h : i = j
   · subst j
     simp only [apply_ite star, star_zero, ite_mul, zero_mul, mul_ite, mul_zero,
-      ← ite_and, and_self, Finset.sum_ite_eq', Finset.mem_univ, if_true, Finset.sum_const_zero,
+      ← ite_and, and_self, Finset.sum_ite_eq', Finset.mem_univ, ite_true, Finset.sum_const_zero,
       zero_add, Matrix.one_apply_eq]
     have hr : 0 ≤ 1 - (∑ o, ‖A o i‖) / s := by
       have := (div_le_one hs).mpr (hcol i)
@@ -162,7 +166,7 @@ theorem sparse_overlap_actual_frames_and_corner :
   simp only [Matrix.mul_apply, Matrix.conjTranspose_apply, Fintype.sum_sum_type,
     Fintype.sum_prod_type, sparseOverlapLeft, sparseOverlapRight]
   simp only [apply_ite star, star_zero, ite_mul, zero_mul, mul_ite, mul_zero,
-    Finset.sum_ite_eq', Finset.mem_univ, if_true, Finset.sum_const_zero,
+    Finset.sum_ite_eq', Finset.mem_univ, ite_true, Finset.sum_const_zero,
     add_zero]
   exact sparse_entry_overlap (A o i) s hs
 

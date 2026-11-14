@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GaussSumEst02.MainResults.Source.GaussSumCore
-import Qatlib.Papers.GaussSumEst02.MainResults.Source.Cost
+module
+
+public import Qatlib.Papers.GaussSumEst02.MainResults.Source.GaussSumCore
+public import Qatlib.Papers.GaussSumEst02.MainResults.Source.Cost
+
+@[expose] public section
 
 /-!
 # Finite-field character states
@@ -52,7 +56,7 @@ theorem addChar_sum_ite {F : Type*} [Field F] [Fintype F] [DecidableEq F] (e : A
   by_cases hc : c = 0
   · subst hc
     simp [e.map_zero']
-  · rw [if_neg hc]
+  · rw [ite_eq_right hc]
     exact e.sum_mul_eq_zero hc
 
 /-- Translating the argument of an additive character by `f` multiplies its value function by

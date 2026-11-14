@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecificLimits.Normed
-import Mathlib.Topology.Algebra.Order.Floor
-import Mathlib.Data.Nat.Find
+module
+
+public import Mathlib.Analysis.SpecificLimits.Normed
+public import Mathlib.Topology.Algebra.Order.Floor
+public import Mathlib.Data.Nat.Find
+
+@[expose] public section
 
 /-!
 # Effective rational Bessel cutoffs

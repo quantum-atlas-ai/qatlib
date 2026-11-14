@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.FrameSpectral.WalkAccessConstructionDefs
-import Qatlib.Concepts.WalkSearch.FrameSpectral.WalkAccessConstructionCircuitLemmas
-import Qatlib.Concepts.WalkSearch.FrameSpectral.WalkAccessConstructionKernel
+module
+
+public import Qatlib.Concepts.WalkSearch.FrameSpectral.WalkAccessConstructionDefs
+public import Qatlib.Concepts.WalkSearch.FrameSpectral.WalkAccessConstructionCircuitLemmas
+public import Qatlib.Concepts.WalkSearch.FrameSpectral.WalkAccessConstructionKernel
+
+@[expose] public section
 
 /-!
 # Finite gate realization of lazy matching access
@@ -69,7 +73,7 @@ lemma lazySetupWord_legal {m : ℕ} (hm : 1 ≤ m) : finiteWordLegal (m + m) (la
   · simp [finiteCodeLegal, show m + m - 1 < m + m by omega]
 
 /-- For positive register width, the lazy update word is legal on the doubled workspace. -/
-lemma lazyUpdateWord_legal {m : ℕ} (hm : 1 ≤ m) : finiteWordLegal (m + m) (lazyUpdateWord m) = true := by
+lemma lazyUpdateWord_legal {m : ℕ} (_hm : 1 ≤ m) : finiteWordLegal (m + m) (lazyUpdateWord m) = true := by
   rw [finiteWordLegal, lazyUpdateWord, List.all_map, List.all_eq_true]
   intro p hp
   have hb := highCnotPairs_bound hp
@@ -88,13 +92,13 @@ lemma lazyCheckWord_legal {m : ℕ} (hm : 1 ≤ m) : finiteWordLegal (m + m) (la
 lemma functionUpdate_same {α : Sort u} {β : α → Sort v} [DecidableEq α] (f : (a : α) → β a)
     (w : α) (v : β w) : Function.update f w v w = v := by
   rw [Function.update]
-  rw [dif_pos rfl]
+  rw [dite_eq_left rfl]
 
 /-- Updating a function at `w` leaves its value unchanged at any different argument. -/
 lemma functionUpdate_noteq {α : Sort u} {β : α → Sort v} [DecidableEq α] (f : (a : α) → β a)
     (w j : α) (v : β w) (h : j ≠ w) : Function.update f w v j = f j := by
   rw [Function.update]
-  rw [dif_neg h]
+  rw [dite_eq_right h]
 
 /-- Replacing the final workspace bit of a lazy row record by `b` yields the vertex concatenated
 with `lazyRowBasis x b`. -/
@@ -115,7 +119,7 @@ lemma lazyRowRecord_update {m : ℕ} (hm : 1 ≤ m) (x : Reg m) (w : Fin (m + m)
       omega
     rw [regCat_apply_right _ _ w hwm]
     simp only [lazyRowBasis]
-    rw [if_pos (by omega)]
+    rw [ite_eq_left (by omega)]
   · by_cases h1 : j.val < m
     · rw [functionUpdate_noteq _ _ _ _ hj]
       rw [lazyRowRecord_apply_vertex x j h1, regCat_apply_left _ _ j h1]
@@ -125,7 +129,7 @@ lemma lazyRowRecord_update {m : ℕ} (hm : 1 ≤ m) (x : Reg m) (w : Fin (m + m)
       · rw [functionUpdate_noteq _ _ _ _ hj]
         rw [lazyRowRecord_apply_agreement hm x j (by omega) h2, regCat_apply_right _ _ j (by omega)]
         simp only [lazyRowBasis]
-        rw [if_neg (by omega : ¬ (j.val - m) + 1 = m)]
+        rw [ite_eq_right (by omega : ¬ (j.val - m) + 1 = m)]
 
 /-- Applying a Hadamard gate to the final bit of a lazy row record produces the equal-amplitude
 superposition of its two neighbor records. -/
@@ -246,7 +250,7 @@ lemma regPad_flagged_update {m : ℕ} (hm : 1 ≤ m) (x : Reg m) (f : Bool) :
       rw [lazyFlagWire_val hm]
       exact hw
     rw [hw', functionUpdate_same]
-    rw [regPad_apply', lazyFlagWire_val hm, dif_pos (by omega)]
+    rw [regPad_apply', lazyFlagWire_val hm, dite_eq_left (by omega)]
     rw [hconv]
     calc f = (fun _ : Fin 1 => f) ⟨0, by omega⟩ := rfl
       _ = (regCat x (fun _ => f)) (lazyFlagIndex m) := by
@@ -260,13 +264,13 @@ lemma regPad_flagged_update {m : ℕ} (hm : 1 ≤ m) (x : Reg m) (f : Bool) :
     rw [functionUpdate_noteq _ _ _ _ hw']
     rw [regPad_apply', regPad_apply']
     by_cases h1 : w.val < m + 1
-    · rw [dif_pos h1, dif_pos h1]
+    · rw [dite_eq_left h1, dite_eq_left h1]
       by_cases h2 : w.val < m
       · rw [regCat_vertex_value x (fun _ => f) ⟨w.val, h1⟩ h2,
           regCat_vertex_value x (fun _ => false) ⟨w.val, h1⟩ h2]
       · exfalso
         omega
-    · rw [dif_neg h1, dif_neg h1]
+    · rw [dite_eq_right h1, dite_eq_right h1]
 
 /-- The XOR of the false flag wire and the control wire in the initial padded register equals
 the marked membership bit. -/
@@ -276,7 +280,7 @@ lemma check_flag_value {m : ℕ} (hm : 1 ≤ m) (x : Reg m) :
       = decide (x ∈ lazyMarkedSet m hm) := by
   have hci : (lazyCtlIndex m hm).val = m - 1 := lazyCtlIndex_val hm
   have hflag : (regPad (m + m) (m + 1) (regCat x (fun _ => false))) (lazyFlagWire m hm) = false := by
-    rw [regPad_apply', lazyFlagWire_val hm, dif_pos (by omega)]
+    rw [regPad_apply', lazyFlagWire_val hm, dite_eq_left (by omega)]
     have hconv : (⟨m, by omega⟩ : Fin (m + 1)) = lazyFlagIndex m := rfl
     rw [hconv]
     calc (regCat x (fun _ => false)) (lazyFlagIndex m)
@@ -286,7 +290,7 @@ lemma check_flag_value {m : ℕ} (hm : 1 ≤ m) (x : Reg m) :
       _ = false := rfl
   have hctl : (regPad (m + m) (m + 1) (regCat x (fun _ => false))) (lazyCtlWire m hm)
       = lazyMarkedBit m hm x := by
-    rw [regPad_apply', lazyCtlWire_val hm, dif_pos (by omega)]
+    rw [regPad_apply', lazyCtlWire_val hm, dite_eq_left (by omega)]
     have hconv : (⟨m - 1, by omega⟩ : Fin (m + 1)) = lazyCtlIndex m hm := rfl
     rw [hconv]
     rw [regCat_vertex_value x (fun _ => false) (lazyCtlIndex m hm) (by omega)]

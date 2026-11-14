@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.SearchRandomized
+module
+
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.SearchRandomized
+
+@[expose] public section
 
 /-!
 # Restricted randomized Grover success statement

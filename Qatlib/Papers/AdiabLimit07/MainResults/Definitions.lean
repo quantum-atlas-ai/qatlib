@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Qubit
-import Mathlib.Analysis.Calculus.MeanValue
+module
+
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Mathlib.Analysis.Calculus.MeanValue
+
+@[expose] public section
 
 /-!
 # Hamiltonians and solution probabilities for adiabatic bounds
@@ -107,8 +111,7 @@ theorem solutionProb_initialUniform {p : ℕ} (pIdx : Reg n → Fin (p + 1)) :
       (Real.sqrt (Fintype.card (Reg n)))⁻¹ := by
     rw [norm_inv, Complex.norm_real, Real.norm_eq_abs,
       abs_of_nonneg (Real.sqrt_nonneg _)]
-  simp [solutionProb, initialUniform, BornProb, Uniform, h1, inv_pow,
-    Real.sq_sqrt hN.le, card_reg, div_eq_mul_inv]
+  simp [solutionProb, initialUniform, BornProb, Uniform,  inv_pow, div_eq_mul_inv]
 
 /-- The condition that block `K` has cardinality at least that of every other spectral block. -/
 def LargestBlock {q : ℕ} (qIdx : Reg n → Fin (q + 1)) (K : Fin (q + 1)) : Prop :=

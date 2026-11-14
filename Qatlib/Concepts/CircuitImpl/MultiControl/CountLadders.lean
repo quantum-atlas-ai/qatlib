@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CircuitImpl.MultiControl.CountGateMergers
-import Qatlib.Concepts.CircuitImpl.MultiControl.NoWorkTwoLevelSynthesis
+module
+
+public import Qatlib.Concepts.CircuitImpl.MultiControl.CountGateMergers
+public import Qatlib.Concepts.CircuitImpl.MultiControl.NoWorkTwoLevelSynthesis
+
+@[expose] public section
 
 /-!
 # Raw relative-Toffoli ladders and their signs

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.GroupTheory.SemidirectProduct
+module
+
+public import Mathlib.GroupTheory.SemidirectProduct
+
+@[expose] public section
 
 /-!
 # Splitting a factor fixed pointwise by a semidirect-product action
@@ -61,7 +65,6 @@ def sdp_sndHom (φ : P →* MulAut (N1 × N2)) (g : P) : N2 →* N2 where
     rw [show ((1 : N1), (1 : N2)) = (1 : N1 × N2) from rfl, map_one]
     rfl
   map_mul' b c := by
-    change (φ g (1, b * c)).2 = (φ g (1, b)).2 * (φ g (1, c)).2
     have hp : (φ g) (1, b) * (φ g) (1, c) = (φ g) (1, b * c) := by
       rw [← map_mul]
       congr 1
@@ -70,7 +73,7 @@ def sdp_sndHom (φ : P →* MulAut (N1 × N2)) (g : P) : N2 →* N2 where
 
 /-- The induced second-coordinate homomorphism is injective under the pointwise-fixing and
 second-factor-preservation hypotheses. -/
-lemma sdp_sndHom_injective (h1 : ∀ (g : P) (a : N1), φ g (a, 1) = (a, 1))
+lemma sdp_sndHom_injective (_h1 : ∀ (g : P) (a : N1), φ g (a, 1) = (a, 1))
     (h2 : ∀ (g : P) (b : N2), (φ g (1, b)).1 = 1)
     (g : P) : Function.Injective (sdp_sndHom φ g) := by
   intro b c hbc
@@ -145,10 +148,8 @@ theorem sdp_split_trivial_first (h1 : ∀ (g : P) (a : N1), φ g (a, 1) = (a, 1)
   intro x y
   dsimp [e]
   ext
-  · simp only [SemidirectProduct.mul_def, SemidirectProduct.mul_left, Prod.fst_mul,
-      sdp_phi_fst h1 h2]
-  · simp only [SemidirectProduct.mul_def, SemidirectProduct.mul_left,
-      SemidirectProduct.mul_right, Prod.fst_mul, Prod.snd_mul, sdp_phi_snd h1]
+  · simp only [sdp_phi_fst h1 h2]
+  · simp only [SemidirectProduct.mul_def, sdp_phi_snd h1]
     rfl
   · rfl
 

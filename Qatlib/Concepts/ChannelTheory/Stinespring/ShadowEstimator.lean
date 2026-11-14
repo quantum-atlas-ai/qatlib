@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.MixedState
+module
+
+public import Qatlib.Foundations.PureStateMath.MixedState
+
+@[expose] public section
 
 /-!
 # Single-qubit Pauli shadow estimator
@@ -79,7 +83,7 @@ theorem sum_bool {α : Type*} [AddCommMonoid α] (f : Bool → α) :
 /-- The two outcome projectors for a fixed Pauli axis sum to the identity. -/
 theorem pauliProjector_sum (a : Fin 3) : ∑ b : Bool, PauliProjector a b = 1 := by
   rw [sum_bool]
-  simp only [PauliProjector, eq_self_iff_true, if_true, Bool.false_eq_true, if_false]
+  simp only [PauliProjector, ite_true, Bool.false_eq_true, ite_false]
   module
 
 /-- The trace of `pauliX * ρ` is the sum of the two off-diagonal entries of `ρ`. -/
@@ -130,15 +134,15 @@ theorem bloch_reconstruction (ρ : Matrix (Fin 2) (Fin 2) ℂ) (hρ : IsDensityO
   ext i j
   rw [show (1 / 2 : ℂ) = ((1 / 2 : ℝ) : ℂ) from by norm_num [Complex.ofReal_div]]
   fin_cases i <;> fin_cases j <;>
-    simp only [Matrix.smul_apply, Matrix.add_apply, Matrix.sum_apply, Fin.sum_univ_three,
+    simp only [Matrix.smul_apply, Matrix.add_apply,  Fin.sum_univ_three,
       pauliMatrix_zero, pauliMatrix_one, pauliMatrix_two, pauliExpectation,
       trace_pauliX_mul, trace_pauliY_mul, trace_pauliZ_mul, smul_eq_mul] <;>
-    simp [h10, pauliX, pauliY, pauliZ, Matrix.one_apply] <;>
+    simp [h10, pauliX, pauliY, pauliZ] <;>
     refine Complex.ext_iff.mpr ⟨?_, ?_⟩ <;>
     simp only [Complex.mul_re, Complex.mul_im, Complex.add_re, Complex.add_im,
       Complex.sub_re, Complex.sub_im, Complex.neg_re, Complex.neg_im, Complex.conj_re,
       Complex.conj_im, Complex.ofReal_re, Complex.ofReal_im, Complex.I_re, Complex.I_im,
-      Complex.one_re, Complex.one_im, Complex.zero_re, Complex.zero_im, Fin.isValue] <;>
+      Complex.one_re, Complex.one_im,  Fin.isValue] <;>
     norm_num <;> linarith [htr, him00, him11]
 
 /-- For a trace-one matrix, the outcome-weighted shadow sum at a fixed axis is one half of the
@@ -188,7 +192,7 @@ theorem pauliShadow_sum_axis (a : Fin 3) (ρ : Matrix (Fin 2) (Fin 2) ℂ)
     module
   have hpe : (pauliExpectation a ρ : ℂ) = (w.re : ℂ) := rfl
   rw [sum_bool, ht0, ht1]
-  simp only [PauliShadow, PauliProjector, Bool.false_eq_true, if_false, if_true]
+  simp only [PauliShadow, PauliProjector, Bool.false_eq_true, ite_false, ite_true]
   rw [hmod, hsum, hdiff, hpe]
   module
 

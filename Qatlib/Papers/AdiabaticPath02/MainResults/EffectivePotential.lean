@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AdiabaticPath02.MainResults.SymmetricDefs
-import Mathlib.Topology.Order.Basic
-import Mathlib.Topology.Order.Compact
-import Mathlib.Topology.UniformSpace.HeineCantor
-import Mathlib.Topology.MetricSpace.Basic
+module
+
+public import Qatlib.Papers.AdiabaticPath02.MainResults.SymmetricDefs
+public import Mathlib.Topology.Order.Basic
+public import Mathlib.Topology.Order.Compact
+public import Mathlib.Topology.UniformSpace.HeineCantor
+public import Mathlib.Topology.MetricSpace.Basic
+
+@[expose] public section
 
 /-!
 # Effective potential and its minimum value

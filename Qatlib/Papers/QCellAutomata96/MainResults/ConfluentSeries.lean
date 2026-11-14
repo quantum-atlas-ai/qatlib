@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.OrdinaryHypergeometric
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Sqrt
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Data.Complex.Basic
-import Mathlib.Topology.Instances.Real.Lemmas
-import Mathlib.Topology.NhdsWithin
+module
+
+public import Mathlib.Analysis.SpecialFunctions.OrdinaryHypergeometric
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Sqrt
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Topology.Instances.Real.Lemmas
+public import Mathlib.Topology.NhdsWithin
+
+@[expose] public section
 
 /-!
 # Confluent series and Bessel amplitudes

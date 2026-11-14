@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SCWFPrep24.Estimation.NullRisk.PaidPhysicalLaw
+module
+
+public import Qatlib.Papers.SCWFPrep24.Estimation.NullRisk.PaidPhysicalLaw
+
+@[expose] public section
 
 open Qatlib.Foundations.QueryWordCore.Circuit
 

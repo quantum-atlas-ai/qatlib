@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FiniteLocc.LOCCProgram.Entanglement
-import Qatlib.Concepts.MbqcFlow.FlowDecision.QuadraticTraceDistance
+module
+
+public import Qatlib.Concepts.FiniteLocc.LOCCProgram.Entanglement
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.QuadraticTraceDistance
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -86,7 +90,7 @@ theorem swapOp_mul_self (d : ℕ) : swapOp d * swapOp d = 1 := by
       · obtain ⟨rfl, rfl⟩ := h
         simp
       · have h' : ¬(j = l ∧ i = k) := fun hh => h ⟨hh.2, hh.1⟩
-        rw [if_neg h', if_neg h]
+        rw [ite_eq_right h', ite_eq_right h]
         simp
     · intro y _ hy
       by_cases h : i = y
@@ -109,11 +113,11 @@ theorem swapOp_conjTranspose (d : ℕ) : (swapOp d)ᴴ = swapOp d := by
   simp only [Matrix.conjTranspose_apply, swapOp]
   by_cases h : k = j ∧ l = i
   · obtain ⟨rfl, rfl⟩ := h
-    simp only [and_self, if_true, star_one]
+    simp only [and_self, ite_true, star_one]
   · have h' : ¬(i = l ∧ j = k) := by
       rintro ⟨rfl, rfl⟩
       exact h ⟨rfl, rfl⟩
-    rw [if_neg h, if_neg h', star_zero]
+    rw [ite_eq_right h, ite_eq_right h', star_zero]
 
 /-- The projector `Π_SWAP = ½ (I_AB + SWAP_AB)` onto the symmetric subspace. -/
 def swapProjector (d : ℕ) : Matrix (Fin d × Fin d) (Fin d × Fin d) ℂ :=

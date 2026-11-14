@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.CoherentVariableTimeExt
+module
+
+public import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.CoherentVariableTimeExt
+
+@[expose] public section
 
 /-!
 # Stopped histories and paid cost moments
@@ -61,21 +65,21 @@ open scoped Classical BigOperators
 variable {H : Type} [Fintype H] [DecidableEq H] {m : ℕ}
 
 /-- The state inner product is additive in its first argument. -/
-private theorem inner_add_left' (ψ φ χ : QState H) :
+private theorem inner_add_left' {H : Type} [Fintype H] (ψ φ χ : QState H) :
     Qatlib.Foundations.PureStateMath.Inner (ψ + φ) χ = Qatlib.Foundations.PureStateMath.Inner ψ χ + Qatlib.Foundations.PureStateMath.Inner φ χ := by
   rw [Qatlib.Foundations.PureStateMath.inner_apply, Qatlib.Foundations.PureStateMath.inner_apply,
     Qatlib.Foundations.PureStateMath.inner_apply]
   simp [Pi.add_apply, map_add, add_mul, Finset.sum_add_distrib]
 
 /-- The state inner product is additive in its second argument. -/
-private theorem inner_add_right' (ψ φ χ : QState H) :
+private theorem inner_add_right' {H : Type} [Fintype H] (ψ φ χ : QState H) :
     Qatlib.Foundations.PureStateMath.Inner ψ (φ + χ) = Qatlib.Foundations.PureStateMath.Inner ψ φ + Qatlib.Foundations.PureStateMath.Inner ψ χ := by
   rw [Qatlib.Foundations.PureStateMath.inner_apply, Qatlib.Foundations.PureStateMath.inner_apply,
     Qatlib.Foundations.PureStateMath.inner_apply]
   simp [Pi.add_apply, mul_add, Finset.sum_add_distrib]
 
 /-- The total measurement mass equals the real part of the state's inner product with itself. -/
-private theorem measureProb_eq_re_inner (φ : QState H) :
+private theorem measureProb_eq_re_inner {H : Type} [Fintype H] (φ : QState H) :
     MeasureProb φ Finset.univ = (Qatlib.Foundations.PureStateMath.Inner φ φ).re := by
   rw [Qatlib.Foundations.PureStateMath.inner_self, Complex.re_sum]
   show (∑ x ∈ Finset.univ, ‖φ x‖ ^ 2)
@@ -84,7 +88,7 @@ private theorem measureProb_eq_re_inner (φ : QState H) :
 
 /-- The total measurement mass of two mutually orthogonal states is the sum of their individual
 masses. -/
-private theorem measureProb_add_of_inner (x y : QState H)
+private theorem measureProb_add_of_inner {H : Type} [Fintype H] (x y : QState H)
     (hxy : Qatlib.Foundations.PureStateMath.Inner x y = 0) (hyx : Qatlib.Foundations.PureStateMath.Inner y x = 0) :
     MeasureProb (x + y) Finset.univ
       = MeasureProb x Finset.univ + MeasureProb y Finset.univ := by
@@ -111,10 +115,10 @@ private theorem one_sub_proj_orth (P : Matrix H H ℂ) (hP : IsOrthogonalProject
 
 /-- Applying a target projector that commutes with two orthogonal branch projectors preserves
 orthogonality between the branches. -/
-private theorem inner_target_orth_branches (T P Q : Matrix H H ℂ)
+private theorem inner_target_orth_branches {H : Type} [Fintype H] (T P Q : Matrix H H ℂ)
     (hT : IsOrthogonalProjector T) (hP : IsOrthogonalProjector P)
-    (hQ : IsOrthogonalProjector Q) (hPQ : P * Q = 0)
-    (hTP : T * P = P * T) (hTQ : T * Q = Q * T) (w z : QState H) :
+    (_hQ : IsOrthogonalProjector Q) (hPQ : P * Q = 0)
+    (hTP : T * P = P * T) (_hTQ : T * Q = Q * T) (w z : QState H) :
     Qatlib.Foundations.PureStateMath.Inner (ApplyGate (T * P) w) (ApplyGate (T * Q) z) = 0 := by
   have hAB : (T * P)ᴴ * (T * Q) = 0 := by
     have hstarP : Pᴴ = P := by simpa only [Matrix.star_eq_conjTranspose] using! hP.2
@@ -130,7 +134,7 @@ private theorem inner_target_orth_branches (T P Q : Matrix H H ℂ)
 
 /-- A newly stopped branch is contained in every strictly later stopping projector. -/
 private theorem freshStop_mul_stopAt_ge (f : CoherentVtFrame H m) {j n : ℕ}
-    (hj : j < m) (hn : n < m) (hjn : j < n) :
+    (hj : j < m) (hn : n < m) (_hjn : j < n) :
     f.freshStop ⟨j, hj⟩ * f.stopAt ⟨n, hn⟩ = f.freshStop ⟨j, hj⟩ := by
   have h1 : f.stop ⟨n, Nat.lt_succ_of_lt hn⟩ * f.stop ⟨j + 1, Nat.succ_lt_succ hj⟩
       = f.stop ⟨j + 1, Nat.succ_lt_succ hj⟩ :=
@@ -191,12 +195,12 @@ private theorem freshStop_mul_stageOp_later' (f : CoherentVtFrame H m) (j k : Fi
 /-- The component newly stopped at stage `j` remains equal to its value immediately after that
 round throughout all later stages. -/
 theorem freshStop_stageState_frozen (f : CoherentVtFrame H m) (ψ : QState H) (j : Fin m) :
-    ∀ (n : ℕ) (hjn : j.val < n) (hn : n ≤ m),
+    ∀ (n : ℕ) (_hjn : j.val < n) (hn : n ≤ m),
       ApplyGate (f.freshStop j) (f.stageState ψ n hn)
         = ApplyGate (f.freshStop j)
             (ApplyGate (f.round j)
               (f.stageState ψ j.val (Nat.le_of_lt j.isLt))) := by
-  intro n hjn hn
+  intro n _hjn hn
   refine Nat.le_induction (m := j.val + 1)
     (P := fun k _ => ∀ hb : k ≤ m,
       ApplyGate (f.freshStop j) (f.stageState ψ k hb)

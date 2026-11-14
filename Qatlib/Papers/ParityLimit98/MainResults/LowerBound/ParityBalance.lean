@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.ParityPolynomialBound
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.ParityPolynomialBound
+
+@[expose] public section
 
 /-!
 # Boolean parity and polynomial cancellation
@@ -184,7 +188,7 @@ theorem boolSign_eq_neg_one_pow (f : I → Bool) :
       refine Finset.prod_congr rfl ?_
       intro i hi
       rw [Finset.mem_filter] at hi
-      rw [if_pos hi.2]]
+      rw [ite_eq_left hi.2]]
     rw [Finset.prod_const, boolSupp]
   have h2 : (∏ i ∈ Finset.univ.filter (fun i => ¬ f i = true),
         (if f i then (-1 : ℝ) else 1)) = 1 := by
@@ -231,7 +235,7 @@ theorem parityOddB_flipAt (i : I) (f : I → Bool) :
     have h1 : boolSign (flipAt i f) = 1 := by rw [hsign, hf, hv]; norm_num
     rw [hfl] at h1
     by_cases hp' : parityOddB (flipAt i f)
-    · rw [if_pos hp'] at h1
+    · rw [ite_eq_left hp'] at h1
       exact absurd h1 (by norm_num)
     · simp [hp, hp']
   · have hv : (if parityOddB f then (-1 : ℝ) else 1) = 1 := by simp [hp]
@@ -239,7 +243,7 @@ theorem parityOddB_flipAt (i : I) (f : I → Bool) :
     rw [hfl] at h1
     by_cases hp' : parityOddB (flipAt i f)
     · simp [hp, hp']
-    · rw [if_neg hp'] at h1
+    · rw [ite_eq_right hp'] at h1
       exact absurd h1 (by norm_num)
 
 /-- The parity-weighted sum of a real function is its even-parity sum minus its odd-parity sum. -/

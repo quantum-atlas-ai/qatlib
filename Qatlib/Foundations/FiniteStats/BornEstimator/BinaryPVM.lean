@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.FiniteStats.BornEstimator.BornLaw
-import Mathlib.Data.Fin.Tuple.Basic
+module
+
+public import Qatlib.Foundations.FiniteStats.BornEstimator.BornLaw
+public import Mathlib.Data.Fin.Tuple.Basic
+
+@[expose] public section
 
 /-!
 # Joint measurements from binary projectors

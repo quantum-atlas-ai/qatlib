@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HybridQuery26.QueryModel.TranscriptPotential
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Ring
+module
+
+public import Qatlib.Papers.HybridQuery26.QueryModel.TranscriptPotential
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -72,7 +76,7 @@ theorem weighted_sq_le_mul_sum {ι : Type*} [Fintype ι] (w r : ι → ℝ) {q :
 of the squared one-block progress bounds `(r i ε)²` is at most `ε² q L`, where `L` is the
 weighted total cost; this is the bound that converts Lemma 1 into the lower bound. -/
 theorem weighted_progress_le {ι : Type*} [Fintype ι] (w r : ι → ℝ) {q ε : ℝ}
-    (hε0 : 0 ≤ ε) (hw : ∀ i, 0 ≤ w i) (hr : ∀ i, 0 ≤ r i) (hrq : ∀ i, r i ≤ q) :
+    (_hε0 : 0 ≤ ε) (hw : ∀ i, 0 ≤ w i) (hr : ∀ i, 0 ≤ r i) (hrq : ∀ i, r i ≤ q) :
     ∑ i, w i * (r i * ε) ^ 2 ≤ ε ^ 2 * q * ∑ i, w i * r i := by
   have hsq := weighted_sq_le_mul_sum w r hw hr hrq
   have hterm : ∀ i, w i * (r i * ε) ^ 2 = ε ^ 2 * (w i * r i ^ 2) := by
@@ -89,7 +93,7 @@ theorem weighted_progress_le {ι : Type*} [Fintype ι] (w r : ι → ℝ) {q ε 
 `weighted_progress_le`: with block costs bounded by `q`, the sum of the squared progress
 bounds over `T` stages is at most `ε² q L`. -/
 theorem weighted_progress_le_range {T : ℕ} (r : ℕ → ℝ) {q ε : ℝ}
-    (hε0 : 0 ≤ ε) (hr : ∀ t, 0 ≤ r t) (hrq : ∀ t, r t ≤ q) :
+    (_hε0 : 0 ≤ ε) (hr : ∀ t, 0 ≤ r t) (hrq : ∀ t, r t ≤ q) :
     ∑ t ∈ Finset.range T, (r t * ε) ^ 2 ≤ ε ^ 2 * q * ∑ t ∈ Finset.range T, r t := by
   have hterm : ∀ t ∈ Finset.range T, (r t * ε) ^ 2 ≤ ε ^ 2 * q * r t := by
     intro t _
@@ -175,7 +179,7 @@ theorem hybrid_classification_lower_bound {T : ℕ} (M r : ℕ → ℝ) {q ε L 
 at `1` and drops by at most `8 (r t)²` per stage, then the total drop over `T` stages is at
 most `8` times the total of the squared block costs; with block costs at most `q` this is
 `8 q L`, the bound used to deduce `L = Ω(N/q)` in the proof of Theorem 2. -/
-theorem search_progress_drop_le {T : ℕ} (M r : ℕ → ℝ) {q L : ℝ}
+theorem search_progress_drop_le {T : ℕ} (_M r : ℕ → ℝ) {q L : ℝ}
     (hr : ∀ t, 0 ≤ r t) (hrq : ∀ t, r t ≤ q)
     (hcost : ∑ t ∈ Finset.range T, r t ≤ L) :
     ∑ t ∈ Finset.range T, 8 * r t ^ 2 ≤ 8 * q * L := by
@@ -199,7 +203,7 @@ theorem search_progress_drop_le {T : ℕ} (M r : ℕ → ℝ) {q L : ℝ}
 /-- **Theorem 2, `N/q` term.** For `N` search inputs, if the total progress drop required by
 bounded error is at least `N/9` and the per-stage drop is bounded by `8 q L`, then
 `L ≥ N/(72 q)`. -/
-theorem search_query_lower_bound {N q L : ℝ} (hq : 0 < q) (hN : 0 ≤ N)
+theorem search_query_lower_bound {N q L : ℝ} (hq : 0 < q) (_hN : 0 ≤ N)
     (hdrop : N / 9 ≤ 8 * q * L) :
     N / (72 * q) ≤ L := by
   have hpos : 0 < 72 * q := by positivity

@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QlsReadoutSpec.Amplification.TunableUniversalityLows
-import Qatlib.Concepts.QlsReadoutSpec.Amplification.AmplificationProductsLows
-import Qatlib.Concepts.QlsReadoutSpec.Amplification.OptimalThresholdAllocationLows
-import Qatlib.Concepts.QlsReadoutSpec.Amplification.TunableActualQueryComplexityLows
-import Qatlib.Concepts.QlsReadoutSpec.Amplification.OptimizedTunableConsumerLows
+module
+
+public import Qatlib.Concepts.QlsReadoutSpec.Amplification.TunableUniversalityLows
+public import Qatlib.Concepts.QlsReadoutSpec.Amplification.AmplificationProductsLows
+public import Qatlib.Concepts.QlsReadoutSpec.Amplification.OptimalThresholdAllocationLows
+public import Qatlib.Concepts.QlsReadoutSpec.Amplification.TunableActualQueryComplexityLows
+public import Qatlib.Concepts.QlsReadoutSpec.Amplification.OptimizedTunableConsumerLows
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

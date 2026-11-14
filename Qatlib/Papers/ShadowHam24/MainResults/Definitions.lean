@@ -4,18 +4,22 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Analysis.Matrix.Normed
-import Mathlib.LinearAlgebra.Matrix.Trace
-import Mathlib.LinearAlgebra.Matrix.Vec
-import Mathlib.LinearAlgebra.Matrix.Kronecker
-import Mathlib.LinearAlgebra.Matrix.Hermitian
-import Mathlib.LinearAlgebra.Matrix.DotProduct
-import Mathlib.LinearAlgebra.FiniteDimensional.Basic
-import Mathlib.Analysis.Calculus.Deriv.Basic
-import Mathlib.Analysis.Calculus.Deriv.Add
-import Mathlib.Analysis.Calculus.Deriv.Mul
-import Mathlib.Analysis.Calculus.Deriv.Prod
+module
+
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Analysis.Matrix.Normed
+public import Mathlib.LinearAlgebra.Matrix.Trace
+public import Mathlib.LinearAlgebra.Matrix.Vec
+public import Mathlib.LinearAlgebra.Matrix.Kronecker
+public import Mathlib.LinearAlgebra.Matrix.Hermitian
+public import Mathlib.LinearAlgebra.Matrix.DotProduct
+public import Mathlib.LinearAlgebra.FiniteDimensional.Basic
+public import Mathlib.Analysis.Calculus.Deriv.Basic
+public import Mathlib.Analysis.Calculus.Deriv.Add
+public import Mathlib.Analysis.Calculus.Deriv.Mul
+public import Mathlib.Analysis.Calculus.Deriv.Prod
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -108,9 +112,11 @@ def tildeOperator (U : Matrix N N ℂ) (O : N × N → Matrix N N ℂ) :
 
 /-! ## Matrix-calculus helpers -/
 
+omit [DecidableEq N] in
+
 /-- Cyclic invariance of the trace of a product of three square matrices;
 used in the trace manipulations of paper Theorem 1, p. 3, Eq. (4). -/
-lemma trace_cycle3 (A B C : Matrix N N ℂ) :
+lemma trace_cycle3 {N : Type*} [_scopeInst0 : Fintype N] [_scopeInst1 : DecidableEq N] (A B C : Matrix N N ℂ) :
     (A * B * C).trace = (C * A * B).trace := by
   calc (A * B * C).trace = (C * (A * B)).trace := Matrix.trace_mul_comm (A * B) C
     _ = (C * A * B).trace := by rw [Matrix.mul_assoc]
@@ -129,9 +135,11 @@ lemma trace_vonNeumann_mul (ρ H O : Matrix N N ℂ) :
     ring
   rw [hX]; ring
 
+omit [DecidableEq N] in
+
 /-- Derivative of the trace of a matrix-valued function of a real parameter;
 used to differentiate the shadow amplitudes in paper Theorem 1, p. 3, Eq. (4). -/
-lemma hasDerivAt_trace (A : ℝ → Matrix N N ℂ) (A' : Matrix N N ℂ) (t : ℝ)
+lemma hasDerivAt_trace {N : Type*} [_scopeInst0 : Fintype N] [_scopeInst1 : DecidableEq N] (A : ℝ → Matrix N N ℂ) (A' : Matrix N N ℂ) (t : ℝ)
     (h : HasDerivAt A A' t) :
     HasDerivAt (fun s => (A s).trace) A'.trace t := by
   have h_entry : ∀ i, HasDerivAt (fun s => A s i i) (A' i i) t :=
@@ -159,9 +167,11 @@ lemma hasDerivAt_trace_const_mul (ρ : Matrix N N ℂ) (C : ℝ → Matrix N N �
 
 /-! ## Trace / vectorisation algebra -/
 
+omit [DecidableEq N] in
+
 /-- `(ρ * O).trace` as a double sum matching `Matrix.vec`
 (paper Lemma 5, p. 17, Eq. (43), vectorisation of the shadow state). -/
-lemma trace_mul_eq_sum (ρ O : Matrix N N ℂ) :
+lemma trace_mul_eq_sum {N : Type*} [_scopeInst0 : Fintype N] [_scopeInst1 : DecidableEq N] (ρ O : Matrix N N ℂ) :
     (ρ * O).trace = ∑ ab : N × N, O ab.1 ab.2 * ρ ab.2 ab.1 := by
   simp only [Matrix.trace, Matrix.diag_apply, Matrix.mul_apply]
   conv_rhs => rw [Fintype.sum_prod_type]
@@ -192,9 +202,11 @@ lemma shadowState_eq_shadowTransform_mulVec (ρ : Matrix N N ℂ)
   simpa [shadowState, expectation, shadowTransform, Matrix.mulVec, dotProduct,
     Matrix.vec] using trace_mul_eq_sum ρ (O ij)
 
+omit [DecidableEq N] in
+
 /-- For Hermitian `ρ`, `tr(O^† ρ) = conj(tr(ρ O))`; used to turn the expansion
 coefficient in paper Lemma 6, p. 18, Eq. (47), into a shadow-state amplitude. -/
-lemma trace_conjTranspose_mul_eq_star (ρ O : Matrix N N ℂ) (hρ : ρ.IsHermitian) :
+lemma trace_conjTranspose_mul_eq_star {N : Type*} [_scopeInst0 : Fintype N] [_scopeInst1 : DecidableEq N] (ρ O : Matrix N N ℂ) (hρ : ρ.IsHermitian) :
     ((O)ᴴ * ρ).trace = star ((ρ * O).trace) := by
   have h : star (((O)ᴴ * ρ).trace) = (ρ * O).trace := by
     rw [← Matrix.trace_conjTranspose]
@@ -217,9 +229,11 @@ lemma shadowTransform_conjTranspose_mul_self (O : N × N → Matrix N N ℂ)
     (shadowTransform O)ᴴ * shadowTransform O = 1 :=
   mul_eq_one_comm.mp (by rw [shadowTransform_mul_conjTranspose, horth])
 
+omit [DecidableEq N] [DecidableEq M] in
+
 /-- Sum identity used to rewrite `tr(ρ · (-∑ c • O))` in paper Theorem 1,
 p. 3, Eq. (4), and Theorem 2, p. 6, Eq. (7). -/
-lemma trace_mul_neg_sum_smul (ρ : Matrix N N ℂ) (O : M → Matrix N N ℂ)
+lemma trace_mul_neg_sum_smul {N M : Type*} [_scopeInst0 : Fintype N] [_scopeInst1 : DecidableEq N] [_scopeInst2 : Fintype M] [_scopeInst3 : DecidableEq M] (ρ : Matrix N N ℂ) (O : M → Matrix N N ℂ)
     (c : M → ℂ) :
     (ρ * (- ∑ m', c m' • O m')).trace = - ∑ m', c m' * (ρ * O m').trace := by
   rw [Matrix.mul_neg, Matrix.trace_neg]
@@ -229,9 +243,11 @@ lemma trace_mul_neg_sum_smul (ρ : Matrix N N ℂ) (O : M → Matrix N N ℂ)
   rw [Matrix.mul_smul, Matrix.trace_smul]
   simp
 
+omit [DecidableEq N] [DecidableEq M] in
+
 /-- Sum identity for a commutator in the middle of a trace
 (paper Theorem 2, p. 6, Eq. (7)). -/
-lemma trace_mul_neg_sum_smul_mul (ρ B : Matrix N N ℂ) (A : M → Matrix N N ℂ)
+lemma trace_mul_neg_sum_smul_mul {N M : Type*} [_scopeInst0 : Fintype N] [_scopeInst1 : DecidableEq N] [_scopeInst2 : Fintype M] [_scopeInst3 : DecidableEq M] (ρ B : Matrix N N ℂ) (A : M → Matrix N N ℂ)
     (c : M → ℂ) :
     (ρ * (- ∑ m', c m' • A m') * B).trace =
       - ∑ m', c m' * (ρ * A m' * B).trace := by
@@ -242,37 +258,47 @@ lemma trace_mul_neg_sum_smul_mul (ρ B : Matrix N N ℂ) (A : M → Matrix N N �
   rw [Matrix.mul_smul, Matrix.smul_mul, Matrix.trace_smul]
   simp
 
+omit [DecidableEq N] in
+
 /-- Pull a scalar out of a middle factor of a trace
 (paper Theorem 2, p. 6, Eq. (7)). -/
-lemma trace_mul_smul_mul (ρ B : Matrix N N ℂ) (c : ℂ) (X : Matrix N N ℂ) :
+lemma trace_mul_smul_mul {N : Type*} [_scopeInst0 : Fintype N] [_scopeInst1 : DecidableEq N] (ρ B : Matrix N N ℂ) (c : ℂ) (X : Matrix N N ℂ) :
     (ρ * (c • X) * B).trace = c * (ρ * X * B).trace := by
   rw [Matrix.mul_smul, Matrix.smul_mul, Matrix.trace_smul]
   simp
 
+omit [DecidableEq N] in
+
 /-- Pull a scalar out of the right factor of a trace
 (paper Theorem 2, p. 6, Eq. (8)). -/
-lemma trace_mul_smul (ρ : Matrix N N ℂ) (c : ℂ) (X : Matrix N N ℂ) :
+lemma trace_mul_smul {N : Type*} [_scopeInst0 : Fintype N] [_scopeInst1 : DecidableEq N] (ρ : Matrix N N ℂ) (c : ℂ) (X : Matrix N N ℂ) :
     (ρ * (c • X)).trace = c * (ρ * X).trace := by
   rw [Matrix.mul_smul, Matrix.trace_smul]
   simp
 
+omit [Fintype N] [DecidableEq N] in
+
 /-- `rankOne ψ` is Hermitian; used for the pure-state case of paper Lemma 5,
 p. 17, Eq. (43). -/
-lemma rankOne_isHermitian (ψ : N → ℂ) : (rankOne ψ).IsHermitian := by
+lemma rankOne_isHermitian {N : Type*} [_scopeInst0 : Fintype N] [_scopeInst1 : DecidableEq N] (ψ : N → ℂ) : (rankOne ψ).IsHermitian := by
   rw [Matrix.IsHermitian.ext_iff]
   intro i j
   simp [rankOne, vecMulVec, star_mul]
 
+omit [DecidableEq N] in
+
 /-- Vectorised form of `U σ U^†` (paper Lemma 7, p. 19, Eq. (51)):
 `vec (U σ U^†) = (U* ⊗ U) vec σ`, where `U* = U.map star`. -/
-lemma vec_mul_mul_conjTranspose (U σ : Matrix N N ℂ) :
+lemma vec_mul_mul_conjTranspose {N : Type*} [_scopeInst0 : Fintype N] [_scopeInst1 : DecidableEq N] (U σ : Matrix N N ℂ) :
     Matrix.vec (U * σ * Uᴴ) = vecConjOp U *ᵥ Matrix.vec σ := by
   rw [vecConjOp, kronecker_mulVec_vec U σ (U.map star)]
   congr 1
 
+omit [Fintype N] [DecidableEq N] in
+
 /-- `vec (rankOne ψ)` is the vectorised Bell pair `|ψ⟩ ⊗ |ψ̄⟩`
 (paper Lemma 5, p. 17, Eq. (43)). -/
-lemma vec_rankOne (ψ : N → ℂ) :
+lemma vec_rankOne {N : Type*} [_scopeInst0 : Fintype N] [_scopeInst1 : DecidableEq N] (ψ : N → ℂ) :
     Matrix.vec (rankOne ψ) = bellVector ψ := by
   funext ij
   simp [Matrix.vec, rankOne, vecMulVec, bellVector]

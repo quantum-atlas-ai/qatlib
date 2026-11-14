@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.OrderedOracle.TiSdpBridge.TiSpectralHelpers
+module
+
+public import Qatlib.Concepts.OrderedOracle.TiSdpBridge.TiSpectralHelpers
+
+@[expose] public section
 
 /-!
 # Polynomial coefficients from invariant query programs
@@ -148,7 +152,7 @@ theorem ti_invariant_transition_match (n t : ℕ) [NeZero n] (ht : 0<t)
   have hneg : ApplyGate (QFTMatrix (2*n))ᴴ (-tiPolynomialState n t a) l =
       -(ApplyGate (QFTMatrix (2*n))ᴴ (tiPolynomialState n t a) l) := by
     simp only [ApplyGate,Matrix.mulVec_neg,Pi.neg_apply]
-  rw [he,hneg,norm_neg,ti_polynomial_fourier,ti_polynomial_fourier,if_pos ha,if_pos ha,hl,
+  rw [he,hneg,norm_neg,ti_polynomial_fourier,ti_polynomial_fourier,ite_eq_left ha,ite_eq_left ha,hl,
     norm_mul,norm_mul] at hn
   have hs : (Real.sqrt (n:ℝ) : ℂ)≠0 := by
     exact_mod_cast Real.sqrt_ne_zero'.mpr (Nat.cast_pos.mpr (NeZero.pos n))

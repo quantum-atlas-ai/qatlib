@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.RationalFlow.PhaseSamples
+module
+
+public import Qatlib.Concepts.EffectiveGauge.RationalFlow.PhaseSamples
+
+@[expose] public section
 
 /-! # The finite rational phase-log execution and its real-angle semantics -/
 
@@ -149,7 +153,7 @@ theorem rationalPhaseStep_spec (previous current : RationalCircleSample) (theta0
     rw [rationalCircleCast_ratio_im,rationalCircleCast_ratio_re]
     exact hg.2.2
   rw [hang] at hr
-  exact ⟨r,by simp only [rationalPhaseStep,if_pos (And.intro hre hratio),r],hr,hs.2.2.2.1,hs.2.2.1⟩
+  exact ⟨r,by simp only [rationalPhaseStep,ite_eq_left (And.intro hre hratio),r],hr,hs.2.2.2.1,hs.2.2.1⟩
 
 /-- The sample error angle telescopes in the *real* accumulated value. The
 semantic phase sequence is not queried by the program and can make any

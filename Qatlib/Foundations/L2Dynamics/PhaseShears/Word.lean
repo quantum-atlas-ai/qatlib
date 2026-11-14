@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.L2Dynamics.PhaseShears.Phase
-import Qatlib.Foundations.L2Dynamics.PhaseShears.Shear
+module
+
+public import Qatlib.Foundations.L2Dynamics.PhaseShears.Phase
+public import Qatlib.Foundations.L2Dynamics.PhaseShears.Shear
+
+@[expose] public section
 
 /-!
 # Finite words of L2 phase and shear gates

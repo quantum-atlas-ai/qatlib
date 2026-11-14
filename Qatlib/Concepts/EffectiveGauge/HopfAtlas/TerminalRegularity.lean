@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.RationalFlow.TerminalCircleSamples
+module
+
+public import Qatlib.Concepts.EffectiveGauge.RationalFlow.TerminalCircleSamples
+
+@[expose] public section
 
 /-! # Original source bounds control the terminal circle derivative -/
 

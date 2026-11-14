@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QLinearODE17.TaylorAnalysis.TaylorODESystem
+module
+
+public import Qatlib.Papers.QLinearODE17.TaylorAnalysis.TaylorODESystem
+
+@[expose] public section
 
 /-!
 # Statement of the Taylor solution error bound

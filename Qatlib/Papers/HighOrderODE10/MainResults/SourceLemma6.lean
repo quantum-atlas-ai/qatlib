@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HighOrderODE10.MainResults.SourceModel
-import Mathlib.Data.Matrix.Basic
-import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
+module
+
+public import Qatlib.Papers.HighOrderODE10.MainResults.SourceModel
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -74,14 +78,14 @@ from Mathlib/Frozen); the Eq. (52) assembly is proved, witness `C = M_T`.
 `∑_m (∑_{ℓ≤m}|y_ℓ|)^2 ≤ N_t ∑_ℓ |y_ℓ|^2` by Cauchy–Schwarz
 (`Finset.sum_mul_sq_le_sq_mul_sq`). -/
 theorem lemma6_inverseNorm_isO
-    (m : SourceMultistepMethod) (n : ℕ)
+    (_m : SourceMultistepMethod) (n : ℕ)
     (A V : Matrix (Fin n) (Fin n) ℂ) (d : Fin n → ℂ)
     (α kappaV MT Nt normDInv normInvScript : ℝ)
-    (hα : 0 < α) (hαπ : α < Real.pi / 2)
-    (hdiag : A = V * Matrix.diagonal d * V⁻¹)
-    (hangle : ∀ i, (d i).re ≤ 0)
-    (hkappaV : 0 ≤ kappaV) (hMT : 0 < MT) (hNt : 0 ≤ Nt)
-    (hInvNonneg : 0 ≤ normInvScript)
+    (_hα : 0 < α) (_hαπ : α < Real.pi / 2)
+    (_hdiag : A = V * Matrix.diagonal d * V⁻¹)
+    (_hangle : ∀ i, (d i).re ≤ 0)
+    (hkappaV : 0 ≤ kappaV) (hMT : 0 < MT) (_hNt : 0 ≤ Nt)
+    (_hInvNonneg : 0 ≤ normInvScript)
     (h36 : normInvScript ≤ kappaV * normDInv)
     (h51 : normDInv ≤ MT * Nt) :
     ∃ C : ℝ, 0 < C ∧ normInvScript ≤ C * Nt * kappaV := by

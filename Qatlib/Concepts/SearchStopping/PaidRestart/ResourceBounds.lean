@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.ResourceBoundsDefs
-import Qatlib.Concepts.GramQueryCore.GammaDuality.FilteredGamma2Value
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.PreparedSearchConsumers
-import Qatlib.Concepts.QueryComplexity.AdversarySearch.CountedParityAlgorithm
-import Qatlib.Concepts.NativeNumerics.PhaseSynthesis.FinitePhaseGrid
-import Qatlib.Foundations.OperatorErrors.OperatorError
-import Qatlib.Concepts.SearchStopping.PaidRestart.ActualRestartExpectedReceiptTigh
-import Qatlib.Concepts.GramQueryCore.LowerBoundTools.QueryDistanceLowerBound
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.ResourceBoundsDefs
+public import Qatlib.Concepts.GramQueryCore.GammaDuality.FilteredGamma2Value
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.PreparedSearchConsumers
+public import Qatlib.Concepts.QueryComplexity.AdversarySearch.CountedParityAlgorithm
+public import Qatlib.Concepts.NativeNumerics.PhaseSynthesis.FinitePhaseGrid
+public import Qatlib.Foundations.OperatorErrors.OperatorError
+public import Qatlib.Concepts.SearchStopping.PaidRestart.ActualRestartExpectedReceipt
+public import Qatlib.Concepts.GramQueryCore.LowerBoundTools.QueryDistanceLowerBound
+
+@[expose] public section
 
 /-!
 # Circuit resource bounds and local allocation laws
@@ -86,18 +90,18 @@ open scoped BigOperators ENNReal ComplexOrder Matrix.Norms.L2Operator
 set_option autoImplicit false
 
 /-- Concatenates two local programs by placing the second after the operation list of the first. -/
-private def localOpAppend {I : Type} : LocalProgram I → LocalProgram I → LocalProgram I
+def localOpAppend {I : Type} : LocalProgram I → LocalProgram I → LocalProgram I
   | .nil, q => q
   | .op o rest, q => .op o (localOpAppend rest q)
 
 /-- The sum of the allocation sizes `localOpSpace` over all operations in a local program. -/
-private def localAllocTotal {I : Type} : LocalProgram I → ℕ
+def localAllocTotal {I : Type} : LocalProgram I → ℕ
   | .nil => 0
   | .op o rest => localOpSpace o + localAllocTotal rest
 
 /-- The matrix product obtained from a local program by replacing each unitary-operation matrix
 `U` with `r U` and ignoring other operations. -/
-private noncomputable def localProgramRefMatrix {I : Type} [Fintype I] [DecidableEq I]
+noncomputable def localProgramRefMatrix {I : Type} [Fintype I] [DecidableEq I]
     (r : Matrix I I ℂ → Matrix I I ℂ) : LocalProgram I → Matrix I I ℂ
   | .nil => 1
   | .op (.applyU U) rest => localProgramRefMatrix r rest * r U
@@ -105,7 +109,7 @@ private noncomputable def localProgramRefMatrix {I : Type} [Fintype I] [Decidabl
 
 /-- The sum of the matrix-norm errors `‖U - r U‖` over the unitary operations of a local
 program. -/
-private noncomputable def localProgramErrorSum {I : Type} [Fintype I] [DecidableEq I]
+noncomputable def localProgramErrorSum {I : Type} [Fintype I] [DecidableEq I]
     (r : Matrix I I ℂ → Matrix I I ℂ) : LocalProgram I → ℝ
   | .nil => 0
   | .op (.applyU U) rest => localProgramErrorSum r rest + ‖U - r U‖
@@ -113,30 +117,30 @@ private noncomputable def localProgramErrorSum {I : Type} [Fintype I] [Decidable
 
 /-- A local program that allocates one unit, applies the partial-swap matrix at angle `θ`, and
 discards the allocation. -/
-private noncomputable def freshCopyStepProgram (D : ℕ) (θ : ℝ) :
+noncomputable def freshCopyStepProgram (D : ℕ) (θ : ℝ) :
     LocalProgram (Fin D × Fin D) :=
   .op (.alloc 1) (.op (.applyU (partialSwapMatrix D θ)) (.op .discard .nil))
 
 /-- Concatenates one fresh-copy partial-swap step for each angle in the given list. -/
-private noncomputable def freshCopyScheduleProgram (D : ℕ) :
+noncomputable def freshCopyScheduleProgram (D : ℕ) :
     List ℝ → LocalProgram (Fin D × Fin D)
   | [] => .nil
   | θ :: rest => localOpAppend (freshCopyStepProgram D θ) (freshCopyScheduleProgram D rest)
 
 /-- A local restart-round program that allocates one unit, applies `U`, and discards the
 allocation. -/
-private def restartRoundProgram {I : Type} (U : Matrix I I ℂ) : LocalProgram I :=
+def restartRoundProgram {I : Type} (U : Matrix I I ℂ) : LocalProgram I :=
   .op (.alloc 1) (.op (.applyU U) (.op .discard .nil))
 
 /-- Repeats the allocate-apply-discard restart round `r` times. -/
-private def restartLoopProgram {I : Type} (U : Matrix I I ℂ) : ℕ → LocalProgram I
+def restartLoopProgram {I : Type} (U : Matrix I I ℂ) : ℕ → LocalProgram I
   | 0 => .nil
   | r + 1 => localOpAppend (restartRoundProgram U) (restartLoopProgram U r)
 
 /-- The predicate requiring every circuit selected by a matrix-indexed program family to be
 unitary and to achieve real input-to-target overlap at least `Real.sqrt (1 - ε)` for each
 input's workspace Boolean oracle. -/
-private def stateConversionFamilySpec {X : Type} [Fintype X] [DecidableEq X] {n R : ℕ}
+def stateConversionFamilySpec {X : Type} [Fintype X] [DecidableEq X] {n R : ℕ}
     (input : X → Fin n → Bool) (ε : ℝ) (ρ σ : X → QState ((Fin n × Bool) × Fin R)) :
     (Matrix ((Fin n × Bool) × Fin R) ((Fin n × Bool) × Fin R) ℂ →
       Circuit ((Fin n × Bool) × Fin R)) → Prop :=

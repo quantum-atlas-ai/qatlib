@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SCWFPrep24.Estimation.NullRisk.RotatingSpinor
-import Qatlib.Papers.SCWFPrep24.Estimation.NullRisk.GridParity
+module
+
+public import Qatlib.Papers.SCWFPrep24.Estimation.NullRisk.RotatingSpinor
+public import Qatlib.Papers.SCWFPrep24.Estimation.NullRisk.GridParity
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

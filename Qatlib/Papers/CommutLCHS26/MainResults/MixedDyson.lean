@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommutLCHS26.MainResults.PerturbationDyson
-import Mathlib.Analysis.Normed.Module.Multilinear.Curry
+module
+
+public import Qatlib.Papers.CommutLCHS26.MainResults.PerturbationDyson
+public import Mathlib.Analysis.Normed.Module.Multilinear.Curry
+
+@[expose] public section
 
 /-!
 # Mixed Dyson terms
@@ -230,7 +234,7 @@ theorem mixedMap_succ (A : Matrix I I ℂ) (hA : Aᴴ = -A) (n : ℕ)
     (t : ℝ) (B : Fin (n + 1) → Matrix I I ℂ) :
     mixedMap A hA (n + 1) t B =
       ∫ u in 0..t, NormedSpace.exp ((t - u) • A) * B 0 * mixedMap A hA n u (Fin.tail B) := by
-  letI : NormedAlgebra ℚ (Matrix I I ℂ) := .restrictScalars ℚ ℝ _
+  let : NormedAlgebra ℚ (Matrix I I ℂ) := .restrictScalars ℚ ℝ _
   have hi := ((conjugation_continuous A (B 0)).mul
     (iterate_continuous A n (Fin.tail B))).intervalIntegrable (μ := MeasureTheory.volume) 0 t
   have h := (ContinuousLinearMap.mul ℝ (Matrix I I ℂ)

@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Normed.Algebra.Exponential
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.RingTheory.Polynomial.Pochhammer
-import Qatlib.Foundations.CbmdAnalysis.Core.Contour
-import Qatlib.Foundations.CbmdAnalysis.Core.FiniteResidue
+module
+
+public import Mathlib.Analysis.Normed.Algebra.Exponential
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.RingTheory.Polynomial.Pochhammer
+public import Qatlib.Foundations.CbmdAnalysis.Core.Contour
+public import Qatlib.Foundations.CbmdAnalysis.Core.FiniteResidue
+
+@[expose] public section
 
 /-!
 # Entire matrix series and finite contour identities

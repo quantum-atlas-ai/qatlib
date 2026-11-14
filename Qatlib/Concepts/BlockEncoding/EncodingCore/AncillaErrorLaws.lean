@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
-import Qatlib.Concepts.BlockEncoding.Basic
-import Qatlib.Concepts.BlockEncoding.EncodingCore.CoordinateFiber
-import Qatlib.Foundations.QueryWordCore.Circuit
+module
+
+public import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+public import Qatlib.Concepts.BlockEncoding.Basic
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.CoordinateFiber
+public import Qatlib.Foundations.QueryWordCore.Circuit
+
+@[expose] public section
 
 /-!
 # Independent ancillas and block-encoding products
@@ -84,13 +88,25 @@ omit [Fintype J] [DecidableEq J] [Fintype K] [Fintype I] [DecidableEq I] in
 
 /-- The left independent lift is a relabeled tensor product of `U` with identity. -/
 theorem independentLiftLeft_eq (U : Matrix (J × I) (J × I) ℂ) :
-    independentLiftLeft U = relabelGate liftLeftEquiv (TensorGate U (1 : Matrix K K ℂ)) := rfl
+    independentLiftLeft U = relabelGate
+      (show (J × I) × K ≃ (J × K) × I from
+        { toFun := fun x => ((x.1.1, x.2), x.1.2)
+          invFun := fun y => ((y.1.1, y.2), y.1.2)
+          left_inv := fun _ => rfl
+          right_inv := fun _ => rfl })
+      (TensorGate U (1 : Matrix K K ℂ)) := rfl
 
 omit [Fintype J] [Fintype K] [DecidableEq K] [Fintype I] [DecidableEq I] in
 
 /-- The right independent lift is a relabeled tensor product of identity with `V`. -/
 theorem independentLiftRight_eq (V : Matrix (K × I) (K × I) ℂ) :
-    independentLiftRight V = relabelGate liftRightEquiv (TensorGate (1 : Matrix J J ℂ) V) := rfl
+    independentLiftRight V = relabelGate
+      (show J × (K × I) ≃ (J × K) × I from
+        { toFun := fun x => ((x.1, x.2.1), x.2.2)
+          invFun := fun y => (y.1.1, (y.1.2, y.2))
+          left_inv := fun _ => rfl
+          right_inv := fun _ => rfl })
+      (TensorGate (1 : Matrix J J ℂ) V) := rfl
 
 /-- Relabeling a unitary matrix along an equivalence preserves unitarity. -/
 theorem relabelGate_mem_unitary {S T : Type*} [Fintype S] [DecidableEq S] [Fintype T]

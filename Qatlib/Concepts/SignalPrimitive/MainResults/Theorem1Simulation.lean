@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SignalPrimitive.LCUConsumers.Theorem1Simulation
-import Qatlib.Concepts.SignalPrimitive.HermitianQSVT
-import Mathlib.Analysis.CStarAlgebra.Spectrum
-import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+module
+
+public import Qatlib.Concepts.SignalPrimitive.LCUConsumers.Theorem1Simulation
+public import Qatlib.Concepts.SignalPrimitive.HermitianQSVT
+public import Mathlib.Analysis.CStarAlgebra.Spectrum
+public import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+
+@[expose] public section
 
 /-!
 # Taylor Response Words for Hamiltonian Evolution
@@ -124,8 +128,8 @@ private theorem taylor_operator_error {I : Type} [Fintype I] [DecidableEq I]
     (hcut : 2 * |τ| ≤ (n : ℝ) + 1) :
     ‖aeval A (exponentialTaylorPolynomial τ n) -
       NormedSpace.exp ((-Complex.I * (τ : ℂ)) • A)‖ ≤ exponentialTaylorError τ n := by
-  letI : CStarAlgebra (Matrix I I ℂ) := {}
-  letI : NormedAlgebra ℚ (Matrix I I ℂ) := NormedAlgebra.restrictScalars ℚ ℂ _
+  let : CStarAlgebra (Matrix I I ℂ) := {}
+  let : NormedAlgebra ℚ (Matrix I I ℂ) := NormedAlgebra.restrictScalars ℚ ℂ _
   let eigVals : I → ℂ := fun i => (hA.eigenvalues i : ℂ)
   let D := Matrix.diagonal eigVals
   let Φ := Unitary.conjStarAlgAut ℂ (Matrix I I ℂ) hA.eigenvectorUnitary

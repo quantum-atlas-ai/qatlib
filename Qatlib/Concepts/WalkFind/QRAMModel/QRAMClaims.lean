@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkFind.QRAMModel.TruncationHybridQuan
-import Qatlib.Concepts.WalkFind.QRAMModel.TruncatedDataStructureBadMass
+module
+
+public import Qatlib.Concepts.WalkFind.QRAMModel.TruncationHybridQuan
+public import Qatlib.Concepts.WalkFind.QRAMModel.TruncatedDataStructureBadMass
+
+@[expose] public section
 
 /-!
 # QRAM truncation and bad-state bounds

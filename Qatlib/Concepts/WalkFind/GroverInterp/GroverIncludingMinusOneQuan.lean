@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkFind.GroverInterp.GroverIncludingMinusOneStat
-import Qatlib.Concepts.WalkFind.GroverInterp.GroverInterpolationQuan
+module
+
+public import Qatlib.Concepts.WalkFind.GroverInterp.GroverIncludingMinusOneStat
+public import Qatlib.Concepts.WalkFind.GroverInterp.GroverInterpolationQuan
+
+@[expose] public section
 
 /-!
 # Grover interpolation allowing eigenvalue minus one
@@ -114,9 +118,9 @@ theorem minusOne_jw_unitary_gap_weights (m : ℕ) (ε α : ℝ) (hε : 0 < ε)
     rw [hline, star_smul, smul_dotProduct, smul_eq_mul, hconj, hsg, mul_comm]
   have hweights (j : Fin m) : ‖c j‖ ^ 2 = w j + α ^ 2 * s j := by
     by_cases hj : μ j = 1
-    · simp only [w, hj, if_pos, zero_add, s, hcfix j hj, norm_mul, Complex.norm_real,
+    · simp only [w, hj, ite_eq_left, zero_add, s, hcfix j hj, norm_mul, Complex.norm_real,
         Real.norm_eq_abs, mul_pow, sq_abs]
-    · simp only [w, if_neg hj, s, hd0 j hj, norm_zero, zero_pow (by decide : 2 ≠ 0),
+    · simp only [w, ite_eq_right hj, s, hd0 j hj, norm_zero, zero_pow (by decide : 2 ≠ 0),
         mul_zero, add_zero]
   have hsumw : (∑ j, w j) = 1 - α ^ 2 := by
     have hh := hsumc
@@ -129,7 +133,7 @@ theorem minusOne_jw_unitary_gap_weights (m : ℕ) (ε α : ℝ) (hε : 0 < ε)
   · intro j
     exact sq_nonneg _
   · intro j hj
-    simp only [w, hj, if_pos]
+    simp only [w, hj, ite_eq_left]
   · intro j hj
     simp only [s, hd0 j hj, norm_zero, zero_pow (by decide : 2 ≠ 0)]
 
@@ -168,9 +172,9 @@ theorem minusOne_jw_unitary_basis_real_gap (m : ℕ) (ε : ℝ) (hε : 0 < ε)
       (if μ j = 1 then -1 else (μ j).re) ≤ Real.cos ε := by
   intro j
   by_cases hj : μ j = 1
-  · simp only [if_pos hj]
+  · simp only [ite_eq_left hj]
     exact ⟨le_refl _, Real.neg_one_le_cos ε⟩
-  · simp only [if_neg hj]
+  · simp only [ite_eq_right hj]
     exact minusOne_jw_nonfixed_eigenvalue_real_gap m ε hε U start (fun i => B i j) (μ j)
       hu hstart (heigen j) hj (jw_unitary_basis_column_ne_zero m B hB j) hphase
 

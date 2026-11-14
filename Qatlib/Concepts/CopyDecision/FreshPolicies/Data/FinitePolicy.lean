@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CopyDecision.QubitMeasure.Data.TrineCopies
+module
+
+public import Qatlib.Concepts.CopyDecision.QubitMeasure.Data.TrineCopies
+
+@[expose] public section
 
 /-!
 # Finite Policy
@@ -137,7 +141,7 @@ theorem decisionImage_gram {n : ℕ} (P : FinitePolicy n) (i j : Fin 3) :
 lemma decisionImage_mass {n : ℕ} (P : FinitePolicy n) (i : Fin 3) :
     ∑ k, ‖decisionImage P k i‖^2=1 := by
   have h := decisionImage_gram P i i
-  rw [trineState_gram,if_pos rfl,one_pow] at h
+  rw [trineState_gram,ite_eq_left rfl,one_pow] at h
   simp only [inner_self_eq_norm_sq_to_K] at h
   apply Complex.ofReal_injective
   push_cast

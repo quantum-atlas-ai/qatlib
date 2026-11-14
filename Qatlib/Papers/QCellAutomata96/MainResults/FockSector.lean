@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Finset.Powerset
-import Mathlib.Data.Finset.Interval
-import Mathlib.Data.Nat.Choose.Sum
-import Mathlib.Data.Fintype.Card
-import Mathlib.Data.Nat.Choose.Basic
+module
+
+public import Mathlib.Data.Finset.Powerset
+public import Mathlib.Data.Finset.Interval
+public import Mathlib.Data.Nat.Choose.Sum
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Data.Nat.Choose.Basic
+
+@[expose] public section
 
 /-!
 # Dimensions of finite fermionic sectors

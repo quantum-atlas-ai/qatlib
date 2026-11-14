@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.PaidHistoryPreparation
+module
+
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.PaidHistoryPreparation
+
+@[expose] public section
 
 /-!
 # Three-source words for a paid physical history
@@ -192,8 +196,8 @@ theorem parallel_fiber {X Y : Type} [Fintype X] [DecidableEq X] [Fintype Y] [Dec
   rw [BinaryClockSignalWord.select_mulVec]
   simp only [BinaryClockProjectorReadout.fiber_apply]
   by_cases h : c = a
-  · simp only [h, if_true]
-  · simp only [h, if_false]
+  · simp only [h, ite_true]
+  · simp only [h, ite_false]
     change (M *ᵥ (0 : QState Y)) y = 0
     rw [Matrix.mulVec_zero]
     rfl

@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.PhaseExistence.EffectiveBesselCutoff
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.RootsExtrema
-import Qatlib.Concepts.QsvtCore.PhaseExistence.PaperQsvtEndpointDefs
-import Qatlib.Concepts.QsvtCore.PhaseExistence.Ssvt
-import Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvt
-import Qatlib.Concepts.QsvtCore.PhaseExistence.SparseAccessConstruction
-import Qatlib.Concepts.QspSimulation.Achievability.LcuQsvt
-import Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.LcuQsvtPhaseRecovery
+module
+
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.EffectiveBesselCutoff
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.RootsExtrema
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.PaperQsvtEndpointDefs
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.Ssvt
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvt
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.SparseAccessConstruction
+public import Qatlib.Concepts.QspSimulation.Achievability.LcuQsvt
+public import Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.LcuQsvtPhaseRecovery
+
+@[expose] public section
 
 /-!
 # QSVT endpoint ledgers and rounded Bessel responses

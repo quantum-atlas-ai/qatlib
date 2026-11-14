@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HypercubeWalk01.MainResults.DiscreteWalk
-import Qatlib.Papers.HypercubeWalk01.MainResults.CubePlancherel
-import Mathlib.Algebra.Order.Floor.Semiring
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Pow.NNReal
-import Mathlib.Analysis.SpecialFunctions.Sqrt
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.HypercubeWalk01.MainResults.DiscreteWalk
+public import Qatlib.Papers.HypercubeWalk01.MainResults.CubePlancherel
+public import Mathlib.Algebra.Order.Floor.Semiring
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Pow.NNReal
+public import Mathlib.Analysis.SpecialFunctions.Sqrt
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Discrete hypercube mixing from coefficient estimates

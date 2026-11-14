@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SCWFPrep24.Estimation.Confidence.CoherentInput
-import Qatlib.Papers.SCWFPrep24.Estimation.Confidence.PairInformation
-import Qatlib.Concepts.SpinorSampling.NativeRecords.CountCohorts
-import Qatlib.Concepts.MixedFidelity.FidelityMetric.IsometricMixture
+module
+
+public import Qatlib.Papers.SCWFPrep24.Estimation.Confidence.CoherentInput
+public import Qatlib.Papers.SCWFPrep24.Estimation.Confidence.PairInformation
+public import Qatlib.Concepts.SpinorSampling.NativeRecords.CountCohorts
+public import Qatlib.Concepts.MixedFidelity.FidelityMetric.IsometricMixture
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

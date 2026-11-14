@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.BlackBoxHam09.MainResults.Defs
+module
+
+public import Qatlib.Papers.BlackBoxHam09.MainResults.Defs
+
+@[expose] public section
 
 /-!
 # Corollary 3 query bound specialization
@@ -80,7 +84,7 @@ theorem corollary3_query_pos {δ : ℝ} (hN : 0 < N) (hδ : 0 < δ) :
 specialized Theorem 2 expression, transfer its witness to the corresponding Corollary 3
 budget. See [Berry and Childs, Corollary 3][BerryChilds2012]. -/
 theorem corollary3_query_transfer [Inhabited (Fin N)] {L : ℕ} {δ c q : ℝ}
-    (hc : 0 < c) (BB : BlackBox (Bool × Fin N) N L)
+    (_hc : 0 < c) (BB : BlackBox (Bool × Fin N) N L)
     (hsim : SimulableWithin BB (Real.pi / 2) δ q)
     (hq : q ≤ c * theorem2QueryExpr 1 N (Real.pi / 2) δ) :
     SimulableWithin BB (Real.pi / 2) δ
@@ -96,10 +100,10 @@ theorem corollary3_query_transfer [Inhabited (Fin N)] {L : ℕ} {δ c q : ℝ}
 budget is the Corollary 3 expression times `c * (Real.pi / 2) ^ (4 / 3)`, as in
 [BerryChilds2012]. -/
 theorem corollary3_unitary_implementation
-    (U : Matrix (Fin N) (Fin N) ℂ) (hU : U ∈ Matrix.unitaryGroup (Fin N) ℂ)
-    (hN : 0 < N) [Inhabited (Fin N)] {δ : ℝ} (hδ0 : 0 < δ) (hδ1 : δ ≤ 1)
+    (U : Matrix (Fin N) (Fin N) ℂ) (_hU : U ∈ Matrix.unitaryGroup (Fin N) ℂ)
+    (hN : 0 < N) [Inhabited (Fin N)] {δ : ℝ} (hδ0 : 0 < δ) (_hδ1 : δ ≤ 1)
     {c q : ℝ} (hc : 0 < c) {L : ℕ} (BB : BlackBox (Bool × Fin N) N L)
-    (henc : BlockEncodes BB U)
+    (_henc : BlockEncodes BB U)
     (hsim : SimulableWithin BB (Real.pi / 2) δ q)
     (hq : q ≤ c * theorem2QueryExpr 1 N (Real.pi / 2) δ) :
     0 < corollary3QueryExpr N δ ∧

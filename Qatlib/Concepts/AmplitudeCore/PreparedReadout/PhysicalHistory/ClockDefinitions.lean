@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGAdder
-import Mathlib.Data.Rat.Cast.CharZero
+module
+
+public import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGAdder
+public import Mathlib.Data.Rat.Cast.CharZero
+
+@[expose] public section
 
 /-!
 # Midpoint clocks and dyadic pulse coefficients

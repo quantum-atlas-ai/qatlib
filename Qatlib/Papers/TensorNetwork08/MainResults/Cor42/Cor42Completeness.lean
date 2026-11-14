@@ -4,6 +4,8 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
+module
+
 /-!
 # Corollary 4.2 — tensor-network characterization of BQP
 
@@ -27,6 +29,9 @@ directions of the paper's proof taken as hypotheses.  The logical skeleton is pr
 complexity content is not formalised.
 -/
 
+
+
+@[expose] public section
 set_option autoImplicit false
 
 namespace Qatlib.Papers.TensorNetwork08.MainResults.Cor42

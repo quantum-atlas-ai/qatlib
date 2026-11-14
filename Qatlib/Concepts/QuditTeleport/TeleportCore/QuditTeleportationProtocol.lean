@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QuditTeleport.TeleportCore.Transform
-import Qatlib.Concepts.QuditTeleport.TeleportCore.BellReferenceProtocol
-import Qatlib.Concepts.BlockEncoding.LinearCombination
+module
+
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.Transform
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.BellReferenceProtocol
+public import Qatlib.Concepts.BlockEncoding.LinearCombination
+
+@[expose] public section
 
 /-!
 # Qudit teleportation resources and Weyl corrections
@@ -154,7 +158,7 @@ theorem quditX_perm (n : ℕ) [NeZero n] (b : ZMod n) : quditX n b = permMatrix 
   unfold quditX permMatrix
   simp only [Matrix.of_apply,quditShiftEquiv,Equiv.coe_fn_mk]
   congr 1
-  exact propext (Equiv.apply_eq_iff_eq_symm_apply (ZMod.finEquiv n).toEquiv)
+  exact propext (( Equiv.eq_symm_apply (ZMod.finEquiv n).toEquiv).symm )
 
 /-- Every qudit Weyl shift matrix is unitary. -/
 theorem quditX_unitary (n : ℕ) [NeZero n] (b : ZMod n) : quditX n b ∈ Matrix.unitaryGroup (Fin n) ℂ := by
@@ -240,7 +244,9 @@ theorem qudit_perm_adjoint {I : Type} [Fintype I] [DecidableEq I] (e : I ≃ I) 
     (permMatrix e)ᴴ = permMatrix e.symm := by
   ext x y
   simp only [Matrix.conjTranspose_apply,permMatrix,Matrix.of_apply]
-  have he : (y = e x) ↔ x = e.symm y := by rw [eq_comm]; exact Equiv.apply_eq_iff_eq_symm_apply e
+  have he : (y = e x) ↔ x = e.symm y := by
+    rw [eq_comm]
+    exact (Equiv.eq_symm_apply e).symm
   simp [he]
 
 /-- The tensor product of two permutation matrices is the permutation matrix for the product

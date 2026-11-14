@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SearchStopping.KnownCount.Section3KnownCountSubgoalStat
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.Complexity
-import Qatlib.Concepts.SearchStopping.KnownCount.Section3KnownCountDefs
-import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
+module
+
+public import Qatlib.Concepts.SearchStopping.KnownCount.Section3KnownCountSubgoalStat
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.Complexity
+public import Qatlib.Concepts.SearchStopping.KnownCount.Section3KnownCountDefs
+public import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
+
+@[expose] public section
 
 /-!
 # Exact search at quarter marked density

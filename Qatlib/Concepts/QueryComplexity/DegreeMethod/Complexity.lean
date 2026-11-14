@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.QueryWordCore.Circuit
+module
+
+public import Qatlib.Foundations.QueryWordCore.Circuit
+
+@[expose] public section
 
 /-!
 # Circuit families and fixed-space query bounds
@@ -71,9 +75,9 @@ theorem inBQP_firstBit : InBQP FirstBitLang := by
   · intro hL
     have hx : x ⟨0, hn⟩ = true := hL hn
     rw [AcceptProb, MeasureProb,
-      Finset.sum_eq_single x (fun y _ hyx => by rw [bornProb_ket, if_neg hyx])
+      Finset.sum_eq_single x (fun y _ hyx => by rw [bornProb_ket, ite_eq_right hyx])
         (fun hnot => absurd (Finset.mem_filter.mpr ⟨Finset.mem_univ x, hx⟩) hnot)]
-    rw [bornProb_ket, if_pos rfl]
+    rw [bornProb_ket, ite_eq_left rfl]
     norm_num
   · intro hnL
     unfold FirstBitLang at hnL
@@ -89,7 +93,7 @@ theorem inBQP_firstBit : InBQP FirstBitLang := by
       intro y hy
       rw [Finset.mem_filter] at hy
       obtain ⟨-, hy2⟩ := hy
-      rw [bornProb_ket, if_neg]
+      rw [bornProb_ket, ite_eq_right]
       rintro rfl
       rw [hx0] at hy2
       exact Bool.noConfusion hy2

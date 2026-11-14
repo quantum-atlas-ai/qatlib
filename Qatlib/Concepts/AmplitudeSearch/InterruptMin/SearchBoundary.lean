@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchTerminal
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchTerminal
+
+@[expose] public section
 
 /-!
 # Boundary cases and nonempty search laws
@@ -125,7 +129,7 @@ theorem search_univ_terminal_later {I : Type*} [Fintype I] [DecidableEq I]
     TerminalMass (Finset.univ : Finset I) sizes x = 0 := by
   have h := search_terminal_stage_law hN Finset.univ sizes hsizes x.1
   have hsum := h.2
-  rw [search_univ_first_success hN sizes hsizes, if_neg hx] at hsum
+  rw [search_univ_first_success hN sizes hsizes, ite_eq_right hx] at hsum
   have hle := Finset.single_le_sum (fun y _ => (h.1 y).1) (Finset.mem_univ x.2)
   change TerminalMass (Finset.univ : Finset I) sizes x ≤ _ at hle
   rw [hsum] at hle
@@ -216,8 +220,8 @@ theorem search_univ_retry_output {I : Type*} [Fintype I] [DecidableEq I]
     simpa using search_initial_output hN Finset.univ i
   · have hsizes := (search_exponential_schedule _ hN).2.1
     have hr := search_univ_first_success hN (ExponentialSizes (Fintype.card I)) hsizes n
-    rw [RetryFirstSuccess, (search_univ_failure hN _ (hsizes n)).1, mul_one, if_neg hn] at hr
-    rw [RetryOutputMass, hr, zero_mul, if_neg hn]
+    rw [RetryFirstSuccess, (search_univ_failure hN _ (hsizes n)).1, mul_one, ite_eq_right hn] at hr
+    rw [RetryOutputMass, hr, zero_mul, ite_eq_right hn]
 
 /-- For a nonempty marked set, terminal output masses sum to `1 / card A` at each marked index
 and to zero at every unmarked index. -/
@@ -245,12 +249,12 @@ theorem search_terminal_output_nonempty {I : Type*} [Fintype I] [DecidableEq I]
         simp only [TerminalOutput, TerminalMass]
         rw [Fintype.sum_prod_type]
         simp_rw [Fintype.sum_prod_type]
-        simp only [Finset.sum_ite_eq', Finset.mem_univ, if_true]
+        simp only [Finset.sum_ite_eq', Finset.mem_univ, ite_true]
         exact search_terminal_output_marginal hN Finset.univ sizes hsizes n i
       change HasSum (fun n => ∑ x : TerminalStage I sizes n,
         if TerminalOutput ⟨n,x⟩ = i then TerminalMass Finset.univ sizes ⟨n,x⟩ else 0) _
       simp_rw [hrow]
-      simp only [sizes, search_univ_retry_output hN, Finset.mem_univ, if_true, Finset.card_univ]
+      simp only [sizes, search_univ_retry_output hN, Finset.mem_univ, ite_true, Finset.card_univ]
       exact hasSum_ite_eq 0 _
 
 end Qatlib.Concepts.AmplitudeSearch.InterruptMin

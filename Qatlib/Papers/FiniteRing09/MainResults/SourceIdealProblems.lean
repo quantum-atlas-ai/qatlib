@@ -4,18 +4,22 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Order.BigOperators.Group.Finset
-import Mathlib.GroupTheory.Index
-import Mathlib.GroupTheory.OrderOfElement
-import Mathlib.SetTheory.Cardinal.Finite
-import Mathlib.Data.ZMod.Basic
-import Mathlib.RingTheory.Ideal.Span
-import Mathlib.RingTheory.Ideal.Maps
-import Mathlib.RingTheory.Ideal.Maximal
-import Mathlib.Algebra.Ring.Subring.Basic
-import Mathlib.Algebra.Group.Units.Basic
-import Mathlib.Algebra.Group.Subgroup.Map
-import Mathlib.Tactic
+module
+
+public import Mathlib.Algebra.Order.BigOperators.Group.Finset
+public import Mathlib.GroupTheory.Index
+public import Mathlib.GroupTheory.OrderOfElement
+public import Mathlib.SetTheory.Cardinal.Finite
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.RingTheory.Ideal.Span
+public import Mathlib.RingTheory.Ideal.Maps
+public import Mathlib.RingTheory.Ideal.Maximal
+public import Mathlib.Algebra.Ring.Subring.Basic
+public import Mathlib.Algebra.Group.Units.Basic
+public import Mathlib.Algebra.Group.Subgroup.Map
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -72,8 +76,8 @@ theorem strict_inclusion_doubling
       simp
     have hmem : ((⟨x, hx⟩ : C) : A) ∈ B := AddSubgroup.mem_comap.mp hxK
     simpa using hmem
-  haveI : Finite C := Subtype.finite
-  haveI : Finite (C ⧸ K) := inferInstance
+  have : Finite C := Subtype.finite
+  have : Finite (C ⧸ K) := inferInstance
   have hidx : 1 < K.index := AddSubgroup.one_lt_index_of_ne_top hKtop
   have hcard : Nat.card K * K.index = Nat.card C := K.card_mul_index
   have hcardK : Nat.card K = Nat.card B :=

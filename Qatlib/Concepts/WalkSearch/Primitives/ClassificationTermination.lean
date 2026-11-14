@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.Primitives.ClassificationPartition
+module
+
+public import Qatlib.Concepts.WalkSearch.Primitives.ClassificationPartition
+
+@[expose] public section
 
 /-!
 # Exhaustion of classification remainders
@@ -84,7 +88,7 @@ theorem classifyScan_processed (G : UGraph n) (sgs : SGSExecution) (τ K c : ℕ
     rw [classifyScan] at hnone ⊢
     dsimp only at hnone ⊢
     split_ifs with he hl
-    · simp only [if_pos he] at hnone
+    · simp only [ite_eq_left he] at hnone
       have hp:=partitionPayload_subsets
           (classifyScan_partition G sgs τ K c ttape stape vs (drainedPairSet S τ))
       have ha:=avoidsVertex_mono hp.1 (avoidsVertex_of_no_pairs (drainedPairSet S τ).edges v he)
@@ -92,7 +96,7 @@ theorem classifyScan_processed (G : UGraph n) (sgs : SGSExecution) (τ K c : ℕ
       rcases List.mem_cons.mp hx with rfl | hx
       · exact ha
       · exact ih _ hnone x hx
-    · simp only [if_neg he,if_pos hl] at hnone
+    · simp only [ite_eq_right he,ite_eq_left hl] at hnone
       have hp:=partitionPayload_subsets
           (classifyScan_partition G sgs τ K c ttape stape vs (lowRemaining (drainedPairSet S τ) v))
       have ha:=avoidsVertex_mono hp.1 (lowRemaining_avoids (drainedPairSet S τ) v)
@@ -100,7 +104,7 @@ theorem classifyScan_processed (G : UGraph n) (sgs : SGSExecution) (τ K c : ℕ
       rcases List.mem_cons.mp hx with rfl | hx
       · exact ha
       · exact ih _ hnone x hx
-    · simp only [if_neg he,if_neg hl] at hnone
+    · simp only [ite_eq_right he,ite_eq_right hl] at hnone
       cases hrun : operationalSgsFind sgs (neighborhoodMarked G v) 2 (n*n) (stape v) with
       | some p =>
         rw [hrun] at hnone

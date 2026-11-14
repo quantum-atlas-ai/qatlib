@@ -4,27 +4,31 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Group.DivInvMonoid
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Analysis.Complex.Exponential
-import Mathlib.Analysis.Real.Sqrt
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Basic.Complex.Basic
-import Mathlib.Basic.Real.Basic
-import Mathlib.Data.Fintype.Basic
-import Mathlib.Data.Fintype.Defs
-import Mathlib.Data.Fintype.Pi
-import Mathlib.Data.Fintype.Sets
-import Mathlib.Data.Matrix.Diagonal
-import Mathlib.Data.Matrix.Mul
-import Mathlib.Data.Nat.Cast.Defs
-import Mathlib.Data.Nat.Init
-import Mathlib.LinearAlgebra.Matrix.Defs
-import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
-import Mathlib.Logic.Function.Basic
-import Mathlib.Tactic
-import Qatlib.Papers.JonesPolyShor07.MainResults.Definitions.SpecialUnitary
+module
+
+public import Mathlib.Algebra.Group.DivInvMonoid
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Analysis.Complex.Exponential
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Data.Fintype.Basic
+public import Mathlib.Data.Fintype.Defs
+public import Mathlib.Data.Fintype.Pi
+public import Mathlib.Data.Fintype.Sets
+public import Mathlib.Data.Matrix.Diagonal
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.Data.Nat.Cast.Defs
+public import Mathlib.Data.Nat.Init
+public import Mathlib.LinearAlgebra.Matrix.Defs
+public import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
+public import Mathlib.Logic.Function.Basic
+public import Mathlib.Tactic
+public import Qatlib.Papers.JonesPolyShor07.MainResults.Definitions.SpecialUnitary
+
+@[expose] public section
 
 /-!
 # Fibonacci generator matrices on endpoint sectors

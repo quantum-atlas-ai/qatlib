@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CodingDecoding.CssTesters.CssCode
-import Qatlib.Concepts.CssGreedyDecode.SyndromeGreedy.QuantumLDPCDecodingDefs
-import Mathlib.Data.Finset.Card
-import Mathlib.Tactic.Abel
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.FieldSimp
+module
+
+public import Qatlib.Concepts.CodingDecoding.CssTesters.CssCode
+public import Qatlib.Concepts.CssGreedyDecode.SyndromeGreedy.QuantumLDPCDecodingDefs
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Tactic.Abel
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.FieldSimp
+
+@[expose] public section
 
 /-!
 # Greedy syndrome decoding bounds
@@ -245,7 +249,7 @@ theorem correlated_round_failure_bound {Ω : Type*} [Fintype Ω] (M : ℕ)
       apply Finset.sum_le_sum
       intro ω _
       by_cases hb : ∃ i, bad i ω
-      · rw [if_pos hb]
+      · rw [ite_eq_left hb]
         obtain ⟨i, hi⟩ := hb
         have h := Finset.single_le_sum (s := Finset.univ) (a := i)
           (f := fun j : Fin M => if bad j ω then p ω else 0)
@@ -256,7 +260,7 @@ theorem correlated_round_failure_bound {Ω : Type*} [Fintype Ω] (M : ℕ)
             · exact le_refl 0)
           (Finset.mem_univ i)
         simpa [hi] using h
-      · rw [if_neg hb]
+      · rw [ite_eq_right hb]
         exact Finset.sum_nonneg fun i _ => by
           change 0 ≤ (if bad i ω then p ω else 0)
           split_ifs

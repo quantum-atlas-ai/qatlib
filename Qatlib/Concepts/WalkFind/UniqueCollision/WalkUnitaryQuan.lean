@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkFind.UniqueCollision.WalkUnitaryStat
-import Qatlib.Concepts.WalkFind.WalkSpectrum.BlockUnitary
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Data.Real.Basic
-import Mathlib.Data.Complex.Basic
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.NormNum.RealSqrt
-import Mathlib.Tactic.Positivity
+module
+
+public import Qatlib.Concepts.WalkFind.UniqueCollision.WalkUnitaryStat
+public import Qatlib.Concepts.WalkFind.WalkSpectrum.BlockUnitary
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.NormNum.RealSqrt
+public import Mathlib.Tactic.Positivity
+
+@[expose] public section
 
 /-!
 # Reality and conditional unitarity of the Johnson walk

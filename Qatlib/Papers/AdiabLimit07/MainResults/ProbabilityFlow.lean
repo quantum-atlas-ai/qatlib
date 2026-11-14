@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.Calculus
-import Qatlib.Papers.AdiabLimit07.MainResults.CharacterBounds
+module
+
+public import Mathlib.Analysis.InnerProductSpace.Calculus
+public import Qatlib.Papers.AdiabLimit07.MainResults.CharacterBounds
+
+@[expose] public section
 
 /-!
 # Probability flow for interpolated Hamiltonians
@@ -317,11 +321,11 @@ theorem genHamiltonian_offdiag_bound {q p : ℕ} (F : Fin (q + 1) → ℝ)
   set N : ℝ := (((2 : ℕ) ^ n : ℝ)) with hNN
   have hH1 : computationalHamiltonian E pIdx x y = 0 := by
     unfold computationalHamiltonian
-    rw [Matrix.diagonal_apply, if_neg hxy]
+    rw [Matrix.diagonal_apply, ite_eq_right hxy]
   have hH0eq : hadamardHamiltonian F qIdx x y
       = -(Nc⁻¹) * (∑ k : Fin (q + 1),
           ((F K - F k : ℝ) : ℂ) * ∑ z ∈ qBlock qIdx k, walshChar z x y) := by
-    rw [hadamardHamiltonian_entry F qIdx K x y, if_neg hxy]
+    rw [hadamardHamiltonian_entry F qIdx K x y, ite_eq_right hxy]
     ring
   have hNcnorm : ‖Nc⁻¹‖ = N⁻¹ := by
     have hcast : Nc = ((N : ℝ) : ℂ) := by rw [hNc, hNN]; push_cast; norm_num

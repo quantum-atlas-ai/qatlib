@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ThermalRate98.MainResults.SplitOperator
-import Qatlib.Concepts.QftPreparation.LocalQft
+module
+
+public import Qatlib.Papers.ThermalRate98.MainResults.SplitOperator
+public import Qatlib.Concepts.QftPreparation.LocalQft
+
+@[expose] public section
 
 /-!
 # Chirp propagation as a diagonal Fourier circuit

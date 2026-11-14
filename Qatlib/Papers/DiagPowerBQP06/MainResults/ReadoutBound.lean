@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Algebra.Order.Ring.Abs
-import Mathlib.Algebra.Order.BigOperators.Group.Finset
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Algebra.Order.Ring.Abs
+public import Mathlib.Algebra.Order.BigOperators.Group.Finset
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Readout error and spectral error budgets
@@ -63,7 +67,7 @@ theorem readout_moment_error
     (w : Ω → ℝ) (Z : Ω → ℝ) (lam θ η : ℝ) (m : ℕ)
     (hw : ∀ ω, 0 ≤ w ω) (hsum : ∑ ω, w ω = 1)
     (hZ : ∀ ω, |Z ω| ≤ 1) (hlam : |lam| ≤ 1)
-    (hθ : 0 ≤ θ) (hη : 0 ≤ η)
+    (_hθ : 0 ≤ θ) (hη : 0 ≤ η)
     (hevent : ∑ ω ∈ univ.filter (fun ω => 2 * Real.pi * η ≤ |Z ω - lam|), w ω ≤ θ) :
     |(∑ ω, w ω * (Z ω) ^ m) - lam ^ m| ≤ 2 * θ + (m : ℝ) * (2 * Real.pi * η) := by
   classical
@@ -160,7 +164,7 @@ theorem readout_moment_error
 theorem spectral_triangle_error
     {ι : Type*} [Fintype ι]
     (w E lam : ι → ℝ) (ε : ℝ)
-    (hw : ∀ i, 0 ≤ w i) (hsum : ∑ i, w i = 1) (hε : 0 ≤ ε)
+    (hw : ∀ i, 0 ≤ w i) (hsum : ∑ i, w i = 1) (_hε : 0 ≤ ε)
     (h : ∀ i, |E i - lam i| ≤ ε / 3) :
     |(∑ i, w i * E i) - (∑ i, w i * lam i)| ≤ ε / 3 := by
   have hdiff : (∑ i, w i * E i) - (∑ i, w i * lam i) = ∑ i, w i * (E i - lam i) := by
@@ -189,7 +193,7 @@ theorem spectral_triangle_error
 /-- Three quantities each bounded above by `ε / 3` have sum at most `ε`. See
 [JanzingWocjan2006a]. -/
 theorem total_error_budget {a b c ε : ℝ}
-    (ha : a ≤ ε / 3) (hb : b ≤ ε / 3) (hc : c ≤ ε / 3) (hε : 0 ≤ ε) :
+    (ha : a ≤ ε / 3) (hb : b ≤ ε / 3) (hc : c ≤ ε / 3) (_hε : 0 ≤ ε) :
     a + b + c ≤ ε := by
   linarith
 

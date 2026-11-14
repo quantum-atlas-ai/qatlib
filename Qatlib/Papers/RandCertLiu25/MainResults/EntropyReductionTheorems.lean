@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Real.Basic
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.Positivity
+module
+
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.Positivity
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -52,7 +56,7 @@ the threshold (I.8), then `LLQSV_B(D) ∈ QCAMTIME(2^B n^{O(1)})/O(n)`; the
 membership is the abstract proposition `memQCAM` and `hReduction` is the
 paper's Lemmas 9--17 composition. -/
 theorem theorem8_low_entropy_mlxeb_solves_llqsv
-    (memQCAM : Prop) (B b q eps H : ℝ) (hb : 1 < b)
+    (memQCAM : Prop) (B b q eps H : ℝ) (_hb : 1 < b)
     (hReduction : H < lowEntropyThreshold B b q eps → memQCAM)
     (hLowEntropy : H < lowEntropyThreshold B b q eps) :
     memQCAM :=
@@ -62,7 +66,7 @@ theorem theorem8_low_entropy_mlxeb_solves_llqsv
 reduction, with the same von Neumann-entropy threshold; `q` is now the LXEB
 passing probability of Eq. (I.7). -/
 theorem theorem7_low_entropy_lxeb_solves_llqsv
-    (memQCAM : Prop) (B b q eps H : ℝ) (hb : 1 < b)
+    (memQCAM : Prop) (B b q eps H : ℝ) (_hb : 1 < b)
     (hReduction : H < lowEntropyThreshold B b q eps → memQCAM)
     (hLowEntropy : H < lowEntropyThreshold B b q eps) :
     memQCAM :=

@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.NumberTheory.LegendreSymbol.QuadraticChar.Basic
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic
+module
+
+public import Mathlib.NumberTheory.LegendreSymbol.QuadraticChar.Basic
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Shifted Legendre states and their correlations
@@ -53,7 +57,7 @@ def legendreMatrix : Matrix F F ℤ := fun i j => quadraticChar F (i + j)
 
 /-- The quadratic character vanishes at zero. -/
 theorem legendreSymbol_zero : legendreSymbol (F := F) 0 = 0 := by
-  simpa [legendreSymbol] using quadraticChar_zero (F := F)
+  simp [legendreSymbol]
 
 /-- The quadratic character vanishes exactly at zero. -/
 theorem legendreSymbol_eq_zero_iff (x : F) : legendreSymbol x = 0 ↔ x = 0 :=
@@ -69,7 +73,7 @@ theorem legendreSymbol_sq_one {x : F} (hx : x ≠ 0) : legendreSymbol x ^ 2 = 1 
 
 /-- The quadratic character takes the value one at one. -/
 theorem legendreSymbol_one : legendreSymbol (F := F) 1 = 1 := by
-  simpa [legendreSymbol] using map_one (quadraticChar F)
+  simp [legendreSymbol]
 
 /-- The sum of squares of a shifted quadratic character is `card F - 1`. -/
 theorem fact5_diagonal (s : F) :
@@ -80,7 +84,7 @@ theorem fact5_diagonal (s : F) :
     intro i
     by_cases hi : i + s = 0
     · simp [hi]
-    · rw [if_neg hi, ← pow_two]
+    · rw [ite_eq_right hi, ← pow_two]
       exact quadraticChar_sq_one hi
   rw [Finset.sum_congr rfl (fun i _ => hterm i)]
   have hshift : (∑ i : F, (if i + s = 0 then (0 : ℤ) else 1)) =
@@ -89,7 +93,7 @@ theorem fact5_diagonal (s : F) :
     intro i _
     by_cases h : i = -s
     · have hz : i + s = 0 := by rw [h]; abel
-      simp [h, hz]
+      simp [h]
     · have hz : i + s ≠ 0 := by
         intro hc
         exact h (add_eq_zero_iff_eq_neg.mp hc)
@@ -116,9 +120,9 @@ theorem fact5_nearOrthogonality (hF : ringChar F ≠ 2) (s r : F) :
       if s = r then (Fintype.card F : ℤ) - 1 else -1 := by
   by_cases hsr : s = r
   · subst hsr
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     exact fact5_diagonal s
-  · rw [if_neg hsr]
+  · rw [ite_eq_right hsr]
     set d : F := r - s with hddef
     have hd : d ≠ 0 := by
       simp only [hddef, sub_ne_zero]
@@ -199,7 +203,6 @@ theorem fact5_nearOrthogonality (hF : ringChar F ≠ 2) (s r : F) :
           · intro hcon
             have h1 : d = -d * (b - 1) := by
               have h := congrArg (fun x : F => x * (b - 1)) hcon
-              try simp only at h
               rw [div_mul_cancel₀ d hb1'] at h
               exact h
             have h2 : d * 1 = d * (-(b - 1)) := by
@@ -224,13 +227,13 @@ theorem fact5_nearOrthogonality (hF : ringChar F ≠ 2) (s r : F) :
       have hset : Finset.univ.filter (fun u : F => u ≠ 0 ∧ u ≠ 1) =
           Finset.univ \ ({0, 1} : Finset F) := by
         ext u
-        simp [and_comm]
+        simp
       rw [hset]
       have hsub : ({0, 1} : Finset F) ⊆ Finset.univ := by simp
       have hsd := Finset.sum_sdiff hsub (f := fun u : F => quadraticChar F u)
       have hpair : (∑ x ∈ ({0, 1} : Finset F), quadraticChar F x) = 1 := by
         rw [Finset.sum_insert (by simp), Finset.sum_singleton]
-        simp [quadraticChar_zero]
+        simp
       rw [quadraticChar_sum_zero hF, hpair] at hsd
       linarith
     rw [hfinal]
@@ -251,7 +254,7 @@ def slsState (s : F) : F ⊕ Unit → ℂ :=
     | Sum.inr _ => 1 / (Real.sqrt (Fintype.card F : ℝ) : ℂ)
 
 /-- The sum of the squared amplitudes of `slsState s` is one under the stated field hypotheses. -/
-theorem slsState_norm (hF : ringChar F ≠ 2) (hq : 1 < Fintype.card F) (s : F) :
+theorem slsState_norm (_hF : ringChar F ≠ 2) (hq : 1 < Fintype.card F) (s : F) :
     ∑ x : F ⊕ Unit, slsState s x * slsState s x = 1 := by
   have hq0 : (0 : ℝ) < (Fintype.card F : ℝ) := by exact_mod_cast (Nat.zero_lt_of_lt hq)
   have hqc : ((Real.sqrt (Fintype.card F : ℝ) : ℂ)) ≠ 0 := by
@@ -294,7 +297,7 @@ theorem slsState_orthogonal (hF : ringChar F ≠ 2) (hq : 1 < Fintype.card F)
     rw [← Complex.ofReal_pow, Real.sq_sqrt hq0.le]
     simp
   have hoff := fact5_nearOrthogonality (F := F) hF s r
-  rw [if_neg hsr] at hoff
+  rw [ite_eq_right hsr] at hoff
   have hoffC : (∑ i : F, ((quadraticChar F (i + r) : ℂ) * (quadraticChar F (i + s) : ℂ))) = -1 := by
     have hcast := congrArg (fun z : ℤ => (z : ℂ)) hoff
     push_cast at hcast
@@ -344,9 +347,9 @@ theorem source_theorem2_twoQuerySLS (hF : ringChar F ≠ 2) (hq : 1 < Fintype.ca
   intro s r
   by_cases hsr : s = r
   · subst hsr
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     exact slsState_norm hF hq s
-  · rw [if_neg hsr]
+  · rw [ite_eq_right hsr]
     exact slsState_orthogonal hF hq hsr
 
 end Qatlib.Papers.WeighMatrix00.MainResults

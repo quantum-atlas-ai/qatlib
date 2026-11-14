@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LchsSimulation.KTrapezoid.TrapezoidQuadrature
+module
+
+public import Qatlib.Concepts.LchsSimulation.KTrapezoid.TrapezoidQuadrature
+
+@[expose] public section
 
 /-!
 # Derivative and mass bounds for trapezoidal sources

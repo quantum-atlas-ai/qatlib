@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CoherentSim.TaylorEncoding.TaylorLCUProgram
+module
+
+public import Qatlib.Concepts.CoherentSim.TaylorEncoding.TaylorLCUProgram
+
+@[expose] public section
 
 /-!
 # Explicit coherent Taylor simulation bounds

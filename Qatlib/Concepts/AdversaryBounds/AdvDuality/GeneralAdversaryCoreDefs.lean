@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.WeightedAdvComp
-import Qatlib.Concepts.AdversaryBounds.OptimizedAdv
-import Qatlib.Concepts.GramQueryCore.GammaDuality.FilteredGamma2Value
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.Theorem21RealizedWitnessStat
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.Theorem21StrictSeparationStat
+module
+
+public import Qatlib.Concepts.AdversaryBounds.WeightedAdvComposition
+public import Qatlib.Concepts.AdversaryBounds.OptimizedAdv
+public import Qatlib.Concepts.GramQueryCore.GammaDuality.FilteredGamma2Value
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.Theorem21RealizedWitnessStat
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.Theorem21StrictSeparationStat
+
+@[expose] public section
 
 /-!
 # General adversary and query model definitions
@@ -45,7 +49,7 @@ open Qatlib.Foundations.PureStateMath
 
 open Qatlib.Concepts.AdversaryBounds.AdvDuality.NegativeWeightsMakeAdversariesStronger2006
 open Qatlib.Concepts.AdversaryBounds.OptimizedAdv
-open Qatlib.Concepts.AdversaryBounds.WeightedAdvComp
+open Qatlib.Concepts.AdversaryBounds.WeightedAdvComposition
 open Qatlib.Concepts.GramQueryCore.GammaDuality
 
 namespace Qatlib.Concepts.AdversaryBounds.AdvDuality
@@ -206,7 +210,7 @@ noncomputable def blockCostsPm {k : ℕ} {X : Fin k → Type} {n : Fin k → ℕ
 abbrev composedInput {k : ℕ} {X : Fin k → Type} {n : Fin k → ℕ}
     (gin : ∀ i, X i → Fin (n i) → Bool) :
     ((i : Fin k) → X i) → ((i : Fin k) × Fin (n i)) → Bool :=
-  Qatlib.Concepts.AdversaryBounds.WeightedAdvComp.weightedAdvInput gin
+  Qatlib.Concepts.AdversaryBounds.WeightedAdvComposition.weightedAdvInput gin
 
 /-- Apply each inner Boolean function to its input block and then apply the outer function to
 their outputs. -/
@@ -223,7 +227,7 @@ noncomputable def composedAdversary {k : ℕ} {X : Fin k → Type} [∀ i, Finty
     (Gf : Matrix (Fin k → Bool) (Fin k → Bool) ℂ)
     (Gg : ∀ i, Matrix (X i) (X i) ℂ) :
     Matrix ((i : Fin k) → X i) ((i : Fin k) → X i) ℂ :=
-  Qatlib.Concepts.AdversaryBounds.WeightedAdvComp.weightedAdvGamma g f Gf Gg
+  Qatlib.Concepts.AdversaryBounds.WeightedAdvComposition.weightedAdvGamma g f Gf Gg
 
 /-- Require outer, inner, and generated adversary matrices to be nonzero Hermitian witnesses
 vanishing on equal output pairs. -/

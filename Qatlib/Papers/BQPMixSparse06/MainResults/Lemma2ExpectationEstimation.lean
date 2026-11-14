@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Probability.Moments.SubGaussian
-import Mathlib.MeasureTheory.Measure.Real
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
+module
+
+public import Mathlib.Probability.Moments.SubGaussian
+public import Mathlib.MeasureTheory.Measure.Real
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+
+@[expose] public section
 
 /-!
 # Concentration and expectation error budgets
@@ -82,7 +86,7 @@ theorem hoeffding_two_sided {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
 
   have hsub : {ω | ε ≤ |S ω|} ⊆ {ω | ε ≤ S ω} ∪ {ω | ε ≤ -S ω} := by
     intro ω hω
-    simp only [Set.mem_setOf_eq, Set.mem_union] at hω ⊢
+    simp only [Set.mem_ofPred_eq, Set.mem_union] at hω ⊢
     rcases le_total 0 (S ω) with hpos | hneg
     · left; rwa [abs_of_nonneg hpos] at hω
     · right
@@ -100,7 +104,7 @@ theorem hoeffding_two_sided {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
 a) ^ 2 * log (2 / α) / (2 * ε ^ 2)` makes the stated exponential tail bound at most `α`
 [JanzingWocjan2006]. -/
 theorem lemma2_sample_size_e {a b ε α : ℝ} (hab : a < b) (hε : 0 < ε)
-    (hα : 0 < α) (hα2 : α ≤ 2) {n : ℕ} (h1n : 1 ≤ n)
+    (hα : 0 < α) (_hα2 : α ≤ 2) {n : ℕ} (h1n : 1 ≤ n)
     (hn : (b - a) ^ 2 * Real.log (2 / α) / (2 * ε ^ 2) ≤ n) :
     2 * Real.exp (-(2 * (n : ℝ) * ε ^ 2) / (b - a) ^ 2) ≤ α := by
   have hb : 0 < b - a := by linarith
@@ -164,15 +168,15 @@ theorem lemma2_error_budget (E target M K ε θ η D : ℝ) (hM : 0 ≤ M)
 2][JanzingWocjan2006]. -/
 theorem lemma2_expectation_estimation {Ω : Type*} [MeasurableSpace Ω] {μ : Measure Ω}
     [IsProbabilityMeasure μ] (est : Ω → ℝ) (mean target ε ε₁ α M K : ℝ)
-    (hM : 0 ≤ M) (hK : 0 ≤ K) (hε : 0 ≤ ε)
+    (_hM : 0 ≤ M) (_hK : 0 ≤ K) (_hε : 0 ≤ ε)
     (harith : ε + ε₁ ≤ ε * (M + K)) (hgap : |mean - target| ≤ ε₁)
     (hprob : μ.real {ω | ε ≤ |est ω - mean|} ≤ α) :
     μ.real {ω | ε * (M + K) ≤ |est ω - target|} ≤ α := by
   refine le_trans (measureReal_mono ?_) hprob
   intro ω hω
-  simp only [Set.mem_setOf_eq] at hω ⊢
+  simp only [Set.mem_ofPred_eq] at hω ⊢
   by_contra hcon
-  push_neg at hcon
+  push Not at hcon
   have h1 : |est ω - target| ≤ |est ω - mean| + |mean - target| := by
     have h := abs_add_le (est ω - mean) (mean - target)
     simpa using h

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.ApproxToolkit.DolphWindow
-import Qatlib.Concepts.QsvtCore.ApproxToolkit.QsvtCoreAuxiliary
+module
+
+public import Qatlib.Concepts.QsvtCore.ApproxToolkit.DolphWindow
+public import Qatlib.Concepts.QsvtCore.ApproxToolkit.QsvtCoreAuxiliary
+
+@[expose] public section
 
 /-!
 # Polynomial response moduli and rectangle bands

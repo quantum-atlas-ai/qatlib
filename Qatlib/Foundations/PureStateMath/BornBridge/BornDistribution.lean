@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.BornMetrics.EventProbability
-import Mathlib.Probability.ProbabilityMassFunction.Constructions
-import Qatlib.Foundations.PureStateMath.Qubit
+module
+
+public import Qatlib.Foundations.BornMetrics.EventProbability
+public import Mathlib.Probability.ProbabilityMassFunction.Constructions
+public import Qatlib.Foundations.PureStateMath.Qubit
+
+@[expose] public section
 
 /-!
 # Born probabilities as probability mass functions
@@ -43,6 +47,7 @@ noncomputable def bornDistribution (ψ : QState I) (hψ : Normalized ψ) : PMF I
     have h : (∑ i, BornProb ψ i) = 1 := by simpa [MeasureProb] using measureProb_univ hψ
     rw [h, ENNReal.ofReal_one])
 
+omit [DecidableEq I] in
 /-- The mass of `bornDistribution ψ hψ` at `i` is `ENNReal.ofReal (BornProb ψ i)`. -/
 @[simp] theorem bornDistribution_apply (ψ : QState I) (hψ : Normalized ψ) (i : I) :
     bornDistribution ψ hψ i = ENNReal.ofReal (BornProb ψ i) := rfl
@@ -53,6 +58,7 @@ noncomputable def bornDistribution (ψ : QState I) (hψ : Normalized ψ) : PMF I
   ext j
   by_cases h : i = j <;> simp [bornDistribution_apply, bornProb_ket, PMF.pure_apply, h, eq_comm]
 
+omit [DecidableEq I] in
 /-- The sum of Born-distribution masses over a finite event equals its `MeasureProb` converted
 to `ℝ≥0∞`. -/
 theorem bornDistribution_event (ψ : QState I) (hψ : Normalized ψ) (S : Finset I) :

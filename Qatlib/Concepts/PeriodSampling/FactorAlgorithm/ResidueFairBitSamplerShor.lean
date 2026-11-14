@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.ResidueFairBitSamplerStat
-import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.ResidueAuxiliary
+module
+
+public import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.ResidueFairBitSamplerStat
+public import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.ResidueAuxiliary
+
+@[expose] public section
 
 /-!
 # Fair-bit residue sampler correctness

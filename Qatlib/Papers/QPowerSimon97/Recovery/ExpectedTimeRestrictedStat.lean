@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AbelianDecoders.SimonDecoding.VerifiedSimonRetry
-import Qatlib.Concepts.StoppingCore.BranchCostCore.WeightedUnboundedExecution
+module
+
+public import Qatlib.Concepts.AbelianDecoders.SimonDecoding.VerifiedSimonRetry
+public import Qatlib.Concepts.StoppingCore.BranchCostCore.WeightedUnboundedExecution
+
+@[expose] public section
 
 /-!
 # Statement of restricted expected-time Simon recovery

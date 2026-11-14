@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.StochasticCalc.LognormalPay.Defs
-import Mathlib.Probability.Distributions.Gaussian.Real
-import Mathlib.Analysis.SpecialFunctions.Gaussian.GaussianIntegral
-import Mathlib.MeasureTheory.Integral.IntegralEqImproper
+module
+
+public import Qatlib.Foundations.StochasticCalc.LognormalPay.Defs
+public import Mathlib.Probability.Distributions.Gaussian.Real
+public import Mathlib.Analysis.SpecialFunctions.Gaussian.GaussianIntegral
+public import Mathlib.MeasureTheory.Integral.IntegralEqImproper
+
+@[expose] public section
 
 /-!
 # Gaussian evaluation of the Black-Scholes call price
@@ -309,14 +313,14 @@ lemma call_expectation_gaussian {S0 K r σ T : ℝ}
     · have hge : K ≤ terminalLevel S0 r σ w T :=
         (terminalLevel_ge_iff_threshold hS0 hK hσ).mpr h
       have hnonneg : 0 ≤ terminalLevel S0 r σ w T - K := by linarith
-      simp only [h, if_true, callPayoff]
+      simp only [h, ite_true, callPayoff]
       rw [max_eq_left hnonneg]
     · have hlt : ¬ K ≤ terminalLevel S0 r σ w T :=
         fun hge => h ((terminalLevel_ge_iff_threshold hS0 hK hσ).mp hge)
       have hnonpos : terminalLevel S0 r σ w T - K ≤ 0 := by
         have := not_le.mp hlt
         linarith
-      simp only [h, if_false, callPayoff]
+      simp only [h, ite_false, callPayoff]
       rw [max_eq_right hnonpos]
       ring
   simp_rw [hsplit]

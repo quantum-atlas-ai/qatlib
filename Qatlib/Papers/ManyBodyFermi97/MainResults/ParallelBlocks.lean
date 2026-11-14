@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ManyBodyFermi97.MainResults.Defs
-import Qatlib.Papers.ManyBodyFermi97.MainResults.OnsiteWord
-import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+module
+
+public import Qatlib.Papers.ManyBodyFermi97.MainResults.Defs
+public import Qatlib.Papers.ManyBodyFermi97.MainResults.OnsiteWord
+public import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+
+@[expose] public section
 
 /-!
 # Parallel two-level hopping evolution
@@ -59,7 +63,7 @@ def blockU (k : ℕ) (t time : ℝ) : Matrix (Bool × Fin k) (Bool × Fin k) ℂ
 evolutions. -/
 theorem block_evolution (k : ℕ) (t time : ℝ) :
     HamiltonianEvolution (blockH k t) time = blockU k t time := by
-  letI : NormedAlgebra ℚ (Matrix Bool Bool ℂ) := .restrictScalars ℚ ℂ _
+  let _ : NormedAlgebra ℚ (Matrix Bool Bool ℂ) := .restrictScalars ℚ ℂ _
   unfold blockH blockU localU HamiltonianEvolution
   rw [← Matrix.blockDiagonal_smul,Matrix.exp_blockDiagonal]
   congr 1
@@ -118,7 +122,7 @@ theorem site_injective (k : ℕ) : Function.Injective (site (k:=k)) := by
   rcases x with ⟨b,a⟩
   rcases y with ⟨d,c⟩
   cases b <;> cases d <;>
-    simp only [site,Bool.false_eq_true,if_false,if_true] at hv
+    simp only [site,Bool.false_eq_true,ite_false,ite_true] at hv
   all_goals first | omega | (have hac : a=c := Fin.ext (by omega); subst c; rfl)
 
 /-- Every site of an even chain is represented by a block and parity index. -/
@@ -127,9 +131,9 @@ theorem site_surjective (k : ℕ) : Function.Surjective (site (k:=k)) := by
   have hq : i.val/2<k := by have h:=i.isLt; omega
   refine ⟨(decide (i.val%2=1),⟨i.val/2,hq⟩),Fin.ext ?_⟩
   by_cases h : i.val%2=1
-  · simp only [site,h,decide_true,if_true]
+  · simp only [site,h,decide_true,ite_true]
     omega
-  · simp only [site,h,decide_false,Bool.false_eq_true,if_false]
+  · simp only [site,h,decide_false,Bool.false_eq_true,ite_false]
     omega
 
 /-- The equivalence between block and parity labels and the `2 * k` chain sites.

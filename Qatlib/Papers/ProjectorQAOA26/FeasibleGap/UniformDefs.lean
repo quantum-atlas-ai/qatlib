@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ProjectorQAOA26.StageStability.CoherentReplay
-import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.OrderedSpectralPerturbation
+module
+
+public import Qatlib.Papers.ProjectorQAOA26.StageStability.CoherentReplay
+public import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.OrderedSpectralPerturbation
+
+@[expose] public section
 
 /-!
 # Uniform-reference Hamiltonians and minimum spectral gaps

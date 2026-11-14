@@ -4,17 +4,21 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.ENNReal.Basic
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Positivity
-import Lean.Elab.Tactic.Omega
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
-import Qatlib.Concepts.AmplitudeSearch.Amplification.ClockBounds
-import Qatlib.Concepts.AmplitudeSearch.Amplification.ChargedClock
-import Qatlib.Concepts.AmplitudeSearch.Amplification.NativeMinimumConstruction
-import Qatlib.Concepts.AmplitudeSearch.Amplification.NativeMinimumSourceCalibration
-import Qatlib.Concepts.AmplitudeSearch.Amplification.SearchStoppingDefs
+module
+
+public import Mathlib.Basic.ENNReal.Basic
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Positivity
+public import Lean.Elab.Tactic.Omega
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.ClockBounds
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.ChargedClock
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.NativeMinimumConstruction
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.NativeMinimumSourceCalibration
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.SearchStoppingDefs
+
+@[expose] public section
 
 /-!
 # Execution outcomes and resource accounting

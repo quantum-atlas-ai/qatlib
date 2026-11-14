@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.KikuchiMaxCut26.MainResults.Definitions
-import Mathlib.Analysis.Matrix.Spectrum
-import Mathlib.Analysis.Matrix.Order
-import Mathlib.Analysis.Matrix.PosDef
-import Mathlib.Analysis.InnerProductSpace.PiL2
+module
+
+public import Qatlib.Papers.KikuchiMaxCut26.MainResults.Definitions
+public import Mathlib.Analysis.Matrix.Spectrum
+public import Mathlib.Analysis.Matrix.Order
+public import Mathlib.Analysis.Matrix.PosDef
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -64,7 +68,7 @@ theorem dotProduct_mulVec_le_lamMax (A : Matrix ι ι ℝ) (hA : A.IsHermitian) 
     x ⬝ᵥ (A *ᵥ x) ≤ lamMax A hA * (x ⬝ᵥ x) := by
   classical
   rcases isEmpty_or_nonempty ι with hι | hι
-  · haveI := hι
+  · have := hι
     have hx : x = 0 := funext (fun i => isEmptyElim i)
     rw [hx]
     simp [lamMax]
@@ -84,7 +88,7 @@ theorem dotProduct_mulVec_le_lamMax (A : Matrix ι ι ℝ) (hA : A.IsHermitian) 
       have h1 : x ⬝ᵥ (A *ᵥ x) = inner ℝ v (T v) := by
         have hto : T v = WithLp.toLp 2 (A *ᵥ x) := rfl
         rw [hto, EuclideanSpace.inner_toLp_toLp]
-        simp [v, star_trivial, dotProduct_comm]
+        simp [star_trivial, dotProduct_comm]
       rw [h1]
       calc inner ℝ v (T v) = ∑ i, inner ℝ v (b i) * inner ℝ (b i) (T v) :=
               (b.sum_inner_mul_inner v (T v)).symm
@@ -117,7 +121,7 @@ theorem dotProduct_mulVec_le_lamMax (A : Matrix ι ι ℝ) (hA : A.IsHermitian) 
         _ = inner ℝ v v := b.sum_inner_mul_inner v v
         _ = x ⬝ᵥ x := by
               rw [EuclideanSpace.inner_toLp_toLp]
-              simp [v, star_trivial]
+              simp [star_trivial]
     calc x ⬝ᵥ (A *ᵥ x) = ∑ i, lam i * (b.repr v i) ^ 2 := hquad
       _ ≤ lam ⟨0, Nat.pos_of_ne_zero hcard⟩ * ∑ i, (b.repr v i) ^ 2 := by
             rw [Finset.mul_sum]
@@ -136,7 +140,7 @@ theorem lamMin_le_dotProduct_mulVec (A : Matrix ι ι ℝ) (hA : A.IsHermitian) 
     lamMin A hA * (x ⬝ᵥ x) ≤ x ⬝ᵥ (A *ᵥ x) := by
   classical
   rcases isEmpty_or_nonempty ι with hι | hι
-  · haveI := hι
+  · have := hι
     have hx : x = 0 := funext (fun i => isEmptyElim i)
     rw [hx]
     simp [lamMin]
@@ -256,7 +260,7 @@ theorem lamMax_mono {A B : Matrix ι ι ℝ} (hA : A.IsHermitian) (hB : B.IsHerm
     (hAB : (B - A).PosSemidef) : lamMax A hA ≤ lamMax B hB := by
   classical
   rcases isEmpty_or_nonempty ι with hι | hι
-  · haveI := hι
+  · have := hι
     simp [lamMax]
   · have hcard : Fintype.card ι ≠ 0 := Fintype.card_ne_zero
     obtain ⟨x, hx1, hxA⟩ := exists_eigenvector_lamMax A hA hcard
@@ -275,7 +279,7 @@ theorem lamMin_mono {A B : Matrix ι ι ℝ} (hA : A.IsHermitian) (hB : B.IsHerm
     (hAB : (B - A).PosSemidef) : lamMin A hA ≤ lamMin B hB := by
   classical
   rcases isEmpty_or_nonempty ι with hι | hι
-  · haveI := hι
+  · have := hι
     simp [lamMin]
   · have hcard : Fintype.card ι ≠ 0 := Fintype.card_ne_zero
     obtain ⟨x, hx1, hxB⟩ := exists_eigenvector_lamMin B hB hcard

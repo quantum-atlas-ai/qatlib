@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Data.Nat.Choose.Basic
-import Mathlib.Analysis.Calculus.Deriv.MeanValue
-import Mathlib.Analysis.SpecialFunctions.Log.Deriv
-import Qatlib.Papers.SwitchAdiab12.MainResults.SourceLemmaV1
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Data.Nat.Choose.Basic
+public import Mathlib.Analysis.Calculus.Deriv.MeanValue
+public import Mathlib.Analysis.SpecialFunctions.Log.Deriv
+public import Qatlib.Papers.SwitchAdiab12.MainResults.SourceLemmaV1
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

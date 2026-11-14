@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.NumberTheory.Harmonic.Bounds
-import Mathlib.Analysis.Real.Pi.Bounds
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
-import Qatlib.Papers.QLearningGeom03.MainResults.GroupAlgebraAbs
-import Qatlib.Papers.QLearningGeom03.MainResults.AmplitudeAmplification
-import Qatlib.Papers.QLearningGeom03.MainResults.ShipSine
+module
+
+public import Mathlib.NumberTheory.Harmonic.Bounds
+public import Mathlib.Analysis.Real.Pi.Bounds
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+public import Qatlib.Papers.QLearningGeom03.MainResults.GroupAlgebraAbs
+public import Qatlib.Papers.QLearningGeom03.MainResults.AmplitudeAmplification
+public import Qatlib.Papers.QLearningGeom03.MainResults.ShipSine
+
+@[expose] public section
 
 /-!
 # Spectral and query bounds for battleship learning
@@ -635,12 +639,14 @@ lemma shipWindow_shift_inj {r : ℕ} (h : 2 * r + 1 ≤ N) {t t' : ℕ}
   have hmod := (ZMod.natCast_eq_natCast_iff t t' N).mp hcast
   exact Nat.ModEq.eq_of_lt_of_lt hmod (by omega) (by omega)
 
+omit [NeZero N] in
 /-- The left endpoint -r belongs to the cyclic ship window. -/
 lemma neg_r_mem_window (r : ℕ) :
     -((r : ℕ) : ZMod N) ∈ shipWindow (N := N) r := by
   rw [mem_shipWindow_iff]
   exact ⟨0, by omega, by simp⟩
 
+omit [NeZero N] in
 /-- If 2r + 1 < N, the residue -(r + 1) does not belong to the ship window. -/
 lemma neg_succ_r_not_mem_window {r : ℕ} (h : 2 * r + 1 < N) :
     -(((r + 1 : ℕ)) : ZMod N) ∉ shipWindow (N := N) r := by
@@ -659,6 +665,7 @@ lemma neg_succ_r_not_mem_window {r : ℕ} (h : 2 * r + 1 < N) :
   have hdvd : N ∣ t + 1 := (ZMod.natCast_eq_zero_iff (t + 1) N).mp hcast
   exact absurd (Nat.le_of_dvd hpos hdvd) (by omega)
 
+omit [NeZero N] in
 /-- If 2r + 1 < N, two battleship value oracles agree everywhere exactly when the second oracle
 takes values 1 and 0 at the two stated boundary queries. This is the oracle-equivalence
 criterion used in [HunzikerEtAl2003]. -/

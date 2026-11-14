@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GramQueryCore.FilteredNorm.FilteredNormCompositionAndProductsStat
-import Qatlib.Concepts.GramQueryCore.FilteredNorm.FilteredNormClosureLawsQuan
-import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+module
+
+public import Qatlib.Concepts.GramQueryCore.FilteredNorm.FilteredNormCompositionAndProductsStat
+public import Qatlib.Concepts.GramQueryCore.FilteredNorm.FilteredNormClosureLawsQuan
+public import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+
+@[expose] public section
 
 /-!
 # Composition and products of filtered norms

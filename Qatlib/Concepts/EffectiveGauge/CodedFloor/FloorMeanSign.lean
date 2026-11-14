@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorLiftConnection
-import Qatlib.Concepts.EffectiveGauge.RationalFlow.SourceMeanBound
-import Qatlib.Concepts.EffectiveGauge.RationalFlow.MeanIntegral
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
-import Mathlib.MeasureTheory.Integral.Regular
+module
+
+public import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorLiftConnection
+public import Qatlib.Concepts.EffectiveGauge.RationalFlow.SourceMeanBound
+public import Qatlib.Concepts.EffectiveGauge.RationalFlow.MeanIntegral
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+public import Mathlib.MeasureTheory.Integral.Regular
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

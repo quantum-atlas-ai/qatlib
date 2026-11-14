@@ -4,12 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
-import Qatlib.Foundations.PureStateMath.MixedState
-import Qatlib.Concepts.AdaptiveCP.BranchTrace.QuantumChannel
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.StoppingReferenceTransport
-import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
-import Qatlib.Concepts.ZeroCostLimit.FirstHitMass.ZeroCostLimitDefs
+module
+
+public import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
+public import Qatlib.Foundations.PureStateMath.MixedState
+public import Qatlib.Concepts.AdaptiveCP.BranchTrace.QuantumChannel
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.StoppingReferenceTransport
+public import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+public import Qatlib.Concepts.ZeroCostLimit.FirstHitMass.ZeroCostLimitDefs
+
+@[expose] public section
+set_option linter.unusedVariables false
+set_option linter.unusedSectionVars false
 
 /-!
 # Joint stopping maps, costs, and terminal measurements

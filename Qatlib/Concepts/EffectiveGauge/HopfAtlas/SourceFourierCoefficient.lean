@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.TorusFourier.FourierSummability
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.CachedReferencePreparation
+module
+
+public import Qatlib.Concepts.EffectiveGauge.TorusFourier.FourierSummability
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.CachedReferencePreparation
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

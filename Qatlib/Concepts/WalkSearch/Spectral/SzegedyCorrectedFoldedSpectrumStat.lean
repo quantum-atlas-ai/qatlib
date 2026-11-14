@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.FrameSpectral.BipartiteSpectralFolding
-import Qatlib.Concepts.WalkSearch.Spectral.BipartiteTauCorrespondenceConsumers
+module
+
+public import Qatlib.Concepts.WalkSearch.FrameSpectral.BipartiteSpectralFolding
+public import Qatlib.Concepts.WalkSearch.Spectral.BipartiteTauCorrespondenceConsumers
+
+@[expose] public section
 
 /-!
 # Folded-spectrum contract for corrected marked walks

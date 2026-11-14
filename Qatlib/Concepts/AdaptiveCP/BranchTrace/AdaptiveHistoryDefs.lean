@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
-import Mathlib.Data.Vector.Basic
+module
+
+public import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
+public import Mathlib.Data.Vector.Basic
+
+@[expose] public section
 
 /-!
 # Adaptive branch histories and accumulated charges

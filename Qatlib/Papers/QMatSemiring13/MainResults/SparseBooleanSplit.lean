@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QMatSemiring13.MainResults.MatrixProductDefs
-import Mathlib.Data.Finset.Card
+module
+
+public import Qatlib.Papers.QMatSemiring13.MainResults.MatrixProductDefs
+public import Mathlib.Data.Finset.Card
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

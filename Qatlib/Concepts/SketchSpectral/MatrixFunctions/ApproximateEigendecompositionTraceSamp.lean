@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SketchSpectral.MatrixFunctions.ApproximateEigendecompositionTraceStat
-import Qatlib.Concepts.SketchSpectral.MatrixFunctions.GibbsTracePerturbationSamp
+module
+
+public import Qatlib.Concepts.SketchSpectral.MatrixFunctions.ApproximateEigendecompositionTraceStat
+public import Qatlib.Concepts.SketchSpectral.MatrixFunctions.GibbsTracePerturbationSamp
+
+@[expose] public section
 
 /-!
 # Trace estimates from approximate eigendecompositions

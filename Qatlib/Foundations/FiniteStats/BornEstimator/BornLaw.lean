@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.FiniteStats.BornEstimator.FiniteLaw
-import QuantumInfo.Measurements.POVM
+module
+
+public import Qatlib.Foundations.FiniteStats.BornEstimator.FiniteLaw
+public import QuantumInfo.Measurements.POVM
+
+@[expose] public section
 
 /-!
 # Born laws and unbiased inclusion-weighted scores

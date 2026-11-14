@@ -28,8 +28,12 @@ This file formalizes the symmetrization machinery behind Proposition 7:
   `max` over `Γs(S)` is restated through these witnesses since the
   existence of the maximum is not formalized here).
 -/
-import Qatlib.Papers.UnambigMeas25.MainResults.Preliminaries
-import Mathlib.Data.Complex.BigOperators
+module
+
+public import Qatlib.Papers.UnambigMeas25.MainResults.Preliminaries
+public import Mathlib.Basic.Complex.BigOperators
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -313,8 +317,8 @@ theorem symmetrize_isPOVM {n : ℕ} {F : Idx n → Matrix (F2Vec n) (F2Vec n) �
       rw [h1ii]
       simp
     · have h0 : ((1 : Matrix (F2Vec n) (F2Vec n) ℂ) x y) = 0 := by
-        rw [Matrix.one_apply, if_neg hij]
-      rw [h0, if_neg hij]
+        rw [Matrix.one_apply, ite_eq_right hij]
+      rw [h0, ite_eq_right hij]
       simp
 
 /-- Shifts act on symmetric state families by relabeling. -/

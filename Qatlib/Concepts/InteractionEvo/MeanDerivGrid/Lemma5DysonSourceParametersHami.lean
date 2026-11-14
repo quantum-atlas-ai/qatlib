@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.InteractionEvo.MeanDerivGrid.Lemma5DysonSourceParametersStat
-import Qatlib.Concepts.InteractionEvo.MeanDerivGrid.Lemma5DysonTruncationHami
+module
+
+public import Qatlib.Concepts.InteractionEvo.MeanDerivGrid.Lemma5DysonSourceParametersStat
+public import Qatlib.Concepts.InteractionEvo.MeanDerivGrid.Lemma5DysonTruncationHami
+
+@[expose] public section
 
 /-!
 # Sufficient parameters for Dyson grid approximation

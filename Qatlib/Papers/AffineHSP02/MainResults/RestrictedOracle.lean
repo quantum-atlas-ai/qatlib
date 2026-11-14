@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Algebra.Group.Subgroup.Basic
-import Mathlib.Algebra.Group.Subgroup.Finite
-import Mathlib.GroupTheory.OrderOfElement
-import Mathlib.GroupTheory.Index
-import Mathlib.Tactic
-import Qatlib.Papers.AffineHSP02.MainResults.QHedralConjugates
+module
+
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Algebra.Group.Subgroup.Basic
+public import Mathlib.Algebra.Group.Subgroup.Finite
+public import Mathlib.GroupTheory.OrderOfElement
+public import Mathlib.GroupTheory.Index
+public import Mathlib.Tactic
+public import Qatlib.Papers.AffineHSP02.MainResults.QHedralConjugates
+
+@[expose] public section
 
 /-!
 # Restricting hidden-subgroup oracles by kernels

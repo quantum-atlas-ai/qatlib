@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.QuantumAccess.CappedGeometricSearch
+module
+
+public import Qatlib.Concepts.WalkSearch.QuantumAccess.CappedGeometricSearch
+
+@[expose] public section
 
 /-!
 # Failure and resource bounds for geometric search

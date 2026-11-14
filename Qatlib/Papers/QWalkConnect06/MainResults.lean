@@ -4,117 +4,121 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ChannelTheory.Stinespring.ShadowEstimator
-import Mathlib.Algebra.Algebra.Basic
-import Mathlib.Algebra.Algebra.Defs
-import Mathlib.Algebra.BigOperators.Fin
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Defs
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Algebra.CharP.Defs
-import Mathlib.Algebra.CharZero.Defs
-import Mathlib.Algebra.Field.Defs
-import Mathlib.Algebra.Group.Action.Defs
-import Mathlib.Algebra.Group.Action.Pi
-import Mathlib.Algebra.Group.Basic
-import Mathlib.Algebra.Group.Defs
-import Mathlib.Algebra.Group.DivInvMonoid
-import Mathlib.Algebra.Group.Fin.Tuple
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.Group.Pi.Basic
-import Mathlib.Algebra.Group.Semigroup
-import Mathlib.Algebra.GroupWithZero.Action.Defs
-import Mathlib.Algebra.GroupWithZero.Basic
-import Mathlib.Algebra.GroupWithZero.Defs
-import Mathlib.Algebra.GroupWithZero.NeZero
-import Mathlib.Algebra.GroupWithZero.Units.Basic
-import Mathlib.Algebra.Module.Defs
-import Mathlib.Algebra.NeZero
-import Mathlib.Algebra.Notation.Defs
-import Mathlib.Algebra.Notation.Pi.Defs
-import Mathlib.Algebra.Order.Archimedean.Real.Basic
-import Mathlib.Algebra.Order.Floor.Defs
-import Mathlib.Algebra.Ring.Basic
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Algebra.Ring.Int.Defs
-import Mathlib.Algebra.Ring.Nat
-import Mathlib.Analysis.CStarAlgebra.Classes
-import Mathlib.Analysis.Calculus.Deriv.Add
-import Mathlib.Analysis.Calculus.Deriv.Basic
-import Mathlib.Analysis.Calculus.Deriv.Mul
-import Mathlib.Analysis.Calculus.Deriv.Pow
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Analysis.Complex.Exponential
-import Mathlib.Analysis.Complex.Norm
-import Mathlib.Analysis.Complex.RealDeriv
-import Mathlib.Analysis.Complex.Trigonometric
-import Mathlib.Analysis.InnerProductSpace.Basic
-import Mathlib.Analysis.InnerProductSpace.Defs
-import Mathlib.Analysis.LocallyConvex.AbsConvexOpen
-import Mathlib.Analysis.LocallyConvex.WithSeminorms
-import Mathlib.Analysis.Matrix.Normed
-import Mathlib.Analysis.Normed.Field.Basic
-import Mathlib.Analysis.Normed.Group.Defs
-import Mathlib.Analysis.Normed.Group.Uniform
-import Mathlib.Analysis.Normed.Module.Basic
-import Mathlib.Analysis.Normed.Ring.Basic
-import Mathlib.Analysis.RCLike.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Deriv
-import Mathlib.Basic.Complex.Basic
-import Mathlib.Basic.FunLike.Basic
-import Mathlib.Basic.FunLike.Equiv
-import Mathlib.Basic.Real.Basic
-import Mathlib.Basic.SetLike.Basic
-import Mathlib.Data.Fin.VecNotation
-import Mathlib.Data.Finset.Basic
-import Mathlib.Data.Finset.Defs
-import Mathlib.Data.Finset.Insert
-import Mathlib.Data.Fintype.Basic
-import Mathlib.Data.Fintype.Defs
-import Mathlib.Data.Fintype.Prod
-import Mathlib.Data.Int.Cast.Defs
-import Mathlib.Data.Matrix.Diagonal
-import Mathlib.Data.Matrix.Mul
-import Mathlib.Data.Nat.Cast.Defs
-import Mathlib.Data.Nat.Init
-import Mathlib.Data.Set.Defs
-import Mathlib.Data.ZMod.Defs
-import Mathlib.LinearAlgebra.Complex.Module
-import Mathlib.LinearAlgebra.Matrix.Defs
-import Mathlib.LinearAlgebra.Matrix.Kronecker
-import Mathlib.LinearAlgebra.Matrix.Notation
-import Mathlib.Logic.Equiv.Defs
-import Mathlib.Order.Defs.PartialOrder
-import Mathlib.Order.Filter.Basic
-import Mathlib.Order.Filter.Defs
-import Mathlib.Order.Filter.Tendsto
-import Mathlib.Order.Interval.Set.Defs
-import Mathlib.RingTheory.SimpleRing.Basic
-import Mathlib.RingTheory.SimpleRing.Principal
-import Mathlib.Tactic
-import Mathlib.Tactic.FieldSimp.Lemmas
-import Mathlib.Tactic.NormNum.Basic
-import Mathlib.Tactic.NormNum.Eq
-import Mathlib.Tactic.NormNum.Inv
-import Mathlib.Tactic.NormNum.Result
-import Mathlib.Tactic.Ring.Basic
-import Mathlib.Tactic.Ring.Common
-import Mathlib.Tactic.Ring.RingNF
-import Mathlib.Topology.Algebra.Group.ContinuousDiv
-import Mathlib.Topology.Algebra.Group.Defs
-import Mathlib.Topology.Algebra.Monoid.Defs
-import Mathlib.Topology.Algebra.Ring.Basic
-import Mathlib.Topology.Algebra.Ring.Real
-import Mathlib.Topology.Basic
-import Mathlib.Topology.Continuous
-import Mathlib.Topology.Defs.Basic
-import Mathlib.Topology.Defs.Filter
-import Mathlib.Topology.Instances.Matrix
-import Mathlib.Topology.MetricSpace.Algebra
-import Mathlib.Topology.MetricSpace.Pseudo.Defs
-import Mathlib.Topology.NhdsWithin
-import Mathlib.Topology.UniformSpace.Defs
+module
+
+public import Qatlib.Concepts.ChannelTheory.Stinespring.ShadowEstimator
+public import Mathlib.Algebra.Algebra.Basic
+public import Mathlib.Algebra.Algebra.Defs
+public import Mathlib.Algebra.BigOperators.Fin
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Defs
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Algebra.CharP.Defs
+public import Mathlib.Algebra.CharZero.Defs
+public import Mathlib.Algebra.Field.Defs
+public import Mathlib.Algebra.Group.Action.Defs
+public import Mathlib.Algebra.Group.Action.Pi
+public import Mathlib.Algebra.Group.Basic
+public import Mathlib.Algebra.Group.Defs
+public import Mathlib.Algebra.Group.DivInvMonoid
+public import Mathlib.Algebra.Group.Fin.Tuple
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.Group.Pi.Basic
+public import Mathlib.Algebra.Group.Semigroup
+public import Mathlib.Algebra.GroupWithZero.Action.Defs
+public import Mathlib.Algebra.GroupWithZero.Basic
+public import Mathlib.Algebra.GroupWithZero.Defs
+public import Mathlib.Algebra.GroupWithZero.NeZero
+public import Mathlib.Algebra.GroupWithZero.Units.Basic
+public import Mathlib.Algebra.Module.Defs
+public import Mathlib.Algebra.NeZero
+public import Mathlib.Algebra.Notation.Defs
+public import Mathlib.Algebra.Notation.Pi.Defs
+public import Mathlib.Algebra.Order.Archimedean.Real.Basic
+public import Mathlib.Algebra.Order.Floor.Defs
+public import Mathlib.Algebra.Ring.Basic
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Algebra.Ring.Int.Defs
+public import Mathlib.Algebra.Ring.Nat
+public import Mathlib.Analysis.CStarAlgebra.Classes
+public import Mathlib.Analysis.Calculus.Deriv.Add
+public import Mathlib.Analysis.Calculus.Deriv.Basic
+public import Mathlib.Analysis.Calculus.Deriv.Mul
+public import Mathlib.Analysis.Calculus.Deriv.Pow
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Analysis.Complex.Exponential
+public import Mathlib.Analysis.Complex.Norm
+public import Mathlib.Analysis.Complex.RealDeriv
+public import Mathlib.Analysis.Complex.Trigonometric
+public import Mathlib.Analysis.InnerProductSpace.Basic
+public import Mathlib.Analysis.InnerProductSpace.Defs
+public import Mathlib.Analysis.LocallyConvex.AbsConvexOpen
+public import Mathlib.Analysis.LocallyConvex.WithSeminorms
+public import Mathlib.Analysis.Matrix.Normed
+public import Mathlib.Analysis.Normed.Field.Basic
+public import Mathlib.Analysis.Normed.Group.Defs
+public import Mathlib.Analysis.Normed.Group.Uniform
+public import Mathlib.Analysis.Normed.Module.Basic
+public import Mathlib.Analysis.Normed.Ring.Basic
+public import Mathlib.Analysis.RCLike.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Deriv
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Basic.FunLike.Basic
+public import Mathlib.Basic.FunLike.Equiv
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Basic.SetLike.Basic
+public import Mathlib.Data.Fin.VecNotation
+public import Mathlib.Data.Finset.Basic
+public import Mathlib.Data.Finset.Defs
+public import Mathlib.Data.Finset.Insert
+public import Mathlib.Data.Fintype.Basic
+public import Mathlib.Data.Fintype.Defs
+public import Mathlib.Data.Fintype.Prod
+public import Mathlib.Data.Int.Cast.Defs
+public import Mathlib.Data.Matrix.Diagonal
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.Data.Nat.Cast.Defs
+public import Mathlib.Data.Nat.Init
+public import Mathlib.Data.Set.Defs
+public import Mathlib.Data.ZMod.Defs
+public import Mathlib.LinearAlgebra.Complex.Module
+public import Mathlib.LinearAlgebra.Matrix.Defs
+public import Mathlib.LinearAlgebra.Matrix.Kronecker
+public import Mathlib.LinearAlgebra.Matrix.Notation
+public import Mathlib.Logic.Equiv.Defs
+public import Mathlib.Order.Defs.PartialOrder
+public import Mathlib.Order.Filter.Basic
+public import Mathlib.Order.Filter.Defs
+public import Mathlib.Order.Filter.Tendsto
+public import Mathlib.Order.Interval.Set.Defs
+public import Mathlib.RingTheory.SimpleRing.Basic
+public import Mathlib.RingTheory.SimpleRing.Principal
+public import Mathlib.Tactic
+public import Mathlib.Tactic.FieldSimp.Lemmas
+public import Mathlib.Tactic.NormNum.Basic
+public import Mathlib.Tactic.NormNum.Eq
+public import Mathlib.Tactic.NormNum.Inv
+public import Mathlib.Tactic.NormNum.Result
+public import Mathlib.Tactic.Ring.Basic
+public import Mathlib.Tactic.Ring.Common
+public import Mathlib.Tactic.Ring.RingNF
+public import Mathlib.Topology.Algebra.Group.ContinuousDiv
+public import Mathlib.Topology.Algebra.Group.Defs
+public import Mathlib.Topology.Algebra.Monoid.Defs
+public import Mathlib.Topology.Algebra.Ring.Basic
+public import Mathlib.Topology.Algebra.Ring.Real
+public import Mathlib.Topology.Basic
+public import Mathlib.Topology.Continuous
+public import Mathlib.Topology.Defs.Basic
+public import Mathlib.Topology.Defs.Filter
+public import Mathlib.Topology.Instances.Matrix
+public import Mathlib.Topology.MetricSpace.Algebra
+public import Mathlib.Topology.MetricSpace.Pseudo.Defs
+public import Mathlib.Topology.NhdsWithin
+public import Mathlib.Topology.UniformSpace.Defs
+
+@[expose] public section
 
 /-!
 # Discrete and continuous quantum walk identities
@@ -160,19 +164,19 @@ abbrev M2 : Type := Matrix (Fin 2) (Fin 2) ℂ
 lemma pauliX_sq : pauliX * pauliX = (1 : M2) := by
   ext i j
   fin_cases i <;> fin_cases j <;>
-    simp [pauliX, Matrix.mul_apply, Fin.sum_univ_two, Matrix.one_apply]
+    simp [pauliX, Matrix.mul_apply, Fin.sum_univ_two]
 
 /-- The Pauli matrix `pauliY` squares to the identity. -/
 lemma pauliY_sq : pauliY * pauliY = (1 : M2) := by
   ext i j
   fin_cases i <;> fin_cases j <;>
-    simp [pauliY, Matrix.mul_apply, Fin.sum_univ_two, Matrix.one_apply, Complex.I_sq]
+    simp [pauliY, Matrix.mul_apply, Fin.sum_univ_two]
 
 /-- The Pauli matrix `pauliZ` squares to the identity. -/
 lemma pauliZ_sq : pauliZ * pauliZ = (1 : M2) := by
   ext i j
   fin_cases i <;> fin_cases j <;>
-    simp [pauliZ, Matrix.mul_apply, Fin.sum_univ_two, Matrix.one_apply]
+    simp [pauliZ, Matrix.mul_apply, Fin.sum_univ_two]
 
 /-- The complex phase `exp (k * I)` for a real parameter `k`. -/
 def phase (k : ℝ) : ℂ := Complex.exp ((k : ℂ) * Complex.I)
@@ -265,7 +269,7 @@ lemma rotX_apply (θ : ℝ) :
                   -(Complex.sin ((θ : ℂ)) * Complex.I), Complex.cos ((θ : ℂ))] := by
   ext i j
   fin_cases i <;> fin_cases j <;>
-    simp [rotX, pauliX, Matrix.one_apply] <;> ring
+    simp [rotX, pauliX]
 
 /-- The matrix `diagZ k` is diagonal with entries `phase (-k)` and `phase k`. -/
 lemma diagZ_apply (k : ℝ) : diagZ k = !![phase (-k), 0; 0, phase k] := by
@@ -273,7 +277,7 @@ lemma diagZ_apply (k : ℝ) : diagZ k = !![phase (-k), 0; 0, phase k] := by
   have h2 := phase_neg_eq k
   ext i j
   fin_cases i <;> fin_cases j <;>
-    simp [diagZ, pauliZ, Matrix.one_apply, h1, h2] <;> ring
+    simp [diagZ, pauliZ,  h1, h2]
 
 /-- The two-component walk step has the displayed entries obtained by multiplying the phase
 diagonal by the Pauli-X rotation. See [Strauch2006]. -/
@@ -354,8 +358,7 @@ theorem Ustep_sq_eq (k δ : ℝ) :
   ext i j
   fin_cases i <;> fin_cases j <;>
     simp [Matrix.mul_apply, Fin.sum_univ_two, Matrix.smul_apply, smul_eq_mul,
-      cos_neg_complex, sin_neg_complex, phase_two_mul, phase_two_mul_neg,
-      phase_ne_zero, Complex.ofReal_cos, Complex.ofReal_sin]
+       phase_two_mul, phase_two_mul_neg]
   all_goals ring_nf
   all_goals try simp only [cos_pi_div_two_sub_cast, sin_pi_div_two_sub_cast,
     Complex.ofReal_cos, Complex.ofReal_sin, Complex.I_sq]
@@ -376,8 +379,7 @@ lemma dblLead_expand (k δ : ℝ) :
   ext i j
   fin_cases i <;> fin_cases j <;>
     simp [Matrix.mul_apply, Fin.sum_univ_two, Matrix.smul_apply, Matrix.add_apply,
-      Matrix.one_apply, smul_eq_mul, cos_neg_complex, sin_neg_complex,
-      Complex.ofReal_cos, Complex.ofReal_sin]
+       smul_eq_mul]
   all_goals ring_nf
   all_goals simp only [Complex.I_sq]
   all_goals ring
@@ -410,7 +412,7 @@ lemma Bsym_eq (k : ℝ) :
   rw [h1, h2]
   ext i j
   fin_cases i <;> fin_cases j <;>
-    simp [pauliX, pauliY, Matrix.smul_apply, Matrix.add_apply, smul_eq_mul] <;> ring
+    simp [pauliX, pauliY, Matrix.add_apply, smul_eq_mul]; ring
 
 /-- The off-diagonal matrix with entries `1 + phase (±2 * k)` is `2 * cos k` times `Bsym k`. -/
 lemma offdiag_eq (k : ℝ) :
@@ -419,7 +421,7 @@ lemma offdiag_eq (k : ℝ) :
   ext i j
   fin_cases i <;> fin_cases j <;>
     simp [Bsym, Matrix.smul_apply, smul_eq_mul, one_add_phase_two_mul,
-      one_add_phase_neg_two_mul] <;> ring
+      one_add_phase_neg_two_mul]
 
 /-- The two-component Hamiltonian matrix `(-2 * γ * cos k) • Bsym k`. -/
 def Hmat (k γ : ℝ) : M2 := ((-2 * γ * Real.cos k : ℝ) : ℂ) • Bsym k
@@ -439,7 +441,7 @@ lemma dblLead_deriv_eq (k : ℝ) :
   ext i j
   fin_cases i <;> fin_cases j <;>
     simp [Bsym, Matrix.smul_apply, smul_eq_mul, one_add_phase_two_mul,
-      one_add_phase_neg_two_mul] <;> ring
+      one_add_phase_neg_two_mul]
 
 /-- The derivative of `δ ↦ dblLead k δ` at zero is `I • (2 * cos k • Bsym k)`. See
 [Strauch2006]. -/
@@ -728,7 +730,7 @@ lemma sum_phase_sgn (k : ℝ) :
     (∑ b : Bool, phase (sgn b * k)) = 2 * (Real.cos k : ℂ) := by
   rw [show (Finset.univ : Finset Bool) = {false, true} from by decide,
     Finset.sum_pair (by decide)]
-  simp only [sgn, Bool.false_eq_true, if_false, if_true, neg_one_mul, one_mul]
+  simp only [sgn, Bool.false_eq_true, ite_false, ite_true, neg_one_mul, one_mul]
   rw [add_comm]
   exact phase_add_neg k
 
@@ -764,37 +766,37 @@ theorem eq25_symbol_scaled (γ kx ky kz : ℝ) :
 lemma pauliX_mul_pauliY : pauliX * pauliY = Complex.I • pauliZ := by
   ext i j; fin_cases i <;> fin_cases j <;>
     simp [pauliX, pauliY, pauliZ, Matrix.mul_apply, Fin.sum_univ_two, Matrix.smul_apply,
-      smul_eq_mul] <;> ring
+      smul_eq_mul]
 
 /-- The product `pauliY * pauliX` equals `(-I) • pauliZ`. -/
 lemma pauliY_mul_pauliX : pauliY * pauliX = -Complex.I • pauliZ := by
   ext i j; fin_cases i <;> fin_cases j <;>
     simp [pauliX, pauliY, pauliZ, Matrix.mul_apply, Fin.sum_univ_two, Matrix.smul_apply,
-      smul_eq_mul] <;> ring
+      smul_eq_mul]
 
 /-- The product `pauliY * pauliZ` equals `I • pauliX`. -/
 lemma pauliY_mul_pauliZ : pauliY * pauliZ = Complex.I • pauliX := by
   ext i j; fin_cases i <;> fin_cases j <;>
     simp [pauliX, pauliY, pauliZ, Matrix.mul_apply, Fin.sum_univ_two, Matrix.smul_apply,
-      smul_eq_mul] <;> ring
+      smul_eq_mul]
 
 /-- The product `pauliZ * pauliY` equals `(-I) • pauliX`. -/
 lemma pauliZ_mul_pauliY : pauliZ * pauliY = -Complex.I • pauliX := by
   ext i j; fin_cases i <;> fin_cases j <;>
     simp [pauliX, pauliY, pauliZ, Matrix.mul_apply, Fin.sum_univ_two, Matrix.smul_apply,
-      smul_eq_mul] <;> ring
+      smul_eq_mul]
 
 /-- The product `pauliZ * pauliX` equals `I • pauliY`. -/
 lemma pauliZ_mul_pauliX : pauliZ * pauliX = Complex.I • pauliY := by
   ext i j; fin_cases i <;> fin_cases j <;>
     simp [pauliX, pauliY, pauliZ, Matrix.mul_apply, Fin.sum_univ_two, Matrix.smul_apply,
-      smul_eq_mul] <;> ring
+      smul_eq_mul]
 
 /-- The product `pauliX * pauliZ` equals `(-I) • pauliY`. -/
 lemma pauliX_mul_pauliZ : pauliX * pauliZ = -Complex.I • pauliY := by
   ext i j; fin_cases i <;> fin_cases j <;>
     simp [pauliX, pauliY, pauliZ, Matrix.mul_apply, Fin.sum_univ_two, Matrix.smul_apply,
-      smul_eq_mul] <;> ring
+      smul_eq_mul]
 
 /-- The matrices `kZX` and `kZY` anticommute. -/
 theorem kZX_anticomm_kZY : kZX * kZY + kZY * kZX = 0 := by
@@ -933,7 +935,7 @@ lemma kXI_conj_rotT4 (A : M4) (hAD : A * kXI + kXI * A = 0) (φ : ℝ) :
       _ = -A := by rw [Matrix.mul_one]
   unfold rotT4
   simp only [Matrix.mul_sub, Matrix.sub_mul, Matrix.mul_smul, Matrix.smul_mul,
-    Matrix.mul_one, Matrix.one_mul, hDAD, kXI_sq, smul_neg]
+    Matrix.mul_one,  hDAD, kXI_sq, smul_neg]
   simp only [Complex.ofReal_neg, Complex.cos_neg, Complex.sin_neg, neg_mul]
   simp
 

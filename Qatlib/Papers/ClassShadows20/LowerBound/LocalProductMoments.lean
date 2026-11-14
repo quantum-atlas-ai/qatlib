@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ClassShadows20.LowerBound.LocalShotPauliMomentSubgoalStat
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.Positivity
-import Qatlib.Concepts.ShadowModels.ShadowVariance.PauliPairRecords
+module
+
+public import Qatlib.Papers.ClassShadows20.LowerBound.LocalShotPauliMomentSubgoalStat
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.Positivity
+public import Qatlib.Concepts.ShadowModels.ShadowVariance.PauliPairRecords
+
+@[expose] public section
 
 /-!
 # Product moments of local Pauli overlaps
@@ -138,7 +142,7 @@ lemma localPauliOverlap_product_moments {n k : ℕ} {J : Type} [Fintype J] [Deci
       apply Finset.sum_eq_zero
       intro j _
       have hn' : ¬ (a j).isSome = true := fun hj => hn ⟨j, hj⟩
-      rw [if_neg hn']
+      rw [ite_eq_right hn']
     omega
   constructor
   · rw [κ.expect_prod, Finset.prod_congr rfl (fun j _ => hmean j)]

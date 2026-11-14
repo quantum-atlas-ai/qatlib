@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.OpenSieve.NonabelianSieveExt
+module
+
+public import Qatlib.Concepts.HspRecovery.OpenSieve.NonabelianSieveExt
+
+@[expose] public section
 
 /-!
 # Radix sieve progress and resource ledgers

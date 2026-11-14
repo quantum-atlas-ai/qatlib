@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GradientOracle.GradientAlgo.CentralDifferenceGridConstants
-import Qatlib.Concepts.GradientOracle.GradientAlgo.CentralDifferenceGridGeometry
-import Qatlib.Concepts.GradientOracle.GradientAlgo.CentralDifferenceStencilSeries
+module
+
+public import Qatlib.Concepts.GradientOracle.GradientAlgo.CentralDifferenceGridConstants
+public import Qatlib.Concepts.GradientOracle.GradientAlgo.CentralDifferenceGridGeometry
+public import Qatlib.Concepts.GradientOracle.GradientAlgo.CentralDifferenceStencilSeries
+
+@[expose] public section
 
 /-!
 # Central-difference terms on centered grids

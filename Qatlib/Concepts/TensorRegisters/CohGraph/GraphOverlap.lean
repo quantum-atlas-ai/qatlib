@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
-import Qatlib.Concepts.TensorRegisters.CohGraph.GraphState
+module
+
+public import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+public import Qatlib.Concepts.TensorRegisters.CohGraph.GraphState
+
+@[expose] public section
 
 /-!
 # Coherent graph overlap and disagreement probability
@@ -72,6 +76,6 @@ theorem graph_defect_uniform (f g : I → O) :
     1 - (inner ℂ (graphState f) (graphState g)).re =
       ((PMF.uniformOfFintype' I).toOuterMeasure {i | f i ≠ g i}).toReal := by
   rw [graph_overlap_defect, PMF.toOuterMeasure_uniformOfFintype'_apply]
-  simp only [ENNReal.toReal_div, ENNReal.toReal_natCast, Fintype.card_subtype, Set.mem_setOf_eq]
+  simp only [ENNReal.toReal_div, ENNReal.toReal_natCast, Fintype.card_subtype, Set.mem_ofPred_eq]
 
 end Qatlib.Concepts.TensorRegisters.CohGraph

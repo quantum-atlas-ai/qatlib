@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Cbmd26.Algorithms.SeparateSecondOrderWord
-import Qatlib.Papers.Cbmd26.Algorithms.UniformPropagatorApproximation
+module
+
+public import Qatlib.Papers.Cbmd26.Algorithms.SeparateSecondOrderWord
+public import Qatlib.Papers.Cbmd26.Algorithms.UniformPropagatorApproximation
+
+@[expose] public section
 
 /-!
 # Uniform second-order encodings from separate oracles

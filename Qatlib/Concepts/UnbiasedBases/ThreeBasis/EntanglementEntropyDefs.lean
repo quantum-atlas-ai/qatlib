@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FiniteLocc.LOCCProgram.EntanglementDefs
-import Qatlib.Concepts.QuantumEntropy.EntropyCalculus
-import Qatlib.Foundations.PureStateMath.BornBridge.PartialTraceCovariance
-import Qatlib.Concepts.FiniteLocc.LOCCProgram.LocalUnitaryDiscard
+module
+
+public import Qatlib.Concepts.FiniteLocc.LOCCProgram.EntanglementDefs
+public import Qatlib.Concepts.QuantumEntropy.EntropyCalculus
+public import Qatlib.Foundations.PureStateMath.BornBridge.PartialTraceCovariance
+public import Qatlib.Concepts.FiniteLocc.LOCCProgram.LocalUnitaryDiscard
+
+@[expose] public section
 
 /-!
 # Reduced Density and Entanglement Entropy

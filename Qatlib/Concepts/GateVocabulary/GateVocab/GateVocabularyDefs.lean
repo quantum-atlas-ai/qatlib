@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PauliClifford.ExactRank.MatrixTensor
-import Qatlib.Foundations.PureStateMath.Tensor
-import Mathlib.LinearAlgebra.Matrix.Reindex
+module
+
+public import Qatlib.Concepts.PauliClifford.ExactRank.MatrixTensor
+public import Qatlib.Foundations.PureStateMath.Tensor
+public import Mathlib.LinearAlgebra.Matrix.Reindex
+
+@[expose] public section
 
 /-!
 # Basic gate vocabulary

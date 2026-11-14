@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ResourceBounds.AsymBounds.ResourceBoundsTransportDefs
+module
+
+public import Qatlib.Concepts.ResourceBounds.AsymBounds.ResourceBoundsTransportDefs
+
+@[expose] public section
 
 /-!
 # Dynamic live-wire resource accounting
@@ -535,7 +539,7 @@ theorem maxTrail_replicate (x : ℕ) (k : ℕ) :
       by_cases hk : k = 0
       · subst hk
         simp
-      · rw [if_neg hk, if_neg (by omega : (k + 1) ≠ 0)]
+      · rw [ite_eq_right hk, ite_eq_right (by omega : (k + 1) ≠ 0)]
         exact Nat.max_eq_left (le_refl x)
 end
 noncomputable section

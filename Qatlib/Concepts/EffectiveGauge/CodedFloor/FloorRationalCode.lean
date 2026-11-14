@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Computability.PartrecCode
-import Mathlib.Data.Rat.Defs
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Linarith
+module
+
+public import Mathlib.Computability.PartrecCode
+public import Mathlib.Data.Rat.Defs
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Linarith
+
+@[expose] public section
 
 /-!
 # Floor Rational Code
@@ -173,7 +177,7 @@ theorem floorRationalCodeInv_value (q : FloorRationalCode) :
     · have hd : q.1.1-q.1.2-1+1=q.1.1-q.1.2 := by omega
       have hcast : (q.1.1 : ℚ) ≠ (q.1.2 : ℚ) := by exact_mod_cast he
       have hne : (q.1.1 : ℚ)-(q.1.2 : ℚ) ≠ 0 := sub_ne_zero.mpr hcast
-      simp only [floorRationalCodeInv,if_neg he,if_pos hp,floorRationalCodeValue,
+      simp only [floorRationalCodeInv,ite_eq_right he,ite_eq_left hp,floorRationalCodeValue,
         hd,Nat.cast_sub hp,Nat.cast_add,Nat.cast_one,Nat.cast_zero,sub_zero]
       field_simp [hne]
     · have hn : q.1.1 ≤ q.1.2 := (not_le.mp hp).le
@@ -181,7 +185,7 @@ theorem floorRationalCodeInv_value (q : FloorRationalCode) :
       have hcast : (q.1.1 : ℚ) ≠ (q.1.2 : ℚ) := by exact_mod_cast he
       have hne : (q.1.1 : ℚ)-(q.1.2 : ℚ) ≠ 0 := sub_ne_zero.mpr hcast
       have hne' : (q.1.2 : ℚ)-(q.1.1 : ℚ) ≠ 0 := sub_ne_zero.mpr hcast.symm
-      simp only [floorRationalCodeInv,if_neg he,if_neg hp,floorRationalCodeValue,
+      simp only [floorRationalCodeInv,ite_eq_right he,ite_eq_right hp,floorRationalCodeValue,
         hd,Nat.cast_sub hn,Nat.cast_add,Nat.cast_one,Nat.cast_zero,zero_sub]
       field_simp [hne,hne']
       ring

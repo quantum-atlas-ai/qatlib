@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FinitePrecision.ComputableInput.NativeArithmetic.SignedNatMachine.PaidFractionInverse
-import Qatlib.Concepts.FinitePrecision.ComputableInput.NativeArithmetic.SignedNatMachine.RedundantRational
-import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorRationalCode
+module
+
+public import Qatlib.Concepts.FinitePrecision.ComputableInput.NativeArithmetic.SignedNatMachine.PaidFractionInverse
+public import Qatlib.Concepts.FinitePrecision.ComputableInput.NativeArithmetic.SignedNatMachine.RedundantRational
+public import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorRationalCode
+
+@[expose] public section
 
 /-!
 # Paid Rational Bridge
@@ -39,8 +43,8 @@ theorem ofFloorCode_value (q : FloorRationalCode) : RedundantRational.value (ofF
 theorem inverse_output_codec (q : RedundantRational.Frac) :
     PaidFractionInverse.output q.num.1 q.num.2 q.den.1 q.den.2=encode (RedundantRational.inv q) := by
   by_cases h : q.num.1=q.num.2
-  · simp only [PaidFractionInverse.output,if_pos h,RedundantRational.inv,dif_pos h,RedundantRational.ofNat,encode,PaidFractionInverse.input,PaidFractionInverse.zeroCodec]
-  · simp only [PaidFractionInverse.output,if_neg h,RedundantRational.inv,dif_neg h,encode,PaidFractionInverse.input]
+  · simp only [PaidFractionInverse.output,ite_eq_left h,RedundantRational.inv,dite_eq_left h,RedundantRational.ofNat,encode,PaidFractionInverse.input,PaidFractionInverse.zeroCodec]
+  · simp only [PaidFractionInverse.output,ite_eq_right h,RedundantRational.inv,dite_eq_right h,encode,PaidFractionInverse.input]
 
 /-- One fixed binary TM0, actual framed input/output and measured time/space.
 This primitive bridge does not include ABI conversion or the whole solver. -/

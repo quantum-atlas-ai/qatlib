@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MonteCarloInt20.QaeLaw.FourierLaw
-import Qatlib.Papers.MonteCarloInt20.QaeLaw.TrigonometricBias
+module
+
+public import Qatlib.Papers.MonteCarloInt20.QaeLaw.FourierLaw
+public import Qatlib.Papers.MonteCarloInt20.QaeLaw.TrigonometricBias
+
+@[expose] public section
 
 /-!
 # Bias and moment bounds for QAE payoffs

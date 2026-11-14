@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Fintype.BigOperators
-import Mathlib.Basic.Real.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Data.Fintype.BigOperators
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # §VI — numerical results and discussion (empirical claim)

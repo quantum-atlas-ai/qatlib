@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WaterLevel.WaterPrecision.CoherentReweightingDefs
-import Qatlib.Concepts.Waterfill.LevelFidelity.RealTableWaterLevel
+module
+
+public import Qatlib.Concepts.WaterLevel.WaterPrecision.CoherentReweightingDefs
+public import Qatlib.Concepts.Waterfill.LevelFidelity.RealTableWaterLevel
+
+@[expose] public section
 
 /-!
 # Endpoint fidelities for real water fills
@@ -94,9 +98,9 @@ theorem realFidelity_bracket_low {m : ℕ} (π σ : Fin m → ℝ) (hπ : ∀ i,
   have hfill : ∀ i, realFill π σ γlo i = if 0 < π i then γlo * σ i else 0 := by
     intro i
     by_cases hpi : 0 < π i
-    · rw [if_pos hpi]
+    · rw [ite_eq_left hpi]
       exact min_eq_right (hlow i hpi)
-    · rw [if_neg hpi]
+    · rw [ite_eq_right hpi]
       have hπi : π i = 0 := le_antisymm (le_of_not_gt hpi) (hπ i)
       have : realFill π σ γlo i = min (π i) (γlo * σ i) := rfl
       rw [this, hπi, min_eq_left (mul_nonneg hγlo (hσ i))]
@@ -135,7 +139,7 @@ theorem realFidelity_bracket_low {m : ℕ} (π σ : Fin m → ℝ) (hπ : ∀ i,
       rw [hmassE, h, zero_pow (by norm_num : (2:ℕ) ≠ 0), zero_mul]
     exact absurd hz (ne_of_gt hmass)
   unfold realFidelity
-  rw [if_neg (ne_of_gt hmass), hmassE, hdot]
+  rw [ite_eq_right (ne_of_gt hmass), hmassE, hdot]
   field_simp [ne_of_gt hpmax, hγ, ne_of_gt hmass]
 
 /-- At an upper bracket endpoint, `realFidelity` equals `realPmin` when the source has squared
@@ -261,14 +265,14 @@ theorem gext1_endpoint_conjunct_refutable :
     norm_num [gext1CounterSig]
   have hfid : realFidelity gext1CounterPi gext1CounterSig (-1) = 1 := by
     unfold realFidelity
-    rw [hm, if_neg (by norm_num : (1:ℝ) ≠ 0), hd]
+    rw [hm, ite_eq_right (by norm_num : (1:ℝ) ≠ 0), hd]
     norm_num
   have hpmax : realPmax gext1CounterPi gext1CounterSig = 0 := by
     unfold realPmax
     rw [Fin.sum_univ_two]
     have h0 : ¬ (0 < gext1CounterPi 0) := by norm_num [gext1CounterPi]
     have h1 : (0:ℝ) < gext1CounterPi 1 := by norm_num [gext1CounterPi]
-    rw [if_neg h0, if_pos h1]
+    rw [ite_eq_right h0, ite_eq_left h1]
     norm_num [gext1CounterSig]
   have hconj := h 2 gext1CounterPi gext1CounterSig hπ hσ hπ1 hσ1 (-1) 0 hbr
   exact absurd (hconj.1 hmass) (by

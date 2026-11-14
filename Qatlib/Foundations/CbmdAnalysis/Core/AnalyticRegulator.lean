@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Core.FiniteResidue
-import Mathlib.Analysis.Complex.RemovableSingularity
-import Mathlib.Analysis.Calculus.Deriv.Polynomial
+module
+
+public import Qatlib.Foundations.CbmdAnalysis.Core.FiniteResidue
+public import Mathlib.Analysis.Complex.RemovableSingularity
+public import Mathlib.Analysis.Calculus.Deriv.Polynomial
+
+@[expose] public section
 
 /-!
 # Analytic regulators with simple zeros

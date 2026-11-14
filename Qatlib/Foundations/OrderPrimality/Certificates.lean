@@ -4,22 +4,26 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.Group.Units.Defs
-import Mathlib.Algebra.GroupWithZero.Defs
-import Mathlib.Algebra.GroupWithZero.Nat
-import Mathlib.Algebra.GroupWithZero.Units.Fintype
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Basic.Logic.Basic
-import Mathlib.Data.Fintype.Card
-import Mathlib.Data.Nat.Basic
-import Mathlib.Data.Nat.Prime.Defs
-import Mathlib.Data.Nat.Totient
-import Mathlib.Data.ZMod.Defs
-import Mathlib.FieldTheory.Finite.Basic
-import Mathlib.GroupTheory.OrderOfElement
-import Mathlib.Order.Defs.PartialOrder
-import Mathlib.Tactic
+module
+
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.Group.Units.Defs
+public import Mathlib.Algebra.GroupWithZero.Defs
+public import Mathlib.Algebra.GroupWithZero.Nat
+public import Mathlib.Algebra.GroupWithZero.Units.Fintype
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Basic.Logic.Basic
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Data.Nat.Basic
+public import Mathlib.Data.Nat.Prime.Defs
+public import Mathlib.Data.Nat.Totient
+public import Mathlib.Data.ZMod.Defs
+public import Mathlib.FieldTheory.Finite.Basic
+public import Mathlib.GroupTheory.OrderOfElement
+public import Mathlib.Order.Defs.PartialOrder
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Order and congruence certificates for primality
@@ -50,7 +54,7 @@ open Asymptotics Filter
 [DonisVelaGarciaEscartin2017]. -/
 theorem orderOf_eq_pred_prime {N : ℕ} (hN : 2 ≤ N) (a : (ZMod N)ˣ)
     (hord : orderOf a = N - 1) : Nat.Prime N := by
-  haveI : NeZero N := ⟨by omega⟩
+  have : NeZero N := ⟨by omega⟩
 
   have hdvd : N - 1 ∣ Nat.totient N := by
     rw [← hord, ← ZMod.card_units_eq_totient N]
@@ -67,7 +71,7 @@ theorem orderOf_eq_pred_prime {N : ℕ} (hN : 2 ≤ N) (a : (ZMod N)ˣ)
 theorem fermat_witness_not_prime {N : ℕ} (a : (ZMod N)ˣ)
     (hw : a ^ (N - 1) ≠ 1) : ¬ Nat.Prime N := by
   intro hp
-  haveI : Fact N.Prime := ⟨hp⟩
+  have : Fact N.Prime := ⟨hp⟩
   exact hw (ZMod.units_pow_card_sub_one_eq_one N a)
 
 /-- If `0 < a < N` and `Nat.gcd a N ≠ 1`, then `N` is not prime [DonisVelaGarciaEscartin2017]. -/

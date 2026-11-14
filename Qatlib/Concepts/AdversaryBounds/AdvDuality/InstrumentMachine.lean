@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.Execution.CircuitCompile.InstrumentCircuit
+module
+
+public import Qatlib.Concepts.Execution.CircuitCompile.InstrumentCircuit
+
+@[expose] public section
 
 /-!
 # Instrument Machines and Infinite Query Costs
@@ -354,7 +358,7 @@ theorem instrumentMachineHaltMass_add_pending {D : ℕ} {C : Type*}
       (instrumentMachineTraces M O T c rho).map (fun t => mixedMass t.toMixedBranchTrace) := by
     apply List.map_congr_left
     intro t ht
-    cases h : t.endpoint.halted <;> simp [h]
+    cases h : t.endpoint.halted <;> simp []
   rw [hsum]
   exact instrumentMachineTraces_total M hM O hO T c rho
 

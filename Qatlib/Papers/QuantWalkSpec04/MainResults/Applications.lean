@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.Th4Expander.SzegedyTheorem4ExpanderGroverQuan
-import Qatlib.Concepts.WalkSearch.ProjectorCS
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.WalkSearchDefs
-import Qatlib.Papers.QuantWalkSpec04.MainResults.Detection
-import Mathlib.Data.Nat.Choose.Basic
-import Mathlib.Data.Finset.Powerset
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
+module
+
+public import Qatlib.Concepts.WalkSearch.Th4Expander.SzegedyTheorem4ExpanderGroverQuan
+public import Qatlib.Concepts.WalkSearch.ProjectorCS
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.WalkSearchDefs
+public import Qatlib.Papers.QuantWalkSpec04.MainResults.Detection
+public import Mathlib.Data.Nat.Choose.Basic
+public import Mathlib.Data.Finset.Powerset
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+
+@[expose] public section
 
 /-!
 # Quantum walk search applications
@@ -377,7 +381,7 @@ theorem edCollisionMarkedFraction_ge {N : ℕ} (hN : 8 ≤ N) (x : Fin N → ℕ
     rwa [Real.rpow_one] at hle
   have hcard := edCollisionMarked_card_ge hk2 hkN x hab hfab
   have hVcard : Fintype.card (JohnsonVertex (Fin N) k) = N.choose k := by
-    simpa using! (Fintype.card_finset_len (α := Fin N) k)
+    simp
   have hden : (0 : ℝ) < (N.choose k : ℝ) := by
     exact_mod_cast Nat.choose_pos hkN
   have hfrac : ((N - 2).choose (k - 2) : ℝ) / (N.choose k : ℝ) ≤

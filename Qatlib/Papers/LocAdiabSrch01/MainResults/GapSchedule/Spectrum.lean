@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LocAdiabSrch01.MainResults.GapSchedule.Basic
-import Mathlib.LinearAlgebra.Matrix.Determinant.Basic
-import Mathlib.LinearAlgebra.Matrix.Trace
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.LocAdiabSrch01.MainResults.GapSchedule.Basic
+public import Mathlib.LinearAlgebra.Matrix.Determinant.Basic
+public import Mathlib.LinearAlgebra.Matrix.Trace
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Two-dimensional search Hamiltonian spectrum

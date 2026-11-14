@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LocalMachine.LocalTransport.WitnessComplexityRefinedDefs
+module
+
+public import Qatlib.Concepts.LocalMachine.LocalTransport.WitnessComplexityRefinedDefs
+
+@[expose] public section
 
 /-!
 # Witness accounting and conditional soundness transfer
@@ -190,7 +194,7 @@ theorem wcVerifierInputDensity_classical_decomposition {p : WitnessVerifierProgr
           · simp [h1, h2]
         · simp [h1]
       rw [Finset.sum_congr rfl (fun w _ => hpoint w)]
-      simp only [Finset.sum_const, if_neg hab]
+      simp only [Finset.sum_const, ite_eq_right hab]
       simp
   have hket : ∀ (w : Reg p.witnessBits) (i j : Reg p.witnessBits),
       classicalWitnessDensity w i j
@@ -215,8 +219,8 @@ theorem wcVerifierInputDensity_classical_decomposition {p : WitnessVerifierProgr
     have hsum := hdelta2 (fun w => σ w w) (witnessRestrict p z) (witnessRestrict p z')
     rw [hsum]
     by_cases hab : witnessRestrict p z = witnessRestrict p z'
-    · rw [if_pos hab, hab]
-    · rw [if_neg hab]
+    · rw [ite_eq_left hab, hab]
+    · rw [ite_eq_right hab]
       exact hdiag _ _ hab
   · simp [verifierInputDensity, Matrix.of_apply, hcond]
 
@@ -336,7 +340,7 @@ theorem wcDiagonalDensity_classical_decomposition {p : WitnessVerifierProgram}
           · simp [h1, h2]
         · simp [h1]
       rw [Finset.sum_congr rfl (fun w _ => hpoint w)]
-      simp only [Finset.sum_const, if_neg hab]
+      simp only [Finset.sum_const, ite_eq_right hab]
       simp
   ext i j
   rw [Matrix.sum_apply]
@@ -353,13 +357,13 @@ theorem wcDiagonalDensity_classical_decomposition {p : WitnessVerifierProgram}
   rw [hsum]
   by_cases hij : i = j
   · subst hij
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     have hre : σ i i = ((σ i i).re : ℂ) := by
       rw [Complex.ext_iff]
       exact ⟨rfl, by simpa using hreal i⟩
     rw [hre]
     simp
-  · rw [if_neg hij]
+  · rw [ite_eq_right hij]
     exact hdiag i j hij
 
 /-- For a diagonal witness matrix with real diagonal entries, acceptance is the

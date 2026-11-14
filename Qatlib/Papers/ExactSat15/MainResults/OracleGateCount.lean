@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Nat.Log
-import Mathlib.Tactic
+module
+
+public import Mathlib.Data.Nat.Log
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -66,7 +70,7 @@ theorem self_le_two_pow : ∀ m : ℕ, m ≤ 2 ^ m
       omega
 
 /-- The ceiling logarithm is at most its argument for `m ≥ 1`. -/
-theorem clog_two_le_self {m : ℕ} (hm : 1 ≤ m) : Nat.clog 2 m ≤ m := by
+theorem clog_two_le_self {m : ℕ} (_hm : 1 ≤ m) : Nat.clog 2 m ≤ m := by
   rw [Nat.clog_le_iff_le_pow (by norm_num : 1 < 2)]
   exact self_le_two_pow m
 

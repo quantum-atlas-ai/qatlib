@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SignalPrimitive.GridGradient.Basic
-import Mathlib.Analysis.SpecialFunctions.Log.Base
-import Qatlib.Concepts.HhlAlgorithms.Postselection.FreshTrials
-import Qatlib.Concepts.NativeNumerics.LayeredMean.NativeSignedMeanConsumers
-import Qatlib.Concepts.ShadowModels.SampleBudget.RationalLinearSelection
+module
+
+public import Qatlib.Concepts.SignalPrimitive.GridGradient.Basic
+public import Mathlib.Analysis.SpecialFunctions.Log.Base
+public import Qatlib.Concepts.HhlAlgorithms.Postselection.FreshTrials
+public import Qatlib.Concepts.NativeNumerics.LayeredMean.NativeSignedMeanConsumers
+public import Qatlib.Concepts.ShadowModels.SampleBudget.RationalLinearSelection
+
+@[expose] public section
 
 /-!
 # Repeated gradient readout and counted medians

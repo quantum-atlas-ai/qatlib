@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QCircuitYao93.QuantumComm.GramAcceptance
-import Mathlib.Data.Fintype.Pigeonhole
-import Mathlib.Algebra.Order.Floor.Semiring
-import Mathlib.Analysis.SpecialFunctions.Log.Base
-import Mathlib.Algebra.Order.BigOperators.Ring.Finset
+module
+
+public import Qatlib.Papers.QCircuitYao93.QuantumComm.GramAcceptance
+public import Mathlib.Data.Fintype.Pigeonhole
+public import Mathlib.Algebra.Order.Floor.Semiring
+public import Mathlib.Analysis.SpecialFunctions.Log.Base
+public import Mathlib.Algebra.Order.BigOperators.Ring.Finset
+
+@[expose] public section
 
 /-!
 # Quantized Gram features for protocol lower bounds
@@ -76,6 +80,7 @@ def acceptProb (a : (Fin n → Bool) → ι → QState (Fin k → Bool))
   ∑ p : (Fin k → Bool) × (Fin l → Bool),
     ‖(∑ ε, TensorState (a x ε) (b y ε)) p‖ ^ 2
 
+omit [DecidableEq ι] in
 /-- The acceptance-mass expression equals the real part of the double sum of products of the two
 families' Gram entries. -/
 theorem acceptProb_gram (a : (Fin n → Bool) → ι → QState (Fin k → Bool))
@@ -204,6 +209,7 @@ theorem card_featureSpace (M : ℕ) :
   congr 1
   ring
 
+omit [Fintype ι] [DecidableEq ι] in
 /-- Inputs with equal features have corresponding Gram entries at complex distance at most `2 /
 L ^ 3`. This is the discretization estimate used in the proof of Theorem 4 of [Yao1993]. -/
 theorem feature_gram_close {M : ℕ} {L : ℝ} (hLpos : 0 < L) (hLM : L ^ 3 ≤ (M : ℝ))
@@ -227,6 +233,7 @@ theorem feature_gram_close {M : ℕ} {L : ℝ} (hLpos : 0 < L) (hLM : L ^ 3 ≤ 
   have hsum : (1 : ℝ) / L ^ 3 + 1 / L ^ 3 = 2 / L ^ 3 := by ring
   linarith [hnorm, hre'.le, him'.le]
 
+omit [DecidableEq ι] in
 /-- Equal features for `y` and `y'` bound the difference of acceptance masses at any `x` by
 `(Fintype.card ι : ℝ) ^ 2 * (2 / L ^ 3)`, assuming the stated normalizations. -/
 theorem acceptProb_close {M : ℕ} {L : ℝ} (hLpos : 0 < L) (hLM : L ^ 3 ≤ (M : ℝ))

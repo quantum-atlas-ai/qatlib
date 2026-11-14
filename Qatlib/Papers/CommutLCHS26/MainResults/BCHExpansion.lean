@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommutLCHS26.MainResults.BCHMultidegree
-import Mathlib.Algebra.Order.Antidiag.Pi
+module
+
+public import Qatlib.Papers.CommutLCHS26.MainResults.BCHMultidegree
+public import Mathlib.Algebra.Order.Antidiag.Pi
+
+@[expose] public section
 
 /-!
 # Multidegree expansion of word logarithms
@@ -76,7 +80,7 @@ theorem multiplicity_expandedWord {Γ : ℕ} (m : Fin Γ → ℕ) :
     multiplicity (expandedWord m) = m := by
   funext i
   simpa only [multiplicity, wordCounts, Multiset.toFinsupp_apply, Multiset.coe_count,
-    expandedWord, if_pos (List.mem_finRange i)] using!
+    expandedWord, ite_eq_left (List.mem_finRange i)] using!
       count_expanded_list (List.finRange Γ) (List.nodup_finRange Γ) m i
 
 /-- A word is a permutation of an expanded word exactly when its multiplicity function equals
@@ -111,9 +115,9 @@ theorem homogeneous_multidegree_sum {Γ n : ℕ} (p : WordAlg (Fin Γ))
     (mem_multidegrees _).mpr ((sum_multiplicity w.toList).trans (hp w hw))
   symm
   rw [Finset.sum_eq_single (multiplicity w.toList)]
-  · rw [if_pos ((perm_expandedWord_iff _ _).mpr rfl)]
+  · rw [ite_eq_left ((perm_expandedWord_iff _ _).mpr rfl)]
   · intro m _ hne
-    rw [if_neg]
+    rw [ite_eq_right]
     intro he
     exact hne ((perm_expandedWord_iff _ _).mp he).symm
   · intro hnot

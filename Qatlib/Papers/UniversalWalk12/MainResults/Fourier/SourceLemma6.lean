@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Analysis.SpecialFunctions.ExpDeriv
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.FundThmCalculus
-import Batteries.Tactic.Lint.Misc
-import Batteries.Tactic.Lint.Frontend
-import Qatlib.Papers.UniversalWalk12.MainResults.Model.SourceModel
+module
+
+public import Mathlib.Analysis.InnerProductSpace.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Analysis.SpecialFunctions.ExpDeriv
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.FundThmCalculus
+public import Batteries.Tactic.Lint.Misc
+public import Batteries.Tactic.Lint.Frontend
+public import Qatlib.Papers.UniversalWalk12.MainResults.Model.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

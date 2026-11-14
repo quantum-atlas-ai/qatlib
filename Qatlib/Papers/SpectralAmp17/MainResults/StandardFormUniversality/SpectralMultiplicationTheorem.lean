@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SpectralAmp17.MainResults.SourceModel.PaperModel
-import Mathlib.Analysis.CStarAlgebra.Basic
-import Mathlib.Analysis.Matrix.Spectrum
+module
+
+public import Qatlib.Papers.SpectralAmp17.MainResults.SourceModel.PaperModel
+public import Mathlib.Analysis.CStarAlgebra.Basic
+public import Mathlib.Analysis.Matrix.Spectrum
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -37,8 +41,8 @@ No circuit, oracle implementation, or execution-cost theorem is supplied here.
 The existential record is a specification, not evidence of an algorithm. -/
 def theorem4_spectralMultiplication_statement
     (F : StandardForm S A) (B : Polynomial ℝ) (N : ℕ)
-    (hα : F.α = 1) (hpar : IsParityPoly B N) (hdeg : B.natDegree ≤ N)
-    (hB0 : B.eval 0 = 0) (hunit : unitRangeOnUnit B) : Prop :=
+    (_hα : F.α = 1) (_hpar : IsParityPoly B N) (_hdeg : B.natDegree ≤ N)
+    (_hB0 : B.eval 0 = 0) (_hunit : unitRangeOnUnit B) : Prop :=
     ∃ (F' : StandardForm S (A × Fin 4)),
       F'.Uᴴ * F'.U = 1 ∧ 0 ≤ F'.queries ∧ 0 ≤ F'.gates ∧
       F'.H = polyEval B F.H ∧ F'.α = 1 ∧

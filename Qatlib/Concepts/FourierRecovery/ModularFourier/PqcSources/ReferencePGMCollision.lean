@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MbqcFlow.FlowDecision.PureEnsemblePGM
-import Qatlib.Concepts.FourierRecovery.ModularFourier.FiniteHarmonic.State
-import Qatlib.Concepts.ProbabilityCore.Concentration.FiniteLinearHash
-import Qatlib.Concepts.ProbabilityCore.Concentration.WeightedHashMoment
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Ring
+module
+
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.PureEnsemblePGM
+public import Qatlib.Concepts.FourierRecovery.ModularFourier.FiniteHarmonic.State
+public import Qatlib.Concepts.ProbabilityCore.Concentration.FiniteLinearHash
+public import Qatlib.Concepts.ProbabilityCore.Concentration.WeightedHashMoment
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 open Qatlib.Concepts.MbqcFlow.FlowDecision
 open Qatlib.Foundations.PureStateMath

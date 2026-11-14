@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PauliClifford.PauliAlgebra.PauliCliffordLawsDefs
-import Qatlib.Concepts.PauliClifford.PauliAlgebra.PauliCliffordLawsProofs
-import Qatlib.Concepts.PauliClifford.PauliAlgebra.PauliCliffordLawsConsumers
+module
+
+public import Qatlib.Concepts.PauliClifford.PauliAlgebra.PauliCliffordLawsDefs
+public import Qatlib.Concepts.PauliClifford.PauliAlgebra.PauliCliffordLawsProofs
+public import Qatlib.Concepts.PauliClifford.PauliAlgebra.PauliCliffordLawsConsumers
+
+@[expose] public section
 
 /-!
 # Pauli matrix laws and Clifford conjugation

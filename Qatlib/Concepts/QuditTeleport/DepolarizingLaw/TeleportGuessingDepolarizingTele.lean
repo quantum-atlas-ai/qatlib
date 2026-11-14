@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QuditTeleport.DepolarizingLaw.TeleportGuessingDepolarizingStat
+module
+
+public import Qatlib.Concepts.QuditTeleport.DepolarizingLaw.TeleportGuessingDepolarizingStat
+
+@[expose] public section
 
 /-!
 # Uncorrected teleportation is depolarizing
@@ -50,7 +54,7 @@ private theorem perm_conj_entry {I : Type} [Fintype I] [DecidableEq I]
   rw [qudit_perm_adjoint]
   have he (j : I) : k=e j ↔ j=e.symm k := by
     rw [eq_comm]
-    exact e.apply_eq_iff_eq_symm_apply
+    exact e.eq_symm_apply.symm
   simp [Matrix.mul_apply,permMatrix,he]
 
 /-- Conjugation by `quditX n b * quditZ n a` shifts both indices and multiplies the entry by the

@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.OperatorAccess.EncodedAccess.FreshPositivePower
-import Qatlib.Concepts.SpectralFilter.PhaseReadout.CountedPhaseReflection
-import Qatlib.Concepts.QspSimulation.WordModel.CPPAdjointDefs
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.RationalCircle
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.HouseholderRotationTable
-import Qatlib.Concepts.MatrixContour.ContourCalc.ContourModel
+module
+
+public import Qatlib.Concepts.OperatorAccess.EncodedAccess.FreshPositivePower
+public import Qatlib.Concepts.SpectralFilter.PhaseReadout.CountedPhaseReflection
+public import Qatlib.Concepts.QspSimulation.WordModel.CPPAdjointDefs
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.RationalCircle
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.HouseholderRotationTable
+public import Qatlib.Concepts.MatrixContour.ContourCalc.ContourModel
+
+@[expose] public section
 
 open Qatlib.Foundations.QueryWordCore.Circuit
 
@@ -178,6 +182,8 @@ theorem neumann_fresh_data (m : ℕ) (j : Fin m) (U : Matrix H H ℂ) :
       simp [he, hj, hn]
     · simp [he, hj]
 
+omit [Fintype H] [DecidableEq H] in
+
 /-- The exact `neumann_fresh_adjoint` invariant under the original hypotheses and resource conventions. -/
 theorem neumann_fresh_adjoint (m : ℕ) (j : Fin m)
     (V : Matrix (Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.NeumannFlagPair × H) (Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.NeumannFlagPair × H) ℂ) :
@@ -320,7 +326,6 @@ theorem fresh_neumann_branch_encoding (m : ℕ) (U : Matrix H H ℂ) (F : Matrix
     Qatlib.Foundations.PureStateMath.tensorGate_unitary (unitaryGroup _ ℂ).one_mem hU
   have he : Qatlib.Concepts.Execution.WorkspaceCP.IsIsometry (Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.freshNeumannFrame m F) := Qatlib.Concepts.BlockEncoding.EncodingCore.IsIsometry.mul (Qatlib.Concepts.BlockEncoding.EncodingCore.encodingFiber_isIsometry _) hF
   refine ⟨hw.evaluate_unitary hq, he, he, ?_⟩
-  change Qatlib.Concepts.Execution.WorkspaceCP.compress (Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.freshNeumannFrame m F) _ (Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.freshNeumannFrame m F) = _
   have hc := Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.fresh_neumann_branch_corner m (Qatlib.Concepts.Execution.WorkspaceCP.rangeProjector F) U
   have hcomp : Qatlib.Concepts.Execution.WorkspaceCP.compress (Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.freshNeumannFrame m F)
       (Qatlib.Concepts.CoherentSim.CoherentOAA.evaluate (Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.neumannDataOracle m U) (Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.freshNeumannBranchWord m (Qatlib.Concepts.Execution.WorkspaceCP.rangeProjector F)))

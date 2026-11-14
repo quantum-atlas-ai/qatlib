@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.Primitives.DLoNonvacuityStat
-import Mathlib.Algebra.Order.Floor.Semiring
-import Mathlib.Tactic.Linarith
+module
+
+public import Qatlib.Concepts.WalkSearch.Primitives.DLoNonvacuityStat
+public import Mathlib.Algebra.Order.Floor.Semiring
+public import Mathlib.Tactic.Linarith
+
+@[expose] public section
 
 /-!
 # Eventual positivity of degree thresholds

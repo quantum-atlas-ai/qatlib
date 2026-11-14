@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Normed.Group.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Topology.MetricSpace.Bounded
-import Mathlib.Topology.Order.Compact
-import Mathlib.Data.Complex.Basic
+module
+
+public import Mathlib.Analysis.Normed.Group.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Topology.MetricSpace.Bounded
+public import Mathlib.Topology.Order.Compact
+public import Mathlib.Basic.Complex.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

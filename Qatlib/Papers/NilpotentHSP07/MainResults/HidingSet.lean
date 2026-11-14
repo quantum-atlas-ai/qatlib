@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Group.Subgroup.Basic
-import Mathlib.Data.Complex.Basic
-import Mathlib.SetTheory.Cardinal.Finite
-import Mathlib.Tactic
+module
+
+public import Mathlib.Algebra.Group.Subgroup.Basic
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.SetTheory.Cardinal.Finite
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Coset States and Hiding Families
@@ -51,6 +55,7 @@ def inner (ψ φ : G → ℂ) : ℂ := ∑ x, ψ x * star (φ x)
 at `x * g⁻¹`. -/
 def rightAct (g : G) (ψ : G → ℂ) : G → ℂ := fun x => ψ (x * g⁻¹)
 
+omit [DecidableEq G] in
 /-- Applying the same right translation to both amplitude functions preserves their complex
 pairing. -/
 theorem inner_rightAct (g : G) (ψ φ : G → ℂ) :
@@ -58,6 +63,7 @@ theorem inner_rightAct (g : G) (ψ φ : G → ℂ) :
   unfold inner rightAct
   exact Equiv.sum_comp (Equiv.mulRight g⁻¹) (fun y => ψ y * star (φ y))
 
+omit [Fintype G] [DecidableEq G] in
 /-- Translation by `g * h` equals translation by `g` followed by translation by `h`. -/
 theorem rightAct_mul (g h : G) (ψ : G → ℂ) :
     rightAct (g * h) ψ = rightAct h (rightAct g ψ) := by
@@ -74,6 +80,7 @@ def cosetState (K : Subgroup G) (a : G) (c : ℂ) : G → ℂ := by
 /-- The assertion that `x` can be written as `a * k` for some `k` in `K`. -/
 def inCoset (K : Subgroup G) (a : G) (x : G) : Prop := ∃ k ∈ K, x = a * k
 
+omit [Fintype G] [DecidableEq G] in
 /-- Representatives whose relative element `a⁻¹ * b` lies in `K` define the same left-coset
 membership predicate. -/
 theorem inCoset_congr (K : Subgroup G) {a b : G} (h : a⁻¹ * b ∈ K) :
@@ -95,10 +102,10 @@ theorem cosetState_congr (K : Subgroup G) {a b : G} (h : a⁻¹ * b ∈ K) (c : 
   by_cases hxa : ∃ k ∈ K, x = a * k
   · have hxb : ∃ k ∈ K, x = b * k := (inCoset_congr K h x).mp hxa
     simp only [cosetState]
-    rw [if_pos hxa, if_pos hxb]
+    rw [ite_eq_left hxa, ite_eq_left hxb]
   · have hxb : ¬ ∃ k ∈ K, x = b * k := fun h' => hxa ((inCoset_congr K h x).mpr h')
     simp only [cosetState]
-    rw [if_neg hxa, if_neg hxb]
+    rw [ite_eq_right hxa, ite_eq_right hxb]
 
 /-- For a normal subgroup, right translation sends the coset state at `a` to the coset state at
 `a * g` with the same amplitude. -/
@@ -115,14 +122,14 @@ theorem rightAct_cosetState (K : Subgroup G) [K.Normal] (a g : G) (c : ℂ) :
           calc x = (x * g⁻¹) * g := by group
             _ = a * k * g := by rw [hk_eq]
         rw [hx_eq]; group
-    rw [if_pos hx, if_pos hx']
+    rw [ite_eq_left hx, ite_eq_left hx']
   · have hx' : ¬ ∃ k ∈ K, x = a * g * k := by
       rintro ⟨k, hk, hk_eq⟩
       apply hx
       refine ⟨g * k * g⁻¹, ?_, ?_⟩
       · exact Subgroup.Normal.conj_mem (inferInstance : K.Normal) k hk g
       · rw [hk_eq]; group
-    rw [if_neg hx, if_neg hx']
+    rw [ite_eq_right hx, ite_eq_right hx']
 
 /-- The condition that a family of amplitude functions is normalized, equal on each left coset
 of `K`, and orthogonal for distinct left cosets. -/
@@ -131,6 +138,7 @@ def IsHidingSet (K : Subgroup G) (Ψ : G → G → ℂ) : Prop :=
   (∀ g₁ g₂, g₁⁻¹ * g₂ ∈ K → Ψ g₁ = Ψ g₂) ∧
   (∀ g₁ g₂, g₁⁻¹ * g₂ ∉ K → inner (Ψ g₁) (Ψ g₂) = 0)
 
+omit [Group G] [DecidableEq G] in
 /-- Two amplitude functions have zero pairing if at every group element at least one of their
 values is zero. -/
 theorem inner_eq_zero_of_disjoint {ψ φ : G → ℂ}
@@ -160,10 +168,10 @@ theorem cosetState_inner_eq_zero (K : Subgroup G) {a b : G} (h : a⁻¹ * b ∉ 
       rw [h3]
       exact K.mul_mem hk (K.inv_mem hl)
     simp only [cosetState]
-    rw [if_neg hxb]
+    rw [ite_eq_right hxb]
   · left
     simp only [cosetState]
-    rw [if_neg hxa]
+    rw [ite_eq_right hxa]
 
 /-- Right translates of a normalized coset state, indexed through a subgroup-preserving group
 automorphism, form a hiding family for a normal subgroup. This is an algebraic construction
@@ -219,6 +227,7 @@ noncomputable def cosetEquiv (K : Subgroup G) (a : G) :
     show a * (a⁻¹ * (a * k)) = a * k
     group
 
+omit [Fintype G] [DecidableEq G] in
 /-- A left coset has the same cardinality as its subgroup. This is the cardinality identity used
 to normalize coset states in [IvanyosSanselmeSantha2007a]. -/
 theorem card_coset (K : Subgroup G) (a : G) :

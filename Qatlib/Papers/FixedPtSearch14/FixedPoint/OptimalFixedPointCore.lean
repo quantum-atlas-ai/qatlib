@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.FixedPtSearch14.FixedPoint.OptimalFixedPointDefs
-import Qatlib.Concepts.BlockEncoding.LinearCombination
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.Extremal
-import Mathlib.Analysis.Complex.ExponentialBounds
-import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Concepts.UnbiasedBases.ThreeBasis.AmplitudeAmplification
+module
+
+public import Qatlib.Papers.FixedPtSearch14.FixedPoint.OptimalFixedPointDefs
+public import Qatlib.Concepts.BlockEncoding.LinearCombination
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.Extremal
+public import Mathlib.Analysis.Complex.ExponentialBounds
+public import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Concepts.UnbiasedBases.ThreeBasis.AmplitudeAmplification
+
+@[expose] public section
 
 /-!
 # Analytic bounds for fixed-point search
@@ -81,7 +85,7 @@ by the degree. -/
 theorem cheb_T_eval_neg (n : ℕ) (x : ℝ) :
     cheb n (-x) = ((n : ℤ).negOnePow : ℝ) * cheb n x := by
   have h := T_eval_neg (R := ℝ) (n := (n : ℤ)) x
-  simpa [cheb_eq] using h
+  simp [cheb_eq]
 
 /-- The square of the real coercion of the integer sign `negOnePow` is one. -/
 theorem negOnePow_sq (n : ℕ) : (((n : ℤ).negOnePow : ℝ)) ^ 2 = 1 := by
@@ -119,7 +123,7 @@ theorem cheb_le_one {n : ℕ} {y : ℝ} (hy : y ∈ Set.Icc (-1) 1) : |cheb n y|
 theorem cheb_one_div_cosh {n : ℕ} (t : ℝ) :
     cheb n (Real.cosh t) = Real.cosh ((n : ℝ) * t) := by
   have h := T_real_cosh (n := (n : ℤ)) t
-  simpa [cheb_eq] using h
+  simp [cheb_eq]
 
 /-- A Chebyshev polynomial has value at least one at every argument at least one. -/
 theorem cheb_one_le_of_one_le {L : ℕ} {y : ℝ} (hy : 1 ≤ y) : 1 ≤ cheb L y := by
@@ -154,7 +158,7 @@ theorem cheb_strictMonoOn_one_le (L : ℕ) (hL : 1 ≤ L) :
   exact hmul
 
 /-- The width parameter is positive for positive length and `0 < delta < 1`. -/
-theorem ylcGamma_pos {L : ℕ} {delta : ℝ} (hL : 0 < L) (hd : 0 < delta) (hd' : delta < 1) :
+theorem ylcGamma_pos {L : ℕ} {delta : ℝ} (_hL : 0 < L) (_hd : 0 < delta) (_hd' : delta < 1) :
     0 < ylcGamma L delta := by
   have hcos : 0 < Real.cosh (Real.arcosh (1 / delta) / (L : ℝ)) := Real.cosh_pos _
   rw [ylcGamma]
@@ -211,8 +215,8 @@ theorem ylcGamma_mono_le {L : ℕ} {delta : ℝ} (hL : 0 < L) (hd : 0 < delta) (
 
 /-- For positive length and `0 < delta < 1`, the displayed hyperbolic cosine is the reciprocal
 of `ylcGamma L delta`. -/
-theorem one_div_ylcGamma_cosh {L : ℕ} {delta : ℝ} (hL : 0 < L) (hd : 0 < delta)
-    (hd' : delta < 1) :
+theorem one_div_ylcGamma_cosh {L : ℕ} {delta : ℝ} (_hL : 0 < L) (_hd : 0 < delta)
+    (_hd' : delta < 1) :
     Real.cosh (Real.arcosh (1 / delta) / (L : ℝ)) = 1 / ylcGamma L delta := by
   rw [ylcGamma, one_div_one_div]
 
@@ -247,12 +251,11 @@ theorem sinh_le_mul_cosh {u : ℝ} (hu : 0 ≤ u) : Real.sinh u ≤ u * Real.cos
     intro y
     have h1 : HasDerivAt (fun z : ℝ => z * Real.cosh z)
         (1 * Real.cosh y + y * Real.sinh y) y := by
-      convert (hasDerivAt_id' y).mul (Real.hasDerivAt_cosh y) using 1 <;>
-        first | rfl | (funext z; rfl) | ring
+      convert (hasDerivAt_id' y).mul (Real.hasDerivAt_cosh y) using 1
     have h2 : HasDerivAt (fun z : ℝ => Real.sinh z) (Real.cosh y) y :=
       Real.hasDerivAt_sinh y
-    convert h1.sub h2 using 1 <;>
-      first | rfl | (funext z; rfl) | ring
+    convert h1.sub h2 using 1
+    ring
   have hmono : Monotone (fun z : ℝ => z * Real.cosh z - Real.sinh z) :=
     monotone_of_hasDerivAt_nonneg hd (fun x => by
       rcases le_or_gt 0 x with hx | hx
@@ -271,15 +274,15 @@ theorem cosh_mul_one_sub_half_sq_le_one {u : ℝ} (hu : 0 ≤ u) :
       ((1 - y ^ 2 / 2) * Real.sinh y - y * Real.cosh y) y := by
     intro y
     have h1a : HasDerivAt (fun w : ℝ => w ^ 2 / 2) y y := by
-      convert (hasDerivAt_id' y).pow 2 |>.div_const 2 using 1 <;>
-        first | rfl | (funext z; rfl) | ring
+      convert (hasDerivAt_id' y).pow 2 |>.div_const 2 using 1
+      ring
     have h1 : HasDerivAt (fun w : ℝ => 1 - w ^ 2 / 2) (-(y)) y := by
-      convert (hasDerivAt_const y (1:ℝ)).sub h1a using 1 <;>
-        first | rfl | (funext z; rfl) | ring
+      convert (hasDerivAt_const y (1:ℝ)).sub h1a using 1
+      ring
     have h2 : HasDerivAt (fun w : ℝ => Real.cosh w) (Real.sinh y) y :=
       Real.hasDerivAt_cosh y
-    convert h1.mul h2 using 1 <;>
-      first | rfl | (funext z; rfl) | ring
+    convert h1.mul h2 using 1
+    ring
   have hanti : AntitoneOn (fun w : ℝ => (1 - w ^ 2 / 2) * Real.cosh w) (Set.Ici (0:ℝ)) :=
     antitoneOn_of_deriv_nonpos (convex_Ici _)
       (fun x _ => (hdf x).continuousAt.continuousWithinAt)
@@ -401,21 +404,21 @@ theorem ylcLength_eq (lam0 delta : ℝ) (h : lam0 ≠ 1) :
     ylcLength lam0 delta =
       2 * Nat.ceil (Real.arcosh (1 / delta) /
         Real.arcosh (1 / Real.sqrt (1 - lam0))) + 1 := by
-  rw [ylcLength, if_neg h]
+  rw [ylcLength, ite_eq_right h]
 
 /-- For unit lower bound on the good mass, the chosen length is one. -/
 theorem ylcLength_one (delta : ℝ) : ylcLength 1 delta = 1 := by
-  rw [ylcLength, if_pos rfl]
+  rw [ylcLength, ite_eq_left rfl]
 
 /-- For `0 < lam0 < 1`, the chosen length is odd. -/
-theorem ylcLength_odd {lam0 delta : ℝ} (hl0 : 0 < lam0) (hl0' : lam0 < 1) :
+theorem ylcLength_odd {lam0 delta : ℝ} (_hl0 : 0 < lam0) (hl0' : lam0 < 1) :
     Odd (ylcLength lam0 delta) := by
   rw [ylcLength_eq _ _ (ne_of_lt hl0')]
   exact ⟨Nat.ceil (Real.arcosh (1 / delta) /
     Real.arcosh (1 / Real.sqrt (1 - lam0))), by omega⟩
 
 /-- For `0 < lam0 < 1`, the chosen length is at least one. -/
-theorem ylcLength_one_le {lam0 delta : ℝ} (hl0 : 0 < lam0) (hl0' : lam0 < 1) :
+theorem ylcLength_one_le {lam0 delta : ℝ} (_hl0 : 0 < lam0) (hl0' : lam0 < 1) :
     1 ≤ ylcLength lam0 delta := by
   rw [ylcLength_eq _ _ (ne_of_lt hl0')]
   exact Nat.le_add_left _ _
@@ -477,7 +480,7 @@ theorem ylcLength_meets_bound {lam0 delta : ℝ} (hl0 : 0 < lam0) (hl0' : lam0 <
 /-- For `lam0` and `delta` in `(0, 1)`, the chosen length gives Chebyshev response at least `1 -
 delta ^ 2` for every `lam ∈ [lam0, 1]` [YoderLowChuang2014]. -/
 theorem responseProb_succ_le {lam0 delta lam : ℝ} (hl0 : 0 < lam0) (hl0' : lam0 < 1)
-    (hd : 0 < delta) (hd' : delta < 1) (hlam : lam0 ≤ lam) (hlam' : lam ≤ 1) :
+    (hd : 0 < delta) (hd' : delta < 1) (hlam : lam0 ≤ lam) (_hlam' : lam ≤ 1) :
     1 - delta ^ 2 ≤ responseProb (ylcLength lam0 delta) delta lam := by
   have hmeets := ylcLength_meets_bound hl0 hl0' hd hd'
   have hLpos : 0 < (ylcLength lam0 delta : ℕ) :=
@@ -538,7 +541,7 @@ theorem responseProb_succ_le {lam0 delta lam : ℝ} (hl0 : 0 < lam0) (hl0' : lam
 
 /-- For positive odd length and `0 < delta < 1`, the Chebyshev response at zero good mass is
 zero. -/
-theorem responseProb_zero {L : ℕ} {delta : ℝ} (hL : Odd L) (hL' : 1 ≤ L)
+theorem responseProb_zero {L : ℕ} {delta : ℝ} (_hL : Odd L) (hL' : 1 ≤ L)
     (hd : 0 < delta) (hd' : delta < 1) : responseProb L delta 0 = 0 := by
   have hL0 : 0 < L := lt_of_lt_of_le (by norm_num) hL'
   have h : cheb L (1 / ylcGamma L delta) = 1 / delta := cheb_one_div_gamma hL0 hd hd'
@@ -551,15 +554,15 @@ theorem responseProb_zero {L : ℕ} {delta : ℝ} (hL : Odd L) (hL' : 1 ≤ L)
 
 /-- For positive odd length and `0 < delta < 1`, the Chebyshev response at unit good mass is
 one. -/
-theorem responseProb_one {L : ℕ} {delta : ℝ} (hL : Odd L) (hL' : 1 ≤ L)
-    (hd : 0 < delta) (hd' : delta < 1) : responseProb L delta 1 = 1 := by
+theorem responseProb_one {L : ℕ} {delta : ℝ} (hL : Odd L) (_hL' : 1 ≤ L)
+    (_hd : 0 < delta) (_hd' : delta < 1) : responseProb L delta 1 = 1 := by
   rw [responseProb_eq]
   have hsqrt : Real.sqrt (1 - (1:ℝ)) = 0 := by rw [sub_self, Real.sqrt_zero]
   rw [hsqrt, zero_div, cheb_zero_of_odd hL, mul_zero, zero_pow (by norm_num : (2:ℕ) ≠ 0),
     sub_zero]
 
 /-- For `0 < delta < 1`, the length-one response is one for every `lam ≥ 1`. -/
-theorem responseProb_one_of_one_le (delta : ℝ) (hd : 0 < delta) (hd' : delta < 1) :
+theorem responseProb_one_of_one_le (delta : ℝ) (_hd : 0 < delta) (_hd' : delta < 1) :
     ∀ lam, 1 ≤ lam → responseProb 1 delta lam = 1 := by
   intro lam hlam
   have hsqrt : Real.sqrt (1 - lam) = 0 := Real.sqrt_eq_zero_of_nonpos (by linarith)
@@ -592,7 +595,7 @@ theorem wordPhaseList_length (l L : ℕ) (g : ℝ) :
 
 /-- For a positive bit count `b`, every real angle has an integer multiple of `2 * π / 2 ^ b`
 within `π / 2 ^ b`. -/
-theorem exists_dyadic_phase (b : ℕ) (hb : 0 < b) (theta : ℝ) :
+theorem exists_dyadic_phase (b : ℕ) (_hb : 0 < b) (theta : ℝ) :
     ∃ q : ℤ, |theta - (2 * Real.pi * (q : ℝ)) / (2:ℝ) ^ b| ≤ Real.pi / (2:ℝ) ^ b := by
   have hTpos : 0 < (2:ℝ) ^ b := by positivity
   have h2pi : 0 < 2 * Real.pi := by
@@ -882,7 +885,7 @@ theorem chebyshevOptimalSuppression :
     ∀ (L : ℕ) (delta : ℝ) (q : ℝ[X]) (a : ℝ),
     1 ≤ L → 0 < delta → delta < 1 → q.degree ≤ (L : ℕ) → q.eval 1 = 1 →
       0 < a → (∀ y ∈ Set.Icc (-a) a, |q.eval y| ≤ delta) → a ≤ ylcGamma L delta :=
-  fun L delta q a hL hd hd' hqdeg hq1 ha hbound =>
+  fun _L _delta _q _a hL hd hd' hqdeg hq1 ha hbound =>
     chebyshev_suppression_optimal hL hd hd' hqdeg hq1 ha hbound
 
 /-- For the stated positive length and parameters in `(0, 1)`, uniform polynomial suppression on
@@ -896,7 +899,7 @@ theorem chebyshevDegreeLowerBound :
         |q.eval y| ≤ delta) →
         Real.arcosh (1 / delta) / (L : ℝ) ≤
           Real.arcosh (1 / Real.sqrt (1 - lam0)) :=
-  fun L lam0 delta q hL hl0 hl0' hd hd' hqdeg hq1 hbound =>
+  fun _L _lam0 _delta _q hL hl0 hl0' hd hd' hqdeg hq1 hbound =>
     chebyshev_degree_lower_bound hL hl0 hl0' hd hd' hqdeg hq1 hbound
 
 /-- For `lam0, delta ∈ (0, 1)`, the chosen common length satisfies the displayed
@@ -905,14 +908,14 @@ theorem unifiedLengthMeetsLowerBound :
     ∀ (lam0 delta : ℝ), 0 < lam0 → lam0 < 1 → 0 < delta → delta < 1 →
     Real.arcosh (1 / delta) / ((ylcLength lam0 delta : ℝ)) ≤
       Real.arcosh (1 / Real.sqrt (1 - lam0)) :=
-  fun lam0 delta hl0 hl0' hd hd' => ylcLength_meets_bound hl0 hl0' hd hd'
+  fun _lam0 _delta hl0 hl0' hd hd' => ylcLength_meets_bound hl0 hl0' hd hd'
 
 /-- For positive length and `0 < delta < 1`, the width parameter does not decrease when the
 length increases by one. -/
 theorem widthWidening :
     ∀ (L : ℕ) (delta : ℝ), 0 < L → 0 < delta → delta < 1 →
     ylcGamma L delta ≤ ylcGamma (L + 1) delta :=
-  fun L delta hL hd hd' => ylcGamma_mono_le hL hd hd'
+  fun _L _delta hL hd hd' => ylcGamma_mono_le hL hd hd'
 
 /-- Combines the universal access-count bound, exact ledgers, phase counts, and dyadic phase
 approximation with Chebyshev suppression and degree bounds, the chosen-length inequality,
@@ -1202,8 +1205,8 @@ theorem resourceTransport :
 private theorem inner_target_two (v : QState (Fin 2)) :
     Qatlib.Foundations.PureStateMath.Inner (fun i : Fin 2 => if i = 0 then (0:ℂ) else 1) v = v 1 := by
   rw [inner_apply, Fin.sum_univ_two]
-  rw [show (if (0 : Fin 2) = 0 then (0:ℂ) else 1) = 0 from if_pos rfl,
-      show (if (1 : Fin 2) = 0 then (0:ℂ) else 1) = 1 from if_neg (by decide)]
+  rw [show (if (0 : Fin 2) = 0 then (0:ℂ) else 1) = 0 from ite_eq_left rfl,
+      show (if (1 : Fin 2) = 0 then (0:ℂ) else 1) = 1 from ite_eq_right (by decide)]
   simp
 
 /-- The coordinate at zero of `ampState lam` is the complex coercion of `√(1 - lam)`. -/
@@ -1211,14 +1214,14 @@ private theorem ampState_apply_zero (lam : ℝ) :
     ampState lam 0 = ((Real.sqrt (1 - lam) : ℝ) : ℂ) := by
   show (if (0 : Fin 2) = 0 then ((Real.sqrt (1 - lam) : ℝ) : ℂ)
     else ((Real.sqrt lam : ℝ) : ℂ)) = _
-  exact if_pos rfl
+  exact ite_eq_left rfl
 
 /-- The coordinate at one of `ampState lam` is the complex coercion of `√lam`. -/
 private theorem ampState_apply_one (lam : ℝ) :
     ampState lam 1 = ((Real.sqrt lam : ℝ) : ℂ) := by
   show (if (1 : Fin 2) = 0 then ((Real.sqrt (1 - lam) : ℝ) : ℂ)
     else ((Real.sqrt lam : ℝ) : ℂ)) = _
-  exact if_neg (by decide)
+  exact ite_eq_right (by decide)
 
 /-- The inner product with `ampState lam` is the displayed linear combination of the two
 coordinates with square-root coefficients. -/
@@ -1360,12 +1363,12 @@ private theorem groverIterate_apply_zero {lam : ℝ} (hl : 0 ≤ lam) (hl' : 0 �
       smul_smul, Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
   have hu0 : (targetReflection beta *ᵥ v) 0 = ((Real.sqrt (1 - lam) : ℝ) : ℂ) * X := by
     rw [hD, show (if (0 : Fin 2) = 0 then (1:ℂ) else Complex.exp (Complex.I * beta)) = 1
-        from if_pos rfl, one_mul, hv0]
+        from ite_eq_left rfl, one_mul, hv0]
   have hin : Qatlib.Foundations.PureStateMath.Inner (ampState lam) (targetReflection beta *ᵥ v)
       = ((1 - lam : ℝ) : ℂ) * X + ((lam : ℝ) : ℂ) * Complex.exp (Complex.I * beta) * Y := by
     rw [inner_ampState, hu0, hD,
       show (if (1 : Fin 2) = 0 then (1:ℂ) else Complex.exp (Complex.I * beta))
-        = Complex.exp (Complex.I * beta) from if_neg (by decide), hv1]
+        = Complex.exp (Complex.I * beta) from ite_eq_right (by decide), hv1]
     have e1 : ((Real.sqrt (1 - lam) : ℝ) : ℂ) * (((Real.sqrt (1 - lam) : ℝ) : ℂ) * X)
         = ((1 - lam : ℝ) : ℂ) * X := by
       rw [← mul_assoc, hsq1]
@@ -1417,12 +1420,12 @@ private theorem groverIterate_apply_one {lam : ℝ} (hl : 0 ≤ lam) (hl' : 0 �
       smul_smul, Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
   have hu0 : (targetReflection beta *ᵥ v) 0 = ((Real.sqrt (1 - lam) : ℝ) : ℂ) * X := by
     rw [hD, show (if (0 : Fin 2) = 0 then (1:ℂ) else Complex.exp (Complex.I * beta)) = 1
-        from if_pos rfl, one_mul, hv0]
+        from ite_eq_left rfl, one_mul, hv0]
   have hin : Qatlib.Foundations.PureStateMath.Inner (ampState lam) (targetReflection beta *ᵥ v)
       = ((1 - lam : ℝ) : ℂ) * X + ((lam : ℝ) : ℂ) * Complex.exp (Complex.I * beta) * Y := by
     rw [inner_ampState, hu0, hD,
       show (if (1 : Fin 2) = 0 then (1:ℂ) else Complex.exp (Complex.I * beta))
-        = Complex.exp (Complex.I * beta) from if_neg (by decide), hv1]
+        = Complex.exp (Complex.I * beta) from ite_eq_right (by decide), hv1]
     have e1 : ((Real.sqrt (1 - lam) : ℝ) : ℂ) * (((Real.sqrt (1 - lam) : ℝ) : ℂ) * X)
         = ((1 - lam : ℝ) : ℂ) * X := by
       rw [← mul_assoc, hsq1]
@@ -1438,7 +1441,7 @@ private theorem groverIterate_apply_one {lam : ℝ} (hl : 0 ≤ lam) (hl' : 0 �
     rfl
   rw [hG, Matrix.neg_mulVec, Pi.neg_apply, ← Matrix.mulVec_mulVec, hS,
     hD, show (if (1 : Fin 2) = 0 then (1:ℂ) else Complex.exp (Complex.I * beta))
-      = Complex.exp (Complex.I * beta) from if_neg (by decide), hv1, hin,
+      = Complex.exp (Complex.I * beta) from ite_eq_right (by decide), hv1, hin,
     ampState_apply_one]
   ring
 

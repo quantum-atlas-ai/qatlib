@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SingleQuery97.MainResults.CharacterSum
-import Qatlib.Papers.SingleQuery97.MainResults.WalshSearch
+module
+
+public import Qatlib.Papers.SingleQuery97.MainResults.CharacterSum
+public import Qatlib.Papers.SingleQuery97.MainResults.WalshSearch
+
+@[expose] public section
 
 /-!
 # Binary code states and Huffman collision criteria
@@ -62,10 +66,10 @@ theorem huffmanMeasurement {m : ℕ} (code : ι → Fin m → ZMod 2) (y y' : ι
   rw [show inner (codeState code y) (codeState code y') =
       if code y = code y' then (1 : ℂ) else 0 from huffmanStates_orthonormal code y y']
   by_cases h : code y = code y'
-  · rw [if_pos h, if_pos h]
+  · rw [ite_eq_left h, ite_eq_left h]
     funext x
     simp [codeState, h]
-  · rw [if_neg h, if_neg h]
+  · rw [ite_eq_right h, ite_eq_right h]
     funext x
     simp
 

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpinorSampling.Matching.MatchedRecords
-import Qatlib.Concepts.SpinorSampling.Matching.MatchedSamplingLaw
-import Qatlib.Concepts.SpinorSampling.Matching.SelectedSignProducts
+module
+
+public import Qatlib.Concepts.SpinorSampling.Matching.MatchedRecords
+public import Qatlib.Concepts.SpinorSampling.Matching.MatchedSamplingLaw
+public import Qatlib.Concepts.SpinorSampling.Matching.SelectedSignProducts
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

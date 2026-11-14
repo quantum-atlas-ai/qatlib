@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.InteractionEvo.ComputedGrid.ComputedDysonGridProgram
-import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
-import Qatlib.Concepts.LocalMachine.LocalTransport.ControlledQueryCircuit
-import Qatlib.Concepts.CoherentSim.CoherentOAA.RobustCoherentImplementation
-import Qatlib.Concepts.ClassicalTape.TapeCompilation.ClockedTapeDecision
-import Mathlib.Data.Nat.Bits
+module
+
+public import Qatlib.Concepts.InteractionEvo.ComputedGrid.ComputedDysonGridProgram
+public import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
+public import Qatlib.Concepts.LocalMachine.LocalTransport.ControlledQueryCircuit
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.RobustCoherentImplementation
+public import Qatlib.Concepts.ClassicalTape.TapeCompilation.ClockedTapeDecision
+public import Mathlib.Data.Nat.Bits
+
+@[expose] public section
 
 /-!
 # Effective programs for Dyson simulation

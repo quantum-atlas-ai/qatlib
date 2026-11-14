@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LocalHam06.MainResults.QmaCompletenessSize
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.QmaCompletenessNativeNorm
+module
+
+public import Qatlib.Papers.LocalHam06.MainResults.QmaCompletenessSize
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.QmaCompletenessNativeNorm
+
+@[expose] public section
 
 /-!
 # Size bounds for scaled history encodings

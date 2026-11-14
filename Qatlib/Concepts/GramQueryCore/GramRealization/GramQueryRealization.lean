@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryWordCore.QueryMachinery.NegativeAdversary
-import Qatlib.Concepts.BlockEncoding.EncodingCore.PrepareUnitary
-import Qatlib.Concepts.QspSimulation.Achievability.CircuitWellFormed
-import Mathlib.Analysis.Matrix.Order
-import Mathlib.Analysis.InnerProductSpace.Adjoint
-import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
+module
+
+public import Qatlib.Concepts.QueryWordCore.QueryMachinery.NegativeAdversary
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.PrepareUnitary
+public import Qatlib.Concepts.QspSimulation.Achievability.CircuitWellFormed
+public import Mathlib.Analysis.Matrix.Order
+public import Mathlib.Analysis.InnerProductSpace.Adjoint
+public import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
+
+@[expose] public section
 
 /-!
 # Realizing Gram witnesses by phase-query circuits
@@ -127,7 +131,7 @@ theorem gram_equal_actual_unitary_transport :
       (V W : Matrix H X ℂ), Vᴴ * V = Wᴴ * W →
       ∃ U : Matrix H H ℂ, U ∈ Matrix.unitaryGroup H ℂ ∧ U * V = W := by
   intro H X _ _ _ _ V W hGram
-  letI : InnerProductSpace ℂ (EuclideanSpace ℂ H) := inferInstance
+  let _ : InnerProductSpace ℂ (EuclideanSpace ℂ H) := inferInstance
   let v := Matrix.toEuclideanLin V
   let w := Matrix.toEuclideanLin W
   have hinner (a b : EuclideanSpace ℂ X) : inner ℂ (v a) (v b) = inner ℂ (w a) (w b) :=
@@ -140,7 +144,7 @@ theorem gram_equal_actual_unitary_transport :
     simpa only [ha, inner_zero_left] using! (hinner a a).symm
   let L : v.range →ₗ[ℂ] EuclideanSpace ℂ H :=
     (v.ker.liftQ w hker).comp v.quotKerEquivRange.symm.toLinearMap
-  letI : InnerProductSpace ℂ v.range := Submodule.innerProductSpace v.range
+  let _ : InnerProductSpace ℂ v.range := Submodule.innerProductSpace v.range
   have hL (a : EuclideanSpace ℂ X) (ha : v a ∈ v.range) : L ⟨v a, ha⟩ = w a := by
     change (v.ker.liftQ w hker) (v.quotKerEquivRange.symm ⟨v a, ha⟩) = w a
     rw [LinearMap.quotKerEquivRange_symm_apply_image]
@@ -513,12 +517,12 @@ theorem gram_witness_sum_workspace_realization
   have hGram (t : Fin (T + 1)) : (V t)ᴴ * V t = G t := by
     by_cases ht : t.val < T
     · dsimp [V]
-      rw [dif_pos ht, gramDirectSumMatrix_gram]
+      rw [dite_eq_left ht, gramDirectSumMatrix_gram]
       simp_rw [hF]
       exact (hw.2 ⟨t.val, ht⟩).2.1
     · have he : t = Fin.last T := by apply Fin.ext; simp only [Fin.val_last]; omega
       subst t
-      simpa only [V, Fin.val_last, lt_self_iff_false, dif_neg, not_false_eq_true] using! hout
+      simpa only [V, Fin.val_last, lt_self_iff_false, dite_eq_right, not_false_eq_true] using! hout
   have h0 : ∀ x y, ((V 0)ᴴ * V 0) x y = 1 := by
     intro x y
     rw [hGram]
@@ -528,7 +532,7 @@ theorem gram_witness_sum_workspace_realization
         (V t.succ)ᴴ * V t.succ := by
     have hv : V t.castSucc = gramDirectSumMatrix (F t) := by
       dsimp [V]
-      rw [if_pos t.isLt]
+      rw [ite_eq_left t.isLt]
     rw [hv]
     have hquery : gramQueriedColumns O (gramDirectSumMatrix (F t)) =
         gramDirectSumMatrix (fun i => F t i * Matrix.diagonal (fun x => gramQuerySign (input x) i)) := by
@@ -620,7 +624,7 @@ theorem gram_witness_actual_exact_phase_query_algorithm :
       simp [relabelGate, gramPhaseQuery, e]
     · have hne : e.symm a ≠ e.symm b := fun he => hab (e.symm.injective he)
       simp only [relabelGate, Matrix.reindex_apply, Matrix.submatrix_apply, Matrix.diagonal_apply,
-        hne, hab, if_false, gramPhaseQuery]
+        hne, hab, ite_false, gramPhaseQuery]
   have hket : relabelState e (Qatlib.Foundations.PureStateMath.Ket j) = Qatlib.Foundations.PureStateMath.Ket (e j) := by
     funext iw
     simp [relabelState, Qatlib.Foundations.PureStateMath.Ket, Equiv.symm_apply_eq]

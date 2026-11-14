@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MixedFidelity.FidelityMetric.FinitePreparation
-import Mathlib.Analysis.SpecialFunctions.Complex.Arg
+module
+
+public import Qatlib.Concepts.MixedFidelity.FidelityMetric.FinitePreparation
+public import Mathlib.Analysis.SpecialFunctions.Complex.Arg
+
+@[expose] public section
 
 open Qatlib.Foundations.PureStateMath
 

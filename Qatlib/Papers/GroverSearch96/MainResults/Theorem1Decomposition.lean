@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SearchStopping.KnownCount.Theorem1Afas
+module
+
+public import Qatlib.Concepts.SearchStopping.KnownCount.Theorem1
+
+@[expose] public section
 
 /-!
 # Hadamard decomposition of the diffusion operator

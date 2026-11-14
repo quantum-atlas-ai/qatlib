@@ -6,13 +6,17 @@ Authors: The Tau Ceti contributors, Qatlib Contributors
 Adapted from https://github.com/TauCetiProject/TauCeti@3780371c
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+module
 
-import Mathlib.Topology.MetricSpace.Bounded
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Winding.LocallyConstant
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Winding.Vanishing
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Topology.FilledHull
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Winding.AbsolutelyContinuous.Basic
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+
+public import Mathlib.Topology.MetricSpace.Bounded
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Winding.LocallyConstant
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Winding.Vanishing
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Topology.FilledHull
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Winding.AbsolutelyContinuous.Basic
+
+@[expose] public section
 
 /-!
 # Winding numbers on unbounded complementary components

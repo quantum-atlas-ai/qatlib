@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PrimalityCerts.LucasTests.LucasWitnesses
-import Qatlib.Papers.QPrimality95.MainResults.CostDefs
+module
+
+public import Qatlib.Foundations.PrimalityCerts.LucasTests.LucasWitnesses
+public import Qatlib.Papers.QPrimality95.MainResults.CostDefs
+
+@[expose] public section
 
 /-!
 # Pocklington–Lehmer criteria and primality-cost assembly

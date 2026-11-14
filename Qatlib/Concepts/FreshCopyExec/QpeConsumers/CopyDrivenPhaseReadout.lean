@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CopyEvolution.Discriminate.ControlledCopyEvolution
-import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
+module
+
+public import Qatlib.Concepts.CopyEvolution.Discriminate.ControlledCopyEvolution
+public import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
+
+@[expose] public section
 
 /-!
 # Fresh Copy Phase Estimation Execution
@@ -272,7 +276,7 @@ estimation input is positive semidefinite with trace one. -/
 theorem copyQPEInput_density (D M : ℕ) (hM : 0 < M) (ρ : Operator D)
     (hρ : IsDensityOperator ρ) :
     (copyQPEInput D M ρ).PosSemidef ∧ Matrix.trace (copyQPEInput D M ρ) = 1 := by
-  rw [copyQPEInput, dif_pos hM]
+  rw [copyQPEInput, dite_eq_left hM]
   constructor
   · exact (outerProduct_posSemidef _).kronecker
       ((outerProduct_posSemidef _).kronecker hρ.1)
@@ -395,12 +399,12 @@ private theorem copyQPE_conj_difference_norm {I : Type*} [Fintype I] [DecidableE
   rw [← (MatrixMap.conj U).map_sub]
   have hh : Uᴴ * U = 1 := by
     simpa only [Matrix.star_eq_conjTranspose] using (Matrix.mem_unitaryGroup_iff').mp hU
-  letI : DecidableEq I := Classical.decEq I
+  let _ : DecidableEq I := Classical.decEq I
   have hu : U.Isometry := by
     change Uᴴ * U = 1
-    convert hh using 1 <;> first
-      | exact Subsingleton.elim _ _
-      | (ext i j; simp [Matrix.one_apply])
+    convert hh using 1
+    ext i j
+    simp [Matrix.one_apply]
   change (U * (A - B) * Uᴴ).traceNorm = (A - B).traceNorm
   rw [Matrix.traceNorm_isometry_right hu, Matrix.traceNorm_isometry_left hu]
 

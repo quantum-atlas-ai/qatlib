@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CollisionProb97.MainResults.CollisionParameters
+module
+
+public import Qatlib.Papers.CollisionProb97.MainResults.CollisionParameters
+
+@[expose] public section
 
 /-!
 # Achievable collision time-space tradeoff
@@ -53,7 +57,7 @@ theorem full_table_expected (F : X → R) (r : ℕ) (hr : 2 ≤ r) (hF : RToOne 
     (l : ℝ) (hl : 1 < l) (hl4 : l < 4/3) :
     expectedCost (CollisionExecution.run F r hr hF Finset.univ Finset.univ_nonempty l hl hl4) =
       (Fintype.card X : ℝ≥0∞) := by
-  rw [CollisionExecution.run, dif_neg (full_table_early F r hr hF),
+  rw [CollisionExecution.run, dite_eq_right (full_table_early F r hr hF),
     expectedCost_charge, expectedCost_ret, add_zero, Finset.card_univ]
 
 /-- If `K.card ≤ T` and `|image F| ≤ K.card*T^2`, bounds the expected collision-run cost by

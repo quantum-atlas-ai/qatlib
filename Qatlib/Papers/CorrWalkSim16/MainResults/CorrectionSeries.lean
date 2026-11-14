@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CorrWalkSim16.MainResults.ParitySymmetry
-import Mathlib.Analysis.SpecificLimits.Basic
+module
+
+public import Qatlib.Papers.CorrWalkSim16.MainResults.ParitySymmetry
+public import Mathlib.Analysis.SpecificLimits.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

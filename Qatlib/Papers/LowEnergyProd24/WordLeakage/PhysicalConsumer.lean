@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LowEnergyProd24.WordLeakage.PhysicalLeakage
-import Qatlib.Papers.LowEnergyProd24.WordLeakage.Majorant
-import Qatlib.Papers.LowEnergyProd24.WordLeakage.ToleranceCutoff
-import Qatlib.Papers.LowEnergyProd24.WordLeakage.LieConsumer
+module
+
+public import Qatlib.Papers.LowEnergyProd24.WordLeakage.PhysicalLeakage
+public import Qatlib.Papers.LowEnergyProd24.WordLeakage.Majorant
+public import Qatlib.Papers.LowEnergyProd24.WordLeakage.ToleranceCutoff
+public import Qatlib.Papers.LowEnergyProd24.WordLeakage.LieConsumer
+
+@[expose] public section
 
 /-!
 # Physical leakage bounds and explicit consumers

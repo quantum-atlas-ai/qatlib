@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalshMoment.Forrelation.QmaVerifierSpectralForrelationStat
-import Qatlib.Concepts.WalshMoment.Forrelation.SpectralForrelationBasicsSepa
-import Qatlib.Concepts.QueryWordCore.QueryMachinery.NegativeAdversary
+module
+
+public import Qatlib.Concepts.WalshMoment.Forrelation.QmaVerifierSpectralForrelationStat
+public import Qatlib.Concepts.WalshMoment.Forrelation.SpectralForrelationBasicsSepa
+public import Qatlib.Concepts.QueryWordCore.QueryMachinery.NegativeAdversary
+
+@[expose] public section
 
 /-!
 # A two-query verifier for spectral forrelation witness mass

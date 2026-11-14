@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.LinearMap
-import Mathlib.Analysis.InnerProductSpace.Projection.FiniteDimensional
+module
+
+public import Mathlib.Analysis.InnerProductSpace.LinearMap
+public import Mathlib.Analysis.InnerProductSpace.Projection.FiniteDimensional
+
+@[expose] public section
 
 /-!
 # Rank-one support of a finite positive sum
@@ -37,10 +41,10 @@ theorem mem_span_of_sum_rankOne_eq_smul_rankOne
     ∀ j, u j ∈ Submodule.span ℂ {v} := by
   classical
   let S : Submodule ℂ E := Submodule.span ℂ {v}
-  letI : FiniteDimensional ℂ S := by
+  let : FiniteDimensional ℂ S := by
     dsimp [S]
     infer_instance
-  letI : CompleteSpace S := FiniteDimensional.complete ℂ S
+  let : CompleteSpace S := FiniteDimensional.complete ℂ S
   intro j
   have hdouble : u j ∈ Sᗮᗮ := by
     apply (Submodule.mem_orthogonal' Sᗮ (u j)).2
@@ -53,11 +57,11 @@ theorem mem_span_of_sum_rankOne_eq_smul_rankOne
         (InnerProductSpace.rankOne ℂ (u k) (u k) y)) = 0 := by
       calc
         _ = inner ℂ y ((∑ k, InnerProductSpace.rankOne ℂ (u k) (u k)) y) := by
-          rw [ContinuousLinearMap.sum_apply, inner_sum]
+          rw [_root_.sum_apply, inner_sum]
         _ = inner ℂ y ((r • InnerProductSpace.rankOne ℂ v v) y) :=
           congrArg (fun A : E →L[ℂ] E => inner ℂ y (A y)) h
         _ = 0 := by
-          rw [ContinuousLinearMap.smul_apply, htarget, smul_zero, inner_zero_right]
+          rw [_root_.smul_apply, htarget, smul_zero, inner_zero_right]
     have hquadratic (k : J) :
         (inner ℂ y (InnerProductSpace.rankOne ℂ (u k) (u k) y)).re =
           ‖inner ℂ (u k) y‖ ^ 2 := by

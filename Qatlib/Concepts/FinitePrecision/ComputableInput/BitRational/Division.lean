@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FinitePrecision.ComputableInput.BitRational.Comparison
+module
+
+public import Qatlib.Concepts.FinitePrecision.ComputableInput.BitRational.Comparison
+
+@[expose] public section
 
 /-!
 # Correctness and bounds for binary long division
@@ -144,14 +148,14 @@ private theorem division_semantics (ds xs : List Bool) (hd : 0 < binomialBitValu
       have he : binomialBitDivmod ds (b::bs) =
           ⟨true::r.quotient,sub.1.1,r.gates+cmp.2+sub.2,r.columns+1⟩ := by
         change (if cmp.1 then _ else _) = _
-        rw [if_pos h]
+        rw [ite_eq_left h]
       simp only [he,binomialBitValue,Bool.toNat_true]
       constructor <;> nlinarith [ih.1]
     · have hlt : binomialBitValue c < binomialBitValue ds := Nat.lt_of_not_ge (mt hc.mpr h)
       have he : binomialBitDivmod ds (b::bs) =
           ⟨false::r.quotient,c,r.gates+cmp.2,r.columns+1⟩ := by
         change (if cmp.1 then _ else _) = _
-        rw [if_neg h]
+        rw [ite_eq_right h]
       simp only [he,binomialBitValue,Bool.toNat_false,zero_add]
       constructor
       · nlinarith [ih.1]
@@ -189,14 +193,14 @@ private theorem division_bounds (ds xs : List Bool) :
       have he : binomialBitDivmod ds (b::bs) =
           ⟨true::r.quotient,sub.1.1,r.gates+cmp.2+sub.2,r.columns+1⟩ := by
         change (if cmp.1 then _ else _) = _
-        rw [if_pos h]
+        rw [ite_eq_left h]
       simp only [he,List.length_cons]
       refine ⟨by omega,by omega,by omega,?_⟩
       nlinarith [ih.2.2.2]
     · have he : binomialBitDivmod ds (b::bs) =
           ⟨false::r.quotient,c,r.gates+cmp.2,r.columns+1⟩ := by
         change (if cmp.1 then _ else _) = _
-        rw [if_neg h]
+        rw [ite_eq_right h]
       simp only [he,List.length_cons]
       refine ⟨by omega,by omega,by omega,?_⟩
       nlinarith [ih.2.2.2]

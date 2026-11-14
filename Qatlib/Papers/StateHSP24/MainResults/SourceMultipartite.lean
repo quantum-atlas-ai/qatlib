@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.StateHSP24.MainResults.SourceSwapTest
-import Qatlib.Papers.StateHSP24.MainResults.SourceSchmidtPurity
+module
+
+public import Qatlib.Papers.StateHSP24.MainResults.SourceSwapTest
+public import Qatlib.Papers.StateHSP24.MainResults.SourceSchmidtPurity
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -161,7 +165,7 @@ theorem cutReduced_eq_tensorGate (a : QState (Fin x × Fin y)) (b : QState (Fin 
   ext ⟨i, k⟩ ⟨j, l⟩
   simp only [cutReduced, jointDensity, partialTraceGen, Matrix.submatrix_apply,
     outerProduct_apply, TensorState, tensorGate_apply, middleSwap_symm_apply,
-    Fintype.sum_prod_type, star_mul]
+    Fintype.sum_prod_type]
   rw [Finset.sum_mul_sum]
   refine Finset.sum_congr rfl fun yy _ => Finset.sum_congr rfl fun ww _ => ?_
   rw [map_mul]
@@ -294,7 +298,7 @@ theorem swapOpGen_mul_self {I : Type*} [Fintype I] [DecidableEq I] :
       · obtain ⟨rfl, rfl⟩ := h
         simp
       · have h' : ¬(j = l ∧ i = k) := fun hh => h ⟨hh.2, hh.1⟩
-        rw [if_neg h', if_neg h]
+        rw [ite_eq_right h', ite_eq_right h]
         simp
     · intro yy _ hy
       by_cases h : i = yy
@@ -319,11 +323,11 @@ theorem swapOpGen_conjTranspose {I : Type*} [Fintype I] [DecidableEq I] :
   simp only [Matrix.conjTranspose_apply, swapOpGen]
   by_cases h : k = j ∧ l = i
   · obtain ⟨rfl, rfl⟩ := h
-    simp only [and_self, if_true, star_one]
+    simp only [and_self, ite_true, star_one]
   · have h' : ¬(i = l ∧ j = k) := by
       rintro ⟨rfl, rfl⟩
       exact h ⟨rfl, rfl⟩
-    rw [if_neg h, if_neg h', star_zero]
+    rw [ite_eq_right h, ite_eq_right h', star_zero]
 
 /-- The projector `Π_SWAP = ½ (I + SWAP)` onto the symmetric subspace. -/
 def swapProjectorGen (I : Type*) [Fintype I] [DecidableEq I] :
@@ -422,7 +426,7 @@ theorem corollary4_acceptance_le (a : QState (Fin x × Fin y))
 /-- **Proposition 6** (quantitative core): if each pair accepts with probability at
 most `1 - ε²/2`, then `m` independent pairs accept with probability at most
 `exp(-ε² m / 2)`. -/
-theorem proposition6_mfold_acceptance_le (p ε : ℝ) (hε : 0 ≤ ε) (hp0 : 0 ≤ p)
+theorem proposition6_mfold_acceptance_le (p ε : ℝ) (_hε : 0 ≤ ε) (hp0 : 0 ≤ p)
     (hp : p ≤ 1 - ε ^ 2 / 2) (m : ℕ) :
     p ^ m ≤ Real.exp (-(ε ^ 2 * m / 2)) := by
   have hbase : 0 ≤ 1 - ε ^ 2 / 2 := le_trans hp0 hp
@@ -431,7 +435,6 @@ theorem proposition6_mfold_acceptance_le (p ε : ℝ) (hε : 0 ≤ ε) (hp0 : 0 
     pow_le_pow_left₀ hbase (Real.one_sub_le_exp_neg (ε ^ 2 / 2)) m
   have h3 : Real.exp (-(ε ^ 2 / 2)) ^ m = Real.exp (-(ε ^ 2 * m / 2)) := by
     rw [← Real.exp_nat_mul]
-    push_cast
     ring_nf
   rw [h3] at h2
   exact le_trans h1 h2

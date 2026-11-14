@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpectralFilter.PhaseReadout.PhaseEstimation
-import Qatlib.Foundations.PureStateMath.Qubit
-import Mathlib.Tactic
+module
+
+public import Qatlib.Concepts.SpectralFilter.PhaseReadout.PhaseEstimation
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Discrete Fourier phase-state measurements
@@ -55,10 +59,10 @@ theorem source_discrete_fourier_orthogonality (q : ℕ) (hq : 0 < q) (n : ℤ) :
     (1 / (q : ℂ)) * (∑ s : Fin q, primRoot q ^ (n * (s : ℤ)))
       = if (q : ℤ) ∣ n then 1 else 0 := by
   by_cases h : (q : ℤ) ∣ n
-  · rw [sum_primRoot_zpow_of_dvd hq h, if_pos h]
+  · rw [sum_primRoot_zpow_of_dvd hq h, ite_eq_left h]
     rw [one_div, inv_mul_cancel₀]
     exact_mod_cast hq.ne'
-  · rw [sum_primRoot_zpow hq h, if_neg h, mul_zero]
+  · rw [sum_primRoot_zpow hq h, ite_eq_right h, mul_zero]
 
 /-- The quantum Fourier transform matrix is symmetric in its two indices. -/
 theorem qftMatrix_symm (q : ℕ) (a b : Fin q) : QFTMatrix q a b = QFTMatrix q b a := by
@@ -115,7 +119,7 @@ theorem source_qft_prepares_phase_state (q : ℕ) (s : Fin q) :
   rw [ApplyGate, Matrix.mulVec, dotProduct]
   simp only [phaseState_eq_qft, Ket]
   rw [Finset.sum_eq_single s]
-  · rw [if_pos rfl, mul_one]
+  · rw [ite_eq_left rfl, mul_one]
     exact qftMatrix_symm q k s
   · intro b _ hb
     simp [hb]

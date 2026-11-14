@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QspSimulation.Achievability.CountedHamiltonian
-import Qatlib.Concepts.QspSimulation.Achievability.SimQspRefined
+module
+
+public import Qatlib.Concepts.QspSimulation.Achievability.CountedHamiltonian
+public import Qatlib.Concepts.QspSimulation.Achievability.SimQspRefined
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

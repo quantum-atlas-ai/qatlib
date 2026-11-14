@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HermitianMap26.Construction.Variance
-import Qatlib.Papers.HermitianMap26.Construction.MainResult
-import Qatlib.Concepts.KrausCompile.Sequential
+module
+
+public import Qatlib.Papers.HermitianMap26.Construction.Variance
+public import Qatlib.Papers.HermitianMap26.Construction.MainResult
+public import Qatlib.Concepts.KrausCompile.Sequential
+
+@[expose] public section
 
 /-!
 # Successive signed maps and final readout

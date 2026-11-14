@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.ResidueGcdBranchStat
+module
+
+public import Qatlib.Concepts.PeriodSampling.FactorAlgorithm.ResidueGcdBranchStat
+
+@[expose] public section
 
 /-!
 # Residue factor soundness and bit-width bounds
@@ -57,12 +61,12 @@ theorem residue_bit_width_window (N : ℕ) (hN : 0 < N) :
   rw [← Nat.log2_eq_log_two] at hlo hhi
   unfold shorResidueBits
   by_cases h : 2^Nat.log2 N < N
-  · rw [if_pos h]
+  · rw [ite_eq_left h]
     constructor
     · exact hhi.le
     · rw [pow_succ]
       omega
-  · rw [if_neg h, Nat.add_zero]
+  · rw [ite_eq_right h, Nat.add_zero]
     constructor
     · omega
     · omega

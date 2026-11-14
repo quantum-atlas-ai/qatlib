@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # A finite pair-sum gap estimate
@@ -38,15 +42,15 @@ theorem finite_pair_sum_gap (B : I → I → ℝ) (q : I → ℝ) (a : ℝ)
   have hp (i j : I) : (if i=j then (a+1)*q i else 0)-q i/2-q j/2 ≤ B i j := by
     by_cases h : i=j
     · subst j
-      rw [if_pos rfl,hdiag]
+      rw [ite_eq_left rfl,hdiag]
       linarith
-    · rw [if_neg h]
+    · rw [ite_eq_right h]
       linarith [hoff i j h]
   have hs := Finset.sum_le_sum (s := (Finset.univ : Finset I)) (fun i _ =>
     Finset.sum_le_sum (s := (Finset.univ : Finset I)) (fun j _ => hp i j))
   have hc : (∑ i : I,∑ j : I,((if i=j then (a+1)*q i else 0)-q i/2-q j/2))=
       (a-(Fintype.card I : ℝ)+1)*(∑ i : I,q i) := by
-    simp only [Finset.sum_sub_distrib,Finset.sum_ite_eq,Finset.mem_univ,if_true,
+    simp only [Finset.sum_sub_distrib,Finset.sum_ite_eq,Finset.mem_univ,ite_true,
       Finset.sum_const,Finset.card_univ,nsmul_eq_mul,← Finset.sum_div,← Finset.mul_sum]
     ring
   rw [hc] at hs

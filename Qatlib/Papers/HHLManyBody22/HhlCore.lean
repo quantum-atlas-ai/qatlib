@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HHLManyBody22.HomOverlap.NormalizedEnergy
-import Qatlib.Papers.HHLManyBody22.AdaptHhl.ActualGrid
+module
+
+public import Qatlib.Papers.HHLManyBody22.HomOverlap.NormalizedEnergy
+public import Qatlib.Papers.HHLManyBody22.AdaptHhl.ActualGrid
+
+@[expose] public section
 
 /-!
 # Combining exact grid HHL with HOM energy readout
@@ -69,7 +73,7 @@ theorem conditionalState_homNormalize {I : Type} [Fintype I] [DecidableEq I]
   have hp : 0<MeasureProb w Finset.univ := by
     rw [← homMass_eq_measureProb]
     exact Real.sqrt_pos.mp (homNorm_pos w hw)
-  rw [ConditionalState,if_pos hp]
+  rw [ConditionalState,ite_eq_left hp]
   congr 1
   funext i
   simp [PostMeasure,homNormalize,homNorm,homMass_eq_measureProb,Collapse,projector_univ,ApplyGate,Matrix.one_mulVec]
@@ -102,7 +106,7 @@ theorem hom_actual_inverse_ne_zero {I : Type} [Fintype I] [DecidableEq I]
     A⁻¹*ᵥhomNormalize b≠0 := by
   intro hz
   have hm := congrArg (fun x => A*ᵥx) hz
-  (try dsimp only at hm)
+
   rw [Matrix.mulVec_mulVec,Matrix.mul_nonsing_inv _ hA,Matrix.one_mulVec,
     Matrix.mulVec_zero] at hm
   exact homNormalize_ne_zero b hb hm

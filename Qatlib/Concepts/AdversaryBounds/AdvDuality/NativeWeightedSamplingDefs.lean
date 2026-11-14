@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNative
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNative
+
+@[expose] public section
 
 /-!
 # Native weighted sampling laws
@@ -69,14 +73,14 @@ def RaceOutcome.of (r : NativeTape.Result Qatlib.Concepts.AdversaryBounds.AdvDua
 theorem RaceOutcome.of_eq_left (r : NativeTape.Result Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.Symbol Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.Control)
     (h : Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.output r = some false) : RaceOutcome.of r = .left := by
   cases hu : Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.output r with
-  | none => simp [RaceOutcome.of, hu] at h
+  | none => simp [hu] at h
   | some b => cases b <;> simp [RaceOutcome.of, hu] at h ⊢
 
 /-- A native result with decoded output `some true` is classified as a right outcome. -/
 theorem RaceOutcome.of_eq_right (r : NativeTape.Result Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.Symbol Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.Control)
     (h : Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.output r = some true) : RaceOutcome.of r = .right := by
   cases hu : Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.output r with
-  | none => simp [RaceOutcome.of, hu] at h
+  | none => simp [hu] at h
   | some b => cases b <;> simp [RaceOutcome.of, hu] at h ⊢
 
 /-- A native result with no decoded output is classified as having no race outcome. -/
@@ -84,7 +88,7 @@ theorem RaceOutcome.of_eq_none (r : NativeTape.Result Qatlib.Concepts.AdversaryB
     (h : Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.output r = Option.none) : RaceOutcome.of r = .none := by
   cases hu : Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.output r with
   | none => simp [RaceOutcome.of, hu]
-  | some b => cases b <;> simp [RaceOutcome.of, hu] at h ⊢
+  | some b => cases b <;> simp [hu] at h ⊢
 
 /-- A result whose decoded output is either Boolean value has either a left or a right race
 outcome. -/
@@ -168,6 +172,7 @@ theorem encodedInput_length_le (a b : ℕ) :
     (encodedInput a b).length ≤ encodedWeight a b + 3 := by
   cases a <;> cases b <;>
     simp [encodedInput, encodedWeight, Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs.inputWord, List.length_append,
-      List.length_replicate] <;> omega
+      List.length_replicate]
+  all_goals omega
 
 end Qatlib.Concepts.AdversaryBounds.AdvDuality

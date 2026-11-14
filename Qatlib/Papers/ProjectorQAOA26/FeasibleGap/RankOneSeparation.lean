@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ProjectorQAOA26.FeasibleGap.RootSeparation
-import Qatlib.Papers.ProjectorQAOA26.FeasibleGap.RayleighBounds
+module
+
+public import Qatlib.Papers.ProjectorQAOA26.FeasibleGap.RootSeparation
+public import Qatlib.Papers.ProjectorQAOA26.FeasibleGap.RayleighBounds
+
+@[expose] public section
 
 /-!
 # Separation of the lowest rank-one eigenvalues

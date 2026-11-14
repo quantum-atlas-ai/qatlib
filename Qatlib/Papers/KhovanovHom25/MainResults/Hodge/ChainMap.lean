@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.KhovanovHom25.MainResults.Hodge.Eigenvalues
+module
+
+public import Qatlib.Papers.KhovanovHom25.MainResults.Hodge.Eigenvalues
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -92,7 +96,7 @@ variable {K L : CochainComplex}
 /-- Proposition 14's `h(f)`: the induced map on harmonic chains, defined by
 projecting `f x` back onto the harmonic subspace of the target. -/
 def harmonicMap (f : ChainMap K L) (i : ℕ) : K.harmonic i →ₗ[ℂ] L.harmonic i :=
-  (((L.harmonic i).orthogonalProjection : L.C i →L[ℂ] L.harmonic i).toLinearMap).comp
+  (((L.harmonic i).orthogonalProjectionOnto : L.C i →L[ℂ] L.harmonic i).toLinearMap).comp
     ((f.f i).comp (K.harmonic i).subtype)
 
 /-- The underlying cochain representative of `h(f) x` is `h_D(f x)`. -/

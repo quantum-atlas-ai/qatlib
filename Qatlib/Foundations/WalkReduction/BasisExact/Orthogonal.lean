@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.WalkReduction.FourDefs
+module
+
+public import Qatlib.Foundations.WalkReduction.FourDefs
+
+@[expose] public section
 
 /-!
 # An exact orthogonal basis for the four-state walk reduction

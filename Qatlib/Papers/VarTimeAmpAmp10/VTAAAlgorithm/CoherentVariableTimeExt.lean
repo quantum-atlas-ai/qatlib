@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.CoherentVariableTimeCost
+module
+
+public import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.CoherentVariableTimeCost
+
+@[expose] public section
 
 /-!
 # Paid prefixes and coherent stopping histories
@@ -48,11 +52,12 @@ variable {H : Type} [Fintype H] [DecidableEq H] {m : ℕ}
 def payload (Φ : QState (Qatlib.Concepts.QlsReadoutSpec.Amplification.Space H 2)) : QState H :=
     fun h => Φ (h, 0)
 
+omit [Fintype H] [DecidableEq H] in
 /-- Extracting the payload from a clean workspace embedding returns the original state. -/
 theorem payload_clean (ψ : QState H) : payload (Qatlib.Concepts.QlsReadoutSpec.Amplification.clean 2 (by decide) ψ) = ψ := by
   funext h
   change (if (0 : Fin 2) = 0 then ψ h else 0) = ψ h
-  exact if_pos rfl
+  exact ite_eq_left rfl
 
 /-- The payload of an executed paid prefix equals the corresponding coherent stage state. -/
 theorem paidPrefix_payload (f : CoherentVtFrame H m) (ψ : QState H)

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationSharedDefs
-import QuantumInfo.ForMathlib.HermitianMat.CFC
+module
+
+public import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationSharedDefs
+public import QuantumInfo.ForMathlib.HermitianMat.CFC
+
+@[expose] public section
 
 /-!
 # Regularized trace inequalities and approximate Gibbs regret
@@ -138,7 +142,7 @@ theorem gt_trace_exp_nonneg {n : ℕ} (H : Matrix (Fin n) (Fin n) ℂ) (hH : H.I
 theorem gt_trace_exp_pos {n : ℕ} (hn : 0 < n) (H : Matrix (Fin n) (Fin n) ℂ)
     (hH : H.IsHermitian) :
     0 < (Matrix.trace (NormedSpace.exp H)).re := by
-  haveI : Nonempty (Fin n) := ⟨⟨0, hn⟩⟩
+  have : Nonempty (Fin n) := ⟨⟨0, hn⟩⟩
   have h : 0 < (HermitianMat.exp (⟨H, hH⟩ : HermitianMat (Fin n) ℂ)).trace :=
     HermitianMat.trace_pos (HermitianMat.exp_pos _)
   rw [HermitianMat.trace_eq_re_trace, Qatlib.Concepts.MatrixWeights.WeightsCore.mmw_hermitian_exp_mat,
@@ -333,7 +337,7 @@ theorem psd_inf_le_product {n : ℕ} (A B : HermitianMat (Fin n) ℂ)
     exact (psdGTInfimum_le_regularized A B (Set.mem_Ioi.mp hε)).trans
       (regularized_gt_le A B hA hB (Set.mem_Ioi.mp hε))
   have hlim := regularized_product_trace_tendsto A B
-  haveI : Filter.NeBot (nhdsWithin (0:ℝ) (Set.Ioi 0)) := inferInstance
+  have : Filter.NeBot (nhdsWithin (0:ℝ) (Set.Ioi 0)) := inferInstance
   have hev : ∀ᶠ ε in nhdsWithin (0:ℝ) (Set.Ioi 0),
       psdGTInfimum A B ≤ psdRegularizedProductTrace A.mat B.mat ε := by
     filter_upwards [self_mem_nhdsWithin] with ε hε using hle ε hε
@@ -443,13 +447,13 @@ theorem psd_inf_commuting_trueInf {n : ℕ} (A B : HermitianMat (Fin n) ℂ)
     (hA : A.mat.PosSemidef) (hB : B.mat.PosSemidef) (hcomm : Commute A.mat B.mat) :
     (⨅ ε : Set.Ioi (0:ℝ), psdRegularizedGT A B ε)
       = (Matrix.trace (A.mat * B.mat)).re := by
-  haveI : Filter.NeBot (nhdsWithin (0:ℝ) (Set.Ioi 0)) := inferInstance
+  have : Filter.NeBot (nhdsWithin (0:ℝ) (Set.Ioi 0)) := inferInstance
   have hbdd : BddBelow (Set.range fun ε : Set.Ioi (0:ℝ) => psdRegularizedGT A B ε) := by
     refine ⟨0, ?_⟩
     rintro x ⟨ε, rfl⟩
     exact regularized_gt_nonneg A B ε
   have h1 : (Matrix.trace (A.mat * B.mat)).re ≤ (⨅ ε : Set.Ioi (0:ℝ), psdRegularizedGT A B ε) := by
-    haveI : Nonempty (Set.Ioi (0:ℝ)) := ⟨⟨1, by norm_num⟩⟩
+    have : Nonempty (Set.Ioi (0:ℝ)) := ⟨⟨1, by norm_num⟩⟩
     refine le_ciInf (c := (Matrix.trace (A.mat * B.mat)).re) ?_
     intro ε
     rw [regularized_gt_eq_product_of_commute A B hA hB (Set.mem_Ioi.mp ε.2) hcomm]
@@ -721,13 +725,13 @@ theorem clause22 :
   intro D T M η σ approx z ξ ζ hD hη hη1 hM hσ happ hxi hdist hz
 
   let M' : ℕ → Operator D := fun t => if t < T then M t else 0
-  have hM'eq : ∀ t < T, M' t = M t := fun t ht => if_pos ht
+  have hM'eq : ∀ t < T, M' t = M t := fun t ht => ite_eq_left ht
   have hM'glob : ∀ t, (M' t).IsHermitian ∧ ‖M' t‖ ≤ 1 := by
     intro t
     by_cases ht : t < T
     · rw [hM'eq t ht]
       exact hM t ht
-    · have h0 : M' t = 0 := if_neg ht
+    · have h0 : M' t = 0 := ite_eq_right ht
       rw [h0]
       exact ⟨Matrix.isHermitian_zero, by simp⟩
   have hweight : ∀ t < T,

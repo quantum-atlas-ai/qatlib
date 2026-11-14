@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.l2Space
-import Mathlib.Analysis.InnerProductSpace.LinearMap
-import Mathlib.Analysis.InnerProductSpace.Orthonormal
-import Mathlib.Data.Fintype.Prod
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Topology.Algebra.InfiniteSum.Real
-import Mathlib.Logic.Equiv.Fin.Rotate
-import Mathlib.Data.Matrix.Block
-import Mathlib.LinearAlgebra.UnitaryGroup
+module
+
+public import Mathlib.Analysis.InnerProductSpace.l2Space
+public import Mathlib.Analysis.InnerProductSpace.LinearMap
+public import Mathlib.Analysis.InnerProductSpace.Orthonormal
+public import Mathlib.Data.Fintype.Prod
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Topology.Algebra.InfiniteSum.Real
+public import Mathlib.Logic.Equiv.Fin.Rotate
+public import Mathlib.Data.Matrix.Block
+public import Mathlib.LinearAlgebra.UnitaryGroup
+
+@[expose] public section
 
 /-!
 # Native quantum machine configurations and unitary constructions
@@ -280,7 +284,7 @@ theorem Rule.local_sameCell_of_global {Q A : Type*} [Fintype Q] [Fintype A]
     (hne : (q₁, a₁) ≠ (q₂, a₂)) :
     ∑ t : Move × Q × A,
       star (R.amplitude q₁ a₁ t.1 t.2.1 t.2.2) * R.amplitude q₂ a₂ t.1 t.2.1 t.2.2 = 0 := by
-  simpa only [if_neg hne] using! R.local_inner_of_global h q₁ q₂ a₁ a₂
+  simpa only [ite_eq_right hne] using! R.local_inner_of_global h q₁ q₂ a₁ a₂
 
 /-- The complex linear equivalence of square-summable sequence spaces induced by reindexing
 along `e`. -/
@@ -314,7 +318,7 @@ theorem hilbertReindex_single {ι κ : Type*} (e : ι ≃ κ) (i : ι) (a : ℂ)
   ext j
   by_cases h : e i = j
   · subst j
-    simp [lp.single_apply, Pi.single_apply]
+    simp [lp.single_apply]
   · have hi : i ≠ e.symm j := by
       intro hh
       apply h
@@ -361,7 +365,7 @@ theorem shiftRule_globallyWellformed (Q A : Type*) [Fintype Q] [Fintype A] (blan
       rcases b with ⟨d, q, a⟩
       change (if (d, q, a) = (move, c.state, c.tape c.head) then (1 : ℂ) else 0) • ket
           (target c d q a) = 0
-      rw [if_neg hb]
+      rw [ite_eq_right hb]
       exact zero_smul ℂ _
     · intro h
       exact False.elim (h (Finset.mem_univ _))
@@ -499,7 +503,7 @@ theorem Rule.crossHead_of_global {Q A : Type*} [Fintype Q] [Fintype A]
     exact hg hh.symm
   have he := R.column_inner_of_global h (twoCellConfig R.blank gap 0 q₁ a₁ b₂)
     (twoCellConfig R.blank gap gap q₂ b₁ a₂)
-  rw [if_neg hn, R.twoCell_inner gap hg] at he
+  rw [ite_eq_right hn, R.twoCell_inner gap hg] at he
   exact he
 
 /-- Global well-formedness forces the sum of the right-stationary and stationary-left amplitude
@@ -570,7 +574,8 @@ control space. -/
 theorem Rule.directionSplit_internal {Q A : Type*} [Fintype Q] (R : Rule Q A) :
     DirectSum.IsInternal R.directionSplit := by
   apply (DirectSum.isInternal_submodule_iff_isCompl R.directionSplit (show false ≠ true by decide) (by ext side; cases side <;> simp)).mpr
-  exact Submodule.isCompl_orthogonal_of_hasOrthogonalProjection
+  change IsCompl (R.directionSpace .left) (R.directionSpace .left)ᗮ
+  exact (R.directionSpace .left).isCompl_orthogonal
 
 set_option backward.isDefEq.respectTransparency true in
 
@@ -743,7 +748,7 @@ theorem l2Slice_disjoint_inner {Q κ : Type*} [Fintype Q] (k l : κ) (h : k ≠ 
   rw [inner_sum]
   apply Finset.sum_eq_zero
   intro r _
-  rw [inner_smul_left, inner_smul_right, l2Ket_inner, if_neg (fun he => h (congrArg Prod.snd he))]
+  rw [inner_smul_left, inner_smul_right, l2Ket_inner, ite_eq_right (fun he => h (congrArg Prod.snd he))]
   simp only [mul_zero]
 
 /-- The vector obtained by embedding the basis vector `b ik.1` into the slice indexed by `ik.2`. -/
@@ -762,7 +767,7 @@ theorem rotatedL2Ket_orthonormal {I Q κ : Type*} [Fintype I] [Fintype Q]
     rw [rotatedL2Ket, rotatedL2Ket, l2Slice_inner, b.inner_eq_ite]
     simp
   · rw [rotatedL2Ket, rotatedL2Ket, l2Slice_disjoint_inner k l h]
-    rw [if_neg (fun he => h (congrArg Prod.snd he))]
+    rw [ite_eq_right (fun he => h (congrArg Prod.snd he))]
 
 /-- Each standard product basis vector is the finite sum of rotated slice vectors weighted by
 its coordinates in `b`. -/
@@ -808,7 +813,7 @@ noncomputable def liftL2Basis {I Q κ : Type*} [Fintype I] [Fintype Q]
 theorem liftL2Basis_single {I Q κ : Type*} [Fintype I] [Fintype Q]
     (b : OrthonormalBasis I ℂ (EuclideanSpace ℂ Q)) (i : I) (k : κ) :
     liftL2Basis b (l2Ket (i,k)) = ∑ q : Q, b i q • l2Ket (q,k) := by
-  letI : DecidableEq (I × κ) := Classical.typeDecidableEq _
+  let : DecidableEq (I × κ) := Classical.typeDecidableEq _
   change (rotatedL2Basis (κ := κ) b).repr.symm (lp.single 2 (i,k) 1) = _
   rw [HilbertBasis.repr_symm_single]
   change (HilbertBasis.mk (rotatedL2Ket_orthonormal b) (rotatedL2Ket_dense b)) (i,k) = _

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MaxCutGirth25.MainResults.GirthMaxCut.SourceCutExpectation
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.MaxCutGirth25.MainResults.GirthMaxCut.SourceCutExpectation
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -173,7 +177,7 @@ theorem edgesInside_add_cutNum (G : SimpleGraph V) [DecidableRel G.Adj] (S : Fin
     have hsub : e.toFinset ⊆ S ∩ Sᶜ := Finset.subset_inter hp hq
     have hempty : e.toFinset = ∅ := by
       have hsub' : e.toFinset ⊆ (∅ : Finset V) := by
-        simpa [Finset.inter_compl] using hsub
+        simpa only [Finset.inter_compl] using hsub
       exact Finset.subset_empty.mp hsub'
     have hc2 : e.toFinset.card = 2 :=
       SimpleGraph.card_toFinset_mem_edgeFinset ⟨e, he⟩
@@ -237,7 +241,8 @@ theorem exists_two_indep_with_cut_bound (G : SimpleGraph V) [DecidableRel G.Adj]
 
 /-- **Paper Eq. (23), p. 11.** The independence number is at least half the
 combined size of any two disjoint independent sets. -/
-theorem indepNum_ge_half_combined (G : SimpleGraph V) [DecidableRel G.Adj]
+theorem indepNum_ge_half_combined {V : Type*} [Fintype V] [DecidableEq V]
+    (G : SimpleGraph V) [_cutDecidableRel : DecidableRel G.Adj]
     {A B : Finset V} (hA : G.IsIndepSet A) (hB : G.IsIndepSet B) :
     ((A.card + B.card : ℕ) : ℝ) / 2 ≤ (G.indepNum : ℝ) := by
   have hAle : A.card ≤ G.indepNum := hA.card_le_indepNum
@@ -324,7 +329,7 @@ theorem independenceRatio_ge_of_expected (G : SimpleGraph V) [DecidableRel G.Adj
 girth at least `2p+2` whose depth-`p` QAOA cut law has expected fraction `c`, the
 independence ratio is at least `(3/4) c − 1/4`. -/
 theorem paper_eq24_independence_ratio (G : SimpleGraph V) [DecidableRel G.Adj]
-    {p : ℕ} {c : ℝ} (hreg : G.IsRegularOfDegree 3) (hgirth : 2 * p + 2 ≤ G.girth)
+    {p : ℕ} {c : ℝ} (hreg : G.IsRegularOfDegree 3) (_hgirth : 2 * p + 2 ≤ G.girth)
     (hE : 0 < edgeCount G) (hV : 0 < Fintype.card V)
     (hQAOA : HasExpectedCutFraction G c) :
     (3 / 4 : ℝ) * c - 1 / 4 ≤ independenceRatio G := by

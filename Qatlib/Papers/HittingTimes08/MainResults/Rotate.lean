@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HittingTimes08.MainResults.Detect
+module
+
+public import Qatlib.Papers.HittingTimes08.MainResults.Detect
+
+@[expose] public section
 
 /-!
 # Approximate rotation in a normed space
@@ -102,8 +106,8 @@ theorem theorem_3_9 {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
 threshold `1 / T` is at most `2 * k * (T + 1)`, as used for Theorem 3.9 of
 [MagniezEtAl2008]. -/
 theorem theorem_3_9_cost {J : Type*} [Fintype J] (S : PhaseSpectrum J)
-    (ε T : ℝ) (k : ℕ) (hε0 : 0 < ε) (hT0 : 0 < T)
-    (hT : (S.law).quantile ε ≤ T) :
+    (ε T : ℝ) (k : ℕ) (_hε0 : 0 < ε) (hT0 : 0 < T)
+    (_hT : (S.law).quantile ε ≤ T) :
     PhaseSpectrum.detectCostModel (1 / T) k ≤ 2 * (k : ℝ) * (T + 1) := by
   have hk0 : (0 : ℝ) ≤ (k : ℝ) := Nat.cast_nonneg k
   have hcost : PhaseSpectrum.detectCostModel (1 / T) k = (k : ℝ) * (T + 1) := by

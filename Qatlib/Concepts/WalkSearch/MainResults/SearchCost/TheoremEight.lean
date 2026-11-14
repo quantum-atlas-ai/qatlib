@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.MainResults.SearchCost.TheoremSeven
-import Qatlib.Concepts.WalkSearch.MnrsAmplify.Proposition3
+module
+
+public import Qatlib.Concepts.WalkSearch.MainResults.SearchCost.TheoremSeven
+public import Qatlib.Concepts.WalkSearch.MnrsAmplify.Proposition3
+
+@[expose] public section
 
 /-!
 # An MNRS search bound without the extra logarithm

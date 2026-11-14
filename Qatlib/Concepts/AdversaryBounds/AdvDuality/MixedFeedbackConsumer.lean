@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomizedObservedExecution
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomizedObservedExecution
+
+@[expose] public section
 
 /-!
 # A mixed-state measurement feedback example
@@ -90,7 +94,9 @@ private theorem feedbackNext_one :
 computational basis before following `feedbackNext` on `true`. -/
 def mixedFeedbackProgram : Bool → ObservedCircuit (Fin 2)
   | false => .halt true
-  | true => .measure 2 (fun x => x) feedbackNext
+  | true => .measure 2 (fun x => x) (fun o =>
+      if o = 0 then .step .query (.halt true)
+      else .step (.gate (1 : Operator 2)) (.step .query (.step .query (.halt false))))
 
 /-- The maximally mixed qubit operator, equal to one half of the identity. -/
 noncomputable def mixedFeedbackInput : Operator 2 := ((1 / 2 : ℝ) : ℂ) • (1 : Operator 2)
@@ -128,17 +134,18 @@ private theorem program_wf : ∀ b, observedWellFormed (mixedFeedbackProgram b) 
   cases b with
   | false => exact trivial
   | true =>
+    change ∀ o : Fin 2, observedWellFormed (feedbackNext o)
     intro o
     by_cases ho : o = 0
     · rw [show (feedbackNext o) = (if o = 0 then (.step .query (.halt true) :
           ObservedCircuit (Fin 2)) else
           .step (.gate (1 : Operator 2)) (.step .query (.step .query (.halt false)))) from rfl,
-        if_pos ho]
+        ite_eq_left ho]
       exact trivial
     · rw [show (feedbackNext o) = (if o = 0 then (.step .query (.halt true) :
           ObservedCircuit (Fin 2)) else
           .step (.gate (1 : Operator 2)) (.step .query (.step .query (.halt false)))) from rfl,
-        if_neg ho]
+        ite_eq_right ho]
       exact ⟨Submonoid.one_mem _, trivial⟩
 
 /-- The feedback input is a nonpure density operator, both program branches are well formed, and
@@ -169,7 +176,9 @@ private theorem traces_true :
          ⟨conjBranch
             (Projector ((Finset.univ : Finset (Fin 2)).filter fun i => i = 1)) mixedFeedbackInput,
           false, 2, 1, 1, [(2, 1)]⟩] := by
-  simp only [observedMixedTraces, mixedFeedbackProgram, conjBranch_one, list_ofFn_two,
+  change observedMixedTraces (1 : Operator 2)
+    (.measure 2 (fun x => x) feedbackNext) mixedFeedbackInput = _
+  simp only [observedMixedTraces, conjBranch_one, list_ofFn_two,
     List.flatten_cons, List.flatten_nil, List.append_nil, feedbackNext_zero, feedbackNext_one,
     List.map_cons, List.map_nil]
   rfl
@@ -225,7 +234,7 @@ private theorem accept_mass_true :
     ((observedMixedTraces (1 : Operator 2) (mixedFeedbackProgram true) mixedFeedbackInput).map
         (fun t => mixedMass t * (if t.accepted then 1 else 0))).sum = 1 / 2 := by
   simp only [traces_true, List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, add_zero,
-    Bool.false_eq_true, if_false, mul_zero, mixedMass]
+    Bool.false_eq_true, ite_false, mul_zero, mixedMass]
   rw [mass_branch_zero]
   norm_num
 

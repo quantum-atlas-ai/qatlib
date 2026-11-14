@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.Waterfill.LevelFidelity.CoherentReweighting
-import Qatlib.Concepts.Waterfill.LevelFidelity.WaterLevelFidelity
-import Qatlib.Concepts.Waterfill.LevelFidelity.RealTableWaterLevel
-import Qatlib.Concepts.NativeNumerics.WaterFilling
-import Qatlib.Concepts.Waterfill.LevelSearch.WaterFillingOptimization
-import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedQueryCircuit
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Foundations.PureStateMath.Tensor
+module
+
+public import Qatlib.Concepts.Waterfill.LevelFidelity.CoherentReweighting
+public import Qatlib.Concepts.Waterfill.LevelFidelity.WaterLevelFidelity
+public import Qatlib.Concepts.Waterfill.LevelFidelity.RealTableWaterLevel
+public import Qatlib.Concepts.NativeNumerics.WaterFilling
+public import Qatlib.Concepts.Waterfill.LevelSearch.WaterFillingOptimization
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedQueryCircuit
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Foundations.PureStateMath.Tensor
+
+@[expose] public section
 
 /-!
 # Boundary conditions and error bounds for coherent reweighting
@@ -154,8 +158,8 @@ private theorem sum_congr_ite {α : Type*} [Fintype α] (p : α → Prop) [Decid
   unfold condSum
   apply Finset.sum_congr rfl; intro i _
   by_cases hi : p i
-  · rw [if_pos hi, if_pos hi, h i hi]
-  · rw [if_neg hi, if_neg hi]
+  · rw [ite_eq_left hi, ite_eq_left hi, h i hi]
+  · rw [ite_eq_right hi, ite_eq_right hi]
 
 /-- Factor a constant left multiplier out of a finite real sum. -/
 private theorem sum_mul_const {α : Type*} [Fintype α] (c : ℝ) (g : α → ℝ) :
@@ -171,8 +175,8 @@ private theorem sum_if_mul_const {α : Type*} [Fintype α] (c : ℝ) (p : α →
       = ∑ i, ((if p i then g i else 0 : ℝ) * c) := by
         apply Finset.sum_congr rfl; intro i _
         by_cases hi : p i
-        · rw [if_pos hi, if_pos hi]; ring
-        · rw [if_neg hi, if_neg hi]; ring
+        · rw [ite_eq_left hi, ite_eq_left hi]; ring
+        · rw [ite_eq_right hi, ite_eq_right hi]; ring
     _ = (∑ i, (if p i then g i else 0 : ℝ)) * c := (Finset.sum_mul Finset.univ _ c).symm
     _ = c * (∑ i, (if p i then g i else 0 : ℝ)) := mul_comm _ _
 
@@ -193,8 +197,8 @@ theorem realMass_bracketLow {π σ : Fin m → ℝ} (hπ : ∀ i, 0 ≤ π i) (h
     unfold condSum
     apply Finset.sum_congr rfl; intro i _
     by_cases hi : 0 < π i
-    · rw [if_pos hi]
-    · rw [if_neg hi, hzero i hi]
+    · rw [ite_eq_left hi]
+    · rw [ite_eq_right hi, hzero i hi]
   have hstep : condSum (fun i : Fin m => 0 < π i) (fun i => (realFill π σ γ i) ^ 2)
       = condSum (fun i : Fin m => 0 < π i) (fun i => (γ * σ i) ^ 2) :=
     sum_congr_ite (fun i : Fin m => 0 < π i) (fun i => (realFill π σ γ i) ^ 2)
@@ -227,8 +231,8 @@ theorem realDot_bracketLow {π σ : Fin m → ℝ} (hπ : ∀ i, 0 ≤ π i) (h�
     unfold condSum
     apply Finset.sum_congr rfl; intro i _
     by_cases hi : 0 < π i
-    · rw [if_pos hi]
-    · rw [if_neg hi, hzero i hi]
+    · rw [ite_eq_left hi]
+    · rw [ite_eq_right hi, hzero i hi]
   have hstep : condSum (fun i : Fin m => 0 < π i) (fun i => σ i * realFill π σ γ i)
       = condSum (fun i : Fin m => 0 < π i) (fun i => γ * (σ i ^ 2)) :=
     sum_congr_ite (fun i : Fin m => 0 < π i) (fun i => σ i * realFill π σ γ i)

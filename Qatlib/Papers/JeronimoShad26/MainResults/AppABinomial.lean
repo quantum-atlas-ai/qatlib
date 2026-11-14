@@ -4,16 +4,20 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.JeronimoShad26.MainResults.SourceModel.Basic
-import Mathlib.MeasureTheory.Integral.Bochner.Basic
-import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
-import Mathlib.Analysis.SpecialFunctions.Gaussian.GaussianIntegral
-import Mathlib.MeasureTheory.Integral.Gamma
-import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
-import Mathlib.Probability.Moments.SubGaussian
-import Mathlib.Probability.Distributions.Bernoulli
-import Mathlib.Analysis.SpecialFunctions.Bernstein
-import Mathlib.Analysis.Real.Pi.Bounds
+module
+
+public import Qatlib.Papers.JeronimoShad26.MainResults.SourceModel.Basic
+public import Mathlib.MeasureTheory.Integral.Bochner.Basic
+public import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
+public import Mathlib.Analysis.SpecialFunctions.Gaussian.GaussianIntegral
+public import Mathlib.MeasureTheory.Integral.Gamma
+public import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
+public import Mathlib.Probability.Moments.SubGaussian
+public import Mathlib.Probability.Distributions.Bernoulli
+public import Mathlib.Analysis.SpecialFunctions.Bernstein
+public import Mathlib.Analysis.Real.Pi.Bounds
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

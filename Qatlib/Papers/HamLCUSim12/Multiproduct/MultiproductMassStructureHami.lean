@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductCoefficientAux
-import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductCoefficientDiagnostics
+module
+
+public import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductCoefficientAux
+public import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductCoefficientDiagnostics
+
+@[expose] public section
 
 /-!
 # Sign structure of multiproduct coefficients

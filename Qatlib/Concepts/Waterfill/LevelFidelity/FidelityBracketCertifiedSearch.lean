@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.Waterfill.LevelFidelity.EffectiveFidelitySearch
-import Qatlib.Concepts.Waterfill.LevelFidelity.RealTableWaterLevel
-import Qatlib.Concepts.Waterfill.LevelSearch.WaterFillingOptimization
+module
+
+public import Qatlib.Concepts.Waterfill.LevelFidelity.EffectiveFidelitySearch
+public import Qatlib.Concepts.Waterfill.LevelFidelity.RealTableWaterLevel
+public import Qatlib.Concepts.Waterfill.LevelSearch.WaterFillingOptimization
+
+@[expose] public section
 
 /-!
 # Certified rational fidelity search
@@ -409,7 +413,7 @@ theorem certifiedFidelity_error {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ) (
       computedDot π σ (fidelityBracket π σ p k).2 ^ 2 /
         computedMass π σ (fidelityBracket π σ p k).2 := by
     unfold computedFidelity
-    rw [if_neg (ne_of_gt hmass_pos)]
+    rw [ite_eq_right (ne_of_gt hmass_pos)]
   have hsub : computedDot π σ (fidelityBracket π σ p k).2 ^ 2 /
         computedMass π σ (fidelityBracket π σ p k).2 - p =
       (computedDot π σ (fidelityBracket π σ p k).2 ^ 2 -
@@ -586,7 +590,7 @@ theorem computedFidelity_scaled {m : ℕ} (π σ : Fin m → ℚ) {lam γ : ℚ}
   · have hlam2 : 0 < lam ^ 2 := sq_pos_of_pos hlam
     have hlam2ne : lam ^ 2 ≠ 0 := ne_of_gt hlam2
     have hne : lam ^ 2 * computedMass π σ γ ≠ 0 := mul_ne_zero hlam2ne hz
-    rw [if_neg hne, if_neg hz]
+    rw [ite_eq_right hne, ite_eq_right hz]
     have heq : (lam * computedDot π σ γ) ^ 2 = lam ^ 2 * computedDot π σ γ ^ 2 := by ring
     rw [heq]
     field_simp

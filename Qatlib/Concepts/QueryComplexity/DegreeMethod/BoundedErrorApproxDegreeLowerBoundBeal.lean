@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.BoundedErrorApproxDegreeLowerBoundStat
-import Qatlib.Concepts.QueryWordCore.QueryMachinery.AcceptancePolynomial
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.BoundedErrorApproxDegreeLowerBoundStat
+public import Qatlib.Concepts.QueryWordCore.QueryMachinery.AcceptancePolynomial
+
+@[expose] public section
 
 /-!
 # Approximate degree lower bounds for bounded-error queries

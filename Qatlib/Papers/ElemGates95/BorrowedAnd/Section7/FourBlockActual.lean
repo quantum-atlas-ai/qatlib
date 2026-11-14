@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ElemGates95.BorrowedAnd.Section7.BorrowedNetworks
+module
+
+public import Qatlib.Papers.ElemGates95.BorrowedAnd.Section7.BorrowedNetworks
+
+@[expose] public section
 
 /-!
 # Explicit four-block controlled NOT construction
@@ -58,7 +62,7 @@ theorem noWorkPrefixAnd_add (c : ℕ → Bool) (m k : ℕ) :
       rw [show m + (k + 1) = (m + k) + 1 by omega, noWorkPrefixAnd_succ]
     have h2 : noWorkPrefixAnd (fun i => c (m + i)) (k + 1) =
         (noWorkPrefixAnd (fun i => c (m + i)) k && c (m + k)) := by
-      simpa using! noWorkPrefixAnd_succ (fun i => c (m + i)) k
+      simp
     rw [h1, ih, h2]
     exact Bool.and_assoc _ _ _
 

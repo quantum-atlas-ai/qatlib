@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
-import Mathlib.Data.Fintype.Fin
+module
+
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+public import Mathlib.Data.Fintype.Fin
+
+@[expose] public section
 
 /-!
 # Alias table preprocessing and sampling
@@ -286,10 +290,10 @@ theorem aliasStepCore_pendCount {n : ℕ} (U : ℕ) (i j : Fin n) (s' l' : List 
     (st : AliasSt n) (hsm : st.small = i :: s') (hlg : st.large = j :: l') :
     pendCount (aliasStepCore U i j s' l' st) + 1 = pendCount st := by
   by_cases h : st.v j - (U - st.v i) < U
-  · simp only [aliasStepCore, pendCount, hsm, hlg, if_pos h, List.length_cons,
+  · simp only [aliasStepCore, pendCount, hsm, hlg, ite_eq_left h, List.length_cons,
       List.length_append, List.length_nil]
     omega
-  · simp only [aliasStepCore, pendCount, hsm, hlg, if_neg h, List.length_cons,
+  · simp only [aliasStepCore, pendCount, hsm, hlg, ite_eq_right h, List.length_cons,
       List.length_append, List.length_nil]
     omega
 
@@ -303,7 +307,7 @@ private lemma massOf_step {n : ℕ} (U : ℕ) (st : AliasSt n) (i j : Fin n)
   have hPQoff : ∀ x, x ≠ i →
       ((x ≠ k ∧ st.al x = k) ↔ (x ≠ k ∧ (if x = i then j else st.al x) = k)) := by
     intro x hx
-    simp only [if_neg hx]
+    simp only [ite_eq_right hx]
   have hPi : ¬ (i ≠ k ∧ st.al i = k) := by simp [hali]
   have hcongr : ∀ x ∈ Finset.univ.filter (fun x => x ≠ k ∧ st.al x = k),
       (U - (if x = i then st.v i else st.qN x)) = U - st.qN x := by
@@ -313,26 +317,26 @@ private lemma massOf_step {n : ℕ} (U : ℕ) (st : AliasSt n) (i j : Fin n)
       have hx2 : x ≠ k ∧ st.al x = k := (Finset.mem_filter.mp hx).2
       rw [he] at hx2
       exact hx2.1 (hali ▸ hx2.2)
-    simp only [if_neg hxi]
+    simp only [ite_eq_right hxi]
   by_cases hkj : k = j
   · subst hkj
-    have hite : (if i = i then k else st.al i) = k := if_pos rfl
+    have hite : (if i = i then k else st.al i) = k := ite_eq_left rfl
     have hQi : (i ≠ k ∧ (if i = i then k else st.al i) = k) := ⟨hij, hite⟩
     have hset := filter_insert_patch
       (fun x => x ≠ k ∧ st.al x = k) (fun x => x ≠ k ∧ (if x = i then k else st.al x) = k)
       i hPQoff hPi hQi
-    rw [hset, Finset.sum_insert (by simp [Finset.mem_filter, hPi]), if_pos rfl,
-      Finset.sum_congr rfl hcongr, if_pos rfl]
+    rw [hset, Finset.sum_insert (by simp [Finset.mem_filter, hPi]), ite_eq_left rfl,
+      Finset.sum_congr rfl hcongr, ite_eq_left rfl]
     omega
   · have hQi : ¬ (i ≠ k ∧ (if i = i then j else st.al i) = k) := by
       intro hcon
-      have hite : (if i = i then j else st.al i) = j := if_pos rfl
+      have hite : (if i = i then j else st.al i) = j := ite_eq_left rfl
       rw [hite] at hcon
       exact hkj hcon.2.symm
     have hset := filter_update_eq
       (fun x => x ≠ k ∧ st.al x = k) (fun x => x ≠ k ∧ (if x = i then j else st.al x) = k)
       i hPQoff hPi hQi
-    rw [hset, Finset.sum_congr rfl hcongr, if_neg hkj]
+    rw [hset, Finset.sum_congr rfl hcongr, ite_eq_right hkj]
 
 /-- An alias exchange at the heads of the small and large lists preserves the alias invariant. -/
 theorem aliasStepCore_inv {n : ℕ} (u : Fin n → ℕ) (U : ℕ) (st : AliasSt n) (i j : Fin n)
@@ -362,22 +366,22 @@ theorem aliasStepCore_inv {n : ℕ} (u : Fin n → ℕ) (U : ℕ) (st : AliasSt 
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_,
     fun k => (massOf_step U st i j s' l' k hali hij hvjle).trans (h8 k), ?_⟩
   · by_cases hc : st.v j - (U - st.v i) < U
-    · simp only [aliasStepCore, if_pos hc]
+    · simp only [aliasStepCore, ite_eq_left hc]
       exact List.Nodup.append hnd1' (by simp : [j].Nodup) hdisj_s'
-    · simp only [aliasStepCore, if_neg hc]; exact hnd1'
+    · simp only [aliasStepCore, ite_eq_right hc]; exact hnd1'
   · by_cases hc : st.v j - (U - st.v i) < U
-    · simp only [aliasStepCore, if_pos hc]; exact hnd2'
-    · simp only [aliasStepCore, if_neg hc]
+    · simp only [aliasStepCore, ite_eq_left hc]; exact hnd2'
+    · simp only [aliasStepCore, ite_eq_right hc]
       exact List.Nodup.append hnd2' (by simp : [j].Nodup) hdisj_l'
   · by_cases hc : st.v j - (U - st.v i) < U
-    · simp only [aliasStepCore, if_pos hc]
+    · simp only [aliasStepCore, ite_eq_left hc]
       intro x hx y hy
       rcases List.mem_append.mp hx with hx | hx
       · exact hdis x (hmem_s' x hx) y (hmem_l' y hy)
       · exact fun he => hj_not_l' (by
           have hxj : x = j := List.mem_singleton.mp hx
           rw [← hxj, he]; exact hy)
-    · simp only [aliasStepCore, if_neg hc]
+    · simp only [aliasStepCore, ite_eq_right hc]
       intro x hx y hy
       rcases List.mem_append.mp hy with hy | hy
       · exact hdis x (hmem_s' x hx) y (hmem_l' y hy)
@@ -385,97 +389,97 @@ theorem aliasStepCore_inv {n : ℕ} (u : Fin n → ℕ) (U : ℕ) (st : AliasSt 
           have hyj : y = j := List.mem_singleton.mp hy
           rw [← hyj, ← he]; exact hx)
   · by_cases hc : st.v j - (U - st.v i) < U
-    · simp only [aliasStepCore, if_pos hc]
+    · simp only [aliasStepCore, ite_eq_left hc]
       intro x hx
       rcases List.mem_append.mp hx with hx | hx
       · refine ⟨?_, ?_, ?_⟩
         · show (if x = j then st.v j - (U - st.v i) else st.v x) < U
-          rw [if_neg (show x ≠ j from fun he => hdis x (hmem_s' x hx) j hjsm he)]
+          rw [ite_eq_right (show x ≠ j from fun he => hdis x (hmem_s' x hx) j hjsm he)]
           exact (h4 x (hmem_s' x hx)).1
         · show (if x = i then st.v i else st.qN x) = U
-          rw [if_neg (show x ≠ i from fun he => hi_not_s' (he ▸ hx))]
+          rw [ite_eq_right (show x ≠ i from fun he => hi_not_s' (he ▸ hx))]
           exact (h4 x (hmem_s' x hx)).2.1
         · show (if x = i then j else st.al x) = x
-          rw [if_neg (show x ≠ i from fun he => hi_not_s' (he ▸ hx))]
+          rw [ite_eq_right (show x ≠ i from fun he => hi_not_s' (he ▸ hx))]
           exact (h4 x (hmem_s' x hx)).2.2
       · have hxj : x = j := List.mem_singleton.mp hx
         refine ⟨?_, ?_, ?_⟩
         · show (if x = j then st.v j - (U - st.v i) else st.v x) < U
-          rw [if_pos hxj]; exact hc
+          rw [ite_eq_left hxj]; exact hc
         · show (if x = i then st.v i else st.qN x) = U
-          rw [if_neg (show x ≠ i from fun he => hij (hxj ▸ he).symm), hxj]
+          rw [ite_eq_right (show x ≠ i from fun he => hij (hxj ▸ he).symm), hxj]
           exact hqNj
         · show (if x = i then j else st.al x) = x
-          rw [if_neg (show x ≠ i from fun he => hij (hxj ▸ he).symm), hxj]
+          rw [ite_eq_right (show x ≠ i from fun he => hij (hxj ▸ he).symm), hxj]
           exact halj
-    · simp only [aliasStepCore, if_neg hc]
+    · simp only [aliasStepCore, ite_eq_right hc]
       intro x hx
       refine ⟨?_, ?_, ?_⟩
       · show (if x = j then st.v j - (U - st.v i) else st.v x) < U
-        rw [if_neg (show x ≠ j from fun he => hdis x (hmem_s' x hx) j hjsm he)]
+        rw [ite_eq_right (show x ≠ j from fun he => hdis x (hmem_s' x hx) j hjsm he)]
         exact (h4 x (hmem_s' x hx)).1
       · show (if x = i then st.v i else st.qN x) = U
-        rw [if_neg (show x ≠ i from fun he => hi_not_s' (he ▸ hx))]
+        rw [ite_eq_right (show x ≠ i from fun he => hi_not_s' (he ▸ hx))]
         exact (h4 x (hmem_s' x hx)).2.1
       · show (if x = i then j else st.al x) = x
-        rw [if_neg (show x ≠ i from fun he => hi_not_s' (he ▸ hx))]
+        rw [ite_eq_right (show x ≠ i from fun he => hi_not_s' (he ▸ hx))]
         exact (h4 x (hmem_s' x hx)).2.2
   · by_cases hc : st.v j - (U - st.v i) < U
-    · simp only [aliasStepCore, if_pos hc]
+    · simp only [aliasStepCore, ite_eq_left hc]
       intro x hx
       refine ⟨?_, ?_, ?_⟩
       · show U ≤ (if x = j then st.v j - (U - st.v i) else st.v x)
-        rw [if_neg (show x ≠ j from fun he => hj_not_l' (he ▸ hx))]
+        rw [ite_eq_right (show x ≠ j from fun he => hj_not_l' (he ▸ hx))]
         exact (h5 x (hmem_l' x hx)).1
       · show (if x = i then st.v i else st.qN x) = U
-        rw [if_neg (show x ≠ i from fun he => hdis i hism x (hmem_l' x hx) he.symm)]
+        rw [ite_eq_right (show x ≠ i from fun he => hdis i hism x (hmem_l' x hx) he.symm)]
         exact (h5 x (hmem_l' x hx)).2.1
       · show (if x = i then j else st.al x) = x
-        rw [if_neg (show x ≠ i from fun he => hdis i hism x (hmem_l' x hx) he.symm)]
+        rw [ite_eq_right (show x ≠ i from fun he => hdis i hism x (hmem_l' x hx) he.symm)]
         exact (h5 x (hmem_l' x hx)).2.2
-    · simp only [aliasStepCore, if_neg hc]
+    · simp only [aliasStepCore, ite_eq_right hc]
       intro x hx
       rcases List.mem_append.mp hx with hx | hx
       · refine ⟨?_, ?_, ?_⟩
         · show U ≤ (if x = j then st.v j - (U - st.v i) else st.v x)
-          rw [if_neg (show x ≠ j from fun he => hj_not_l' (he ▸ hx))]
+          rw [ite_eq_right (show x ≠ j from fun he => hj_not_l' (he ▸ hx))]
           exact (h5 x (hmem_l' x hx)).1
         · show (if x = i then st.v i else st.qN x) = U
-          rw [if_neg (show x ≠ i from fun he => hdis i hism x (hmem_l' x hx) he.symm)]
+          rw [ite_eq_right (show x ≠ i from fun he => hdis i hism x (hmem_l' x hx) he.symm)]
           exact (h5 x (hmem_l' x hx)).2.1
         · show (if x = i then j else st.al x) = x
-          rw [if_neg (show x ≠ i from fun he => hdis i hism x (hmem_l' x hx) he.symm)]
+          rw [ite_eq_right (show x ≠ i from fun he => hdis i hism x (hmem_l' x hx) he.symm)]
           exact (h5 x (hmem_l' x hx)).2.2
       · have hxj : x = j := List.mem_singleton.mp hx
         refine ⟨?_, ?_, ?_⟩
         · show U ≤ (if x = j then st.v j - (U - st.v i) else st.v x)
-          rw [if_pos hxj]; omega
+          rw [ite_eq_left hxj]; omega
         · show (if x = i then st.v i else st.qN x) = U
-          rw [if_neg (show x ≠ i from fun he => hij (hxj ▸ he).symm), hxj]
+          rw [ite_eq_right (show x ≠ i from fun he => hij (hxj ▸ he).symm), hxj]
           exact hqNj
         · show (if x = i then j else st.al x) = x
-          rw [if_neg (show x ≠ i from fun he => hij (hxj ▸ he).symm), hxj]
+          rw [ite_eq_right (show x ≠ i from fun he => hij (hxj ▸ he).symm), hxj]
           exact halj
   · have hfun_s' : s'.map (aliasStepCore U i j s' l' st).v = s'.map st.v := by
       refine List.map_congr_left fun x hx => ?_
       show (if x = j then st.v j - (U - st.v i) else st.v x) = st.v x
-      rw [if_neg (show x ≠ j from fun he => hdis x (hmem_s' x hx) j hjsm he)]
+      rw [ite_eq_right (show x ≠ j from fun he => hdis x (hmem_s' x hx) j hjsm he)]
     have hfun_l' : l'.map (aliasStepCore U i j s' l' st).v = l'.map st.v := by
       refine List.map_congr_left fun x hx => ?_
       show (if x = j then st.v j - (U - st.v i) else st.v x) = st.v x
-      rw [if_neg (show x ≠ j from fun he => hj_not_l' (he ▸ hx))]
+      rw [ite_eq_right (show x ≠ j from fun he => hj_not_l' (he ▸ hx))]
     have hold : pendSum st = st.v i + (s'.map st.v).sum + (st.v j + (l'.map st.v).sum) := by
       simp only [pendSum, hsm, hlg, List.map_cons, List.sum_cons]
     have hsteps : (aliasStepCore U i j s' l' st).steps = st.steps + 1 := rfl
     have hvjv : (aliasStepCore U i j s' l' st).v j = st.v j - (U - st.v i) := by
       show (if j = j then st.v j - (U - st.v i) else st.v j)
           = st.v j - (U - st.v i)
-      rw [if_pos rfl]
+      rw [ite_eq_left rfl]
     show pendSum (aliasStepCore U i j s' l' st)
       + (aliasStepCore U i j s' l' st).steps * U = n * U
     by_cases hc : st.v j - (U - st.v i) < U
-    · have hsmall : (aliasStepCore U i j s' l' st).small = s' ++ [j] := if_pos hc
-      have hlarge : (aliasStepCore U i j s' l' st).large = l' := if_pos hc
+    · have hsmall : (aliasStepCore U i j s' l' st).small = s' ++ [j] := ite_eq_left hc
+      have hlarge : (aliasStepCore U i j s' l' st).large = l' := ite_eq_left hc
       have hps : pendSum (aliasStepCore U i j s' l' st)
           = ((aliasStepCore U i j s' l' st).v j
             + (l'.map (aliasStepCore U i j s' l' st).v).sum)
@@ -485,8 +489,8 @@ theorem aliasStepCore_inv {n : ℕ} (u : Fin n → ℕ) (U : ℕ) (st : AliasSt 
         omega
       rw [hps, hfun_s', hfun_l', hvjv, hsteps, Nat.add_mul, Nat.one_mul]
       omega
-    · have hsmall : (aliasStepCore U i j s' l' st).small = s' := if_neg hc
-      have hlarge : (aliasStepCore U i j s' l' st).large = l' ++ [j] := if_neg hc
+    · have hsmall : (aliasStepCore U i j s' l' st).small = s' := ite_eq_right hc
+      have hlarge : (aliasStepCore U i j s' l' st).large = l' ++ [j] := ite_eq_right hc
       have hps : pendSum (aliasStepCore U i j s' l' st)
           = ((aliasStepCore U i j s' l' st).v j
             + (l'.map (aliasStepCore U i j s' l' st).v).sum)
@@ -508,24 +512,24 @@ theorem aliasStepCore_inv {n : ℕ} (u : Fin n → ℕ) (U : ℕ) (st : AliasSt 
     · right; right
       have hq : (aliasStepCore U i j s' l' st).qN k ≠ U := by
         show (if k = i then st.v i else st.qN k) ≠ U
-        rw [if_pos hki]; exact ne_of_lt hvi
+        rw [ite_eq_left hki]; exact ne_of_lt hvi
       have hv : (aliasStepCore U i j s' l' st).v k
           = (aliasStepCore U i j s' l' st).qN k := by
         show (if k = j then st.v j - (U - st.v i) else st.v k)
             = (if k = i then st.v i else st.qN k)
-        rw [if_neg (show k ≠ j from fun he => hij (hki ▸ he)), if_pos hki, hki]
+        rw [ite_eq_right (show k ≠ j from fun he => hij (hki ▸ he)), ite_eq_left hki, hki]
       have hvU : (aliasStepCore U i j s' l' st).v k < U := by
         show (if k = j then st.v j - (U - st.v i) else st.v k) < U
-        rw [if_neg (show k ≠ j from fun he => hij (hki ▸ he)), hki]
+        rw [ite_eq_right (show k ≠ j from fun he => hij (hki ▸ he)), hki]
         exact hvi
       exact ⟨hq, hv, hvU⟩
     · by_cases hkj2 : k = j
       · by_cases hc : st.v j - (U - st.v i) < U
         · left
-          simp only [aliasStepCore, if_pos hc, List.mem_append, List.mem_singleton]
+          simp only [aliasStepCore, ite_eq_left hc, List.mem_append, List.mem_singleton]
           exact Or.inr hkj2
         · right; left
-          simp only [aliasStepCore, if_neg hc, List.mem_append, List.mem_singleton]
+          simp only [aliasStepCore, ite_eq_right hc, List.mem_append, List.mem_singleton]
           exact Or.inr hkj2
       · rcases hk9 with hk | hk | hk
         · rw [hsm] at hk
@@ -533,18 +537,18 @@ theorem aliasStepCore_inv {n : ℕ} (u : Fin n → ℕ) (U : ℕ) (st : AliasSt 
           · exact absurd he hki
           · left
             by_cases hc : st.v j - (U - st.v i) < U
-            · simp only [aliasStepCore, if_pos hc, List.mem_append]
+            · simp only [aliasStepCore, ite_eq_left hc, List.mem_append]
               exact Or.inl hes
-            · simp only [aliasStepCore, if_neg hc]
+            · simp only [aliasStepCore, ite_eq_right hc]
               exact hes
         · rw [hlg] at hk
           rcases List.mem_cons.mp hk with he | hel
           · exact absurd he hkj2
           · right; left
             by_cases hc : st.v j - (U - st.v i) < U
-            · simp only [aliasStepCore, if_pos hc]
+            · simp only [aliasStepCore, ite_eq_left hc]
               exact hel
-            · simp only [aliasStepCore, if_neg hc, List.mem_append]
+            · simp only [aliasStepCore, ite_eq_right hc, List.mem_append]
               exact Or.inl hel
         · right; right
           have hknsm : k ∉ st.small := fun hmem => hk.1 ((h4 k hmem).2.1)
@@ -553,12 +557,12 @@ theorem aliasStepCore_inv {n : ℕ} (u : Fin n → ℕ) (U : ℕ) (st : AliasSt 
           have hkjneq : k ≠ j := fun he => hknlg (by rw [he]; exact hjsm)
           refine ⟨?_, ?_, ?_⟩
           · show (if k = i then st.v i else st.qN k) ≠ U
-            rw [if_neg hkineq]; exact hk.1
+            rw [ite_eq_right hkineq]; exact hk.1
           · show (if k = j then st.v j - (U - st.v i) else st.v k)
               = (if k = i then st.v i else st.qN k)
-            rw [if_neg hkjneq, if_neg hkineq]; exact hk.2.1
+            rw [ite_eq_right hkjneq, ite_eq_right hkineq]; exact hk.2.1
           · show (if k = j then st.v j - (U - st.v i) else st.v k) < U
-            rw [if_neg hkjneq]; exact hk.2.2
+            rw [ite_eq_right hkjneq]; exact hk.2.2
 
 /-- The initial pending count is at most the number of weights. -/
 private lemma aliasInit_pendCount {n : ℕ} (u : Fin n → ℕ) : pendCount (aliasInit u) ≤ n := by
@@ -656,7 +660,7 @@ theorem aliasRun_inv {n : ℕ} (u : Fin n → ℕ) (U : ℕ) (st : AliasSt n) (h
     omega
   | succ f ih =>
     by_cases hE : st.small = [] ∨ st.large = []
-    · simp only [aliasRun, if_pos hE]
+    · simp only [aliasRun, ite_eq_left hE]
       refine ⟨h, ?_⟩
       rcases hE with hS | hL
       · exact hS
@@ -675,7 +679,7 @@ theorem aliasRun_inv {n : ℕ} (u : Fin n → ℕ) (U : ℕ) (st : AliasSt n) (h
         rw [hstep]
         exact aliasStepCore_pendCount U i j s' l' st hsm hlg
       have hf' : pendCount (aliasStep U st) ≤ f := by omega
-      simp only [aliasRun, if_neg hE]
+      simp only [aliasRun, ite_eq_right hE]
       exact ih (aliasStep U st) hinv' hf'
 
 /-- The completed alias table satisfies the alias invariant and has an empty small list. -/
@@ -851,7 +855,7 @@ theorem aliasStackRun_inv {n : ℕ} (u : Fin n → ℕ) (U : ℕ) (st : AliasSt 
     exact List.length_eq_zero_iff.mp hs
   | succ f ih =>
     by_cases he : st.small = [] ∨ st.large = []
-    · simp only [aliasStackRun, if_pos he]
+    · simp only [aliasStackRun, ite_eq_left he]
       refine ⟨h, ?_⟩
       rcases he with hs | hl
       · exact hs
@@ -867,7 +871,7 @@ theorem aliasStackRun_inv {n : ℕ} (u : Fin n → ℕ) (U : ℕ) (st : AliasSt 
       have hpc : pendCount (aliasStackStep U st) + 1 = pendCount st := by
         rw [hstep]
         exact aliasStackCore_pendCount U i j s' l' st hsm hlg
-      simp only [aliasStackRun, if_neg he]
+      simp only [aliasStackRun, ite_eq_right he]
       exact ih _ hinv (by omega)
 
 /-- The stack alias table obtained with fuel `n` from the initial alias state. -/
@@ -1540,7 +1544,7 @@ theorem aliasStackRun_selfAlias {n : ℕ} (u : Fin n → ℕ) (U : ℕ) (st : Al
       have hij : i ≠ j := hinv.2.2.1 i (by simp [hs]) j (by simp [hl])
       have hi := aliasStackCore_inv u U st i j s' l' hs hl hinv
       have hh := aliasStackCore_selfAlias U st i j s' l' hij hself
-      simpa only [aliasStackRun, if_neg he, aliasStackStep, hs, hl] using! ih _ hi hh
+      simpa only [aliasStackRun, ite_eq_right he, aliasStackStep, hs, hl] using! ih _ hi hh
 
 /-- Every self-aliased bucket in the stack alias table has threshold equal to the total weight. -/
 theorem aliasStackTable_selfAlias {n : ℕ} (u : Fin n → ℕ) :

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QPatternMatch14.MainResults.Model.PatternStrings
-import Qatlib.Papers.QPatternMatch14.MainResults.Model.QueryModel
+module
+
+public import Qatlib.Papers.QPatternMatch14.MainResults.Model.PatternStrings
+public import Qatlib.Papers.QPatternMatch14.MainResults.Model.QueryModel
+
+@[expose] public section
 
 /-!
 # Concrete input instances and promise predicates

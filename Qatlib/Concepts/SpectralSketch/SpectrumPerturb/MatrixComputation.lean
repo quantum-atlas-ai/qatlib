@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.MatrixComputationDefs
+module
+
+public import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.MatrixComputationDefs
+
+@[expose] public section
 
 /-!
 # Quantized matrices and frame resource bounds
@@ -101,6 +105,7 @@ theorem tunableGoal_entry_error (A : CauchyComplexMatrix I) (p : ℕ) (i j : I) 
     ‖quantiseMatrix A p i j - A.data i j‖ ≤ ratUnitR p :=
   A.error p i j
 
+omit [DecidableEq I] in
 /-- If every entry norm is at most `ratUnitR p`, the Frobenius norm is at most `Fintype.card I *
 ratUnitR p`. -/
 theorem tunableGoal_frobenius_of_entrywise (M : Matrix I I ℂ) (p : ℕ)
@@ -119,7 +124,6 @@ theorem tunableGoal_frobenius_of_entrywise (M : Matrix I I ℂ) (p : ℕ)
           exact Finset.sum_le_sum fun i _ => Finset.sum_le_sum fun j _ => hentry i j
       _ = ((Fintype.card I : ℝ) * ratUnitR p) ^ 2 := by
         simp only [Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
-        push_cast
         ring
   have hnonneg : 0 ≤ spectralFrobenius M := spectralFrobenius_nonneg _
   have hnonneg2 : 0 ≤ (Fintype.card I : ℝ) * ratUnitR p :=
@@ -331,7 +335,7 @@ theorem optGoal_fixed_gate_table {m : ℕ} (F : FrameData m) :
 theorem optGoal_gate_count {m : ℕ} (F : FrameData m) :
     F.prepareWord.length = F.entries + 5 := by
   simp only [FrameData.prepareWord, List.length_append, List.length_replicate,
-    List.length_cons, List.length_nil, Nat.add_assoc, Nat.add_comm, Nat.add_left_comm]
+    List.length_cons, List.length_nil, Nat.add_comm, Nat.add_left_comm]
 
 /-- The recorded frame ancilla count is `F.entries + 1`. -/
 theorem optGoal_ancillas {m : ℕ} (F : FrameData m) : F.ancillas = F.entries + 1 := by
@@ -377,7 +381,7 @@ theorem tunableGoal_endpoint :
         ≤ (Fintype.card I : ℝ) * ratUnitR p) ∧
     (∀ (A : CauchyComplexMatrix I) (p : ℕ),
       ‖quantiseMatrix A p - A.data‖ ≤ (Fintype.card I : ℝ) * ratUnitR p) ∧
-    (∀ (A : CauchyComplexMatrix I) (p : ℕ) (hA : A.data.IsHermitian),
+    (∀ (A : CauchyComplexMatrix I) (p : ℕ) (_hA : A.data.IsHermitian),
       ‖sym (quantiseMatrix A p) - A.data‖ ≤ (Fintype.card I : ℝ) * ratUnitR p) ∧
     (∀ (A : CauchyComplexMatrix I) (p : ℕ) (hA : A.data.IsHermitian)
       (hÃ : (sym (quantiseMatrix A p)).IsHermitian),
@@ -411,7 +415,7 @@ theorem optGoal_endpoint :
     (∀ {m : ℕ} (F : FrameData m), F.ancillas = F.entries + 1) ∧
     (∀ {m : ℕ} (F : FrameData m), (Qatlib.Concepts.SpectralSketch.SpectrumPerturb.MatrixComputation.FrameData.totalBitTime F) = F.entries + F.entries * F.entries) ∧
     (∀ {m : ℕ} (F : FrameData m)
-      (hcert : ‖(1 : Matrix (Fin m) (Fin m) ℂ) - (Qatlib.Concepts.SpectralSketch.SpectrumPerturb.MatrixComputation.FrameData.gramMatrix F)‖ ≤ (F.defect : ℝ)),
+      (_hcert : ‖(1 : Matrix (Fin m) (Fin m) ℂ) - (Qatlib.Concepts.SpectralSketch.SpectrumPerturb.MatrixComputation.FrameData.gramMatrix F)‖ ≤ (F.defect : ℝ)),
       ‖(1 : Matrix (Fin m) (Fin m) ℂ) - (Qatlib.Concepts.SpectralSketch.SpectrumPerturb.MatrixComputation.FrameData.gramMatrix F)‖ ≤ (F.defect : ℝ)) ∧
     (∀ {m : ℕ} (F : FrameData m), 0 ≤ (F.defect : ℝ) ∧ 0 ≤ F.defect) ∧
     (∀ {m : ℕ} (F : FrameData m) (errorBudget : ℝ) (bitTimeBudget : ℕ),

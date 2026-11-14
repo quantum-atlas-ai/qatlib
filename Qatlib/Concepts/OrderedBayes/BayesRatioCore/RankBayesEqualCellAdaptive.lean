@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.OrderedBayes.BayesRatioCore.RankBayesEqualCellTransport
-import Qatlib.Concepts.OrderedBayes.BayesRatioCore.OrderedSearchRefined
-import Mathlib.Algebra.BigOperators.Fin
+module
+
+public import Qatlib.Concepts.OrderedBayes.BayesRatioCore.RankBayesEqualCellTransport
+public import Qatlib.Concepts.OrderedBayes.BayesRatioCore.OrderedSearchRefined
+public import Mathlib.Algebra.BigOperators.Fin
+
+@[expose] public section
 
 /-!
 # Adaptive transcript conditioning for rank search

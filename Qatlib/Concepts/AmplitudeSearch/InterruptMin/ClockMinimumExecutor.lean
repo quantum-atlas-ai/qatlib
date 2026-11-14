@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.InterruptMin.ClockZeroRetry
-import Qatlib.Concepts.AmplitudeSearch.InterruptMin.ClockCompleteReward
-import Qatlib.Concepts.AmplitudeSearch.InterruptMin.ClockOuter
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.SearchStopping
-import Qatlib.Concepts.AmplitudeSearch.Amplification.ClockedPrefix
-import Qatlib.Concepts.AmplitudeSearch.Amplification.MinimumBudgetCore
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.InterruptMin.ClockZeroRetry
+public import Qatlib.Concepts.AmplitudeSearch.InterruptMin.ClockCompleteReward
+public import Qatlib.Concepts.AmplitudeSearch.InterruptMin.ClockOuter
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.SearchStopping
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.ClockedPrefix
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.MinimumBudgetCore
+
+@[expose] public section
 
 /-!
 # A probability law for clocked minimum search
@@ -437,14 +441,14 @@ theorem sourceCall_rewardPrefix_le (N : ℕ) (hN : 1 < N) (A : Finset (Fin N))
     apply Finset.sum_le_sum
     intro j _
     by_cases hc : j.val < budget
-    · rw [if_pos hc,Fintype.sum_option]
-      simp only [rawAttemptReward,if_pos hc]
+    · rw [ite_eq_left hc,Fintype.sum_option]
+      simp only [rawAttemptReward,ite_eq_left hc]
       have hrec : Qatlib.Concepts.AmplitudeSearch.InterruptMin.rewardPrefix A (TailSizes (shiftedSizes N stage))
           (budget-j.val) depth payoff ≤ sourceCallEval N hN A (stage+1) (budget-j.val) payoff := by
         simpa only [TailSizes,shiftedSizes,advance] using! ih (stage+1) (budget-j.val) (by omega)
       rw [add_comm]
       exact add_le_add (mul_le_mul_right hrec _) le_rfl
-    · rw [if_neg hc]
+    · rw [ite_eq_right hc]
       exact zero_le
 
 /-- The full payoff mass of terminal traces completing strictly before a positive budget is
@@ -552,7 +556,7 @@ theorem source_completion_le_outer {N : ℕ} {α : Type*} [LinearOrder α]
                   rw [hd]
                   have hn := Nat.cast_nonneg (α := ℝ) (TerminalCost (ExponentialSizes N) x)
                   linarith
-                rw [if_neg hc]
+                rw [ite_eq_right hc]
               rw [he,tsum_zero]
               exact zero_le
             · have hafter : 0 ≤ b-binaryLog N := le_of_not_gt hpaid
@@ -570,7 +574,7 @@ theorem source_completion_le_outer {N : ℕ} {α : Type*} [LinearOrder α]
                 exact h.symm
               have hm (x : SearchTrace N) : law.mass (t+1) x = TerminalMass A (ExponentialSizes N) x := by
                 simp only [law,sourceBBHTLaw,bbhtJointLaw,
-                  if_pos (show 0 < t+1 ∧ t+1 < N from ⟨by omega,htN⟩),← hmarked]
+                  ite_eq_left (show 0 < t+1 ∧ t+1 < N from ⟨by omega,htN⟩),← hmarked]
               have hd (x : SearchTrace N) : law.duration x =
                   (TerminalCost (ExponentialSizes N) x : ℝ) + binaryLog N := rfl
               have hpoint (x : SearchTrace N) :
@@ -585,7 +589,7 @@ theorem source_completion_le_outer {N : ℕ} {α : Type*} [LinearOrder α]
                   rw [queryBoundary_iff _ hafter]
                   constructor <;> intro h <;> linarith
                 by_cases hc : TerminalCost (ExponentialSizes N) x < cap
-                · rw [if_pos (hciff.mpr hc),if_pos hc,← hm]
+                · rw [ite_eq_left (hciff.mpr hc),ite_eq_left hc,← hm]
                   have hcancel :
                       cap-(cap-TerminalCost (ExponentialSizes N) x) = TerminalCost
                       (ExponentialSizes N) x := by omega
@@ -600,7 +604,7 @@ theorem source_completion_le_outer {N : ℕ} {α : Type*} [LinearOrder α]
                     have hout : T.indexOfRank (law.outputRank x) = TerminalOutput x :=
                         T.indexOfRank.apply_symm_apply _
                     have hcheck : checkedUpdate T.value (T.indexOfRank y) (TerminalOutput x) = TerminalOutput x := by
-                      apply if_pos
+                      apply ite_eq_left
                       rwa [hout] at hlow
                     rw [hcheck]
                     have hrem : b-law.duration x < (f:ℝ) := by
@@ -618,7 +622,7 @@ theorem source_completion_le_outer {N : ℕ} {α : Type*} [LinearOrder α]
                     exact mul_le_mul_right hrec _
                   · rw [law.lower_support (t+1) (by omega) htN x hx]
                     simp
-                · rw [if_neg (fun h => hc (hciff.mp h)),if_neg hc]
+                · rw [ite_eq_right (fun h => hc (hciff.mp h)),ite_eq_right hc]
               have hdom : (∑' x : SearchTrace N, if TerminalCost (ExponentialSizes N) x < cap then
                   ENNReal.ofReal (TerminalMass A (ExponentialSizes N) x) *
                     S (TerminalOutput x,some (cap-TerminalCost (ExponentialSizes N) x)) else 0) ≤
@@ -628,9 +632,9 @@ theorem source_completion_le_outer {N : ℕ} {α : Type*} [LinearOrder α]
                 rw [shiftedSizes_zero N] at h
                 exact h
               have houter : outerEval T.value hN (f+1) b (T.indexOfRank y) payoff = sourceCallEval N hN A 0 cap S := by
-                rw [outerEval,if_neg hb]
+                rw [outerEval,ite_eq_right hb]
                 (try dsimp only)
-                rw [if_neg hpaid]
+                rw [ite_eq_right hpaid]
               calc
                 _ = ∑' x : SearchTrace N, if law.duration x ≤ b then ENNReal.ofReal (law.mass (t+1) x) *
                     Qatlib.Concepts.AmplitudeSearch.InterruptMin.completion law T.skip (T.skip.next (law.outputRank x)) (b-law.duration x) else 0 :=
@@ -652,10 +656,10 @@ theorem source_completion_le_minimum {N : ℕ} {α : Type*} [LinearOrder α]
     have hmin : ∀ j, T.value (T.indexOfRank initial) ≤ T.value j := by
       intro j
       rw [show j = T.indexOfRank initial from Subsingleton.elim _ _]
-    rw [sourceMinimumEval,dif_pos rfl,if_pos hmin]
+    rw [sourceMinimumEval,dite_eq_left rfl,ite_eq_left hmin]
     exact Qatlib.Concepts.AmplitudeSearch.InterruptMin.completion_le_one _ _ _
       (lt_of_le_of_lt (T.skip.le_rank initial) initial.isLt) budget
-  · rw [sourceMinimumEval,dif_neg h1]
+  · rw [sourceMinimumEval,dite_eq_right h1]
     exact source_completion_le_outer T (by omega) initial _ budget (by
       simpa only [Nat.cast_add,Nat.cast_one] using! Nat.lt_floor_add_one budget)
 

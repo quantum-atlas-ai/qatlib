@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.Waterfill.LevelFidelity.EffectiveFidelitySearch
-import Qatlib.Concepts.Waterfill.LevelFidelity.RealTableWaterLevel
-import Qatlib.Concepts.Waterfill.LevelFidelity.FidelityBracketCertifiedSearch
+module
+
+public import Qatlib.Concepts.Waterfill.LevelFidelity.EffectiveFidelitySearch
+public import Qatlib.Concepts.Waterfill.LevelFidelity.RealTableWaterLevel
+public import Qatlib.Concepts.Waterfill.LevelFidelity.FidelityBracketCertifiedSearch
+
+@[expose] public section
 
 /-!
 # Certified Fidelity Search and Rounding
@@ -113,7 +117,7 @@ theorem pmin_lt_bracket {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ)
     (hmass : 0 < ∑ j, (π j) ^ 2) (hmin : computedPmin π σ < p) :
     (∑ j, π j * σ j) ^ 2 < p * (∑ j, (π j) ^ 2) := by
   have hne : (∑ j, (π j) ^ 2) ≠ 0 := ne_of_gt hmass
-  rw [computedPmin, if_neg hne] at hmin
+  rw [computedPmin, ite_eq_right hne] at hmin
   exact (div_lt_iff₀ hmass).mp hmin
 
 /-- A margin candidate is an index with positive source entry whose source-target ratio
@@ -281,27 +285,27 @@ def stepCount (X : ℚ) : ℕ :=
 /-- For a positive threshold, `stepCount` chooses an exponent whose power of two reaches that
 threshold. -/
 theorem stepCount_spec {X : ℚ} (hX : 0 < X) : (2 : ℚ) ^ stepCount X ≥ X := by
-  rw [stepCount, if_pos hX]
+  rw [stepCount, ite_eq_left hX]
   exact Nat.find_spec exists_two_pow_ge
 
 /-- For a positive threshold, `stepCount` is no larger than any exponent whose power of two
 reaches it. -/
 theorem stepCount_min {X : ℚ} (hX : 0 < X) {k : ℕ} (hk : (2 : ℚ) ^ k ≥ X) :
     stepCount X ≤ k := by
-  rw [stepCount, if_pos hX]
+  rw [stepCount, ite_eq_left hX]
   by_contra hcon
   exact (Nat.find_min exists_two_pow_ge (by omega)) hk
 
 /-- The step count is zero for a nonpositive threshold. -/
 theorem stepCount_of_nonpos {X : ℚ} (hX : X ≤ 0) : stepCount X = 0 := by
-  rw [stepCount, if_neg (not_lt.mpr hX)]
+  rw [stepCount, ite_eq_right (not_lt.mpr hX)]
 
 /-- An exponent is the step count if its power of two reaches the positive threshold and every
 smaller exponent falls short. -/
 theorem stepCount_eq_of {X : ℚ} (hX : 0 < X) {k : ℕ}
     (hk : (2 : ℚ) ^ k ≥ X) (hkmin : ∀ j : ℕ, j < k → (2 : ℚ) ^ j < X) :
     stepCount X = k := by
-  rw [stepCount, if_pos hX]
+  rw [stepCount, ite_eq_left hX]
   refine Nat.le_antisymm ?_ ?_
   · by_contra hcon
     have hlt : k < Nat.find (p := fun j => (2 : ℚ) ^ j ≥ X)
@@ -421,7 +425,7 @@ theorem certifiedFidelityRun_spec {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ)
         rw [hWi] at h
         simp only [Option.bind] at h
         by_cases hX : 0 < requiredBound π σ p ε i
-        · rw [if_pos hX] at h
+        · rw [ite_eq_left hX] at h
           cases h
           refine ⟨hR, ?_, hX, ?_, rfl, rfl, ?_⟩
           · have hsearch : (marginWitnessSearch π σ p).witness = some i := by
@@ -542,9 +546,9 @@ theorem certifiedFidelityRun_exists_iff {m : ℕ} (π σ : Fin m → ℚ) (p ε 
             ledgerAdd (ledgerAdd
               (searchLedger m (stepCount (requiredBound π σ p ε i')))
               (marginWitnessSearch π σ p).ledger) (certificateLedger m)⟩, ?_⟩
-        rw [certifiedFidelityRun, if_pos hR, hm]
+        rw [certifiedFidelityRun, ite_eq_left hR, hm]
         simp only [Option.bind]
-        rw [if_pos hX]
+        rw [ite_eq_left hX]
 
 /-- The level returned by a successful run equals `selectedLevel` at the run's refinement depth. -/
 theorem certifiedFidelityRun_level_is_selectedLevel {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ)
@@ -600,12 +604,12 @@ theorem computedPmax_pos_of_support {m : ℕ} (π σ : Fin m → ℚ) (hσ : ∀
       (f := fun i => if 0 < π i then σ i ^ 2 else 0)
       (fun i _ => by
         by_cases hi : 0 < π i
-        · simp only [if_pos hi]
+        · simp only [ite_eq_left hi]
           positivity
-        · simp only [if_neg hi]
+        · simp only [ite_eq_right hi]
           norm_num)).2
     refine ⟨j, Finset.mem_univ j, ?_⟩
-    simp only [if_pos hpi]
+    simp only [ite_eq_left hpi]
     exact sq_pos_of_pos (hσ j)
   simpa [computedPmax] using! hsum
 
@@ -619,9 +623,9 @@ theorem sourceSupport_nonempty {m : ℕ} (π σ : Fin m → ℚ)
       (f := fun i => if 0 < π i then σ i ^ 2 else 0)
       (fun i _ => by
         by_cases hi : 0 < π i
-        · simp only [if_pos hi]
+        · simp only [ite_eq_left hi]
           positivity
-        · simp only [if_neg hi]
+        · simp only [ite_eq_right hi]
           norm_num)).mp hsum
     obtain ⟨i, -, hi⟩ := h
     exact ⟨i, hi⟩
@@ -629,7 +633,7 @@ theorem sourceSupport_nonempty {m : ℕ} (π σ : Fin m → ℚ)
   refine ⟨j, Finset.mem_filter.mpr ⟨Finset.mem_univ j, ?_⟩⟩
   by_cases h : 0 < π j
   · exact h
-  · rw [if_neg h] at hj
+  · rw [ite_eq_right h] at hj
     exact absurd hj (lt_irrefl 0)
 
 /-- At the minimum source ratio, water filling equals that ratio times the target on positive
@@ -645,13 +649,13 @@ theorem waterFill_at_minSourceRatio {m : ℕ} (π σ : Fin m → ℚ)
     have hle : minSourceRatio π σ hS ≤ π j / σ j := minSourceRatio_le π σ hmem
     have hmul : (minSourceRatio π σ hS) * σ j ≤ π j :=
       (le_div_iff₀ (hσ j)).mp hle
-    rw [waterFill, min_eq_right hmul, if_pos hj]
+    rw [waterFill, min_eq_right hmul, ite_eq_left hj]
   · have hzero : π j = 0 := by
       by_contra hcon
       exact hj (lt_of_le_of_ne (hπ j) (Ne.symm hcon))
     have hnonneg : 0 ≤ (minSourceRatio π σ hS) * σ j :=
       mul_nonneg (minSourceRatio_pos π σ hσ (hS := hS)).le (hσ j).le
-    rw [waterFill, if_neg hj, hzero, min_eq_left hnonneg]
+    rw [waterFill, ite_eq_right hj, hzero, min_eq_left hnonneg]
 
 /-- At the minimum source ratio, the filled mass equals its square times `computedPmax`. -/
 theorem computedMass_at_minSourceRatio {m : ℕ} (π σ : Fin m → ℚ)
@@ -706,7 +710,7 @@ theorem computedFidelity_at_minSourceRatio {m : ℕ} (π σ : Fin m → ℚ)
     have hpos := minSourceRatio_pos π σ hσ (hS := hS)
     positivity
   unfold computedFidelity
-  rw [if_neg (ne_of_gt hmass)]
+  rw [ite_eq_right (ne_of_gt hmass)]
   rw [computedDot_at_minSourceRatio π σ hπ hσ,
     computedMass_at_minSourceRatio π σ hπ hσ]
   have hne2 : (minSourceRatio π σ hS) ^ 2 * computedPmax π σ ≠ 0 := by
@@ -796,9 +800,9 @@ theorem certifiedFidelityRun_exists_iff_in_range {m : ℕ} (π σ : Fin m → �
             ledgerAdd (ledgerAdd
               (searchLedger m (stepCount (requiredBound π σ p ε i')))
               (marginWitnessSearch π σ p).ledger) (certificateLedger m)⟩, ?_⟩
-        rw [certifiedFidelityRun, if_pos hR, hm]
+        rw [certifiedFidelityRun, ite_eq_left hR, hm]
         simp only [Option.bind]
-        rw [if_pos hX]
+        rw [ite_eq_left hX]
 
 /-- A successful run has an ordered bracket of the prescribed dyadic width, opposite endpoint
 tests, bounded mass variation, fidelity error at most `ε`, a valid witness, and explicit
@@ -1073,7 +1077,7 @@ theorem gridBracket_exists {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ)
             ≥ p * computedMass π σ (((fidelityBracket π σ p k).1 + (fidelityBracket π σ p k).2) / 2)
       · refine ⟨2 * a + 1, ?_⟩
         unfold GridBracket
-        rw [hsplit, if_pos hmid_reaches]
+        rw [hsplit, ite_eq_left hmid_reaches]
         have hsucc : (2 * a + 1) + 1 = 2 * a + 2 := by omega
         refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
         · rw [hpow]
@@ -1091,7 +1095,7 @@ theorem gridBracket_exists {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ)
             exact absurd (hexcl j hj2 hQ) ha.2.2.2.2.1
       · refine ⟨2 * a, ?_⟩
         unfold GridBracket
-        rw [hsplit, if_neg hmid_reaches]
+        rw [hsplit, ite_eq_right hmid_reaches]
         refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
         · rw [hpow]
           omega
@@ -1224,7 +1228,7 @@ theorem selectedLevel_anti_in_range {m : ℕ} (π σ : Fin m → ℚ) (p p' : �
       (le_div_iff₀ hpos).2 hmul
     have hfid : computedFidelity π σ (computedWaterHigh π σ) ≥ p := by
       unfold computedFidelity
-      rw [if_neg (ne_of_gt hpos)]
+      rw [ite_eq_right (ne_of_gt hpos)]
       exact hdiv
     have hmin : computedPmin π σ ≥ p := by rw [← hfidH]; exact hfid
     linarith
@@ -1304,7 +1308,7 @@ theorem frontier4 {m : ℕ} (π σ : Fin m → ℚ) (p p' : ℚ) (k : ℕ)
       (le_div_iff₀ hpos).2 hmul
     have hfid : computedFidelity π σ (computedWaterHigh π σ) ≥ p := by
       unfold computedFidelity
-      rw [if_neg (ne_of_gt hpos)]
+      rw [ite_eq_right (ne_of_gt hpos)]
       exact hdiv
     have hmin : computedPmin π σ ≥ p := by rw [← hfidH]; exact hfid
     linarith
@@ -3169,7 +3173,7 @@ theorem certifiedFidelity_error_at {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ
   have hfid : computedFidelity π σ γ =
       computedDot π σ γ ^ 2 / computedMass π σ γ := by
     unfold computedFidelity
-    rw [if_neg (ne_of_gt hmass_pos)]
+    rw [ite_eq_right (ne_of_gt hmass_pos)]
   have hsub : computedDot π σ γ ^ 2 / computedMass π σ γ - p =
       (computedDot π σ γ ^ 2 - p * computedMass π σ γ) / computedMass π σ γ := by
     field_simp
@@ -4756,7 +4760,7 @@ theorem intervalAmbiguity_fidelity_close {m : ℕ} (π σ : Fin m → ℚ) (b : 
   have hband := intervalDecision_ambiguous_band π σ b p γ hπ hσ hγ hp h
   have hfid : computedFidelity π σ γ = computedDot π σ γ ^ 2 / computedMass π σ γ := by
     unfold computedFidelity
-    rw [if_neg (ne_of_gt hmass)]
+    rw [ite_eq_right (ne_of_gt hmass)]
   have hsub : computedFidelity π σ γ - p
       = (computedDot π σ γ ^ 2 - p * computedMass π σ γ) / computedMass π σ γ := by
     rw [hfid]
@@ -4985,13 +4989,13 @@ theorem intervalFidelityStep_ambiguity {m : ℕ} (b : ℕ) (π σ : Fin m → �
   cases hdec : intervalDecision b π σ p ((br.1 + br.2) / 2) with
   | reaches =>
       simp only [intervalFidelityStep, hdec]
-      rw [if_neg (not_ambiguous_of_decision π σ b p _ (by simp [hdec]))]
+      rw [ite_eq_right (not_ambiguous_of_decision π σ b p _ (by simp [hdec]))]
   | fails =>
       simp only [intervalFidelityStep, hdec]
-      rw [if_neg (not_ambiguous_of_decision π σ b p _ (by simp [hdec]))]
+      rw [ite_eq_right (not_ambiguous_of_decision π σ b p _ (by simp [hdec]))]
   | ambiguous =>
       simp only [intervalFidelityStep, hdec]
-      rw [if_pos ((intervalDecision_ambiguous_iff π σ b p _).mp hdec)]
+      rw [ite_eq_left ((intervalDecision_ambiguous_iff π σ b p _).mp hdec)]
       split <;> rfl
 
 /-- For nonnegative data and target, applying the interval refinement to the exact depth-`k`
@@ -5014,7 +5018,7 @@ theorem intervalFidelityStep_eq {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ) (p :
         intervalDecision_sound_reaches π σ b p _ hπ hσ hmid0 hp hdec
       simp only [intervalFidelityStep, hdec]
       simp only [fidelityBracket]
-      rw [if_pos h1]
+      rw [ite_eq_left h1]
   | fails =>
       have h1 : ¬ (computedDot π σ
             (((fidelityBracket π σ p k).1 + (fidelityBracket π σ p k).2) / 2) ^ 2
@@ -5023,7 +5027,7 @@ theorem intervalFidelityStep_eq {m : ℕ} (b : ℕ) (π σ : Fin m → ℚ) (p :
         intervalDecision_sound_fails π σ b p _ hπ hσ hmid0 hp hdec
       simp only [intervalFidelityStep, hdec]
       simp only [fidelityBracket]
-      rw [if_neg h1]
+      rw [ite_eq_right h1]
   | ambiguous =>
       simp only [intervalFidelityStep, hdec]
       simp only [fidelityBracket]
@@ -5753,8 +5757,8 @@ theorem computedMass_plateau {m : ℕ} (π σ : Fin m → ℚ) {γ : ℚ}
       (waterFill π σ γ j) ^ 2 = (if 0 < π j then (γ * σ j) ^ 2 else 0) := by
     intro j
     by_cases hj : 0 < π j
-    · rw [if_pos hj, waterFill, min_eq_right (h j hj)]
-    · rw [if_neg hj]
+    · rw [ite_eq_left hj, waterFill, min_eq_right (h j hj)]
+    · rw [ite_eq_right hj]
       have hπ0 : π j = 0 := le_antisymm (not_lt.mp hj) (hπ j)
       rw [waterFill, hπ0, min_eq_left (mul_nonneg hγ (hσ j))]
       ring
@@ -5763,9 +5767,9 @@ theorem computedMass_plateau {m : ℕ} (π σ : Fin m → ℚ) {γ : ℚ}
         = γ ^ 2 * (if 0 < π j then σ j ^ 2 else 0) := by
     intro j
     by_cases hj : 0 < π j
-    · rw [if_pos hj, if_pos hj]
+    · rw [ite_eq_left hj, ite_eq_left hj]
       ring
-    · rw [if_neg hj, if_neg hj]
+    · rw [ite_eq_right hj, ite_eq_right hj]
       ring
   rw [Finset.sum_congr rfl (fun j _ => hstep j),
     Finset.sum_congr rfl (fun j _ => hstep2 j)]
@@ -5782,8 +5786,8 @@ theorem computedDot_plateau {m : ℕ} (π σ : Fin m → ℚ) {γ : ℚ}
       σ j * waterFill π σ γ j = (if 0 < π j then σ j * (γ * σ j) else 0) := by
     intro j
     by_cases hj : 0 < π j
-    · rw [if_pos hj, waterFill, min_eq_right (h j hj)]
-    · rw [if_neg hj]
+    · rw [ite_eq_left hj, waterFill, min_eq_right (h j hj)]
+    · rw [ite_eq_right hj]
       have hπ0 : π j = 0 := le_antisymm (not_lt.mp hj) (hπ j)
       rw [waterFill, hπ0, min_eq_left (mul_nonneg hγ (hσ j))]
       ring
@@ -5792,9 +5796,9 @@ theorem computedDot_plateau {m : ℕ} (π σ : Fin m → ℚ) {γ : ℚ}
         = γ * (if 0 < π j then σ j ^ 2 else 0) := by
     intro j
     by_cases hj : 0 < π j
-    · rw [if_pos hj, if_pos hj]
+    · rw [ite_eq_left hj, ite_eq_left hj]
       ring
-    · rw [if_neg hj, if_neg hj]
+    · rw [ite_eq_right hj, ite_eq_right hj]
       ring
   rw [Finset.sum_congr rfl (fun j _ => hstep j),
     Finset.sum_congr rfl (fun j _ => hstep2 j)]
@@ -5811,7 +5815,7 @@ theorem computedFidelity_plateau {m : ℕ} (π σ : Fin m → ℚ) {γ : ℚ}
   have hdot := computedDot_plateau π σ hπ hσ hγ.le h
   have hpos : 0 < γ ^ 2 * computedPmax π σ := mul_pos (sq_pos_of_pos hγ) hmax
   unfold computedFidelity
-  rw [hmass, if_neg (ne_of_gt hpos), hdot]
+  rw [hmass, ite_eq_right (ne_of_gt hpos), hdot]
   have hne : γ ^ 2 * computedPmax π σ ≠ 0 := ne_of_gt hpos
   rw [div_eq_iff hne]
   ring
@@ -6501,12 +6505,12 @@ theorem computedDot_piece {m : ℕ} (π σ : Fin m → ℚ) {γ : ℚ} (S : Fins
       = (if j ∈ S then σ j * π j else (if 0 < π j then σ j * (γ * σ j) else 0)) := by
     intro j
     by_cases hjS : j ∈ S
-    · rw [if_pos hjS, waterFill_sat π σ ((hmem j).mp hjS)]
-    · rw [if_neg hjS]
+    · rw [ite_eq_left hjS, waterFill_sat π σ ((hmem j).mp hjS)]
+    · rw [ite_eq_right hjS]
       have hnot : j ∉ satSet π σ γ := fun h => hjS ((hmem j).mpr h)
       by_cases hjπ : 0 < π j
-      · rw [if_pos hjπ, waterFill_free π σ hjπ hnot]
-      · rw [if_neg hjπ]
+      · rw [ite_eq_left hjπ, waterFill_free π σ hjπ hnot]
+      · rw [ite_eq_right hjπ]
         have hπ0 : π j = 0 := le_antisymm (not_lt.mp hjπ) (hπ j)
         rw [waterFill_zero π σ hπ0 hγ (hσ j)]
         ring
@@ -6516,13 +6520,13 @@ theorem computedDot_piece {m : ℕ} (π σ : Fin m → ℚ) {γ : ℚ} (S : Fins
         + γ * (if j ∈ S then 0 else (if 0 < π j then σ j ^ 2 else 0)) := by
     intro j
     by_cases hjS : j ∈ S
-    · rw [if_pos hjS, if_pos hjS, if_pos hjS]
+    · rw [ite_eq_left hjS, ite_eq_left hjS, ite_eq_left hjS]
       ring
-    · rw [if_neg hjS, if_neg hjS]
+    · rw [ite_eq_right hjS, ite_eq_right hjS]
       by_cases hjπ : 0 < π j
-      · rw [if_pos hjπ, if_neg hjS, if_pos hjπ]
+      · rw [ite_eq_left hjπ, ite_eq_right hjS, ite_eq_left hjπ]
         ring
-      · rw [if_neg hjπ, if_neg hjS, if_neg hjπ]
+      · rw [ite_eq_right hjπ, ite_eq_right hjS, ite_eq_right hjπ]
         ring
   unfold computedDot
   rw [Finset.sum_congr rfl (fun j _ => hstep j),
@@ -6542,12 +6546,12 @@ theorem computedMass_piece {m : ℕ} (π σ : Fin m → ℚ) {γ : ℚ} (S : Fin
       = (if j ∈ S then π j ^ 2 else (if 0 < π j then (γ * σ j) ^ 2 else 0)) := by
     intro j
     by_cases hjS : j ∈ S
-    · rw [if_pos hjS, waterFill_sat π σ ((hmem j).mp hjS)]
-    · rw [if_neg hjS]
+    · rw [ite_eq_left hjS, waterFill_sat π σ ((hmem j).mp hjS)]
+    · rw [ite_eq_right hjS]
       have hnot : j ∉ satSet π σ γ := fun h => hjS ((hmem j).mpr h)
       by_cases hjπ : 0 < π j
-      · rw [if_pos hjπ, waterFill_free π σ hjπ hnot]
-      · rw [if_neg hjπ]
+      · rw [ite_eq_left hjπ, waterFill_free π σ hjπ hnot]
+      · rw [ite_eq_right hjπ]
         have hπ0 : π j = 0 := le_antisymm (not_lt.mp hjπ) (hπ j)
         rw [waterFill_zero π σ hπ0 hγ (hσ j)]
         ring
@@ -6557,13 +6561,13 @@ theorem computedMass_piece {m : ℕ} (π σ : Fin m → ℚ) {γ : ℚ} (S : Fin
         + γ ^ 2 * (if j ∈ S then 0 else (if 0 < π j then σ j ^ 2 else 0)) := by
     intro j
     by_cases hjS : j ∈ S
-    · rw [if_pos hjS, if_pos hjS, if_pos hjS]
+    · rw [ite_eq_left hjS, ite_eq_left hjS, ite_eq_left hjS]
       ring
-    · rw [if_neg hjS, if_neg hjS]
+    · rw [ite_eq_right hjS, ite_eq_right hjS]
       by_cases hjπ : 0 < π j
-      · rw [if_pos hjπ, if_neg hjS, if_pos hjπ]
+      · rw [ite_eq_left hjπ, ite_eq_right hjS, ite_eq_left hjπ]
         ring
-      · rw [if_neg hjπ, if_neg hjS, if_neg hjπ]
+      · rw [ite_eq_right hjπ, ite_eq_right hjS, ite_eq_right hjπ]
         ring
   unfold computedMass computedWaterEnergy
   rw [Finset.sum_congr rfl (fun j _ => hstep j),
@@ -7706,36 +7710,36 @@ theorem piece_agreement_at_boundary {m : ℕ} (π σ : Fin m → ℚ) (S₁ S₂
     intro j
     by_cases hj1 : j ∈ S₁
     · have hj2 : j ∈ S₂ := hsub hj1
-      rw [if_pos hj1, if_pos hj2]
+      rw [ite_eq_left hj1, ite_eq_left hj2]
     · by_cases hj2 : j ∈ S₂
       · have hmem : j ∈ S₂ \ S₁ := by
           rw [Finset.mem_sdiff]
           exact ⟨hj2, hj1⟩
         have hpj : 0 < π j := hpos j hmem
         have heq : π j = γb * σ j := hagree j hmem
-        rw [if_neg hj1, if_pos hj2]
-        simp only [hpj, if_true]
+        rw [ite_eq_right hj1, ite_eq_left hj2]
+        simp only [hpj, ite_true]
         rw [heq]
         ring
-      · rw [if_neg hj1, if_neg hj2]
+      · rw [ite_eq_right hj1, ite_eq_right hj2]
   have hmasspoint : ∀ j : Fin m,
       (if j ∈ S₁ then π j ^ 2 else γb ^ 2 * (if 0 < π j then σ j ^ 2 else 0))
         = (if j ∈ S₂ then π j ^ 2 else γb ^ 2 * (if 0 < π j then σ j ^ 2 else 0)) := by
     intro j
     by_cases hj1 : j ∈ S₁
     · have hj2 : j ∈ S₂ := hsub hj1
-      rw [if_pos hj1, if_pos hj2]
+      rw [ite_eq_left hj1, ite_eq_left hj2]
     · by_cases hj2 : j ∈ S₂
       · have hmem : j ∈ S₂ \ S₁ := by
           rw [Finset.mem_sdiff]
           exact ⟨hj2, hj1⟩
         have hpj : 0 < π j := hpos j hmem
         have heq : π j = γb * σ j := hagree j hmem
-        rw [if_neg hj1, if_pos hj2]
-        simp only [hpj, if_true]
+        rw [ite_eq_right hj1, ite_eq_left hj2]
+        simp only [hpj, ite_true]
         rw [heq]
         ring
-      · rw [if_neg hj1, if_neg hj2]
+      · rw [ite_eq_right hj1, ite_eq_right hj2]
   constructor
   · rw [pieceOverlap_eq_sum π σ S₁ γb, pieceOverlap_eq_sum π σ S₂ γb]
     exact Finset.sum_congr rfl (fun j _ => hdotpoint j)

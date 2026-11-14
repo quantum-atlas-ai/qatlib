@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.PolyTransform26.ResidualCert.TransferExtractionData
-import Qatlib.Papers.PolyTransform26.ResidualCert.Basic
-import Qatlib.Concepts.MpsAdaptation.MpsTransfer.GramContraction
+module
+
+public import Qatlib.Papers.PolyTransform26.ResidualCert.TransferExtractionData
+public import Qatlib.Papers.PolyTransform26.ResidualCert.Basic
+public import Qatlib.Concepts.MpsAdaptation.MpsTransfer.GramContraction
+
+@[expose] public section
 
 /-!
 # Extracting a contraction from a residual certificate

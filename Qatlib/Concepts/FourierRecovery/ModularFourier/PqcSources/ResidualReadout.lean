@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FourierRecovery.ModularFourier.PqcSources.ResidualEncoding
-import Qatlib.Concepts.FourierRecovery.ModularFourier.FiniteHarmonic.State
-import Mathlib.Algebra.Order.BigOperators.Ring.Finset
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Ring
+module
+
+public import Qatlib.Concepts.FourierRecovery.ModularFourier.PqcSources.ResidualEncoding
+public import Qatlib.Concepts.FourierRecovery.ModularFourier.FiniteHarmonic.State
+public import Mathlib.Algebra.Order.BigOperators.Ring.Finset
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.FourierRecovery.ModularFourier.FiniteHarmonic
@@ -27,9 +31,9 @@ namespace Qatlib.Concepts.FourierRecovery.ModularFourier.PqcSources
 open Matrix
 open scoped BigOperators ComplexConjugate Classical
 
-variable {K G C : Type} [AddGroup K] [Fintype K] [DecidableEq K]
+variable {K G C : Type} [AddGroup K] [Fintype K] [instDecidableEqK : DecidableEq K]
   [AddCommGroup G] [Fintype G] [DecidableEq G]
-  [Fintype C] [DecidableEq C]
+  [instFintypeC : Fintype C] [DecidableEq C]
 
 /-- Definition of pqc Residual Correct Mass in the Modular Fourier construction. -/
 noncomputable def pqcResidualCorrectMass (f : K → G × C) (guess : G × C → K)
@@ -121,7 +125,7 @@ theorem pqc_residual_fourier_amplitude (f : K → G × C)
         if f (guess (y,c)) = (y,c) then amp c else 0 := by
     by_cases hf : f (guess (y,c)) = (y,c)
     · have hp := hflat (guess (y,c)) (by simpa [hf] using hc)
-      rw [if_pos hf, hp]
+      rw [ite_eq_left hf, hp]
       simp only [hf]
       have hn : conj (η y) * η y = 1 := by
         simpa [AddChar.norm_apply] using Complex.conj_mul' (η y)
@@ -198,9 +202,11 @@ theorem pqc_residual_accepted_mass_flat (f : K → G × C)
   rw [← Finset.sum_filter]
   simp [hcard c hc]
 
-omit [AddGroup K] [AddCommGroup G] [Fintype G] [DecidableEq G] [Fintype C] in
+omit [AddGroup K] [AddCommGroup G] [Fintype G] [DecidableEq G] [Fintype C] instDecidableEqK in
 /-- The actual finite-label construction satisfies `pqc_residual_accepted_mass_le_one` with all displayed hypotheses. -/
-theorem pqc_residual_accepted_mass_le_one (f : K → G × C)
+theorem pqc_residual_accepted_mass_le_one {K G C : Type}
+    [_instFintypeK : Fintype K] [_instDecidableEqK : DecidableEq K]
+    [_instDecidableEqC : DecidableEq C] (f : K → G × C)
     (ψ : QState K) (kept : Finset C) (hψ : Normalized ψ) :
     pqcResidualAcceptedMass f ψ kept ≤ 1 := by
   calc
@@ -278,8 +284,13 @@ theorem pqc_residual_good_readout_le_marginal (f : K → G × C)
     _ = _ := by
       simp [MarginalProbLeft,MeasureProb,Fintype.sum_prod_type]
 
+omit instFintypeC in
 /-- The actual finite-label construction satisfies `pqc_residual_good_readout_le_accepted` with all displayed hypotheses. -/
-theorem pqc_residual_good_readout_le_accepted (f : K → G × C)
+theorem pqc_residual_good_readout_le_accepted {K G C : Type}
+    [_instAddGroupK : AddGroup K] [_instFintypeK : Fintype K]
+    [_instDecidableEqK : DecidableEq K] [_instAddCommGroupG : AddCommGroup G]
+    [_instFintypeG : Fintype G] [_instDecidableEqG : DecidableEq G]
+    [_instFintypeC : Fintype C] [_instDecidableEqC : DecidableEq C] (f : K → G × C)
     (guess : G × C → K) (ψ : QState K) (kept : Finset C)
     (η : AddChar G ℂ) :
     pqcResidualGoodReadoutMass f guess ψ kept η ≤

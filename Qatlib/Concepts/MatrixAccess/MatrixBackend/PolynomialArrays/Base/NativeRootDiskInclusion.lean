@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Complex.Polynomial.Basic
-import Mathlib.Algebra.Order.BigOperators.Group.Multiset
+module
+
+public import Mathlib.Analysis.Complex.Polynomial.Basic
+public import Mathlib.Algebra.Order.BigOperators.Group.Multiset
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixAlgebra.TupleMatrices.FiniteProduct
-import Mathlib.Analysis.InnerProductSpace.Adjoint
+module
+
+public import Qatlib.Foundations.MatrixAlgebra.TupleMatrices.FiniteProduct
+public import Mathlib.Analysis.InnerProductSpace.Adjoint
+
+@[expose] public section
 
 /-!
 # Hilbert-space actions of rectangular isometries

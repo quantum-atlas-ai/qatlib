@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Real.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -48,7 +52,7 @@ theorem fidelity_ge_half_of_energy_le_midgap
     (E0 E1 Eres F : ℝ)
     (hgap : E0 < E1)
     (hres : E1 ≤ Eres)
-    (hF0 : 0 ≤ F) (hF1 : F ≤ 1)
+    (_hF0 : 0 ≤ F) (hF1 : F ≤ 1)
     (henergy : F * E0 + (1 - F) * Eres ≤ (E0 + E1) / 2) :
     (1 : ℝ) / 2 ≤ F := by
   -- The residual weight `1 - F` is nonnegative, so raising the residual energy

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MonteCarloInt20.MainResults.SequentialStore
+module
+
+public import Qatlib.Papers.MonteCarloInt20.MainResults.SequentialStore
+
+@[expose] public section
 
 /-!
 # Sequential loops storing finite term codes

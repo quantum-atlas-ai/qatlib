@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MixedFidelity.FidelityMetric.MixedFidelity
-import Qatlib.Foundations.PureStateMath.MixedState
-import Qatlib.Foundations.PureStateMath.Tensor
-import Qatlib.Concepts.CountingClasses.ClassTransport.CountingComplexityDefs
+module
+
+public import Qatlib.Concepts.MixedFidelity.FidelityMetric.MixedFidelity
+public import Qatlib.Foundations.PureStateMath.MixedState
+public import Qatlib.Foundations.PureStateMath.Tensor
+public import Qatlib.Concepts.CountingClasses.ClassTransport.CountingComplexityDefs
+
+@[expose] public section
 
 /-!
 # ArthurMerlin05.StaticGames — paper-faithful game vocabulary

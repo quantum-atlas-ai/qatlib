@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.Reduction.ParityDescentStat
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.SplitIfs
+module
+
+public import Qatlib.Concepts.HspRecovery.Reduction.ParityDescentStat
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.SplitIfs
+
+@[expose] public section
 
 /-!
 # Parity descent for dihedral hidden reflections
@@ -68,7 +72,7 @@ theorem parityLift_val (n : ℕ) (b : Bool) (t : ZMod (2 ^ n)) :
     cases b <;> simp [parityLift]
   rw [hcast, ZMod.val_natCast]
   apply Nat.mod_eq_of_lt
-  cases b <;> simp only [Bool.false_eq_true, if_false, if_true] <;> omega
+  cases b <;> simp only [Bool.false_eq_true, ite_false, ite_true] <;> omega
 
 /-- The dihedral parity embedding is injective for either choice of parity. -/
 theorem parityEmbedding_injective (n : ℕ) (b : Bool) :
@@ -82,7 +86,7 @@ theorem parityEmbedding_injective (n : ℕ) (b : Bool) :
   cases ta
   · have hv := congrArg (fun p : DihedralReg (2 ^ (n + 1)) => p.1.val) he
     have hv' : (parityLift n false a).val = (parityLift n false c).val := by
-      simpa only [parityLift, Bool.false_eq_true, if_false, add_zero,
+      simpa only [parityLift, Bool.false_eq_true, ite_false, add_zero,
         paritySubgroupEmbedding] using hv
     rw [parityLift_val, parityLift_val] at hv'
     have hval : a.val = c.val := by omega

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.Projection.Basic
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.InnerProductSpace.Projection.Basic
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Projection success and ancillary error bounds
@@ -126,7 +130,7 @@ theorem actualProjectionComputationAncilla
   apply tensorIdentitySquaredBound
   intro x
   rw [← Matrix.toEuclideanCLM_toLp, ← Matrix.toEuclideanCLM_toLp]
-  simp only [StarAlgEquiv.apply_symm_apply, ContinuousLinearMap.comp_apply, ContinuousLinearMap.sub_apply,
+  simp only [StarAlgEquiv.apply_symm_apply, ContinuousLinearMap.comp_apply, _root_.sub_apply,
     LinearIsometry.coe_toContinuousLinearMap]
   exact successOnSubspace_to_wrongSquared W K U ε hsuccess
     (W.starProjection (WithLp.toLp 2 x)) (W.starProjection_apply_mem _)

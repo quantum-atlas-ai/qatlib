@@ -4,12 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.Normed.Algebra.MatrixExponential
-import Mathlib.Analysis.SpecialFunctions.Exponential
-import Mathlib.Analysis.Calculus.MeanValue
-import Mathlib.Analysis.Calculus.Deriv.Slope
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+public import Mathlib.Analysis.SpecialFunctions.Exponential
+public import Mathlib.Analysis.Calculus.MeanValue
+public import Mathlib.Analysis.Calculus.Deriv.Slope
+public import Mathlib.Analysis.Calculus.Deriv.Comp
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -137,7 +142,7 @@ lemma norm_expEvo_sub_le {I : Type} [Fintype I] [DecidableEq I] [Nonempty I]
         simpa using (hasDerivAt_id u).const_sub 1
       have h2 : HasDerivAt (fun v : ℝ => NormedSpace.exp (v • Y))
           (NormedSpace.exp ((1 - u) • Y) * Y) (1 - u) := hasDerivAt_exp_smul_const Y (1 - u)
-      convert h2.scomp (x := u) h1 using 1 <;> first | rfl | simp [Function.comp]
+      convert h2.scomp (x := u) h1 using 1 <;> first | rfl | simp
     exact hf.mul hg
   have hbound : ∀ u ∈ Set.Ico (0 : ℝ) 1,
       ‖(NormedSpace.exp (u • X) * X) * NormedSpace.exp ((1 - u) • Y) +

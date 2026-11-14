@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QuadChar00.MainResults.Defs
-import Mathlib.LinearAlgebra.Basis.Defs
+module
+
+public import Qatlib.Papers.QuadChar00.MainResults.Defs
+public import Mathlib.LinearAlgebra.Basis.Defs
+
+@[expose] public section
 
 /-!
 # Trace coordinates over finite fields
@@ -73,8 +77,8 @@ theorem lemma2_traceFourier_bijective
       (fun x : F =>
         fun i : Fin (Module.finrank (ZMod (ringChar F)) F) =>
           Algebra.trace (ZMod (ringChar F)) F (x * hb i)) := by
-  haveI : NeZero (ringChar F) := ⟨CharP.ringChar_ne_zero_of_finite F⟩
-  haveI : Fact (ringChar F).Prime := ⟨CharP.char_is_prime F _⟩
+  have : NeZero (ringChar F) := ⟨CharP.ringChar_ne_zero_of_finite F⟩
+  have : Fact (ringChar F).Prime := ⟨CharP.char_is_prime F _⟩
   refine (Fintype.bijective_iff_injective_and_card _).mpr
     ⟨lemma2_traceFourier_injective F hb, ?_⟩
   rw [Module.card_eq_pow_finrank (K := ZMod (ringChar F)) (V := F),

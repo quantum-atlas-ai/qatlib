@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.FixedPtSearch14.FixedPoint.OptimalFixedPointCore
-import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
+module
+
+public import Qatlib.Papers.FixedPtSearch14.FixedPoint.OptimalFixedPointCore
+public import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
+
+@[expose] public section
 
 /-!
 # Two-dimensional matrix identities for fixed-point search
@@ -89,10 +93,10 @@ theorem rotZ_mul (a b : ℝ) : rotZ a * rotZ b = rotZ (a + b) := by
     by_cases h : i = 0 <;> simp [h]
   rw [key]
   by_cases h : i = 0
-  · rw [if_pos h, if_pos h, ← Complex.exp_add, Complex.ofReal_add]
+  · rw [ite_eq_left h, ite_eq_left h, ← Complex.exp_add, Complex.ofReal_add]
     congr 1
     ring
-  · rw [if_neg h, if_neg h, ← Complex.exp_add, Complex.ofReal_add]
+  · rw [ite_eq_right h, ite_eq_right h, ← Complex.exp_add, Complex.ofReal_add]
     congr 1
     ring
 
@@ -285,14 +289,14 @@ theorem stateReflection_entry (lam alpha : ℝ) (hl : 0 ≤ lam) (hl' : lam ≤ 
   rcases (show i = 0 ∨ i = 1 by revert i; decide) with hi | hi <;>
     rcases (show j = 0 ∨ j = 1 by revert j; decide) with hj | hj <;>
     subst hi <;> subst hj
-  · simp [stateReflection, outerProduct, ampState, Matrix.sub_apply, Matrix.smul_apply]
+  · simp [stateReflection, outerProduct, ampState, Matrix.sub_apply]
     rw [hx]
     ring
-  · simp [stateReflection, outerProduct, ampState, Matrix.sub_apply, Matrix.smul_apply]
+  · simp [stateReflection, outerProduct, ampState, Matrix.sub_apply]
     ring
-  · simp [stateReflection, outerProduct, ampState, Matrix.sub_apply, Matrix.smul_apply]
+  · simp [stateReflection, outerProduct, ampState, Matrix.sub_apply]
     ring
-  · simp [stateReflection, outerProduct, ampState, Matrix.sub_apply, Matrix.smul_apply]
+  · simp [stateReflection, outerProduct, ampState, Matrix.sub_apply]
     rw [hs]
     ring
 
@@ -327,7 +331,7 @@ theorem ylcGamma_one {delta : ℝ} (hd : 0 < delta) (hd' : delta ≤ 1) :
 
 /-- For marked mass in the unit interval and `0 < delta < 1`, the length-one response
 probability equals the marked mass. -/
-theorem responseProb_one_eq {lam : ℝ} (hl : 0 ≤ lam) (hl' : lam ≤ 1) (delta : ℝ)
+theorem responseProb_one_eq {lam : ℝ} (_hl : 0 ≤ lam) (hl' : lam ≤ 1) (delta : ℝ)
     (hd : 0 < delta) (hd' : delta < 1) : responseProb 1 delta lam = lam := by
   have hγ : ylcGamma 1 delta = delta := ylcGamma_one hd (le_of_lt hd')
   rw [responseProb_eq, hγ, cheb_one]

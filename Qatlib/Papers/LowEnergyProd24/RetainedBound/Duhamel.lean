@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LowEnergyProd24.ImaginaryLeak.InteractionWeight
-import Qatlib.Foundations.MatrixAlgebra.CommutatorExp.DuhamelWord
+module
+
+public import Qatlib.Papers.LowEnergyProd24.ImaginaryLeak.InteractionWeight
+public import Qatlib.Foundations.MatrixAlgebra.CommutatorExp.DuhamelWord
+
+@[expose] public section
 
 /-!
 # Duhamel identities for product formulas

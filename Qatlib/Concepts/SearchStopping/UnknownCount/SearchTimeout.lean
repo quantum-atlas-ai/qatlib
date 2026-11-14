@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchBoundary
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchBoundary
+
+@[expose] public section
 
 /-!
 # Uniform timeout bounds for unknown-count search
@@ -162,7 +166,7 @@ theorem search_no_false_positive {I : Type*} [Fintype I] [DecidableEq I]
     (n : ℕ) (i : I) (hi : i ∉ A) : RetryOutputMass A sizes n i = 0 := by
   unfold RetryOutputMass
   have hz (j : ℕ) : CheckedOutputMass A j i = 0 := by
-    rw [(search_checked_attempt hN A j).2.1 i, if_neg hi]
+    rw [(search_checked_attempt hN A j).2.1 i, ite_eq_right hi]
   simp_rw [hz]
   simp
 

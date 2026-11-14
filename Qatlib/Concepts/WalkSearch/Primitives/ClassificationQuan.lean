@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.Primitives.ClassificationStat
-import Qatlib.Concepts.WalkSearch.Primitives.ClassificationSpecification
-import Qatlib.Concepts.WalkSearch.Primitives.ClassificationBudgetPreservation
+module
+
+public import Qatlib.Concepts.WalkSearch.Primitives.ClassificationStat
+public import Qatlib.Concepts.WalkSearch.Primitives.ClassificationSpecification
+public import Qatlib.Concepts.WalkSearch.Primitives.ClassificationBudgetPreservation
+
+@[expose] public section
 
 /-!
 # The corrected classification theorem

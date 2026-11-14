@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ShadowModels.ProductPOVM.TensorPauliTwirl
-import QuantumInfo.ForMathlib.HermitianMat.Unitary
-import Qatlib.Concepts.ShadowModels.ProductPOVM.PauliOrbitPOVM
+module
+
+public import Qatlib.Concepts.ShadowModels.ProductPOVM.TensorPauliTwirl
+public import QuantumInfo.ForMathlib.HermitianMat.Unitary
+public import Qatlib.Concepts.ShadowModels.ProductPOVM.PauliOrbitPOVM
+
+@[expose] public section
 
 /-!
 # Finite Pauli-orbit probabilities and event cardinality identities.
@@ -147,7 +151,7 @@ theorem pauliOrbitTraceMass_sum_eq_iff_card_eq (n : ℕ) (ρ : MState (Reg n))
       exact (mul_right_cancel₀ (ne_of_gt hc)) h
     exact_mod_cast hcast
   · intro h
-    simpa [h]
+    simp [h]
 
 /-- The event mass is its cardinality divided by the number of Pauli words. -/
 theorem pauliOrbitTraceMass_sum_eq_card_ratio (n : ℕ) (ρ : MState (Reg n))

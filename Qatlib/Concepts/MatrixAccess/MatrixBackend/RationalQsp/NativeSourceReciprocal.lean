@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.NativeSourceCompletionAccuracy
-import Mathlib.Algebra.Polynomial.Reverse
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Public
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Verifier
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.RationalCircle
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.HouseholderRotationTable
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.NativeHouseholder
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.NativePhasePrecision
+module
+
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.NativeSourceCompletionAccuracy
+public import Mathlib.Algebra.Polynomial.Reverse
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Public
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Verifier
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.RationalCircle
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.HouseholderRotationTable
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.NativeHouseholder
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.NativePhasePrecision
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -75,7 +79,7 @@ theorem sourceIntegerComplement_inverse_zero (cs : List ℚ) (N : ℕ) (E : ℚ)
       (rootIntegerListPolynomial (sourceIntegerComplement cs N E)).eval rho=0 := by
   rw [sourceIntegerComplement_eval_zero_iff cs N E hparity hd,
     sourceIntegerComplement_eval_zero_iff cs N E hparity hd]
-  letI : Invertible rho := invertibleOfNonzero hrho
+  let : Invertible rho := invertibleOfNonzero hrho
   have h := Polynomial.eval₂_reflect_eq_zero_iff (RingHom.id ℂ) rho
     (2*sourceDegree cs N E) (sourceF cs N E) (sourceF_natDegree_le cs N E)
   rw [sourceF_reflect] at h

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import QuantumInfo.States.Mixed.MState
+module
+
+public import QuantumInfo.States.Mixed.MState
+
+@[expose] public section
 
 /-!
 # Eigenvectors as pure quantum states

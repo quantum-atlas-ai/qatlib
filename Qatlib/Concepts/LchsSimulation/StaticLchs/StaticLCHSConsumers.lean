@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LchsSimulation.StaticLchs.StaticNoncommutingLCHS
-import Qatlib.Concepts.LchsSimulation.StaticLchs.BitSampledPreparedSearch
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
-import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
-import Qatlib.Concepts.BlockEncoding.Postselection
+module
+
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.StaticNoncommutingLCHS
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.BitSampledPreparedSearch
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
+public import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
+public import Qatlib.Concepts.BlockEncoding.Postselection
+
+@[expose] public section
 
 /-!
 # Postselected static LCHS outputs and finite windows
@@ -153,7 +157,7 @@ theorem static_lchs_actual_initial_data_branch
   ext x
   simp only [staticLchsDataBranch, ApplyGate, Matrix.mulVec, dotProduct,
     Fintype.sum_prod_type, TensorState, Qatlib.Foundations.PureStateMath.Ket, ite_mul, mul_ite, mul_one, mul_zero,
-    Finset.sum_ite_eq', Finset.mem_univ, if_true, hc]
+    Finset.sum_ite_eq', Finset.mem_univ, ite_true, hc]
   simp only [one_mul, zero_mul, mul_zero]
   simp_rw [Finset.sum_ite_irrel]
   simp
@@ -397,7 +401,7 @@ private theorem staticLchs_rankOne_trace_bound {I : Type} [Fintype I] [Decidable
     ext i j
     have hh := congrArg (fun M : Matrix I I ℂ => M i j) U.prop.1
     by_cases hij : i = j <;>
-      simp only [Matrix.star_eq_conjTranspose, Matrix.one_apply, hij, if_true, if_false] at hh ⊢ <;>
+      simp only [Matrix.star_eq_conjTranspose, Matrix.one_apply, hij, ite_true, ite_false] at hh ⊢ <;>
       exact hh
   have hn : ‖toEuclidean_fromVec (ApplyGate U.val u)‖ = ‖toEuclidean_fromVec u‖ := by
     simpa only [toEuclideanCLM_applyGate] using!

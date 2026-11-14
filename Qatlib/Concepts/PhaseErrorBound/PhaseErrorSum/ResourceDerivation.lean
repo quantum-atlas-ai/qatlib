@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.LocalCapability
-import Qatlib.Foundations.QueryWordCore.HamiltonianQuery
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.LocalCapability
+public import Qatlib.Foundations.QueryWordCore.HamiltonianQuery
+
+@[expose] public section
 
 /-!
 # Compositional circuit resource accounting
@@ -325,6 +329,7 @@ theorem derive_append (κ : Matrix I I ℂ → StepProfile) (C D : Qatlib.Founda
     cases s <;> simp only [List.cons_append, derive_gate, derive_query, ih,
       ResourceCost.add_assoc]
 
+omit [DecidableEq I] in
 /-- Concatenation runs the first circuit before the second and composes their resource costs. -/
 theorem seq_semantics_cost (κ : Matrix I I ℂ → StepProfile) (W : Matrix I I ℂ)
     (C D : Qatlib.Foundations.QueryWordCore.Circuit.Circuit I) (ψ : Qatlib.Foundations.PureStateMath.QState I) :
@@ -332,12 +337,14 @@ theorem seq_semantics_cost (κ : Matrix I I ℂ → StepProfile) (W : Matrix I I
       derive κ (C ++ D) = derive κ C + derive κ D :=
   ⟨run_append W C D ψ, derive_append κ C D⟩
 
+omit [Fintype I] [DecidableEq I] in
 /-- The peak space of a sequential composition is the maximum of the two component peak spaces. -/
 theorem seq_peakSpace (κ : Matrix I I ℂ → StepProfile) (C D : Qatlib.Foundations.QueryWordCore.Circuit.Circuit I) :
     (derive κ (C ++ D)).peakSpace
       = max (derive κ C).peakSpace (derive κ D).peakSpace := by
   rw [derive_append]; rfl
 
+omit [Fintype I] [DecidableEq I] in
 /-- The Hamiltonian time of a sequential composition is the sum of the two component times. -/
 theorem seq_hamiltonianTime (κ : Matrix I I ℂ → StepProfile) (C D : Qatlib.Foundations.QueryWordCore.Circuit.Circuit I) :
     (derive κ (C ++ D)).hamiltonianTime
@@ -441,6 +448,7 @@ theorem repeatCost_succ_peakSpace (k : ℕ) (r : ResourceCost) :
   rw [repeatCost_succ, ResourceCost.add_peakSpace]
   exact Nat.max_eq_right (repeatCost_peakSpace_le k r)
 
+omit [DecidableEq I] in
 /-- Running a repeated circuit equals iterating its state transformation the same number of
 times. -/
 theorem run_repeatCircuit (W : Matrix I I ℂ) (C : Qatlib.Foundations.QueryWordCore.Circuit.Circuit I) (k : ℕ) (ψ : Qatlib.Foundations.PureStateMath.QState I) :
@@ -449,6 +457,7 @@ theorem run_repeatCircuit (W : Matrix I I ℂ) (C : Qatlib.Foundations.QueryWord
   | zero => rfl
   | succ k ih => rw [Qatlib.Foundations.QueryWordCore.Circuit.RepeatCircuit, run_append, Function.iterate_succ]; exact ih _
 
+omit [Fintype I] [DecidableEq I] in
 /-- The derived cost of a repeated circuit is the corresponding repetition of its derived cost. -/
 theorem derive_repeatCircuit (κ : Matrix I I ℂ → StepProfile) (C : Qatlib.Foundations.QueryWordCore.Circuit.Circuit I) (k : ℕ) :
     derive κ (Qatlib.Foundations.QueryWordCore.Circuit.RepeatCircuit C k) = repeatCost (derive κ C) k := by
@@ -458,13 +467,19 @@ theorem derive_repeatCircuit (κ : Matrix I I ℂ → StepProfile) (C : Qatlib.F
     rw [Qatlib.Foundations.QueryWordCore.Circuit.RepeatCircuit, derive_append, ih,
         ResourceCost.add_comm, repeatCost_succ]
 
+omit [Fintype I] [DecidableEq I] in
 /-- Repeating a circuit `k` times multiplies its query count by `k`. -/
-theorem derive_repeatCircuit_queries (κ : Matrix I I ℂ → StepProfile) (C : Qatlib.Foundations.QueryWordCore.Circuit.Circuit I)
+theorem derive_repeatCircuit_queries {I : Type*}
+    [_instFintypeI : Fintype I] [_instDecidableEqI : DecidableEq I]
+    (κ : Matrix I I ℂ → StepProfile) (C : Qatlib.Foundations.QueryWordCore.Circuit.Circuit I)
     (k : ℕ) : (derive κ (Qatlib.Foundations.QueryWordCore.Circuit.RepeatCircuit C k)).queries = k * Qatlib.Foundations.QueryWordCore.Circuit.QueryCount C := by
   rw [derive_repeatCircuit, repeatCost_queries, derive_queries]
 
+omit [Fintype I] [DecidableEq I] in
 /-- Repeating a circuit a nonzero number of times preserves its derived peak space. -/
-theorem derive_repeatCircuit_peakSpace (κ : Matrix I I ℂ → StepProfile) (C : Qatlib.Foundations.QueryWordCore.Circuit.Circuit I)
+theorem derive_repeatCircuit_peakSpace {I : Type*}
+    [_instFintypeI : Fintype I] [_instDecidableEqI : DecidableEq I]
+    (κ : Matrix I I ℂ → StepProfile) (C : Qatlib.Foundations.QueryWordCore.Circuit.Circuit I)
     {k : ℕ} (hk : k ≠ 0) :
     (derive κ (Qatlib.Foundations.QueryWordCore.Circuit.RepeatCircuit C k)).peakSpace = (derive κ C).peakSpace := by
   obtain ⟨k, rfl⟩ : ∃ k', k = k' + 1 := ⟨k - 1, by omega⟩
@@ -540,6 +555,7 @@ theorem parStep_gates_disjoint_certificate (U : Matrix I I ℂ) (V : Matrix J J 
   exact (Qatlib.Concepts.QueryComplexity.DegreeMethod.commute_actsOnLeft_actsOnRight ⟨U, rfl⟩ ⟨V, rfl⟩).symm.trans
     (Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.parStep_gates_eq_mul_local U V).symm
 
+omit [DecidableEq I] [DecidableEq J] in
 /-- With a tensor-product oracle, a synchronized circuit maps a tensor-product input to the
 tensor product of the two projected circuit outputs. -/
 theorem run_parToCircuit (W : Matrix I I ℂ) (V : Matrix J J ℂ) (L : ParCircuit I J)
@@ -633,6 +649,7 @@ theorem Circuit.size_ofGates (gs : List (Matrix I I ℂ)) :
     Qatlib.Foundations.QueryWordCore.Circuit.Size (Circuit.ofGates gs) = gs.length := by
   simp [Circuit.ofGates, Qatlib.Foundations.QueryWordCore.Circuit.Size]
 
+omit [Fintype I] [DecidableEq I] in
 /-- A circuit formed solely from a gate list has zero queries. -/
 theorem Circuit.queryCount_ofGates (gs : List (Matrix I I ℂ)) :
     Qatlib.Foundations.QueryWordCore.Circuit.QueryCount (Circuit.ofGates gs) = 0 := by
@@ -640,6 +657,7 @@ theorem Circuit.queryCount_ofGates (gs : List (Matrix I I ℂ)) :
   | nil => rfl
   | cons U gs ih => rw [Circuit.ofGates_cons, Qatlib.Foundations.QueryWordCore.Circuit.queryCount_gate, ih]
 
+omit [Fintype I] [DecidableEq I] in
 /-- The gate count of a circuit formed from a gate list equals the list length. -/
 theorem Circuit.gateCount_ofGates (gs : List (Matrix I I ℂ)) :
     Qatlib.Foundations.QueryWordCore.Circuit.GateCount (Circuit.ofGates gs) = gs.length := by
@@ -689,6 +707,7 @@ identity. -/
       = ParStep.gates (1 : Matrix I I ℂ) V :: parOfGates [] hs := by
   simp only [parOfGates]
 
+omit [Fintype I] [Fintype J] in
 /-- The number of paired layers is the maximum of the two gate-list lengths. -/
 theorem parOfGates_length (gs : List (Matrix I I ℂ)) (hs : List (Matrix J J ℂ)) :
     (parOfGates gs hs).length = max gs.length hs.length := by
@@ -710,6 +729,7 @@ theorem parOfGates_length (gs : List (Matrix I I ℂ)) (hs : List (Matrix J J �
       rw [ih]
       omega
 
+omit [Fintype I] [Fintype J] in
 /-- The product-register circuit obtained by pairing gate lists contains no queries. -/
 theorem queryCount_parOfGates (gs : List (Matrix I I ℂ)) (hs : List (Matrix J J ℂ)) :
     Qatlib.Foundations.QueryWordCore.Circuit.QueryCount (parToCircuit (parOfGates gs hs)) = 0 := by
@@ -862,15 +882,20 @@ theorem derivePar_depth (κI : Matrix I I ℂ → StepProfile)
     | gates U V => simp [derivePar, ih, Nat.add_comm]
     | query => simp [derivePar, ih, Nat.add_comm]
 
+omit [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J] in
 /-- The synchronized derived depth equals the maximum size of the two projected circuits. -/
 theorem depth_par_eq_max (κI : Matrix I I ℂ → StepProfile)
     (κJ : Matrix J J ℂ → StepProfile) (L : ParCircuit I J) :
     (derivePar κI κJ L).depth = max (Qatlib.Foundations.QueryWordCore.Circuit.Size (parLeft L)) (Qatlib.Foundations.QueryWordCore.Circuit.Size (parRight L)) := by
   rw [derivePar_depth, size_parLeft, size_parRight, Nat.max_self]
 
+omit [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J] in
 /-- The derived depth of paired gate lists equals the maximum size of their separate gate
 circuits. -/
-theorem depth_parOfGates (κI : Matrix I I ℂ → StepProfile)
+theorem depth_parOfGates {I J : Type*}
+    [_instFintypeI : Fintype I] [_instDecidableEqI : DecidableEq I]
+    [_instFintypeJ : Fintype J] [_instDecidableEqJ : DecidableEq J]
+    (κI : Matrix I I ℂ → StepProfile)
     (κJ : Matrix J J ℂ → StepProfile) (gs : List (Matrix I I ℂ))
     (hs : List (Matrix J J ℂ)) :
     (derivePar κI κJ (parOfGates gs hs)).depth
@@ -893,6 +918,7 @@ theorem depth_parOfGates_lt_sum (κI : Matrix I I ℂ → StepProfile)
   rw [depth_parOfGates, Circuit.size_ofGates, Circuit.size_ofGates]
   omega
 
+omit [Fintype I] [DecidableEq I] [Fintype J] [DecidableEq J] in
 /-- For a nonempty synchronized circuit, its derived depth is strictly less than the sum of its
 projection sizes. -/
 theorem depth_par_lt_sum (κI : Matrix I I ℂ → StepProfile)
@@ -951,6 +977,7 @@ theorem peakSpace_par_le_add (κI : Matrix I I ℂ → StepProfile)
       exact max_le (Nat.zero_le _)
         (ih.trans (Nat.add_le_add (Nat.le_max_right _ _) (Nat.le_max_right _ _)))
 
+omit [Fintype I] [DecidableEq I] in
 /-- A constant gate profile bounds the derived peak space of every circuit by that profile's
 workspace size. -/
 theorem derive_constant_peakSpace_le (p : StepProfile) (C : Qatlib.Foundations.QueryWordCore.Circuit.Circuit I) :
@@ -966,9 +993,12 @@ theorem derive_constant_peakSpace_le (p : StepProfile) (C : Qatlib.Foundations.Q
       rw [derive_query, ResourceCost.add_peakSpace, ResourceCost.ofOracleStep_peakSpace]
       exact max_le (Nat.zero_le _) ih
 
+omit [Fintype I] [DecidableEq I] in
 /-- With a constant profile, a circuit beginning with a gate has peak space equal to the
 profile's workspace size. -/
-theorem derive_constant_gate_peakSpace (p : StepProfile) (U : Matrix I I ℂ)
+theorem derive_constant_gate_peakSpace {I : Type*}
+    [_instFintypeI : Fintype I] [_instDecidableEqI : DecidableEq I]
+    (p : StepProfile) (U : Matrix I I ℂ)
     (C : Qatlib.Foundations.QueryWordCore.Circuit.Circuit I) :
     (derive (fun _ => p) (Step.gate U :: C)).peakSpace = p.space := by
   rw [derive_gate, ResourceCost.add_peakSpace, ResourceCost.ofMacroStep_peakSpace]
@@ -1121,6 +1151,7 @@ theorem size_eq_gateCount_add_queryCount (C : Qatlib.Foundations.QueryWordCore.C
     cases s <;> simp only [size_cons, Qatlib.Foundations.QueryWordCore.Circuit.gateCount_gate, gateCount_query, Qatlib.Foundations.QueryWordCore.Circuit.queryCount_gate,
       queryCount_query, ih] <;> omega
 
+omit [Fintype I] [DecidableEq I] in
 /-- A circuit with zero queries has gate count equal to its size. -/
 theorem gateCount_eq_size_of_queryFree {D : Qatlib.Foundations.QueryWordCore.Circuit.Circuit I} (hD : Qatlib.Foundations.QueryWordCore.Circuit.QueryCount D = 0) :
     Qatlib.Foundations.QueryWordCore.Circuit.GateCount D = Qatlib.Foundations.QueryWordCore.Circuit.Size D := by
@@ -1392,6 +1423,7 @@ theorem hamiltonianEvolutionTime_append (P Q : List (HamiltonianQueryStep I)) :
     cases s <;> simp only [List.cons_append, HamiltonianEvolutionTime, ih]
     ring
 
+omit [Fintype I] [DecidableEq I] in
 /-- Hamiltonian resource derivation respects concatenation of programs. -/
 theorem deriveHamiltonian_append (P Q : List (HamiltonianQueryStep I)) :
     deriveHamiltonian (P ++ Q) = deriveHamiltonian P + deriveHamiltonian Q := by

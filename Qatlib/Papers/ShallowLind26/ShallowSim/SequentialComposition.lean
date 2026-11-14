@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Data.Matrix.Mul
-import Mathlib.Data.Fin.Basic
-import Mathlib.Algebra.BigOperators.Fin
-import Mathlib.Tactic.NoncommRing
-import Mathlib.Tactic.FinCases
+module
+
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.Data.Fin.Basic
+public import Mathlib.Algebra.BigOperators.Fin
+public import Mathlib.Tactic.NoncommRing
+public import Mathlib.Tactic.FinCases
+
+@[expose] public section
 
 /-!
 # Sequential composition of local transducers (Lemma 4.2)

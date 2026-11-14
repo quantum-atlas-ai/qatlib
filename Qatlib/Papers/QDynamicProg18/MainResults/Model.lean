@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.BinaryEntropy
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Data.Nat.Choose.Sum
-import Mathlib.Data.Nat.Choose.Bounds
-import Mathlib.Data.Finset.Powerset
-import Mathlib.Logic.Relation
-import Mathlib.GroupTheory.Perm.Basic
-import Mathlib.Data.Fintype.Perm
+module
+
+public import Mathlib.Analysis.SpecialFunctions.BinaryEntropy
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Data.Nat.Choose.Sum
+public import Mathlib.Data.Nat.Choose.Bounds
+public import Mathlib.Data.Finset.Powerset
+public import Mathlib.Logic.Relation
+public import Mathlib.GroupTheory.Perm.Basic
+public import Mathlib.Data.Fintype.Perm
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -58,8 +62,9 @@ binary entropy is exactly the paper's `H`. -/
 theorem binEntropyBits_eq (p : ℝ) :
     binEntropyBits p =
       -(p * (Real.log p / Real.log 2) + (1 - p) * (Real.log (1 - p) / Real.log 2)) := by
-  unfold binEntropyBits Real.binEntropy
-  rw [Real.log_inv, Real.log_inv]
+  unfold binEntropyBits
+  rw [Real.binEntropy_eq_negMulLog_add_negMulLog_one_sub]
+  simp only [Real.negMulLog_def]
   ring
 
 /-! ## §2 Decision and optimisation problem interfaces -/

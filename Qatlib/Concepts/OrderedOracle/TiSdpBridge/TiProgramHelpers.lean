@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.OrderedOracle.TiSdpBridge.TiPolynomialTransitionKernelTran
+module
+
+public import Qatlib.Concepts.OrderedOracle.TiSdpBridge.TiPolynomialTransitionKernelTransport
+
+@[expose] public section
 
 /-!
 # Execution and covariance of polynomial query programs

@@ -4,91 +4,95 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Field
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Defs
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Algebra.CharZero.Defs
-import Mathlib.Algebra.EuclideanDomain.Basic
-import Mathlib.Algebra.EuclideanDomain.Field
-import Mathlib.Algebra.Field.Basic
-import Mathlib.Algebra.Field.Defs
-import Mathlib.Algebra.Group.Action.Pi
-import Mathlib.Algebra.Group.Basic
-import Mathlib.Algebra.Group.Defs
-import Mathlib.Algebra.Group.DivInvMonoid
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.Group.Semigroup
-import Mathlib.Algebra.GroupWithZero.Action.Defs
-import Mathlib.Algebra.GroupWithZero.Action.Pi
-import Mathlib.Algebra.GroupWithZero.Basic
-import Mathlib.Algebra.GroupWithZero.Defs
-import Mathlib.Algebra.GroupWithZero.NeZero
-import Mathlib.Algebra.GroupWithZero.Units.Basic
-import Mathlib.Algebra.NeZero
-import Mathlib.Algebra.Notation.Pi.Defs
-import Mathlib.Algebra.Order.Archimedean.Real.Basic
-import Mathlib.Algebra.Order.BigOperators.Group.Finset
-import Mathlib.Algebra.Order.Field.Basic
-import Mathlib.Algebra.Order.Floor.Defs
-import Mathlib.Algebra.Order.Group.Defs
-import Mathlib.Algebra.Order.Group.Unbundled.Abs
-import Mathlib.Algebra.Order.GroupWithZero.Basic
-import Mathlib.Algebra.Order.GroupWithZero.Defs
-import Mathlib.Algebra.Order.Monoid.Defs
-import Mathlib.Algebra.Order.Monoid.Unbundled.Basic
-import Mathlib.Algebra.Order.Monoid.Unbundled.Defs
-import Mathlib.Algebra.Order.Ring.Abs
-import Mathlib.Algebra.Order.Ring.Defs
-import Mathlib.Algebra.Order.Ring.Unbundled.Basic
-import Mathlib.Algebra.Order.Star.Basic
-import Mathlib.Algebra.Order.Star.Real
-import Mathlib.Algebra.Order.ZeroLEOne
-import Mathlib.Algebra.Ring.Basic
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Algebra.Ring.Nat
-import Mathlib.Analysis.Normed.Field.Basic
-import Mathlib.Analysis.Normed.Ring.Basic
-import Mathlib.Analysis.Real.Sqrt
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Basic.Real.Basic
-import Mathlib.Basic.Real.Star
-import Mathlib.Basic.SetLike.Basic
-import Mathlib.Data.Finset.Basic
-import Mathlib.Data.Finset.Defs
-import Mathlib.Data.Finset.Empty
-import Mathlib.Data.Finset.Filter
-import Mathlib.Data.Finset.Insert
-import Mathlib.Data.Fintype.Defs
-import Mathlib.Data.Int.Cast.Defs
-import Mathlib.Data.Nat.Basic
-import Mathlib.Data.Nat.Cast.Defs
-import Mathlib.Data.Nat.Cast.Order.Basic
-import Mathlib.Data.Nat.Init
-import Mathlib.Logic.Function.Defs
-import Mathlib.Logic.Relation
-import Mathlib.Order.Basic
-import Mathlib.Order.Defs.Lattice
-import Mathlib.Order.Defs.LinearOrder
-import Mathlib.Order.Defs.PartialOrder
-import Mathlib.Order.Lattice
-import Mathlib.Order.RelClasses
-import Mathlib.Tactic
-import Mathlib.Tactic.CancelDenoms.Core
-import Mathlib.Tactic.FieldSimp.Lemmas
-import Mathlib.Tactic.Linarith.Lemmas
-import Mathlib.Tactic.Linarith.Preprocessing
-import Mathlib.Tactic.NormNum.Basic
-import Mathlib.Tactic.NormNum.Eq
-import Mathlib.Tactic.NormNum.Ineq
-import Mathlib.Tactic.NormNum.Inv
-import Mathlib.Tactic.NormNum.Pow
-import Mathlib.Tactic.NormNum.Result
-import Mathlib.Tactic.Positivity.Core
-import Mathlib.Tactic.Ring.Basic
-import Mathlib.Tactic.Ring.Common
+module
+
+public import Mathlib.Algebra.BigOperators.Field
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Defs
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Algebra.CharZero.Defs
+public import Mathlib.Algebra.EuclideanDomain.Basic
+public import Mathlib.Algebra.EuclideanDomain.Field
+public import Mathlib.Algebra.Field.Basic
+public import Mathlib.Algebra.Field.Defs
+public import Mathlib.Algebra.Group.Action.Pi
+public import Mathlib.Algebra.Group.Basic
+public import Mathlib.Algebra.Group.Defs
+public import Mathlib.Algebra.Group.DivInvMonoid
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.Group.Semigroup
+public import Mathlib.Algebra.GroupWithZero.Action.Defs
+public import Mathlib.Algebra.GroupWithZero.Action.Pi
+public import Mathlib.Algebra.GroupWithZero.Basic
+public import Mathlib.Algebra.GroupWithZero.Defs
+public import Mathlib.Algebra.GroupWithZero.NeZero
+public import Mathlib.Algebra.GroupWithZero.Units.Basic
+public import Mathlib.Algebra.NeZero
+public import Mathlib.Algebra.Notation.Pi.Defs
+public import Mathlib.Algebra.Order.Archimedean.Real.Basic
+public import Mathlib.Algebra.Order.BigOperators.Group.Finset
+public import Mathlib.Algebra.Order.Field.Basic
+public import Mathlib.Algebra.Order.Floor.Defs
+public import Mathlib.Algebra.Order.Group.Defs
+public import Mathlib.Algebra.Order.Group.Unbundled.Abs
+public import Mathlib.Algebra.Order.GroupWithZero.Basic
+public import Mathlib.Algebra.Order.GroupWithZero.Defs
+public import Mathlib.Algebra.Order.Monoid.Defs
+public import Mathlib.Algebra.Order.Monoid.Unbundled.Basic
+public import Mathlib.Algebra.Order.Monoid.Unbundled.Defs
+public import Mathlib.Algebra.Order.Ring.Abs
+public import Mathlib.Algebra.Order.Ring.Defs
+public import Mathlib.Algebra.Order.Ring.Unbundled.Basic
+public import Mathlib.Algebra.Order.Star.Basic
+public import Mathlib.Algebra.Order.Star.Real
+public import Mathlib.Algebra.Order.ZeroLEOne
+public import Mathlib.Algebra.Ring.Basic
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Algebra.Ring.Nat
+public import Mathlib.Analysis.Normed.Field.Basic
+public import Mathlib.Analysis.Normed.Ring.Basic
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Basic.Real.Star
+public import Mathlib.Basic.SetLike.Basic
+public import Mathlib.Data.Finset.Basic
+public import Mathlib.Data.Finset.Defs
+public import Mathlib.Data.Finset.Empty
+public import Mathlib.Data.Finset.Filter
+public import Mathlib.Data.Finset.Insert
+public import Mathlib.Data.Fintype.Defs
+public import Mathlib.Data.Int.Cast.Defs
+public import Mathlib.Data.Nat.Basic
+public import Mathlib.Data.Nat.Cast.Defs
+public import Mathlib.Data.Nat.Cast.Order.Basic
+public import Mathlib.Data.Nat.Init
+public import Mathlib.Logic.Function.Defs
+public import Mathlib.Logic.Relation
+public import Mathlib.Order.Basic
+public import Mathlib.Order.Defs.Lattice
+public import Mathlib.Order.Defs.LinearOrder
+public import Mathlib.Order.Defs.PartialOrder
+public import Mathlib.Order.Lattice
+public import Mathlib.Order.RelClasses
+public import Mathlib.Tactic
+public import Mathlib.Tactic.CancelDenoms.Core
+public import Mathlib.Tactic.FieldSimp.Lemmas
+public import Mathlib.Tactic.Linarith.Lemmas
+public import Mathlib.Tactic.Linarith.Preprocessing
+public import Mathlib.Tactic.NormNum.Basic
+public import Mathlib.Tactic.NormNum.Eq
+public import Mathlib.Tactic.NormNum.Ineq
+public import Mathlib.Tactic.NormNum.Inv
+public import Mathlib.Tactic.NormNum.Pow
+public import Mathlib.Tactic.NormNum.Result
+public import Mathlib.Tactic.Positivity.Core
+public import Mathlib.Tactic.Ring.Basic
+public import Mathlib.Tactic.Ring.Common
+
+@[expose] public section
 
 /-!
 # Spectral Ingredients for NAND Formula Evaluation
@@ -209,12 +213,12 @@ theorem ham_smul (c : ℝ) (a : V → ℝ) (v : V) :
   congr 1
   · cases h : D.parent v with
     | none => simp
-    | some p => simp only [h]; ring
+    | some p => simp only []; ring
   · apply Finset.sum_congr rfl
     intro x _
     by_cases hx : D.parent x = some v
-    · simp only [hx, if_true]; ring
-    · simp only [hx, if_false]; ring
+    · simp only [hx, ite_true]; ring
+    · simp only [hx, ite_false]; ring
 
 /-- At a leaf, the weighted adjacency action consists only of the parent contribution, or is
 zero when the leaf has no parent. -/
@@ -226,7 +230,7 @@ theorem ham_leaf_eq (a : V → ℝ) {v : V} (hleaf : D.IsLeaf v) :
   unfold NandTreeData.ham
   have hsum : (∑ x : V, if D.parent x = some v then D.weight v x * a x else 0) = 0 := by
     refine Finset.sum_eq_zero (fun x _ => ?_)
-    rw [if_neg (hleaf x)]
+    rw [ite_eq_right (hleaf x)]
   rw [hsum, add_zero]
 
 end NandTreeData
@@ -256,14 +260,14 @@ theorem lemma3_zero_amplitude_of_eval_true (D : NandTreeData V) {a : V → ℝ} 
       · have hc_ham : D.ham a c = 0 := hlocal c (D.inSubtree_child hpc)
         have hsum : (∑ x : V, if D.parent x = some c then D.weight c x * a x else 0) = 0 := by
           refine Finset.sum_eq_zero (fun x _ => ?_)
-          rw [if_neg (hcleaf x)]
+          rw [ite_eq_right (hcleaf x)]
         have hprod : D.weight v c * a v = 0 := by
           simpa [NandTreeData.ham, hpc, hsum] using hc_ham
         exact (mul_eq_zero.mp hprod).resolve_left (ne_of_gt (hWeight_pos hpc hcfalse))
       · have hsum : (∑ x : V, if D.parent x = some c then D.weight c x * a x else 0) = 0 := by
           refine Finset.sum_eq_zero (fun x _ => ?_)
           by_cases hx : D.parent x = some c
-          · rw [if_pos hx]
+          · rw [ite_eq_left hx]
             have hxeval : D.eval x = true := hNandFalse hx hcfalse
             by_cases hxleaf : D.IsLeaf x
             · rw [hWeight_leaf_true hx hxleaf hxeval, zero_mul]
@@ -281,7 +285,7 @@ theorem lemma3_zero_amplitude_of_eval_true (D : NandTreeData V) {a : V → ℝ} 
                 exact hlocal u (D.inSubtree_trans
                   (D.inSubtree_trans (D.inSubtree_child hpc) (D.inSubtree_child hx)) hu)
               rw [hxa, mul_zero]
-          · rw [if_neg hx]
+          · rw [ite_eq_right hx]
         have hc_ham : D.ham a c = 0 := hlocal c (D.inSubtree_child hpc)
         have hprod : D.weight v c * a v = 0 := by
           simpa [NandTreeData.ham, hpc, hsum] using hc_ham
@@ -402,7 +406,7 @@ theorem gammaV_le_Gamma {σr σv σpv E : ℝ}
 * sqrt σpr)`, the local expression `gammaV` is at least `1 / GammaPrime σr`. This is a
 scalar spectral estimate associated with Theorems 2 and 5 of [ChildsEtAl2007]. -/
 theorem gammaV_ge_inv_GammaPrime {σr σv σpv σpr E : ℝ}
-    (hσr1 : 1 ≤ σr) (hσv1 : 1 ≤ σv) (hσvr : σv ≤ σr)
+    (hσr1 : 1 ≤ σr) (_hσv1 : 1 ≤ σv) (hσvr : σv ≤ σr)
     (hσpv1 : 1 ≤ σpv) (hσpvr : σpv ≤ σpr)
     (hE0 : 0 < E) (hE : E ≤ 1 / (9 * σr * Real.sqrt σpr)) :
     1 / GammaPrime σr ≤ gammaV σr σv σpv E := by
@@ -443,7 +447,7 @@ theorem lemma6_leaf_ratio (D : NandTreeData V) {a : V → ℝ} {E : ℝ} {v p : 
     0 < a p / a v ∧ a p / a v = E / D.weight p v := by
   have hsum : (∑ x : V, if D.parent x = some v then D.weight v x * a x else 0) = 0 := by
     refine Finset.sum_eq_zero (fun x _ => ?_)
-    rw [if_neg (hleaf x)]
+    rw [ite_eq_right (hleaf x)]
   have hham : D.ham a v = D.weight p v * a p := by
     simp only [NandTreeData.ham, hpv, hsum, add_zero]
   have heq : D.weight p v * a p = E * a v := by
@@ -459,7 +463,7 @@ theorem lemma6_leaf_ratio (D : NandTreeData V) {a : V → ℝ} {E : ℝ} {v p : 
 incompatible when `σ >= 1`, `N >= 1`, and `E > 0`. This is a scalar contradiction associated
 with Theorem 5 of [ChildsEtAl2007]. -/
 theorem tail_energy_contradiction {σ N E : ℝ} (hσ : 1 ≤ σ) (hN : 1 ≤ N)
-    (hE : 0 < E)
+    (_hE : 0 < E)
     (hlow : 1 / (8 * σ ^ 2 * N + σ * Real.sqrt N) ≤ E ^ 2)
     (hup : E ^ 2 ≤ 1 / (81 * σ ^ 2 * N)) : False := by
   have hσ0 : 0 < σ := by linarith
@@ -483,10 +487,10 @@ theorem tail_energy_contradiction {σ N E : ℝ} (hσ : 1 ≤ σ) (hN : 1 ≤ N)
 `1 / 2 + ε` for every `N >= max N₀ 2`, assuming the exponent correction is at most `ε` from
 `N₀` onward. This is a conditional cost comparison associated with Theorems 1 and 9 of
 [ChildsEtAl2007]. -/
-theorem cost_half_add_eps (cost : ℕ → ℝ) {C c : ℝ} (hC : 0 < C) (hc : 0 < c)
+theorem cost_half_add_eps (cost : ℕ → ℝ) {C c : ℝ} (_hC : 0 < C) (hc : 0 < c)
     (hbound : ∀ N : ℕ, 2 ≤ N →
       cost N ≤ c * (N : ℝ) ^ ((1 : ℝ) / 2 + C / Real.sqrt (Real.log (N : ℝ))))
-    (ε : ℝ) (hε : 0 < ε) (N₀ : ℕ)
+    (ε : ℝ) (_hε : 0 < ε) (N₀ : ℕ)
     (hNε : ∀ N : ℕ, N₀ ≤ N → C / Real.sqrt (Real.log (N : ℝ)) ≤ ε) :
     ∀ N : ℕ, max N₀ 2 ≤ N →
       cost N ≤ c * (N : ℝ) ^ ((1 : ℝ) / 2 + ε) := by
@@ -626,8 +630,8 @@ theorem ham_add (D : NandTreeData V) (a b : V → ℝ) (v : V) :
     apply Finset.sum_congr rfl
     intro x _
     by_cases hx : D.parent x = some v
-    · rw [if_pos hx, if_pos hx, if_pos hx, mul_add]
-    · rw [if_neg hx, if_neg hx, if_neg hx, add_zero]
+    · rw [ite_eq_left hx, ite_eq_left hx, ite_eq_left hx, mul_add]
+    · rw [ite_eq_right hx, ite_eq_right hx, ite_eq_right hx, add_zero]
   rcases hpar : D.parent v with _ | p
   · rw [D.ham_eq_of_parent_none hpar, D.ham_eq_of_parent_none hpar,
         D.ham_eq_of_parent_none hpar]
@@ -745,14 +749,14 @@ theorem theorem2_tail_extension (D : NandTreeData V) {a : V → ℝ}
     have hv'' : v ≠ D.root'' := by
       intro hh
       exact hroot''_not (hh ▸ hv)
-    rw [hb_def v, if_neg hv'', if_pos hv]
+    rw [hb_def v, ite_eq_right hv'', ite_eq_left hv]
   have hb_root' : b D.root' = 0 := by
-    rw [hb_def D.root', if_neg hne', if_neg hroot'_not]
+    rw [hb_def D.root', ite_eq_right hne', ite_eq_right hroot'_not]
   have hb_root'' : b D.root'' = -(a D.root) / D.weight D.root' D.root'' := by
-    rw [hb_def D.root'', if_pos rfl]
+    rw [hb_def D.root'', ite_eq_left rfl]
   have hb_out : ∀ v, ¬ D.InSubtree D.root v → v ≠ D.root'' → b v = 0 := by
     intro v hv hv''
-    rw [hb_def v, if_neg hv'', if_neg hv]
+    rw [hb_def v, ite_eq_right hv'', ite_eq_right hv]
 
   have hham'' : D.ham b D.root'' = 0 := by
     rw [D.ham_eq_of_parent_none D.parent_root'']
@@ -760,8 +764,8 @@ theorem theorem2_tail_extension (D : NandTreeData V) {a : V → ℝ}
         D.weight D.root'' x * b x else 0) = 0 := by
       refine Finset.sum_eq_zero (fun x _ => ?_)
       by_cases hx : D.parent x = some D.root''
-      · rw [if_pos hx, hnoextra x hx, hb_root', mul_zero]
-      · rw [if_neg hx]
+      · rw [ite_eq_left hx, hnoextra x hx, hb_root', mul_zero]
+      · rw [ite_eq_right hx]
     rw [hsum]
 
   have hham' : D.ham b D.root' = 0 := by
@@ -775,7 +779,7 @@ theorem theorem2_tail_extension (D : NandTreeData V) {a : V → ℝ}
         refine Finset.sum_eq_single D.root ?_ ?_
         · intro u _ hune
           by_cases hx : D.parent u = some D.root'
-          · rw [if_pos hx]
+          · rw [ite_eq_left hx]
             have hnotin : ¬ D.InSubtree D.root u := by
               intro hsub
               rcases D.inSubtree_tail hsub with rfl | ⟨q, hq, hqu⟩
@@ -790,10 +794,10 @@ theorem theorem2_tail_extension (D : NandTreeData V) {a : V → ℝ}
               rw [D.parent_root''] at hx
               cases hx
             rw [hb_out u hnotin hune'', mul_zero]
-          · rw [if_neg hx]
+          · rw [ite_eq_right hx]
         · intro h
           exact absurd (Finset.mem_univ D.root) h
-      rw [hsingle, if_pos D.parent_root, hb_agree D.root (D.inSubtree_refl D.root)]
+      rw [hsingle, ite_eq_left D.parent_root, hb_agree D.root (D.inSubtree_refl D.root)]
     rw [hsum]
     have hw1 : D.weight D.root'' D.root' = D.weight D.root' D.root'' := D.weight_symm _ _
     have hwroot : D.weight D.root' D.root = 1 := by rw [D.weight_symm]; exact hwr
@@ -816,8 +820,8 @@ theorem theorem2_tail_extension (D : NandTreeData V) {a : V → ℝ}
       apply Finset.sum_congr rfl
       intro x _
       by_cases hx : D.parent x = some D.root
-      · rw [if_pos hx, if_pos hx, hb_agree x (D.inSubtree_child hx)]
-      · rw [if_neg hx, if_neg hx]
+      · rw [ite_eq_left hx, ite_eq_left hx, hb_agree x (D.inSubtree_child hx)]
+      · rw [ite_eq_right hx, ite_eq_right hx]
     rw [hsum]
     rw [hsupp D.root' hroot'_not, mul_zero, zero_add] at hz
     rw [hb_root', mul_zero, zero_add]
@@ -838,9 +842,9 @@ theorem theorem2_tail_extension (D : NandTreeData V) {a : V → ℝ}
         apply Finset.sum_congr rfl
         intro x _
         by_cases hx : D.parent x = some v
-        · rw [if_pos hx, if_pos hx,
+        · rw [ite_eq_left hx, ite_eq_left hx,
               hb_agree x (D.inSubtree_trans hsub (D.inSubtree_child hx))]
-        · rw [if_neg hx, if_neg hx]
+        · rw [ite_eq_right hx, ite_eq_right hx]
       rw [hbq, hsum]
       exact hz
 
@@ -863,7 +867,7 @@ theorem theorem2_tail_extension (D : NandTreeData V) {a : V → ℝ}
         D.weight v x * b x else 0) = 0 := by
       refine Finset.sum_eq_zero (fun x _ => ?_)
       by_cases hx : D.parent x = some v
-      · rw [if_pos hx]
+      · rw [ite_eq_left hx]
         have hx_notin : ¬ D.InSubtree D.root x := by
           intro hxin
           by_cases hxroot : x = D.root
@@ -877,7 +881,7 @@ theorem theorem2_tail_extension (D : NandTreeData V) {a : V → ℝ}
           rw [D.parent_root''] at hx
           cases hx
         rw [hb_out x hx_notin hxne'', mul_zero]
-      · rw [if_neg hx]
+      · rw [ite_eq_right hx]
     cases hpar : D.parent v with
     | none => rw [D.ham_eq_of_parent_none hpar, hsum]
     | some q => rw [D.ham_eq_of_parent hpar, hb_parent q hpar, mul_zero, zero_add, hsum]
@@ -1048,7 +1052,7 @@ theorem lemma4_leaf_exists (D : NandTreeData V) {p : V} (hleaf : D.IsLeaf p)
       refine Finset.sum_eq_zero (fun x _ => ?_)
       by_cases hx : D.parent x = some p
       · exact absurd hx (hleaf x)
-      · rw [if_neg hx]
+      · rw [ite_eq_right hx]
     cases hpar : D.parent p with
     | none => rw [D.ham_eq_of_parent_none hpar, hnochild]
     | some q =>
@@ -1058,7 +1062,7 @@ theorem lemma4_leaf_exists (D : NandTreeData V) {p : V} (hleaf : D.IsLeaf p)
           intro h
           rw [h] at hq_not
           exact hq_not (D.inSubtree_refl p)
-        rw [if_neg hq_ne, mul_zero, add_zero]
+        rw [ite_eq_right hq_ne, mul_zero, add_zero]
   · intro v hv
     have hvne : v ≠ p := by
       intro hh
@@ -1066,15 +1070,15 @@ theorem lemma4_leaf_exists (D : NandTreeData V) {p : V} (hleaf : D.IsLeaf p)
       rw [hh]
       exact D.inSubtree_refl p
     show (if v = p then (1 : ℝ) else 0) = 0
-    rw [if_neg hvne]
+    rw [ite_eq_right hvne]
   · show (if p = p then (1 : ℝ) else 0) = 1
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
   · have hsum : (∑ v : V, (if v = p then (1 : ℝ) else 0) ^ 2) = 1 := by
       trans (if p = p then (1 : ℝ) else 0) ^ 2
       · exact Finset.sum_eq_single p
-          (fun b _ hb => by rw [if_neg hb, zero_pow (by norm_num)])
+          (fun b _ hb => by rw [ite_eq_right hb, zero_pow (by norm_num)])
           (fun h => absurd (Finset.mem_univ p) h)
-      · rw [if_pos rfl]; norm_num
+      · rw [ite_eq_left rfl]; norm_num
     rw [hsum]
     have hspos : 0 < Real.sqrt (D.sz p : ℝ) :=
       Real.sqrt_pos.mpr (by exact_mod_cast D.sz_pos p)
@@ -1138,16 +1142,16 @@ theorem construction_vertex_energy (D : NandTreeData V) {p v cv : V} {ã : V →
     omega
   have hb_v : (if v = p then (1 : ℝ)
       else (-(D.weight p v) / (D.weight v cv * ã cv)) * ã v) = 0 := by
-    rw [if_neg hvp, hsupp v hcv_notin, mul_zero]
+    rw [ite_eq_right hvp, hsupp v hcv_notin, mul_zero]
   have hsum : (∑ x : V, if D.parent x = some v then
       D.weight v x * (if x = p then (1 : ℝ)
         else (-(D.weight p v) / (D.weight v cv * ã cv)) * ã x) else 0)
       = D.weight v cv * ((-(D.weight p v) / (D.weight v cv * ã cv)) * ã cv) := by
     rw [Finset.sum_eq_single cv]
-    · rw [if_pos hvcv, if_neg hcvp]
+    · rw [ite_eq_left hvcv, ite_eq_right hcvp]
     · intro x _ hxne
       by_cases hx : D.parent x = some v
-      · rw [if_pos hx]
+      · rw [ite_eq_left hx]
         have hx_notin : ¬ D.InSubtree cv x := by
           intro hsub
           rcases D.inSubtree_tail hsub with hxc | ⟨q, hq, hqx⟩
@@ -1163,13 +1167,13 @@ theorem construction_vertex_energy (D : NandTreeData V) {p v cv : V} {ã : V →
           have h1 := D.height_lt hx
           have h2 := D.height_lt hpv
           omega
-        rw [if_neg hxp, hsupp x hx_notin, mul_zero, mul_zero]
-      · rw [if_neg hx]
+        rw [ite_eq_right hxp, hsupp x hx_notin, mul_zero, mul_zero]
+      · rw [ite_eq_right hx]
     · intro h
       exact absurd (Finset.mem_univ cv) h
   rw [D.ham_eq_of_parent hpv]
   have hbp : (if p = p then (1 : ℝ)
-      else (-(D.weight p v) / (D.weight v cv * ã cv)) * ã p) = 1 := if_pos rfl
+      else (-(D.weight p v) / (D.weight v cv * ã cv)) * ã p) = 1 := ite_eq_left rfl
   rw [hbp, hsum]
   have hterm : D.weight v cv * ((-(D.weight p v) / (D.weight v cv * ã cv)) * ã cv)
       = -(D.weight p v) := by
@@ -1189,10 +1193,12 @@ vertices. -/
 noncomputable def perronFactor (H : V → V → ℝ) (δ : V → ℝ) (v w : V) : ℝ :=
   Real.sqrt (H v w * δ w / δ v)
 
+omit [Fintype V] [DecidableEq V] in
+
 /-- For symmetric nonnegative `H` and strictly positive `δ`, the product of the factors for `(v,
 w)` and `(w, v)` equals `H v w`. This is the edge factorization component associated with
 Claim 8 of [ChildsEtAl2007]. -/
-theorem perronFactor_comp (H : V → V → ℝ) (δ : V → ℝ)
+theorem perronFactor_comp {V : Type} [_scopeInst0 : Fintype V] [_scopeInst1 : DecidableEq V] (H : V → V → ℝ) (δ : V → ℝ)
     (hsymm : ∀ v w, H v w = H w v)
     (hnonneg : ∀ v w, 0 ≤ H v w)
     (hδpos : ∀ v, 0 < δ v) :
@@ -1211,10 +1217,12 @@ theorem perronFactor_comp (H : V → V → ℝ) (δ : V → ℝ)
     _ = Real.sqrt (H v w ^ 2) := by rw [hprod]
     _ = H v w := Real.sqrt_sq (hnonneg v w)
 
+omit [DecidableEq V] in
+
 /-- If `δ` is a strictly positive eigenvector of a nonnegative `H` with eigenvalue `μ`, then
 each row's sum of squared Perron factors equals `μ`. This is the row norm component
 associated with Claim 8 of [ChildsEtAl2007]. -/
-theorem perronFactor_row (H : V → V → ℝ) (δ : V → ℝ) (μ : ℝ)
+theorem perronFactor_row {V : Type} [_scopeInst0 : Fintype V] [_scopeInst1 : DecidableEq V] (H : V → V → ℝ) (δ : V → ℝ) (μ : ℝ)
     (hnonneg : ∀ v w, 0 ≤ H v w)
     (hδpos : ∀ v, 0 < δ v)
     (heig : ∀ v, ∑ w, H v w * δ w = μ * δ v) :
@@ -1244,11 +1252,13 @@ theorem perron_factorization_norm_one (H : V → V → ℝ) (δ : V → ℝ)
   ⟨perronFactor_comp H δ hsymm hnonneg hδpos,
    perronFactor_row H δ 1 hnonneg hδpos (fun v => by simpa using heig v)⟩
 
+omit [Fintype V] [DecidableEq V] in
+
 /-- Every Perron factor is nonnegative, with no sign assumptions on its inputs. This is a
 component associated with the factorization in Claim 8 of [ChildsEtAl2007]. -/
-theorem perronFactor_nonneg (H : V → V → ℝ) (δ : V → ℝ) :
+theorem perronFactor_nonneg {V : Type} [_scopeInst0 : Fintype V] [_scopeInst1 : DecidableEq V] (H : V → V → ℝ) (δ : V → ℝ) :
     ∀ v w, 0 ≤ perronFactor H δ v w :=
-  fun v w => Real.sqrt_nonneg _
+  fun _v _w => Real.sqrt_nonneg _
 
 /-- For a positive energy eigenvector with nonzero amplitude at `v`, the stated nonpositive
 child ratios and their bounds imply `0 < a p / a v <= y0 v * E`, as a local component
@@ -1274,9 +1284,9 @@ theorem lemma6_eval_false_branch (D : NandTreeData V) {a : V → ℝ} {E : ℝ}
     apply Finset.sum_congr rfl
     intro c _
     by_cases h : D.parent c = some v
-    · rw [if_pos h, if_pos h]
+    · rw [ite_eq_left h, ite_eq_left h]
       field_simp
-    · rw [if_neg h, if_neg h, zero_div]
+    · rw [ite_eq_right h, ite_eq_right h, zero_div]
   set S : ℝ := ∑ c : V, if D.parent c = some v then D.weight v c * (a c / a v) else 0
     with hS
   have hdiv : E = D.weight p v * (a p / a v) + S := by
@@ -1290,9 +1300,9 @@ theorem lemma6_eval_false_branch (D : NandTreeData V) {a : V → ℝ} {E : ℝ}
     apply Finset.sum_nonpos
     intro c _
     by_cases h : D.parent c = some v
-    · rw [if_pos h]
+    · rw [ite_eq_left h]
       exact mul_nonpos_of_nonneg_of_nonpos (hnonneg c h) (hchild_ne c h)
-    · rw [if_neg h]
+    · rw [ite_eq_right h]
   have hprod_pos : 0 < D.weight p v * (a p / a v) := by
     nlinarith [hdiv, hS_nonpos, hE]
   have hratio_pos : 0 < a p / a v := by
@@ -1307,10 +1317,10 @@ theorem lemma6_eval_false_branch (D : NandTreeData V) {a : V → ℝ} {E : ℝ}
     apply Finset.sum_le_sum
     intro c _
     by_cases h : D.parent c = some v
-    · rw [if_pos h, if_pos h]
+    · rw [ite_eq_left h, ite_eq_left h]
       have hm := mul_le_mul_of_nonneg_left (hchild_bd c h) (hnonneg c h)
       nlinarith [hm]
-    · rw [if_neg h, if_neg h]; norm_num
+    · rw [ite_eq_right h, ite_eq_right h]; norm_num
   have hupper : D.weight p v * (a p / a v) ≤
       (1 + ∑ c : V, if D.parent c = some v then D.weight v c * y1 c else 0) * E := by
     set T0 : ℝ := ∑ c : V, if D.parent c = some v then D.weight v c * y1 c else 0 with hT0
@@ -1381,8 +1391,8 @@ theorem lemma6_eval_true_step (D : NandTreeData V) {a : V → ℝ} {E : ℝ}
     apply Finset.sum_congr rfl
     intro c _
     by_cases h : D.parent c = some v
-    · rw [if_pos h, if_pos h]; field_simp
-    · rw [if_neg h, if_neg h, zero_div]
+    · rw [ite_eq_left h, ite_eq_left h]; field_simp
+    · rw [ite_eq_right h, ite_eq_right h, zero_div]
   set S : ℝ := ∑ c : V, if D.parent c = some v then D.weight v c * (a c / a v) else 0
     with hS
   have hdiv : E = D.weight p v * (a p / a v) + S := by
@@ -1399,7 +1409,7 @@ theorem lemma6_eval_true_step (D : NandTreeData V) {a : V → ℝ} {E : ℝ}
     intro c
     by_cases hc : D.parent c = some v
     · by_cases hev : D.eval c = false
-      · rw [if_pos hc, if_pos ⟨hc, hev⟩, if_neg (by simp [hev])]
+      · rw [ite_eq_left hc, ite_eq_left ⟨hc, hev⟩, ite_eq_right (by simp [hev])]
         have hy0c := hy0pos c hc hev
         have hbd := hfalse c hc hev
         have hmul : E * (1 / (y0 c * E)) ≤ E * (a c / a v) :=
@@ -1412,14 +1422,14 @@ theorem lemma6_eval_true_step (D : NandTreeData V) {a : V → ℝ} {E : ℝ}
         nlinarith [hmul', hleft]
       · have hevtrue : D.eval c = true := by
           cases h : D.eval c <;> simp_all
-        rw [if_pos hc, if_neg (by intro hh; exact hev hh.2), if_pos ⟨hc, hevtrue⟩]
+        rw [ite_eq_left hc, ite_eq_right (by intro hh; exact hev hh.2), ite_eq_left ⟨hc, hevtrue⟩]
         have hbd := htrue c hc hevtrue
         have hmul : E * (-(y1 c * E)) ≤ E * (a c / a v) :=
           mul_le_mul_of_nonneg_left hbd (le_of_lt hEpos)
         have hmul' := mul_le_mul_of_nonneg_left hmul (hnonneg c hc)
         nlinarith [hmul']
-    · rw [if_neg hc, if_neg (by intro hh; exact hc hh.1),
-            if_neg (by intro hh; exact hc hh.1)]
+    · rw [ite_eq_right hc, ite_eq_right (by intro hh; exact hc hh.1),
+            ite_eq_right (by intro hh; exact hc hh.1)]
       simp
   have hES : E * S ≥
       (∑ c : V, if D.parent c = some v ∧ D.eval c = false then

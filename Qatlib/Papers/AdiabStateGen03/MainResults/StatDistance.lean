@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AdiabStateGen03.MainResults.Defs
-import Mathlib.Analysis.SpecialFunctions.Sqrt
-import Mathlib.Algebra.Order.Module.Basic
-import Mathlib.Algebra.Order.BigOperators.Group.Finset
+module
+
+public import Qatlib.Papers.AdiabStateGen03.MainResults.Defs
+public import Mathlib.Analysis.SpecialFunctions.Sqrt
+public import Mathlib.Algebra.Order.Module.Basic
+public import Mathlib.Algebra.Order.BigOperators.Group.Finset
+
+@[expose] public section
 
 /-!
 # Total variation and square-root overlap

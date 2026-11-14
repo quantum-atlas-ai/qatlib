@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.LinearAlgebra.Matrix.PosDef
-import Mathlib.Analysis.Matrix.PosDef
-import Mathlib.Analysis.Matrix.Spectrum
-import Mathlib.LinearAlgebra.Matrix.Charpoly.Basic
-import Mathlib.LinearAlgebra.Matrix.ToLin
-import Mathlib.Tactic
+module
+
+public import Mathlib.LinearAlgebra.Matrix.PosDef
+public import Mathlib.Analysis.Matrix.PosDef
+public import Mathlib.Analysis.Matrix.Spectrum
+public import Mathlib.LinearAlgebra.Matrix.Charpoly.Basic
+public import Mathlib.LinearAlgebra.Matrix.ToLin
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -53,17 +57,29 @@ def Normalized (ψ : State ι) : Prop := normSqVec ψ = 1
 /-- Energy `⟨ψ|H|ψ⟩` of a Hermitian matrix `H` in state `ψ`. -/
 def energy (H : Matrix ι ι ℂ) (ψ : State ι) : ℝ := (star ψ ⬝ᵥ (H *ᵥ ψ)).re
 
+omit [Fintype ι] [DecidableEq ι] in
 /-- The inner product is conjugate-symmetric: `⟨y, x⟩ = conj ⟨x, y⟩`. -/
-lemma star_dotProduct_swap (x y : State ι) :
+lemma star_dotProduct_swap {ι : Type}
+    [_inst0 : Fintype ι]
+    [_inst1 : DecidableEq ι]
+    (x y : State ι) :
     star y ⬝ᵥ x = star (star x ⬝ᵥ y) := by
   simpa using star_dotProduct (v := y) (w := x)
 
+omit [Fintype ι] [DecidableEq ι] in
 /-- The squared norm is nonnegative. -/
-lemma normSqVec_nonneg (ψ : State ι) : 0 ≤ normSqVec ψ :=
+lemma normSqVec_nonneg {ι : Type}
+    [_inst0 : Fintype ι]
+    [_inst1 : DecidableEq ι]
+    (ψ : State ι) : 0 ≤ normSqVec ψ :=
   (RCLike.nonneg_iff.mp (dotProduct_star_self_nonneg ψ)).1
 
+omit [Fintype ι] [DecidableEq ι] in
 /-- The squared norm vanishes exactly on the zero state. -/
-lemma normSqVec_eq_zero_iff (ψ : State ι) : normSqVec ψ = 0 ↔ ψ = 0 := by
+lemma normSqVec_eq_zero_iff {ι : Type}
+    [_inst0 : Fintype ι]
+    [_inst1 : DecidableEq ι]
+    (ψ : State ι) : normSqVec ψ = 0 ↔ ψ = 0 := by
   constructor
   · intro h
     have hself : star (star ψ ⬝ᵥ ψ) = star ψ ⬝ᵥ ψ :=
@@ -91,8 +107,12 @@ lemma normSqVec_add_of_dotProduct_zero {x y : State ι}
 /-- The Laplacian `Δ = dd† + d†d` of a coboundary operator `d`. -/
 def laplacian (d : Matrix ι ι ℂ) : Matrix ι ι ℂ := d * dᴴ + dᴴ * d
 
+omit [Fintype ι] [DecidableEq ι] in
 /-- The quadratic form of `A†A` is the squared norm of `Aψ`. -/
-lemma qform_conjTranspose_mul_self (A : Matrix ι ι ℂ) (ψ : State ι) :
+lemma qform_conjTranspose_mul_self {ι : Type}
+    [_inst0 : Fintype ι]
+    [_inst1 : DecidableEq ι]
+    (A : Matrix ι ι ℂ) (ψ : State ι) :
     star ψ ⬝ᵥ ((Aᴴ * A) *ᵥ ψ) = star (A *ᵥ ψ) ⬝ᵥ (A *ᵥ ψ) := by
   rw [← Matrix.mulVec_mulVec, Matrix.dotProduct_mulVec, Matrix.vecMul_conjTranspose, star_star]
 
@@ -101,8 +121,12 @@ lemma qform_mul_conjTranspose_self (A : Matrix ι ι ℂ) (ψ : State ι) :
     star ψ ⬝ᵥ ((A * Aᴴ) *ᵥ ψ) = star (Aᴴ *ᵥ ψ) ⬝ᵥ (Aᴴ *ᵥ ψ) := by
   simpa using qform_conjTranspose_mul_self Aᴴ ψ
 
+omit [Fintype ι] [DecidableEq ι] in
 /-- The Laplacian `dd† + d†d` is positive semidefinite. -/
-lemma laplacian_posSemidef (d : Matrix ι ι ℂ) : (laplacian d).PosSemidef := by
+lemma laplacian_posSemidef {ι : Type}
+    [_inst0 : Fintype ι]
+    [_inst1 : DecidableEq ι]
+    (d : Matrix ι ι ℂ) : (laplacian d).PosSemidef := by
   unfold laplacian
   exact (Matrix.posSemidef_self_mul_conjTranspose d).add
     (Matrix.posSemidef_conjTranspose_mul_self d)
@@ -148,12 +172,22 @@ def hamiltonian : Matrix ι ι ℂ := S.Q * S.Qᴴ + S.Qᴴ * S.Q
 /-- The Hermitian operator `Q + Q†`. -/
 def shift : Matrix ι ι ℂ := S.Q + S.Qᴴ
 
+omit [Fintype ι] [DecidableEq ι] in
 /-- The adjoint of a nilpotent matrix is nilpotent. -/
-lemma adjoint_sq_zero : S.Qᴴ * S.Qᴴ = 0 := by
+lemma adjoint_sq_zero {ι : Type}
+    [_inst0 : Fintype ι]
+    [_inst1 : DecidableEq ι]
+    (S : Supercharge ι)
+    : S.Qᴴ * S.Qᴴ = 0 := by
   rw [← Matrix.conjTranspose_mul, S.sq_zero, Matrix.conjTranspose_zero]
 
+omit [Fintype ι] [DecidableEq ι] in
 /-- `Q + Q†` is Hermitian. -/
-lemma shift_isHermitian : S.shift.IsHermitian := by
+lemma shift_isHermitian {ι : Type}
+    [_inst0 : Fintype ι]
+    [_inst1 : DecidableEq ι]
+    (S : Supercharge ι)
+    : S.shift.IsHermitian := by
   show S.shiftᴴ = S.shift
   unfold shift
   rw [Matrix.conjTranspose_add, Matrix.conjTranspose_conjTranspose, add_comm]
@@ -214,8 +248,12 @@ end Supercharge
 
 /-! ### Spectral mapping for `H = B²` -/
 
+omit [Fintype ι] [DecidableEq ι] in
 /-- The square of a Hermitian matrix is Hermitian. -/
-lemma mul_self_isHermitian {B : Matrix ι ι ℂ} (hB : B.IsHermitian) : (B * B).IsHermitian := by
+lemma mul_self_isHermitian {ι : Type}
+    [_inst0 : Fintype ι]
+    [_inst1 : DecidableEq ι]
+    {B : Matrix ι ι ℂ} (hB : B.IsHermitian) : (B * B).IsHermitian := by
   show (B * B)ᴴ = B * B
   rw [Matrix.conjTranspose_mul, hB.eq]
 
@@ -295,7 +333,7 @@ lemma gap_square_gt (a b c : ℝ) (ha : 0 ≤ a) (hab : a ≤ b) (hc : 0 < c)
 
 /-- An inverse-polynomial promise gap `1/q` with `q ≥ 1` stays inverse
 polynomial after squaring: it becomes `1/q²`. -/
-lemma inverse_polynomial_gap_sq (a b q : ℝ) (ha : 0 ≤ a) (hab : a ≤ b)
+lemma inverse_polynomial_gap_sq (a b q : ℝ) (ha : 0 ≤ a) (_hab : a ≤ b)
     (hq : 1 ≤ q) (hgap : 1 / q ≤ b - a) : 1 / q ^ 2 ≤ b ^ 2 - a ^ 2 := by
   have hqpos : 0 < q := lt_of_lt_of_le zero_lt_one hq
   have h1 : 0 ≤ b - a := le_trans (by positivity) hgap
@@ -323,16 +361,26 @@ variable (C : GradedComplex ι)
 /-- Vectors supported in a single grade. -/
 def SupportedIn (l : ℕ) (ψ : State ι) : Prop := ∀ i, C.grade i ≠ l → ψ i = 0
 
+omit [Fintype ι] [DecidableEq ι] in
 /-- The adjoint `d†` lowers the grade by one. -/
-lemma dagger_lowers (i j : ι) (h : C.dᴴ i j ≠ 0) : C.grade i + 1 = C.grade j := by
+lemma dagger_lowers {ι : Type}
+    [_inst0 : Fintype ι]
+    [_inst1 : DecidableEq ι]
+    (C : GradedComplex ι)
+    (i j : ι) (h : C.dᴴ i j ≠ 0) : C.grade i + 1 = C.grade j := by
   have h' : C.d j i ≠ 0 := by
     intro h0
     exact h (by simp [Matrix.conjTranspose_apply, h0])
   have := C.raises j i h'
   omega
 
+omit [Fintype ι] [DecidableEq ι] in
 /-- `d` raises the grade of the support by one. -/
-lemma mulVec_supported_succ {l : ℕ} {ψ : State ι} (hψ : C.SupportedIn l ψ) :
+lemma mulVec_supported_succ {ι : Type}
+    [_inst0 : Fintype ι]
+    [_inst1 : DecidableEq ι]
+    (C : GradedComplex ι)
+    {l : ℕ} {ψ : State ι} (hψ : C.SupportedIn l ψ) :
     C.SupportedIn (l + 1) (C.d *ᵥ ψ) := by
   intro a ha
   simp only [Matrix.mulVec, dotProduct]
@@ -345,8 +393,13 @@ lemma mulVec_supported_succ {l : ℕ} {ψ : State ι} (hψ : C.SupportedIn l ψ)
       omega
     simp [hψ j hnj]
 
+omit [Fintype ι] [DecidableEq ι] in
 /-- `d†` lowers the grade of the support by one. -/
-lemma mulVec_dagger_supported_pred {l : ℕ} {ψ : State ι} (hψ : C.SupportedIn l ψ) :
+lemma mulVec_dagger_supported_pred {ι : Type}
+    [_inst0 : Fintype ι]
+    [_inst1 : DecidableEq ι]
+    (C : GradedComplex ι)
+    {l : ℕ} {ψ : State ι} (hψ : C.SupportedIn l ψ) :
     C.SupportedIn (l - 1) (C.dᴴ *ᵥ ψ) := by
   intro a ha
   simp only [Matrix.mulVec, dotProduct]
@@ -431,9 +484,13 @@ end GradedComplex
 /-- Dimension of the kernel of a matrix acting on `ι → ℂ`. -/
 def kernelDim (M : Matrix ι ι ℂ) : ℕ := Module.finrank ℂ (LinearMap.ker M.mulVecLin)
 
+omit [Fintype ι] [DecidableEq ι] in
 /-- For Hermitian `B`, `ker (B²) = ker B`; this is the spectral fact behind
 `β_{n+2} = #zero eigenvalues` of Theorem 5. -/
-lemma kernelDim_mul_self_of_isHermitian (B : Matrix ι ι ℂ) (hB : B.IsHermitian) :
+lemma kernelDim_mul_self_of_isHermitian {ι : Type}
+    [_inst0 : Fintype ι]
+    [_inst1 : DecidableEq ι]
+    (B : Matrix ι ι ℂ) (hB : B.IsHermitian) :
     kernelDim (B * B) = kernelDim B := by
   have h1 : ∀ v : State ι, (B * B) *ᵥ v = 0 ↔ B *ᵥ v = 0 := by
     intro v
@@ -449,12 +506,20 @@ lemma kernelDim_mul_self_of_isHermitian (B : Matrix ι ι ℂ) (hB : B.IsHermiti
 
 /-! ### Laplacian as a square, Betti numbers, and the Hodge kernel -/
 
+omit [Fintype ι] [DecidableEq ι] in
 /-- If `d² = 0` then `(d†)² = 0`. -/
-lemma conjTranspose_sq_zero {d : Matrix ι ι ℂ} (h : d * d = 0) : dᴴ * dᴴ = 0 := by
+lemma conjTranspose_sq_zero {ι : Type}
+    [_inst0 : Fintype ι]
+    [_inst1 : DecidableEq ι]
+    {d : Matrix ι ι ℂ} (h : d * d = 0) : dᴴ * dᴴ = 0 := by
   rw [← Matrix.conjTranspose_mul, h, Matrix.conjTranspose_zero]
 
+omit [Fintype ι] [DecidableEq ι] in
 /-- `d + d†` is Hermitian. -/
-lemma add_conjTranspose_isHermitian (d : Matrix ι ι ℂ) : (d + dᴴ).IsHermitian := by
+lemma add_conjTranspose_isHermitian {ι : Type}
+    [_inst0 : Fintype ι]
+    [_inst1 : DecidableEq ι]
+    (d : Matrix ι ι ℂ) : (d + dᴴ).IsHermitian := by
   show (d + dᴴ)ᴴ = d + dᴴ
   rw [Matrix.conjTranspose_add, Matrix.conjTranspose_conjTranspose, add_comm]
 
@@ -483,8 +548,12 @@ lemma hodge_kernel_characterization (C : GradedComplex ι) (ψ : State ι) :
     laplacian C.d *ᵥ ψ = 0 ↔ C.d *ᵥ ψ = 0 ∧ C.dᴴ *ᵥ ψ = 0 :=
   laplacian_mulVec_eq_zero_iff C.d ψ
 
+omit [Fintype ι] [DecidableEq ι] in
 /-- Nonnegativity of the energy of a positive semidefinite Hamiltonian. -/
-lemma energy_nonneg_of_posSemidef {H : Matrix ι ι ℂ} (h : H.PosSemidef) (ψ : State ι) :
+lemma energy_nonneg_of_posSemidef {ι : Type}
+    [_inst0 : Fintype ι]
+    [_inst1 : DecidableEq ι]
+    {H : Matrix ι ι ℂ} (h : H.PosSemidef) (ψ : State ι) :
     0 ≤ energy H ψ := by
   simpa [energy] using h.re_dotProduct_nonneg ψ
 
@@ -580,13 +649,21 @@ def RowSparse (s : ℕ) (A : Matrix ι ι ℂ) : Prop :=
 def GradedComplex.toSupercharge (C : GradedComplex ι) : Supercharge ι :=
   ⟨C.d, C.sq_zero⟩
 
+omit [Fintype ι] [DecidableEq ι] in
 /-- The cohomology Laplacian is the SUSY Hamiltonian of the associated
 supercharge. -/
-@[simp] lemma GradedComplex.laplacian_eq_hamiltonian (C : GradedComplex ι) :
+@[simp] lemma GradedComplex.laplacian_eq_hamiltonian {ι : Type}
+    [_inst0 : Fintype ι]
+    [_inst1 : DecidableEq ι]
+    (C : GradedComplex ι) :
     laplacian C.d = C.toSupercharge.hamiltonian := rfl
 
+omit [Fintype ι] [DecidableEq ι] in
 /-- The shift of the associated supercharge is `d + d†`. -/
-@[simp] lemma GradedComplex.shift_toSupercharge (C : GradedComplex ι) :
+@[simp] lemma GradedComplex.shift_toSupercharge {ι : Type}
+    [_inst0 : Fintype ι]
+    [_inst1 : DecidableEq ι]
+    (C : GradedComplex ι) :
     C.toSupercharge.shift = C.d + C.dᴴ := rfl
 
 /-- For `d² = 0` the Laplacian is Hermitian. -/
@@ -621,10 +698,14 @@ normalized state has zero energy or energy at least `1/q`. -/
 def SpectralGap (H : Matrix ι ι ℂ) (q : ℕ) : Prop :=
   ∀ ψ, Normalized ψ → energy H ψ = 0 ∨ (1 / (q : ℝ)) ≤ energy H ψ
 
+omit [Fintype ι] [DecidableEq ι] in
 /-- Under an inverse-polynomial gap, energies below the threshold are exactly the
 zero-energy (Betti) states; this is the promise used for #P-completeness in
 Theorem 5. -/
-lemma spectralGap_energy_zero (H : Matrix ι ι ℂ) {q : ℕ}
+lemma spectralGap_energy_zero {ι : Type}
+    [_inst0 : Fintype ι]
+    [_inst1 : DecidableEq ι]
+    (H : Matrix ι ι ℂ) {q : ℕ}
     (h : SpectralGap H q) {ψ : State ι} (hψ : Normalized ψ)
     (hlt : energy H ψ < 1 / (q : ℝ)) : energy H ψ = 0 := by
   rcases h ψ hψ with h0 | hge

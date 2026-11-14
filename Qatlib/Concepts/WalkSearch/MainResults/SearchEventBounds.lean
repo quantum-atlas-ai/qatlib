@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.MainResults.PreparationScan
-import Qatlib.Concepts.WalkSearch.MainResults.FiniteEventFibers
+module
+
+public import Qatlib.Concepts.WalkSearch.MainResults.PreparationScan
+public import Qatlib.Concepts.WalkSearch.MainResults.FiniteEventFibers
+
+@[expose] public section
 
 /-!
 # Failure counts for scoped search calls
@@ -51,8 +55,8 @@ theorem safeGroverBadSeeds_source_bound (family : ScopedGroverFamily) (scope : S
     (h : scope.contains (Fintype.card α) check floor) :
     (safeGroverBadSeeds (family.execution scope) marked check floor).card*(max (Fintype.card α) floor+1)^family.cExp≤
       @Fintype.card (family.seed scope) (family.seedFin scope) := by
-  letI:=family.seedFin scope
-  letI:=(family.execution scope).seedFin
+  let:=family.seedFin scope
+  let:=(family.execution scope).seedFin
   by_cases hm : ∃ x,marked x=true
   · have hp : ∃ i : Fin (Fintype.card α),marked ((Fintype.equivFin α).symm i)=true := by
       obtain ⟨x,hx⟩:=hm
@@ -62,7 +66,7 @@ theorem safeGroverBadSeeds_source_bound (family : ScopedGroverFamily) (scope : S
     refine le_trans (Nat.mul_le_mul_right _ ?_) hh
     apply Finset.card_le_card
     intro ρ hρ
-    simp_all [safeGroverBadSeeds, hm, operationalSgsFind]
+    simp_all [safeGroverBadSeeds, operationalSgsFind]
   · have he : safeGroverBadSeeds (family.execution scope) marked check floor=∅ := by
       ext ρ
       simp [safeGroverBadSeeds,hm]
@@ -91,8 +95,8 @@ theorem preparation_bad_calls_card {n : ℕ} (G : UGraph n) (family : ScopedGrov
     (Finset.univ.filter (fun t : Fin n → sgs.seed=>¬preparationCallsGood G sgs t vs)).card*(n*n+1)^3≤
       n*Fintype.card (Fin n → sgs.seed) := by
   let sgs:=family.execution scope
-  letI:=sgs.seedFin
-  letI:=sgs.seedNe
+  let:=sgs.seedFin
+  let:=sgs.seedNe
   let B : Fin n → Finset (Fin n → sgs.seed) :=
       fun v=>Finset.univ.filter (fun t=>t v∈safeGroverBadSeeds sgs (neighborhoodMarked G v) 2 (n*n))
   have hs : Finset.univ.filter (fun t : Fin n → sgs.seed=>¬preparationCallsGood G sgs t vs)⊆Finset.univ.biUnion B := by

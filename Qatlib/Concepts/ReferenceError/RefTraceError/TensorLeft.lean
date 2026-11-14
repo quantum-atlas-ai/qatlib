@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ReferenceError.RefTraceError.ChannelMixtureComposition
-import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+module
+
+public import Qatlib.Concepts.ReferenceError.RefTraceError.ChannelMixtureComposition
+public import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+
+@[expose] public section
 
 /-!
 # Tensor extension of linear maps

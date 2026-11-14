@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.WalkAlgorithms.WalkFreshValidationContracts
-import Mathlib.Data.Finset.Prod
+module
+
+public import Qatlib.Concepts.WalkSearch.WalkAlgorithms.WalkFreshValidationContracts
+public import Mathlib.Data.Finset.Prod
+
+@[expose] public section
 
 /-!
 # Stored-subgraph queries and replay vocabulary

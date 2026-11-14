@@ -6,13 +6,17 @@ Authors: Chris Birkbeck, Qatlib Contributors
 Adapted from https://github.com/TauCetiProject/TauCeti@3780371c
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+module
 
-import Mathlib.Analysis.SpecialFunctions.Complex.CircleMap
-import Mathlib.Analysis.SpecialFunctions.Complex.Log
-import Mathlib.Analysis.SpecialFunctions.Complex.Circle
-import Mathlib.Topology.UnitInterval
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Curve.Distance
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+
+public import Mathlib.Analysis.SpecialFunctions.Complex.CircleMap
+public import Mathlib.Analysis.SpecialFunctions.Complex.Log
+public import Mathlib.Analysis.SpecialFunctions.Complex.Circle
+public import Mathlib.Topology.UnitInterval
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Curve.Distance
+
+@[expose] public section
 
 /-!
 # Continuous argument lifts along curves
@@ -102,25 +106,28 @@ private theorem segClamp_eq_right {s_j s_jp1 t : ℝ} (h : s_j ≤ s_jp1) (ht : 
 /-- The ratio of the curve displacement from `w` at the clamped parameter to its displacement at
 the segment's left endpoint. -/
 noncomputable def segRatio (γ : ℝ → ℂ) (w : ℂ) (s_j s_jp1 t : ℝ) : ℂ :=
-  (γ (segClamp s_j s_jp1 t) - w) / (γ s_j - w)
+  (γ (max s_j (min t s_jp1)) - w) / (γ s_j - w)
+
+private theorem segRatio_eq_clamped (γ : ℝ → ℂ) (w : ℂ) (s_j s_jp1 t : ℝ) :
+    segRatio γ w s_j s_jp1 t = (γ (segClamp s_j s_jp1 t) - w) / (γ s_j - w) := rfl
 
 /-- The segment ratio is one before the left endpoint when its denominator is nonzero. -/
 theorem segRatio_eq_one_of_le {γ : ℝ → ℂ} {w : ℂ} {s_j s_jp1 t : ℝ}
     (ht : t ≤ s_j) (h_ne : γ s_j - w ≠ 0) :
     segRatio γ w s_j s_jp1 t = 1 := by
-  rw [segRatio, segClamp_eq_left ht, div_self h_ne]
+  rw [segRatio_eq_clamped, segClamp_eq_left ht, div_self h_ne]
 
 /-- On the segment, `segRatio` equals `(γ t - w) / (γ s_j - w)`. -/
 theorem segRatio_eq_div_of_mem_Icc {γ : ℝ → ℂ} {w : ℂ} {s_j s_jp1 t : ℝ}
     (ht : t ∈ Set.Icc s_j s_jp1) :
     segRatio γ w s_j s_jp1 t = (γ t - w) / (γ s_j - w) := by
-  rw [segRatio, segClamp_eq_self ht.1 ht.2]
+  rw [segRatio_eq_clamped, segClamp_eq_self ht.1 ht.2]
 
 /-- After the right endpoint, the segment ratio equals the ratio of the endpoint displacements. -/
 theorem segRatio_eq_endpoint_div_of_le {γ : ℝ → ℂ} {w : ℂ} {s_j s_jp1 t : ℝ}
     (h : s_j ≤ s_jp1) (ht : s_jp1 ≤ t) :
     segRatio γ w s_j s_jp1 t = (γ s_jp1 - w) / (γ s_j - w) := by
-  rw [segRatio, segClamp_eq_right h ht]
+  rw [segRatio_eq_clamped, segClamp_eq_right h ht]
 
 /-- A sufficiently short segment has every clamped ratio within distance `1 / 2` of one under
 the uniform distance and continuity bounds. -/
@@ -140,7 +147,7 @@ private theorem segRatio_mem_ball_one {γ : ℝ → ℂ} {w : ℂ} {a b δ' ρ :
   have h_lb : ρ ≤ ‖γ s_j - w‖ := h_dist_lb _ hsj
   have h_pos : 0 < ‖γ s_j - w‖ := hρ_pos.trans_le h_lb
   have h_ne : γ s_j - w ≠ 0 := norm_pos_iff.mp h_pos
-  unfold segRatio
+  simp_rw [segRatio_eq_clamped]
   have h_rewrite : (γ (segClamp s_j s_jp1 t) - w) / (γ s_j - w) - 1 =
       (γ (segClamp s_j s_jp1 t) - γ s_j) / (γ s_j - w) := by
     rw [div_sub_one h_ne, sub_sub_sub_cancel_right]
@@ -155,7 +162,7 @@ there. -/
 private theorem continuousOn_segRatio {γ : ℝ → ℂ} {a b : ℝ} (hγ : ContinuousOn γ (Icc a b))
     {w : ℂ} {s_j s_jp1 : ℝ} (hsj : s_j ∈ Icc a b) (hsjp1 : s_jp1 ∈ Icc a b) (h_le : s_j ≤ s_jp1) :
     ContinuousOn (fun t ↦ segRatio γ w s_j s_jp1 t) (Icc a b) := by
-  unfold segRatio
+  simp_rw [segRatio_eq_clamped]
   refine ContinuousOn.div_const ?_ _
   refine ContinuousOn.sub ?_ continuousOn_const
   refine hγ.comp (segClamp_continuous s_j s_jp1).continuousOn ?_
@@ -183,7 +190,7 @@ private lemma prod_range_div_complex (a : ℕ → ℂ) (k : ℕ) (ha : ∀ j ≤
   classical
   set u : ℕ → ℂˣ := fun j ↦ if h : a j = 0 then 1 else Units.mk0 (a j) h with hu_def
   have hu : ∀ j ≤ k, (u j : ℂ) = a j := by
-    intro j hj; simp only [hu_def, dif_neg (ha j hj), Units.val_mk0]
+    intro j hj; simp only [hu_def, dite_eq_right (ha j hj), Units.val_mk0]
   have hstep : ∏ j ∈ Finset.range k, (a (j + 1) / a j)
       = ((∏ j ∈ Finset.range k, u (j + 1) / u j : ℂˣ) : ℂ) := by
     rw [Units.coe_prod]

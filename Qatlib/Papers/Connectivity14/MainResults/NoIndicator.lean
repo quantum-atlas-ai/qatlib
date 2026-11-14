@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Asymptotics.Theta
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Qatlib.Papers.Connectivity14.MainResults.SimplexComplete
+module
+
+public import Mathlib.Analysis.Asymptotics.Theta
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Qatlib.Papers.Connectivity14.MainResults.SimplexComplete
+
+@[expose] public section
 
 /-!
 # Runtime scales incompatible with a decreasing indicator

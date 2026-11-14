@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QLogicSynth04.MainResults.QubitRotations
+module
+
+public import Qatlib.Papers.QLogicSynth04.MainResults.QubitRotations
+
+@[expose] public section
 
 /-!
 # Euler decomposition of unitary multiplexors

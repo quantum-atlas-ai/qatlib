@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RandCompile.ChannelBudget.InteractionPicture
-import Qatlib.Concepts.InteractionEvo.EffCosts.EffectiveSparseHAMT
-import Qatlib.Papers.InteractPic18.MainResults.InteractionPicture.InteractionPictureIdentities
+module
+
+public import Qatlib.Concepts.RandCompile.ChannelBudget.InteractionPicture
+public import Qatlib.Concepts.InteractionEvo.EffCosts.EffectiveSparseHAMT
+public import Qatlib.Papers.InteractPic18.MainResults.InteractionPicture.InteractionPictureIdentities
+
+@[expose] public section
 
 /-!
 # SparseSimulation — Lemma 8, Theorem 9, Theorem 10 of InteractPic18
@@ -76,7 +80,7 @@ theorem lemma8_hamt_block_offdiagonal (p : EffectiveSparseParameters)
       (fun i : Fin p.nd => y ⟨p.ns + i.val, by omega⟩)) :
     effectiveSparseBlock p S x y = 0 := by
   simp only [effectiveSparseBlock]
-  rw [if_neg hne]
+  rw [ite_eq_right hne]
 
 /-- **Lemma 8, Eq. (49)** (fixed arXiv:1805.00675v2): on a diagonal time
 block the synthesized HAM-T entry is the Hamiltonian entry scaled by
@@ -91,7 +95,7 @@ theorem lemma8_hamt_block_entry (p : EffectiveSparseParameters)
         (fun i : Fin p.ns => y ⟨i.val, by omega⟩) /
         ((p.d : ℂ) * (p.maxEntry : ℂ)) := by
   simp only [effectiveSparseBlock]
-  rw [if_pos hxy]
+  rw [ite_eq_left hxy]
 
 /-- **Lemma 8, sparsity** (fixed arXiv:1805.00675v2, Eq. (49) and the promise
 of Eqs. (47)--(48)): under the source's sparsity promise, every nonzero matrix

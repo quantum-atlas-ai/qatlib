@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Tactic
+module
+
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -92,8 +96,8 @@ theorem bellState_apply (A : Matrix (Fin d) (Fin d) ℂ) (i k : Fin d) :
     · have h1 : q.1 ≠ q.2 := by
         intro he
         exact hq (Prod.ext_iff.mpr ⟨he.trans h2.symm, h2.symm⟩)
-      rw [if_pos h2, if_neg h1, mul_zero]
-    · rw [if_neg h2]
+      rw [ite_eq_left h2, ite_eq_right h1, mul_zero]
+    · rw [ite_eq_right h2]
       simp
   · simp
 

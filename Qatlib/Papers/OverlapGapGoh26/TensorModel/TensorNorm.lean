@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixAlgebra.TensorDiff
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Analysis.InnerProductSpace.LinearMap
-import Mathlib.Analysis.CStarAlgebra.Module.Defs
-import Mathlib.Analysis.Normed.Module.Multilinear.Basic
+module
+
+public import Qatlib.Foundations.MatrixAlgebra.TensorDiff
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Analysis.InnerProductSpace.LinearMap
+public import Mathlib.Analysis.CStarAlgebra.Module.Defs
+public import Mathlib.Analysis.Normed.Module.Multilinear.Basic
+
+@[expose] public section
 
 /-!
 # Multilinear tensor energy bounds
@@ -60,7 +64,7 @@ def tensorForm {q N : ℕ} (A : Tensor q N) :
 coordinate products. -/
 theorem tensorForm_apply {q N : ℕ} (A : Tensor q N) (z : Fin q→EuclideanSpace ℝ (Fin N)) :
     tensorForm A z=∑ k,A k*∏ a,z a (k a) := by
-  simp [tensorForm,monomial,ContinuousMultilinearMap.sum_apply,ContinuousMultilinearMap.smul_apply,
+  simp [tensorForm,monomial,_root_.sum_apply,_root_.smul_apply,
     ContinuousMultilinearMap.compContinuousLinearMap_apply,ContinuousMultilinearMap.mkPiAlgebra_apply,coordinate_apply]
 
 /-- The tensor energy of a Euclidean vector equals the diagonal evaluation of `tensorForm`. -/

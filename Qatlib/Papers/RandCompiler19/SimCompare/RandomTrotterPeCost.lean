@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Sqrt
-import Mathlib.Tactic
-import Qatlib.Papers.RandCompiler19.PhaseCosts.QdriftPhaseCost
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Sqrt
+public import Mathlib.Tactic
+public import Qatlib.Papers.RandCompiler19.PhaseCosts.QdriftPhaseCost
+
+@[expose] public section
 
 /-!
 # Second-order random Trotter phase-estimation cost (source Appendix E.3)

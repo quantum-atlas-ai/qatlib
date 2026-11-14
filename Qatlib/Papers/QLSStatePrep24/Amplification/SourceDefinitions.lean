@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
-import Qatlib.Concepts.QlsReadoutSpec.Amplification.PaidModels
+module
+
+public import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
+public import Qatlib.Concepts.QlsReadoutSpec.Amplification.PaidModels
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

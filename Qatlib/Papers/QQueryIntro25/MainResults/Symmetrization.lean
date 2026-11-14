@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Papers.QQueryIntro25.MainResults.SourceModel
-import Qatlib.Foundations.BornMetrics.EventProbability
-import Qatlib.Concepts.QueryWordCore.QueryMachinery.AcceptancePolynomial
+module
+
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Papers.QQueryIntro25.MainResults.SourceModel
+public import Qatlib.Foundations.BornMetrics.EventProbability
+public import Qatlib.Concepts.QueryWordCore.QueryMachinery.AcceptancePolynomial
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

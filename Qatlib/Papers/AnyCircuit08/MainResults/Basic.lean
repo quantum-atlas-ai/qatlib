@@ -4,176 +4,180 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Algebra.Defs
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Defs
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Algebra.CharP.Defs
-import Mathlib.Algebra.CharZero.Defs
-import Mathlib.Algebra.Field.Defs
-import Mathlib.Algebra.Group.Action.Defs
-import Mathlib.Algebra.Group.Basic
-import Mathlib.Algebra.Group.Defs
-import Mathlib.Algebra.Group.DivInvMonoid
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.Group.Nat.Defs
-import Mathlib.Algebra.Group.Semigroup
-import Mathlib.Algebra.GroupWithZero.Action.Defs
-import Mathlib.Algebra.GroupWithZero.Basic
-import Mathlib.Algebra.GroupWithZero.Defs
-import Mathlib.Algebra.GroupWithZero.Nat
-import Mathlib.Algebra.GroupWithZero.NeZero
-import Mathlib.Algebra.GroupWithZero.Units.Basic
-import Mathlib.Algebra.Module.Defs
-import Mathlib.Algebra.Module.NatInt
-import Mathlib.Algebra.NeZero
-import Mathlib.Algebra.Notation.Defs
-import Mathlib.Algebra.Notation.Pi.Defs
-import Mathlib.Algebra.Order.Archimedean.Real.Basic
-import Mathlib.Algebra.Order.BigOperators.Group.Finset
-import Mathlib.Algebra.Order.BigOperators.Ring.Finset
-import Mathlib.Algebra.Order.Field.Basic
-import Mathlib.Algebra.Order.Floor.Defs
-import Mathlib.Algebra.Order.Group.Defs
-import Mathlib.Algebra.Order.Group.Unbundled.Abs
-import Mathlib.Algebra.Order.Group.Unbundled.Basic
-import Mathlib.Algebra.Order.GroupWithZero.Basic
-import Mathlib.Algebra.Order.GroupWithZero.Canonical
-import Mathlib.Algebra.Order.GroupWithZero.Defs
-import Mathlib.Algebra.Order.Monoid.Defs
-import Mathlib.Algebra.Order.Monoid.Unbundled.Basic
-import Mathlib.Algebra.Order.Monoid.Unbundled.Defs
-import Mathlib.Algebra.Order.Monoid.Unbundled.ExistsOfLE
-import Mathlib.Algebra.Order.Ring.Abs
-import Mathlib.Algebra.Order.Ring.Basic
-import Mathlib.Algebra.Order.Ring.Defs
-import Mathlib.Algebra.Order.Ring.Nat
-import Mathlib.Algebra.Order.Ring.Star
-import Mathlib.Algebra.Order.Ring.Unbundled.Basic
-import Mathlib.Algebra.Order.Star.Basic
-import Mathlib.Algebra.Order.Star.Real
-import Mathlib.Algebra.Order.ZeroLEOne
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Algebra.Ring.IsFormallyReal
-import Mathlib.Algebra.Ring.Nat
-import Mathlib.Algebra.Ring.Parity
-import Mathlib.Algebra.Ring.Periodic
-import Mathlib.Algebra.Star.Basic
-import Mathlib.Analysis.CStarAlgebra.Classes
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Analysis.Complex.Exponential
-import Mathlib.Analysis.Complex.Norm
-import Mathlib.Analysis.Complex.Trigonometric
-import Mathlib.Analysis.InnerProductSpace.Basic
-import Mathlib.Analysis.InnerProductSpace.Defs
-import Mathlib.Analysis.LocallyConvex.AbsConvexOpen
-import Mathlib.Analysis.LocallyConvex.WithSeminorms
-import Mathlib.Analysis.Normed.Field.Basic
-import Mathlib.Analysis.Normed.Field.Lemmas
-import Mathlib.Analysis.Normed.Group.Basic
-import Mathlib.Analysis.Normed.Group.Continuity
-import Mathlib.Analysis.Normed.Group.Defs
-import Mathlib.Analysis.Normed.Group.Real
-import Mathlib.Analysis.Normed.Module.Basic
-import Mathlib.Analysis.Normed.Ring.Basic
-import Mathlib.Analysis.RCLike.Basic
-import Mathlib.Analysis.Real.Sqrt
-import Mathlib.Analysis.SpecialFunctions.Complex.Arg
-import Mathlib.Analysis.SpecialFunctions.Exp
-import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
-import Mathlib.Analysis.SpecialFunctions.Log.Base
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Basic.Complex.Basic
-import Mathlib.Basic.Complex.BigOperators
-import Mathlib.Basic.ENNReal.Basic
-import Mathlib.Basic.ENNReal.Real
-import Mathlib.Basic.FunLike.Basic
-import Mathlib.Basic.Real.Basic
-import Mathlib.Basic.Real.Star
-import Mathlib.Basic.SetLike.Basic
-import Mathlib.Basic.Unique
-import Mathlib.Data.ENNReal.Basic
-import Mathlib.Data.Finset.Basic
-import Mathlib.Data.Finset.BooleanAlgebra
-import Mathlib.Data.Finset.Card
-import Mathlib.Data.Finset.Defs
-import Mathlib.Data.Finset.Erase
-import Mathlib.Data.Finset.Filter
-import Mathlib.Data.Finset.Insert
-import Mathlib.Data.Finset.Union
-import Mathlib.Data.Fintype.Basic
-import Mathlib.Data.Fintype.BigOperators
-import Mathlib.Data.Fintype.Card
-import Mathlib.Data.Fintype.Defs
-import Mathlib.Data.Fintype.Pi
-import Mathlib.Data.Fintype.Prod
-import Mathlib.Data.Fintype.Sigma
-import Mathlib.Data.Int.Cast.Basic
-import Mathlib.Data.Int.Cast.Defs
-import Mathlib.Data.Nat.Basic
-import Mathlib.Data.Nat.Cast.Basic
-import Mathlib.Data.Nat.Cast.Defs
-import Mathlib.Data.Nat.Cast.Order.Basic
-import Mathlib.Data.Nat.Init
-import Mathlib.Data.Set.Defs
-import Mathlib.Data.Set.Operations
-import Mathlib.Data.Sigma.Basic
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Data.ZMod.Defs
-import Mathlib.Logic.Function.Defs
-import Mathlib.MeasureTheory.Constructions.BorelSpace.Basic
-import Mathlib.MeasureTheory.Integral.Average
-import Mathlib.MeasureTheory.Integral.Bochner.Basic
-import Mathlib.MeasureTheory.Integral.IntegrableOn
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.Periodic
-import Mathlib.MeasureTheory.Measure.Haar.OfBasis
-import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
-import Mathlib.MeasureTheory.Measure.MeasureSpaceDef
-import Mathlib.MeasureTheory.Measure.Restrict
-import Mathlib.Order.Basic
-import Mathlib.Order.Defs.Lattice
-import Mathlib.Order.Defs.LinearOrder
-import Mathlib.Order.Defs.PartialOrder
-import Mathlib.Order.Interval.Set.Defs
-import Mathlib.Order.Interval.Set.UnorderedInterval
-import Mathlib.Order.Lattice
-import Mathlib.Order.Notation
-import Mathlib.Order.RelClasses
-import Mathlib.Tactic
-import Mathlib.Tactic.CancelDenoms.Core
-import Mathlib.Tactic.FieldSimp.Lemmas
-import Mathlib.Tactic.Linarith.Lemmas
-import Mathlib.Tactic.Linarith.Preprocessing
-import Mathlib.Tactic.NormNum.Basic
-import Mathlib.Tactic.NormNum.Eq
-import Mathlib.Tactic.NormNum.Ineq
-import Mathlib.Tactic.NormNum.Inv
-import Mathlib.Tactic.NormNum.Pow
-import Mathlib.Tactic.NormNum.Result
-import Mathlib.Tactic.Positivity.Core
-import Mathlib.Tactic.Ring.Basic
-import Mathlib.Tactic.Ring.Common
-import Mathlib.Tactic.Ring.RingNF
-import Mathlib.Topology.Algebra.Field
-import Mathlib.Topology.Algebra.Group.Defs
-import Mathlib.Topology.Algebra.Module.ModuleTopology
-import Mathlib.Topology.Algebra.Monoid
-import Mathlib.Topology.Algebra.Monoid.Defs
-import Mathlib.Topology.Algebra.MulAction
-import Mathlib.Topology.Algebra.Order.Group
-import Mathlib.Topology.Algebra.Ring.Basic
-import Mathlib.Topology.Algebra.Ring.Real
-import Mathlib.Topology.Continuous
-import Mathlib.Topology.Defs.Basic
-import Mathlib.Topology.EMetricSpace.Defs
-import Mathlib.Topology.MetricSpace.Basic
-import Mathlib.Topology.MetricSpace.Pseudo.Defs
-import Mathlib.Topology.MetricSpace.Pseudo.Lemmas
-import Mathlib.Topology.Metrizable.Uniformity
-import Mathlib.Topology.UniformSpace.Defs
+module
+
+public import Mathlib.Algebra.Algebra.Defs
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Defs
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Algebra.CharP.Defs
+public import Mathlib.Algebra.CharZero.Defs
+public import Mathlib.Algebra.Field.Defs
+public import Mathlib.Algebra.Group.Action.Defs
+public import Mathlib.Algebra.Group.Basic
+public import Mathlib.Algebra.Group.Defs
+public import Mathlib.Algebra.Group.DivInvMonoid
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.Group.Nat.Defs
+public import Mathlib.Algebra.Group.Semigroup
+public import Mathlib.Algebra.GroupWithZero.Action.Defs
+public import Mathlib.Algebra.GroupWithZero.Basic
+public import Mathlib.Algebra.GroupWithZero.Defs
+public import Mathlib.Algebra.GroupWithZero.Nat
+public import Mathlib.Algebra.GroupWithZero.NeZero
+public import Mathlib.Algebra.GroupWithZero.Units.Basic
+public import Mathlib.Algebra.Module.Defs
+public import Mathlib.Algebra.Module.NatInt
+public import Mathlib.Algebra.NeZero
+public import Mathlib.Algebra.Notation.Defs
+public import Mathlib.Algebra.Notation.Pi.Defs
+public import Mathlib.Algebra.Order.Archimedean.Real.Basic
+public import Mathlib.Algebra.Order.BigOperators.Group.Finset
+public import Mathlib.Algebra.Order.BigOperators.Ring.Finset
+public import Mathlib.Algebra.Order.Field.Basic
+public import Mathlib.Algebra.Order.Floor.Defs
+public import Mathlib.Algebra.Order.Group.Defs
+public import Mathlib.Algebra.Order.Group.Unbundled.Abs
+public import Mathlib.Algebra.Order.Group.Unbundled.Basic
+public import Mathlib.Algebra.Order.GroupWithZero.Basic
+public import Mathlib.Algebra.Order.GroupWithZero.Canonical
+public import Mathlib.Algebra.Order.GroupWithZero.Defs
+public import Mathlib.Algebra.Order.Monoid.Defs
+public import Mathlib.Algebra.Order.Monoid.Unbundled.Basic
+public import Mathlib.Algebra.Order.Monoid.Unbundled.Defs
+public import Mathlib.Algebra.Order.Monoid.Unbundled.ExistsOfLE
+public import Mathlib.Algebra.Order.Ring.Abs
+public import Mathlib.Algebra.Order.Ring.Basic
+public import Mathlib.Algebra.Order.Ring.Defs
+public import Mathlib.Algebra.Order.Ring.Nat
+public import Mathlib.Algebra.Order.Ring.Star
+public import Mathlib.Algebra.Order.Ring.Unbundled.Basic
+public import Mathlib.Algebra.Order.Star.Basic
+public import Mathlib.Algebra.Order.Star.Real
+public import Mathlib.Algebra.Order.ZeroLEOne
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Algebra.Ring.IsFormallyReal
+public import Mathlib.Algebra.Ring.Nat
+public import Mathlib.Algebra.Ring.Parity
+public import Mathlib.Algebra.Ring.Periodic
+public import Mathlib.Algebra.Star.Basic
+public import Mathlib.Analysis.CStarAlgebra.Classes
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Analysis.Complex.Exponential
+public import Mathlib.Analysis.Complex.Norm
+public import Mathlib.Analysis.Complex.Trigonometric
+public import Mathlib.Analysis.InnerProductSpace.Basic
+public import Mathlib.Analysis.InnerProductSpace.Defs
+public import Mathlib.Analysis.LocallyConvex.AbsConvexOpen
+public import Mathlib.Analysis.LocallyConvex.WithSeminorms
+public import Mathlib.Analysis.Normed.Field.Basic
+public import Mathlib.Analysis.Normed.Field.Lemmas
+public import Mathlib.Analysis.Normed.Group.Basic
+public import Mathlib.Analysis.Normed.Group.Continuity
+public import Mathlib.Analysis.Normed.Group.Defs
+public import Mathlib.Analysis.Normed.Group.Real
+public import Mathlib.Analysis.Normed.Module.Basic
+public import Mathlib.Analysis.Normed.Ring.Basic
+public import Mathlib.Analysis.RCLike.Basic
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Analysis.SpecialFunctions.Complex.Arg
+public import Mathlib.Analysis.SpecialFunctions.Exp
+public import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
+public import Mathlib.Analysis.SpecialFunctions.Log.Base
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Basic.Complex.BigOperators
+public import Mathlib.Basic.ENNReal.Basic
+public import Mathlib.Basic.ENNReal.Real
+public import Mathlib.Basic.FunLike.Basic
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Basic.Real.Star
+public import Mathlib.Basic.SetLike.Basic
+public import Mathlib.Basic.Unique
+public import Mathlib.Basic.ENNReal.Basic
+public import Mathlib.Data.Finset.Basic
+public import Mathlib.Data.Finset.BooleanAlgebra
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Data.Finset.Defs
+public import Mathlib.Data.Finset.Erase
+public import Mathlib.Data.Finset.Filter
+public import Mathlib.Data.Finset.Insert
+public import Mathlib.Data.Finset.Union
+public import Mathlib.Data.Fintype.Basic
+public import Mathlib.Data.Fintype.BigOperators
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Data.Fintype.Defs
+public import Mathlib.Data.Fintype.Pi
+public import Mathlib.Data.Fintype.Prod
+public import Mathlib.Data.Fintype.Sigma
+public import Mathlib.Data.Int.Cast.Basic
+public import Mathlib.Data.Int.Cast.Defs
+public import Mathlib.Data.Nat.Basic
+public import Mathlib.Data.Nat.Cast.Basic
+public import Mathlib.Data.Nat.Cast.Defs
+public import Mathlib.Data.Nat.Cast.Order.Basic
+public import Mathlib.Data.Nat.Init
+public import Mathlib.Data.Set.Defs
+public import Mathlib.Data.Set.Operations
+public import Mathlib.Data.Sigma.Basic
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Data.ZMod.Defs
+public import Mathlib.Logic.Function.Defs
+public import Mathlib.MeasureTheory.Constructions.BorelSpace.Basic
+public import Mathlib.MeasureTheory.Integral.Average
+public import Mathlib.MeasureTheory.Integral.Bochner.Basic
+public import Mathlib.MeasureTheory.Integral.IntegrableOn
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.Periodic
+public import Mathlib.MeasureTheory.Measure.Haar.OfBasis
+public import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
+public import Mathlib.MeasureTheory.Measure.MeasureSpaceDef
+public import Mathlib.MeasureTheory.Measure.Restrict
+public import Mathlib.Order.Basic
+public import Mathlib.Order.Defs.Lattice
+public import Mathlib.Order.Defs.LinearOrder
+public import Mathlib.Order.Defs.PartialOrder
+public import Mathlib.Order.Interval.Set.Defs
+public import Mathlib.Order.Interval.Set.UnorderedInterval
+public import Mathlib.Order.Lattice
+public import Mathlib.Order.Notation
+public import Mathlib.Order.RelClasses
+public import Mathlib.Tactic
+public import Mathlib.Tactic.CancelDenoms.Core
+public import Mathlib.Tactic.FieldSimp.Lemmas
+public import Mathlib.Tactic.Linarith.Lemmas
+public import Mathlib.Tactic.Linarith.Preprocessing
+public import Mathlib.Tactic.NormNum.Basic
+public import Mathlib.Tactic.NormNum.Eq
+public import Mathlib.Tactic.NormNum.Ineq
+public import Mathlib.Tactic.NormNum.Inv
+public import Mathlib.Tactic.NormNum.Pow
+public import Mathlib.Tactic.NormNum.Result
+public import Mathlib.Tactic.Positivity.Core
+public import Mathlib.Tactic.Ring.Basic
+public import Mathlib.Tactic.Ring.Common
+public import Mathlib.Tactic.Ring.RingNF
+public import Mathlib.Topology.Algebra.Field
+public import Mathlib.Topology.Algebra.Group.Defs
+public import Mathlib.Topology.Algebra.Module.ModuleTopology
+public import Mathlib.Topology.Algebra.Monoid
+public import Mathlib.Topology.Algebra.Monoid.Defs
+public import Mathlib.Topology.Algebra.MulAction
+public import Mathlib.Topology.Algebra.Order.Group
+public import Mathlib.Topology.Algebra.Ring.Basic
+public import Mathlib.Topology.Algebra.Ring.Real
+public import Mathlib.Topology.Continuous
+public import Mathlib.Topology.Defs.Basic
+public import Mathlib.Topology.EMetricSpace.Defs
+public import Mathlib.Topology.MetricSpace.Basic
+public import Mathlib.Topology.MetricSpace.Pseudo.Defs
+public import Mathlib.Topology.MetricSpace.Pseudo.Lemmas
+public import Mathlib.Topology.Metrizable.Uniformity
+public import Mathlib.Topology.UniformSpace.Defs
+
+@[expose] public section
 
 /-!
 # Oracle problems and dispersing circuit estimates
@@ -329,7 +333,6 @@ lemma integral_norm_re_exp (z : ℂ) :
         = Complex.exp (((z.arg : ℝ) - φ) * Complex.I) := by
       rw [← Complex.exp_add]
       congr 1
-      push_cast
       ring
     have hval : Complex.exp (-(φ:ℂ) * Complex.I) * z
         = (‖z‖ : ℂ) * Complex.exp (((z.arg : ℝ) - φ) * Complex.I) := by
@@ -412,12 +415,11 @@ theorem lemma10_signs {X : Type} [Fintype X] (x : X → ℂ) :
         apply Finset.sum_congr rfl
         intro k _
         by_cases h : 0 ≤ (Complex.exp (-(φ:ℂ) * Complex.I) * x k).re
-        · rw [if_pos h]
+        · rw [ite_eq_left h]
           push_cast
           rw [one_mul, Real.norm_eq_abs, abs_of_nonneg h]
-        · rw [if_neg h]
+        · rw [ite_eq_right h]
           have hneg : (Complex.exp (-(φ:ℂ) * Complex.I) * x k).re < 0 := lt_of_not_ge h
-          push_cast
           rw [neg_one_mul, Complex.neg_re, Real.norm_eq_abs, abs_of_neg hneg]
       calc F φ = |(∑ k, ((if 0 ≤ (z k).re then (1:ℤ) else -1) : ℂ) * z k).re| := by
               rw [hre, abs_of_nonneg]
@@ -644,7 +646,6 @@ theorem repetition_failure_bound {δ : ℝ} (hδ0 : 0 < δ) (hδ1 : δ ≤ 1) (m
   have h3 : (Real.exp (-(δ / 2))) ^ m = Real.exp (-(δ / 2) * m) := by
     rw [← Real.exp_nat_mul]
     congr 1
-    push_cast
     ring
   have hmul : 2 * Real.log (8 / δ) ≤ (δ / 2) * (m:ℝ) := by
     have h4 : (δ / 2) * ((4 / δ) * Real.log (8 / δ)) = 2 * Real.log (8 / δ) := by
@@ -791,7 +792,7 @@ lemma logb_two_rpow (α : ℝ) (n : ℕ) :
 /-- If both correction terms in the assumed maximum bound for `p` are at most `n ^ (-c * logb 2
 n)`, then `p` is at most one half plus that expression [HallgrenHarrow2008]. -/
 theorem theorem6_classical_superpolynomial_bound
-    (n Q ℓ : ℕ) {M : ℝ} (hM : 1 < M) {c : ℝ} (hc : 0 < c)
+    (n Q ℓ : ℕ) {M : ℝ} (_hM : 1 < M) {c : ℝ} (_hc : 0 < c)
     (p : ℝ)
     (hbound : p ≤ 1 / 2 + max ((Q:ℝ) / (M ^ (1/3:ℝ) - (Q:ℝ)))
         ((Q:ℝ) * (Real.logb 2 M / 3) ^ (-(ℓ:ℤ))))
@@ -933,7 +934,7 @@ theorem cyclicQFT_row_norm (N : ℕ) [NeZero N] (a : ZMod N) :
 
 /-- For `N > 1` and `0 ≤ α ≤ 1`, the cyclic Fourier matrix is dispersing with parameters `α` and
 one [HallgrenHarrow2008]. -/
-theorem cyclicQFT_dispersing (N : ℕ) [NeZero N] {α : ℝ} (hα0 : 0 ≤ α) (hα1 : α ≤ 1)
+theorem cyclicQFT_dispersing (N : ℕ) [NeZero N] {α : ℝ} (_hα0 : 0 ≤ α) (hα1 : α ≤ 1)
     (hN : 1 < N) :
     IsDispersing (cyclicQFT N) α 1 := by
   refine ⟨Finset.univ, ?_, ?_⟩
@@ -1030,7 +1031,7 @@ theorem l1_ge_fourth_moment {X : Type} [Fintype X] (y : X → ℝ) (hy : ∀ x, 
 /-- If the fourth moment is at most `T` and `c` is positive, the number of coordinates with
 fourth power at least `c`, multiplied by `c`, is at most `T` [HallgrenHarrow2008]. -/
 theorem card_bad_of_fourth_moment {X : Type} [Fintype X] (y : X → ℝ) (hy : ∀ x, 0 ≤ y x)
-    {T c : ℝ} (hc : 0 < c) (hT : ∑ x, y x ^ 4 ≤ T) :
+    {T c : ℝ} (_hc : 0 < c) (hT : ∑ x, y x ^ 4 ≤ T) :
     ((Finset.univ.filter (fun x => c ≤ y x ^ 4)).card : ℝ) * c ≤ T := by
   set S : Finset X := Finset.univ.filter (fun x => c ≤ y x ^ 4) with hS
   have h1 : ∑ x ∈ S, c ≤ ∑ x ∈ S, y x ^ 4 := by
@@ -1168,13 +1169,13 @@ theorem stationaryWeight_sum (n : ℕ) :
 
 /-- For `n ≥ 2`, the proposed Pauli weights are positive on nonzero strings, sum to one, and
 assign weight `1 / 2 ^ n` to zero [HallgrenHarrow2008]. -/
-theorem lemma13_markov_chain_properties (n : ℕ) (hn : 2 ≤ n) :
+theorem lemma13_markov_chain_properties (n : ℕ) (_hn : 2 ≤ n) :
     (∀ p : PauliString n, p ≠ 0 → 0 < stationaryWeight n p) ∧
     (∑ p : PauliString n, stationaryWeight n p = 1) ∧
     (stationaryWeight n 0 = (1:ℝ) / (2:ℝ)^n) := by
   refine ⟨?_, stationaryWeight_sum n, ?_⟩
   · intro p hp
-    rw [stationaryWeight, if_neg hp]
+    rw [stationaryWeight, ite_eq_right hp]
     positivity
   · simp [stationaryWeight]
 
@@ -1182,7 +1183,7 @@ theorem lemma13_markov_chain_properties (n : ℕ) (hn : 2 ≤ n) :
 bound, and the assumed bounds on the two classical correction terms imply the stated upper
 bound on `p` [HallgrenHarrow2008]. -/
 theorem theorem2_superpolynomial_speedup
-    (c : ℕ) (hc : 2 ≤ c) {δ : ℝ} (hδ0 : 0 < δ) (hδ1 : δ ≤ 1) :
+    (c : ℕ) (hc : 2 ≤ c) {δ : ℝ} (_hδ0 : 0 < δ) (_hδ1 : δ ≤ 1) :
     (∀ n k : ℕ, c ≤ n → 2 ^ k ≤ n → findQueryCount c k ≤ n ^ (c + 1)) ∧
     (∀ (n Q ℓ : ℕ) (M cc : ℝ), 1 < M → 0 < cc →
       ∀ p : ℝ, p ≤ 1 / 2 + max ((Q:ℝ) / (M ^ (1/3:ℝ) - (Q:ℝ)))

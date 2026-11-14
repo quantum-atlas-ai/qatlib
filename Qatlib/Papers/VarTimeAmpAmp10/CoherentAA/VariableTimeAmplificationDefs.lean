@@ -4,24 +4,28 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.RecordDrivenVariableTimeAlgorithmVari
-import Qatlib.Papers.VarTimeAmpAmp10.Estimate.StructuralEstimateCompilationVari
-import Qatlib.Papers.VarTimeAmpAmp10.Estimate.EstimateSandwichVari
-import Qatlib.Papers.VarTimeAmpAmp10.StopModel.AverageStopTailBoundVari
-import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.VariableTimeAlgorithmVari
-import Qatlib.Papers.VarTimeAmpAmp10.StopModel.VariableTimeModelWellFormedVari
-import Qatlib.Papers.VarTimeAmpAmp10.StopModel.CascadePrefixTransportVari
-import Qatlib.Concepts.QlsReadoutSpec.WalkQSVT.ApplicationModels
-import Qatlib.Papers.VarTimeAmpAmp10.CoherentAA.LowerBoundModels
-import Qatlib.Concepts.BitWordCompiler.WordComposition.NativeModels
-import Qatlib.Concepts.QlsReadoutSpec.WalkQSVT.SpectralModels
-import Qatlib.Concepts.QlsReadoutSpec.PrepLowerBound.GroverCorrectedOracle
-import Qatlib.Concepts.QlsReadoutSpec.PrepLowerBound.InitialStatePrepLowerBoundStat
-import Qatlib.Concepts.QlsReadoutSpec.BlockPrecond.OptimalCoefficientBlockEncodingStat
-import Qatlib.Concepts.QlsReadoutSpec.BlockPrecond.BlockPrecondCorrectedSubgoalStat
-import Qatlib.Concepts.LinearLearning.ConcisePipeline.RandomizedCost
-import Qatlib.Concepts.QsvtCore.LinearSystems.NearOptimalReciprocal
-import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
+module
+
+public import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.RecordDrivenVariableTimeAlgorithmVari
+public import Qatlib.Papers.VarTimeAmpAmp10.Estimate.StructuralEstimateCompilationVari
+public import Qatlib.Papers.VarTimeAmpAmp10.Estimate.EstimateSandwichVari
+public import Qatlib.Papers.VarTimeAmpAmp10.StopModel.AverageStopTailBoundVari
+public import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.VariableTimeAlgorithmVari
+public import Qatlib.Papers.VarTimeAmpAmp10.StopModel.VariableTimeModelWellFormedVari
+public import Qatlib.Papers.VarTimeAmpAmp10.StopModel.CascadePrefixTransportVari
+public import Qatlib.Concepts.QlsReadoutSpec.WalkQSVT.ApplicationModels
+public import Qatlib.Papers.VarTimeAmpAmp10.CoherentAA.LowerBoundModels
+public import Qatlib.Concepts.BitWordCompiler.WordComposition.NativeModels
+public import Qatlib.Concepts.QlsReadoutSpec.WalkQSVT.SpectralModels
+public import Qatlib.Concepts.QlsReadoutSpec.PrepLowerBound.GroverCorrectedOracle
+public import Qatlib.Concepts.QlsReadoutSpec.PrepLowerBound.InitialStatePrepLowerBoundStat
+public import Qatlib.Concepts.QlsReadoutSpec.BlockPrecond.OptimalCoefficientBlockEncodingStat
+public import Qatlib.Concepts.QlsReadoutSpec.BlockPrecond.BlockPrecondCorrectedSubgoalStat
+public import Qatlib.Concepts.LinearLearning.ConcisePipeline.RandomizedCost
+public import Qatlib.Concepts.QsvtCore.LinearSystems.NearOptimalReciprocal
+public import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
+
+@[expose] public section
 
 /-!
 # Definitions for variable-time amplification and estimation

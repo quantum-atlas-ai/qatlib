@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem5Aux5
-import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem5Forward
-import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem7Aux2
+module
+
+public import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem5Aux5
+public import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem5Forward
+public import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem7Aux2
+
+@[expose] public section
 
 /-!
 # Column bounds for the scalar Taylor inverse
@@ -75,9 +79,9 @@ theorem scalarSolve_unit_positive_hist (m k p a b d j : ℕ)
       rw [Nat.add_assoc,taylor_label_eq_iff k a b d (t+1) hbk htk]
       omega
     by_cases hx : d*(k+1)+t+1=a*(k+1)+b
-    · simp only [Pi.single_apply,if_pos hx,if_pos (he.mp hx.symm)]
+    · simp only [Pi.single_apply,ite_eq_left hx,ite_eq_left (he.mp hx.symm)]
     · have hn : ¬(d=a ∧ t=b-1) := fun h => hx (he.mpr h).symm
-      simp only [Pi.single_apply,if_neg hx,if_neg hn]
+      simp only [Pi.single_apply,ite_eq_right hx,ite_eq_right hn]
   rw [Finset.sum_congr rfl (fun t ht => congrArg
     (fun v => (z^(j-t-1)*(Nat.factorial (t+1) : ℂ)/(Nat.factorial j : ℂ))*v) (hterm t ht))]
   by_cases h : d=a ∧ b ≤ j
@@ -88,8 +92,8 @@ theorem scalarSolve_unit_positive_hist (m k p a b d j : ℕ)
       have hjt := Finset.mem_range.mp ht
       apply h
       exact ⟨he.1,by omega⟩
-    rw [if_neg h]
-    exact Finset.sum_eq_zero (fun t ht => by (try dsimp only); rw [if_neg (hn t ht),mul_zero])
+    rw [ite_eq_right h]
+    exact Finset.sum_eq_zero (fun t ht => by  rw [ite_eq_right (hn t ht),mul_zero])
 
 /-- A source in a history block produces a constant response throughout the terminal padding
 region. -/
@@ -199,7 +203,7 @@ theorem scalarSolve_unit_positive_hist_mass (m k p a b d : ℕ)
         ‖scalarSolve m k p z (Pi.single (a*(k+1)+b) 1) (a*(k+1)+j)‖^2 =
           if b ≤ j then ‖z^(j-b)*(Nat.factorial b : ℂ)/(Nat.factorial j : ℂ)‖^2 else 0 := by
       rw [scalarSolve_unit_positive_hist m k p a b a j hb hbk hd (by have := Finset.mem_range.mp hj; omega)]
-      simp only [show ¬ a+1 ≤ a by omega,if_false,mul_zero,zero_add,true_and,
+      simp only [show ¬ a+1 ≤ a by omega,ite_false,mul_zero,zero_add,true_and,
         apply_ite (fun x : ℂ => ‖x‖^2),norm_zero,zero_pow (by norm_num : 2≠0)]
     rw [Finset.sum_congr rfl he]
     exact (scalar_unit_direct_mass k b z hz).trans (by norm_num)
@@ -208,7 +212,7 @@ theorem scalarSolve_unit_positive_hist_mass (m k p a b d : ℕ)
         ‖scalarSolve m k p z (Pi.single (a*(k+1)+b) 1) (d*(k+1)+j)‖^2 ≤
           ((31/30 : ℝ)^2*(87/32))*(Nat.factorial j : ℝ)⁻¹^2 := by
       rw [scalarSolve_unit_positive_hist m k p a b d j hb hbk hd (by have := Finset.mem_range.mp hj; omega)]
-      simp only [hda,false_and,if_false,add_zero]
+      simp only [hda,false_and,ite_false,add_zero]
       rw [← scalarBlockVal_unit_positive k a b d hb hbk z,norm_mul,mul_pow,norm_div,norm_pow,Complex.norm_natCast]
       have hc : ‖z‖^j/(Nat.factorial j : ℝ) ≤ (Nat.factorial j : ℝ)⁻¹ := by
         have hpow := pow_le_pow_left₀ (norm_nonneg z) hz j
@@ -315,7 +319,7 @@ theorem scalarSolve_unit_padding_pad_norm (m k p b q : ℕ) (hq : q ≤ p) (z : 
     · subst b; simp only [Nat.add_zero]
       rw [scalarBlockVal_unit_time]
       simp
-    · rw [scalarBlockVal_unit_above k (m*(k+1)+b) m z (by omega),if_neg hb0]
+    · rw [scalarBlockVal_unit_above k (m*(k+1)+b) m z (by omega),ite_eq_right hb0]
   by_cases hq0 : q=0
   · subst q
     simp only [Nat.add_zero]
@@ -333,7 +337,7 @@ theorem scalarSolve_unit_padding_pad_norm (m k p b q : ℕ) (hq : q ≤ p) (z : 
           if t=b-1 then 1 else 0 := by
         have he : m*(k+1)+t+1=m*(k+1)+b ↔ t=b-1 := by omega
         simp only [Pi.single_apply,he]
-      simp only [if_neg hb0,zero_add,hterm]
+      simp only [ite_eq_right hb0,zero_add,hterm]
       rw [Finset.sum_ite_eq']
       split_ifs <;> norm_num
 

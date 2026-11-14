@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CoherentSim.CoherentOAA.Pseudoinverse
-import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
-import Qatlib.Concepts.BlockEncoding.Basic
+module
+
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.Pseudoinverse
+public import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+public import Qatlib.Concepts.BlockEncoding.Basic
+
+@[expose] public section
 
 /-!
 # Polar correction of near isometries
@@ -100,10 +104,10 @@ theorem nearColumnPolar_full_support {H I : Type} [Fintype H] [DecidableEq H]
   have hz (i : Fin (Fintype.card I)) : matrixSingularValues A i ≠ 0 := ne_of_gt (hpos i)
   have hs : singularSupport A=1 := by
     unfold singularSupport
-    simp only [if_neg (hz _),Matrix.diagonal_one]
+    simp only [ite_eq_right (hz _),Matrix.diagonal_one]
   have hp : nearColumnPolar A=leftSingularColumns A*(basisColumns (rightSingularBasis A))ᴴ := by
     unfold nearColumnPolar oddSingularTransform
-    simp only [if_pos (hpos _),Matrix.diagonal_one,Matrix.mul_one]
+    simp only [ite_eq_left (hpos _),Matrix.diagonal_one,Matrix.mul_one]
   refine ⟨hs,hp,?_⟩
   rw [matrixPseudoinverse_mul,hs,Matrix.mul_one,basisColumns_mul_adjoint]
 
@@ -220,7 +224,7 @@ theorem near_isometry_polar_range_pseudoinverse_and_error : ∀ (H I : Type)
     have h := oddSingularTransform_error_le A (fun x => (x : ℂ))
       (fun x => if 0<x then 1 else 0) hα (fun i => ?_)
     · simpa only [oddSingularTransform_id,nearColumnPolar] using! h
-    · simpa only [if_pos (hpos _),← Complex.ofReal_one,← Complex.ofReal_sub,
+    · simpa only [ite_eq_left (hpos _),← Complex.ofReal_one,← Complex.ofReal_sub,
         Complex.norm_real,Real.norm_eq_abs] using! (hscalar i).2
   have hδ : 0 < 1-α := by linarith
   have hinv : ‖matrixPseudoinverse A‖ ≤ (1-α)⁻¹ :=
@@ -294,7 +298,7 @@ theorem near_isometry_zero_range_boundary : ∀ (H I : Type) [Fintype H] [Decida
   · rintro ⟨F,hF,hr⟩
     have hz : F.toEuclideanLin=0 := LinearMap.range_eq_bot.mp hr
     have hzero : F=0 := Matrix.toEuclideanLin.injective (by simpa using! hz)
-    have hi : (0 : Matrix I I ℂ)=1 := by simpa [IsIsometry,hzero] using! hF
+    have hi : (0 : Matrix I I ℂ)=1 := by simp [IsIsometry,hzero] at hF
     have he :=
         congrArg (fun M : Matrix I I ℂ => M (Classical.arbitrary I) (Classical.arbitrary I)) hi
     simp at he

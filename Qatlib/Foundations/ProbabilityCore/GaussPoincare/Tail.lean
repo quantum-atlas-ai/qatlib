@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.ProbabilityCore.GaussPoincare.Poincare
+module
+
+public import Qatlib.Foundations.ProbabilityCore.GaussPoincare.Poincare
+
+@[expose] public section
 
 /-!
 # Centered Gaussian tails from derivative energy

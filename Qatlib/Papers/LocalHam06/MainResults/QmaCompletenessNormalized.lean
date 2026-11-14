@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LocalHam06.MainResults.QmaCompletenessOutput
-import Qatlib.Papers.LocalHam06.MainResults.QmaCompletenessEncoding
-import Qatlib.Papers.LocalHam06.MainResults.QmaCompletenessScaledSize
-import Qatlib.Papers.LocalHam06.MainResults.QmaCompletenessHermitian
-import Qatlib.Papers.LocalHam06.MainResults.QmaCompletenessFullSpace
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.QmaCompletenessNativeNorm
+module
+
+public import Qatlib.Papers.LocalHam06.MainResults.QmaCompletenessOutput
+public import Qatlib.Papers.LocalHam06.MainResults.QmaCompletenessEncoding
+public import Qatlib.Papers.LocalHam06.MainResults.QmaCompletenessScaledSize
+public import Qatlib.Papers.LocalHam06.MainResults.QmaCompletenessHermitian
+public import Qatlib.Papers.LocalHam06.MainResults.QmaCompletenessFullSpace
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.QmaCompletenessNativeNorm
+
+@[expose] public section
 
 /-!
 # Normalization of history Hamiltonian encodings
@@ -224,7 +228,7 @@ theorem normalized_terms_good (C : QmaHistoryCircuit) :
       (fun ψ => local_table_abs (qmaClause2Bits C+1) _ (physicalInput j)
         ((boundaryTerm_local _ _ _ _ _).trans (by omega)) hv (physicalInput_entry_norm j) ψ)
   · have hv := boundaryTerm_value C.gates.length C.qubits (qmaClause2Bits C) true C.outputWire
-    simp only [boundaryTarget, if_true] at hv
+    simp only [boundaryTarget, ite_true] at hv
     exact shifted_value_good (qmaClause2Bits C+1) (extraBits C) _ (physicalOutput C.outputWire) 32 hv
       (physicalOutput_hermitian C.outputWire) h32
       (fun ψ => local_table_abs (qmaClause2Bits C+1) _ (physicalOutput C.outputWire)
@@ -293,7 +297,6 @@ theorem normalized_energy_transport (C : QmaHistoryCircuit) (ψ : QState (Phys C
     (Matrix.reindex (flattenEquiv C.gates.length C.qubits).symm
       (flattenEquiv C.gates.length C.qubits).symm (fullHamiltonian C))
     (fun x => ψ (flattenEquiv C.gates.length C.qubits x))
-  push_cast at hscale
   have he := energy_reindex (flattenEquiv C.gates.length C.qubits).symm (fullHamiltonian C) ψ
   apply hscale.trans
   simpa only [Equiv.symm_symm] using! congrArg (fun r : ℝ => scale C*r) he

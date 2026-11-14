@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Papers.ChemDynamics08.MainResults.Readout.ReactionReadout
+module
+
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Papers.ChemDynamics08.MainResults.Readout.ReactionReadout
+
+@[expose] public section
 
 /-!
 # State-to-state readout
@@ -61,9 +65,9 @@ theorem inner_expandState {X ι : Type*} [Fintype X] [Fintype ι] [DecidableEq �
   have h' : ∀ v w : ι, star (ξ v) ⬝ᵥ ξ w = if v = w then 1 else 0 := fun v w => horth v w
   rw [dotProduct_sum]
   rw [Finset.sum_eq_single w]
-  · rw [dotProduct_smul, smul_eq_mul, h' w w, if_pos rfl, mul_one]
+  · rw [dotProduct_smul, smul_eq_mul, h' w w, ite_eq_left rfl, mul_one]
   · intro v _ hv
-    rw [dotProduct_smul, smul_eq_mul, h' w v, if_neg (fun h : w = v => hv h.symm),
+    rw [dotProduct_smul, smul_eq_mul, h' w v, ite_eq_right (fun h : w = v => hv h.symm),
       mul_zero]
   · intro h
     exact absurd (Finset.mem_univ w) h

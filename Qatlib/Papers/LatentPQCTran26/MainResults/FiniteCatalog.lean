@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LatentPQCTran26.MainResults.Definitions
+module
+
+public import Qatlib.Papers.LatentPQCTran26.MainResults.Definitions
+
+@[expose] public section
 
 /-!
 # Finite atomic catalogs on compact metric spaces
@@ -69,13 +73,13 @@ private theorem measurable_cell {D : Type*} [MeasurableSpace D] [MetricSpace D]
     have heq : {x : D | ∀ j : Fin N, (j : ℕ) < (i : ℕ) → ε ≤ dist x (ρ j)}
         = ⋂ j : Fin N, {x : D | (j : ℕ) < (i : ℕ) → ε ≤ dist x (ρ j)} := by
       ext x
-      simp only [mem_setOf_eq, mem_iInter]
+      simp only [Set.mem_ofPred_eq, mem_iInter]
     rw [heq]
     exact MeasurableSet.iInter hjmeas
   have hcellEq : cell ρ ε i
       = {x : D | dist x (ρ i) < ε} ∩ {x : D | ∀ j : Fin N, (j : ℕ) < (i : ℕ) → ε ≤ dist x (ρ j)} := by
     ext x
-    simp only [cell, Set.mem_setOf_eq, Set.mem_inter_iff]
+    simp only [cell, Set.mem_ofPred_eq, Set.mem_inter_iff]
   rw [hcellEq]
   exact MeasurableSet.inter h1 h2
 
@@ -85,14 +89,14 @@ private theorem cell_disjoint {D : Type*} [MetricSpace D] {N : ℕ} (ρ : Fin N 
     Disjoint (cell ρ ε i) (cell ρ ε j) := by
   rw [Set.disjoint_right]
   intro x hx
-  simp only [cell, Set.mem_setOf_eq] at hx
+  simp only [cell, Set.mem_ofPred_eq] at hx
   obtain ⟨hxj, hxjmin⟩ := hx
   rcases lt_trichotomy (i : ℕ) (j : ℕ) with h | h | h
   · intro hmem
-    exact absurd (hxjmin i h) (not_le.2 (Set.mem_setOf_eq.mp hmem).1)
+    exact absurd (hxjmin i h) (not_le.2 (Set.mem_ofPred_eq.mp hmem).1)
   · exact absurd (Fin.ext h) hij
   · intro hmem
-    exact absurd ((Set.mem_setOf_eq.mp hmem).2 j h) (not_le.2 hxj)
+    exact absurd ((Set.mem_ofPred_eq.mp hmem).2 j h) (not_le.2 hxj)
 
 /-- Every probability measure on a compact metric space with measurable open sets has, for each
 positive `ε`, a nonempty finite atomic approximation with weights summing to one and
@@ -113,7 +117,7 @@ theorem lemma2_finite_catalog
     rw [measure_univ] at h0
     exact absurd h0 (by simp)
   obtain ⟨x₀, -⟩ := hne
-  haveI : DecidableEq D := Classical.decEq D
+  have : DecidableEq D := Classical.decEq D
 
   obtain ⟨t, hsub⟩ := isCompact_univ.elim_finite_subcover (fun y : D => Metric.ball y (ε / 2))
     (fun y => Metric.isOpen_ball)
@@ -196,7 +200,7 @@ theorem lemma2_finite_catalog
         simp only [hidxeq]
         exact (Finset.mem_filter.1 (Finset.mem_coe.1 i.property)).2
     rw [hpre]
-    haveI : Fintype ↥(F : Set (Fin N)) := FinsetCoe.fintype F
+    have : Fintype ↥(F : Set (Fin N)) := FinsetCoe.fintype F
     exact MeasurableSet.iUnion fun i => hcells i
 
   set g : D → D × D := fun x => (x, ρ (idx x)) with hgdef
@@ -224,7 +228,7 @@ theorem lemma2_finite_catalog
           exact (Set.disjoint_right.1 (cell_disjoint ρ ε hne2) hxcell (hcellmem x)).elim
         simp only [hidxeq]
         exact (Finset.mem_filter.1 (Finset.mem_coe.1 i.property)).2
-    haveI : Fintype ↥(F : Set (Fin N)) := FinsetCoe.fintype F
+    have : Fintype ↥(F : Set (Fin N)) := FinsetCoe.fintype F
     have hpair : Pairwise (Function.onFun Disjoint (fun i : ↥(F : Set (Fin N)) => cell ρ ε (i : Fin N))) :=
       fun i j hij => cell_disjoint ρ ε (fun h => hij (Subtype.ext h))
     calc (Q.map (fun x : D => ρ (idx x))) S

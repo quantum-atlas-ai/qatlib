@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ExactSimon97.MainResults.Defs
+module
+
+public import Qatlib.Papers.ExactSimon97.MainResults.Defs
+
+@[expose] public section
 
 /-!
 # Normalization of the Simon sampling distribution
@@ -41,7 +45,7 @@ noncomputable def uniformOnSub {n : ℕ} (S : Submodule (ZMod 2) (BoolVec n)) (z
 /-- The orthogonal submodule of any binary submodule has positive cardinality. -/
 lemma natCard_ortho_pos {n : ℕ} (H : Submodule (ZMod 2) (BoolVec n)) :
     0 < Nat.card (ortho H) := by
-  haveI : Nonempty (ortho H) := ⟨0, by simp⟩
+  have : Nonempty (ortho H) := ⟨0, by simp⟩
   exact Nat.card_pos
 
 /-- The weights `uniformOnSub (ortho H0)` sum to one over the ambient binary vector space. See

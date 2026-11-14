@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OrderedOpExp08.MainResults.Defs
+module
+
+public import Qatlib.Papers.OrderedOpExp08.MainResults.Defs
+
+@[expose] public section
 
 /-!
 # Remainder estimates for ordered evolutions

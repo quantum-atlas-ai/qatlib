@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Complex.Exponential
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Data.Complex.Basic
-import Qatlib.Concepts.AmplitudeCore.AmplifyCore.Lemma5Quan
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Analysis.Normed.Lp.PiLp
-import Mathlib.Analysis.InnerProductSpace.l2Space
+module
+
+public import Mathlib.Analysis.Complex.Exponential
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Basic.Complex.Basic
+public import Qatlib.Concepts.AmplitudeCore.AmplifyCore.Lemma5Quan
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Analysis.Normed.Lp.PiLp
+public import Mathlib.Analysis.InnerProductSpace.l2Space
+
+@[expose] public section
 
 /-!
 # General phase action including endpoint probabilities

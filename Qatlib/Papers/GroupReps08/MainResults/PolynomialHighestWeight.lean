@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Module.LinearMap.Basic
-import Mathlib.Data.Complex.Basic
-import Mathlib.Analysis.InnerProductSpace.Basic
-import Mathlib.Analysis.Normed.Operator.NormedSpace
-import Qatlib.Papers.GroupReps08.MainResults.Common
+module
+
+public import Mathlib.Algebra.Module.LinearMap.Basic
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Analysis.InnerProductSpace.Basic
+public import Mathlib.Analysis.Normed.Operator.NormedSpace
+public import Qatlib.Papers.GroupReps08.MainResults.Common
+
+@[expose] public section
 
 /-!
 # Linear expansions and highest-weight matrix-element estimates

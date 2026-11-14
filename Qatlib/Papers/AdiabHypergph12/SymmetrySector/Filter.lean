@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecificLimits.Basic
-import Mathlib.Topology.Algebra.Monoid
-import Mathlib.Algebra.BigOperators.Field
-import Mathlib.Algebra.Module.Pi
-import Mathlib.Logic.Function.Iterate
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
+module
+
+public import Mathlib.Analysis.SpecificLimits.Basic
+public import Mathlib.Topology.Algebra.Monoid
+public import Mathlib.Algebra.BigOperators.Field
+public import Mathlib.Algebra.Module.Pi
+public import Mathlib.Logic.Function.Iterate
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+
+@[expose] public section
 
 /-!
 # Convergence of a diagonal spectral filter

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.PolyMethod01.MainResults.QueryComparisonSourceContinuationDefs
-import Mathlib.Tactic.Linarith
+module
+
+public import Qatlib.Papers.PolyMethod01.MainResults.QueryComparisonSourceContinuationDefs
+public import Mathlib.Tactic.Linarith
+
+@[expose] public section
 
 /-!
 # Query comparisons and deterministic search
@@ -69,16 +73,16 @@ theorem run_eq_of_not_queried {I : Type} [DecidableEq I] {Output : Type}
       simp only [BoolQueryTree.Run]
       by_cases hgj : g j = true
       · have hgj' : g' j = true := by rw [← hg]; exact hgj
-        rw [if_pos hgj, if_pos hgj']
+        rw [ite_eq_left hgj, ite_eq_left hgj']
         simp only [queriedSet] at hi
-        rw [if_pos hgj] at hi
+        rw [ite_eq_left hgj] at hi
         refine ihTrue ?_
         intro hmem
         exact hi (Finset.mem_insert_of_mem hmem)
       · have hgj' : ¬ g' j = true := by intro h; exact hgj (hg ▸ h)
-        rw [if_neg hgj, if_neg hgj']
+        rw [ite_eq_right hgj, ite_eq_right hgj']
         simp only [queriedSet] at hi
-        rw [if_neg hgj] at hi
+        rw [ite_eq_right hgj] at hi
         refine ihFalse ?_
         intro hmem
         exact hi (Finset.mem_insert_of_mem hmem)
@@ -92,7 +96,7 @@ theorem card_queriedSet_le_run {I : Type} [DecidableEq I] {Output : Type}
   | ask j onFalse onTrue ihFalse ihTrue =>
       simp only [queriedSet, BoolQueryTree.Run]
       by_cases hgj : g j = true
-      · rw [if_pos hgj, if_pos hgj]
+      · rw [ite_eq_left hgj, ite_eq_left hgj]
         have hle : (insert j (queriedSet onTrue g)).card
             ≤ (queriedSet onTrue g).card + 1 :=
           Finset.card_insert_le (a := j) (s := queriedSet onTrue g)
@@ -101,7 +105,7 @@ theorem card_queriedSet_le_run {I : Type} [DecidableEq I] {Output : Type}
         show (insert j (queriedSet onTrue g)).card
           ≤ (BoolQueryTree.Run g onTrue).2 + 1
         omega
-      · rw [if_neg hgj, if_neg hgj]
+      · rw [ite_eq_right hgj, ite_eq_right hgj]
         have hle : (insert j (queriedSet onFalse g)).card
             ≤ (queriedSet onFalse g).card + 1 :=
           Finset.card_insert_le (a := j) (s := queriedSet onFalse g)

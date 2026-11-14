@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CirculantPrec18.SVETransport.Model
+module
+
+public import Qatlib.Papers.CirculantPrec18.SVETransport.Model
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -35,7 +39,7 @@ No circuit, oracle implementation, or execution-cost theorem is supplied here.
 The existential record is a specification, not evidence of an algorithm. -/
 def source_quantum_linear_solver_statement
     (n : ℕ) (A : Matrix (Fin n) (Fin n) ℝ) (b : Fin n → ℝ)
-    (_hdet : A.det ≠ 0) (ε : ℝ) (hε : 0 < ε) : Prop :=
+    (_hdet : A.det ≠ 0) (ε : ℝ) (_hε : 0 < ε) : Prop :=
     ∃ (c : ℕ) (_hc : 0 < c) (pro : LinearSolver n),
       0 ≤ pro.cost ∧
       pro.cost ≤ (c : ℝ) * (conditionNumber n A) ^ 2 *

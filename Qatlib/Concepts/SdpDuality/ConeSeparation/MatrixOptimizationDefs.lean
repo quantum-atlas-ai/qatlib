@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationSharedDefs
-import Qatlib.Concepts.RationalScan.Step2Scan.MatrixOptimizationAlgorithmsDefs
-import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationAlgorithmsDefs
+module
+
+public import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationSharedDefs
+public import Qatlib.Concepts.RationalScan.Step2Scan.MatrixOptimizationAlgorithmsDefs
+public import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationAlgorithmsDefs
+
+@[expose] public section
 
 /-!
 # Execution records and resource contracts for SDP optimization

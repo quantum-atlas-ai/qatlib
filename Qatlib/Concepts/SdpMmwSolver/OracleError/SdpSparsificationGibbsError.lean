@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SdpMmwSolver.OracleError.ResidualDiagnosticContracts
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.FinCases
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Module
+module
+
+public import Qatlib.Concepts.SdpMmwSolver.OracleError.ResidualDiagnosticContracts
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.FinCases
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Module
+
+@[expose] public section
 
 /-!
 # Payoff error accumulation and a Gibbs counterexample

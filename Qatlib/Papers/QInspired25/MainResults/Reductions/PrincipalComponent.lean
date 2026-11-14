@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QInspired25.MainResults.Reductions.DenseSampling
+module
+
+public import Qatlib.Papers.QInspired25.MainResults.Reductions.DenseSampling
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -79,10 +83,10 @@ theorem stackA_gram {n : ℕ} (a b : Fin n → ℝ) :
         = if r = j then (a j * (if r = k then a k else 0)) else 0 := by
       intro r
       by_cases hr : r = j <;> simp [hr]
-    simp only [hpt, Finset.sum_ite_eq', Finset.mem_univ, if_true]
+    simp only [hpt, Finset.sum_ite_eq', Finset.mem_univ, ite_true]
     by_cases hjk : j = k
-    · rw [if_pos hjk, if_pos hjk, hjk]; ring
-    · rw [if_neg hjk, if_neg hjk]; ring
+    · rw [ite_eq_left hjk, ite_eq_left hjk, hjk]; ring
+    · rw [ite_eq_right hjk, ite_eq_right hjk]; ring
   have h1 : (∑ r : Fin n, stackA a b ((1 : Fin 2), r) j * stackA a b ((1 : Fin 2), r) k)
       = if j = k then b j ^ 2 else 0 := by
     have h : ∀ r : Fin n, stackA a b ((1 : Fin 2), r) j * stackA a b ((1 : Fin 2), r) k
@@ -94,10 +98,10 @@ theorem stackA_gram {n : ℕ} (a b : Fin n → ℝ) :
         = if r = j then (b j * (if r = k then b k else 0)) else 0 := by
       intro r
       by_cases hr : r = j <;> simp [hr]
-    simp only [hpt, Finset.sum_ite_eq', Finset.mem_univ, if_true]
+    simp only [hpt, Finset.sum_ite_eq', Finset.mem_univ, ite_true]
     by_cases hjk : j = k
-    · rw [if_pos hjk, if_pos hjk, hjk]; ring
-    · rw [if_neg hjk, if_neg hjk]; ring
+    · rw [ite_eq_left hjk, ite_eq_left hjk, hjk]; ring
+    · rw [ite_eq_right hjk, ite_eq_right hjk]; ring
   rw [h0, h1]
   by_cases hjk : j = k
   · subst hjk
@@ -139,7 +143,7 @@ theorem setDJGram_diag_of_one {n : ℕ} (a b : Fin n → ℝ) (j : Fin n)
     (h : (a j = 1 ∧ b j = 0) ∨ (a j = 0 ∧ b j = 1)) :
     setDJGram a b j j = 1 := by
   unfold setDJGram
-  rw [Matrix.diagonal_apply, if_pos rfl]
+  rw [Matrix.diagonal_apply, ite_eq_left rfl]
   rcases h with ⟨ha, hb⟩ | ⟨ha, hb⟩ <;> simp [ha, hb]
 
 /-! ## §3. The truncated matrix `A_{≥δ}` (Proposition 16) -/
@@ -169,20 +173,20 @@ theorem truncatedGram_intersection {n : ℕ} (a b : Fin n → ℝ) (i : Fin n)
     have hkeep : δ < a i ^ 2 + b i ^ 2 := by
       rw [hai, hbi]; norm_num; linarith
     by_cases hk : k = i
-    · rw [if_pos hk.symm, if_pos hkeep,
-        if_pos (show i = i ∧ k = i from ⟨rfl, hk⟩)]
+    · rw [ite_eq_left hk.symm, ite_eq_left hkeep,
+        ite_eq_left (show i = i ∧ k = i from ⟨rfl, hk⟩)]
       rw [hai, hbi]; norm_num
-    · rw [if_neg (fun h : i = k => hk h.symm),
-        if_neg (fun h : i = i ∧ k = i => hk h.2)]
+    · rw [ite_eq_right (fun h : i = k => hk h.symm),
+        ite_eq_right (fun h : i = i ∧ k = i => hk h.2)]
   · have hle : a j ^ 2 + b j ^ 2 ≤ 1 := by
       rcases hothers j hji with h | h
       · rcases hb j with h' | h' <;> simp [h, h']
       · rcases ha j with h' | h' <;> simp [h, h']
     have hdrop : ¬ (δ < a j ^ 2 + b j ^ 2) := by linarith
     by_cases hk : j = k
-    · rw [if_pos hk, if_neg hdrop,
-        if_neg (fun h : j = i ∧ k = i => hji h.1)]
-    · rw [if_neg hk, if_neg (fun h : j = i ∧ k = i => hji h.1)]
+    · rw [ite_eq_left hk, ite_eq_right hdrop,
+        ite_eq_right (fun h : j = i ∧ k = i => hji h.1)]
+    · rw [ite_eq_right hk, ite_eq_right (fun h : j = i ∧ k = i => hji h.1)]
 
 /-- **Proposition 16, no-intersection case (p. 10).**  For `0/1` entries with no index at
 which both strings equal `1`, and any `δ > 1`, the truncation is empty:
@@ -199,8 +203,8 @@ theorem truncatedGram_eq_zero_of_noIntersection {n : ℕ} (a b : Fin n → ℝ)
     exact absurd ⟨h, h'⟩ (hno j)
   have hdrop : ¬ (δ < a j ^ 2 + b j ^ 2) := by linarith
   by_cases hk : j = k
-  · rw [if_pos hk, if_neg hdrop]
-  · rw [if_neg hk]
+  · rw [ite_eq_left hk, ite_eq_right hdrop]
+  · rw [ite_eq_right hk]
 
 /-! ## §4. Norm bounds and the lower bounds -/
 
@@ -217,14 +221,14 @@ theorem stackA_frobSq {n : ℕ} (a b : Fin n → ℝ) :
       intro j
       rw [stackA_apply_zero]
       by_cases hr : r = j <;> simp [hr]
-    simp only [h, Finset.sum_ite_eq, Finset.mem_univ, if_true]
+    simp only [h, Finset.sum_ite_eq, Finset.mem_univ, ite_true]
   · apply Finset.sum_congr rfl
     intro r _
     have h : ∀ j : Fin n, (stackA a b ((1 : Fin 2), r) j) ^ 2 = if r = j then b j ^ 2 else 0 := by
       intro j
       rw [stackA_apply_one]
       by_cases hr : r = j <;> simp [hr]
-    simp only [h, Finset.sum_ite_eq, Finset.mem_univ, if_true]
+    simp only [h, Finset.sum_ite_eq, Finset.mem_univ, ite_true]
 
 /-- **Proposition 15, norm computation (p. 10).**  For `0/1` entries,
 `‖A‖_F² = Σ_j (a_j² + b_j²) ≤ 2n`, so `‖A‖_F² = Θ(n)` in the Set-Disjointness instance. -/
@@ -235,14 +239,14 @@ theorem stackA_frobSq_le_two_mul {n : ℕ} (a b : Fin n → ℝ)
   calc ∑ j, (a j ^ 2 + b j ^ 2) ≤ ∑ _j : Fin n, (2 : ℝ) := by
         apply Finset.sum_le_sum
         intro j _
-        rcases ha j with h | h <;> rcases hb j with h' | h' <;> simp [h, h'] <;> norm_num
+        rcases ha j with h | h <;> rcases hb j with h' | h' <;> norm_num [h, h']
     _ = 2 * (n : ℝ) := by simp [mul_comm]
 
 /-- **Proposition 15, lower bound (p. 10).**  Computing `σ` or ε-sampling from the top right
 singular vector `v` of `A` solves Set-Disjointness, and Theorem 10 turns the `Ω(n)` hardness
 (Proposition 5, named hypothesis) into `Ω̃(‖A‖_F²) = Ω̃(n)` query/block-encoding lower bound. -/
 theorem pca_lower_bound (c : ℝ) (hSD : SetDisjointnessHardness c) (hc : 0 ≤ c)
-    (k n T q m : ℕ) (hk : 3200 * k ≤ n) (C : ℝ)
+    (k n T q _m : ℕ) (hk : 3200 * k ≤ n) (C : ℝ)
     (p : RandProtocol k (SetDJInput k n))
     (hs : p.Succeeds setDJAnswer (1 - (1 : ℚ) / (k : ℚ) ^ 3))
     (hcost : (p.worstCost : ℝ) ≤ 6 * C * ((T : ℝ) + (k : ℝ)) * (logBits (q * (k * n)) : ℝ)) :
@@ -256,7 +260,7 @@ theorem pca_lower_bound (c : ℝ) (hSD : SetDisjointnessHardness c) (hc : 0 ≤ 
 (`δ ∈ (1, √2)`) distinguishes the two Set-Disjointness promise cases by the previous two
 theorems, hence requires `Ω̃(‖A‖_F²) = Ω̃(n)` applications of `SQ(A)`. -/
 theorem recommendation_lower_bound (c : ℝ) (hSD : SetDisjointnessHardness c) (hc : 0 ≤ c)
-    (k n T q m : ℕ) (hk : 3200 * k ≤ n) (C : ℝ)
+    (k n T q _m : ℕ) (hk : 3200 * k ≤ n) (C : ℝ)
     (p : RandProtocol k (SetDJInput k n))
     (hs : p.Succeeds setDJAnswer (1 - (1 : ℚ) / (k : ℚ) ^ 3))
     (hcost : (p.worstCost : ℝ) ≤ 6 * C * ((T : ℝ) + (k : ℝ)) * (logBits (q * (k * n)) : ℝ)) :

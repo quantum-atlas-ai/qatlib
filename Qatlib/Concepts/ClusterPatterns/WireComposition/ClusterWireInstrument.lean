@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ReferenceError.RefTraceError.FiniteReferenceTraceError
-import Qatlib.Concepts.QuditTeleport.TeleportCore.BellTeleportationInstrument
-import Qatlib.Concepts.ClusterPatterns.WireComposition.PauliMixtureTwirling
-import Qatlib.Foundations.PureStateMath.Qubit
+module
+
+public import Qatlib.Concepts.ReferenceError.RefTraceError.FiniteReferenceTraceError
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.BellTeleportationInstrument
+public import Qatlib.Concepts.ClusterPatterns.WireComposition.PauliMixtureTwirling
+public import Qatlib.Foundations.PureStateMath.Qubit
+
+@[expose] public section
 
 /-!
 # Single-wire cluster gates and instruments
@@ -142,9 +146,9 @@ theorem clusterPhase_unitary {ζ : ℂ} (hζ : ‖ζ‖ = 1) :
   unfold clusterPhase
   refine diagonal_mem_unitaryGroup _ fun i => ?_
   by_cases h : i = 0
-  · rw [if_pos h]
+  · rw [ite_eq_left h]
     simp
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     exact hζ
 
 /-- The cluster step `clusterJ ζ` is unitary when `ζ` has modulus one. -/
@@ -195,12 +199,12 @@ theorem clusterCZ_apply (w : QState (Fin 4)) :
     by_cases hk : k = r
     · subst hk
       simp
-    · rw [if_neg (fun h => hk (Equiv.injective _ h).symm), if_neg hk]
+    · rw [ite_eq_right (fun h => hk (Equiv.injective _ h).symm), ite_eq_right hk]
   funext r
   simp only [ApplyGate, Matrix.mulVec, dotProduct]
   rw [Fintype.sum_eq_single r (fun k hk => by
-    rw [hentry r k, if_neg hk, zero_mul]),
-    hentry r r, if_pos rfl]
+    rw [hentry r k, ite_eq_right hk, zero_mul]),
+    hentry r r, ite_eq_left rfl]
 
 /-- For a unit-modulus phase parameter, the phase and cluster-step gates are unitary, and CZ is
 a unitary involution with its stated computational-basis signs. -/
@@ -221,8 +225,8 @@ theorem cluster_phase_and_entangler_laws :
   by_cases h : teleportOutcomeEquiv.symm r = (a, b)
   · have h1 := congrArg Prod.fst h
     have h2 := congrArg Prod.snd h
-    simp only [h1, h2, if_pos h, mul_one]
-  · simp [if_neg h]
+    simp only [h1, h2, ite_eq_left h, mul_one]
+  · simp [ite_eq_right h]
 
 /-- Each column of the wire input frame is the relabeled basis pair with its logical bit first
 and a false ancillary bit. -/
@@ -261,14 +265,14 @@ theorem clusterWireInitialFrame_isometry : IsIsometry clusterWireInitialFrame :=
         unfold clusterWireInitialFrame
         simp only [Matrix.of_apply]
         by_cases hr : r = teleportOutcomeEquiv (boolEquivFin2.symm i, false)
-        · rw [if_pos hr]; simp
-        · rw [if_neg hr]; simp
+        · rw [ite_eq_left hr]; simp
+        · rw [ite_eq_right hr]; simp
       rw [Matrix.mul_apply,
         Finset.sum_congr rfl (fun r _ => hval r),
         Finset.sum_ite_eq' Finset.univ
           (teleportOutcomeEquiv (boolEquivFin2.symm i, false))
           (fun _ => (1 : ℂ)),
-        if_pos (Finset.mem_univ _)]
+        ite_eq_left (Finset.mem_univ _)]
       simp
     · have hzero : ∀ r : Fin 4,
           clusterWireInitialFrameᴴ i r * clusterWireInitialFrame r j = 0 := by
@@ -277,8 +281,8 @@ theorem clusterWireInitialFrame_isometry : IsIsometry clusterWireInitialFrame :=
         unfold clusterWireInitialFrame
         simp only [Matrix.of_apply]
         by_cases hr : r = teleportOutcomeEquiv (boolEquivFin2.symm i, false)
-        · rw [if_pos hr, if_neg (fun hc => hij (hInj i j (hr.symm.trans hc))), mul_zero]
-        · rw [if_neg hr, star_zero, zero_mul]
+        · rw [ite_eq_left hr, ite_eq_right (fun hc => hij (hInj i j (hr.symm.trans hc))), mul_zero]
+        · rw [ite_eq_right hr, star_zero, zero_mul]
       rw [Matrix.mul_apply, Finset.sum_congr rfl (fun r _ => hzero r),
         Finset.sum_const_zero]
       simp [hij]
@@ -352,11 +356,11 @@ theorem cluster_wire_preparation_frames :
           (boolEquivFin2.symm (boolEquivFin2 (teleportOutcomeEquiv.symm r).1), false) :=
         ((Equiv.apply_symm_apply teleportOutcomeEquiv r).symm).trans
           (congrArg teleportOutcomeEquiv hp)
-      rw [if_pos hq, mul_one, Fintype.sum_eq_single
-        (boolEquivFin2 (teleportOutcomeEquiv.symm r).1), if_pos hkey, one_mul,
+      rw [ite_eq_left hq, mul_one, Fintype.sum_eq_single
+        (boolEquivFin2 (teleportOutcomeEquiv.symm r).1), ite_eq_left hkey, one_mul,
         Equiv.symm_symm]
       · intro k hk
-        rw [if_neg (fun hc => hk (by
+        rw [ite_eq_right (fun hc => hk (by
               have h1 := congrArg teleportOutcomeEquiv.symm hc
               rw [Equiv.symm_apply_apply] at h1
               have h2 : boolEquivFin2 (teleportOutcomeEquiv.symm r).1 = k := by
@@ -373,8 +377,8 @@ theorem cluster_wire_preparation_frames :
           rw [Equiv.symm_apply_apply] at h1
           rw [congrArg Prod.snd h1] at hq
           exact hq rfl
-        rw [if_neg h', zero_mul]
-      rw [if_neg hq, mul_zero]
+        rw [ite_eq_right h', zero_mul]
+      rw [ite_eq_right hq, mul_zero]
       exact Fintype.sum_eq_zero _ hzero
   show clusterWirePreparedFrame *ᵥ ψ = _
   rw [clusterWirePreparedFrame, ← mulVec_mulVec, hinit]
@@ -473,7 +477,7 @@ theorem clusterPhase_conj_mul (ζ : ℂ) (hζ : ‖ζ‖ = 1) :
   by_cases h0 : i = 0
   · rw [h0]
     norm_num
-  · simp only [if_neg h0]
+  · simp only [ite_eq_right h0]
     exact hz
 
 /-- For a unit-modulus parameter, the adjoint of the cluster-step matrix multiplied by the
@@ -574,7 +578,7 @@ theorem cluster_wire_instrument_probability :
 /-- For a density input, both wire outcomes have probability one half and their conditional
 output is conjugation by `clusterJ ζ`. -/
 theorem cluster_wire_conditional_output :
-    ∀ (ζ : ℂ) (hζ : ‖ζ‖ = 1) (ρ : Operator 2) (hρ : IsDensityOperator ρ) (b : Bool),
+    ∀ (ζ : ℂ) (hζ : ‖ζ‖ = 1) (ρ : Operator 2) (_hρ : IsDensityOperator ρ) (b : Bool),
       instrumentProb (clusterWireInstrument ζ hζ) ρ b = 1 / 2 ∧
         (∀ h : 0 < instrumentProb (clusterWireInstrument ζ hζ) ρ b,
           (clusterWireInstrument ζ hζ).conditionalState ρ b h = conjBranch (clusterJ ζ) ρ) := by

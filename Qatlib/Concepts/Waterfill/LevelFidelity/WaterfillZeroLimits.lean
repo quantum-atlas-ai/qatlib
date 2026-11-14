@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.Waterfill.LevelFidelity.RealTableWaterLevel
-import Mathlib.Topology.Algebra.Order.Field
+module
+
+public import Qatlib.Concepts.Waterfill.LevelFidelity.RealTableWaterLevel
+public import Mathlib.Topology.Algebra.Order.Field
+
+@[expose] public section
 
 /-!
 # Water-fill limits at zero target coordinates
@@ -116,7 +120,7 @@ theorem boundary_fill {m : ℕ} (π σ : Fin m → ℝ) (hσ : ∀ i, 0 ≤ σ i
     ∀ᶠ δ : ℝ in 𝓝[>] (0 : ℝ),
       realFill π (fun j => σ j+δ) (lam/δ) i = if 0 < σ i then π i else min (π i) lam := by
   by_cases hs : 0 < σ i
-  · simpa only [realFill, if_pos hs] using! min_eventually_saturated (π i) lam (σ i) hlam hs
+  · simpa only [realFill, ite_eq_left hs] using! min_eventually_saturated (π i) lam (σ i) hlam hs
   · have hz : σ i = 0 := le_antisymm (not_lt.mp hs) (hσ i)
     simpa [realFill, hz] using! min_zero_sigma (π i) lam
 

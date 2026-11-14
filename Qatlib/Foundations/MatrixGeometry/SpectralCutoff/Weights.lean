@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixGeometry.SpectralCutoff.Evolution
+module
+
+public import Qatlib.Foundations.MatrixGeometry.SpectralCutoff.Evolution
+
+@[expose] public section
 
 /-!
 # Exponential weights and spectral leakage
@@ -47,10 +51,10 @@ theorem low_weight_norm (H : Matrix I I ℂ) (hH : H.IsHermitian) (Δ lam : ℝ)
   apply (pi_norm_le_iff_of_nonneg (Real.exp_pos _).le).mpr
   intro i
   by_cases hi:hH.eigenvalues i ≤ Δ
-  · simp only [if_pos hi,mul_one,Complex.norm_exp,Complex.mul_re,
+  · simp only [ite_eq_left hi,mul_one,Complex.norm_exp,Complex.mul_re,
       Complex.ofReal_re,Complex.ofReal_im,mul_zero,sub_zero]
     exact Real.exp_le_exp.mpr (mul_le_mul_of_nonneg_left hi hlam)
-  · simp only [if_neg hi,mul_zero,norm_zero]
+  · simp only [ite_eq_right hi,mul_zero,norm_zero]
     exact (Real.exp_pos _).le
 
 /-- For `lam ≥ 0`, the norm of `exp(-lam H)` restricted to energies above `Λ` is at most
@@ -72,9 +76,9 @@ theorem high_weight_norm (H : Matrix I I ℂ) (hH : H.IsHermitian) (Λ lam : ℝ
   apply (pi_norm_le_iff_of_nonneg (Real.exp_pos _).le).mpr
   intro i
   by_cases hi:hH.eigenvalues i ≤ Λ
-  · simp only [if_pos hi,zero_mul,norm_zero]
+  · simp only [ite_eq_left hi,zero_mul,norm_zero]
     exact (Real.exp_pos _).le
-  · simp only [if_neg hi,one_mul,Complex.norm_exp,Complex.mul_re,
+  · simp only [ite_eq_right hi,one_mul,Complex.norm_exp,Complex.mul_re,
       Complex.neg_re,Complex.ofReal_re,Complex.neg_im,Complex.ofReal_im,neg_zero,mul_zero,sub_zero]
     exact Real.exp_le_exp.mpr (mul_le_mul_of_nonpos_left (le_of_not_ge hi) (neg_nonpos.mpr hlam))
 

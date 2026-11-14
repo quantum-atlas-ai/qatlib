@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Cbmd26.Algorithms.InputBridge
-import Mathlib.Analysis.Calculus.MeanValue
-import Mathlib.Analysis.SpecialFunctions.Exponential
+module
+
+public import Qatlib.Papers.Cbmd26.Algorithms.InputBridge
+public import Mathlib.Analysis.Calculus.MeanValue
+public import Mathlib.Analysis.SpecialFunctions.Exponential
+
+@[expose] public section
 
 /-!
 # Freezing Supplied Piecewise Hamiltonians
@@ -183,6 +187,7 @@ private theorem suppliedFrozenTable_succ (τ : ℕ → ℝ) (B : ℕ → Matrix 
       List.replicate (suppliedGridTick τ h (N+1)-suppliedGridTick τ h N) (B N) := by
   simp [suppliedFrozenTable, List.range_succ]
 
+omit [Fintype I] [DecidableEq I] in
 /-- For a monotone breakpoint grid starting at zero and a positive step, the frozen table length
 is the final rounded grid tick. -/
 theorem suppliedFrozenTable_length {τ : ℕ → ℝ} (hτ : Monotone τ) (hτ0 : τ 0 = 0)
@@ -322,6 +327,7 @@ private theorem suppliedGridTick_block {τ : ℕ → ℝ} (hτ0 : τ 0 = 0)
       exact ⟨i,by omega,hil,hir⟩
     · exact ⟨N,by omega,by omega,hj⟩
 
+omit [DecidableEq I] in
 /-- A frozen-table entry whose index lies between the rounded endpoints of interval `i` is
 exactly `B i`, under the monotone-grid and positive-step assumptions. -/
 private theorem suppliedFrozenTable_lookup {τ : ℕ → ℝ} (hτ : Monotone τ) (hτ0 : τ 0 = 0)
@@ -346,6 +352,7 @@ private theorem suppliedFrozenTable_lookup {τ : ℕ → ℝ} (hτ : Monotone τ
       apply List.getElem?_replicate_of_lt
       omega
 
+omit [DecidableEq I] in
 /-- At a uniform-grid time before the final rounded tick, the supplied field equals the
 corresponding entry of the frozen table. -/
 theorem suppliedGridField_sample {τ : ℕ → ℝ} (hτ : Monotone τ) (hτ0 : τ 0 = 0)
@@ -368,6 +375,7 @@ theorem suppliedGridTick_horizon {τ : ℕ → ℝ} {N M : ℕ} {T : ℝ}
   have he : τ N / (T/M) = (M:ℝ) := by rw [hτN]; field_simp
   simp [suppliedGridTick, he]
 
+omit [DecidableEq I] in
 /-- For a monotone supplied grid starting at zero and ending at `T > 0`, the list of its `M`
 uniform left-endpoint samples is exactly the frozen table for step `T/M`. -/
 theorem suppliedGridField_sample_list {τ : ℕ → ℝ} (hτ : Monotone τ) (hτ0 : τ 0 = 0)

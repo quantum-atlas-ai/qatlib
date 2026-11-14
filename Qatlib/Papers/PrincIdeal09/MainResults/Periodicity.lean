@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.PrincIdeal09.MainResults.Framework
+module
+
+public import Qatlib.Papers.PrincIdeal09.MainResults.Framework
+
+@[expose] public section
 
 /-!
 # Integer windows in the regulator period model

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.Amplification.DiscreteRun
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.DiscreteRun
+
+@[expose] public section
 
 /-!
 # First moments of ranked search runs
@@ -96,7 +100,7 @@ theorem runClock_moment (law : RankedCallLaw N Ω) (skip : RankSkip N)
                 law.mass (t + 1) x * (law.runMass skip (skip.next (law.outputRank x)) xs *
                   law.runClock xs)) := by
             funext xs
-            simp only [runMass, if_neg (by omega : ¬ t + 1 = 0), if_pos hx, runClock]
+            simp only [runMass, ite_eq_right (by omega : ¬ t + 1 = 0), ite_eq_left hx, runClock]
             ring
           rw [hfun]
           have hg : g x = law.mass (t + 1) x * law.duration x * 1 +
@@ -106,7 +110,7 @@ theorem runClock_moment (law : RankedCallLaw N Ω) (skip : RankSkip N)
         · have hz : law.mass (t + 1) x = 0 := law.lower_support _ (by omega) htN x hx
           have hg : g x = 0 := by simp [g, hz]
           rw [hg]
-          simpa only [runMass, if_neg (by omega : ¬ t + 1 = 0), if_neg hx, zero_mul]
+          simpa only [runMass, ite_eq_right (by omega : ¬ t + 1 = 0), ite_eq_right hx, zero_mul]
             using hasSum_zero
       obtain ⟨qc, hqc, hqcb⟩ := hcall (t + 1) (by omega) htN
       have hcont := law.continuation_finite (t + 1) (by omega) htN (fun i => E (skip.next i))
@@ -126,7 +130,7 @@ theorem runClock_moment (law : RankedCallLaw N Ω) (skip : RankSkip N)
         (fun xs => law.runMass skip (t + 1) xs * law.runClock xs) _ hprod
       have hmean : HasSum (fun xs => law.runMass skip (t + 1) xs * law.runClock xs)
           (qc + (∑ i : Fin N, if i.val < t + 1 then E (skip.next i) else 0) / (t + 1 : ℝ)) := by
-        simpa only [runMass, if_neg (by omega : ¬ t + 1 = 0), zero_mul, zero_add] using hfull
+        simpa only [runMass, ite_eq_right (by omega : ¬ t + 1 = 0), zero_mul, zero_add] using hfull
       refine ⟨_, hmean, ?_, ?_⟩
       · have h : 0 ≤ ∑' xs : List Ω, law.runMass skip (t + 1) xs * law.runClock xs :=
           tsum_nonneg (fun xs => mul_nonneg

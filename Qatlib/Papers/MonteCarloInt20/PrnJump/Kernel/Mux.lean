@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGSplice
+module
+
+public import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGSplice
+
+@[expose] public section
 
 /-!
 # Boolean word multiplexers
@@ -75,7 +79,7 @@ private theorem sa_snoc_old {m n : ℕ} (g : BooleanDAG m n)
     (node : BooleanNode (m+n)) (x : Reg m) (j : Fin (m+n)) :
     booleanDAGValue (g.snoc node) x (Fin.castLE (by omega) j) = booleanDAGValue g x j := by
   rw [sa_snoc_value]
-  simp only [Fin.val_castLE,dif_pos j.isLt]
+  simp only [Fin.val_castLE,dite_eq_left j.isLt]
 
 /-- Input wires retain their supplied values in any Boolean DAG. -/
 private theorem sa_input_value {m n : ℕ} (g : BooleanDAG m n)
@@ -86,7 +90,7 @@ private theorem sa_input_value {m n : ℕ} (g : BooleanDAG m n)
   | @snoc n g node ih =>
     rw [sa_snoc_value]
     have hj : j.val < m+n := by have := j.isLt; omega
-    simpa only [Fin.val_castLE,dif_pos hj] using! ih
+    simpa only [Fin.val_castLE,dite_eq_left hj] using! ih
 
 /-- The XOR-and expression for a Boolean mux equals conditional selection between its two
 inputs. -/
@@ -122,7 +126,7 @@ private theorem mux_prefix_bit (w i : ℕ) (hi : i ≤ w) (x : Reg (2*w+1)) (j :
         sa_snoc_value,booleanNodeValue,mux_prefix_input]
       have h0 : w+i < 2*w+(1+3*i) := by omega
       have h1 : w+i < 2*w+(1+(3*i+1)) := by omega
-      rw [dif_pos h1,dif_pos h0]
+      rw [dite_eq_left h1,dite_eq_left h0]
       exact mux_bool (x ⟨i,by omega⟩) (x ⟨w+i,by omega⟩) (x (Fin.last (2*w)))
     · rw [mux_prefix_old w i hi x _ (by have := k.isLt; simp only [Fin.val_castSucc]; omega)]
       exact ih (by omega) k

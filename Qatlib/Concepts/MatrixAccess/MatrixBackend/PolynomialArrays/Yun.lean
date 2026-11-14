@@ -4,53 +4,57 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeSourceIntegerization
-import Mathlib.Data.Nat.Find
-import Mathlib.Data.Option.Basic
-import Mathlib.Data.List.Basic
-import Mathlib.Data.Nat.Size
-import Mathlib.Data.Rat.Lemmas
-import Mathlib.Analysis.Polynomial.MahlerMeasure
-import Mathlib.Data.Nat.Choose.Bounds
-import Mathlib.Data.List.Nodup
-import Mathlib.RingTheory.Polynomial.Resultant.Basic
-import Mathlib.Data.Fin.Rev
-import Mathlib.Data.List.FinRange
-import Mathlib.LinearAlgebra.Matrix.Polynomial
-import Mathlib.Data.Nat.Choose.Basic
-import Mathlib.RingTheory.Polynomial.Pochhammer
-import Mathlib.Topology.Algebra.Polynomial
-import Mathlib.Topology.LocallyConstant.Basic
-import Mathlib.Analysis.Polynomial.CauchyBound
-import Mathlib.Algebra.Order.Archimedean.Basic
-import Mathlib.Data.List.Sort
-import Mathlib.FieldTheory.Separable
-import Mathlib.RingTheory.EuclideanDomain
-import Mathlib.Data.List.Induction
-import Mathlib.Data.List.ToFinsupp
-import Mathlib.RingTheory.Polynomial.GaussLemma
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootCanonicalMultiply
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootClassifiedCatalogue
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootCommonDenominator
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootConvolutionLoop
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootCoordinateTruncation
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootDecodedCertificate
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootDiskCertificate
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootDiskClassification
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootDiskCompleteness
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootDiskInclusion
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootFactorProduct
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootIntegerCatalogue
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootIntegerConvolution
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootIntegerCoordinate
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootIntegerHorner
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootIntegerList
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootIntegerPolynomial
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootProjectionBudget
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootReturnedCompleteness
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootReturnedList
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootSharedHorner
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeSourceBitPrecision
+module
+
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeSourceIntegerization
+public import Mathlib.Data.Nat.Find
+public import Mathlib.Data.Option.Basic
+public import Mathlib.Data.List.Basic
+public import Mathlib.Data.Nat.Size
+public import Mathlib.Data.Rat.Lemmas
+public import Mathlib.Analysis.Polynomial.MahlerMeasure
+public import Mathlib.Data.Nat.Choose.Bounds
+public import Mathlib.Data.List.Nodup
+public import Mathlib.RingTheory.Polynomial.Resultant.Basic
+public import Mathlib.Data.Fin.Rev
+public import Mathlib.Data.List.FinRange
+public import Mathlib.LinearAlgebra.Matrix.Polynomial
+public import Mathlib.Data.Nat.Choose.Basic
+public import Mathlib.RingTheory.Polynomial.Pochhammer
+public import Mathlib.Topology.Algebra.Polynomial
+public import Mathlib.Topology.LocallyConstant.Basic
+public import Mathlib.Analysis.Polynomial.CauchyBound
+public import Mathlib.Algebra.Order.Archimedean.Basic
+public import Mathlib.Data.List.Sort
+public import Mathlib.FieldTheory.Separable
+public import Mathlib.RingTheory.EuclideanDomain
+public import Mathlib.Data.List.Induction
+public import Mathlib.Data.List.ToFinsupp
+public import Mathlib.RingTheory.Polynomial.GaussLemma
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootCanonicalMultiply
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootClassifiedCatalogue
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootCommonDenominator
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootConvolutionLoop
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootCoordinateTruncation
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootDecodedCertificate
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootDiskCertificate
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootDiskClassification
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootDiskCompleteness
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootDiskInclusion
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootFactorProduct
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootIntegerCatalogue
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootIntegerConvolution
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootIntegerCoordinate
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootIntegerHorner
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootIntegerList
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootIntegerPolynomial
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootProjectionBudget
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootReturnedCompleteness
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootReturnedList
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeRootSharedHorner
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Base.NativeSourceBitPrecision
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -259,7 +263,7 @@ theorem initial_complex_support (f : ℂ[X]) (hf : f≠0) (hd : 0<f.natDegree) :
   have hprod : c*w=f := EuclideanDomain.mul_div_cancel' hc (gcd_dvd_left _ _)
   have hdnz : f.derivative≠0 := by
     intro hz
-    have h := Polynomial.natDegree_eq_zero_of_derivative_eq_zero hz
+    have h := Polynomial.derivative_eq_zero.mp hz
     omega
   intro z hcz
   change c.eval z=0 at hcz
@@ -697,7 +701,7 @@ theorem remainderStep_degree (a b : List ℚ) (ha : Canonical a) (hb : Canonical
     rw [Polynomial.leadingCoeff_mul,Polynomial.leadingCoeff_mul_X_pow,Polynomial.leadingCoeff_C]
     dsimp only [v]
     field_simp [Polynomial.leadingCoeff_ne_zero.mpr hnzb]
-  have hdrop := Polynomial.degree_sub_lt hdeg hnza hlead.symm
+  have hdrop := Polynomial.degree_sub_lt_left hdeg hnza hlead.symm
   have hp : poly (remainderStep a b)=poly a-poly b*(C v*X^(offset a b)) := by
     rw [remainderStep_poly a b hlen,scale_leading a b ha hb hna hnb]
     ring

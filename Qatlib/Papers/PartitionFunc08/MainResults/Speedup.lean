@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.PartitionFunc08.MainResults.MainTheorem
+module
+
+public import Qatlib.Papers.PartitionFunc08.MainResults.MainTheorem
+
+@[expose] public section
 
 /-!
 # Partition-function accuracy and walk cost
@@ -40,13 +44,13 @@ namespace Qatlib.Papers.PartitionFunc08.MainResults.Speedup
 the stated sum of two walk-cost bounds, each proportional to `ℓ ^ 2 / sqrt δ`. See [Wocjan
 et al., 2009][WocjanEtAl2009a]. -/
 theorem theorem1_walk_cost
-    {ℓ : ℕ} (hℓ : 0 < ℓ) {δ ε εR : ℝ} (hδ : 0 < δ) (hε : 0 < ε) (hεR : 0 < εR)
+    {ℓ : ℕ} (hℓ : 0 < ℓ) {δ ε εR : ℝ} (_hδ : 0 < δ) (_hε : 0 < ε) (_hεR : 0 < εR)
     {statePerSample reflPerSample samples total : ℝ}
     (hsp : statePerSample ≤ (ℓ : ℝ) / Real.sqrt δ * (Real.log (32 * (ℓ : ℝ))) ^ 2)
     (hr : reflPerSample ≤
       (2 * (ℓ : ℝ) / ε) * (Real.log (1 / εR) / Real.sqrt δ))
     (hs : samples ≤ Real.log (4 * (ℓ : ℝ)))
-    (hs0 : 0 ≤ samples) (hsp0 : 0 ≤ statePerSample) (hr0 : 0 ≤ reflPerSample)
+    (_hs0 : 0 ≤ samples) (hsp0 : 0 ≤ statePerSample) (hr0 : 0 ≤ reflPerSample)
     (htot : total ≤ (ℓ : ℝ) * samples * (statePerSample + reflPerSample)) :
     total ≤ (ℓ : ℝ) ^ 2 / Real.sqrt δ * Real.log (4 * (ℓ : ℝ)) *
         (Real.log (32 * (ℓ : ℝ))) ^ 2 +

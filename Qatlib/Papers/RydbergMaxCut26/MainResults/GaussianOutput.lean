@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.RydbergMaxCut26.MainResults.GaussianHybrid
+module
+
+public import Qatlib.Papers.RydbergMaxCut26.MainResults.GaussianHybrid
+
+@[expose] public section
 
 /-!
 # Physical Gaussian hybrid output

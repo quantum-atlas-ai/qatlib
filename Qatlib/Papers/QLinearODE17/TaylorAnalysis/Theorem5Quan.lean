@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem5Stat
-import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem5Norm
+module
+
+public import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem5Stat
+public import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem5Norm
+
+@[expose] public section
 
 /-!
 # Condition number bound for the V2 Taylor system

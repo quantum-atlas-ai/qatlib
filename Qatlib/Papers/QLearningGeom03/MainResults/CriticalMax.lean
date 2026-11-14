@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Order.BigOperators.Ring.Finset
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Data.Matrix.Mul
-import Mathlib.Analysis.Real.Sqrt
-import Mathlib.LinearAlgebra.Matrix.Trace
-import Qatlib.Papers.QLearningGeom03.MainResults.ImpatientCritical
+module
+
+public import Mathlib.Algebra.Order.BigOperators.Ring.Finset
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.LinearAlgebra.Matrix.Trace
+public import Qatlib.Papers.QLearningGeom03.MainResults.ImpatientCritical
+
+@[expose] public section
 
 /-!
 # Optimality under constant diagonal constraints

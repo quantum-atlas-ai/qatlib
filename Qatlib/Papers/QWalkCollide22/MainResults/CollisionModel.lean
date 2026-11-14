@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Fintype.Card
-import Mathlib.Data.Real.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Probability.ProbabilityMassFunction.Basic
-import Mathlib.Probability.Distributions.Uniform
-import Mathlib.Data.Finset.Card
+module
+
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Probability.ProbabilityMassFunction.Basic
+public import Mathlib.Probability.Distributions.Uniform
+public import Mathlib.Data.Finset.Card
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

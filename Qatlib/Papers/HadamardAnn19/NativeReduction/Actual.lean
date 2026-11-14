@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.BooleanEnergy.QuboForms.Hadamard
-import Qatlib.Foundations.BooleanEnergy.QuboForms.Hamiltonian
-import Qatlib.Papers.HadamardAnn19.MainResults.EnergyChain
+module
+
+public import Qatlib.Foundations.BooleanEnergy.QuboForms.Hadamard
+public import Qatlib.Foundations.BooleanEnergy.QuboForms.Hamiltonian
+public import Qatlib.Papers.HadamardAnn19.MainResults.EnergyChain
+
+@[expose] public section
 
 /-!
 # Native Realization of the Hadamard Reduction

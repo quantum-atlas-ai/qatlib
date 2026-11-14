@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Finset.Basic
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
+module
+
+public import Mathlib.Data.Finset.Basic
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -53,7 +57,7 @@ Algorithm 6.1 runtime composition and the Markov-inequality estimate on `W_i`
 are not modelled. -/
 theorem source_theorem_6_1
     (ξ δ ζ : ℝ) (k : ℕ)
-    (hξ0 : 0 ≤ ξ) (hξ1 : ξ < 1) (hδ : 0 ≤ δ) (hζ : 0 ≤ ζ) (hδζ : δ + ζ < 1)
+    (hξ0 : 0 ≤ ξ) (hξ1 : ξ < 1) (hδ : 0 ≤ δ) (hζ : 0 ≤ ζ) (_hδζ : δ + ζ < 1)
     (hk : 0 < k) :
     ∃ (S' : Finset (Fin m)) (T : Fin m → ℝ),
       ((1 - ξ) * (1 - δ - ζ) * (m : ℝ) ≤ (S'.card : ℝ)) ∧

@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PauliClifford.PauliAlgebra.StabilizerDesign
-import Qatlib.Concepts.PauliClifford.PauliAlgebra.CliffordStabilizerRun
-import Qatlib.Concepts.PauliClifford.PauliAlgebra.CliffordTableauConstruction
-import Qatlib.Concepts.PauliClifford.PauliAlgebra.CliffordStabilizer
-import Qatlib.Concepts.CliffordTheory.TableauSim
+module
+
+public import Qatlib.Concepts.PauliClifford.PauliAlgebra.StabilizerDesign
+public import Qatlib.Concepts.PauliClifford.PauliAlgebra.CliffordStabilizerRun
+public import Qatlib.Concepts.PauliClifford.PauliAlgebra.CliffordTableauConstruction
+public import Qatlib.Concepts.PauliClifford.PauliAlgebra.CliffordStabilizer
+public import Qatlib.Concepts.CliffordTheory.TableauSim
+
+@[expose] public section
 
 /-!
 # Stabilizer simulation statements and tableau invariants
@@ -320,7 +324,7 @@ theorem booleanDot_delta (n : ℕ) (i j : Fin n) :
       by_cases hx : x = i
       · subst hx; simp [h]
       · simp [hx]
-    rw [Finset.sum_eq_zero (fun x _ => hz x), if_neg h]
+    rw [Finset.sum_eq_zero (fun x _ => hz x), ite_eq_right h]
 
 /-- Every pair of standard destabilizer rows commutes. -/
 theorem standardCommute_DD (n : ℕ) :
@@ -348,7 +352,7 @@ theorem standardCommute_DS' (n : ℕ) :
   intro i h hih
   simp only [pauliCommute, sympX_stdDestabilizer, sympZ_stdDestabilizer, sympX_stdStabilizer,
     sympZ_stdStabilizer, symplecticForm]
-  rw [booleanDot_delta n i h, if_neg hih, booleanDot_zero_right]
+  rw [booleanDot_delta n i h, ite_eq_right hih, booleanDot_zero_right]
   simp
 
 /-- Running a word of legal Clifford gates preserves the supplied destabilizer and cross-tableau
@@ -620,8 +624,7 @@ theorem ketZero_mem_codeSpace (n : ℕ) : KetZero n ∈ codeSpace (standardStabi
     (fun k => letter false (decide (k = a)))
     (by
       intro k
-      change letter false (decide (k = a)) = Pauli1.Z ∨
-        letter false (decide (k = a)) = Pauli1.I
+
       rw [letter_false]
       by_cases hk : decide (k = a) <;> simp [hk])
   simpa [standardStabilizer, Row.decode, KetZero] using! h

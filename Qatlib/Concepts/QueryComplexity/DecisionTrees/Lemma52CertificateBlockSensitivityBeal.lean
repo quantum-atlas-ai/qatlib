@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DecisionTrees.Lemma52CertificateBlockSensitivityStat
-import Qatlib.Concepts.QueryComplexity.DecisionTrees.SensitivityCertificateTree
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.SensitivityCombinatorics
+module
+
+public import Qatlib.Concepts.QueryComplexity.DecisionTrees.Lemma52CertificateBlockSensitivityStat
+public import Qatlib.Concepts.QueryComplexity.DecisionTrees.SensitivityCertificateTree
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.SensitivityCombinatorics
+
+@[expose] public section
 
 /-!
 # Certificate complexity and block sensitivity

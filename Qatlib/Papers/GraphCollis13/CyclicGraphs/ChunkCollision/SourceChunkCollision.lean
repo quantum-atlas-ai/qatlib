@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GraphCollis13.QueryBound.Model.GraphCollisionModel
-import Mathlib.Combinatorics.SimpleGraph.Basic
-import Mathlib.Data.Finset.Range
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.GraphCollis13.QueryBound.Model.GraphCollisionModel
+public import Mathlib.Combinatorics.SimpleGraph.Basic
+public import Mathlib.Data.Finset.Range
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -135,13 +139,13 @@ circulant intervals nor the necessary case analysis is available in Mathlib
 Candidate follow-up: prove the corrected version with the side conditions
 `D = b − a`, `r ≤ l`, `b ≤ n/2`, `l − r ≤ b − a`, then derive the printed
 statement under those hypotheses. -/
-def proposition1_chunk_collision {n a b D : ℕ} (hn : 0 < n) (hab : a ≤ b)
+def proposition1_chunk_collision {n a b D : ℕ} (_hn : 0 < n) (_hab : a ≤ b)
     (x : Fin n → Bool) (k r l : Fin n)
-    (hrchunk : r ∈ chunk k D) (hrx : x r = true)
-    (hrmin : ∀ s ∈ chunk k D, x s = true → cwDist k r ≤ cwDist k s)
-    (hlchunk : l ∈ chunk k D) (hlx : x l = true)
-    (hlmax : ∀ s ∈ chunk k D, x s = true → cwDist k s ≤ cwDist k l)
-    (u v : Fin n) (hu : cwDist u r = a) (hv : cwDist l v = b) : Prop :=
+    (_hrchunk : r ∈ chunk k D) (_hrx : x r = true)
+    (_hrmin : ∀ s ∈ chunk k D, x s = true → cwDist k r ≤ cwDist k s)
+    (_hlchunk : l ∈ chunk k D) (_hlx : x l = true)
+    (_hlmax : ∀ s ∈ chunk k D, x s = true → cwDist k s ≤ cwDist k l)
+    (u v : Fin n) (_hu : cwDist u r = a) (_hv : cwDist l v = b) : Prop :=
     (∃ s ∈ cIcc u v, x s = true) ↔
       ∃ s t : Fin n, s ∈ chunk k D ∧ x s = true ∧ x t = true ∧
         (CI n a b).Adj s t

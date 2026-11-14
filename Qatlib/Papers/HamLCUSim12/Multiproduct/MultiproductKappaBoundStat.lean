@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductAnalyticInputs
-import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductNodes
+module
+
+public import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductAnalyticInputs
+public import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductNodes
+
+@[expose] public section
 
 /-!
 # Multiproduct mass-ratio bound statement

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NonabelianHSP98.MainResults.VectorModel.Basic
-import Mathlib.LinearAlgebra.BilinearForm.Orthogonal
-import Qatlib.Papers.NonabelianHSP98.MainResults.Pairing
+module
+
+public import Qatlib.Papers.NonabelianHSP98.MainResults.VectorModel.Basic
+public import Mathlib.LinearAlgebra.BilinearForm.Orthogonal
+public import Qatlib.Papers.NonabelianHSP98.MainResults.Pairing
+
+@[expose] public section
 
 /-!
 # Orthogonality through binary vector coordinates
@@ -77,7 +81,7 @@ theorem phi_mu (g h : Wreath n) : mu g h = dot (phi g) (phi h) := by
   · rw [mu_zero_zero g h hg hh, phi_of_a_zero hg, phi_of_a_zero hh]
     simp [dot]
   · rw [mu_zero_one g h hg hh, phi_of_a_zero hg, phi_of_a_one_eq hh]
-    simp only [dot, mul_zero, zero_mul, add_zero]
+    simp only [dot,  zero_mul, add_zero]
     congr 1
     exact Finset.sum_congr rfl (fun i _ => (mul_comm (g.y i) (h.x i)).symm)
   · rw [mu_one_zero g h hg hh, phi_of_a_one_eq hg, phi_of_a_zero hh]
@@ -86,7 +90,7 @@ theorem phi_mu (g h : Wreath n) : mu g h = dot (phi g) (phi h) := by
     congr 1
     exact Finset.sum_congr rfl (fun i _ => mul_comm (h.x i) (g.y i))
   · rw [mu_one_one g h hg hh, phi_of_a_one_eq hg, phi_of_a_one_eq hh]
-    simp only [dot, mul_one, add_zero]
+    simp only [dot, mul_one]
     ac_rfl
 
 /-- The wreath-product pairing is symmetric. -/
@@ -110,7 +114,7 @@ theorem phi_mul_of_a_zero (u h : Wreath n) (hu : u.a = 0) :
     · funext i
       change (mulW u h).y i = u.y i + h.y i
       rw [mulW_y, hh]; zring
-    · simp [hua, hu, hh]
+    · simp []
   · have hua : (u * h).a ≠ 0 := by
       change (mulW u h).a ≠ 0
       rw [mulW_a, hu, hh]
@@ -123,7 +127,7 @@ theorem phi_mul_of_a_zero (u h : Wreath n) (hu : u.a = 0) :
     · funext i
       change (mulW u h).x i = u.y i + h.x i
       rw [mulW_x, hh]; zring
-    · simp [hua, hu, hh]
+    · simp []
 
 /-- When the left factor has final coordinate one, the product image is `phi g + swapV (phi h)`. -/
 theorem phi_mul_of_a_one (g h : Wreath n) (hg : g.a = 1) :
@@ -163,8 +167,8 @@ final coordinate of `g`. -/
 theorem phi_mul (g h : Wreath n) :
     phi (g * h) = phi g + (if g.a = 0 then phi h else swapV (phi h)) := by
   rcases zmod2_eq_zero_or_one g.a with hg | hg
-  · rw [if_pos hg, phi_mul_of_a_zero g h hg]
-  · rw [if_neg (by simp [hg]), phi_mul_of_a_one g h hg]
+  · rw [ite_eq_left hg, phi_mul_of_a_zero g h hg]
+  · rw [ite_eq_right (by simp [hg]), phi_mul_of_a_one g h hg]
 
 /-- Right multiplication by `t n` adds `phi (t n)` to the vector image. -/
 theorem phi_mul_t (g : Wreath n) : phi (g * t n) = phi g + phi (t n) := by

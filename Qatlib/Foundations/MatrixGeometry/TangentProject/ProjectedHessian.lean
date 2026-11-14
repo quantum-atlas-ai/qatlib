@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixGeometry.TangentProject.Projection
-import Qatlib.Foundations.MatrixGeometry.TangentProject.AmbientGradient
+module
+
+public import Qatlib.Foundations.MatrixGeometry.TangentProject.Projection
+public import Qatlib.Foundations.MatrixGeometry.TangentProject.AmbientGradient
+
+@[expose] public section
 
 /-!
 # Projected energy gradients and Hessians

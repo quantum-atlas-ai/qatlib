@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.LinearAlgebra.Matrix.Vec
-import Mathlib.Data.Complex.BigOperators
-import Qatlib.Foundations.PureStateMath.MixedState
+module
+
+public import Mathlib.LinearAlgebra.Matrix.Vec
+public import Mathlib.Basic.Complex.BigOperators
+public import Qatlib.Foundations.PureStateMath.MixedState
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.UniversalWalk08.MainResults.WalkModel.Basic
-import Qatlib.Papers.UniversalWalk08.MainResults.CircuitDefs
-import Qatlib.Papers.UniversalWalk08.MainResults.Parameters.RunParameters
-import Qatlib.Papers.UniversalWalk08.MainResults.Assembly
-import Mathlib.Analysis.SpecialFunctions.Sqrt
+module
+
+public import Qatlib.Papers.UniversalWalk08.MainResults.WalkModel.Basic
+public import Qatlib.Papers.UniversalWalk08.MainResults.CircuitDefs
+public import Qatlib.Papers.UniversalWalk08.MainResults.Parameters.RunParameters
+public import Qatlib.Papers.UniversalWalk08.MainResults.Assembly
+public import Mathlib.Analysis.SpecialFunctions.Sqrt
+
+@[expose] public section
 
 /-!
 # Conditional time and output guarantees for walk simulation

@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Finset.Basic
-import Mathlib.Data.Fintype.Card
-import Mathlib.Data.Nat.Log
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic
+module
+
+public import Mathlib.Data.Finset.Basic
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Data.Nat.Log
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Monotone certificate-family search
@@ -115,9 +119,9 @@ theorem runFamily_sound (ff : PatternFinder n k)
     ∃ P ∈ certs, PatternCopy P G f := by
   classical
   by_cases hex : ∃ P ∈ certs, ∃ g, ff.run P G ρ = some g
-  · rw [runFamily, dif_pos hex] at h
+  · rw [runFamily, dite_eq_left hex] at h
     exact ⟨Classical.choose hex, (Classical.choose_spec hex).1, ff.sound _ _ _ _ h⟩
-  · rw [runFamily, dif_neg hex] at h
+  · rw [runFamily, dite_eq_right hex] at h
     exact absurd h (by simp)
 
 /-- If the host satisfies the certificate family and the seed avoids every member's exceptional
@@ -134,7 +138,7 @@ theorem runFamily_complete (ff : PatternFinder n k)
   obtain ⟨f, hf⟩ := Option.ne_none_iff_exists'.mp hne
   have hex : ∃ Q ∈ certs, ∃ g, ff.run Q G ρ = some g := ⟨P, hP, f, hf⟩
   obtain ⟨g, hg⟩ := (Classical.choose_spec hex).2
-  exact ⟨g, by rw [runFamily, dif_pos hex]; exact hg⟩
+  exact ⟨g, by rw [runFamily, dite_eq_left hex]; exact hg⟩
 
 /-- The union of the exceptional seed sets over all patterns in the certificate family. -/
 def familyMisses (ff : PatternFinder n k) (certs : Finset (Finset (Fin k × Fin k)))
@@ -155,7 +159,7 @@ theorem runFamily_fail_mem_familyMisses (ff : PatternFinder n k)
   by_contra hne
   obtain ⟨f, hf⟩ := Option.ne_none_iff_exists'.mp hne
   have hex : ∃ Q ∈ certs, ∃ g, ff.run Q G ρ = some g := ⟨P, hP, f, hf⟩
-  rw [runFamily, dif_pos hex] at h
+  rw [runFamily, dite_eq_left hex] at h
   obtain ⟨g, hg⟩ := (Classical.choose_spec hex).2
   rw [hg] at h
   cases h

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixAlgebra.TensorSupport
-import Qatlib.Foundations.MatrixGeometry.SpectralCutoff.Compression
+module
+
+public import Qatlib.Foundations.MatrixAlgebra.TensorSupport
+public import Qatlib.Foundations.MatrixGeometry.SpectralCutoff.Compression
+
+@[expose] public section
 
 /-!
 # Bounded local Hamiltonian data

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LocalMachine.LocalTransport.UniformQmaAmplificationDefs
-import Qatlib.Concepts.QmaCompleteness.HistoryHam.QmaCompleteness
+module
+
+public import Qatlib.Concepts.LocalMachine.LocalTransport.UniformQmaAmplificationDefs
+public import Qatlib.Concepts.QmaCompleteness.HistoryHam.QmaCompleteness
+
+@[expose] public section
 
 /-!
 # Refined QMA completeness predicates and encodings

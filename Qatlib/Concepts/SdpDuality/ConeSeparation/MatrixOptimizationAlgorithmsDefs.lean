@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Fintype.Pi
-import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
+module
+
+public import Mathlib.Data.Fintype.Pi
+public import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
+
+@[expose] public section
 
 /-!
 # Resource formulas for quantum SDP algorithms

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.OperatorAccess.EncodedAccess
-import Mathlib.LinearAlgebra.Matrix.Reindex
+module
+
+public import Qatlib.Concepts.OperatorAccess.EncodedAccess
+public import Mathlib.LinearAlgebra.Matrix.Reindex
+
+@[expose] public section
 open Qatlib.Concepts.BlockEncoding Qatlib.Concepts.BlockEncoding.Encoding Qatlib.Concepts.BlockEncoding.EncodingCore Qatlib.Concepts.BlockEncoding.LCU Qatlib.Concepts.BlockEncoding.LinearCombination Qatlib.Concepts.BlockEncoding.Postselection Qatlib.Concepts.BlockEncoding.Postselection.Encoding Qatlib.Foundations.BornMetrics.EventProbability Qatlib.Foundations.InstrumentCore.Measurement Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws Qatlib.Foundations.OperatorErrors.OperatorError Qatlib.Concepts.OperatorErrors.Robustness Qatlib.Concepts.OperatorErrors.Robustness.SignalProcessing Qatlib.Concepts.PhaseGeometry.Phase Qatlib.Foundations.PureStateMath.BornBridge Qatlib.Foundations.PureStateMath Qatlib.Foundations.PureStateMath.Reflection Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Concepts.PhaseGeometry.Phase
 
@@ -65,6 +69,7 @@ noncomputable def freshSlotEquiv {m : ℕ} (j : Fin m) :
     (try dsimp only)
     rw [Equiv.symm_apply_apply]
 
+omit [Fintype K] [Fintype I] [DecidableEq I] in
 /-- A fresh lift is the relabeling of the original gate tensored with the identity on the other
 slots. -/
 theorem freshLift_reindex {m : ℕ} (j : Fin m) (V : Matrix (K × I) (K × I) ℂ) :
@@ -102,7 +107,7 @@ theorem freshLift_mul {m : ℕ} (j : Fin m) (V W : Matrix (K × I) (K × I) ℂ)
   have h := (Matrix.reindexAlgEquiv ℂ ℂ (freshSlotEquiv (K := K) (I := I) j)).map_mul
     (TensorGate V (1 : Matrix ({k : Fin m // k ≠ j} → K) ({k : Fin m // k ≠ j} → K) ℂ))
     (TensorGate W (1 : Matrix ({k : Fin m // k ≠ j} → K) ({k : Fin m // k ≠ j} → K) ℂ))
-  simpa only [Matrix.reindexAlgEquiv_apply, relabelGate, tensorGate_mul, Matrix.one_mul] using! h
+  simpa only [Matrix.coe_reindexAlgEquiv, relabelGate, tensorGate_mul, Matrix.one_mul] using! h
 
 /-- A left fold by left multiplication factors an arbitrary initial accumulator onto the right
 of the identity-started fold. -/
@@ -140,13 +145,15 @@ def FreshPreserves {m : ℕ} (j : Fin m)
     (V : Matrix ((Fin m → K) × I) ((Fin m → K) × I) ℂ) : Prop :=
   ∀ x y, x.1 j ≠ y.1 j → V x y = 0
 
+omit [Fintype K] [Fintype I] in
 /-- The identity matrix satisfies `FreshPreserves` for every slot. -/
 theorem FreshPreserves.one {m : ℕ} (j : Fin m) :
     FreshPreserves (K := K) (I := I) j 1 := by
   intro x y h
   simp only [Matrix.one_apply]
-  exact if_neg (fun he => h (congrArg (fun z => z.1 j) he))
+  exact ite_eq_right (fun he => h (congrArg (fun z => z.1 j) he))
 
+omit [DecidableEq I] in
 /-- The product of two matrices satisfying `FreshPreserves` for a slot also satisfies it. -/
 theorem FreshPreserves.mul {m : ℕ} {j : Fin m}
     {U V : Matrix ((Fin m → K) × I) ((Fin m → K) × I) ℂ}
@@ -159,12 +166,13 @@ theorem FreshPreserves.mul {m : ℕ} {j : Fin m}
   · rw [hV z y (by intro hy; exact h (hx.trans hy)), mul_zero]
   · rw [hU x z hx, zero_mul]
 
+omit [Fintype K] [Fintype I] [DecidableEq I] in
 /-- A gate lifted to one slot preserves every distinct slot. -/
 theorem freshLift_preserves {m : ℕ} (j l : Fin m) (hjl : j ≠ l)
     (V : Matrix (K × I) (K × I) ℂ) : FreshPreserves j (freshLift l V) := by
   intro x y h
   change (if ∀ k : Fin m, k ≠ l → x.1 k = y.1 k then (1:ℂ) else 0) * _ = 0
-  rw [if_neg (fun hh => h (hh j hjl)), zero_mul]
+  rw [ite_eq_right (fun hh => h (hh j hjl)), zero_mul]
 
 /-- The matrix fold of an appended list is the fold of the second list multiplied by that of the
 first. -/
@@ -189,6 +197,7 @@ theorem positiveMacro_flatten {X : Type*} [Fintype X] [DecidableEq X]
     exact (positiveMacro_fold_acc (gss.map (fun hs => hs.foldl (fun acc W => W*acc) 1))
       (gs.foldl (fun acc W => W*acc) 1)).symm
 
+omit [Fintype K] [Fintype I] [DecidableEq I] in
 /-- The fresh power circuit consists of the flattened slotwise fresh lifts, each interpreted as
 a gate step. -/
 theorem freshPowerCircuit_gates (m : ℕ) (gs : List (Matrix (K × I) (K × I) ℂ)) :
@@ -248,9 +257,9 @@ theorem fresh_corner_product {m : ℕ} (j : Fin m) (seed : K)
             by_cases hl : l=j
             · subst l; exact hgj
             · exact ho l hl
-          simp only [freshLift, Matrix.of_apply, if_neg ho, zero_mul, mul_zero]
+          simp only [freshLift, Matrix.of_apply, ite_eq_right ho, zero_mul, mul_zero]
         · rw [hT (f,i) (g,b) (by simpa [f] using! Ne.symm hgj), zero_mul]
-      simp only [hz, if_neg hg, zero_mul]
+      simp only [hz, ite_eq_right hg, zero_mul]
   change (∑ y : (Fin m → K) × I, T (f,i) y * freshLift j V y (f,k)) =
     ∑ b : I, T (f,i) (f,b)*V (seed,b) (seed,k)
   calc
@@ -368,9 +377,9 @@ theorem fresh_positive_actual_power_word : ∀ (m : ℕ) (seed : K) (gs : List (
   · rw [freshPowerCircuit_gates]
     exact hcost.2.trans hlen
   · intro psi
-    letI : DecidableEq (Fin m → K) := @Fintype.decidablePiFintype (Fin m)
+    let : DecidableEq (Fin m → K) := @Fintype.decidablePiFintype (Fin m)
       (fun _ : Fin m => K) (fun _ => inferInstance) (Fin.fintype m)
-    letI : DecidableEq ((Fin m → K) × I) := instDecidableEqProd
+    let : DecidableEq ((Fin m → K) × I) := instDecidableEqProd
     unfold freshPowerMatrix
     simp only [freshPowerCircuit_gates, List.foldl_map]
     change Run _ (Vs.map Step.gate) psi = ApplyGate (Vs.foldl (fun acc V => V*acc) 1) psi
@@ -423,6 +432,7 @@ noncomputable def freshPurificationAccessGate (m : ℕ)
   freshLift g.1 (if g.2 = 0 then TensorGate U (1 : Matrix I I ℂ)
     else if g.2 = 1 then purificationSwap else TensorGate Uᴴ (1 : Matrix I I ℂ))
 
+omit [Fintype I] [Fintype A] in
 /-- The fresh purification circuit uses the specified access word, with one forward access,
 adjoint access, and swap per power step. -/
 theorem fresh_purification_same_word_access_ledger : ∀ (m : ℕ) (U : Matrix (A × I) (A × I) ℂ),

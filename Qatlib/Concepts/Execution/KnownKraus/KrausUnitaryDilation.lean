@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.LinearMap
-import Mathlib.Tactic.Ext
-import Qatlib.Foundations.PureStateMath.MixedState
-import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
-import Qatlib.Foundations.PureStateMath.Tensor
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.AdaptiveQueryPurification
+module
+
+public import Mathlib.Analysis.InnerProductSpace.LinearMap
+public import Mathlib.Tactic.Ext
+public import Qatlib.Foundations.PureStateMath.MixedState
+public import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+public import Qatlib.Foundations.PureStateMath.Tensor
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.AdaptiveQueryPurification
+
+@[expose] public section
 
 /-!
 # Unitary dilation of a finite Kraus family

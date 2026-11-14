@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QmaCompleteness.HistoryHam.QmaCompletenessDefs
-import Qatlib.Concepts.QmaCompleteness.HistoryHam.SpectralForrelation
+module
+
+public import Qatlib.Concepts.QmaCompleteness.HistoryHam.QmaCompletenessDefs
+public import Qatlib.Concepts.QmaCompleteness.HistoryHam.SpectralForrelation
+
+@[expose] public section
 
 /-!
 # Counterexamples for truncated Hamiltonian encodings
@@ -165,10 +169,10 @@ theorem clause3E1_ham_zero : lhHamiltonian clause3E1 = 0 := by
     ext x y
     simp only [lhEmbedTerm, Matrix.of_apply, Matrix.zero_apply]
     by_cases h : lhAgreeOutside clause3T1.wires x y
-    · rw [if_pos h]
+    · rw [ite_eq_left h]
       show (((0 : ℤ) : ℂ) + Complex.I * ((0 : ℤ) : ℂ)) / (2 ^ 0 : ℂ) = 0
       norm_num
-    · rw [if_neg h]
+    · rw [ite_eq_right h]
   rw [hz]
   simp
 
@@ -216,11 +220,11 @@ theorem clause3E2_ham : lhHamiltonian clause3E2 = ((2 ^ 65 : ℂ) • (1 : Matri
     by_cases h : x = y
     · subst h
       have htrue : lhAgreeOutside clause3T2.wires x x = true := (lhAgreeOutside_nil x x).mpr rfl
-      rw [if_pos htrue, if_pos rfl]
+      rw [ite_eq_left htrue, ite_eq_left rfl]
       simp [hval]
     · have hfalse : ¬(lhAgreeOutside clause3T2.wires x y = true) :=
         fun hh => h ((lhAgreeOutside_nil x y).mp hh)
-      rw [if_neg hfalse, if_neg h]
+      rw [ite_eq_right hfalse, ite_eq_right h]
       simp
   rw [hz]
   simp
@@ -296,35 +300,35 @@ theorem clause3_clause2 :
   · intro x
     beta_reduce
     by_cases h : Lyes x
-    · rw [if_pos h]; exact ⟨clause3E1_local, clause3E1_herm⟩
-    · rw [if_neg h]; exact ⟨clause3E2_local, clause3E2_herm⟩
+    · rw [ite_eq_left h]; exact ⟨clause3E1_local, clause3E1_herm⟩
+    · rw [ite_eq_right h]; exact ⟨clause3E2_local, clause3E2_herm⟩
   · intro x
     beta_reduce
     by_cases h : Lyes x
-    · rw [if_pos h]; show (clause3E1.terms).length ≤ 1 * (x.length + 1) ^ 1 + 1
+    · rw [ite_eq_left h]; show (clause3E1.terms).length ≤ 1 * (x.length + 1) ^ 1 + 1
       simp only [clause3E1, List.length_cons, List.length_nil, pow_one, Nat.one_mul]
       omega
-    · rw [if_neg h]; show (clause3E2.terms).length ≤ 1 * (x.length + 1) ^ 1 + 1
+    · rw [ite_eq_right h]; show (clause3E2.terms).length ≤ 1 * (x.length + 1) ^ 1 + 1
       simp only [clause3E2, List.length_cons, List.length_nil, pow_one, Nat.one_mul]
       omega
   · intro x
     beta_reduce
     by_cases h : Lyes x
-    · rw [if_pos h]; show (clause3E1).width ≤ 1 * (x.length + 1) ^ 1 + 1
+    · rw [ite_eq_left h]; show (clause3E1).width ≤ 1 * (x.length + 1) ^ 1 + 1
       simp only [clause3E1, pow_one, Nat.one_mul]
       omega
-    · rw [if_neg h]; show (clause3E2).width ≤ 1 * (x.length + 1) ^ 1 + 1
+    · rw [ite_eq_right h]; show (clause3E2).width ≤ 1 * (x.length + 1) ^ 1 + 1
       simp only [clause3E2, pow_one, Nat.one_mul]
       omega
   · intro x hx
     beta_reduce
     have h : Lyes x := hx
-    rw [if_pos h]
+    rw [ite_eq_left h]
     exact ⟨clause3E1, rfl, clause3E1_local, clause3E1_herm, clause3E1_yes⟩
   · intro x hx
     beta_reduce
     have hne : ¬ Lyes x := fun hh => hdisj x hh hx
-    rw [if_neg hne]
+    rw [ite_eq_right hne]
     exact ⟨clause3E2, rfl, clause3E2_local, clause3E2_herm, clause3E2_no⟩
 
 /-- The conjunction of the proposed three-local Hamiltonian promise-QMA membership and

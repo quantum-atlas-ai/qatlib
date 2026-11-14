@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.UniformBqp.Phi3Compile.QtmPhi3Encoding
+module
+
+public import Qatlib.Concepts.UniformBqp.Phi3Compile.QtmPhi3Encoding
+
+@[expose] public section
 
 /-!
 # Finite-basis Phi3 padding specification

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.CompilerComposition
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.CompilerComposition
+
+@[expose] public section
 
 /-!
 # A certified two-stage gate compilation

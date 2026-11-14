@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.InstrumentCore.PatternCompile.UniversalAllPlusInputResource
-import Qatlib.Concepts.ClusterPatterns.CnotPatterns.UniversalInputAux
+module
+
+public import Qatlib.Concepts.InstrumentCore.PatternCompile.UniversalAllPlusInputResource
+public import Qatlib.Concepts.ClusterPatterns.CnotPatterns.UniversalInputAux
+
+@[expose] public section
 
 /-!
 # All-plus resources for classical-input cluster computation

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RiskEstimation.PopulationGap.ImplementationDefs
+module
+
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.ImplementationDefs
+
+@[expose] public section
 
 /-!
 # Arithmetic and workspace implementation checks
@@ -88,7 +92,7 @@ theorem eq_of_mod_zero_of_half (a b : ℕ) (h1 : b ≤ a) (h2 : a < 2 * b)
 
 /-- If `b ≤ a < 2 ^ (c + 1)` and `a < 2 * b` with positive `b`, then `a % b < 2 ^ c`. -/
 theorem mod_lt_half (a b c : ℕ) (h : a < 2 ^ (c + 1)) (h1 : b ≤ a) (h2 : 2 * b > a)
-    (hb : 0 < b) : a % b < 2 ^ c := by
+    (_hb : 0 < b) : a % b < 2 ^ c := by
   have key : a % b = a - b := mod_eq_sub_of_half a b h1 h2
   have hpow : 2 ^ (c + 1) = 2 * 2 ^ c := pow_succ' 2 c
   rw [hpow] at h
@@ -114,7 +118,7 @@ theorem euclidGcd_canon (c : ℕ) : ∀ (fuel a b : ℕ), 2 * c ≤ fuel →
     by_cases hf : fuel = 0
     · subst hf; rfl
     · obtain ⟨f, rfl⟩ := Nat.exists_eq_add_one_of_ne_zero hf
-      rw [euclidGcd_succ, if_pos rfl, Nat.gcd_zero_left]
+      rw [euclidGcd_succ, ite_eq_left rfl, Nat.gcd_zero_left]
   | succ c ih =>
     intro fuel a b hf hba ha
     obtain ⟨f, rfl⟩ : ∃ f, fuel = f + 1 := by
@@ -123,8 +127,8 @@ theorem euclidGcd_canon (c : ℕ) : ∀ (fuel a b : ℕ), 2 * c ≤ fuel →
     rw [euclidGcd_succ]
     by_cases hb : b = 0
     · subst hb
-      rw [if_pos rfl, Nat.gcd_zero_right]
-    · rw [if_neg hb]
+      rw [ite_eq_left rfl, Nat.gcd_zero_right]
+    · rw [ite_eq_right hb]
       have hb0 : 0 < b := by omega
       by_cases h2b : 2 * b ≤ a
       · have hb2 : b < 2 ^ c := euclidGcd_lt_half_le a b c ha h2b
@@ -139,7 +143,7 @@ theorem euclidGcd_canon (c : ℕ) : ∀ (fuel a b : ℕ), 2 * c ≤ fuel →
           by_cases hf0 : f = 0
           · subst hf0; rw [Nat.gcd_self]; rfl
           · obtain ⟨f', rfl⟩ := Nat.exists_eq_add_one_of_ne_zero hf0
-            rw [euclidGcd_succ, if_pos rfl, Nat.gcd_self]
+            rw [euclidGcd_succ, ite_eq_left rfl, Nat.gcd_self]
         · have hmbpos : 0 < a % b := by omega
           have hmble : b % (a % b) ≤ a % b := Nat.le_of_lt (Nat.mod_lt b hmbpos)
           obtain ⟨f', rfl⟩ : ∃ f', f = f' + 1 := by
@@ -147,7 +151,7 @@ theorem euclidGcd_canon (c : ℕ) : ∀ (fuel a b : ℕ), 2 * c ≤ fuel →
             omega
           have hf'' : 2 * c ≤ f' := by omega
           have hmb2 : a % b < 2 ^ c := mod_lt_half a b c ha hba h2b' hb0
-          rw [euclidGcd_succ, if_neg hmb0, ih f' (a % b) (b % (a % b)) hf'' hmble hmb2]
+          rw [euclidGcd_succ, ite_eq_right hmb0, ih f' (a % b) (b % (a % b)) hf'' hmble hmb2]
           exact ((gcd_swap b (a % b)).symm.trans (gcd_swap a b).symm)
 
 /-- For two inputs below `2 ^ c`, at least `2 * c + 1` units of fuel suffice to compute
@@ -161,8 +165,8 @@ theorem euclidGcd_gen (c : ℕ) : ∀ (fuel a b : ℕ), 2 * c + 1 ≤ fuel →
   rw [euclidGcd_succ]
   by_cases hb0 : b = 0
   · subst hb0
-    rw [if_pos rfl, Nat.gcd_zero_right]
-  · rw [if_neg hb0]
+    rw [ite_eq_left rfl, Nat.gcd_zero_right]
+  · rw [ite_eq_right hb0]
     have hbpos : 0 < b := by omega
     have hle : a % b ≤ b := Nat.le_of_lt (Nat.mod_lt a hbpos)
     have hstep : 2 * c ≤ f := by omega

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QShannonWilde11.MainResults.EntanglementDefs
+module
+
+public import Qatlib.Papers.QShannonWilde11.MainResults.EntanglementDefs
+
+@[expose] public section
 
 /-!
 # Separability witnesses and pure-state entanglement entropy

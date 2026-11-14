@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.KitaevReadout.HadamardTestConcentrationSubgoalStat
-import Qatlib.Concepts.HspRecovery.KitaevReadout.HadamardTestBitLawSubgoalQuan
+module
+
+public import Qatlib.Concepts.HspRecovery.KitaevReadout.HadamardTestConcentrationSubgoalStat
+public import Qatlib.Concepts.HspRecovery.KitaevReadout.HadamardTestBitLawSubgoalQuan
+
+@[expose] public section
 
 /-!
 # Concentration of Hadamard test bit averages

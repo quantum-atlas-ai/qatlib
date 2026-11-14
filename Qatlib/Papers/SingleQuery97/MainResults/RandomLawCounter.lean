@@ -4,85 +4,89 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Defs
-import Mathlib.Algebra.BigOperators.Group.Finset.Piecewise
-import Mathlib.Algebra.CharZero.Defs
-import Mathlib.Algebra.Field.Defs
-import Mathlib.Algebra.Field.Rat
-import Mathlib.Algebra.Field.ZMod
-import Mathlib.Algebra.Group.Action.Defs
-import Mathlib.Algebra.Group.Action.Pi
-import Mathlib.Algebra.Group.Basic
-import Mathlib.Algebra.Group.Defs
-import Mathlib.Algebra.Group.DivInvMonoid
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.Group.Pi.Basic
-import Mathlib.Algebra.GroupWithZero.Action.Defs
-import Mathlib.Algebra.GroupWithZero.Action.Pi
-import Mathlib.Algebra.GroupWithZero.Basic
-import Mathlib.Algebra.GroupWithZero.Defs
-import Mathlib.Algebra.Module.Defs
-import Mathlib.Algebra.Module.Pi
-import Mathlib.Algebra.Notation.Defs
-import Mathlib.Algebra.Notation.Pi.Basic
-import Mathlib.Algebra.Notation.Pi.Defs
-import Mathlib.Algebra.Order.Archimedean.Real.Basic
-import Mathlib.Algebra.Order.Floor.Defs
-import Mathlib.Algebra.Order.Monoid.Defs
-import Mathlib.Algebra.Order.Ring.Defs
-import Mathlib.Algebra.Order.Ring.Star
-import Mathlib.Algebra.Order.Star.Basic
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Algebra.Ring.Int.Defs
-import Mathlib.Algebra.Ring.Nat
-import Mathlib.Algebra.Ring.Rat
-import Mathlib.Algebra.Star.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Basic.ENNReal.Basic
-import Mathlib.Basic.ENNReal.Inv
-import Mathlib.Basic.FunLike.Basic
-import Mathlib.Basic.Real.Basic
-import Mathlib.Basic.SetLike.Basic
-import Mathlib.Data.ENNReal.Basic
-import Mathlib.Data.Finset.Basic
-import Mathlib.Data.Finset.Card
-import Mathlib.Data.Finset.Defs
-import Mathlib.Data.Finset.Empty
-import Mathlib.Data.Finset.Filter
-import Mathlib.Data.Fintype.Basic
-import Mathlib.Data.Fintype.Defs
-import Mathlib.Data.Fintype.Pi
-import Mathlib.Data.Int.Cast.Defs
-import Mathlib.Data.Nat.Basic
-import Mathlib.Data.Nat.Cast.Defs
-import Mathlib.Data.Nat.Cast.Order.Basic
-import Mathlib.Data.Nat.Init
-import Mathlib.Data.Nat.Log
-import Mathlib.Data.Nat.Prime.Defs
-import Mathlib.Data.Set.Basic
-import Mathlib.Data.Set.Defs
-import Mathlib.Data.Set.Operations
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Data.ZMod.Defs
-import Mathlib.GroupTheory.Nilpotent
-import Mathlib.GroupTheory.SpecificGroups.Cyclic
-import Mathlib.GroupTheory.SpecificGroups.Cyclic.Basic
-import Mathlib.LinearAlgebra.LinearIndependent.Defs
-import Mathlib.LinearAlgebra.LinearIndependent.Lemmas
-import Mathlib.MeasureTheory.OuterMeasure.Defs
-import Mathlib.Order.Defs.PartialOrder
-import Mathlib.Probability.ProbabilityMassFunction.Basic
-import Mathlib.Probability.ProbabilityMassFunction.Constructions
-import Mathlib.Tactic
-import Mathlib.Tactic.IntervalCases
-import Mathlib.Tactic.NormNum.Basic
-import Mathlib.Tactic.NormNum.Eq
-import Mathlib.Tactic.NormNum.Inv
-import Mathlib.Tactic.NormNum.Pow
-import Mathlib.Tactic.NormNum.Result
-import Mathlib.Tactic.Positivity.Core
+module
+
+public import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Defs
+public import Mathlib.Algebra.BigOperators.Group.Finset.Piecewise
+public import Mathlib.Algebra.CharZero.Defs
+public import Mathlib.Algebra.Field.Defs
+public import Mathlib.Algebra.Field.Rat
+public import Mathlib.Algebra.Field.ZMod
+public import Mathlib.Algebra.Group.Action.Defs
+public import Mathlib.Algebra.Group.Action.Pi
+public import Mathlib.Algebra.Group.Basic
+public import Mathlib.Algebra.Group.Defs
+public import Mathlib.Algebra.Group.DivInvMonoid
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.Group.Pi.Basic
+public import Mathlib.Algebra.GroupWithZero.Action.Defs
+public import Mathlib.Algebra.GroupWithZero.Action.Pi
+public import Mathlib.Algebra.GroupWithZero.Basic
+public import Mathlib.Algebra.GroupWithZero.Defs
+public import Mathlib.Algebra.Module.Defs
+public import Mathlib.Algebra.Module.Pi
+public import Mathlib.Algebra.Notation.Defs
+public import Mathlib.Algebra.Notation.Pi.Basic
+public import Mathlib.Algebra.Notation.Pi.Defs
+public import Mathlib.Algebra.Order.Archimedean.Real.Basic
+public import Mathlib.Algebra.Order.Floor.Defs
+public import Mathlib.Algebra.Order.Monoid.Defs
+public import Mathlib.Algebra.Order.Ring.Defs
+public import Mathlib.Algebra.Order.Ring.Star
+public import Mathlib.Algebra.Order.Star.Basic
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Algebra.Ring.Int.Defs
+public import Mathlib.Algebra.Ring.Nat
+public import Mathlib.Algebra.Ring.Rat
+public import Mathlib.Algebra.Star.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Basic.ENNReal.Basic
+public import Mathlib.Basic.ENNReal.Inv
+public import Mathlib.Basic.FunLike.Basic
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Basic.SetLike.Basic
+public import Mathlib.Basic.ENNReal.Basic
+public import Mathlib.Data.Finset.Basic
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Data.Finset.Defs
+public import Mathlib.Data.Finset.Empty
+public import Mathlib.Data.Finset.Filter
+public import Mathlib.Data.Fintype.Basic
+public import Mathlib.Data.Fintype.Defs
+public import Mathlib.Data.Fintype.Pi
+public import Mathlib.Data.Int.Cast.Defs
+public import Mathlib.Data.Nat.Basic
+public import Mathlib.Data.Nat.Cast.Defs
+public import Mathlib.Data.Nat.Cast.Order.Basic
+public import Mathlib.Data.Nat.Init
+public import Mathlib.Data.Nat.Log
+public import Mathlib.Data.Nat.Prime.Defs
+public import Mathlib.Data.Set.Basic
+public import Mathlib.Data.Set.Defs
+public import Mathlib.Data.Set.Operations
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Data.ZMod.Defs
+public import Mathlib.GroupTheory.Nilpotent
+public import Mathlib.GroupTheory.SpecificGroups.Cyclic
+public import Mathlib.GroupTheory.SpecificGroups.Cyclic.Basic
+public import Mathlib.LinearAlgebra.LinearIndependent.Defs
+public import Mathlib.LinearAlgebra.LinearIndependent.Lemmas
+public import Mathlib.MeasureTheory.OuterMeasure.Defs
+public import Mathlib.Order.Defs.PartialOrder
+public import Mathlib.Probability.ProbabilityMassFunction.Basic
+public import Mathlib.Probability.ProbabilityMassFunction.Constructions
+public import Mathlib.Tactic
+public import Mathlib.Tactic.IntervalCases
+public import Mathlib.Tactic.NormNum.Basic
+public import Mathlib.Tactic.NormNum.Eq
+public import Mathlib.Tactic.NormNum.Inv
+public import Mathlib.Tactic.NormNum.Pow
+public import Mathlib.Tactic.NormNum.Result
+public import Mathlib.Tactic.Positivity.Core
+
+@[expose] public section
 
 /-!
 # A counterexample to the printed random-code collision law
@@ -204,7 +208,7 @@ theorem sampleLaw_collision :
     ext g
     exact (collides_iff_response_equal g).symm
   rw [he, sampleLaw, PMF.toOuterMeasure_uniformOfFinset'_apply]
-  simp only [Set.mem_setOf_eq]
+  simp only [Set.mem_ofPred_eq]
   rw [samples_card, collisions_card]
   apply (ENNReal.toReal_eq_toReal_iff' (by finiteness) (by finiteness)).mp
   norm_num [ENNReal.toReal_div]

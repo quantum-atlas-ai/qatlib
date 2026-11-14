@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
-import Qatlib.Concepts.CurveGroups.AffineAdd.NativeXor
-import Qatlib.Concepts.FiniteCounts.OffsetWord.BinaryWord
+module
+
+public import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+public import Qatlib.Concepts.CurveGroups.AffineAdd.NativeXor
+public import Qatlib.Concepts.FiniteCounts.OffsetWord.BinaryWord
+
+@[expose] public section
 
 /-!
 # Finite curve groups and cyclic offsets
@@ -77,7 +81,7 @@ theorem native_cyclic_failure {a b : K} (P : (shortCurve a b).Point) (m n : ℕ)
       {a0 | checkedRun a0 (doubleWord (cyclicGenerator P) (m • cyclicGenerator P)
         (List.ofFn k) (List.ofFn l)) = none}).toReal ≤
       (8*(n+1) : ℕ) / (Fintype.card (AddSubgroup.zmultiples P) - 1 : ℕ) := by
-  letI := cyclicFintype P
+  let := cyclicFintype P
   exact source_width_failure_le (cyclicGenerator P) (m • cyclicGenerator P) n k l h
 
 end Qatlib.Concepts.CurveGroups.AffineAdd

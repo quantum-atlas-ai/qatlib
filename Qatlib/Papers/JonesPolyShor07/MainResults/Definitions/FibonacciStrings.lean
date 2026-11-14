@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.Group.Nat.Defs
-import Mathlib.Data.Nat.Fib.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.Group.Nat.Defs
+public import Mathlib.Data.Nat.Fib.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Fibonacci strings and their weighted values

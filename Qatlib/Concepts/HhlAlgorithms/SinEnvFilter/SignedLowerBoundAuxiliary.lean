@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.QlsHhlDefs
-import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteGatePhaseBoundary
+module
+
+public import Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.QlsHhlDefs
+public import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteGatePhaseBoundary
+
+@[expose] public section
 
 /-!
 # Signed diagonal instances for HHL lower-bound arguments
@@ -235,7 +239,7 @@ theorem wireGate_mulVec_update {n : ℕ} (w : Fin n) (U : Matrix Bool Bool ℂ)
   have houtside : ∀ y : Reg n, ¬(∀ k : Fin n, k ≠ w → z k = y k) →
       wireGate n w U z y * ψ y = 0 := by
     intro y hy
-    rw [wireGate_apply, if_neg hy, zero_mul]
+    rw [wireGate_apply, ite_eq_right hy, zero_mul]
   have hpart : (∑ y : Reg n, wireGate n w U z y * ψ y)
       = ∑ y ∈ (Finset.univ : Finset (Reg n)).filter (fun y => ∀ k : Fin n, k ≠ w → z k = y k),
         wireGate n w U z y * ψ y := by
@@ -258,7 +262,7 @@ theorem wireGate_mulVec_update {n : ℕ} (w : Fin n) (U : Matrix Bool Bool ℂ)
       intro k hk
       rw [← hb]
       simp [Function.update_of_ne hk]
-    rw [wireGate_apply, if_pos hy']
+    rw [wireGate_apply, ite_eq_left hy']
   rw [hstep, Finset.sum_image hinj]
   simp only [Function.update_self]
 
@@ -324,7 +328,7 @@ theorem q86HWord_run (n m : ℕ) (hmn : m ≤ n) : ∀ k, k ≤ m → ∀ z : Re
     rw [hrun, wireGate_mulVec_update, Fintype.sum_bool,
       ihz (Function.update z ⟨k, hklt⟩ false), ihz (Function.update z ⟨k, hklt⟩ true)]
     by_cases hz : ∀ i : Fin n, k + 1 ≤ i.val → z i = false
-    · rw [if_pos hz]
+    · rw [ite_eq_left hz]
       have hz1 : ∀ i : Fin n, k ≤ i.val → Function.update z ⟨k, hklt⟩ false i = false := by
         intro i hi
         by_cases hi' : i.val = k
@@ -336,7 +340,7 @@ theorem q86HWord_run (n m : ℕ) (hmn : m ≤ n) : ∀ k, k ≤ m → ∀ z : Re
         intro h
         have := h ⟨k, hklt⟩ (Nat.le_refl k)
         simp at this
-      rw [if_pos hz1, if_neg hz2, mul_zero]
+      rw [ite_eq_left hz1, ite_eq_right hz2, mul_zero]
       simp only [zero_add, hadamard_apply_false]
       ring
     · have hzn : ¬ ∀ i : Fin n, k + 1 ≤ i.val → z i = false := hz
@@ -346,7 +350,7 @@ theorem q86HWord_run (n m : ℕ) (hmn : m ≤ n) : ∀ k, k ≤ m → ∀ z : Re
       have hne : (i : Fin n) ≠ ⟨k, hklt⟩ := by
         intro he
         exact hi1.ne (congrArg Fin.val he).symm
-      rw [if_neg hzn]
+      rw [ite_eq_right hzn]
       have hz1 : ¬ ∀ j : Fin n, k ≤ j.val → Function.update z ⟨k, hklt⟩ false j = false := by
         intro h
         have := h i (by omega)
@@ -357,7 +361,7 @@ theorem q86HWord_run (n m : ℕ) (hmn : m ≤ n) : ∀ k, k ≤ m → ∀ z : Re
         have := h i (by omega)
         rw [Function.update_of_ne hne] at this
         exact hzi this
-      rw [if_neg hz1, if_neg hz2]
+      rw [ite_eq_right hz1, ite_eq_right hz2]
       simp only [mul_zero, add_zero]
 
 /-- The Hadamard preparation has amplitude `((sqrt 2)⁻¹)^m` at every embedded label of `Fin
@@ -381,7 +385,7 @@ theorem q86_run_at_label (m : ℕ) (i : Fin (2 ^ m)) :
     have hi2 : i.val < 2 ^ j.val := lt_of_lt_of_le hi h2
     simp only [qlsRegEmbed]
     rw [Nat.testBit_lt_two_pow hi2]
-  simp only [if_pos hcond]
+  simp only [ite_eq_left hcond]
 
 /-- The dimension-`2^m` sparse HHL request with sign-diagonal data, sparsity and condition
 parameter one, error `1 / 4`, and Hadamard input preparation. -/
@@ -516,12 +520,12 @@ theorem q86_leastSquaresDirection (m : ℕ) (σ : Fin (2 ^ m) → Bool) :
       else some (PostMeasure (leastSquaresVector ((q86Data σ).matrix : Matrix (Fin (2 ^ m)) _ ℂ)
         (qlsPreparedInput (q86Req m σ))) Finset.univ))
     = some (q86Target m σ)
-  rw [hvec, if_neg hne]
+  rw [hvec, ite_eq_right hne]
   congr 1
   have hn : Normalized (q86Target m σ) := q86_target_normalized m σ
   have hcollapse : Collapse (q86Target m σ) Finset.univ = q86Target m σ := by
     funext i
-    rw [collapse_apply, if_pos (Finset.mem_univ i)]
+    rw [collapse_apply, ite_eq_left (Finset.mem_univ i)]
   have hprob : MeasureProb (q86Target m σ) Finset.univ = 1 := hn
   funext i
   simp [PostMeasure, hcollapse, hprob]
@@ -551,7 +555,7 @@ theorem q86_zeroExtend_apply (m : ℕ) (ψ : QState (Fin (2 ^ m))) (j : Fin (2 ^
     qlsZeroExtend ψ (qlsRegEmbed (2 ^ m) j) = ψ j := by
   simp only [qlsZeroExtend]
   have hex : ∃ i, qlsRegEmbed (2 ^ m) i = qlsRegEmbed (2 ^ m) j := ⟨j, rfl⟩
-  rw [dif_pos hex]
+  rw [dite_eq_left hex]
   exact congrArg ψ (q86_regEmbed_inj m (Classical.choose_spec hex))
 
 /-- Zero extension preserves the sum of squared entrywise distances between two signed target
@@ -569,7 +573,7 @@ theorem q86_zeroExtend_sub_sq (m : ℕ) (σ τ : Fin (2 ^ m) → Bool) :
     intro x hx
     show ‖(if h : ∃ i, qlsRegEmbed (2 ^ m) i = x then q86Target m σ h.choose else 0)
         - (if h : ∃ i, qlsRegEmbed (2 ^ m) i = x then q86Target m τ h.choose else 0)‖ ^ 2 = 0
-    rw [dif_neg hx, dif_neg hx, sub_self, norm_zero]
+    rw [dite_eq_right hx, dite_eq_right hx, sub_self, norm_zero]
     norm_num
   calc (∑ x : Reg (qlsBitWidth (2 ^ m)),
         ‖qlsZeroExtend (q86Target m σ) x - qlsZeroExtend (q86Target m τ) x‖ ^ 2)
@@ -643,12 +647,12 @@ theorem q86_target_sub_sq (m : ℕ) (σ τ : Fin (2 ^ m) → Bool) :
     intro j
     rw [hscale j]
     by_cases h : σ j = τ j
-    · rw [if_pos h]
+    · rw [ite_eq_left h]
       have hz : (q86Sign σ j - q86Sign τ j : ℂ) = 0 := by
         have heq : q86Sign σ j = q86Sign τ j := by simp [q86Sign, h]
         rw [heq, sub_self]
       rw [hz, zero_mul, norm_zero, zero_pow (by norm_num)]
-    · rw [if_neg h]
+    · rw [ite_eq_right h]
       have hsn : ‖(q86Sign σ j - q86Sign τ j : ℂ)‖ = 2 := q86_sign_sub_norm σ τ j h
       rw [norm_mul, hsn, mul_pow, hnormsq]
       ring

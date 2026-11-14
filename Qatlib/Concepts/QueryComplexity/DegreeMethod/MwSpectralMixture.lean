@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.MwEigenBranches
-import Qatlib.Concepts.WalkSearch.Spectral.CompleteCSDecomposition
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.MwEigenBranches
+public import Qatlib.Concepts.WalkSearch.Spectral.CompleteCSDecomposition
+
+@[expose] public section
 
 /-!
 # Spectral mixtures of alternating measurement branches
@@ -139,6 +143,7 @@ theorem branchState_sum {J : Type*} [Fintype J] (R S : Matrix H H ℂ)
         simp only [branchState, Matrix.mulVec_sum, Matrix.mulVec_smul] <;>
         apply ih
 
+omit [DecidableEq H] in
 /-- For a family with diagonal Gram matrix of real entries `w`, the total mass of a linear
 combination is the sum of squared coefficient norms times `w`. -/
 theorem sum_norm_sq_diagonal_gram {J : Type*} [Fintype J]
@@ -244,6 +249,7 @@ theorem clean_record_mixture {J : Type*} [Fintype J] [DecidableEq J]
     (Aᴴ *ᵥ ψ) t (fun i j => by by_cases h : i = j <;> simpa [h] using! hv i j)
     hfix heig record
 
+omit [DecidableEq H] in
 /-- The squared frame-coordinate norms of a normalized clean state are nonnegative and sum to
 one. -/
 theorem clean_spectral_weights_sum_one {J : Type*} [Fintype J] [DecidableEq J]

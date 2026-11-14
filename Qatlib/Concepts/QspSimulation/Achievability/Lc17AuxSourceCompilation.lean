@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QspSimulation.Achievability.Lc17AuxEndpointNormalization
+module
+
+public import Qatlib.Concepts.QspSimulation.Achievability.Lc17AuxEndpointNormalization
+
+@[expose] public section
 
 /-!
 # Compiling Fourier approximations into source phases

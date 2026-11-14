@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SketchSpectral.EvenSvtCore.EvenSVTFrobeniusCoreStat
-import Qatlib.Concepts.SpectralSketch.SketchSpectral.SvtGramTransferSamp
+module
+
+public import Qatlib.Concepts.SketchSpectral.EvenSvtCore.EvenSVTFrobeniusCoreStat
+public import Qatlib.Concepts.SpectralSketch.SketchSpectral.SvtGramTransferSamp
+
+@[expose] public section
 
 /-!
 # Frobenius error core for even SVT

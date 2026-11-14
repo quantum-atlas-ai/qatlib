@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Matrix.Order
-import Mathlib.Topology.Order.Lattice
-import Mathlib.Topology.Instances.Real.Lemmas
-import Qatlib.Concepts.Execution.KrausRefinement
-import Qatlib.Concepts.InstrumentCore.PovmBridge.MeasurementNetwork
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.AlphabetAdversary
-import Qatlib.Concepts.GramQueryCore.GammaDuality.FilteredGamma2Optimization
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversary
-import Qatlib.Concepts.SdpDuality.StrongDuality.PsdConeGeometry
+module
+
+public import Mathlib.Analysis.Matrix.Order
+public import Mathlib.Topology.Order.Lattice
+public import Mathlib.Topology.Instances.Real.Lemmas
+public import Qatlib.Concepts.Execution.KrausRefinement
+public import Qatlib.Concepts.InstrumentCore.PovmBridge.MeasurementNetwork
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.AlphabetAdversary
+public import Qatlib.Concepts.GramQueryCore.GammaDuality.FilteredGamma2Optimization
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversary
+public import Qatlib.Concepts.SdpDuality.StrongDuality.PsdConeGeometry
+
+@[expose] public section
 
 /-!
 # POVM lifts and adversary constructions
@@ -48,7 +52,7 @@ open Qatlib.Foundations.QueryWordCore.Circuit
 open Qatlib.Concepts.LchsSimulation.StaticLchs Qatlib.Foundations.PureStateMath.Reflection
 open Qatlib.Foundations.PureStateMath
 
-open Qatlib.Concepts.AdversaryBounds.WeightedAdvComp
+open Qatlib.Concepts.AdversaryBounds.WeightedAdvComposition
 open Qatlib.Concepts.GramQueryCore.FilteredCert
 
 namespace Qatlib.Concepts.AdversaryBounds.AdvDuality
@@ -284,7 +288,7 @@ abbrev FourBitWord := Fin 4 → Bool
 def fourBitCode (w : FourBitWord) : ℕ := ∑ i : Fin 4, if w i then 2 ^ (3-i.val) else 0
 
 /-- The explicit integer coefficient table used to construct the four bit adversary witness. -/
-private def fourBitIntegerTable : List (List ℤ) := [
+def fourBitIntegerTable : List (List ℤ) := [
   [0, 0, 578143, 0, 578143, 183237, 707052, 0, 0, 707052, 183237, -211669, 0, -211669, 0, 0],
   [0, 0, 707052, 0, 183237, 578143, -211669, 0, 0, 578143, -211669, 183237, 0, 707052, 0, 0],
   [578143, 707052, 0, 578143, 0, 0, 0, 183237, 183237, 0, 0, 0, -211669, 0, 707052, -211669],

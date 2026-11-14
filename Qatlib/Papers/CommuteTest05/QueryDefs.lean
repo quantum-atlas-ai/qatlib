@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.LinearAlgebra.Matrix.Permutation
-import Mathlib.LinearAlgebra.Matrix.Kronecker
-import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
-import Mathlib.Data.Complex.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
+module
+
+public import Mathlib.LinearAlgebra.Matrix.Permutation
+public import Mathlib.LinearAlgebra.Matrix.Kronecker
+public import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+
+@[expose] public section
 
 /-!
 # Elementary query gates and Boolean oracles
@@ -152,9 +156,9 @@ theorem oracle_mul_self {X : Type} [Fintype X] [DecidableEq X] (f : X → Bool) 
   let a0 : X × Bool := (i.1, Bool.xor i.2 (f i.1))
   have hsingle : (∑ a : X × Bool, oracle f i a * oracle f a j) = oracle f a0 j := by
     rw [Fintype.sum_eq_single a0]
-    · rw [oracle_apply, if_pos rfl, one_mul]
+    · rw [oracle_apply, ite_eq_left rfl, one_mul]
     · intro a ha
-      rw [oracle_apply, if_neg ha, zero_mul]
+      rw [oracle_apply, ite_eq_right ha, zero_mul]
   rw [hsingle, oracle_apply]
   have hkey : (a0.1, Bool.xor a0.2 (f a0.1)) = i := by
     obtain ⟨ix, ib⟩ := i
@@ -167,9 +171,9 @@ theorem oracle_symm {X : Type} [DecidableEq X] (f : X → Bool) (i j : X × Bool
     oracle f i j = oracle f j i := by
   rw [oracle_apply, oracle_apply]
   by_cases hij : j = (i.1, Bool.xor i.2 (f i.1))
-  · rw [if_pos hij]
-    rw [if_pos (by rw [hij]; simp)]
-  · rw [if_neg hij, if_neg]
+  · rw [ite_eq_left hij]
+    rw [ite_eq_left (by rw [hij]; simp)]
+  · rw [ite_eq_right hij, ite_eq_right]
     intro hji
     apply hij
     rw [hji]

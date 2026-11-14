@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.RingTheory.Ideal.Defs
-import Mathlib.RingTheory.Ideal.Operations
-import Mathlib.Algebra.Ring.Subring.Basic
-import Mathlib.Algebra.Group.Subgroup.Lattice
-import Mathlib.Algebra.Module.Submodule.Lattice
+module
+
+public import Mathlib.RingTheory.Ideal.Defs
+public import Mathlib.RingTheory.Ideal.Operations
+public import Mathlib.Algebra.Ring.Subring.Basic
+public import Mathlib.Algebra.Group.Subgroup.Lattice
+public import Mathlib.Algebra.Module.Submodule.Lattice
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -74,7 +78,7 @@ theorem source_lemma_one
               r * y ∈ AddSubgroup.closure base) ?_ ?_ ?_ ?_ hx
           · intro y hy
             exact hclos r y hy
-          · simpa using AddSubgroup.zero_mem (AddSubgroup.closure base)
+          · simp
           · intro u v _ _ hu hv
             rw [mul_add]
             exact AddSubgroup.add_mem _ hu hv

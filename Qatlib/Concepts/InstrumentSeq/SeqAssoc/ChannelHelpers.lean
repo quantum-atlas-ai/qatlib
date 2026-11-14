@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.KrausCircuitDefs
+module
+
+public import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.KrausCircuitDefs
+
+@[expose] public section
 
 /-!
 # Kraus circuits and sequential instruments
@@ -102,7 +106,7 @@ theorem twoStep_traces {d s : ℕ} (O : Qatlib.Foundations.PureStateMath.Operato
         [Qatlib.Concepts.AdversaryBounds.AdvDuality.MixedBranchTrace.mk (Qatlib.Concepts.AdaptiveCP.BranchTrace.conjBranch (K₂ b) (Qatlib.Concepts.AdaptiveCP.BranchTrace.conjBranch (K₁ a) ρ)) true 0 4 2
           [(s, (a : ℕ)), (s, (b : ℕ))]]).flatten).flatten := by
   simp [Qatlib.Concepts.InstrumentSeq.SeqAssoc.KrausSeqCircuitBridge.twoStepCircuit,
-      Qatlib.Concepts.AdversaryBounds.AdvDuality.krausCircuitMixedTraces, Function.comp_def, List.map_singleton]
+      Qatlib.Concepts.AdversaryBounds.AdvDuality.krausCircuitMixedTraces, Function.comp_def]
 
 /-- Mapping traces by a function that preserves their states preserves the sum of their masses. -/
 private theorem mass_of_map_state {d : ℕ}
@@ -126,7 +130,7 @@ private theorem map_flatten_mass {d : ℕ} (l : List (List (Qatlib.Concepts.Adve
   | nil => rfl
   | cons x l ih =>
       simp only [List.flatten_cons, List.map_append, List.sum_append, List.map_cons,
-        List.sum_cons, List.sum_nil, add_zero, ih]
+        List.sum_cons,  ih]
 
 /-- The real trace of Kraus conjugation by `M` equals the real trace of `X * (Mᴴ * M)`. -/
 private theorem trace_conjBranch_eq {d : ℕ} (M X : Qatlib.Foundations.PureStateMath.Operator d) :
@@ -193,14 +197,13 @@ theorem twoStep_mass {d s : ℕ} (O : Qatlib.Foundations.PureStateMath.Operator 
         (fun _ rec => rec = [(s, (a : ℕ)), (s, (b : ℕ))]) =
       Qatlib.Concepts.AdaptiveCP.BranchTrace.instrumentProb (Qatlib.Concepts.InstrumentSeq.SeqAssoc.KrausSeqCircuitBridge.seqInstrument K₁ K₂ h₁ h₂) ρ (a, b) := by
   simp only [Qatlib.Concepts.AdversaryBounds.AdvDuality.krausCircuitEventMass, Qatlib.Concepts.InstrumentSeq.SeqAssoc.KrausSeqCircuitBridge.twoStep_traces, List.map_flatten,
-    List.map_map, Function.comp_def, List.map_ofFn, List.sum_flatten,
+     Function.comp_def, List.map_ofFn, List.sum_flatten,
     List.sum_ofFn, List.map_singleton, List.sum_cons, List.sum_nil,
-    List.cons.injEq, Prod.mk.injEq, Fin.val_inj, and_true, true_and,
-    eq_self_iff_true, true_and]
+    List.cons.injEq, Prod.mk.injEq, Fin.val_inj, and_true, true_and, true_and]
   rw [Finset.sum_eq_single a]
   · rw [Finset.sum_eq_single b]
     · simp [Qatlib.Concepts.AdversaryBounds.AdvDuality.mixedMass,
-        Qatlib.Concepts.AdaptiveCP.BranchTrace.instrumentProb, Qatlib.Concepts.AdaptiveCP.BranchTrace.conjBranch_apply]
+        Qatlib.Concepts.AdaptiveCP.BranchTrace.instrumentProb]
     · intro b' _ hb'
       simp [hb']
     · intro hb

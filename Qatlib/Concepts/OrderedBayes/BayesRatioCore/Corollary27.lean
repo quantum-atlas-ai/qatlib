@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.OrderedBayes.BayesRatioCore.ContractModels
-import Qatlib.Concepts.OrderedBayes.BayesRatioCore.ClassicalInfoLowerBound
-import Mathlib.Tactic.NormNum
+module
+
+public import Qatlib.Concepts.OrderedBayes.BayesRatioCore.ContractModels
+public import Qatlib.Concepts.OrderedBayes.BayesRatioCore.ClassicalInfoLowerBound
+public import Mathlib.Tactic.NormNum
+
+@[expose] public section
 
 /-!
 # Obstruction to a pointwise ordered search lower bound

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QInspired25.MainResults.Model.Basic
-import Qatlib.Papers.QInspired25.MainResults.Simulation.CoordinatorSimulation
+module
+
+public import Qatlib.Papers.QInspired25.MainResults.Model.Basic
+public import Qatlib.Papers.QInspired25.MainResults.Simulation.CoordinatorSimulation
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -97,8 +101,8 @@ theorem sum_fin_ite_zero {k : ℕ} (hk : 0 < k) (c d : ℝ) :
     intro j
     have : (Fin.succ j).val ≠ 0 := by
       simp [Fin.val_succ]
-    simp [this]
-  simp only [Fin.val_zero, if_true, hsucc, Finset.sum_const, Finset.card_univ,
+    simp
+  simp only [Fin.val_zero, ite_true, hsucc, Finset.sum_const, Finset.card_univ,
     Fintype.card_fin, nsmul_eq_mul]
   push_cast
   ring
@@ -111,8 +115,8 @@ theorem sum_fin_ite_zero_single {k : ℕ} (hk : 0 < k) (c : ℝ) :
   have hsucc : ∀ j : Fin k', (if (Fin.succ j).val = 0 then c else 0) = 0 := by
     intro j
     have : (Fin.succ j).val ≠ 0 := by simp [Fin.val_succ]
-    simp [this]
-  simp only [Fin.val_zero, if_true, hsucc, add_zero]
+    simp
+  simp only [Fin.val_zero, ite_true, hsucc]
   simp
 
 /-- The `Fin n` sum of a product of two "single-coordinate" functions. -/
@@ -121,11 +125,11 @@ theorem sum_firstBlock {n : ℕ} (hn : 0 < n) (βA : ℝ) (P Q : Prop) [Decidabl
       (if Q then (if l.val = 0 then βA else 0) else 0)) =
       if P ∧ Q then βA ^ 2 else 0 := by
   by_cases hP : P <;> by_cases hQ : Q
-  · simp only [hP, hQ, if_true, true_and]
+  · simp only [hP, hQ, ite_true, true_and]
     rw [Finset.sum_eq_single (⟨0, hn⟩)]
     · have h0 : ((⟨0, hn⟩ : Fin n)).val = 0 := rfl
       rw [h0]
-      simp only [if_true]
+      simp only [ite_true]
       ring
     · intro l _ hl
       have hl0 : l.val ≠ 0 := by
@@ -141,7 +145,7 @@ theorem sum_secondBlock {n : ℕ} (u : Fin n → ℝ) (P Q : Prop) [Decidable P]
     (∑ l : Fin n, (if P then u l else 0) * (if Q then u l else 0)) =
       if P ∧ Q then frobSqVec u else 0 := by
   by_cases hP : P <;> by_cases hQ : Q
-  · simp only [hP, hQ, if_true, true_and]
+  · simp only [hP, hQ, ite_true, true_and]
     unfold frobSqVec
     exact Finset.sum_congr rfl fun l _ => by ring
   · simp [hP, hQ]
@@ -153,7 +157,7 @@ theorem sum_firstB {n : ℕ} (hn : 0 < n) (βA βb : ℝ) (P : Prop) [Decidable 
     (∑ l : Fin n, (if P then (if l.val = 0 then βA else 0) else 0) *
       (if l.val = 0 then βb else 0)) = if P then βA * βb else 0 := by
   by_cases hP : P
-  · simp only [hP, if_true]
+  · simp only [hP, ite_true]
     rw [Finset.sum_eq_single (⟨0, hn⟩)]
     · have h0 : ((⟨0, hn⟩ : Fin n)).val = 0 := rfl
       rw [h0]
@@ -169,7 +173,7 @@ theorem sum_firstB {n : ℕ} (hn : 0 < n) (βA βb : ℝ) (P : Prop) [Decidable 
 theorem sum_secondB {n : ℕ} (u w : Fin n → ℝ) (c : ℝ) (P : Prop) [Decidable P] :
     (∑ l : Fin n, (if P then u l else 0) * (c * w l)) = if P then c * innerVec u w else 0 := by
   by_cases hP : P
-  · simp only [hP, if_true]
+  · simp only [hP, ite_true]
     have : ∀ l : Fin n, u l * (c * w l) = c * (u l * w l) := fun l => by ring
     simp only [this]
     rw [← Finset.mul_sum]
@@ -199,18 +203,18 @@ theorem rowSparseA_gram {k n : ℕ} (hk : 0 < k) (hn : 0 < n) (βA : ℝ)
       have hb' : ∀ l : Fin n, rowSparseA βA u (j, l) i'
           = if i'.val = 0 then (if l.val = 0 then βA else 0) else 0 := by
         intro l; simp [rowSparseA, hj]
-      simp only [hb, hb', sum_firstBlock hn, hj, if_true]
+      simp only [hb, hb', sum_firstBlock hn, hj, ite_true]
     · have hb : ∀ l : Fin n, rowSparseA βA u (j, l) i = if i = j then u j l else 0 := by
         intro l; simp [rowSparseA, hj]
       have hb' : ∀ l : Fin n, rowSparseA βA u (j, l) i' = if i' = j then u j l else 0 := by
         intro l; simp [rowSparseA, hj]
-      simp only [hb, hb', sum_secondBlock, hj, if_false]
+      simp only [hb, hb', sum_secondBlock, hj, ite_false]
       rw [hunit j]
   simp only [hblock]
   by_cases hi : i.val = 0
   · have hii : i = ⟨0, hk⟩ := Fin.ext (by simpa using hi)
     rw [Finset.sum_eq_single (⟨0, hk⟩)]
-    · simp only [hii, hi, Fin.ext_iff, true_and, if_true]
+    · simp only [hii, Fin.ext_iff, true_and, ite_true]
       by_cases h : i'.val = 0
       · simp [h]
       · simp [h]
@@ -218,17 +222,17 @@ theorem rowSparseA_gram {k n : ℕ} (hk : 0 < k) (hn : 0 < n) (βA : ℝ)
         exact absurd hh.symm h
     · intro j _ hj
       have hj0 : j.val ≠ 0 := fun h => hj (Fin.ext (by simpa using h))
-      rw [if_neg hj0,
-        if_neg (show ¬ (i = j ∧ i' = j) from fun h => hj (h.1.symm.trans hii))]
+      rw [ite_eq_right hj0,
+        ite_eq_right (show ¬ (i = j ∧ i' = j) from fun h => hj (h.1.symm.trans hii))]
     · intro h; exact absurd (Finset.mem_univ _) h
   · rw [Finset.sum_eq_single i]
     · simp [hi, eq_comm]
     · intro j _ hj
       by_cases hj0 : j.val = 0
-      · rw [if_pos hj0,
-          if_neg (show ¬ (i.val = 0 ∧ i'.val = 0) from fun h => hi h.1)]
-      · rw [if_neg hj0,
-          if_neg (show ¬ (i = j ∧ i' = j) from fun h => hj h.1.symm)]
+      · rw [ite_eq_left hj0,
+          ite_eq_right (show ¬ (i.val = 0 ∧ i'.val = 0) from fun h => hi h.1)]
+      · rw [ite_eq_right hj0,
+          ite_eq_right (show ¬ (i = j ∧ i' = j) from fun h => hj h.1.symm)]
     · intro h; exact absurd (Finset.mem_univ i) h
 
 /-! ## §4. `Aᵀ b` -/
@@ -251,27 +255,27 @@ theorem rowSparseA_mulVec_b {k n : ℕ} (hk : 0 < k) (hn : 0 < n) (βA βb : ℝ
         intro l; simp [rowSparseA, hj]
       have hbv : ∀ l : Fin n, rowSparseb βb w (j, l) = if l.val = 0 then βb else 0 := by
         intro l; simp [rowSparseb, hj]
-      simp only [hb, hbv, sum_firstB hn, hj, if_true]
+      simp only [hb, hbv, sum_firstB hn, hj, ite_true]
     · have hb : ∀ l : Fin n, rowSparseA βA u (j, l) i = if i = j then u j l else 0 := by
         intro l; simp [rowSparseA, hj]
       have hbv : ∀ l : Fin n, rowSparseb βb w (j, l) = (n : ℝ) * w l := by
         intro l; simp [rowSparseb, hj]
-      simp only [hb, hbv, sum_secondB, hj, if_false]
+      simp only [hb, hbv, sum_secondB, hj, ite_false]
   simp only [hblock]
   by_cases hi : i.val = 0
   · have hii : i = ⟨0, hk⟩ := Fin.ext (by simpa using hi)
     rw [Finset.sum_eq_single (⟨0, hk⟩)]
-    · simp [hii, hi]
+    · simp [hii]
     · intro j _ hj
       have hj0 : j.val ≠ 0 := fun h => hj (Fin.ext (by simpa using h))
-      rw [if_neg hj0, if_neg (fun h => hj (h.symm.trans hii))]
+      rw [ite_eq_right hj0, ite_eq_right (fun h => hj (h.symm.trans hii))]
     · intro h; exact absurd (Finset.mem_univ _) h
   · rw [Finset.sum_eq_single i]
     · simp [hi]
     · intro j _ hj
       by_cases hj0 : j.val = 0
-      · rw [if_pos hj0]; simp [hi]
-      · rw [if_neg hj0, if_neg (Ne.symm hj)]
+      · rw [ite_eq_left hj0]; simp [hi]
+      · rw [ite_eq_right hj0, ite_eq_right (Ne.symm hj)]
     · intro h; exact absurd (Finset.mem_univ i) h
 
 /-! ## §5. `A x*` and the normal equations -/
@@ -333,12 +337,12 @@ theorem rowSparse_normal_eq {k n : ℕ} (hk : 0 < k) (_hn : 0 < n) (βA βb : �
     · have hb : ∀ l : Fin n, rowSparseA βA u (j, l) i
           = if i.val = 0 then (if l.val = 0 then βA else 0) else 0 := by
         intro l; simp [rowSparseA, hj]
-      simp only [hb, hj, if_true, sub_self, mul_zero, Finset.sum_const_zero]
+      simp only [hb, hj, ite_true, sub_self, mul_zero, Finset.sum_const_zero]
     · have hb : ∀ l : Fin n, rowSparseA βA u (j, l) i = if i = j then u j l else 0 := by
         intro l; simp [rowSparseA, hj]
-      simp only [hb, hj, if_false]
+      simp only [hb, hj, ite_false]
       by_cases hij : i = j
-      · simp only [hij, if_true]
+      · simp only [hij, ite_true]
         have hterm : ∀ l : Fin n, u j l * ((n : ℝ) * (innerVec (u j) w * u j l) - (n : ℝ) * w l)
             = (n : ℝ) * (u j l * (innerVec (u j) w * u j l - w l)) := fun l => by ring
         simp only [hterm, ← Finset.mul_sum, inner_normal (u j) w (hunit j), mul_zero]
@@ -499,7 +503,7 @@ theorem rowSparse_AxStar_frobSq {k n : ℕ} (hk : 0 < k) (hn : 0 < n) (βA βb :
       simp only [hinner]
       rw [← Finset.mul_sum, ← Finset.mul_sum]
       rw [show (∑ i : Fin n, u j i ^ 2) = frobSqVec (u j) from rfl, hunit j, mul_one,
-        if_neg hj]
+        ite_eq_right hj]
   simp only [hblock]
   have hdecomp : ∀ j : Fin k,
       (if j.val = 0 then βb ^ 2 else (n : ℝ) ^ 2 * (innerVec (u j) w) ^ 2)

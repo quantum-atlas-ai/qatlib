@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Foundations.PureStateMath.Tensor
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Papers.QAlgorithms97.MainResults.OracleInterfaces
-import Qatlib.Papers.QComplexity97.XorSeparation.ParityOracleSeparationRestricted
+module
+
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Foundations.PureStateMath.Tensor
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Papers.QAlgorithms97.MainResults.OracleInterfaces
+public import Qatlib.Papers.QComplexity97.XorSeparation.ParityOracleSeparationRestricted
+
+@[expose] public section
 
 /-!
 # Deutsch-Jozsa interference and readout
@@ -156,7 +160,7 @@ lemma dj_constant_state (f : Reg n → Bool) (b : Bool) (hf : ∀ x, f x = b) :
   simp only [hsig]
   rw [← Finset.sum_mul, dj_hadamard_row_sum]
   by_cases hy : y = ZeroStr n
-  · rw [if_pos hy, if_pos hy]
+  · rw [ite_eq_left hy, ite_eq_left hy]
     calc
       djUniformAmp n *
           (djUniformAmp n * (2 : ℂ) ^ n * (if b then (-1 : ℂ) else 1))
@@ -164,7 +168,7 @@ lemma dj_constant_state (f : Reg n → Bool) (b : Bool) (hf : ∀ x, f x = b) :
               (djUniformAmp n * djUniformAmp n * (2 : ℂ) ^ n) := by ring
       _ = (if b then (-1 : ℂ) else 1) * 1 := by rw [djUniformAmp_sq_mul_card]
       _ = (if b then (-1 : ℂ) else 1) := by ring
-  · rw [if_neg hy, if_neg hy]
+  · rw [ite_eq_right hy, ite_eq_right hy]
     ring
 
 /-- A balanced function gives zero amplitude at the all-zero output. -/

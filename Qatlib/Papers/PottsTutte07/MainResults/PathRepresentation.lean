@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.PottsTutte07.MainResults.Definitions
+module
+
+public import Qatlib.Papers.PottsTutte07.MainResults.Definitions
+
+@[expose] public section
 
 /-!
 # Path-coefficient normalization identities
@@ -64,7 +68,7 @@ theorem lemma5_1
       = (if adj l k then π l else 0) / π k := by
     intro l
     by_cases h : adj l k
-    · simp only [h, if_true]
+    · simp only [h, ite_true]
       have hs : a l k * a l k = a l k ^ 2 := by ring
       rw [hs, ha l k]
     · simp [h]

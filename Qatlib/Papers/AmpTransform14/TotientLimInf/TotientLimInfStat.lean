@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.NumberTheory.Harmonic.EulerMascheroni
-import Mathlib.Data.Nat.Totient
+module
+
+public import Mathlib.NumberTheory.Harmonic.EulerMascheroni
+public import Mathlib.Data.Nat.Totient
+
+@[expose] public section
 
 /-!
 # The totient lower-limit statement
@@ -27,6 +31,12 @@ This development supports the treatment in [Cornwell2014].
 set_option autoImplicit false
 namespace Qatlib.Papers.AmpTransform14.TotientLimInf
 
+/--
+error: The namespace `TotientLimInf` is duplicated in the declaration `Qatlib.Papers.AmpTransform14.TotientLimInf.TotientLimInf`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The proposition that the lower limit of `φ(N) * log(log N) / N` along the natural numbers
 equals `exp(-eulerMascheroniConstant)`. -/
 def TotientLimInf : Prop :=

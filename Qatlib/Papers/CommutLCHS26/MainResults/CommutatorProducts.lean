@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommutLCHS26.MainResults.CommutatorGrowth
+module
+
+public import Qatlib.Papers.CommutLCHS26.MainResults.CommutatorGrowth
+
+@[expose] public section
 
 /-!
 # Products of commutator profile coefficients

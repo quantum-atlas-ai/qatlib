@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Concepts.SdpDuality.StrongDuality.SdpDuality
-import Qatlib.Concepts.DyadicFloor.FloorRounding.SdpDualityDefs
-import Qatlib.Concepts.SchattenDiamond.DiamondNorm.FiniteDiamondNorm
-import Qatlib.Concepts.SchattenDiamond.DiamondNorm.DiamondStabilization
+module
+
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Concepts.SdpDuality.StrongDuality.SdpDuality
+public import Qatlib.Concepts.SdpDuality.StrongDuality.SdpDualityDefs
+public import Qatlib.Concepts.SchattenDiamond.DiamondNorm.FiniteDiamondNorm
+public import Qatlib.Concepts.SchattenDiamond.DiamondNorm.DiamondStabilization
+
+@[expose] public section
 
 open Qatlib.Concepts.SchattenDiamond.DiamondNorm
 
@@ -49,7 +53,7 @@ open scoped Matrix.Norms.L2Operator ENNReal BigOperators ComplexOrder
 namespace Qatlib.Papers.BddNormSDP12.MainResults.SourceDuality
 
 open Qatlib.Concepts.SdpDuality.StrongDuality
-open Qatlib.Concepts.DyadicFloor.FloorRounding
+open Qatlib.Concepts.SdpDuality.StrongDuality
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Concepts.AdaptiveCP.BranchTrace.CompletelyPositive
 open Qatlib.Foundations.PureStateMath
@@ -108,7 +112,7 @@ def finiteDiamondSpectralNorm {M N : ℕ} (S : Operator M →ₗ[ℂ] Operator N
     if ‖X‖ ≤ 1 then ENNReal.ofReal ‖tensorLeft S X‖ else 0
 
 /-- Elementary matrix unit `|j⟩⟨i|` on `ℂ^D`. -/
-private def basisOp {D : ℕ} (j i : Fin D) : Operator D :=
+def basisOp {D : ℕ} (j i : Fin D) : Operator D :=
   fun a b => if a = j then if b = i then 1 else 0 else 0
 
 private lemma matrix_eq_sum_basisOp {D : ℕ} (X : Operator D) :

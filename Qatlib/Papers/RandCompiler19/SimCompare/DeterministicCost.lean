@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Sqrt
-import Mathlib.Analysis.SpecialFunctions.Exp
-import Mathlib.Algebra.Order.Field.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Sqrt
+public import Mathlib.Analysis.SpecialFunctions.Exp
+public import Mathlib.Algebra.Order.Field.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Deterministic product-formula costs and the Table I comparison (source Appendix C)

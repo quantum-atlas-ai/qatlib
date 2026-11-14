@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.BitColumnAccess.ColumnAssemble.BitColumnValueAccessDefs
-import Mathlib.Data.List.FinRange
+module
+
+public import Qatlib.Concepts.BitColumnAccess.ColumnAssemble.BitColumnValueAccessDefs
+public import Mathlib.Data.List.FinRange
+
+@[expose] public section
 
 /-!
 # Assembling value queries from bit columns
@@ -67,7 +71,7 @@ private theorem perm_comp {I : Type} [Fintype I] [DecidableEq I] (σ τ : I → 
   rw [Finset.sum_eq_single (τ b)]
   · simp
   · intro k _ hk
-    rw [if_neg hk, mul_zero]
+    rw [ite_eq_right hk, mul_zero]
   · intro h
     exact absurd (Finset.mem_univ _) h
 
@@ -197,7 +201,7 @@ private theorem valueGates_known {N b : ℕ} (A : Matrix (Fin N × Reg b) (Fin N
     (W : List (ValueStep N b)) : valueGates (.known A::W)=1+valueGates W := by
   have hv : valueQueries W ≤ W.length := List.countP_le_length
   simp only [valueGates, valueQueries, List.length_cons, List.countP_cons,
-    Bool.false_eq_true, if_false, Nat.add_zero]
+    Bool.false_eq_true, ite_false, Nat.add_zero]
   unfold valueQueries at hv
   omega
 

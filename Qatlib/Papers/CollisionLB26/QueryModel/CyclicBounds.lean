@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CollisionLB26.QueryModel.CyclicCell
-import Qatlib.Concepts.CompressedQuery.CyclicRecord.OffDiagonal
-import Qatlib.Concepts.CompressedQuery.CyclicRecord.Action
+module
+
+public import Qatlib.Papers.CollisionLB26.QueryModel.CyclicCell
+public import Qatlib.Concepts.CompressedQuery.CyclicRecord.OffDiagonal
+public import Qatlib.Concepts.CompressedQuery.CyclicRecord.Action
+
+@[expose] public section
 
 /-!
 # Entry bounds for cyclic recording queries

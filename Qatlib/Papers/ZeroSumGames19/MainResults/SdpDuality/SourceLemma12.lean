@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ZeroSumGames19.MainResults.GameModel.SourceGameModel
+module
+
+public import Qatlib.Papers.ZeroSumGames19.MainResults.GameModel.SourceGameModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -79,9 +83,9 @@ theorem lemma12_second_case_arithmetic {OPT α R r ε ε''' bTy : ℝ}
     LP (4), which is not constructed in this library (the `LPGameReduction`
     record only carries the numbers).  The decision arithmetic is proved. -/
 theorem source_lemma12
-    {n m : ℕ} (hn : 0 < n) (hm : 0 < m)
+    {n m : ℕ} (_hn : 0 < n) (_hm : 0 < m)
     (data : LPGameReduction n m) (lamHat ε : ℝ)
-    (hε : 0 < ε) (hR : 0 < data.R) (hr : 0 ≤ data.r)
+    (_hε : 0 < ε) (hR : 0 < data.R) (hr : 0 ≤ data.r)
     (hacc : |lamHat - data.lambdaStar| ≤ ε / (6 * data.R * (data.r + 1)))
     (hcase1 : 0 < data.lambdaStar → data.OPT < data.α)
     (hcase2 : data.lambdaStar ≤ 2 * (ε / (6 * data.R * (data.r + 1))) →

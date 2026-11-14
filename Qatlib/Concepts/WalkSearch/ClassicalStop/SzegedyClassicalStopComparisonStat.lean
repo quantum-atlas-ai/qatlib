@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.ClassicalStop.SzegedyClassicalAbsorbingMassDecayStat
-import Qatlib.Concepts.WalkSearch.ClassicalStop.SzegedyClassicalStopComparisonDefs
+module
+
+public import Qatlib.Concepts.WalkSearch.ClassicalStop.SzegedyClassicalAbsorbingMassDecayStat
+public import Qatlib.Concepts.WalkSearch.ClassicalStop.SzegedyClassicalStopComparisonDefs
+
+@[expose] public section
 
 /-!
 # Classical stopping comparison statement

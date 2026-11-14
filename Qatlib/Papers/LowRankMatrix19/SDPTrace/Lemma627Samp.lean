@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.NumericError.RatioError
-import Qatlib.Papers.LowRankMatrix19.SDPTrace.Lemma627Stat
+module
+
+public import Qatlib.Foundations.NumericError.RatioError
+public import Qatlib.Papers.LowRankMatrix19.SDPTrace.Lemma627Stat
+
+@[expose] public section
 
 /-!
 # Stability of normalized trace estimates

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.LinearAlgebra.Matrix.Notation
-import Mathlib.Analysis.Real.Sqrt
+module
+
+public import Mathlib.LinearAlgebra.Matrix.Notation
+public import Mathlib.Analysis.Real.Sqrt
+
+@[expose] public section
 
 /-!
 # Effective matrix for element distinctness

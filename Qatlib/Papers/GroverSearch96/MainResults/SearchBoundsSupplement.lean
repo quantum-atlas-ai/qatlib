@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SearchStopping.KnownCount.Section3QueryBoundSubgoalAfas
-import Qatlib.Concepts.SearchStopping.KnownCount.SummarySearchOptimalityAfas
-import Qatlib.Concepts.SearchStopping.KnownCount.Section6LowerBoundSubgoalAfas
-import Qatlib.Concepts.SearchStopping.KnownCount.PreparedSearch
-import Mathlib.Analysis.Real.Pi.Bounds
-import Qatlib.Papers.GroverSearch96.MainResults.SearchBounds
+module
+
+public import Qatlib.Concepts.SearchStopping.KnownCount.Section3QueryBoundSubgoal
+public import Qatlib.Concepts.SearchStopping.KnownCount.SummarySearchOptimality
+public import Qatlib.Concepts.SearchStopping.KnownCount.Section6LowerBoundSubgoal
+public import Qatlib.Concepts.SearchStopping.KnownCount.PreparedSearch
+public import Mathlib.Analysis.Real.Pi.Bounds
+public import Qatlib.Papers.GroverSearch96.MainResults.SearchBounds
+
+@[expose] public section
 
 /-!
 # Grover 1996, §3 algorithm, Summary headline and §6 lower bound

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommutLCHS26.QuadratureCmp.RawMPF
-import Qatlib.Papers.CommutLCHS26.MainResults.KernelStrip
-import Mathlib.MeasureTheory.Function.LocallyIntegrable
+module
+
+public import Qatlib.Papers.CommutLCHS26.QuadratureCmp.RawMPF
+public import Qatlib.Papers.CommutLCHS26.MainResults.KernelStrip
+public import Mathlib.MeasureTheory.Function.LocallyIntegrable
+
+@[expose] public section
 
 /-!
 # Continuous-window multi-product error bounds

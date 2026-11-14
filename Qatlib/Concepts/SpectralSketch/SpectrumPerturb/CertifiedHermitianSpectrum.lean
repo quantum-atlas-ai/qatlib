@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.MatrixComputationDefs
+module
 
-import Mathlib.Analysis.Matrix.Spectrum
-import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
-import Mathlib.LinearAlgebra.Dimension.Constructions
-import Mathlib.Tactic
+public import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.MatrixComputationDefs
+
+public import Mathlib.Analysis.Matrix.Spectrum
+public import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
+public import Mathlib.LinearAlgebra.Dimension.Constructions
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Certified Hermitian spectrum computation
@@ -375,7 +379,7 @@ theorem hasNegIndex_diagonal {n : ℕ} (d : Fin n → ℝ) :
         f c (ec i).1 = c i := by
       intro c i
       simp only [f, LinearMap.pi_apply]
-      rw [dif_pos (ec i).2, LinearMap.proj_apply, Equiv.symm_apply_apply]
+      rw [dite_eq_left (ec i).2, LinearMap.proj_apply, Equiv.symm_apply_apply]
     have hfinj : Function.Injective ⇑f := by
       intro c c' hcc
       funext i
@@ -386,7 +390,7 @@ theorem hasNegIndex_diagonal {n : ℕ} (d : Fin n → ℝ) :
       rw [qform_diagonal]
       have hzero : ∀ j, ¬ d j < 0 → f c j = 0 := by
         intro j hj
-        simp only [f, LinearMap.pi_apply, dif_neg hj, LinearMap.zero_apply]
+        simp only [f, LinearMap.pi_apply, dite_eq_right hj, LinearMap.zero_apply]
       have hsplit : (∑ j, d j * (f c j) ^ 2) =
           (Finset.univ.filter (fun j => d j < 0)).sum (fun j => d j * (f c j) ^ 2) := by
         rw [Finset.sum_filter]
@@ -1356,7 +1360,8 @@ lemma reindex_conj {ι κ : Type*} [Fintype ι] [DecidableEq ι] [Fintype κ] [D
   have hmul : ∀ (P Q : Matrix κ κ ℚ),
       Matrix.reindex e.symm e.symm (P * Q)
         = Matrix.reindex e.symm e.symm P * Matrix.reindex e.symm e.symm Q := fun P Q =>
-    Matrix.reindexAlgEquiv_mul (R := ℚ) (A := ℚ) (e := e.symm) (M := P) (N := Q)
+    by simpa only [Matrix.coe_reindexAlgEquiv] using
+      (map_mul (Matrix.reindexAlgEquiv ℚ ℚ e.symm)  P Q)
   rw [Matrix.transpose_reindex, hmul, hmul, ← reindex_diagonal]
 
 /-- Reindexing a matrix along an equivalence and then its inverse recovers the matrix. -/
@@ -2461,9 +2466,9 @@ lemma matBitLe_one {m : Type*} [DecidableEq m] {b : ℕ} :
   fun i j => by
     rw [Matrix.one_apply]
     by_cases h : i = j
-    · rw [if_pos h]
+    · rw [ite_eq_left h]
       exact bitLe_one b
-    · rw [if_neg h]
+    · rw [ite_eq_right h]
       exact bitLe_zero b
 
 /-- An entrywise rational matrix height bound remains valid when its exponent is increased. -/
@@ -2519,9 +2524,9 @@ lemma matBitLe_diagonal {m : Type*} [DecidableEq m] {b : ℕ} {d : m → ℚ}
   fun i j => by
     rw [Matrix.diagonal_apply]
     by_cases h : i = j
-    · rw [if_pos h]
+    · rw [ite_eq_left h]
       exact hd i
-    · rw [if_neg h]
+    · rw [ite_eq_right h]
       exact bitLe_zero b
 
 /-- A common entrywise height bound for four blocks gives the same bound for their block matrix. -/

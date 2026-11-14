@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.MainResults.PairedDrain
+module
+
+public import Qatlib.Concepts.WalkSearch.MainResults.PairedDrain
+
+@[expose] public section
 
 /-!
 # Bounds on paired removal traces

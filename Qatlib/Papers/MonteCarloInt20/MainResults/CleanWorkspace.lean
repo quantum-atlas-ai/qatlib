@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MonteCarloInt20.MainResults.InnerOracle
+module
+
+public import Qatlib.Papers.MonteCarloInt20.MainResults.InnerOracle
+
+@[expose] public section
 
 /-!
 # Workspace cleanup for the inner term preparation

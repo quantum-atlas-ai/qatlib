@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Zayn Blore, Qatlib Contributors
 -/
 
-import Qatlib.Concepts.UnbiasedBases.ThreeBasis.SU2Rotation
+module
+
+public import Qatlib.Concepts.UnbiasedBases.ThreeBasis.SU2Rotation
+
+@[expose] public section
 
 /-!
 # Euler Decompositions of Qubit Unitaries

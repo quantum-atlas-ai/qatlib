@@ -4,13 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.OrderedBayes.BayesRatioCore.Lemma23Quan
-import Qatlib.Concepts.OrderedBayes.BayesRatioCore.BayesTruthDefs
-import Mathlib.LinearAlgebra.Matrix.ConjTranspose
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.Linarith
+module
+
+public import Qatlib.Concepts.OrderedBayes.BayesRatioCore.Lemma23Quan
+public import Qatlib.Concepts.OrderedBayes.BayesRatioCore.BayesTruthDefs
+public import Mathlib.LinearAlgebra.Matrix.ConjTranspose
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.Linarith
+public import Qatlib.Foundations.ProbabilityCore.CoinLaw
+
+@[expose] public section
 
 /-!
 # Numerical consistency checks for ordered search
@@ -89,7 +94,7 @@ open scoped ENNReal NNReal
 /-- A costed Boolean experiment returning `truth` with probability 3/4 and its negation
 otherwise, with cost one in either case. -/
 noncomputable def oneComparison (truth : Bool) : CostedLaw Bool :=
-  (PMF.bernoulli (3 / 4 : ℝ≥0) (by exact_mod_cast (show (3:ℝ)/4 ≤ 1 by norm_num))).bind fun correct =>
+  (Qatlib.Foundations.ProbabilityCore.CoinLaw.bernoulli (3 / 4 : ℝ≥0) (by exact_mod_cast (show (3:ℝ)/4 ≤ 1 by norm_num))).bind fun correct =>
     PMF.pure ((if correct then truth else !truth), 1)
 
 /-- The probability that `oneComparison truth` returns `truth` is exactly 3/4. -/

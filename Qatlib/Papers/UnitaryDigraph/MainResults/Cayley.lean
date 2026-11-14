@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.UnitaryDigraph.MainResults.Eulerian.Theorem3
-import Qatlib.Papers.UnitaryDigraph.MainResults.Defs
+module
+
+public import Qatlib.Papers.UnitaryDigraph.MainResults.Eulerian.Theorem3
+public import Qatlib.Papers.UnitaryDigraph.MainResults.Defs
+
+@[expose] public section
 
 /-!
 # Unitary line digraphs of finite Cayley digraphs

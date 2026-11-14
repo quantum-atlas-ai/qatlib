@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.NativeQuantumMachineDefs
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Tactic
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.NativeQuantumMachineDefs
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Precision accumulation with an initial discrepancy

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MonteCarloMean.PayoffRotation.RationalPayoffRotation
+module
+
+public import Qatlib.Concepts.MonteCarloMean.PayoffRotation.RationalPayoffRotation
+
+@[expose] public section
 
 /-!
 # Scaled rational square-root routines

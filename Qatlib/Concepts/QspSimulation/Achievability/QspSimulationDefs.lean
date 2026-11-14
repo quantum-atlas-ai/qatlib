@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QspSimulation.Achievability.SimQsp
-import Qatlib.Concepts.NativeNumerics.PhaseSynthesis.FinitePhaseSynthesis
-import Qatlib.Concepts.BlockEncoding.EncodingCore.SparseOverlapEncoding
-import Qatlib.Concepts.BlockEncoding.Basic
-import Qatlib.Concepts.QspSimulation.Achievability.CountedHamiltonian
+module
+
+public import Qatlib.Concepts.QspSimulation.Achievability.SimQsp
+public import Qatlib.Concepts.NativeNumerics.PhaseSynthesis.FinitePhaseSynthesis
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.SparseOverlapEncoding
+public import Qatlib.Concepts.BlockEncoding.Basic
+public import Qatlib.Concepts.QspSimulation.Achievability.CountedHamiltonian
+
+@[expose] public section
 
 /-!
 # QSP simulation parameters and resource ledgers

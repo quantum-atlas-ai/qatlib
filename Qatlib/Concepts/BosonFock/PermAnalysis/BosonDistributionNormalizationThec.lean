@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.BosonFock.PermAnalysis.BosonDistributionNormalizationStat
-import Mathlib.Data.Fintype.Perm
-import Mathlib.Data.Complex.BigOperators
-import Mathlib.LinearAlgebra.Matrix.Permanent
+module
+
+public import Qatlib.Concepts.BosonFock.PermAnalysis.BosonDistributionNormalizationStat
+public import Mathlib.Data.Fintype.Perm
+public import Mathlib.Basic.Complex.BigOperators
+public import Mathlib.LinearAlgebra.Matrix.Permanent
+
+@[expose] public section
 
 /-!
 # Normalization of bosonic permanent distributions
@@ -186,8 +190,8 @@ private theorem card_perm_fiber {m n : ℕ} (f g : Fin n → Fin m) :
       = if occFn f = occFn g then ∏ i, (occFn f i)! else 0 := by
   classical
   by_cases h : occFn f = occFn g
-  · rw [if_pos h, perm_fiber_card f g h]
-  · rw [if_neg h, Fintype.card_eq_zero_iff]
+  · rw [ite_eq_left h, perm_fiber_card f g h]
+  · rw [ite_eq_right h, Fintype.card_eq_zero_iff]
     refine ⟨fun τ => h ?_⟩
     have h1 := τ.2
     have h2 : (fun j => f ((τ : Equiv.Perm (Fin n)) j)) = g := funext fun j => h1 j
@@ -234,8 +238,8 @@ private theorem sum_perm_comp {m n : ℕ} (f₀ : Fin n → Fin m) (Φ : (Fin n 
         (fun τ => funext_iff),
       card_perm_fiber f₀ F]
     by_cases h : occFn f₀ = occFn F
-    · rw [if_pos h, if_pos h.symm, Nat.cast_one, one_mul]; ring
-    · rw [if_neg h, if_neg (fun hc => h hc.symm), Nat.cast_zero, zero_mul, zero_mul]
+    · rw [ite_eq_left h, ite_eq_left h.symm, Nat.cast_one, one_mul]; ring
+    · rw [ite_eq_right h, ite_eq_right (fun hc => h hc.symm), Nat.cast_zero, zero_mul, zero_mul]
   rw [Finset.sum_congr rfl (fun F _ => hterm F), ← Finset.sum_mul]
   exact mul_comm _ _
 
@@ -375,17 +379,17 @@ theorem bosonDistributionNormalization : BosonDistributionNormalization := by
           show (((if occFn g = (fun i => ((S.1 i : ℕ))) then (1 : ℕ) else 0) *
               (if occFn g' = (fun i => ((S.1 i : ℕ))) then (1 : ℕ) else 0) : ℕ) *
             ∏ i, ((S.1 i : ℕ))!) = 0
-          rw [if_neg hne, Nat.zero_mul, Nat.zero_mul])]
+          rw [ite_eq_right hne, Nat.zero_mul, Nat.zero_mul])]
       show ((if occFn g = occFn g then (1 : ℕ) else 0) *
             (if occFn g' = occFn g then (1 : ℕ) else 0) * ∏ i, (occFn g i)!)
             = ((if occFn g = occFn g' then (1 : ℕ) else 0) * ∏ i, (occFn g i)!)
-      rw [if_pos rfl, if_pos hgg.symm, if_pos hgg]
-    · rw [if_neg hgg, Nat.zero_mul]
+      rw [ite_eq_left rfl, ite_eq_left hgg.symm, ite_eq_left hgg]
+    · rw [ite_eq_right hgg, Nat.zero_mul]
       refine Finset.sum_eq_zero fun S _ => ?_
       by_cases h1 : occFn g = (fun i => ((S.1 i : ℕ)))
       · have h2 : occFn g' ≠ (fun i => ((S.1 i : ℕ))) := fun h2 => hgg (h1.trans h2.symm)
-        rw [if_pos h1, if_neg h2, Nat.mul_zero, Nat.zero_mul]
-      · rw [if_neg h1, Nat.zero_mul, Nat.zero_mul]
+        rw [ite_eq_left h1, ite_eq_right h2, Nat.mul_zero, Nat.zero_mul]
+      · rw [ite_eq_right h1, Nat.zero_mul, Nat.zero_mul]
 
   have hperS : ∀ S : FockOccupation m n,
       (((Complex.normSq (Matrix.permanent (bosonRowMatrix A S))
@@ -514,8 +518,8 @@ theorem bosonDistributionNormalization : BosonDistributionNormalization := by
       Finset.mul_sum, Finset.sum_mul]
     refine Finset.sum_congr rfl fun g _ => ?_
     by_cases hgu : occFn g = occFn u
-    · rw [if_pos hgu, if_pos hgu.symm, Nat.cast_mul]; ring
-    · rw [if_neg hgu, if_neg (fun h => hgu h.symm), Nat.cast_mul]; ring
+    · rw [ite_eq_left hgu, ite_eq_left hgu.symm, Nat.cast_mul]; ring
+    · rw [ite_eq_right hgu, ite_eq_right (fun h => hgu h.symm), Nat.cast_mul]; ring
 
   refine Complex.ofReal_inj.mp ?_
   rw [hLHS]

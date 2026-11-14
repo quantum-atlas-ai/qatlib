@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.CollisionSearch.Theorem3Stat
-import Qatlib.Concepts.WalkSearch.WalkAlgorithms.WalkContracts
-import Qatlib.Concepts.WalkSearch.WalkAlgorithms.WalkContractsClassical
-import Qatlib.Concepts.WalkSearch.WalkAlgorithms.CorrectedWalkBounds
+module
+
+public import Qatlib.Concepts.WalkSearch.CollisionSearch.Theorem3Stat
+public import Qatlib.Concepts.WalkSearch.WalkAlgorithms.WalkContracts
+public import Qatlib.Concepts.WalkSearch.WalkAlgorithms.WalkContractsClassical
+public import Qatlib.Concepts.WalkSearch.WalkAlgorithms.CorrectedWalkBounds
+
+@[expose] public section
 
 /-!
 # Graph collision from corrected solver contracts
@@ -168,7 +172,7 @@ theorem theorem3_answer : Theorem3 := by
   have hp := Nat.pow_le_pow_left hrn 3
   refine ⟨r, hr, by nlinarith [hl], by nlinarith [hp], gcAlg_sound G f kcs r, ?_, ?_⟩
   · intro hex
-    haveI := kcs.seedFin
+    have := kcs.seedFin
     simpa only [gcAlg_none_iff] using kcs.finds r (gcRel G f) r 1 0 hex
   · intro ρ
     apply corrected_gc_budget n r kcs.κ (gcAlg G f kcs r ρ).2 hn hr hκ hl hu

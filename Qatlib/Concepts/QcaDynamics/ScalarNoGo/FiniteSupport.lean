@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Analysis.Complex.Norm
-import Mathlib.Data.Finsupp.Basic
-import Mathlib.Data.Finset.Max
+module
+
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Analysis.Complex.Norm
+public import Mathlib.Data.Finsupp.Basic
+public import Mathlib.Data.Finset.Max
+
+@[expose] public section
 
 /-!
 # Finite support scalar unitarity on the integers
@@ -90,7 +94,7 @@ theorem noGo_lemma (w : ℤ →₀ ℂ) (h : IsBandedUnitary w) :
       rw [autocorr, ← hs, hsingle, hterm]
     have hr0 : autocorr w (hi - lo) = 0 := by
       have hd := h (hi - lo)
-      rwa [if_neg hrne] at hd
+      rwa [ite_eq_right hrne] at hd
     have hprod : w hi * star (w lo) = 0 := by
       rw [← hsum]
       exact hr0

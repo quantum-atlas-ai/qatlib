@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SubgraphDet26.MainResults.GraphModel
+module
+
+public import Qatlib.Papers.SubgraphDet26.MainResults.GraphModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -132,8 +136,8 @@ theorem lemma51_core_properties {m : ℕ} (H C : FinGraph (Fin m)) (hcore : IsCo
         simp [hHC c]
       simp [chromaticNumber, hCE, hHE]
     · have hHE := hCE.mono fun c hc => hlift c hc
-      exact Nat.sInf_le (Set.mem_setOf_eq.mpr
-        (hrestrict _ (Set.mem_setOf_eq.mp (Nat.sInf_mem hHE))))
+      exact Nat.sInf_le (Set.mem_ofPred_eq.mpr
+        (hrestrict _ (Set.mem_ofPred_eq.mp (Nat.sInf_mem hHE))))
   · rcases Set.eq_empty_or_nonempty {c : ℕ | Colorable C c} with hCE | hCE
     · have hHC : ∀ c : ℕ, ¬ Colorable H c := by
         intro c hcH
@@ -144,8 +148,8 @@ theorem lemma51_core_properties {m : ℕ} (H C : FinGraph (Fin m)) (hcore : IsCo
         ext c
         simp [hHC c]
       simp [chromaticNumber, hCE, hHE]
-    · exact Nat.sInf_le (Set.mem_setOf_eq.mpr
-        (hlift _ (Set.mem_setOf_eq.mp (Nat.sInf_mem hCE))))
+    · exact Nat.sInf_le (Set.mem_ofPred_eq.mpr
+        (hlift _ (Set.mem_ofPred_eq.mp (Nat.sInf_mem hCE))))
   · intro hconn a b ⟨c, hc⟩ ⟨c', hc'⟩
     have hφa : φ a = a := hfix a c hc
     have hφb : φ b = b := hfix b c' hc'

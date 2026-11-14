@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.PathSpace
-import Mathlib.Analysis.Calculus.ContDiff.Operations
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.PathSpace
+public import Mathlib.Analysis.Calculus.ContDiff.Operations
+
+@[expose] public section
 
 /-!
 # The classical transport map on continuous pure coefficient paths
@@ -53,7 +57,12 @@ private theorem rawTransport_spec (q₀ : ℍ) (h₀ : ‖q₀‖=1) (K : Coeffi
 
 /-- Definition of path Transport in the Hopf Atlas construction. -/
 def pathTransport (q₀ : ℍ) (h₀ : ‖q₀‖=1) (K : CoefficientPath) : QuaternionPath :=
-  ⟨fun t => rawTransport q₀ h₀ K t, (rawTransport_spec q₀ h₀ K).2.1.restrict⟩
+  ⟨fun t => Classical.choose
+      (show ∃ q : ℝ → ℍ, q 0=q₀ ∧ ContinuousOn q (Icc 0 physicalPeriod) ∧
+        (∀ t ∈ Icc 0 physicalPeriod, HasDerivWithinAt q
+          (q t*spinOfVector (extendPath K t)) (Icc 0 physicalPeriod) t) ∧
+        ∀ t ∈ Icc 0 physicalPeriod, ‖q t‖=1 from by exact rawTransport_exists q₀ h₀ K) t,
+    by exact (rawTransport_spec q₀ h₀ K).2.1.domRestrict⟩
 
 /-- Original `pathTransport_start` guarantee for the `PathTransport` construction; the complete source hypotheses are retained. -/
 @[simp] theorem pathTransport_start (q₀ : ℍ) (h₀ : ‖q₀‖=1) (K : CoefficientPath) :

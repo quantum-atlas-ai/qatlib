@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AbelianStabil95.AbelianStabil.ReversibleModel.Lemma1Tau
-import Qatlib.Papers.AbelianStabil95.AbelianStabil.ReversibleModel.Lemma2Bijection
-import Qatlib.Papers.AbelianStabil95.AbelianStabil.ReversibleModel.Lemma7ControlledFunction
+module
+
+public import Qatlib.Papers.AbelianStabil95.AbelianStabil.ReversibleModel.Lemma1Tau
+public import Qatlib.Papers.AbelianStabil95.AbelianStabil.ReversibleModel.Lemma2Bijection
+public import Qatlib.Papers.AbelianStabil95.AbelianStabil.ReversibleModel.Lemma7ControlledFunction
+
+@[expose] public section
 
 /-!
 # Compiling reversible computations with clean workspace

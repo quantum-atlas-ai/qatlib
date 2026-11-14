@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.OperatorErrors.OperatorError
-import Mathlib.Topology.MetricSpace.HausdorffDistance
+module
+
+public import Qatlib.Foundations.OperatorErrors.OperatorError
+public import Mathlib.Topology.MetricSpace.HausdorffDistance
+
+@[expose] public section
 
 /-!
 # Operator norm distance to a phase orbit

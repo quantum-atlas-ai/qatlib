@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Fin
-import Mathlib.Data.Finset.Card
-import Mathlib.Data.Real.Basic
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Ring
+module
+
+public import Mathlib.Algebra.BigOperators.Fin
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

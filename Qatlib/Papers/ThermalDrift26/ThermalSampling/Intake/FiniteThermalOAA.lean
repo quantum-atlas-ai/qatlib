@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ThermalDrift26.ThermalSampling.Intake.FiniteThermalRotationWord
-import Mathlib.Tactic.NoncommRing
-import Mathlib.Tactic.LinearCombination
+module
+
+public import Qatlib.Papers.ThermalDrift26.ThermalSampling.Intake.FiniteThermalRotationWord
+public import Mathlib.Tactic.NoncommRing
+public import Mathlib.Tactic.LinearCombination
+
+@[expose] public section
 
 /-!
 # Thermal Amplification Error Identities

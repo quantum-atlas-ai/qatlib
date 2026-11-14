@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QAOAScaling23.SearchFees.LowQBudget
-import Qatlib.Papers.QAOAScaling23.SearchFees.HighQBudget
+module
+
+public import Qatlib.Papers.QAOAScaling23.SearchFees.LowQBudget
+public import Qatlib.Papers.QAOAScaling23.SearchFees.HighQBudget
+
+@[expose] public section
 
 /-!
 # Inverse-square-root native resource budgets

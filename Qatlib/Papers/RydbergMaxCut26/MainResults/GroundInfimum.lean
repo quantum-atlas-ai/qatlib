@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.RydbergMaxCut26.MainResults.GaussianHybrid
-import Qatlib.Papers.RydbergMaxCut26.StateBounds.TwoThirds
+module
+
+public import Qatlib.Papers.RydbergMaxCut26.MainResults.GaussianHybrid
+public import Qatlib.Papers.RydbergMaxCut26.StateBounds.TwoThirds
+
+@[expose] public section
 
 /-!
 # Gaussian guarantees against the ground-energy infimum

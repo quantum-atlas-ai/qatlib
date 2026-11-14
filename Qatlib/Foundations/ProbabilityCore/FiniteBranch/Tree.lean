@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Probability.ProbabilityMassFunction.Constructions
-import Mathlib.Data.ENNReal.BigOperators
-import Mathlib.Tactic
+module
+
+public import Mathlib.Probability.ProbabilityMassFunction.Constructions
+public import Mathlib.Basic.ENNReal.BigOperators
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Finite sampling trees and their probability laws
@@ -196,7 +200,7 @@ tree law. -/
 theorem probability_law (t : Tree α) (P : α → Prop) :
     ENNReal.ofReal (t.probability P)=pmfMean t.law (fun a => if P a then 1 else 0) := by
   have h :=
-      mean_law t (fun a => if P a then 1 else 0) (fun a => by (try dsimp); split_ifs <;> norm_num)
+      mean_law t (fun a => if P a then 1 else 0) (fun a => by  split_ifs <;> norm_num)
   simpa only [probability,apply_ite ENNReal.ofReal,ENNReal.ofReal_one,ENNReal.ofReal_zero] using h
 end Tree
 end Qatlib.Foundations.ProbabilityCore.FiniteBranch

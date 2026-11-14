@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.VarTimeAmpAmp10.StopModel.AverageStopTailBoundStat
-import Qatlib.Papers.VarTimeAmpAmp10.StopModel.AverageStopTailBoundAux
+module
+
+public import Qatlib.Papers.VarTimeAmpAmp10.StopModel.AverageStopTailBoundStat
+public import Qatlib.Papers.VarTimeAmpAmp10.StopModel.AverageStopTailBoundAux
+
+@[expose] public section
 
 /-!
 # Average stopping-time tail estimate
@@ -58,8 +62,7 @@ theorem averageStopTailBound_answer : AverageStopTailBound := by
   apply hcs.trans
   apply mul_le_mul_of_nonneg_left _ (Real.sqrt_nonneg _)
   apply Real.sqrt_le_sqrt
-  change (∑ i ∈ Finset.range stages.length, (f i)^2) ≤
-    ∑ j ∈ Finset.range stages.length, reachedPstop stages history (Ket j₀) j*(stopTime j)^2
+
   have he : (∑ i ∈ Finset.range stages.length, (f i)^2) =
       ∑ i ∈ Finset.range stages.length, ((2 : ℝ)^i)^2 *
         (∑ j ∈ Finset.range stages.length, if i ≤ j then reachedPstop stages history (Ket j₀) j else 0) := by

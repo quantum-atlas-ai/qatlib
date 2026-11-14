@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ExactSimon97.MainResults.Defs
-import Qatlib.Concepts.QuditTeleport.TeleportCore.Transform
+module
+
+public import Qatlib.Papers.ExactSimon97.MainResults.Defs
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.Transform
+
+@[expose] public section
 
 /-!
 # Uniform Fourier sampling on finite abelian annihilators
@@ -86,7 +90,7 @@ theorem character_card :
     rw [mem_characterAnnihilator]
     simp
   rw [hall] at h'
-  simpa using h'
+  simp
 
 /-- The equivalence identifying each element of the product of cyclic groups with its character
 under `charPair`. See [BrassardHoyer1997]. -/
@@ -103,12 +107,12 @@ noncomputable def charPairEquiv : AbGroup n m ≃ AddChar (AbGroup n m) ℂ :=
 def annihilatorGen (H : AddSubgroup (AbGroup n m)) : AddSubgroup (AbGroup n m) where
   carrier := {g | charPairChar (m := m) g ∈ characterAnnihilator H}
   zero_mem' := by
-    rw [Set.mem_setOf_eq, mem_characterAnnihilator]
+    rw [Set.mem_ofPred_eq, mem_characterAnnihilator]
     intro h
     simp [charPair]
   add_mem' := by
     intro g g' hg hg'
-    rw [Set.mem_setOf_eq, mem_characterAnnihilator] at hg hg' ⊢
+    rw [Set.mem_ofPred_eq, mem_characterAnnihilator] at hg hg' ⊢
     intro h
     change charPair (m := m) (g + g') h = 1
     rw [charPair_add_left]
@@ -117,7 +121,7 @@ def annihilatorGen (H : AddSubgroup (AbGroup n m)) : AddSubgroup (AbGroup n m) w
     rw [h1, h2, one_mul]
   neg_mem' := by
     intro g hg
-    rw [Set.mem_setOf_eq, mem_characterAnnihilator] at hg ⊢
+    rw [Set.mem_ofPred_eq, mem_characterAnnihilator] at hg ⊢
     intro h
     change charPair (m := m) (-g) h = 1
     have hneg : charPair (m := m) (-g) h = (charPair (m := m) g h)⁻¹ := by

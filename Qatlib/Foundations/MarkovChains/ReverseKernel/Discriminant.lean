@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MarkovChains.ReverseKernel.TimeReverse
-import Mathlib.LinearAlgebra.Matrix.Charpoly.Basic
+module
+
+public import Qatlib.Foundations.MarkovChains.ReverseKernel.TimeReverse
+public import Mathlib.LinearAlgebra.Matrix.Charpoly.Basic
+
+@[expose] public section
 
 /-!
 # Weighted discriminants and diagonal similarity

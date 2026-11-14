@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryCoreDefs
-import Qatlib.Concepts.GraphQuery.EdgeQuery.GraphCollision
-import Mathlib.Combinatorics.SimpleGraph.Basic
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryCoreDefs
+public import Qatlib.Concepts.GraphQuery.EdgeQuery.GraphCollision
+public import Mathlib.Combinatorics.SimpleGraph.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

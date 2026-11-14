@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Data.Matrix.Mul
-import Mathlib.LinearAlgebra.Matrix.Notation
-import Mathlib.LinearAlgebra.Matrix.Diagonal
-import Mathlib.Data.Real.Basic
-import Mathlib.Analysis.Complex.Trigonometric
-import Mathlib.Tactic
+module
+
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.LinearAlgebra.Matrix.Notation
+public import Mathlib.LinearAlgebra.Matrix.Diagonal
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Analysis.Complex.Trigonometric
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Lattice gauge initialization and resource counts
@@ -50,16 +54,14 @@ def u5Rot (φ : ℝ) : Matrix (Fin 2) (Fin 2) ℝ :=
 theorem u5Rot_orthogonal (φ : ℝ) : (u5Rot φ)ᵀ * u5Rot φ = 1 := by
   ext i j
   fin_cases i <;> fin_cases j <;>
-    simp [u5Rot, Matrix.mul_apply, Matrix.transpose_apply, Fin.sum_univ_two,
-      Matrix.one_apply] <;>
+    simp [u5Rot, Matrix.mul_apply, Matrix.transpose_apply, Fin.sum_univ_two] <;>
     nlinarith [Real.cos_sq_add_sin_sq φ, Real.sin_sq_add_cos_sq φ]
 
 /-- The product of `u5Rot φ` with its transpose is the identity [ByrnesYamamoto2006]. -/
 theorem u5Rot_orthogonal' (φ : ℝ) : u5Rot φ * (u5Rot φ)ᵀ = 1 := by
   ext i j
   fin_cases i <;> fin_cases j <;>
-    simp [u5Rot, Matrix.mul_apply, Matrix.transpose_apply, Fin.sum_univ_two,
-      Matrix.one_apply] <;>
+    simp [u5Rot, Matrix.mul_apply, Matrix.transpose_apply, Fin.sum_univ_two] <;>
     nlinarith [Real.cos_sq_add_sin_sq φ, Real.sin_sq_add_cos_sq φ]
 
 /-- The initialization application count `c * (d * M)`. -/

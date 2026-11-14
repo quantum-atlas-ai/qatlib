@@ -7,10 +7,14 @@ Authors: Qatlib Contributors
 /-
 Copyright (c) 2026. All rights reserved.
 -/
-import Qatlib.Papers.BettiHardness26.MainResults.Reduction.BettiEstimationReduction
-import Mathlib.Data.Real.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.BettiHardness26.MainResults.Reduction.BettiEstimationReduction
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ShadowModels.ShadowVariance.ShadowPurityConsumers
-import Qatlib.Concepts.CopyEvolution.Discriminate.PartialSwapEvolution
+module
+
+public import Qatlib.Concepts.ShadowModels.ShadowVariance.ShadowPurityConsumers
+public import Qatlib.Concepts.CopyEvolution.Discriminate.PartialSwapEvolution
+
+@[expose] public section
 
 /-!
 # Quadratic observables from Pauli shadows
@@ -89,13 +93,13 @@ theorem quadratic_swap_tensor {D : ℕ} (A B : Operator D) :
       (swapRegisterMatrix D * TensorGate A B) x y = A x.2 y.1 * B x.1 y.2 := by
     simp only [Matrix.mul_apply, swapRegisterMatrix_apply]
     rw [Fintype.sum_eq_single (Prod.swap x)
-      (fun p hp => by rw [if_neg (fun e => hp (by rw [e, Prod.swap_swap])), zero_mul])]
-    rw [Prod.swap_swap, if_pos rfl, one_mul]
+      (fun p hp => by rw [ite_eq_right (fun e => hp (by rw [e, Prod.swap_swap])), zero_mul])]
+    rw [Prod.swap_swap, ite_eq_left rfl, one_mul]
     rfl
   ext x y
   change (∑ p, (swapRegisterMatrix D * TensorGate A B) x p * swapRegisterMatrix D p y) = _
   rw [Fintype.sum_eq_single (Prod.swap y)
-    (fun p hp => by rw [swapRegisterMatrix_apply, if_neg hp, mul_zero])]
+    (fun p hp => by rw [swapRegisterMatrix_apply, ite_eq_right hp, mul_zero])]
   rw [hleft]
   simp only [swapRegisterMatrix_apply, ite_true, mul_one]
   exact mul_comm _ _

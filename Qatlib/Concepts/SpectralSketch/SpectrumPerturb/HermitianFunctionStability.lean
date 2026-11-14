@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.OrderedSpectralPerturbation
+module
+
+public import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.OrderedSpectralPerturbation
+
+@[expose] public section
 
 /-!
 # Frobenius stability of Hermitian matrix functions
@@ -81,7 +85,7 @@ theorem hermitian_spectral_function_frobenius_stability : ∀ (I : Type) [Fintyp
       Finset.sum_le_sum (fun i _ => Finset.sum_le_sum (fun j _ =>
         mul_le_mul_of_nonneg_left (hpoint i j) (Complex.normSq_nonneg _)))
     _=L^2*(∑ i,∑ j,W i j*(a i-b j)^2) := by
-      simp only [Finset.mul_sum,mul_left_comm,mul_assoc]
+      simp only [Finset.mul_sum,mul_left_comm]
 
 /-- Applying a real polynomial through the Hermitian spectral decomposition equals algebraic
 evaluation of its complex coefficient embedding at the matrix. -/

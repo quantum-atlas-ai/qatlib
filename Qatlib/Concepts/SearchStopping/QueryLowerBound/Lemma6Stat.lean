@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SearchStopping.QueryLowerBound.QueryHybrid
+module
+
+public import Qatlib.Concepts.SearchStopping.QueryLowerBound.QueryHybrid
+
+@[expose] public section
 
 /-!
 # Statement of the quantum search hybrid estimates

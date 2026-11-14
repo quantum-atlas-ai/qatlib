@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Papers.QuantumSVM13.MinusReadout
+module
+
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Papers.QuantumSVM13.MinusReadout
+
+@[expose] public section
 
 /-!
 # Classification by swap test (QuantumSVM13, claim c004)
@@ -109,11 +113,11 @@ def classicalOne2 : Fin 2 → ℝ := fun i => if i = 1 then 1 else 0
 
 /-- The concrete zero state is unit norm. -/
 theorem classicalZero2_norm : (∑ i, (classicalZero2 i) ^ 2) = 1 := by
-  simp [classicalZero2, Fin.sum_univ_two]
+  simp [classicalZero2]
 
 /-- The concrete one state is unit norm. -/
 theorem classicalOne2_norm : (∑ i, (classicalOne2 i) ^ 2) = 1 := by
-  simp [classicalOne2, Fin.sum_univ_two]
+  simp [classicalOne2]
 
 /-- The finite consumer instantiates the minus branch at two orthogonal basis
 states: the scalar branch probability is exactly `1/2`. -/
@@ -121,6 +125,6 @@ theorem classical_basis_minusBranchWeight :
     minusBranchWeight classicalZero2 classicalOne2 = (1 / 2 : ℝ) := by
   rw [minusBranchWeight_formula classicalZero2 classicalOne2
     classicalZero2_norm classicalOne2_norm]
-  simp [overlap, classicalZero2, classicalOne2, Fin.sum_univ_two]
+  simp [overlap, classicalZero2, classicalOne2]
 
 end Qatlib.Papers.QuantumSVM13.MinusReadout

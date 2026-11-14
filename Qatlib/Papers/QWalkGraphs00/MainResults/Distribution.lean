@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Algebra.Star.BigOperators
-import Mathlib.Topology.Algebra.Order.Field
-import Mathlib.Tactic
-import Qatlib.Papers.QWalkGraphs00.MainResults.Core
+module
+
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Algebra.Star.BigOperators
+public import Mathlib.Topology.Algebra.Order.Field
+public import Mathlib.Tactic
+public import Qatlib.Papers.QWalkGraphs00.MainResults.Core
+
+@[expose] public section
 
 /-!
 # Spectral formulas for limiting vertex distributions
@@ -282,8 +286,8 @@ theorem limiting_distribution_spectral
     have hif : (if z i j = 1 then (1 : ℂ) else 0) =
         (if lam i = lam j then (1 : ℂ) else 0) := by
       by_cases hEq : lam i = lam j
-      · rw [if_pos ((hz_eq_one i j).mpr hEq), if_pos hEq]
-      · rw [if_neg (fun hz => hEq ((hz_eq_one i j).mp hz)), if_neg hEq]
+      · rw [ite_eq_left ((hz_eq_one i j).mpr hEq), ite_eq_left hEq]
+      · rw [ite_eq_right (fun hz => hEq ((hz_eq_one i j).mp hz)), ite_eq_right hEq]
     have h' : Tendsto (fun T : ℕ => C c i j * geomAvg (z i j) T) atTop
         (𝓝 (C c i j * (if z i j = 1 then (1 : ℂ) else 0))) :=
       h.const_mul (C c i j)
@@ -319,9 +323,9 @@ theorem limiting_distribution_spectral
     apply Finset.sum_congr rfl
     intro j _
     by_cases hP : lam i = lam j
-    · simp only [if_pos hP, mul_one, hC]
+    · simp only [ite_eq_left hP, mul_one, hC]
       rw [Finset.mul_sum]
-    · simp only [if_neg hP, mul_zero, Finset.sum_const, Finset.card_univ, nsmul_zero]
+    · simp only [ite_eq_right hP, mul_zero, Finset.sum_const, Finset.card_univ, nsmul_zero]
   have havg : ∀ T : ℕ, avgNodeProb U ψ T v =
       (∑ c : Coin, ∑ i : Coin × V, ∑ j : Coin × V,
         C c i j * geomAvg (z i j) T).re :=
@@ -371,7 +375,7 @@ theorem limiting_distribution_distinct_eigenvalues
             a i * star (a b) * (∑ c : Coin, φ i (c, v) * star (φ b (c, v)))
           else 0) = 0 := by
         intro b _ hb
-        exact if_neg (fun hEq => hb (hinj hEq).symm)
+        exact ite_eq_right (fun hEq => hb (hinj hEq).symm)
       have h1 : i ∉ (Finset.univ : Finset (Coin × V)) →
           (if lam i = lam i then
             a i * star (a i) * (∑ c : Coin, φ i (c, v) * star (φ i (c, v)))
@@ -386,7 +390,7 @@ theorem limiting_distribution_distinct_eigenvalues
               a i * star (a i) * (∑ c : Coin, φ i (c, v) * star (φ i (c, v)))
             else 0) := Finset.sum_eq_single i h0 h1
         _ = a i * star (a i) * (∑ c : Coin, φ i (c, v) * star (φ i (c, v))) := by
-            rw [if_pos rfl]
+            rw [ite_eq_left rfl]
     rw [hsingle]
     have hX : (∑ c : Coin, φ i (c, v) * star (φ i (c, v))).re
         = ∑ c : Coin, Complex.normSq (φ i (c, v)) := by

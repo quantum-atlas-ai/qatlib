@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.Entanglement.Separability.EntanglementLOCC
-import QuantumInfo.ForMathlib.HermitianMat.Unitary
+module
+
+public import Qatlib.Concepts.Entanglement.Separability.EntanglementLOCC
+public import QuantumInfo.ForMathlib.HermitianMat.Unitary
+
+@[expose] public section
 
 /-!
 # Local unitary invariance of Schmidt data

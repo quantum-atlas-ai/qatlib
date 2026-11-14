@@ -25,15 +25,19 @@ the resulting inner products.
 
 All declarations below are proved outright; no trusted assumptions are added.
 -/
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Analysis.InnerProductSpace.Projection.FiniteDimensional
-import Mathlib.Analysis.Matrix.Hermitian
-import Mathlib.LinearAlgebra.Matrix.Orthogonal
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Data.Nat.Log
-import Mathlib.Data.Nat.Choose.Basic
-import Mathlib.Algebra.Order.Star.Real
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Analysis.InnerProductSpace.Projection.FiniteDimensional
+public import Mathlib.Analysis.Matrix.Hermitian
+public import Mathlib.LinearAlgebra.Matrix.Orthogonal
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Data.Nat.Log
+public import Mathlib.Data.Nat.Choose.Basic
+public import Mathlib.Algebra.Order.Star.Real
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -120,7 +124,7 @@ theorem projKC_idem {Φ : N → E} {Φb : E}
     simp
   have h2 : ⟪Φb, (∑ j', ⟪Φ j', w⟫_ℝ • Φ j') + ⟪Φb, w⟫_ℝ • Φb⟫_ℝ
       = ⟪Φb, w⟫_ℝ := by
-    simp [inner_add_right, inner_sum, inner_smul_right, hb', hΦb, hnorm]
+    simp [inner_add_right, inner_sum, inner_smul_right, hb', hnorm]
   simp only [projKC, h1, h2]
 
 /-- `Π_B` fixes every vector of the star-state subspace `B` (used in Lemma 3.8). -/
@@ -157,6 +161,7 @@ theorem inv_sqrt_mul_inv_sqrt {x : ℝ} (hx : 0 < x) :
     (Real.sqrt x)⁻¹ * (Real.sqrt x)⁻¹ = x⁻¹ := by
   rw [← _root_.mul_inv_rev, Real.mul_self_sqrt (le_of_lt hx)]
 
+omit [NormedAddCommGroup E] [InnerProductSpace ℝ E] [Fintype M] [Fintype N] [DecidableEq M] [DecidableEq N] in
 /-- Lemma 3.6 (paper page 16, initial state decomposition):
 `|Φ_b⟩ = (1/√(1+pᵀb))|θ*⟩ - (I-Π_A)|p_B⟩`.
 
@@ -164,11 +169,19 @@ The proof follows the paper: expanding `(I-Π_A)|p_B⟩` in the column star basi
 `⟨Φ_j, p_B⟩ = y_j/(1+pᵀb)` and `⟨Φ_b, p_B⟩ = -(pᵀb)/(1+pᵀb)` (here `pᵀb = ‖y‖₂²` follows from
 `Aᵀp = y` and `Ay = b`), and the two appearances of `Σ_j y_j|Φ_j⟩` cancel. -/
 theorem lemma36_initial_state_decomposition
+    {E : Type*}
+    [_q37inst0 : NormedAddCommGroup E]
+    [_q37inst1 : InnerProductSpace ℝ E]
+    {M N : Type*}
+    [_q37inst2 : Fintype M]
+    [_q37inst3 : Fintype N]
+    [_q37inst4 : DecidableEq M]
+    [_q37inst5 : DecidableEq N]
     {Φ : N → E} {Φb : E} {Ψ : M → E} {A : Matrix M N ℝ} {b : M → ℝ} {y : N → ℝ}
     {p σ : M → ℝ}
-    (hΦ : ∀ j j', ⟪Φ j, Φ j'⟫_ℝ = if j = j' then (1 : ℝ) else 0)
-    (hΦb : ⟪Φb, Φb⟫_ℝ = 1)
-    (hb : ∀ j, ⟪Φ j, Φb⟫_ℝ = 0)
+    (_hΦ : ∀ j j', ⟪Φ j, Φ j'⟫_ℝ = if j = j' then (1 : ℝ) else 0)
+    (_hΦb : ⟪Φb, Φb⟫_ℝ = 1)
+    (_hb : ∀ j, ⟪Φ j, Φb⟫_ℝ = 0)
     (hcross : ∀ i j, ⟪Φ j, Ψ i⟫_ℝ = A i j / σ i)
     (hcrossb : ∀ i, ⟪Φb, Ψ i⟫_ℝ = -b i / σ i)
     (hσ : ∀ i, σ i ≠ 0) (hy : A *ᵥ y = b) (hp : Aᵀ *ᵥ p = y) :
@@ -282,13 +295,22 @@ theorem projKC_thetaStar {Φ : N → E} {Φb : E} {y : N → ℝ} {pb : ℝ}
   congr 1
   exact Finset.sum_congr rfl fun j _ => by rw [smul_smul]
 
+omit [NormedAddCommGroup E] [InnerProductSpace ℝ E] [Fintype M] [Fintype N] [DecidableEq M] [DecidableEq N] in
 /-- `Π_B |θ*⟩ = 0`: this is the paper's computation on page 17, using
 `⟨Ψ_i, Φ_j⟩ = A_ij/σ_i`, `⟨Ψ_i, Φ_b⟩ = -b_i/σ_i` and `A y = b`. -/
-theorem projB_thetaStar {Φ : N → E} {Φb : E} {Ψ : M → E} {A : Matrix M N ℝ}
+theorem projB_thetaStar {E : Type*}
+    [_q37inst0 : NormedAddCommGroup E]
+    [_q37inst1 : InnerProductSpace ℝ E]
+    {M N : Type*}
+    [_q37inst2 : Fintype M]
+    [_q37inst3 : Fintype N]
+    [_q37inst4 : DecidableEq M]
+    [_q37inst5 : DecidableEq N]
+    {Φ : N → E} {Φb : E} {Ψ : M → E} {A : Matrix M N ℝ}
     {b : M → ℝ} {y : N → ℝ} {p σ : M → ℝ}
     (hcross : ∀ i j, ⟪Ψ i, Φ j⟫_ℝ = A i j / σ i)
     (hcrossb : ∀ i, ⟪Ψ i, Φb⟫_ℝ = -b i / σ i)
-    (hσ : ∀ i, σ i ≠ 0) (hy : A *ᵥ y = b) :
+    (_hσ : ∀ i, σ i ≠ 0) (hy : A *ᵥ y = b) :
     projB Ψ (thetaStar Φ Φb y (p ⬝ᵥ b)) = 0 := by
   have hzero : ∀ i, ⟪Ψ i, thetaStar Φ Φb y (p ⬝ᵥ b)⟫_ℝ = 0 := by
     intro i

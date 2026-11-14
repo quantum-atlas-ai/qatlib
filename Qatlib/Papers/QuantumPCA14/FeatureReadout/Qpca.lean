@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QuantumPCA14.FeatureReadout.QpcaDefs
-import Qatlib.Concepts.RandCompile.ChannelBudget.CopyEvolution
+module
+
+public import Qatlib.Papers.QuantumPCA14.FeatureReadout.QpcaDefs
+public import Qatlib.Concepts.RandCompile.ChannelBudget.CopyEvolution
+
+@[expose] public section
 
 /-!
 # Quantum PCA readout endpoint results

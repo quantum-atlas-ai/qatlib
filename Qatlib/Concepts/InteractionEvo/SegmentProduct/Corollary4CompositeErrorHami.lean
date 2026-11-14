@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.InteractionEvo.SegmentProduct.Corollary4CompositeErrorStat
-import Qatlib.Concepts.InteractionEvo.SegmentProduct.Lemma6SegmentCompositeHami
-import Qatlib.Concepts.InteractionEvo.SegmentProduct.SegmentProductPerturbation
+module
+
+public import Qatlib.Concepts.InteractionEvo.SegmentProduct.Corollary4CompositeErrorStat
+public import Qatlib.Concepts.InteractionEvo.SegmentProduct.Lemma6SegmentCompositeHami
+public import Qatlib.Concepts.InteractionEvo.SegmentProduct.SegmentProductPerturbation
+
+@[expose] public section
 
 /-!
 # Accumulated error for repeated simulation segments

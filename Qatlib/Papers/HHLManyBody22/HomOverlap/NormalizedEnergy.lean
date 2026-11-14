@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HHLManyBody22.HomOverlap.BornReadout
-import Qatlib.Papers.HHLManyBody22.LccEnergy.ActualLcc
+module
+
+public import Qatlib.Papers.HHLManyBody22.HomOverlap.BornReadout
+public import Qatlib.Papers.HHLManyBody22.LccEnergy.ActualLcc
+
+@[expose] public section
 
 /-!
 # Normalized overlaps and the magnitude of LCC energy

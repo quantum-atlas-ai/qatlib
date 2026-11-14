@@ -4,7 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QSingValue19.AlgorithmApps.LcuQsvtStackDefs
+module
+
+public import Qatlib.Papers.QSingValue19.AlgorithmApps.LcuQsvtStackDefs
+
+@[expose] public section
+set_option linter.unusedVariables false
+set_option linter.unusedSimpArgs false
+set_option linter.unusedTactic false
+set_option linter.style.haveILetI false
+set_option linter.unreachableTactic false
+set_option linter.unnecessarySimpa false
+set_option linter.unnecessarySeqFocus false
 
 /-!
 # LCU approximation and compilation

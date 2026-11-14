@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Order.BigOperators.Group.Finset
-import Mathlib.Data.Nat.Cast.Order.Field
-import Qatlib.Papers.LowWeightPath03.MainResults.PeriodicDijkstra
+module
+
+public import Mathlib.Algebra.Order.BigOperators.Group.Finset
+public import Mathlib.Data.Nat.Cast.Order.Field
+public import Qatlib.Papers.LowWeightPath03.MainResults.PeriodicDijkstra
+
+@[expose] public section
 
 /-!
 # Periodic quantum Prim work bounds

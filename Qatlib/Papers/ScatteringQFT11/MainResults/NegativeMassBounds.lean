@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ScatteringQFT11.MainResults.PositiveMassBounds
-import Qatlib.Papers.ScatteringQFT11.MainResults.MomentBound
+module
+
+public import Qatlib.Papers.ScatteringQFT11.MainResults.PositiveMassBounds
+public import Qatlib.Papers.ScatteringQFT11.MainResults.MomentBound
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -71,7 +75,7 @@ theorem phi4PotentialMin_le (m0sq lam u : ℝ) (hlam : 0 < lam) :
 `(m/2)X + (λ/24)X² ≤ C` with `λ > 0`, then
 `X ≤ −6m/λ + √(36m²/λ² + 24C/λ)`. This is the quadratic formula applied to
 inequality (90) of the paper. -/
-theorem phi4_quadratic_bound (m lam C X : ℝ) (hlam : 0 < lam) (hX : 0 ≤ X)
+theorem phi4_quadratic_bound (m lam C X : ℝ) (hlam : 0 < lam) (_hX : 0 ≤ X)
     (hineq : (m / 2) * X + (lam / 24) * X ^ 2 ≤ C) :
     X ≤ -6 * m / lam + Real.sqrt (36 * m ^ 2 / lam ^ 2 + 24 * C / lam) := by
   have hlam6 : (0:ℝ) < lam / 6 := by linarith
@@ -98,11 +102,14 @@ theorem phi4_quadratic_bound (m lam C X : ℝ) (hlam : 0 < lam) (hX : 0 ≤ X)
     _ = (12/lam) * Real.sqrt D - 6*m/lam := by field_simp; ring
     _ = -6*m/lam + Real.sqrt (36*m^2/lam^2 + 24*C/lam) := by rw [hsqrt]; ring
 
+omit [Fintype n] [DecidableEq n] [Fintype sites] [DecidableEq sites] in
 /-- **Equation (83)** at the level of expectations: with `λ₀ > 0` the on-site
 potential energy of any unit-norm state is at least `U_min`, because
 Proposition 2 gives `⟨φ⁴⟩ ≥ ⟨φ²⟩²` and the scalar potential is bounded by
 `U_min` at `u = ⟨φ²⟩`. -/
-theorem phi4_local_energy_ge_min (m0sq lam : ℝ) (hlam : 0 < lam)
+theorem phi4_local_energy_ge_min {n : Type*} [Fintype n] [DecidableEq n]
+    {sites : Type*} [_fintypeSites : Fintype sites] [_decidableEqSites : DecidableEq sites]
+    (m0sq lam : ℝ) (hlam : 0 < lam)
     (phi : sites → Matrix n n ℂ) (hphi : ∀ y, (phi y)ᴴ = phi y)
     (ψ : QState n) (hψ : Normalized ψ) (y : sites) :
     phi4PotentialMin m0sq lam
@@ -140,7 +147,7 @@ theorem sum_erase_const {ι : Type*} [Fintype ι] [DecidableEq ι] (c : ℝ) (x 
 `⟨ψ|π(x)²|ψ⟩ ≤ (2/a^d)(E + 3V m₀⁴/(2λ₀))` with `V = (#sites)·a^d` the lattice
 volume. -/
 theorem phi4_negative_mass_momentum_bound (d : ℕ) (a m0sq lam : ℝ)
-    (ha : 0 < a) (hm : m0sq ≤ 0) (hl : 0 < lam)
+    (ha : 0 < a) (_hm : m0sq ≤ 0) (hl : 0 < lam)
     (gradSq phi piOp : sites → Matrix n n ℂ)
     (hgrad : ∀ y, (gradSq y).PosSemidef) (hphi : ∀ y, (phi y)ᴴ = phi y)
     (hpi : ∀ y, (piOp y)ᴴ = piOp y) (ψ : QState n) (hψ : Normalized ψ) {E : ℝ}
@@ -217,7 +224,7 @@ theorem phi4_negative_mass_momentum_bound (d : ℕ) (a m0sq lam : ℝ)
 
 with `V = (#sites)·a^d` the lattice volume. -/
 theorem phi4_negative_mass_field_bound (d : ℕ) (a m0sq lam : ℝ)
-    (ha : 0 < a) (hm : m0sq ≤ 0) (hl : 0 < lam)
+    (ha : 0 < a) (_hm : m0sq ≤ 0) (hl : 0 < lam)
     (gradSq phi piOp : sites → Matrix n n ℂ)
     (hgrad : ∀ y, (gradSq y).PosSemidef) (hphi : ∀ y, (phi y)ᴴ = phi y)
     (hpi : ∀ y, (piOp y)ᴴ = piOp y) (ψ : QState n) (hψ : Normalized ψ) {E : ℝ}

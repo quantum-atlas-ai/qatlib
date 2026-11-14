@@ -4,18 +4,22 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Normed.Operator.LinearIsometry
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
-import Mathlib.Data.Real.Sqrt
-import Mathlib.LinearAlgebra.Span.Defs
-import Mathlib.Order.Interval.Set.Defs
-import Mathlib.Analysis.InnerProductSpace.Basic
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Data.Complex.Basic
-import Mathlib.Topology.Algebra.Module.ContinuousLinearMap.Restrict
-import Mathlib.Analysis.InnerProductSpace.l2Space
+module
+
+public import Mathlib.Analysis.Normed.Operator.LinearIsometry
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.LinearAlgebra.Span.Defs
+public import Mathlib.Order.Interval.Set.Defs
+public import Mathlib.Analysis.InnerProductSpace.Basic
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Topology.Algebra.Module.ContinuousLinearMap.Restrict
+public import Mathlib.Analysis.InnerProductSpace.l2Space
+
+@[expose] public section
 
 /-!
 # Definitions for recursive amplitude amplification
@@ -48,12 +52,12 @@ namespace Qatlib.Concepts.WalkSearch.MnrsAmplify
 endomorphism of the ambient space. -/
 noncomputable def lineProj (u : W) : W →L[ℂ] W :=
   (Submodule.subtypeL (Submodule.span ℂ {u})).comp
-    (Submodule.orthogonalProjection (Submodule.span ℂ {u}))
+    (Submodule.orthogonalProjectionOnto (Submodule.span ℂ {u}))
 
 /-- The orthogonal projection onto the marked subspace `M`, followed by its inclusion in the
 ambient space. -/
 noncomputable def markProj (M : Submodule ℂ W) : W →L[ℂ] W :=
-  M.subtypeL.comp M.orthogonalProjection
+  M.subtypeL.comp M.orthogonalProjectionOnto
 
 /-- The squared norm of the projection of `x₀` onto the marked subspace `M`. -/
 noncomputable def markedMass (M : Submodule ℂ W) (x₀ : W) : ℝ :=

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QlsReadoutSpec.Amplification.AmplifiedSuffixRaysStat
-import Qatlib.Concepts.QlsReadoutSpec.Amplification.ProjectorOrderLows
-import Qatlib.Concepts.QlsReadoutSpec.Amplification.ClockFlagResolutionsLows
-import Qatlib.Concepts.QlsReadoutSpec.Amplification.StoppedStageTransportLows
+module
+
+public import Qatlib.Concepts.QlsReadoutSpec.Amplification.AmplifiedSuffixRaysStat
+public import Qatlib.Concepts.QlsReadoutSpec.Amplification.ProjectorOrderLows
+public import Qatlib.Concepts.QlsReadoutSpec.Amplification.ClockFlagResolutionsLows
+public import Qatlib.Concepts.QlsReadoutSpec.Amplification.StoppedStageTransportLows
+
+@[expose] public section
 
 /-!
 # Amplified suffix state rays
@@ -424,7 +428,7 @@ theorem Clause6AmplifiedSuffixRays_answer : Clause6AmplifiedSuffixRays := by
                 / normVec (Gp1 *ᵥ ψp1) : ℝ) : ℂ) := by
           rw [hGp1, hψp, hψp1]
           unfold stageGain
-          simp only [dif_pos hp_lt_m]
+          simp only [dite_eq_left hp_lt_m]
         rw [← h4]
 
       have ih' : potential (P ⟨q, hq'⟩) bad *ᵥ suffixState U (p + 1) q (V (p + 1) *ᵥ ω)

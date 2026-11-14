@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.CachedCorrectionPreparation
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.PhaseExponentialWord
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.CachedCorrectionPreparation
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.PhaseExponentialWord
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -77,7 +81,7 @@ theorem materializeCorrectedPreparation_exponential_bound (v : SpatialPoint → 
   apply spatialWordPartial_phase_norm_le _ (contDiff_sourceCorrectionPhase v hv q₀ h₀ (eta : ℝ)) _ w.length x
   · intro z hz
     have hzlt : z.length<8 := by omega
-    simpa only [storedPhaseValue,dif_pos hzlt] using
+    simpa only [storedPhaseValue,dite_eq_left hzlt] using
       materializeCorrectionPreparation_correction_bound v hv hu hp bounds hb source prepared hrun eta he
         q₀ h₀ ⟨z.length,hzlt⟩ z rfl x hx
   · exact le_rfl
@@ -104,13 +108,13 @@ theorem materializeCorrectedPreparation_corrected_bound (v : SpatialPoint → Sp
     (contDiff_id.const_smul physicalPeriod)
   have hFB (z : List (Fin 3)) (hz : z.length ≤ w.length) : ‖spatialWordPartial f z x‖ ≤ F z.length := by
     have hzlt : z.length<8 := by omega
-    simpa only [F,storedPhaseValue,dif_pos hzlt] using
+    simpa only [F,storedPhaseValue,dite_eq_left hzlt] using
       materializeCorrectedPreparation_exponential_bound v hv hu hp bounds hb source prepared hrun eta he
         q₀ h₀ ⟨z.length,hzlt⟩ z rfl x hx
   have hGB (z : List (Fin 3)) (hz : z.length ≤ w.length) : ‖spatialWordPartial g z x‖ ≤ G z.length := by
     have hzlt : z.length<9 := by omega
     simpa only [G,g,result,materializeCorrectedPreparation,materializeCorrectionPreparation,
-      materializePhasePreparation,materializeAngularPreparation,storedTransportValue,dif_pos hzlt] using
+      materializePhasePreparation,materializeAngularPreparation,storedTransportValue,dite_eq_left hzlt] using
       materializeTransportPreparation_raw_bound v hv hu hp bounds hb source prepared hrun
         q₀ h₀ ⟨z.length,hzlt⟩ z rfl x hx
   have hF (j : ℕ) (hj : j ≤ w.length) : 0 ≤ F j := by

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.StoquasticHam06.MainResults.Model.ComplexityDefs
-import Mathlib.Algebra.BigOperators.Fin
-import Mathlib.Logic.Equiv.Defs
+module
+
+public import Qatlib.Papers.StoquasticHam06.MainResults.Model.ComplexityDefs
+public import Mathlib.Algebra.BigOperators.Fin
+public import Mathlib.Logic.Equiv.Defs
+
+@[expose] public section
 
 /-!
 # Boolean representations of dyadic averages

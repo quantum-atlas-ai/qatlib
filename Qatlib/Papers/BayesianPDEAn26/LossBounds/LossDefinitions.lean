@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.Basic
-import Mathlib.Analysis.Normed.Module.RCLike.Basic
+module
+
+public import Mathlib.Analysis.InnerProductSpace.Basic
+public import Mathlib.Analysis.Normed.Module.RCLike.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

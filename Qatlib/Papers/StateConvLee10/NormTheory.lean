@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GramQueryCore.FilteredNorm.FilteredNormBasicLawsQuan
-import Qatlib.Concepts.GramQueryCore.FilteredNorm.FilteredNormClosureLawsQuan
-import Qatlib.Concepts.GramQueryCore.FilteredNorm.FilteredNormCompositionAndProductsQuan
-import Qatlib.Concepts.GramQueryCore.FilteredNorm.RectangularBudgetRealizationQuan
-import Qatlib.Concepts.GramQueryCore.FilteredNorm.RectangularSchurDualityQuan
+module
+
+public import Qatlib.Concepts.GramQueryCore.FilteredNorm.FilteredNormBasicLawsQuan
+public import Qatlib.Concepts.GramQueryCore.FilteredNorm.FilteredNormClosureLawsQuan
+public import Qatlib.Concepts.GramQueryCore.FilteredNorm.FilteredNormCompositionAndProductsQuan
+public import Qatlib.Concepts.GramQueryCore.FilteredNorm.RectangularBudgetRealizationQuan
+public import Qatlib.Concepts.GramQueryCore.FilteredNorm.RectangularSchurDualityQuan
+
+@[expose] public section
 
 /-!
 # Filtered norm laws and rectangular duality

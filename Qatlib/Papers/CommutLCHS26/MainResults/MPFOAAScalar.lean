@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommutLCHS26.MainResults.MPFOAASine
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.InverseDeriv
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
-import Mathlib.Analysis.Calculus.MeanValue
+module
+
+public import Qatlib.Papers.CommutLCHS26.MainResults.MPFOAASine
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.InverseDeriv
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+public import Mathlib.Analysis.Calculus.MeanValue
+
+@[expose] public section
 
 /-!
 # Scalar stability of amplification polynomials

@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvt
-import Qatlib.Concepts.SpectralSketch.SketchSpectral.SvtGramTransferSamp
-import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.QsvtCore
-import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownFrameLocalConsumers
-import Mathlib.Analysis.Normed.Lp.WithLp
-import Mathlib.Analysis.SpecialFunctions.Log.Deriv
-import Mathlib.LinearAlgebra.Lagrange
+module
+
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvt
+public import Qatlib.Concepts.SpectralSketch.SketchSpectral.SvtGramTransferSamp
+public import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.QsvtCore
+public import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownFrameLocalConsumers
+public import Mathlib.Analysis.Normed.Lp.WithLp
+public import Mathlib.Analysis.SpecialFunctions.Log.Deriv
+public import Mathlib.LinearAlgebra.Lagrange
+
+@[expose] public section
 
 /-!
 # Transport of modulus bounds through Hermitian dilations
@@ -397,11 +401,11 @@ theorem modulus_printed_of_affine_response {I : Type} [Fintype I] [DecidableEq I
     rw [hdiff, norm_smul]
   have hδ2 : ‖A - B‖ ≤ 2 := norm_sub_le_two A B hA1 hB1
   have hx : (‖A - B‖ / 2 : ℝ) ∈ Set.Icc (-1 : ℝ) 1 := by
-    constructor <;> (try dsimp only)
+    constructor
     · nlinarith
     · nlinarith
   have hy : (-(‖A - B‖ / 2) : ℝ) ∈ Set.Icc (-1 : ℝ) 1 := by
-    constructor <;> (try dsimp only)
+    constructor
     · nlinarith
     · nlinarith
   have hdom := hω.dominates (‖A - B‖ / 2) (-(‖A - B‖ / 2)) hx hy
@@ -883,7 +887,7 @@ theorem exists_poly_eval_nodes {ι : Type} [DecidableEq ι]
     have hmem : v i ∈ nodes := Finset.mem_image_of_mem v hi
     have hval : rN (v i) = r i := by
       dsimp [rN]
-      rw [dif_pos hmem]
+      rw [dite_eq_left hmem]
       have hch := Classical.choose_spec (hex (v i) hmem)
       exact hcons (Classical.choose (hex (v i) hmem)) i hch.1 hi hch.2
     have hinterp : (Lagrange.interpolate nodes (fun x : ℝ => (x : ℂ)) rN).eval ((v i : ℝ) : ℂ)
@@ -971,7 +975,7 @@ theorem exists_odd_singular_poly {I O : Type} [Fintype I] [DecidableEq I] [Finty
     simp
   · by_cases hk : k < Fintype.card I + 1
     · have hkq := hq k (Finset.mem_range.mpr hk)
-      rw [if_neg hz] at hkq
+      rw [ite_eq_right hz] at hkq
       have hcast : (((matrixSingularValues A k : ℝ) ^ 2 : ℝ) : ℂ) =
           ((matrixSingularValues A k : ℝ) : ℂ) ^ 2 := Complex.ofReal_pow _ _
       rw [hcast] at hkq
@@ -1031,7 +1035,7 @@ theorem exists_odd_singular_poly_pair {I O : Type} [Fintype I] [DecidableEq I] [
   have hxiA : ∀ k < Fintype.card I + 1, xi k = matrixSingularValues A k := by
     intro k hk
     unfold xi
-    rw [if_pos hk]
+    rw [ite_eq_left hk]
   have hxi_nonneg : ∀ k, 0 ≤ xi k := by
     intro k
     unfold xi
@@ -1040,7 +1044,7 @@ theorem exists_odd_singular_poly_pair {I O : Type} [Fintype I] [DecidableEq I] [
     intro j
     have h : ¬(Fintype.card I + 1 + j < Fintype.card I + 1) := by omega
     unfold xi
-    rw [if_neg h]
+    rw [ite_eq_right h]
     exact congrArg _ (Nat.add_sub_cancel_left (Fintype.card I + 1) j)
   have hcons : ∀ i j, i ∈ Finset.range (Fintype.card I + Fintype.card O + 2) →
       j ∈ Finset.range (Fintype.card I + Fintype.card O + 2) →
@@ -1056,7 +1060,7 @@ theorem exists_odd_singular_poly_pair {I O : Type} [Fintype I] [DecidableEq I] [
       (xi k : ℂ) * q.eval ((xi k : ℂ) ^ 2) = f (xi k) := by
     intro k hk hnz
     have hkq := hq k (Finset.mem_range.mpr hk)
-    rw [if_neg hnz] at hkq
+    rw [ite_eq_right hnz] at hkq
     have hne : (xi k : ℂ) ≠ 0 := Complex.ofReal_ne_zero.mpr hnz
     rw [Complex.ofReal_pow] at hkq
     calc (xi k : ℂ) * q.eval ((xi k : ℂ) ^ 2)

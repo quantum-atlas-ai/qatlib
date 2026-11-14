@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.TITCMTReport98.MainResults.Defs
-import Mathlib.Analysis.Asymptotics.AsymptoticEquivalent
-import Mathlib.Analysis.SpecificLimits.Basic
-import Mathlib.Order.Filter.AtTopBot.Field
-import Mathlib.Algebra.Order.BigOperators.Group.Finset
+module
+
+public import Qatlib.Papers.TITCMTReport98.MainResults.Defs
+public import Mathlib.Analysis.Asymptotics.AsymptoticEquivalent
+public import Mathlib.Analysis.SpecificLimits.Basic
+public import Mathlib.Order.Filter.AtTopBot.Field
+public import Mathlib.Algebra.Order.BigOperators.Group.Finset
+
+@[expose] public section
 
 /-!
 # Finite Gibbs weights and ground-state deficiency
@@ -60,18 +64,21 @@ theorem boltzmannPartition_pos (E : ι → ℝ) (β : ℝ) : 0 < boltzmannPartit
   unfold boltzmannPartition
   exact Finset.sum_pos (fun i _ => Real.exp_pos _) Finset.univ_nonempty
 
+omit [DecidableEq ι] in
 /-- Every Gibbs weight in a finite nonempty collection is strictly positive
 [KadowakiNishimori1998]. -/
 theorem gibbsWeight_pos (E : ι → ℝ) (β : ℝ) (i : ι) : 0 < gibbsWeight E β i := by
   unfold gibbsWeight
   exact div_pos (Real.exp_pos _) (boltzmannPartition_pos E β)
 
+omit [DecidableEq ι] in
 /-- The finite Gibbs weights sum to one [KadowakiNishimori1998]. -/
 theorem sum_gibbsWeight (E : ι → ℝ) (β : ℝ) : ∑ i, gibbsWeight E β i = 1 := by
   unfold gibbsWeight
   rw [← Finset.sum_div]
   exact div_self (ne_of_gt (boltzmannPartition_pos E β))
 
+omit [DecidableEq ι] in
 /-- Every Gibbs weight is at most one [KadowakiNishimori1998]. -/
 theorem gibbsWeight_le_one (E : ι → ℝ) (β : ℝ) (i : ι) : gibbsWeight E β i ≤ 1 := by
   have hsum := sum_gibbsWeight E β
@@ -102,6 +109,7 @@ theorem boltzmannPartition_ground_factor (E : ι → ℝ) (β : ℝ) (g : ι) :
   congr 1
   ring
 
+omit [Nonempty ι] in
 /-- The deficiency `1 - gibbsWeight E β g` equals the sum of relative Boltzmann factors over `i
 ≠ g` divided by one plus that sum [KadowakiNishimori1998]. -/
 theorem ground_deficiency_eq (E : ι → ℝ) (β : ℝ) (g : ι) :
@@ -120,6 +128,7 @@ theorem ground_deficiency_eq (E : ι → ℝ) (β : ℝ) (g : ι) :
   field_simp
   ring
 
+omit [Nonempty ι] in
 /-- If a level other than `g` exists, the deficiency of the Gibbs weight at `g` is strictly
 positive [KadowakiNishimori1998]. -/
 theorem ground_deficiency_pos (E : ι → ℝ) (β : ℝ) (g : ι)
@@ -132,6 +141,7 @@ theorem ground_deficiency_pos (E : ι → ℝ) (β : ℝ) (g : ι)
     positivity
   exact div_pos hSpos hD
 
+omit [DecidableEq ι] in
 /-- The deficiency of any distinguished Gibbs weight is strictly less than one
 [KadowakiNishimori1998]. -/
 theorem ground_deficiency_lt_one (E : ι → ℝ) (β : ℝ) (g : ι) :
@@ -139,6 +149,7 @@ theorem ground_deficiency_lt_one (E : ι → ℝ) (β : ℝ) (g : ι) :
   have := gibbsWeight_pos E β g
   linarith
 
+omit [Nonempty ι] in
 /-- If `g` has strictly lower energy than every other level and another level exists, its Gibbs
 deficiency is asymptotically equivalent to the sum of relative Boltzmann factors as `β`
 tends to infinity [KadowakiNishimori1998]. -/

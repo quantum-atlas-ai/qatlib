@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CopyDecision.QubitMeasure.Data.TrineCopies
+module
+
+public import Qatlib.Concepts.CopyDecision.QubitMeasure.Data.TrineCopies
+
+@[expose] public section
 
 /-!
 # Collective Geometry
@@ -94,12 +98,12 @@ theorem collectiveOrtho_gram (ψ : Fin 3 → H) (s : ℝ)
     ring
   rw [he]
   by_cases h : i=j
-  · rw [if_pos h, if_pos h]
+  · rw [ite_eq_left h, ite_eq_left h]
     have hr : (collectiveA s)^2*1+
         (2*collectiveA s*collectiveB s+3*(collectiveB s)^2)*(1+2*s)=1 := by
       nlinarith only [hc.1, hc.2]
     exact_mod_cast hr
-  · rw [if_neg h, if_neg h]
+  · rw [ite_eq_right h, ite_eq_right h]
     exact_mod_cast hc.2
 
 /-- Definition of collective Alpha in the Collective Risk construction. -/

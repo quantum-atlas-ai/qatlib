@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.Execution.CircuitCompile.VariableKrausDefs
+module
+
+public import Qatlib.Concepts.Execution.CircuitCompile.VariableKrausDefs
+
+@[expose] public section
 
 /-!
 # Statistics preserved by Kraus padding
@@ -80,14 +84,14 @@ theorem variableKraus_padding_statistic {d : ℕ} (O : Operator d)
       apply Finset.sum_congr rfl
       intro a _
       by_cases ha : a.val < s
-      · simp only [dif_pos ha]
+      · simp only [dite_eq_left ha]
         have hh := ih ⟨a.val,ha⟩ (hchildren ⟨a.val,ha⟩)
           (conjBranch (K ⟨a.val,ha⟩) rho)
           (fun t => F {t with gates := t.gates+2, measurements := t.measurements+1, outcomes := (s,a.val)::t.outcomes})
           (fun b q g m rec => hzero b q (g+2) (m+1) ((s,a.val)::rec))
-        simpa only [f, restoreVariableKrausRecord, dif_pos ha] using hh
-      · simp only [dif_neg ha, conjBranch_apply, Matrix.zero_mul,
-          Matrix.mul_zero, krausCircuitMixedTraces, List.map_cons,
+        simpa only [f, restoreVariableKrausRecord, dite_eq_left ha] using hh
+      · simp only [dite_eq_right ha, conjBranch_apply, Matrix.zero_mul,
+           krausCircuitMixedTraces, List.map_cons,
           List.map_nil, List.sum_cons, List.sum_nil, add_zero,
           restoreVariableKrausRecord]
         exact hzero false 0 2 1 []

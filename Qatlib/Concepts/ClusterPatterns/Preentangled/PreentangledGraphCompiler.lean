@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ClusterPatterns.Preentangled.PreentangledGraphLayout
+module
+
+public import Qatlib.Concepts.ClusterPatterns.Preentangled.PreentangledGraphLayout
+
+@[expose] public section
 
 /-!
 # Correctness of preentangled graph compilation
@@ -170,7 +174,7 @@ theorem graphBitsIndex_lt (bs : List Bool) : graphBitsIndex bs < 2^bs.length := 
   | nil => simp [graphBitsIndex]
   | cons b bs ih =>
     rw [graphBitsIndex_cons, List.length_cons, pow_succ]
-    cases b <;> simp only [Bool.false_eq_true, if_false, if_true, zero_add] <;>
+    cases b <;> simp only [Bool.false_eq_true, ite_false, ite_true, zero_add] <;>
       omega
 
 /-- Boolean lists of equal length with the same binary index are equal. -/
@@ -279,13 +283,13 @@ theorem graphMeasurementLeaf_get {D : ℕ} (label : Fin D → Fin 2)
       some (leaf.prepend (Projector (Finset.univ.filter
         (fun i => label i=boolEquivFin2 a))) 0 0 1 [(2,(boolEquivFin2 a).val)]) := by
   cases a
-  · simp only [Bool.false_eq_true, if_false, zero_add, observedKrausLeaves,
+  · simp only [Bool.false_eq_true, ite_false, zero_add, observedKrausLeaves,
       List.ofFn_succ, List.ofFn_zero, List.flatten_cons, List.flatten_nil, List.append_nil]
     rw [List.getElem?_append_left (by simpa [hlen] using! hk), List.getElem?_map]
     simpa [boolEquivFin2] using! congrArg
       (Option.map (ObservedKrausLeaf.prepend
         (Projector (Finset.univ.filter (fun i => label i=0))) 0 0 1 [(2,0)])) he
-  · simp only [if_true, observedKrausLeaves, List.ofFn_succ, List.ofFn_zero,
+  · simp only [ite_true, observedKrausLeaves, List.ofFn_succ, List.ofFn_zero,
       List.flatten_cons, List.flatten_nil, List.append_nil]
     rw [List.getElem?_append_right (by simp [hlen]), List.length_map, hlen,
       Nat.add_sub_cancel_left, List.getElem?_map]
@@ -321,8 +325,8 @@ theorem graphTailLeaf_get {n L : ℕ} (pre : Bool) (gs : GraphWord n L)
       · have he := graphGateLeaf_get
           (networkCzGate (graphEdgeEndpoints gs t).1 (graphEdgeEndpoints gs t).2) _ _ _ hmP
         simpa only [graphTail, graphTailLeaf, hg, graphFrameAdvance, Bool.false_eq_true,
-          if_false, graphPhysicalProjector] using! he
-      · simpa only [graphTail, graphTailLeaf, hg, graphFrameAdvance, if_true,
+          ite_false, graphPhysicalProjector] using! he
+      · simpa only [graphTail, graphTailLeaf, hg, graphFrameAdvance, ite_true,
           graphPhysicalProjector] using! hmP
     | inr p =>
       obtain ⟨i,j⟩ := p
@@ -331,10 +335,10 @@ theorem graphTailLeaf_get {n L : ℕ} (pre : Bool) (gs : GraphWord n L)
       rw [hmsg]
       cases pre
       · simpa only [graphTail, graphTailLeaf, hg, graphFrameAdvance, Bool.false_eq_true,
-          if_false] using! graphGateLeaf_get
+          ite_false] using! graphGateLeaf_get
           (networkCzGate (graphEdgeEndpoints gs t).1 (graphEdgeEndpoints gs t).2) _ _ _
           (ih (graphCzFrame F i j))
-      · simpa only [graphTail, graphTailLeaf, hg, graphFrameAdvance, if_true] using!
+      · simpa only [graphTail, graphTailLeaf, hg, graphFrameAdvance, ite_true] using!
           ih (graphCzFrame F i j)
 
 /-- Prepending gates preserves the acceptance flag of an observed leaf. -/
@@ -388,14 +392,14 @@ theorem graphTailLeaf_resources {n L : ℕ} (gs : GraphWord n L) (h : GraphHisto
       obtain ⟨ha,hq,hgates,hm⟩ := ih (graphWireFrame F i (h.1 t))
       have hc : graphSlotCount gs (t::ts)=graphSlotCount gs ts+1 := by
         simp [graphSlotCount, graphWireAt, hg, Nat.add_comm]
-      simp only [graphTailLeaf, hg, if_true, graphFrameAdvance, ObservedKrausLeaf.prepend,
+      simp only [graphTailLeaf, hg, ite_true, graphFrameAdvance, ObservedKrausLeaf.prepend,
         ha, hq, hgates, hm, hc, List.foldl_cons, Nat.add_zero]
       exact ⟨trivial,trivial,by omega,trivial⟩
     | inr p =>
       obtain ⟨i,j⟩ := p
       have hc : graphSlotCount gs (t::ts)=graphSlotCount gs ts := by
         simp [graphSlotCount, graphWireAt, hg]
-      simpa only [graphTailLeaf, hg, if_true, graphFrameAdvance, hc, List.foldl_cons] using!
+      simpa only [graphTailLeaf, hg, ite_true, graphFrameAdvance, hc, List.foldl_cons] using!
         ih (graphCzFrame F i j)
 
 /-- A graph-program leaf consists of fresh-state preparation followed by the selected tail, with
@@ -459,8 +463,8 @@ theorem graphTailLeaf_retiming {n L : ℕ} (gs : GraphWord n L)
     cases hg : gs t with
     | inr p =>
       obtain ⟨i,j⟩ := p
-      simpa only [graphTailLeaf, hg, graphFrameAdvance, Bool.false_eq_true, if_false,
-        if_true, ObservedKrausLeaf.prepend, List.map_cons, graphGateProduct,
+      simpa only [graphTailLeaf, hg, graphFrameAdvance, Bool.false_eq_true, ite_false,
+        ite_true, ObservedKrausLeaf.prepend, List.map_cons, graphGateProduct,
         List.foldr_cons, Matrix.mul_assoc] using!
         congrArg (fun K => K*networkCzGate (graphEdgeEndpoints gs t).1
           (graphEdgeEndpoints gs t).2) (ih (graphCzFrame F i j))
@@ -499,8 +503,8 @@ theorem graphTailLeaf_retiming {n L : ℕ} (gs : GraphWord n L)
       have hH := hE _ (fun s hs => (hcomm s hs).1)
       have hPhase := hE _ (fun s hs => (hcomm s hs).2.1)
       have hP := hE _ (fun s hs => (hcomm s hs).2.2)
-      simp only [graphTailLeaf, hg, graphFrameAdvance, Bool.false_eq_true, if_false,
-        if_true, ObservedKrausLeaf.prepend, List.map_cons, graphGateProduct,
+      simp only [graphTailLeaf, hg, graphFrameAdvance, Bool.false_eq_true, ite_false,
+        ite_true, ObservedKrausLeaf.prepend, List.map_cons, graphGateProduct,
         List.foldr_cons]
       rw [ih (graphWireFrame F i (h.1 t))]
       change ((((_*E)*_)*_)*_)*_ = (((_*_)*_)*_)*(E*_)
@@ -616,7 +620,7 @@ theorem preentangled_graph_actual_leaf_retiming :
   refine ⟨?_,?_,graphHistoryIndex_injective gs⟩
   · have hr := graphTailLeaf_retiming gs hlegal h (List.ofFn (fun t : Fin L => t))
       (List.pairwise_ofFn.mpr (fun i j hij => hij)) (zeroPauliFrame n)
-    simpa only [graphProgramLeaf_eq, Bool.false_eq_true, if_false, if_true,
+    simpa only [graphProgramLeaf_eq, Bool.false_eq_true, ite_false, ite_true,
       graphPrependLeaf_operator, graphEdgeGates, List.map_ofFn] using!
       congrArg (fun K => K*graphGateProduct (graphFreshGates n L)) hr
   · rw [observedKrausLeaves_length, graphProgram_leafCount]
@@ -644,14 +648,14 @@ noncomputable def graphCoordinates {n L : ℕ} (lay : Fin n → Fin (n+L))
     · funext i
       (try dsimp only)
       have h : ∃ j, lay j=lay i := ⟨i,rfl⟩
-      rw [dif_pos h]
+      rw [dite_eq_left h]
       rw [hlay (Classical.choose_spec h)]
     · funext q
       (try dsimp only)
       have h : ¬∃ i, lay i=q.1 := by
         rintro ⟨i,hi⟩
         exact q.2 i hi.symm
-      rw [dif_neg h]
+      rw [dite_eq_right h]
 
 /-- Overlaying logical bits replaces the logical component of `graphCoordinates` and preserves
 the spectator component. -/
@@ -728,7 +732,7 @@ theorem graphWireB_mul_rows {N : ℕ} {J : Type*} (q : Fin N) (U : Operator 2)
       rw [Finset.prod_eq_single q]
       · simp
       · intro k _ hk
-        rw [if_neg hk, Function.update_of_ne hk, Matrix.one_apply_eq]
+        rw [ite_eq_right hk, Function.update_of_ne hk, Matrix.one_apply_eq]
       · simp
     rw [hg]
 
@@ -867,10 +871,10 @@ theorem graphRowLift_actual_J {n L : ℕ} {J : Type*}
   simp only [Matrix.mul_assoc]
   rw [graphPhysicalProjector_mul_rows]
   by_cases ha : z (lay i)=a
-  · rw [if_pos ha, graphPhysicalH, graphPhysicalWire_mul_rows]
+  · rw [ite_eq_left ha, graphPhysicalH, graphPhysicalWire_mul_rows]
     simp_rw [graphPhysicalPhase_mul_rows, graphPhysicalCz_mul_rows]
     simp only [graphRowLift, graphRowLiftB, Equiv.symm_apply_apply, graphSelectEnvelope,
-      ha, if_true, graphWireB_mul_rows]
+      ha, ite_true, graphWireB_mul_rows]
     rw [Finset.mul_sum]
     apply Finset.sum_congr rfl
     intro b _
@@ -1056,7 +1060,7 @@ theorem graphFreshPreparation (n L : ℕ) :
   obtain ⟨z,rfl⟩ := (bitVecEquiv (n+L)).surjective r
   rw [Matrix.mul_apply]
   simp_rw [graphInputFrame_entry]
-  simp only [mul_ite, mul_one, mul_zero, Finset.sum_ite_eq', Finset.mem_univ, if_true]
+  simp only [mul_ite, mul_one, mul_zero, Finset.sum_ite_eq', Finset.mem_univ, ite_true]
   rw [hr]
   simp only [tensorPauliProduct, relabelGate, Matrix.reindex_apply, Matrix.submatrix_apply,
     graphInputIndex, Equiv.symm_apply_apply]
@@ -1074,12 +1078,12 @@ theorem graphFreshPreparation (n L : ℕ) :
   have hp : ∀ t : Fin L, Fin.natAdd n t ∈ List.ofFn (graphFresh n L) := by
     intro t
     exact List.mem_ofFn.mpr ⟨t,rfl⟩
-  simp only [hd, if_false, hp, if_true, Fin.append_left, Fin.append_right]
+  simp only [hd, ite_false, hp, ite_true, Fin.append_left, Fin.append_right]
   have hh : ∀ b : Bool, relabelGate boolEquivFin2 Hadamard (boolEquivFin2 b)
       (boolEquivFin2 false)=(Real.sqrt 2 : ℂ)⁻¹ := by
     intro b
     cases b <;> simp [relabelGate, Matrix.reindex_apply, Matrix.submatrix_apply, Hadamard,
-      boolEquivFin2, one_div]
+      boolEquivFin2]
   simp_rw [hh]
   have hid : (∏ i : Fin n, (1 : Operator 2) (boolEquivFin2 (z (Fin.castAdd L i)))
       (boolEquivFin2 ((bitVecEquiv n).symm j i)))=
@@ -1137,9 +1141,9 @@ theorem graphCzFrameTransportB {n : ℕ} (F : PauliFrame n) (i j : Fin n) (hij :
   rw [hx]
   by_cases hw : w=frameShift F v
   · subst w
-    rw [if_pos rfl, graphCzFrame_sign F i j hij v]
+    rw [ite_eq_left rfl, graphCzFrame_sign F i j hij v]
     cases hi : F.1 i <;> cases hj : F.1 j <;> cases hvi : v i <;> cases hvj : v j <;>
-      simp [frameShift, frameBitSign, hi, hj, hvi, hvj] <;> ring
+      simp [frameShift, frameBitSign, hi, hj, hvi, hvj]
   · simp [hw]
 
 /-- The gate product of an appended list is the product of the second list followed on the right
@@ -1208,12 +1212,12 @@ theorem graphCorrection_rowLift {n L : ℕ} {J : Type*} (gs : GraphWord n L)
       intro B
       rw [List.flatMap_cons, graphGateProduct_append, Matrix.mul_assoc]
       cases hxi : F.1 i <;> cases hzi : F.2 i <;>
-        simp only [hxi,hzi,Bool.false_eq_true,if_false,if_true,List.nil_append,
+        simp only [Bool.false_eq_true,ite_false,ite_true,List.nil_append,
           List.append_nil, List.singleton_append,graphGateProduct_nil,graphGateProduct_cons,Matrix.one_mul,
-          Matrix.mul_one,Matrix.mul_assoc] <;>
+          Matrix.mul_assoc] <;>
         simp only [hX,hZ,ih,List.flatMap_cons,reflectionProgramMatrix_append,hxi,hzi,
-          Bool.false_eq_true,if_false,if_true,List.nil_append,List.append_nil,
-          reflectionProgramMatrix,reflectionGateMatrix,Matrix.one_mul,Matrix.mul_one,
+          Bool.false_eq_true,ite_false,ite_true,List.nil_append,List.append_nil,
+          reflectionProgramMatrix,reflectionGateMatrix,Matrix.one_mul,
           Matrix.mul_assoc]
   have hh := hs (List.ofFn (fun i : Fin n => i)) A
   have he : (List.ofFn (fun i : Fin n => i)).flatMap (fun i =>
@@ -1344,7 +1348,7 @@ theorem graphTail_actual_transfer {n L : ℕ} {J : Type*} (gs : GraphWord n L)
       · have hJ := graphRowLift_actual_J (graphLayoutBefore gs t) hi.1 i
           (graphFresh n L t) hq f (hf i) A (if F.1 i then star ζ else ζ) (h.1 t)
         simp only [Matrix.mul_assoc] at hJ
-        simp only [graphTailLeaf,hg,graphFrameAdvance,Bool.false_eq_true,if_false,
+        simp only [graphTailLeaf,hg,graphFrameAdvance,Bool.false_eq_true,ite_false,
           ObservedKrausLeaf.prepend,Matrix.mul_assoc,graphEdgeEndpoints]
         rw [hJ,← hnext',htrans]
         simp only [graphTailEnvelope,graphLogicalTailB,hg,Matrix.mul_assoc]
@@ -1363,7 +1367,7 @@ theorem graphTail_actual_transfer {n L : ℕ} {J : Type*} (gs : GraphWord n L)
       obtain ⟨htrans,hinv,hmass⟩ := ih (ps++[t]) hall' (graphCzFrame F i j)
         f hf (fun s hs => hfresh s (List.mem_cons_of_mem t hs)) (networkCzGateB i j*A)
       refine ⟨?_,?_,?_⟩
-      · simp only [graphTailLeaf,hg,graphFrameAdvance,Bool.false_eq_true,if_false,
+      · simp only [graphTailLeaf,hg,graphFrameAdvance,Bool.false_eq_true,ite_false,
           ObservedKrausLeaf.prepend,Matrix.mul_assoc,graphEdgeEndpoints]
         rw [graphRowLift_active_cz,← hnext',htrans]
         simp only [graphTailEnvelope,graphLogicalTailB,hg,Matrix.mul_assoc]
@@ -1438,7 +1442,7 @@ theorem graphLogicalTailB_correct (n L : ℕ) (gs : GraphWord n L)
       simp only [hg] at hl
       obtain ⟨c,hc,he⟩ := ih (graphCzFrame F i j)
       refine ⟨c*frameBitSign (F.1 i) (F.1 j),?_,?_⟩
-      · cases F.1 i <;> cases F.1 j <;> simp [frameBitSign,norm_mul,hc]
+      · cases F.1 i <;> cases F.1 j <;> simp [frameBitSign,hc]
       · simp only [graphLogicalTailB,hg,Matrix.mul_assoc]
         rw [graphCzFrameTransportB F i j hl,Matrix.mul_smul,← Matrix.mul_assoc,he,
           Matrix.smul_mul,smul_smul]
@@ -1493,7 +1497,7 @@ theorem preentangled_graph_actual_reference_branch :
       graphRowLift (graphLayoutFinal gs) f A := by
     have hleaf := ((preentangled_graph_actual_leaf_retiming n L gs hlegal).2.2 h).1
     rw [← hleaf, graphProgramLeaf_eq]
-    simp only [Bool.false_eq_true,if_false,graphPrependLeaf_operator,Matrix.mul_assoc]
+    simp only [Bool.false_eq_true,ite_false,graphPrependLeaf_operator,Matrix.mul_assoc]
     rw [graphFreshPreparation]
     exact ht.1
   have hmass : graphEnvelopeMass n f=(1/2 : ℂ)^(graphWireCount gs) := by
@@ -1574,7 +1578,7 @@ theorem preentangled_graph_actual_cp_instrument_and_forget :
     ∀ (n L : ℕ) (gs : GraphWord n L), networkLegal (List.ofFn gs) →
     ∃ I : Instrument (GraphHistory gs) (2^n) (2^n),
       (∀ (h : GraphHistory gs) (ρ : Operator (2^n)), I.branch h ρ=graphActualBranch true gs h ρ) ∧
-      (∀ (ρ : Operator (2^n)) (hρ : IsDensityOperator ρ) (h : GraphHistory gs),
+      (∀ (ρ : Operator (2^n)) (_hρ : IsDensityOperator ρ) (h : GraphHistory gs),
         instrumentProb I ρ h=(1/2:ℝ)^(graphWireCount gs)) ∧
       (∀ (R : ℕ) (X : Matrix (Fin (2^n) × Fin R) (Fin (2^n) × Fin R) ℂ),
         (∑ h : GraphHistory gs, graphActualReference true gs h R X)=
@@ -1591,7 +1595,7 @@ theorem preentangled_graph_actual_cp_instrument_and_forget :
     simp only [K,Matrix.conjTranspose_smul,Matrix.smul_mul,Matrix.mul_smul,smul_smul,
       graphAmplitude_square_rev,hunit,Finset.sum_const,Finset.card_univ,graphHistory_card]
     ext i j
-    simp only [Pi.smul_apply,Matrix.smul_apply,smul_eq_mul]
+    simp only [Matrix.smul_apply,smul_eq_mul]
     rw [nsmul_eq_mul]
     simp only [Nat.cast_pow,Nat.cast_ofNat]
     rw [← mul_assoc,graphProbability_sum_scalar,one_mul]
@@ -1614,7 +1618,7 @@ theorem preentangled_graph_actual_cp_instrument_and_forget :
     simp_rw [preentangled_graph_actual_reference_branch n L R gs hlegal]
     rw [Finset.sum_const,Finset.card_univ,graphHistory_card]
     ext p q
-    simp only [Pi.smul_apply,Matrix.smul_apply,smul_eq_mul]
+    simp only [Matrix.smul_apply,smul_eq_mul]
     rw [nsmul_eq_mul]
     simp only [Nat.cast_pow,Nat.cast_ofNat]
     rw [← mul_assoc,graphProbability_sum_scalar,one_mul]

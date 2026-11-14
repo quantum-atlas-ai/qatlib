@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Polynomial.Roots
-import Mathlib.Data.Fintype.Card
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.FieldSimp
+module
+
+public import Mathlib.Algebra.Polynomial.Roots
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.FieldSimp
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -92,7 +96,7 @@ theorem coeff_hiddenPolyPoly_self (D : ℕ) (ν : Fin D → F) (i : Fin D) :
   · intro b _ hb
     have hb' : b.val ≠ i.val := fun h => hb (Fin.ext h)
     have hne : b.val + 1 ≠ i.val + 1 := by omega
-    rw [if_neg hne]
+    rw [ite_eq_right hne]
   · intro hi
     exact absurd (Finset.mem_univ i) hi
 
@@ -165,7 +169,7 @@ theorem recoverFromLevelSet_spec [Fintype F] [DecidableEq F]
     refine ⟨ν, ?_⟩
     rw [h0]
   unfold recoverFromLevelSet
-  rw [dif_pos hex]
+  rw [dite_eq_left hex]
   have hchoose :
       levelSetAmplitude (hiddenPoly D ν) w =
         levelSetAmplitude (hiddenPoly D (Classical.choose hex))

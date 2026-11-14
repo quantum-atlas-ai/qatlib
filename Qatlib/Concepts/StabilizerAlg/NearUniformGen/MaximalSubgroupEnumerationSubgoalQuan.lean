@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.StabilizerAlg.NearUniformGen.MaximalSubgroupEnumerationSubgoalStat
+module
+
+public import Qatlib.Concepts.StabilizerAlg.NearUniformGen.MaximalSubgroupEnumerationSubgoalStat
+
+@[expose] public section
 
 /-!
 # Character kernels and finite subgroup covers
@@ -80,7 +84,7 @@ subgroups by containment, with family cardinality strictly smaller than the grou
 cardinality. -/
 theorem maximalSubgroupEnumerationSubgoal : MaximalSubgroupEnumerationSubgoal := by
   intro H _ _
-  letI : Fintype (AddSubgroup H) := Fintype.ofInjective
+  let : Fintype (AddSubgroup H) := Fintype.ofInjective
     (fun L : AddSubgroup H => (L : Set H)) SetLike.coe_injective
   let maxs : Finset (AddSubgroup H) := Finset.univ.filter IsCoatom
   have hco (L : ↥maxs) : IsCoatom (L : AddSubgroup H) := (Finset.mem_filter.mp L.property).2

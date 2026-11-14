@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.JuntaLearning07.MainResults.FSOracleDefs
-import Qatlib.Papers.JuntaLearning07.MainResults.InfluenceIdentification
+module
+
+public import Qatlib.Papers.JuntaLearning07.MainResults.FSOracleDefs
+public import Qatlib.Papers.JuntaLearning07.MainResults.InfluenceIdentification
+
+@[expose] public section
 
 /-!
 # The zero-query obstruction to junta testing

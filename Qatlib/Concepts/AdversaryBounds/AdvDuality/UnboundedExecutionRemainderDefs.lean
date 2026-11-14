@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ExecutionRemainder
+module
+
+public import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ExecutionRemainder
+
+@[expose] public section
 
 /-!
 # Capped feedback and native tape execution data

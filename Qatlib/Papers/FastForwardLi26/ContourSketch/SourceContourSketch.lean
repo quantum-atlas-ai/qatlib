@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Complex.CauchyIntegral
-import Mathlib.Tactic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.SpecialFunctions.Exponential
-import Mathlib.LinearAlgebra.Matrix.PosDef
-import Mathlib.LinearAlgebra.Matrix.Trace
-import Mathlib.Probability.ProbabilityMassFunction.Basic
+module
+
+public import Mathlib.Analysis.Complex.CauchyIntegral
+public import Mathlib.Tactic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.SpecialFunctions.Exponential
+public import Mathlib.LinearAlgebra.Matrix.PosDef
+public import Mathlib.LinearAlgebra.Matrix.Trace
+public import Mathlib.Probability.ProbabilityMassFunction.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -80,7 +84,7 @@ dissipativity-based fast-forwarding algorithm of §3–§4 requires a strictly
 positive margin at every truncation order.  The observed pattern
 `δ₁ = 0`, `δ_N < 0` for `N ≥ 2` therefore makes the criterion fail. -/
 theorem dissipative_fastforward_criterion_fails
-    (δ : ℕ → ℝ) (h1 : δ 1 = 0) (hN : ∀ N, 2 ≤ N → δ N < 0) :
+    (δ : ℕ → ℝ) (_h1 : δ 1 = 0) (hN : ∀ N, 2 ≤ N → δ N < 0) :
     ¬ (∀ N, 0 < δ N) := by
   intro h
   have h2 := h 2
@@ -114,7 +118,7 @@ Scope note: this theorem formalizes the scalar Cauchy representation.  The
 matrix-valued formula for `NormedSpace.exp (A * T)` with resolvent `(zI - A)⁻¹`
 and the discretization/LCU cost analysis are outside its scope. -/
 theorem contour_integral_representation
-    (a : ℂ) (T R : ℝ) (hR : 0 < R) (ha : ‖a‖ < R) :
+    (a : ℂ) (T R : ℝ) (_hR : 0 < R) (ha : ‖a‖ < R) :
     ((2 * Real.pi * Complex.I : ℂ))⁻¹ *
       (∮ z in C((0 : ℂ), R), (z - a)⁻¹ * Complex.exp (z * (T : ℂ))) =
       Complex.exp (a * T) := by

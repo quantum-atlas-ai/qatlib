@@ -4,16 +4,20 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.KhovanovHom25.MainResults.Model
-import Mathlib.Data.Finset.Powerset
-import Mathlib.Data.Nat.Choose.Basic
-import Mathlib.Logic.Relation
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Tactic.ByContra
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Ring
+module
+
+public import Qatlib.Papers.KhovanovHom25.MainResults.Model
+public import Mathlib.Data.Finset.Powerset
+public import Mathlib.Data.Nat.Choose.Basic
+public import Mathlib.Logic.Relation
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Tactic.ByContra
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 set_option backward.isDefEq.respectTransparency false
 
 /-!

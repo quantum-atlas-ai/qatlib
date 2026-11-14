@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Probability.Distributions.Gaussian.Multivariate
-import Mathlib.MeasureTheory.Integral.Prod
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.MeasureTheory.Function.SpecialFunctions.Inner
+module
+
+public import Mathlib.Probability.Distributions.Gaussian.Multivariate
+public import Mathlib.MeasureTheory.Integral.Prod
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.MeasureTheory.Function.SpecialFunctions.Inner
+
+@[expose] public section
 
 /-!
 # Gaussian source and normalized correlation kernel
@@ -137,7 +141,7 @@ theorem gamma_coordinate (i : Fin 3) :
 
 /-- A standard Gaussian vector differs from any prescribed vector almost surely. -/
 theorem gamma_ae_ne (a : V) : ∀ᵐ x ∂gamma,x≠a := by
-  letI : NullSingletonClass (gaussianReal 0 1) := nullSingletonClass_gaussianReal (by norm_num)
+  let : NullSingletonClass (gaussianReal 0 1) := nullSingletonClass_gaussianReal (by norm_num)
   have h : ∀ᵐ r ∂(gaussianReal 0 1),r≠a 0 := (gaussianReal 0 1).ae_ne (a 0)
   filter_upwards [(gamma_coordinate 0).quasiMeasurePreserving.ae h] with x hx
   intro he

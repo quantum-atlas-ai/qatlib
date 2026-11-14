@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QlsReadoutSpec.PrepLowerBound.InitialStatePrepLowerBoundStat
+module
+
+public import Qatlib.Concepts.QlsReadoutSpec.PrepLowerBound.InitialStatePrepLowerBoundStat
+
+@[expose] public section
 
 /-!
 # Initial-state preparation query lower bound
@@ -57,6 +61,7 @@ private theorem groverMarkedFiber_product (x : I) :
   rcases p with ⟨⟨i,b⟩,w⟩
   cases b <;> simp [groverMarkedFiber]
 
+omit [DecidableEq I] [DecidableEq W] in
 /-- The solver starting state is normalized when its ancillary factors are normalized and the
 data index type is nonempty. -/
 theorem solverStart_normalized [Nonempty I] (ν : QState Bool) (ω : QState W)
@@ -67,6 +72,7 @@ theorem solverStart_normalized [Nonempty I] (ν : QState Bool) (ω : QState W)
   change Normalized (TensorState (TensorState (uniformQState (I := I)) ν) ω)
   exact normalized_tensorState (normalized_tensorState hu hν) hω
 
+omit [DecidableEq W] in
 /-- The solution target is normalized for normalized ancillary factors and index cardinality at
 least four. -/
 theorem solutionTarget_normalized (ν : QState Bool) (ω : QState W) (x : I)
@@ -81,6 +87,7 @@ theorem solutionTarget_normalized (ν : QState Bool) (ω : QState W) (x : I)
     (fun i => NormedSpace.normalize (stateVector (groverInverse (I := I)*ᵥbState x)) i) ν) ω)
   exact normalized_tensorState (normalized_tensorState hn hν) hω
 
+omit [DecidableEq W] in
 /-- The marked-event probability of the solution target equals the squared magnitude of its
 normalized marked solution coordinate. -/
 theorem solutionTarget_marked_probability (ν : QState Bool) (ω : QState W) (x : I)
@@ -118,7 +125,7 @@ theorem grover_solver_success (ν : QState Bool) (ω : QState W) (ε : ℝ)
     (hclose : ‖stateVector (Run (bOracleCorrected x) C (solverStart ν ω))-
       stateVector (solutionTarget ν ω x)‖≤ε) :
     2/3 ≤ MeasureProb (Run (bOracleCorrected x) C (solverStart ν ω)) (groverMarkedFiber x) := by
-  letI : Nonempty I := ⟨x⟩
+  let : Nonempty I := ⟨x⟩
   have hstart := solverStart_normalized (I := I) ν ω hν hω
   have hrun := hC.normalized_run (bOracleCorrected_unitary x) hstart
   have htarget := solutionTarget_normalized ν ω x hν hω (by omega)
@@ -136,7 +143,7 @@ theorem grover_solver_success (ν : QState Bool) (ω : QState W) (ε : ℝ)
 cardinality at most 64 times its squared query count. -/
 theorem initialStatePreparationLowerBoundSubgoalCorrected : InitialStatePreparationLowerBoundSubgoalCorrected := by
   intro I W _ _ _ _ ν ω ε C hcard hε hC hν hω hclose
-  letI : Nonempty I := Fintype.card_pos_iff.mp (by omega)
+  let : Nonempty I := Fintype.card_pos_iff.mp (by omega)
   have hresources := phaseCompile_counts_unitary C hC
   have hstart : Normalized (phaseCompileStart (solverStart (I := I) ν ω)) :=
     normalized_relabelState _ (normalized_tensorState (solverStart_normalized ν ω hν hω) normalized_minus)

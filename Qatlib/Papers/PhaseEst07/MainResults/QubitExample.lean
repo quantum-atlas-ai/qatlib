@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.PhaseEst07.MainResults.Shared.PathShift
-import Mathlib.Data.Nat.Choose.Basic
-import Mathlib.Data.Nat.Choose.Sum
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Pow.NNReal
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.PhaseEst07.MainResults.Shared.PathShift
+public import Mathlib.Data.Nat.Choose.Basic
+public import Mathlib.Data.Nat.Choose.Sum
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Pow.NNReal
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Phase costs for identical qubit preparations

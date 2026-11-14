@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.LinearAlgebra.Matrix.Kronecker
-import Qatlib.Concepts.MpsAdaptation.MpsTransfer.MpsExternalAdaptationDefs
+module
+
+public import Mathlib.LinearAlgebra.Matrix.Kronecker
+public import Qatlib.Concepts.MpsAdaptation.MpsTransfer.MpsExternalAdaptationDefs
+
+@[expose] public section
 
 /-!
 # Expansion of ordered mixed-transfer products

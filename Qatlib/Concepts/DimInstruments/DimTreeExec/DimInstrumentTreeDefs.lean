@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QuditTeleport.TeleportCore.InstrumentConditioning
-import Qatlib.Concepts.ReferenceError.RefTraceError.FiniteReferenceTraceError
+module
+
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.InstrumentConditioning
+public import Qatlib.Concepts.ReferenceError.RefTraceError.FiniteReferenceTraceError
+
+@[expose] public section
 
 /-!
 # Adaptive instrument programs with changing dimensions

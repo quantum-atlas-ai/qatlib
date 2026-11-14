@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Gaussian.PoissonSummation
-import Mathlib.Analysis.SpecificLimits.Basic
-import Mathlib.Topology.Algebra.InfiniteSum.NatInt
-import Mathlib.Algebra.BigOperators.Group.Finset.Interval
-import Mathlib.Analysis.Real.Pi.Bounds
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Gaussian.PoissonSummation
+public import Mathlib.Analysis.SpecificLimits.Basic
+public import Mathlib.Topology.Algebra.InfiniteSum.NatInt
+public import Mathlib.Algebra.BigOperators.Group.Finset.Interval
+public import Mathlib.Analysis.Real.Pi.Bounds
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ClusterPatterns.WireComposition.CountedClusterCZ
-import Qatlib.Concepts.ShadowModels.ShadowChannel.TensorPauliRecords
-import Qatlib.Concepts.ClusterPatterns.AdaptiveEuler.ClusterSequenceInstrument
-import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetworkCore
-import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetworkTransport
-import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetworkRouting
+module
+
+public import Qatlib.Concepts.ClusterPatterns.WireComposition.CountedClusterCZ
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.TensorPauliRecords
+public import Qatlib.Concepts.ClusterPatterns.AdaptiveEuler.ClusterSequenceInstrument
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetworkCore
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetworkTransport
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.LocalClusterNetworkRouting
+
+@[expose] public section
 
 /-!
 # Physical branches of local cluster networks
@@ -134,12 +138,12 @@ noncomputable def networkActualStepBranch {n : ℕ} (g : ClusterNetworkGate n) (
       obtain ⟨i, ζ⟩ := p
       by_cases ho : o.2
       · simp [networkActualStepCore, ho]
-      · simp only [networkActualStepCore, if_neg ho, Matrix.mul_add, Matrix.add_mul,
+      · simp only [networkActualStepCore, ite_eq_right ho, Matrix.mul_add, Matrix.add_mul,
           relabelGate_add', traceLeft_add]
     | inr p =>
       obtain ⟨i, j⟩ := p
       by_cases hv : (i : ℕ) ≠ (j : ℕ)
-      · simp only [networkActualStepCore, dif_pos hv, Matrix.mul_add, Matrix.add_mul,
+      · simp only [networkActualStepCore, dite_eq_left hv, Matrix.mul_add, Matrix.add_mul,
           relabelGate_add', traceLeft_add]
       · simp [networkActualStepCore, hv]
   map_smul' := by
@@ -149,12 +153,12 @@ noncomputable def networkActualStepBranch {n : ℕ} (g : ClusterNetworkGate n) (
       obtain ⟨i, ζ⟩ := p
       by_cases ho : o.2
       · simp [networkActualStepCore, ho]
-      · simp only [networkActualStepCore, if_neg ho, Matrix.mul_smul, Matrix.smul_mul,
+      · simp only [networkActualStepCore, ite_eq_right ho, Matrix.mul_smul, Matrix.smul_mul,
           relabelGate_smul', traceLeft_smul, RingHom.id_apply]
     | inr p =>
       obtain ⟨i, j⟩ := p
       by_cases hv : (i : ℕ) ≠ (j : ℕ)
-      · simp only [networkActualStepCore, dif_pos hv, Matrix.mul_smul, Matrix.smul_mul,
+      · simp only [networkActualStepCore, dite_eq_left hv, Matrix.mul_smul, Matrix.smul_mul,
           relabelGate_smul', traceLeft_smul, RingHom.id_apply]
       · simp [networkActualStepCore, hv]
 
@@ -170,8 +174,8 @@ theorem networkRelabelState_ket {I J : Type*} [Fintype I] [DecidableEq I] [Finty
   show (Ket i) (e.symm x) = Ket (e i) x
   simp only [Qatlib.Foundations.PureStateMath.Ket]
   by_cases h : e.symm x = i
-  · rw [if_pos h, if_pos ((Equiv.symm_apply_eq e).mp h)]
-  · rw [if_neg h, if_neg (fun h' => h ((Equiv.symm_apply_eq e).mpr h'))]
+  · rw [ite_eq_left h, ite_eq_left ((Equiv.symm_apply_eq e).mp h)]
+  · rw [ite_eq_right h, ite_eq_right (fun h' => h ((Equiv.symm_apply_eq e).mpr h'))]
 
 /-- Successive gate relabelings agree with relabeling along the composite equivalence. -/
 theorem networkRelabelGate_trans {I J K : Type*} [Fintype I] [DecidableEq I] [Fintype J]
@@ -201,15 +205,15 @@ theorem networkWireRouteFromF_outToF (n : ℕ) (i : Fin n) (p : (Bool × Bool) �
   unfold networkWireRouteFromF
   rw [hss]
   have h1 : (if (i : Fin n) = i then p.1.1 else p.2 i) = p.1.1 := by
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
   have h2 : (![p.2 i, p.1.2] : Fin 2 → Bool) 0 = p.2 i := rfl
   have h3 : ∀ k : Fin n, (if k = i then (![p.2 i, p.1.2] : Fin 2 → Bool) 1
       else (if k = i then p.1.1 else p.2 k)) = if k = i then p.1.2 else p.2 k := by
     intro k
     by_cases hk : k = i
-    · rw [if_pos hk, if_pos hk]
+    · rw [ite_eq_left hk, ite_eq_left hk]
       rfl
-    · rw [if_neg hk, if_neg hk, if_neg hk]
+    · rw [ite_eq_right hk, ite_eq_right hk, ite_eq_right hk]
   exact Prod.ext (Prod.ext h1 h2) (funext fun k => h3 k)
 
 /-- The inverse wire route separates the selected input bit and a zero ancillary bit from the
@@ -267,14 +271,14 @@ theorem networkWireGateB_apply (n : ℕ) (i : Fin n) (ζ : ℂ) (w v : Reg n) :
         = if w j = v j then (1 : ℂ) else 0 := by
     intro j hj
     have hji : j ≠ i := (Finset.mem_erase.mp hj).1
-    rw [if_neg hji, Matrix.one_apply]
+    rw [ite_eq_right hji, Matrix.one_apply]
     by_cases hw : w j = v j
-    · rw [if_pos (congrArg boolEquivFin2 hw), if_pos hw]
-    · rw [if_neg (fun h => hw (boolEquivFin2.injective h)), if_neg hw]
+    · rw [ite_eq_left (congrArg boolEquivFin2 hw), ite_eq_left hw]
+    · rw [ite_eq_right (fun h => hw (boolEquivFin2.injective h)), ite_eq_right hw]
   have h1 : (if (i : Fin n) = i then clusterJ ζ else (1 : Operator 2))
         (boolEquivFin2 (w i)) (boolEquivFin2 (v i))
       = clusterJ ζ (boolEquivFin2 (w i)) (boolEquivFin2 (v i)) := by
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
   show (∏ j : Fin n, (if j = i then clusterJ ζ else (1 : Operator 2)) (boolEquivFin2 (w j))
         (boolEquivFin2 (v j))) = _
   exact ((Finset.mul_prod_erase (Finset.univ : Finset (Fin n))
@@ -295,24 +299,24 @@ theorem networkIndicator_prod_erase (n : ℕ) (i : Fin n) (w v : Reg n) :
       by_cases hk : k = i
       · subst hk
         simp
-      · rw [if_neg hk, if_neg hk]
+      · rw [ite_eq_right hk, ite_eq_right hk]
         exact hall k (Finset.mem_erase.2 ⟨hk, Finset.mem_univ k⟩)
-    rw [if_pos hf]
-    exact Finset.prod_eq_one fun j hj => if_pos (hall j hj)
+    rw [ite_eq_left hf]
+    exact Finset.prod_eq_one fun j hj => ite_eq_left (hall j hj)
   · have hdif : ¬((fun k => if k = i then false else w k)
         = (fun k => if k = i then false else v k)) := by
       intro hfun
       apply hall
       intro j hj
       have hd := congrFun hfun j
-      rw [if_neg (Finset.mem_erase.mp hj).1, if_neg (Finset.mem_erase.mp hj).1] at hd
+      rw [ite_eq_right (Finset.mem_erase.mp hj).1, ite_eq_right (Finset.mem_erase.mp hj).1] at hd
       exact hd
     obtain ⟨j, hjmem, hjne⟩ : ∃ j ∈ Finset.univ.erase i, w j ≠ v j := by
       by_contra hcon
       exact hall (fun j hj => by
         by_contra hjw
         exact hcon ⟨j, hj, hjw⟩)
-    rw [if_neg hdif, Finset.prod_eq_zero hjmem (if_neg hjne)]
+    rw [ite_eq_right hdif, Finset.prod_eq_zero hjmem (ite_eq_right hjne)]
 
 /-- A basis column of the register-indexed wire gate applies `clusterJ ζ` on wire `i` and
 vanishes unless all other bits agree. -/
@@ -322,8 +326,8 @@ theorem networkWireGateB_mulVec_ket (n : ℕ) (i : Fin n) (ζ : ℂ) (w v : Reg 
         * (if (fun k => if k = i then false else w k)
             = (fun k => if k = i then false else v k) then (1 : ℂ) else 0) := by
   simp only [Matrix.mulVec, dotProduct, Qatlib.Foundations.PureStateMath.Ket]
-  rw [Fintype.sum_eq_single v (fun u hu => by rw [if_neg hu, mul_zero]),
-    if_pos rfl, mul_one, networkWireGateB_apply, networkIndicator_prod_erase]
+  rw [Fintype.sum_eq_single v (fun u hu => by rw [ite_eq_right hu, mul_zero]),
+    ite_eq_left rfl, mul_one, networkWireGateB_apply, networkIndicator_prod_erase]
 
 /-- The lifted wire leaf sends an embedded basis input to the routed tensor product of its
 outcome-supported local column and the unchanged remaining register. -/
@@ -396,12 +400,12 @@ theorem networkWireStepLeaf_firstFactor (n : ℕ) (i : Fin n) (ζ : ℂ) (a : Bo
                   ((bitVecEquiv n).symm q.2))
           else 0)
   by_cases hq : q.1 = teleportOutcomeEquiv (a, false)
-  · rw [if_pos hq]
+  · rw [ite_eq_left hq]
     have hsym : teleportOutcomeEquiv.symm q.1 = (a, false) := by
       rw [hq, Equiv.symm_apply_apply]
-    rw [hsym, networkWireGateB_mulVec_ket, if_pos rfl]
+    rw [hsym, networkWireGateB_mulVec_ket, ite_eq_left rfl]
     exact mul_assoc _ _ _
-  · rw [if_neg hq]
+  · rw [ite_eq_right hq]
     by_cases h1 : (teleportOutcomeEquiv.symm q.1).1 = a
     · have h2 : (fun k : Fin n => if k = i then (teleportOutcomeEquiv.symm q.1).2
               else ((bitVecEquiv n).symm q.2) k)
@@ -409,10 +413,10 @@ theorem networkWireStepLeaf_firstFactor (n : ℕ) (i : Fin n) (ζ : ℂ) (a : Bo
         intro hf
         have hi := congrFun hf i
         simp only [] at hi
-        simp only [if_true] at hi
+        simp only [ite_true] at hi
         exact hq ((Equiv.symm_apply_eq teleportOutcomeEquiv).mp (Prod.ext h1 hi))
-      rw [if_pos h1, if_neg h2, mul_zero]
-    · rw [if_neg h1, zero_mul]
+      rw [ite_eq_left h1, ite_eq_right h2, mul_zero]
+    · rw [ite_eq_right h1, zero_mul]
 
 /-- The outer product of two relabeled states equals the relabeling of their outer product. -/
 theorem relabelGate_matOuter_back {I J : Type*} [Fintype I] [DecidableEq I] [Fintype J]
@@ -440,8 +444,8 @@ theorem networkWireStepBranch_matUnit (n : ℕ) (i : Fin n) (ζ : ℂ) (a : Bool
           • (if q.1 = teleportOutcomeEquiv (a, false) then V q.2 else 0) := by
     intro V q
     by_cases hq : q.1 = teleportOutcomeEquiv (a, false)
-    · rw [if_pos hq, if_pos hq, smul_eq_mul]
-    · rw [if_neg hq, if_neg hq, smul_eq_mul, mul_zero]
+    · rw [ite_eq_left hq, ite_eq_left hq, smul_eq_mul]
+    · rw [ite_eq_right hq, ite_eq_right hq, smul_eq_mul, mul_zero]
   have hsmul : ∀ V : QState (Fin (2 ^ n)),
       (fun q : Fin 4 × Fin (2 ^ n) =>
           if q.1 = teleportOutcomeEquiv (a, false)
@@ -474,7 +478,7 @@ theorem networkWireStepBranch_matUnit (n : ℕ) (i : Fin n) (ζ : ℂ) (a : Bool
     rw [applyGate_relabelGate]
     rfl
   simp only [networkActualStepCore]
-  rw [if_neg (by simp)]
+  rw [ite_eq_right (by simp)]
   rw [networkFrame_matUnit, matOuter_sandwich, relabelGate_matOuter_fwd,
     hAx x, hAx y,
     networkWireStepLeaf_firstFactor, networkWireStepLeaf_firstFactor,
@@ -500,7 +504,7 @@ theorem networkWireStepBranch_apply (n : ℕ) (i : Fin n) (ζ : ℂ) (a : Bool)
     rfl
   have hcount : (networkCounts [.inl (i, ζ)]).1 + 2 * (networkCounts [.inl (i, ζ)]).2 = 1 := by
     simp [networkCounts]
-  rw [if_pos hvalid, hcount, pow_one]
+  rw [ite_eq_left hvalid, hcount, pow_one]
   have hsmul : ∀ p : Fin (2 ^ n) × Fin (2 ^ n),
       networkActualStepBranch (.inl (i, ζ)) (a, false) (ρ p.1 p.2 • networkMatUnit p.1 p.2)
         = (((2 : ℂ)⁻¹) * ρ p.1 p.2)
@@ -550,10 +554,10 @@ theorem networkCzRouteFromF_outToF (n : ℕ) (lo hi : Fin n) (h1 : (lo : ℕ) < 
   rw [hss]
   have hA : (if (lo : Fin n) = lo then p.1.1
       else if (lo : Fin n) = hi then p.1.2 else p.2 lo) = p.1.1 := by
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
   have hB : (if (hi : Fin n) = lo then p.1.1
       else if (hi : Fin n) = hi then p.1.2 else p.2 hi) = p.1.2 := by
-    rw [if_neg hnehl, if_pos rfl]
+    rw [ite_eq_right hnehl, ite_eq_left rfl]
   have hS : ∀ k : Fin (n - 2),
       (if (⟨networkCzSpec (lo : ℕ) (hi : ℕ) (k : ℕ),
             networkCzSpec_lt n (lo : ℕ) (hi : ℕ) (k : ℕ) h1 hi.isLt k.isLt⟩ : Fin n) = lo
@@ -567,8 +571,8 @@ theorem networkCzRouteFromF_outToF (n : ℕ) (lo hi : Fin n) (h1 : (lo : ℕ) < 
           networkCzSpec_lt n (lo : ℕ) (hi : ℕ) (k : ℕ) h1 hi.isLt k.isLt⟩ := by
     intro k
     have hne := networkCzSpec_ne (lo : ℕ) (hi : ℕ) (k : ℕ) h1
-    rw [if_neg (fun hc => hne.1 (congrArg Fin.val hc)),
-      if_neg (fun hc => hne.2 (congrArg Fin.val hc))]
+    rw [ite_eq_right (fun hc => hne.1 (congrArg Fin.val hc)),
+      ite_eq_right (fun hc => hne.2 (congrArg Fin.val hc))]
   exact Prod.ext (Prod.ext (Prod.ext hA hB) (Prod.ext rfl rfl)) (funext fun k => hS k)
 
 /-- The inverse controlled-Z route extracts the two selected input bits, two zero ancillary
@@ -624,12 +628,12 @@ theorem networkCzGateB_mulVec_ket (n : ℕ) (lo hi : Fin n) (w v : Reg n) :
     (networkCzGateB lo hi *ᵥ Ket v) w
       = (if w = v then (if w lo && w hi then (-1 : ℂ) else 1) else 0) := by
   simp only [networkCzGateB, Matrix.mulVec, dotProduct, Matrix.diagonal_apply, Qatlib.Foundations.PureStateMath.Ket]
-  rw [Fintype.sum_eq_single w (fun u hu => by rw [if_neg (fun hc => hu hc.symm), zero_mul]),
-    if_pos rfl]
+  rw [Fintype.sum_eq_single w (fun u hu => by rw [ite_eq_right (fun hc => hu hc.symm), zero_mul]),
+    ite_eq_left rfl]
   by_cases hw : w = v
   · subst hw
-    rw [if_pos rfl, if_pos rfl, mul_one]
-  · rw [if_neg hw, if_neg hw, mul_zero]
+    rw [ite_eq_left rfl, ite_eq_left rfl, mul_one]
+  · rw [ite_eq_right hw, ite_eq_right hw, mul_zero]
 
 /-- Two registers agree exactly when their bits at `lo` and `hi` agree and their complementary
 registers agree. -/
@@ -757,10 +761,10 @@ theorem networkCzStepLeaf_firstFactor (n : ℕ) (lo hi : Fin n) (h1 : (lo : ℕ)
                 ((bitVecEquiv n).symm q.2))
           else 0)
   by_cases hq : q.1 = teleportOutcomeEquiv (a, d)
-  · rw [if_pos hq]
+  · rw [ite_eq_left hq]
     have hsym : teleportOutcomeEquiv.symm q.1 = (a, d) := by
       rw [hq, Equiv.symm_apply_apply]
-    rw [hsym, if_pos rfl, clusterCZ_tele_entry, networkCzGateB_mulVec_ket]
+    rw [hsym, ite_eq_left rfl, clusterCZ_tele_entry, networkCzGateB_mulVec_ket]
     by_cases hc1 : (((bitVecEquiv n).symm q.2) lo, ((bitVecEquiv n).symm q.2) hi)
         = (((bitVecEquiv n).symm x) lo, ((bitVecEquiv n).symm x) hi)
     · by_cases hc2 : (fun k : Fin (n - 2) =>
@@ -769,18 +773,18 @@ theorem networkCzStepLeaf_firstFactor (n : ℕ) (lo hi : Fin n) (h1 : (lo : ℕ)
         = (fun k : Fin (n - 2) =>
           ((bitVecEquiv n).symm x) ⟨networkCzSpec (lo : ℕ) (hi : ℕ) (k : ℕ),
             networkCzSpec_lt n (lo : ℕ) (hi : ℕ) (k : ℕ) h1 hi.isLt k.isLt⟩)
-      · rw [if_pos hc1, if_pos hc2, mul_one]
-        rw [if_pos ((networkCzSupport_split n lo hi h1 _ _).mpr ⟨hc1, hc2⟩)]
-      · rw [if_pos hc1, if_neg hc2, mul_zero]
-        rw [if_neg (fun hw => hc2 ((networkCzSupport_split n lo hi h1 _ _).mp hw).2), mul_zero]
-    · rw [if_neg hc1, mul_zero, zero_mul,
-        if_neg (fun hw => hc1 ((networkCzSupport_split n lo hi h1 _ _).mp hw).1), mul_zero]
+      · rw [ite_eq_left hc1, ite_eq_left hc2, mul_one]
+        rw [ite_eq_left ((networkCzSupport_split n lo hi h1 _ _).mpr ⟨hc1, hc2⟩)]
+      · rw [ite_eq_left hc1, ite_eq_right hc2, mul_zero]
+        rw [ite_eq_right (fun hw => hc2 ((networkCzSupport_split n lo hi h1 _ _).mp hw).2), mul_zero]
+    · rw [ite_eq_right hc1, mul_zero, zero_mul,
+        ite_eq_right (fun hw => hc1 ((networkCzSupport_split n lo hi h1 _ _).mp hw).1), mul_zero]
   · have hpairne : ¬(((teleportOutcomeEquiv.symm q.1).1, (teleportOutcomeEquiv.symm q.1).2)
         = (a, d)) := by
       intro hp
       exact hq ((Equiv.symm_apply_eq teleportOutcomeEquiv).mp
         (Prod.ext (congrArg Prod.fst hp) (congrArg Prod.snd hp)))
-    rw [if_neg hpairne, zero_mul, if_neg hq]
+    rw [ite_eq_right hpairne, zero_mul, ite_eq_right hq]
 
 /-- Sorting the two wire indices leaves the register-indexed controlled-Z gate unchanged. -/
 theorem networkCzGateB_lo_hi {n : ℕ} (i j : Fin n) :
@@ -801,10 +805,10 @@ theorem networkCzGateB_lo_hi {n : ℕ} (i j : Fin n) :
         have hhi : (networkCzHi i j : Fin n) = i :=
           Fin.ext (show max (i : ℕ) (j : ℕ) = (i : ℕ) by omega)
         rw [hlo, hhi, Bool.and_comm]
-    simp only [networkCzGateB, Matrix.diagonal_apply, if_true]
+    simp only [networkCzGateB, Matrix.diagonal_apply, ite_true]
     exact hphase
   · simp only [networkCzGateB, Matrix.diagonal_apply]
-    rw [if_neg hww, if_neg hww]
+    rw [ite_eq_right hww, ite_eq_right hww]
 
 /-- Sorting the two wire indices leaves the finite-indexed controlled-Z gate unchanged. -/
 theorem networkCzGate_lo_hi {n : ℕ} (i j : Fin n) :
@@ -835,8 +839,8 @@ theorem networkCzStepBranch_matUnit (n : ℕ) (i j : Fin n) (h : (i : ℕ) ≠ (
           • (if q.1 = teleportOutcomeEquiv (a, d) then V q.2 else 0) := by
     intro V q
     by_cases hq : q.1 = teleportOutcomeEquiv (a, d)
-    · rw [if_pos hq, if_pos hq, smul_eq_mul]
-    · rw [if_neg hq, if_neg hq, smul_eq_mul, mul_zero]
+    · rw [ite_eq_left hq, ite_eq_left hq, smul_eq_mul]
+    · rw [ite_eq_right hq, ite_eq_right hq, smul_eq_mul, mul_zero]
   have hsmul : ∀ V : QState (Fin (2 ^ n)),
       (fun q : Fin 4 × Fin (2 ^ n) =>
           if q.1 = teleportOutcomeEquiv (a, d)
@@ -880,7 +884,7 @@ theorem networkCzStepBranch_matUnit (n : ℕ) (i j : Fin n) (h : (i : ℕ) ≠ (
     rw [applyGate_relabelGate]
     rfl
   simp only [networkActualStepCore]
-  rw [dif_pos h]
+  rw [dite_eq_left h]
   rw [networkFrame_matUnit, matOuter_sandwich, relabelGate_matOuter_fwd,
     hAx x, hAx y,
     networkCzStepLeaf_firstFactor, networkCzStepLeaf_firstFactor,
@@ -961,9 +965,9 @@ theorem cluster_network_actual_local_step_branches :
         intro hv
         have h0 : true = false := hv 0
         exact Bool.noConfusion h0
-      rw [if_neg hinvalid]
+      rw [ite_eq_right hinvalid]
       show networkActualStepCore (.inl (i, ζ)) (oa, true) ρ = 0
-      simp only [networkActualStepCore, if_true]
+      simp only [networkActualStepCore, ite_true]
   | inr p =>
     obtain ⟨i, j⟩ := p
     have hij : (i : Fin n) ≠ j := hlegal _ List.mem_cons_self
@@ -971,13 +975,13 @@ theorem cluster_network_actual_local_step_branches :
     refine ⟨?_, ?_⟩
     · show observedWellFormed (networkPhysicalStepProgram (.inr (i, j)))
       simp only [networkPhysicalStepProgram]
-      rw [dif_pos hne]
+      rw [dite_eq_left hne]
       exact networkStepLift_wellFormed _ _ cluster_cz_actual_program_and_feedback_cost.1
     · intro o ρ
       have hvalid : networkBranchValid [.inr (i, j)] (fun _ => o) := by
         intro k
         fin_cases k
         trivial
-      rw [if_pos hvalid]
+      rw [ite_eq_left hvalid]
       exact networkCzStepBranch_apply n i j hne o.1 o.2 ρ
 end Qatlib.Concepts.MbqcFlow.FlowDecision

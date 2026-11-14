@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MpsAdaptation.MpsTransfer.PositiveComplementSqrtDefs
-import Qatlib.Concepts.MpsAdaptation.MpsTransfer.HermitianSylvester
-import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Order
+module
+
+public import Qatlib.Concepts.MpsAdaptation.MpsTransfer.PositiveComplementSqrtDefs
+public import Qatlib.Concepts.MpsAdaptation.MpsTransfer.HermitianSylvester
+public import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Order
+
+@[expose] public section
 
 /-!
 # Bounds for positive complement square roots
@@ -42,6 +46,7 @@ variable {N : Type*} [Fintype N] [DecidableEq N]
 
 noncomputable local instance complementMatrixCStar : CStarAlgebra (Matrix N N ℂ) where
 
+omit [Fintype N] in
 /-- Real scalar multiplication of the identity preserves scalar order in the positive
 semidefinite matrix order. -/
 private theorem complement_scalar_mono {a b : ℝ} (hab : a ≤ b) :

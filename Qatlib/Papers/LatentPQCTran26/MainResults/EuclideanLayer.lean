@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LatentPQCTran26.MainResults.LinearMetaGrad
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Analysis.Normed.Module.FiniteDimension
+module
+
+public import Qatlib.Papers.LatentPQCTran26.MainResults.LinearMetaGrad
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Analysis.Normed.Module.FiniteDimension
+
+@[expose] public section
 
 /-!
 # Euclidean affine decoder parameters

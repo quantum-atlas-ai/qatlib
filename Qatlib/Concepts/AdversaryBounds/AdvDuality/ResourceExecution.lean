@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ResourceExecutionDefs
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.WorkspaceCleanRelease
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.DisjointWorkspaceComposition
-import Qatlib.Concepts.ResourceBounds.AsymBounds.ResourceBounds
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ResourceBoundsTransportFreshCopy
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ResourceBoundsTransportLiveWire
-import Qatlib.Concepts.ResourceBounds.AsymBounds.ResourceBoundsTransportImplBounds
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ResourceExecutionDefs
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.WorkspaceCleanRelease
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.DisjointWorkspaceComposition
+public import Qatlib.Concepts.ResourceBounds.AsymBounds.ResourceBounds
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ResourceBoundsTransportFreshCopy
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ResourceBoundsTransportLiveWire
+public import Qatlib.Concepts.ResourceBounds.AsymBounds.ResourceBoundsTransportImplBounds
+
+@[expose] public section
 
 /-!
 # Execution-derived resource identities
@@ -1202,7 +1206,7 @@ theorem lcuTermProgram_peak_disjoint_factors (terms : List FiniteGateCode)
     subst hcon
     simp at hn
   have h2' : (account 0 (lcuTermProgram terms)).livePeak = 1 := by
-    simp only [h2, hne, if_false]
+    simp only [h2, hne, ite_false]
   refine ⟨h2', ?_⟩
   simp only [Account.par]
   rw [h1, h2']

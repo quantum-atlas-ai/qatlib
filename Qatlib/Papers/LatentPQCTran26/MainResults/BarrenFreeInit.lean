@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LatentPQCTran26.MainResults.GradientPreservation
-import Mathlib.MeasureTheory.Integral.Average
+module
+
+public import Qatlib.Papers.LatentPQCTran26.MainResults.GradientPreservation
+public import Mathlib.MeasureTheory.Integral.Average
+
+@[expose] public section
 
 /-!
 # Initialization near a point with a large gradient

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Tactic
-import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
+module
+
+public import Mathlib.Tactic
+public import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
+
+@[expose] public section
 
 /-!
 # Environment frames and matrix compression

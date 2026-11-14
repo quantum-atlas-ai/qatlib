@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AdiabaticQLS21.MainResults.Bounds.Lemma12ResolventXBounds
-import Qatlib.Papers.AdiabaticQLS21.MainResults.Bounds.Lemma10AdiabaticStepBound
-import Qatlib.Papers.AdiabaticQLS21.MainResults.Bounds.Lemma08ReflectionBound
-import Batteries.Tactic.Lint
+module
+
+public import Qatlib.Papers.AdiabaticQLS21.MainResults.Bounds.Lemma12ResolventXBounds
+public import Qatlib.Papers.AdiabaticQLS21.MainResults.Bounds.Lemma10AdiabaticStepBound
+public import Qatlib.Papers.AdiabaticQLS21.MainResults.Bounds.Lemma08ReflectionBound
+public import Batteries.Tactic.Lint
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

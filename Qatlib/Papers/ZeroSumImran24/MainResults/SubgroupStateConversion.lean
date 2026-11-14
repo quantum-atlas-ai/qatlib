@@ -27,16 +27,20 @@ hypothesis `[L.Normal]` is not an extra mathematical assumption: it follows
 from `L ≤ Z(G)` but is kept as an instance argument so that the quotient group
 `G ⧸ L` can be formed during elaboration.
 -/
-import Mathlib.Algebra.Field.ZMod
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Algebra.Group.Subgroup.Basic
-import Mathlib.GroupTheory.QuotientGroup.Basic
-import Mathlib.Data.Fintype.Card
-import Mathlib.Tactic.Convert
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Ring
-import Qatlib.Papers.ZeroSumImran24.MainResults.SourceModel
-import Qatlib.Papers.ZeroSumImran24.MainResults.Purification
+module
+
+public import Mathlib.Algebra.Field.ZMod
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Algebra.Group.Subgroup.Basic
+public import Mathlib.GroupTheory.QuotientGroup.Basic
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Tactic.Convert
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Ring
+public import Qatlib.Papers.ZeroSumImran24.MainResults.SourceModel
+public import Qatlib.Papers.ZeroSumImran24.MainResults.Purification
+
+@[expose] public section
 
 /-!
 # Subgroup-State Purification Conversion Across Central Quotients

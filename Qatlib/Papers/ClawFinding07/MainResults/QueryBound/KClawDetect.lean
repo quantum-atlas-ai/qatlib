@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ClawFinding07.MainResults.QueryBound.CostDefs
+module
+
+public import Qatlib.Papers.ClawFinding07.MainResults.QueryBound.CostDefs
+
+@[expose] public section
 
 /-!
 # Detection costs for multiple claws

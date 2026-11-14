@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QAlgorithms97.MainResults.InterferencePattern
-import Qatlib.Concepts.QftPreparation.LocalQft
-import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
+module
+
+public import Qatlib.Papers.QAlgorithms97.MainResults.InterferencePattern
+public import Qatlib.Concepts.QftPreparation.LocalQft
+public import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
+
+@[expose] public section
 
 /-!
 # An explicit powered phase-estimation program
@@ -142,7 +146,7 @@ theorem conditional_scalar {X I : Type} [Fintype X] [DecidableEq X]
   rw [Fintype.sum_prod_type]
   simp only [ite_mul, zero_mul, Finset.sum_ite_irrel, Finset.sum_const_zero]
   rw [Finset.sum_ite_eq]
-  simp only [Finset.mem_univ, if_true]
+  simp only [Finset.mem_univ, ite_true]
   simp_rw [show ∀ z, V x y z * (α x * ψ z) = α x * (V x y z * ψ z) by intro z; ring]
   rw [← Finset.mul_sum, h]
   simp only [TensorState]

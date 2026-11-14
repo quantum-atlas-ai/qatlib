@@ -4,7 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QAOACSP16.PredicateFour.CSPModel.SourceCSPModel
+module
+
+public import Qatlib.Papers.QAOACSP16.PredicateFour.CSPModel.SourceCSPModel
+
+@[expose] public section
+set_option linter.unusedSectionVars false
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -167,8 +172,7 @@ lemma sum_normSq_mixerStep (β : ℝ) (v : V) (ψ : Amp V) :
     ring
   have hfsum : (∑ z, f (flipAt v z)) = - ∑ z, f z := by
     calc (∑ z, f (flipAt v z)) = ∑ z, - f z := Finset.sum_congr rfl fun z _ => hf z
-      _ = - ∑ z, f z := by
-            simpa using (Finset.sum_neg_distrib (s := Finset.univ) (f := f))
+      _ = - ∑ z, f z := Finset.sum_neg_distrib (s := Finset.univ) (f := f)
   have hflip := sum_flipAt f v
   have hcross : (∑ z, f z) = 0 := by
     rw [hfsum] at hflip
@@ -233,9 +237,9 @@ theorem qaoaProb_sum_one (X : CSPInstance V) (γ β : ℝ) :
 
 /-- Any finite probability law has an atom of positive mass. -/
 theorem exists_positive_of_sum_one {f : (V → Bool) → ℝ}
-    (h0 : ∀ z, 0 ≤ f z) (h1 : ∑ z, f z = 1) : ∃ z, 0 < f z := by
+    (_h0 : ∀ z, 0 ≤ f z) (h1 : ∑ z, f z = 1) : ∃ z, 0 < f z := by
   by_contra h
-  push_neg at h
+  push Not at h
   have hle : ∑ z : V → Bool, f z ≤ 0 :=
     Finset.sum_nonpos fun z _ => h z
   linarith
@@ -249,7 +253,7 @@ theorem exists_output_ge_expect (X : CSPInstance V) (γ β : ℝ)
       0 < qaoaProb X γ β z ∧ qaoaExpectedValue X γ β ≤ satValue X z := by
   classical
   by_contra hcon
-  push_neg at hcon
+  push Not at hcon
   -- `hcon z : 0 < qaoaProb X γ β z → satValue X z < qaoaExpectedValue X γ β`
   have hterm_le : ∀ z, qaoaProb X γ β z * satValue X z ≤
       qaoaProb X γ β z * qaoaExpectedValue X γ β := by

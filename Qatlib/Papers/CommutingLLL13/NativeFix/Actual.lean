@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixAlgebra.ProjectiveFix.ShortRun
-import Qatlib.Papers.CommutingLLL13.NativeFix.Bits
+module
+
+public import Qatlib.Foundations.MatrixAlgebra.ProjectiveFix.ShortRun
+public import Qatlib.Papers.CommutingLLL13.NativeFix.Bits
+
+@[expose] public section
 
 /-!
 # An explicit qubit reset and postselection run

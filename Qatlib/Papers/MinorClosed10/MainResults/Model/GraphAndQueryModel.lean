@@ -4,17 +4,21 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GramQueryCore.LowerBoundTools.ResidualModels
-import Mathlib.Combinatorics.SimpleGraph.Basic
-import Mathlib.Combinatorics.SimpleGraph.Finite
-import Mathlib.Combinatorics.SimpleGraph.DeleteEdges
-import Mathlib.Combinatorics.SimpleGraph.Acyclic
-import Mathlib.Combinatorics.SimpleGraph.VertexCover
-import Mathlib.Combinatorics.SimpleGraph.Connectivity.Connected
-import Mathlib.Combinatorics.SimpleGraph.Walk.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Order.Filter.Basic
-import Mathlib.Data.Sym.Sym2
+module
+
+public import Qatlib.Concepts.GramQueryCore.LowerBoundTools.ResidualModels
+public import Mathlib.Combinatorics.SimpleGraph.Basic
+public import Mathlib.Combinatorics.SimpleGraph.Finite
+public import Mathlib.Combinatorics.SimpleGraph.DeleteEdges
+public import Mathlib.Combinatorics.SimpleGraph.Acyclic
+public import Mathlib.Combinatorics.SimpleGraph.VertexCover
+public import Mathlib.Combinatorics.SimpleGraph.Connectivity.Connected
+public import Mathlib.Combinatorics.SimpleGraph.Walk.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Order.Filter.Basic
+public import Mathlib.Data.Sym.Sym2
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

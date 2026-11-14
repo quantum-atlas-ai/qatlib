@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Complex.ExponentialBounds
-import Qatlib.Papers.TruncDyson18.MainResults.SourceParameters
-import Qatlib.Concepts.InteractionEvo.MeanDerivGrid.EffectiveDysonParameters
-import Qatlib.Concepts.InteractionEvo.SegmentProduct.EffectiveProductPerturbationHami
+module
+
+public import Mathlib.Analysis.Complex.ExponentialBounds
+public import Qatlib.Papers.TruncDyson18.MainResults.SourceParameters
+public import Qatlib.Concepts.InteractionEvo.MeanDerivGrid.EffectiveDysonParameters
+public import Qatlib.Concepts.InteractionEvo.SegmentProduct.EffectiveProductPerturbationHami
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

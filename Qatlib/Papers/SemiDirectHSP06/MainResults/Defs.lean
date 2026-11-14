@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.GroupTheory.SemidirectProduct
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Data.ZMod.Units
-import Mathlib.Data.Nat.ChineseRemainder
-import Mathlib.GroupTheory.OrderOfElement
-import Mathlib.Algebra.Group.Subgroup.Basic
-import Mathlib.Algebra.Group.Subgroup.Map
-import Mathlib.Tactic
+module
+
+public import Mathlib.GroupTheory.SemidirectProduct
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Data.ZMod.Units
+public import Mathlib.Data.Nat.ChineseRemainder
+public import Mathlib.GroupTheory.OrderOfElement
+public import Mathlib.Algebra.Group.Subgroup.Basic
+public import Mathlib.Algebra.Group.Subgroup.Map
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Units, automorphisms, and generators for doubled prime-power semidirect products

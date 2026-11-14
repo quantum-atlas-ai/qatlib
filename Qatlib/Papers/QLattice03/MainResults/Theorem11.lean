@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QLattice03.MainResults.Reduction.DCPToTwoPoint
-import Qatlib.Papers.QLattice03.MainResults.Lemma312
-import Qatlib.Papers.QLattice03.MainResults.Reductions
+module
+
+public import Qatlib.Papers.QLattice03.MainResults.Reduction.DCPToTwoPoint
+public import Qatlib.Papers.QLattice03.MainResults.Lemma312
+public import Qatlib.Papers.QLattice03.MainResults.Reductions
+
+@[expose] public section
 
 /-!
 # From dihedral cosets to unique SVP

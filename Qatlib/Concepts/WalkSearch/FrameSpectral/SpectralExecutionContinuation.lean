@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.FrameSpectral.SpectralExecutionContinuationDefs
+module
+
+public import Qatlib.Concepts.WalkSearch.FrameSpectral.SpectralExecutionContinuationDefs
+
+@[expose] public section
 
 /-!
 # Spectral estimates with execution and arithmetic bounds
@@ -77,7 +81,7 @@ theorem clause6_regPad_injective {w a : ℕ} (hle : a ≤ w) {q q' : Reg a}
   simp only [regPad] at hi
   have hcast : (↑(Fin.castLE hle i) : ℕ) = i.val := rfl
   have hlt : (↑(Fin.castLE hle i) : ℕ) < a := by omega
-  rw [dif_pos hlt, dif_pos hlt] at hi
+  rw [dite_eq_left hlt, dite_eq_left hlt] at hi
   simpa using! hi
 
 /-- The unmarked row frame amplitude at an unmarked row and its own source index is the square
@@ -91,7 +95,7 @@ theorem clause6_busyFrame_amplitude {I : Type} [Fintype I] [DecidableEq I]
 /-- For an injective positive-width encoding, the encoded row record amplitude at the
 concatenation of the two vertex encodings equals the square root transition amplitude. -/
 theorem clause6_paidRow_amplitude {I : Type} [Fintype I] [DecidableEq I]
-    (P : I → I → ℝ) (x y : I) (b : ℕ) (e : I → Reg b) (hb : 0 < b)
+    (P : I → I → ℝ) (x y : I) (b : ℕ) (e : I → Reg b) (_hb : 0 < b)
     (henc : Function.Injective e) :
     rowBasisRecordState P b (b + b) e x (regPad (b + b) (b + b) (regCat (e x) (e y)))
       = ((Real.sqrt (P x y) : ℝ) : ℂ) := by
@@ -120,7 +124,7 @@ theorem clause6_paidRow_amplitude {I : Type} [Fintype I] [DecidableEq I]
           = regPad (b + b) (b + b) (regCat (e x) (e y'))) := by
         intro hcon
         exact h (hpos y' hcon.symm)
-      rw [Qatlib.Foundations.PureStateMath.Ket, if_neg hne, if_neg h]
+      rw [Qatlib.Foundations.PureStateMath.Ket, ite_eq_right hne, ite_eq_right h]
   have hsum : (∑ y' : I, ((Real.sqrt (P x y') : ℝ) : ℂ) *
         Ket (regPad (b + b) (b + b) (regCat (e x) (e y')))
           (regPad (b + b) (b + b) (regCat (e x) (e y))))
@@ -137,7 +141,7 @@ theorem clause6_paidRow_amplitude {I : Type} [Fintype I] [DecidableEq I]
             rw [Finset.sum_eq_single y]
             · simp
             · intro y' _ hne
-              rw [if_neg hne]
+              rw [ite_eq_right hne]
               simp
             · intro hh
               exact absurd (Finset.mem_univ y) hh
@@ -180,7 +184,7 @@ theorem clause6_busy_quadratic_le {I : Type} [Fintype I] [DecidableEq I] [Nonemp
 /-- Under the symmetric chain gap hypotheses, the unmarked principal quadratic form is bounded
 in modulus by `1 - δ * markedFraction S` times the squared state norm. -/
 theorem clause6_busy_quadratic_gap {I : Type} [Fintype I] [DecidableEq I] [Nonempty I]
-    (P : I → I → ℝ) (S : Finset I) (δ : ℝ) (hδ : 0 < δ) (hδ1 : δ ≤ 1)
+    (P : I → I → ℝ) (S : Finset I) (δ : ℝ) (hδ : 0 < δ) (_hδ1 : δ ≤ 1)
     (hgap : SymmetricChainGap P δ) (u : QState (busySpace S)) :
     ‖Qatlib.Foundations.PureStateMath.Inner u ((unmarkedPrincipal P S) *ᵥ u)‖
       ≤ (1 - δ * markedFraction S) * (∑ i : busySpace S, ‖u i‖ ^ 2) := by
@@ -345,7 +349,7 @@ theorem clause6_busySpectrumContent :
       0 < δ → δ ≤ 1 → SymmetricChainGap P δ → S.Nonempty →
       (∀ (x y : I) (hx : x ∉ S),
         unmarkedRowFrame P S (x, y) ⟨x, hx⟩ = ((Real.sqrt (P x y) : ℝ) : ℂ)) ∧
-      (∀ (x y : I) (b : ℕ) (e : I → Reg b) (hb : 0 < b) (henc : Function.Injective e),
+      (∀ (x y : I) (b : ℕ) (e : I → Reg b) (_hb : 0 < b) (_henc : Function.Injective e),
         rowBasisRecordState P b (b + b) e x (regPad (b + b) (b + b) (regCat (e x) (e y)))
           = ((Real.sqrt (P x y) : ℝ) : ℂ)) ∧
       Qatlib.Concepts.Execution.WorkspaceCP.IsIsometry (unmarkedRowFrame P S) ∧
@@ -357,7 +361,7 @@ theorem clause6_busySpectrumContent :
         (∀ i j, Qatlib.Foundations.PureStateMath.Inner (fam i) (fam j) = if i = j then 1 else 0) ∧
         (∀ i, unmarkedPrincipal P S *ᵥ fam i = (hermitianEigenvalue hH i : ℂ) • fam i)) ∧
       (∀ u : QState (busySpace S), u ≠ 0 → unmarkedPrincipal P S *ᵥ u ≠ u) ∧
-      (∀ (π : I → ℝ) (hπ : (∀ x, 0 ≤ π x) ∧ ∑ x, π x = 1) (hrev : IsReversible P π),
+      (∀ (π : I → ℝ) (_hπ : (∀ x, 0 ≤ π x) ∧ ∑ x, π x = 1) (_hrev : IsReversible P π),
         SzegedyWalk P *ᵥ SzegedyEmbedState P π = SzegedyEmbedState P π) := by
   intro I instI instDec instNe P S δ hδ hδ1 hgap hS
   have hsym : ∀ i j, P i j = P j i := hgap.2.1
@@ -461,7 +465,7 @@ theorem coreSpectralClause33_endpoint : coreSpectralClause33Prop := by
         intro j _
         by_cases hj : j ∈ T
         · simp [hj]
-        · simp only [if_neg hj]
+        · simp only [ite_eq_right hj]
           rw [norm_mul, mul_pow]
       rw [hstep]
       have hle2 : (∑ j, (if j ∈ T then (0:ℝ) else ‖c j‖ ^ 2) * ‖clause33Pass M k hM0 (φ j)‖ ^ 2)
@@ -469,13 +473,13 @@ theorem coreSpectralClause33_endpoint : coreSpectralClause33Prop := by
         refine Finset.sum_le_sum (s := Finset.univ) fun j _ => ?_
         by_cases hj : j ∈ T
         · simp [hj]
-        · simp only [hj, if_false]
+        · simp only [hj, ite_false]
           have hα : ‖clause33Pass M k hM0 (φ j)‖ ≤ ρ ^ k := hpass j hj
           have hα2 : ‖clause33Pass M k hM0 (φ j)‖ ^ 2 ≤ ρ ^ (2 * k) := by
             calc ‖clause33Pass M k hM0 (φ j)‖ ^ 2 ≤ (ρ ^ k) ^ 2 :=
                 pow_le_pow_left₀ (by positivity) hα 2
               _ = ρ ^ (2 * k) := by rw [← pow_mul]; congr 1; omega
-          exact mul_le_mul_of_nonneg_left hα2 (by simp [hj])
+          exact mul_le_mul_of_nonneg_left hα2 (by positivity)
       calc (∑ j, (if j ∈ T then (0:ℝ) else ‖c j‖ ^ 2) * ‖clause33Pass M k hM0 (φ j)‖ ^ 2)
           ≤ ∑ j, (if j ∈ T then (0:ℝ) else ‖c j‖ ^ 2) * ρ ^ (2 * k) := hle2
         _ = ρ ^ (2 * k) * (∑ j, if j ∈ T then (0:ℝ) else ‖c j‖ ^ 2) := by
@@ -498,7 +502,7 @@ theorem coreSpectralClause33_endpoint : coreSpectralClause33Prop := by
     have hsq : ‖toEuclidean_fromVec (clause33Leakage M k hM0 v c φ T)‖ ^ 2
         ≤ ρ ^ (2 * k) * (1 - a) := by
       rw [hnorm, hsum]
-      refine hbound.trans (by rw [hcomp] <;> ring)
+      exact hbound.trans (by rw [hcomp])
     have hprod : (ρ ^ k * Real.sqrt (1 - a)) ^ 2 = ρ ^ (2 * k) * (1 - a) := by
       rw [mul_pow, Real.sq_sqrt h1a]
       ring
@@ -562,7 +566,7 @@ theorem coreSpectralClause33_endpoint : coreSpectralClause33Prop := by
               apply Finset.sum_congr rfl
               intro j _
               by_cases hj : j ∈ T
-              · simp only [hj, if_true, if_pos]
+              · simp only [hj, ite_eq_left]
                 module
               · simp [hj]
             _ = (sinEnvelopeKernel M 0 (⟨0, hM0⟩ : Fin M) ^ k) •
@@ -777,7 +781,7 @@ theorem clause37_diagonal_filter_bounds_homogeneous
     intro j _
     by_cases hj : j ∈ T
     · simp [d, hj]
-    · simp only [d, if_neg hj, norm_mul, mul_pow]
+    · simp only [d, ite_eq_right hj, norm_mul, mul_pow]
       simpa only [mul_comm] using! mul_le_mul_of_nonneg_left
         (pow_le_pow_left₀ (norm_nonneg _) (hbound j hj) 2) (sq_nonneg ‖c j‖)
   have hnorm : ‖toEuclidean_fromVec z‖ ^ 2 = a + ∑ j, ‖d j‖ ^ 2 := by
@@ -985,7 +989,7 @@ theorem cfSteps_le {p q l : ℕ} (h1 : 1 ≤ q) (h2 : q ≤ 2 ^ (l + 2)) :
 /-- For a denominator between one and `2 ^ (l + 2)`, combines the Fibonacci lower growth
 estimate with the bound `cfSteps p q ≤ 2 * l + 5`. -/
 theorem clause39_continuedFraction :
-    ∀ (p q l : ℕ) (h1 : 1 ≤ q) (h2 : q ≤ 2 ^ (l + 2)),
+    ∀ (p q l : ℕ) (_h1 : 1 ≤ q) (_h2 : q ≤ 2 ^ (l + 2)),
       fib (cfSteps p q + 1) ≤ q ∧ cfSteps p q ≤ 2 * l + 5 := by
   intro p q l h1 h2
   exact ⟨cfSteps_fib (a := p) (b := q) h1, cfSteps_le (p := p) (q := q) (l := l) h1 h2⟩
@@ -1001,13 +1005,13 @@ theorem coreSpectralClause39_endpoint : coreSpectralClause39Prop := by
 
   have hlen : (clause39UniformWord (I := I) M s).length
       = 2 * s * (phaseCompileCircuit (countedPhaseCircuit (I := I) M)).length := by
-    rw [clause39UniformWord, clause39_repeat_length] <;> ring
+    rw [clause39UniformWord, clause39_repeat_length]
 
   have hq : adjointQueryCount (clause39UniformWord (I := I) M s) = 2 * s * (M - 1) := by
-    rw [clause39UniformWord, clause39_repeat_queryCount, hcc.1, hcount.2.1] <;> ring
+    rw [clause39UniformWord, clause39_repeat_queryCount, hcc.1, hcount.2.1]
 
   have hg : adjointGateCount (clause39UniformWord (I := I) M s) = 2 * s * (2 * (M - 1) + 2) := by
-    rw [clause39UniformWord, clause39_repeat_gateCount, hcc.2, hcount.2.2.1] <;> ring
+    rw [clause39UniformWord, clause39_repeat_gateCount, hcc.2, hcount.2.2.1]
 
   have hprec : (1 / (M : ℝ)) = ((2 : ℝ) ^ (-(l + 2 : ℕ) : ℤ)) := by
     rw [hMeq, one_div, _root_.zpow_neg, zpow_natCast, Nat.cast_pow]

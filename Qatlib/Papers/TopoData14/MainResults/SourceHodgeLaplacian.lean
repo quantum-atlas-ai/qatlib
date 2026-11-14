@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.Adjoint
-import Mathlib.Analysis.InnerProductSpace.Projection.FiniteDimensional
-import Mathlib.Analysis.InnerProductSpace.Positive
-import Mathlib.LinearAlgebra.FiniteDimensional.Lemmas
-import Mathlib.Data.Complex.Basic
+module
+
+public import Mathlib.Analysis.InnerProductSpace.Adjoint
+public import Mathlib.Analysis.InnerProductSpace.Projection.FiniteDimensional
+public import Mathlib.Analysis.InnerProductSpace.Positive
+public import Mathlib.LinearAlgebra.FiniteDimensional.Lemmas
+public import Mathlib.Basic.Complex.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

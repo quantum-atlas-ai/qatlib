@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SpectralMeas17.PauliExpect.Native
+module
+
+public import Qatlib.Papers.SpectralMeas17.PauliExpect.Native
+
+@[expose] public section
 
 /-!
 # Coefficient normalization for Pauli Hamiltonians

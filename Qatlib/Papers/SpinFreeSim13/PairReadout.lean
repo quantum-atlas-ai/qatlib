@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SpinFreeSim13.PairProjector
-import Qatlib.Foundations.TensorRegisters.SwapReadout
+module
+
+public import Qatlib.Papers.SpinFreeSim13.PairProjector
+public import Qatlib.Foundations.TensorRegisters.SwapReadout
+
+@[expose] public section
 
 /-!
 # Pair-symmetry readout and Born weights

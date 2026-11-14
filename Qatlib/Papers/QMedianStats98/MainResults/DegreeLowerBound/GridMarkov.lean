@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QMedianStats98.MainResults.DegreeLowerBound.Basic
-import Mathlib.Analysis.Calculus.MeanValue
-import Mathlib.Topology.Order.Compact
+module
+
+public import Qatlib.Papers.QMedianStats98.MainResults.DegreeLowerBound.Basic
+public import Mathlib.Analysis.Calculus.MeanValue
+public import Mathlib.Topology.Order.Compact
+
+@[expose] public section
 
 /-!
 # Markov bounds on the rescaled weight grid

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RandCompile.ChannelBudget.FiniteDiamondQdriftCore
-import Qatlib.Concepts.RandCompile.ChannelBudget.FairBitQDriftConsumers
-import Qatlib.Foundations.OperatorErrors.OperatorError
-import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownFrameLocalSynthesis
+module
+
+public import Qatlib.Concepts.RandCompile.ChannelBudget.FiniteDiamondQdriftCore
+public import Qatlib.Concepts.RandCompile.ChannelBudget.FairBitQDriftConsumers
+public import Qatlib.Foundations.OperatorErrors.OperatorError
+public import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownFrameLocalSynthesis
+
+@[expose] public section
 
 /-!
 # Finite qDRIFT input and postselection definitions
@@ -446,7 +450,7 @@ def fairQdriftExhausted {L : ℕ}
 
 /-- Reports exhaustion of the bounded fair-bit qDRIFT sampler, returning true when the total
 weight is zero. -/
-def fairQdriftPickReport {L : ℕ} (w : Fin L → ℕ) (j0 : Fin L) (R : ℕ)
+def fairQdriftPickReport {L : ℕ} (w : Fin L → ℕ) (_j0 : Fin L) (R : ℕ)
     (ω : Fin R → Reg (Nat.clog 2 (weightTotal w))) : Bool :=
   if weightTotal w = 0 then true else
     fairQdriftExhausted

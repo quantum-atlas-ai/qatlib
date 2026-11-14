@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
-import Qatlib.Concepts.BlockEncoding.EncodingCore.PrepareUnitary
-import Qatlib.Concepts.BlockEncoding.Postselection
-import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedQueryCircuit
-import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
+module
+
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.PrepareUnitary
+public import Qatlib.Concepts.BlockEncoding.Postselection
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedQueryCircuit
+public import Qatlib.Foundations.PureStateMath.Reflection.ReflectionLaws
+
+@[expose] public section
 
 /-!
 # Approximate scaled LCU and fixed-point postselection

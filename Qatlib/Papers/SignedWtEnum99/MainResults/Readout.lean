@@ -4,63 +4,67 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Defs
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Algebra.CharZero.Defs
-import Mathlib.Algebra.Field.Defs
-import Mathlib.Algebra.Field.ZMod
-import Mathlib.Algebra.Group.Basic
-import Mathlib.Algebra.Group.Defs
-import Mathlib.Algebra.Group.DivInvMonoid
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.Group.Nat.Defs
-import Mathlib.Algebra.Group.Pi.Basic
-import Mathlib.Algebra.Group.Semigroup
-import Mathlib.Algebra.Group.Units.Equiv
-import Mathlib.Algebra.GroupWithZero.Defs
-import Mathlib.Algebra.GroupWithZero.NeZero
-import Mathlib.Algebra.NeZero
-import Mathlib.Algebra.Notation.Pi.Defs
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Algebra.Ring.Nat
-import Mathlib.Analysis.CStarAlgebra.Classes
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Analysis.Normed.Field.Basic
-import Mathlib.Analysis.Normed.Ring.Basic
-import Mathlib.Basic.Complex.Basic
-import Mathlib.Basic.FunLike.Basic
-import Mathlib.Basic.FunLike.Equiv
-import Mathlib.Basic.SetLike.Basic
-import Mathlib.Data.Finset.Basic
-import Mathlib.Data.Finset.Defs
-import Mathlib.Data.Fintype.Basic
-import Mathlib.Data.Fintype.BigOperators
-import Mathlib.Data.Fintype.Card
-import Mathlib.Data.Fintype.Defs
-import Mathlib.Data.Fintype.Pi
-import Mathlib.Data.Fintype.Prod
-import Mathlib.Data.Int.Cast.Defs
-import Mathlib.Data.Matrix.Diagonal
-import Mathlib.Data.Nat.Cast.Basic
-import Mathlib.Data.Nat.Cast.Defs
-import Mathlib.Data.Nat.Init
-import Mathlib.Data.Nat.Prime.Defs
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Data.ZMod.Defs
-import Mathlib.GroupTheory.Nilpotent
-import Mathlib.GroupTheory.SpecificGroups.Cyclic
-import Mathlib.GroupTheory.SpecificGroups.Cyclic.Basic
-import Mathlib.LinearAlgebra.Matrix.Defs
-import Mathlib.LinearAlgebra.Matrix.Trace
-import Mathlib.Logic.Equiv.Defs
-import Mathlib.Tactic
-import Mathlib.Tactic.NormNum.Basic
-import Mathlib.Tactic.NormNum.Eq
-import Mathlib.Tactic.NormNum.Result
-import Mathlib.Tactic.Ring.Basic
-import Mathlib.Tactic.Ring.Common
-import Qatlib.Papers.SignedWtEnum99.MainResults.Pauli
+module
+
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Defs
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Algebra.CharZero.Defs
+public import Mathlib.Algebra.Field.Defs
+public import Mathlib.Algebra.Field.ZMod
+public import Mathlib.Algebra.Group.Basic
+public import Mathlib.Algebra.Group.Defs
+public import Mathlib.Algebra.Group.DivInvMonoid
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.Group.Nat.Defs
+public import Mathlib.Algebra.Group.Pi.Basic
+public import Mathlib.Algebra.Group.Semigroup
+public import Mathlib.Algebra.Group.Units.Equiv
+public import Mathlib.Algebra.GroupWithZero.Defs
+public import Mathlib.Algebra.GroupWithZero.NeZero
+public import Mathlib.Algebra.NeZero
+public import Mathlib.Algebra.Notation.Pi.Defs
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Algebra.Ring.Nat
+public import Mathlib.Analysis.CStarAlgebra.Classes
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Analysis.Normed.Field.Basic
+public import Mathlib.Analysis.Normed.Ring.Basic
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Basic.FunLike.Basic
+public import Mathlib.Basic.FunLike.Equiv
+public import Mathlib.Basic.SetLike.Basic
+public import Mathlib.Data.Finset.Basic
+public import Mathlib.Data.Finset.Defs
+public import Mathlib.Data.Fintype.Basic
+public import Mathlib.Data.Fintype.BigOperators
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Data.Fintype.Defs
+public import Mathlib.Data.Fintype.Pi
+public import Mathlib.Data.Fintype.Prod
+public import Mathlib.Data.Int.Cast.Defs
+public import Mathlib.Data.Matrix.Diagonal
+public import Mathlib.Data.Nat.Cast.Basic
+public import Mathlib.Data.Nat.Cast.Defs
+public import Mathlib.Data.Nat.Init
+public import Mathlib.Data.Nat.Prime.Defs
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Data.ZMod.Defs
+public import Mathlib.GroupTheory.Nilpotent
+public import Mathlib.GroupTheory.SpecificGroups.Cyclic
+public import Mathlib.GroupTheory.SpecificGroups.Cyclic.Basic
+public import Mathlib.LinearAlgebra.Matrix.Defs
+public import Mathlib.LinearAlgebra.Matrix.Trace
+public import Mathlib.Logic.Equiv.Defs
+public import Mathlib.Tactic
+public import Mathlib.Tactic.NormNum.Basic
+public import Mathlib.Tactic.NormNum.Eq
+public import Mathlib.Tactic.NormNum.Result
+public import Mathlib.Tactic.Ring.Basic
+public import Mathlib.Tactic.Ring.Common
+public import Qatlib.Papers.SignedWtEnum99.MainResults.Pauli
+
+@[expose] public section
 
 /-!
 # Vacuum entries and traces of binary Pauli matrices
@@ -113,19 +117,19 @@ lemma sMat_diag_of_xpart_eq_zero {n : ℕ} {b : PV n} (h : xpart b = 0)
     (x : Fin n → ZMod 2) :
     sMat b x x = ((-1 : ℂ) ^ yWeight b) * sgn (dotz b x) := by
   have hx : x = xshift b x := (xshift_eq_self_of_xpart_eq_zero h x).symm
-  rw [sMat, Matrix.of_apply, if_pos hx]
+  rw [sMat, Matrix.of_apply, ite_eq_left hx]
 
 /-- The vacuum entry of `sMat b` is `(-1) ^ yWeight b` when the X component vanishes and zero
 otherwise. -/
 theorem sMat_vacuum {n : ℕ} (b : PV n) :
     sMat b 0 0 = if xpart b = 0 then ((-1 : ℂ) ^ yWeight b) else 0 := by
   by_cases h : xpart b = 0
-  · rw [sMat_diag_of_xpart_eq_zero h 0, if_pos h]
+  · rw [sMat_diag_of_xpart_eq_zero h 0, ite_eq_left h]
     simp [dotz, sgn]
   · have hne : (0 : Fin n → ZMod 2) ≠ xshift b 0 := by
       intro hh
       exact h (add_right_eq_self hh.symm)
-    rw [sMat_apply_ne b 0 0 hne, if_neg h]
+    rw [sMat_apply_ne b 0 0 hne, ite_eq_right h]
 
 /-- The binary coordinate vector that is one at `i₀` and zero at every other index. -/
 def coord {n : ℕ} (i₀ : Fin n) : Fin n → ZMod 2 := fun i => if i = i₀ then 1 else 0
@@ -231,12 +235,12 @@ theorem trace_sMat {n : ℕ} (b : PV n) :
     Matrix.trace (sMat b) = if b = 0 then (2 : ℂ) ^ n else 0 := by
   by_cases hb : b = 0
   · subst hb
-    rw [if_pos rfl, sMat_zero, Matrix.trace_one]
+    rw [ite_eq_left rfl, sMat_zero, Matrix.trace_one]
     have hcard : Fintype.card (Fin n → ZMod 2) = 2 ^ n := by
       rw [Fintype.card_fun, Fintype.card_fin]
       norm_num [ZMod.card]
     exact_mod_cast hcard
-  · rw [if_neg hb]
+  · rw [ite_eq_right hb]
     by_cases hx : xpart b = 0
     · have hz : zpart b ≠ 0 := by
         intro hz0

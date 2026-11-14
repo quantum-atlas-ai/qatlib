@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Group.Finset.Sigma
-import Mathlib.Algebra.BigOperators.Group.Finset.Piecewise
-import Mathlib.Data.Fintype.Sigma
-import Mathlib.Data.Finset.Card
-import Mathlib.Data.Fintype.Basic
-import Mathlib.Data.Fintype.Card
+module
+
+public import Mathlib.Algebra.BigOperators.Group.Finset.Sigma
+public import Mathlib.Algebra.BigOperators.Group.Finset.Piecewise
+public import Mathlib.Data.Fintype.Sigma
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Data.Fintype.Basic
+public import Mathlib.Data.Fintype.Card
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -73,7 +77,7 @@ def thresholdGate {m : ℕ} (τ : ℕ) (x : Fin m → Bool) : Bool :=
 the `exact[t]` indicators over `t = τ, …, m` is the threshold of `S(x) ≥ τ`:
 exactly one `exact[t]` is nonzero when `S(x) ≥ τ`, and none is when
 `S(x) < τ`. -/
-theorem threshold_of_exact_layer {m τ : ℕ} (x : Fin m → Bool) (hτ : τ ≤ m) :
+theorem threshold_of_exact_layer {m τ : ℕ} (x : Fin m → Bool) (_hτ : τ ≤ m) :
     (∑ t ∈ Finset.range (m + 1), if τ ≤ t then exactBit t x else 0)
       = if τ ≤ hammingWeight x then 1 else 0 := by
   have hmem : hammingWeight x ∈ Finset.range (m + 1) := by
@@ -150,15 +154,15 @@ structure TwoDThresholdImplementation (m τ : ℕ) where
 `τ ∈ {0,…,m}` there is a 2D dynamic implementation of `TH_{m,τ}` with
 polynomial area `≤ (m+1)^2`, constant coherent depth and one adaptive round;
 the weighted version reduces to the unweighted one by expansion. -/
-theorem two_d_threshold_gate (m τ : ℕ) (hτ : τ ≤ m) :
+theorem two_d_threshold_gate (m τ : ℕ) (_hτ : τ ≤ m) :
     ∃ C : TwoDThresholdImplementation m τ,
       C.sites ≤ (m + 1) ^ 2 ∧ C.coherentDepth = 3 ∧ C.rounds = 1 ∧
         (∀ x, C.action x = thresholdGate τ x) := by
   refine ⟨⟨thresholdSites m, thresholdCoherentDepth, thresholdRounds,
     thresholdGate τ, ?_, rfl, rfl, fun _ => rfl⟩, ?_, rfl, rfl, fun _ => rfl⟩
   · unfold thresholdSites
-    exact Nat.mul_le_mul_right _ (by simpa using Nat.le_succ m)
+    exact Nat.mul_le_mul_right _ (by simp)
   · unfold thresholdSites
-    exact Nat.mul_le_mul_right _ (by simpa using Nat.le_succ m)
+    exact Nat.mul_le_mul_right _ (by simp)
 
 end Qatlib.Papers.ShallowAdvWu26.ShallowPower.Threshold

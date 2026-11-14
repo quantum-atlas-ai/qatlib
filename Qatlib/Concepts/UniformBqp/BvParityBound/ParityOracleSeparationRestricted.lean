@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.ClassicalQuery
-import Qatlib.Concepts.UniformBqp.BvParityBound.ParityOracleSeparationRestrictedDefs
+module
+
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.ClassicalQuery
+public import Qatlib.Concepts.UniformBqp.BvParityBound.ParityOracleSeparationRestrictedDefs
+
+@[expose] public section
 
 /-!
 # A restricted parity-oracle separation statement

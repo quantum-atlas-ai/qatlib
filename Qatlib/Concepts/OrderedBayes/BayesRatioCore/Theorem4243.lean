@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.OrderedBayes.BayesRatioCore.ContractModels
-import Mathlib.Tactic.Linarith
+module
+
+public import Qatlib.Concepts.OrderedBayes.BayesRatioCore.ContractModels
+public import Mathlib.Tactic.Linarith
+
+@[expose] public section
 
 /-!
 # An obstruction to a logarithmic coefficient comparison

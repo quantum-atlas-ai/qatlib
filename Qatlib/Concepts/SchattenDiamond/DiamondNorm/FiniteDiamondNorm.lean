@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ReferenceError.RefTraceError.FiniteReferenceTraceError
-import Mathlib.Data.ENNReal.Basic
+module
+
+public import Qatlib.Concepts.ReferenceError.RefTraceError.FiniteReferenceTraceError
+public import Mathlib.Basic.ENNReal.Basic
+
+@[expose] public section
 
 /-!
 # Diamond norm from finite reference systems
@@ -204,8 +208,8 @@ theorem diamond_traceNorm_reindex {A B : Type} [Fintype A] [DecidableEq A]
   have hu : u.Isometry := Matrix.submatrix_one_id_left_isometry e.symm.bijective
   have he : u*X*uᴴ = Matrix.reindex e e X := by
     ext a b
-    simp [u, Matrix.mul_apply, Matrix.conjTranspose_apply, Matrix.one_apply,
-      Matrix.reindex_apply, mul_ite, ite_mul, apply_ite]
+    simp [u, Matrix.mul_apply, Matrix.one_apply,
+      Matrix.reindex_apply, ite_mul, apply_ite]
   have hp (a b : A) : (uᴴ*u) a b = if a=b then 1 else 0 := by
     simpa only [Matrix.Isometry, Matrix.one_apply] using congrFun (congrFun hu a) b
   rw [← he]

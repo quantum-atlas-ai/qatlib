@@ -23,8 +23,12 @@ semi-elementary quotient groups; Theorem 2 (with `p = O(1)`) supplies the exact
 poly-time zero-sum finder; Proposition 2 solves each HSMC instance exactly.
 Composition gives the claimed resources.
 -/
-import Qatlib.Papers.ZeroSumImran24.MainResults.SourceModel
-import Qatlib.Papers.ZeroSumImran24.MainResults.GroupModel
+module
+
+public import Qatlib.Papers.ZeroSumImran24.MainResults.SourceModel
+public import Qatlib.Papers.ZeroSumImran24.MainResults.GroupModel
+
+@[expose] public section
 
 /-!
 # Exact Hidden Subgroup Solver for Bounded-Class Nilpotent Groups

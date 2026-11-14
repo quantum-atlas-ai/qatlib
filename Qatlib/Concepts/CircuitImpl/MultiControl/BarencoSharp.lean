@@ -4,13 +4,22 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CircuitImpl.MultiControl.BarencoSharpDefs
-import Mathlib.Topology.MetricSpace.HausdorffDimension
-import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.MultiKnownQubitControl
-import Qatlib.Concepts.CircuitImpl.MultiControl.NoWorkTwoLevelSynthesis
-import Qatlib.Concepts.GateTables.GrayUniversal.GrayCodeSynthesis
-import Qatlib.Concepts.CircuitImpl.MultiControl.BarencoSharpCount
-import Qatlib.Concepts.CircuitImpl.MultiControl.BarencoSharpDimension
+module
+
+public import Qatlib.Concepts.CircuitImpl.MultiControl.BarencoSharpDefs
+public import Mathlib.Topology.MetricSpace.HausdorffDimension
+public import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.MultiKnownQubitControl
+public import Qatlib.Concepts.CircuitImpl.MultiControl.NoWorkTwoLevelSynthesis
+public import Qatlib.Concepts.GateTables.GrayUniversal.GrayCodeSynthesis
+public import Qatlib.Concepts.CircuitImpl.MultiControl.BarencoSharpCount
+public import Qatlib.Concepts.CircuitImpl.MultiControl.BarencoSharpDimension
+
+@[expose] public section
+set_option linter.unusedVariables false
+set_option linter.unusedSimpArgs false
+set_option linter.unusedTactic false
+set_option linter.style.haveILetI false
+set_option linter.unreachableTactic false
 
 /-!
 # Sharp multi-control synthesis and circuit dimension
@@ -104,11 +113,11 @@ private theorem cor76_and_word {N : ℕ} (m : ℕ) (c : ℕ → Fin N) (s t : Fi
   by_cases hm : 5 ≤ m
   · refine ⟨cor74Word m c s t, cor74Word_legal m c s t hm hc hcs hct hst, ?_,
       cor74Word_semantics m c s t hm hc hcs hct hst⟩
-    rw [if_pos hm]
+    rw [ite_eq_left hm]
     exact (cor74Word_length m c s t hm).le
   · obtain ⟨gs, hgs, hlen, hr⟩ := noWork_single_dirty_and_table c s t m hc hcs hct hst
     refine ⟨gs, hgs, ?_, hr⟩
-    rw [if_neg hm]
+    rw [ite_eq_right hm]
     exact hlen
 
 /-- Given `V * V = U`, a legal conjunction toggle, and an `m`-controlled implementation of `V`,
@@ -214,7 +223,7 @@ private theorem cor76_small_table {N : ℕ} : ∀ (k : ℕ), k ≤ 5 →
       cor76_and_word k c t (c k) hcm hctm hccl hlast.symm
     have hxslen' : xs.length ≤ 120*(k+1)+4 := by
       rw [show (if 5 ≤ k then 48*k-109 else 120*(k+1)+4) = 120*(k+1)+4 from
-        if_neg (by omega)] at hxslen
+        ite_eq_right (by omega)] at hxslen
       exact hxslen
     obtain ⟨rs, hrs, hrslen, hrsrun⟩ :=
       ih (by omega) c t hcm hctm V hV
@@ -261,7 +270,7 @@ private theorem cor76_sharp_table {N : ℕ} : ∀ (k : ℕ), 5 ≤ k →
     obtain ⟨V, hV, hVV⟩ := noWork_unitary_square_root U hU
     obtain ⟨xs, hxs, hxslen, hxsrun⟩ :=
       cor76_and_word j c t (c j) hcm hctm hccl hlast.symm
-    rw [if_pos hkm] at hxslen
+    rw [ite_eq_left hkm] at hxslen
     obtain ⟨rs, hrs, hrslen, hrsrun⟩ :=
       ih j (by omega) hkm c t hcm hctm V hV
     obtain ⟨gs, hgs, hlen, hrun⟩ :=
@@ -331,13 +340,13 @@ private theorem grayControlWires_inj' {k : ℕ} (t : Fin (k+1)) :
   intro i hi j hj he
   change i < k at hi
   change j < k at hj
-  simp only [grayControlWires, dif_pos hi, dif_pos hj] at he
+  simp only [grayControlWires, dite_eq_left hi, dite_eq_left hj] at he
   exact congrArg Fin.val (Fin.succAbove_right_injective he)
 
 /-- Each of the first `k` Gray control wires differs from the target wire. -/
 private theorem grayControlWires_ne' {k : ℕ} (t : Fin (k+1)) (i : ℕ) (hi : i < k) :
     grayControlWires t i ≠ t := by
-  simp only [grayControlWires, dif_pos hi]
+  simp only [grayControlWires, dite_eq_left hi]
   exact Fin.succAbove_ne t _
 
 /-- The conjunction over the Gray control wires is true exactly when every wire other than the
@@ -350,9 +359,9 @@ private theorem grayControls_true_iff' {k : ℕ} (t : Fin (k+1)) (x : Reg (k+1))
   · intro h w hw
     obtain ⟨i, rfl⟩ := Fin.exists_succAbove_eq hw
     have hh := h i.val i.isLt
-    simpa only [grayControlWires, dif_pos i.isLt] using! hh
+    simpa only [grayControlWires, dite_eq_left i.isLt] using! hh
   · intro h i hi
-    simp only [grayControlWires, dif_pos hi]
+    simp only [grayControlWires, dite_eq_left hi]
     exact h _ (Fin.succAbove_ne t _)
 
 /-- The two canonical Gray control addresses with opposite target bits are distinct. -/
@@ -397,13 +406,13 @@ private theorem cor76_canonical_pair_table {k : ℕ} (t : Fin (k+1))
       cases hb : q t
       · have hqe : q = grayControlAddress t false := by simpa only [hb] using! hq
         subst q
-        rw [if_pos hc]
+        rw [ite_eq_left hc]
         simp [grayControlAddress_update', multiWireState, ApplyGate, Matrix.mulVec,
           dotProduct, Qatlib.Foundations.PureStateMath.Ket, (grayControlAddress_ne' t).symm]
         module
       · have hqe : q = grayControlAddress t true := by simpa only [hb] using! hq
         subst q
-        rw [if_pos hc]
+        rw [ite_eq_left hc]
         simp [grayControlAddress_update', multiWireState, ApplyGate, Matrix.mulVec,
           dotProduct, Qatlib.Foundations.PureStateMath.Ket, grayControlAddress_ne' t]
         module
@@ -488,7 +497,7 @@ private theorem cor76_adjacent_pair_table {k : ℕ} (x y : Reg (k+1)) (t : Fin (
     · subst w
       simp [Finset.mem_toList, grayControlAddress]
     · simp only [Finset.mem_toList, Finset.mem_filter, Finset.mem_univ, true_and,
-        grayControlAddress, if_neg hw, hother w hw]
+        grayControlAddress, ite_eq_right hw, hother w hw]
       cases y w <;> simp
   let rs := reflectionAdjoint as
   have hrs : reflectionLegal rs := reflectionAdjoint_legal as has
@@ -1153,9 +1162,9 @@ private theorem contDiff_phaseGate {n : ℕ} {E : Type*} [NormedAddCommGroup E] 
     (f : E → ℝ) (hf : ContDiff ℝ ⊤ f) (x y : Fin n → Fin 2) :
     ContDiff ℝ ⊤ (fun p => phaseGateFn (f p) x y) := by
   by_cases hxy : x = y
-  · simp only [phaseGateFn, if_pos hxy]
+  · simp only [phaseGateFn, ite_eq_left hxy]
     exact ContDiff.cexp (contDiff_const.mul (Complex.ofRealCLM.contDiff.comp hf))
-  · simp only [phaseGateFn, if_neg hxy]
+  · simp only [phaseGateFn, ite_eq_right hxy]
     exact contDiff_const
 
 /-- Each entry of an embedded single-wire gate varies smoothly with a smooth family of qubit
@@ -1165,9 +1174,9 @@ private theorem contDiff_singleWire {n : ℕ} {E : Type*} [NormedAddCommGroup E]
     (x y : Fin n → Fin 2) :
     ContDiff ℝ ⊤ (fun p => singleWireGateFn a (g p) x y) := by
   by_cases hcond : ∀ i, i ≠ a → y i = x i
-  · simp only [singleWireGateFn, if_pos hcond]
+  · simp only [singleWireGateFn, ite_eq_left hcond]
     exact contDiff_apply2 g hg _ _
-  · simp only [singleWireGateFn, if_neg hcond]
+  · simp only [singleWireGateFn, ite_eq_right hcond]
     exact contDiff_const
 
 /-- Each entry of an embedded two-wire gate varies smoothly with a smooth family of two-qubit
@@ -1177,9 +1186,9 @@ private theorem contDiff_wirePair {n : ℕ} {E : Type*} [NormedAddCommGroup E] [
     (hG : ContDiff ℝ ⊤ G) (x y : Fin n → Fin 2) :
     ContDiff ℝ ⊤ (fun p => wirePairGateFn a b (G p) x y) := by
   by_cases hcond : ∀ i, i ≠ a → i ≠ b → y i = x i
-  · simp only [wirePairGateFn, if_pos hcond]
+  · simp only [wirePairGateFn, ite_eq_left hcond]
     exact contDiff_apply2 G hG _ _
-  · simp only [wirePairGateFn, if_neg hcond]
+  · simp only [wirePairGateFn, ite_eq_right hcond]
     exact contDiff_const
 
 /-- Each entry of `trigM` varies smoothly when its real angle varies smoothly. -/
@@ -1314,7 +1323,8 @@ private theorem finrank_kakParam {n : ℕ} (r : ℕ) :
 at most `9 * wires.length + 3 * n + 1`. -/
 theorem barenco_kakForm_dimH_le {n : ℕ} (wires : List (Fin n × Fin n)) :
     dimH (Set.range (kakCircuitFn wires)) ≤ ((9 * wires.length + 3 * n + 1 : ℕ) : ℝ≥0∞) := by
-  have h1 := ((kakCircuitFn_contDiff wires).of_le le_top).dimH_range_le
+  have h1 := Differentiable.dimH_range_le
+    ((kakCircuitFn_contDiff wires).differentiable (by norm_num : (⊤ : WithTop ℕ∞) ≠ 0))
   rw [finrank_kakParam] at h1
   exact h1
 
@@ -1326,7 +1336,7 @@ theorem barenco_existential_target_outside {n : ℕ} (wires : List (Fin n × Fin
     (hcard : ((9 * wires.length + 3 * n + 1 : ℕ) : ℝ≥0∞) < ((4 ^ n : ℕ) : ℝ≥0∞)) :
     ∃ V, V ∈ A ∧ V ∉ Set.range (kakCircuitFn wires) := by
   by_contra hcon
-  push_neg at hcon
+  push Not at hcon
   have h1 := barenco_kakForm_dimH_le wires
   have h2 : ((4 ^ n : ℕ) : ℝ≥0∞) ≤ ((9 * wires.length + 3 * n + 1 : ℕ) : ℝ≥0∞) :=
     hA.trans ((dimH_mono fun v hv => hcon v hv).trans h1)
@@ -1762,7 +1772,8 @@ dimension at most `15 * wires.length + 3 * n + 1`. -/
 theorem barenco_kakFullForm_dimH_le {n : ℕ} (wires : List (Fin n × Fin n)) :
     dimH (Set.range (kakCircuitFullFn wires))
       ≤ ((15 * wires.length + 3 * n + 1 : ℕ) : ℝ≥0∞) := by
-  have h1 := ((kakCircuitFullFn_contDiff wires).of_le le_top).dimH_range_le
+  have h1 := Differentiable.dimH_range_le
+    ((kakCircuitFullFn_contDiff wires).differentiable (by norm_num : (⊤ : WithTop ℕ∞) ≠ 0))
   rw [finrank_kakFullParam] at h1
   exact h1
 
@@ -1791,7 +1802,7 @@ theorem barenco_existential_target_outside_full {n : ℕ} (wires : List (Fin n �
     (hcard : ((15 * wires.length + 3 * n + 1 : ℕ) : ℝ≥0∞) < ((4 ^ n : ℕ) : ℝ≥0∞)) :
     ∃ V, V ∈ A ∧ V ∉ Set.range (kakCircuitFullFn wires) := by
   by_contra hcon
-  push_neg at hcon
+  push Not at hcon
   have h1 := barenco_kakFullForm_dimH_le wires
   have h2 : ((4 ^ n : ℕ) : ℝ≥0∞) ≤ ((15 * wires.length + 3 * n + 1 : ℕ) : ℝ≥0∞) :=
     hA.trans ((dimH_mono fun v hv => hcon v hv).trans h1)

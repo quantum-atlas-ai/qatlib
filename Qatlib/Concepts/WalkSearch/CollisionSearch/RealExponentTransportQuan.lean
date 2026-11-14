@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.CollisionSearch.RealExponentTransportStat
-import Mathlib.Data.Nat.Cast.Order.Field
-import Mathlib.Tactic.Positivity
+module
+
+public import Qatlib.Concepts.WalkSearch.CollisionSearch.RealExponentTransportStat
+public import Mathlib.Data.Nat.Cast.Order.Field
+public import Mathlib.Tactic.Positivity
+
+@[expose] public section
 
 /-!
 # Real-exponent transport for collision costs

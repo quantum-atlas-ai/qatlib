@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QLinSysDense17.MainResults.SourceTheorem3
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.InnerProductSpace.Basic
-import Mathlib.Data.Complex.BigOperators
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Ring
+module
+
+public import Qatlib.Papers.QLinSysDense17.MainResults.SourceTheorem3
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.InnerProductSpace.Basic
+public import Mathlib.Basic.Complex.BigOperators
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -74,25 +78,44 @@ def frobNormSq (A : Matrix O I ℝ) : ℝ := ∑ o, rowNormSq A o
 /-- Frobenius norm `‖A‖_F` of a real matrix. -/
 noncomputable def frobNorm (A : Matrix O I ℝ) : ℝ := Real.sqrt (frobNormSq A)
 
+omit [Fintype O] [Fintype I] [DecidableEq O] [DecidableEq I] in
 /-- Row norms are nonnegative. -/
-theorem rowNormSq_nonneg (A : Matrix O I ℝ) (o : O) : 0 ≤ rowNormSq A o :=
-  Finset.sum_nonneg fun i _ => sq_nonneg _
+theorem rowNormSq_nonneg {O I : Type}
+    [_q37inst0 : Fintype O]
+    [_q37inst1 : Fintype I]
+    [_q37inst2 : DecidableEq O]
+    [_q37inst3 : DecidableEq I]
+    (A : Matrix O I ℝ) (o : O) : 0 ≤ rowNormSq A o :=
+  Finset.sum_nonneg fun _i _ => sq_nonneg _
 
 /-- `‖A‖_F²` is nonnegative. -/
 theorem frobNormSq_nonneg (A : Matrix O I ℝ) : 0 ≤ frobNormSq A :=
   Finset.sum_nonneg fun o _ => rowNormSq_nonneg A o
 
+omit [Fintype O] [Fintype I] [DecidableEq O] [DecidableEq I] in
 /-- `‖A‖_F` is nonnegative. -/
-theorem frobNorm_nonneg (A : Matrix O I ℝ) : 0 ≤ frobNorm A :=
+theorem frobNorm_nonneg {O I : Type}
+    [_q37inst0 : Fintype O]
+    [_q37inst1 : Fintype I]
+    [_q37inst2 : DecidableEq O]
+    [_q37inst3 : DecidableEq I]
+    (A : Matrix O I ℝ) : 0 ≤ frobNorm A :=
   Real.sqrt_nonneg _
 
+omit [Fintype O] [Fintype I] [DecidableEq O] [DecidableEq I] in
 /-- A zero row-norm square forces every entry of the row to vanish. -/
-theorem rowNormSq_eq_zero_entry (A : Matrix O I ℝ) (o : O)
+theorem rowNormSq_eq_zero_entry {O I : Type}
+    [_q37inst0 : Fintype O]
+    [_q37inst1 : Fintype I]
+    [_q37inst2 : DecidableEq O]
+    [_q37inst3 : DecidableEq I]
+    (A : Matrix O I ℝ) (o : O)
     (h : rowNormSq A o = 0) (i : I) : A o i = 0 := by
   have hmem := Finset.sum_eq_zero_iff_of_nonneg (f := fun i => (A o i) ^ 2)
     (fun i _ => sq_nonneg _) |>.mp h i (Finset.mem_univ i)
   exact pow_eq_zero_iff (two_ne_zero) |>.mp hmem
 
+omit [DecidableEq I] in
 /-- Collapse of a first-register indicator sum over the product index. -/
 private theorem sum_prod_ite_left (F : O × I → ℝ) (o : O) :
     ∑ p : O × I, (if p.1 = o then F p else 0) = ∑ j : I, F (o, j) := by
@@ -100,15 +123,16 @@ private theorem sum_prod_ite_left (F : O × I → ℝ) (o : O) :
   show (∑ u : O, ∑ j : I, (if u = o then F (u, j) else 0)) = _
   rw [Finset.sum_comm]
   refine Finset.sum_congr rfl fun j _ => ?_
-  simpa using Finset.sum_ite_eq' o (fun u => F (u, j))
+  simp
 
+omit [DecidableEq O] in
 /-- Collapse of a second-register indicator sum over the product index. -/
 private theorem sum_prod_ite_right (F : O × I → ℝ) (i : I) :
     ∑ p : O × I, (if p.2 = i then F p else 0) = ∑ u : O, F (u, i) := by
   rw [Fintype.sum_prod_type]
   show (∑ u : O, ∑ j : I, (if j = i then F (u, j) else 0)) = _
   refine Finset.sum_congr rfl fun u _ => ?_
-  simpa using Finset.sum_ite_eq' i (fun j => F (u, j))
+  simp
 
 /-- The KP left frame `M` of Lemma 2.1: `|o⟩ ↦ |o, A_o⟩`, the amplitude
 encoding of the rows of `A` by normalized row vectors. A zero row is encoded
@@ -159,8 +183,8 @@ theorem kpLeft_isometry (A : Matrix O I ℝ) (hrow : ∀ o, rowNormSq A o ≠ 0)
           * (if p.1 = o' then A p.1 p.2 / Real.sqrt (rowNormSq A p.1) else 0) = 0 := by
       intro p
       by_cases h1 : p.1 = o
-      · rw [if_pos h1, if_neg (fun hc => h (h1.symm.trans hc)), mul_zero]
-      · rw [if_neg h1, zero_mul]
+      · rw [ite_eq_left h1, ite_eq_right (fun hc => h (h1.symm.trans hc)), mul_zero]
+      · rw [ite_eq_right h1, zero_mul]
     rw [Finset.sum_congr rfl (fun p _ => hzero p), Finset.sum_const_zero]
 
 /-- Lemma 2.1, part 1 (isometry of `N`): if `‖A‖_F ≠ 0` then `kpRight A`
@@ -208,8 +232,8 @@ theorem kpRight_isometry (A : Matrix O I ℝ) (hF : frobNorm A ≠ 0) :
           * (if p.2 = i' then Real.sqrt (rowNormSq A p.1) / frobNorm A else 0) = 0 := by
       intro p
       by_cases h1 : p.2 = i
-      · rw [if_pos h1, if_neg (fun hc => h (h1.symm.trans hc)), mul_zero]
-      · rw [if_neg h1, zero_mul]
+      · rw [ite_eq_left h1, ite_eq_right (fun hc => h (h1.symm.trans hc)), mul_zero]
+      · rw [ite_eq_right h1, zero_mul]
     rw [Finset.sum_congr rfl (fun p _ => hzero p), Finset.sum_const_zero]
 
 /-- Lemma 2.1, part 1 (factorisation): the corner `Mᵀ N` of the two frames
@@ -319,6 +343,7 @@ theorem kpWalk_mulVec (A : Matrix O I ℝ) (hF : frobNorm A ≠ 0)
     Matrix.mul_assoc, Matrix.sub_mulVec, Matrix.smul_mulVec]
   rw [← Matrix.mulVec_mulVec, hcv, Matrix.mulVec_smul, smul_smul, hfold]
 
+omit [DecidableEq O] in
 /-- Dot-product reassociation used for the Rayleigh quotient of the walk. -/
 private theorem mulVec_dot_mulVec {P Q : Type} [Fintype P] [Fintype Q]
     (M : Matrix O P ℝ) (N : Matrix O Q ℝ) (u : P → ℝ) (v : Q → ℝ) :
@@ -405,17 +430,17 @@ eigenvalue `lam` with `1/κ ≤ |lam| ≤ 1` (i.e. `lam ∈ [−1, −1/κ] ∪ 
 and condition number `κ ≥ 1`, the Algorithm-2 comparison with shift `μ = 2/κ`
 recovers the sign: `|lam + 2/κ| ≤ |lam| ↔ lam ≤ 0`. -/
 theorem sign_recovered_shift (κ lam : ℝ) (hκ : 1 ≤ κ)
-    (hlo : 1 / κ ≤ |lam|) (hhi : |lam| ≤ 1) :
+    (hlo : 1 / κ ≤ |lam|) (_hhi : |lam| ≤ 1) :
     |lam + 2 / κ| ≤ |lam| ↔ lam ≤ 0 := by
   have hμ : 0 < 2 / κ := by positivity
   have hkpos : 0 < κ := lt_of_lt_of_le zero_lt_one hκ
   constructor
   · intro h
     by_contra hlam
-    push_neg at hlam
+    push Not at hlam
     have hge : 1 / κ ≤ lam := by
       by_contra hc
-      push_neg at hc
+      push Not at hc
       rw [abs_of_pos hlam] at hlo
       linarith
     have h1 : |lam| + 2 / κ = |lam + 2 / κ| := abs_shift_of_nonneg _ _ hμ.le hlam.le
@@ -425,7 +450,7 @@ theorem sign_recovered_shift (κ lam : ℝ) (hκ : 1 ≤ κ)
   · intro hlam
     have hneg : lam ≤ -1 / κ := by
       by_contra hc
-      push_neg at hc
+      push Not at hc
       rcases lt_or_ge lam 0 with h0 | h0
       · rw [abs_of_neg h0] at hlo
         have hneg1 : (-1:ℝ) / κ = -(1 / κ) := by ring

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ContourSim25.LcuCircuit.PhaseCounter
-import Qatlib.Concepts.BlockEncoding.LCU
+module
+
+public import Qatlib.Papers.ContourSim25.LcuCircuit.PhaseCounter
+public import Qatlib.Concepts.BlockEncoding.LCU
+
+@[expose] public section
 
 /-!
 # Correct complex LCU compression for the contour construction
@@ -84,7 +88,7 @@ theorem right_normalized (s : ℝ) :
     rfl
   have hq' : sourcePhase s * star (sourcePhase s)=1 := by rw [mul_comm,hq]
   have ha : star ((Real.sqrt 2 : ℂ)⁻¹)=(Real.sqrt 2 : ℂ)⁻¹ := by simp
-  simp only [Fintype.sum_bool,rightAmplitude,Bool.false_eq_true,if_false,if_true,
+  simp only [Fintype.sum_bool,rightAmplitude,Bool.false_eq_true,ite_false,ite_true,
     leftAmplitude,star_mul,star_star,ha]
   calc
     _ = (star (sourcePhase s)*sourcePhase s + sourcePhase s*star (sourcePhase s))*
@@ -99,7 +103,7 @@ def normalizedCoefficient (s : ℝ) (b : Bool) : ℂ :=
 theorem amplitude_factorization (s : ℝ) (b : Bool) :
     star (leftAmplitude b)*rightAmplitude s b=normalizedCoefficient s b := by
   have ha : star ((Real.sqrt 2 : ℂ)⁻¹)=(Real.sqrt 2 : ℂ)⁻¹ := by simp
-  cases b <;> simp only [leftAmplitude,rightAmplitude,Bool.false_eq_true,if_false,if_true,ha]
+  cases b <;> simp only [leftAmplitude,rightAmplitude,Bool.false_eq_true,ite_false,ite_true,ha]
   · calc
       _ = sourcePhase s*((Real.sqrt 2 : ℂ)⁻¹*(Real.sqrt 2 : ℂ)⁻¹) := by ring
       _ = normalizedCoefficient s false := by rw [balanced_square]; simp [sourcePhase,normalizedCoefficient]; ring
@@ -133,7 +137,7 @@ theorem corrected_inner_encoding {I : Type} [Fintype I] [DecidableEq I]
     (fun b => by cases b <;> simp [hU,hUs])
   convert h using 1
   ext i j
-  simp only [Fintype.sum_bool,normalizedCoefficient,Bool.false_eq_true,if_false,if_true,
+  simp only [Fintype.sum_bool,normalizedCoefficient,Bool.false_eq_true,ite_false,ite_true,
     sourceCombination,Matrix.sum_apply,Matrix.add_apply,Matrix.smul_apply,smul_eq_mul]
   ring
 /-- Composing two actual isometric frames preserves their normalization. -/

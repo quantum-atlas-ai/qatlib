@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RiskEstimation.PolyReadout.PolyFigTwoExpandedWordLedgerStat
-import Qatlib.Concepts.RiskEstimation.PopulationGap.NativeRiskDefs
+module
+
+public import Qatlib.Concepts.RiskEstimation.PolyReadout.PolyFigTwoExpandedWordLedgerStat
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.NativeRiskDefs
+
+@[expose] public section
 
 /-!
 # Resource counts for expanded polynomial readout

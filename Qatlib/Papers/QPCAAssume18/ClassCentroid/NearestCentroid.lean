@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SqEstimation.InnerProduct.SQInnerProductEstimation
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
+module
+
+public import Qatlib.Concepts.SqEstimation.InnerProduct.SQInnerProductEstimation
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+
+@[expose] public section
 
 /-!
 # Nearest-centroid tensor reduction

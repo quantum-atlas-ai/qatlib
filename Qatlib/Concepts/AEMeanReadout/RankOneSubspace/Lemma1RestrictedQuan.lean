@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.AlgebraicTopology.SimplexCategory.Basic
-import Mathlib.Analysis.CStarAlgebra.Classes
-import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Lemma1RestrictedStat
+module
+
+public import Mathlib.AlgebraicTopology.SimplexCategory.Basic
+public import Mathlib.Analysis.CStarAlgebra.Classes
+public import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Lemma1RestrictedStat
+
+@[expose] public section
 
 /-!
 # Conjugation of rank-one phase operators

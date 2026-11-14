@@ -4,71 +4,75 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Algebra.Basic
-import Mathlib.Algebra.Algebra.Defs
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Defs
-import Mathlib.Algebra.BigOperators.Group.Finset.Piecewise
-import Mathlib.Algebra.BigOperators.Group.Finset.Sigma
-import Mathlib.Algebra.BigOperators.Pi
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Algebra.Field.Defs
-import Mathlib.Algebra.Group.Action.Pi
-import Mathlib.Algebra.Group.Finsupp
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.Group.Pi.Basic
-import Mathlib.Algebra.Group.Semigroup
-import Mathlib.Algebra.Group.Submonoid.Defs
-import Mathlib.Algebra.Group.Subsemigroup.Defs
-import Mathlib.Algebra.GroupWithZero.Action.Defs
-import Mathlib.Algebra.GroupWithZero.Defs
-import Mathlib.Algebra.Module.Defs
-import Mathlib.Algebra.Module.Equiv.Defs
-import Mathlib.Algebra.Module.Pi
-import Mathlib.Algebra.Module.Submodule.Defs
-import Mathlib.Algebra.Module.Submodule.LinearMap
-import Mathlib.Algebra.Notation.Defs
-import Mathlib.Algebra.Ring.CompTypeclasses
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Algebra.Ring.Hom.Defs
-import Mathlib.Algebra.Ring.Nat
-import Mathlib.Algebra.Star.Basic
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Analysis.Normed.Field.Basic
-import Mathlib.Analysis.RCLike.Basic
-import Mathlib.Basic.Complex.Basic
-import Mathlib.Basic.FunLike.Basic
-import Mathlib.Basic.FunLike.Equiv
-import Mathlib.Basic.SetLike.Basic
-import Mathlib.Data.Finset.Basic
-import Mathlib.Data.Finset.Defs
-import Mathlib.Data.Finsupp.Defs
-import Mathlib.Data.Finsupp.SMul
-import Mathlib.Data.Fintype.Basic
-import Mathlib.Data.Fintype.Defs
-import Mathlib.Data.Fintype.EquivFin
-import Mathlib.Data.Matrix.Diagonal
-import Mathlib.Data.Matrix.Mul
-import Mathlib.Data.Nat.Cast.Defs
-import Mathlib.Data.Set.Defs
-import Mathlib.Data.Set.Operations
-import Mathlib.LinearAlgebra.Basis.Defs
-import Mathlib.LinearAlgebra.Basis.VectorSpace
-import Mathlib.LinearAlgebra.DFinsupp
-import Mathlib.LinearAlgebra.Dimension.Finrank
-import Mathlib.LinearAlgebra.Dimension.Free
-import Mathlib.LinearAlgebra.FiniteDimensional.Defs
-import Mathlib.LinearAlgebra.FreeModule.StrongRankCondition
-import Mathlib.LinearAlgebra.Matrix.ConjTranspose
-import Mathlib.LinearAlgebra.Matrix.Defs
-import Mathlib.RingTheory.Bialgebra.Basic
-import Mathlib.RingTheory.Coalgebra.IsFrobenius
-import Mathlib.RingTheory.HopfAlgebra.Basic
-import Mathlib.Tactic
-import Mathlib.Tactic.NormNum.Basic
-import Mathlib.Tactic.NormNum.Result
-import Mathlib.Tactic.Ring.Basic
-import Mathlib.Tactic.Ring.Common
+module
+
+public import Mathlib.Algebra.Algebra.Basic
+public import Mathlib.Algebra.Algebra.Defs
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Defs
+public import Mathlib.Algebra.BigOperators.Group.Finset.Piecewise
+public import Mathlib.Algebra.BigOperators.Group.Finset.Sigma
+public import Mathlib.Algebra.BigOperators.Pi
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Algebra.Field.Defs
+public import Mathlib.Algebra.Group.Action.Pi
+public import Mathlib.Algebra.Group.Finsupp
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.Group.Pi.Basic
+public import Mathlib.Algebra.Group.Semigroup
+public import Mathlib.Algebra.Group.Submonoid.Defs
+public import Mathlib.Algebra.Group.Subsemigroup.Defs
+public import Mathlib.Algebra.GroupWithZero.Action.Defs
+public import Mathlib.Algebra.GroupWithZero.Defs
+public import Mathlib.Algebra.Module.Defs
+public import Mathlib.Algebra.Module.Equiv.Defs
+public import Mathlib.Algebra.Module.Pi
+public import Mathlib.Algebra.Module.Submodule.Defs
+public import Mathlib.Algebra.Module.Submodule.LinearMap
+public import Mathlib.Algebra.Notation.Defs
+public import Mathlib.Algebra.Ring.CompTypeclasses
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Algebra.Ring.Hom.Defs
+public import Mathlib.Algebra.Ring.Nat
+public import Mathlib.Algebra.Star.Basic
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Analysis.Normed.Field.Basic
+public import Mathlib.Analysis.RCLike.Basic
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Basic.FunLike.Basic
+public import Mathlib.Basic.FunLike.Equiv
+public import Mathlib.Basic.SetLike.Basic
+public import Mathlib.Data.Finset.Basic
+public import Mathlib.Data.Finset.Defs
+public import Mathlib.Data.Finsupp.Defs
+public import Mathlib.Data.Finsupp.SMul
+public import Mathlib.Data.Fintype.Basic
+public import Mathlib.Data.Fintype.Defs
+public import Mathlib.Data.Fintype.EquivFin
+public import Mathlib.Data.Matrix.Diagonal
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.Data.Nat.Cast.Defs
+public import Mathlib.Data.Set.Defs
+public import Mathlib.Data.Set.Operations
+public import Mathlib.LinearAlgebra.Basis.Defs
+public import Mathlib.LinearAlgebra.Basis.VectorSpace
+public import Mathlib.LinearAlgebra.DFinsupp
+public import Mathlib.LinearAlgebra.Dimension.Finrank
+public import Mathlib.LinearAlgebra.Dimension.Free
+public import Mathlib.LinearAlgebra.FiniteDimensional.Defs
+public import Mathlib.LinearAlgebra.FreeModule.StrongRankCondition
+public import Mathlib.LinearAlgebra.Matrix.ConjTranspose
+public import Mathlib.LinearAlgebra.Matrix.Defs
+public import Mathlib.RingTheory.Bialgebra.Basic
+public import Mathlib.RingTheory.Coalgebra.IsFrobenius
+public import Mathlib.RingTheory.HopfAlgebra.Basic
+public import Mathlib.Tactic
+public import Mathlib.Tactic.NormNum.Basic
+public import Mathlib.Tactic.NormNum.Result
+public import Mathlib.Tactic.Ring.Basic
+public import Mathlib.Tactic.Ring.Common
+
+@[expose] public section
 
 /-!
 # Invariant tensors and the Wigner–Eckart expansion
@@ -212,13 +216,13 @@ def invariantSubmodule (ρm : G → Matrix QM QM ℂ) (ρn : G → Matrix QN QN 
     simp
   add_mem' := by
     intro A B hA hB U ql qm qn
-    simp only [Set.mem_setOf_eq, IsInvariantOperator] at hA hB
+    simp only [Set.mem_ofPred_eq, IsInvariantOperator] at hA hB
     simp only [Pi.add_apply]
     rw [hA U ql qm qn, hB U ql qm qn]
     simp only [mul_add, Finset.sum_add_distrib]
   smul_mem' := by
     intro c A hA U ql qm qn
-    simp only [Set.mem_setOf_eq, IsInvariantOperator] at hA ⊢
+    simp only [Set.mem_ofPred_eq, IsInvariantOperator] at hA ⊢
     simp only [Pi.smul_apply, smul_eq_mul]
     rw [hA U ql qm qn]
     rw [Finset.mul_sum]

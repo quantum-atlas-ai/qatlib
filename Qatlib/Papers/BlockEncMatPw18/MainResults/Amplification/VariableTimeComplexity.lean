@@ -3,9 +3,13 @@ Copyright (c) 2026 Qatlib Contributors. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic.Linarith
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic.Linarith
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -114,9 +118,9 @@ implementation whose counted operations equal the recorded resources. No such
 implementation is constructed here. The explicit numeric bounds are specifications. -/
 def theorem23_variable_time_amplification_statement
     (Tmax t1 TU k pprep psucc Tm2 δ : ℝ)
-    (hTmax : 0 < Tmax) (ht1 : 0 < t1) (hTU : 0 ≤ TU) (hk : 0 ≤ k)
-    (hpprep : 0 < pprep) (hpsucc : 0 < psucc) (hTm2 : 0 ≤ Tm2)
-    (hδ : 0 < δ) (hδ1 : δ < 1)
+    (_hTmax : 0 < Tmax) (_ht1 : 0 < t1) (_hTU : 0 ≤ TU) (_hk : 0 ≤ k)
+    (_hpprep : 0 < pprep) (_hpsucc : 0 < psucc) (_hTm2 : 0 ≤ Tm2)
+    (_hδ : 0 < δ) (_hδ1 : δ < 1)
     (Realizes : VTAAResult → Prop) : Prop :=
     ∃ (r : VTAAResult) (C : ℝ), Realizes r ∧ 0 < C ∧
       r.successProb ≥ 1 - δ ∧ r.error ≤ δ ∧

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QPowerSimon97.Recovery.NativeRetryConstruction
-import Qatlib.Concepts.StoppingCore.BranchCostCore.WeightedUnboundedExecution
-import Mathlib.Data.Bool.Basic
+module
+
+public import Qatlib.Papers.QPowerSimon97.Recovery.NativeRetryConstruction
+public import Qatlib.Concepts.StoppingCore.BranchCostCore.WeightedUnboundedExecution
+public import Mathlib.Data.Bool.Basic
+
+@[expose] public section
 
 /-!
 # Oracle machines and cost ledgers for Simon's algorithm

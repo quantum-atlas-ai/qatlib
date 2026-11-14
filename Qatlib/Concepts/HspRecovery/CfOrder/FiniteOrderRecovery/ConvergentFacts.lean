@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Nat.Totient
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.LinearCombination
-import Qatlib.Concepts.HspRecovery.CfOrder.FiniteOrderRecovery.ConvergentBridge
+module
+
+public import Mathlib.Data.Nat.Totient
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.LinearCombination
+public import Qatlib.Concepts.HspRecovery.CfOrder.FiniteOrderRecovery.ConvergentBridge
+
+@[expose] public section
 
 /-!
 # Structural facts for finite continued fractions

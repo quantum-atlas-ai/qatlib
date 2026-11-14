@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
-import Qatlib.Concepts.QsvtCore.QueryLowerBound.SubroutineExpansion
-import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
-import Qatlib.Concepts.LchsSimulation.StaticLchs.HybridError
-import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+module
+
+public import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
+public import Qatlib.Concepts.QsvtCore.QueryLowerBound.SubroutineExpansion
+public import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.HybridError
+public import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+
+@[expose] public section
 
 /-!
 # Counted phase reflections
@@ -392,6 +396,7 @@ private theorem phaseTailGate_mul (M k : ℕ)
   unfold phaseTailGate
   rw [← CircuitRelabel.relabelGate_mul, tensorGate_mul, Matrix.one_mul]
 
+omit [Fintype I] [DecidableEq I] in
 /-- Lifting to the tail registers commutes with conjugate transpose. -/
 private theorem phaseTailGate_adjoint (M k : ℕ)
     (U : Matrix (PhaseReflectionSpace I M k) (PhaseReflectionSpace I M k) ℂ) :
@@ -410,6 +415,7 @@ private theorem phaseHeadGate_mul (M k : ℕ)
   unfold phaseHeadGate
   rw [← CircuitRelabel.relabelGate_mul, tensorGate_mul, Matrix.one_mul]
 
+omit [Fintype I] [DecidableEq I] in
 /-- Lifting to the head registers commutes with conjugate transpose. -/
 private theorem phaseHeadGate_adjoint (M k : ℕ)
     (U : Matrix (Fin M × (Bool × I)) (Fin M × (Bool × I)) ℂ) :
@@ -520,6 +526,7 @@ theorem phaseReflectionEmbed_tensor (M k : ℕ) (hM : 0 < M) (v : QState I) :
   cases b <;> by_cases hx : x = phaseZeroIndex M k hM <;> simp [TensorState,
       Qatlib.Foundations.PureStateMath.Ket, hx]
 
+omit [DecidableEq I] in
 /-- For positive `M`, embedding with zero ancillas preserves the Euclidean norm of a state. -/
 theorem phaseReflectionEmbed_norm (M k : ℕ) (hM : 0 < M) (v : QState I) :
     ‖toEuclidean_fromVec (phaseReflectionEmbed M k v)‖ = ‖toEuclidean_fromVec v‖ := by
@@ -545,7 +552,7 @@ private theorem phase_embed_head_split (M k : ℕ) (hM : 0 < M) (v : QState I) :
   by_cases hh : x 0 = (⟨0, hM⟩ : Fin M) <;>
     by_cases ht : (fun j : Fin k => x j.succ) = (fun _ => (⟨0, hM⟩ : Fin M)) <;>
     simp [hx, hh, ht] <;> first
-    | rw [if_pos (show (fun _ : Fin k => (⟨0, hM⟩ : Fin M)) = phaseZeroIndex M k hM from rfl)]
+    | rw [ite_eq_left (show (fun _ : Fin k => (⟨0, hM⟩ : Fin M)) = phaseZeroIndex M k hM from rfl)]
     | (intro _ he; exact (ht he).elim)
 
 /-- The product QPE-kernel state on the phase registers, tensored with a false control bit and
@@ -754,6 +761,7 @@ private noncomputable def phaseApplyLinear {H : Type} [Fintype H] [DecidableEq H
   map_add' x y := Matrix.mulVec_add U x y
   map_smul' c x := Matrix.mulVec_smul U c x
 
+omit [DecidableEq I] in
 /-- A uniform coefficient bound in an orthonormal family gives the corresponding Euclidean norm
 bound between linear combinations. -/
 private theorem phase_orthonormal_combo_bound {J : Type} [Fintype J] [DecidableEq J]
@@ -870,7 +878,7 @@ theorem phase_reflection_reachable_source_error (J : Type) [Fintype J] [Decidabl
     intro a
     by_cases ha : a = j0
     · simp [d, ha]; positivity
-    · simp only [d, if_neg ha, norm_mul, α, norm_pow]
+    · simp only [d, ite_eq_right ha, norm_mul, α, norm_pow]
       have hqa := phase_detection_zero_label_gap_bound M (by omega) (p a) η hη (hgap a ha)
       exact (mul_le_mul_of_nonneg_left
         (pow_le_pow_left₀ (norm_nonneg _) hqa k) (norm_nonneg (c a))).trans_eq

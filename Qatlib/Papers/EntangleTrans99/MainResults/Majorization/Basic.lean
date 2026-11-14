@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FiniteLocc.LOCCProgram.EntanglementDefs
+module
+
+public import Qatlib.Concepts.FiniteLocc.LOCCProgram.EntanglementDefs
+
+@[expose] public section
 
 /-!
 # Descending spectra and majorization
@@ -49,12 +53,12 @@ theorem merge_weakDesc {l₁ l₂ : List ℝ}
     (h₁ : l₁.Pairwise (fun x y => ¬ x < y)) (h₂ : l₂.Pairwise (fun x y => ¬ x < y)) :
     (l₁.merge l₂ descLe).Pairwise (fun x y => ¬ x < y) := by
   induction l₁ generalizing l₂ with
-  | nil => simpa [List.merge] using h₂
+  | nil => simpa only [List.nil_merge] using h₂
   | cons x l₁ ih₁ =>
     induction l₂ with
-    | nil => simpa [List.merge] using h₁
+    | nil => simpa only [List.merge_right] using h₁
     | cons y l₂ ih₂ =>
-      rw [List.merge]
+      rw [List.cons_merge_cons]
       split <;> rename_i h
       · have hyx : y < x := of_decide_eq_true h
         refine List.Pairwise.cons ?_ (ih₁ h₁.tail h₂)
@@ -81,16 +85,40 @@ theorem merge_weakDesc {l₁ l₂ : List ℝ}
 /-- Merge sort with `descLe` produces a weakly descending list of real numbers. -/
 theorem mergeSort_weakDesc (l : List ℝ) :
     (l.mergeSort descLe).Pairwise (fun x y => ¬ x < y) := by
-  refine List.mergeSort.induct (motive := fun l _ =>
-    (l.mergeSort descLe).Pairwise (fun x y => ¬ x < y)) ?_ ?_ ?_ l descLe
-  · intro le
-    simp
-  · intro le a
-    simp
-  · intro a b xs le _ _ _ ih₂ ih₃
-    change ((a :: b :: xs).mergeSort descLe).Pairwise (fun x y => ¬ x < y)
-    rw [List.mergeSort.eq_3]
-    exact merge_weakDesc ih₂ ih₃
+  have aux : ∀ n (xs : List ℝ), xs.length = n →
+      (xs.mergeSort descLe).Pairwise (fun x y => ¬ x < y) := by
+    intro n
+    induction n using Nat.strong_induction_on with
+    | h n ih =>
+      intro xs hn
+      cases xs with
+      | nil => simp
+      | cons x xs =>
+        cases xs with
+        | nil => simp
+        | cons y xs =>
+          let zs := x :: y :: xs
+          let k := (zs.length + 1) / 2
+          have hlen : zs.length = n := hn
+          have hk : k < zs.length := by dsimp [k, zs]; omega
+          have hkpos : 0 < k := by dsimp [k, zs]; omega
+          have htake : (zs.take k).length = k := by
+            rw [List.length_take, Nat.min_eq_left (Nat.le_of_lt hk)]
+          have hleft : (zs.take k).length < n := by rw [htake]; omega
+          have hright : (zs.drop k).length < n := by rw [List.length_drop]; omega
+          have hbalance₁ : (zs.drop k).length ≤ (zs.take k).length := by
+            rw [List.length_drop, htake]
+            dsimp [k]
+            omega
+          have hbalance₂ : (zs.take k).length ≤ (zs.drop k).length + 1 := by
+            rw [htake, List.length_drop]
+            dsimp [k]
+            omega
+          have hsplit : zs.take k ++ zs.drop k = zs := List.take_append_drop k zs
+          change (zs.mergeSort descLe).Pairwise (fun x y => ¬ x < y)
+          rw [← hsplit, List.mergeSort_append _ _ hbalance₁ hbalance₂]
+          exact merge_weakDesc (ih _ hleft _ rfl) (ih _ hright _ rfl)
+  exact aux l.length l rfl
 
 /-- The list `sortedDesc a` is weakly descending. -/
 theorem sortedDesc_weakDesc {n : ℕ} (a : Fin n → ℝ) :

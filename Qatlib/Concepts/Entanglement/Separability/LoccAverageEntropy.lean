@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.Entanglement.Separability.EntanglementGeneralLocc
-import Qatlib.Concepts.Entanglement.Separability.EntanglementLOCC
-import Qatlib.Concepts.QuditTeleport.ResourceIff.MeasurementPatterns
+module
+
+public import Qatlib.Concepts.Entanglement.Separability.EntanglementGeneralLocc
+public import Qatlib.Concepts.Entanglement.Separability.EntanglementLOCC
+public import Qatlib.Concepts.QuditTeleport.ResourceIff.MeasurementPatterns
+
+@[expose] public section
 
 /-!
 # Average entanglement under local Kraus measurements
@@ -82,7 +86,7 @@ def TwoOutcomeInstrument.toKraus (I : TwoOutcomeInstrument D) : KrausInstrument 
     have hsum : (∑ i, (twoOutcomeOp I i).conjTranspose * (twoOutcomeOp I i))
         = I.op0.conjTranspose * I.op0 + I.op1.conjTranspose * I.op1 := by
       rw [Fin.sum_univ_two]
-      simp only [twoOutcomeOp, if_true, if_false, show (0 : Fin 2).val = 0 from rfl,
+      simp only [twoOutcomeOp, ite_true, ite_false, show (0 : Fin 2).val = 0 from rfl,
         show ¬((1 : Fin 2).val = 0) by simp]
     rw [hsum]
     exact I.hcomplete
@@ -136,7 +140,7 @@ theorem branchMass_eq_trace (I : TwoOutcomeInstrument D) (ψ : QState (Fin D × 
 
 /-- Scales a positive-mass two-outcome branch by the reciprocal square root of its mass. -/
 noncomputable def normalizedBranchState (I : TwoOutcomeInstrument D)
-    (ψ : QState (Fin D × Fin E)) (i : Fin 2) (hp : 0 < branchMass I ψ i) :
+    (ψ : QState (Fin D × Fin E)) (i : Fin 2) (_hp : 0 < branchMass I ψ i) :
     QState (Fin D × Fin E) :=
   ((Real.sqrt (branchMass I ψ i))⁻¹ : ℝ) • branchState I ψ i
 
@@ -213,7 +217,7 @@ theorem secondMarginal_average_eq_input (I : TwoOutcomeInstrument D)
 value zero for a zero-mass branch. -/
 noncomputable def branchConditionalEntropy (I : TwoOutcomeInstrument D)
     (ψ : QState (Fin D × Fin E)) (i : Fin 2) : ℝ :=
-  if h : branchMass I ψ i = 0 then 0
+  if branchMass I ψ i = 0 then 0
   else ∑ j, Real.negMulLog (krausBranchSpectrum ψ I.toKraus i j / branchMass I ψ i)
 
 /-- The proposition that the mass-weighted branch entropy of any complete two-outcome
@@ -227,7 +231,7 @@ def GeneralTwoOutcomeAverageEntropy (D E : ℕ) : Prop :=
 and entropy nonnegativity of positive-mass branches, and preservation of the second marginal
 after summing branches. -/
 theorem frontier1 :
-    (∀ (I : TwoOutcomeInstrument D) (ψ : QState (Fin D × Fin E)) (hψ : Normalized ψ),
+    (∀ (I : TwoOutcomeInstrument D) (ψ : QState (Fin D × Fin E)) (_hψ : Normalized ψ),
       (∑ i, branchMass I ψ i) = 1) ∧
     (∀ (I : TwoOutcomeInstrument D) (ψ : QState (Fin D × Fin E)) (i : Fin 2),
       0 ≤ branchMass I ψ i) ∧
@@ -319,7 +323,7 @@ variable {n : ℕ}
 /-- Scales a positive-mass branch of a finite Kraus instrument on the first subsystem by the
 reciprocal square root of its mass. -/
 noncomputable def normalizedKrausBranch {D E : ℕ} (ψ : QState (Fin D × Fin E))
-    (K : KrausInstrument D n) (i : Fin n) (hp : 0 < krausBranchMass ψ K i) :
+    (K : KrausInstrument D n) (i : Fin n) (_hp : 0 < krausBranchMass ψ K i) :
     QState (Fin D × Fin E) :=
   ((Real.sqrt (krausBranchMass ψ K i))⁻¹ : ℝ) • krausBranch ψ K i
 
@@ -477,7 +481,7 @@ theorem krausAverageBranchEntropy_le_of_concavity {D E : ℕ}
       = ∑ i, krausBranchMass ψ K i * Sᵥₙ (branchSecondMarginalFamily ψ K hψ i) := by
     refine Finset.sum_congr rfl fun i _ => ?_
     by_cases hp : 0 < krausBranchMass ψ K i
-    · simp only [hp, dif_pos]
+    · simp only [hp, dite_eq_left]
       have hfam : branchSecondMarginalFamily ψ K hψ i = branchSecondMarginalMixed ψ K i hp := by
         simp [branchSecondMarginalFamily, hp]
       rw [hfam, krausBranchEntropy_eq_secondMarginalMixed]
@@ -485,7 +489,7 @@ theorem krausAverageBranchEntropy_le_of_concavity {D E : ℕ}
         le_antisymm (le_of_not_gt hp) (krausBranchMass_nonneg ψ K i)
       have hd : (if hp : 0 < krausBranchMass ψ K i
           then krausBranchEntropy ψ K i hp else 0) = 0 := by
-        rw [dif_neg hp]
+        rw [dite_eq_right hp]
       rw [hd, hz, zero_mul, zero_mul]
   rw [krausAverageBranchEntropy, hsum]
   exact hconc'.trans_eq (entropy_eq_secondMarginalMixed ψ hψ).symm
@@ -638,7 +642,7 @@ theorem firstMarginalState_smul {D E : ℕ} (c : ℝ) (ψ : QState (Fin D × Fin
 /-- For a nonzero real `c`, summing `Real.negMulLog` over the eigenvalues divided by `c` equals
 the spectral sum for the Hermitian matrix scaled by `c⁻¹`. -/
 theorem sum_negMulLog_eigenvalues_smul {n : ℕ} (A : HermitianMat (Fin n) ℂ) (c : ℝ)
-    (hc : c ≠ 0) :
+    (_hc : c ≠ 0) :
     (∑ j, Real.negMulLog (A.H.eigenvalues j / c))
       = (∑ j, Real.negMulLog ((c⁻¹ • A).H.eigenvalues j)) := by
   have hcongr : A.cfc (fun u : ℝ ↦ Real.negMulLog (u / c))
@@ -721,7 +725,7 @@ theorem branchConditionalEntropy_eq_branchEntropy (I : TwoOutcomeInstrument D)
     show (if h : branchMass I ψ i = 0 then 0
         else ∑ j, Real.negMulLog (krausBranchSpectrum ψ I.toKraus i j / branchMass I ψ i))
         = ∑ j, Real.negMulLog (A.H.eigenvalues j / krausBranchMass ψ I.toKraus i)
-    rw [dif_neg hp.ne']
+    rw [dite_eq_right hp.ne']
     refine Finset.sum_congr rfl fun j _ => ?_
     have hspecj : krausBranchSpectrum ψ I.toKraus i j = A.H.eigenvalues j := by rfl
     rw [hspecj]
@@ -757,7 +761,7 @@ theorem generalTwoOutcomeAverageEntropy (D E : ℕ) : GeneralTwoOutcomeAverageEn
           = krausBranchEntropy ψ I.toKraus i hpi := by
         rw [branchConditionalEntropy_eq_branchEntropy I ψ i hp]
         rfl
-      rw [hbc, dif_pos hpi]
+      rw [hbc, dite_eq_left hpi]
       rfl
     · have hz : krausBranchMass ψ I.toKraus i = 0 :=
         le_antisymm (le_of_not_gt hpi) (krausBranchMass_nonneg ψ I.toKraus i)
@@ -766,8 +770,8 @@ theorem generalTwoOutcomeAverageEntropy (D E : ℕ) : GeneralTwoOutcomeAverageEn
         show (if h : branchMass I ψ i = 0 then 0
             else ∑ j, Real.negMulLog (krausBranchSpectrum ψ I.toKraus i j / branchMass I ψ i))
             = 0
-        rw [dif_pos hz']
-      rw [hbc, dif_neg hpi, hz]
+        rw [dite_eq_left hz']
+      rw [hbc, dite_eq_right hpi, hz]
       simp
   calc (∑ i, branchMass I ψ i * branchConditionalEntropy I ψ i)
       = krausAverageBranchEntropy ψ I.toKraus := hsum
@@ -790,7 +794,7 @@ noncomputable def generalTreeAverageEntropy {D E : ℕ} (T : GeneralLoccTree D)
     (ψ : QState (Fin D × Fin E)) (hψ : Normalized ψ) : ℝ :=
   match T with
   | .halt => Qatlib.Concepts.UnbiasedBases.ThreeBasis.entropy ψ hψ
-  | .node n K next =>
+  | .node _n K next =>
       ∑ i, krausBranchMass ψ K i *
         (if hp : 0 < krausBranchMass ψ K i then
             generalTreeAverageEntropy (next i) (normalizedKrausBranch ψ K i hp)
@@ -821,7 +825,7 @@ theorem generalTreeAverageEntropy_le : ∀ (T : GeneralLoccTree D)
               else 0) := by
             refine Finset.sum_le_sum fun i _ => ?_
             by_cases hp : 0 < krausBranchMass ψ K i
-            · simp only [hp, dif_pos]
+            · simp only [hp, dite_eq_left]
               have hle : generalTreeAverageEntropy (next i) (normalizedKrausBranch ψ K i hp)
                     (normalizedKrausBranch_normalized ψ K i hp)
                   ≤ krausBranchEntropy ψ K i hp := by
@@ -847,7 +851,7 @@ theorem generalTreeAverageEntropy_zeroMass {D E : ℕ} (n : ℕ) (K : KrausInstr
   by_cases hp : 0 < krausBranchMass ψ K i
   · rw [hzero] at hp
     exact (lt_irrefl _ hp).elim
-  · rw [dif_neg hp]
+  · rw [dite_eq_right hp]
     exact mul_zero _
 
 /-- The average leaf entanglement of a first-subsystem measurement tree expressed in bits by
@@ -915,7 +919,7 @@ theorem generalTreeCommunicationBits_eq_loccBits {D E : ℕ} (T : GeneralLoccTre
 counts at each measurement node. -/
 noncomputable def generalTreeOutcomePaths {D : ℕ} : GeneralLoccTree D → ℕ
   | .halt => 1
-  | .node n _ next => ∑ i, generalTreeOutcomePaths (next i)
+  | .node _n _ next => ∑ i, generalTreeOutcomePaths (next i)
 
 /-- The measurement tree's number of outcome paths equals the leaf count of its associated
 finite LOCC protocol. -/
@@ -942,10 +946,10 @@ theorem generalTreeOutcomePaths_le_two_pow_communication {D E : ℕ} (T : Genera
 /-- Recursively sums the probability of reaching the leaves of a first-subsystem measurement
 tree, using normalized states on positive-mass branches. -/
 noncomputable def generalTreeTotalProbability {D E : ℕ} (T : GeneralLoccTree D)
-    (ψ : QState (Fin D × Fin E)) (hψ : Normalized ψ) : ℝ :=
+    (ψ : QState (Fin D × Fin E)) (_hψ : Normalized ψ) : ℝ :=
   match T with
   | .halt => 1
-  | .node n K next =>
+  | .node _n K next =>
       ∑ i, if hp : 0 < krausBranchMass ψ K i then
           krausBranchMass ψ K i *
             generalTreeTotalProbability (next i) (normalizedKrausBranch ψ K i hp)
@@ -973,13 +977,13 @@ theorem generalTreeTotalProbability_eq_one {D E : ℕ} (T : GeneralLoccTree D)
           = ∑ i, krausBranchMass ψ K i := by
             refine Finset.sum_congr rfl fun i _ => ?_
             by_cases hp : 0 < krausBranchMass ψ K i
-            · rw [dif_pos hp]
+            · rw [dite_eq_left hp]
               rw [ih i (normalizedKrausBranch ψ K i hp)
                 (normalizedKrausBranch_normalized ψ K i hp)]
               ring
             · have hz : krausBranchMass ψ K i = 0 :=
                 le_antisymm (le_of_not_gt hp) (krausBranchMass_nonneg ψ K i)
-              rw [dif_neg hp, hz]
+              rw [dite_eq_right hp, hz]
         _ = 1 := krausBranchMass_sum_eq_one ψ K hψ
 
 end Qatlib.Concepts.Entanglement.Separability.LoccAverageEntropy

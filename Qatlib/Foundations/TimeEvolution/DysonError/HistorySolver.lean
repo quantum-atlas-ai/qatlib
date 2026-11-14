@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.TimeEvolution.DysonError.SeriesSteps
+module
+
+public import Qatlib.Foundations.TimeEvolution.DysonError.SeriesSteps
+
+@[expose] public section
 
 /-!
 # Solving finite linear history recurrences
@@ -61,7 +65,7 @@ theorem solveHistory_zero (V : Fin n → E →L[𝕜] E) (rhs : Fin (n+1) → E)
 value. -/
 theorem solveHistory_succ (V : Fin n → E →L[𝕜] E) (rhs : Fin (n+1) → E) (i : Fin n) :
     solveHistory V rhs i.succ=V i (solveHistory V rhs i.castSucc)+rhs i.succ := by
-  simp only [solveHistory,Fin.val_succ,Fin.val_castSucc,affineTrajectory,extendedStep,extendedDriving,dif_pos i.isLt]
+  simp only [solveHistory,Fin.val_succ,Fin.val_castSucc,affineTrajectory,extendedStep,extendedDriving,dite_eq_left i.isLt]
   congr 2
 
 /-- Applying the history operator to its forward solution recovers the driving sequence. -/

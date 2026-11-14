@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QCounting98.MainResults.BooleanCompiler
-import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeReadout
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AePaddingOutputTransport
+module
+
+public import Qatlib.Papers.QCounting98.MainResults.BooleanCompiler
+public import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeReadout
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AePaddingOutputTransport
+
+@[expose] public section
 
 /-!
 # Transport of counting circuits to Boolean oracles

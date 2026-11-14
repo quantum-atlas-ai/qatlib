@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.AdaptiveQueryPurification
-import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryLowerBounds
+module
+
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.AdaptiveQueryPurification
+public import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryLowerBounds
+
+@[expose] public section
 
 /-!
 # Decoded branch output mass

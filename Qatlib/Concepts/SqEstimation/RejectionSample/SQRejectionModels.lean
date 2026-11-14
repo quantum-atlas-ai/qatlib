@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.HeterogeneousBlockMedian
-import Qatlib.Concepts.ShadowModels.UStatBackend.FinitePairUStatistic
+module
+
+public import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.HeterogeneousBlockMedian
+public import Qatlib.Concepts.ShadowModels.UStatBackend.FinitePairUStatistic
+
+@[expose] public section
 
 /-!
 # Envelope rejection and linear-combination access models

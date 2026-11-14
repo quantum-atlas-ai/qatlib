@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FiniteLocc.LOCCProgram.Entanglement
-import Qatlib.Concepts.MbqcFlow.FlowDecision.QuadraticTraceDistance
+module
+
+public import Qatlib.Concepts.FiniteLocc.LOCCProgram.Entanglement
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.QuadraticTraceDistance
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -265,10 +269,10 @@ theorem proposition1_product_overlap_attained (ψ : QState (Fin D × Fin E))
     ∃ a b, Normalized a ∧ Normalized b ∧
       productOverlapSq ψ a b = schmidtCoeffMax ψ := by
   classical
-  haveI : Nonempty (Fin D) := by
+  have : Nonempty (Fin D) := by
     by_contra h
     rw [not_nonempty_iff] at h
-    haveI := h
+    have := h
     have h0 : (∑ i : Fin D × Fin E, ‖ψ i‖ ^ 2) = 0 := by simp
     change (∑ i : Fin D × Fin E, ‖ψ i‖ ^ 2) = 1 at hψ
     rw [h0] at hψ
@@ -307,7 +311,7 @@ theorem proposition1_product_overlap_attained (ψ : QState (Fin D × Fin E))
       have hinner : ((∑ j, ‖schmidtW ψ j0 j‖ ^ 2 : ℝ) : ℂ) =
           ((schmidtΛ ψ j0 : ℝ) : ℂ) := by
         have hself := inner_self (schmidtW ψ j0)
-        rw [Complex.ofReal_sum, ← hself, schmidtW_inner, if_pos rfl]
+        rw [Complex.ofReal_sum, ← hself, schmidtW_inner, ite_eq_left rfl]
       exact Complex.ofReal_inj.mp hinner
     calc ∑ j, ‖star (schmidtW ψ j0 j / (s : ℂ))‖ ^ 2
         = ∑ j, ‖schmidtW ψ j0 j‖ ^ 2 / s ^ 2 := by
@@ -319,7 +323,7 @@ theorem proposition1_product_overlap_attained (ψ : QState (Fin D × Fin E))
           rw [hw, hsdef, Real.sq_sqrt (le_of_lt hpos), div_self (ne_of_gt hpos)]
   refine ⟨schmidtU ψ j0, b, ?_, hb, ?_⟩
   · have h := schmidtU_inner ψ j0 j0
-    rw [if_pos rfl] at h
+    rw [ite_eq_left rfl] at h
     have h' : ((∑ i, ‖schmidtU ψ j0 i‖ ^ 2 : ℝ) : ℂ) = ((1 : ℝ) : ℂ) := by
       have hself := inner_self (schmidtU ψ j0)
       rw [Complex.ofReal_sum, ← hself, h]
@@ -339,7 +343,7 @@ theorem proposition1_product_overlap_attained (ψ : QState (Fin D × Fin E))
       rw [hsplit, Matrix.mulVec_smul, schmidtW, Matrix.mulVec_mulVec, ← gramMatrix,
         schmidtU_mulVec, smul_smul,
         Qatlib.Concepts.FiniteLocc.LOCCProgram.inner_smul_right,
-        schmidtU_inner, if_pos rfl, mul_one]
+        schmidtU_inner, ite_eq_left rfl, mul_one]
       rw [← hss, ← mul_assoc, inv_mul_cancel₀ hsne, one_mul]
     rw [productOverlapSq, hinner, Complex.norm_real, Real.norm_eq_abs,
       abs_of_nonneg (le_of_lt hs), hsdef, Real.sq_sqrt (le_of_lt hpos), hsup]
@@ -407,8 +411,8 @@ theorem trace_sq_spectral {r : ℕ} (a : Fin r → ℝ) (u : Fin r → QState (F
     have h1 : star (u i) ⬝ᵥ u j = Inner (u i) (u j) := rfl
     rw [h1, hu i j]
     by_cases h : i = j
-    · rw [if_pos h, hu j i, if_pos h.symm, one_mul]
-    · rw [if_neg h]
+    · rw [ite_eq_left h, hu j i, ite_eq_left h.symm, one_mul]
+    · rw [ite_eq_right h]
       simp
   rw [hmul, Matrix.trace_sum]
   simp only [Matrix.trace_sum, Matrix.trace_smul, htrace]
@@ -417,7 +421,7 @@ theorem trace_sq_spectral {r : ℕ} (a : Fin r → ℝ) (u : Fin r → QState (F
   rw [Complex.re_sum, Finset.sum_eq_single i]
   · simp [pow_two]
   · intro j _ hj
-    rw [if_neg (Ne.symm hj)]
+    rw [ite_eq_right (Ne.symm hj)]
     simp
   · intro h
     exact absurd (Finset.mem_univ i) h

@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ConversionCore.WitnessCompile.StateConversionDefs
-import Qatlib.Concepts.GramQueryCore.LowerBoundTools.ResidualModels
-import Qatlib.Concepts.BitWordCompiler.WordComposition.FiniteModels
-import Qatlib.Concepts.NumericalWord.MixedWordError.FixedGateSynthesis
-import Mathlib.Data.Nat.Bitwise
+module
+
+public import Qatlib.Concepts.ConversionCore.WitnessCompile.StateConversionDefs
+public import Qatlib.Concepts.GramQueryCore.LowerBoundTools.ResidualModels
+public import Qatlib.Concepts.BitWordCompiler.WordComposition.FiniteModels
+public import Qatlib.Concepts.NumericalWord.MixedWordError.FixedGateSynthesis
+public import Mathlib.Data.Nat.Bitwise
+
+@[expose] public section
 
 /-!
 # Rational witness data and native register frames
@@ -336,7 +340,7 @@ theorem testBit_mul_pow_two (n k j : ℕ) :
     have hshift : (n * 2 ^ k).testBit j = (n * 2 ^ k / 2 ^ j).testBit 0 := by
       calc (n * 2 ^ k).testBit j = (n * 2 ^ k).testBit (0 + j) := by rw [Nat.zero_add]
         _ = (n * 2 ^ k / 2 ^ j).testBit 0 := Nat.testBit_add (n * 2 ^ k) 0 j
-    rw [hshift, hquot, if_pos hjk]
+    rw [hshift, hquot, ite_eq_left hjk]
     rw [Nat.testBit_zero]
     show decide ((n * 2 ^ (k - j)) % 2 = 1) = false
     have hmod : n * 2 ^ (k - j) % 2 = 0 := by
@@ -352,7 +356,7 @@ theorem testBit_mul_pow_two (n k j : ℕ) :
         _ = (n * 2 ^ k / 2 ^ k).testBit (j - k) := Nat.testBit_add (n * 2 ^ k) (j - k) k
     have hquot : n * 2 ^ k / 2 ^ k = n := by
       rw [Nat.mul_comm, Nat.mul_div_cancel_left n (by positivity : 0 < 2 ^ k)]
-    rw [hshift, hquot, if_neg hjk]
+    rw [hshift, hquot, ite_eq_right hjk]
 
 /-- The least significant bit of `2 * h + 1` is true, and each higher bit is the preceding bit
 of `h`. -/
@@ -370,7 +374,7 @@ theorem testBit_two_mul_add_one (h j : ℕ) :
       rw [hj']
       exact Nat.testBit_add (2 * h + 1) (j - 1) 1
     have hquot : (2 * h + 1) / 2 = h := by omega
-    rw [hshift, hquot, if_neg hj]
+    rw [hshift, hquot, ite_eq_right hj]
 
 /-- The integer encoding of state index `h` above a false tag at position `a`. -/
 def frameFalseN (a h : ℕ) : ℕ := h * 2 ^ (a + 1)
@@ -466,7 +470,7 @@ theorem testBit_frame_off (a h i : ℕ) (hi : i ≠ a) :
       rw [hshift, hquot, show (1 + 2 * h) = 2 * h + 1 by omega,
         testBit_two_mul_add_one h (i - a)]
       have hEq : i - a - 1 = i - (a + 1) := by omega
-      rw [if_neg (by omega : i - a ≠ 0), hEq]
+      rw [ite_eq_right (by omega : i - a ≠ 0), hEq]
     rw [hX, hY]
 
 /-- Negates the bit at wire `a` in a register and preserves all other bits. -/
@@ -641,7 +645,7 @@ theorem framePos_flip (d : SourceRationalProblem) (w : ℕ) (hw : tagWire d < w)
   · have hival : i.val ≠ tagWire d := by
       intro hh
       exact hi (Fin.ext hh)
-    simp only [flipBit, sourceRegBits, if_neg hi]
+    simp only [flipBit, sourceRegBits, ite_eq_right hi]
     rw [testBit_frame_off (tagWire d) h.val i.val hival]
 
 /-- Expands a native clean-state amplitude as the sum of state coordinates weighted by their
@@ -896,7 +900,7 @@ theorem sum_ite_single {ι : Type} [Fintype ι] [DecidableEq ι] (P : ι) (b : �
   have h1 : (∑ r : ι, if r = P then b r else 0)
       = (∑ r ∈ (Finset.univ : Finset ι), if r = P then b r else 0) := rfl
   rw [h1, Finset.sum_ite_eq']
-  simp only [Finset.mem_univ, if_true]
+  simp only [Finset.mem_univ, ite_true]
 
 /-- Moves the outermost finite sum past the other two finite sums. -/
 theorem sum_swap3 {α β γ : Type} [Fintype α] [Fintype β] [Fintype γ]
@@ -928,21 +932,21 @@ theorem sum_frame_overlap {ι κ : Type} [Fintype ι] [Fintype κ] [DecidableEq 
           = if q = P h then ρ h * σ h else 0 := by
         intro q
         by_cases hcond : q = P h
-        · simp only [if_pos hcond]
-        · simp only [if_neg hcond, zero_mul]
+        · simp only [ite_eq_left hcond]
+        · simp only [ite_eq_right hcond, zero_mul]
       rw [Finset.sum_congr rfl (fun q _ => hq q)]
       rw [sum_ite_single]
-      simp only [if_true]
+      simp only [ite_true]
     · have hz : ∀ q : κ, (if q = P h then ρ h else 0) * (if q = P h' then σ h' else 0) = 0 := by
         intro q
         by_cases h1 : q = P h
         · by_cases h2 : q = P h'
           · exfalso
             exact heq (hP (h1.symm.trans h2))
-          · simp only [if_pos h1, if_neg h2, mul_zero]
-        · simp only [if_neg h1, zero_mul]
+          · simp only [ite_eq_left h1, ite_eq_right h2, mul_zero]
+        · simp only [ite_eq_right h1, zero_mul]
       rw [Finset.sum_congr rfl (fun q _ => hz q)]
-      rw [if_neg heq]
+      rw [ite_eq_right heq]
       simp only [Finset.sum_const_zero]
   calc (∑ q : κ, (∑ h : ι, if q = P h then ρ h else 0) *
         (∑ h' : ι, if q = P h' then σ h' else 0))
@@ -970,8 +974,8 @@ theorem sum_frame_overlap {ι κ : Type} [Fintype ι] [Fintype κ] [DecidableEq 
             apply Finset.sum_congr rfl
             intro h' _
             by_cases hc : h = h'
-            · simp only [if_pos hc, if_pos hc.symm]
-            · simp only [if_neg hc, if_neg (Ne.symm hc)]
+            · simp only [ite_eq_left hc, ite_eq_left hc.symm]
+            · simp only [ite_eq_right hc, ite_eq_right (Ne.symm hc)]
           rw [heq, sum_ite_single]
 
 /-- Frame expansions with disjoint images have zero sum of coordinatewise products. -/
@@ -989,8 +993,8 @@ theorem sum_frame_overlap_diff {ι κ : Type} [Fintype ι] [Fintype κ] [Decidab
       · by_cases h2 : q = Q h'
         · exfalso
           exact hPQ h h' (h1.symm.trans h2)
-        · simp only [if_pos h1, if_neg h2, mul_zero]
-      · simp only [if_neg h1, zero_mul]
+        · simp only [ite_eq_left h1, ite_eq_right h2, mul_zero]
+      · simp only [ite_eq_right h1, zero_mul]
     rw [Finset.sum_congr rfl (fun q _ => hz q)]
     simp only [Finset.sum_const_zero]
   calc (∑ q : κ, (∑ h : ι, if q = P h then ρ h else 0) *
@@ -1022,8 +1026,8 @@ theorem sourceNativeClean_eq' (d : SourceRationalProblem) (w : ℕ) (tag : Bool)
   apply Finset.sum_congr rfl
   intro h _
   by_cases hc : q = framePos d w tag h
-  · rw [if_pos hc, if_pos hc, one_mul]
-  · rw [if_neg hc, if_neg hc, zero_mul]
+  · rw [ite_eq_left hc, ite_eq_left hc, one_mul]
+  · rw [ite_eq_right hc, ite_eq_right hc, zero_mul]
 
 /-- Complex conjugation passes through a frame-position sum by conjugating each state
 coordinate. -/
@@ -1037,8 +1041,8 @@ theorem star_sum_frame {ι κ : Type} [Fintype ι] [Fintype κ] [DecidableEq κ]
   rw [hstar]
   refine Fintype.sum_congr _ _ (fun h => ?_)
   by_cases hc : q = P h
-  · simp only [if_pos hc]
-  · simp only [if_neg hc, star_zero]
+  · simp only [ite_eq_left hc]
+  · simp only [ite_eq_right hc, star_zero]
 
 /-- A faithful true-tag clean embedding preserves complex inner products. -/
 theorem clean_overlap_same {d : SourceRationalProblem} {w : ℕ} (hw : frameFaithful d w)
@@ -1092,13 +1096,13 @@ theorem exp_dyadicPhaseAngle_one_neg :
 that wire's bit is true. -/
 theorem zgate_diag {w : ℕ} (a : Fin w) (q : Reg w) :
     localGateMatrix (.cp a a 1 true) q q = (if q a then -1 else 1) := by
-  rw [localGateMatrix_cp, if_pos rfl, Bool.and_self]
+  rw [localGateMatrix_cp, ite_eq_left rfl, Bool.and_self]
   rw [exp_dyadicPhaseAngle_one_neg]
 
 /-- The repeated-wire order-one phase gate has zero off-diagonal entries. -/
 theorem zgate_offdiag {w : ℕ} (a : Fin w) (q r : Reg w) (hqr : q ≠ r) :
     localGateMatrix (.cp a a 1 true) q r = 0 := by
-  simp only [localGateMatrix_cp, if_neg hqr]
+  simp only [localGateMatrix_cp, ite_eq_right hqr]
 
 /-- The repeated-wire order-one phase gate multiplies each amplitude by the sign determined by
 that wire's bit. -/

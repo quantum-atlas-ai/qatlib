@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ProjectorQAOA26.FeasibleGap.RayleighBounds
-import Qatlib.Papers.ProjectorQAOA26.FeasibleGap.UniformSecular
+module
+
+public import Qatlib.Papers.ProjectorQAOA26.FeasibleGap.RayleighBounds
+public import Qatlib.Papers.ProjectorQAOA26.FeasibleGap.UniformSecular
+
+@[expose] public section
 
 /-!
 # Spectrum of the uniform complementary projector

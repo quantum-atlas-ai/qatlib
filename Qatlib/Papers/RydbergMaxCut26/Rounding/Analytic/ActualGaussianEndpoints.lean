@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.RydbergMaxCut26.Rounding.Analytic.ActualGaussianKernel
-import Qatlib.Papers.RydbergMaxCut26.Rounding.GaussianSymmetry
+module
+
+public import Qatlib.Papers.RydbergMaxCut26.Rounding.Analytic.ActualGaussianKernel
+public import Qatlib.Papers.RydbergMaxCut26.Rounding.GaussianSymmetry
+
+@[expose] public section
 
 /-!
 # The Gaussian rounding kernel on the closed interval

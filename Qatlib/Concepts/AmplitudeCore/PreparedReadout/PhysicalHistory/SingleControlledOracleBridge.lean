@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.BinaryClockSignalWord
-import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
-import Qatlib.Concepts.LocalMachine.LocalTransport.ControlledQueryCircuit
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.NativeAnd
+module
+
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.BinaryClockSignalWord
+public import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
+public import Qatlib.Concepts.LocalMachine.LocalTransport.ControlledQueryCircuit
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.NativeAnd
+
+@[expose] public section
 
 /-!
 # A single-controlled-oracle bridge
@@ -82,10 +86,11 @@ abbrev Physical (H : Type*) := Labels × (Bool × H)
 variable {H : Type*} [Fintype H] [DecidableEq H]
 
 /-- Matrix multiplication with an explicitly selected finite-index multiplication instance. -/
-private noncomputable abbrev matmul {X Y Z : Type*} [Fintype Y]
+private noncomputable abbrev matrixMul {X Y Z : Type*} [Fintype Y]
     (A : Matrix X Y ℂ) (B : Matrix Y Z ℂ) : Matrix X Z ℂ :=
   @HMul.hMul (Matrix X Y ℂ) (Matrix Y Z ℂ) (Matrix X Z ℂ)
     Matrix.instHMulOfFintypeOfMulOfAddCommMonoid A B
+local notation "matmul" => matrixMul
 
 /-- Toggle the workspace bit by the conjunction of the two control bits, preserving the labels
 and system. -/
@@ -106,6 +111,7 @@ noncomputable def compute : Matrix (Physical H) (Physical H) ℂ := permMatrix a
 theorem compute_unitary : compute (H := H) ∈ Matrix.unitaryGroup (Physical H) ℂ :=
   permMatrix_unitary andFlip_involutive
 
+omit [Fintype H] in
 /-- The conjunction computation matrix is self-adjoint. -/
 theorem compute_adjoint : (compute (H := H))ᴴ = compute :=
   permMatrix_conjTranspose andFlip_involutive
@@ -139,7 +145,7 @@ set_option maxHeartbeats 400000 in
 theorem frame_isometry : matmul ((frame (H := H))ᴴ) frame = 1 := by
   ext ⟨⟨a,b⟩,i⟩ ⟨⟨c,d⟩,j⟩
   cases a <;> cases b <;> cases c <;> cases d <;>
-    simp [matmul, frame, Matrix.mul_apply, Matrix.conjTranspose_apply,
+    simp [frame, Matrix.mul_apply, Matrix.conjTranspose_apply,
       Fintype.sum_prod_type, Matrix.one_apply, mul_ite] <;>
     simp only [eq_comm]
 
@@ -248,7 +254,7 @@ theorem supplied_computedFrame (U : Matrix H H ℂ) :
           simp [supplied, parallelOracle, controlOracle, select, computedPoint, reference]
         · simp [supplied, parallelOracle, controlOracle, select, computedPoint, hs]
       · simp [supplied, parallelOracle, controlOracle, select, computedPoint, reference, hab]
-    _ = matmul computedFrame (reference U) x y := by
+    _ = (matmul computedFrame (reference U)) x y := by
       change _ = ∑ z : Logical H, computedFrame x z * reference U z y
       simp only [computedFrame_row]
       by_cases hs : x.2.1 = (x.1.1 && x.1.2) <;> simp [hs]
@@ -282,7 +288,7 @@ theorem word_intertwining (U : Matrix H H ℂ) (backward : Bool) :
       matmul (compute * (supplied V * compute)) frame = matmul frame (reference V) := by
     calc
       _ = matmul compute (matmul (supplied V) (matmul compute frame)) := by
-        simp only [matmul, Matrix.mul_assoc]
+        simp only [Matrix.mul_assoc]
       _ = matmul compute (matmul computedFrame (reference V)) := by
         rw [compute_frame, supplied_computedFrame]
       _ = matmul (matmul compute computedFrame) (reference V) :=
@@ -310,6 +316,7 @@ theorem word_unitary {U : Matrix H H ℂ} (hU : U ∈ Matrix.unitaryGroup H ℂ)
     evaluate (supplied U) (word backward) ∈ Matrix.unitaryGroup (Physical H) ℂ :=
   (word_wellFormed backward).evaluate_unitary (supplied_unitary hU)
 
+omit [Fintype H] in
 /-- The literal adjoint circuit is obtained by reversing the direction flag. -/
 theorem word_literal_adjoint (backward : Bool) :
     Qatlib.Concepts.CoherentSim.CoherentOAA.adjointCircuit (word (H := H) backward) = word (!backward) := by

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.OperatorErrors.Robustness
-import Mathlib.Algebra.Polynomial.AlgebraMap
+module
+
+public import Qatlib.Concepts.OperatorErrors.Robustness
+public import Mathlib.Algebra.Polynomial.AlgebraMap
+
+@[expose] public section
 
 /-!
 # Polynomial matrix perturbation bounds

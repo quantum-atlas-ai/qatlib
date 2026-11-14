@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.NormalizedNorm
-import Qatlib.Foundations.ProbabilityCore.GaussPoincare.Moments
+module
+
+public import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.NormalizedNorm
+public import Qatlib.Foundations.ProbabilityCore.GaussPoincare.Moments
+
+@[expose] public section
 
 /-!
 # Uniform moments of normalized Gaussian tensor norms

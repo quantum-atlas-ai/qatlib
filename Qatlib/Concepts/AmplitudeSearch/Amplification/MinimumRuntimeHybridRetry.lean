@@ -4,16 +4,20 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecificLimits.Normed
-import Qatlib.Concepts.SearchStopping.UnknownCount.SearchSchedule
-import Qatlib.Concepts.QftPreparation.LocalQFTImplementation
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.UnboundedExecutionRemainder
-import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.Basic
-import Qatlib.Concepts.AmplitudeSearch.Amplification.MinimumRuntimeDefs
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsRemainder
-import Qatlib.Concepts.AmplitudeSearch.Amplification.SortedTable
-import Mathlib.Data.List.GetD
-import Qatlib.Concepts.AmplitudeSearch.Amplification.MinimumRuntimeNativeAttempt
+module
+
+public import Mathlib.Analysis.SpecificLimits.Normed
+public import Qatlib.Concepts.SearchStopping.UnknownCount.SearchSchedule
+public import Qatlib.Concepts.QftPreparation.LocalQFTImplementation
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.UnboundedExecutionRemainder
+public import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.Basic
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.MinimumRuntimeDefs
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsRemainder
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.SortedTable
+public import Mathlib.Data.List.GetD
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.MinimumRuntimeNativeAttempt
+
+@[expose] public section
 
 /-!
 # Hybrid BBHT retries and their cost limits
@@ -114,7 +118,7 @@ theorem preparedBBHTInstrument_expected_gates (n : ℕ) {m : ℕ} (hm : 0 < m)
 /-- A finite-code bit-flip gate maps a basis ket to the ket with its designated bit negated. -/
 theorem finiteCode_x_ket {n : ℕ} (w : Fin n) (x : Reg n) :
     ApplyGate (finiteCodeMatrix n (.x w.val)) (Ket x) = Ket (flipAt x w) := by
-  rw [finiteCodeMatrix, dif_pos w.isLt, applyGate_wireGate_ket]
+  rw [finiteCodeMatrix, dite_eq_left w.isLt, applyGate_wireGate_ket]
   cases hx : x w <;> simp [PauliX, permMatrix, flipAt, hx]
 
 /-- Running the masked bit-flip word on a basis ket yields the ket of `flipRegister`. -/
@@ -355,7 +359,6 @@ theorem hybridPreparedAttempt_success_eval (n j : ℕ) (A : Finset (Fin (2 ^ n))
   have h := congrArg (fun p : HybridProgram (2 ^ n * 2) Bool => p.eval (retryOracle A)
     (Ket (prepZero n)) (fun b φ => branchMass φ * (if b then 1 else 0)))
       (hybridPreparedAttempt_forget n j)
-  (try dsimp only at h)
   rw [HybridProgram.eval_bind,HybridProgram.eval_ofObserved] at h
   exact h.trans (preparedAttempt_success_sum n j A)
 
@@ -559,7 +562,7 @@ theorem effectiveBBHTSize_eq {N : ℕ} (hN : 0 < N) (k : ℕ) :
     by_cases h : r ≤ s
     · rw [min_eq_left h,min_eq_left (Nat.ceil_mono h)]
     · rw [min_eq_right (le_of_not_ge h),min_eq_right (Nat.ceil_mono (le_of_not_ge h))]
-  rw [effectiveBBHTSize,if_neg hN.ne',ExponentialSizes,(search_exponential_schedule N hN).1 k,
+  rw [effectiveBBHTSize,ite_eq_right hN.ne',ExponentialSizes,(search_exponential_schedule N hN).1 k,
     hmin,ceilDivNat_eq (Nat.pow_pos (by decide : 0 < 5)),ceilSqrtNat_eq]
   norm_num only [Nat.cast_pow,Nat.cast_ofNat]
   rw [div_pow]
@@ -730,7 +733,7 @@ theorem hybridRetry_queries_le (n cap : ℕ) (sizes : List ℕ) (O : Operator (2
 ceiling. -/
 theorem effectiveBBHTSize_le_cap {N : ℕ} (hN : 0 < N) (k : ℕ) :
     effectiveBBHTSize N k ≤ ceilSqrtNat N := by
-  rw [effectiveBBHTSize,if_neg hN.ne']
+  rw [effectiveBBHTSize,ite_eq_right hN.ne']
   exact min_le_right _ _
 
 /-- For a positive table size, the sum of a schedule prefix is at most its round count times the

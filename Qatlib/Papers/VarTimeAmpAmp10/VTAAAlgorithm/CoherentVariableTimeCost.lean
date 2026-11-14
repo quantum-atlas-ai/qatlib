@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.CoherentVariableTimePrefix
+module
+
+public import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.CoherentVariableTimePrefix
+
+@[expose] public section
 
 /-!
 # Directed calls and paid prefix costs
@@ -97,6 +101,7 @@ theorem weightedCost_adjoint {H : Type} {r : ℕ} (prices : ℕ → ℕ) (C : Qa
 
 variable {H : Type} [Fintype H] [DecidableEq H] {m : ℕ}
 
+omit [Fintype H] in
 /-- A paid stage word makes exactly one forward call to its own slot and no other directed
 calls. -/
 theorem paidStage_directedCalls (P target : Matrix H H ℂ) (slot k : ℕ) (adj : Bool) :
@@ -104,6 +109,7 @@ theorem paidStage_directedCalls (P target : Matrix H H ℂ) (slot k : ℕ) (adj 
       if slot = k ∧ adj = false then 1 else 0 := by
   cases adj <;> by_cases h : slot = k <;> simp [directedCalls, paidStageWord, h]
 
+omit [Fintype H] in
 /-- The weighted oracle cost of a paid stage word equals the price of its slot. -/
 theorem paidStage_weightedCost (P target : Matrix H H ℂ) (slot : ℕ) (prices : ℕ → ℕ) :
     Qatlib.Concepts.QlsReadoutSpec.Amplification.weightedCost prices (paidStageWord P target slot) = prices slot := by

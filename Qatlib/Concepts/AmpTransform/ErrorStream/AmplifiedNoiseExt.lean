@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FourierRecovery.ModularFourier.AmplifiedNoise
-import Qatlib.Concepts.SketchArith.TransposeAccess.FinDistTransport
+module
+
+public import Qatlib.Concepts.FourierRecovery.ModularFourier.AmplifiedNoise
+public import Qatlib.Concepts.SketchArith.TransposeAccess.FinDistTransport
+
+@[expose] public section
 
 /-!
 # Executable recovery with fresh error streams
@@ -331,7 +335,7 @@ theorem attempt_classical {N : ℕ} (h : Fin N → Bool) (s M B : ℕ) (y : Fin 
   have hN : N≠0 := by have hy := y.isLt; omega
   have hd := continued_fraction_bad_output_soundness_and_work B N y.val
   have hg : (cfRationalDecode B N y.val).2.2 = (cfDepth N+1)*(cfDepth N+2)/2 := by
-    simp only [cfRationalDecode, if_neg hN, cfGenerationWork_eq]
+    simp only [cfRationalDecode, ite_eq_right hN, cfGenerationWork_eq]
   unfold aqAttempt
   (try dsimp only)
   split <;> exact ⟨hd.1,hg⟩
@@ -437,14 +441,14 @@ theorem uniqueOutput_spec (qs : List ℕ) (q : ℕ) :
     by_cases ha : rest.all (fun r => r == a) = true
     · have hall : ∀ r ∈ rest, r=a := by
         simpa only [List.all_eq_true, beq_iff_eq] using! ha
-      rw [if_pos ha, Option.some.injEq]
+      rw [ite_eq_left ha, Option.some.injEq]
       constructor
       · intro he
         subst q
         exact ⟨Or.inl rfl,rfl,hall⟩
       · rintro ⟨_,he,_⟩
         exact he
-    · rw [if_neg ha]
+    · rw [ite_eq_right ha]
       constructor
       · intro he
         cases he
@@ -700,13 +704,13 @@ theorem output_true_of_no_false (N s M P t : ℕ) (cands : Finset ℕ)
 private theorem indicator_forall {t : ℕ} (C : Fin t → Prop) [DecidablePred C] :
     (if ∀ i, C i then (1 : ℝ) else 0) = ∏ i : Fin t, (if C i then (1 : ℝ) else 0) := by
   by_cases hall : ∀ i, C i
-  · rw [if_pos hall]
+  · rw [ite_eq_left hall]
     symm
-    exact Finset.prod_eq_one fun i _ => if_pos (hall i)
-  · rw [if_neg hall]
+    exact Finset.prod_eq_one fun i _ => ite_eq_left (hall i)
+  · rw [ite_eq_right hall]
     obtain ⟨i,hi⟩ := not_forall.mp hall
     symm
-    exact Finset.prod_eq_zero (Finset.mem_univ i) (if_neg hi)
+    exact Finset.prod_eq_zero (Finset.mem_univ i) (ite_eq_right hi)
 
 /-- Under independent Bernoulli rounds, the survival probability of candidate `Q` is `p` raised
 to `t` times its separation from the planted period. -/
@@ -720,15 +724,15 @@ theorem candidate_survival_probability (N s M P Q t : ℕ)
         ∏ i : Fin t, (if aqCandidateConsistent N s M Q
           (aqFreshMarked N s M P (σ i)) then (1 : ℝ) else 0) := by
     by_cases hall : allConsistent N s M t Q (observedRounds N s M P t σ)
-    · rw [if_pos hall]
+    · rw [ite_eq_left hall]
       symm
-      exact Finset.prod_eq_one fun i _ => if_pos (hall i)
-    · rw [if_neg hall]
+      exact Finset.prod_eq_one fun i _ => ite_eq_left (hall i)
+    · rw [ite_eq_right hall]
       have hnot : ¬ ∀ i : Fin t,
           aqCandidateConsistent N s M Q (aqFreshMarked N s M P (σ i)) := hall
       obtain ⟨i,hi⟩ := not_forall.mp hnot
       symm
-      exact Finset.prod_eq_zero (Finset.mem_univ i) (if_neg hi)
+      exact Finset.prod_eq_zero (Finset.mem_univ i) (ite_eq_right hi)
   calc
     (∑ σ : RawRounds N t, (roundsLaw N t p hp hp1).prob σ *
         (if allConsistent N s M t Q (observedRounds N s M P t σ) then 1 else 0)) =
@@ -759,12 +763,12 @@ private theorem union_indicator_le (D : Finset ℕ) (C : ℕ → Prop) [Decidabl
       ∑ Q ∈ D, (if C Q then (1 : ℝ) else 0) := by
   by_cases hex : ∃ Q ∈ D, C Q
   · obtain ⟨Q,hQ,hC⟩ := hex
-    rw [if_pos ⟨Q,hQ,hC⟩]
+    rw [ite_eq_left ⟨Q,hQ,hC⟩]
     have h := Finset.single_le_sum
       (f := fun R => if C R then (1 : ℝ) else 0)
-      (fun R _ => by (try dsimp only); split <;> norm_num) hQ
-    simpa only [if_pos hC] using! h
-  · rw [if_neg hex]
+      (fun R _ => by  split <;> norm_num) hQ
+    simpa only [ite_eq_left hC] using! h
+  · rw [ite_eq_right hex]
     exact Finset.sum_nonneg fun Q _ => by split <;> norm_num
 
 /-- The probability that protected fresh-observation filtering fails to return the planted
@@ -848,13 +852,13 @@ theorem outside_eq_iff {N : ℕ} (A G : Finset (Fin N)) (σ : Fin N → Bool)
 theorem product_indicator {I : Type*} [Fintype I] (P : I → Prop) [DecidablePred P] :
     (∏ i, if P i then (1 : ℝ) else 0) = if ∀ i, P i then 1 else 0 := by
   by_cases hall : ∀ i, P i
-  · rw [if_pos hall]
+  · rw [ite_eq_left hall]
     apply Finset.prod_eq_one
     intro i _
-    exact if_pos (hall i)
-  · rw [if_neg hall]
+    exact ite_eq_left (hall i)
+  · rw [ite_eq_right hall]
     obtain ⟨i, hi⟩ := not_forall.mp hall
-    exact Finset.prod_eq_zero (Finset.mem_univ i) (if_neg hi)
+    exact Finset.prod_eq_zero (Finset.mem_univ i) (ite_eq_right hi)
 
 /-- The Bernoulli expectation of `siteOK` is one on `A`, `p` on `G` outside `A`, and `1 - p`
 elsewhere. -/
@@ -903,8 +907,8 @@ theorem raw_overlay_fiber_mass (N : ℕ) (A G : Finset (Fin N)) (p : ℝ)
         ∏ i, if siteOK A G i (σ i) then 1 else 0 := by
     rw [product_indicator]
     by_cases he : noiseOutside A σ = G
-    · rw [if_pos he, if_pos ((outside_eq_iff A G σ hAG).mp he)]
-    · rw [if_neg he, if_neg (fun hall => he ((outside_eq_iff A G σ hAG).mpr hall))]
+    · rw [ite_eq_left he, ite_eq_left ((outside_eq_iff A G σ hAG).mp he)]
+    · rw [ite_eq_right he, ite_eq_right (fun hall => he ((outside_eq_iff A G σ hAG).mpr hall))]
   calc
     _ = ∑ σ : Fin N → Bool, (bernoulliStreamLaw N p hp hp1).prob σ *
         ∏ i, if siteOK A G i (σ i) then 1 else 0 := by simp_rw [hind]
@@ -1069,7 +1073,7 @@ theorem planted_verified {N : ℕ} (h : Fin N → Bool) (s M P : ℕ)
     simp only [aqProgressionSet, Finset.mem_filter, Finset.mem_univ, true_and]
     exact ⟨M - 1, Finset.mem_range.mpr (by omega), rfl⟩
   unfold aqVerify
-  rw [dif_pos guard]
+  rw [dite_eq_left guard]
   simp [h0, h1, hlast]
 
 /-- A legal marked planted period at most `B` belongs to the bounded pool when its progression
@@ -1225,7 +1229,7 @@ theorem compareRest_value (q : ℕ) (rs : List ℕ) :
 theorem compareRest_tests (q : ℕ) (rs : List ℕ) : (compareRest q rs).2 ≤ rs.length := by
   induction rs with
   | nil => exact Nat.le_refl 0
-  | cons r rs ih => by_cases he : r=q <;> simp only [compareRest, he, if_true, if_false,
+  | cons r rs ih => by_cases he : r=q <;> simp only [compareRest, he, ite_true, ite_false,
       List.length_cons] <;> omega
 
 /-- Select a common value of a nonempty candidate list and record the comparisons used to check
@@ -1500,8 +1504,8 @@ theorem actual_rounds_fiber (N t k a : ℕ) (ha : a ≤ 2^k)
       ⟨fun h r => congrFun h r,fun h => funext h⟩
     rw [RawNoise.product_indicator]
     by_cases hf : drawRounds N t k a tapes = σ
-    · rw [if_pos hf, if_pos (he.mp hf)]
-    · rw [if_neg hf, if_neg (fun hall => hf (he.mpr hall))]
+    · rw [ite_eq_left hf, ite_eq_left (he.mp hf)]
+    · rw [ite_eq_right hf, ite_eq_right (fun hall => hf (he.mpr hall))]
   calc
     (∑ tapes : RawTapes N t k, (fairRoundsLaw N t k).prob tapes *
         (if drawRounds N t k a tapes = σ then 1 else 0)) =
@@ -1581,7 +1585,7 @@ theorem table_ofFn {A : Type*} (n : ℕ) (g : Fin n → A) (default : A) :
     table n (List.ofFn g) default = g := by
   funext i
   change (List.ofFn g)[i.val]?.getD default = g i
-  rw [List.getElem?_ofFn,dif_pos i.isLt]
+  rw [List.getElem?_ofFn,dite_eq_left i.isLt]
   rfl
 
 /-- Read every bit of a site tape, apply the threshold draw, and record the number of bits read. -/
@@ -2000,8 +2004,8 @@ theorem disjoint_mass (N : ℕ) (A : Finset (Fin N)) (p : ℝ)
         ∏ i : Fin N, (if i ∈ A → σ i = false then (1 : ℝ) else 0) := by
     rw [RawNoise.product_indicator]
     by_cases hd : Disjoint A (rawSet σ)
-    · rw [if_pos hd, if_pos ((disjoint_iff_all_false A σ).mp hd)]
-    · rw [if_neg hd, if_neg (fun hall => hd ((disjoint_iff_all_false A σ).mpr hall))]
+    · rw [ite_eq_left hd, ite_eq_left ((disjoint_iff_all_false A σ).mp hd)]
+    · rw [ite_eq_right hd, ite_eq_right (fun hall => hd ((disjoint_iff_all_false A σ).mpr hall))]
   have hsite (i : Fin N) :
       (∑ b : Bool, (bernoulliSiteLaw p hp hp1).prob b *
         (if i ∈ A → b = false then (1 : ℝ) else 0)) =
@@ -2088,7 +2092,7 @@ theorem conditional_source_eq_outside (N : ℕ) (A G : Finset (Fin N))
       rw [← he]
       exact outside_disjoint A σ
     unfold conditionalSourceMass outsideMass
-    simp only [if_neg (hcond _),if_neg (hout _),mul_zero,Finset.sum_const_zero,zero_div]
+    simp only [ite_eq_right (hcond _),ite_eq_right (hout _),mul_zero,Finset.sum_const_zero,zero_div]
 
 /-- The probability that raw noise avoids `A` is positive when `p < 1`. -/
 theorem disjoint_mass_pos (N : ℕ) (A : Finset (Fin N)) (p : ℝ)

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QMetropolis11.GibbsMixing.GibbsMetropolisDefs
+module
+
+public import Qatlib.Papers.QMetropolis11.GibbsMixing.GibbsMetropolisDefs
+
+@[expose] public section
 
 /-!
 # Finite-precision Metropolis bounds
@@ -69,7 +73,7 @@ theorem fairBitAccept_mem (k : ℕ) (f : ℝ) (hf0 : 0 ≤ f) (hf1 : f ≤ 1) :
 
 /-- For `0 ≤ f ≤ 1`, the absolute error of the finite-bit acceptance approximation is at most
 the dyadic grid spacing `fairBitGrid k`. -/
-theorem fairBitAccept_error (k : ℕ) (f : ℝ) (hf0 : 0 ≤ f) (hf1 : f ≤ 1) :
+theorem fairBitAccept_error (k : ℕ) (f : ℝ) (hf0 : 0 ≤ f) (_hf1 : f ≤ 1) :
     |fairBitAccept k f - f| ≤ fairBitGrid k := by
   unfold fairBitAccept Qatlib.Concepts.RiskEstimation.PopulationGap.fairBitAcceptMass
   set x : ℝ := (2 : ℝ) ^ k * f with hx
@@ -127,11 +131,11 @@ theorem qpeFairBit_branch_complete {D : ℕ} (O : EnergyOracle D) (G : PhaseGrid
       = (qpeKraus O G z)ᴴ * (qpeKraus O G z) := by
   have hm0 : 0 ≤ fairBitBranchMass k f false := by
     unfold fairBitBranchMass
-    simp only [Bool.false_eq_true, if_false]
+    simp only [Bool.false_eq_true, ite_false]
     linarith [fairBitAccept_mem k f hf0 hf1]
   have hm1 : 0 ≤ fairBitBranchMass k f true := by
     unfold fairBitBranchMass
-    simp only [Bool.true_eq, if_true]
+    simp only [ite_true]
     linarith [fairBitAccept_mem k f hf0 hf1]
   calc ∑ b : Bool, (acceptScale (fairBitBranchMass k f b) • (qpeKraus O G z))ᴴ
         * (acceptScale (fairBitBranchMass k f b) • (qpeKraus O G z))
@@ -142,7 +146,7 @@ theorem qpeFairBit_branch_complete {D : ℕ} (O : EnergyOracle D) (G : PhaseGrid
           rw [Fintype.sum_bool]
     _ = ((fairBitBranchMass k f true + fairBitBranchMass k f false : ℝ) : ℂ)
           • ((qpeKraus O G z)ᴴ * (qpeKraus O G z)) := by
-          simp only [Matrix.conjTranspose_smul, Matrix.conjTranspose_mul, acceptScale_star]
+          simp only [Matrix.conjTranspose_smul, acceptScale_star]
           rw [smul_mul_smul, smul_mul_smul, acceptScale_sq hm0, acceptScale_sq hm1]
           rw [← add_smul]
           congr 1
@@ -303,7 +307,7 @@ theorem fairBitAccept_detailed_balance_error {D : ℕ} (E : Fin D → ℝ) (β :
 /-- For distinct states in a nonempty state space, the transition entry is the finite-bit
 thermal acceptance divided by the number of states. -/
 theorem fairBitKernel_offdiag {D : ℕ} (E : Fin D → ℝ) (β : ℝ) (k : ℕ)
-    (hD : 0 < D) (i j : Fin D) (hij : i ≠ j) :
+    (_hD : 0 < D) (i j : Fin D) (hij : i ≠ j) :
     fairBitKernel E β k i j = fairBitAccept k (thermalAcceptance E β i j) / (D : ℝ) := by
   simp [fairBitKernel, hij]
 
@@ -330,7 +334,7 @@ theorem fairBitKernel_row_sum {D : ℕ} (E : Fin D → ℝ) (β : ℝ) (k : ℕ)
     intro j hj
     rw [fairBitKernel_offdiag E β k hD i j (Ne.symm (Finset.ne_of_mem_erase hj))]
   rw [Finset.sum_congr rfl hoff]
-  rw [fairBitKernel, if_pos rfl]
+  rw [fairBitKernel, ite_eq_left rfl]
   have hsumdiv : (∑ j' ∈ (Finset.univ : Finset (Fin D)).erase i,
         fairBitAccept k (thermalAcceptance E β i j') / (D : ℝ))
       = (∑ j' ∈ (Finset.univ : Finset (Fin D)).erase i,
@@ -367,7 +371,7 @@ theorem fairBitKernel_diag_pos {D : ℕ} (E : Fin D → ℝ) (β : ℝ) (k : ℕ
         fairBitAccept k (thermalAcceptance E β i j')) / (D : ℝ) :=
     (Finset.sum_div (Finset.univ.erase i)
       (fun j' => fairBitAccept k (thermalAcceptance E β i j')) (D : ℝ)).symm
-  rw [fairBitKernel, if_pos rfl, hsumdiv]
+  rw [fairBitKernel, ite_eq_left rfl, hsumdiv]
   have hfrac : (∑ j' ∈ (Finset.univ : Finset (Fin D)).erase i,
         fairBitAccept k (thermalAcceptance E β i j')) / (D : ℝ)
       ≤ ((D - 1 : ℕ) : ℝ) / (D : ℝ) := div_le_div_of_nonneg_right hsum hDpos.le
@@ -469,9 +473,9 @@ theorem temmeAcceptWeight_nonneg {D : ℕ} (E : Fin D → ℝ)
   have ha : 0 ≤ thermalAcceptance E β i j := (thermalAcceptance_pos E β i j).le
   by_cases h : Qatlib.Concepts.RiskEstimation.PopulationGap.isEnergyRep E i
       ∧ Qatlib.Concepts.RiskEstimation.PopulationGap.isEnergyRep E j
-  · rw [if_pos h]
+  · rw [ite_eq_left h]
     positivity
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     positivity
 
 /-- For each proposal in a legal ensemble, the scalar acceptance weights satisfy detailed
@@ -479,7 +483,7 @@ balance with the unnormalized Gibbs weights. This is a scalar identity for the a
 factors associated with [TemmeEtAl2011]. -/
 theorem temmeAccept_detailed_balance {D : ℕ} (E : Fin D → ℝ)
     (ens : Qatlib.Concepts.RiskEstimation.PopulationGap.ProposalEnsemble D)
-    (β : ℝ) (hEns : Qatlib.Concepts.RiskEstimation.PopulationGap.proposalEnsembleLegal ens)
+    (β : ℝ) (_hEns : Qatlib.Concepts.RiskEstimation.PopulationGap.proposalEnsembleLegal ens)
     (i j : Fin D) (c : Fin ens.count) :
     Real.exp (-β * E i) * temmeAcceptWeight E ens β i j c
       = Real.exp (-β * E j) * temmeAcceptWeight E ens β j i c := by
@@ -489,7 +493,7 @@ theorem temmeAccept_detailed_balance {D : ℕ} (E : Fin D → ℝ)
   · have hba : (Qatlib.Concepts.RiskEstimation.PopulationGap.isEnergyRep E j
         ∧ Qatlib.Concepts.RiskEstimation.PopulationGap.isEnergyRep E i) := ⟨hab.2, hab.1⟩
     have hdet := thermalAcceptance_detailed E β i j
-    simp only [temmeAcceptWeight, if_pos hab, if_pos hba]
+    simp only [ite_eq_left hab, ite_eq_left hba]
     calc Real.exp (-β * E i) * (1 * ens.weight c * thermalAcceptance E β i j)
         = (Real.exp (-β * E i) * thermalAcceptance E β i j) * ens.weight c := by ring
       _ = (Real.exp (-β * E j) * thermalAcceptance E β j i) * ens.weight c := by rw [hdet]
@@ -498,7 +502,7 @@ theorem temmeAccept_detailed_balance {D : ℕ} (E : Fin D → ℝ)
         ∧ Qatlib.Concepts.RiskEstimation.PopulationGap.isEnergyRep E i) := by
       intro hconj
       exact hab ⟨hconj.2, hconj.1⟩
-    simp only [temmeAcceptWeight, if_neg hab, if_neg hnba]
+    simp only [ite_eq_right hab, ite_eq_right hnba]
     ring
 
 /-- The diagonal Gibbs probability at a state is its Boltzmann weight `exp (-β * E i)` divided
@@ -563,7 +567,7 @@ theorem fairBitKernel_approxStationary {D : ℕ} (E : Fin D → ℝ) (β : ℝ) 
     rw [fairBitKernel_offdiag E β k hD i j (Finset.ne_of_mem_erase hi)]
   have hdiag : fairBitKernel E β k j j
       = 1 - ∑ j' ∈ S, fairBitAccept k (thermalAcceptance E β j j') / (D : ℝ) := by
-    rw [hS, fairBitKernel, if_pos rfl]
+    rw [hS, fairBitKernel, ite_eq_left rfl]
   have hmain : (∑ i : Fin D, (diagonalGibbsDist D hD E β).prob i * fairBitKernel E β k i j)
         - (diagonalGibbsDist D hD E β).prob j
       = ∑ i ∈ S, (((diagonalGibbsDist D hD E β).prob i
@@ -877,7 +881,7 @@ theorem fairBitKernel_minorization {D : ℕ} (E : Fin D → ℝ) (β : ℝ) (k :
     have hdiag : 1 / (D : ℝ) ≤ fairBitKernel E β k i i := by
       have hDpos : (0 : ℝ) < (D : ℝ) := by exact_mod_cast hD
       have hDne : (D : ℝ) ≠ 0 := by exact_mod_cast hD.ne'
-      rw [fairBitKernel, if_pos rfl, div_le_iff₀ hDpos, sub_mul, one_mul]
+      rw [fairBitKernel, ite_eq_left rfl, div_le_iff₀ hDpos, sub_mul, one_mul]
       have hcancel : (∑ j' ∈ (Finset.univ : Finset (Fin D)).erase i,
           fairBitAccept k (thermalAcceptance E β i j') / (D : ℝ)) * (D : ℝ)
           = ∑ j' ∈ (Finset.univ : Finset (Fin D)).erase i,
@@ -1074,8 +1078,8 @@ theorem fairBitEvolve_error_budget {D : ℕ} (E : Fin D → ℝ) (β : ℝ) (k :
 
 /-- The budget inequality `n * D * fairBitGrid k ≤ ε - δ₀` bounds the step count by `(ε - δ₀) /
 (D * fairBitGrid k)` for a nonempty state space. -/
-theorem fairBitEvolve_step_budget {D : ℕ} (E : Fin D → ℝ) (β : ℝ) (k : ℕ) (hD : 0 < D)
-    (δ₀ ε : ℝ) (n : ℕ) (p : Fin D → ℝ)
+theorem fairBitEvolve_step_budget {D : ℕ} (_E : Fin D → ℝ) (_β : ℝ) (k : ℕ) (hD : 0 < D)
+    (δ₀ ε : ℝ) (n : ℕ) (_p : Fin D → ℝ)
     (hbudget : (n : ℝ) * ((D : ℝ) * fairBitGrid k) ≤ ε - δ₀) :
     (n : ℝ) ≤ (ε - δ₀) / ((D : ℝ) * fairBitGrid k) := by
   have hDpos : (0 : ℝ) < (D : ℝ) := by exact_mod_cast hD
@@ -1133,8 +1137,8 @@ theorem fairBitKernel_bridge {D : ℕ} (E : Fin D → ℝ) (β : ℝ) (k : ℕ) 
       have hoff : ∀ j ∈ (Finset.univ : Finset (Fin D)).erase i,
           thermalKernel D E β i j = thermalAcceptance E β i j / (D : ℝ) := by
         intro j hj
-        rw [thermalKernel, if_neg (Ne.symm (Finset.ne_of_mem_erase hj))]
-      rw [hins, Finset.sum_insert hni, thermalKernel, if_pos rfl,
+        rw [thermalKernel, ite_eq_right (Ne.symm (Finset.ne_of_mem_erase hj))]
+      rw [hins, Finset.sum_insert hni, thermalKernel, ite_eq_left rfl,
         Finset.sum_congr rfl hoff]
       ring
     exact hrow

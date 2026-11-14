@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpinorSampling.Matching.HighConfidenceExecution
-import Qatlib.Concepts.SpinorSampling.NativeRecords.NativeBornBridge
+module
+
+public import Qatlib.Concepts.SpinorSampling.Matching.HighConfidenceExecution
+public import Qatlib.Concepts.SpinorSampling.NativeRecords.NativeBornBridge
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -59,8 +63,10 @@ def highRecordDistribution {d : ℕ} (p : HighConfidencePlanQ)
     (finiteFamilyLaw (fun i : Fin 3 × Fin d => correlationRecordLaw p.spinSchedule.mode
       p.spinSchedule.records p.spinSchedule.blocks (qS i.1)))
 
+omit [Fintype S] [Nonempty S] [DecidableEq S] in
 /-- Complete original `correlation_record_law_signed` guarantee for `NativeHighConfidence`; all source hypotheses and output obligations are retained. -/
-theorem correlation_record_law_signed (mode : CorrelationMode) (n K : ℕ)
+theorem correlation_record_law_signed {S : Type} [_inst0 : Fintype S] [_inst1 : Nonempty S]
+    [_inst2 : DecidableEq S] (mode : CorrelationMode) (n K : ℕ)
     (m : S → ℝ) (hm : ∀ x, |m x|≤1) :
     correlationRecordLaw mode n K (signedRecordLaw m hm)=correlationLaw mode n K m hm := by
   cases mode <;> rfl

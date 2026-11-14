@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.StoppingCore.BranchCostCore.BranchCostExecution
+module
+
+public import Qatlib.Concepts.StoppingCore.BranchCostCore.BranchCostExecution
+
+@[expose] public section
 
 /-!
 # Geometric retry receipts and paid cost
@@ -61,7 +65,7 @@ theorem branchRetry_point (coin : PMF Bool) (good bad n k : ℕ) (o : Bool) :
       (if (.inl true : Bool ⊕ Unit)=.inl o ∧ good=k then coin true else 0) := by
   rw [Qatlib.Concepts.StoppingCore.BranchCostCore.branchCostRun, branchCostTick]
   simp only [Qatlib.Concepts.StoppingCore.BranchCostCore.branchRetryNext, CostedLaw.bind, PMF.bind_map, Function.comp_def, PMF.bind_apply,
-    tsum_fintype, Fintype.sum_bool, Bool.false_eq_true, if_false, if_true, branchCostRun_halted]
+    tsum_fintype, Fintype.sum_bool, Bool.false_eq_true, ite_false, ite_true, branchCostRun_halted]
   rw [show CostedLaw.charge good (PMF.pure ((.inl true : Bool ⊕ Unit),0)) =
       PMF.pure (.inl true,good) from Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.charge_ret (α := Bool ⊕ Unit) good (.inl true), Qatlib.Concepts.StoppingCore.BranchCostCore.charge_point_mass]
   by_cases ho : true=o <;> by_cases hk : good=k <;>
@@ -75,9 +79,9 @@ theorem branchRetry_below_good (coin : PMF Bool) (good bad n k : ℕ) (hk : k < 
   | succ n ih =>
     rw [branchRetry_point]
     have hne : good ≠ k := by omega
-    simp only [true_and, if_neg hne, add_zero]
+    simp only [true_and, ite_eq_right hne, add_zero]
     by_cases hfit : bad ≤ k
-    · rw [if_pos hfit, ih (k-bad) (by omega), mul_zero]
+    · rw [ite_eq_left hfit, ih (k-bad) (by omega), mul_zero]
     · simp [hfit]
 
 /-- The retry program never halts with Boolean output `false` in any finite run. -/
@@ -105,9 +109,9 @@ theorem branchRetry_halt_recursion (coin : PMF Bool) (good bad k : ℕ)
     rw [branchRetry_point]
     simp only [true_and]
     by_cases hfit : bad ≤ k+1
-    · rw [if_pos hfit, if_pos hfit, branchCostRun_stable _ hp (.inr ()) true (k+1-bad) k (by omega)]
+    · rw [ite_eq_left hfit, ite_eq_left hfit, branchCostRun_stable _ hp (.inr ()) true (k+1-bad) k (by omega)]
       rfl
-    · rw [if_neg hfit, if_neg hfit]
+    · rw [ite_eq_right hfit, ite_eq_right hfit]
 
 /-- With positive branch costs, successful halt mass at cost `n * bad + good` is `(coin false) ^
 n * coin true`. -/
@@ -127,7 +131,7 @@ theorem branch_cost_geometric_retry_exact_receipt :
     have hfit : bad ≤ (n+1)*bad+good := by rw [Nat.add_mul, Nat.one_mul]; omega
     have hne : good ≠ (n+1)*bad+good := by nlinarith
     have he : (n+1)*bad+good-bad=n*bad+good := by rw [Nat.add_mul, Nat.one_mul]; omega
-    rw [if_pos hfit, if_neg hne, he, ih, add_zero, pow_succ']
+    rw [ite_eq_left hfit, ite_eq_right hne, he, ih, add_zero, pow_succ']
     ring
 
 /-- Every cost carrying nonzero successful halt mass equals `n * bad + good` for some natural
@@ -139,9 +143,9 @@ theorem branchRetry_support (coin : PMF Bool) (good bad : ℕ) (hg : 0 < good) (
   | h k ih =>
     by_cases he : good=k
     · exact ⟨0, by omega⟩
-    · rw [branchRetry_halt_recursion coin good bad k hg hb, if_neg he, add_zero] at hm
+    · rw [branchRetry_halt_recursion coin good bad k hg hb, ite_eq_right he, add_zero] at hm
       have hfit : bad ≤ k := by by_contra h; simp [h] at hm
-      rw [if_pos hfit] at hm
+      rw [ite_eq_left hfit] at hm
       have hr : Qatlib.Concepts.StoppingCore.BranchCostCore.branchHaltJoint (Qatlib.Concepts.StoppingCore.BranchCostCore.branchRetryNext coin good bad) (.inr ()) true (k-bad) ≠ 0 :=
         right_ne_zero_of_mul hm
       obtain ⟨n, hn⟩ := ih (k-bad) (by omega) hr

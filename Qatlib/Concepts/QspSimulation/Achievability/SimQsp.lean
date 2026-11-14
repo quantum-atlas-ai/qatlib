@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QspSimulation.Achievability.SimQspDefs
-import Qatlib.Concepts.QspSimulation.JacobiAnger.JacobiAngerCorrectedDegreeLowc
-import Qatlib.Concepts.QspSimulation.JacobiAnger.JacobiAngerTruncationLowc
-import Qatlib.Concepts.QspSimulation.WordModel.Lc17AuxWord
+module
+
+public import Qatlib.Concepts.QspSimulation.Achievability.SimQspDefs
+public import Qatlib.Concepts.QspSimulation.JacobiAnger.JacobiAngerCorrectedDegreeLowc
+public import Qatlib.Concepts.QspSimulation.JacobiAnger.JacobiAngerTruncationLowc
+public import Qatlib.Concepts.QspSimulation.WordModel.Lc17AuxWord
+
+@[expose] public section
 
 /-!
 # Certified QSP synthesis and flag semantics
@@ -364,7 +368,7 @@ theorem systemInputState_zero_of_flag {m : ℕ} (ψ : QState (Reg m))
     (y : Reg (m + 1)) (hy : y ⟨m, Nat.lt_succ_self m⟩ = true) :
     systemInputState (Nat.le_succ m) ψ y = 0 := by
   unfold systemInputState
-  rw [if_neg]
+  rw [ite_eq_right]
   intro hw
   have h := hw ⟨m, Nat.lt_succ_self m⟩ (Nat.le_refl m)
   rw [hy] at h
@@ -382,7 +386,7 @@ theorem wireGate_mulVec_zero_of_flag_false {m : ℕ}
   intro y _
   rw [wireGate_apply]
   by_cases hsupp : ∀ k : Fin (m + 1), k ≠ ⟨m, Nat.lt_succ_self m⟩ → z k = y k
-  · rw [if_pos hsupp]
+  · rw [ite_eq_left hsupp]
     by_cases hy : y ⟨m, Nat.lt_succ_self m⟩ = true
     · rw [hψ' y hy, mul_zero]
     · have hy' : y ⟨m, Nat.lt_succ_self m⟩ = false := by
@@ -392,7 +396,7 @@ theorem wireGate_mulVec_zero_of_flag_false {m : ℕ}
       rw [hz, hy']
       simp only [PauliX, permMatrix]
       norm_num
-  · rw [if_neg hsupp, zero_mul]
+  · rw [ite_eq_right hsupp, zero_mul]
 
 /-- Embeds an `m`-qubit basis register into `m + 1` qubits by preserving its system bits and
 setting the last flag to true. -/
@@ -407,13 +411,13 @@ private def flagFlip {m : ℕ} (z : Reg (m + 1)) : Reg (m + 1) :=
 private theorem flagEmbed_apply_lt {m : ℕ} (x : Reg m) {i : Fin (m + 1)} (hi : i.1 < m) :
     flagEmbed x i = x ⟨i.1, hi⟩ := by
   show (if h : i.1 < m then x ⟨i.1, h⟩ else true) = x ⟨i.1, hi⟩
-  rw [dif_pos hi]
+  rw [dite_eq_left hi]
 
 /-- The last flag bit of `flagEmbed x` is true. -/
 private theorem flagEmbed_apply_flag {m : ℕ} (x : Reg m) :
     flagEmbed x ⟨m, Nat.lt_succ_self m⟩ = true := by
   show (if h : m < m then x ⟨m, h⟩ else true) = true
-  rw [dif_neg (Nat.lt_irrefl m)]
+  rw [dite_eq_right (Nat.lt_irrefl m)]
 
 /-- Restricting a flagged embedding to its system register recovers the original register. -/
 private theorem systemRestrict_flagEmbed {m : ℕ} (x : Reg m) :
@@ -432,11 +436,11 @@ private theorem flagEmbed_of_eq {m : ℕ} (z : Reg (m + 1))
   funext i
   show (if h : i.1 < m then (systemRestrict (Nat.le_succ m) z) ⟨i.1, h⟩ else true) = z i
   by_cases hi : i.1 < m
-  · rw [dif_pos hi]
+  · rw [dite_eq_left hi]
     show z (Fin.castLE (Nat.le_succ m) ⟨i.1, hi⟩) = z i
     rfl
   · have hval : i.1 = m := by omega
-    rw [dif_neg hi]
+    rw [dite_eq_right hi]
     have hie : i = (⟨m, Nat.lt_succ_self m⟩ : Fin (m + 1)) := Fin.eq_of_val_eq hval
     rw [hie]
     exact hz.symm
@@ -445,7 +449,7 @@ private theorem flagEmbed_of_eq {m : ℕ} (z : Reg (m + 1))
 private theorem flagFlip_apply_flag {m : ℕ} (z : Reg (m + 1)) :
     flagFlip z ⟨m, Nat.lt_succ_self m⟩ = Bool.not (z ⟨m, Nat.lt_succ_self m⟩) := by
   show (if m = m then Bool.not (z ⟨m, Nat.lt_succ_self m⟩) else z ⟨m, Nat.lt_succ_self m⟩) = _
-  rw [if_pos rfl]
+  rw [ite_eq_left rfl]
 
 /-- The flag flip preserves each register bit away from the last flag position. -/
 private theorem flagFlip_apply_of_ne {m : ℕ} (z : Reg (m + 1)) {i : Fin (m + 1)}
@@ -453,7 +457,7 @@ private theorem flagFlip_apply_of_ne {m : ℕ} (z : Reg (m + 1)) {i : Fin (m + 1
     flagFlip z i = z i := by
   have hi' : i.1 ≠ m := fun h => hi (Fin.eq_of_val_eq h)
   show (if i.1 = m then Bool.not (z i) else z i) = z i
-  rw [if_neg hi']
+  rw [ite_eq_right hi']
 
 /-- Flipping the last flag leaves the system restriction unchanged. -/
 private theorem systemRestrict_flagFlip {m : ℕ} (z : Reg (m + 1)) :
@@ -478,7 +482,7 @@ private theorem identityFlagProgram_runState_eq (m : ℕ) (ψ : QState (Reg (m +
   have hmat : finiteCodeMatrix (m + 1) (FiniteGateCode.x m)
       = wireGate (m + 1) ⟨m, Nat.lt_succ_self m⟩ PauliX := by
     show (if h : m < m + 1 then wireGate (m + 1) ⟨m, h⟩ PauliX else 1) = _
-    rw [dif_pos (Nat.lt_succ_self m)]
+    rw [dite_eq_left (Nat.lt_succ_self m)]
   show Run (1 : Matrix (Reg (m + 1)) (Reg (m + 1)) ℂ)
       [Step.gate (finiteCodeMatrix (m + 1) (FiniteGateCode.x m))] ψ = _
   rw [hmat]
@@ -500,7 +504,7 @@ private theorem wireGate_pauliX_mulVec_apply {m : ℕ} (ψ' : QState (Reg (m + 1
           z k = flagFlip z k := by
         intro k hk
         exact (flagFlip_apply_of_ne z hk).symm
-      rw [wireGate_apply, if_pos hsupp, if_pos rfl]
+      rw [wireGate_apply, ite_eq_left hsupp, ite_eq_left rfl]
       rw [flagFlip_apply_flag]
       have hp : PauliX (z ⟨m, Nat.lt_succ_self m⟩) (Bool.not (z ⟨m, Nat.lt_succ_self m⟩)) = 1 := by
         cases hzz : z ⟨m, Nat.lt_succ_self m⟩ <;> simp [PauliX, permMatrix, Matrix.of_apply]
@@ -508,7 +512,7 @@ private theorem wireGate_pauliX_mulVec_apply {m : ℕ} (ψ' : QState (Reg (m + 1
     · have hz : wireGate (m + 1) ⟨m, Nat.lt_succ_self m⟩ PauliX z y = 0 := by
         rw [wireGate_apply]
         by_cases hsupp : ∀ k : Fin (m + 1), k ≠ ⟨m, Nat.lt_succ_self m⟩ → z k = y k
-        · rw [if_pos hsupp]
+        · rw [ite_eq_left hsupp]
           show (if z ⟨m, Nat.lt_succ_self m⟩ = Bool.not (y ⟨m, Nat.lt_succ_self m⟩)
             then (1 : ℂ) else 0) = 0
           by_cases hw : z ⟨m, Nat.lt_succ_self m⟩ = Bool.not (y ⟨m, Nat.lt_succ_self m⟩)
@@ -521,9 +525,9 @@ private theorem wireGate_pauliX_mulVec_apply {m : ℕ} (ψ' : QState (Reg (m + 1
               cases hy : y ⟨m, Nat.lt_succ_self m⟩ <;> rfl
             · rw [flagFlip_apply_of_ne z (fun he => hi (congrArg Fin.val he))]
               exact (hsupp i (fun he => hi (congrArg Fin.val he))).symm
-          · rw [if_neg hw]
-        · rw [if_neg hsupp]
-      rw [hz, if_neg hfl, zero_mul]
+          · rw [ite_eq_right hw]
+        · rw [ite_eq_right hsupp]
+      rw [hz, ite_eq_right hfl, zero_mul]
   show ∑ y, wireGate (m + 1) ⟨m, Nat.lt_succ_self m⟩ PauliX z y * ψ' y = _
   have hrew : (∑ y : Reg (m + 1), wireGate (m + 1) ⟨m, Nat.lt_succ_self m⟩ PauliX z y * ψ' y)
       = ∑ y : Reg (m + 1), (if y = flagFlip z then ψ' (flagFlip z) else 0) :=
@@ -532,8 +536,8 @@ private theorem wireGate_pauliX_mulVec_apply {m : ℕ} (ψ' : QState (Reg (m + 1
       = ψ' (flagFlip z) := by
     have h1 : (∑ y : Reg (m + 1), (if y = flagFlip z then ψ' (flagFlip z) else 0))
         = (if flagFlip z = flagFlip z then ψ' (flagFlip z) else 0) :=
-      Finset.sum_eq_single_of_mem (flagFlip z) (Finset.mem_univ _) (fun y _ hy => if_neg hy)
-    rw [h1, if_pos rfl]
+      Finset.sum_eq_single_of_mem (flagFlip z) (Finset.mem_univ _) (fun y _ hy => ite_eq_right hy)
+    rw [h1, ite_eq_left rfl]
   rw [hrew, hsum]
 
 /-- On a true-flag output register, the identity flag program applied to a clean input has the
@@ -549,12 +553,12 @@ private theorem identityFlagProgram_runState_apply (m : ℕ) (ψ : QState (Reg m
     have hie : i = (⟨m, Nat.lt_succ_self m⟩ : Fin (m + 1)) := Fin.eq_of_val_eq hval
     have hi2 : flagFlip z i = Bool.not (z i) := by
       show (if i.1 = m then Bool.not (z i) else z i) = _
-      rw [if_pos hval]
+      rw [ite_eq_left hval]
     rw [hi2, hie, hz]
     simp
   show (if workZero m (flagFlip z) then ψ (systemRestrict (Nat.le_succ m) (flagFlip z)) else 0)
       = ψ (systemRestrict (Nat.le_succ m) z)
-  rw [if_pos hwork, systemRestrict_flagFlip]
+  rw [ite_eq_left hwork, systemRestrict_flagFlip]
 
 /-- The success event of the identity flag program consists exactly of registers with a true
 last flag. -/
@@ -563,7 +567,7 @@ private theorem identityFlagProgram_successEvent (m : ℕ) :
       = Finset.univ.filter (fun z : Reg (m + 1) => z ⟨m, Nat.lt_succ_self m⟩ = true) := by
   show (if h : m < m + 1 then Finset.univ.filter (fun z : Reg (m + 1) => z ⟨m, h⟩ = true) else ∅)
       = Finset.univ.filter (fun z : Reg (m + 1) => z ⟨m, Nat.lt_succ_self m⟩ = true)
-  rw [dif_pos (Nat.lt_succ_self m)]
+  rw [dite_eq_left (Nat.lt_succ_self m)]
 
 /-- Membership in the identity flag program's success event is equivalent to the last flag being
 true. -/
@@ -626,9 +630,9 @@ private theorem identityFlagProgram_successSystemVector (m : ℕ) (ψ : QState (
     have hztrue : z ⟨m, Nat.lt_succ_self m⟩ = true :=
       (mem_identityFlagProgram_successEvent z).mp hz
     by_cases heq : systemRestrict (Nat.le_succ m) z = x
-    · rw [if_pos ⟨residualZero_identityFlagProgram z, heq⟩, if_pos heq]
+    · rw [ite_eq_left ⟨residualZero_identityFlagProgram z, heq⟩, ite_eq_left heq]
       rw [identityFlagProgram_runState_apply m ψ z hztrue, heq]
-    · rw [if_neg (fun h => heq h.2), if_neg heq]
+    · rw [ite_eq_right (fun h => heq h.2), ite_eq_right heq]
   have h1 : (∑ z ∈ simulationSuccessEvent (identityFlagProgram m),
       (if residualZero m (identityFlagProgram m).successWire z ∧
             systemRestrict (Nat.le_succ m) z = x
@@ -642,7 +646,7 @@ private theorem identityFlagProgram_successSystemVector (m : ℕ) (ψ : QState (
   have hrest : ∀ z ∈ simulationSuccessEvent (identityFlagProgram m),
       z ≠ flagEmbed x → (if systemRestrict (Nat.le_succ m) z = x then ψ x else 0) = 0 := by
     intro z hz hne
-    apply if_neg
+    apply ite_eq_right
     intro heq
     apply hne
     rw [← heq]
@@ -653,7 +657,7 @@ private theorem identityFlagProgram_successSystemVector (m : ℕ) (ψ : QState (
         (if systemRestrict (Nat.le_succ m) z = x then ψ x else 0))
         = (if systemRestrict (Nat.le_succ m) (flagEmbed x) = x then ψ x else 0) :=
       Finset.sum_eq_single_of_mem _ hmem hrest
-    rw [h2a, if_pos (systemRestrict_flagEmbed x)]
+    rw [h2a, ite_eq_left (systemRestrict_flagEmbed x)]
   show (∑ z ∈ simulationSuccessEvent (identityFlagProgram m),
       if residualZero m (identityFlagProgram m).successWire z ∧
           systemRestrict (Nat.le_succ m) z = x

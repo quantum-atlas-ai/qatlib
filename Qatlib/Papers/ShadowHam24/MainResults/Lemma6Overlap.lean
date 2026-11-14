@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ShadowHam24.MainResults.Definitions
+module
+
+public import Qatlib.Papers.ShadowHam24.MainResults.Definitions
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -40,7 +44,7 @@ inner product `∑_m conj⟨O_m⟩_ρ ⟨O_m⟩_σ` for Hermitian `ρ` and an or
 complete operator basis. -/
 theorem trace_eq_shadow_inner (ρ σ : Matrix N N ℂ) (O : N × N → Matrix N N ℂ)
     (hρ : ρ.IsHermitian)
-    (horth : gramMatrix O = 1)
+    (_horth : gramMatrix O = 1)
     (hcomplete : ∀ A : Matrix N N ℂ, A = ∑ ij, ((O ij)ᴴ * A).trace • O ij) :
     (ρ * σ).trace
       = ∑ ij, star (shadowState ρ O ij) * shadowState σ O ij := by

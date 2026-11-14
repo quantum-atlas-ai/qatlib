@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ThermalRate98.MainResults.MonteCarloBound
+module
+
+public import Qatlib.Papers.ThermalRate98.MainResults.MonteCarloBound
+
+@[expose] public section
 
 /-!
 # Sample mean variance and repetition bounds
@@ -60,6 +64,7 @@ section Product
 
 variable {α : Type*} [Fintype α] [DecidableEq α]
 
+omit [DecidableEq α] in
 /-- Under product weights, the expectation of a product of coordinate functions is the product
 of their individual weighted expectations. See [LidarWang1999]. -/
 theorem expect_prod_factor (p : α → ℝ) {n : ℕ} (f : Fin n → α → ℝ) :
@@ -103,6 +108,7 @@ theorem prod_ite_two {n : ℕ} {β : Type*} (u : Fin n → β) (f g : β → ℝ
   rw [ite_eq_left rfl]
   ring
 
+omit [DecidableEq α] in
 /-- Under product weights whose base weights sum to one, a function of one coordinate has its
 original weighted expectation. -/
 theorem expect_coord (p : α → ℝ) (hsum : ∑ a, p a = 1) {n : ℕ} (g : α → ℝ)
@@ -130,6 +136,7 @@ theorem expect_coord (p : α → ℝ) (hsum : ∑ a, p a = 1) {n : ℕ} (g : α 
     simp [hki, expect_const p hsum]
   rw [hself, Finset.prod_eq_one hother, mul_one]
 
+omit [DecidableEq α] in
 /-- Functions of two distinct coordinates have a factored expectation under product weights
 whose base weights sum to one. -/
 theorem expect_pair (p : α → ℝ) (hsum : ∑ a, p a = 1) {n : ℕ} (f g : α → ℝ)
@@ -194,6 +201,7 @@ theorem expect_sum_mul_sum {ι κ : Type*} [Fintype ι] [Fintype κ] (p : α →
         rw [Finset.sum_comm]
     _ = ∑ i, ∑ j, expect p (fun a => f i a * g j a) := rfl
 
+omit [DecidableEq α] in
 /-- For a positive number `n` of independent samples from a finite probability distribution, the
 sample mean variance equals the original variance divided by `n`. See [LidarWang1999]. -/
 theorem variance_sampleMean (p X : α → ℝ) (hp : IsProb p) {n : ℕ} (hn : 0 < n) :
@@ -265,6 +273,7 @@ theorem variance_sampleMean (p X : α → ℝ) (hp : IsProb p) {n : ℕ} (hn : 0
   rw [hvar, hsq2]
   field_simp
 
+omit [DecidableEq α] in
 /-- The probability that the sample mean deviates from its expectation by at least positive `ε`
 is at most the original variance divided by `n * ε²`, for positive `n`. -/
 theorem chebyshev_sampleMean (p X : α → ℝ) (hp : IsProb p) {n : ℕ} (hn : 0 < n)
@@ -280,6 +289,7 @@ theorem chebyshev_sampleMean (p X : α → ℝ) (hp : IsProb p) {n : ℕ} (hn : 
   have hε' : ε ^ 2 ≠ 0 := pow_ne_zero 2 hε.ne'
   field_simp
 
+omit [DecidableEq α] in
 /-- For observations in the unit interval, at least `1 / (4 * ε² * δ)` independent samples make
 the probability of a deviation of at least `ε` no greater than `δ`, for positive `ε` and
 `δ`. See [LidarWang1999]. -/

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpinorSampling.Retained.RetainedBellJoint
-import Qatlib.Concepts.StoppingCore.InterruptBridge.QuerySpaceExtensions
-import Qatlib.Concepts.SpinorSampling.Matching.MatchedSiteSymmetry
+module
+
+public import Qatlib.Concepts.SpinorSampling.Retained.RetainedBellJoint
+public import Qatlib.Concepts.StoppingCore.InterruptBridge.QuerySpaceExtensions
+public import Qatlib.Concepts.SpinorSampling.Matching.MatchedSiteSymmetry
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

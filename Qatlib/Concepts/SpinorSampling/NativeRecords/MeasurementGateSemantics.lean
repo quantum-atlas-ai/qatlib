@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Fintype.EquivFin
-import Mathlib.Data.List.OfFn
-import Mathlib.Logic.Equiv.Fin.Rotate
-import Qatlib.Concepts.GateVocabulary.GateVocab.GateVocabulary
-import Mathlib.Data.List.Nodup
-import Lean.Elab.Tactic.Omega
-import Mathlib.Tactic.SimpRw
+module
+
+public import Mathlib.Data.Fintype.EquivFin
+public import Mathlib.Data.List.OfFn
+public import Mathlib.Logic.Equiv.Fin.Rotate
+public import Qatlib.Concepts.GateVocabulary.GateVocab.GateVocabulary
+public import Mathlib.Data.List.Nodup
+public import Lean.Elab.Tactic.Omega
+public import Mathlib.Tactic.SimpRw
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

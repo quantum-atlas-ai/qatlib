@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.OrderedOracle.TiSdpBridge.TiPolynomialHelpers
+module
+
+public import Qatlib.Concepts.OrderedOracle.TiSdpBridge.TiPolynomialHelpers
+
+@[expose] public section
 
 /-!
 # Fourier diagonalization of cyclic translation
@@ -108,7 +112,7 @@ theorem ti_translation_fourier_conjugate (n : ℕ) [NeZero n] :
   have hFF : QFTMatrix (2*n)*(QFTMatrix (2*n))ᴴ=1 := by
     simpa only [Matrix.star_eq_conjTranspose] using (Matrix.mem_unitaryGroup_iff.mp hF)
   have he := congrArg (fun A => A*(QFTMatrix (2*n))ᴴ) (ti_translation_fourier n)
-  (try dsimp only at he)
+
   rw [Matrix.mul_assoc,hFF,Matrix.mul_one] at he
   exact he
 

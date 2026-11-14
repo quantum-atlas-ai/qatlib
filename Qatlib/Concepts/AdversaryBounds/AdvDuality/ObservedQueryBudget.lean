@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ShadowModels.ShadowChannel.ObservedEvent
+module
+
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.ObservedEvent
+
+@[expose] public section
 
 /-!
 # Query budgets and truncation of observed circuits

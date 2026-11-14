@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QGaussProc15.MainResults.SourceReadoutModel
+module
+
+public import Qatlib.Papers.QGaussProc15.MainResults.SourceReadoutModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -47,7 +51,7 @@ standing assumptions: the vectors are `s_u`- and `s_v`-sparse and `A` is
 invertible. -/
 theorem source_measurement_expectation {n : ℕ} (μ : Fin n → Fin n → ℝ)
     (γ β lam : Fin n → ℝ) (cu cv c su sv : ℝ)
-    (horth : Orthonormal μ) (hlam : ∀ i, lam i ≠ 0)
+    (horth : Orthonormal μ) (_hlam : ∀ i, lam i ≠ 0)
     (hsu : 0 < su) (hsv : 0 < sv) :
     readoutExpectation γ β lam cu cv c su sv
       = c * (Real.sqrt su)⁻¹ * (Real.sqrt sv)⁻¹ * cu * cv *

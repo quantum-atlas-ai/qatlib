@@ -4,20 +4,26 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.Amplification.MinimumRuntimeRefinedDefs
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.Stopping
-import Qatlib.Concepts.StoppingCore.BranchCostCore.BranchCostExecution
-import Qatlib.Concepts.FairRandomBits.GeometricRetry
-import Qatlib.Concepts.AmplitudeSearch.Amplification.BBHTCall
-import Qatlib.Concepts.AmplitudeSearch.Amplification.SortedTable
-import Qatlib.Concepts.AmplitudeSearch.Amplification.ClockBounds
-import Qatlib.Concepts.AmplitudeSearch.Amplification.ClockedPrefix
-import Qatlib.Concepts.AmplitudeSearch.Amplification.Basic
-import Qatlib.Concepts.AmplitudeSearch.Amplification.FinalRemarksAmplificationAqua
-import Qatlib.Concepts.AmplitudeSearch.Amplification.ChargedBudgetSuccess
-import Qatlib.Concepts.AmplitudeSearch.Amplification.MinimumBudgetProbability
-import Qatlib.Concepts.AmplitudeSearch.Amplification.Lemma2
-import Qatlib.Concepts.AmplitudeSearch.Amplification.TableRun
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.MinimumRuntimeRefinedDefs
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.Stopping
+public import Qatlib.Concepts.StoppingCore.BranchCostCore.BranchCostExecution
+public import Qatlib.Concepts.FairRandomBits.GeometricRetry
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.BBHTCall
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.SortedTable
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.ClockBounds
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.ClockedPrefix
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.Basic
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.FinalRemarksAmplificationAqua
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.ChargedBudgetSuccess
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.MinimumBudgetProbability
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.Lemma2
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.TableRun
+
+@[expose] public section
+
+set_option linter.unusedVariables false
 
 /-!
 # Cutoffs, retry receipts, and minimum-search amplification
@@ -156,13 +162,13 @@ theorem clause7_source_cutoff_fns_agree {N : ℕ} {α : Type} [LinearOrder α]
     exact ((sourceProgramLaw T hN).initialMass_normalized (sourceProgramSkip T) hN).2 x
   simp only [sourceCutoffMassFn, sourceCutoffSuccessFn]
   by_cases hc : (sourceProgramLaw T hN).runClock x.2 ≤ deadline
-  · rw [if_pos hc]
+  · rw [ite_eq_left hc]
     by_cases hm : 0 < (sourceProgramLaw T hN).initialMass (sourceProgramSkip T) x
-    · rw [if_pos ⟨hc, hm⟩]
-    · rw [if_neg (by simp [hc, hm])]
+    · rw [ite_eq_left ⟨hc, hm⟩]
+    · rw [ite_eq_right (by simp [hc, hm])]
       rw [le_antisymm (le_of_not_gt hm) hnn]
-  · rw [if_neg hc]
-    rw [if_neg (by simp [hc])]
+  · rw [ite_eq_right hc]
+    rw [ite_eq_right (by simp [hc])]
 
 /-- The source success function at the printed deadline has a sum between one half and one
 [DurrHoyer1996]. -/

@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.NumberTheory.LegendreSymbol.JacobiSymbol
-import Mathlib.NumberTheory.LegendreSymbol.QuadraticChar.Basic
-import Mathlib.NumberTheory.GaussSum
-import Mathlib.Analysis.SpecialFunctions.Complex.CircleAddChar
-import Mathlib.FieldTheory.Finite.Trace
+module
+
+public import Mathlib.NumberTheory.LegendreSymbol.JacobiSymbol
+public import Mathlib.NumberTheory.LegendreSymbol.QuadraticChar.Basic
+public import Mathlib.NumberTheory.GaussSum
+public import Mathlib.Analysis.SpecialFunctions.Complex.CircleAddChar
+public import Mathlib.FieldTheory.Finite.Trace
+
+@[expose] public section
 
 /-!
 # Characters and Fourier conventions for shifted problems

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixGeometry.StochasticFrame.RowFrame
+module
+
+public import Qatlib.Foundations.MatrixGeometry.StochasticFrame.RowFrame
+
+@[expose] public section
 
 /-!
 # Swap compression of stochastic frames

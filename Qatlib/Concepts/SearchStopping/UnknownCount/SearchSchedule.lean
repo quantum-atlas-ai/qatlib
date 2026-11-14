@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.SearchRandomized
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.SearchCircuit
+module
+
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.SearchRandomized
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.SearchCircuit
+
+@[expose] public section
 
 /-!
 # Capped exponential schedules for unknown-count search

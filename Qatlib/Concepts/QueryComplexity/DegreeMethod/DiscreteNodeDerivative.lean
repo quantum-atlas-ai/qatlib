@@ -4,27 +4,31 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Polynomial.Basic
-import Mathlib.Algebra.Polynomial.Degree.Defs
-import Mathlib.Algebra.Polynomial.Derivative
-import Mathlib.Algebra.Polynomial.Eval.Defs
-import Mathlib.Analysis.Calculus.MeanValue
-import Mathlib.Analysis.Normed.Group.Real
-import Mathlib.Data.Nat.Basic
-import Mathlib.Data.Nat.Cast.Defs
-import Mathlib.Data.Nat.Cast.Order.Ring
-import Mathlib.Order.Interval.Set.Defs
-import Mathlib.Tactic.ByCases
-import Mathlib.Tactic.ByContra
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Ring
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.SharpMarkovHelpers
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.SharpMarkovDerivative
-import Mathlib.Analysis.Calculus.Deriv.Polynomial
-import Mathlib.Analysis.Calculus.Deriv.Basic
-import Mathlib.Topology.Algebra.Polynomial
+module
+
+public import Mathlib.Algebra.Polynomial.Basic
+public import Mathlib.Algebra.Polynomial.Degree.Defs
+public import Mathlib.Algebra.Polynomial.Derivative
+public import Mathlib.Algebra.Polynomial.Eval.Defs
+public import Mathlib.Analysis.Calculus.MeanValue
+public import Mathlib.Analysis.Normed.Group.Real
+public import Mathlib.Data.Nat.Basic
+public import Mathlib.Data.Nat.Cast.Defs
+public import Mathlib.Data.Nat.Cast.Order.Ring
+public import Mathlib.Order.Interval.Set.Defs
+public import Mathlib.Tactic.ByCases
+public import Mathlib.Tactic.ByContra
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Ring
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.SharpMarkovHelpers
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.SharpMarkovDerivative
+public import Mathlib.Analysis.Calculus.Deriv.Polynomial
+public import Mathlib.Analysis.Calculus.Deriv.Basic
+public import Mathlib.Topology.Algebra.Polynomial
+
+@[expose] public section
 
 /-!
 # Polynomial derivative bounds from integer nodes

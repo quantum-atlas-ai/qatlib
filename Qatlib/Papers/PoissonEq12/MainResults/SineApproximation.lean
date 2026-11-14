@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.PoissonEq12.MainResults.TrigQuadrature
-import Qatlib.Papers.PoissonEq12.MainResults.RepeatedSquaring
+module
+
+public import Qatlib.Papers.PoissonEq12.MainResults.TrigQuadrature
+public import Qatlib.Papers.PoissonEq12.MainResults.RepeatedSquaring
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

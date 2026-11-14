@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.FluidDynamics26.MainResults.SourceModel
-import Qatlib.Papers.FluidDynamics26.MainResults.AsymBounds.SourceHistoryReduction
+module
+
+public import Qatlib.Papers.FluidDynamics26.MainResults.SourceModel
+public import Qatlib.Papers.FluidDynamics26.MainResults.AsymBounds.SourceHistoryReduction
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -79,7 +83,7 @@ exponent (`e^{cT} ≤ e^{(cerr/2)T}`), the second half bounds the constant throu
 domination `T·(cerr/2)·e ≤ e^{(cerr/2)T}` of `exp_dominate_linear`, so
 `c·e^{cT} ≤ c₀·e^{cerr·T}/T`. -/
 theorem history_exp_bound_from_final
-    {Cerr cerr : ℝ} (hC : 0 < Cerr) (hc : 0 < cerr)
+    {Cerr cerr : ℝ} (_hC : 0 < Cerr) (hc : 0 < cerr)
     (hpost : ∃ C : ℝ, 0 < C ∧ HistoryPostselection C)
     (hfin : RequiresCopiesForError (fun T => Real.exp (cerr * T))
       (fun T => Real.exp (-(Cerr * T)))) :

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.FermLinOpt04.MainResults.Model.Closure
+module
+
+public import Qatlib.Papers.FermLinOpt04.MainResults.Model.Closure
+
+@[expose] public section
 
 /-!
 # Parity and conditional Gaussian multiplication

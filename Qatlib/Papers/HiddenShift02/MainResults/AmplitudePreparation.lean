@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Data.Complex.Basic
-import Mathlib.Tactic
+module
+
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Amplitude states and a two-query circuit
@@ -57,17 +61,21 @@ cardinality. -/
 noncomputable def amplitudeState (f : G → ℂ) : QState G :=
   fun x => f x / (Real.sqrt (supportCard f : ℝ) : ℂ)
 
+omit [DecidableEq G] in
+
 /-- The support cardinality equals the cardinality of the corresponding filter of the universal
 finite set. -/
-theorem supportCard_eq_card_filter (f : G → ℂ) :
+theorem supportCard_eq_card_filter {G : Type*} [_scopeInst0 : Fintype G] [_scopeInst1 : DecidableEq G] (f : G → ℂ) :
     supportCard f = (Finset.univ.filter (fun x => f x ≠ 0)).card := by
   classical
   unfold supportCard
   rw [Fintype.card_subtype]
 
+omit [DecidableEq G] in
+
 /-- For nonempty finite `G`, measuring the support of `f` in the uniform state has probability
 `supportProb f` ([Lemma 1][VanDamHallgrenIp2006]). -/
-theorem prep_success_prob (f : G → ℂ) (hG : 0 < Fintype.card G) :
+theorem prep_success_prob {G : Type*} [_scopeInst0 : Fintype G] [_scopeInst1 : DecidableEq G] (f : G → ℂ) (hG : 0 < Fintype.card G) :
     MeasureProb (Uniform G) (Finset.univ.filter (fun x => f x ≠ 0)) = supportProb f := by
   classical
   have hcard : (0 : ℝ) < (Fintype.card G : ℝ) := Nat.cast_pos.mpr hG
@@ -82,8 +90,10 @@ theorem prep_success_prob (f : G → ℂ) (hG : 0 < Fintype.card G) :
     Fintype.card_subtype]
   field_simp
 
+omit [DecidableEq G] in
+
 /-- A function that is nonzero somewhere has positive support cardinality. -/
-theorem supportCard_pos {f : G → ℂ} (h : ∃ x, f x ≠ 0) : 0 < supportCard f := by
+theorem supportCard_pos {G : Type*} [_scopeInst0 : Fintype G] [_scopeInst1 : DecidableEq G] {f : G → ℂ} (h : ∃ x, f x ≠ 0) : 0 < supportCard f := by
   classical
   unfold supportCard
   exact Fintype.card_pos_iff.mpr ⟨⟨Classical.choose h, Classical.choose_spec h⟩⟩
@@ -105,16 +115,18 @@ theorem amplitudeState_normalized (f : G → ℂ)
     intro x
     by_cases hx : f x = 0
     · simp [hx]
-    · rw [if_pos hx, norm_div, div_pow, hnorm, hunit x hx, one_pow,
+    · rw [ite_eq_left hx, norm_div, div_pow, hnorm, hunit x hx, one_pow,
         Real.sq_sqrt hnR.le, one_div]
   rw [Finset.sum_congr rfl (fun x _ => hterm x), ← Finset.sum_filter]
   rw [Finset.sum_const, nsmul_eq_mul, ← supportCard_eq_card_filter]
   have hne' : (supportCard f : ℝ) ≠ 0 := Nat.cast_ne_zero.mpr hn.ne'
   rw [mul_inv_cancel₀ hne']
 
+omit [DecidableEq G] in
+
 /-- Expresses the amplitude state pointwise as `f` multiplied by the inverse square root of its
 support cardinality ([Lemma 1][VanDamHallgrenIp2006]). -/
-theorem amplitudeState_eq_superposition (f : G → ℂ) :
+theorem amplitudeState_eq_superposition {G : Type*} [_scopeInst0 : Fintype G] [_scopeInst1 : DecidableEq G] (f : G → ℂ) :
     amplitudeState f = fun x => f x * ((Real.sqrt (supportCard f : ℝ) : ℂ))⁻¹ := by
   funext x
   unfold amplitudeState
@@ -125,18 +137,24 @@ query. -/
 def lemma1Circuit (phaseGate : Matrix G G ℂ) : Circuit G :=
   [Step.query, Step.gate phaseGate, Step.query]
 
+omit [Fintype G] [DecidableEq G] in
+
 /-- The amplitude-preparation circuit contains two oracle queries ([Lemma
 1][VanDamHallgrenIp2006]). -/
-@[simp] theorem lemma1Circuit_queryCount (phaseGate : Matrix G G ℂ) :
+@[simp] theorem lemma1Circuit_queryCount {G : Type*} [_scopeInst0 : Fintype G] [_scopeInst1 : DecidableEq G] (phaseGate : Matrix G G ℂ) :
     QueryCount (lemma1Circuit phaseGate) = 2 := rfl
 
+omit [Fintype G] [DecidableEq G] in
+
 /-- The amplitude-preparation circuit contains one explicit gate. -/
-@[simp] theorem lemma1Circuit_gateCount (phaseGate : Matrix G G ℂ) :
+@[simp] theorem lemma1Circuit_gateCount {G : Type*} [_scopeInst0 : Fintype G] [_scopeInst1 : DecidableEq G] (phaseGate : Matrix G G ℂ) :
     GateCount (lemma1Circuit phaseGate) = 1 := rfl
+
+omit [DecidableEq G] in
 
 /-- Running `lemma1Circuit` applies the oracle, then the phase gate, then the oracle again to
 the input state ([Lemma 1][VanDamHallgrenIp2006]). -/
-theorem run_lemma1Circuit (oracle phaseGate : Matrix G G ℂ) (ψ : QState G) :
+theorem run_lemma1Circuit {G : Type*} [_scopeInst0 : Fintype G] [_scopeInst1 : DecidableEq G] (oracle phaseGate : Matrix G G ℂ) (ψ : QState G) :
     Run oracle (lemma1Circuit phaseGate) ψ =
       ApplyGate oracle (ApplyGate phaseGate (ApplyGate oracle ψ)) := by
   simp [lemma1Circuit, Run, ApplyGate]

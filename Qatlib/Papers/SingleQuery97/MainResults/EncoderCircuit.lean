@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SingleQuery97.MainResults.LinearCodeProgram
+module
+
+public import Qatlib.Papers.SingleQuery97.MainResults.LinearCodeProgram
+
+@[expose] public section
 
 /-!
 # Explicit additive circuits for linear encoders
@@ -143,9 +147,10 @@ theorem compiled_inverse (g : Fin m → Fin n → ZMod A)
     | cons f fs ih => simp [ih, add_comm]
   rw [run_additions, hs, components_sum]
 
+omit [NeZero A] in
 /-- The dense forward encoder followed by its inverse uses no queries and exactly `2 * m * n`
 explicit gates. -/
-theorem two_pass_resources (g : Fin m → Fin n → ZMod A) :
+theorem two_pass_resources {A m n : ℕ} [_neZeroA : NeZero A] (g : Fin m → Fin n → ZMod A) :
     QueryCount (additions (components g) ++ additions ((components g).map Neg.neg)) = 0 ∧
     GateCount (additions (components g) ++ additions ((components g).map Neg.neg)) = 2*m*n := by
   rw [queryCount_append, gateCount_append]

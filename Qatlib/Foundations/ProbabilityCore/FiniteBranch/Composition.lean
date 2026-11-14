@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.ProbabilityCore.FiniteBranch.Tree
+module
+
+public import Qatlib.Foundations.ProbabilityCore.FiniteBranch.Tree
+
+@[expose] public section
 
 /-!
 # Composition and probability bounds for finite trees
@@ -100,10 +104,10 @@ theorem probability_overflow_le (t : Tree α) (cost : α → ℝ) (hcost : ∀ a
     apply all_of_forall
     intro a
     by_cases ha : B<cost a
-    · simp only [ha,if_true]
+    · simp only [ha,ite_true]
       rw [← div_eq_inv_mul,le_div_iff₀ hB]
       simpa using ha.le
-    · simp only [ha,if_false]
+    · simp only [ha,ite_false]
       exact mul_nonneg (inv_nonneg.2 hB.le) (hcost a)
   simpa only [probability,mean_mul,div_eq_inv_mul] using h
 end Qatlib.Foundations.ProbabilityCore.FiniteBranch.Tree

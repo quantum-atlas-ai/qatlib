@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Matrix.Order
-import Mathlib.Analysis.Normed.Operator.NormedSpace
-import Mathlib.Analysis.SpecialFunctions.Log.Base
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
-import Qatlib.Concepts.SchattenDiamond.DiamondNorm.FiniteDiamondNorm
-import Qatlib.Foundations.PureStateMath.MixedState
-import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
-import Qatlib.Foundations.DirichletForm.KmsDirichlet.KmsInnerProduct
+module
+
+public import Mathlib.Analysis.Matrix.Order
+public import Mathlib.Analysis.Normed.Operator.NormedSpace
+public import Mathlib.Analysis.SpecialFunctions.Log.Base
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
+public import Qatlib.Concepts.SchattenDiamond.DiamondNorm.FiniteDiamondNorm
+public import Qatlib.Foundations.PureStateMath.MixedState
+public import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+public import Qatlib.Foundations.DirichletForm.KmsDirichlet.KmsInnerProduct
+
+@[expose] public section
 
 /-!
 # GKSL evolution and thermal source specifications
@@ -53,20 +57,56 @@ namespace Qatlib.Concepts.GkslBridge.GkslBridge
 open Matrix
 open scoped Classical BigOperators ComplexOrder MatrixOrder Matrix.Norms.L2Operator
 
+/--
+error: The namespace `GkslBridge` is duplicated in the declaration `Qatlib.Concepts.GkslBridge.GkslBridge.clmSeminormedRing`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 local instance clmSeminormedRing {D : ℕ} :
     SeminormedRing (Operator D →L[ℂ] Operator D) :=
   ContinuousLinearMap.toSeminormedRing
 
+/--
+error: The namespace `GkslBridge` is duplicated in the declaration `Qatlib.Concepts.GkslBridge.GkslBridge.clmNormedAlgebra`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 local instance clmNormedAlgebra {D : ℕ} :
     NormedAlgebra ℂ (Operator D →L[ℂ] Operator D) :=
   ContinuousLinearMap.toNormedAlgebra
 
+/--
+error: The namespace `GkslBridge` is duplicated in the declaration `Qatlib.Concepts.GkslBridge.GkslBridge.clmIsTopologicalRing`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 local instance clmIsTopologicalRing {D : ℕ} :
     IsTopologicalRing (Operator D →L[ℂ] Operator D) :=
   NonUnitalSeminormedRing.toIsTopologicalRing
 
 variable {D : ℕ}
 
+/--
+error: The namespace `GkslBridge` is duplicated in the declaration `Qatlib.Concepts.GkslBridge.GkslBridge.GKSLData.ham`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+---
+error: The namespace `GkslBridge` is duplicated in the declaration `Qatlib.Concepts.GkslBridge.GkslBridge.GKSLData.jumps`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+---
+error: The namespace `GkslBridge` is duplicated in the declaration `Qatlib.Concepts.GkslBridge.GkslBridge.GKSLData.mk`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+---
+error: The namespace `GkslBridge` is duplicated in the declaration `Qatlib.Concepts.GkslBridge.GkslBridge.GKSLData`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- A Hamiltonian matrix and a family of `m` jump matrices acting on a system of dimension `D`. -/
 structure GKSLData (D m : ℕ) where
 
@@ -74,6 +114,12 @@ structure GKSLData (D m : ℕ) where
 
   jumps : Fin m → Operator D
 
+/--
+error: The namespace `GkslBridge` is duplicated in the declaration `Qatlib.Concepts.GkslBridge.GkslBridge.gkslMap`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The complex-linear GKSL generator consisting of the Hamiltonian commutator and the sum of
 jump dissipators. -/
 noncomputable def gkslMap {D m : ℕ} (G : GKSLData D m) : Operator D →ₗ[ℂ] Operator D :=
@@ -83,24 +129,54 @@ noncomputable def gkslMap {D m : ℕ} (G : GKSLData D m) : Operator D →ₗ[ℂ
         (1 / 2 : ℂ) • (LinearMap.mulLeft ℂ ((G.jumps a)ᴴ * G.jumps a) +
           LinearMap.mulRight ℂ ((G.jumps a)ᴴ * G.jumps a)))
 
+/--
+error: The namespace `GkslBridge` is duplicated in the declaration `Qatlib.Concepts.GkslBridge.GkslBridge.gkslCLM`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The continuous complex-linear map associated with the finite-dimensional GKSL generator. -/
 noncomputable def gkslCLM {D m : ℕ} (G : GKSLData D m) : Operator D →L[ℂ] Operator D :=
   (gkslMap G).toContinuousLinearMap
 
+/--
+error: The namespace `GkslBridge` is duplicated in the declaration `Qatlib.Concepts.GkslBridge.GkslBridge.evolveAt`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- Apply the exponential of `t` times the GKSL generator to an operator. -/
 noncomputable def evolveAt {D m : ℕ} (G : GKSLData D m) (t : ℝ) (ρ : Operator D) :
     Operator D :=
   NormedSpace.exp ((t : ℂ) • gkslCLM G) ρ
 
+/--
+error: The namespace `GkslBridge` is duplicated in the declaration `Qatlib.Concepts.GkslBridge.GkslBridge.evolveMap`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The complex-linear evolution map given by the exponential of `t` times the GKSL generator. -/
 noncomputable def evolveMap {D m : ℕ} (G : GKSLData D m) (t : ℝ) :
     Operator D →ₗ[ℂ] Operator D :=
   (NormedSpace.exp ((t : ℂ) • gkslCLM G) : Operator D →L[ℂ] Operator D).toLinearMap
 
+/--
+error: The namespace `GkslBridge` is duplicated in the declaration `Qatlib.Concepts.GkslBridge.GkslBridge.gkslStationary`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- An operator is a density operator annihilated by the GKSL generator. -/
 def gkslStationary {D m : ℕ} (G : GKSLData D m) (ρ : Operator D) : Prop :=
   IsDensityOperator ρ ∧ gkslMap G ρ = 0
 
+/--
+error: The namespace `GkslBridge` is duplicated in the declaration `Qatlib.Concepts.GkslBridge.GkslBridge.thermalMixingTime`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The infimum of times after which every density remains within Schatten-one distance one half
 of a common stationary density. -/
 noncomputable def thermalMixingTime {D m : ℕ} (G : GKSLData D m) : ℝ :=
@@ -108,19 +184,43 @@ noncomputable def thermalMixingTime {D m : ℕ} (G : GKSLData D m) : ℝ :=
     ∀ s ∈ Set.Ici t, ∀ ρ : Operator D, IsDensityOperator ρ →
       SchattenOne (evolveAt G s ρ - ρstar) ≤ 1 / 2}
 
+/--
+error: The namespace `GkslBridge` is duplicated in the declaration `Qatlib.Concepts.GkslBridge.GkslBridge.gibbsDensity`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The matrix exponential of `-β` times the Hamiltonian, scaled by the inverse of its trace. -/
 noncomputable def gibbsDensity {D : ℕ} (H : Operator D) (β : ℝ) : Operator D :=
   (Matrix.trace (NormedSpace.exp (-(β) • H)))⁻¹ • NormedSpace.exp (-(β) • H)
 
+/--
+error: The namespace `GkslBridge` is duplicated in the declaration `Qatlib.Concepts.GkslBridge.GkslBridge.boxWindowFilter`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The real-valued indicator of the condition `t ≤ T`, independent of the second parameter. -/
 def boxWindowFilter (T _w : ℝ) : ℝ → ℝ :=
   fun t => if t ≤ T then 1 else 0
 
+/--
+error: The namespace `GkslBridge` is duplicated in the declaration `Qatlib.Concepts.GkslBridge.GkslBridge.boxFilteredFixedPoint`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The average of the evolved initial operator over the interval from zero to `Twindow`. -/
 noncomputable def boxFilteredFixedPoint {D m : ℕ} (G : GKSLData D m) (Twindow : ℝ)
     (ρ₀ : Operator D) : Operator D :=
   (Twindow ⁻¹ : ℝ) • ∫ s in 0..Twindow, evolveAt G s ρ₀
 
+/--
+error: The namespace `GkslBridge` is duplicated in the declaration `Qatlib.Concepts.GkslBridge.GkslBridge.WeakBathDetailedBalance`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The Hamiltonian is Hermitian, the inverse temperature is positive, and each adjoint jump
 intertwines with the Gibbs square root as specified. -/
 def WeakBathDetailedBalance {D m : ℕ} (G : GKSLData D m) (β : ℝ) : Prop :=
@@ -128,6 +228,12 @@ def WeakBathDetailedBalance {D m : ℕ} (G : GKSLData D m) (β : ℝ) : Prop :=
     (G.jumps a)ᴴ * CFC.sqrt (gibbsDensity G.ham β) =
       CFC.sqrt (gibbsDensity G.ham β) * G.jumps a
 
+/--
+error: The namespace `GkslBridge` is duplicated in the declaration `Qatlib.Concepts.GkslBridge.GkslBridge.ThermalThI1Spec`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The proposed bound of `4 * sqrt (β / Twindow)` times the mixing time for the time-averaged
 stationary density's Schatten-one distance from the Gibbs matrix. [JiangEtAl2026] -/
 def ThermalThI1Spec : Prop :=
@@ -137,11 +243,23 @@ def ThermalThI1Spec : Prop :=
     SchattenOne (boxFilteredFixedPoint G Twindow ρ₀ - gibbsDensity G.ham β) ≤
       4 * Real.sqrt (β / Twindow) * thermalMixingTime G
 
+/--
+error: The namespace `GkslBridge` is duplicated in the declaration `Qatlib.Concepts.GkslBridge.GkslBridge.gaussianJumpWeights`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The Gaussian weight `exp (-(Ei - Ej) ^ 2 / (2 * σt ^ 2))`, independent of the
 inverse-temperature parameter. -/
 def gaussianJumpWeights (σt _β : ℝ) : ℝ → ℝ → ℝ :=
   fun Ei Ej => Real.exp (-(Ei - Ej) ^ 2 / (2 * σt ^ 2))
 
+/--
+error: The namespace `GkslBridge` is duplicated in the declaration `Qatlib.Concepts.GkslBridge.GkslBridge.GaussianMetropolisBath`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The Hamiltonian is diagonal and every jump entry equals the Gaussian weight of the
 corresponding diagonal energies. -/
 def GaussianMetropolisBath {D m : ℕ} (G : GKSLData D m) (σt β : ℝ) : Prop :=
@@ -150,6 +268,12 @@ def GaussianMetropolisBath {D m : ℕ} (G : GKSLData D m) (σt β : ℝ) : Prop 
       (G.jumps a) i j = Complex.ofReal
         (gaussianJumpWeights σt β (G.ham i i).re (G.ham j j).re)
 
+/--
+error: The namespace `GkslBridge` is duplicated in the declaration `Qatlib.Concepts.GkslBridge.GkslBridge.ThermalThI3Spec`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The proposed Schatten-one Gibbs approximation bound `16 * (β / σt) * thermalMixingTime G`
 for the time average under the stated Gaussian-bath assumptions. [JiangEtAl2026] -/
 def ThermalThI3Spec : Prop :=
@@ -159,6 +283,12 @@ def ThermalThI3Spec : Prop :=
     SchattenOne (boxFilteredFixedPoint G Twindow ρ₀ - gibbsDensity G.ham β) ≤
       16 * (β / σt) * thermalMixingTime G
 
+/--
+error: The namespace `GkslBridge` is duplicated in the declaration `Qatlib.Concepts.GkslBridge.GkslBridge.BlockUnitaryLindbladian`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The Hamiltonian vanishes and every jump is an outer product of two unit vectors; the cost
 parameter does not enter this predicate. -/
 def BlockUnitaryLindbladian {D m : ℕ} (G : GKSLData D m) (_c : ℕ) : Prop :=
@@ -166,6 +296,12 @@ def BlockUnitaryLindbladian {D m : ℕ} (G : GKSLData D m) (_c : ℕ) : Prop :=
     ‖toEuclidean_fromVec φ‖ = 1 ∧ ‖toEuclidean_fromVec ψ‖ = 1 ∧
       ∀ i j : Fin D, (G.jumps a) i j = φ i * (starRingEnd ℂ) (ψ j)
 
+/--
+error: The namespace `GkslBridge` is duplicated in the declaration `Qatlib.Concepts.GkslBridge.GkslBridge.ThermalThI2Spec`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The proposed existence of a linear simulation map within finite diamond error `ε`, with
 explicit bounds on calls, gates, and ancillas for the specified rank-one jump generators.
 [JiangEtAl2026] -/
@@ -178,22 +314,40 @@ def ThermalThI2Spec : Prop :=
       (gates ≤ Nat.ceil (16 * t * ((c : ℝ) + 1) * (Real.logb 2 (1 / ε)) ^ 2)) ∧
       (ancilla ≤ Nat.ceil (4 * Real.logb 2 (1 / ε)))
 
+/--
+error: The namespace `GkslBridge` is duplicated in the declaration `Qatlib.Concepts.GkslBridge.GkslBridge.purifiedHalfIndex`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- Fold an index in the two copies of a `D`-element set into its corresponding index in `Fin
 D`. -/
 def purifiedHalfIndex {D : ℕ} (i : Fin (2 * D)) : Fin D :=
   ⟨if i.val < D then i.val else i.val - D,
     by
       by_cases h : i.val < D
-      · simp only [if_pos h]
+      · simp only [ite_eq_left h]
         exact h
-      · simp only [if_neg h]
+      · simp only [ite_eq_right h]
         have h2 := i.isLt
         omega⟩
 
+/--
+error: The namespace `GkslBridge` is duplicated in the declaration `Qatlib.Concepts.GkslBridge.GkslBridge.hamEnergy`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The real part of the Hamiltonian's diagonal entry at the given basis index. -/
 def hamEnergy {D m : ℕ} (G : GKSLData D m) (i : Fin D) : ℝ :=
   (G.ham i i).re
 
+/--
+error: The namespace `GkslBridge` is duplicated in the declaration `Qatlib.Concepts.GkslBridge.GkslBridge.purifiedProxyDiscriminant`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The doubled block matrix with Gaussian upper-left entries, Gibbs-weighted jump sums in the
 off-diagonal blocks, and zero lower-right block. -/
 noncomputable def purifiedProxyDiscriminant {D m : ℕ} (G : GKSLData D m) (σt β : ℝ) :
@@ -213,6 +367,12 @@ noncomputable def purifiedProxyDiscriminant {D m : ℕ} (G : GKSLData D m) (σt 
             (∑ a : Fin m, G.jumps a (purifiedHalfIndex j) (purifiedHalfIndex i))
       else 0
 
+/--
+error: The namespace `GkslBridge` is duplicated in the declaration `Qatlib.Concepts.GkslBridge.GkslBridge.purifiedGibbsVector`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The diagonal entries of the Gibbs square root placed in the first half of a doubled vector,
 with zero entries in the second half. -/
 noncomputable def purifiedGibbsVector {D : ℕ} (H : Operator D) (β : ℝ) :
@@ -220,6 +380,12 @@ noncomputable def purifiedGibbsVector {D : ℕ} (H : Operator D) (β : ℝ) :
   fun i => if i.val < D then
     CFC.sqrt (gibbsDensity H β) (purifiedHalfIndex i) (purifiedHalfIndex i) else 0
 
+/--
+error: The namespace `GkslBridge` is duplicated in the declaration `Qatlib.Concepts.GkslBridge.GkslBridge.ProxySpectralGap`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The proxy matrix is Hermitian with a normalized eigenvector at `lam`, a positive gap `γ`,
 and Rayleigh quotients at most `lam - γ` on its unit orthogonal complement. -/
 def ProxySpectralGap {D : ℕ} (Dβ : Operator (2 * D)) (v : Fin (2 * D) → ℂ)
@@ -230,6 +396,12 @@ def ProxySpectralGap {D : ℕ} (Dβ : Operator (2 * D)) (v : Fin (2 * D) → ℂ
       ‖toEuclidean_fromVec w‖ = 1 →
       Complex.re (∑ i, (starRingEnd ℂ) (w i) * (Dβ *ᵥ w) i) ≤ lam - γ
 
+/--
+error: The namespace `GkslBridge` is duplicated in the declaration `Qatlib.Concepts.GkslBridge.GkslBridge.ThermalThI4Spec`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The proposed positive proxy gap and distance bound for normalized eigenvectors at the
 specified eigenvalue relative to the constructed Gibbs vector. [JiangEtAl2026] -/
 def ThermalThI4Spec : Prop :=

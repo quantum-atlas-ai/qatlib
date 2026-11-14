@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QuadChar00.MainResults.Defs
+module
+
+public import Qatlib.Papers.QuadChar00.MainResults.Defs
+
+@[expose] public section
 
 /-!
 # Quadratic character sums over finite fields

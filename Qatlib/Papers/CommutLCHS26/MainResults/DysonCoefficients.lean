@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommutLCHS26.MainResults.MixedDyson
-import Qatlib.Papers.CommutLCHS26.MainResults.MultilinearSums
+module
+
+public import Qatlib.Papers.CommutLCHS26.MainResults.MixedDyson
+public import Qatlib.Papers.CommutLCHS26.MainResults.MultilinearSums
+
+@[expose] public section
 
 /-!
 # Dyson coefficients in inverse repetition powers

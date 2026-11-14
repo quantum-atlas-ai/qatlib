@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkFind.UniformThree.PhaseReflectionSearch
-import Qatlib.Concepts.WalkSearch.CountedWalk.CountedSzegedyAccess
-import Qatlib.Concepts.CoherentSim.CleanQPEBands
+module
+
+public import Qatlib.Concepts.WalkFind.UniformThree.PhaseReflectionSearch
+public import Qatlib.Concepts.WalkSearch.CountedWalk.CountedSzegedyAccess
+public import Qatlib.Concepts.CoherentSim.CleanQPEBands
+
+@[expose] public section
 
 /-!
 # Reversible data tags for Szegedy walks

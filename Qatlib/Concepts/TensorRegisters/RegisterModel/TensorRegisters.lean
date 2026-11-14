@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TensorRegisters.RegisterModel.RegisterMeasurement
-import Qatlib.Concepts.AdaptiveCP.BranchTrace.QuantumChannel
-import Qatlib.Concepts.TensorRegisters.RegisterModel.TensorRegistersDefs
-import QuantumInfo.ForMathlib.HermitianMat.Proj
-import QuantumInfo.ForMathlib.HermitianMat.Rpow
+module
+
+public import Qatlib.Concepts.TensorRegisters.RegisterModel.RegisterMeasurement
+public import Qatlib.Concepts.AdaptiveCP.BranchTrace.QuantumChannel
+public import Qatlib.Concepts.TensorRegisters.RegisterModel.TensorRegistersDefs
+public import QuantumInfo.ForMathlib.HermitianMat.Proj
+public import QuantumInfo.ForMathlib.HermitianMat.Rpow
+
+@[expose] public section
 
 /-!
 # Tensor registers, padded encodings, and partial traces
@@ -302,7 +306,7 @@ theorem traceRight_mul_local {A A' B C : Type*} [Fintype A] [Fintype B] [Decidab
   ext i j
   simp only [Matrix.traceRight, Matrix.of_apply, Matrix.mul_apply, Matrix.kronecker_apply,
     Matrix.one_apply, Fintype.sum_prod_type, mul_ite, ite_mul, mul_one, mul_zero,
-    zero_mul, Finset.sum_ite_eq, Finset.mem_univ, if_true, Finset.mul_sum]
+    zero_mul, Finset.sum_ite_eq, Finset.mem_univ, ite_true, Finset.mul_sum]
   rw [Finset.sum_comm]
 
 /-- A matrix acting on the retained column register can be pulled outside the right partial
@@ -313,7 +317,7 @@ theorem traceRight_local_mul {A B C C' : Type*} [Fintype C] [Fintype B] [Decidab
   ext i j
   simp only [Matrix.traceRight, Matrix.of_apply, Matrix.mul_apply, Matrix.kronecker_apply,
     Matrix.one_apply, Fintype.sum_prod_type, mul_ite, mul_one, mul_zero,
-    Finset.sum_ite_eq', Finset.mem_univ, if_true, Finset.sum_mul]
+    Finset.sum_ite_eq', Finset.mem_univ, ite_true, Finset.sum_mul]
   rw [Finset.sum_comm]
 
 /-- The right partial trace commutes with conjugation by a matrix acting only on the retained
@@ -353,7 +357,7 @@ theorem fromReg_eq_some_iff {m : ℕ} (d : Fin m → ℕ) (q : ℕ)
   constructor
   · intro hx
     by_cases hb : (bitVecEquiv q b).val < ∏ i, d i
-    · rw [fromReg, dif_pos hb] at hx
+    · rw [fromReg, dite_eq_left hb] at hx
       have hl := Option.some.inj hx
       have hv := congrArg (fun y : Labels d => (flatten d y).val) hl
       simp only [Equiv.apply_symm_apply] at hv

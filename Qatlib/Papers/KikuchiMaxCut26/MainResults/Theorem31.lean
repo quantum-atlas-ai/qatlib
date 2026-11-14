@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.KikuchiMaxCut26.MainResults.Proposition22
-import Mathlib.Combinatorics.SimpleGraph.DegreeSum
+module
+
+public import Qatlib.Papers.KikuchiMaxCut26.MainResults.Proposition22
+public import Mathlib.Combinatorics.SimpleGraph.DegreeSum
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

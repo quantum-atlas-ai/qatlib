@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Algebra.BigOperators.Fin
-import Mathlib.Data.Real.Basic
-import Mathlib.Tactic.FinCases
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Ring
+module
+
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Algebra.BigOperators.Fin
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Tactic.FinCases
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 /-!
 # Merging two unequal rotation sequences (Lemma 4.4)
@@ -107,8 +111,6 @@ theorem merge_factorization (a b c d s : ℝ) (hs : s ≠ 0)
       Matrix.transpose_apply] <;>
     field_simp [hs]
   all_goals
-    try rw [show b ^ 3 = b * b ^ 2 from by ring]
-    try rw [show d ^ 3 = d * d ^ 2 from by ring]
     try rw [hs2]
     try rw [hb]
     try rw [hd]
@@ -124,8 +126,6 @@ theorem IAB_orthogonal (a b c d s : ℝ) (hs : s ≠ 0)
     simp [IAB, Matrix.mul_apply, Fin.sum_univ_two, Matrix.transpose_apply] <;>
     field_simp [hs]
   all_goals
-    try rw [show b ^ 3 = b * b ^ 2 from by ring]
-    try rw [show d ^ 3 = d * d ^ 2 from by ring]
     try rw [hs2]
     try rw [hb]
     try rw [hd]
@@ -141,8 +141,6 @@ theorem OAB_orthogonal (a b c d s : ℝ) (hs : s ≠ 0)
     simp [OAB, Matrix.mul_apply, Fin.sum_univ_two, Matrix.transpose_apply] <;>
     field_simp [hs]
   all_goals
-    try rw [show b ^ 3 = b * b ^ 2 from by ring]
-    try rw [show d ^ 3 = d * d ^ 2 from by ring]
     try rw [hs2]
     try rw [hb]
     try rw [hd]

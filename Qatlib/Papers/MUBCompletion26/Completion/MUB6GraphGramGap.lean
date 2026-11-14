@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.UnbiasedBases.ThreeBasis.MutuallyUnbiased
-import Mathlib.Combinatorics.SimpleGraph.Extremal.Turan
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Positivity
+module
+
+public import Qatlib.Concepts.UnbiasedBases.ThreeBasis.MutuallyUnbiased
+public import Mathlib.Combinatorics.SimpleGraph.Extremal.Turan
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Positivity
+
+@[expose] public section
 
 /-!
 # Triangle-free graphs force a positive Gram defect
@@ -88,7 +92,7 @@ theorem gram_gap_of_triangleFree {d : ℕ} (B : Fin 6 → QState (Fin d))
   have hpoint (p) (hp : p ∈ S) : μ < f p := by
     have hm := (Finset.mem_filter.mp hp)
     have hne := (Finset.mem_filter.mp hm.1).2
-    simpa only [f, if_neg hne, sub_zero] using hsep p.1 p.2 hne hm.2
+    simpa only [f, ite_eq_right hne, sub_zero] using hsep p.1 p.2 hne hm.2
   have hsum : (S.card : ℝ) * μ < ∑ p ∈ S, f p := by
     rw [← nsmul_eq_mul, ← Finset.sum_const]
     apply Finset.sum_lt_sum (fun p hp => (hpoint p hp).le)

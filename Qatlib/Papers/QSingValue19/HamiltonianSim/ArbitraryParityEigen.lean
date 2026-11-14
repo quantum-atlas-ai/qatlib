@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PhaseGeometry.Phase
-import Qatlib.Concepts.QspSimulation.Achievability.RealPartQSVT
-import Qatlib.Concepts.QsvtCore.PhaseExistence.QsvtCore
-import Qatlib.Concepts.QsvtCore.QsVtMain.LengthQSVT
-import Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceModulusTransport
+module
+
+public import Qatlib.Concepts.PhaseGeometry.Phase
+public import Qatlib.Concepts.QspSimulation.Achievability.RealPartQSVT
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.QsvtCore
+public import Qatlib.Concepts.QsvtCore.QsVtMain.LengthQSVT
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceModulusTransport
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GramQueryCore.GramRealization.GramQueryRealization
+module
+
+public import Qatlib.Concepts.GramQueryCore.GramRealization.GramQueryRealization
+
+@[expose] public section
 
 /-!
 # Transporting Gram-query circuits to bit queries
@@ -96,7 +100,7 @@ theorem gramLiftGate_intertwining {H K : Type} [Fintype H] [DecidableEq H]
     [Fintype K] [DecidableEq K] (L : Matrix K H ℂ) (hL : IsIsometry L)
     (U : Matrix H H ℂ) (hU : U ∈ Matrix.unitaryGroup H ℂ) :
     gramLiftGate L hL U * L = L * U := by
-  rw [gramLiftGate, dif_pos hU]
+  rw [gramLiftGate, dite_eq_left hU]
   exact (Classical.choose_spec (gram_isometry_gate_transport L hL U hU)).2
 
 /-- The circuit obtained by replacing each gate with its chosen unitary lift along `L` and
@@ -189,7 +193,7 @@ noncomputable def gramBasisReadout {H K Z : Type} (e : H ↪ K) (r : H → Z) (f
 /-- The extended basis readout agrees with the original readout on every embedded coordinate. -/
 theorem gramBasisReadout_image {H K Z : Type} (e : H ↪ K) (r : H → Z) (fallback : Z) (h : H) :
     gramBasisReadout e r fallback (e h) = r h := by
-  rw [gramBasisReadout, dif_pos (show ∃ a, e a = e h from ⟨h, rfl⟩)]
+  rw [gramBasisReadout, dite_eq_left (show ∃ a, e a = e h from ⟨h, rfl⟩)]
   congr 1
   apply e.injective
   exact Classical.choose_spec (show ∃ a, e a = e h from ⟨h, rfl⟩)

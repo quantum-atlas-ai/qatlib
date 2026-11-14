@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ShadowModels.ShadowChannel.FiniteEnsembleShadows
-import Qatlib.Concepts.GateVocabulary.GateVocab.GateVocabulary
+module
+
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.FiniteEnsembleShadows
+public import Qatlib.Concepts.GateVocabulary.GateVocab.GateVocabulary
+
+@[expose] public section
 
 /-!
 # Biased single-qubit Pauli shadows
@@ -72,7 +76,7 @@ theorem pauli_expansion (B : Operator 2) :
 matrix. -/
 theorem pauliProjector_sub (a : Fin 3) :
     PauliProjector a true - PauliProjector a false = pauliMatrix a := by
-  simp only [PauliProjector, if_true, Bool.false_eq_true, if_false]
+  simp only [PauliProjector, ite_true, Bool.false_eq_true, ite_false]
   module
 
 /-- The sum of the two trace-weighted projectors for one Pauli axis equals half the identity
@@ -99,7 +103,7 @@ theorem ensembleProjector_sum_pauli (a : Fin 3) (B : Operator 2) :
     rw [hPP b, Matrix.add_mul, Matrix.trace_add, Matrix.smul_mul, Matrix.trace_smul,
       Matrix.smul_mul, Matrix.trace_smul, smul_eq_mul, smul_eq_mul, Matrix.one_mul]
   rw [Fin.sum_univ_two, h0, h1, htr true, htr false, hPP true, hPP false]
-  simp only [if_true, Bool.false_eq_true, if_false]
+  simp only [ite_true, Bool.false_eq_true, ite_false]
   module
 
 local instance : HMul ℂ (Operator 2) (Operator 2) := ⟨fun c M => c • M⟩
@@ -148,17 +152,17 @@ theorem ensembleMeasurementMap_pauliMatrix (p : FinDist (Fin 3)) (c : Fin 3) :
       = (p.prob c : ℂ) • pauliMatrix c := by
   rw [ensembleMeasurementMap_pauli, trace_pauliMatrix,
     mul_zero, zero_smul, zero_add, Finset.sum_eq_single c]
-  · rw [trace_pauliMatrix_mul, if_pos rfl]
+  · rw [trace_pauliMatrix_mul, ite_eq_left rfl]
     congr 1
     ring
   · intro a _ ha
-    rw [trace_pauliMatrix_mul, if_neg ha, mul_zero, zero_smul]
+    rw [trace_pauliMatrix_mul, ite_eq_right ha, mul_zero, zero_smul]
   · intro hc
     exact absurd (Finset.mem_univ c) hc
 
 /-- The inverse reconstruction map for positive Pauli-axis probabilities, obtained by dividing
 each Pauli trace coefficient by its axis probability. -/
-noncomputable def pauliInverseMap (p : FinDist (Fin 3)) (hp : ∀ a, 0 < p.prob a) :
+noncomputable def pauliInverseMap (p : FinDist (Fin 3)) (_hp : ∀ a, 0 < p.prob a) :
     Operator 2 → Operator 2 :=
   fun B => (1 / 2 : ℂ) • (Matrix.trace B • (1 : Operator 2)
     + ∑ a : Fin 3, ((p.prob a : ℂ)⁻¹ * Matrix.trace (pauliMatrix a * B))
@@ -244,13 +248,13 @@ theorem pauliInverseMap_inverse (p : FinDist (Fin 3)) (hp : ∀ a, 0 < p.prob a)
           intro a
           rw [Matrix.mul_smul, Matrix.trace_smul, smul_eq_mul, trace_pauliMatrix_mul]
           by_cases hca : c = a
-          · rw [if_pos hca, if_pos hca]
-          · rw [if_neg hca, if_neg hca, mul_zero]
+          · rw [ite_eq_left hca, ite_eq_left hca]
+          · rw [ite_eq_right hca, ite_eq_right hca, mul_zero]
         rw [Finset.sum_congr rfl fun a _ => hterm a, Finset.sum_eq_single c]
-        · rw [if_pos rfl]
+        · rw [ite_eq_left rfl]
           ring
         · intro a _ ha
-          rw [if_neg (Ne.symm ha)]
+          rw [ite_eq_right (Ne.symm ha)]
         · intro hc
           exact absurd (Finset.mem_univ c) hc
       rw [pauliInverseMap, Matrix.mul_smul, Matrix.trace_smul, Matrix.mul_add,
@@ -282,7 +286,7 @@ theorem pauliInverseMap_inverse (p : FinDist (Fin 3)) (hp : ∀ a, 0 < p.prob a)
 
 /-- The single-qubit snapshot for a measured Pauli axis and Boolean outcome, with its signed
 Pauli component rescaled by the reciprocal axis probability. -/
-noncomputable def biasedPauliSnapshot (p : FinDist (Fin 3)) (hp : ∀ a, 0 < p.prob a)
+noncomputable def biasedPauliSnapshot (p : FinDist (Fin 3)) (_hp : ∀ a, 0 < p.prob a)
     (o : Fin 3 × Bool) : Operator 2 :=
   (1 / 2 : ℂ) • (1 : Operator 2)
     + ((if o.2 then 1 else -1 : ℂ) / (2 * (p.prob o.1 : ℂ))) • pauliMatrix o.1
@@ -316,9 +320,9 @@ theorem trace_pauliMatrix_mul_biasedSnapshot (p : FinDist (Fin 3)) (hp : ∀ a, 
     Matrix.mul_one, Matrix.trace_add, Matrix.trace_smul, Matrix.trace_smul,
     trace_pauliMatrix, smul_zero, zero_add, trace_pauliMatrix_mul]
   by_cases h : c = a
-  · rw [if_pos h, if_pos h, smul_eq_mul]
+  · rw [ite_eq_left h, ite_eq_left h, smul_eq_mul]
     field_simp
-  · rw [if_neg h, smul_zero, if_neg h]
+  · rw [ite_eq_right h, smul_zero, ite_eq_right h]
 
 /-- Applying the biased measurement map to a biased Pauli snapshot recovers its signed Pauli
 projector. -/
@@ -330,7 +334,7 @@ theorem ensembleMeasurementMap_biasedSnapshot (p : FinDist (Fin 3)) (hp : ∀ a,
     (Complex.ofReal_eq_zero.mp h).symm.not_lt (hp a)
   rw [ensembleMeasurementMap_pauli,
     trace_biasedSnapshot p hp a b, mul_one, Finset.sum_eq_single a]
-  · rw [trace_pauliMatrix_mul_biasedSnapshot p hp a a b, if_pos rfl]
+  · rw [trace_pauliMatrix_mul_biasedSnapshot p hp a a b, ite_eq_left rfl]
     have hcoeff : (p.prob a / 2 : ℂ) * ((if b then 1 else -1 : ℂ) / (p.prob a : ℂ))
         = (if b then 1 else -1 : ℂ) / 2 := by
       field_simp
@@ -338,7 +342,7 @@ theorem ensembleMeasurementMap_biasedSnapshot (p : FinDist (Fin 3)) (hp : ∀ a,
     simp only [PauliProjector]
     module
   · intro c _ hc
-    rw [trace_pauliMatrix_mul_biasedSnapshot p hp c a b, if_neg hc, mul_zero, zero_smul]
+    rw [trace_pauliMatrix_mul_biasedSnapshot p hp c a b, ite_eq_right hc, mul_zero, zero_smul]
   · intro ha
     exact absurd (Finset.mem_univ a) ha
 
@@ -353,14 +357,14 @@ theorem biased_pauli_statistic_value (p : FinDist (Fin 3)) (hp : ∀ a, 0 < p.pr
   rw [show pauliZ = pauliMatrix 2 from rfl,
     trace_pauliMatrix_mul_biasedSnapshot p hp 2 o.1 (decide (o.2 = 0))]
   by_cases h : o.1 = 2
-  · rw [h, if_pos (rfl : (2 : Fin 3) = 2), if_pos (rfl : (2 : Fin 3) = 2)]
+  · rw [h, ite_eq_left (rfl : (2 : Fin 3) = 2), ite_eq_left (rfl : (2 : Fin 3) = 2)]
     by_cases hd : decide (o.2 = 0) = true
-    · rw [if_pos hd, if_pos hd]
+    · rw [ite_eq_left hd, ite_eq_left hd]
       norm_num [Complex.div_re, Complex.normSq_ofReal]
-    · rw [if_neg hd, if_neg hd]
+    · rw [ite_eq_right hd, ite_eq_right hd]
       norm_num [Complex.div_re, Complex.normSq_ofReal]
       field_simp
-  · rw [if_neg (Ne.symm h), if_neg h]
+  · rw [ite_eq_right (Ne.symm h), ite_eq_right h]
     rfl
 
 /-- The difference of the two signed Pauli-projector trace pairings equals the trace pairing
@@ -406,13 +410,13 @@ theorem biased_pauli_z_moments (p : FinDist (Fin 3)) (hp : ∀ a, 0 < p.prob a)
   have hs0 : (Matrix.trace (pauliZ
         * biasedPauliSnapshot p hp (2, decide ((0 : Fin 2) = 0)))).re
       = 1 / p.prob 2 := by
-    rw [hz 2 0, if_pos rfl,
-      if_pos (by decide : decide ((0 : Fin 2) = 0) = true)]
+    rw [hz 2 0, ite_eq_left rfl,
+      ite_eq_left (by decide : decide ((0 : Fin 2) = 0) = true)]
   have hs1 : (Matrix.trace (pauliZ
         * biasedPauliSnapshot p hp (2, decide ((1 : Fin 2) = 0)))).re
       = -1 / p.prob 2 := by
-    rw [hz 2 1, if_pos rfl,
-      if_neg (by decide : ¬ decide ((1 : Fin 2) = 0) = true)]
+    rw [hz 2 1, ite_eq_left rfl,
+      ite_eq_right (by decide : ¬ decide ((1 : Fin 2) = 0) = true)]
   have hp0 : (ensembleRecordLaw p pauliBasisMatrix pauliBasisMatrix_unitary ρ hρ).prob
         (2, (0 : Fin 2))
       = p.prob 2 * (Matrix.trace (PauliProjector 2 true * ρ)).re := by
@@ -446,7 +450,7 @@ theorem biased_pauli_z_moments (p : FinDist (Fin 3)) (hp : ∀ a, 0 < p.prob a)
       field_simp
       ring
     · intro a _ ha
-      rw [Finset.sum_congr rfl fun b _ => by rw [hz a b, if_neg ha, mul_zero],
+      rw [Finset.sum_congr rfl fun b _ => by rw [hz a b, ite_eq_right ha, mul_zero],
         Finset.sum_const_zero]
     · intro h2
       exact absurd (Finset.mem_univ 2) h2
@@ -468,7 +472,7 @@ theorem biased_pauli_z_moments (p : FinDist (Fin 3)) (hp : ∀ a, 0 < p.prob a)
       field_simp
     · intro a _ ha
       rw [Finset.sum_congr rfl fun b _ => by
-          rw [hz a b, if_neg ha, zero_pow two_ne_zero, mul_zero],
+          rw [hz a b, ite_eq_right ha, zero_pow two_ne_zero, mul_zero],
         Finset.sum_const_zero]
     · intro h2
       exact absurd (Finset.mem_univ 2) h2

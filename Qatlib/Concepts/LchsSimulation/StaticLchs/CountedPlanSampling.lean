@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
-import Qatlib.Foundations.PureStateMath.BornBridge.BornDistribution
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.FiniteStoppingTail
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Concepts.LinearLearning.ConcisePipeline.RandomizedCost
+module
+
+public import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+public import Qatlib.Foundations.PureStateMath.BornBridge.BornDistribution
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.FiniteStoppingTail
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Concepts.LinearLearning.ConcisePipeline.RandomizedCost
+
+@[expose] public section
 
 /-!
 # Finite sampling of counted search circuits
@@ -66,7 +70,7 @@ private theorem event_outcome_inl {m : ℕ}
         = Sum.inl i) with hcond | hcond
     · exfalso
       exact absurd hcond (by simp)
-    · rw [if_neg hcond, mul_zero]
+    · rw [ite_eq_right hcond, mul_zero]
   have hzero : ∀ a : Fin m, a ≠ i → (∑' n : ℕ, p ((Sum.inl a : RandomizedExecution.Configuration Unit (Fin m)), n)
         * @ite ℝ≥0∞ (((Sum.inl a : RandomizedExecution.Configuration Unit (Fin m)), n).1 = Sum.inl i) (Classical.propDecidable _)
             (1 : ℝ≥0∞) 0) = 0 := by
@@ -76,7 +80,7 @@ private theorem event_outcome_inl {m : ℕ}
         = Sum.inl i) with hcond | hcond
     · exfalso
       exact ha (by simpa using hcond)
-    · rw [if_neg hcond, mul_zero]
+    · rw [ite_eq_right hcond, mul_zero]
   have hF : (∑' a : Fin m, (∑' n : ℕ, p ((Sum.inl a : RandomizedExecution.Configuration Unit (Fin m)), n)
         * @ite ℝ≥0∞ (((Sum.inl a : RandomizedExecution.Configuration Unit (Fin m)), n).1 = Sum.inl i) (Classical.propDecidable _)
             (1 : ℝ≥0∞) 0))
@@ -85,7 +89,7 @@ private theorem event_outcome_inl {m : ℕ}
     have hinner : ∀ n : ℕ, p ((Sum.inl i : RandomizedExecution.Configuration Unit (Fin m)), n)
         * @ite ℝ≥0∞ (((Sum.inl i : RandomizedExecution.Configuration Unit (Fin m)), n).1 = Sum.inl i) (Classical.propDecidable _)
             (1 : ℝ≥0∞) 0 = p ((Sum.inl i : RandomizedExecution.Configuration Unit (Fin m)), n) := fun n => by
-      rw [if_pos rfl, mul_one]
+      rw [ite_eq_left rfl, mul_one]
     exact tsum_congr hinner
   show Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event p (fun x => x.1 = Sum.inl i) = _
   rw [Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.event_eq, expectation_tsum, tsum_prod_type', tsum_sum_type',
@@ -105,7 +109,7 @@ private theorem event_outcome_inr {m : ℕ}
         = Sum.inr ()) with hcond | hcond
       · exfalso
         exact absurd hcond (by simp)
-      · rw [if_neg hcond, mul_zero]
+      · rw [ite_eq_right hcond, mul_zero]
   have hzeroU : ∀ t : Unit, t ≠ () → (∑' n : ℕ, p ((Sum.inr t : RandomizedExecution.Configuration Unit (Fin m)), n)
         * @ite ℝ≥0∞ (((Sum.inr t : RandomizedExecution.Configuration Unit (Fin m)), n).1 = Sum.inr ()) (Classical.propDecidable _)
             (1 : ℝ≥0∞) 0) = 0 := by
@@ -120,7 +124,7 @@ private theorem event_outcome_inr {m : ℕ}
     have hinner : ∀ n : ℕ, p ((Sum.inr () : RandomizedExecution.Configuration Unit (Fin m)), n)
         * @ite ℝ≥0∞ (((Sum.inr () : RandomizedExecution.Configuration Unit (Fin m)), n).1 = Sum.inr ()) (Classical.propDecidable _)
             (1 : ℝ≥0∞) 0 = p ((Sum.inr () : RandomizedExecution.Configuration Unit (Fin m)), n) := fun n => by
-      rw [if_pos rfl, mul_one]
+      rw [ite_eq_left rfl, mul_one]
     exact tsum_congr hinner
   show Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event p (fun x => x.1 = Sum.inr ()) = _
   rw [Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.event_eq, expectation_tsum, tsum_prod_type', tsum_sum_type',
@@ -158,7 +162,10 @@ private noncomputable def attemptCont {A : Type} {m : ℕ} (F : Fin m → Costed
 an optional outcome and separate sampling and trial costs. -/
 noncomputable def finiteCoinThenAttempt {A : Type} (k m fuel : ℕ)
     (F : Fin m → CostedLaw A) : PMF (Option A × ℕ × ℕ) :=
-  PMF.bind (finiteCoinRun k m fuel) (attemptCont F)
+  PMF.bind (finiteCoinRun k m fuel) (fun x =>
+    match x.1 with
+    | Sum.inl i => (F i).map fun y => (some y.1, x.2, y.2)
+    | Sum.inr _ => PMF.pure (none, x.2, 0))
 
 /-- The continuation preserves the given sampling cost in expectation. -/
 private theorem expectation_attemptCont_fst {A : Type} {m : ℕ} (F : Fin m → CostedLaw A)
@@ -267,7 +274,7 @@ noncomputable def countedSearchStep {I : Type} [Fintype I] [DecidableEq I] {m : 
     (i : Fin m) : CostedLaw I :=
   (bornDistribution (Run O (RepeatCircuit [Step.query] (i : ℕ)) ψ)
       (normalized_run O hO (RepeatCircuit [Step.query] (i : ℕ))
-        (fun U hU => (gates_repeat_query U _ hU).elim) hψ)).map
+        (fun U hU => by exact (gates_repeat_query U _ hU).elim) hψ)).map
     fun y => (y, QueryCount ((RepeatCircuit [Step.query] (i : ℕ) : Circuit I)))
 
 /-- The joint law of finite fair-bit sampling and the selected counted search trial, recording
@@ -288,14 +295,14 @@ private theorem event_pmf_mem_sum {α : Type} [Fintype α] (p : PMF α) (S : Fin
     = @ite ℝ≥0∞ (b ∈ S) (Classical.propDecidable (b ∈ S)) (p b) 0 := by
     intro b _
     rcases em (b ∈ S) with hb | hb
-    · rw [if_pos hb, if_pos hb, mul_one]
-    · rw [if_neg hb, if_neg hb, mul_zero]
+    · rw [ite_eq_left hb, ite_eq_left hb, mul_one]
+    · rw [ite_eq_right hb, ite_eq_right hb, mul_zero]
   have hS : ∑ b ∈ S, (@ite ℝ≥0∞ (b ∈ S) (Classical.propDecidable (b ∈ S)) (p b) 0)
       = ∑ b ∈ S, p b :=
-    Finset.sum_congr rfl fun b hb => by rw [if_pos hb]
+    Finset.sum_congr rfl fun b hb => by rw [ite_eq_left hb]
   have hsub : ∑ b ∈ S, (@ite ℝ≥0∞ (b ∈ S) (Classical.propDecidable (b ∈ S)) (p b) 0)
       = ∑ b ∈ Finset.univ, (@ite ℝ≥0∞ (b ∈ S) (Classical.propDecidable (b ∈ S)) (p b) 0) :=
-    Finset.sum_subset (Finset.subset_univ S) fun b _ hb => if_neg hb
+    Finset.sum_subset (Finset.subset_univ S) fun b _ hb => ite_eq_right hb
   rw [Finset.sum_congr rfl hEq]
   exact hsub.symm.trans hS
 

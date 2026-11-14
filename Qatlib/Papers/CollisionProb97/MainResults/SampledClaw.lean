@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CollisionProb97.MainResults.SampledTableMemory
-import Qatlib.Papers.CollisionProb97.MainResults.ClawExecution
-import Qatlib.Papers.CollisionProb97.MainResults.OraclePairLaw
+module
+
+public import Qatlib.Papers.CollisionProb97.MainResults.SampledTableMemory
+public import Qatlib.Papers.CollisionProb97.MainResults.ClawExecution
+public import Qatlib.Papers.CollisionProb97.MainResults.OraclePairLaw
+
+@[expose] public section
 
 /-!
 # Claw finding with a sampled distinct-image table

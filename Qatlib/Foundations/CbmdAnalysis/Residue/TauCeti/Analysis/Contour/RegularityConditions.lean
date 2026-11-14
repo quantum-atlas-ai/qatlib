@@ -6,16 +6,20 @@ Authors: Chris Birkbeck, Qatlib Contributors
 Adapted from https://github.com/TauCetiProject/TauCeti@3780371c
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+module
 
-import Mathlib.Analysis.SpecialFunctions.Complex.Arg
-import Mathlib.Analysis.Calculus.Deriv.Basic
-import Mathlib.Analysis.Analytic.Basic
-import Mathlib.Analysis.Meromorphic.Order
-import Mathlib.Algebra.Order.ToIntervalMod
-import Mathlib.Analysis.SpecialFunctions.Complex.Log
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Argument.Lift
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.SpecialFunctions.Trigonometric.Angle
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+
+public import Mathlib.Analysis.SpecialFunctions.Complex.Arg
+public import Mathlib.Analysis.Calculus.Deriv.Basic
+public import Mathlib.Analysis.Analytic.Basic
+public import Mathlib.Analysis.Meromorphic.Order
+public import Mathlib.Algebra.Order.ToIntervalMod
+public import Mathlib.Analysis.SpecialFunctions.Complex.Log
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Argument.Lift
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.SpecialFunctions.Trigonometric.Angle
+
+@[expose] public section
 
 /-!
 # Contour crossing angles and regularity conditions

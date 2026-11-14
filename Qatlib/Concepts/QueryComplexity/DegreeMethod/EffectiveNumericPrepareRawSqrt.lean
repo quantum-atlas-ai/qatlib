@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareMachine
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareWriter
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareMachine
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.EffectiveNumericPrepareWriter
+
+@[expose] public section
 
 /-!
 # Raw square-root encoding and certification
@@ -229,7 +233,7 @@ theorem readFrame_complete (bits tail : Bits) :
   unfold readFrame Qatlib.Concepts.BitWordCompiler.CanonicalCodec.framed
   rw [List.append_assoc,Qatlib.Concepts.BitWordCompiler.CanonicalCodec.readNat_complete]
   simp only [Option.bind_eq_bind,Option.bind_some]
-  rw [if_pos (show bits.length≤(bits++tail).length by simp only [List.length_append]; omega)]
+  rw [ite_eq_left (show bits.length≤(bits++tail).length by simp only [List.length_append]; omega)]
   rw [take_append_length,drop_append_length]
 
 /-- Decodes exactly three frames with positive scale denominator into the rational interval

@@ -26,8 +26,12 @@ restricted-adversary XEB bound with Chernoff/Gamma/hypergeometric tails
 min-entropy, QCAM-style complexity classes, quantum-proof extractors and
 the corresponding concentration inequalities.
 -/
-import Qatlib.Papers.RandCertLiu25.MainResults.Collision
-import Qatlib.Papers.RandCertLiu25.MainResults.GapLemma
+module
+
+public import Qatlib.Papers.RandCertLiu25.MainResults.Collision
+public import Qatlib.Papers.RandCertLiu25.MainResults.GapLemma
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

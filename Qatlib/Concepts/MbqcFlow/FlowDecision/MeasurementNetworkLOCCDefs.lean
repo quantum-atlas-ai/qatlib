@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementNetwork
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementNetworkDefs
-import Qatlib.Concepts.QuditTeleport.TeleportCore.QuditTeleportationInstrument
-import Qatlib.Concepts.QuditTeleport.TeleportCore.CountedQuditTeleportation
-import Qatlib.Concepts.QuditTeleport.TeleportCore.QuditTeleportationProtocol
+module
+
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementNetwork
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementNetworkDefs
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.QuditTeleportationInstrument
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.CountedQuditTeleportation
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.QuditTeleportationProtocol
+
+@[expose] public section
 
 /-!
 # Party plans and finite-message guessing
@@ -252,11 +256,11 @@ private theorem preshared_fresh_split (as : List PartyAction) :
           cases hp : presh with
           | false =>
               rw [countPresharedSteps, countFreshSteps, countTeleportActions]
-              rw [if_neg (by simp), if_pos (by simp)]
+              rw [ite_eq_right (by simp), ite_eq_left (by simp)]
               omega
           | true =>
               rw [countPresharedSteps, countFreshSteps, countTeleportActions]
-              rw [if_pos (by simp), if_neg (by simp)]
+              rw [ite_eq_left (by simp), ite_eq_right (by simp)]
               omega
 
 /-- For an ordered pair of parties, preshared and fresh teleportation counts sum to its total
@@ -274,16 +278,16 @@ private theorem pair_split (p q : Party) (as : List PartyAction) :
           | false =>
               rw [countPairPreshared, countPairFresh, countPairTeleport]
               by_cases hq : o = p ∧ p' = q
-              · rw [if_neg (by simp [hq]), if_pos (by simp [hq]), if_pos (by simp [hq])]
+              · rw [ite_eq_right (by simp [hq]), ite_eq_left (by simp [hq]), ite_eq_left (by simp [hq])]
                 omega
-              · rw [if_neg (by simp [hq]), if_neg (by simp [hq]), if_neg (by simp [hq])]
+              · rw [ite_eq_right (by simp), ite_eq_right (by simp [hq]), ite_eq_right (by simp [hq])]
                 omega
           | true =>
               rw [countPairPreshared, countPairFresh, countPairTeleport]
               by_cases hq : o = p ∧ p' = q
-              · rw [if_pos (by simp [hq]), if_neg (by simp [hq]), if_pos (by simp [hq])]
+              · rw [ite_eq_left (by simp [hq]), ite_eq_right (by simp [hq]), ite_eq_left (by simp [hq])]
                 omega
-              · rw [if_neg (by simp [hq]), if_neg (by simp [hq]), if_neg (by simp [hq])]
+              · rw [ite_eq_right (by simp [hq]), ite_eq_right (by simp), ite_eq_right (by simp [hq])]
                 omega
 
 /-- A symmetric assignment of available EPR-pair counts to pairs of parties. -/
@@ -384,14 +388,14 @@ private theorem countP_split {α : Type} (l : List α) (q r : α → Bool) :
           | true => exact ih
       | true =>
           cases hr : r a with
-          | false => simp <;> omega
-          | true => simp <;> omega
+          | false => simp; omega
+          | true => simp; omega
 
 /-- Counting elements with the constantly true predicate gives the list length. -/
 private theorem countP_true {α : Type} (l : List α) : l.countP (fun _ => true) = l.length := by
   induction l with
   | nil => rfl
-  | cons a l ih => simp [List.countP_cons, ih]
+  | cons a l ih => simp [ih]
 
 /-- For each ordered pair of parties, preshared usage plus fresh preparation equals the number
 of its teleportation actions. -/
@@ -428,21 +432,21 @@ theorem measureCount_eq_events : ∀ {D E : ℕ} (P : FiniteNetwork D E) (pl : P
       intro pl t
       cases pl with
       | @measure _ _ _ _ _ _ owner rest =>
-          simp only [PartyPlan.measureCount, PartyPlan.actions, FiniteNetwork.events,
+          simp only [PartyPlan.actions, FiniteNetwork.events,
             countMeasureActions, countInstrumentEvents]
           rw [ih t.1 (rest t.1) t.2]
   | send bits next ih =>
       intro pl t
       cases pl with
       | @send _ _ _ _ sender receiver rest =>
-          simp only [PartyPlan.measureCount, PartyPlan.actions, FiniteNetwork.events,
+          simp only [PartyPlan.actions, FiniteNetwork.events,
             countMeasureActions, countInstrumentEvents]
           rw [ih rest t]
   | teleport hn width fits next ih =>
       intro pl t
       cases pl with
       | @teleport _ _ _ _ _ _ owner partner preshared rest =>
-          simp only [PartyPlan.measureCount, PartyPlan.actions, FiniteNetwork.events,
+          simp only [PartyPlan.actions, FiniteNetwork.events,
             countMeasureActions, countInstrumentEvents]
           rw [ih t.1 (rest t.1) t.2]
 
@@ -461,21 +465,21 @@ theorem teleportCount_eq_events : ∀ {D E : ℕ} (P : FiniteNetwork D E) (pl : 
       intro pl t
       cases pl with
       | @measure _ _ _ _ _ _ owner rest =>
-          simp only [PartyPlan.teleportCount, PartyPlan.actions, FiniteNetwork.events,
+          simp only [PartyPlan.actions, FiniteNetwork.events,
             countTeleportActions, countTeleportEvents]
           rw [ih t.1 (rest t.1) t.2]
   | send bits next ih =>
       intro pl t
       cases pl with
       | @send _ _ _ _ sender receiver rest =>
-          simp only [PartyPlan.teleportCount, PartyPlan.actions, FiniteNetwork.events,
+          simp only [PartyPlan.actions, FiniteNetwork.events,
             countTeleportActions, countTeleportEvents]
           rw [ih rest t]
   | teleport hn width fits next ih =>
       intro pl t
       cases pl with
       | @teleport _ _ _ _ _ _ owner partner preshared rest =>
-          simp only [PartyPlan.teleportCount, PartyPlan.actions, FiniteNetwork.events,
+          simp only [PartyPlan.actions, FiniteNetwork.events,
             countTeleportActions, countTeleportEvents]
           rw [ih t.1 (rest t.1) t.2]
 
@@ -597,7 +601,7 @@ theorem cost_abstract_calls_are_free {D E : ℕ} {P : FiniteNetwork D E} (pl : P
   have h1' : (P.resources t).abstractInstrumentCalls = countInstrumentEvents (P.events t) := by
     simpa only [FiniteNetwork.resources] using h1
   have h2' : countMeasureActions (pl.actions t) = countInstrumentEvents (P.events t) := h2
-  simp only [PartyPlan.cost, PartyPlan.measureCount]
+  simp only [PartyPlan.measureCount]
   omega
 
 /-- The macro-measurement count equals the party plan's teleportation count. -/
@@ -745,7 +749,7 @@ theorem messageNetwork_bits {D E F : ℕ} (T : BinaryMessageTree)
         :: .transmit (T.encode ((Fintype.equivFin T.Path).symm o)) :: (next.events t'))
       = (T.encode ((Fintype.equivFin T.Path).symm o)) :: transmittedWords (next.events t') := rfl
   rw [h6] at h5
-  simp only [List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, add_zero] at h5
+  simp only [List.map_cons, List.sum_cons] at h5
   have h4 : ((transmittedWords (next.events t')).map List.length).sum
       = (next.resources t').classicalBits := h2.2.2.2.symm
   omega

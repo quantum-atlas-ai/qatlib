@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpinorSampling.Adaptive.PartialAddressTrainedGrid
-import Qatlib.Concepts.SpinorSampling.Adaptive.PartialAddressTrainedMain
+module
+
+public import Qatlib.Concepts.SpinorSampling.Adaptive.PartialAddressTrainedGrid
+public import Qatlib.Concepts.SpinorSampling.Adaptive.PartialAddressTrainedMain
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

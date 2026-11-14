@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Concepts.ClassicalTape.TapeCompilation.BitMachineTime
-import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
-import Qatlib.Concepts.LocalMachine.LocalTransport.WitnessComplexityDefs
-import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteGateDecisionConsumers
+module
+
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Concepts.ClassicalTape.TapeCompilation.BitMachineTime
+public import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
+public import Qatlib.Concepts.LocalMachine.LocalTransport.WitnessComplexityDefs
+public import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteGateDecisionConsumers
+
+@[expose] public section
 
 /-!
 # Uniform finite-gate circuit generators
@@ -57,7 +61,7 @@ def encodeUnaryField (k : ℕ) : List Bool := List.replicate k true ++ [false]
 
 /-- Parses a false-terminated unary natural number, returning its value and the remaining bits.
 Returns `none` if no delimiter is found. -/
-private def parseUnaryField : List Bool → Option (ℕ × List Bool)
+def parseUnaryField : List Bool → Option (ℕ × List Bool)
   | [] => none
   | false :: rest => some (0, rest)
   | true :: rest => (parseUnaryField rest).map fun (k, tail) => (k + 1, tail)
@@ -72,7 +76,7 @@ def encodeFiniteGateCode : FiniteGateCode → List Bool
 
 /-- Parses the wire fields for a gate constructor tag, returning the gate and unused suffix.
 Unrecognized tags or incomplete fields produce `none`. -/
-private def parseGateCodeFields (tag : ℕ) (bits : List Bool) :
+def parseGateCodeFields (tag : ℕ) (bits : List Bool) :
     Option (FiniteGateCode × List Bool) := do
   if tag = 0 then
     let (w, rest) ← parseUnaryField bits
@@ -95,7 +99,7 @@ private def parseGateCodeFields (tag : ℕ) (bits : List Bool) :
 
 /-- Parses a concatenated list of gate encodings with a bound on the number of parsing steps.
 Succeeds only when all bits are consumed within the fuel bound. -/
-private def parseGateCodeListFuel : ℕ → List Bool → Option (List FiniteGateCode)
+def parseGateCodeListFuel : ℕ → List Bool → Option (List FiniteGateCode)
   | 0, [] => some []
   | 0, _ :: _ => none
   | _ + 1, [] => some []
@@ -146,7 +150,7 @@ def uniformBqpSpaceBound (g : UniformBqpGenerator) (n : ℕ) : ℕ :=
 
 /-- Runs a Turing machine from a configuration for at most the supplied number of transitions.
 Returns the halted configuration, or `none` if it has not halted within the bound. -/
-private def runUntilHaltWithin {k : ℕ}
+def runUntilHaltWithin {k : ℕ}
     (machine : Turing.TM0.Machine (Option Bool) (Fin (k + 1))) :
     ℕ → Turing.TM0.Cfg (Option Bool) (Fin (k + 1)) →
       Option (Turing.TM0.Cfg (Option Bool) (Fin (k + 1)))
@@ -159,7 +163,7 @@ private def runUntilHaltWithin {k : ℕ}
 /-- Reads at most the supplied number of Boolean symbols from a tape, stopping at the first
 blank. Returns `none` when another nonblank symbol remains after the allowed symbols have
 been read. -/
-private def readOutputUntilBlank : ℕ → Turing.ListBlank (Option Bool) → Option (List Bool)
+def readOutputUntilBlank : ℕ → Turing.ListBlank (Option Bool) → Option (List Bool)
   | 0, tape => if tape.nth 0 = none then some [] else none
   | fuel + 1, tape =>
       match tape.nth 0 with
@@ -301,7 +305,7 @@ def uniformBqpDivergingGenerator : UniformBqpGenerator where
   spaceDegree := 1
 
 /-- A one-state machine that moves right over nonblank symbols and halts on a blank. -/
-private def uniformBqpClockMachine : Turing.TM0.Machine (Option Bool) (Fin 1) :=
+def uniformBqpClockMachine : Turing.TM0.Machine (Option Bool) (Fin 1) :=
   fun _ a => if a = none then none else some ⟨default, Turing.TM0.Stmt.move Turing.Dir.right⟩
 
 /-- The blank-stopping rightward clock machine packaged as a generator with linear resource
@@ -318,7 +322,7 @@ def uniformBqpClockGenerator : UniformBqpGenerator where
 
 /-- A finite-control machine that scans to a blank, writes the prescribed Boolean word, and
 moves back toward its beginning before halting. -/
-private def uniformBqpWordPrinterMachine (bs : List Bool) :
+def uniformBqpWordPrinterMachine (bs : List Bool) :
     Turing.TM0.Machine (Option Bool) (Fin (3 * bs.length + 1)) := fun q a =>
   have hq := q.isLt
   if h0 : q.val = 0 ∧ a = none ∧ 1 ≤ bs.length then

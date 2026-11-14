@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementStatisticsNativeDefs
+module
+
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementStatisticsNativeDefs
+
+@[expose] public section
 
 /-!
 # Independent measurement statistics and campaign costs

@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
-import Qatlib.Papers.Cbmd26.Algorithms.OuterBridge
-import Qatlib.Papers.Cbmd26.Algorithms.QueryCostBridge
-import Qatlib.Concepts.LchsSimulation.StaticLchs.BitSampledPreparedSearch
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
+module
+
+public import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+public import Qatlib.Papers.Cbmd26.Algorithms.OuterBridge
+public import Qatlib.Papers.Cbmd26.Algorithms.QueryCostBridge
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.BitSampledPreparedSearch
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
+
+@[expose] public section
 
 /-!
 # Counted randomized amplitude amplification

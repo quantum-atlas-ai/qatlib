@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.NativeBinaryHouseholder
-import Qatlib.Foundations.PureStateMath.Tensor
-import Qatlib.Concepts.BlockEncoding.EncodingCore.CoordinateFiber
+module
+
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.NativeBinaryHouseholder
+public import Qatlib.Foundations.PureStateMath.Tensor
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.CoordinateFiber
+
+@[expose] public section
 
 open Qatlib.Concepts.BlockEncoding.LCU
 
@@ -187,7 +191,7 @@ theorem weightFrame_entry (m w : ℕ) (z : Reg (weightWidth m w)) (x : Reg m) :
     weightFrame m w z x=Qatlib.Foundations.PureStateMath.Ket (weightInput m w x) z := by
   simp only [weightFrame, Matrix.submatrix_apply, encodingFiber_apply, id_eq]
   have he : (weightSplit m w) z=(weightAuxSeed w,x) ↔ z=weightInput m w x :=
-    (weightSplit m w).apply_eq_iff_eq_symm_apply
+    (weightSplit m w).eq_symm_apply.symm
   simp only [he, Qatlib.Foundations.PureStateMath.Ket]
 
 /-- The emitted program has the displayed exact basis or coherent-fibre action. -/

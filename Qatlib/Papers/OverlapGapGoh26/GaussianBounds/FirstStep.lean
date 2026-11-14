@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.LinearTail
+module
+
+public import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.LinearTail
+
+@[expose] public section
 
 /-!
 # Gaussian energy bounds at the first AMP step
@@ -113,7 +117,7 @@ theorem actual_first_amp_density_tail {r N : ℕ} (hr : 0<r) (hN : 0<N)
   have he : {A : Tensor (r+1) N | ε≤|tensorEnergy A u/(N:ℝ)|}=
       {A | ε*(N:ℝ)≤|tensorEnergy A u|} := by
     ext A
-    simp only [Set.mem_setOf_eq, abs_div, abs_of_pos hn, le_div_iff₀ hn]
+    simp only [Set.mem_ofPred_eq, abs_div, abs_of_pos hn, le_div_iff₀ hn]
   change (gaussianTensorLaw r N).real {A | ε≤|tensorEnergy A u/(N:ℝ)|}≤_
   rw [he]
   refine ht.trans_eq ?_

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CircuitImpl.MultiControl.NoWorkTwoLevelSynthesis
+module
+
+public import Qatlib.Concepts.CircuitImpl.MultiControl.NoWorkTwoLevelSynthesis
+
+@[expose] public section
 
 /-!
 # Gray-path two-level gate synthesis
@@ -62,13 +66,13 @@ private theorem grayControlWires_inj {k : ℕ} (t : Fin (k+1)) :
   intro i hi j hj he
   change i < k at hi
   change j < k at hj
-  simp only [grayControlWires, dif_pos hi, dif_pos hj] at he
+  simp only [grayControlWires, dite_eq_left hi, dite_eq_left hj] at he
   exact congrArg Fin.val (Fin.succAbove_right_injective he)
 
 /-- Every enumerated control wire with index below `k` differs from the target. -/
 private theorem grayControlWires_ne {k : ℕ} (t : Fin (k+1)) (i : ℕ) (hi : i < k) :
     grayControlWires t i ≠ t := by
-  simp only [grayControlWires, dif_pos hi]
+  simp only [grayControlWires, dite_eq_left hi]
   exact Fin.succAbove_ne t _
 
 /-- The prefix conjunction of the enumerated controls is true exactly when every non-target wire
@@ -81,9 +85,9 @@ private theorem grayControls_true_iff {k : ℕ} (t : Fin (k+1)) (x : Reg (k+1)) 
   · intro h w hw
     obtain ⟨i,rfl⟩ := Fin.exists_succAbove_eq hw
     have hh := h i.val i.isLt
-    simpa only [grayControlWires, dif_pos i.isLt] using! hh
+    simpa only [grayControlWires, dite_eq_left i.isLt] using! hh
   · intro h i hi
-    simp only [grayControlWires, dif_pos hi]
+    simp only [grayControlWires, dite_eq_left hi]
     exact h _ (Fin.succAbove_ne t _)
 
 /-- The canonical addresses with false and true target bits are distinct. -/
@@ -127,13 +131,13 @@ theorem grayCanonicalPair_table {k : ℕ} (t : Fin (k+1))
       cases hb : q t
       · have hqe : q = grayControlAddress t false := by simpa only [hb] using! hq
         subst q
-        rw [if_pos hc]
+        rw [ite_eq_left hc]
         simp [grayControlAddress_update, multiWireState, ApplyGate, Matrix.mulVec,
           dotProduct, Qatlib.Foundations.PureStateMath.Ket, (grayControlAddress_ne t).symm]
         module
       · have hqe : q = grayControlAddress t true := by simpa only [hb] using! hq
         subst q
-        rw [if_pos hc]
+        rw [ite_eq_left hc]
         simp [grayControlAddress_update, multiWireState, ApplyGate, Matrix.mulVec,
           dotProduct, Qatlib.Foundations.PureStateMath.Ket, grayControlAddress_ne t]
         module
@@ -218,7 +222,7 @@ theorem grayAdjacentPair_table {k : ℕ} (x y : Reg (k+1)) (t : Fin (k+1))
     · subst w
       simp [Finset.mem_toList, grayControlAddress]
     · simp only [Finset.mem_toList, Finset.mem_filter, Finset.mem_univ, true_and,
-        grayControlAddress, if_neg hw, hother w hw]
+        grayControlAddress, ite_eq_right hw, hother w hw]
       cases y w <;> simp
   let rs := reflectionAdjoint as
   have hrs : reflectionLegal rs := reflectionAdjoint_legal as has

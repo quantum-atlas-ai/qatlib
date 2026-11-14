@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.WordAngular
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SourceTransportWord
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.WordAngular
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SourceTransportWord
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -79,8 +83,8 @@ theorem sourceUnitTerminalRatio_word_bound (v : SpatialPoint → SpatialPoint)
       (hq.comp (contDiff_coordinateFace 0 1)) (star q₀) w,
     spatialWordPartial_coordinateFace q hq,norm_mul,Quaternion.norm_star,h₀,mul_one]
   by_cases hw : (0 : Fin 3)∈w
-  · simpa only [if_pos hw,norm_zero] using hF
-  · simpa only [if_neg hw] using hb
+  · simpa only [ite_eq_left hw,norm_zero] using hF
+  · simpa only [ite_eq_right hw] using hb
 
 /-- Original `sourceFrameGammaMajorant_cast` guarantee for the `SourceAngularWord` construction; the complete source hypotheses are retained. -/
 theorem sourceFrameGammaMajorant_cast (packet : SourceFrameBoundPacket) (r : Fin 8) :

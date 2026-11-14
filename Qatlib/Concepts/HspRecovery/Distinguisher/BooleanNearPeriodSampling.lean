@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.Distinguisher.BooleanRecoveryProbability
-import Qatlib.Concepts.WalshMoment.Forrelation.BooleanHadamardPhase
-import Qatlib.Concepts.HspRecovery.Reduction.BooleanGaussianDecoder
+module
+
+public import Qatlib.Concepts.HspRecovery.Distinguisher.BooleanRecoveryProbability
+public import Qatlib.Concepts.WalshMoment.Forrelation.BooleanHadamardPhase
+public import Qatlib.Concepts.HspRecovery.Reduction.BooleanGaussianDecoder
+
+@[expose] public section
 
 /-!
 # Boolean Fourier sampling for near periods
@@ -165,7 +169,7 @@ private lemma bad_branch_energy (f : BooleanVec n → R) (s : BooleanVec n) :
     intro x
     by_cases hx : f x = f (x + s)
     · simp [badLabelBranch, BornProb, hx]
-    · rw [if_pos hx, Finset.sum_eq_single (f x)]
+    · rw [ite_eq_left hx, Finset.sum_eq_single (f x)]
       · simpa [badLabelBranch, BornProb, addOracleLabelBranch_apply, hx] using hu x
       · intro z _ hz
         simp [badLabelBranch, BornProb, addOracleLabelBranch_apply, hx, hz]

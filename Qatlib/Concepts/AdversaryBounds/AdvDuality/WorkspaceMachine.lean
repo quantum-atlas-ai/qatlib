@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.Execution.WorkspaceCP.WorkspaceCircuit
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
-import Mathlib.Data.ENNReal.BigOperators
+module
+
+public import Qatlib.Concepts.Execution.WorkspaceCP.WorkspaceCircuit
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+public import Mathlib.Basic.ENNReal.BigOperators
+
+@[expose] public section
 
 /-!
 # Workspace machines and finite execution prefixes
@@ -86,7 +90,7 @@ noncomputable def workspaceMachineTraces {d : ℕ} {C : ℕ → Type*}
     | .query next =>
         (workspaceMachineTraces M U T next (conjBranch (forwardWorkspaceOracle k U) rho)).map
           fun t => {t with queries := t.queries+1}
-    | .instrument s l I next =>
+    | .instrument s _l I next =>
         (List.ofFn fun o : Fin s =>
           (workspaceMachineTraces M U T (next o) (I.branch o rho)).map fun t =>
             {t with outcomes := (s,o.val)::t.outcomes}).flatten
@@ -169,7 +173,7 @@ theorem unrollWorkspaceMachine_traces {d : ℕ} {C : ℕ → Type*}
       simpa only [Function.comp_def, List.map_map] using hh
     | instrument s l I next =>
       simp only [workspaceMachineTraces, unrollWorkspaceMachine, h, workspaceTraces, List.map_flatten,
-        List.map_map, List.map_ofFn]
+        List.map_ofFn]
       congr 1
       apply congrArg List.ofFn
       funext o
@@ -248,7 +252,7 @@ private theorem workspaceMachineHaltMass_succ {d k : ℕ} {C : ℕ → Type*}
       | .gate G next => workspaceMachineHaltMass M U T next (conjBranch G rho) E
       | .query next => workspaceMachineHaltMass M U T next
           (conjBranch (forwardWorkspaceOracle k U) rho) E
-      | .instrument s l I next => ∑ o : Fin s,
+      | .instrument s _l I next => ∑ o : Fin s,
           workspaceMachineHaltMass M U T (next o) (I.branch o rho)
             (fun l c b rec => E l c b ((s,o.val)::rec)) := by
   cases h : M k c <;>
@@ -298,14 +302,14 @@ private theorem workspaceMachineExpectedQueries_succ {d k : ℕ} {C : ℕ → Ty
       | .gate G next => workspaceMachineExpectedQueries M U T next (conjBranch G rho)
       | .query next => (trace rho).re + workspaceMachineExpectedQueries M U T next
           (conjBranch (forwardWorkspaceOracle k U) rho)
-      | .instrument s l I next => ∑ o : Fin s,
+      | .instrument s _l I next => ∑ o : Fin s,
           workspaceMachineExpectedQueries M U T (next o) (I.branch o rho) := by
   cases h : M k c with
   | halt b => simp [workspaceMachineExpectedQueries, workspaceMachineTraces, h]
   | gate G next =>
-    simp [workspaceMachineExpectedQueries, workspaceMachineTraces, h, Function.comp_def,
+    simp [workspaceMachineExpectedQueries, workspaceMachineTraces, h,
         workspaceMass]
-  | instrument s l I next =>
+  | instrument s _l I next =>
     simp [workspaceMachineExpectedQueries, workspaceMachineTraces, h, Function.comp_def,
       List.map_flatten, List.sum_flatten, List.map_ofFn, List.sum_ofFn, workspaceMass]
   | query next =>
@@ -560,7 +564,7 @@ theorem workspaceMachineHaltMass_le_unroll_scalar {d k : ℕ} {C : ℕ → Type*
   by_cases hh : t.halted = true
   · have hrec := workspaceMachineReplay_correct M U T c rho t ht hh
     simp [hh, workspaceMachineDecode, hrec, mul_ite]
-  · simp only [Bool.and_eq_true, hh, false_and, ↓reduceIte]
+  · simp only [Bool.and_eq_true, hh]
     apply mul_nonneg hn
     split_ifs <;> norm_num
 

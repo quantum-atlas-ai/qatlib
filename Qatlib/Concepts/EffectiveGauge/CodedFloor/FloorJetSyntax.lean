@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorBumpFamily
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SourceWord
+module
+
+public import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorBumpFamily
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SourceWord
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -166,19 +170,19 @@ theorem floorJetDiff_correct (e : FloorJetExpr) (a : ℝ) (X : SpatialPoint) (i 
       (((contDiff_floorJetEval g a).differentiable (by simp) X).hasFDerivAt)
     change HasFDerivAt (fun Y => floorJetEval a Y (.mul f g)) _ X at hd
     rw [hd.fderiv]
-    simp [floorJetDiff,floorJetEval,hf,hg,ContinuousLinearMap.add_apply,
-      ContinuousLinearMap.smul_apply,smul_eq_mul]
+    simp [floorJetDiff,floorJetEval,hf,hg,_root_.add_apply,
+      _root_.smul_apply,smul_eq_mul]
     ring
   | sin f hf =>
     have hd := ((contDiff_floorJetEval f a).differentiable (by simp) X).hasFDerivAt.sin
     change HasFDerivAt (fun Y => floorJetEval a Y (.sin f)) _ X at hd
     rw [hd.fderiv]
-    simp [floorJetDiff,floorJetEval,hf,ContinuousLinearMap.smul_apply,smul_eq_mul]
+    simp [floorJetDiff,floorJetEval,hf,_root_.smul_apply,smul_eq_mul]
   | cos f hf =>
     have hd := ((contDiff_floorJetEval f a).differentiable (by simp) X).hasFDerivAt.cos
     change HasFDerivAt (fun Y => floorJetEval a Y (.cos f)) _ X at hd
     rw [hd.fderiv]
-    simp [floorJetDiff,floorJetEval,hf,ContinuousLinearMap.smul_apply,smul_eq_mul]
+    simp [floorJetDiff,floorJetEval,hf,_root_.smul_apply,smul_eq_mul]
 
 /-- Original `floorJetWord_correct` guarantee for the `FloorJetSyntax` construction; the complete source hypotheses are retained. -/
 theorem floorJetWord_correct (e : FloorJetExpr) (a : ℝ) (w : List (Fin 3)) :

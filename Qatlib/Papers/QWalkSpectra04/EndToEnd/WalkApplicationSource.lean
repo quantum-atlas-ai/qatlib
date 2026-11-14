@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QWalkSpectra04.EndToEnd.WalkApplicationSourceDefs
-import Qatlib.Concepts.QuantumGibbs.FormAlgebra.DetectionExecution
+module
+
+public import Qatlib.Papers.QWalkSpectra04.EndToEnd.WalkApplicationSourceDefs
+public import Qatlib.Concepts.QuantumGibbs.FormAlgebra.DetectionExecution
+
+@[expose] public section
 
 /-!
 # Exact decoding and marked-mass output laws
@@ -51,11 +55,11 @@ theorem generalCollisionDecoder_some {V : Type} [Fintype V] {E : Type} [LinearOr
     (marked : V → Finset E) (v : V) (e : E)
     (h : generalCollisionDecoder marked v = some e) : e ∈ marked v := by
   by_cases hne : (marked v).Nonempty
-  · rw [generalCollisionDecoder, dif_pos hne] at h
+  · rw [generalCollisionDecoder, dite_eq_left hne] at h
     have heq : e = (marked v).min' hne := (Option.some.inj h).symm
     rw [heq]
     exact Finset.min'_mem _ hne
-  · rw [generalCollisionDecoder, dif_neg hne] at h
+  · rw [generalCollisionDecoder, dite_eq_right hne] at h
     exact absurd h (by simp)
 
 /-- The collision decoder returns `none` exactly when the vertex's witness set is not nonempty. -/
@@ -63,10 +67,10 @@ theorem generalCollisionDecoder_none_iff {V : Type} [Fintype V] {E : Type} [Line
     (marked : V → Finset E) (v : V) :
     generalCollisionDecoder marked v = none ↔ ¬ (marked v).Nonempty := by
   by_cases hne : (marked v).Nonempty
-  · rw [generalCollisionDecoder, dif_pos hne]
+  · rw [generalCollisionDecoder, dite_eq_left hne]
     simp only [Option.some_ne_none]
     exact ⟨fun hc => absurd hc (by simp), fun h => h hne⟩
-  · rw [generalCollisionDecoder, dif_neg hne]
+  · rw [generalCollisionDecoder, dite_eq_right hne]
     exact ⟨fun _ => hne, fun _ => rfl⟩
 
 /-- The collision success functional is the sum of squared state-coordinate norms over vertices
@@ -86,13 +90,13 @@ theorem generalCollisionSuccess_rowState {V : ℕ} (K : GeneralKernel V) (p : Ge
   apply Finset.sum_congr rfl
   intro v hv
   by_cases hne : (marked v).Nonempty
-  · simp only [if_pos hne]
+  · simp only [ite_eq_left hne]
     have h : 0 ≤ (K.weight p v : ℚ) := K.nonnegative p v
     have h' : 0 ≤ ((K.weight p v : ℚ) : ℝ) := by exact_mod_cast h
     have h'' : 0 ≤ Real.sqrt ((K.weight p v : ℚ) : ℝ) := Real.sqrt_nonneg _
     simp only [generalRowState, Complex.norm_real, Real.norm_eq_abs, abs_of_nonneg h'']
     exact Real.sq_sqrt h'
-  · simp only [if_neg hne]
+  · simp only [ite_eq_right hne]
 
 /-- A matrix action that negates the marked coordinates and fixes the others preserves collision
 success when the marked set is exactly the set of vertices with witnesses. -/

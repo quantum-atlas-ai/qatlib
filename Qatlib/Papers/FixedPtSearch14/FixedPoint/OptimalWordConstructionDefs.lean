@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.FixedPtSearch14.FixedPoint.OptimalFixedPointCore
-import Qatlib.Papers.FixedPtSearch14.FixedPoint.YlcWordAuxiliary
-import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.Basic
+module
+
+public import Qatlib.Papers.FixedPtSearch14.FixedPoint.OptimalFixedPointCore
+public import Qatlib.Papers.FixedPtSearch14.FixedPoint.YlcWordAuxiliary
+public import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.Basic
+
+@[expose] public section
 
 /-!
 # Public fixed-point search words

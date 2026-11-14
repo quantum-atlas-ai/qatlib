@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MixedFidelity.FidelityMetric.ChannelHelpers.RankOneTraceNormEquality
-import Qatlib.Concepts.MixedFidelity.FidelityMetric.ChannelHelpers.FinitePOVMTraceDistance
-import Qatlib.Concepts.GibbsMetropolis.RationalBath.ApproximateRationalGibbs
+module
+
+public import Qatlib.Concepts.MixedFidelity.FidelityMetric.ChannelHelpers.RankOneTraceNormEquality
+public import Qatlib.Concepts.MixedFidelity.FidelityMetric.ChannelHelpers.FinitePOVMTraceDistance
+public import Qatlib.Concepts.GibbsMetropolis.RationalBath.ApproximateRationalGibbs
+
+@[expose] public section
 
 /-!
 # Mixture error supported on bad labels
@@ -86,7 +90,7 @@ theorem trace_distance_le_bad_mass (p : Qatlib.Concepts.MonteCarloMean.FinDistBo
     apply Finset.sum_le_sum
     intro x _
     by_cases hx : x ∈ bad
-    · rw [if_pos hx]
+    · rw [ite_eq_left hx]
       have hd :=
           mul_le_mul_of_nonneg_left
           (Qatlib.Concepts.MixedFidelity.FidelityMetric.BadLabelMixtureBound.density_distance_le_two (rho x) (sigma x)) (p.nonneg x)

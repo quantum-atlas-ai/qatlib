@@ -4,17 +4,21 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.Execution.WorkspaceCP.ProjectedUnitaryEncoding
-import Qatlib.Concepts.QspSimulation.Achievability.CircuitWellFormed
-import Qatlib.Concepts.QsvtCore.QueryLowerBound.SubroutineExpansion
-import Qatlib.Concepts.LocalMachine.LocalTransport.ControlledQueryCircuit
-import Qatlib.Concepts.QspSimulation.JacobiAnger.ComputedSignalSimulation
-import Mathlib.Data.Fintype.Pi
-import Qatlib.Concepts.SignalPrimitive.GridGradient.Basic
-import Qatlib.Concepts.GradientOracle.ReadoutWindow.ValueOracleGradientPrecision
-import Qatlib.Concepts.GradientOracle.FullRange.FullRangeGradientLaws
-import Qatlib.Concepts.GradientOracle.ReadoutTools.AlmostAffineGradient
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.LocalQFTReadout
+module
+
+public import Qatlib.Concepts.Execution.WorkspaceCP.ProjectedUnitaryEncoding
+public import Qatlib.Concepts.QspSimulation.Achievability.CircuitWellFormed
+public import Qatlib.Concepts.QsvtCore.QueryLowerBound.SubroutineExpansion
+public import Qatlib.Concepts.LocalMachine.LocalTransport.ControlledQueryCircuit
+public import Qatlib.Concepts.QspSimulation.JacobiAnger.ComputedSignalSimulation
+public import Mathlib.Data.Fintype.Pi
+public import Qatlib.Concepts.SignalPrimitive.GridGradient.Basic
+public import Qatlib.Concepts.GradientOracle.ReadoutWindow.ValueOracleGradientPrecision
+public import Qatlib.Concepts.GradientOracle.FullRange.FullRangeGradientLaws
+public import Qatlib.Concepts.GradientOracle.ReadoutTools.AlmostAffineGradient
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.LocalQFTReadout
+
+@[expose] public section
 
 /-!
 # Probability phase oracle definitions

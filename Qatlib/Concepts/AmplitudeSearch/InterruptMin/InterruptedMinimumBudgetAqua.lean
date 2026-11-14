@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.InterruptMin.InterruptedMinimumBudgetStat
-import Qatlib.Concepts.AmplitudeSearch.InterruptMin.InterruptedBudgetLaws
-import Qatlib.Concepts.AmplitudeSearch.InterruptMin.InterruptedSearchAttemptAqua
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.InterruptMin.InterruptedMinimumBudgetStat
+public import Qatlib.Concepts.AmplitudeSearch.InterruptMin.InterruptedBudgetLaws
+public import Qatlib.Concepts.AmplitudeSearch.InterruptMin.InterruptedSearchAttemptAqua
+
+@[expose] public section
 
 /-!
 # Budget guarantees for interrupted minimum search
@@ -110,9 +114,9 @@ theorem interrupted_minimum_remaining (T : Fin N → α) (initialization : ℕ)
         (budget - initialization) y hy
       have hyB : y.2 ≤ budget := hyr.trans (Nat.sub_le _ _)
       by_cases hr : y.2 < budget
-      · rw [dif_pos hr] at hxy
+      · rw [dite_eq_left hr] at hxy
         exact (ih y.2 hr _ hxy).trans hyB
-      · rw [dif_neg hr] at hxy
+      · rw [dite_eq_right hr] at hxy
         have heq := (PMF.mem_support_pure_iff _ _).mp hxy
         simpa [heq] using! hyB
     · have heq := (PMF.mem_support_pure_iff _ _).mp hx
@@ -134,9 +138,9 @@ theorem interrupted_minimum_output (T : Fin N → α) (initialization : ℕ)
       have hu := checkedUpdate_preserves_minimum T current y.1 hmin
       simp only [hu] at hxy
       by_cases hr : y.2 < budget
-      · rw [dif_pos hr] at hxy
+      · rw [dite_eq_left hr] at hxy
         exact ih y.2 hr current hmin hxy
-      · rw [dif_neg hr] at hxy
+      · rw [dite_eq_right hr] at hxy
         exact congrArg Prod.fst ((PMF.mem_support_pure_iff _ _).mp hxy)
     · exact congrArg Prod.fst ((PMF.mem_support_pure_iff _ _).mp hx)
 
@@ -164,9 +168,9 @@ theorem interrupted_minimum_expectation (T : Fin N → α) (initialization : ℕ
             else PMF.pure (checkedUpdate T current x.1, x.2))
             (fun x => ENNReal.ofReal (payoff x.1 x.2)) = ENNReal.ofReal (s x.1 x.2) := by
         by_cases hr : x.2 < budget
-        · simp only [dif_pos hr, s]
+        · simp only [dite_eq_left hr, s]
           exact ih x.2 hr _
-        · simp only [dif_neg hr, s]
+        · simp only [dite_eq_right hr, s]
           exact Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation_pure _ _
       simp_rw [he]
       exact interrupted_call_expectation (by simpa using! hN) _ _
@@ -232,8 +236,8 @@ theorem interrupted_success_indicator_le (T : Fin N → α) (initialization : �
     (if ∀ j, T current ≤ T j then (1 : ℝ) else 0) ≤
       interruptedMinimumSuccessWithInit T initialization budget current := by
   by_cases hm : ∀ j, T current ≤ T j
-  · rw [if_pos hm, interrupted_success_of_minimum T initialization hN budget current hm]
-  · rw [if_neg hm]
+  · rw [ite_eq_left hm, interrupted_success_of_minimum T initialization hN budget current hm]
+  · rw [ite_eq_right hm]
     exact interrupted_minimum_nonneg T initialization hN budget current _ (by intro i r; positivity)
 
 /-- Interrupted minimum-search success is at least the atomic finite-budget success with the
@@ -247,30 +251,30 @@ theorem interrupted_success_dominates (T : Fin N → α) (initialization : ℕ)
     unfold minimumBudgetSuccessWithInit interruptedMinimumSuccessWithInit
     rw [minimumBudgetEvalWithInit, interruptedMinimumEvalWithInit]
     by_cases hsingle : N = 1
-    · rw [if_pos hsingle, if_pos hsingle]
-    · rw [if_neg hsingle, if_neg hsingle]
+    · rw [ite_eq_left hsingle, ite_eq_left hsingle]
+    · rw [ite_eq_right hsingle, ite_eq_right hsingle]
       by_cases hpaid : initialization ≤ budget
-      · rw [if_pos hpaid, if_pos hpaid]
+      · rw [ite_eq_left hpaid, ite_eq_left hpaid]
         apply interrupted_dominates_atomic (by simpa using! hN) _ _
           (search_exponential_schedule N hN).2.1
         · intro i r hr
           have hrB : r < budget := hr.trans_le (Nat.sub_le _ _)
-          simp only [dif_pos hrB]
+          simp only [dite_eq_left hrB]
           exact ih r hrB _
         · intro i r _
           by_cases hm : ∀ j, T current ≤ T j
           · have hu := checkedUpdate_preserves_minimum T current i hm
-            simp only [if_pos hm, hu]
+            simp only [ite_eq_left hm, hu]
             split_ifs with hr
             · exact le_of_eq (interrupted_success_of_minimum T initialization hN 0 current hm).symm
             · exact le_rfl
-          · simp only [if_neg hm]
+          · simp only [ite_eq_right hm]
             by_cases hr : 0 < budget
-            · rw [dif_pos hr]
+            · rw [dite_eq_left hr]
               exact interrupted_minimum_nonneg T initialization hN 0 _ _ (by intro i r; positivity)
-            · rw [dif_neg hr]
+            · rw [dite_eq_right hr]
               split_ifs <;> norm_num
-      · rw [if_neg hpaid, if_neg hpaid]
+      · rw [ite_eq_right hpaid, ite_eq_right hpaid]
 
 /-- The partial observation mass on strictly improving indices equals the observed acceptance
 probability of the interrupted phase attempt. -/
@@ -305,7 +309,7 @@ theorem interrupted_charged_le_one (T : Fin N → α) (hN : 0 < N) (budget : ℕ
     apply Finset.sum_le_sum
     intro i _
     apply le_trans (interrupted_minimum_mono T (initCharge N) hN budget i
-      (fun i _ => if ∀ j, T i ≤ T j then 1 else 0) (fun _ _ => 1) (by intro i r; (try dsimp only); split_ifs <;> norm_num))
+      (fun i _ => if ∀ j, T i ≤ T j then 1 else 0) (fun _ _ => 1) (by intro i r;  split_ifs <;> norm_num))
     exact le_of_eq (interrupted_minimum_one T (initCharge N) hN budget i)
   have h := div_le_div_of_nonneg_right hs (Nat.cast_nonneg N)
   have hn : (N : ℝ) ≠ 0 := by exact_mod_cast hN.ne'

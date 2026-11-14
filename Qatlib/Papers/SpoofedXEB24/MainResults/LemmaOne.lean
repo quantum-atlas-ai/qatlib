@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SpoofedXEB24.MainResults.PauliTrace
-import Qatlib.Papers.SpoofedXEB24.MainResults.CycleTrace
-import Mathlib.Logic.Equiv.Fin.Rotate
+module
+
+public import Qatlib.Papers.SpoofedXEB24.MainResults.PauliTrace
+public import Qatlib.Papers.SpoofedXEB24.MainResults.CycleTrace
+public import Mathlib.Logic.Equiv.Fin.Rotate
+
+@[expose] public section
 
 open Matrix
 set_option autoImplicit false

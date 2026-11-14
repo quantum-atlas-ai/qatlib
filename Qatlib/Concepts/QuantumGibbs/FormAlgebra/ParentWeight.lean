@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.DirichletForm.KmsDirichlet.KmsInnerProduct
+module
+
+public import Qatlib.Foundations.DirichletForm.KmsDirichlet.KmsInnerProduct
+
+@[expose] public section
 
 /-!
 # Fourth-root weights and parent factors
@@ -162,7 +166,7 @@ noncomputable def parentGram {ι : Type*} [Fintype ι] (ρ : Operator D) (B : ι
 
 /-- For positive definite `ρ`, the parent Gram sum is zero exactly when every parent-factor
 output is zero. -/
-theorem parentGram_eq_zero_iff {ι : Type*} [Fintype ι] {ρ : Operator D} (hρ : ρ.PosDef)
+theorem parentGram_eq_zero_iff {ι : Type*} [Fintype ι] {ρ : Operator D} (_hρ : ρ.PosDef)
     (B : ι → Operator D) (X : Operator D) :
     parentGram ρ B X = 0 ↔ ∀ i, parentFactor ρ (B i) X = 0 := by
   classical

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.Endpoint.Independent
-import Mathlib.MeasureTheory.SpecificCodomains.WithLp
+module
+
+public import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.Endpoint.Independent
+public import Mathlib.MeasureTheory.SpecificCodomains.WithLp
+
+@[expose] public section
 
 /-!
 # Uniform independent-endpoint tail estimates

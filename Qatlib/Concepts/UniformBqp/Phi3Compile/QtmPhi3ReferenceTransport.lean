@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.UniformBqp.Phi3Compile.FiniteBasisPhi3PaddingQuan
-import Qatlib.Foundations.StandardModel.WindowSim.GUnitExistenceQuan
-import Qatlib.Foundations.StandardModel.WindowSim.OneRoundWindowSimulationQuan
+module
+
+public import Qatlib.Concepts.UniformBqp.Phi3Compile.FiniteBasisPhi3PaddingQuan
+public import Qatlib.Foundations.StandardDefs.WindowSim.GUnitExistenceQuan
+public import Qatlib.Foundations.StandardDefs.WindowSim.OneRoundWindowSimulationQuan
+
+@[expose] public section
 
 /-!
 # Transport of finite-window QTM simulations
@@ -270,7 +274,7 @@ private theorem windowStep_support {t : ℕ} {Q A : Type*} [Fintype Q] [Decidabl
     obtain ⟨b, hterm⟩ := Finset.exists_ne_zero_of_sum_ne_zero hq3
     by_cases hcond : moveCell d c.head = some c'.head ∧ c'.state = q' ∧
         ∀ j : Fin (2 * t + 1), c'.tape j = if j = c.head then b else c.tape j
-    · rw [if_pos hcond] at hterm
+    · rw [ite_eq_left hcond] at hterm
       obtain ⟨hm, -, -⟩ := hcond
       rcases moveCell_spec d c.head c'.head hm with ⟨hl, hs, hr⟩
       cases d with
@@ -283,7 +287,7 @@ private theorem windowStep_support {t : ℕ} {Q A : Type*} [Fintype Q] [Decidabl
       | right =>
         have hrr := hr rfl
         omega
-    · rw [if_neg hcond] at hterm
+    · rw [ite_eq_right hcond] at hterm
       exact absurd hterm (by simp)
   exact ⟨c, fun h0 => hnz (by simp [h0]), hb.1, hb.2⟩
 
@@ -381,7 +385,7 @@ theorem qtmPhi3_reference_run (Q : Type) [Fintype Q] [DecidableEq Q]
     · subst hcc
       change t ≤ t+0 ∧ t ≤ t+0
       omega
-    · rw [if_neg hcc] at hc
+    · rw [ite_eq_right hcc] at hc
       exact absurd rfl hc
   have hrun := sim_run ht M G hfix hstep t (le_refl t) 0 (by omega)
     (Qatlib.Foundations.PureStateMath.Ket (initWindowCfg (t := t) M n x)) hgood0

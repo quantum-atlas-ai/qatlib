@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Fintype.Basic
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Data.Real.Basic
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.Complexity
+module
+
+public import Mathlib.Data.Fintype.Basic
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Basic.Real.Basic
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.Complexity
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

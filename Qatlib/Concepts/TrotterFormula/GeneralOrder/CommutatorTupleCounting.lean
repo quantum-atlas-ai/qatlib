@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TrotterFormula.GeneralOrder.ConjugationCommutatorExpansion
-import Qatlib.Concepts.TrotterFormula.GeneralOrder.GeneralTrotterOrderConsumers
+module
+
+public import Qatlib.Concepts.TrotterFormula.GeneralOrder.ConjugationCommutatorExpansion
+public import Qatlib.Concepts.TrotterFormula.GeneralOrder.GeneralTrotterOrderConsumers
+
+@[expose] public section
 
 /-!
 # Counting ordered tuples in commutator bounds
@@ -52,14 +56,14 @@ theorem pfBlockTuple_injective (p m : ℕ) :
       have hh := congrFun he i
       have h1 : ¬i.val<p-j.val := by dsimp [i];omega
       have h2 : i.val<p-j'.val := hlt
-      simp only [pfBlockTuple,dif_neg h1,dif_pos h2] at hh
+      simp only [pfBlockTuple,dite_eq_right h1,dite_eq_left h2] at hh
       exact False.elim ((Fin.succ_ne_zero _) hh.symm)
     · omega
     · let i : Fin p := ⟨p-j'.val,by omega⟩
       have hh := congrFun he i
       have h1 : i.val<p-j.val := hgt
       have h2 : ¬i.val<p-j'.val := by dsimp [i];omega
-      simp only [pfBlockTuple,dif_pos h1,dif_neg h2] at hh
+      simp only [pfBlockTuple,dite_eq_left h1,dite_eq_right h2] at hh
       exact False.elim ((Fin.succ_ne_zero _) hh)
   subst j'
   have hv : v=v' := by
@@ -67,7 +71,7 @@ theorem pfBlockTuple_injective (p m : ℕ) :
     let k : Fin p := ⟨i.val,by have hi:=i.isLt;omega⟩
     have hk : k.val<p-j.val := i.isLt
     have hh := congrFun he k
-    simp only [pfBlockTuple,dif_pos hk] at hh
+    simp only [pfBlockTuple,dite_eq_left hk] at hh
     apply Fin.ext
     have hl := congrArg Fin.val hh
     change (v i).val+1=(v' i).val+1 at hl
@@ -110,10 +114,10 @@ theorem pfChosenList_block (X : Matrix I I ℂ) (xs : List (Matrix I I ℂ)) (p 
     have hp : i<p := by simpa only [pfChosenList_length] using! hi
     simp only [pfChosenList,List.getElem_map,List.getElem_finRange,List.getElem_append,List.length_map,List.length_finRange]
     by_cases hij : i<p-j.val
-    · simp only [pfBlockTuple,Fin.val_cast,dif_pos hij,Fin.val_succ,List.getD_cons_succ]
+    · simp only [pfBlockTuple,Fin.val_cast,dite_eq_left hij,Fin.val_succ,List.getD_cons_succ]
       apply congrArg (fun q : Fin (p-j.val)=>xs.getD (v q).val 0)
       exact Fin.ext rfl
-    · simp only [pfBlockTuple,Fin.val_cast,dif_neg hij,Fin.val_zero,List.getD_cons_zero,List.getElem_replicate]
+    · simp only [pfBlockTuple,Fin.val_cast,dite_eq_right hij,Fin.val_zero,List.getD_cons_zero,List.getElem_replicate]
 
 omit [DecidableEq I] in
 

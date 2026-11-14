@@ -4,21 +4,29 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryDefs
-import Mathlib.Algebra.Order.Floor.Semiring
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.AdaptiveQueryPurification
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.KrausCircuitCompile
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedRelabel
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedPairedExecution
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedPurification
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.DensityPurification
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.KrausCircuitMixed
-import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
-import Qatlib.Concepts.Execution.CircuitCompile.InstrumentCircuitTransport
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.VariableKrausStatistics
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.InstrumentMachinePrefix
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryInstrumentMinimax
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversarySourceOptimizers
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryDefs
+public import Mathlib.Algebra.Order.Floor.Semiring
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.AdaptiveQueryPurification
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.KrausCircuitCompile
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedRelabel
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedPairedExecution
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedPurification
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.DensityPurification
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.KrausCircuitMixed
+public import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
+public import Qatlib.Concepts.Execution.CircuitCompile.InstrumentCircuitTransport
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.VariableKrausStatistics
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.InstrumentMachinePrefix
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryInstrumentMinimax
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversarySourceOptimizers
+
+@[expose] public section
+
+set_option linter.style.haveILetI false
+set_option linter.unusedTactic false
+set_option linter.unusedSimpArgs false
 
 /-!
 # Semidefinite duality for weighted adversary bounds
@@ -136,7 +144,7 @@ theorem minimaxRankOne_feasible (input : X → K → Bool) (f : X → Bool) (alp
       apply Finset.sum_congr rfl
       intro i _
       by_cases hi : input x i ≠ input y i
-      · simp only [if_pos hi,minimaxRankOne]
+      · simp only [ite_eq_left hi,minimaxRankOne]
         rw [Real.sqrt_mul (hp.1 x i)]
         ring
       · simp [hi]
@@ -189,7 +197,7 @@ theorem minimaxGramProbability_pair (input : X → K → Bool) (f : X → Bool) 
       apply Finset.sum_le_sum
       intro i _
       by_cases hi : input x i ≠ input y i
-      · simp only [if_pos hi]
+      · simp only [ite_eq_left hi]
         exact div_le_div_of_nonneg_right (real_psd_entry_le_sqrt (Z i) (hZ.1 i) x y) ht.le
       · simp [hi]
     _ = advMinimaxTerm input alpha (minimaxGramProbability alpha t Z) x y := by
@@ -347,7 +355,7 @@ theorem minimaxGram_strict_point (input : X → K → Bool) (f : X → Bool) (al
   · intro x
     have hd : minimaxGramStrictMatrix (X := X) x x = 3 := by
       change (2 : ℝ)*1 + (if x = x then 1 else 0) = 3
-      rw [if_pos rfl]
+      rw [ite_eq_left rfl]
       norm_num
     simp_rw [hd]
     rw [← Finset.sum_mul]
@@ -357,7 +365,7 @@ theorem minimaxGram_strict_point (input : X → K → Bool) (f : X → Bool) (al
     obtain ⟨i,hi⟩ := hobs x y hxy
     have he : minimaxGramStrictMatrix (X := X) x y = 2 := by
       change (2 : ℝ) * 1 + (if x = y then 1 else 0) = 2
-      rw [if_neg hne]
+      rw [ite_eq_right hne]
       norm_num
     have hh : (2 : ℝ) ≤ ∑ j : K,
         if input x j ≠ input y j then minimaxGramStrictMatrix (X := X) x y else 0 := by
@@ -365,7 +373,7 @@ theorem minimaxGram_strict_point (input : X → K → Bool) (f : X → Bool) (al
       have hh := Finset.single_le_sum
         (f := fun j : K => if input x j ≠ input y j then (2 : ℝ) else 0)
         (fun j _ => by change 0 ≤ if input x j ≠ input y j then (2 : ℝ) else 0; split_ifs <;> norm_num) (Finset.mem_univ i)
-      simpa only [if_pos hi] using! hh
+      simpa only [ite_eq_left hi] using! hh
     linarith
 end
 noncomputable section
@@ -576,7 +584,7 @@ theorem real_norm_slack_psd (G : Matrix X X ℝ) (hG : G.IsHermitian) (a : ℝ) 
     rw [hs]
     by_cases h : x = y
     · subst y; rfl
-    · rw [if_neg h,if_neg (Ne.symm h)]
+    · rw [ite_eq_right h,ite_eq_right (Ne.symm h)]
   apply Matrix.PosSemidef.of_dotProduct_mulVec_nonneg hh
   intro v
   have hb := (le_abs_self _).trans (balancedReal_rayleigh_bound G v)
@@ -645,9 +653,9 @@ theorem sourceAdversaryBalance_feasible (input : X → K → Bool) (f : X → Bo
         simp only [ne_eq,not_true_eq_false,↓reduceIte]
         ring
       · by_cases hi : input x i ≠ input y i
-        · simp only [if_neg hxy,if_pos hi]
+        · simp only [ite_eq_right hxy,ite_eq_left hi]
           ring
-        · simp only [if_neg hxy,if_neg hi]
+        · simp only [ite_eq_right hxy,ite_eq_right hi]
           ring
     rwa [he] at hp
 end
@@ -703,7 +711,7 @@ theorem minimaxPrimal_zero_weight (input : X → K → Bool) (f : X → Bool) (a
     have hh := real_psd_zero_diagonal_row S hs x hdiag y
     have hne : x ≠ y := fun he => hf (congrArg f he)
     change (if x=y then alpha i*w x else 0) - (if input x i ≠ input y i then A x y else 0) = 0 at hh
-    rw [if_neg hne,if_pos hi] at hh
+    rw [ite_eq_right hne,ite_eq_left hi] at hh
     linarith
 end
 noncomputable section
@@ -809,14 +817,14 @@ theorem minimaxPrimalGamma_feasible (input : X → K → Bool) (f : X → Bool) 
         · have hr : Real.sqrt (w x) ≠ 0 := Real.sqrt_ne_zero'.mpr
             (lt_of_le_of_ne (hA.1 x) (Ne.symm hx))
           have hsq := Real.sq_sqrt (hA.1 x)
-          simp only [if_neg hx]
+          simp only [ite_eq_right hx]
           field_simp [hr]
           rw [hsq]
           ring
       · by_cases hi : input x i ≠ input y i
-        · simp only [if_neg hxy,if_pos hi]
+        · simp only [ite_eq_right hxy,ite_eq_left hi]
           ring
-        · simp only [if_neg hxy,if_neg hi]
+        · simp only [ite_eq_right hxy,ite_eq_right hi]
           ring
     have hslack : (alpha i • (1 : Matrix X X ℝ) - B).PosSemidef := by
       rw [← he]
@@ -979,7 +987,7 @@ variable {d : ℕ}
 variable {X K : Type} [Fintype X] [DecidableEq X] [Fintype K] [DecidableEq K]
 variable {X K : Type} [Fintype X] [Fintype K] [DecidableEq K]
 variable [DecidableEq X]
-open Qatlib.Concepts.DyadicFloor.FloorRounding
+open Qatlib.Concepts.SdpDuality.StrongDuality
 open Qatlib.Concepts.SdpDuality.StrongDuality
 open scoped InnerProductSpace
 noncomputable section
@@ -1233,11 +1241,11 @@ theorem adversaryBlockRankOne_budget (f : X → Bool) (alpha : K → ℝ) (i : K
   unfold adversarySdpBudget
   rw [Finset.sum_eq_single i]
   · change alpha i*((if i=i then (v x : ℂ) else 0)*star (if i=i then (v x : ℂ) else 0)).re = alpha i*(v x)^2
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     simp [pow_two]
   · intro j _ hj
     change alpha j*((if j=i then (v x : ℂ) else 0)*star (if j=i then (v x : ℂ) else 0)).re = 0
-    rw [if_neg hj]
+    rw [ite_eq_right hj]
     norm_num
   · simp
 end
@@ -1253,12 +1261,12 @@ theorem adversaryBlockRankOne_pair (input : X → K → Bool) (f : X → Bool) (
   change (∑ j, if input xy.val.1 j ≠ input xy.val.2 j then
       ((if j=i then (v xy.val.1 : ℂ) else 0)*star (if j=i then (v xy.val.2 : ℂ) else 0)).re else 0) - ((0 : ℂ)*star (0 : ℂ)).re = _
   rw [zero_mul,Complex.zero_re,sub_zero,Finset.sum_eq_single i]
-  · rw [if_pos rfl]
+  · rw [ite_eq_left rfl]
     by_cases hd : input xy.val.1 i ≠ input xy.val.2 i
     · simp [hd]
     · simp [hd]
   · intro j _ hj
-    rw [if_neg hj]
+    rw [ite_eq_right hj]
     simp
   · simp
 end
@@ -1464,7 +1472,7 @@ theorem adversaryProbabilityLift_pair (input : X → K → Bool) (f : X → Bool
     apply Finset.sum_congr rfl
     intro i _
     by_cases hi : input xy.val.1 i ≠ input xy.val.2 i
-    · simp only [if_pos hi]
+    · simp only [ite_eq_left hi]
       rw [Real.sqrt_mul (hp.1 xy.val.1 i)]
       ring
     · simp [hi]
@@ -1528,7 +1536,7 @@ theorem adversaryDifferenceCount_one_le (input : X → K → Bool) (f : X → Bo
     (f := fun j => if input xy.val.1 j ≠ input xy.val.2 j then (1 : ℝ) else 0)
     (fun j _ => by change 0 ≤ if input xy.val.1 j ≠ input xy.val.2 j then (1 : ℝ) else 0; split_ifs <;> norm_num)
     (Finset.mem_univ i)
-  simpa only [if_pos hi] using! hh
+  simpa only [ite_eq_left hi] using! hh
 end
 noncomputable section
 
@@ -1642,14 +1650,14 @@ theorem adversaryDualPair_sum (f : X → Bool) (y : EuclideanSpace ℝ (Adversar
     intro xy _ hn
     have hnp : ¬p xy := by simpa only [Finset.mem_filter,Finset.mem_univ,true_and] using! hn
     change (if h : f xy.1 ≠ f xy.2 then y (Sum.inr ⟨(xy.1,xy.2),h⟩) else 0)*F xy.1 xy.2 = 0
-    rw [dif_neg hnp,zero_mul]
+    rw [dite_eq_right hnp,zero_mul]
   have hprod : (∑ xy : X × X, g xy) = ∑ x, ∑ z, adversaryDualPair f y x z*F x z := by
     simp only [Fintype.sum_prod_type,g]
   rw [← hprod]
   rw [← he,Finset.sum_subtype (p := p) (Finset.univ.filter p) (by intro xy; simp [p]) g]
   apply Finset.sum_congr rfl
   intro xy _
-  simp only [g,adversaryDualPair,dif_pos xy.property]
+  simp only [g,adversaryDualPair,dite_eq_left xy.property]
 end
 noncomputable section
 omit [DecidableEq X] in
@@ -1765,7 +1773,7 @@ theorem adversaryEquality_dual_psd (input : X → K → Bool) (f : X → Bool) (
     simp only [star_trivial,ne_comm,hs]
     by_cases h : x=z
     · subst z; rfl
-    · rw [if_neg h,if_neg (Ne.symm h)]
+    · rw [ite_eq_right h,ite_eq_right (Ne.symm h)]
   apply Matrix.PosSemidef.of_dotProduct_mulVec_nonneg hs
   intro v
   have hh := HermitianMat.inner_ge_zero hy (adversaryBlockRankOne_psd f i v)
@@ -1863,10 +1871,10 @@ theorem adversaryEquality_zero_dual (input : X → K → Bool) (f : X → Bool) 
     obtain ⟨x,i⟩ := xi
     by_cases hx : x=x0
     · change 0 ≤ ((-(if x=x0 then -alpha i else 0) : ℝ) : ℂ)
-      rw [if_pos hx,neg_neg]
+      rw [ite_eq_left hx,neg_neg]
       exact Complex.nonneg_iff.mpr ⟨ha i,rfl⟩
     · change 0 ≤ ((-(if x=x0 then -alpha i else 0) : ℝ) : ℂ)
-      rw [if_neg hx]
+      rw [ite_eq_right hx]
       norm_num
   | inr xy => change 0 ≤ ((-(0 : ℝ) : ℝ) : ℂ); norm_num
 end

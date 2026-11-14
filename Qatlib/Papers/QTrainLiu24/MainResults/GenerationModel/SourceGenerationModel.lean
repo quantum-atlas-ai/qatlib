@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Nat.Log
-import Mathlib.Data.Fintype.Card
-import Mathlib.Data.Fintype.BigOperators
-import Mathlib.Data.Real.Basic
-import Mathlib.Order.Interval.Set.Defs
-import Mathlib.Tactic
+module
+
+public import Mathlib.Data.Nat.Log
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Data.Fintype.BigOperators
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Order.Interval.Set.Defs
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -97,7 +101,7 @@ theorem toVec_injective {N : ℕ} : Function.Injective (QTInput.toVec (N := N)) 
   have hbasis : xb = yb := by
     funext k
     have hk := congrFun h ⟨k.val, Nat.lt_succ_of_lt k.isLt⟩
-    simp only [QTInput.toVec, dif_pos k.isLt] at hk
+    simp only [QTInput.toVec, dite_eq_left k.isLt] at hk
     by_cases hx : xb k <;> by_cases hy : yb k <;> simp_all
   have hprob : xp = yp := by
     apply Subtype.ext

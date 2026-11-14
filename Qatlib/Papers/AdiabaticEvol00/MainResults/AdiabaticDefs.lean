@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.MixedState
+module
+
+public import Qatlib.Foundations.PureStateMath.MixedState
+
+@[expose] public section
 
 /-!
 # Interpolation, spectral gaps, and runtime inequalities
@@ -127,7 +131,7 @@ theorem time_bound_linear_gap {E g C c n : ℝ}
     exact nonneg_of_mul_nonneg_left hCn hn
   calc E ≤ C * n := hE
     _ = (C / c ^ 2) * n ^ 3 * (c ^ 2 / n ^ 2) := by
-        field_simp; try ring
+        field_simp
     _ ≤ (C / c ^ 2) * n ^ 3 * g ^ 2 := by
         exact mul_le_mul_of_nonneg_left hg2 (by positivity)
 

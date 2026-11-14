@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.SearchAttempt
-import Qatlib.Concepts.SearchStopping.UnknownCount.SearchSchedule
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.SearchRandomized
+module
+
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.SearchAttempt
+public import Qatlib.Concepts.SearchStopping.UnknownCount.SearchSchedule
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.SearchRandomized
+
+@[expose] public section
 
 /-!
 # Retry reach masses and geometric search tails

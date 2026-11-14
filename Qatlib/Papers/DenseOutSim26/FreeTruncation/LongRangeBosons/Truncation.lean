@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.DenseOutSim26.FreeTruncation.Core.DenseOutput
+module
+
+public import Qatlib.Papers.DenseOutSim26.FreeTruncation.Core.DenseOutput
+
+@[expose] public section
 
 /-!
 # Long-range Bose-Hubbard systems: truncation radius

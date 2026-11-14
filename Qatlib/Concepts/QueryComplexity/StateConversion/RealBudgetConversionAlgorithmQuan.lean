@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.StateConversion.RealBudgetConversionAlgorithmStat
-import Qatlib.Concepts.GramQueryCore.LowerBoundTools.GeneralOutputGramBridgesQuan
-import Qatlib.Concepts.GramQueryCore.FilteredNorm.FilteredNormCompositionAndProductsQuan
-import Qatlib.Concepts.GramQueryCore.FilteredNorm.FunctionEvaluationNormSandwichQuan
+module
+
+public import Qatlib.Concepts.QueryComplexity.StateConversion.RealBudgetConversionAlgorithmStat
+public import Qatlib.Concepts.GramQueryCore.LowerBoundTools.GeneralOutputGramBridgesQuan
+public import Qatlib.Concepts.GramQueryCore.FilteredNorm.FilteredNormCompositionAndProductsQuan
+public import Qatlib.Concepts.GramQueryCore.FilteredNorm.FunctionEvaluationNormSandwichQuan
+
+@[expose] public section
 
 /-!
 # State conversion from real budgets
@@ -343,8 +347,8 @@ theorem source_onepass_native_algorithm {X H : Type} [Fintype X] [DecidableEq X]
       ‖toEuclidean_fromVec (sourceWordMatrix (sourceAlphabetOracle input x) C *ᵥ
         sourceClean n q r hr false (ρ x)-sourceClean n q r hr true (σ x))‖≤
         2*η+4*W/(η*(2^a : ℕ)) := by
-  letI : DecidableEq (SourceGeometry n q m H) := instDecidableEqSum
-  letI : DecidableEq (PhaseReflectionSpace (SourceGeometry n q m H) (2^a) 1) := instDecidableEqProd
+  let : DecidableEq (SourceGeometry n q m H) := instDecidableEqSum
+  let : DecidableEq (PhaseReflectionSpace (SourceGeometry n q m H) (2^a) 1) := instDecidableEqProd
   obtain ⟨hL,hgeometry⟩ := sourceGeometry_of_witness input ρ σ u v W η hn hq hW hη hEq hbudget
   let C := phaseSourceCompile (sourcePhaseRoute (SourceGeometry n q m H) a 1)
     (phaseReflectionWord (2^a) 1)
@@ -485,7 +489,7 @@ theorem sourceAlphabet_degenerate_gram {X : Type} [Fintype X] [DecidableEq X]
       have hx := (input x j).isLt
       have hy := (input y j).isLt
       omega
-    exact hj (by simp only [sourceAlphabetDelta,if_pos he])
+    exact hj (by simp only [sourceAlphabetDelta,ite_eq_left he])
 
 /-- A phase-register size of at least `2048 * W / ε²` bounds the stated one-pass error
 expression by `ε / 4`. -/
@@ -505,7 +509,7 @@ theorem sourceOnePass_error_bound (W ε : ℝ) (hε : 0<ε) (_hW : ε/8≤W)
 including query-free degenerate cases; see [Lee et al., Theorem 4.1 and Proposition
 4.6][LeeEtAl2011]. -/
 theorem realBudgetConversionAlgorithm : RealBudgetConversionAlgorithm := by
-  refine ⟨65536,by norm_num,?_⟩
+  refine ⟨65536, by decide, ?_⟩
   intro X H _ _ _ _ _ n q input ρ σ W ε hn hW hb hε hε1
   have he1 : ε≤1 := by linarith
   let A := gramStateMatrix ρ-gramStateMatrix σ

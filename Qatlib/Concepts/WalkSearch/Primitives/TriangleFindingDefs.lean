@@ -4,18 +4,22 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.WalkAlgorithms.WalkContracts
-import Qatlib.Concepts.WalkSearch.WalkAlgorithms.WalkCorrectedContracts
-import Qatlib.Concepts.WalkSearch.WalkAlgorithms.WalkFreshValidationContracts
-import Qatlib.Concepts.WalkSearch.Primitives.ScopedSearchInterface
-import Qatlib.Concepts.WalkSearch.WalkAlgorithms.StoredSubgraphVocabulary
-import Qatlib.Concepts.WalkSearch.QuantumAccess.SafeGroverNative
-import Qatlib.Concepts.WalkSearch.QuantumAccess.NoisySearchNative
-import Qatlib.Concepts.WalkSearch.WalkAlgorithms.Th5NumericPolylogQuan
-import Qatlib.Concepts.WalkSearch.CollisionSearch.RealExponentTransportQuan
-import Qatlib.Concepts.WalkSearch.Primitives.DLoNonvacuityQuan
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
+module
+
+public import Qatlib.Concepts.WalkSearch.WalkAlgorithms.WalkContracts
+public import Qatlib.Concepts.WalkSearch.WalkAlgorithms.WalkCorrectedContracts
+public import Qatlib.Concepts.WalkSearch.WalkAlgorithms.WalkFreshValidationContracts
+public import Qatlib.Concepts.WalkSearch.Primitives.ScopedSearchInterface
+public import Qatlib.Concepts.WalkSearch.WalkAlgorithms.StoredSubgraphVocabulary
+public import Qatlib.Concepts.WalkSearch.QuantumAccess.SafeGroverNative
+public import Qatlib.Concepts.WalkSearch.QuantumAccess.NoisySearchNative
+public import Qatlib.Concepts.WalkSearch.WalkAlgorithms.Th5NumericPolylogQuan
+public import Qatlib.Concepts.WalkSearch.CollisionSearch.RealExponentTransportQuan
+public import Qatlib.Concepts.WalkSearch.Primitives.DLoNonvacuityQuan
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
+
+@[expose] public section
 
 /-!
 # Finite-resource specifications for triangle search

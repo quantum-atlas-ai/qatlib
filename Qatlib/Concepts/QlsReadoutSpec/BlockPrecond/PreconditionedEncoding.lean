@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.Basic
-import Qatlib.Concepts.QlsReadoutSpec.BlockPrecond.BlockPreconditioning
-import Qatlib.Concepts.MatrixAccess.FrameFilterProd
-import Qatlib.Concepts.QlsReadoutSpec.BlockPrecond.BlockPreconditioningPseudoinverse
+module
+
+public import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.Basic
+public import Qatlib.Concepts.QlsReadoutSpec.BlockPrecond.BlockPreconditioning
+public import Qatlib.Concepts.MatrixAccess.FrameFilterProd
+public import Qatlib.Concepts.QlsReadoutSpec.BlockPrecond.BlockPreconditioningPseudoinverse
+
+@[expose] public section
 
 /-!
 # One-flag encoding of the preconditioned matrix
@@ -141,6 +145,7 @@ theorem compress_flag_corner (V : Matrix (Bool×H) (Bool×H) ℂ) (L : Matrix H 
   ext o i
   simp [compress,flagFrame,BlockCorner,Matrix.mul_apply,Matrix.conjTranspose_apply,Fintype.sum_prod_type]
 
+omit [Fintype I] in
 /-- A projected unitary encoding of `A` yields a projected unitary encoding of `stateScaling s b
 * A` through the preconditioned unitary and flagged frames when `b` is normalized and `0 < s
 < 1`. -/

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Fintype.BigOperators
-import Mathlib.Tactic
+module
+
+public import Mathlib.Data.Fintype.BigOperators
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Aperiodic autocorrelation energy
@@ -59,7 +63,7 @@ theorem correlation_last {N : ℕ} (hN : 0<N) (s : Fin N → ℝ) :
   · simp [hN]
   · intro i _ hi
     have hv : i.val≠0 := fun h => hi (Fin.ext h)
-    apply dif_neg
+    apply dite_eq_right
     change ¬i.val+(N-1)<N
     omega
   · simp
@@ -71,9 +75,9 @@ theorem endpoint_sq_le_sidelobe {N : ℕ} (hN : 2≤N) (s : Fin N → ℝ) :
   let k : Fin N:=⟨N-1,by omega⟩
   have hk : 0<k.val := by dsimp [k]; omega
   have hsum:=Finset.single_le_sum (f:=fun k : Fin N => if 0<k.val then correlation s k^2 else 0)
-    (fun j _ => by (try dsimp only); split_ifs; exact sq_nonneg _; exact le_refl 0) (Finset.mem_univ k)
-  try dsimp only at hsum
-  rw [if_pos hk] at hsum
+    (fun j _ => by  split_ifs; exact sq_nonneg _; exact le_refl 0) (Finset.mem_univ k)
+
+  rw [ite_eq_left hk] at hsum
   change correlation s ⟨N-1,by omega⟩^2≤squaredSidelobe s at hsum
   rwa [correlation_last (by omega)] at hsum
 end Qatlib.Foundations.SequenceEnergy.Aperiodic

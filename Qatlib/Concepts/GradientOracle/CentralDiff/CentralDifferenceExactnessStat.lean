@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Calculus.Taylor
-import Mathlib.Data.Int.Interval
-import Qatlib.Concepts.GradientOracle.CentralDiff.CentralDifferenceDefs
+module
+
+public import Mathlib.Analysis.Calculus.Taylor
+public import Mathlib.Data.Int.Interval
+public import Qatlib.Concepts.GradientOracle.CentralDiff.CentralDifferenceDefs
+
+@[expose] public section
 
 /-!
 # Central-difference exactness specification

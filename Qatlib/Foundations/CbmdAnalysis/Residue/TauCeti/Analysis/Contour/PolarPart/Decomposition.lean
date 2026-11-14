@@ -6,12 +6,16 @@ Authors: Chris Birkbeck, Qatlib Contributors
 Adapted from https://github.com/TauCetiProject/TauCeti@3780371c
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+module
 
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.HomologyCauchy
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.MeromorphicLaurent
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Cauchy.PrincipalValue.Basic
-import Mathlib.Analysis.Calculus.FDeriv.Measurable
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.HomologyCauchy
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.MeromorphicLaurent
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Cauchy.PrincipalValue.Basic
+public import Mathlib.Analysis.Calculus.FDeriv.Measurable
+
+@[expose] public section
 
 /-!
 # Polar-part decompositions over finite sets
@@ -82,15 +86,15 @@ theorem sum_ite_coeff_eq_residue_mul (decomp : PolarPartDecomposition f S U) (s 
   classical
   rcases Nat.eq_zero_or_pos (decomp.order s) with h0 | h_pos
   · rw [Finset.sum_eq_zero fun k _ => absurd k.isLt (by omega), decomp.residue_eq s,
-      dif_neg (by omega), zero_mul]
+      dite_eq_right (by omega), zero_mul]
   · have h_pick : ∀ k : Fin (decomp.order s),
         (if k.val = 0 then decomp.coeff s k * c else 0)
         = if k = ⟨0, h_pos⟩ then decomp.coeff s ⟨0, h_pos⟩ * c else 0 := fun k => by
       rcases eq_or_ne k ⟨0, h_pos⟩ with rfl | hk
       · simp
-      · rw [if_neg fun h => hk (Fin.ext h), if_neg hk]
+      · rw [ite_eq_right fun h => hk (Fin.ext h), ite_eq_right hk]
     rw [Finset.sum_congr rfl fun k _ => h_pick k, Finset.sum_ite_eq' Finset.univ,
-      if_pos (Finset.mem_univ _), decomp.residue_eq s, dif_pos h_pos]
+      ite_eq_left (Finset.mem_univ _), decomp.residue_eq s, dite_eq_left h_pos]
 
 /-- The analytic remainder integrates to zero along a closed piecewise C¹ curve null-homologous
 in the open set `U`. -/
@@ -163,13 +167,13 @@ private theorem remainder_eventuallyEq_off {f : ℂ → ℂ} {S : Finset ℂ}
       else f w - meromorphicPolarPartTotal hMero w) =ᶠ[𝓝 z]
       fun w => f w - meromorphicPolarPartTotal hMero w := by
   filter_upwards [(S.finite_toSet.isClosed.isOpen_compl).mem_nhds hz] with w hw
-  rw [if_neg hw]
+  rw [ite_eq_right hw]
 
 /-- A punctured neighborhood of any complex point eventually avoids every point of a fixed
 finite set. -/
 private theorem eventually_notMem_nhdsNE (S : Finset ℂ) (z : ℂ) :
     ∀ᶠ w in 𝓝[≠] z, w ∉ (↑S : Set ℂ) := by
-  have hcl : IsClosed ((↑S \ {z} : Set ℂ)) := (S.finite_toSet.subset diff_subset).isClosed
+  have hcl : IsClosed ((↑S \ {z} : Set ℂ)) := (S.finite_toSet.subset Set.sdiff_subset).isClosed
   filter_upwards [eventually_nhdsWithin_of_eventually_nhds
     (hcl.isOpen_compl.mem_nhds (by simp)), self_mem_nhdsWithin] with w hwc hwne hwS
   exact hwc ⟨hwS, hwne⟩
@@ -186,12 +190,12 @@ private theorem remainder_differentiableAt_mem {f : ℂ → ℂ} {S : Finset ℂ
       limUnder (𝓝[≠] w) (fun u => f u - meromorphicPolarPartTotal hMero u)
     else f w - meromorphicPolarPartTotal hMero w) = g w := by
     filter_upwards [eventually_notMem_nhdsNE S z, hg_eq] with w hwS hwg
-    rw [if_neg hwS]
+    rw [ite_eq_right hwS]
     exact hwg
   have h2 : (if z ∈ (↑S : Set ℂ) then
       limUnder (𝓝[≠] z) (fun u => f u - meromorphicPolarPartTotal hMero u)
     else f z - meromorphicPolarPartTotal hMero z) = g z := by
-    rw [if_pos hzS]
+    rw [ite_eq_left hzS]
     refine Filter.Tendsto.limUnder_eq ?_
     refine Filter.Tendsto.congr' ?_
       (hg_an.continuousAt.tendsto.mono_left nhdsWithin_le_nhds)
@@ -216,12 +220,12 @@ noncomputable def ofMeromorphic {f : ℂ → ℂ} {S : Finset ℂ} {U : Set ℂ}
   polarPart_eq s z := meromorphicPolarPartAt_eq_sum (hMero s s.2) z
   residue_eq s := by
     rcases Nat.eq_zero_or_pos (meromorphicPolarOrderAt f s) with h0 | hpos
-    · rw [dif_neg (by omega)]
+    · rw [dite_eq_right (by omega)]
       refine residue_eq_zero_of_meromorphicOrderAt_nonneg ?_
       have hle := neg_meromorphicPolarOrderAt_le f (s : ℂ)
       rw [h0] at hle
       simpa using hle
-    · rw [dif_pos hpos]
+    · rw [dite_eq_left hpos]
       exact (meromorphicPolarCoeffAt_zero_eq_residue (hMero s s.2) hpos).symm
   analyticRemainder := fun z => if z ∈ (↑S : Set ℂ) then
       limUnder (𝓝[≠] z) (fun u => f u - meromorphicPolarPartTotal hMero u)
@@ -240,7 +244,7 @@ noncomputable def ofMeromorphic {f : ℂ → ℂ} {S : Finset ℂ} {U : Set ℂ}
       exact (h_diff.congr_of_eventuallyEq
         (remainder_eventuallyEq_off hMero hzS)).differentiableWithinAt
   f_eq z hz := by
-    rw [if_neg hz.2]
+    rw [ite_eq_right hz.2]
     unfold meromorphicPolarPartTotal
     ring
 
@@ -275,7 +279,7 @@ theorem ofMeromorphic_analyticRemainder {z : ℂ} (hz : z ∉ (↑S : Set ℂ)) 
     (ofMeromorphic hU hf hMero).analyticRemainder z =
       f z - meromorphicPolarPartTotal hMero z := by
   unfold ofMeromorphic
-  exact if_neg hz
+  exact ite_eq_right hz
 
 /-- For a measurable curve with interval-integrable derivative, each polar part times the
 derivative is interval integrable after any positive distance truncation. -/

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LowEnergyProd24.ProductError.GeneratorExpansion
-import Qatlib.Papers.LowEnergyProd24.RetainedBound.Duhamel
-import Mathlib.Topology.Algebra.InfiniteSum.NatInt
+module
+
+public import Qatlib.Papers.LowEnergyProd24.ProductError.GeneratorExpansion
+public import Qatlib.Papers.LowEnergyProd24.RetainedBound.Duhamel
+public import Mathlib.Topology.Algebra.InfiniteSum.NatInt
+
+@[expose] public section
 
 /-!
 # Weighted tails of the product-word defect
@@ -47,7 +51,7 @@ theorem actual_weighted_defect_tail (h : Hamiltonian N R M k d J) (stages : List
     HasSum (fun n : ℕ => t^(n+p) • weighted h.total (computedCoefficient h stages (n+p)) lam)
       (weighted h.total (defect h stages t) lam) := by
   have hzero : computedCoefficient h stages 0=totalGenerator h := by
-    simpa only [if_pos rfl] using! horder 0 hp
+    simpa only [ite_eq_left rfl] using! horder 0 hp
   have hprefix : (∑ n ∈ Finset.range p, t^n • weighted h.total (computedCoefficient h stages n) lam) =
       weighted h.total (totalGenerator h) lam := by
     rw [Finset.sum_eq_single 0]
@@ -55,7 +59,7 @@ theorem actual_weighted_defect_tail (h : Hamiltonian N R M k d J) (stages : List
       simp only [pow_zero, one_smul]
     · intro n hn hnzero
       have hc := horder n (Finset.mem_range.mp hn)
-      rw [if_neg hnzero] at hc
+      rw [ite_eq_right hnzero] at hc
       simp only [hc, weighted, mul_zero, zero_mul, smul_zero]
     · intro hn
       exact (hn (Finset.mem_range.mpr hp)).elim

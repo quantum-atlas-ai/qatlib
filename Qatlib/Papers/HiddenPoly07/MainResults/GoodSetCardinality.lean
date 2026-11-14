@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.FieldTheory.Finite.Basic
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Data.Fintype.Card
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.Positivity
+module
+
+public import Mathlib.FieldTheory.Finite.Basic
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.Positivity
+
+@[expose] public section
 
 /-!
 # Cardinality of nonzero coordinate tuples

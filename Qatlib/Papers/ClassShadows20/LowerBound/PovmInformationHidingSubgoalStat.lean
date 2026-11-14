@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
-import Qatlib.Foundations.PureStateMath.MixedState
-import Qatlib.Papers.ClassShadows20.LowerBound.PovmInformationHidingDefs
+module
+
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+public import Qatlib.Foundations.PureStateMath.MixedState
+public import Qatlib.Papers.ClassShadows20.LowerBound.PovmInformationHidingDefs
+
+@[expose] public section
 
 /-!
 # POVM information hiding contract
@@ -45,19 +49,19 @@ def PovmInformationHidingSubgoal : Prop :=
   ∀ (d r M : ℕ) (O : Type) [Fintype O] [DecidableEq O]
     (I : Type) [Fintype I] [DecidableEq I]
     (F : O → Operator d)
-    (hFpsd : ∀ o, (F o).PosSemidef) (hFsum : (∑ o, F o) = 1)
+    (_hFpsd : ∀ o, (F o).PosSemidef) (_hFsum : (∑ o, F o) = 1)
     (P : Fin M → Operator d)
-    (hP : ∀ x, (P x).IsHermitian ∧ P x * P x = P x ∧
+    (_hP : ∀ x, (P x).IsHermitian ∧ P x * P x = P x ∧
       Matrix.trace (P x) = ((r : ℕ) : ℂ))
-    (hd : 2 ≤ d) (hr : 0 < r) (hrd : r ≤ d) (hM : 0 < M)
-    (α : ℝ) (hα0 : 0 < α) (hα1 : α ≤ 1)
+    (_hd : 2 ≤ d) (_hr : 0 < r) (_hrd : r ≤ d) (_hM : 0 < M)
+    (α : ℝ) (_hα0 : 0 < α) (_hα1 : α ≤ 1)
     (μ : FinDist I) (Uf : I → Operator d)
-    (hμU : ∀ i, 0 < μ.prob i → Uf i ∈ Matrix.unitaryGroup (Fin d) ℂ)
-    (s : ℝ) (hs : s = (1 - α ^ 2) / (d : ℝ) + α ^ 2 / (r : ℝ))
-    (h1 : ∀ x : Fin M,
+    (_hμU : ∀ i, 0 < μ.prob i → Uf i ∈ Matrix.unitaryGroup (Fin d) ℂ)
+    (s : ℝ) (_hs : s = (1 - α ^ 2) / (d : ℝ) + α ^ 2 / (r : ℝ))
+    (_h1 : ∀ x : Fin M,
       (∑ i, μ.prob i • (Uf i * lemma8CodeState d r α (P x) * (Uf i)ᴴ)) =
         (1 / (d : ℝ)) • 1)
-    (h2 : ∀ x : Fin M, ∀ A B : Operator d,
+    (_h2 : ∀ x : Fin M, ∀ A B : Operator d,
       A.IsHermitian → B.IsHermitian →
       (∑ i, μ.prob i *
           (Matrix.trace (A * (Uf i * lemma8CodeState d r α (P x) *

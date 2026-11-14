@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.LinearAlgebra.Dual.Lemmas
-import Mathlib.LinearAlgebra.StdBasis
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.LinearAlgebra.Dual.Lemmas
+public import Mathlib.LinearAlgebra.StdBasis
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Span programs and dual acceptance witnesses
@@ -328,7 +332,7 @@ theorem accepts_iff_exists_zeroEigen_bO [Fintype J] [DecidableEq J] [Fintype C]
             -(((P.falseInputs x j).card : ℂ))⁻¹ * P.pair b j := by
           intro i hi
           obtain ⟨hg, hl⟩ := P.mem_falseInputs.1 hi
-          simp only [bI, hl, if_true]
+          simp only [bI, hl, ite_true]
           rw [hg]
         rw [sum_congr rfl hterm, sum_const, nsmul_eq_mul]
         field_simp

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ParityTester.SampledParity.SparseSyndromeDefs
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Tactic.Ring
+module
+
+public import Qatlib.Concepts.ParityTester.SampledParity.SparseSyndromeDefs
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 /-!
 # Sparse binary syndrome scans and read bounds
@@ -190,7 +194,7 @@ theorem syndrome_change_le_column_reads :
       intro i _
       by_cases hi : e i = 0
       · simp [hi,bitWeight]
-      · rw [if_neg hi]
+      · rw [ite_eq_right hi]
         exact (column_weight_le rows i (e i)).trans (hd i)
     _ = d*bitWeight e := by
       simp [bitWeight, Finset.sum_ite, Nat.mul_comm]

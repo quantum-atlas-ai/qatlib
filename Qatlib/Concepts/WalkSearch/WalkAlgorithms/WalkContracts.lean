@@ -4,16 +4,20 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Nat.Log
-import Mathlib.Data.Nat.Sqrt
-import Mathlib.Data.Finset.Basic
-import Mathlib.Data.Fintype.Defs
-import Mathlib.Data.Fintype.Card
-import Mathlib.Data.Real.Basic
-import Mathlib.Data.Set.Function
-import Mathlib.Data.Fintype.Pi
-import Mathlib.Data.Fintype.Basic
-import Mathlib.Order.Basic
+module
+
+public import Mathlib.Data.Nat.Log
+public import Mathlib.Data.Nat.Sqrt
+public import Mathlib.Data.Finset.Basic
+public import Mathlib.Data.Fintype.Defs
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Data.Set.Function
+public import Mathlib.Data.Fintype.Pi
+public import Mathlib.Data.Fintype.Basic
+public import Mathlib.Order.Basic
+
+@[expose] public section
 
 /-!
 # Search interfaces and graph-search algorithms

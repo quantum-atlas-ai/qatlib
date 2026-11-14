@@ -1,6 +1,8 @@
 .lake/
 .ci/
-/docbuild/
+/docbuild/*
+!/docbuild/lakefile.toml
+!/docbuild/lake-manifest.json
 /_site/
 __pycache__/
 *.pyc

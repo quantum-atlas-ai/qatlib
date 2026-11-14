@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsNativeDefs
+
+@[expose] public section
 
 /-!
 # A native tape implementation of a bounded random walk

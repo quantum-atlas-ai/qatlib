@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.UniformBqp.Phi3Compile.StandardMachineDefs
+module
+
+public import Qatlib.Concepts.UniformBqp.Phi3Compile.StandardMachineDefs
+
+@[expose] public section
 
 /-!
 # Reversible gate programs and clocked machine guarantees
@@ -681,12 +685,12 @@ theorem mcxProgramAll_run {n m : ℕ} (l : List (Fin n × Fin m)) (t : Fin n) (x
       exact h q.1 (List.mem_map.mpr ⟨q, hq, rfl⟩)
   by_cases hc : ∀ c ∈ l.map (fun q => q.1), x (addrWire m c)
   · have hchain : ladderChain l x = true := (hcond).2 hc
-    rw [mcxAllPerm, if_pos hc]
+    rw [mcxAllPerm, ite_eq_left hc]
     simp [hchain]
   · have hchain : ladderChain l x = false := by
       have hne : ladderChain l x ≠ true := fun h => hc ((hcond).1 h)
       exact Bool.eq_false_of_not_eq_true hne
-    rw [mcxAllPerm, if_neg hc]
+    rw [mcxAllPerm, ite_eq_right hc]
     simp [hchain]
 
 /-- A conjunction chain contains exactly one gate per control-destination pair. -/
@@ -738,20 +742,20 @@ theorem mcxPerm_addrGate {n : ℕ} (t : Fin n) (p : Reg n) (x : Reg (n + (n - 1)
         (fun w => x (addrWire (n - 1) w))
       ↔ ∀ w' : Fin n, w' ≠ t → x (addrWire (n - 1) w') = p w' := Iff.rfl
   by_cases h : ∀ w' : Fin n, w' ≠ t → x (addrWire (n - 1) w') = p w'
-  · rw [mcxPerm, if_pos h]
+  · rw [mcxPerm, ite_eq_left h]
     have hpos : Qatlib.Concepts.UniformBqp.Phi3Compile.AddrGate.matches ⟨t, p⟩
         (fun w => x (addrWire (n - 1) w)) := hmatch.mpr h
-    rw [Qatlib.Concepts.UniformBqp.Phi3Compile.AddrGate.eval, if_pos hpos]
+    rw [Qatlib.Concepts.UniformBqp.Phi3Compile.AddrGate.eval, ite_eq_left hpos]
     by_cases hwt : w = t
     · subst hwt
       simp [Function.update]
     · have hne : addrWire (n - 1) w ≠ addrWire (n - 1) t :=
         fun h => hwt (addrWire_injective h)
       simp [Function.update, hne, hwt]
-  · rw [mcxPerm, if_neg h]
+  · rw [mcxPerm, ite_eq_right h]
     have hneg : ¬ Qatlib.Concepts.UniformBqp.Phi3Compile.AddrGate.matches ⟨t, p⟩
         (fun w => x (addrWire (n - 1) w)) := fun hp => h (hmatch.mp hp)
-    rw [Qatlib.Concepts.UniformBqp.Phi3Compile.AddrGate.eval, if_neg hneg]
+    rw [Qatlib.Concepts.UniformBqp.Phi3Compile.AddrGate.eval, ite_eq_right hneg]
 
 /-- Filtering a list with no repeated entries preserves the absence of repetitions. -/
 theorem nodup_filter_of_nodup {α : Type} (p : α → Bool) :
@@ -764,9 +768,9 @@ theorem nodup_filter_of_nodup {α : Type} (p : α → Bool) :
       have ha : a ∉ l := (List.nodup_cons.mp hl).1
       have hl' : l.Nodup := (List.nodup_cons.mp hl).2
       by_cases hpa : p a
-      · simp only [List.filter_cons, if_pos hpa]
+      · simp only [List.filter_cons, ite_eq_left hpa]
         exact List.nodup_cons.mpr ⟨by simp [ha], ih hl'⟩
-      · simp only [List.filter_cons, if_neg hpa]
+      · simp only [List.filter_cons, ite_eq_right hpa]
         exact ih hl'
 
 /-- The list of wires other than a specified target has no repeated entries. -/
@@ -1111,7 +1115,7 @@ theorem mcxProgram_run {n : ℕ} (t : Fin n) (p : Reg n) (x : Reg (n + (n - 1)))
       have htv : (t : Fin 1).val = 0 := by omega
       have hwt : w = t := Fin.ext (by omega)
       exact absurd hw (fun h => h hwt)
-    rw [hprog, hrun1, mcxPerm, if_pos hcond]
+    rw [hprog, hrun1, mcxPerm, ite_eq_left hcond]
   · have hne : mcxPairs t ≠ [] := by
       intro hmem
       have hl := mcxPairs_length t
@@ -1182,12 +1186,12 @@ theorem mcxProgram_run {n : ℕ} (t : Fin n) (p : Reg n) (x : Reg (n + (n - 1)))
     by_cases hpat : ∀ w : Fin n, w ≠ t → x (addrWire (n - 1) w) = p w
     · have hch : ladderChain (mcxPairs t) (BoundedGate.run (patternFix (n - 1) p t) x) = true :=
         (ladderChain_patternFix t p x).2 hpat
-      rw [hch, mcxPerm, if_pos hpat]
+      rw [hch, mcxPerm, ite_eq_left hpat]
     · have hch : ladderChain (mcxPairs t) (BoundedGate.run (patternFix (n - 1) p t) x) = false := by
         have hne2 : ladderChain (mcxPairs t) (BoundedGate.run (patternFix (n - 1) p t) x) ≠ true :=
           fun h => hpat ((ladderChain_patternFix t p x).1 h)
         exact Bool.eq_false_of_not_eq_true hne2
-      rw [hch, mcxPerm, if_neg hpat]
+      rw [hch, mcxPerm, ite_eq_right hpat]
       funext s
       by_cases hst : s = addrWire (n - 1) t
       · subst hst
@@ -1510,9 +1514,9 @@ theorem clockedCoin_aux {q m : ℕ}
     intro cfg s hs hph hlen
     rw [coinTapeRunAux]
     by_cases hh : coinHalt (clockedCoinMachine M m) cfg = true
-    · rw [if_pos hh]
+    · rw [ite_eq_left hh]
       simp
-    · rw [if_neg hh]
+    · rw [ite_eq_right hh]
       have hs' : s < m := by
         by_contra hcon
         have hsm : s = m := by omega
@@ -1616,9 +1620,9 @@ theorem tapeDecisionRun_map {Γ Λ : Type} [Inhabited Γ] [Inhabited Λ]
     intro cfg
     simp only [tapeDecisionRun]
     by_cases h : Turing.TM0.step M cfg = none
-    · rw [if_pos h, if_pos h]
+    · rw [ite_eq_left h, ite_eq_left h]
       rfl
-    · rw [if_neg h, if_neg h]
+    · rw [ite_eq_right h, ite_eq_right h]
       rfl
   | succ t ih =>
     intro cfg
@@ -1724,9 +1728,9 @@ theorem tGate_four_eq_pauliZ : (Qatlib.Concepts.GateVocabulary.LocalReflectionGa
   by_cases hij : i = j
   · subst hij
     cases i with
-    | false => simp only [Bool.false_eq_true, if_false]; ring
+    | false => simp only [Bool.false_eq_true, ite_false]; ring
     | true =>
-      simp only [if_true]
+      simp only [ite_true]
       calc
         Complex.exp (((Real.pi / 4 : ℝ) : ℂ) * Complex.I) *
             Complex.exp (((Real.pi / 4 : ℝ) : ℂ) * Complex.I) *
@@ -2057,7 +2061,7 @@ theorem clause2_complete :
           Turing.TM0.step scanClockMachine cfg = none ∧
           ∀ s' < x.length, BitMachineAfter scanClockMachine (x.map some) s' ≠ none) ∧
     (∀ (q m : ℕ) (M : Bool → Turing.TM0.Machine (Option Bool) (Fin (q + 1)))
-      (hshared : ∀ ql γ, (M false ql γ = none) ↔ (M true ql γ = none))
+      (_hshared : ∀ ql γ, (M false ql γ = none) ↔ (M true ql γ = none))
       (l : Fin (ClockedSize q m)) (γ : Option Bool),
       (clockedCoinMachine M m false l γ = none) ↔
         (clockedCoinMachine M m true l γ = none)) ∧

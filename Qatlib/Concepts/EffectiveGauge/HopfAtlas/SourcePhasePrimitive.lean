@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SourceAngularIdentity
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.WordPrimitive
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SourceAngularIdentity
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.WordPrimitive
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

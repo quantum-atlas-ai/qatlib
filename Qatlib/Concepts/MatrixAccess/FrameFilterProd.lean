@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
-import Qatlib.Concepts.BlockEncoding.Postselection
+module
+
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
+public import Qatlib.Concepts.BlockEncoding.Postselection
+
+@[expose] public section
 
 /-!
 # Flagged frame filters for block-encoding products
@@ -186,6 +190,7 @@ private theorem tensorGate_pauliX_mul_flagFrame_apply (Y : Matrix H H ℂ) (R : 
       rw [hval, ite_eq_left rfl]
       rfl
 
+omit [DecidableEq H] [Fintype I] [DecidableEq I] in
 /-- Applying `I ⊗ W` to a flagged frame equals flagging `W * R`. -/
 private theorem tensorGate_one_mul_flagFrame (W : Matrix H H ℂ) (R : Matrix H I ℂ) :
     TensorGate (1 : Matrix Bool Bool ℂ) W * flagFrame R = flagFrame (W * R) := by
@@ -214,7 +219,7 @@ private theorem flagFrame_conjTranspose_mul_flagFrame (L : Matrix H O ℂ) (X : 
   simp
   rfl
 
-omit [Fintype O] [DecidableEq O] in
+omit [DecidableEq H] [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O] in
 
 /-- Compression of `X ⊗ Y` between two false-flag frames is zero. -/
 private theorem flagFrame_conjTranspose_mul_pauliX_zero (L : Matrix H O ℂ) (Y : Matrix H H ℂ)
@@ -235,6 +240,7 @@ private theorem flagFrame_conjTranspose_mul_pauliX_zero (L : Matrix H O ℂ) (Y 
   rw [Finset.sum_congr rfl fun p _ => h1 p]
   exact Finset.sum_const_zero
 
+omit [DecidableEq H] [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O] in
 /-- Compression of `I ⊗ W` between false-flag frames equals `Lᴴ * W * R`. -/
 private theorem flagFrame_conjTranspose_mul_tensorGate (L : Matrix H O ℂ) (W : Matrix H H ℂ)
     (R : Matrix H I ℂ) :
@@ -242,6 +248,7 @@ private theorem flagFrame_conjTranspose_mul_tensorGate (L : Matrix H O ℂ) (W :
   rw [Matrix.mul_assoc, tensorGate_one_mul_flagFrame, flagFrame_conjTranspose_mul_flagFrame,
     Matrix.mul_assoc]
 
+omit [DecidableEq H] [Fintype I] in
 /-- Adding a false flag preserves the isometry property of a frame. -/
 theorem flagFrame_isIsometry {R : Matrix H I ℂ} (hR : IsIsometry R) :
     IsIsometry (flagFrame R) := by

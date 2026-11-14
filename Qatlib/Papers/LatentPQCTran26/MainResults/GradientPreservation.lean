@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.MeasureTheory.Integral.Bochner.Basic
-import Mathlib.MeasureTheory.Measure.Real
-import Mathlib.Analysis.Normed.Group.Basic
+module
+
+public import Mathlib.MeasureTheory.Integral.Bochner.Basic
+public import Mathlib.MeasureTheory.Measure.Real
+public import Mathlib.Analysis.Normed.Group.Basic
+
+@[expose] public section
 
 /-!
 # Preservation of gradient lower bounds

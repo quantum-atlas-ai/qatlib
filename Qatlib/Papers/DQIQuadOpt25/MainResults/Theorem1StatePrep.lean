@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.DQIQuadOpt25.MainResults.Source.AlgorithmModel
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.DQIQuadOpt25.MainResults.Source.AlgorithmModel
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -41,9 +45,9 @@ operation list, a uniform polynomial bound and a repair of Step 7 are not
 provided. Decoder correctness alone does not imply this proposition. -/
 def theorem1_maxQUADSAT_statePrep_statement
     {p n m ℓ : ℕ} [Fact p.Prime]
-    (inst : QUADSATInstance p n m) (hinst : IsDiagonalInstance inst)
-    (hdec : HasEfficientDecoder (m := m) (n := n) (ℓ := ℓ) (diagVector inst))
-    (P : Polynomial ℂ) (hdeg : P.natDegree ≤ ℓ) : Prop := ∃ c : ℕ, PreparesIn (dqiAmplitude inst P) ((m + n + p) ^ c + 1)
+    (inst : QUADSATInstance p n m) (_hinst : IsDiagonalInstance inst)
+    (_hdec : HasEfficientDecoder (m := m) (n := n) (ℓ := ℓ) (diagVector inst))
+    (P : Polynomial ℂ) (_hdeg : P.natDegree ≤ ℓ) : Prop := ∃ c : ℕ, PreparesIn (dqiAmplitude inst P) ((m + n + p) ^ c + 1)
 
 /-- Transfers an explicitly assumed preparation contract to the definitionally
 equal vector `dqiState`. This does not establish state preparation. -/

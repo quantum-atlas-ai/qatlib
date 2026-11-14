@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Group.Fin.Basic
-import Mathlib.Logic.Equiv.Fin.Basic
-import Mathlib.Data.Fintype.Pi
-import Mathlib.Data.Fintype.Fin
-import Mathlib.Data.Fintype.Prod
-import Mathlib.Data.Fintype.BigOperators
-import Mathlib.Tactic.Ring
+module
+
+public import Mathlib.Algebra.Group.Fin.Basic
+public import Mathlib.Logic.Equiv.Fin.Basic
+public import Mathlib.Data.Fintype.Pi
+public import Mathlib.Data.Fintype.Fin
+public import Mathlib.Data.Fintype.Prod
+public import Mathlib.Data.Fintype.BigOperators
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

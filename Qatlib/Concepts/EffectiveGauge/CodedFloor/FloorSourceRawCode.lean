@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorFlatApproxCode
-import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorProgramAmplitude
-import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorJetApproximation
+module
+
+public import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorFlatApproxCode
+public import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorProgramAmplitude
+public import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorJetApproximation
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Combinatorics.SimpleGraph.Finite
-import Mathlib.Combinatorics.SimpleGraph.DegreeSum
-import Mathlib.Combinatorics.SimpleGraph.Clique
-import Mathlib.Data.Fintype.Basic
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Exp
-import Qatlib.Concepts.GraphQuery.EdgeQuery.GraphCollision
+module
+
+public import Mathlib.Combinatorics.SimpleGraph.Finite
+public import Mathlib.Combinatorics.SimpleGraph.DegreeSum
+public import Mathlib.Combinatorics.SimpleGraph.Clique
+public import Mathlib.Data.Fintype.Basic
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Exp
+public import Qatlib.Concepts.GraphQuery.EdgeQuery.GraphCollision
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

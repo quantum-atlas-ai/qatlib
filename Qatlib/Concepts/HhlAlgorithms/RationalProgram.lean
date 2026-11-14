@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QlsReadoutSpec.LowRankHHL.LowRankOffGridHHL
-import Qatlib.Concepts.MonteCarloMean.PayoffRotation.RationalPayoffRotation
-import Qatlib.Foundations.PureStateMath.BornBridge.RelabelOperatorNorm
+module
+
+public import Qatlib.Concepts.QlsReadoutSpec.LowRankHHL.LowRankOffGridHHL
+public import Qatlib.Concepts.MonteCarloMean.PayoffRotation.RationalPayoffRotation
+public import Qatlib.Foundations.PureStateMath.BornBridge.RelabelOperatorNorm
+
+@[expose] public section
 
 /-!
 # Rational rotations and the counted HHL program
@@ -172,7 +176,7 @@ theorem rationalHHLCS_error (d x : ℚ) (k : ℕ) (hd : 0 < d) :
     · have hg' : 0 ≤ ((rationalHHLGamma d x : ℚ) : ℝ) := by exact_mod_cast hg
       have hs := h.2
       rw [Rat.cast_pow, Real.sqrt_sq hg'] at hs
-      simpa only [rationalHHLCS, hg, if_true, Rat.cast_mul, Rat.cast_one, one_mul, hc] using! hs
+      simpa only [rationalHHLCS, hg, ite_true, Rat.cast_mul, Rat.cast_one, one_mul, hc] using! hs
     · have hg' : ((rationalHHLGamma d x : ℚ) : ℝ) ≤ 0 := by exact_mod_cast (le_of_not_ge hg)
       have hs := h.2
       rw [Rat.cast_pow, Real.sqrt_sq_eq_abs, abs_of_nonpos hg'] at hs
@@ -180,7 +184,7 @@ theorem rationalHHLCS_error (d x : ℚ) (k : ℕ) (hd : 0 < d) :
           (rationalHHLGamma d x : ℝ)| =
           |((rationalPayoffCS ((rationalHHLGamma d x)^2) k).2 : ℝ) - -(rationalHHLGamma d x : ℝ)| := by
         rw [← abs_neg]; congr 1; ring
-      simpa only [rationalHHLCS, hg, if_false, Rat.cast_mul, Rat.cast_neg, Rat.cast_one,
+      simpa only [rationalHHLCS, hg, ite_false, Rat.cast_mul, Rat.cast_neg, Rat.cast_one,
         neg_one_mul, ← hc, he] using! hs
 
 /-- The operator-norm error of the computed rational rotation is at most `32 / 2^k` for positive
@@ -206,7 +210,7 @@ theorem rationalHHLRotation_error (d x : ℚ) (k : ℕ) (hd : 0 < d) :
     rw [Matrix.l2_opNorm_diagonal, pi_norm_le_iff_of_nonneg (by positivity)]
     intro b
     rw [Complex.norm_real, Real.norm_eq_abs]
-    cases b <;> simp only [Bool.false_eq_true, if_false, if_true, abs_neg]
+    cases b <;> simp only [Bool.false_eq_true, ite_false, ite_true, abs_neg]
     all_goals exact (rationalHHLCS_error d x k hd).2
   have hX : ‖PauliX‖ ≤ 1 := l2_norm_unitary_le_one pauliX_unitary
   rw [heq]
@@ -335,7 +339,7 @@ theorem rationalHHLBlock_error (M k : ℕ) (d : ℚ) (hd : 0 < d) :
     rw [Matrix.l2_opNorm_diagonal, pi_norm_le_iff_of_nonneg (by positivity)]
     intro p
     rw [Complex.norm_real, Real.norm_eq_abs]
-    cases p.2 <;> simp only [Bool.false_eq_true, if_false, if_true, abs_neg]
+    cases p.2 <;> simp only [Bool.false_eq_true, ite_false, ite_true, abs_neg]
     all_goals simpa only [ds, rationalHHLDecode_cast] using!
         (rationalHHLCS_error d (rationalHHLDecode M p.1) k hd).2
   have hX : ‖X‖ ≤ 1 := l2_norm_unitary_le_one (tensorGate_unitary (by simp) pauliX_unitary)

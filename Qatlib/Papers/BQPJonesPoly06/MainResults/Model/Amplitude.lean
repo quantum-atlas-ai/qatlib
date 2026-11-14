@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.BQPJonesPoly06.MainResults.Model.Reduction
+module
+
+public import Qatlib.Papers.BQPJonesPoly06.MainResults.Model.Reduction
+
+@[expose] public section
 
 /-!
 # Amplitude estimates and Jones promise bands

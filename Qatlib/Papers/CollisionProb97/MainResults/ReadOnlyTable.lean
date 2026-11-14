@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CollisionProb97.MainResults.ActualPhaseProgram
+module
+
+public import Qatlib.Papers.CollisionProb97.MainResults.ActualPhaseProgram
+
+@[expose] public section
 
 /-!
 # Coherent lookup in read-only table memory

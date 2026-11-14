@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionExt
-import Qatlib.Concepts.BitWordCompiler.CanonicalCodec.BitWordCompiler
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionCoreDefs
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.NormNum
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionExt
+public import Qatlib.Concepts.BitWordCompiler.CanonicalCodec.BitWordCompiler
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionCoreDefs
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.NormNum
+
+@[expose] public section
 
 /-!
 # Native arithmetic and precision data

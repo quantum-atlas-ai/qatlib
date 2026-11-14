@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
-import Qatlib.Concepts.ChannelTheory.Stinespring.PhyslibChannels
-import QuantumInfo.Entropy.DPI
-import QuantumInfo.Entropy.SSA
+module
+
+public import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
+public import Qatlib.Concepts.ChannelTheory.Stinespring.PhyslibChannels
+public import QuantumInfo.Entropy.DPI
+public import QuantumInfo.Entropy.SSA
+
+@[expose] public section
 
 /-!
 # Density-matrix entropy calculus
@@ -339,7 +343,7 @@ private theorem strict_klein_density {I : Type} [Fintype I] [DecidableEq I]
   have htrace : ∀ i j, RCLike.re ((P i * Q j).trace) = w i j :=
     fun i j => trace_proj_mul_normSq U V i j
   have hre : ∀ (r : ℝ) (z : ℂ), RCLike.re (r • z) = r * RCLike.re z := fun r z => by
-    simp [smul_eq_mul, Complex.mul_re, Complex.ofReal_re]
+    simp [Complex.ofReal_re]
   have hrow : ∀ i, ∑ j, w i j = 1 := fun i => Matrix.unitary_row_sum_norm_sq X hX1 i
   have hcol : ∀ j, ∑ i, w i j = 1 := fun j => Matrix.unitary_col_sum_norm_sq X hX2 j
 
@@ -401,7 +405,7 @@ private theorem strict_klein_density {I : Type} [Fintype I] [DecidableEq I]
           intro x x_1
           by_cases hxk : x_1 = k
           · simp [Matrix.mul_apply, Matrix.single_apply, hxk]
-          · simp [Matrix.mul_apply, Matrix.single_apply, hxk, Ne.symm hxk]
+          · simp [Matrix.mul_apply, hxk, Ne.symm hxk]
         simp only [Matrix.trace, Matrix.diag_apply, h2]
         simp
       have hcyc : (s.M.mat * Q j).trace
@@ -645,7 +649,7 @@ private theorem strict_klein_density {I : Type} [Fintype I] [DecidableEq I]
     have hx : (t.M.H.eigenvectorBasis m : I → ℂ) = fun l => V l m := funext hv
     rw [hx] at h
     have hk := congrFun h k
-    simp only [Matrix.mulVec, dotProduct, Pi.smul_apply, smul_eq_mul] at hk
+    simp only [Matrix.mulVec, dotProduct, Pi.smul_apply] at hk
     exact hk
   have hUV : U = V * X.conjTranspose := by
     rw [hX, Matrix.conjTranspose_mul, Matrix.conjTranspose_conjTranspose]
@@ -697,7 +701,7 @@ private theorem strict_klein_density {I : Type} [Fintype I] [DecidableEq I]
       simp only [Matrix.sum_apply, hentry]
       by_cases hml : m = l
       · simp [hml, Matrix.one_apply]
-      · simp [hml, Ne.symm hml, Matrix.one_apply]
+      · simp [hml]
     calc ∑ i, P i = U * (∑ i, Matrix.single i i 1) * U.conjTranspose := by
           rw [Matrix.mul_sum, Matrix.sum_mul]
       _ = U * 1 * U.conjTranspose := by rw [h2]
@@ -777,26 +781,26 @@ private theorem not_ker_ofClassical {I : Type} [Fintype I] [DecidableEq I]
     ¬ ((MState.ofClassical q).M.ker ≤ (MState.ofClassical p).M.ker) := by
   intro hker
   obtain ⟨i, hi⟩ := not_forall.mp h
-  push_neg at hi
+  push Not at hi
   have hmem : (EuclideanSpace.single i (1 : ℂ)) ∈ (MState.ofClassical q).M.ker := by
     rw [mem_ker_ofClassical_iff]
     intro k
     rw [PiLp.single_apply]
     by_cases hki : k = i
-    · rw [if_pos hki, hki, hi.1]
+    · rw [ite_eq_left hki, hki, hi.1]
       simp
-    · rw [if_neg hki, mul_zero]
+    · rw [ite_eq_right hki, mul_zero]
   have hmem2 := hker hmem
   rw [mem_ker_ofClassical_iff] at hmem2
   have hval := hmem2 i
-  simp only [PiLp.single_apply, mul_one, if_true, Complex.ofReal_eq_zero,
-    if_true] at hval
+  simp only [PiLp.single_apply, mul_one, ite_true, Complex.ofReal_eq_zero,
+    ite_true] at hval
   exact hi.2 hval
 
 /-- Under classical support containment, the logarithmic operator inner product equals the sum
 of `p i * (log (p i) - log (q i))`. -/
 private theorem inner_log_ofClassical {I : Type} [Fintype I] [DecidableEq I]
-    (p q : ProbDistribution I) (h : ∀ i, (q i : ℝ) = 0 → (p i : ℝ) = 0) :
+    (p q : ProbDistribution I) (_h : ∀ i, (q i : ℝ) = 0 → (p i : ℝ) = 0) :
     ⟪(MState.ofClassical p).M, (MState.ofClassical p).M.log - (MState.ofClassical q).M.log⟫
       = ∑ i, (p i : ℝ) * (Real.log (p i : ℝ) - Real.log (q i : ℝ)) := by
   have hlog : ∀ d : ProbDistribution I, (MState.ofClassical d).M.log.mat
@@ -813,14 +817,13 @@ private theorem inner_log_ofClassical {I : Type} [Fintype I] [DecidableEq I]
       hlog, hlog]
     ext a b
     by_cases hab : a = b
-    · simp [Matrix.diagonal_apply, Matrix.sub_apply, hab]
-    · simp [Matrix.diagonal_apply, Matrix.sub_apply, hab, Ne.symm hab]
+    · simp [Matrix.sub_apply, hab]
+    · simp [Matrix.sub_apply, hab]
   have hpd : ((MState.ofClassical p).M).mat
       = Matrix.diagonal (fun i => (((p i : ℝ)) : ℂ)) := rfl
   rw [HermitianMat.inner_eq_re_trace, hpd, hsub, Matrix.diagonal_mul_diagonal,
     Matrix.trace_diagonal, map_sum]
-  simp [Complex.ofReal_mul, Complex.ofReal_sub, Complex.ofReal_re, Complex.mul_re,
-    mul_comm]
+  simp [Complex.ofReal_sub, Complex.ofReal_re]
 
 set_option maxHeartbeats 2000000 in
 
@@ -896,15 +899,15 @@ theorem relative_entropy_density_bridge :
     exact qRelativeEnt_additive _ _ _ _
   · intro I _ _ p q
     by_cases h : ∀ i, (q i : ℝ) = 0 → (p i : ℝ) = 0
-    · rw [if_pos h]
+    · rw [ite_eq_left h]
       have hker := ker_ofClassical_le_of_support p q h
       rw [qRelativeEnt_of_ker _ _ hker, inner_log_ofClassical p q h]
-    · rw [if_neg h]
+    · rw [ite_eq_right h]
       have hk := not_ker_ofClassical p q h
       show qRelativeEnt (MState.ofClassical p) (MState.ofClassical q) = ⊤
       rw [qRelativeEnt, SandwichedRelRentropy]
-      rw [dif_pos zero_lt_one]
-      exact dif_neg hk
+      rw [dite_eq_left zero_lt_one]
+      exact dite_eq_right hk
 
 /-- Transfer channel data processing, strong subadditivity, conditional entropy, and
 coherent-information identities to the density-matrix bridge. For a nonsingular reference
@@ -949,7 +952,7 @@ theorem dpi_ssa_partial_trace_consumers :
     have hneAB : Nonempty (A × B) := (nonempty_prod.mp (state σ).nonempty).1
     have hPDc : (state σ).traceLeft.M.mat.PosDef :=
       PosDef_traceLeft (dA := A × B) (dB := C × D) (state σ).M hPD
-    haveI : (state σ).traceLeft.M.NonSingular := HermitianMat.nonSingular_of_posDef hPDc
+    have : (state σ).traceLeft.M.NonSingular := HermitianMat.nonSingular_of_posDef hPDc
     have hker1 : (state σ).M.ker ≤ (state ρ).M.ker := by
       rw [HermitianMat.nonSingular_ker_bot]
       exact bot_le

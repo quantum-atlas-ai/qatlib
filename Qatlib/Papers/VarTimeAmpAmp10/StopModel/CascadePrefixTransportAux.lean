@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.VarTimeAmpAmp10.StopModel.LiveVtProgramAux
+module
+
+public import Qatlib.Papers.VarTimeAmpAmp10.StopModel.LiveVtProgramAux
+
+@[expose] public section
 
 /-!
 # Transport of live cascade components
@@ -110,11 +114,11 @@ theorem original_bad_support (stages : List (Matrix (VtSpace C) (VtSpace C) ℂ)
   intro p hp
   have hl : p ∉ liveSet C := by
     intro h
-    simp only [Pi.sub_apply, collapse_apply, if_pos h, sub_self, ne_eq] at hp
+    simp only [Pi.sub_apply, collapse_apply, ite_eq_left h, sub_self, ne_eq] at hp
     exact hp trivial
   have hf := (nonlive_iff_bad p).mp hl
   have hφ : vtState stages i (Ket j₀) p ≠ 0 := by
-    simpa only [Pi.sub_apply, collapse_apply, if_neg hl, sub_zero] using hp
+    simpa only [Pi.sub_apply, collapse_apply, ite_eq_right hl, sub_zero] using hp
   exact ⟨hf, (hs i hi p hφ).1 (by rw [hf]; decide)⟩
 
 /-- A state supported only on bad flags has zero collapse onto the live set. -/
@@ -123,7 +127,7 @@ theorem collapse_bad_live_zero (b : QState (VtSpace C))
   funext p
   rw [collapse_apply]
   by_cases hp : p ∈ liveSet C
-  · rw [if_pos hp]
+  · rw [ite_eq_left hp]
     by_contra hn
     have hf := hb p hn
     exact ((nonlive_iff_bad p).mpr hf) hp

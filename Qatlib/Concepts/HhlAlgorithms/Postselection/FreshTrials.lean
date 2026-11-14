@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedQueryCircuit
-import Qatlib.Foundations.PureStateMath.Tensor
-import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws
-import Mathlib.Probability.ProbabilityMassFunction.Constructions
+module
+
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedQueryCircuit
+public import Qatlib.Foundations.PureStateMath.Tensor
+public import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws
+public import Mathlib.Probability.ProbabilityMassFunction.Constructions
+
+@[expose] public section
 
 /-!
 # Fresh-register trials and product measurement laws
@@ -229,6 +233,8 @@ theorem evaluateFresh_apply_zero (U B : Matrix H H ℂ) (cs : List (PreparedStep
     rw [← tensorState_ket_ket, applyGate_tensorGate, ih]
     rfl
 
+omit [DecidableEq H] in
+
 /-- A tensor product of any finite number of copies of a normalized state is normalized. -/
 theorem freshState_normalized {ψ : QState H} (hψ : Normalized ψ) (k : ℕ) :
     Normalized (freshState ψ k) := by
@@ -256,6 +262,8 @@ private theorem tensorGate_sub_right (P : Matrix H H ℂ) (Q R : Matrix K K ℂ)
     TensorGate P (Q - R) = TensorGate P Q - TensorGate P R := by
   ext ⟨i, j⟩ ⟨l, m⟩
   exact mul_sub _ _ _
+
+omit [DecidableEq H] [DecidableEq K] in
 
 /-- The tensor product of two orthogonal projectors is an orthogonal projector. -/
 theorem tensorProjector {P : Matrix H H ℂ} {Q : Matrix K K ℂ}
@@ -626,6 +634,8 @@ noncomputable def freshFamilyKraus : (n : ℕ) →
   | n + 1, K, (b, bs) => TensorGate (K 0 b)
       (freshFamilyKraus n (fun i => K i.succ) bs)
 
+omit [DecidableEq H] in
+
 /-- The tensor family Kraus matrix acts componentwise on a tensor family of states. -/
 theorem freshFamilyKraus_apply (n : ℕ) (K : Fin n → Bool → Matrix H H ℂ)
     (psi : Fin n → QState H) (os : FreshOutcomes n) :
@@ -638,6 +648,8 @@ theorem freshFamilyKraus_apply (n : ℕ) (K : Fin n → Bool → Matrix H H ℂ)
     simp only [freshFamilyKraus, familyState]
     rw [applyGate_tensorGate, ih]
     rfl
+
+omit [DecidableEq H] in
 
 /-- The total Born mass of a tensor family state is the product of the total masses of its
 component states. -/

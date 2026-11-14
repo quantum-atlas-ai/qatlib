@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Complex.Polynomial.Basic
-import Mathlib.Analysis.InnerProductSpace.Spectrum
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Analysis.InnerProductSpace.Projection.FiniteDimensional
-import Mathlib.LinearAlgebra.Eigenspace.Triangularizable
-import Mathlib.Data.Complex.Basic
+module
+
+public import Mathlib.Analysis.Complex.Polynomial.Basic
+public import Mathlib.Analysis.InnerProductSpace.Spectrum
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Analysis.InnerProductSpace.Projection.FiniteDimensional
+public import Mathlib.LinearAlgebra.Eigenspace.Triangularizable
+public import Mathlib.Basic.Complex.Basic
+
+@[expose] public section
 
 /-!
 # Unitary spectral tools for the hypercube search analysis
@@ -47,7 +51,7 @@ variable {E : Type*} [NormedAddCommGroup E] [InnerProductSpace ℂ E] [FiniteDim
 unit eigenvector with a unit-modulus eigenvalue. -/
 theorem exists_unit_eigenvector (U : E ≃ₗᵢ[ℂ] E) (h : 0 < Module.finrank ℂ E) :
     ∃ (v : E) (μ : ℂ), ‖v‖ = 1 ∧ U v = μ • v ∧ ‖μ‖ = 1 := by
-  haveI : Nontrivial E := Module.nontrivial_of_finrank_pos h
+  have : Nontrivial E := Module.nontrivial_of_finrank_pos h
   obtain ⟨μ, hμ⟩ := Module.End.exists_eigenvalue (U : E →ₗ[ℂ] E)
   obtain ⟨v, hvmem, hvne⟩ := hμ.exists_hasEigenvector
   have hveq : U v = μ • v := by
@@ -103,7 +107,7 @@ theorem exists_orthonormalBasis_eigenvector (n : ℕ) :
     · intro i; exact i.elim0
   | succ n ih =>
     intro E _ _ _ U hn
-    haveI : Fact (Module.finrank ℂ E = n + 1) := ⟨hn⟩
+    have : Fact (Module.finrank ℂ E = n + 1) := ⟨hn⟩
     have hpos : 0 < Module.finrank ℂ E := by rw [hn]; exact Nat.succ_pos n
     obtain ⟨v, μ0, hvnorm, hvU, hμnorm⟩ := exists_unit_eigenvector U hpos
     have hvne : v ≠ 0 := by
@@ -140,7 +144,7 @@ theorem exists_orthonormalBasis_eigenvector (n : ℕ) :
       intro i
       exact (Submodule.mem_orthogonal_singleton_iff_inner_right.mp (bW i).2)
     have hcard : Fintype.card (Fin (n + 1)) = Module.finrank ℂ E := by simp [hn]
-    haveI : Nonempty (Fin (n + 1)) := ⟨0⟩
+    have : Nonempty (Fin (n + 1)) := ⟨0⟩
     have hsp : ⊤ ≤ Submodule.span ℂ (Set.range vf) := by
       have h := (basisOfOrthonormalOfCardEqFinrank hon hcard).span_eq
       have hcoe : (⇑(basisOfOrthonormalOfCardEqFinrank hon hcard) : Fin (n + 1) → E) = vf :=

@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ImaginaryFlow.LeastSquares.TangentResidual
-import Mathlib.Analysis.InnerProductSpace.GramMatrix
-import Mathlib.Analysis.Calculus.LocalExtr.Basic
-import Mathlib.LinearAlgebra.Matrix.PosDef
-import Mathlib.Analysis.CStarAlgebra.Matrix
+module
+
+public import Qatlib.Concepts.ImaginaryFlow.LeastSquares.TangentResidual
+public import Mathlib.Analysis.InnerProductSpace.GramMatrix
+public import Mathlib.Analysis.Calculus.LocalExtr.Basic
+public import Mathlib.LinearAlgebra.Matrix.PosDef
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+
+@[expose] public section
 
 /-!
 # Least squares for normalized complex ansatzes
@@ -177,8 +181,8 @@ theorem normalized_ansatz_tangent {n : ℕ} (Φ : (Fin n → ℝ) → E)
     exact hasFDerivAt_const (1 : ℝ) θ
   have he := congrArg (fun T : (Fin n → ℝ) →L[ℝ] ℝ => T v) (hD.norm_sq.unique hconst)
   have hreal : inner ℝ (D v) (Φ θ) = 0 := by
-    simp only [two_smul, ContinuousLinearMap.add_apply, ContinuousLinearMap.comp_apply,
-      innerSL_apply_apply, ContinuousLinearMap.zero_apply] at he
+    simp only [two_smul, _root_.add_apply, ContinuousLinearMap.comp_apply,
+      innerSL_apply_apply, _root_.zero_apply] at he
     rw [real_inner_comm] at he
     linarith
   exact hreal

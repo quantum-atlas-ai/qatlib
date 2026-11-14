@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.RationalFlow.MeanQuadrature
-import Mathlib.Analysis.Complex.Basic
+module
+
+public import Qatlib.Concepts.EffectiveGauge.RationalFlow.MeanQuadrature
+public import Mathlib.Analysis.Complex.Basic
+
+@[expose] public section
 
 /-!
 # Complex Quadrature

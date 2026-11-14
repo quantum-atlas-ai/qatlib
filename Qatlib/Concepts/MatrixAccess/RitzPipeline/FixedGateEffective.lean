@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.RitzPipeline.FixedGateSynthesis
-import Qatlib.Concepts.MatrixAccess.RitzPipeline.FixedGateEffectiveDefs
+module
+
+public import Qatlib.Concepts.MatrixAccess.RitzPipeline.FixedGateSynthesis
+public import Qatlib.Concepts.MatrixAccess.RitzPipeline.FixedGateEffectiveDefs
+
+@[expose] public section
 
 /-!
 # An effective partial fixed-gate compiler

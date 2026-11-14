@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.PhaseExistence.PaperQsvtEndpoint
-import Qatlib.Concepts.QsvtCore.ApproxToolkit.QsvtCoreRefined
-import Qatlib.Concepts.QsvtCore.ApproxToolkit.DolphWindow
+module
+
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.PaperQsvtEndpoint
+public import Qatlib.Concepts.QsvtCore.ApproxToolkit.QsvtCoreRefined
+public import Qatlib.Concepts.QsvtCore.ApproxToolkit.DolphWindow
+
+@[expose] public section
 
 /-!
 # Definitions for the QSVT application endpoint

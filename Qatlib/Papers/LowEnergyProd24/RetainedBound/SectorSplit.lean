@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LowEnergyProd24.ProductError.ActualWord
+module
+
+public import Qatlib.Papers.LowEnergyProd24.ProductError.ActualWord
+
+@[expose] public section
 
 /-!
 # Spectral splitting and state-tail error bounds
@@ -78,8 +82,8 @@ theorem actual_state_tail_bound (h : Hamiltonian N R M k d J) (stages : List (�
     noncomm_ring
   have hs : T (W-U) ψ = T ((W-U)*P) ψ + T W (T Q ψ) - T U (T Q ψ) := by
     conv_lhs => rw [he]
-    simp only [map_add, map_sub, map_mul, ContinuousLinearMap.add_apply,
-      ContinuousLinearMap.sub_apply, ContinuousLinearMap.mul_apply]
+    simp only [map_add, map_sub, map_mul, _root_.add_apply,
+      _root_.sub_apply, _root_.mul_apply_eq_comp]
   have hlow : ‖T ((W-U)*P) ψ‖ ≤ ‖(W-U)*P‖ := by
     calc
       _ ≤ ‖T ((W-U)*P)‖*‖ψ‖ := (T ((W-U)*P)).le_opNorm ψ

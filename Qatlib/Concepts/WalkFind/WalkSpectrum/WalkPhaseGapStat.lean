@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkFind.UniqueCollision.JohnsonWalk
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Data.Real.Basic
+module
+
+public import Qatlib.Concepts.WalkFind.UniqueCollision.JohnsonWalk
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Basic.Real.Basic
+
+@[expose] public section
 
 /-!
 # Johnson-walk phase gap statement

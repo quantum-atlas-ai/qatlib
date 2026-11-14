@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Push
-import Mathlib.Tactic.Ring
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Push
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -224,7 +228,7 @@ theorem lemma8_copyCount_error (Δ a0 : ℝ) (hΔ : 0 < Δ) (ha0 : 1 / 2 < a0) :
 /-- Lemma 8 (p. 19, eq. (B14)): if the good mass satisfies `1 − |A|² ≤ Δ`, then
 the uncomputed state is within `√(2Δ)` of the target state, the distance
 written `‖|Ψ⟩ − |0^⊗nk⟩|y⟩‖₂ ≤ √(2Δ)` in the paper. -/
-theorem lemma8_stateDistance (A Δ : ℝ) (hA0 : 0 ≤ A) (hA1 : A ≤ 1)
+theorem lemma8_stateDistance (A Δ : ℝ) (_hA0 : 0 ≤ A) (_hA1 : A ≤ 1)
     (hΔ : 1 - A ^ 2 ≤ Δ) :
     Real.sqrt (2 * (1 - A ^ 2)) ≤ Real.sqrt (2 * Δ) := by
   apply Real.sqrt_le_sqrt
@@ -252,7 +256,6 @@ theorem corollary9_queryBudget (M Q : ℕ) (a0 δ0 : ℝ) (hM : 0 < M) (hδ0 : 0
       field_simp]
   unfold searchQueries lemma8Copies
   rw [harg]
-  push_cast
   ring
 
 /-- Lemma 14 (p. 30): if each of the `k` nearest-neighbour rounds costs at most
@@ -263,6 +266,6 @@ theorem lemma14_kNearest_cost (k Q : ℕ) (cost : Fin k → ℕ) (h : ∀ i, cos
     ∑ i, cost i ≤ k * Q := by
   calc ∑ i, cost i ≤ ∑ _i : Fin k, Q := Finset.sum_le_sum (fun i _ => h i)
     _ = k * Q := by
-        simp [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
+        simp [Finset.sum_const, Finset.card_univ, Fintype.card_fin]
 
 end Qatlib.Papers.NearestLearn14.MainResults.QueryBounds

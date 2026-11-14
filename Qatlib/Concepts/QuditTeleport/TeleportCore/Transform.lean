@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Fourier.ZMod
-import Mathlib.Analysis.Fourier.FiniteAbelian.PontryaginDuality
-import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
-import Qatlib.Concepts.SpectralFilter.PhaseReadout.PhaseEstimation
+module
+
+public import Mathlib.Analysis.Fourier.ZMod
+public import Mathlib.Analysis.Fourier.FiniteAbelian.PontryaginDuality
+public import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+public import Qatlib.Concepts.SpectralFilter.PhaseReadout.PhaseEstimation
+
+@[expose] public section
 
 /-!
 # Finite abelian quantum Fourier transforms
@@ -357,15 +361,15 @@ def annihilatorOf (H : AddSubgroup (ZMod N)) : AddSubgroup (ZMod N) where
   carrier := {t | ∀ h ∈ H, t * h = 0}
   add_mem' := by
     intro a b ha hb h hh
-    simp only [Set.mem_setOf_eq] at ha hb ⊢
+    simp only [Set.mem_ofPred_eq] at ha hb ⊢
     rw [add_mul, ha h hh, hb h hh, add_zero]
   zero_mem' := by
-    simp only [Set.mem_setOf_eq]
+    simp only [Set.mem_ofPred_eq]
     intro h _
     rw [zero_mul]
   neg_mem' := by
     intro a ha h hh
-    simp only [Set.mem_setOf_eq] at ha ⊢
+    simp only [Set.mem_ofPred_eq] at ha ⊢
     rw [neg_mul, ha h hh, neg_zero]
 
 omit [NeZero N] in
@@ -421,7 +425,7 @@ theorem sum_stdAddChar_mul (t : ZMod N) :
     ∑ x : ZMod N, ZMod.stdAddChar (t * x) = if t = 0 then (N : ℂ) else 0 := by
   by_cases ht : t = 0
   · simp [ht]
-  · simpa only [if_neg ht] using!
+  · simpa only [ite_eq_right ht] using!
       AddChar.sum_eq_zero_of_ne_one (ZMod.isPrimitive_stdAddChar N ht)
 
 /-- The normalized character state with frequency `j` on `ZMod N`. -/
@@ -471,7 +475,7 @@ theorem zmodQFT_charState (j : ZMod N) : zmodQFT (charState j) = Ket (-j) := by
   rw [Finset.sum_congr rfl (fun x _ => hterm x), ← Finset.mul_sum, sum_stdAddChar_mul (k + j)]
   by_cases hk : k + j = 0
   · have hk' : k = -j := eq_neg_of_add_eq_zero_left hk
-    simp only [if_pos hk, Ket, if_pos hk']
+    simp only [ite_eq_left hk, Ket, ite_eq_left hk']
     rw [← hsq]
     field_simp
   · have hk' : k ≠ -j := fun h => hk (by rw [h]; ring)
@@ -496,18 +500,18 @@ theorem subgroupCharState_apply_of_mem {H : AddSubgroup (ZMod N)} [Fintype ↥H]
     {x : ZMod N} (hx : x ∈ H) (j : ZMod N) :
     subgroupCharState H j x = (Real.sqrt (Fintype.card ↥H : ℝ) : ℂ)⁻¹
       * ZMod.stdAddChar (j * x) := by
-  rw [subgroupCharState, if_pos hx]
+  rw [subgroupCharState, ite_eq_left hx]
 
 /-- The subgroup character state vanishes outside `H`. -/
 theorem subgroupCharState_apply_of_not_mem {H : AddSubgroup (ZMod N)} [Fintype ↥H]
     {x : ZMod N} (hx : x ∉ H) (j : ZMod N) :
     subgroupCharState H j x = 0 := by
-  rw [subgroupCharState, if_neg hx]
+  rw [subgroupCharState, ite_eq_right hx]
 
 /-- Every subgroup character state is normalized. -/
 theorem normalized_subgroupCharState {H : AddSubgroup (ZMod N)} [Fintype ↥H]
     (j : ZMod N) : Normalized (subgroupCharState H j) := by
-  haveI : Nonempty ↥H := ⟨⟨(0 : ZMod N), H.zero_mem⟩⟩
+  have : Nonempty ↥H := ⟨⟨(0 : ZMod N), H.zero_mem⟩⟩
   have hcardpos : (0 : ℝ) < (Fintype.card ↥H : ℝ) := by exact_mod_cast Fintype.card_pos
   have hcardne : (Fintype.card ↥H : ℝ) ≠ 0 := ne_of_gt hcardpos
   unfold Normalized
@@ -519,9 +523,9 @@ theorem normalized_subgroupCharState {H : AddSubgroup (ZMod N)} [Fintype ↥H]
         show ((Real.sqrt (Fintype.card ↥H : ℝ) : ℂ)⁻¹)
             = ((Real.sqrt (Fintype.card ↥H : ℝ))⁻¹ : ℝ) from by rw [Complex.ofReal_inv],
         Complex.norm_real, Real.norm_eq_abs, abs_of_nonneg (by positivity), inv_pow,
-        Real.sq_sqrt hcardpos.le, if_pos hx, mul_one]
+        Real.sq_sqrt hcardpos.le, ite_eq_left hx, mul_one]
     · rw [subgroupCharState_apply_of_not_mem hx]
-      simp only [norm_zero, if_neg hx]
+      simp only [norm_zero, ite_eq_right hx]
       ring
   rw [Finset.sum_congr rfl (fun x _ => hterm x),
     sum_ite_subtype (p := (· ∈ H)) (fun _ => (Fintype.card ↥H : ℝ)⁻¹),
@@ -536,7 +540,7 @@ theorem applyGate_zmodQFTGate_subgroupCharState {H : AddSubgroup (ZMod N)} [Fint
       if k + j ∈ annihilatorOf H
       then (Real.sqrt (Fintype.card ↥H : ℝ) : ℂ) * (Real.sqrt (N : ℝ) : ℂ)⁻¹
       else 0 := by
-  haveI : Nonempty ↥H := ⟨⟨(0 : ZMod N), H.zero_mem⟩⟩
+  have : Nonempty ↥H := ⟨⟨(0 : ZMod N), H.zero_mem⟩⟩
   have hcardpos : (0 : ℝ) < (Fintype.card ↥H : ℝ) := by exact_mod_cast Fintype.card_pos
   have hzC : ((Real.sqrt (Fintype.card ↥H : ℝ) : ℂ)) ≠ 0 := by
     exact_mod_cast (Real.sqrt_pos.mpr hcardpos).ne'
@@ -556,15 +560,15 @@ theorem applyGate_zmodQFTGate_subgroupCharState {H : AddSubgroup (ZMod N)} [Fint
         = if x ∈ H then zmodQFTGate k x * subgroupCharState H j x else 0 := by
     intro x
     by_cases hx : x ∈ H
-    · rw [if_pos hx]
-    · rw [subgroupCharState_apply_of_not_mem hx, mul_zero, if_neg hx]
+    · rw [ite_eq_left hx]
+    · rw [subgroupCharState_apply_of_not_mem hx, mul_zero, ite_eq_right hx]
   simp only [ApplyGate, Matrix.mulVec, dotProduct]
   rw [Finset.sum_congr rfl (fun x _ => hite x),
     sum_ite_subtype (p := (· ∈ H)) (fun h => zmodQFTGate k h * subgroupCharState H j h),
     Finset.sum_congr rfl (fun h _ => hterm h), ← Finset.mul_sum,
     sum_stdAddChar_subgroup H (k + j)]
   by_cases hmem : k + j ∈ annihilatorOf H
-  · simp only [if_pos hmem]
+  · simp only [ite_eq_left hmem]
     have hcard : ((Fintype.card ↥H : ℂ))
         = ((Real.sqrt (Fintype.card ↥H : ℝ) : ℂ))
           * ((Real.sqrt (Fintype.card ↥H : ℝ) : ℂ)) := by
@@ -573,7 +577,7 @@ theorem applyGate_zmodQFTGate_subgroupCharState {H : AddSubgroup (ZMod N)} [Fint
       rw [← h2, pow_two]
     rw [hcard]
     field_simp
-  · simp only [if_neg hmem, mul_zero]
+  · simp only [ite_eq_right hmem, mul_zero]
 
 /-- The Fourier measurement probability of a subgroup character state is the subgroup
 cardinality divided by `N` on the shifted annihilator and zero elsewhere. -/
@@ -621,10 +625,10 @@ theorem cosetState_eq (H : AddSubgroup (ZMod N)) [Fintype ↥H] (s : ZMod N) :
   funext x
   by_cases hx : x - s ∈ H
   · rw [cosetState, subgroupCharState]
-    rw [if_pos hx, if_pos (by rwa [show x + (-s) = x - s from (sub_eq_add_neg x s).symm]),
+    rw [ite_eq_left hx, ite_eq_left (by rwa [show x + (-s) = x - s from (sub_eq_add_neg x s).symm]),
       zero_mul, AddChar.map_zero_eq_one, mul_one]
   · rw [cosetState, subgroupCharState]
-    rw [if_neg hx, if_neg (by rwa [show x + (-s) = x - s from (sub_eq_add_neg x s).symm])]
+    rw [ite_eq_right hx, ite_eq_right (by rwa [show x + (-s) = x - s from (sub_eq_add_neg x s).symm])]
 
 /-- Every cyclic subgroup coset state is normalized. -/
 theorem normalized_cosetState (H : AddSubgroup (ZMod N)) [Fintype ↥H] (s : ZMod N) :
@@ -648,8 +652,8 @@ theorem applyGate_zmodQFTGate_cosetState (H : AddSubgroup (ZMod N)) [Fintype ↥
     ← applyGate_zmodQFTGate (subgroupCharState H 0),
     applyGate_zmodQFTGate_subgroupCharState (H := H) 0 k, add_zero]
   by_cases hmem : k ∈ annihilatorOf H
-  · simp only [if_pos hmem]
-  · simp only [if_neg hmem, mul_zero]
+  · simp only [ite_eq_left hmem]
+  · simp only [ite_eq_right hmem, mul_zero]
 
 /-- The Fourier measurement probability of a coset state is the subgroup cardinality divided by
 `N` on the annihilator and zero elsewhere. -/
@@ -839,7 +843,7 @@ theorem abelianQFT_cosetState (H : AddSubgroup G) (s : G) (χ : AddChar G ℂ) :
   simp only [AddChar.map_add_eq_mul]
   rw [← Finset.sum_mul, ← Finset.mul_sum, sum_character_subgroup]
   by_cases hχ : χ ∈ characterAnnihilator H
-  · simp only [if_pos hχ]
+  · simp only [ite_eq_left hχ]
     rw [hcard]
     field_simp
   · simp [hχ]

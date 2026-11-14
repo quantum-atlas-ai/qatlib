@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdaptiveQuery.RawProcess.ObservedCircuitLaws
+module
+
+public import Qatlib.Concepts.AdaptiveQuery.RawProcess.ObservedCircuitLaws
+
+@[expose] public section
 
 /-!
 # Events in observed quantum circuits
@@ -129,8 +133,7 @@ theorem observedEventMass_mono (O : Matrix I I ℂ) (program : ObservedCircuit I
   · simp [he, h t ht he]
   · by_cases ho : other t = true
     · simpa [he, ho] using branchMass_nonneg t.state
-    · have hz : (0 : ℝ) ≤ 0 := le_rfl
-      simpa [he, ho] using hz
+    · simp [he, ho]
 
 /-- For a well-formed circuit and a unitary oracle, the event containing every observed trace
 has mass equal to the input branch mass. -/

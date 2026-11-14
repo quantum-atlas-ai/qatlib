@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Calculus.Deriv.Basic
-import Mathlib.Analysis.Normed.Algebra.Exponential
-import Mathlib.Analysis.Normed.Algebra.MatrixExponential
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Data.Matrix.Block
-import Mathlib.LinearAlgebra.Matrix.Hermitian
+module
+
+public import Mathlib.Analysis.Calculus.Deriv.Basic
+public import Mathlib.Analysis.Normed.Algebra.Exponential
+public import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Data.Matrix.Block
+public import Mathlib.LinearAlgebra.Matrix.Hermitian
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

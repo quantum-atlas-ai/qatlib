@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.Reduction.BooleanQuotientRecovery
-import Mathlib.Algebra.Module.ZMod
-import Mathlib.FieldTheory.Finiteness
+module
+
+public import Qatlib.Concepts.HspRecovery.Reduction.BooleanQuotientRecovery
+public import Mathlib.Algebra.Module.ZMod
+public import Mathlib.FieldTheory.Finiteness
+
+@[expose] public section
 
 /-!
 # Rank bounds for Boolean subgroup recovery

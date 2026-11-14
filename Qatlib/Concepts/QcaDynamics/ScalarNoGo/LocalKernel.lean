@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.Order.Group.Defs
-import Mathlib.Algebra.Order.Monoid.Defs
-import Mathlib.Algebra.Star.Basic
-import Mathlib.Data.Complex.Basic
-import Mathlib.Data.Finset.Basic
+module
+
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.Order.Group.Defs
+public import Mathlib.Algebra.Order.Monoid.Defs
+public import Mathlib.Algebra.Star.Basic
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Data.Finset.Basic
+
+@[expose] public section
 
 /-!
 # Finite neighborhood scalar kernel models

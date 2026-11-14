@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OverlapGapGoh26.SpinDynamics.Clipping
-import Qatlib.Papers.OverlapGapGoh26.UniformGrid.SpinProbability
-import Qatlib.Papers.OverlapGapGoh26.OgpBridge.SpinObstruction
+module
+
+public import Qatlib.Papers.OverlapGapGoh26.SpinDynamics.Clipping
+public import Qatlib.Papers.OverlapGapGoh26.UniformGrid.SpinProbability
+public import Qatlib.Papers.OverlapGapGoh26.OgpBridge.SpinObstruction
+
+@[expose] public section
 
 /-!
 # The bounded AMP contract for the source schedule

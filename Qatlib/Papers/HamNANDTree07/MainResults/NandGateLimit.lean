@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.ENNReal.Inv
-import Mathlib.Data.ENNReal.Basic
-import Mathlib.Data.ENNReal.Operations
+module
+
+public import Mathlib.Basic.ENNReal.Inv
+public import Mathlib.Basic.ENNReal.Basic
+public import Mathlib.Basic.ENNReal.Operations
+
+@[expose] public section
 
 /-!
 # NAND evaluation through extended-real reciprocal sums

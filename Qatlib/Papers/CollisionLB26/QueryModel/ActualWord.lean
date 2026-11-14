@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CollisionLB26.QueryModel.CyclicBounds
-import Qatlib.Concepts.CompressedQuery.CyclicRecord.AlgorithmWord
+module
+
+public import Qatlib.Papers.CollisionLB26.QueryModel.CyclicBounds
+public import Qatlib.Concepts.CompressedQuery.CyclicRecord.AlgorithmWord
+
+@[expose] public section
 
 /-!
 # Compressed checkpoints for cyclic query words

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FinitePrecision.ComputableInput.NativeArithmetic.SignedNatMachine.PaidSumProducts
+module
+
+public import Qatlib.Concepts.FinitePrecision.ComputableInput.NativeArithmetic.SignedNatMachine.PaidSumProducts
+
+@[expose] public section
 
 /-!
 # Multiplication of redundant signed pairs
@@ -269,9 +273,6 @@ theorem read_call (i : Fin 4) (n : ℕ) (tail encoded : Qatlib.Concepts.BitWordC
     | work k => cases k <;> first
       | rfl
       | exact (hj .reader rfl).elim
-      | exact (hj .markers rfl).elim
-      | exact (hj .payload rfl).elim
-      | exact (hj .temporary rfl).elim
       | exact (hj .output rfl).elim
 
 /-- Clear the core parsing output while preserving all arguments and the final output, then
@@ -320,7 +321,7 @@ theorem emit_call (negative : Bool) (i : Fin 4) (n : ℕ) (args : Fin 4 → Qatl
     cases j with
     | arg j => rfl
     | output => rfl
-    | work k => cases k <;> first | rfl | exact (hj 1 rfl).elim | exact (hj 2 rfl).elim
+    | work k => cases k <;> first | rfl  | exact (hj 2 rfl).elim
 
 /-- Reset the local state and enter the selected core sum-of-products computation at execution
 cost one. -/
@@ -402,7 +403,7 @@ theorem copy2_call (negative : Bool) (args : Fin 4 → Qatlib.Concepts.BitWordCo
   · intro j hj
     cases j with
     | arg i => rfl
-    | output => first | rfl | exact (hj 1 rfl).elim
+    | output =>  exact (hj 1 rfl).elim
     | work k => cases k <;> first | rfl | exact (hj 0 rfl).elim
 
 /-- Clear argument slot `i`, preserve the final output, and continue at `afterDrain i` within
@@ -422,7 +423,7 @@ theorem drain_call (i : Fin 4) (args : Fin 4 → Qatlib.Concepts.BitWordCompiler
     getIO putIO (fun _ _ => rfl) (fun _ _ _ => rfl) (fun _ => rfl)
     Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Normalization.drainProgram (fun _ => rfl) v _ _ _ _ _ _ _ ⟨(args i).length + 1, hr, hc.le⟩ ?_ ?_ ?_
   · intro k; fin_cases k; rfl
-  · intro k; fin_cases k; simp [state]
+  · intro k; fin_cases k; simp [state, Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Normalization.singleStack ]
   · intro j hj
     cases j with
     | arg j =>

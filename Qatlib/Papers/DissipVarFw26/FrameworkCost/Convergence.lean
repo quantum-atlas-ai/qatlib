@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.DissipVarFw26.FrameworkCost.PL
-import Mathlib.Algebra.Order.Floor.Ring
+module
+
+public import Qatlib.Papers.DissipVarFw26.FrameworkCost.PL
+public import Mathlib.Algebra.Order.Floor.Ring
+
+@[expose] public section
 
 /-!
 # Conditional convergence and integer precision budgets

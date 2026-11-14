@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SCWFPrep24.Estimation.Confidence.OriginalLower
-import Qatlib.Concepts.MixedFidelity.FidelityMetric.CopyBudgetPadding
+module
+
+public import Qatlib.Papers.SCWFPrep24.Estimation.Confidence.OriginalLower
+public import Qatlib.Concepts.MixedFidelity.FidelityMetric.CopyBudgetPadding
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

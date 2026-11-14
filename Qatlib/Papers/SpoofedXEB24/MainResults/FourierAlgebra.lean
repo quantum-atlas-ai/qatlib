@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Field
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Data.Real.Basic
-import Mathlib.Tactic.Ring
+module
+
+public import Mathlib.Algebra.BigOperators.Field
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 open Finset BigOperators
 set_option autoImplicit false
@@ -77,10 +81,16 @@ lemma avg_sub (g h : U → ℝ) : avg (fun u => g u - h u) = avg g - avg h := by
   unfold avg
   rw [Finset.sum_sub_distrib, sub_div]
 
+omit [Fintype ι] [Fintype U] [Fintype X] [DecidableEq ι] in
 /-- **Pointwise square-expansion.**  With `q = 2^{-n} + F_r` the difference of squared errors
 collapses to the cross term `2 p F_r − 2·2^{-n} F_r − F_r²`.  This is the algebraic content of
 "expanding the squares and simplifying the terms" in Appendix G. -/
-lemma mse_pointwise (F : ι → U → X → ℝ) (r : ι) (n : ℕ) (u : U) (x : X) :
+lemma mse_pointwise {ι U X : Type*}
+    [_inst0 : Fintype ι]
+    [_inst1 : Fintype U]
+    [_inst2 : Fintype X]
+    [_inst3 : DecidableEq ι]
+    (F : ι → U → X → ℝ) (r : ι) (n : ℕ) (u : U) (x : X) :
     (pauliProb F u x - (2 : ℝ) ^ (-(n : ℤ))) ^ 2 -
         (pauliProb F u x - pauliApprox F r n u x) ^ 2
       = 2 * pauliProb F u x * F r u x

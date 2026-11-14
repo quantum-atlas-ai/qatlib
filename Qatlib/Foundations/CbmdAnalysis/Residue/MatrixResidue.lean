@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Residue.Cycle
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Winding.UnboundedComponent
-import Mathlib.Analysis.Matrix.Normed
-import Mathlib.Analysis.Analytic.ChangeOrigin
+module
+
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Residue.Cycle
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Winding.UnboundedComponent
+public import Mathlib.Analysis.Matrix.Normed
+public import Mathlib.Analysis.Analytic.ChangeOrigin
+
+@[expose] public section
 
 /-!
 # Residues on positive Jordan contours

@@ -4,86 +4,90 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Algebra.Basic
-import Mathlib.Algebra.Algebra.Defs
-import Mathlib.Algebra.Field.Defs
-import Mathlib.Algebra.Group.Action.Defs
-import Mathlib.Algebra.Group.Action.Opposite
-import Mathlib.Algebra.Group.Defs
-import Mathlib.Algebra.Group.DivInvMonoid
-import Mathlib.Algebra.Group.Hom.Defs
-import Mathlib.Algebra.Group.IsApply
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.Group.Opposite
-import Mathlib.Algebra.Group.Semigroup
-import Mathlib.Algebra.GroupWithZero.Action.Defs
-import Mathlib.Algebra.GroupWithZero.Defs
-import Mathlib.Algebra.Module.Defs
-import Mathlib.Algebra.Module.LinearMap.Defs
-import Mathlib.Algebra.Module.Opposite
-import Mathlib.Algebra.Notation.Defs
-import Mathlib.Algebra.Opposites
-import Mathlib.Algebra.Ring.CompTypeclasses
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Algebra.Ring.Hom.Defs
-import Mathlib.Algebra.Ring.Opposite
-import Mathlib.Algebra.Star.Basic
-import Mathlib.Analysis.CStarAlgebra.Classes
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.Calculus.FDeriv.Add
-import Mathlib.Analysis.Calculus.FDeriv.Basic
-import Mathlib.Analysis.Calculus.FDeriv.Defs
-import Mathlib.Analysis.Calculus.FDeriv.Mul
-import Mathlib.Analysis.Calculus.FDeriv.Star
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Analysis.InnerProductSpace.Basic
-import Mathlib.Analysis.InnerProductSpace.Defs
-import Mathlib.Analysis.LocallyConvex.AbsConvexOpen
-import Mathlib.Analysis.LocallyConvex.WithSeminorms
-import Mathlib.Analysis.Normed.Field.Basic
-import Mathlib.Analysis.Normed.Field.Lemmas
-import Mathlib.Analysis.Normed.Group.Defs
-import Mathlib.Analysis.Normed.Group.Uniform
-import Mathlib.Analysis.Normed.Module.Basic
-import Mathlib.Analysis.Normed.Operator.Bilinear
-import Mathlib.Analysis.Normed.Operator.Mul
-import Mathlib.Analysis.Normed.Ring.Basic
-import Mathlib.Analysis.Normed.Ring.Lemmas
-import Mathlib.Analysis.RCLike.Basic
-import Mathlib.Basic.Complex.Basic
-import Mathlib.Basic.FunLike.Basic
-import Mathlib.Basic.Real.Basic
-import Mathlib.Basic.Real.Star
-import Mathlib.Data.Fintype.Defs
-import Mathlib.Data.Int.Cast.Defs
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Data.Matrix.Mul
-import Mathlib.Data.Nat.Cast.Defs
-import Mathlib.GroupTheory.GroupAction.Hom
-import Mathlib.GroupTheory.GroupAction.Ring
-import Mathlib.LinearAlgebra.Complex.Module
-import Mathlib.LinearAlgebra.Matrix.ConjTranspose
-import Mathlib.LinearAlgebra.Matrix.Defs
-import Mathlib.Tactic
-import Mathlib.Tactic.CongrExclamation
-import Mathlib.Topology.Algebra.ConstMulAction
-import Mathlib.Topology.Algebra.Field
-import Mathlib.Topology.Algebra.Group.Defs
-import Mathlib.Topology.Algebra.Module.ContinuousLinearMap.Basic
-import Mathlib.Topology.Algebra.Module.Equiv.Basic
-import Mathlib.Topology.Algebra.Module.Spaces.ContinuousLinearMap
-import Mathlib.Topology.Algebra.Module.Star
-import Mathlib.Topology.Algebra.Monoid
-import Mathlib.Topology.Algebra.Monoid.Defs
-import Mathlib.Topology.Algebra.MulAction
-import Mathlib.Topology.Algebra.Ring.Basic
-import Mathlib.Topology.Algebra.Star
-import Mathlib.Topology.Algebra.UniformMulAction
-import Mathlib.Topology.Defs.Basic
-import Mathlib.Topology.Instances.Matrix
-import Mathlib.Topology.MetricSpace.Algebra
-import Mathlib.Topology.MetricSpace.Pseudo.Defs
-import Mathlib.Topology.UniformSpace.Defs
+module
+
+public import Mathlib.Algebra.Algebra.Basic
+public import Mathlib.Algebra.Algebra.Defs
+public import Mathlib.Algebra.Field.Defs
+public import Mathlib.Algebra.Group.Action.Defs
+public import Mathlib.Algebra.Group.Action.Opposite
+public import Mathlib.Algebra.Group.Defs
+public import Mathlib.Algebra.Group.DivInvMonoid
+public import Mathlib.Algebra.Group.Hom.Defs
+public import Mathlib.Algebra.Group.IsApply
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.Group.Opposite
+public import Mathlib.Algebra.Group.Semigroup
+public import Mathlib.Algebra.GroupWithZero.Action.Defs
+public import Mathlib.Algebra.GroupWithZero.Defs
+public import Mathlib.Algebra.Module.Defs
+public import Mathlib.Algebra.Module.LinearMap.Defs
+public import Mathlib.Algebra.Module.Opposite
+public import Mathlib.Algebra.Notation.Defs
+public import Mathlib.Algebra.Opposites
+public import Mathlib.Algebra.Ring.CompTypeclasses
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Algebra.Ring.Hom.Defs
+public import Mathlib.Algebra.Ring.Opposite
+public import Mathlib.Algebra.Star.Basic
+public import Mathlib.Analysis.CStarAlgebra.Classes
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.Calculus.FDeriv.Add
+public import Mathlib.Analysis.Calculus.FDeriv.Basic
+public import Mathlib.Analysis.Calculus.FDeriv.Defs
+public import Mathlib.Analysis.Calculus.FDeriv.Mul
+public import Mathlib.Analysis.Calculus.FDeriv.Star
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Analysis.InnerProductSpace.Basic
+public import Mathlib.Analysis.InnerProductSpace.Defs
+public import Mathlib.Analysis.LocallyConvex.AbsConvexOpen
+public import Mathlib.Analysis.LocallyConvex.WithSeminorms
+public import Mathlib.Analysis.Normed.Field.Basic
+public import Mathlib.Analysis.Normed.Field.Lemmas
+public import Mathlib.Analysis.Normed.Group.Defs
+public import Mathlib.Analysis.Normed.Group.Uniform
+public import Mathlib.Analysis.Normed.Module.Basic
+public import Mathlib.Analysis.Normed.Operator.Bilinear
+public import Mathlib.Analysis.Normed.Operator.Mul
+public import Mathlib.Analysis.Normed.Ring.Basic
+public import Mathlib.Analysis.Normed.Ring.Lemmas
+public import Mathlib.Analysis.RCLike.Basic
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Basic.FunLike.Basic
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Basic.Real.Star
+public import Mathlib.Data.Fintype.Defs
+public import Mathlib.Data.Int.Cast.Defs
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.Data.Nat.Cast.Defs
+public import Mathlib.GroupTheory.GroupAction.Hom
+public import Mathlib.GroupTheory.GroupAction.Ring
+public import Mathlib.LinearAlgebra.Complex.Module
+public import Mathlib.LinearAlgebra.Matrix.ConjTranspose
+public import Mathlib.LinearAlgebra.Matrix.Defs
+public import Mathlib.Tactic
+public import Mathlib.Tactic.CongrExclamation
+public import Mathlib.Topology.Algebra.ConstMulAction
+public import Mathlib.Topology.Algebra.Field
+public import Mathlib.Topology.Algebra.Group.Defs
+public import Mathlib.Topology.Algebra.Module.ContinuousLinearMap.Basic
+public import Mathlib.Topology.Algebra.Module.Equiv.Basic
+public import Mathlib.Topology.Algebra.Module.Spaces.ContinuousLinearMap
+public import Mathlib.Topology.Algebra.Module.Star
+public import Mathlib.Topology.Algebra.Monoid
+public import Mathlib.Topology.Algebra.Monoid.Defs
+public import Mathlib.Topology.Algebra.MulAction
+public import Mathlib.Topology.Algebra.Ring.Basic
+public import Mathlib.Topology.Algebra.Star
+public import Mathlib.Topology.Algebra.UniformMulAction
+public import Mathlib.Topology.Defs.Basic
+public import Mathlib.Topology.Instances.Matrix
+public import Mathlib.Topology.MetricSpace.Algebra
+public import Mathlib.Topology.MetricSpace.Pseudo.Defs
+public import Mathlib.Topology.UniformSpace.Defs
+
+@[expose] public section
 
 /-!
 # Ambient derivatives of matrix conjugation and gradients

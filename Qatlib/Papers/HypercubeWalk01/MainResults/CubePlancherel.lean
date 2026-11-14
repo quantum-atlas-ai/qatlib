@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HypercubeWalk01.MainResults.CubeFourier
-import Mathlib.Data.Finset.Powerset
-import Mathlib.Data.Nat.Choose.Sum
-import Mathlib.Algebra.Order.Chebyshev
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.HypercubeWalk01.MainResults.CubeFourier
+public import Mathlib.Data.Finset.Powerset
+public import Mathlib.Data.Nat.Choose.Sum
+public import Mathlib.Algebra.Order.Chebyshev
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Plancherel identities for the hypercube
@@ -57,12 +61,12 @@ theorem sum_chi_all (n : ℕ) (z : Cube n) :
   rw [← hfac]
   by_cases hz : z = allTrue n
   · subst hz
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     have : ∀ i : Fin n, ((if (allTrue n) i then (1 : ℝ) else -1) + 1) = 2 := by
       intro i; norm_num [allTrue]
     rw [Finset.prod_congr rfl (fun i _ => this i), Finset.prod_const]
     simp [Fintype.card_fin]
-  · rw [if_neg hz]
+  · rw [ite_eq_right hz]
     have hne : ∃ i : Fin n, z i = false := by
       by_contra h
       apply hz
@@ -118,7 +122,7 @@ theorem fourierCoeff_uniform {n : ℕ} (S : Finset (Fin n)) :
   rw [fourierCoeff_const]
   by_cases hS : S = ∅
   · subst hS
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     have hsum : (∑ x : Cube n, chi (∅ : Finset (Fin n)) x) = (2 : ℝ) ^ n := by
       simp only [chi, cubeChar, Finset.prod_empty]
       rw [Finset.sum_const, Finset.card_univ]
@@ -126,7 +130,7 @@ theorem fourierCoeff_uniform {n : ℕ} (S : Finset (Fin n)) :
     rw [hsum, uniformMass]
     have h2 : (2 : ℝ) ^ n ≠ 0 := by positivity
     field_simp
-  · rw [if_neg hS]
+  · rw [ite_eq_right hS]
     have hne : S.Nonempty := Finset.nonempty_iff_ne_empty.mpr hS
     rw [sum_chi_eq_zero hne, mul_zero]
 
@@ -170,9 +174,9 @@ theorem sum_fourierCoeff_mul {n : ℕ} (P Q : Cube n → ℝ) :
   rw [Finset.mul_sum]
   refine Finset.sum_congr rfl fun x _ => ?_
   rw [Finset.sum_eq_single x]
-  · rw [if_pos rfl]; ring
+  · rw [ite_eq_left rfl]; ring
   · intro y _ hyx
-    rw [if_neg (fun h => hyx h.symm)]; ring
+    rw [ite_eq_right (fun h => hyx h.symm)]; ring
   · intro hx
     exact absurd (Finset.mem_univ x) hx
 
@@ -206,7 +210,7 @@ theorem tvDist_sq_le {n : ℕ} (P : Cube n → ℝ) (hP : ∑ x, P x = 1) :
     intro S
     rw [hf, fourierCoeff_sub, fourierCoeff_uniform]
   have hf_empty : fourierCoeff f (∅ : Finset (Fin n)) = 0 := by
-    rw [hfourier, if_pos rfl, fourierCoeff_empty, hP]; ring
+    rw [hfourier, ite_eq_left rfl, fourierCoeff_empty, hP]; ring
 
   have hparse := sum_fourierCoeff_sq f
 
@@ -218,7 +222,7 @@ theorem tvDist_sq_le {n : ℕ} (P : Cube n → ℝ) (hP : ∑ x, P x = 1) :
         (fourierCoeff f S) ^ 2 = (fourierCoeff P S) ^ 2 := by
       intro S hS
       have hSne : S ≠ ∅ := (Finset.mem_erase.mp hS).1
-      rw [hfourier, if_neg hSne, sub_zero]
+      rw [hfourier, ite_eq_right hSne, sub_zero]
     rw [← hsplit, hf_empty, zero_pow two_ne_zero, add_zero]
     exact Finset.sum_congr rfl hcongr
   have hsum_f_sq : (∑ x : Cube n, (f x) ^ 2)

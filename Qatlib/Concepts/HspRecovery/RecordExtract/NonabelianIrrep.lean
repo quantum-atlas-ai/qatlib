@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.RecordExtract.NonabelianDefs
-import Qatlib.Concepts.HspRecovery.RecordExtract.GeneralRecordLawDihe
-import Mathlib.Probability.ProbabilityMassFunction.Constructions
-import Mathlib.Probability.Distributions.Uniform
-import Mathlib.LinearAlgebra.Semisimple
+module
+
+public import Qatlib.Concepts.HspRecovery.RecordExtract.NonabelianDefs
+public import Qatlib.Concepts.HspRecovery.RecordExtract.GeneralRecordLawDihe
+public import Mathlib.Probability.ProbabilityMassFunction.Constructions
+public import Mathlib.Probability.Distributions.Uniform
+public import Mathlib.LinearAlgebra.Semisimple
+
+@[expose] public section
 
 /-!
 # Dimensions and reflection fixed spaces of dihedral representations
@@ -542,7 +546,7 @@ theorem irrep_dim_le_one_of_scalars {N : ℕ} (V : DihedralIrrep N) (μ δ : ℂ
     (hX : V.rhoX = μ • 1) (hY : V.rhoY = δ • 1) : V.dim ≤ 1 := by
   by_contra h
   have hge : 2 ≤ V.dim := by omega
-  letI : NeZero V.dim := ⟨by omega⟩
+  let : NeZero V.dim := ⟨by omega⟩
   have hall : ∀ M : Matrix (Fin V.dim) (Fin V.dim) ℂ, ∃ c : ℂ, M = c • 1 := by
     intro M
     refine V.irreducible M ?_ ?_
@@ -832,10 +836,10 @@ theorem irrep_one_dim_dimFixed {N : ℕ} [NeZero N] (V : DihedralIrrep N) (hd : 
     mul_one_or_neg_one hδ (one_or_neg_one_pow hε)
   rw [htrX, htrY]
   by_cases hcond : δ * ε ^ s.val = 1
-  · rw [if_pos hcond]
+  · rw [ite_eq_left hcond]
     have : ((dimFixed V s : ℂ)) = 1 := by rw [hexp, hcond]; norm_num
     exact_mod_cast this
-  · rw [if_neg hcond]
+  · rw [ite_eq_right hcond]
     have hneg : δ * ε ^ s.val = -1 := by
       rcases hpm with h | h
       · exact absurd h hcond
@@ -855,13 +859,13 @@ theorem trace_zero_or_eq_pm_one {d : ℕ} (hd : d = 2) (R : Matrix (Fin d) (Fin 
     have h01 : R 0 1 * (R 0 0 + R 1 1) = 0 := by
       have hh : (R * R) 0 1 = (1 : Matrix (Fin 2) (Fin 2) ℂ) 0 1 := by rw [h]
       rw [Matrix.mul_apply] at hh
-      simp only [Matrix.one_apply, if_neg (by decide : (0:Fin 2) ≠ 1), Fin.sum_univ_two] at hh
+      simp only [Matrix.one_apply, ite_eq_right (by decide : (0:Fin 2) ≠ 1), Fin.sum_univ_two] at hh
       have key : R 0 0 * R 0 1 + R 0 1 * R 1 1 = R 0 1 * (R 0 0 + R 1 1) := by ring
       rw [← key, hh]
     have h10 : R 1 0 * (R 0 0 + R 1 1) = 0 := by
       have hh : (R * R) 1 0 = (1 : Matrix (Fin 2) (Fin 2) ℂ) 1 0 := by rw [h]
       rw [Matrix.mul_apply] at hh
-      simp only [Matrix.one_apply, if_neg (by decide : (1:Fin 2) ≠ 0), Fin.sum_univ_two] at hh
+      simp only [Matrix.one_apply, ite_eq_right (by decide : (1:Fin 2) ≠ 0), Fin.sum_univ_two] at hh
       have key : R 1 0 * R 0 0 + R 1 1 * R 1 0 = R 1 0 * (R 0 0 + R 1 1) := by ring
       rw [← key, hh]
     have hb : R 0 1 = 0 := by
@@ -1046,28 +1050,28 @@ theorem dimFixed_half_count (N : ℕ) [NeZero N] (Label : Type) [Fintype Label]
     have hep1 : ((if Matrix.trace (family.irrep l).rhoX = 1 then true else false) = true ↔
         Matrix.trace (family.irrep l).rhoX = 1) := by
       by_cases hc : Matrix.trace (family.irrep l).rhoX = 1
-      · rw [if_pos hc]; simp [hc]
-      · rw [if_neg hc]; simp [hc]
+      · rw [ite_eq_left hc]; simp [hc]
+      · rw [ite_eq_right hc]; simp [hc]
     have hep2 : ((if Matrix.trace (family.irrep l).rhoX = 1 then true else false) = false ↔
         Matrix.trace (family.irrep l).rhoX = -1) := by
       rw [htrX]
       rcases hε with h | h
-      · rw [h, if_pos (rfl : (1 : ℂ) = 1)]
+      · rw [h, ite_eq_left (rfl : (1 : ℂ) = 1)]
         norm_num
-      · rw [h, if_neg (by norm_num : ¬((-1 : ℂ) = 1))]
+      · rw [h, ite_eq_right (by norm_num : ¬((-1 : ℂ) = 1))]
         norm_num
     have hdp1 : ((if Matrix.trace (family.irrep l).rhoY = 1 then true else false) = true ↔
         Matrix.trace (family.irrep l).rhoY = 1) := by
       by_cases hc : Matrix.trace (family.irrep l).rhoY = 1
-      · rw [if_pos hc]; simp [hc]
-      · rw [if_neg hc]; simp [hc]
+      · rw [ite_eq_left hc]; simp [hc]
+      · rw [ite_eq_right hc]; simp [hc]
     have hdp2 : ((if Matrix.trace (family.irrep l).rhoY = 1 then true else false) = false ↔
         Matrix.trace (family.irrep l).rhoY = -1) := by
       rw [htrY]
       rcases hδ with h | h
-      · rw [h, if_pos (rfl : (1 : ℂ) = 1)]
+      · rw [h, ite_eq_left (rfl : (1 : ℂ) = 1)]
         norm_num
-      · rw [h, if_neg (by norm_num : ¬((-1 : ℂ) = 1))]
+      · rw [h, ite_eq_right (by norm_num : ¬((-1 : ℂ) = 1))]
         norm_num
     exact ⟨hep1, hep2, hdp1, hdp2⟩
   have hinj : ∀ l ∈ L1, ∀ l' ∈ L1,
@@ -1377,19 +1381,19 @@ theorem dimFixedCount_identity (N : ℕ) [NeZero N] (Label : Type) [Fintype Labe
         + (if (family.irrep l).dim = 2 then 2 else 0) := by
     intro l
     rcases hdf l with h | h | h
-    · rw [if_neg (by intro hh; omega), if_neg (by intro hh; omega)]
+    · rw [ite_eq_right (by intro hh; omega), ite_eq_right (by intro hh; omega)]
       rw [h, zero_mul, add_zero]
     · rw [irrep_one_dim_dimFixed (family.irrep l) h s]
       by_cases hc : Matrix.trace (family.irrep l).rhoY
           * (Matrix.trace (family.irrep l).rhoX) ^ s.val = 1
-      · rw [if_pos hc, if_pos (And.intro h hc), if_neg (by intro hh; omega)]
+      · rw [ite_eq_left hc, ite_eq_left (And.intro h hc), ite_eq_right (by intro hh; omega)]
         rw [mul_one, add_zero]
         exact h
-      · rw [if_neg hc, if_neg (by intro hh; cases hh with | intro h1 h2 => exact hc h2),
-          if_neg (by intro hh; omega)]
+      · rw [ite_eq_right hc, ite_eq_right (by intro hh; cases hh with | intro h1 h2 => exact hc h2),
+          ite_eq_right (by intro hh; omega)]
         rw [mul_zero, add_zero]
     · rw [irrep_two_dim_dimFixed (family.irrep l) h s]
-      rw [if_neg (by intro hh; omega), if_pos h]
+      rw [ite_eq_right (by intro hh; omega), ite_eq_left h]
       rw [mul_one, zero_add]
       exact h
   have h2s : ∀ l : Label, (family.irrep l).dim ^ 2

@@ -7,13 +7,17 @@ Authors: Qatlib Contributors
 /-
 Copyright (c) 2026. All rights reserved.
 -/
-import Mathlib.Combinatorics.SimpleGraph.Clique
-import Mathlib.Combinatorics.SimpleGraph.Basic
-import Mathlib.LinearAlgebra.Dimension.Finrank
-import Mathlib.LinearAlgebra.Dimension.Finite
-import Mathlib.LinearAlgebra.Finsupp.LinearCombination
-import Mathlib.Data.Real.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Combinatorics.SimpleGraph.Clique
+public import Mathlib.Combinatorics.SimpleGraph.Basic
+public import Mathlib.LinearAlgebra.Dimension.Finrank
+public import Mathlib.LinearAlgebra.Dimension.Finite
+public import Mathlib.LinearAlgebra.Finsupp.LinearCombination
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -68,7 +72,7 @@ lemma mem_simplices_iff (G : SimpleGraph V) [DecidableRel G.Adj] (d : ℕ) (σ :
 
 section Oriented
 
-variable [LinearOrder V]
+variable [instLinearOrderV : LinearOrder V]
 
 /-- The oriented boundary of a vertex set `σ`, viewed as one summand in a chain: the alternating
 sum, over the vertices of `σ`, of the facet `σ.erase v`, with the sign `(-1)` powered by the
@@ -97,8 +101,12 @@ def bettiNumber (G : SimpleGraph V) [DecidableRel G.Adj] (d : ℕ) : ℕ :=
 
 /-! ### Lemma 4.1 — the deterministic core -/
 
+omit instLinearOrderV in
 /-- A graph with no `(k-1)`-clique has no `(k-2)`-simplex in its clique complex. -/
-theorem simplices_eq_empty_of_cliqueFree (G : SimpleGraph V) [DecidableRel G.Adj]
+theorem simplices_eq_empty_of_cliqueFree {V : Type*}
+    [_instFintypeV : Fintype V]
+    [_instDecidableEqV : DecidableEq V]
+    [_instLinearOrderV : LinearOrder V] (G : SimpleGraph V) [DecidableRel G.Adj]
     {k : ℕ} (hk : 2 ≤ k) (h : G.CliqueFree (k - 1)) : simplices G (k - 2) = ∅ := by
   apply Finset.eq_empty_iff_forall_notMem.mpr
   intro σ hσ

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.MixedTime
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.MixedTime
+
+@[expose] public section
 
 /-!
 # The actual terminal phase and its transverse boundary values

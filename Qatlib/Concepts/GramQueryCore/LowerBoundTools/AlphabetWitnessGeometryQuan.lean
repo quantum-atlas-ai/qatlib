@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GramQueryCore.LowerBoundTools.AlphabetWitnessGeometryStat
-import Qatlib.Concepts.GramQueryCore.LowerBoundTools.ResidualModels
-import Qatlib.Concepts.GramQueryCore.LowerBoundTools.WitnessConversionGeometry
-import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
-import Qatlib.Concepts.GramQueryCore.FilteredNorm.RectangularBudgetRealizationQuan
+module
+
+public import Qatlib.Concepts.GramQueryCore.LowerBoundTools.AlphabetWitnessGeometryStat
+public import Qatlib.Concepts.GramQueryCore.LowerBoundTools.ResidualModels
+public import Qatlib.Concepts.GramQueryCore.LowerBoundTools.WitnessConversionGeometry
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
+public import Qatlib.Concepts.GramQueryCore.FilteredNorm.RectangularBudgetRealizationQuan
+
+@[expose] public section
 
 /-!
 # Alphabet witness geometry
@@ -117,7 +121,7 @@ theorem sourceComplement_public {X H : Type} [Fintype X] [DecidableEq X]
       P *ᵥ ψ=ψ ↔ ∀ x, (∑ i,star (sourceForbidden input ρ σ u W ε x i)*ψ i)=0 :=
     ⟨P,hP,hfix⟩
   unfold sourceComplement
-  rw [dif_pos hp]
+  rw [dite_eq_left hp]
   have hchoose := Classical.choose_spec hp
   exact ⟨hchoose.1,hchoose.2,source_complement_annihilates _ _ hchoose.1 hchoose.2⟩
 
@@ -217,7 +221,7 @@ private theorem source_sum_pair_exceptions {K : Type} [CommRing K]
       by_cases hib : i=b
       · subst i
         split_ifs <;> ring
-      · simp only [if_neg hib,add_zero]
+      · simp only [ite_eq_right hib,add_zero]
     _ = (∑ i : Fin (q+1), if i=a then A else B)*D+(if b=a then A else B)*(C-D) := by
       simp [Finset.sum_add_distrib,Finset.sum_mul]
     _ = _ := by rw [source_sum_one_exception]
@@ -246,11 +250,11 @@ theorem sourceMu_sourceNu_pairing (q : ℕ) (hq : 0 < q) (a b : Fin (q+1)) :
     rw [source_sum_pair_exceptions]
     by_cases heq : a=b
     · subst b
-      rw [if_pos rfl,if_pos rfl]
+      rw [ite_eq_left rfl,ite_eq_left rfl]
       have hid : (-A+(q : ℝ)*(B/r))*(A/r)+(-A)*(B-A/r) =
           A*B*((q : ℝ)/r^2-1) := by field_simp; ring
       rw [hid,hr2,div_self hqr.ne',sub_self,mul_zero]
-    · rw [if_neg heq,if_neg (Ne.symm heq)]
+    · rw [ite_eq_right heq,ite_eq_right (Ne.symm heq)]
       have hid : (-A+(q : ℝ)*(B/r))*(A/r)+(B/r)*(B-A/r) =
           (B^2-A^2)/r+((q : ℝ)-1)*A*B/r^2 := by field_simp; ring
       rw [hid,hdiff,hr2,show ((q : ℝ)-1)*A*B=((q : ℝ)-1)*(A*B) by ring,hab']
@@ -266,17 +270,17 @@ theorem sourceMu_sourceNu_pairing (q : ℕ) (hq : 0 < q) (a b : Fin (q+1)) :
     split_ifs <;> push_cast <;> rfl
   simp_rw [hmu,hnu]
   by_cases habeq : a=b
-  · rw [if_pos habeq]
+  · rw [ite_eq_left habeq]
     have hreal0 : (∑ i : Fin (q+1),
         (if i=a then -A else B/r)*(if i=b then B else A/r))=0 := by
-      simpa only [if_pos habeq] using! hreal
+      simpa only [ite_eq_left habeq] using! hreal
     have hcast := congrArg (fun x : ℝ => (x : ℂ)) hreal0
     simpa only [Complex.ofReal_sum,Complex.ofReal_mul,Complex.star_def,Complex.conj_ofReal,
       Complex.ofReal_zero] using! hcast
-  · rw [if_neg habeq]
+  · rw [ite_eq_right habeq]
     have hreal1 : (∑ i : Fin (q+1),
         (if i=a then -A else B/r)*(if i=b then B else A/r))=((q : ℝ)+1)/(2*q) := by
-      simpa only [if_neg habeq] using! hreal
+      simpa only [ite_eq_right habeq] using! hreal
     have hcast := congrArg (fun x : ℝ => (x : ℂ)) hreal1
     simpa only [Complex.ofReal_sum,Complex.ofReal_mul,Complex.star_def,Complex.conj_ofReal,Complex.ofReal_div,
       Complex.ofReal_add,Complex.ofReal_natCast,Complex.ofReal_one,Complex.ofReal_ofNat] using! hcast
@@ -410,7 +414,7 @@ theorem sourceKeep_fixed {X H : Type} [Fintype H] [DecidableEq H]
   | inr z =>
     rcases z with ⟨j,a,k⟩
     have hp := sourceMu_sourceNu_pairing q hq (input x j) (input x j)
-    simp only [if_true] at hp
+    simp only [ite_true] at hp
     simp only [sourceFixed]
     have hz : (∑ b, star (sourceMu q (input x j) b)*
         ((ε/(2*Real.sqrt W)*(2*q/(q+1)) : ℂ)*sourceNu q (input x j) b*v x j k))=0 := by

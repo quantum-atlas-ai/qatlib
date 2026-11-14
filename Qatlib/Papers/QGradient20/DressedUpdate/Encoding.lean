@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QGradient20.Polynomial.TensorGradient
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Analysis.InnerProductSpace.Orthonormal
+module
+
+public import Qatlib.Papers.QGradient20.Polynomial.TensorGradient
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Analysis.InnerProductSpace.Orthonormal
+
+@[expose] public section
 
 /-!
 # Dressed amplitude encoding

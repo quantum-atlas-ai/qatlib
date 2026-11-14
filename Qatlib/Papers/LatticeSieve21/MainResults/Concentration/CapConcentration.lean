@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Geometry.Euclidean.Angle.Unoriented.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Probability.Moments.Basic
-import Mathlib.MeasureTheory.Measure.Real
-import Mathlib.Analysis.Complex.ExponentialBounds
-import Mathlib.Tactic
-import Qatlib.Papers.LatticeSieve21.MainResults.Definitions
+module
+
+public import Mathlib.Geometry.Euclidean.Angle.Unoriented.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Probability.Moments.Basic
+public import Mathlib.MeasureTheory.Measure.Real
+public import Mathlib.Analysis.Complex.ExponentialBounds
+public import Mathlib.Tactic
+public import Qatlib.Papers.LatticeSieve21.MainResults.Definitions
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -66,7 +70,7 @@ theorem prop5_cap_event_symm {E : Type*} [NormedAddCommGroup E]
     μ.real {ω | angle (v ω) s ≤ α} = μ.real {ω | angle s (v ω) ≤ α} := by
   congr 1
   ext ω
-  simp only [Set.mem_setOf_eq, angle_comm]
+  simp only [Set.mem_ofPred_eq, angle_comm]
 
 /-- **Proposition 5 (claim c004), p.5.**  If `v` is uniform on the unit sphere
 and the cap measure hypothesis `hcap : Pr[θ(v,s) ≤ α] = V_d(α)` holds, then both
@@ -142,7 +146,7 @@ theorem lemma1_expected_pairs {ι : Type*} [Fintype ι] (μ : Measure Ω)
     (hint : ∀ i, Integrable (X i) μ) (hmean : ∀ i, ∫ ω, X i ω ∂μ = p) :
     ∫ ω, ∑ i, X i ω ∂μ = (Fintype.card ι : ℝ) * p := by
   rw [integral_finsetSum Finset.univ (fun i _ => hint i)]
-  simp [hmean, Finset.sum_const, nsmul_eq_mul]
+  simp [hmean, Finset.sum_const]
 
 /-- **Lemma 1 (claim c010), probability part, p.10.**  A lower bound `a` on the
 probability of `E₀ ⊆ E₁`, multiplied by any `b ∈ [0,1]`, is still a lower bound
@@ -182,7 +186,7 @@ theorem lemma2_union_bound {ι : Type*} [Fintype ι] (μ : Measure Ω)
     Finset.sum_le_sum (fun i _ => hterm i)
   have hbound : μ.real (⋃ i, (A i)ᶜ) ≤ (Fintype.card ι : ℝ) * q := by
     refine (measureReal_iUnion_fintype_le (μ := μ) (fun i => (A i)ᶜ)).trans ?_
-    simpa [Finset.sum_const, nsmul_eq_mul] using hsum
+    simpa [Finset.sum_const] using hsum
   have hcompl : (⋂ i, A i)ᶜ = ⋃ i, (A i)ᶜ := Set.compl_iInter A
   rw [← hcompl] at hbound
   linarith

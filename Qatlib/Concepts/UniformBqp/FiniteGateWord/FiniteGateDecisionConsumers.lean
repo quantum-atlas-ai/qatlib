@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
-import Qatlib.Foundations.BornMetrics.EventProbability
+module
+
+public import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
+public import Qatlib.Foundations.BornMetrics.EventProbability
+
+@[expose] public section
 
 /-!
 # Finite gate words for initialization and parity
@@ -80,7 +84,7 @@ private theorem finiteParity_step (n : ℕ) (x : Reg n) (b : Bool) (i : Fin n) :
   have hne : i.val ≠ n := by omega
   have hct : (⟨i.val, hc⟩ : Fin (n + 1)) ≠ ⟨n, ht⟩ :=
     fun hh => hne (congrArg Fin.val hh)
-  rw [finiteCodeMatrix, dif_pos ⟨hc, ht, hne⟩, applyGate_cnotGate_ket _ _ _ hct]
+  rw [finiteCodeMatrix, dite_eq_left ⟨hc, ht, hne⟩, applyGate_cnotGate_ket _ _ _ hct]
   congr 1
   funext j
   by_cases hj : j = (⟨n, ht⟩ : Fin (n + 1))

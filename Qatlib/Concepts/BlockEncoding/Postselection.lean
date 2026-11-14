@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.BlockEncoding.Basic
-import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws
-import Mathlib.Analysis.Normed.Module.Normalize
+module
+
+public import Qatlib.Concepts.BlockEncoding.Basic
+public import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws
+public import Mathlib.Analysis.Normed.Module.Normalize
+
+@[expose] public section
 
 /-!
 # Postselection and error bounds for block encodings
@@ -116,8 +120,10 @@ theorem stateVector_norm_sq (ψ : QState I) :
   simpa [MeasureProb, BornProb, stateVector] using
     (EuclideanSpace.norm_sq_eq (WithLp.toLp 2 ψ : EuclideanSpace ℂ I))
 
+omit [DecidableEq I] in
 /-- A state is normalized exactly when its Euclidean state vector has norm one. -/
-theorem normalized_iff_stateVector_norm (ψ : QState I) :
+theorem normalized_iff_stateVector_norm {I : Type*} [Fintype I] [_instDI : DecidableEq I]
+    (ψ : QState I) :
     Normalized ψ ↔ ‖stateVector ψ‖ = 1 := by
   constructor
   · intro hψ
@@ -238,8 +244,10 @@ theorem IsIsometry.inner_mulVec {V : Matrix H I ℂ} (hV : IsIsometry V)
 
 variable [DecidableEq H]
 
+omit [DecidableEq H] in
 /-- An isometric matrix preserves total measurement mass. -/
-theorem IsIsometry.measureProb_mulVec {V : Matrix H I ℂ} (hV : IsIsometry V)
+theorem IsIsometry.measureProb_mulVec {H I : Type*} [Fintype H] [Fintype I]
+    [DecidableEq I] [_instDH : DecidableEq H] {V : Matrix H I ℂ} (hV : IsIsometry V)
     (ψ : QState I) : MeasureProb (V *ᵥ ψ) Finset.univ = MeasureProb ψ Finset.univ := by
   have he := IsIsometry.inner_mulVec hV ψ ψ
   rw [inner_self, inner_self, ← Complex.ofReal_sum, ← Complex.ofReal_sum] at he
@@ -297,7 +305,7 @@ theorem projectiveBranch_eq_postselection (U : Matrix H H ℂ) (L : Matrix H O �
     (R : Matrix H I ℂ) (ψ : QState I) :
     ProjectiveBranch (rangeProjector L) true (ApplyGate U (R *ᵥ ψ)) =
       L *ᵥ postselectionVector U L R ψ := by
-  simp only [ProjectiveBranch, if_true, ApplyGate, rangeProjector, postselectionVector,
+  simp only [ProjectiveBranch, ite_true, ApplyGate, rangeProjector, postselectionVector,
     compress, Matrix.mulVec_mulVec, Matrix.mul_assoc]
 
 omit [DecidableEq I] in
@@ -337,6 +345,13 @@ theorem postselectionProbability_mem_Icc {U : Matrix H H ℂ}
   unfold postselectionProbability
   linarith
 
+/--
+error: The namespace `BlockEncoding` is duplicated in the declaration `Qatlib.Concepts.BlockEncoding.Postselection.Encoding.BlockEncoding.postselection_error`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace
+false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- For normalized input, a block encoding bounds the difference between `Aψ` and the scaled
 postselection vector by `ε`. -/
 theorem BlockEncoding.postselection_error {A : Matrix O I ℂ} {U : Matrix H H ℂ}
@@ -349,6 +364,13 @@ theorem BlockEncoding.postselection_error {A : Matrix O I ℂ} {U : Matrix H H �
   simpa only [Matrix.sub_mulVec, Matrix.smul_mulVec, WithLp.toLp_sub, WithLp.toLp_smul,
     postselectionVector, stateVector] using hb
 
+/--
+error: The namespace `BlockEncoding` is duplicated in the declaration `Qatlib.Concepts.BlockEncoding.Postselection.Encoding.BlockEncoding.postselection_probability_error`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace
+false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The scaled success probability differs from `‖Aψ‖²` by at most `ε * (2 * ‖Aψ‖ + ε)` on
 normalized input. -/
 theorem BlockEncoding.postselection_probability_error {A : Matrix O I ℂ}
@@ -364,6 +386,13 @@ theorem BlockEncoding.postselection_probability_error {A : Matrix O I ℂ}
     ← postselectionProbability_eq_norm_sq h.left_isometry] at hm
   exact hm
 
+/--
+error: The namespace `BlockEncoding` is duplicated in the declaration `Qatlib.Concepts.BlockEncoding.Postselection.Encoding.BlockEncoding.postselection_output_of_gap`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace
+false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- If `ε < ‖Aψ‖` on normalized input, postselection has positive probability and returns a
 normalized application with error at most `2 * ε / ‖Aψ‖`. -/
 theorem BlockEncoding.postselection_output_of_gap {A : Matrix O I ℂ} {U : Matrix H H ℂ}
@@ -397,6 +426,13 @@ theorem BlockEncoding.postselection_output_of_gap {A : Matrix O I ℂ} {U : Matr
     · rw [stateVector_postMeasure_univ]
       simpa only [NormedSpace.normalize_smul_of_pos h.normalization_pos] using herr
 
+/--
+error: The namespace `BlockEncoding` is duplicated in the declaration `Qatlib.Concepts.BlockEncoding.Postselection.Encoding.BlockEncoding.postselection_probability_lower`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace
+false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- If `ε ≤ ‖Aψ‖` on normalized input, the success probability is at least `((‖Aψ‖ - ε) / α)²`. -/
 theorem BlockEncoding.postselection_probability_lower {A : Matrix O I ℂ}
     {U : Matrix H H ℂ} {L : Matrix H O ℂ} {R : Matrix H I ℂ} {α ε : ℝ}

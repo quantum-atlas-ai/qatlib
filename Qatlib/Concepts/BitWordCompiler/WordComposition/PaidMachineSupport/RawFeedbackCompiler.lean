@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.BitWordCompiler.WordComposition.PaidMachineSupport.RawFeedback
+module
+
+public import Qatlib.Concepts.BitWordCompiler.WordComposition.PaidMachineSupport.RawFeedback
+
+@[expose] public section
 
 /-!
 # A uniform binary feedback machine
@@ -80,7 +84,7 @@ theorem pending_transaction_execution {q : ℕ} (bank : ControllerFeedback.Bank 
     exact List.take_append_drop _ _
   have hu : List.ofFn (ControllerFeedback.supply bank pending b)=
       slots.take i.val ++ some b::slots.drop (i.val+1) := by
-    rw [ControllerFeedback.supply,ofFn_update,List.set_eq_take_append_cons_drop,if_pos hi]
+    rw [ControllerFeedback.supply,ofFn_update,List.set_eq_take_append_cons_drop,ite_eq_left hi]
   obtain ⟨last,he⟩ := transaction_execution (slots.take i.val) slots[i.val] (slots.drop (i.val+1))
     i.val.bits b (by rw [Qatlib.Concepts.BitWordCompiler.CanonicalCodec.binaryValue_bits,ht])
   rw [hs,← hu,ht] at he

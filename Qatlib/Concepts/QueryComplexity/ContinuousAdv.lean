@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Analysis.InnerProductSpace.Calculus
-import Mathlib.Analysis.Calculus.MeanValue
-import Mathlib.Algebra.Order.Chebyshev
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Analysis.InnerProductSpace.Calculus
+public import Mathlib.Analysis.Calculus.MeanValue
+public import Mathlib.Algebra.Order.Chebyshev
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Continuous time search adversary bounds
@@ -151,7 +155,7 @@ theorem distance_hasDerivAt (b : OrthonormalBasis ι ℂ V) (E : ℝ)
     change (inner ℂ (ψw i t - ψ t) uv).re = (inner ℂ (ψw i t) (rankOneAction b E i (ψ t))).im
     dsimp only [uv]
     exact distance_deriv_value b E i (HD t) (hHD t) (ψw i t) (ψ t)
-  letI : InnerProductSpace ℝ V := InnerProductSpace.complexToReal
+  let : InnerProductSpace ℝ V := InnerProductSpace.complexToReal
   have hnorm := hu.norm_sq
   rw [real_inner_eq_re_inner] at hnorm
   rw [hval] at hnorm

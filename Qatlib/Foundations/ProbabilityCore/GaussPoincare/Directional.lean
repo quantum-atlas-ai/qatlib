@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.ProbabilityCore.GaussPoincare.Rotation
-import Mathlib.Analysis.Calculus.ContDiff.Basic
-import Mathlib.MeasureTheory.Integral.Prod
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.FundThmCalculus
+module
+
+public import Qatlib.Foundations.ProbabilityCore.GaussPoincare.Rotation
+public import Mathlib.Analysis.Calculus.ContDiff.Basic
+public import Mathlib.MeasureTheory.Integral.Prod
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.FundThmCalculus
+
+@[expose] public section
 
 /-!
 # Gaussian directional derivatives along rotations
@@ -47,7 +51,7 @@ theorem dual_square_integral (L : E→L[ℝ]ℝ) :
   have hm : (∫ y,L y ∂stdGaussian E)=0 := by
     simpa only [id_eq,integral_id_stdGaussian,map_zero] using
       L.integral_comp_comm (IsGaussian.integrable_id (μ:=stdGaussian E))
-  have hl : MemLp L 2 (stdGaussian E) := L.lipschitz.comp_memLp (map_zero L)
+  have hl : MemLp L 2 (stdGaussian E) := L.lipschitzWith.comp_memLp (map_zero L)
     (IsGaussian.memLp_id (stdGaussian E) 2 (by simp))
   have h := variance_eq_sub hl
   rw [variance_dual_stdGaussian,hm] at h

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.RationalFlow.SourceMeanPlan
-import Qatlib.Concepts.EffectiveGauge.RationalFlow.SourceMeanBound
-import Qatlib.Concepts.EffectiveGauge.RationalFlow.MeanInterval
+module
+
+public import Qatlib.Concepts.EffectiveGauge.RationalFlow.SourceMeanPlan
+public import Qatlib.Concepts.EffectiveGauge.RationalFlow.SourceMeanBound
+public import Qatlib.Concepts.EffectiveGauge.RationalFlow.MeanInterval
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -64,7 +68,7 @@ theorem sourceMeanPhysicalExecution_success (source : RationalJetSource) (m1 m2 
   by_cases h : m1=0
   · subst m1
     exact ⟨_,sourceMeanPhysicalExecution_zero source m2 tolerance⟩
-  · rw [sourceMeanPhysicalExecution,if_neg h,sourceMeanPlannedUnitExecution,
+  · rw [sourceMeanPhysicalExecution,ite_eq_right h,sourceMeanPlannedUnitExecution,
       sourceMeanUnitExecution_eq source m1 m2 _ _ (sourceMeanMesh_pos m1 m2 tolerance),Option.map_some]
     exact ⟨_,rfl⟩
 
@@ -136,7 +140,7 @@ theorem sourceMeanPhysicalExecution_correct (v : SpatialPoint → SpatialPoint)
     have hplan : sourceMeanPlannedUnitExecution source m1 m2 tolerance=some values := hex
     let intervals := fun j => meanIntervalQuotient (values j) E length width
     refine ⟨intervals,?_,?_⟩
-    · rw [sourceMeanPhysicalExecution,if_neg hz,hplan]
+    · rw [sourceMeanPhysicalExecution,ite_eq_right hz,hplan]
       rfl
     · intro j
       let J := unitCubeIntegral (sourceCurvatureMoment (unitCoordinateSpin v) (sourceMeanMomentAxis j) j)

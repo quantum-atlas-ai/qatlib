@@ -4,9 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.UnboundedSourceSearch
-import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.SearchBudget
+module
+
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.UnboundedSourceSearch
+public import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.SearchBudget
+
+@[expose] public section
+set_option linter.unusedSectionVars false
 
 /-!
 # Receipts for heuristic quantum search
@@ -273,12 +278,12 @@ theorem windowRound_ratio
   rw [windowRound] at hout
   obtain ⟨st, _, hout⟩ := (PMF.mem_support_bind_iff _ _ _).mp hout
   by_cases hS : st.1.1 ∈ S
-  · rw [if_pos hS] at hout
+  · rw [ite_eq_left hS] at hout
     have heq : out = (some st.1.1, 1, 1) := by
       simpa [PMF.mem_support_pure_iff] using! hout
     subst out
     norm_num
-  · rw [if_neg hS] at hout
+  · rw [ite_eq_right hS] at hout
     obtain ⟨j, _, hout⟩ := (PMF.mem_support_bind_iff _ _ _).mp hout
     obtain ⟨st2, _, hout⟩ := (PMF.mem_support_bind_iff _ _ _).mp hout
     have heq : out = (if st2.1.1 ∈ S then some st2.1.1 else none,
@@ -626,8 +631,8 @@ theorem schedule_survival_eq_reachMass
           else 0 := by
       intro out
       rcases Option.eq_none_or_eq_some out.1 with hn | ⟨y, hy⟩
-      · rw [hn, Option.isSome_none, if_neg (by simp), ih, if_pos rfl]
-      · rw [hy, Option.isSome_some, if_pos (by simp), finiteSurvival_halted, if_neg (by simp)]
+      · rw [hn, Option.isSome_none, ite_eq_right (by simp), ih, ite_eq_left rfl]
+      · rw [hy, Option.isSome_some, ite_eq_left (by simp), finiteSurvival_halted, ite_eq_right (by simp)]
     rw [Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.expectation_congr hsplit,
         expectation_indicator_mul', reachMass_succ]
     exact mul_comm _ _

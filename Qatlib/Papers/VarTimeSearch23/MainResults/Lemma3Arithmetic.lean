@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Ring
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -77,7 +81,7 @@ theorem lemma3_C1 (n s j : ℕ) (hn : 0 < n)
   have hn' : (0 : ℝ) < n := by exact_mod_cast hn
   have heq : 4 * (s : ℝ) / (27 * (n : ℝ)) * (9 : ℝ) ^ j
       = (4 / 27) * ((9 : ℝ) ^ j * (s : ℝ) / (n : ℝ)) := by
-    field_simp [ne_of_gt hn'] <;> ring
+    field_simp [ne_of_gt hn']
   rw [heq]
   nlinarith
 
@@ -108,7 +112,7 @@ theorem lemma3_C2 (n ell : ℕ) (s : ℕ → ℕ) (hn : 0 < n)
     have hb := hC1 j hj'
     have heq : x j = (4 / 27) * ((9 : ℝ) ^ j * (s j : ℝ) / (n : ℝ)) := by
       simp only [hx]
-      field_simp [ne_of_gt hn'] <;> ring
+      field_simp [ne_of_gt hn']
     rw [heq]
     nlinarith
   have hbern := prod_one_sub_ge_one_sub_sum t x hx0 hx1
@@ -118,13 +122,13 @@ theorem lemma3_C2 (n ell : ℕ) (s : ℕ → ℕ) (hn : 0 < n)
     apply Finset.sum_congr rfl
     intro j hj
     simp only [hx]
-    field_simp [ne_of_gt hn'] <;> ring
+    field_simp [ne_of_gt hn']
   have hsum_le : (4 / (27 * (n : ℝ)))
       * ∑ j ∈ t, (s j : ℝ) * (9 : ℝ) ^ j ≤ (4 / (27 * (n : ℝ))) * (9 * (n : ℝ) / 4) := by
     apply mul_le_mul_of_nonneg_left hA2
     positivity
   have hconst : (4 / (27 * (n : ℝ))) * (9 * (n : ℝ) / 4) = 1 / 3 := by
-    field_simp [ne_of_gt hn'] <;> ring
+    field_simp [ne_of_gt hn']; ring
   calc (2 : ℝ) / 3 = 1 - 1 / 3 := by norm_num
     _ = 1 - (4 / (27 * (n : ℝ))) * (9 * (n : ℝ) / 4) := by rw [hconst]
     _ ≤ 1 - ∑ j ∈ t, x j := by

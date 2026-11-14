@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ArthurMerlin05.StaticGames.Model.PaperGamesModel
-import Qatlib.Concepts.MixedFidelity.FidelityMetric.MixedFidelityDefs
-import Qatlib.Concepts.MixedFidelity.FidelityMetric.ChannelHelpers.RankOneTraceNormEquality
+module
+
+public import Qatlib.Papers.ArthurMerlin05.StaticGames.Model.PaperGamesModel
+public import Qatlib.Concepts.MixedFidelity.FidelityMetric.MixedFidelityDefs
+public import Qatlib.Concepts.MixedFidelity.FidelityMetric.ChannelHelpers.RankOneTraceNormEquality
+
+@[expose] public section
 
 /-!
 # Lemma 5.2 — a measurement outcome is bounded by a squared fidelity

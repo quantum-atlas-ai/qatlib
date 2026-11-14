@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ClassShadows20.LowerBound.LocalMeasurementLowerBoundSubgoalStat
+module
+
+public import Qatlib.Papers.ClassShadows20.LowerBound.LocalMeasurementLowerBoundSubgoalStat
+
+@[expose] public section
 
 /-!
 # Legacy local moment contracts
@@ -46,20 +50,20 @@ over arbitrary complex operators. -/
 def LocalShotPauliMomentSubgoalLegacy : Prop :=
   ∀ (n k : ℕ) (J : Type) [Fintype J] [DecidableEq J]
     (κ : FinDist J) (Uf : J → Operator 2)
-    (hκU : ∀ j, 0 < κ.prob j → Uf j ∈ Matrix.unitaryGroup (Fin 2) ℂ)
-    (hκ1 : ∀ Pp : Operator 2, IsPureDensityOperator Pp → ∀ A : Operator 2,
+    (_hκU : ∀ j, 0 < κ.prob j → Uf j ∈ Matrix.unitaryGroup (Fin 2) ℂ)
+    (_hκ1 : ∀ Pp : Operator 2, IsPureDensityOperator Pp → ∀ A : Operator 2,
       ∑ j, κ.prob j * (Matrix.trace (A * (Uf j)ᴴ * Pp * Uf j)).re =
         (Matrix.trace A).re / 2)
-    (hκ2 : ∀ Pp : Operator 2, IsPureDensityOperator Pp → ∀ A B : Operator 2,
+    (_hκ2 : ∀ Pp : Operator 2, IsPureDensityOperator Pp → ∀ A B : Operator 2,
       ∑ j, κ.prob j * (Matrix.trace (A * (Uf j)ᴴ * Pp * Uf j)).re *
           (Matrix.trace (B * (Uf j)ᴴ * Pp * Uf j)).re =
         ((Matrix.trace A).re * (Matrix.trace B).re +
           (Matrix.trace (A * B)).re) / 6)
-    (w : ℝ) (hw : 0 ≤ w)
-    (ψ : Fin n → Operator 2) (hψ : ∀ j, IsPureDensityOperator (ψ j))
+    (w : ℝ) (_hw : 0 ≤ w)
+    (ψ : Fin n → Operator 2) (_hψ : ∀ j, IsPureDensityOperator (ψ j))
     (a : Fin n → Option (Fin 3))
-    (hk : 1 ≤ k) (hS : tensorPauliWeight a = k)
-    (ε : ℝ) (hε : 0 < ε) (hε1 : 3 * ε ≤ 1),
+    (_hk : 1 ≤ k) (_hS : tensorPauliWeight a = k)
+    (ε : ℝ) (_hε : 0 < ε) (_hε1 : 3 * ε ≤ 1),
     (∑ uw : Fin n → J, (∏ j, κ.prob (uw j)) *
         localShotValue Uf w ψ uw (theorem6CodeState n ε a) = w)
     ∧ (∑ uw : Fin n → J, (∏ j, κ.prob (uw j)) *
@@ -73,26 +77,26 @@ def LocalMeasurementLowerBoundSubgoalLegacy : Prop :=
   ∀ (n k N M : ℕ) (O : Type) [Fintype O] [DecidableEq O]
     (J : Type) [Fintype J] [DecidableEq J]
     (κ : FinDist J) (Uf : J → Operator 2)
-    (hκU : ∀ j, 0 < κ.prob j → Uf j ∈ Matrix.unitaryGroup (Fin 2) ℂ)
-    (hκ1 : ∀ Pp : Operator 2, IsPureDensityOperator Pp → ∀ A : Operator 2,
+    (_hκU : ∀ j, 0 < κ.prob j → Uf j ∈ Matrix.unitaryGroup (Fin 2) ℂ)
+    (_hκ1 : ∀ Pp : Operator 2, IsPureDensityOperator Pp → ∀ A : Operator 2,
       ∑ j, κ.prob j * (Matrix.trace (A * (Uf j)ᴴ * Pp * Uf j)).re =
         (Matrix.trace A).re / 2)
-    (hκ2 : ∀ Pp : Operator 2, IsPureDensityOperator Pp → ∀ A B : Operator 2,
+    (_hκ2 : ∀ Pp : Operator 2, IsPureDensityOperator Pp → ∀ A B : Operator 2,
       ∑ j, κ.prob j * (Matrix.trace (A * (Uf j)ᴴ * Pp * Uf j)).re *
           (Matrix.trace (B * (Uf j)ᴴ * Pp * Uf j)).re =
         ((Matrix.trace A).re * (Matrix.trace B).re +
           (Matrix.trace (A * B)).re) / 6)
-    (hk1pos : 1 ≤ k)
-    (ε δ : ℝ) (hε : 0 < ε) (hε1 : 3 * ε ≤ 1)
-    (w : Fin N → O → ℝ) (hw : ∀ j o, 0 ≤ w j o)
+    (_hk1pos : 1 ≤ k)
+    (ε δ : ℝ) (_hε : 0 < ε) (_hε1 : 3 * ε ≤ 1)
+    (w : Fin N → O → ℝ) (_hw : ∀ j o, 0 ≤ w j o)
     (ψ : Fin N → O → Fin n → Operator 2)
-    (hψ : ∀ j o q, IsPureDensityOperator (ψ j o q))
-    (hwSum : ∀ j, (∑ o, (w j o * (2 ^ n : ℝ)) • tensorPauliProduct n (ψ j o)) = 1)
+    (_hψ : ∀ j o q, IsPureDensityOperator (ψ j o q))
+    (_hwSum : ∀ j, (∑ o, (w j o * (2 ^ n : ℝ)) • tensorPauliProduct n (ψ j o)) = 1)
     (Pw : Fin M → Fin n → Option (Fin 3))
-    (hScard : ∀ m, tensorPauliWeight (Pw m) = k)
-    (hPinj : Function.Injective Pw)
+    (_hScard : ∀ m, tensorPauliWeight (Pw m) = k)
+    (_hPinj : Function.Injective Pw)
     (g : (Fin N → O) → Fin M → ℝ)
-    (hg : ∀ (x : Fin M) (uw : Fin n → J),
+    (_hg : ∀ (x : Fin M) (uw : Fin n → J),
       1 - δ ≤ ∑ ω ∈ Finset.univ.filter
           (fun ω : Fin N → O =>
             ∀ i, |g ω i - 3 * ε * (if i = x then (1 : ℝ) else 0)| ≤ ε),

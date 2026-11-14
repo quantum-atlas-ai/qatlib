@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
-import Mathlib.Combinatorics.Young.YoungDiagram
-import Mathlib.Combinatorics.Young.SemistandardTableau
-import Mathlib.Tactic
+module
+
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+public import Mathlib.Combinatorics.Young.YoungDiagram
+public import Mathlib.Combinatorics.Young.SemistandardTableau
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -59,10 +63,10 @@ noncomputable def bernoulliLaw (p : I) : FinDist Bool where
   prob b := if b then (p : ℝ) else 1 - (p : ℝ)
   nonneg b := by
     cases b
-    · simp only [Bool.false_eq_true, if_false]
+    · simp only [Bool.false_eq_true, ite_false]
       have := p.2.2
       linarith
-    · simp only [if_true]
+    · simp only [ite_true]
       exact p.2.1
   sum_one := by
     rw [Fintype.sum_bool]
@@ -84,9 +88,7 @@ theorem variance_bernoulli_indicator_le (p : I) :
     unfold FinDist.variance
     rw [expect_bernoulli_indicator p]
     rw [FinDist.expect, Fintype.sum_bool]
-    simp only [bernoulliLaw, shotIndicator, Bool.false_eq_true, if_false, if_true,
-      Fin.sum_univ_two, Finset.sum_const, Finset.card_univ, Fintype.card_bool,
-      one_mul, smul_eq_mul]
+    simp only [bernoulliLaw, shotIndicator, Bool.false_eq_true, ite_false, ite_true]
     ring
   rw [hcalc]
   have h1 : 1 - (p : ℝ) ≤ 1 := by linarith [p.2.1]
@@ -176,7 +178,6 @@ theorem shot_estimation_bound (p : I) {ε : ℝ} {m N : ℕ}
     · -- lower bound `m ≤ m + d/ε + 1/2`
       nlinarith [hdiff_ge]
     · -- upper bound `m + d/ε + 1/2 < m + 1`
-      push_cast
       nlinarith [hdiff_le]
 
 /-! ## Circuit cost bookkeeping (Theorem 1 / Theorem 3 / Lemma 6) -/

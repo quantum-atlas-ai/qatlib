@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGSelectFourData
-import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGSignedAddition
+module
+
+public import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGSelectFourData
+public import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGSignedAddition
+
+@[expose] public section
 
 /-!
 # Selection among four Boolean words
@@ -148,7 +152,7 @@ private theorem s4_input_raw (H : ℕ) (a : Fin 4 → Reg H) (high low : Bool) (
     rw [Nat.mul_comm row.val H,Nat.mul_add_div hH,Nat.div_eq_of_lt j.isLt,add_zero]
   have hm : (row.val*H+j.val)%H = j.val := by
     simp only [Nat.add_mod,Nat.mul_mod_left,zero_add,Nat.mod_eq_of_lt j.isLt]
-  simp only [booleanSelectFourWord,booleanSelectFourRaw,booleanSelectFourInput,Fin.val_mk,dif_pos hlt,hd,hm]
+  simp only [booleanSelectFourWord,booleanSelectFourRaw,booleanSelectFourInput,Fin.val_mk,dite_eq_left hlt,hd,hm]
 
 /-- The high selector of an explicitly packed four-way selection input equals the supplied high
 bit. -/

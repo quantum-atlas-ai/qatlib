@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkFind.WalkSpectrum.BlockUnitary
-import Qatlib.Concepts.WalkFind.WalkSpectrum.JohnsonPhaseAux
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Analysis.Normed.Lp.PiLp
-import Mathlib.Data.Complex.Basic
-import Mathlib.Analysis.InnerProductSpace.Basic
-import Mathlib.Data.Fintype.Pi
+module
+
+public import Qatlib.Concepts.WalkFind.WalkSpectrum.BlockUnitary
+public import Qatlib.Concepts.WalkFind.WalkSpectrum.JohnsonPhaseAux
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Analysis.Normed.Lp.PiLp
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Analysis.InnerProductSpace.Basic
+public import Mathlib.Data.Fintype.Pi
+
+@[expose] public section
 
 /-!
 # Residual estimates for the Johnson walk
@@ -612,7 +616,7 @@ theorem jwWalk_eigenvalue_gap_one_of_start_weight (k N r : ℕ) (hNr : r < N)
     · subst i
       simp [jwIdealWalk_zero_action,jwEraseZero]
     · rw [heigen]
-      simp only [Pi.sub_apply,Pi.neg_apply,Pi.add_apply,Pi.smul_apply,smul_eq_mul,jwEraseZero,if_neg hi]
+      simp only [Pi.sub_apply,Pi.neg_apply,Pi.add_apply,Pi.smul_apply,smul_eq_mul,jwEraseZero,ite_eq_right hi]
       ring
   have htri := jwL2Norm_add_le (-(jwEraseZero (jwWalk k N r *ᵥ v-jwIdealWalk k r *ᵥ v)))
     ((μ-1) • jwEraseZero v)

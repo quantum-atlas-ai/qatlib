@@ -40,7 +40,7 @@ jobs:
         run: lake exe get_cache --no-qatlib
 
       - name: Build Qatlib from source with warnings as errors
-        run: lake build --wfail Qatlib
+        run: lake --fail-fast build --wfail Qatlib
 
       - name: Run kernel soundness and transitive axiom audit
         run: lake exe test
@@ -56,7 +56,7 @@ jobs:
               >/dev/null 2>&1; then
             env -u HTTP_PROXY -u HTTPS_PROXY -u ALL_PROXY git clone --depth 1 --branch "$TC_TAG" \
               https://github.com/leanprover/lean4checker.git "$CHECKER_DIR"
-            (cd "$CHECKER_DIR" && lake build)
+            (cd "$CHECKER_DIR" && lake --fail-fast build)
             CHECKER_BIN="$CHECKER_DIR/.lake/build/bin/lean4checker"
           fi
           if [ -n "$CHECKER_BIN" ] && [ -x "$CHECKER_BIN" ]; then

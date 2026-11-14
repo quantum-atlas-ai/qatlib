@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.Orthonormal
-import Mathlib.Analysis.Calculus.Deriv.MeanValue
-import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.InnerProductSpace.Orthonormal
+public import Mathlib.Analysis.Calculus.Deriv.MeanValue
+public import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Finite-dimensional estimates for an adiabatic lower bound
@@ -292,7 +296,7 @@ theorem deriv_abs_integral_bound
           (hasDerivAt_id t).sub hpow
         have h2 : HasDerivAt (fun t : ℝ => 2 * E * K * (t - t ^ 2 / (2 * T)))
             (2 * E * K * (1 - 2 * t / (2 * T))) t := hbase.const_mul (2 * E * K)
-        exact h2.congr_deriv (by field_simp; try ring)
+        exact h2.congr_deriv (by field_simp)
       rw [intervalIntegral.integral_eq_sub_of_hasDerivAt hanti hint_b]
       have hcalc : (fun t : ℝ => 2 * E * K * (t - t ^ 2 / (2 * T))) T
             - (fun t : ℝ => 2 * E * K * (t - t ^ 2 / (2 * T))) 0 = E * T * K := by

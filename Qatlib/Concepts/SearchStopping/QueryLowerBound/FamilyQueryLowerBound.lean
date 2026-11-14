@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SearchStopping.QueryLowerBound.FixedQueryLowerBound
+module
+
+public import Qatlib.Concepts.SearchStopping.QueryLowerBound.FixedQueryLowerBound
+
+@[expose] public section
 
 /-!
 # Query lower bounds for families of marked sets

@@ -4,10 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CopyEvolution.Discriminate.ControlledCopyEvolution
-import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
-import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopyDrivenPhaseReadout
-import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopySpectralReadout
+module
+
+public import Qatlib.Concepts.CopyEvolution.Discriminate.ControlledCopyEvolution
+public import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
+public import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopyDrivenPhaseReadout
+public import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopySpectralReadout
+
+@[expose] public section
+
+set_option linter.unusedSimpArgs false
 
 /-!
 # Exact Readout for a Rank One Copy State
@@ -90,7 +96,7 @@ set_option maxHeartbeats 2000000
 
 /-- Defines the two dimensional pure density matrix given by the outer product of the zero basis
 state. -/
-private noncomputable def copyPureDensity : Operator 2 :=
+noncomputable def copyPureDensity : Operator 2 :=
     outerProduct (Qatlib.Foundations.PureStateMath.Ket 0)
 
 /-- The projector onto the zero basis state is a density operator. -/
@@ -113,7 +119,7 @@ private theorem copyPureDensity_fixed (θ : ℝ) :
 
 /-- Defines a diagonal Boolean control gate with phase one on false and `exp (-I * theta)` on
 true. -/
-private noncomputable def copyPureControlPhase (θ : ℝ) : Matrix Bool Bool ℂ :=
+noncomputable def copyPureControlPhase (θ : ℝ) : Matrix Bool Bool ℂ :=
   Matrix.diagonal (fun b => if b then Complex.exp (-Complex.I * (θ : ℂ)) else 1)
 
 /-- Expresses `exp (-I * theta)` as `cos theta - I * sin theta` for a real angle. -/
@@ -352,7 +358,7 @@ private theorem copyPureIdeal_raw (θ : ℝ) (B : Matrix Bool Bool ℂ) :
     simp [conjMap_apply, controlOracle, select, copyPureControlPhase, copyPureDensity,
       outerProduct_apply, Qatlib.Foundations.PureStateMath.Ket, Matrix.mul_apply, Matrix.conjTranspose_apply,
       Matrix.diagonal_apply, tensorGate_apply, Fintype.sum_prod_type, Fin.sum_univ_two,
-      RCLike.star_def] <;> ring
+      RCLike.star_def]
 
 /-- For any finite auxiliary index type, each fixed phase block of conjugation by identity
 tensored with an auxiliary matrix equals conjugation of that block by the auxiliary matrix. -/
@@ -483,7 +489,7 @@ private theorem copyPureOutput_exact (n : ℕ) (hn : 0 < n) :
       outerProduct
       (TensorState (Qatlib.Foundations.PureStateMath.Ket (0 : Fin 4)) (Qatlib.Foundations.PureStateMath.Ket false))
   have he : copyQPEInput 2 4 copyPureDensity = copyPureEmbed 4 A := by
-    rw [copyQPEInput, dif_pos (by decide : 0 < 4)]
+    rw [copyQPEInput, dite_eq_left (by decide : 0 < 4)]
     dsimp [A, copyPureEmbed]
     rw [outerProduct_tensorState, relabelGate_prodAssoc]
   rw [copyQPEOutput, copyQPEIdealOutput, he]

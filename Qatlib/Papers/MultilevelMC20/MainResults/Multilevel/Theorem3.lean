@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MultilevelMC20.MainResults.CostModel.CostAsymptotics
+module
+
+public import Qatlib.Papers.MultilevelMC20.MainResults.CostModel.CostAsymptotics
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -62,7 +66,7 @@ theorem theorem3_general {r : ℝ} (hr : 0 < r) {cost : ℝ → ℝ} {q s : ℝ}
     have hδ : 0 < (r - 2) / 2 := by linarith
     have hexp : quantumMLMCExponent (r - (r - 2) / 2) ((r - (r - 2) / 2) / 2) 1 = 1 := by
       unfold quantumMLMCExponent
-      rw [if_pos]
+      rw [ite_eq_left]
       ring_nf
       nlinarith
     have hh := h ((r - 2) / 2) hδ
@@ -78,7 +82,7 @@ theorem theorem3_general {r : ℝ} (hr : 0 < r) {cost : ℝ → ℝ} {q s : ℝ}
     have hlt : ¬ (1 < (r - η) / 2) := by nlinarith
     have hexp : quantumMLMCExponent (r - η) ((r - η) / 2) 1 = 1 / 2 + 1 / (r - η) := by
       unfold quantumMLMCExponent
-      rw [if_neg hlt]
+      rw [ite_eq_right hlt]
       field_simp
       ring
     have hbound : 1 / (r - η) ≤ 1 / r + δ := by
@@ -104,12 +108,12 @@ theorem theorem3_lipschitz {r : ℝ} (hr : 0 < r) {cost : ℝ → ℝ} {q s : �
   · intro hr1
     have hexp : quantumMLMCExponent r r 1 = 1 := by
       unfold quantumMLMCExponent
-      rw [if_pos hr1]
+      rw [ite_eq_left hr1]
     rwa [hexp] at h
   · intro hr1
     have hexp : quantumMLMCExponent r r 1 = 1 / r := by
       unfold quantumMLMCExponent
-      rw [if_neg (not_lt.mpr hr1)]
+      rw [ite_eq_right (not_lt.mpr hr1)]
       field_simp
       ring
     rw [hexp] at h

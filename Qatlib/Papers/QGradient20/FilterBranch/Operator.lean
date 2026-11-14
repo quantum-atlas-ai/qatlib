@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QGradient20.FilterBranch.ActualVector
-import Mathlib.LinearAlgebra.Matrix.Hermitian
+module
+
+public import Qatlib.Papers.QGradient20.FilterBranch.ActualVector
+public import Mathlib.LinearAlgebra.Matrix.Hermitian
+
+@[expose] public section
 
 /-!
 # The successful gradient-filter operator

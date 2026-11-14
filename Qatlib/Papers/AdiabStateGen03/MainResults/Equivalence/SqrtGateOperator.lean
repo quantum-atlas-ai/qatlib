@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AdiabStateGen03.MainResults.Defs
-import Qatlib.Papers.AdiabStateGen03.MainResults.Equivalence.Basic
-import Mathlib.Analysis.InnerProductSpace.PiL2
+module
+
+public import Qatlib.Papers.AdiabStateGen03.MainResults.Defs
+public import Qatlib.Papers.AdiabStateGen03.MainResults.Equivalence.Basic
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+
+@[expose] public section
 
 /-!
 # Projection operators and scalar square-root-gate bounds
@@ -88,7 +92,7 @@ theorem projection_norm_le_one (P : Ham n) (hP : Pᴴ = P) (hidem : P * P = P) :
         rw [hself] at h4
         exact h4.symm
       have h5 : toOp P (toOp P x) = toOp P x := by
-        rw [← ContinuousLinearMap.mul_apply, hmul]
+        rw [← _root_.mul_apply_eq_comp, hmul]
       rw [h3, h5]
     have hnorm : ‖toOp P x‖ ^ 2 = (⟪x, toOp P x⟫_ℂ).re := by
       rw [← inner_self_eq_norm_sq (𝕜 := ℂ) (toOp P x)]

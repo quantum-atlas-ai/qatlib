@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.KoopmanSim26.SpectralRep.DiagonalizedLCHS
-import Mathlib.Analysis.SpecialFunctions.Complex.Arg
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
-import Mathlib.Topology.Order.Compact
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.KoopmanSim26.SpectralRep.DiagonalizedLCHS
+public import Mathlib.Analysis.SpecialFunctions.Complex.Arg
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+public import Mathlib.Topology.Order.Compact
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Product approximation of diagonal unitaries
@@ -123,12 +127,12 @@ lemma cubeAvg_walsh {n : ℕ} (u : Cube n) :
     cubeAvg (walsh u) = if u = (fun _ => false) then 1 else 0 := by
   simp only [cubeAvg, sum_walsh]
   by_cases hu : u = (fun _ => false)
-  · rw [if_pos hu]
+  · rw [ite_eq_left hu]
     subst hu
-    simp only [Bool.false_eq_true, if_false, Finset.prod_const, Finset.card_univ,
+    simp only [Bool.false_eq_true, ite_false, Finset.prod_const, Finset.card_univ,
       Fintype.card_fin]
     exact inv_mul_cancel₀ (pow_ne_zero n (by norm_num : (2:ℝ) ≠ 0))
-  · rw [if_neg hu]
+  · rw [ite_eq_right hu]
     have hex : ∃ k, u k = true := by
       by_contra hcon
       push Not at hcon
@@ -169,8 +173,8 @@ lemma cubeAvg_walsh_mul_walsh {n : ℕ} (s t : Cube n) :
     funext x; exact walsh_mul_walsh s t x
   rw [hfun, cubeAvg_walsh]
   by_cases h : s = t
-  · rw [if_pos ((cubeXor_eq_zero_iff s t).mpr h), if_pos h]
-  · rw [if_neg (fun hc => h ((cubeXor_eq_zero_iff s t).mp hc)), if_neg h]
+  · rw [ite_eq_left ((cubeXor_eq_zero_iff s t).mpr h), ite_eq_left h]
+  · rw [ite_eq_right (fun hc => h ((cubeXor_eq_zero_iff s t).mp hc)), ite_eq_right h]
 
 /-- The uniform cube average preserves pointwise addition. -/
 lemma cubeAvg_add {n : ℕ} (f g : Cube n → ℝ) :
@@ -225,9 +229,9 @@ lemma cubeAvg_walshPhase_sq {n : ℕ} (c : Cube n → ℝ) :
     _ = ∑ s, c s ^ 2 := by
           refine Finset.sum_congr rfl (fun s _ => ?_)
           rw [Finset.sum_eq_single s]
-          · rw [if_pos rfl]; ring
+          · rw [ite_eq_left rfl]; ring
           · intro t _ hts
-            rw [if_neg (Ne.symm hts)]; ring
+            rw [ite_eq_right (Ne.symm hts)]; ring
           · intro hs; exact absurd (Finset.mem_univ s) hs
 
 /-- The absolute value of a Walsh phase at any cube point is at most the sum of the absolute
@@ -466,8 +470,8 @@ theorem universal_approximation_bound (n : ℕ) (α : Cube n → ℝ) :
     intro s
     simp only [betaStar]
     by_cases h : hammingWeight s ≤ 1
-    · rw [if_pos h, if_neg (by omega : ¬ 2 ≤ hammingWeight s)]; ring
-    · rw [if_neg h, if_pos (by omega : 2 ≤ hammingWeight s)]; ring
+    · rw [ite_eq_left h, ite_eq_right (by omega : ¬ 2 ≤ hammingWeight s)]; ring
+    · rw [ite_eq_right h, ite_eq_left (by omega : 2 ≤ hammingWeight s)]; ring
   have hsq : (∑ s, (α s - betaStar α s) ^ 2)
       = ∑ s, if 2 ≤ hammingWeight s then α s ^ 2 else 0 := by
     refine Finset.sum_congr rfl (fun s _ => ?_)
@@ -583,7 +587,7 @@ theorem lowPhase_unwrap {n : ℕ} (φ : ℝ) (θ : Fin n → ℝ) (x : Cube n) :
   congr 1
   apply Finset.prod_congr rfl
   intro j _
-  cases x j <;> simp only [Bool.false_eq_true, if_false, if_true]
+  cases x j <;> simp only [Bool.false_eq_true, ite_false, ite_true]
   exact exp_arg_unit _ (phaseValue_norm _)
 
 /-- The normalized squared Frobenius error is the uniform cube average of squared distances
@@ -950,9 +954,9 @@ theorem walshPhase_low_high {n : ℕ} (α : Cube n → ℝ) :
   intro s _
   unfold betaStar highPart
   by_cases hs : hammingWeight s ≤ 1
-  · rw [if_pos hs,if_neg (by omega : ¬ 2 ≤ hammingWeight s)]
+  · rw [ite_eq_left hs,ite_eq_right (by omega : ¬ 2 ≤ hammingWeight s)]
     ring
-  · rw [if_neg hs,if_pos (by omega : 2 ≤ hammingWeight s)]
+  · rw [ite_eq_right hs,ite_eq_left (by omega : 2 ≤ hammingWeight s)]
     ring
 
 /-- The uniform correlation of a Walsh phase with the character indexed by `s` recovers the
@@ -1091,9 +1095,9 @@ theorem product_error_continuous {n : ℕ} (h : Cube n → ℝ) :
     apply continuous_finsetSum
     intro j _
     cases x j
-    · simp only [Bool.false_eq_true,if_false]
+    · simp only [Bool.false_eq_true,ite_false]
       fun_prop
-    · simp only [if_true]
+    · simp only [ite_true]
       fun_prop
   simp_rw [normalizedFrobError_normsq]
   unfold cubeAvg

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.OrderedBayes.BayesRatioCore.ContractModels
-import Mathlib.Tactic.NormNum
+module
+
+public import Qatlib.Concepts.OrderedBayes.BayesRatioCore.ContractModels
+public import Mathlib.Tactic.NormNum
+
+@[expose] public section
 
 /-!
 # Obstruction to the candidate noisy quantum oracle

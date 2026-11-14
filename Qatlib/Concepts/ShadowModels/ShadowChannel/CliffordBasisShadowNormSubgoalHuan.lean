@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ShadowModels.ShadowChannel.CliffordBasisShadowNormSubgoalStat
-import Qatlib.Concepts.ShadowModels.ShadowChannel.CliffordBasisShadowChannelSubgoalHuan
+module
+
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.CliffordBasisShadowNormSubgoalStat
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.CliffordBasisShadowChannelSubgoalHuan
+
+@[expose] public section
 
 /-!
 # Clifford basis shadow second-moment bound
@@ -35,6 +39,7 @@ open Qatlib.Foundations.PureStateMath
 
 set_option autoImplicit false
 set_option maxHeartbeats 900000
+set_option linter.style.haveILetI false
 noncomputable section
 namespace Qatlib.Concepts.ShadowModels.ShadowChannel
 open Matrix

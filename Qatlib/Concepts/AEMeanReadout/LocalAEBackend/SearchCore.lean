@@ -4,18 +4,23 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.SearchDefs
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.NativeAeReadout
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.NativeAeReadoutConsumers
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.WalkSearchDefs
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.LocalAmplitudeEstimation
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PreparedAmplitudeEstimation
-import Qatlib.Concepts.AmplitudeCore.PayoffMedian.QuantumPayoffEstimation
-import Qatlib.Concepts.AmplitudeCore.PayoffMedian.SignedCenteredQuantumMean
-import Qatlib.Concepts.MonteCarloMean.LayeredMean.NativeComposedMean
-import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
-import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteGatePhaseBoundary
-import Qatlib.Concepts.LocalMachine.LocalTransport.NumericalDyadicPhase
+module
+
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.SearchDefs
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.NativeAeReadout
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.NativeAeReadoutConsumers
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.WalkSearchDefs
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.LocalAmplitudeEstimation
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PreparedAmplitudeEstimation
+public import Qatlib.Concepts.AmplitudeCore.PayoffMedian.QuantumPayoffEstimation
+public import Qatlib.Concepts.AmplitudeCore.PayoffMedian.SignedCenteredQuantumMean
+public import Qatlib.Concepts.MonteCarloMean.LayeredMean.NativeComposedMean
+public import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
+public import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteGatePhaseBoundary
+public import Qatlib.Concepts.LocalMachine.LocalTransport.NumericalDyadicPhase
+
+@[expose] public section
+set_option linter.unusedSimpArgs false
 
 /-!
 # Search backend correctness and finite gate implementations
@@ -396,7 +401,7 @@ by
         | none =>
           have hc : windowStops target hist = true ∨ budget ≤ hist.length := by
             by_contra hnc
-            simp only [windowChooser, if_neg hnc] at hch
+            simp only [windowChooser, ite_eq_right hnc] at hch
             exact absurd hch (by simp)
           have heq : runStages (windowChooser target budget next) source (n + 1) hist = hist := by
             simp only [runStages, hch]
@@ -461,26 +466,26 @@ matrix. -/
 theorem finiteCodeMatrix_h (n : ℕ) (w : Fin n) :
     finiteCodeMatrix n (FiniteGateCode.h w.val) = wireGate n w Hadamard := by
   show (if h : w.val < n then wireGate n ⟨w.val, h⟩ Hadamard else 1) = wireGate n w Hadamard
-  rw [dif_pos w.isLt]
+  rw [dite_eq_left w.isLt]
 
 /-- Decoding an X gate code on an in-range wire gives the corresponding wire Pauli X matrix. -/
 theorem finiteCodeMatrix_x (n : ℕ) (w : Fin n) :
     finiteCodeMatrix n (FiniteGateCode.x w.val) = wireGate n w PauliX := by
   show (if h : w.val < n then wireGate n ⟨w.val, h⟩ PauliX else 1) = wireGate n w PauliX
-  rw [dif_pos w.isLt]
+  rw [dite_eq_left w.isLt]
 
 /-- Decoding a T gate code on an in-range wire gives the corresponding wire T matrix. -/
 theorem finiteCodeMatrix_t (n : ℕ) (w : Fin n) :
     finiteCodeMatrix n (FiniteGateCode.t w.val) = wireGate n w tGate := by
   show (if h : w.val < n then wireGate n ⟨w.val, h⟩ tGate else 1) = wireGate n w tGate
-  rw [dif_pos w.isLt]
+  rw [dite_eq_left w.isLt]
 
 /-- Decoding an inverse T gate code on an in-range wire gives the corresponding wire adjoint T
 matrix. -/
 theorem finiteCodeMatrix_tdg (n : ℕ) (w : Fin n) :
     finiteCodeMatrix n (FiniteGateCode.tdg w.val) = wireGate n w tGateAdj := by
   show (if h : w.val < n then wireGate n ⟨w.val, h⟩ tGateAdj else 1) = wireGate n w tGateAdj
-  rw [dif_pos w.isLt]
+  rw [dite_eq_left w.isLt]
 
 /-- Decoding a controlled X code on distinct in-range wires gives the corresponding CNOT matrix. -/
 theorem finiteCodeMatrix_cx (n : ℕ) (c t : Fin n) (hct : c ≠ t) :
@@ -488,7 +493,7 @@ theorem finiteCodeMatrix_cx (n : ℕ) (c t : Fin n) (hct : c ≠ t) :
   have hct' : ¬(c.val = t.val) := fun h => hct (Fin.ext h)
   show (if h : c.val < n ∧ t.val < n ∧ ¬(c.val = t.val) then
       cnotGate n ⟨c.val, h.1⟩ ⟨t.val, h.2.1⟩ else 1) = cnotGate n c t
-  rw [dif_pos ⟨c.isLt, t.isLt, hct'⟩]
+  rw [dite_eq_left ⟨c.isLt, t.isLt, hct'⟩]
 
 /-- A Hadamard gate code on an in-range wire passes the legality test. -/
 theorem finiteCodeLegal_h (n : ℕ) (w : Fin n) : finiteCodeLegal n (FiniteGateCode.h w.val) = true := by
@@ -684,8 +689,8 @@ theorem loadBlocks_word (t : InputTable) (i : Fin t.n) :
     | cons b l ih =>
       simp only [List.filterMap_cons]
       by_cases h : t.cell i b = true
-      · simp only [if_pos h, List.flatMap_cons, GBlk.word, List.cons_append, List.nil_append, ih]
-      · simp only [if_neg h, ih]
+      · simp only [ite_eq_left h, List.flatMap_cons, GBlk.word, List.cons_append, List.nil_append, ih]
+      · simp only [ite_eq_right h, ih]
   exact key (List.finRange t.w)
 
 /-- The table-loading block updates flip precisely those register bits whose corresponding
@@ -702,7 +707,7 @@ theorem loadBlocks_upd (t : InputTable) (i : Fin t.n) (r : Reg t.w) :
     | nil =>
       intro _ r
       funext k
-      simp only [List.not_mem_nil, and_false, if_false]
+      simp only [List.not_mem_nil, and_false, ite_false]
       rfl
     | cons b l ih =>
       intro hl r
@@ -711,7 +716,7 @@ theorem loadBlocks_upd (t : InputTable) (i : Fin t.n) (r : Reg t.w) :
       simp only [List.filterMap_cons]
       by_cases hb : t.cell i b = true
       · have hfb : (if t.cell i b = true then some (GBlk.x b) else none) = some (GBlk.x b) :=
-          if_pos hb
+          ite_eq_left hb
         rw [hfb, List.foldl_cons]
         have hupd : GBlk.upd (GBlk.x b) r = Function.update r b (!(r b)) := rfl
         rw [hupd, ih hl' (Function.update r b (!(r b)))]
@@ -720,7 +725,7 @@ theorem loadBlocks_upd (t : InputTable) (i : Fin t.n) (r : Reg t.w) :
         · subst k
           simp [hbl, hb, Function.update_self]
         · simp [hk, Function.update_of_ne hk]
-      · have hfb : (if t.cell i b = true then some (GBlk.x b) else none) = none := if_neg hb
+      · have hfb : (if t.cell i b = true then some (GBlk.x b) else none) = none := ite_eq_right hb
         rw [hfb, ih hl' r]
         funext k
         by_cases hk : k = b
@@ -772,7 +777,7 @@ theorem loadWord_finiteRun (t : InputTable) (i : Fin t.n) :
   show (if finiteWordLegal t.w (t.loadWord i) then
       some (Run (1 : Matrix (Reg t.w) (Reg t.w) ℂ) (finiteCodeCircuit t.w (t.loadWord i))
         (Qatlib.Foundations.PureStateMath.Ket fun _ : Fin t.w => false)) else none) = some (Qatlib.Foundations.PureStateMath.Ket (t.rowReg i))
-  rw [if_pos hleg, loadWord_run]
+  rw [ite_eq_left hleg, loadWord_run]
   exact congrArg (fun ψ => some (Qatlib.Foundations.PureStateMath.Ket ψ)) (by
     funext k
     show (if t.cell i k = true then !((fun _ : Fin t.w => false) k)
@@ -916,7 +921,7 @@ theorem tunableGoalRefA_mem : tunableGoalRefA ∈ Matrix.unitaryGroup (Reg 0) �
   have hsmul : tunableGoalRefA = finiteGaussianScalar • (1 : Matrix (Reg 0) (Reg 0) ℂ) := by
     funext i j
     show finiteGaussianScalar = finiteGaussianScalar * (1 : Matrix (Reg 0) (Reg 0) ℂ) i j
-    rw [Matrix.one_apply, if_pos (reg0_eq i j), mul_one]
+    rw [Matrix.one_apply, ite_eq_left (reg0_eq i j), mul_one]
   rw [Matrix.mem_unitaryGroup_iff', hsmul, Matrix.star_eq_conjTranspose, Matrix.conjTranspose_smul,
     Matrix.conjTranspose_one, smul_mul_assoc, mul_smul_comm, Matrix.one_mul, smul_smul, hc,
     one_smul]
@@ -951,7 +956,7 @@ theorem tunableGoalRef_dataLift : tunableGoalRefEnc.dataLift tunableGoalRefA = f
     · rw [mul_zero]
       have hrs : r ≠ s := fun hh => hcond ⟨hphase r s, (hflag r s).2 hh⟩
       show (0 : ℂ) = finiteGaussianScalar * (1 : Matrix (Reg 1) (Reg 1) ℂ) r s
-      rw [Matrix.one_apply, if_neg hrs, mul_zero]
+      rw [Matrix.one_apply, ite_eq_right hrs, mul_zero]
   funext r s
   exact key r s
 

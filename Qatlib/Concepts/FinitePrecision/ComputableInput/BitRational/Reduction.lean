@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FinitePrecision.ComputableInput.BitRational.Gcd
+module
+
+public import Qatlib.Concepts.FinitePrecision.ComputableInput.BitRational.Gcd
+
+@[expose] public section
 
 /-!
 # Bitwise fraction reduction
@@ -93,9 +97,9 @@ theorem binomial_reduced_rat (a d : ℕ) (hd : 0 < d) :
   have h := (binomial_reduce_fraction a d hd).1
   apply Rat.ext
   · change ((binomialReduceFraction a d).1.1 : ℤ) = _
-    rw [Rat.num_mkRat,if_neg hd.ne',Int.natAbs_natCast,Nat.gcd_comm d a,h]
+    rw [Rat.num_mkRat,ite_eq_right hd.ne',Int.natAbs_natCast,Nat.gcd_comm d a,h]
     norm_cast
   · change (binomialReduceFraction a d).1.2 = _
-    rw [Rat.den_mkRat,if_neg hd.ne',Int.natAbs_natCast,Nat.gcd_comm d a,h]
+    rw [Rat.den_mkRat,ite_eq_right hd.ne',Int.natAbs_natCast,Nat.gcd_comm d a,h]
 
 end Qatlib.Concepts.FinitePrecision.ComputableInput.BitRational

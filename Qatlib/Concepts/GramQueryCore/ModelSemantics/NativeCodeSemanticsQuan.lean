@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Nat.Bitwise
-import Mathlib.Data.List.Basic
-import Mathlib.Data.List.NodupEquivFin
-import Mathlib.Logic.Equiv.Prod
-import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
-import Qatlib.Concepts.GramQueryCore.ModelSemantics.NativeCodeSemanticsStat
+module
+
+public import Mathlib.Data.Nat.Bitwise
+public import Mathlib.Data.List.Basic
+public import Mathlib.Data.List.NodupEquivFin
+public import Mathlib.Logic.Equiv.Prod
+public import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
+public import Qatlib.Concepts.GramQueryCore.ModelSemantics.NativeCodeSemanticsStat
+
+@[expose] public section
 
 /-!
 # Encoding and unitary semantics of native programs
@@ -395,8 +399,8 @@ theorem nativeWireLift_apply {w : ℕ} (ws : List (Fin w)) (hws : ws.Nodup)
       (if (fun i : {i : Fin w // i ∉ ws} => p i.val) =
         (fun i : {i : Fin w // i ∉ ws} => t i.val) then 1 else 0) = _
   by_cases he : ∀ i : Fin w, i ∉ ws → p i = t i
-  · rw [if_pos (hother.mpr he),if_pos he,mul_one]
-  · rw [if_neg (fun h => he (hother.mp h)),if_neg he,mul_zero]
+  · rw [ite_eq_left (hother.mpr he),ite_eq_left he,mul_one]
+  · rw [ite_eq_right (fun h => he (hother.mp h)),ite_eq_right he,mul_zero]
 
 /-- The number represented by an `n`-bit register is strictly less than `2^n`. -/
 theorem nativeRegNumber_lt {n : ℕ} (z : Reg n) : sourceRegNumber z < 2^n := by
@@ -544,7 +548,7 @@ theorem nativeValueAction_answer (d : SourceRationalProblem) (x : Fin d.count)
           (d.alphabet+1) := by
   unfold nativeValueAction
   (try dsimp only)
-  rw [dif_pos ha,nativePacked_answer _ _ _ _ (nativeRegNumber_lt _),nativeRegNumber_bits]
+  rw [dite_eq_left ha,nativePacked_answer _ _ _ _ (nativeRegNumber_lt _),nativeRegNumber_bits]
   apply Nat.mod_eq_of_lt
   exact (Nat.mod_lt _ (by omega)).trans_le (Nat.le_pow_clog (by omega) _)
 
@@ -562,7 +566,7 @@ theorem nativeValueUndo_leftInverse (d : SourceRationalProblem) (x : Fin d.count
     unfold nativeValueUndo
     (try dsimp only)
     rw [nativeValueAction_address,nativeValueAction_answer d x z ha]
-    rw [dif_pos hn]
+    rw [dite_eq_left hn]
     have he : (⟨(a+v.val)%(d.alphabet+1),hn⟩ : Fin (d.alphabet+1)) =
         (⟨a,ha⟩ : Fin (d.alphabet+1))+v := by
       apply Fin.ext
@@ -638,7 +642,7 @@ theorem sourceNativeQuery_unitary (d : SourceRationalProblem) (x : Fin d.count) 
       nativeWireLiftSized ws hws hlen (if adj then Oᴴ else O) := by
     ext p t
     rw [nativeWireLiftSized_apply]
-    simp only [sourceNativeStepMatrix,dif_pos hlen,O]
+    simp only [sourceNativeStepMatrix,dite_eq_left hlen,O]
   rw [he]
   exact nativeWireLiftSized_unitary _ _ _ _ hQ
 

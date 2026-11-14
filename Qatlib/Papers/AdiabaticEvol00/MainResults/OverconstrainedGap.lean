@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AdiabaticEvol00.MainResults.AdiabaticDefs
+module
+
+public import Qatlib.Papers.AdiabaticEvol00.MainResults.AdiabaticDefs
+
+@[expose] public section
 
 /-!
 # Runtime scaling from an assumed overconstrained gap bound

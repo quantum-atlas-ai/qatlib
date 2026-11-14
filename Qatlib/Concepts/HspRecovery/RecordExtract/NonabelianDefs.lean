@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
-import Qatlib.Concepts.HspRecovery.RecordExtract.DihedralCosetRecord
-import Qatlib.Concepts.HspRecovery.RecordExtract.DihedralSummandExtraction
-import Mathlib.Probability.Distributions.Uniform
-import Mathlib.LinearAlgebra.Matrix.Rank
-import Qatlib.Concepts.HspRecovery.SieveAlgorithm.DihedralSieve
-import Qatlib.Concepts.HspRecovery.Reduction.Reductions
+module
+
+public import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+public import Qatlib.Concepts.HspRecovery.RecordExtract.DihedralCosetRecord
+public import Qatlib.Concepts.HspRecovery.RecordExtract.DihedralSummandExtraction
+public import Mathlib.Probability.Distributions.Uniform
+public import Mathlib.LinearAlgebra.Matrix.Rank
+public import Qatlib.Concepts.HspRecovery.SieveAlgorithm.DihedralSieve
+public import Qatlib.Concepts.HspRecovery.Reduction.Reductions
+
+@[expose] public section
 
 /-!
 # Dihedral representation records and recovery interfaces

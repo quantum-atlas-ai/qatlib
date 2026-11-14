@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalGaussianProgram
-import Mathlib.Data.List.GetD
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalGaussianProgram
+public import Mathlib.Data.List.GetD
+
+@[expose] public section
 
 /-!
 # Compilation of Gaussian cache programs
@@ -234,14 +238,14 @@ theorem compileCache_run (sourceCount : ℕ) (p : List CacheOp) (ps : List Bits)
   | cons op rest ih =>
     by_cases hv : op.Valid sourceCount cs.length
     · have hrest : cacheRun sourceCount rest (cs++[op.eval cs])=some cs' := by
-        simpa only [cacheRun,CacheOp.step,if_pos hv,Option.bind_some] using! hr
+        simpa only [cacheRun,CacheOp.step,ite_eq_left hv,Option.bind_some] using! hr
       have hnext := cacheRep_append ps cs op.lower hrep
       rw [CacheOp.lower_eval sourceCount op ps cs hrep hv] at hnext
       obtain ⟨ps',hR,hP⟩ := ih (ps++op.lower.words ps) (cs++[op.eval cs]) hnext hrest
       refine ⟨ps',?_,hP⟩
       simp only [compileCache,List.flatMap_cons,run_append,GaussianExpression.append_run,Option.bind_some]
       exact hR
-    · simp only [cacheRun,CacheOp.step,if_neg hv,Option.bind_none,reduceCtorEq] at hr
+    · simp only [cacheRun,CacheOp.step,ite_eq_right hv,Option.bind_none,reduceCtorEq] at hr
 end Qatlib.Concepts.AdversaryBounds.AdvDuality
 
 namespace Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineCost
@@ -344,11 +348,11 @@ theorem cacheRun_length (sourceCount : ℕ) (p : List CacheOp) (cs cs' : List Ga
   | cons op rest ih =>
     by_cases hv : op.Valid sourceCount cs.length
     · have hrest : cacheRun sourceCount rest (cs++[op.eval cs])=some cs' := by
-        simpa only [cacheRun,CacheOp.step,if_pos hv,Option.bind_some] using! hr
+        simpa only [cacheRun,CacheOp.step,ite_eq_left hv,Option.bind_some] using! hr
       have hh := ih (cs++[op.eval cs]) hrest
       simp only [List.length_append,List.length_cons,List.length_nil] at hh ⊢
       omega
-    · simp only [cacheRun,CacheOp.step,if_neg hv,Option.bind_none,reduceCtorEq] at hr
+    · simp only [cacheRun,CacheOp.step,ite_eq_right hv,Option.bind_none,reduceCtorEq] at hr
 end Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineCost
 
 namespace Qatlib.Concepts.AdversaryBounds.AdvDuality.SqRationalMachineCost
@@ -409,14 +413,14 @@ theorem compileCache_source_fields (sourceCount : ℕ) (p : List CacheOp)
   | cons op rest ih =>
     by_cases hv : op.Valid sourceCount cs.length
     · have hrest : cacheRun sourceCount rest (cs++[op.eval cs])=some cs' := by
-        simpa only [cacheRun,CacheOp.step,if_pos hv,Option.bind_some] using! hr
+        simpa only [cacheRun,CacheOp.step,ite_eq_left hv,Option.bind_some] using! hr
       simp only [compileCache,List.flatMap_cons,List.countP_append]
       change op.lower.append.countP (sourceField sourceCount)+
         (compileCache rest).countP (sourceField sourceCount)=5*cacheSourceReads (op::rest)
       rw [CacheOp.lower_source_fields sourceCount cs.length op hv,ih _ hrest]
       simp [cacheSourceReads]
       omega
-    · simp only [cacheRun,CacheOp.step,if_neg hv,Option.bind_none,reduceCtorEq] at hr
+    · simp only [cacheRun,CacheOp.step,ite_eq_right hv,Option.bind_none,reduceCtorEq] at hr
 
 /-- Compiling an output read from outside the source prefix reads no source fields. -/
 theorem output_source_fields (sourceCount output : ℕ) (hout : sourceCount ≤ output) :

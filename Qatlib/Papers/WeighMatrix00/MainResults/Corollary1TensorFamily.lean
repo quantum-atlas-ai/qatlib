@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.LinearAlgebra.Matrix.Kronecker
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Sqrt
-import Qatlib.Papers.WeighMatrix00.MainResults.WeighingMatrix
-import Qatlib.Papers.WeighMatrix00.MainResults.Theorem1WeighingProcedure
+module
+
+public import Mathlib.LinearAlgebra.Matrix.Kronecker
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Sqrt
+public import Qatlib.Papers.WeighMatrix00.MainResults.WeighingMatrix
+public import Qatlib.Papers.WeighMatrix00.MainResults.Theorem1WeighingProcedure
+
+@[expose] public section
 
 /-!
 # Tensor families of weighing matrices
@@ -64,14 +68,14 @@ theorem kronecker_gram {a b k l : ℕ} (A : Matrix (Fin a) (Fin a) ℤ)
     ext i j
     rcases i with ⟨i₁, i₂⟩
     rcases j with ⟨j₁, j₂⟩
-    simp [Matrix.transpose_apply, Matrix.kronecker_apply]
+    simp [Matrix.transpose_apply]
   rw [htr, ← Matrix.mul_kronecker_mul A Aᵀ B Bᵀ, hA, hB]
   ext i j
   rcases i with ⟨i₁, i₂⟩
   rcases j with ⟨j₁, j₂⟩
   rw [Matrix.kronecker_apply]
   by_cases h1 : i₁ = j₁ <;> by_cases h2 : i₂ = j₂ <;>
-    simp [Matrix.smul_apply, Matrix.one_apply, h1, h2, Prod.mk.injEq, Nat.cast_mul]
+    simp [Matrix.smul_apply, h1, h2, Prod.mk.injEq, Nat.cast_mul]
 
 /-- Reindexing both coordinates of an integer matrix by an equivalence preserves its
 scalar-identity row Gram relation. -/
@@ -83,7 +87,7 @@ theorem submatrix_gram {ι : Type*} [Fintype ι] [DecidableEq ι] {N k : ℕ}
   rw [Matrix.transpose_submatrix, ← Matrix.submatrix_mul A Aᵀ e.symm e.symm e.symm hb, hA]
   ext i j
   simp [Matrix.submatrix_apply, Matrix.smul_apply, Matrix.one_apply,
-    Matrix.natCast_apply, Matrix.intCast_apply, e.symm.injective.eq_iff]
+    Matrix.natCast_apply, e.symm.injective.eq_iff]
 
 /-- The one-by-one weighing matrix with sole entry one and weight one. -/
 def oneWeighingMatrix : WeighingMatrix 1 1 where
@@ -93,8 +97,7 @@ def oneWeighingMatrix : WeighingMatrix 1 1 where
     ext i j
     fin_cases i
     fin_cases j
-    simp [Matrix.mul_apply, Matrix.transpose_apply, Matrix.smul_apply, Matrix.one_apply,
-      Fin.sum_univ_one]
+    simp [Matrix.mul_apply, Matrix.transpose_apply, Matrix.smul_apply]
 
 /-- The weighing matrix obtained by taking the Kronecker product of `A` with `M` and reindexing
 to a single finite index type. -/

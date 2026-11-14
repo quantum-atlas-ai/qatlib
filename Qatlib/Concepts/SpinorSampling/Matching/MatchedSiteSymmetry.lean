@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpinorSampling.Matching.MatchedRecords
-import Qatlib.Concepts.SpinorSampling.Matching.UniformMatchedSampling
+module
+
+public import Qatlib.Concepts.SpinorSampling.Matching.MatchedRecords
+public import Qatlib.Concepts.SpinorSampling.Matching.UniformMatchedSampling
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -56,6 +60,7 @@ theorem occupied_sites_perm_mem [Fintype S] (σ : Equiv.Perm S)
   · intro hx
     exact Finset.mem_image.mpr ⟨σ.symm x,hx,σ.apply_symm_apply x⟩
 
+omit [DecidableEq S] in
 /-- Complete original `uniform_cohort_address_prob` guarantee for `MatchedSiteSymmetry`; all source hypotheses and output obligations are retained. -/
 theorem uniform_cohort_address_prob [Fintype S] [Nonempty S]
     {n : ℕ} (J : Fin n → S) :
@@ -66,8 +71,10 @@ theorem uniform_cohort_address_prob [Fintype S] [Nonempty S]
   simp only [uniformLaw, Finset.prod_const]
   rw [Finset.card_univ, Fintype.card_fin]
 
+omit [DecidableEq S] in
 /-- Complete original `uniform_cohort_address_perm_invariant` guarantee for `MatchedSiteSymmetry`; all source hypotheses and output obligations are retained. -/
-theorem uniform_cohort_address_perm_invariant [Fintype S] [Nonempty S]
+theorem uniform_cohort_address_perm_invariant {S : Type}
+    [_instDecidableEqS : DecidableEq S] [Fintype S] [Nonempty S]
     (σ : Equiv.Perm S) {n : ℕ} (J : Fin n → S) :
     (cohortLaw (uniformLaw S) n).prob (σ ∘ J)=
       (cohortLaw (uniformLaw S) n).prob J := by

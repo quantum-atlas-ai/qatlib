@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GenHidShift05.MainResults.MatrixSumMoments
-import Mathlib.Analysis.Real.Pi.Bounds
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.GenHidShift05.MainResults.MatrixSumMoments
+public import Mathlib.Analysis.Real.Pi.Bounds
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -148,7 +152,7 @@ theorem card_diagPairs (M k : ℕ) : (diagPairs M k).card = M ^ k := by
     rw [Finset.sum_eq_single b]
     · simp
     · intro c _ hcb
-      rw [if_neg (fun h => hcb h.symm)]
+      rw [ite_eq_right (fun h => hcb h.symm)]
     · intro hb
       exact absurd (Finset.mem_univ b) hb
   rw [Finset.sum_congr rfl (fun b _ => hinner b), Finset.sum_const, Finset.card_univ,
@@ -267,10 +271,12 @@ section Generic
 
 variable {ι : Type*} [Fintype ι] [DecidableEq ι]
 
+omit [DecidableEq ι] in
 /-- Cauchy–Schwarz in counting form: the square of the total of a nonnegative
 integer statistic is at most the number of nonzero instances times the second
 moment. -/
-theorem card_pos_mul_sq_ge (f : ι → ℕ) :
+theorem card_pos_mul_sq_ge {ι : Type*} [Fintype ι] [_instDecidableEq : DecidableEq ι]
+    (f : ι → ℕ) :
     (∑ i, (f i : ℝ)) ^ 2
       ≤ ((Fintype.card ι - Fintype.card {i : ι // f i = 0} : ℕ) : ℝ)
           * (∑ i, (f i : ℝ) ^ 2) := by
@@ -306,8 +312,10 @@ theorem card_pos_mul_sq_ge (f : ι → ℕ) :
   rw [h1, hQA, hcardA] at hcs
   simpa [mul_comm] using hcs
 
+omit [DecidableEq ι] in
 /-- Chebyshev's inequality on a finite uniform space. -/
-theorem card_dev_mul_sq_le (f : ι → ℝ) (mu D : ℝ) (hD : 0 < D) :
+theorem card_dev_mul_sq_le {ι : Type*} [Fintype ι] [_instDecidableEq : DecidableEq ι]
+    (f : ι → ℝ) (mu D : ℝ) (hD : 0 < D) :
     (Fintype.card {i : ι // D ≤ |f i - mu|} : ℝ) * D ^ 2
       ≤ ∑ i, (f i - mu) ^ 2 := by
   classical

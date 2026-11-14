@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Normed.Ring.Basic
-import Qatlib.Concepts.MixedFidelity.FidelityMetric.ChannelHelpers.FinitePOVMTraceDistance
-import Qatlib.Concepts.NumericalWord.MixedWordError.HeterogeneousNumericalWord
+module
+
+public import Mathlib.Analysis.Normed.Ring.Basic
+public import Qatlib.Concepts.MixedFidelity.FidelityMetric.ChannelHelpers.FinitePOVMTraceDistance
+public import Qatlib.Concepts.NumericalWord.MixedWordError.HeterogeneousNumericalWord
+
+@[expose] public section
 
 /-!
 # Composition and measurement error bounds

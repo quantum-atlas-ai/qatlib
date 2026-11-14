@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.TimeEvolution.TelegraphLimit.FourierLimit
+module
+
+public import Qatlib.Foundations.TimeEvolution.TelegraphLimit.FourierLimit
+
+@[expose] public section
 
 /-!
 # Uniform exponential decay of telegraph-mode errors

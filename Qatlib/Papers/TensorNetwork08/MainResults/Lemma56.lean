@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.TensorNetwork08.MainResults.StatDefs
+module
+
+public import Qatlib.Papers.TensorNetwork08.MainResults.StatDefs
+
+@[expose] public section
 
 /-!
 # Difference-model partition functions and consistent labels
@@ -55,6 +59,7 @@ def edgeDiff [Sub C] (src dst : E → V) (σ : V → C) : E → C :=
 noncomputable def deltaWeight (h : E → C → ℂ) (β : ℂ) (δ : E → C) : ℂ :=
   ∏ e : E, Complex.exp (-(β * h e (δ e)))
 
+omit [Fintype V] [Fintype E] [Fintype C] in
 /-- Adding a constant to every vertex label leaves all edge differences unchanged. -/
 theorem edgeDiff_shift [AddCommGroup C] (src dst : E → V) (σ : V → C) (κ : C) :
     edgeDiff src dst (σ + fun _ => κ) = edgeDiff src dst σ := by
@@ -63,6 +68,7 @@ theorem edgeDiff_shift [AddCommGroup C] (src dst : E → V) (σ : V → C) (κ :
   simp only [edgeDiff, Pi.add_apply]
   abel
 
+omit [Fintype V] [Fintype C] in
 /-- On a nonempty vertex type, distinct constant shifts of a fixed configuration give distinct
 configurations. -/
 theorem shift_injective [AddCommGroup C] [Nonempty V] (σ₀ : V → C) :
@@ -117,14 +123,14 @@ theorem lemma5_6_difference_model_partition
     · obtain ⟨σ₀, hσ₀⟩ := hc
       have hcons : IsConsistentLabeling src dst δ :=
         ⟨σ₀, fun e => by have := congrFun hσ₀ e; simpa [edgeDiff] using this.symm⟩
-      rw [if_pos hcons, sum_ite_one, fiber_eq_image src dst hconn σ₀ δ hσ₀]
+      rw [ite_eq_left hcons, sum_ite_one, fiber_eq_image src dst hconn σ₀ δ hσ₀]
       rw [Finset.card_image_of_injOn
         (fun a _ b _ hab => shift_injective σ₀ hab), Finset.card_univ]
     · have hnc : ¬ IsConsistentLabeling src dst δ := by
         intro hcon
         obtain ⟨σ, hσ⟩ := hcon
         exact hc ⟨σ, by funext e; simpa [edgeDiff] using (hσ e).symm⟩
-      rw [if_neg hnc]
+      rw [ite_eq_right hnc]
       refine Finset.sum_eq_zero fun σ _ => ?_
       by_cases heq : edgeDiff src dst σ = δ
       · exact absurd ⟨σ, heq⟩ hc
@@ -140,7 +146,7 @@ theorem lemma5_6_difference_model_partition
         refine Finset.sum_congr rfl fun σ _ => ?_
         rw [Finset.sum_eq_single (edgeDiff src dst σ)]
         · simp
-        · intro δ _ hδ; rw [if_neg (fun h => hδ h.symm), zero_mul]
+        · intro δ _ hδ; rw [ite_eq_right (fun h => hδ h.symm), zero_mul]
         · intro h; exact absurd (Finset.mem_univ _) h
     _ = ∑ δ : E → C, ∑ σ : V → C,
           (if edgeDiff src dst σ = δ then (1 : ℂ) else 0) * deltaWeight h β δ :=

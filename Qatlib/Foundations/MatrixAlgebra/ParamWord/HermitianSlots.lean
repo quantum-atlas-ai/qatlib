@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixAlgebra.ParamWord.WordBounds
-import Qatlib.Foundations.MatrixGeometry.SpectralCutoff.Evolution
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Analysis.Calculus.Deriv.Comp
+module
+
+public import Qatlib.Foundations.MatrixAlgebra.ParamWord.WordBounds
+public import Qatlib.Foundations.MatrixGeometry.SpectralCutoff.Evolution
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Analysis.Calculus.Deriv.Comp
+
+@[expose] public section
 
 /-!
 # Hermitian exponential circuit slots

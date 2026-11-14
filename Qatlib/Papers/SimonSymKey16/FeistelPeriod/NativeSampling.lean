@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PeriodSampling.WeakPeriod
-import Qatlib.Papers.SimonSymKey16.FeistelPeriod.Algebra
+module
+
+public import Qatlib.Concepts.PeriodSampling.WeakPeriod
+public import Qatlib.Papers.SimonSymKey16.FeistelPeriod.Algebra
+
+@[expose] public section
 
 /-!
 # Feistel periods in the native Simon sampling model

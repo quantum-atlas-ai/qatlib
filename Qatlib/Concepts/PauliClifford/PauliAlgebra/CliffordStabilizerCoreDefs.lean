@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.LinearAlgebra.Dimension.Finrank
-import Qatlib.Concepts.ChannelTheory.Stinespring.ShadowEstimator
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Concepts.PauliClifford.ExactRank.BooleanCharacters
+module
+
+public import Mathlib.LinearAlgebra.Dimension.Finrank
+public import Qatlib.Concepts.ChannelTheory.Stinespring.ShadowEstimator
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Concepts.PauliClifford.ExactRank.BooleanCharacters
+
+@[expose] public section
 
 /-!
 # Pauli words and Clifford gate data

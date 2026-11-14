@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommutLCHS26.MainResults.BCHPolarWord
-import Qatlib.Papers.CommutLCHS26.MainResults.BCHPhi
+module
+
+public import Qatlib.Papers.CommutLCHS26.MainResults.BCHPolarWord
+public import Qatlib.Papers.CommutLCHS26.MainResults.BCHPhi
+
+@[expose] public section
 
 /-!
 # Position tagging and word polarization
@@ -70,7 +74,7 @@ theorem position_product (w : List σ) :
   | cons j w ih =>
     rw [List.map_cons, List.prod_cons, ih, wordCounts_cons]
     change MvPolynomial.monomial (Finsupp.single j 1) 1 * _ = _
-    rw [MvPolynomial.monomial_mul, one_mul]
+    rw [MvPolynomial.monomial_mul_monomial, one_mul]
 
 /-- The coefficient at a target word's multiplicities in a variable product is one when the
 indexing word is a permutation of the target and zero otherwise. -/

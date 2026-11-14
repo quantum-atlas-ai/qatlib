@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MarginGeometry.MistakeProgress
-import Mathlib.Algebra.Order.Floor.Semiring
+module
+
+public import Qatlib.Foundations.MarginGeometry.MistakeProgress
+public import Mathlib.Algebra.Order.Floor.Semiring
+
+@[expose] public section
 
 /-!
 # Deterministic mistake updates and margin termination
@@ -102,7 +106,7 @@ increment has margin at least `γ` against `u`. -/
 theorem increment_margin (D : Dataset N E) (w u : E) (γ : ℝ)
     (hmargin : ∀ i,γ≤⟪u,signedDatum D i⟫_ℝ) (h : (mistakes D w).Nonempty) :
     γ≤⟪u,increment D w⟫_ℝ := by
-  simp only [increment,dif_pos h]
+  simp only [increment,dite_eq_left h]
   exact hmargin _
 
 /-- Once an iterate has no mistakes, every later iterate equals it. -/

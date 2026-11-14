@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LowEnergyProd24.ProductError.ActualWord
-import Qatlib.Papers.LowEnergyProd24.ImaginaryLeak.WeightedNested
+module
+
+public import Qatlib.Papers.LowEnergyProd24.ProductError.ActualWord
+public import Qatlib.Papers.LowEnergyProd24.ImaginaryLeak.WeightedNested
+
+@[expose] public section
 
 /-!
 # Symbolic Lie terms and weighted evaluation

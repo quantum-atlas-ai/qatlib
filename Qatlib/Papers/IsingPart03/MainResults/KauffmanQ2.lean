@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.IsingPart03.MainResults.SpinGlass
+module
+
+public import Qatlib.Papers.IsingPart03.MainResults.SpinGlass
+
+@[expose] public section
 
 /-!
 # Complex parameters in the two-state Kauffman reduction

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.NativeNumerics.PhaseSynthesis.GaussianResponseData
-import Qatlib.Concepts.LocalMachine.LocalTransport.NumericalDyadicPhase
+module
+
+public import Qatlib.Concepts.NativeNumerics.PhaseSynthesis.GaussianResponseData
+public import Qatlib.Concepts.LocalMachine.LocalTransport.NumericalDyadicPhase
+
+@[expose] public section
 
 /-!
 # Finite rational phase grids and coefficient stability

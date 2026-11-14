@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryExt
-import Qatlib.Concepts.GramQueryCore.ModelSemantics.BooleanValueCompatibilityQuan
-import Qatlib.Concepts.QueryComplexity.StateConversion.RealBudgetConversionAlgorithmQuan
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.AlphabetAdversary
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.AdaptiveQueryConsumers
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.AlphabetInterrogation
-import Qatlib.Concepts.SignedWeights.Representations.GeneralAdversaryLoss
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryRefinedDefs
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryExt
+public import Qatlib.Concepts.GramQueryCore.ModelSemantics.BooleanValueCompatibilityQuan
+public import Qatlib.Concepts.QueryComplexity.StateConversion.RealBudgetConversionAlgorithmQuan
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.AlphabetAdversary
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.AdaptiveQueryConsumers
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.AlphabetInterrogation
+public import Qatlib.Concepts.SignedWeights.Representations.GeneralAdversaryLoss
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryRefinedDefs
+
+@[expose] public section
 
 /-!
 # General adversary bounds and execution contracts
@@ -185,7 +189,7 @@ theorem real_zero_reciprocal_is_top : (ENNReal.ofReal (0 : ℝ))⁻¹ = ⊤ := b
 nonnegative coordinate costs. -/
 theorem advAlphaR_mono_of_cost_le {X κ : Type} [Fintype X] [DecidableEq X]
     [Fintype κ] [DecidableEq κ] (input : X → κ → Bool) (g : X → Bool)
-    (α α' : κ → ℝ) (hα : ∀ i, 0 ≤ α i) (hle : ∀ i, α i ≤ α' i) :
+    (α α' : κ → ℝ) (_hα : ∀ i, 0 ≤ α i) (hle : ∀ i, α i ≤ α' i) :
     advAlphaR input g α ≤ advAlphaR input g α' := by
   unfold advAlphaR
   refine iSup_mono fun A : {A : Matrix X X ℝ // A.IsSymm ∧ (∀ x y, 0 ≤ A x y) ∧
@@ -437,7 +441,6 @@ theorem projective_final_progress_on_original_register :
 
   have hself := projective_correct_component_self_term_vanishes Γ weight P states f hz
   have hA : ‖(TensorGate Γ (1 : Matrix H H ℂ))‖ ≤ ‖Γ‖ := by
-    (try dsimp)
     rw [l2_norm_tensorGate]
     exact (mul_le_mul_of_nonneg_left l2_norm_one_le (norm_nonneg _)).trans_eq (mul_one _)
 
@@ -1122,14 +1125,14 @@ private theorem runFor_succ_cost {S O : Type} (next : S → PMF (Configuration S
 
 /-- Subtracting any natural number from the value of a finite label still yields a value below
 its dimension. -/
-private theorem label_lt {D : ℕ} (c : Fin D) (j : ℕ) : c.val - j < D := by
+theorem label_lt {D : ℕ} (c : Fin D) (j : ℕ) : c.val - j < D := by
   have h1 : c.val - j ≤ c.val := Nat.sub_le _ _
   exact lt_of_le_of_lt h1 c.isLt
 
 /-- At a nonzero label, the adaptive transition advances to its predecessor label. -/
 private theorem adaptiveAdvance_at {D : ℕ} (c : Fin D) (hc : c.val ≠ 0) :
     adaptiveAdvance c = some (adaptiveLabelStep c) := by
-  simp only [adaptiveAdvance, if_neg hc]
+  simp only [adaptiveAdvance, ite_eq_right hc]
 
 /-- A tick at a nonzero adaptive label deterministically moves to the predecessor and incurs
 cost one. -/
@@ -1149,7 +1152,7 @@ private theorem adaptive_tick_halt {D : ℕ} (hD : 0 < D) (c : Fin D) (hc : c.va
       = PMF.pure (Sum.inl (⟨0, hD⟩ : Fin D), 1) := by
   have hnext : adaptiveUnboundedNext (D := D) c
       = PMF.pure (Sum.inl (⟨0, hD⟩ : Fin D)) := by
-    simp only [adaptiveUnboundedNext, adaptiveAdvance, if_pos hc]
+    simp only [adaptiveUnboundedNext, adaptiveAdvance, ite_eq_left hc]
     apply congrArg (fun x => PMF.pure (Sum.inl x))
     apply Fin.ext
     simp [hc]
@@ -1803,8 +1806,8 @@ theorem clause21_endpoint :
           c₀.val + 1 ≤ n ∧
           adaptiveHaltingCost c₀ ≤ n)) ∧
     (∀ {a : ℕ}, (scanFamily (a := a)).UniformPolyTime) ∧
-    (∀ {a : ℕ} (hA : 0 < a) {c k : ℕ}
-      (h : ∀ (len : ℕ) (input : List (Option (Fin a))), input.length = len →
+    (∀ {a : ℕ} (_hA : 0 < a) {c k : ℕ}
+      (_h : ∀ (len : ℕ) (input : List (Option (Fin a))), input.length = len →
         ∃ t : ℕ, t ≤ c * len ^ k + c ∧
           BitMachineHaltsAt ((scanFamily (a := a)).machine len) input t),
       ∀ len : ℕ, len ≤ c * len ^ k + c) ∧
@@ -1812,7 +1815,7 @@ theorem clause21_endpoint :
       BitMachineHaltsAt ((scanFamily (a := a)).machine n) (interrogationWord n symbols) n ∧
       (∀ {t : ℕ}, BitMachineHaltsAt ((scanFamily (a := a)).machine n)
         (interrogationWord n symbols) t → t = n)) ∧
-    (∀ {n a : ℕ} [NeZero a] (hn : 0 < n) (symbols : Fin n → Fin a),
+    (∀ {n a : ℕ} [NeZero a] (_hn : 0 < n) (symbols : Fin n → Fin a),
       ∃ (C : Circuit ((Fin n × ZMod a) × (Fin n → ZMod a))),
         IsUnitaryCircuit C ∧ QueryCount C = n ∧ GateCount C = 3 * n ∧
         (interrogationResources (n := n) (a := a)).gates = GateCount C ∧
@@ -1842,14 +1845,14 @@ theorem clause21_endpoint :
     exact adaptive_alphabet_execution_contract hn hD ha
   · intro a
     exact scanFamily_uniformPolyTime
-  · intro a hA c k h
-    exact scanFamily_uniformPolyTime_forces_linear hA h
+  · intro a _hA c k _h
+    exact scanFamily_uniformPolyTime_forces_linear _hA _h
   · intro a n symbols
     refine ⟨interrogation_native_halts_at_length symbols, ?_⟩
     intro t h
     exact interrogation_native_halts_only_at_length symbols h
-  · intro n a _ hn symbols
-    exact interrogation_native_queries_eq_program hn symbols
+  · intro n a _ _hn symbols
+    exact interrogation_native_queries_eq_program _hn symbols
   · intro n a _
     exact ⟨nativeInputBits_eq_interrogation_inputLen, nativeInputBits_eq_interrogation_space⟩
 end Qatlib.Concepts.QueryComplexity.DegreeMethod

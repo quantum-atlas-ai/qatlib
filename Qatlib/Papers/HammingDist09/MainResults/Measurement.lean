@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HammingDist09.MainResults.Basic
-import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Order
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.Matrix.Order
-import Mathlib.Data.Complex.BigOperators
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.HammingDist09.MainResults.Basic
+public import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Order
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.Matrix.Order
+public import Mathlib.Basic.Complex.BigOperators
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Measurement bounds and Gram-matrix constructions

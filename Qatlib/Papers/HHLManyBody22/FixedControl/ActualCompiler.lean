@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HHLManyBody22.GreedyFixing
-import Qatlib.Papers.HHLManyBody22.FixedControl.MultiQubitFixing
+module
+
+public import Qatlib.Papers.HHLManyBody22.GreedyFixing
+public import Qatlib.Papers.HHLManyBody22.FixedControl.MultiQubitFixing
+
+@[expose] public section
 
 /-!
 # Compiling controlled instructions on fixed clock sectors
@@ -108,7 +112,7 @@ theorem compileFixed_exact_on_sector (cs : List (Fin n×Bool))
     | some b =>
       have hxi := chosenValue_sound cs x hx i b hb
       cases b <;> simp only [instructionWordAt,originalControlledWord,List.map_cons,
-        instructionAt,hxi,Bool.false_eq_true,if_false,if_true]
+        instructionAt,hxi,Bool.false_eq_true,ite_false,ite_true]
       · exact ih φ
       · exact ih (U*ᵥφ)
 

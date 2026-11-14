@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Fintype.BigOperators
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Algebra.BigOperators.Field
-import Mathlib.Algebra.Order.BigOperators.Group.Finset
-import Mathlib.Data.Real.Basic
-import Mathlib.Tactic.Linarith
+module
+
+public import Mathlib.Data.Fintype.BigOperators
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Algebra.BigOperators.Field
+public import Mathlib.Algebra.Order.BigOperators.Group.Finset
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Tactic.Linarith
+
+@[expose] public section
 
 /-!
 # Acceptance weights and posterior budgets
@@ -51,8 +55,8 @@ theorem acceptance (q : R × Bool → ℝ) (hq : ∀ z, 0 ≤ q z) (hs : ∑ z, 
     apply Finset.sum_le_sum
     intro r _
     by_cases hr : r ∈ good
-    · simpa only [if_pos hr,zero_add] using hfail r hr
-    · rw [if_neg hr]
+    · simpa only [ite_eq_left hr,zero_add] using hfail r hr
+    · rw [ite_eq_right hr]
       have hn := mul_nonneg hδ (add_nonneg (hq (r,true)) (hq (r,false)))
       linarith [hq (r,true)]
   have hp : (∑ r : R, q (r,true))+(∑ r : R, q (r,false))=1 := by

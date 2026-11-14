@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.Amplification.RunMoment
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.RunMoment
+
+@[expose] public section
 
 /-!
 # Completion mass for clocked rank processes
@@ -82,7 +86,7 @@ theorem completion_neg (law : RankedCallLaw N Ω) (skip : RankSkip N) (t : ℕ)
   apply ENNReal.tsum_eq_zero.mpr
   intro xs
   have hc : ¬law.runClock xs ≤ budget := by have hn := law.runClock_nonneg xs; linarith
-  rw [if_neg hc]
+  rw [ite_eq_right hc]
 
 /-- For a starting rank below `N`, completion mass is at most one. -/
 theorem completion_le_one (law : RankedCallLaw N Ω) (skip : RankSkip N) (t : ℕ)
@@ -114,27 +118,27 @@ theorem completion_step (law : RankedCallLaw N Ω) (skip : RankSkip N) (t : ℕ)
   apply tsum_congr
   intro x
   by_cases hc : law.duration x ≤ budget
-  · rw [if_pos hc,← ENNReal.tsum_mul_left]
+  · rw [ite_eq_left hc,← ENNReal.tsum_mul_left]
     apply tsum_congr
     intro xs
     by_cases hx : (law.outputRank x).val < t
     · have hclock : law.runClock (x::xs) ≤ budget ↔ law.runClock xs ≤ budget-law.duration x := by
         rw [RankedCallLaw.runClock]
         constructor <;> intro h <;> linarith
-      simp only [RankedCallLaw.runMass,if_neg (Nat.ne_of_gt ht),if_pos hx,hclock]
+      simp only [RankedCallLaw.runMass,ite_eq_right (Nat.ne_of_gt ht),ite_eq_left hx,hclock]
       split_ifs
       · rw [ENNReal.ofReal_mul (law.mass_nonneg t htN x)]
       · simp
     · have hz := law.lower_support t ht htN x hx
       simp [RankedCallLaw.runMass,Nat.ne_of_gt ht,hx,hz]
-  · rw [if_neg hc]
+  · rw [ite_eq_right hc]
     apply ENNReal.tsum_eq_zero.mpr
     intro xs
     have hclock : ¬law.runClock (x::xs) ≤ budget := by
       rw [RankedCallLaw.runClock]
       have hn := law.runClock_nonneg xs
       linarith
-    rw [if_neg hclock]
+    rw [ite_eq_right hclock]
 
 /-- The uniformly initialized completion mass equals the uniform average of completion masses
 from the initial ranks. -/

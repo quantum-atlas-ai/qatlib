@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
-import Qatlib.Concepts.HspRecovery.RecordExtract.NonabelianSieveDefs
-import Qatlib.Concepts.HspRecovery.Reduction.ParityDescentDihe
+module
+
+public import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+public import Qatlib.Concepts.HspRecovery.RecordExtract.NonabelianSieveDefs
+public import Qatlib.Concepts.HspRecovery.Reduction.ParityDescentDihe
+
+@[expose] public section
 
 /-!
 # Dihedral sieve descent and sorting bounds
@@ -66,10 +70,10 @@ theorem sum_bits_eq (x k : ℕ) (h : x < 2 ^ k) :
           2 * (if x / 2 / 2 ^ (i : ℕ) % 2 = 1 then (2 ^ (i : ℕ) : ℕ) else 0) := by
       by_cases hc : x / 2 / 2 ^ (i : ℕ) % 2 = 1
       · have hci : x / 2 ^ ((i : ℕ) + 1) % 2 = 1 := (hstep i).mpr hc
-        rw [if_pos hci, if_pos hc, pow_succ]
+        rw [ite_eq_left hci, ite_eq_left hc, pow_succ]
         ring
       · have hci : ¬ x / 2 ^ ((i : ℕ) + 1) % 2 = 1 := fun hh => hc ((hstep i).mp hh)
-        rw [if_neg hci, if_neg hc, mul_zero]
+        rw [ite_eq_right hci, ite_eq_right hc, mul_zero]
     have htail : (∑ i : Fin k,
         if x / 2 ^ ((i : ℕ) + 1) % 2 = 1 then (2 ^ ((i : ℕ) + 1) : ℕ) else 0) =
           2 * ∑ i : Fin k, if x / 2 / 2 ^ (i : ℕ) % 2 = 1 then (2 ^ (i : ℕ) : ℕ) else 0 := by
@@ -79,7 +83,7 @@ theorem sum_bits_eq (x k : ℕ) (h : x < 2 ^ k) :
       rw [hdiv]
       by_cases hb : x % 2 = 1
       · simp [hb]
-      · rw [if_neg hb]
+      · rw [ite_eq_right hb]
         have hm := Nat.mod_two_eq_zero_or_one x
         omega
     calc (∑ i : Fin (k + 1), if x / 2 ^ (i : ℕ) % 2 = 1 then (2 ^ (i : ℕ) : ℕ) else 0)
@@ -137,14 +141,14 @@ theorem sum_bits_bit (n i : ℕ) (b : ℕ → Bool) (hi : i < n) :
     rw [sum_bits_shift b n]
     rcases i with _ | i
     · by_cases hb : b 0 <;> simp [hb]
-      all_goals omega
+
     · have hT : (∑ j : Fin n, if b (j + 1) then (2 ^ (j : ℕ) : ℕ) else 0) / 2 ^ i % 2 =
           if b (i + 1) then (1 : ℕ) else 0 := ih i (fun j => b (j + 1)) (by omega)
       have hpow : 2 ^ (i + 1) = 2 * 2 ^ i := by ring
       have hhalf : ((if b 0 then (1 : ℕ) else 0) + 2 *
           (∑ j : Fin n, if b (j + 1) then (2 ^ (j : ℕ) : ℕ) else 0)) / 2 =
           ∑ j : Fin n, if b (j + 1) then (2 ^ (j : ℕ) : ℕ) else 0 := by
-        by_cases hb : b 0 <;> simp [hb] <;> omega
+        by_cases hb : b 0 <;> simp [hb]; omega
       have hdiv : ((if b 0 then (1 : ℕ) else 0) + 2 *
           (∑ j : Fin n, if b (j + 1) then (2 ^ (j : ℕ) : ℕ) else 0)) / (2 * 2 ^ i) =
           (∑ j : Fin n, if b (j + 1) then (2 ^ (j : ℕ) : ℕ) else 0) / 2 ^ i := by
@@ -181,7 +185,7 @@ theorem insertByKey_length {α : Type} (key : α → ℕ) (a : α) (L : List α)
   | nil => rfl
   | cons b rest ih =>
     unfold insertByKey
-    split_ifs <;> simp [ih, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc]
+    split_ifs <;> simp [ih, Nat.add_comm, Nat.add_left_comm]
 
 /-- Insertion by key preserves nondecreasing key order. -/
 theorem insertByKey_sorted {α : Type} (key : α → ℕ) (a : α) (L : List α)
@@ -277,7 +281,7 @@ theorem sortedPairs_len_le {α : Type} (key : α → ℕ) (L : List α) :
     2 * (sortedPairs key L).length ≤ L.length := by
   fun_induction sortedPairs key L
   case case1 h ih =>
-    simp only [List.length_cons, List.length_nil] at ih ⊢
+    simp only [List.length_cons] at ih ⊢
     omega
   case case2 h ih =>
     simp only [List.length_cons] at ih ⊢
@@ -325,7 +329,7 @@ theorem sortedPairs_count {α : Type} (key : α → ℕ) (u : ℕ) :
       | cons a L' =>
         cases L' with
         | nil =>
-          by_cases hu : key a = u <;> simp [sortedPairs, List.countP_cons, hu]
+          by_cases hu : key a = u <;> simp [sortedPairs,  hu]
         | cons b rest =>
           rw [List.length_cons, List.length_cons] at hlen
           have hlen_rest : rest.length < n := by omega
@@ -342,7 +346,7 @@ theorem sortedPairs_count {α : Type} (key : α → ℕ) (u : ℕ) :
                 (fun p => decide (key p.1 = u)) =
                 (sortedPairs key rest).countP (fun p => decide (key p.1 = u)) +
                   (if key a = u then 1 else 0) := by
-              by_cases hu : key a = u <;> simp [List.countP_cons, hu]
+              by_cases hu : key a = u <;> simp [ hu]
             rw [hco, ih_rest]
             have hcl : (a :: b :: rest).countP (fun r => decide (key r = u)) =
                 rest.countP (fun r => decide (key r = u)) +
@@ -350,7 +354,7 @@ theorem sortedPairs_count {α : Type} (key : α → ℕ) (u : ℕ) :
                   (if decide (key a = u) = true then 1 else 0) := by
               rw [List.countP_cons, List.countP_cons]
             rw [hcl, hab]
-            by_cases hu : key a = u <;> simp [hu] <;> omega
+            by_cases hu : key a = u <;> simp [] <;> omega
           · have hpair : sortedPairs key (a :: b :: rest) = sortedPairs key (b :: rest) := by
               simp [sortedPairs, hab]
             rw [hpair, ih_brest]
@@ -378,8 +382,8 @@ theorem sortedPairs_count {α : Type} (key : α → ℕ) (u : ℕ) :
                 rw [List.countP_eq_zero]
                 intro x hx
                 simp [hne x hx]
-              rw [if_pos hu, hz]
-            · rw [if_neg hu, Nat.add_zero]
+              rw [ite_eq_left hu, hz]
+            · rw [ite_eq_right hu, Nat.add_zero]
   intro L
   exact hall L.length L rfl
 
@@ -452,7 +456,7 @@ theorem sievePairWith_count (n : ℕ) {α : Type} [DecidableEq α]
       have hpos : 0 < rest.countP (fun a => decide (windowKey n w t (label a) = u)) :=
         List.countP_pos_iff.2 ⟨r', hm, by simp [hu']⟩
       rw [List.countP_cons, List.countP_cons, ih u, List.countP_erase]
-      simp only [hu, hu', decide_true, if_true, hm, and_self]
+      simp only [hu, hu', decide_true, ite_true, hm, and_self]
       omega
     · have hu' : windowKey n w t (label r') ≠ u := fun he' => hu (he.trans he')
       rw [List.countP_cons, List.countP_cons, ih u, List.countP_erase]
@@ -817,9 +821,9 @@ theorem pmf_pure_expectation {α : Type} (a : α) (g : α → ℝ≥0∞) :
     by_cases hx : x = a <;> simp [hx]
   simp only [hpt]
   rw [tsum_eq_single a]
-  · rw [if_pos rfl]
+  · rw [ite_eq_left rfl]
   · intro x hx
-    rw [if_neg hx]
+    rw [ite_eq_right hx]
 
 /-- Expectation under a bound probability law equals the iterated expectation. -/
 theorem pmf_bind_expectation {α β : Type} (p : PMF α) (k : α → PMF β) (g : β → ℝ≥0∞) :
@@ -864,7 +868,7 @@ theorem missWeight_cons {α : Type} [DecidableEq α] (h r : α) (L : List α) :
 theorem map_some_none {α : Type} [Fintype α] (p : PMF α) : (p.map some) none = 0 := by
   rw [PMF.map_apply, ENNReal.tsum_eq_zero]
   intro a
-  rw [if_neg (show (none : Option α) ≠ some a by simp)]
+  rw [ite_eq_right (show (none : Option α) ≠ some a by simp)]
 
 /-- Ideal readout has failure mass zero exactly when the list contains the target label, and one
 otherwise. -/
@@ -884,7 +888,7 @@ theorem idealReadout_none (n : ℕ) (s : ZMod (2 ^ n)) (L : List (ZMod (2 ^ n)))
       show (PMF.map some (parityReadout (dihedralQubitState (2 ^ n) s r)
           (normalized_dihedralQubitState (2 ^ n) s r))) none =
         if ((2 ^ (n - 1) : ℕ) : ZMod (2 ^ n)) ∈ L then 0 else 1
-      rw [map_some_none, if_pos hin]
+      rw [map_some_none, ite_eq_left hin]
   · have hfind : L.find? (fun r => decide (r = ((2 ^ (n - 1) : ℕ) : ZMod (2 ^ n)))) = none := by
       rw [List.find?_eq_none]
       intro x hx
@@ -893,7 +897,7 @@ theorem idealReadout_none (n : ℕ) (s : ZMod (2 ^ n)) (L : List (ZMod (2 ^ n)))
     rw [hfind]
     show (PMF.pure none : PMF (Option Bool)) none =
       if ((2 ^ (n - 1) : ℕ) : ZMod (2 ^ n)) ∈ L then 0 else 1
-    rw [PMF.pure_apply_self none, if_neg hin]
+    rw [PMF.pure_apply_self none, ite_eq_right hin]
 
 /-- Every residue modulo two equals zero or one. -/
 theorem zmod_two_cases (r : ZMod 2) : r = 0 ∨ r = 1 := by
@@ -1206,7 +1210,7 @@ theorem descent_fail_bound :
           rw [← Real.rpow_natCast _ (levelTrials 1),
             ← Real.rpow_mul (by norm_num : 0 ≤ (2:ℝ))]
           congr 1
-          push_cast
+
           ring
         rw [← ENNReal.ofReal_pow (Real.rpow_nonneg (by norm_num) (-24 : ℝ))]
         exact ENNReal.ofReal_le_ofReal (le_of_eq hpow24)

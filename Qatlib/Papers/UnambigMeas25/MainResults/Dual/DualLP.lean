@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.UnambigMeas25.MainResults.Definitions.UnambigMeasModel
+module
+
+public import Qatlib.Papers.UnambigMeas25.MainResults.Definitions.UnambigMeasModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -48,9 +52,9 @@ Source: Theorem 2, p. 6 and p. 17.  Proof route: spectral decomposition of
 Proposition 11, and the fact that `|⟨b_i|A_s^{H,y}⟩|² = |α̂_i|²` for `i ∈ D_H(s)`
 and `0` otherwise.  The paper's `D_H(s)` is re-indexed here by the fibre of
 `H.mulVec`; on a fibre the identity reads `|α̂_i|²⟨b_i|F|b_i⟩ = |α̂_j|²⟨b_j|F|b_j⟩`. -/
-def theorem2 {n : ℕ} (S : SymFamily n) (hfull : FullDualSupport S)
-    (M : Measurement n) (hM : Gamma S M) (k : ℕ) (H : Lam n k)
-    (y : Fin k → ZMod 2) (i j : F2 n) (hij : SameDualCoset H i j) : Prop :=
+def theorem2 {n : ℕ} (S : SymFamily n) (_hfull : FullDualSupport S)
+    (M : Measurement n) (_hM : Gamma S M) (k : ℕ) (H : Lam n k)
+    (y : Fin k → ZMod 2) (i j : F2 n) (_hij : SameDualCoset H i j) : Prop :=
   Complex.normSq (S.hat i) * fourierDiag (M.w k H y) i =
       Complex.normSq (S.hat j) * fourierDiag (M.w k H y) j
   -- Paper: arXiv:2510.07298v2, Theorem 2, p. 6 / p. 17.
@@ -72,7 +76,7 @@ Source: Theorem 3, p. 21.  Proof: Theorems 1+2 give `ρ(S) ≤ ρ^L(S)` under fu
 dual support (Propositions 12), Proposition 13 gives `ρ^L(S) ≤ ρ(S)` under full
 dual support, and Proposition 14 removes the full-support assumption by a
 density argument. -/
-def theorem3 {n : ℕ} (S : SymFamily n) (C : ℕ → ℝ) (hC : ∀ k, 0 ≤ C k) : Prop :=
+def theorem3 {n : ℕ} (S : SymFamily n) (C : ℕ → ℝ) (_hC : ∀ k, 0 ≤ C k) : Prop :=
   rho S C = rhoL S C
   -- Paper: arXiv:2510.07298v2, Theorem 3, p. 21.
   -- Key steps: ρ ≤ ρ^L is Proposition 12 (Theorem 2 inserted into Theorem 1);
@@ -93,8 +97,8 @@ Source: Proposition 12, p. 23.  Proof: start from a maximiser `{F_{H,y}} ∈ Γ_
 of the semidefinite program, use Theorem 2 to produce the primal variables
 `λ_i^{H,y} = |α̂_i|²⟨b_i|F_{H,y}|b_i⟩ / (2^k C(k))` (for the relevant `k`) and
 check Equations (1) and (2). -/
-def proposition12 {n : ℕ} (S : SymFamily n) (C : ℕ → ℝ) (hC : ∀ k, 0 ≤ C k)
-    (hfull : FullDualSupport S) : Prop :=
+def proposition12 {n : ℕ} (S : SymFamily n) (C : ℕ → ℝ) (_hC : ∀ k, 0 ≤ C k)
+    (_hfull : FullDualSupport S) : Prop :=
   rho S C ≤ rhoL S C
   -- Paper: arXiv:2510.07298v2, Proposition 12, p. 23.
   -- Key steps: take {F} ∈ Γ_s(S) maximising (Theorem 1); define
@@ -112,8 +116,8 @@ Source: Proposition 13, p. 23.  Proof: from the optimal `λ_i^H` construct
 one-dimensional operators `F_{H,y} = c_{H,y} |A^{H,y}⟩⟨A^{H,y}|` following the
 basis of Proposition 11; the resulting `{F_{H,y}}` is a symmetric fine-grained
 unambiguous POVM with `ρ₂ = ρ^L`, and Theorem 1 converts this into `ρ ≥ ρ^L`. -/
-def proposition13 {n : ℕ} (S : SymFamily n) (C : ℕ → ℝ) (hC : ∀ k, 0 ≤ C k)
-    (hfull : FullDualSupport S) : Prop :=
+def proposition13 {n : ℕ} (S : SymFamily n) (C : ℕ → ℝ) (_hC : ∀ k, 0 ≤ C k)
+    (_hfull : FullDualSupport S) : Prop :=
   rhoL S C ≤ rho S C
   -- Paper: arXiv:2510.07298v2, Proposition 13, p. 23.
   -- Key steps: define F_{H,y} from λ and the basis vectors |A_s^{H,y}⟩; verify
@@ -134,8 +138,8 @@ Source: Proposition 14, p. 24.  Proof: perturb the amplitudes,
 `|ψ'_x⟩ = √(1−δ)|ψ_x⟩ + √(δ/|T|) ∑_{i∈T}(−1)^{i·x}|b_i⟩`, where `T` is the
 zero set of `α̂`; this keeps symmetry and makes all dual coefficients nonzero.
 The bound is by continuity of `ρ` and `ρ^L` in the amplitudes. -/
-def proposition14 {n : ℕ} (S : SymFamily n) (C : ℕ → ℝ) (hC : ∀ k, 0 ≤ C k)
-    (ε : ℝ) (hε : 0 < ε) : Prop :=
+def proposition14 {n : ℕ} (S : SymFamily n) (C : ℕ → ℝ) (_hC : ∀ k, 0 ≤ C k)
+    (ε : ℝ) (_hε : 0 < ε) : Prop :=
   ∃ α' : StateVec n,
       FullDualSupport (mkSym α') ∧
         |rho (mkSym α') C - rho S C| ≤ ε ∧
@@ -160,7 +164,7 @@ Source: Proposition 15, p. 25.  Proof: the primal and dual programs are a pair
 of finite-dimensional real linear programs in standard form; weak duality plus
 the explicit feasible pair `λ = 0` and `b_i = 2^n max_k C(k)` shows both
 optima exist and coincide (LP strong duality). -/
-def proposition15 {n : ℕ} (S : SymFamily n) (C : ℕ → ℝ) (hC : ∀ k, 0 ≤ C k) : Prop :=
+def proposition15 {n : ℕ} (S : SymFamily n) (C : ℕ → ℝ) (_hC : ∀ k, 0 ≤ C k) : Prop :=
   rhoL S C = sigmaL S C
   -- Paper: arXiv:2510.07298v2, Proposition 15, p. 25.
   -- Key steps: weak duality `sigmaValue ≥ lambdaValue` for every feasible pair;
@@ -192,7 +196,7 @@ Source: Proposition 22, p. 26 (proof deferred to Appendix A).  Proof: `f` maps
 dual cosets to dual cosets (affine subspaces of the same dimension), and
 `∑_{i∈D} b_{f(i)} = ∑_{j∈f(D)} b_j ≥ C(k)2^k`; nonnegativity is immediate. -/
 def proposition22 {n : ℕ} (C : ℕ → ℝ) (b : F2 n → ℝ)
-    (hb : DualFeasible C b) (f : F2 n → F2 n) (hf : IsAffineEquiv f) : Prop :=
+    (_hb : DualFeasible C b) (f : F2 n → F2 n) (_hf : IsAffineEquiv f) : Prop :=
   DualFeasible C fun i => b (f i)
   -- Paper: arXiv:2510.07298v2, Proposition 22, p. 26; proof in Appendix A.
   -- Key steps: nonnegativity is pointwise; for the coset constraint, change

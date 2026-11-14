@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Concepts.QsvtCore.HamiltonianSim.HermitianEvolutionLipschitzGily
+module
+
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Concepts.QsvtCore.HamiltonianSim.HermitianEvolutionLipschitzGily
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

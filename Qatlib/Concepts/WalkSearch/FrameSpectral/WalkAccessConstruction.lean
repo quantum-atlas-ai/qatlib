@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.FrameSpectral.WalkAccessConstructionDefs
+module
+
+public import Qatlib.Concepts.WalkSearch.FrameSpectral.WalkAccessConstructionDefs
+
+@[expose] public section
 
 /-!
 # Walk access construction interface

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.VarTimeAmpAmp10.StopModel.StructuralProgram
+module
+
+public import Qatlib.Papers.VarTimeAmpAmp10.StopModel.StructuralProgram
+
+@[expose] public section
 
 /-!
 # Stopping tails and dyadic sums
@@ -71,14 +75,14 @@ theorem finite_stop_tail_telescopes (f : ℕ → ℝ) (m i : ℕ) (hi : i ≤ m)
     simp
   | succ m ih =>
     by_cases him : i ≤ m
-    · rw [Finset.sum_range_succ, ih i him, if_pos him]
+    · rw [Finset.sum_range_succ, ih i him, ite_eq_left him]
       ring
     · have hi' : i = m+1 := by omega
       subst i
       rw [sub_self]
       apply Finset.sum_eq_zero
       intro j hj
-      exact if_neg (by have := Finset.mem_range.mp hj; omega)
+      exact ite_eq_right (by have := Finset.mem_range.mp hj; omega)
 
 /-- The sum of squared powers of two below `n` is at most the square of `2^n`. -/
 theorem dyadic_geometric_square_bound (n : ℕ) :
@@ -109,14 +113,14 @@ theorem stopping_tail_weighted_sum (p : ℕ → ℝ) (m : ℕ)
         symm
         apply Finset.sum_subset (Finset.range_mono (by have := Finset.mem_range.mp hj; omega))
         intro i _ hi
-        rw [if_neg (by
+        rw [ite_eq_right (by
           have hnot : ¬ i < j+1 := fun h => hi (Finset.mem_range.mpr h)
           omega), mul_zero]
       _ = _ := by
         rw [Finset.mul_sum]
         apply Finset.sum_congr rfl
         intro i hi
-        rw [if_pos (by have := Finset.mem_range.mp hi; omega)]
+        rw [ite_eq_left (by have := Finset.mem_range.mp hi; omega)]
         ring
   rw [he]
   exact mul_le_mul_of_nonneg_left (dyadic_geometric_square_bound (j+1)) hpj

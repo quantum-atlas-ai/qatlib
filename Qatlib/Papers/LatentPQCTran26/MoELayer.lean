@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Exp
-import Mathlib.Algebra.BigOperators.Module
-import Mathlib.Algebra.BigOperators.Field
-import Mathlib.Tactic.Linarith
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Exp
+public import Mathlib.Algebra.BigOperators.Module
+public import Mathlib.Algebra.BigOperators.Field
+public import Mathlib.Tactic.Linarith
+
+@[expose] public section
 
 /-!
 # Softmax mixtures of latent-circuit experts

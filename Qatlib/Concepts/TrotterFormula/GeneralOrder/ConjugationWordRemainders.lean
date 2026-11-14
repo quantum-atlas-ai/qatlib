@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TrotterFormula.GeneralOrder.ConjugationCommutatorCoefficients
+module
+
+public import Qatlib.Concepts.TrotterFormula.GeneralOrder.ConjugationCommutatorCoefficients
+
+@[expose] public section
 
 /-!
 # Remainders of exponential conjugation words
@@ -46,7 +50,7 @@ def pfConjWord : List (Matrix I I ℂ)→Matrix I I ℂ→ℝ→Matrix I I ℂ
 (suzukiExponentialWord xs t)`. -/
 theorem pfConjWord_eq_word_conjugation (xs : List (Matrix I I ℂ)) (B : Matrix I I ℂ) (t : ℝ) :
     pfConjWord xs B t=suzukiExponentialWord xs t*B*Ring.inverse (suzukiExponentialWord xs t) := by
-  letI : NormedAlgebra ℚ (Matrix I I ℂ) := NormedAlgebra.restrictScalars ℚ ℝ _
+  let : NormedAlgebra ℚ (Matrix I I ℂ) := NormedAlgebra.restrictScalars ℚ ℝ _
   induction xs with
   | nil => simp [pfConjWord,suzukiExponentialWord]
   | cons X xs ih =>

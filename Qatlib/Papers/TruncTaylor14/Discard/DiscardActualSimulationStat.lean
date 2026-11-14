@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CoherentSim.ResetDiscard.TaylorDiscardSegment
-import Qatlib.Concepts.CoherentSim.ResetDiscard.ResetDiscardDefinitions
-import Qatlib.Papers.TruncTaylor14.Discard.Defs
+module
+
+public import Qatlib.Concepts.CoherentSim.ResetDiscard.TaylorDiscardSegment
+public import Qatlib.Concepts.CoherentSim.ResetDiscard.ResetDiscardDefinitions
+public import Qatlib.Papers.TruncTaylor14.Discard.Defs
+
+@[expose] public section
 
 /-!
 # Specification of actual Taylor discard simulation

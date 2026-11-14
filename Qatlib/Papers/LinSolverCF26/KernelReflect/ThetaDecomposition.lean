@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Arctan
+module
+
+public import Mathlib.Analysis.InnerProductSpace.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Arctan
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -55,8 +59,10 @@ def kernelVec (t : ℝ) (x e : E) : E :=
 def companionVec (t : ℝ) (x e : E) : E :=
   -(Real.cos (theta t x)) • unitSolution x + (Real.sin (theta t x)) • e
 
+omit [NormedAddCommGroup E] [InnerProductSpace ℝ E] in
 /-- Eq. (9) evaluated: `cos θ_t = t / √(‖x‖² + t²)` for `t > 0`. -/
-theorem cos_theta_eq {t : ℝ} (ht : 0 < t) (x : E) :
+theorem cos_theta_eq {E : Type*} [_instNormedAddCommGroupE : NormedAddCommGroup E]
+    [_instInnerProductSpaceE : InnerProductSpace ℝ E] {t : ℝ} (ht : 0 < t) (x : E) :
     Real.cos (theta t x) = t / Real.sqrt (‖x‖ ^ 2 + t ^ 2) := by
   have hA : 0 < ‖x‖ ^ 2 + t ^ 2 := by positivity
   rw [theta, Real.cos_arctan]
@@ -65,8 +71,10 @@ theorem cos_theta_eq {t : ℝ} (ht : 0 < t) (x : E) :
     ring
   rw [h1, Real.sqrt_div hA.le, Real.sqrt_sq ht.le, one_div_div]
 
+omit [NormedAddCommGroup E] [InnerProductSpace ℝ E] in
 /-- Eq. (9) evaluated: `sin θ_t = ‖x‖ / √(‖x‖² + t²)` for `t > 0`. -/
-theorem sin_theta_eq {t : ℝ} (ht : 0 < t) (x : E) :
+theorem sin_theta_eq {E : Type*} [_instNormedAddCommGroupE : NormedAddCommGroup E]
+    [_instInnerProductSpaceE : InnerProductSpace ℝ E] {t : ℝ} (ht : 0 < t) (x : E) :
     Real.sin (theta t x) = ‖x‖ / Real.sqrt (‖x‖ ^ 2 + t ^ 2) := by
   have hA : 0 < ‖x‖ ^ 2 + t ^ 2 := by positivity
   rw [theta, Real.sin_arctan]
@@ -76,14 +84,18 @@ theorem sin_theta_eq {t : ℝ} (ht : 0 < t) (x : E) :
   rw [h1, Real.sqrt_div hA.le, Real.sqrt_sq ht.le]
   field_simp
 
+omit [NormedAddCommGroup E] [InnerProductSpace ℝ E] in
 /-- The rotation angle lies strictly between `0` and `π/2` when `x` is nonzero
 and `t > 0`. -/
-theorem theta_pos_and_lt {t : ℝ} (ht : 0 < t) {x : E} (hx : 0 < ‖x‖) :
+theorem theta_pos_and_lt {E : Type*} [_instNormedAddCommGroupE : NormedAddCommGroup E]
+    [_instInnerProductSpaceE : InnerProductSpace ℝ E] {t : ℝ} (ht : 0 < t) {x : E} (hx : 0 < ‖x‖) :
     0 < theta t x ∧ theta t x < Real.pi / 2 :=
   ⟨(Real.arctan_pos).2 (div_pos hx ht), Real.arctan_lt_pi_div_two _⟩
 
+omit [NormedAddCommGroup E] [InnerProductSpace ℝ E] in
 /-- `sin² θ_t + cos² θ_t = 1`. -/
-theorem sin_sq_add_cos_sq (t : ℝ) (x : E) :
+theorem sin_sq_add_cos_sq {E : Type*} [_instNormedAddCommGroupE : NormedAddCommGroup E]
+    [_instInnerProductSpaceE : InnerProductSpace ℝ E] (t : ℝ) (x : E) :
     Real.sin (theta t x) ^ 2 + Real.cos (theta t x) ^ 2 = 1 :=
   Real.sin_sq_add_cos_sq _
 
@@ -137,7 +149,7 @@ theorem inner_kernelVec_companion {t : ℝ} (ht : 0 < t) {x e : E}
   ring
 
 /-- The companion vector is a unit vector. -/
-theorem norm_companionVec {t : ℝ} (ht : 0 < t) {x e : E}
+theorem norm_companionVec {t : ℝ} (_ht : 0 < t) {x e : E}
     (hx : 0 < ‖x‖) (he : ‖e‖ = 1) (hxe : ⟪x, e⟫ = 0) :
     ‖companionVec t x e‖ = 1 := by
   have hsum := sin_sq_add_cos_sq t x

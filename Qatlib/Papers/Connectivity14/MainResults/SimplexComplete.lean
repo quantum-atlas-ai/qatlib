@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Asymptotics.Theta
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Qatlib.Papers.Connectivity14.MainResults.TwoLevel
+module
+
+public import Mathlib.Analysis.Asymptotics.Theta
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Qatlib.Papers.Connectivity14.MainResults.TwoLevel
+
+@[expose] public section
 
 /-!
 # Two-stage effective simplex search
@@ -104,7 +108,7 @@ theorem simplex_stage1_gap_mul_time (M : ℝ) (hM : 0 < M) :
   unfold stage1Gap simplexTime1
   have hM0 : M ≠ 0 := hM.ne'
   have hs : Real.sqrt M ≠ 0 := (Real.sqrt_pos.2 hM).ne'
-  field_simp <;> norm_num
+  field_simp; norm_num
 
 /-- For positive `M`, the first effective stage reaches coordinate-zero transition probability
 one at `simplexTime1 M`. See [MeyerWong2015]. -/
@@ -131,7 +135,7 @@ theorem simplex_stage2_gap_mul_time (M : ℝ) (hM : 0 < M) :
     stage2Gap M * simplexTime2 M = Real.pi / 2 := by
   unfold stage2Gap simplexTime2
   have hs : Real.sqrt M ≠ 0 := (Real.sqrt_pos.2 hM).ne'
-  field_simp <;> norm_num
+  field_simp
 
 /-- For positive `M`, the second effective stage reaches coordinate-zero transition probability
 one at `simplexTime2 M`. See [MeyerWong2015]. -/

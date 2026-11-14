@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SearchStopping.KnownCount.Corollary22RealRestrictedStat
+module
+
+public import Qatlib.Concepts.SearchStopping.KnownCount.Corollary22RealRestrictedStat
+
+@[expose] public section
 
 /-!
 # Corrected amplitude growth contract

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.LinearSystems.Theorem41WindowedPolynomialStat
-import Qatlib.Concepts.QsvtCore.LinearSystems.WindowedReciprocal
+module
+
+public import Qatlib.Concepts.QsvtCore.LinearSystems.Theorem41WindowedPolynomialStat
+public import Qatlib.Concepts.QsvtCore.LinearSystems.WindowedReciprocal
+
+@[expose] public section
 
 /-!
 # Existence of a windowed reciprocal polynomial

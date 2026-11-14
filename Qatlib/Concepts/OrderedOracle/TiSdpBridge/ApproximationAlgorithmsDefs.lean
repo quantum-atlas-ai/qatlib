@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
-import Mathlib.RingTheory.Polynomial.Chebyshev
-import Qatlib.Foundations.PureStateMath.MixedState
-import Qatlib.Concepts.LchsSimulation.Quadrature.GaussLegendreRule
-import Qatlib.Concepts.CoherentSim.CoherentOAA.OddApproximation
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
+public import Mathlib.RingTheory.Polynomial.Chebyshev
+public import Qatlib.Foundations.PureStateMath.MixedState
+public import Qatlib.Concepts.LchsSimulation.Quadrature.GaussLegendreRule
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.OddApproximation
+
+@[expose] public section
 
 /-!
 # Approximation identities and matrix certificates

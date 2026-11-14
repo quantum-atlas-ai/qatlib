@@ -4,11 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CopyEvolution.SelfTomography.CopyEvolutionDefs
-import Qatlib.Concepts.CopyEvolution.Discriminate.FiniteCopyHelstromDiscriminationQuan
-import Qatlib.Concepts.CopyEvolution.Discriminate.TrainingSetFiniteDiscriminationQuan
-import Qatlib.Concepts.CopyEvolution.CopyExponent.LowRankExponentiationRestrictedQuan
-import Qatlib.Concepts.CopyEvolution.SelfTomography.GramFirstRegisterDensityQuan
+module
+
+public import Qatlib.Concepts.CopyEvolution.SelfTomography.CopyEvolutionDefs
+public import Qatlib.Concepts.CopyEvolution.Discriminate.FiniteCopyHelstromDiscriminationQuan
+public import Qatlib.Concepts.CopyEvolution.Discriminate.TrainingSetFiniteDiscriminationQuan
+public import Qatlib.Concepts.CopyEvolution.CopyExponent.LowRankExponentiationRestrictedQuan
+public import Qatlib.Concepts.CopyEvolution.SelfTomography.GramFirstRegisterDensityQuan
+
+@[expose] public section
+set_option linter.unusedVariables false
 
 /-!
 # Quantum PCA readout specifications

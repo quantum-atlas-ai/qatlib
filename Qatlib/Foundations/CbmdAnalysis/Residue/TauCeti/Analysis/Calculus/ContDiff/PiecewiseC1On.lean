@@ -6,15 +6,19 @@ Authors: Chris Birkbeck, Qatlib Contributors
 Adapted from https://github.com/TauCetiProject/TauCeti@3780371c
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+module
 
-import Mathlib.Analysis.Calculus.ContDiff.Basic
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
-import Mathlib.Analysis.Calculus.ContDiff.Operations
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Calculus.ContDiff.ClosedInterval
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.MeasureTheory.Integral.IntervalIntegral.DerivIntegrable
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Order.Interval.Finite
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Topology.Order.Interval
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+
+public import Mathlib.Analysis.Calculus.ContDiff.Basic
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
+public import Mathlib.Analysis.Calculus.ContDiff.Operations
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Calculus.ContDiff.ClosedInterval
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.MeasureTheory.Integral.IntervalIntegral.DerivIntegrable
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Order.Interval.Finite
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Topology.Order.Interval
+
+@[expose] public section
 
 /-!
 # Piecewise C¹ functions on intervals
@@ -175,11 +179,11 @@ theorem IsPiecewiseC1On.if_le {δ : ℝ → E} {c : ℝ} (h₁ : IsPiecewiseC1On
   obtain ⟨p₂, -, hC₂⟩ := h₂.exists_breakpoints
   have hac : a ≤ c := hab.trans hbc
   have hη₁ : EqOn (fun t => if t ≤ b then γ t else δ t) γ (Icc a b) := fun t ht =>
-    if_pos ht.2
+    ite_eq_left ht.2
   have hη₂ : EqOn (fun t => if t ≤ b then γ t else δ t) δ (Icc b c) := fun t ht => by
     rcases ht.1.eq_or_lt with rfl | hlt
     · simp [hb]
-    · exact if_neg (not_le.2 hlt)
+    · exact ite_eq_right (not_le.2 hlt)
   refine IsPiecewiseC1On.of_breakpoints ?_ ((p₁ ∪ p₂ ∪ {b}).filter (· ∈ Ioo a c)) ?_
     fun d e hde hdisj => ?_
   · rw [uIcc_of_le hac, ← Icc_union_Icc_eq_Icc hab hbc]
@@ -259,7 +263,7 @@ theorem IsPiecewiseC1On.isBounded_image_deriv (h : IsPiecewiseC1On γ a b) :
     (Q := fun c d => Bornology.IsBounded (deriv γ '' Icc c d))
     (fun c d _ hsub hdisj => ContDiffOn.isBounded_image_deriv (hC1 c d hsub hdisj) le_rfl)
     (fun c m d hcm hmd h₁ h₂ => ?_) min_le_max Icc_min_max.subset
-  change Bornology.IsBounded (deriv γ '' Icc c d)
+
   rw [← Icc_union_Icc_eq_Icc hcm hmd, image_union]
   exact h₁.union h₂
 

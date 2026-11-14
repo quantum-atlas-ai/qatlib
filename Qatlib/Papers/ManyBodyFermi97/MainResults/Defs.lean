@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TensorRegisters.RegisterModel.TensorRegistersDefs
-import Qatlib.Concepts.TensorRegisters.RegisterModel.TensorRegisters
-import Qatlib.Foundations.CircuitReversal.ReversalAlgebra.CircuitReversalAlgebra
-import Qatlib.Concepts.FermionAlgebra.CarJordanWigner.FermionDefs
-import Qatlib.Concepts.FermionAlgebra.CarJordanWigner.Fermion
-import Qatlib.Concepts.FermionAlgebra.CarJordanWigner.FermionHubbard
-import Qatlib.Concepts.TrotterFormula.GeneralOrder.GeneralTrotterOrder
-import Mathlib.Data.Nat.Log
+module
+
+public import Qatlib.Concepts.TensorRegisters.RegisterModel.TensorRegistersDefs
+public import Qatlib.Concepts.TensorRegisters.RegisterModel.TensorRegisters
+public import Qatlib.Foundations.CircuitReversal.ReversalAlgebra.CircuitReversalAlgebra
+public import Qatlib.Concepts.FermionAlgebra.CarJordanWigner.FermionDefs
+public import Qatlib.Concepts.FermionAlgebra.CarJordanWigner.Fermion
+public import Qatlib.Concepts.FermionAlgebra.CarJordanWigner.FermionHubbard
+public import Qatlib.Concepts.TrotterFormula.GeneralOrder.GeneralTrotterOrder
+public import Mathlib.Data.Nat.Log
+
+@[expose] public section
 
 /-!
 # Register and cost models for many-body fermion simulation

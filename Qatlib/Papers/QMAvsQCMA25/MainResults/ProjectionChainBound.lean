@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.Adjoint
-import Mathlib.Analysis.Normed.Operator.Basic
-import Mathlib.Data.Nat.Choose.Sum
+module
+
+public import Mathlib.Analysis.InnerProductSpace.Adjoint
+public import Mathlib.Analysis.Normed.Operator.Basic
+public import Mathlib.Data.Nat.Choose.Sum
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -55,7 +59,7 @@ lemma inner_proj_left [CompleteSpace H] (P : H →L[ℂ] H) (hidem : P * P = P)
     rw [← ContinuousLinearMap.adjoint_inner_right (A := P) (x := x) (y := x), hadj]
   have h' : inner ℂ x (P x) = inner ℂ (P x) (P x) := by
     rw [← ContinuousLinearMap.adjoint_inner_right (A := P) (x := x) (y := P x), hadj,
-      ← ContinuousLinearMap.mul_apply, hidem]
+      ← _root_.mul_apply_eq_comp, hidem]
   rw [h, h', inner_self_eq_norm_sq_to_K]
   norm_num
 
@@ -66,7 +70,7 @@ lemma inner_proj_right [CompleteSpace H] (P : H →L[ℂ] H) (hidem : P * P = P)
     inner ℂ x (P x) = ((‖P x‖ ^ 2 : ℝ) : ℂ) := by
   have h' : inner ℂ x (P x) = inner ℂ (P x) (P x) := by
     rw [← ContinuousLinearMap.adjoint_inner_right (A := P) (x := x) (y := P x), hadj,
-      ← ContinuousLinearMap.mul_apply, hidem]
+      ← _root_.mul_apply_eq_comp, hidem]
   rw [h', inner_self_eq_norm_sq_to_K]
   norm_num
 
@@ -88,7 +92,7 @@ lemma norm_le_one_of_idem_selfAdjoint [CompleteSpace H] (Q : H →L[ℂ] H) (hid
   have hreal : inner ℂ x (Q x) = ((‖Q x‖ ^ 2 : ℝ) : ℂ) := by
     have h1 : inner ℂ x (Q x) = inner ℂ (Q x) (Q x) := by
       rw [← ContinuousLinearMap.adjoint_inner_right (A := Q) (x := x) (y := Q x), hadj,
-        ← ContinuousLinearMap.mul_apply, hidem]
+        ← _root_.mul_apply_eq_comp, hidem]
     rw [h1, inner_self_eq_norm_sq_to_K]
     norm_num
   have hCS : ‖Q x‖ ^ 2 ≤ ‖x‖ * ‖Q x‖ := by
@@ -218,7 +222,7 @@ lemma norm_chainProd_apply_le (A : ℕ → H →L[ℂ] H) (hA : ∀ i : ℕ, ‖
   induction t with
   | zero => simp
   | succ t ih =>
-    rw [chainProd_succ, ContinuousLinearMap.mul_apply]
+    rw [chainProd_succ, _root_.mul_apply_eq_comp]
     calc ‖A (t + 1) (chainProd A t ψ)‖ ≤ ‖A (t + 1)‖ * ‖chainProd A t ψ‖ :=
           ContinuousLinearMap.le_opNorm _ _
       _ ≤ 1 * ‖ψ‖ := mul_le_mul (hA (t + 1)) ih (norm_nonneg _) zero_le_one
@@ -255,7 +259,7 @@ theorem projectionChain_bound [CompleteSpace H] (P : ℕ → H →L[ℂ] H) (A :
     calc ‖((1 - P lam) * chainProd A 1) ψ‖
         = ‖((1 - P (0 + lam)) * A 1 * P 0) ψ‖ := by
           rw [Nat.zero_add, chainProd_succ, chainProd_zero]
-          simp only [ContinuousLinearMap.mul_apply, ContinuousLinearMap.one_apply, hψ0]
+          simp only [_root_.mul_apply_eq_comp, _root_.one_apply_eq_self, hψ0]
       _ ≤ ‖(1 - P (0 + lam)) * A 1 * P 0‖ * ‖ψ‖ := ContinuousLinearMap.le_opNorm _ _
       _ ≤ ε ^ (lam + 1) * 1 :=
           mul_le_mul (hstep 1 0 lam) hψ (norm_nonneg _) (pow_nonneg hε _)
@@ -268,7 +272,7 @@ theorem projectionChain_bound [CompleteSpace H] (P : ℕ → H →L[ℂ] H) (A :
     have hvnorm : ‖v‖ ≤ 1 := le_trans (norm_chainProd_apply_le A hA t ψ) hψ
     -- Eq. (205): split `id = Σ_{j ≤ λ} Δ j + (id - Π λ)`.
     have hsplit : v = (∑ j ∈ Finset.range (lam + 1), (projDelta P j) v) + (1 - P lam) v := by
-      rw [← ContinuousLinearMap.sum_apply, ← ContinuousLinearMap.add_apply,
+      rw [← _root_.sum_apply, ← _root_.add_apply,
         ← sum_projDelta P lam]
       simp
     have hexp : (1 - P lam) (A (t + 1) v)
@@ -289,7 +293,7 @@ theorem projectionChain_bound [CompleteSpace H] (P : ℕ → H →L[ℂ] H) (A :
       have hQ : ‖projComplement P j v‖ ≤ ((t + j - 1).choose (t - 1) : ℝ) * ε ^ j := by
         rcases Nat.eq_zero_or_pos j with hj0 | hjpos
         · subst hj0
-          simp only [projComplement_zero, ContinuousLinearMap.one_apply]
+          simp only [projComplement_zero, _root_.one_apply_eq_self]
           have h1 : ((t + 0 - 1).choose (t - 1) : ℝ) * ε ^ 0 = 1 := by
             rw [Nat.add_zero, Nat.choose_self, pow_zero, mul_one]
             norm_num
@@ -298,13 +302,13 @@ theorem projectionChain_bound [CompleteSpace H] (P : ℕ → H →L[ℂ] H) (A :
         · obtain ⟨j', rfl⟩ := Nat.exists_eq_succ_of_ne_zero (Nat.pos_iff_ne_zero.mp hjpos)
           have h := ih j' ψ hψ hψ0
           have harg : t + (j' + 1) - 1 = t + j' := by omega
-          simpa only [projComplement_succ, ContinuousLinearMap.mul_apply, ← hv, harg] using h
+          simpa only [projComplement_succ, _root_.mul_apply_eq_comp, ← hv, harg] using h
       have hle : ‖(1 - P lam) (A (t + 1) (projDelta P j v))‖
           ≤ ε ^ (lam - j + 1) * (((t + j - 1).choose (t - 1) : ℝ) * ε ^ j) := by
         rw [hdelta]
         calc ‖(1 - P lam) (A (t + 1) ((P j * projComplement P j) v))‖
             = ‖((1 - P lam) * A (t + 1) * P j) (projComplement P j v)‖ := by
-              simp only [ContinuousLinearMap.mul_apply]
+              simp only [_root_.mul_apply_eq_comp]
           _ ≤ ‖(1 - P lam) * A (t + 1) * P j‖ * ‖projComplement P j v‖ :=
               ContinuousLinearMap.le_opNorm _ _
           _ ≤ ε ^ (lam - j + 1) * (((t + j - 1).choose (t - 1) : ℝ) * ε ^ j) :=
@@ -329,11 +333,11 @@ theorem projectionChain_bound [CompleteSpace H] (P : ℕ → H →L[ℂ] H) (A :
       have h := ih lam ψ hψ hψ0
       calc ‖(1 - P lam) (A (t + 1) ((1 - P lam) v))‖
           = ‖((1 - P lam) * A (t + 1)) ((1 - P lam) v)‖ := by
-            simp only [ContinuousLinearMap.mul_apply]
+            simp only [_root_.mul_apply_eq_comp]
         _ ≤ ‖(1 - P lam) * A (t + 1)‖ * ‖(1 - P lam) v‖ := ContinuousLinearMap.le_opNorm _ _
         _ ≤ 1 * (((t + lam).choose (t - 1) : ℝ) * ε ^ (lam + 1)) := by
             refine mul_le_mul hcontract ?_ (norm_nonneg _) zero_le_one
-            simpa only [← hv, ContinuousLinearMap.mul_apply] using h
+            simpa only [← hv, _root_.mul_apply_eq_comp] using h
         _ = ((t + lam).choose (t - 1) : ℝ) * ε ^ (lam + 1) := one_mul _
     have hsum : ∑ j ∈ Finset.range (lam + 1),
           ‖(1 - P lam) (A (t + 1) (projDelta P j v))‖ ≤ ε ^ (lam + 1) * ((t + lam).choose t : ℝ) := by
@@ -362,7 +366,7 @@ theorem projectionChain_bound [CompleteSpace H] (P : ℕ → H →L[ℂ] H) (A :
     calc ‖((1 - P lam) * chainProd A (t + 1)) ψ‖
         = ‖(1 - P lam) (A (t + 1) v)‖ := by
           rw [chainProd_succ]
-          simp only [ContinuousLinearMap.mul_apply]
+          simp only [_root_.mul_apply_eq_comp]
           rw [← hv]
       _ ≤ ε ^ (lam + 1) * ((t + lam).choose t : ℝ)
             + ((t + lam).choose (t - 1) : ℝ) * ε ^ (lam + 1) := hmain

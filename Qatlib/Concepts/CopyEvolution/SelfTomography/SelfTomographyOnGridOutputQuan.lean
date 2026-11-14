@@ -4,7 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CopyEvolution.SelfTomography.SelfTomographyOnGridOutputStat
+module
+
+public import Qatlib.Concepts.CopyEvolution.SelfTomography.SelfTomographyOnGridOutputStat
+
+@[expose] public section
+set_option linter.unusedTactic false
 
 /-!
 # Spectral and on-grid self-tomography outputs
@@ -148,7 +153,7 @@ private theorem copyQPEInput_spectral_sum (D M : ℕ) (hM : 0 < M)
     copyQPEInput D M (∑ i, (eig i : ℂ) • outerProduct (fun j => V j i)) =
       ∑ i, (eig i : ℂ) • outerProduct
         (TensorState (Qatlib.Foundations.PureStateMath.Ket (⟨0, hM⟩ : Fin M)) (TensorState (Qatlib.Foundations.PureStateMath.Ket false) (fun j => V j i))) := by
-  rw [copyQPEInput, dif_pos hM]
+  rw [copyQPEInput, dite_eq_left hM]
   simp only [outerProduct_tensorState]
   ext ⟨a,b,i⟩ ⟨c,d,j⟩
   simp only [tensorGate_apply, Matrix.sum_apply, Matrix.smul_apply, Finset.mul_sum]
@@ -165,7 +170,7 @@ private theorem copyQPEIdealProgram_eigen (D M : ℕ) (hM : 0 < M) (ρ : Operato
     copyQPEIdealProgram D M ρ (countedPhaseCircuit M) (copyQPEInput D M (outerProduct ψ)) =
       outerProduct (fun p : Fin M × (Bool × Fin D) =>
         if p.2.1 then 0 else qpeKernel M φ p.1 * ψ p.2.2) := by
-  rw [copyQPEInput, dif_pos hM, ← outerProduct_tensorState, ← outerProduct_tensorState,
+  rw [copyQPEInput, dite_eq_left hM, ← outerProduct_tensorState, ← outerProduct_tensorState,
     copyQPEIdealProgram_outer, (counted_offgrid_qpe_clean_flag M hM
       (hamiltonianEvolution ρ Real.pi) ψ).1, qpeOutput_eigen M _ ψ φ hψ]
   rfl
@@ -192,7 +197,7 @@ theorem selfTomography_spectral_output (D M : ℕ) (hM : 0 < M)
         outerProduct (fun p : Fin M × (Bool × Fin D) =>
           if p.2.1 then 0 else qpeKernel M (-eig i / 2) p.1 * V p.2.2 i) := by
     have h := hpure i
-    rw [copyQPEInput, dif_pos hM, ← outerProduct_tensorState, ← outerProduct_tensorState] at h
+    rw [copyQPEInput, dite_eq_left hM, ← outerProduct_tensorState, ← outerProduct_tensorState] at h
     exact h
   have hout : copyQPEIdealOutput D M ρ =
       ∑ i, (eig i : ℂ) • outerProduct (fun p : Fin M × (Bool × Fin D) =>

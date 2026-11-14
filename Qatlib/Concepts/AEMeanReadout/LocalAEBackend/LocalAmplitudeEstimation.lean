@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.LocalOffGridReadout
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeCountingConsumers
-import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+module
+
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.LocalOffGridReadout
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.AmplitudeCountingConsumers
+public import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+
+@[expose] public section
 
 /-!
 # Amplitude estimation with local Fourier gates

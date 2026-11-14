@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.AdaptiveInfo.NeedleSearch
-import Qatlib.Foundations.PureStateMath.Reflection.Basic
+module
+
+public import Qatlib.Concepts.QueryComplexity.AdaptiveInfo.NeedleSearch
+public import Qatlib.Foundations.PureStateMath.Reflection.Basic
+
+@[expose] public section
 
 /-!
 # Classical query comparisons for singleton search

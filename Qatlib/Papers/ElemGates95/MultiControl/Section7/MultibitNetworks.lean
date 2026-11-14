@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ElemGates95.BorrowedAnd.Section7.BorrowedNetworks
-import Mathlib.Analysis.SpecialFunctions.Log.Base
-import Qatlib.Papers.ElemGates95.ThreeQubit
-import Qatlib.Concepts.CircuitImpl.MultiControl.BarencoSharp
-import Qatlib.Concepts.CircuitImpl.MultiControl.Corollary710Elem
-import Qatlib.Concepts.CircuitImpl.SqrtApprox.Lemma78Elem
-import Qatlib.Concepts.CircuitImpl.MultiControl.NoWorkTwoLevelSynthesis
+module
+
+public import Qatlib.Papers.ElemGates95.BorrowedAnd.Section7.BorrowedNetworks
+public import Mathlib.Analysis.SpecialFunctions.Log.Base
+public import Qatlib.Papers.ElemGates95.ThreeQubit
+public import Qatlib.Concepts.CircuitImpl.MultiControl.BarencoSharp
+public import Qatlib.Concepts.CircuitImpl.MultiControl.Corollary710Elem
+public import Qatlib.Concepts.CircuitImpl.SqrtApprox.Lemma78Elem
+public import Qatlib.Concepts.CircuitImpl.MultiControl.NoWorkTwoLevelSynthesis
+
+@[expose] public section
 
 /-!
 # Multicontrolled gate networks

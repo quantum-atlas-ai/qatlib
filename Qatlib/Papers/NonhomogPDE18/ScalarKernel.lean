@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Gaussian.GaussianIntegral
-import Mathlib.Analysis.SpecialFunctions.Gaussian.FourierTransform
-import Mathlib.MeasureTheory.Integral.IntegralEqImproper
-import Mathlib.Analysis.SpecialFunctions.Complex.Circle
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Gaussian.GaussianIntegral
+public import Mathlib.Analysis.SpecialFunctions.Gaussian.FourierTransform
+public import Mathlib.MeasureTheory.Integral.IntegralEqImproper
+public import Mathlib.Analysis.SpecialFunctions.Complex.Circle
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Gaussian Fourier kernel for scalar inversion

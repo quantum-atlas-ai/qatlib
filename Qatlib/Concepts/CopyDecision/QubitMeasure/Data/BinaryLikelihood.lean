@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CopyDecision.QubitMeasure.Data.BinaryProjectors
+module
+
+public import Qatlib.Concepts.CopyDecision.QubitMeasure.Data.BinaryProjectors
+
+@[expose] public section
 
 /-!
 # Binary Likelihood
@@ -51,7 +55,7 @@ lemma binaryPlus_quadratic_left (i j : Fin 3) (hij : i≠j) (p q : ℝ)
     LinearMap.add_apply, LinearMap.sub_apply, LinearMap.smul_apply, inner_add_right,
     inner_sub_right, inner_smul_right, Matrix.toLpLin_one, LinearMap.id_apply,
     trinePureMatrix_quadratic, trineState_gram,
-    if_neg (Ne.symm hij)]
+    ite_eq_right (Ne.symm hij)]
   push_cast
   field_simp [hdc]
   ring
@@ -65,7 +69,7 @@ lemma binaryPlus_quadratic_right (i j : Fin 3) (hij : i≠j) (p q : ℝ)
   simp only [binaryPlusMatrix, halfProjection, binaryCenter, map_add, map_sub, map_smul,
     LinearMap.add_apply, LinearMap.sub_apply, LinearMap.smul_apply, inner_add_right,
     inner_sub_right, inner_smul_right, Matrix.toLpLin_one, LinearMap.id_apply,
-    trinePureMatrix_quadratic, trineState_gram, if_neg hij]
+    trinePureMatrix_quadratic, trineState_gram, ite_eq_right hij]
   push_cast
   field_simp [hdc]
   ring

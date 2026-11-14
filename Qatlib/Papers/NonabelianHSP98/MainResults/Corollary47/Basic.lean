@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NonabelianHSP98.MainResults.VectorModel.PerpGroup
+module
+
+public import Qatlib.Papers.NonabelianHSP98.MainResults.VectorModel.PerpGroup
+
+@[expose] public section
 
 /-!
 # Orthogonality identities for wreath-product subgroups
@@ -122,7 +126,7 @@ theorem corollary_4_7_b (U : Subgroup (Wreath n)) :
 /-- Two subgroups fixed by `conjSub` are equal if their orthogonal complements coincide, as in
 Corollary 4.7(c) of [RoettelerBeth1998]. -/
 theorem corollary_4_7_c (U V : Subgroup (Wreath n))
-    (hU : conjSub U = U) (hV : conjSub V = V)
+    (_hU : conjSub U = U) (_hV : conjSub V = V)
     (h : perpSub U = perpSub V) : U = V := by
   have h1 : (U : Set (Wreath n)) = (V : Set (Wreath n)) := by
     rw [← perpSub_perpSub U, ← perpSub_perpSub V, h]
@@ -132,7 +136,7 @@ theorem corollary_4_7_c (U V : Subgroup (Wreath n))
 /-- For subgroups fixed by `conjSub`, `U ≤ V` is equivalent to inclusion of `perpSub V` in
 `perpSub U`, as in Corollary 4.7(d) of [RoettelerBeth1998]. -/
 theorem corollary_4_7_d (U V : Subgroup (Wreath n))
-    (hU : conjSub U = U) (hV : conjSub V = V) :
+    (_hU : conjSub U = U) (_hV : conjSub V = V) :
     U ≤ V ↔ perpSub V ⊆ perpSub U := by
   constructor
   · intro h x hx

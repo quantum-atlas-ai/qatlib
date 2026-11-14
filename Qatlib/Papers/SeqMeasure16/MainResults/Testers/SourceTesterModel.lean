@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.MixedState
-import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
-import Mathlib.LinearAlgebra.Matrix.GeneralLinearGroup.Defs
-import Mathlib.Data.ZMod.Basic
+module
+
+public import Qatlib.Foundations.PureStateMath.MixedState
+public import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
+public import Mathlib.LinearAlgebra.Matrix.GeneralLinearGroup.Defs
+public import Mathlib.Data.ZMod.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

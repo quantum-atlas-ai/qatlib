@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.FastMixing26.MainResults.Definitions.SourceDefinitions
-import Qatlib.Foundations.DirichletForm.KmsDirichlet.Basic
+module
+
+public import Qatlib.Papers.FastMixing26.MainResults.Definitions.SourceDefinitions
+public import Qatlib.Foundations.DirichletForm.KmsDirichlet.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -53,9 +57,9 @@ system size `n`. This is exactly the chain `Theorem 5.1 + Theorem 4.1 + kmsGap_t
 
 The body is fully proved (bridge); the two hypotheses are the statements of Theorems 4.1
 and 5.1, whose deep proofs are statement-only in this development. -/
-theorem source_theorem_1_3 {D : ℕ} (q k : ℕ) (d J c : ℝ) (hc : 1 ≤ c) :
+theorem source_theorem_1_3 {D : ℕ} (q k : ℕ) (d J c : ℝ) (_hc : 1 ≤ c) :
     ∀ (β : ℝ) (_hβ : 0 < β) (_hβc : β < (c ^ (q * k) * d * J)⁻¹)
-      (ρ : Operator D) (L K : Operator D →ₗ[ℂ] Operator D) (γ : ℝ) (hγ : 0 < γ),
+      (ρ : Operator D) (L K : Operator D →ₗ[ℂ] Operator D) (γ : ℝ) (_hγ : 0 < γ),
       KmsGapAtLeast ρ K γ →
       (∀ O : Operator D, kmsDirichlet ρ L O ≥ γ * kmsDirichlet ρ K O) →
       KmsGapAtLeast ρ L (γ * γ) := by

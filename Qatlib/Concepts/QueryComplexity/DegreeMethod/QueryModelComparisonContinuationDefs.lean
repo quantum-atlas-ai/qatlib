@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.QueryModelComparison
-import Mathlib.Tactic.Linarith
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.QueryModelComparison
+public import Mathlib.Tactic.Linarith
+
+@[expose] public section
 
 /-!
 # Query conventions and search programs

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ShadowModels.BooleanCubeFourier
+module
+
+public import Qatlib.Concepts.ShadowModels.BooleanCubeFourier
+
+@[expose] public section
 
 /-!
 # Fourier characters on the Boolean hypercube
@@ -96,14 +100,14 @@ lemma chi_update {n : ℕ} (S : Finset (Fin n)) (i : Fin n) (b : Bool) (x : Cube
       · simp
     have hright : chi (S.erase i) x = ∏ j ∈ S.erase i, (if x j then (1 : ℝ) else -1) := by
       simp only [chi, cubeChar]
-    rw [hleft, hright, if_pos hi, mul_comm]
+    rw [hleft, hright, ite_eq_left hi, mul_comm]
   · have herase : S.erase i = S := Finset.erase_eq_of_notMem hi
     have hleft : chi S (Function.update x i b) = chi S x := by
       simp only [chi, cubeChar]
       refine Finset.prod_congr rfl fun j hj => ?_
       have hji : j ≠ i := fun h => hi (h ▸ hj)
       simp [hji]
-    rw [hleft, herase, if_neg hi, one_mul]
+    rw [hleft, herase, ite_eq_right hi, one_mul]
 
 /-- Flipping a coordinate belonging to `S` negates the character `chi S`. -/
 lemma chi_flip {n : ℕ} (S : Finset (Fin n)) (i : Fin n) (hi : i ∈ S) (x : Cube n) :
@@ -112,7 +116,7 @@ lemma chi_flip {n : ℕ} (S : Finset (Fin n)) (i : Fin n) (hi : i ∈ S) (x : Cu
       = (if i ∈ S then (if x i then (1 : ℝ) else -1) else 1) * chi (S.erase i) x := by
     conv_lhs => rw [← Function.update_eq_self (f := x) (a := i)]
     exact chi_update S i (x i) x
-  rw [chi_update, hx, if_pos hi, if_pos hi]
+  rw [chi_update, hx, ite_eq_left hi, ite_eq_left hi]
   have hsign : (if (!x i) then (1 : ℝ) else -1) = - (if x i then (1 : ℝ) else -1) := by
     cases x i <;> simp
   rw [hsign]
@@ -185,13 +189,13 @@ theorem sum_chi_mul {n : ℕ} (S T : Finset (Fin n)) :
   by_cases hST : S = T
   · subst hST
     have hsym : S ∆ S = (∅ : Finset (Fin n)) := by simp
-    rw [hsym, if_pos rfl]
+    rw [hsym, ite_eq_left rfl]
     simp only [chi, cubeChar, Finset.prod_empty]
     rw [Finset.sum_const, Finset.card_univ]
     simp
   · have hnonempty : (S ∆ T).Nonempty :=
       Finset.symmDiff_nonempty.mpr hST
-    rw [if_neg hST, sum_chi_eq_zero hnonempty]
+    rw [ite_eq_right hST, sum_chi_eq_zero hnonempty]
 
 /-- Fourier synthesis with the factor `uniformMass n` recovers each supplied coefficient
 exactly. -/
@@ -226,9 +230,9 @@ theorem fourierCoeff_synthesis {n : ℕ} (c : Finset (Fin n) → ℝ) (T : Finse
     ring
   simp only [hinner]
   rw [Finset.sum_eq_single T]
-  · rw [if_pos rfl, hcard, mul_one]
+  · rw [ite_eq_left rfl, hcard, mul_one]
   · intro S _ hST
-    rw [if_neg hST, mul_zero, mul_zero]
+    rw [ite_eq_right hST, mul_zero, mul_zero]
   · intro hT
     exact absurd (Finset.mem_univ T) hT
 

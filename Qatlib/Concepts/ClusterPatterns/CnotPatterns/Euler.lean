@@ -4,10 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Defs
-import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Kraus
-import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Tools
-import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Basic
+module
+
+public import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Defs
+public import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Kraus
+public import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Tools
+public import Qatlib.Concepts.ClusterPatterns.CnotPatterns.Basic
+
+@[expose] public section
+set_option linter.unusedSimpArgs false
+set_option linter.unusedVariables false
 
 /-!
 # An Euler-chain branch calculation and counterexample
@@ -151,7 +157,7 @@ theorem euler_frame (x : Reg 6) :
           * Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (x 3) * Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (x 4)
           * Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (x 5) := by
   rw [Qatlib.Concepts.MbqcFlow.FlowDecision.frameMatrix, Matrix.diagonal_apply,
-      if_pos (rfl : x = x)]
+      ite_eq_left (rfl : x = x)]
   rw [prod_fin6]
   have h0 : Qatlib.Concepts.MbqcFlow.FlowDecision.incomingOdd eulerE 0 = false := by decide
   have h1 : Qatlib.Concepts.MbqcFlow.FlowDecision.incomingOdd eulerE 1 = true := by decide
@@ -169,7 +175,7 @@ theorem euler_cz (x : Reg 6) :
       = Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (x 0 && x 1) * Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (x 1 && x 2)
           * Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (x 2 && x 3) * Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (x 3 && x 4)
           * Qatlib.Concepts.MbqcFlow.FlowDecision.bitPhase (x 4 && x 5) := by
-  rw [Qatlib.Concepts.MbqcFlow.FlowDecision.czMatrix, Matrix.diagonal_apply, if_pos (rfl : x = x)]
+  rw [Qatlib.Concepts.MbqcFlow.FlowDecision.czMatrix, Matrix.diagonal_apply, ite_eq_left (rfl : x = x)]
   show (∏ e ∈ eulerE, if x e.1 && x e.2 then (-1 : ℂ) else 1) = _
   rw [eulerE]
   rw [Finset.prod_insert (by decide), Finset.prod_insert (by decide),
@@ -196,7 +202,7 @@ theorem euler_ent_diag (t : ℝ) (x : Reg 6) :
     rfl
   · intro k _ hk
     rw [Qatlib.Concepts.MbqcFlow.FlowDecision.frameMatrix, Matrix.diagonal_apply,
-        if_neg (Ne.symm hk), zero_mul]
+        ite_eq_right (Ne.symm hk), zero_mul]
   · intro h
     exact absurd (Finset.mem_univ _) h
 
@@ -208,9 +214,9 @@ theorem euler_ent_off (t : ℝ) (x y : Reg 6) (h : x ≠ y) :
   intro k _
   by_cases hk : k = x
   · subst hk
-    rw [Qatlib.Concepts.MbqcFlow.FlowDecision.czMatrix, Matrix.diagonal_apply, if_neg h, mul_zero]
+    rw [Qatlib.Concepts.MbqcFlow.FlowDecision.czMatrix, Matrix.diagonal_apply, ite_eq_right h, mul_zero]
   · rw [Qatlib.Concepts.MbqcFlow.FlowDecision.frameMatrix, Matrix.diagonal_apply,
-      if_neg (Ne.symm hk), zero_mul]
+      ite_eq_right (Ne.symm hk), zero_mul]
 
 /-- Each amplitude of the uniform five-qubit vector is the inverse of `sqrt 32`. -/
 theorem uniform5 (x : Reg 5) : Uniform (Reg 5) x = ((Real.sqrt 32 : ℝ) : ℂ)⁻¹ := by
@@ -225,18 +231,18 @@ theorem euler_load (t : ℝ) (d : Reg 6) (y : Reg 1) :
       = if d 0 = y 0 then ((Real.sqrt 32 : ℝ) : ℂ)⁻¹ else 0 := by
   simp only [mpLoadMatrix, Matrix.of_apply]
   by_cases h : ∀ i : Fin 1, d (Fin.castLE (by omega : (1:ℕ) ≤ 5 + 1) i) = y i
-  · rw [if_pos h]
+  · rw [ite_eq_left h]
     have h0 : d 0 = y 0 := h ⟨0, by omega⟩
-    rw [if_pos h0]
+    rw [ite_eq_left h0]
     exact uniform5 _
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     have h0 : ¬ d 0 = y 0 := by
       intro hh
       apply h
       intro i
       fin_cases i
       exact hh
-    rw [if_neg h0]
+    rw [ite_eq_right h0]
 
 /-- Entangling the loaded uniform resource gives `eulerPhase d / sqrt 32` when the first
 register bit matches the input, and zero otherwise. -/
@@ -247,8 +253,8 @@ theorem euler_EL (t : ℝ) (d : Reg 6) (y : Reg 1) :
   rw [Matrix.mul_apply, Finset.sum_eq_single d]
   · rw [euler_ent_diag, euler_load]
     by_cases h : d 0 = y 0
-    · rw [if_pos h, if_pos h]
-    · rw [if_neg h, if_neg h]
+    · rw [ite_eq_left h, ite_eq_left h]
+    · rw [ite_eq_right h, ite_eq_right h]
       exact mul_zero _
   · intro d' _ hdne
     rw [euler_ent_off _ _ _ (Ne.symm hdne), zero_mul]
@@ -317,11 +323,11 @@ theorem euler_summand_vanish (t : ℝ) (y0 e : Bool) (c : Reg 6) :
   intro h
   rcases h with h | h
   · unfold eulerSummand
-    rw [if_neg h, mul_zero]
+    rw [ite_eq_right h, mul_zero]
   · unfold eulerSummand
     have h' : ¬ ∀ v : Fin 1, c (Fin.natAdd 5 v) = e :=
       fun hall => h ((euler_delta_iff c e).mp hall)
-    rw [if_neg h', mul_zero, zero_mul]
+    rw [ite_eq_right h', mul_zero, zero_mul]
 
 /-- The product of the five conjugate measurement amplitudes on the all-false branch is `exp(-t)
 / (sqrt 2)^5` when the zeroth selected bit is true, and `1 / (sqrt 2)^5` otherwise. -/
@@ -336,7 +342,7 @@ theorem euler_sv_prod (t : ℝ) (f : Fin 5 → Bool) :
     rw [star_sv, euler_adaptive t j]
     by_cases hj : j = 0
     · subst hj
-      simp only [if_true]
+      simp only [ite_true]
       rw [sv_eq_ofReal]
       simp [s0]
     · have hz : (if j = 0 then -t else 0) = 0 := by simp [hj]
@@ -352,13 +358,13 @@ theorem euler_sv_prod (t : ℝ) (f : Fin 5 → Bool) :
       = (if f 0 then Real.exp (-t) else 1) / Real.sqrt 2 ^ 5 := by
     rw [Fin.prod_univ_succ, Fin.prod_univ_succ, Fin.prod_univ_succ, Fin.prod_univ_succ,
       Fin.prod_univ_succ, Fin.prod_univ_zero, mul_one]
-    rw [if_pos (rfl : (0 : Fin 5) = 0)]
-    simp only [Fin.succ_ne_zero, if_false]
+    rw [ite_eq_left (rfl : (0 : Fin 5) = 0)]
+    simp only [Fin.succ_ne_zero, ite_false]
     have hne : (Real.sqrt 2 : ℝ) ≠ 0 := (Real.sqrt_ne_zero (by norm_num)).mpr (by norm_num)
     by_cases h : f 0
-    · simp only [h, if_true]
+    · simp only [h, ite_true]
       field_simp [hne]
-    · simp only [h, if_false]
+    · simp only [h, ite_false]
       field_simp [hne]
   exact hreal
 
@@ -415,14 +421,14 @@ theorem euler_summand_pin (t : ℝ) (y0 e : Bool) (b1 b2 b3 b4 : Bool) :
   simp only [hcast]
   have hd : (if ∀ v : Fin 1, pin6 y0 b1 b2 b3 b4 e (Fin.natAdd 5 v) = e
         then (1 : ℂ) else 0) = 1 := by
-    apply if_pos
+    apply ite_eq_left
     intro v
     fin_cases v
     rfl
   have hl : (if pin6 y0 b1 b2 b3 b4 e 0 = y0
         then eulerPhase (pin6 y0 b1 b2 b3 b4 e) * ((Real.sqrt 32 : ℝ) : ℂ)⁻¹ else 0)
       = eulerPhase (pin6 y0 b1 b2 b3 b4 e) * ((Real.sqrt 32 : ℝ) : ℂ)⁻¹ :=
-    if_pos (rfl : pin6 y0 b1 b2 b3 b4 e 0 = y0)
+    ite_eq_left (rfl : pin6 y0 b1 b2 b3 b4 e 0 = y0)
   rw [hd, hl, mul_one, euler_sv_prod, pin5_0]
   have hre : (eulerPhase (pin6 y0 b1 b2 b3 b4 e) * ((Real.sqrt 32 : ℝ) : ℂ)⁻¹)
       = (((Real.sqrt 32 : ℝ) : ℂ)⁻¹ * eulerPhase (pin6 y0 b1 b2 b3 b4 e)) := by ring
@@ -510,7 +516,7 @@ theorem euler_core00 (t : ℝ) :
   rw [core_eq, euler_corePre_val]
   have h0 : ((bitVecEquiv 1).symm 0 : Reg 1) 0 = false := (bitVec1_symm).2.1
   have he : ((bitVecEquiv 1).symm 0 : Reg 1) 0 = false := (bitVec1_symm).2.1
-  simp only [h0, he, if_false, if_true, Bool.false_and, Bool.not_false, Bool.and_false]
+  simp only [h0, he, ite_false, ite_true, Bool.false_and, Bool.not_false, Bool.and_false]
   push_cast
   norm_num
 
@@ -521,7 +527,7 @@ theorem euler_core01 (t : ℝ) :
   rw [core_eq, euler_corePre_val]
   have h1 : ((bitVecEquiv 1).symm 1 : Reg 1) 0 = true := (bitVec1_symm).2.2
   have he : ((bitVecEquiv 1).symm 0 : Reg 1) 0 = false := (bitVec1_symm).2.1
-  simp only [h1, he, if_true, if_false, Bool.false_and, Bool.not_true, Bool.and_false]
+  simp only [h1, he, ite_true, ite_false, Bool.false_and, Bool.not_true, Bool.and_false]
   push_cast
   norm_num
   ring
@@ -594,7 +600,7 @@ theorem euler_vsum (t : ℝ) :
           (((if b0 then Real.exp (-t) else 1) ^ 2 / 32 : ℝ) : ℂ) := by
     simp only [sum_reg5_pin, pin5_0]
   rw [hfold, sum5_b0]
-  simp only [if_true, if_false, one_pow]
+  simp only [ite_true, ite_false, one_pow]
   push_cast
   field_simp
   ring

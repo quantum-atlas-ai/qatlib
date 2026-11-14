@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -68,7 +72,7 @@ theorem clampedSuccess_lowerBound
     {V : Type*} [Fintype V] [Nonempty V]
     (Zx κx ZxQ : V → ℝ) (κ maxκ : ℝ)
     (hZxQ : ∀ v, 0 < ZxQ v) (hκx : ∀ v, 0 < κx v)
-    (hκxmax : ∀ v, κx v ≤ maxκ) (hκ : 0 < κ) (hmaxκ : 0 ≤ maxκ)
+    (hκxmax : ∀ v, κx v ≤ maxκ) (hκ : 0 < κ) (_hmaxκ : 0 ≤ maxκ)
     (hZxle : ∀ v, ZxQ v ≤ Zx v) :
     ∀ v, 1 / (κ + maxκ) ≤ Zx v / (κx v * ZxQ v) := by
   intro v
@@ -78,7 +82,7 @@ theorem clampedSuccess_lowerBound
     rw [show Zx v / (κx v * ZxQ v) = (Zx v / ZxQ v) / (κx v) by field_simp]
     exact (div_le_div_iff_of_pos_right (hκx v)).mpr h1
   have h3 : (1:ℝ) / (κ + maxκ) ≤ 1 / (κx v) :=
-    one_div_le_one_div_of_le (hκx v) (by linarith [hmaxκ, hκxmax v])
+    one_div_le_one_div_of_le (hκx v) (by linarith [_hmaxκ, hκxmax v])
   exact le_trans h3 h2
 
 /-- **Theorem 1 (success-probability core)**, eq. B2 of arXiv:1412.3489 p.13:

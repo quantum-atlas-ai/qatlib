@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Nat.Totient
-import Mathlib.Data.Real.Basic
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Data.Nat.Factorization.Basic
-import Mathlib.Algebra.Order.BigOperators.Group.Finset
-import Mathlib.Order.Interval.Finset.Nat
+module
+
+public import Mathlib.Data.Nat.Totient
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Data.Nat.Factorization.Basic
+public import Mathlib.Algebra.Order.BigOperators.Group.Finset
+public import Mathlib.Order.Interval.Finset.Nat
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -131,7 +135,6 @@ theorem prod_one_sub_inv_ge : ∀ (k : ℕ) (s : Finset ℕ), s.card = k →
     have hRHS : (1 - 1 / (q : ℝ)) * (1 / ((k : ℝ) + 1))
         = ((q : ℝ) - 1) / ((q : ℝ) * ((k : ℝ) + 1)) := by
       field_simp
-      try ring
     have hkey : 1 / ((k : ℝ) + 2) ≤ (1 - 1 / (q : ℝ)) * (1 / ((k : ℝ) + 1)) := by
       have hq_geR : (k : ℝ) + 2 ≤ (q : ℝ) := by exact_mod_cast hq_ge
       rw [hRHS, div_le_div_iff₀ (by positivity) (by positivity)]
@@ -195,7 +198,6 @@ theorem totient_lower_bound :
     have h1 : (1 : ℝ) / (Real.log (r : ℝ) / Real.log 2 + 1)
         = Real.log 2 / (Real.log (r : ℝ) + Real.log 2) := by
       field_simp
-      try ring
     have h2 : (Real.log 2 / 2) / Real.log (r : ℝ)
         = Real.log 2 / (2 * Real.log (r : ℝ)) := by
       field_simp

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CompressedQuery.CyclicRecord.Entries
-import Qatlib.Foundations.MatrixAlgebra.TupleMatrices.Coordinate
-import Qatlib.Foundations.MatrixAlgebra.TupleMatrices.IsometryAction
+module
+
+public import Qatlib.Concepts.CompressedQuery.CyclicRecord.Entries
+public import Qatlib.Foundations.MatrixAlgebra.TupleMatrices.Coordinate
+public import Qatlib.Foundations.MatrixAlgebra.TupleMatrices.IsometryAction
+
+@[expose] public section
 
 /-!
 # Product compression of complete tables
@@ -65,7 +69,7 @@ theorem compression_uniform : compression (L := L)*ᵥ (fun _ : L => (coefficien
   | some x =>
     change (∑ y : L,uniformSwap (some x) (some y)*(coefficient L : ℂ))=0
     simp_rw [swap_some_some,sub_mul,ite_mul,one_mul,zero_mul]
-    simp only [Finset.sum_sub_distrib,Finset.sum_ite_eq,Finset.mem_univ,if_true,Finset.sum_const,
+    simp only [Finset.sum_sub_distrib,Finset.sum_ite_eq,Finset.mem_univ,ite_true,Finset.sum_const,
       Finset.card_univ,nsmul_eq_mul]
     have h := coefficient_complex (L := L)
     linear_combination -(coefficient L : ℂ)*h

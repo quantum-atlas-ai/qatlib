@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SignalPrimitive.GridGradient.Basic
-import Mathlib.Analysis.Calculus.MeanValue
+module
+
+public import Qatlib.Concepts.SignalPrimitive.GridGradient.Basic
+public import Mathlib.Analysis.Calculus.MeanValue
+
+@[expose] public section
 
 /-!
 # Smooth Function Gradient Readout
@@ -280,8 +284,8 @@ theorem gradient_quadratic_fderiv (d : ℕ) (c a : ℝ)
   have he : HasFDerivAt (gradientQuadraticFunction d c a L K) (L+(a*K y)•K) y := by
     convert! hd using 1
     ext v
-    simp only [ContinuousLinearMap.add_apply,
-      ContinuousLinearMap.smul_apply, smul_eq_mul, zero_add, Nat.reduceSub, pow_one,
+    simp only [_root_.add_apply,
+      _root_.smul_apply, smul_eq_mul, zero_add, Nat.reduceSub, pow_one,
       two_smul]
     ring
   exact he.fderiv
@@ -300,7 +304,7 @@ theorem gradient_quadratic_hessian (d : ℕ) (c a : ℝ)
   have he : HasFDerivAt (fun z => L+(a*K z)•K) (a•K.smulRight K) y := by
     convert! hd using 1
     ext v u
-    simp only [ContinuousLinearMap.smul_apply, ContinuousLinearMap.smulRight_apply, smul_eq_mul,
+    simp only [_root_.smul_apply, ContinuousLinearMap.smulRight_apply, smul_eq_mul,
       zero_add]
     ring
   rw [he.fderiv]
@@ -308,7 +312,7 @@ theorem gradient_quadratic_hessian (d : ℕ) (c a : ℝ)
   intro v
   have hev : (a•K.smulRight K) v = (a*K v)•K := by
     ext u
-    simp only [ContinuousLinearMap.smul_apply, ContinuousLinearMap.smulRight_apply, smul_eq_mul]
+    simp only [_root_.smul_apply, ContinuousLinearMap.smulRight_apply, smul_eq_mul]
     ring
   rw [hev]
   calc
@@ -344,8 +348,8 @@ theorem gradient_quadratic_function_consumer (d M : ℕ) (hM : 0 < M)
   have he := gradient_smooth_function_actual_consumer d M hM
     (gradientQuadraticFunction d c a L K) x (|a| * ‖K‖^2) h w hf (by positivity)
       hessian hM2 hh hw0 hw
-  simp only [gradient_quadratic_fderiv, ContinuousLinearMap.add_apply,
-    ContinuousLinearMap.smul_apply, smul_eq_mul] at he
+  simp only [gradient_quadratic_fderiv, _root_.add_apply,
+    _root_.smul_apply, smul_eq_mul] at he
   exact ⟨he hg, (gradient_coordinate_qft_word_unitarity d M hM).2⟩
 
 end Qatlib.Concepts.SignalPrimitive.GridGradient

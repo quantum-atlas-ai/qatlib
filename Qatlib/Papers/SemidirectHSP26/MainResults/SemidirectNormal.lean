@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.GroupTheory.SemidirectProduct
-import Mathlib.Tactic.Group
+module
+
+public import Mathlib.GroupTheory.SemidirectProduct
+public import Mathlib.Tactic.Group
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

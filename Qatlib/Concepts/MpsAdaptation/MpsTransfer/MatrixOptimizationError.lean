@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MpsAdaptation.MpsTransfer.MatrixOptimizationDual
+module
+
+public import Qatlib.Concepts.MpsAdaptation.MpsTransfer.MatrixOptimizationDual
+
+@[expose] public section
 
 /-!
 # Error bounds for finite mixture samplers

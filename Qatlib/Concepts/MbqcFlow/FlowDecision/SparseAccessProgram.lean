@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MbqcFlow.FlowDecision.EffectiveAccessRefined
+module
+
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.EffectiveAccessRefined
+
+@[expose] public section
 
 /-!
 # Sparse record lookup and reversible compilation
@@ -121,7 +125,7 @@ theorem resolvedRecord_lastWrite {p v slots : ℕ} (es : List (SparseRecord p v)
   | nil => intro _; rfl
   | cons later tail ih =>
       intro hnoLater
-      rw [List.foldl_cons, if_neg (hnoLater later (by simp))]
+      rw [List.foldl_cons, ite_eq_right (hnoLater later (by simp))]
       exact ih (fun other hother => hnoLater other (by simp [hother]))
 
 /-- The selected bit of the concatenated position-value word resolved at a table address. -/
@@ -167,7 +171,7 @@ theorem checkedLookup_sparse (a p v rows slots : ℕ) (hD : rows * slots ≤ 2 ^
           (resolvedRecord slots es (recordIndex row slot).val).2 j) := by
   have h := checkedLookup_value a (p + v) (rows * slots) hD x
     (Fin.castLE hD (recordIndex row slot)) j hx
-  rw [h, if_pos (show (Fin.castLE hD (recordIndex row slot)).val < rows * slots from
+  rw [h, ite_eq_left (show (Fin.castLE hD (recordIndex row slot)).val < rows * slots from
     (recordIndex row slot).isLt), htable.2]
   rfl
 
@@ -216,7 +220,7 @@ theorem checkedLookup_sparse_reject (a p v rows slots : ℕ) (hD : rows * slots 
     (hx : ∀ i : Fin a, x (addressWire a (p + v) i) = r.val.testBit i.val)
     (j : Fin (p + v)) :
     eval (checkedLookupExpr a (p + v) (rows * slots) hD j) x = false := by
-  rw [checkedLookup_value a (p + v) (rows * slots) hD x r j hx, if_neg (by omega)]
+  rw [checkedLookup_value a (p + v) (rows * slots) hD x r j hx, ite_eq_right (by omega)]
 
 /-- Constructs a bounded-size Boolean DAG whose legal reversible compilation XORs the checked
 lookup word into the output register with zero queries and gate count at most `30 * k + (p +

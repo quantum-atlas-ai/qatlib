@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.StoppingCore.BranchCostCore.WeightedUnboundedExecution
-import Qatlib.Concepts.StoppingCore.BranchCostCore.GeneralUnboundedExecution
+module
+
+public import Qatlib.Concepts.StoppingCore.BranchCostCore.WeightedUnboundedExecution
+public import Qatlib.Concepts.StoppingCore.BranchCostCore.GeneralUnboundedExecution
+
+@[expose] public section
 
 /-!
 # Unit-time clocks for state-dependent costs
@@ -65,7 +69,7 @@ variable {S O : Type}
     weightedRunFor next c fuel (.inl o) = CostedLaw.ret (.inl o) := by
   induction fuel with
   | zero => rfl
-  | succ fuel ih => simpa [weightedRunFor, weightedTick] using ih
+  | succ fuel ih => simp [weightedRunFor, weightedTick]
 
 /-- A weighted run with combined transition fuel equals the cost-accumulating composition of the
 two successive runs. -/

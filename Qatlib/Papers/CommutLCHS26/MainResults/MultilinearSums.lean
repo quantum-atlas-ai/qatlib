@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommutLCHS26.MainResults.BCHMassProducts
-import Mathlib.Analysis.Normed.Module.Multilinear.Curry
+module
+
+public import Qatlib.Papers.CommutLCHS26.MainResults.BCHMassProducts
+public import Mathlib.Analysis.Normed.Module.Multilinear.Curry
+
+@[expose] public section
 
 /-!
 # Multilinear expansions of summable families

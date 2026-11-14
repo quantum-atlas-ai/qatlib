@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Fin
-import Qatlib.Papers.HamEvoPrec13.MainResults.SparseMatching
-import Qatlib.Papers.HamEvoPrec13.MainResults.MatchedBlocks
-import Qatlib.Papers.HamEvoPrec13.MainResults.SparseRounding
+module
+
+public import Mathlib.Algebra.BigOperators.Fin
+public import Qatlib.Papers.HamEvoPrec13.MainResults.SparseMatching
+public import Qatlib.Papers.HamEvoPrec13.MainResults.MatchedBlocks
+public import Qatlib.Papers.HamEvoPrec13.MainResults.SparseRounding
+
+@[expose] public section
 
 /-!
 # Lemma 1: a one-sparse Hamiltonian is a sum of commuting self-inverse Hamiltonians
@@ -97,26 +101,26 @@ theorem offRound_eq_round {G : Matrix n n ℝ} {g : ℝ} {ℓ : ℕ} {a : n}
     (ha : mateZero G a ≠ a) :
     offRound G g ℓ a = round ((ℓ : ℝ) * G a (mateZero G a) / g) := by
   unfold offRound
-  rw [if_neg ha]
+  rw [ite_eq_right ha]
 
 /-- Evaluation of the rounded off-diagonal value at a fixed point. -/
 theorem offRound_eq_zero {G : Matrix n n ℝ} {g : ℝ} {ℓ : ℕ} {a : n}
     (ha : mateZero G a = a) : offRound G g ℓ a = 0 := by
   unfold offRound
-  rw [if_pos ha]
+  rw [ite_eq_left ha]
 
 /-- Evaluation of the rounded diagonal value at a fixed point. -/
 theorem diagRound_eq_round {G : Matrix n n ℝ} {g : ℝ} {ℓ : ℕ} {a : n}
     (ha : mateZero G a = a) :
     diagRound G g ℓ a = round ((ℓ : ℝ) * G a a / g) := by
   unfold diagRound
-  rw [if_pos ha]
+  rw [ite_eq_left ha]
 
 /-- Evaluation of the rounded diagonal value at a genuine matched pair. -/
 theorem diagRound_eq_zero {G : Matrix n n ℝ} {g : ℝ} {ℓ : ℕ} {a : n}
     (ha : mateZero G a ≠ a) : diagRound G g ℓ a = 0 := by
   unfold diagRound
-  rw [if_neg ha]
+  rw [ite_eq_right ha]
 
 /-- The rounded off-diagonal value is constant on matched pairs, because the two entries
 of a symmetric one-sparse matrix at a pair agree. -/
@@ -125,14 +129,14 @@ theorem offRound_pair {G : Matrix n n ℝ} (hG : G.IsSymm) (h1 : IsOneSparse G) 
   by_cases ha : mateZero G a = a
   · have hfix : mateZero G (mateZero G a) = mateZero G a := by rw [ha]; exact ha
     unfold offRound
-    rw [if_pos hfix]
-    rw [if_pos ha]
+    rw [ite_eq_left hfix]
+    rw [ite_eq_left ha]
   · have hinv := mateZero_mateZero hG h1 ha
     have hne : mateZero G (mateZero G a) ≠ mateZero G a := by
       rw [hinv]; exact Ne.symm ha
     unfold offRound
-    rw [if_neg hne]
-    rw [if_neg ha]
+    rw [ite_eq_right hne]
+    rw [ite_eq_right ha]
     rw [hinv]
     exact congrArg round (by rw [hG.apply a (mateZero G a)])
 
@@ -143,15 +147,15 @@ theorem diagRound_pair {G : Matrix n n ℝ} (hG : G.IsSymm) (h1 : IsOneSparse G)
   by_cases ha : mateZero G a = a
   · have hfix : mateZero G (mateZero G a) = mateZero G a := by rw [ha]; exact ha
     unfold diagRound
-    rw [if_pos hfix]
-    rw [if_pos ha]
+    rw [ite_eq_left hfix]
+    rw [ite_eq_left ha]
     rw [ha]
   · have hinv := mateZero_mateZero hG h1 ha
     have hne : mateZero G (mateZero G a) ≠ mateZero G a := by
       rw [hinv]; exact Ne.symm ha
     unfold diagRound
-    rw [if_neg hne]
-    rw [if_neg ha]
+    rw [ite_eq_right hne]
+    rw [ite_eq_right ha]
 
 /-- The off-diagonal coefficients are constant on matched pairs. -/
 theorem offCoeff_pair {G : Matrix n n ℝ} (hG : G.IsSymm) (h1 : IsOneSparse G) (g : ℝ) (ℓ : ℕ)
@@ -176,7 +180,7 @@ theorem offPiece_matchedUnit {G : Matrix n n ℝ} (hG : G.IsSymm) (h1 : IsOneSpa
   · intro a
     rw [offCoeff_pair hG h1 g ℓ i a]
   · intro a ha
-    rw [offCoeff, show offRound G g ℓ a = 0 from by unfold offRound; rw [if_pos ha]]
+    rw [offCoeff, show offRound G g ℓ a = 0 from by unfold offRound; rw [ite_eq_left ha]]
     exact unitCoeff_zero i
   · intro a
     exact indicator_mul_zero _ _
@@ -229,7 +233,7 @@ theorem offPiece_sum_apply (G : Matrix n n ℝ) (g : ℝ) (ℓ : ℕ)
         rw [offCoeff, offRound_eq_zero hma]
         exact unitCoeff_zero i
       simp [offPiece, matchedBlock, hma, hy]
-    · simp only [offPiece, matchedBlock, if_pos rfl, if_neg (Ne.symm hma)]
+    · simp only [offPiece, matchedBlock, ite_eq_right (Ne.symm hma)]
       by_cases hy : offCoeff G g ℓ i a = 0 <;> simp [hy]
   · by_cases hbm : b = mateZero G a
     · subst b
@@ -275,8 +279,8 @@ theorem abs_offRound_le {G : Matrix n n ℝ} {g : ℝ} (hg : 0 < g) (ℓ : ℕ)
     (hbound : ∀ a b, |G a b| ≤ g) (a : n) : |offRound G g ℓ a| ≤ (ℓ : ℤ) := by
   unfold offRound
   by_cases ha : mateZero G a = a
-  · rw [if_pos ha]; simp
-  · rw [if_neg ha]
+  · rw [ite_eq_left ha]; simp
+  · rw [ite_eq_right ha]
     exact abs_round_le_of_abs_le hg (hbound a (mateZero G a))
 
 /-- The rounded diagonal value lies within the granularity count `ℓ`. -/
@@ -284,9 +288,9 @@ theorem abs_diagRound_le {G : Matrix n n ℝ} {g : ℝ} (hg : 0 < g) (ℓ : ℕ)
     (hbound : ∀ a b, |G a b| ≤ g) (a : n) : |diagRound G g ℓ a| ≤ (ℓ : ℤ) := by
   unfold diagRound
   by_cases ha : mateZero G a = a
-  · rw [if_pos ha]
+  · rw [ite_eq_left ha]
     exact abs_round_le_of_abs_le hg (hbound a a)
-  · rw [if_neg ha]; simp
+  · rw [ite_eq_right ha]; simp
 
 /-- The entrywise sum over the `4ℓ` summands is the rounded value: `2 · offRound` at the
 matched slot and `2 · diagRound` on the diagonal. -/
@@ -299,17 +303,17 @@ theorem sum_paperPiece_eq {G : Matrix n n ℝ} {g : ℝ}
   congr 1
   · rw [Finset.sum_congr rfl fun i _ => offPiece_sum_apply G g ℓ i a b]
     by_cases hb : b = mateZero G a
-    · rw [if_pos hb, Finset.sum_congr rfl fun i _ => if_pos hb, ← Finset.mul_sum]
+    · rw [ite_eq_left hb, Finset.sum_congr rfl fun i _ => ite_eq_left hb, ← Finset.mul_sum]
       congr 1
       exact sum_unitCoeff ℓ (offRound G g ℓ a) (abs_offRound_le hg ℓ hbound a)
-    · rw [if_neg hb, Finset.sum_congr rfl fun i _ => if_neg hb]
+    · rw [ite_eq_right hb, Finset.sum_congr rfl fun i _ => ite_eq_right hb]
       simp
   · rw [Finset.sum_congr rfl fun i _ => diagPiece_sum_apply G g ℓ i a b]
     by_cases hb : b = a
-    · rw [if_pos hb, Finset.sum_congr rfl fun i _ => if_pos hb, ← Finset.mul_sum]
+    · rw [ite_eq_left hb, Finset.sum_congr rfl fun i _ => ite_eq_left hb, ← Finset.mul_sum]
       congr 1
       exact sum_unitCoeff ℓ (diagRound G g ℓ a) (abs_diagRound_le hg ℓ hbound a)
-    · rw [if_neg hb, Finset.sum_congr rfl fun i _ => if_neg hb]
+    · rw [ite_eq_right hb, Finset.sum_congr rfl fun i _ => ite_eq_right hb]
       simp
 
 /-- **Lemma 1 of the paper.** A real one-sparse Hamiltonian `G` with entries bounded by `g`
@@ -370,12 +374,12 @@ theorem lemma_one_decomposition (G : Matrix n n ℝ) (hG : G.IsSymm) (h1 : IsOne
       · -- fixed point of the matching: only the diagonal value is nonzero
         have hfix : mateZero G a = a := by rw [← hbm, hba]
         have hoff0 : (offRound G g L a : ℝ) = 0 := by
-          rw [show offRound G g L a = 0 from by unfold offRound; rw [if_pos hfix]]
+          rw [show offRound G g L a = 0 from by unfold offRound; rw [ite_eq_left hfix]]
           norm_num
         have hdiag : (diagRound G g L a : ℝ) = (round ((L : ℝ) * G a a / g) : ℝ) := by
           rw [show diagRound G g L a = round ((L : ℝ) * G a a / g) from by
-            unfold diagRound; rw [if_pos hfix]]
-        rw [sum_paperPiece_eq hg L hbound a b, if_pos hbm, if_pos hba, hoff0, hdiag,
+            unfold diagRound; rw [ite_eq_left hfix]]
+        rw [sum_paperPiece_eq hg L hbound a b, ite_eq_left hbm, ite_eq_left hba, hoff0, hdiag,
           hba]
         have hsimp : (g / (2 * (L : ℝ))) * (2 * (0 : ℝ) + 2 * (round ((L : ℝ) * G a a / g) : ℝ))
             = (g / (L : ℝ)) * (round ((L : ℝ) * G a a / g) : ℝ) := by
@@ -390,8 +394,8 @@ theorem lemma_one_decomposition (G : Matrix n n ℝ) (hG : G.IsSymm) (h1 : IsOne
             = (round ((L : ℝ) * G a (mateZero G a) / g) : ℝ) := by
           rw [show offRound G g L a = round ((L : ℝ) * G a (mateZero G a) / g) from by
             unfold offRound
-            rw [if_neg (by intro hh; exact hba (by rw [hbm, hh]))]]
-        rw [sum_paperPiece_eq hg L hbound a b, if_pos hbm, if_neg hba, hoff, hbm]
+            rw [ite_eq_right (by intro hh; exact hba (by rw [hbm, hh]))]]
+        rw [sum_paperPiece_eq hg L hbound a b, ite_eq_left hbm, ite_eq_right hba, hoff, hbm]
         have hsimp : (g / (2 * (L : ℝ)))
               * (2 * (round ((L : ℝ) * G a (mateZero G a) / g) : ℝ) + 0)
             = (g / (L : ℝ)) * (round ((L : ℝ) * G a (mateZero G a) / g) : ℝ) := by
@@ -406,14 +410,14 @@ theorem lemma_one_decomposition (G : Matrix n n ℝ) (hG : G.IsSymm) (h1 : IsOne
         have hne : mateZero G a ≠ a := by
           intro hh; exact hbm (by rw [hba, hh])
         have hdiag0 : (diagRound G g L a : ℝ) = 0 := by
-          rw [show diagRound G g L a = 0 from by unfold diagRound; rw [if_neg hne]]
+          rw [show diagRound G g L a = 0 from by unfold diagRound; rw [ite_eq_right hne]]
           norm_num
         have hGa : G a b = 0 := by rw [hba]; exact mateZero_diag_eq_zero h1 hne
-        rw [sum_paperPiece_eq hg L hbound a b, if_neg hbm, if_pos hba, hdiag0, hGa]
+        rw [sum_paperPiece_eq hg L hbound a b, ite_eq_right hbm, ite_eq_left hba, hdiag0, hGa]
         simp [hγ.le]
       · -- outside the diagonal and the matching everything vanishes
         have hGa : G a b = 0 := mateZero_zero_of_ne h1 hba hbm
-        rw [sum_paperPiece_eq hg L hbound a b, if_neg hbm, if_neg hba, hGa]
+        rw [sum_paperPiece_eq hg L hbound a b, ite_eq_right hbm, ite_eq_right hba, hGa]
         simp [hγ.le]
 
 end Qatlib.Papers.HamEvoPrec13.MainResults

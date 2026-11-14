@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.TorusFourier.FourierModeBounds
-import Mathlib.Analysis.Calculus.SmoothSeries
+module
+
+public import Qatlib.Concepts.EffectiveGauge.TorusFourier.FourierModeBounds
+public import Mathlib.Analysis.Calculus.SmoothSeries
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

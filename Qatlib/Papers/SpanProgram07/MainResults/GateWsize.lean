@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SpanProgram07.MainResults.Maj3
-import Qatlib.Papers.SpanProgram07.MainResults.WitnessSize
-import Mathlib.Algebra.Order.Chebyshev
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.SpanProgram07.MainResults.Maj3
+public import Qatlib.Papers.SpanProgram07.MainResults.WitnessSize
+public import Mathlib.Algebra.Order.Chebyshev
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Witness sizes for three-input majority

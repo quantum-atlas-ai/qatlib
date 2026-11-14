@@ -4,17 +4,21 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.ApproxToolkit.NearoptimalSignKernel
-import Qatlib.Concepts.QsvtCore.ApproxToolkit.QsvtCoreRefined
-import Qatlib.Concepts.QsvtCore.ApproxToolkit.QsvtCore
-import Mathlib.Analysis.Real.Pi.Bounds
-import Mathlib.Analysis.SpecialFunctions.Gaussian.GaussianIntegral
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.Orthogonality
-import Mathlib.Analysis.SpecialFunctions.ImproperIntegrals
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
-import Mathlib.MeasureTheory.Integral.IntegralEqImproper
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Positivity
+module
+
+public import Qatlib.Concepts.QsvtCore.ApproxToolkit.NearoptimalSignKernel
+public import Qatlib.Concepts.QsvtCore.ApproxToolkit.QsvtCoreRefined
+public import Qatlib.Concepts.QsvtCore.ApproxToolkit.QsvtCore
+public import Mathlib.Analysis.Real.Pi.Bounds
+public import Mathlib.Analysis.SpecialFunctions.Gaussian.GaussianIntegral
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.Orthogonality
+public import Mathlib.Analysis.SpecialFunctions.ImproperIntegrals
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
+public import Mathlib.MeasureTheory.Integral.IntegralEqImproper
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Positivity
+
+@[expose] public section
 
 /-!
 # Effective sign and rectangle approximation interfaces
@@ -103,13 +107,13 @@ x)) + ε₀. -/
 theorem sourceRectanglePolynomial_eval {S : Polynomial ℝ} {ε₀ t x : ℝ} (ht : 0 ≤ t) :
     (sourceRectanglePolynomial S ε₀ t).eval x =
       ((1 - ε₀) / 2) * (S.eval (x + t) + S.eval (t - x)) + ε₀ := by
-  rw [sourceRectanglePolynomial, if_neg (by linarith)]
+  rw [sourceRectanglePolynomial, ite_eq_right (by linarith)]
   exact rectanglePolynomial_eval S ε₀ t x
 
 /-- For a nonnegative threshold, the source rectangle response is even. -/
 theorem sourceRectanglePolynomial_even {S : Polynomial ℝ} {ε₀ t x : ℝ} (ht : 0 ≤ t) :
     (sourceRectanglePolynomial S ε₀ t).eval (-x) = (sourceRectanglePolynomial S ε₀ t).eval x := by
-  rw [sourceRectanglePolynomial, if_neg (by linarith)]
+  rw [sourceRectanglePolynomial, ite_eq_right (by linarith)]
   exact rectanglePolynomial_even S ε₀ t x
 
 /-- Two translated sign approximations satisfy `PrintedRectangleBand` for every threshold in [0,
@@ -277,10 +281,10 @@ theorem sourceRectangle_neg_t {S : Polynomial ℝ} {ε' δ' t : ℝ} (hε : 0 �
     PrintedRectangleBand (sourceRectanglePolynomial S (ε' / 2) t) ε' δ' t := by
   refine ⟨?_, ?_, ?_⟩
   · intro x hx
-    rw [sourceRectanglePolynomial, if_pos ht]
+    rw [sourceRectanglePolynomial, ite_eq_left ht]
     simp
   · intro x hx hband
-    rw [sourceRectanglePolynomial, if_pos ht]
+    rw [sourceRectanglePolynomial, ite_eq_left ht]
     simp only [Polynomial.eval_zero]
     constructor <;> linarith
   · intro x hx hband
@@ -338,10 +342,10 @@ every threshold. -/
 theorem sourceRectangle_natDegree_le {S : Polynomial ℝ} {ε₀ t : ℝ} :
     (sourceRectanglePolynomial S ε₀ t).natDegree ≤ S.natDegree := by
   by_cases h : t < 0
-  · rw [sourceRectanglePolynomial, if_pos h]
+  · rw [sourceRectanglePolynomial, ite_eq_left h]
     rw [Polynomial.natDegree_zero]
     exact Nat.zero_le _
-  · rw [sourceRectanglePolynomial, if_neg h]
+  · rw [sourceRectanglePolynomial, ite_eq_right h]
     exact twoTranslate_natDegree_le (S := S) (ε₀ := ε₀) (t := t)
 
 /-- The source rectangle built from a near-optimal sign approximation inherits its degree bound

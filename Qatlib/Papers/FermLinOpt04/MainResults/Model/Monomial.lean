@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.FermLinOpt04.MainResults.Model.Closure
-import Mathlib.Data.Nat.Choose.Basic
-import Mathlib.Data.List.Nodup
-import Mathlib.Algebra.Ring.Parity
+module
+
+public import Qatlib.Papers.FermLinOpt04.MainResults.Model.Closure
+public import Mathlib.Data.Nat.Choose.Basic
+public import Mathlib.Data.List.Nodup
+public import Mathlib.Algebra.Ring.Parity
+
+@[expose] public section
 
 /-!
 # Majorana monomial products and Gaussian traces
@@ -229,14 +233,14 @@ theorem trace_monomial_mul_offdiag {n : ℕ} {S T : Finset (Fin (2 * n))} (hST :
         exact hcon ⟨a, Or.inr ⟨ha, hna⟩⟩
     obtain ⟨a, ha | ha⟩ := hex
     · have hcnt : (S.sort (· ≤ ·) ++ T.sort (· ≤ ·)).count a = 1 := by
-        rw [List.count_append, count_sort, count_sort, if_pos ha.1, if_neg ha.2, add_zero]
+        rw [List.count_append, count_sort, count_sort, ite_eq_left ha.1, ite_eq_right ha.2, add_zero]
       obtain ⟨l₁, l₂, hl, h1, h2⟩ := exists_split_count_one hcnt
       rw [hl]
       refine trace_wordProd_split l₁ l₂ a h1 h2 ?_
       have heven' : Even ((l₁ ++ a :: l₂).length) := by rw [← hl]; exact heven
       simpa [List.length_append, List.length_cons, Nat.add_assoc] using! heven'
     · have hcnt : (S.sort (· ≤ ·) ++ T.sort (· ≤ ·)).count a = 1 := by
-        rw [List.count_append, count_sort, count_sort, if_neg ha.2, if_pos ha.1, zero_add]
+        rw [List.count_append, count_sort, count_sort, ite_eq_right ha.2, ite_eq_left ha.1, zero_add]
       obtain ⟨l₁, l₂, hl, h1, h2⟩ := exists_split_count_one hcnt
       rw [hl]
       refine trace_wordProd_split l₁ l₂ a h1 h2 ?_

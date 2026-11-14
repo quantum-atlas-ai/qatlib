@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGSplice
-import Qatlib.Concepts.NumericalWord.MixedWordError.FixedGateSynthesisDefs
-import Qatlib.Concepts.WalkSearch.MultiBandFilter.MultiBandFilterConsumers
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.LocalQFTReadout
-import Mathlib.Tactic
+module
+
+public import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGSplice
+public import Qatlib.Concepts.NumericalWord.MixedWordError.FixedGateSynthesisDefs
+public import Qatlib.Concepts.WalkSearch.MultiBandFilter.MultiBandFilterConsumers
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.LocalQFTReadout
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Reversible classification of rational bands

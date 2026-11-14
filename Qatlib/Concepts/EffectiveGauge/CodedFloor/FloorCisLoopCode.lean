@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorComplexCode
-import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorNegativeExpCode
+module
+
+public import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorComplexCode
+public import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorNegativeExpCode
+
+@[expose] public section
 
 /-!
 # Floor Cis Loop Code
@@ -68,21 +72,21 @@ theorem floorCisCodeRun_value (p : FloorExpCodeParameters) (s : FloorCisCodeStat
     · have hv : 2*floorRationalCodeValue s.2.2 ≤ floorRationalCodeValue p.2 := by
         simpa only [floorRationalCodeMul_value,floorRationalCodeNat_value,Nat.cast_ofNat] using
           (floorRationalCodeLE_value _ _).mp h
-      rw [floorCisCodeStep,if_pos h]
+      rw [floorCisCodeStep,ite_eq_left h]
       change floorCisCodeStateValue (floorCisCodeRun p s fuel)=_
       rw [ih]
-      cases fuel <;> simp only [cisTaylorLoop,if_pos hv]
+      cases fuel <;> simp only [cisTaylorLoop,ite_eq_left hv]
     · have hv : ¬2*floorRationalCodeValue s.2.2 ≤ floorRationalCodeValue p.2 := by
         intro hv
         apply h
         exact (floorRationalCodeLE_value _ _).mpr
           (by simpa only [floorRationalCodeMul_value,floorRationalCodeNat_value,Nat.cast_ofNat] using hv)
-      rw [floorCisCodeStep,if_neg h]
+      rw [floorCisCodeStep,ite_eq_right h]
       change floorCisCodeStateValue (floorCisCodeRun p _ fuel)=_
       rw [ih]
       simp only [floorComplexCodeAdd_value,floorCisTermStepCode_value,floorRationalCodeMul_value,
         floorRationalCodeAbs_value,floorRationalCodeInv_value,floorRationalCodeNat_value,
-        cisTaylorLoop,if_neg hv,div_eq_mul_inv]
+        cisTaylorLoop,ite_eq_right hv,div_eq_mul_inv]
 
 /-- Original `floorCisResultPayload_value` guarantee for the `FloorCisLoopCode` construction; the complete source hypotheses are retained. -/
 theorem floorCisResultPayload_value (s : FloorCisCodeState) :

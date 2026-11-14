@@ -4,25 +4,29 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Lean.Elab.Tactic.NormCast
-import Lean.Elab.Tactic.Omega
-import Mathlib.Algebra.EuclideanDomain.Basic
-import Mathlib.Algebra.EuclideanDomain.Int
-import Mathlib.Algebra.Order.Ring.Star
-import Mathlib.AlgebraicTopology.SimplexCategory.Basic
-import Mathlib.Analysis.RCLike.Basic
-import Mathlib.Data.Int.Star
-import Mathlib.Tactic.Ext
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.LinearCombination
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.NormNum.Prime
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.SplitIfs
-import Qatlib.Concepts.PeriodSampling.DlogDivBudget.DlogPrimePowerDivisibilityStat
-import Qatlib.Concepts.PeriodSampling.DlogGoodProb.DlogOriginalContracts
-import Qatlib.Concepts.PeriodSampling.DlogCRTRecovery.DlogCandidateRecoveryAnsw
+module
+
+public import Lean.Elab.Tactic.NormCast
+public import Lean.Elab.Tactic.Omega
+public import Mathlib.Algebra.EuclideanDomain.Basic
+public import Mathlib.Algebra.EuclideanDomain.Int
+public import Mathlib.Algebra.Order.Ring.Star
+public import Mathlib.AlgebraicTopology.SimplexCategory.Basic
+public import Mathlib.Analysis.RCLike.Basic
+public import Mathlib.Algebra.Order.Star.Int
+public import Mathlib.Tactic.Ext
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.LinearCombination
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.NormNum.Prime
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.SplitIfs
+public import Qatlib.Concepts.PeriodSampling.DlogDivBudget.DlogPrimePowerDivisibilityStat
+public import Qatlib.Concepts.PeriodSampling.DlogGoodProb.DlogOriginalContracts
+public import Qatlib.Concepts.PeriodSampling.DlogCRTRecovery.DlogCandidateRecoveryAnsw
+
+@[expose] public section
 
 /-!
 # Corrected discrete-logarithm divisibility bounds

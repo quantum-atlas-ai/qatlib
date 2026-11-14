@@ -4,17 +4,21 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
-import Mathlib.Analysis.SpecificLimits.Normed
-import Qatlib.Concepts.SearchStopping.UnknownCount.SearchSchedule
-import Qatlib.Concepts.QftPreparation.LocalQFTImplementation
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.UnboundedExecutionRemainder
-import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.Basic
-import Qatlib.Concepts.AmplitudeSearch.Amplification.MinimumRuntimeDefs
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsRemainder
-import Qatlib.Concepts.AmplitudeSearch.Amplification.SortedTable
-import Mathlib.Data.List.GetD
-import Qatlib.Concepts.AmplitudeSearch.Amplification.MinimumRuntimeNativeAttempt
+module
+
+public import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+public import Mathlib.Analysis.SpecificLimits.Normed
+public import Qatlib.Concepts.SearchStopping.UnknownCount.SearchSchedule
+public import Qatlib.Concepts.QftPreparation.LocalQFTImplementation
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.UnboundedExecutionRemainder
+public import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.Basic
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.MinimumRuntimeDefs
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.RandomBitsRemainder
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.SortedTable
+public import Mathlib.Data.List.GetD
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.MinimumRuntimeNativeAttempt
+
+@[expose] public section
 
 /-!
 # Native tape uniform sampling
@@ -178,7 +182,7 @@ theorem rewind (xs ys : List (Bool × Bool)) (raw : List Bool) :
     rw [show (p::xs).length+2 = (xs.length+2)+1 by simp]
     rw [List.map_cons, List.cons_append, Qatlib.Concepts.AdversaryBounds.AdvDuality.NativeTape.run]
     dsimp only [program]
-    simp only [if_neg hc, advance, TM0StmtApply, tape_left]
+    simp only [ite_eq_right hc, advance, TM0StmtApply]
     simpa [tape_left, Result.prepend, Result.bits, Result.steps, List.reverse_cons, List.map_append,
       List.append_assoc, Nat.add_comm] using! hi
 
@@ -255,7 +259,6 @@ theorem leftDigits_word (xs : List (Bool × Bool)) (L R : List Symbol) :
   | nil => rfl
   | cons p xs ih =>
     rw [List.map_cons, List.cons_append, List.length_cons, leftDigits]
-    (try dsimp only)
     rw [tape_left, head_cons, ih (data p :: R)]
     rfl
 
@@ -1521,8 +1524,8 @@ theorem nativeTerminalLaw_output_uniform (b m : ℕ) [NeZero m] (hb : m ≤ 2^b)
       intro z
       (try dsimp only)
       by_cases hz : z.map Prod.fst = some j.val
-      · rw [if_pos hz.symm,if_pos hz,mul_one]
-      · rw [if_neg (fun he => hz he.symm),if_neg hz,mul_zero]
+      · rw [ite_eq_left hz.symm,ite_eq_left hz,mul_one]
+      · rw [ite_eq_right (fun he => hz he.symm),ite_eq_right hz,mul_zero]
     rw [he,nativeTerminalLaw_return b m hm hb j]
     simp only [PMF.uniformOfFintype'_apply,Fintype.card_fin,one_div,le_refl]
 
@@ -1992,7 +1995,7 @@ theorem workspace_read_step (b : ℕ) (p : ℤ) (T : Turing.Tape Symbol) (c : Fi
   cases hh : T.head with
   | none =>
     by_cases hc : c = 2
-    · simp only [hh,readCommand,if_pos hc,Option.some.injEq] at hp
+    · simp only [hh,readCommand,ite_eq_left hc,Option.some.injEq] at hp
       subst next
       change Workspace b (p-1) ⟨6,T.move .left⟩
       apply workspace_of_window
@@ -2037,11 +2040,11 @@ theorem workspace_table_step (b : ℕ) (p : ℤ) (cfg : Turing.TM0.Cfg Symbol Co
     change Workspace b (p+1) ⟨2,T.move .right⟩
     exact workspace_of_window 2 (window_right_data hw.1 (hw.2 (by norm_num))) (by decide)
   · by_cases hm : T.head = marker
-    · simp only [table,program,if_pos hm,Option.some.injEq] at hp
+    · simp only [table,program,ite_eq_left hm,Option.some.injEq] at hp
       subst next
       change Workspace b (p+1) ⟨0,T.move .right⟩
       exact workspace_of_window 0 (window_right_marker hw.1 hm) (by decide)
-    · simp only [table,program,if_neg hm,Option.some.injEq] at hp
+    · simp only [table,program,ite_eq_right hm,Option.some.injEq] at hp
       subst next
       change Workspace b (p-1) ⟨6,T.move .left⟩
       exact workspace_of_window 6 (window_left hw.1 hm) (by decide)

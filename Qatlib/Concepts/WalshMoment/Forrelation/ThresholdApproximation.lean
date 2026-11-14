@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SignalPrimitive.PhaseFrontend.SignPolynomial
-import Qatlib.Concepts.WalkSearch.Spectral.Approximation
+module
+
+public import Qatlib.Concepts.SignalPrimitive.PhaseFrontend.SignPolynomial
+public import Qatlib.Concepts.WalkSearch.Spectral.Approximation
+
+@[expose] public section
 
 /-!
 # Polynomial approximation of spectral thresholds
@@ -131,11 +135,11 @@ sign (x ^ 2 - τ ^ 2)) / 2`. -/
 private theorem thresholdIndicator_eq_sign {τ x : ℝ} (hne : x ^ 2 - τ ^ 2 ≠ 0) :
     thresholdIndicator τ x = (1 + Real.sign (x ^ 2 - τ ^ 2)) / 2 := by
   by_cases hp : τ ^ 2 < x ^ 2
-  · rw [thresholdIndicator, if_pos hp, Real.sign_of_pos (sub_pos.mpr hp)]
+  · rw [thresholdIndicator, ite_eq_left hp, Real.sign_of_pos (sub_pos.mpr hp)]
     norm_num
   · have hn : x ^ 2 - τ ^ 2 < 0 :=
       lt_of_le_of_ne (sub_nonpos.mpr (le_of_not_gt hp)) hne
-    rw [thresholdIndicator, if_neg hp, Real.sign_of_neg hn]
+    rw [thresholdIndicator, ite_eq_right hp, Real.sign_of_neg hn]
     norm_num
 
 /-- For `τ ∈ [0, 1]` and `|x| ≤ 1` separated from the squared threshold by at least a positive

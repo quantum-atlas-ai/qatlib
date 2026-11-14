@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MultilevelMC20.MainResults.Multilevel.Proposition3
-import Qatlib.Papers.MultilevelMC20.MainResults.Multilevel.Theorem3
+module
+
+public import Qatlib.Papers.MultilevelMC20.MainResults.Multilevel.Proposition3
+public import Qatlib.Papers.MultilevelMC20.MainResults.Multilevel.Theorem3
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

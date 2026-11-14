@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.QmaCompletenessNativeEnergy
-import Qatlib.Concepts.SpectralReadout.PhaseReadout.QmaCompletenessNoBound
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.QmaCompletenessEntryBounds
-import Mathlib.Analysis.InnerProductSpace.Rayleigh
-import Mathlib.Analysis.Matrix.Hermitian
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.QmaCompletenessNativeEnergy
+public import Qatlib.Concepts.SpectralReadout.PhaseReadout.QmaCompletenessNoBound
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.QmaCompletenessEntryBounds
+public import Mathlib.Analysis.InnerProductSpace.Rayleigh
+public import Mathlib.Analysis.Matrix.Hermitian
+
+@[expose] public section
 
 /-!
 # Norm bounds and dyadic scaling for local terms

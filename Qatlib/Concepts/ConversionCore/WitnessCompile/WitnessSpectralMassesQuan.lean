@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ConversionCore.WitnessCompile.WitnessSpectralMassesStat
-import Qatlib.Concepts.ConversionCore.WitnessCompile.EffectiveSpectralGapQuan
-import Qatlib.Concepts.GramQueryCore.LowerBoundTools.AlphabetWitnessGeometryQuan
-import Mathlib.Analysis.SpecialFunctions.Complex.Log
-import Mathlib.Tactic.NoncommRing
+module
+
+public import Qatlib.Concepts.ConversionCore.WitnessCompile.WitnessSpectralMassesStat
+public import Qatlib.Concepts.ConversionCore.WitnessCompile.EffectiveSpectralGapQuan
+public import Qatlib.Concepts.GramQueryCore.LowerBoundTools.AlphabetWitnessGeometryQuan
+public import Mathlib.Analysis.SpecialFunctions.Complex.Log
+public import Mathlib.Tactic.NoncommRing
+
+@[expose] public section
 
 /-!
 # Spectral mass bounds for conversion witnesses
@@ -63,7 +67,7 @@ theorem sourcePhaseProjector_isOrthogonalProjector {H : Type} [Fintype H] [Decid
     rw [Matrix.diagonal_mul_diagonal]
     congr 1
     funext h
-    (try dsimp [D])
+
     split_ifs <;> simp
   have hDH : Dᴴ=D := by
     rw [Matrix.diagonal_conjTranspose]
@@ -125,7 +129,7 @@ theorem sourcePhaseProjector_complement_norm_le {H : Type} [Fintype H] [Decidabl
   rw [sourcePhaseProjector_complement_vec V hV,isometry_mulVec_norm hi]
   have hb := source_diagonal_mulVec_bound
     (fun h => if |angles h| ≤ Θ then (0 : ℂ) else 1) 1 (by norm_num)
-    (by intro h; (try dsimp only); split_ifs <;> norm_num) (Vᴴ *ᵥ ψ)
+    (by intro h; split_ifs <;> norm_num) (Vᴴ *ᵥ ψ)
   simpa only [one_mul,isometry_mulVec_norm hi'] using! hb
 
 /-- The squared norms of the phase projection and its complement sum to the original squared

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Qubit
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
-import Mathlib.Tactic
+module
+
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Binary-tree masses and loading amplitudes
@@ -153,7 +157,7 @@ theorem prod_range_div_of_ne_zero (f : ℕ → ℝ) (n : ℕ)
     have hn : f n ≠ 0 := h n (Nat.le_succ n)
     have h0 : f 0 ≠ 0 := h 0 (Nat.zero_le (n + 1))
     field_simp
-    try ring
+
 
 /-- For strictly positive weights and `n < 2 ^ l`, the squared path amplitude is the leaf mass
 divided by the root mass, realizing the telescoping probability identity behind [Zalka1998],
@@ -269,7 +273,7 @@ theorem splitRotationR_mul_transpose {L R : ℝ} (hL : 0 ≤ L) (hR : 0 ≤ R)
   simp only [splitRotationR, Matrix.mul_apply, Matrix.transpose_apply, Matrix.of_apply,
     Matrix.one_apply, Fintype.sum_bool]
   cases a <;> cases b <;>
-    simp only [Bool.false_eq_true, Bool.true_eq_false, if_true, if_false]
+    simp only [Bool.false_eq_true, Bool.true_eq_false, ite_true, ite_false]
   all_goals nlinarith [hLr, hRr, hsum']
 
 /-- The complex matrix obtained by embedding every entry of `splitRotationR L R` into the

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.PairingModel01.MainResults.Defs
-import Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
+module
+
+public import Qatlib.Papers.PairingModel01.MainResults.Defs
+public import Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
+
+@[expose] public section
 
 /-!
 # Ordered evolution for the pairing model

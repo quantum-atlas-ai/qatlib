@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.FiniteStats.BornEstimator.InvolutionProj
-import Qatlib.Foundations.FiniteStats.BornEstimator.MeasurementScore
+module
+
+public import Qatlib.Foundations.FiniteStats.BornEstimator.InvolutionProj
+public import Qatlib.Foundations.FiniteStats.BornEstimator.MeasurementScore
+
+@[expose] public section
 
 /-!
 # Perturbed Born laws and chi-square identities

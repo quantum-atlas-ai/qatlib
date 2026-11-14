@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
-import Mathlib.Algebra.MvPolynomial.Degrees
-import Mathlib.Algebra.MvPolynomial.CommRing
+module
+
+public import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
+public import Mathlib.Algebra.MvPolynomial.Degrees
+public import Mathlib.Algebra.MvPolynomial.CommRing
+
+@[expose] public section
 
 /-!
 # Acceptance polynomials for query circuits
@@ -107,6 +111,7 @@ theorem amplitudeFold_cons (P : PolynomialWorkspace I W → MvPolynomial I ℂ)
     List.foldr_nil]
 
 omit [DecidableEq I] [DecidableEq W] in
+
 /-- The amplitude polynomials of a nonempty circuit are obtained by folding the tail from the
 first instruction's polynomial state. -/
 theorem amplitudePolynomial_cons (s : Step (PolynomialWorkspace I W))
@@ -128,6 +133,7 @@ theorem amplitudePolynomial_append_last (C : Circuit (PolynomialWorkspace I W))
     List.foldr_append, List.foldr_cons, List.foldr_nil]
 
 omit [DecidableEq I] [DecidableEq W] in
+
 /-- Gives the empty-circuit, gate, and query recurrences for the amplitude polynomial at a
 workspace basis label; see [Beals et al., Lemma 4.1][BealsEtAl2001]. -/
 theorem amplitude_polynomial_actual_step_recursion
@@ -366,6 +372,7 @@ theorem amplitudeStep_totalDegree_le {s : Step (PolynomialWorkspace I W)}
     exact hsub
 
 omit [DecidableEq I] [DecidableEq W] in
+
 /-- Every circuit amplitude polynomial has total degree at most the circuit's oracle-query
 count; see [BealsEtAl2001]. -/
 theorem amplitude_polynomial_actual_query_degree
@@ -430,6 +437,7 @@ private theorem cast_eval_part (k : ℂ → ℝ) (s : Finset (I →₀ ℕ)) (c 
   simp only [Complex.ofReal_mul, one_mul, Complex.ofReal_prod, hpow]
 
 omit [DecidableEq I] in
+
 /-- At real inputs, the evaluations of the coefficientwise real and imaginary parts reconstruct
 the complex polynomial's evaluation. -/
 private theorem realImag_eval_complex (p : MvPolynomial I ℂ) (x : I → ℝ) :
@@ -456,12 +464,16 @@ private theorem re_im_sq_eq_normSq (z : ℂ) : z.re ^ 2 + z.im ^ 2 = ‖z‖ ^ 2
     _ = Complex.normSq z := Complex.normSq_apply z
     _ = ‖z‖ ^ 2 := Complex.normSq_eq_norm_sq z
 
+omit [DecidableEq I] in
+
 /-- Evaluation of the coefficientwise real part at real inputs equals the real part of the
 complex evaluation. -/
 theorem realPart_eval (p : MvPolynomial I ℂ) (x : I → ℝ) :
     MvPolynomial.eval x (realPart p) = (MvPolynomial.eval (fun i => (x i : ℂ)) p).re := by
   have h := congrArg Complex.re (realImag_eval_complex p x)
   simpa using h
+
+omit [DecidableEq I] in
 
 /-- Evaluation of the coefficientwise imaginary part at real inputs equals the imaginary part of
 the complex evaluation. -/
@@ -593,6 +605,7 @@ omit [Fintype I] in
     simp [h]
 
 omit [Fintype I] in
+
 /-- Clamping an exponent cannot increase any coordinate. -/
 theorem clampExponent_le (d : I →₀ ℕ) (i : I) : clampExponent d i ≤ d i := by
   rw [clampExponent_apply]
@@ -603,6 +616,7 @@ theorem clampExponent_le (d : I →₀ ℕ) (i : I) : clampExponent d i ≤ d i 
     omega
 
 omit [Fintype I] in
+
 /-- Every coordinate of an exponent equal to `clampExponent d` is at most one. -/
 theorem clampExponent_mul_le (d : I →₀ ℕ) (e : I →₀ ℕ) (h : clampExponent d = e) (i : I) :
     e i ≤ 1 := by
@@ -630,6 +644,8 @@ theorem multilinearize_totalDegree_le (p : MvPolynomial I ℝ) :
   have h5 : d.sum (fun _ e => e) ≤ p.totalDegree := MvPolynomial.le_totalDegree hd
   omega
 
+omit [Fintype I] in
+
 /-- Every monomial with nonzero coefficient after multilinearization has exponent at most one in
 each variable. -/
 theorem multilinearize_coeff_multilinear (p : MvPolynomial I ℝ) (d : I →₀ ℕ)
@@ -649,6 +665,7 @@ theorem multilinearize_coeff_multilinear (p : MvPolynomial I ℝ) (d : I →₀ 
   exact clampExponent_mul_le d' d hne''.1 i
 
 omit [Fintype I] in
+
 /-- At a zero-one input coordinate, clamping a monomial exponent preserves its power value. -/
 private theorem boolPow_clamp (x : I → ℝ) (d : I →₀ ℕ) (i : I)
     (h : x i = 0 ∨ x i = 1) : x i ^ (clampExponent d i) = x i ^ d i := by

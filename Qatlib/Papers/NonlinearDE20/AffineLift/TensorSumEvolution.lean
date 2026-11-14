@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NonlinearDE20.AffineLift.AffineHomogenization
-import Mathlib.Analysis.Calculus.Deriv.Mul
-import Mathlib.Data.Fintype.Pi
+module
+
+public import Qatlib.Papers.NonlinearDE20.AffineLift.AffineHomogenization
+public import Mathlib.Analysis.Calculus.Deriv.Mul
+public import Mathlib.Data.Fintype.Pi
+
+@[expose] public section
 
 /-!
 # Tensor-sum evolution of affine lifts

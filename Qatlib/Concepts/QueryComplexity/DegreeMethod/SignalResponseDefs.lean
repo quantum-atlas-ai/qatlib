@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.SignalResponseLowerBound
-import Qatlib.Concepts.MbqcFlow.FlowDecision.FiniteDataAccessDefs
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.SignalResponseLowerBound
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.FiniteDataAccessDefs
+
+@[expose] public section
 
 /-!
 # Definitions for matrix signal responses

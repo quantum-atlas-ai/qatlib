@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GibbsSampling25.MainResults.Model.SourceModel
+module
+
+public import Qatlib.Papers.GibbsSampling25.MainResults.Model.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -48,7 +52,7 @@ for every `ε > 0` (the first factor is `quasi-poly(1/ε²)`, the second
 `poly log(N/ε²)`). -/
 def quasi_rapid_wasserstein_mixing {Λ : Type} [Fintype Λ] [DecidableEq Λ]
     (dist : Λ → Λ → ℝ) (mcmi : McmiNorm Λ) (tMixW1 : ℝ → ℝ)
-    (hUniform : ∃ K ξ : ℝ, 0 < K ∧ 0 < ξ ∧ ∀ A C Dd : Finset Λ,
+    (_hUniform : ∃ K ξ : ℝ, 0 < K ∧ 0 < ξ ∧ ∀ A C Dd : Finset Λ,
       mcmi A C Dd ≤ K * (Fintype.card Λ : ℝ) * Real.exp (- setDistOf dist A C / ξ))  : Prop :=
     ∃ (a : ℝ) (b : ℕ) (C : ℝ), 0 < C ∧ ∀ ε : ℝ, 0 < ε →
       tMixW1 ε ≤ C * Real.exp (a * (Real.log (1 / ε ^ 2) + 1) ^ b)
@@ -80,7 +84,7 @@ def quasi_poly_weak_mlsi {Λ : Type} [Fintype Λ] [DecidableEq Λ]
     {I : Type} [Fintype I] [DecidableEq I]
     (dist : Λ → Λ → ℝ) (mcmi : McmiNorm Λ) (σ : Density I)
     (S : ℝ → Density I → Density I)
-    (hUniform : ∃ K ξ : ℝ, 0 < K ∧ 0 < ξ ∧ ∀ A C Dd : Finset Λ,
+    (_hUniform : ∃ K ξ : ℝ, 0 < K ∧ 0 < ξ ∧ ∀ A C Dd : Finset Λ,
       mcmi A C Dd ≤ K * (Fintype.card Λ : ℝ) * Real.exp (- setDistOf dist A C / ξ))  : Prop :=
     ∃ α : ℝ → ℝ,
       (∀ ε : ℝ, 0 < ε → 0 < α ε) ∧
@@ -121,9 +125,9 @@ def polylog_weak_mlsi {Λ : Type} [Fintype Λ] [DecidableEq Λ]
     (dist : Λ → Λ → ℝ) (mcmi : McmiNorm Λ) (σ : Density I)
     (S : ℝ → Density I → Density I) (D : ℕ) (μ : ℕ)
     (gap : Finset Λ → ℝ) (Cgap : ℝ)
-    (hUniform : ∃ K ξ : ℝ, 0 < K ∧ 0 < ξ ∧ ∀ A C Dd : Finset Λ,
+    (_hUniform : ∃ K ξ : ℝ, 0 < K ∧ 0 < ξ ∧ ∀ A C Dd : Finset Λ,
       mcmi A C Dd ≤ K * (Fintype.card Λ : ℝ) * Real.exp (- setDistOf dist A C / ξ))
-    (hPolyGap : 0 < Cgap ∧ ∀ A : Finset Λ, Cgap * (A.card : ℝ) ^ (-(μ : ℝ)) ≤ gap A)  : Prop :=
+    (_hPolyGap : 0 < Cgap ∧ ∀ A : Finset Λ, Cgap * (A.card : ℝ) ^ (-(μ : ℝ)) ≤ gap A)  : Prop :=
     ∃ α : ℝ → ℝ,
       (∀ ε : ℝ, 0 < ε → 0 < α ε) ∧
       (∃ C : ℝ, 0 < C ∧ ∀ ε : ℝ, 0 < ε →
@@ -156,7 +160,7 @@ and with the MCMI decay assumption of Theorem 2.9,
 def mixing_under_poly_gap {Λ : Type} [Fintype Λ] [DecidableEq Λ]
     (dist : Λ → Λ → ℝ) (mcmi : McmiNorm Λ) (tMixTrace tMixW1 : ℝ → ℝ)
     (D μ : ℕ)
-    (hUniform : ∃ K ξ : ℝ, 0 < K ∧ 0 < ξ ∧ ∀ A C Dd : Finset Λ,
+    (_hUniform : ∃ K ξ : ℝ, 0 < K ∧ 0 < ξ ∧ ∀ A C Dd : Finset Λ,
       mcmi A C Dd ≤ K * (Fintype.card Λ : ℝ) * Real.exp (- setDistOf dist A C / ξ))  : Prop :=
     (∃ C : ℝ, 0 < C ∧ ∀ ε : ℝ, 0 < ε →
       tMixTrace ε ≤ C * (Real.log ((Fintype.card Λ : ℝ) / ε ^ 2) + 1) ^ (1 + D * (1 + μ))) ∧

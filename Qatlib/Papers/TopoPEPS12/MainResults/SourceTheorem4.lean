@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Order.Ring.Pow
-import Mathlib.Algebra.Order.Field.Basic
-import Mathlib.Analysis.SpecialFunctions.Exp
+module
+
+public import Mathlib.Algebra.Order.Ring.Pow
+public import Mathlib.Algebra.Order.Field.Basic
+public import Mathlib.Analysis.SpecialFunctions.Exp
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -50,7 +54,7 @@ the total success probability `(1-p)^N` at least `1-ε`. -/
 theorem theorem4_success_probability
     (N m : ℕ) (p κ dmin ε : ℝ)
     (hN : 1 ≤ N) (hm : 1 ≤ m)
-    (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
+    (_hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     (hp3 : p ≤ 1 / (2 * (m : ℝ) * dmin))
     (hκ : 1 ≤ κ) (hdminpos : 0 < dmin) (hκ2 : (κ ^ 2)⁻¹ ≤ dmin)
     (hε : 0 < ε)

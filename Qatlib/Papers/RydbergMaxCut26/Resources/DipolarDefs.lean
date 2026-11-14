@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.RydbergMaxCut26.Resources.MomentCounts
-import Qatlib.Papers.RydbergMaxCut26.MomentSdp.Phase
-import Mathlib.Data.Sym.Sym2.Order
-import Mathlib.Analysis.InnerProductSpace.PiL2
+module
+
+public import Qatlib.Papers.RydbergMaxCut26.Resources.MomentCounts
+public import Qatlib.Papers.RydbergMaxCut26.MomentSdp.Phase
+public import Mathlib.Order.Sym2
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+
+@[expose] public section
 
 /-!
 # Dipolar couplings and exact static realizations

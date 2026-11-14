@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.Reduction.OracleTwirling
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Algebra.Group.TypeTags.Basic
-import Qatlib.Concepts.HspRecovery.RecordExtract.TwirlingCounterexampleAuxiliary
+module
+
+public import Qatlib.Concepts.HspRecovery.Reduction.OracleTwirling
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Algebra.Group.TypeTags.Basic
+public import Qatlib.Concepts.HspRecovery.RecordExtract.TwirlingCounterexampleAuxiliary
+
+@[expose] public section
 
 /-!
 # A specification separating invariance from coset states

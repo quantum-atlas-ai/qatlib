@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.LcuQsvtDefs
-import Qatlib.Concepts.ResourceBounds.AsymBounds.ResourceBoundsDefs
-import Qatlib.Concepts.ResourceBounds.AsymBounds.ResourceBoundsExt
-import Qatlib.Concepts.CoherentSim.CoherentOAA.OddApproximation
-import Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvt
-import Qatlib.Concepts.QsvtCore.PhaseExistence.Corollary8ComplexPhaseExistenceGily
-import Qatlib.Concepts.QspSimulation.Achievability.LcuQsvt
+module
+
+public import Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.LcuQsvtDefs
+public import Qatlib.Concepts.ResourceBounds.AsymBounds.ResourceBoundsDefs
+public import Qatlib.Concepts.ResourceBounds.AsymBounds.ResourceBoundsExt
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.OddApproximation
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvt
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.Corollary8ComplexPhaseExistenceGily
+public import Qatlib.Concepts.QspSimulation.Achievability.LcuQsvt
+
+@[expose] public section
 
 /-!
 # Data for LCU approximation and resource plans

@@ -4,8 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Cbmd26.Algorithms.SecondOrderComputationalFrame
-import Qatlib.Papers.Cbmd26.Algorithms.ThreeOracleWorstCase
+module
+
+public import Qatlib.Papers.Cbmd26.Algorithms.SecondOrderComputationalFrame
+public import Qatlib.Papers.Cbmd26.Algorithms.ThreeOracleWorstCase
+
+@[expose] public section
+
+set_option linter.style.haveILetI false
+set_option linter.unusedTactic false
 
 /-!
 # Amplified cosine-based second-order algorithms

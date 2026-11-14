@@ -4,14 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SignalPrimitive.GridGradient.Basic
-import Qatlib.Concepts.GradientOracle.ReadoutWindow.ValueOracleGradientPrecision
-import Qatlib.Concepts.HspRecovery.Reduction.GradientOracle
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.LocalQFTReadout
-import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
-import Qatlib.Concepts.GradientOracle.FullRange.FullRangeValueGradient
-import Qatlib.Concepts.CoherentSim.CoherentOAA.QueryCircuit
-import Qatlib.Concepts.QspSimulation.Achievability.CircuitWellFormed
+module
+
+public import Qatlib.Concepts.SignalPrimitive.GridGradient.Basic
+public import Qatlib.Concepts.GradientOracle.ReadoutWindow.ValueOracleGradientPrecision
+public import Qatlib.Concepts.HspRecovery.Reduction.GradientOracle
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.LocalQFTReadout
+public import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
+public import Qatlib.Concepts.GradientOracle.FullRange.FullRangeValueGradient
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.QueryCircuit
+public import Qatlib.Concepts.QspSimulation.Achievability.CircuitWellFormed
+
+@[expose] public section
+set_option linter.unusedVariables false
 
 /-!
 # Value Oracle Gradient Specifications

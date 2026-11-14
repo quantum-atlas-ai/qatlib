@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QWalk3Dist13.MainResults.SourceModel.ThreeDistinctnessModel
+module
+
+public import Qatlib.Papers.QWalk3Dist13.MainResults.SourceModel.ThreeDistinctnessModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -130,7 +134,7 @@ theorem theorem_4_6_amplitude (χ : ι → ℕ) (P : Finset (ι × ι)) (A1 A2 :
       (1 / Real.sqrt ((Neighbors P m s2 S2).card : ℝ)) *
         PsiAmplitude χ P A1 A2 S2 S2' s1 m S1 := by
   unfold DiffusionAmplitude
-  rw [if_pos h]
+  rw [ite_eq_left h]
 
 /-- Off the neighbourhood the diffusion amplitude vanishes, so the state is
 supported on `Γ(S₂)` as displayed in Theorem 4.6 (p.14). -/
@@ -139,7 +143,7 @@ theorem theorem_4_6_support (χ : ι → ℕ) (P : Finset (ι × ι)) (A1 A2 : F
     (h : S2' ∉ Neighbors P m s2 S2) :
     DiffusionAmplitude χ P A1 A2 s1 m s2 S2 S2' S1 = 0 := by
   unfold DiffusionAmplitude
-  rw [if_neg h]
+  rw [ite_eq_right h]
 
 /-- No oracle queries are needed for the Local Diffusion with Garbage
 (Theorem 4.6, first sentence). -/

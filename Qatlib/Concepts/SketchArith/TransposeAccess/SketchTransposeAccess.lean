@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SketchArith.SketchBuild.SketchFrobeniusConcentration
+module
+
+public import Qatlib.Concepts.SketchArith.SketchBuild.SketchFrobeniusConcentration
+
+@[expose] public section
 
 /-!
 # Transpose access for compact sketches

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpectralFilter.ZeroPhaseFilter.DegeneratePhaseFilter
-import Qatlib.Concepts.HhlAlgorithms.UniformHHL.UniformHHLFilter
-import Qatlib.Foundations.PureStateMath.BornBridge.RelabelOperatorNorm
+module
+
+public import Qatlib.Concepts.SpectralFilter.ZeroPhaseFilter.DegeneratePhaseFilter
+public import Qatlib.Concepts.HhlAlgorithms.UniformHHL.UniformHHLFilter
+public import Qatlib.Foundations.PureStateMath.BornBridge.RelabelOperatorNorm
+
+@[expose] public section
 
 /-!
 # Coherent multiband phase filters

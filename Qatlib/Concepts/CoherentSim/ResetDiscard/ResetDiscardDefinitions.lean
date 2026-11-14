@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CoherentSim.ResetDiscard.Equation16Stat
-import Qatlib.Foundations.PureStateMath.MixedState
+module
+
+public import Qatlib.Concepts.CoherentSim.ResetDiscard.Equation16Stat
+public import Qatlib.Foundations.PureStateMath.MixedState
+
+@[expose] public section
 
 /-!
 # Raw and amplified reset-and-discard maps

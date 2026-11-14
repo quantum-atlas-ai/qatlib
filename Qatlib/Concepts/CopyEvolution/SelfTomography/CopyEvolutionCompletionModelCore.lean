@@ -4,29 +4,33 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FreshCopyExec.QpeConsumers.FreshCopyComposition
-import Qatlib.Concepts.CopyEvolution.Discriminate.CopyEvolutionConsumer
-import Qatlib.Concepts.CopyEvolution.Discriminate.CopyExponentialPrecision
-import Qatlib.Concepts.CopyEvolution.CopyExponent.CopyStateDependentPrecision
-import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopyDrivenPhaseReadout
-import Qatlib.Concepts.CopyEvolution.Discriminate.TwoSpeciesCopyExponential
-import Qatlib.Concepts.FreshCopyExec.QpeConsumers.TwoSpeciesCopyPhaseReadout
-import Qatlib.Concepts.CopyEvolution.Discriminate.TimedTwoSpeciesCopyPhaseReadout
-import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
-import Qatlib.Concepts.WalkFind.QRAMModel.OrdinaryGateQRAMFallbackQuan
-import Qatlib.Concepts.WalkFind.QRAMModel.QRAMImplementation
-import Qatlib.Concepts.WalkFind.WalkSpectrum.EffectiveQRAMImplementation
-import Qatlib.Concepts.CopyEvolution.SelfTomography.EpsilonCubedSelfTomographyStat
-import Qatlib.Concepts.CopyEvolution.SelfTomography.SelfTomographyOnGridOutputStat
-import Qatlib.Concepts.CopyEvolution.CopyExponent.LowRankExponentiationRestrictedStat
-import Qatlib.Concepts.CopyEvolution.CopyExponent.SupNormTightCopyBudgetStat
-import Qatlib.Concepts.CopyEvolution.CopyExponent.StateDependentCopyPrecisionStat
-import Qatlib.Concepts.CopyEvolution.CopyExponent.CommutingCopyExactTightnessStat
-import Qatlib.Concepts.CopyEvolution.Discriminate.FiniteCopyHelstromDiscriminationStat
-import Qatlib.Concepts.CopyEvolution.Discriminate.TrainingSetFiniteDiscriminationStat
-import Qatlib.Concepts.CopyEvolution.SelfTomography.GramFirstRegisterDensityStat
-import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopyPureReadout
-import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopySpectralReadout
+module
+
+public import Qatlib.Concepts.FreshCopyExec.QpeConsumers.FreshCopyComposition
+public import Qatlib.Concepts.CopyEvolution.Discriminate.CopyEvolutionConsumer
+public import Qatlib.Concepts.CopyEvolution.Discriminate.CopyExponentialPrecision
+public import Qatlib.Concepts.CopyEvolution.CopyExponent.CopyStateDependentPrecision
+public import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopyDrivenPhaseReadout
+public import Qatlib.Concepts.CopyEvolution.Discriminate.TwoSpeciesCopyExponential
+public import Qatlib.Concepts.FreshCopyExec.QpeConsumers.TwoSpeciesCopyPhaseReadout
+public import Qatlib.Concepts.CopyEvolution.Discriminate.TimedTwoSpeciesCopyPhaseReadout
+public import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
+public import Qatlib.Concepts.WalkFind.QRAMModel.OrdinaryGateQRAMFallbackQuan
+public import Qatlib.Concepts.WalkFind.QRAMModel.QRAMImplementation
+public import Qatlib.Concepts.WalkFind.WalkSpectrum.EffectiveQRAMImplementation
+public import Qatlib.Concepts.CopyEvolution.SelfTomography.EpsilonCubedSelfTomographyStat
+public import Qatlib.Concepts.CopyEvolution.SelfTomography.SelfTomographyOnGridOutputStat
+public import Qatlib.Concepts.CopyEvolution.CopyExponent.LowRankExponentiationRestrictedStat
+public import Qatlib.Concepts.CopyEvolution.CopyExponent.SupNormTightCopyBudgetStat
+public import Qatlib.Concepts.CopyEvolution.CopyExponent.StateDependentCopyPrecisionStat
+public import Qatlib.Concepts.CopyEvolution.CopyExponent.CommutingCopyExactTightnessStat
+public import Qatlib.Concepts.CopyEvolution.Discriminate.FiniteCopyHelstromDiscriminationStat
+public import Qatlib.Concepts.CopyEvolution.Discriminate.TrainingSetFiniteDiscriminationStat
+public import Qatlib.Concepts.CopyEvolution.SelfTomography.GramFirstRegisterDensityStat
+public import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopyPureReadout
+public import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopySpectralReadout
+
+@[expose] public section
 
 /-!
 # Specifications for copy-evolution completion
@@ -66,6 +70,7 @@ open Qatlib.Concepts.LchsSimulation.StaticLchs Qatlib.Foundations.PureStateMath.
 open Qatlib.Foundations.PureStateMath
 
 set_option autoImplicit false
+set_option linter.unusedVariables false
 
 namespace Qatlib.Concepts.CopyEvolution.SelfTomography
 

@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Sqrt
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.GroupTheory.OrderOfElement
-import Mathlib.FieldTheory.Finite.GaloisField
-import Mathlib.Data.Fintype.Units
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Sqrt
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.GroupTheory.OrderOfElement
+public import Mathlib.FieldTheory.Finite.GaloisField
+public import Mathlib.Algebra.GroupWithZero.Units.Fintype
+
+@[expose] public section
 
 /-!
 # Counting solutions of exponential congruences
@@ -105,7 +109,7 @@ theorem orderOf_le_card_sub_one {F : Type*} [Field F] [Fintype F] (f : Fˣ) :
 /-- If both box side lengths are within the respective multiplicative orders, the solution count
 is at most the second side length. See [VanDamShparlinski2008]. -/
 theorem numSolutions_le_r {F : Type*} [Field F] (a b c f g : Fˣ) (s r : ℕ)
-    (hs : s ≤ orderOf f) (hr : r ≤ orderOf g) :
+    (hs : s ≤ orderOf f) (_hr : r ≤ orderOf g) :
     numSolutions a b c f g s r ≤ r := by
   classical
   unfold numSolutions solValue
@@ -140,7 +144,7 @@ theorem numSolutions_le_r {F : Type*} [Field F] (a b c f g : Fˣ) (s r : ℕ)
 /-- If both box side lengths are within the respective multiplicative orders, the solution count
 is at most the first side length. See [VanDamShparlinski2008]. -/
 theorem numSolutions_le_s {F : Type*} [Field F] (a b c f g : Fˣ) (s r : ℕ)
-    (hs : s ≤ orderOf f) (hr : r ≤ orderOf g) :
+    (_hs : s ≤ orderOf f) (hr : r ≤ orderOf g) :
     numSolutions a b c f g s r ≤ s := by
   classical
   unfold numSolutions solValue
@@ -233,10 +237,10 @@ theorem exists_numSolutionsAt_ge {F : Type*} [Field F] [Fintype F]
     ∃ c : F, (s : ℝ) * (r : ℝ) / (Fintype.card F : ℝ)
       ≤ (numSolutionsAt a b c f g s r : ℝ) := by
   classical
-  haveI : Nonempty F := ⟨0⟩
+  have : Nonempty F := ⟨0⟩
   have hqpos : (0 : ℝ) < (Fintype.card F : ℝ) := by exact_mod_cast Fintype.card_pos
   by_contra h
-  push_neg at h
+  push Not at h
   have hsum_lt : (∑ c : F, (numSolutionsAt a b c f g s r : ℝ))
       < ∑ _c : F, ((s : ℝ) * (r : ℝ) / (Fintype.card F : ℝ)) := by
     refine Finset.sum_lt_sum (fun c _ => le_of_lt (h c)) ⟨Classical.arbitrary F, Finset.mem_univ _,
@@ -295,7 +299,7 @@ theorem corollary1_solvable_weak {F : Type*} [Field F] [Fintype F]
   have hspos : (0 : ℝ) < (orderOf f : ℝ) := by
     exact_mod_cast orderOf_pos f
   by_contra hno
-  push_neg at hno
+  push Not at hno
   have hzero : numSolutions a b c f g (orderOf f) r = 0 :=
     (numSolutions_eq_zero_iff a b c f g (orderOf f) r).mpr hno
   have hb := abs_numSolutions_sub_le_orderOf a b c f g r hup
@@ -417,7 +421,7 @@ theorem corollary1_solvable_of_bound {F : Type*} [Field F] [Fintype F]
   have hsqrtpos : (0 : ℝ) < Real.sqrt (Fintype.card F : ℝ) :=
     Real.sqrt_pos.mpr hqpos
   have hlogpos : (0 : ℝ) < Real.log (Fintype.card F : ℝ) := Real.log_pos hq1
-  haveI : Finite Fˣ := Finite.of_injective (Units.val) (fun _ _ h => Units.ext h)
+  have : Finite Fˣ := Finite.of_injective (Units.val) (fun _ _ h => Units.ext h)
   have hsNat : 0 < orderOf f := orderOf_pos f
   have hspos : (0 : ℝ) < (orderOf f : ℝ) := by exact_mod_cast hsNat
   have hvalpos : 0 < (2 * K + 2) * (Fintype.card F : ℝ) * Real.sqrt (Fintype.card F : ℝ)
@@ -429,7 +433,7 @@ theorem corollary1_solvable_of_bound {F : Type*} [Field F] [Fintype F]
     · exact h
   have hrle : r ≤ orderOf g := by exact_mod_cast hup
   by_contra hno
-  push_neg at hno
+  push Not at hno
   have hzero : numSolutions a b c f g (orderOf f) r = 0 :=
     (numSolutions_eq_zero_iff a b c f g (orderOf f) r).mpr hno
   have hb := hbound r hr1 hrle
@@ -489,7 +493,7 @@ theorem corollary2_typical_solvable_of_second_moment {F : Type*} [Field F] [Fint
   have hlogge : 1 / ε ≤ Real.log (Fintype.card F : ℝ) := by
     calc 1 / ε = Real.log (Real.exp (1 / ε)) := (Real.log_exp _).symm
       _ ≤ Real.log (Fintype.card F : ℝ) := Real.log_le_log (Real.exp_pos _) hQ
-  haveI : Finite Fˣ := Finite.of_injective (Units.val) (fun _ _ h => Units.ext h)
+  have : Finite Fˣ := Finite.of_injective (Units.val) (fun _ _ h => Units.ext h)
   have hsNat : 0 < orderOf f := orderOf_pos f
   have hspos : (0 : ℝ) < (orderOf f : ℝ) := by exact_mod_cast hsNat
   have hrposReal : (0 : ℝ) < (r : ℝ) := by

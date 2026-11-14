@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.NearGridHHLOutput
-import Mathlib.Basic.Real.Sign
+module
+
+public import Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.NearGridHHLOutput
+public import Mathlib.Basic.Real.Sign
+
+@[expose] public section
 
 /-!
 # Clipped reciprocal filters for uniform HHL

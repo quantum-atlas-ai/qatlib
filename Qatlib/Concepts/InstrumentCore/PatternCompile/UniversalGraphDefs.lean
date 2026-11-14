@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ClusterPatterns.Preentangled.PreentangledGraphConsumers
-import Qatlib.Concepts.InstrumentCore.PatternCompile.ClusterEulerConsumers
-import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownQubitEuler
-import Qatlib.Concepts.GateVocabulary.LocalReflectionGates
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedMixedState
+module
+
+public import Qatlib.Concepts.ClusterPatterns.Preentangled.PreentangledGraphConsumers
+public import Qatlib.Concepts.InstrumentCore.PatternCompile.ClusterEulerConsumers
+public import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownQubitEuler
+public import Qatlib.Concepts.GateVocabulary.LocalReflectionGates
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedMixedState
+
+@[expose] public section
 
 /-!
 # Definitions for universal graph compilation

@@ -4,16 +4,20 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Calculus.Deriv.Basic
-import Mathlib.Analysis.Matrix.Spectrum
-import Mathlib.Analysis.SpecialFunctions.Exp
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Combinatorics.SimpleGraph.AdjMatrix
-import Mathlib.Combinatorics.SimpleGraph.Finite
-import Mathlib.Combinatorics.SimpleGraph.LapMatrix
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.Order.BigOperators.Group.Finset
+module
+
+public import Mathlib.Analysis.Calculus.Deriv.Basic
+public import Mathlib.Analysis.Matrix.Spectrum
+public import Mathlib.Analysis.SpecialFunctions.Exp
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Combinatorics.SimpleGraph.AdjMatrix
+public import Mathlib.Combinatorics.SimpleGraph.Finite
+public import Mathlib.Combinatorics.SimpleGraph.LapMatrix
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.Order.BigOperators.Group.Finset
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -313,7 +317,7 @@ for `λ₀(G) ≤ λ₀(G_l)`. -/
 theorem lambda0_mono {V : Type} [Fintype V] [Nonempty V] {G G' : SimpleGraph V}
     (h : ∀ a b, G.Adj a b → G'.Adj a b) : lambda0 G ≤ lambda0 G' := by
   classical
-  haveI : Nonempty {v : V → ℝ // (∀ i, 0 ≤ v i) ∧ ∑ i, v i = 1} :=
+  have : Nonempty {v : V → ℝ // (∀ i, 0 ≤ v i) ∧ ∑ i, v i = 1} :=
     exists_simplex_vector
   unfold lambda0
   apply ciSup_le
@@ -329,9 +333,9 @@ theorem lambda0_mono {V : Type} [Fintype V] [Nonempty V] {G G' : SimpleGraph V}
     rw [SimpleGraph.adjMatrix_apply, SimpleGraph.adjMatrix_apply]
     by_cases hadj : G.Adj i j
     · have hadj' : G'.Adj i j := h i j hadj
-      simp only [hadj, hadj', if_true]
+      simp only [hadj, hadj', ite_true]
       nlinarith [mul_le_mul hi1 hj1 hj0 (zero_le_one : (0 : ℝ) ≤ 1)]
-    · simp only [hadj, if_false]
+    · simp only [hadj, ite_false]
       have : 0 ≤ (if G'.Adj i j then (1 : ℝ) else 0) := by split <;> norm_num
       nlinarith [mul_nonneg hi0 hj0]
   exact le_trans hsum (le_ciSup (bddAbove_simplex_quadform G') v)

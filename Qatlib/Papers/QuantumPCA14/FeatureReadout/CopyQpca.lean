@@ -4,14 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CopyEvolution.SelfTomography.CopyEvolutionDefs
-import Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.SinEnvelopeHHLConsumers
-import Qatlib.Concepts.SdpDuality.ConeSeparation.MeasurementStatistics
-import Qatlib.Concepts.HspRecovery.SieveLaw.NormalizedBranchDistance
-import Qatlib.Concepts.HspRecovery.SieveLaw.SharpSelectiveStability
-import Qatlib.Concepts.ShadowModels.ShadowChannel.FiniteEnsembleMeasurement
-import Qatlib.Concepts.HhlAlgorithms.UniformHHL.UniformHHLFilter
-import Qatlib.Concepts.ChannelTheory.Stinespring.ChannelStructureKraus
+module
+
+public import Qatlib.Concepts.CopyEvolution.SelfTomography.CopyEvolutionDefs
+public import Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.SinEnvelopeHHLConsumers
+public import Qatlib.Concepts.SdpDuality.ConeSeparation.MeasurementStatistics
+public import Qatlib.Concepts.HspRecovery.SieveLaw.NormalizedBranchDistance
+public import Qatlib.Concepts.HspRecovery.SieveLaw.SharpSelectiveStability
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.FiniteEnsembleMeasurement
+public import Qatlib.Concepts.HhlAlgorithms.UniformHHL.UniformHHLFilter
+public import Qatlib.Concepts.ChannelTheory.Stinespring.ChannelStructureKraus
+
+@[expose] public section
+set_option linter.unusedTactic false
 
 /-!
 # Copy based quantum PCA and spectral readout
@@ -291,7 +296,7 @@ of eigenvector outer products with clock zero and flag false. -/
 theorem input_spectral {D M : ℕ} (hM : 0 < M) (V : Operator D) (eig : Fin D → ℝ) :
     copyQPEInput D M (spectralState V eig) = ∑ i, (eig i : ℂ) • outerProduct
       (TensorState (Ket (⟨0, hM⟩ : Fin M)) (TensorState (Ket false) (fun j => V j i))) := by
-  rw [spectralState_sum, copyQPEInput, dif_pos hM]
+  rw [spectralState_sum, copyQPEInput, dite_eq_left hM]
   simp only [outerProduct_tensorState]
   ext ⟨a,b,i⟩ ⟨c,d,j⟩
   simp only [tensorGate_apply, Matrix.sum_apply, Matrix.smul_apply, Finset.mul_sum]
@@ -435,7 +440,7 @@ theorem ideal_dataBlock {D M : ℕ} (hM : 0 < M) (ρ V : Operator D) (eig : Fin 
   ext i j
   simp only [dataBlock, LinearMap.coe_mk, AddHom.coe_mk, Fintype.sum_bool,
     offgridBranch, Matrix.sum_apply, Matrix.smul_apply, outerProduct_apply,
-    if_true, Bool.false_eq_true, if_false, mul_zero, map_zero, smul_zero,
+    ite_true, Bool.false_eq_true, ite_false, mul_zero, map_zero, smul_zero,
     Finset.sum_const_zero, zero_add]
 
 /-- A positive semidefinite matrix with positive real trace becomes a density operator under
@@ -445,7 +450,7 @@ theorem normalize_density {D : ℕ} (X : Operator D) (hX : X.PosSemidef)
   have hi := (RCLike.nonneg_iff.mp hX.trace_nonneg).2
   change (trace X).im = 0 at hi
   have ht : trace X = ((trace X).re : ℂ) := by apply Complex.ext <;> simp [hi]
-  rw [normalizedPositiveBranch, if_pos hp]
+  rw [normalizedPositiveBranch, ite_eq_left hp]
   have hn : (0 : ℂ) ≤ ((trace X).re : ℂ)⁻¹ := by
     rw [← Complex.ofReal_inv]
     exact RCLike.ofReal_nonneg.mpr (inv_nonneg.mpr hp.le)
@@ -1182,7 +1187,7 @@ theorem normalized_offgrid_posterior {D M : ℕ} (eig : Fin D → ℝ) (V : Oper
   rw [← conditional_posterior eig V hV he z hp]
   have hm : (trace (offgridBranch D M eig V z)).re = branchTotal eig z := by
     rw [offgridBranch_spectral, spectralState_trace V _ hV]; rfl
-  simp only [normalizedPositiveBranch, hm, if_pos hp, offgridConditionalState,
+  simp only [normalizedPositiveBranch, hm, ite_eq_left hp, offgridConditionalState,
     ← branchTotal_eq_mass eig V hV]
 
 /-- Two equal positive weights normalized in the identity basis give half the identity on
@@ -1274,7 +1279,7 @@ theorem kernel_dataBlock {D M : ℕ} (eig : Fin D → ℝ) (V : Operator D)
   ext i j
   simp only [dataBlock, LinearMap.coe_mk, AddHom.coe_mk, Fintype.sum_bool,
     kernelBranch, Matrix.sum_apply, Matrix.smul_apply, outerProduct_apply,
-    if_true, Bool.false_eq_true, if_false, mul_zero, map_zero, smul_zero,
+    ite_true, Bool.false_eq_true, ite_false, mul_zero, map_zero, smul_zero,
     Finset.sum_const_zero, zero_add]
 
 /-- The sum of squared kernel amplitudes over the retained label set `E` for eigenvector index
@@ -1317,7 +1322,7 @@ theorem selected_principal_error {D M : ℕ} (eig : Fin D → ℝ) (V : Operator
   refine (spectralState_norm_bound V _ hV).trans_eq ?_
   apply Finset.sum_congr rfl
   intro i _
-  by_cases hi : i ∈ S <;> simp only [hi, if_true, if_false, sub_zero]
+  by_cases hi : i ∈ S <;> simp only [hi, ite_true, ite_false, sub_zero]
   · rw [show eig i*keepProbability K E i - eig i = eig i*(keepProbability K E i-1) by ring,
       abs_mul, abs_of_nonneg (he i)]
   · rw [abs_mul, abs_of_nonneg (he i)]
@@ -1521,7 +1526,7 @@ theorem sine_classification_risk {D M : ℕ} (hM : 2 ≤ M) (eig : Fin D → ℝ
       have h := Finset.sum_nonneg (fun z (_ : z ∈ Eᶜ) => sq_nonneg ‖K i z‖)
       linarith
     by_cases hS : i ∈ S
-    · rw [if_pos hS, abs_of_nonpos (by linarith), neg_sub, ← hc]
+    · rw [ite_eq_left hS, abs_of_nonpos (by linarith), neg_sub, ← hc]
       refine (Finset.sum_le_sum_of_subset_of_nonneg (t := Finset.univ.filter
         (fun z : Fin M => ε ≤ phaseDistance (-eig i/2) ((z.val : ℝ)/M))) ?_
         (fun _ _ _ => sq_nonneg _)).trans (sine_phase_tail M hM (-eig i/2) ε hε)
@@ -1530,7 +1535,7 @@ theorem sine_classification_risk {D M : ℕ} (hM : 2 ≤ M) (eig : Fin D → ℝ
       refine ⟨Finset.mem_univ z, not_lt.mp ?_⟩
       intro hgood
       exact (Finset.mem_compl.mp hz) ((hagree i z hgood).mpr hS)
-    · rw [if_neg hS, sub_zero, abs_of_nonneg hp]
+    · rw [ite_eq_right hS, sub_zero, abs_of_nonneg hp]
       refine (Finset.sum_le_sum_of_subset_of_nonneg (t := Finset.univ.filter
         (fun z : Fin M => ε ≤ phaseDistance (-eig i/2) ((z.val : ℝ)/M))) ?_
         (fun _ _ _ => sq_nonneg _)).trans (sine_phase_tail M hM (-eig i/2) ε hε)
@@ -1602,7 +1607,7 @@ theorem principal_singleton_normalized {D : ℕ} (V : Operator D) (eig : Fin D �
     (hV : V ∈ Matrix.unitaryGroup (Fin D) ℂ) (i : Fin D) (hi : 0 < eig i) :
     normalizedPositiveBranch (principalState V eig {i}) = outerProduct (fun j => V j i) := by
   have ht : (trace (principalState V eig {i})).re = eig i := by rw [principal_trace V eig hV]; simp
-  rw [normalizedPositiveBranch, ht, if_pos hi, principal_singleton, smul_smul]
+  rw [normalizedPositiveBranch, ht, ite_eq_left hi, principal_singleton, smul_smul]
   rw [← Complex.ofReal_inv, ← Complex.ofReal_mul, inv_mul_cancel₀ (ne_of_gt hi)]
   simp
 
@@ -1625,7 +1630,7 @@ theorem posterior_eigenvector_error {D : ℕ} (V : Operator D)
       intro j _
       by_cases hij : j=i
       · subst j
-        rw [if_pos rfl, abs_of_nonpos (sub_nonpos.mpr hpi), if_pos rfl]
+        rw [ite_eq_left rfl, abs_of_nonpos (sub_nonpos.mpr hpi), ite_eq_left rfl]
         ring
       · simp [hij, p.nonneg j, abs_of_nonneg]
     _ = _ := by rw [Finset.sum_add_distrib]; simp [p.sum_one]; ring

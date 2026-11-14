@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LatentPQCTran26.MainResults.NoBiasBarrenPlateau
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Deriv
-import Mathlib.Analysis.Complex.Trigonometric
+module
+
+public import Qatlib.Papers.LatentPQCTran26.MainResults.NoBiasBarrenPlateau
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Deriv
+public import Mathlib.Analysis.Complex.Trigonometric
+
+@[expose] public section
 
 /-!
 # A concentrated single-feature tanh decoder

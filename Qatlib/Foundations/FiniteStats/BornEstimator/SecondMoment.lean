@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.FiniteStats.BornEstimator.Eigenstate
-import Qatlib.Foundations.FiniteStats.BornEstimator.BornLaw
-import Qatlib.Foundations.FiniteStats.BornEstimator.IndependentShots
+module
+
+public import Qatlib.Foundations.FiniteStats.BornEstimator.Eigenstate
+public import Qatlib.Foundations.FiniteStats.BornEstimator.BornLaw
+public import Qatlib.Foundations.FiniteStats.BornEstimator.IndependentShots
+
+@[expose] public section
 
 /-!
 # Second-moment operators and spectral variance bounds

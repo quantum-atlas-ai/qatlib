@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.StoppingCore.BranchCostCore.WeightedUnboundedExecution
+module
+
+public import Qatlib.Concepts.StoppingCore.BranchCostCore.WeightedUnboundedExecution
+
+@[expose] public section
 
 /-!
 # Accumulated-cost halting mass

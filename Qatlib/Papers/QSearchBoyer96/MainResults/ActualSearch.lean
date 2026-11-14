@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.InterruptMin.ExpectedQueryCounterexample
-import Qatlib.Concepts.SearchStopping.QueryLowerBound.Theorem7CorrectedTigh
-import Qatlib.Concepts.SearchStopping.QueryLowerBound.Theorem8CorrectedTigh
-import Qatlib.Papers.QSearchBoyer96.MainResults.Sec2KnownCountIterations
-import Mathlib.Tactic
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.InterruptMin.ExpectedQueryCounterexample
+public import Qatlib.Concepts.SearchStopping.QueryLowerBound.Theorem7Corrected
+public import Qatlib.Concepts.SearchStopping.QueryLowerBound.Theorem8Corrected
+public import Qatlib.Papers.QSearchBoyer96.MainResults.Sec2KnownCountIterations
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Grover circuit success and query counts

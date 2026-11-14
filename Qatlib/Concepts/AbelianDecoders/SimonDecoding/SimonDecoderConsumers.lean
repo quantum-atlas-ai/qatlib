@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.Reduction.CountedSimonDecoder
+module
+
+public import Qatlib.Concepts.HspRecovery.Reduction.CountedSimonDecoder
+
+@[expose] public section
 
 /-!
 # Concrete consumers of the Simon decoder
@@ -89,7 +93,7 @@ theorem booleanSimonPromise_simonProjectionOracle :
       funext i
       fin_cases i
       · show x 0 = y 0 + regBooleanEquiv 2 simonSecretE0 0
-        rw [regBooleanEquiv_simonSecretE0, if_pos rfl]
+        rw [regBooleanEquiv_simonSecretE0, ite_eq_left rfl]
         rcases zmod2_eq_zero_or_one (x 0) with hx | hx <;>
           rcases zmod2_eq_zero_or_one (y 0) with hy | hy
         · rw [hx, hy] at h0; simp at h0
@@ -98,7 +102,7 @@ theorem booleanSimonPromise_simonProjectionOracle :
         · rw [hx, hy] at h0; simp at h0
       · show x 1 = y 1 + regBooleanEquiv 2 simonSecretE0 1
         rw [regBooleanEquiv_simonSecretE0,
-          if_neg (show (1 : Fin 2) ≠ 0 by decide), add_zero]
+          ite_eq_right (show (1 : Fin 2) ≠ 0 by decide), add_zero]
         exact h
   · intro h
     rcases h with rfl | h
@@ -106,7 +110,7 @@ theorem booleanSimonPromise_simonProjectionOracle :
     · rw [h]
       show (y + regBooleanEquiv 2 simonSecretE0) 1 = y 1
       rw [Pi.add_apply, regBooleanEquiv_simonSecretE0,
-        if_neg (show (1 : Fin 2) ≠ 0 by decide), add_zero]
+        ite_eq_right (show (1 : Fin 2) ≠ 0 by decide), add_zero]
 
 /-- The identity oracle on two-bit Boolean vectors satisfies the Simon promise with zero secret. -/
 theorem booleanSimonPromise_id_zero :

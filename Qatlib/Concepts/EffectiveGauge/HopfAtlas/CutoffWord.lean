@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.CutoffTransition
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SourceWord
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.ReferenceRescaling
-import Mathlib.Data.List.Induction
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.CutoffTransition
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SourceWord
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.ReferenceRescaling
+public import Mathlib.Data.List.Induction
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -61,11 +65,11 @@ theorem spatialWordPartial_coordinate (f : ℝ → ℝ) (hf : ContDiff ℝ ∞ f
       funext x
       simp only [List.length_append,List.length_singleton,iteratedDeriv_succ',hpred]
     · have heq : (fun x : SpatialPoint => if i=j then deriv f (x j) else 0)=fun _ => (0 : ℝ) := by
-        simp only [if_neg hi]
+        simp only [ite_eq_right hi]
       rw [heq,spatialWordPartial_const]
       funext x
       have hnot : ¬(∀ k ∈ w++[i], k=j) := fun h => hi (h i (by simp))
-      simp only [if_neg hnot,ite_self]
+      simp only [ite_eq_right hnot,ite_self]
 
 /-- Definition of unit Cutoff Field in the Hopf Atlas construction. -/
 def unitCutoffField (eta : ℝ) (x : SpatialPoint) : ℝ := unitGluingCutoff eta (x 0)
@@ -89,13 +93,13 @@ theorem unitCutoffField_word_bound (eta : ℚ) (he : 0<eta) (w : List (Fin 3)) (
     have heR : (0 : ℝ)<eta := Rat.cast_pos.mpr he
     by_cases hw : w.length=0
     · simp [cutoffUnitMajorant,hw]
-    · simp only [cutoffUnitMajorant,if_neg hw,Rat.cast_mul,Rat.cast_pow,Rat.cast_div,
+    · simp only [cutoffUnitMajorant,ite_eq_right hw,Rat.cast_mul,Rat.cast_pow,Rat.cast_div,
         Rat.cast_ofNat,Rat.cast_natCast]
       positivity
   change ‖spatialWordPartial (fun y : SpatialPoint => unitGluingCutoff (eta : ℝ) (y 0)) w x‖ ≤ _
   rw [spatialWordPartial_coordinate _ (contDiff_unitGluingCutoff (eta : ℝ))]
   by_cases hw : ∀ i ∈ w, i=(0 : Fin 3)
-  · simpa only [if_pos hw,Real.norm_eq_abs] using unitGluingCutoff_derivative_bound eta he w.length (x 0)
-  · simpa only [if_neg hw,norm_zero] using hD
+  · simpa only [ite_eq_left hw,Real.norm_eq_abs] using unitGluingCutoff_derivative_bound eta he w.length (x 0)
+  · simpa only [ite_eq_right hw,norm_zero] using hD
 
 end Qatlib.Concepts.EffectiveGauge.HopfAtlas

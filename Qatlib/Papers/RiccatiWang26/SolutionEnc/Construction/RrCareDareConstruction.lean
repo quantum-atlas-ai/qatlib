@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.RiccatiWang26.SolutionEnc.Core.PaperModel
+module
+
+public import Qatlib.Papers.RiccatiWang26.SolutionEnc.Core.PaperModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -46,11 +50,11 @@ variable {n : Type*} [Fintype n] [DecidableEq n] [Nonempty n]
 
 /-- Arithmetic core associated with Proposition E.5: bounds the two chosen accuracies and proves positivity of the logarithm argument. The query formula is assumed; no encoding or query bound is derived. -/
 theorem proposition_E_5_rr_stability_and_cost
-    (αEk αPk M ε δ εinv Q QEk : ℝ) (QEkfun : ℝ → ℝ)
-    (hαEk : 1 ≤ αEk) (hM : 0 ≤ M) (hε0 : 0 < ε) (hε1 : ε ≤ 1) (hαP : 0 < αPk)
+    (αEk αPk M ε δ εinv Q _QEk : ℝ) (QEkfun : ℝ → ℝ)
+    (hαEk : 1 ≤ αEk) (_hM : 0 ≤ M) (hε0 : 0 < ε) (_hε1 : ε ≤ 1) (hαP : 0 < αPk)
     (hδ : δ = ε / (8 * (1 + M ^ 2)))
     (hεinv : εinv = ε / (4 * (1 + αEk)))
-    (hQ : Q = QEkfun δ * αPk * Real.log (Real.exp 1 + αPk / ε)) :
+    (_hQ : Q = QEkfun δ * αPk * Real.log (Real.exp 1 + αPk / ε)) :
     δ ≤ ε ∧ εinv ≤ ε / 4 ∧ 0 < Real.exp 1 + αPk / ε := by
   -- Source: Prop. E.5 (p. 74).  Identical to Proposition D.5 with `E_k` in place of `E(t)`:
   -- the product-error budget is `αPk δ + αPk εinv + ... ≤ ε/4` and the threshold
@@ -75,13 +79,13 @@ theorem proposition_E_5_rr_stability_and_cost
 
 /-- Arithmetic core associated with Proposition E.6: proves positivity of `η` and `1 + σminInit⁻¹` and returns the assumed normalization identity. No seed implementation or total query bound is constructed. -/
 theorem proposition_E_6_seed_construction
-    (M αInit αSmR αSinvR αEq γR σminInit αEr αPk ε η Q RRR rE rT αR0 Qmax : ℝ)
-    (hM : 0 ≤ M) (hε : 0 < ε) (hR : 0 ≤ RRR) (hσ : 0 < σminInit)
+    (M αInit αSmR αSinvR _αEq _γR σminInit αEr αPk ε η Q RRR rE rT _αR0 Qmax : ℝ)
+    (_hM : 0 ≤ M) (hε : 0 < ε) (_hR : 0 ≤ RRR) (hσ : 0 < σminInit)
     (hαInit : 0 ≤ αInit) (hαSmR : 0 ≤ αSmR) (hαSinvR : 0 ≤ αSinvR)
     (hη : η = ε / ((1 + M ^ 2) * (1 + αInit) * (1 + αSmR) * (1 + αSinvR) *
       (1 + σminInit⁻¹) ^ 2))
     (hEr : αEr = αInit + 8 * αSmR * αSinvR / σminInit)
-    (hQ : Q = RRR * (αInit / σminInit) * αPk * rE * rT *
+    (_hQ : Q = RRR * (αInit / σminInit) * αPk * rE * rT *
       (Real.log (Real.exp 1 + RRR * (1 + αPk) * (1 + σminInit⁻¹) * (1 + Qmax) / η)) ^ 3) :
     0 < η ∧ 0 < 1 + σminInit⁻¹ ∧ αEr = αInit + 8 * αSmR * αSinvR / σminInit := by
   -- Source: Prop. E.6 (p. 75).  `η` is the minimum of the six error budgets; each weighted
@@ -110,8 +114,8 @@ theorem proposition_E_6_seed_construction
 /-- Arithmetic core associated with Corollary E.7: proves only nonnegativity of the displayed normalization expression. The output-normalization bound is assumed. -/
 theorem corollary_E_7_rr_output_normalization
     (αPk M RRR αR0 σminInit C : ℝ)
-    (hM : 0 ≤ M) (hR : 0 ≤ RRR) (hαR0 : 0 ≤ αR0) (hσ : 0 < σminInit) (hC : 0 < C)
-    (hα : αPk ≤ C * (Real.sqrt (1 + M ^ 2) * RRR + αR0 * RRR ^ 2 / σminInit)) :
+    (_hM : 0 ≤ M) (hR : 0 ≤ RRR) (hαR0 : 0 ≤ αR0) (hσ : 0 < σminInit) (_hC : 0 < C)
+    (_hα : αPk ≤ C * (Real.sqrt (1 + M ^ 2) * RRR + αR0 * RRR ^ 2 / σminInit)) :
     0 ≤ Real.sqrt (1 + M ^ 2) * RRR + αR0 * RRR ^ 2 / σminInit := by
   -- Source: Cor. E.7 (p. 76).  Same shape as Corollary D.7: the `[I;P]` factor contributes
   -- `√(1+M²)` and the initial pseudoinverse contributes `αR₀/σmin(Π>R₀)` with two powers of
@@ -129,7 +133,7 @@ theorem corollary_E_7_rr_output_normalization
 /-- Conditional normalization arithmetic associated with Lemma F.6: propagates the assumed contour and quadrature estimates through `αPi = αL * αDARE`. No trapezoidal implementation or query cost is constructed. -/
 theorem lemma_F_6_dare_normalization
     (cβ RDARE αDARE αPi αL αM sumT : ℝ)
-    (hβ : 0 ≤ cβ) (hR : 0 ≤ RDARE) (hαL : 0 ≤ αL) (hden : 0 < αM + αL)
+    (_hβ : 0 ≤ cβ) (_hR : 0 ≤ RDARE) (hαL : 0 ≤ αL) (_hden : 0 < αM + αL)
     (hα : αDARE ≤ cβ * RDARE * sumT)
     (hsum : cβ * RDARE * sumT ≤ cβ / (αM + αL) * RDARE)
     (hPi : αPi = αL * αDARE) :
@@ -153,12 +157,12 @@ theorem lemma_F_6_dare_normalization
 
 /-- Arithmetic core associated with Proposition F.8: proves positivity of `αC` and `αX` and returns the assumed Cayley error bound. No selector implementation, decoded-error construction or query cost is derived. -/
 theorem proposition_F_8_dare_cayley
-    (αSD εSD QSD βp εp αC εC Qc dS αSr εsel εcirc δ ε αX Xnorm QX : ℝ)
-    (hβ : 0 < βp) (hβ2 : 2 ≤ βp) (hεp : 0 < εp) (hεSD : 0 ≤ εSD)
-    (hαSD : 0 ≤ αSD) (hcond : (αSD + 1) * εp ≤ 1)
+    (αSD εSD _QSD βp εp αC εC _Qc dS αSr _εsel _εcirc _δ ε αX Xnorm _QX : ℝ)
+    (_hβ : 0 < βp) (hβ2 : 2 ≤ βp) (_hεp : 0 < εp) (_hεSD : 0 ≤ εSD)
+    (_hαSD : 0 ≤ αSD) (_hcond : (αSD + 1) * εp ≤ 1)
     (hαC : αC = 1 + 2 * βp)
     (hεC : εC ≤ 4 * βp ^ 2 * εSD + 2 * εp)
-    (hε : 0 < ε) (hX : 0 ≤ Xnorm) (hdS : 0 ≤ dS) (hαSr : 0 < αSr)
+    (_hε : 0 < ε) (_hX : 0 ≤ Xnorm) (_hdS : 0 ≤ dS) (hαSr : 0 < αSr)
     (hαX : αX = 16 * αSr * Real.sqrt (1 + Xnorm ^ 2)) :
     0 < αC ∧ 0 < αX ∧ εC ≤ 4 * βp ^ 2 * εSD + 2 * εp := by
   -- Source: Prop. F.8 (p. 103).  `C_D` is a contraction when `S_D` has spectrum in the left

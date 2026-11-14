@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.TuraevViro10.MainResults.WrtBridge
-import Mathlib.Analysis.InnerProductSpace.Basic
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Tactic
-import Qatlib.Papers.TuraevViro10.MainResults.HadamardTest
+module
+
+public import Qatlib.Papers.TuraevViro10.MainResults.WrtBridge
+public import Mathlib.Analysis.InnerProductSpace.Basic
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Tactic
+public import Qatlib.Papers.TuraevViro10.MainResults.HadamardTest
+
+@[expose] public section
 
 /-!
 # The Hadamard test for the WRT matrix element

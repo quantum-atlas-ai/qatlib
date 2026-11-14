@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Data.Finset.Card
-import Mathlib.Algebra.Order.Floor.Semiring
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Algebra.Order.Floor.Semiring
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Explicit grids for one-half Hölder paths

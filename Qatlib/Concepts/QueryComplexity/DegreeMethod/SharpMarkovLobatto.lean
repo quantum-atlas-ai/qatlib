@@ -4,45 +4,50 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Algebra.Group.Units.Defs
-import Mathlib.Algebra.Order.BigOperators.Group.Finset
-import Mathlib.Algebra.Order.BigOperators.GroupWithZero.Finset
-import Mathlib.Algebra.Polynomial.Basic
-import Mathlib.Algebra.Polynomial.Degree.Defs
-import Mathlib.Algebra.Polynomial.Degree.Lemmas
-import Mathlib.Algebra.Polynomial.Degree.Operations
-import Mathlib.Algebra.Polynomial.Derivative
-import Mathlib.Algebra.Polynomial.Eval.Defs
-import Mathlib.Algebra.Polynomial.Monic
-import Mathlib.Algebra.Ring.Int.Defs
-import Mathlib.Algebra.Ring.NegOnePow
-import Mathlib.Algebra.Ring.Units
-import Mathlib.Analysis.Calculus.Deriv.Polynomial
-import Mathlib.Analysis.Complex.Trigonometric
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.Extremal
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.RootsExtrema
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
-import Mathlib.Data.Finset.Erase
-import Mathlib.Data.Fintype.Defs
-import Mathlib.Data.Int.Cast.Basic
-import Mathlib.Data.Nat.Basic
-import Mathlib.LinearAlgebra.Lagrange
-import Mathlib.Logic.Function.Defs
-import Mathlib.Logic.Function.Iterate
-import Mathlib.Order.Interval.Set.Defs
-import Mathlib.RingTheory.Polynomial.Chebyshev
-import Mathlib.Tactic.ByCases
-import Mathlib.Tactic.ByContra
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.LinearCombination
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Ring
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.SharpMarkovHelpers
-import Mathlib.Topology.Algebra.Polynomial
+module
+
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Algebra.Group.Units.Defs
+public import Mathlib.Algebra.Order.BigOperators.Group.Finset
+public import Mathlib.Algebra.Order.BigOperators.GroupWithZero.Finset
+public import Mathlib.Algebra.Polynomial.Basic
+public import Mathlib.Algebra.Polynomial.Degree.Defs
+public import Mathlib.Algebra.Polynomial.Degree.Lemmas
+public import Mathlib.Algebra.Polynomial.Degree.Operations
+public import Mathlib.Algebra.Polynomial.Derivative
+public import Mathlib.Algebra.Polynomial.Eval.Defs
+public import Mathlib.Algebra.Polynomial.Monic
+public import Mathlib.Algebra.Ring.Int.Defs
+public import Mathlib.Algebra.Ring.NegOnePow
+public import Mathlib.Algebra.Ring.Units
+public import Mathlib.Analysis.Calculus.Deriv.Polynomial
+public import Mathlib.Analysis.Calculus.LocalExtr.Basic
+public import Mathlib.Analysis.Complex.Trigonometric
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.Extremal
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Chebyshev.RootsExtrema
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
+public import Mathlib.Data.Finset.Erase
+public import Mathlib.Data.Fintype.Defs
+public import Mathlib.Data.Int.Cast.Basic
+public import Mathlib.Data.Nat.Basic
+public import Mathlib.LinearAlgebra.Lagrange
+public import Mathlib.Logic.Function.Defs
+public import Mathlib.Logic.Function.Iterate
+public import Mathlib.Order.Interval.Set.Defs
+public import Mathlib.RingTheory.Polynomial.Chebyshev
+public import Mathlib.Tactic.ByCases
+public import Mathlib.Tactic.ByContra
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.LinearCombination
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Ring
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.SharpMarkovHelpers
+public import Mathlib.Topology.Algebra.Polynomial
+
+@[expose] public section
 
 /-!
 # Chebyshev–Lobatto derivative estimates

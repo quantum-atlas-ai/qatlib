@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.QueryLowerBound.ScalarSignalQueryBounds
-import Qatlib.Concepts.QsvtCore.QueryLowerBound.ScalarSignalConsumers
-import Qatlib.Concepts.CoherentSim.CoherentOAA.QueryCircuit
-import Qatlib.Concepts.QspSimulation.Achievability.CircuitWellFormed
-import Qatlib.Concepts.LocalMachine.LocalTransport.ControlledQueryCircuit
-import Qatlib.Concepts.BlockEncoding.EncodingCore.CoordinateFiber
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Concepts.ResourceBounds.AsymBounds.ResourceBoundsDefs
+module
+
+public import Qatlib.Concepts.QsvtCore.QueryLowerBound.ScalarSignalQueryBounds
+public import Qatlib.Concepts.QsvtCore.QueryLowerBound.ScalarSignalConsumers
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.QueryCircuit
+public import Qatlib.Concepts.QspSimulation.Achievability.CircuitWellFormed
+public import Qatlib.Concepts.LocalMachine.LocalTransport.ControlledQueryCircuit
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.CoordinateFiber
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Concepts.ResourceBounds.AsymBounds.ResourceBoundsDefs
+
+@[expose] public section
 
 /-!
 # Adaptive signal words and access costs

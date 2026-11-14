@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CopyEvolution.SelfTomography.GramSpectralReadoutSubgoalStat
-import Qatlib.Concepts.CopyEvolution.SelfTomography.GramFirstRegisterDensityQuan
+module
+
+public import Qatlib.Concepts.CopyEvolution.SelfTomography.GramSpectralReadoutSubgoalStat
+public import Qatlib.Concepts.CopyEvolution.SelfTomography.GramFirstRegisterDensityQuan
+
+@[expose] public section
 
 /-!
 # Spectral readout of Gram density operators

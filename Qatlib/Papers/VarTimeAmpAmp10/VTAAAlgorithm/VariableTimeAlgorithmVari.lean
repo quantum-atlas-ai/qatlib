@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.ForwardProgram
-import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.VariableTimeAlgorithmStat
-import Qatlib.Papers.VarTimeAmpAmp10.StopModel.VariableTimeAlgorithmContracts
-import Qatlib.Papers.VarTimeAmpAmp10.StopModel.VariableTimeModelWellFormedVari
+module
+
+public import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.ForwardProgram
+public import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.VariableTimeAlgorithmStat
+public import Qatlib.Papers.VarTimeAmpAmp10.StopModel.VariableTimeAlgorithmContracts
+public import Qatlib.Papers.VarTimeAmpAmp10.StopModel.VariableTimeModelWellFormedVari
+
+@[expose] public section
 
 /-!
 # Structural variable-time amplification
@@ -48,6 +52,7 @@ namespace Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm
 open Matrix
 
 set_option maxHeartbeats 1200000
+set_option linter.unusedSectionVars false
 
 noncomputable section
 
@@ -454,7 +459,7 @@ theorem vt_aa_word_basic (n k : ℕ) :
     exact vt_round_basic n s hsr
 
 /-- For a probability in `[0, 1]`, its square root is at most the arcsine of that square root. -/
-theorem vt_sqrt_le_arcsin {p : ℝ} (hp0 : 0 ≤ p) (hp1 : p ≤ 1) :
+theorem vt_sqrt_le_arcsin {p : ℝ} (_hp0 : 0 ≤ p) (hp1 : p ≤ 1) :
     Real.sqrt p ≤ Real.arcsin (Real.sqrt p) := by
   by_contra hlt
   have hs1 : Real.sqrt p ≤ 1 := (Real.sqrt_le_one).mpr hp1
@@ -637,7 +642,7 @@ theorem variableTimeAlgorithm_answer : VariableTimeAlgorithm := by
       exact absurd hle (not_le.mpr hθθ₀)
     have hkprev : (2*((k:ℕ):ℝ)-1)*Real.arcsin (Real.sqrt p) < Real.arcsin (Real.sqrt (2/5)) := by
       have h := hkmin (k-1) (by omega)
-      push_neg at h
+      push Not at h
       have hsplit : (2*((k-1:ℕ):ℝ)+1) = 2*((k:ℕ):ℝ)-1 := by
         rw [Nat.cast_sub hk1]
         push_cast

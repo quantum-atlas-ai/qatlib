@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.Matrix.Order
-import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Order
-import Mathlib.Data.Matrix.ColumnRowPartitioned
-import Mathlib.Tactic.Abel
-import Mathlib.Tactic.Linarith
+module
+
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.Matrix.Order
+public import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Order
+public import Mathlib.Data.Matrix.ColumnRowPartitioned
+public import Mathlib.Tactic.Abel
+public import Mathlib.Tactic.Linarith
+
+@[expose] public section
 
 /-!
 # A polynomial contraction from a triangular block matrix

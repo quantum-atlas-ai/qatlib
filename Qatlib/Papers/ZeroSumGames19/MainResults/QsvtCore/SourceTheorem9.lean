@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ZeroSumGames19.MainResults.GameModel.SourceGameModel
-import Mathlib.Analysis.Complex.ExponentialBounds
+module
+
+public import Qatlib.Papers.ZeroSumGames19.MainResults.GameModel.SourceGameModel
+public import Mathlib.Analysis.Complex.ExponentialBounds
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -175,7 +179,7 @@ theorem total_cost_bound {n m : ℕ} (hn : 0 < n) (hm : 0 < m) {ε δ : ℝ}
     8's content and enters here as the explicit hypothesis `hper`. -/
 theorem source_theorem9_cost
     {n m : ℕ} (hn : 0 < n) (hm : 0 < m)
-    (A : PayoffMatrix n m) {ε δ C₀ : ℝ}
+    (_A : PayoffMatrix n m) {ε δ C₀ : ℝ}
     (hε0 : 0 < ε) (hε1 : ε < 1) (hδ0 : 0 < δ) (hδ1 : δ < 1 / 3) (hC₀ : 0 < C₀)
     (impl : QuantumImplementation n m)
     (hrounds : impl.rounds = fixedAccuracyRounds n m ε δ)

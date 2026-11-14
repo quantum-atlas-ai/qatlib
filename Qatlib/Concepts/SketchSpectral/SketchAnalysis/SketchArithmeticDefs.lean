@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Polynomial.Module.AEval
-import Qatlib.Concepts.SketchArith.SketchBuild.CompactImportanceSketch
-import Qatlib.Concepts.SketchArith.SketchBuild.SketchFrobeniusConcentration
-import Qatlib.Concepts.SqEstimation.InnerProduct.FiniteSQAccess
-import Qatlib.Concepts.SketchSpectral.EvenSvtLaw.EvenSVTFrobeniusRecordTools
-import Qatlib.Concepts.SketchSpectral.EvenSVT.NumericsDefs
+module
+
+public import Mathlib.Algebra.Polynomial.Module.AEval
+public import Qatlib.Concepts.SketchArith.SketchBuild.CompactImportanceSketch
+public import Qatlib.Concepts.SketchArith.SketchBuild.SketchFrobeniusConcentration
+public import Qatlib.Concepts.SqEstimation.InnerProduct.FiniteSQAccess
+public import Qatlib.Concepts.SketchSpectral.EvenSvtLaw.EvenSVTFrobeniusRecordTools
+public import Qatlib.Concepts.SketchSpectral.EvenSVT.NumericsDefs
+
+@[expose] public section
 
 /-!
 # Definitions for two-stage sketch arithmetic

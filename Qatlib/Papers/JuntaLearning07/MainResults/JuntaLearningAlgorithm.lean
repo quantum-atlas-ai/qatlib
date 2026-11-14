@@ -4,22 +4,26 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.JuntaLearning07.MainResults.FSOracleDefs
-import Qatlib.Papers.JuntaLearning07.MainResults.InfluenceIdentification
-import Mathlib.Analysis.SpecialFunctions.Log.Base
-import Mathlib.Algebra.BigOperators.Group.Finset.Defs
-import Mathlib.Algebra.BigOperators.Group.Finset.Sigma
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Algebra.Order.BigOperators.Group.Finset
-import Mathlib.Algebra.Order.Field.Basic
-import Mathlib.Algebra.Order.Floor.Semiring
-import Mathlib.Algebra.Order.GroupWithZero.Unbundled.Basic
-import Mathlib.Data.Fintype.BigOperators
-import Mathlib.Data.Fintype.Card
-import Mathlib.Data.Finset.Dedup
-import Mathlib.Data.Finset.Powerset
-import Mathlib.Data.Real.Sqrt
-import Qatlib.Papers.JuntaLearning07.MainResults.ClassicalLearningLowerBound
+module
+
+public import Qatlib.Papers.JuntaLearning07.MainResults.FSOracleDefs
+public import Qatlib.Papers.JuntaLearning07.MainResults.InfluenceIdentification
+public import Mathlib.Analysis.SpecialFunctions.Log.Base
+public import Mathlib.Algebra.BigOperators.Group.Finset.Defs
+public import Mathlib.Algebra.BigOperators.Group.Finset.Sigma
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Algebra.Order.BigOperators.Group.Finset
+public import Mathlib.Algebra.Order.Field.Basic
+public import Mathlib.Algebra.Order.Floor.Semiring
+public import Mathlib.Algebra.Order.GroupWithZero.Basic
+public import Mathlib.Data.Fintype.BigOperators
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Data.Finset.Dedup
+public import Mathlib.Data.Finset.Powerset
+public import Mathlib.Analysis.Real.Sqrt
+public import Qatlib.Papers.JuntaLearning07.MainResults.ClassicalLearningLowerBound
+
+@[expose] public section
 
 /-!
 # Ingredients for learning juntas
@@ -126,8 +130,8 @@ theorem stage2Hypothesis_dependsOnlyOn (A : Finset (Fin n))
   congr 1
   funext i
   by_cases hi : i ∈ A
-  · rw [if_pos hi, if_pos hi, hxy i hi]
-  · rw [if_neg hi, if_neg hi]
+  · rw [ite_eq_left hi, ite_eq_left hi, hxy i hi]
+  · rw [ite_eq_right hi, ite_eq_right hi]
 
 /-- If `A` contains at most `k` coordinates, the second-stage hypothesis is a `k`-junta. -/
 theorem stage2Hypothesis_isKJunta {k : ℕ} (A : Finset (Fin n))

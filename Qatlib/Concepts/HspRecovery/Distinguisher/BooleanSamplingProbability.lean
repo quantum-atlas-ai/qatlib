@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.Distinguisher.BooleanRecovery
-import Qatlib.Concepts.HspRecovery.Distinguisher.HiddenSubgroupRepetition
+module
+
+public import Qatlib.Concepts.HspRecovery.Distinguisher.BooleanRecovery
+public import Qatlib.Concepts.HspRecovery.Distinguisher.HiddenSubgroupRepetition
+
+@[expose] public section
 
 /-!
 # Boolean Fourier halfspace probabilities
@@ -142,7 +146,7 @@ theorem FinDist.sum_probOf_forall_eq_pow {X : Type*} [Fintype X] [DecidableEq X]
     · simp [h]
     · push Not at h
       obtain ⟨i, hi⟩ := h
-      rw [if_neg (by
+      rw [ite_eq_right (by
         intro hall
         exact hi (hall i))]
       symm

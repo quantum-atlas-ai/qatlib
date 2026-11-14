@@ -4,124 +4,128 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Algebra.Basic
-import Mathlib.Algebra.Algebra.Defs
-import Mathlib.Algebra.BigOperators.Fin
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Defs
-import Mathlib.Algebra.BigOperators.Intervals
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Algebra.CharP.Defs
-import Mathlib.Algebra.CharZero.Defs
-import Mathlib.Algebra.Field.Defs
-import Mathlib.Algebra.Group.Action.Defs
-import Mathlib.Algebra.Group.Action.Pi
-import Mathlib.Algebra.Group.Basic
-import Mathlib.Algebra.Group.Defs
-import Mathlib.Algebra.Group.DivInvMonoid
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.Group.Nat.Defs
-import Mathlib.Algebra.Group.Pi.Basic
-import Mathlib.Algebra.Group.Semigroup
-import Mathlib.Algebra.GroupWithZero.Action.Defs
-import Mathlib.Algebra.GroupWithZero.Action.Pi
-import Mathlib.Algebra.GroupWithZero.Basic
-import Mathlib.Algebra.GroupWithZero.Defs
-import Mathlib.Algebra.GroupWithZero.NeZero
-import Mathlib.Algebra.Module.Defs
-import Mathlib.Algebra.Module.Pi
-import Mathlib.Algebra.Module.Torsion.Free
-import Mathlib.Algebra.NeZero
-import Mathlib.Algebra.Notation.Defs
-import Mathlib.Algebra.Notation.Pi.Defs
-import Mathlib.Algebra.Order.Archimedean.Real.Basic
-import Mathlib.Algebra.Order.Floor.Defs
-import Mathlib.Algebra.Order.Group.Defs
-import Mathlib.Algebra.Order.GroupWithZero.Basic
-import Mathlib.Algebra.Order.Module.Defs
-import Mathlib.Algebra.Order.Monoid.Defs
-import Mathlib.Algebra.Order.Monoid.Unbundled.Basic
-import Mathlib.Algebra.Order.Monoid.Unbundled.Defs
-import Mathlib.Algebra.Order.Monoid.Unbundled.ExistsOfLE
-import Mathlib.Algebra.Order.Ring.Basic
-import Mathlib.Algebra.Order.Ring.Defs
-import Mathlib.Algebra.Order.Ring.Unbundled.Basic
-import Mathlib.Algebra.Order.Star.Basic
-import Mathlib.Algebra.Order.Star.Real
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Algebra.Ring.Nat
-import Mathlib.Algebra.Ring.Parity
-import Mathlib.Algebra.Star.Basic
-import Mathlib.Analysis.CStarAlgebra.Classes
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Analysis.Complex.Order
-import Mathlib.Analysis.InnerProductSpace.Basic
-import Mathlib.Analysis.InnerProductSpace.Defs
-import Mathlib.Analysis.Normed.Field.Basic
-import Mathlib.Analysis.Normed.Module.Basic
-import Mathlib.Analysis.Normed.Ring.Basic
-import Mathlib.Analysis.RCLike.Basic
-import Mathlib.Analysis.Real.Sqrt
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Basic.Complex.Basic
-import Mathlib.Basic.FunLike.Basic
-import Mathlib.Basic.FunLike.Equiv
-import Mathlib.Basic.IsEmpty.Defs
-import Mathlib.Basic.Real.Basic
-import Mathlib.Basic.Real.Star
-import Mathlib.Basic.SetLike.Basic
-import Mathlib.Data.Fin.VecNotation
-import Mathlib.Data.Finset.Basic
-import Mathlib.Data.Finset.Defs
-import Mathlib.Data.Finset.Range
-import Mathlib.Data.Fintype.Basic
-import Mathlib.Data.Fintype.Defs
-import Mathlib.Data.Fintype.EquivFin
-import Mathlib.Data.Int.Cast.Defs
-import Mathlib.Data.Matrix.Diagonal
-import Mathlib.Data.Matrix.Mul
-import Mathlib.Data.Nat.Basic
-import Mathlib.Data.Nat.Cast.Defs
-import Mathlib.Data.Nat.Cast.Order.Basic
-import Mathlib.Data.Nat.Cast.Order.Ring
-import Mathlib.Data.Nat.Choose.Basic
-import Mathlib.Data.Nat.Init
-import Mathlib.Data.ZMod.Defs
-import Mathlib.FieldTheory.Perfect
-import Mathlib.FieldTheory.Separable
-import Mathlib.GroupTheory.GroupAction.Ring
-import Mathlib.LinearAlgebra.Basis.VectorSpace
-import Mathlib.LinearAlgebra.Complex.FiniteDimensional
-import Mathlib.LinearAlgebra.Complex.Module
-import Mathlib.LinearAlgebra.FreeModule.PID
-import Mathlib.LinearAlgebra.Matrix.Defs
-import Mathlib.LinearAlgebra.Matrix.Notation
-import Mathlib.LinearAlgebra.Matrix.PosDef
-import Mathlib.LinearAlgebra.Matrix.StdBasis
-import Mathlib.LinearAlgebra.Matrix.Trace
-import Mathlib.Logic.Equiv.Defs
-import Mathlib.Logic.Function.Defs
-import Mathlib.Order.Defs.Lattice
-import Mathlib.Order.Defs.LinearOrder
-import Mathlib.Order.Defs.PartialOrder
-import Mathlib.Order.Interval.Finset.Defs
-import Mathlib.Order.Interval.Finset.Nat
-import Mathlib.Order.Lattice
-import Mathlib.RingTheory.Algebraic.Integral
-import Mathlib.RingTheory.DedekindDomain.Basic
-import Mathlib.RingTheory.Flat.FaithfullyFlat.Algebra
-import Mathlib.RingTheory.Flat.FaithfullyFlat.Basic
-import Mathlib.RingTheory.Flat.TorsionFree
-import Mathlib.RingTheory.IntegralClosure.Algebra.Basic
-import Mathlib.RingTheory.SimpleRing.Basic
-import Mathlib.RingTheory.SimpleRing.Principal
-import Mathlib.Tactic
-import Mathlib.Tactic.Linarith.Lemmas
-import Mathlib.Tactic.NormNum.Basic
-import Mathlib.Tactic.NormNum.Result
-import Mathlib.Tactic.Positivity.Core
-import Mathlib.Tactic.Ring.Basic
-import Mathlib.Tactic.Ring.Common
+module
+
+public import Mathlib.Algebra.Algebra.Basic
+public import Mathlib.Algebra.Algebra.Defs
+public import Mathlib.Algebra.BigOperators.Fin
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Defs
+public import Mathlib.Algebra.BigOperators.Intervals
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Algebra.CharP.Defs
+public import Mathlib.Algebra.CharZero.Defs
+public import Mathlib.Algebra.Field.Defs
+public import Mathlib.Algebra.Group.Action.Defs
+public import Mathlib.Algebra.Group.Action.Pi
+public import Mathlib.Algebra.Group.Basic
+public import Mathlib.Algebra.Group.Defs
+public import Mathlib.Algebra.Group.DivInvMonoid
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.Group.Nat.Defs
+public import Mathlib.Algebra.Group.Pi.Basic
+public import Mathlib.Algebra.Group.Semigroup
+public import Mathlib.Algebra.GroupWithZero.Action.Defs
+public import Mathlib.Algebra.GroupWithZero.Action.Pi
+public import Mathlib.Algebra.GroupWithZero.Basic
+public import Mathlib.Algebra.GroupWithZero.Defs
+public import Mathlib.Algebra.GroupWithZero.NeZero
+public import Mathlib.Algebra.Module.Defs
+public import Mathlib.Algebra.Module.Pi
+public import Mathlib.Algebra.Module.Torsion.Free
+public import Mathlib.Algebra.NeZero
+public import Mathlib.Algebra.Notation.Defs
+public import Mathlib.Algebra.Notation.Pi.Defs
+public import Mathlib.Algebra.Order.Archimedean.Real.Basic
+public import Mathlib.Algebra.Order.Floor.Defs
+public import Mathlib.Algebra.Order.Group.Defs
+public import Mathlib.Algebra.Order.GroupWithZero.Basic
+public import Mathlib.Algebra.Order.Module.Defs
+public import Mathlib.Algebra.Order.Monoid.Defs
+public import Mathlib.Algebra.Order.Monoid.Unbundled.Basic
+public import Mathlib.Algebra.Order.Monoid.Unbundled.Defs
+public import Mathlib.Algebra.Order.Monoid.Unbundled.ExistsOfLE
+public import Mathlib.Algebra.Order.Ring.Basic
+public import Mathlib.Algebra.Order.Ring.Defs
+public import Mathlib.Algebra.Order.Ring.Unbundled.Basic
+public import Mathlib.Algebra.Order.Star.Basic
+public import Mathlib.Algebra.Order.Star.Real
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Algebra.Ring.Nat
+public import Mathlib.Algebra.Ring.Parity
+public import Mathlib.Algebra.Star.Basic
+public import Mathlib.Analysis.CStarAlgebra.Classes
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Analysis.Complex.Order
+public import Mathlib.Analysis.InnerProductSpace.Basic
+public import Mathlib.Analysis.InnerProductSpace.Defs
+public import Mathlib.Analysis.Normed.Field.Basic
+public import Mathlib.Analysis.Normed.Module.Basic
+public import Mathlib.Analysis.Normed.Ring.Basic
+public import Mathlib.Analysis.RCLike.Basic
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Basic.FunLike.Basic
+public import Mathlib.Basic.FunLike.Equiv
+public import Mathlib.Basic.IsEmpty.Defs
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Basic.Real.Star
+public import Mathlib.Basic.SetLike.Basic
+public import Mathlib.Data.Fin.VecNotation
+public import Mathlib.Data.Finset.Basic
+public import Mathlib.Data.Finset.Defs
+public import Mathlib.Data.Finset.Range
+public import Mathlib.Data.Fintype.Basic
+public import Mathlib.Data.Fintype.Defs
+public import Mathlib.Data.Fintype.EquivFin
+public import Mathlib.Data.Int.Cast.Defs
+public import Mathlib.Data.Matrix.Diagonal
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.Data.Nat.Basic
+public import Mathlib.Data.Nat.Cast.Defs
+public import Mathlib.Data.Nat.Cast.Order.Basic
+public import Mathlib.Data.Nat.Cast.Order.Ring
+public import Mathlib.Data.Nat.Choose.Basic
+public import Mathlib.Data.Nat.Init
+public import Mathlib.Data.ZMod.Defs
+public import Mathlib.FieldTheory.Perfect
+public import Mathlib.FieldTheory.Separable
+public import Mathlib.GroupTheory.GroupAction.Ring
+public import Mathlib.LinearAlgebra.Basis.VectorSpace
+public import Mathlib.LinearAlgebra.Complex.FiniteDimensional
+public import Mathlib.LinearAlgebra.Complex.Module
+public import Mathlib.LinearAlgebra.FreeModule.PID
+public import Mathlib.LinearAlgebra.Matrix.Defs
+public import Mathlib.LinearAlgebra.Matrix.Notation
+public import Mathlib.LinearAlgebra.Matrix.PosDef
+public import Mathlib.LinearAlgebra.Matrix.StdBasis
+public import Mathlib.LinearAlgebra.Matrix.Trace
+public import Mathlib.Logic.Equiv.Defs
+public import Mathlib.Logic.Function.Defs
+public import Mathlib.Order.Defs.Lattice
+public import Mathlib.Order.Defs.LinearOrder
+public import Mathlib.Order.Defs.PartialOrder
+public import Mathlib.Order.Interval.Finset.Defs
+public import Mathlib.Order.Interval.Finset.Nat
+public import Mathlib.Order.Lattice
+public import Mathlib.RingTheory.Algebraic.Integral
+public import Mathlib.RingTheory.DedekindDomain.Basic
+public import Mathlib.RingTheory.Flat.FaithfullyFlat.Algebra
+public import Mathlib.RingTheory.Flat.FaithfullyFlat.Basic
+public import Mathlib.RingTheory.Flat.TorsionFree
+public import Mathlib.RingTheory.IntegralClosure.Algebra.Basic
+public import Mathlib.RingTheory.SimpleRing.Basic
+public import Mathlib.RingTheory.SimpleRing.Principal
+public import Mathlib.Tactic
+public import Mathlib.Tactic.Linarith.Lemmas
+public import Mathlib.Tactic.NormNum.Basic
+public import Mathlib.Tactic.NormNum.Result
+public import Mathlib.Tactic.Positivity.Core
+public import Mathlib.Tactic.Ring.Basic
+public import Mathlib.Tactic.Ring.Common
+
+@[expose] public section
 
 /-!
 # Spectral blocks for universal quantum matching
@@ -351,7 +355,7 @@ theorem blockEig_binom (N k : ℕ) :
   by_cases hk : k = 0
   · subst hk
     simp [Nat.choose_one_right]
-  · simp only [hk, if_false]
+  · simp only [hk, ite_false]
     rw [show (Real.sqrt (↑(Nat.choose N k)) * Real.sqrt (↑(Nat.choose N (k + 1)))) ^ 2
           = (Nat.choose N k : ℝ) * (Nat.choose N (k + 1) : ℝ) by
         rw [mul_pow, Real.sq_sqrt (by positivity), Real.sq_sqrt (by positivity)]]
@@ -377,7 +381,7 @@ theorem binom_block_pos {N k : ℕ} (hN : 1 ≤ N) (hk : k ≤ N) :
   · rw [heq]
     have hc : binomC N N ^ 2 = (Nat.choose N N : ℝ) * (Nat.choose N (N - 1) : ℝ) := by
       unfold binomC
-      rw [if_neg (by omega), mul_pow, Real.sq_sqrt (by positivity),
+      rw [ite_eq_right (by omega), mul_pow, Real.sq_sqrt (by positivity),
         Real.sq_sqrt (by positivity)]
     have hchN : Nat.choose N (N - 1) = N := by
       rw [Nat.choose_symm hN]; exact Nat.choose_one_right N
@@ -396,7 +400,7 @@ theorem binomS_zero (N : ℕ) : binomS N 0 = Real.sqrt N := by
 theorem binomS_top {N : ℕ} (hN : 1 ≤ N) : binomS N N = Real.sqrt N := by
   unfold binomS
   have hN0 : N ≠ 0 := by omega
-  rw [if_neg hN0, Nat.choose_self, Nat.choose_eq_zero_of_lt (Nat.lt_succ_self N),
+  rw [ite_eq_right hN0, Nat.choose_self, Nat.choose_eq_zero_of_lt (Nat.lt_succ_self N),
     show Nat.choose N (N - 1) = N by
       rw [Nat.choose_symm hN]; exact Nat.choose_one_right N]
   simp
@@ -407,7 +411,7 @@ theorem binomS_interior {N k : ℕ} (hk : 1 ≤ k) :
     binomS N k = Real.sqrt (Nat.choose N k) *
       Real.sqrt ((Nat.choose N (k + 1) : ℝ) + (Nat.choose N (k - 1) : ℝ)) := by
   unfold binomS
-  rw [if_neg (by omega)]
+  rw [ite_eq_right (by omega)]
 
 /-- For `N ≥ 1`, the sum of the block values splits into two `√N` endpoint terms and the
 interior sum of `binomS`. -/

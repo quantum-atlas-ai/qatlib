@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.PetzRecovery26.VirtualAdjoint.Model
+module
+
+public import Qatlib.Papers.PetzRecovery26.VirtualAdjoint.Model
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -68,15 +72,15 @@ theorem flip_not_posSemidef_fin2 :
   have hcalc :
       RCLike.re (star v ⬝ᵥ ((!![(0 : ℂ), 1; 1, 0] : Matrix (Fin 2) (Fin 2) ℂ) *ᵥ v)) = -2 := by
     simp only [v, Matrix.mulVec, dotProduct, Pi.star_apply, Fin.sum_univ_two,
-      Matrix.of_apply, Matrix.cons_val_zero, Matrix.cons_val_one, Matrix.head_cons,
-      Matrix.tail_cons]
+      Matrix.of_apply, Matrix.cons_val_zero, Matrix.cons_val_one]
     norm_num
   rw [hcalc] at hnn
   norm_num at hnn
 
 /-- For systems of dimension at least two, the flip (SWAP) operator is not
 positive semidefinite. -/
-theorem flip_not_posSemidef [Nontrivial A] :
+theorem flip_not_posSemidef {A : Type*} [_flipFintype : Fintype A] [DecidableEq A]
+    [Nontrivial A] :
     ¬ (flip : Matrix (A × A) (A × A) ℂ).PosSemidef := by
   intro h
   obtain ⟨a0, a1, hne⟩ := exists_pair_ne A

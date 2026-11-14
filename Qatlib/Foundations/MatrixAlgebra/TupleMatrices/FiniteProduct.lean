@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.LinearAlgebra.Matrix.ConjTranspose
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Tactic
+module
+
+public import Mathlib.LinearAlgebra.Matrix.ConjTranspose
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Finite products of rectangular matrices
@@ -69,8 +73,8 @@ theorem tupleMatrix_one : tupleMatrix (fun x => (1 : Matrix (I x) (I x) ℂ))=1 
       push Not at hn
       exact huv (funext hn)
     obtain ⟨x,hx⟩ := h
-    simp only [tupleMatrix,Matrix.one_apply,if_neg huv]
-    exact Finset.prod_eq_zero (Finset.mem_univ x) (if_neg hx)
+    simp only [tupleMatrix,Matrix.one_apply,ite_eq_right huv]
+    exact Finset.prod_eq_zero (Finset.mem_univ x) (ite_eq_right hx)
 
 /-- The conjugate transpose of a tuple matrix is the tuple matrix of the coordinate conjugate
 transposes. -/

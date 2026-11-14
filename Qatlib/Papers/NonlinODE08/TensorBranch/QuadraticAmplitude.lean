@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Complex.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Data.Fintype.BigOperators
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.NormNum
+module
+
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Data.Fintype.BigOperators
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.NormNum
+
+@[expose] public section
 
 /-!
 # QuadraticAmplitude — the two-copy quadratic amplitude map
@@ -90,13 +94,13 @@ theorem actA_tensorAmp {n : ℕ} (a : Coeff n) (z : AmpVec n) (out : Fin (n + 1)
     actA a (tensorAmp z) out = branchAmp a z out := by
   unfold actA branchAmp
   by_cases h : out.2 = 0
-  · simp only [h, if_true]
+  · simp only [h, ite_true]
     rw [Finset.mul_sum]
     apply Finset.sum_congr rfl
     intro inp _
     simp only [tensorAmp]
     ring
-  · simp only [h, if_false]
+  · simp only [h, ite_false]
 
 /-- Equation (3), normalisation: if `∑_j |z_j|² = 1` then `∑_{j≥1}`, encoded as
 `∑_j |z_j|² = 2` over the extended index set, the two-copy state has norm one. -/

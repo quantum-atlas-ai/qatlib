@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SketchSpectral.MatrixFunctions.HermitianRankLogStability
+module
+
+public import Qatlib.Concepts.SketchSpectral.MatrixFunctions.HermitianRankLogStability
+
+@[expose] public section
 
 /-!
 # A Frobenius error bound for low-rank approximations
@@ -85,10 +89,10 @@ theorem spectralFrobenius_lowRank_error
         (matrixSingularValues A i-matrixSingularValues X i)^2 +
           if i.val < X.rank then ‖A‖^2 else 0 := by
     by_cases hi : i.val < X.rank
-    · rw [if_pos hi]
+    · rw [ite_eq_left hi]
       have hs := (sq_le_sq₀ (matrixSingularValues_nonneg A i) (norm_nonneg A)).mpr (hsigma i)
       nlinarith [sq_nonneg (matrixSingularValues A i-matrixSingularValues X i)]
-    · rw [if_neg hi, matrixSingularValues_eq_zero_of_rank_le (Nat.le_of_not_gt hi)]
+    · rw [ite_eq_right hi, matrixSingularValues_eq_zero_of_rank_le (Nat.le_of_not_gt hi)]
       simp
   have hbonus : (∑ i : Fin (Fintype.card I), if i.val < X.rank then ‖A‖^2 else 0) =
       (J.card : ℝ)*‖A‖^2 := by

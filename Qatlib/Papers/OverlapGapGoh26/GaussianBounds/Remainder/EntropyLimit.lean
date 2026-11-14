@@ -4,96 +4,100 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Algebra.Defs
-import Mathlib.Algebra.Algebra.Rat
-import Mathlib.Algebra.CharZero.Defs
-import Mathlib.Algebra.Field.Basic
-import Mathlib.Algebra.Field.Defs
-import Mathlib.Algebra.Field.Rat
-import Mathlib.Algebra.Group.Basic
-import Mathlib.Algebra.Group.Defs
-import Mathlib.Algebra.Group.DivInvMonoid
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.Group.Nat.Defs
-import Mathlib.Algebra.Group.Semigroup
-import Mathlib.Algebra.GroupWithZero.Action.Defs
-import Mathlib.Algebra.GroupWithZero.Basic
-import Mathlib.Algebra.GroupWithZero.Defs
-import Mathlib.Algebra.GroupWithZero.Nat
-import Mathlib.Algebra.Module.Defs
-import Mathlib.Algebra.Module.Rat
-import Mathlib.Algebra.Order.Archimedean.Real.Basic
-import Mathlib.Algebra.Order.Floor.Defs
-import Mathlib.Algebra.Order.Group.Defs
-import Mathlib.Algebra.Order.GroupWithZero.Basic
-import Mathlib.Algebra.Order.GroupWithZero.Defs
-import Mathlib.Algebra.Order.Monoid.Defs
-import Mathlib.Algebra.Order.Monoid.Unbundled.Basic
-import Mathlib.Algebra.Order.Ring.Defs
-import Mathlib.Algebra.Order.Ring.Star
-import Mathlib.Algebra.Order.Star.Basic
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Algebra.Ring.IsFormallyReal
-import Mathlib.Algebra.Ring.Nat
-import Mathlib.Algebra.Ring.Rat
-import Mathlib.Algebra.Star.Basic
-import Mathlib.Analysis.Asymptotics.Lemmas
-import Mathlib.Analysis.Complex.Exponential
-import Mathlib.Analysis.Normed.Field.Basic
-import Mathlib.Analysis.Normed.Field.Lemmas
-import Mathlib.Analysis.Normed.Group.Defs
-import Mathlib.Analysis.Normed.Group.Real
-import Mathlib.Analysis.Normed.Module.Basic
-import Mathlib.Analysis.Normed.Order.Lattice
-import Mathlib.Analysis.Normed.Ring.Basic
-import Mathlib.Analysis.RCLike.Basic
-import Mathlib.Analysis.SpecialFunctions.Exp
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Analysis.SpecificLimits.Basic
-import Mathlib.Basic.Real.Basic
-import Mathlib.Data.Int.Cast.Defs
-import Mathlib.Data.NNRat.Defs
-import Mathlib.Data.Nat.Basic
-import Mathlib.Data.Nat.Cast.Defs
-import Mathlib.Data.Nat.Cast.Order.Basic
-import Mathlib.Data.Nat.Cast.Order.Ring
-import Mathlib.Data.Nat.Init
-import Mathlib.Data.Rat.Defs
-import Mathlib.Data.Rat.Init
-import Mathlib.Data.Set.Defs
-import Mathlib.Order.Basic
-import Mathlib.Order.Defs.Lattice
-import Mathlib.Order.Defs.LinearOrder
-import Mathlib.Order.Defs.PartialOrder
-import Mathlib.Order.Filter.AtTopBot.Archimedean
-import Mathlib.Order.Filter.AtTopBot.Defs
-import Mathlib.Order.Filter.AtTopBot.Tendsto
-import Mathlib.Order.Filter.Basic
-import Mathlib.Order.Filter.Defs
-import Mathlib.Order.Filter.Tendsto
-import Mathlib.Order.Lattice
-import Mathlib.Tactic
-import Mathlib.Tactic.CancelDenoms.Core
-import Mathlib.Tactic.Linarith.Lemmas
-import Mathlib.Tactic.NormNum.Basic
-import Mathlib.Tactic.NormNum.Eq
-import Mathlib.Tactic.NormNum.Ineq
-import Mathlib.Tactic.NormNum.Inv
-import Mathlib.Tactic.NormNum.Result
-import Mathlib.Tactic.Positivity.Core
-import Mathlib.Tactic.Ring.Basic
-import Mathlib.Tactic.Ring.Common
-import Mathlib.Topology.Algebra.Monoid.Defs
-import Mathlib.Topology.Algebra.Ring.Basic
-import Mathlib.Topology.Algebra.Ring.Real
-import Mathlib.Topology.Basic
-import Mathlib.Topology.Defs.Filter
-import Mathlib.Topology.Instances.Rat
-import Mathlib.Topology.MetricSpace.Pseudo.Defs
-import Mathlib.Topology.MetricSpace.Pseudo.Lemmas
-import Mathlib.Topology.Order.OrderClosed
-import Mathlib.Topology.UniformSpace.Defs
+module
+
+public import Mathlib.Algebra.Algebra.Defs
+public import Mathlib.Algebra.Algebra.Rat
+public import Mathlib.Algebra.CharZero.Defs
+public import Mathlib.Algebra.Field.Basic
+public import Mathlib.Algebra.Field.Defs
+public import Mathlib.Algebra.Field.Rat
+public import Mathlib.Algebra.Group.Basic
+public import Mathlib.Algebra.Group.Defs
+public import Mathlib.Algebra.Group.DivInvMonoid
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.Group.Nat.Defs
+public import Mathlib.Algebra.Group.Semigroup
+public import Mathlib.Algebra.GroupWithZero.Action.Defs
+public import Mathlib.Algebra.GroupWithZero.Basic
+public import Mathlib.Algebra.GroupWithZero.Defs
+public import Mathlib.Algebra.GroupWithZero.Nat
+public import Mathlib.Algebra.Module.Defs
+public import Mathlib.Algebra.Module.Rat
+public import Mathlib.Algebra.Order.Archimedean.Real.Basic
+public import Mathlib.Algebra.Order.Floor.Defs
+public import Mathlib.Algebra.Order.Group.Defs
+public import Mathlib.Algebra.Order.GroupWithZero.Basic
+public import Mathlib.Algebra.Order.GroupWithZero.Defs
+public import Mathlib.Algebra.Order.Monoid.Defs
+public import Mathlib.Algebra.Order.Monoid.Unbundled.Basic
+public import Mathlib.Algebra.Order.Ring.Defs
+public import Mathlib.Algebra.Order.Ring.Star
+public import Mathlib.Algebra.Order.Star.Basic
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Algebra.Ring.IsFormallyReal
+public import Mathlib.Algebra.Ring.Nat
+public import Mathlib.Algebra.Ring.Rat
+public import Mathlib.Algebra.Star.Basic
+public import Mathlib.Analysis.Asymptotics.Lemmas
+public import Mathlib.Analysis.Complex.Exponential
+public import Mathlib.Analysis.Normed.Field.Basic
+public import Mathlib.Analysis.Normed.Field.Lemmas
+public import Mathlib.Analysis.Normed.Group.Defs
+public import Mathlib.Analysis.Normed.Group.Real
+public import Mathlib.Analysis.Normed.Module.Basic
+public import Mathlib.Analysis.Normed.Order.Lattice
+public import Mathlib.Analysis.Normed.Ring.Basic
+public import Mathlib.Analysis.RCLike.Basic
+public import Mathlib.Analysis.SpecialFunctions.Exp
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Analysis.SpecificLimits.Basic
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Data.Int.Cast.Defs
+public import Mathlib.Data.NNRat.Defs
+public import Mathlib.Data.Nat.Basic
+public import Mathlib.Data.Nat.Cast.Defs
+public import Mathlib.Data.Nat.Cast.Order.Basic
+public import Mathlib.Data.Nat.Cast.Order.Ring
+public import Mathlib.Data.Nat.Init
+public import Mathlib.Data.Rat.Defs
+public import Mathlib.Data.Rat.Init
+public import Mathlib.Data.Set.Defs
+public import Mathlib.Order.Basic
+public import Mathlib.Order.Defs.Lattice
+public import Mathlib.Order.Defs.LinearOrder
+public import Mathlib.Order.Defs.PartialOrder
+public import Mathlib.Order.Filter.AtTopBot.Archimedean
+public import Mathlib.Order.Filter.AtTopBot.Defs
+public import Mathlib.Order.Filter.AtTopBot.Tendsto
+public import Mathlib.Order.Filter.Basic
+public import Mathlib.Order.Filter.Defs
+public import Mathlib.Order.Filter.Tendsto
+public import Mathlib.Order.Lattice
+public import Mathlib.Tactic
+public import Mathlib.Tactic.CancelDenoms.Core
+public import Mathlib.Tactic.Linarith.Lemmas
+public import Mathlib.Tactic.NormNum.Basic
+public import Mathlib.Tactic.NormNum.Eq
+public import Mathlib.Tactic.NormNum.Ineq
+public import Mathlib.Tactic.NormNum.Inv
+public import Mathlib.Tactic.NormNum.Result
+public import Mathlib.Tactic.Positivity.Core
+public import Mathlib.Tactic.Ring.Basic
+public import Mathlib.Tactic.Ring.Common
+public import Mathlib.Topology.Algebra.Monoid.Defs
+public import Mathlib.Topology.Algebra.Ring.Basic
+public import Mathlib.Topology.Algebra.Ring.Real
+public import Mathlib.Topology.Basic
+public import Mathlib.Topology.Defs.Filter
+public import Mathlib.Topology.Instances.Rat
+public import Mathlib.Topology.MetricSpace.Pseudo.Defs
+public import Mathlib.Topology.MetricSpace.Pseudo.Lemmas
+public import Mathlib.Topology.Order.OrderClosed
+public import Mathlib.Topology.UniformSpace.Defs
+
+@[expose] public section
 
 /-!
 # Entropy and Gaussian decay limits

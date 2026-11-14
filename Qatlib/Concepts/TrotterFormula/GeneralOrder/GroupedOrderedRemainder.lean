@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TrotterFormula.GeneralOrder.GroupedOrderedCompositions
-import Qatlib.Concepts.TrotterFormula.GeneralOrder.GroupedOrderedSegments
+module
+
+public import Qatlib.Concepts.TrotterFormula.GeneralOrder.GroupedOrderedCompositions
+public import Qatlib.Concepts.TrotterFormula.GeneralOrder.GroupedOrderedSegments
+
+@[expose] public section
 
 /-!
 # Grouped integral remainders for ordered conjugations
@@ -159,7 +163,7 @@ theorem groupedLift_last (s j : ℕ) (r : Fin s → ℕ) :
     simp [sourceParts]
   · have ha : s+1-a.succ.val-1=s-1-a.val := by simp only [Fin.val_succ]; omega
     have hb : s+1-a.succ.val ≤ s+1 := by omega
-    simp only [groupedLift,if_pos hb,ha,Fin.cons_succ]
+    simp only [groupedLift,ite_eq_left hb,ha,Fin.cons_succ]
     rw [List.getD_append _ _ _ _ (by simp only [sourceParts,List.length_ofFn]; omega),
       clause49_sourceParts_getD r _ (by omega)]
     congr 1

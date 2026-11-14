@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.Waterfill.LevelFidelity.CoherentReweightingBoundaryDefs
-import Qatlib.Concepts.Waterfill.LevelFidelity.RealFidelityEndpoints
-import Qatlib.Concepts.Waterfill.LevelFidelity.EffectiveFidelitySearch
-import Qatlib.Concepts.Waterfill.LevelFidelity.AccessReweighting
+module
+
+public import Qatlib.Concepts.Waterfill.LevelFidelity.CoherentReweightingBoundaryDefs
+public import Qatlib.Concepts.Waterfill.LevelFidelity.RealFidelityEndpoints
+public import Qatlib.Concepts.Waterfill.LevelFidelity.EffectiveFidelitySearch
+public import Qatlib.Concepts.Waterfill.LevelFidelity.AccessReweighting
+
+@[expose] public section
 
 /-!
 # Boundary cases and complete reweighting contracts
@@ -115,7 +119,7 @@ theorem gext1_complete :
     have hnonneg : ∀ j, 0 ≤ (if 0 < π j then σ j ^ 2 else 0) := by
       intro j; split_ifs <;> positivity
     have hterm : 0 < (if 0 < π i₀ then σ i₀ ^ 2 else 0) := by
-      rw [if_pos hi₀π]; positivity
+      rw [ite_eq_left hi₀π]; positivity
     unfold realPmax
     exact Finset.sum_pos' (fun j _ => hnonneg j) ⟨i₀, Finset.mem_univ i₀, hterm⟩
 
@@ -125,8 +129,8 @@ theorem gext1_complete :
   have hlow : ∀ i, realFill π σ γlo i = if 0 < π i then γlo * σ i else 0 := by
     intro i
     by_cases hi : 0 < π i
-    · rw [realFill_bracketLow hπ hBlo i hi, if_pos hi]
-    · rw [realFill_sourceZero hσ hγ0 i (le_antisymm (not_lt.mp hi) (hπ i)), if_neg hi]
+    · rw [realFill_bracketLow hπ hBlo i hi, ite_eq_left hi]
+    · rw [realFill_sourceZero hσ hγ0 i (le_antisymm (not_lt.mp hi) (hπ i)), ite_eq_right hi]
   have hdotlo : realDot π σ γlo = γlo * realPmax π σ :=
     realDot_bracketLow hπ hσ hγ0 hBlo
   have hmasslo : realMass π σ γlo = γlo ^ 2 * realPmax π σ :=
@@ -232,14 +236,14 @@ theorem gext1_complete :
       have hg : ∀ j, 0 ≤ (if 0 < π j then π j / σ j else 0) := by
         intro j
         by_cases hj : 0 < π j
-        · rw [if_pos hj]
+        · rw [ite_eq_left hj]
           have hσj : 0 < σ j := by
             by_contra h
             have hz : σ j = 0 := le_antisymm (not_lt.mp h) (hσ j)
             have hpi0 : π j = 0 := hsupp j hz
             exact absurd hj (by rw [hpi0]; exact lt_irrefl _)
           exact div_nonneg (le_of_lt hj) (le_of_lt hσj)
-        · rw [if_neg hj]
+        · rw [ite_eq_right hj]
       have hsat0 : 0 ≤ sat := by
         unfold sat
         exact Finset.sum_nonneg fun j _ => hg j
@@ -253,7 +257,7 @@ theorem gext1_complete :
             exact absurd hi (by rw [hpi0]; exact lt_irrefl _)
           have hge : π i / σ i ≤ ∑ j, if 0 < π j then π j / σ j else 0 := by
             have h := Finset.single_le_sum (fun j _ => hg j) (Finset.mem_univ i)
-            rw [if_pos hi] at h
+            rw [ite_eq_left hi] at h
             exact h
           have hge' : π i / σ i ≤ sat := by unfold sat; linarith
           have hkey : π i ≤ sat * σ i := by
@@ -507,7 +511,7 @@ theorem easyInstance_success :
           Ket ((0, 0), false) p = if p = ((0, 0), false) then 1 else 0 := fun _ => rfl
       conv_lhs => simp only [hket, mul_ite, mul_one, mul_zero]
       rw [Finset.sum_ite_eq']
-      simp only [Finset.mem_univ, if_true]
+      simp only [Finset.mem_univ, ite_true]
       simp [resamplingFamily, easySig]
     have hnorm : Complex.normSq (ξ 0 0) = 1 := by
       have h := hξ 0

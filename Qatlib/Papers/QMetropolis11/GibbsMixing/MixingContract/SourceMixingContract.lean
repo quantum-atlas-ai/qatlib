@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MixedInstrument.Contraction.ContractionMixingDecayQuan
-import Qatlib.Concepts.MixedInstrument.Contraction.ContractionFixedPointErrorQuan
-import Qatlib.Concepts.QuantumGibbs.RejectionRewind.RejectionBudgetQuan
+module
+
+public import Qatlib.Concepts.MixedInstrument.Contraction.ContractionMixingDecayQuan
+public import Qatlib.Concepts.MixedInstrument.Contraction.ContractionFixedPointErrorQuan
+public import Qatlib.Concepts.QuantumGibbs.RejectionRewind.RejectionBudgetQuan
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

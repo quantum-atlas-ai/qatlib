@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QAlgorithms97.MainResults.PhaseEstimation.ActualReadout
+module
+
+public import Qatlib.Papers.QAlgorithms97.MainResults.PhaseEstimation.ActualReadout
+
+@[expose] public section
 
 /-!
 # Exact dyadic readout of the actual phase-estimation word
@@ -46,7 +50,7 @@ theorem actual_dyadic_run {I : Type} [Fintype I] [DecidableEq I]
   congr 1
   funext z
   simp [Qatlib.Foundations.PureStateMath.BornBridge.relabelState,
-    Qatlib.Foundations.PureStateMath.Ket, Equiv.apply_eq_iff_eq_symm_apply]
+    Qatlib.Foundations.PureStateMath.Ket, Equiv.eq_symm_apply]
 
 /-- Reading the dyadic label in the actual experiment has probability one for every normalized data eigenstate. -/
 theorem actual_dyadic_readout {I : Type} [Fintype I] [DecidableEq I]

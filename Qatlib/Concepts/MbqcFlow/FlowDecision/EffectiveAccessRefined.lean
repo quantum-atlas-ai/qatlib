@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MbqcFlow.FlowDecision.EffectiveAccessDefs
-import Qatlib.Concepts.LocalMachine.LocalTransport.LeastSquaresOutputSpec
+module
+
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.EffectiveAccessDefs
+public import Qatlib.Concepts.LocalMachine.LocalTransport.LeastSquaresOutputSpec
+
+@[expose] public section
 
 /-!
 # Certified preparation and checked table access
@@ -59,6 +63,10 @@ open Qatlib
 open scoped Classical BigOperators Matrix.Norms.L2Operator
 
 set_option autoImplicit false
+set_option linter.unusedVariables false
+set_option linter.unusedTactic false
+set_option linter.unusedSimpArgs false
+set_option linter.unnecessarySeqFocus false
 
 /-- The squared norm of a complex number is the sum of the squares of its real and imaginary
 parts. -/
@@ -576,7 +584,7 @@ theorem checkedLookup_loaded {D : ℕ} (a b : ℕ) (hD : D ≤ 2 ^ a) (i : Fin D
   have htb : a ≤ (tableWire a b (Fin.castLE hD i) j).val := by
     have : (tableWire a b (Fin.castLE hD i) j).val = a + (Fin.castLE hD i).val * b + j.val := rfl
     omega
-  rw [hval, if_pos hcast, loadIndex_other a b i x (enableWire a b) hen,
+  rw [hval, ite_eq_left hcast, loadIndex_other a b i x (enableWire a b) hen,
     loadIndex_other a b i x (tableWire a b (Fin.castLE hD i) j) htb]
 
 /-- Checked lookup has a reflection-legal Boolean-DAG compilation with zero queries, at most `30
@@ -691,7 +699,7 @@ private theorem mod_le_half {x y : ℕ} (hxy : y < x) (hy : 0 < y) : x % y ≤ x
 private theorem remSeq_zero_of_zero {a b : ℕ} (n : ℕ) (h : remSeq (n + 1) a b = 0) :
     remSeq (n + 2) a b = 0 := by
   rw [remSeq]
-  rw [if_pos (by simp [h])]
+  rw [ite_eq_left (by simp [h])]
 
 /-- If consecutive remainder terms are equal and the earlier term is positive, the following
 term is zero. -/
@@ -699,7 +707,7 @@ private theorem remSeq_zero_of_eq {a b : ℕ} (n : ℕ)
     (h : remSeq (n + 1) a b = remSeq n a b) (hpos : 0 < remSeq n a b) :
     remSeq (n + 2) a b = 0 := by
   rw [remSeq]
-  rw [if_neg (by omega)]
+  rw [ite_eq_right (by omega)]
   rw [h]
   exact Nat.mod_self _
 
@@ -720,12 +728,12 @@ theorem remSeq_strict {a b : ℕ} (n : ℕ) (hn : 1 ≤ n) (h : 0 < remSeq (n + 
     by_contra hc
     have hz : remSeq (n + 1) a b = 0 := by
       rw [remSeq_step n hn]
-      rw [if_pos (by omega)]
+      rw [ite_eq_left (by omega)]
     have hnlt : ¬ 0 < remSeq (n + 1) a b := by
       rw [hz]
       exact Nat.not_lt_zero _
     exact absurd h hnlt
-  rw [remSeq_step n hn, if_neg (by omega)]
+  rw [remSeq_step n hn, ite_eq_right (by omega)]
   exact Nat.mod_lt _ hpos
 
 /-- If the next remainder is positive and strictly smaller than the current term, twice the
@@ -735,7 +743,7 @@ theorem remSeq_halving {a b : ℕ} (n : ℕ)
     remSeq (n + 2) a b * 2 ≤ remSeq n a b := by
   have hstep : remSeq (n + 2) a b = remSeq n a b % remSeq (n + 1) a b := by
     rw [remSeq]
-    rw [if_neg (by omega)]
+    rw [ite_eq_right (by omega)]
   rw [hstep]
   have hh := mod_le_half h2 h1
   omega

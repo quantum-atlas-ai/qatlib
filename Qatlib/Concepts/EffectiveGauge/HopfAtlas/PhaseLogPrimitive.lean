@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.PhaseLogProgram
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.CircleLogReconstruction
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.PhaseLogProgram
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.CircleLogReconstruction
+
+@[expose] public section
 
 /-! # Phase-log execution targets the actual real angular primitive -/
 
@@ -58,7 +62,7 @@ theorem fderiv_scaled_argument (k : TransversePoint → ℍ) (hk : ContDiff ℝ 
   have hd := ((hk.differentiable (by simp) (c • p)).hasFDerivAt).comp p hs
   dsimp only [Function.comp_def] at hd
   rw [hd.fderiv]
-  simp only [ContinuousLinearMap.comp_apply,ContinuousLinearMap.smul_apply,ContinuousLinearMap.id_apply,map_smul]
+  simp only [ContinuousLinearMap.comp_apply,_root_.smul_apply,ContinuousLinearMap.id_apply,map_smul]
 
 /-- Original `transversePair_scale` guarantee for the `PhaseLogPrimitive` construction; the complete source hypotheses are retained. -/
 theorem transversePair_scale (c y z : ℝ) :
@@ -162,7 +166,7 @@ theorem rationalPhaseLog_primitive (k : TransversePoint → ℍ) (hk : ContDiff 
       rw [circleComplex_phase] at hpC
       push_cast at ho
       rw [← hpC] at ho
-      simpa only [phaseLogSamples,if_neg hj0] using ho
+      simpa only [phaseLogSamples,ite_eq_right hj0] using ho
   obtain ⟨r,hr,hv,he,hmeta⟩ := rationalPhaseLog_finite oracle endpoint bound tau ht theta
     (by simp [theta,F,circleLogPrimitive_zero]) hstep hsamples
   have hend : theta D=circleLogPrimitive k (transversePair ((endpoint : ℝ),z)) := by

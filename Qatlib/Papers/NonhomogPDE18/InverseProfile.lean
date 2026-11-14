@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Gaussian.GaussianIntegral
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Gaussian.GaussianIntegral
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Limits of the modeled inverse profile
@@ -81,7 +85,7 @@ theorem modeledF_atTop {Δ : ℝ} (hΔ : 0 < Δ) {a : ℝ} (ha : a ≠ 0) :
       refine h1.congr' ?_
       filter_upwards with L
       field_simp
-      try ring
+
     exact Real.tendsto_exp_atBot.comp harg
   have hnum : Filter.Tendsto
       (fun L : ℝ => a * (1 - Real.exp (-(L ^ 2 * (a ^ 2 + Δ ^ 2 + Δ ^ 4)) / (2 * (1 + Δ ^ 2)))))

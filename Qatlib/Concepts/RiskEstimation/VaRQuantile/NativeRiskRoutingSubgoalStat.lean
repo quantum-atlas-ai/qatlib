@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.BlockEncoding.Postselection
-import Qatlib.Concepts.NativeNumerics.LayeredMean.NativeSignedMeanConsumers
-import Qatlib.Concepts.RiskEstimation.CVaREstimation.CVaRAlgorithmFiniteRestrictedQuan
-import Qatlib.Concepts.NativeNumerics.EmpiricalRisk.RiskActualAccessLedgerFiniteQuan
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.NativeAeReadout
+module
+
+public import Qatlib.Concepts.BlockEncoding.Postselection
+public import Qatlib.Concepts.NativeNumerics.LayeredMean.NativeSignedMeanConsumers
+public import Qatlib.Concepts.RiskEstimation.CVaREstimation.CVaRAlgorithmFiniteRestrictedQuan
+public import Qatlib.Concepts.NativeNumerics.EmpiricalRisk.RiskActualAccessLedgerFiniteQuan
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.NativeAeReadout
+
+@[expose] public section
 
 /-!
 # Rational quantile routing specification

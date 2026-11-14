@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SearchStopping.KnownCount.Section3RotationSubgoal
-import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
-import Lean.Elab.Tactic.NormCast
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
-import Mathlib.Data.Real.StarOrdered
-import Mathlib.Tactic.Linarith
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Foundations.PureStateMath.Tensor
+module
+
+public import Qatlib.Concepts.SearchStopping.KnownCount.Section3RotationSubgoal
+public import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
+public import Lean.Elab.Tactic.NormCast
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
+public import Mathlib.Algebra.Order.Star.Real
+public import Mathlib.Tactic.Linarith
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Foundations.PureStateMath.Tensor
+
+@[expose] public section
 
 /-!
 # Grover search circuits and bit oracle compilation

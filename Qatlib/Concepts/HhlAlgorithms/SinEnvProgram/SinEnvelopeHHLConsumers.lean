@@ -4,33 +4,37 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Lean.Elab.Tactic.NormCast
-import Lean.Elab.Tactic.Omega
-import Mathlib.Algebra.Order.Ring.Star
-import Mathlib.Algebra.Ring.BooleanRing
-import Mathlib.Algebra.Ring.IsFormallyReal
-import Mathlib.AlgebraicTopology.SimplexCategory.Basic
-import Mathlib.Analysis.CStarAlgebra.Classes
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Analysis.Normed.Module.Normalize
-import Mathlib.Analysis.Real.Pi.Bounds
-import Mathlib.Algebra.Order.Star.Real
-import Mathlib.Tactic.Ext
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NoncommRing
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.SimpRw
-import Mathlib.Tactic.SplitIfs
-import Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.SinEnvelopeHHL
-import Qatlib.Concepts.HhlErrorBridge.FilterStability
-import Qatlib.Concepts.NativeNumerics.LayeredMean.CountedHHLProgram
-import Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.NearGridHHLOutput
-import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
-import Qatlib.Foundations.PureStateMath.MixedState
-import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedAmplitudeAmplification
+module
+
+public import Lean.Elab.Tactic.NormCast
+public import Lean.Elab.Tactic.Omega
+public import Mathlib.Algebra.Order.Ring.Star
+public import Mathlib.Algebra.Ring.BooleanRing
+public import Mathlib.Algebra.Ring.IsFormallyReal
+public import Mathlib.AlgebraicTopology.SimplexCategory.Basic
+public import Mathlib.Analysis.CStarAlgebra.Classes
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Analysis.Normed.Module.Normalize
+public import Mathlib.Analysis.Real.Pi.Bounds
+public import Mathlib.Algebra.Order.Star.Real
+public import Mathlib.Tactic.Ext
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NoncommRing
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.SimpRw
+public import Mathlib.Tactic.SplitIfs
+public import Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.SinEnvelopeHHL
+public import Qatlib.Concepts.HhlErrorBridge.FilterStability
+public import Qatlib.Concepts.NativeNumerics.LayeredMean.CountedHHLProgram
+public import Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.NearGridHHLOutput
+public import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+public import Qatlib.Foundations.PureStateMath.MixedState
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedAmplitudeAmplification
+
+@[expose] public section
 
 /-!
 # Sine-envelope HHL circuits and postselection estimates

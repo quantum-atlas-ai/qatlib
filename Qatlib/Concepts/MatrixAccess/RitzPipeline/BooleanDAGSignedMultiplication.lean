@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGSignedMultiplicationData
-import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGMultiplier
+module
+
+public import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGSignedMultiplicationData
+public import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGMultiplier
+
+@[expose] public section
 
 /-!
 # Sign-magnitude multiplication by Boolean DAGs
@@ -67,7 +71,7 @@ private theorem sm_snoc_old {m n : ℕ} (g : BooleanDAG m n)
     (node : BooleanNode (m+n)) (x : Reg m) (j : Fin (m+n)) :
     booleanDAGValue (g.snoc node) x (Fin.castLE (by omega) j) = booleanDAGValue g x j := by
   rw [sm_snoc_value]
-  simp only [Fin.val_castLE,dif_pos j.isLt]
+  simp only [Fin.val_castLE,dite_eq_left j.isLt]
 
 /-- Every original input wire of a Boolean graph evaluates to the corresponding input bit. -/
 private theorem sm_input_value {m n : ℕ} (g : BooleanDAG m n)
@@ -78,7 +82,7 @@ private theorem sm_input_value {m n : ℕ} (g : BooleanDAG m n)
   | @snoc n g node ih =>
     rw [sm_snoc_value]
     have hj : j.val < m+n := by have := j.isLt; omega
-    simpa only [Fin.val_castLE,dif_pos hj] using! ih
+    simpa only [Fin.val_castLE,dite_eq_left hj] using! ih
 
 /-- The signed multiplier preserves the evaluated values of mapped wires from the underlying
 unsigned multiplier. -/
@@ -103,7 +107,7 @@ private theorem sm_magnitude_word (w : ℕ) (a b : Reg w) (sa sb : Bool) :
     booleanWordSignedMulMagnitude w a b sa sb = booleanWordMulResult w a b := by
   funext j
   simp only [booleanWordSignedMulMagnitude,booleanWordSignedMulResult,booleanWordSignedMulProgram,
-    Fin.val_castSucc,dif_pos j.isLt]
+    Fin.val_castSucc,dite_eq_left j.isLt]
   exact sm_old_value w a b sa sb (booleanWordMulSelect w j)
 
 /-- The signed multiplication output sign is the XOR of the two input sign bits. -/
@@ -111,8 +115,8 @@ private theorem sm_sign_value (w : ℕ) (a b : Reg w) (sa sb : Bool) :
     booleanWordSignedMulSign w a b sa sb = (sa ^^ sb) := by
   have hn : ¬2*w+2+smN0 w < 2*w+2+smN0 w := by omega
   simp only [booleanWordSignedMulSign,booleanWordSignedMulResult,booleanWordSignedMulProgram,
-    Fin.val_last,dif_neg (Nat.lt_irrefl (2*w))]
-  rw [sm_snoc_value,dif_neg hn]
+    Fin.val_last,dite_eq_right (Nat.lt_irrefl (2*w))]
+  rw [sm_snoc_value,dite_eq_right hn]
   change (booleanDAGValue (smG0 w) (booleanWordSignedMulInput w a b sa sb) ⟨2*w,by omega⟩ ^^
       booleanDAGValue (smG0 w) (booleanWordSignedMulInput w a b sa sb) ⟨2*w+1,by omega⟩) = _
   have ha : booleanDAGValue (smG0 w) (booleanWordSignedMulInput w a b sa sb) ⟨2*w,by omega⟩ = sa := by

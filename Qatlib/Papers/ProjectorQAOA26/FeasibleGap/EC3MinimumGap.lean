@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ProjectorQAOA26.FeasibleGap.CrossingUpper
-import Qatlib.Papers.ProjectorQAOA26.FeasibleGap.EC3ModelBridge
+module
+
+public import Qatlib.Papers.ProjectorQAOA26.FeasibleGap.CrossingUpper
+public import Qatlib.Papers.ProjectorQAOA26.FeasibleGap.EC3ModelBridge
+
+@[expose] public section
 
 /-!
 # Minimum-gap bounds for the uniform EC3 interpolation
@@ -48,7 +52,7 @@ theorem ec3_uniform_minimumGap_bounds (m f r : ℕ)
         minimumGap (fun g : EC3Feasible m f => ec3Cost r clauses g.1) hL ∧
       minimumGap (fun g : EC3Feasible m f => ec3Cost r clauses g.1) hL ≤
         4/Real.sqrt ((3:ℝ)^m*(2:ℝ)^f) := by
-  letI : Nonempty (EC3Feasible m f) := ⟨zero⟩
+  let : Nonempty (EC3Feasible m f) := ⟨zero⟩
   have hu : ∀ g : EC3Feasible m f,
       (∀ c,ec3SatB (fun j => g.1 (clauses c j))=true) ↔ g=zero := by
     intro g

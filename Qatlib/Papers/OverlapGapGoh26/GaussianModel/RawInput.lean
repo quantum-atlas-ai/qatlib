@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OverlapGapGoh26.UniformGrid.RawEnergyNorm
-import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.ActualGround
+module
+
+public import Qatlib.Papers.OverlapGapGoh26.UniformGrid.RawEnergyNorm
+public import Qatlib.Papers.OverlapGapGoh26.GaussianBounds.ActualGround
+
+@[expose] public section
 
 /-!
 # Standard Gaussian inputs for raw spin dynamics
@@ -136,9 +140,17 @@ tensor and seed input. -/
 theorem contDiff_feedback {r N : ℕ} (s : ℕ→ℝ) (t : ℕ) :
     ∀ i j,ContDiff ℝ (↑(⊤ : ℕ∞)) (fun x : Input r N =>
       feedbackState id (rowTensor (sourceTensor (tensorCoords x).ofLp)) (seedCoords x) s t i j) := by
+  have hcoords : ContDiff ℝ (↑(⊤ : ℕ∞)) (fun x : Input r N => x.ofLp) :=
+    (PiLp.continuousLinearEquiv 2 ℝ
+      (fun _ : (Fin (r+1)→Fin N)⊕Fin N => ℝ)).contDiff
   induction t with
   | zero => intro i j; simp only [feedbackState]; fun_prop
   | succ t ih =>
+    have hstates : ContDiff ℝ (↑(⊤ : ℕ∞)) (fun x : Input r N =>
+        feedbackState id (rowTensor (sourceTensor (tensorCoords x).ofLp))
+          (seedCoords x) s t) :=
+      contDiff_pi.2 fun i => contDiff_pi.2 fun j => ih i j
+    dsimp only [tensorCoords,seedCoords] at hstates
     intro i j
     let h : Input r N→ℝ := fun x => feedbackField id (rowTensor (sourceTensor (tensorCoords x).ofLp))
       (seedCoords x) s t (feedbackState id (rowTensor (sourceTensor (tensorCoords x).ofLp)) (seedCoords x) s t) i
@@ -151,10 +163,14 @@ theorem contDiff_feedback {r N : ℕ} (s : ℕ→ℝ) (t : ℕ) :
     change ContDiff ℝ (↑(⊤ : ℕ∞)) (fun x : Input r N => ∑ a,
       rotationStep (s (t+1)) (h x) j a*
       feedbackState id (rowTensor (sourceTensor (tensorCoords x).ofLp)) (seedCoords x) s t i a)
+    dsimp only [tensorCoords,seedCoords]
     fun_prop
 
 /-- The raw energy density is infinitely differentiable in the combined Gaussian input. -/
 theorem contDiff_energy {r N : ℕ} (s : ℕ→ℝ) (T : ℕ) : ContDiff ℝ (↑(⊤ : ℕ∞)) (energy (r:=r) (N:=N) s T) := by
+  have hcoords : ContDiff ℝ (↑(⊤ : ℕ∞)) (fun x : Input r N => x.ofLp) :=
+    (PiLp.continuousLinearEquiv 2 ℝ
+      (fun _ : (Fin (r+1)→Fin N)⊕Fin N => ℝ)).contDiff
   have hs := contDiff_feedback (r:=r) (N:=N) s T
   change ContDiff ℝ (↑(⊤ : ℕ∞)) (fun x : Input r N =>
     (∑ k : Fin (r+1)→Fin N,Real.sqrt (((N:ℝ)^r)⁻¹)*x (Sum.inl k)*
@@ -176,11 +192,11 @@ theorem actual_tensor_seed_preserving (r N : ℕ) :
       (ht.prod (MeasurePreserving.id (Measure.pi (fun _ : Fin N => gaussianReal 0 1)))).comp hs
   have hm : Measurable (fun x : Input r N => (sourceTensor (tensorCoords x).ofLp,seedCoords x)) := by
     apply Measurable.prodMk
-    · apply measurable_pi_lambda
+    · apply Measurable.of_eval
       intro k
       change Measurable (fun x : Input r N => Real.sqrt (((N:ℝ)^r)⁻¹)*x (Sum.inl k))
       fun_prop
-    · apply measurable_pi_lambda
+    · apply Measurable.of_eval
       intro i
       change Measurable (fun x : Input r N => x (Sum.inr i))
       fun_prop

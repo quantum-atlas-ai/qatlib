@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Nat.PrimeFin
-import Mathlib.Data.Nat.Factorization.Basic
-import Mathlib.Data.Nat.Log
-import Mathlib.Data.Real.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.Order.BigOperators.Group.Finset
-import Mathlib.Tactic
+module
+
+public import Mathlib.Data.Nat.PrimeFin
+public import Mathlib.Data.Nat.Factorization.Basic
+public import Mathlib.Data.Nat.Log
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.Order.BigOperators.Group.Finset
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Uniform bounds for prime-factor cost recurrences
@@ -87,7 +91,7 @@ theorem card_primeFactors_le_log2 (M : ℕ) (hM : 2 ≤ M) :
     M.primeFactors.card ≤ Nat.log 2 M := by
   have h2 : 2 ^ M.primeFactors.card ≤ ∏ p ∈ M.primeFactors, p := by
     rw [← Finset.prod_const]
-    exact Finset.prod_le_prod' (fun p hp => (Nat.mem_primeFactors.mp hp).1.two_le)
+    exact Finset.prod_le_prod (fun p hp => (Nat.mem_primeFactors.mp hp).1.two_le)
   have hprod : (∏ p ∈ M.primeFactors, p) ≤ M :=
     Nat.le_of_dvd (by omega) (Nat.prod_primeFactors_dvd M)
   exact Nat.le_log_of_pow_le (b := 2) (x := M.primeFactors.card)

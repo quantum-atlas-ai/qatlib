@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Normed.Algebra.MatrixExponential
-import Qatlib.Papers.HamEvoPrec13.MainResults.SparseDecomposition
+module
+
+public import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+public import Qatlib.Papers.HamEvoPrec13.MainResults.SparseDecomposition
+
+@[expose] public section
 
 /-!
 # Theorem 1: the exact exponential of a commuting self-inverse decomposition
@@ -53,7 +57,7 @@ theorem exp_sum_of_pairwise_commute {ι : Type*} (s : Finset ι)
     (f : ι → Matrix n n ℂ) (h : (s : Set ι).Pairwise (Commute on f)) :
     NormedSpace.exp (∑ i ∈ s, f i)
       = s.noncommProd (fun i => NormedSpace.exp (f i))
-          (fun _ hi _ hj _ => (h.of_refl hi hj).exp) :=
+          (fun _ hi _ hj _ => (h.forall₂ hi hj).exp) :=
   Matrix.exp_sum_of_commute s f h
 
 /-- The projection `P = (1+U)/2` of a self-inverse matrix is idempotent. This is one

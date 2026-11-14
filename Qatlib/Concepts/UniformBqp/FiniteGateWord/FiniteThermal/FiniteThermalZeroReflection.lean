@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteThermal.FiniteThermalMaskedX
+module
+
+public import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteThermal.FiniteThermalMaskedX
+
+@[expose] public section
 
 /-!
 # Finite reflection about a zero pattern
@@ -232,7 +236,7 @@ theorem thermalZeroReflection_public {n : ℕ} (cs : List (Fin n)) (flag : Fin n
     (x : Qatlib.Foundations.PureStateMath.Reg n) (hc : ∀ w∈ws,x w=false) (hflag : x flag=false) :
     Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteWordRun n (thermalZeroReflection cs flag ws) (Qatlib.Foundations.PureStateMath.Ket x) =
       some ((if thermalMatch cs cs x then (-1 : ℂ) else 1) • Qatlib.Foundations.PureStateMath.Ket x) := by
-  simp only [Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteWordRun,thermalZeroReflection_legal cs flag ws hn hlen,if_true]
+  simp only [Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteWordRun,thermalZeroReflection_legal cs flag ws hn hlen,ite_true]
   rw [thermalZeroReflection_basis cs flag ws hn hlen x hc hflag]
 
 /-- The adjoint of the four-T word has the same register matrix as the original word and still

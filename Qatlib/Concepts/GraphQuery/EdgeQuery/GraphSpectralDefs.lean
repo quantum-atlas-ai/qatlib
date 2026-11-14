@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Combinatorics.SimpleGraph.AdjMatrix
-import Mathlib.Combinatorics.SimpleGraph.Clique
-import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
-import Qatlib.Concepts.GraphQuery.EdgeQuery.GraphCollision
+module
+
+public import Mathlib.Combinatorics.SimpleGraph.AdjMatrix
+public import Mathlib.Combinatorics.SimpleGraph.Clique
+public import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
+public import Qatlib.Concepts.GraphQuery.EdgeQuery.GraphCollision
+
+@[expose] public section
 
 /-!
 # Boolean edge predicates and query circuits

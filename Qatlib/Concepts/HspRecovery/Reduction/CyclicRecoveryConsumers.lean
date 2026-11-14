@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.CyclicRecovery.CyclicGcdDecoder
+module
+
+public import Qatlib.Concepts.HspRecovery.CyclicRecovery.CyclicGcdDecoder
+
+@[expose] public section
 
 /-!
 # Concrete cyclic recovery examples

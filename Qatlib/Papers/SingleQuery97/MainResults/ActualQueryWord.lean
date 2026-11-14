@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.CyclicRecovery.AlgebraicOracle
-import Qatlib.Concepts.QuditTeleport.TeleportCore.Transform
-import Qatlib.Papers.QComplexity97.XorSeparation.ParityOracleSeparationRestricted
+module
+
+public import Qatlib.Concepts.HspRecovery.CyclicRecovery.AlgebraicOracle
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.Transform
+public import Qatlib.Papers.QComplexity97.XorSeparation.ParityOracleSeparationRestricted
+
+@[expose] public section
 
 /-!
 # Explicit query words and character phase kickback

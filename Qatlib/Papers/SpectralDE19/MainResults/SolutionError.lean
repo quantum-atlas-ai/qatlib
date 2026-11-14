@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Exp
-import Mathlib.Analysis.Normed.Group.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Exp
+public import Mathlib.Analysis.Normed.Group.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -72,7 +76,7 @@ subinterval transports it with the paper's factor `1 + 1/m` and adds at most
 `bound` is the paper's `B = max_t ‖x̂^{(n+1)}(t)‖ (e/(2n))^n`. -/
 theorem lemma3_error_bound
     {E : Type*} [NormedAddCommGroup E]
-    (m n : ℕ) (hm : 1 ≤ m)
+    (m _n : ℕ) (hm : 1 ≤ m)
     (xhat x : ℕ → E) (bound : ℝ) (hbound : 0 ≤ bound)
     (hstep : ∀ h : ℕ, 1 ≤ h → h < m →
       ‖xhat (h + 1) - x (h + 1)‖ ≤

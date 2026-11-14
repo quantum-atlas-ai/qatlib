@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Finset.Card
-import Mathlib.Data.Nat.Log
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Push
-import Mathlib.Tactic.Ring
-import Qatlib.Papers.ShortPathOpt18.MainResults.SourceModel
+module
+
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Data.Nat.Log
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Push
+public import Mathlib.Tactic.Ring
+public import Qatlib.Papers.ShortPathOpt18.MainResults.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

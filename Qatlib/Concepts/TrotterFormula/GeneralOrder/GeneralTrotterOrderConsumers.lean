@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TrotterFormula.GeneralOrder.GeneralTrotterOrder
+module
+
+public import Qatlib.Concepts.TrotterFormula.GeneralOrder.GeneralTrotterOrder
+
+@[expose] public section
 
 /-!
 # Error and gate counts for matched exponential words
@@ -30,6 +34,7 @@ set_option autoImplicit false
 set_option maxHeartbeats 2000000
 set_option backward.isDefEq.respectTransparency false
 noncomputable section
+set_option linter.style.haveILetI false
 
 open Qatlib.Concepts.TrotterFormula.LieStrang
 open Qatlib.Concepts.TrotterFormula.SuzukiFourth

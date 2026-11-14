@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Real.Basic
-import Mathlib.Algebra.Order.Floor.Ring
-import Mathlib.Data.Rat.Floor
+module
+
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Algebra.Order.Floor.Ring
+public import Mathlib.Data.Rat.Floor
+
+@[expose] public section
 
 /-!
 # Rational interval operations and dyadic rounding

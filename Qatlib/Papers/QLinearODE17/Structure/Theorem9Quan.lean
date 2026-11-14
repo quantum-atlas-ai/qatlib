@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QLinearODE17.Structure.Theorem9Stat
-import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem7Quan
-import Qatlib.Papers.QLinearODE17.Structure.Theorem9Encoding
-import Qatlib.Papers.QLinearODE17.Structure.Theorem9Readout
+module
+
+public import Qatlib.Papers.QLinearODE17.Structure.Theorem9Stat
+public import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem7Quan
+public import Qatlib.Papers.QLinearODE17.Structure.Theorem9Encoding
+public import Qatlib.Papers.QLinearODE17.Structure.Theorem9Readout
+
+@[expose] public section
 
 /-!
 # Quantitative ODE construction with measured readout
@@ -65,9 +69,9 @@ with [Berry et al., Theorem 9][BerryEtAl2017ODE]. -/
 theorem theorem9V3 : Theorem9V3 := by
   classical
   intro N _ _ s m k p kq A V D h g x_in b x hm hk hp hh hg hkq hfac hr hc hd hA hV1 hV2 hre hM hq hacc hdecay hx
-  haveI : Nonempty N := by
+  have : Nonempty N := by
     rcases isEmpty_or_nonempty N with hE | hN
-    · letI := hE
+    · let := hE
       have hz : stateVector (taylorODESolution A b x_in ((m : ℝ)*h))=0 := Subsingleton.elim _ _
       rw [hz,norm_zero] at hq
       exact False.elim (by linarith)

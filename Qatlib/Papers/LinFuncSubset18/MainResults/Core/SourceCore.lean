@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.MvPolynomial.SchwartzZippel
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Analysis.SpecialFunctions.Complex.Circle
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
+module
+
+public import Mathlib.Algebra.MvPolynomial.SchwartzZippel
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Analysis.SpecialFunctions.Complex.Circle
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.TrainQOptim16.MainResults.Ratio.OverlapRatio
-import Qatlib.Papers.TrainQOptim16.MainResults.Schedule.TrotterSchedule
-import Mathlib.Data.Fin.VecNotation
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.TrainQOptim16.MainResults.Ratio.OverlapRatio
+public import Qatlib.Papers.TrainQOptim16.MainResults.Schedule.TrotterSchedule
+public import Mathlib.Data.Fin.VecNotation
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

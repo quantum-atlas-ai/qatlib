@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CryptoDisting99.Equivalence.Defs
-import Qatlib.Papers.CryptoDisting99.Equivalence.Proposition1.Proposition1HelstromError
-import Qatlib.Papers.CryptoDisting99.Equivalence.Proposition1.HelstromAchievability
-import Qatlib.Papers.CryptoDisting99.Equivalence.Proposition2
-import Qatlib.Papers.CryptoDisting99.Equivalence.Proposition5.Proposition5ClassicalInequalities
-import Qatlib.Concepts.MixedFidelity.FidelityMetric.ChannelHelpers.FinitePOVMTraceDistance
+module
+
+public import Qatlib.Papers.CryptoDisting99.Equivalence.Defs
+public import Qatlib.Papers.CryptoDisting99.Equivalence.Proposition1.Proposition1HelstromError
+public import Qatlib.Papers.CryptoDisting99.Equivalence.Proposition1.HelstromAchievability
+public import Qatlib.Papers.CryptoDisting99.Equivalence.Proposition2
+public import Qatlib.Papers.CryptoDisting99.Equivalence.Proposition5.Proposition5ClassicalInequalities
+public import Qatlib.Concepts.MixedFidelity.FidelityMetric.ChannelHelpers.FinitePOVMTraceDistance
+
+@[expose] public section
 
 /-!
 # Quantum distinguishability bounds

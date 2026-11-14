@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.RydbergMaxCut26.Rounding.GaussianMatrix
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.RydbergMaxCut26.Rounding.GaussianMatrix
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Orthogonal residuals of unit input vectors

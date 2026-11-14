@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SketchSpectral.EvenSVT.EvenSVTDecompositionNormBoundsStat
-import Qatlib.Foundations.OperatorErrors.OperatorError
-import Qatlib.Concepts.SketchSpectral.SketchPerturb.SketchSingularValueStabilitySamp
+module
+
+public import Qatlib.Concepts.SketchSpectral.EvenSVT.EvenSVTDecompositionNormBoundsStat
+public import Qatlib.Foundations.OperatorErrors.OperatorError
+public import Qatlib.Concepts.SketchSpectral.SketchPerturb.SketchSingularValueStabilitySamp
+
+@[expose] public section
 
 /-!
 # Norm bounds for even SVT decompositions

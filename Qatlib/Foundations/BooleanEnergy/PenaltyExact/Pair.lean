@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.BooleanEnergy.PenaltyExact.Row
-import Qatlib.Foundations.BooleanEnergy.HadamardGram.Energy
-import Qatlib.Foundations.BooleanEnergy.HadamardGram.PairExpansion
+module
+
+public import Qatlib.Foundations.BooleanEnergy.PenaltyExact.Row
+public import Qatlib.Foundations.BooleanEnergy.HadamardGram.Energy
+public import Qatlib.Foundations.BooleanEnergy.HadamardGram.PairExpansion
+
+@[expose] public section
 
 /-!
 # Exact penalties for a column pair

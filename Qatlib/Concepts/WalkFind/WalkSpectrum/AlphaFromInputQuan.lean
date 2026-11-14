@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkFind.WalkSpectrum.AlphaFromInputStat
-import Qatlib.Concepts.WalkFind.WalkSpectrum.BlockUnitary
-import Mathlib.Data.Nat.Choose.Basic
-import Mathlib.Data.Nat.Choose.Vandermonde
-import Mathlib.Data.Nat.Basic
+module
+
+public import Qatlib.Concepts.WalkFind.WalkSpectrum.AlphaFromInputStat
+public import Qatlib.Concepts.WalkFind.WalkSpectrum.BlockUnitary
+public import Mathlib.Data.Nat.Choose.Basic
+public import Mathlib.Data.Nat.Choose.Vandermonde
+public import Mathlib.Data.Nat.Basic
+
+@[expose] public section
 
 /-!
 # Type populations and the initial marked overlap

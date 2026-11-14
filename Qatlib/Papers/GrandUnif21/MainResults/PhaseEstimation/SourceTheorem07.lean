@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GrandUnif21.MainResults.PhaseEstimation.SourceModel
+module
+
+public import Qatlib.Papers.GrandUnif21.MainResults.PhaseEstimation.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -39,7 +43,7 @@ theorem source_theorem7 {φ : ℝ} (_h0 : 0 ≤ φ) (_h1 : φ < 1) (n : ℕ) :
 
 /-- GrandUnif21 Theorem 7, exponential form: the error is at most `2^{-(n+1)}`
 written with a single power. -/
-theorem source_theorem7_exp {φ : ℝ} (h0 : 0 ≤ φ) (h1 : φ < 1) (n : ℕ) :
+theorem source_theorem7_exp {φ : ℝ} (_h0 : 0 ≤ φ) (_h1 : φ < 1) (n : ℕ) :
     |roundDyadic n φ - φ| ≤ (1 / 2 : ℝ) ^ (n + 1) := by
   simpa only [one_div, inv_pow] using abs_roundDyadic_sub_le n φ
 

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.SearchRandomized
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
+module
+
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.SearchRandomized
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
+
+@[expose] public section
 
 /-!
 # Search attempts with oracle verification

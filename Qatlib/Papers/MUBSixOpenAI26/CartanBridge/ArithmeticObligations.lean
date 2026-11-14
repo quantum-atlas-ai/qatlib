@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Real.Pi.Bounds
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Linarith
+module
+
+public import Mathlib.Analysis.Real.Pi.Bounds
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Linarith
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -122,7 +126,7 @@ structure ArithmeticCompilerObligations where
 
 /-- Construct the package from the π approximation theorem, numeric
 nonnegativity, and the conditional scalar inequality. -/
-def arithmeticCompilerObligations : ArithmeticCompilerObligations where
+theorem arithmeticCompilerObligations : ArithmeticCompilerObligations where
   pi_error := pi_hat_error
   expair_budget := by norm_num
   ell_upper_code := ell_upper_code_dominates

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ThermalDrift26.ThermalSampling.Intake.IdealThermalInstrument
-import Qatlib.Concepts.RandCompile.ReferenceModel.LocalPauliEvolution
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+module
+
+public import Qatlib.Papers.ThermalDrift26.ThermalSampling.Intake.IdealThermalInstrument
+public import Qatlib.Concepts.RandCompile.ReferenceModel.LocalPauliEvolution
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+
+@[expose] public section
 
 /-!
 # Exponential Form of Thermal Source Branches

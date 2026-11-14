@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MixedFidelity.FidelityMetric.ChannelHelpers.RectangularPureDistance
-import Qatlib.Concepts.Execution.KrausRefinement
+module
+
+public import Qatlib.Concepts.MixedFidelity.FidelityMetric.ChannelHelpers.RectangularPureDistance
+public import Qatlib.Concepts.Execution.KrausRefinement
+
+@[expose] public section
 
 /-!
 # Instrument outcome distance for pure inputs

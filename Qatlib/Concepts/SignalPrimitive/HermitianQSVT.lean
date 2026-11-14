@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.HermitianFunctionStability
-import Qatlib.Concepts.CopyEvolution.Discriminate.ParallelQSVT
-import Qatlib.Concepts.QsvtCore.LinearSystems.RealPolynomialCompletionClosed
-import Qatlib.Concepts.CoherentSim.CoherentOAA.SingularPolynomial
-import Qatlib.Concepts.BlockEncoding.Postselection
+module
+
+public import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.HermitianFunctionStability
+public import Qatlib.Concepts.CopyEvolution.Discriminate.ParallelQSVT
+public import Qatlib.Concepts.QsvtCore.LinearSystems.RealPolynomialCompletionClosed
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.SingularPolynomial
+public import Qatlib.Concepts.BlockEncoding.Postselection
+
+@[expose] public section
 
 /-!
 # Hermitian Polynomial Transform Stability
@@ -111,7 +115,7 @@ theorem hermitian_dilation_polynomial_odd {I : Type} [Fintype I] [DecidableEq I]
       oddSingularPolynomial,evenSingularPolynomial]
   rw [hm,aeval_oddSingularPolynomial]
   simp only [Matrix.toBlocks_fromBlocks₁₂,oddSingularPolynomial,evenSingularPolynomial,
-    Polynomial.aeval_mul,Polynomial.aeval_X,Polynomial.aeval_comp,Polynomial.aeval_X_pow,
+    Polynomial.aeval_mul,Polynomial.aeval_X,Polynomial.aeval_comp,
     ha,pow_two]
 
 /-- For a Hermitian matrix and an even-parity real polynomial, the lower-right block of the
@@ -133,7 +137,7 @@ theorem hermitian_dilation_polynomial_even {I : Type} [Fintype I] [DecidableEq I
     simp only [Polynomial.map_comp,Polynomial.map_pow,Polynomial.map_X,evenSingularPolynomial]
   rw [hm,aeval_evenSingularPolynomial]
   simp only [Matrix.toBlocks_fromBlocks₂₂,evenSingularPolynomial,Polynomial.aeval_comp,
-    Polynomial.aeval_X_pow,Polynomial.aeval_mul,Polynomial.aeval_X,ha,pow_two]
+    Polynomial.aeval_mul,Polynomial.aeval_X,ha,pow_two]
 
 /-- Every ordered eigenvalue of a Hermitian matrix with a projected unitary encoding lies in
 `[-1, 1]`. -/

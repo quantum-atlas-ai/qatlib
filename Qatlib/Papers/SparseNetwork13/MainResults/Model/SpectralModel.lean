@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SparseNetwork13.MainResults.Model.ElectricalNetwork
+module
+
+public import Qatlib.Papers.SparseNetwork13.MainResults.Model.ElectricalNetwork
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -96,8 +100,10 @@ Lemma 7 and Lemma 11, §4.1--§4.2). -/
 def lambda2NormalizedMod (G : ElecNetwork V E) (lam : ℝ) (iext : V → ℝ) : ℝ :=
   rayleighMinOver (normalizedModifiedLaplacian G lam iext) (degreeModOrthogonal G lam)
 
+omit [Fintype V] [DecidableEq V] in
 /-- Unfold the definition of `rayleighRange`. -/
-@[simp] theorem rayleighRange_def (A : Matrix V V ℝ) (S : Set (V → ℝ)) :
+@[simp] theorem rayleighRange_def {V : Type} [Fintype V] [_decidableEqV : DecidableEq V]
+    (A : Matrix V V ℝ) (S : Set (V → ℝ)) :
     rayleighRange A S = rayleigh A '' (S \ {0}) := rfl
 
 end Qatlib.Papers.SparseNetwork13.MainResults.Model

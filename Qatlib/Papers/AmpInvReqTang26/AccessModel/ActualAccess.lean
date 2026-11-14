@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AmpInvReqTang26.ForwardHist.ActualNorm
-import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
+module
+
+public import Qatlib.Papers.AmpInvReqTang26.ForwardHist.ActualNorm
+public import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
+
+@[expose] public section
 
 /-!
 # Preparation-oracle algorithms and amplitude tasks

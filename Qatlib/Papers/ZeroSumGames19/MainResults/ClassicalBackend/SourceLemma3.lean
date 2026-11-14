@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ZeroSumGames19.MainResults.GameModel.SourceGameModel
-import Qatlib.Papers.ZeroSumGames19.MainResults.MatrixWeights.SourceLemma1
-import Mathlib.MeasureTheory.Measure.Real
+module
+
+public import Qatlib.Papers.ZeroSumGames19.MainResults.GameModel.SourceGameModel
+public import Qatlib.Papers.ZeroSumGames19.MainResults.MatrixWeights.SourceLemma1
+public import Mathlib.MeasureTheory.Measure.Real
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

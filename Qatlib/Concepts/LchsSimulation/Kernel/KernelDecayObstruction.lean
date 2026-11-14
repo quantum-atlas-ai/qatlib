@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LchsSimulation.Kernel.NearExponentialLchsKernel
-import Mathlib.Analysis.Complex.PhragmenLindelof
+module
+
+public import Qatlib.Concepts.LchsSimulation.Kernel.NearExponentialLchsKernel
+public import Mathlib.Analysis.Complex.PhragmenLindelof
+
+@[expose] public section
 
 /-!
 # Obstruction to exponential boundary decay
@@ -251,8 +255,8 @@ theorem kernel_decay_obstruction_of_exponential_bound (f : ℂ → ℂ)
     rw [Real.exp_nat_mul] at hle
     exact (not_le_of_gt hngt) hle
   have hcl : ContinuousOn f (closure {z : ℂ | z.im < 0}) := by
-    simpa only [Complex.closure_setOf_im_lt] using! hc
-  simpa only [Complex.closure_setOf_im_lt] using!
+    simpa only [Complex.closure_setOfPred_im_lt] using! hc
+  simpa only [Complex.closure_setOfPred_im_lt] using!
     EqOn.of_subset_closure hzero hcl continuousOn_const subset_closure Subset.rfl
 
 end Qatlib.Concepts.LchsSimulation.Kernel

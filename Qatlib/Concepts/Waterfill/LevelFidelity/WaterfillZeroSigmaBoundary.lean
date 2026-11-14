@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.Waterfill.LevelFidelity.FidelitySearchDriver
-import Qatlib.Concepts.Waterfill.LevelFidelity.CoherentReweightingBoundary
-import Qatlib.Concepts.Waterfill.LevelFidelity.WaterfillZeroLimits
+module
+
+public import Qatlib.Concepts.Waterfill.LevelFidelity.FidelitySearchDriver
+public import Qatlib.Concepts.Waterfill.LevelFidelity.CoherentReweightingBoundary
+public import Qatlib.Concepts.Waterfill.LevelFidelity.WaterfillZeroLimits
+
+@[expose] public section
 
 /-!
 # Water fills with zero target coordinates
@@ -119,9 +123,9 @@ theorem high_bracket (π σ : Fin m → ℝ) (hπ : ∀ i,0≤π i) :
   have hterm : π i/σ i ≤ ∑ j,if 0<σ j then π j/σ j else 0 := by
     have hh := Finset.single_le_sum (s := Finset.univ)
       (f := fun j => if 0<σ j then π j/σ j else 0)
-      (fun j _ => by (try dsimp only); split_ifs with hj; exact div_nonneg (hπ j) hj.le; exact le_rfl)
+      (fun j _ => by split_ifs with hj; exact div_nonneg (hπ j) hj.le; exact le_rfl)
       (Finset.mem_univ i)
-    simpa only [if_pos hi] using! hh
+    simpa only [ite_eq_left hi] using! hh
   apply (div_le_iff₀ hi).mp
   dsimp [high]
   linarith
@@ -133,9 +137,9 @@ theorem low_bracket (π σ : Fin m → ℝ) (hσ : ∀ i,0≤σ i) :
   have hterm : σ i/π i ≤ ∑ j,if 0<π j then σ j/π j else 0 := by
     have hh := Finset.single_le_sum (s := Finset.univ)
       (f := fun j => if 0<π j then σ j/π j else 0)
-      (fun j _ => by (try dsimp only); split_ifs with hj; exact div_nonneg (hσ j) hj.le; exact le_rfl)
+      (fun j _ => by split_ifs with hj; exact div_nonneg (hσ j) hj.le; exact le_rfl)
       (Finset.mem_univ i)
-    simpa only [if_pos hi] using! hh
+    simpa only [ite_eq_left hi] using! hh
   have hden : 0<lowDen π σ := lt_of_lt_of_le zero_lt_one (lowDen_ge_one π σ hσ)
   have hh : σ i≤lowDen π σ*π i := by
     apply (div_le_iff₀ hi).mp
@@ -205,9 +209,9 @@ theorem pmax_pos_iff (π σ : Fin m → ℝ) (hσ : ∀ i,0≤σ i) :
   · rintro ⟨i,hi,hs⟩
     have hterm : (if 0<π i then σ i^2 else 0) ≤ realPmax π σ :=
       Finset.single_le_sum (f := fun j => if 0<π j then σ j^2 else 0)
-        (fun j _ => by (try dsimp only); split_ifs; exact sq_nonneg _; exact le_rfl)
+        (fun j _ => by split_ifs; exact sq_nonneg _; exact le_rfl)
         (Finset.mem_univ i)
-    rw [if_pos hi] at hterm
+    rw [ite_eq_left hi] at hterm
     exact lt_of_lt_of_le (sq_pos_of_pos hs) hterm
 
 /-- A common positive source-target coordinate ensures positive fill mass at every positive
@@ -240,7 +244,7 @@ theorem mass_no_overlap (π σ : Fin m → ℝ) (hπ : ∀ i,0≤π i) (hσ : �
 theorem fidelity_low (π σ : Fin m → ℝ) (hπ : ∀ i,0≤π i) (hσ : ∀ i,0≤σ i)
     (ho : HasOverlap π σ) : realFidelity π σ (low π σ)=realPmax π σ := by
   have hm := mass_pos π σ ho (low π σ) (low_pos π σ hσ)
-  rw [realFidelity,if_neg hm.ne',mass_low π σ hπ hσ,dot_low π σ hπ hσ]
+  rw [realFidelity,ite_eq_right hm.ne',mass_low π σ hπ hσ,dot_low π σ hπ hσ]
   have hl := low_pos π σ hσ
   have hp := (pmax_pos_iff π σ hσ).mpr ho
   field_simp
@@ -251,7 +255,7 @@ theorem fidelity_high (π σ : Fin m → ℝ) (hπ : ∀ i,0≤π i) (hσ : ∀ 
     (ho : HasOverlap π σ) :
     realFidelity π σ (high π σ)=(overlap π σ)^2/projectedMass π σ := by
   have hm := mass_pos π σ ho (high π σ) (lt_of_lt_of_le zero_lt_one (high_ge_one π σ hπ))
-  rw [realFidelity,if_neg hm.ne',mass_high π σ hπ hσ,dot_high π σ hπ hσ]
+  rw [realFidelity,ite_eq_right hm.ne',mass_high π σ hπ hσ,dot_high π σ hπ hσ]
 
 /-- The real water fill returned only when its mass is positive and its squared overlap is at
 least `p` times its mass. -/
@@ -268,13 +272,13 @@ theorem checkedFill_spec (π σ : Fin m → ℝ) (p γ : ℝ) (x : Fin m → ℝ
   unfold checkedFill
   split_ifs with hm hp
   · simp only [Option.some.injEq]
-    rw [realFidelity,if_neg hm.ne',le_div_iff₀ hm]
+    rw [realFidelity,ite_eq_right hm.ne',le_div_iff₀ hm]
     constructor
     · intro he; exact ⟨hm,hp,he.symm⟩
     · rintro ⟨_,_,he⟩;exact he.symm
   · simp only [false_iff]
     rintro ⟨_,hf,_⟩
-    rw [realFidelity,if_neg hm.ne',le_div_iff₀ hm] at hf
+    rw [realFidelity,ite_eq_right hm.ne',le_div_iff₀ hm] at hf
     exact hp hf
   · simp only [false_iff]
     rintro ⟨hh,_,_⟩
@@ -284,7 +288,7 @@ theorem checkedFill_spec (π σ : Fin m → ℝ) (p γ : ℝ) (x : Fin m → ℝ
 every nonnegative level. -/
 theorem checkedFill_no_overlap (π σ : Fin m → ℝ) (hπ : ∀ i,0≤π i) (hσ : ∀ i,0≤σ i)
     (hn : ¬HasOverlap π σ) (p γ : ℝ) (hγ : 0≤γ) : checkedFill π σ p γ=none := by
-  simp only [checkedFill,mass_no_overlap π σ hπ hσ hn γ hγ,lt_self_iff_false,if_false]
+  simp only [checkedFill,mass_no_overlap π σ hπ hσ hn γ hγ,lt_self_iff_false,ite_false]
 
 /-- For nonnegative data with positive overlap support, every fidelity between the upper-level
 value and `realPmax` is realized at a level in the chosen closed bracket. -/
@@ -369,9 +373,9 @@ theorem boundaryMass (π σ : Fin m → ℝ) (hσ : ∀ i,0≤σ i) (lam : ℝ) 
   intro i _
   by_cases hi : 0<σ i
   · have hn : σ i≠0 := hi.ne'
-    simp only [boundaryFill,projectedSource,if_pos hi,if_neg hn,add_zero]
+    simp only [boundaryFill,projectedSource,ite_eq_left hi,ite_eq_right hn,add_zero]
   · have hz : σ i=0 := le_antisymm (not_lt.mp hi) (hσ i)
-    simp only [boundaryFill,projectedSource,if_neg hi,if_pos hz,ne_eq,
+    simp only [boundaryFill,projectedSource,ite_eq_right hi,ite_eq_left hz,ne_eq,
       OfNat.ofNat_ne_zero,not_false_eq_true,zero_pow,zero_add]
 
 /-- For a nonnegative target, every boundary fill has the same target overlap as the source. -/
@@ -381,7 +385,7 @@ theorem boundaryDot (π σ : Fin m → ℝ) (hσ : ∀ i,0≤σ i) (lam : ℝ) :
   apply Finset.sum_congr rfl
   intro i _
   by_cases hi : 0<σ i
-  · simp only [boundaryFill,if_pos hi]
+  · simp only [boundaryFill,ite_eq_left hi]
   · have hz : σ i=0 := le_antisymm (not_lt.mp hi) (hσ i)
     simp only [hz,zero_mul]
 
@@ -553,7 +557,7 @@ theorem boundary_mass_pos (π σ : Fin m → ℝ) (ho : HasOverlap π σ) (lam :
   obtain ⟨i,hpi,hsi⟩ := ho
   have hh : (boundaryFill π σ lam i)^2≤vectorMass (boundaryFill π σ lam) :=
     Finset.single_le_sum (fun j _ => sq_nonneg (boundaryFill π σ lam j)) (Finset.mem_univ i)
-  simp only [boundaryFill,if_pos hsi] at hh
+  simp only [boundaryFill,ite_eq_left hsi] at hh
   exact lt_of_lt_of_le (sq_pos_of_pos hpi) hh
 
 /-- The mass of the boundary fill is continuous in its boundary parameter. -/
@@ -563,9 +567,9 @@ theorem continuous_boundaryMass (π σ : Fin m → ℝ) :
   apply continuous_finsetSum
   intro i _
   by_cases hi : 0<σ i
-  · simp only [boundaryFill,if_pos hi]
+  · simp only [boundaryFill,ite_eq_left hi]
     exact continuous_const
-  · simp only [boundaryFill,if_neg hi]
+  · simp only [boundaryFill,ite_eq_right hi]
     fun_prop
 
 /-- For nonnegative data with a common positive coordinate, each fidelity between the

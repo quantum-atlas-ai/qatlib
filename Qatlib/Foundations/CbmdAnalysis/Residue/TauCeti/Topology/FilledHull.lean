@@ -6,15 +6,19 @@ Authors: The Tau Ceti contributors, Qatlib Contributors
 Adapted from https://github.com/TauCetiProject/TauCeti@3780371c
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+module
 
-import Mathlib.Topology.Bornology.Basic
-import Mathlib.Topology.Connected.Basic
-import Mathlib.Topology.Connected.LocallyConnected
-import Mathlib.Topology.Compactness.LocallyCompact
-import Mathlib.Topology.Separation.Hausdorff
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Topology.ConnectedComponents
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Topology.Frontier
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+
+public import Mathlib.Topology.Bornology.Basic
+public import Mathlib.Topology.Connected.Basic
+public import Mathlib.Topology.Connected.LocallyConnected
+public import Mathlib.Topology.Compactness.LocallyCompact
+public import Mathlib.Topology.Separation.Hausdorff
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Topology.ConnectedComponents
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Topology.Frontier
+
+@[expose] public section
 
 /-!
 # Filled hulls and bounded complementary components
@@ -109,7 +113,7 @@ theorem _root_.IsClosed.frontier_filledHull_sdiff_subset
     frontier (filledHull K \ K) ⊆ K := by
   intro x hx
   have hxH : x ∈ filledHull K :=
-    (closure_minimal diff_subset (IsClosed.isClosed_filledHull hK)) hx.1
+    (closure_minimal sdiff_subset (IsClosed.isClosed_filledHull hK)) hx.1
   by_contra hxK
   exact hx.2 ((IsClosed.isOpen_filledHull_sdiff hK).interior_eq.symm ▸ ⟨hxH, hxK⟩)
 

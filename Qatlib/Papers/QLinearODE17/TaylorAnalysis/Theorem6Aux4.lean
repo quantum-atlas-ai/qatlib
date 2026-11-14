@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem6Aux3
+module
+
+public import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem6Aux3
+
+@[expose] public section
 
 /-!
 # Coordinatewise error propagation for Taylor evolution
@@ -340,8 +344,8 @@ theorem taylorV2_block_evolution (m k p : ℕ) (A V D : Matrix N N ℂ) (h : ℝ
     intro r n u
     have hdr : ∀ i j : N, i ≠ j → ((h • D) ^ r) i j = 0 := by
       intro i j hij
-      rw [diag_pow (h • D) hdD r i j, if_neg hij]
-    rw [diag_mulVec ((h • D) ^ r) hdr u n, diag_pow (h • D) hdD r n n, if_pos rfl, hnn n]
+      rw [diag_pow (h • D) hdD r i j, ite_eq_right hij]
+    rw [diag_mulVec ((h • D) ^ r) hdr u n, diag_pow (h • D) hdD r n n, ite_eq_left rfl, hnn n]
   have htransport : ∀ (r : ℕ) (u : QState N),
       (h • A) ^ r *ᵥ (V *ᵥ u) = V *ᵥ ((h • D) ^ r *ᵥ u) := by
     intro r u
@@ -388,9 +392,9 @@ theorem taylorV2_block_evolution (m k p : ℕ) (A V D : Matrix N N ℂ) (h : ℝ
           else (((Nat.factorial (i + 1) : ℕ) : ℂ)⁻¹) • (h • ((h • A) ^ ((i + 1) - 1) *ᵥ b)))
         = V *ᵥ ((((Nat.factorial (i + 1) : ℕ) : ℂ)⁻¹) • (h • ((h • D) ^ i *ᵥ βc))) := by
       intro i _
-      rw [if_neg (show ¬((i + 1 : ℕ) = 0) by omega), show i + 1 - 1 = i from rfl, hb,
+      rw [ite_eq_right (show ¬((i + 1 : ℕ) = 0) by omega), show i + 1 - 1 = i from rfl, hb,
         htransport i, ← Matrix.mulVec_smul, ← Matrix.mulVec_smul]
-    rw [Finset.sum_range_succ', if_pos rfl, add_zero,
+    rw [Finset.sum_range_succ', ite_eq_left rfl, add_zero,
       Finset.sum_congr rfl (fun i hi => hf i hi), ← Matrix.mulVec_sum]
     congr 1
     funext n

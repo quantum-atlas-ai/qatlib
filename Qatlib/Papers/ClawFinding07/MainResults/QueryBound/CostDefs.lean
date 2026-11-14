@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ClawFinding07.MainResults.Spectral.JohnsonGap
+module
+
+public import Qatlib.Papers.ClawFinding07.MainResults.Spectral.JohnsonGap
+
+@[expose] public section
 
 /-!
 # Claw-detection cost expressions
@@ -60,7 +64,7 @@ theorem clawDetectCost_eq {N M l m : ℝ} (hl : 0 < l) (hm : 0 < m) (hNM : 0 < N
   have hsl' : Real.sqrt l ≠ 0 := hsl.ne'
   have hsm' : Real.sqrt (N * M) ≠ 0 := hsm.ne'
   field_simp
-  try ring
+
 
 /-- For positive subset sizes and positive `N*M`, expands the standard detection cost as
 `l+m+sqrt (N*M/l)`. -/
@@ -159,7 +163,7 @@ theorem lemma4_clawDetect_regime2 (N M : ℝ) (hN : 2 ≤ N) (hM : N ^ 2 ≤ M) 
     rw [hden, hsqrt]
     have harg : N + N = 2 * N := by ring
     rw [harg]
-    try ring
+
   have hNle : N ≤ Real.sqrt M := by
     calc N = Real.sqrt (N ^ 2) := by rw [Real.sqrt_sq (le_of_lt hN0)]
       _ ≤ Real.sqrt M := Real.sqrt_le_sqrt hM
@@ -242,7 +246,7 @@ theorem corollary5_clawDetect_standard_regime2 (N M : ℝ) (hN : 2 ≤ N)
     rw [hden, hsqrt]
     have harg : N + N = 2 * N := by ring
     rw [harg]
-    try ring
+
   have hNle : N ≤ Real.sqrt M := by
     calc N = Real.sqrt (N ^ 2) := by rw [Real.sqrt_sq (le_of_lt hN0)]
       _ ≤ Real.sqrt M := Real.sqrt_le_sqrt hM

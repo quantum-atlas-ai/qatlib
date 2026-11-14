@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpectralFilter.PhaseReadout.PhaseEstimation
-import Qatlib.Foundations.InstrumentCore.Measurement.MeasurementLaws
+module
+
+public import Qatlib.Concepts.SpectralFilter.PhaseReadout.PhaseEstimation
+public import Qatlib.Foundations.InstrumentCore.Measurement.MeasurementLaws
+
+@[expose] public section
 
 /-!
 # Phase-estimation readout for molecular initial states

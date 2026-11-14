@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.DyadicOverlap.ArithLedger.TensorNetworkDefs
+module
+
+public import Qatlib.Concepts.DyadicOverlap.ArithLedger.TensorNetworkDefs
+
+@[expose] public section
 
 /-!
 # Integer tensor-network contractions and sampling laws
@@ -449,7 +453,7 @@ open Qatlib.Concepts.DyadicOverlap.ArithLedger in
 theorem chainKeys_inner {D : ℕ} {k : ℕ} (b c : Fin D) (γ : Fin (k - 1) → Fin D)
     {j : Fin (k + 1)} (h0 : (j : ℕ) ≠ 0) (hk : (j : ℕ) ≠ k) :
     chainKeys k b c γ j = γ ⟨(j : ℕ) - 1, by omega⟩ := by
-  simp only [chainKeys, dif_neg h0, dif_neg hk]
+  simp only [chainKeys, dite_eq_right h0, dite_eq_right hk]
 
 open Qatlib.Concepts.DyadicOverlap.ArithLedger in
 
@@ -474,14 +478,14 @@ theorem chainKeys_tail {D : ℕ} {k : ℕ} (b c : Fin D) (γ : Fin k → Fin D)
       have hjn2 : (j : ℕ) + 1 ≠ k + 1 := by omega
       have hL : chainKeys k (γ ⟨0, by omega⟩) c (fun i => γ ⟨(i : ℕ) + 1, by omega⟩) j
           = γ ⟨(j : ℕ) - 1 + 1, by omega⟩ := by
-        simp only [chainKeys, dif_neg hj0, dif_neg hj1]
+        simp only [chainKeys, dite_eq_right hj0, dite_eq_right hj1]
       have hR : chainKeys (k + 1) b c γ ⟨(j : ℕ) + 1, by omega⟩
           = γ ⟨(j : ℕ) + 1 - 1, by omega⟩ := by
-        simp only [chainKeys, dif_neg hjn, dif_neg hjn2]
+        simp only [chainKeys, dite_eq_right hjn, dite_eq_right hjn2]
       rw [hL, hR]
       congr 1
       apply Fin.ext
-      simp only [Fin.mk.injEq]
+      simp only []
       omega
 
 open Qatlib.Concepts.DyadicOverlap.ArithLedger in
@@ -604,8 +608,8 @@ theorem chainKeys_mpsLeft {D : ℕ} {n : ℕ} [NeZero D] (γ : Fin (n - 1) → F
     simp [chainKeys, mpsLeftIdx]
   · have hne : (p : ℕ) ≠ n := by omega
     have hlt : (p : ℕ) - 1 < n - 1 := by omega
-    simp only [chainKeys, dif_neg hp0, dif_neg hne]
-    simp only [mpsLeftIdx, if_neg hp0, dif_pos hlt]
+    simp only [chainKeys, dite_eq_right hp0, dite_eq_right hne]
+    simp only [mpsLeftIdx, ite_eq_right hp0, dite_eq_left hlt]
 
 open Qatlib.Concepts.DyadicOverlap.ArithLedger in
 
@@ -615,12 +619,12 @@ theorem chainKeys_mpsRight {D : ℕ} {n : ℕ} [NeZero D] (γ : Fin (n - 1) → 
   have hne0 : ((p : ℕ) + 1 : ℕ) ≠ 0 := by omega
   by_cases hlt : (p : ℕ) < n - 1
   · have hne : ((p : ℕ) + 1 : ℕ) ≠ n := by omega
-    simp only [chainKeys, dif_neg hne0, dif_neg hne]
-    simp only [mpsRightIdx, dif_pos hlt]
+    simp only [chainKeys, dite_eq_right hne0, dite_eq_right hne]
+    simp only [mpsRightIdx, dite_eq_left hlt]
     congr 1
   · have hpn : ((p : ℕ) + 1 : ℕ) = n := by omega
-    simp only [chainKeys, dif_neg hne0, dif_pos hpn]
-    simp only [mpsRightIdx, dif_neg hlt]
+    simp only [chainKeys, dite_eq_right hne0, dite_eq_left hpn]
+    simp only [mpsRightIdx, dite_eq_right hlt]
 
 open Qatlib.Concepts.DyadicOverlap.ArithLedger in
 
@@ -1483,7 +1487,7 @@ theorem bitSampleProbApprox_error {n d D : ℕ} [NeZero D] (A : BitMps n d D)
 /-- The amplitude of the prefix-fixed MPS equals the original amplitude at the configuration
 with that prefix and next symbol fixed. -/
 theorem bitMpsAmplitude_prefixFixed {n d D : ℕ} [NeZero D] (A : BitMps n d D)
-    (k : ℕ) (hk : k < n) (lo : Fin k → Fin d) (s : Fin d) (t : Fin n → Fin d) :
+    (k : ℕ) (_hk : k < n) (lo : Fin k → Fin d) (s : Fin d) (t : Fin n → Fin d) :
     bitMpsAmplitude (bitPrefixFixedMps A k lo s) t
       = bitMpsAmplitude A (prefixFixedConfig lo s t) := by
   have hAmp : ∀ (α : Fin (n - 1) → Fin D),
@@ -1494,7 +1498,7 @@ theorem bitMpsAmplitude_prefixFixed {n d D : ℕ} [NeZero D] (A : BitMps n d D)
     by_cases hj : j.val < k
     · simp [bitPrefixFixedMps, prefixFixedConfig, hj]
     · by_cases hj2 : j.val = k
-      · simp [bitPrefixFixedMps, prefixFixedConfig, hj, hj2]
+      · simp [bitPrefixFixedMps, prefixFixedConfig, hj2]
       · simp [bitPrefixFixedMps, prefixFixedConfig, hj, hj2]
   show (∑ α : Fin (n - 1) → Fin D,
       ∏ j : Fin n, (bitPrefixFixedMps A k lo s) j (t j) (mpsLeftIdx α j) (mpsRightIdx α j))
@@ -1511,13 +1515,13 @@ theorem prefixFixedConfig_split {n d k : ℕ} (hk : k < n) (lo : Fin k → Fin d
   funext j
   by_cases hj : j.val < k
   · have hj' : j.val < k + 1 := by omega
-    simp only [prefixFixedConfig, dif_pos hj, splitInv, dif_pos hj', prefixSnoc, dif_pos hj]
+    simp only [prefixFixedConfig, splitInv, dite_eq_left hj', prefixSnoc, dite_eq_left hj]
   · by_cases hj2 : j.val = k
     · have hj' : j.val < k + 1 := by omega
-      simp only [prefixFixedConfig, dif_neg hj, dif_pos hj2, splitInv, dif_pos hj',
-        prefixSnoc, dif_neg hj]
+      simp only [prefixFixedConfig, dite_eq_left hj2, splitInv, dite_eq_left hj',
+        prefixSnoc, dite_eq_right hj]
     · have hj' : ¬ j.val < k + 1 := by omega
-      simp only [prefixFixedConfig, dif_neg hj, dif_neg hj2, splitInv, dif_neg hj']
+      simp only [prefixFixedConfig, dite_eq_right hj, dite_eq_right hj2, splitInv, dite_eq_right hj']
 
 /-- The self-inner-product of the prefix-fixed MPS equals `d ^ (k + 1)` times the corresponding
 tail mass. -/

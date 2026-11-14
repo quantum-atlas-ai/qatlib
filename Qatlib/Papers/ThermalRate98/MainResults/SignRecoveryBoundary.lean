@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QuditTeleport.TeleportCore.BellReferenceProtocol
-import Qatlib.Foundations.QueryWordCore.Circuit
+module
+
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.BellReferenceProtocol
+public import Qatlib.Foundations.QueryWordCore.Circuit
+
+@[expose] public section
 
 /-!
 # Limits of three-setting sign recovery
@@ -93,7 +97,7 @@ theorem signBell_amplitude (negative b c : Bool) :
   cases negative with
   | false => simp [signBell,teleportBellResource_apply']
   | true =>
-    rw [signBell,if_pos rfl,firstZ_amplitude,teleportBellResource_apply']
+    rw [signBell,ite_eq_left rfl,firstZ_amplitude,teleportBellResource_apply']
     cases b <;> cases c <;> simp
 
 /-- Both choices of relative sign give normalized Bell states. -/
@@ -199,7 +203,7 @@ theorem signBell_plus_diagonal :
       intro p _ hp
       have hne : p.1 ≠ p.2 := by simpa only [Finset.mem_filter,Finset.mem_univ,true_and] using hp
       rcases p with ⟨b,c⟩
-      simp only [BornProb,signBell_amplitude,hne,if_false,norm_zero,zero_pow (by decide : 2 ≠ 0)]
+      simp only [BornProb,signBell_amplitude,hne,ite_false,norm_zero,zero_pow (by decide : 2 ≠ 0)]
     _ = 1 := signBell_normalized false
 
 /-- After the diagnostic circuit, the equal-bit event has probability one for the positive Bell

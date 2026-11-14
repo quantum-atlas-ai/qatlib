@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SpatialSearch03.MainResults.SpectralAnalysis.Marginal
-import Qatlib.Papers.SpatialSearch03.MainResults.ThetaSums.LatticeSumBound
-import Qatlib.Papers.SpatialSearch03.MainResults.ThetaSums.LatticeSum2Bound
-import Qatlib.Papers.SpatialSearch03.MainResults.ThetaSums.LatSum1Log
-import Qatlib.Papers.SpatialSearch03.MainResults.ThetaSums.LatticeSum2Log
+module
+
+public import Qatlib.Papers.SpatialSearch03.MainResults.SpectralAnalysis.Marginal
+public import Qatlib.Papers.SpatialSearch03.MainResults.ThetaSums.LatticeSumBound
+public import Qatlib.Papers.SpatialSearch03.MainResults.ThetaSums.LatticeSum2Bound
+public import Qatlib.Papers.SpatialSearch03.MainResults.ThetaSums.LatSum1Log
+public import Qatlib.Papers.SpatialSearch03.MainResults.ThetaSums.LatticeSum2Log
+
+@[expose] public section
 
 /-!
 # Critical lattice search scales

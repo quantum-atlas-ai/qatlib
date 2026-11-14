@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Tactic
-import Qatlib.Papers.NANDAmbainis07.MainResults.Certificates
+module
+
+public import Mathlib.Tactic
+public import Qatlib.Papers.NANDAmbainis07.MainResults.Certificates
+
+@[expose] public section
 
 /-!
 # Certificate amplitudes and weighted rows
@@ -465,7 +469,7 @@ lemma hEdge_eq_a (a b c d : NNode) :
     hEdge true (NNode.node (NNode.node a b) (NNode.node c d)).leaves (NNode.node a b).leaves
       = hEdge false (NNode.node a b).leaves a.leaves
         * cval (NNode.node (NNode.node a b) (NNode.node c d)).leaves a.leaves := by
-  simp only [hEdge, if_true, cval]
+  simp only [hEdge, ite_true, cval]
   exact kernel_coef_id (by positivity)
     (by exact_mod_cast NNode.leaves_pos (NNode.node a b))
     (by exact_mod_cast NNode.leaves_pos a)
@@ -475,7 +479,7 @@ counts, assuming the first count is positive. -/
 lemma hEdge_eq_a_nat (A B C D : ℕ) (hA : 0 < A) :
     hEdge true (A + B + (C + D)) (A + B)
       = hEdge false (A + B) A * cval (A + B + (C + D)) A := by
-  simp only [hEdge, if_true, cval]
+  simp only [hEdge, ite_true, cval]
   exact kernel_coef_id (by positivity)
     (by exact_mod_cast Nat.add_pos_left hA B)
     (by exact_mod_cast hA)

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ClassShadows20.LowerBound.ShadowsDefs
-import Qatlib.Concepts.AmplitudeSearch.Amplification.ExecutionDefs
-import Qatlib.Concepts.ShadowModels.ShadowChannel.QubitConjugationDesign
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+module
+
+public import Qatlib.Papers.ClassShadows20.LowerBound.ShadowsDefs
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.ExecutionDefs
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.QubitConjugationDesign
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+
+@[expose] public section
 
 /-!
 # Finite-member sampling definitions
@@ -123,7 +127,7 @@ noncomputable def rejectionTail (S : MemberSampler) : ℝ :=
 
 /-- The dimension-`d` state with coordinate `1 / sqrt d` for a true sign bit and `-1 / sqrt d`
 otherwise. -/
-noncomputable def signPoint {d : ℕ} (hd : 0 < d) (s : Fin d → Bool) : QState (Fin d) :=
+noncomputable def signPoint {d : ℕ} (_hd : 0 < d) (s : Fin d → Bool) : QState (Fin d) :=
   fun i => if s i then 1 / Real.sqrt d else -1 / Real.sqrt d
 
 /-- The real separation parameter `2 / sqrt d`. -/

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Logic.Equiv.Basic
-import Mathlib.GroupTheory.Perm.Basic
-import Mathlib.Algebra.Order.Field.Rat
-import Mathlib.Tactic
+module
+
+public import Mathlib.Logic.Equiv.Basic
+public import Mathlib.GroupTheory.Perm.Basic
+public import Mathlib.Algebra.Order.Field.Rat
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Permutation and probability bounds for split collisions

@@ -4,8 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GramQueryCore.LowerBoundTools.WitnessConversionDefs
-import Mathlib.Analysis.InnerProductSpace.Projection.FiniteDimensional
+module
+
+public import Qatlib.Concepts.GramQueryCore.LowerBoundTools.WitnessConversionDefs
+public import Mathlib.Analysis.InnerProductSpace.Projection.FiniteDimensional
+
+@[expose] public section
+
+set_option linter.style.haveILetI false
 
 /-!
 # Boolean witness conversion geometry
@@ -117,7 +123,7 @@ theorem conversion_equal_gram_clean_word
       (conversionCleanEmbed n 1 (by omega) false (ρ y)) =
       Qatlib.Foundations.PureStateMath.Inner (conversionCleanEmbed n 1 (by omega) true (σ x))
       (conversionCleanEmbed n 1 (by omega) true (σ y))
-    simp only [conversion_clean_inner, if_true, one_mul]
+    simp only [conversion_clean_inner, ite_true, one_mul]
     exact congrFun (congrFun hGram x) y
   obtain ⟨U, hU, hUV⟩ := gram_equal_actual_unitary_transport K X V S hVS
   refine ⟨[.gate U], ?_, rfl, rfl, ?_⟩

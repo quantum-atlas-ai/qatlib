@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeCore.PayoffMedian.QuantumPayoffEstimation
+module
+
+public import Qatlib.Concepts.AmplitudeCore.PayoffMedian.QuantumPayoffEstimation
+
+@[expose] public section
 
 /-!
 # Layered quantum estimation of nonnegative means
@@ -351,7 +355,7 @@ private theorem pi_dist_prod {n : ℕ} {X : Type} [Fintype X] [DecidableEq X]
           (f := fun i x => (q i).prob x * g i x)).symm
 
 /-- The product masses of a finite family of probability distributions sum to one. -/
-private theorem pi_dist_sum {n : ℕ} {X : Type} [Fintype X] [DecidableEq X]
+public theorem pi_dist_sum {n : ℕ} {X : Type} [Fintype X] [DecidableEq X]
     (q : Fin n → FinDist X) : ∑ ω : Fin n → X, ∏ i, (q i).prob (ω i) = 1 := by
   calc ∑ ω : Fin n → X, ∏ i, (q i).prob (ω i)
       = ∑ ω : Fin n → X, (∏ i, (q i).prob (ω i)) * 1 := by simp

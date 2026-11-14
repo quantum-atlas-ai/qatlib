@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SchattenDiamond.DiamondNorm.FiniteDiamondNorm
-import Qatlib.Concepts.HspRecovery.SieveLaw.MixedSelectivePerturbation
-import Qatlib.Concepts.MbqcFlow.FlowDecision.PureToMixedConditional
+module
+
+public import Qatlib.Concepts.SchattenDiamond.DiamondNorm.FiniteDiamondNorm
+public import Qatlib.Concepts.HspRecovery.SieveLaw.MixedSelectivePerturbation
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.PureToMixedConditional
+
+@[expose] public section
 
 /-!
 # Instrument perturbation and postselection bounds
@@ -73,11 +77,11 @@ noncomputable def cqRecordFin (J : Instrument O D E) :
   map_add' ρ σ := by
     ext a b
     by_cases h : ((cqFinEquiv E O).symm a).2 = ((cqFinEquiv E O).symm b).2 <;>
-      simp [h, map_add]
+      simp [map_add]
   map_smul' c ρ := by
     ext a b
     by_cases h : ((cqFinEquiv E O).symm a).2 = ((cqFinEquiv E O).symm b).2 <;>
-      simp [h, map_smul]
+      simp [map_smul]
 
 /-- Applies a linear map to the left subsystem of a matrix with a finite reference register. -/
 noncomputable def tensorLeftOn {I : Type} [Fintype I]
@@ -101,6 +105,8 @@ noncomputable def cqBlock (S : Finset O)
     (M : Matrix ((Fin E × O) × Fin R) ((Fin E × O) × Fin R) ℂ) :
     Matrix (Fin E × Fin R) (Fin E × Fin R) ℂ :=
   fun x y => ∑ o ∈ S, M ((x.1, o), x.2) ((y.1, o), y.2)
+
+omit [Fintype O] [DecidableEq O] in
 
 /-- Extracting and summing selected outcome blocks commutes with matrix subtraction. -/
 theorem cqBlock_sub (S : Finset O)
@@ -127,7 +133,7 @@ theorem tensorLeft_cqRecordFin (J : Instrument O D E)
   ext a b
   simp only [tensorLeft, cqRecordFin, LinearMap.coe_mk, AddHom.coe_mk, tensorLeftOn,
     cqRecord, Matrix.reindex_apply, Matrix.submatrix_apply, Equiv.prodCongr_symm,
-    Equiv.prodCongr_apply, Equiv.coe_refl, id_eq, Prod.map_fst, Prod.map_snd]
+    Equiv.prodCongr_apply, Prod.map_fst, Prod.map_snd]
   rfl
 
 /-- The reference extension of a selective instrument map equals the selected block sum of its
@@ -163,12 +169,12 @@ private theorem cqLift_trace (S : Finset O)
     intro i o a j
     by_cases hS : o ∈ S
     · rw [Finset.sum_eq_single o (fun p _ hpo => Finset.sum_eq_zero fun b _ => by
-          rw [if_neg (fun hc => hpo hc.1.symm)]; ring)
+          rw [ite_eq_right (fun hc => hpo hc.1.symm)]; ring)
         (fun ho => absurd (Finset.mem_univ o) ho)]
       simp [hS]
     · rw [Finset.sum_eq_zero (fun p _ => Finset.sum_eq_zero fun b _ => by
-          rw [if_neg (fun hc => hS hc.2)]; ring),
-        Finset.sum_eq_zero fun b _ => if_neg hS]
+          rw [ite_eq_right (fun hc => hS hc.2)]; ring),
+        Finset.sum_eq_zero fun b _ => ite_eq_right hS]
   have hL : (cqLift S U * M).trace
       = ∑ i : Fin E, ∑ o : O, ∑ a : Fin R, ∑ j : Fin E, ∑ b : Fin R,
           if o ∈ S then U (i, a) (j, b) * M ((j, o), b) ((i, o), a) else 0 := by
@@ -186,8 +192,8 @@ private theorem cqLift_trace (S : Finset O)
     intro g
     calc (∑ o ∈ (Finset.univ : Finset O), if o ∈ S then g o else 0)
         = ∑ o ∈ S, (if o ∈ S then g o else 0) :=
-          (Finset.sum_subset (Finset.subset_univ S) (fun o _ h => if_neg h)).symm
-      _ = ∑ o ∈ S, g o := Finset.sum_congr rfl fun o ho => if_pos ho
+          (Finset.sum_subset (Finset.subset_univ S) (fun o _ h => ite_eq_right h)).symm
+      _ = ∑ o ∈ S, g o := Finset.sum_congr rfl fun o ho => ite_eq_left ho
   have hcomm : ∀ (G : O → Fin R → Fin E → Fin R → ℂ) (i : Fin E),
       (∑ o ∈ S, ∑ a : Fin R, ∑ j : Fin E, ∑ b : Fin R, G o a j b)
         = (∑ a : Fin R, ∑ j : Fin E, ∑ b : Fin R, ∑ o ∈ S, G o a j b) := by
@@ -229,18 +235,18 @@ private theorem cqLift_conj_mul (S : Finset O)
     refine Finset.sum_congr rfl fun t _ => ?_
     by_cases h1 : t.1.2 = r.1.2 ∧ t.1.2 ∈ S
     · by_cases h2 : t.1.2 = s.1.2 ∧ t.1.2 ∈ S
-      · rw [if_pos h1, if_pos h2]
-        rw [if_pos (show t.1.2 = r.1.2 ∧ t.1.2 ∈ S ∧ t.1.2 = s.1.2 from
+      · rw [ite_eq_left h1, ite_eq_left h2]
+        rw [ite_eq_left (show t.1.2 = r.1.2 ∧ t.1.2 ∈ S ∧ t.1.2 = s.1.2 from
           ⟨h1.1, h1.2, h2.1⟩)]
-      · rw [if_pos h1, if_neg h2]
+      · rw [ite_eq_left h1, ite_eq_right h2]
         have hfalse : ¬(t.1.2 = r.1.2 ∧ t.1.2 ∈ S ∧ t.1.2 = s.1.2) := by
           rintro ⟨_, hB, hC⟩
           exact h2 ⟨hC, hB⟩
-        rw [if_neg hfalse, mul_zero]
+        rw [ite_eq_right hfalse, mul_zero]
     · have hfalse : ¬(t.1.2 = r.1.2 ∧ t.1.2 ∈ S ∧ t.1.2 = s.1.2) := by
         rintro ⟨hA, hB, _⟩
         exact h1 ⟨hA, hB⟩
-      rw [if_neg h1, if_neg hfalse]
+      rw [ite_eq_right h1, ite_eq_right hfalse]
       simp
   rw [hexp]
   by_cases hrs : r.1.2 = s.1.2
@@ -250,7 +256,7 @@ private theorem cqLift_conj_mul (S : Finset O)
           (t.1.2 = r.1.2 ∧ t.1.2 ∈ S ∧ t.1.2 = s.1.2) = (t.1.2 = r.1.2) := by
         intro t
         by_cases ht : t.1.2 = r.1.2
-        · simp [ht, hrs, hS, hS']
+        · simp [ht, hrs, hS]
         · simp [ht]
       have key2 : ∀ e : Fin E,
           (∑ o' : O, ∑ b : Fin R,
@@ -260,7 +266,7 @@ private theorem cqLift_conj_mul (S : Finset O)
                 star (U (e, b) (r.1.1, r.2)) * U (e, b) (s.1.1, s.2) := by
         intro e
         rw [Finset.sum_eq_single r.1.2
-          (fun o'' _ ho'' => Finset.sum_eq_zero fun b _ => if_neg ho'')
+          (fun o'' _ ho'' => Finset.sum_eq_zero fun b _ => ite_eq_right ho'')
           (fun ho => absurd (Finset.mem_univ r.1.2) ho)]
         simp
       simp only [hcond, Fintype.sum_prod_type, key2]
@@ -272,7 +278,7 @@ private theorem cqLift_conj_mul (S : Finset O)
       by_cases hrs2 : r = s
       · subst hrs2
         simp [hS']
-      · rw [if_neg hrs2]
+      · rw [ite_eq_right hrs2]
         have hr' : ¬((r.1.1, r.2) = (s.1.1, s.2)) := by
           intro h
           apply hrs2
@@ -281,29 +287,29 @@ private theorem cqLift_conj_mul (S : Finset O)
           have h2 : r.2 = s.2 :=
             (congrArg Prod.snd h : (r.1.1, r.2).2 = (s.1.1, s.2).2)
           exact Prod.ext (Prod.ext h1 hrs) h2
-        rw [if_neg hr']
+        rw [ite_eq_right hr']
     · have hzero : ∀ t : (Fin E × O) × Fin R,
           (if t.1.2 = r.1.2 ∧ t.1.2 ∈ S ∧ t.1.2 = s.1.2
             then star (U (t.1.1, t.2) (r.1.1, r.2)) * U (t.1.1, t.2) (s.1.1, s.2) else 0)
             = 0 := by
         intro t
         by_cases ht : t.1.2 = r.1.2
-        · rw [if_neg (by simp [ht, hrs, hS])]
-        · rw [if_neg (by simp [ht])]
+        · rw [ite_eq_right (by simp [ht, hrs, hS])]
+        · rw [ite_eq_right (by simp [ht])]
       simp only [hzero, Finset.sum_const_zero, Matrix.diagonal_apply]
       by_cases hrs2 : r = s
-      · rw [if_pos hrs2]
+      · rw [ite_eq_left hrs2]
         have hre : r.1.2 = s.1.2 := by rw [hrs2]
-        rw [if_neg (by rw [hre]; exact hS)]
-      · rw [if_neg hrs2]
+        rw [ite_eq_right (by rw [hre]; exact hS)]
+      · rw [ite_eq_right hrs2]
   · have hzero : ∀ t : (Fin E × O) × Fin R,
         (if t.1.2 = r.1.2 ∧ t.1.2 ∈ S ∧ t.1.2 = s.1.2
           then star (U (t.1.1, t.2) (r.1.1, r.2)) * U (t.1.1, t.2) (s.1.1, s.2) else 0)
           = 0 := by
       intro t
-      rw [if_neg (fun hc => hrs (hc.1.symm.trans hc.2.2))]
+      rw [ite_eq_right (fun hc => hrs (hc.1.symm.trans hc.2.2))]
     simp only [hzero, Finset.sum_const_zero, Matrix.diagonal_apply]
-    rw [if_neg (fun h => hrs (congrArg (fun q => q.1.2) h))]
+    rw [ite_eq_right (fun h => hrs (congrArg (fun q => q.1.2) h))]
 
 /-- Summing the selected diagonal classical blocks does not increase the trace norm. -/
 theorem cqBlock_traceNorm_le (S : Finset O)
@@ -481,7 +487,7 @@ theorem pauliX_conjTranspose_self : pauliXᴴ = pauliX := by
 theorem pauliX_mul_self : pauliX * pauliX = 1 := by
   ext i j
   fin_cases i <;> fin_cases j <;>
-    simp [pauliX, Matrix.mul_apply, Fin.sum_univ_two, Matrix.one_apply]
+    simp [pauliX, Matrix.mul_apply, Fin.sum_univ_two]
 
 /-- The real amplitude `1 / sqrt 2`. -/
 noncomputable def halfAmp : ℝ := (Real.sqrt 2)⁻¹
@@ -514,8 +520,8 @@ squared times the identity. -/
 private theorem conj_smul_one_mul {n : ℕ} (c : ℝ) :
     (((c : ℝ) : ℂ) • (1 : Matrix (Fin n) (Fin n) ℂ))ᴴ * ((c : ℝ) : ℂ) • 1
       = ((c * c : ℝ) : ℂ) • 1 := by
-  simp only [Matrix.conjTranspose_smul, Matrix.conjTranspose_one, smul_mul_assoc,
-    Matrix.mul_smul, smul_smul, Matrix.one_mul, Matrix.mul_one, conj_ofReal_mul_self]
+    simp only [Matrix.conjTranspose_smul, Matrix.conjTranspose_one, smul_mul_assoc,
+    Matrix.mul_smul, smul_smul, Matrix.mul_one, conj_ofReal_mul_self]
 
 /-- The adjoint-times-self product of a real scalar multiple of Pauli X equals that scalar
 squared times the identity. -/
@@ -529,7 +535,8 @@ scalar squared. -/
 theorem conjBranch_smul_one (c : ℝ) (ρ : Operator D) :
     conjBranch (((c : ℝ) : ℂ) • 1) ρ = ((c * c : ℝ) : ℂ) • ρ := by
   simp only [conjBranch_apply, Matrix.conjTranspose_smul, Matrix.conjTranspose_one,
-    smul_mul_assoc, Matrix.mul_smul, smul_smul, Matrix.one_mul, Matrix.mul_one, ofReal_mul_star_self]
+    smul_mul_assoc, Matrix.mul_smul, smul_smul, Matrix.one_mul, Matrix.mul_one,
+    ofReal_mul_star_self]
 
 /-- Conjugation by a real scalar multiple of Pauli X is the Pauli X conjugation scaled by the
 scalar squared. -/
@@ -574,8 +581,8 @@ noncomputable def witnessK : Instrument (Fin 2) 2 2 :=
       have e1 : (((halfAmp : ℝ) : ℂ) • pauliX)ᴴ
           * ((halfAmp : ℝ) : ℂ) • pauliX = ((1 / 2 : ℝ) : ℂ) • 1 := by
         rw [conj_smul_pauli_mul, halfAmp_sq]
-      simp only [Fin.sum_univ_two, if_true, (by decide : ¬((1 : Fin 2) = 0)),
-        if_false, e0, e1, ← add_smul, ← Complex.ofReal_add]
+      simp only [Fin.sum_univ_two, ite_true, (by decide : ¬((1 : Fin 2) = 0)),
+        ite_false, e0, e1, ← add_smul, ← Complex.ofReal_add]
       rw [show ((1 / 2 : ℝ) + 1 / 2) = 1 by norm_num, Complex.ofReal_one, one_smul])
 
 /-- Each branch of `witnessK` is conjugation by its outcome-dependent scaled identity or Pauli X
@@ -597,14 +604,14 @@ theorem selectiveOnly_no_free_failure_witness :
   · have hJ : ∀ ρ : Operator 2, (selectiveMap witnessJ witnessS) ρ
         = conjBranch ((halfAmp : ℂ) • 1) ρ := by
       intro ρ
-      simp only [selectiveMap, LinearMap.sum_apply, witnessS, Finset.sum_singleton,
+      simp only [selectiveMap, witnessS, Finset.sum_singleton,
         witnessJ_branch]
       rfl
     have hK : ∀ ρ : Operator 2, (selectiveMap witnessK witnessS) ρ
         = conjBranch ((halfAmp : ℂ) • 1) ρ := by
       intro ρ
-      simp only [selectiveMap, LinearMap.sum_apply, witnessS, Finset.sum_singleton,
-        witnessK_branch, if_pos]
+      simp only [selectiveMap, witnessS, Finset.sum_singleton,
+        witnessK_branch, ite_eq_left]
       rfl
     exact LinearMap.ext fun ρ => (hJ ρ).trans (hK ρ).symm
   · have hset : Finset.univ \ witnessS = ({1} : Finset (Fin 2)) := by
@@ -618,12 +625,11 @@ theorem selectiveOnly_no_free_failure_witness :
         ext i j
         fin_cases i <;> fin_cases j <;>
           simp [pauliX, witnessRho, Matrix.mul_apply, Matrix.diagonal_apply,
-            Matrix.of_apply, Fin.sum_univ_two]
+            Matrix.of_apply]
       rw [h1]
       ext i j
       fin_cases i <;> fin_cases j <;>
-        simp [pauliX, Matrix.mul_apply, Matrix.diagonal_apply, Matrix.of_apply,
-          Fin.sum_univ_two]
+        simp [pauliX, Matrix.mul_apply, Matrix.of_apply, Fin.sum_univ_two]
     have hJ1 : Qatlib.Concepts.MbqcFlow.FlowDecision.selectedBranch witnessJ ({1} : Finset (Fin 2))
         witnessRho = ((1 / 2 : ℝ) : ℂ) • witnessRho := by
       simp only [Qatlib.Concepts.MbqcFlow.FlowDecision.selectedBranch, Finset.sum_singleton,
@@ -632,7 +638,7 @@ theorem selectiveOnly_no_free_failure_witness :
     have hK1 : Qatlib.Concepts.MbqcFlow.FlowDecision.selectedBranch witnessK ({1} : Finset (Fin 2))
         witnessRho = ((1 / 2 : ℝ) : ℂ) • (pauliX * witnessRho * pauliXᴴ) := by
       simp only [Qatlib.Concepts.MbqcFlow.FlowDecision.selectedBranch, Finset.sum_singleton,
-        witnessK_branch, if_neg (by decide : ¬((1 : Fin 2) = 0))]
+        witnessK_branch, ite_eq_right (by decide : ¬((1 : Fin 2) = 0))]
       rw [← conjBranch_apply, conjBranch_smul_pauli, halfAmp_sq]
     rw [hset, hJ1, hK1, hX]
     have hdiff :
@@ -643,8 +649,7 @@ theorem selectiveOnly_no_free_failure_witness :
           (fun i : Fin 2 => if i = 0 then ((1 / 2 : ℝ) : ℂ) else -((1 / 2 : ℝ) : ℂ)) := by
       ext i j
       fin_cases i <;> fin_cases j <;>
-        simp [witnessRho, Matrix.sub_apply, Matrix.smul_apply, smul_eq_mul,
-          Matrix.diagonal_apply]
+        simp [witnessRho, Matrix.sub_apply, Matrix.smul_apply, smul_eq_mul]
     rw [hdiff]
     refine (Matrix.traceNorm_eq_max_re_tr_U
       (Matrix.diagonal
@@ -656,8 +661,7 @@ theorem selectiveOnly_no_free_failure_witness :
       rw [Matrix.star_eq_conjTranspose]
       ext i j
       fin_cases i <;> fin_cases j <;>
-        simp [Matrix.conjTranspose_apply, Matrix.mul_apply, Matrix.diagonal_apply,
-          Matrix.one_apply, Fin.sum_univ_two]
+          simp [Matrix.mul_apply, Matrix.diagonal_apply]
     · have hVD : (Matrix.diagonal (fun i : Fin 2 => if i = 0 then (1 : ℂ) else -1)) *
             (Matrix.diagonal (fun i : Fin 2 => if i = 0 then ((1 / 2 : ℝ) : ℂ)
               else -((1 / 2 : ℝ) : ℂ)))
@@ -665,10 +669,10 @@ theorem selectiveOnly_no_free_failure_witness :
               else ((1 / 2 : ℝ) : ℂ)) := by
         ext i j
         fin_cases i <;> fin_cases j <;>
-          simp [Matrix.mul_apply, Matrix.diagonal_apply, Fin.sum_univ_two]
+          simp [Matrix.mul_apply, Matrix.diagonal_apply]
       rw [hVD, Matrix.trace_diagonal, Fin.sum_univ_two]
-      simp only [(by decide : (0 : Fin 2) = 0), (by decide : ¬((1 : Fin 2) = 0)),
-        if_true, if_false, Complex.add_re, Complex.ofReal_re]
+      simp only [(by decide : ¬((1 : Fin 2) = 0)),
+        ite_true, ite_false, Complex.add_re, Complex.ofReal_re]
       norm_num
 
 end Qatlib.Concepts.RandCompile.ChannelBudget

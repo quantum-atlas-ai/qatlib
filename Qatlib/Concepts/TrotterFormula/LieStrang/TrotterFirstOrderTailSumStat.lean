@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TrotterFormula.FiniteStrang.FiniteStrangCommutator
+module
+
+public import Qatlib.Concepts.TrotterFormula.FiniteStrang.FiniteStrangCommutator
+
+@[expose] public section
 
 /-!
 # Statement of the first-order Trotter tail-sum bound

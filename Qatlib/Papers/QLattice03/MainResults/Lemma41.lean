@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QLattice03.MainResults.Defs
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Data.Fintype.Card
-import Mathlib.Data.Fintype.BigOperators
-import Mathlib.Data.Fintype.Powerset
-import Mathlib.Data.Fintype.EquivFin
-import Mathlib.Logic.Equiv.Sum
+module
+
+public import Qatlib.Papers.QLattice03.MainResults.Defs
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Data.Fintype.BigOperators
+public import Mathlib.Data.Fintype.Powerset
+public import Mathlib.Data.Fintype.EquivFin
+public import Mathlib.Logic.Equiv.Sum
+
+@[expose] public section
 
 /-!
 # Counting modular subset sum fibers

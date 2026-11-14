@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkFind.QRAMModel.OrdinaryGateQRAMFallbackStat
-import Mathlib.Tactic.Linarith
-import Qatlib.Concepts.CircuitImpl.MultiControl.NoWorkTwoLevelSynthesis
-import Qatlib.Concepts.BlockEncoding.LinearCombination
+module
+
+public import Qatlib.Concepts.WalkFind.QRAMModel.OrdinaryGateQRAMFallbackStat
+public import Mathlib.Tactic.Linarith
+public import Qatlib.Concepts.CircuitImpl.MultiControl.NoWorkTwoLevelSynthesis
+public import Qatlib.Concepts.BlockEncoding.LinearCombination
+
+@[expose] public section
 
 /-!
 # Ordinary gate implementations of QRAM access
@@ -107,12 +111,12 @@ theorem legal_qram_involutive {b a aw t m ml : ℕ}
       readBit (qramAction b a aw t m ψ) t else qramAction b a aw t m ψ i) = ψ i
   rw [ha, hreadj, hreadt]
   by_cases hit : i.val = t
-  · simp only [hit, if_pos, readBit, dif_pos ht]
+  · simp only [hit, ite_eq_left, readBit, dite_eq_left ht]
     congr 1
     exact Fin.ext hit.symm
-  · rw [if_neg hit]
+  · rw [ite_eq_right hit]
     by_cases hij : i.val = m+addressValue ψ a aw
-    · simp only [hij, if_pos, readBit, dif_pos hj]
+    · simp only [hij, ite_eq_left, readBit, dite_eq_left hj]
       exact congrArg ψ (Fin.ext hij.symm)
     · simp [qramAction, hit, hij]
 
@@ -602,7 +606,7 @@ theorem finiteQRAM_basis_word {b a aw t m ml : ℕ}
     simp only [htest]
     apply congrArg Qatlib.Foundations.PureStateMath.Ket
     by_cases hx : read x = p
-    · simp only [hx, if_pos]
+    · simp only [hx, ite_eq_left]
       have haeq : addressValue x a aw = addressValue p 0 aw := by rw [haddress, hx]
       funext i
       have ht : t < b+b := by omega
@@ -627,9 +631,9 @@ theorem finiteQRAM_basis_word {b a aw t m ml : ℕ}
         (Run 1 (finiteCodeCircuit (b+b) (words p)) (Qatlib.Foundations.PureStateMath.Ket x)) = _
       rw [hrun]
       by_cases hx : read x = p
-      · rw [if_pos hx, ih (List.nodup_cons.mp hn).2]
+      · rw [ite_eq_left hx, ih (List.nodup_cons.mp hn).2]
         simp [hread, hx, (List.nodup_cons.mp hn).1]
-      · rw [if_neg hx, ih (List.nodup_cons.mp hn).2]
+      · rw [ite_eq_right hx, ih (List.nodup_cons.mp hn).2]
         simp [hx]
   have hlength (ps : List (Reg aw)) : (ps.flatMap words).length ≤
       ps.length*(186*(aw+1)+3) := by

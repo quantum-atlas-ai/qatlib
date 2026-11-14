@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.ApproxToolkit.QsvtSignMaterials
-import Qatlib.Concepts.QsvtCore.ApproxToolkit.QsvtCoreDefs
+module
+
+public import Qatlib.Concepts.QsvtCore.ApproxToolkit.QsvtSignMaterials
+public import Qatlib.Concepts.QsvtCore.ApproxToolkit.QsvtCoreDefs
+
+@[expose] public section
 
 /-!
 # Gap-dependent sign approximation by truncated series

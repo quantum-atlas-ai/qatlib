@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ThermalDrift26.ThermalSampling.Intake.DirectThermalSourceCircuit
-import Qatlib.Concepts.ReferenceError.DensityToRaw.ChannelTraceContraction
-import Qatlib.Concepts.GibbsMetropolis.RationalBath.ApproximateRationalGibbs
-import Mathlib.Tactic.FinCases
+module
+
+public import Qatlib.Papers.ThermalDrift26.ThermalSampling.Intake.DirectThermalSourceCircuit
+public import Qatlib.Concepts.ReferenceError.DensityToRaw.ChannelTraceContraction
+public import Qatlib.Concepts.GibbsMetropolis.RationalBath.ApproximateRationalGibbs
+public import Mathlib.Tactic.FinCases
+
+@[expose] public section
 
 /-!
 # Direct Thermal Preparation Error
@@ -227,7 +231,7 @@ private theorem rotationVector_normalized (a : ℝ) : Qatlib.Foundations.PureSta
 /-- The pure ancilla density operator given by the outer product of the normalized
 `rotationVector a`. -/
 def rotationState (a : ℝ) : Qatlib.Foundations.PureStateMath.DensityOperator 2 :=
-  ⟨Qatlib.Foundations.PureStateMath.Reflection.outerProduct (rotationVector a), Qatlib.Foundations.PureStateMath.BornBridge.outerProduct_density (rotationVector_normalized a)⟩
+  ⟨Qatlib.Foundations.PureStateMath.Reflection.outerProduct (rotationVector a), Qatlib.Foundations.PureStateMath.BornBridge.outerProduct_density (by exact rotationVector_normalized a)⟩
 
 /-- Appending the live state to an ancilla matrix produces a two-by-two block matrix whose `(b,
 c)` block is the ancilla entry `eta b c` times `rho.val`. -/

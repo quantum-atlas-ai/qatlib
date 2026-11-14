@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.KrausCircuitDefs
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.KrausCircuitDefs
+
+@[expose] public section
 
 /-!
 # Adaptive Kraus circuits with variable outcome counts
@@ -146,7 +150,7 @@ theorem sum_fin_zero_padding {M : Type*} [AddCommMonoid M]
   | succ S ih =>
       by_cases heq : s = S + 1
       · subst s
-        simp only [Fin.isLt, dif_pos]
+        simp only [Fin.isLt, dite_eq_left]
       · have hs : s ≤ S := by omega
         rw [Fin.sum_univ_castSucc]
         simpa [Fin.val_castSucc, Fin.val_last, Nat.not_lt_of_ge hs] using ih hs f
@@ -185,7 +189,7 @@ private theorem nat_fin_sup_zero_padding {s S : ℕ}
   · apply Finset.sup_le
     intro a _
     by_cases ha : a.val < s
-    · simp only [dif_pos ha]
+    · simp only [dite_eq_left ha]
       exact Finset.le_sup (f := f) (Finset.mem_univ (⟨a.val, ha⟩ : Fin s))
     · simp [ha]
   · apply Finset.sup_le
@@ -233,7 +237,7 @@ theorem padVariableKraus_wellFormed {d : ℕ}
         by_cases ha : a.val < s
         · simpa [padVariableKraus, ha] using
             (ih ⟨a.val, ha⟩ (hfitNext ⟨a.val, ha⟩) (hnext ⟨a.val, ha⟩))
-        · simp [padVariableKraus, ha, krausCircuitWellFormed]
+        · simp [ ha, krausCircuitWellFormed]
 
 /-- Padding to a width that fits the circuit preserves its worst-case query budget. -/
 theorem padVariableKraus_budget {d : ℕ}
@@ -262,7 +266,7 @@ theorem padVariableKraus_budget {d : ℕ}
                 apply Finset.sup_congr rfl
                 intro a _
                 by_cases ha : a.val < s
-                · simp only [dif_pos ha]
+                · simp only [dite_eq_left ha]
                   exact ih ⟨a.val, ha⟩ (hfitNext ⟨a.val, ha⟩)
                 · simp [ha, krausCircuitBudget]
         _ = Finset.univ.sup (fun a : Fin s => variableKrausBudget (next a)) :=

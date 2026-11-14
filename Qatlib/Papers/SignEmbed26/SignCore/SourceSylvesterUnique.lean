@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Complex.Polynomial.Basic
-import Mathlib.Data.Matrix.Block
-import Mathlib.LinearAlgebra.Matrix.ToLin
-import Mathlib.LinearAlgebra.Eigenspace.Triangularizable
+module
+
+public import Mathlib.Analysis.Complex.Polynomial.Basic
+public import Mathlib.Data.Matrix.Block
+public import Mathlib.LinearAlgebra.Matrix.ToLin
+public import Mathlib.LinearAlgebra.Eigenspace.Triangularizable
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

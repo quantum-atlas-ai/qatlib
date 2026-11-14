@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Cbmd26.Algorithms.SeparateOracleBridge
-import Qatlib.Papers.Cbmd26.Algorithms.RegisterLCUBridge
-import Qatlib.Papers.Cbmd26.Algorithms.ControlledAccessBridge
-import Qatlib.Concepts.LcuPostselect.ScaledLCU.ApproximateCoefficientLCU
+module
+
+public import Qatlib.Papers.Cbmd26.Algorithms.SeparateOracleBridge
+public import Qatlib.Papers.Cbmd26.Algorithms.RegisterLCUBridge
+public import Qatlib.Papers.Cbmd26.Algorithms.ControlledAccessBridge
+public import Qatlib.Concepts.LcuPostselect.ScaledLCU.ApproximateCoefficientLCU
+
+@[expose] public section
 
 /-!
 # Substitution and register transformations for two-oracle words

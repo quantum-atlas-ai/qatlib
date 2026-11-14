@@ -6,13 +6,17 @@ Authors: Chris Birkbeck, Qatlib Contributors
 Adapted from https://github.com/TauCetiProject/TauCeti@3780371c
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+module
 
-import Mathlib.Analysis.Calculus.ContDiff.RCLike
-import Mathlib.Analysis.Calculus.DSlope
-import Mathlib.Analysis.Complex.Liouville
-import Mathlib.Analysis.Complex.RemovableSingularity
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Calculus.DSlope.Basic
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+
+public import Mathlib.Analysis.Calculus.ContDiff.RCLike
+public import Mathlib.Analysis.Calculus.DSlope
+public import Mathlib.Analysis.Complex.Liouville
+public import Mathlib.Analysis.Complex.RemovableSingularity
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Calculus.DSlope.Basic
+
+@[expose] public section
 
 /-!
 # Continuity of extended divided differences

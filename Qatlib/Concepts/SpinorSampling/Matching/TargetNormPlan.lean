@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpinorSampling.Matching.BoundedAveragePlan
-import Mathlib.Data.Finset.Sort
+module
+
+public import Qatlib.Concepts.SpinorSampling.Matching.BoundedAveragePlan
+public import Mathlib.Data.Finset.Sort
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

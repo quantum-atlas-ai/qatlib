@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SpinChainMix26.RapidMixing.RapidMixingPetz
+module
+
+public import Qatlib.Papers.SpinChainMix26.RapidMixing.RapidMixingPetz
+
+@[expose] public section
 
 open Qatlib
 open Qatlib.Foundations.PureStateMath
@@ -311,10 +315,10 @@ theorem superExp_petzGenerator_stationary {n ℓ d : ℕ} (cuts : Fin n → Petz
       rw [Function.iterate_succ_apply', ih]
       cases k with
       | zero =>
-        rw [if_pos rfl, hL]
+        rw [ite_eq_left rfl, hL]
         simp
       | succ k =>
-        rw [if_neg (Nat.succ_ne_zero k), petzGenerator_zero]
+        rw [ite_eq_right (Nat.succ_ne_zero k), petzGenerator_zero]
         simp
   ext i j
   rw [superExp_entry_eq_tsum (petzGenerator cuts σ) (petzGenerator_add cuts σ)

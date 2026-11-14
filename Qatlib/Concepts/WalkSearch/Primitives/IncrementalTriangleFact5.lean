@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.Primitives.IncrementalTriangleEncoding
+module
+
+public import Qatlib.Concepts.WalkSearch.Primitives.IncrementalTriangleEncoding
+
+@[expose] public section
 
 /-!
 # Incremental triangle counting
@@ -67,7 +71,7 @@ theorem triangle_encoding_mem_target (l : List (Fin n×Fin n)) (x : Fin n×Fin n
   refine ⟨(triangleLastEdge l x).1,by simp only [canonicalPairs,Finset.mem_filter,Finset.mem_univ,true_and];exact hg.1,?_⟩
   apply Finset.mem_image.mpr
   refine ⟨(triangleLastEdge l x).2,?_,Prod.eta _⟩
-  simpa only [admissionThirdVertices,if_pos hg.2.1] using hg.2.2
+  simpa only [admissionThirdVertices,ite_eq_left hg.2.1] using hg.2.2
 
 /-- Proves `fact5`: the prefix common-neighbor bound implies `triCount T ≤ n.choose 2 * τ`. -/
 theorem fact5_incremental : fact5 := by

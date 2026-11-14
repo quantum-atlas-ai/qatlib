@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ProbabilityCore.Concentration.FiniteLinearHash
-import Qatlib.Concepts.ProbabilityCore.Concentration.WeightedHashPartition
+module
+
+public import Qatlib.Concepts.ProbabilityCore.Concentration.FiniteLinearHash
+public import Qatlib.Concepts.ProbabilityCore.Concentration.WeightedHashPartition
+
+@[expose] public section
 
 /-!
 # Partition deviation for finite linear hashes

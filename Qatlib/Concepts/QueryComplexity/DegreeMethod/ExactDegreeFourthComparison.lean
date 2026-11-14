@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.BooleanQueryMinimumDefs
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.ApproxPolynomialBlockSensitivityBeal
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.BooleanQueryMinimumDefs
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.ApproxPolynomialBlockSensitivityBeal
+
+@[expose] public section
 
 /-!
 # Fourth-power comparison for exact query complexity
@@ -139,7 +143,7 @@ theorem sum_pow_neg_one_powerset {α : Type} [DecidableEq α] (S : Finset α) :
       ring
     rw [himg]
     have hne : insert a s ≠ ∅ := by simp
-    rw [if_neg hne]
+    rw [ite_eq_right hne]
     ring
 
 /-- For `T ⊆ U`, the alternating sum over subsets of `U` containing `T` is one exactly when `T =
@@ -188,7 +192,7 @@ theorem sum_sign_subset_eq {α : Type} [DecidableEq α] (T U : Finset α) (hTU :
       intro i hi
       by_contra hc
       exact Finset.eq_empty_iff_forall_notMem.mp heq i (Finset.mem_sdiff.mpr ⟨hi, hc⟩)
-    rw [if_neg hTe, if_neg hne]
+    rw [ite_eq_right hTe, ite_eq_right hne]
 
 /-- The Boolean-lattice Möbius coefficient obtained by alternating the real function values over
 subsets of the given coordinate set. -/
@@ -246,7 +250,7 @@ theorem mobiusCoef_eq_zero_of_const {f : (Fin N → Bool) → Bool} {S : Finset 
     rw [hc T hT]
     ring
   rw [mobiusCoef, Finset.sum_congr rfl (fun T hT => h1 T hT), ← Finset.mul_sum,
-    sum_sign_powerset_self, if_neg hne.ne_empty, mul_zero]
+    sum_sign_powerset_self, ite_eq_right hne.ne_empty, mul_zero]
 
 /-- Summing the Boolean-lattice Möbius transform over all subsets recovers the value at the full
 set. -/
@@ -259,12 +263,12 @@ theorem moebius_inversion_sum {α : Type} [DecidableEq α] (U : Finset α) (F : 
     intro S hS
     have h1 : (∑ T ∈ S.powerset, (-1 : ℝ) ^ (S \ T).card * F T)
         = ∑ T ∈ S.powerset, (if T ⊆ S then (-1 : ℝ) ^ (S \ T).card * F T else 0) :=
-      Finset.sum_congr rfl fun T hT => by rw [if_pos (Finset.mem_powerset.mp hT)]
+      Finset.sum_congr rfl fun T hT => by rw [ite_eq_left (Finset.mem_powerset.mp hT)]
     rw [h1]
     exact Finset.sum_subset
       (fun T hT => Finset.mem_powerset.mpr
         ((Finset.mem_powerset.mp hT).trans (Finset.mem_powerset.mp hS)))
-      (fun T hT hnot => if_neg fun hsub => hnot (Finset.mem_powerset.mpr hsub))
+      (fun T hT hnot => ite_eq_right fun hsub => hnot (Finset.mem_powerset.mpr hsub))
   have hstep2 : ∀ T ∈ U.powerset,
       (∑ S ∈ U.powerset, (if T ⊆ S then (-1 : ℝ) ^ (S \ T).card * F T else 0))
         = F T * (if T = U then 1 else 0) := by
@@ -274,8 +278,8 @@ theorem moebius_inversion_sum {α : Type} [DecidableEq α] (U : Finset α) (F : 
           = F T * (if T ⊆ S then (-1 : ℝ) ^ (S \ T).card else 0) := by
       intro S _
       by_cases hc : T ⊆ S
-      · rw [if_pos hc, if_pos hc, mul_comm]
-      · rw [if_neg hc, if_neg hc, mul_zero]
+      · rw [ite_eq_left hc, ite_eq_left hc, mul_comm]
+      · rw [ite_eq_right hc, ite_eq_right hc, mul_zero]
     rw [Finset.sum_congr rfl (fun S hS => hmul S hS), ← Finset.mul_sum,
       sum_sign_subset_eq T U (Finset.mem_powerset.mp hT)]
   calc ∑ S ∈ U.powerset, ∑ T ∈ S.powerset, (-1 : ℝ) ^ (S \ T).card * F T
@@ -291,7 +295,7 @@ theorem moebius_inversion_sum {α : Type} [DecidableEq α] (U : Finset α) (F : 
         rw [Finset.sum_eq_single_of_mem U (Finset.mem_powerset.mpr (subset_rfl))]
         · simp
         · intro T hT hne
-          rw [if_neg hne, mul_zero]
+          rw [ite_eq_right hne, mul_zero]
 
 /-- The squarefree monomial given by the product of variables indexed by a finite set. -/
 def supMono (S : Finset (Fin N)) : MvPolynomial (Fin N) ℝ :=
@@ -322,11 +326,11 @@ theorem eval_supMono (S : Finset (Fin N)) (x : Fin N → Bool) :
   classical
   rw [supMono, MvPolynomial.eval_prod]
   by_cases hd : S ⊆ suppOf x
-  · rw [if_pos hd]
+  · rw [ite_eq_left hd]
     refine Finset.prod_eq_one fun i hi => ?_
     have hx : x i = true := mem_suppOf.mp (hd hi)
-    simp only [MvPolynomial.eval_X, cubePoint, if_pos hx]
-  · rw [if_neg hd]
+    simp only [MvPolynomial.eval_X, cubePoint, ite_eq_left hx]
+  · rw [ite_eq_right hd]
     have hex : ∃ i, i ∈ S ∧ ¬(i ∈ suppOf x) := by
       by_contra hcon
       push Not at hcon
@@ -334,7 +338,7 @@ theorem eval_supMono (S : Finset (Fin N)) (x : Fin N → Bool) :
     obtain ⟨i, hi⟩ := hex
     refine Finset.prod_eq_zero hi.1 ?_
     have hx : ¬ (x i = true) := fun h => hi.2 (mem_suppOf.mpr h)
-    simp only [MvPolynomial.eval_X, cubePoint, if_neg hx]
+    simp only [MvPolynomial.eval_X, cubePoint, ite_eq_right hx]
 
 /-- The canonical multilinear polynomial formed from the Boolean function's Möbius coefficients. -/
 def canonPoly (f : (Fin N → Bool) → Bool) : MvPolynomial (Fin N) ℝ :=
@@ -447,16 +451,16 @@ theorem multilinear_coeff_eq_mobius (f : (Fin N → Bool) → Bool)
         = if d.support ⊆ T then (1 : ℝ) else 0 := by
     intro T d
     by_cases hd : d.support ⊆ T
-    · rw [if_pos hd, Finset.prod_eq_one]
+    · rw [ite_eq_left hd, Finset.prod_eq_one]
       intro i _
       by_cases hid : d i = 0
       · rw [hid, pow_zero]
       · have hiT : i ∈ T := hd (Finsupp.mem_support_iff.mpr hid)
         have h1 : cubePoint (chiSet T) i = 1 := by
           simp only [cubePoint, chiSet]
-          exact if_pos (decide_eq_true hiT)
+          exact ite_eq_left (decide_eq_true hiT)
         rw [h1, one_pow]
-    · rw [if_neg hd]
+    · rw [ite_eq_right hd]
       have hex : ∃ i, i ∈ d.support ∧ ¬(i ∈ T) := by
         by_contra hcon
         push Not at hcon
@@ -535,12 +539,12 @@ theorem multilinear_coeff_eq_mobius (f : (Fin N → Bool) → Bool)
         · intro heq
           rw [heq, Finset.sdiff_self]
       by_cases hempty : S \ d.support = ∅
-      · rw [if_pos hempty, if_pos (hE.mp hempty)]
-      · rw [if_neg hempty, if_neg (fun heq => hempty (hE.mpr heq))]
-    · rw [if_neg (fun heq => hsub (by rw [heq]))]
+      · rw [ite_eq_left hempty, ite_eq_left (hE.mp hempty)]
+      · rw [ite_eq_right hempty, ite_eq_right (fun heq => hempty (hE.mpr heq))]
+    · rw [ite_eq_right (fun heq => hsub (by rw [heq]))]
       refine Finset.sum_eq_zero fun T hT => ?_
       have hc : ¬(d.support ⊆ T) := fun h => hsub (h.trans (Finset.mem_powerset.mp hT))
-      rw [if_neg hc, mul_zero]
+      rw [ite_eq_right hc, mul_zero]
   have key : mobiusCoef f S
       = ∑ d ∈ q.support, q.coeff d * (if d.support = S then (1 : ℝ) else 0) := by
     unfold mobiusCoef
@@ -564,14 +568,14 @@ theorem multilinear_coeff_eq_mobius (f : (Fin N → Bool) → Bool)
     have hle := hml d hd i
     rw [indExp_apply]
     by_cases hi : i ∈ S
-    · rw [if_pos hi]
+    · rw [ite_eq_left hi]
       have hdi : d i ≠ 0 := by
         intro h0
         have hnotmem : i ∉ d.support := by
           rw [Finsupp.mem_support_iff, h0]; simp
         exact hnotmem (by rw [hds]; exact hi)
       omega
-    · rw [if_neg hi]
+    · rw [ite_eq_right hi]
       have hdi : d i = 0 := by
         by_contra h0
         have hmem : i ∈ d.support := Finsupp.mem_support_iff.mpr h0
@@ -588,8 +592,8 @@ theorem multilinear_coeff_eq_mobius (f : (Fin N → Bool) → Bool)
   have h₁ : ∀ d ∈ q.support, d ≠ indExp S →
       q.coeff d * (if d.support = S then (1 : ℝ) else 0) = 0 := by
     intro d hd hne
-    rw [if_neg (fun heq => hne (hmlind d hd heq)), mul_zero]
-  rw [Finset.sum_eq_single (indExp S) h₁ h₀, indExp_support, if_pos rfl, mul_one]
+    rw [ite_eq_right (fun heq => hne (hmlind d hd heq)), mul_zero]
+  rw [Finset.sum_eq_single (indExp S) h₁ h₀, indExp_support, ite_eq_left rfl, mul_one]
 
 /-- The Möbius degree is at most the exact polynomial degree. -/
 theorem mobiusDegree_le_exactDegree (f : (Fin N → Bool) → Bool) :
@@ -982,7 +986,7 @@ theorem mobiusDegree_restrict_lt (f : (Fin N → Bool) → Bool)
                 exact h1 i (Finset.mem_inter.mpr ⟨hi, hiH⟩)
               · rw [combine_out H a y hiH]
                 exact mem_suppOf.mp (h2 (Finset.mem_sdiff.mpr ⟨hi, hiH⟩))
-            rw [if_pos h1, if_pos h2, if_pos hsub, mul_one]
+            rw [ite_eq_left h1, ite_eq_left h2, ite_eq_left hsub, mul_one]
           · have hns : ¬(S ⊆ suppOf (combine H a y)) := by
               intro hsub
               refine h2 ?_
@@ -991,8 +995,8 @@ theorem mobiusDegree_restrict_lt (f : (Fin N → Bool) → Bool)
                 mem_suppOf.mp (hsub (Finset.mem_sdiff.mp hi).1)
               rw [combine_out H a y (Finset.mem_sdiff.mp hi).2] at hx
               exact mem_suppOf.mpr hx
-            rw [if_pos h1, if_neg h2, if_neg hns, mul_zero]
-        · rw [if_neg h1, zero_mul, if_neg (hneg S h1)]
+            rw [ite_eq_left h1, ite_eq_right h2, ite_eq_right hns, mul_zero]
+        · rw [ite_eq_right h1, zero_mul, ite_eq_right (hneg S h1)]
       have hstep2 : ∀ S ∈ Finset.univ.powerset.filter
           (fun S => mobiusCoef f S ≠ 0 ∧ ∀ i ∈ S ∩ H, a i),
           mobiusCoef f S * (if ∀ i ∈ S ∩ H, a i then (1 : ℝ) else 0)
@@ -1015,12 +1019,12 @@ theorem mobiusDegree_restrict_lt (f : (Fin N → Bool) → Bool)
         refine Finset.sum_subset (Finset.filter_subset _ _) ?_
         intro S hS hne
         by_cases hsub : S ⊆ suppOf (combine H a y)
-        · rw [if_pos hsub]
+        · rw [ite_eq_left hsub]
           rcases not_and_or.mp
             (fun hp => hne (Finset.mem_filter.mpr ⟨hS, hp⟩)) with hc | hc
           · exact not_not.mp hc
           · exact absurd hsub (hneg S hc)
-        · rw [if_neg hsub]
+        · rw [ite_eq_right hsub]
       have hset : (suppOf (combine H a y)).powerset =
           Finset.univ.powerset.filter (fun S => S ⊆ suppOf (combine H a y)) := by
         ext S

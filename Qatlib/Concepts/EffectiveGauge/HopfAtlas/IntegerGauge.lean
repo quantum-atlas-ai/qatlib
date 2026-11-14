@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.TorusFourier.PhysicalPoissonGauge
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.IntegerWinding
+module
+
+public import Qatlib.Concepts.EffectiveGauge.TorusFourier.PhysicalPoissonGauge
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.IntegerWinding
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

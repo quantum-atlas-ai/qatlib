@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.HermitianFunctionStability
-import Qatlib.Concepts.CoherentSim.CoherentOAA.OddApproximation
-import Qatlib.Concepts.CoherentSim.CoherentOAA.OperatorResponse
-import Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis
-import Qatlib.Concepts.QsvtCore.QsVtMain.LengthQSVT
+module
+
+public import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.HermitianFunctionStability
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.OddApproximation
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.OperatorResponse
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis
+public import Qatlib.Concepts.QsvtCore.QsVtMain.LengthQSVT
+
+@[expose] public section
 
 /-!
 # Source QSVT response conditions and costs

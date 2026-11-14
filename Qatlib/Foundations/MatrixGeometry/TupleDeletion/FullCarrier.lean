@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixGeometry.TupleDeletion.Incidence
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Logic.Equiv.Prod
+module
+
+public import Qatlib.Foundations.MatrixGeometry.TupleDeletion.Incidence
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Logic.Equiv.Prod
+
+@[expose] public section
 
 /-!
 # Full tuple space and zero extension
@@ -67,14 +71,14 @@ theorem extend_injective {K : Type*} [Zero K] (v : InjectiveTuple I L → K) (y 
   cases y with
   | mk f hf =>
     change (if h : Function.Injective f then v ⟨f,h⟩ else 0)=v ⟨f,hf⟩
-    rw [dif_pos hf]
+    rw [dite_eq_left hf]
 
 /-- Summing the zero extension over all tuples equals summing the original function over
 injective tuples. -/
 theorem sum_extend {K : Type*} [AddCommMonoid K] (v : InjectiveTuple I L → K) :
     ∑ y : I → L, extend v y=∑ u : InjectiveTuple I L,v u := by
   let e := embeddingSubtype (I := I) (L := L)
-  letI : Fintype {y : I → L // Function.Injective y} := Fintype.ofEquiv (InjectiveTuple I L) e
+  let : Fintype {y : I → L // Function.Injective y} := Fintype.ofEquiv (InjectiveTuple I L) e
   have he : (∑ u : InjectiveTuple I L,v u)=∑ y : {y : I → L // Function.Injective y},extend v y.1 := by
     apply Fintype.sum_equiv e
     intro u
@@ -124,7 +128,7 @@ theorem fullDeletion_apply (v : (I → L) → ℂ) (i : I) (z : Off I i → L) :
   have he := Fintype.sum_equiv (splitCoordinate (L := L) i)
     (fun y : I → L => if (fun j : Off I i => y j)=z then v y else 0)
     (fun p : L × (Off I i → L) => if p.2=z then v ((splitCoordinate i).symm p) else 0)
-    (fun y => by (try dsimp only);rw [(splitCoordinate i).symm_apply_apply];rfl)
+    (fun y => by rw [(splitCoordinate i).symm_apply_apply];rfl)
   rw [he,Fintype.sum_prod_type]
   unfold fibreSum
   apply Finset.sum_congr rfl

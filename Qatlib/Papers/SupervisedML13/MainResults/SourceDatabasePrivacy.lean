@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Complex.ExponentialBounds
-import Qatlib.Papers.SupervisedML13.MainResults.SourceModel
+module
+
+public import Mathlib.Analysis.Complex.ExponentialBounds
+public import Qatlib.Papers.SupervisedML13.MainResults.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

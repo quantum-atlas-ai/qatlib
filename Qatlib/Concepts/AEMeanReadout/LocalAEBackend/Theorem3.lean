@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.MnrsAmplify.Lemma2Stat
+module
+
+public import Qatlib.Concepts.WalkSearch.MnrsAmplify.Lemma2Stat
+
+@[expose] public section
 
 /-!
 # Recursive amplification search specification

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.VarTimeAmpAmp10.Estimate.StructuralEstimateCompilationStat
-import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.StructuralEstimateCompilationAux
+module
+
+public import Qatlib.Papers.VarTimeAmpAmp10.Estimate.StructuralEstimateCompilationStat
+public import Qatlib.Papers.VarTimeAmpAmp10.VTAAAlgorithm.StructuralEstimateCompilationAux
+
+@[expose] public section
 
 /-!
 # Verification of structural estimation compilation

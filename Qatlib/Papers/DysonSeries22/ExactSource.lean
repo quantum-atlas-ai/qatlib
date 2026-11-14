@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
-import Qatlib.Concepts.TimeEvolution.DysonPropagator.ContractiveDuhamel
-import Qatlib.Concepts.LchsSimulation.TimeOrdered.TimeOrderedConsumers
-import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+module
+
+public import Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
+public import Qatlib.Concepts.TimeEvolution.DysonPropagator.ContractiveDuhamel
+public import Qatlib.Concepts.LchsSimulation.TimeOrdered.TimeOrderedConsumers
+public import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+
+@[expose] public section
 
 /-!
 # Exact Dyson source series

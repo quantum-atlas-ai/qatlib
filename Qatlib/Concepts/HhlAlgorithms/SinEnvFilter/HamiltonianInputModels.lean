@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MbqcFlow.FlowDecision.PureToMixedConditional
-import Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.HamiltonianInputModelsDefs
-import Qatlib.Concepts.QlsReadoutSpec.RectDilation
-import Mathlib.Analysis.Matrix.Spectrum
-import Mathlib.Analysis.Matrix.PosDef
+module
+
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.PureToMixedConditional
+public import Qatlib.Concepts.HhlAlgorithms.SinEnvFilter.HamiltonianInputModelsDefs
+public import Qatlib.Concepts.QlsReadoutSpec.RectDilation
+public import Mathlib.Analysis.Matrix.Spectrum
+public import Mathlib.Analysis.Matrix.PosDef
+
+@[expose] public section
 
 /-!
 # HHL input-model and budget witnesses

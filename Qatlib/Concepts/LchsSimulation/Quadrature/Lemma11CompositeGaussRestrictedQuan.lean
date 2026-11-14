@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LchsSimulation.Quadrature.Lemma11CompositeGaussRestrictedStat
-import Qatlib.Concepts.LchsSimulation.Quadrature.CompositeGaussAlgebra
+module
+
+public import Qatlib.Concepts.LchsSimulation.Quadrature.Lemma11CompositeGaussRestrictedStat
+public import Qatlib.Concepts.LchsSimulation.Quadrature.CompositeGaussAlgebra
+
+@[expose] public section
 
 /-!
 # Restricted composite Gauss bound for LCHS

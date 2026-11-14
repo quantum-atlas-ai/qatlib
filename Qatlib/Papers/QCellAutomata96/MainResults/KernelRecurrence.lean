@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QCellAutomata96.MainResults.PathCounting
-import Mathlib.LinearAlgebra.Matrix.Notation
-import Mathlib.Data.Complex.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+module
+
+public import Qatlib.Papers.QCellAutomata96.MainResults.PathCounting
+public import Mathlib.LinearAlgebra.Matrix.Notation
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+
+@[expose] public section
 
 /-!
 # Exact lattice propagator recurrences
@@ -129,13 +133,13 @@ theorem ampE_zero_right (θ : ℝ) (u : ℕ) : ampE θ u 0 = (Real.cos θ : ℂ)
 /-- On the boundary `u = 0` with `v ≥ 1`, the even amplitude vanishes. -/
 theorem ampE_zero_left (θ : ℝ) (v : ℕ) (hv : 1 ≤ v) : ampE θ 0 v = 0 := by
   unfold ampE
-  rw [if_neg (by omega), Nat.zero_min, Finset.range_zero, Finset.sum_empty]
+  rw [ite_eq_right (by omega), Nat.zero_min, Finset.range_zero, Finset.sum_empty]
 
 /-- For `u ≥ 1` and `v = 0`, the odd amplitude is `i * sin θ * cos θ^(u - 1)`. -/
 theorem ampO_zero_right (θ : ℝ) (u : ℕ) (hu : 1 ≤ u) :
     ampO θ u 0 = I * (Real.sin θ : ℂ) * (Real.cos θ : ℂ) ^ (u - 1) := by
   unfold ampO
-  rw [if_neg (by omega), Nat.min_zero, Finset.sum_eq_single 0]
+  rw [ite_eq_right (by omega), Nat.min_zero, Finset.sum_eq_single 0]
   · simp
   · intro j _ hj0
     have hj : j ≠ 0 := hj0
@@ -159,7 +163,7 @@ theorem ampO_rec (θ : ℝ) (u v : ℕ) (hu : 1 ≤ u) (hv : 1 ≤ v) :
   have hu0 : ¬ (u = 0) := by omega
   have hv0 : ¬ (v = 0) := by omega
   unfold ampO ampE
-  rw [if_neg hu0, if_neg hu0, if_neg hv0, Finset.mul_sum, Finset.mul_sum]
+  rw [ite_eq_right hu0, ite_eq_right hu0, ite_eq_right hv0, Finset.mul_sum, Finset.mul_sum]
   set n : ℕ := min (u - 1) v with hn
 
   set F1 : ℕ → ℂ := fun j =>
@@ -225,7 +229,7 @@ theorem ampO_rec (θ : ℝ) (u v : ℕ) (hu : 1 ≤ u) (hv : 1 ≤ v) :
       have hk1 : k + 1 - 1 = k := by omega
       have hexp1 : (u - 1) + v - 2 * (k + 1) = (u + v - (2 * (k + 1) + 1)) := by omega
       simp only [hk1]
-      rw [if_neg (by omega), hexp1]
+      rw [ite_eq_right (by omega), hexp1]
       have hp : (I * (Real.sin θ : ℂ)) ^ (2 * (k + 1) + 1) =
           (I * (Real.sin θ : ℂ)) * (I * (Real.sin θ : ℂ)) ^ (2 * (k + 1)) := by
         rw [pow_succ']
@@ -245,11 +249,11 @@ theorem ampO_rec (θ : ℝ) (u v : ℕ) (hu : 1 ≤ u) (hv : 1 ≤ v) :
   have hjv : j ≤ v := le_trans hjle (Nat.min_le_right _ _)
   rcases Nat.eq_zero_or_pos j with rfl | hjpos
   · simp only [Nat.choose_zero_right, Nat.cast_one, mul_one, one_mul, pow_one,
-      if_true, zero_mul, add_zero, Nat.mul_zero, Nat.zero_add]
+      ite_true, zero_mul, add_zero, Nat.mul_zero, Nat.zero_add]
     have hexp : u + v - 1 = (u + (v - 1) - 1) + 1 := by omega
     rw [hexp, pow_succ']
     ring
-  · rw [if_neg (by omega)]
+  · rw [ite_eq_right (by omega)]
     have hpascal : Nat.choose v j = Nat.choose (v - 1) (j - 1) + Nat.choose (v - 1) j := by
       have h := Nat.choose_succ_succ (v - 1) (j - 1)
       simp only [Nat.succ_eq_add_one, show v - 1 + 1 = v by omega,
@@ -276,7 +280,7 @@ theorem ampE_rec (θ : ℝ) (u v : ℕ) (hu : 1 ≤ u) (hv : 1 ≤ v) :
   have hv0 : ¬ (v = 0) := by omega
   have hu0 : ¬ (u = 0) := by omega
   unfold ampE ampO
-  rw [if_neg hv0, if_neg hv0, if_neg hu0, Finset.mul_sum, Finset.mul_sum]
+  rw [ite_eq_right hv0, ite_eq_right hv0, ite_eq_right hu0, Finset.mul_sum, Finset.mul_sum]
   set n : ℕ := min u v with hn
   set F1 : ℕ → ℂ := fun k =>
     (Real.cos θ : ℂ) * ((Nat.choose (u - 1) (k + 1) : ℂ) * (Nat.choose (v - 1) k : ℂ) *
@@ -423,7 +427,7 @@ theorem lcStep_ampVec (θ : ℝ) (u v : ℕ) (h : 0 < u + v) :
       simp [hu0, mul_assoc]
     · have hu1 : 1 ≤ u := by omega
       have hv1 : 1 ≤ v := by omega
-      simp only [hu0, hv0, if_false]
+      simp only [hu0, hv0, ite_false]
       rw [ampO_rec θ u v hu1 hv1]
       simp
       ring
@@ -440,12 +444,12 @@ theorem lcStep_ampVec (θ : ℝ) (u v : ℕ) (h : 0 < u + v) :
         conv_lhs => rw [show u = (u - 1) + 1 by omega]
         rw [pow_succ']
       rw [ampE_zero_right θ u, ampE_zero_right θ (u - 1), ampO_zero_right θ u hu1]
-      simp only [Nat.add_zero]
+      simp only []
       rw [hpow]
       simp [hu0]
     · have hu1 : 1 ≤ u := by omega
       have hv1 : 1 ≤ v := by omega
-      simp only [hu0, hv0, if_false]
+      simp only [hu0, hv0, ite_false]
       rw [ampE_rec θ u v hu1 hv1]
       simp
 
@@ -489,7 +493,7 @@ theorem caEvolve_gt (θ : ℝ) :
     simp only [caStep]
     rw [ih (y - 1) hy1, ih (y + 1) hy2]
     ext i
-    fin_cases i <;> simp [caBlockA_mulVec, caBlockB_mulVec]
+    fin_cases i <;> simp []
 
 /-- Evolution from `caPsi0` vanishes strictly to the left of the time-`t` light cone. See
 [Meyer1996a]. -/
@@ -509,7 +513,7 @@ theorem caEvolve_lt (θ : ℝ) :
     simp only [caStep]
     rw [ih (y - 1) hy1, ih (y + 1) hy2]
     ext i
-    fin_cases i <;> simp [caBlockA_mulVec, caBlockB_mulVec]
+    fin_cases i <;> simp []
 
 /-- If `u + v = t`, evolution from the localized component-one state at `lcCell u v` equals the
 explicit amplitude vector. See [Meyer1996a]. -/
@@ -544,7 +548,7 @@ theorem caEvolve_amp (θ : ℝ) :
       rw [hsupp, h2, ih 0 (v - 1) e2]
       ext i
       fin_cases i <;>
-        simp [caBlockA_mulVec, caBlockB_mulVec, ampVec, ampO_zero_left, ampE_zero_left,
+        simp [ caBlockB_mulVec, ampVec, ampO_zero_left, ampE_zero_left,
           show 1 ≤ v by omega]
     · rcases Nat.eq_zero_or_pos v with rfl | hv1
       · have hgt : (t : ℤ) < lcCell u 0 + 1 := by
@@ -561,9 +565,9 @@ theorem caEvolve_amp (θ : ℝ) :
           rw [pow_succ']
         ext i
         fin_cases i
-        · simp [caBlockA_mulVec, caBlockB_mulVec, ampVec, ampE_zero_right,
+        · simp [caBlockA_mulVec,  ampVec, ampE_zero_right,
             ampO_zero_right θ u hu1]
-        · simp [caBlockA_mulVec, caBlockB_mulVec, ampVec, ampE_zero_right]
+        · simp [caBlockA_mulVec, ampVec, ampE_zero_right]
           rw [← hpow]
       · have h1 : lcCell u v - 1 = lcCell (u - 1) v := by
           rw [lcCell_pred_left u v hu1]
@@ -573,7 +577,7 @@ theorem caEvolve_amp (θ : ℝ) :
         have e2 : u + (v - 1) = t := by omega
         rw [h1, h2, ih (u - 1) v e1, ih u (v - 1) e2]
         have hstep := lcStep_ampVec θ u v (by omega)
-        simp only [lcStep, if_neg (by omega : ¬ u = 0), if_neg (by omega : ¬ v = 0)] at hstep
+        simp only [lcStep, ite_eq_right (by omega : ¬ u = 0), ite_eq_right (by omega : ¬ v = 0)] at hstep
         exact hstep
 
 /-- The two-by-two matrix interchanging the two components. -/
@@ -600,7 +604,7 @@ theorem caPsi0L_eq (x : ℤ) : caPsi0L x = swap2.mulVec (caPsi0 (-x)) := by
   ext i
   fin_cases i <;>
     by_cases hx : x = 0 <;>
-      simp [caPsi0L, caPsi0, swap2, Matrix.mulVec, dotProduct, Fin.sum_univ_two, hx]
+      simp [caPsi0L, caPsi0, swap2, Matrix.mulVec, dotProduct,  hx]
 
 /-- Evolution from the component-zero initial state is obtained by reflecting and swapping the
 evolution from the component-one initial state. See [Meyer1996a]. -/
@@ -632,7 +636,7 @@ theorem caEvolve_left_amp (θ : ℝ) (t u v : ℕ) (h : u + v = t) :
   rw [caEvolve_mirror]
   have hneg : -(lcCell u v) = lcCell v u := by
     unfold lcCell
-    push_cast
+
     ring
   rw [hneg, caEvolve_amp θ t v u (by omega)]
   ext i
@@ -675,7 +679,7 @@ theorem caEvolve_left_amp_translate (θ : ℝ) (t u v : ℕ) (h : u + v = t) (k 
 theorem ampO_eq_pathSumOdd (θ : ℝ) (u v : ℕ) (hu : 1 ≤ u) :
     ampO θ u v = pathSumOdd θ u v := by
   unfold ampO pathSumOdd
-  rw [if_neg (by omega : ¬ u = 0)]
+  rw [ite_eq_right (by omega : ¬ u = 0)]
   have hmin : min (u - 1) v + 1 = min u (v + 1) := by
     rcases lt_or_ge v u with h | h
     · rw [Nat.min_eq_right (by omega : v ≤ u - 1), Nat.min_eq_right (by omega : v + 1 ≤ u)]
@@ -692,7 +696,7 @@ theorem ampO_eq_pathSumOdd (θ : ℝ) (u v : ℕ) (hu : 1 ≤ u) :
 theorem ampE_eq_pathSumEven (θ : ℝ) (u v : ℕ) (hv : 1 ≤ v) :
     ampE θ u v = pathSumEven θ u v := by
   unfold ampE pathSumEven
-  rw [if_neg (by omega : ¬ v = 0)]
+  rw [ite_eq_right (by omega : ¬ v = 0)]
   apply Finset.sum_congr rfl
   intro k _
   simp only [evenAmp]

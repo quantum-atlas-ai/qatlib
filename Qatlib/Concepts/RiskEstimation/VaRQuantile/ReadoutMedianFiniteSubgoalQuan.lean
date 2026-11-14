@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RiskEstimation.VaRQuantile.ReadoutMedianFiniteSubgoalStat
-import Qatlib.Concepts.RiskEstimation.CDFEstimation.CDFActualFiniteSubgoalQuan
-import Qatlib.Concepts.RiskEstimation.VaRQuantile.ReadoutMedianDefs
+module
+
+public import Qatlib.Concepts.RiskEstimation.VaRQuantile.ReadoutMedianFiniteSubgoalStat
+public import Qatlib.Concepts.RiskEstimation.CDFEstimation.CDFActualFiniteSubgoalQuan
+public import Qatlib.Concepts.RiskEstimation.VaRQuantile.ReadoutMedianDefs
+
+@[expose] public section
 
 /-!
 # Median cumulative-probability readout bound

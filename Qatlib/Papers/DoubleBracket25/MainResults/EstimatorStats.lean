@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.DoubleBracket25.MainResults.Definitions
-import Qatlib.Papers.DoubleBracket25.MainResults.Supporting
+module
+
+public import Qatlib.Papers.DoubleBracket25.MainResults.Definitions
+public import Qatlib.Papers.DoubleBracket25.MainResults.Supporting
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -304,7 +308,7 @@ theorem SourcePropositionF2
     (N : Fin L → ℕ) (hN : ∀ i, 1 < N i)
     {Ω : Type u} [Fintype Ω] (μ : Ω → ℝ) (hμ : ∑ ω, μ ω = 1)
     (X : Fin L → Ω → ℝ) (Xpair : pairs L → Ω → ℝ)
-    (hX : ∀ i, finExpect μ (X i) = p i)
+    (_hX : ∀ i, finExpect μ (X i) = p i)
     (hX2 : ∀ i, finExpect μ (fun ω => (X i ω) ^ 2) =
       (p i) ^ 2 + (1 - (p i) ^ 2) / (N i : ℝ))
     (hXpair : ∀ ij, finExpect μ (Xpair ij) = pij ij)
@@ -389,7 +393,7 @@ Under i.i.d. measurements, with pairwise-uncorrelated pair-estimators and
 `Var[⟨Ô²⟩] = Σ_{i≠j} (wᵢ²wⱼ²/Nᵢⱼ)(1 - ⟨Pᵢⱼ⟩²)`. -/
 theorem SourceLemmaF3
     (w : Fin L → ℝ) (p : Fin L → ℝ)
-    (Nij : pairs L → ℕ) (hNij : ∀ ij, 0 < Nij ij)
+    (Nij : pairs L → ℕ) (_hNij : ∀ ij, 0 < Nij ij)
     {Ω : Type u} [Fintype Ω] (μ : Ω → ℝ) (hμ : ∑ ω, μ ω = 1)
     (Xpair : pairs L → Ω → ℝ)
     (hmean : ∀ ij, finExpect μ (Xpair ij) = p ij.val.1 * p ij.val.2)
@@ -647,7 +651,7 @@ For the `N`-shot mean `X = (1/N) Σₖ bₖ` of i.i.d. `±1` outcomes with
 2. `E[X²] = p² + (1-p²)/N`;
 3. `E[X³] = p³(1 - 3/N + 2/N²) + p(3/N - 2/N²)`;
 4. `E[X⁴] = p⁴ + 6p²(1-p²)/N + ((11p²-3)(p²-1))/N² + 2(3p²-1)(1-p²)/N³`. -/
-theorem SourceLemmaF4 (p : ℝ) (hp : |p| ≤ 1) (N : ℕ) (hN : 0 < N) :
+theorem SourceLemmaF4 (p : ℝ) (_hp : |p| ≤ 1) (N : ℕ) (hN : 0 < N) :
     iidExpect p N (sampleMean N) = p ∧
     iidExpect p N (fun s => (sampleMean N s) ^ 2) = p ^ 2 + (1 - p ^ 2) / (N : ℝ) ∧
     iidExpect p N (fun s => (sampleMean N s) ^ 3) =
@@ -722,14 +726,14 @@ The hypothesis `hVarSplit` records the three-block independence decomposition
 `2Cov(A,B)` cross block), the paper's "measurements are i.i.d." applied
 pairwise; `hcov3` is the mixed third moment `E[Xᵢ³Xⱼ] = μ₃(Xᵢ)·pⱼ`. -/
 theorem SourceLemmaF5
-    (w : Fin L → ℝ) (p : Fin L → ℝ) (hp : ∀ i, |p i| ≤ 1)
+    (w : Fin L → ℝ) (p : Fin L → ℝ) (_hp : ∀ i, |p i| ≤ 1)
     (N : Fin L → ℕ) (hN : ∀ i, 1 < N i)
-    {Ω : Type u} [Fintype Ω] (μ : Ω → ℝ) (hμ : ∑ ω, μ ω = 1)
+    {Ω : Type u} [Fintype Ω] (μ : Ω → ℝ) (_hμ : ∑ ω, μ ω = 1)
     (X : Fin L → Ω → ℝ)
-    (h1 : ∀ i, finExpect μ (X i) = p i)
+    (_h1 : ∀ i, finExpect μ (X i) = p i)
     (h2 : ∀ i, finExpect μ (fun ω => (X i ω) ^ 2) =
       (p i) ^ 2 + (1 - (p i) ^ 2) / (N i : ℝ))
-    (h3 : ∀ i, finExpect μ (fun ω => (X i ω) ^ 3) =
+    (_h3 : ∀ i, finExpect μ (fun ω => (X i ω) ^ 3) =
       (p i) ^ 3 * (1 - 3 / (N i : ℝ) + 2 / (N i : ℝ) ^ 2) +
         p i * (3 / (N i : ℝ) - 2 / (N i : ℝ) ^ 2))
     (h4 : ∀ i, finExpect μ (fun ω => (X i ω) ^ 4) =
@@ -888,9 +892,9 @@ is what the source's `4 Σ_{i<j}` was presumably meant to be, but written over
 ordered pairs the coefficient is `2`).  The hypotheses `hVarO2`/`hVarOsq`
 are the (corrected) conclusions of Lem. F.3 / F.5. -/
 theorem SourceTheoremF6
-    (w : Fin L → ℝ) (p : Fin L → ℝ) (hp : ∀ i, |p i| ≤ 1)
+    (w : Fin L → ℝ) (p : Fin L → ℝ) (_hp : ∀ i, |p i| ≤ 1)
     (N : Fin L → ℕ) (hN : ∀ i, 1 < N i)
-    (Nij : pairs L → ℕ) (hNij : ∀ ij, 0 < Nij ij)
+    (Nij : pairs L → ℕ) (_hNij : ∀ ij, 0 < Nij ij)
     (varV varO2 varOsq : ℝ)
     (hVarV : varV = varO2 + varOsq)
     (hVarO2 : varO2 = ∑ ij : pairs L,
@@ -1004,9 +1008,9 @@ With the `{Pᵢⱼ}` and `{Pᵢ⊗ⱼ}` measurements i.i.d. and mutually indepen
 `Var[V̄] = Σ_{i≠j} wᵢ²wⱼ²(1-⟨Pᵢⱼ⟩²)/Nᵢⱼ + Σ_{i,j} wᵢ²wⱼ²(1-⟨Pᵢ⟩²⟨Pⱼ⟩²)/Nᵢ⊗ⱼ`. -/
 theorem SourceLemmaF8
     (w : Fin L → ℝ) (p : Fin L → ℝ)
-    (Nij : pairs L → ℕ) (hNij : ∀ ij, 0 < Nij ij)
-    (Nj : Fin L × Fin L → ℕ) (hNj : ∀ ij, 0 < Nj ij)
-    {Ω : Type u} [Fintype Ω] (μ : Ω → ℝ) (hμ : ∑ ω, μ ω = 1)
+    (Nij : pairs L → ℕ) (_hNij : ∀ ij, 0 < Nij ij)
+    (Nj : Fin L × Fin L → ℕ) (_hNj : ∀ ij, 0 < Nj ij)
+    {Ω : Type u} [Fintype Ω] (μ : Ω → ℝ) (_hμ : ∑ ω, μ ω = 1)
     (Xpair : pairs L → Ω → ℝ) (Xjoint : Fin L × Fin L → Ω → ℝ)
     (hPmean : ∀ ij, finExpect μ (Xpair ij) = p ij.val.1 * p ij.val.2)
     (hPsecond : ∀ ij, finExpect μ (fun ω => (Xpair ij ω) ^ 2) =
@@ -1063,7 +1067,7 @@ with total number of shots at most `(4/ε²)(Σᵢ|wᵢ|)⁴` achieving
 This is Eq. (328) evaluated at the Lagrange-optimal allocation
 (Eq. (340)-(344)), bounded using `|⟨Pᵢ⟩| ≤ 1` (Eq. (345)-(346)). -/
 theorem SourcePropositionF9
-    (w : Fin L → ℝ) (p : Fin L → ℝ) (hp : ∀ i, |p i| ≤ 1)
+    (w : Fin L → ℝ) (p : Fin L → ℝ) (_hp : ∀ i, |p i| ≤ 1)
     (ε : ℝ) (hε : 0 < ε) (hw : 0 < ∑ i, |w i|) :
     ∃ Nij : pairs L → ℝ, ∃ Nj : Fin L × Fin L → ℝ,
       (∀ ij, 0 < Nij ij) ∧ (∀ ij, 0 < Nj ij) ∧
@@ -1084,7 +1088,7 @@ theorem SourcePropositionF9
   have hS0 : 0 < ∑ i, |w i| := hw
   obtain ⟨i₀, hi₀⟩ : ∃ i₀ : Fin L, w i₀ ≠ 0 := by
     by_contra hcon
-    push_neg at hcon
+    push Not at hcon
     rw [Finset.sum_congr rfl (fun i (_ : i ∈ Finset.univ) => by rw [hcon i])] at hS0
     exact absurd hS0 (by norm_num)
   have hs2pos : 0 < ∑ i, |w i| ^ 2 := by

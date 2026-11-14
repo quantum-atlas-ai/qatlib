@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.RawMachine.PaidBoundCompressionTest
+module
+
+public import Qatlib.Concepts.EffectiveGauge.RawMachine.PaidBoundCompressionTest
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -36,7 +40,7 @@ private theorem true_prefix (k : ℕ) (bits : CanonicalCodec.Bits) :
   | zero => simp
   | succ k ih =>
     rw [List.replicate_succ,List.cons_append,binary_cons,Nat.pow_succ]
-    simp only [if_true]
+    simp only [ite_true]
     nlinarith only [ih]
 
 /-- Original `encoded_value` guarantee for the `PaidBoundThresholdOrder` construction; the complete source hypotheses are retained. -/

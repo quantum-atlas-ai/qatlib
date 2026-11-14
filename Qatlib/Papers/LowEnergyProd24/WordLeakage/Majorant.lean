@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LowEnergyProd24.WordLeakage.ActualLeakage
-import Mathlib.Analysis.Complex.ExponentialBounds
+module
+
+public import Qatlib.Papers.LowEnergyProd24.WordLeakage.ActualLeakage
+public import Mathlib.Analysis.Complex.ExponentialBounds
+
+@[expose] public section
 
 /-!
 # Source majorants for product-word leakage

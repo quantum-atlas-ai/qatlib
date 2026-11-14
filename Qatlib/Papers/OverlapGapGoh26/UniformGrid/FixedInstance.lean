@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OverlapGapGoh26.UniformGrid.EnergyModulus
-import Qatlib.Papers.OverlapGapGoh26.UniformGrid.ExplicitGrid
-import Qatlib.Papers.OverlapGapGoh26.GaussianModel.Stationarity
+module
+
+public import Qatlib.Papers.OverlapGapGoh26.UniformGrid.EnergyModulus
+public import Qatlib.Papers.OverlapGapGoh26.UniformGrid.ExplicitGrid
+public import Qatlib.Papers.OverlapGapGoh26.GaussianModel.Stationarity
+
+@[expose] public section
 
 /-!
 # Quantitative fixed-instance AMP reduction

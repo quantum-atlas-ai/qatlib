@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.QueryComparisonSourceDefs
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.QueryModelComparison
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.QueryComparisonSourceDefs
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.QueryModelComparison
+
+@[expose] public section
 
 /-!
 # Polynomial and query-model comparison results
@@ -144,6 +148,7 @@ theorem clause69_lower {P : DecisionProgram I W} (hZ : P.ZeroErrorFor orFunction
   rw [clause70_complete hcard] at hdeg
   exact hdeg
 
+omit [DecidableEq I] in
 /-- Scanning all indices returns true exactly when there is a listed true bit, with the scan
 tree's maximum query count equal to the number of indices. -/
 theorem clause69_classical_upper (g : I → Bool) :

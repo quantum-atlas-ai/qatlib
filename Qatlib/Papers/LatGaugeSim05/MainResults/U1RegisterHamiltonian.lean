@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Data.Matrix.Mul
-import Mathlib.LinearAlgebra.Matrix.Diagonal
-import Mathlib.Data.Complex.Basic
-import Mathlib.Tactic
-import Qatlib.Concepts.TensorRegisters.RegisterModel.TensorRegistersDefs
-import Qatlib.Concepts.TensorRegisters.RegisterModel.TensorRegisters
+module
+
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.LinearAlgebra.Matrix.Diagonal
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Tactic
+public import Qatlib.Concepts.TensorRegisters.RegisterModel.TensorRegistersDefs
+public import Qatlib.Concepts.TensorRegisters.RegisterModel.TensorRegisters
+
+@[expose] public section
 
 /-!
 # Truncated U(1) register Hamiltonian

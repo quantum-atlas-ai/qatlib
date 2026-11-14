@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.QuantumAccess.ResidualDiagnosticContracts
-import Qatlib.Concepts.WalkSearch.Primitives.AdaptiveCheckerObstruction
+module
+
+public import Qatlib.Concepts.WalkSearch.QuantumAccess.ResidualDiagnosticContracts
+public import Qatlib.Concepts.WalkSearch.Primitives.AdaptiveCheckerObstruction
+
+@[expose] public section
 
 /-!
 # Limits of checker substitution

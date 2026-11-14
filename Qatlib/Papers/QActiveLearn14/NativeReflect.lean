@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixGeometry.FlagProjection.Coherence
+module
+
+public import Qatlib.Foundations.MatrixGeometry.FlagProjection.Coherence
+
+@[expose] public section
 
 /-!
 # Coherent inputs and native reflections
@@ -70,7 +74,7 @@ theorem literal_lemma6_fails (S : Finset X) (v : EuclideanSpace ℂ X) (hp : 0 <
   rw [hh, hc, neg_neg]
   intro he
   have hi := congrArg (fun q => inner ℂ (tail S v) q) he
-  try dsimp only at hi
+
   rw [inner_neg_right, tail_unit S v hp] at hi
   norm_num at hi
 

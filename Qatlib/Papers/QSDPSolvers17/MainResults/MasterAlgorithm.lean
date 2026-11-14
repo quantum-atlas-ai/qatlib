@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Papers.QSDPSolvers17.MainResults.Model.SdpInstance
-import Qatlib.Concepts.MatrixWeights.LambdaMin
+module
+
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Papers.QSDPSolvers17.MainResults.Model.SdpInstance
+public import Qatlib.Concepts.MatrixWeights.LambdaMin
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -237,7 +241,7 @@ theorem master_algorithm_soundness
   have hTge : 32 * Real.log D / ε ^ 2 ≤ (T : ℝ) * (2 + ε) := by
     have h2T : 32 * Real.log D / ε ^ 2 ≤ 2 * (T : ℝ) := by
       have h' := mul_le_mul_of_nonneg_left hT (by norm_num : (0 : ℝ) ≤ 2)
-      convert h' using 1 <;> ring
+      convert h' using 1; ring
     nlinarith [h2T, hε0, hT0R]
   linarith
 

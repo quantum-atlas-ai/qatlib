@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RiskEstimation.CDFEstimation.CDFActualFiniteSubgoalStat
+module
+
+public import Qatlib.Concepts.RiskEstimation.CDFEstimation.CDFActualFiniteSubgoalStat
+
+@[expose] public section
 
 /-!
 # Finite CDF preparation and monotonicity
@@ -65,8 +69,8 @@ theorem riskCDF_monotone {I : Type} [Fintype I] (A : Matrix I I ℂ) (j : I) (lo
   apply mul_le_mul_of_nonneg_left _ (bornProb_nonneg _ _)
   unfold riskCDFPayoff
   by_cases ht : loss i ≤ t
-  · simp only [if_pos ht, if_pos (ht.trans htu), le_refl]
-  · rw [if_neg ht]; split <;> norm_num
+  · simp only [ite_eq_left ht, ite_eq_left (ht.trans htu), le_refl]
+  · rw [ite_eq_right ht]; split <;> norm_num
 
 /-- CDF payoff preparation measures the flag with probability `riskCDF`, and this probability is
 monotone in the threshold; see [WoernerEgger2019]. -/

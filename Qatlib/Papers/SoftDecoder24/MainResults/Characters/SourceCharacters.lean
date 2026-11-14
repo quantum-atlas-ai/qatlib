@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SoftDecoder24.MainResults.Basic
+module
+
+public import Qatlib.Papers.SoftDecoder24.MainResults.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -71,13 +75,13 @@ lemma sum_stdAddChar_mul (t : ZMod q) :
     ∑ y : ZMod q, ZMod.stdAddChar (t * y) = if t = 0 then (q : ℂ) else 0 := by
   by_cases h : t = 0
   · subst h
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     have h0 : (∑ y : ZMod q, ZMod.stdAddChar ((0 : ZMod q) * y))
         = ∑ _y : ZMod q, (1 : ℂ) := by
       exact Finset.sum_congr rfl (fun y _ => by simp)
     rw [h0]
     rw [Finset.sum_const, Finset.card_univ, ZMod.card, nsmul_eq_mul, mul_one]
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     have hne : (AddChar.mulShift ZMod.stdAddChar t : AddChar (ZMod q) ℂ) ≠ 1 :=
       ZMod.isPrimitive_stdAddChar q h
     have heq : (fun y : ZMod q => ZMod.stdAddChar (t * y))
@@ -97,7 +101,7 @@ lemma sum_char_mul_star (x x' : ZMod q) :
   · subst hx
     simp
   · have hsub : x - x' ≠ 0 := sub_ne_zero.mpr hx
-    rw [if_neg hx, if_neg hsub]
+    rw [ite_eq_right hx, ite_eq_right hsub]
 
 /-- Vector form of the character/anti-character product. -/
 lemma vchar_mul_star {n : ℕ} (y x x' : Fin n → ZMod q) :
@@ -123,16 +127,16 @@ lemma sum_vchar_mul_star {n : ℕ} (x x' : Fin n → ZMod q) :
     · rw [h]
       simp
     · have hsub : x i - x' i ≠ 0 := sub_ne_zero.mpr h
-      rw [if_neg h, if_neg hsub]
+      rw [ite_eq_right h, ite_eq_right hsub]
   simp only [hfac]
   by_cases hx : x = x'
   · subst hx
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     simp [Finset.prod_const]
-  · rw [if_neg hx]
+  · rw [ite_eq_right hx]
     have hex : ∃ i, x i ≠ x' i := by
       by_contra hc
-      push_neg at hc
+      push Not at hc
       exact hx (funext hc)
     obtain ⟨i, hi⟩ := hex
     rw [Finset.prod_eq_zero (Finset.mem_univ i) (by simp [hi])]

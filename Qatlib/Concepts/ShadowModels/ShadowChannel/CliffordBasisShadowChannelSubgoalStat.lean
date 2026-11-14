@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ShadowModels.ShadowChannel.CliffordShadowContracts
-import Qatlib.Concepts.ShadowModels.ShadowChannel.TensorPauliRecords
-import Qatlib.Foundations.PureStateMath.MixedState
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
-import Qatlib.Concepts.ShadowModels.ShadowChannel.CliffordShadowDefs
+module
+
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.CliffordShadowContracts
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.TensorPauliRecords
+public import Qatlib.Foundations.PureStateMath.MixedState
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.CliffordShadowDefs
+
+@[expose] public section
 
 /-!
 # Clifford basis shadow channel specification
@@ -42,10 +46,10 @@ open scoped Classical BigOperators
 at least two has the displayed depolarizing basis channel and unbiased inverse
 reconstruction under actual Born record weights. -/
 def CliffordBasisShadowChannelSubgoal : Prop :=
-  ∀ (d : ℕ) (hd : 2 ≤ d) (I : Type) [Fintype I] [DecidableEq I]
+  ∀ (d : ℕ) (_hd : 2 ≤ d) (I : Type) [Fintype I] [DecidableEq I]
     (μ : FinDist I) (Uf : I → Operator d)
-    (hκU : ∀ i, 0 < μ.prob i → Uf i ∈ Matrix.unitaryGroup (Fin d) ℂ)
-    (h35 : CliffordMomentHypothesisV2 d I μ Uf),
+    (_hκU : ∀ i, 0 < μ.prob i → Uf i ∈ Matrix.unitaryGroup (Fin d) ℂ)
+    (_h35 : CliffordMomentHypothesisV2 d I μ Uf),
     (∀ ρ : Operator d, IsDensityOperator ρ →
       (∑ b, ∑ i, (μ.prob i *
           (Matrix.trace (basisProjector b * (Uf i * ρ * (Uf i)ᴴ))).re) •

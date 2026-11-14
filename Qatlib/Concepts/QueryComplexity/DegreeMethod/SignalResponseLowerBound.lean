@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.SignalResponseLowerBoundDefs
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.SignalResponseLowerBoundDefs
+
+@[expose] public section
 
 /-!
 # Hybrid signal-response lower bounds
@@ -1231,11 +1235,11 @@ private theorem counters_livePeak_zero : ∀ (l : List DynStep),
   | nil => simp [counters, Account.zero]
   | cons s rest ih =>
     intro h
-    simp only [counters, Account.seq, List.map_cons]
+    simp only [counters, Account.seq]
     have hs := h s (List.mem_cons_self)
     have hr := ih (fun s' hs' => h s' (List.mem_cons_of_mem s hs'))
     rw [hs, hr]
-    simp [Account.zero]
+    simp []
 
 /-- If every step in a list has zero peak-workspace charge, the combined counter has zero
 peak-workspace charge. -/
@@ -1246,11 +1250,11 @@ private theorem counters_peakWorkspace_zero : ∀ (l : List DynStep),
   | nil => simp [counters, Account.zero]
   | cons s rest ih =>
     intro h
-    simp only [counters, Account.seq, List.map_cons]
+    simp only [counters, Account.seq]
     have hs := h s (List.mem_cons_self)
     have hr := ih (fun s' hs' => h s' (List.mem_cons_of_mem s hs'))
     rw [hs, hr]
-    simp [Account.zero]
+    simp []
 
 /-- The signal-word account has zero live-peak and peak-workspace fields. -/
 theorem clause3_account_peak_ledgers :

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Normed.Module.Basic
-import Mathlib.Topology.Order.Compact
-import Mathlib.Data.NNReal.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.Normed.Module.Basic
+public import Mathlib.Topology.Order.Compact
+public import Mathlib.Basic.NNReal.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Optimal centers along an affine line

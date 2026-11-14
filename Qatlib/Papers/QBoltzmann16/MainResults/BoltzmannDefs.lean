@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixWeights.WeightsCore
-import Qatlib.Concepts.MatrixExpTrace.GibbsNorm
-import Qatlib.Foundations.MatrixExpTrace.CompJensen
+module
+
+public import Qatlib.Concepts.MatrixWeights.WeightsCore
+public import Qatlib.Concepts.MatrixExpTrace.GibbsNorm
+public import Qatlib.Foundations.MatrixExpTrace.CompJensen
+
+@[expose] public section
 
 /-!
 # Finite Gibbs probabilities and compression bounds
@@ -103,7 +107,7 @@ theorem golden_thompson_trace (D : ℕ) (A B : Operator D)
 function. -/
 theorem gibbsPartition_pos (D : ℕ) (H : Operator D) (hD : 0<D) (hH : H.IsHermitian) :
     0<gibbsPartition D H := by
-  letI : Nonempty (Fin D) := ⟨⟨0,hD⟩⟩
+  let : Nonempty (Fin D) := ⟨⟨0,hD⟩⟩
   exact Qatlib.Concepts.MatrixExpTrace.GibbsNorm.exp_trace_re_pos (-H) hH.neg
 
 /-- For positive full and compressed dimensions and Hermitian `H`, the compressed Gibbs

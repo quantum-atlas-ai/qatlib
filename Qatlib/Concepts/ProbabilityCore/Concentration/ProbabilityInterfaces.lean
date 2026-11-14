@@ -4,16 +4,20 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ProbabilityCore.Concentration.CubeQueryInterfaces
-import Qatlib.Concepts.ProbabilityCore.Concentration.GaussianSmallBall
-import Qatlib.Concepts.ProbabilityCore.Concentration.NumericSampling
-import Qatlib.Concepts.SketchSpectral.SketchAnalysis.SketchOperatorConcentration
-import Qatlib.Concepts.BosonFock.PermAnalysis.GaussianComparison
-import Mathlib.MeasureTheory.Integral.Pi
-import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfacesDefs
-import Qatlib.Concepts.SketchArith.SketchBuild.FiniteBoundedDifferences
-import Mathlib.MeasureTheory.Constructions.Pi
-import Mathlib.Probability.Independence.Basic
+module
+
+public import Qatlib.Concepts.ProbabilityCore.Concentration.CubeQueryInterfaces
+public import Qatlib.Concepts.ProbabilityCore.Concentration.GaussianSmallBall
+public import Qatlib.Concepts.ProbabilityCore.Concentration.NumericSampling
+public import Qatlib.Concepts.SketchSpectral.SketchAnalysis.SketchOperatorConcentration
+public import Qatlib.Concepts.BosonFock.PermAnalysis.GaussianComparison
+public import Mathlib.MeasureTheory.Integral.Pi
+public import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfacesDefs
+public import Qatlib.Concepts.SketchArith.SketchBuild.FiniteBoundedDifferences
+public import Mathlib.MeasureTheory.Constructions.Pi
+public import Mathlib.Probability.Independence.Basic
+
+@[expose] public section
 
 /-!
 # Finite probability and concentration interfaces
@@ -268,7 +272,7 @@ theorem independent_expect_coord {I : Type*} [Fintype I] [DecidableEq I]
     {X : I → Type*} [∀ i, Fintype (X i)] [∀ i, DecidableEq (X i)]
     (p : ∀ i, FinDist (X i)) (i : I) (f : X i → ℝ) :
     (independent p).expect (fun ω => f (ω i)) = (p i).expect f := by
-  letI : ∀ i, MeasurableSpace (X i) := fun _ => ⊤
+  let _ : ∀ i, MeasurableSpace (X i) := fun _ => ⊤
   rw [← integral_eq_expect, independent_toMeasure, ← integral_eq_expect]
   exact MeasureTheory.integral_comp_eval (measurable_of_countable f).aestronglyMeasurable
 
@@ -278,7 +282,7 @@ theorem independent_weighted_variance {I : Type*} [Fintype I] [DecidableEq I]
     {X : I → Type*} [∀ i, Fintype (X i)] [∀ i, DecidableEq (X i)]
     (p : ∀ i, FinDist (X i)) (w : I → ℝ) (f : ∀ i, X i → ℝ) :
     (independent p).variance (weightedSum w f) = ∑ i, (w i)^2 * (p i).variance (f i) := by
-  letI : ∀ i, MeasurableSpace (X i) := fun _ => ⊤
+  let _ : ∀ i, MeasurableSpace (X i) := fun _ => ⊤
   rw [← variance_eq_mathlib, independent_toMeasure]
   have h := ProbabilityTheory.variance_sum_pi
     (μ := fun i => (toPMF (p i)).toMeasure) (X := fun i x => w i * f i x)

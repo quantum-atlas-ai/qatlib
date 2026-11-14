@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ConversionCore.WitnessCompile.EffectiveSpectralGapQuan
-import Qatlib.Concepts.GramQueryCore.LowerBoundTools.ResidualModels
-import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
+module
+
+public import Qatlib.Concepts.ConversionCore.WitnessCompile.EffectiveSpectralGapQuan
+public import Qatlib.Concepts.GramQueryCore.LowerBoundTools.ResidualModels
+public import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurement
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

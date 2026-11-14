@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdaptiveCP.BranchTrace.QuantumChannel
-import QuantumInfo.Channels.CPTP
+module
+
+public import Qatlib.Concepts.AdaptiveCP.BranchTrace.QuantumChannel
+public import QuantumInfo.Channels.CPTP
+
+@[expose] public section
 
 /-!
 # Equivalence with Physlib quantum channels

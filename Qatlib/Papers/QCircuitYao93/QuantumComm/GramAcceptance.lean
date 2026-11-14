@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Tensor
-import Qatlib.Foundations.TensorRegisters.GramExpansion
+module
+
+public import Qatlib.Foundations.PureStateMath.Tensor
+public import Qatlib.Foundations.TensorRegisters.GramExpansion
+
+@[expose] public section
 
 /-!
 # Gram expansions of tensor acceptance mass

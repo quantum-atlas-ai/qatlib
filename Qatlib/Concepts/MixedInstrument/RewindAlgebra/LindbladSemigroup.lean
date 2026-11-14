@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MixedInstrument.RewindAlgebra.LindbladSemigroupDefs
-import Qatlib.Concepts.MixedInstrument.RewindAlgebra.GibbsMetropolis
-import Qatlib.Concepts.MixedInstrument.RewindAlgebra.RejectionFailureBoundQuan
+module
+
+public import Qatlib.Concepts.MixedInstrument.RewindAlgebra.LindbladSemigroupDefs
+public import Qatlib.Concepts.MixedInstrument.RewindAlgebra.GibbsMetropolis
+public import Qatlib.Concepts.MixedInstrument.RewindAlgebra.RejectionFailureBoundQuan
+
+@[expose] public section
 
 /-!
 # Lindblad mixing and Metropolis specifications
@@ -575,7 +579,7 @@ theorem metropolisAcceptFilter {D : ℕ} (E : Fin D → ℝ) (ψ : Fin D → QSt
           (ens.gate c)ᴴ * energyPi E ψ j) = 0 := by
     intro j c
     have hguard : (if isEnergyRep E i ∧ isEnergyRep E j then (1 : ℝ) else 0) = 0 := by
-      rw [if_neg (by simp [hni])]
+      rw [ite_eq_right (by simp [hni])]
     simp only [hguard, zero_mul, zero_smul]
   unfold metropolisAcceptRow
   refine Finset.sum_eq_zero fun j _ => ?_
@@ -593,7 +597,7 @@ theorem metropolisRejectFilter {D : ℕ} (E : Fin D → ℝ) (ψ : Fin D → QSt
     intro l r
     have hguard : (if isEnergyRep E i ∧ (∀ j, isEnergyRep E (l j)) ∧ (∀ j, isEnergyRep E (r j))
         then temmeG E β i n s l r else 0) = 0 := by
-      rw [if_neg (by simp [hni])]
+      rw [ite_eq_right (by simp [hni])]
     rw [hguard, zero_smul]
   unfold metropolisRejectRow
   refine Finset.sum_eq_zero fun l _ => ?_

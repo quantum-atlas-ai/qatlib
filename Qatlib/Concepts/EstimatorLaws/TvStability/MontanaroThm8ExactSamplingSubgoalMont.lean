@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EstimatorLaws.TvStability.MontanaroThm8ExactSamplingSubgoalStat
-import Qatlib.Concepts.EstimatorLaws.TvStability.MontanaroTheorem8FactorSubgoalMont
+module
+
+public import Qatlib.Concepts.EstimatorLaws.TvStability.MontanaroThm8ExactSamplingSubgoalStat
+public import Qatlib.Concepts.EstimatorLaws.TvStability.MontanaroTheorem8FactorSubgoalMont
+
+@[expose] public section
 
 /-!
 # Exact-sampling partition-function estimator

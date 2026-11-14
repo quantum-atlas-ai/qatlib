@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MUBCompletion26.Completion.MUB6GraphGramGap
-import Qatlib.Concepts.UnbiasedBases.ThreeBasis.MutuallyUnbiasedGauge
-import Qatlib.Foundations.PureStateMath.Qubit
+module
+
+public import Qatlib.Papers.MUBCompletion26.Completion.MUB6GraphGramGap
+public import Qatlib.Concepts.UnbiasedBases.ThreeBasis.MutuallyUnbiasedGauge
+public import Qatlib.Foundations.PureStateMath.Qubit
+
+@[expose] public section
 
 /-!
 # Gram gaps for labeled and rephased rays

@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.HermitianFunctionStability
-import Mathlib.LinearAlgebra.Matrix.Rank
-import Qatlib.Concepts.RandCompile.ChannelBudget.SingularValues
-import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.OrderedSpectralPerturbation
-import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
-import Mathlib.NumberTheory.Harmonic.Bounds
+module
+
+public import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.HermitianFunctionStability
+public import Mathlib.LinearAlgebra.Matrix.Rank
+public import Qatlib.Concepts.RandCompile.ChannelBudget.SingularValues
+public import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.OrderedSpectralPerturbation
+public import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+public import Mathlib.NumberTheory.Harmonic.Bounds
+
+@[expose] public section
 
 /-!
 # Logarithmic rank bounds for Hermitian matrix functions
@@ -289,8 +293,8 @@ theorem hermitianPairScalarLipschitz_divided_difference_norm_le {I J : Type}
       (f (orderedHermitianValues hA i)-f (orderedHermitianValues hB j)) /
         ((orderedHermitianValues hA i-orderedHermitianValues hB j : ℝ) : ℂ)‖ ≤ L := by
   by_cases he : orderedHermitianValues hA i = orderedHermitianValues hB j
-  · simpa only [if_pos he, norm_zero] using hL
-  · rw [if_neg he, norm_div, Complex.norm_real, Real.norm_eq_abs]
+  · simpa only [ite_eq_left he, norm_zero] using hL
+  · rw [ite_eq_right he, norm_div, Complex.norm_real, Real.norm_eq_abs]
     apply (div_le_iff₀ (abs_pos.mpr (sub_ne_zero.mpr he))).mpr
     exact hermitianPairScalarLipschitz_cross hf i j
 
@@ -314,7 +318,7 @@ theorem hermitianFunction_quasicommutator_divided_difference {I J : Type}
   · simp [he]
   · have hn : ((orderedHermitianValues hA i-orderedHermitianValues hB j : ℝ) : ℂ) ≠ 0 := by
       exact Complex.ofReal_ne_zero.mpr (sub_ne_zero.mpr he)
-    simp only [if_neg he]
+    simp only [ite_eq_right he]
     field_simp
 
 /-- A uniform quasicommutator bound depending on the left rank implies a functional calculus
@@ -412,8 +416,8 @@ theorem ddMat_apply_swap {I J : Type} (eigL : I → ℝ) (eigR : J → ℝ) (f :
   unfold ddMat
   simp only [Matrix.of_apply]
   by_cases h : eigL i = eigR j
-  · rw [if_pos h, if_pos h.symm]
-  · rw [if_neg h, if_neg (Ne.symm h)]
+  · rw [ite_eq_left h, ite_eq_left h.symm]
+  · rw [ite_eq_right h, ite_eq_right (Ne.symm h)]
     have hne : ((eigL i - eigR j : ℝ) : ℂ) ≠ 0 := by
       exact_mod_cast sub_ne_zero.mpr h
     have hd : ((eigR j - eigL i : ℝ) : ℂ) = -((eigL i - eigR j : ℝ) : ℂ) := by
@@ -1234,19 +1238,19 @@ section intervals
 /-- The lower endpoint of a nonempty group belongs to that group. -/
 theorem glo_mem {k : ℕ} (hk : (groupVals a μ b ν m k).Nonempty) :
     glo a μ b ν m k ∈ groupVals a μ b ν m k := by
-  simp only [glo, dif_pos hk]
+  simp only [glo, dite_eq_left hk]
   exact Finset.min'_mem _ _
 
 /-- The upper endpoint of a nonempty group belongs to that group. -/
 theorem ghi_mem {k : ℕ} (hk : (groupVals a μ b ν m k).Nonempty) :
     ghi a μ b ν m k ∈ groupVals a μ b ν m k := by
-  simp only [ghi, dif_pos hk]
+  simp only [ghi, dite_eq_left hk]
   exact Finset.max'_mem _ _
 
 /-- The lower endpoint of a nonempty group does not exceed its upper endpoint. -/
 theorem glo_le_ghi {k : ℕ} (hk : (groupVals a μ b ν m k).Nonempty) :
     glo a μ b ν m k ≤ ghi a μ b ν m k := by
-  simp only [glo, ghi, dif_pos hk]
+  simp only [glo, ghi, dite_eq_left hk]
   exact Finset.min'_le _ _ (Finset.max'_mem _ _)
 
 /-- The radius of a nonempty group is nonnegative. -/
@@ -1261,7 +1265,7 @@ theorem gρ_nonneg {k : ℕ} (hk : (groupVals a μ b ν m k).Nonempty) :
 theorem mem_bounds_of_grp_eq {k : ℕ} (hk : (groupVals a μ b ν m k).Nonempty) {t : ℝ}
     (ht : t ∈ groupVals a μ b ν m k) :
     glo a μ b ν m k ≤ t ∧ t ≤ ghi a μ b ν m k := by
-  simp only [glo, ghi, dif_pos hk]
+  simp only [glo, ghi, dite_eq_left hk]
   exact ⟨Finset.min'_le _ _ ht, Finset.le_max' _ _ ht⟩
 
 /-- The distance of a group member from the group midpoint is at most the group radius. -/
@@ -1338,7 +1342,7 @@ theorem sum_sub_le_of_pairwise_ordered {S : Finset ℕ} {lo' hi' : ℕ → ℝ}
   induction S using Finset.induction_on_max with
   | empty => simp
   | insert M S' hlt ih =>
-    rw [dif_pos (Finset.insert_nonempty M S')]
+    rw [dite_eq_left (Finset.insert_nonempty M S')]
     have hMnotin : M ∉ S' := fun h => (lt_irrefl M (hlt M h)).elim
     rw [Finset.sum_insert hMnotin]
     have hmax : (insert M S').max' (Finset.insert_nonempty M S') = M := by
@@ -1367,7 +1371,7 @@ theorem sum_sub_le_of_pairwise_ordered {S : Finset ℕ} {lo' hi' : ℕ → ℝ}
       have hnonneg' : ∀ x ∈ S', lo' x ≤ hi' x :=
         fun x hx => hnonneg x (Finset.mem_insert_of_mem hx)
       have ih' := ih hord' hnonneg'
-      rw [dif_pos hS'] at ih'
+      rw [dite_eq_left hS'] at ih'
       have hle : hi' (S'.max' hS') ≤ lo' M :=
         hord _ (Finset.mem_insert_of_mem (Finset.max'_mem S' hS')) _ (Finset.mem_insert_self M S')
           (hlt _ (Finset.max'_mem S' hS'))
@@ -1443,7 +1447,7 @@ theorem card_groups_meeting_le (k : ℕ) (_hk : (groupVals a μ b ν m k).Nonemp
   by_cases hS : S.Nonempty
   · have h1 := sum_sub_le_of_pairwise_ordered hord (fun k' hk' => sub_nonneg.mp
       ((mul_pos two_pos hρ).le.trans (hstrong k' hk')))
-    rw [dif_pos hS] at h1
+    rw [dite_eq_left hS] at h1
     have hmax_hi : hi' (S.max' hS) ≤ gctr a μ b ν m k + R + 2 * gρ a μ b ν m k := by
       simp only [hhi'def]; exact min_le_right _ _
     have hmin_lo : gctr a μ b ν m k - R - 2 * gρ a μ b ν m k ≤ lo' (S.min' hS) := by
@@ -1815,8 +1819,8 @@ theorem ddMat_entry_norm_le {J I : Type} [Fintype J] [Fintype I] {μ : J → ℝ
   unfold ddMat
   simp only [Matrix.of_apply]
   by_cases h : μ j = ν i
-  · rw [if_pos h]; simpa using hL
-  · rw [if_neg h]
+  · rw [ite_eq_left h]; simpa using hL
+  · rw [ite_eq_right h]
     have hpos : (0 : ℝ) < ‖((μ j - ν i : ℝ) : ℂ)‖ := by
       rw [norm_pos_iff]
       exact_mod_cast sub_ne_zero.mpr h
@@ -2232,9 +2236,9 @@ private theorem sum_group_piece (x : ℝ) (P : ℕ → Prop) [DecidablePred P]
     · simp [groupVals, hx]
     · intro k _ hk
       have hneq : grp a μ b ν m x ≠ k := Ne.symm hk
-      simp only [groupVals, Finset.mem_filter, hneq, and_false, false_and, if_false]
+      simp only [groupVals, Finset.mem_filter, hneq, and_false, false_and, ite_false]
     · exact fun h => (h hxg).elim
-  · simp only [groupVals, Finset.mem_filter, hx, false_and, if_false, Finset.sum_const_zero]
+  · simp only [groupVals, Finset.mem_filter, hx, false_and, ite_false, Finset.sum_const_zero]
 
 omit [DecidableEq J] [DecidableEq I] in
 
@@ -2279,7 +2283,7 @@ theorem Rmat_eq_zero_of_not_light_row {j : J} (hj : μ j ∉ lightSet a μ b ν 
     intro k h
     exact hj (Finset.mem_filter.mp h).1
   simp only [Rmat, Hmat, Hrows, Hcols, Matrix.sub_apply, Matrix.add_apply,
-    Matrix.of_apply, Lfar_apply a b m j i, hj, hn, false_and, and_false, if_false,
+    Matrix.of_apply, Lfar_apply a b m j i, hj, hn, false_and, and_false, ite_false,
     ddMat_apply_eq_ddVal, Matrix.hadamard_apply, Matrix.vecMulVec_apply]
   ring
 
@@ -2294,7 +2298,7 @@ theorem Rmat_eq_zero_of_not_light_col {j : J} (hj : μ j ∈ lightSet a μ b ν 
     exact hi (Finset.mem_filter.mp h).1
   simp only [Rmat, Hmat, Hrows, Hcols, Matrix.sub_apply, Matrix.add_apply,
     Matrix.of_apply, Lfar_apply a b m j i, hj, hi, hn, true_and, false_and, and_false,
-    if_false, if_true, not_false_eq_true, ddMat_apply_eq_ddVal, Matrix.hadamard_apply, Matrix.vecMulVec_apply]
+    ite_false, ite_true, not_false_eq_true, ddMat_apply_eq_ddVal, Matrix.hadamard_apply, Matrix.vecMulVec_apply]
   ring
 
 omit [DecidableEq J] [DecidableEq I] in
@@ -2312,7 +2316,7 @@ theorem Rmat_diag_bound {L : ℝ} (hL : 0 ≤ L) (hf : lipUnion μ ν f L) {j : 
   have heq : Rmat μ ν f a b m j i = ddMat μ ν f j i * (a j * b i) := by
     simp only [Rmat, Hmat, Hrows, Hcols, Matrix.sub_apply, Matrix.add_apply,
       Matrix.of_apply, Lfar_apply a b m j i, hj, hi, hnJ, hnI, false_and,
-      not_true_eq_false, and_false, if_false, if_true, Matrix.hadamard_apply, Matrix.vecMulVec_apply]
+      not_true_eq_false, and_false, ite_false, ite_true, Matrix.hadamard_apply, Matrix.vecMulVec_apply]
     ring
   rw [heq, Complex.normSq_eq_norm_sq, norm_mul, norm_mul, mul_pow, mul_pow]
   exact mul_le_mul_of_nonneg_right
@@ -2331,12 +2335,12 @@ private theorem dd_residual_normSq_le {x y c ρ L : ℝ} {f : ℝ → ℂ} (a b 
   have hxcC : ((x - c : ℝ) : ℂ) ≠ 0 := by exact_mod_cast sub_ne_zero.mpr hxc
   have heq : ddVal f x y * a * b - (f x - f y) * a * b / ((x - c : ℝ) : ℂ) =
       (ddVal f x y * a * b) * (((y - c : ℝ) : ℂ) / ((x - c : ℝ) : ℂ)) := by
-    simp only [ddVal, if_neg hxy]
+    simp only [ddVal, ite_eq_right hxy]
     field_simp [hxyC, hxcC]
     push_cast
     ring
   have hdd : ‖ddVal f x y‖ ≤ L := by
-    simp only [ddVal, if_neg hxy, norm_div, Complex.norm_real, Real.norm_eq_abs]
+    simp only [ddVal, ite_eq_right hxy, norm_div, Complex.norm_real, Real.norm_eq_abs]
     exact (div_le_iff₀ (abs_pos.mpr (sub_ne_zero.mpr hxy))).mpr hf
   have hρ : 0 ≤ ρ := (abs_nonneg _).trans hy
   have hx2 : ρ ^ 2 ≤ (x - c) ^ 2 := by
@@ -2395,7 +2399,7 @@ theorem Rmat_caseJ_bound {L : ℝ} (hL : 0 ≤ L) (hf : lipUnion μ ν f L) {j :
         ((μ j - gctr a μ b ν m (grp a μ b ν m (ν i)) : ℝ) : ℂ) := by
     simp only [Rmat, Hmat, Hrows, Hcols, Matrix.sub_apply, Matrix.add_apply,
       Matrix.of_apply, Lfar_apply a b m j i, hj, hi, hfar, hnfar, true_and,
-      not_true_eq_false, and_false, false_and, if_false, if_true,
+      not_true_eq_false, and_false, false_and, ite_false, ite_true,
       ddMat_apply_eq_ddVal, Matrix.hadamard_apply, Matrix.vecMulVec_apply]
     ring
   rw [heq]
@@ -2432,7 +2436,7 @@ theorem Rmat_caseI_bound {L : ℝ} (hL : 0 ≤ L) (hf : lipUnion μ ν f L) {j :
       ddMat_apply_swap μ ν f j i
     simp only [Rmat, Hmat, Hrows, Hcols, Matrix.sub_apply, Matrix.add_apply,
       Matrix.of_apply, Lfar_apply a b m j i, hj, hi, hfar, hnfar, true_and,
-      not_true_eq_false, and_false, false_and, if_false, if_true,
+      not_true_eq_false, and_false, false_and, ite_false, ite_true,
       ddMat_apply_eq_ddVal, Matrix.hadamard_apply, Matrix.vecMulVec_apply, hs]
     ring
   rw [heq]
@@ -2616,7 +2620,7 @@ theorem frobR_sq_le (hL : 0 ≤ L) (hf : lipUnion μ ν f L) (m : ℕ) (hm : 0 <
         by_cases hi : ν i ∈ groupVals a μ b ν m (grp a μ b ν m (μ j)) <;> simp [N, hj, hi]
       rw [heq]
       exact mul_le_mul_of_nonneg_left hmass (by positivity)
-    · simp only [N, hj, false_and, if_false, Finset.sum_const_zero]
+    · simp only [N, hj, false_and, ite_false, Finset.sum_const_zero]
       positivity
   have hFJ : (∑ j, ∑ i, FJ j i) ≤ L ^ 2 * (∑ i, ‖b i‖ ^ 2) * ((80 / 3) * (∑ j, ‖a j‖ ^ 2) / m) := by
     rw [Finset.sum_comm, Finset.mul_sum, Finset.sum_mul]
@@ -2641,7 +2645,7 @@ theorem frobR_sq_le (hL : 0 ≤ L) (hf : lipUnion μ ν f L) (m : ℕ) (hm : 0 <
         by_cases hj : μ j ∈ farJset μ ν a b m k <;> simp [FJ, hi, k, hj]
       rw [heq]
       exact mul_le_mul_of_nonneg_left hmass (by positivity)
-    · simp only [FJ, hi, false_and, if_false, Finset.sum_const_zero]
+    · simp only [FJ, hi, false_and, ite_false, Finset.sum_const_zero]
       positivity
   have hFI : (∑ j, ∑ i, FI j i) ≤ L ^ 2 * (∑ j, ‖a j‖ ^ 2) * ((80 / 3) * (∑ i, ‖b i‖ ^ 2) / m) := by
     rw [Finset.mul_sum, Finset.sum_mul]
@@ -2666,7 +2670,7 @@ theorem frobR_sq_le (hL : 0 ≤ L) (hf : lipUnion μ ν f L) (m : ℕ) (hm : 0 <
         by_cases hi : ν i ∈ farIset μ ν a b m k <;> simp [FI, hj, k, hi]
       rw [heq]
       exact mul_le_mul_of_nonneg_left hmass (by positivity)
-    · simp only [FI, hj, false_and, if_false, Finset.sum_const_zero]
+    · simp only [FI, hj, false_and, ite_false, Finset.sum_const_zero]
       positivity
   rw [spectralFrobenius_sq]
   calc (∑ j, ∑ i, Complex.normSq (Rmat μ ν f a b m j i))

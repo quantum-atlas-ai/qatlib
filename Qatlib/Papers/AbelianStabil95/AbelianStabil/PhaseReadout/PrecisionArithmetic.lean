@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Data.Nat.Choose.Basic
-import Qatlib.Papers.AbelianStabil95.AbelianStabil.PhaseReadout.ReadoutParameters
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Data.Nat.Choose.Basic
+public import Qatlib.Papers.AbelianStabil95.AbelianStabil.PhaseReadout.ReadoutParameters
+
+@[expose] public section
 
 /-!
 # Precision arithmetic for phase recovery

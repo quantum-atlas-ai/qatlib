@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.Reduction.CompactPresentationRecovery
-import Qatlib.Concepts.WalkFind.UniformThree.FourierRecovery
-import Qatlib.Concepts.PeriodSampling.OrderRecovery.RandomBaseFactor
-import Qatlib.Concepts.HspRecovery.CfOrder.CompositeOrderDlogDecoder
-import Qatlib.Concepts.QftPreparation.LocalQft
+module
+
+public import Qatlib.Concepts.HspRecovery.Reduction.CompactPresentationRecovery
+public import Qatlib.Concepts.WalkFind.UniformThree.FourierRecovery
+public import Qatlib.Concepts.PeriodSampling.OrderRecovery.RandomBaseFactor
+public import Qatlib.Concepts.HspRecovery.CfOrder.CompositeOrderDlogDecoder
+public import Qatlib.Concepts.QftPreparation.LocalQft
+
+@[expose] public section
 
 /-!
 # Refined algebraic recovery cost expressions

@@ -4,11 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixContour.ContourCalc.LocalResolventApproximation
-import Qatlib.Foundations.OpCalculus.ContourCalc.NumericalRangeConvex
-import Mathlib.Analysis.Calculus.FDeriv.Mul
-import Mathlib.Analysis.Calculus.Deriv.Mul
-import Mathlib.Analysis.Calculus.Deriv.Add
+module
+
+public import Qatlib.Concepts.MatrixContour.ContourCalc.LocalResolventApproximation
+public import Qatlib.Foundations.OpCalculus.ContourCalc.NumericalRangeConvex
+public import Mathlib.Analysis.Calculus.FDeriv.Mul
+public import Mathlib.Analysis.Calculus.Deriv.Mul
+public import Mathlib.Analysis.Calculus.Deriv.Add
+public import Mathlib.Analysis.Calculus.Deriv.Comp
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 open Qatlib.Concepts.MatrixContour.ContourCalc
@@ -36,8 +41,8 @@ theorem scalarAnchorHomotopy_rayleigh (A : Matrix I I ℂ) (c : ℂ) (s : ℝ)
     inner ℂ x ((Matrix.toEuclideanCLM (n := I) (𝕜 := ℂ) (scalarAnchorHomotopy A c s)) x) =
       (1-s) • c+s • inner ℂ x ((Matrix.toEuclideanCLM (n := I) (𝕜 := ℂ) A) x) := by
     simp only [scalarAnchorHomotopy, map_add, map_sub, map_smul, map_one,
-      ContinuousLinearMap.add_apply, ContinuousLinearMap.sub_apply,
-      ContinuousLinearMap.smul_apply, ContinuousLinearMap.one_apply,
+      _root_.add_apply, _root_.sub_apply,
+      _root_.smul_apply, _root_.one_apply_eq_self,
       inner_add_right, inner_sub_right, inner_smul_right,
       inner_self_eq_norm_sq_to_K, hx, one_pow, Complex.ofReal_one, mul_one,
       Complex.real_smul, Complex.ofReal_sub]
@@ -78,8 +83,7 @@ theorem affine_ringInverse_hasDerivAt (M D : Matrix I I ℂ) (s : ℝ)
       (-(Ring.inverse (M+s • D))*D*Ring.inverse (M+s • D)) s := by
   have hd : HasDerivAt (fun t : ℝ => M+t • D) D s := by
     simpa only [id_eq,one_smul] using HasDerivAt.const_add M ((hasDerivAt_id s).smul_const D)
-  have hi := (hasFDerivAt_ringInverse (𝕜 := ℝ) hunit.unit).comp_hasDerivAt s
-    (by simpa only [hunit.unit_spec] using hd)
+  have hi := (hasFDerivAt_ringInverse (𝕜 := ℝ) hunit.unit).comp_hasDerivAt s hd
   simpa only [Function.comp_def, _root_.neg_apply, ContinuousLinearMap.mulLeftRight_apply,
     ← Ring.inverse_unit hunit.unit, hunit.unit_spec, neg_mul] using hi
 

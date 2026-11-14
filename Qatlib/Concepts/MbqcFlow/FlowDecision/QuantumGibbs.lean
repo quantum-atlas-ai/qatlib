@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MbqcFlow.FlowDecision.QuantumGibbsDefs
-import Qatlib.Concepts.ReferenceError.RefTraceError.FiniteReferenceTraceError
+module
+
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.QuantumGibbsDefs
+public import Qatlib.Concepts.ReferenceError.RefTraceError.FiniteReferenceTraceError
+
+@[expose] public section
 
 /-!
 # Instruments from unitary ancilla readout

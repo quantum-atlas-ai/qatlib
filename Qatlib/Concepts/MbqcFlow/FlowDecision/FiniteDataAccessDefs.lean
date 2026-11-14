@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MonteCarloMean.PayoffRotation.RationalPayoffRotation
-import Qatlib.Concepts.AEMeanReadout.LayeredMeanLaw.RationalWeightPreparation
-import Qatlib.Concepts.CoherentSim.CoherentOAA.QueryCircuit
-import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
+module
+
+public import Qatlib.Concepts.MonteCarloMean.PayoffRotation.RationalPayoffRotation
+public import Qatlib.Concepts.AEMeanReadout.LayeredMeanLaw.RationalWeightPreparation
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.QueryCircuit
+public import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
+
+@[expose] public section
 
 /-!
 # Finite data loading and access models
@@ -98,8 +102,8 @@ def ratSign (q : ℚ) : ℚ := if q < 0 then -1 else 1
 /-- Multiplication of the absolute value by `ratSign` recovers the rational input. -/
 theorem ratSign_mul_abs (q : ℚ) : ratSign q * |q| = q := by
   by_cases h : q < 0
-  · rw [ratSign, if_pos h, abs_of_neg h]; ring
-  · rw [ratSign, if_neg h, abs_of_nonneg (le_of_not_gt h)]; ring
+  · rw [ratSign, ite_eq_left h, abs_of_neg h]; ring
+  · rw [ratSign, ite_eq_right h, abs_of_nonneg (le_of_not_gt h)]; ring
 
 /-- A table of `D` rational complex amplitudes. -/
 abbrev DenseTable (D : ℕ) := Fin D → RatComplex
@@ -384,7 +388,7 @@ def finSlotEquiv (w : ℕ) : Fin (2 ^ w) ≃ Option (Fin (2 ^ w - 1)) where
         have := j.isLt
         omega
       apply Fin.ext
-      simp [h, hj]
+      simp [hj]
   right_inv a := by
     cases a with
     | none => simp

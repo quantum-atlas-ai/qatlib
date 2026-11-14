@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RecordedMedianProgram
-import Qatlib.Concepts.RiskEstimation.VaRQuantile.ReadoutMedianFiniteSubgoalQuan
+module
+
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RecordedMedianProgram
+public import Qatlib.Concepts.RiskEstimation.VaRQuantile.ReadoutMedianFiniteSubgoalQuan
+
+@[expose] public section
 
 /-!
 # Recorded median estimation of risk CDFs

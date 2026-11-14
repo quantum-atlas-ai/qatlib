@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkFind.SearchAlgorithm.NativeSourceDefs
-import Qatlib.Concepts.WalkFind.UniqueCollision.NativeSingleSolutionQuan
-import Mathlib.Tactic.FieldSimp
-import Qatlib.Concepts.WalkFind.UniqueCollision.GeneralQueryMemory
+module
+
+public import Qatlib.Concepts.WalkFind.SearchAlgorithm.NativeSourceDefs
+public import Qatlib.Concepts.WalkFind.UniqueCollision.NativeSingleSolutionQuan
+public import Mathlib.Tactic.FieldSimp
+public import Qatlib.Concepts.WalkFind.UniqueCollision.GeneralQueryMemory
+
+@[expose] public section
 
 /-!
 # Native parameter bounds and full-memory search

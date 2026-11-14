@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
-import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
+module
+
+public import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.AncillaErrorLaws
+
+@[expose] public section
 
 /-!
 # Isometric workspace embeddings
@@ -58,7 +62,7 @@ auxiliary workspace. -/
 noncomputable def workspaceEmbedding {d k K : ℕ} (h : k ≤ K) :
     Matrix (Fin (d * K)) (Fin (d * k)) ℂ :=
   Matrix.reindex finProdFinEquiv finProdFinEquiv
-    ((1 : Operator d) ⊗ₖ workspaceAuxEmbedding h)
+    ((1 : Operator d) ⊗ₖ (fun a b => if a = Fin.castLE h b then 1 else 0))
 
 /-- Each workspace embedding entry is the product of an oracle-register identity entry and the
 auxiliary inclusion indicator. -/
@@ -84,6 +88,10 @@ private theorem workspaceAuxEmbedding_isometry {k K : ℕ} (h : k ≤ K) :
 theorem workspaceEmbedding_isometry {d k K : ℕ} (h : k ≤ K) :
     IsIsometry (workspaceEmbedding (d := d) h) := by
   unfold IsIsometry workspaceEmbedding
+  change (Matrix.reindex finProdFinEquiv finProdFinEquiv
+      ((1 : Operator d) ⊗ₖ workspaceAuxEmbedding h))ᴴ *
+      Matrix.reindex finProdFinEquiv finProdFinEquiv
+        ((1 : Operator d) ⊗ₖ workspaceAuxEmbedding h) = 1
   simp only [Matrix.reindex_apply, Matrix.conjTranspose_submatrix,
     Matrix.submatrix_mul_equiv, Matrix.conjTranspose_kronecker,
     ← Matrix.mul_kronecker_mul, Matrix.conjTranspose_one, Matrix.one_mul,
@@ -96,8 +104,9 @@ theorem workspaceEmbedding_self (d k : ℕ) :
   have ha : workspaceAuxEmbedding (Nat.le_refl k) = (1 : Operator k) := by
     ext a b
     simp [workspaceAuxEmbedding, Matrix.one_apply]
-  simp [workspaceEmbedding, ha, Matrix.one_kronecker_one,
-    Matrix.reindex_apply, Matrix.submatrix_one_equiv]
+  change Matrix.reindex finProdFinEquiv finProdFinEquiv
+      ((1 : Operator d) ⊗ₖ workspaceAuxEmbedding (Nat.le_refl k)) = 1
+  simp [ha, Matrix.reindex_apply, Matrix.submatrix_one_equiv]
 
 /-- The workspace embedding intertwines the oracle tensored with the identity at the two
 workspace widths. -/

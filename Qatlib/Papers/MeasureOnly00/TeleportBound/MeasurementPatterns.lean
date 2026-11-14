@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MeasureOnly00.TeleportBound.MeasurementPatternsDefs
-import Qatlib.Concepts.QuditTeleport.ResourceIff.Eq9ResourceTeleportationTele
-import Qatlib.Concepts.MbqcFlow.FlowDecision.PureToMixedConditional
+module
+
+public import Qatlib.Papers.MeasureOnly00.TeleportBound.MeasurementPatternsDefs
+public import Qatlib.Concepts.QuditTeleport.ResourceIff.Eq9ResourceTeleportationTele
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.PureToMixedConditional
+
+@[expose] public section
 
 /-!
 # Measurement pattern endpoints and branch weights

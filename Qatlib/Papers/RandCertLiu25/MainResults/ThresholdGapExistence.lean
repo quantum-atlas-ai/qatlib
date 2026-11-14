@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.SpecialFunctions.Exp
-import Mathlib.Data.Real.Basic
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Ring
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.SpecialFunctions.Exp
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -56,8 +60,8 @@ monotonicity of the no-case expectation, nonnegativity and the strengthened
 base-case comparison, some adjacent grid threshold exhibits a multiplicative
 `(1+ε/2)` gap. -/
 theorem lemma12_threshold_gap (eps : ℝ) (T N : ℕ) (mu1 mu0 : ℝ → ℝ)
-    (heps0 : 0 < eps) (heps1 : eps ≤ 1)
-    (hT : (16 / eps) * Real.log ((N : ℝ) / eps) ≤ (T : ℝ))
+    (heps0 : 0 < eps) (_heps1 : eps ≤ 1)
+    (_hT : (16 / eps) * Real.log ((N : ℝ) / eps) ≤ (T : ℝ))
     (hT2 : 2 ≤ T)
     (hmu0_nonneg : ∀ tau, 0 ≤ mu0 tau)
     (hRatio : ∀ tau ∈ Set.Icc (1 / 2 : ℝ) 1, (1 + eps) * mu0 tau ≤ mu1 tau)

@@ -4,19 +4,23 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Lean.Elab.Tactic.NormCast
-import Lean.Elab.Tactic.Omega
-import Mathlib.Algebra.Lie.OfAssociative
-import Mathlib.Algebra.Ring.BooleanRing
-import Mathlib.Analysis.CStarAlgebra.Classes
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.LinearAlgebra.Matrix.Kronecker
-import Mathlib.Tactic.Ext
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Ring
-import Qatlib.Concepts.AmpTransform.NoiseEnvelope.AmplifiedProgression
+module
+
+public import Lean.Elab.Tactic.NormCast
+public import Lean.Elab.Tactic.Omega
+public import Mathlib.Algebra.Lie.OfAssociative
+public import Mathlib.Algebra.Ring.BooleanRing
+public import Mathlib.Analysis.CStarAlgebra.Classes
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.LinearAlgebra.Matrix.Kronecker
+public import Mathlib.Tactic.Ext
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Ring
+public import Qatlib.Concepts.AmpTransform.NoiseEnvelope.AmplifiedProgression
+
+@[expose] public section
 
 /-!
 # Amplified Fourier probabilities and baseline ratios
@@ -97,7 +101,7 @@ theorem aq_inverse_selected (N : ℕ) (hN : 0 < N) (A : Finset (Fin N)) (y : Fin
       (if x ∈ A then (Real.sqrt (N:ℝ):ℂ)⁻¹ else 0) =
       if x ∈ A then (N:ℂ)⁻¹*aqPhase N x.val y.val else 0 := by
     by_cases hx : x ∈ A
-    · rw [if_pos hx, if_pos hx]
+    · rw [ite_eq_left hx, ite_eq_left hx]
       have hh : (Real.sqrt (N:ℝ):ℂ)⁻¹*aqPhase N x.val y.val*(Real.sqrt (N:ℝ):ℂ)⁻¹ =
           ((Real.sqrt (N:ℝ):ℂ)⁻¹*(Real.sqrt (N:ℝ):ℂ)⁻¹)*aqPhase N x.val y.val := by ring
       rw [hh, inv_sqrt_mul_inv_sqrt hN]
@@ -158,7 +162,7 @@ theorem aq_actual_nonzero_amplitude (N : ℕ) (hN : 0 < N) (s M P : ℕ) (y : Fi
       ApplyGate (QFTMatrix N)ᴴ (Collapse (preparedAAState (QFTMatrix N) ⟨0,hN⟩) A) y = _
   rw [aq_inverse_uniform, aq_inverse_selected]
   have hy0 : y ≠ (⟨0,hN⟩ : Fin N) := by intro h; exact hy (congrArg Fin.val h)
-  simp only [Ket, if_neg hy0, zero_sub]
+  simp only [Ket, ite_eq_right hy0, zero_sub]
   rw [aq_progression_root_sum N s M P y.val hM hP hbound]
   have hc : Real.cos theta ≠ 0 := ht.2.2.2.2.2.ne'
   have hs : Real.sin theta ≠ 0 := ht.2.2.2.2.1.ne'
@@ -207,7 +211,7 @@ theorem aq_phase_nonzero_amplitude (N : ℕ) (hN : 0 < N) (s M P : ℕ) (y : Fin
     (2:ℂ)*ApplyGate (QFTMatrix N)ᴴ (Collapse (preparedAAState (QFTMatrix N) ⟨0,hN⟩) A) y = _
   rw [aq_inverse_uniform, aq_inverse_selected, aq_progression_root_sum N s M P y.val hM hP hbound]
   have hy0 : y ≠ (⟨0,hN⟩ : Fin N) := by intro h; exact hy (congrArg Fin.val h)
-  simp only [Ket, if_neg hy0]
+  simp only [Ket, ite_eq_right hy0]
   push_cast
   ring
 
@@ -263,10 +267,10 @@ theorem amplified_progression_actual_three_algorithm_probabilities : ∀ (N : �
     rw [Finset.sum_product, Finset.sum_singleton]
     have hy0 : y ≠ (⟨0,hN⟩ : Fin N) := by intro h; exact hy (congrArg Fin.val h)
     have ht : aqQHSBaseline N hN f (y,true) = (N:ℂ)⁻¹*aqProgressionFourier N s M P y.val := by
-      rw [aq_qhs_slices N hN s M P f hmark y true, if_pos rfl, aq_inverse_selected,
+      rw [aq_qhs_slices N hN s M P f hmark y true, ite_eq_left rfl, aq_inverse_selected,
         aq_progression_root_sum N s M P y.val hMpos hP hbound]
     have hf : aqQHSBaseline N hN f (y,false) = -(N:ℂ)⁻¹*aqProgressionFourier N s M P y.val := by
-      rw [aq_qhs_slices N hN s M P f hmark y false, if_neg Bool.false_ne_true]
+      rw [aq_qhs_slices N hN s M P f hmark y false, ite_eq_right Bool.false_ne_true]
       simp only [ApplyGate, Matrix.mulVec_sub, Pi.sub_apply]
       change ApplyGate (QFTMatrix N)ᴴ (preparedAAState (QFTMatrix N) ⟨0,hN⟩) y-
         ApplyGate (QFTMatrix N)ᴴ (Collapse (preparedAAState (QFTMatrix N) ⟨0,hN⟩) _) y = _

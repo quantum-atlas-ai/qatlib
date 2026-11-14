@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ParityLimit98.MainResults.LowerBound.ParityBalance
-import Qatlib.Concepts.ProbabilityCore.Concentration.CubeQueryInterfaces
+module
+
+public import Qatlib.Papers.ParityLimit98.MainResults.LowerBound.ParityBalance
+public import Qatlib.Concepts.ProbabilityCore.Concentration.CubeQueryInterfaces
+
+@[expose] public section
 
 /-!
 # Polynomial degree and projector parity balance
@@ -166,10 +170,10 @@ theorem projector_no_positive_bias {n : ℕ} {W : Type} [Fintype W] [DecidableEq
     rw [boolSign_eq_ite]
     cases he : parityOddB f
     · have h := hplus f he
-      simp only [Bool.false_eq_true, if_false, one_mul]
+      simp only [Bool.false_eq_true, ite_false, one_mul]
       linarith
     · have h := hminus f he
-      simp only [if_true, neg_one_mul]
+      simp only [ite_true, neg_one_mul]
       linarith
   have hs := Finset.sum_pos (s := (Finset.univ : Finset (Fin n → Bool)))
     (fun f _ => hp f) ⟨fun _ => false, Finset.mem_univ _⟩
@@ -204,10 +208,10 @@ theorem projector_half_rigidity {n : ℕ} {W : Type} [Fintype W] [DecidableEq W]
     rw [boolSign_eq_ite]
     cases he : parityOddB f
     · have h := hplus f he
-      simp only [Bool.false_eq_true, if_false, one_mul]
+      simp only [Bool.false_eq_true, ite_false, one_mul]
       linarith
     · have h := hminus f he
-      simp only [if_true, neg_one_mul]
+      simp only [ite_true, neg_one_mul]
       linarith
   have hz := (Finset.sum_eq_zero_iff_of_nonneg (fun f _ => hnonneg f)).mp
     (projector_centered_sum C ψ P hk)
@@ -215,9 +219,9 @@ theorem projector_half_rigidity {n : ℕ} {W : Type} [Fintype W] [DecidableEq W]
   have hf := hz f (Finset.mem_univ f)
   rw [boolSign_eq_ite] at hf
   cases hp : parityOddB f
-  · simp only [hp, Bool.false_eq_true, if_false, one_mul] at hf
+  · simp only [hp, Bool.false_eq_true, ite_false, one_mul] at hf
     linarith
-  · simp only [hp, if_true, neg_one_mul] at hf
+  · simp only [hp, ite_true, neg_one_mul] at hf
     linarith
 
 end Qatlib.Papers.ParityLimit98.MainResults.LowerBound

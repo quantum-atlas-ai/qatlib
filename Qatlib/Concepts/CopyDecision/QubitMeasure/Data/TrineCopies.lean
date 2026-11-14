@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.DecisionRisk.HarmonicError.TrineGeometry
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Algebra.BigOperators.Ring.Finset
+module
+
+public import Qatlib.Foundations.DecisionRisk.HarmonicError.TrineGeometry
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+
+@[expose] public section
 
 /-!
 # Trine Copies
@@ -70,7 +74,7 @@ lemma trineState_gram (i j : Fin 3) :
 
 /-- The stated copy-decision construction satisfies `trineState_unit` with the complete displayed premises. -/
 lemma trineState_unit (i : Fin 3) : ‖trineState i‖=1 := by
-  have hs : inner ℂ (trineState i) (trineState i) = 1 := by rw [trineState_gram, if_pos rfl]
+  have hs : inner ℂ (trineState i) (trineState i) = 1 := by rw [trineState_gram, ite_eq_left rfl]
   have hn : ‖trineState i‖^2=1 := by
     calc
       _ = (inner ℂ (trineState i) (trineState i)).re :=
@@ -85,7 +89,7 @@ lemma trine_copies_unit (n : ℕ) (i : Fin 3) : ‖copyState n (trineState i)‖
 /-- The stated copy-decision construction satisfies `trine_copies_overlap` with the complete displayed premises. -/
 lemma trine_copies_overlap (n : ℕ) (i j : Fin 3) (hij : i≠j) :
     ‖inner ℂ (copyState n (trineState i)) (copyState n (trineState j))‖ = (1/2:ℝ)^n := by
-  rw [copyState_overlap, trineState_gram, if_neg hij]
+  rw [copyState_overlap, trineState_gram, ite_eq_right hij]
   norm_num
 
 /-- Definition of basis Zero in the Qubit Measure construction. -/
@@ -107,7 +111,7 @@ lemma basis_complex_orthogonal : inner ℂ basisZero basisOne=0 := by
 lemma trineState_eq_input (i : Fin 3) :
     letI : InnerProductSpace ℝ (EuclideanSpace ℂ (Fin 2)) := InnerProductSpace.complexToReal
     trineState i=trineInput basisZero basisOne i := by
-  letI : InnerProductSpace ℝ (EuclideanSpace ℂ (Fin 2)) := InnerProductSpace.complexToReal
+  let : InnerProductSpace ℝ (EuclideanSpace ℂ (Fin 2)) := InnerProductSpace.complexToReal
   fin_cases i
   · rfl
   · ext k
@@ -157,7 +161,7 @@ lemma trineState_distinct_rays (i j : Fin 3) (hij : i≠j) (c : ℂ) :
   have hn := congrArg norm hc
   rw [trineState_unit, norm_smul, trineState_unit, mul_one] at hn
   have hh := congrArg (fun x => inner ℂ x (trineState j)) hc
-  rw [trineState_gram, if_neg hij, inner_smul_left, trineState_gram, if_pos rfl, mul_one] at hh
+  rw [trineState_gram, ite_eq_right hij, inner_smul_left, trineState_gram, ite_eq_left rfl, mul_one] at hh
   have hhn := congrArg norm hh
   norm_num at hhn
   linarith
@@ -174,7 +178,7 @@ theorem trine_tensor_first_copy_lower {ι V K : Type*} [Fintype ι]
     (1/4:ℝ)^(n+1)/(1+(1/2:ℝ)^n) ≤
       ∑ a, decisionError (fun k i => (M a).op k (copyState n (trineState i)))
         (fun i => ‖A a (trineState i)‖^2/3) := by
-  letI : InnerProductSpace ℝ (EuclideanSpace ℂ (Fin 2)) := InnerProductSpace.complexToReal
+  let : InnerProductSpace ℝ (EuclideanSpace ℂ (Fin 2)) := InnerProductSpace.complexToReal
   have h := complex_first_copy_lower A hA basisZero basisOne basisZero_unit basisOne_unit
     basis_complex_orthogonal M (fun i => copyState n (trineState i))
     (by positivity : 0 ≤ (1/2:ℝ)^n) (trine_copies_unit n) (trine_copies_overlap n)

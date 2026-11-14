@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Qatlib.Concepts.Execution.WorkspaceCP.ProjectedUnitaryEncoding
+module
+
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Qatlib.Concepts.Execution.WorkspaceCP.ProjectedUnitaryEncoding
+
+@[expose] public section
 
 /-!
 # Approximate block encodings
@@ -41,6 +45,48 @@ open scoped Matrix.Norms.L2Operator
 variable {H I O : Type*} [Fintype H] [Fintype I] [Fintype O]
   [DecidableEq H] [DecidableEq I] [DecidableEq O]
 
+/--
+error: The namespace `BlockEncoding` is duplicated in the declaration `Qatlib.Concepts.BlockEncoding.BlockEncoding.error_le`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace
+false`
+---
+error: The namespace `BlockEncoding` is duplicated in the declaration `Qatlib.Concepts.BlockEncoding.BlockEncoding.error_nonneg`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace
+false`
+---
+error: The namespace `BlockEncoding` is duplicated in the declaration `Qatlib.Concepts.BlockEncoding.BlockEncoding.left_isometry`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace
+false`
+---
+error: The namespace `BlockEncoding` is duplicated in the declaration `Qatlib.Concepts.BlockEncoding.BlockEncoding.mk`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace
+false`
+---
+error: The namespace `BlockEncoding` is duplicated in the declaration `Qatlib.Concepts.BlockEncoding.BlockEncoding.normalization_pos`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace
+false`
+---
+error: The namespace `BlockEncoding` is duplicated in the declaration `Qatlib.Concepts.BlockEncoding.BlockEncoding.right_isometry`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace
+false`
+---
+error: The namespace `BlockEncoding` is duplicated in the declaration `Qatlib.Concepts.BlockEncoding.BlockEncoding.unitary`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace
+false`
+---
+error: The namespace `BlockEncoding` is duplicated in the declaration `Qatlib.Concepts.BlockEncoding.BlockEncoding`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace
+false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- An approximate block encoding of `A` by a unitary `U` between isometric frames `L` and `R`,
 with positive scale `α` and operator-norm error at most `ε`. -/
 structure BlockEncoding (A : Matrix O I ℂ) (U : Matrix H H ℂ)
@@ -59,6 +105,13 @@ theorem ProjectedUnitaryEncoding.toBlockEncoding {A : Matrix O I ℂ} {U : Matri
   refine ⟨h.unitary, h.left_isometry, h.right_isometry, by norm_num, le_rfl, ?_⟩
   simp [h.encoded]
 
+/--
+error: The namespace `BlockEncoding` is duplicated in the declaration `Qatlib.Concepts.BlockEncoding.BlockEncoding.mono`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace
+false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- A block encoding remains valid after increasing its error allowance. -/
 theorem BlockEncoding.mono {A : Matrix O I ℂ} {U : Matrix H H ℂ}
     {L : Matrix H O ℂ} {R : Matrix H I ℂ} {α ε δ : ℝ}
@@ -66,6 +119,13 @@ theorem BlockEncoding.mono {A : Matrix O I ℂ} {U : Matrix H H ℂ}
   ⟨h.unitary, h.left_isometry, h.right_isometry, h.normalization_pos,
     h.error_nonneg.trans hεδ, h.error_le.trans hεδ⟩
 
+/--
+error: The namespace `BlockEncoding` is duplicated in the declaration `Qatlib.Concepts.BlockEncoding.BlockEncoding.perturb`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace
+false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- Perturbing the target matrix by operator-norm distance at most `δ` increases the
 block-encoding error by at most `δ`. -/
 theorem BlockEncoding.perturb {A B : Matrix O I ℂ} {U : Matrix H H ℂ}
@@ -97,6 +157,13 @@ namespace Qatlib.Concepts.BlockEncoding.Encoding
 open Matrix
 open scoped Matrix.Norms.L2Operator
 
+/--
+error: The namespace `BlockEncoding` is duplicated in the declaration `Qatlib.Concepts.BlockEncoding.Encoding.BlockEncoding.adjoint`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace
+false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- Taking conjugate transposes and swapping the left and right frames preserves block-encoding
 scale and error. -/
 theorem BlockEncoding.adjoint {H I O : Type*} [Fintype H] [Fintype I] [Fintype O]

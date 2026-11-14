@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ElemGates95.QubitControl.Section5
-import Qatlib.Concepts.CircuitImpl.MultiControl.Corollary62Elem
-import Qatlib.Concepts.CircuitImpl.MultiControl.NoWorkTwoLevelSynthesis
-import Qatlib.Concepts.CircuitImpl.MultiControl.CountToffoliGadget
+module
+
+public import Qatlib.Papers.ElemGates95.QubitControl.Section5
+public import Qatlib.Concepts.CircuitImpl.MultiControl.Corollary62Elem
+public import Qatlib.Concepts.CircuitImpl.MultiControl.NoWorkTwoLevelSynthesis
+public import Qatlib.Concepts.CircuitImpl.MultiControl.CountToffoliGadget
+
+@[expose] public section
 
 /-!
 # Doubly controlled gates and relative Toffoli gates

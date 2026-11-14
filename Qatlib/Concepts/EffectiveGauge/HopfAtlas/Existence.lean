@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.Transport
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.Seeds
-import Mathlib.Analysis.ODE.PicardLindelof
-import Mathlib.Analysis.ODE.ExistUnique
-import Mathlib.Analysis.Calculus.ContDiff.Deriv
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Module
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.Transport
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.Seeds
+public import Mathlib.Analysis.ODE.PicardLindelof
+public import Mathlib.Analysis.ODE.ExistUnique
+public import Mathlib.Analysis.Calculus.ContDiff.Deriv
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Module
+
+@[expose] public section
 
 /-!
 # Finite-interval existence of the horizontal-coordinate ODE

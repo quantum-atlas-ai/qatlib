@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.OrderedBayes.BayesRatioCore.BayesTruthDefs
-import Qatlib.Concepts.OrderedBayes.BayesRatioCore.BayesTruthRatioCrossingRightQuan
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.SplitIfs
+module
+
+public import Qatlib.Concepts.OrderedBayes.BayesRatioCore.BayesTruthDefs
+public import Qatlib.Concepts.OrderedBayes.BayesRatioCore.BayesTruthRatioCrossingRightQuan
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.SplitIfs
+
+@[expose] public section
 
 /-!
 # A nonuniform initial posterior ratio

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.MwAlternating
-import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.MwAlternating
+public import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
+
+@[expose] public section
 
 /-!
 # Bernoulli statistics of alternating measurement records

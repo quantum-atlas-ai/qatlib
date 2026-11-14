@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryLowerBounds
-import Qatlib.Concepts.QlsReadoutSpec.PrepLowerBound.GroverLowerBoundInstance
+module
+
+public import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryLowerBounds
+public import Qatlib.Concepts.QlsReadoutSpec.PrepLowerBound.GroverLowerBoundInstance
+
+@[expose] public section
 
 /-!
 # Initial-state preparation lower bound contract

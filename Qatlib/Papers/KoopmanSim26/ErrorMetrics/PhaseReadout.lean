@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.KoopmanSim26.ErrorMetrics.CoherenceCounterexample
+module
+
+public import Qatlib.Papers.KoopmanSim26.ErrorMetrics.CoherenceCounterexample
+
+@[expose] public section
 
 /-!
 # Relative phase invisible to Born readout
@@ -77,7 +81,7 @@ theorem source_phase_outputs_orthogonal :
       (WithLp.toLp 2 (spectralUnitary decayL 0 1 phaseNode *ᵥ plusInput))=0 := by
   rw [zero_phase_output, selected_phase_output, EuclideanSpace.inner_eq_star_dotProduct]
   change (∑ b : Bool, (if b then -plusInput b else plusInput b)*star (plusInput b))=0
-  simp only [Fintype.sum_bool, Bool.false_eq_true, if_false, if_true]
+  simp only [Fintype.sum_bool, Bool.false_eq_true, ite_false, ite_true]
   unfold plusInput
   ring
 

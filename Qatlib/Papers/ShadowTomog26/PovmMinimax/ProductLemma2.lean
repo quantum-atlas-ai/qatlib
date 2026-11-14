@@ -4,8 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ShadowTomog26.PovmMinimax.ActualLemma2
-import Qatlib.Concepts.ShadowModels.ProductPOVM.ProductOptimum
+module
+
+public import Qatlib.Papers.ShadowTomog26.PovmMinimax.ActualLemma2
+public import Qatlib.Foundations.ProbabilityCore.SimplexWeights
+public import Qatlib.Concepts.ShadowModels.ProductPOVM.ProductOptimum
+
+@[expose] public section
 
 /-!
 # Product-effect POVMs and the block state optimum
@@ -84,8 +89,8 @@ theorem source_lemma2_product_value (sites : Fin N ≃ Σ j,Fin (sizes j))
 /-- The simplex infimum of product-effect measurement values equals the simplex infimum of the
 corresponding partition product-state values [XuEtAl2026]. -/
 theorem source_lemma2_product_delta (sites : Fin N ≃ Σ j,Fin (sizes j)) (words : V → PauliWord N) :
-    sInf ((fun w => productMeasurementValue sizes sites words w) '' stdSimplex ℝ V)=
-      sInf ((fun w => stateScoreValue (fun i => pauliObservable N (words i)) w (partitionStates sizes sites)) '' stdSimplex ℝ V) := by
+    sInf ((fun w => productMeasurementValue sizes sites words w) '' Qatlib.Foundations.ProbabilityCore.SimplexWeights.weights ℝ V)=
+      sInf ((fun w => stateScoreValue (fun i => pauliObservable N (words i)) w (partitionStates sizes sites)) '' Qatlib.Foundations.ProbabilityCore.SimplexWeights.weights ℝ V) := by
   congr 1
   ext r
   constructor

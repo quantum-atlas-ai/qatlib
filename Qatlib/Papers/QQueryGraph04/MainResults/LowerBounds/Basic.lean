@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Data.Finset.Basic
-import Mathlib.Tactic
-import Qatlib.Concepts.AdversaryBounds.AdvWitness
-import Qatlib.Concepts.QueryWordCore.QueryMachinery.NegativeAdversary
-import Qatlib.Papers.QQueryGraph04.MainResults.ProblemDefs
-import Qatlib.Papers.QQueryGraph04.MainResults.LowerBounds.AdversaryFamily
+module
+
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Data.Finset.Basic
+public import Mathlib.Tactic
+public import Qatlib.Concepts.AdversaryBounds.AdvWitness
+public import Qatlib.Concepts.QueryWordCore.QueryMachinery.NegativeAdversary
+public import Qatlib.Papers.QQueryGraph04.MainResults.ProblemDefs
+public import Qatlib.Papers.QQueryGraph04.MainResults.LowerBounds.AdversaryFamily
+
+@[expose] public section
 
 /-!
 # Adversary lower bounds for graph queries
@@ -158,7 +162,7 @@ theorem theorem19_lower_bound (d N : ℕ) (_hd : 0 < d) (_hN : d ≤ N)
       (∀ x, 1 - 1 / 10 ≤ MeasureProb
         (Run (workspaceBitOracle (W := W) (input x)) C psi) (if f x then E else Eᶜ)) →
       c * Real.sqrt ((d : ℝ) * (N : ℝ)) / 5 ≤ (QueryCount C : ℝ) := by
-  haveI : NeZero M := ⟨by omega⟩
+  have _ : NeZero M := ⟨by omega⟩
   intro W _ _ C psi E hC hpsi hs
   exact query_lower_bound_omega N input Gamma f C psi E (c * Real.sqrt ((d : ℝ) * (N : ℝ)))
     hG hz hC hpsi hs hF hnorm
@@ -179,7 +183,7 @@ theorem lemma20_lower_bound (n : ℕ) (_hn : 0 < n)
       (∀ x, 1 - 1 / 10 ≤ MeasureProb
         (Run (workspaceBitOracle (W := W) (input x)) C psi) (if f x then E else Eᶜ)) →
       c * (n : ℝ) / 5 ≤ (QueryCount C : ℝ) := by
-  haveI : NeZero M := ⟨by omega⟩
+  have _ : NeZero M := ⟨by omega⟩
   intro W _ _ C psi E hC hpsi hs
   exact query_lower_bound_omega n input Gamma f C psi E (c * (n : ℝ)) hG hz hC hpsi hs hF hnorm
 
@@ -198,7 +202,7 @@ theorem corollary21_lower_bound (n : ℕ) (_hn : 0 < n)
       (∀ x, 1 - 1 / 10 ≤ MeasureProb
         (Run (workspaceBitOracle (W := W) (input x)) C psi) (if f x then E else Eᶜ)) →
       c * (n : ℝ) / 5 ≤ (QueryCount C : ℝ) := by
-  haveI : NeZero M := ⟨by omega⟩
+  have _ : NeZero M := ⟨by omega⟩
   intro W _ _ C psi E hC hpsi ps
   exact query_lower_bound_omega n input Gamma f C psi E (c * (n : ℝ)) hG hz hC hpsi ps hF hnorm
 
@@ -218,7 +222,7 @@ theorem theorem22_lower_bound (n m k : ℕ) (_hn : 0 < n) (_hk : 0 < k) (_hm : m
       (∀ x, 1 - 1 / 10 ≤ MeasureProb
         (Run (workspaceBitOracle (W := W) (input x)) C psi) (if f x then E else Eᶜ)) →
       c * Real.sqrt ((n : ℝ) * (m : ℝ)) / 5 ≤ (QueryCount C : ℝ) := by
-  haveI : NeZero M := ⟨by omega⟩
+  have _ : NeZero M := ⟨by omega⟩
   intro W _ _ C psi E hC hpsi hs
   exact query_lower_bound_omega n input Gamma f C psi E (c * Real.sqrt ((n : ℝ) * (m : ℝ)))
     hG hz hC hpsi hs hF hnorm
@@ -239,7 +243,7 @@ theorem theorem23_lower_bound (n : ℕ) (_hn : 0 < n)
       (∀ x, 1 - 1 / 10 ≤ MeasureProb
         (Run (workspaceBitOracle (W := W) (input x)) C psi) (if f x then E else Eᶜ)) →
       c * (n : ℝ) * Real.sqrt (n : ℝ) / 5 ≤ (QueryCount C : ℝ) := by
-  haveI : NeZero M := ⟨by omega⟩
+  have _ : NeZero M := ⟨by omega⟩
   intro W _ _ C psi E hC hpsi hs
   exact query_lower_bound_omega (n * n) input Gamma f C psi E
     (c * (n : ℝ) * Real.sqrt (n : ℝ)) hG hz hC hpsi hs hF hnorm
@@ -260,7 +264,7 @@ theorem theorem24_lower_bound (n m k : ℕ) (_hn : 0 < n) (_hk : 0 < k) (_hm : m
       (∀ x, 1 - 1 / 10 ≤ MeasureProb
         (Run (workspaceBitOracle (W := W) (input x)) C psi) (if f x then E else Eᶜ)) →
       c * Real.sqrt ((n : ℝ) * (m : ℝ)) / 5 ≤ (QueryCount C : ℝ) := by
-  haveI : NeZero M := ⟨by omega⟩
+  have _ : NeZero M := ⟨by omega⟩
   intro W _ _ C psi E hC hpsi hs
   exact query_lower_bound_omega n input Gamma f C psi E (c * Real.sqrt ((n : ℝ) * (m : ℝ)))
     hG hz hC hpsi hs hF hnorm

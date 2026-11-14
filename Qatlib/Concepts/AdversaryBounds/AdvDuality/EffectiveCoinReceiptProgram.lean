@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.TmCopyRunResetCompiler
-import Qatlib.Concepts.ClassicalTape.TapeCompilation.FiniteTapeMajority
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.TmCopyRunResetCompiler
+public import Qatlib.Concepts.ClassicalTape.TapeCompilation.FiniteTapeMajority
+
+@[expose] public section
 
 /-!
 # Coin-run receipts and an absorbing-walk program
@@ -131,7 +135,7 @@ theorem coinReceiptAux_cons_halt {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
     (hc : coinHalt M cfg = true) :
     coinReceiptAux M accept (c :: cs) cfg lo hi d
       = ⟨some (accept cfg.q), 0, 0, (hi - lo + 1).toNat⟩ := by
-  simp only [coinReceiptAux, hc, if_true]
+  simp only [coinReceiptAux, hc, ite_true]
 
 /-- If the selected transition is absent in a nonhalted configuration, the receipt consumes one
 coin and no transition before returning the current acceptance value. -/
@@ -143,7 +147,7 @@ theorem coinReceiptAux_cons_none {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
     coinReceiptAux M accept (c :: cs) cfg lo hi d
       = ⟨some (accept cfg.q), 1, 0, (hi - lo + 1).toNat⟩ := by
   have hne : ¬(coinHalt M cfg = true) := by simp [hc]
-  simp only [coinReceiptAux, if_neg hne, hentry]
+  simp only [coinReceiptAux, ite_eq_right hne, hentry]
 
 /-- A successful selected transition updates the tape extent and recursively runs on the
 remaining coins, adding one read and one transition. -/
@@ -159,7 +163,7 @@ theorem coinReceiptAux_cons_some {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
             (stmtExtent stmt lo hi d).1 (stmtExtent stmt lo hi d).2.1
             (stmtExtent stmt lo hi d).2.2) := by
   have hne : ¬(coinHalt M cfg = true) := by simp [hc]
-  simp only [coinReceiptAux, if_neg hne, hentry]
+  simp only [coinReceiptAux, ite_eq_right hne, hentry]
 
 /-- Under a valid extent invariant, receipt output and reads agree with `coinTapeRunAux`, its
 clock agrees with the transition counter, and its peak is at least one. -/
@@ -191,9 +195,9 @@ theorem coinReceiptAux_agree {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
             have hs : Turing.TM0.step (M c) cfg = none := by
               rw [TM0_step_apply, hentry]; rfl
             have hrun : coinTapeRunAux M accept (c :: cs) cfg = (some (accept cfg.q), 1) := by
-              rw [coinTapeRunAux, if_neg hne, hs]
+              rw [coinTapeRunAux, ite_eq_right hne, hs]
             have hcount : coinTapeTransitionCountAux M (c :: cs) cfg = 0 := by
-              rw [coinTapeTransitionCountAux, if_neg hne, hs]
+              rw [coinTapeTransitionCountAux, ite_eq_right hne, hs]
             rw [coinReceiptAux_cons_none M accept c cfg cs lo hi d hcf hentry,
               hrun, hcount]
             exact ⟨rfl, rfl, rfl, one_le_toNat_of_one_le (by omega)⟩
@@ -209,7 +213,7 @@ theorem coinReceiptAux_agree {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
               hcf (q' := q') (T' := TM0StmtApply cfg.Tape stmt) hstep
             have hcount : coinTapeTransitionCountAux M (c :: cs) cfg
                 = coinTapeTransitionCountAux M cs ⟨q', TM0StmtApply cfg.Tape stmt⟩ + 1 := by
-              rw [coinTapeTransitionCountAux, if_neg hne, hstep]
+              rw [coinTapeTransitionCountAux, ite_eq_right hne, hstep]
             rw [coinReceiptAux_cons_some M accept c cfg cs lo hi d q' stmt hcf hentry,
               CoinReceipt.bump, h1, h2, h3, hrun, hcount]
             rw [Prod.map_fst, Prod.map_snd]
@@ -220,9 +224,9 @@ theorem coinReceiptAux_agree {Γ Λ : Type*} [Inhabited Γ] [Inhabited Λ]
           | false => exact absurd hh hcf
         rw [coinReceiptAux_cons_halt M accept c cfg cs lo hi d hc]
         have hrun : coinTapeRunAux M accept (c :: cs) cfg = (some (accept cfg.q), 0) := by
-          rw [coinTapeRunAux, hc, if_pos (rfl : (true : Bool) = true)]
+          rw [coinTapeRunAux, hc, ite_eq_left (rfl : (true : Bool) = true)]
         have hcount : coinTapeTransitionCountAux M (c :: cs) cfg = 0 := by
-          rw [coinTapeTransitionCountAux, hc, if_pos (rfl : (true : Bool) = true)]
+          rw [coinTapeTransitionCountAux, hc, ite_eq_left (rfl : (true : Bool) = true)]
         rw [hrun, hcount]
         exact ⟨rfl, rfl, rfl, one_le_toNat_of_one_le (by omega)⟩
 
@@ -303,7 +307,7 @@ def raceTime (N : ℕ) (p : ℕ) : List Bool → ℕ
 /-- An absorbing endpoint remains fixed by every walk step. -/
 theorem raceStep_absorb (N : ℕ) {p : ℕ} (c : Bool) (hp : p = 0 ∨ p = N) :
     raceStep N p c = p := by
-  rw [raceStep, if_pos hp]
+  rw [raceStep, ite_eq_left hp]
 
 /-- A walk starting at a position at most `N` stays at most `N`. -/
 theorem raceWalk_le (N : ℕ) : ∀ (w : List Bool) {p : ℕ}, p ≤ N → raceWalk N p w ≤ N := by
@@ -319,8 +323,8 @@ theorem raceWalk_le (N : ℕ) : ∀ (w : List Bool) {p : ℕ}, p ≤ N → raceW
       · have h1 : p ≠ 0 := fun e => hp (Or.inl e)
         have h2 : p ≠ N := fun e => hp (Or.inr e)
         by_cases hc : c = true
-        · rw [raceStep, if_neg hp, if_pos hc]; omega
-        · rw [raceStep, if_neg hp, if_neg hc]; omega
+        · rw [raceStep, ite_eq_right hp, ite_eq_left hc]; omega
+        · rw [raceStep, ite_eq_right hp, ite_eq_right hc]; omega
 
 /-- A walk starting at an absorbing endpoint remains there for any coin list. -/
 theorem raceWalk_absorb_stay (N : ℕ) (p : ℕ) (w : List Bool) (hp : p = 0 ∨ p = N) :
@@ -334,7 +338,7 @@ theorem raceTime_absorb_zero (N : ℕ) (p : ℕ) (w : List Bool) (hp : p = 0 ∨
     raceTime N p w = 0 := by
   induction w generalizing p with
   | nil => rfl
-  | cons c w ih => rw [raceTime, if_pos hp]
+  | cons c w ih => rw [raceTime, ite_eq_left hp]
 
 /-- Walking along a concatenated coin list equals walking along the first list and then the
 second. -/
@@ -471,11 +475,11 @@ theorem racePosOf_rotStep (N a : ℕ) (ha : a ≤ N) {ℓ : ℕ} (hℓ : ℓ < N
   | true =>
       have hm : raceRotStep N ℓ true = (ℓ + 1) % (N + 1) := rfl
       rw [hm, racePosOf_add, Nat.mod_eq_of_lt (show racePosOf N a ℓ + 1 < N + 1 by omega),
-        raceStep, if_neg hni]
+        raceStep, ite_eq_right hni]
       rfl
   | false =>
       have hstep : raceStep N (racePosOf N a ℓ) false = racePosOf N a ℓ - 1 := by
-        rw [raceStep, if_neg hni]
+        rw [raceStep, ite_eq_right hni]
         rfl
       have hm : raceRotStep N ℓ false = (ℓ + N) % (N + 1) := rfl
       rw [hm, racePosOf_add, hstep]
@@ -502,8 +506,8 @@ theorem race_coinHalt (N a : ℕ) (q : Fin (N + 1)) (T : Turing.Tape (Option Boo
     coinHalt (raceMachine N a) ⟨q, T⟩ = raceWall N a q.val := by
   unfold coinHalt raceMachine raceWall
   by_cases h : q.val = raceLabelL N a ∨ q.val = raceLabelR N a
-  · rw [dif_pos h, dif_pos h]; simp [h]
-  · rw [dif_neg h, dif_neg h]; simp [h]
+  · rw [dite_eq_left h, dite_eq_left h]; simp [h]
+  · rw [dite_eq_right h, dite_eq_right h]; simp [h]
 
 /-- A race-machine transition away from both walls updates the cyclic label and moves in the
 direction selected by the coin. -/
@@ -513,7 +517,7 @@ theorem race_entry_some (N a : ℕ) (c : Bool) (q : Fin (N + 1))
     raceMachine N a c q T.head = some (raceNext N q.val c,
       Turing.TM0.Stmt.move (if c then Turing.Dir.right else Turing.Dir.left)) := by
   simp only [raceMachine]
-  rw [dif_neg hni]
+  rw [dite_eq_right hni]
 
 /-- A race-machine step away from the walls has the stated next label and tape move. -/
 theorem race_step_some (N a : ℕ) (c : Bool) (q : Fin (N + 1))
@@ -552,7 +556,7 @@ theorem raceCfgStep_wall (N a : ℕ) (c : Bool)
     (hw : raceWall N a cfg.q.val = true) :
     raceCfgStep N a c cfg = cfg := by
   simp only [raceCfgStep]
-  rw [if_pos (show raceWall N a cfg.q.val = true by exact hw)]
+  rw [ite_eq_left (show raceWall N a cfg.q.val = true by exact hw)]
 
 /-- A race configuration away from both walls updates to the next cyclic label and moves its
 tape head with the coin. -/
@@ -567,7 +571,7 @@ theorem raceCfgStep_live (N a : ℕ) (c : Bool)
     simp only [raceWall, decide_eq_true_eq] at h
     exact h)
   simp only [raceCfgStep]
-  rw [if_neg hw, race_entry_some N a c cfg.q cfg.Tape hni]
+  rw [ite_eq_right hw, race_entry_some N a c cfg.q cfg.Tape hni]
 
 /-- Folding an empty coin list leaves the race configuration unchanged. -/
 theorem raceCfgFold_nil (N a : ℕ) (cfg : Turing.TM0.Cfg (Option Bool) (Fin (N + 1))) :
@@ -602,14 +606,14 @@ theorem raceCfgFold_val (N a : ℕ) : ∀ (w : List Bool)
   | cons c w ih =>
       intro cfg
       by_cases hw : raceWall N a cfg.q.val = true
-      · rw [raceCfgFold_cons, raceCfgStep_wall N a c cfg hw, raceLabelFold, if_pos hw]
+      · rw [raceCfgFold_cons, raceCfgStep_wall N a c cfg hw, raceLabelFold, ite_eq_left hw]
         exact ih cfg
       · have hni : ¬(cfg.q.val = raceLabelL N a ∨ cfg.q.val = raceLabelR N a) := by
           intro h
           apply hw
           simp only [raceWall, decide_eq_true_eq]
           exact h
-        rw [raceCfgFold_cons, raceCfgStep_live N a c cfg hni, raceLabelFold, if_neg hw]
+        rw [raceCfgFold_cons, raceCfgStep_live N a c cfg hni, raceLabelFold, ite_eq_right hw]
         exact ih _
 
 /-- For a valid starting label and `a ≤ N`, decoding the folded label gives the absorbing walk's
@@ -625,9 +629,9 @@ theorem racePosOf_raceLabelFold (N a : ℕ) (ha : a ≤ N) : ∀ (w : List Bool)
       have hiff := raceWall_iff N a ha hℓ
       by_cases hwall : raceWall N a ℓ = true
       · have habs : racePosOf N a ℓ = 0 ∨ racePosOf N a ℓ = N := hiff.mp hwall
-        rw [raceWalk, raceStep_absorb N c habs, raceLabelFold, if_pos hwall, ih hℓ,
+        rw [raceWalk, raceStep_absorb N c habs, raceLabelFold, ite_eq_left hwall, ih hℓ,
           raceWalk_absorb_stay N (racePosOf N a ℓ) w habs]
-      · rw [raceWalk, raceLabelFold, if_neg hwall]
+      · rw [raceWalk, raceLabelFold, ite_eq_right hwall]
         have hwf : raceWall N a ℓ = false := by
           cases hh : raceWall N a ℓ with
           | false => rfl
@@ -669,10 +673,10 @@ theorem race_coinTapeRunAux (N a : ℕ) (ha : a ≤ N) : ∀ (w : List Bool)
       rw [coinTapeRunAux, race_coinHalt N a ⟨ℓ, hℓ⟩ T]
       by_cases hwall : raceWall N a ℓ = true
       · have habs : racePosOf N a ℓ = 0 ∨ racePosOf N a ℓ = N := hiff.mp hwall
-        rw [if_pos hwall, raceWalk, raceTime, if_pos habs, hacc]
+        rw [ite_eq_left hwall, raceWalk, raceTime, ite_eq_left habs, hacc]
       · have hni : ¬(racePosOf N a ℓ = 0 ∨ racePosOf N a ℓ = N) :=
           fun h => hwall (hiff.mpr h)
-        rw [if_neg hwall, raceWalk, raceTime, if_neg hni]
+        rw [ite_eq_right hwall, raceWalk, raceTime, ite_eq_right hni]
   | cons c w ih =>
       intro T ℓ hℓ
       have hiff := raceWall_iff N a ha hℓ
@@ -686,8 +690,8 @@ theorem race_coinTapeRunAux (N a : ℕ) (ha : a ≤ N) : ∀ (w : List Bool)
       rw [coinTapeRunAux, race_coinHalt N a ⟨ℓ, hℓ⟩ T]
       by_cases hwall : raceWall N a ℓ = true
       · have habs : racePosOf N a ℓ = 0 ∨ racePosOf N a ℓ = N := hiff.mp hwall
-        rw [if_pos hwall, raceWalk, raceStep_absorb N c habs, raceTime, if_pos habs,
-            raceWalk_absorb_stay N (racePosOf N a ℓ) w habs, if_pos habs, hacc]
+        rw [ite_eq_left hwall, raceWalk, raceStep_absorb N c habs, raceTime, ite_eq_left habs,
+            raceWalk_absorb_stay N (racePosOf N a ℓ) w habs, ite_eq_left habs, hacc]
       · have hni : ¬(racePosOf N a ℓ = 0 ∨ racePosOf N a ℓ = N) :=
           fun h => hwall (hiff.mpr h)
         have hni' : ¬(ℓ = raceLabelL N a ∨ ℓ = raceLabelR N a) := by
@@ -695,7 +699,7 @@ theorem race_coinTapeRunAux (N a : ℕ) (ha : a ≤ N) : ∀ (w : List Bool)
           rcases h with h | h
           · rw [h] at hwall; simp [raceWall] at hwall
           · rw [h] at hwall; simp [raceWall] at hwall
-        rw [if_neg hwall]
+        rw [ite_eq_right hwall]
         have hs := race_step_some N a c ⟨ℓ, hℓ⟩ T hni'
         simp only [hs, raceNext]
         have hwf : raceWall N a ℓ = false := by
@@ -707,7 +711,7 @@ theorem race_coinTapeRunAux (N a : ℕ) (ha : a ≤ N) : ∀ (w : List Bool)
           (raceRotStep N ℓ c) (Nat.mod_lt _ (Nat.succ_pos N))
         rw [ih2, racePosOf_rotStep N a ha hℓ hwf c]
         simp only [Prod.map, id_eq]
-        rw [raceWalk, raceTime, if_neg hni]
+        rw [raceWalk, raceTime, ite_eq_right hni]
 
 /-- The race machine's transition count equals the elapsed time of its decoded absorbing walk. -/
 theorem race_coinTapeTransitionCountAux (N a : ℕ) (ha : a ≤ N) : ∀ (w : List Bool)
@@ -723,7 +727,7 @@ theorem race_coinTapeTransitionCountAux (N a : ℕ) (ha : a ≤ N) : ∀ (w : Li
       rw [coinTapeTransitionCountAux, race_coinHalt N a ⟨ℓ, hℓ⟩ T]
       by_cases hwall : raceWall N a ℓ = true
       · have habs : racePosOf N a ℓ = 0 ∨ racePosOf N a ℓ = N := hiff.mp hwall
-        rw [if_pos hwall, raceTime, if_pos habs]
+        rw [ite_eq_left hwall, raceTime, ite_eq_left habs]
       · have hni : ¬(racePosOf N a ℓ = 0 ∨ racePosOf N a ℓ = N) :=
           fun h => hwall (hiff.mpr h)
         have hni' : ¬(ℓ = raceLabelL N a ∨ ℓ = raceLabelR N a) := by
@@ -731,7 +735,7 @@ theorem race_coinTapeTransitionCountAux (N a : ℕ) (ha : a ≤ N) : ∀ (w : Li
           rcases h with h | h
           · rw [h] at hwall; simp [raceWall] at hwall
           · rw [h] at hwall; simp [raceWall] at hwall
-        rw [if_neg hwall]
+        rw [ite_eq_right hwall]
         have hs := race_step_some N a c ⟨ℓ, hℓ⟩ T hni'
         simp only [hs, raceNext]
         have hwf : raceWall N a ℓ = false := by
@@ -741,7 +745,7 @@ theorem race_coinTapeTransitionCountAux (N a : ℕ) (ha : a ≤ N) : ∀ (w : Li
         have ih2 := ih (TM0StmtApply T (Turing.TM0.Stmt.move
             (if c then Turing.Dir.right else Turing.Dir.left)))
           (raceRotStep N ℓ c) (Nat.mod_lt _ (Nat.succ_pos N))
-        rw [ih2, racePosOf_rotStep N a ha hℓ hwf c, raceTime, if_neg hni]
+        rw [ih2, racePosOf_rotStep N a ha hℓ hwf c, raceTime, ite_eq_right hni]
 
 /-- The race configuration interpreter reads `raceTime` coins and returns the folded
 configuration exactly when the walk ends at an endpoint. -/
@@ -760,11 +764,11 @@ theorem race_coinConfigRunAux (N a : ℕ) (ha : a ≤ N) : ∀ (w : List Bool)
       rw [coinConfigRunAux, race_coinHalt N a ⟨ℓ, hℓ⟩ T]
       by_cases hwall : raceWall N a ℓ = true
       · have habs : racePosOf N a ℓ = 0 ∨ racePosOf N a ℓ = N := hiff.mp hwall
-        rw [if_pos hwall, raceWalk, raceTime, if_pos habs]
+        rw [ite_eq_left hwall, raceWalk, raceTime, ite_eq_left habs]
         exact ⟨rfl, rfl⟩
       · have hni : ¬(racePosOf N a ℓ = 0 ∨ racePosOf N a ℓ = N) :=
           fun h => hwall (hiff.mpr h)
-        rw [if_neg hwall, raceWalk, raceTime, if_neg hni]
+        rw [ite_eq_right hwall, raceWalk, raceTime, ite_eq_right hni]
         exact ⟨rfl, rfl⟩
   | cons c w ih =>
       intro T ℓ hℓ
@@ -772,12 +776,12 @@ theorem race_coinConfigRunAux (N a : ℕ) (ha : a ≤ N) : ∀ (w : List Bool)
       rw [coinConfigRunAux, race_coinHalt N a ⟨ℓ, hℓ⟩ T]
       by_cases hwall : raceWall N a ℓ = true
       · have habs : racePosOf N a ℓ = 0 ∨ racePosOf N a ℓ = N := hiff.mp hwall
-        rw [if_pos hwall]
+        rw [ite_eq_left hwall]
         rw [raceWalk, raceStep_absorb N c habs,
             raceWalk_absorb_stay N (racePosOf N a ℓ) w habs]
         rw [raceCfgFold_cons, raceCfgStep_wall N a c ⟨⟨ℓ, hℓ⟩, T⟩ hwall,
-          raceCfgFold_absorb_stay N a T hℓ hwall w, if_pos habs]
-        rw [raceTime, if_pos habs]
+          raceCfgFold_absorb_stay N a T hℓ hwall w, ite_eq_left habs]
+        rw [raceTime, ite_eq_left habs]
         exact ⟨rfl, rfl⟩
       · have hni : ¬(racePosOf N a ℓ = 0 ∨ racePosOf N a ℓ = N) :=
           fun h => hwall (hiff.mpr h)
@@ -786,7 +790,7 @@ theorem race_coinConfigRunAux (N a : ℕ) (ha : a ≤ N) : ∀ (w : List Bool)
           rcases h with h | h
           · rw [h] at hwall; simp [raceWall] at hwall
           · rw [h] at hwall; simp [raceWall] at hwall
-        rw [if_neg hwall]
+        rw [ite_eq_right hwall]
         have hs := race_step_some N a c ⟨ℓ, hℓ⟩ T hni'
         simp only [hs, raceNext]
         have hwf : raceWall N a ℓ = false := by
@@ -804,7 +808,7 @@ theorem race_coinConfigRunAux (N a : ℕ) (ha : a ≤ N) : ∀ (w : List Bool)
           rw [raceCfgFold_cons, raceCfgStep_live N a c ⟨⟨ℓ, hℓ⟩, T⟩ hni']
           rfl
         rw [hr1, hs1, hcf, racePosOf_rotStep N a ha hℓ hwf c]
-        rw [raceWalk, raceTime, if_neg hni]
+        rw [raceWalk, raceTime, ite_eq_right hni]
         exact ⟨rfl, rfl⟩
 
 /-- The encoded race program has a common halting condition for both coin choices. -/
@@ -969,7 +973,7 @@ theorem output1.frontier1 (N a : ℕ) (ha : a ≤ N) (w fs : List Bool)
       = some (raceCfgFold N a w (raceSourceInit N)) := by
     rw [htable]
     have h2 := hsim.2
-    simp only [habs, if_true] at h2
+    simp only [habs, ite_true] at h2
     exact h2
   obtain ⟨sf, Tf, T'', off', lo', hi', hbound, hrun⟩ :=
     tmCopyRunResetCompile_run (raceCode N a) (race_commonHalt N a) [] w fs

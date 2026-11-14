@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommutLCHS26.QuadratureCmp.Trapezoid
-import Mathlib.Analysis.Fourier.RiemannLebesgueLemma
+module
+
+public import Qatlib.Papers.CommutLCHS26.QuadratureCmp.Trapezoid
+public import Mathlib.Analysis.Fourier.RiemannLebesgueLemma
+
+@[expose] public section
 
 /-!
 # A strict gap between operator and lattice tails
@@ -100,14 +104,14 @@ theorem tail_identity_fourier (n : ℕ) (b c d R w : ℝ) :
   apply integral_congr_ae
   filter_upwards [] with x
   by_cases hx : R < |x|
-  · simp only [Set.indicator_apply, mem_setOf_eq, if_pos hx]
+  · simp only [Set.indicator_apply, Set.mem_ofPred_eq, ite_eq_left hx]
     simp only [integrand, propagator_identity, smul_smul, smul_eq_mul]
     congr 1
     have hz : (-((2 * Real.pi * w : ℝ) : ℂ)) * I * (x : ℂ) =
         ((-2 * Real.pi * x * w : ℝ) : ℂ) * I := by push_cast; ring
     rw [hz]
     ring
-  · simp only [Set.indicator_apply, mem_setOf_eq, if_neg hx, smul_zero, zero_smul]
+  · simp only [Set.indicator_apply, Set.mem_ofPred_eq, ite_eq_right hx, smul_zero, zero_smul]
 
 /-- For positive `b` and `c`, there is a positive time when the one-dimensional operator
 truncation error at radius `1` is strictly less than the scalar lattice tail at step `1` and

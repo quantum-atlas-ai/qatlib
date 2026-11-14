@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.NumberTheory.Harmonic.Bounds
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.NumberTheory.Harmonic.Bounds
+
+@[expose] public section
 
 /-!
 # Adversary potentials and arithmetic query lower bounds
@@ -87,7 +91,7 @@ theorem W0_ordered_eq (N : ℕ) :
 satisfies `T ≥ (1 - 2*sqrt (ε*(1 - ε)))*(H_N - 1)/pi` for `0 ≤ ε ≤ 1/2`, the arithmetic
 conclusion of [Hoyer et al., Theorem 1][HoyerNeerbekShi2001]. -/
 theorem theorem1_ordered_search_lower_bound {N T : ℕ} {W : ℕ → ℝ} {ε : ℝ}
-    (hN : 1 ≤ N) (hε0 : 0 ≤ ε) (hε1 : ε ≤ 1 / 2)
+    (hN : 1 ≤ N) (_hε0 : 0 ≤ ε) (_hε1 : ε ≤ 1 / 2)
     (hW0 : W 0 = (N : ℝ) * ((harmonic N : ℝ) - 1))
     (hstep : ∀ j < T, |W j - W (j + 1)| ≤ Real.pi * (N : ℝ))
     (hWT : W T ≤ 2 * Real.sqrt (ε * (1 - ε)) * W 0) :
@@ -154,7 +158,7 @@ theorem W0_sorting_eq (N : ℕ) :
 - ε)))*N*(H_N - 1)/(2*pi)`, the arithmetic conclusion of [Hoyer et al., Theorem
 2][HoyerNeerbekShi2001]. -/
 theorem theorem2_sorting_lower_bound {N T : ℕ} {W : ℕ → ℝ} {ε : ℝ}
-    (hε0 : 0 ≤ ε) (hε1 : ε ≤ 1 / 2)
+    (_hε0 : 0 ≤ ε) (_hε1 : ε ≤ 1 / 2)
     (hW0 : W 0 = (Nat.factorial N : ℝ) * ((N : ℝ) * (harmonic N : ℝ) - N))
     (hstep : ∀ j < T, |W j - W (j + 1)| ≤ 2 * Real.pi * (Nat.factorial N : ℝ))
     (hWT : W T ≤ 2 * Real.sqrt (ε * (1 - ε)) * W 0) :
@@ -186,7 +190,7 @@ theorem theorem2_sorting_lower_bound {N T : ℕ} {W : ℕ → ℝ} {ε : ℝ}
 - ε)))*sqrt N*(H_N - 1)/(2*pi)`, the arithmetic conclusion of [Hoyer et al., Theorem
 3][HoyerNeerbekShi2001]. -/
 theorem theorem3_element_distinctness_lower_bound {N T : ℕ} {W : ℕ → ℝ} {ε : ℝ}
-    (hN : 1 ≤ N) (hε0 : 0 ≤ ε) (hε1 : ε ≤ 1 / 2)
+    (hN : 1 ≤ N) (_hε0 : 0 ≤ ε) (_hε1 : ε ≤ 1 / 2)
     (hW0 : W 0 = (Nat.factorial N : ℝ) * ((N : ℝ) * (harmonic N : ℝ) - N))
     (hstep : ∀ j < T,
       |W j - W (j + 1)| ≤ 2 * Real.pi * (Nat.factorial N : ℝ) * Real.sqrt (N : ℝ))

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Tactic
-import Qatlib.Papers.SpinBosonQAOA26.MainResults.Definitions.SourceDefinitions
-import Qatlib.Papers.SpinBosonQAOA26.MainResults.Definitions.SourceStates
-import Qatlib.Papers.SpinBosonQAOA26.MainResults.SymmetricBasisExpansion
+module
+
+public import Mathlib.Tactic
+public import Qatlib.Papers.SpinBosonQAOA26.MainResults.Definitions.SourceDefinitions
+public import Qatlib.Papers.SpinBosonQAOA26.MainResults.Definitions.SourceStates
+public import Qatlib.Papers.SpinBosonQAOA26.MainResults.SymmetricBasisExpansion
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

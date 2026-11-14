@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.NativeNumerics.NlfftPipeline.NonlinearFourierSU2
-import Qatlib.Foundations.PureStateMath.Qubit
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Arctan
+module
+
+public import Qatlib.Concepts.NativeNumerics.NlfftPipeline.NonlinearFourierSU2
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Arctan
+
+@[expose] public section
 
 /-!
 # Matrices defining the polynomial-to-QSP bridge

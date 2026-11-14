@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Data.Complex.Basic
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.Abel
-import Mathlib.Tactic.Linarith
+module
+
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.Abel
+public import Mathlib.Tactic.Linarith
+
+@[expose] public section
 
 /-!
 # Finite reuse and oblivious amplitude amplification (Lemma 4.9)

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Tensor
+module
+
+public import Qatlib.Foundations.PureStateMath.Tensor
+
+@[expose] public section
 
 /-!
 # Coordinate measurements of pure states
@@ -127,12 +131,14 @@ noncomputable def MarginalProbLeft (ψ : QState (I × J)) (S : Finset I) : ℝ :
 noncomputable def MarginalProbRight (ψ : QState (I × J)) (T : Finset J) : ℝ :=
   MeasureProb ψ (Finset.univ ×ˢ T)
 
+omit [Fintype I] [DecidableEq I] [DecidableEq J] in
 /-- For a tensor state with normalized right factor, the left marginal equals the left factor's
 event mass. -/
 theorem marginalProbLeft_tensorState (ψ : QState I) {φ : QState J} (hφ : Normalized φ)
     (S : Finset I) : MarginalProbLeft (TensorState ψ φ) S = MeasureProb ψ S :=
   measureProb_tensorState_left hφ ψ S
 
+omit [DecidableEq I] [Fintype J] [DecidableEq J] in
 /-- For a tensor state with normalized left factor, the right marginal equals the right factor's
 event mass. -/
 theorem marginalProbRight_tensorState {ψ : QState I} (hψ : Normalized ψ) (φ : QState J)

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixAlgebra.CliffordWalk.Euler
+module
+
+public import Qatlib.Foundations.MatrixAlgebra.CliffordWalk.Euler
+
+@[expose] public section
 
 /-! # Actual Clifford-generator rotations and their native exponentials -/
 set_option autoImplicit false

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CoherentSim.TimeDependent.Equation28Stat
+module
+
+public import Qatlib.Concepts.CoherentSim.TimeDependent.Equation28Stat
+
+@[expose] public section
 
 /-!
 # Unitary sum specification for time dependent segments

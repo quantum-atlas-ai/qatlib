@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Core.KernelWeights
-import Mathlib.Analysis.SpecialFunctions.Stirling
+module
+
+public import Qatlib.Foundations.CbmdAnalysis.Core.KernelWeights
+public import Mathlib.Analysis.SpecialFunctions.Stirling
+
+@[expose] public section
 
 /-!
 # Exponential tails of integer sampling weights

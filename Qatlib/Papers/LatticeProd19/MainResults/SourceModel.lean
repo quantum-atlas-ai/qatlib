@@ -4,14 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Calculus.IteratedDeriv.Defs
-import Mathlib.Analysis.Calculus.Deriv.Basic
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.SpecialFunctions.Exponential
-import Mathlib.Analysis.Complex.RealDeriv
-import Mathlib.Analysis.Calculus.IteratedDeriv.Lemmas
-import Mathlib.Analysis.Calculus.Taylor
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
+module
+
+public import Mathlib.Analysis.Calculus.IteratedDeriv.Defs
+public import Mathlib.Analysis.Calculus.Deriv.Basic
+public import Mathlib.Analysis.Calculus.Deriv.Linear
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.SpecialFunctions.Exponential
+public import Mathlib.Analysis.Complex.RealDeriv
+public import Mathlib.Analysis.Calculus.IteratedDeriv.Lemmas
+public import Mathlib.Analysis.Calculus.Taylor
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -55,8 +60,11 @@ variable {𝔸 : Type*} [NormedRing 𝔸] [NormedAlgebra ℂ 𝔸] [CompleteSpac
 /-- `expm X t = e^{tX}` (paper Eq. (8), p.3). -/
 def expm (X : 𝔸) (t : ℝ) : 𝔸 := NormedSpace.exp ((t : ℂ) • X)
 
+omit [NormedRing 𝔸] [NormedAlgebra ℂ 𝔸] [CompleteSpace 𝔸] in
 /-- The `expm_zero` result for the LatticeProd19 paper model. -/
-@[simp] theorem expm_zero (X : 𝔸) : expm X 0 = 1 := by
+@[simp] theorem expm_zero {𝔸 : Type*} [_instNormedRing : NormedRing 𝔸]
+    [_instNormedAlgebra : NormedAlgebra ℂ 𝔸] [_instCompleteSpace : CompleteSpace 𝔸]
+    (X : 𝔸) : expm X 0 = 1 := by
   simp [expm]
 
 /-- The commutator `ad_X(Y) = [X,Y] = XY - YX` (paper Eq. (39), p.6). -/
@@ -65,11 +73,17 @@ def ad (X Y : 𝔸) : 𝔸 := X * Y - Y * X
 /-- Iterated commutator `ad_X^j(Y)` (paper Corollary 1, Eq. (41), p.6). -/
 def adPow (X : 𝔸) (j : ℕ) (Y : 𝔸) : 𝔸 := (ad X)^[j] Y
 
+omit [NormedRing 𝔸] [NormedAlgebra ℂ 𝔸] [CompleteSpace 𝔸] in
 /-- The `adPow_zero` result for the LatticeProd19 paper model. -/
-@[simp] theorem adPow_zero (X Y : 𝔸) : adPow X 0 Y = Y := rfl
+@[simp] theorem adPow_zero {𝔸 : Type*} [_instNormedRing : NormedRing 𝔸]
+    [_instNormedAlgebra : NormedAlgebra ℂ 𝔸] [_instCompleteSpace : CompleteSpace 𝔸]
+    (X Y : 𝔸) : adPow X 0 Y = Y := rfl
 
+omit [NormedRing 𝔸] [NormedAlgebra ℂ 𝔸] [CompleteSpace 𝔸] in
 /-- The `adPow_succ` result for the LatticeProd19 paper model. -/
-theorem adPow_succ (X : 𝔸) (j : ℕ) (Y : 𝔸) :
+theorem adPow_succ {𝔸 : Type*} [_instNormedRing : NormedRing 𝔸]
+    [_instNormedAlgebra : NormedAlgebra ℂ 𝔸] [_instCompleteSpace : CompleteSpace 𝔸]
+    (X : 𝔸) (j : ℕ) (Y : 𝔸) :
     adPow X (j + 1) Y = ad X (adPow X j Y) := by
   simp [adPow, Function.iterate_succ_apply']
 
@@ -105,14 +119,20 @@ theorem expm_neg_hasDerivAt (X : 𝔸) (t : ℝ) :
     HasDerivAt (fun s : ℝ => expm (-X) s) ((-X) * expm (-X) t) t :=
   expm_hasDerivAt (-X) t
 
+omit [NormedRing 𝔸] [NormedAlgebra ℂ 𝔸] [CompleteSpace 𝔸] in
 /-- The `AdExp_add` result for the LatticeProd19 paper model. -/
-theorem AdExp_add (X : 𝔸) (t : ℝ) (Z W : 𝔸) :
+theorem AdExp_add {𝔸 : Type*} [_instNormedRing : NormedRing 𝔸]
+    [_instNormedAlgebra : NormedAlgebra ℂ 𝔸] [_instCompleteSpace : CompleteSpace 𝔸]
+    (X : 𝔸) (t : ℝ) (Z W : 𝔸) :
     AdExp X t (Z + W) = AdExp X t Z + AdExp X t W := by
   unfold AdExp
   noncomm_ring
 
+omit [NormedRing 𝔸] [NormedAlgebra ℂ 𝔸] [CompleteSpace 𝔸] in
 /-- The algebraic core of Proposition 1, Eq. (40), p.6. -/
-theorem AdExp_deriv_formula (X : 𝔸) (t : ℝ) (Y Y' : 𝔸) :
+theorem AdExp_deriv_formula {𝔸 : Type*} [_instNormedRing : NormedRing 𝔸]
+    [_instNormedAlgebra : NormedAlgebra ℂ 𝔸] [_instCompleteSpace : CompleteSpace 𝔸]
+    (X : 𝔸) (t : ℝ) (Y Y' : 𝔸) :
     (X * expm X t * Y + expm X t * Y') * expm (-X) t
         + expm X t * Y * (-X * expm (-X) t)
       = AdExp X t (ad X Y + Y') := by

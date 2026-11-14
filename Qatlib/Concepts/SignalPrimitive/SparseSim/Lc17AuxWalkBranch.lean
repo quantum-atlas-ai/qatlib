@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QspSimulation.WordModel.Equation1WordBridgeLowc
+module
+
+public import Qatlib.Concepts.QspSimulation.WordModel.Equation1WordBridgeLowc
+
+@[expose] public section
 
 /-!
 # Scalar Reduction of Controlled Walk Words
@@ -132,10 +136,10 @@ theorem lcAxisRotation_add_pi_adjoint (φ θ : ℝ) :
   fin_cases i <;> fin_cases j <;>
     simp only [lcAxisRotation, Matrix.conjTranspose_apply, Matrix.of_apply]
   all_goals norm_num only [Matrix.cons_val_zero, Matrix.cons_val_one, Matrix.head_cons, Matrix.of_apply, Matrix.cons_val_zero', Matrix.cons_val_succ']
-  all_goals simp only [Matrix.cons_val_zero, Matrix.cons_val_one, Matrix.head_cons,
+  all_goals simp only [
     he, hen, star_mul, star_neg, Complex.star_def, Complex.conj_I, Complex.conj_ofReal,
     neg_neg]
-  all_goals simp only [← Complex.star_def, hs, star_star]
+  all_goals simp only [← Complex.star_def, hs]
   all_goals simp only [mul_neg, hsneg]
   all_goals ring
 
@@ -152,7 +156,7 @@ theorem lcAncilla_mulVec (M : Matrix (Fin 2) (Fin 2) ℂ) (a : Fin 2 → ℂ) (w
   rcases i with ⟨i, x⟩
   simp only [Matrix.mulVec, dotProduct, Fintype.sum_prod_type, Matrix.of_apply,
     lcBranchVector, ite_mul, zero_mul]
-  simp only [Finset.sum_ite_eq, Finset.mem_univ, if_true]
+  simp only [Finset.sum_ite_eq, Finset.mem_univ, ite_true]
   simp only [← mul_assoc, ← Finset.sum_mul]
 
 /-- The lifted Hadamard gate acts on a product branch by applying `lcHad` to its ancilla vector. -/
@@ -208,7 +212,7 @@ theorem lcPlusFrame_branch (L : Matrix W I ℂ) (ψ : I → ℂ) :
       lcBranchVector (fun _ => (((Real.sqrt 2)⁻¹ : ℝ) : ℂ)) (L *ᵥ ψ) := by
   funext i
   simp only [lcPlusFrame, lcBranchVector, Matrix.mulVec, dotProduct,
-    Matrix.of_apply, Complex.real_smul, ← mul_assoc, ← Finset.mul_sum]
+    Matrix.of_apply, Complex.real_smul]
   rw [Complex.ofReal_inv, Finset.mul_sum]
   apply Finset.sum_congr rfl
   intro y _
@@ -268,7 +272,7 @@ theorem lcUhat_adjoint_branch (φ : ℝ) (V : Matrix W W ℂ) (w : W → ℂ) (z
     fun γ a => lcAncilla_adjoint_mulVec (PhaseRotation γ) a w
   have hdiag : (Matrix.diagonal ![1, z])ᴴ = Matrix.diagonal ![1, star z] := by
     ext i j
-    fin_cases i <;> fin_cases j <;> simp [Matrix.conjTranspose_apply, Matrix.diagonal_apply]
+    fin_cases i <;> fin_cases j <;> simp [Matrix.conjTranspose_apply]
   unfold lcUhat
   simp only [Matrix.conjTranspose_mul, ← Matrix.mulVec_mulVec, hp, hh,
     lcControlledWalk_adjoint,
@@ -310,7 +314,7 @@ theorem lcSimFactors_pair (V : Matrix W W ℂ) (φ ψ : ℝ) (ls : List ℝ) :
         (ls.mapIdx (fun j φ =>
           if j % 2 = 0 then lcUhat φ V else (lcUhat (φ + Real.pi) V)ᴴ)).prod) := by
   simp only [List.mapIdx_cons, List.prod_cons]
-  norm_num only [Nat.zero_mod, Nat.reduceMod, if_true, if_false]
+  norm_num only [Nat.zero_mod, Nat.reduceMod, ite_true, ite_false]
   congr 2
   apply congrArg List.prod
   congr 1

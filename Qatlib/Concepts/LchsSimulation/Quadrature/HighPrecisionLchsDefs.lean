@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.BlockEncoding.EncodingCore.CoefficientLCU
-import Qatlib.Concepts.LchsSimulation.Quadrature.CompositeGaussAlgebra
-import Qatlib.Concepts.LchsSimulation.Quadrature.GaussLegendreRule
-import Qatlib.Concepts.LchsSimulation.LchsRep.GeneralAnalyticLchsKernel
-import Qatlib.Concepts.LchsSimulation.Kernel.NearExponentialKernelModulus
-import Qatlib.Concepts.LchsSimulation.Quadrature.NearExponentialKernelQuadrature
-import Qatlib.Concepts.LchsSimulation.Kernel.NearExponentialLchsKernel
-import Qatlib.Concepts.LchsSimulation.TimeLchs
-import Qatlib.Concepts.LchsSimulation.TimeOrdered.TimeOrderedConsumers
+module
+
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.CoefficientLCU
+public import Qatlib.Concepts.LchsSimulation.Quadrature.CompositeGaussAlgebra
+public import Qatlib.Concepts.LchsSimulation.Quadrature.GaussLegendreRule
+public import Qatlib.Concepts.LchsSimulation.LchsRep.GeneralAnalyticLchsKernel
+public import Qatlib.Concepts.LchsSimulation.Kernel.NearExponentialKernelModulus
+public import Qatlib.Concepts.LchsSimulation.Quadrature.NearExponentialKernelQuadrature
+public import Qatlib.Concepts.LchsSimulation.Kernel.NearExponentialLchsKernel
+public import Qatlib.Concepts.LchsSimulation.TimeLchs
+public import Qatlib.Concepts.LchsSimulation.TimeOrdered.TimeOrderedConsumers
+
+@[expose] public section
 
 /-!
 # Data for high-precision LCHS quadrature

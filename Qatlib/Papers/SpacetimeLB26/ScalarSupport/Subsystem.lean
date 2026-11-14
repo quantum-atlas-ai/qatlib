@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SpacetimeLB26.ScalarSupport.Defs
+module
+
+public import Qatlib.Papers.SpacetimeLB26.ScalarSupport.Defs
+
+@[expose] public section
 
 /-!
 # Subsystem protection and circuit cost
@@ -120,14 +124,14 @@ theorem pauli_pairing_bound
     intro F
     rcases hfail F with hf | hf
     · by_cases hL : fails (mulByL F)
-      · simp only [if_pos hf, if_pos hL]
+      · simp only [ite_eq_left hf, ite_eq_left hL]
         linarith [min_le_left (ν F) (ν (mulByL F)), (hν_pos (mulByL F)).le]
-      · simp only [if_pos hf, if_neg hL, add_zero]
+      · simp only [ite_eq_left hf, ite_eq_right hL, add_zero]
         linarith [min_le_left (ν F) (ν (mulByL F))]
     · by_cases hF : fails F
-      · simp only [if_pos hF, if_pos hf]
+      · simp only [ite_eq_left hF, ite_eq_left hf]
         linarith [min_le_right (ν F) (ν (mulByL F)), (hν_pos F).le]
-      · simp only [if_neg hF, if_pos hf, zero_add]
+      · simp only [ite_eq_right hF, ite_eq_left hf, zero_add]
         linarith [min_le_right (ν F) (ν (mulByL F))]
 
   have hsumpair : (∑ F : G, ((if fails F then ν F else 0)

@@ -4,17 +4,21 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.BlockEncoding.EncodingCore.CoordinateFiber
-import Qatlib.Concepts.BlockEncoding.Basic
-import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.Basic
-import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.FiberBridge
-import Qatlib.Concepts.BlockEncoding.LinearCombination
-import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.Basic
-import Qatlib.Concepts.BlockEncoding.Postselection
-import Qatlib.Foundations.PureStateMath.Tensor
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Data.Matrix.Block
-import Mathlib.Analysis.Normed.Module.Normalize
+module
+
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.CoordinateFiber
+public import Qatlib.Concepts.BlockEncoding.Basic
+public import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.Basic
+public import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.FiberBridge
+public import Qatlib.Concepts.BlockEncoding.LinearCombination
+public import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.Basic
+public import Qatlib.Concepts.BlockEncoding.Postselection
+public import Qatlib.Foundations.PureStateMath.Tensor
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Data.Matrix.Block
+public import Mathlib.Analysis.Normed.Module.Normalize
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ParityLimit98.MainResults.IteratedFunction.HardIteration
+module
+
+public import Qatlib.Papers.ParityLimit98.MainResults.IteratedFunction.HardIteration
+
+@[expose] public section
 
 /-!
 # Query lower bounds for permutation iteration

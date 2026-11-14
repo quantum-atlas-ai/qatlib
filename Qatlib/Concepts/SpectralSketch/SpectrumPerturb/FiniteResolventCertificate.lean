@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Basic
-import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Unital
-import Mathlib.Analysis.Normed.Ring.Units
-import Mathlib.Algebra.QuadraticAlgebra.Defs
-import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
-import Qatlib.Concepts.OrderedOracle.TiSdpBridge.ApproximationAlgorithmsDefs
+module
+
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Basic
+public import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Unital
+public import Mathlib.Analysis.Normed.Ring.Units
+public import Mathlib.Algebra.QuadraticAlgebra.Defs
+public import Mathlib.LinearAlgebra.Matrix.NonsingularInverse
+public import Qatlib.Concepts.OrderedOracle.TiSdpBridge.ApproximationAlgorithmsDefs
+
+@[expose] public section
 
 /-!
 # Finite certificates for resolvent quadrature

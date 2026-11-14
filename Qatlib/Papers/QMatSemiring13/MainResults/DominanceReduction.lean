@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QMatSemiring13.MainResults.MatrixProductDefs
+module
+
+public import Qatlib.Papers.QMatSemiring13.MainResults.MatrixProductDefs
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -50,13 +54,13 @@ theorem dominance_eq_bot_iff {n : ℕ} (A B : Matrix (Fin n) (Fin n) Val)
   · intro h k
     by_contra hk
     have hle : A i k ≤ B k j := le_of_not_gt hk
-    have hterm : (if A i k ≤ B k j then A i k else ⊥) = A i k := if_pos hle
+    have hterm : (if A i k ≤ B k j then A i k else ⊥) = A i k := ite_eq_left hle
     have hbot : (if A i k ≤ B k j then A i k else ⊥) = ⊥ := h k (Finset.mem_univ k)
     rw [hterm] at hbot
     exact hA i k hbot
   · intro h k _
     have hlt : ¬ (A i k ≤ B k j) := not_le.mpr (h k)
-    exact if_neg hlt
+    exact ite_eq_right hlt
 
 /-- With `A` free of `-∞` entries, `(A ∗ B)[i,j] = 1` exactly when `A ⊳ B` has a
 finite entry at `(i,j)`. -/
@@ -104,21 +108,21 @@ theorem maxMinProd_eq_max_dominance {n : ℕ} (A B : Matrix (Fin n) (Fin n) Val)
   · refine max_le ?_ ?_
     · refine Finset.sup_le (fun k _ => ?_)
       by_cases h : A i k ≤ B k j
-      · rw [if_pos h]
+      · rw [ite_eq_left h]
         have hmin : min (A i k) (B k j) = A i k := min_eq_left h
         rw [← hmin]
         exact Finset.le_sup (s := (Finset.univ : Finset (Fin n)))
           (f := fun k => min (A i k) (B k j)) (Finset.mem_univ k)
-      · rw [if_neg h]
+      · rw [ite_eq_right h]
         exact bot_le
     · refine Finset.sup_le (fun k _ => ?_)
       by_cases h : B k j ≤ A i k
-      · rw [if_pos h]
+      · rw [ite_eq_left h]
         have hmin : min (A i k) (B k j) = B k j := min_eq_right h
         rw [← hmin]
         exact Finset.le_sup (s := (Finset.univ : Finset (Fin n)))
           (f := fun k => min (A i k) (B k j)) (Finset.mem_univ k)
-      · rw [if_neg h]
+      · rw [ite_eq_right h]
         exact bot_le
 
 /-- Definition 3.1, consistency clause: for `u = v = 1` the generalized existence

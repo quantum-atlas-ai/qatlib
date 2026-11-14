@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvWitness
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.Theorem21Defs
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvWitness
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.Theorem21Defs
+
+@[expose] public section
 
 /-!
 # Statement of the Kushilevitz witness bounds

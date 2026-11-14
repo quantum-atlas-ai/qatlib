@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OrderedInsert99.MainResults.InvariantDefs
-import Mathlib.Algebra.BigOperators.Intervals
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.OrderedInsert99.MainResults.InvariantDefs
+public import Mathlib.Algebra.BigOperators.Intervals
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Fourier matching identities and small two-query cases

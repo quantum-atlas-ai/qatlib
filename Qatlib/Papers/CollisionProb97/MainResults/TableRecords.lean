@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CollisionProb97.MainResults.TablePreparation
-import Qatlib.Papers.CollisionProb97.MainResults.TableLookup
+module
+
+public import Qatlib.Papers.CollisionProb97.MainResults.TablePreparation
+public import Qatlib.Papers.CollisionProb97.MainResults.TableLookup
+
+@[expose] public section
 
 /-!
 # Correctness of table record recovery

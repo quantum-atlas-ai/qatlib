@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.TwoLevelLower
-import Qatlib.Concepts.WalkSearch.Th4Expander.SzegedyTheorem4ExpanderChainDefs
-import Qatlib.Foundations.PureStateMath.Qubit
+module
+
+public import Qatlib.Concepts.WalkSearch.TwoLevelLower
+public import Qatlib.Concepts.WalkSearch.Th4Expander.SzegedyTheorem4ExpanderChainDefs
+public import Qatlib.Foundations.PureStateMath.Qubit
+
+@[expose] public section
 
 /-!
 # Regular-graph chain contract

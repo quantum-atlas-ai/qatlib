@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Quaternion
-import Mathlib.Data.Real.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Tactic.NoncommRing
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.NormNum
-import Qatlib.Concepts.UnbiasedBases.ThreeBasis.EulerDecomposition
+module
+
+public import Mathlib.Algebra.Quaternion
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Tactic.NoncommRing
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.NormNum
+public import Qatlib.Concepts.UnbiasedBases.ThreeBasis.EulerDecomposition
+
+@[expose] public section
 
 /-!
 # Euler decompositions of unit quaternions and SU(2)

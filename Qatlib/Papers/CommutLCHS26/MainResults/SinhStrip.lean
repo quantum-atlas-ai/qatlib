@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommutLCHS26.QuadratureCmp.SinhRule
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
-import Mathlib.Tactic.LinearCombination
-import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
+module
+
+public import Qatlib.Papers.CommutLCHS26.QuadratureCmp.SinhRule
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
+public import Mathlib.Tactic.LinearCombination
+public import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
+
+@[expose] public section
 
 /-!
 # Strip estimates for the sinh transform

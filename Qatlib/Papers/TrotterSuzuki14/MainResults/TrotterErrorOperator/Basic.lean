@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.TrotterSuzuki14.MainResults.TrotterErrorOperator.Defs
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.TrotterSuzuki14.MainResults.TrotterErrorOperator.Defs
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Norm bounds for the leading second-order Trotter error

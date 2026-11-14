@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CircuitImpl.MultiControl.BarencoSharpDefs
-import Mathlib.Topology.MetricSpace.HausdorffDimension
-import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.MultiKnownQubitControl
-import Qatlib.Concepts.CircuitImpl.MultiControl.NoWorkTwoLevelSynthesis
-import Qatlib.Concepts.GateTables.GrayUniversal.GrayCodeSynthesis
+module
+
+public import Qatlib.Concepts.CircuitImpl.MultiControl.BarencoSharpDefs
+public import Mathlib.Topology.MetricSpace.HausdorffDimension
+public import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.MultiKnownQubitControl
+public import Qatlib.Concepts.CircuitImpl.MultiControl.NoWorkTwoLevelSynthesis
+public import Qatlib.Concepts.GateTables.GrayUniversal.GrayCodeSynthesis
+
+@[expose] public section
 
 /-!
 # Integer threshold for the circuit parameter count

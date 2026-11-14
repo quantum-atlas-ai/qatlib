@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.WildcardSrch12.MainResults.Model.GramOverlap
-import Qatlib.Papers.WildcardSrch12.MainResults.OneQueryCGT
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Series
+module
+
+public import Qatlib.Papers.WildcardSrch12.MainResults.Model.GramOverlap
+public import Qatlib.Papers.WildcardSrch12.MainResults.OneQueryCGT
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Series
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

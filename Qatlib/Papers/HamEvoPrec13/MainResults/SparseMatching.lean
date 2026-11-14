@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Data.Real.Basic
-import Mathlib.LinearAlgebra.Matrix.Symmetric
-import Mathlib.Data.Fintype.Card
+module
+
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.LinearAlgebra.Matrix.Symmetric
+public import Mathlib.Data.Fintype.Card
+
+@[expose] public section
 
 /-!
 # One-sparse matrices and their off-diagonal matching
@@ -45,8 +49,10 @@ terms of rows and columns. -/
 def IsOneSparse (G : Matrix n n ℝ) : Prop :=
   ∀ a, (Finset.univ.filter fun b => G a b ≠ 0).card ≤ 1
 
+omit [DecidableEq n] in
+
 /-- In a one-sparse matrix, two nonzero entries in the same row occupy the same column. -/
-theorem IsOneSparse.column_unique {G : Matrix n n ℝ} (h : IsOneSparse G) {a b c : n}
+theorem IsOneSparse.column_unique {n : Type*} [_scopeInst0 : Fintype n] [_scopeInst1 : DecidableEq n] {G : Matrix n n ℝ} (h : IsOneSparse G) {a b c : n}
     (hb : G a b ≠ 0) (hc : G a c ≠ 0) : b = c := by
   have hb' : b ∈ Finset.univ.filter fun d => G a d ≠ 0 := by simp [hb]
   have hc' : c ∈ Finset.univ.filter fun d => G a d ≠ 0 := by simp [hc]
@@ -64,13 +70,13 @@ def mateZero (G : Matrix n n ℝ) (a : n) : n :=
 partner with a nonzero entry. -/
 theorem mateZero_spec_of_exists {G : Matrix n n ℝ} {a : n}
     (h : ∃ b, b ≠ a ∧ G a b ≠ 0) : mateZero G a ≠ a ∧ G a (mateZero G a) ≠ 0 := by
-  rw [mateZero, dif_pos h]
+  rw [mateZero, dite_eq_left h]
   exact Classical.choose_spec h
 
 /-- When row `a` has no off-diagonal nonzero entry, `mateZero` fixes `a`. -/
 theorem mateZero_eq_self_of_not_exists {G : Matrix n n ℝ} {a : n}
     (h : ¬ ∃ b, b ≠ a ∧ G a b ≠ 0) : mateZero G a = a := by
-  rw [mateZero, dif_neg h]
+  rw [mateZero, dite_eq_right h]
 
 /-- In a one-sparse matrix, any off-diagonal nonzero entry of row `a` sits exactly at
 the matching partner `mateZero G a`. -/

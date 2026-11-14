@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.Amplification.RunMoment
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.RunMoment
+
+@[expose] public section
 
 /-!
 # Threshold envelopes for ranked clocks
@@ -112,7 +116,7 @@ theorem sourceCallEnvelope_scaled (N t : ℕ) :
   have hdiv : (t : ℝ) / Real.sqrt t = Real.sqrt t := by
     apply (div_eq_iff hs.ne').2
     exact (Real.mul_self_sqrt (Nat.cast_nonneg t)).symm
-  rw [sourceCallEnvelope, if_neg ht]
+  rw [sourceCallEnvelope, ite_eq_right ht]
   calc
     _ = ((9 / 2 : ℝ) * Real.sqrt N) * ((t : ℝ) / Real.sqrt t) + binaryLog N * t := by ring
     _ = _ := by rw [hdiv]
@@ -145,7 +149,7 @@ theorem sourceEnvelope_initial_bound (N : ℕ) (hN : 0 < N) :
   apply expectedTraceCost_le_sourceMeanBudget N hN _ (sourceCallEnvelope_zero N)
   intro r hr hrN
   have hr0 : r - 1 ≠ 0 := by omega
-  rw [sourceCallEnvelope, if_neg hr0, Nat.cast_sub (by omega : 1 ≤ r), Nat.cast_one]
+  rw [sourceCallEnvelope, ite_eq_right hr0, Nat.cast_sub (by omega : 1 ≤ r), Nat.cast_one]
   rw [Real.sqrt_div (Nat.cast_nonneg N)]
   ring_nf
   exact le_rfl

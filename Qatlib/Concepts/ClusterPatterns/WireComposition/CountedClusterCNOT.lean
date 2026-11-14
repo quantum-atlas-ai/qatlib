@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ClusterPatterns.WireComposition.CountedClusterCZ
-import Mathlib.Algebra.Ring.BooleanRing
+module
+
+public import Qatlib.Concepts.ClusterPatterns.WireComposition.CountedClusterCZ
+public import Mathlib.Algebra.Ring.BooleanRing
+
+@[expose] public section
 
 /-!
 # Counted cluster CNOT execution
@@ -197,14 +201,14 @@ theorem clusterCNOTInitialFrame_isometry : IsIsometry clusterCNOTInitialFrame :=
         unfold clusterCNOTInitialFrame
         simp only [Matrix.of_apply]
         by_cases hr : r = clusterCZRegisterEquiv (((teleportOutcomeEquiv.symm i).1, false), (false, (teleportOutcomeEquiv.symm i).2))
-        · rw [if_pos hr]; simp
-        · rw [if_neg hr]; simp
+        · rw [ite_eq_left hr]; simp
+        · rw [ite_eq_right hr]; simp
       rw [Matrix.mul_apply,
         Finset.sum_congr rfl (fun r _ => hval r),
         Finset.sum_ite_eq' Finset.univ
           (clusterCZRegisterEquiv (((teleportOutcomeEquiv.symm i).1, false), (false, (teleportOutcomeEquiv.symm i).2)))
           (fun _ => (1 : ℂ)),
-        if_pos (Finset.mem_univ _)]
+        ite_eq_left (Finset.mem_univ _)]
       simp
     · have hzero : ∀ r : Fin 16,
           clusterCNOTInitialFrameᴴ i r * clusterCNOTInitialFrame r j = 0 := by
@@ -213,8 +217,8 @@ theorem clusterCNOTInitialFrame_isometry : IsIsometry clusterCNOTInitialFrame :=
         unfold clusterCNOTInitialFrame
         simp only [Matrix.of_apply]
         by_cases hr : r = clusterCZRegisterEquiv (((teleportOutcomeEquiv.symm i).1, false), (false, (teleportOutcomeEquiv.symm i).2))
-        · rw [if_pos hr, if_neg (fun hc => hij (hInj i j (hr.symm.trans hc))), mul_zero]
-        · rw [if_neg hr, star_zero, zero_mul]
+        · rw [ite_eq_left hr, ite_eq_right (fun hc => hij (hInj i j (hr.symm.trans hc))), mul_zero]
+        · rw [ite_eq_right hr, star_zero, zero_mul]
       rw [Matrix.mul_apply, Finset.sum_congr rfl (fun r _ => hzero r),
         Finset.sum_const_zero]
       simp [hij]
@@ -294,8 +298,8 @@ theorem clusterCNOTDecoded (t c : Bool) :
     clusterCNOTEdge23B_apply, clusterCNOTEdge12B_apply, clusterCZHbB_apply, clusterCZHdB_apply]
   funext ⟨⟨a,b⟩,⟨x,y⟩⟩
   cases t <;> cases c <;> cases a <;> cases b <;> cases x <;> cases y <;>
-    simp [Qatlib.Foundations.PureStateMath.Ket, sqrt2_inv_sq, mul_comm] <;> ring_nf <;>
-      try (rw [pow_two, sqrt2_inv_sq]) <;> ring_nf
+    simp [Qatlib.Foundations.PureStateMath.Ket, sqrt2_inv_sq, mul_comm] <;> ring_nf
+  all_goals norm_num [pow_two, sqrt2_inv_sq]
 
 /-- The raw CNOT leaf operator is the ordered product of its preparation gates, decoding
 Hadamards, and the two selected outcome projectors. -/
@@ -480,10 +484,10 @@ theorem clusterCNOTFrame_matUnit (i j : Fin 4) :
     intro k
     rw [Fintype.sum_eq_single i]
     · by_cases haj : k = j
-      · rw [if_pos ⟨rfl, haj⟩, mul_one, if_pos haj]
-      · rw [if_neg (fun hc => haj hc.2), mul_zero, if_neg haj]
+      · rw [ite_eq_left ⟨rfl, haj⟩, mul_one, ite_eq_left haj]
+      · rw [ite_eq_right (fun hc => haj hc.2), mul_zero, ite_eq_right haj]
     · intro b hb
-      rw [if_neg (fun hc => hb hc.1), mul_zero]
+      rw [ite_eq_right (fun hc => hb hc.1), mul_zero]
   have houter : ∀ k : Fin 4,
       ((∑ b : Fin 4, clusterCNOTInitialFrame r b * (if b = i ∧ k = j then (1 : ℂ) else 0))
           * (starRingEnd ℂ) (clusterCNOTInitialFrame r' k))
@@ -493,9 +497,9 @@ theorem clusterCNOTFrame_matUnit (i j : Fin 4) :
   simp only [Matrix.mul_apply, conjTranspose_apply, clusterCZMatUnit, Matrix.of_apply,
     matOuter, RCLike.star_def]
   rw [Finset.sum_congr rfl fun k _ => houter k, Fintype.sum_eq_single j]
-  · rw [if_pos rfl]
+  · rw [ite_eq_left rfl]
   · intro k hk
-    rw [if_neg hk, zero_mul]
+    rw [ite_eq_right hk, zero_mul]
 
 /-- On each logical matrix unit, a corrected physical CNOT branch equals one quarter of CNOT
 conjugation. -/
@@ -539,7 +543,7 @@ theorem clusterCNOTActualBranchCore_matUnit (a d : Bool) (i j : Fin 4) :
     simp only [relabelState, Function.comp_apply, Equiv.symm_symm, Pi.smul_apply,
       smul_eq_mul, Matrix.mulVec, dotProduct, ket_apply]
     rw [Fintype.sum_eq_single (teleportOutcomeEquiv m) (fun k hk => by
-      rw [if_neg hk, mul_zero]), if_pos rfl, mul_one]
+      rw [ite_eq_right hk, mul_zero]), ite_eq_left rfl, mul_one]
   unfold clusterCNOTActualBranchCore
   rw [clusterCNOTFrame_matUnit, hcolI, hcolJ, matOuter_sandwich,
     clusterCNOTLeafColumn a d x y, clusterCNOTLeafColumn a d x' y',

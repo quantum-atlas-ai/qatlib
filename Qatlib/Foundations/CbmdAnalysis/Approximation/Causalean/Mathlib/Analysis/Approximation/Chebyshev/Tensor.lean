@@ -5,9 +5,13 @@ Authors: Jiyuan Tan, Qatlib Contributors
 Adapted from https://github.com/Jiyuan-Tan/CausalSmith@47acf19
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Approximation.Causalean.Mathlib.Analysis.Approximation.Chebyshev.TrigExtraction
-import Mathlib.MeasureTheory.Integral.Pi
-import Mathlib.LinearAlgebra.Lagrange
+module
+
+public import Qatlib.Foundations.CbmdAnalysis.Approximation.Causalean.Mathlib.Analysis.Approximation.Chebyshev.TrigExtraction
+public import Mathlib.MeasureTheory.Integral.Pi
+public import Mathlib.LinearAlgebra.Lagrange
+
+@[expose] public section
 
 /-!
 # Tensor Jackson kernels
@@ -84,7 +88,7 @@ theorem integrableOn_tensorJackson (K d : ℕ) :
     (volume.restrict (periodBox d))
   rw [show periodBox d = Set.univ.pi (fun _ ↦ Set.Icc (-Real.pi) Real.pi) by
     ext u
-    simp only [periodBox, Set.mem_setOf_eq, Set.mem_pi, Set.mem_univ, true_implies,
+    simp only [periodBox, Set.mem_ofPred_eq, Set.mem_pi, Set.mem_univ, true_implies,
       Set.mem_Icc], volume_pi, Measure.restrict_pi_pi]
   exact Integrable.fintype_prod fun _ ↦ integrableOn_jackson K
 
@@ -95,7 +99,7 @@ theorem integral_periodBox_prod {d : ℕ} (g : Fin d → ℝ → ℝ) :
       ∏ i, ∫ t in Set.Icc (-Real.pi) Real.pi, g i t := by
   rw [show periodBox d = Set.univ.pi (fun _ ↦ Set.Icc (-Real.pi) Real.pi) by
     ext u
-    simp only [periodBox, Set.mem_setOf_eq, Set.mem_pi, Set.mem_univ, true_implies,
+    simp only [periodBox, Set.mem_ofPred_eq, Set.mem_pi, Set.mem_univ, true_implies,
       Set.mem_Icc], volume_pi, Measure.restrict_pi_pi]
   exact MeasureTheory.integral_fintype_prod_eq_prod g
 

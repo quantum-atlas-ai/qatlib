@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Matrix.Normed
-import Mathlib.Data.Real.Sqrt
+module
+
+public import Mathlib.Analysis.Matrix.Normed
+public import Mathlib.Analysis.Real.Sqrt
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -90,9 +94,9 @@ lemma badMass_le_frobSq_sub (T Tt : Matrix (Fin m) (Fin n) ℝ)
   have hsub : (T - Tt) i j = T i j - Tt i j := rfl
   rw [hsub]
   by_cases h : T i j = 0
-  · rw [if_pos h, h, zero_sub, neg_sq]
+  · rw [ite_eq_left h, h, zero_sub, neg_sq]
   · have h1 : T i j = 1 := (hT i j).resolve_left h
-    rw [if_neg h, h1]
+    rw [ite_eq_right h, h1]
     exact sq_nonneg _
 
 /-- Source Lemma 3.2, mass form (fixed arXiv:1603.08675v3, p. 8). If

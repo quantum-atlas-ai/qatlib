@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.RydbergMaxCut26.QubitPhysics.TensorProduct
-import Qatlib.Papers.RydbergMaxCut26.QubitPhysics.TwoQubitCorrelation
-import Qatlib.Concepts.ShadowModels.ShadowChannel.TensorPauliShadowStatistics
+module
+
+public import Qatlib.Papers.RydbergMaxCut26.QubitPhysics.TensorProduct
+public import Qatlib.Papers.RydbergMaxCut26.QubitPhysics.TwoQubitCorrelation
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.TensorPauliShadowStatistics
+
+@[expose] public section
 
 /-!
 # Bloch matrices and product density operators

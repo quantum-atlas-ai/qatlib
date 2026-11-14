@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.CutoffPolynomial
-import Mathlib.Analysis.Calculus.IteratedDeriv.Lemmas
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.CutoffPolynomial
+public import Mathlib.Analysis.Calculus.IteratedDeriv.Lemmas
+
+@[expose] public section
 
 /-! # Executed reciprocal majorants for the actual transition denominator -/
 set_option autoImplicit false
@@ -108,7 +112,7 @@ theorem cutoffReciprocal_derivative_bound (n : ℕ) (x : ℝ) :
       have hJ : ContDiffAt ℝ (n+1) cutoffReciprocal x := contDiff_cutoffReciprocal.contDiffAt
       have hprod := iteratedDeriv_fun_mul hH hJ
       rw [hp] at hprod
-      simp only [iteratedDeriv_const,if_neg (show n+1≠0 by omega)] at hprod
+      simp only [iteratedDeriv_const,ite_eq_right (show n+1≠0 by omega)] at hprod
       rw [Finset.sum_range_succ'] at hprod
       simp only [Nat.choose_zero_right,Nat.cast_one,iteratedDeriv_zero,
         one_mul,Nat.sub_zero,Nat.add_sub_add_right] at hprod

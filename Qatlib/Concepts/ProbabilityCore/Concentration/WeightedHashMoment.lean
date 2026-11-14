@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ProbabilityCore.Concentration.WeightedHashData
-import Mathlib.Data.Complex.BigOperators
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Data.Complex.Basic
-import Mathlib.Data.Fintype.Card
-import Mathlib.Tactic.ByCases
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.SimpRw
+module
+
+public import Qatlib.Concepts.ProbabilityCore.Concentration.WeightedHashData
+public import Mathlib.Basic.Complex.BigOperators
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Tactic.ByCases
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.SimpRw
+
+@[expose] public section
 
 /-!
 # Centered second moments of weighted hash buckets
@@ -150,9 +154,9 @@ private theorem real_hash_centered_second_moment
         if x = y then 1 else α := by
     by_cases hxy : x = y
     · subst y
-      simp only [if_true]
+      simp only [ite_true]
       exact hash_average_const 1
-    · simp only [if_neg hxy]
+    · simp only [ite_eq_right hxy]
       exact hcollision x y hxy
   have hweighted (x y : X) :
       finiteHashAverage (fun r : H =>
@@ -170,9 +174,9 @@ private theorem real_hash_centered_second_moment
         α * (g x * g y) + (1 - α) * (if x = y then (g x) ^ 2 else 0) := by
     by_cases hxy : x = y
     · subst y
-      simp only [if_true]
+      simp only [ite_true]
       ring
-    · simp only [if_neg hxy, mul_zero, add_zero]
+    · simp only [ite_eq_right hxy, mul_zero, add_zero]
   have hdiag : (∑ x : X, ∑ y : X, if x = y then (g x) ^ 2 else 0) =
       ∑ x : X, (g x) ^ 2 := by simp
   have henergy : finiteHashAverage (fun r : H =>

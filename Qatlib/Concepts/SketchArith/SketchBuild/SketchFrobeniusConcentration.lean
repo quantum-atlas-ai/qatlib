@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SketchArith.SketchBuild.CompactImportanceSketch
-import Qatlib.Concepts.SketchArith.SketchBuild.FiniteBoundedDifferences
-import Mathlib.Analysis.SpecialFunctions.Log.Deriv
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.IndependentWeightedEstimator
+module
+
+public import Qatlib.Concepts.SketchArith.SketchBuild.CompactImportanceSketch
+public import Qatlib.Concepts.SketchArith.SketchBuild.FiniteBoundedDifferences
+public import Mathlib.Analysis.SpecialFunctions.Log.Deriv
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.IndependentWeightedEstimator
+
+@[expose] public section
 
 /-!
 # Frobenius concentration for compact sketches
@@ -438,7 +442,7 @@ theorem compact_sketch_frobenius_norm_bounds_and_tail : ∀ (K C : Type) [Fintyp
       sketchRowSquared (compactSketched (compactSketchData p r ω) A) t≤φ*sketchSquared A/(r : ℝ) := by
     rw [compactSketched_row_energy]
     have hb := div_le_div_of_nonneg_right (hZ (ω t)).2 hrp.le
-    convert! hb using 1 <;> (try simp only [div_eq_mul_inv,mul_inv]) <;> ring
+    convert! hb using 1; (try simp only [div_eq_mul_inv,mul_inv]); ring
   refine ⟨hrow,?_,?_,?_⟩
   · intro ω
     calc
@@ -570,7 +574,7 @@ private theorem sketchProduct_coord_difference {K C D : Type} [Fintype K] [Finty
     Complex.norm_natCast]
   have hb := (norm_sub_le _ _).trans (add_le_add (hB (ω i)) (hB (τ i)))
   have hh := mul_le_mul_of_nonneg_left hb (inv_nonneg.mpr (Nat.cast_nonneg r))
-  convert! hh using 1 <;> ring
+  convert! hh using 1; ring
 
 /-- Under joint row-norm domination, the probability that the Frobenius product error reaches
 `√(8 * φ² * log (2 / δ) / r) * sketchRowProductMass X Y` is at most `δ`. See [ChiaEtAl2022]. -/

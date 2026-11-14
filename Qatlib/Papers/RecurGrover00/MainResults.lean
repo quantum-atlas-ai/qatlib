@@ -4,98 +4,102 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Defs
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Algebra.Field.Defs
-import Mathlib.Algebra.Group.Basic
-import Mathlib.Algebra.Group.Defs
-import Mathlib.Algebra.Group.DivInvMonoid
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.Group.Nat.Defs
-import Mathlib.Algebra.Group.Semigroup
-import Mathlib.Algebra.GroupWithZero.Basic
-import Mathlib.Algebra.GroupWithZero.Defs
-import Mathlib.Algebra.GroupWithZero.Hom
-import Mathlib.Algebra.GroupWithZero.NeZero
-import Mathlib.Algebra.GroupWithZero.Units.Basic
-import Mathlib.Algebra.NeZero
-import Mathlib.Algebra.Notation.Defs
-import Mathlib.Algebra.Order.Archimedean.Real.Basic
-import Mathlib.Algebra.Order.Field.Basic
-import Mathlib.Algebra.Order.Floor.Defs
-import Mathlib.Algebra.Order.Group.Unbundled.Abs
-import Mathlib.Algebra.Order.GroupWithZero.Basic
-import Mathlib.Algebra.Order.GroupWithZero.Defs
-import Mathlib.Algebra.Order.Monoid.Defs
-import Mathlib.Algebra.Order.Monoid.Unbundled.Basic
-import Mathlib.Algebra.Order.Monoid.Unbundled.Defs
-import Mathlib.Algebra.Order.Ring.Defs
-import Mathlib.Algebra.Order.Ring.Unbundled.Basic
-import Mathlib.Algebra.Order.Star.Basic
-import Mathlib.Algebra.Order.Star.Real
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Algebra.Ring.Nat
-import Mathlib.Algebra.Star.Basic
-import Mathlib.Analysis.CStarAlgebra.Classes
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Analysis.Complex.Exponential
-import Mathlib.Analysis.Complex.Norm
-import Mathlib.Analysis.Complex.Trigonometric
-import Mathlib.Analysis.Normed.Field.Basic
-import Mathlib.Analysis.Normed.Group.Basic
-import Mathlib.Analysis.Normed.Group.Defs
-import Mathlib.Analysis.Normed.Group.Real
-import Mathlib.Analysis.Normed.Ring.Basic
-import Mathlib.Analysis.Real.Sqrt
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
-import Mathlib.Basic.Complex.Basic
-import Mathlib.Basic.FunLike.Basic
-import Mathlib.Basic.Real.Basic
-import Mathlib.Basic.Real.Star
-import Mathlib.Basic.SetLike.Basic
-import Mathlib.Data.Finset.Basic
-import Mathlib.Data.Finset.Defs
-import Mathlib.Data.Fintype.BigOperators
-import Mathlib.Data.Fintype.Defs
-import Mathlib.Data.Fintype.Sum
-import Mathlib.Data.Int.Cast.Defs
-import Mathlib.Data.Nat.Cast.Defs
-import Mathlib.Data.Nat.Init
-import Mathlib.Data.Set.Defs
-import Mathlib.Logic.Function.Defs
-import Mathlib.Order.Defs.Lattice
-import Mathlib.Order.Defs.LinearOrder
-import Mathlib.Order.Defs.PartialOrder
-import Mathlib.Order.Filter.Basic
-import Mathlib.Order.Filter.Defs
-import Mathlib.Order.Filter.Tendsto
-import Mathlib.Order.Interval.Set.Defs
-import Mathlib.Order.Lattice
-import Mathlib.Tactic
-import Mathlib.Tactic.CancelDenoms.Core
-import Mathlib.Tactic.FieldSimp.Lemmas
-import Mathlib.Tactic.Linarith.Lemmas
-import Mathlib.Tactic.Linarith.Preprocessing
-import Mathlib.Tactic.LinearCombination.Lemmas
-import Mathlib.Tactic.NormNum.Abs
-import Mathlib.Tactic.NormNum.Basic
-import Mathlib.Tactic.NormNum.Eq
-import Mathlib.Tactic.NormNum.Ineq
-import Mathlib.Tactic.NormNum.Inv
-import Mathlib.Tactic.NormNum.Pow
-import Mathlib.Tactic.NormNum.Result
-import Mathlib.Tactic.Ring.Basic
-import Mathlib.Tactic.Ring.Common
-import Mathlib.Topology.Algebra.Monoid.Defs
-import Mathlib.Topology.Algebra.Ring.Basic
-import Mathlib.Topology.Algebra.Ring.Real
-import Mathlib.Topology.Continuous
-import Mathlib.Topology.Defs.Filter
-import Mathlib.Topology.MetricSpace.Pseudo.Defs
-import Mathlib.Topology.Neighborhoods
-import Mathlib.Topology.UniformSpace.Defs
+module
+
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Defs
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Algebra.Field.Defs
+public import Mathlib.Algebra.Group.Basic
+public import Mathlib.Algebra.Group.Defs
+public import Mathlib.Algebra.Group.DivInvMonoid
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.Group.Nat.Defs
+public import Mathlib.Algebra.Group.Semigroup
+public import Mathlib.Algebra.GroupWithZero.Basic
+public import Mathlib.Algebra.GroupWithZero.Defs
+public import Mathlib.Algebra.GroupWithZero.Hom
+public import Mathlib.Algebra.GroupWithZero.NeZero
+public import Mathlib.Algebra.GroupWithZero.Units.Basic
+public import Mathlib.Algebra.NeZero
+public import Mathlib.Algebra.Notation.Defs
+public import Mathlib.Algebra.Order.Archimedean.Real.Basic
+public import Mathlib.Algebra.Order.Field.Basic
+public import Mathlib.Algebra.Order.Floor.Defs
+public import Mathlib.Algebra.Order.Group.Unbundled.Abs
+public import Mathlib.Algebra.Order.GroupWithZero.Basic
+public import Mathlib.Algebra.Order.GroupWithZero.Defs
+public import Mathlib.Algebra.Order.Monoid.Defs
+public import Mathlib.Algebra.Order.Monoid.Unbundled.Basic
+public import Mathlib.Algebra.Order.Monoid.Unbundled.Defs
+public import Mathlib.Algebra.Order.Ring.Defs
+public import Mathlib.Algebra.Order.Ring.Unbundled.Basic
+public import Mathlib.Algebra.Order.Star.Basic
+public import Mathlib.Algebra.Order.Star.Real
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Algebra.Ring.Nat
+public import Mathlib.Algebra.Star.Basic
+public import Mathlib.Analysis.CStarAlgebra.Classes
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Analysis.Complex.Exponential
+public import Mathlib.Analysis.Complex.Norm
+public import Mathlib.Analysis.Complex.Trigonometric
+public import Mathlib.Analysis.Normed.Field.Basic
+public import Mathlib.Analysis.Normed.Group.Basic
+public import Mathlib.Analysis.Normed.Group.Defs
+public import Mathlib.Analysis.Normed.Group.Real
+public import Mathlib.Analysis.Normed.Ring.Basic
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Basic.FunLike.Basic
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Basic.Real.Star
+public import Mathlib.Basic.SetLike.Basic
+public import Mathlib.Data.Finset.Basic
+public import Mathlib.Data.Finset.Defs
+public import Mathlib.Data.Fintype.BigOperators
+public import Mathlib.Data.Fintype.Defs
+public import Mathlib.Data.Fintype.Sum
+public import Mathlib.Data.Int.Cast.Defs
+public import Mathlib.Data.Nat.Cast.Defs
+public import Mathlib.Data.Nat.Init
+public import Mathlib.Data.Set.Defs
+public import Mathlib.Logic.Function.Defs
+public import Mathlib.Order.Defs.Lattice
+public import Mathlib.Order.Defs.LinearOrder
+public import Mathlib.Order.Defs.PartialOrder
+public import Mathlib.Order.Filter.Basic
+public import Mathlib.Order.Filter.Defs
+public import Mathlib.Order.Filter.Tendsto
+public import Mathlib.Order.Interval.Set.Defs
+public import Mathlib.Order.Lattice
+public import Mathlib.Tactic
+public import Mathlib.Tactic.CancelDenoms.Core
+public import Mathlib.Tactic.FieldSimp.Lemmas
+public import Mathlib.Tactic.Linarith.Lemmas
+public import Mathlib.Tactic.Linarith.Preprocessing
+public import Mathlib.Tactic.LinearCombination.Lemmas
+public import Mathlib.Tactic.NormNum.Abs
+public import Mathlib.Tactic.NormNum.Basic
+public import Mathlib.Tactic.NormNum.Eq
+public import Mathlib.Tactic.NormNum.Ineq
+public import Mathlib.Tactic.NormNum.Inv
+public import Mathlib.Tactic.NormNum.Pow
+public import Mathlib.Tactic.NormNum.Result
+public import Mathlib.Tactic.Ring.Basic
+public import Mathlib.Tactic.Ring.Common
+public import Mathlib.Topology.Algebra.Monoid.Defs
+public import Mathlib.Topology.Algebra.Ring.Basic
+public import Mathlib.Topology.Algebra.Ring.Real
+public import Mathlib.Topology.Continuous
+public import Mathlib.Topology.Defs.Filter
+public import Mathlib.Topology.MetricSpace.Pseudo.Defs
+public import Mathlib.Topology.Neighborhoods
+public import Mathlib.Topology.UniformSpace.Defs
+
+@[expose] public section
 
 /-!
 # Generalized Grover recurrences
@@ -231,9 +235,11 @@ theorem exp_I_pow (γ : ℝ) (t : ℕ) :
   congr 1
   ring
 
+omit [Fintype M] in
 /-- For the stated marked and mean recurrences, their difference at time `t` is the initial
 difference multiplied by `(-1) ^ t * exp (i t γ)` [BihamEtAl2001]. -/
-theorem marked_deviation_closed_form
+theorem marked_deviation_closed_form {M : Type*}
+    [_fintypeM : Fintype M]
     (k' : M → ℕ → ℂ) (kbar : ℕ → ℂ) (C : ℕ → ℂ) (γ : ℝ)
     (hk : ∀ (j : M) (t : ℕ), k' j (t + 1) = 2 * C t - Complex.exp (Complex.I * (γ : ℂ)) * k' j t)
     (hb : ∀ t, kbar (t + 1) = 2 * C t - Complex.exp (Complex.I * (γ : ℂ)) * kbar t) :
@@ -245,9 +251,11 @@ theorem marked_deviation_closed_form
   congr 1
   rw [← neg_one_mul, mul_pow, exp_I_pow]
 
+omit [Fintype U] in
 /-- For the stated unmarked and mean recurrences, their difference at time `t` is `(-1) ^ t`
 times the initial difference [BihamEtAl2001]. -/
-theorem unmarked_deviation_closed_form
+theorem unmarked_deviation_closed_form {U : Type*}
+    [_fintypeU : Fintype U]
     (l' : U → ℕ → ℂ) (lbar : ℕ → ℂ) (C : ℕ → ℂ)
     (hl : ∀ (j : U) (t : ℕ), l' j (t + 1) = 2 * C t - l' j t)
     (hb : ∀ t, lbar (t + 1) = 2 * C t - lbar t) :
@@ -259,10 +267,12 @@ theorem unmarked_deviation_closed_form
     intro t; rw [one_mul]; exact hb t
   rw [deviation_invariant (fun t => l' j t) lbar (fun t => 2 * C t) 1 hl' hb' t]
 
+omit [Fintype U] in
 /-- Under the marked recurrence hypotheses, expresses the reference-weighted amplitude as the
 current mean plus the phase-rotated initial deviation, multiplied by the reference amplitude
 [BihamEtAl2001]. -/
-theorem marked_amplitude_closed_form
+theorem marked_amplitude_closed_form {M U : Type*}
+    [Fintype M] [_fintypeU : Fintype U]
     (η : StateIndex M U → ℂ) (k' : M → ℕ → ℂ) (kbar : ℕ → ℂ) (C : ℕ → ℂ) (γ : ℝ)
     (hk : ∀ (j : M) (t : ℕ), k' j (t + 1) = 2 * C t - Complex.exp (Complex.I * (γ : ℂ)) * k' j t)
     (hb : ∀ t, kbar (t + 1) = 2 * C t - Complex.exp (Complex.I * (γ : ℂ)) * kbar t)
@@ -274,10 +284,12 @@ theorem marked_amplitude_closed_form
   rw [sub_eq_iff_eq_add] at hd
   rw [hd]; ring
 
+omit [Fintype M] in
 /-- Under the unmarked recurrence hypotheses, expresses the reference-weighted amplitude as the
 current mean plus the alternating initial deviation, multiplied by the reference amplitude
 [BihamEtAl2001]. -/
-theorem unmarked_amplitude_closed_form
+theorem unmarked_amplitude_closed_form {M U : Type*}
+    [_fintypeM : Fintype M] [Fintype U]
     (η : StateIndex M U → ℂ) (l' : U → ℕ → ℂ) (lbar : ℕ → ℂ) (C : ℕ → ℂ)
     (hl : ∀ (j : U) (t : ℕ), l' j (t + 1) = 2 * C t - l' j t)
     (hb : ∀ t, lbar (t + 1) = 2 * C t - lbar t)
@@ -370,7 +382,7 @@ theorem distinct_angle_frequency_limit (β γ : ℝ) (ω Wk Wl : ℝ → ℝ)
 /-- For positive `W` and the stated nonnegative bounds on `a` and `b`, the oscillation factor `2
 * W * a * b` is at most `2 * C1 * C2 * Real.sqrt W` [BihamEtAl2001]. -/
 theorem deltaP_sqrt_bound (W a b C1 C2 : ℝ) (hW : 0 < W)
-    (ha : 0 ≤ a) (hb : 0 ≤ b) (hC1 : 0 ≤ C1) (hC2 : 0 ≤ C2)
+    (_ha : 0 ≤ a) (hb : 0 ≤ b) (hC1 : 0 ≤ C1) (_hC2 : 0 ≤ C2)
     (ha1 : a ≤ C1) (hb2 : b ≤ C2 / Real.sqrt W) :
     2 * W * a * b ≤ 2 * C1 * C2 * Real.sqrt W := by
   have hs : 0 < Real.sqrt W := Real.sqrt_pos.mpr hW
@@ -392,7 +404,7 @@ theorem deltaP_sqrt_bound (W a b C1 C2 : ℝ) (hW : 0 < W)
 
 /-- For nonnegative `ΔP`, the sinusoidal expression `Pav - ΔP * Real.cos t` is bounded below by
 `Pav - ΔP` at every real time [BihamEtAl2001]. -/
-theorem distinct_angle_fails (Pav ΔP Pinit : ℝ) (hΔ : 0 ≤ ΔP) (hP : |Pinit - Pav| ≤ ΔP) :
+theorem distinct_angle_fails (Pav ΔP Pinit : ℝ) (hΔ : 0 ≤ ΔP) (_hP : |Pinit - Pav| ≤ ΔP) :
     ∀ t : ℝ, Pav - ΔP ≤ Pav - ΔP * Real.cos t := by
   intro t
   have hle : Real.cos t ≤ 1 := Real.cos_le_one t
@@ -409,9 +421,8 @@ theorem abs_sum_sq_identity (a b : ℂ) :
   have h2 : ‖a + b‖ ^ 2 + ‖a - b‖ ^ 2 = 2 * (‖a‖ ^ 2 + ‖b‖ ^ 2) := by
     rw [Complex.sq_norm, Complex.sq_norm, Complex.sq_norm, Complex.sq_norm]
 
-    simp only [Complex.mul_re, Complex.mul_im, Complex.add_re, Complex.add_im,
-      Complex.sub_re, Complex.sub_im, Complex.conj_re, Complex.conj_im,
-      Complex.normSq_apply, Complex.ofReal_re, Complex.ofReal_im]
+    simp only [Complex.add_re, Complex.add_im, Complex.sub_re, Complex.sub_im,
+      Complex.normSq_apply]
     ring
   nlinarith [h1, h2]
 

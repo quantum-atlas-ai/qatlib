@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteThermal.FiniteThermalUniformH
-import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteThermal.FiniteThermalNativePredicate
-import Qatlib.Papers.ThermalDrift26.ThermalSampling.Intake.FiniteThermalOAA
-import Qatlib.Concepts.BlockEncoding.LinearCombination
+module
+
+public import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteThermal.FiniteThermalUniformH
+public import Qatlib.Concepts.UniformBqp.FiniteGateWord.FiniteThermal.FiniteThermalNativePredicate
+public import Qatlib.Papers.ThermalDrift26.ThermalSampling.Intake.FiniteThermalOAA
+public import Qatlib.Concepts.BlockEncoding.LinearCombination
+
+@[expose] public section
 
 /-!
 # Finite Thermal LCU Circuits
@@ -173,7 +177,7 @@ theorem thermalWorkspaceEmbed_column (b w : ℕ) (j : Qatlib.Foundations.PureSta
     (fun x => thermalWorkspaceEmbed b w x j)=
       Qatlib.Foundations.PureStateMath.Ket ((thermalWorkspaceEquiv b w).symm (j,fun _ => false)) := by
   funext x
-  simp only [thermalWorkspaceEmbed,Qatlib.Foundations.PureStateMath.Ket,Equiv.apply_eq_iff_eq_symm_apply]
+  simp only [thermalWorkspaceEmbed,Qatlib.Foundations.PureStateMath.Ket,Equiv.eq_symm_apply]
 
 /-- Right multiplication of a physical-register matrix `A` by `thermalWorkspaceEmbed` selects
 the columns of `A` indexed by encoded labels with all work bits false. -/
@@ -262,7 +266,7 @@ theorem thermalUniformHWord_physical_tensor (b w : ℕ) :
       (x (thermalUniformWire b w i)) (y (thermalUniformWire b w i))) *
     (∏ k : Fin (w+1),(if thermalWorkWire b w k∈thermalUniformWires b w then Qatlib.Foundations.PureStateMath.Hadamard else 1)
       (x (thermalWorkWire b w k)) (y (thermalWorkWire b w k)))=_
-  simp only [thermalSignalWire_not_mem,thermalUniformWire_mem,thermalWorkWire_not_mem,if_false,if_true]
+  simp only [thermalSignalWire_not_mem,thermalUniformWire_mem,thermalWorkWire_not_mem,ite_false,ite_true]
   have hs : (1 : Matrix Bool Bool ℂ) (x (thermalSignalWire b w)) (y (thermalSignalWire b w))=
       (1 : Matrix (Fin 2) (Fin 2) ℂ) (thermalWorkspaceEquiv b w x).1.2
         (thermalWorkspaceEquiv b w y).1.2 := by
@@ -621,7 +625,7 @@ theorem thermalSelect_mul {J I : Type*} [Fintype J] [Fintype I] [DecidableEq J] 
       simp [hk,Ne.symm hk]
     · intro ha
       exact absurd (Finset.mem_univ a) ha
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     apply Finset.sum_eq_zero
     intro k _
     by_cases hk : k=a
@@ -677,7 +681,7 @@ theorem thermalGuardedY_intertwine (b w lo hi : ℕ) (hcap : b≤w+2) (horder : 
   by_cases he : lo=hi
   · subst hi
     simp [thermalGuardedYSteps,thermalNativeProgram,Qatlib.Concepts.UniformBqp.FiniteGateWord.finiteCodeWordMatrix,thermalYSelect_empty]
-  · simpa only [thermalGuardedYSteps,if_neg he] using!
+  · simpa only [thermalGuardedYSteps,ite_eq_right he] using!
       thermalCanonicalY_intertwine b w lo hi hcap horder hhi
 
 /-- If `b ≤ w + 2` and `lo ≤ hi ≤ 2^b`, the guarded phase program intertwines through
@@ -690,7 +694,7 @@ theorem thermalGuardedPhase_intertwine (b w lo hi : ℕ) (phase : Fin 4)
   by_cases he : lo=hi
   · subst hi
     simp [thermalGuardedPhaseSteps,thermalNativeProgram,Qatlib.Concepts.UniformBqp.FiniteGateWord.finiteCodeWordMatrix,thermalPhaseSelect_empty]
-  · simpa only [thermalGuardedPhaseSteps,if_neg he] using!
+  · simpa only [thermalGuardedPhaseSteps,ite_eq_right he] using!
       thermalCanonicalPhase_intertwine b w lo hi phase hcap horder hhi
 
 /-- If `A` and `B` intertwine through `G` with `a` and `b`, respectively, then `A * B`
@@ -827,7 +831,7 @@ theorem thermalGuardedY_legal (b w lo hi : ℕ) (hcap : b≤w+2) (horder : lo≤
     ∀ g∈thermalGuardedYSteps b w lo hi,thermalNativeLegal g := by
   by_cases he : lo=hi
   · simp [thermalGuardedYSteps,he]
-  · simpa only [thermalGuardedYSteps,if_neg he] using!
+  · simpa only [thermalGuardedYSteps,ite_eq_right he] using!
       thermalCanonicalY_legal b w lo hi hcap horder hhi
 
 /-- If `b ≤ w + 2` and `lo ≤ hi ≤ 2^b`, every instruction in the guarded interval-phase program
@@ -837,7 +841,7 @@ theorem thermalGuardedPhase_legal (b w lo hi : ℕ) (phase : Fin 4)
     ∀ g∈thermalGuardedPhaseSteps b w lo hi phase,thermalNativeLegal g := by
   by_cases he : lo=hi
   · simp [thermalGuardedPhaseSteps,he]
-  · simpa only [thermalGuardedPhaseSteps,if_neg he] using!
+  · simpa only [thermalGuardedPhaseSteps,ite_eq_right he] using!
       thermalCanonicalPhase_legal b w lo hi phase hcap horder hhi
 
 /-- Every native instruction in `thermalNativeHSteps` is legal for the physical thermal
@@ -941,7 +945,7 @@ theorem thermalGuardedY_cost_bound (b w lo hi : ℕ) (hcap : b≤w+2) (horder : 
     have hb := thermalCanonical_interval_cost b w lo hi hcap horder hhi
     change Qatlib.Foundations.QueryWordCore.Circuit.GateCount (Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteCodeCircuit ((b+1)+(w+1))
       (thermalNativeProgram (thermalCanonicalYSteps b w lo hi)))=_ at hc
-    rw [thermalGuardedYSteps,if_neg he,hc]
+    rw [thermalGuardedYSteps,ite_eq_right he,hc]
     omega
 
 /-- If `b ≤ w + 2` and `lo ≤ hi ≤ 2^b`, the lowered guarded phase program has gate count at most
@@ -959,7 +963,7 @@ theorem thermalGuardedPhase_cost_bound (b w lo hi : ℕ) (phase : Fin 4)
     have hb := thermalCanonical_interval_cost b w lo hi hcap horder hhi
     change Qatlib.Foundations.QueryWordCore.Circuit.GateCount (Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteCodeCircuit ((b+1)+(w+1))
       (thermalNativeProgram (thermalCanonicalPhaseSteps b w lo hi phase)))=_ at hc
-    rw [thermalGuardedPhaseSteps,if_neg he,hc]
+    rw [thermalGuardedPhaseSteps,ite_eq_right he,hc]
     omega
 
 /-- If `b ≤ w + 2` and `w0 + w1 + pad + pad = 2^b`, the lowered native LCU circuit has gate

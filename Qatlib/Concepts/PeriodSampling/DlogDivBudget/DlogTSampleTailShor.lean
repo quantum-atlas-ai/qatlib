@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PeriodSampling.DlogDivBudget.DlogTSampleTailStat
-import Qatlib.Concepts.PeriodSampling.DlogDivBudget.DlogUniformGoodDivisibilityShor
+module
+
+public import Qatlib.Concepts.PeriodSampling.DlogDivBudget.DlogTSampleTailStat
+public import Qatlib.Concepts.PeriodSampling.DlogDivBudget.DlogUniformGoodDivisibilityShor
+
+@[expose] public section
 
 /-!
 # Tail bounds for common prime-power divisors
@@ -64,14 +68,14 @@ theorem dlog_probEvent_union {X : Type} [Fintype X] [DecidableEq X]
   intro ω _
   have hn : 0 ≤ law.probOf ω := Finset.prod_nonneg fun i _ => law.nonneg (ω i)
   by_cases he : ∃ w ∈ S, E w ω
-  · rw [if_pos he]
+  · rw [ite_eq_left he]
     obtain ⟨w, hw, hew⟩ := he
     calc
-      _ = (if E w ω then law.probOf ω else 0) := (if_pos hew).symm
+      _ = (if E w ω then law.probOf ω else 0) := (ite_eq_left hew).symm
       _ ≤ _ := Finset.single_le_sum (s := S) (a := w)
         (f := fun j => if E j ω then law.probOf ω else 0)
         (fun j _ => by exact ite_nonneg hn (le_refl 0)) hw
-  · rw [if_neg he]
+  · rw [ite_eq_right he]
     exact Finset.sum_nonneg fun j _ => by split_ifs <;> positivity
 
 /-- For the stated prime and Fourier-modulus range, the common prime-power divisibility

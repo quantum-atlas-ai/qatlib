@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.MeasureTheory.Function.LpSpace.ContinuousFunctions
-import Mathlib.Tactic.NormNum
-import Mathlib.MeasureTheory.Integral.Prod
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
+module
+
+public import Mathlib.MeasureTheory.Function.LpSpace.ContinuousFunctions
+public import Mathlib.Tactic.NormNum
+public import Mathlib.MeasureTheory.Integral.Prod
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
+
+@[expose] public section
 
 
 /-! The compact [-1,1] parameter space has its actual restricted Lebesgue

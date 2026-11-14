@@ -4,8 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.SpecialFuncs.KummerODE.KummerEquation
-import Mathlib.Analysis.SpecialFunctions.Complex.LogDeriv
+module
+
+public import Qatlib.Foundations.SpecialFuncs.KummerODE.KummerEquation
+public import Mathlib.Analysis.SpecialFunctions.Complex.LogDeriv
+public import Mathlib.Analysis.Calculus.Deriv.Linear
+
+@[expose] public section
 
 /-!
 # Kummer-function solution for the inverse schedule

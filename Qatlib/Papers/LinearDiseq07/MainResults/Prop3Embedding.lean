@@ -4,30 +4,34 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Group.Basic
-import Mathlib.Algebra.Group.Defs
-import Mathlib.Algebra.Group.DivInvMonoid
-import Mathlib.Algebra.Group.Hom.Defs
-import Mathlib.Algebra.Group.Int.Defs
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.Group.Pi.Basic
-import Mathlib.Algebra.GroupWithZero.Defs
-import Mathlib.Algebra.GroupWithZero.Nat
-import Mathlib.Algebra.Notation.Pi.Defs
-import Mathlib.Algebra.Ring.Basic
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Algebra.Ring.Int.Defs
-import Mathlib.Basic.FunLike.Basic
-import Mathlib.Basic.FunLike.Equiv
-import Mathlib.Data.Int.Cast.Basic
-import Mathlib.Data.Int.Cast.Defs
-import Mathlib.Data.Int.Cast.Lemmas
-import Mathlib.Data.Nat.Cast.Basic
-import Mathlib.Data.Nat.Cast.Defs
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Data.ZMod.Defs
-import Mathlib.Logic.Equiv.Defs
-import Mathlib.Tactic
+module
+
+public import Mathlib.Algebra.Group.Basic
+public import Mathlib.Algebra.Group.Defs
+public import Mathlib.Algebra.Group.DivInvMonoid
+public import Mathlib.Algebra.Group.Hom.Defs
+public import Mathlib.Algebra.Group.Int.Defs
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.Group.Pi.Basic
+public import Mathlib.Algebra.GroupWithZero.Defs
+public import Mathlib.Algebra.GroupWithZero.Nat
+public import Mathlib.Algebra.Notation.Pi.Defs
+public import Mathlib.Algebra.Ring.Basic
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Algebra.Ring.Int.Defs
+public import Mathlib.Basic.FunLike.Basic
+public import Mathlib.Basic.FunLike.Equiv
+public import Mathlib.Data.Int.Cast.Basic
+public import Mathlib.Data.Int.Cast.Defs
+public import Mathlib.Data.Int.Cast.Lemmas
+public import Mathlib.Data.Nat.Cast.Basic
+public import Mathlib.Data.Nat.Cast.Defs
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Data.ZMod.Defs
+public import Mathlib.Logic.Equiv.Defs
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Embedding products of cyclic groups
@@ -86,7 +90,7 @@ theorem embProd_injective {n : ℕ} (m : ℕ) (mi : Fin n → ℕ) (hm : 0 < m)
   have hzero : embProd m mi hmi (x - y) = 0 := by
     rw [map_sub, hxy, sub_self]
   funext i
-  haveI : NeZero (mi i) := ⟨by have := hpos i; omega⟩
+  have : NeZero (mi i) := ⟨by have := hpos i; omega⟩
   have h0 : (((m / mi i) * ((x - y) i).val : ℕ) : ZMod m) = 0 := by
     have := congrFun hzero i
     simp only [Pi.zero_apply] at this

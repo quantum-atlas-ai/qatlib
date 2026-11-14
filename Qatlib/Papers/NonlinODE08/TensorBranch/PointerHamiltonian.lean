@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Complex.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Data.Fintype.BigOperators
-import Mathlib.Analysis.SpecialFunctions.Sqrt
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Linarith
+module
+
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Data.Fintype.BigOperators
+public import Mathlib.Analysis.SpecialFunctions.Sqrt
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Linarith
+
+@[expose] public section
 
 /-!
 # PointerHamiltonian — the pointer-ancilla Hamiltonian of equation (13)

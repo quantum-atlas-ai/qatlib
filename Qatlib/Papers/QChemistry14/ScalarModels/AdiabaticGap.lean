@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QChemistry14.ScalarModels.Definitions
+module
+
+public import Qatlib.Papers.QChemistry14.ScalarModels.Definitions
+
+@[expose] public section
 
 /-!
 # Scalar comparisons for the adiabatic gap model

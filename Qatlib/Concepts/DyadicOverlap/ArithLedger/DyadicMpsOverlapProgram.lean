@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.DyadicOverlap.ArithLedger.DyadicMpsOverlapDefs
+module
+
+public import Qatlib.Concepts.DyadicOverlap.ArithLedger.DyadicMpsOverlapDefs
+
+@[expose] public section
 
 /-!
 # Arithmetic-log bounds for MPS overlaps

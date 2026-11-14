@@ -20,15 +20,20 @@ Section 3 rests on:
 
 All declarations below are proved outright; no trusted assumptions are added.
 -/
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Analysis.InnerProductSpace.Projection.FiniteDimensional
-import Mathlib.Analysis.Matrix.Hermitian
-import Mathlib.LinearAlgebra.Matrix.Orthogonal
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Data.Nat.Log
-import Mathlib.Data.Nat.Choose.Basic
-import Mathlib.Algebra.Order.Star.Real
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.InnerProductSpace.Adjoint
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Analysis.InnerProductSpace.Projection.FiniteDimensional
+public import Mathlib.Analysis.Matrix.Hermitian
+public import Mathlib.LinearAlgebra.Matrix.Orthogonal
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Data.Nat.Log
+public import Mathlib.Data.Nat.Choose.Basic
+public import Mathlib.Algebra.Order.Star.Real
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -131,57 +136,105 @@ theorem lemma26_orthogonal_decomposition (H : Matrix M (Sum N (Fin 1)) ℝ)
 def augmentedMatrix (A : Matrix M N ℝ) (b : M → ℝ) : Matrix M (Sum N (Fin 1)) ℝ :=
   Matrix.of fun i => Sum.elim (fun j => A i j) (fun _ => -b i)
 
+omit [Fintype M] [Fintype N] [DecidableEq M] [DecidableEq N] in
 /-- The `inl` entry of the augmented matrix `H = [A, -b]` is `A i j`. -/
-@[simp] theorem augmentedMatrix_inl (A : Matrix M N ℝ) (b : M → ℝ) (i : M) (j : N) :
+@[simp] theorem augmentedMatrix_inl {M N : Type*}
+    [_q37inst0 : Fintype M]
+    [_q37inst1 : Fintype N]
+    [_q37inst2 : DecidableEq M]
+    [_q37inst3 : DecidableEq N]
+    (A : Matrix M N ℝ) (b : M → ℝ) (i : M) (j : N) :
     augmentedMatrix A b i (Sum.inl j) = A i j := rfl
 
+omit [Fintype M] [Fintype N] [DecidableEq M] [DecidableEq N] in
 /-- The `inr` entry of the augmented matrix `H = [A, -b]` is `-b i`. -/
-@[simp] theorem augmentedMatrix_inr (A : Matrix M N ℝ) (b : M → ℝ) (i : M) (k : Fin 1) :
+@[simp] theorem augmentedMatrix_inr {M N : Type*}
+    [_q37inst0 : Fintype M]
+    [_q37inst1 : Fintype N]
+    [_q37inst2 : DecidableEq M]
+    [_q37inst3 : DecidableEq N]
+    (A : Matrix M N ℝ) (b : M → ℝ) (i : M) (k : Fin 1) :
     augmentedMatrix A b i (Sum.inr k) = -b i := rfl
 
 /-- The vector `θ = [y; 1]` of Eq. (2) of the proof of Theorem 2.7 (paper page 12). -/
 def augmentSolution (y : N → ℝ) : Sum N (Fin 1) → ℝ :=
   Sum.elim y (fun _ => 1)
 
+omit [Fintype N] [DecidableEq N] in
 /-- The `inl` entry of `θ = [y; 1]` is `y j`. -/
-@[simp] theorem augmentSolution_inl (y : N → ℝ) (j : N) :
+@[simp] theorem augmentSolution_inl {N : Type*}
+    [_q37inst0 : Fintype N]
+    [_q37inst1 : DecidableEq N]
+    (y : N → ℝ) (j : N) :
     augmentSolution y (Sum.inl j) = y j := rfl
 
+omit [Fintype N] [DecidableEq N] in
 /-- The `inr` entry of `θ = [y; 1]` is `1`. -/
-@[simp] theorem augmentSolution_inr (y : N → ℝ) (k : Fin 1) :
+@[simp] theorem augmentSolution_inr {N : Type*}
+    [_q37inst0 : Fintype N]
+    [_q37inst1 : DecidableEq N]
+    (y : N → ℝ) (k : Fin 1) :
     augmentSolution y (Sum.inr k) = 1 := rfl
 
 /-- The row-space component `θ⊥ = [y; -‖y‖₂²]` of the proof of Theorem 2.7 (paper page 12). -/
 def rowPerpComponent (y : N → ℝ) : Sum N (Fin 1) → ℝ :=
   Sum.elim y (fun _ => -(y ⬝ᵥ y))
 
+omit [Fintype N] [DecidableEq N] in
 /-- The `inl` entry of `θ⊥ = [y; -‖y‖₂²]` is `y j`. -/
-@[simp] theorem rowPerpComponent_inl (y : N → ℝ) (j : N) :
+@[simp] theorem rowPerpComponent_inl {N : Type*}
+    [_q37inst0 : Fintype N]
+    [_q37inst1 : DecidableEq N]
+    (y : N → ℝ) (j : N) :
     rowPerpComponent y (Sum.inl j) = y j := rfl
 
+omit [Fintype N] [DecidableEq N] in
 /-- The `inr` entry of `θ⊥ = [y; -‖y‖₂²]` is `-‖y‖₂²`. -/
-@[simp] theorem rowPerpComponent_inr (y : N → ℝ) (k : Fin 1) :
+@[simp] theorem rowPerpComponent_inr {N : Type*}
+    [_q37inst0 : Fintype N]
+    [_q37inst1 : DecidableEq N]
+    (y : N → ℝ) (k : Fin 1) :
     rowPerpComponent y (Sum.inr k) = -(y ⬝ᵥ y) := rfl
 
 /-- The distinguished vector `ψ₀ = [0, …, 0, 1]ᵀ` of Theorem 2.7 (paper page 12). -/
 def psiZero : Sum N (Fin 1) → ℝ :=
   Sum.elim (fun _ => 0) (fun _ => 1)
 
+omit [Fintype N] [DecidableEq N] in
 /-- The `inl` entry of `ψ₀ = [0, …, 0, 1]ᵀ` is `0`. -/
-@[simp] theorem psiZero_inl (j : N) : psiZero (Sum.inl j : Sum N (Fin 1)) = 0 := rfl
+@[simp] theorem psiZero_inl {N : Type*}
+    [_q37inst0 : Fintype N]
+    [_q37inst1 : DecidableEq N]
+    (j : N) : psiZero (Sum.inl j : Sum N (Fin 1)) = 0 := rfl
 
+omit [Fintype N] [DecidableEq N] in
 /-- The `inr` entry of `ψ₀ = [0, …, 0, 1]ᵀ` is `1`. -/
-@[simp] theorem psiZero_inr (k : Fin 1) : psiZero (Sum.inr k : Sum N (Fin 1)) = 1 := rfl
+@[simp] theorem psiZero_inr {N : Type*}
+    [_q37inst0 : Fintype N]
+    [_q37inst1 : DecidableEq N]
+    (k : Fin 1) : psiZero (Sum.inr k : Sum N (Fin 1)) = 1 := rfl
 
+omit [Fintype M] [Fintype N] [DecidableEq M] [DecidableEq N] in
 /-- Helper: `p ᵥ* A = Aᵀ *ᵥ p` for real matrices (`vecMul` is `dotProduct` on the left). -/
-theorem vecMul_eq_transpose_mulVec (A : Matrix M N ℝ) (p : M → ℝ) :
+theorem vecMul_eq_transpose_mulVec {M N : Type*}
+    [_q37inst0 : Fintype M]
+    [_q37inst1 : Fintype N]
+    [_q37inst2 : DecidableEq M]
+    [_q37inst3 : DecidableEq N]
+    (A : Matrix M N ℝ) (p : M → ℝ) :
     p ᵥ* A = Aᵀ *ᵥ p := by
   funext j
   simp [Matrix.vecMul, Matrix.mulVec, dotProduct, Matrix.transpose_apply, mul_comm]
 
+omit [Fintype M] [Fintype N] [DecidableEq M] [DecidableEq N] in
 /-- Theorem 2.7, first claim: `θ = [y; 1]` lies in the null space of `H = [A, -b]`
 because `H θ = A y - b = 0` (paper page 12, right after Eq. (2)). -/
-theorem augmentedMatrix_mulVec_augmentSolution (A : Matrix M N ℝ) (b : M → ℝ) (y : N → ℝ)
+theorem augmentedMatrix_mulVec_augmentSolution {M N : Type*}
+    [_q37inst0 : Fintype M]
+    [_q37inst1 : Fintype N]
+    [_q37inst2 : DecidableEq M]
+    [_q37inst3 : DecidableEq N]
+    (A : Matrix M N ℝ) (b : M → ℝ) (y : N → ℝ)
     (hy : A *ᵥ y = b) : augmentedMatrix A b *ᵥ augmentSolution y = 0 := by
   funext i
   simp only [Matrix.mulVec, dotProduct, Fintype.sum_sum_type, augmentedMatrix_inl,
@@ -225,9 +278,13 @@ theorem rowPerpComponent_eq_transpose_mulVec (A : Matrix M N ℝ) (b : M → ℝ
       rowPerpComponent_inr]
     exact hk
 
+omit [Fintype N] [DecidableEq N] in
 /-- Theorem 2.7, Eq. (1) (paper page 12): `ψ₀ = (1/(1+‖y‖₂²)) • (θ - θ⊥)`.
 This is the algebraic identity `[y;1] - [y;-‖y‖₂²] = [0; 1+‖y‖₂²]` rescaled. -/
-theorem augmentSolution_decomposition (y : N → ℝ) :
+theorem augmentSolution_decomposition {N : Type*}
+    [_q37inst0 : Fintype N]
+    [_q37inst1 : DecidableEq N]
+    (y : N → ℝ) :
     (1 / (1 + y ⬝ᵥ y)) • (augmentSolution y - rowPerpComponent y) = psiZero := by
   have hpos : 0 < 1 + y ⬝ᵥ y := by
     have hnn : 0 ≤ y ⬝ᵥ y := by

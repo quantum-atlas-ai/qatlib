@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
-import Mathlib.Probability.Distributions.Uniform
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Data.ENNReal.Basic
-import Mathlib.Data.Finset.Basic
-import Mathlib.Probability.ProbabilityMassFunction.Constructions
-import Mathlib.Tactic
-import Qatlib.Papers.SingleQuery97.MainResults.LinearCodeProgram
+module
+
+public import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+public import Mathlib.Probability.Distributions.Uniform
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Basic.ENNReal.Basic
+public import Mathlib.Data.Finset.Basic
+public import Mathlib.Probability.ProbabilityMassFunction.Constructions
+public import Mathlib.Tactic
+public import Qatlib.Papers.SingleQuery97.MainResults.LinearCodeProgram
+
+@[expose] public section
 
 /-!
 # Collision laws for uniform linear hashes
@@ -152,7 +156,7 @@ theorem image_card_ge_two (d : Fin n → ZMod A) (hd : d ≠ 0) :
   have ha : a ≠ 0 := by
     intro h
     exact hj (congrArg Subtype.val h)
-  letI : Nontrivial (ResponseImage d) := ⟨⟨a,0,ha⟩⟩
+  let : Nontrivial (ResponseImage d) := ⟨⟨a,0,ha⟩⟩
   exact Fintype.one_lt_card
 
 /-- Two databases have equal responses exactly when their difference has zero image-valued

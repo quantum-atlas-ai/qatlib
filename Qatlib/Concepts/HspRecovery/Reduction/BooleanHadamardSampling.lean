@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.Reduction.BooleanHadamardFourierBridge
-import Qatlib.Concepts.HspRecovery.Distinguisher.HiddenSubgroupSampling
+module
+
+public import Qatlib.Concepts.HspRecovery.Reduction.BooleanHadamardFourierBridge
+public import Qatlib.Concepts.HspRecovery.Distinguisher.HiddenSubgroupSampling
+
+@[expose] public section
 
 /-!
 # Boolean Hadamard subgroup sampling

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NoisyLearn26.MainResults.Models.InterfaceModels
-import Qatlib.Papers.NoisyLearn26.MainResults.OracleSeparation
+module
+
+public import Qatlib.Papers.NoisyLearn26.MainResults.Models.InterfaceModels
+public import Qatlib.Papers.NoisyLearn26.MainResults.OracleSeparation
+
+@[expose] public section
 
 /-!
 # Encoded oracle interfaces and a square-root bound
@@ -37,7 +41,7 @@ open Qatlib.Papers.NoisyLearn26.MainResults.OracleSeparation
 
 /-- An encoded oracle interface of width `n * (d + 2)` with identity evaluation, a true
 shuffling proposition, and an identity shadow. -/
-def encodedShufflingOracle {n : ℕ} (f : Reg n → Reg n) (d : ℕ) :
+def encodedShufflingOracle {n : ℕ} (_f : Reg n → Reg n) (d : ℕ) :
     EncodedShufflingOracle n d where
   width := n * (d + 2)
   eval := fun x => x
@@ -52,7 +56,7 @@ def BPPQNC {O : Oracle} (d : ℕ) (A : RelAlgorithm O) : Prop :=
 /-- An assumed bound `|Ptrue - Pshadow|² ≤ 2 * q * p` yields `|Ptrue - Pshadow| ≤ √(2 * q * p)`
 when `p` is nonnegative. -/
 theorem o2h_encoded_oracle (q : ℕ) (p Ptrue Pshadow : ℝ)
-    (hp : 0 ≤ p) (hO2H : |Ptrue - Pshadow| ^ 2 ≤ 2 * (q : ℝ) * p) :
+    (_hp : 0 ≤ p) (hO2H : |Ptrue - Pshadow| ^ 2 ≤ 2 * (q : ℝ) * p) :
     |Ptrue - Pshadow| ≤ Real.sqrt (2 * (q : ℝ) * p) := by
   calc
     |Ptrue - Pshadow| = Real.sqrt (|Ptrue - Pshadow| ^ 2) := by

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GenHidShift05.MainResults.MatrixSumCount
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.GenHidShift05.MainResults.MatrixSumCount
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -143,17 +147,17 @@ theorem sum_sq_solCount_eq_card [NeZero N] (x : Fin k → ZMod N) :
   apply Finset.sum_congr rfl
   intro c _
   by_cases h : boxDot N M k x b = boxDot N M k x c
-  · rw [if_pos h, Finset.sum_eq_single (boxDot N M k x b)]
-    · rw [if_pos rfl, if_pos h.symm, one_mul]
+  · rw [ite_eq_left h, Finset.sum_eq_single (boxDot N M k x b)]
+    · rw [ite_eq_left rfl, ite_eq_left h.symm, one_mul]
     · intro w _ hw
-      rw [if_neg (Ne.symm hw), zero_mul]
+      rw [ite_eq_right (Ne.symm hw), zero_mul]
     · intro hw
       exact absurd (Finset.mem_univ _) hw
-  · rw [if_neg h, Finset.sum_eq_zero]
+  · rw [ite_eq_right h, Finset.sum_eq_zero]
     intro w _
     by_cases hb : boxDot N M k x b = w
-    · rw [if_pos hb, if_neg (fun hc => h (hb.trans hc.symm)), mul_zero]
-    · rw [if_neg hb, zero_mul]
+    · rw [ite_eq_left hb, ite_eq_right (fun hc => h (hb.trans hc.symm)), mul_zero]
+    · rw [ite_eq_right hb, zero_mul]
 
 /-- The off-diagonal reduction of Eqs. (43)–(45): summed over all `x` and `w`,
 the squared solution count is the sum over box pairs `(b, c)` of the number of
@@ -193,8 +197,8 @@ theorem sum_sq_solCount_eq_pair_card [NeZero N] :
   apply Finset.sum_congr rfl
   intro x _
   by_cases h : boxDot N M k x b = boxDot N M k x c
-  · rw [if_pos h, if_pos ((boxDot_eq_iff_sub x b c).mp h)]
-  · rw [if_neg h, if_neg (fun hz => h ((boxDot_eq_iff_sub x b c).mpr hz))]
+  · rw [ite_eq_left h, ite_eq_left ((boxDot_eq_iff_sub x b c).mp h)]
+  · rw [ite_eq_right h, ite_eq_right (fun hz => h ((boxDot_eq_iff_sub x b c).mpr hz))]
 
 /-- Eqs. (43)–(45) with source Lemma 4 substituted: the total squared solution
 count is the sum over box pairs of `N^(k-1) · gcd(b - c, N)`. -/

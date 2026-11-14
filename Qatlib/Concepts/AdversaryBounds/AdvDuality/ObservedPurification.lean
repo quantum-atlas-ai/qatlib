@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedEnvironmentStatistics
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedQueryBudget
-import Qatlib.Foundations.PureStateMath.BornBridge.PartialTraceCovariance
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedEnvironmentStatistics
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedQueryBudget
+public import Qatlib.Foundations.PureStateMath.BornBridge.PartialTraceCovariance
+
+@[expose] public section
 
 /-!
 # Purification of observed mixed executions
@@ -84,8 +88,7 @@ private theorem purification_label_projector {d e n : ℕ}
   rcases x with ⟨i, a⟩
   rcases y with ⟨j, b⟩
   by_cases hij : i = j <;> by_cases hab : a = b <;>
-    simp [Projector, tensorGate_apply, Matrix.diagonal_apply,
-      Matrix.one_apply, Prod.mk.injEq, hij, hab]
+    simp [Projector, tensorGate_apply,  Prod.mk.injEq, hij, hab]
 
 /-- Collapsing a pure state onto a system measurement fiber and reducing the result equals
 conjugating its reduced operator by the fiber projector. -/

@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ShadowModels.ShadowChannel.CliffordShadowContracts
-import Qatlib.Concepts.ShadowModels.ShadowChannel.TensorPauliRecords
-import Qatlib.Foundations.PureStateMath.MixedState
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
-import Qatlib.Concepts.ShadowModels.ShadowChannel.FiniteEnsembleMeasurement
+module
+
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.CliffordShadowContracts
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.TensorPauliRecords
+public import Qatlib.Foundations.PureStateMath.MixedState
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.FiniteEnsembleMeasurement
+
+@[expose] public section
 
 /-!
 # Corrected Clifford shadow moment condition

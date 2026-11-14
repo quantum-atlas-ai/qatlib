@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.TensorNetwork08.MainResults.Circuit
+module
+
+public import Qatlib.Papers.TensorNetwork08.MainResults.Circuit
+
+@[expose] public section
 
 /-!
 # Promise-gap inequalities for circuit-derived networks

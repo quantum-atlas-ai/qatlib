@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.BlockEncoding.EncodingCore.SparseOverlapEncoding
+module
+
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.SparseOverlapEncoding
+
+@[expose] public section
 
 /-!
 # Gram matrices and success mass of sparse overlap encodings

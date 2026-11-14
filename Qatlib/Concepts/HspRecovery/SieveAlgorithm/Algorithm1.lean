@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.RecordExtract.DihedralCosetRecord
-import Qatlib.Concepts.HspRecovery.RecordExtract.DihedralSummandExtraction
-import Qatlib.Concepts.HspRecovery.SieveAlgorithm.DihedralSieveBridge
-import Qatlib.Concepts.HspRecovery.Reduction.ParityDescentDihe
+module
+
+public import Qatlib.Concepts.HspRecovery.RecordExtract.DihedralCosetRecord
+public import Qatlib.Concepts.HspRecovery.RecordExtract.DihedralSummandExtraction
+public import Qatlib.Concepts.HspRecovery.SieveAlgorithm.DihedralSieveBridge
+public import Qatlib.Concepts.HspRecovery.Reduction.ParityDescentDihe
+
+@[expose] public section
 
 /-!
 # Components of the dihedral sieve algorithm

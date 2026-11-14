@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QInspired25.MainResults.Model.Basic
+module
+
+public import Qatlib.Papers.QInspired25.MainResults.Model.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -64,7 +68,7 @@ theorem hierarchical_sample_prob {k m : ℕ} (b : Fin k → Fin m → ℝ)
 
 /-- The block law sums to one. -/
 theorem hierarchical_sample_sum {k m : ℕ} (b : Fin k → Fin m → ℝ)
-    (hnorm : blockNormSq b ≠ 0) (hrow : ∀ i, frobSqVec (b i) ≠ 0) :
+    (hnorm : blockNormSq b ≠ 0) (_hrow : ∀ i, frobSqVec (b i) ≠ 0) :
     ∑ i, ∑ j, (frobSqVec (b i) / blockNormSq b) * (b i j ^ 2 / frobSqVec (b i)) = 1 := by
   have hterm : ∀ i, (∑ j, (frobSqVec (b i) / blockNormSq b) * (b i j ^ 2 / frobSqVec (b i)))
       = frobSqVec (b i) / blockNormSq b := by

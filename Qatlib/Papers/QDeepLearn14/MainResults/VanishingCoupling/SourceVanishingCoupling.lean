@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Topology.Algebra.Field
-import Mathlib.Topology.Order.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Topology.Algebra.Field
+public import Mathlib.Topology.Order.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

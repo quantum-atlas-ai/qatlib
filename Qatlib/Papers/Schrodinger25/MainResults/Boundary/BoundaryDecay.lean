@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
-import Mathlib.MeasureTheory.Integral.Bochner.Basic
-import Qatlib.Papers.Schrodinger25.MainResults.Model
+module
+
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
+public import Mathlib.MeasureTheory.Integral.Bochner.Basic
+public import Qatlib.Papers.Schrodinger25.MainResults.Model
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -68,7 +72,7 @@ in squared norm at every time `t ∈ [0,T]`. -/
 theorem lemma_five_three_boundary_pointwise
     (ψ : ℝ → ℂ) (lam : ι → ℝ) (u : ι → ℂ)
     (L R lamPos lamNeg T ε : ℝ)
-    (hT : 0 ≤ T) (hpos : ∀ j, lam j ≤ lamPos) (hneg : ∀ j, -lamNeg ≤ lam j)
+    (_hT : 0 ≤ T) (hpos : ∀ j, lam j ≤ lamPos) (hneg : ∀ j, -lamNeg ≤ lam j)
     (hlamPos : 0 ≤ lamPos) (hlamNeg : 0 ≤ lamNeg) (hε : 0 ≤ ε)
     (hdecay : TailDecay ψ L R lamPos lamNeg T ε)
     (t : ℝ) (ht : t ∈ Set.Icc 0 T) :

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.QsVtStability.InteriorComplexQsvt
-import Qatlib.Concepts.QsvtCore.QsVtStability.Lemma23OutputTransport
+module
+
+public import Qatlib.Concepts.QsvtCore.QsVtStability.InteriorComplexQsvt
+public import Qatlib.Concepts.QsvtCore.QsVtStability.Lemma23OutputTransport
+
+@[expose] public section
 
 /-!
 # Polynomial-level interior QSVT robustness

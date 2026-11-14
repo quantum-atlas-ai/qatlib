@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.FermLinOpt04.MainResults.Model.GaussianMap
+module
+
+public import Qatlib.Papers.FermLinOpt04.MainResults.Model.GaussianMap
+
+@[expose] public section
 
 /-!
 # Reality and antisymmetry of Gaussian-state parameters

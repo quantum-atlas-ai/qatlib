@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.OrderedOracle.TiSdpBridge.OrderedSearchInstance
+module
+
+public import Qatlib.Concepts.OrderedOracle.TiSdpBridge.OrderedSearchInstance
+
+@[expose] public section
 
 /-!
 # Translation symmetry of ordered-search oracles

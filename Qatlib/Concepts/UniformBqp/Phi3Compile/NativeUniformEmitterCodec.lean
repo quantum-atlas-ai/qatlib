@@ -4,7 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.UniformBqp.Phi3Compile.StandardMachine
+module
+
+public import Qatlib.Concepts.UniformBqp.Phi3Compile.StandardMachine
+
+@[expose] public section
+set_option linter.unusedTactic false
 
 /-!
 # Self-delimiting codes for native circuit descriptions

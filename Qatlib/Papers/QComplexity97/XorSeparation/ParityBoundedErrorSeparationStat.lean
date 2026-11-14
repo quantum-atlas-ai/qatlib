@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.UniformBqp.BvParityBound.ParityAverageSuccessBoundStat
-import Qatlib.Papers.QComplexity97.XorSeparation.ParityOracleSeparationRestricted
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.ClassicalQuery
+module
+
+public import Qatlib.Concepts.UniformBqp.BvParityBound.ParityAverageSuccessBoundStat
+public import Qatlib.Papers.QComplexity97.XorSeparation.ParityOracleSeparationRestricted
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.ClassicalQuery
+
+@[expose] public section
 
 /-!
 # Statement of bounded-error parity separation

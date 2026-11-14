@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GrpJuntaTest15.MainResults.SourceModel
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.DegreeVariableDependence
+module
+
+public import Qatlib.Papers.GrpJuntaTest15.MainResults.SourceModel
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.DegreeVariableDependence
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

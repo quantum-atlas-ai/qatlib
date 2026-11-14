@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FermionAlgebra.CarJordanWigner.Fermion
-import Qatlib.Concepts.TrotterFormula.SuzukiFourth.SuzukiFourthOrder
+module
+
+public import Qatlib.Concepts.FermionAlgebra.CarJordanWigner.Fermion
+public import Qatlib.Concepts.TrotterFormula.SuzukiFourth.SuzukiFourthOrder
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

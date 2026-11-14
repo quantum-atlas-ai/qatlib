@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedAmplitudeAmplification
-import Qatlib.Papers.FixedPtSearch14.FixedPoint.SearchCore
-import Mathlib.Tactic
+module
+
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedAmplitudeAmplification
+public import Qatlib.Papers.FixedPtSearch14.FixedPoint.SearchCore
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Coherent preparation of observable amplitudes
@@ -397,7 +401,7 @@ theorem actual_aa_success_and_count {I : Type} [Fintype I] [DecidableEq I]
       simpa only [hsSin] using! Real.sin_le hθ0.le
     have hledger := prepared_aa_separate_access_word A j S
       (phaseMarkPeakRounds (Real.arcsin (Real.sqrt p))) hA
-    simp only [aaRounds, hp, if_true]
+    simp only [aaRounds, hp, ite_true]
     refine ⟨?_, hledger.2.2.1, hledger.2.1, ?_⟩
     · rw [← hmass] at hsuccess
       linarith
@@ -408,7 +412,7 @@ theorem actual_aa_success_and_count {I : Type} [Fintype I] [DecidableEq I]
       push_cast
       nlinarith [hr.1]
   · have hledger := prepared_aa_separate_access_word A j S 0 hA
-    simp only [aaRounds, hp, if_false]
+    simp only [aaRounds, hp, ite_false]
     refine ⟨?_, hledger.2.2.1, hledger.2.1, ?_⟩
     · simpa [preparedAACircuit, preparedAAState] using! (show 1/2 ≤ p by linarith)
     · rw [hledger.2.2.1]

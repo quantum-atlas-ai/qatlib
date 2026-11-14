@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.MidpointQuadrature
-import Qatlib.Concepts.TrotterFormula.GeneralOrder.ConjugationCommutatorCoefficients
-import Qatlib.Concepts.ShadowModels.ShadowChannel.PauliRealMoments
-import Mathlib.Analysis.Calculus.MeanValue
+module
+
+public import Qatlib.Concepts.AmplitudeCore.PreparedReadout.PhysicalHistory.MidpointQuadrature
+public import Qatlib.Concepts.TrotterFormula.GeneralOrder.ConjugationCommutatorCoefficients
+public import Qatlib.Concepts.ShadowModels.ShadowChannel.PauliRealMoments
+public import Mathlib.Analysis.Calculus.MeanValue
+
+@[expose] public section
 
 /-!
 # Midpoint quadrature for physical expectation values

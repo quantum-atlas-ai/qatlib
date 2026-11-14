@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SU2Fourier26.MainResults.SourceSetup.SourceCoefficientOps
+module
+
+public import Qatlib.Papers.SU2Fourier26.MainResults.SourceSetup.SourceCoefficientOps
+
+@[expose] public section
 
 /-!
 # Lemma 3: the LU factorization of `C` and its triangularity (c007)
@@ -69,7 +73,7 @@ theorem mul_star_ne_zero {W : StrongBeurlingWeight} {a b : CircleT → ℂ}
     rw [hs]
     nlinarith [norm_nonneg (b x), norm_nonneg (b (-x))]
   rw [hunit] at hnorm
-  simpa using hnorm
+  simp at hnorm
 
 /-- `a x ≠ 0` under the standing hypotheses. -/
 theorem a_ne_zero {W : StrongBeurlingWeight} {a b : CircleT → ℂ}
@@ -93,21 +97,15 @@ theorem lu_factorization (W : StrongBeurlingWeight) (a b : CircleT → ℂ)
     fin_cases i <;> fin_cases j <;>
       simp [Cmat, Lmat, Umat, Matrix.mul_apply, Fin.sum_univ_two]
     all_goals
-      first
-      | (field_simp [mul_star_ne_zero h x, a_ne_zero h x, starFun_a_ne_zero h x]
-         linear_combination h.unit x)
-      | ring
-      | linear_combination h.unit x
+      field_simp [mul_star_ne_zero h x, a_ne_zero h x, starFun_a_ne_zero h x]
+      linear_combination h.unit x
   · intro x
     ext i j
     fin_cases i <;> fin_cases j <;>
       simp [Cmat, UtilMat, LtilMat, Matrix.mul_apply, Fin.sum_univ_two]
     all_goals
-      first
-      | (field_simp [mul_star_ne_zero h x, a_ne_zero h x, starFun_a_ne_zero h x]
-         linear_combination h.unit x)
-      | ring
-      | linear_combination h.unit x
+      field_simp [mul_star_ne_zero h x, a_ne_zero h x, starFun_a_ne_zero h x]
+      linear_combination h.unit x
 
 /-- Lemma 3, equation (3.4) of arXiv:2603.02021v1, p.9, in its coefficient form:
 multiplying by `1/a` or by `a` (Fourier support in `(-∞, 0]`) preserves the

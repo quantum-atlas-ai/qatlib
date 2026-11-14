@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GenEigenODE20.MainResults.SourceModel
+module
+
+public import Qatlib.Papers.GenEigenODE20.MainResults.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -36,7 +40,7 @@ namespace Qatlib.Papers.GenEigenODE20.MainResults
 /-- **Proposition 16, Eq. (32).**  Two approximation errors of size `ε` add up
 to at most `2ε` in the ambient norm. -/
 theorem prop16_error_bound {E : Type*} [NormedAddCommGroup E]
-    (xTilde xExact xC : E) (ε : ℝ) (hε : 0 ≤ ε)
+    (xTilde xExact xC : E) (ε : ℝ) (_hε : 0 ≤ ε)
     (hdiscretisation : ‖xTilde - xExact‖ ≤ ε)
     (hsolver : ‖xExact - xC‖ ≤ ε) :
     ‖xTilde - xC‖ ≤ 2 * ε := by

@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HamLCUSim12.LCUDeferred.NearbyLCUContracts
-import Mathlib.AlgebraicTopology.SimplexCategory.Basic
-import Mathlib.Analysis.CStarAlgebra.Classes
-import Mathlib.LinearAlgebra.UnitaryGroup
-import Mathlib.Tactic.Ext
-import Mathlib.Tactic.FinCases
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.NormNum.RealSqrt
-import Mathlib.Tactic.Positivity
+module
+
+public import Qatlib.Papers.HamLCUSim12.LCUDeferred.NearbyLCUContracts
+public import Mathlib.AlgebraicTopology.SimplexCategory.Basic
+public import Mathlib.Analysis.CStarAlgebra.Classes
+public import Mathlib.LinearAlgebra.UnitaryGroup
+public import Mathlib.Tactic.Ext
+public import Mathlib.Tactic.FinCases
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.NormNum.RealSqrt
+public import Mathlib.Tactic.Positivity
+
+@[expose] public section
 
 /-!
 # Diagnostics of the legacy nearby-unitary circuit

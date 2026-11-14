@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.Real.Pi.Bounds
+module
+
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.Real.Pi.Bounds
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -225,16 +229,16 @@ theorem periodicSecondDerivative_mul_inv (n : ℕ) :
     simp only [periodicSecondDerivative_center_row, one_mul]
     rcases eq_or_ne j (center n) with hj | hj
     · subst hj
-      rw [sum_inv_col_center, if_pos rfl]
-    · rw [sum_inv_col_off n hj, if_neg (Ne.symm hj)]
+      rw [sum_inv_col_center, ite_eq_left rfl]
+    · rw [sum_inv_col_off n hj, ite_eq_right (Ne.symm hj)]
   · rw [Finset.sum_eq_single i]
     · rw [periodicSecondDerivative_diag hi]
       rcases eq_or_ne i j with hij | hij
       · subst hij
-        rw [periodicSecondDerivativeInv_off_diag hi, if_pos rfl]
+        rw [periodicSecondDerivativeInv_off_diag hi, ite_eq_left rfl]
         have h : ((i : ℝ) - (center n : ℝ)) ≠ 0 := sub_center_ne_zero hi
         field_simp
-      · rw [periodicSecondDerivativeInv_off_off hi hij, if_neg hij, mul_zero]
+      · rw [periodicSecondDerivativeInv_off_off hi hij, ite_eq_right hij, mul_zero]
     · intro a _ hai
       rw [periodicSecondDerivative_off_diag hi (Ne.symm hai), zero_mul]
     · intro h
@@ -597,7 +601,7 @@ theorem lemma7_sigmaMin (n : ℕ) (x : EuclideanSpace ℝ (Fin (n + 1))) :
         = Matrix.toEuclideanCLM (𝕜 := ℝ) (periodicSecondDerivativeInv n) *
           Matrix.toEuclideanCLM (𝕜 := ℝ) (periodicSecondDerivative n) := map_mul _ _ _
     rw [periodicSecondDerivative_inv_mul, map_one] at hm
-    rw [← ContinuousLinearMap.mul_apply, ← hm, ContinuousLinearMap.one_apply]
+    rw [← _root_.mul_apply_eq_comp, ← hm, _root_.one_apply_eq_self]
   have h := periodicSecondDerivativeInv_opNorm_le n
   calc ‖x‖ = ‖Matrix.toEuclideanCLM (𝕜 := ℝ) (periodicSecondDerivativeInv n)
         (Matrix.toEuclideanCLM (𝕜 := ℝ) (periodicSecondDerivative n) x)‖ := by rw [hcomp]

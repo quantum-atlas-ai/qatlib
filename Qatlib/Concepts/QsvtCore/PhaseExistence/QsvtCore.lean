@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.NonNormalSpec.ResolventWord.ComplexFourRouteLcu
-import Qatlib.Concepts.QsvtCore.ApproxToolkit.QsvtCoreRefined
-import Qatlib.Concepts.QsvtCore.ApproxToolkit.QsvtCore
+module
+
+public import Qatlib.Concepts.NonNormalSpec.ResolventWord.ComplexFourRouteLcu
+public import Qatlib.Concepts.QsvtCore.ApproxToolkit.QsvtCoreRefined
+public import Qatlib.Concepts.QsvtCore.ApproxToolkit.QsvtCore
+
+@[expose] public section
 
 /-!
 # Rectangle approximation from sign polynomials

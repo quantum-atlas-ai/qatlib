@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Push
-import Mathlib.Tactic.Ring
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Push
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -69,7 +73,7 @@ state-overlap factor.  The number of preparations is
 `ln(1/δ)·ν²·J²/(ε − εmin)² = J² · O(ln(1/δ)ν²/(ε − εmin)²)`, i.e. the paper's
 `O(ln(1/δ)ν²/(ε−εmin)²)` with the constant `J²` absorbed. -/
 theorem lemma12_preparations
-    (ν J δ ε εmin : ℝ) (hν : 0 < ν) (hJ : 0 < J) (hδ : 0 < δ) (hδ1 : δ ≤ 1)
+    (ν J δ ε εmin : ℝ) (hν : 0 < ν) (hJ : 0 < J) (_hδ : 0 < δ) (_hδ1 : δ ≤ 1)
     (hgap : 0 < ε - εmin) :
     repetitions ((ε - εmin) / (ν * J)) δ
       ≤ J ^ 2 * (Real.log (1 / δ) * ν ^ 2 / (ε - εmin) ^ 2) := by
@@ -106,7 +110,7 @@ measurement precision is `γ = κ·ζ`, so the number of `|Ψ⟩` states is
 `O(d ln(1/δ)/(κ²(ε−εmin)²))` with the constant `1/φ` absorbed. -/
 theorem lemma14_gradient_preparations
     (κ d φ δ ε εmin : ℝ) (hκ : 0 < κ) (hd : 0 < d) (hφ : 0 < φ)
-    (hδ : 0 < δ) (hδ1 : δ ≤ 1) (hgap : 0 < ε - εmin) :
+    (_hδ : 0 < δ) (_hδ1 : δ ≤ 1) (hgap : 0 < ε - εmin) :
     repetitions (κ * ((ε - εmin) / Real.sqrt d)) δ / φ
       ≤ (1 / φ) * (d * Real.log (1 / δ) / (κ ^ 2 * (ε - εmin) ^ 2)) := by
   have hκ0 : κ ≠ 0 := ne_of_gt hκ
@@ -144,7 +148,7 @@ The normalisation estimate `−ν ln‖u(t)‖²` has log-error `ν·εnorm/‖u
 `ln(1/δ)·ν²/(‖u(t)‖⁴·(εS*−εmin)²)`, the paper's Eq. (65). -/
 theorem lemma17_minimum_preparations
     (ν unorm δ εS εmin : ℝ) (hν : 0 < ν) (hu : 0 < unorm)
-    (hδ : 0 < δ) (hδ1 : δ ≤ 1) (hgap : 0 < εS - εmin) :
+    (_hδ : 0 < δ) (_hδ1 : δ ≤ 1) (hgap : 0 < εS - εmin) :
     repetitions ((εS - εmin) * unorm ^ 2 / ν) δ
       ≤ Real.log (1 / δ) * ν ^ 2 / (unorm ^ 4 * (εS - εmin) ^ 2) := by
   have hν0 : ν ≠ 0 := ne_of_gt hν

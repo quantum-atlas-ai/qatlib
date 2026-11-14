@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QWalkDiff01.MainResults.LimitingDistribution
-import Qatlib.Papers.QWalkDiff01.MainResults.Defs
-import Mathlib.Analysis.Matrix.Spectrum
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.QWalkDiff01.MainResults.LimitingDistribution
+public import Qatlib.Papers.QWalkDiff01.MainResults.Defs
+public import Mathlib.Analysis.Matrix.Spectrum
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Spectral reduction of the glued-tree Hamiltonian
@@ -83,7 +87,7 @@ lemma upShift_mulVec (m : ℕ) (v : Fin m → ℝ) (j : Fin m) :
     (upShift m *ᵥ v) j = if h : j.val + 1 < m then v ⟨j.val + 1, h⟩ else 0 := by
   unfold Matrix.mulVec dotProduct upShift
   by_cases h : j.val + 1 < m
-  · rw [dif_pos h, Finset.sum_eq_single (⟨j.val + 1, h⟩ : Fin m)]
+  · rw [dite_eq_left h, Finset.sum_eq_single (⟨j.val + 1, h⟩ : Fin m)]
     · simp
     · intro b _ hb
       have hne : j.val + 1 ≠ b.val := by
@@ -92,7 +96,7 @@ lemma upShift_mulVec (m : ℕ) (v : Fin m → ℝ) (j : Fin m) :
       simp [hne]
     · intro hmem
       exact absurd (Finset.mem_univ _) hmem
-  · rw [dif_neg h, Finset.sum_eq_zero]
+  · rw [dite_eq_right h, Finset.sum_eq_zero]
     intro x _
     have hne : j.val + 1 ≠ x.val := by
       intro he
@@ -105,7 +109,7 @@ lemma downShift_mulVec (m : ℕ) (v : Fin m → ℝ) (j : Fin m) :
   unfold Matrix.mulVec dotProduct downShift
   by_cases h : 0 < j.val
   · have hlt : j.val - 1 < m := by have := j.isLt; omega
-    rw [dif_pos h, Finset.sum_eq_single (⟨j.val - 1, hlt⟩ : Fin m)]
+    rw [dite_eq_left h, Finset.sum_eq_single (⟨j.val - 1, hlt⟩ : Fin m)]
     · have hv : (⟨j.val - 1, hlt⟩ : Fin m).val + 1 = j.val := by
         simp
         omega
@@ -117,7 +121,7 @@ lemma downShift_mulVec (m : ℕ) (v : Fin m → ℝ) (j : Fin m) :
       simp [hne]
     · intro hmem
       exact absurd (Finset.mem_univ _) hmem
-  · rw [dif_neg h, Finset.sum_eq_zero]
+  · rw [dite_eq_right h, Finset.sum_eq_zero]
     intro x _
     have hne : x.val + 1 ≠ j.val := by omega
     simp [hne]
@@ -186,14 +190,14 @@ lemma swap_up_down (n : ℕ) (v : Fin (2*n+1) → ℝ) (j : Fin (2*n+1)) :
   · have hlt : j.val ≤ 2*n := by have := j.isLt; omega
     have hc : (revFin n j).val + 1 < 2*n+1 := by
       simp only [revFin_val]; omega
-    rw [dif_pos hc, dif_pos hj]
+    rw [dite_eq_left hc, dite_eq_left hj]
     congr 1
     ext
     simp only [revFin_val]
     omega
   · have hc : ¬ ((revFin n j).val + 1 < 2*n+1) := by
       simp only [revFin_val]; omega
-    rw [dif_neg hc, dif_neg hj]
+    rw [dite_eq_right hc, dite_eq_right hj]
 
 /-- Taking the preceding coordinate after reversal equals reversing the next coordinate, with
 zero boundary values. -/
@@ -203,12 +207,12 @@ lemma swap_down_up (n : ℕ) (v : Fin (2*n+1) → ℝ) (j : Fin (2*n+1)) :
   by_cases hj : j.val + 1 < 2*n+1
   · have hc : 0 < (revFin n j).val := by
       simp only [revFin_val]; omega
-    rw [dif_pos hc, dif_pos hj]
+    rw [dite_eq_left hc, dite_eq_left hj]
     congr 1
   · have hlt : j.val ≤ 2*n := by have := j.isLt; omega
     have hc : ¬ (0 < (revFin n j).val) := by
       simp only [revFin_val]; omega
-    rw [dif_neg hc, dif_neg hj]
+    rw [dite_eq_right hc, dite_eq_right hj]
 
 /-- The reduced Hamiltonian commutes with reversal of vector coordinates. -/
 lemma reducedHamiltonian_mulVec_rev (n : ℕ) (γ : ℝ) (v : Fin (2*n+1) → ℝ) :
@@ -246,7 +250,7 @@ lemma eq_zero_of_row {n : ℕ} {γ : ℝ} (hγ : γ ≠ 0) {μ : ℝ} {v : Fin (
         have hcond : j'.val + 1 < 2*n+1 := by omega
         rw [hmid, hdown, add_zero] at hrow
         simp only [mul_zero, zero_add] at hrow
-        rw [dif_pos hcond] at hrow
+        rw [dite_eq_left hcond] at hrow
         have hlast : v ⟨j'.val + 1, hcond⟩ = 0 := by
           rcases mul_eq_zero.mp hrow with h1 | h2
           · exact absurd h1 hcoef

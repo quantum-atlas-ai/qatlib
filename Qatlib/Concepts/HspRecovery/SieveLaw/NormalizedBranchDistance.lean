@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.SieveLaw.MixedSelectivePerturbation
+module
+
+public import Qatlib.Concepts.HspRecovery.SieveLaw.MixedSelectivePerturbation
+
+@[expose] public section
 
 /-!
 # Distance between normalized positive branches
@@ -44,10 +48,10 @@ private theorem normalized_branch_distance_right {I : Type} [Fintype I]
         (Matrix.trace τ).re := by
   have hns : normalizedPositiveBranch σ
       = (((Matrix.trace σ).re)⁻¹ : ℂ) • σ := by
-    rw [normalizedPositiveBranch, if_pos hp]
+    rw [normalizedPositiveBranch, ite_eq_left hp]
   have hnt : normalizedPositiveBranch τ
       = (((Matrix.trace τ).re)⁻¹ : ℂ) • τ := by
-    rw [normalizedPositiveBranch, if_pos hq]
+    rw [normalizedPositiveBranch, ite_eq_left hq]
   have hcoe : (((((Matrix.trace σ).re)⁻¹ - ((Matrix.trace τ).re)⁻¹ : ℝ) : ℂ)) • σ
       = (((Matrix.trace σ).re)⁻¹ : ℂ) • σ - (((Matrix.trace τ).re)⁻¹ : ℂ) • σ := by
     rw [Complex.ofReal_sub, Complex.ofReal_inv, Complex.ofReal_inv, sub_smul]

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Tactic.NormNum.Parity
-import Qatlib.Concepts.HspRecovery.JointDlog.JointBezoutDlogDecoder
+module
+
+public import Mathlib.Tactic.NormNum.Parity
+public import Qatlib.Concepts.HspRecovery.JointDlog.JointBezoutDlogDecoder
+
+@[expose] public section
 
 /-!
 # Joint Bezout discrete logarithm recovery modulo six

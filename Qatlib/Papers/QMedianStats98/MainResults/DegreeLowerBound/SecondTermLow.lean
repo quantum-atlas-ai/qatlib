@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QMedianStats98.MainResults.DegreeLowerBound.GridMarkov
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.SharpMarkovBernstein
-import Mathlib.Analysis.Calculus.Deriv.MeanValue
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
+module
+
+public import Qatlib.Papers.QMedianStats98.MainResults.DegreeLowerBound.GridMarkov
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.SharpMarkovBernstein
+public import Mathlib.Analysis.Calculus.Deriv.MeanValue
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+
+@[expose] public section
 
 /-!
 # The second degree term under a bounded interval norm
@@ -70,14 +74,14 @@ theorem sourceGrid_abs_le_mIndex {n lo hi : ℕ} (hn : 0 < n) :
   have h2 : (0 : ℝ) ≤ 2 / (n : ℝ) := by positivity
   unfold mIndex
   by_cases hc : |(n : ℝ) / 2 - (lo : ℝ)| ≥ |(n : ℝ) / 2 - (hi : ℝ)|
-  · rw [if_pos hc]
+  · rw [ite_eq_left hc]
     constructor
     · exact le_refl _
     · rw [sourceGrid_abs_eq hn, sourceGrid_abs_eq hn]
       refine mul_le_mul_of_nonneg_left ?_ h2
       rw [abs_sub_comm ((hi : ℝ)) ((n : ℝ) / 2), abs_sub_comm ((lo : ℝ)) ((n : ℝ) / 2)]
       exact hc
-  · rw [if_neg hc]
+  · rw [ite_eq_right hc]
     have hlt : |(n : ℝ) / 2 - (lo : ℝ)| < |(n : ℝ) / 2 - (hi : ℝ)| := lt_of_not_ge hc
     constructor
     · rw [sourceGrid_abs_eq hn, sourceGrid_abs_eq hn]

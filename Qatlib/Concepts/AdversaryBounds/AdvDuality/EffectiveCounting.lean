@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.EffectiveCountingDefs
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.EffectiveCountingDefs
+
+@[expose] public section
 
 /-!
 # Effective witness counting and hash-fiber identities
@@ -237,12 +241,12 @@ theorem ecInP_subset_ecInPP {L : List Bool → Prop} (h : EcInP L) : EcInPP L :=
   have hpos : (0 : ℕ) < 2 ^ (EcBudget c k x) := by positivity
   constructor
   · intro hLx
-    rw [if_pos hLx]
+    rw [ite_eq_left hLx]
     omega
   · intro hgt
     by_cases hLx : L x
     · exact hLx
-    · rw [if_neg hLx] at hgt
+    · rw [ite_eq_right hLx] at hgt
       omega
 
 /-- Alternating quantification over zero-length Boolean witnesses leaves the underlying
@@ -341,10 +345,10 @@ private theorem ecBadL_result2 {A : List Bool → Bool} {ρ : ℕ → Bool} {x :
   simp only [ccResult]
   rw [hrun2, ecBadL_run1]
   by_cases hbit : EcHeadBit x = true
-  · rw [if_pos hbit]
+  · rw [ite_eq_left hbit]
     simp [EcBadLProgram, ccStep]
     exact hbit
-  · rw [if_neg hbit]
+  · rw [ite_eq_right hbit]
     simp [EcBadLProgram, ccStep]
     exact Bool.eq_false_of_not_eq_true hbit
 
@@ -367,9 +371,9 @@ private theorem ecBadL_poly {A : List Bool → Bool} {ρ : ℕ → Bool} (x : Li
   simp only [ccResult, ccTime]
   rw [hrun2, hrun1]
   by_cases hbit : x.getD 0 false = true
-  · rw [if_pos hbit]
+  · rw [ite_eq_left hbit]
     simp [EcBadLProgram, ccStep]
-  · rw [if_neg hbit]
+  · rw [ite_eq_right hbit]
     simp [EcBadLProgram, ccStep]
 
 /-- The head-bit language satisfies `EcInNP`. -/
@@ -402,8 +406,8 @@ theorem ecBadL_in_ecInNP : EcInNP EcBadL := by
       rw [hres]
       simp only [decide_eq_true_eq, Option.some.injEq]
       by_cases hbit : EcHeadBit x = true
-      · rw [if_pos hbit]
-      · rw [if_neg hbit]
+      · rw [ite_eq_left hbit]
+      · rw [ite_eq_right hbit]
         exact absurd hLx hbit
     · rintro ⟨w, hw⟩
       have hofn : List.ofFn w = [] := by
@@ -421,7 +425,7 @@ theorem ecBadL_in_ecInNP : EcInNP EcBadL := by
       by_cases hbit : EcHeadBit x = true
       · rw [EcBadL]
         exact hbit
-      · rw [if_neg hbit] at h2
+      · rw [ite_eq_right hbit] at h2
         simp at h2
 
 /-- The exclusive-or of two Booleans is false exactly when they are equal. -/
@@ -534,11 +538,11 @@ theorem ecRelFiberCount_sum {L ℓ : ℕ} (R : Set (Fin L → Bool)) :
             apply Finset.sum_congr rfl
             intro s _
             simp [hw]
-          rw [hconv, hzero, if_pos hw, Nat.one_mul]
-        · rw [if_neg hw, Nat.zero_mul]
+          rw [hconv, hzero, ite_eq_left hw, Nat.one_mul]
+        · rw [ite_eq_right hw, Nat.zero_mul]
           apply Finset.sum_eq_zero
           intro s _
-          rw [if_neg (fun h => absurd h.1 hw)]
+          rw [ite_eq_right (fun h => absurd h.1 hw)]
     _ = (∑ w : Fin L → Bool, if R w then 1 else 0) * 2 ^ (ℓ * L) := by
         rw [Finset.sum_mul]
     _ = EcRelCount R * 2 ^ (ℓ * L) := by rw [ecRelCount_eq_sum]
@@ -696,7 +700,7 @@ theorem ecSamplerEventCount {L : ℕ} {Out : Type} [Fintype Out] (Sam : EcSample
         apply Finset.sum_congr rfl
         intro y _
         by_cases hE : Ev y = true
-        · simp only [hE, if_pos]
+        · simp only [hE, ite_eq_left]
         · simp [hE]
 
 /-- The counts of seeds satisfying an event and its complement sum to the full seed-space

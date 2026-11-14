@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommutLCHS26.MainResults.MPFOAAWord
-import Qatlib.Concepts.BlockEncoding.EncodingCore.CoefficientLCU
-import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorDuhamel
+module
+
+public import Qatlib.Papers.CommutLCHS26.MainResults.MPFOAAWord
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.CoefficientLCU
+public import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorDuhamel
+
+@[expose] public section
 
 /-!
 # Linear-combination encodings of multi-product formulas

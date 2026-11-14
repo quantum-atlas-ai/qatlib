@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ElemDistinct00.MainResults.OrderedClaw.Basic
-import Mathlib.Data.Nat.Log
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
+module
+
+public import Qatlib.Papers.ElemDistinct00.MainResults.OrderedClaw.Basic
+public import Mathlib.Data.Nat.Log
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+
+@[expose] public section
 
 /-!
 # Binary search for ordered claw finding
@@ -45,7 +49,7 @@ namespace Qatlib.Papers.ElemDistinct00.MainResults.OrderedClaw
 midpoint comparisons when the depth is positive. At depth zero, test the lower endpoint
 directly. -/
 def bsearch (f : ℕ → ℤ) (y : ℤ) : ℕ → ℕ → ℕ → Option ℕ
-  | 0, lo, hi => if f lo = y then some lo else none
+  | 0, lo, _hi => if f lo = y then some lo else none
   | d + 1, lo, hi =>
       if lo < hi then
         let mid := (lo + hi) / 2
@@ -65,22 +69,22 @@ theorem bsearch_spec (f : ℕ → ℤ) (hmono : Monotone f) (y : ℤ) :
   induction d with
   | zero =>
     intro lo hi hlen hex
-    obtain ⟨x, hxlo, hxhi, hxy⟩ := hex
+    obtain ⟨x, hxlo, _hxhi, hxy⟩ := hex
     have hxeq : x = lo := by omega
     have hflo : f lo = y := by rw [← hxeq]; exact hxy
-    exact ⟨lo, by simp only [bsearch, hflo, if_true], hflo⟩
+    exact ⟨lo, by simp only [bsearch, hflo, ite_true], hflo⟩
   | succ d ih =>
     intro lo hi hlen hex
     rw [bsearch]
     by_cases hlo : lo < hi
-    · rw [if_pos hlo]
+    · rw [ite_eq_left hlo]
       (try dsimp only)
       set mid := (lo + hi) / 2 with hmid_def
       by_cases hfound : f mid = y
-      · exact ⟨mid, by rw [if_pos hfound], hfound⟩
-      · rw [if_neg hfound]
+      · exact ⟨mid, by rw [ite_eq_left hfound], hfound⟩
+      · rw [ite_eq_right hfound]
         by_cases hlt : f mid < y
-        · rw [if_pos hlt]
+        · rw [ite_eq_left hlt]
           obtain ⟨x, hxlo, hxhi, hxy⟩ := hex
           have hxgt : mid < x := by
             by_contra hle
@@ -92,7 +96,7 @@ theorem bsearch_spec (f : ℕ → ℤ) (hmono : Monotone f) (y : ℤ) :
             have hpow : 2 ^ (d + 1) = 2 * 2 ^ d := by ring
             omega
           exact ih (mid + 1) hi hlen' ⟨x, by omega, hxhi, hxy⟩
-        · rw [if_neg hlt]
+        · rw [ite_eq_right hlt]
           obtain ⟨x, hxlo, hxhi, hxy⟩ := hex
           have hy_lt : y < f mid := lt_of_le_of_ne (le_of_not_gt hlt) (Ne.symm hfound)
           have hxlt : x < mid := by
@@ -111,7 +115,7 @@ theorem bsearch_spec (f : ℕ → ℤ) (hmono : Monotone f) (y : ℤ) :
 /-- For `N ≥ 1`, a target occurring among the first `N` values of a monotone function is found
 by `bsearch` with depth `Nat.clog 2 N`. This specializes the search-correctness component of
 the ordered setting in [BuhrmanEtAl2005]. -/
-theorem exists_bsearch_of_ordered {N : ℕ} (hN : 1 ≤ N) (f : ℕ → ℤ)
+theorem exists_bsearch_of_ordered {N : ℕ} (_hN : 1 ≤ N) (f : ℕ → ℤ)
     (hmono : Monotone f) (y : ℤ) (hex : ∃ x, x < N ∧ f x = y) :
     ∃ x', bsearch f y (Nat.clog 2 N) 0 N = some x' ∧ f x' = y := by
   apply bsearch_spec f hmono y (Nat.clog 2 N) 0 N

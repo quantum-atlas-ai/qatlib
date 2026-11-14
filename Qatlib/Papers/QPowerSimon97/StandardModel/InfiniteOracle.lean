@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
-import Qatlib.Papers.QPowerSimon97.StandardModel.JointSeparation
-import Mathlib.Data.Nat.Pairing
-import Mathlib.Order.Filter.AtTopBot.Basic
+module
+
+public import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+public import Qatlib.Papers.QPowerSimon97.StandardModel.JointSeparation
+public import Mathlib.Data.Nat.Pairing
+public import Mathlib.Order.Filter.AtTopBot.Basic
+
+@[expose] public section
 
 /-!
 # An infinite oracle separation for Simon query trees
@@ -95,9 +99,9 @@ theorem simonBad_mass_le (n : ℕ) :
     refine (expectation_le_of_support ?_).trans_eq (expectation_const _ _)
     intro f hf
     by_cases hs : s = 0
-    · rw [if_pos hs]
+    · rw [ite_eq_left hs]
       exact simonBadInd_le_one n _
-    · rw [if_neg hs]
+    · rw [ite_eq_right hs]
       have hn : 1 ≤ n := by
         by_contra h
         have hn0 : n = 0 := Nat.eq_zero_of_not_pos h
@@ -132,7 +136,7 @@ theorem simonBad_mass_le (n : ℕ) :
   · apply expectation_le_of_forall
     intro s
     rw [expectation_bind, expectation_uniform_bool]
-    simp only [Bool.false_eq_true, if_false, if_true, expectation_map]
+    simp only [Bool.false_eq_true, ite_false, ite_true, expectation_map]
     calc
       (1 / 2 : ℝ≥0∞) *
           expectation (simonTwoToOneDist s) (fun f => simonBadInd n (true, f)) +
@@ -305,9 +309,9 @@ theorem exists_good_low (n : ℕ) (hn : 64 ≤ n) (q : ℕ)
       SimonQueryTree.guessMass P ob.2 ob.1 := by
     intro ob
     by_cases hg : simonGoodDraw n ob
-    · rw [if_pos hg, mul_one]
+    · rw [ite_eq_left hg, mul_one]
       exact h ob hg
-    · rw [if_neg hg, mul_zero]
+    · rw [ite_eq_right hg, mul_zero]
       exact zero_le
   have hmarkov : ENNReal.ofReal (2 / 3 : ℝ) *
         expectation (simonOracleConstruction n)
@@ -381,7 +385,7 @@ theorem simon_infiniteOracle_separation
   have hA : ∀ N (h : 64 ≤ N),
       A N = Classical.choose (hex (Nat.unpair N).1 N h) := by
     intro N h
-    simp only [A, dif_pos h]
+    simp only [A, dite_eq_left h]
   refine ⟨A, ?_, ?_⟩
   · rw [simonQuantumDecides]
     filter_upwards [Filter.eventually_ge_atTop 64] with N hN

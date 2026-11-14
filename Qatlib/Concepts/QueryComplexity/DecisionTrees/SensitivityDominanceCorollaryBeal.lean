@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DecisionTrees.SensitivityDominanceCorollaryStat
-import Qatlib.Concepts.QueryComplexity.DecisionTrees.SensitivityCertificateTree
-import Qatlib.Concepts.QueryComplexity.DecisionTrees.Lemma52CertificateBlockSensitivityBeal
-import Qatlib.Concepts.QueryComplexity.DecisionTrees.Lemma53DetCertificateBlockBeal
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.SensitivityDefinitions
+module
+
+public import Qatlib.Concepts.QueryComplexity.DecisionTrees.SensitivityDominanceCorollaryStat
+public import Qatlib.Concepts.QueryComplexity.DecisionTrees.SensitivityCertificateTree
+public import Qatlib.Concepts.QueryComplexity.DecisionTrees.Lemma52CertificateBlockSensitivityBeal
+public import Qatlib.Concepts.QueryComplexity.DecisionTrees.Lemma53DetCertificateBlockBeal
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.SensitivityDefinitions
+
+@[expose] public section
 
 /-!
 # Deterministic query complexity from block sensitivity

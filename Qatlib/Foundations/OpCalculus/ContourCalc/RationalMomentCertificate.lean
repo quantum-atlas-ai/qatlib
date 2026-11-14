@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.OpCalculus.ContourCalc.ApproximateMomentRule
+module
+
+public import Qatlib.Foundations.OpCalculus.ContourCalc.ApproximateMomentRule
+
+@[expose] public section
 open Qatlib.Foundations.OpCalculus.ContourCalc
 
 

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ShadowModels.ProductPOVM.PauliOrbitPOVM
-import Qatlib.Foundations.FiniteStats.BornEstimator.MeasurementScore
+module
+
+public import Qatlib.Concepts.ShadowModels.ProductPOVM.PauliOrbitPOVM
+public import Qatlib.Foundations.FiniteStats.BornEstimator.MeasurementScore
+
+@[expose] public section
 
 /-!
 # Pauli orbit score equality

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QMAAmplify09.MainResults.Defs
-import Qatlib.Papers.QMAAmplify09.MainResults.FastAmplification
-import Mathlib.Analysis.Fourier.ZMod
-import Mathlib.NumberTheory.LegendreSymbol.AddCharacter
+module
+
+public import Qatlib.Papers.QMAAmplify09.MainResults.Defs
+public import Qatlib.Papers.QMAAmplify09.MainResults.FastAmplification
+public import Mathlib.Analysis.Fourier.ZMod
+public import Mathlib.NumberTheory.LegendreSymbol.AddCharacter
+
+@[expose] public section
 
 /-!
 # Fourier filter states and witness branch weights
@@ -119,7 +123,7 @@ theorem fip_filterState (m m' : ZMod N) :
   by_cases h : m = m'
   · subst h
     simp [ZMod.card]
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     have ht : m - m' ≠ 0 := sub_ne_zero.mpr h
     have hne : AddChar.mulShift (ZMod.stdAddChar (N := N)) (m - m') ≠ 1 :=
       ZMod.isPrimitive_stdAddChar N ht
@@ -144,12 +148,12 @@ theorem fip_normFilterState (m m' : ZMod N) :
       rw [← mul_inv, ← sq, Real.sq_sqrt (Nat.cast_nonneg N)]]
     exact Complex.ofReal_inv (N : ℝ)
   by_cases h : m = m'
-  · rw [if_pos h, if_pos h, hs]
+  · rw [ite_eq_left h, ite_eq_left h, hs]
     have hN : ((N : ℝ) : ℂ) ≠ 0 := by
       exact_mod_cast (NeZero.ne N)
     rw [show ((N : ℕ) : ℂ) = ((N : ℝ) : ℂ) by push_cast; ring]
     exact inv_mul_cancel₀ hN
-  · rw [if_neg h, if_neg h, mul_zero]
+  · rw [ite_eq_right h, ite_eq_right h, mul_zero]
 
 /-- If `x = c • F + w`, with `F` normalized and orthogonal to `w`, then `fip F x = c`. -/
 theorem expansion_coeff {ι : Type*} [Fintype ι] {F x w : ι → ℂ} (c : ℂ)

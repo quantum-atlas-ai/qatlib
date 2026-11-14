@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGSignedDotData
-import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGSignedAddition
+module
+
+public import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGSignedDotData
+public import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGSignedAddition
+
+@[expose] public section
 
 /-!
 # Three-term signed dot products by Boolean DAGs

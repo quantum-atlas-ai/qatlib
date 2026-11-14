@@ -4,16 +4,20 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.InteractionEvo.ComputedGrid.ComputedDysonGridProgram
-import Qatlib.Concepts.InteractionEvo.MeanDerivGrid.EffectiveDysonParameters
-import Qatlib.Concepts.InteractionEvo.MeanDerivGrid.EffectiveCubeTransport
-import Qatlib.Concepts.InteractionEvo.EffCosts.EffectiveInteractionGateRateHami
-import Qatlib.Concepts.InteractionEvo.EffCosts.EffectiveInteractionQueries
-import Qatlib.Concepts.InteractionEvo.SegmentProduct.Lemma6SegmentCompositeHami
-import Qatlib.Concepts.InteractionEvo.SegmentProduct.Corollary4CompositeErrorHami
-import Qatlib.Concepts.InteractionEvo.EffCosts.EffectiveSparseHAMT
-import Qatlib.Concepts.InteractionEvo.MeanDerivGrid.EffectiveTriangleEncoding
-import Qatlib.Concepts.LchsSimulation.InteractHybrid.InteractionPictureLchsReprLine
+module
+
+public import Qatlib.Concepts.InteractionEvo.ComputedGrid.ComputedDysonGridProgram
+public import Qatlib.Concepts.InteractionEvo.MeanDerivGrid.EffectiveDysonParameters
+public import Qatlib.Concepts.InteractionEvo.MeanDerivGrid.EffectiveCubeTransport
+public import Qatlib.Concepts.InteractionEvo.EffCosts.EffectiveInteractionGateRateHami
+public import Qatlib.Concepts.InteractionEvo.EffCosts.EffectiveInteractionQueries
+public import Qatlib.Concepts.InteractionEvo.SegmentProduct.Lemma6SegmentCompositeHami
+public import Qatlib.Concepts.InteractionEvo.SegmentProduct.Corollary4CompositeErrorHami
+public import Qatlib.Concepts.InteractionEvo.EffCosts.EffectiveSparseHAMT
+public import Qatlib.Concepts.InteractionEvo.MeanDerivGrid.EffectiveTriangleEncoding
+public import Qatlib.Concepts.LchsSimulation.InteractHybrid.InteractionPictureLchsReprLine
+
+@[expose] public section
 
 /-!
 # Interaction picture parameter and program definitions
@@ -174,7 +178,7 @@ def ipSparseProgram (p : EffectiveSparseParameters) : EffectiveProgram :=
       , EffectiveStep.phase (p.nd + 2 * p.ns) 1 1 false ] }
 
 /-- The assigned sparse-program query count, equal to two. -/
-def ipSparseQueries (p : EffectiveSparseParameters) : ℕ := 2
+def ipSparseQueries (_p : EffectiveSparseParameters) : ℕ := 2
 
 /-- The product of evolution under `k • L`, ordered evolution of its interaction generator with
 `H`, and evolution under `-(k • L)`. -/

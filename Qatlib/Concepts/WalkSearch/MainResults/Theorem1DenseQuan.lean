@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.MainResults.Theorem1DenseStat
-import Qatlib.Concepts.WalkSearch.Primitives.TriangleSearchCorrectedDefinitions
-import Qatlib.Concepts.WalkSearch.MainResults.Theorem1Quan
+module
+
+public import Qatlib.Concepts.WalkSearch.MainResults.Theorem1DenseStat
+public import Qatlib.Concepts.WalkSearch.Primitives.TriangleSearchCorrectedDefinitions
+public import Qatlib.Concepts.WalkSearch.MainResults.Theorem1Quan
+
+@[expose] public section
 
 /-!
 # The dense combinatorial triangle bound

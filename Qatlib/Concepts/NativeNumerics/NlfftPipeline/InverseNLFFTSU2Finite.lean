@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.NativeNumerics.NlfftPipeline.InverseNLFFTSU2
-import Qatlib.Concepts.NativeNumerics.NlfftPipeline.FiniteFFTPolynomialMul
+module
+
+public import Qatlib.Concepts.NativeNumerics.NlfftPipeline.InverseNLFFTSU2
+public import Qatlib.Concepts.NativeNumerics.NlfftPipeline.FiniteFFTPolynomialMul
+
+@[expose] public section
 
 /-!
 # Finite Fourier implementation of the inverse nonlinear transform
@@ -296,24 +300,24 @@ theorem inverseNLFFTFiniteSU2_gammas (A B : Polynomial ℂ) (n : ℕ)
         have hfa : ∀ j, j < N - m → (finiteCoefficientPolynomial (N - m) fun j => (finiteFFTPolynomialMul (Nat.clog 2 (4 * N)) (finiteCoefficientConjRev m (inverseNLFFTFiniteSU2 (A % X ^ m) (B % X ^ m) m).eta) (finiteCoefficientPrefix N A)).polynomial.coeff (m + j) + (finiteFFTPolynomialMul (Nat.clog 2 (4 * N)) (finiteCoefficientConjRev m (inverseNLFFTFiniteSU2 (A % X ^ m) (B % X ^ m) m).xi) (finiteCoefficientPrefix N B)).polynomial.coeff (m + j)).coeff j
             = (layerStripSU2 A B m).finalA.coeff j := by
           intro j hj
-          rw [finiteCoefficientPolynomial_coeff, if_pos hj, ht1, ht2, hprod _ j (by omega), hprodb _ j (by omega), her, hxr, ihe', ihx',
+          rw [finiteCoefficientPolynomial_coeff, ite_eq_left hj, ht1, ht2, hprod _ j (by omega), hprodb _ j (by omega), her, hxr, ihe', ihx',
             ← Polynomial.coeff_add, ← htA, Nat.add_comm m j, Polynomial.coeff_X_pow_mul]
         have hfb : ∀ j, j < N - m → (finiteCoefficientPolynomial (N - m) fun j => (finiteFFTPolynomialMul (Nat.clog 2 (4 * N)) ((inverseNLFFTFiniteSU2 (A % X ^ m) (B % X ^ m) m).eta) (finiteCoefficientPrefix N B)).polynomial.coeff (m + j) - (finiteFFTPolynomialMul (Nat.clog 2 (4 * N)) ((inverseNLFFTFiniteSU2 (A % X ^ m) (B % X ^ m) m).xi) (finiteCoefficientPrefix N A)).polynomial.coeff (m + j)).coeff j
             = (layerStripSU2 A B m).finalB.coeff j := by
           intro j hj
-          rw [finiteCoefficientPolynomial_coeff, if_pos hj, ht3, ht4, hprodb _ j (by omega), hprod _ j (by omega), ihe', ihx',
+          rw [finiteCoefficientPolynomial_coeff, ite_eq_left hj, ht3, ht4, hprodb _ j (by omega), hprod _ j (by omega), ihe', ihx',
             ← Polynomial.coeff_sub, ← htB, Nat.add_comm m j, Polynomial.coeff_X_pow_mul]
         have haMp : (finiteCoefficientPolynomial (N - m) fun j => (finiteFFTPolynomialMul (Nat.clog 2 (4 * N)) (finiteCoefficientConjRev m (inverseNLFFTFiniteSU2 (A % X ^ m) (B % X ^ m) m).eta) (finiteCoefficientPrefix N A)).polynomial.coeff (m + j) + (finiteFFTPolynomialMul (Nat.clog 2 (4 * N)) (finiteCoefficientConjRev m (inverseNLFFTFiniteSU2 (A % X ^ m) (B % X ^ m) m).xi) (finiteCoefficientPrefix N B)).polynomial.coeff (m + j)) = finiteCoefficientPrefix (N - m) (layerStripSU2 A B m).finalA := by
           ext j
           by_cases hj : j < N - m
           · rw [hfa j hj, finiteCoefficientPrefix_eq_mod, coeff_mod_X_pow _ _ _ hj]
-          · rw [finiteCoefficientPolynomial_coeff, if_neg hj,
+          · rw [finiteCoefficientPolynomial_coeff, ite_eq_right hj,
               finiteCoefficientPrefix_eq_mod, coeff_mod_X_pow_zero _ _ _ (by omega)]
         have hbMp : (finiteCoefficientPolynomial (N - m) fun j => (finiteFFTPolynomialMul (Nat.clog 2 (4 * N)) ((inverseNLFFTFiniteSU2 (A % X ^ m) (B % X ^ m) m).eta) (finiteCoefficientPrefix N B)).polynomial.coeff (m + j) - (finiteFFTPolynomialMul (Nat.clog 2 (4 * N)) ((inverseNLFFTFiniteSU2 (A % X ^ m) (B % X ^ m) m).xi) (finiteCoefficientPrefix N A)).polynomial.coeff (m + j)) = finiteCoefficientPrefix (N - m) (layerStripSU2 A B m).finalB := by
           ext j
           by_cases hj : j < N - m
           · rw [hfb j hj, finiteCoefficientPrefix_eq_mod, coeff_mod_X_pow _ _ _ hj]
-          · rw [finiteCoefficientPolynomial_coeff, if_neg hj,
+          · rw [finiteCoefficientPolynomial_coeff, ite_eq_right hj,
               finiteCoefficientPrefix_eq_mod, coeff_mod_X_pow_zero _ _ _ (by omega)]
         have hexcont : LayerStripExact (layerStripSU2 A B m).finalA
             (layerStripSU2 A B m).finalB (N - m) :=
@@ -351,8 +355,8 @@ theorem inverseNLFFTFiniteSU2_gammas (A B : Polynomial ℂ) (n : ℕ)
           intro P f hdegP hf
           ext j
           by_cases hj : j < N
-          · rw [finiteCoefficientPolynomial_coeff, if_pos hj, hf j]
-          · rw [finiteCoefficientPolynomial_coeff, if_neg hj,
+          · rw [finiteCoefficientPolynomial_coeff, ite_eq_left hj, hf j]
+          · rw [finiteCoefficientPolynomial_coeff, ite_eq_right hj,
               Polynomial.coeff_eq_zero_of_natDegree_lt (by omega)]
         have hgarw : (layerStripSU2 A B N).gammas
             = (layerStripSU2 A B m).gammas

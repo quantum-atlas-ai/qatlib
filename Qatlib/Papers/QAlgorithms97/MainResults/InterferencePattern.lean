@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Mathlib.Analysis.Complex.Exponential
-import Mathlib.Data.Real.Sqrt
-import Qatlib.Concepts.QuditTeleport.TeleportCore.Transform
-import Mathlib.LinearAlgebra.Matrix.Permutation
+module
+
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Mathlib.Analysis.Complex.Exponential
+public import Mathlib.Analysis.Real.Sqrt
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.Transform
+public import Mathlib.LinearAlgebra.Matrix.Permutation
+
+@[expose] public section
 
 /-!
 # Controlled addition and phase interference
@@ -67,7 +71,7 @@ theorem conditional_pattern {I J : Type*} [Fintype I] [DecidableEq I]
   rw [Fintype.sum_prod_type]
   simp only [ite_mul, zero_mul, Finset.sum_ite_irrel, Finset.sum_const_zero]
   rw [Finset.sum_ite_eq]
-  simp only [Finset.mem_univ, if_true]
+  simp only [Finset.mem_univ, ite_true]
   simp_rw [show ∀ z, U x y z * (α x * Ψ z) = α x * (U x y z * Ψ z) by
     intro z; ring]
   rw [← Finset.mul_sum, h]

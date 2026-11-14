@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.BayesianPDEAn26.LossBounds.LossDefinitions
-import Mathlib.MeasureTheory.Constructions.Pi
-import Mathlib.MeasureTheory.Measure.Prod
-import Mathlib.MeasureTheory.Measure.Real
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
+module
+
+public import Qatlib.Papers.BayesianPDEAn26.LossBounds.LossDefinitions
+public import Mathlib.MeasureTheory.Constructions.Pi
+public import Mathlib.MeasureTheory.Measure.Prod
+public import Mathlib.MeasureTheory.Measure.Real
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -188,7 +192,7 @@ theorem estimator_deviation_bound
       4 * (pH - pHat) / a + (4 * pHat - 2) * (1 / a - 1 / b) := by
     rw [estLoss, estLoss]
     rw [ha_def, hb_def]
-    field_simp <;> ring
+    field_simp; ring
   have htermA : |4 * (pH - pHat) / a| = 4 * |pHat - pH| / a := by
     rw [abs_div, abs_mul, abs_of_pos ha_pos, abs_of_nonneg (by norm_num : (0 : ℝ) ≤ 4),
       abs_sub_comm (pH) (pHat)]

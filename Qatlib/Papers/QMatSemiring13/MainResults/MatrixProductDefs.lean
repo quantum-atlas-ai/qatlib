@@ -4,10 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Data.Finset.Lattice.Fold
-import Mathlib.Order.WithBot
-import Mathlib.Data.Prod.Lex
+module
+
+public import Mathlib.Algebra.Order.Monoid.Unbundled.WithTop
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Data.Finset.Lattice.Fold
+public import Mathlib.Order.WithBot
+public import Mathlib.Order.Prod.Lex.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

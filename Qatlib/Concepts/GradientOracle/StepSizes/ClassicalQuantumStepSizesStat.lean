@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Calculus.Taylor
+module
+
+public import Mathlib.Analysis.Calculus.Taylor
+
+@[expose] public section
 
 /-!
 # Specification of classical and quantum step sizes

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NonhomogPDE18.QuarticWord.Source
-import Qatlib.Papers.NonhomogPDE18.WaveModel.NativePrims
+module
+
+public import Qatlib.Papers.NonhomogPDE18.QuarticWord.Source
+public import Qatlib.Papers.NonhomogPDE18.WaveModel.NativePrims
+
+@[expose] public section
 
 /-!
 # Native quartic phase decomposition

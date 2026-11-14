@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QWalkSpectra04.WalkDefinition.SzegedyDefOneQuantizedWalkQuan
-import Qatlib.Papers.QWalkSpectra04.WalkDefinition.SzegedyDefTwoDiscriminantQuan
-import Qatlib.Concepts.SpectralFilter.BusySpectrum.BipartiteDiscriminantSpectrum
-import Qatlib.Concepts.SpectralReadout.PhaseReadout.BoundarySpectralSectors
+module
+
+public import Qatlib.Papers.QWalkSpectra04.WalkDefinition.SzegedyDefOneQuantizedWalkQuan
+public import Qatlib.Papers.QWalkSpectra04.WalkDefinition.SzegedyDefTwoDiscriminantQuan
+public import Qatlib.Concepts.SpectralFilter.BusySpectrum.BipartiteDiscriminantSpectrum
+public import Qatlib.Concepts.SpectralReadout.PhaseReadout.BoundarySpectralSectors
+
+@[expose] public section
 
 /-!
 # Frame and discriminant identities for Szegedy walks

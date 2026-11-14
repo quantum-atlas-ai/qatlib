@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CoherentSim.CoherentOAA.ObliviousAmplification
-import Qatlib.Concepts.QspSimulation.Achievability.CircuitWellFormed
+module
+
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.ObliviousAmplification
+public import Qatlib.Concepts.QspSimulation.Achievability.CircuitWellFormed
+
+@[expose] public section
 
 /-!
 # Counted oblivious amplification

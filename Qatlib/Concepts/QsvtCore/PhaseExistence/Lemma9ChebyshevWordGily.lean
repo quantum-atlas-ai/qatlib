@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.PhaseExistence.Lemma9ChebyshevWordStat
-import Qatlib.Concepts.QsvtCore.PhaseExistence.SingleQubitWordTransportGily
+module
+
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.Lemma9ChebyshevWordStat
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.SingleQubitWordTransportGily
+
+@[expose] public section
 
 /-!
 # Chebyshev polynomials from reflection words

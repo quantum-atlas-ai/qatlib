@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Order.BigOperators.Ring.Finset
-import Mathlib.Data.Matrix.Basic
-import Qatlib.Concepts.CoherentSim.CoherentOAA.Pseudoinverse
-import Qatlib.Papers.MacaulayHHL21.MainResults.SourceModel
+module
+
+public import Mathlib.Algebra.Order.BigOperators.Ring.Finset
+public import Mathlib.Data.Matrix.Basic
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.Pseudoinverse
+public import Qatlib.Papers.MacaulayHHL21.MainResults.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

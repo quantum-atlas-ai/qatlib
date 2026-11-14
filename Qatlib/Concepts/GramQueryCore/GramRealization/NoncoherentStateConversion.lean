@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GramQueryCore.FilteredCert.FilteredGamma2
-import Qatlib.Foundations.PureStateMath.Qubit
+module
+
+public import Qatlib.Concepts.GramQueryCore.FilteredCert.FilteredGamma2
+public import Qatlib.Foundations.PureStateMath.Qubit
+
+@[expose] public section
 
 /-!
 # Tensor products and phases of state Gram matrices
@@ -91,7 +95,7 @@ theorem overlapPhase_mul (z : ℂ) : overlapPhase z * z = (‖z‖ : ℂ) := by
   classical
   by_cases hz : z = 0
   · simp [overlapPhase, hz]
-  · simp only [overlapPhase, if_neg hz]
+  · simp only [overlapPhase, ite_eq_right hz]
     exact div_mul_cancel₀ _ hz
 
 /-- The phase correction `overlapPhase z` has norm one, including at zero. -/

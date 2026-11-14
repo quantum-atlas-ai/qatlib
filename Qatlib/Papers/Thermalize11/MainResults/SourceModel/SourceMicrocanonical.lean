@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MixedFidelity.FidelityMetric.MixedFidelityDefs
-import Qatlib.Concepts.ReferenceError.DensityToRaw.ChannelTraceContraction
-import Qatlib.Foundations.PureStateMath.MixedState
-import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
-import QuantumInfo.ForMathlib.Matrix
+module
+
+public import Qatlib.Concepts.MixedFidelity.FidelityMetric.MixedFidelityDefs
+public import Qatlib.Concepts.ReferenceError.DensityToRaw.ChannelTraceContraction
+public import Qatlib.Foundations.PureStateMath.MixedState
+public import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
+public import QuantumInfo.ForMathlib.Matrix
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

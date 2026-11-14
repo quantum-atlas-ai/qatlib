@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.PolyApprox.MarkovLukacs
-import Mathlib.Topology.Order.DenselyOrdered
-import Mathlib.Topology.Order.OrderClosed
+module
+
+public import Qatlib.Concepts.QsvtCore.PolyApprox.MarkovLukacs
+public import Mathlib.Topology.Order.DenselyOrdered
+public import Mathlib.Topology.Order.OrderClosed
+
+@[expose] public section
 
 /-!
 # Nonnegative polynomial representations

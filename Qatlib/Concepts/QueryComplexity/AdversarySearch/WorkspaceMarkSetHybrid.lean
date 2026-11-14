@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryMagnitude
+module
+
+public import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryMagnitude
+
+@[expose] public section
 
 /-!
 # Workspace hybrid bounds for marked sets
@@ -98,7 +102,7 @@ theorem workspace_mark_set_query_l2 (f g : I → Bool) (ψ : QState ((I × Bool)
       applyGate_workspaceBitOracle_mk, applyGate_workspaceBitOracle_mk]
     by_cases hi : f i ≠ g i
     · have hm (c : Bool) : (((i,c),w) : (I × Bool) × W) ∈ S := by simp [S, workspaceMarkFiber, hi]
-      rw [collapse_apply, collapse_apply, if_pos (hm _), if_pos (hm _)]
+      rw [collapse_apply, collapse_apply, ite_eq_left (hm _), ite_eq_left (hm _)]
     · have heq : f i = g i := not_ne_iff.mp hi
       rw [heq]; simp
   rw [he]
@@ -140,8 +144,6 @@ theorem workspace_mark_set_hybrid (f g : I → Bool) (C : Circuit ((I × Bool) �
         (workspace_mark_set_query_l2 f g ψ)
       have ht := ih (ApplyGate Of ψ) hC'
       refine (norm_add_le _ _).trans ((add_le_add hh ht).trans_eq ?_)
-      change 2*Real.sqrt
-          (MeasureProb ψ _)+2*((oracleQueryInputs f C (ApplyGate Of ψ)).map _).sum = _
       simp only [oracleQueryInputs, List.map_cons, List.sum_cons]
       ring
 

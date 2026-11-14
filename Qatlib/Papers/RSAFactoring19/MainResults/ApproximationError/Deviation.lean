@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Analysis.SpecialFunctions.Log.Base
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Data.Finset.Card
-import Mathlib.Data.Nat.Cast.Order.Field
-import Mathlib.Tactic
+module
+
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Analysis.SpecialFunctions.Log.Base
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Data.Nat.Cast.Order.Field
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -259,7 +263,7 @@ theorem deviation_le_pieceUnion {κ : Type*} [Fintype κ] [DecidableEq κ]
   by_cases hN : (Fintype.card ι : ℝ) = 0
   · have hempty : (badSet σ π).card = 0 := by
       have : Fintype.card ι = 0 := by exact_mod_cast hN
-      haveI : IsEmpty ι := Fintype.card_eq_zero_iff.mp this
+      have : IsEmpty ι := Fintype.card_eq_zero_iff.mp this
       simp [badSet]
     unfold deviation
     rw [hempty, hN]

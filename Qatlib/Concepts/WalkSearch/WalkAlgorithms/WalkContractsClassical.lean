@@ -4,16 +4,20 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.WalkAlgorithms.WalkContracts
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Data.Fintype.Defs
-import Mathlib.Data.Fintype.Card
-import Mathlib.Data.Fintype.Pi
-import Mathlib.Data.Fintype.Basic
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Data.Real.Basic
-import Mathlib.Data.Nat.Log
-import Mathlib.Data.Nat.Sqrt
+module
+
+public import Qatlib.Concepts.WalkSearch.WalkAlgorithms.WalkContracts
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Data.Fintype.Defs
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Data.Fintype.Pi
+public import Mathlib.Data.Fintype.Basic
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Data.Nat.Log
+public import Mathlib.Data.Nat.Sqrt
+
+@[expose] public section
 
 /-!
 # Original graph-search contracts

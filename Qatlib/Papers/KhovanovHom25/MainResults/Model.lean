@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.Adjoint
-import Mathlib.Analysis.InnerProductSpace.Projection.Submodule
-import Mathlib.Analysis.InnerProductSpace.Projection.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.InnerProductSpace.Adjoint
+public import Mathlib.Analysis.InnerProductSpace.Projection.Submodule
+public import Mathlib.Analysis.InnerProductSpace.Projection.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -231,7 +235,7 @@ theorem lap_eq_zero_iff (i : ℕ) (x : K.C i) :
         simp
     | succ j =>
         simp only [lap, lapDown, lapUp_succ, LinearMap.comp_apply,
-          LinearMap.add_apply, upNorm_succ]
+          LinearMap.add_apply]
         have hdadj : K.dAdj j x = 0 := by
           have h : ‖K.dAdj j x‖ = 0 := by simpa using hu
           exact norm_eq_zero.mp h
@@ -394,7 +398,7 @@ theorem harmonic_orthogonal_eq_ranges (i : ℕ) :
 
 /-- The Hodge decomposition is an orthogonal complement. -/
 theorem harmonic_isCompl (i : ℕ) : IsCompl (K.harmonic i) (K.harmonic i)ᗮ :=
-  Submodule.isCompl_orthogonal_of_hasOrthogonalProjection
+  Submodule.isCompl_orthogonal (K.harmonic i)
 
 /-- Every cycle decomposes as a harmonic chain plus a boundary:
 `ker dᵢ₊₁ = ℋᵢ₊₁ ⊔ Im dᵢ`, at degree `i+1`. -/
@@ -426,9 +430,9 @@ theorem lap_dAdj (i : ℕ) (x : K.C (i + 1)) :
     K.lap i (K.dAdj i x) = K.dAdj i (K.lap (i + 1) x) := by
   cases i with
   | zero =>
-      simp [lap, lapDown, lapUp, K.d_comp, dAdj_comp_dAdj_apply]
+      simp [lap, lapDown, lapUp, dAdj_comp_dAdj_apply]
   | succ j =>
-      simp [lap, lapDown, lapUp, K.d_comp, dAdj_comp_dAdj_apply]
+      simp [lap, lapDown, lapUp, dAdj_comp_dAdj_apply]
 
 /-! ## Khovanov local data: `V = span(1, X)` and merge/comultiplication -/
 

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OverlapGapGoh26.AmpDynamics.FiniteAmp
-import Mathlib.Probability.Distributions.Gaussian.Real
-import Mathlib.Probability.Independence.Basic
+module
+
+public import Qatlib.Papers.OverlapGapGoh26.AmpDynamics.FiniteAmp
+public import Mathlib.Probability.Distributions.Gaussian.Real
+public import Mathlib.Probability.Independence.Basic
+
+@[expose] public section
 
 /-!
 # Gaussian tensor interpolation and AMP output paths

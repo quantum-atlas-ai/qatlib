@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.PhaseLoopObstruction
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.IntegerWinding
-import Mathlib.Analysis.SpecialFunctions.Complex.Circle
-import Mathlib.Topology.Homotopy.Lifting
-import Mathlib.Analysis.Convex.Contractible
-import Mathlib.Topology.Algebra.Module.LocallyConvex
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.PhaseLoopObstruction
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.IntegerWinding
+public import Mathlib.Analysis.SpecialFunctions.Complex.Circle
+public import Mathlib.Topology.Homotopy.Lifting
+public import Mathlib.Analysis.Convex.Contractible
+public import Mathlib.Topology.Algebra.Module.LocallyConvex
+
+@[expose] public section
 
 /-!
 # Disk Obstruction
@@ -54,8 +58,8 @@ theorem no_circle_disk_extension (R : ComplexUnitDisk → Circle) (hR : Continuo
     (hboundary : ∀ t : ℝ, R (unitDiskBoundary t)=Circle.exp t) : False := by
   have hc : Convex ℝ (Metric.closedBall (0 : ℂ) 1) := convex_closedBall _ _
   have hn : (Metric.closedBall (0 : ℂ) 1).Nonempty := ⟨0,by simp⟩
-  letI : ContractibleSpace ComplexUnitDisk := hc.contractibleSpace hn
-  letI : LocallyPathConnectedSpace ComplexUnitDisk := hc.locallyPathConnectedSpace
+  let : ContractibleSpace ComplexUnitDisk := hc.contractibleSpace hn
+  let : LocallyPathConnectedSpace ComplexUnitDisk := hc.locallyPathConnectedSpace
   let r : C(ComplexUnitDisk,Circle) := ⟨R,hR⟩
   have hzero : Circle.exp 0=r (unitDiskBoundary 0) := (hboundary 0).symm
   obtain ⟨F,hF,_hunique⟩ := Circle.isCoveringMap_exp.existsUnique_continuousMap_lifts

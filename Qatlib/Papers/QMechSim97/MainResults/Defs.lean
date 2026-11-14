@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Analysis.Complex.Trigonometric
-import Mathlib.Data.Complex.Basic
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Data.Matrix.Mul
-import Mathlib.LinearAlgebra.Matrix.ConjTranspose
-import Mathlib.LinearAlgebra.Matrix.Determinant.Basic
-import Mathlib.Data.Matrix.Diagonal
-import Mathlib.Data.Fintype.Card
+module
+
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Analysis.Complex.Trigonometric
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.LinearAlgebra.Matrix.ConjTranspose
+public import Mathlib.LinearAlgebra.Matrix.Determinant.Basic
+public import Mathlib.Data.Matrix.Diagonal
+public import Mathlib.Data.Fintype.Card
+
+@[expose] public section
 
 /-!
 # Parameters and resource expressions for lattice simulation

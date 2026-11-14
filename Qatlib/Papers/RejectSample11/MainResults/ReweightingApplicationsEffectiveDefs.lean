@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.Waterfill.LevelFidelity.CoherentReweightingCore
-import Qatlib.Concepts.Waterfill.LevelFidelity.CoherentReweighting
-import Qatlib.Concepts.NativeNumerics.WaterFilling
-import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedQueryCircuit
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Foundations.PureStateMath.Tensor
+module
+
+public import Qatlib.Concepts.Waterfill.LevelFidelity.CoherentReweightingCore
+public import Qatlib.Concepts.Waterfill.LevelFidelity.CoherentReweighting
+public import Qatlib.Concepts.NativeNumerics.WaterFilling
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedQueryCircuit
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Foundations.PureStateMath.Tensor
+
+@[expose] public section
 
 /-!
 # Rational Fourier clipping profiles

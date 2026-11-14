@@ -4,8 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ShadowModels.ProductPOVM.PauliScoreEquality
-import Mathlib.Analysis.Convex.StdSimplex
+module
+
+public import Qatlib.Concepts.ShadowModels.ProductPOVM.PauliScoreEquality
+public import Mathlib.Analysis.Convex.StdSimplex
+public import Qatlib.Foundations.ProbabilityCore.SimplexWeights
+
+@[expose] public section
 
 /-!
 # Pauli-orbit measurement and state-score equality
@@ -86,7 +91,7 @@ theorem actual_measurement_state_value (n : ℕ) (words : V → PauliWord n) (w 
     (hK : ∀ q ρ,ρ∈K → pauliConjugateState n q ρ∈K) :
     actualMeasurementValue n words w K=stateScoreValue (fun i => pauliObservable n (words i)) w K := by
   obtain ⟨ρ0,hρ0⟩ := hKne
-  letI : Nonempty {P : POVM (PauliWord n) (Reg n) // Admissible n K P} :=
+  let : Nonempty {P : POVM (PauliWord n) (Reg n) // Admissible n K P} :=
     ⟨⟨pauliOrbitPOVM n ρ0,orbit_admissible n K hK ρ0 hρ0⟩⟩
   have hb : BddAbove (Set.range (fun P : {P : POVM (PauliWord n) (Reg n) // Admissible n K P} =>
       measurementScore (fun i => pauliObservable n (words i)) w P.val)) := by
@@ -118,8 +123,8 @@ measurement values equals the simplex infimum of the corresponding state-score v
 theorem actual_lemma2_delta (n : ℕ) (words : V → PauliWord n)
     (K : Set (MState (Reg n))) (hKne : K.Nonempty)
     (hK : ∀ q ρ,ρ∈K → pauliConjugateState n q ρ∈K) :
-    sInf ((fun w => actualMeasurementValue n words w K) '' stdSimplex ℝ V)=
-      sInf ((fun w => stateScoreValue (fun i => pauliObservable n (words i)) w K) '' stdSimplex ℝ V) := by
+    sInf ((fun w => actualMeasurementValue n words w K) '' Qatlib.Foundations.ProbabilityCore.SimplexWeights.weights ℝ V)=
+      sInf ((fun w => stateScoreValue (fun i => pauliObservable n (words i)) w K) '' Qatlib.Foundations.ProbabilityCore.SimplexWeights.weights ℝ V) := by
   congr 1
   ext t
   constructor

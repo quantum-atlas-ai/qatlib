@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MeasureOnly00.TeleportBound.MeasurementPatterns
+module
+
+public import Qatlib.Papers.MeasureOnly00.TeleportBound.MeasurementPatterns
+
+@[expose] public section
 
 /-!
 # Teleportation endpoint identities

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QWalkSearch02.MainResults.WalkDefs
-import Mathlib.Data.Nat.Choose.Sum
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
+module
+
+public import Qatlib.Papers.QWalkSearch02.MainResults.WalkDefs
+public import Mathlib.Data.Nat.Choose.Sum
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+
+@[expose] public section
 
 /-!
 # Binomial stationary state of the reduced search walk
@@ -98,10 +102,10 @@ lemma cosOmega_succ_eq {n i : ℕ} :
 /-- For `n ≥ 1`, the forward-neighbor sine term minus the cosine term equals the binomial
 amplitude at the current index. See [ShenviKempeWhaley2003]. -/
 lemma rowR {n : ℕ} (hn : 1 ≤ n) (i : Fin n) :
-    (if h : (i:ℕ)+1 < n then sinOmega n ((i:ℕ)+1) * W n ((i:ℕ)+1) else 0)
+    (if _h : (i:ℕ)+1 < n then sinOmega n ((i:ℕ)+1) * W n ((i:ℕ)+1) else 0)
       - cosOmega n ((i:ℕ)+1) * W n (i:ℕ) = W n (i:ℕ) := by
   by_cases h : (i:ℕ)+1 < n
-  · rw [dif_pos h, sinOmega_succ_eq, W_succ_mul h]
+  · rw [dite_eq_left h, sinOmega_succ_eq, W_succ_mul h]
     rw [show 2 / (n:ℝ) * Real.sqrt (((i:ℝ)+1) * ((n:ℝ)-1-(i:ℝ)))
           * (W n (i:ℕ) * Real.sqrt (((n:ℝ)-1-(i:ℝ))/((i:ℝ)+1)))
         = (2/(n:ℝ) * W n (i:ℕ))
@@ -111,7 +115,7 @@ lemma rowR {n : ℕ} (hn : 1 ≤ n) (i : Fin n) :
     have hnn : (0:ℝ) < n := by exact_mod_cast hn
     field_simp
     ring
-  · rw [dif_neg h]
+  · rw [dite_eq_right h]
     have hi : (i:ℕ)+1 = n := by have := i.isLt; omega
     have hnn : (0:ℝ) < n := by exact_mod_cast hn
     have hn0 : (n:ℝ) ≠ 0 := ne_of_gt hnn
@@ -174,9 +178,9 @@ lemma sqrt_ratio_mul2 {n i : ℕ} (h0 : 0 < i) (hin : i < n) :
 amplitude at the current index. See [ShenviKempeWhaley2003]. -/
 lemma rowL {n : ℕ} (hn : 1 ≤ n) (i : Fin n) :
     cosOmega n (i:ℕ) * W n (i:ℕ)
-      + (if h : 0 < (i:ℕ) then sinOmega n (i:ℕ) * W n ((i:ℕ)-1) else 0) = W n (i:ℕ) := by
+      + (if _h : 0 < (i:ℕ) then sinOmega n (i:ℕ) * W n ((i:ℕ)-1) else 0) = W n (i:ℕ) := by
   by_cases h0 : 0 < (i:ℕ)
-  · rw [dif_pos h0, W_pred_mul h0 i.isLt]
+  · rw [dite_eq_left h0, W_pred_mul h0 i.isLt]
     have hs : sinOmega n (i:ℕ) * Real.sqrt ((i:ℝ)/((n:ℝ)-(i:ℝ))) = (2/(n:ℝ))*(i:ℝ) := by
       rw [show sinOmega n (i:ℕ) = (2/(n:ℝ)) * Real.sqrt ((i:ℝ)*((n:ℝ)-(i:ℝ))) from rfl]
       rw [mul_assoc]
@@ -189,7 +193,7 @@ lemma rowL {n : ℕ} (hn : 1 ≤ n) (i : Fin n) :
     have hnn : (0:ℝ) < n := by exact_mod_cast hn
     field_simp
     ring
-  · rw [dif_neg h0]
+  · rw [dite_eq_right h0]
     have hz : (i:ℕ) = 0 := by omega
     rw [hz]
     have hc : cosOmega n 0 = 1 := by unfold cosOmega; simp
@@ -200,20 +204,20 @@ lemma rowL {n : ℕ} (hn : 1 ≤ n) (i : Fin n) :
 range, and zero otherwise. -/
 lemma sum_ite_succ {n : ℕ} (i : Fin n) (f : ℕ → ℂ) :
     (∑ j : Fin n, if (j:ℕ) = (i:ℕ)+1 then f (j:ℕ) else 0)
-      = if h : (i:ℕ)+1 < n then f ((i:ℕ)+1) else 0 := by
+      = if _h : (i:ℕ)+1 < n then f ((i:ℕ)+1) else 0 := by
   by_cases h : (i:ℕ)+1 < n
-  · rw [dif_pos h, Finset.sum_eq_single (⟨(i:ℕ)+1, h⟩ : Fin n)]
+  · rw [dite_eq_left h, Finset.sum_eq_single (⟨(i:ℕ)+1, h⟩ : Fin n)]
     · simp
     · intro b _ hb
       have hc : ¬ ((b:ℕ) = (i:ℕ)+1) := by
         intro he; exact hb (Fin.ext (by simpa using he))
-      rw [if_neg hc]
+      rw [ite_eq_right hc]
     · intro hh; exact absurd (Finset.mem_univ _) hh
-  · rw [dif_neg h]
+  · rw [dite_eq_right h]
     apply Finset.sum_eq_zero
     intro b _
     have hc : ¬ ((b:ℕ) = (i:ℕ)+1) := by omega
-    rw [if_neg hc]
+    rw [ite_eq_right hc]
 
 /-- A finite sum supported at the index `i` equals the function value at `i`. -/
 lemma sum_ite_self {n : ℕ} (i : Fin n) (f : ℕ → ℂ) :
@@ -223,28 +227,28 @@ lemma sum_ite_self {n : ℕ} (i : Fin n) (f : ℕ → ℂ) :
   · intro b _ hb
     have hc : ¬ ((b:ℕ) = (i:ℕ)) := by
       intro he; exact hb (Fin.ext he)
-    rw [if_neg hc]
+    rw [ite_eq_right hc]
   · intro hh; exact absurd (Finset.mem_univ _) hh
 
 /-- A finite sum supported at the predecessor of `i` equals that predecessor value for positive
 `i`, and zero at index zero. -/
 lemma sum_ite_pred {n : ℕ} (i : Fin n) (f : ℕ → ℂ) :
     (∑ j : Fin n, if (i:ℕ) = (j:ℕ)+1 then f (j:ℕ) else 0)
-      = if h : 0 < (i:ℕ) then f ((i:ℕ)-1) else 0 := by
+      = if _h : 0 < (i:ℕ) then f ((i:ℕ)-1) else 0 := by
   by_cases h : 0 < (i:ℕ)
-  · rw [dif_pos h, Finset.sum_eq_single (⟨(i:ℕ)-1, by omega⟩ : Fin n)]
-    · simp only [Fin.val_mk]
-      rw [if_pos (by omega)]
+  · rw [dite_eq_left h, Finset.sum_eq_single (⟨(i:ℕ)-1, by omega⟩ : Fin n)]
+    · simp only []
+      rw [ite_eq_left (by omega)]
     · intro b _ hb
       have hc : ¬ ((i:ℕ) = (b:ℕ)+1) := by
-        intro he; exact hb (Fin.ext (by simp only [Fin.val_mk]; omega))
-      rw [if_neg hc]
+        intro he; exact hb (Fin.ext (by simp only []; omega))
+      rw [ite_eq_right hc]
     · intro hh; exact absurd (Finset.mem_univ _) hh
-  · rw [dif_neg h]
+  · rw [dite_eq_right h]
     apply Finset.sum_eq_zero
     intro b _
     have hc : ¬ ((i:ℕ) = (b:ℕ)+1) := by omega
-    rw [if_neg hc]
+    rw [ite_eq_right hc]
 
 /-- For `n ≥ 1`, the unperturbed radial line walk fixes `linePsi0 n`. See
 [ShenviKempeWhaley2003]. -/
@@ -333,19 +337,19 @@ theorem perturbedLineWalk_mulVec_linePsi0 {n : ℕ} (hn : 1 ≤ n) (o : Fin n) :
       rw [Matrix.mulVec]; simp [dotProduct]]
   by_cases hs : s = Sum.inr o
   · subst hs
-    rw [if_pos rfl, Finset.sum_eq_single (Sum.inl o)]
+    rw [ite_eq_left rfl, Finset.sum_eq_single (Sum.inl o)]
     · simp
     · intro b _ hb
       have hc : ¬ ((Sum.inr o : LineIdx n) = Sum.inr o ∧ b = (Sum.inl o : LineIdx n)) := by
         intro hh; exact hb hh.2
-      rw [if_neg hc]; simp
+      rw [ite_eq_right hc]; simp
     · intro hh; exact absurd (Finset.mem_univ _) hh
-  · rw [if_neg hs]
+  · rw [ite_eq_right hs]
     apply Finset.sum_eq_zero
     intro b _
     have hc : ¬ (s = (Sum.inr o : LineIdx n) ∧ b = (Sum.inl o : LineIdx n)) := by
       intro hh; exact hs hh.1
-    rw [if_neg hc]; simp
+    rw [ite_eq_right hc]; simp
 
 /-- For `n > 0` and `x ≤ n`, the squares of `cosOmega n x` and `sinOmega n x` sum to one. See
 [ShenviKempeWhaley2003]. -/
@@ -403,8 +407,7 @@ lemma innerC_linePsi0_self {n : ℕ} (hn : 1 ≤ n) :
     rw [← Finset.sum_div, choose_sum_fin hn, half_eq hn]
   have hS : (∑ i : Fin n, (((Nat.choose (n-1) (i:ℕ) : ℝ) / (2:ℝ)^n) : ℂ)) = (1/2:ℂ) := by
     rw [show (1/2:ℂ) = ((1/2:ℝ):ℂ) by norm_num, ← hreal]
-    simpa using (Complex.ofReal_sum Finset.univ
-      (fun i : Fin n => ((Nat.choose (n-1) (i:ℕ) : ℝ) / (2:ℝ)^n))).symm
+    simp
   rw [Finset.sum_congr rfl (fun i _ => key i)]
   rw [hS]; norm_num
 

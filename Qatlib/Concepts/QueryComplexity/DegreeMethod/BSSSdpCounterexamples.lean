@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.BSSSdpOriginalContract
-import Qatlib.Concepts.OrderedOracle.TiSdpBridge.BSSSdpSymmetry
-import Mathlib.Tactic.FinCases
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.BSSSdpOriginalContract
+public import Qatlib.Concepts.OrderedOracle.TiSdpBridge.BSSSdpSymmetry
+public import Mathlib.Tactic.FinCases
+
+@[expose] public section
 
 /-!
 # A counterexample to a query SDP symmetry contract
@@ -157,7 +161,7 @@ private theorem toy_symmetry : IsBssSymmetry toyBit (fun _ : Fin 3 => (0 : Fin 1
   constructor
   · intro i x y
     fin_cases i <;> fin_cases x <;> fin_cases y <;>
-      norm_num [bssE,toyBit,toyShift,Equiv.addRight,Fin.val_add] <;> decide
+      norm_num [bssE,toyBit,toyShift,Equiv.addRight,Fin.val_add]
   · intro x
     rfl
 

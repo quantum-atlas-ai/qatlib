@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.EnergySpec09.MainResults.MCSCFPhaseEstimation
+module
+
+public import Qatlib.Papers.EnergySpec09.MainResults.MCSCFPhaseEstimation
+
+@[expose] public section
 
 /-!
 # Success weights from initial-state overlaps
@@ -54,6 +58,7 @@ theorem tensorState_sum {J : Type*} [Fintype J] [DecidableEq J]
   simp only [TensorState, Finset.sum_apply, Pi.smul_apply, smul_eq_mul, Finset.mul_sum]
   exact Finset.sum_congr rfl fun i _ => by ring
 
+omit [DecidableEq I] in
 /-- The overlap with an element of an orthonormal family extracts its coefficient from a finite
 expansion in that family. -/
 theorem inner_eq_coeff {Idx : Type*} [Fintype Idx] [DecidableEq Idx]
@@ -78,9 +83,9 @@ theorem inner_eq_coeff {Idx : Type*} [Fintype Idx] [DecidableEq Idx]
     exact Finset.sum_congr rfl fun j _ => by ring
   simp_rw [h2]
   rw [Finset.sum_eq_single n]
-  · rw [hOr n n, if_pos rfl, mul_one]
+  · rw [hOr n n, ite_eq_left rfl, mul_one]
   · intro i _ hin
-    rw [hOr n i, if_neg (fun h : n = i => hin h.symm), mul_zero]
+    rw [hOr n i, ite_eq_right (fun h : n = i => hin h.symm), mul_zero]
   · intro hnot
     exact absurd (Finset.mem_univ n) hnot
 
@@ -108,7 +113,7 @@ theorem qpe_success_prob_eq_coeff_sq {M : ℕ} (hM : 0 < M) (U : Matrix I I ℂ)
     refine (Finset.sum_eq_single n ?_ ?_).trans ?_
     · intro i _ hin
       have hki : ¬ (k n = k i) := fun h => hin (hk h.symm)
-      simp only [Pi.smul_apply, smul_eq_mul, TensorState, Ket, if_neg hki, zero_mul, mul_zero]
+      simp only [Pi.smul_apply, smul_eq_mul, TensorState, Ket, ite_eq_right hki, zero_mul, mul_zero]
     · intro hnot
       exact absurd (Finset.mem_univ n) hnot
     · simp [TensorState]
@@ -123,7 +128,7 @@ theorem qpe_success_prob_eq_coeff_sq {M : ℕ} (hM : 0 < M) (U : Matrix I I ℂ)
   rw [hmeasure]
 
   have hnorm : Normalized (φ n) := by
-    rw [normalized_iff_inner_self, hOr n n, if_pos rfl]
+    rw [normalized_iff_inner_self, hOr n n, ite_eq_left rfl]
   calc
     ∑ j, ‖c n * φ n j‖ ^ 2 = ∑ j, ‖c n‖ ^ 2 * ‖φ n j‖ ^ 2 := by
       refine Finset.sum_congr rfl fun j _ => ?_

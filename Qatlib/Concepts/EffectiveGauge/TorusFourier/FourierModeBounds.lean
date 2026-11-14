@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.TorusFourier.FrequencyShell
-import Mathlib.Analysis.Calculus.ContDiff.Bounds
+module
+
+public import Qatlib.Concepts.EffectiveGauge.TorusFourier.FrequencyShell
+public import Mathlib.Analysis.Calculus.ContDiff.Bounds
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

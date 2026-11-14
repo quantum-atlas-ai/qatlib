@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HhlAlgorithms.GridExactHHL.CostRestrictedSubgoalStat
+module
+
+public import Qatlib.Concepts.HhlAlgorithms.GridExactHHL.CostRestrictedSubgoalStat
+
+@[expose] public section
 
 /-!
 # Resolution bounds for the restricted HHL model

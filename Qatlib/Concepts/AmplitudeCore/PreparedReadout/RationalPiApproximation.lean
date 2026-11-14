@@ -4,13 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Tactic.Common
-import Mathlib.Algebra.Order.Field.Basic
-import Mathlib.Algebra.Order.GroupWithZero.Basic
-import Mathlib.Analysis.Calculus.Deriv.MeanValue
-import Mathlib.Analysis.Real.Pi.Bounds
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Arctan
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.ArctanDeriv
+module
+
+public import Mathlib.Tactic.Common
+public import Mathlib.Algebra.Order.Field.Basic
+public import Mathlib.Algebra.Order.GroupWithZero.Basic
+public import Mathlib.Analysis.Calculus.Deriv.MeanValue
+public import Mathlib.Analysis.Real.Pi.Bounds
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Arctan
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.ArctanDeriv
+public import Mathlib.Analysis.Calculus.Deriv.Pow
+
+@[expose] public section
 
 /-!
 # Rational Machin approximations to pi
@@ -52,8 +57,10 @@ private noncomputable def atanPoly (L : ℕ) (t : ℝ) : ℝ :=
 
 /-- Casting the rational arctangent partial sum to the reals yields `atanPoly`. -/
 theorem atanRatSeries_cast (x : ℚ) : ∀ L : ℕ,
-    ((atanRatSeries x L : ℚ) : ℝ) = atanPoly L (x : ℝ) := by
+    ((atanRatSeries x L : ℚ) : ℝ) =
+      ∑ j ∈ Finset.range L, (-1 : ℝ) ^ (j : ℕ) * (x : ℝ) ^ (2 * j + 1) / (2 * j + 1) := by
   intro L
+  change ((atanRatSeries x L : ℚ) : ℝ) = atanPoly L (x : ℝ)
   induction L with
   | zero => simp [atanRatSeries, atanPoly]
   | succ L ih =>
@@ -240,6 +247,7 @@ theorem rational_arctan_series_explicit_remainder (x : ℚ) (L : ℕ)
     |((atanRatSeries x L : ℚ) : ℝ) - Real.arctan (x : ℝ)|
       ≤ |(x : ℝ)| ^ (2 * L + 1) / (2 * (L : ℝ) + 1) := by
   rw [atanRatSeries_cast]
+  change |atanPoly L (x : ℝ) - Real.arctan (x : ℝ)| ≤ _
   rcases le_or_gt 0 (x : ℝ) with hpos | hneg
   · rw [abs_of_nonneg hpos, abs_sub_comm]
     exact arctan_series_remainder_nonneg L _ hpos
@@ -401,7 +409,7 @@ theorem rational_machin_pi_computed_precision :
 
   have hA1 := rational_arctan_series_explicit_remainder ((1 / 5 : ℚ)) 1 (by norm_num)
   have hB1 := rational_arctan_series_explicit_remainder ((1 / 239 : ℚ)) 1 (by norm_num)
-  rw [atanRatSeries_cast, atanPoly_one] at hA1 hB1
+  rw [atanRatSeries_one] at hA1 hB1
   push_cast at hA1 hB1
   have hA1abs := abs_le.mp hA1
   have hB1abs := abs_le.mp hB1

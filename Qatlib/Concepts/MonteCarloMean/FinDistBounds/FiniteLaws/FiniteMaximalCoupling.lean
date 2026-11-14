@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDistTV
-import Mathlib.Algebra.Order.BigOperators.Group.Finset
-import Mathlib.Algebra.BigOperators.Group.Finset.Sigma
+module
+
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDistTV
+public import Mathlib.Algebra.Order.BigOperators.Group.Finset
+public import Mathlib.Algebra.BigOperators.Group.Finset.Sigma
+
+@[expose] public section
 
 /-!
 # Maximal coupling of finite distributions

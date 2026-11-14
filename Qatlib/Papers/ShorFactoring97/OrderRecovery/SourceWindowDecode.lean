@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PeriodSampling.OrderRecovery.BoundedRationalOrderDecoder
-import Mathlib.Tactic
+module
+
+public import Qatlib.Concepts.PeriodSampling.OrderRecovery.BoundedRationalOrderDecoder
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -217,7 +221,7 @@ theorem source_rational_actual_decoder_unique_recovery (B M y p q : ℕ)
     omega
   refine ⟨?_, sourceRationalDecode_count B M y⟩
   unfold sourceRationalDecode
-  rw [if_neg hM.ne']
+  rw [ite_eq_right hM.ne']
   apply scanAccept_unique
   · exact (mem_boundedRationalPairs B p q).mpr ⟨hq, hqB, hpq'⟩
   · exact decide_eq_true ⟨hpq, hw⟩

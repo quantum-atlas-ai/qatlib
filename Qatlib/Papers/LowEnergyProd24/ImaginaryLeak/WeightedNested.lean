@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LowEnergyProd24.ImaginaryLeak.LocalConjugation
-import Qatlib.Papers.LowEnergyProd24.LocalModel.Expansion
-import Qatlib.Papers.LowEnergyProd24.RetainedError.PsdNested
+module
+
+public import Qatlib.Papers.LowEnergyProd24.ImaginaryLeak.LocalConjugation
+public import Qatlib.Papers.LowEnergyProd24.LocalModel.Expansion
+public import Qatlib.Papers.LowEnergyProd24.RetainedError.PsdNested
+
+@[expose] public section
 
 /-!
 # Weighted bounds for local and grouped commutators

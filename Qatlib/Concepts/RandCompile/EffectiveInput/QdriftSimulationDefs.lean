@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RandCompile.ChannelBudget.FiniteDiamondQdriftDefs
-import Qatlib.Concepts.RandCompile.EffectiveInput.QuantizedCoefficientQDrift
+module
+
+public import Qatlib.Concepts.RandCompile.ChannelBudget.FiniteDiamondQdriftDefs
+public import Qatlib.Concepts.RandCompile.EffectiveInput.QuantizedCoefficientQDrift
+
+@[expose] public section
 
 /-!
 # Effective input interfaces for qDRIFT simulation

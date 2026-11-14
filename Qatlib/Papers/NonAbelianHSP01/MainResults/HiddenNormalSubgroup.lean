@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NonAbelianHSP01.MainResults.Defs
-import Mathlib.GroupTheory.Index
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.NonAbelianHSP01.MainResults.Defs
+public import Mathlib.GroupTheory.Index
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Normal closures and hidden identity fibers

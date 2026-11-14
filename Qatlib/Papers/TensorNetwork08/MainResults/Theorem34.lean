@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.TensorNetwork08.MainResults.HadamardTest
-import Qatlib.Papers.TensorNetwork08.MainResults.StatDefs
+module
+
+public import Qatlib.Papers.TensorNetwork08.MainResults.HadamardTest
+public import Qatlib.Papers.TensorNetwork08.MainResults.StatDefs
+
+@[expose] public section
 
 /-!
 # Scaled statistical error bound for tensor-network estimation

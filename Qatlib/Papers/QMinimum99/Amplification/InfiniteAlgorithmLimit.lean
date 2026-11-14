@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.Amplification.BBHTCall
-import Qatlib.Concepts.AmplitudeSearch.Amplification.FinalRemarksAmplificationAqua
-import Qatlib.Concepts.AmplitudeSearch.Amplification.ClockBounds
-import Qatlib.Concepts.AmplitudeSearch.InterruptMin.ClockMinimumExecutor
-import Mathlib.Analysis.Normed.Group.Tannery
-import Mathlib.Analysis.SpecificLimits.Basic
-import Mathlib.Topology.Algebra.Order.Archimedean
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.BBHTCall
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.FinalRemarksAmplificationAqua
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.ClockBounds
+public import Qatlib.Concepts.AmplitudeSearch.InterruptMin.ClockMinimumExecutor
+public import Mathlib.Analysis.Normed.Group.Tannery
+public import Mathlib.Analysis.SpecificLimits.Basic
+public import Mathlib.Topology.Algebra.Order.Archimedean
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -120,12 +124,12 @@ theorem attainmentMass_monotone (T : Fin N → α) (hN : 0 < N) :
       if law.runClock x.2 ≤ d₂ then law.initialMass ranked.skip x else 0)
   refine Summable.tsum_le_tsum (fun x => ?_) hs₁ hs₂
   by_cases h1 : law.runClock x.2 ≤ d₁
-  · rw [if_pos h1, if_pos (h1.trans hd)]
-  · rw [if_neg h1]
+  · rw [ite_eq_left h1, ite_eq_left (h1.trans hd)]
+  · rw [ite_eq_right h1]
     by_cases h2 : law.runClock x.2 ≤ d₂
-    · rw [if_pos h2]
+    · rw [ite_eq_left h2]
       exact hnn x
-    · rw [if_neg h2]
+    · rw [ite_eq_right h2]
 
 /-- The finite attainment mass never exceeds one: it is a sub-mass of the
 normalized initial-threshold law. -/

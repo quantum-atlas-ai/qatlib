@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CirculantPrec18.SVETransport.Model
-import Qatlib.Papers.CirculantPrec18.SVETransport.SourceModifiedSVE
-import Qatlib.Papers.CirculantPrec18.SolveChain.SourceLinearSolver
+module
+
+public import Qatlib.Papers.CirculantPrec18.SVETransport.Model
+public import Qatlib.Papers.CirculantPrec18.SVETransport.SourceModifiedSVE
+public import Qatlib.Papers.CirculantPrec18.SolveChain.SourceLinearSolver
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -38,7 +42,7 @@ The existential record is a specification, not evidence of an algorithm. -/
 def source_theorem1_circulant_preconditioner_statement
     (n : ℕ) (A C : Matrix (Fin n) (Fin n) ℝ) (b : Fin n → ℝ)
     (_hA : A.det ≠ 0) (_hC : C.det ≠ 0) (_hCA : (C⁻¹ * A).det ≠ 0)
-    (ε : ℝ) (hε : 0 < ε) : Prop :=
+    (ε : ℝ) (_hε : 0 < ε) : Prop :=
     ∃ (c : ℕ) (_hc : 0 < c) (pro : PreconditionedSolver n),
       0 ≤ pro.cost ∧
       pro.cost ≤ (c : ℝ) * (conditionNumber n C) ^ (5 / 2 : ℝ) *
@@ -53,7 +57,7 @@ The existential record is a specification, not evidence of an algorithm. -/
 def source_theorem2_general_preconditioner_statement
     (n : ℕ) (A M : Matrix (Fin n) (Fin n) ℝ) (b : Fin n → ℝ)
     (_hA : A.det ≠ 0) (_hM : M.det ≠ 0) (_hMA : (M⁻¹ * A).det ≠ 0)
-    (ε : ℝ) (hε : 0 < ε) : Prop :=
+    (ε : ℝ) (_hε : 0 < ε) : Prop :=
     ∃ (c : ℕ) (_hc : 0 < c) (pro : PreconditionedSolver n),
       0 ≤ pro.cost ∧
       pro.cost ≤ (c : ℝ) * (conditionNumber n M) ^ (5 / 2 : ℝ) *

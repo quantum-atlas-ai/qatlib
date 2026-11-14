@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GraphConnect03.MainResults.LowerBounds.ParityReduction
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Data.Finset.Card
-import Mathlib.Algebra.BigOperators.Ring.Finset
+module
+
+public import Qatlib.Papers.GraphConnect03.MainResults.LowerBounds.ParityReduction
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+
+@[expose] public section
 
 /-!
 # Parity and strong connectivity of a cyclic gadget

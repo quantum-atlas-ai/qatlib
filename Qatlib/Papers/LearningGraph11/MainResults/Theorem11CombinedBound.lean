@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LearningGraph11.MainResults.Theorem9QueryBound
-import Qatlib.Papers.LearningGraph11.MainResults.Theorem10MinimumDegree
+module
+
+public import Qatlib.Papers.LearningGraph11.MainResults.Theorem9QueryBound
+public import Qatlib.Papers.LearningGraph11.MainResults.Theorem10MinimumDegree
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -72,7 +76,7 @@ theorem thm10Exponent_eq_t2 (k d m : ℕ) :
 Theorems 9 and 10. If a cost `c` is at most both Theorem 9's bound `n^{2−2/(k+1)−t}` and
 Theorem 10's bound `n^{2−2/k−t}`, then it is at most `n^{2−2/k−max(t₁,t₂)}` with the two
 fractions `t₁, t₂` of Theorem 11. -/
-theorem source_theorem_11 (k d m : ℕ) (hk : 3 ≤ k) (hd : 1 ≤ d) (hdm : d ≤ m)
+theorem source_theorem_11 (k d m : ℕ) (hk : 3 ≤ k) (_hd : 1 ≤ d) (_hdm : d ≤ m)
     (n : ℝ) (hn : 1 ≤ n) (c : ℝ)
     (h9 : c ≤ n ^ (thm9Exponent k m))
     (h10 : c ≤ n ^ (thm10Exponent k d m)) :

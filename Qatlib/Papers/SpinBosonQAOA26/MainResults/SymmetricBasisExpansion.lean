@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Nat.Choose.Multinomial
-import Mathlib.Tactic
+module
+
+public import Mathlib.Data.Nat.Choose.Multinomial
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -82,16 +86,16 @@ theorem lemma6_symmetric_basis_limit
   have hcastlt : ∀ (D : ℕ) (i : Fin p'),
       occupationWithRest n D (Fin.castAdd 1 i) = n i := by
     intro D i
-    have hlt : (Fin.castAdd 1 i).val < p' := by simpa using i.isLt
+    have hlt : (Fin.castAdd 1 i).val < p' := i.isLt
     have hfin : (⟨(Fin.castAdd 1 i).val, hlt⟩ : Fin p') = i := Fin.ext (by simp)
-    simp only [occupationWithRest, dif_pos hlt, hfin]
+    simp only [occupationWithRest, dite_eq_left hlt, hfin]
   have hnatadd : ∀ (D : ℕ) (i : Fin 1),
       occupationWithRest n D (Fin.natAdd p' i) = D - ∑ l, n l := by
     intro D i
     have hge : ¬ (Fin.natAdd p' i).val < p' := by
       simp only [Fin.val_natAdd]
       omega
-    simp only [occupationWithRest, dif_neg hge]
+    simp only [occupationWithRest, dite_eq_right hge]
   -- The occupation vector sums to `D` as soon as `D` is large enough.
   have hoccsum : ∀ D : ℕ, ∑ l, n l ≤ D →
       ∑ i : Fin (p'+1), occupationWithRest n D i = D := by

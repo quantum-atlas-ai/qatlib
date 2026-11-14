@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkFind.UniqueCollision.QueryComplexityQuan
-import Qatlib.Concepts.WalkFind.UniqueCollision.ElementDistinctnessAlgorithmQuan
-import Qatlib.Concepts.WalkFind.UniqueCollision.NativeSingleSolutionQuan
-import Qatlib.Concepts.WalkFind.UniqueCollision.NativeJohnsonDataQuan
+module
+
+public import Qatlib.Concepts.WalkFind.UniqueCollision.QueryComplexityQuan
+public import Qatlib.Concepts.WalkFind.UniqueCollision.ElementDistinctnessAlgorithmQuan
+public import Qatlib.Concepts.WalkFind.UniqueCollision.NativeSingleSolutionQuan
+public import Qatlib.Concepts.WalkFind.UniqueCollision.NativeJohnsonDataQuan
+
+@[expose] public section
 
 /-!
 # Collision-search claims and native algorithm interfaces

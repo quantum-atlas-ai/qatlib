@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.RepMultiplic24.MainResults.SourceModel
+module
+
+public import Qatlib.Papers.RepMultiplic24.MainResults.SourceModel
+
+@[expose] public section
 
 /-!
 # Bijection Between Yamanouchi Words and Standard Young Tableaux

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementStatisticsDefs
-import Qatlib.Concepts.MbqcFlow.FlowDecision.BiasedPauliShadowConsumers
+module
+
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.MeasurementStatisticsDefs
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.BiasedPauliShadowConsumers
+
+@[expose] public section
 
 /-!
 # POVM moments and counted Pauli measurement campaigns
@@ -316,7 +320,7 @@ theorem tableScanCost_le {X : Type} [DecidableEq X] (tab : List X) (key : X) :
   | cons x xs ih =>
     by_cases h : x = key
     · simp [tableScanCost, h]
-    · simp only [tableScanCost, if_neg h]
+    · simp only [tableScanCost, ite_eq_right h]
       calc 1 + tableScanCost xs key ≤ 1 + xs.length := Nat.add_le_add_left ih 1
         _ = (x :: xs).length := by simp [Nat.add_comm]
 

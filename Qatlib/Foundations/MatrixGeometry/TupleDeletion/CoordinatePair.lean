@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixGeometry.TupleDeletion.SliceGram
-import Qatlib.Foundations.MatrixGeometry.TupleDeletion.SliceInner
-import Qatlib.Foundations.MatrixGeometry.TupleDeletion.CoordinateEnergy
+module
+
+public import Qatlib.Foundations.MatrixGeometry.TupleDeletion.SliceGram
+public import Qatlib.Foundations.MatrixGeometry.TupleDeletion.SliceInner
+public import Qatlib.Foundations.MatrixGeometry.TupleDeletion.CoordinateEnergy
+
+@[expose] public section
 
 /-!
 # A pairwise bound for coordinate deletion actions

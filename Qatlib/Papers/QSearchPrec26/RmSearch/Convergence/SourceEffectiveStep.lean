@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Order.Archimedean.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic
+module
+
+public import Mathlib.Algebra.Order.Archimedean.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -53,7 +57,7 @@ The constant `min{1, 2ρ(1-c)/L}` is `σ` of Eq. (B3), with `L = L_Rie`. -/
 theorem lemma5_effective_step_lower_bound
     (q G γ L c ρ : ℝ)
     (hγ1 : 1 ≤ γ) (hL : 0 < L) (hG : 0 < G)
-    (hc : 0 < c) (hc1 : c < 1) (hρ0 : 0 < ρ) (hρ1 : ρ < 1)
+    (_hc : 0 < c) (hc1 : c < 1) (hρ0 : 0 < ρ) (hρ1 : ρ < 1)
     (stepQ : ℝ → ℝ)
     (hTaylor : ∀ t, 0 ≤ t → q + t * γ * G - L / 2 * (t * γ) ^ 2 * G ≤ stepQ t) :
     (∃ m : ℕ, armijo stepQ q γ G c (ρ ^ m)) ∧

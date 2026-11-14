@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QuantumSVM13.CostModels.Runtime
-import Qatlib.Papers.QuantumSVM13.MinusReadout
+module
+
+public import Qatlib.Papers.QuantumSVM13.CostModels.Runtime
+public import Qatlib.Papers.QuantumSVM13.MinusReadout
+
+@[expose] public section
 
 /-!
 # Quantum SVM cost-model identities

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QuditTeleport.TeleportCore.Transform
+module
+
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.Transform
+
+@[expose] public section
 
 /-!
 # Double annihilators in finite abelian groups
@@ -40,8 +44,11 @@ canonical double dual embedding. -/
 noncomputable def doubleCharacterAnnihilator (H : AddSubgroup G) : AddSubgroup G :=
   (characterAnnihilator (characterAnnihilator H)).comap AddChar.doubleDualEmb
 
+omit [Fintype G] in
+
 /-- Every subgroup is contained in its transported double character annihilator. -/
-theorem le_doubleCharacterAnnihilator (H : AddSubgroup G) :
+theorem le_doubleCharacterAnnihilator {G : Type*} [_scopeInst0 : AddCommGroup G]
+    [_scopeInst1 : Fintype G] (H : AddSubgroup G) :
     H ≤ doubleCharacterAnnihilator H := by
   intro x hx
   change AddChar.doubleDualEmb x ∈ characterAnnihilator (characterAnnihilator H)
@@ -61,7 +68,7 @@ noncomputable def doubleCharacterAnnihilatorEquiv (H : AddSubgroup G) :
   invFun χ := ⟨AddChar.doubleDualEquiv.symm χ, by
     change AddChar.doubleDualEmb (AddChar.doubleDualEquiv.symm χ) ∈
       characterAnnihilator (characterAnnihilator H)
-    simpa using χ.property⟩
+    simp⟩
   left_inv x := by
     apply Subtype.ext
     exact (AddChar.doubleDualEquiv : G ≃+ AddChar (AddChar G ℂ) ℂ).symm_apply_apply (x : G)

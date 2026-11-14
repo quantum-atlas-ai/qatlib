@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SearchStopping.UnknownCount.SearchSourceSchedule
-import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchQueryCost
-import Qatlib.Concepts.SearchStopping.UnknownCount.SearchTimeout
+module
+
+public import Qatlib.Concepts.SearchStopping.UnknownCount.SearchSourceSchedule
+public import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchQueryCost
+public import Qatlib.Concepts.SearchStopping.UnknownCount.SearchTimeout
+
+@[expose] public section
 
 /-!
 # Expected costs and output laws for search schedules
@@ -118,6 +122,7 @@ theorem search_source_critical_stage {I : Type*} [Fintype I] [DecidableEq I]
   rw [(search_source_schedule_laws _ hN l hl.le).1]
   exact le_min (hlo.trans hp) hscale.2
 
+omit hl hl4 in
 /-- For `1 < l < 4 / 3` and a nonempty proper marked set, the initial range has size one, zero
 mean Grover iterations, one checked mean query, and failure probability `1 - A.card /
 Fintype.card I`. -/
@@ -125,8 +130,7 @@ theorem search_source_initial_trial {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (hA : 0 < A.card) (hproper : A.card < Fintype.card I) :
     SourceSizes (Fintype.card I) l 0 = 1 ∧ MeanQueries I 1 = 0 ∧
       CheckedMeanQueries I 1 = 1 ∧ CheckedFailure A 1 = 1 - (A.card : ℝ) / Fintype.card I := by
-  let _ := hl
-  let _ := hl4
+
   have hN : 0 < Fintype.card I := lt_trans hA hproper
   obtain ⟨θ,hθ0,hθp,hdensity,h2⟩ := search_principal_angle A hA hproper
   have hs : Real.sin θ ≠ 0 :=
@@ -144,13 +148,14 @@ theorem search_source_initial_trial {I : Type*} [Fintype I] [DecidableEq I]
     simpa using hdensity
   rw [hP]
 
+omit hl4 in
 /-- For `1 < l < 4 / 3` and a nonempty proper marked set, the mean Grover-iteration cost at
 stage `s` is nonnegative and at most `l ^ s / 2`. -/
 theorem search_source_phase_mean_bound {I : Type*} [Fintype I] [DecidableEq I]
     (A : Finset I) (hA : 0 < A.card) (hproper : A.card < Fintype.card I) (s : ℕ) :
     0 ≤ MeanQueries I (SourceSizes (Fintype.card I) l s) ∧
       MeanQueries I (SourceSizes (Fintype.card I) l s) ≤ l^s / 2 := by
-  let _ := hl4
+
   have hN : 0 < Fintype.card I := lt_trans hA hproper
   have hsizes := (search_source_schedule_laws _ hN l hl.le).2.1
   obtain ⟨_,_,_,_,_,hQ,_⟩ := search_randomized_search_contract A hA hproper _ (hsizes s)
@@ -211,7 +216,7 @@ theorem search_source_phase_prefix_bound {I : Type*} [Fintype I] [DecidableEq I]
   let D : ℝ := 1 / (l - 1) + 4 / (4 - 3 * l)
   have hD : 0 ≤ D := by dsimp [D]; positivity
   have hsizes : ∀ k, 0 < sizes k := (search_source_schedule_laws _ hN l hl.le).2.1
-  have hinit := search_source_initial_trial l hl hl4 A hA hproper
+  have hinit := search_source_initial_trial l  A hA hproper
   have hδ : 0 ≤ δ := by
     change 0 ≤ 1 - (A.card : ℝ) / Fintype.card I
     rw [← hinit.2.2.2]
@@ -225,7 +230,7 @@ theorem search_source_phase_prefix_bound {I : Type*} [Fintype I] [DecidableEq I]
     rw [← hreachone]
     exact search_retry_reach_mono hN A sizes hsizes 1 s hs
   have hcost (s : ℕ) : 0 ≤ MeanQueries I (sizes s) ∧ MeanQueries I (sizes s) ≤ l ^ s / 2 :=
-    search_source_phase_mean_bound l hl hl4 A hA hproper s
+    search_source_phase_mean_bound l hl  A hA hproper s
   have hterm (s : ℕ) : 0 ≤ RetryReach A sizes s * MeanQueries I (sizes s) :=
     mul_nonneg (search_retry_prefix hN A sizes hsizes s).1 (hcost s).1
   obtain ⟨θ, hθ0, hθp, hdensity, L, hL, hLhi, hlarge⟩ :=
@@ -311,7 +316,7 @@ theorem search_source_expected_grover_iterations {I : Type*} [Fintype I] [Decida
   have hsizes := (search_source_schedule_laws _ hN l hl.le).2.1
   have hnonneg (s : ℕ) : 0 ≤ RetryReach A (SourceSizes (Fintype.card I) l) s *
       MeanQueries I (SourceSizes (Fintype.card I) l s) :=
-    mul_nonneg (search_retry_prefix hN A _ hsizes s).1 (search_source_phase_mean_bound l hl hl4 A hA hproper s).1
+    mul_nonneg (search_retry_prefix hN A _ hsizes s).1 (search_source_phase_mean_bound l hl  A hA hproper s).1
   have hbound (n : ℕ) : (∑ s ∈ Finset.range n,
       RetryReach A (SourceSizes (Fintype.card I) l) s * MeanQueries I (SourceSizes (Fintype.card I) l s)) ≤
       (SourcePhaseConstant l) * Real.sqrt ((Fintype.card I : ℝ) / A.card) := search_source_phase_prefix_bound l hl hl4 A hA hproper n
@@ -343,7 +348,7 @@ theorem search_source_terminal_iteration_mean {I : Type*} [Fintype I] [Decidable
   obtain ⟨q0,hq0,hq0nn,hq0bound⟩ := search_source_expected_grover_iterations l hl hl4 A hA hproper
   have hocc (n : ℕ) : 0 ≤ RetryReach A sizes n * MeanQueries I (sizes n) :=
     mul_nonneg (search_retry_prefix hN A sizes hsizes n).1
-      (search_source_phase_mean_bound l hl hl4 A hA hproper n).1
+      (search_source_phase_mean_bound l hl  A hA hproper n).1
   have hprefix (n : ℕ) : (∑ s ∈ Finset.range n, TerminalIterationCost A sizes s) ≤ q0 := by
     have hb := search_truncated_iteration_balance hN A sizes hsizes n
     have ho : RetryPhasePrefixCost A sizes n ≤ q0 := by
@@ -437,14 +442,14 @@ theorem search_source_terminal_cost {I : Type*} [Fintype I] [DecidableEq I]
     exact mul_nonneg ((search_source_terminal_law l hl hl4 A hA hproper).2 x).1 (Nat.cast_nonneg _)
   · exact hq
 
+omit hl hl4 in
 /-- For `1 < l < 4 / 3` on a nonempty search space, the initial-stage output mass is `1 /
 Fintype.card I` at marked addresses and zero elsewhere. -/
 theorem search_source_initial_output {I : Type*} [Fintype I] [DecidableEq I]
     (hN : 0 < Fintype.card I) (A : Finset I) (i : I) :
     RetryOutputMass A (SourceSizes (Fintype.card I) l) 0 i =
       if i ∈ A then 1 / (Fintype.card I : ℝ) else 0 := by
-  let _ := hl
-  let _ := hl4
+
   simp only [RetryOutputMass, RetryReach, Finset.range_zero, Finset.prod_empty, one_mul]
   have hs : SourceSizes (Fintype.card I) l 0 = 1 := by
     norm_num [SourceSizes, SourceWidths]
@@ -454,13 +459,14 @@ theorem search_source_initial_output {I : Type*} [Fintype I] [DecidableEq I]
   have hz : SearchState A 0 = Uniform I := rfl
   rw [hz, search_uniform_born]
 
+omit hl4 in
 /-- For `1 < l < 4 / 3` on a nonempty search space with every address marked, each terminal
 trace has zero mass-weighted Grover iteration cost. -/
 theorem search_source_univ_weighted_cost {I : Type*} [Fintype I] [DecidableEq I]
     (hN : 0 < Fintype.card I) (x : TerminalTrace I (SourceSizes (Fintype.card I) l)) :
     TerminalMass (Finset.univ : Finset I) (SourceSizes (Fintype.card I) l) x *
       (TerminalCost (SourceSizes (Fintype.card I) l) x : ℝ) = 0 := by
-  let _ := hl4
+
   by_cases hx : x.1 = 0
   · rcases x with ⟨n,h,j,i⟩
     dsimp at hx
@@ -528,9 +534,10 @@ theorem search_source_terminal_cost_nonempty {I : Type*} [Fintype I] [DecidableE
     subst A
     have hN : 0 < Fintype.card I := by simpa using hA
     refine ⟨0,?_,le_rfl,by positivity⟩
-    simp_rw [search_source_univ_weighted_cost l hl hl4 hN]
+    simp_rw [search_source_univ_weighted_cost l hl  hN]
     exact hasSum_zero
 
+omit hl4 in
 /-- For `1 < l < 4 / 3` on a nonempty space with every address marked, output mass is uniform at
 stage zero and is zero at all later stages. -/
 theorem search_source_univ_retry_output {I : Type*} [Fintype I] [DecidableEq I]
@@ -539,7 +546,7 @@ theorem search_source_univ_retry_output {I : Type*} [Fintype I] [DecidableEq I]
       if n = 0 then 1 / (Fintype.card I : ℝ) else 0 := by
   by_cases hn : n = 0
   · subst n
-    simpa using search_source_initial_output l hl hl4 hN Finset.univ i
+    simpa using search_source_initial_output l  hN Finset.univ i
   · have hsizes := (search_source_schedule_laws _ hN l hl.le).2.1
     have hr := search_univ_first_success hN (SourceSizes (Fintype.card I) l) hsizes n
     rw [RetryFirstSuccess, (search_univ_failure hN _ (hsizes n)).1, mul_one, ite_eq_right hn] at hr
@@ -576,7 +583,7 @@ theorem search_source_terminal_output_nonempty {I : Type*} [Fintype I] [Decidabl
       change HasSum (fun n => ∑ x : TerminalStage I sizes n,
         if TerminalOutput ⟨n,x⟩ = i then TerminalMass Finset.univ sizes ⟨n,x⟩ else 0) _
       simp_rw [hrow]
-      simp only [sizes, search_source_univ_retry_output l hl hl4 hN, Finset.mem_univ, ite_true,
+      simp only [sizes, search_source_univ_retry_output l hl  hN, Finset.mem_univ, ite_true,
           Finset.card_univ]
       exact hasSum_ite_eq 0 _
 
@@ -606,7 +613,7 @@ theorem search_source_attempt_prefix_bound {I : Type*} [Fintype I] [DecidableEq 
   have hterm (s : ℕ) : RetryReach A sizes s ≤
       (if s = 0 then 1 else 0) + 2 * (RetryReach A sizes s * MeanQueries I (sizes s)) := by
     have hr := (search_retry_prefix hN A sizes hsizes s).1
-    have hc := (search_source_phase_mean_bound l hl hl4 A hA hp s).1
+    have hc := (search_source_phase_mean_bound l hl  A hA hp s).1
     by_cases hs : s = 0
     · subst s
       simp only [RetryReach, Finset.range_zero, Finset.prod_empty, ite_true, one_mul]
@@ -712,7 +719,7 @@ theorem search_source_terminal_linear_cost_nonempty {I : Type*} [Fintype I] [Dec
             ((c * TerminalCost (SourceSizes (Fintype.card I) l) x + (x.1+1) : ℕ) : ℝ) =
           TerminalMass Finset.univ (SourceSizes (Fintype.card I) l) x := by
         by_cases hx : x.1 = 0
-        · have hz := search_source_univ_weighted_cost l hl hl4 hN x
+        · have hz := search_source_univ_weighted_cost l hl  hN x
           push_cast
           rw [hx]
           push_cast

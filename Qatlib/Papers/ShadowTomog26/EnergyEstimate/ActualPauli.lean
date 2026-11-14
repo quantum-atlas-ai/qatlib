@@ -4,9 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ShadowTomog26.EnergyEstimate.OptimalBorn
-import Qatlib.Foundations.FiniteStats.BornEstimator.JointMoments
-import Qatlib.Concepts.ShadowModels.GraphBodies
+module
+
+public import Qatlib.Papers.ShadowTomog26.EnergyEstimate.OptimalBorn
+public import Qatlib.Foundations.FiniteStats.BornEstimator.JointMoments
+public import Qatlib.Concepts.ShadowModels.GraphBodies
+public import Qatlib.Foundations.ProbabilityCore.SimplexWeights
+
+@[expose] public section
 
 /-!
 # Pauli energy estimation from joint Born measurements
@@ -63,7 +68,7 @@ theorem source_energy_actual_pauli (n : ℕ) (words : V → PauliWord n)
     let M := pauliEnergyApparatus n words
     let C : ℝ := ∑ i,|c i|^((2:ℝ)/3)
     let a : V → ℝ := fun i => |c i|^((2:ℝ)/3)/C
-    ∃ q : Context G → ℝ,q∈stdSimplex ℝ (Context G) ∧ (∀ i,0 < inclusion M q i) ∧
+    ∃ q : Context G → ℝ,q∈Qatlib.Foundations.ProbabilityCore.SimplexWeights.weights ℝ (Context G) ∧ (∀ i,0 < inclusion M q i) ∧
       0 ≤ secondOperator M q (energyScore G M q c) ∧
       largestEigenvalue (secondOperator M q (energyScore G M q c)) ≤ coverValue G a*C^3 ∧
       ∀ ρ : MState (Reg n),
@@ -113,7 +118,7 @@ theorem source_energy_actual_variance_bound (n : ℕ) (words : V → PauliWord n
     let M := pauliEnergyApparatus n words
     let C : ℝ := ∑ i,|c i|^((2:ℝ)/3)
     let a : V → ℝ := fun i => |c i|^((2:ℝ)/3)/C
-    ∃ q : Context G → ℝ,q∈stdSimplex ℝ (Context G) ∧ (∀ i,0 < inclusion M q i) ∧
+    ∃ q : Context G → ℝ,q∈Qatlib.Foundations.ProbabilityCore.SimplexWeights.weights ℝ (Context G) ∧ (∀ i,0 < inclusion M q i) ∧
       ∀ ρ : MState (Reg n),
         mean (shotLaw (bornLaw M q ρ) N) (shotAverage (energyScore G M q c) N)=
           ∑ i,c i*ρ.exp_val (pauliObservable n (words i)) ∧

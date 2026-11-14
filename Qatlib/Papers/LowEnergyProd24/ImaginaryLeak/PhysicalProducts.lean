@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LowEnergyProd24.RetainedError.PhysicalSpectral
+module
+
+public import Qatlib.Papers.LowEnergyProd24.RetainedError.PhysicalSpectral
+
+@[expose] public section
 
 /-!
 # Leakage bounds for physical commutator products
@@ -69,7 +73,7 @@ theorem original_weighted_nested (h : PhysicalHamiltonian N R M k d J)
   by_cases hx : xs=[]
   · subst xs
     rw [RetainedError.Physical.nested_centered]
-    simp only [if_true]
+    simp only [ite_true]
     have he : weighted h.total
         (RetainedError.nested h.normalized seed []+(h.groupCenter seed : ℂ) • 1) (1/(2*J*k*d)) =
         weighted h.normalized.total (RetainedError.nested h.normalized seed []) (1/(2*J*k*d))+
@@ -83,8 +87,8 @@ theorem original_weighted_nested (h : PhysicalHamiltonian N R M k d J)
     change _ ≤ sourceEll L k d J 0+|h.groupCenter seed|
     exact (norm_add_le _ _).trans
         (add_le_add hb (by rw [norm_smul, Complex.norm_real, Real.norm_eq_abs, norm_one, mul_one]))
-  · rw [RetainedError.Physical.nested_centered, if_neg hx, add_zero, physical_weight_centered]
-    simpa only [productEll, if_neg hx, add_zero] using hb
+  · rw [RetainedError.Physical.nested_centered, ite_eq_right hx, add_zero, physical_weight_centered]
+    simpa only [productEll, ite_eq_right hx, add_zero] using hb
 
 /-- The ordered product of the physical nested commutators indexed by `factors`. -/
 def nestedProduct (h : PhysicalHamiltonian N R M k d J) (factors : List (Fin M × List (Fin M))) :=
@@ -135,6 +139,6 @@ theorem original_positive_product_leakage (h : PhysicalHamiltonian N R M k d J)
   have he : factors.map (productEll h L)=factors.map (fun factor => sourceEll L k d J factor.2.length) := by
     apply List.map_congr_left
     intro factor hf
-    simp only [productEll, if_neg (hpositive factor hf), add_zero]
+    simp only [productEll, ite_eq_right (hpositive factor hf), add_zero]
   simpa only [he] using original_product_leakage h hJ hk hd L hL factors Δ Λ
 end Qatlib.Papers.LowEnergyProd24.ImaginaryLeak.Physical

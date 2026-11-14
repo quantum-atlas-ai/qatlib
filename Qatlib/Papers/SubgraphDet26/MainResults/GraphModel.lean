@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryMagnitude
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Mathlib.Data.Finset.Card
-import Mathlib.Data.Real.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Order.Filter.Basic
+module
+
+public import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryMagnitude
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Order.Filter.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -189,7 +193,7 @@ def acceptEvent {I W : Type} [Fintype I] [DecidableEq I] [Fintype W] [DecidableE
 
 /-- Acceptance probability of a circuit on the fixed input `x`. -/
 def acceptMass {I W : Type} [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
-    (f : (I → Bool) → Bool) (C : Circuit ((I × Bool) × W))
+    (_f : (I → Bool) → Bool) (C : Circuit ((I × Bool) × W))
     (init : QState ((I × Bool) × W)) (x : I → Bool) : ℝ :=
   MeasureProb (Run (workspaceBitOracle x) C init) acceptEvent
 

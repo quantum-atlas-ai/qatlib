@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.InstrumentCore.PovmBridge.MeasurementNetworkDefs
-import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
-import Qatlib.Concepts.QuditTeleport.TeleportCore.QuditTeleportationProtocol
+module
+
+public import Qatlib.Concepts.InstrumentCore.PovmBridge.MeasurementNetworkDefs
+public import Qatlib.Concepts.GateVocabulary.GateVocab.CircuitRelabel
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.QuditTeleportationProtocol
+
+@[expose] public section
 
 /-!
 # Event instruments on encoded registers

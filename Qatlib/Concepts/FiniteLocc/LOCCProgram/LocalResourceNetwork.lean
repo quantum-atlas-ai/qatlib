@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FiniteLocc.LOCCProgram.LocalResourceNetworkDefs
+module
+
+public import Qatlib.Concepts.FiniteLocc.LOCCProgram.LocalResourceNetworkDefs
+
+@[expose] public section
 
 /-!
 # EPR inventories and interactive resource bounds

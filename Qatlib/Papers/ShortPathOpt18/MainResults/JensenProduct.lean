@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Order.BigOperators.GroupWithZero.Finset
-import Mathlib.Analysis.Convex.Jensen
-import Mathlib.Analysis.Convex.SpecificFunctions.Basic
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Data.Fintype.BigOperators
-import Mathlib.Tactic
-import Qatlib.Papers.ShortPathOpt18.MainResults.SourceModel
+module
+
+public import Mathlib.Algebra.Order.BigOperators.GroupWithZero.Finset
+public import Mathlib.Analysis.Convex.Jensen
+public import Mathlib.Analysis.Convex.SpecificFunctions.Basic
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Data.Fintype.BigOperators
+public import Mathlib.Tactic
+public import Qatlib.Papers.ShortPathOpt18.MainResults.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -52,7 +56,7 @@ theorem source_lemma3 {Ω : Type*} [Fintype Ω] (w : Ω → ℝ)
     intro i
     have hex : ∃ ω, 0 < w ω := by
       by_contra h
-      push_neg at h
+      push Not at h
       have hzero : ∀ ω, w ω = 0 := fun ω => le_antisymm (h ω) (hw0 ω)
       have hsum0 : (∑ ω, w ω) = 0 := by simp [hzero]
       linarith

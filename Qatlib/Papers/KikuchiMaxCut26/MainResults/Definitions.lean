@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Combinatorics.SimpleGraph.LapMatrix
-import Mathlib.Analysis.Matrix.Spectrum
-import Mathlib.Analysis.Matrix.Order
+module
+
+public import Mathlib.Combinatorics.SimpleGraph.LapMatrix
+public import Mathlib.Analysis.Matrix.Spectrum
+public import Mathlib.Analysis.Matrix.Order
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

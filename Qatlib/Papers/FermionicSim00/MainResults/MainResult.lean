@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FermionAlgebra.CarJordanWigner.Fermion
-import Qatlib.Concepts.FermionAlgebra.CarJordanWigner.FermionHubbard
+module
+
+public import Qatlib.Concepts.FermionAlgebra.CarJordanWigner.Fermion
+public import Qatlib.Concepts.FermionAlgebra.CarJordanWigner.FermionHubbard
+
+@[expose] public section
 
 /-!
 # Jordan-Wigner identities and hopping evolution
@@ -78,7 +82,7 @@ theorem jw_ket_injective {n : ℕ} :
     simpa [Qatlib.Foundations.PureStateMath.Ket] using! congrFun h x
   by_cases hxy : x = y
   · exact hxy
-  · rw [if_neg hxy] at hx
+  · rw [ite_eq_right hxy] at hx
     exact absurd hx one_ne_zero
 
 /-- Every register state equals the sum of computational basis vectors weighted by its

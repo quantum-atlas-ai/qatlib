@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Fin.Basic
-import Mathlib.Data.List.FinRange
+module
+
+public import Mathlib.Data.Fin.Basic
+public import Mathlib.Data.List.FinRange
+
+@[expose] public section
 
 /-!
 # Integer data for the 48-ray overlap certificate

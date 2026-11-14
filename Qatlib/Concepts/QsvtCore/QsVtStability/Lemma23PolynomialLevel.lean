@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.PhaseExistence.Lemma23PolynomialLevel
-import Qatlib.Concepts.QsvtCore.QsVtStability.Lemma23InteriorRobustnessGily
-import Qatlib.Concepts.QsvtCore.PhaseExistence.Corollary8ComplexPhaseExistenceGily
+module
+
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.Lemma23PolynomialLevel
+public import Qatlib.Concepts.QsvtCore.QsVtStability.Lemma23InteriorRobustnessGily
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.Corollary8ComplexPhaseExistenceGily
+
+@[expose] public section
 
 /-!
 # Polynomial-level interior QSVT robustness

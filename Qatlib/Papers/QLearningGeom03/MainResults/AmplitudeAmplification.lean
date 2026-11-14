@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Order.Round
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
+module
+
+public import Mathlib.Algebra.Order.Round
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
+
+@[expose] public section
 
 /-!
 # Planar amplitude amplification
@@ -52,8 +56,8 @@ noncomputable def groverStep (θ : ℝ) (x : AmplState) : AmplState :=
 second. -/
 lemma refl_target (x : AmplState) : planeRefl (1, 0) x = (x.1, -x.2) := by
   apply Prod.ext
-  all_goals simp [planeRefl]
-  ring
+  <;> simp [planeRefl]
+; ring
 
 /-- The coordinate formula for `groverStep θ` in terms of cos(2θ) and sin(2θ). -/
 lemma groverStep_apply (θ : ℝ) (x : AmplState) :

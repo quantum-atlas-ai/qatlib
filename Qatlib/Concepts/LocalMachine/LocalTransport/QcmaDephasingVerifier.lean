@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LocalMachine.LocalTransport.WitnessComplexityRefined
+module
+
+public import Qatlib.Concepts.LocalMachine.LocalTransport.WitnessComplexityRefined
+
+@[expose] public section
 
 /-!
 # QCMA dephasing verifier construction
@@ -191,18 +195,18 @@ theorem wireGate_embed {q n : ℕ} (w : ℕ) (hw : w < q) (U : Matrix Bool Bool 
         rfl
       · exact hcond'.2 j
   by_cases hdrop : wireDrop za = wireDrop zb
-  · rw [if_pos hdrop]
+  · rw [ite_eq_left hdrop]
     have hd' : ∀ j : Fin n, za (Fin.natAdd q j) = zb (Fin.natAdd q j) :=
       funext_iff.mp hdrop
     by_cases hsmall : ∀ k : Fin q, k ≠ (⟨w, hw⟩ : Fin q) → wireTake za k = wireTake zb k
-    · rw [if_pos (hcond.mpr ⟨hsmall, hd'⟩), if_pos hsmall]
+    · rw [ite_eq_left (hcond.mpr ⟨hsmall, hd'⟩), ite_eq_left hsmall]
       rfl
-    · rw [if_neg (fun h => hsmall (hcond.mp h).1), if_neg hsmall]
-  · rw [if_neg hdrop]
+    · rw [ite_eq_right (fun h => hsmall (hcond.mp h).1), ite_eq_right hsmall]
+  · rw [ite_eq_right hdrop]
     have hd' : ¬ (∀ j : Fin n, za (Fin.natAdd q j) = zb (Fin.natAdd q j)) := by
       intro h
       exact hdrop (funext_iff.mpr h)
-    rw [if_neg (fun h => hd' (hcond.mp h).2)]
+    rw [ite_eq_right (fun h => hd' (hcond.mp h).2)]
 
 /-- The matrix entry for a basis map `σ` is one exactly when the row index equals `σ` applied to
 the column index, and zero otherwise. -/
@@ -231,9 +235,9 @@ theorem permUpdateGate_embed {q n : ℕ} (t : ℕ) (ht : t < q) (val : Reg q →
   by_cases hdrop : wireDrop za = wireDrop zb
   · by_cases htake : wireTake za
         = Function.update (wireTake zb) (⟨t, ht⟩ : Fin q) (val (wireTake zb))
-    · rw [if_pos ⟨htake, hdrop⟩, if_pos hdrop, if_pos htake]
-    · rw [if_neg (fun h => htake h.1), if_pos hdrop, if_neg htake]
-  · rw [if_neg (fun h => hdrop h.2), if_neg hdrop]
+    · rw [ite_eq_left ⟨htake, hdrop⟩, ite_eq_left hdrop, ite_eq_left htake]
+    · rw [ite_eq_right (fun h => htake h.1), ite_eq_left hdrop, ite_eq_right htake]
+  · rw [ite_eq_right (fun h => hdrop h.2), ite_eq_right hdrop]
 
 /-- A controlled-NOT gate whose control and target are original wires has its original matrix
 entry when the appended registers agree, and zero otherwise. -/
@@ -274,7 +278,7 @@ theorem xorQueryMatrix_embed (A : ClassicalOracle) {q n : ℕ} (addresses : List
             (readAddress y addresses hlegq.2.1)) (wireTake x))
     rw [← readAddress_take addresses hlegq.2.1 x hlegn.2.1]
     rfl
-  simp only [xorQueryMatrix, dif_pos hlegn, dif_pos hlegq]
+  simp only [xorQueryMatrix, dite_eq_left hlegn, dite_eq_left hlegq]
   rw [hfun, permUpdateGate_embed target hlegq.1
     (fun y : Reg q => y ⟨target, hlegq.1⟩ ^^ A addresses.length
       (readAddress y addresses hlegq.2.1)) za zb]
@@ -315,29 +319,29 @@ theorem instructionMatrix_embed (A : ClassicalOracle) {q n : ℕ} (instr : Witne
       match gate with
       | .h w =>
           have hw : w < q := by simpa [instructionLegal, finiteCodeLegal] using hlegal
-          simp only [instructionMatrix, finiteCodeMatrix, dif_pos hw,
-            dif_pos (show w < q + n by omega)]
+          simp only [instructionMatrix, finiteCodeMatrix, dite_eq_left hw,
+            dite_eq_left (show w < q + n by omega)]
           exact wireGate_embed w hw Hadamard za zb
       | .x w =>
           have hw : w < q := by simpa [instructionLegal, finiteCodeLegal] using hlegal
-          simp only [instructionMatrix, finiteCodeMatrix, dif_pos hw,
-            dif_pos (show w < q + n by omega)]
+          simp only [instructionMatrix, finiteCodeMatrix, dite_eq_left hw,
+            dite_eq_left (show w < q + n by omega)]
           exact wireGate_embed w hw PauliX za zb
       | .t w =>
           have hw : w < q := by simpa [instructionLegal, finiteCodeLegal] using hlegal
-          simp only [instructionMatrix, finiteCodeMatrix, dif_pos hw,
-            dif_pos (show w < q + n by omega)]
+          simp only [instructionMatrix, finiteCodeMatrix, dite_eq_left hw,
+            dite_eq_left (show w < q + n by omega)]
           exact wireGate_embed w hw tGate za zb
       | .tdg w =>
           have hw : w < q := by simpa [instructionLegal, finiteCodeLegal] using hlegal
-          simp only [instructionMatrix, finiteCodeMatrix, dif_pos hw,
-            dif_pos (show w < q + n by omega)]
+          simp only [instructionMatrix, finiteCodeMatrix, dite_eq_left hw,
+            dite_eq_left (show w < q + n by omega)]
           exact wireGate_embed w hw tGateAdj za zb
       | .cx c t =>
           have hct : c < q ∧ t < q ∧ c ≠ t := by
             simpa [instructionLegal, finiteCodeLegal] using hlegal
-          simp only [instructionMatrix, finiteCodeMatrix, dif_pos hct,
-            dif_pos (show c < q + n ∧ t < q + n ∧ c ≠ t by omega)]
+          simp only [instructionMatrix, finiteCodeMatrix, dite_eq_left hct,
+            dite_eq_left (show c < q + n ∧ t < q + n ∧ c ≠ t by omega)]
           exact cnotGate_embed c t hct.1 hct.2.1 za zb
   | .oracle addresses target =>
       obtain ⟨h1, h2, h3, h4⟩ := hlegal
@@ -355,13 +359,13 @@ theorem instrMatrixProd_embed (A : ClassicalOracle) {q n : ℕ} (l : List Witnes
   | nil =>
       simp only [List.map_nil, List.reverse_nil, List.prod_nil, Matrix.one_apply]
       by_cases hdrop : wireDrop za = wireDrop zb
-      · rw [if_pos hdrop]
+      · rw [ite_eq_left hdrop]
         by_cases htake : wireTake za = wireTake zb
-        · rw [if_pos htake]
-          rw [if_pos (by
+        · rw [ite_eq_left htake]
+          rw [ite_eq_left (by
             rw [← wireTake_drop za, ← wireTake_drop zb, htake, hdrop])]
-        · rw [if_neg htake, if_neg (fun hz => htake (congrArg wireTake hz))]
-      · rw [if_neg hdrop, if_neg (fun hz => hdrop (congrArg wireDrop hz))]
+        · rw [ite_eq_right htake, ite_eq_right (fun hz => htake (congrArg wireTake hz))]
+      · rw [ite_eq_right hdrop, ite_eq_right (fun hz => hdrop (congrArg wireDrop hz))]
   | cons g l ih =>
       have hgl : instructionLegal q g := hlegal g (by simp)
       have hll : ∀ i ∈ l, instructionLegal q i := fun i hi =>
@@ -369,7 +373,7 @@ theorem instrMatrixProd_embed (A : ClassicalOracle) {q n : ℕ} (l : List Witnes
       simp only [List.map_cons, List.reverse_cons, List.prod_append,
         List.prod_singleton, Matrix.mul_apply]
       by_cases hdrop : wireDrop za = wireDrop zb
-      · rw [if_pos hdrop]
+      · rw [ite_eq_left hdrop]
         have hsummand : ∀ k : Reg (q + n),
             ((l.map (instructionMatrix A (q + n))).reverse.prod) za k
               * instructionMatrix A (q + n) g k zb
@@ -380,10 +384,10 @@ theorem instrMatrixProd_embed (A : ClassicalOracle) {q n : ℕ} (l : List Witnes
           intro k
           rw [ih hll za k, instructionMatrix_embed A g hgl k zb]
           by_cases hk : wireDrop za = wireDrop k
-          · rw [if_pos hk, if_pos (show wireDrop k = wireDrop zb from hk.symm.trans hdrop),
-              if_pos hk.symm]
-          · rw [if_neg hk, if_neg (fun h : wireDrop k = wireDrop za => hk h.symm),
-              if_neg (fun h : wireDrop k = wireDrop zb => hk (hdrop.trans h.symm)), zero_mul]
+          · rw [ite_eq_left hk, ite_eq_left (show wireDrop k = wireDrop zb from hk.symm.trans hdrop),
+              ite_eq_left hk.symm]
+          · rw [ite_eq_right hk, ite_eq_right (fun h : wireDrop k = wireDrop za => hk h.symm),
+              ite_eq_right (fun h : wireDrop k = wireDrop zb => hk (hdrop.trans h.symm)), zero_mul]
         rw [Finset.sum_congr rfl (fun k _ => hsummand k)]
         rw [sum_wireGlue (fun k : Reg (q + n) =>
           (if wireDrop k = wireDrop za
@@ -399,20 +403,20 @@ theorem instrMatrixProd_embed (A : ClassicalOracle) {q n : ℕ} (l : List Witnes
                 * instructionMatrix A q g ub (wireTake zb) := by
           intro ub
           rw [Finset.sum_eq_single (wireDrop za)]
-          · rw [if_pos rfl]
+          · rw [ite_eq_left rfl]
           · intro b _ hb
-            rw [if_neg hb]
+            rw [ite_eq_right hb]
           · intro hcon
             exact absurd (Finset.mem_univ (wireDrop za)) hcon
         rw [Finset.sum_congr rfl (fun ub _ => hinner ub), ← Matrix.mul_apply]
-      · rw [if_neg hdrop]
+      · rw [ite_eq_right hdrop]
         apply Finset.sum_eq_zero
         intro k _
         rw [ih hll za k]
         by_cases hk : wireDrop za = wireDrop k
-        · rw [if_pos hk, instructionMatrix_embed A g hgl k zb,
-            if_neg (fun h => hdrop (hk.trans h)), mul_zero]
-        · rw [if_neg hk, zero_mul]
+        · rw [ite_eq_left hk, instructionMatrix_embed A g hgl k zb,
+            ite_eq_right (fun h => hdrop (hk.trans h)), mul_zero]
+        · rw [ite_eq_right hk, zero_mul]
 
 /-- The matrix associated with the identity basis map is the identity matrix. -/
 theorem permMatrix_id_eq_one {I : Type*} [Fintype I] [DecidableEq I] :
@@ -433,7 +437,7 @@ theorem permMatrix_comp {I : Type*} [Fintype I] [DecidableEq I] (f g : I → I) 
     by_cases hk : k = g j
     · subst hk
       by_cases h : i = f (g j) <;> simp [h]
-    · rw [if_neg hk, mul_zero, if_neg hk]
+    · rw [ite_eq_right hk, mul_zero, ite_eq_right hk]
   simp only [Matrix.mul_apply, permMatrix, Matrix.of_apply]
   rw [Finset.sum_congr rfl (fun k _ => hterm k), Finset.sum_ite_eq']
   simp
@@ -453,10 +457,10 @@ theorem permMatrix_conj_apply {I : Type*} [Fintype I] [DecidableEq I] (P : I →
             intro h
             have hPP : P k = m := by rw [congrArg P h]; exact hP m
             exact hm hPP.symm
-          rw [if_neg hne]
+          rw [ite_eq_right hne]
           simp)
         (fun hcon => absurd (Finset.mem_univ (P k)) hcon),
-      if_pos ((hP k).symm : k = P (P k))]
+      ite_eq_left ((hP k).symm : k = P (P k))]
     simp
   rw [Matrix.mul_apply]
   simp only [h1]
@@ -467,10 +471,10 @@ theorem permMatrix_conj_apply {I : Type*} [Fintype I] [DecidableEq I] (P : I →
           intro h
           have hPP : P l = m := by rw [congrArg P h]; exact hP m
           exact hm hPP.symm
-        rw [if_neg hne]
+        rw [ite_eq_right hne]
         simp)
       (fun hcon => absurd (Finset.mem_univ (P l)) hcon),
-    if_pos ((hP l).symm : l = P (P l))]
+    ite_eq_left ((hP l).symm : l = P (P l))]
   simp
 
 /-- Define the controlled-NOT instruction from witness wire `i` to the corresponding ancilla
@@ -539,7 +543,7 @@ theorem instructionMatrix_copyInstruction (A : ClassicalOracle) (p : WitnessVeri
     have := (witnessWire p i).isLt
     omega
   simp only [instructionMatrix, finiteCodeMatrix, copyInstruction]
-  rw [dif_pos ⟨hc, ht, hne⟩]
+  rw [dite_eq_left ⟨hc, ht, hne⟩]
   simp only [cnotGate]
   rfl
 
@@ -599,14 +603,14 @@ theorem copySrcOf_of_lt (p : WitnessVerifierProgram)
         have hq := dephase_qubits p
         have ht := t.isLt
         omega⟩) = t
-  rw [dif_pos ht]
+  rw [dite_eq_left ht]
 
 /-- For an appended wire, the source index is its numerical index minus the original program
 width. -/
 theorem copySrcOf_val (p : WitnessVerifierProgram)
     {t : Fin (programQubits (dephaseProgram p))} (ht : ¬((t : ℕ) < programQubits p)) :
     (copySrcOf p t : ℕ) = (t : ℕ) - programQubits p := by
-  simp only [copySrcOf, dif_neg ht]
+  simp only [copySrcOf, dite_eq_right ht]
   rfl
 
 /-- The source of every appended wire lies within the original program register. -/
@@ -649,9 +653,9 @@ theorem copyComp_eq_partialCopy (p : WitnessVerifierProgram) :
     intro hm z
     funext k
     by_cases hk : (k : ℕ) < programQubits p
-    · simp only [copyComp, partialCopy, dif_pos hk, id_eq]
+    · simp only [copyComp, partialCopy, dite_eq_left hk, id_eq]
     · have hj : ¬((k : ℕ) - programQubits p < 0) := by omega
-      simp only [copyComp, partialCopy, dif_neg hk, dif_neg hj, id_eq]
+      simp only [copyComp, partialCopy, dite_eq_right hk, dite_eq_right hj, id_eq]
   | succ m ih =>
     intro hm z
     have hm' : m ≤ p.witnessBits := Nat.le_of_lt hm
@@ -697,8 +701,8 @@ theorem copyComp_eq_partialCopy (p : WitnessVerifierProgram) :
       intro kk hne h
       exact hne ((hval kk).1 h)
     by_cases hkq : (k : ℕ) < programQubits p
-    · simp only [dif_pos hkq, if_neg (hkTval k (by omega))]
-    · simp only [dif_neg hkq]
+    · simp only [dite_eq_left hkq, ite_eq_right (hkTval k (by omega))]
+    · simp only [dite_eq_right hkq]
       have hsrcval : (copySrcOf p k : ℕ) = (k : ℕ) - programQubits p :=
         copySrcOf_val p hkq
       by_cases hjm : (k : ℕ) - programQubits p < m
@@ -709,8 +713,8 @@ theorem copyComp_eq_partialCopy (p : WitnessVerifierProgram) :
           rw [hTv] at h2
           rw [hsrcval] at h2
           omega
-        simp only [dif_pos hjm, if_neg hjT, if_neg (hkTval k (by omega)),
-          dif_pos (by omega : (k : ℕ) - programQubits p < m + 1)]
+        simp only [dite_eq_left hjm, ite_eq_right hjT, ite_eq_right (hkTval k (by omega)),
+          dite_eq_left (by omega : (k : ℕ) - programQubits p < m + 1)]
       · by_cases hke : (k : ℕ) - programQubits p = m
         · have hkTe : k = Fin.cast (dephase_qubits p).symm
               (Fin.natAdd (programQubits p) ⟨m, hm⟩) := (hval k).mpr (by omega)
@@ -723,12 +727,12 @@ theorem copyComp_eq_partialCopy (p : WitnessVerifierProgram) :
                   (Fin.castAdd p.witnessBits (witnessWire p ⟨m, hm⟩)) : ℕ)
             rw [hsrcval, hWv]
             omega
-          simp only [dif_neg (show ¬((k : ℕ) - programQubits p < m) by omega),
-            if_pos hkTe, dif_pos (show (k : ℕ) - programQubits p < m + 1 by omega)]
+          simp only [dite_eq_right (show ¬((k : ℕ) - programQubits p < m) by omega),
+            ite_eq_left hkTe, dite_eq_left (show (k : ℕ) - programQubits p < m + 1 by omega)]
           rw [hdropeqv, hkTe, Bool.xor_comm]
-        · simp only [dif_neg (show ¬((k : ℕ) - programQubits p < m) by omega),
-            if_neg (hkTval k (by omega)),
-            dif_neg (by omega : ¬((k : ℕ) - programQubits p < m + 1))]
+        · simp only [dite_eq_right (show ¬((k : ℕ) - programQubits p < m) by omega),
+            ite_eq_right (hkTval k (by omega)),
+            dite_eq_right (by omega : ¬((k : ℕ) - programQubits p < m + 1))]
 
 /-- Applying the partial copying update to all witness positions gives `copyUpdate` on every
 basis register. -/
@@ -737,11 +741,11 @@ theorem partialCopy_full (p : WitnessVerifierProgram)
     partialCopy p p.witnessBits (Nat.le_refl p.witnessBits) z = copyUpdate p z := by
   funext k
   by_cases hk : (k : ℕ) < programQubits p
-  · simp only [partialCopy, copyUpdate, dif_pos hk, if_pos hk]
+  · simp only [partialCopy, copyUpdate, dite_eq_left hk, ite_eq_left hk]
   · have hq := dephase_qubits p
     have hk2 := k.isLt
     have hjlt : (k : ℕ) - programQubits p < p.witnessBits := by omega
-    simp only [partialCopy, copyUpdate, dif_neg hk, if_neg hk, dif_pos hjlt]
+    simp only [partialCopy, copyUpdate, dite_eq_right hk, ite_eq_right hk, dite_eq_left hjlt]
 
 /-- The composite copying map for indices below `m` equals `partialCopy` as a function on basis
 registers. -/

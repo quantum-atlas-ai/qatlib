@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.FiniteLaws.FiniteLikelihood
-import Qatlib.Concepts.SketchArith.SketchBuild.FiniteBoundedDifferences
+module
+
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.FiniteLaws.FiniteLikelihood
+public import Qatlib.Concepts.SketchArith.SketchBuild.FiniteBoundedDifferences
+
+@[expose] public section
 
 /-!
 # Concentration for finite likelihood comparisons
@@ -108,6 +112,7 @@ theorem log_likelihood_bound (p q : Qatlib.Concepts.MonteCarloMean.FinDistBounds
   simp only [neg_add_cancel]
   exact div_nonneg hsum (Nat.cast_nonneg n)
 
+omit [DecidableEq X] in
 /-- The probability that `A` occurs in at least one of `n` independent samples is one minus the
 `n`th power of its failure probability. -/
 theorem repeated_success (p : Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist X) (n : ℕ) (A : X → Prop) [DecidablePred A] :

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.FiniteLaws.FiniteMaximumLikelihood
-import Qatlib.Concepts.FinitePrecision.ComputableInput.BitRational.FiniteSelection
+module
+
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.FiniteLaws.FiniteMaximumLikelihood
+public import Qatlib.Concepts.FinitePrecision.ComputableInput.BitRational.FiniteSelection
+
+@[expose] public section
 
 /-!
 # Rational maximum likelihood with gate bounds

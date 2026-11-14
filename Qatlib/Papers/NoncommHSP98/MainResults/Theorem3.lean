@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NoncommHSP98.MainResults.MaxIdentify
+module
+
+public import Qatlib.Papers.NoncommHSP98.MainResults.MaxIdentify
+
+@[expose] public section
 
 /-!
 # Dihedral hidden-subgroup identification
@@ -139,7 +143,7 @@ def bestK (N : ℕ) [NeZero N] (m : ℕ) (ω : Fin m → ZMod N) : ZMod N := by
 theorem bestK_mem {N : ℕ} [NeZero N] {m : ℕ} (ω : Fin m → ZMod N)
     (h : (Candidates N).Nonempty) : bestK N m ω ∈ Candidates N := by
   unfold bestK
-  rw [dif_pos h]
+  rw [dite_eq_left h]
   exact (Classical.choose_spec (Finset.exists_max_image (Candidates N)
     (fun k => ∑ i, cosPhase N k (ω i)) h)).1
 
@@ -149,7 +153,7 @@ theorem bestK_max {N : ℕ} [NeZero N] {m : ℕ} (ω : Fin m → ZMod N)
     ∀ k ∈ Candidates N, ∑ i, cosPhase N k (ω i)
       ≤ ∑ i, cosPhase N (bestK N m ω) (ω i) := by
   unfold bestK
-  rw [dif_pos h]
+  rw [dite_eq_left h]
   exact (Classical.choose_spec (Finset.exists_max_image (Candidates N)
     (fun k => ∑ i, cosPhase N k (ω i)) h)).2
 
@@ -184,15 +188,15 @@ theorem postproc_eq_some_of_H2 {N : ℕ} [NeZero N] {R : Type*} {k0 k : ZMod N}
     (hk : k = k0 ∨ k = -k0) : postproc N γ k = some k0 := by
   unfold postproc
   rcases hk with hk | hk
-  · rw [if_pos ((promise_H2_test_iff hγ).mpr hk), hk]
+  · rw [ite_eq_left ((promise_H2_test_iff hγ).mpr hk), hk]
   · rw [hk]
     by_cases h2 : -k0 = k0
-    · rw [if_pos ((promise_H2_test_iff hγ).mpr h2)]
+    · rw [ite_eq_left ((promise_H2_test_iff hγ).mpr h2)]
       rw [show (-k0) = k0 from h2]
-    · rw [if_neg (fun hne => h2 ((promise_H2_test_iff hγ).mp hne))]
+    · rw [ite_eq_right (fun hne => h2 ((promise_H2_test_iff hγ).mp hne))]
       have htest : γ (0, 0) = γ (-(-k0), 1) :=
         (promise_H2_test_iff hγ).mpr (by simp)
-      rw [if_pos htest, neg_neg]
+      rw [ite_eq_left htest, neg_neg]
 
 /-- Under the trivial-subgroup promise, postprocessing a nonzero candidate returns `none`. -/
 theorem postproc_eq_none_of_HTriv {N : ℕ} [NeZero N] {R : Type*} {γ : DihPt N → R}
@@ -211,7 +215,7 @@ theorem postproc_eq_none_of_HTriv {N : ℕ} [NeZero N] {R : Type*} {γ : DihPt N
     subst hh
     simp [dihMul] at hmul
   unfold postproc
-  rw [if_neg hne, if_neg hne2]
+  rw [ite_eq_right hne, ite_eq_right hne2]
 
 /-- Classically selects a nonzero parameter satisfying the reflection-subgroup promise,
 returning `none` when no such parameter exists. -/
@@ -228,7 +232,7 @@ theorem hiddenK_eq_some {N : ℕ} [NeZero N] {R : Type*} {k0 : ZMod N} {γ : Dih
   unfold hiddenK
   have h0 : ∃ k0 : ZMod N, k0 ≠ 0 ∧ FulfillsDihedralPromise N (H2 N k0) γ :=
     ⟨k0, hk0, hγ⟩
-  rw [dif_pos h0]
+  rw [dite_eq_left h0]
   congr 1
   obtain ⟨hk0', hγ'⟩ := Classical.choose_spec h0
   exact (promise_H2_test_iff hγ).mp ((promise_H2_test_iff hγ').mpr rfl)
@@ -238,7 +242,7 @@ theorem hiddenK_eq_none {N : ℕ} [NeZero N] {R : Type*} {γ : DihPt N → R}
     (hγ : FulfillsDihedralPromise N (HTriv N) γ) : hiddenK N R γ = none := by
   classical
   unfold hiddenK
-  rw [dif_neg (by
+  rw [dite_eq_right (by
     rintro ⟨k0, hk0, hγ2⟩
     have htest : γ (0, 0) = γ (k0, 1) := (promise_H2_test_iff hγ2).mpr rfl
     obtain ⟨h, hh, hmul⟩ := FulfillsDihedralPromise.coset_of_eq hγ htest

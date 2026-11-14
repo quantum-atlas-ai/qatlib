@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LocalMachine.LocalTransport.UniformWitnessDefs
+module
+
+public import Qatlib.Concepts.LocalMachine.LocalTransport.UniformWitnessDefs
+
+@[expose] public section
 
 /-!
 # Matrices for uniform QMA amplification
@@ -60,7 +64,7 @@ noncomputable def mwRound (p : WitnessVerifierProgram) :
 
 /-- Define the diagonal rejection projector for a parameter `k`. The matrix is independent of
 `k` and has the same entries as `mwRound`. -/
-noncomputable def mwProcess (p : WitnessVerifierProgram) (k : ℕ) :
+noncomputable def mwProcess (p : WitnessVerifierProgram) (_k : ℕ) :
     Matrix (Reg (programQubits p)) (Reg (programQubits p)) ℂ :=
   Matrix.of fun u u' =>
     if u = u' then (if u ∈ programOutputEvent p then 0 else 1) else 0

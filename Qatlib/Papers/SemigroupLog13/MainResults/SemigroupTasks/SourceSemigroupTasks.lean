@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SemigroupLog13.MainResults.SemigroupAlgorithm.SourceSemigroupAlgorithm
+module
+
+public import Qatlib.Papers.SemigroupLog13.MainResults.SemigroupAlgorithm.SourceSemigroupAlgorithm
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -59,7 +63,7 @@ theorem dlogValue_eq_some_iff (g x : S) (a : ℕ) :
       ∀ b : ℕ, 0 < b → spow g b = (x : WithOne S) → a ≤ b := by
   unfold dlogValue
   by_cases hex : ∃ a : ℕ, 0 < a ∧ spow g a = (x : WithOne S)
-  · rw [dif_pos hex]
+  · rw [dite_eq_left hex]
     constructor
     · intro h
       have h' : Nat.find hex = a := Option.some.inj h
@@ -71,7 +75,7 @@ theorem dlogValue_eq_some_iff (g x : S) (a : ℕ) :
       exact le_antisymm
         (Nat.find_min' hex ⟨h1, h2⟩)
         (hmin _ (Nat.find_spec hex).1 (Nat.find_spec hex).2)
-  · rw [dif_neg hex]
+  · rw [dite_eq_right hex]
     constructor
     · intro h
       exact absurd h (by simp)
@@ -100,7 +104,7 @@ theorem shiftValue_eq_some_iff (y g x : S) (a : ℕ) :
       ∀ b : ℕ, 0 < b → (x : WithOne S) = (y : WithOne S) * spow g b → a ≤ b := by
   unfold shiftValue
   by_cases hex : ∃ a : ℕ, 0 < a ∧ (x : WithOne S) = (y : WithOne S) * spow g a
-  · rw [dif_pos hex]
+  · rw [dite_eq_left hex]
     constructor
     · intro h
       have h' : Nat.find hex = a := Option.some.inj h
@@ -112,7 +116,7 @@ theorem shiftValue_eq_some_iff (y g x : S) (a : ℕ) :
       exact le_antisymm
         (Nat.find_min' hex ⟨h1, h2⟩)
         (hmin _ (Nat.find_spec hex).1 (Nat.find_spec hex).2)
-  · rw [dif_neg hex]
+  · rw [dite_eq_right hex]
     constructor
     · intro h
       exact absurd h (by simp)

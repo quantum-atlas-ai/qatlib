@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.StochasticCalc.LognormalPay.CallPrice
-import Qatlib.Foundations.StochasticCalc.LognormalPay.VarianceBound
+module
+
+public import Qatlib.Foundations.StochasticCalc.LognormalPay.CallPrice
+public import Qatlib.Foundations.StochasticCalc.LognormalPay.VarianceBound
+
+@[expose] public section
 
 /-!
 # Second moment and variance of a lognormal call payoff

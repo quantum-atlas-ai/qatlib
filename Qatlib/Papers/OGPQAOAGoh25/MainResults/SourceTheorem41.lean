@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OGPQAOAGoh25.MainResults.Model.SourceModel
+module
+
+public import Qatlib.Papers.OGPQAOAGoh25.MainResults.Model.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -51,12 +55,12 @@ then with probability tending to one the output of `A n` on the random regular
 law `reg n` has density below `η n + γ n`. Choosing `η n` below the OGP
 threshold and `γ n → 0` yields the statement of the paper. -/
 theorem theorem41
-    {q : ℕ} (hq : 2 ≤ q)
-    (p : ℕ → ℕ) (ε : ℝ) (hε : 0 < ε)
-    (hp : ∀ᶠ n : ℕ in atTop, (p n : ℝ) ≤ ε * Real.log n)
+    {q : ℕ} (_hq : 2 ≤ q)
+    (p : ℕ → ℕ) (ε : ℝ) (_hε : 0 < ε)
+    (_hp : ∀ᶠ n : ℕ in atTop, (p n : ℝ) ≤ ε * Real.log n)
     (A : ∀ n : ℕ, LocalAlgorithm n q (p n))
     (er reg : ∀ n : ℕ, FinDist (Instance n q))
-    (η γ : ℕ → ℝ) (hγ : Tendsto γ atTop (𝓝 0))
+    (η γ : ℕ → ℝ) (_hγ : Tendsto γ atTop (𝓝 0))
     (hLimER : ∀ δ : ℝ, 0 < δ → ∀ᶠ n : ℕ in atTop,
       1 - δ ≤ mass (er n) (fun I => (A n).density I < η n))
     (hLocalSame : ∀ δ : ℝ, 0 < δ → ∀ᶠ n : ℕ in atTop,

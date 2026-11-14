@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.BornMetrics.FiniteStats.MetricCore
-import Mathlib.Tactic
+module
+
+public import Qatlib.Foundations.BornMetrics.FiniteStats.MetricCore
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Counterexamples to unrestricted approximation bounds
@@ -59,17 +63,17 @@ theorem swap_unitary : swapTwo ∈ Matrix.unitaryGroup (Fin 2) ℂ := by
 /-- The restricted seminorm `norm2k` with parameter one vanishes on `signTwo - 1`. -/
 theorem sign_first : norm2k (signTwo - 1) 1 = 0 := by
   norm_num [Subtype.ext_iff, norm2k, Finset.univ_fin2, Finset.filter_insert, Finset.filter_singleton, l2norm, ket, signTwo,
-    Matrix.mulVec, dotProduct, Fin.sum_univ_two] <;> rfl
+    Matrix.mulVec, dotProduct, Fin.sum_univ_two]; rfl
 
 /-- The restricted seminorm with parameter one of `signTwo * swapTwo - swapTwo` equals two. -/
 theorem product_first : norm2k (signTwo * swapTwo - swapTwo) 1 = 2 := by
   norm_num [Subtype.ext_iff, norm2k, Finset.univ_fin2, Finset.filter_insert, Finset.filter_singleton, l2norm, ket, signTwo, swapTwo,
-    Matrix.mul_apply, Matrix.mulVec, dotProduct, Fin.sum_univ_two] <;> rfl
+    Matrix.mul_apply, Matrix.mulVec, dotProduct, Fin.sum_univ_two]; rfl
 
 /-- The restricted seminorm with parameter one vanishes on `swapTwo - swapTwo`. -/
 theorem zero_first : norm2k (swapTwo - swapTwo) 1 = 0 := by
   norm_num [Subtype.ext_iff, norm2k, Finset.univ_fin2, Finset.filter_insert, Finset.filter_singleton, l2norm, ket,
-    Matrix.mulVec, dotProduct, Fin.sum_univ_two] <;> rfl
+    Matrix.mulVec, dotProduct, Fin.sum_univ_two]; rfl
 
 /-- There are four two-dimensional unitaries whose paired factor differences have zero
 restricted seminorm at parameter one, while the product difference has seminorm two. This

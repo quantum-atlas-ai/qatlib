@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SchattenDiamond.DiamondNorm.FiniteDiamondNorm
-import Qatlib.Concepts.AdaptiveCP.BranchTrace.QuantumChannel
-import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
-import Mathlib.Algebra.BigOperators.Fin
-import Mathlib.Analysis.Normed.Algebra.MatrixExponential
-import Mathlib.Data.Fin.SuccPred
-import Mathlib.LinearAlgebra.Matrix.StdBasis
-import Mathlib.LinearAlgebra.Matrix.ToLin
+module
+
+public import Qatlib.Concepts.SchattenDiamond.DiamondNorm.FiniteDiamondNorm
+public import Qatlib.Concepts.AdaptiveCP.BranchTrace.QuantumChannel
+public import Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument
+public import Mathlib.Algebra.BigOperators.Fin
+public import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+public import Mathlib.Data.Fin.SuccPred
+public import Mathlib.LinearAlgebra.Matrix.StdBasis
+public import Mathlib.LinearAlgebra.Matrix.ToLin
+
+@[expose] public section
 
 /-!
 # Encoded Petz maps and circuit resource records

@@ -6,16 +6,20 @@ Authors: Chris Birkbeck, Qatlib Contributors
 Adapted from https://github.com/TauCetiProject/TauCeti@3780371c
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+module
 
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Data.Finset.Max
-import Mathlib.Order.Interval.Set.Defs
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Curve.Distance
-import Mathlib.Algebra.Order.Field.Pi
-import Mathlib.Data.List.Sort
-import Mathlib.Order.Interval.Set.UnorderedInterval
-import Mathlib.Topology.MetricSpace.Infsep
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Data.Finset.Max
+public import Mathlib.Order.Interval.Set.Defs
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Analysis.Contour.Curve.Distance
+public import Mathlib.Algebra.Order.Field.Pi
+public import Mathlib.Data.List.Sort
+public import Mathlib.Order.Interval.Set.UnorderedInterval
+public import Mathlib.Topology.MetricSpace.Infsep
+
+@[expose] public section
 
 /-!
 # Separated windows around finitely many crossings
@@ -240,7 +244,7 @@ theorem exists_complement_windows_dist_lower_bound {γ : ℝ → ℂ} {s : ℂ} 
   have hC_closed : IsClosed C := by
     have h_eq : C = Icc a b ∩ ⋂ t_i ∈ crossings, (Ioo (t_i - r_at t_i) (t_i + r_at t_i))ᶜ := by
       ext t
-      simp only [hC_def, mem_setOf_eq, mem_inter_iff, mem_iInter, mem_compl_iff]
+      simp only [hC_def, Set.mem_ofPred_eq, mem_inter_iff, mem_iInter, mem_compl_iff]
     rw [h_eq]
     exact isClosed_Icc.inter (isClosed_biInter fun _ _ => isOpen_Ioo.isClosed_compl)
   have hC_compact : IsCompact C := isCompact_Icc.of_isClosed_subset hC_closed hC_subset

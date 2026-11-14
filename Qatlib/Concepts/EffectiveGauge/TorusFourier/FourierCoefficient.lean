@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.UnitTorusDescent
-import Qatlib.Concepts.EffectiveGauge.RationalFlow.MeanLipschitz
-import Mathlib.MeasureTheory.Integral.Bochner.Set
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.UnitTorusDescent
+public import Qatlib.Concepts.EffectiveGauge.RationalFlow.MeanLipschitz
+public import Mathlib.MeasureTheory.Integral.Bochner.Set
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -42,7 +46,7 @@ theorem unitFourierCoefficient_eq_integral (f : SpatialPoint → ℂ) (hf : Cont
   have hset : {x : Fin 3 → ℝ | ∀ i, x i∈Ioc (0 : ℝ) (0+1)}=
       Set.pi Set.univ (fun _ => Ioc (0 : ℝ) 1) := by
     ext x
-    simp only [zero_add,Set.mem_setOf_eq,Set.mem_pi,Set.mem_univ,true_implies]
+    simp only [zero_add,Set.mem_ofPred_eq,Set.mem_pi,Set.mem_univ,true_implies]
   rw [hset]
   apply integral_congr_ae
   filter_upwards [] with u

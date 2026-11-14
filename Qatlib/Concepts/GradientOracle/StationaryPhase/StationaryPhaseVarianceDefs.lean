@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.MeasureTheory.Integral.Pi
-import Mathlib.Data.Matrix.Basic
+module
+
+public import Mathlib.MeasureTheory.Integral.Pi
+public import Mathlib.Data.Matrix.Basic
+
+@[expose] public section
 
 /-!
 # Measure on the centered unit cube

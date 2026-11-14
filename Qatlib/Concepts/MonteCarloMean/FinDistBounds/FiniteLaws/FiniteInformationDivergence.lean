@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.IndependentWeightedEstimator
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Algebra.Order.BigOperators.Ring.Finset
+module
+
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.IndependentWeightedEstimator
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Algebra.Order.BigOperators.Ring.Finset
+
+@[expose] public section
 
 /-!
 # Finite information divergence and testing bounds
@@ -241,13 +245,13 @@ theorem records_estimation_lower (p q : Qatlib.Concepts.MonteCarloMean.FinDistBo
   · have herror : eps < |estimate w-theta0| := by
       have := le_abs_self (estimate w-theta0)
       linarith
-    simp only [test, h, decide_true, if_true, herror]
+    simp only [test, h, decide_true, ite_true, herror]
     change p.probOf w ≤ p.probOf w + (if eps < |estimate w-theta1| then q.probOf w else 0)
     split_ifs <;> linarith
   · have herror : eps < |estimate w-theta1| := by
       have := neg_le_abs (estimate w-theta1)
       linarith
-    simp only [test, h, decide_false, Bool.false_eq_true, if_false, herror, if_true]
+    simp only [test, h, decide_false, Bool.false_eq_true, ite_false, herror, ite_true]
     change q.probOf w ≤ (if eps < |estimate w-theta0| then p.probOf w else 0)+q.probOf w
     split_ifs <;> linarith
 

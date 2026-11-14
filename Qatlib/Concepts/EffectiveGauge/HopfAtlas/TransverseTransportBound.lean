@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.WordTransport
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.InhomogeneousTransport
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.WordTransport
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.InhomogeneousTransport
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -37,7 +41,7 @@ theorem spatialWordPartial_transverse_transport_bound (q K : SpatialPoint → �
   have hlineD (t : ℝ) : HasDerivAt line (EuclideanSpace.single 0 1) t := by
     convert (hasDerivAt_const t x).add (((hasDerivAt_id t).sub_const (x 0)).smul_const
       (EuclideanSpace.single 0 (1 : ℝ))) using 1 <;>
-      first | rfl | simp only [sub_zero,one_smul,zero_add]
+      first | rfl | simp only [one_smul,zero_add]
   have hlineC : Continuous line := continuous_const.add
     ((continuous_id.sub continuous_const).smul continuous_const)
   have hcoord (t : ℝ) : line t 0=t := by simp [line]

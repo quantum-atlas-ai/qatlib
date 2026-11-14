@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QAdversary11.PartialCompose.AdversaryIteration.SourceLemma1
-import Qatlib.Concepts.ConversionCore.WitnessCompile.FunctionEvaluationAdversaryAlgQuan
+module
+
+public import Qatlib.Papers.QAdversary11.PartialCompose.AdversaryIteration.SourceLemma1
+public import Qatlib.Concepts.ConversionCore.WitnessCompile.FunctionEvaluationAdversaryAlgQuan
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -111,10 +115,10 @@ theorem wsize_le_pow_kappa {n : ℕ} (w : ℝ≥0∞) (hw : 1 ≤ w) :
             (f := fun i => (ch i).kappa) hi)
         exact hsup1.trans hsup2
       cases fault
-      · simp only [wsize, kappa, Bool.false_eq_true, if_false, Nat.cast_zero, zero_add,
+      · simp only [wsize, kappa, Bool.false_eq_true, ite_false, zero_add,
           one_mul]
         exact h1
-      · simp only [wsize, kappa, if_true, Nat.cast_one]
+      · simp only [wsize, kappa, ite_true]
         calc w * strong.sup (fun i => (ch i).wsize w)
             ≤ w * w ^ strong.sup (fun i => (ch i).kappa) := by gcongr
           _ = w ^ (1 + strong.sup (fun i => (ch i).kappa)) := by rw [pow_add, pow_one]

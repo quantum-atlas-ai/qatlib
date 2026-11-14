@@ -4,19 +4,23 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryExt
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedTruncationEvent
-import Qatlib.Concepts.GramQueryCore.GammaDuality.FilteredGamma2Optimization
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryCompilation
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryFourBitWitness
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryInstrumentMinimax
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryIteration
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryNegativeWeightComp
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryPhaseOracle
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversarySdpDuality
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversarySourceOptimizers
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryStatementAnswers
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryUnboundedBinaryBounds
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryExt
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.ObservedTruncationEvent
+public import Qatlib.Concepts.GramQueryCore.GammaDuality.FilteredGamma2Optimization
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryCompilation
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryFourBitWitness
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryInstrumentMinimax
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryIteration
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryNegativeWeightComposition
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryPhaseOracle
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversarySdpDuality
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversarySourceOptimizers
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryStatementAnswers
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryUnboundedBinaryBounds
+
+@[expose] public section
 
 /-!
 # Loss tags and effective adversary certificates

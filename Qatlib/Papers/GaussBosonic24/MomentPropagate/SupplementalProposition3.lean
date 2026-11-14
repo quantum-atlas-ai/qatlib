@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GaussBosonic24.MomentPropagate.SourceModel
+module
+
+public import Qatlib.Papers.GaussBosonic24.MomentPropagate.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -64,11 +68,10 @@ theorem nonParticle_omegaK_isHermitian {Δ : Matrix (Fin M) (Fin M) ℂ} (hΔ : 
   have himH : (imPart Δ)ᴴ = imPart Δ := by
     rw [imPart_conjTranspose, him]
   rw [Matrix.IsHermitian, omega, nonParticleK, fromBlocks_multiply]
-  simp only [Matrix.zero_mul, Matrix.one_mul, Matrix.mul_one,
-    Matrix.neg_mul, Matrix.mul_neg, zero_add, add_zero, neg_neg]
+  simp only [Matrix.zero_mul, Matrix.one_mul,
+    Matrix.neg_mul, Matrix.mul_neg, zero_add, add_zero]
   rw [fromBlocks_conjTranspose]
-  simp only [Matrix.conjTranspose_neg, Matrix.conjTranspose_add, Matrix.conjTranspose_zero,
-    neg_zero, add_zero, himH, hreH, neg_neg]
+  simp only [Matrix.conjTranspose_neg, neg_zero, add_zero, himH, hreH]
 
 /-- Imaginary-time evolution under a generator `H`: `e^{-tH}`. -/
 def imaginaryTimeEvolution {I : Type*} [Fintype I] [DecidableEq I] (H : Matrix I I ℂ)

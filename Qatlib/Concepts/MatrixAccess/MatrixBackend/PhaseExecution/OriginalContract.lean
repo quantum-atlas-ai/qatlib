@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PhaseExecution.Program
-import Qatlib.Concepts.SignalPrimitive.PhaseFrontend.ComputedPhaseQSVT
+module
+
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PhaseExecution.Program
+public import Qatlib.Concepts.SignalPrimitive.PhaseFrontend.ComputedPhaseQSVT
+
+@[expose] public section
 
 open Qatlib.Foundations.QueryWordCore.Circuit
 

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AdiabEquiv04.MainResults.Model.AdiabaticDefs
-import Qatlib.Papers.AdiabEquiv04.MainResults.Model.SpectralBasics
+module
+
+public import Qatlib.Papers.AdiabEquiv04.MainResults.Model.AdiabaticDefs
+public import Qatlib.Papers.AdiabEquiv04.MainResults.Model.SpectralBasics
+
+@[expose] public section
 
 /-!
 # Eigenvectors and Rayleigh bounds
@@ -207,18 +211,18 @@ theorem normSq_eigVec (A : Matrix ι ι ℂ) (hA : A.IsHermitian) (j : ι) :
     ∑ i, Complex.normSq (eigVec A hA j i) = 1 := by
   have hp := parseval_eigVec A hA (eigVec A hA j)
   rw [← hp, Finset.sum_eq_single j]
-  · rw [dot_star_eigVec_eigVec, if_pos rfl, Complex.normSq_one]
+  · rw [dot_star_eigVec_eigVec, ite_eq_left rfl, Complex.normSq_one]
   · intro k _ hk
-    rw [dot_star_eigVec_eigVec, if_neg hk, Complex.normSq_zero]
+    rw [dot_star_eigVec_eigVec, ite_eq_right hk, Complex.normSq_zero]
   · intro hj; exact absurd (Finset.mem_univ j) hj
 
 /-- The Rayleigh expression of a chosen eigenvector equals its eigenvalue. -/
 theorem rayleigh_eigVec (A : Matrix ι ι ℂ) (hA : A.IsHermitian) (j : ι) :
     ((star (eigVec A hA j)) ⬝ᵥ (A *ᵥ eigVec A hA j)).re = hA.eigenvalues j := by
   rw [rayleigh_spectral A hA (eigVec A hA j), Finset.sum_eq_single j]
-  · rw [dot_star_eigVec_eigVec, if_pos rfl, Complex.normSq_one, mul_one]
+  · rw [dot_star_eigVec_eigVec, ite_eq_left rfl, Complex.normSq_one, mul_one]
   · intro k _ hk
-    rw [dot_star_eigVec_eigVec, if_neg hk, Complex.normSq_zero, mul_zero]
+    rw [dot_star_eigVec_eigVec, ite_eq_right hk, Complex.normSq_zero, mul_zero]
   · intro hj; exact absurd (Finset.mem_univ j) hj
 
 /-- The equivalence identifying a finite type with `Fin` of its cardinality, used to index the

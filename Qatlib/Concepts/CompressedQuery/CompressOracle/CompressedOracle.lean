@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryMagnitude
+module
+
+public import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryMagnitude
+
+@[expose] public section
 
 /-!
 # Compressed Bernoulli query oracles
@@ -913,6 +917,8 @@ omit [Fintype I] in
 private theorem databaseAt_other (j k : I) (hk : k ≠ j)
     (r : {k : I // k ≠ j} → Bool) (b : Bool) : databaseAt j r b k = r ⟨k,hk⟩ := by
   simp [databaseAt,Equiv.funSplitAt,Equiv.piSplitAt,hk]
+
+omit [Fintype I] in
 
 /-- Two reconstructed databases agree away from the selected address exactly when their residual
 databases are equal. -/

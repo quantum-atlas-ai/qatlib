@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GramQueryCore.GammaDuality.FunctionCompositionBoundsStat
-import Qatlib.Concepts.GramQueryCore.FilteredNorm.FilteredNormCompositionAndProductsQuan
-import Qatlib.Concepts.GramQueryCore.FilteredNorm.FunctionEvaluationNormSandwichQuan
-import Qatlib.Concepts.AdversaryBounds.WeightedAdvComp
+module
+
+public import Qatlib.Concepts.GramQueryCore.GammaDuality.FunctionCompositionBoundsStat
+public import Qatlib.Concepts.GramQueryCore.FilteredNorm.FilteredNormCompositionAndProductsQuan
+public import Qatlib.Concepts.GramQueryCore.FilteredNorm.FunctionEvaluationNormSandwichQuan
+public import Qatlib.Concepts.AdversaryBounds.WeightedAdvComposition
+
+@[expose] public section
 
 /-!
 # Adversary bounds for function composition
@@ -46,7 +50,7 @@ noncomputable section
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.BlockEncoding.LCU Qatlib.Foundations.PureStateMath.BornBridge Qatlib.Concepts.CopyEvolution.Discriminate
 
-open Qatlib.Concepts.AdversaryBounds.WeightedAdvComp
+open Qatlib.Concepts.AdversaryBounds.WeightedAdvComposition
 open Qatlib.Concepts.GramQueryCore.FilteredNorm
 open Qatlib.Concepts.GramQueryCore.LowerBoundTools
 
@@ -80,7 +84,7 @@ theorem sourceRectValue_filter_embed_le {R S : Type} {n k : ℕ}
     apply Finset.sum_of_injOn e (by intro a _ b _ hab; exact he hab) (by simp)
     · intro l _ hl
       have hn : ¬ ∃ j, e j=l := by simpa using! hl
-      simp only [u',dif_neg hn,norm_toEuclidean_fromVec_sq,Pi.zero_apply,norm_zero,zero_pow (by norm_num : (2 : ℕ)≠0),Finset.sum_const_zero]
+      simp only [u',dite_eq_right hn,norm_toEuclidean_fromVec_sq,Pi.zero_apply,norm_zero,zero_pow (by norm_num : (2 : ℕ)≠0),Finset.sum_const_zero]
     · intro j _
       simp [u',hchoose]
   have hvm (s : S) : (∑ l, ‖toEuclidean_fromVec (v' s l)‖^2)=∑ j, ‖toEuclidean_fromVec (v s j)‖^2 := by
@@ -88,7 +92,7 @@ theorem sourceRectValue_filter_embed_le {R S : Type} {n k : ℕ}
     apply Finset.sum_of_injOn e (by intro a _ b _ hab; exact he hab) (by simp)
     · intro l _ hl
       have hn : ¬ ∃ j, e j=l := by simpa using! hl
-      simp only [v',dif_neg hn,norm_toEuclidean_fromVec_sq,Pi.zero_apply,norm_zero,zero_pow (by norm_num : (2 : ℕ)≠0),Finset.sum_const_zero]
+      simp only [v',dite_eq_right hn,norm_toEuclidean_fromVec_sq,Pi.zero_apply,norm_zero,zero_pow (by norm_num : (2 : ℕ)≠0),Finset.sum_const_zero]
     · intro j _
       simp [v',hchoose]
   exact ⟨d,u',v',fun r s => (ha r s).trans (heq r s).symm,fun r => by rw [hum]; exact hu r,

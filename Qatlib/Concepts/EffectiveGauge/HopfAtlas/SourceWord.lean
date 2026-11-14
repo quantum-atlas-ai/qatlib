@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SourceJets
-import Mathlib.Analysis.Calculus.FDeriv.Symmetric
-import Mathlib.Data.List.Perm.Basic
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SourceJets
+public import Mathlib.Analysis.Calculus.FDeriv.Symmetric
+public import Mathlib.Data.List.Perm.Basic
+
+@[expose] public section
 
 /-!
 # Ordered coordinate derivatives of the original source

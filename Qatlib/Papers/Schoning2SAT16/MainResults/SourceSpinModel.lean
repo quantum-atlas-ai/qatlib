@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Matrix.PosDef
-import Mathlib.LinearAlgebra.Matrix.Trace
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Analysis.SpecialFunctions.Exp
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.Matrix.PosDef
+public import Mathlib.LinearAlgebra.Matrix.Trace
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Analysis.SpecialFunctions.Exp
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -93,14 +97,14 @@ def clauseMat2 (a b : ℂ) : Matrix (Fin 2 × Fin 2) (Fin 2 × Fin 2) ℂ :=
 /-- The restricted clause projector `Φ_α = |φ_α⟩⟨φ_α| ⊗ I` on `n` qubits, supported on
 qubits `i, j` (Eq. (5)).  The guard `hij : i ≠ j` records that a clause has two-qubit
 support. -/
-def clauseProj {n : ℕ} (a b : ℂ) (i j : Fin n) (hij : i ≠ j) :
+def clauseProj {n : ℕ} (a b : ℂ) (i j : Fin n) (_hij : i ≠ j) :
     Matrix (Fin n → Fin 2) (Fin n → Fin 2) ℂ :=
   fun s t => if (∀ k, k ≠ i → k ≠ j → s k = t k) then
       restrictedAmp a b (s i) (s j) * starRingEnd ℂ (restrictedAmp a b (t i) (t j))
     else 0
 
 /-- The Type II clause projector `Φ_α = |11⟩⟨11|` on qubits `i, j` (Appendix A, Eq. (A2)). -/
-def typeIIProjector {n : ℕ} (i j : Fin n) (hij : i ≠ j) :
+def typeIIProjector {n : ℕ} (i j : Fin n) (_hij : i ≠ j) :
     Matrix (Fin n → Fin 2) (Fin n → Fin 2) ℂ :=
   fun s t => if (∀ k, k ≠ i → k ≠ j → s k = t k) ∧ s i = 1 ∧ s j = 1 ∧
       t i = 1 ∧ t j = 1 then 1 else 0
@@ -224,11 +228,11 @@ theorem sigmaZ_mul_sigmaZ_apply {n : ℕ} (i j : Fin n) (u t : Fin n → Fin 2) 
   rw [Matrix.mul_apply]
   by_cases hut : u = t
   · subst hut
-    rw [if_pos rfl, Finset.sum_eq_single u]
+    rw [ite_eq_left rfl, Finset.sum_eq_single u]
     · simp [sigmaZAt]
     · intro x _ hxu; simp [sigmaZAt, hxu]
     · intro hu; exact absurd (Finset.mem_univ u) hu
-  · rw [if_neg hut]
+  · rw [ite_eq_right hut]
     apply Finset.sum_eq_zero
     intro x _
     by_cases hxt : x = t
@@ -243,7 +247,7 @@ theorem clauseProj_col_bits {n : ℕ} {a b : ℂ} {i j : Fin n} {hij : i ≠ j}
   apply h
   unfold clauseProj
   by_cases hagree : (∀ k, k ≠ i → k ≠ j → s k = t k)
-  · rw [if_pos hagree]
+  · rw [ite_eq_left hagree]
     have hz0 : restrictedAmp a b (t i) (t j) = 0 := by rw [hEq]; exact restrictedAmp_self a b _
     simp [hz0]
   · simp [hagree]
@@ -255,7 +259,7 @@ theorem clauseProj_row_bits {n : ℕ} {a b : ℂ} {i j : Fin n} {hij : i ≠ j}
   apply h
   unfold clauseProj
   by_cases hagree : (∀ k, k ≠ i → k ≠ j → s k = t k)
-  · rw [if_pos hagree]
+  · rw [ite_eq_left hagree]
     have hz0 : restrictedAmp a b (s i) (s j) = 0 := by rw [hEq]; exact restrictedAmp_self a b _
     simp [hz0]
   · simp [hagree]
@@ -315,7 +319,7 @@ theorem clauseProj_mul_pair {n : ℕ} (a b : ℂ) (i j : Fin n) (hij : i ≠ j) 
       simp [Matrix.neg_apply]
   · intro u _ hut
     rw [sigmaZ_mul_sigmaZ_apply]
-    simp only [if_neg hut, mul_zero]
+    simp only [ite_eq_right hut, mul_zero]
   · intro ht; exact absurd (Finset.mem_univ t) ht
 
 /-- **Eq. (22)**, right form: `σ^z_i σ^z_j Φ_α = -Φ_α`. -/
@@ -335,7 +339,7 @@ theorem pair_mul_clauseProj {n : ℕ} (a b : ℂ) (i j : Fin n) (hij : i ≠ j) 
   · intro u _ hus
     rw [sigmaZ_mul_sigmaZ_apply]
     have hsu : ¬ (s = u) := fun h' => hus h'.symm
-    simp only [if_neg hsu, zero_mul]
+    simp only [ite_eq_right hsu, zero_mul]
   · intro hs; exact absurd (Finset.mem_univ s) hs
 
 end

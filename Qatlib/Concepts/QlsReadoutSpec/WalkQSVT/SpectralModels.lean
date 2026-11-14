@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QlsReadoutSpec.WalkQSVT.ApplicationModels
-import Mathlib.LinearAlgebra.Dimension.Finrank
+module
+
+public import Qatlib.Concepts.QlsReadoutSpec.WalkQSVT.ApplicationModels
+public import Mathlib.LinearAlgebra.Dimension.Finrank
+
+@[expose] public section
 
 /-!
 # Spectral and compilation models for quantum walks

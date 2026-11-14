@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TrotterFormula.LieStrang.CommutatorProductFormula
-import Qatlib.Concepts.TrotterFormula.SuzukiFourth.SuzukiFourthOrder
-import Mathlib.Analysis.Calculus.Taylor
+module
+
+public import Qatlib.Concepts.TrotterFormula.LieStrang.CommutatorProductFormula
+public import Qatlib.Concepts.TrotterFormula.SuzukiFourth.SuzukiFourthOrder
+public import Mathlib.Analysis.Calculus.Taylor
+
+@[expose] public section
 
 /-!
 # Raw nested commutator budgets and a Taylor counterexample
@@ -83,7 +87,7 @@ theorem pf_conjugation_zero_order_counterexample :
         ‖suzukiExponentialWord xs t*B*Ring.inverse (suzukiExponentialWord xs t)-
           taylorWithinEval (fun s => suzukiExponentialWord xs s*B*
             Ring.inverse (suzukiExponentialWord xs s)) 0 Set.univ 0 t‖ := by
-  letI : NormedAlgebra ℚ (Matrix (Fin 2) (Fin 2) ℂ) := NormedAlgebra.restrictScalars ℚ ℂ _
+  let : NormedAlgebra ℚ (Matrix (Fin 2) (Fin 2) ℂ) := NormedAlgebra.restrictScalars ℚ ℂ _
   let X : Matrix (Fin 2) (Fin 2) ℂ := Matrix.diagonal ![0, (Real.pi : ℂ)*Complex.I]
   let B : Matrix (Fin 2) (Fin 2) ℂ := !![0,1;0,0]
   let V : Matrix (Fin 2) (Fin 2) ℂ := Matrix.diagonal ![1,-1]

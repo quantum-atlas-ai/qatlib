@@ -4,19 +4,23 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Analysis.Complex.Norm
-import Mathlib.Analysis.Normed.Field.Basic
-import Mathlib.Analysis.Normed.Ring.Basic
-import Mathlib.Analysis.SpecialFunctions.Complex.Circle
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.LinearAlgebra.Matrix.Trace
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.FieldSimp
-import Qatlib.Concepts.SqEstimation.TraceBilinear
+module
+
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Analysis.Complex.Norm
+public import Mathlib.Analysis.Normed.Field.Basic
+public import Mathlib.Analysis.Normed.Ring.Basic
+public import Mathlib.Analysis.SpecialFunctions.Complex.Circle
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.LinearAlgebra.Matrix.Trace
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.FieldSimp
+public import Qatlib.Concepts.SqEstimation.TraceBilinear
+
+@[expose] public section
 
 /-!
 # Finite sums and estimation identities for WRT expressions
@@ -132,13 +136,13 @@ theorem recoupling_sum_collapse {ι : Type*} [DecidableEq ι] (s : Finset ι) (x
     (B : ι → ℂ) (D : ℂ) :
     ∑ x ∈ s, B x * (if x = x₀ then D else 0) = if x₀ ∈ s then B x₀ * D else 0 := by
   by_cases h : x₀ ∈ s
-  · rw [if_pos h, Finset.sum_eq_single x₀]
+  · rw [ite_eq_left h, Finset.sum_eq_single x₀]
     · simp
     · intro b hb hbne
       simp [hbne]
     · intro hx
       exact absurd h hx
-  · rw [if_neg h, Finset.sum_eq_zero]
+  · rw [ite_eq_right h, Finset.sum_eq_zero]
     intro x hx
     have hne : x ≠ x₀ := by rintro rfl; exact h hx
     simp [hne]

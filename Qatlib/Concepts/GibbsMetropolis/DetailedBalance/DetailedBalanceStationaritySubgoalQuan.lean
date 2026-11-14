@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GibbsMetropolis.DetailedBalance.DetailedBalanceStationaritySubgoalStat
+module
+
+public import Qatlib.Concepts.GibbsMetropolis.DetailedBalance.DetailedBalanceStationaritySubgoalStat
+
+@[expose] public section
 
 /-!
 # Stationarity from detailed balance
@@ -34,7 +38,7 @@ open Qatlib
 /-- A normalized nonnegative distribution satisfying detailed balance for a finite transition
 matrix is stationary. -/
 theorem detailedBalanceStationaritySubgoal : DetailedBalanceStationaritySubgoal :=
-  fun I _ _ P hP π hπ hsum hrev =>
+  fun _I _ _ _P hP _π hπ hsum hrev =>
     Qatlib.Concepts.WalkSearch.TwoLevelLower.reversible_stationary hP ⟨hπ, hsum⟩ hrev
 
 end Qatlib.Concepts.GibbsMetropolis.DetailedBalance

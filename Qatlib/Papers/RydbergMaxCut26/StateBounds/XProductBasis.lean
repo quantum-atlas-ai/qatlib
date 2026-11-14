@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.RydbergMaxCut26.QubitPhysics.Hamiltonian
+module
+
+public import Qatlib.Papers.RydbergMaxCut26.QubitPhysics.Hamiltonian
+
+@[expose] public section
 
 /-!
 # The X product basis and its Born weights
@@ -94,7 +98,7 @@ def xVector (b : Bool) : Fin 3 → ℝ := fun a => if a=0 then sign b else 0
 theorem local_x_projector (b : Bool) : bloch (xVector b)=PauliProjector 0 b := by
   ext i j
   cases b <;> fin_cases i <;> fin_cases j <;>
-    norm_num [bloch,xVector,sign,PauliProjector,pauliMatrix,pauliX] <;> decide
+    norm_num [bloch,xVector,sign,PauliProjector,pauliMatrix,pauliX]
 
 /-- The tensor product density determined by the X-axis Bloch vector at each bit of the spin
 assignment. -/
@@ -171,7 +175,7 @@ theorem pair_x_eigen {n : ℕ} (s : Reg n) (i j : Fin n) (hij : i≠j) :
         simpa only [or_true,ite_true,ite_false,hi,one_mul] using! local_x_eigen (s j)
       · simp [hi,hj]
   rw [he,qubitTensor_smul,Finset.prod_mul_distrib]
-  simp only [Finset.prod_ite_eq',Finset.mem_univ,if_true]
+  simp only [Finset.prod_ite_eq',Finset.mem_univ,ite_true]
   ext x y
   simp only [Matrix.smul_apply,Complex.real_smul,smul_eq_mul,Complex.ofReal_mul]
 

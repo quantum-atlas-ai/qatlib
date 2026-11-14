@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LocalHam06.MainResults.OperatorDefs
+module
+
+public import Qatlib.Papers.LocalHam06.MainResults.OperatorDefs
+
+@[expose] public section
 
 /-!
 # Finite-dimensional eigenvalue and resolvent facts
@@ -56,6 +60,7 @@ or above `lamstar + Δ / 2`. -/
 def SpectralGap (H : E →L[ℂ] E) (lamstar Δ : ℝ) : Prop :=
   ∀ v : E, ‖v‖ = 1 → rayleigh H v ≤ lamstar - Δ / 2 ∨ lamstar + Δ / 2 ≤ rayleigh H v
 
+omit [FiniteDimensional ℂ E] [Nontrivial E] in
 /-- An eigenvalue with a nonzero eigenvector for a symmetric complex operator is the coercion of
 a real number [KempeKitaevRegev2006]. -/
 theorem symmetric_eigenvalue_real (T : E →L[ℂ] E)
@@ -69,6 +74,7 @@ theorem symmetric_eigenvalue_real (T : E →L[ℂ] E)
   have h2 : (starRingEnd ℂ) z = z := mul_right_cancel₀ hvv h1
   exact Complex.conj_eq_iff_real.mp h2
 
+omit [FiniteDimensional ℂ E] [Nontrivial E] in
 /-- Eigenvectors of a symmetric operator at distinct real eigenvalues are orthogonal
 [KempeKitaevRegev2006]. -/
 theorem symmetric_eigenvectors_orthogonal (T : E →L[ℂ] E)
@@ -86,6 +92,7 @@ theorem symmetric_eigenvectors_orthogonal (T : E →L[ℂ] E)
     rw [sub_mul, h1, sub_self]
   exact (mul_eq_zero.mp hzero).resolve_left hne
 
+omit [FiniteDimensional ℂ E] [Nontrivial E] in
 /-- The Rayleigh value of a unit eigenvector with real eigenvalue `μ` is `μ`
 [KempeKitaevRegev2006]. -/
 theorem rayleigh_eigenvector (T : E →L[ℂ] E) {μ : ℝ} {v : E}
@@ -98,6 +105,7 @@ theorem rayleigh_eigenvector (T : E →L[ℂ] E) {μ : ℝ} {v : E}
     norm_num
   rw [hvv, mul_one, Complex.ofReal_re]
 
+omit [FiniteDimensional ℂ E] [Nontrivial E] in
 /-- If `z • 1 - T` is invertible, multiplying it on the left by the resolvent gives the identity
 [KempeKitaevRegev2006]. -/
 theorem resolvent_mul_cancel (T : E →L[ℂ] E) (z : ℂ)
@@ -106,6 +114,7 @@ theorem resolvent_mul_cancel (T : E →L[ℂ] E) (z : ℂ)
   unfold resolventOperator
   exact Ring.inverse_mul_cancel _ h
 
+omit [FiniteDimensional ℂ E] [Nontrivial E] in
 /-- If `z • 1 - T` is invertible, multiplying it on the right by the resolvent gives the
 identity [KempeKitaevRegev2006]. -/
 theorem mul_resolvent_cancel (T : E →L[ℂ] E) (z : ℂ)
@@ -114,6 +123,7 @@ theorem mul_resolvent_cancel (T : E →L[ℂ] E) (z : ℂ)
   unfold resolventOperator
   exact Ring.mul_inverse_cancel _ h
 
+omit [Nontrivial E] in
 /-- The zero operator has rank zero. -/
 theorem operatorRank_zero : operatorRank (0 : E →L[ℂ] E) = 0 := by
   unfold operatorRank

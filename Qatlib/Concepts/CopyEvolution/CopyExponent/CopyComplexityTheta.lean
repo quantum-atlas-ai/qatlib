@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CopyEvolution.CopyExponent.CommutingCopyExactTightnessQuan
-import Qatlib.Concepts.CopyEvolution.CopyExponent.SupNormTightCopyBudgetQuan
+module
+
+public import Qatlib.Concepts.CopyEvolution.CopyExponent.CommutingCopyExactTightnessQuan
+public import Qatlib.Concepts.CopyEvolution.CopyExponent.SupNormTightCopyBudgetQuan
+
+@[expose] public section
 
 /-!
 # Upper and lower copy bounds for density evolution
@@ -60,10 +64,14 @@ error at least `t²s/(4n)`. This gives a concrete lower estimate for the procedu
 theorem commutingFamilyCopyLower (t : ℝ) (n : ℕ) (s : ℝ) (ht : 0 ≤ t) (hn : 0 < n)
     (hsq : t ^ 2 ≤ (n : ℝ)) (hs0 : 0 ≤ s) (hs1 : s ≤ 1) :
     t ^ 2 * s / (4 * (n : ℝ)) ≤
-      Matrix.traceNorm (freshCopyReferenceRun rho2 (List.replicate n (t / (n : ℝ))) 1
-        (TensorGate (sigma2 s) (1 : Operator 1)) - TensorGate (sigma2 s) (1 : Operator 1)) := by
+      Matrix.traceNorm (freshCopyReferenceRun
+        (Matrix.diagonal fun b : Fin 2 => if b = 0 then (1 : ℂ) else 0)
+        (List.replicate n (t / (n : ℝ))) 1
+        (TensorGate (Matrix.diagonal fun b : Fin 2 => if b = 0 then ((1 - s : ℝ) : ℂ) else (s : ℂ))
+          (1 : Operator 1)) -
+        TensorGate (Matrix.diagonal fun b : Fin 2 => if b = 0 then ((1 - s : ℝ) : ℂ) else (s : ℂ))
+          (1 : Operator 1)) := by
   have htight := commutingCopyExactTightness t n s ht hn hsq hs0 hs1
-  dsimp only [rho2, sigma2]
   rw [htight.2.1]
   have hcos := htight.2.2
   have hs2 : (0 : ℝ) ≤ 2 * s := by positivity
@@ -81,8 +89,13 @@ bounds imply `n ≥ t²s/(4ε)`. This is a lower bound for this simulation proce
 setting of [LloydMohseniRebentrost2014]. -/
 theorem copyComplexityLower (t : ℝ) (n : ℕ) (s ε : ℝ) (ht : 0 ≤ t) (hn : 0 < n)
     (hsq : t ^ 2 ≤ (n : ℝ)) (hs0 : 0 ≤ s) (hs1 : s ≤ 1) (hε : 0 < ε)
-    (herr : Matrix.traceNorm (freshCopyReferenceRun rho2 (List.replicate n (t / (n : ℝ))) 1
-        (TensorGate (sigma2 s) (1 : Operator 1)) - TensorGate (sigma2 s) (1 : Operator 1)) ≤ ε) :
+    (herr : Matrix.traceNorm (freshCopyReferenceRun
+        (Matrix.diagonal fun b : Fin 2 => if b = 0 then (1 : ℂ) else 0)
+        (List.replicate n (t / (n : ℝ))) 1
+        (TensorGate (Matrix.diagonal fun b : Fin 2 => if b = 0 then ((1 - s : ℝ) : ℂ) else (s : ℂ))
+          (1 : Operator 1)) -
+        TensorGate (Matrix.diagonal fun b : Fin 2 => if b = 0 then ((1 - s : ℝ) : ℂ) else (s : ℂ))
+          (1 : Operator 1)) ≤ ε) :
     t ^ 2 * s / (4 * ε) ≤ (n : ℝ) := by
   have hlow := commutingFamilyCopyLower t n s ht hn hsq hs0 hs1
   have h1 : t ^ 2 * s / (4 * (n : ℝ)) ≤ ε := hlow.trans herr

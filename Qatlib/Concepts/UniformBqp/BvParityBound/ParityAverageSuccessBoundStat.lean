@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.UniformBqp.BvParityBound.ParityClassicalLowerBound
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.ClassicalQuery
+module
+
+public import Qatlib.Concepts.UniformBqp.BvParityBound.ParityClassicalLowerBound
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.ClassicalQuery
+
+@[expose] public section
 
 /-!
 # The average parity-success bound

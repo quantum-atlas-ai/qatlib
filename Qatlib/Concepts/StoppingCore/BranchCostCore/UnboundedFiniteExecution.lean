@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.FiniteStoppingTail
-import Qatlib.Concepts.LinearLearning.ConcisePipeline.RandomizedCost
+module
+
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RandomizedExecution
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.FiniteStoppingTail
+public import Qatlib.Concepts.LinearLearning.ConcisePipeline.RandomizedCost
+
+@[expose] public section
 
 /-!
 # Joint halting laws for unbounded execution
@@ -111,6 +115,7 @@ theorem tick_point_running (next : S → PMF (Configuration S O)) (s : S)
       omega
     rw [ite_eq_right hj, CostedLaw.event_zero _ _ hc0]
 
+omit [Fintype S] [DecidableEq S] [Fintype O] [DecidableEq O] in
 /-- Execution from a running state cannot halt at accumulated cost zero. -/
 theorem runFor_point_halt_zero (next : S → PMF (Configuration S O)) :
     ∀ (fuel : ℕ) (s : S) (o : O),
@@ -142,6 +147,7 @@ theorem runFor_point_halt_zero (next : S → PMF (Configuration S O)) :
         simp
       · rw [tick_point_running, ite_eq_right hj, zero_mul]
 
+omit [Fintype S] [Fintype O] [DecidableEq O] in
 /-- After `fuel` steps from a running state, a running configuration has zero mass at any cost
 different from `fuel`. -/
 theorem runFor_point_running_off_fuel (next : S → PMF (Configuration S O)) :
@@ -190,6 +196,7 @@ theorem runFor_point_running_off_fuel (next : S → PMF (Configuration S O)) :
               rw [ih t s' (j - 1) (fun h => hj (by omega)), mul_zero]
       · rw [tick_point_running, ite_eq_right hi1, zero_mul]
 
+omit [Fintype S] [Fintype O] [DecidableEq O] in
 /-- After `fuel` steps, a running configuration has zero mass at costs smaller than `fuel`. -/
 theorem runFor_point_running_lt_fuel (next : S → PMF (Configuration S O)) :
     ∀ (fuel : ℕ) (cfg : Configuration S O) (s : S) (i : ℕ), i < fuel →
@@ -214,6 +221,7 @@ theorem runFor_point_cost_gt_fuel (next : S → PMF (Configuration S O)) (fuel :
     omega
   exact not_not.mp ((PMF.mem_support_iff (runFor next fuel cfg) (c, j)).not.mp hsup)
 
+omit [Fintype S] [Fintype O] in
 /-- The mass of a halted output at cost `k` is unchanged by extending the fuel beyond `k`. -/
 theorem runFor_point_halt_ge (next : S → PMF (Configuration S O))
     (cfg : Configuration S O) (o : O) :
@@ -307,6 +315,7 @@ noncomputable def pendingMass (next : S → PMF (Configuration S O)) (cfg : Conf
   ∑ s : S, ∑ k ∈ Finset.range (fuel + 1),
     RandomizedExecution.runFor next fuel cfg ((Sum.inr s : Configuration S O), (k : ℕ))
 
+omit [Fintype S] [Fintype O] in
 /-- The halting joint mass agrees with the finite run at fuel `k` and remains unchanged at every
 larger fuel. -/
 theorem unbounded_first_halt_joint_stability (next : S → PMF (Configuration S O))
@@ -316,12 +325,14 @@ theorem unbounded_first_halt_joint_stability (next : S → PMF (Configuration S 
         = haltJoint next cfg o k) :=
   ⟨rfl, fun h => runFor_point_halt_ge next cfg o fuel k h⟩
 
+omit [Fintype S] [Fintype O] in
 /-- A finite run with fuel at least `k` has halted point mass `haltJoint next cfg o k`. -/
 theorem haltJoint_eq_runFor_of_le {next : S → PMF (Configuration S O)} {cfg : Configuration S O}
     {o : O} {k fuel : ℕ} (h : k ≤ fuel) :
     runFor next fuel cfg ((Sum.inl o : Configuration S O), (k : ℕ)) = haltJoint next cfg o k :=
   (unbounded_first_halt_joint_stability next cfg o k fuel).2 h
 
+omit [Fintype O] in
 /-- The pending mass equals the finite survival probability. -/
 theorem pendingMass_eq_finiteSurvival (next : S → PMF (Configuration S O))
     (cfg : Configuration S O) (fuel : ℕ) :
@@ -376,6 +387,7 @@ theorem pendingMass_eq_finiteSurvival (next : S → PMF (Configuration S O))
     ← tsum_congr (fun s => hinner s)]
   exact hsplit.symm
 
+omit [Fintype O] in
 /-- Increasing the fuel by one cannot increase the pending mass. -/
 theorem pendingMass_succ_le (next : S → PMF (Configuration S O)) (cfg : Configuration S O)
     (n : ℕ) : pendingMass next cfg (n + 1) ≤ pendingMass next cfg n := by
@@ -436,11 +448,13 @@ noncomputable def nonterminationMass (next : S → PMF (Configuration S O))
     (cfg : Configuration S O) : ℝ≥0∞ :=
   ⨅ fuel : ℕ, pendingMass next cfg fuel
 
+omit [Fintype O] in
 /-- Pending mass is an antitone function of the fuel. -/
 theorem pendingMass_antitone (next : S → PMF (Configuration S O)) (cfg : Configuration S O) :
     Antitone (pendingMass next cfg) :=
   antitone_nat_of_succ_le fun n => pendingMass_succ_le next cfg n
 
+omit [Fintype O] in
 /-- The finite pending masses converge to the nontermination mass as fuel tends to infinity. -/
 theorem pendingMass_tendsto_iInf (next : S → PMF (Configuration S O))
     (cfg : Configuration S O) :

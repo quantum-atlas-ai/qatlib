@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ElemGates95.MultiControl.Section7.GrayOrdering
-import Mathlib.Combinatorics.SimpleGraph.Acyclic
+module
+
+public import Qatlib.Papers.ElemGates95.MultiControl.Section7.GrayOrdering
+public import Mathlib.Combinatorics.SimpleGraph.Acyclic
+
+@[expose] public section
 
 /-!
 # Graph cuts and controlled-gate tensor obstruction

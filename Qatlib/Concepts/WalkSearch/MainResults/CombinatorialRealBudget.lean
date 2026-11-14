@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.MainResults.CombinatorialAllocatedCost
-import Qatlib.Concepts.WalkSearch.MainResults.CombinatorialTargets
-import Qatlib.Concepts.WalkSearch.MainResults.IntegerBounds
+module
+
+public import Qatlib.Concepts.WalkSearch.MainResults.CombinatorialAllocatedCost
+public import Qatlib.Concepts.WalkSearch.MainResults.CombinatorialTargets
+public import Qatlib.Concepts.WalkSearch.MainResults.IntegerBounds
+
+@[expose] public section
 
 /-!
 # Real bounds for combinatorial query budgets
@@ -372,7 +376,7 @@ theorem sourceCombinatorialBudget_real_bound (n : ℕ) (ε δ ε' : ℝ)
     unfold sourceCombinatorialBudget sourceFourTermBudget
     push_cast
     push_cast at hs
-    convert! hs using 1 <;> ring
+    convert! hs using 1; ring
   have hL24 : L^2≤L^4 := by nlinarith [sq_nonneg (L^2-1)]
   have hfac : (1024:ℝ)*(κ:ℝ)*L^2 ≤ ((2^24:ℕ)*κ*(Nat.log 2 n+2)^4:ℕ) := by
     dsimp only [L] at hL24 ⊢

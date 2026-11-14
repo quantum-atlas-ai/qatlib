@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.Amplification.BBHTCall
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.BBHTCall
+
+@[expose] public section
 
 /-!
 # Query clocks for ranked BBHT search
@@ -93,8 +97,8 @@ theorem queryBBHTLaw_moment {N : ℕ} (e : Fin N ≃ Fin N) (t : ℕ)
   obtain ⟨q, hq, _, hqb⟩ := h
   refine ⟨q, ?_, ?_⟩
   · simpa only [queryBBHTLaw, bbhtJointLaw,
-      if_pos (show 0 < t ∧ t < N from ⟨ht, htN⟩)] using hq
-  · rw [queryCallBound, if_neg (Nat.ne_of_gt ht)]
+      ite_eq_left (show 0 < t ∧ t < N from ⟨ht, htN⟩)] using hq
+  · rw [queryCallBound, ite_eq_right (Nat.ne_of_gt ht)]
     rw [Real.sqrt_div (Nat.cast_nonneg N)] at hqb
     convert hqb using 1
     ring
@@ -107,7 +111,7 @@ theorem queryCallBound_scaled (N t : ℕ) :
   have hs : 0 < Real.sqrt (t : ℝ) := Real.sqrt_pos.2 (by exact_mod_cast Nat.pos_of_ne_zero ht)
   have hdiv : (t : ℝ) / Real.sqrt t = Real.sqrt t :=
     (div_eq_iff hs.ne').2 (Real.mul_self_sqrt (Nat.cast_nonneg t)).symm
-  rw [queryCallBound, if_neg ht]
+  rw [queryCallBound, ite_eq_right ht]
   calc
     _ = ((29 / 2 : ℝ) * Real.sqrt N) * ((t : ℝ) / Real.sqrt t) := by ring
     _ = _ := by rw [hdiv]
@@ -134,7 +138,7 @@ theorem queryEnvelope_initial_bound (N : ℕ) (hN : 0 < N) :
       ((29 / 2 : ℝ) * Real.sqrt (n + 1 : ℕ)) *
         (1 / (((k : ℝ) + 2) * Real.sqrt ((k : ℝ) + 1))) := by
     simp only [Nat.add_sub_cancel, queryCallBound, Nat.add_eq_zero_iff, Nat.one_ne_zero,
-      and_false, if_false, Nat.cast_add, Nat.cast_one]
+      and_false, ite_false, Nat.cast_add, Nat.cast_one]
     simp only [div_eq_mul_inv, mul_inv_rev]
     ring
   simp_rw [heach]

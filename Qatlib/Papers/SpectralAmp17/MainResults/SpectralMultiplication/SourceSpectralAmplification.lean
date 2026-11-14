@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SpectralAmp17.MainResults.SourceModel.PaperModel
-import Mathlib.Analysis.CStarAlgebra.Basic
-import Mathlib.Analysis.Matrix.Spectrum
+module
+
+public import Qatlib.Papers.SpectralAmp17.MainResults.SourceModel.PaperModel
+public import Mathlib.Analysis.CStarAlgebra.Basic
+public import Mathlib.Analysis.Matrix.Spectrum
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -35,8 +39,8 @@ The existential record is a specification, not evidence of an algorithm. -/
 def theorem2_spectralMultiplication_statement
     {S A : Type*} [Fintype S] [DecidableEq S] [Fintype A] [DecidableEq A]
     (F : StandardForm S A) (Λ ε : ℝ)
-    (hΛ_ge : ‖F.H‖ ≤ Λ) (hΛ_le : Λ ≤ F.α) (hΛ_pos : 0 < Λ)
-    (hε_pos : 0 < ε) (hε_small : ε ≤ Λ / F.α) : Prop :=
+    (_hΛ_ge : ‖F.H‖ ≤ Λ) (_hΛ_le : Λ ≤ F.α) (_hΛ_pos : 0 < Λ)
+    (_hε_pos : 0 < ε) (_hε_small : ε ≤ Λ / F.α) : Prop :=
     ∃ (F' : StandardForm S (A × Fin 4)),
       F'.Uᴴ * F'.U = 1 ∧ 0 ≤ F'.queries ∧ 0 ≤ F'.gates ∧
       F'.α = 2 * Λ ∧
@@ -50,8 +54,8 @@ The existential record is a specification, not evidence of an algorithm. -/
 def theorem3_lowEnergySubspace_statement
     {S A : Type*} [Fintype S] [DecidableEq S] [Fintype A] [DecidableEq A]
     (F : StandardForm S A) (Δ ε : ℝ) (P : Matrix S S ℂ)
-    (hΔ_pos : 0 < Δ) (hΔ_one : Δ < 1) (hε_pos : 0 < ε)
-    (hP : IsLowEnergyProjector F.H F.α Δ P) : Prop :=
+    (_hΔ_pos : 0 < Δ) (_hΔ_one : Δ < 1) (_hε_pos : 0 < ε)
+    (_hP : IsLowEnergyProjector F.H F.α Δ P) : Prop :=
     ∃ (F' : StandardForm S (A × Fin 4)),
       F'.Uᴴ * F'.U = 1 ∧ 0 ≤ F'.queries ∧ 0 ≤ F'.gates ∧
       F'.α = Δ * F.α ∧
@@ -67,8 +71,8 @@ The existential record is a specification, not evidence of an algorithm. -/
 def corollary2_lowEnergySimulation_statement
     {S A : Type*} [Fintype S] [DecidableEq S] [Fintype A] [DecidableEq A]
     (F : StandardForm S A) (Δ t ε : ℝ) (P : Matrix S S ℂ)
-    (hΔ_pos : 0 < Δ) (hΔ_one : Δ < 1) (ht : 0 ≤ t) (hε_pos : 0 < ε)
-    (hP : IsLowEnergyProjector F.H F.α Δ P) : Prop :=
+    (_hΔ_pos : 0 < Δ) (_hΔ_one : Δ < 1) (_ht : 0 ≤ t) (_hε_pos : 0 < ε)
+    (_hP : IsLowEnergyProjector F.H F.α Δ P) : Prop :=
     ∃ (X : Matrix S S ℂ) (Q : ℝ),
       0 ≤ Q ∧
       ‖P * (X - timeEvolution F.H t) * P‖ ≤ ε ∧

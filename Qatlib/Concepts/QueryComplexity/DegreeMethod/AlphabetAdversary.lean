@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AdversaryBounds.AdvWitness
-import Mathlib.Data.ZMod.Basic
-import Qatlib.Concepts.HspRecovery.RecordExtract.ExecutionSemantics
+module
+
+public import Qatlib.Concepts.AdversaryBounds.AdvWitness
+public import Mathlib.Data.ZMod.Basic
+public import Qatlib.Concepts.HspRecovery.RecordExtract.ExecutionSemantics
+
+@[expose] public section
 
 /-!
 # Adversary bounds for finite alphabet queries
@@ -110,9 +114,9 @@ private theorem multi_correct_zero {X H Y : Type} [Fintype X] [DecidableEq X]
   apply Finset.sum_eq_zero; intro y _
   by_cases hx : label h = f x <;> by_cases hy : label h = f y
   · simp [hz x y (hx.symm.trans hy)]
-  · simp only [multiCorrect, if_pos hx, if_neg hy]; simp
-  · simp only [multiCorrect, if_neg hx, if_pos hy]; simp
-  · simp only [multiCorrect, if_neg hx, if_neg hy]; simp
+  · simp only [multiCorrect, ite_eq_left hx, ite_eq_right hy]; simp
+  · simp only [multiCorrect, ite_eq_right hx, ite_eq_left hy]; simp
+  · simp only [multiCorrect, ite_eq_right hx, ite_eq_right hy]; simp
 
 /-- The squared Euclidean norms of the correct and erroneous components sum to the squared norm
 of the original state. -/
@@ -292,7 +296,7 @@ private theorem alphabetPull_filter_difference {X W : Type} [Fintype X] [Decidab
   apply Finset.sum_congr rfl
   intro y _
   by_cases hf : f x = f y
-  · simp only [hf, ne_eq, not_true_eq_false, if_false, zero_mul,
+  · simp only [hf, ne_eq, not_true_eq_false, ite_false, zero_mul,
       alphabetPull_inner f v x y hf, sub_self]
   · simp [hf]
 

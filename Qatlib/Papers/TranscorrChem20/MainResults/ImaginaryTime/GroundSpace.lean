@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ImaginaryFlow.GroundLimit.GroundSpaceDamping
-import Qatlib.Papers.TranscorrChem20.MainResults.ImaginaryTime.MatrixEvolution
+module
+
+public import Qatlib.Concepts.ImaginaryFlow.GroundLimit.GroundSpaceDamping
+public import Qatlib.Papers.TranscorrChem20.MainResults.ImaginaryTime.MatrixEvolution
+
+@[expose] public section
 
 /-!
 # Ground-eigenspace limit of transcorrelated imaginary time
@@ -140,11 +144,11 @@ theorem retained_rightComponents_eq_projector {d : ℕ} (g : Op d) {H : Op d} (h
   apply Finset.sum_congr rfl
   intro i _
   by_cases hi : hH.eigenvalues i = hH.eigenvalues i0
-  · simp only [eigenMask, if_pos hi, one_mul]
+  · simp only [eigenMask, ite_eq_left hi, one_mul]
     change coefficients g hH φ i * (exp (-g) * eigenU hH) j i =
       (exp (-g) * eigenU hH) j i * coefficients g hH φ i
     ring
-  · simp only [eigenMask, if_neg hi, zero_mul, mul_zero]
+  · simp only [eigenMask, ite_eq_right hi, zero_mul, mul_zero]
     rfl
 
 /-- The retained component `rightGround` satisfies the eigenvalue equation for `tc H g` at the
@@ -159,9 +163,9 @@ theorem rightGround_eigen {d : ℕ} (H g : Op d) (hH : H.IsHermitian)
   apply Finset.sum_congr rfl
   intro i _
   by_cases hi : hH.eigenvalues i = hH.eigenvalues i0
-  · simp only [if_pos hi, one_smul]
+  · simp only [ite_eq_left hi, one_smul]
     rw [rightComponent_eigen H g hH φ i, hi]
-  · simp only [if_neg hi, map_zero, smul_zero]
+  · simp only [ite_eq_right hi, map_zero, smul_zero]
 
 /-- If the selected eigenvalue is minimal and `rightGround` is nonzero, normalized
 transcorrelated imaginary-time evolution converges to its normalization. See

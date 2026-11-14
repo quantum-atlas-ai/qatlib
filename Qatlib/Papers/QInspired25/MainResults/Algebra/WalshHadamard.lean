@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QInspired25.MainResults.Model.Basic
+module
+
+public import Qatlib.Papers.QInspired25.MainResults.Model.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -56,8 +60,7 @@ theorem epsSign_sq (a b : Bool) : epsSign a b * epsSign a b = 1 := by
 theorem epsSign_comm (a b : Bool) : epsSign a b = epsSign b a := by
   unfold epsSign
   by_cases h : a = true ∧ b = true
-  · have h' : b = true ∧ a = true := ⟨h.2, h.1⟩
-    simp [h, h']
+  · simp [h]
   · have h' : ¬(b = true ∧ a = true) := fun hh => h ⟨hh.2, hh.1⟩
     simp [h, h']
 
@@ -136,8 +139,7 @@ theorem walsh_orthogonal : ∀ (n : ℕ) (x x' : Fin n → Bool),
       -- outer sum over the leading bit
       have hsum_b :
           (∑ b : Bool, epsSign (x 0) b * epsSign (x' 0) b) = if x 0 = x' 0 then 2 else 0 := by
-        cases hx : x 0 <;> cases hx' : x' 0 <;>
-          simp [hx, hx', epsSign, Fintype.sum_bool] <;> norm_num
+        cases x 0 <;> cases x' 0 <;> norm_num [epsSign]
       have hstep :
           (∑ b : Bool, (1 / 2 : ℝ) * (epsSign (x 0) b * epsSign (x' 0) b) *
               (if Fin.tail x = Fin.tail x' then 1 else 0))
@@ -157,13 +159,13 @@ theorem walsh_orthogonal : ∀ (n : ℕ) (x x' : Fin n → Bool),
       · by_cases ht : Fin.tail x = Fin.tail x'
         · have hxx' : x = x' := by
             rw [← Fin.cons_self_tail x, ← Fin.cons_self_tail x', h0, ht]
-          rw [if_pos hxx']
+          rw [ite_eq_left hxx']
           simp [h0, ht]
         · have hne : x ≠ x' := fun h => ht (by rw [h])
-          rw [if_neg hne]
+          rw [ite_eq_right hne]
           simp [h0, ht]
       · have hne : x ≠ x' := fun h => h0 (by rw [h])
-        rw [if_neg hne]
+        rw [ite_eq_right hne]
         simp [h0]
 
 /-- `(H^{⊗n})ᵀ (H^{⊗n}) = 1`: the columns are orthonormal, so `σ_min = σ_max = 1`. -/
@@ -194,7 +196,7 @@ theorem walsh_frobSq (n : ℕ) : frobSqMatGen (walsh n) = (2 : ℝ) ^ n := by
   have hrow : ∀ x : Fin n → Bool, (∑ y : Fin n → Bool, walsh n x y ^ 2) = 1 := by
     intro x
     have h := walsh_orthogonal n x x
-    rw [if_pos rfl] at h
+    rw [ite_eq_left rfl] at h
     simpa [sq] using h
   simp only [hrow, Finset.sum_const, Finset.card_univ]
   rw [Fintype.card_pi_const]

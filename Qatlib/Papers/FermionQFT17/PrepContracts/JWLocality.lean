@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.LinearAlgebra.Matrix.Kronecker
-import Mathlib.Data.Matrix.Basic
+module
+
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.LinearAlgebra.Matrix.Kronecker
+public import Mathlib.Data.Matrix.Basic
+
+@[expose] public section
 
 /-!
 # Jordan--Wigner locality of the discretised Gross--Neveu Hamiltonian (source Appendix A)

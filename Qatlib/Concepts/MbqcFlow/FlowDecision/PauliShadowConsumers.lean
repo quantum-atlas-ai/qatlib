@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PauliClifford.ExactRank.PauliShadowStatistics
+module
+
+public import Qatlib.Concepts.PauliClifford.ExactRank.PauliShadowStatistics
+
+@[expose] public section
 
 /-!
 # Concrete Pauli shadow estimates
@@ -84,14 +88,14 @@ theorem thetaZ_sq_sum : ∑ a : Fin 3, (thetaZ a)^2 = 1 := by
     split_ifs <;> norm_num
   rw [Finset.sum_congr rfl fun a _ => h1 a]
   simp only [thetaZ]
-  rw [Finset.sum_ite_eq', if_pos (Finset.mem_univ _)]
+  rw [Finset.sum_ite_eq', ite_eq_left (Finset.mem_univ _)]
 
 /-- Weighting the Pauli expectations by `thetaZ` extracts the specified Z expectation. -/
 theorem thetaZ_weighted_expectation (ρ : Operator 2) (e : ℝ)
     (he : pauliExpectation 2 ρ = e) :
     ∑ a : Fin 3, thetaZ a * pauliExpectation a ρ = e := by
   simp only [thetaZ, ite_mul, one_mul, zero_mul]
-  rw [Finset.sum_ite_eq', if_pos (Finset.mem_univ _)]
+  rw [Finset.sum_ite_eq', ite_eq_left (Finset.mem_univ _)]
   exact he
 
 /-- The Z shadow statistic has mean one on the zero-basis pure state. -/
@@ -191,7 +195,7 @@ theorem pauli_non_iid_weighted_consumer
     rw [prob_pure_z_plus h₀, prob_mixed_z_plus h₁] at h2
     norm_num at h2
   · show (if (0 : Fin 2) = 0 then (1/3 : ℝ) else 2/3) ≠ (if (1 : Fin 2) = 0 then 1/3 else 2/3)
-    simp only [if_true, if_neg (by decide : (1 : Fin 2) ≠ 0)]
+    simp only [ite_true, ite_eq_right (by decide : (1 : Fin 2) ≠ 0)]
     norm_num
   · show (independentSampleLaw p).expect (weightedSampleSum w (fun _ => pauliSnapshotValue 0 θ)) = 1/3
     rw [independent_weighted_expectation, Fin.sum_univ_two]

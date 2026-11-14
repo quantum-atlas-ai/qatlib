@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CircuitImpl.ReflectionCompile.CleanZeroReflection
-import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownQubitControl
+module
+
+public import Qatlib.Concepts.CircuitImpl.ReflectionCompile.CleanZeroReflection
+public import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownQubitControl
+
+@[expose] public section
 
 /-!
 # Local synthesis of multiple-control qubit gates
@@ -58,7 +62,7 @@ controls. -/
 def multiKnownCost (n : ℕ) : ℕ := if n = 0 then 1 else 30*(n-1)+6
 
 /-- The equivalence between a one-bit register and its Boolean value. -/
-private def oneBitEquiv : Reg 1 ≃ Bool where
+def oneBitEquiv : Reg 1 ≃ Bool where
   toFun x := x 0
   invFun b := fun _ => b
   left_inv x := by funext i; have : i = 0 := Subsingleton.elim _ _; simp [this]
@@ -157,7 +161,7 @@ theorem multiAndPrefix_length (n m : ℕ) (hm : m ≤ n-1) :
   | zero => rfl
   | succ m ih =>
     have h : m < n-1 := by omega
-    simp only [multiAndPrefix, dif_pos h, List.length_append, multiAndStage_length,
+    simp only [multiAndPrefix, dite_eq_left h, List.length_append, multiAndStage_length,
       ih (by omega)]
     omega
 
@@ -260,8 +264,8 @@ private theorem multiAndStage_action (n : ℕ) (i : Fin (n-1)) (x : Reg n) (b : 
       by_cases hj : j = i
       · rw [hj, Function.update_self]
         simp only [multiAndPrefixBasis, multiKnownJoin_work, multiKnownJoin_control]
-        simp only [lt_self_iff_false, if_false, Bool.false_xor, hi]
-        rw [if_pos (by omega), multiPrefixAnd_zero n hn x]
+        simp only [lt_self_iff_false, ite_false, Bool.false_xor, hi]
+        rw [ite_eq_left (by omega), multiPrefixAnd_zero n hn x]
       · have hne : multiKnownWorkWire n j ≠ multiKnownWorkWire n i := by
           intro h
           exact hj (Fin.ext (by have := congrArg Fin.val h; dsimp at this; omega))
@@ -297,7 +301,7 @@ private theorem multiAndStage_action (n : ℕ) (i : Fin (n-1)) (x : Reg n) (b : 
       by_cases hj : j = i
       · rw [hj, Function.update_self]
         simp only [multiAndPrefixBasis, multiKnownJoin_work, multiKnownJoin_control]
-        rw [if_neg (by omega), if_pos (by omega), if_pos (by omega), Bool.false_xor]
+        rw [ite_eq_right (by omega), ite_eq_left (by omega), ite_eq_left (by omega), Bool.false_xor]
         have hval : i.val-1+1 = i.val := by omega
         rw [hval, multiPrefixAnd_succ n i.val hm x]
       · have hne : multiKnownWorkWire n j ≠ multiKnownWorkWire n i := by
@@ -320,7 +324,7 @@ theorem multiAndPrefix_action (n m : ℕ) (hm : m ≤ n-1) (x : Reg n) (b : Bool
   | zero => simp [multiAndPrefix, reflectionCompile, multiAndPrefixBasis]
   | succ m ih =>
     have h : m < n-1 := by omega
-    rw [multiAndPrefix, dif_pos h, reflectionCompile_append, run_append, ih (by omega)]
+    rw [multiAndPrefix, dite_eq_left h, reflectionCompile_append, run_append, ih (by omega)]
     exact multiAndStage_action n ⟨m,h⟩ x b
 
 /-- For n ≥ 2, the full conjunction chain has length 15(n-1) and writes every conjunction prefix
@@ -350,7 +354,7 @@ register. -/
     multiWireState t x (Qatlib.Foundations.PureStateMath.Ket (x t)) = Qatlib.Foundations.PureStateMath.Ket x := by
   have h := Function.update_eq_self t x
   cases hx : x t <;> simp only [multiWireState, Qatlib.Foundations.PureStateMath.Ket,
-    if_true, if_false, Bool.false_eq_true, Bool.true_eq_false,
+    ite_true, ite_false, Bool.false_eq_true, Bool.true_eq_false,
     zero_smul, one_smul, zero_add, add_zero]
   all_goals rw [hx] at h; rw [h]
 
@@ -392,7 +396,7 @@ private theorem multiWire_diagonal_ket (N : ℕ) (w : Fin N) (d : Bool → ℂ) 
     ApplyGate (wireGate N w (Matrix.diagonal d)) (Qatlib.Foundations.PureStateMath.Ket x) = d (x w) • Qatlib.Foundations.PureStateMath.Ket x := by
   rw [applyGate_wireGate_ket]
   have hup : Function.update x w (x w) = x := Function.update_eq_self w x
-  cases hx : x w <;> simp only [Matrix.diagonal_apply, if_true, if_false,
+  cases hx : x w <;> simp only [Matrix.diagonal_apply, ite_true, ite_false,
     Bool.false_eq_true, Bool.true_eq_false, zero_smul, add_zero, zero_add]
   all_goals rw [hx] at hup; rw [hup]
 
@@ -439,10 +443,10 @@ theorem multiKnownPairSteps_action {N : ℕ} (c t : Fin N) (hct : c ≠ t)
     if a then Complex.exp ((p.delta : ℂ) * Complex.I) else 1) from rfl,
     multiWireState_phase c t hct]
   cases hx : x c
-  · simp only [Bool.false_eq_true, if_false, one_smul,
+  · simp only [Bool.false_eq_true, ite_false, one_smul,
       ← applyGate_mul, Matrix.one_mul]
     rw [← Matrix.mul_assoc, (knownQubitControl_ABC_phase_factorization p).1]
-  · simp only [if_true]
+  · simp only [ite_true]
     rw [← multiWireState_smul]
     simp only [← applyGate_mul]
     rw [← applyGate_smul]
@@ -507,7 +511,7 @@ theorem multiKnownSteps_length (n : ℕ) (p : KnownQubitAngles) :
       Equiv.symm_symm]
   simp only [show (multiKnownSplit n z = (x,fun _ => false)) =
       (z = (multiKnownSplit n).symm (x,fun _ => false)) from
-    propext (multiKnownSplit n).apply_eq_iff_eq_symm_apply]
+      propext (multiKnownSplit n).eq_symm_apply.symm]
 
 /-- The clean embedding commutes with scalar multiplication. -/
 @[simp] theorem multiKnownEmbed_smul (n : ℕ) (c : ℂ) (ψ : QState (Reg n × Bool)) :
@@ -589,7 +593,7 @@ theorem multiKnownFlag_value (n : ℕ) (hn : n ≠ 0) (x : Reg n) (b : Bool) :
     · intro hx; exact hx _
   · rename_i h
     simp only [multiAndPrefixBasis, multiKnownJoin_work]
-    rw [if_pos (by omega), allControlTrue_eq_decide]
+    rw [ite_eq_left (by omega), allControlTrue_eq_decide]
     congr 1
     apply propext
     constructor
@@ -617,14 +621,14 @@ theorem multiKnown_basis_action (n : ℕ) (p : KnownQubitAngles) (x : Reg n) (b 
         Qatlib.Foundations.PureStateMath.Ket ((multiKnownSplit n).symm ((x,a),fun _ => false)) := by
   by_cases hn : n = 0
   · subst n
-    rw [multiKnownSteps, dif_pos rfl]
+    rw [multiKnownSteps, dite_eq_left rfl]
     simp only [reflectionCompile, List.map_cons,
       List.map_nil, run_gate, run_nil, reflectionGateMatrix]
     rw [applyGate_wireGate_ket, multiKnownJoin_target,
       multiKnownJoin_update_target, multiKnownJoin_update_target]
-    simp only [allControlTrue, List.ofFn_zero, List.all_nil, if_true, Fintype.sum_bool]
+    simp only [allControlTrue, List.ofFn_zero, List.all_nil, ite_true, Fintype.sum_bool]
     exact add_comm _ _
-  · rw [multiKnownSteps, dif_neg hn, reflectionCompile_append,
+  · rw [multiKnownSteps, dite_eq_right hn, reflectionCompile_append,
       reflectionCompile_append, run_append, run_append]
     rw [show Run (1 : Matrix (Reg (n+1+(n-1))) (Reg (n+1+(n-1))) ℂ)
       (reflectionCompile (multiAndSteps n))

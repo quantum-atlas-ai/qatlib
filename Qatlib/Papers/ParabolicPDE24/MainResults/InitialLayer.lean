@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Calculus.Deriv.Mul
-import Mathlib.Analysis.SpecialFunctions.ExpDeriv
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.Normed.Module.Basic
-import Mathlib.Analysis.Normed.Operator.Basic
-import Mathlib.Analysis.Normed.MulAction
-import Mathlib.Analysis.Normed.Group.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.Calculus.Deriv.Mul
+public import Mathlib.Analysis.SpecialFunctions.ExpDeriv
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.Normed.Module.Basic
+public import Mathlib.Analysis.Normed.Operator.Basic
+public import Mathlib.Analysis.Normed.MulAction
+public import Mathlib.Analysis.Normed.Group.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Initial-layer correctors for relaxation

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SdpMmwSolver.SdpContract.SdpConvexCombinationSamplingStat
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Positivity
+module
+
+public import Qatlib.Concepts.SdpMmwSolver.SdpContract.SdpConvexCombinationSamplingStat
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Positivity
+
+@[expose] public section
 
 /-!
 # Convex sampling of a dual certificate
@@ -53,7 +57,7 @@ theorem sdpConvexCombinationSampling : SdpConvexCombinationSampling := by
     have he := Finset.single_le_sum (fun i _ => hnonneg i) (Finset.mem_univ j₀)
     have hpos : 0 < sdpDualCertificate m δ α R j₀ y T j₀ := by
       unfold sdpDualCertificate
-      rw [if_pos rfl]
+      rw [ite_eq_left rfl]
       exact add_pos_of_pos_of_nonneg (by positivity)
         (div_nonneg (Finset.sum_nonneg fun t _ => hy t j₀) hTr.le)
     exact hpos.trans_le he
@@ -61,7 +65,7 @@ theorem sdpConvexCombinationSampling : SdpConvexCombinationSampling := by
       (∑ t ∈ Finset.range T, ∑ i, y t i) / (T : ℝ) := by
     unfold sdpDualSampleScale sdpDualCertificate
     rw [Finset.sum_add_distrib]
-    simp only [Finset.sum_ite_eq', Finset.mem_univ, if_true]
+    simp only [Finset.sum_ite_eq', Finset.mem_univ, ite_true]
     rw [← Finset.sum_div, Finset.sum_comm]
   refine ⟨hscale, ?_, ?_, ?_⟩
   · intro i

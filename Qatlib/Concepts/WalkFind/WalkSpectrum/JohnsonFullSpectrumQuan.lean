@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkFind.WalkSpectrum.JohnsonFullSpectrumStat
-import Qatlib.Concepts.WalkFind.WalkSpectrum.NormalSpectralPerturbationQuan
-import Mathlib.RingTheory.Polynomial.Pochhammer
-import Mathlib.LinearAlgebra.Matrix.Charpoly.Basic
-import Mathlib.LinearAlgebra.Matrix.ToLinearEquiv
-import Mathlib.Tactic.LinearCombination
-import Mathlib.Tactic.Ring
-import Qatlib.Concepts.BlockEncoding.LinearCombination
-import Qatlib.Concepts.WalkFind.WalkSpectrum.JohnsonSpectrumPhase
+module
+
+public import Qatlib.Concepts.WalkFind.WalkSpectrum.JohnsonFullSpectrumStat
+public import Qatlib.Concepts.WalkFind.WalkSpectrum.NormalSpectralPerturbationQuan
+public import Mathlib.RingTheory.Polynomial.Pochhammer
+public import Mathlib.LinearAlgebra.Matrix.Charpoly.Basic
+public import Mathlib.LinearAlgebra.Matrix.ToLinearEquiv
+public import Mathlib.Tactic.LinearCombination
+public import Mathlib.Tactic.Ring
+public import Qatlib.Concepts.BlockEncoding.LinearCombination
+public import Qatlib.Concepts.WalkFind.WalkSpectrum.JohnsonSpectrumPhase
+
+@[expose] public section
 
 /-!
 # The full spectrum of the reduced Johnson walk
@@ -135,7 +139,7 @@ theorem johnsonBirthDeath_mulVec (k N r : ℕ) (f : ℂ → ℂ) (i : Fin (k+1))
       johnsonBirthRate k r i.val*(f i.val-f ((i.val : ℂ)+1))+
       johnsonDeathRate k N r i.val*(f i.val-f ((i.val : ℂ)-1)) := by
   simp only [johnsonBirthDeath, Matrix.mulVec, dotProduct, sub_mul, Finset.sum_sub_distrib,
-    ite_mul, zero_mul, Finset.sum_ite_eq, Finset.mem_univ, if_true]
+    ite_mul, zero_mul, Finset.sum_ite_eq, Finset.mem_univ, ite_true]
   have hup : (∑ j : Fin (k+1), if j.val = i.val+1 then johnsonBirthRate k r i.val*f j.val else 0) =
       johnsonBirthRate k r i.val*f ((i.val : ℂ)+1) := by
     by_cases hi : i.val < k
@@ -185,7 +189,7 @@ theorem johnsonBirthDeath_falling_similarity (k N r : ℕ) :
       (if u = j then johnsonFalling u.val i.val*johnsonLaplacianValue j.val N else 0)-
       (if u.val+1 = j.val then johnsonFalling u.val i.val*A else 0) := by
     split_ifs <;> ring
-  simp only [hterm, Finset.sum_sub_distrib, Finset.sum_ite_eq', Finset.mem_univ, if_true]
+  simp only [hterm, Finset.sum_sub_distrib, Finset.sum_ite_eq', Finset.mem_univ, ite_true]
   have hdown : (∑ u : Fin (k+1), if u.val+1 = j.val then
       johnsonFalling u.val i.val*((j.val : ℂ)*((k : ℂ)+1-j.val)*((r : ℂ)+1-j.val)) else 0) =
       (j.val : ℂ)*((k : ℂ)+1-j.val)*((r : ℂ)+1-j.val)*johnsonFalling (j.val-1) i.val := by
@@ -207,7 +211,7 @@ theorem johnsonFallingMatrix_det_ne_zero (k : ℕ) : (johnsonFallingMatrix k).de
     change johnsonFalling j.val i.val = 0
     rw [johnsonFalling, descPochhammer_eval_eq_descFactorial]
     exact_mod_cast Nat.descFactorial_eq_zero_iff_lt.mpr hij
-  rw [Matrix.det_of_lowerTriangular _ htri]
+  rw [Matrix.det_of_isLowerTriangular _ htri]
   apply Finset.prod_ne_zero_iff.mpr
   intro i _
   simp [johnsonFallingMatrix, johnsonFalling, descPochhammer_eval_eq_descFactorial,
@@ -233,7 +237,7 @@ theorem johnsonBirthDeath_charpoly (k N r : ℕ) :
     intro i j hij
     change j.val < i.val at hij
     simp [johnsonFallingTriangular, show i ≠ j by omega, show ¬i.val+1 = j.val by omega]
-  rw [Matrix.charpoly_of_upperTriangular _ htri]
+  rw [Matrix.charpoly_of_isUpperTriangular _ htri]
   apply Finset.prod_congr rfl
   intro j _
   simp [johnsonFallingTriangular]
@@ -304,7 +308,7 @@ theorem johnsonPlusFrame_isometry (k : ℕ) (d : ℝ) (hd : (k : ℝ) < d) :
       have hu (u : Fin k) : u.val ≠ k := Nat.ne_of_lt u.isLt
       simp [hpk', hu]
   · have hvpq : p.val ≠ q.val := fun h => hpq (Fin.ext h)
-    rw [Matrix.one_apply, if_neg hpq]
+    rw [Matrix.one_apply, ite_eq_right hpq]
     simp only [Matrix.mul_apply, Matrix.conjTranspose_apply]
     apply Finset.sum_eq_zero
     intro i _
@@ -600,7 +604,7 @@ theorem johnsonOverlap_bidiagonal (k : ℕ) (d e : ℝ) (i j : Fin (k+1)) :
         (Real.sqrt (((i : ℝ)+1)/e) : ℂ) else 0) := by
   rw [Matrix.mul_apply,jwSumPairs]
   simp only [Matrix.conjTranspose_apply,johnsonPlusFrame_pair,johnsonReverseFrame_pair,
-    Bool.false_eq_true,if_false,if_true]
+    Bool.false_eq_true,ite_false,ite_true]
   have hlast := johnsonPlusFrame_last k d i
   rw [hlast,johnsonReverseFrame_last,Finset.sum_add_distrib]
   have hstars (x : ℝ) : star (x : ℂ) = x := Complex.conj_ofReal x
@@ -609,7 +613,7 @@ theorem johnsonOverlap_bidiagonal (k : ℕ) (d e : ℝ) (i j : Fin (k+1)) :
   · let ii : Fin k := ⟨i.val,hi⟩
     have heq (a : Fin k) : a.val = i.val ↔ a = ii := by simp [Fin.ext_iff,ii]
     have hne : i.val ≠ k := by omega
-    simp only [heq,ite_mul,zero_mul,Finset.sum_ite_eq',Finset.mem_univ,if_true,hne,if_false,zero_mul,add_zero]
+    simp only [heq,ite_mul,zero_mul,Finset.sum_ite_eq',Finset.mem_univ,ite_true,hne,ite_false,zero_mul,add_zero]
     have heqij : i.val = j.val ↔ i = j := Fin.ext_iff.symm
     simp only [ii,heqij,show i.val+1 = j.val ↔ j.val = i.val+1 from eq_comm]
     congr 1
@@ -623,7 +627,7 @@ theorem johnsonOverlap_bidiagonal (k : ℕ) (d e : ℝ) (i j : Fin (k+1)) :
   · have hik : i.val = k := by omega
     have hne (a : Fin k) : a.val ≠ i.val := by have ha := a.isLt; omega
     have heqij : i = j ↔ j.val = k := by rw [Fin.ext_iff,hik]; omega
-    simp only [hne,if_false,zero_mul,Finset.sum_const_zero]
+    simp only [hne,ite_false,zero_mul,Finset.sum_const_zero]
     simp [hik,heqij]
 
 /-- The diagonal overlap coefficient `sqrt (1-(k-i)/d) * sqrt (1-i/e)`. -/
@@ -788,15 +792,15 @@ theorem johnsonBirthDeath_Jacobi_similarity (k N r : ℕ) (hkr : k ≤ r) (hkN :
   · by_cases hup : j.val = i.val+1
     · have hi : i.val < k := by have hj := j.isLt; omega
       have hd : johnsonBirthRate k r i.val ≠ 0 := johnsonBirthRate_ne_zero k r i.val hkr hi
-      simp only [johnsonBirthDeath,johnsonJacobi,hij,if_false,hup,if_true,zero_sub]
-      simp only [show ¬i.val+1+1 = i.val by omega,if_false,sub_zero]
+      simp only [johnsonBirthDeath,johnsonJacobi,hij,ite_false,hup,ite_true,zero_sub]
+      simp only [show ¬i.val+1+1 = i.val by omega,ite_false,sub_zero]
       rw [johnsonScale_succ]
       field_simp
     · by_cases hdown : j.val+1 = i.val
       · have hj : j.val < k := by have hi := i.isLt; omega
         have hd := johnsonBirthRate_ne_zero k r j.val hkr hj
         have hs := johnsonOffRate_sq k N r j.val hj hkr hkN
-        simp only [johnsonBirthDeath,johnsonJacobi,hij,if_false,hup,hdown,if_true,sub_zero,zero_sub]
+        simp only [johnsonBirthDeath,johnsonJacobi,hij,ite_false,hup,hdown,ite_true,sub_zero,zero_sub]
         rw [← hdown,johnsonScale_succ]
         field_simp
         linear_combination johnsonScale k N r j.val*hs
@@ -864,7 +868,7 @@ theorem johnsonBidiagonal_gram (k : ℕ) (A B : Fin (k+1) → ℂ) (hB : B (Fin.
   by_cases hij : i = j
   · subst j
     simp
-  · simp only [hij,if_false]
+  · simp only [hij,ite_false]
     split_ifs <;> simp only [star_zero,mul_zero,zero_mul,add_zero,zero_add]
     all_goals ring
 
@@ -1178,8 +1182,8 @@ theorem principalPair_ordered_eigenframe (n : ℕ) (U : Matrix (Fin n) (Fin n) �
     change star (v i) ⬝ᵥ v j = if i = j then 1 else 0
     by_cases hij : i = j
     · subst j
-      simpa only [if_pos rfl] using! (normalized_iff_inner_self (v i)).mp (hnorm i)
-    · rw [if_neg hij]
+      simpa only [ite_eq_left rfl] using! (normalized_iff_inner_self (v i)).mp (hnorm i)
+    · rw [ite_eq_right hij]
       exact jw_unitary_distinct_eigenvectors_orthogonal n U (v i) (v j) (e i) (e j)
         hU' (heunit i) (heig i) (heig j) (fun h => hij (hinj h))
   have hB : B ∈ Matrix.unitaryGroup (Fin n) ℂ := by

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SemidirectHSP05.MainResults.HspMainResults
+module
+
+public import Qatlib.Papers.SemidirectHSP05.MainResults.HspMainResults
+
+@[expose] public section
 
 /-!
 # Geometric sums and metacyclic solution counts
@@ -186,7 +190,7 @@ theorem card_solvable_pairs (N p : ℕ) [Fact p.Prime] [NeZero N] {μ : ZMod N}
         = if IsUnit x then p else 0 := by
     intro x
     by_cases hx : IsUnit x
-    · rw [if_pos hx, Finset.sum_boole]
+    · rw [ite_eq_left hx, Finset.sum_boole]
       have hfilter : (Finset.univ.filter (fun w : ZMod N =>
             IsUnit x ∧ ∃ b : Fin p, matSum μ (b : ℕ) * x = w))
           = Finset.univ.filter (fun w : ZMod N =>
@@ -196,10 +200,10 @@ theorem card_solvable_pairs (N p : ℕ) [Fact p.Prime] [NeZero N] {μ : ZMod N}
         exact ⟨fun h => h.2, fun h => ⟨hx, h⟩⟩
       rw [hfilter]
       exact card_solvable_targets (Fact.out) hu hμp hμ1 hx
-    · rw [if_neg hx]
+    · rw [ite_eq_right hx]
       apply Finset.sum_eq_zero
       intro w _
-      rw [if_neg (fun h => hx h.1)]
+      rw [ite_eq_right (fun h => hx h.1)]
   rw [h1]
   simp only [hinner]
   have h2 : (∑ x : ZMod N, (if IsUnit x then p else 0))

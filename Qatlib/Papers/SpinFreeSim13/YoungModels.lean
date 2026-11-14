@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ChannelTheory.TwirlChannel
-import Mathlib.GroupTheory.Perm.Sign
-import Mathlib.Algebra.Module.LinearMap.End
-import Mathlib.Tactic
+module
+
+public import Qatlib.Concepts.ChannelTheory.TwirlChannel
+public import Mathlib.GroupTheory.Perm.Sign
+public import Mathlib.Algebra.Module.LinearMap.End
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Unnormalized Young subgroup operators

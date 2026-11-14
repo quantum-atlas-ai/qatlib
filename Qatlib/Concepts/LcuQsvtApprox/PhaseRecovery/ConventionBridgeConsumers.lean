@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.QsVtMain.ConventionBridge
-import Qatlib.Concepts.QsvtCore.QsVtStability.RootRobustQSVTConsumers
+module
+
+public import Qatlib.Concepts.QsvtCore.QsVtMain.ConventionBridge
+public import Qatlib.Concepts.QsvtCore.QsVtStability.RootRobustQSVTConsumers
+
+@[expose] public section
 
 /-!
 # Source-convention QSVT word consumers

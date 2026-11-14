@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.RiccatiWang26.SolutionEnc.Core.PaperModel
+module
+
+public import Qatlib.Papers.RiccatiWang26.SolutionEnc.Core.PaperModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -94,7 +98,7 @@ lemma mp_mul_eq_one {m l : Type*} [Fintype m] [Fintype l] [DecidableEq m] [Decid
 lemma upper_blockrow_fullRowRank
     (P : Sq n) (E : Matrix (Sum n n) (Sum n n) ℂ)
     (hfix : E * graph P = graph P)
-    (hact : ∀ v, E *ᵥ v = graph P *ᵥ ((E1 n)ᴴ *ᵥ (E *ᵥ v))) :
+    (_hact : ∀ v, E *ᵥ v = graph P *ᵥ ((E1 n)ᴴ *ᵥ (E *ᵥ v))) :
     FullRowRank ((E1 n)ᴴ * E) := by
   intro w
   refine ⟨graph P *ᵥ w, ?_⟩
@@ -104,7 +108,7 @@ lemma upper_blockrow_fullRowRank
 /-- The three recovery identities of Eq. (3.9), given the graph-projector property. -/
 theorem graph_projector_identities
     (P : Sq n) (E : Matrix (Sum n n) (Sum n n) ℂ) (Aplus : Matrix (Sum n n) n ℂ)
-    (hproj : E * E = E) (hfix : E * graph P = graph P)
+    (_hproj : E * E = E) (hfix : E * graph P = graph P)
     (hact : ∀ v, E *ᵥ v = graph P *ᵥ ((E1 n)ᴴ *ᵥ (E *ᵥ v)))
     (hMP : IsMPPseudoinverse ((E1 n)ᴴ * E) Aplus) :
     ((E1 n)ᴴ * E) * graph P = 1 ∧
@@ -155,8 +159,10 @@ lemma range_eq_graph_range
 
 /-! ## Claim statements -/
 
+omit [Fintype n] [DecidableEq n] in
 /-- An idempotent matrix acts as the identity on its range. -/
-lemma idempotent_mulVec_idem (E : Matrix (Sum n n) (Sum n n) ℂ) (hE : E * E = E)
+lemma idempotent_mulVec_idem
+    [_fintype : Fintype n] [_decidableEq : DecidableEq n] (E : Matrix (Sum n n) (Sum n n) ℂ) (hE : E * E = E)
     (v : Sum n n → ℂ) : E *ᵥ (E *ᵥ v) = E *ᵥ v := by
   rw [Matrix.mulVec_mulVec, hE]
 
@@ -218,7 +224,7 @@ Hamiltonian spectral splitting (Appendix B); it enters as `hfix`/`hact`. -/
 theorem lemma_3_6_care_graph_projector
     (A G Q X : Sq n)
     (Pim : Matrix (Sum n n) (Sum n n) ℂ) (Aplus : Matrix (Sum n n) n ℂ)
-    (hCARE : StabilizingCare A G Q X)
+    (_hCARE : StabilizingCare A G Q X)
     (hPim : Pim * Pim = Pim)
     (hfix : Pim * graph X = graph X)
     (hact : ∀ v, Pim *ᵥ v = graph X *ᵥ ((E1 n)ᴴ *ᵥ (Pim *ᵥ v)))
@@ -238,7 +244,7 @@ here (contrast Lemma B.13). -/
 theorem lemma_3_8_dare_graph_projector
     (A G Q X : Sq n)
     (Pil : Matrix (Sum n n) (Sum n n) ℂ) (Aplus : Matrix (Sum n n) n ℂ)
-    (hDARE : StabilizingDare A G Q X)
+    (_hDARE : StabilizingDare A G Q X)
     (hPil : Pil * Pil = Pil)
     (hfix : Pil * graph X = graph X)
     (hact : ∀ v, Pil *ᵥ v = graph X *ᵥ ((E1 n)ᴴ *ᵥ (Pil *ᵥ v)))
@@ -326,9 +332,9 @@ theorem lemma_F_1_limits
     (H : Matrix (Sum n n) (Sum n n) ℂ)
     (Pip Pim : Matrix (Sum n n) (Sum n n) ℂ)
     (R0 : Matrix (Sum n n) n ℂ) (Gplus : Matrix n (Sum n n) ℂ)
-    (hrank : FullColumnRank (Pim * R0))
-    (hPim : Pim * Pim = Pim)
-    (hMP : IsMPPseudoinverse (Pim * R0) Gplus)
+    (_hrank : FullColumnRank (Pim * R0))
+    (_hPim : Pim * Pim = Pim)
+    (_hMP : IsMPPseudoinverse (Pim * R0) Gplus)
     (hdecay : Filter.Tendsto
       (fun t : ℝ => NormedSpace.exp ((-(t : ℂ)) • H) * Pip * R0 * Gplus *
         NormedSpace.exp ((t : ℂ) • H) * Pim) Filter.atTop (nhds 0)) :

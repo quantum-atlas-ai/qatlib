@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
+module
+
+public import Qatlib.Concepts.GateVocabulary.FiniteGateDescription
+
+@[expose] public section
 
 /-!
 # Exact finite Toffoli words
@@ -66,7 +70,7 @@ theorem thermalToffoliWord_exact (n : ℕ) (a b t : Fin n)
     simp [thermalToffoliWord, Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteWordLegal, Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteCodeLegal,
       a.isLt, b.isLt, t.isLt, hab', hat', hbt']
   refine ⟨?_, ?_, (Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteCodeCircuit_counts n _).1⟩
-  · simp only [Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteWordRun, hl, if_true]
+  · simp only [Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteWordRun, hl, ite_true]
     rw [thermalToffoliWord_compile n a b t hab hat hbt,
       (Qatlib.Concepts.GateVocabulary.LocalReflectionGates.local_toffoli_fifteen_exact n a b t hab hat hbt).2.2 x]
   · simpa [thermalToffoliWord] using (Qatlib.Concepts.GateVocabulary.FiniteGateDescription.finiteCodeCircuit_counts n

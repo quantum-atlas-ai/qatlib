@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Cbmd26.Algorithms.DynamicTimeOracleBridge
-import Qatlib.Papers.Cbmd26.Algorithms.CoherentFreshWordBridge
-import Qatlib.Papers.Cbmd26.Algorithms.ComputationalWorkspaceBridge
+module
+
+public import Qatlib.Papers.Cbmd26.Algorithms.DynamicTimeOracleBridge
+public import Qatlib.Papers.Cbmd26.Algorithms.CoherentFreshWordBridge
+public import Qatlib.Papers.Cbmd26.Algorithms.ComputationalWorkspaceBridge
+
+@[expose] public section
 
 /-!
 # Register layouts for fresh dynamic circuits

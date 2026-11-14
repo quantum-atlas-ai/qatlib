@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Nat.Log
-import Mathlib.Data.Real.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.Order.BigOperators.Group.Finset
-import Mathlib.Data.Fintype.Card
-import Mathlib.Data.Finset.Card
-import Mathlib.Data.Finset.Disjoint
-import Mathlib.Data.Finset.Lattice.Lemmas
-import Mathlib.Tactic
+module
+
+public import Mathlib.Data.Nat.Log
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.Order.BigOperators.Group.Finset
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Data.Finset.Disjoint
+public import Mathlib.Data.Finset.Lattice.Lemmas
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Exact transmission through a finite classical channel
@@ -116,7 +120,7 @@ theorem exact_support_decodes (ch : StochasticChannel M Y) (e : S → M) (D : Y 
     · simpa using ch.prob_nonneg (e s) y'
   have hzero :=
     (Finset.sum_eq_zero_iff_of_nonneg hnonneg).mp hsum y (Finset.mem_univ y)
-  rw [if_neg (by simpa using hne), sub_zero] at hzero
+  rw [ite_eq_right (by simpa using hne), sub_zero] at hzero
   exact hy hzero
 
 /-- Exact transmission makes the output supports of two distinct encoded source symbols

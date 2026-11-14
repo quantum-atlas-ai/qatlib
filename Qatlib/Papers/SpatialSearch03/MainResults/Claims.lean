@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SpatialSearch03.MainResults.SpectralAnalysis.TwoLevel
-import Qatlib.Papers.SpatialSearch03.MainResults.SpectralAnalysis.EnergyBound
-import Mathlib.Analysis.Complex.ExponentialBounds
+module
+
+public import Qatlib.Papers.SpatialSearch03.MainResults.SpectralAnalysis.TwoLevel
+public import Qatlib.Papers.SpatialSearch03.MainResults.SpectralAnalysis.EnergyBound
+public import Mathlib.Analysis.Complex.ExponentialBounds
+
+@[expose] public section
 
 /-!
 # Success probabilities and independent repetitions

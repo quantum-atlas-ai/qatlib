@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.IsingNeural23.MainResults.SpaceComplexity
-import Qatlib.Concepts.BinaryOptEncode.BitCoordinates
-import Mathlib.Data.Finite.Prod
+module
+
+public import Qatlib.Papers.IsingNeural23.MainResults.SpaceComplexity
+public import Qatlib.Concepts.BinaryOptEncode.BitCoordinates
+public import Mathlib.Basic.Finite.Prod
+
+@[expose] public section
 
 /-!
 # QCBO coordinates and spin-assignment counts

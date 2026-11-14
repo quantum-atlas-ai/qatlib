@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.RydbergMaxCut26.Thermal.GibbsSpectral
-import Qatlib.Concepts.MatrixExpTrace.GibbsNorm
+module
+
+public import Qatlib.Papers.RydbergMaxCut26.Thermal.GibbsSpectral
+public import Qatlib.Concepts.MatrixExpTrace.GibbsNorm
+
+@[expose] public section
 
 /-!
 # Gibbs normalization from the frozen operator results

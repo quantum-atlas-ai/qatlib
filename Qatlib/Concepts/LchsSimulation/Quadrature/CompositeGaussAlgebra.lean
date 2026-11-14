@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LchsSimulation.Quadrature.NearExponentialKernelQuadrature
-import Mathlib.Data.Nat.Choose.Central
+module
+
+public import Qatlib.Concepts.LchsSimulation.Quadrature.NearExponentialKernelQuadrature
+public import Mathlib.Data.Nat.Choose.Central
+
+@[expose] public section
 
 /-!
 # Factorial estimates for composite Gauss quadrature

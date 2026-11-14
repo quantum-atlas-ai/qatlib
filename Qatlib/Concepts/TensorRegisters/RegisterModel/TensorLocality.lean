@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TensorRegisters.RegisterModel.QmaCompletenessLocalSupport
-import Mathlib.Tactic
+module
+
+public import Qatlib.Concepts.TensorRegisters.RegisterModel.QmaCompletenessLocalSupport
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Tensor locality on qubit supports
@@ -52,12 +56,12 @@ theorem productMatrix_tensor_local {N : ℕ} (S : Finset (Fin N))
   refine ⟨B, eq_partitionLift_of_entries S (productMatrix A) B ?_⟩
   intro x y
   by_cases he : outside S x = outside S y
-  · rw [if_pos he]
+  · rw [ite_eq_left he]
     have hout := (outside_eq_iff S x y).mp he
     have hp : (∏ i ∈ S, A i (x i) (y i)) = ∏ i : Fin N, A i (x i) (y i) := by
       apply Finset.prod_subset (Finset.subset_univ S)
       intro i _ hi
-      rw [hA i hi, Matrix.one_apply, if_pos (hout i hi)]
+      rw [hA i hi, Matrix.one_apply, ite_eq_left (hout i hi)]
     change (∏ i : Fin N, A i (x i) (y i)) =
       ∏ j : Fin S.card, A (wireEmbedding S j) (x (wireEmbedding S j)) (y (wireEmbedding S j))
     rw [← hp, ← Finset.prod_coe_sort]
@@ -65,14 +69,14 @@ theorem productMatrix_tensor_local {N : ℕ} (S : Finset (Fin N))
     apply Fintype.prod_equiv (S.orderIsoOfFin rfl).toEquiv
     intro i
     rfl
-  · rw [if_neg he]
+  · rw [ite_eq_right he]
     have hex : ∃ i : Fin N, i ∉ S ∧ x i ≠ y i := by
       by_contra h
       push Not at h
       exact he ((outside_eq_iff S x y).mpr h)
     obtain ⟨i, hi, hxy⟩ := hex
     apply Finset.prod_eq_zero (Finset.mem_univ i)
-    rw [hA i hi, Matrix.one_apply, if_neg hxy]
+    rw [hA i hi, Matrix.one_apply, ite_eq_right hxy]
 
 /-- The sum of two matrices local on `S` is local on `S`. -/
 theorem tensorLocalOn_add {N : ℕ} (S : Finset (Fin N))
@@ -104,7 +108,7 @@ theorem tensorLocalOn_adjoint {N : ℕ} (S : Finset (Fin N))
   intro x y
   simp only [Matrix.conjTranspose_apply, partitionLift_apply]
   by_cases h : outside S x = outside S y
-  · simp only [if_pos h, if_pos h.symm]
-  · simp only [if_neg h, if_neg (Ne.symm h), star_zero]
+  · simp only [ite_eq_left h, ite_eq_left h.symm]
+  · simp only [ite_eq_right h, ite_eq_right (Ne.symm h), star_zero]
 
 end Qatlib.Concepts.TensorRegisters.RegisterModel

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductKappaBoundHami
-import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductGammaThresholdStat
+module
+
+public import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductKappaBoundHami
+public import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductGammaThresholdStat
+
+@[expose] public section
 
 /-!
 # A threshold for the multiproduct exponent

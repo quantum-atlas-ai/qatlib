@@ -4,69 +4,73 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PhaseGeometry.Phase
-import Qatlib.Concepts.TrotterFormula.SuzukiFourth.QSP
-import Qatlib.Concepts.CoherentSim.CoherentOAA.Qubitization
-import Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis
-import Qatlib.Concepts.CoherentSim.CoherentOAA.QSVT
-import Qatlib.Concepts.CoherentSim.CoherentOAA.OperatorResponse
-import Qatlib.Concepts.QspSimulation.Achievability.RealPolynomial
-import Qatlib.Concepts.OperatorErrors.Robustness
-import Qatlib.Concepts.QsvtCore.LinearSystems.RealPolynomialCompletionClosed
-import Qatlib.Concepts.CoherentSim.CoherentOAA.Realization
-import Qatlib.Concepts.CoherentSim.CoherentOAA.SingularPolynomial
-import Qatlib.Concepts.CoherentSim.CoherentOAA.BlockRobustness
-import Qatlib.Concepts.QspSimulation.Achievability.ResponseFactorization
-import Qatlib.Concepts.QspSimulation.Achievability.RealPartResponse
-import Qatlib.Concepts.QspSimulation.Achievability.RealPartQSVT
-import Qatlib.Concepts.CopyEvolution.Discriminate.ParallelQSVT
-import Lean.Elab.Tactic.NormCast
-import Lean.Elab.Tactic.Omega
-import Mathlib.Analysis.CStarAlgebra.Classes
-import Mathlib.Analysis.Complex.Trigonometric
-import Mathlib.Algebra.Order.Star.Real
-import Mathlib.LinearAlgebra.UnitaryGroup
-import Mathlib.Tactic.Ext
-import Mathlib.Tactic.FinCases
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Ring
-import Qatlib.Foundations.PureStateMath.Tensor
-import Qatlib.Concepts.WalshMoment.Forrelation.CountedThresholdQSVT
-import Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.ThresholdOutputConsumers
-import Qatlib.Concepts.QsvtCore.QsVtStability.ComplexBoundaryQsvt
-import Qatlib.Concepts.QsvtCore.QsVtStability.ComplexBoundaryQsvtConsumers
+module
 
-import Qatlib.Concepts.QsvtCore.QsVtMain.CPPPhaseCompiler
-import Qatlib.Concepts.QspSimulation.WordModel.CPPAdjointDefs
-import Qatlib.Concepts.QsvtCore.QsVtMain.LengthQSVT
-import Qatlib.Concepts.QsvtCore.QsVtMain.QSVTConsumers
-import Qatlib.Concepts.NonNormalSpec.ResolventWord.ThresholdIntegralDefs
-import Qatlib.Concepts.NonNormalSpec.ResolventWord.ThresholdIntegralAmplification
-import Qatlib.Concepts.NonNormalSpec.ResolventWord.ThresholdIntegralConsumer
-import Qatlib.Concepts.NonNormalSpec.ResolventWord.NativeThresholdIntegralDefs
-import Qatlib.Concepts.NonNormalSpec.ResolventWord.NativeThresholdIntegralCoefficients
-import Qatlib.Concepts.NonNormalSpec.ResolventWord.NativeThresholdIntegralCutoff
-import Qatlib.Concepts.NonNormalSpec.ResolventWord.NativeThresholdIntegralConsumer
+public import Qatlib.Concepts.PhaseGeometry.Phase
+public import Qatlib.Concepts.TrotterFormula.SuzukiFourth.QSP
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.Qubitization
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.QSVT
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.OperatorResponse
+public import Qatlib.Concepts.QspSimulation.Achievability.RealPolynomial
+public import Qatlib.Concepts.OperatorErrors.Robustness
+public import Qatlib.Concepts.QsvtCore.LinearSystems.RealPolynomialCompletionClosed
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.Realization
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.SingularPolynomial
+public import Qatlib.Concepts.CoherentSim.CoherentOAA.BlockRobustness
+public import Qatlib.Concepts.QspSimulation.Achievability.ResponseFactorization
+public import Qatlib.Concepts.QspSimulation.Achievability.RealPartResponse
+public import Qatlib.Concepts.QspSimulation.Achievability.RealPartQSVT
+public import Qatlib.Concepts.CopyEvolution.Discriminate.ParallelQSVT
+public import Lean.Elab.Tactic.NormCast
+public import Lean.Elab.Tactic.Omega
+public import Mathlib.Analysis.CStarAlgebra.Classes
+public import Mathlib.Analysis.Complex.Trigonometric
+public import Mathlib.Algebra.Order.Star.Real
+public import Mathlib.LinearAlgebra.UnitaryGroup
+public import Mathlib.Tactic.Ext
+public import Mathlib.Tactic.FinCases
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Ring
+public import Qatlib.Foundations.PureStateMath.Tensor
+public import Qatlib.Concepts.WalshMoment.Forrelation.CountedThresholdQSVT
+public import Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.ThresholdOutputConsumers
+public import Qatlib.Concepts.QsvtCore.QsVtStability.ComplexBoundaryQsvt
+public import Qatlib.Concepts.QsvtCore.QsVtStability.ComplexBoundaryQsvtConsumers
 
-import Qatlib.Concepts.NativeNumerics.PhaseSynthesis.GaussianResponseData
-import Qatlib.Concepts.NativeNumerics.PhaseSynthesis.FinitePhaseGrid
-import Qatlib.Concepts.NativeNumerics.PhaseSynthesis.FinitePhaseSynthesis
-import Qatlib.Concepts.SignalPrimitive.PhaseFrontend.ComputedPhaseQSVT
-import Qatlib.Concepts.QspSimulation.WordModel.FinitePhaseConsumers
+public import Qatlib.Concepts.QsvtCore.QsVtMain.CPPPhaseCompiler
+public import Qatlib.Concepts.QspSimulation.WordModel.CPPAdjointDefs
+public import Qatlib.Concepts.QsvtCore.QsVtMain.LengthQSVT
+public import Qatlib.Concepts.QsvtCore.QsVtMain.QSVTConsumers
+public import Qatlib.Concepts.NonNormalSpec.ResolventWord.ThresholdIntegralDefs
+public import Qatlib.Concepts.NonNormalSpec.ResolventWord.ThresholdIntegralAmplification
+public import Qatlib.Concepts.NonNormalSpec.ResolventWord.ThresholdIntegralConsumer
+public import Qatlib.Concepts.NonNormalSpec.ResolventWord.NativeThresholdIntegralDefs
+public import Qatlib.Concepts.NonNormalSpec.ResolventWord.NativeThresholdIntegralCoefficients
+public import Qatlib.Concepts.NonNormalSpec.ResolventWord.NativeThresholdIntegralCutoff
+public import Qatlib.Concepts.NonNormalSpec.ResolventWord.NativeThresholdIntegralConsumer
 
-import Qatlib.Concepts.SignalPrimitive.HermitianQSVT
-import Qatlib.Concepts.QsvtCore.QsVtStability.SquareRootQSVTRobustness
-import Qatlib.Concepts.QsvtCore.QsVtStability.RootRobustQSVTConsumers
-import Qatlib.Concepts.QsvtCore.QsVtStability.InteriorComplexQsvt
+public import Qatlib.Concepts.NativeNumerics.PhaseSynthesis.GaussianResponseData
+public import Qatlib.Concepts.NativeNumerics.PhaseSynthesis.FinitePhaseGrid
+public import Qatlib.Concepts.NativeNumerics.PhaseSynthesis.FinitePhaseSynthesis
+public import Qatlib.Concepts.SignalPrimitive.PhaseFrontend.ComputedPhaseQSVT
+public import Qatlib.Concepts.QspSimulation.WordModel.FinitePhaseConsumers
 
-import Qatlib.Concepts.QsvtCore.QsVtMain.ConventionBridge
-import Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.ConventionBridgeConsumers
+public import Qatlib.Concepts.SignalPrimitive.HermitianQSVT
+public import Qatlib.Concepts.QsvtCore.QsVtStability.SquareRootQSVTRobustness
+public import Qatlib.Concepts.QsvtCore.QsVtStability.RootRobustQSVTConsumers
+public import Qatlib.Concepts.QsvtCore.QsVtStability.InteriorComplexQsvt
 
-import Qatlib.Concepts.NativeNumerics.NlfftPipeline.NonlinearFourierSU2
-import Qatlib.Concepts.NativeNumerics.NlfftPipeline.InverseNLFFTSU2
-import Qatlib.Concepts.NativeNumerics.NlfftPipeline.FiniteFFTPolynomialMul
-import Qatlib.Concepts.NativeNumerics.NlfftPipeline.InverseNLFFTSU2Finite
+public import Qatlib.Concepts.QsvtCore.QsVtMain.ConventionBridge
+public import Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.ConventionBridgeConsumers
+
+public import Qatlib.Concepts.NativeNumerics.NlfftPipeline.NonlinearFourierSU2
+public import Qatlib.Concepts.NativeNumerics.NlfftPipeline.InverseNLFFTSU2
+public import Qatlib.Concepts.NativeNumerics.NlfftPipeline.FiniteFFTPolynomialMul
+public import Qatlib.Concepts.NativeNumerics.NlfftPipeline.InverseNLFFTSU2Finite
+
+@[expose] public section
 
 /-!
 # Quantum signal processing interfaces

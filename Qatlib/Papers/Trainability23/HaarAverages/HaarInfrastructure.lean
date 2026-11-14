@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
-import Mathlib.Data.Complex.Basic
-import Mathlib.LinearAlgebra.UnitaryGroup
-import Mathlib.Tactic.Linarith
+module
+
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.LinearAlgebra.UnitaryGroup
+public import Mathlib.Tactic.Linarith
+
+@[expose] public section
 
 /-!
 # Row normalization and bounds for unitary entries

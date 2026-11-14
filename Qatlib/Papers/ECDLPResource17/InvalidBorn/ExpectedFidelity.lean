@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
-import Qatlib.Papers.ECDLPResource17.InvalidBorn.CoherentRun
+module
+
+public import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+public import Qatlib.Papers.ECDLPResource17.InvalidBorn.CoherentRun
+
+@[expose] public section
 
 /-!
 # Expected overlap and fidelity loss
@@ -62,7 +66,7 @@ theorem source_expected_overlap (p w : ℕ) [Fact p.Prime] (hp : p ≤ 2^w)
     let p0 := PMF.uniformOfFinset (Finset.univ.erase (0 : AddSubgroup.zmultiples P)) h
     (∑ a0, (p0 a0).toReal * (1 - (actualOverlap E P m n a0).re)) ≤
       (8*(n+1) : ℕ) / (Fintype.card (AddSubgroup.zmultiples P) - 1 : ℕ) := by
-  letI := cyclicFintype P
+  let := cyclicFintype P
   have hj := source_joint_bit_failure p w hp P m n h
   dsimp only at hj ⊢
   rw [joint_event_reverse] at hj
@@ -93,7 +97,7 @@ theorem source_expected_fidelity_loss (p w : ℕ) [Fact p.Prime] (hp : p ≤ 2^w
     let p0 := PMF.uniformOfFinset (Finset.univ.erase (0 : AddSubgroup.zmultiples P)) h
     (∑ a0, (p0 a0).toReal * (1 - Complex.normSq (actualOverlap E P m n a0))) ≤
       2 * ((8*(n+1) : ℕ) / (Fintype.card (AddSubgroup.zmultiples P) - 1 : ℕ)) := by
-  letI := cyclicFintype P
+  let := cyclicFintype P
   have ho := source_expected_overlap p w hp P m n h
   calc
     _ ≤ ∑ a0, ((PMF.uniformOfFinset (Finset.univ.erase (0 : AddSubgroup.zmultiples P)) h) a0).toReal *

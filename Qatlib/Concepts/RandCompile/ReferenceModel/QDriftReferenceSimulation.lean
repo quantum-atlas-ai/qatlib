@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CopyEvolution.Discriminate.UnitaryExponentialRemainder
-import Mathlib.Algebra.Order.Floor.Ring
+module
+
+public import Qatlib.Concepts.CopyEvolution.Discriminate.UnitaryExponentialRemainder
+public import Mathlib.Algebra.Order.Floor.Ring
+
+@[expose] public section
 
 /-!
 # qDRIFT with finite references
@@ -125,9 +129,9 @@ theorem qdrift_signed_coefficient_bridge (L D : ℕ) (a : Fin L → ℝ)
     have hne : (∑ i, |a i| : ℝ) ≠ 0 := ne_of_gt hlam
     have hneC : (∑ i, ((|a i| : ℝ) : ℂ)) ≠ 0 := by exact_mod_cast hne
     by_cases h : a j < 0
-    · simp [h, abs_of_neg h, Complex.ofReal_div, hne]
+    · simp [h, abs_of_neg h, Complex.ofReal_div]
       field_simp [hneC]
-    · simp [h, abs_of_nonneg (le_of_not_gt h), Complex.ofReal_div, hne]
+    · simp [h, abs_of_nonneg (le_of_not_gt h), Complex.ofReal_div]
       field_simp [hneC]
   · intro h j
     by_cases hj : a j < 0
@@ -151,7 +155,7 @@ theorem qdriftHamiltonian_norm_le {L D : ℕ} (d : FinDist (Fin L))
     ‖qdriftHamiltonian d K lam‖ ≤ lam := by
   calc
     _ = lam * ‖∑ j, (d.prob j : ℂ) • K j‖ := by
-      simp [qdriftHamiltonian, norm_smul, Complex.norm_real, Real.norm_eq_abs, abs_of_nonneg hlam]
+      simp [qdriftHamiltonian, norm_smul, Real.norm_eq_abs, abs_of_nonneg hlam]
     _ ≤ lam * ∑ j, ‖(d.prob j : ℂ) • K j‖ :=
       mul_le_mul_of_nonneg_left (norm_sum_le _ _) hlam
     _ ≤ lam * ∑ j, d.prob j := by
@@ -434,7 +438,7 @@ theorem qdrift_actual_fresh_path_and_component_cost (L D n : ℕ)
   have hc := mixture_path_circuit_semantics_cost
     (fun j => HamiltonianEvolution (K j) s) n ω ψ
   refine ⟨by simp [qdriftComponentWord], ?_, ?_, hc.2.2.1, ?_⟩
-  · simp only [qdriftComponentWord, List.map_ofFn, Function.comp_apply]
+  · simp only [qdriftComponentWord, List.map_ofFn]
     change (List.ofFn (fun _ : Fin n => |s|)).sum = _
     simp [List.ofFn_const, List.sum_replicate]
   · simpa [qdriftComponentWord, mixturePathCircuit, ← List.ofFn_comp'] using!

@@ -4,9 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MonteCarloMean.PilotVariance.PilotQuantumMeanConsumers
-import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
-import Mathlib.Probability.ProductMeasure
+module
+
+public import Qatlib.Concepts.MonteCarloMean.PilotVariance.PilotQuantumMeanConsumers
+public import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
+public import Mathlib.Probability.ProductMeasure
+
+@[expose] public section
+set_option linter.unusedSectionVars false
+set_option linter.unusedTactic false
 
 /-!
 # Certified Pilot Moments and Fresh Mean Estimates
@@ -99,10 +105,10 @@ theorem fresh_failure {H : Type} [Fintype H] {S : H → Type} [∀ h, Fintype (S
   rw [fresh_event]
   have hpoint (h : H) : eventMass (q h) (fun x => E ⟨h,x⟩) ≤ (if bad h then 1 else δmain) := by
     by_cases hb : bad h
-    · rw [if_pos hb]
+    · rw [ite_eq_left hb]
       exact (Finset.sum_le_sum_of_subset_of_nonneg (Finset.filter_subset _ _)
         (fun x _ _ => (q h).nonneg x)).trans_eq (q h).sum_one
-    · rw [if_neg hb]
+    · rw [ite_eq_right hb]
       exact hmain h hb
   calc
     _ ≤ ∑ h, p.prob h * (if bad h then 1 else δmain) :=
@@ -472,7 +478,6 @@ theorem frontier1 (p : FinDist I) (B : ℚ) (depth j : ℕ) (f : I → ℚ) (nu 
   intro z hz
   simp only [boundedReadout, Rat.cast_mul] at hz
   rw [expect_scaled p B f (ne_of_gt hB), ← mul_sub, abs_mul, abs_of_pos hb] at hz
-  change ((eps/B : ℚ) : ℝ) < _
   rw [Rat.cast_div, div_lt_iff₀ hb]
   simpa [mul_comm] using! hz
 
@@ -512,7 +517,6 @@ theorem quantum_bounded_failure (A : Matrix I I ℂ) (j : I) (B : ℚ) (N depth 
   intro z hz
   rw [expect_scaled (signedMeanSource A j hA) B f (ne_of_gt hB), ← mul_sub,
     abs_mul, abs_of_pos hb] at hz
-  change ((eps/B : ℚ) : ℝ) < _
   rw [Rat.cast_div, div_lt_iff₀ hb]
   simpa [mul_comm] using! hz
 

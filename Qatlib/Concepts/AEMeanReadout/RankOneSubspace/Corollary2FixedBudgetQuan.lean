@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Corollary2FixedBudgetStat
-import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Theorem5ApproximateCountingQuan
+module
+
+public import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Corollary2FixedBudgetStat
+public import Qatlib.Concepts.AEMeanReadout.RankOneSubspace.Theorem5ApproximateCountingQuan
+
+@[expose] public section
 
 /-!
 # Approximate counting with a fixed square-root budget

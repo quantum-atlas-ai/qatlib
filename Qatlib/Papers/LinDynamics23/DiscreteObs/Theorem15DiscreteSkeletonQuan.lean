@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LinDynamics23.DiscreteObs.Theorem15DiscreteSkeletonStat
-import Qatlib.Papers.LinDynamics23.DiscreteObs.Theorem15DiscreteSkeletonCounterex
-import Qatlib.Papers.LinDynamics23.DiscreteObs.DiscreteLchsCost
+module
+
+public import Qatlib.Papers.LinDynamics23.DiscreteObs.Theorem15DiscreteSkeletonStat
+public import Qatlib.Papers.LinDynamics23.DiscreteObs.Theorem15DiscreteSkeletonCounterex
+public import Qatlib.Papers.LinDynamics23.DiscreteObs.DiscreteLchsCost
+
+@[expose] public section
 
 /-!
 # Proof of the discrete LCHS skeleton
@@ -100,7 +104,7 @@ theorem theorem15DiscreteSkeleton : Theorem15DiscreteSkeleton := by
         (lt_of_le_of_ne hη0 (Ne.symm hz)) hτ hhalf le_rfl hvec).2
   refine ⟨?_, ?_, ?_⟩
   · intro j₀
-    intro _hp
+     _hp
     rw [static_lchs_initial_data_branch_raw I N c V B j₀ i₀ hα hV hB,
       static_lchs_output_density_smul _ _
         (inv_ne_zero (by exact_mod_cast hα.ne'))]

@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.StoquasticHam06.MainResults.Theorem6.Basic
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Data.Matrix.Basic
-import Mathlib.LinearAlgebra.Matrix.Trace
-import Mathlib.Data.Fin.Tuple.Basic
-import Mathlib.Data.List.OfFn
+module
+
+public import Qatlib.Papers.StoquasticHam06.MainResults.Theorem6.Basic
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.LinearAlgebra.Matrix.Trace
+public import Mathlib.Data.Fin.Tuple.Basic
+public import Mathlib.Data.List.OfFn
+
+@[expose] public section
 
 /-!
 # Ordered-product expansion for trace counting
@@ -63,7 +67,7 @@ theorem pow_sum_eq_sum_seqProd [Fintype τ] (A : τ → Matrix ι ι ℝ) (L : �
   induction L with
   | zero =>
       simp only [pow_zero]
-      haveI : Unique (Fin 0 → τ) := Pi.uniqueOfIsEmpty _
+      have : Unique (Fin 0 → τ) := Pi.uniqueOfIsEmpty _
       rw [Finset.sum_eq_single (default : Fin 0 → τ)]
       · rw [seqProd_zero]
       · intro b _ hb; exact absurd (Subsingleton.elim b _) hb

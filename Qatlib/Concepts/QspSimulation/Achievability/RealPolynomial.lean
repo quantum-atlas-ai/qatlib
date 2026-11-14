@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.PolyApprox.MarkovLukacs
-import Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis
-import Qatlib.Concepts.BlockEncoding.Basic
-import Mathlib.Algebra.Polynomial.Expand
-import Mathlib.Data.Real.Sqrt
+module
+
+public import Qatlib.Concepts.QsvtCore.PolyApprox.MarkovLukacs
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis
+public import Qatlib.Concepts.BlockEncoding.Basic
+public import Mathlib.Algebra.Polynomial.Expand
+public import Mathlib.Analysis.Real.Sqrt
+
+@[expose] public section
 
 /-!
 # Completion and phase synthesis for real polynomials
@@ -211,7 +215,7 @@ theorem exists_real_sos_of_rep {p : Polynomial ℝ} {d : ℕ}
       HasRealParity d A ∧ HasRealParity (d + 1) B := by
   by_cases he : d % 2 = 0
   · let r : EvenRep (d / 2) (squareResidual p) := by
-      simpa only [Qatlib.Concepts.QsvtCore.PolyApprox.Representation, if_pos he] using rep
+      simpa only [Qatlib.Concepts.QsvtCore.PolyApprox.Representation, ite_eq_left he] using rep
     have hd : d = 2 * (d / 2) := by omega
     refine ⟨r.a.comp (X ^ 2), X * r.b.comp (X ^ 2), ?_, ?_, ?_, ?_, ?_⟩
     · have hi := congrArg (fun f : Polynomial ℝ => f.comp (X ^ 2)) r.identity
@@ -227,7 +231,7 @@ theorem exists_real_sos_of_rep {p : Polynomial ℝ} {d : ℕ}
     · convert X_comp_square_parity r.b (d / 2) using 1
       omega
   · let r : OddRep (d / 2) (squareResidual p) := by
-      simpa only [Qatlib.Concepts.QsvtCore.PolyApprox.Representation, if_neg he] using rep
+      simpa only [Qatlib.Concepts.QsvtCore.PolyApprox.Representation, ite_eq_right he] using rep
     have hd : d = 2 * (d / 2) + 1 := by omega
     refine ⟨X * r.a.comp (X ^ 2), r.b.comp (X ^ 2), ?_, ?_, ?_, ?_, ?_⟩
     · have hi := congrArg (fun f : Polynomial ℝ => f.comp (X ^ 2)) r.identity

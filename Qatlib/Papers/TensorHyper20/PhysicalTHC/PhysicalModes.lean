@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FermionAlgebra.CarJordanWigner.WeightedModes
-import Qatlib.Papers.TensorHyper20.MainResults.DiagonalCoulomb
+module
+
+public import Qatlib.Concepts.FermionAlgebra.CarJordanWigner.WeightedModes
+public import Qatlib.Papers.TensorHyper20.MainResults.DiagonalCoulomb
+
+@[expose] public section
 
 /-!
 # Physical fermionic modes for tensor hypercontraction

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.Amplification.DiscreteRun
-import Mathlib.Data.Finset.Sort
-import Mathlib.Data.Prod.Lex
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.DiscreteRun
+public import Mathlib.Data.Finset.Sort
+public import Mathlib.Order.Prod.Lex.Basic
+
+@[expose] public section
 
 /-!
 # Sorted ranks for tables with repeated values
@@ -98,11 +102,13 @@ private theorem nonlower_nonempty (T : SortedRankedTable N α) (y : Fin N) :
 
 /-- The least rank whose value is not strictly smaller than the value at rank `y`. -/
 def lowerCut (T : SortedRankedTable N α) (y : Fin N) : Fin N :=
-  (T.nonlower y).min' (T.nonlower_nonempty y)
+  (Finset.univ.filter (fun k =>
+    ¬ T.value (T.indexOfRank k) < T.value (T.indexOfRank y))).min'
+      ⟨y, by simp⟩
 
 /-- The lower cut at rank `y` is at most `y`. -/
 theorem lowerCut_le (T : SortedRankedTable N α) (y : Fin N) : T.lowerCut y ≤ y := by
-  exact Finset.min'_le _ y (by simp [nonlower])
+  exact Finset.min'_le _ y (by simp)
 
 /-- A ranked value is strictly smaller than the value at `y` exactly when its rank lies below
 the lower cut at `y`. -/

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SketchSpectral.MatrixFunctions.GibbsTracePerturbationStat
-import Qatlib.Concepts.SketchSpectral.MatrixFunctions.GibbsTraceLowerBoundSamp
+module
+
+public import Qatlib.Concepts.SketchSpectral.MatrixFunctions.GibbsTracePerturbationStat
+public import Qatlib.Concepts.SketchSpectral.MatrixFunctions.GibbsTraceLowerBoundSamp
+
+@[expose] public section
 
 /-!
 # Perturbation bounds for Gibbs traces

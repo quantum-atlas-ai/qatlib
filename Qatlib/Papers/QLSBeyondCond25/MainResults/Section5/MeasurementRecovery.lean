@@ -29,15 +29,19 @@ The independence of the measurements enters only through the hypothesis `hmiss` 
 probability after `t` independent samples equals `(1-p)^t`); the paper's measurement model is not
 formalised as a probability space, see the docstrings.
 -/
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Analysis.InnerProductSpace.Projection.FiniteDimensional
-import Mathlib.Analysis.Matrix.Hermitian
-import Mathlib.LinearAlgebra.Matrix.Orthogonal
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Data.Nat.Log
-import Mathlib.Data.Nat.Choose.Basic
-import Mathlib.Algebra.Order.Star.Real
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Analysis.InnerProductSpace.Projection.FiniteDimensional
+public import Mathlib.Analysis.Matrix.Hermitian
+public import Mathlib.LinearAlgebra.Matrix.Orthogonal
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Data.Nat.Log
+public import Mathlib.Data.Nat.Choose.Basic
+public import Mathlib.Algebra.Order.Star.Real
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -96,7 +100,7 @@ theorem lemma56_union_bound {α β : Type*} [Fintype α] [Fintype β]
     rw [Finset.sum_filter]
     refine Finset.sum_le_sum fun b _ => ?_
     by_cases hb : ∃ x ∈ S, miss x b
-    · rw [if_pos hb]
+    · rw [ite_eq_left hb]
       obtain ⟨x, hxS, hxb⟩ := hb
       have hle : (1 : ℝ) ≤ ∑ x ∈ S, if miss x b then (1 : ℝ) else 0 := by
         have hmem := Finset.single_le_sum
@@ -106,7 +110,7 @@ theorem lemma56_union_bound {α β : Type*} [Fintype α] [Fintype β]
       calc w b = w b * 1 := (mul_one _).symm
         _ ≤ w b * (∑ x ∈ S, if miss x b then (1 : ℝ) else 0) :=
             mul_le_mul_of_nonneg_left hle (hw b)
-    · rw [if_neg hb]
+    · rw [ite_eq_right hb]
       exact mul_nonneg (hw b) (Finset.sum_nonneg fun i _ => by split_ifs <;> norm_num)
   have h2 : (∑ b ∈ Finset.univ, w b * (∑ x ∈ S, if miss x b then (1 : ℝ) else 0))
       = ∑ x ∈ S, ∑ b ∈ Finset.univ, w b * (if miss x b then (1 : ℝ) else 0) := by

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CopyEvolution.Discriminate.CopyExponentialPrecision
-import Qatlib.Papers.QuantumPCA14.InputAccess.IndexedColumnLoad
+module
+
+public import Qatlib.Concepts.CopyEvolution.Discriminate.CopyExponentialPrecision
+public import Qatlib.Papers.QuantumPCA14.InputAccess.IndexedColumnLoad
+
+@[expose] public section
 
 /-!
 # Copy exponentiation from indexed loading

@@ -4,16 +4,20 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Lean.Elab.Tactic.Omega
-import Mathlib.Algebra.Lie.OfAssociative
-import Mathlib.Algebra.Polynomial.Coeff
-import Mathlib.Analysis.CStarAlgebra.Classes
-import Mathlib.Data.List.GetD
-import Mathlib.Tactic.Ext
-import Mathlib.Tactic.LinearCombination
-import Mathlib.Tactic.Ring
-import Qatlib.Concepts.PhaseGeometry.RationalCayleyPhase
-import Qatlib.Concepts.TrotterFormula.SuzukiFourth.QSP
+module
+
+public import Lean.Elab.Tactic.Omega
+public import Mathlib.Algebra.Lie.OfAssociative
+public import Mathlib.Algebra.Polynomial.Coeff
+public import Mathlib.Analysis.CStarAlgebra.Classes
+public import Mathlib.Data.List.GetD
+public import Mathlib.Tactic.Ext
+public import Mathlib.Tactic.LinearCombination
+public import Mathlib.Tactic.Ring
+public import Qatlib.Concepts.PhaseGeometry.RationalCayleyPhase
+public import Qatlib.Concepts.TrotterFormula.SuzukiFourth.QSP
+
+@[expose] public section
 
 /-!
 # Gaussian-rational response coefficients

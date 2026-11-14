@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroup
-import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupCore
-import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupDirichlet
-import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupEntropy
-import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupKmsMixing
+module
+
+public import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroup
+public import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupCore
+public import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupDirichlet
+public import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupEntropy
+public import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupKmsMixing
+
+@[expose] public section
 
 /-!
 # Assembled Lindblad semigroup and KMS identities
@@ -66,20 +70,32 @@ def Clause22 : Prop :=
 
     (∀ t : ℝ, 0 ≤ t → t ≤ 1 → ∀ ρ : Operator D,
         ‖lindbladSemigroup G t ρ - ρ - t • lindbladApply G ρ‖
-          ≤ (lindbladGeneratorBound G) ^ 2 * Real.exp (lindbladGeneratorBound G)
+          ≤ (2 * ‖G.ham‖ + 2 * ∑ j, ‖G.jumps j‖ ^ 2) ^ 2 *
+              Real.exp (2 * ‖G.ham‖ + 2 * ∑ j, ‖G.jumps j‖ ^ 2)
               * t ^ 2 * ‖ρ‖) ∧
 
     (∀ t : ℝ, 0 ≤ t →
         ∃ K : Fin (D * D * D * D) → Operator D,
           (∀ ρ : Operator D, lindbladSemigroup G t ρ = ∑ j, K j * ρ * (K j)ᴴ) ∧
-            HasKrausFamily (krausMap K) ∧
+            HasKrausFamily
+              ({ toFun := fun ρ => ∑ j, K j * ρ * (K j)ᴴ
+                 map_add' := by
+                   intro ρ σ
+                   rw [← Finset.sum_add_distrib]
+                   refine Finset.sum_congr rfl fun j _ => ?_
+                   rw [Matrix.mul_add, Matrix.add_mul]
+                 map_smul' := by
+                   intro c ρ
+                   simp only [RingHom.id_apply, Finset.smul_sum]
+                   refine Finset.sum_congr rfl fun j _ => ?_
+                   rw [Matrix.mul_smul, Matrix.smul_mul] } : Operator D →ₗ[ℂ] Operator D) ∧
             (∀ ρ : Operator D, Matrix.trace (lindbladSemigroup G t ρ) = Matrix.trace ρ) ∧
             (∀ ρ : Operator D, IsDensityOperator ρ →
                 IsDensityOperator (lindbladSemigroup G t ρ))) ∧
 
     (∀ t : ℝ, 0 ≤ t → ∀ ρ : Operator D,
         ‖lindbladSemigroup G t ρ‖
-          ≤ Real.exp (lindbladGeneratorBound G * t) * ‖ρ‖) ∧
+          ≤ Real.exp ((2 * ‖G.ham‖ + 2 * ∑ j, ‖G.jumps j‖ ^ 2) * t) * ‖ρ‖) ∧
 
     (∀ ρ : Operator D, KMSNormalForm G ρ →
         IsStationary G ρ ∧ KmsSelfAdjoint ρ (lindbladMap G) ∧

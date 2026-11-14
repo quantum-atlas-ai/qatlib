@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EstimatorLaws.TvStability.MontanaroTheorem8FactorSubgoalStat
-import Qatlib.Concepts.EstimatorLaws.TvStability.MontanaroThm6RelativeTrialSubgoalMont
-import Qatlib.Concepts.NativeNumerics.LayeredMean.NativeSignedMeanConsumers
+module
+
+public import Qatlib.Concepts.EstimatorLaws.TvStability.MontanaroTheorem8FactorSubgoalStat
+public import Qatlib.Concepts.EstimatorLaws.TvStability.MontanaroThm6RelativeTrialSubgoalMont
+public import Qatlib.Concepts.NativeNumerics.LayeredMean.NativeSignedMeanConsumers
+
+@[expose] public section
 
 /-!
 # Median amplification for relative factors

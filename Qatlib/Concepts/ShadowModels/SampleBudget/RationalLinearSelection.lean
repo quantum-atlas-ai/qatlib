@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.HeterogeneousBlockMedian
+module
+
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.HeterogeneousBlockMedian
+
+@[expose] public section
 
 /-!
 # Counted rational order selection
@@ -339,14 +343,14 @@ theorem qRank_unique {xs : List ℚ} {k : ℕ} {p q : ℚ}
       (fun x _ hx => lt_of_le_of_lt hx hl)
     have h1 := hp.2.2
     have h2 := hq.2.1
-    try dsimp only at hc
+
     omega
   · exact he
   · have hc := qFilterLength_mono xs (fun x => x≤q) (fun x => x<p)
       (fun x _ hx => lt_of_le_of_lt hx hr)
     have h1 := hq.2.2
     have h2 := hp.2.1
-    try dsimp only at hc
+
     omega
 
 /-- The order-statistic predicate `QRank` is invariant under permutation of the input list. -/
@@ -497,14 +501,14 @@ theorem qSelectFuel_rank (f k : ℕ) (xs : List ℚ) (hk : k<xs.length) :
         (qSelectFuel f q.1 k).1 else if k<q.1.length+q.2.1.length then p.1 else
           (qSelectFuel f q.2.2.1 (k-q.1.length-q.2.1.length)).1)
       by_cases hklo : k<q.1.length
-      · rw [if_pos hklo]
+      · rw [ite_eq_left hklo]
         exact qRank_perm hperm (qRank_partition_left _ _ _ p.1 hl he hh _ _ (ih _ _ hklo))
-      · rw [if_neg hklo]
+      · rw [ite_eq_right hklo]
         by_cases hkeq : k<q.1.length+q.2.1.length
-        · rw [if_pos hkeq]
+        · rw [ite_eq_left hkeq]
           exact qRank_perm hperm (qRank_partition_middle _ _ _ p.1 hl he hh _
             (show q.1.length≤k by omega) hkeq)
-        · rw [if_neg hkeq]
+        · rw [ite_eq_right hkeq]
           have hkh : k-q.1.length-q.2.1.length<q.2.2.1.length := by
             change q.1.length+q.2.1.length+q.2.2.1.length=xs.length at hlen
             omega
@@ -547,7 +551,7 @@ theorem qChunks5_short_count (f : ℕ) (xs : List ℚ) (hf : xs.length≤f) :
         split_ifs <;> omega
       · have ht : ((x::xs).take 5).length=5 := by rw [List.length_take]; omega
         simpa only [qChunks5,List.countP_cons,ht,lt_self_iff_false,decide_false,
-          Bool.false_eq_true,if_false,Nat.zero_add] using! ih ((x::xs).drop 5) hr
+          Bool.false_eq_true,ite_false,Nat.zero_add] using! ih ((x::xs).drop 5) hr
 
 /-- The middle entry of the counted sorted group, using zero as the default for an empty group. -/
 def qGroupMedian (g : List ℚ) : ℚ := (qSortCounted g).1.getD ((qSortCounted g).1.length/2) 0
@@ -577,7 +581,7 @@ theorem qFullGroup_lower_sets (g : List ℚ) (hg : g.length=5) (p : ℚ) :
   · intro hp
     have hm := qFilterLength_mono g (fun x => x≤qGroupMedian g) (fun x => x≤p)
       (fun x _ hx => hx.trans hp)
-    try dsimp only at hm
+
     have hc := hr.2.2
     omega
   · intro hp
@@ -585,7 +589,7 @@ theorem qFullGroup_lower_sets (g : List ℚ) (hg : g.length=5) (p : ℚ) :
     have hl := hr.2.1
     have hm := qFilterLength_mono g (fun x => qGroupMedian g≤x) (fun x => p≤x)
       (fun x _ hx => hp.trans hx)
-    try dsimp only at hm
+
     omega
 
 /-- If each qualifying full group contributes at least three entries satisfying `P`, three times
@@ -612,7 +616,7 @@ theorem qGroups_count_lower (gs : List (List ℚ)) (P : ℚ → Prop) [Decidable
           simpa [hs] using hgood g (List.mem_cons_self) he hb
     simp only [List.countP_cons,List.map_cons,List.sum_cons]
     cases hb : good g <;> by_cases hs : g.length<5 <;>
-      simp only [hb,hs,decide_true,decide_false,if_true,if_false,Bool.false_eq_true]
+      simp only [hb,hs,decide_true,decide_false,ite_true,ite_false,Bool.false_eq_true]
         at hlocal ⊢ <;> omega
 
 /-- The below-pivot bucket and the entries at least the pivot exhaust the input length; the

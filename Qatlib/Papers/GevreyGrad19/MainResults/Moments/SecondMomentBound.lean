@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GevreyGrad19.MainResults.Model.GevreyGradDefinitions
-import Mathlib.Probability.Moments.SubGaussian
-import Mathlib.Analysis.SpecialFunctions.Pow.Integral
-import Mathlib.Analysis.SpecialFunctions.Gaussian.GaussianIntegral
+module
+
+public import Qatlib.Papers.GevreyGrad19.MainResults.Model.GevreyGradDefinitions
+public import Mathlib.Probability.Moments.SubGaussian
+public import Mathlib.Analysis.SpecialFunctions.Pow.Integral
+public import Mathlib.Analysis.SpecialFunctions.Gaussian.GaussianIntegral
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

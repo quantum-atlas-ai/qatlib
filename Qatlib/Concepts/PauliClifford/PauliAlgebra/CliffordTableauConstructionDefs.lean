@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
-import Qatlib.Concepts.PauliClifford.ExactRank.BooleanCharacters
-import Qatlib.Concepts.WalshMoment.Forrelation.BooleanHadamardCoordinates
-import Qatlib.Concepts.PauliClifford.PauliAlgebra.CliffordStabilizer
-import Qatlib.Concepts.PauliClifford.ExactRank.ExactRankCollision
-import Qatlib.Concepts.PauliClifford.ExactRank.StabilizerRank
+module
+
+public import Qatlib.Foundations.InstrumentCore.ProjectiveMeasurementLaws
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+public import Qatlib.Concepts.PauliClifford.ExactRank.BooleanCharacters
+public import Qatlib.Concepts.WalshMoment.Forrelation.BooleanHadamardCoordinates
+public import Qatlib.Concepts.PauliClifford.PauliAlgebra.CliffordStabilizer
+public import Qatlib.Concepts.PauliClifford.ExactRank.ExactRankCollision
+public import Qatlib.Concepts.PauliClifford.ExactRank.StabilizerRank
+
+@[expose] public section
 
 /-!
 # Stabilizer tableau construction data

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LocalMachine.LocalTransport.LocalMachineDefs
+module
+
+public import Qatlib.Concepts.LocalMachine.LocalTransport.LocalMachineDefs
+
+@[expose] public section
 
 /-!
 # Sequential composition of finite-window quantum Turing rules
@@ -89,6 +93,7 @@ head position and tape. -/
 def cfgR (c : QtmCfg Q2 A w) : QtmCfg (Q1 ⊕ Q2) A w :=
   (Sum.inr c.1, c.2.1, c.2.2)
 
+omit [Fintype Q1] [DecidableEq Q1] [Fintype Q2] [DecidableEq Q2] [Fintype A] [DecidableEq A] in
 /-- The left configuration embedding `cfgL` is injective, so equality of embedded configurations
 determines equality of the original configurations. -/
 theorem cfgL_injective : Function.Injective (cfgL (Q1 := Q1) (Q2 := Q2) (A := A) (w := w)) := by
@@ -98,6 +103,7 @@ theorem cfgL_injective : Function.Injective (cfgL (Q1 := Q1) (Q2 := Q2) (A := A)
   obtain ⟨hst, hhd, htp⟩ := h
   exact Prod.ext hst (Prod.ext hhd htp)
 
+omit [Fintype Q1] [DecidableEq Q1] [Fintype Q2] [DecidableEq Q2] [Fintype A] [DecidableEq A] in
 /-- The right configuration embedding `cfgR` is injective, so equality of embedded
 configurations determines equality of the original configurations. -/
 theorem cfgR_injective : Function.Injective (cfgR (Q1 := Q1) (Q2 := Q2) (A := A) (w := w)) := by
@@ -107,6 +113,7 @@ theorem cfgR_injective : Function.Injective (cfgR (Q1 := Q1) (Q2 := Q2) (A := A)
   obtain ⟨hst, hhd, htp⟩ := h
   exact Prod.ext hst (Prod.ext hhd htp)
 
+omit [Fintype Q1] [DecidableEq Q1] [Fintype Q2] [DecidableEq Q2] [Fintype A] [DecidableEq A] in
 /-- Updating a left-embedded configuration with a left-tagged output control commutes with
 `cfgL` through `Option.map`. An unavailable head move yields `none` on both sides. -/
 theorem stepTarget_cfgL_inl (c : QtmCfg Q1 A w) (d : QtmMove) (q1' : Q1) (b : A) :
@@ -115,6 +122,7 @@ theorem stepTarget_cfgL_inl (c : QtmCfg Q1 A w) (d : QtmMove) (q1' : Q1) (b : A)
   unfold QtmRule.stepTarget cfgL
   rcases hm : moveCell c.2.1 d with _ | j <;> simp
 
+omit [Fintype Q1] [DecidableEq Q1] [Fintype Q2] [DecidableEq Q2] [Fintype A] [DecidableEq A] in
 /-- A step target with a right-tagged output control cannot equal a left-embedded configuration. -/
 theorem stepTarget_cfgL_inr (c : QtmCfg Q1 A w) (d : QtmMove) (s : Q2) (b : A)
     (c' : QtmCfg Q1 A w) :
@@ -123,6 +131,7 @@ theorem stepTarget_cfgL_inr (c : QtmCfg Q1 A w) (d : QtmMove) (s : Q2) (b : A)
   unfold QtmRule.stepTarget cfgL at h
   rcases hm : moveCell c.2.1 d with _ | j <;> simp [hm] at h
 
+omit [Fintype Q1] [DecidableEq Q1] [Fintype Q2] [DecidableEq Q2] [Fintype A] [DecidableEq A] in
 /-- Updating a right-embedded configuration with a right-tagged output control commutes with
 `cfgR` through `Option.map`. An unavailable head move yields `none` on both sides. -/
 theorem stepTarget_cfgR_inr (c : QtmCfg Q2 A w) (d : QtmMove) (q2' : Q2) (b : A) :
@@ -131,6 +140,7 @@ theorem stepTarget_cfgR_inr (c : QtmCfg Q2 A w) (d : QtmMove) (q2' : Q2) (b : A)
   unfold QtmRule.stepTarget cfgR
   rcases hm : moveCell c.2.1 d with _ | j <;> simp
 
+omit [Fintype Q1] [DecidableEq Q1] [Fintype Q2] [DecidableEq Q2] [Fintype A] [DecidableEq A] in
 /-- A step target with a left-tagged output control cannot equal a right-embedded configuration. -/
 theorem stepTarget_cfgR_inl (c : QtmCfg Q2 A w) (d : QtmMove) (s : Q1) (b : A)
     (c' : QtmCfg Q2 A w) :
@@ -139,6 +149,7 @@ theorem stepTarget_cfgR_inl (c : QtmCfg Q2 A w) (d : QtmMove) (s : Q1) (b : A)
   unfold QtmRule.stepTarget cfgR at h
   rcases hm : moveCell c.2.1 d with _ | j <;> simp [hm] at h
 
+omit [Fintype Q1] [DecidableEq Q1] [Fintype Q2] [DecidableEq Q2] [Fintype A] [DecidableEq A] in
 /-- A left-tagged update of `cfgL c` reaches `cfgL c'` exactly when the corresponding untagged
 update of `c` reaches `c'`. -/
 theorem stepTarget_cfgL_eq_some (c c' : QtmCfg Q1 A w) (d : QtmMove) (q1' : Q1) (b : A) :
@@ -154,6 +165,7 @@ theorem stepTarget_cfgL_eq_some (c c' : QtmCfg Q1 A w) (d : QtmMove) (q1' : Q1) 
   · intro h
     simp [h]
 
+omit [Fintype Q1] [DecidableEq Q1] [Fintype Q2] [DecidableEq Q2] [Fintype A] [DecidableEq A] in
 /-- A right-tagged update of `cfgR c` reaches `cfgR c'` exactly when the corresponding untagged
 update of `c` reaches `c'`. -/
 theorem stepTarget_cfgR_eq_some (c c' : QtmCfg Q2 A w) (d : QtmMove) (q2' : Q2) (b : A) :
@@ -186,13 +198,13 @@ theorem compose_stepAmplitude_cfgL (R1 : QtmRule Q1 A) (R2 : QtmRule Q2 A)
           ((cfgL (Q2 := Q2) c).2.2 (cfgL (Q2 := Q2) c).2.1) d (Sum.inr x) b
       else 0)) = 0 := by
     refine Finset.sum_eq_zero fun x _ => Finset.sum_eq_zero fun b _ => ?_
-    rw [if_neg (stepTarget_cfgL_inr c d x b c')]
+    rw [ite_eq_right (stepTarget_cfgL_inr c d x b c')]
   rw [hright, add_zero]
   refine Finset.sum_congr rfl fun q1' _ => Finset.sum_congr rfl fun b _ => ?_
   by_cases hm : QtmRule.stepTarget c d q1' b = some c'
-  · rw [if_pos hm, if_pos ((stepTarget_cfgL_eq_some c c' d q1' b).2 hm)]
-    simp only [composeRule, cfgL, hc, if_false]
-  · rw [if_neg hm, if_neg (fun hh => hm ((stepTarget_cfgL_eq_some c c' d q1' b).1 hh))]
+  · rw [ite_eq_left hm, ite_eq_left ((stepTarget_cfgL_eq_some c c' d q1' b).2 hm)]
+    simp only [composeRule, cfgL, hc, ite_false]
+  · rw [ite_eq_right hm, ite_eq_right (fun hh => hm ((stepTarget_cfgL_eq_some c c' d q1' b).1 hh))]
 
 /-- From a second-machine configuration whose control differs from `hf2`, the composed one-step
 amplitude between right embeddings equals the original amplitude for `R2` [Bennett et al.,
@@ -211,13 +223,13 @@ theorem compose_stepAmplitude_cfgR (R1 : QtmRule Q1 A) (R2 : QtmRule Q2 A)
           ((cfgR (Q1 := Q1) c).2.2 (cfgR (Q1 := Q1) c).2.1) d (Sum.inl x) b
       else 0)) = 0 := by
     refine Finset.sum_eq_zero fun x _ => Finset.sum_eq_zero fun b _ => ?_
-    rw [if_neg (stepTarget_cfgR_inl c d x b c')]
+    rw [ite_eq_right (stepTarget_cfgR_inl c d x b c')]
   rw [hleft, zero_add]
   refine Finset.sum_congr rfl fun q2' _ => Finset.sum_congr rfl fun b _ => ?_
   by_cases hm : QtmRule.stepTarget c d q2' b = some c'
-  · rw [if_pos hm, if_pos ((stepTarget_cfgR_eq_some c c' d q2' b).2 hm)]
-    simp only [composeRule, cfgR, hc, if_false]
-  · rw [if_neg hm, if_neg (fun hh => hm ((stepTarget_cfgR_eq_some c c' d q2' b).1 hh))]
+  · rw [ite_eq_left hm, ite_eq_left ((stepTarget_cfgR_eq_some c c' d q2' b).2 hm)]
+    simp only [composeRule, cfgR, hc, ite_false]
+  · rw [ite_eq_right hm, ite_eq_right (fun hh => hm ((stepTarget_cfgR_eq_some c c' d q2' b).1 hh))]
 
 /-- Defines the left-to-right handoff coefficient: it is one precisely for a right move into
 `Sum.inr st2` that preserves the scanned symbol, and zero otherwise. -/
@@ -284,11 +296,11 @@ theorem haltStepL_orth (st2 : Q2) (a1 a2 : A) (h : a1 ≠ a2) :
   refine Finset.sum_eq_zero fun q' _ => Finset.sum_eq_zero fun b _ =>
     Finset.sum_eq_zero fun d _ => ?_
   by_cases h1 : d = QtmMove.right ∧ q' = Sum.inr st2 ∧ b = a1
-  · rw [if_pos h1]
+  · rw [ite_eq_left h1]
     have h2 : ¬ (d = QtmMove.right ∧ q' = Sum.inr st2 ∧ b = a2) := by
       intro hh; exact h (h1.2.2.symm.trans hh.2.2)
-    rw [if_neg h2]; simp
-  · rw [if_neg h1]; simp
+    rw [ite_eq_right h2]; simp
+  · rw [ite_eq_right h1]; simp
 
 /-- Right-to-left reset rows for distinct scanned symbols have zero inner product when summed
 over output controls, symbols, and moves. -/
@@ -299,11 +311,11 @@ theorem haltStepR_orth (st1 : Q1) (a1 a2 : A) (h : a1 ≠ a2) :
   refine Finset.sum_eq_zero fun q' _ => Finset.sum_eq_zero fun b _ =>
     Finset.sum_eq_zero fun d _ => ?_
   by_cases h1 : d = QtmMove.right ∧ q' = Sum.inl st1 ∧ b = a1
-  · rw [if_pos h1]
+  · rw [ite_eq_left h1]
     have h2 : ¬ (d = QtmMove.right ∧ q' = Sum.inl st1 ∧ b = a2) := by
       intro hh; exact h (h1.2.2.symm.trans hh.2.2)
-    rw [if_neg h2]; simp
-  · rw [if_neg h1]; simp
+    rw [ite_eq_right h2]; simp
+  · rw [ite_eq_right h1]; simp
 
 /-- Extends an `R1` transition row to the sum control space by retaining its coefficients on
 left-tagged targets and assigning zero to right-tagged targets. -/
@@ -335,7 +347,7 @@ theorem composeRule_step_inl_data (R1 : QtmRule Q1 A) (R2 : QtmRule Q2 A)
     (a : A) (d : QtmMove) (q' : Q1 ⊕ Q2) (b : A) :
     (composeRule R1 R2 hf1 st2 hf2 st1).step (Sum.inl q1) a d q' b
       = dataStepL R1 q1 a d q' b := by
-  simp only [composeRule, hq, if_false]
+  simp only [composeRule, hq, ite_false]
   rcases q' with q1' | q2' <;> rfl
 
 /-- At control `Sum.inr hf2`, the composed transition coefficients are exactly the right-to-left
@@ -354,9 +366,10 @@ theorem composeRule_step_inr_data (R1 : QtmRule Q1 A) (R2 : QtmRule Q2 A)
     (a : A) (d : QtmMove) (q' : Q1 ⊕ Q2) (b : A) :
     (composeRule R1 R2 hf1 st2 hf2 st1).step (Sum.inr q2) a d q' b
       = dataStepR R2 q2 a d q' b := by
-  simp only [composeRule, hq, if_false]
+  simp only [composeRule, hq, ite_false]
   rcases q' with q1' | q2' <;> rfl
 
+omit [DecidableEq Q2] in
 /-- If `R1` is locally well formed, each extended left transition row has squared norm one after
 summing over output controls, symbols, and moves. -/
 theorem dataStepL_norm (R1 : QtmRule Q1 A) (h1 : R1.LocalWellformed) (q1 : Q1) (a : A) :
@@ -370,6 +383,7 @@ theorem dataStepL_norm (R1 : QtmRule Q1 A) (h1 : R1.LocalWellformed) (q1 : Q1) (
   rw [hright, add_zero]
   exact h1.1 q1 a
 
+omit [DecidableEq Q1] in
 /-- If `R2` is locally well formed, each extended right transition row has squared norm one
 after summing over output controls, symbols, and moves. -/
 theorem dataStepR_norm (R2 : QtmRule Q2 A) (h2 : R2.LocalWellformed) (q2 : Q2) (a : A) :
@@ -383,6 +397,7 @@ theorem dataStepR_norm (R2 : QtmRule Q2 A) (h2 : R2.LocalWellformed) (q2 : Q2) (
   rw [hleft, zero_add]
   exact h2.1 q2 a
 
+omit [DecidableEq Q2] in
 /-- For a locally well-formed `R1`, extended left transition rows indexed by distinct
 control-symbol pairs have zero inner product. -/
 theorem dataStepL_orth (R1 : QtmRule Q1 A) (h1 : R1.LocalWellformed)
@@ -398,6 +413,7 @@ theorem dataStepL_orth (R1 : QtmRule Q1 A) (h1 : R1.LocalWellformed)
   rw [hright, add_zero]
   exact h1.2.1 q1 a1 q2 a2 hne
 
+omit [DecidableEq Q1] in
 /-- For a locally well-formed `R2`, extended right transition rows indexed by distinct
 control-symbol pairs have zero inner product. -/
 theorem dataStepR_orth (R2 : QtmRule Q2 A) (h2 : R2.LocalWellformed)
@@ -683,6 +699,7 @@ theorem composeRule_wf_orth (R1 : QtmRule Q1 A) (R2 : QtmRule Q2 A)
         fun h => by obtain ⟨h1, h2⟩ := Prod.ext_iff.mp h; exact hne (Prod.ext (congrArg Sum.inr h1) h2)
       exact dataStepR_orth R2 h2 q1 a1 q2 a2 hne'
 
+omit [DecidableEq Q2] in
 /-- A vanishing sum over target controls of an `R1` coefficient times the conjugate of another
 remains zero after both rows are extended by `dataStepL`, with moves and written symbols
 fixed. -/
@@ -699,6 +716,7 @@ theorem dataL_mul_dataL (R1 : QtmRule Q1 A) (q1 q2 : Q1) (a1 a2 c d : A)
   rw [hr, add_zero]
   simpa [dataStepL] using hm
 
+omit [DecidableEq Q1] in
 /-- A vanishing sum over target controls of an `R2` coefficient times the conjugate of another
 remains zero after both rows are extended by `dataStepR`, with moves and written symbols
 fixed. -/
@@ -775,6 +793,7 @@ theorem haltR_mul_dataR (R2 : QtmRule Q2 A) (st1 : Q1) (q2 : Q2)
   rw [Fintype.sum_sum_type]
   simp [dataStepR, haltStepR]
 
+omit [Fintype A] in
 /-- For fixed moves and written symbols, the sum of a `haltStepL` coefficient times the
 conjugate of a `haltStepR` coefficient is zero because the two transitions enter different
 control summands. -/
@@ -784,6 +803,7 @@ theorem haltL_mul_haltR (st2 : Q2) (st1 : Q1) (a1 a2 c d : A) (m1 m2 : QtmMove) 
   rw [Fintype.sum_sum_type]
   simp [haltStepL, haltStepR]
 
+omit [Fintype A] in
 /-- For fixed moves and written symbols, the sum of a `haltStepR` coefficient times the
 conjugate of a `haltStepL` coefficient is zero because the two transitions enter different
 control summands. -/
@@ -885,6 +905,7 @@ theorem haltR_mul_dataL (R1 : QtmRule Q1 A) (hf1 : Q1) (st1 : Q1)
     · simp [haltStepR, dataStepL, hx]
   · simp [haltStepR, dataStepL, hm]
 
+omit [Fintype A] in
 /-- The sum over target controls of a left-to-right handoff coefficient times another conjugated
 handoff coefficient is zero whenever at least one of the two specified moves is not right. -/
 theorem haltL_mul_haltL (st2 : Q2) (a1 a2 c d : A) (m1 m2 : QtmMove)
@@ -905,6 +926,7 @@ theorem haltL_mul_haltL (st2 : Q2) (a1 a2 c d : A) (m1 m2 : QtmMove)
     · simp [haltStepL, h2]
   · simp [haltStepL, hx]
 
+omit [Fintype A] in
 /-- The sum over target controls of a right-to-left reset coefficient times another conjugated
 reset coefficient is zero whenever at least one of the two specified moves is not right. -/
 theorem haltR_mul_haltR (st1 : Q1) (a1 a2 c d : A) (m1 m2 : QtmMove)
@@ -1119,6 +1141,7 @@ theorem compose_step_haltR_support (R1 : QtmRule Q1 A) (R2 : QtmRule Q2 A)
     · simp [hd, hq] at h
   · simp [hd] at h
 
+omit [Fintype Q1] [DecidableEq Q1] [Fintype Q2] [DecidableEq Q2] [Fintype A] [DecidableEq A] in
 /-- The left-to-right handoff target preserves the entire tape and replaces the control by
 `Sum.inr st2` at the right-shifted head position. Its target is `none` if that head move
 leaves the finite window. -/
@@ -1130,6 +1153,7 @@ theorem stepTarget_cfgL_halt {st2 : Q2} (c : QtmCfg Q1 A w) :
     funext i; by_cases hi : i = c.2.1 <;> simp [Function.update, hi]
   rw [hupd]
 
+omit [Fintype Q1] [DecidableEq Q1] [Fintype Q2] [DecidableEq Q2] [Fintype A] [DecidableEq A] in
 /-- The right-to-left reset target preserves the entire tape and replaces the control by
 `Sum.inl st1` at the right-shifted head position. Its target is `none` if that head move
 leaves the finite window. -/
@@ -1252,24 +1276,29 @@ def HaltSupported {Q A : Type*} [Fintype Q] [DecidableEq Q] [Fintype A]
     [DecidableEq A] {w : ℕ} (hf : Q) (ψ : QState (QtmCfg Q A w)) : Prop :=
   ∀ c, ψ c ≠ 0 → c.1 = hf
 
+omit [Fintype Q1] [DecidableEq Q1] [Fintype Q2] [DecidableEq Q2] [Fintype A] [DecidableEq A] in
 /-- Evaluating `liftL ψ` at the left embedding of a configuration recovers its original
 amplitude in `ψ`. -/
 @[simp] theorem liftL_cfgL (ψ : QState (QtmCfg Q1 A w)) (c : QtmCfg Q1 A w) :
     liftL (Q2 := Q2) ψ (cfgL c) = ψ c := rfl
 
+omit [Fintype Q1] [DecidableEq Q1] [Fintype Q2] [DecidableEq Q2] [Fintype A] [DecidableEq A] in
 /-- A left-lifted superposition has zero amplitude at every right-embedded configuration. -/
 @[simp] theorem liftL_cfgR (ψ : QState (QtmCfg Q1 A w)) (c : QtmCfg Q2 A w) :
     liftL (Q2 := Q2) ψ (cfgR c) = 0 := rfl
 
+omit [Fintype Q1] [DecidableEq Q1] [Fintype Q2] [DecidableEq Q2] [Fintype A] [DecidableEq A] in
 /-- A right-lifted superposition has zero amplitude at every left-embedded configuration. -/
 @[simp] theorem liftR_cfgL (ψ : QState (QtmCfg Q2 A w)) (c : QtmCfg Q1 A w) :
     liftR (Q1 := Q1) ψ (cfgL c) = 0 := rfl
 
+omit [Fintype Q1] [DecidableEq Q1] [Fintype Q2] [DecidableEq Q2] [Fintype A] [DecidableEq A] in
 /-- Evaluating `liftR ψ` at the right embedding of a configuration recovers its original
 amplitude in `ψ`. -/
 @[simp] theorem liftR_cfgR (ψ : QState (QtmCfg Q2 A w)) (c : QtmCfg Q2 A w) :
     liftR (Q1 := Q1) ψ (cfgR c) = ψ c := rfl
 
+omit [DecidableEq Q1] [DecidableEq Q2] [DecidableEq A] in
 /-- A sum over all composed configurations splits into the sum over left embeddings plus the sum
 over right embeddings. -/
 theorem sum_cfg_split (F : QtmCfg (Q1 ⊕ Q2) A w → ℂ) :
@@ -1289,7 +1318,7 @@ theorem compose_stepAmplitude_cfgL_inr_zero (R1 : QtmRule Q1 A) (R2 : QtmRule Q2
   refine Finset.sum_eq_zero fun d _ => Finset.sum_eq_zero fun q' _ =>
     Finset.sum_eq_zero fun b _ => ?_
   by_cases hT : QtmRule.stepTarget (cfgL (Q2 := Q2) c) d q' b = some (cfgR (Q1 := Q1) d')
-  · rw [if_pos hT]
+  · rw [ite_eq_left hT]
     rcases q' with q1' | q2'
     · unfold QtmRule.stepTarget cfgL cfgR at hT
       rcases hm : moveCell c.2.1 d with _ | j <;> simp [hm] at hT
@@ -1297,7 +1326,7 @@ theorem compose_stepAmplitude_cfgL_inr_zero (R1 : QtmRule Q1 A) (R2 : QtmRule Q2
           (c.2.2 c.2.1) d (Sum.inr q2') b = 0
       rw [composeRule_step_inl_data R1 R2 hf1 st2 hf2 st1 c.1 hc]
       rfl
-  · rw [if_neg hT]
+  · rw [ite_eq_right hT]
 
 /-- From a second-machine configuration whose control is not `hf2`, the composed one-step
 amplitude to every left-embedded configuration is zero. -/
@@ -1309,7 +1338,7 @@ theorem compose_stepAmplitude_cfgR_inl_zero (R1 : QtmRule Q1 A) (R2 : QtmRule Q2
   refine Finset.sum_eq_zero fun d _ => Finset.sum_eq_zero fun q' _ =>
     Finset.sum_eq_zero fun b _ => ?_
   by_cases hT : QtmRule.stepTarget (cfgR (Q1 := Q1) c) d q' b = some (cfgL (Q2 := Q2) d')
-  · rw [if_pos hT]
+  · rw [ite_eq_left hT]
     rcases q' with q1' | q2'
     · change (composeRule R1 R2 hf1 st2 hf2 st1).step (Sum.inr c.1)
           (c.2.2 c.2.1) d (Sum.inl q1') b = 0
@@ -1317,7 +1346,7 @@ theorem compose_stepAmplitude_cfgR_inl_zero (R1 : QtmRule Q1 A) (R2 : QtmRule Q2
       rfl
     · unfold QtmRule.stepTarget cfgR cfgL at hT
       rcases hm : moveCell c.2.1 d with _ | j <;> simp [hm] at hT
-  · rw [if_neg hT]
+  · rw [ite_eq_right hT]
 
 /-- If `ψ` is supported away from `hf1`, evolving its left lift under the composed rule gives
 the original `R1` evolution at every left-embedded target. -/
@@ -1420,6 +1449,7 @@ theorem compose_stepAmplitude_haltL_indicator (R1 : QtmRule Q1 A) (R2 : QtmRule 
   · rw [sum_single_trans]
     rfl
 
+omit [Fintype Q2] in
 /-- The handoff superposition `handoffL st2 ψ` has zero amplitude at every left-embedded
 configuration. -/
 theorem handoffL_cfgL (st2 : Q2) (ψ : QState (QtmCfg Q1 A w)) (c : QtmCfg Q1 A w) :
@@ -1429,7 +1459,7 @@ theorem handoffL_cfgL (st2 : Q2) (ψ : QState (QtmCfg Q1 A w)) (c : QtmCfg Q1 A 
   have hne : QtmRule.stepTarget (cfgL (Q2 := Q2) c0) QtmMove.right (Sum.inr st2)
       (c0.2.2 c0.2.1) ≠ some (cfgL (Q2 := Q2) c) := by
     rw [stepTarget_cfgL_halt]
-    rcases hm : moveCell c0.2.1 QtmMove.right with _ | j <;> simp [hm, cfgL]
+    rcases hm : moveCell c0.2.1 QtmMove.right with _ | j <;> simp [ cfgL]
   simp [hne]
 
 /-- Expresses the left-to-right handoff superposition in the second machine's own configuration
@@ -1437,6 +1467,7 @@ space by evaluating `handoffL st2 ψ` on right embeddings. -/
 def handoffState (st2 : Q2) (ψ : QState (QtmCfg Q1 A w)) : QState (QtmCfg Q2 A w) :=
   fun c => handoffL st2 ψ (cfgR (Q1 := Q1) c)
 
+omit [Fintype Q2] in
 /-- Lifting `handoffState st2 ψ` back into the composed space recovers the full handoff
 superposition `handoffL st2 ψ`. -/
 theorem liftR_handoffState (st2 : Q2) (ψ : QState (QtmCfg Q1 A w)) :

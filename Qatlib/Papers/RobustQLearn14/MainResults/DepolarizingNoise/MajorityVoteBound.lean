@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Real.Basic
-import Mathlib.Data.Fintype.Basic
-import Mathlib.Data.Fintype.Card
-import Mathlib.Data.Finset.Card
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic
+module
+
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Data.Fintype.Basic
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -104,8 +108,8 @@ The corresponding probability model is the Bernoulli product measure on
 (`Mathlib.Probability.Moments.Basic`) provide the exponential tail bounds.
 The product-measure construction, independence argument and Bernoulli-sum mgf
 computation are outside the scope of this file. -/
-def majority_chernoff (k : ℕ) (η δ : ℝ) (hη : 0 < η) (hη1 : η < 1)
-    (hδ : 0 < δ) (hδ1 : δ < 1) : Prop :=
+def majority_chernoff (k : ℕ) (η δ : ℝ) (_hη : 0 < η) (_hη1 : η < 1)
+    (_hδ : 0 < δ) (_hδ1 : δ < 1) : Prop :=
   1 - majorityChernoffBound k η δ < majoritySuccessProb k η δ
 
 /-! ## Union bound over the `n` bits -/

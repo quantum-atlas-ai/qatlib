@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GradientOracle.CentralDiff.CentralDifferenceExactnessOpti
-import Qatlib.Concepts.GradientOracle.CentralDiff.CentralDifferenceDefs
-import Qatlib.Concepts.GradientOracle.GradientAlgo.CentralDifferenceGridDefs
-import Qatlib.Concepts.GradientOracle.GradientAlgo.AnalyticCentralDifferenceGridErrorOpti
-import Qatlib.Concepts.GradientOracle.GradientAlgo.TensorChebyshevGridBoundOpti
+module
+
+public import Qatlib.Concepts.GradientOracle.CentralDiff.CentralDifferenceExactnessOpti
+public import Qatlib.Concepts.GradientOracle.CentralDiff.CentralDifferenceDefs
+public import Qatlib.Concepts.GradientOracle.GradientAlgo.CentralDifferenceGridDefs
+public import Qatlib.Concepts.GradientOracle.GradientAlgo.AnalyticCentralDifferenceGridErrorOpti
+public import Qatlib.Concepts.GradientOracle.GradientAlgo.TensorChebyshevGridBoundOpti
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

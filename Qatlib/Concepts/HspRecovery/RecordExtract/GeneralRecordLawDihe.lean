@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.RecordExtract.GeneralRecordLawStat
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Push
-import Mathlib.Tactic.SimpRw
+module
+
+public import Qatlib.Concepts.HspRecovery.RecordExtract.GeneralRecordLawStat
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Push
+public import Mathlib.Tactic.SimpRw
+
+@[expose] public section
 
 /-!
 # The general dihedral record law
@@ -121,7 +125,7 @@ private theorem source_record_factor (N : ℕ) [NeZero N] {S : Type*} [Fintype S
         rw [← ha]
         exact hinj.eq_iff
       dsimp [P]
-      simp only [he,mul_ite,mul_one,mul_zero,Finset.sum_ite_eq',Finset.mem_univ,if_true]
+      simp only [he,mul_ite,mul_one,mul_zero,Finset.sum_ite_eq',Finset.mem_univ,ite_true]
       rw [show ‖χ a‖=1 from ZMod.stdAddChar.norm_apply (k*a)]
       norm_num
     · have hn : ∀ a : ZMod N, f (a,false) ≠ z := by simpa only [not_exists] using hz

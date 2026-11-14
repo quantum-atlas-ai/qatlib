@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GramQueryCore.LowerBoundTools.WitnessConversionPhaseProgram
-import Qatlib.Concepts.ConversionCore.WitnessCompile.ReflectionsQueryProgram
+module
+
+public import Qatlib.Concepts.GramQueryCore.LowerBoundTools.WitnessConversionPhaseProgram
+public import Qatlib.Concepts.ConversionCore.WitnessCompile.ReflectionsQueryProgram
+
+@[expose] public section
 
 /-!
 # Physical query programs for witness conversion
@@ -245,10 +249,8 @@ theorem conversion_frame_walk_words {A X H Q : Type}
       · simp [reflectionsControlled, Select, Matrix.conjTranspose_apply, he, Ne.symm he]
     rw [hself Λ hΛ, hself _ (conversionLogicalProjector_orthogonal input x)]
   constructor
-  · (try dsimp only)
-    rw [run_append, Run, Run, htrans, hphase, hprod, applyGate_mul]
-  · (try dsimp only)
-    rw [run_append, hphase, Run, Run, htrans, hprod, hadj, applyGate_mul]
+  · rw [run_append, Run, Run, htrans, hphase, hprod, applyGate_mul]
+  · rw [run_append, hphase, Run, Run, htrans, hprod, hadj, applyGate_mul]
 
 /-- Reassociates the phase-reflection space so that the clock function and Boolean control form
 a single control register. -/
@@ -466,12 +468,12 @@ theorem conversion_clean_transport_word
     ext x y
     change Inner (conversionCleanEmbed n r hr false (ρ x))
       (conversionCleanEmbed n r hr false (ρ y)) = Inner (start x) (start y)
-    rw [conversion_clean_inner, hstart, if_pos rfl, one_mul]
+    rw [conversion_clean_inner, hstart, ite_eq_left rfl, one_mul]
   have hTZ : Tᴴ * T = Zᴴ * Z := by
     ext x y
     change Inner (target x) (target y) = Inner (conversionCleanEmbed n r hr true (σ x))
       (conversionCleanEmbed n r hr true (σ y))
-    rw [conversion_clean_inner, htarget, if_pos rfl, one_mul]
+    rw [conversion_clean_inner, htarget, ite_eq_left rfl, one_mul]
   obtain ⟨U,hU,hUS⟩ := gram_equal_actual_unitary_transport P X V S hVS
   obtain ⟨B,hB,hBZ⟩ := gram_equal_actual_unitary_transport P X T Z hTZ
   have hsin (x) : ApplyGate U (conversionCleanEmbed n r hr false (ρ x)) = start x := by

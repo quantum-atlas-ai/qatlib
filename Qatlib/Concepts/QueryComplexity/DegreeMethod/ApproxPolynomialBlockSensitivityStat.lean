@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.SensitivityDefinitions
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.AdaptiveQueryPurification
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.SensitivityDefinitions
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.AdaptiveQueryPurification
+
+@[expose] public section
 
 /-!
 # The approximate polynomial block sensitivity statement

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CipherCircuits.CipherOracle
+module
+
+public import Qatlib.Concepts.CipherCircuits.CipherOracle
+
+@[expose] public section
 
 /-!
 # Key predicates from plaintext-ciphertext transcripts

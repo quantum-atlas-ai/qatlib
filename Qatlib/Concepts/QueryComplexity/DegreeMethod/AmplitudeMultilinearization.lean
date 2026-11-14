@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryWordCore.QueryMachinery.AcceptancePolynomial
+module
+
+public import Qatlib.Concepts.QueryWordCore.QueryMachinery.AcceptancePolynomial
+
+@[expose] public section
 
 /-!
 # Multilinear polynomial representations of amplitudes
@@ -67,7 +71,7 @@ private theorem clause19Multilinearize_coeff_eq_zero {I : Type} [Fintype I] [Dec
     obtain ⟨i, hi⟩ := hd
     have hle : d i ≤ 1 := clampExponent_mul_le d' d he i
     omega
-  · exact if_neg he
+  · exact ite_eq_right he
 
 /-- Multilinearizing a complex multivariate polynomial does not increase its total degree. -/
 private theorem clause19Multilinearize_totalDegree_le {I : Type} [Fintype I] [DecidableEq I]

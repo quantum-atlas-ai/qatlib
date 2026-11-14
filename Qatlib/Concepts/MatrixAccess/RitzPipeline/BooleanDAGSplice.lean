@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGSpliceData
-import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGAdder
+module
+
+public import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGSpliceData
+public import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGAdder
+
+@[expose] public section
 
 /-!
 # Semantics of Boolean DAG composition
@@ -94,7 +98,7 @@ theorem boolean_dag_splice_value {M K m n : ℕ} (g : BooleanDAG M K)
   induction h with
   | nil =>
     have hi : i.val < m := i.isLt
-    simp only [booleanDAGSplice,booleanSpliceSource,dif_pos hi,booleanDAGValue]
+    simp only [booleanDAGSplice,booleanSpliceSource,dite_eq_left hi,booleanDAGValue]
     rfl
   | @snoc n h node ih =>
     refine Fin.lastCases ?_ (fun j => ?_) i

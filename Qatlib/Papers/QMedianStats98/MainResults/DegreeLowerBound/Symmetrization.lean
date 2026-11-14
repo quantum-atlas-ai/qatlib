@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QMedianStats98.MainResults.Model.Basic
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.SymmetrizationAverageSubgoalBeal
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.BlockSubstitution
+module
+
+public import Qatlib.Papers.QMedianStats98.MainResults.Model.Basic
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.SymmetrizationAverageSubgoalBeal
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.BlockSubstitution
+
+@[expose] public section
 
 /-!
 # Symmetrizing the partial symmetric approximation problem

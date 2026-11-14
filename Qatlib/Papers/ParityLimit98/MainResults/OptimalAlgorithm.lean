@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.AdversarySearch.CountedParityAlgorithm
-import Qatlib.Papers.ParityLimit98.MainResults.LowerBound.PhysicalReadout
+module
+
+public import Qatlib.Concepts.QueryComplexity.AdversarySearch.CountedParityAlgorithm
+public import Qatlib.Papers.ParityLimit98.MainResults.LowerBound.PhysicalReadout
+
+@[expose] public section
 
 /-!
 # Optimal quantum parity query complexity

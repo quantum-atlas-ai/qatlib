@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QAOAScaling23.BiasedProcess.Native
+module
+
+public import Qatlib.Papers.QAOAScaling23.BiasedProcess.Native
+
+@[expose] public section
 
 /-!
 # Joint candidate and fee laws for completed rows
@@ -102,7 +106,7 @@ theorem bad_eq_none {K : ℕ} (cost : I → ℝ) (r : ℕ) (p : PMF (Fin K))
   change ((receipt (origin cost r p receipt fee target a)).result.bind (Qatlib.Papers.QAOAScaling23.BiasedProcess.Born.lowerRank cost (r+1))).isNone = _
   cases he : (receipt (origin cost r p receipt fee target a)).result with
   | none => simp
-  | some i => simp only [Option.bind_some,Qatlib.Papers.QAOAScaling23.BiasedProcess.Born.lowerRank,dif_pos (hsound _ i he),Option.isNone_some]
+  | some i => simp only [Option.bind_some,Qatlib.Papers.QAOAScaling23.BiasedProcess.Born.lowerRank,dite_eq_left (hsound _ i he),Option.isNone_some]
 
 /-- For sound receipts, the candidate suppressed on bad outcomes equals the original optional
 receipt result. -/

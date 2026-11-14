@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Core.WaveBesselODE
-import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
-import Mathlib.MeasureTheory.Integral.DominatedConvergence
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Series
+module
+
+public import Qatlib.Foundations.CbmdAnalysis.Core.WaveBesselODE
+public import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
+public import Mathlib.MeasureTheory.Integral.DominatedConvergence
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Series
+
+@[expose] public section
 
 /-!
 # Bessel propagators as wave mixtures
@@ -220,7 +224,7 @@ theorem besselPropagator_scalar_nonneg_norm_le_one (x t : ℝ) (hx : 0 ≤ x) :
       (a := (0 : ℝ)) (b := Real.pi) (C := 1)
       (f := fun θ => wavePropagator (x : ℂ) ((t : ℂ) * (Real.sin θ : ℂ)))
       (fun θ _ => by
-        (try dsimp only)
+
         rw [← Complex.ofReal_mul]
         exact wavePropagator_scalar_nonneg_norm_le_one x (t * Real.sin θ) hx)
     simpa [abs_of_pos Real.pi_pos] using h

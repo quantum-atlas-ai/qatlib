@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Lean.Elab.Tactic.NormCast
-import Lean.Elab.Tactic.Omega
-import Mathlib.AlgebraicTopology.SimplexCategory.Basic
-import Mathlib.Analysis.RCLike.Basic
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.NormNum.BigOperators
-import Mathlib.Tactic.Ring
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.HeterogeneousBlockMedian
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+module
+
+public import Lean.Elab.Tactic.NormCast
+public import Lean.Elab.Tactic.Omega
+public import Mathlib.AlgebraicTopology.SimplexCategory.Basic
+public import Mathlib.Analysis.RCLike.Basic
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.NormNum.BigOperators
+public import Mathlib.Tactic.Ring
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.HeterogeneousBlockMedian
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+
+@[expose] public section
 
 /-!
 # A heterogeneous weighted median example

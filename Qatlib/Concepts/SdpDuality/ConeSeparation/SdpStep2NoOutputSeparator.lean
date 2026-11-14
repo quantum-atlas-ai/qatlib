@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SdpMmwSolver.OracleError.ResidualDiagnosticContracts
-import Mathlib.Tactic.NormNum
+module
+
+public import Qatlib.Concepts.SdpMmwSolver.OracleError.ResidualDiagnosticContracts
+public import Mathlib.Tactic.NormNum
+
+@[expose] public section
 
 /-!
 # Refutation of the Step 2 no-output separator contract

@@ -4,19 +4,23 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Exp
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Algebra.BigOperators.Fin
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Data.Fintype.Pi
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Data.Real.Basic
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.FieldSimp
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Exp
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Algebra.BigOperators.Fin
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Data.Fintype.Pi
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.FieldSimp
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -169,8 +173,8 @@ theorem approxNE_of_pure {A : Matrix (Fin m) (Fin n) ℝ} {ε : ℝ} {u : Fin m 
     (hu : IsDist u) (hv : IsDist v) (hm : 0 < m) (hn : 0 < n)
     (h : ∀ i j, rowSum A v i - colSum A u j ≤ ε) :
     ApproxNE A ε u v := by
-  haveI : Nonempty (Fin m) := ⟨⟨0, hm⟩⟩
-  haveI : Nonempty (Fin n) := ⟨⟨0, hn⟩⟩
+  have : Nonempty (Fin m) := ⟨⟨0, hm⟩⟩
+  have : Nonempty (Fin n) := ⟨⟨0, hn⟩⟩
   obtain ⟨i0, _hi0mem, hi0⟩ :=
     Finset.exists_max_image Finset.univ (fun i => rowSum A v i) Finset.univ_nonempty
   obtain ⟨j0, _hj0mem, hj0⟩ :=
@@ -209,7 +213,7 @@ def gibbsLogit (A : Matrix (Fin m) (Fin n) ℝ) (x : Fin m → ℝ) : Fin n → 
 
 /-- The partition function is strictly positive on a nonempty index set. -/
 theorem gibbsZ_pos (w : Fin n → ℝ) (hn : 0 < n) : 0 < gibbsZ w := by
-  haveI : Nonempty (Fin n) := ⟨⟨0, hn⟩⟩
+  have : Nonempty (Fin n) := ⟨⟨0, hn⟩⟩
   exact Finset.sum_pos (fun j _ => Real.exp_pos (w j)) Finset.univ_nonempty
 
 /-- Gibbs probabilities are nonnegative. -/
@@ -282,10 +286,10 @@ theorem Pr_mono (P : FinProbSpace) {E F : P.Ω → Prop} (h : ∀ ω, E ω → F
   refine Finset.sum_le_sum fun ω _ => ?_
   by_cases hE : E ω
   · have hF : F ω := h ω hE
-    simp [if_pos hE, if_pos hF]
+    simp [ite_eq_left hE, ite_eq_left hF]
   · by_cases hF : F ω
-    · simp [if_neg hE, if_pos hF, P.prob_nonneg ω]
-    · simp [if_neg hE, if_neg hF]
+    · simp [ite_eq_right hE, ite_eq_left hF, P.prob_nonneg ω]
+    · simp [ite_eq_right hE, ite_eq_right hF]
 
 /-- A randomized solver: a finite family of classical outputs `(u, v)`, each on
 the simplex, with a per-run cost. This is the paper's "quantum algorithm with

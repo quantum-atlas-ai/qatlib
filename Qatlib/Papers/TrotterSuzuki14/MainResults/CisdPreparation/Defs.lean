@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Log.Base
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Algebra.Order.Floor.Ring
-import Mathlib.Data.Real.Basic
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Log.Base
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Algebra.Order.Floor.Ring
+public import Mathlib.Basic.Real.Basic
+
+@[expose] public section
 
 /-!
 # CISD precision exponent and T-count ledger

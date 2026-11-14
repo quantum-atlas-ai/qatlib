@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Matrix.Mul
-import Mathlib.LinearAlgebra.Matrix.Rank
-import Mathlib.Analysis.SpecialFunctions.Sqrt
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Algebra.GCDMonoid.IntegrallyClosed
-import Qatlib.Papers.MUBCompletion26.Completion.Clock.Basic
+module
+
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.LinearAlgebra.Matrix.Rank
+public import Mathlib.Analysis.SpecialFunctions.Sqrt
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Algebra.GCDMonoid.IntegrallyClosed
+public import Qatlib.Papers.MUBCompletion26.Completion.Clock.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

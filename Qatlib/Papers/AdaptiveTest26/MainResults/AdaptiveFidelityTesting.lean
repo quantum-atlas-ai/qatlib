@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AdaptiveTest26.MainResults.AdaptiveFidelityTestingDefs
-import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
-import Qatlib.Concepts.AdversaryBounds.AdvDuality.InstrumentLoopBudget
-import QuantumInfo.Channels.Dual
+module
+
+public import Qatlib.Papers.AdaptiveTest26.MainResults.AdaptiveFidelityTestingDefs
+public import Qatlib.Foundations.PureStateMath.BornBridge.PhyslibStates
+public import Qatlib.Concepts.AdversaryBounds.AdvDuality.InstrumentLoopBudget
+public import QuantumInfo.Channels.Dual
+
+@[expose] public section
 
 /-!
 # Probability and copy-count bounds for fidelity testing
@@ -177,7 +181,7 @@ theorem nonAdaptiveAcceptProb_of_decide_eq_true (S : NonAdaptiveStrategy D O)
         ∏ t : Fin S.steps, outcomeProb (S.povm t) (stateFor (S.stream t) ρ σ) (h t)
       = ∏ t : Fin S.steps, outcomeProb (S.povm t) (stateFor (S.stream t) ρ σ) (h t) := by
     intro h
-    rw [if_pos (hdec h), one_mul]
+    rw [ite_eq_left (hdec h), one_mul]
   show (∑ h : OutcomeRecord O S.steps,
       (if S.decide h then (1 : ℝ) else 0) *
         ∏ t : Fin S.steps, outcomeProb (S.povm t) (stateFor (S.stream t) ρ σ) (h t)) = 1
@@ -197,7 +201,7 @@ theorem nonAdaptiveAcceptProb_of_decide_eq_false (S : NonAdaptiveStrategy D O)
       intro he
       rw [hdec h] at he
       exact Bool.noConfusion he
-    rw [if_neg hc, zero_mul]
+    rw [ite_eq_right hc, zero_mul]
   show (∑ h : OutcomeRecord O S.steps,
       (if S.decide h then (1 : ℝ) else 0) *
         ∏ t : Fin S.steps, outcomeProb (S.povm t) (stateFor (S.stream t) ρ σ) (h t)) = 0
@@ -225,9 +229,9 @@ theorem nonAdaptiveAcceptProb_nonneg (S : NonAdaptiveStrategy D O)
   apply Finset.sum_nonneg
   intro h _
   by_cases hc : S.decide h = true
-  · rw [if_pos hc, one_mul]
+  · rw [ite_eq_left hc, one_mul]
     exact hprod h
-  · rw [if_neg hc, zero_mul]
+  · rw [ite_eq_right hc, zero_mul]
 
 /-- The acceptance probability of a nonadaptive strategy with valid POVMs is at most one on
 density-operator inputs. -/
@@ -254,8 +258,8 @@ theorem nonAdaptiveAcceptProb_le_one (S : NonAdaptiveStrategy D O)
       ≤ ∏ t : Fin S.steps, outcomeProb (S.povm t) (stateFor (S.stream t) ρ σ) (h t) := by
     intro h
     by_cases hc : S.decide h = true
-    · rw [if_pos hc, one_mul]
-    · rw [if_neg hc, zero_mul]
+    · rw [ite_eq_left hc, one_mul]
+    · rw [ite_eq_right hc, zero_mul]
       exact hprod_nonneg h
   have htotal : (∑ h : OutcomeRecord O S.steps,
       ∏ t : Fin S.steps, outcomeProb (S.povm t) (stateFor (S.stream t) ρ σ) (h t)) = 1 :=
@@ -543,9 +547,9 @@ theorem basisProj_posSemidef {D : ℕ} (i : Fin D) : (basisProj D i).PosSemidef 
   rw [Matrix.posSemidef_diagonal_iff]
   intro j
   by_cases hj : j = i
-  · rw [if_pos hj]
+  · rw [ite_eq_left hj]
     exact zero_le_one
-  · rw [if_neg hj]
+  · rw [ite_eq_right hj]
 
 /-- A computational basis projection is a density operator. -/
 theorem isDensityOperator_basisProj {D : ℕ} (i : Fin D) :

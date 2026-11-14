@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CorrWalkSim16.MainResults.CorrectionSeries
-import Mathlib.Topology.Algebra.InfiniteSum.NatInt
+module
+
+public import Qatlib.Papers.CorrWalkSim16.MainResults.CorrectionSeries
+public import Mathlib.Topology.Algebra.InfiniteSum.NatInt
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -123,12 +127,12 @@ theorem geomTail_nat (ρ : ℝ) (hρpos : 0 < ρ) (hρ1 : ρ < 1) (N : ℕ) :
   have hfirst : (∑ i ∈ Finset.range (N + 1), (if N < i then ρ ^ (i : ℤ) else 0)) = 0 := by
     refine Finset.sum_eq_zero fun i hi => ?_
     have hi' : i < N + 1 := Finset.mem_range.mp hi
-    rw [if_neg (by omega)]
+    rw [ite_eq_right (by omega)]
   rw [hfirst, zero_add] at hsplit
   have hshift : (∑' k : ℕ, (if N < k + (N + 1) then ρ ^ ((k + (N + 1) : ℕ) : ℤ) else 0))
       = ∑' k : ℕ, ρ ^ ((k + (N + 1) : ℕ) : ℤ) := by
     refine tsum_congr fun k => ?_
-    rw [if_pos (by omega)]
+    rw [ite_eq_left (by omega)]
   rw [hshift] at hsplit
   have hfac : ∀ k : ℕ, ρ ^ ((k + (N + 1) : ℕ) : ℤ) = ρ ^ (k : ℤ) * ρ ^ ((N : ℤ) + 1) := by
     intro k
@@ -193,10 +197,10 @@ theorem summable_geomTail_int (C ρ : ℝ) (hρpos : 0 < ρ) (hρ1 : ρ < 1) (N 
       show (if (N : ℤ) < ((k.succ : ℕ) : ℤ) then C * ρ ^ (((k.succ : ℕ)) : ℤ) else 0)
         = (if N < k + 1 then C * ρ ^ ((k + 1 : ℕ) : ℤ) else 0)
       by_cases h : N ≤ k
-      · rw [if_pos (by omega : (N : ℤ) < ((k.succ : ℕ) : ℤ)),
-          if_pos (by omega : N < k + 1)]
-      · rw [if_neg (by omega : ¬ (N : ℤ) < ((k.succ : ℕ) : ℤ)),
-          if_neg (by omega : ¬ N < k + 1)]
+      · rw [ite_eq_left (by omega : (N : ℤ) < ((k.succ : ℕ) : ℤ)),
+          ite_eq_left (by omega : N < k + 1)]
+      · rw [ite_eq_right (by omega : ¬ (N : ℤ) < ((k.succ : ℕ) : ℤ)),
+          ite_eq_right (by omega : ¬ N < k + 1)]
   rw [hfun]
   exact Summable.int_rec hf hg
 
@@ -217,10 +221,10 @@ theorem geomTail_int (C ρ : ℝ) (hρpos : 0 < ρ) (hρ1 : ρ < 1) (N : ℕ) :
       show (if (N : ℤ) < ((k.succ : ℕ) : ℤ) then C * ρ ^ (((k.succ : ℕ)) : ℤ) else 0)
         = (if N < k + 1 then C * ρ ^ ((k + 1 : ℕ) : ℤ) else 0)
       by_cases h : N ≤ k
-      · rw [if_pos (by omega : (N : ℤ) < ((k.succ : ℕ) : ℤ)),
-          if_pos (by omega : N < k + 1)]
-      · rw [if_neg (by omega : ¬ (N : ℤ) < ((k.succ : ℕ) : ℤ)),
-          if_neg (by omega : ¬ N < k + 1)]
+      · rw [ite_eq_left (by omega : (N : ℤ) < ((k.succ : ℕ) : ℤ)),
+          ite_eq_left (by omega : N < k + 1)]
+      · rw [ite_eq_right (by omega : ¬ (N : ℤ) < ((k.succ : ℕ) : ℤ)),
+          ite_eq_right (by omega : ¬ N < k + 1)]
   rw [hfun, tsum_int_rec hf hg]
   have hfval : (∑' k : ℕ, (if N < k then C * ρ ^ (k : ℤ) else 0))
       = C * (∑' k : ℕ, (if N < k then ρ ^ (k : ℤ) else 0)) := by
@@ -261,9 +265,9 @@ theorem lemma4_tail_le (a : ℤ → ℂ) (C ρ : ℝ)
       ≤ (if (N : ℤ) < ((m.natAbs : ℕ) : ℤ) then C * ρ ^ (((m.natAbs : ℕ)) : ℤ) else 0) := by
     intro m
     by_cases h : (N : ℤ) < ((m.natAbs : ℕ) : ℤ)
-    · rw [if_pos h, if_pos h]
+    · rw [ite_eq_left h, ite_eq_left h]
       exact hdecay m
-    · rw [if_neg h, if_neg h]
+    · rw [ite_eq_right h, ite_eq_right h]
   have hsumS : Summable fun m : ℤ =>
       (if (N : ℤ) < ((m.natAbs : ℕ) : ℤ) then ‖a m‖ else 0) :=
     Summable.of_nonneg_of_le (fun m => by split <;> simp) hle hgeomS

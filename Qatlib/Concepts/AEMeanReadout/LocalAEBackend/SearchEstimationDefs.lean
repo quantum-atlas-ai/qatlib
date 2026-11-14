@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RiskEstimation.PopulationGap.AmplitudeReadoutDefs
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RationalLabelReadout
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.SearchProgram
+module
+
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.AmplitudeReadoutDefs
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.RationalLabelReadout
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.SearchProgram
+
+@[expose] public section
 
 /-!
 # Source search and rational estimation records

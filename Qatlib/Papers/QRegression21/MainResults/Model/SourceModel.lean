@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.IndependentWeightedEstimator
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Data.Real.Sqrt
+module
+
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.IndependentWeightedEstimator
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.Real.Sqrt
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -72,8 +76,8 @@ def bernoulli (q : ℝ) (h0 : 0 ≤ q) (h1 : q ≤ 1) : FinDist Bool where
   prob b := if b then q else 1 - q
   nonneg b := by
     cases b
-    · simp only [Bool.false_eq_true, if_false]; linarith
-    · simp only [if_true]; exact h0
+    · simp only [Bool.false_eq_true, ite_false]; linarith
+    · simp only [ite_true]; exact h0
   sum_one := by
     rw [Fintype.sum_bool]
     simp

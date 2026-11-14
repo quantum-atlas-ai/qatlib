@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.Amplification.Lemma1RankProcessSubgoalStat
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.Lemma1RankProcessSubgoalStat
+
+@[expose] public section
 
 /-!
 # Inverse-rank hit probabilities
@@ -115,13 +119,13 @@ theorem hitProbability_eq_inv (t r : ℕ) (hr : 1 ≤ r) (hrt : r ≤ t) :
     apply mul_left_cancel₀ hn
     by_cases heq : r = t + 1
     · have hprev := hitProbability_outside t r (Or.inr (by omega))
-      rw [if_pos heq, hprev] at hstep
+      rw [ite_eq_left heq, hprev] at hstep
       rw [hstep, heq]
       push_cast
       field_simp
       ring
     · have hprev := ih (by omega)
-      rw [if_neg heq, hprev] at hstep
+      rw [ite_eq_right heq, hprev] at hstep
       rw [hstep]
       ring
 

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
-import Mathlib.Tactic.Linarith
+module
+
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+public import Mathlib.Tactic.Linarith
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -108,7 +112,7 @@ theorem probEvent_exists_le_sum {X : Type*} [Fintype X] [DecidableEq X]
         ∑ x, (if E x ω then (1 : ℝ) else 0) * p.probOf ω := by
     intro ω
     by_cases h : ∃ x, E x ω
-    · rw [if_pos h]
+    · rw [ite_eq_left h]
       obtain ⟨x0, hx0⟩ := h
       have hsingle : (if E x0 ω then (1 : ℝ) else 0) * p.probOf ω ≤
           ∑ x, (if E x ω then (1 : ℝ) else 0) * p.probOf ω :=
@@ -116,8 +120,8 @@ theorem probEvent_exists_le_sum {X : Type*} [Fintype X] [DecidableEq X]
           (fun i _ => by
             have hp : (0 : ℝ) ≤ p.probOf ω := probOf_nonneg p ω
             by_cases hi : E i ω <;> simp [hi, hp]) (Finset.mem_univ x0)
-      simpa [if_pos hx0] using hsingle
-    · rw [if_neg h, zero_mul]
+      simpa [ite_eq_left hx0] using hsingle
+    · rw [ite_eq_right h, zero_mul]
       exact Finset.sum_nonneg (fun x _ => by
         have hp : (0 : ℝ) ≤ p.probOf ω := probOf_nonneg p ω
         by_cases hx : E x ω <;> simp [hx, hp])

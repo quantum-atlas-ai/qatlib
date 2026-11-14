@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownQubitEuler
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.LocalCapability
-import Qatlib.Foundations.QueryWordCore.Circuit
-import Qatlib.Concepts.LocalMachine.LocalTransport.ControlledQueryCircuit
+module
+
+public import Qatlib.Concepts.MatrixAccess.KnownFrameSynth.KnownQubitEuler
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.LocalCapability
+public import Qatlib.Foundations.QueryWordCore.Circuit
+public import Qatlib.Concepts.LocalMachine.LocalTransport.ControlledQueryCircuit
+
+@[expose] public section
 
 /-!
 # Six-gate control of a known qubit unitary
@@ -169,23 +173,21 @@ theorem knownQubitUnitary_controlC (p : KnownQubitAngles) :
     knownQubitUnitary (knownControlC p) = qubitEulerPhase ((p.beta - p.alpha) / 2) := by
   simp only [knownQubitUnitary, knownControlC, Complex.ofReal_zero, zero_mul,
     Complex.exp_zero, one_smul, qubitEulerPhase_zero, qubitEulerRotation_zero,
-    Matrix.one_mul, Matrix.mul_one]
+    Matrix.mul_one]
 
 /-- The matrix of the control phase correction is `Rz p.delta`. -/
 theorem knownQubitUnitary_controlE (p : KnownQubitAngles) :
     knownQubitUnitary (knownControlE p) = Rz p.delta := by
   simp only [knownQubitUnitary, knownControlE, qubitEulerRotation_zero, qubitEulerPhase_zero,
-    Matrix.mul_one, Matrix.one_mul]
+    Matrix.mul_one]
   ext i j
   rcases i <;> rcases j <;>
     simp [qubitEulerPhase_ff, qubitEulerPhase_ft, qubitEulerPhase_tf, qubitEulerPhase_tt, Rz]
   · rw [show (1 : ℂ) = Complex.exp 0 from Complex.exp_zero.symm, ← Complex.exp_add]
     congr 1
-    push_cast
     ring
   · rw [← Complex.exp_add]
     congr 1
-    push_cast
     ring
 
 /-- The square of the Pauli X matrix is the identity. -/
@@ -286,9 +288,9 @@ theorem applyGate_cnot_tensorState_ket (c : Bool) (φ : QState Bool) :
   by_cases hc : c' = c
   · rw [hc]
     cases c with
-    | false => simp [TensorState, Bool.xor_false, applyGate_one]
+    | false => simp [applyGate_one]
     | true =>
-      simp only [TensorState, ket_self, one_mul, Bool.xor_true, if_true]
+      simp only [ket_self, one_mul, Bool.xor_true, ite_true]
       rw [show PauliX = permMatrix Bool.not from rfl, applyGate_permMatrix Bool.not_not]
   · rw [ket_ne hc, zero_mul, zero_mul]
 
@@ -298,11 +300,11 @@ theorem applyGate_diagonal_ket {I : Type*} [Fintype I] [DecidableEq I] (d : I �
   funext j
   by_cases h : j = c
   · rw [h, ApplyGate, Matrix.mulVec, dotProduct, Finset.sum_eq_single c]
-    · rw [Matrix.diagonal_apply, if_pos rfl, ket_apply, if_pos rfl, mul_one, Pi.smul_apply,
-        smul_eq_mul, ket_apply, if_pos rfl]
+    · rw [Matrix.diagonal_apply, ite_eq_left rfl, ket_apply, ite_eq_left rfl, mul_one, Pi.smul_apply,
+        smul_eq_mul, ket_apply, ite_eq_left rfl]
       simp
     · intro k _ hk
-      rw [Matrix.diagonal_apply, if_neg (fun e => hk e.symm), zero_mul]
+      rw [Matrix.diagonal_apply, ite_eq_right (fun e => hk e.symm), zero_mul]
     · intro hcon
       exact absurd (Finset.mem_univ c) hcon
   · have hzero : ∀ k ∈ (Finset.univ : Finset I),
@@ -310,10 +312,10 @@ theorem applyGate_diagonal_ket {I : Type*} [Fintype I] [DecidableEq I] (d : I �
       intro k _
       rw [Matrix.diagonal_apply, ket_apply]
       by_cases hkj : j = k
-      · rw [if_pos hkj, if_neg (fun e => h (hkj ▸ e)), mul_zero]
-      · rw [if_neg (fun e => hkj e), zero_mul]
+      · rw [ite_eq_left hkj, ite_eq_right (fun e => h (hkj ▸ e)), mul_zero]
+      · rw [ite_eq_right (fun e => hkj e), zero_mul]
     rw [ApplyGate, Matrix.mulVec, dotProduct, Finset.sum_eq_zero hzero, Pi.smul_apply,
-      smul_eq_mul, ket_apply, if_neg h, mul_zero]
+      smul_eq_mul, ket_apply, ite_eq_right h, mul_zero]
 
 /-- The gate `Rz t` fixes the false basis state and multiplies the true basis state by `exp(i
 t)`. -/
@@ -540,7 +542,7 @@ theorem knownControlProgramMatrix_steps (p : KnownQubitAngles) :
   apply eq_of_forall_applyGate_ket
   rintro ⟨c, y⟩
   rw [← run_knownControlProgramCircuit]
-  simp only [knownQubitControlCircuit, knownQubitControlSteps, knownControlProgramCircuit,
+  simp only [knownQubitControlSteps, knownControlProgramCircuit,
     List.map_cons, List.map_nil, knownControlStepMatrix, run_gate, run_nil,
     ← tensorState_ket_ket]
   rw [applyGate_tensorGate, applyGate_one, applyGate_cnot_tensorState_ket,
@@ -553,9 +555,9 @@ theorem knownControlProgramMatrix_steps (p : KnownQubitAngles) :
     rw [knownQubitUnitary_controlA p, knownQubitUnitary_controlB p,
       knownQubitUnitary_controlC p,
       show (if false = true then PauliX else (1 : Matrix Bool Bool ℂ))
-        = (1 : Matrix Bool Bool ℂ) from if_neg (by simp),
+        = (1 : Matrix Bool Bool ℂ) from ite_eq_right (by simp),
       show (if false = true then Complex.exp ((p.delta : ℂ) * Complex.I) else 1) = 1
-        from if_neg (by simp)]
+        from ite_eq_right (by simp)]
     simp only [one_smul, Matrix.mul_one, Matrix.mul_one]
     rw [hABC, applyGate_one,
       applyGate_isControlledGate_ket_false (isControlledGate_controlledGate (knownQubitUnitary p)),
@@ -563,9 +565,9 @@ theorem knownControlProgramMatrix_steps (p : KnownQubitAngles) :
   | true =>
     rw [knownQubitUnitary_controlA p, knownQubitUnitary_controlB p,
       knownQubitUnitary_controlC p,
-      show (if true = true then PauliX else (1 : Matrix Bool Bool ℂ)) = PauliX from if_pos rfl,
+      show (if true = true then PauliX else (1 : Matrix Bool Bool ℂ)) = PauliX from ite_eq_left rfl,
       show (if true = true then Complex.exp ((p.delta : ℂ) * Complex.I) else 1)
-        = Complex.exp ((p.delta : ℂ) * Complex.I) from if_pos rfl]
+        = Complex.exp ((p.delta : ℂ) * Complex.I) from ite_eq_left rfl]
     rw [applyGate_isControlledGate_ket_true (isControlledGate_controlledGate (knownQubitUnitary p)),
       ← tensorState_smul_right, ← applyGate_smul, key]
 

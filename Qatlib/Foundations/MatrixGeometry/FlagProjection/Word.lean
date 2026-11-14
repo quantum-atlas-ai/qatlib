@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixGeometry.FlagProjection.Defs
+module
+
+public import Qatlib.Foundations.MatrixGeometry.FlagProjection.Defs
+
+@[expose] public section
 
 /-!
 # Repeated flag reflections and sign conventions
@@ -200,7 +204,7 @@ theorem check_norm_sq (S : Finset X) (v : EuclideanSpace ℂ X) :
   intro x _
   change ‖v.ofLp x - 2 * (if x ∈ S then v.ofLp x else 0)‖^2 = ‖v.ofLp x‖^2
   by_cases hx : x ∈ S
-  · rw [if_pos hx]
+  · rw [ite_eq_left hx]
     have he : v.ofLp x - 2 * v.ofLp x = -v.ofLp x := by ring
     rw [he, norm_neg]
   · simp [hx]

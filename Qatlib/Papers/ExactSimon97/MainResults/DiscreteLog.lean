@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ExactSimon97.MainResults.BasisGenerators
+module
+
+public import Qatlib.Papers.ExactSimon97.MainResults.BasisGenerators
+
+@[expose] public section
 
 /-!
 # Canonical exponents for prime-field discrete logarithms
@@ -45,8 +49,8 @@ theorem dlog_exponent_exists {p : ℕ} (_hp : p.Prime) (ζ : (ZMod p)ˣ)
     (hζ : Subgroup.zpowers ζ = ⊤) (a : (ZMod p)ˣ) :
     ∃ r : ℕ, ζ ^ r = a := by
   classical
-  haveI : Fact p.Prime := ⟨_hp⟩
-  haveI : NeZero p := inferInstance
+  have : Fact p.Prime := ⟨_hp⟩
+  have : NeZero p := inferInstance
   have hmem : a ∈ Submonoid.powers ζ := by
     rw [mem_powers_iff_mem_zpowers]
     rw [hζ]
@@ -57,8 +61,8 @@ theorem dlog_exponent_exists {p : ℕ} (_hp : p.Prime) (ζ : (ZMod p)ˣ)
 theorem orderOf_generator {p : ℕ} (hp : p.Prime) (ζ : (ZMod p)ˣ)
     (hζ : Subgroup.zpowers ζ = ⊤) : orderOf ζ = p - 1 := by
   classical
-  haveI : Fact p.Prime := ⟨hp⟩
-  haveI : NeZero p := inferInstance
+  have : Fact p.Prime := ⟨hp⟩
+  have : NeZero p := inferInstance
   have hcard : Nat.card (ZMod p)ˣ = p - 1 := by
     rw [Nat.card_units, Nat.card_eq_fintype_card, ZMod.card]
   rw [orderOf_eq_card_of_forall_mem_zpowers (fun x => by
@@ -71,8 +75,8 @@ theorem theorem12_exponent_bound {p : ℕ} (hp : p.Prime) (ζ : (ZMod p)ˣ)
     (hζ : Subgroup.zpowers ζ = ⊤) (a : (ZMod p)ˣ) :
     ∃ r : Fin (p - 1), ζ ^ (r : ℕ) = a := by
   classical
-  haveI : Fact p.Prime := ⟨hp⟩
-  haveI : NeZero p := inferInstance
+  have : Fact p.Prime := ⟨hp⟩
+  have : NeZero p := inferInstance
   have hord : orderOf ζ = p - 1 := orderOf_generator hp ζ hζ
   obtain ⟨n, hn⟩ := dlog_exponent_exists hp ζ hζ a
   refine ⟨⟨n % (p - 1), ?_⟩, ?_⟩
@@ -87,9 +91,9 @@ theorem theorem12_exponent_unique {p : ℕ} (hp : p.Prime) (ζ : (ZMod p)ˣ)
     (hζ : Subgroup.zpowers ζ = ⊤) (r s : Fin (p - 1))
     (h : ζ ^ (r : ℕ) = ζ ^ (s : ℕ)) : r = s := by
   classical
-  haveI : Fact p.Prime := ⟨hp⟩
-  haveI : NeZero p := inferInstance
-  haveI : Finite (ZMod p)ˣ := inferInstance
+  have : Fact p.Prime := ⟨hp⟩
+  have : NeZero p := inferInstance
+  have : Finite (ZMod p)ˣ := inferInstance
   have hord : orderOf ζ = p - 1 := orderOf_generator hp ζ hζ
   have hmod : (r : ℕ) % (p - 1) = (s : ℕ) % (p - 1) := by
     have := (pow_inj_mod (x := ζ) (n := (r : ℕ)) (m := (s : ℕ))).mp h

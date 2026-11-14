@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Matrix.Block
-import Mathlib.Data.Complex.Basic
-import Mathlib.LinearAlgebra.Matrix.Trace
-import Mathlib.LinearAlgebra.Matrix.ConjTranspose
+module
+
+public import Mathlib.Data.Matrix.Block
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.LinearAlgebra.Matrix.Trace
+public import Mathlib.LinearAlgebra.Matrix.ConjTranspose
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -122,9 +126,13 @@ theorem eta0_Q_eta0 (O : Matrix ι ι ℂ) : blockInner eta0 (Q O eta0) = 0 := b
 theorem eta1_Q_eta1 (O ρ : Matrix ι ι ℂ) : blockInner (eta1 ρ) (Q O (eta1 ρ)) = 0 := by
   simp [blockInner, eta1, Q, hsInner_zero_left, hsInner_zero_right]
 
+omit [Fintype ι] [DecidableEq ι] in
 /-- Bilinearity of the Hilbert–Schmidt pairing under scalar multiples:
 `⟨a A|b B⟩ = ā b ⟨A|B⟩`. -/
-theorem hsInner_smul_smul (a b : ℂ) (A B : Matrix ι ι ℂ) :
+theorem hsInner_smul_smul {ι : Type*}
+    [_inst0 : Fintype ι]
+    [_inst1 : DecidableEq ι]
+    (a b : ℂ) (A B : Matrix ι ι ℂ) :
     hsInner (a • A) (b • B) = star a * b * hsInner A B := by
   unfold hsInner
   rw [Matrix.conjTranspose_smul, Matrix.smul_mul, Matrix.mul_smul, smul_smul,

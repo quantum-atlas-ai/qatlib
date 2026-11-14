@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MpsAdaptation.MpsTransfer.Fermion
-import Qatlib.Concepts.MpsAdaptation.MpsTransfer.FermionMatchgateConjugation
-import Qatlib.Foundations.MatrixGeometry.AxisRotations.SphericalAngles
+module
+
+public import Qatlib.Concepts.MpsAdaptation.MpsTransfer.Fermion
+public import Qatlib.Concepts.MpsAdaptation.MpsTransfer.FermionMatchgateConjugation
+public import Qatlib.Foundations.MatrixGeometry.AxisRotations.SphericalAngles
+
+@[expose] public section
 
 /-!
 # Majorana pair rotations

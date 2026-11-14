@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MarkovChains.FlatSpectrum
-import Qatlib.Papers.NonrevMarkov25.SzegedyFrame
+module
+
+public import Qatlib.Foundations.MarkovChains.FlatSpectrum
+public import Qatlib.Papers.NonrevMarkov25.SzegedyFrame
+
+@[expose] public section
 
 /-!
 # Time-reversal invariance of the flat discriminant

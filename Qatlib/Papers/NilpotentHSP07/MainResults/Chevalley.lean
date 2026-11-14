@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.FieldTheory.ChevalleyWarning
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Algebra.Ring.Parity
-import Mathlib.Tactic
+module
+
+public import Mathlib.FieldTheory.ChevalleyWarning
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Algebra.Ring.Parity
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Existence of Phase-Cancellation Coefficients
@@ -119,8 +123,8 @@ theorem exists_nontrivial_solution (u : Fin n → Fin d → ZMod p) (hn : 3 * d 
     · simp [f, systemPoly, quadPoly]
     · simp [f, systemPoly, linPoly]
   have hpos : 0 < Nat.card { x // P x } := by
-    haveI : Nonempty { x // P x } := ⟨⟨(0 : Fin n → ZMod p), hzero⟩⟩
-    haveI : Finite { x // P x } := Finite.of_injective Subtype.val Subtype.val_injective
+    have : Nonempty { x // P x } := ⟨⟨(0 : Fin n → ZMod p), hzero⟩⟩
+    have : Finite { x // P x } := Finite.of_injective Subtype.val Subtype.val_injective
     exact Nat.card_pos
   have hne1 : Nat.card { x // P x } ≠ 1 := by
     intro h1

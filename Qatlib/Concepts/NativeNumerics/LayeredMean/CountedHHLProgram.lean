@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HhlAlgorithms.GridExactHHL.GridHHLSolutionOutput
-import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
-import Qatlib.Concepts.QueryWordCore.AdjointCircuits
-import Qatlib.Concepts.LchsSimulation.StaticLchs.HybridError
-import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
-import Qatlib.Concepts.BlockEncoding.Postselection
+module
+
+public import Qatlib.Concepts.HhlAlgorithms.GridExactHHL.GridHHLSolutionOutput
+public import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
+public import Qatlib.Concepts.QueryWordCore.AdjointCircuits
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.HybridError
+public import Qatlib.Concepts.ReferenceError.RefTraceError.TensorOperatorNorm
+public import Qatlib.Concepts.BlockEncoding.Postselection
+
+@[expose] public section
 
 /-!
 # Counted HHL words and clean-branch stability

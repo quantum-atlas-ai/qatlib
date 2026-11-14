@@ -6,10 +6,14 @@ Authors: The Tau Ceti contributors, Qatlib Contributors
 Adapted from https://github.com/TauCetiProject/TauCeti@3780371c
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+module
 
-import Mathlib.MeasureTheory.Function.AbsolutelyContinuous
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Topology.MetricSpace.Kuratowski
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+
+public import Mathlib.MeasureTheory.Function.AbsolutelyContinuous
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.Topology.MetricSpace.Kuratowski
+
+@[expose] public section
 
 /-!
 # Basic properties of absolutely continuous curves

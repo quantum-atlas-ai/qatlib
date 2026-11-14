@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ClassicalTape.FairCoinTape
-import Qatlib.Concepts.ClassicalTape.TapeCompilation.ClassicalProbabilistic
-import Qatlib.Concepts.QueryComplexity.Amplification.MajorityVote
-import Qatlib.Foundations.BornMetrics.EventProbability
-import Mathlib.Data.List.GetD
-import Qatlib.Concepts.ClassicalTape.TapeBoundary
+module
+
+public import Qatlib.Concepts.ClassicalTape.FairCoinTape
+public import Qatlib.Concepts.ClassicalTape.TapeCompilation.ClassicalProbabilistic
+public import Qatlib.Concepts.QueryComplexity.Amplification.MajorityVote
+public import Qatlib.Foundations.BornMetrics.EventProbability
+public import Mathlib.Data.List.GetD
+public import Qatlib.Concepts.ClassicalTape.TapeBoundary
+
+@[expose] public section
 
 /-!
 # Finite-tape majority compilation vocabulary

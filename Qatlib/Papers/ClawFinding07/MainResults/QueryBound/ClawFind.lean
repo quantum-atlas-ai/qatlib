@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ClawFinding07.MainResults.QueryBound.KClawDetect
+module
+
+public import Qatlib.Papers.ClawFinding07.MainResults.QueryBound.KClawDetect
+
+@[expose] public section
 
 /-!
 # Claw-search error and cost bounds
@@ -331,7 +335,7 @@ theorem theorem8_clawFinding_regime1 (N M : ℝ) (S2 S3 : ℕ) (hN : 2 ≤ N)
       have hMle : M / 2 ^ (s + 1) ≤ M := div_pow_two_le_self hM0.le (s + 1)
       have hnot : ¬ (N ^ 2 ≤ M / 2 ^ (s + 1)) := by
         intro hcon; linarith
-      rw [if_neg hnot]
+      rw [ite_eq_right hnot]
       have hM'pos : (0 : ℝ) < M / 2 ^ (s + 1) := by positivity
       have hNM' : (0 : ℝ) < N * (M / 2 ^ (s + 1)) := by positivity
       have hl3 : ((N * (M / 2 ^ (s + 1))) ^ (1 / 3 : ℝ)) ^ 3
@@ -512,7 +516,7 @@ theorem theorem8_clawFinding_regime2 (N M : ℝ) (S2 S3 : ℕ) (hN : 2 ≤ N)
             (64 * Real.sqrt M * (4 / 5 : ℝ) ^ (s + 1) * Real.log N) := by
       intro s _
       by_cases hcase : N ^ 2 ≤ M / 2 ^ (s + 1)
-      · rw [if_pos hcase]
+      · rw [ite_eq_left hcase]
         have hcost := lemma4_clawDetect_regime2 N (M / 2 ^ (s + 1)) hN hcase
         have hsqrtle := sqrt_div_pow_le hM0.le (s + 1)
         have hcomb : clawDetectCost N (M / 2 ^ (s + 1)) N N
@@ -524,7 +528,7 @@ theorem theorem8_clawFinding_regime2 (N M : ℝ) (S2 S3 : ℕ) (hN : 2 ≤ N)
                 nlinarith [hsqrtle]
             _ = 64 * Real.sqrt M * (4 / 5 : ℝ) ^ (s + 1) * Real.log N := by ring
         exact mul_le_mul_of_nonneg_left hcomb (by positivity)
-      · rw [if_neg hcase]
+      · rw [ite_eq_right hcase]
         have hM'pos : (0 : ℝ) < M / 2 ^ (s + 1) := by positivity
         have hNM' : (0 : ℝ) < N * (M / 2 ^ (s + 1)) := by positivity
         have hl3 : ((N * (M / 2 ^ (s + 1))) ^ (1 / 3 : ℝ)) ^ 3
@@ -689,7 +693,7 @@ theorem corollary9_clawFinding_regime1 (N M : ℝ) (S2 S3 : ℕ) (hN : 2 ≤ N)
       intro s _
       have hMle : M / 2 ^ (s + 1) ≤ M := div_pow_two_le_self hM0.le (s + 1)
       have hnot : ¬ (N ^ 2 ≤ M / 2 ^ (s + 1)) := by intro hcon; linarith
-      rw [if_neg hnot]
+      rw [ite_eq_right hnot]
       have hM'pos : (0 : ℝ) < M / 2 ^ (s + 1) := by positivity
       have hNM' : (0 : ℝ) < N * (M / 2 ^ (s + 1)) := by positivity
       have hl3 : ((N * (M / 2 ^ (s + 1))) ^ (1 / 3 : ℝ)) ^ 3
@@ -825,7 +829,7 @@ theorem corollary9_clawFinding_regime2 (N M : ℝ) (S2 S3 : ℕ) (hN : 2 ≤ N)
         ≤ ((s : ℝ) + 1) * (4 * Real.sqrt M * (4 / 5 : ℝ) ^ (s + 1)) := by
       intro s _
       by_cases hcase : N ^ 2 ≤ M / 2 ^ (s + 1)
-      · rw [if_pos hcase]
+      · rw [ite_eq_left hcase]
         have hcost := corollary5_clawDetect_standard_regime2 N (M / 2 ^ (s + 1)) hN hcase
         have hsqrtle := sqrt_div_pow_le hM0.le (s + 1)
         have hcomb : clawDetectStandardCost N (M / 2 ^ (s + 1)) N N
@@ -835,7 +839,7 @@ theorem corollary9_clawFinding_regime2 (N M : ℝ) (S2 S3 : ℕ) (hN : 2 ≤ N)
             _ ≤ 4 * (Real.sqrt M * (4 / 5 : ℝ) ^ (s + 1)) := by nlinarith [hsqrtle]
             _ = 4 * Real.sqrt M * (4 / 5 : ℝ) ^ (s + 1) := by ring
         exact mul_le_mul_of_nonneg_left hcomb (by positivity)
-      · rw [if_neg hcase]
+      · rw [ite_eq_right hcase]
         have hM'pos : (0 : ℝ) < M / 2 ^ (s + 1) := by positivity
         have hNM' : (0 : ℝ) < N * (M / 2 ^ (s + 1)) := by positivity
         have hl3 : ((N * (M / 2 ^ (s + 1))) ^ (1 / 3 : ℝ)) ^ 3
@@ -1203,7 +1207,7 @@ theorem kseq_regime1 (k : ℕ) (hk : 2 ≤ k) (N1 A : ℝ) (hN1 : 2 ≤ N1) (hA 
       have hle : A / 2 ^ (m * q) < A := div_pow_two_lt_self hA hmq
       have h1 : N1 ^ k < A := lt_of_le_of_lt hcon hle
       linarith
-    rw [if_neg hnot]
+    rw [ite_eq_right hnot]
     set Pm : ℝ := N1 * (A / 2 ^ (m * q)) with hPmdef
     have hPm0 : (0 : ℝ) ≤ Pm := by rw [hPmdef]; positivity
     have hPpos : (0 : ℝ) < Pm := by rw [hPmdef]; positivity
@@ -1283,7 +1287,7 @@ theorem kseq_regime2 (k : ℕ) (hk : 2 ≤ k) (N1 A : ℝ) (hN1 : 2 ≤ N1) (hA 
     intro s _
     set m : ℕ := s + 1
     by_cases hcond : N1 ^ k ≤ A / 2 ^ (m * q)
-    · rw [if_pos hcond]
+    · rw [ite_eq_left hcond]
       have hAmpos : (0 : ℝ) < A / 2 ^ (m * q) := by positivity
       have hclaw : kClawDetectCost k (N1 * (A / 2 ^ (m * q))) N1
           ≤ ((k : ℝ) + 1) ^ 2 * Real.sqrt ((A / 2 ^ (m * q)) / N1 ^ (k - 2))
@@ -1316,7 +1320,7 @@ theorem kseq_regime2 (k : ℕ) (hk : 2 ≤ k) (N1 A : ℝ) (hN1 : 2 ≤ N1) (hA 
                 * Real.log N1 := by
               rw [show m = s + 1 from rfl]; ring
       exact mul_le_mul_of_nonneg_left hcomb (by positivity)
-    · rw [if_neg hcond]
+    · rw [ite_eq_right hcond]
       have hAlt : A / 2 ^ (m * q) < N1 ^ k := lt_of_not_ge hcond
       set Pm : ℝ := N1 * (A / 2 ^ (m * q)) with hPmdef
       have hPm0 : (0 : ℝ) ≤ Pm := by rw [hPmdef]; positivity
@@ -1405,7 +1409,7 @@ theorem kseqStandard_regime1 (k : ℕ) (hk : 2 ≤ k) (N1 A : ℝ) (hN1 : 2 ≤ 
       have hle : A / 2 ^ (m * q) < A := div_pow_two_lt_self hA hmq
       have h1 : N1 ^ k < A := lt_of_le_of_lt hcon hle
       linarith
-    rw [if_neg hnot]
+    rw [ite_eq_right hnot]
     set Pm : ℝ := N1 * (A / 2 ^ (m * q)) with hPmdef
     have hPm0 : (0 : ℝ) ≤ Pm := by rw [hPmdef]; positivity
     have hPpos : (0 : ℝ) < Pm := by rw [hPmdef]; positivity
@@ -1479,7 +1483,7 @@ theorem kseqStandard_regime2 (k : ℕ) (hk : 2 ≤ k) (N1 A : ℝ) (hN1 : 2 ≤ 
     intro s _
     set m : ℕ := s + 1
     by_cases hcond : N1 ^ k ≤ A / 2 ^ (m * q)
-    · rw [if_pos hcond]
+    · rw [ite_eq_left hcond]
       have hAmpos : (0 : ℝ) < A / 2 ^ (m * q) := by positivity
       have hclaw : kClawDetectStandardCost k (N1 * (A / 2 ^ (m * q))) N1
           ≤ ((k : ℝ) + 1) * Real.sqrt ((A / 2 ^ (m * q)) / N1 ^ (k - 2)) :=
@@ -1506,7 +1510,7 @@ theorem kseqStandard_regime2 (k : ℕ) (hk : 2 ≤ k) (N1 A : ℝ) (hN1 : 2 ≤ 
           _ = ((k : ℝ) + 1) * Real.sqrt (A / N1 ^ (k - 2)) * (4 / 5 : ℝ) ^ (s + 1) := by
               rw [show m = s + 1 from rfl]; ring
       exact mul_le_mul_of_nonneg_left hcomb (by positivity)
-    · rw [if_neg hcond]
+    · rw [ite_eq_right hcond]
       have hAlt : A / 2 ^ (m * q) < N1 ^ k := lt_of_not_ge hcond
       set Pm : ℝ := N1 * (A / 2 ^ (m * q)) with hPmdef
       have hPm0 : (0 : ℝ) ≤ Pm := by rw [hPmdef]; positivity

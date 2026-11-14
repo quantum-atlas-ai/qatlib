@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ContDiscWalk08.MainResults.WalkSpectrum.Theorem1Eigenpairs
+module
+
+public import Qatlib.Papers.ContDiscWalk08.MainResults.WalkSpectrum.Theorem1Eigenpairs
+
+@[expose] public section
 
 /-!
 # Entrywise absolute values for query simulation
@@ -43,26 +47,31 @@ variable {I : Type*} [Fintype I] [DecidableEq I]
 def elementwiseAbs (H : Matrix I I ℂ) : Matrix I I ℂ :=
   fun i j => (‖H i j‖ : ℂ)
 
+omit [Fintype I] [DecidableEq I] in
 /-- An entry of `elementwiseAbs H` is the complex coercion of the norm of the corresponding
 entry of `H`. -/
 theorem elementwiseAbs_apply (H : Matrix I I ℂ) (i j : I) :
     elementwiseAbs H i j = ((‖H i j‖ : ℝ) : ℂ) := rfl
 
+omit [Fintype I] [DecidableEq I] in
 /-- Every entry of `elementwiseAbs H` has zero imaginary part. -/
 theorem elementwiseAbs_im (H : Matrix I I ℂ) (i j : I) :
     (elementwiseAbs H i j).im = 0 := by
   rw [elementwiseAbs]; exact Complex.ofReal_im _
 
+omit [Fintype I] [DecidableEq I] in
 /-- Every entry of `elementwiseAbs H` has nonnegative real part. -/
 theorem elementwiseAbs_re_nonneg (H : Matrix I I ℂ) (i j : I) :
     0 ≤ (elementwiseAbs H i j).re := by
   rw [elementwiseAbs]; exact_mod_cast norm_nonneg (H i j)
 
+omit [Fintype I] [DecidableEq I] in
 /-- Every entry of `elementwiseAbs H` is fixed by complex conjugation. -/
 theorem elementwiseAbs_conj (H : Matrix I I ℂ) (i j : I) :
     star (elementwiseAbs H i j) = elementwiseAbs H i j := by
   rw [elementwiseAbs]; exact Complex.conj_ofReal _
 
+omit [Fintype I] [DecidableEq I] in
 /-- Taking entrywise absolute values preserves the norm of each matrix entry. -/
 theorem norm_elementwiseAbs (H : Matrix I I ℂ) (i j : I) :
     ‖elementwiseAbs H i j‖ = ‖H i j‖ := by

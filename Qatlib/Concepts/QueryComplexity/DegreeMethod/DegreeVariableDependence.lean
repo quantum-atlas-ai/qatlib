@@ -4,13 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ShadowModels.BooleanCubeFourier
-import Qatlib.Concepts.ProbabilityCore.DistributionAA.CubeProductPoincare
-import Qatlib.Concepts.ProbabilityCore.DistributionAA.CubeMvPolynomial
-import Qatlib.Concepts.ProbabilityCore.DistributionAA.DegreeInfluenceBounds
-import Qatlib.Concepts.QueryComplexity.TriangleDegreeBounds.BooleanPolynomial
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.BooleanQueryMinimumDefs
-import Mathlib.Analysis.SpecialFunctions.Log.Base
+module
+
+public import Qatlib.Concepts.ShadowModels.BooleanCubeFourier
+public import Qatlib.Concepts.ProbabilityCore.DistributionAA.CubeProductPoincare
+public import Qatlib.Concepts.ProbabilityCore.DistributionAA.CubeMvPolynomial
+public import Qatlib.Concepts.ProbabilityCore.DistributionAA.DegreeInfluenceBounds
+public import Qatlib.Concepts.QueryComplexity.TriangleDegreeBounds.BooleanPolynomial
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.BooleanQueryMinimumDefs
+public import Mathlib.Algebra.MvPolynomial.PDeriv
+public import Mathlib.Analysis.SpecialFunctions.Log.Base
+
+@[expose] public section
 
 /-!
 # Polynomial degree and variable dependence
@@ -189,16 +194,16 @@ theorem derivativeSupportEmbedding_injective {n : ℕ} (f : (Fin (n + 1) → Boo
   unfold derivativeSupportEmbedding at hyz
   by_cases hy : f (Fin.cons false y.1) = 0
   · by_cases hz : f (Fin.cons false z.1) = 0
-    · simp only [hy, hz, dif_pos] at hyz
+    · simp only [hy, hz, dite_eq_left] at hyz
       apply Subtype.ext
       have hcons : (Fin.cons true y.1 : Fin (n + 1) → Bool) = Fin.cons true z.1 :=
         congrArg Subtype.val hyz
       exact Fin.cons_right_injective (α := fun _ : Fin (n + 1) => Bool) true hcons
-    · simp only [hy, hz, dif_pos] at hyz
+    · simp only [hy, hz, dite_eq_left] at hyz
       have h := congrArg (fun x : {x : Fin (n + 1) → Bool // f x ≠ 0} => x.1 0) hyz
       simp at h
   · by_cases hz : f (Fin.cons false z.1) = 0
-    · simp only [hy, hz, dif_pos] at hyz
+    · simp only [hy, hz, dite_eq_left] at hyz
       have h := congrArg (fun x : {x : Fin (n + 1) → Bool // f x ≠ 0} => x.1 0) hyz
       simp at h
     · simp only [hy, hz] at hyz
@@ -308,14 +313,17 @@ theorem coeff_pderiv {n : ℕ} (m : Fin n →₀ ℕ) (i : Fin n) (P : MvPolynom
   classical
   induction P using MvPolynomial.induction_on' with
   | add P Q hP hQ =>
-      simp only [map_add, MvPolynomial.coeff_add, hP, hQ]
+      rw [map_add, AddMonoidAlgebra.coeff_add]
+      change ((MvPolynomial.pderiv i P).coeff m + (MvPolynomial.pderiv i Q).coeff m) =
+        (m i + 1 : ℕ) * (P.coeff (m + Finsupp.single i 1) + Q.coeff (m + Finsupp.single i 1))
+      rw [hP, hQ]
       ring
   | monomial s a =>
       rw [MvPolynomial.pderiv_monomial]
       by_cases hs : s = m + Finsupp.single i 1
       · subst s
         simp [MvPolynomial.coeff_monomial, Finsupp.add_apply]; ring
-      · rw [MvPolynomial.coeff_monomial, MvPolynomial.coeff_monomial, if_neg hs, mul_zero]
+      · rw [MvPolynomial.coeff_monomial, MvPolynomial.coeff_monomial, ite_eq_right hs, mul_zero]
         by_cases hsi : s i = 0
         · simp [hsi]
         · have hms : s - Finsupp.single i 1 ≠ m := by
@@ -481,7 +489,7 @@ theorem pow_two_sub_le_mul_cubeInf {n : ℕ} (f : (Fin n → Bool) → Bool) (i 
       (if MvPolynomial.eval (booleanPoint x) R ≠ 0 then (1 : ℝ) else 0) ≤
         (F x - F (cubeFlip x i)) ^ 2 := by
     by_cases hx : MvPolynomial.eval (booleanPoint x) R ≠ 0
-    · rw [if_pos hx]
+    · rw [ite_eq_left hx]
       have hs : (if x i then (1 : ℝ) else -1) ≠ 0 := by
         cases hxi : x i <;> simp
       have hDne : F x - F (cubeFlip x i) ≠ 0 := by
@@ -494,7 +502,7 @@ theorem pow_two_sub_le_mul_cubeInf {n : ℕ} (f : (Fin n → Bool) → Bool) (i 
         apply hDne
         simp [F, heq]
       cases hf : f x <;> cases hg : f (cubeFlip x i) <;> simp_all [F]
-    · rw [if_neg hx]
+    · rw [ite_eq_right hx]
       positivity
   have hcard : (Fintype.card {x // MvPolynomial.eval (booleanPoint x) R ≠ 0} : ℝ) =
       ∑ x, if MvPolynomial.eval (booleanPoint x) R ≠ 0 then (1 : ℝ) else 0 := by
@@ -543,7 +551,7 @@ theorem sum_cubeChar {n : ℕ} (S : Finset (Fin n)) :
       by_cases hS : S = ∅
       · subst S
         simp
-      · rw [if_neg hS]
+      · rw [ite_eq_right hS]
         obtain ⟨i, hi⟩ := Finset.nonempty_iff_ne_empty.mpr hS
         apply Finset.prod_eq_zero (Finset.mem_univ i)
         simp [hi]
@@ -558,7 +566,7 @@ theorem sum_cubeChar_mul {n : ℕ} (S T : Finset (Fin n)) :
   by_cases hST : S = T
   · subst T
     simp
-  · rw [if_neg hST, if_neg (fun h => hST (Finset.symmDiff_eq_empty.mp h))]
+  · rw [ite_eq_right hST, ite_eq_right (fun h => hST (Finset.symmDiff_eq_empty.mp h))]
 
 /-- The equivalence between Boolean assignments on `Fin n` and finite subsets of `Fin n`,
 sending an assignment to the set of coordinates where it is true. -/
@@ -610,7 +618,7 @@ theorem sum_cubeChar_points {n : ℕ} (x y : Fin n → Bool) :
       by_cases hxy : x = y
       · subst y
         simp
-      · rw [if_neg hxy]
+      · rw [ite_eq_right hxy]
         obtain ⟨i, hi⟩ := Function.ne_iff.mp hxy
         exact Finset.prod_eq_zero (Finset.mem_univ i) (by simp [hi])
 
@@ -642,7 +650,7 @@ theorem uniform_fourier_inversion {n : ℕ} (F : (Fin n → Bool) → ℝ) (x : 
       simp_rw [sum_cubeChar_points]
       rw [Finset.sum_eq_single x]
       · dsimp only [a]
-        rw [if_pos rfl, ← mul_assoc, inv_mul_cancel₀ (by positivity : (2 : ℝ) ^ n ≠ 0), one_mul]
+        rw [ite_eq_left rfl, ← mul_assoc, inv_mul_cancel₀ (by positivity : (2 : ℝ) ^ n ≠ 0), one_mul]
       · intro y _ hy
         simp [hy]
       · simp
@@ -728,7 +736,7 @@ theorem cubeChar_flip {n : ℕ} (S : Finset (Fin n)) (x : Fin n → Bool) (i : F
     cubeChar S (cubeFlip x i) = if i ∈ S then -cubeChar S x else cubeChar S x := by
   classical
   by_cases hi : i ∈ S
-  · rw [if_pos hi]
+  · rw [ite_eq_left hi]
     have hsplit (z : Fin n → Bool) : cubeChar S z =
         (if z i then (1 : ℝ) else -1) * ∏ j ∈ S.erase i, (if z j then (1 : ℝ) else -1) := by
       exact (Finset.mul_prod_erase S (fun j => if z j then (1 : ℝ) else -1) hi).symm
@@ -741,7 +749,7 @@ theorem cubeChar_flip {n : ℕ} (S : Finset (Fin n)) (x : Fin n → Bool) (i : F
       simp [cubeFlip, hji]
     rw [herase]
     cases hx : x i <;> simp [cubeFlip, hx]
-  · rw [if_neg hi]
+  · rw [ite_eq_right hi]
     unfold cubeChar
     apply Finset.prod_congr rfl
     intro j hj
@@ -972,7 +980,7 @@ theorem uniformFourierCoeff_eq_sum_coeff {n : ℕ} (Q : MvPolynomial (Fin n) ℝ
       intro m _
       by_cases hm : m.support = T
       · subst T
-        simp only [if_true]
+        simp only [ite_true]
         change a⁻¹ * (Q.coeff m * a) = Q.coeff m
         rw [← mul_assoc, mul_comm a⁻¹ (Q.coeff m), mul_assoc, inv_mul_cancel₀ ha, mul_one]
       · have hTm : T ≠ m.support := Ne.symm hm

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QuantumGibbs.FormAlgebra.DetectionExecutionDefs
-import Qatlib.Concepts.QuantumGibbs.FormAlgebra.GeneralWalkAccess
+module
+
+public import Qatlib.Concepts.QuantumGibbs.FormAlgebra.DetectionExecutionDefs
+public import Qatlib.Concepts.QuantumGibbs.FormAlgebra.GeneralWalkAccess
+
+@[expose] public section
 
 /-!
 # Marked-event execution after row preparation
@@ -51,21 +55,19 @@ theorem generalMarkedReflection_unitary {V : Type} [Fintype V] [DecidableEq V] (
   rw [Matrix.mul_apply, Matrix.one_apply]
   by_cases hxy : x = y
   · subst hxy
-    rw [if_pos rfl, Finset.sum_eq_single x]
-    · simp only [Matrix.star_apply, generalMarkedReflection, Matrix.diagonal_apply,
-        if_pos rfl]
+    rw [ite_eq_left rfl, Finset.sum_eq_single x]
+    · simp only [Matrix.star_apply, generalMarkedReflection, Matrix.diagonal_apply]
       by_cases hx : x ∈ S <;> simp [hx]
     · intro k _ hk
-      simp [Matrix.star_apply, generalMarkedReflection, Matrix.diagonal_apply, Ne.symm hk]
+      simp [Matrix.star_apply, generalMarkedReflection, Ne.symm hk]
     · intro hx
       exact absurd (Finset.mem_univ x) hx
-  · rw [if_neg hxy]
+  · rw [ite_eq_right hxy]
     refine Finset.sum_eq_zero fun k _ => ?_
     by_cases hkx : k = x
     · subst hkx
-      simp [Matrix.star_apply, generalMarkedReflection, Matrix.diagonal_apply, hxy,
-        Ne.symm hxy]
-    · simp [Matrix.star_apply, generalMarkedReflection, Matrix.diagonal_apply, hkx,
+      simp [Matrix.star_apply, generalMarkedReflection, Ne.symm hxy]
+    · simp [Matrix.star_apply, generalMarkedReflection,
       Ne.symm hkx]
 
 /-- The singleton marked-reflection word is a well-formed adjoint circuit. -/
@@ -95,9 +97,9 @@ theorem generalMarkedReflection_mulVec {V : Type} [Fintype V] [DecidableEq V] (S
       = (if u ∈ S then (-1 : ℂ) else 1) * ψ u := by
   rw [Matrix.mulVec, dotProduct]
   rw [Finset.sum_eq_single u]
-  · simp [generalMarkedReflection, Matrix.diagonal_apply]
+  · simp [generalMarkedReflection]
   · intro k _ hk
-    simp [generalMarkedReflection, Matrix.diagonal_apply, Ne.symm hk]
+    simp [generalMarkedReflection, Ne.symm hk]
   · simp
 
 /-- Applying the marked reflection preserves marked measurement mass. -/
@@ -252,7 +254,7 @@ theorem clause5_complete {V : ℕ} (K : GeneralKernel V) (p : GeneralVertex V)
 /-- Ideal detection has marked mass equal to the kernel row's marked weight, and the marked
 reflection preserves the row state's marked mass. -/
 theorem clause6_complete {V : ℕ} (K : GeneralKernel V) (p : GeneralVertex V)
-    (S : Finset (GeneralVertex V)) (k : ℕ) :
+    (S : Finset (GeneralVertex V)) (_k : ℕ) :
     generalMarkedMass S (generalDetectionExecution K p S)
         = ∑ u ∈ S, (K.weight p u : ℝ) ∧
       generalMarkedMass S (generalMarkedReflection S

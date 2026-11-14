@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.PhaseExistence.Theorem3CharacterizationStat
+module
+
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.Theorem3CharacterizationStat
+
+@[expose] public section
 
 /-!
 # Characterization of signal-processing polynomial pairs
@@ -66,7 +70,7 @@ theorem theorem3Characterization : Theorem3Characterization := by
     have hi : Set.Infinite (Set.Icc (-1 : ℝ) 1) := Set.Icc_infinite (by norm_num)
     apply (hi.image Complex.ofReal_injective.injOn).mono
     rintro _ ⟨x, hx, rfl⟩
-    simp only [Set.mem_setOf_eq, pair_norm_eval, eval_one]
+    simp only [Set.mem_ofPred_eq, pair_norm_eval, eval_one]
     rw [hn x hx, Complex.ofReal_one]
 
 end Qatlib.Concepts.QsvtCore.PhaseExistence

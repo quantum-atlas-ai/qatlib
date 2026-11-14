@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QSearchBoyer96.MainResults.ActualSearch
+module
+
+public import Qatlib.Papers.QSearchBoyer96.MainResults.ActualSearch
+
+@[expose] public section
 
 /-!
 # The single-target digital search appendix

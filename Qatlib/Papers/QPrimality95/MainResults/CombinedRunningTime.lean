@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QPrimality95.MainResults.CostDefs
-import Qatlib.Foundations.CostRecurrences.FiniteWeights
+module
+
+public import Qatlib.Papers.QPrimality95.MainResults.CostDefs
+public import Qatlib.Foundations.CostRecurrences.FiniteWeights
+
+@[expose] public section
 
 /-!
 # Finite-sum and recursion bounds for primality-test costs

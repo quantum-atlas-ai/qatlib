@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.Qubit
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+module
+
+public import Qatlib.Foundations.PureStateMath.Qubit
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+
+@[expose] public section
 
 /-!
 # Boolean cube characters and Krawtchouk sums
@@ -145,7 +149,7 @@ theorem krawtchouk_char_sum {N k : ℕ} (x : Reg N) :
       refine Finset.sum_congr rfl fun i _ => ?_
       by_cases hx : x i <;> simp [hx, hAmem i]
     have h2 : (∑ i : Fin N, if i ∈ A then 1 else 0) = A.card := by
-      rw [← Finset.sum_subset A.subset_univ (fun i _ hi => if_neg hi)]
+      rw [← Finset.sum_subset A.subset_univ (fun i _ hi => ite_eq_right hi)]
       simp
     show (∑ i, if x i then 0 else 1) = t
     rw [h1, h2, htdef]
@@ -244,21 +248,21 @@ theorem krawtchouk_char_sum {N k : ℕ} (x : Reg N) :
         else 0) := by
     intro T
     by_cases hTk : T.card ≤ k
-    · rw [if_pos hTk]
+    · rw [ite_eq_left hTk]
       have hcond : ∀ U ∈ B.powerset,
           (if T.card + U.card = k then ((-1 : ℝ))^T.card else 0)
             = (if U.card = k - T.card then ((-1 : ℝ))^T.card else 0) := by
         intro U _
         by_cases hc : T.card + U.card = k
-        · rw [if_pos hc, if_pos (by omega)]
-        · rw [if_neg hc, if_neg (by omega)]
+        · rw [ite_eq_left hc, ite_eq_left (by omega)]
+        · rw [ite_eq_right hc, ite_eq_right (by omega)]
       rw [Finset.sum_congr rfl (fun U hU => hcond U hU),
         ← Finset.sum_filter (s := B.powerset) (p := fun U => U.card = k - T.card)
           (f := fun _ => ((-1 : ℝ))^T.card),
         Finset.sum_const, ← Finset.powersetCard_eq_filter, Finset.card_powersetCard,
         nsmul_eq_mul']
-    · rw [if_neg hTk]
-      exact Finset.sum_eq_zero fun U _ => if_neg (by omega)
+    · rw [ite_eq_right hTk]
+      exact Finset.sum_eq_zero fun U _ => ite_eq_right (by omega)
   rw [Finset.sum_congr rfl (fun T _hT => hinner T)]
 
   rw [Finset.sum_powerset_apply_card
@@ -276,7 +280,7 @@ theorem krawtchouk_char_sum {N k : ℕ} (x : Reg N) :
           * ((Nat.choose (N - t) (k - m) : ℕ) : ℝ) := by
       intro m hm
       have hmk : m ≤ k := Nat.le_trans (Nat.le_of_lt_succ (Finset.mem_range.mp hm)) htk
-      rw [if_pos hmk]
+      rw [ite_eq_left hmk]
       ring
     have hsub : Finset.range (t + 1) ⊆ Finset.range (k + 1) :=
       Finset.range_subset_range.mpr (Nat.succ_le_succ htk)
@@ -299,7 +303,7 @@ theorem krawtchouk_char_sum {N k : ℕ} (x : Reg N) :
           * ((Nat.choose (N - t) (k - m) : ℕ) : ℝ) := by
       intro m hm
       have hmk : m ≤ k := Nat.le_of_lt_succ (Finset.mem_range.mp hm)
-      rw [if_pos hmk]
+      rw [ite_eq_left hmk]
       ring
     have hsub : Finset.range (k + 1) ⊆ Finset.range (t + 1) :=
       Finset.range_subset_range.mpr (Nat.succ_le_succ (Nat.le_of_lt hkt))
@@ -310,7 +314,7 @@ theorem krawtchouk_char_sum {N k : ℕ} (x : Reg N) :
       have hmk : k < m := by
         have h' : ¬ m < k + 1 := fun hc => hnm (Finset.mem_range.mpr hc)
         omega
-      rw [if_neg (Nat.not_le.mpr hmk), zero_mul]
+      rw [ite_eq_right (Nat.not_le.mpr hmk), zero_mul]
     rw [hkraw, ← Finset.sum_subset hsub hzero, Finset.sum_congr rfl hkey]
 
 end Qatlib.Concepts.ShadowModels.BooleanCubeFourier

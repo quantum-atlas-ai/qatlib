@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QLinearODE17.Structure.Theorem9Stat
-import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem5Quan
-import Qatlib.Papers.QLinearODE17.Structure.Theorem9Encoding
+module
+
+public import Qatlib.Papers.QLinearODE17.Structure.Theorem9Stat
+public import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem5Quan
+public import Qatlib.Papers.QLinearODE17.Structure.Theorem9Encoding
+
+@[expose] public section
 
 /-!
 # Inverse-word guarantees for the Taylor linear system

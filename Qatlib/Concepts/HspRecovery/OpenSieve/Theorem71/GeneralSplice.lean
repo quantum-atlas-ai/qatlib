@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.OpenSieve.NonabelianSieveExt
+module
+
+public import Qatlib.Concepts.HspRecovery.OpenSieve.NonabelianSieveExt
+
+@[expose] public section
 
 /-!
 # Product characters and composed abelian costs
@@ -48,16 +52,19 @@ of `k` and `s`. -/
 def prodChar (N : ι → ℕ) [∀ j, NeZero (N j)] (k s : Label N) : ℂ :=
   ∏ j, ZMod.stdAddChar (s j * k j)
 
+omit [DecidableEq ι] in
 /-- A product character evaluated at the zero argument is one. -/
 @[simp] theorem prodChar_zero (N : ι → ℕ) [∀ j, NeZero (N j)] (k : Label N) :
     prodChar N k 0 = 1 := by
   simp only [prodChar, Pi.zero_apply, zero_mul, AddChar.map_zero_eq_one, Finset.prod_const_one]
 
+omit [DecidableEq ι] in
 /-- A product character sends addition of its argument to multiplication of character values. -/
 theorem prodChar_add (N : ι → ℕ) [∀ j, NeZero (N j)] (k s t : Label N) :
     prodChar N k (s + t) = prodChar N k s * prodChar N k t := by
   simp only [prodChar, Pi.add_apply, add_mul, AddChar.map_add_eq_mul, Finset.prod_mul_distrib]
 
+omit [DecidableEq ι] in
 /-- Addition of character labels corresponds to multiplication of the associated product
 character values. -/
 theorem prodChar_add_label (N : ι → ℕ) [∀ j, NeZero (N j)] (k l s : Label N) :
@@ -75,16 +82,19 @@ def lastCoord (N : ι → ℕ) (i₀ : ι) : AddSubgroup (Label N) where
     intro a ha j hj
     rw [Pi.neg_apply, ha j hj, neg_zero]
 
+omit [Fintype ι] [DecidableEq ι] in
 /-- A label belongs to `lastCoord N i₀` exactly when all coordinates other than `i₀` vanish. -/
 @[simp] theorem mem_lastCoord {N : ι → ℕ} {i₀ : ι} {k : Label N} :
     k ∈ lastCoord N i₀ ↔ ∀ j, j ≠ i₀ → k j = 0 := Iff.rfl
 
+omit [Fintype ι] [DecidableEq ι] in
 /-- The sum of two labels supported at the distinguished coordinate remains supported there. -/
 theorem lastCoord_add {N : ι → ℕ} {i₀ : ι} {k l : Label N}
     (hk : k ∈ lastCoord N i₀) (hl : l ∈ lastCoord N i₀) :
     k + l ∈ lastCoord N i₀ :=
   (lastCoord N i₀).add_mem hk hl
 
+omit [Fintype ι] [DecidableEq ι] in
 /-- The difference of two labels supported at the distinguished coordinate remains supported
 there [Kuperberg2005]. -/
 theorem lastCoord_sub {N : ι → ℕ} {i₀ : ι} {k l : Label N}
@@ -92,6 +102,7 @@ theorem lastCoord_sub {N : ι → ℕ} {i₀ : ι} {k l : Label N}
     k - l ∈ lastCoord N i₀ :=
   (lastCoord N i₀).sub_mem hk hl
 
+omit [DecidableEq ι] in
 /-- For a label supported at one coordinate, its product character equals the standard additive
 character at that coordinate [Kuperberg2005]. -/
 theorem prodChar_lastCoord (N : ι → ℕ) [∀ j, NeZero (N j)] {i₀ : ι} {k : Label N}
@@ -103,6 +114,7 @@ theorem prodChar_lastCoord (N : ι → ℕ) [∀ j, NeZero (N j)] {i₀ : ι} {k
   · intro h
     exact absurd (Finset.mem_univ i₀) h
 
+omit [DecidableEq ι] in
 /-- Two labels supported at the distinguished coordinate have equal product character values if
 their products with the corresponding argument coordinate agree. -/
 theorem prodChar_lastCoord_congr (N : ι → ℕ) [∀ j, NeZero (N j)] {i₀ : ι} {k l : Label N}
@@ -117,6 +129,7 @@ theorem card_label (N : ι → ℕ) [∀ j, NeZero (N j)] :
     Fintype.card (Label N) = ∏ j, N j := by
   simp [Label, Fintype.card_pi, ZMod.card]
 
+omit [DecidableEq ι] in
 /-- The sum of square roots of nonnegative terms is at most the square root of the number of
 terms times their sum. -/
 theorem sum_sqrt_le_sqrt_card_mul_sum (b : ι → ℝ) (hb : ∀ j, 0 ≤ b j) :
@@ -143,6 +156,7 @@ theorem sum_sqrt_le_sqrt_card_mul_sum (b : ι → ℝ) (hb : ∀ j, 0 ≤ b j) :
       = Real.sqrt ((∑ j, Real.sqrt (b j)) ^ 2) := (Real.sqrt_sq hnn).symm
     _ ≤ Real.sqrt ((Fintype.card ι : ℝ) * ∑ j, b j) := Real.sqrt_le_sqrt hsq
 
+omit [DecidableEq ι] in
 /-- For nonnegative `C` and `b`, the exponential cost with exponent `C` times the sum of square
 roots is bounded using the square root of the cardinality times the sum [Kuperberg2005]. -/
 theorem cost_composition (C : ℝ) (hC : 0 ≤ C) (b : ι → ℝ) (hb : ∀ j, 0 ≤ b j) :
@@ -151,6 +165,7 @@ theorem cost_composition (C : ℝ) (hC : 0 ≤ C) (b : ι → ℝ) (hb : ∀ j, 
   refine Real.rpow_le_rpow_of_exponent_le (by norm_num) ?_
   exact mul_le_mul_of_nonneg_left (sum_sqrt_le_sqrt_card_mul_sum b hb) hC
 
+omit [DecidableEq ι] in
 /-- The index cardinality is at most the sum of the coordinate bounds `Nat.log2 (N j) + 1`. -/
 theorem card_le_sum_log (N : ι → ℕ) :
     Fintype.card ι ≤ ∑ j, (Nat.log2 (N j) + 1) := by

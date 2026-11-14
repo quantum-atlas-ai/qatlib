@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Matrix.Basic
-import Mathlib.LinearAlgebra.Matrix.Trace
-import Mathlib.Data.Complex.Basic
-import Qatlib.Papers.LovaszLemma13.MainResults.Lemma9ParameterBound
+module
+
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.LinearAlgebra.Matrix.Trace
+public import Mathlib.Basic.Complex.Basic
+public import Qatlib.Papers.LovaszLemma13.MainResults.Lemma9ParameterBound
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

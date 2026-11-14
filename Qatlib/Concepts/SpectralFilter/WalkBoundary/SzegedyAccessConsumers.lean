@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.CountedWalk.CountedSzegedyAccess
+module
+
+public import Qatlib.Concepts.WalkSearch.CountedWalk.CountedSzegedyAccess
+
+@[expose] public section
 
 /-!
 # Counted Szegedy access and a periodic endpoint

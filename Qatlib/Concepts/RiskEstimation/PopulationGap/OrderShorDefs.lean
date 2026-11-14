@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Complex.Norm
-import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
-import Qatlib.Concepts.PeriodSampling.OrderRecovery.BoundedRationalOrderDecoder
-import Qatlib.Concepts.QftPreparation.LocalQFTImplementation
-import Qatlib.Concepts.ClassicalTape.TapeCompilation.BitMachineTime
-import Qatlib.Concepts.RiskEstimation.PopulationGap.ResidueFactoringPrograms
-import Qatlib.Concepts.PeriodSampling.DlogDivBudget.DlogRecoveryPrograms
+module
+
+public import Mathlib.Analysis.Complex.Norm
+public import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+public import Qatlib.Concepts.PeriodSampling.OrderRecovery.BoundedRationalOrderDecoder
+public import Qatlib.Concepts.QftPreparation.LocalQFTImplementation
+public import Qatlib.Concepts.ClassicalTape.TapeCompilation.BitMachineTime
+public import Qatlib.Concepts.RiskEstimation.PopulationGap.ResidueFactoringPrograms
+public import Qatlib.Concepts.PeriodSampling.DlogDivBudget.DlogRecoveryPrograms
+
+@[expose] public section
 
 /-!
 # Order finding and factoring resource specifications

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.RationalFlow.ArctanProgram
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.Model
-import Mathlib.Analysis.Real.Pi.Bounds
+module
+
+public import Qatlib.Concepts.EffectiveGauge.RationalFlow.ArctanProgram
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.Model
+public import Mathlib.Analysis.Real.Pi.Bounds
+
+@[expose] public section
 
 /-! # The actual Machin program and a short dyadic lower period -/
 

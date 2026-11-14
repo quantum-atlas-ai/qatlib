@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Normed.Operator.Basic
-import Mathlib.Analysis.Normed.Module.Basic
-import Mathlib.Analysis.Complex.Basic
-import Mathlib.Data.List.Basic
+module
+
+public import Mathlib.Analysis.Normed.Operator.Basic
+public import Mathlib.Analysis.Normed.Module.Basic
+public import Mathlib.Analysis.Complex.Basic
+public import Mathlib.Data.List.Basic
+
+@[expose] public section
 
 /-!
 # Vacuum-compressed coefficient bound (Lemma 3.2)

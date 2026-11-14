@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.RecordExtract.DihedralCosetRecord
-import Mathlib.Data.Sym.Sym2
+module
+
+public import Qatlib.Concepts.HspRecovery.RecordExtract.DihedralCosetRecord
+public import Mathlib.Data.Sym.Sym2
+
+@[expose] public section
 
 /-!
 # Hidden-shift and reflection oracle constructions

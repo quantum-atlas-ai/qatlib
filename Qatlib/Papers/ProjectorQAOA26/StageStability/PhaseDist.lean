@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Complex.Basic
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Analysis.Complex.Norm
-import Mathlib.Analysis.RCLike.Basic
-import Mathlib.LinearAlgebra.UnitaryGroup
+module
+
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Analysis.Complex.Norm
+public import Mathlib.Analysis.RCLike.Basic
+public import Mathlib.LinearAlgebra.UnitaryGroup
+
+@[expose] public section
 
 /-!
 # Phase-aligned distance for finite complex vectors
@@ -237,7 +241,7 @@ theorem normSq_phaseFactor (u v : I → ℂ) : Complex.normSq (phaseFactor u v) 
     have hst : Complex.normSq (star (l2inner u v)) = Complex.normSq (l2inner u v) := by
       rw [Complex.star_def]
       exact Complex.normSq_conj _
-    rw [if_neg h, normSq_div', hst, hcast, div_self hne]
+    rw [ite_eq_right h, normSq_div', hst, hcast, div_self hne]
 
 /-- The inner product of `u` with `phaseAlign u v` is the nonnegative real overlap magnitude. -/
 theorem l2inner_phaseAlign (u v : I → ℂ) :
@@ -255,7 +259,7 @@ theorem l2inner_phaseAlign (u v : I → ℂ) :
       refine hne ?_
       rw [← l2abs_sq, Complex.ofReal_eq_zero.mp hc]
       simp
-    rw [if_neg h, div_mul_eq_mul_div, hcast, ← l2abs_sq, Complex.ofReal_pow]
+    rw [ite_eq_right h, div_mul_eq_mul_div, hcast, ← l2abs_sq, Complex.ofReal_pow]
     field_simp
 
 /-- Phase alignment preserves the Euclidean norm of the second vector. -/

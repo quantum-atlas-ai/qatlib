@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SemiDirectHSP06.MainResults.Proposition1UnitOrder
-import Mathlib.Algebra.Group.Subgroup.Map
-import Mathlib.Algebra.Group.Subgroup.Ker
-import Mathlib.GroupTheory.OrderOfElement
+module
+
+public import Qatlib.Papers.SemiDirectHSP06.MainResults.Proposition1UnitOrder
+public import Mathlib.Algebra.Group.Subgroup.Map
+public import Mathlib.Algebra.Group.Subgroup.Ker
+public import Mathlib.GroupTheory.OrderOfElement
+
+@[expose] public section
 
 /-!
 # Isomorphisms between semidirect products with nontrivial shift actions
@@ -73,7 +77,7 @@ lemma shiftAut_ne_one (hp : p.Prime) (hr : 2 ≤ r) :
 /-- For prime `p` and `r ≥ 2`, `shiftAut` has order `p`. -/
 theorem orderOf_shiftAut_eq_p (hp : p.Prime) (hr : 2 ≤ r) :
     orderOf (shiftAut p r hp hr) = p := by
-  haveI : Fact p.Prime := ⟨hp⟩
+  have : Fact p.Prime := ⟨hp⟩
   apply orderOf_eq_prime
   · rw [shiftAut_pow, shiftUnit_pow_eq_one hp hr]
     ext x
@@ -115,17 +119,16 @@ theorem sdp_iso_of_injective_same_range {N P : Type*} [Group N] [Group P]
   simpa using! (hα g).symm
 
 /-- For prime `p`, the multiplicatively written additive residue one modulo `p` has order `p`. -/
-lemma orderOf_ofAdd_one_eq_p (hp : p.Prime) :
+lemma orderOf_ofAdd_one_eq_p (_hp : p.Prime) :
     orderOf (Multiplicative.ofAdd (1 : ZMod p)) = p := by
-  simpa using orderOf_ofAdd_eq_p (p := p) (b := 1) hp (by norm_num)
-    (by have := hp.two_le; omega)
+  simp
 
 /-- For prime `p`, the residue one generates the multiplicatively written additive group modulo
 `p`. -/
 lemma zpowers_ofAdd_one_eq_top (hp : p.Prime) :
     Subgroup.zpowers (Multiplicative.ofAdd (1 : ZMod p)) = ⊤ := by
-  haveI : NeZero p := ⟨hp.ne_zero⟩
-  haveI : Finite (Multiplicative (ZMod p)) := inferInstance
+  have : NeZero p := ⟨hp.ne_zero⟩
+  have : Finite (Multiplicative (ZMod p)) := inferInstance
   apply Subgroup.eq_top_of_card_eq
   rw [Nat.card_zpowers, orderOf_ofAdd_one_eq_p hp,
     Nat.card_eq_fintype_card, Fintype.card_multiplicative, ZMod.card]
@@ -136,7 +139,7 @@ lemma injective_of_gen_image (hp : p.Prime) (hr : 2 ≤ r)
     {i : ℕ} (hi : 1 ≤ i) (hip : i ≤ p - 1)
     (hφ : φ (Multiplicative.ofAdd 1) = shiftAut p r hp hr ^ i) :
     Function.Injective φ := by
-  haveI : NeZero p := ⟨hp.ne_zero⟩
+  have : NeZero p := ⟨hp.ne_zero⟩
   intro g1 g2 hg
   set d := g1 * g2⁻¹ with hd_def
   set n := d.toAdd.val with hn_def

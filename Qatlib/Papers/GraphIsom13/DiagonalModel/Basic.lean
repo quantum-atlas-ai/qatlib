@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.GraphIsom13.GiCost
-import Mathlib.Data.Matrix.Mul
-import Mathlib.Data.Complex.Basic
+module
+
+public import Qatlib.Papers.GraphIsom13.GiCost
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.Basic.Complex.Basic
+
+@[expose] public section
 
 /-!
 # A diagonal graph-isomorphism Hamiltonian

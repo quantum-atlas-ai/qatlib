@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Data.Matrix.Mul
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -82,10 +86,12 @@ theorem lemma1_low_depth_controlled_rz (θ : ℝ) :
   cases c <;> cases t <;> cases c' <;> cases t' <;>
     simp only [lowDepthCircuit, cnotGate, targetRz, rzGate, controlledRz, cnotTarget,
       Matrix.mul_apply, Fintype.sum_prod_type, Fintype.sum_bool, Bool.false_eq_true,
-      if_false, if_true, mul_one, mul_zero, zero_mul, add_zero, zero_add,
+      ite_false, ite_true, mul_one, mul_zero, zero_mul, add_zero, zero_add,
       Bool.not_false, Bool.not_true, exp_mul_exp,
       true_and, false_and, and_true, and_false]
   all_goals
-    push_cast <;> ring_nf <;> simp
+    push_cast
+    ring_nf
+  all_goals simp
 
 end Qatlib.Papers.ReactionMech16.MainResults.Source

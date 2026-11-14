@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.Th4Expander.SzegedyTheorem4ExpanderGroverStat
-import Qatlib.Concepts.WalkSearch.WalkDetector.SzegedyTheorem4MarkedMassQuan
-import Qatlib.Concepts.WalkSearch.Th4Expander.SzegedyTheorem4ExpanderChainQuan
+module
+
+public import Qatlib.Concepts.WalkSearch.Th4Expander.SzegedyTheorem4ExpanderGroverStat
+public import Qatlib.Concepts.WalkSearch.WalkDetector.SzegedyTheorem4MarkedMassQuan
+public import Qatlib.Concepts.WalkSearch.Th4Expander.SzegedyTheorem4ExpanderChainQuan
+
+@[expose] public section
 
 /-!
 # Quantitative expander walk detection
@@ -43,7 +47,7 @@ search length at most `1000 * sqrt (n / δ) + 1` [Szegedy2004]. -/
 theorem szegedyTheorem4ExpanderGrover : SzegedyTheorem4ExpanderGrover := by
   classical
   intro n d adj f δ j U hn hδ hδ1 hgap hmarked hU hprepare
-  letI : Nonempty (Fin n) := ⟨j⟩
+  let : Nonempty (Fin n) := ⟨j⟩
   have hnR : (0 : ℝ) < n := by exact_mod_cast hn
   have hε : (0 : ℝ) < 1 / (n : ℝ) := by positivity
   have hroot : 0 < Real.sqrt ((n : ℝ) / δ) := Real.sqrt_pos.mpr (div_pos hnR hδ)

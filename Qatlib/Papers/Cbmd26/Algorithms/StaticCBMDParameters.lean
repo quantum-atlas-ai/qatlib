@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Cbmd26.Algorithms.StaticKernelFamily
-import Qatlib.Papers.Cbmd26.Algorithms.OriginalAStaticDecodedAmplification
+module
+
+public import Qatlib.Papers.Cbmd26.Algorithms.StaticKernelFamily
+public import Qatlib.Papers.Cbmd26.Algorithms.OriginalAStaticDecodedAmplification
+
+@[expose] public section
 
 /-!
 # Static CBMD error and amplification parameters

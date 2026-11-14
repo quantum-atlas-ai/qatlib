@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.ParityPolynomialBound
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.ExactDegreeFourthComparison
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.BooleanQueryMinimumDefs
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.ParityPolynomialBound
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.ExactDegreeFourthComparison
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.BooleanQueryMinimumDefs
+
+@[expose] public section
 
 /-!
 # Degree lower bounds for symmetric Boolean functions

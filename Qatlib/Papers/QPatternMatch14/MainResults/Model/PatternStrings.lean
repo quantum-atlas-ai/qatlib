@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Fintype.Card
-import Mathlib.Data.Fin.Basic
-import Mathlib.Data.Real.Basic
-import Lean.Elab.Tactic.Omega
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Positivity
+module
+
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Data.Fin.Basic
+public import Mathlib.Basic.Real.Basic
+public import Lean.Elab.Tactic.Omega
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Positivity
+
+@[expose] public section
 
 /-!
 # Finite `d`-dimensional strings and pattern matching

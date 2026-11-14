@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.RationalFlow.SourceMeanBounds
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.ZeroSource
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.UnitSourceWord
+module
+
+public import Qatlib.Concepts.EffectiveGauge.RationalFlow.SourceMeanBounds
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.ZeroSource
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.UnitSourceWord
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -65,13 +69,13 @@ theorem sourceFrameBoundRun_eq (bounds : ℕ → ℚ) :
     sourceFrameBoundRun bounds=some
       (sourceFrameBoundExpected bounds,sourceFrameBoundLabels (sourceMeanCompressedBound (bounds 1))) := by
   by_cases h : sourceMeanCompressedBound (bounds 1)=0
-  · simp only [sourceFrameBoundRun,if_pos h,sourceFrameBoundLabels]
+  · simp only [sourceFrameBoundRun,ite_eq_left h,sourceFrameBoundLabels]
     apply congrArg some
     apply Prod.ext
     · funext r
       fin_cases r <;> simp [sourceFrameBoundExpected,h]
     · rfl
-  · simp only [sourceFrameBoundRun,if_neg h,sourceFrameHigherBoundLabels,
+  · simp only [sourceFrameBoundRun,ite_eq_right h,sourceFrameHigherBoundLabels,
       List.map_cons,List.map_nil,sourceFrameBoundDecode,Option.map_some,sourceFrameBoundLabels]
     apply congrArg some
     apply Prod.ext
@@ -139,7 +143,7 @@ theorem sourceFrameBoundExpected_word (v : SpatialPoint → SpatialPoint) (hv : 
           exact hi.trans hc
         rw [periodicSource_zero_first_word v hv hp hfirst w hw]
         simp [sourceFrameBoundExpected,hr0,hr1,hz]
-      · simpa only [sourceFrameBoundExpected,if_neg hr0,if_neg hr1,if_neg hz] using
+      · simpa only [sourceFrameBoundExpected,ite_eq_right hr0,ite_eq_right hr1,ite_eq_right hz] using
           hphys.trans (hcomp r.val)
 
 /-- All unit-coordinate majorants used by the subsequent regularity

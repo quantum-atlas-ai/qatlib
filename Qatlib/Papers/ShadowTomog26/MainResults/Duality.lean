@@ -4,8 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ShadowTomog26.MainResults.Core
-import Qatlib.Foundations.GraphFraction.CoverLP.MinimaxDual
+module
+
+public import Qatlib.Papers.ShadowTomog26.MainResults.Core
+public import Qatlib.Foundations.GraphFraction.CoverLP.MinimaxDual
+public import Qatlib.Foundations.ProbabilityCore.SimplexWeights
+
+@[expose] public section
 
 /-!
 # Fractional-cover duality for graph-body minima
@@ -87,7 +92,7 @@ theorem extend_cover (G : SimpleGraph V) (x : Context G → ℝ)
   have hs := supported_sum G (fun I => extend G x I*(if i∈I then (1:ℝ) else 0))
     (by intro I hI;simp [extend,hI])
   rw [← hs]
-  have he (I : Context G) : extend G x I.val=x I := dif_pos I.property
+  have he (I : Context G) : extend G x I.val=x I := dite_eq_left I.property
   simp_rw [he]
   exact hx.2 i
 
@@ -128,8 +133,8 @@ theorem alphaMin_eq_inverse_fractionalChromatic [Nonempty V] (B : GraphBodies V)
   rw [← support_min_eq_inverse_cover]
   unfold alphaMin alpha
   simp_rw [weightedIndepNum_eq_support]
-  change sInf ((independentSupport B.G) '' stdSimplex ℝ V) = _
-  change _ = sInf (Set.range (fun w : stdSimplex ℝ V => independentSupport B.G w))
+  change sInf ((independentSupport B.G) '' Qatlib.Foundations.ProbabilityCore.SimplexWeights.weights ℝ V) = _
+  change _ = sInf (Set.range (fun w : Qatlib.Foundations.ProbabilityCore.SimplexWeights.weights ℝ V => independentSupport B.G w))
   congr 1
   ext r
   constructor

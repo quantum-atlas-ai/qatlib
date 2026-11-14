@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ThermalGibbs09.MainResults.Prelude
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.Order.BigOperators.GroupWithZero.Finset
-import Mathlib.Algebra.Order.BigOperators.Ring.Finset
-import Mathlib.Algebra.Order.Ring.Abs
-import Mathlib.Analysis.Complex.Exponential
+module
+
+public import Qatlib.Papers.ThermalGibbs09.MainResults.Prelude
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.Order.BigOperators.GroupWithZero.Finset
+public import Mathlib.Algebra.Order.BigOperators.Ring.Finset
+public import Mathlib.Algebra.Order.Ring.Abs
+public import Mathlib.Analysis.Complex.Exponential
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -66,7 +70,7 @@ theorem prod_ratio_telescope (Z : ℕ → ℝ) (hZ : ∀ k, Z k ≠ 0) (n : ℕ)
       field_simp
 
 /-- `|1 + e| ≤ 1 + δ` whenever `|e| ≤ δ` and `δ ≥ 0`. -/
-theorem abs_one_add_le {e δ : ℝ} (he : |e| ≤ δ) (hδ : 0 ≤ δ) :
+theorem abs_one_add_le {e δ : ℝ} (he : |e| ≤ δ) (_hδ : 0 ≤ δ) :
     |1 + e| ≤ 1 + δ := by
   have h1 : |1 + e| ≤ |(1 : ℝ)| + |e| := abs_add_le _ _
   rw [abs_one] at h1

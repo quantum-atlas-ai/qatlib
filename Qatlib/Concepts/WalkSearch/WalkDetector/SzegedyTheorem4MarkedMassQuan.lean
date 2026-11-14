@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.WalkDetector.SzegedyTheorem4MarkedMassStat
+module
+
+public import Qatlib.Concepts.WalkSearch.WalkDetector.SzegedyTheorem4MarkedMassStat
+
+@[expose] public section
 
 /-!
 # Lower bound on nonempty marked mass

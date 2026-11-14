@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.PhaseExistence.Corollary10RealQSPStat
-import Qatlib.Concepts.QsvtCore.PhaseExistence.PairCompletionDuality
+module
+
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.Corollary10RealQSPStat
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.PairCompletionDuality
+
+@[expose] public section
 
 /-!
 # Real QSP polynomial completion

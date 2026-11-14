@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem5Aux4
-import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem5Norm
+module
+
+public import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem5Aux4
+public import Qatlib.Papers.QLinearODE17.TaylorAnalysis.Theorem5Norm
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

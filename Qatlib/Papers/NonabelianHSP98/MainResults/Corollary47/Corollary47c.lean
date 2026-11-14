@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NonabelianHSP98.MainResults.Corollary47.Basic
+module
+
+public import Qatlib.Papers.NonabelianHSP98.MainResults.Corollary47.Basic
+
+@[expose] public section
 
 /-!
 # Swap-invariant subspaces and wreath-product subgroups

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QPCAAssume18.ClassicalPca.Algorithm
+module
+
+public import Qatlib.Papers.QPCAAssume18.ClassicalPca.Algorithm
+
+@[expose] public section
 
 /-!
 # Finite probability bounds for PCA batches
@@ -79,9 +83,9 @@ theorem pca_joint_failure {X Y : Type} [Fintype X] [Fintype Y]
         rw [Finset.mul_sum]; apply Finset.sum_congr rfl; intro y _; ring]
     apply mul_le_mul_of_nonneg_left _ (p.nonneg x)
     by_cases hx : BadX x
-    · simp only [hx,true_or,if_true,mul_one,(conditional x).sum_one]
+    · simp only [hx,true_or,ite_true,mul_one,(conditional x).sum_one]
       linarith
-    · simp only [hx,false_or,if_false,zero_add]
+    · simp only [hx,false_or,ite_false,zero_add]
       rw [← FinDist.expect,← pcaFiniteMass_indicator]
       exact hsecond x hx
   have hsum := Finset.sum_le_sum fun x (_ : x∈Finset.univ) => hpoint x

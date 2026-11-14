@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -254,7 +258,7 @@ theorem dot_spectralInverse_expand {n : ℕ} {μ : Fin n → Fin n → ℝ}
 are the eigenbasis expansions with coordinates `γ` and `β`, and `A⁻¹` is
 the spectral inverse of `A = ∑ lam_i μ_i μ_iᵀ`. -/
 theorem readoutExpectation_eq {n : ℕ} (γ β lam : Fin n → ℝ)
-    (cu cv c su sv : ℝ) (hsu : 0 < su) (hsv : 0 < sv) :
+    (cu cv c su sv : ℝ) (_hsu : 0 < su) (_hsv : 0 < sv) :
     readoutExpectation γ β lam cu cv c su sv
       = c * (Real.sqrt su)⁻¹ * (Real.sqrt sv)⁻¹ * cu * cv * quadForm γ β lam := by
   have hterm : ∀ i : Fin n,

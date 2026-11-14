@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MonteCarloInt20.PrnJump.SharedLayout
+module
+
+public import Qatlib.Papers.MonteCarloInt20.PrnJump.SharedLayout
+
+@[expose] public section
 
 /-!
 # Native compiled LCG jump circuits
@@ -130,7 +134,7 @@ theorem native_basis {n k : ℕ} (a : (ZMod (2^n))ˣ) (c : ZMod (2^n))
     cases h : bits q
     · simpa [exponent,h] using! ih x
     · rw [ih]
-      simp only [exponent,List.map_cons,List.sum_cons,h,if_true,lcg_restart]
+      simp only [exponent,List.map_cons,List.sum_cons,h,ite_true,lcg_restart]
 
 /-- Using all exponent positions, the compiled native jump advances the framed residue by the
 unsigned value of the exponent word and restores the remaining frame [KanekoEtAl2020]. -/

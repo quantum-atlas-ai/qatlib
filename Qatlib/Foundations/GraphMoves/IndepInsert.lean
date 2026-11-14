@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Combinatorics.SimpleGraph.Clique
+module
+
+public import Mathlib.Combinatorics.SimpleGraph.Clique
+
+@[expose] public section
 
 /-!
 # Insertion and removal in graph independent sets

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.SensitivityCombinatorics
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.ParityPolynomialBound
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.SensitivityCombinatorics
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.ParityPolynomialBound
+
+@[expose] public section
 
 /-!
 # Polynomial substitution along sensitive blocks
@@ -82,7 +86,7 @@ lemma sensitiveBlockIndex_eq {n : ℕ} (f : (Fin n → Bool) → Bool) (x : Fin 
     (hi : i ∈ B.val) : sensitiveBlockIndex F i = some B := by
   have hex : ∃ B : F, i ∈ B.val := ⟨B,hi⟩
   unfold sensitiveBlockIndex
-  rw [dif_pos hex]
+  rw [dite_eq_left hex]
   congr 1
   apply Subtype.ext
   by_contra hn

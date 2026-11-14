@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkFind.WalkSpectrum.WalkPhaseGapStat
-import Qatlib.Concepts.WalkFind.UniqueCollision.WalkUnitaryQuan
-import Qatlib.Concepts.WalkFind.UniqueCollision.WalkStartFixedQuan
-import Qatlib.Concepts.WalkFind.WalkSpectrum.JohnsonSpectrumAux
-import Qatlib.Concepts.WalkFind.WalkSpectrum.JohnsonPopulationAux
+module
+
+public import Qatlib.Concepts.WalkFind.WalkSpectrum.WalkPhaseGapStat
+public import Qatlib.Concepts.WalkFind.UniqueCollision.WalkUnitaryQuan
+public import Qatlib.Concepts.WalkFind.UniqueCollision.WalkStartFixedQuan
+public import Qatlib.Concepts.WalkFind.WalkSpectrum.JohnsonSpectrumAux
+public import Qatlib.Concepts.WalkFind.WalkSpectrum.JohnsonPopulationAux
+
+@[expose] public section
 
 /-!
 # Phase gaps for the Johnson walk
@@ -342,7 +346,6 @@ theorem jwThreeBlock_det_factor (e f : ℝ) (he : 0 ≤ e) (he1 : e ≤ 1)
   (try dsimp only)
   simp only [Matrix.det_fin_three,Matrix.sub_apply,Matrix.smul_apply,Matrix.one_apply]
   norm_num
-  push_cast
   linear_combination (1+(-1+2*(f:ℂ))*μ)*hA +
     ((1-2*(e:ℂ))^2+4*(Real.sqrt (e-e*e) : ℂ)^2-(1-2*(e:ℂ))*μ)*hB
 

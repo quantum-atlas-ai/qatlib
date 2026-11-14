@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.StabilizerAlg.NearUniformGen.NearUniformGenerationSubgoalStat
-import Qatlib.Concepts.StabilizerAlg.NearUniformGen.MaximalSubgroupEnumerationSubgoalQuan
+module
+
+public import Qatlib.Concepts.StabilizerAlg.NearUniformGen.NearUniformGenerationSubgoalStat
+public import Qatlib.Concepts.StabilizerAlg.NearUniformGen.MaximalSubgroupEnumerationSubgoalQuan
+
+@[expose] public section
 
 /-!
 # Generation from nearly uniform subgroup samples
@@ -104,7 +108,7 @@ theorem asp_probability_all {X : Type*} [Fintype X] [DecidableEq X]
       if ∀ i, hs i ∈ A then 1 else 0 := by
     by_cases ha : ∀ i, hs i ∈ A
     · simp [ha]
-    · rw [if_neg ha]
+    · rw [ite_eq_right ha]
       obtain ⟨i,hi⟩ := not_forall.mp ha
       apply Finset.prod_eq_zero (Finset.mem_univ i)
       simp [hi]

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Trainability23.HaarAverages.HaarInfrastructure
-import Mathlib.Topology.Instances.Matrix
-import Mathlib.Topology.MetricSpace.ProperSpace
-import Mathlib.Topology.Algebra.Star
+module
+
+public import Qatlib.Papers.Trainability23.HaarAverages.HaarInfrastructure
+public import Mathlib.Topology.Instances.Matrix
+public import Mathlib.Topology.MetricSpace.ProperSpace
+public import Mathlib.Topology.Algebra.Star
+
+@[expose] public section
 
 /-!
 # Compactness of finite unitary matrix groups

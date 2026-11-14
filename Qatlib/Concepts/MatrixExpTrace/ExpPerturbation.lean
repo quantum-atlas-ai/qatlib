@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.OrderedSpectralPerturbation
-import QuantumInfo.ForMathlib.HermitianMat.Schatten
-import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
-import Mathlib.Analysis.SpecialFunctions.ContinuousFunctionalCalculus.ExpLog.Basic
-import Mathlib.Analysis.SpecialFunctions.Exponential
-import Mathlib.Analysis.Calculus.Deriv.MeanValue
+module
+
+public import Qatlib.Concepts.SpectralSketch.SpectrumPerturb.OrderedSpectralPerturbation
+public import QuantumInfo.ForMathlib.HermitianMat.Schatten
+public import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
+public import Mathlib.Analysis.SpecialFunctions.ContinuousFunctionalCalculus.ExpLog.Basic
+public import Mathlib.Analysis.SpecialFunctions.Exponential
+public import Mathlib.Analysis.Calculus.Deriv.MeanValue
+
+@[expose] public section
 
 /-!
 # Trace-norm perturbation of Hermitian exponentials
@@ -98,7 +102,7 @@ theorem schatten_mul_le_op (A B : Matrix I I ℂ) (p : ℝ) (hp : 0 < p) :
     schattenNorm (A * B) p ≤ ‖A‖ * schattenNorm B p := by
   have hbound (i : Fin (Fintype.card I)) : singularValuesSorted A i ≤ ‖A‖ := by
     have hc : 0 < Fintype.card I := lt_of_le_of_lt (Nat.zero_le i.val) i.isLt
-    letI : NeZero (Fintype.card I) := ⟨hc.ne'⟩
+    let : NeZero (Fintype.card I) := ⟨hc.ne'⟩
     apply ((singularValuesSorted_antitone A) (Fin.zero_le i)).trans
     change singularValuesSorted A ⟨0, hc⟩ ≤ ‖A‖
     rw [singularValuesSorted_zero_eq_sup A hc, Finset.sup'_le_iff]
@@ -136,7 +140,7 @@ omit [Nonempty I] in
 normed-space matrix exponential. -/
 theorem hermitian_exp_mat (H : HermitianMat I ℂ) : H.exp.mat = NormedSpace.exp H.mat := by
   rw [HermitianMat.exp, HermitianMat.mat_cfc]
-  letI : ContinuousFunctionalCalculus ℝ (Matrix I I ℂ) IsSelfAdjoint :=
+  let : ContinuousFunctionalCalculus ℝ (Matrix I I ℂ) IsSelfAdjoint :=
     Matrix.IsHermitian.instContinuousFunctionalCalculus
   exact CFC.real_exp_eq_normedSpace_exp H.H
 
@@ -279,10 +283,10 @@ theorem noncommuting_exp_trace_norm :
   classical
   cases isEmpty_or_nonempty I with
   | inl h =>
-    letI := h
+    let := h
     simp [Subsingleton.elim H 0, Subsingleton.elim K 0, Matrix.trace]
   | inr h =>
-    letI := h
+    let := h
     obtain ⟨U, hU⟩ := (Matrix.traceNorm_eq_max_re_tr_U
       (NormedSpace.exp K - NormedSpace.exp H)).1
     have hb := unitary_trace_exp_sub_le ⟨H, hH⟩ ⟨K, hK⟩ U

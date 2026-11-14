@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.TorusFourier.ConnectionPoisson
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.Gauge
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.UnitSourceWord
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.PeriodicIntegral
+module
+
+public import Qatlib.Concepts.EffectiveGauge.TorusFourier.ConnectionPoisson
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.Gauge
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.UnitSourceWord
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.PeriodicIntegral
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

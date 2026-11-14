@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Lean.Elab.Tactic.Omega
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Ring
+module
+
+public import Lean.Elab.Tactic.Omega
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -97,10 +101,10 @@ stated `O(√(T/m) log(n/m))` bound.
 Source: arXiv:2302.06749v3, proof of Lemma 4, p.7 (the two displayed sums
 for the stages `j = 1, …, ℓ` and for the `δ`-weighted later batches). -/
 theorem lemma4_cost_bound (n d ell m : ℕ) (T c : ℝ) (hn : 0 < n)
-    (hm : 1 ≤ m) (hmn : m ≤ n) (hell : 1 ≤ ell) (held : ell ≤ d)
-    (h3d : (3 : ℝ) ^ d ≤ 3 * Real.sqrt (n : ℝ))
-    (hchoice : (n : ℝ) ≤ (9 : ℝ) ^ ell * (m : ℝ))
-    (hc : 0 < c) (bCost : ℕ → ℝ)
+    (hm : 1 ≤ m) (hmn : m ≤ n) (_hell : 1 ≤ ell) (_held : ell ≤ d)
+    (_h3d : (3 : ℝ) ^ d ≤ 3 * Real.sqrt (n : ℝ))
+    (_hchoice : (n : ℝ) ≤ (9 : ℝ) ^ ell * (m : ℝ))
+    (_hc : 0 < c) (bCost : ℕ → ℝ)
     (hb : ∀ k ∈ Finset.Icc 1 d,
       bCost k ≤ c * (k : ℝ) * (3 : ℝ) ^ k * Real.sqrt (T / (n : ℝ))) :
     ∃ C : ℝ, 0 < C ∧
@@ -237,9 +241,9 @@ Proof: `hb` bounds each `bCost k` by `c · k · 3^k · √(T/n)`.  The finite do
 sum is bounded by `A · √(T/n)` with `A = ∑_{j≤d} ∑_{k≤j} c · k · 3^k`, and
 `√(T/n) = √T / √n` lets the constant absorb `A/√n` and the `log n + 1` factor.
 Source: arXiv:2302.06749v3, proof of Lemma 4, p.7 (the empty case paragraph). -/
-theorem lemma4_empty_cost (n d : ℕ) (T c : ℝ) (hn : 0 < n) (hd : 1 ≤ d)
-    (h3d : (3 : ℝ) ^ d ≤ 3 * Real.sqrt (n : ℝ))
-    (hc : 0 < c) (bCost : ℕ → ℝ)
+theorem lemma4_empty_cost (n d : ℕ) (T c : ℝ) (hn : 0 < n) (_hd : 1 ≤ d)
+    (_h3d : (3 : ℝ) ^ d ≤ 3 * Real.sqrt (n : ℝ))
+    (_hc : 0 < c) (bCost : ℕ → ℝ)
     (hb : ∀ k ∈ Finset.Icc 1 d,
       bCost k ≤ c * (k : ℝ) * (3 : ℝ) ^ k * Real.sqrt (T / (n : ℝ))) :
     ∃ C : ℝ, 0 < C ∧

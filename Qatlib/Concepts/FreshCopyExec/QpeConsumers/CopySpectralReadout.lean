@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CopyEvolution.Discriminate.ControlledCopyEvolution
-import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
-import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopyDrivenPhaseReadout
+module
+
+public import Qatlib.Concepts.CopyEvolution.Discriminate.ControlledCopyEvolution
+public import Qatlib.Concepts.SpectralReadout.OffGridPhaseReadout
+public import Qatlib.Concepts.FreshCopyExec.QpeConsumers.CopyDrivenPhaseReadout
+
+@[expose] public section
 
 /-!
 # Spectral Label Laws for Copy Phase Estimation
@@ -111,7 +115,7 @@ theorem copyQPE_evolution_spectral (D : ℕ) (ρ V : Operator D) (eig : Fin D �
   let U : unitary (Operator D) := ⟨V, hV⟩
   let f := Unitary.conjStarAlgAut ℂ (Operator D) U
   let A := Matrix.diagonal (fun i => -Complex.I * (Real.pi : ℂ) * (eig i : ℂ))
-  letI : NormedAlgebra ℚ (Operator D) := NormedAlgebra.restrictScalars ℚ ℂ _
+  let _ : NormedAlgebra ℚ (Operator D) := NormedAlgebra.restrictScalars ℚ ℂ _
   have hm := NormedSpace.map_exp f f.toAlgEquiv.toLinearMap.continuous_of_finiteDimensional A
   have he : f A = (-Complex.I * (Real.pi : ℂ)) • ρ := by
     rw [hs]
@@ -124,7 +128,6 @@ theorem copyQPE_evolution_spectral (D : ℕ) (ρ V : Operator D) (eig : Fin D �
   refine hm.symm.trans ?_
   change V * NormedSpace.exp A * Vᴴ = _
   rw [Matrix.exp_diagonal]
-  change V * Matrix.diagonal (NormedSpace.exp _) * Vᴴ = _
   apply congrArg (fun B : Operator D => V * B * Vᴴ)
   apply congrArg (Matrix.diagonal : (Fin D → ℂ) → Operator D)
   funext i
@@ -150,7 +153,7 @@ private theorem copyQPE_spectral_density_sum (D : ℕ) (V : Operator D) (eig : F
       ∑ i, (eig i : ℂ) • outerProduct (fun j => V j i) := by
   ext a b
   rw [Matrix.mul_apply]
-  simp only [Matrix.mul_diagonal, Matrix.of_apply,
+  simp only [Matrix.mul_diagonal,
     Matrix.sum_apply, Matrix.smul_apply, outerProduct_apply, Matrix.conjTranspose_apply]
   apply Finset.sum_congr rfl
   intro i _
@@ -175,7 +178,7 @@ private theorem copyQPE_eigenphase (D : ℕ) (ρ V : Operator D) (eig : Fin D �
   have h := congrArg (fun A : Operator D => A j i) huv
 
   rw [Matrix.mul_diagonal] at h
-  simp only [Matrix.of_apply, Matrix.mul_apply] at h
+  simp only [Matrix.mul_apply] at h
   change (∑ k, hamiltonianEvolution ρ Real.pi j k * V k i) =
     Complex.exp (2 * Real.pi * Complex.I * ((-eig i / 2 : ℝ) : ℂ)) * V j i
   rw [h, hphase, mul_comm]
@@ -221,7 +224,7 @@ private theorem copyQPEInput_spectral_sum (D M : ℕ) (hM : 0 < M)
     copyQPEInput D M (∑ i, (eig i : ℂ) • outerProduct (fun j => V j i)) =
       ∑ i, (eig i : ℂ) • outerProduct
         (TensorState (Qatlib.Foundations.PureStateMath.Ket (⟨0, hM⟩ : Fin M)) (TensorState (Qatlib.Foundations.PureStateMath.Ket false) (fun j => V j i))) := by
-  rw [copyQPEInput, dif_pos hM]
+  rw [copyQPEInput, dite_eq_left hM]
   simp only [outerProduct_tensorState]
   ext ⟨a,b,i⟩ ⟨c,d,j⟩
   simp only [tensorGate_apply, Matrix.sum_apply, Matrix.smul_apply, Finset.mul_sum]
@@ -239,7 +242,7 @@ private theorem copyQPEIdealProgram_eigen (D M : ℕ) (hM : 0 < M) (ρ : Operato
     copyQPEIdealProgram D M ρ (countedPhaseCircuit M) (copyQPEInput D M (outerProduct ψ)) =
       outerProduct (fun p : Fin M × (Bool × Fin D) =>
         if p.2.1 then 0 else qpeKernel M φ p.1 * ψ p.2.2) := by
-  rw [copyQPEInput, dif_pos hM, ← outerProduct_tensorState, ← outerProduct_tensorState,
+  rw [copyQPEInput, dite_eq_left hM, ← outerProduct_tensorState, ← outerProduct_tensorState,
     copyQPEIdealProgram_outer, (counted_offgrid_qpe_clean_flag M hM
       (hamiltonianEvolution ρ Real.pi) ψ).1, qpeOutput_eigen M _ ψ φ hψ]
   rfl
@@ -295,7 +298,7 @@ theorem copyQPEIdealOutput_spectral_label (D M : ℕ) (hM : 0 < M)
         outerProduct (fun p : Fin M × (Bool × Fin D) =>
           if p.2.1 then 0 else qpeKernel M (-eig i / 2) p.1 * V p.2.2 i) := by
     have h := hpure i
-    rw [copyQPEInput, dif_pos hM, ← outerProduct_tensorState, ← outerProduct_tensorState] at h
+    rw [copyQPEInput, dite_eq_left hM, ← outerProduct_tensorState, ← outerProduct_tensorState] at h
     exact h
   have hout : copyQPEIdealOutput D M ρ =
       ∑ i, (eig i : ℂ) • outerProduct (fun p : Fin M × (Bool × Fin D) =>
@@ -372,8 +375,8 @@ theorem copyQPELabelMass_event_error_of_trace_eq (D M : ℕ) (E : Finset (Fin M)
     by_cases hpq : p = q
     · subst q
       by_cases hp : p.1 ∈ E <;>
-        norm_num [B, copyQPEEventProjector, Matrix.diagonal_apply, Matrix.one_apply, hp]
-    · simp [B, copyQPEEventProjector, Matrix.diagonal_apply, Matrix.one_apply, hpq]
+        norm_num [B, copyQPEEventProjector, hp]
+    · simp [B, copyQPEEventProjector, hpq]
   have hnorm : ‖B‖ ≤ (1 / 2 : ℝ) := by
     dsimp only [B]
     rw [Matrix.l2_opNorm_diagonal]

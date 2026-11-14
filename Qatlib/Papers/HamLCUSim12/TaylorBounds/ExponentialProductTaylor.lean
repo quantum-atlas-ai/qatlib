@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Complex.Basic
-import Mathlib.Data.Finset.Range
-import Mathlib.Data.Fintype.Pi
-import Qatlib.Foundations.PureStateMath.Qubit
+module
+
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Data.Finset.Range
+public import Mathlib.Data.Fintype.Pi
+public import Qatlib.Foundations.PureStateMath.Qubit
+
+@[expose] public section
 
 /-!
 # Taylor polynomials for ordered exponential products

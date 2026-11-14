@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Cbmd26.Algorithms.StaticFinalQueryBudget
+module
+
+public import Qatlib.Papers.Cbmd26.Algorithms.StaticFinalQueryBudget
+
+@[expose] public section
 
 /-!
 # Parameters for segmented dynamic simulation

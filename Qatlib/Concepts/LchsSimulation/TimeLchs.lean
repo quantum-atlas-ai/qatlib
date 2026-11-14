@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LchsSimulation.TimeOrdered.TimeOrderedConsumers
-import Qatlib.Concepts.LchsSimulation.StaticLchs.StaticLCHSConsumers
-import Mathlib.Analysis.Complex.LocallyUniformLimit
+module
+
+public import Qatlib.Concepts.LchsSimulation.TimeOrdered.TimeOrderedConsumers
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.StaticLCHSConsumers
+public import Mathlib.Analysis.Complex.LocallyUniformLimit
+
+@[expose] public section
 
 /-!
 # Time-dependent Cauchy representation and LCHS quadrature
@@ -58,7 +62,7 @@ private theorem parameterDyson_polynomial {I : Type} [Fintype I] [DecidableEq I]
     simp [orderedDysonTerm]
   | succ n ih =>
     obtain ⟨J, inst, p, C, hC, he⟩ := ih
-    letI := inst
+    let _ := inst
     let D : Sum J J → ℝ → Matrix I I ℂ := Sum.elim
       (fun j t => ∫ u in s..t, -(Complex.I • H u * C j u))
       (fun j t => ∫ u in s..t, -(L u * C j u))
@@ -106,7 +110,7 @@ private theorem parameterDyson_differentiable {I : Type} [Fintype I] [DecidableE
     (L H : ℝ → Matrix I I ℂ) (hL : Continuous L) (hH : Continuous H) (s t : ℝ) (n : ℕ) :
     Differentiable ℂ (fun z : ℂ => orderedDysonTerm (fun u => z • L u + Complex.I • H u) s n t) := by
   obtain ⟨J, inst, p, C, _, he⟩ := parameterDyson_polynomial L H hL hH s n
-  letI := inst
+  let _ := inst
   have hf : (fun z : ℂ => orderedDysonTerm (fun u => z • L u + Complex.I • H u) s n t) =
       fun z => ∑ j : J, z ^ p j • C j t := funext (fun z => he z t)
   rw [hf]
@@ -304,9 +308,9 @@ private theorem tdLchsDensity_variation (a b : ℝ) (hab : a ≤ b) :
         dsimp only [tdLchsDensity]
         apply div_le_div_of_nonneg_left (by norm_num) (by positivity)
         nlinarith [mul_le_mul_of_nonneg_left (show b^2 ≤ a^2 by nlinarith) Real.pi_pos.le]
-      simp only [tdLchsVariation, if_pos ha, if_pos hb, abs_of_nonneg (sub_nonneg.mpr hd)]
+      simp only [tdLchsVariation, ite_eq_left ha, ite_eq_left hb, abs_of_nonneg (sub_nonneg.mpr hd)]
       exact le_rfl
-    · simp only [tdLchsVariation, if_pos ha, if_neg hb]
+    · simp only [tdLchsVariation, ite_eq_left ha, ite_eq_right hb]
       rw [show 2/Real.pi = 2*(1/Real.pi) by ring]
       apply abs_le.mpr
       constructor <;> linarith [tdLchsDensity_le_peak a, tdLchsDensity_le_peak b]
@@ -315,7 +319,7 @@ private theorem tdLchsDensity_variation (a b : ℝ) (hab : a ≤ b) :
       dsimp only [tdLchsDensity]
       apply div_le_div_of_nonneg_left (by norm_num) (by positivity)
       nlinarith [mul_le_mul_of_nonneg_left (show a^2 ≤ b^2 by nlinarith) Real.pi_pos.le]
-    simp only [tdLchsVariation, if_neg ha, if_neg hb, abs_of_nonpos (sub_nonpos.mpr hd)]
+    simp only [tdLchsVariation, ite_eq_right ha, ite_eq_right hb, abs_of_nonpos (sub_nonpos.mpr hd)]
     linarith
 
 /-- The density change within a cell is bounded by the variation-control increase across that
@@ -462,7 +466,6 @@ private theorem tdLchs_weighted_grid_error (V : ℝ → E) (hV : Continuous V)
       ((continuous_const.add (continuous_const.mul tdLchsDensity_continuous)).intervalIntegrable _ _)
     have hwint : IntervalIntegrable (fun k => (h*T)*tdLchsDensity k) volume (x j) (x (j+1)) :=
       (continuous_const.mul tdLchsDensity_continuous).intervalIntegrable _ _
-    (try dsimp only at hi)
     rw [intervalIntegral.integral_add intervalIntegrable_const hwint,
       intervalIntegral.integral_const, intervalIntegral.integral_const_mul, hstep, smul_eq_mul] at hi
     exact hi
@@ -492,7 +495,7 @@ private theorem tdLchs_weighted_grid_error (V : ℝ → E) (hV : Continuous V)
     _ ≤ h*(2/Real.pi)+(h*T)*1 := by
       apply add_le_add
       · apply mul_le_mul_of_nonneg_left _ h0
-        simp only [tdLchsVariation, if_neg (by linarith : ¬K ≤ 0), if_pos (by linarith : -K ≤ 0)]
+        simp only [tdLchsVariation, ite_eq_right (by linarith : ¬K ≤ 0), ite_eq_left (by linarith : -K ≤ 0)]
         linarith [tdLchsDensity_nonneg K, tdLchsDensity_nonneg (-K)]
       · exact mul_le_mul_of_nonneg_left (tdLchsDensity_interval_le_one _ _ (by linarith))
           (mul_nonneg h0 hT)

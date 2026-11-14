@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.Amplification.ChargedBudgetSuccess
-import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchBudgetProbability
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.ChargedBudgetSuccess
+public import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchBudgetProbability
+
+@[expose] public section
 
 /-!
 # Probability laws for budgeted minimum search
@@ -63,7 +67,7 @@ theorem minimum_search_success_checkedUpdate (T : Fin N → α) (hN : 0 < N)
     (ExponentialSizes N) (search_exponential_schedule N hN).2.1 0 budget candidate remaining hx
   have hlt : T candidate < T current := by
     simpa only [strictMarked, Finset.mem_filter, Finset.mem_univ, true_and] using! hmem
-  exact ⟨hlt, if_pos hlt⟩
+  exact ⟨hlt, ite_eq_left hlt⟩
 
 /-- The joint probability law of the returned index and remaining budget for recursive minimum
 search with an initialization charge [DurrHoyer1996]. -/
@@ -107,9 +111,9 @@ theorem minimumBudgetPMFWithInit_remaining (T : Fin N → α) (initialization : 
       | some candidate =>
         simp only [ho] at hxy
         by_cases hr : y.2 < budget
-        · rw [dif_pos hr] at hxy
+        · rw [dite_eq_left hr] at hxy
           exact (ih y.2 hr _ hxy).trans hyB
-        · rw [dif_neg hr] at hxy
+        · rw [dite_eq_right hr] at hxy
           have heq := (PMF.mem_support_pure_iff _ _).mp hxy
           simpa [heq] using! hyB
     · have heq := (PMF.mem_support_pure_iff _ _).mp hx
@@ -173,7 +177,7 @@ theorem minimumBudgetPMFWithInit_expectation (T : Fin N → α) (initialization 
               have hr : r < budget := (hremaining.2 (by simp)).trans_le (Nat.sub_le _ _)
               have hchecked := minimum_search_success_checkedUpdate T hN (budget - initialization)
                 current candidate r hmem
-              simp only [dif_pos hr, s, hchecked.2]
+              simp only [dite_eq_left hr, s, hchecked.2]
               exact ih r hr candidate
         _ = ENNReal.ofReal (FiniteBudgetEval (strictMarked T current) (ExponentialSizes N)
             0 (budget - initialization) s t) := by
@@ -203,7 +207,7 @@ theorem minimumBudgetPMFWithInit_event (T : Fin N → α) (initialization : ℕ)
         (fun i r => if E (i, r) then 1 else 0)) := by
   convert! minimumBudgetPMFWithInit_expectation T initialization hN budget current
     (fun i r => if E (i, r) then 1 else 0)
-    (fun _ _ => by (try dsimp only); split_ifs <;> norm_num) using 1
+    (fun _ _ => by  split_ifs <;> norm_num) using 1
   unfold Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event
   congr 1
   funext x

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.ProbabilityCore.ErasureAdaptive.Policy
+module
+
+public import Qatlib.Foundations.ProbabilityCore.ErasureAdaptive.Policy
+
+@[expose] public section
 
 /-!
 # Dynamic programming bounds for erasure survival
@@ -62,7 +66,7 @@ theorem noise_success_le {R : Type*} (n : ℕ) (p : ℝ≥0) (hp : p ≤ 1)
       apply Finset.sum_le_sum
       intro mask hm
       have hne := (Finset.mem_erase.mp hm).1
-      rw [if_neg hne]
+      rw [ite_eq_right hne]
       exact mul_le_mul_right (bind_success_le (observe mask) (next mask) B (h mask)) _
     _ = _ := by rw [← Finset.sum_mul, noncomplete_mass, ENNReal.coe_mul]
 

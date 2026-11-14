@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SymmetryAdv10.MainResults.SourceModel
+module
+
+public import Qatlib.Papers.SymmetryAdv10.MainResults.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -80,7 +84,7 @@ theorem trace_upsilon_mul (Γ : Matrix P.F P.F ℂ)
   · simp
   · intro y _ hy
     refine Finset.sum_eq_zero fun g _ => ?_
-    rw [if_neg (Ne.symm hy), zero_mul]
+    rw [ite_eq_right (Ne.symm hy), zero_mul]
   · intro hx
     exact absurd (Finset.mem_univ x) hx
 
@@ -104,7 +108,7 @@ theorem trace_upsilonPrime_mul (Γ : Matrix P.F P.F ℂ)
   · simp
   · intro y _ hy
     refine Finset.sum_eq_zero fun g _ => ?_
-    rw [if_neg (Ne.symm hy), zero_mul]
+    rw [ite_eq_right (Ne.symm hy), zero_mul]
   · intro hx
     exact absurd (Finset.mem_univ x) hx
 

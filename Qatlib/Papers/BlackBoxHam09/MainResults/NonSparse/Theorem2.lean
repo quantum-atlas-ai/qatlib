@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.BlackBoxHam09.MainResults.Defs
+module
+
+public import Qatlib.Papers.BlackBoxHam09.MainResults.Defs
+
+@[expose] public section
 
 /-!
 # Theorem 2 query expression estimates
@@ -125,8 +129,8 @@ theorem theorem2_query_mono_delta {Λ t δ δ' : ℝ} (hD : 0 < D) (hΛ : 0 < Λ
 
 /-- If `L ≥ 2`, the parameters are positive, and `sqrt δ ≤ Λ * t`, then `L ^ (3 / 2) * Λ ^ 2 * t
 ^ 2 / (2 * δ)` is at least one. See [Berry and Childs, Theorem 2][BerryChilds2012]. -/
-theorem theorem2_denominator_ge_one {L : ℕ} {Λ t δ : ℝ} (hL : 2 ≤ L) (hΛ : 0 < Λ)
-    (ht : 0 < t) (hδ : 0 < δ) (hcond : Real.sqrt δ ≤ Λ * t) :
+theorem theorem2_denominator_ge_one {L : ℕ} {Λ t δ : ℝ} (hL : 2 ≤ L) (_hΛ : 0 < Λ)
+    (_ht : 0 < t) (hδ : 0 < δ) (hcond : Real.sqrt δ ≤ Λ * t) :
     1 ≤ Real.rpow (L : ℝ) (3 / 2) * Λ ^ 2 * t ^ 2 / (2 * δ) := by
   have hsq : δ ≤ (Λ * t) ^ 2 := by
     have h1 : Real.sqrt δ ^ 2 ≤ (Λ * t) ^ 2 :=
@@ -167,7 +171,7 @@ theorem theorem2_denominator_ge_one {L : ℕ} {Λ t δ : ℝ} (hL : 2 ≤ L) (h�
 implies `sqrt (δ * τ / (L ^ (3 / 2) * t)) ≤ Λ * τ`. See [Berry and Childs, Theorem
 2][BerryChilds2012]. -/
 theorem theorem2_sqrt_bound {L : ℕ} {Λ t δ τ : ℝ} (hΛ : 0 < Λ) (hL : 0 < L)
-    (ht : 0 < t) (hδ : 0 < δ) (hτ : 0 < τ)
+    (ht : 0 < t) (_hδ : 0 < δ) (hτ : 0 < τ)
     (h : δ / (Real.rpow (L : ℝ) (3 / 2) * Λ ^ 2 * t) ≤ τ) :
     Real.sqrt (δ * τ / (Real.rpow (L : ℝ) (3 / 2) * t)) ≤ Λ * τ := by
   rw [Real.sqrt_le_left (by positivity : (0 : ℝ) ≤ Λ * τ)]
@@ -202,16 +206,22 @@ theorem theorem2_error_terms {L : ℕ} {δ e : ℝ} (hL : 1 ≤ L) (hδ : 0 < δ
     _ = δ / Real.sqrt (L : ℝ) := by field_simp
     _ ≤ δ := div_le_self hδ.le hsqrt1
 
+omit [Fintype ι] [DecidableEq ι] [Inhabited ι] in
+
 /-- Under the stated sparse Hamiltonian and parameter hypotheses, collect positivity and time
 and tolerance monotonicity of the query expression with three scalar denominator and error
 bounds. These are arithmetic ingredients for Theorem 2 of [BerryChilds2012]. -/
-theorem theorem2_improved_sparsity
+theorem theorem2_improved_sparsity {ι : Type}
+    [_instFintypeIota : Fintype ι]
+    [_instDecidableEqIota : DecidableEq ι]
+    [_instInhabitedIota : Inhabited ι]
+    {D L : ℕ}
     (BB : BlackBox ι D L) {Λ t δ : ℝ}
-    (hsp : IsColumnSparse BB.H D) (hD : 0 < D)
-    (hΛ : spectralNorm BB.H ≤ Λ) (hΛ0 : 0 < Λ)
-    (hδ0 : 0 < δ) (hδ1 : δ ≤ 1) (ht : 0 < t)
+    (_hsp : IsColumnSparse BB.H D) (hD : 0 < D)
+    (_hΛ : spectralNorm BB.H ≤ Λ) (hΛ0 : 0 < Λ)
+    (hδ0 : 0 < δ) (_hδ1 : δ ≤ 1) (ht : 0 < t)
     (hcond1 : Real.sqrt δ < Λ * t)
-    (hcond2 : Λ * t < δ * (D : ℝ))
+    (_hcond2 : Λ * t < δ * (D : ℝ))
     {Lg : ℕ} (hLg : 2 ≤ Lg) {τ : ℝ} (hτ : 0 < τ)
     (hτlow : δ / (Real.rpow (Lg : ℝ) (3 / 2) * Λ ^ 2 * t) ≤ τ) :
     0 < theorem2QueryExpr Λ D t δ ∧

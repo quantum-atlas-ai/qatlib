@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Qatlib.Concepts.QspSimulation.Achievability.ExponentialPolynomial
-import Mathlib.Algebra.Polynomial.Roots
-import Mathlib.Data.Complex.BigOperators
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Qatlib.Concepts.QspSimulation.Achievability.ExponentialPolynomial
+public import Mathlib.Algebra.Polynomial.Roots
+public import Mathlib.Basic.Complex.BigOperators
+
+@[expose] public section
 
 /-!
 # Real trigonometric Taylor approximations

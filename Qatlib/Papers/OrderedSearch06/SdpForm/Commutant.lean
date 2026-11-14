@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.OrderedSearch06.SdpForm.Basic
-import Mathlib.Data.Matrix.Block
-import Mathlib.LinearAlgebra.Matrix.PosDef
-import Mathlib.Analysis.Matrix.Order
+module
+
+public import Qatlib.Papers.OrderedSearch06.SdpForm.Basic
+public import Mathlib.Data.Matrix.Block
+public import Mathlib.LinearAlgebra.Matrix.PosDef
+public import Mathlib.Analysis.Matrix.Order
+
+@[expose] public section
 
 /-!
 # Counteridentity symmetry and block reduction

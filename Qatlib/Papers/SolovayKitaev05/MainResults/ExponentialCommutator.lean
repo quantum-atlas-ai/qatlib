@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Normed.Algebra.MatrixExponential
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.LinearAlgebra.Matrix.Hermitian
-import Mathlib.Analysis.SpecificLimits.Basic
+module
+
+public import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.LinearAlgebra.Matrix.Hermitian
+public import Mathlib.Analysis.SpecificLimits.Basic
+
+@[expose] public section
 
 /-!
 # Third-order approximation of exponential commutators
@@ -250,9 +254,11 @@ lemma norm_two_mul_le (Z : Matrix ι ι ℂ) : ‖(2 : Matrix ι ι ℂ) * Z‖ 
   calc ‖(2 : Matrix ι ι ℂ) * Z‖ ≤ ‖(2 : Matrix ι ι ℂ)‖ * ‖Z‖ := norm_mul_le _ _
     _ = 2 * ‖Z‖ := by rw [norm_two]
 
+omit [Nonempty ι] in
+
 /-- The polynomial `q4 Z` equals four times the quadratic exponential approximation `1 + Z +
 Z^2/2`. -/
-lemma q4_eq_smul (Z : Matrix ι ι ℂ) :
+lemma q4_eq_smul {ι : Type*} [_scopeInst0 : Fintype ι] [_scopeInst1 : DecidableEq ι] [_scopeInst2 : Nonempty ι] (Z : Matrix ι ι ℂ) :
     q4 Z = (4:ℂ) • (1 + Z + (2:ℂ)⁻¹ • Z ^ 2) := by
   rw [smul_add, smul_add, smul_smul, pow_two]
   simp only [q4]
@@ -343,28 +349,36 @@ lemma norm_exp_four_smul_le (Z : Matrix ι ι ℂ) (hZ : ‖Z‖ ≤ 1/2) :
   rw [norm_smul, show ‖(4:ℂ)‖ = (4:ℝ) by norm_num]
   nlinarith [norm_exp_le_two Z hZ]
 
+omit [Nonempty ι] in
+
 /-- The polynomial `q4 Z` decomposes as the scalar matrix `4` plus `Bq Z`. -/
-lemma q4_eq (Z : Matrix ι ι ℂ) : q4 Z = 4 + Bq Z := by
+lemma q4_eq {ι : Type*} [_scopeInst0 : Fintype ι] [_scopeInst1 : DecidableEq ι] [_scopeInst2 : Nonempty ι] (Z : Matrix ι ι ℂ) : q4 Z = 4 + Bq Z := by
   simp only [q4, Bq]; abel
+
+omit [Nonempty ι] in
 
 /-- Expanding four factors of the form `4 + a` gives the ordered sums of constant, linear,
 pairwise, triple, and quadruple products. -/
-lemma expand_four (a b c d : Matrix ι ι ℂ) :
+lemma expand_four {ι : Type*} [_scopeInst0 : Fintype ι] [_scopeInst1 : DecidableEq ι] [_scopeInst2 : Nonempty ι] (a b c d : Matrix ι ι ℂ) :
     (4 + a) * (4 + b) * (4 + c) * (4 + d)
       = 4 * 4 * 4 * 4 + 4 * 4 * 4 * (a + b + c + d)
         + 4 * 4 * (a * b + a * c + a * d + b * c + b * d + c * d)
         + 4 * (a * b * c + a * b * d + a * c * d + b * c * d) + a * b * c * d := by
   noncomm_ring
 
+omit [Nonempty ι] in
+
 /-- The sum of the four `Bq` terms at `X`, `Y`, `-X`, and `-Y` equals `4*X^2 + 4*Y^2`. -/
-lemma S1 (X Y : Matrix ι ι ℂ) : Bq X + Bq Y + Bq (-X) + Bq (-Y) = 4 * (X * X) + 4 * (Y * Y) := by
+lemma S1 {ι : Type*} [_scopeInst0 : Fintype ι] [_scopeInst1 : DecidableEq ι] [_scopeInst2 : Nonempty ι] (X Y : Matrix ι ι ℂ) : Bq X + Bq Y + Bq (-X) + Bq (-Y) = 4 * (X * X) + 4 * (Y * Y) := by
   simp only [Bq]; noncomm_ring
 
 set_option maxHeartbeats 2000000 in
 
+omit [Nonempty ι] in
+
 /-- The scaled pairwise terms together with the scaled single-factor sum equal `256*(X*Y - Y*X)
 + Err4 X Y`. -/
-lemma S2 (X Y : Matrix ι ι ℂ) :
+lemma S2 {ι : Type*} [_scopeInst0 : Fintype ι] [_scopeInst1 : DecidableEq ι] [_scopeInst2 : Nonempty ι] (X Y : Matrix ι ι ℂ) :
     4 * 4 * (Bq X * Bq Y + Bq X * Bq (-X) + Bq X * Bq (-Y) + Bq Y * Bq (-X)
           + Bq Y * Bq (-Y) + Bq (-X) * Bq (-Y))
       + 4 * 4 * 4 * (4 * (X * X) + 4 * (Y * Y))
@@ -410,9 +424,11 @@ lemma master_identity (X Y : Matrix ι ι ℂ) :
         rw [h256]
         try abel
 
+omit [Nonempty ι] in
+
 /-- The product of two scalar multiples of matrices is the product matrix scaled by the product
 of the scalars. -/
-lemma smul_mul_smul' (a b : ℂ) (x y : Matrix ι ι ℂ) : (a • x) * (b • y) = (a*b) • (x*y) := by
+lemma smul_mul_smul' {ι : Type*} [_scopeInst0 : Fintype ι] [_scopeInst1 : DecidableEq ι] [_scopeInst2 : Nonempty ι] (a b : ℂ) (x y : Matrix ι ι ℂ) : (a • x) * (b • y) = (a*b) • (x*y) := by
   rw [Algebra.smul_mul_assoc, Algebra.mul_smul_comm, smul_smul]
 
 /-- A product of four matrices each scaled by `a` equals their ordered product scaled by
@@ -421,8 +437,10 @@ lemma smul_four_prod (a : ℂ) (x1 x2 x3 x4 : Matrix ι ι ℂ) :
     (a • x1) * (a • x2) * (a • x3) * (a • x4) = (a*a*a*a) • (x1*x2*x3*x4) := by
   rw [smul_mul_smul', smul_mul_smul', smul_mul_smul']
 
+omit [Nonempty ι] in
+
 /-- The norm of a product of three matrices is at most the product of their norms. -/
-lemma norm_mul3_le (a b c : Matrix ι ι ℂ) : ‖a * b * c‖ ≤ ‖a‖ * ‖b‖ * ‖c‖ := by
+lemma norm_mul3_le {ι : Type*} [_scopeInst0 : Fintype ι] [_scopeInst1 : DecidableEq ι] [_scopeInst2 : Nonempty ι] (a b c : Matrix ι ι ℂ) : ‖a * b * c‖ ≤ ‖a‖ * ‖b‖ * ‖c‖ := by
   calc ‖a * b * c‖ ≤ ‖a * b‖ * ‖c‖ := norm_mul_le _ _
     _ ≤ (‖a‖ * ‖b‖) * ‖c‖ := mul_le_mul_of_nonneg_right (norm_mul_le _ _) (norm_nonneg c)
 
@@ -432,16 +450,20 @@ lemma norm_mul4_le (a b c d : Matrix ι ι ℂ) :
   calc ‖a * b * c * d‖ ≤ ‖a * b * c‖ * ‖d‖ := norm_mul_le _ _
     _ ≤ (‖a‖ * ‖b‖ * ‖c‖) * ‖d‖ := mul_le_mul_of_nonneg_right (norm_mul3_le a b c) (norm_nonneg d)
 
+omit [Nonempty ι] in
+
 /-- The norm of a sum of four matrices is at most the sum of their norms. -/
-lemma norm_add4_le (a b c d : Matrix ι ι ℂ) :
+lemma norm_add4_le {ι : Type*} [_scopeInst0 : Fintype ι] [_scopeInst1 : DecidableEq ι] [_scopeInst2 : Nonempty ι] (a b c d : Matrix ι ι ℂ) :
     ‖a + b + c + d‖ ≤ ‖a‖ + ‖b‖ + ‖c‖ + ‖d‖ := by
   have h1 : ‖a + b + c + d‖ ≤ ‖a + b + c‖ + ‖d‖ := norm_add_le _ _
   have h2 : ‖a + b + c‖ ≤ ‖a + b‖ + ‖c‖ := norm_add_le _ _
   have h3 : ‖a + b‖ ≤ ‖a‖ + ‖b‖ := norm_add_le a b
   linarith
 
+omit [Nonempty ι] in
+
 /-- The norm of a sum of eight matrices is at most the sum of their norms. -/
-lemma norm_add8_le (a1 a2 a3 a4 a5 a6 a7 a8 : Matrix ι ι ℂ) :
+lemma norm_add8_le {ι : Type*} [_scopeInst0 : Fintype ι] [_scopeInst1 : DecidableEq ι] [_scopeInst2 : Nonempty ι] (a1 a2 a3 a4 a5 a6 a7 a8 : Matrix ι ι ℂ) :
     ‖a1 + a2 + a3 + a4 + a5 + a6 + a7 + a8‖
       ≤ ‖a1‖ + ‖a2‖ + ‖a3‖ + ‖a4‖ + ‖a5‖ + ‖a6‖ + ‖a7‖ + ‖a8‖ := by
   have h1 : ‖a1 + a2 + a3 + a4 + a5 + a6 + a7 + a8‖
@@ -456,15 +478,17 @@ lemma norm_add8_le (a1 a2 a3 a4 a5 a6 a7 a8 : Matrix ι ι ℂ) :
   have h7 : ‖a1 + a2‖ ≤ ‖a1‖ + ‖a2‖ := norm_add_le a1 a2
   linarith
 
+omit [Nonempty ι] in
+
 /-- The distance from `a` to `c` is bounded by the sum of the distances through an intermediate
 matrix `b`. -/
-lemma norm_sub_le_add (a b c : Matrix ι ι ℂ) : ‖a - c‖ ≤ ‖a - b‖ + ‖b - c‖ := by
+lemma norm_sub_le_add {ι : Type*} [_scopeInst0 : Fintype ι] [_scopeInst1 : DecidableEq ι] [_scopeInst2 : Nonempty ι] (a b c : Matrix ι ι ℂ) : ‖a - c‖ ≤ ‖a - b‖ + ‖b - c‖ := by
   have h : a - c = (a - b) + (b - c) := by abel
   rw [h]; exact norm_add_le _ _
 
 /-- If both input norms are at most `δ` with `0 ≤ δ ≤ 1`, then `‖Err4 X Y‖ ≤ 512*δ^3 + 384*δ^4`. -/
 lemma norm_Err4_le (X Y : Matrix ι ι ℂ) (δ : ℝ)
-    (hX : ‖X‖ ≤ δ) (hY : ‖Y‖ ≤ δ) (hδ0 : 0 ≤ δ) (hδ1 : δ ≤ 1) :
+    (hX : ‖X‖ ≤ δ) (hY : ‖Y‖ ≤ δ) (hδ0 : 0 ≤ δ) (_hδ1 : δ ≤ 1) :
     ‖Err4 X Y‖ ≤ 512 * δ ^ 3 + 384 * δ ^ 4 := by
   have hx : (0:ℝ) ≤ ‖X‖ := norm_nonneg X
   have hy : (0:ℝ) ≤ ‖Y‖ := norm_nonneg Y
@@ -650,8 +674,8 @@ lemma norm_Quad4_le (X Y : Matrix ι ι ℂ) (δ : ℝ)
 at most `M` and corresponding factors differ by at most `ε`, for nonnegative `M` and `ε`. -/
 lemma norm_prod4_sub_le (a1 a2 a3 a4 b1 b2 b3 b4 : Matrix ι ι ℂ) (M ε : ℝ)
     (hM : 0 ≤ M) (hε : 0 ≤ ε)
-    (Ha1 : ‖a1‖ ≤ M) (Ha2 : ‖a2‖ ≤ M) (Ha3 : ‖a3‖ ≤ M) (Ha4 : ‖a4‖ ≤ M)
-    (Hb1 : ‖b1‖ ≤ M) (Hb2 : ‖b2‖ ≤ M) (Hb3 : ‖b3‖ ≤ M) (Hb4 : ‖b4‖ ≤ M)
+    (_Ha1 : ‖a1‖ ≤ M) (Ha2 : ‖a2‖ ≤ M) (Ha3 : ‖a3‖ ≤ M) (Ha4 : ‖a4‖ ≤ M)
+    (Hb1 : ‖b1‖ ≤ M) (Hb2 : ‖b2‖ ≤ M) (Hb3 : ‖b3‖ ≤ M) (_Hb4 : ‖b4‖ ≤ M)
     (h1 : ‖a1 - b1‖ ≤ ε) (h2 : ‖a2 - b2‖ ≤ ε) (h3 : ‖a3 - b3‖ ≤ ε) (h4 : ‖a4 - b4‖ ≤ ε) :
     ‖a1 * a2 * a3 * a4 - b1 * b2 * b3 * b4‖ ≤ 4 * (ε * M ^ 3) := by
   have e : a1 * a2 * a3 * a4 - b1 * b2 * b3 * b4
@@ -872,7 +896,7 @@ set_option maxHeartbeats 400000 in
 /-- For Hermitian `F` and `G` of norm at most `δ ≤ 1/2`, with `δ ≥ 0`, the exponential
 commutator at `I • F` and `I • G` differs from `exp (-(F*G - G*F))` by at most `64*δ^3`, as
 in [DawsonNielsen2006]. -/
-theorem exp_commutator_hermitian (F G : Matrix ι ι ℂ) (hF : F.IsHermitian) (hG : G.IsHermitian)
+theorem exp_commutator_hermitian (F G : Matrix ι ι ℂ) (_hF : F.IsHermitian) (_hG : G.IsHermitian)
     (δ : ℝ) (hFδ : ‖F‖ ≤ δ) (hGδ : ‖G‖ ≤ δ) (hδ0 : 0 ≤ δ) (hδ1 : δ ≤ 1/2) :
     ‖NormedSpace.exp (Complex.I • F) * NormedSpace.exp (Complex.I • G)
         * NormedSpace.exp (-(Complex.I • F)) * NormedSpace.exp (-(Complex.I • G))

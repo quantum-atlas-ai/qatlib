@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Fin
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Data.Complex.Basic
-import Mathlib.Data.Real.Basic
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Ring
-import Qatlib.Concepts.SqEstimation.InnerProduct.SQInnerProductEstimation
+module
+
+public import Mathlib.Algebra.BigOperators.Fin
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Ring
+public import Qatlib.Concepts.SqEstimation.InnerProduct.SQInnerProductEstimation
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

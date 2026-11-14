@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QMechSim97.MainResults.ResourceComplexity
-import Qatlib.Papers.QMechSim97.MainResults.Propagation
-import Qatlib.Papers.QMechSim97.MainResults.PotentialWord
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.QMechSim97.MainResults.ResourceComplexity
+public import Qatlib.Papers.QMechSim97.MainResults.Propagation
+public import Qatlib.Papers.QMechSim97.MainResults.PotentialWord
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Simulation resource comparisons

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
-import Mathlib.Tactic.NormNum
-import Qatlib.Concepts.OrderedBayes.BayesRatioCore.Lemma22Stat
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+public import Mathlib.Tactic.NormNum
+public import Qatlib.Concepts.OrderedBayes.BayesRatioCore.Lemma22Stat
+
+@[expose] public section
 
 /-!
 # Entropy lower bound from a mass cap

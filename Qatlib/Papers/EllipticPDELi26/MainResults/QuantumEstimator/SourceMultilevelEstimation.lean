@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Order.BigOperators.Ring.Finset
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Data.Real.Sqrt
-import Qatlib.Papers.EllipticPDELi26.MainResults.MultilevelAllocation.SourceMultilevelAllocation
+module
+
+public import Mathlib.Algebra.Order.BigOperators.Ring.Finset
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.Real.Sqrt
+public import Qatlib.Papers.EllipticPDELi26.MainResults.MultilevelAllocation.SourceMultilevelAllocation
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -43,7 +47,7 @@ namespace Qatlib.Papers.EllipticPDELi26.MainResults.QuantumEstimator
 /-- Allocation lower bound (Titu / Cauchy–Schwarz), the engine of (5.27).  Same statement as
 `...MultilevelAllocation.source_mlmc_amplitude_cost_lower`. -/
 private theorem mlmc_amplitude_cost_lower {ι : Type*} [Fintype ι] [Nonempty ι]
-    (c budget : ι → ℝ) (ε : ℝ) (hc : ∀ l, 0 ≤ c l) (hε : 0 < ε)
+    (c budget : ι → ℝ) (ε : ℝ) (hc : ∀ l, 0 ≤ c l) (_hε : 0 < ε)
     (hbudget_pos : ∀ l, 0 < budget l) (hbudget : ∑ l, budget l ≤ ε) :
     (∑ l, Real.sqrt (c l)) ^ 2 / ε ≤ ∑ l, c l / budget l := by
   have hsum_pos : 0 < ∑ l, budget l :=

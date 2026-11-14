@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QDynamics10.MainResults.SourceModel
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Data.Nat.Log
+module
+
+public import Qatlib.Papers.QDynamics10.MainResults.SourceModel
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Data.Nat.Log
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -131,9 +135,9 @@ query cost obeys Eq. (25) with `ε̃ = min{ε, 18(5/3)^{k−1}d²ΛΔt}`, while
 `hRef12` is the conclusion of the product-formula bound of Ref. [12, Theorem 3, Eq. (A.3)]
 at step count `r` of Eq. (12) — the one external input of the paper's proof. -/
 theorem lemma4 {I : Type} [Fintype I] [DecidableEq I]
-    (Uexact Uk : Matrix I I ℂ) (C M d k NT Nexp QueryCost : ℕ) (Λ Δt ε : ℝ)
-    (hk : 1 ≤ k) (hM : 1 ≤ M) (hd : 1 ≤ d) (hC : 1 ≤ C)
-    (hΛ : 0 ≤ Λ) (hΔt : 0 < Δt) (hε : 0 < ε)
+    (Uexact Uk : Matrix I I ℂ) (C M d k _NT Nexp QueryCost : ℕ) (Λ Δt ε : ℝ)
+    (_hk : 1 ≤ k) (_hM : 1 ≤ M) (_hd : 1 ≤ d) (_hC : 1 ≤ C)
+    (_hΛ : 0 ≤ Λ) (_hΔt : 0 < Δt) (_hε : 0 < ε)
     (hRef12 : ‖Uexact - Uk‖ ≤ epsilonTilde k d Λ Δt ε / 2)
     (hQuery : QueryCost = C * Nexp)
     (hNexp : Nexp ≤ stepExponentials M d k

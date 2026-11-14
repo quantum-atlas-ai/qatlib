@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SeqEntangle05.MainResults.ExampleStates
+module
+
+public import Qatlib.Papers.SeqEntangle05.MainResults.ExampleStates
+
+@[expose] public section
 
 /-!
 # Standard swap map and unitary realization of isometries
@@ -82,12 +86,12 @@ theorem stdMap_conjTranspose_eq (D : ℕ) :
   simp only [Matrix.conjTranspose_apply, stdMap]
   by_cases h : x = swapTB D z
   · have h' : z = swapTB D x := by rw [h, swapTB_invol]
-    rw [if_pos h', if_pos h]
+    rw [ite_eq_left h', ite_eq_left h]
     simp
   · have h' : z ≠ swapTB D x := by
       intro hz
       exact h (by rw [hz, swapTB_invol])
-    rw [if_neg h', if_neg h]
+    rw [ite_eq_right h', ite_eq_right h]
     simp
 
 /-- The conjugate transpose of the standard swap matrix multiplied by the matrix itself is the
@@ -173,15 +177,15 @@ theorem isometryRealizability (D : ℕ) : IsometryRealizability D := by
     exact hVentry
   let s : Set (Fin D × Fin 2) := {p | p.2 = 0}
   let v : (Fin D × Fin 2) → E := fun p => u p.1
-  have hv : Orthonormal ℂ (s.restrict v) := by
+  have hv : Orthonormal ℂ (s.domRestrict v) := by
     let e : s → Fin D := fun p => p.val.1
     have he : Function.Injective e := by
       intro a b h
       exact Subtype.ext (Prod.ext h (by rw [a.prop, b.prop]))
     have hcomp : Orthonormal ℂ (fun p : s => u (e p)) := hu.comp e he
-    have hfun : (s.restrict v) = (fun p : s => u (e p)) := by
+    have hfun : (s.domRestrict v) = (fun p : s => u (e p)) := by
       funext p
-      simp [Set.restrict, v, e]
+      simp [Set.domRestrict, v, e]
     rw [hfun]
     exact hcomp
   obtain ⟨b', hb'⟩ := Orthonormal.exists_orthonormalBasis_extension_of_card_eq

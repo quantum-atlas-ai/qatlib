@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QPCAAssume18.ClassicalPca.ClassicalPCA
-import Qatlib.Concepts.SketchSpectral.SketchAnalysis.SketchSingularValueL2StabilitySamp
+module
+
+public import Qatlib.Papers.QPCAAssume18.ClassicalPca.ClassicalPCA
+public import Qatlib.Concepts.SketchSpectral.SketchAnalysis.SketchSingularValueL2StabilitySamp
+
+@[expose] public section
 
 /-!
 # Actual row and column PCA sketches
@@ -94,7 +98,7 @@ theorem pcaColumnLaw_spec {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)
     (pcaColumnLaw A hA hd q rows).prob j =
       sketchRowSquared (pcaRowSketch A hA q rows)ᴴ j /
         sketchSquared (pcaRowSketch A hA q rows)ᴴ := by
-  simp only [pcaColumnLaw, dif_pos hR, pcaRowLaw]
+  simp only [pcaColumnLaw, dite_eq_left hR, pcaRowLaw]
 
 /-- The row sampling law satisfies length-squared domination with constant one. -/
 theorem pcaRowLaw_domination {n d : ℕ} (A : Matrix (Fin n) (Fin d) ℂ)

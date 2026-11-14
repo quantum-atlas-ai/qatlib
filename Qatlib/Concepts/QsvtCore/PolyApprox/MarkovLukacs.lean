@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.PolyApprox.MarkovLukacsAtoms
-import Mathlib.Analysis.Complex.Polynomial.Basic
-import Mathlib.Algebra.Polynomial.Degree.SmallDegree
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Ring
+module
+
+public import Qatlib.Concepts.QsvtCore.PolyApprox.MarkovLukacsAtoms
+public import Mathlib.Analysis.Complex.Polynomial.Basic
+public import Mathlib.Algebra.Polynomial.Degree.SmallDegree
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 /-!
 # Markov–Lukács representations for positive polynomials

@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroup
-import Qatlib.Concepts.GkslBridge.GkslBridge.QuantumMixingSourceBoundsDefs
-import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupCore
-import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupDirichlet
-import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupEntropy
-import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupKmsMixing
+module
+
+public import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroup
+public import Qatlib.Concepts.GkslBridge.GkslBridge.QuantumMixingSourceBoundsDefs
+public import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupCore
+public import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupDirichlet
+public import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupEntropy
+public import Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupKmsMixing
+
+@[expose] public section
 
 /-!
 # Compatibility of two finite-dimensional GKSL models
@@ -37,11 +41,23 @@ namespace Qatlib.Concepts.GkslBridge.GkslBridge
 open Matrix Qatlib.Concepts.LindbladFlow.GkslSemigroup.LindbladSemigroupCore
 open scoped BigOperators Matrix.Norms.L2Operator ComplexOrder
 
+/--
+error: The namespace `GkslBridge` is duplicated in the declaration `Qatlib.Concepts.GkslBridge.GkslBridge.thermalData`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- Regard a semigroup GKSL model as thermal-source data with the same Hamiltonian and `D * D`
 jump operators. -/
 def thermalData {D : ℕ} (G : GKSL D) : Qatlib.Concepts.GkslBridge.GkslBridge.GKSLData D (D * D) :=
   ⟨G.ham, G.jumps⟩
 
+/--
+error: The namespace `GkslBridge` is duplicated in the declaration `Qatlib.Concepts.GkslBridge.GkslBridge.generator_eq`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The generator of the converted thermal data equals the original Lindblad linear map. -/
 theorem generator_eq {D : ℕ} (G : GKSL D) :
     Qatlib.Concepts.GkslBridge.GkslBridge.gkslMap (thermalData G) = lindbladMap G := by
@@ -52,16 +68,22 @@ theorem generator_eq {D : ℕ} (G : GKSL D) :
     LinearMap.add_apply, LinearMap.sub_apply, LinearMap.smul_apply, LinearMap.sum_apply,
     LinearMap.comp_apply, LinearMap.mulLeft_apply, LinearMap.mulRight_apply, Matrix.mul_assoc]
 
+/--
+error: The namespace `GkslBridge` is duplicated in the declaration `Qatlib.Concepts.GkslBridge.GkslBridge.evolve_eq`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- The thermal-model exponential and the Lindblad semigroup give the same
 evolution for the same Hamiltonian and jumps. Compare
 [Lindblad, dynamical semigroup generators][Lindblad1976]. -/
 theorem evolve_eq {D : ℕ} (G : GKSL D) (t : ℝ) (X : Operator D) :
     Qatlib.Concepts.GkslBridge.GkslBridge.evolveAt (thermalData G) t X = lindbladSemigroup G t X := by
-  letI : NormedAddCommGroup (Operator D) := Matrix.instL2OpNormedAddCommGroup
-  letI : NormedSpace ℂ (Operator D) := Matrix.instL2OpNormedSpace
-  letI : TopologicalSpace (Operator D) :=
+  let : NormedAddCommGroup (Operator D) := Matrix.instL2OpNormedAddCommGroup
+  let : NormedSpace ℂ (Operator D) := Matrix.instL2OpNormedSpace
+  let : TopologicalSpace (Operator D) :=
     (inferInstance : NormedAddCommGroup (Operator D)).toUniformSpace.toTopologicalSpace
-  letI : Module ℂ (Operator D) := (inferInstance : NormedSpace ℂ (Operator D)).toModule
+  let : Module ℂ (Operator D) := (inferInstance : NormedSpace ℂ (Operator D)).toModule
   let L : Operator D →L[ℂ] Operator D := LinearMap.toContinuousLinearMap (lindbladMap G)
   have hh := (ContinuousLinearMap.apply ℂ (Operator D) X).hasSum
     (NormedSpace.exp_series_hasSum_exp' (𝕂 := ℂ) ((t : ℂ) • L))
@@ -70,16 +92,16 @@ theorem evolve_eq {D : ℕ} (G : GKSL D) (t : ℝ) (X : Operator D) :
           (((k.factorial : ℂ)⁻¹) • ((t : ℂ) • L) ^ k) =
         ((t : ℂ) ^ k / k.factorial) • ((lindbladMap G)^[k]) X := by
     change (((k.factorial : ℂ)⁻¹) • ((t : ℂ) • L) ^ k) X = _
-    rw [ContinuousLinearMap.smul_apply]
+    rw [_root_.smul_apply]
     have hpow (k : ℕ) : ((t : ℂ) • L) ^ k = (t : ℂ) ^ k • L ^ k := by
       induction k with
       | zero => simp only [pow_zero, one_smul]
       | succ k ih =>
         rw [pow_succ, ih]
         ext Y
-        simp only [ContinuousLinearMap.mul_apply, ContinuousLinearMap.smul_apply,
+        simp only [_root_.mul_apply_eq_comp, _root_.smul_apply,
           map_smul, smul_smul, pow_succ, mul_comm]
-    rw [hpow k, ContinuousLinearMap.smul_apply, smul_smul, ContinuousLinearMap.coe_pow']
+    rw [hpow k, _root_.smul_apply, smul_smul, FunLike.coe_pow_eq_iterate]
     change ((k.factorial : ℂ)⁻¹ * (t : ℂ) ^ k) • ((lindbladMap G)^[k]) X = _
     rw [div_eq_mul_inv, mul_comm]
   simp only [ht] at hh
@@ -87,6 +109,12 @@ theorem evolve_eq {D : ℕ} (G : GKSL D) (t : ℝ) (X : Operator D) :
   simpa only [Qatlib.Concepts.GkslBridge.GkslBridge.evolveAt, Qatlib.Concepts.GkslBridge.GkslBridge.gkslCLM,
     generator_eq] using! heq
 
+/--
+error: The namespace `GkslBridge` is duplicated in the declaration `Qatlib.Concepts.GkslBridge.GkslBridge.g1`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- Converting a GKSL model preserves both its generator and its exponential time evolution. -/
 theorem g1 :
     ∀ (D : ℕ) (G : Qatlib.Concepts.LindbladFlow.GkslSemigroup.GKSL D),
@@ -97,6 +125,12 @@ theorem g1 :
   intro D G
   exact ⟨generator_eq G, evolve_eq G⟩
 
+/--
+error: The namespace `GkslBridge` is duplicated in the declaration `Qatlib.Concepts.GkslBridge.GkslBridge.g2`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- Under the positive-definite reference-density, KMS self-adjointness, and KMS gap hypotheses,
 the converted evolution satisfies the stated exponential trace-distance bound. -/
 theorem g2 :

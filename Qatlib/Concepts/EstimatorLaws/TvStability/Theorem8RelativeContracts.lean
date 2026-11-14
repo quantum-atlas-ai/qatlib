@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MonteCarloMean.LayeredMean.LayeredQuantumMean
-import Qatlib.Concepts.AmplitudeCore.PayoffMedian.SignedCenteredQuantumMean
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.IndependentWeightedEstimator
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.HeterogeneousBlockMedian
+module
+
+public import Qatlib.Concepts.MonteCarloMean.LayeredMean.LayeredQuantumMean
+public import Qatlib.Concepts.AmplitudeCore.PayoffMedian.SignedCenteredQuantumMean
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.IndependentWeightedEstimator
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.HeterogeneousBlockMedian
+
+@[expose] public section
 
 /-!
 # Pilot-scaled relative estimator laws
@@ -62,11 +66,11 @@ private theorem theorem6Scale_nonneg {I : Type} [Fintype I] (f : I → ℝ) (B :
     mul_nonneg (by norm_num) (Real.sqrt_nonneg (B + 1))
   unfold theorem6Scale
   by_cases h : avg f ω = 0
-  · have hif : (if avg f ω = 0 then (1 : ℝ) else 0) = 1 := by rw [if_pos h]
+  · have hif : (if avg f ω = 0 then (1 : ℝ) else 0) = 1 := by rw [ite_eq_left h]
     have hz : avg f ω * (2 * Real.sqrt (B + 1)) = 0 := by rw [h, zero_mul]
     rw [hz, hif]
     norm_num
-  · have hif : (if avg f ω = 0 then (1 : ℝ) else 0) = 0 := by rw [if_neg h]
+  · have hif : (if avg f ω = 0 then (1 : ℝ) else 0) = 0 := by rw [ite_eq_right h]
     rw [hif]
     exact add_nonneg (mul_nonneg havg hsqrt) le_rfl
 
@@ -76,7 +80,7 @@ noncomputable def theorem6ScaledPayoff {I : Type} [Fintype I] (f : I → ℝ)
   fun i => f i / theorem6Scale f B N ω
 
 /-- Shows that the pilot-scaled payoff is nonnegative when the original payoff is nonnegative. -/
-private theorem theorem6ScaledPayoff_nonneg {I : Type} [Fintype I] (f : I → ℝ)
+theorem theorem6ScaledPayoff_nonneg {I : Type} [Fintype I] (f : I → ℝ)
     (B : ℝ) (N : ℕ) (ω : Fin N → I) (hf : ∀ i, 0 ≤ f i) :
     ∀ i, 0 ≤ theorem6ScaledPayoff f B N ω i := fun i =>
   div_nonneg (hf i) (theorem6Scale_nonneg f B N ω hf)

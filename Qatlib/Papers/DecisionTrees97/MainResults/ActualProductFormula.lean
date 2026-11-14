@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.DecisionTrees97.MainResults.RaisingHamiltonian
-import Qatlib.Concepts.TrotterFormula.LieStrang.CommutatorProductFormula
+module
+
+public import Qatlib.Papers.DecisionTrees97.MainResults.RaisingHamiltonian
+public import Qatlib.Concepts.TrotterFormula.LieStrang.CommutatorProductFormula
+
+@[expose] public section
 
 /-!
 # Indexed product formula for the tree Hamiltonian

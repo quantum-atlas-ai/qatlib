@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorRefined
-import Mathlib.Data.Fin.Rev
+module
+
+public import Qatlib.Concepts.TrotterFormula.GeneralOrder.TrotterCommutatorRefined
+public import Mathlib.Data.Fin.Rev
+
+@[expose] public section
 
 /-!
 # Grouped ordered compositions

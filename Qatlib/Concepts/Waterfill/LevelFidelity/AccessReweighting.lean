@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WaterLevel.WaterPrecision.CoherentReweightingDefs
+module
+
+public import Qatlib.Concepts.WaterLevel.WaterPrecision.CoherentReweightingDefs
+
+@[expose] public section
 
 /-!
 # Reweighting success and limits of lower-bound consumers
@@ -66,11 +70,11 @@ variable {m : ℕ} (π σ : Fin m → ℚ)
 
 /-- The constant-one rational source table on a single coordinate, used for the zero-query
 counterexample. -/
-private def gext3CounterPi : Fin 1 → ℚ := fun _ => 1
+def gext3CounterPi : Fin 1 → ℚ := fun _ => 1
 
 /-- The constant-one rational target table on a single coordinate, used for the zero-query
 counterexample. -/
-private def gext3CounterSig : Fin 1 → ℚ := fun _ => 1
+def gext3CounterSig : Fin 1 → ℚ := fun _ => 1
 
 /-- Certifies `ReweightingSuccess` for the exact resampling word with fidelity `levelDot^2 /
 levelMass` under normalization, nonnegativity, and positive mass. Its ledger has `2 * rounds
@@ -211,7 +215,7 @@ theorem gext3_filtered_consumer_refutable :
             Ket ((0, 0), false) p = if p = ((0, 0), false) then 1 else 0 := fun _ => rfl
         conv_lhs => simp only [hket, mul_ite, mul_one, mul_zero]
         rw [Finset.sum_ite_eq']
-        simp only [Finset.mem_univ, if_true]
+        simp only [Finset.mem_univ, ite_true]
         simp [resamplingFamily, gext3CounterSig]
       have hnorm : Complex.normSq (ξ 0 0) = 1 := by
         have h := hξ 0

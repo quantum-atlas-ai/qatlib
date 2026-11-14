@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.RydbergMaxCut26.RatioBounds.Hypergeometric
-import Qatlib.Papers.RydbergMaxCut26.RatioBounds.ConditionalRatio
+module
+
+public import Qatlib.Papers.RydbergMaxCut26.RatioBounds.Hypergeometric
+public import Qatlib.Papers.RydbergMaxCut26.RatioBounds.ConditionalRatio
+
+@[expose] public section
 
 /-!
 # Rational polynomial certificates for the approximation factors

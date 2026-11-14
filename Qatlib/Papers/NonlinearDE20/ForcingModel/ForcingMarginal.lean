@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
-import Mathlib.LinearAlgebra.Matrix.PosDef
-import Mathlib.Tactic
+module
+
+public import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
+public import Mathlib.LinearAlgebra.Matrix.PosDef
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Reduced density of replicated forcing

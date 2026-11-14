@@ -4,19 +4,23 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Polynomial.FieldDivision
-import Mathlib.Analysis.Calculus.Deriv.Polynomial
-import Mathlib.Analysis.Calculus.IteratedDeriv.Lemmas
-import Mathlib.Analysis.Calculus.LocalExtr.Rolle
-import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
-import Mathlib.Data.Finset.Sort
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.LinearCombination
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Push
-import Mathlib.Tactic.Ring
+module
+
+public import Mathlib.Algebra.Polynomial.FieldDivision
+public import Mathlib.Analysis.Calculus.Deriv.Polynomial
+public import Mathlib.Analysis.Calculus.IteratedDeriv.Lemmas
+public import Mathlib.Analysis.Calculus.LocalExtr.Rolle
+public import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
+public import Mathlib.Data.Finset.Sort
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.LinearCombination
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Push
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 /-!
 # Polynomial tools for Gauss-Legendre quadrature

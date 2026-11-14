@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchClock
-import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchUniform
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchClock
+public import Qatlib.Concepts.AmplitudeSearch.InterruptMin.SearchUniform
+
+@[expose] public section
 
 /-!
 # Terminal traces for repeated quantum search
@@ -106,7 +110,7 @@ theorem search_terminal_output {I : Type*} [Fintype I] [DecidableEq I]
       simp only [TerminalOutput, TerminalMass]
       rw [Fintype.sum_prod_type]
       simp_rw [Fintype.sum_prod_type]
-      simp only [Finset.sum_ite_eq', Finset.mem_univ, if_true]
+      simp only [Finset.sum_ite_eq', Finset.mem_univ, ite_true]
       exact search_terminal_output_marginal hN A sizes hsizes n i
     change HasSum (fun n => ∑ x : TerminalStage I sizes n,
       if TerminalOutput ⟨n,x⟩ = i then TerminalMass A sizes ⟨n,x⟩ else 0) _

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QCryptanal15.MainResults.Complexity.Core
+module
+
+public import Qatlib.Papers.QCryptanal15.MainResults.Complexity.Core
+
+@[expose] public section
 
 /-!
 # Q2 truncated-differential distinguisher costs

@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.UniformBqp.FiniteGateWord.QmaCompleteness
-import Qatlib.Concepts.TensorRegisters.RegisterModel.TensorRegisters
-import Mathlib.Algebra.Order.BigOperators.Ring.Finset
-import Mathlib.Tactic.IntervalCases
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
+module
+
+public import Qatlib.Concepts.UniformBqp.FiniteGateWord.QmaCompleteness
+public import Qatlib.Concepts.TensorRegisters.RegisterModel.TensorRegisters
+public import Mathlib.Algebra.Order.BigOperators.Ring.Finset
+public import Mathlib.Tactic.IntervalCases
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+
+@[expose] public section
 
 /-!
 # Energy bounds for local register operators

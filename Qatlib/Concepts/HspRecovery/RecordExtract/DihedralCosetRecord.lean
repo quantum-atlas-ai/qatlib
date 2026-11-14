@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.HspRecovery.Distinguisher.HiddenSubgroupSampling
-import Qatlib.Concepts.QuditTeleport.TeleportCore.Transform
+module
+
+public import Qatlib.Concepts.HspRecovery.Distinguisher.HiddenSubgroupSampling
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.Transform
+
+@[expose] public section
 
 /-!
 # Dihedral coset records and phase qubits
@@ -120,10 +124,10 @@ theorem norm_dihedralQubitPhase (s k : ZMod N) : ‖dihedralQubitPhase N s k‖ 
   show ‖Complex.exp (((2 * Real.pi * ((s * k).val / N : ℝ) : ℝ) * Complex.I))‖ = 1
   exact Complex.norm_exp_ofReal_mul_I _
 
-omit [AddCommGroup S] in
+omit [AddCommGroup S] [NeZero N] in
 
 /-- Every dihedral phase qubit is normalized. -/
-theorem normalized_dihedralQubitState (s k : ZMod N) :
+theorem normalized_dihedralQubitState (N : ℕ) [_inst : NeZero N] (s k : ZMod N) :
     Normalized (dihedralQubitState N s k) := by
   have hsqrt : (0 : ℝ) < Real.sqrt 2 := Real.sqrt_pos.mpr (by norm_num)
   have key : ∀ x : ℂ, ‖(1 : ℂ) / Real.sqrt 2 * x‖ ^ 2 = 1 / 2 * ‖x‖ ^ 2 := by

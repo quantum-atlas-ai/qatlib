@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Nat.Digits.Lemmas
-import Mathlib.Algebra.BigOperators.Fin
-import Mathlib.Data.List.GetD
-import Mathlib.Data.ZMod.Basic
+module
+
+public import Mathlib.Data.Nat.Digits.Lemmas
+public import Mathlib.Algebra.BigOperators.Fin
+public import Mathlib.Data.List.GetD
+public import Mathlib.Data.ZMod.Basic
+
+@[expose] public section
 
 /-!
 # Radix encoding and decoding of vector differences
@@ -79,7 +83,7 @@ theorem digitsAppend_radix {B n : ℕ} (hB : 1 < B) (d : Fin n → Fin B) :
       = List.ofFn (fun i => (d i : ℕ)) := by
   have hmem : List.ofFn (fun i : Fin n => ((d i : Fin B) : ℕ))
       ∈ {L : List ℕ | L.length = n ∧ ∀ x ∈ L, x < B} := by
-    simp only [Set.mem_setOf_eq, List.length_ofFn, true_and]
+    simp only [Set.mem_ofPred_eq, List.length_ofFn, true_and]
     intro x hx
     rw [List.mem_ofFn] at hx
     obtain ⟨i, rfl⟩ := hx

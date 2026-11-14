@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.HorizontalFamily
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.HorizontalFamily
+
+@[expose] public section
 
 /-!
 # Smooth time rescaling of the original horizontal family
@@ -180,7 +184,15 @@ private def positionInverseLinear : SpatialPoint →ₗ[ℝ] TransversePoint × 
 
 /-- Definition of source Position Inverse in the Hopf Atlas construction. -/
 def sourcePositionInverse : SpatialPoint →L[ℝ] TransversePoint × ℝ :=
-  positionInverseLinear.toContinuousLinearMap
+  ({ toFun x := (WithLp.toLp 2 ![x 1,x 2], x 0)
+     map_add' a b := by
+       apply Prod.ext
+       · ext j; fin_cases j <;> rfl
+       · rfl
+     map_smul' c a := by
+       apply Prod.ext
+       · ext j; fin_cases j <;> rfl
+       · rfl } : SpatialPoint →ₗ[ℝ] TransversePoint × ℝ).toContinuousLinearMap
 
 /-- Original `sourcePosition_inverse` guarantee for the `MixedTime` construction; the complete source hypotheses are retained. -/
 @[simp] theorem sourcePosition_inverse (x : SpatialPoint) :
@@ -228,8 +240,8 @@ theorem sourceLiftSpatialExtension_timePartial (v : SpatialPoint → SpatialPoin
   rw [hd.fderiv]
   have haxis : sourcePositionInverse (EuclideanSpace.single 0 1)=(0,1) := by
     apply Prod.ext
-    · ext j; fin_cases j <;> simp [sourcePositionInverse, positionInverseLinear]
-    · simp [sourcePositionInverse, positionInverseLinear]
+    · ext j; fin_cases j <;> simp [sourcePositionInverse]
+    · simp [sourcePositionInverse]
   simp only [ContinuousLinearMap.comp_apply, haxis]
   change fderiv ℝ (sourceLiftExtension v hv q₀ h₀) ((sourcePositionInverse x).1,x 0) (0,1)=_
   rw [sourceLiftExtension_timeDerivative v hv hu q₀ h₀ (sourcePositionInverse x).1 (x 0) hx]

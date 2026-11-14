@@ -13,6 +13,11 @@ on:
       - 'lake-cache.toml'
       - 'scripts/*.lean'
       - 'scripts/complete_outputs.py'
+      - 'scripts/build_docs.sh'
+      - 'scripts/docs_cache.py'
+      - 'scripts/test_docs_pipeline.py'
+      - 'docbuild/**'
+      - 'docs/references.bib'
       - '.github/workflows/build.yml'
       - '.github/workflows/publish-cache.yml'
   pull_request:
@@ -192,7 +197,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p .lake
-          if [ "${{ steps.check_r2.outputs.hit_kind }}" = "exact" ] && lake --no-build build Qatlib > "$RUNNER_TEMP/nobuild.log" 2>&1; then
+          if [ "${{ steps.check_r2.outputs.hit_kind }}" = "exact" ] && lake --fail-fast --no-build build Qatlib > "$RUNNER_TEMP/nobuild.log" 2>&1; then
             echo "All Qatlib artifacts materialized from R2 cache; reusing verified mapping without leantar repacking."
             cp "${{ steps.check_r2.outputs.mapping }}" .lake/outputs.jsonl
           else
@@ -213,7 +218,7 @@ jobs:
                   except OSError: shutil.copy2(src, dst)
           PY
             fi
-            if ! lake build --wfail Qatlib -o .lake/outputs.jsonl > "$RUNNER_TEMP/build.log" 2>&1; then
+            if ! lake --fail-fast build --wfail Qatlib -o .lake/outputs.jsonl > "$RUNNER_TEMP/build.log" 2>&1; then
               tail -n 100 "$RUNNER_TEMP/build.log"
               exit 1
             fi

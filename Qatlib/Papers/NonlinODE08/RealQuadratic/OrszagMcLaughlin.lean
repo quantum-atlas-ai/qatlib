@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Real.Basic
-import Mathlib.Tactic.Ring
+module
+
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 /-!
 # OrszagMcLaughlin — a real quadratic Orszag--McLaughlin local model

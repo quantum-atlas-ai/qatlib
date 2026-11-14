@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SignalPrimitive.SparseSim.SparseSimCorrectedRestrictedStat
-import Qatlib.Concepts.QspSimulation.JacobiAnger.JacobiAngerTruncationLowc
-import Qatlib.Concepts.QspSimulation.JacobiAnger.JacobiAngerCorrectedDegreeLowc
-import Qatlib.Concepts.QspSimulation.Achievability.Lc17AuxSourceCompilation
-import Qatlib.Concepts.SignalPrimitive.SparseSim.Lc17AuxSimulation
+module
+
+public import Qatlib.Concepts.SignalPrimitive.SparseSim.SparseSimCorrectedRestrictedStat
+public import Qatlib.Concepts.QspSimulation.JacobiAnger.JacobiAngerTruncationLowc
+public import Qatlib.Concepts.QspSimulation.JacobiAnger.JacobiAngerCorrectedDegreeLowc
+public import Qatlib.Concepts.QspSimulation.Achievability.Lc17AuxSourceCompilation
+public import Qatlib.Concepts.SignalPrimitive.SparseSim.Lc17AuxSimulation
+
+@[expose] public section
 
 /-!
 # Restricted Sparse Hamiltonian Simulation

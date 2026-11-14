@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.Detection.CorrectedSzegedyDetector
-import Qatlib.Concepts.WalkSearch.Spectral.BipartiteTauCorrespondenceConsumers
-import Qatlib.Concepts.WalkSearch.FrameSpectral.SpectralBounds
+module
+
+public import Qatlib.Concepts.WalkSearch.Detection.CorrectedSzegedyDetector
+public import Qatlib.Concepts.WalkSearch.Spectral.BipartiteTauCorrespondenceConsumers
+public import Qatlib.Concepts.WalkSearch.FrameSpectral.SpectralBounds
+
+@[expose] public section
 
 /-!
 # Szegedy detection guarantees

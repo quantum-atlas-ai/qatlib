@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.TauEmbedding.SzegedyLemma10PairingQuan
-import Qatlib.Concepts.WalkSearch.TauEmbedding.SzegedyTheorem5InteriorNormQuan
-import Qatlib.Concepts.WalkSearch.TauEmbedding.BipartiteTauCorrespondence
+module
+
+public import Qatlib.Concepts.WalkSearch.TauEmbedding.SzegedyLemma10PairingQuan
+public import Qatlib.Concepts.WalkSearch.TauEmbedding.SzegedyTheorem5InteriorNormQuan
+public import Qatlib.Concepts.WalkSearch.TauEmbedding.BipartiteTauCorrespondence
+
+@[expose] public section
 
 /-!
 # Pairings and norms of walk eigenvectors

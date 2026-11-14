@@ -4,12 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.QsvtCore
-import Qatlib.Concepts.ChoiKraus.ChoiKrausChar.ChannelStructure
-import Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvt
-import Qatlib.Concepts.SpectralSketch.SketchSpectral.SvtGramTransferSamp
-import Mathlib.Analysis.Normed.Lp.WithLp
-import Mathlib.LinearAlgebra.Lagrange
+module
+
+public import Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.QsvtCore
+public import Qatlib.Concepts.ChoiKraus.ChoiKrausChar.ChannelStructureContext
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.GslwSourceQsvt
+public import Qatlib.Concepts.SpectralSketch.SketchSpectral.SvtGramTransferSamp
+public import Mathlib.Analysis.Normed.Lp.WithLp
+public import Mathlib.LinearAlgebra.Lagrange
+
+@[expose] public section
+set_option linter.unusedTactic false
 
 /-!
 # Rational Chebyshev rectangle approximations
@@ -37,6 +42,7 @@ set_option backward.isDefEq.respectTransparency false
 open Qatlib.Foundations.PureStateMath
 
 set_option autoImplicit false
+set_option linter.unusedTactic false
 
 open scoped BigOperators
 
@@ -643,7 +649,7 @@ end
 noncomputable section
 
 /-- Round a real number to a rational multiple of `2⁻ᴺ` using `floor (x * 2^N + 1 / 2)`. -/
-private noncomputable def rectDyadicRound (x : ℝ) (N : ℕ) : ℚ :=
+noncomputable def rectDyadicRound (x : ℝ) (N : ℕ) : ℚ :=
   ((Int.floor (x * (2 : ℝ) ^ N + 1 / 2) : ℤ) : ℚ) / (((2 : ℤ) ^ N : ℤ) : ℚ)
 end
 noncomputable section

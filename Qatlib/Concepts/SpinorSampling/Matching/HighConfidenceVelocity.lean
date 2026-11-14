@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpinorSampling.Matching.CorrelationExecution
-import Qatlib.Concepts.SpinorSampling.Matching.LinearTargetExecution
+module
+
+public import Qatlib.Concepts.SpinorSampling.Matching.CorrelationExecution
+public import Qatlib.Concepts.SpinorSampling.Matching.LinearTargetExecution
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

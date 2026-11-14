@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RandCompile.ChannelBudget.HighPrecisionLchs
+module
+
+public import Qatlib.Concepts.RandCompile.ChannelBudget.HighPrecisionLchs
+
+@[expose] public section
 
 /-!
 # High precision LCHS coefficients and cost ledgers

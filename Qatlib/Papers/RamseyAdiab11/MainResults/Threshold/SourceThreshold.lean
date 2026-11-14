@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Combinatorics.SimpleGraph.Clique
-import Mathlib.Combinatorics.SimpleGraph.Finite
-import Mathlib.Data.Fin.Embedding
-import Mathlib.Data.Fintype.Card
+module
+
+public import Mathlib.Combinatorics.SimpleGraph.Clique
+public import Mathlib.Combinatorics.SimpleGraph.Finite
+public import Mathlib.Data.Fin.Embedding
+public import Mathlib.Data.Fintype.Card
+
+@[expose] public section
 
 /-!
 # Ramsey Threshold Detection via Problem Hamiltonian Ground-State Energy

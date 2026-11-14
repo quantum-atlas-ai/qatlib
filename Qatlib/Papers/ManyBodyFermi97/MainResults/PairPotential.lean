@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ManyBodyFermi97.MainResults.TensorAction
+module
+
+public import Qatlib.Papers.ManyBodyFermi97.MainResults.TensorAction
+
+@[expose] public section
 
 /-!
 # Permutation-invariant pair-potential evolution
@@ -89,7 +93,7 @@ theorem diagApply_permState {n m : ℕ} (d : (Fin n → Fin m) → ℂ)
     (ψ : QState (Fin n → Fin m)) :
     diagApply d (permState τ ψ) = permState τ (diagApply d ψ) := by
   funext x
-  simp only [diagApply, permState, permCfg]
+  simp only [diagApply, permState]
   rw [hd τ x]
 
 /-- A permutation-invariant diagonal multiplier preserves antisymmetry of states. -/

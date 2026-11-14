@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AdiabStateGen03.MainResults.Defs
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Analysis.CStarAlgebra.Matrix
+module
+
+public import Qatlib.Papers.AdiabStateGen03.MainResults.Defs
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+
+@[expose] public section
 
 /-!
 # Projection Hamiltonians and their unit spectral gap
@@ -62,7 +66,7 @@ theorem projHam_isHermitian (v : Dim n → ℂ) : IsHermitian (projHam v) := by
   by_cases h : i = j
   · subst h
     simp [mul_comm]
-  · rw [if_neg h, if_neg (Ne.symm h)]
+  · rw [ite_eq_right h, ite_eq_right (Ne.symm h)]
     simp [mul_comm]
 
 /-- The action of `projHam v` on `w` has coordinate `w i - v i * (star v ⬝ᵥ w)`. -/
@@ -179,7 +183,7 @@ relative to `v` [AharonovTaShma2007]. -/
 theorem projHam_spectralGap_one (v : Dim n → ℂ)
     (hv : ‖toLp 2 v‖ = 1) :
     SpectralGapAtLeast (projHam v) (toLp 2 v) 1 := by
-  intro _hgs φ hφnorm horth
+  intro _hground φ hφnorm horth
   have hact : toOp (projHam v) φ = φ := by
     rw [toOp_projHam_apply, horth]
     simp

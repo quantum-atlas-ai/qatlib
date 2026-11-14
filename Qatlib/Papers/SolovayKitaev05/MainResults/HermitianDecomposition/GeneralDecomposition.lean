@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Fourier.ZMod
-import Mathlib.Analysis.Matrix.Spectrum
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.LinearAlgebra.Matrix.Hermitian
-import Mathlib.LinearAlgebra.Matrix.Trace
+module
+
+public import Mathlib.Analysis.Fourier.ZMod
+public import Mathlib.Analysis.Matrix.Spectrum
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.LinearAlgebra.Matrix.Hermitian
+public import Mathlib.LinearAlgebra.Matrix.Trace
+
+@[expose] public section
 
 /-!
 # Hermitian commutator decompositions in finite dimension
@@ -122,9 +126,9 @@ lemma fourier_diag_conj (lam : ZMod d → ℝ) (i : ZMod d) :
         = (lam x : ℂ) * star (fourierMat i x) := by
     intro x
     rw [Finset.sum_eq_single x]
-    · rw [if_pos rfl]
+    · rw [ite_eq_left rfl]
     · intro b _ hb
-      rw [if_neg (Ne.symm hb), zero_mul]
+      rw [ite_eq_right (Ne.symm hb), zero_mul]
     · intro h
       exact absurd (Finset.mem_univ x) h
   simp only [hinner]
@@ -170,7 +174,7 @@ theorem diag_zero_construction (A : Matrix (ZMod d) (ZMod d) ℂ) (hA : A.IsHerm
     by_cases hij : i = j
     · subst hij; simp
     · have hji : j ≠ i := Ne.symm hij
-      simp only [if_neg hij, if_neg hji]
+      simp only [ite_eq_right hij, ite_eq_right hji]
       rw [star_div₀, star_mul, star_sub]
       rw [hA.apply i j]
       have hI : star (Complex.I) = -Complex.I := by

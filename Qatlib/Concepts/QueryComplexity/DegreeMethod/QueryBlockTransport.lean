@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.DegreeMethod.Complexity
-import Qatlib.Concepts.SearchStopping.QueryLowerBound.Theorem7CorrectedTigh
-import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+module
+
+public import Qatlib.Concepts.QueryComplexity.DegreeMethod.Complexity
+public import Qatlib.Concepts.SearchStopping.QueryLowerBound.Theorem7Corrected
+public import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+
+@[expose] public section
 
 /-!
 # Transport from query circuits to unitary blocks

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
-import Mathlib.LinearAlgebra.Matrix.PosDef
-import Mathlib.Analysis.Matrix.Order
+module
+
+public import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+public import Mathlib.LinearAlgebra.Matrix.PosDef
+public import Mathlib.Analysis.Matrix.Order
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -55,15 +59,19 @@ is the whole (real) expectation. -/
 noncomputable def expectation (M : Matrix n n ℂ) (ψ : QState n) : ℝ :=
   (stateInner ψ (M *ᵥ ψ)).re
 
+omit [DecidableEq n] in
+
 /-- The library inner product is conjugate-symmetric: `⟨φ|ψ⟩ = conj ⟨ψ|φ⟩`. -/
-theorem stateInner_symm (ψ φ : QState n) : stateInner φ ψ = star (stateInner ψ φ) := by
+theorem stateInner_symm {n : Type*} [_scopeInst0 : Fintype n] [_scopeInst1 : DecidableEq n] (ψ φ : QState n) : stateInner φ ψ = star (stateInner ψ φ) := by
   simp only [stateInner, Qatlib.Foundations.PureStateMath.Inner,
     dotProduct, star_sum, Pi.star_apply]
   refine Finset.sum_congr rfl fun i _ => ?_
   simp only [star_mul, star_star]
 
+omit [DecidableEq n] in
+
 /-- The expectation functional of a sum is the sum of the expectations. -/
-theorem expectation_add (A B : Matrix n n ℂ) (ψ : QState n) :
+theorem expectation_add {n : Type*} [_scopeInst0 : Fintype n] [_scopeInst1 : DecidableEq n] (A B : Matrix n n ℂ) (ψ : QState n) :
     expectation (A + B) ψ = expectation A ψ + expectation B ψ := by
   simp only [expectation, stateInner, Qatlib.Foundations.PureStateMath.Inner,
     Matrix.add_mulVec, dotProduct_add, Complex.add_re]
@@ -77,15 +85,19 @@ theorem expectation_sum {ι : Type*} (s : Finset ι) (A : ι → Matrix n n ℂ)
   | insert a s ha ih =>
     rw [Finset.sum_insert ha, Finset.sum_insert ha, expectation_add, ih]
 
+omit [DecidableEq n] in
+
 /-- Real scalars pull out of the expectation. -/
-theorem expectation_smul_real (r : ℝ) (A : Matrix n n ℂ) (ψ : QState n) :
+theorem expectation_smul_real {n : Type*} [_scopeInst0 : Fintype n] [_scopeInst1 : DecidableEq n] (r : ℝ) (A : Matrix n n ℂ) (ψ : QState n) :
     expectation ((r : ℂ) • A) ψ = r * expectation A ψ := by
   simp only [expectation, stateInner, Qatlib.Foundations.PureStateMath.Inner,
     Matrix.smul_mulVec, dotProduct_smul, smul_eq_mul, Complex.mul_re, Complex.ofReal_re,
     Complex.ofReal_im, zero_mul, sub_zero]
 
+omit [DecidableEq n] in
+
 /-- A positive semidefinite observable has nonnegative expectation in every state. -/
-theorem expectation_nonneg {A : Matrix n n ℂ} (hA : A.PosSemidef) (ψ : QState n) :
+theorem expectation_nonneg {n : Type*} [_scopeInst0 : Fintype n] [_scopeInst1 : DecidableEq n] {A : Matrix n n ℂ} (hA : A.PosSemidef) (ψ : QState n) :
     0 ≤ expectation A ψ := by
   have h := hA.dotProduct_mulVec_nonneg ψ
   simp only [expectation, stateInner, Qatlib.Foundations.PureStateMath.Inner]

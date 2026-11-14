@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ClusterPatterns.ResourceCompile.ClusterStabilizerResourceStat
-import Qatlib.Concepts.ClusterPatterns.ClusterCompile.IsingClusterPulseCompilationQuan
+module
+
+public import Qatlib.Concepts.ClusterPatterns.ResourceCompile.ClusterStabilizerResourceStat
+public import Qatlib.Concepts.ClusterPatterns.ClusterCompile.IsingClusterPulseCompilationQuan
+
+@[expose] public section
 
 /-!
 # Stabilizer properties of cluster resources

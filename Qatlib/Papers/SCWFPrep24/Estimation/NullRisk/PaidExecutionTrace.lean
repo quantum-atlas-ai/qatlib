@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SCWFPrep24.Estimation.NullRisk.PaidMixture
-import Qatlib.Concepts.SpinorSampling.FiniteExecution.MeasuredReset
-import Qatlib.Concepts.SpinorSampling.Retained.PhysicalBell
+module
+
+public import Qatlib.Papers.SCWFPrep24.Estimation.NullRisk.PaidMixture
+public import Qatlib.Concepts.SpinorSampling.FiniteExecution.MeasuredReset
+public import Qatlib.Concepts.SpinorSampling.Retained.PhysicalBell
+
+@[expose] public section
 
 open Qatlib.Foundations.QueryWordCore.Circuit
 

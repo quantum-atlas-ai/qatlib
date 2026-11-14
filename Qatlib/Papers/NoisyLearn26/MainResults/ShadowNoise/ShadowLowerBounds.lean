@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.NoisyLearn26.MainResults.Models.InterfaceModels
-import Mathlib.Analysis.SpecialFunctions.Log.Base
+module
+
+public import Qatlib.Papers.NoisyLearn26.MainResults.Models.InterfaceModels
+public import Mathlib.Analysis.SpecialFunctions.Log.Base
+
+@[expose] public section
 
 /-!
 # Scalar sums for noisy shadow lower bounds
@@ -42,7 +46,7 @@ open scoped BigOperators
 def chiSq {X : Type*} [Fintype X] (p q : X → ℝ) : ℝ := ∑ x, (p x - q x) ^ 2 / q x
 
 /-- The noise polynomial `fLambda lam` is positive for `lam` in `[0, 1]`. -/
-theorem fLambda_pos' {lam : ℝ} (h0 : 0 ≤ lam) (h1 : lam ≤ 1) : 0 < fLambda lam := by
+theorem fLambda_pos' {lam : ℝ} (_h0 : 0 ≤ lam) (_h1 : lam ≤ 1) : 0 < fLambda lam := by
   unfold fLambda
   nlinarith [sq_nonneg (lam - 1)]
 
@@ -69,7 +73,7 @@ theorem swap_expansion (lam : ℝ) (n : ℕ) :
 /-- For noise in `[0, 1]` and `0 ≤ K a ≤ 1`, the stated noise-weighted binomial sum is at most
 `fLambda lam ^ n` [CotlerGongKannan2025]. -/
 theorem four_lemma {n : ℕ} {lam : ℝ} (h0 : 0 ≤ lam) (h1 : lam ≤ 1)
-    (K : ℕ → ℝ) (hK0 : ∀ a, 0 ≤ K a) (hK1 : ∀ a, K a ≤ 1) :
+    (K : ℕ → ℝ) (_hK0 : ∀ a, 0 ≤ K a) (hK1 : ∀ a, K a ≤ 1) :
     (∑ a ∈ Finset.range (n + 1),
         (n.choose a : ℝ) * (lam * (2 - lam) / 2) ^ a * ((1 - lam) ^ 2) ^ (n - a) * K a) ≤
       fLambda lam ^ n := by
@@ -99,8 +103,8 @@ theorem sum_even_choose (x y : ℝ) (n : ℕ) :
   have hpar : ∀ a : ℕ, (if Even a then (1 : ℝ) else 0) = (1 + (-1 : ℝ) ^ a) / 2 := by
     intro a
     rcases Nat.even_or_odd a with h | h
-    · rw [if_pos h, h.neg_one_pow]; norm_num
-    · rw [if_neg (Nat.not_even_iff_odd.mpr h), h.neg_one_pow]; norm_num
+    · rw [ite_eq_left h, h.neg_one_pow]; norm_num
+    · rw [ite_eq_right (Nat.not_even_iff_odd.mpr h), h.neg_one_pow]; norm_num
   have hxy :
       (∑ a ∈ Finset.range (n + 1), (n.choose a : ℝ) * x ^ a * y ^ (n - a)) = (x + y) ^ n :=
     binomial_expansion x y n
@@ -120,8 +124,8 @@ theorem sum_even_choose (x y : ℝ) (n : ℕ) :
         apply Finset.sum_congr rfl
         intro a _
         by_cases h : Even a
-        · rw [if_pos h, ← hpar a, if_pos h, mul_one]
-        · rw [if_neg h, ← hpar a, if_neg h, mul_zero]
+        · rw [ite_eq_left h, ← hpar a, ite_eq_left h, mul_one]
+        · rw [ite_eq_right h, ← hpar a, ite_eq_right h, mul_zero]
     _ = ∑ a ∈ Finset.range (n + 1),
           ((n.choose a : ℝ) * x ^ a * y ^ (n - a) / 2 +
             (-1 : ℝ) ^ a * ((n.choose a : ℝ) * x ^ a * y ^ (n - a)) / 2) := by
@@ -138,8 +142,8 @@ theorem sum_even_choose (x y : ℝ) (n : ℕ) :
 
 /-- For noise in `[0, 1]` and coefficients `K` in `[0, 1]`, the stated even-indexed sum is at
 most `((3^n + 1) / 2) * (1 - lam)^(2n)` [CotlerGongKannan2025]. -/
-theorem five_lemma {n : ℕ} {lam : ℝ} (h0 : 0 ≤ lam) (h1 : lam ≤ 1)
-    (K : ℕ → ℝ) (hK0 : ∀ a, 0 ≤ K a) (hK1 : ∀ a, K a ≤ 1) :
+theorem five_lemma {n : ℕ} {lam : ℝ} (_h0 : 0 ≤ lam) (_h1 : lam ≤ 1)
+    (K : ℕ → ℝ) (_hK0 : ∀ a, 0 ≤ K a) (hK1 : ∀ a, K a ≤ 1) :
     (∑ a ∈ (Finset.range (n + 1)).filter (fun a => Even a),
         (n.choose a : ℝ) * ((1 - lam) ^ 2) ^ a * (2 * (1 - lam) ^ 2) ^ (n - a) * K a) ≤
       ((3 : ℝ) ^ n + 1) / 2 * (1 - lam) ^ (2 * n) := by
@@ -199,7 +203,7 @@ theorem single_block_bound_multi {n k : ℕ} {lam : ℝ} (h0 : 0 ≤ lam) (h1 : 
 /-- For a finite nonnegative array, the squared Euclidean norm of the sum of its rows is at most
 the square of the sum of their Euclidean norms [CotlerGongKannan2025]. -/
 theorem delta_c_bound {ι σ : Type*} [Fintype ι] [Fintype σ] (x : ι → σ → ℝ)
-    (hx : ∀ i j, 0 ≤ x i j) :
+    (_hx : ∀ i j, 0 ≤ x i j) :
     (∑ j, (∑ i, x i j) ^ 2) ≤ (∑ i, Real.sqrt (∑ j, (x i j) ^ 2)) ^ 2 := by
   have hS : ∀ i, 0 ≤ ∑ j, (x i j) ^ 2 := fun i =>
     Finset.sum_nonneg (fun j _ => sq_nonneg _)

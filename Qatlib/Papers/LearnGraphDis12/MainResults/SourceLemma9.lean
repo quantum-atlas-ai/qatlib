@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Lean.Elab.Tactic.Omega
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Ring
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Algebra.BigOperators.Group.Finset.Powerset
-import Mathlib.Data.Finset.Empty
+module
+
+public import Lean.Elab.Tactic.Omega
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Ring
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Algebra.BigOperators.Group.Finset.Powerset
+public import Mathlib.Data.Finset.Empty
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -115,7 +119,7 @@ theorem alternating_powerset_sum (I : Finset ℕ) :
   induction I using Finset.induction with
   | empty => simp
   | insert a I ha _ =>
-      rw [if_pos (Finset.insert_nonempty a I), Finset.sum_powerset_insert ha]
+      rw [ite_eq_left (Finset.insert_nonempty a I), Finset.sum_powerset_insert ha]
       have hneg : ∑ D ∈ I.powerset, (-1 : R) ^ (insert a D).card
           = - ∑ D ∈ I.powerset, (-1 : R) ^ D.card := by
         rw [← Finset.sum_neg_distrib]
@@ -133,7 +137,7 @@ theorem alternating_powerset_sum (I : Finset ℕ) :
 theorem nonempty_alternating_sum (I : Finset ℕ) (hI : I.Nonempty) :
     ∑ D ∈ I.powerset.filter (fun D => D.Nonempty), (-1 : R) ^ (D.card + 1) = 1 := by
   have htotal := alternating_powerset_sum (R := R) I
-  rw [if_pos hI] at htotal
+  rw [ite_eq_left hI] at htotal
   have htotal' : ∑ D ∈ I.powerset, (-1 : R) ^ (D.card + 1) = 0 := by
     have hfac : ∑ D ∈ I.powerset, (-1 : R) ^ (D.card + 1)
         = - ∑ D ∈ I.powerset, (-1 : R) ^ D.card := by

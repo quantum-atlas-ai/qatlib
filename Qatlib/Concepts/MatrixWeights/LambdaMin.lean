@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixWeights.WeightsCore
-import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
-import Mathlib.Analysis.SpecialFunctions.Complex.LogBounds
-import Mathlib.Data.Finset.Max
+module
+
+public import Qatlib.Concepts.MatrixWeights.WeightsCore
+public import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
+public import Mathlib.Analysis.SpecialFunctions.Complex.LogBounds
+public import Mathlib.Data.Finset.Max
+
+@[expose] public section
 
 /-!
 # Matrix multiplicative weights and minimum-eigenvalue bounds
@@ -270,19 +274,19 @@ theorem matrix_mw_source_comparator
     have hsum : (∑ s ∈ Finset.range t, N s) = ∑ s ∈ Finset.range t, M s := by
       apply Finset.sum_congr rfl
       intro s hs
-      exact if_pos (lt_of_lt_of_le (Finset.mem_range.mp hs) ht)
+      exact ite_eq_left (lt_of_lt_of_le (Finset.mem_range.mp hs) ht)
     simp only [mmwState, mmwWeight, hsum]
   have hactual : (∑ t ∈ Finset.range T, (Matrix.trace (N t * mmwState D N eta t)).re) =
       ∑ t ∈ Finset.range T, (Matrix.trace (M t * mmwState D M eta t)).re := by
     apply Finset.sum_congr rfl
     intro t ht
     rw [hprefix t (Finset.mem_range.mp ht).le]
-    simp only [N, if_pos (Finset.mem_range.mp ht)]
+    simp only [N, ite_eq_left (Finset.mem_range.mp ht)]
   have hcomparator : (∑ t ∈ Finset.range T, (Matrix.trace (N t * sigma)).re) =
       ∑ t ∈ Finset.range T, (Matrix.trace (M t * sigma)).re := by
     apply Finset.sum_congr rfl
     intro t ht
-    simp only [N, if_pos (Finset.mem_range.mp ht)]
+    simp only [N, ite_eq_left (Finset.mem_range.mp ht)]
   have hsharp := matrix_mw_chord_comparator D T N eta sigma hD hN hsigma
   rw [hactual, hcomparator] at hsharp
   have hchord : 1 - Real.exp (-eta) = eps := by

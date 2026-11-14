@@ -4,15 +4,19 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Complex.Norm
-import Mathlib.Data.Int.Interval
-import Mathlib.Data.Nat.Factorial.Basic
-import Mathlib.Data.Real.Archimedean
-import Mathlib.Algebra.Order.Floor.Semiring
-import Mathlib.Algebra.Order.BigOperators.Group.Finset
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Positivity
+module
+
+public import Mathlib.Analysis.Complex.Norm
+public import Mathlib.Data.Int.Interval
+public import Mathlib.Data.Nat.Factorial.Basic
+public import Mathlib.Algebra.Order.Archimedean.Real.Basic
+public import Mathlib.Algebra.Order.Floor.Semiring
+public import Mathlib.Algebra.Order.BigOperators.Group.Finset
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Positivity
+
+@[expose] public section
 
 /-!
 # Lower bounds for integer regulator products

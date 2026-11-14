@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QCircuitYao93.QtmSimulation.PolynomialPhi3
-import Qatlib.Concepts.UniformBqp.Phi3Compile.QtmPhi3Encoding
+module
+
+public import Qatlib.Papers.QCircuitYao93.QtmSimulation.PolynomialPhi3
+public import Qatlib.Concepts.UniformBqp.Phi3Compile.QtmPhi3Encoding
+
+@[expose] public section
 
 /-!
 # Acceptance preservation for compiled circuit families
@@ -167,9 +171,9 @@ theorem registerAcceptMass_eq_windowAcceptMass {Q A : Type} [Fintype Q] [Decidab
   refine Finset.sum_congr rfl ?_
   intro w _
   by_cases hw : Acc w.state
-  · simp only [hw, if_true]
+  · simp only [hw, ite_true]
     exact (hsem x w).2.2.2
-  · simp only [hw, if_false]
+  · simp only [hw, ite_false]
 
 /-- The stated polynomial-time window acceptance and rejection bounds yield a family of unitary
 elementary circuits with no queries and the displayed polynomial length bound, preserving
@@ -232,7 +236,7 @@ theorem corollary2_language_circuit_family {Q A : Type} [Fintype Q] [DecidableEq
   · intro n hn x
     have hC : C n
         = (corollary2_elementary_polynomial_circuit M b n c k hb hn hc hk).choose := by
-      simp only [C, dif_pos hn]
+      simp only [C, dite_eq_left hn]
     have hm := registerAcceptMass_eq_windowAcceptMass M b n c k hb hn hc hk Acc x
     rw [hC, hm]
     exact ⟨haccept n x, hreject n x⟩

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.JonesPoly05.MainResults.KauffmanStateSum
-import Mathlib.Data.Matrix.Basic
+module
+
+public import Qatlib.Papers.JonesPoly05.MainResults.KauffmanStateSum
+public import Mathlib.Data.Matrix.Basic
+
+@[expose] public section
 
 /-!
 # Compilation of braid operators into matrix words

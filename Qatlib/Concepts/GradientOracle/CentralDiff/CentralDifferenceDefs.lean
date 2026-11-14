@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Calculus.Taylor
-import Mathlib.Data.Int.Interval
+module
+
+public import Mathlib.Analysis.Calculus.Taylor
+public import Mathlib.Data.Int.Interval
+
+@[expose] public section
 
 /-!
 # High-order central-difference coefficients

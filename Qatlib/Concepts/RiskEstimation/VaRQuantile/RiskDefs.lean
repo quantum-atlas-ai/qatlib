@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MonteCarloMean.PayoffEncoding
-import Qatlib.Concepts.AmplitudeCore.PayoffMedian.SignedCenteredQuantumMean
-import Qatlib.Concepts.SqEstimation.HierarchicalSQ.NativeCoefficientChoice
+module
+
+public import Qatlib.Concepts.MonteCarloMean.PayoffEncoding
+public import Qatlib.Concepts.AmplitudeCore.PayoffMedian.SignedCenteredQuantumMean
+public import Qatlib.Concepts.SqEstimation.HierarchicalSQ.NativeCoefficientChoice
+
+@[expose] public section
 
 /-!
 # Finite quantum risk estimator definitions
@@ -149,6 +153,6 @@ theorem risk_event_mono {X : Type} (p : PMF X) {E F : X → Prop} (h : ∀ x, E 
   apply Qatlib.Concepts.AEMeanReadout.LocalAEBackend.CostedLaw.expectation_le_of_forall
   intro x
   by_cases hx : E x
-  · simp only [if_pos hx, if_pos (h x hx), le_refl]
-  · simp only [if_neg hx, zero_le]
+  · simp only [ite_eq_left hx, ite_eq_left (h x hx), le_refl]
+  · simp only [ite_eq_right hx, zero_le]
 end Qatlib.Concepts.RiskEstimation.VaRQuantile.Papers.QuantumRiskAnalysis2018

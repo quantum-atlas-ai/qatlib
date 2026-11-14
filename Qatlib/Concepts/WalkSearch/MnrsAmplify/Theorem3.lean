@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem3
-import Qatlib.Concepts.WalkSearch.MnrsAmplify.Lemma2Sear
+module
+
+public import Qatlib.Concepts.AEMeanReadout.LocalAEBackend.Theorem3
+public import Qatlib.Concepts.WalkSearch.MnrsAmplify.Lemma2Search
+
+@[expose] public section
 
 /-!
 # Abstract MNRS search guarantee

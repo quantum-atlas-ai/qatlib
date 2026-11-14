@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpectralFilter.BusySpectrum.BipartiteDiscriminantSpectrum
+module
+
+public import Qatlib.Concepts.SpectralFilter.BusySpectrum.BipartiteDiscriminantSpectrum
+
+@[expose] public section
 
 /-!
 # Bipartite walk spectra and counted circuits
@@ -189,7 +193,6 @@ private theorem bipartite_busy_plus_dimension {H I J : Type} [Fintype H] [Decida
       apply Subtype.ext
       have hb : Bᴴ*ᵥ(A*ᵥ(fun i=>v.val (.inl i)))=-(fun j=>v.val (.inr j)) := by
         have hh := congrArg (fun w : QState H=>Bᴴ*ᵥw) (hc v)
-        (try dsimp only at hh)
         simp only [Matrix.mulVec_add,Matrix.mulVec_mulVec,show Bᴴ*B=1 from hB,Matrix.one_mulVec,Matrix.mulVec_zero] at hh
         simpa only [Matrix.mulVec_mulVec] using! eq_neg_of_add_eq_zero_left hh
       ext (i | j)
@@ -230,7 +233,6 @@ private theorem bipartite_busy_minus_dimension {H I J : Type} [Fintype H] [Decid
     exact eq_neg_of_add_eq_zero_left (by simpa [Matrix.add_mulVec,Matrix.one_mulVec] using! hh)
   have hga (w : E) : Aᴴ*ᵥw.val∈Ka := by
     have hh := congrArg (fun x : QState H => Bᴴ*ᵥx) (hs w)
-    (try dsimp only at hh)
     rw [Matrix.mulVec_add,Matrix.mulVec_mulVec,Matrix.mulVec_mulVec,
       show Bᴴ*(B*Bᴴ)=Bᴴ from by rw [← Matrix.mul_assoc,show Bᴴ*B=1 from hB,Matrix.one_mul]] at hh
     change (Bᴴ*A)*ᵥ(Aᴴ*ᵥw.val)=0
@@ -238,7 +240,6 @@ private theorem bipartite_busy_minus_dimension {H I J : Type} [Fintype H] [Decid
     exact add_eq_right.mp hh
   have hgb (w : E) : Bᴴ*ᵥw.val∈Kb := by
     have hh := congrArg (fun x : QState H => Aᴴ*ᵥx) (hs w)
-    (try dsimp only at hh)
     rw [Matrix.mulVec_add,Matrix.mulVec_mulVec,Matrix.mulVec_mulVec,
       show Aᴴ*(A*Aᴴ)=Aᴴ from by rw [← Matrix.mul_assoc,show Aᴴ*A=1 from hA,Matrix.one_mul]] at hh
     change (Aᴴ*B)*ᵥ(Bᴴ*ᵥw.val)=0

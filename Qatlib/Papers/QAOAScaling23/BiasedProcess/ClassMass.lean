@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QAOAScaling23.BiasedProcess.CostClasses
-import Qatlib.Papers.QAOAScaling23.BiasedProcess.WeightedVisits
+module
+
+public import Qatlib.Papers.QAOAScaling23.BiasedProcess.CostClasses
+public import Qatlib.Papers.QAOAScaling23.BiasedProcess.WeightedVisits
+
+@[expose] public section
 
 /-!
 # Cost-class weights and cumulative mass
@@ -60,7 +64,7 @@ theorem prefix_fin (cost : I → ℝ) (p : PMF I) (k : ℕ) (hk : k ≤ (costLev
   rw [prefixSum,← Fin.sum_univ_eq_sum_range]
   apply Finset.sum_congr rfl
   intro j _
-  simp only [weights,dif_pos (lt_of_lt_of_le j.isLt hk)]
+  simp only [weights,dite_eq_left (lt_of_lt_of_le j.isLt hk)]
 
 /-- Summing rank fibers below `k` equals summing labels whose rank is below `k`. -/
 theorem lower_fiber_sum {L k : ℕ} (hk : k ≤ L) (f : I → Fin L) (g : I → ℝ) :
@@ -70,7 +74,7 @@ theorem lower_fiber_sum {L k : ℕ} (hk : k ≤ L) (f : I → Fin L) (g : I → 
   apply Finset.sum_congr rfl
   intro i _
   by_cases hi : (f i).val < k
-  · rw [if_pos hi]
+  · rw [ite_eq_left hi]
     rw [Finset.sum_eq_single (⟨(f i).val,hi⟩ : Fin k)]
     · simp
     · intro b _ hb
@@ -79,15 +83,15 @@ theorem lower_fiber_sum {L k : ℕ} (hk : k ≤ L) (f : I → Fin L) (g : I → 
         apply hb
         apply Fin.ext
         exact (congrArg Fin.val he).symm
-      simp only [if_neg hn]
+      simp only [ite_eq_right hn]
     · simp
-  · rw [if_neg hi]
+  · rw [ite_eq_right hi]
     apply Finset.sum_eq_zero
     intro b _
     have hn : f i ≠ ⟨b.val,lt_of_lt_of_le b.isLt hk⟩ := by
       intro he
       exact hi (by rw [he];exact b.isLt)
-    simp only [if_neg hn]
+    simp only [ite_eq_right hn]
 
 /-- A cost-class weight prefix equals the total real probability of candidate labels with ranks
 below its endpoint. -/

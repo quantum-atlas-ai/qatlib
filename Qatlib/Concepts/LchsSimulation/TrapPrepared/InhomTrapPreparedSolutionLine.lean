@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LchsSimulation.TrapPrepared.InhomTrapPreparedSolutionStat
-import Qatlib.Concepts.LchsSimulation.TimeTrapezoid.InhomogeneousTrapezoidSourceQuadrature
+module
+
+public import Qatlib.Concepts.LchsSimulation.TrapPrepared.InhomTrapPreparedSolutionStat
+public import Qatlib.Concepts.LchsSimulation.TimeTrapezoid.InhomogeneousTrapezoidSourceQuadrature
+
+@[expose] public section
 
 /-!
 # Correctness of unified trapezoidal LCHS preparation
@@ -75,7 +79,7 @@ theorem inhTrap_coeff_source (b : ℝ → QState I) (s t : ℝ) (K N Mt : ℕ)
       (inhTrapWeight Mt s t p.2 : ℂ)*staticLchsCoeff K N p.1*
         (‖toEuclidean_fromVec (b (inhTrapNode Mt s t p.2))‖ : ℂ) := by
   unfold inhTrapUnifiedCoeff
-  rw [dif_neg (by simp only [Fin.val_natAdd]; omega)]
+  rw [dite_eq_right (by simp only [Fin.val_natAdd]; omega)]
   simp only [Fin.val_natAdd, Nat.add_sub_cancel_left, Fin.eta, Equiv.symm_apply_apply]
 
 omit [DecidableEq I] in
@@ -161,7 +165,7 @@ theorem inhTrap_unitary_source (L H : ℝ → Matrix I I ℂ) (s t : ℝ) (K N M
     inhTrapUnifiedUnitary L H s t K N Mt B P (Fin.natAdd N (finProdFinEquiv p)) =
       inhTrapSourceKUnitary L H s t K N Mt p.1 p.2*(P p.2*Bᴴ) := by
   unfold inhTrapUnifiedUnitary
-  rw [dif_neg (by simp only [Fin.val_natAdd]; omega)]
+  rw [dite_eq_right (by simp only [Fin.val_natAdd]; omega)]
   simp only [Fin.val_natAdd, Nat.add_sub_cancel_left, Fin.eta, Equiv.symm_apply_apply]
 
 /-- If the source preparations load the normalized nonzero source vectors, applying the unified

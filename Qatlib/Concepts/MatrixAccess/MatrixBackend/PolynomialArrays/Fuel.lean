@@ -4,31 +4,35 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Nat.Find
-import Mathlib.Data.Option.Basic
-import Mathlib.Data.List.Basic
-import Mathlib.Data.Nat.Size
-import Mathlib.Data.Rat.Lemmas
-import Mathlib.Analysis.Polynomial.MahlerMeasure
-import Mathlib.Data.Nat.Choose.Bounds
-import Mathlib.Data.List.Nodup
-import Mathlib.RingTheory.Polynomial.Resultant.Basic
-import Mathlib.Data.Fin.Rev
-import Mathlib.Data.List.FinRange
-import Mathlib.LinearAlgebra.Matrix.Polynomial
-import Mathlib.Data.Nat.Choose.Basic
-import Mathlib.RingTheory.Polynomial.Pochhammer
-import Mathlib.Topology.Algebra.Polynomial
-import Mathlib.Topology.LocallyConstant.Basic
-import Mathlib.Analysis.Polynomial.CauchyBound
-import Mathlib.Algebra.Order.Archimedean.Basic
-import Mathlib.Data.List.Sort
-import Mathlib.FieldTheory.Separable
-import Mathlib.RingTheory.EuclideanDomain
-import Mathlib.Data.List.Induction
-import Mathlib.Data.List.ToFinsupp
-import Mathlib.RingTheory.Polynomial.GaussLemma
-import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Bounds
+module
+
+public import Mathlib.Data.Nat.Find
+public import Mathlib.Data.Option.Basic
+public import Mathlib.Data.List.Basic
+public import Mathlib.Data.Nat.Size
+public import Mathlib.Data.Rat.Lemmas
+public import Mathlib.Analysis.Polynomial.MahlerMeasure
+public import Mathlib.Data.Nat.Choose.Bounds
+public import Mathlib.Data.List.Nodup
+public import Mathlib.RingTheory.Polynomial.Resultant.Basic
+public import Mathlib.Data.Fin.Rev
+public import Mathlib.Data.List.FinRange
+public import Mathlib.LinearAlgebra.Matrix.Polynomial
+public import Mathlib.Data.Nat.Choose.Basic
+public import Mathlib.RingTheory.Polynomial.Pochhammer
+public import Mathlib.Topology.Algebra.Polynomial
+public import Mathlib.Topology.LocallyConstant.Basic
+public import Mathlib.Analysis.Polynomial.CauchyBound
+public import Mathlib.Algebra.Order.Archimedean.Basic
+public import Mathlib.Data.List.Sort
+public import Mathlib.FieldTheory.Separable
+public import Mathlib.RingTheory.EuclideanDomain
+public import Mathlib.Data.List.Induction
+public import Mathlib.Data.List.ToFinsupp
+public import Mathlib.RingTheory.Polynomial.GaussLemma
+public import Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Bounds
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

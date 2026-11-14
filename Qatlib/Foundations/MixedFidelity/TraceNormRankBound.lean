@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
-import Mathlib.Analysis.Matrix.PosDef
-import Mathlib.Analysis.Matrix.Spectrum
-import Mathlib.Algebra.Order.BigOperators.Ring.Finset
+module
+
+public import QuantumInfo.ForMathlib.MatrixNorm.TraceNorm
+public import Mathlib.Analysis.Matrix.PosDef
+public import Mathlib.Analysis.Matrix.Spectrum
+public import Mathlib.Algebra.Order.BigOperators.Ring.Finset
+
+@[expose] public section
 
 /-!
 # Trace norm bounded by rank and Hilbert–Schmidt norm

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HighOrderODE10.MainResults.SourceModel
+module
+
+public import Qatlib.Papers.HighOrderODE10.MainResults.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -47,7 +51,7 @@ the whole preparation costs `O(√s + log N_t)` calls.
 time steps (taken as a power of two in the paper). -/
 theorem lemma8_statePreparationCost
     (L : SourcePrepLedger) (s Nt Cb Cx Ct : ℝ)
-    (hs : 0 ≤ s) (hNt : 1 ≤ Nt)
+    (_hs : 0 ≤ s) (hNt : 1 ≤ Nt)
     (hCb : 0 < Cb) (hCx : 0 ≤ Cx) (hCt : 0 < Ct)
     (hb : (L.bCalls : ℝ) ≤ Cb * Real.sqrt s)
     (hxin : (L.xinCalls : ℝ) ≤ Cx * Real.sqrt s)

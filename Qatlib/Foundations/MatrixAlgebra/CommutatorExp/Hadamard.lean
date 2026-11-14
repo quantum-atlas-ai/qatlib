@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Normed.Algebra.Exponential
-import Mathlib.Analysis.Normed.Operator.Mul
-import Mathlib.Topology.Algebra.InfiniteSum.Module
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.Normed.Algebra.Exponential
+public import Mathlib.Analysis.Normed.Operator.Mul
+public import Mathlib.Topology.Algebra.InfiniteSum.Module
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Hadamard expansion of exponential conjugation
@@ -69,7 +73,7 @@ theorem left_pow_apply (H X : A) (n : ℕ) : (left H ^ n) X = H^n * X := by
   induction n with
   | zero => simp
   | succ n ih =>
-    rw [pow_succ',ContinuousLinearMap.mul_apply,ih,left_apply,pow_succ']
+    rw [pow_succ',_root_.mul_apply_eq_comp,ih,left_apply,pow_succ']
     exact (mul_assoc _ _ _).symm
 
 /-- The `n`th power of right multiplication by `H` sends `X` to `X * H^n`. -/
@@ -77,14 +81,14 @@ theorem right_pow_apply (H X : A) (n : ℕ) : (right H ^ n) X = X * H^n := by
   induction n with
   | zero => simp
   | succ n ih =>
-    rw [pow_succ',ContinuousLinearMap.mul_apply,ih,right_apply,pow_succ]
+    rw [pow_succ',_root_.mul_apply_eq_comp,ih,right_apply,pow_succ]
     exact mul_assoc _ _ _
 
 /-- The `n`th power of the commutator map acts by the `n`fold iterated commutator. -/
 theorem adMap_pow_apply (H X : A) (n : ℕ) : (adMap H ^ n) X = adIter H n X := by
   induction n with
   | zero => rfl
-  | succ n ih => rw [pow_succ',ContinuousLinearMap.mul_apply,ih,adMap_apply];rfl
+  | succ n ih => rw [pow_succ',_root_.mul_apply_eq_comp,ih,adMap_apply];rfl
 
 /-- The `n`th power of a real scalar multiple of a continuous linear map acts by the scalar's
 `n`th power times the original map's `n`th power. -/
@@ -93,7 +97,7 @@ theorem scaled_pow_apply (F : A →L[ℝ] A) (t : ℝ) (n : ℕ) (X : A) :
   induction n with
   | zero => simp
   | succ n ih =>
-    simp only [pow_succ',ContinuousLinearMap.mul_apply,ContinuousLinearMap.smul_apply,ih,map_smul,smul_smul]
+    simp only [pow_succ',_root_.mul_apply_eq_comp,_root_.smul_apply,ih,map_smul,smul_smul]
     rw [mul_comm]
 variable [CompleteSpace A]
 local instance : NormedAlgebra ℚ (A →L[ℝ] A) := .restrictScalars ℚ ℝ _
@@ -108,7 +112,7 @@ theorem exp_left_apply (H X : A) (t : ℝ) :
   apply hL.unique
   convert! hR using 1
   funext n
-  simp only [ContinuousLinearMap.apply_apply,ContinuousLinearMap.smul_apply,scaled_pow_apply,smul_pow,left_pow_apply,right_apply,smul_mul_assoc]
+  simp only [ContinuousLinearMap.apply_apply,_root_.smul_apply,scaled_pow_apply,smul_pow,left_pow_apply,right_apply,smul_mul_assoc]
 
 /-- Exponentiating right multiplication by `tH` gives right multiplication by `exp(tH)`. -/
 theorem exp_right_apply (H X : A) (t : ℝ) :
@@ -120,7 +124,7 @@ theorem exp_right_apply (H X : A) (t : ℝ) :
   apply hL.unique
   convert! hR using 1
   funext n
-  simp only [ContinuousLinearMap.apply_apply,ContinuousLinearMap.smul_apply,scaled_pow_apply,smul_pow,right_pow_apply,left_apply,mul_smul_comm]
+  simp only [ContinuousLinearMap.apply_apply,_root_.smul_apply,scaled_pow_apply,smul_pow,right_pow_apply,left_apply,mul_smul_comm]
 omit [CompleteSpace A] in
 
 /-- Real scalar multiples of left and right multiplication by the same element commute. -/
@@ -128,7 +132,7 @@ theorem scaled_left_right_commute (H : A) (s t : ℝ) :
     Commute (s • left H) (t • right H) := by
   apply ContinuousLinearMap.ext
   intro X
-  simp only [ContinuousLinearMap.mul_apply,ContinuousLinearMap.smul_apply,left_apply,right_apply,mul_smul_comm,smul_mul_assoc,smul_smul,mul_assoc]
+  simp only [_root_.mul_apply_eq_comp,_root_.smul_apply,left_apply,right_apply,mul_smul_comm,smul_smul,mul_assoc]
   rw [mul_comm s t]
 
 /-- Exponentiating the commutator map sends `X` to `exp(tH) * X * exp(-tH)`. -/
@@ -140,7 +144,7 @@ theorem exp_ad_apply (H X : A) (t : ℝ) :
     intro Y
     change t • (H*Y-Y*H) = t • (H*Y) + (-t) • (Y*H)
     module
-  rw [he,NormedSpace.exp_add_of_commute (scaled_left_right_commute H t (-t)),ContinuousLinearMap.mul_apply,exp_left_apply,exp_right_apply,mul_assoc]
+  rw [he,NormedSpace.exp_add_of_commute (scaled_left_right_commute H t (-t)),_root_.mul_apply_eq_comp,exp_left_apply,exp_right_apply,mul_assoc]
 
 /-- The Hadamard series with terms `t^n / n!` times the `n`fold commutator sums to `exp(tH) * X
 * exp(-tH)`. -/
@@ -152,7 +156,7 @@ theorem conjugation_hasSum (H X : A) (t : ℝ) :
   rw [ContinuousLinearMap.apply_apply,exp_ad_apply] at h
   convert! h using 1
   funext n
-  simp only [ContinuousLinearMap.apply_apply,ContinuousLinearMap.smul_apply,scaled_pow_apply,adMap_pow_apply,smul_smul]
+  simp only [ContinuousLinearMap.apply_apply,_root_.smul_apply,scaled_pow_apply,adMap_pow_apply,smul_smul]
   congr 1
   rw [div_eq_mul_inv,mul_comm]
 

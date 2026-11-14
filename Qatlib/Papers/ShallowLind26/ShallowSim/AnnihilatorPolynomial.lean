@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Data.Complex.Basic
-import Mathlib.Tactic.NoncommRing
+module
+
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Tactic.NoncommRing
+
+@[expose] public section
 
 /-!
 # Annihilating polynomial of the reference block (Lemma 4.6)

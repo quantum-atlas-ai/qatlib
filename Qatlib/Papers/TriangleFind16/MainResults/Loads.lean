@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.TriangleFind16.MainResults.CostModel
+module
+
+public import Qatlib.Papers.TriangleFind16.MainResults.CostModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -190,7 +194,7 @@ theorem card_trueSteps (P : PathLoad N) (z : Fin N → Bool) :
 theorem sparseStep_false_of_true (P : PathLoad N) (z : Fin N → Bool) {k : Fin P.len}
     (hk : z (P.idx k) = true) : P.sparseStep z false k = 3 * (P.len : ℝ) * P.loadLog := by
   unfold PathLoad.sparseStep
-  rw [if_neg]
+  rw [ite_eq_right]
   intro hc
   rw [hk] at hc
   exact Bool.noConfusion hc
@@ -201,7 +205,7 @@ theorem sparseStep_false_le (P : PathLoad N) (z : Fin N → Bool) {k : Fin P.len
     (hk : z (P.idx k) = false) :
     P.sparseStep z false k ≤ 3 * (P.onesAll z + 1) * P.loadLog := by
   unfold PathLoad.sparseStep
-  rw [if_pos hk]
+  rw [ite_eq_left hk]
   have hb : ((P.onesBefore z k : ℕ) : ℝ) ≤ (P.onesAll z : ℝ) := by
     exact_mod_cast P.onesBefore_le_onesAll
   have hL := P.loadLog_nonneg

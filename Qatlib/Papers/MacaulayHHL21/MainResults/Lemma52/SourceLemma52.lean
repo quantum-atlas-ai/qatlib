@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MacaulayHHL21.MainResults.SourceModel
-import Mathlib.Data.Matrix.Block
+module
+
+public import Qatlib.Papers.MacaulayHHL21.MainResults.SourceModel
+public import Mathlib.Data.Matrix.Block
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -54,6 +58,6 @@ theorem lemma52_rowReduction
           (Fin ((d + 1) ^ n - 2 ^ n)) ℂ) B2 0 0 := by
   refine ⟨Matrix.fromBlocks Linv 0 0 1, Linv * R2, ?_⟩
   rw [Matrix.fromBlocks_multiply]
-  simp [hL2, Matrix.mul_zero, Matrix.zero_mul, Matrix.mul_one, Matrix.one_mul]
+  simp [hL2, Matrix.mul_zero, Matrix.zero_mul]
 
 end Qatlib.Papers.MacaulayHHL21.MainResults.Lemma52

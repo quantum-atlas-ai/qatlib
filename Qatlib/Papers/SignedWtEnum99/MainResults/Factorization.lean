@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SignedWtEnum99.MainResults.QSEN
+module
+
+public import Qatlib.Papers.SignedWtEnum99.MainResults.QSEN
+
+@[expose] public section
 
 /-!
 # Factorization of two-constraint signed weight enumerators
@@ -57,11 +61,11 @@ lemma qsen2_congr {m m' n : ℕ} {A1 A2 : Matrix (Fin m) (Fin n) (ZMod 2)}
   intro b _
   by_cases h1 : A1.mulVec b = 0
   · by_cases h2 : A2.mulVec b = 0
-    · rw [if_pos ⟨h1, h2⟩, if_pos ⟨(hA1 b).mp h1, (hA2 b).mp h2⟩]
+    · rw [ite_eq_left ⟨h1, h2⟩, ite_eq_left ⟨(hA1 b).mp h1, (hA2 b).mp h2⟩]
     · have h2' : ¬ A2'.mulVec b = 0 := fun hh => h2 ((hA2 b).mpr hh)
-      rw [if_neg (fun hh => h2 hh.2), if_neg (fun hh => h2' hh.2)]
+      rw [ite_eq_right (fun hh => h2 hh.2), ite_eq_right (fun hh => h2' hh.2)]
   · have h1' : ¬ A1'.mulVec b = 0 := fun hh => h1 ((hA1 b).mpr hh)
-    rw [if_neg (fun hh => h1 hh.1), if_neg (fun hh => h1' hh.1)]
+    rw [ite_eq_right (fun hh => h1 hh.1), ite_eq_right (fun hh => h1' hh.1)]
 
 /-- A binary matrix-vector product is the linear combination of its columns with the entries of
 the vector as coefficients. -/

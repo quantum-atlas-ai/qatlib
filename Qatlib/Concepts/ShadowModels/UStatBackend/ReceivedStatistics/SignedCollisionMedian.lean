@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ShadowModels.UStatBackend.ReceivedStatistics.RationalPairMedian
-import Qatlib.Concepts.ShadowModels.UStatBackend.ReceivedStatistics.SignedCollisionEstimator
+module
+
+public import Qatlib.Concepts.ShadowModels.UStatBackend.ReceivedStatistics.RationalPairMedian
+public import Qatlib.Concepts.ShadowModels.UStatBackend.ReceivedStatistics.SignedCollisionEstimator
+
+@[expose] public section
 
 /-!
 # Rational signed collision medians
@@ -53,12 +57,13 @@ coefficients and reference values. -/
 theorem kernel_cast (a b : ℚ) (u : S → ℚ) (x y : S × Bool) :
     (Qatlib.Concepts.ShadowModels.UStatBackend.SignedCollisionMedian.kernel a b u x y : ℝ) = Qatlib.Concepts.ShadowModels.UStatBackend.SignedCollisionStatistics.residualCollision (a:ℝ) (b:ℝ) (fun z => (u z : ℝ)) x y := by
   by_cases hxy : x.1=y.1
-  · simp only [Qatlib.Concepts.ShadowModels.UStatBackend.SignedCollisionMedian.kernel,Qatlib.Concepts.ShadowModels.UStatBackend.SignedCollisionStatistics.residualCollision,hxy,if_true]
+  · simp only [Qatlib.Concepts.ShadowModels.UStatBackend.SignedCollisionMedian.kernel,Qatlib.Concepts.ShadowModels.UStatBackend.SignedCollisionStatistics.residualCollision,hxy,ite_true]
     cases hx : x.2 <;> cases hy :
         y.2 <;> simp
         [Qatlib.Concepts.ShadowModels.UStatBackend.SignedCollisionMedian.sign,Qatlib.Concepts.ShadowModels.UStatBackend.SignedCollisionStatistics.recordSign]
   · simp [Qatlib.Concepts.ShadowModels.UStatBackend.SignedCollisionMedian.kernel,Qatlib.Concepts.ShadowModels.UStatBackend.SignedCollisionStatistics.residualCollision,hxy]
 
+omit [Nonempty S] in
 /-- The rational signed collision kernel is symmetric in its two records. -/
 theorem kernel_symmetric (a b : ℚ) (u : S → ℚ) (x y : S × Bool) :
     Qatlib.Concepts.ShadowModels.UStatBackend.SignedCollisionMedian.kernel a b u x y=Qatlib.Concepts.ShadowModels.UStatBackend.SignedCollisionMedian.kernel a b u y x := by

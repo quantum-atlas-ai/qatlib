@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TensorRegisters.RegisterModel.TensorLocality
-import Qatlib.Papers.DecisionTrees97.MainResults.RaisingHamiltonian
-import Qatlib.Papers.DecisionTrees97.MainResults.ExactCoverGuards
-import Mathlib.Tactic
+module
+
+public import Qatlib.Concepts.TensorRegisters.RegisterModel.TensorLocality
+public import Qatlib.Papers.DecisionTrees97.MainResults.RaisingHamiltonian
+public import Qatlib.Papers.DecisionTrees97.MainResults.ExactCoverGuards
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Tensor-local guarded hopping terms

@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.CircuitImpl.MultiControl.NoWorkTwoLevelSynthesis
-import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Isometric
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+module
+
+public import Qatlib.Concepts.CircuitImpl.MultiControl.NoWorkTwoLevelSynthesis
+public import Mathlib.Analysis.CStarAlgebra.ContinuousFunctionalCalculus.Isometric
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+
+@[expose] public section
 
 /-!
 # Coherent unitary square-root chains
@@ -49,8 +53,8 @@ def UnitarySqrtChainSpec : Prop :=
 chain specified by `UnitarySqrtChainSpec`. -/
 theorem unitary_sqrt_chain_spec : UnitarySqrtChainSpec := by
   intro I _ _ _ U hU
-  letI : CStarAlgebra (Matrix I I ℂ) := {}
-  letI : ContinuousFunctionalCalculus ℂ (Matrix I I ℂ) IsStarNormal :=
+  let : CStarAlgebra (Matrix I I ℂ) := {}
+  let : ContinuousFunctionalCalculus ℂ (Matrix I I ℂ) IsStarNormal :=
     IsStarNormal.instContinuousFunctionalCalculus
   have hu : U ∈ unitary (Matrix I I ℂ) := hU
   have hn : IsStarNormal U := isStarNormal_of_mem_unitary hu

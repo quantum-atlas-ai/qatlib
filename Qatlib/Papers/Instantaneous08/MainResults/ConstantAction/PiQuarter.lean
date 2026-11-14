@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Instantaneous08.MainResults.ConstantAction.Degenerate
-import Qatlib.Papers.Instantaneous08.MainResults.ConstantAction.CodeWeight
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Complex
+module
+
+public import Qatlib.Papers.Instantaneous08.MainResults.ConstantAction.Degenerate
+public import Qatlib.Papers.Instantaneous08.MainResults.ConstantAction.CodeWeight
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Complex
+
+@[expose] public section
 
 /-!
 # Quarter-angle examples and eighth roots of unity

@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Core.MatrixODE
+module
+
+public import Qatlib.Foundations.CbmdAnalysis.Core.MatrixODE
+
+@[expose] public section
 
 /-!
 # Wave and Bessel propagator equations
@@ -167,7 +171,7 @@ private theorem waveTimeCoefficient_step (A : E) (n : ℕ) :
       -A * waveTimeCoefficient A n := by
   by_cases hm : n % 2 = 0
   · have hm' : (n + 2) % 2 = 0 := by omega
-    simp only [waveTimeCoefficient, hm, hm', if_true,
+    simp only [waveTimeCoefficient, hm, hm', ite_true,
       show (n + 2) / 2 = n / 2 + 1 by omega, pow_succ',
       ← Nat.cast_smul_eq_nsmul ℂ, smul_smul, mul_smul_comm]
     congr 1

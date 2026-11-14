@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
-import Mathlib.MeasureTheory.Integral.Bochner.Basic
-import Qatlib.Papers.Schrodinger25.MainResults.Model
+module
+
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
+public import Mathlib.MeasureTheory.Integral.Bochner.Basic
+public import Qatlib.Papers.Schrodinger25.MainResults.Model
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -47,7 +51,7 @@ variable {ι : Type*} [Fintype ι]
 `[p*, R]`, then `‖u_f*(T,p) − u_f(T)‖² ≤ e^{2p} ε² ‖u_I‖²`. -/
 theorem recovery_error_pointwise
     (ψ : ℝ → ℂ) (lam : ι → ℝ) (u : ι → ℂ) (pstar R T ε p : ℝ)
-    (hε : 0 ≤ ε)
+    (_hε : 0 ≤ ε)
     (hH2 : ∀ q, q ∈ Set.Icc pstar R → ‖ψ q - Complex.exp (-(q : ℂ))‖ ≤ ε)
     (hin : ∀ j, p - lam j * T ∈ Set.Icc pstar R) :
     vecNormSq (fun j => recovery ψ lam u T p j - evolved lam u T j)
@@ -62,7 +66,6 @@ theorem recovery_error_pointwise
     have hmain : (Real.exp p : ℂ) * Complex.exp (-((p - lam j * T : ℝ) : ℂ))
         = (Real.exp (lam j * T) : ℂ) := by
       rw [Complex.ofReal_exp, Complex.ofReal_exp, ← Complex.exp_add, ← Complex.ofReal_exp]
-      congr 1
       push_cast
       ring_nf
     simp only [recovery, charSolution, evolved]

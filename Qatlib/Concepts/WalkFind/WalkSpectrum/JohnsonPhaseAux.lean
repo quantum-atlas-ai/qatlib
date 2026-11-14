@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
-import Mathlib.Analysis.SpecialFunctions.Complex.Arg
-import Mathlib.Analysis.Real.Pi.Bounds
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Ring
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Inverse
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Bounds
+public import Mathlib.Analysis.SpecialFunctions.Complex.Arg
+public import Mathlib.Analysis.Real.Pi.Bounds
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 /-!
 # Elementary bounds for Johnson-walk phases
@@ -95,7 +99,7 @@ theorem jw_unit_circle_phase_transport (z : ℂ) (hz : ‖z‖ = 1) (θ : ℝ) :
     field_simp at hp
     nlinarith [Real.pi_pos]
   · have hmul := congrArg (fun x => x * Complex.exp (Complex.I * θ)) hq
-    try dsimp only at hmul
+
     have hr : q * Complex.exp (Complex.I * θ) = z := by
       dsimp [q]
       rw [mul_assoc, mul_comm (Complex.exp (Complex.I * (-θ : ℝ))), hprod, mul_one]

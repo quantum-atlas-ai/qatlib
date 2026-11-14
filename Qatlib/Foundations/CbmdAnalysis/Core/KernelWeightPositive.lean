@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Core.KernelPoleCoefficients
+module
+
+public import Qatlib.Foundations.CbmdAnalysis.Core.KernelPoleCoefficients
+
+@[expose] public section
 
 /-!
 # Strict positivity of integer weight mass
@@ -62,7 +66,7 @@ indices is strictly positive. -/
 theorem integerWeight_attached_mass_pos (m : ℕ) {a : ℝ} (ha : 0 < a) (K : ℕ) :
     0 < ∑ k : {k : ℤ // k ∈ Finset.Icc (-(K : ℤ)) K},
       ‖integerWeight m a ((k.val : ℝ) / a)‖ := by
-  haveI : Nonempty {k : ℤ // k ∈ Finset.Icc (-(K : ℤ)) K} := ⟨⟨0, by simp⟩⟩
+  have : Nonempty {k : ℤ // k ∈ Finset.Icc (-(K : ℤ)) K} := ⟨⟨0, by simp⟩⟩
   exact Finset.sum_pos
       (fun k _ => norm_pos_iff.mpr (integerWeight_ne_zero m ha _)) Finset.univ_nonempty
 

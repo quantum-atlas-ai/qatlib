@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CommutLCHS26.MainResults.MPFRemainder
-import Qatlib.Foundations.OperatorErrors.OperatorError
+module
+
+public import Qatlib.Papers.CommutLCHS26.MainResults.MPFRemainder
+public import Qatlib.Foundations.OperatorErrors.OperatorError
+
+@[expose] public section
 
 /-!
 # Raw multi-product errors after quadrature
@@ -130,7 +134,7 @@ set_option backward.isDefEq.respectTransparency false in
 exponential at time `T`. -/
 theorem target_power (Z : Matrix I I ℂ) (T : ℝ) (r : ℕ) (hr : 0 < r) :
     NormedSpace.exp ((T / r) • Z) ^ r = NormedSpace.exp (T • Z) := by
-  letI : NormedAlgebra ℚ (Matrix I I ℂ) := .restrictScalars ℚ ℝ _
+  let : NormedAlgebra ℚ (Matrix I I ℂ) := .restrictScalars ℚ ℝ _
   rw [← NormedSpace.exp_nsmul]
   congr 1
   rw [← Nat.cast_smul_eq_nsmul ℝ, smul_smul]

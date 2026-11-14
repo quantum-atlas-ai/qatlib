@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ElemDistinct00.MainResults.Defs
-import Qatlib.Papers.ElemDistinct00.MainResults.TriangleFinding.Basic
-import Mathlib.Data.Real.Sqrt
-import Mathlib.Combinatorics.SimpleGraph.Basic
+module
+
+public import Qatlib.Papers.ElemDistinct00.MainResults.Defs
+public import Qatlib.Papers.ElemDistinct00.MainResults.TriangleFinding.Basic
+public import Mathlib.Analysis.Real.Sqrt
+public import Mathlib.Combinatorics.SimpleGraph.Basic
+
+@[expose] public section
 
 /-!
 # Apex graphs and triangle cost algebra

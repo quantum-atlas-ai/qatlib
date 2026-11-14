@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.InstrumentCore.Measurement.Basic
-import Qatlib.Foundations.BornMetrics.EventProbability
-import Qatlib.Foundations.PureStateMath.Qubit
+module
+
+public import Qatlib.Foundations.InstrumentCore.Measurement.Basic
+public import Qatlib.Foundations.BornMetrics.EventProbability
+public import Qatlib.Foundations.PureStateMath.Qubit
+
+@[expose] public section
 
 /-!
 # Laws of successive coordinate measurements

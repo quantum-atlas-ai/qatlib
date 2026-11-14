@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Field.GeomSum
-import Mathlib.Data.Complex.Basic
-import Mathlib.Data.Matrix.Mul
-import Mathlib.Order.Filter.AtTopBot.Tendsto
-import Mathlib.Topology.Algebra.Monoid
-import Mathlib.Topology.Algebra.Order.Field
-import Mathlib.Tactic
+module
+
+public import Mathlib.Algebra.Field.GeomSum
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.Order.Filter.AtTopBot.Tendsto
+public import Mathlib.Topology.Algebra.Monoid
+public import Mathlib.Topology.Algebra.Order.Field
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Vertex probabilities and geometric averages
@@ -86,7 +90,7 @@ theorem tendsto_geomAvg (z : ℂ) (hz : ‖z‖ = 1) :
     Tendsto (fun T : ℕ => geomAvg z T) atTop (𝓝 (if z = 1 then 1 else 0)) := by
   by_cases h1 : z = 1
   · subst h1
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     refine Tendsto.congr' ?_ tendsto_const_nhds
     filter_upwards [eventually_gt_atTop (0 : ℕ)] with T hT
     have hT0 : (T : ℂ) ≠ 0 := by
@@ -94,7 +98,7 @@ theorem tendsto_geomAvg (z : ℂ) (hz : ‖z‖ = 1) :
     simp only [geomAvg, one_pow, Finset.sum_const, Finset.card_range, nsmul_eq_mul,
       mul_one]
     field_simp
-  · rw [if_neg h1]
+  · rw [ite_eq_right h1]
     have hbound : ∀ T : ℕ, ‖geomAvg z T‖ ≤ 2 / ((T : ℝ) * ‖z - 1‖) :=
       norm_geomAvg_le z hz h1
     have hlim0 : Tendsto (fun T : ℕ => ((T : ℝ))⁻¹) atTop (𝓝 0) :=

@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Finset.Basic
-import Mathlib.Data.Finset.Card
-import Mathlib.Data.Fintype.Card
-import Mathlib.Logic.Function.Basic
-import Mathlib.Tactic.Order
+module
+
+public import Mathlib.Data.Finset.Basic
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Logic.Function.Basic
+public import Mathlib.Tactic.Order
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -140,16 +144,16 @@ theorem postGadget_eq_gadgetSimulated (G : FanoutGadget N) (x : Fin N → Bool) 
   by_cases hi : i ∈ G.targets
   · rw [gadget_simulation_targets G x hi]
     unfold gadgetSimulated
-    rw [if_pos hi]
+    rw [ite_eq_left hi]
   · by_cases hanc : i = G.anc
     · subst hanc
       have hnot : G.anc ∉ G.targets := G.anc_not_target
       simp [postGadget]
       unfold gadgetSimulated
-      rw [if_neg hnot]
+      rw [ite_eq_right hnot]
     · rw [gadget_simulation_other G x hi hanc]
       unfold gadgetSimulated
-      rw [if_neg hi]
+      rw [ite_eq_right hi]
 
 end FanoutGadget
 
@@ -170,7 +174,7 @@ def LayerDisjoint {N : ℕ} (l : List (FanoutGadget N)) : Prop :=
 theorem gadgetSimulated_of_not_mem {N : ℕ} (G : FanoutGadget N) (x : Fin N → Bool)
     {i : Fin N} (hi : i ∉ G.write) : G.gadgetSimulated x i = x i := by
   unfold FanoutGadget.gadgetSimulated
-  rw [if_neg]
+  rw [ite_eq_right]
   intro h
   exact hi (Finset.mem_insert_of_mem h)
 
@@ -208,7 +212,7 @@ theorem stage_action_targets {N : ℕ} (l : List (FanoutGadget N))
           (Finset.disjoint_left.mp (hpair.1 J hJ).1) (Finset.mem_insert_of_mem hi) hit
       rw [stage_action_other Hs _ hnot]
       unfold FanoutGadget.gadgetSimulated
-      rw [if_pos hi]
+      rw [ite_eq_left hi]
     · -- later gadget: the head writes neither its targets nor its source
       have hpair := List.pairwise_cons.mp hp
       have hhead : i ∉ H.write := fun hit =>

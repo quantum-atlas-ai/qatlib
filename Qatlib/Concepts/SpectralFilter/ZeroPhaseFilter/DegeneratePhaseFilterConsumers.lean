@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpectralFilter.ZeroPhaseFilter.DegeneratePhaseFilter
-import Qatlib.Concepts.WalkFind.UniformThree.PhaseReflectionSearch
+module
+
+public import Qatlib.Concepts.SpectralFilter.ZeroPhaseFilter.DegeneratePhaseFilter
+public import Qatlib.Concepts.WalkFind.UniformThree.PhaseReflectionSearch
+
+@[expose] public section
 
 /-!
 # Coherent reflection with degenerate targets
@@ -153,8 +157,8 @@ theorem degenerateThreeWalk_eigen (j : Fin 3) :
   have hphase : Complex.exp (2 * Real.pi * Complex.I * (degenerateThreePhase j : ℂ)) =
       if j = 2 then -1 else 1 := by
     by_cases hj : j = 2
-    · simpa only [degenerateThreePhase, if_pos hj] using hex
-    · simp only [degenerateThreePhase, if_neg hj, Complex.ofReal_zero, mul_zero, Complex.exp_zero]
+    · simpa only [degenerateThreePhase, ite_eq_left hj] using hex
+    · simp only [degenerateThreePhase, ite_eq_right hj, Complex.ofReal_zero, mul_zero, Complex.exp_zero]
   rw [hphase]
   funext i
   rw [degenerateThreeWalk, Matrix.mulVec_diagonal]
@@ -173,8 +177,8 @@ theorem degenerateThreePhase_kernel (j : Fin 3) :
     have h := (offgrid_phase_geometric_and_periodic 2 0 (0 : Fin 2) (by decide)).2.2 (0 : Fin 2)
     simpa [Ket] using h
   by_cases hj : j = 2
-  · simpa only [degenerateThreePhase, if_pos hj] using hh
-  · simpa only [degenerateThreePhase, if_neg hj] using hz
+  · simpa only [degenerateThreePhase, ite_eq_left hj] using hh
+  · simpa only [degenerateThreePhase, ite_eq_right hj] using hz
 
 /-- One binary detection round for `degenerateThreeWalk` preserves the first two amplitudes and
 sets the third to zero. -/
@@ -223,7 +227,7 @@ theorem degenerate_phase_two_dimensional_target_actual_consumer :
       norm_toEuclidean_fromVec_sq]
     rw [Fin.sum_univ_three]
     simp only [show (0 : Fin 3) ≠ 2 by decide, show (1 : Fin 3) ≠ 2 by decide,
-      if_false, if_true, norm_zero, zero_pow (by decide : 2 ≠ 0), add_zero]
+      ite_false, ite_true, norm_zero, zero_pow (by decide : 2 ≠ 0), add_zero]
     norm_num [ψ, norm_inv, Complex.norm_real,
       Real.norm_eq_abs, abs_of_nonneg (Real.sqrt_nonneg 3), inv_pow,
       Real.sq_sqrt (by norm_num : (0 : ℝ) ≤ 3)]

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.Cbmd26.Algorithms.SeparateSecondOrderConsumer
-import Qatlib.Papers.Cbmd26.Algorithms.CosineQueryBudget
+module
+
+public import Qatlib.Papers.Cbmd26.Algorithms.SeparateSecondOrderConsumer
+public import Qatlib.Papers.Cbmd26.Algorithms.CosineQueryBudget
+
+@[expose] public section
 
 /-!
 # Cosine sample circuits for second-order propagators

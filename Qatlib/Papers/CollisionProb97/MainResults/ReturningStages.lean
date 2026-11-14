@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.StoppingCore.BranchCostCore.GeneralUnboundedExecution
+module
+
+public import Qatlib.Concepts.StoppingCore.BranchCostCore.GeneralUnboundedExecution
+
+@[expose] public section
 
 /-!
 # Composing returning probabilistic stages
@@ -152,7 +156,7 @@ theorem relabelSupported_expectedCost {α β : Type} (p : CostedLaw α)
   intro z
   by_cases hz : p z = 0
   · simp [hz]
-  · simp only [dif_neg hz, PMF.pure_apply, mul_ite, mul_one, mul_zero,
+  · simp only [dite_eq_right hz, PMF.pure_apply, mul_ite, mul_one, mul_zero,
       ite_mul, zero_mul, tsum_ite_eq]
 
 /-- Every supported relabeled output-cost pair comes from a supported original pair with the

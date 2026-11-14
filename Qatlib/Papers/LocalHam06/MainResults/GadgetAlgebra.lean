@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.LinearAlgebra.Matrix.Kronecker
-import Mathlib.Tactic
+module
+
+public import Mathlib.LinearAlgebra.Matrix.Kronecker
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Real matrix algebra for local gadgets

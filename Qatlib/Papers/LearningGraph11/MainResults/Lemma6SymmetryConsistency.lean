@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Data.Fintype.Perm
-import Qatlib.Papers.LearningGraph11.MainResults.SourceLearningGraphModel
+module
+
+public import Mathlib.Data.Fintype.Perm
+public import Qatlib.Papers.LearningGraph11.MainResults.SourceLearningGraphModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -62,9 +66,12 @@ section Lemma6
 variable {V E Y ι : Type*} [Fintype V] [Fintype E] [Fintype Y] [Fintype ι]
   [DecidableEq ι] [DecidableEq V]
 
+omit [Fintype V] [Fintype E] [Fintype Y] [Fintype ι] [DecidableEq ι] [DecidableEq V] in
 /-- Reindexing a class sum along a class-preserving edge permutation: if the flows are
 related by a symmetry that preserves the classes, the flow mass of every class agrees. -/
 theorem class_sum_invariant
+    {V E Y ι : Type*} [_fintypeV : Fintype V] [Fintype E] [_fintypeY : Fintype Y]
+    [_fintypeI : Fintype ι] [DecidableEq ι] [_decidableEqV : DecidableEq V]
     (p : Y → E → ℝ) (part : E → ι) (edgePerm : Equiv.Perm V → E ≃ E)
     (hpart : ∀ (τ : Equiv.Perm V) (e : E), part (edgePerm τ e) = part e)
     (htrans : ∀ y y', ∃ τ : Equiv.Perm V, ∀ e : E, p y e = p y' (edgePerm τ e)) :
@@ -104,12 +111,10 @@ theorem source_lemma_6
   · intro y y' u
     exact class_sum_invariant G.flow (fun e => orbitOf (G.src e)) edgePerm
       (fun τ e => by
-        change orbitOf (G.src ((edgePerm τ) e)) = orbitOf (G.src e)
         rw [hsrc, orbitOf_perm]) htrans y y' (orbitOf u)
   · intro y y' u
     exact class_sum_invariant G.flow (fun e => orbitOf (G.tgt e)) edgePerm
       (fun τ e => by
-        change orbitOf (G.tgt ((edgePerm τ) e)) = orbitOf (G.tgt e)
         rw [htgt, orbitOf_perm]) htrans y y' (orbitOf u)
 
 end Lemma6

@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Matrix.Order
-import Mathlib.Data.Complex.Basic
-import Mathlib.LinearAlgebra.Matrix.Trace
-import Mathlib.Data.Nat.Log
-import Qatlib.Concepts.ChannelTheory.Stinespring.ChannelStructureKraus
+module
+
+public import Mathlib.Analysis.Matrix.Order
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.LinearAlgebra.Matrix.Trace
+public import Mathlib.Data.Nat.Log
+public import Qatlib.Concepts.ChannelTheory.Stinespring.ChannelStructureKraus
+
+@[expose] public section
 
 /-!
 # Signed Kraus data and normalization

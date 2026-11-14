@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QuantumSVM13.GramDensity
-import Qatlib.Papers.QuantumSVM13.CopyStep
-import Qatlib.Papers.QuantumSVM13.TraceReadout.TraceEstimation
-import Qatlib.Papers.QuantumSVM13.TraceReadout.ActualData
+module
+
+public import Qatlib.Papers.QuantumSVM13.GramDensity
+public import Qatlib.Papers.QuantumSVM13.CopyStep
+public import Qatlib.Papers.QuantumSVM13.TraceReadout.TraceEstimation
+public import Qatlib.Papers.QuantumSVM13.TraceReadout.ActualData
+
+@[expose] public section
 
 /-! # Actual data consumers of the kernel-copy and trace-readout producers
 The entries and amplitudes come from the given real data table. No final kernel

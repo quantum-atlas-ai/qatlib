@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.KoopmanSim26.SpectralRep.SpectralSampling
-import Qatlib.Concepts.KoopmanFlow.Sampling
-import Qatlib.Papers.KoopmanSim26.SpectralRep.UniversalApproximation
+module
+
+public import Qatlib.Papers.KoopmanSim26.SpectralRep.SpectralSampling
+public import Qatlib.Concepts.KoopmanFlow.Sampling
+public import Qatlib.Papers.KoopmanSim26.SpectralRep.UniversalApproximation
+
+@[expose] public section
 
 /-!
 # Right-grid quadrature normalization

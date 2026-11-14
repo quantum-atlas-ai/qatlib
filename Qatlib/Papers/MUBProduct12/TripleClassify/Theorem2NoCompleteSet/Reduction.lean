@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MUBProduct12.TripleClassify.ConstellationModel
-import Qatlib.Papers.MUBProduct12.TripleClassify.Lemma2Constellation.CompletionProduct
+module
+
+public import Qatlib.Papers.MUBProduct12.TripleClassify.ConstellationModel
+public import Qatlib.Papers.MUBProduct12.TripleClassify.Lemma2Constellation.CompletionProduct
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -81,7 +85,7 @@ theorem theorem2_reduction
   have hg2 : g 2 = rS := by simp [g]
   have hginj : Function.Injective g := by
     intro r s hrs
-    fin_cases r <;> fin_cases s <;> simp_all [g, hrAB, hrAS, hrBS]
+    fin_cases r <;> fin_cases s <;> simp_all [g]
   -- `T` is a MU triple, inherited from the complete set.
   have hTmu : IsMuTriple T := by
     refine ⟨fun r => hM.1 (g r), ?_⟩

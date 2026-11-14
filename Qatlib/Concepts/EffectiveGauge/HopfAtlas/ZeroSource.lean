@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SourceWord
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.PeriodicIntegral
-import Mathlib.Analysis.Calculus.MeanValue
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SourceWord
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.PeriodicIntegral
+public import Mathlib.Analysis.Calculus.MeanValue
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

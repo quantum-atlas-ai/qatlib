@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MonteCarloInt20.QaeLaw.ActualReadout
-import Qatlib.Concepts.AmplitudeCore.PayoffMedian.QuantumPayoffEstimation
+module
+
+public import Qatlib.Papers.MonteCarloInt20.QaeLaw.ActualReadout
+public import Qatlib.Concepts.AmplitudeCore.PayoffMedian.QuantumPayoffEstimation
+
+@[expose] public section
 
 /-!
 # Coherent preparations for nested amplitude estimation

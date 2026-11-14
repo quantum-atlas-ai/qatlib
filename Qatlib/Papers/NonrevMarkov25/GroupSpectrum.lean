@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MarkovChains.ReverseKernel.Discriminant
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.Tactic
+module
+
+public import Qatlib.Foundations.MarkovChains.ReverseKernel.Discriminant
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Discriminant difference norms for finite group walks

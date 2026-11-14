@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.LinearAlgebra.Finsupp.LinearCombination
-import Mathlib.Analysis.InnerProductSpace.Projection.Basic
-import Mathlib.Analysis.InnerProductSpace.Orthonormal
-import Mathlib.Analysis.Normed.Module.FiniteDimension
-import Mathlib.Tactic
+module
+
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.LinearAlgebra.Finsupp.LinearCombination
+public import Mathlib.Analysis.InnerProductSpace.Projection.Basic
+public import Mathlib.Analysis.InnerProductSpace.Orthonormal
+public import Mathlib.Analysis.Normed.Module.FiniteDimension
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Analysis bounds from finite synthesis bounds
@@ -78,8 +82,8 @@ theorem synthesis_bound_subtype (F : I → E) (c : ℝ)
     (p : I → Prop) [DecidablePred p] (a : {i // p i} → ℂ) :
     c * (∑ i, ‖a i‖^2) ≤ ‖∑ i : {i // p i}, a i • F i‖^2 := by
   let b : I → ℂ := fun i => if h : p i then a ⟨i,h⟩ else 0
-  have hb1 (i : {i // p i}) : b i = a i := dif_pos i.property
-  have hb0 (i : {i // ¬p i}) : b i = 0 := dif_neg i.property
+  have hb1 (i : {i // p i}) : b i = a i := dite_eq_left i.property
+  have hb0 (i : {i // ¬p i}) : b i = 0 := dite_eq_right i.property
   have hb : (∑ i, ‖b i‖^2) = ∑ i, ‖a i‖^2 := by
     have hs := Fintype.sum_subtype_add_sum_subtype p (fun i => ‖b i‖^2)
     simpa only [hb1, hb0, norm_zero, zero_pow (by norm_num : (2:ℕ) ≠ 0), Finset.sum_const_zero,

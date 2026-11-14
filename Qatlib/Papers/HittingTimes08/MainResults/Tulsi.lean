@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HittingTimes08.MainResults.Comparison
+module
+
+public import Qatlib.Papers.HittingTimes08.MainResults.Comparison
+
+@[expose] public section
 
 /-!
 # Coordinate identities for the Tulsi construction

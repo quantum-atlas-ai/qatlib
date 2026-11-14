@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SdpDuality.ConeSeparation.SharedMatrixOptimizationDefs
-import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationExecutionRefutations
-import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationS1ContractEvidence
-import Qatlib.Concepts.AmpTransform.LegendreWindow.LegendreCompleteWindow
-import Qatlib.Concepts.SdpDuality.StrongDuality.PsdConeGeometry
+module
+
+public import Qatlib.Concepts.SdpDuality.ConeSeparation.SharedMatrixOptimizationDefs
+public import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationExecutionRefutations
+public import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationS1ContractEvidence
+public import Qatlib.Concepts.AmpTransform.LegendreWindow.LegendreCompleteWindow
+public import Qatlib.Concepts.SdpDuality.StrongDuality.PsdConeGeometry
+
+@[expose] public section
 
 /-!
 # Matrix optimization bounds and approximate cone separation
@@ -42,6 +46,7 @@ image is not closed. Matrix and SDP background can be found in [Bhatia1997] and 
 set_option backward.isDefEq.respectTransparency false
 set_option synthInstance.maxHeartbeats 400000
 set_option maxHeartbeats 2000000
+set_option linter.dupNamespace false
 open Qatlib.Concepts.MixedFidelity.FidelityMetric
 open Qatlib.Concepts.ProbabilityCore.Concentration.FiniteDecisionTree
 open Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
@@ -57,7 +62,7 @@ open Qatlib.Concepts.MatrixWeights.WeightsCore
 open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist
-open Qatlib.Concepts.DyadicFloor.FloorRounding
+open Qatlib.Concepts.SdpDuality.StrongDuality
 open Qatlib.Concepts.SdpDuality.StrongDuality
 
 set_option autoImplicit false
@@ -1326,7 +1331,7 @@ end
 end Qatlib.Concepts.SdpDuality.ConeSeparation
 
 namespace Qatlib.Concepts.SdpDuality.ConeSeparation.SdpDuality
-open Matrix Qatlib.Concepts.DyadicFloor.FloorRounding Qatlib.Concepts.SdpDuality.StrongDuality
+open Matrix Qatlib.Concepts.SdpDuality.StrongDuality
 open scoped InnerProductSpace ComplexOrder BigOperators
 noncomputable section
 

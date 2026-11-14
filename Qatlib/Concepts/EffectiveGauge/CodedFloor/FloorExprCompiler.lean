@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorExprRawApprox
+module
+
+public import Qatlib.Concepts.EffectiveGauge.CodedFloor.FloorExprRawApprox
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -148,12 +152,12 @@ private theorem floorComputableCompileWith
       simp only [List.length_map,List.length_range]
       by_cases hn : n=0
       · subst n
-        rw [floorExprCompileWith,dif_pos rfl]
+        rw [floorExprCompileWith,dite_eq_left rfl]
         simp
       · have hp : (n-1).unpair.2<n := (Nat.unpair_right_le _).trans_lt (by omega)
         have ha := (Nat.unpair_left_le (n-1).unpair.2).trans_lt hp
         have hb := (Nat.unpair_right_le (n-1).unpair.2).trans_lt hp
-        rw [if_neg hn,floorExprCompileWith,dif_neg hn]
+        rw [ite_eq_right hn,floorExprCompileWith,dite_eq_right hn]
         have hh (k : ℕ) (hk : k<n) :
             ((List.range n).map (floorExprCompileWith step zeroProgram)).getD k zeroProgram=
               floorExprCompileWith step zeroProgram k := by
@@ -174,10 +178,10 @@ theorem floorExprCompile_correct (basis : FloorExprMachineBasis) (h : FloorExprM
     by_cases hn : n=0
     · subst n
       intro q
-      rw [floorExprCompile,floorExprCompileWith,dif_pos rfl]
+      rw [floorExprCompile,floorExprCompileWith,dite_eq_left rfl]
       rw [Nat.Partrec.Code.eval_const]
       congr 1
-      rw [floorExprRawApprox,floorExprRawApproxWith,dif_pos rfl]
+      rw [floorExprRawApprox,floorExprRawApproxWith,dite_eq_left rfl]
       rfl
     · have hp : (n-1).unpair.2<n := (Nat.unpair_right_le _).trans_lt (by omega)
       have ha := (Nat.unpair_left_le (n-1).unpair.2).trans_lt hp
@@ -205,8 +209,8 @@ theorem floorExprCompile_correct (basis : FloorExprMachineBasis) (h : FloorExprM
         (floorCodeRealizes_pair (floorCodeRealizes_comp (ih _ hp) hh)
           (floorCodeRealizes_comp h.tolerance hh))
       intro q
-      conv_rhs => rw [floorExprRawApprox,floorExprRawApproxWith,dif_neg hn]
-      rw [floorExprCompile,floorExprCompileWith,dif_neg hn]
+      conv_rhs => rw [floorExprRawApprox,floorExprRawApproxWith,dite_eq_right hn]
+      rw [floorExprCompile,floorExprCompileWith,dite_eq_right hn]
       rw [floorExprCompileStep]
       dsimp only
       generalize ht : (n-1).unpair.1=tag

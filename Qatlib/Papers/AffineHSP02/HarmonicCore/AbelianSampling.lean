@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AffineHSP02.HarmonicCore.GaussSums
+module
+
+public import Qatlib.Papers.AffineHSP02.HarmonicCore.GaussSums
+
+@[expose] public section
 
 /-!
 # Abelian Fourier sampling probabilities
@@ -44,6 +48,7 @@ variable {p : ℕ} [Fact p.Prime]
 
 instance : NeZero p := ⟨(Fact.out : p.Prime).ne_zero⟩
 
+omit [Fact p.Prime] in
 /-- For `p ≥ 2`, casting `p - 1` from the natural numbers to the reals agrees with subtracting
 one after casting. -/
 theorem cast_pred (hp : 2 ≤ p) : ((p - 1 : ℕ) : ℝ) = (p : ℝ) - 1 := by

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.CollisionProb97.MainResults.FiniteEncoding
-import Qatlib.Papers.CollisionProb97.MainResults.CollisionCounting
+module
+
+public import Qatlib.Papers.CollisionProb97.MainResults.FiniteEncoding
+public import Qatlib.Papers.CollisionProb97.MainResults.CollisionCounting
+
+@[expose] public section
 
 /-!
 # Encoding regular functions in cyclic groups

@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.WalkSearch.MainResults.PairedDrainTrace
-import Qatlib.Concepts.WalkSearch.MainResults.IncidentCrossBounds
+module
+
+public import Qatlib.Concepts.WalkSearch.MainResults.PairedDrainTrace
+public import Qatlib.Concepts.WalkSearch.MainResults.IncidentCrossBounds
+
+@[expose] public section
 
 /-!
 # Classification scans with symmetric pair sets

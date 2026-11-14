@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MbqcFlow.FlowDecision.PureToMixedConditionalDefs
-import Qatlib.Concepts.SchattenDiamond.DiamondNorm.DiamondStabilization
-import Mathlib.Analysis.Matrix.Spectrum
-import Mathlib.Analysis.Matrix.PosDef
-import Mathlib.Tactic.Abel
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Ring
+module
+
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.PureToMixedConditionalDefs
+public import Qatlib.Concepts.SchattenDiamond.DiamondNorm.DiamondStabilization
+public import Mathlib.Analysis.Matrix.Spectrum
+public import Mathlib.Analysis.Matrix.PosDef
+public import Mathlib.Tactic.Abel
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Ring
+
+@[expose] public section
 
 /-!
 # Transporting conditional bounds from pure to mixed states
@@ -156,13 +160,13 @@ theorem density_pure_decomposition {D : ℕ} (ρ : Operator D)
             = if x = y then U a x * (hherm.eigenvalues x : ℂ) else 0 := by
         intro x
         by_cases hx : x = y
-        · rw [if_pos hx, if_pos hx]
-        · rw [if_neg hx, if_neg hx, mul_zero]
+        · rw [ite_eq_left hx, ite_eq_left hx]
+        · rw [ite_eq_right hx, ite_eq_right hx, mul_zero]
       have hsw : (∑ x, U a x * (if x = y then (hherm.eigenvalues x : ℂ) else 0))
           = ∑ x, (if x = y then U a x * (hherm.eigenvalues x : ℂ) else 0) :=
         Finset.sum_congr rfl (fun x _ => hite x)
       rw [hsw, Finset.sum_ite_eq']
-      exact if_pos (Finset.mem_univ y)
+      exact ite_eq_left (Finset.mem_univ y)
     have hcore : (U * Matrix.diagonal (fun k => (hherm.eigenvalues k : ℂ)) * Uᴴ) a b
         = ∑ k, ((hherm.eigenvalues k : ℂ) * (U a k * star (U b k))) := by
       simp only [Matrix.mul_apply, Matrix.conjTranspose_apply, Matrix.diagonal_apply]
@@ -281,7 +285,7 @@ theorem pureToMixed_holds {O : Type} [Fintype O] {D E : ℕ}
       intro hz
       rw [hz, Complex.zero_re] at hJ
       linarith
-    rw [if_neg hne]
+    rw [ite_eq_right hne]
   have hKn : normalizedBranch (selectedBranch K S ρ) =
       ((Matrix.trace (selectedBranch K S ρ))⁻¹ : ℂ) • selectedBranch K S ρ := by
     unfold normalizedBranch
@@ -290,7 +294,7 @@ theorem pureToMixed_holds {O : Type} [Fintype O] {D E : ℕ}
       rw [hz, Complex.zero_re] at hK
       have : (0 : ℂ).re = 0 := by simp
       linarith
-    rw [if_neg hne]
+    rw [ite_eq_right hne]
   set σ : Operator E := selectedBranch J S ρ
   set τ : Operator E := selectedBranch K S ρ
   have hσpsd : σ.PosSemidef := selectedBranch_posSemidef J S hρ.1

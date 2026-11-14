@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SingleQuery97.MainResults.WalshProgram
+module
+
+public import Qatlib.Papers.SingleQuery97.MainResults.WalshProgram
+
+@[expose] public section
 
 /-!
 # Truncated prefix-code database recovery
@@ -71,7 +75,7 @@ theorem decoder_short [NeZero N] (bits : Fin N → ℕ → ZMod 2) (length : Fin
     decoder bits length m (truncated bits m t) = t := by
   classical
   have hex : ∃ x, truncated bits m x = truncated bits m t ∧ length x ≤ m := ⟨t,rfl,ht⟩
-  rw [decoder, dif_pos hex]
+  rw [decoder, dite_eq_left hex]
   exact short_leaf_unique bits length hprefix m t _ ht (Classical.choose_spec hex).1
 
 /-- The joint law of the prior label and its decoded output after the one-query circuit for the

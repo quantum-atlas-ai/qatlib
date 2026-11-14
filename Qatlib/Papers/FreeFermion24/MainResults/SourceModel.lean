@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Polynomial.Basic
-import Mathlib.Analysis.Matrix.Spectrum
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.Complex.Trigonometric
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.Basic
+module
+
+public import Mathlib.Algebra.Polynomial.Basic
+public import Mathlib.Analysis.Matrix.Spectrum
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.Complex.Trigonometric
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

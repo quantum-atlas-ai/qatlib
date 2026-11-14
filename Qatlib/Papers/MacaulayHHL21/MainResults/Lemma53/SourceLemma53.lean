@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MacaulayHHL21.MainResults.SourceModel
-import Mathlib.Data.Matrix.Block
+module
+
+public import Qatlib.Papers.MacaulayHHL21.MainResults.SourceModel
+public import Mathlib.Data.Matrix.Block
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -48,6 +52,6 @@ theorem lemma53_rowReduction
         Matrix.fromBlocks 0 R1' (1 : Matrix κ κ ℂ) R2 := by
   refine ⟨Matrix.fromBlocks 1 (-L1) 0 1, R1 - L1 * R2, ?_⟩
   rw [Matrix.fromBlocks_multiply]
-  simp [sub_eq_add_neg, Matrix.mul_zero, Matrix.zero_mul, Matrix.mul_one, Matrix.one_mul]
+  simp [sub_eq_add_neg, Matrix.zero_mul, Matrix.mul_one, Matrix.one_mul]
 
 end Qatlib.Papers.MacaulayHHL21.MainResults.Lemma53

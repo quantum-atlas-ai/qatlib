@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LatticeFilter21.MainResults.Model.Distributions
+module
+
+public import Qatlib.Papers.LatticeFilter21.MainResults.Model.Distributions
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -104,7 +108,7 @@ def SLWESolvable (q m : ℕ → ℕ) [∀ n, NeZero (q n)]
   SolvableFromState MachineKind.quantum q
     (fun n => SLWEInstance n (m n) (q n)) (fun n => Fin (m n) → Zq (q n))
     (fun n inst => rawLweState (g n) inst.A inst.u)
-    (fun n inst out => SLWESpec inst out)
+    (fun _n inst out => SLWESpec inst out)
 
 /-! ## `EDCP` (Definition 11) -/
 
@@ -125,7 +129,7 @@ def EDCPSolvable (q m : ℕ → ℕ) [∀ n, NeZero (q n)]
     (fun n => EDCPInstance n (m n) (q n))
     (fun n => Fin (m n) → Zq (q n) × (Fin n → Zq (q n)))
     (fun n inst => edcpState (D n) inst)
-    (fun n inst out => EDCPSpec inst out)
+    (fun _n inst out => EDCPSpec inst out)
 
 /-! ## `SIS^∞` -/
 

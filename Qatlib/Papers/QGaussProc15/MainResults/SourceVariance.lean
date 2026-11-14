@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QGaussProc15.MainResults.SourceMeasurementReadout
+module
+
+public import Qatlib.Papers.QGaussProc15.MainResults.SourceMeasurementReadout
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -55,7 +59,7 @@ The orthonormal eigenbasis `μ`, nonzero eigenvalues `lam`, and positive
 `σ_n, c_k, s_k` are the source's standing assumptions. -/
 theorem source_variance_estimator {n : ℕ} (μ : Fin n → Fin n → ℝ)
     (β lam : Fin n → ℝ) (kxx σn ck sk : ℝ)
-    (horth : Orthonormal μ) (hlam : ∀ i, lam i ≠ 0)
+    (horth : Orthonormal μ) (_hlam : ∀ i, lam i ≠ 0)
     (hσn : 0 < σn) (hck : 0 < ck) (hsk : 0 < sk) :
     varianceEstimator kxx sk σn ck
         (readoutExpectation β β lam ck ck (σn ^ 2) sk sk)
@@ -72,7 +76,6 @@ theorem source_variance_estimator {n : ℕ} (μ : Fin n → Fin n → ℝ)
   have hσn' : σn ^ 2 ≠ 0 := by positivity
   have hck' : ck ≠ 0 := hck.ne'
   field_simp
-  try ring
 
 /-- **Fixed arXiv:1512.03929v1, page 4, Eq. (11) (c005), Eq. (5) form.**
 The c005 estimator recovers exactly the classical GPR predictive variance;

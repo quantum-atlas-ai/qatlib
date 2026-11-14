@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.Reflections.KernelWitnessContracts
+module
+
+public import Qatlib.Concepts.QueryComplexity.Reflections.KernelWitnessContracts
+
+@[expose] public section
 
 /-!
 # Zero-vector realization of the kernel-witness contract

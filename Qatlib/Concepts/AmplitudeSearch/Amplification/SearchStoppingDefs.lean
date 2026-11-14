@@ -4,13 +4,17 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
-import Mathlib.Probability.ProbabilityMassFunction.Monad
-import Mathlib.Probability.Distributions.Uniform
-import Qatlib.Concepts.LinearLearning.ConcisePipeline.RandomizedCost
-import Qatlib.Concepts.LchsSimulation.StaticLchs.BitSampledPreparedSearch
-import Qatlib.Concepts.AmplitudeSearch.Amplification.NativeMinimumConstruction
-import Qatlib.Concepts.AmplitudeSearch.Amplification.MinimumBudgetProbability
+module
+
+public import Qatlib.Concepts.FairRandomBits.FiniteCoinExecution
+public import Mathlib.Probability.ProbabilityMassFunction.Monad
+public import Mathlib.Probability.Distributions.Uniform
+public import Qatlib.Concepts.LinearLearning.ConcisePipeline.RandomizedCost
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.BitSampledPreparedSearch
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.NativeMinimumConstruction
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.MinimumBudgetProbability
+
+@[expose] public section
 
 /-!
 # Fair-bit and prepared-search stopping laws

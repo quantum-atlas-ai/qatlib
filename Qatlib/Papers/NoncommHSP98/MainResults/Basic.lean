@@ -4,17 +4,21 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.SpecialFunctions.Complex.CircleAddChar
-import Mathlib.Analysis.Complex.Circle
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Data.ZMod.Basic
-import Mathlib.Data.Matrix.Basic
-import Mathlib.Data.Matrix.Mul
-import Mathlib.GroupTheory.SpecificGroups.Dihedral
-import Mathlib.Tactic
-import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
-import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
-import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfacesDefs
+module
+
+public import Mathlib.Analysis.SpecialFunctions.Complex.CircleAddChar
+public import Mathlib.Analysis.Complex.Circle
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Data.ZMod.Basic
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.Data.Matrix.Mul
+public import Mathlib.GroupTheory.SpecificGroups.Dihedral
+public import Mathlib.Tactic
+public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
+public import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces
+public import Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfacesDefs
+
+@[expose] public section
 
 /-!
 # Dihedral sampling and matrix Fourier identities
@@ -213,7 +217,7 @@ theorem sum_cosPhase {N : ℕ} [NeZero N] (k : ZMod N) :
   classical
   by_cases hk : k = 0
   · subst hk
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     have hpt : ∀ z : ZMod N, cosPhase N 0 z = 1 := by
       intro z
       unfold cosPhase cphase
@@ -222,7 +226,7 @@ theorem sum_cosPhase {N : ℕ} [NeZero N] (k : ZMod N) :
     calc ∑ z : ZMod N, cosPhase N 0 z = ∑ _z : ZMod N, (1 : ℝ) :=
           Finset.sum_congr rfl (fun z _ => hpt z)
       _ = (N : ℝ) := by simp
-  · rw [if_neg hk]
+  · rw [ite_eq_right hk]
     have hne : (ZMod.stdAddChar.mulShift k : AddChar (ZMod N) ℂ) ≠ 0 := by
       intro h
       have h1 : ZMod.stdAddChar k = 1 := by
@@ -230,7 +234,7 @@ theorem sum_cosPhase {N : ℕ} [NeZero N] (k : ZMod N) :
         simpa using! hfun
       exact hk (ZMod.injective_stdAddChar (by rw [h1, AddChar.map_zero_eq_one]))
     have hsum := AddChar.sum_eq_ite (ZMod.stdAddChar.mulShift k)
-    rw [if_neg hne] at hsum
+    rw [ite_eq_right hne] at hsum
     have hsum' : ∑ z : ZMod N, cphase N k z = 0 := by
       simpa [cphase] using! hsum
     have hre : (∑ z : ZMod N, cosPhase N k z) = (∑ z : ZMod N, cphase N k z).re := by
@@ -377,8 +381,8 @@ theorem zAlpha_nonneg {N : ℕ} [NeZero N] (k0 : ZMod N) : 0 ≤ zAlpha N k0 := 
   have hN : (0 : ℝ) < N := by exact_mod_cast Nat.pos_of_ne_zero (NeZero.ne N)
   unfold zAlpha
   by_cases hk : k0 = 0
-  · rw [if_pos hk]; positivity
-  · rw [if_neg hk]; positivity
+  · rw [ite_eq_left hk]; positivity
+  · rw [ite_eq_right hk]; positivity
 
 /-- The sampling mass `zMass N k0 z` is nonnegative. -/
 theorem zMass_nonneg {N : ℕ} [NeZero N] (k0 z : ZMod N) : 0 ≤ zMass N k0 z := by
@@ -407,13 +411,13 @@ theorem zMass_sum_one {N : ℕ} [NeZero N] (k0 : ZMod N) :
       _ = _ := by rw [hinner]; ring
   rw [hsum]
   by_cases hk : k0 = 0
-  · rw [if_pos hk]
-    have hza : zAlpha N k0 = 1 / (N : ℝ) := by unfold zAlpha; rw [if_pos hk]
+  · rw [ite_eq_left hk]
+    have hza : zAlpha N k0 = 1 / (N : ℝ) := by unfold zAlpha; rw [ite_eq_left hk]
     rw [hza]
     field_simp
     norm_num
-  · rw [if_neg hk]
-    have hza : zAlpha N k0 = 2 / (N : ℝ) := by unfold zAlpha; rw [if_neg hk]
+  · rw [ite_eq_right hk]
+    have hza : zAlpha N k0 = 2 / (N : ℝ) := by unfold zAlpha; rw [ite_eq_right hk]
     rw [hza]
     field_simp
     ring
@@ -461,20 +465,20 @@ theorem expect_cosPhase_ge_half {N : ℕ} [NeZero N] {k0 k : ZMod N}
   rcases hk with hk | hk
   · rw [hk]
     by_cases h2 : k0 + k0 = 0
-    · rw [if_neg hk0, if_pos h2, sub_self, if_pos rfl, zAlpha, if_neg hk0]
+    · rw [ite_eq_right hk0, ite_eq_left h2, sub_self, ite_eq_left rfl, zAlpha, ite_eq_right hk0]
       field_simp
       nlinarith [hN]
-    · rw [if_neg hk0, if_neg h2, sub_self, if_pos rfl, zAlpha, if_neg hk0]
+    · rw [ite_eq_right hk0, ite_eq_right h2, sub_self, ite_eq_left rfl, zAlpha, ite_eq_right hk0]
       field_simp
       nlinarith [hN]
   · rw [hk]
     have hsum0 : k0 + -k0 = 0 := by ring
     have hsub0 : k0 - -k0 = k0 + k0 := by ring
     by_cases h2 : k0 + k0 = 0
-    · rw [if_neg (neg_ne_zero.mpr hk0), if_pos hsum0, hsub0, if_pos h2, zAlpha, if_neg hk0]
+    · rw [ite_eq_right (neg_ne_zero.mpr hk0), ite_eq_left hsum0, hsub0, ite_eq_left h2, zAlpha, ite_eq_right hk0]
       field_simp
       nlinarith [hN]
-    · rw [if_neg (neg_ne_zero.mpr hk0), if_pos hsum0, hsub0, if_neg h2, zAlpha, if_neg hk0]
+    · rw [ite_eq_right (neg_ne_zero.mpr hk0), ite_eq_left hsum0, hsub0, ite_eq_right h2, zAlpha, ite_eq_right hk0]
       field_simp
       nlinarith [hN]
 
@@ -487,8 +491,8 @@ theorem expect_cosPhase_eq_zero {N : ℕ} [NeZero N] {k0 k : ZMod N}
     rw [add_comm, eq_neg_iff_add_eq_zero]
   have h2 : k0 - k = 0 ↔ k = k0 := by
     rw [sub_eq_zero, eq_comm]
-  rw [expect_cosPhase_eq, if_neg hk, if_neg (fun h => hkm (h1.mp h)),
-    if_neg (fun h => hkp (h2.mp h))]
+  rw [expect_cosPhase_eq, ite_eq_right hk, ite_eq_right (fun h => hkm (h1.mp h)),
+    ite_eq_right (fun h => hkp (h2.mp h))]
   ring
 
 /-- The product probability of a sample tuple is nonnegative. -/

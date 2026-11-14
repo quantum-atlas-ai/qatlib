@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.MatrixAlgebra.NestedComm
+module
+
+public import Qatlib.Foundations.MatrixAlgebra.NestedComm
+
+@[expose] public section
 
 /-!
 # Matrix properties of the leading Suzuki error

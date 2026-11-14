@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.Complex.Norm
-import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Qatlib.Papers.GaussSumEst02.MainResults.Source.Cost
+module
+
+public import Mathlib.Analysis.Complex.Norm
+public import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Qatlib.Papers.GaussSumEst02.MainResults.Source.Cost
+
+@[expose] public section
 
 /-!
 # Phase sampling probabilities and access assumptions
@@ -95,7 +99,7 @@ def expectedSignMean (γ : ℝ) (P : SamplingProtocol) (t : ℕ) : ℝ :=
 
 /-- For a positive number of samples, the expected sign average equals the average of `cos(γ -
 P.angle i)` over the measurement indices [VanDamSeroussi2002]. -/
-theorem fact2_unbiased_sign_mean (γ : ℝ) (P : SamplingProtocol) (t : ℕ) (ht : 0 < t) :
+theorem fact2_unbiased_sign_mean (γ : ℝ) (P : SamplingProtocol) (t : ℕ) (_ht : 0 < t) :
     expectedSignMean γ P t
       = (t : ℝ)⁻¹ * ∑ i : Fin t, Real.cos (γ - P.angle i) := by
   classical
@@ -136,11 +140,11 @@ theorem fact2_unbiased_sign_mean (γ : ℝ) (P : SamplingProtocol) (t : ℕ) (ht
       intro i
       by_cases hij : i = j
       · subst hij
-        rw [if_pos rfl, Fintype.sum_bool]
-        simp only [sign, Bool.false_eq_true, if_true, if_false, mul_neg]
+        rw [ite_eq_left rfl, Fintype.sum_bool]
+        simp only [sign, Bool.false_eq_true, ite_true, ite_false, mul_neg]
         linarith [bornPlus_sub_bornMinus γ (P.angle i)]
-      · rw [if_neg hij, Fintype.sum_bool]
-        simp only [sign, Bool.false_eq_true, if_true, if_false, if_neg hij]
+      · rw [ite_eq_right hij, Fintype.sum_bool]
+        simp only [sign, Bool.false_eq_true, ite_true, ite_false, ite_eq_right hij]
         linarith [bornPlus_add_bornMinus γ (P.angle i)]
     trans (∏ i : Fin t, if i = j then Real.cos (γ - P.angle i) else 1)
     · exact Finset.prod_congr rfl fun i _ => hfac i

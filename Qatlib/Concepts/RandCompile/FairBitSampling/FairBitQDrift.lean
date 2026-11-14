@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.RandCompile.FairBitSampling.CappedWeightedCoinPath
-import Qatlib.Concepts.RandCompile.ReferenceModel.QDriftReferenceSimulation
+module
+
+public import Qatlib.Concepts.RandCompile.FairBitSampling.CappedWeightedCoinPath
+public import Qatlib.Concepts.RandCompile.ReferenceModel.QDriftReferenceSimulation
+
+@[expose] public section
 
 /-!
 # Fair-bit qDRIFT circuits and reference errors
@@ -126,7 +130,7 @@ theorem fair_bit_qdrift_actual_fresh_channel_bridge (L D n R r : ℕ)
   let d := fairQdriftUniform (Fin R → Reg (Nat.clog 2 (weightTotal w)))
   let f := fun bits => (fairQdriftPick w j0 R bits).1
   let U := fun j => HamiltonianEvolution (K j) (t*(weightTotal w : ℝ)/(n : ℝ))
-  rw [fairQdriftReferenceOutput, if_neg (ne_of_gt hW)]
+  rw [fairQdriftReferenceOutput, ite_eq_right (ne_of_gt hW)]
   exact (mixture_fresh_paths_reference_output d (fun bits => U (f bits)) n r X).symm.trans
     (referenceMixturePower_pushforward d f U r n X)
 
@@ -145,7 +149,7 @@ theorem fair_bit_qdrift_actual_quantum_and_classical_path_counts (L D n R : ℕ)
   have hc := mixture_path_circuit_semantics_cost
     (fun j => HamiltonianEvolution (K j) (t*(weightTotal w : ℝ)/(n : ℝ))) n
     (fun k => (fairQdriftPick w j0 R (ω k)).1) (0 : QState (Fin D))
-  simp only [fairQdriftCircuit, if_neg (ne_of_gt hW)]
+  simp only [fairQdriftCircuit, ite_eq_right (ne_of_gt hW)]
   refine ⟨hc.2.2.2 (fun j => hamiltonianEvolution_unitary (hK j) _), hc.2.1, hc.2.2.1, ?_, ?_⟩
   · calc _ ≤ ∑ _ : Fin n, Nat.clog 2 (weightTotal w)*R :=
         Finset.sum_le_sum (fun k _ => (fair_bit_qdrift_actual_coin_path_cost L R w j0 hW).1 (ω k) |>.1)

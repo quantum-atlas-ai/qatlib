@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.Group.Subgroup.Basic
-import Mathlib.GroupTheory.QuotientGroup.Basic
-import Mathlib.GroupTheory.Nilpotent
-import Mathlib.GroupTheory.Sylow
-import Mathlib.GroupTheory.OrderOfElement
-import Mathlib.SetTheory.Cardinal.Finite
-import Mathlib.Tactic
-import Mathlib.GroupTheory.Abelianization.Defs
+module
+
+public import Mathlib.Algebra.Group.Subgroup.Basic
+public import Mathlib.GroupTheory.QuotientGroup.Basic
+public import Mathlib.GroupTheory.Nilpotent
+public import Mathlib.GroupTheory.Sylow
+public import Mathlib.GroupTheory.OrderOfElement
+public import Mathlib.SetTheory.Cardinal.Finite
+public import Mathlib.Tactic
+public import Mathlib.GroupTheory.Abelianization.Defs
+
+@[expose] public section
 
 /-!
 # Algebraic Hidden Subgroup Reductions
@@ -152,7 +156,7 @@ theorem subset_elements_pow_eq_one {H : Subgroup G} {p : ℕ} [Fact p.Prime]
   intro h hh
   rcases hcard with hcard | hcard
   · exact pow_eq_one_of_card_eq_prime hcard hh
-  · haveI : Subsingleton H := (Nat.card_eq_one_iff_unique.mp hcard).1
+  · have : Subsingleton H := (Nat.card_eq_one_iff_unique.mp hcard).1
     have h1 : (⟨h, hh⟩ : H) = 1 := Subsingleton.elim _ _
     have : h = 1 := by
       simpa using congrArg Subtype.val h1
@@ -209,7 +213,7 @@ theorem subgroup_eq_sup_inf_of_coprime {P Q : Subgroup G} [P.Normal] [Q.Normal]
       refine ⟨Nat.gcdA (Nat.card P) (Nat.card Q), Nat.gcdB (Nat.card P) (Nat.card Q), ?_⟩
       have hgZ : ((Nat.gcd (Nat.card P) (Nat.card Q) : ℕ) : ℤ) = 1 := by
         exact_mod_cast hg
-      push_cast at hbez ⊢
+
       linarith
     have hpq_pow_P : (p * q) ^ (Nat.card P : ℤ) = q ^ (Nat.card P : ℤ) := by
       rw [zpow_natCast, zpow_natCast, hcommpq.mul_pow, hp_pow, one_mul]
@@ -312,7 +316,7 @@ theorem mul_comm_of_mem_sup_commutator {H : Subgroup G}
     (hZ : ⁅(⊤ : Subgroup G), (⊤ : Subgroup G)⁆ ≤ Subgroup.center G)
     {x y : G} (hx : x ∈ H ⊔ ⁅(⊤ : Subgroup G), (⊤ : Subgroup G)⁆)
     (hy : y ∈ H ⊔ ⁅(⊤ : Subgroup G), (⊤ : Subgroup G)⁆) : x * y = y * x := by
-  haveI : (⁅(⊤ : Subgroup G), (⊤ : Subgroup G)⁆).Normal := inferInstance
+  have : (⁅(⊤ : Subgroup G), (⊤ : Subgroup G)⁆).Normal := inferInstance
   obtain ⟨a, ha, b, hb, rfl⟩ :=
     (Subgroup.mem_sup_of_normal_right (s := H)
       (t := ⁅(⊤ : Subgroup G), (⊤ : Subgroup G)⁆)).mp hx
@@ -364,7 +368,7 @@ theorem abelianization_map_sup_commutator (H : Subgroup G) :
       H.map (Abelianization.of (G := G)) := by
   apply le_antisymm
   · rintro _ ⟨x, hx, rfl⟩
-    haveI : (⁅(⊤ : Subgroup G), (⊤ : Subgroup G)⁆).Normal := inferInstance
+    have : (⁅(⊤ : Subgroup G), (⊤ : Subgroup G)⁆).Normal := inferInstance
     obtain ⟨a, ha, b, hb, rfl⟩ :=
       (Subgroup.mem_sup_of_normal_right (s := H)
         (t := ⁅(⊤ : Subgroup G), (⊤ : Subgroup G)⁆)).mp hx

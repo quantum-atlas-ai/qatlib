@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.PontryaginVQA16.MainResults.BangBangOptimal
-import Mathlib.Data.Matrix.Basic
-import Mathlib.LinearAlgebra.Matrix.Defs
-import Mathlib.LinearAlgebra.Matrix.ConjTranspose
-import Mathlib.Data.Complex.Basic
-import Mathlib.Algebra.Module.LinearMap.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.PontryaginVQA16.MainResults.BangBangOptimal
+public import Mathlib.Data.Matrix.Basic
+public import Mathlib.LinearAlgebra.Matrix.Defs
+public import Mathlib.LinearAlgebra.Matrix.ConjTranspose
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Algebra.Module.LinearMap.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -79,10 +83,14 @@ def lindbladGenerator {ι κ : Type*} [Fintype ι] [Fintype κ]
     (g : ι → ℝ) (f : κ → ℝ) (ρ : Matrix n n ℂ) : Matrix n n ℂ :=
   (∑ α, g α • generatorTerm (Hs α) ρ) + ∑ β, f β • dissipator (Fs β) ρ
 
+omit [Fintype n] [DecidableEq n] in
 /-- The generator equals the displayed Lindblad form of Eq. (8): the
 Hamiltonian part is `-i [∑_α g_α H_α, ρ]` and the dissipative part carries the
 real rates `f_β` inside the dissipator. -/
-theorem lindbladGenerator_eq_source {ι κ : Type*} [Fintype ι] [Fintype κ]
+theorem lindbladGenerator_eq_source {n : Type*}
+    [_instFintypeN : Fintype n]
+    [_instDecidableEqN : DecidableEq n]
+    {ι κ : Type*} [Fintype ι] [Fintype κ]
     (Hs : ι → Matrix n n ℂ) (Fs : κ → Matrix n n ℂ)
     (g : ι → ℝ) (f : κ → ℝ) (ρ : Matrix n n ℂ) :
     lindbladGenerator Hs Fs g f ρ =
@@ -101,9 +109,13 @@ theorem lindbladGenerator_eq_source {ι κ : Type*} [Fintype ι] [Fintype κ]
     try module
   rw [h1, h2, ← Finset.smul_sum]
 
+omit [Fintype n] [DecidableEq n] in
 /-- **Linearity of Eq. (8) in the controls, additive form.**  The generator of
 the Markovian dynamics is additive in the control vector `(g, f)`. -/
-theorem lindbladGenerator_add {ι κ : Type*} [Fintype ι] [Fintype κ]
+theorem lindbladGenerator_add {n : Type*}
+    [_instFintypeN : Fintype n]
+    [_instDecidableEqN : DecidableEq n]
+    {ι κ : Type*} [Fintype ι] [Fintype κ]
     (Hs : ι → Matrix n n ℂ) (Fs : κ → Matrix n n ℂ)
     (g₁ g₂ : ι → ℝ) (f₁ f₂ : κ → ℝ) (ρ : Matrix n n ℂ) :
     lindbladGenerator Hs Fs (g₁ + g₂) (f₁ + f₂) ρ =
@@ -112,9 +124,13 @@ theorem lindbladGenerator_add {ι κ : Type*} [Fintype ι] [Fintype κ]
   simp only [Pi.add_apply, add_smul, Finset.sum_add_distrib]
   abel
 
+omit [Fintype n] [DecidableEq n] in
 /-- **Linearity of Eq. (8) in the controls, homogeneous form.**  Rescaling all
 controls rescales the right hand side of Eq. (8). -/
-theorem lindbladGenerator_smul {ι κ : Type*} [Fintype ι] [Fintype κ]
+theorem lindbladGenerator_smul {n : Type*}
+    [_instFintypeN : Fintype n]
+    [_instDecidableEqN : DecidableEq n]
+    {ι κ : Type*} [Fintype ι] [Fintype κ]
     (Hs : ι → Matrix n n ℂ) (Fs : κ → Matrix n n ℂ)
     (c : ℝ) (g : ι → ℝ) (f : κ → ℝ) (ρ : Matrix n n ℂ) :
     lindbladGenerator Hs Fs (c • g) (c • f) ρ =
@@ -123,12 +139,16 @@ theorem lindbladGenerator_smul {ι κ : Type*} [Fintype ι] [Fintype κ]
   simp only [Pi.smul_apply, smul_add, smul_smul, Finset.smul_sum]
   module
 
+omit [Fintype n] [DecidableEq n] in
 /-- **The optimal-control Hamiltonian of Eq. (8) is affine in the controls.**
 For any real-linear costate pairing `P`, `P (L(g,f) ρ)` is the affine control
 cost with coefficient `P (-i[H_α,ρ])` on `g_α` and `P (D(F_β)ρ)` on `f_β`.
 This is exactly the "linearity of the dynamical equation (8)" invoked by the
 paper as the reason for bang-bang optimality. -/
-theorem costate_affine {ι κ : Type*} [Fintype ι] [Fintype κ]
+theorem costate_affine {n : Type*}
+    [_instFintypeN : Fintype n]
+    [_instDecidableEqN : DecidableEq n]
+    {ι κ : Type*} [Fintype ι] [Fintype κ]
     (Hs : ι → Matrix n n ℂ) (Fs : κ → Matrix n n ℂ)
     (P : Matrix n n ℂ →ₗ[ℝ] ℝ) (g : ι → ℝ) (f : κ → ℝ) (ρ : Matrix n n ℂ) :
     P (lindbladGenerator Hs Fs g f ρ) =
@@ -140,12 +160,16 @@ theorem costate_affine {ι κ : Type*} [Fintype ι] [Fintype κ]
   congr 1
   exact Finset.sum_congr rfl fun x _ => mul_comm (g x) (P (generatorTerm (Hs x) ρ))
 
+omit [Fintype n] [DecidableEq n] in
 /-- **The optimal-control Hamiltonian of Eq. (8) is affine in the dissipative
 rates.**  Complementary to `costate_affine`: pairing the generator against the
 costate, `P (L(g,f) ρ)` is also affine with coefficient `P (D(F_β)ρ)` on the
 rate `f_β`, which is the form needed to force the dissipative controls to an
 endpoint. -/
-theorem costate_affine_dissipative {ι κ : Type*} [Fintype ι] [Fintype κ]
+theorem costate_affine_dissipative {n : Type*}
+    [_instFintypeN : Fintype n]
+    [_instDecidableEqN : DecidableEq n]
+    {ι κ : Type*} [Fintype ι] [Fintype κ]
     (Hs : ι → Matrix n n ℂ) (Fs : κ → Matrix n n ℂ)
     (P : Matrix n n ℂ →ₗ[ℝ] ℝ) (g : ι → ℝ) (f : κ → ℝ) (ρ : Matrix n n ℂ) :
     P (lindbladGenerator Hs Fs g f ρ) =

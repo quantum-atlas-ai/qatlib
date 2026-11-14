@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.ClusterPatterns.ClusterCompile.UniversalLocalGraphCompilationQuan
-import Qatlib.Concepts.InstrumentCore.PatternCompile.UniversalActualFinalReadoutQuan
+module
+
+public import Qatlib.Concepts.ClusterPatterns.ClusterCompile.UniversalLocalGraphCompilationQuan
+public import Qatlib.Concepts.InstrumentCore.PatternCompile.UniversalActualFinalReadoutQuan
+
+@[expose] public section
 
 /-!
 # Classical input preparation and graph-resource independence
@@ -286,7 +290,7 @@ private theorem wire_table {n : ℕ} (Us : Fin n → Matrix Bool Bool ℂ)
     reflectionProgramMatrix (is.map (fun i => Sum.inl (i,Us i)))=
       pauliProductDensity (fun j => if j ∈ is then relabelGate boolEquivFin2 (Us j) else 1) := by
   induction is with
-  | nil => simpa only [List.map_nil,reflectionProgramMatrix,List.not_mem_nil,if_false] using!
+  | nil => simpa only [List.map_nil,reflectionProgramMatrix,List.not_mem_nil,ite_false] using!
       (pauliProductDensity_one n).symm
   | cons i is ih =>
     have hi := (List.nodup_cons.mp hnodup).1
@@ -325,7 +329,7 @@ private theorem x_table_zero (n : ℕ) (x : Reg n) :
   rw [wire_table_full]
   funext y
   simp only [Matrix.mulVec,dotProduct,Qatlib.Foundations.PureStateMath.Ket,mul_ite,mul_one,mul_zero,
-    Finset.sum_ite_eq',Finset.mem_univ,if_true]
+    Finset.sum_ite_eq',Finset.mem_univ,ite_true]
   have he (i : Fin n) : relabelGate boolEquivFin2 (if x i then PauliX else 1)
       (boolEquivFin2 (y i)) (boolEquivFin2 (ZeroStr n i))=
         (1 : Operator 2) (boolEquivFin2 (y i)) (boolEquivFin2 (x i)) := by

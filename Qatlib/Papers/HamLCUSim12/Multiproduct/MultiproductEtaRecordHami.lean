@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductEtaRecordStat
-import Mathlib.Analysis.SpecialFunctions.Log.Deriv
+module
+
+public import Qatlib.Papers.HamLCUSim12.Multiproduct.MultiproductEtaRecordStat
+public import Mathlib.Analysis.SpecialFunctions.Log.Deriv
+
+@[expose] public section
 
 /-!
 # A certified scalar maximum for multiproduct bounds
@@ -100,7 +104,8 @@ private theorem eta_entropy_poly_deriv (x : ℝ) :
 
 /-- For 0 ≤ x < 1, the polynomial x² + x⁴ / 6 + x⁶ / 15 + x⁸ / 28 is at most `etaEntropy x`. -/
 theorem multiproduct_entropy_lower (x : ℝ) (hx : 0 ≤ x) (hx1 : x < 1) :
-    x^2+x^4/6+x^6/15+x^8/28 ≤ etaEntropy x := by
+    x^2+x^4/6+x^6/15+x^8/28 ≤ (1+x)*Real.log (1+x)+(1-x)*Real.log (1-x) := by
+  change x^2+x^4/6+x^6/15+x^8/28 ≤ etaEntropy x
   let R := fun u => etaEntropy u-etaEntropyPoly u
   have hd (u : ℝ) (hu : u ∈ Set.Icc 0 x) : HasDerivAt R (etaLogRemainder u) u := by
     exact (eta_entropy_deriv u hu.1 (hu.2.trans_lt hx1)).sub (eta_entropy_poly_deriv u)

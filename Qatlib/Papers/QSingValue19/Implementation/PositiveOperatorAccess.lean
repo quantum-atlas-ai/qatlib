@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QSingValue19.Implementation.PositiveOperatorAccessDefs
+module
+
+public import Qatlib.Papers.QSingValue19.Implementation.PositiveOperatorAccessDefs
+
+@[expose] public section
 
 /-!
 # Positive operator access and finite precision preparation

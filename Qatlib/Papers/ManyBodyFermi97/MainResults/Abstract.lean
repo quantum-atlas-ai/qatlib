@@ -4,14 +4,18 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.ManyBodyFermi97.MainResults.SignedOrbit
-import Qatlib.Papers.ManyBodyFermi97.MainResults.OnsiteWord
-import Qatlib.Papers.ManyBodyFermi97.MainResults.ParallelBlocks
-import Qatlib.Papers.ManyBodyFermi97.MainResults.MemoryComparison
-import Qatlib.Papers.ManyBodyFermi97.MainResults.SecondQuantizedHubbard
-import Qatlib.Papers.ManyBodyFermi97.MainResults.Antisymmetrization
-import Qatlib.Papers.ManyBodyFermi97.MainResults.FirstQuantizedOperators
-import Qatlib.Papers.ManyBodyFermi97.MainResults.FirstQuantizedHubbard
+module
+
+public import Qatlib.Papers.ManyBodyFermi97.MainResults.SignedOrbit
+public import Qatlib.Papers.ManyBodyFermi97.MainResults.OnsiteWord
+public import Qatlib.Papers.ManyBodyFermi97.MainResults.ParallelBlocks
+public import Qatlib.Papers.ManyBodyFermi97.MainResults.MemoryComparison
+public import Qatlib.Papers.ManyBodyFermi97.MainResults.SecondQuantizedHubbard
+public import Qatlib.Papers.ManyBodyFermi97.MainResults.Antisymmetrization
+public import Qatlib.Papers.ManyBodyFermi97.MainResults.FirstQuantizedOperators
+public import Qatlib.Papers.ManyBodyFermi97.MainResults.FirstQuantizedHubbard
+
+@[expose] public section
 
 /-!
 # Summary of proposed fermionic simulation budgets

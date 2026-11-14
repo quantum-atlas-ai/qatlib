@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.PathSpace
-import Mathlib.Topology.Order.IntermediateValue
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.PathSpace
+public import Mathlib.Topology.Order.IntermediateValue
+
+@[expose] public section
 
 /-!
 # Phase Loop Obstruction

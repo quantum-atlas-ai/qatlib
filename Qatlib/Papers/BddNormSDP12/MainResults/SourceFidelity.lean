@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SdpDuality.StrongDuality.SdpDuality
-import Qatlib.Concepts.DyadicFloor.FloorRounding.SdpDualityDefs
+module
+
+public import Qatlib.Concepts.SdpDuality.StrongDuality.SdpDuality
+public import Qatlib.Concepts.SdpDuality.StrongDuality.SdpDualityDefs
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -35,7 +39,7 @@ open scoped ComplexOrder
 namespace Qatlib.Papers.BddNormSDP12.MainResults.SourceFidelity
 
 open Qatlib.Concepts.SdpDuality.StrongDuality
-open Qatlib.Concepts.DyadicFloor.FloorRounding
+open Qatlib.Concepts.SdpDuality.StrongDuality
 
 /-- Fixed arXiv:1207.5726v2 §2.1 "Optimal value", pp.5–6. For PSD `P, Q`, the
 fidelity semidefinite program over the block `[[P, X], [X*, Q]] ⪰ 0` with

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.HSPAffine13.MainResults.AffineModel.AffineGroup
-import Mathlib.NumberTheory.MulChar.Basic
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.HSPAffine13.MainResults.AffineModel.AffineGroup
+public import Mathlib.NumberTheory.MulChar.Basic
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

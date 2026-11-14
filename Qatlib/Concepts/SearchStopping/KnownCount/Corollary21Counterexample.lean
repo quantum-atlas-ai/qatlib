@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Analysis.RCLike.Basic
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.NormNum.RealSqrt
-import Qatlib.Concepts.SearchStopping.KnownCount.Corollary22RealRestrictedStat
+module
+
+public import Mathlib.Analysis.RCLike.Basic
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.NormNum.RealSqrt
+public import Qatlib.Concepts.SearchStopping.KnownCount.Corollary22RealRestrictedStat
+
+@[expose] public section
 
 /-!
 # A small-dimensional diffusion positivity counterexample

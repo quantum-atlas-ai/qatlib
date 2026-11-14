@@ -4,12 +4,16 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
-import Qatlib.Concepts.LchsSimulation.TimeOrdered.TimeOrderedConsumers
-import Mathlib.Analysis.Normed.Algebra.MatrixExponential
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.FundThmCalculus
-import Mathlib.Analysis.SpecialFunctions.Log.Basic
+module
+
+public import Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution
+public import Qatlib.Concepts.LchsSimulation.TimeOrdered.TimeOrderedConsumers
+public import Mathlib.Analysis.Normed.Algebra.MatrixExponential
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.FundThmCalculus
+public import Mathlib.Analysis.SpecialFunctions.Log.Basic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

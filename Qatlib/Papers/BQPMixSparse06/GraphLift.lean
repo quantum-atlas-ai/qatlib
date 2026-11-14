@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.BQPMixSparse06.MainResults.Theorem2PathsReduction
+module
+
+public import Qatlib.Papers.BQPMixSparse06.MainResults.Theorem2PathsReduction
+
+@[expose] public section
 
 /-!
 # Invariant blocks of the signed graph lift

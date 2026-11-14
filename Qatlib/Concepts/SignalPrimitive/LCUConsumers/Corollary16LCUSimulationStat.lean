@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SignalPrimitive.LCUConsumers.Theorem1Simulation
-import Qatlib.Concepts.BlockEncoding.LinearCombination
-import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.Basic
+module
+
+public import Qatlib.Concepts.SignalPrimitive.LCUConsumers.Theorem1Simulation
+public import Qatlib.Concepts.BlockEncoding.LinearCombination
+public import Qatlib.Concepts.BlockEncoding.StateBlockEncoding.Basic
+
+@[expose] public section
 
 /-!
 # LCU Simulation Contract

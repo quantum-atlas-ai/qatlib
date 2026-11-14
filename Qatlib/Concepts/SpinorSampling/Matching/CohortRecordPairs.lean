@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpinorSampling.Matching.SelectedSignProducts
+module
+
+public import Qatlib.Concepts.SpinorSampling.Matching.SelectedSignProducts
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -43,6 +47,7 @@ theorem finite_expect_comm {X Y : Type} [Fintype X] [Fintype Y]
 
 variable {S : Type} [Fintype S] [Nonempty S] [DecidableEq S]
 
+omit [DecidableEq S] in
 /-- Complete original `signed_cohort_expect` guarantee for `CohortRecordPairs`; all source hypotheses and output obligations are retained. -/
 theorem signed_cohort_expect {n : ℕ} (a : S → ℝ) (ha : ∀ x, |a x| ≤ 1)
     (F : (Fin n → S × Bool) → ℝ) :
@@ -51,8 +56,11 @@ theorem signed_cohort_expect {n : ℕ} (a : S → ℝ) (ha : ∀ x, |a x| ≤ 1)
         (conditionalSigns a ha J).expect (fun Q => F (fun i => (J i,Q i)))) :=
   signed_cohort_disintegration a ha F
 
+omit [Fintype S] [Nonempty S] [DecidableEq S] in
 /-- Complete original `signed_pair_disintegration` guarantee for `CohortRecordPairs`; all source hypotheses and output obligations are retained. -/
-theorem signed_pair_disintegration {n m : ℕ} (a b : S → ℝ)
+theorem signed_pair_disintegration {S : Type}
+    [_instFintypeS : Fintype S] [_instNonemptyS : Nonempty S]
+    [_instDecidableEqS : DecidableEq S] {n m : ℕ} (a b : S → ℝ)
     (ha : ∀ x, |a x| ≤ 1) (hb : ∀ x, |b x| ≤ 1)
     (F : ((Fin n → S × Bool) × (Fin m → S × Bool)) → ℝ) :
     (productLaw (cohortLaw (signedRecordLaw a ha) n) (cohortLaw (signedRecordLaw b hb) m)).expect F=

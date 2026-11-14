@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.Reflections.EffectiveSpectralGapCorrectedStat
-import Qatlib.Concepts.BlockEncoding.Postselection
-import Qatlib.Concepts.BlockEncoding.LinearCombination
+module
+
+public import Qatlib.Concepts.QueryComplexity.Reflections.EffectiveSpectralGapCorrectedStat
+public import Qatlib.Concepts.BlockEncoding.Postselection
+public import Qatlib.Concepts.BlockEncoding.LinearCombination
+
+@[expose] public section
 
 /-!
 # Effective spectral gap with a nonzero witness
@@ -107,13 +111,13 @@ theorem effectiveSpectralGapCorrected : EffectiveSpectralGapCorrected := by
   have hterm (i : Fin k) :
       ‖α‖^2*(if |ρ i| ≤ γ then ‖V (Sum.inr (Sum.inl ())) i‖^2 else 0) ≤ γ^2*‖q i‖^2 := by
     by_cases hi : |ρ i| ≤ γ
-    · rw [if_pos hi]
+    · rw [ite_eq_left hi]
       have he:=congrArg (fun x : ℂ=>‖x‖^2) (hcoeff i)
       simp only [norm_mul,mul_pow,norm_star,Complex.norm_real,Real.norm_eq_abs,sq_abs] at he
       have hρ : (ρ i)^2 ≤ γ^2 := by nlinarith [sq_abs (ρ i),abs_nonneg (ρ i)]
       rw [← he]
       exact mul_le_mul_of_nonneg_right hρ (sq_nonneg _)
-    · rw [if_neg hi,mul_zero]
+    · rw [ite_eq_right hi,mul_zero]
       positivity
   have htotal : ‖α‖^2*low ≤ γ^2*(∑ r : T,‖ψ r‖^2) := by
     have hp : ∑ i : Fin k,‖q i‖^2=∑ r : T,‖ψ r‖^2 := by

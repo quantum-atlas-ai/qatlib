@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGBilinearQuotientData
-import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGSignedDot
-import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGSignedDivision
+module
+
+public import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGBilinearQuotientData
+public import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGSignedDot
+public import Qatlib.Concepts.MatrixAccess.RitzPipeline.BooleanDAGSignedDivision
+
+@[expose] public section
 
 /-!
 # Correctness of a signed bilinear quotient circuit
@@ -74,7 +78,7 @@ private theorem bq_shift_nat (w s : ℕ) (a : Reg (w+1)) :
   have hn : ¬s+j.val < s := by omega
   change (if hj : s+j.val < s then 0 else
     (if a (Fin.castSucc ⟨s+j.val-s,by have := j.isLt; omega⟩) then 1 else 0) * 2^(s+j.val)) = _
-  rw [dif_neg hn]
+  rw [dite_eq_right hn]
   have he : (⟨s+j.val-s,by have := j.isLt; omega⟩ : Fin w) = j := by
     apply Fin.ext
     change s+j.val-s = j.val
@@ -339,7 +343,7 @@ private theorem bq_col0_word (w : ℕ) (x : Reg (bqM w)) :
     (fun j => booleanDAGValue (bqCols w).graph x (bqLeft w 0 j)) =
       (fun j => booleanDAGValue (bqP0 w).graph x ((bqP0 w).output j)) := by
   funext j
-  simp only [bqLeft,bqCols,booleanWordBilinearColumns,Fin.val_zero,zero_mul,zero_add,dif_pos j.isLt]
+  simp only [bqLeft,bqCols,booleanWordBilinearColumns,Fin.val_zero,zero_mul,zero_add,dite_eq_left j.isLt]
   exact (bq_append_old (bqP1 w).graph (booleanWordBilinearColumnInput w (bqP1 w).nodes 2) (bqDot w) x
     (Fin.castLE (by change bqM w+(bqP0 w).nodes ≤ bqM w+((bqP0 w).nodes+(bqDot w).nodes); omega)
       ((bqP0 w).output j))).trans
@@ -353,7 +357,7 @@ private theorem bq_col1_word (w : ℕ) (x : Reg (bqM w)) :
   funext j
   have hn : ¬2*w+3+j.val < 2*w+3 := by omega
   have hp : 2*w+3+j.val < 2*(2*w+3) := by have := j.isLt; dsimp only [bqQ] at this; omega
-  simp only [bqLeft,bqCols,booleanWordBilinearColumns,Fin.val_one,one_mul,dif_neg hn,dif_pos hp,
+  simp only [bqLeft,bqCols,booleanWordBilinearColumns,Fin.val_one,one_mul,dite_eq_right hn,dite_eq_left hp,
     Nat.add_sub_cancel_left]
   exact bq_append_old (bqP1 w).graph (booleanWordBilinearColumnInput w (bqP1 w).nodes 2)
       (bqDot w) x ((bqP1 w).output j)
@@ -370,7 +374,7 @@ private theorem bq_col2_word (w : ℕ) (x : Reg (bqM w)) :
   change booleanDAGValue (bqP2 w).graph x
     (if h : 2*(2*w+3)+j.val < 2*w+3 then _ else
       if h' : 2*(2*w+3)+j.val < 2*(2*w+3) then _ else _) = _
-  simp only [dif_neg hn,dif_neg hp]
+  simp only [dite_eq_right hn,dite_eq_right hp]
   norm_num
 
 /-- Each selected column word in the combined program decodes to its corresponding integer
@@ -545,12 +549,12 @@ private theorem bq_div_inputs (w b d : ℕ) (x : Reg (bqM w)) :
   funext j
   refine Fin.lastCases ?_ (fun k => ?_) j
   · have hn : ¬2*bqV w b d < bqV w b d := by omega
-    simp only [bqDivInputs,Fin.val_last,dif_neg hn,dif_neg (Nat.lt_irrefl _),
+    simp only [bqDivInputs,Fin.val_last,dite_eq_right hn,dite_eq_right (Nat.lt_irrefl _),
       booleanWordSignedDivInput,Fin.snoc_last]
   · rw [booleanWordSignedDivInput,Fin.snoc_castSucc]
     by_cases hk : k.val < bqV w b d
-    · simp only [bqDivInputs,Fin.val_castSucc,booleanWordAdderInput,dif_pos hk]
-    · simp only [bqDivInputs,Fin.val_castSucc,booleanWordAdderInput,dif_neg hk,dif_pos k.isLt]
+    · simp only [bqDivInputs,Fin.val_castSucc,booleanWordAdderInput,dite_eq_left hk]
+    · simp only [bqDivInputs,Fin.val_castSucc,booleanWordAdderInput,dite_eq_right hk,dite_eq_left k.isLt]
 
 /-- The bilinear quotient output word equals the signed division result for the prepared
 numerator and denominator. -/

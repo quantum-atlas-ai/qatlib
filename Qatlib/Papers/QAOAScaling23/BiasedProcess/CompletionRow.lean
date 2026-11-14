@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Foundations.ProbabilityCore.FiniteBranch.LeafReify
-import Qatlib.Papers.QAOAScaling23.BiasedProcess.WeightedVisits
+module
+
+public import Qatlib.Foundations.ProbabilityCore.FiniteBranch.LeafReify
+public import Qatlib.Papers.QAOAScaling23.BiasedProcess.WeightedVisits
+
+@[expose] public section
 
 /-!
 # Completing partial oracle outputs to descent rows

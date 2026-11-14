@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MbqcFlow.FlowDecision.StoppingReference
-import Qatlib.Concepts.StoppingCore.BranchCostCore.GeneralUnboundedExecution
-import Qatlib.Concepts.TensorRegisters.RegisterModel.TensorRegisters
-import Qatlib.Concepts.QuditTeleport.TeleportCore.InstrumentConditioning
+module
+
+public import Qatlib.Concepts.MbqcFlow.FlowDecision.StoppingReference
+public import Qatlib.Concepts.StoppingCore.BranchCostCore.GeneralUnboundedExecution
+public import Qatlib.Concepts.TensorRegisters.RegisterModel.TensorRegisters
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.InstrumentConditioning
+
+@[expose] public section
 
 /-!
 # Receipt laws and reference-preserving stopping
@@ -120,10 +124,10 @@ theorem receiptUnboundedLaw_some (next : S→PMF ((O⊕S)×ℕ)) (s : S) (o : O)
     receiptUnboundedLaw next s (some (o,k)) =
       ∑' t : ℕ, haltJoint (receiptMacroNext next) (.inr (s,0)) (o,k) t := by
   rw [receiptUnboundedLaw,PMF.map_apply,tsum_option_ennreal]
-  simp only [Option.map_none,Option.map_some,Option.some.injEq,reduceCtorEq,if_false,zero_add]
+  simp only [Option.map_none,Option.map_some,Option.some.injEq,reduceCtorEq,ite_false,zero_add]
   rw [tsum_prod_type']
   rw [tsum_eq_single (o,k)]
-  · simp only [if_true,generalUnboundedLaw_apply,generalUnboundedMass]
+  · simp only [ite_true,generalUnboundedLaw_apply,generalUnboundedMass]
   · intro z hz
     simp [Ne.symm hz]
 
@@ -220,7 +224,7 @@ theorem event_halt_decompose (p : CostedLaw (O⊕S)) (E : O×ℕ→Prop) :
       ∑' o : O, ∑' k : ℕ, if E (o,k) then p (.inl o,k) else 0 := by
   unfold Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation
   rw [tsum_prod_type',tsum_sum_type']
-  simp only [haltPredicate,if_false,mul_zero,tsum_zero,add_zero]
+  simp only [haltPredicate,ite_false,mul_zero,tsum_zero,add_zero]
   apply tsum_congr
   intro o
   apply tsum_congr
@@ -243,7 +247,7 @@ theorem finiteHaltEvent_probability {C L O : Type} [Fintype L] {D : ℕ}
   intro o
   apply tsum_congr
   intro k
-  by_cases he : E (o,k) <;> simp only [he,if_true,if_false]
+  by_cases he : E (o,k) <;> simp only [he,ite_true,ite_false]
   exact compiled_halt_point I dest price n c ρ o k
 
 /-- Lifts a predicate to an option type, declaring `none` to be outside the event. -/
@@ -255,7 +259,7 @@ theorem option_event_mass {A : Type} (p : PMF (Option A)) (E : A→Prop) :
     Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event p (optionEvent E) = ∑' a, if E a then p (some a) else 0 := by
   unfold Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.event Qatlib.Concepts.LinearLearning.ConcisePipeline.CostedLaw.expectation
   rw [tsum_option_ennreal]
-  simp only [optionEvent,Option.elim_none,if_false,mul_zero,zero_add,Option.elim_some]
+  simp only [optionEvent,Option.elim_none,ite_false,mul_zero,zero_add,Option.elim_some]
   apply tsum_congr
   intro a
   by_cases he : E a <;> simp [he]
@@ -388,7 +392,7 @@ theorem normalizeJoint_reconstruct {J : Type} [Fintype J] [DecidableEq J]
     (A : Matrix J J ℂ) (hA : A.PosSemidef) :
     ((Matrix.trace A).re : ℂ) • normalizeJoint A = A := by
   by_cases hp : 0 < (Matrix.trace A).re
-  · rw [normalizeJoint,if_pos hp,smul_smul,mul_inv_cancel₀ (by exact_mod_cast ne_of_gt hp),one_smul]
+  · rw [normalizeJoint,ite_eq_left hp,smul_smul,mul_inv_cancel₀ (by exact_mod_cast ne_of_gt hp),one_smul]
   · have hz : (Matrix.trace A).re=0 := le_antisymm (not_lt.mp hp) (RCLike.nonneg_iff.mp hA.trace_nonneg).1
     rw [psd_re_trace_zero A hA hz]
     simp
@@ -398,7 +402,7 @@ semidefinite matrix of trace one. -/
 theorem normalizeJoint_positive {J : Type} [Fintype J] [DecidableEq J]
     (A : Matrix J J ℂ) (hA : A.PosSemidef) (hp : 0 < (Matrix.trace A).re) :
     (normalizeJoint A).PosSemidef ∧ Matrix.trace (normalizeJoint A)=1 := by
-  rw [normalizeJoint,if_pos hp]
+  rw [normalizeJoint,ite_eq_left hp]
   constructor
   · apply hA.smul
     rw [← Complex.ofReal_inv]
@@ -437,11 +441,11 @@ theorem normalizeJoint_mixture {J K : Type} [Fintype J] [DecidableEq J] [Decidab
       if 0 < (Matrix.trace (A i)).re then
         (((Matrix.trace (A i)).re / (Matrix.trace (∑ j∈s,A j)).re : ℝ) : ℂ) • normalizeJoint (A i)
       else 0 := by
-  rw [normalizeJoint,if_pos hq,Finset.smul_sum]
+  rw [normalizeJoint,ite_eq_left hq,Finset.smul_sum]
   apply Finset.sum_congr rfl
   intro i hi
   by_cases hp : 0 < (Matrix.trace (A i)).re
-  · rw [if_pos hp]
+  · rw [ite_eq_left hp]
     calc
       _ = ((Matrix.trace (∑ j∈s,A j)).re : ℂ)⁻¹ •
           (((Matrix.trace (A i)).re : ℂ) • normalizeJoint (A i)) :=
@@ -454,7 +458,7 @@ theorem normalizeJoint_mixture {J K : Type} [Fintype J] [DecidableEq J] [Decidab
         ring
   · have hz : (Matrix.trace (A i)).re=0 :=
       le_antisymm (not_lt.mp hp) (RCLike.nonneg_iff.mp (hA i hi).trace_nonneg).1
-    rw [if_neg hp,psd_re_trace_zero (A i) (hA i hi) hz,smul_zero]
+    rw [ite_eq_right hp,psd_re_trace_zero (A i) (hA i hi) hz,smul_zero]
 
 /-- Normalization by real trace commutes with the partial trace. -/
 theorem normalizeJoint_partialTrace {D R : ℕ} (X : Matrix (Fin D×Fin R) (Fin D×Fin R) ℂ) :
@@ -589,8 +593,8 @@ theorem normalizeJoint_tendsto {J : Type} [Fintype J] [DecidableEq J]
       (nhds (((Matrix.trace A).re : ℂ)⁻¹ • A)) := by
     apply (hc.smul h).congr'
     filter_upwards [he] with n hn
-    rw [normalizeJoint,if_pos hn]
-  simpa only [normalizeJoint,if_pos hq] using! hh
+    rw [normalizeJoint,ite_eq_left hn]
+  simpa only [normalizeJoint,ite_eq_left hq] using! hh
 
 /-- When the limiting event mass is positive, normalized finite-fuel reference outputs converge
 to the normalized limiting output. -/
@@ -731,7 +735,7 @@ theorem fullPathLaw_eq (I : C → Instrument L D D) (dest : C → L → O⊕C)
         fun b => match b with
           | .inl _ => identityInstrument D
           | .inr c' => pathInstrument I dest n c'
-      letI : ∀ l : L, Fintype
+      let : ∀ l : L, Fintype
           (match dest c l with | .inl _ => Unit | .inr c' => Leaf dest n c') :=
         fun l => childFintype dest n (dest c l)
       rw [fullPathLaw]
@@ -919,7 +923,7 @@ theorem haltEventLimit_total_never {C L O : Type} [Fintype L] {D : ℕ}
     ENNReal.ofReal ((Matrix.trace (haltEventLimit I dest price c (fun _ => True) ρ.val)).re) +
       generalNeverMass (receiptMacroNext (mixedNext I dest price)) (.inr ((c,ρ),0)) = 1 := by
   rw [haltEventLimit_probability,option_event_mass]
-  simpa only [if_true] using! quantumReceiptLaw_conservation I dest price c ρ
+  simpa only [ite_true] using! quantumReceiptLaw_conservation I dest price c ρ
 
 /-- A program whose every destination is a running state has zero finite halting-event map. -/
 theorem finiteHaltEvent_never {C L O : Type} [Fintype L] {D : ℕ}
@@ -980,7 +984,7 @@ theorem retry_exact_layer {D : ℕ} (I : Instrument Bool D D) (price : Unit→Bo
     simp [exactEventLayer,retryDest,loopHaltAt,loopContinueMap]
   | succ n ih =>
     simp only [exactEventLayer,LinearMap.sum_apply]
-    simp only [Fintype.sum_bool,retryDest,Bool.false_eq_true,if_false,if_true,
+    simp only [Fintype.sum_bool,retryDest,Bool.false_eq_true,ite_false,ite_true,
       LinearMap.comp_apply,LinearMap.zero_apply,zero_add]
     rw [ih,loopHaltAt_apply,loopHaltAt_apply,loopContinueMap_shift]
 

@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.Reflections.BipartiteEffectiveGapCorrectedRefl
-import Qatlib.Concepts.QueryComplexity.Reflections.TwoReflectionConstructionRefl
-import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
-import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryMagnitude
+module
+
+public import Qatlib.Concepts.QueryComplexity.Reflections.BipartiteEffectiveGapCorrectedRefl
+public import Qatlib.Concepts.QueryComplexity.Reflections.TwoReflectionConstructionRefl
+public import Qatlib.Concepts.QueryWordCore.QueryMachinery.Oracle
+public import Qatlib.Concepts.QueryComplexity.AdversarySearch.WorkspaceQueryMagnitude
+
+@[expose] public section
 
 /-!
 # Two-reflection query algorithm contract

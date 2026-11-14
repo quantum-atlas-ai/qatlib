@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.FluidDynamics26.MainResults.SourceModel
+module
+
+public import Qatlib.Papers.FluidDynamics26.MainResults.SourceModel
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -36,7 +40,7 @@ state, the `O(T)` post-selection of Eq. (243) yields a final-state algorithm wit
 `O(T)·k` copies, contradicting the `Ω(f(T))` lower bound, so `k = Ω(f(T)/T)`.  The
 post-selection cost is the explicit hypothesis `hpost`; the rest is arithmetic. -/
 theorem theorem26_history_reduction {f err : ℝ → ℝ}
-    (hf : ∀ T : ℝ, 1 ≤ T → 0 ≤ f T)
+    (_hf : ∀ T : ℝ, 1 ≤ T → 0 ≤ f T)
     (hfinal : RequiresCopiesForError f err)
     (hpost : ∃ C : ℝ, 0 < C ∧ HistoryPostselection C) :
     HistoryRequiresCopiesForError (fun T => f T / T) err := by

@@ -4,8 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SourcePath
-import Mathlib.Tactic.FinCases
+module
+
+public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.SourcePath
+public import Mathlib.Analysis.Calculus.Deriv.Prod
+public import Mathlib.Tactic.FinCases
+
+@[expose] public section
 
 /-!
 # Original three-component spin to the horizontal transport family
@@ -28,7 +33,11 @@ private def positionLinear : TransversePoint × ℝ →ₗ[ℝ] SpatialPoint whe
   map_smul' c a := by ext j; fin_cases j <;> rfl
 
 /-- Definition of source Position in the Hopf Atlas construction. -/
-def sourcePosition : TransversePoint × ℝ →L[ℝ] SpatialPoint := positionLinear.toContinuousLinearMap
+def sourcePosition : TransversePoint × ℝ →L[ℝ] SpatialPoint :=
+  ({ toFun z := WithLp.toLp 2 ![z.2, z.1 0, z.1 1]
+     map_add' a b := by ext j; fin_cases j <;> rfl
+     map_smul' c a := by ext j; fin_cases j <;> rfl } :
+    TransversePoint × ℝ →ₗ[ℝ] SpatialPoint).toContinuousLinearMap
 
 /-- Definition of imaginary Vector Linear in the Hopf Atlas construction. -/
 private def imaginaryVectorLinear : ℍ →ₗ[ℝ] SpatialPoint where
@@ -37,7 +46,11 @@ private def imaginaryVectorLinear : ℍ →ₗ[ℝ] SpatialPoint where
   map_smul' c a := by ext j; fin_cases j <;> rfl
 
 /-- Definition of imaginary Vector in the Hopf Atlas construction. -/
-def imaginaryVector : ℍ →L[ℝ] SpatialPoint := imaginaryVectorLinear.toContinuousLinearMap
+def imaginaryVector : ℍ →L[ℝ] SpatialPoint :=
+  ({ toFun q := WithLp.toLp 2 ![q.imI, q.imJ, q.imK]
+     map_add' a b := by ext j; fin_cases j <;> rfl
+     map_smul' c a := by ext j; fin_cases j <;> rfl } :
+    ℍ →ₗ[ℝ] SpatialPoint).toContinuousLinearMap
 
 /-- Original `spinOfVector_imaginaryVector` guarantee for the `HorizontalFamily` construction; the complete source hypotheses are retained. -/
 theorem spinOfVector_imaginaryVector (q : ℍ) (hq : q.re=0) :
@@ -95,7 +108,7 @@ theorem sourcePosition_hasDerivAt (p : TransversePoint) (t : ℝ) :
   have hi := (hasDerivAt_const t p).prodMk (hasDerivAt_id t)
   apply (sourcePosition.hasFDerivAt.comp_hasDerivAt t hi).congr_deriv
   ext j
-  fin_cases j <;> simp [sourcePosition, positionLinear]
+  fin_cases j <;> simp [sourcePosition]
 
 /-- Original `sourceCurve_hasDerivAt` guarantee for the `HorizontalFamily` construction; the complete source hypotheses are retained. -/
 theorem sourceCurve_hasDerivAt {v : SpatialPoint → SpatialPoint} (hv : ContDiff ℝ ∞ v)
@@ -186,13 +199,13 @@ theorem collar_initial_face (s : QuaternionField) (hp : IsPeriodicField s)
   have hw : InFundamentalCube w := by
     intro j
     fin_cases j
-    · simpa [w, sourcePosition, positionLinear, latticeShift, n] using
+    · simpa [w, sourcePosition, latticeShift, n] using
         (show 0 ≤ (0 : ℝ) ∧ 0 ≤ physicalPeriod from ⟨le_rfl, physicalPeriod_pos.le⟩)
-    · simpa [w, sourcePosition, positionLinear, latticeShift, n] using wrapped_coordinate_bounds (p 0)
-    · simpa [w, sourcePosition, positionLinear, latticeShift, n] using wrapped_coordinate_bounds (p 1)
+    · simpa [w, sourcePosition, latticeShift, n] using wrapped_coordinate_bounds (p 0)
+    · simpa [w, sourcePosition, latticeShift, n] using wrapped_coordinate_bounds (p 1)
   have hs := hc w hw (by
     refine ⟨0, Or.inl ?_⟩
-    simpa [w, sourcePosition, positionLinear, latticeShift, n] using he.le)
+    simpa [w, sourcePosition, latticeShift, n] using he.le)
   exact (hp (sourcePosition (p,0)) n).symm.trans hs
 
 end Qatlib.Concepts.EffectiveGauge.HopfAtlas

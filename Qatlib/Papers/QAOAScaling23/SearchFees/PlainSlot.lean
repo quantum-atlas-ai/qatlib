@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QAOAScaling23.SearchFees.FeeRecurrence
+module
+
+public import Qatlib.Papers.QAOAScaling23.SearchFees.FeeRecurrence
+
+@[expose] public section
 
 /-!
 # Plain search trial laws and fees

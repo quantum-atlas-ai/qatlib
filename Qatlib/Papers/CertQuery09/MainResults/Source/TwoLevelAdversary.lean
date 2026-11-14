@@ -4,88 +4,92 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.BigOperators.Group.Finset.Defs
-import Mathlib.Algebra.BigOperators.Ring.Finset
-import Mathlib.Algebra.CharP.Defs
-import Mathlib.Algebra.CharZero.Defs
-import Mathlib.Algebra.Field.Defs
-import Mathlib.Algebra.Group.Basic
-import Mathlib.Algebra.Group.Defs
-import Mathlib.Algebra.Group.DivInvMonoid
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.Group.Nat.Defs
-import Mathlib.Algebra.Group.Semigroup
-import Mathlib.Algebra.GroupWithZero.Defs
-import Mathlib.Algebra.NeZero
-import Mathlib.Algebra.Order.Archimedean.Real.Basic
-import Mathlib.Algebra.Order.Floor.Defs
-import Mathlib.Algebra.Order.GroupWithZero.Basic
-import Mathlib.Algebra.Order.GroupWithZero.Defs
-import Mathlib.Algebra.Order.Monoid.Defs
-import Mathlib.Algebra.Order.Ring.Defs
-import Mathlib.Algebra.Order.Ring.Star
-import Mathlib.Algebra.Order.Star.Basic
-import Mathlib.Algebra.Order.ZeroLEOne
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Algebra.Ring.Nat
-import Mathlib.Algebra.Star.Basic
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.Normed.Group.Basic
-import Mathlib.Analysis.Normed.Group.Defs
-import Mathlib.Analysis.Normed.Ring.Basic
-import Mathlib.Analysis.RCLike.Basic
-import Mathlib.Basic.ExistsUnique
-import Mathlib.Basic.FunLike.Basic
-import Mathlib.Basic.FunLike.Equiv
-import Mathlib.Basic.Logic.Basic
-import Mathlib.Basic.Real.Basic
-import Mathlib.Basic.SProd
-import Mathlib.Basic.SetLike.Basic
-import Mathlib.Data.Finset.Basic
-import Mathlib.Data.Finset.Card
-import Mathlib.Data.Finset.Defs
-import Mathlib.Data.Finset.Erase
-import Mathlib.Data.Finset.Filter
-import Mathlib.Data.Finset.Lattice.Fold
-import Mathlib.Data.Finset.Prod
-import Mathlib.Data.Fintype.Basic
-import Mathlib.Data.Fintype.Card
-import Mathlib.Data.Fintype.Defs
-import Mathlib.Data.Fintype.Pi
-import Mathlib.Data.Fintype.Prod
-import Mathlib.Data.Fintype.Sets
-import Mathlib.Data.Int.Cast.Basic
-import Mathlib.Data.Int.Cast.Defs
-import Mathlib.Data.Nat.Basic
-import Mathlib.Data.Nat.Cast.Basic
-import Mathlib.Data.Nat.Cast.Defs
-import Mathlib.Data.Nat.Cast.Order.Basic
-import Mathlib.Data.Nat.Cast.Order.Ring
-import Mathlib.Data.Set.Defs
-import Mathlib.Data.Set.Operations
-import Mathlib.LinearAlgebra.Matrix.Defs
-import Mathlib.LinearAlgebra.Matrix.Hadamard
-import Mathlib.Logic.Equiv.Defs
-import Mathlib.Logic.Equiv.Fin.Basic
-import Mathlib.Order.Bounds.Defs
-import Mathlib.Order.ConditionallyCompleteLattice.Basic
-import Mathlib.Order.ConditionallyCompleteLattice.Defs
-import Mathlib.Order.Defs.Lattice
-import Mathlib.Order.Defs.LinearOrder
-import Mathlib.Order.Defs.PartialOrder
-import Mathlib.Order.Lattice
-import Mathlib.Order.RelClasses
-import Mathlib.Tactic
-import Mathlib.Tactic.Linarith.Lemmas
-import Mathlib.Tactic.NormNum.Basic
-import Mathlib.Tactic.NormNum.Eq
-import Mathlib.Tactic.NormNum.Ineq
-import Mathlib.Tactic.NormNum.Result
-import Mathlib.Tactic.Ring.Basic
-import Mathlib.Tactic.Ring.Common
-import Qatlib.Papers.CertQuery09.MainResults.Source.SpectralBound
-import Qatlib.Papers.CertQuery09.MainResults.Source.QueryLowerSum
+module
+
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.BigOperators.Group.Finset.Defs
+public import Mathlib.Algebra.BigOperators.Ring.Finset
+public import Mathlib.Algebra.CharP.Defs
+public import Mathlib.Algebra.CharZero.Defs
+public import Mathlib.Algebra.Field.Defs
+public import Mathlib.Algebra.Group.Basic
+public import Mathlib.Algebra.Group.Defs
+public import Mathlib.Algebra.Group.DivInvMonoid
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.Group.Nat.Defs
+public import Mathlib.Algebra.Group.Semigroup
+public import Mathlib.Algebra.GroupWithZero.Defs
+public import Mathlib.Algebra.NeZero
+public import Mathlib.Algebra.Order.Archimedean.Real.Basic
+public import Mathlib.Algebra.Order.Floor.Defs
+public import Mathlib.Algebra.Order.GroupWithZero.Basic
+public import Mathlib.Algebra.Order.GroupWithZero.Defs
+public import Mathlib.Algebra.Order.Monoid.Defs
+public import Mathlib.Algebra.Order.Ring.Defs
+public import Mathlib.Algebra.Order.Ring.Star
+public import Mathlib.Algebra.Order.Star.Basic
+public import Mathlib.Algebra.Order.ZeroLEOne
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Algebra.Ring.Nat
+public import Mathlib.Algebra.Star.Basic
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.Normed.Group.Basic
+public import Mathlib.Analysis.Normed.Group.Defs
+public import Mathlib.Analysis.Normed.Ring.Basic
+public import Mathlib.Analysis.RCLike.Basic
+public import Mathlib.Basic.ExistsUnique
+public import Mathlib.Basic.FunLike.Basic
+public import Mathlib.Basic.FunLike.Equiv
+public import Mathlib.Basic.Logic.Basic
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Basic.SProd
+public import Mathlib.Basic.SetLike.Basic
+public import Mathlib.Data.Finset.Basic
+public import Mathlib.Data.Finset.Card
+public import Mathlib.Data.Finset.Defs
+public import Mathlib.Data.Finset.Erase
+public import Mathlib.Data.Finset.Filter
+public import Mathlib.Data.Finset.Lattice.Fold
+public import Mathlib.Data.Finset.Prod
+public import Mathlib.Data.Fintype.Basic
+public import Mathlib.Data.Fintype.Card
+public import Mathlib.Data.Fintype.Defs
+public import Mathlib.Data.Fintype.Pi
+public import Mathlib.Data.Fintype.Prod
+public import Mathlib.Data.Fintype.Sets
+public import Mathlib.Data.Int.Cast.Basic
+public import Mathlib.Data.Int.Cast.Defs
+public import Mathlib.Data.Nat.Basic
+public import Mathlib.Data.Nat.Cast.Basic
+public import Mathlib.Data.Nat.Cast.Defs
+public import Mathlib.Data.Nat.Cast.Order.Basic
+public import Mathlib.Data.Nat.Cast.Order.Ring
+public import Mathlib.Data.Set.Defs
+public import Mathlib.Data.Set.Operations
+public import Mathlib.LinearAlgebra.Matrix.Defs
+public import Mathlib.LinearAlgebra.Matrix.Hadamard
+public import Mathlib.Logic.Equiv.Defs
+public import Mathlib.Logic.Equiv.Fin.Basic
+public import Mathlib.Order.Bounds.Defs
+public import Mathlib.Order.ConditionallyCompleteLattice.Basic
+public import Mathlib.Order.ConditionallyCompleteLattice.Defs
+public import Mathlib.Order.Defs.Lattice
+public import Mathlib.Order.Defs.LinearOrder
+public import Mathlib.Order.Defs.PartialOrder
+public import Mathlib.Order.Lattice
+public import Mathlib.Order.RelClasses
+public import Mathlib.Tactic
+public import Mathlib.Tactic.Linarith.Lemmas
+public import Mathlib.Tactic.NormNum.Basic
+public import Mathlib.Tactic.NormNum.Eq
+public import Mathlib.Tactic.NormNum.Ineq
+public import Mathlib.Tactic.NormNum.Result
+public import Mathlib.Tactic.Ring.Basic
+public import Mathlib.Tactic.Ring.Common
+public import Qatlib.Papers.CertQuery09.MainResults.Source.SpectralBound
+public import Qatlib.Papers.CertQuery09.MainResults.Source.QueryLowerSum
+
+@[expose] public section
 
 /-!
 # An explicit two-level adversary matrix
@@ -218,8 +222,8 @@ theorem gammaRep_symm {d : ℕ} : ∀ p q, gammaRep (d := d) p q = gammaRep q p 
   intro p q
   unfold gammaRep
   by_cases h : repAdj p q
-  · rw [if_pos h, if_pos (repAdj_comm h)]
-  · rw [if_neg h, if_neg (fun h' => h (repAdj_comm h'))]
+  · rw [ite_eq_left h, ite_eq_left (repAdj_comm h)]
+  · rw [ite_eq_right h, ite_eq_right (fun h' => h (repAdj_comm h'))]
 
 /-- Every entry of the representative adjacency matrix is nonnegative. -/
 theorem gammaRep_nonneg {d : ℕ} : ∀ p q, 0 ≤ gammaRep (d := d) p q := by
@@ -234,7 +238,7 @@ theorem gammaRep_eq_zero {d : ℕ} : ∀ p q, repFun p = repFun q → gammaRep (
   classical
   intro p q h
   unfold gammaRep
-  rw [if_neg]
+  rw [ite_eq_right]
   intro hadj
   exact hadj.1 h
 
@@ -269,7 +273,7 @@ theorem repAdj_pos_of_diff {d : ℕ} {p q : TwoLevelRep d} (hq : repAdj p q) (c 
     cases hb : repMat q (repRow p) c
     · rfl
     · exact absurd (h1.trans hb.symm) h
-  simp only [repMat, if_neg hne, decide_eq_false_iff_not, not_not] at h2
+  simp only [repMat, ite_eq_right hne, decide_eq_false_iff_not, not_not] at h2
   exact h2
 
 /-- The representative with distinguished row `j`, stored position `c` at the old distinguished
@@ -289,7 +293,7 @@ theorem repRebuild_adj {d : ℕ} (p : TwoLevelRep d) (j : Fin d) (c : Fin d)
     have hrj' : r ≠ j := fun h => hrj (show r = repRow (repRebuild p j c) from by
       rw [show repRow (repRebuild p j c) = j from rfl]; exact h)
     show repPos p r = repPos (repRebuild p j c) r
-    simp only [repRebuild, repPos, hrj', if_false, hrp]
+    simp only [repRebuild, repPos, hrj', ite_false, hrp]
 
 /-- The equivalence between neighbors of `p` and pairs consisting of a different distinguished
 row and an arbitrary stored column at `p`'s distinguished row. -/
@@ -304,7 +308,7 @@ def neighbourEquiv {d : ℕ} (p : TwoLevelRep d) :
       (q' := repRebuild p (repRow q) (repPos q (repRow p))) hq
       (repRebuild_adj p (repRow q) (repPos q (repRow p)) (Ne.symm hq.1)) rfl (by
         simp only [repRebuild, repPos]
-        rw [if_neg hq.1]
+        rw [ite_eq_right hq.1]
         simp)
     exact hdet.symm
   right_inv := by
@@ -371,7 +375,7 @@ theorem repRow_eq_of_diff {d : ℕ} {p q : TwoLevelRep d} (hq : repAdj p q) {r c
   by_contra hne
   apply hdiff
   have hrq : r ≠ repRow q := fun h => hne h.symm
-  simp only [repMat, if_neg hr, if_neg hrq]
+  simp only [repMat, ite_eq_right hr, ite_eq_right hrq]
   rw [hq.2 r hr hrq]
 
 /-- At most `d` neighbors of any representative differ from it at a specified matrix entry. -/
@@ -420,7 +424,7 @@ theorem filter_diff_card_le {d : ℕ} (p : TwoLevelRep d) (r c : Fin d) :
 (d - 1)`. -/
 theorem gammaRep_opNorm {d : ℕ} (hd : 1 ≤ d) :
     ‖gammaRep (d := d)‖ = ((d * (d - 1) : ℕ) : ℝ) := by
-  haveI : Nonempty (TwoLevelRep d) :=
+  have : Nonempty (TwoLevelRep d) :=
     ⟨⟨(⟨0, hd⟩, fun _ => ⟨0, hd⟩), rfl⟩⟩
   exact l2_opNorm_eq_of_regular gammaRep gammaRep_nonneg gammaRep_symm gammaRep_row_sum
 
@@ -532,7 +536,7 @@ theorem gammaRep_ne_zero {d : ℕ} (hd : 2 ≤ d) : gammaRep (d := d) ≠ 0 := b
   intro h
   have h1 := congrFun (congrFun h p) q
   unfold gammaRep at h1
-  rw [if_pos hpq] at h1
+  rw [ite_eq_left hpq] at h1
   exact one_ne_zero h1
 
 /-- For `d ≥ 2`, the representative adjacency matrix is an adversary matrix for the

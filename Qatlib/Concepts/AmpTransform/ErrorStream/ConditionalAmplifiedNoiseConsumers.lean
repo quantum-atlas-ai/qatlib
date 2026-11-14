@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmpTransform.ErrorStream.ConditionalAmplifiedNoise
-import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedAmplitudeAmplification
+module
+
+public import Qatlib.Concepts.AmpTransform.ErrorStream.ConditionalAmplifiedNoise
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedAmplitudeAmplification
+
+@[expose] public section
 
 /-!
 # Conditional noise means for actual amplified QFT circuits
@@ -84,7 +88,7 @@ private theorem conditional_qft_selected (N : ℕ) [NeZero N]
       (if x ∈ S then (Real.sqrt (N : ℝ) : ℂ)⁻¹ else 0) =
       if x ∈ S then (N : ℂ)⁻¹*ZMod.stdAddChar (x*y) else 0 := by
     by_cases hx : x ∈ S
-    · simp only [if_pos hx]
+    · simp only [ite_eq_left hx]
       rw [mul_right_comm, hs, mul_comm y x]
     · simp [hx]
   simp_rw [he]
@@ -96,7 +100,7 @@ theorem conditional_full_fourier_zero (N : ℕ) [NeZero N] (y : ZMod N) (hy : y 
     distinctNoiseFourier Finset.univ y = 0 := by
   unfold distinctNoiseFourier
   simp_rw [mul_comm _ y]
-  rw [sum_stdAddChar_mul, if_neg hy]
+  rw [sum_stdAddChar_mul, ite_eq_right hy]
 
 /-- At a nonzero frequency, the QFT of the prepared uniform state has amplitude zero. -/
 private theorem conditional_qft_uniform_zero (N : ℕ) [NeZero N]
@@ -227,7 +231,7 @@ theorem conditional_periodic_signal_fourier {N : ℕ} [NeZero N]
     simp_rw [mul_comm _ y]
     rw [sum_stdAddChar_subgroup]
   by_cases hy : y ∈ annihilatorOf H
-  · simp only [hf, if_pos hy, norm_mul, norm_stdAddChar, one_mul, Complex.norm_natCast]
+  · simp only [hf, ite_eq_left hy, norm_mul, norm_stdAddChar, one_mul, Complex.norm_natCast]
   · simp [hf, hy]
 
 /-- For a subgroup-coset signal and feasible complement noise, compute the conditional

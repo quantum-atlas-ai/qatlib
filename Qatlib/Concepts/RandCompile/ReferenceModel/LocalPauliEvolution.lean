@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GateVocabulary.LocalReflectionGates
-import Qatlib.Concepts.PhaseGeometry.RationalCayleyPhase
-import Qatlib.Foundations.OperatorErrors.OperatorError
-import Mathlib.Data.List.FinRange
-import Qatlib.Concepts.ReferenceError.RefTraceError.FiniteReferenceTraceError
+module
+
+public import Qatlib.Concepts.GateVocabulary.LocalReflectionGates
+public import Qatlib.Concepts.PhaseGeometry.RationalCayleyPhase
+public import Qatlib.Foundations.OperatorErrors.OperatorError
+public import Mathlib.Data.List.FinRange
+public import Qatlib.Concepts.ReferenceError.RefTraceError.FiniteReferenceTraceError
+
+@[expose] public section
 
 /-!
 # Local Pauli evolution circuits
@@ -279,7 +283,7 @@ private theorem rz_neg_half_pi : Rz (-Real.pi/2) =
   funext b
   cases b
   · rfl
-  · simp only [if_true]
+  · simp only [ite_true]
     rw [show ((-Real.pi/2 : ℝ) : ℂ) * Complex.I = -(Real.pi/2*Complex.I) by push_cast; ring]
     rw [Complex.exp_neg, Complex.exp_pi_div_two_mul_I]
     exact Complex.inv_I
@@ -418,7 +422,7 @@ private theorem density_supportZ (q : ℕ) (s : Finset (Fin q)) :
         if i ∈ s then pauliBitSign (boolEquivFin2.symm b) else 1)) := by
     funext i
     by_cases hi : i ∈ s
-    · simp only [if_pos hi]
+    · simp only [ite_eq_left hi]
       ext a b
       fin_cases a <;> fin_cases b <;> simp [pauliZ,pauliBitSign,boolEquivFin2]
     · simp [hi]
@@ -640,7 +644,7 @@ theorem localPauliSteps_gateCount (q : ℕ) (v : Fin q → Fin 4) (u : ℚ) (k :
       reflectionAdjoint_length,pauliDiagonalizeSteps,ht,List.length_append]
     rw [pauliBasisFull_length,pauliParitySteps_length q v w hw]
     unfold localPauliGateCost
-    rw [if_neg hn]
+    rw [ite_eq_right hn]
     omega
 
 /-- The Pauli evolution gate cost is at most `6*q+1`. -/
@@ -705,7 +709,7 @@ private theorem wireGate_phase_evolution (q : ℕ) (w : Fin q) (u : ℝ) :
 private theorem local_relabel_exp {I J : Type*} [Fintype I] [DecidableEq I]
     [Fintype J] [DecidableEq J] (e : I ≃ J) (A : Matrix I I ℂ) :
     NormedSpace.exp (relabelGate e A) = relabelGate e (NormedSpace.exp A) := by
-  letI : NormedAlgebra ℚ (Matrix I I ℂ) := NormedAlgebra.restrictScalars ℚ ℂ _
+  let : NormedAlgebra ℚ (Matrix I I ℂ) := NormedAlgebra.restrictScalars ℚ ℂ _
   exact (NormedSpace.map_exp (Matrix.reindexAlgEquiv ℂ ℂ e)
     (Matrix.reindexAlgEquiv ℂ ℂ e).toLinearMap.continuous_of_finiteDimensional A).symm
 

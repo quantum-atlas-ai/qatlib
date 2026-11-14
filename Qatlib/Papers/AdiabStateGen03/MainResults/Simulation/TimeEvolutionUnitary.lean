@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AdiabStateGen03.MainResults.Defs
-import Qatlib.Papers.AdiabStateGen03.MainResults.Simulation.CommutingAssembly
-import Mathlib.Analysis.Normed.Algebra.Exponential
+module
+
+public import Qatlib.Papers.AdiabStateGen03.MainResults.Defs
+public import Qatlib.Papers.AdiabStateGen03.MainResults.Simulation.CommutingAssembly
+public import Mathlib.Analysis.Normed.Algebra.Exponential
+
+@[expose] public section
 
 /-!
 # Unitary evolution of Hermitian Hamiltonians
@@ -54,7 +58,7 @@ theorem star_toOp_of_hermitian (H : Ham n) (hH : IsHermitian H) :
 [AharonovTaShma2007]. -/
 theorem timeEvolution_mem_unitary (H : Ham n) (hH : IsHermitian H) (t : ℝ) :
     timeEvolution H t ∈ unitary (Op n) := by
-  haveI : NormedAlgebra ℚ (Op n) := NormedAlgebra.restrictScalars ℚ ℂ (Op n)
+  have : NormedAlgebra ℚ (Op n) := NormedAlgebra.restrictScalars ℚ ℂ (Op n)
   unfold timeEvolution
   apply NormedSpace.exp_mem_unitary_of_mem_skewAdjoint
   rw [skewAdjoint.mem_iff]

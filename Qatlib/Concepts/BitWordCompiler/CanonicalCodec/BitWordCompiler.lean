@@ -4,21 +4,25 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.BitWordCompiler.CanonicalCodec.BitWordEmitterDefs
-import Mathlib.Data.List.TakeDrop
-import Mathlib.Data.List.Nodup
-import Mathlib.Data.Nat.Size
-import Mathlib.Data.Nat.Bitwise
-import Mathlib.Data.Nat.Log
-import Mathlib.Data.Finset.Lattice.Fold
-import Mathlib.Data.Fintype.EquivFin
-import Mathlib.Computability.TuringMachine.StackTuringMachine
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.FinCases
-import Mathlib.Tactic.DeriveFintype
-import Mathlib.Data.Fintype.Sum
-import Mathlib.Data.Fintype.Sigma
+module
+
+public import Qatlib.Concepts.BitWordCompiler.CanonicalCodec.BitWordEmitterDefs
+public import Mathlib.Data.List.TakeDrop
+public import Mathlib.Data.List.Nodup
+public import Mathlib.Data.Nat.Size
+public import Mathlib.Data.Nat.Bitwise
+public import Mathlib.Data.Nat.Log
+public import Mathlib.Data.Finset.Lattice.Fold
+public import Mathlib.Data.Fintype.EquivFin
+public import Mathlib.Computability.TuringMachine.StackTuringMachine
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.FinCases
+public import Mathlib.Tactic.DeriveFintype
+public import Mathlib.Data.Fintype.Sum
+public import Mathlib.Data.Fintype.Sigma
+
+@[expose] public section
 
 /-!
 # Canonical bit codecs and uniform word emission
@@ -1634,17 +1638,17 @@ theorem tm1_statement_trace (M : Λ → TM1.Stmt Symbol Λ σ)
     | false =>
       obtain ⟨ticks,hpos,hbound,ht⟩ := ihRight v tape
       refine ⟨ticks,hpos,hbound.trans (Nat.le_max_right _ _),?_⟩
-      simp only [stmtShift,TM1.stepAux,hp,Bool.false_eq_true,if_false,cond_false]
+      simp only [stmtShift,TM1.stepAux,hp,Bool.false_eq_true,ite_false,Bool.cond_false]
       apply ht.transfer hpos
-      · simp only [TM0.step,TM1to0.tr,TM1to0.trAux,hp,cond_false]
-      · simp only [nextOffset,TM1to0.tr,TM1to0.trAux,hp,cond_false]
+      · simp only [TM0.step,TM1to0.tr,TM1to0.trAux,hp,Bool.cond_false]
+      · simp only [nextOffset,TM1to0.tr,TM1to0.trAux,hp,Bool.cond_false]
     | true =>
       obtain ⟨ticks,hpos,hbound,ht⟩ := ihLeft v tape
       refine ⟨ticks,hpos,hbound.trans (Nat.le_max_left _ _),?_⟩
-      simp only [stmtShift,TM1.stepAux,hp,if_true,cond_true]
+      simp only [stmtShift,TM1.stepAux,hp,ite_true,Bool.cond_true]
       apply ht.transfer hpos
-      · simp only [TM0.step,TM1to0.tr,TM1to0.trAux,hp,cond_true]
-      · simp only [nextOffset,TM1to0.tr,TM1to0.trAux,hp,cond_true]
+      · simp only [TM0.step,TM1to0.tr,TM1to0.trAux,hp,Bool.cond_true]
+      · simp only [nextOffset,TM1to0.tr,TM1to0.trAux,hp,Bool.cond_true]
   | goto f =>
     refine ⟨1,by decide,le_rfl,Trace.one ?_ rfl⟩
     change some (TM0.Cfg.mk (some (M (f tape.head v)),v) (tape.write tape.head)) = _
@@ -2000,16 +2004,16 @@ theorem mapProgram_return (f : Bool → Bool) (left right : Qatlib.Concepts.BitW
   induction left generalizing right with
   | nil =>
     apply SourceTrace.one
-    · simp only [TM1.step,mapProgram,show (1 : Fin 2)≠0 by decide,if_false,TM1.stepAux]
+    · simp only [TM1.step,mapProgram,show (1 : Fin 2)≠0 by decide,ite_false,TM1.stepAux]
       rw [show ((Tape.mk₂ ([].map some) (right.map some)).move .left).head=none by rfl]
-      simp only [Option.isSome_none,cond_false,Tape.move_left_right,
+      simp only [Option.isSome_none,Bool.cond_false,Tape.move_left_right,
         List.reverse_nil,List.nil_append,List.map_nil,Tape.mk₁]
     · simp [mapProgram,stmtShift,stmtOffset,Tape.mk₂,Tape.move_left_mk',show (default : Symbol)=none from rfl]
   | cons b left ih =>
     have ht := (ih (b::right)).prepend (l := (1 : Fin 2))
       (tape := Tape.mk₂ ((b::left).map some) (right.map some))
       (by
-        simp only [TM1.step,mapProgram,show (1 : Fin 2)≠0 by decide,if_false,TM1.stepAux]
+        simp only [TM1.step,mapProgram,show (1 : Fin 2)≠0 by decide,ite_false,TM1.stepAux]
         have hm : (Tape.mk₂ ((b::left).map some) (right.map some)).move .left =
             Tape.mk₂ (left.map some) ((b::right).map some) := by
           simp [Tape.mk₂,Tape.move_left_mk',ListBlank.cons_mk]
@@ -2159,8 +2163,8 @@ theorem go_trace {k : K} (o : StAct K Γ σ k) (q : TM2.Stmt Γ Λ σ) (v : σ)
         ⟨some (.go k o q),v,(Tape.move .right)^[n] (Tape.mk' ∅ (addBottom L))⟩
         ⟨some (.go k o q),v,(Tape.move .right)^[n+1] (Tape.mk' ∅ (addBottom L))⟩ 1 1 := by
       apply SourceTrace.one
-      · simp only [TM1.step,tr,TM1.stepAux,hsome,cond_false,Function.iterate_succ_apply']
-      · simp only [tr,stmtShift,hsome,Bool.false_eq_true,if_false,stmtOffset,add_zero]
+      · simp only [TM1.step,tr,TM1.stepAux,hsome,Bool.cond_false,Function.iterate_succ_apply']
+      · simp only [tr,stmtShift,hsome,Bool.false_eq_true,ite_false,stmtOffset,add_zero]
     simpa only [Int.natCast_add,Int.natCast_one] using (ih (by omega)).trans hone
 
 /-- The stack-action return phase moves left by `n` cells in `n` source steps, restoring the
@@ -2178,12 +2182,12 @@ theorem return_trace (q : TM2.Stmt Γ Λ σ) (v : σ)
       (by
         simp only [TM1.step]
         rw [Option.some_inj,tr,TM1.stepAux,Tape.move_right_n_head,Tape.mk'_nth_nat,
-          addBottom_nth_succ_fst,cond_false,TM1.stepAux,Function.iterate_succ_apply',
+          addBottom_nth_succ_fst,Bool.cond_false,TM1.stepAux,Function.iterate_succ_apply',
           Tape.move_right_left]
         rfl)
       (s := -1) (by
         simp only [tr,stmtShift,Tape.move_right_n_head,Tape.mk'_nth_nat,
-          addBottom_nth_succ_fst,Bool.false_eq_true,if_false,stmtOffset,add_zero])
+          addBottom_nth_succ_fst,Bool.false_eq_true,ite_false,stmtOffset,add_zero])
     simpa only [Int.natCast_add,Int.natCast_one,neg_add_rev] using ht
 
 /-- `stmtShift (trStAct (.goto (fun _ _ => .ret q)) o) v ((Tape.move .right)^[S.length]
@@ -2270,10 +2274,10 @@ theorem action_trace {k : K} (o : StAct K Γ σ k) (q : TM2.Stmt Γ Λ σ) (v : 
       List.getElem?_eq_none (le_of_eq List.length_reverse)]
     rfl
   apply SourceTrace.one
-  · simp only [TM1.step,tr,TM1.stepAux,hnone,cond_true]
+  · simp only [TM1.step,tr,TM1.stepAux,hnone,Bool.cond_true]
     rw [hr]
     simp only [Function.update_self,TM1.stepAux]
-  · simp only [tr,stmtShift,hnone,if_true]
+  · simp only [tr,stmtShift,hnone,ite_true]
     exact action_shift o q v (S k) L
 
 /-- The translation of a stack statement reaches a configuration representing its result in
@@ -2294,8 +2298,8 @@ theorem stack_statement_trace (stmt : TM2.Stmt Γ Λ σ) (v : σ)
         ⟨some (.ret q),stVar v (S k) o,Tape.mk' ∅ (addBottom L')⟩
         (TM1.stepAux (trNormal q) (stVar v (S k) o) (Tape.mk' ∅ (addBottom L'))) 1 0 := by
       apply SourceTrace.one
-      · simp only [TM1.step,tr,TM1.stepAux,Tape.mk'_head,addBottom_head_fst,cond_true]
-      · simp only [tr,stmtShift,Tape.mk'_head,addBottom_head_fst,if_true,trNormal_shift]
+      · simp only [TM1.step,tr,TM1.stepAux,Tape.mk'_head,addBottom_head_fst,Bool.cond_true]
+      · simp only [tr,stmtShift,Tape.mk'_head,addBottom_head_fst,ite_true,trNormal_shift]
     have hall :=
         (((go_trace M o q v (hL k) (S k).length le_rfl).trans ha).trans hr).trans (hd.trans ht)
     refine ⟨last,?_,?_⟩
@@ -2305,9 +2309,9 @@ theorem stack_statement_trace (stmt : TM2.Stmt Γ Λ σ) (v : σ)
   | load f q ih => exact ih (f v) S L hL
   | branch p a b iha ihb =>
     cases hp : p v with
-    | false => simpa only [TM2.stepAux,trNormal,TM1.stepAux,stackClock,hp,cond_false,
-        Bool.false_eq_true,if_false] using ihb v S L hL
-    | true => simpa only [TM2.stepAux,trNormal,TM1.stepAux,stackClock,hp,cond_true,if_true]
+    | false => simpa only [TM2.stepAux,trNormal,TM1.stepAux,stackClock,hp,Bool.cond_false,
+        Bool.false_eq_true,ite_false] using ihb v S L hL
+    | true => simpa only [TM2.stepAux,trNormal,TM1.stepAux,stackClock,hp,Bool.cond_true,ite_true]
         using iha v S L hL
   | goto f => exact ⟨_,TrCfg.mk L hL,SourceTrace.refl _ _⟩
   | halt => exact ⟨_,TrCfg.mk L hL,SourceTrace.refl _ _⟩
@@ -2449,7 +2453,7 @@ the other stack contents. -/
 @[simp] theorem stackPair_update_zero (input output input' : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     Function.update (stackPair input output) 0 input'=stackPair input' output := by
   funext i
-  by_cases h : i=0 <;> simp [stackPair,Function.update_apply,h]
+  by_cases h : i=0 <;> simp [stackPair,h]
 
 /-- Updating the second stack in `stackPair` replaces its corresponding list argument and
 retains the other stack contents. -/
@@ -2514,7 +2518,7 @@ theorem transfer_clock (input output : Qatlib.Concepts.BitWordCompiler.Canonical
       stackRunClock transferProgram (input.length+1) ⟨some 0,some b,stackPair input (b::output)⟩=_
     rw [ih]
     simp only [transferProgram,stackClock,stackPair_zero,stackPair_update_zero,
-      List.head?_cons,List.tail_cons,Option.isSome_some,if_true,stackPair_one,List.length_cons]
+      List.head?_cons,List.tail_cons,Option.isSome_some,ite_true,stackPair_one,List.length_cons]
     nlinarith
 
 /-- The translated transfer program empties the input stack and prepends its reversal to the
@@ -2560,7 +2564,7 @@ theorem relabel_stepAux {Λ' : Type} (code : Λ → Λ') (stmt : TM1.Stmt Γ Λ 
   induction stmt generalizing v tape with
   | move _ _ ih | write _ _ ih | load _ _ ih => exact ih _ _
   | branch p _ _ iha ihb =>
-    cases hp : p tape.head v <;> simp only [relabelStmt,TM1.stepAux,hp,cond_false,cond_true]
+    cases hp : p tape.head v <;> simp only [relabelStmt,TM1.stepAux,hp,Bool.cond_false,Bool.cond_true]
     · exact ihb _ _
     · exact iha _ _
   | goto _ | halt => rfl
@@ -2721,7 +2725,7 @@ theorem bool_stepAux (stmt : TM1.Stmt Bool Λ σ) (v : σ) (tape : Tape Bool) :
       using ih (f tape.head v) tape
   | branch p a b iha ihb =>
     simp only [boolStmt,TM1.stepAux,Tape.map_fst,symbolBool_boolSymbol]
-    cases p tape.head v <;> simp only [cond_false,cond_true]
+    cases p tape.head v <;> simp only [Bool.cond_false,Bool.cond_true]
     · exact ihb v tape
     · exact iha v tape
   | goto f => simp only [boolStmt,TM1.stepAux,Tape.map_fst,symbolBool_boolSymbol]; rfl
@@ -2872,7 +2876,7 @@ open Turing
 variable {Γ Λ σ : Type}
 
 /-- Write a list of bits to successive tape cells, moving right after each write. -/
-private def writeTape : List Bool → Tape Bool → Tape Bool
+def writeTape : List Bool → Tape Bool → Tape Bool
   | [],tape => tape
   | b::bits,tape => writeTape bits ((tape.write b).move .right)
 
@@ -2910,7 +2914,7 @@ theorem move_shift (n : ℕ) (d : Dir) (q : TM1.Stmt Bool (TM1to1.Λ' Γ Λ σ) 
     cases d <;> simp only [stmtOffset,Int.natCast_add,Int.natCast_one,mul_neg,mul_one] <;> omega
 
 /-- Read a fixed-length vector of consecutive tape bits starting at the current head. -/
-private def readVector : (n : ℕ) → Tape Bool → List.Vector Bool n
+def readVector : (n : ℕ) → Tape Bool → List.Vector Bool n
   | 0,_ => List.Vector.nil
   | n+1,tape => tape.head ::ᵥ readVector n (tape.move .right)
 
@@ -2924,7 +2928,7 @@ theorem readAux_shift (n : ℕ)
   | zero => simp [TM1to1.readAux,readVector]
   | succ n ih =>
     rw [TM1to1.readAux,stmtShift]
-    cases hb : tape.head <;> simp only [hb,Bool.false_eq_true,if_false,if_true,stmtShift,
+    cases hb : tape.head <;> simp only [hb,Bool.false_eq_true,ite_false,ite_true,stmtShift,
       stmtOffset,ih,readVector,Function.iterate_succ_apply,Int.natCast_add,Int.natCast_one]
     <;> omega
 
@@ -3090,16 +3094,16 @@ theorem statement_aux (stmt : TM1.Stmt Γ Λ σ) (v : σ) (tape : Tape Γ) :
       obtain ⟨ticks,diff,hbound,ht,hd⟩ := ihb v (Tape.mk' L R)
       refine ⟨ticks,diff,hbound.trans (Nat.le_max_right _ _),?_,?_⟩
       · simpa only [TM1to1.trNormal,TM1to1.trTape_mk',TM1to1.stepAux_read dec enc0 encdec,
-          TM1.stepAux,Tape.mk'_head,hp,cond_false] using ht
+          TM1.stepAux,Tape.mk'_head,hp,Bool.cond_false] using ht
       · simpa only [TM1to1.trNormal,TM1to1.trTape_mk',read_shift enc dec enc0 encdec,
-          stmtShift,Tape.mk'_head,hp,Bool.false_eq_true,if_false] using hd
+          stmtShift,Tape.mk'_head,hp,Bool.false_eq_true,ite_false] using hd
     | true =>
       obtain ⟨ticks,diff,hbound,ht,hd⟩ := iha v (Tape.mk' L R)
       refine ⟨ticks,diff,hbound.trans (Nat.le_max_left _ _),?_,?_⟩
       · simpa only [TM1to1.trNormal,TM1to1.trTape_mk',TM1to1.stepAux_read dec enc0 encdec,
-          TM1.stepAux,Tape.mk'_head,hp,cond_true] using ht
+          TM1.stepAux,Tape.mk'_head,hp,Bool.cond_true] using ht
       · simpa only [TM1to1.trNormal,TM1to1.trTape_mk',read_shift enc dec enc0 encdec,
-          stmtShift,Tape.mk'_head,hp,if_true] using hd
+          stmtShift,Tape.mk'_head,hp,ite_true] using hd
   | goto f =>
     obtain ⟨L,R,rfl⟩ := tape.exists_mk'
     refine ⟨0,0,le_rfl,?_,?_⟩
@@ -3379,9 +3383,9 @@ theorem return_trace (inserted : Symbol) (left right : Qatlib.Concepts.BitWordCo
   | nil =>
     apply SourceTrace.one
     · simp only [TM1.step,program,show (2 : Fin 3)≠0 by decide,
-        show (2 : Fin 3)≠1 by decide,if_false,TM1.stepAux,List.map_nil,ListBlank.append,
+        show (2 : Fin 3)≠1 by decide,ite_false,TM1.stepAux,List.map_nil,ListBlank.append,
         Tape.move_left_mk',ListBlank.head_cons,ListBlank.tail_cons,Tape.mk'_head,
-        Option.isSome_none,cond_false,Tape.write_mk',ListBlank.tail_cons]
+        Option.isSome_none,Bool.cond_false,Tape.write_mk',ListBlank.tail_cons]
       rfl
     · simp [program,stmtShift,stmtOffset,Tape.move_left_mk']
   | cons b left ih =>
@@ -3395,12 +3399,12 @@ theorem return_trace (inserted : Symbol) (left right : Qatlib.Concepts.BitWordCo
         (ListBlank.mk (right.map some)))
       (by
         simp only [TM1.step,program,show (2 : Fin 3)≠0 by decide,
-          show (2 : Fin 3)≠1 by decide,if_false,TM1.stepAux]
+          show (2 : Fin 3)≠1 by decide,ite_false,TM1.stepAux]
         rw [hm]
         rfl)
       (s := -1) (by
         simp only [program,show (2 : Fin 3)≠0 by decide,show (2 : Fin 3)≠1 by decide,
-          if_false,stmtShift,hm]
+          ite_false,stmtShift,hm]
         rfl)
     convert! ht using 1 <;> simp [List.reverse_cons,List.append_assoc,Int.add_comm,Int.add_left_comm]
 
@@ -3533,7 +3537,7 @@ theorem stmt_step (code : Λ → Λ') (returnTo : Λ') (saved : τ) (s : TM1.Stm
   | move _ _ ih | write _ _ ih | load _ _ ih => exact ih _ _
   | branch f a b iha ihb =>
     simp only [stmt,TM1.stepAux]
-    cases f tape.head v <;> simp only [cond_false,cond_true]
+    cases f tape.head v <;> simp only [Bool.cond_false,Bool.cond_true]
     · exact ihb _ _
     · exact iha _ _
   | goto _ | halt => rfl
@@ -3754,7 +3758,7 @@ theorem gap_chain (count i : ℕ) (hi : i+count=extra) (input : Qatlib.Concepts.
     refine ⟨last,hl,hlv,?_,?_⟩
     · simpa only [Function.iterate_succ_apply] using hltape
     · have hall := (hs.trans ha).trans hltrace
-      rw [gapEntry,dif_pos hlt]
+      rw [gapEntry,dite_eq_left hlt]
       convert! hall using 1 <;> simp only [Nat.succ_mul,Int.natCast_add,Int.natCast_one]
       · omega
       · omega
@@ -3874,10 +3878,16 @@ later1 saved).toList (resume (extra:=extra)))) (v,saved) origin`. -/
 theorem output_eval (origin : Tape Symbol) (v : Symbol×Symbol) (saved : Bool×Bool) :
     TM1.stepAux (program first0 first1 later0 later1 empty bottom .output) (v,saved) origin=
       TM1.stepAux (moves (extra+1) .left
-        (writeSymbols (outputCode first0 first1 later0 later1 saved).toList (resume (extra:=extra)))) (v,saved) origin := by
+        (writeSymbols (outputCode first0 first1 later0 later1 saved).toList
+          (.load (fun _ s => (s.1,(s.2.1,false))) (.goto (fun _ _ => .scan)))))
+        (v,saved) origin := by
+  change TM1.stepAux (program first0 first1 later0 later1 empty bottom .output) (v,saved) origin=
+    TM1.stepAux (moves (extra+1) .left
+      (writeSymbols (outputCode first0 first1 later0 later1 saved).toList (resume (extra:=extra))))
+      (v,saved) origin
   rcases saved with ⟨bit,phase⟩
   cases bit <;> cases phase <;> simp only [program,moves_step,TM1.stepAux,outputCode,
-    Bool.false_eq_true,if_false,if_true,cond_false,cond_true,resume]
+    Bool.false_eq_true,ite_false,ite_true,Bool.cond_false,Bool.cond_true,resume]
 
 /-- `stmtShift (program first0 first1 later0 later1 empty bottom .output) (v,saved) origin`
 equals `stmtShift (moves (extra+1) .left (writeSymbols (outputCode first0 first1 later0
@@ -3885,10 +3895,16 @@ later1 saved).toList (resume (extra:=extra)))) (v,saved) origin`. -/
 theorem output_shift (origin : Tape Symbol) (v : Symbol×Symbol) (saved : Bool×Bool) :
     stmtShift (program first0 first1 later0 later1 empty bottom .output) (v,saved) origin=
       stmtShift (moves (extra+1) .left
-        (writeSymbols (outputCode first0 first1 later0 later1 saved).toList (resume (extra:=extra)))) (v,saved) origin := by
+        (writeSymbols (outputCode first0 first1 later0 later1 saved).toList
+          (.load (fun _ s => (s.1,(s.2.1,false))) (.goto (fun _ _ => (Label.scan : Label extra))))))
+        (v,saved) origin := by
+  change stmtShift (program first0 first1 later0 later1 empty bottom .output) (v,saved) origin=
+    stmtShift (moves (extra+1) .left
+      (writeSymbols (outputCode first0 first1 later0 later1 saved).toList (resume (extra:=extra))))
+      (v,saved) origin
   rcases saved with ⟨bit,phase⟩
   cases bit <;> cases phase <;> simp only [program,moves_shift,stmtShift,outputCode,
-    Bool.false_eq_true,if_false,if_true,resume]
+    Bool.false_eq_true,ite_false,ite_true,resume]
 
 /-- The output phase writes one encoded cell into the prepared gap and returns to scanning in
 one source step with zero net displacement. -/
@@ -3901,6 +3917,7 @@ theorem output_trace (origin right : ListBlank Symbol) (v : Symbol×Symbol) (sav
   obtain ⟨hs,hd⟩ :=
       overwrite_gap (outputCode first0 first1 later0 later1 saved) (resume (extra:=extra))
       (v,saved) origin right
+  dsimp only [resume] at hs hd
   apply SourceTrace.one
   · change some (TM1.stepAux _ _ _)=_
     rw [output_eval,hs]
@@ -3968,7 +3985,7 @@ theorem forward_trace (input : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bi
   | nil =>
     refine ⟨v,oldBit,?_⟩
     simpa only [cells,List.map_nil,List.reverse_nil,ListBlank.append,List.length_nil,
-      mul_zero,zero_add,if_pos rfl] using! SourceTrace.refl
+      mul_zero,zero_add,ite_eq_left rfl] using! SourceTrace.refl
       (program first0 first1 later0 later1 empty bottom)
       (TM1.Cfg.mk (some Label.scan) (v,(oldBit,phase)) (Tape.mk' origin (ListBlank.mk [])))
   | cons bit rest ih =>
@@ -3980,7 +3997,7 @@ theorem forward_trace (input : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bi
     have hall := hs.trans ht
     simp only [ite_self] at hall
     convert! hall using 1 <;> simp only [cells,List.reverse_append,ListBlank.append_assoc,
-      List.cons_ne_nil,if_false,List.length_cons]
+      List.cons_ne_nil,ite_false,List.length_cons]
     · ring
     · push_cast
       ring
@@ -3992,9 +4009,9 @@ theorem readAux_head_step {Λ σ : Type} (n : ℕ)
     TM1.stepAux (readAux (n+1) f) v tape=
       TM1.stepAux (readAux n (fun bits => f (tape.head ::ᵥ bits))) v (tape.move .right) := by
   cases hh : tape.head with
-  | none => simp only [readAux,TM1.stepAux,hh,Option.isNone_none,cond_true]
+  | none => simp only [readAux,TM1.stepAux,hh,Option.isNone_none,Bool.cond_true]
   | some bit => cases bit <;> simp only [readAux,TM1.stepAux,hh,Option.isNone_some,
-      cond_false,cond_true,Option.getD_some]
+      Bool.cond_false,Bool.cond_true,Option.getD_some]
 
 /-- `stmtShift (readAux (n+1) f) v tape` equals `1+stmtShift (readAux n (fun bits => f
 (tape.head ::ᵥ bits))) v (tape.move .right)`. -/
@@ -4003,9 +4020,9 @@ theorem readAux_head_shift {Λ σ : Type} (n : ℕ)
     stmtShift (readAux (n+1) f) v tape=
       1+stmtShift (readAux n (fun bits => f (tape.head ::ᵥ bits))) v (tape.move .right) := by
   cases hh : tape.head with
-  | none => simp only [readAux,stmtShift,hh,Option.isNone_none,if_true,stmtOffset]
+  | none => simp only [readAux,stmtShift,hh,Option.isNone_none,ite_true,stmtOffset]
   | some bit => cases bit <;> simp only [readAux,stmtShift,hh,Option.isNone_some,
-      Bool.false_eq_true,if_false,if_true,Option.getD_some,stmtOffset]
+      Bool.false_eq_true,ite_false,ite_true,Option.getD_some,stmtOffset]
 
 /-- The auxiliary reader passes the consecutive symbols to its continuation, moving them to the
 left of the head and adding their length to the continuation displacement. -/
@@ -4108,7 +4125,7 @@ theorem back_many (first : List.Vector Symbol (extra+1)) (rest : List (List.Vect
     have hb : bottom b=false := hrest b (by simp)
     have ht := back_one first0 first1 later0 later1 empty bottom b
       (ListBlank.append (rest.flatMap (fun b => b.toList.reverse)++first.toList.reverse) origin) right v
-    simp only [hb,Bool.false_eq_true,if_false] at ht
+    simp only [hb,Bool.false_eq_true,ite_false] at ht
     have hr := ih (fun c hc => hrest c (by simp [hc])) (ListBlank.append b.toList right)
     have hall := ht.trans hr
     convert! hall using 1 <;> simp only [List.flatMap_cons,List.reverse_cons,List.flatMap_append,
@@ -4211,7 +4228,7 @@ theorem source_frontend (input : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.
   | cons bit rest =>
     obtain ⟨v,lastBit,hs⟩ := forward_trace first0 first1 later0 later1 empty bottom
       (bit::rest) (ListBlank.mk []) default false true
-    simp only [List.cons_ne_nil,if_false] at hs
+    simp only [List.cons_ne_nil,ite_false] at hs
     have he := eof_trace first0 first1 later0 later1 empty bottom
       (ListBlank.append (cells first0 first1 later0 later1 true (bit::rest)).reverse (ListBlank.mk [])) v lastBit
     have hr := rewind_cells first0 first1 later0 later1 empty bottom bit rest hfirst hlater
@@ -4219,7 +4236,7 @@ theorem source_frontend (input : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.
     have hall := ((hboot.trans hs).trans he).trans hr
     refine ⟨⟨none,(v,(lastBit,false)),Tape.mk' (ListBlank.mk [])
       (ListBlank.append (cells first0 first1 later0 later1 true (bit::rest)) (ListBlank.mk []))⟩,rfl,?_,?_⟩
-    · simp only [List.cons_ne_nil,if_false,Tape.mk₁,Tape.mk₂,ListBlank.append_mk,List.append_nil]
+    · simp only [List.cons_ne_nil,ite_false,Tape.mk₁,Tape.mk₂,ListBlank.append_mk,List.append_nil]
     · convert! hall using 1 <;> simp only [List.length_cons]
       · ring
       · push_cast
@@ -4323,7 +4340,7 @@ theorem finish_trace (left right : Qatlib.Concepts.BitWordCompiler.CanonicalCode
       apply SourceTrace.one
       · simp only [TM1.step,program,TM1.stepAux]
         rw [show ((Tape.mk₂ [] (some false::right.map some)).move .left).head=none by rfl]
-        simp only [Option.isSome_none,cond_false,Tape.move_left_right]
+        simp only [Option.isSome_none,Bool.cond_false,Tape.move_left_right]
         change some (TM1.Cfg.mk none v ((Tape.mk₂ [] (none::right.map some)).move .right))=_
         simp only [Tape.mk₂,Tape.move_right_mk',ListBlank.head_mk,List.headI_cons,
           ListBlank.tail_mk,List.tail_cons]
@@ -4387,7 +4404,7 @@ theorem append_trace (gap : ℕ) (origin right : ListBlank Symbol) (bit more : B
         have hh : ((Tape.mk' origin (ListBlank.cons none right)).move .left).head.isSome=true := by
           simpa only [Tape.move_left_mk',Tape.mk'_head,ListBlank.head_cons] using h
         rw [hh]
-        simp only [cond_true,Tape.move_left_right]
+        simp only [Bool.cond_true,Tape.move_left_right]
         cases more <;> simp [Tape.write_mk',Tape.move_right_mk']
       · simp [program,stmtShift,stmtOffset,Tape.move_left_mk',Tape.mk'_head,h]
     simpa using hfirst.trans hlast
@@ -4540,7 +4557,7 @@ theorem cell_then_finish (pre : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.B
   simp only [ListBlank.append_mk,List.append_nil] at hs
   have ha := append_trace decode (extra*(pre.length+1)) (liveLeft pre)
     (ListBlank.mk []) bit false (liveLeft_head pre)
-  simp only [Bool.false_eq_true,if_false,blank_append,← liveLeft_append] at ha
+  simp only [Bool.false_eq_true,ite_false,blank_append,← liveLeft_append] at ha
   have hf := finish_trace decode (pre++[bit]).reverse [] (bit,false)
   simp only [List.reverse_reverse,List.append_nil] at hf
   change SourceTrace
@@ -4656,9 +4673,9 @@ theorem source_cleanup (input : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.B
   have hboot : SourceTrace (program decode) (TM1.init (inputCells later first empty input))
       ⟨some .scan,default,Tape.mk' (ListBlank.mk [some false]) (ListBlank.mk (inputCells later first empty input))⟩ 1 0 := by
     apply SourceTrace.one
-    · simp [TM1.init,TM1.step,program,TM1.stepAux,Tape.mk₁,Tape.mk₂,Tape.move_left_mk',
+    · simp [TM1.step,program,TM1.stepAux,Tape.mk₁,Tape.mk₂,Tape.move_left_mk',
         Tape.move_right_mk',Tape.write_mk',ListBlank.cons_mk,show (default : Label)=.boot from rfl]
-    · simp [TM1.init,program,stmtShift,stmtOffset,show (default : Label)=.boot from rfl]
+    · simp [program,stmtShift,stmtOffset,show (default : Label)=.boot from rfl]
   cases input with
   | nil =>
     have ht := hboot.trans (empty_trace decode empty default he)
@@ -4750,7 +4767,7 @@ theorem encoded_cells (input : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bi
   induction input with
   | nil => rfl
   | cons bit rest ih =>
-    simp only [encoded_cons,Expansion.cells,Expansion.outputCode,Bool.false_eq_true,if_false,← ih]
+    simp only [encoded_cons,Expansion.cells,Expansion.outputCode,Bool.false_eq_true,ite_false,← ih]
     cases bit <;> rfl
 
 /-- `inputCells later first empty input` equals `(if input=[] then empty.toList else
@@ -4761,7 +4778,7 @@ theorem inputCells_expansion (input : Qatlib.Concepts.BitWordCompiler.CanonicalC
   cases input with
   | nil => rfl
   | cons bit rest =>
-    simp only [inputCells,List.cons_ne_nil,if_false,Expansion.cells,Expansion.outputCode,if_true,
+    simp only [inputCells,List.cons_ne_nil,ite_false,Expansion.cells,Expansion.outputCode,ite_true,
       ← encoded_cells later first rest]
     cases bit <;> rfl
 
@@ -4972,7 +4989,7 @@ theorem inputCode_head (marked : ∀ a, a≠default → (enc a).head=true)
     intro h
     have he := congrArg (fun a : BitAlphabet K => a.2 k) h
     simp [cell] at he
-  simp only [inputCode,rawCode,List.Vector.head_map,marked _ hn,boolSymbol,PointedMap.mk_val,if_true,Option.isSome_some]
+  simp only [inputCode,rawCode,List.Vector.head_map,marked _ hn,boolSymbol,PointedMap.mk_val,ite_true,Option.isSome_some]
 
 omit [DecidableEq K] in
 
@@ -5187,7 +5204,7 @@ theorem stackPair_init (input : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.B
   unfold TM2.init
   congr 1
   funext k
-  by_cases hk : k=0 <;> simp [stackPair,Function.update_apply,hk]
+  by_cases hk : k=0 <;> simp [stackPair,hk]
 
 /-- `stackPair [] output` equals `Function.update (fun _ : Fin 2 => []) 1 output`. -/
 theorem stackPair_output (output : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
@@ -5786,7 +5803,7 @@ theorem decrement_value (zeros : ℕ) (rest : Qatlib.Concepts.BitWordCompiler.Ca
   | zero => simp [Qatlib.Concepts.BitWordCompiler.CanonicalCodec.binaryValue]
   | succ zeros ih =>
     simp only [List.replicate_succ,List.cons_append,Qatlib.Concepts.BitWordCompiler.CanonicalCodec.binaryValue,List.foldr_cons,
-      Bool.false_eq_true,if_false,if_true] at ih ⊢
+      Bool.false_eq_true,ite_false,ite_true] at ih ⊢
     omega
 
 /-- `Stacks.stackRunClock program (temp.length+1) ⟨some .restore,(flag,saved),Stacks.stackPair
@@ -5805,7 +5822,7 @@ theorem restore_clock (counter temp : Qatlib.Concepts.BitWordCompiler.CanonicalC
       Stacks.stackRunClock program (temp.length+1) ⟨some .restore,(flag,some b),Stacks.stackPair (b::counter) temp⟩=_
     rw [ih]
     simp only [program,Stacks.stackClock,Stacks.stackPair_one,Stacks.stackPair_update_one,
-      List.head?_cons,List.tail_cons,Option.isSome_some,if_true,Stacks.stackPair_zero,List.length_cons]
+      List.head?_cons,List.tail_cons,Option.isSome_some,ite_true,Stacks.stackPair_zero,List.length_cons]
     nlinarith
 
 /-- `Stacks.stackRunClock program (2*zeros+temp.length+3) ⟨some .borrow,v,Stacks.stackPair
@@ -6271,7 +6288,7 @@ theorem cfg_height (l : Λ) (left right : List Symbol) (head : Symbol) :
     Stacks.stackHeight (cfg l left right head).stk≤2*(left.length+right.length) := by
   apply Finset.sup_le
   intro k _
-  by_cases h : k=0 <;> simp only [cfg,Stacks.stackPair,h,if_true,if_false,pack_length] <;> omega
+  by_cases h : k=0 <;> simp only [cfg,Stacks.stackPair,h,ite_true,ite_false,pack_length] <;> omega
 
 /-- `Stacks.stackNodes (transition e)` is at most `4`. -/
 theorem transition_nodes (e : Option (Λ×TM0.Stmt Symbol)) : Stacks.stackNodes (transition e)≤4 := by
@@ -6503,8 +6520,8 @@ theorem stmt_step (q : TM2.Stmt (fun _ : K => Bool) Λ σ) (v : σ) (S : K → L
     simpa only [stmt,TM2.stepAux,hget,hput] using ih (f v) S saved
   | branch p a b iha ihb =>
     cases h : p v
-    · simpa only [stmt,TM2.stepAux,hget,h,cond_false] using ihb v S saved
-    · simpa only [stmt,TM2.stepAux,hget,h,cond_true] using iha v S saved
+    · simpa only [stmt,TM2.stepAux,hget,h,Bool.cond_false] using ihb v S saved
+    · simpa only [stmt,TM2.stepAux,hget,h,Bool.cond_true] using iha v S saved
   | goto f => simp [stmt,TM2.stepAux,hget,cfg]
   | halt => rfl
 
@@ -6529,8 +6546,8 @@ theorem stmt_clock (q : TM2.Stmt (fun _ : K => Bool) Λ σ) (v : σ) (S : K → 
   | load f q ih => simpa only [stmt,Stacks.stackClock,hget,hput] using ih (f v) S saved
   | branch p a b iha ihb =>
     cases h : p v
-    · simpa only [stmt,Stacks.stackClock,hget,h,Bool.false_eq_true,if_false] using ihb v S saved
-    · simpa only [stmt,Stacks.stackClock,hget,h,if_true] using iha v S saved
+    · simpa only [stmt,Stacks.stackClock,hget,h,Bool.false_eq_true,ite_false] using ihb v S saved
+    · simpa only [stmt,Stacks.stackClock,hget,h,ite_true] using iha v S saved
   | goto f => rfl
   | halt => rfl
 include hE hupdate hget hput in
@@ -6599,7 +6616,7 @@ theorem leftFrame_update (frame : J → List Bool) (S : K → List Bool) (k : K)
     leftFrame frame (Function.update S k bits)=Function.update (leftFrame frame S) (.inl k) bits := by
   funext j
   cases j with
-  | inl k' => by_cases h : k'=k <;> simp [leftFrame,Function.update_apply,h]
+  | inl k' => by_cases h : k'=k <;> simp [leftFrame,h]
   | inr j => simp [leftFrame]
 
 /-- Embed the right stacks for stack call while retaining the supplied contents of the other
@@ -6620,7 +6637,7 @@ theorem rightFrame_update (frame : J → List Bool) (S : K → List Bool) (k : K
   funext j
   cases j with
   | inl j => simp [rightFrame]
-  | inr k' => by_cases h : k'=k <;> simp [rightFrame,Function.update_apply,h]
+  | inr k' => by_cases h : k'=k <;> simp [rightFrame,h]
 end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.StackCall
 
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks
@@ -6741,7 +6758,7 @@ def triple (reader count output : Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 the other stack contents. -/
 @[simp] theorem triple_update_zero (r c o r' : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) : Function.update (triple r c o) 0 r'=triple r' c o := by
   funext k
-  by_cases h : k=0 <;> simp [triple,Function.update_apply,h]
+  by_cases h : k=0 <;> simp [triple,h]
 
 /-- Updating the second stack in `triple` replaces its corresponding list argument and retains
 the other stack contents. -/
@@ -7086,7 +7103,7 @@ contents. -/
 theorem frame_at (hinj : Function.Injective code) (k : K) : frame code saved S (code k)=S k := by
   classical
   have h : ∃ k', code k'=code k := ⟨k,rfl⟩
-  rw [frame,dif_pos h]
+  rw [frame,dite_eq_left h]
   exact congrArg S (hinj (Classical.choose_spec h))
 
 /-- Updating a subroutine stack before framing agrees with updating its mapped stack index after
@@ -7104,7 +7121,7 @@ theorem frame_update (hinj : Function.Injective code) (k : K) (bits : List Bool)
     · have hc : code k'≠code k := fun he => h (hinj he)
       simp only [hat,Function.update_of_ne h,Function.update_of_ne hc]
   · have hc : j≠code k := fun he => hj ⟨k,he.symm⟩
-    simp only [frame,dif_neg hj,Function.update_of_ne hc]
+    simp only [frame,dite_eq_right hj,Function.update_of_ne hc]
 
 omit [DecidableEq K] [DecidableEq J] in
 
@@ -7116,7 +7133,7 @@ theorem frame_same (hinj : Function.Injective code) (hS : ∀ k, saved (code k)=
   by_cases hj : ∃ k, code k=j
   · obtain ⟨k,rfl⟩ := hj
     rw [frame_at code saved S hinj,hS]
-  · simp only [frame,dif_neg hj]
+  · simp only [frame,dite_eq_right hj]
 end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.StackCall
 
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Stacks
@@ -7407,7 +7424,7 @@ theorem emit_word_clock (bit : Bool) (bits : Qatlib.Concepts.BitWordCompiler.Can
     rw [hn]
     simp only [List.map_cons,List.cons_append]
     rw [Stacks.clock_add program 2 _ _ _ hs,emit_read_clock,ih]
-    simp only [List.cons_ne_nil,if_false,List.length_cons,
+    simp only [List.cons_ne_nil,ite_false,List.length_cons,
       List.length_append,List.length_map,List.length_replicate]
     ring
 /-- Embed the left stacks for packed-tape normalization while retaining the supplied contents of
@@ -7618,7 +7635,7 @@ other stack contents. -/
 @[simp] theorem quad_update_zero (r t l d r' : Qatlib.Concepts.BitWordCompiler.CanonicalCodec.Bits) :
     Function.update (quad r t l d) 0 r'=quad r' t l d := by
   funext k
-  by_cases h : k=0 <;> simp [quad,Function.update_apply,h]
+  by_cases h : k=0 <;> simp [quad,h]
 
 /-- Updating the second stack in `quad` replaces its corresponding list argument and retains the
 other stack contents. -/
@@ -12887,13 +12904,13 @@ theorem success_iff (input output : Bits) :
     by_cases hlen : n≤rest.length
     · have hf := field_data (rest.take n) (rest.drop n) output none
       rw [List.take_append_drop,List.length_take,Nat.min_eq_left hlen] at hf
-      simp only [parseResult,hs,hf,readNat,Option.bind_eq_bind,Option.bind_some,if_pos hlen]
+      simp only [parseResult,hs,hf,readNat,Option.bind_eq_bind,Option.bind_some,ite_eq_left hlen]
       simp only [lastField_none,← canonical_iff]
       by_cases hc : (binaryValue (rest.take n)).bits=rest.take n <;> simp [hc]
     · have he : rest.length+(n-rest.length-1)+1=n := by omega
       have hf := field_short (n-rest.length-1) rest output none
       rw [he] at hf
-      simp only [parseResult,hs,hf,readNat,Option.bind_eq_bind,Option.bind_some,if_neg hlen]
+      simp only [parseResult,hs,hf,readNat,Option.bind_eq_bind,Option.bind_some,ite_eq_right hlen]
       simp
 
 /-- Either `(fieldFinish n input output saved).l` equals `some .accept` or `(fieldFinish n input
@@ -12973,7 +12990,7 @@ theorem result_valid (n : ℕ) (rest output : Bits) :
   have hlast : lastField n.bits none≠some false := by
     rw [lastField_none]
     exact (canonical_iff n.bits).mp hcan
-  simp only [parseResult,hsize,field_data,if_pos hlast]
+  simp only [parseResult,hsize,field_data,ite_eq_left hlast]
 
 /-- `haltedResult (natBits n++rest) output` equals `⟨none,(true,lastField n.bits
 none),Parsing.triple rest [] (n.bits.reverse++output)⟩`. -/
@@ -13055,7 +13072,6 @@ theorem step (a b : Bits) (v : Local) :
       some ⟨if a=[] ∧ b=[] then none else some 0,
         (update v.1 a.head? b.head?,a.head?,b.head?),Stacks.stackPair a.tail b.tail⟩ := by
   cases a <;> cases b <;> simp [Stacks.run_one,TM2.step,program,TM2.stepAux,update]
-  all_goals rfl
 
 /-- `Stacks.stackRunClock program 1 ⟨some 0,v,Stacks.stackPair a b⟩` equals
 `a.length+a.tail.length+b.length+b.tail.length+5`. -/
@@ -13911,7 +13927,7 @@ theorem inspect_head (m n : ℕ) (tail seen : Bits) (v : Local) :
     have hl := congrArg List.length he
     simp only [List.length_append,natBits_length,List.length_nil] at hl
     omega
-  rw [if_neg hne] at hP
+  rw [ite_eq_right hne] at hP
   obtain ⟨parseTicks,hR,hRC⟩ := parse_valid m tail seen n.bits.reverse v0
   obtain ⟨hB,hBC⟩ := branch_parse (store seen n.bits.reverse tail [] m.bits.reverse [] [] []) v1 rfl
   obtain ⟨cmpTicks,hC,hCC⟩ := compare_call m.bits.reverse n.bits.reverse seen tail v1
@@ -13982,7 +13998,7 @@ theorem loop_complete (values : List ℕ) (seen : Bits) (n : ℕ) (v : Local) :
     · have hcmp : v2.compared.1.1=.eq := by
         change ReadonlyCompare.order m.bits.reverse n.bits.reverse=.eq
         exact (compare_nat_eq m n).mpr he
-      rw [if_pos hcmp] at hB
+      rw [ite_eq_left hcmp] at hB
       obtain ⟨finishTicks,hF,hFC⟩ := finish_flag true seen n.bits.reverse rest [] m.bits.reverse v2
       have eB : Stacks.Execution program _ _ 1 := ⟨1,hB,hBC.le⟩
       have eF : Stacks.Execution program _ _ (50*T^2) := ⟨finishTicks,hF,hFC.trans (by
@@ -13997,7 +14013,7 @@ theorem loop_complete (values : List ℕ) (seen : Bits) (n : ℕ) (v : Local) :
     · have hcmp : v2.compared.1.1≠.eq := by
         change ReadonlyCompare.order m.bits.reverse n.bits.reverse≠.eq
         exact mt (compare_nat_eq m n).mp he
-      rw [if_neg hcmp] at hB
+      rw [ite_eq_right hcmp] at hB
       obtain ⟨hD,hDC⟩ :=
           payload_drain Label.loopDrain .peek (fun _ => rfl) seen n.bits.reverse rest
           [] m.bits.reverse v2
@@ -14318,7 +14334,7 @@ theorem complete (values : List ℕ) (n : ℕ) (v : Local) :
     have eB : Stacks.Execution program _ _ 1 := ⟨1,hBranch,hBC.le⟩
     obtain ⟨ticks,hr,hc⟩ := eF.trans eB
     refine ⟨ticks,v1,?_,hfound,hc.trans ?_⟩
-    · simpa only [inserted,if_pos hmem] using hr
+    · simpa only [inserted,ite_eq_left hmem] using hr
     · change 2000*B^3+1≤5000*B^3
       omega
   · have hv : v1.1.found=false := by simpa only [v1,putFind,hmem,decide_false] using hfound
@@ -14340,7 +14356,7 @@ theorem complete (values : List ℕ) (n : ℕ) (v : Local) :
     obtain ⟨ticks,hr,hc⟩ := ((((eF.trans eB).trans eC).trans eE).trans eD).trans eH
     refine ⟨ticks,putIO v1 none,?_,hfound,hc.trans ?_⟩
     · simpa only
-        [inserted,if_neg hmem,NatListFind.stream,List.flatMap_append,List.flatMap_cons,List.flatMap_nil,List.append_nil,List.reverse_append] using! hr
+        [inserted,ite_eq_right hmem,NatListFind.stream,List.flatMap_append,List.flatMap_cons,List.flatMap_nil,List.append_nil,List.reverse_append] using! hr
     · have hn : n.bits.length≤B := by dsimp [B]; omega
       have hn1 : 1+n.bits.length≤B := by dsimp [B]; omega
       have hn2 := Nat.pow_le_pow_left hn1 2
@@ -14356,8 +14372,8 @@ theorem complete (values : List ℕ) (n : ℕ) (v : Local) :
 /-- Under the stated hypotheses, `(inserted values n)` has no duplicate entries. -/
 theorem inserted_nodup (values : List ℕ) (n : ℕ) (h : values.Nodup) : (inserted values n).Nodup := by
   by_cases hmem : n∈values
-  · simpa only [inserted,if_pos hmem] using h
-  · simpa only [inserted,if_neg hmem,List.nodup_append,List.nodup_singleton,List.mem_singleton,forall_eq,
+  · simpa only [inserted,ite_eq_left hmem] using h
+  · simpa only [inserted,ite_eq_right hmem,List.nodup_append,List.nodup_singleton,List.mem_singleton,forall_eq,
       true_and] using And.intro h (show ∀ a∈values,a≠n by intro a ha he; exact hmem (he ▸ ha))
 
 end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.NatSetInsert
@@ -14654,7 +14670,7 @@ theorem decodeAt_complete (fuel : ℕ) (w : Word) (hlegal : Legal w) (hfuel : co
   have h := readOps_complete w.ops [] fuel w.width hlegal hfuel
   simp only [List.append_nil] at h
   rw [h]
-  simp only [Option.bind_some,pure,if_true]
+  simp only [Option.bind_some,pure,ite_true]
 
 /-- Under the stated hypotheses, `decode (wordBits w)` equals `some w`. -/
 theorem decode_complete (w : Word) (hlegal : Legal w) : decode (wordBits w)=some w :=
@@ -15450,7 +15466,7 @@ theorem frame_outside {K J : Type} [DecidableEq K] [DecidableEq J]
     StackCall.frame code S data j=S j := by
   classical
   have hn : ¬∃ k,code k=j := by rintro ⟨k,hk⟩; exact hj k hk
-  simp only [StackCall.frame,dif_neg hn]
+  simp only [StackCall.frame,dite_eq_right hn]
 
 /-- Under the stated input conditions, a run of `program` from label `(.step .failure)` halts
 with stacks `Function.update (fun _ => []) none [false]`; its accumulated stack clock is at
@@ -15557,9 +15573,9 @@ theorem cap_frame {K : Type} [DecidableEq K] (code : K → Slot) (S : Slot → B
   classical
   intro bank
   by_cases hj : ∃ k,code k=some bank
-  · simp only [StackCall.frame,dif_pos hj]
+  · simp only [StackCall.frame,dite_eq_left hj]
     exact hdata _
-  · simp only [StackCall.frame,dif_neg hj]
+  · simp only [StackCall.frame,dite_eq_right hj]
     exact hS bank
 
 /-- Under the given input-length bound, every stack of the halted checked-natural parser has
@@ -15947,7 +15963,7 @@ second`. -/
 theorem update_twice (S : Slot → Bits) (key : Slot) (first second : Bits) :
     Function.update (Function.update S key first) key second=Function.update S key second := by
   funext j
-  by_cases he : j=key <;> simp [Function.update_apply,he]
+  by_cases he : j=key <;> simp [he]
 
 /-- Under the stated input conditions, a run of `program` from label `(.read .field ret .unary)`
 reaches label `(.step next)` with stacks `Function.update S (some .reader) tail`; its
@@ -16105,7 +16121,7 @@ theorem address_drained (readRet compareRet next : Phase)
         2000*(1+(S (some .reader)).length+width.bits.length)^2 := by
   obtain ⟨addrTicks,last,hA,hAC⟩ := address_canonical readRet compareRet (.drain .field next 0) hread hcompare
     S a width tail v hreader hwidth hmarker hfield htemp hleft hright
-  rw [if_pos hlegal] at hA
+  rw [ite_eq_left hlegal] at hA
   let T := Function.update (Function.update S (some .reader) tail) (some .field) a.bits.reverse
   obtain ⟨hD,hDC⟩ := drain_call (Label.drain .field next) (.step next) .field (fun _ => rfl) T last
   have hT : T (some .field)=a.bits.reverse := by simp [T]
@@ -16148,7 +16164,7 @@ theorem bool_valid (readRet tagRet next : Phase)
       Stacks.stackRunClock program ticks ⟨some (.read .field readRet .unary),v,S⟩≤110*(1+(S (some .reader)).length)^2 := by
   obtain ⟨ticks,last,hr,hc⟩ :=
       bool_canonical readRet tagRet next hread hbool S n tail v hreader hmarker hfield
-  rw [if_pos hn,tag_drop_small n (by omega)] at hr
+  rw [ite_eq_left hn,tag_drop_small n (by omega)] at hr
   have hfinal : Function.update (Function.update S (some .reader) tail) (some .field) []=Function.update S (some .reader) tail := by
     have he : (Function.update S (some .reader) tail) (some .field)=[] := by simpa using hfield
     rw [← he,Function.update_eq_self]
@@ -16501,7 +16517,7 @@ theorem root_count_zero (raw reader width counter fuel : Bits) (v : Local) (hz :
     some ⟨some (.step .rootResult),v1,StackCall.frame (guardCode false) S0 (Parsing.triple (List.replicate counter.length true) [] fuel)⟩ at hG
   change _≤20*(1+counter.length+fuel.length)^2 at hGC
   rw [guard_frame false S0 (List.replicate counter.length true) fuel rfl] at hG
-  simp only [Bool.false_eq_true,if_false,S0,rootStore_update_count,rootStore_update_fuel] at hG
+  simp only [Bool.false_eq_true,ite_false,S0,rootStore_update_count,rootStore_update_fuel] at hG
   obtain ⟨hZ,hZC⟩ := root_zero S1 v1 rfl
   obtain ⟨hD,hDC⟩ :=
       drain_call (Label.drain .opCount .checkEnd) (.step .checkEnd) .opCount (fun _ => rfl) S1 v1
@@ -16681,7 +16697,7 @@ theorem root_fuel_empty (raw reader width counter : Bits) (v : Local) (hp : 0<bi
     some ⟨some (.step .rootResult),v1,StackCall.frame (guardCode false) S0 (Parsing.triple output [] [])⟩ at hG
   change _≤20*(1+counter.length)^2 at hGC
   rw [guard_frame false S0 output [] rfl] at hG
-  simp only [Bool.false_eq_true,if_false,S0,rootStore_update_count,rootStore_update_fuel] at hG
+  simp only [Bool.false_eq_true,ite_false,S0,rootStore_update_count,rootStore_update_fuel] at hG
   obtain ⟨hE,hEC⟩ := root_exhausted (rootStore raw reader width output [] []) v1 rfl
   have eB : Stacks.Execution program _ _ 1 := ⟨1,hB,hBC.le⟩
   have eG : Stacks.Execution program _ _ _ := ⟨guardTicks,hG,hGC⟩
@@ -16713,7 +16729,7 @@ theorem root_count_positive (raw reader width counter : Bits) (fuel : ℕ) (v : 
   change _≤20*(1+counter.length+(List.replicate (fuel+1) true).length)^2 at hGC
   simp only [List.length_replicate] at hGC
   rw [guard_frame false S0 output (List.replicate fuel true) rfl] at hG
-  simp only [Bool.false_eq_true,if_false,S0,rootStore_update_count,rootStore_update_fuel] at hG
+  simp only [Bool.false_eq_true,ite_false,S0,rootStore_update_count,rootStore_update_fuel] at hG
   obtain ⟨hN,hNC⟩ :=
       root_next (rootStore raw reader width output (List.replicate fuel true) []) v1 rfl
   have eB : Stacks.Execution program _ _ 1 := ⟨1,hB,hBC.le⟩
@@ -16764,7 +16780,7 @@ theorem readWires_complete (wires seen : List ℕ) (tail : Bits) (fuel width : �
       have hf : wires.length≤fuel := by
         simpa only [List.length_cons,Nat.succ_le_succ_iff] using hfuel
       simp only [List.length_cons,List.flatMap_cons,List.append_assoc,readWires,readNat_complete,
-        Option.bind_eq_bind,Option.bind_some,if_pos (And.intro hwire hn)]
+        Option.bind_eq_bind,Option.bind_some,ite_eq_left (And.intro hwire hn)]
       rw [ih (seen++[wire+1]) fuel hrest hk hf]
       simp only [Option.bind_some,pure,List.map_cons,Nat.succ_eq_add_one,List.append_assoc,List.singleton_append]
       congr 4
@@ -16817,7 +16833,7 @@ theorem readWires_sound (fuel count width : ℕ) (seen : List ℕ) (input : Bits
               hlast
           · intro hseen
             apply hnd
-            simpa only [TM.NatSetInsert.inserted,if_neg hc.2] using
+            simpa only [TM.NatSetInsert.inserted,ite_eq_right hc.2] using
                 TM.NatSetInsert.inserted_nodup seen (wire+1) hseen
 end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.ValidatorSemantics
 
@@ -17025,7 +17041,7 @@ theorem insert_candidate (ret next : Phase)
     have eB : Stacks.Execution program _ _ 1 := ⟨1,hBranch,hBC.le⟩
     obtain ⟨ticks,hr,hc⟩ := eI.trans eB
     refine ⟨ticks,v1,?_,hc.trans ?_⟩
-    · simpa only [if_pos hmem] using hr
+    · simpa only [ite_eq_left hmem] using hr
     · change 5000*B^3+1≤6000*B^3
       omega
   · have hv : v1.inserted.1.found=false := by simpa only [v1,putInsert,hmem,decide_false] using hfound
@@ -17041,7 +17057,7 @@ theorem insert_candidate (ret next : Phase)
     have eD : Stacks.Execution program _ _ _ := ⟨n.bits.reverse.length+1,hD,hDC.le⟩
     obtain ⟨ticks,hr,hc⟩ := (eI.trans eB).trans eD
     refine ⟨ticks,putIO v1 none,?_,hc.trans ?_⟩
-    · simpa only [if_neg hmem] using hr
+    · simpa only [ite_eq_right hmem] using hr
     · have hn : n.bits.length≤B := by dsimp [B]; omega
       have hn2 := Nat.mul_le_mul hn hn
       simp only [List.length_reverse]
@@ -17085,7 +17101,7 @@ theorem wire_canonical (raw tail count fuel counter : Bits) (seen : List ℕ) (a
   have harg : 1+(natBits a++tail).length+width.bits.length≤B := by dsimp [B]; omega
   have harg2 := Nat.pow_le_pow_left harg 2
   by_cases ha : a<width
-  · simp only [if_pos ha] at hA
+  · simp only [ite_eq_left ha] at hA
     obtain ⟨keyTicks,v2,hK,hKC⟩ :=
         wire_key_prepare raw tail width.bits.reverse count fuel counter
         (NatListFind.stream seen).reverse a v1
@@ -17117,7 +17133,7 @@ theorem wire_canonical (raw tail count fuel counter : Bits) (seen : List ℕ) (a
       change 1000*(1+(natBits a++tail).length+width.bits.length)^2+
         1000*(1+a.bits.length)^2+1+6000*(1+(NatListFind.stream seen).length+(a+1).bits.length)^3≤10000*B^3
       nlinarith only [harg2,han2,hin3,h23,hB3]
-  · simp only [if_neg ha] at hA
+  · simp only [ite_eq_right ha] at hA
     refine ⟨addressTicks,v1,?_,hAC.trans ?_⟩
     · simpa [wireStore,ha] using hA
     · change 1000*(1+(natBits a++tail).length+width.bits.length)^2≤10000*B^3
@@ -17142,7 +17158,7 @@ theorem query_count_zero (raw reader width count counter fuel seen : Bits) (v : 
     some ⟨some (.step .qLoopResult),v1,StackCall.frame (guardCode true) S0 (Parsing.triple (List.replicate counter.length true) [] fuel)⟩ at hG
   change _≤20*(1+counter.length+fuel.length)^2 at hGC
   rw [guard_frame true S0 (List.replicate counter.length true) fuel rfl] at hG
-  simp only [if_true,S0,queryStore_update_wireCount,queryStore_update_fuel] at hG
+  simp only [ite_true,S0,queryStore_update_wireCount,queryStore_update_fuel] at hG
   obtain ⟨hZ,hZC⟩ := query_zero S1 v1 rfl
   obtain ⟨hD,hDC⟩ :=
       drain_call (Label.drain .wireCount .qFinish) (.step .qFinish) .wireCount (fun _ => rfl) S1 v1
@@ -17184,7 +17200,7 @@ theorem query_fuel_empty (raw reader width count counter seen : Bits) (v : Local
     some ⟨some (.step .qLoopResult),v1,StackCall.frame (guardCode true) S0 (Parsing.triple output [] [])⟩ at hG
   change _≤20*(1+counter.length)^2 at hGC
   rw [guard_frame true S0 output [] rfl] at hG
-  simp only [if_true,S0,queryStore_update_wireCount,queryStore_update_fuel] at hG
+  simp only [ite_true,S0,queryStore_update_wireCount,queryStore_update_fuel] at hG
   obtain ⟨hE,hEC⟩ :=
       query_exhausted (queryStore raw reader width count [] output seen [] [] []) v1 rfl
   have eB : Stacks.Execution program _ _ 1 := ⟨1,hB,hBC.le⟩
@@ -17217,7 +17233,7 @@ theorem query_count_positive (raw reader width count counter seen : Bits) (fuel 
   change _≤20*(1+counter.length+(List.replicate (fuel+1) true).length)^2 at hGC
   simp only [List.length_replicate] at hGC
   rw [guard_frame true S0 output (List.replicate fuel true) rfl] at hG
-  simp only [if_true,S0,queryStore_update_wireCount,queryStore_update_fuel] at hG
+  simp only [ite_true,S0,queryStore_update_wireCount,queryStore_update_fuel] at hG
   obtain ⟨hN,hNC⟩ :=
       query_next (queryStore raw reader width count (List.replicate fuel true) output seen [] [] []) v1 rfl
   have eB : Stacks.Execution program _ _ 1 := ⟨1,hB,hBC.le⟩
@@ -17311,10 +17327,10 @@ theorem wireStore_cap (raw tail count fuel counter : Bits) (seen : List ℕ) (a 
   split_ifs with hlt hmem
   · rw [queryStore_cap]
     have hm := stream_member_length seen (a+1) hmem
-    simp only [NatSetInsert.inserted,if_pos hmem,List.length_reverse,List.length_nil]
+    simp only [NatSetInsert.inserted,ite_eq_left hmem,List.length_reverse,List.length_nil]
     omega
   · rw [queryStore_cap]
-    simp only [NatSetInsert.inserted,if_neg hmem,stream_append,List.length_append,List.length_reverse,List.length_nil]
+    simp only [NatSetInsert.inserted,ite_eq_right hmem,stream_append,List.length_append,List.length_reverse,List.length_nil]
     omega
   · rw [queryStore_cap]
     simp only [List.length_reverse,List.length_nil]
@@ -17442,7 +17458,7 @@ theorem query_loop (fuel width height : ℕ) (raw reader count counter : Bits) (
         rw [← hreader] at hW hWC
         have eW : Stacks.Execution program _ _ _ := ⟨wireTicks,hW,hWC⟩
         by_cases hlegal : a<width ∧ a+1∉seen
-        · simp only [if_pos hlegal] at hW
+        · simp only [ite_eq_left hlegal] at hW
           have hstore : wireStore raw tail width.bits.reverse count (List.replicate fuel true) output seen a width=
               queryStore raw tail width.bits.reverse count (List.replicate fuel true) output (NatListFind.stream (seen++[a+1])).reverse [] [] [] := by
             simp [wireStore,hlegal.1,hlegal.2,NatSetInsert.inserted]
@@ -17457,7 +17473,7 @@ theorem query_loop (fuel width height : ℕ) (raw reader count counter : Bits) (
           have he : ValidatorSemantics.readWires (fuel+1) (n+1) width seen reader=
               (ValidatorSemantics.readWires fuel n width (seen++[a+1]) tail).map
                 (fun (ws,rest,left,keys) => (a::ws,rest,left,keys)) := by
-            simp only [ValidatorSemantics.readWires,hn,Option.bind_eq_bind,Option.bind_some,if_pos hlegal]
+            simp only [ValidatorSemantics.readWires,hn,Option.bind_eq_bind,Option.bind_some,ite_eq_left hlegal]
             cases ValidatorSemantics.readWires fuel n width (seen++[a+1]) tail <;> rfl
           refine ⟨ticks,v3,T,?_,hT,hout,?_,hc.trans ?_⟩
           · simpa only [he,wireEnd,Option.isSome_map,houtput] using hr
@@ -17479,7 +17495,7 @@ theorem query_loop (fuel width height : ℕ) (raw reader count counter : Bits) (
               nlinarith only [hc2,hw3,h23]
             change _+_+(fuel+1)*20000*(1+3*height)^3≤(fuel+1+1)*20000*(1+3*height)^3
             nlinarith only [hb]
-        · simp only [if_neg hlegal] at hW
+        · simp only [ite_eq_right hlegal] at hW
           have eW : Stacks.Execution program _ _ _ := ⟨wireTicks,hW,hWC⟩
           obtain ⟨ticks,hr,hc⟩ := eG.trans eW
           refine ⟨ticks,v2,wireStore raw tail width.bits.reverse count (List.replicate fuel true) output seen a width,?_,?_,?_,?_,hc.trans ?_⟩
@@ -17630,7 +17646,7 @@ theorem field_all (rule : FieldRule) (ret middle next : Phase)
       · simpa [fieldEnd,fieldResult,hn,FieldRule.accepts] using hR
       · simp
       · intro rest he
-        simp only [fieldResult,hn,Option.bind_eq_bind,Option.bind_some,FieldRule.accepts,if_true,pure,Option.some.injEq] at he
+        simp only [fieldResult,hn,Option.bind_eq_bind,Option.bind_some,FieldRule.accepts,ite_true,pure,Option.some.injEq] at he
         subst rest
         rfl
       · have hb := Nat.pow_le_pow_left (show 1+(S (some .reader)).length≤1+height by omega) 2
@@ -17642,13 +17658,13 @@ theorem field_all (rule : FieldRule) (ret middle next : Phase)
         · simpa [fieldEnd,fieldResult,hn,FieldRule.accepts,ha] using hR
         · simp
         · intro rest he
-          simp only [fieldResult,hn,Option.bind_eq_bind,Option.bind_some,FieldRule.accepts,if_pos ha,pure,Option.some.injEq] at he
+          simp only [fieldResult,hn,Option.bind_eq_bind,Option.bind_some,FieldRule.accepts,ite_eq_left ha,pure,Option.some.injEq] at he
           subst rest
           rfl
         · have hb := Nat.pow_le_pow_left (show 1+(S (some .reader)).length+width.bits.length≤2*(1+height) by omega) 2
           nlinarith only [hb]
       · obtain ⟨ticks,last,hR,hC⟩ := address_canonical ret middle (.drain .field next 0) hread hmiddle S n width tail v hinput hw hm hf ht hl hr
-        simp only [if_neg ha] at hR
+        simp only [ite_eq_right ha] at hR
         refine ⟨ticks,last,Function.update (Function.update S (some .reader) tail) (some .field) n.bits.reverse,?_,hfield,?_,?_,hC.trans ?_⟩
         · simpa [fieldEnd,fieldResult,hn,FieldRule.accepts,ha] using hR
         · simp
@@ -17660,7 +17676,7 @@ theorem field_all (rule : FieldRule) (ret middle next : Phase)
       obtain ⟨ticks,last,hR,hC⟩ :=
           bool_canonical ret middle next hread hmiddle S n tail v hinput hm hf
       by_cases ha : n≤1
-      · rw [if_pos ha,tag_drop_small n (by omega)] at hR
+      · rw [ite_eq_left ha,tag_drop_small n (by omega)] at hR
         have hclean : Function.update (Function.update S (some .reader) tail) (some .field) []=Function.update S (some .reader) tail := by
           have he : (Function.update S (some .reader) tail) (some .field)=[] := by simpa using hf
           rw [← he,Function.update_eq_self]
@@ -17669,12 +17685,12 @@ theorem field_all (rule : FieldRule) (ret middle next : Phase)
         · simpa [fieldEnd,fieldResult,hn,FieldRule.accepts,ha] using hR
         · simp
         · intro rest he
-          simp only [fieldResult,hn,Option.bind_eq_bind,Option.bind_some,FieldRule.accepts,if_pos ha,pure,Option.some.injEq] at he
+          simp only [fieldResult,hn,Option.bind_eq_bind,Option.bind_some,FieldRule.accepts,ite_eq_left ha,pure,Option.some.injEq] at he
           subst rest
           rfl
         · have hb := Nat.pow_le_pow_left (show 1+(S (some .reader)).length≤1+height by omega) 2
           nlinarith only [hb]
-      · simp only [if_neg ha] at hR
+      · simp only [ite_eq_right ha] at hR
         refine ⟨ticks,last,Function.update (Function.update S (some .reader) tail) (some .field) (n.bits.reverse.drop (NatTag.ticks n.bits.reverse)),?_,?_,?_,?_,hC.trans ?_⟩
         · simpa [fieldEnd,fieldResult,hn,FieldRule.accepts,ha] using hR
         · apply cap_update _ height .field _ hsmall
@@ -17748,12 +17764,12 @@ theorem field_script (stages : List FieldStage) (last : Phase) (hcode : ScriptCo
     have eB : Stacks.Execution program _ _ 1 := ⟨1,hB,hBC.le⟩
     cases he : fieldResult stage.rule width (S (some .reader)) with
     | none =>
-      simp only [he,fieldEnd,Option.isSome_none,Bool.false_eq_true,if_false] at hF
+      simp only [he,fieldEnd,Option.isSome_none,Bool.false_eq_true,ite_false] at hF
       have eF : Stacks.Execution program _ _ _ := ⟨fieldTicks,hF,hFC⟩
       obtain ⟨ticks,hR,hC⟩ := eB.trans eF
       refine ⟨ticks,v1,U,?_,hU,hout,?_,hC.trans ?_⟩
       · simpa only
-          [scriptPhase,scriptResult,he,Option.bind_none,fieldEnd,Option.isSome_none,Bool.false_eq_true,if_false] using hR
+          [scriptPhase,scriptResult,he,Option.bind_none,fieldEnd,Option.isSome_none,Bool.false_eq_true,ite_false] using hR
       · intro tail hh
         simp [scriptResult,he] at hh
       · have hp : 1≤(1+height)^2 := Nat.one_le_pow 2 _ (by omega)
@@ -17762,7 +17778,7 @@ theorem field_script (stages : List FieldStage) (last : Phase) (hcode : ScriptCo
     | some rest =>
       have hUeq := hpost rest he
       rw [hUeq] at hF
-      simp only [he,fieldEnd,Option.isSome_some,if_true] at hF
+      simp only [he,fieldEnd,Option.isSome_some,ite_true] at hF
       have hcap : Cap (Function.update S (some .reader) rest) height := by
         simpa only [← hUeq] using hU
       obtain ⟨restTicks,v2,T,hR,hT,hout2,hpost2,hRC⟩ := ih hrest (Function.update S (some .reader) rest) v1 hcap
@@ -17877,12 +17893,12 @@ theorem control_canonical (raw tail count fuel : Bits) (n width : ℕ) (v : Loca
     obtain ⟨insertTicks,v3,hI,hIC⟩ :=
         insert_candidate .qControlInserted .qAdj rfl raw tail width.bits.reverse count fuel []
         [] n v2
-    simp only [List.not_mem_nil,if_false,NatSetInsert.inserted,List.nil_append,NatListFind.stream,List.flatMap_nil] at hI hIC
+    simp only [List.not_mem_nil,ite_false,NatSetInsert.inserted,List.nil_append,NatListFind.stream,List.flatMap_nil] at hI hIC
     have eD : Stacks.Execution program _ _ 1 := ⟨1,hD,hDC.le⟩
     have eI : Stacks.Execution program _ _ _ := ⟨insertTicks,hI,hIC⟩
     obtain ⟨ticks,hr,hc⟩ := (((eR.trans eB).trans eC).trans eD).trans eI
     refine ⟨ticks,v3,?_,hc.trans ?_⟩
-    · simpa only [if_pos hn,NatListFind.stream] using hr
+    · simpa only [ite_eq_left hn,NatListFind.stream] using hr
     · have hnB : 1+n.bits.length≤B := by omega
       have hn3 := Nat.pow_le_pow_left hnB 3
       simp only [List.length_reverse,List.length_nil,Nat.add_zero] at hc ⊢
@@ -17895,7 +17911,7 @@ theorem control_canonical (raw tail count fuel : Bits) (n width : ℕ) (v : Loca
     have eD : Stacks.Execution program _ _ 1 := ⟨1,hD,hDC.le⟩
     obtain ⟨ticks,hr,hc⟩ := ((eR.trans eB).trans eC).trans eD
     refine ⟨ticks,v2,?_,hc.trans ?_⟩
-    · simpa only [if_neg hn] using hr
+    · simpa only [ite_eq_right hn] using hr
     · simp only [List.length_reverse]
       change 50*(1+(natBits n++tail).length)^2+1+100*(1+n.bits.length+width.bits.length)^2+1≤10000*B^3
       nlinarith only [hraw2,hcmp2,h23,hB3]
@@ -17971,16 +17987,16 @@ theorem control_all (width height : ℕ) (raw reader count fuel : Bits) (v : Loc
     · by_cases he : n≤width <;> simpa [S0,T,controlEnd,controlResult,hn,he] using hr
     · rw [queryStore_cap]
       by_cases he : n≤width
-      · simp only [if_pos he,NatListFind.stream,List.flatMap_cons,List.flatMap_nil,List.append_nil,List.length_reverse,List.length_nil]
+      · simp only [ite_eq_left he,NatListFind.stream,List.flatMap_cons,List.flatMap_nil,List.append_nil,List.length_reverse,List.length_nil]
         omega
-      · simp only [if_neg he,List.length_reverse,List.length_nil]
+      · simp only [ite_eq_right he,List.length_reverse,List.length_nil]
         omega
     · dsimp [T,queryStore,rootStore]
     · intro key rest he
       by_cases hl : n≤width
-      · simp only [controlResult,hn,Option.bind_eq_bind,Option.bind_some,if_pos hl,pure,Option.some.injEq,Prod.mk.injEq] at he
+      · simp only [controlResult,hn,Option.bind_eq_bind,Option.bind_some,ite_eq_left hl,pure,Option.some.injEq,Prod.mk.injEq] at he
         rcases he with ⟨rfl,rfl⟩
-        simp only [T,if_pos hl]
+        simp only [T,ite_eq_left hl]
       · simp [controlResult,hn,hl] at he
     · have hb : 1+reader.length+width.bits.length≤1+3*height := by omega
       have hb3 := Nat.pow_le_pow_left hb 3
@@ -18113,8 +18129,7 @@ theorem query_count_all (fuel width height : ℕ) (raw reader count : Bits) (see
       simp only [Prod.mk.injEq] at heq
       rcases heq with ⟨rfl,rfl⟩
       exact hpost ws ret left' keys (by simpa only [binaryValue_bits] using hrec)
-    · change 100*(1+reader.length)^2+(fuel+1)*20000*(1+3*height)^3≤(fuel+1)*40000*(1+3*height)^3
-      nlinarith only [hb2,h23,Nat.zero_le (fuel*(20000*(1+3*height)^3))]
+    · nlinarith only [hb2,h23,Nat.zero_le (fuel*(20000*(1+3*height)^3))]
 end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.WordValidator
 
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.WordValidator
@@ -18168,7 +18183,7 @@ theorem continue_field_script (stages : List FieldStage) (next : Phase) (hcode :
       simp [scriptThen,he] at hh
   | some tail =>
     rw [hpost tail he] at hF
-    simp only [he,fieldEnd,Option.isSome_some,if_true] at hF
+    simp only [he,fieldEnd,Option.isSome_some,ite_true] at hF
     obtain ⟨moreTicks,v2,T,hM,hT,hout2,hpost2,hMC⟩ := hmore tail he v1
     have eF : Stacks.Execution program _ _ _ := ⟨fieldTicks,hF,hFC⟩
     have eM : Stacks.Execution program _ _ _ := ⟨moreTicks,hM,hMC⟩
@@ -18284,7 +18299,7 @@ theorem query_control_all (fuel width height : ℕ) (raw reader count : Bits) (v
       rw [hreader,List.length_append] at hbudget
       omega
     rw [hpost key tail he] at hC
-    simp only [he,controlEnd,Option.isSome_some,if_true] at hC
+    simp only [he,controlEnd,Option.isSome_some,ite_true] at hC
     obtain ⟨adjTicks,v2,T,hA,hT,hout2,hpost2,hAC⟩ :=
         query_adj_all fuel width height raw tail count [key] v1 hraw hwidth hcount hb
     have eC : Stacks.Execution program _ _ _ := ⟨controlTicks,hC,hCC⟩
@@ -18491,7 +18506,7 @@ theorem nonquery_sound (width tag : ℕ) (input tail : Bits) (htag : tag<3)
     refine ⟨.hadamard a,rfl,hlegal,?_,rfl⟩
     simpa [bodyBits,fields] using readNat_sound input a tail ha
   · have h' := h
-    simp only [show (1:ℕ)≠0 by decide,if_false,if_true,phaseStages,scriptResult] at h'
+    simp only [show (1:ℕ)≠0 by decide,ite_false,ite_true,phaseStages,scriptResult] at h'
     obtain ⟨afterA,ha,h'⟩ := Option.bind_eq_some_iff.mp h'
     obtain ⟨afterB,hb,h'⟩ := Option.bind_eq_some_iff.mp h'
     obtain ⟨afterK,hk,h'⟩ := Option.bind_eq_some_iff.mp h'
@@ -18514,7 +18529,7 @@ theorem nonquery_sound (width tag : ℕ) (input tail : Bits) (htag : tag<3)
   · have htag2 : tag=0 := by omega
     subst tag
     have h' := h
-    simp only [show (2:ℕ)≠0 by decide,show (2:ℕ)≠1 by decide,if_false,swapStages,scriptResult] at h'
+    simp only [show (2:ℕ)≠0 by decide,show (2:ℕ)≠1 by decide,ite_false,swapStages,scriptResult] at h'
     obtain ⟨afterA,ha,h'⟩ := Option.bind_eq_some_iff.mp h'
     have hb : fieldResult .address width afterA=some tail := by simpa using h'
     obtain ⟨a,ha,hla⟩ := (fieldResult_spec .address width input afterA).mp ha
@@ -18752,7 +18767,7 @@ theorem op_all (fuel width height : ℕ) (raw reader count : Bits) (v : Local)
           (tag.bits.reverse.drop (NatTag.ticks tag.bits.reverse))
       refine ⟨tagTicks,v1,T,?_,?_,rfl,?_,hPC.trans ?_⟩
       · simpa only
-          [opResult,hn,Option.bind_eq_bind,Option.bind_some,bodyResult_large fuel width tag tail hlarge,queryEnd,Option.isSome_none,Bool.false_eq_true,if_false] using hP
+          [opResult,hn,Option.bind_eq_bind,Option.bind_some,bodyResult_large fuel width tag tail hlarge,queryEnd,Option.isSome_none,Bool.false_eq_true,ite_false] using hP
       · rw [rootStore_cap]
         simp only [List.length_reverse,List.length_replicate,List.length_drop]
         omega
@@ -18858,7 +18873,7 @@ theorem root_loop (fuel width height : ℕ) (raw reader counter : Bits) (v : Loc
         have hcf' : (1+counter.length+(fuel+1))^2≤P := hcf
         cases ho : opResult fuel width reader with
         | none =>
-          simp only [ho,queryEnd,Option.isSome_none,Bool.false_eq_true,if_false] at hO
+          simp only [ho,queryEnd,Option.isSome_none,Bool.false_eq_true,ite_false] at hO
           have eO : Stacks.Execution program _ _ _ := ⟨opTicks,hO,hOC⟩
           obtain ⟨ticks,hR,hC⟩ := eG.trans eO
           refine ⟨ticks,v2,U,?_,hU,hout,?_,hC.trans ?_⟩
@@ -18874,7 +18889,7 @@ theorem root_loop (fuel width height : ℕ) (raw reader counter : Bits) (v : Loc
           have hrest : rest.length≤reader.length := by rw [hreader,List.length_append]; omega
           have hbudget' : 3*rest.length+3*left≤height := by omega
           rw [hpost rest left ho] at hO
-          simp only [ho,queryEnd,Option.isSome_some,if_true] at hO
+          simp only [ho,queryEnd,Option.isSome_some,ite_true] at hO
           obtain ⟨restTicks,v3,T,hR,hT,hout2,hpost2,hRC⟩ :=
               ih left (by omega) rest output v2 (by omega) hbudget'
           have eO : Stacks.Execution program _ _ _ := ⟨opTicks,hO,hOC⟩
@@ -18914,18 +18929,18 @@ theorem finish (raw : Bits) (S : Slot → Bits) (v : Local) (height : ℕ)
   obtain ⟨hE,hEC⟩ := check_end S v
   let v1 := putIO v (S (some .reader)).head?
   by_cases he : S (some .reader)=[]
-  · simp only [if_pos he] at hE
+  · simp only [ite_eq_left he] at hE
     obtain ⟨cleanTicks,hC,hCC⟩ := success_output raw S v1 height hout horiginal hcap
     have eE : Stacks.Execution program _ _ _ := ⟨1,hE,hEC.le⟩
     have eC : Stacks.Execution program _ _ _ := ⟨cleanTicks,hC,hCC⟩
     obtain ⟨ticks,hr,hc⟩ := eE.trans eC
-    exact ⟨ticks,_,by simpa only [if_pos he] using hr,hc⟩
-  · simp only [if_neg he] at hE
+    exact ⟨ticks,_,by simpa only [ite_eq_left he] using hr,hc⟩
+  · simp only [ite_eq_right he] at hE
     obtain ⟨cleanTicks,hC,hCC⟩ := failure_output S v1 height hout hcap
     have eE : Stacks.Execution program _ _ _ := ⟨1,hE,hEC.le⟩
     have eC : Stacks.Execution program _ _ _ := ⟨cleanTicks,hC,hCC⟩
     obtain ⟨ticks,hr,hc⟩ := eE.trans eC
-    exact ⟨ticks,_,by simpa only [if_neg he] using hr,hc.trans (by omega)⟩
+    exact ⟨ticks,_,by simpa only [ite_eq_right he] using hr,hc.trans (by omega)⟩
 
 /-- `1000*(1+length)^2+250000*(length+1)^2*(1+18*length)^3+(12*length+3)+300*(1+6*length)^2` is
 at most `10000000000*(1+length)^5`. -/
@@ -19000,7 +19015,7 @@ theorem complete (input : Bits) (v : Local) :
         have hd : decodeWord input=none := by
           rw [← ValidatorSemantics.decode_eq]
           simp [ValidatorSemantics.decode,ValidatorSemantics.decodeAt,hw,hn,hread]
-        simp only [opsResult,hread,Option.map_none,rootEnd,Option.isSome_none,Bool.false_eq_true,if_false] at hR
+        simp only [opsResult,hread,Option.map_none,rootEnd,Option.isSome_none,Bool.false_eq_true,ite_false] at hR
         obtain ⟨cleanTicks,hC,hCC⟩ := failure_output T v2 (6*input.length) hout hT
         have eR : Stacks.Execution program _ _ _ := ⟨rootTicks,hR,hRC⟩
         have eC : Stacks.Execution program _ _ _ := ⟨cleanTicks,hC,hCC⟩
@@ -19015,7 +19030,7 @@ theorem complete (input : Bits) (v : Local) :
           simp only [opsResult,hread,Option.map_some]
         have hTeq := hpost rest left hres
         rw [hTeq] at hR hT hout
-        simp only [hres,rootEnd,Option.isSome_some,if_true] at hR
+        simp only [hres,rootEnd,Option.isSome_some,ite_true] at hR
         obtain ⟨finishTicks,last,hF,hFC⟩ :=
             finish input
             (rootStore input rest width.bits.reverse [] (List.replicate left true) []) v2
@@ -19028,10 +19043,10 @@ theorem complete (input : Bits) (v : Local) :
           simp [ValidatorSemantics.decode,ValidatorSemantics.decodeAt,hw,hn,hread]
         refine ⟨ticks,last,?_,hc.trans ?_⟩
         · by_cases he : rest=[]
-          · have hbits := (decodeWord_eq_some_iff input ⟨width,ops⟩).mp (by simpa only [if_pos he] using hd)
-            simpa only [rootStore,if_pos he,output,hd,if_pos he,← hbits.2] using hr
+          · have hbits := (decodeWord_eq_some_iff input ⟨width,ops⟩).mp (by simpa only [ite_eq_left he] using hd)
+            simpa only [rootStore,ite_eq_left he,output,hd,ite_eq_left he,← hbits.2] using hr
           · simpa only
-              [rootStore,if_neg he,output,hd,if_neg he,List.reverse_cons,List.reverse_nil,List.nil_append] using hr
+              [rootStore,ite_eq_right he,output,hd,ite_eq_right he,List.reverse_cons,List.reverse_nil,List.nil_append] using hr
         · have hrest : rest.length≤6*input.length := hT .reader
           change 1000*(1+input.length)^2+250000*(input.length+1)^2*(1+3*(6*input.length))^3+(2*rest.length+3+300*(1+6*input.length)^2)≤_
           nlinarith only [htotal,hrest]
@@ -19090,6 +19105,12 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.WordValidator
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.BitWordCompiler
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 
+/--
+error: The namespace `BitWordCompiler` is duplicated in the declaration `Qatlib.Concepts.BitWordCompiler.CanonicalCodec.BitWordCompiler.canonical_codec_and_validator`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- Canonical prefix parsing and complete decoding characterize exactly the legal word encodings
 and satisfy the fieldwise length formula. A single finite-control validator returns a false
 bit on rejection or a true bit followed by the accepted encoding, within eighth-degree time
@@ -20105,7 +20126,7 @@ theorem scalar_operand (tag : Fin 4) (htag : tag.val≠2) (n : ℕ) (tail pendin
       (natBits n++tail) pending out v
   obtain ⟨hD,hDC⟩ :=
       dispatch_scalar tag (natBits n++tail) pending ((natBits tag.val).reverse++out) v1 hval
-  simp only [if_neg htag] at hD
+  simp only [ite_eq_right htag] at hD
   obtain ⟨readTicks,v2,hR,hRC⟩ :=
       ignored_field .ignoredDone .loop rfl n tail pending ((natBits tag.val).reverse++out) v1
   have eC : Stacks.Execution program _ _ _ := ⟨tagTicks,hC,hCC⟩
@@ -21125,7 +21146,7 @@ theorem complete (values : List Bits) (counter out : Bits) (v : Local) : ∃ tic
     obtain ⟨hL,hLC⟩ := loop_peek (store reader counter [] out) v
     change Stacks.stackRun program 1 ⟨some (.step .loop),v,store reader counter [] out⟩=
       some ⟨some (if reader=[] then .drain .index .done 0 else .counter .borrow),putIO v reader.head?,store reader counter [] out⟩ at hL
-    rw [if_neg hne] at hL
+    rw [ite_eq_right hne] at hL
     change _=2*reader.length+3 at hLC
     let v1 := putIO v reader.head?
     have eL : Stacks.Execution program _ _ _ := ⟨1,hL,hLC.le⟩
@@ -23218,13 +23239,10 @@ theorem counter_call (counter context : Bits) (v : Symbol) : Stacks.stackRun pro
       all_goals first
       | exact StackCall.frame_at (counterCode) S _ hinj 0
       | exact StackCall.frame_at (counterCode) S _ hinj 1
-      | exact StackCall.frame_at (counterCode) S _ hinj 2
       | (rw [WordValidator.frame_outside (counterCode : Fin 3 → Slot) S _ _ (by intro j; fin_cases j <;> simp [counterCode])]; rfl)
     | inr k =>
       cases k
       all_goals first
-      | exact StackCall.frame_at (counterCode) S _ hinj 0
-      | exact StackCall.frame_at (counterCode) S _ hinj 1
       | exact StackCall.frame_at (counterCode) S _ hinj 2
       | (rw [WordValidator.frame_outside (counterCode) S _ _ (by intro j; fin_cases j <;> simp [counterCode])]; rfl)
   obtain ⟨hr,hc⟩ := NatEmit.copy_complete counter [] v
@@ -23256,7 +23274,6 @@ theorem normalize_call (counter context : Bits) (v : Symbol) : ∃ ticks last,
     | inl k =>
       fin_cases k
       all_goals first
-      | exact StackCall.frame_at (normCode) S _ hinj 0
       | (rw [WordValidator.frame_outside (normCode : Fin 1 → Slot) S _ _ (by intro j; fin_cases j; simp [normCode])]; rfl)
     | inr k =>
       cases k
@@ -23294,13 +23311,10 @@ theorem parent_call (counter context normal : Bits) (v : Symbol) : Stacks.stackR
       all_goals first
       | exact StackCall.frame_at (parentCode) S _ hinj 0
       | exact StackCall.frame_at (parentCode) S _ hinj 1
-      | exact StackCall.frame_at (parentCode) S _ hinj 2
       | (rw [WordValidator.frame_outside (parentCode : Fin 3 → Slot) S _ _ (by intro j; fin_cases j <;> simp [parentCode])]; rfl)
     | inr k =>
       cases k
       all_goals first
-      | exact StackCall.frame_at (parentCode) S _ hinj 0
-      | exact StackCall.frame_at (parentCode) S _ hinj 1
       | exact StackCall.frame_at (parentCode) S _ hinj 2
       | (rw [WordValidator.frame_outside (parentCode) S _ _ (by intro j; fin_cases j <;> simp [parentCode])]; rfl)
   obtain ⟨hr,hc⟩ := NatEmit.copy_complete context.reverse [] v
@@ -23362,14 +23376,12 @@ theorem transfer_call (counter context normal work : Bits) (v : Symbol) : Stacks
     | inl k =>
       fin_cases k
       all_goals first
-      | exact StackCall.frame_at (transferCode) S _ hinj 0
       | exact StackCall.frame_at (transferCode) S _ hinj 1
       | (rw [WordValidator.frame_outside (transferCode : Fin 2 → Slot) S _ _ (by intro j; fin_cases j <;> simp [transferCode])]; rfl)
     | inr k =>
       cases k
       all_goals first
       | exact StackCall.frame_at (transferCode) S _ hinj 0
-      | exact StackCall.frame_at (transferCode) S _ hinj 1
       | (rw [WordValidator.frame_outside (transferCode) S _ _ (by intro j; fin_cases j <;> simp [transferCode])]; rfl)
   have hr := Stacks.transfer_run work [] v
   simp only [List.append_nil] at hr
@@ -23401,7 +23413,6 @@ theorem drain_call (counter context normal child : Bits) (v : Symbol) : Stacks.s
     | inl k =>
       fin_cases k
       all_goals first
-      | exact StackCall.frame_at (normCode) S _ hinj 0
       | (rw [WordValidator.frame_outside (normCode : Fin 1 → Slot) S _ _ (by intro j; fin_cases j; simp [normCode])]; rfl)
     | inr k =>
       cases k
@@ -25016,7 +25027,7 @@ theorem decode_job (p : Plan) (cs : List ℕ) (params : List Bits) (k : ℕ) (re
   let v0 := putIO v q.head?
   have hq : q≠[] := TableGet.framed_nonempty context (planBits p++rest)
   obtain ⟨hL,hLC⟩ := loop_peek S0 v
-  simp only [S0,ready,if_neg hq] at hL
+  simp only [S0,ready,ite_eq_right hq] at hL
   obtain ⟨frameTicks,v1,hF,hFC⟩ :=
       frame_call .contextDecoded .context context (planBits p++rest) S0 v0 rfl
   let S1 := frameResult .context context (planBits p++rest) S0
@@ -25707,7 +25718,7 @@ theorem nodeResult_eq (p : Plan) (cs : List ℕ) (params : List Bits) (k : ℕ) 
   obtain ⟨hJ,hP,hK,hO⟩ := nodeResult_outcome p cs params k rest out
   funext w
   cases w
-  all_goals first | exact hJ | exact hP | exact hK | exact hO | skip
+  all_goals try first | exact hJ | exact hP | exact hK | exact hO
   all_goals cases p <;> simp [normalResult,nodeResult,dispatchState,frameResult,frameReader,frameOutput,
     copyBodyResult,lookupResult,outputKey,readResult,valueKey,emitBodyResult,scalarResult,scalarValueKey,
     fixedBodyResult,takeResult,pairBodyResult,pairBeforeZip,zipResult,transferResult,
@@ -26937,6 +26948,12 @@ end Qatlib.Concepts.BitWordCompiler.CanonicalCodec.TM.Emitter
 namespace Qatlib.Concepts.BitWordCompiler.CanonicalCodec.BitWordCompiler
 open Qatlib.Concepts.BitWordCompiler.CanonicalCodec
 
+/--
+error: The namespace `BitWordCompiler` is duplicated in the declaration `Qatlib.Concepts.BitWordCompiler.CanonicalCodec.BitWordCompiler.uniform_emitter_machine`.
+
+Note: This linter can be disabled with `set_option linter.dupNamespace false`
+-/
+#guard_msgs (whitespace := lax, ordering := sorted) in
 /-- A single finite-control TM0 machine uniformly evaluates all encoded plans with time and
 space bounded by C(1 + input length + output length + work)¹² for some positive constant C.
 When the output encodes a legal word, a halted configuration within that budget contains

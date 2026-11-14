@@ -6,12 +6,16 @@ Authors: The Tau Ceti contributors, Qatlib Contributors
 Adapted from https://github.com/TauCetiProject/TauCeti@3780371c
 -/
 
-import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+module
 
-import Mathlib.Data.Fintype.Order
-import Mathlib.Data.Real.Basic
-import Mathlib.Data.Finset.Max
-import Mathlib.Tactic.Linarith
+public import Qatlib.Foundations.CbmdAnalysis.Residue.TauCeti.CBMDCompat
+
+public import Mathlib.Data.Fintype.Order
+public import Mathlib.Basic.Real.Basic
+public import Mathlib.Data.Finset.Max
+public import Mathlib.Tactic.Linarith
+
+@[expose] public section
 
 /-!
 # Finite partitions and interval induction

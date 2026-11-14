@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.MultilevelMC20.MainResults.CostModel.CostAsymptotics
+module
+
+public import Qatlib.Papers.MultilevelMC20.MainResults.CostModel.CostAsymptotics
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -103,7 +107,7 @@ theorem ExpRate_of_forall_mul_div {p : ℝ} (hp : 0 < p) {f : ℕ → ℝ}
 /-- Pointwise bias and variance bounds (Proposition 2, second paragraph: the level model
 of Theorem 2 under the global-Lipschitz improvement) give the exponential rates
 `α = r`, `β = 2r`, `γ = 1`. -/
-theorem rates_of_pointwise_bounds {r B V : ℝ} (hr : 0 < r) (hB : 0 ≤ B) (hV : 0 ≤ V)
+theorem rates_of_pointwise_bounds {r B V : ℝ} (_hr : 0 < r) (_hB : 0 ≤ B) (_hV : 0 ≤ V)
     {bias var : ℕ → ℝ}
     (hbias : ∀ l, |bias l| ≤ B * twoPow (-r * (l : ℝ)))
     (hvar0 : ∀ l, 0 ≤ var l)

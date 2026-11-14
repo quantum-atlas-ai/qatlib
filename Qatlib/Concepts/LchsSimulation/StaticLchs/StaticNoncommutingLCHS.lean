@@ -4,41 +4,45 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Lean.Elab.Tactic.NormCast
-import Lean.Elab.Tactic.Omega
-import Mathlib.Analysis.CStarAlgebra.Matrix
-import Mathlib.Analysis.CStarAlgebra.Module.Constructions
-import Mathlib.Analysis.Real.Pi.Bounds
-import Mathlib.Data.Real.Hom
-import Mathlib.LinearAlgebra.FreeModule.PID
-import Mathlib.LinearAlgebra.Matrix.PosDef
-import Mathlib.Order.CompletePartialOrder
-import Mathlib.RingTheory.Flat.FaithfullyFlat.Algebra
-import Mathlib.RingTheory.Flat.TorsionFree
-import Mathlib.RingTheory.SimpleRing.Principal
-import Mathlib.Tactic.Convert
-import Mathlib.Tactic.Ext
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.FunProp
-import Mathlib.Tactic.GCongr
-import Mathlib.Tactic.Linarith
-import Mathlib.Tactic.NormNum
-import Mathlib.Tactic.Positivity
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.SimpRw
-import Qatlib.Concepts.BlockEncoding.EncodingCore.PrepareUnitary
-import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedAmplitudeAmplification
-import Qatlib.Concepts.QspSimulation.Achievability.MatrixExponentialApproximation
-import Mathlib.MeasureTheory.Integral.Bochner.Basic
-import Mathlib.Analysis.SpecialFunctions.ImproperIntegrals
-import Mathlib.Analysis.InnerProductSpace.Calculus
-import Mathlib.Analysis.Calculus.MeanValue
-import Mathlib.Analysis.SpecialFunctions.Exponential
-import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
-import Mathlib.MeasureTheory.Integral.Bochner.Set
-import Mathlib.Analysis.Complex.CauchyIntegral
-import Mathlib.Analysis.Calculus.DSlope
-import Mathlib.MeasureTheory.Integral.IntegralEqImproper
+module
+
+public import Lean.Elab.Tactic.NormCast
+public import Lean.Elab.Tactic.Omega
+public import Mathlib.Analysis.CStarAlgebra.Matrix
+public import Mathlib.Analysis.CStarAlgebra.Module.Constructions
+public import Mathlib.Analysis.Real.Pi.Bounds
+public import Mathlib.Algebra.Order.Archimedean.Real.Hom
+public import Mathlib.LinearAlgebra.FreeModule.PID
+public import Mathlib.LinearAlgebra.Matrix.PosDef
+public import Mathlib.Order.CompletePartialOrder
+public import Mathlib.RingTheory.Flat.FaithfullyFlat.Algebra
+public import Mathlib.RingTheory.Flat.TorsionFree
+public import Mathlib.RingTheory.SimpleRing.Principal
+public import Mathlib.Tactic.Convert
+public import Mathlib.Tactic.Ext
+public import Mathlib.Tactic.FieldSimp
+public import Mathlib.Tactic.FunProp
+public import Mathlib.Tactic.GCongr
+public import Mathlib.Tactic.Linarith
+public import Mathlib.Tactic.NormNum
+public import Mathlib.Tactic.Positivity
+public import Mathlib.Tactic.Ring
+public import Mathlib.Tactic.SimpRw
+public import Qatlib.Concepts.BlockEncoding.EncodingCore.PrepareUnitary
+public import Qatlib.Concepts.LchsSimulation.StaticLchs.PreparedAmplitudeAmplification
+public import Qatlib.Concepts.QspSimulation.Achievability.MatrixExponentialApproximation
+public import Mathlib.MeasureTheory.Integral.Bochner.Basic
+public import Mathlib.Analysis.SpecialFunctions.ImproperIntegrals
+public import Mathlib.Analysis.InnerProductSpace.Calculus
+public import Mathlib.Analysis.Calculus.MeanValue
+public import Mathlib.Analysis.SpecialFunctions.Exponential
+public import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
+public import Mathlib.MeasureTheory.Integral.Bochner.Set
+public import Mathlib.Analysis.Complex.CauchyIntegral
+public import Mathlib.Analysis.Calculus.DSlope
+public import Mathlib.MeasureTheory.Integral.IntegralEqImproper
+
+@[expose] public section
 
 /-!
 # Static LCHS without a commutativity assumption
@@ -347,7 +351,7 @@ theorem static_lchs_cauchy_entry_integrable {I : Type} [Fintype I] [DecidableEq 
     simpa [div_eq_mul_inv, _root_.mul_inv_rev, mul_comm] using!
       integrable_inv_one_add_sq.const_mul Real.pi⁻¹
   have hV : Continuous (fun k : ℝ => hamiltonianEvolution (H+k • L) t) := by
-    letI : NormedAlgebra ℚ (Matrix I I ℂ) := NormedAlgebra.restrictScalars ℚ ℂ _
+    let : NormedAlgebra ℚ (Matrix I I ℂ) := NormedAlgebra.restrictScalars ℚ ℂ _
     have hc : Continuous (fun k : ℝ => (-Complex.I * (t : ℂ)) • (H + k • L)) := by fun_prop
     exact NormedSpace.exp_continuous.comp hc
   apply hw.ofReal.mul_bdd (c := 1)
@@ -404,7 +408,7 @@ theorem static_lchs_halfplane_exponential_contraction {I : Type} [Fintype I] [De
     (L H : Matrix I I ℂ) (hL : L.PosSemidef) (hH : H.IsHermitian)
     (z : ℂ) (hz : 0 ≤ z.re) (t : ℝ) (ht : 0 ≤ t) :
     ‖NormedSpace.exp ((-t : ℝ) • (z • L + Complex.I • H))‖ ≤ 1 := by
-  letI : InnerProductSpace ℝ (EuclideanSpace ℂ I) := InnerProductSpace.rclikeToReal ℂ _
+  let : InnerProductSpace ℝ (EuclideanSpace ℂ I) := InnerProductSpace.rclikeToReal ℂ _
   let G := -(z • L + Complex.I • H)
   have hv (v : QState I) :
       ‖toEuclidean_fromVec ((NormedSpace.exp (t • G)) *ᵥ v)‖ ≤
@@ -558,9 +562,9 @@ private theorem lchsDensity_variation (a b : ℝ) (hab : a ≤ b) :
         dsimp only [lchsDensity]
         apply div_le_div_of_nonneg_left (by norm_num) (by positivity)
         nlinarith [mul_le_mul_of_nonneg_left (show b^2 ≤ a^2 by nlinarith) Real.pi_pos.le]
-      simp only [lchsVariation, if_pos ha, if_pos hb, abs_of_nonneg (sub_nonneg.mpr hd)]
+      simp only [lchsVariation, ite_eq_left ha, ite_eq_left hb, abs_of_nonneg (sub_nonneg.mpr hd)]
       exact le_rfl
-    · simp only [lchsVariation, if_pos ha, if_neg hb]
+    · simp only [lchsVariation, ite_eq_left ha, ite_eq_right hb]
       rw [show 2/Real.pi = 2*(1/Real.pi) by ring]
       apply abs_le.mpr
       constructor <;> linarith [lchsDensity_le_peak a, lchsDensity_le_peak b]
@@ -569,7 +573,7 @@ private theorem lchsDensity_variation (a b : ℝ) (hab : a ≤ b) :
       dsimp only [lchsDensity]
       apply div_le_div_of_nonneg_left (by norm_num) (by positivity)
       nlinarith [mul_le_mul_of_nonneg_left (show a^2 ≤ b^2 by nlinarith) Real.pi_pos.le]
-    simp only [lchsVariation, if_neg ha, if_neg hb, abs_of_nonpos (sub_nonpos.mpr hd)]
+    simp only [lchsVariation, ite_eq_right ha, ite_eq_right hb, abs_of_nonpos (sub_nonpos.mpr hd)]
     linarith
 
 /-- For `k` in `[a, b]`, the density change from `a` to `k` is bounded by the variation-control
@@ -716,7 +720,6 @@ private theorem lchs_weighted_grid_error (V : ℝ → E) (hV : Continuous V)
       ((continuous_const.add (continuous_const.mul lchsDensity_continuous)).intervalIntegrable _ _)
     have hwint : IntervalIntegrable (fun k => (h*T)*lchsDensity k) volume (x j) (x (j+1)) :=
       (continuous_const.mul lchsDensity_continuous).intervalIntegrable _ _
-    (try dsimp only at hi)
     rw [intervalIntegral.integral_add intervalIntegrable_const hwint,
       intervalIntegral.integral_const, intervalIntegral.integral_const_mul, hstep, smul_eq_mul] at hi
     exact hi
@@ -746,7 +749,7 @@ private theorem lchs_weighted_grid_error (V : ℝ → E) (hV : Continuous V)
     _ ≤ h*(2/Real.pi)+(h*T)*1 := by
       apply add_le_add
       · apply mul_le_mul_of_nonneg_left _ h0
-        simp only [lchsVariation, if_neg (by linarith : ¬K ≤ 0), if_pos (by linarith : -K ≤ 0)]
+        simp only [lchsVariation, ite_eq_right (by linarith : ¬K ≤ 0), ite_eq_left (by linarith : -K ≤ 0)]
         linarith [lchsDensity_nonneg K, lchsDensity_nonneg (-K)]
       · exact mul_le_mul_of_nonneg_left (lchsDensity_interval_le_one _ _ (by linarith))
           (mul_nonneg h0 hT)
@@ -766,7 +769,7 @@ theorem static_noncommuting_lchs_quadrature_error (I : Type) [Fintype I] [Decida
   let x := fun j : ℕ => -(K : ℝ)+h*j
   have hKR : (0 : ℝ) < K := by exact_mod_cast hK
   have hVc : Continuous V := by
-    letI : NormedAlgebra ℚ (Matrix I I ℂ) := NormedAlgebra.restrictScalars ℚ ℂ _
+    let : NormedAlgebra ℚ (Matrix I I ℂ) := NormedAlgebra.restrictScalars ℚ ℂ _
     have hc : Continuous (fun k : ℝ => (-Complex.I * (t : ℂ)) • (H + k • L)) := by fun_prop
     exact NormedSpace.exp_continuous.comp hc
   have hVn (k : ℝ) : ‖V k‖ ≤ 1 := l2_norm_unitary_le_one

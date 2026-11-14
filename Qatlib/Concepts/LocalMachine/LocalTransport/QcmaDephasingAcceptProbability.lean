@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.LocalMachine.LocalTransport.QcmaDephasingVerifier
+module
+
+public import Qatlib.Concepts.LocalMachine.LocalTransport.QcmaDephasingVerifier
+
+@[expose] public section
 
 /-!
 # Acceptance probabilities after witness dephasing
@@ -234,24 +238,24 @@ theorem embedConfig_toDephase (p : WitnessVerifierProgram) (x : Reg p.inputBits)
       exact hv
     by_cases hi : (i : ℕ) < p.witnessBits
     · have hk1 : (k : ℕ) < p.witnessBits := by omega
-      rw [dif_pos hk1, dif_pos hi]
+      rw [dite_eq_left hk1, dite_eq_left hi]
       exact congrArg e (Fin.ext hk)
     · have hk1 : ¬((k : ℕ) < p.witnessBits) := by omega
-      rw [dif_neg hk1, dif_neg hi]
+      rw [dite_eq_right hk1, dite_eq_right hi]
       by_cases hj : (i : ℕ) < p.witnessBits + p.inputBits
       · have hk2 : (k : ℕ) < p.witnessBits + p.inputBits := by omega
-        rw [dif_pos hk2, dif_pos hj]
+        rw [dite_eq_left hk2, dite_eq_left hj]
         exact congrArg x
           (Fin.ext (show (k : ℕ) - p.witnessBits = (i : ℕ) - p.witnessBits by omega))
       · have hk2 : ¬((k : ℕ) < p.witnessBits + p.inputBits) := by omega
-        rw [dif_neg hk2, dif_neg hj]
+        rw [dite_eq_right hk2, dite_eq_right hj]
   · have hk : (k : ℕ) = programQubits p + (j : ℕ) := by
       have hv := congrArg Fin.val hkj
       simp only [Fin.val_natAdd] at hv
       exact hv
     have hk1 : ¬((k : ℕ) < p.witnessBits) := by omega
     have hk2 : ¬((k : ℕ) < p.witnessBits + p.inputBits) := by omega
-    rw [hkj, wireGlue_back, dif_neg hk1, dif_neg hk2]
+    rw [hkj, wireGlue_back, dite_eq_right hk1, dite_eq_right hk2]
 
 /-- Copying the witness in an embedded dephased input places the witness bits in the appended
 copy register. -/
@@ -269,7 +273,7 @@ theorem copyUpdate_embedConfig (p : WitnessVerifierProgram) (x : Reg p.inputBits
       omega
     have hdif : embedConfig p x e (witnessWire p j) = e ⟨(witnessWire p j : ℕ), hlt⟩ := by
       simp only [embedConfig]
-      rw [dif_pos hlt]
+      rw [dite_eq_left hlt]
     rw [hdif]
     exact congrArg e (Fin.ext rfl)
   rw [hfun]
@@ -303,12 +307,12 @@ theorem sum_programOutputEvent_dephase (p : WitnessVerifierProgram)
         (Finset.univ : Finset (Reg (programQubits (dephaseProgram p)))).filter
           (fun z => z ⟨p.outputWire, h⟩ = true)
       else ∅) = _
-    rw [dif_pos hout']
+    rw [dite_eq_left hout']
   have hE : programOutputEvent p
       = (Finset.univ : Finset (Reg (programQubits p))).filter
           (fun y => y ⟨p.outputWire, hout⟩ = true) := by
     simp only [programOutputEvent]
-    rw [dif_pos hout]
+    rw [dite_eq_left hout]
   rw [hE', hE, Finset.sum_filter, Finset.sum_filter]
   have hphi : ∀ z : Reg (programQubits (dephaseProgram p)),
       toDephase p (wireGlue (wireTake (ofDephase p z)) (wireDrop (ofDephase p z))) = z := by
@@ -350,13 +354,13 @@ theorem sum_programOutputEvent_dephase (p : WitnessVerifierProgram)
           (if y ⟨p.outputWire, hout⟩ = true
             then g (toDephase p (wireGlue y c)) else 0)
         = ∑ c : Reg p.witnessBits, g (toDephase p (wireGlue y c)) :=
-        Finset.sum_congr rfl (fun c _ => if_pos hy)
-      rw [hL, if_pos hy]
+        Finset.sum_congr rfl (fun c _ => ite_eq_left hy)
+      rw [hL, ite_eq_left hy]
     · have hL : ∑ c : Reg p.witnessBits,
           (if y ⟨p.outputWire, hout⟩ = true
             then g (toDephase p (wireGlue y c)) else 0) = 0 :=
-        Finset.sum_eq_zero (fun c _ => if_neg hy)
-      rw [hL, if_neg hy]
+        Finset.sum_eq_zero (fun c _ => ite_eq_right hy)
+      rw [hL, ite_eq_right hy]
   rw [Finset.sum_congr rfl (fun y _ => hpush y), ← Finset.sum_filter]
 
 /-- The readout matrix retaining the original verifier amplitude only when the appended copy
@@ -393,24 +397,24 @@ theorem programMatrix_mul_witnessEmbed_dephase (A : ClassicalOracle)
   subst hee
   rw [Matrix.mul_apply]
   rw [Finset.sum_eq_single (embedConfig (dephaseProgram p) x e)]
-  · rw [witnessEmbed_apply, if_pos rfl, mul_one]
+  · rw [witnessEmbed_apply, ite_eq_left rfl, mul_one]
     rw [programMatrix_dephase_split, Matrix.mul_apply]
     have hpm0 : ∀ b : Reg (programQubits (dephaseProgram p)),
         permMatrix (copyUpdate p) b (embedConfig (dephaseProgram p) x e)
           = if b = copyUpdate p (embedConfig (dephaseProgram p) x e)
               then (1 : ℂ) else 0 := fun b => rfl
     rw [Finset.sum_eq_single (copyUpdate p (embedConfig (dephaseProgram p) x e))]
-    · rw [hpm0 _, if_pos rfl, mul_one]
+    · rw [hpm0 _, ite_eq_left rfl, mul_one]
       rw [copyUpdate_embedConfig, hz z, dephaseOrigProd_entry A p hlegal
           (wireTake (ofDephase p z)) (embedConfig p x e) (wireDrop (ofDephase p z)) e]
       rw [dephaseReadout_apply A p x (wireTake (ofDephase p z))
           (wireDrop (ofDephase p z)) e]
     · intro b _ hb
-      rw [hpm0 b, if_neg hb, mul_zero]
+      rw [hpm0 b, ite_eq_right hb, mul_zero]
     · intro hcon
       exact absurd (Finset.mem_univ _) hcon
   · intro k _ hk
-    rw [witnessEmbed_apply, if_neg hk, mul_zero]
+    rw [witnessEmbed_apply, ite_eq_right hk, mul_zero]
   · intro hcon
     exact absurd (Finset.mem_univ _) hcon
 
@@ -434,9 +438,9 @@ theorem acceptProb_classical_eq (A : ClassicalOracle) (p : WitnessVerifierProgra
         = programMatrix A p y (embedConfig p x e) := by
       simp only [Matrix.mulVec, dotProduct]
       rw [Finset.sum_eq_single (embedConfig p x e)]
-      · rw [hket, if_pos rfl, mul_one]
+      · rw [hket, ite_eq_left rfl, mul_one]
       · intro v _ hv
-        rw [hket, if_neg hv, mul_zero]
+        rw [hket, ite_eq_right hv, mul_zero]
       · intro hcon
         exact absurd (Finset.mem_univ _) hcon
     show ‖(programMatrix A p *ᵥ Ket (embedConfig p x e)) y‖ ^ 2
@@ -483,18 +487,18 @@ theorem acceptProb_dephase_classical (A : ClassicalOracle) (p : WitnessVerifierP
           = if b = copyUpdate p (embedConfig (dephaseProgram p) x e)
               then (1 : ℂ) else 0 := fun b => rfl
     rw [Finset.sum_eq_single (copyUpdate p (embedConfig (dephaseProgram p) x e))]
-    · rw [hpm0 _, if_pos rfl, mul_one, copyUpdate_embedConfig]
+    · rw [hpm0 _, ite_eq_left rfl, mul_one, copyUpdate_embedConfig]
       rw [dephaseOrigProd_entry A p hlegal y (embedConfig p x e) c e]
     · intro b _ hb
-      rw [hpm0 b, if_neg hb, mul_zero]
+      rw [hpm0 b, ite_eq_right hb, mul_zero]
     · intro hcon
       exact absurd (Finset.mem_univ _) hcon
   refine Finset.sum_congr rfl (fun y _ => ?_)
   simp only [hval y]
   rw [Finset.sum_eq_single e]
-  · rw [if_pos rfl]
+  · rw [ite_eq_left rfl]
   · intro c _ hc
-    rw [if_neg hc]
+    rw [ite_eq_right hc]
     simp
   · intro hcon
     exact absurd (Finset.mem_univ _) hcon
@@ -532,14 +536,14 @@ theorem dephase_classicalAcceptFunctional (A : ClassicalOracle) (p : WitnessVeri
     simp only [Matrix.mul_apply, Matrix.conjTranspose_apply]
     rw [Finset.sum_eq_single c]
     · rw [Finset.sum_eq_single c]
-      · rw [hR c, if_pos (rfl : c = c)]
+      · rw [hR c, ite_eq_left (rfl : c = c)]
         rfl
       · intro v _ hv
-        rw [hR v, if_neg (Ne.symm hv), zero_mul]
+        rw [hR v, ite_eq_right (Ne.symm hv), zero_mul]
       · intro hcon
         exact absurd (Finset.mem_univ _) hcon
     · intro v _ hv
-      rw [hR v, if_neg (Ne.symm hv), star_zero, mul_zero]
+      rw [hR v, ite_eq_right (Ne.symm hv), star_zero, mul_zero]
     · intro hcon
       exact absurd (Finset.mem_univ _) hcon
   have hgoal : ∑ y ∈ programOutputEvent p, ∑ c : Reg p.witnessBits,

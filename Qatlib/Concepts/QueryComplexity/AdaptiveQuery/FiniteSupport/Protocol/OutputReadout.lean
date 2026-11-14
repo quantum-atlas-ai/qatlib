@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.FiniteSupport.Protocol.InputHybrid
+module
+
+public import Qatlib.Concepts.QueryComplexity.AdaptiveQuery.FiniteSupport.Protocol.InputHybrid
+
+@[expose] public section
 
 
 set_option backward.isDefEq.respectTransparency false
@@ -149,7 +153,7 @@ theorem pathCharge_bind {D R : ℕ} (P : Program D R) (F : Path P → Program D 
     congr 1; omega
 
 /-- Construction for reset Kraus in the output readout model. -/
-private def resetKraus {D : ℕ} (r k : Fin D) : Operator D :=
+def resetKraus {D : ℕ} (r k : Fin D) : Operator D :=
   fun i j => if i=r then if j=k then 1 else 0 else 0
 
 /-- The finite protocol identity or bound `reset_complete` holds under exactly the displayed hypotheses. -/
@@ -159,8 +163,8 @@ private theorem reset_complete {D : ℕ} (r : Fin D) :
   simp [Matrix.sum_apply,resetKraus,Matrix.mul_apply,Matrix.conjTranspose_apply,Matrix.one_apply]
 
 /-- Construction for reset Fine in the output readout model. -/
-private def resetFine {D : ℕ} (r : Fin D) : Instrument (Fin D) D D :=
-  Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument.ofKraus (resetKraus r) (reset_complete r)
+def resetFine {D : ℕ} (r : Fin D) : Instrument (Fin D) D D :=
+  Qatlib.Concepts.AdaptiveCP.BranchTrace.Instrument.ofKraus (resetKraus r) (by exact reset_complete r)
 
 /-- Kraus outcomes are erased internally, not revealed as extra algorithmic
 information. The full constructor record stays in Program.bind's path. -/
@@ -290,7 +294,7 @@ theorem wordMatrix_unitary {D : ℕ} (O : Bool → Operator D)
     | query mode => exact hO mode
 
 /-- Construction for basis Readout in the output readout model. -/
-private def basisReadout {D : ℕ} (R : ℕ) : Program D R :=
+def basisReadout {D : ℕ} (R : ℕ) : Program D R :=
   .measure projectiveInstrument (fun _ => .halt)
 
 /-- Construction for readout Program in the output readout model. -/

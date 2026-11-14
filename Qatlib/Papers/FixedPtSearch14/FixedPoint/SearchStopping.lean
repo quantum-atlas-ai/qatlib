@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.AmplitudeSearch.Amplification.NativeMinimumConstruction
-import Qatlib.Concepts.AmplitudeSearch.Amplification.NativeMinimumConstructionDefs
-import Qatlib.Concepts.AmplitudeSearch.Amplification.SearchStoppingDefs
+module
+
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.NativeMinimumConstruction
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.NativeMinimumConstructionDefs
+public import Qatlib.Concepts.AmplitudeSearch.Amplification.SearchStoppingDefs
+
+@[expose] public section
 
 /-!
 # Stopping and cost conservation for search
@@ -203,7 +207,7 @@ private theorem window_reindex (f : ℕ → ℝ) (M : ℕ) :
 /-- The difference between the two finite depth-window success sums is the depth-`M` success
 mass minus the depth-zero success mass. -/
 theorem source_window_success_diff {I : Type} [Fintype I] [DecidableEq I]
-    (A : Matrix I I ℂ) (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
+    (A : Matrix I I ℂ) (_hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I)
     (M : ℕ) :
     (∑ i : Fin M, aaDepthMass A j₀ S (sourceWindowDepth M i))
         - (∑ i : Fin M, aaDepthMass A j₀ S i.val)

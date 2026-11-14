@@ -4,10 +4,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.LatticeFilter21.MainResults.Model.SourceModel
-import Mathlib.Analysis.InnerProductSpace.GramSchmidtOrtho
-import Mathlib.Analysis.InnerProductSpace.PiL2
-import Mathlib.LinearAlgebra.UnitaryGroup
+module
+
+public import Qatlib.Papers.LatticeFilter21.MainResults.Model.SourceModel
+public import Mathlib.Analysis.InnerProductSpace.GramSchmidtOrtho
+public import Mathlib.Analysis.InnerProductSpace.PiL2
+public import Mathlib.LinearAlgebra.UnitaryGroup
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 

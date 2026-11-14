@@ -4,48 +4,52 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Algebra.DirectSum.AddChar
-import Mathlib.Algebra.DirectSum.Basic
-import Mathlib.Algebra.Group.AddChar
-import Mathlib.Algebra.Group.Basic
-import Mathlib.Algebra.Group.Defs
-import Mathlib.Algebra.Group.DivInvMonoid
-import Mathlib.Algebra.Group.Equiv.Basic
-import Mathlib.Algebra.Group.Equiv.Defs
-import Mathlib.Algebra.Group.Hom.Defs
-import Mathlib.Algebra.Group.Monoid
-import Mathlib.Algebra.Group.Pi.Basic
-import Mathlib.Algebra.Group.Semigroup
-import Mathlib.Algebra.Group.Subgroup.Defs
-import Mathlib.Algebra.Group.Subgroup.Ker
-import Mathlib.Algebra.Group.Submonoid.Defs
-import Mathlib.Algebra.Group.TypeTags.Basic
-import Mathlib.Algebra.GroupWithZero.Defs
-import Mathlib.Algebra.GroupWithZero.Nat
-import Mathlib.Algebra.Notation.Pi.Defs
-import Mathlib.Algebra.Quotient
-import Mathlib.Algebra.Ring.Defs
-import Mathlib.Analysis.Fourier.FiniteAbelian.PontryaginDuality
-import Mathlib.Basic.Complex.Basic
-import Mathlib.Basic.FunLike.Basic
-import Mathlib.Basic.FunLike.Equiv
-import Mathlib.Basic.Logic.Basic
-import Mathlib.Basic.SetLike.Basic
-import Mathlib.Data.Fintype.Defs
-import Mathlib.Data.Fintype.EquivFin
-import Mathlib.Data.Fintype.OfMap
-import Mathlib.Data.Int.Cast.Defs
-import Mathlib.Data.Nat.Cast.Defs
-import Mathlib.Data.ZMod.Defs
-import Mathlib.GroupTheory.Coset.Defs
-import Mathlib.GroupTheory.FiniteAbelian.Basic
-import Mathlib.GroupTheory.QuotientGroup.Defs
-import Mathlib.Logic.Equiv.Defs
-import Mathlib.Logic.Function.Defs
-import Mathlib.Tactic
-import Qatlib.Concepts.QuditTeleport.TeleportCore.Transform
-import Qatlib.Concepts.HspRecovery.BackendAudit.FiniteAbelianDuality
+module
+
+public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
+public import Mathlib.Algebra.DirectSum.AddChar
+public import Mathlib.Algebra.DirectSum.Basic
+public import Mathlib.Algebra.Group.AddChar
+public import Mathlib.Algebra.Group.Basic
+public import Mathlib.Algebra.Group.Defs
+public import Mathlib.Algebra.Group.DivInvMonoid
+public import Mathlib.Algebra.Group.Equiv.Basic
+public import Mathlib.Algebra.Group.Equiv.Defs
+public import Mathlib.Algebra.Group.Hom.Defs
+public import Mathlib.Algebra.Group.Monoid
+public import Mathlib.Algebra.Group.Pi.Basic
+public import Mathlib.Algebra.Group.Semigroup
+public import Mathlib.Algebra.Group.Subgroup.Defs
+public import Mathlib.Algebra.Group.Subgroup.Ker
+public import Mathlib.Algebra.Group.Submonoid.Defs
+public import Mathlib.Algebra.Group.TypeTags.Basic
+public import Mathlib.Algebra.GroupWithZero.Defs
+public import Mathlib.Algebra.GroupWithZero.Nat
+public import Mathlib.Algebra.Notation.Pi.Defs
+public import Mathlib.Algebra.Quotient
+public import Mathlib.Algebra.Ring.Defs
+public import Mathlib.Analysis.Fourier.FiniteAbelian.PontryaginDuality
+public import Mathlib.Basic.Complex.Basic
+public import Mathlib.Basic.FunLike.Basic
+public import Mathlib.Basic.FunLike.Equiv
+public import Mathlib.Basic.Logic.Basic
+public import Mathlib.Basic.SetLike.Basic
+public import Mathlib.Data.Fintype.Defs
+public import Mathlib.Data.Fintype.EquivFin
+public import Mathlib.Data.Fintype.OfMap
+public import Mathlib.Data.Int.Cast.Defs
+public import Mathlib.Data.Nat.Cast.Defs
+public import Mathlib.Data.ZMod.Defs
+public import Mathlib.GroupTheory.Coset.Defs
+public import Mathlib.GroupTheory.FiniteAbelian.Basic
+public import Mathlib.GroupTheory.QuotientGroup.Defs
+public import Mathlib.Logic.Equiv.Defs
+public import Mathlib.Logic.Function.Defs
+public import Mathlib.Tactic
+public import Qatlib.Concepts.QuditTeleport.TeleportCore.Transform
+public import Qatlib.Concepts.HspRecovery.BackendAudit.FiniteAbelianDuality
+
+@[expose] public section
 
 /-!
 # Duality and annihilators of finite abelian groups
@@ -129,7 +133,7 @@ moduli. -/
 def zmodDirectSumDualEquiv [Fintype ι] [DecidableEq ι] (n : ι → ℕ) [∀ i, NeZero (n i)] :
     (⨁ i, ZMod (n i)) ≃+ AddChar (⨁ i, ZMod (n i)) ℂ :=
   (DirectSum.addEquivProd (fun i => ZMod (n i))).trans
-    ((AddEquiv.piCongrRight (fun i => AddChar.zmodAddEquiv)).trans
+    ((AddEquiv.piCongrRight (fun _i => AddChar.zmodAddEquiv)).trans
       (dualDirectSumEquiv (fun i => ZMod (n i))).symm)
 
 /-- The additive equivalence on character groups induced contravariantly by an additive
@@ -154,9 +158,9 @@ theorem theorem3_7 (G : Type*) [AddCommGroup G] [Fintype G] :
     Nonempty (G ≃+ AddChar G ℂ) := by
   classical
   obtain ⟨ι, hι, n, hn, ⟨e⟩⟩ := AddCommGroup.equiv_directSum_zmod_of_finite' G
-  letI := hι
-  haveI : DecidableEq ι := Classical.decEq ι
-  haveI : ∀ i, NeZero (n i) := fun i => ⟨by have := hn i; omega⟩
+  let := hι
+  have : DecidableEq ι := Classical.decEq ι
+  have : ∀ i, NeZero (n i) := fun i => ⟨by have := hn i; omega⟩
   exact ⟨e.trans ((zmodDirectSumDualEquiv n).trans (pullbackCharEquiv e))⟩
 
 /-- A complex-valued additive character viewed as an additive homomorphism into the additive
@@ -209,11 +213,11 @@ def liftAnnHom {G : Type*} [AddCommGroup G] (H : AddSubgroup G) :
   map_zero' := by
     ext q
     obtain ⟨g, rfl⟩ := QuotientAddGroup.mk'_surjective H q
-    simp [liftChar_apply, AddChar.map_zero_eq_one]
+    simp [liftChar_apply]
   map_add' a b := by
     ext q
     obtain ⟨g, rfl⟩ := QuotientAddGroup.mk'_surjective H q
-    simp [liftChar_apply, AddChar.map_add_eq_mul]
+    simp [liftChar_apply]
 
 /-- Descending a quotient character after pulling it back returns the original quotient
 character. -/
@@ -250,7 +254,7 @@ theorem theorem3_10_quotient (G : Type*) [AddCommGroup G] [Fintype G]
     (H : AddSubgroup G) :
     Nonempty ((G ⧸ H) ≃+ characterAnnihilator H) := by
   classical
-  haveI : Fintype (G ⧸ H) :=
+  have : Fintype (G ⧸ H) :=
     Fintype.ofSurjective (QuotientAddGroup.mk' H) (QuotientAddGroup.mk'_surjective H)
   obtain ⟨e⟩ := theorem3_7 (G ⧸ H)
   exact ⟨e.trans (quotientCharEquiv H)⟩

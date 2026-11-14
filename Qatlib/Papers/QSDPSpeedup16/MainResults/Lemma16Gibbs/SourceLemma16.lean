@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.MatrixExpTrace.GibbsNorm
-import Mathlib.Tactic
+module
+
+public import Qatlib.Concepts.MatrixExpTrace.GibbsNorm
+public import Mathlib.Tactic
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -58,7 +62,7 @@ theorem lemma16_gibbsTraceNorm {I : Type} [Fintype I] [DecidableEq I] [Nonempty 
   have h := (Qatlib.Concepts.MatrixExpTrace.GibbsNorm.normalized_gibbs_branch_traceNorm_le
     H K hH (fun _ => hK)).2.2.2.2
   simpa only [Qatlib.Concepts.HspRecovery.SieveLaw.normalizedPositiveBranch,
-    if_pos hHpos, if_pos hKpos] using h
+    ite_eq_left hHpos, ite_eq_left hKpos] using h
 
 /-- Lemma 16 on the `Operator D` register used by the source algorithm (companion
 theorem `sdp_gibbs_perturbation_noncommuting`). -/

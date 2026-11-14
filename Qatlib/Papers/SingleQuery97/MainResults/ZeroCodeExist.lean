@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.SingleQuery97.MainResults.RandomResource
+module
+
+public import Qatlib.Papers.SingleQuery97.MainResults.RandomResource
+
+@[expose] public section
 
 /-!
 # Existence of collision-free linear response codes
@@ -60,7 +64,7 @@ theorem exists_injective_code_of_bound (candidates : Fin k → Fin n → ZMod A)
   have he : (⋃ t : Fin k, {g : Fin m → Fin n → ZMod A |
       ∃ j : {j : Fin k // j≠t}, response g (candidates j) = response g (candidates t)}) = Set.univ := by
     ext g
-    simp only [Set.mem_iUnion,Set.mem_setOf_eq,Set.mem_univ,iff_true]
+    simp only [Set.mem_iUnion,Set.mem_ofPred_eq,Set.mem_univ,iff_true]
     exact hall g
   have hu := MeasureTheory.measure_iUnion_le (μ:=(matrixLaw A m n).toOuterMeasure)
     (fun t : Fin k => {g | ∃ j : {j : Fin k // j≠t}, response g (candidates j) = response g (candidates t)})

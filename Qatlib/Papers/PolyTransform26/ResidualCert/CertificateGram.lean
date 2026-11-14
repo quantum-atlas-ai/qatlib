@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.PolyTransform26.ResidualCert.CertificateGramData
-import Qatlib.Papers.PolyTransform26.ResidualCert.TransferExtraction
+module
+
+public import Qatlib.Papers.PolyTransform26.ResidualCert.CertificateGramData
+public import Qatlib.Papers.PolyTransform26.ResidualCert.TransferExtraction
+
+@[expose] public section
 
 /-!
 # Gram identities for residual certificates

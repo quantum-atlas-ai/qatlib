@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.QsvtCore.PhaseExistence.Lc17Support
-import Qatlib.Concepts.QspSimulation.WordModel.Equation1WordBridgeLowc
+module
+
+public import Qatlib.Concepts.QsvtCore.PhaseExistence.Lc17Support
+public import Qatlib.Concepts.QspSimulation.WordModel.Equation1WordBridgeLowc
+
+@[expose] public section
 
 /-!
 # Transferring response polynomials to repository words
@@ -82,14 +86,13 @@ theorem lcExp_conj (a : ℝ) : star (lcExp a) = lcExp (-a) := by
 /-- The phase exponential at `Real.pi / 2` equals `Complex.I`. -/
 theorem lcExp_pi_half : lcExp (Real.pi / 2) = Complex.I := by
   apply Complex.ext <;>
-    simp [lcExp, Complex.exp_re, Complex.exp_im, Complex.exp_zero, Real.cos_pi_div_two,
-      Real.sin_pi_div_two, Complex.mul_re, Complex.mul_im]
+    simp [lcExp]
 
 /-- The exponential phase convention `lcExp` agrees with `anglePhase`. -/
 theorem lcExp_eq_anglePhase (a : ℝ) :
     lcExp a = Qatlib.Concepts.PhaseGeometry.Phase.anglePhase a := by
   apply Complex.ext <;>
-    simp [lcExp, Complex.exp_re, Complex.exp_im, Complex.exp_zero,
+    simp [lcExp, Complex.exp_re, Complex.exp_im,
       Qatlib.Concepts.PhaseGeometry.Phase.anglePhase, Complex.mul_re, Complex.mul_im]
 
 /-- Complex conjugation fixes a real number embedded in the complex numbers. -/
@@ -182,28 +185,27 @@ theorem lcRespWord_eq (x : ℝ) (hx1 : -1 ≤ x) (hx2 : x ≤ 1) :
       intro c
       refine lcMat2_eq_of_entries ?_ ?_ ?_ ?_
       · show Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.PhaseRotation (-c) 0 0 = _
-        rw [Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.phaseRotation_apply, if_pos rfl, if_pos rfl, lcExp_unfold,
+        rw [Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.phaseRotation_apply, ite_eq_left rfl, ite_eq_left rfl, lcExp_unfold,
           List.map_nil, Qatlib.Concepts.TrotterFormula.SuzukiFourth.responseP_nil, Polynomial.eval_C]
         simp only [Matrix.of_apply, Matrix.cons_val_zero]
         exact (lcExp_conj c).symm
       · show Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.PhaseRotation (-c) 0 1 = _
-        rw [Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.phaseRotation_apply, if_neg (by decide : ¬((0 : Fin 2) = 1)),
+        rw [Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.phaseRotation_apply, ite_eq_right (by decide : ¬((0 : Fin 2) = 1)),
           List.map_nil, Qatlib.Concepts.TrotterFormula.SuzukiFourth.responseQ_nil,
           Polynomial.eval_zero]
         simp only [Matrix.of_apply, Matrix.cons_val_zero, Matrix.cons_val_one,
-          Matrix.head_cons, zero_mul, mul_zero]
+           mul_zero]
       · show Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.PhaseRotation (-c) 1 0 = _
-        rw [Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.phaseRotation_apply, if_neg (by decide : ¬((1 : Fin 2) = 0)),
+        rw [Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.phaseRotation_apply, ite_eq_right (by decide : ¬((1 : Fin 2) = 0)),
           List.map_nil, Qatlib.Concepts.TrotterFormula.SuzukiFourth.responseQ_nil,
           Polynomial.eval_zero]
         simp only [Matrix.of_apply, Matrix.cons_val_zero, Matrix.cons_val_one,
-          Matrix.head_cons, zero_mul, mul_zero, map_zero, star_zero]
+           mul_zero, star_zero]
       · show Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.PhaseRotation (-c) 1 1 = _
-        rw [Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.phaseRotation_apply, if_pos rfl,
-          if_neg (by decide : ¬((1 : Fin 2) = 0)), lcExp_unfold_neg, neg_neg,
+        rw [Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.phaseRotation_apply, ite_eq_left rfl,
+          ite_eq_right (by decide : ¬((1 : Fin 2) = 0)), lcExp_unfold_neg, neg_neg,
           List.map_nil, Qatlib.Concepts.TrotterFormula.SuzukiFourth.responseP_nil, Polynomial.eval_C]
-        simp only [Matrix.of_apply, Matrix.cons_val_zero, Matrix.cons_val_one,
-          Matrix.head_cons]
+        simp only [Matrix.of_apply, Matrix.cons_val_zero, Matrix.cons_val_one]
   | cons a as ih =>
       intro c
       have ht2 : ((Real.sqrt (1 - x ^ 2) : ℝ) : ℂ) * ((Real.sqrt (1 - x ^ 2) : ℝ) : ℂ)
@@ -236,59 +238,59 @@ theorem lcRespWord_eq (x : ℝ) (hx1 : -1 ≤ x) (hx2 : x ≤ 1) :
               + ((Real.sqrt (1 - x ^ 2) : ℝ) : ℂ) * ((Real.sqrt (1 - x ^ 2) : ℝ) : ℂ) * (Qatlib.Concepts.TrotterFormula.SuzukiFourth.responseQ (lcExp c) (as.map lcExp)).eval ((x : ℂ))))
           = star (lcExp a) * (((x : ℂ)) * star ((Qatlib.Concepts.TrotterFormula.SuzukiFourth.responseP (lcExp c) (as.map lcExp)).eval ((x : ℂ)))
               + ((Real.sqrt (1 - x ^ 2) : ℝ) : ℂ) * ((Real.sqrt (1 - x ^ 2) : ℝ) : ℂ) * star ((Qatlib.Concepts.TrotterFormula.SuzukiFourth.responseQ (lcExp c) (as.map lcExp)).eval ((x : ℂ)))) := by
-        simp only [star_mul, star_add, star_neg, star_sub, star_star, lcStar_ofReal]
+        simp only [star_mul, star_add,  lcStar_ofReal]
         ring
       have hcQ : star (star (lcExp a) * ((Qatlib.Concepts.TrotterFormula.SuzukiFourth.responseP (lcExp c) (as.map lcExp)).eval ((x : ℂ)) - ((x : ℂ)) * (Qatlib.Concepts.TrotterFormula.SuzukiFourth.responseQ (lcExp c) (as.map lcExp)).eval ((x : ℂ))))
           = lcExp a * (star ((Qatlib.Concepts.TrotterFormula.SuzukiFourth.responseP (lcExp c) (as.map lcExp)).eval ((x : ℂ))) - ((x : ℂ)) * star ((Qatlib.Concepts.TrotterFormula.SuzukiFourth.responseQ (lcExp c) (as.map lcExp)).eval ((x : ℂ)))) := by
-        simp only [star_mul, star_add, star_neg, star_sub, star_star, lcStar_ofReal]
+        simp only [star_mul, star_sub, star_star, lcStar_ofReal]
         ring
       show Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.PhaseRotation (Real.pi / 2 - a) *
           ((Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.SignalMatrix x).conjTranspose *
             (lcRespWord as c x * Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.PhaseRotation (-(Real.pi / 2)))) = _
       rw [ih c, hP', hQ', hcP, hcQ]
       have hS00 : (Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.SignalMatrix x).conjTranspose 0 0 = ((x : ℂ)) := by
-        rw [Matrix.conjTranspose_apply, Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.signalMatrix_apply, if_pos rfl,
+        rw [Matrix.conjTranspose_apply, Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.signalMatrix_apply, ite_eq_left rfl,
           lcStar_ofReal]
       have hS11 : (Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.SignalMatrix x).conjTranspose 1 1 = ((x : ℂ)) := by
-        rw [Matrix.conjTranspose_apply, Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.signalMatrix_apply, if_pos rfl,
+        rw [Matrix.conjTranspose_apply, Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.signalMatrix_apply, ite_eq_left rfl,
           lcStar_ofReal]
       have hS01 : (Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.SignalMatrix x).conjTranspose 0 1
           = -(Complex.I) * ((Real.sqrt (1 - x ^ 2) : ℝ) : ℂ) := by
         rw [Matrix.conjTranspose_apply, Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.signalMatrix_apply,
-          if_neg (by decide : ¬((1 : Fin 2) = 0)), star_mul, lcStar_I, lcStar_ofReal]
+          ite_eq_right (by decide : ¬((1 : Fin 2) = 0)), star_mul, lcStar_I, lcStar_ofReal]
       have hS10 : (Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.SignalMatrix x).conjTranspose 1 0
           = -(Complex.I) * ((Real.sqrt (1 - x ^ 2) : ℝ) : ℂ) := by
         rw [Matrix.conjTranspose_apply, Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.signalMatrix_apply,
-          if_neg (by decide : ¬((0 : Fin 2) = 1)), star_mul, lcStar_I, lcStar_ofReal]
+          ite_eq_right (by decide : ¬((0 : Fin 2) = 1)), star_mul, lcStar_I, lcStar_ofReal]
       have hE00 : Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.PhaseRotation (Real.pi / 2 - a) 0 0
           = Complex.I * star (lcExp a) := by
-        rw [Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.phaseRotation_apply, if_pos rfl,
-            if_pos rfl, lcExp_unfold]
+        rw [Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.phaseRotation_apply, ite_eq_left rfl,
+            ite_eq_left rfl, lcExp_unfold]
         exact hz1
       have hE01 : Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.PhaseRotation (Real.pi / 2 - a) 0 1 = 0 := by
         rw [Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.phaseRotation_apply,
-            if_neg (by decide : ¬((0 : Fin 2) = 1))]
+            ite_eq_right (by decide : ¬((0 : Fin 2) = 1))]
       have hE10 : Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.PhaseRotation (Real.pi / 2 - a) 1 0 = 0 := by
         rw [Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.phaseRotation_apply,
-            if_neg (by decide : ¬((1 : Fin 2) = 0))]
+            ite_eq_right (by decide : ¬((1 : Fin 2) = 0))]
       have hE11 : Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.PhaseRotation (Real.pi / 2 - a) 1 1
           = -(Complex.I) * lcExp a := by
-        rw [Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.phaseRotation_apply, if_pos rfl,
-          if_neg (by decide : ¬((1 : Fin 2) = 0)), lcExp_unfold_neg]
+        rw [Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.phaseRotation_apply, ite_eq_left rfl,
+          ite_eq_right (by decide : ¬((1 : Fin 2) = 0)), lcExp_unfold_neg]
         exact hz2
       have hF00 : Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.PhaseRotation (-(Real.pi / 2)) 0 0 = -(Complex.I) := by
-        rw [Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.phaseRotation_apply, if_pos rfl,
-            if_pos rfl, lcExp_unfold]
+        rw [Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.phaseRotation_apply, ite_eq_left rfl,
+            ite_eq_left rfl, lcExp_unfold]
         exact hph1
       have hF01 : Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.PhaseRotation (-(Real.pi / 2)) 0 1 = 0 := by
         rw [Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.phaseRotation_apply,
-            if_neg (by decide : ¬((0 : Fin 2) = 1))]
+            ite_eq_right (by decide : ¬((0 : Fin 2) = 1))]
       have hF10 : Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.PhaseRotation (-(Real.pi / 2)) 1 0 = 0 := by
         rw [Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.phaseRotation_apply,
-            if_neg (by decide : ¬((1 : Fin 2) = 0))]
+            ite_eq_right (by decide : ¬((1 : Fin 2) = 0))]
       have hF11 : Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.PhaseRotation (-(Real.pi / 2)) 1 1 = Complex.I := by
-        rw [Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.phaseRotation_apply, if_pos rfl,
-          if_neg (by decide : ¬((1 : Fin 2) = 0)), lcExp_unfold_neg, neg_neg]
+        rw [Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.phaseRotation_apply, ite_eq_left rfl,
+          ite_eq_right (by decide : ¬((1 : Fin 2) = 0)), lcExp_unfold_neg, neg_neg]
         exact lcExp_pi_half
       have hM1 : Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs.PhaseRotation (Real.pi / 2 - a)
           = !![Complex.I * star (lcExp a), 0; 0, -(Complex.I) * lcExp a] := by
@@ -316,13 +318,13 @@ theorem lcRespWord_eq (x : ℝ) (hx1 : -1 ≤ x) (hx2 : x ≤ 1) :
       refine lcMat2_eq_of_entries ?_ ?_ ?_ ?_
       all_goals
         simp only [Matrix.mul_apply, Fin.sum_univ_two, Matrix.cons_val_zero,
-          Matrix.cons_val_one, Matrix.head_cons, Matrix.of_apply,
-          mul_zero, zero_mul, add_zero, zero_add, mul_one, one_mul]
+          Matrix.cons_val_one, Matrix.of_apply,
+          mul_zero, zero_mul, add_zero, zero_add]
       all_goals
         ring_nf
       all_goals
         simp only [lcI_pow_two, lcI_pow_three, lcI_pow_four,
-          neg_one_mul, one_mul, neg_neg, mul_neg]
+          neg_one_mul, one_mul]
       all_goals ring
 
 /-- The `lcQspTilde` word of an empty phase list is the identity matrix. -/
@@ -414,8 +416,7 @@ theorem lcRepoAmp_of_response (a : ℝ) (as : List ℝ) (c x : ℝ)
     rw [hH00, hH01, hH10]
     linear_combination (M 0 0 + M 0 1 + M 1 0 + M 1 1) * (hsq3 + lcHalf_ofReal)
   rw [← Matrix.mul_assoc, hextract]
-  simp only [Matrix.cons_val_zero, Matrix.cons_val_one, Matrix.head_cons,
-    Matrix.of_apply]
+  simp only [Matrix.cons_val_zero, Matrix.cons_val_one, Matrix.of_apply]
   have hP2 := lcStar_add_self
     ((Qatlib.Concepts.TrotterFormula.SuzukiFourth.responseP (lcExp c) ((a :: as).map lcExp)).eval ((x : ℂ)))
   have hQ2 := lcStar_add_self

@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.QWalkSpeedup02.MainResults.Common.FiniteProbability
-import Qatlib.Papers.QWalkSpeedup02.MainResults.Common.RpowArith
-import Qatlib.Papers.QWalkSpeedup02.MainResults.ClassicalGames.GameReductions
-import Qatlib.Papers.QWalkSpeedup02.MainResults.ClassicalGames.TreeEmbeddingBound
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.QWalkSpeedup02.MainResults.Common.FiniteProbability
+public import Qatlib.Papers.QWalkSpeedup02.MainResults.Common.RpowArith
+public import Qatlib.Papers.QWalkSpeedup02.MainResults.ClassicalGames.GameReductions
+public import Qatlib.Papers.QWalkSpeedup02.MainResults.ClassicalGames.TreeEmbeddingBound
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Classical success probability bound

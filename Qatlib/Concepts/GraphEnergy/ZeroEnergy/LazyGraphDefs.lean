@@ -4,9 +4,13 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.GraphQuery.EdgeQuery.GraphSpectralDefs
-import Mathlib.Algebra.BigOperators.Field
-import Mathlib.LinearAlgebra.Matrix.PosDef
+module
+
+public import Qatlib.Concepts.GraphQuery.EdgeQuery.GraphSpectralDefs
+public import Mathlib.Algebra.BigOperators.Field
+public import Mathlib.LinearAlgebra.Matrix.PosDef
+
+@[expose] public section
 
 /-!
 # Lazy graph kernels and stationary energy

@@ -4,11 +4,15 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Papers.AdiabGaps09.MainResults.CubeMoments
-import Mathlib.Analysis.SpecialFunctions.Pow.Real
-import Mathlib.Analysis.SpecialFunctions.Sqrt
-import Mathlib.Algebra.Order.Archimedean.Basic
-import Mathlib.Tactic
+module
+
+public import Qatlib.Papers.AdiabGaps09.MainResults.CubeMoments
+public import Mathlib.Analysis.SpecialFunctions.Pow.Real
+public import Mathlib.Analysis.SpecialFunctions.Sqrt
+public import Mathlib.Algebra.Order.Archimedean.Basic
+public import Mathlib.Tactic
+
+@[expose] public section
 
 /-!
 # Random paths and second-order energy crossings
@@ -123,7 +127,7 @@ theorem substantial_probability_positive (d : (n : ℕ) → Fin n → ℝ)
 
 /-- For `0 < p ≤ 1`, some positive natural number `K` satisfies `1 / 2 ≤ 1 - (1 - p) ^ K`
 [FarhiEtAl2011]. -/
-theorem constant_retries_exists (p : ℝ) (hp0 : 0 < p) (hp1 : p ≤ 1) :
+theorem constant_retries_exists (p : ℝ) (hp0 : 0 < p) (_hp1 : p ≤ 1) :
     ∃ K : ℕ, 0 < K ∧ 1 / 2 ≤ 1 - (1 - p) ^ K := by
   have hb : 1 - p < 1 := by linarith
   obtain ⟨K, hK⟩ := exists_pow_lt_of_lt_one (by norm_num : (0 : ℝ) < 1 / 2) hb

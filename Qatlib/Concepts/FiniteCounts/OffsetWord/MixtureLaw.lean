@@ -4,7 +4,11 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.FiniteCounts.OffsetWord.UniformRun
+module
+
+public import Qatlib.Concepts.FiniteCounts.OffsetWord.UniformRun
+
+@[expose] public section
 
 /-!
 # Event probabilities for independent finite mixtures

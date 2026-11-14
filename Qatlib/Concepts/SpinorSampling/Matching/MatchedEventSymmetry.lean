@@ -4,8 +4,12 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Qatlib Contributors
 -/
 
-import Qatlib.Concepts.SpinorSampling.Matching.MatchedRecords
-import Qatlib.Concepts.SpinorSampling.Matching.UniformMatchedSampling
+module
+
+public import Qatlib.Concepts.SpinorSampling.Matching.MatchedRecords
+public import Qatlib.Concepts.SpinorSampling.Matching.UniformMatchedSampling
+
+@[expose] public section
 
 set_option backward.isDefEq.respectTransparency false
 
@@ -67,6 +71,7 @@ theorem matched_sites_perm_conjugate [Nonempty S]
         simpa using ha.symm
       simpa [hax] using congrArg σ hja
 
+omit [DecidableEq S] in
 /-- Complete original `uniform_pair_address_perm_invariant` guarantee for `MatchedEventSymmetry`; all source hypotheses and output obligations are retained. -/
 theorem uniform_pair_address_perm_invariant [Nonempty S]
     (σ : Equiv.Perm S) {n m : ℕ} (J : Fin n → S) (K : Fin m → S) :
@@ -86,6 +91,7 @@ theorem uniform_pair_address_perm_invariant [Nonempty S]
     simp only [uniformLaw, Finset.prod_const]
   rw [hJ,hK]
 
+omit [DecidableEq S] in
 /-- Complete original `uniform_pair_address_independent_perm_invariant` guarantee for `MatchedEventSymmetry`; all source hypotheses and output obligations are retained. -/
 theorem uniform_pair_address_independent_perm_invariant [Nonempty S]
     (σ ρ : Equiv.Perm S) {n m : ℕ} (J : Fin n → S) (K : Fin m → S) :
@@ -211,8 +217,10 @@ def pairAddressMass [Nonempty S]
   (cohortLaw (uniformLaw S) n).prob z.1 *
     (cohortLaw (uniformLaw S) m).prob z.2
 
+omit [Fintype S] [DecidableEq S] in
 /-- Complete original `pairAddressMass_fixed_shift` guarantee for `MatchedEventSymmetry`; all source hypotheses and output obligations are retained. -/
-theorem pairAddressMass_fixed_shift [Nonempty S]
+theorem pairAddressMass_fixed_shift {S : Type}
+    [_instFintypeS : Fintype S] [_instDecidableEqS : DecidableEq S] [Nonempty S]
     (σ τ : Equiv.Perm S) {n m : ℕ} (z : (Fin n → S) × (Fin m → S)) :
     pairAddressMass ((fixedShiftAddressEquiv σ τ n m) z) = pairAddressMass z := by
   rcases z with ⟨J,K⟩
