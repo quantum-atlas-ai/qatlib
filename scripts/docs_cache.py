@@ -41,6 +41,7 @@ INPUTS = ("Qatlib", "Qatlib.lean", "lakefile.toml", "lake-manifest.json",
           "lean-toolchain", "docbuild/lakefile.toml", "docbuild/lake-manifest.json",
           "docs/references.bib", "scripts/docs_cache.py", "scripts/build_docs.sh")
 BUILD = Path("docbuild/.lake/build")
+TRASH_BATCH_SIZE = 128
 
 
 @contextmanager
@@ -91,8 +92,14 @@ def verify_public(paths: list[Path]) -> None:
 
 
 def trash(path: Path) -> None:
-    if path.exists() or path.is_symlink():
-        subprocess.run(["trash-put", str(path)], check=True)
+    trash_many([path])
+
+
+def trash_many(paths: list[Path]) -> None:
+    targets = [str(path) for path in dict.fromkeys(paths)
+               if path.exists() or path.is_symlink()]
+    for offset in range(0, len(targets), TRASH_BATCH_SIZE):
+        subprocess.run(["trash-put", "--", *targets[offset:offset + TRASH_BATCH_SIZE]], check=True)
 
 
 def get(key: str, out: Path) -> bool:
@@ -330,10 +337,10 @@ def publish(kind: str) -> None:
 
 
 def clean_html() -> None:
-    trash(BUILD / "doc")
+    paths = [BUILD / "doc"]
     for pattern in ("*.docs_built*", "*docsHeader_built*", "declaration-data-*.bmp*", "backrefs-*.json*"):
-        for path in (BUILD / "doc-data").glob(pattern):
-            trash(path)
+        paths.extend((BUILD / "doc-data").glob(pattern))
+    trash_many(paths)
 
 
 def main() -> None:

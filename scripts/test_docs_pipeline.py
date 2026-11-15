@@ -89,6 +89,92 @@ def analysis_files() -> None:
 
 
 class DocsPipelineTests(unittest.TestCase):
+    def test_clean_html_batches_recycling_and_preserves_analysis(self):
+        with fixture() as root:
+            doc = cache.BUILD / "doc"
+            doc.mkdir(parents=True)
+            (doc / "index.html").write_text("old HTML")
+            data = cache.BUILD / "doc-data"
+            data.mkdir()
+            keep = [data / "Qatlib.Example.doc", data / "Qatlib.Example.doc.trace",
+                    data / "references.json"]
+            for path in keep:
+                path.write_text("analysis")
+            targets = [doc, *(data / f"module-{i}.docs_built" for i in range(257)),
+                       data / "docsHeader_built.trace", data / "declaration-data-old.bmp",
+                       data / "backrefs-old.json"]
+            for path in targets[1:]:
+                path.write_text("old rendering marker")
+            retired = root / "retired"
+            retired.mkdir()
+
+            def recycle(command, *, check):
+                self.assertEqual(command[:2], ["trash-put", "--"])
+                self.assertTrue(check)
+                self.assertLessEqual(len(command) - 2, 128)
+                for name in command[2:]:
+                    path = Path(name)
+                    shutil.move(str(path), retired / path.name)
+
+            with patch.object(cache.subprocess, "run", side_effect=recycle) as run:
+                cache.clean_html()
+            self.assertEqual(run.call_count, 3)
+            selected = [Path(name) for call in run.call_args_list for name in call.args[0][2:]]
+            self.assertCountEqual(selected, targets)
+            self.assertTrue(all(not path.exists() for path in targets))
+            self.assertTrue(all(path.read_text() == "analysis" for path in keep))
+
+    def test_clean_html_stops_on_failed_recycling_batch(self):
+        with fixture():
+            data = cache.BUILD / "doc-data"
+            data.mkdir(parents=True)
+            for i in range(129):
+                (data / f"module-{i}.docs_built").write_text("marker")
+            with patch.object(cache.subprocess, "run",
+                              side_effect=subprocess.CalledProcessError(1, "trash-put")) as run:
+                with self.assertRaises(subprocess.CalledProcessError):
+                    cache.clean_html()
+            self.assertEqual(run.call_count, 1)
+            self.assertTrue(run.call_args.kwargs["check"])
+
+    def test_cached_bib_prepass_is_rematerialized_after_html_cleanup(self):
+        with fixture() as root:
+            source = Path("docs/references.bib")
+            source.write_text("@article{cached, title={Current bibliography}}\n")
+            doc = cache.BUILD / "doc"
+            doc.mkdir(parents=True)
+            (doc / "references.bib").write_text("obsolete bibliography")
+            data = cache.BUILD / "doc-data"
+            data.mkdir()
+            cached = data / "references.json"
+            cached.write_text("cached bibPrepass result")
+
+            def recycle(command, *, check):
+                self.assertEqual(command[:2], ["trash-put", "--"])
+                for name in command[2:]:
+                    path = Path(name)
+                    shutil.move(str(path), root / ("retired-" + path.name))
+
+            with patch.object(cache.subprocess, "run", side_effect=recycle):
+                cache.clean_html()
+            self.assertFalse(doc.exists())
+            script = (SOURCE / "scripts/build_docs.sh").read_text()
+            rendering = script.split("python3 scripts/docs_cache.py clean-html\n", 1)[1]
+            rendering = rendering.split("python3 scripts/docs_cache.py publish-html", 1)[0]
+            # Simulate cached bibPrepass: fromDb checks its inputs without recreating the Bib file.
+            phase = '''phase() {
+                test "$1" = fromDb
+                test "$2" = 4
+                test "$3" = @Qatlib/Qatlib:docs
+                test -f docbuild/.lake/build/doc-data/references.json
+                cmp docs/references.bib docbuild/.lake/build/doc/references.bib
+            }
+            '''
+            subprocess.run(["bash", "-euc", phase + rendering], check=True,
+                           env={**os.environ, "LEAN_NUM_THREADS": "4"})
+            self.assertEqual((doc / "references.bib").read_bytes(), source.read_bytes())
+            self.assertEqual(cached.read_text(), "cached bibPrepass result")
+
     def test_portal_inputs_reuse_html_but_bibliography_and_lean_invalidate_it(self):
         with fixture():
             original = cache.identity()
