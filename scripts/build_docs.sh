@@ -89,5 +89,8 @@ fi
 # not lose hours of analysis or leave a DB/trace pair from different builds.
 python3 scripts/docs_cache.py publish-analysis
 python3 scripts/docs_cache.py clean-html
+# A cached bibPrepass retains references.json, but clean-html removes its Bib side effect.
+mkdir -p docbuild/.lake/build/doc
+cp docs/references.bib docbuild/.lake/build/doc/references.bib
 phase fromDb "$LEAN_NUM_THREADS" @Qatlib/Qatlib:docs
 python3 scripts/docs_cache.py publish-html
