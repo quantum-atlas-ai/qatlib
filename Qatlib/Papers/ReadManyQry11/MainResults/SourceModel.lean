@@ -25,7 +25,7 @@ formulas*, arXiv:1112.0548v1 (2 December 2011); all page/line references below
 are to that v1 source.
 
 This module owns the paper-layer objects used by every claim in
-`QuantumAlgorithmDev.Papers.ReadManyQry11.MainResults`:
+`Qatlib.Papers.ReadManyQry11.MainResults`:
 
 * `Formula n` — the paper's read-many formulas (Section 1, pp. 1–3 and Section 2,
   p. 4): a rooted tree of `not` gates and unbounded-fanin `and`/`or` gates, with

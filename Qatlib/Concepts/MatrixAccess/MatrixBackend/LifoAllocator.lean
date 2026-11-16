@@ -15,9 +15,7 @@ set_option backward.isDefEq.respectTransparency false
 
 /-!
 Finite LIFO allocation with explicit stack invariants.
-Preserves the original proof bodies and contributor history in the source PR.
 The event/bill definitions come from the same source NativeCostedInstrument.
-This scoped implementation is proposed in Dev intake PR #1134; maintainer acceptance is pending.
 No Born law, Python extraction, exception rollback or host-bit complexity is asserted.
 -/
 open Qatlib.Concepts.GateVocabulary.FiniteGateDescription

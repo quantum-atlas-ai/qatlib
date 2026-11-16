@@ -27,8 +27,8 @@ The paper's proof has three ingredients, all of which are formalised in this rep
    the conditional increment of the progress measure by `(r_h ε)²` once the two pre-measurement
    states are within `r_h ε`.  Lemma 2 supplies that distance bound from `‖U₀ − U₁‖ = ε`
    and the `r_h ≤ q` queries of the block; its Lean carrier is the existing
-   `QuantumAlgorithmDev.Concepts.QueryComplexity.DegreeMethod.unitaryHybridDistance_fixed`
-   (`QuantumAlgorithmDev/Concepts/QueryComplexity/DegreeMethod/QuerySpaceExtensionsNext/`),
+   `Qatlib.Concepts.QueryComplexity.DegreeMethod.unitaryHybridDistance_fixed`
+   (`Qatlib/Concepts/QueryComplexity/DegreeMethod/QuerySpaceExtensions.lean`),
    which is not re-proved here.
 2. **Budget.** Averaging the per-block bounds over histories of each length and summing over
    the `T` stages gives `M_T − M_0 ≤ ε² ∑_t ∑_h w_{t,h} r_{t,h}² ≤ ε² q ∑_t ∑_h w_{t,h} r_{t,h} ≤ ε² q L`,

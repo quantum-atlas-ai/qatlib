@@ -81,7 +81,7 @@ the weighted Neumann blocks. No whole-space SELECT assumption is needed. -/
 theorem nativeCleanEndpoint_encoding (b : ℕ) (hb : 0 < b)
     (F : Matrix H I ℂ) (A : Matrix I I ℂ) (U : Matrix H H ℂ) (α : ℝ)
     (hbe : BlockEncoding A U F F α 0)
-    (ps : J → Fin 7 → QuantumAlgorithmDev.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle) (p : J → QuantumAlgorithmDev.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle) (slack : J → Bool)
+    (ps : J → Fin 7 → Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle) (p : J → Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle) (slack : J → Bool)
     (d : J → ℂ) (j₀ : J) (hmass : 0 < coefficientMass d) :
     ProjectedUnitaryEncoding
       (∑ j, (d j / (coefficientMass d : ℂ)) • cleanEndpointBlock b A α ps p slack j)
@@ -138,7 +138,7 @@ theorem endpoint_block (b : ℕ) (hb : 0 < b)
 theorem nativeCleanEndpoint_pue (b : ℕ) (hb : 0 < b)
     (F : Matrix H I ℂ) (A : Matrix I I ℂ) (U : Matrix H H ℂ) (α : ℝ)
     (hbe : BlockEncoding A U F F α 0)
-    (ps : J → Fin 7 → QuantumAlgorithmDev.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle) (p : J → QuantumAlgorithmDev.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle) (slack : J → Bool)
+    (ps : J → Fin 7 → Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle) (p : J → Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle) (slack : J → Bool)
     (d : J → ℂ) (j₀ : J) (hmass : 0 < coefficientMass d) :
     ProjectedUnitaryEncoding
       (∑ j, (d j / (coefficientMass d : ℂ)) • cleanEndpointBlock b A α ps p slack j)

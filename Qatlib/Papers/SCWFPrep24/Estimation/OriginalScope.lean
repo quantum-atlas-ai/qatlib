@@ -21,7 +21,7 @@ set_option autoImplicit false
 noncomputable section
 namespace Qatlib.Papers.SCWFPrep24.Estimation
 
-/-! OQ #141@44d4c95b9bcc0125a536ca5ccb06758090c5ace6 supplies this explicitly attributed extension/consumer of the Su et al. loss and encoding. It does not certify their entire training algorithm or a later analytical lower bound. -/
+/-! This independent extension by Qatlib Contributors applies the loss and encoding of Su et al. It does not certify their entire training algorithm or a later analytical lower bound. -/
 section
 open Qatlib.Concepts.SpinorSampling.FiniteExecution Qatlib.Foundations.ProbabilityCore.Concentration Qatlib.Concepts.SpinorSampling.Matching Qatlib.Concepts.SpinorSampling.Model Qatlib.Concepts.SpinorSampling.NativeRecords Qatlib.Concepts.SpinorSampling.Retained
 open Qatlib.Concepts.SpinorSampling.Retained

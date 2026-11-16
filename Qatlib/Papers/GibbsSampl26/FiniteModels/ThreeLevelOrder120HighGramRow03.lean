@@ -1,0 +1,52 @@
+/-
+Copyright (c) 2026 Qatlib Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Qatlib Contributors
+-/
+
+module
+
+public import Qatlib.Papers.GibbsSampl26.FiniteModels.ThreeLevelOrder120HighBalancedGram
+
+@[expose] public section
+
+
+set_option backward.isDefEq.respectTransparency false
+
+/-!
+# Exact finite coefficient incidence on the order120 high collision face
+
+The six fixed Gram products of the literal stack B+eU+GeV are checked
+entrywise. They are then bound to all30certified degree(4,2) coefficients.
+The actual physical interpretation of B,U,V and generic Bernstein
+reconstruction are supplied separately by ThreeLevelOrder120HighFace.
+-/
+
+namespace Qatlib.Papers.GibbsSampl26.FiniteModels.ThreeLevelOrder120HighCoefficientTables
+open ThreeLevelGramCertificate ThreeLevelOrder120HighCertificates Matrix
+open scoped BigOperators ComplexOrder
+set_option autoImplicit false
+set_option warningAsError true
+set_option maxRecDepth 20000
+set_option maxHeartbeats 8000000
+set_option Elab.async true
+
+
+/-- Gram row 3 for the stated finite source data. -/
+theorem gram_row_3 :
+    (∀ j, gramBBReal 3 j = (faceBaseReal.transpose * faceBaseReal + faceBaseImag.transpose * faceBaseImag) 3 j) ∧
+    (∀ j, gramBBImag 3 j = (faceBaseReal.transpose * faceBaseImag - faceBaseImag.transpose * faceBaseReal) 3 j) ∧
+    (∀ j, gramBUReal 3 j = (faceBaseReal.transpose * faceUpReal + faceBaseImag.transpose * faceUpImag + faceUpReal.transpose * faceBaseReal + faceUpImag.transpose * faceBaseImag) 3 j) ∧
+    (∀ j, gramBUImag 3 j = (faceBaseReal.transpose * faceUpImag - faceBaseImag.transpose * faceUpReal + faceUpReal.transpose * faceBaseImag - faceUpImag.transpose * faceBaseReal) 3 j) ∧
+    (∀ j, gramBVReal 3 j = (faceBaseReal.transpose * faceDownReal + faceBaseImag.transpose * faceDownImag + faceDownReal.transpose * faceBaseReal + faceDownImag.transpose * faceBaseImag) 3 j) ∧
+    (∀ j, gramBVImag 3 j = (faceBaseReal.transpose * faceDownImag - faceBaseImag.transpose * faceDownReal + faceDownReal.transpose * faceBaseImag - faceDownImag.transpose * faceBaseReal) 3 j) ∧
+    (∀ j, gramUUReal 3 j = (faceUpReal.transpose * faceUpReal + faceUpImag.transpose * faceUpImag) 3 j) ∧
+    (∀ j, gramUUImag 3 j = (faceUpReal.transpose * faceUpImag - faceUpImag.transpose * faceUpReal) 3 j) ∧
+    (∀ j, gramUVReal 3 j = (faceUpReal.transpose * faceDownReal + faceUpImag.transpose * faceDownImag + faceDownReal.transpose * faceUpReal + faceDownImag.transpose * faceUpImag) 3 j) ∧
+    (∀ j, gramUVImag 3 j = (faceUpReal.transpose * faceDownImag - faceUpImag.transpose * faceDownReal + faceDownReal.transpose * faceUpImag - faceDownImag.transpose * faceUpReal) 3 j) ∧
+    (∀ j, gramVVReal 3 j = (faceDownReal.transpose * faceDownReal + faceDownImag.transpose * faceDownImag) 3 j) ∧
+    (∀ j, gramVVImag 3 j = (faceDownReal.transpose * faceDownImag - faceDownImag.transpose * faceDownReal) 3 j) := by
+  exact certified_gram_row 3
+
+
+end Qatlib.Papers.GibbsSampl26.FiniteModels.ThreeLevelOrder120HighCoefficientTables

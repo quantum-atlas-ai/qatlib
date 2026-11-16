@@ -41,7 +41,7 @@ open scoped BigOperators Matrix.Norms.L2Operator
 
 
 
-/-- G22: the literal coefficient table has the frozen mass and complete
+/-- The literal coefficient table has the frozen mass and complete
 whole-workspace matrix identity for every square matrix. -/
 theorem shifted_coefficient_laws (z : ℂ) (α B₀ : ℝ)
     (hα : 0 ≤ α) (hbound : α + ‖z‖ ≤ B₀) :

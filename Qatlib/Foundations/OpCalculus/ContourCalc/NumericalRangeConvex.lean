@@ -107,7 +107,7 @@ theorem numericalRange_eq_total_linearPMap (A : E →L[ℂ] E) :
   · rintro ⟨x, hx, hquot⟩
     exact ⟨x.val, hx, hquot⟩
 
-/-- G12: the actual complex numerical range is real convex.  The reused
+/-- The actual complex numerical range is real convex.  The reused
 Toeplitz--Hausdorff theorem is proved in pinned Physlib; no convexity or
 convex enclosure is supplied as a premise.  Finite dimensionality is not
 needed for this stronger statement, so zero-dimensional spaces are covered. -/

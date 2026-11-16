@@ -34,7 +34,7 @@ open Matched
 variable {S : Type} [Fintype S] [DecidableEq S] [Nonempty S] {d : ℕ}
 
 -- Each direction keeps its own actual shifted observation carrier. This is
-/-- the OQ algorithm's fresh-copy product, not a Pauli-data replacement. -/
+/-- The algorithm's actual fresh-copy product, not a Pauli-data replacement. -/
 def bellAxisLaw (a b c k : S → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (e : Fin d → Equiv.Perm S)
     (q : BellPlanQ) : FinDist (LowSpinBellData S d e (some q)) where

@@ -192,7 +192,7 @@ theorem jointNormalizedShift_pseudoinverse (A : Matrix I I ℂ) (z : L → ℂ)
   exact matrixPseudoinverse_eq_of_twoSidedInverse (jointNormalizedShift A z B₀)
     ((B₀ : ℂ) • jointMatrixResolvent A z) hforward hbackward
 
-/-- G20: the actual common reciprocal source word, its true adjoint and
+/-- The actual common reciprocal source word, its true adjoint and
 exchanged clean frames, the derived inverse target, and its complete ledger. -/
 theorem joint_resolvent_word
     (H I L : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]

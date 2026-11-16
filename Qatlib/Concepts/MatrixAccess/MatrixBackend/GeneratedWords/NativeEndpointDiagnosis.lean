@@ -120,7 +120,7 @@ bound and the count of original oracle queries. Known-instruction count
 uses ideal matrix macros; it is not a finite-gate synthesis estimate. -/
 theorem diagnosis_weighted_resolvent_cost
     (b : ℕ) (hb : 0 < b)
-    (ps : J → Fin 7 → QuantumAlgorithmDev.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle) (p : J → QuantumAlgorithmDev.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle)
+    (ps : J → Fin 7 → Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle) (p : J → Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle)
     (slack : J → Bool) (weights : J → ℂ) (j₀ : J)
     (A : Matrix I I ℂ) (U : Matrix H H ℂ) (F : Matrix H I ℂ)
     (α B : ℝ) (r K : J → ℝ) (z : J → ℂ)

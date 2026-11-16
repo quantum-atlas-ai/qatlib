@@ -43,7 +43,7 @@ theorem matrixPseudoinverse_eq_of_twoSidedInverse
   · rw [hAR]; simp
   · rw [hRA]; simp
 
-/-- G13: a genuine numerical-range certificate constructs a matrix resolvent,
+/-- A genuine numerical-range certificate constructs a matrix resolvent,
 including its norm and its equality with the pseudoinverse target. -/
 theorem exists_matrix_resolvent_of_numericalRange_separation
     {I : Type} [Fintype I] [DecidableEq I] (A : Matrix I I ℂ) (z : ℂ) (r : ℝ)

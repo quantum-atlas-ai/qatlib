@@ -25,7 +25,7 @@ arXiv:1409.3305v2, Physical Review Letters 113, 210501 (2014).
 
 This module is the paper-layer entry point for the six active claims of
 `FixedPtSearch14`.  Each theorem restates one claim of the paper in the
-notation already fixed by the Dev/Frozen construction layer:
+notation already fixed by the library's construction layer:
 
 * Eq. (1)  — Chebyshev success probability `P_L`;
 * Eq. (3)  — query complexity `L = O(log(2/δ)/√λ)`;
@@ -34,9 +34,8 @@ notation already fixed by the Dev/Frozen construction layer:
 * Eq. (18) — nesting/polynomial composition `P_{L2}(P_{L1}(λ,δ₁),δ₂) = P_{L₁L₂}(λ,δ)`;
 * Abstract + p. 4 — Dolph–Chebyshev maximality of the λ-range.
 
-The underlying constructions and long proofs live in the sibling modules of
-`QuantumAlgorithmDev.Papers.FixedPtSearch14.FixedPoint` and in the package
-under `Qatlib.Papers.FixedPtSearch14.FixedPoint`.
+The underlying constructions and long proofs live in the sibling modules under
+`Qatlib.Papers.FixedPtSearch14.FixedPoint`.
 Each bridge theorem below names the exact reused fully-qualified result.
 -/
 
@@ -57,7 +56,7 @@ then satisfies the fixed-point guarantee `P_L ≥ 1 − δ²` for every unknown
 Reused results:
 * `publicWord_success_response` (this paper block) — response of the actual
   two-level word for every `l`;
-* `responseProb_eq` (Frozen) — definitional closed form of the response;
+* `responseProb_eq` (shared construction) — definitional closed form of the response;
 * `publicWord_uniform_guarantee` (this paper block) — uniform word choice. -/
 theorem claim_c001_chebyshev_success :
     (∀ (l : ℕ) (delta lam : ℝ), 0 < delta → delta < 1 → 0 ≤ lam → lam ≤ 1 →

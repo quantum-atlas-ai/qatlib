@@ -99,7 +99,7 @@ theorem shifted_body_factorization (H L : Type) [Fintype H] [DecidableEq H]
       simp only [shiftedPrepare, parallel_select_adjoint, parallel_select_mul,
         coefficientLCUUnitary]
 
-/-- G23: the actual original controlled-oracle body and its true adjoint
+/-- The actual original controlled-oracle body and its true adjoint
 implement the fixed literal LCU construction with one query and three macros
 in each direction. The fixed word has no unknown matrix parameter. -/
 theorem raw_shifted_body_law

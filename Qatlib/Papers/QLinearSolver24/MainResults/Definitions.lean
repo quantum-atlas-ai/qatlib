@@ -22,10 +22,10 @@ set_option backward.isDefEq.respectTransparency false
 # QLinearSolver24 — shared definitions of the paper layer
 
 Fixed source: *A shortcut to an optimal quantum linear system solver*,
-arXiv:2406.12086 (the version pinned for card `QLinearSolver24`, PR #731).
+arXiv:2406.12086.
 
 This module fixes the paper's symbols so that every claim module of
-`QuantumAlgorithmDev.Papers.QLinearSolver24.MainResults` refers to one and the
+`Qatlib.Papers.QLinearSolver24.MainResults` refers to one and the
 same object:
 
 * the Chebyshev kernel-projection filter `F_{Δ,ℓ}` of Eq. (52) (p. 19);

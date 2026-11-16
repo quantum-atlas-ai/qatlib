@@ -2450,10 +2450,11 @@ open ActualSturmQueueCoverage ActualSturmQueueGeometry
 
 /-- Construction for Lex LE in the sturm model. -/
 def LexLE (p q : ℚ×ℚ) : Prop := p.1<q.1 ∨ p.1=q.1 ∧ p.2≤q.2
+/-- Exact rational decision procedure for the lexicographic endpoint order. -/
+instance instDecidableLexLE (p q : ℚ×ℚ) : Decidable (LexLE p q) :=
+  inferInstanceAs (Decidable (p.1 < q.1 ∨ p.1 = q.1 ∧ p.2 ≤ q.2))
 /-- Construction for lex Compare in the sturm model. -/
-noncomputable def lexCompare (p q : ℚ×ℚ) : Bool := by
-  classical
-  exact decide (LexLE p q)
+def lexCompare (p q : ℚ×ℚ) : Bool := decide (LexLE p q)
 /-- Construction for sort in the sturm model. -/
 def sort (ps : List (ℚ×ℚ)) : List (ℚ×ℚ) := ps.mergeSort lexCompare
 

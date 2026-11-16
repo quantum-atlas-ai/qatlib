@@ -42,9 +42,8 @@ has a nonzero integral (that is a property of the Daubechies filter, used as an
 upper-bound relaxation here), and does not model the quartic interaction block of
 Eq. (47), which the paper counts by the same compact-support argument.
 
-Reference comparison: no wavelet declaration exists in `QuantumAlgorithmDev/` or in
-the Frozen package `qatlas_frozen/QuantumAlgorithm/` (checked by `rg -i
-"wavelet|daubechies|MERA"`), so this Block necessarily defines the mode model.
+The finite wavelet mode model used for this combinatorial support count is
+defined in this block.
 -/
 
 set_option autoImplicit false

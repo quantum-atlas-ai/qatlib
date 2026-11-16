@@ -24,7 +24,7 @@ and its main theorem (Theorem III.1, main text p. 5).  A Hamiltonian is a Hermit
 
 Time evolution `e^{-iHt}` is *not* re-defined: it is the matrix exponential
 `exp (-t • (I • H))`, i.e. the foundation evolution
-`QuantumAlgorithmDev.Foundations.TimeEvolution.DysonPropagator.ContractiveDuhamel.evolution`
+`Qatlib.Concepts.TimeEvolution.DysonPropagator.ContractiveDuhamel.evolution`
 applied to the generator `I • H`.  This keeps the actual Dyson propagator of the library as
 the single source of truth for `e^{-iHt}`.
 

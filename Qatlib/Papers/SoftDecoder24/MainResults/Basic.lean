@@ -21,7 +21,7 @@ set_option backward.isDefEq.respectTransparency false
 
 Chailloux–Tillich, *Quantum advantage from soft decoders*, fixed arXiv:2411.12553v2
 (9 March 2026).  Everything in this file records the paper-layer vocabulary that the
-claim modules in `QuantumAlgorithmDev.Papers.SoftDecoder24.MainResults.*` share:
+claim modules in `Qatlib.Papers.SoftDecoder24.MainResults.*` share:
 
 * characters of `ZMod q` and of `(ZMod q)^n` (Definition 2, p.9–10),
 * the normalized Fourier transform `F̂(y) = q^{-n/2} Σ_x χ_y(x) F(x)` (Definition 3, p.10),

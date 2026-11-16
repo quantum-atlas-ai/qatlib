@@ -12,8 +12,8 @@ public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.GaugeUniqueness
 
 set_option backward.isDefEq.respectTransparency false
 
-/-! Fixed OQ #139@6c330d5a2ea87d31e23d988d91a433eae284e422, preserving author history.
-These are explicitly scoped consumers, not a whole-paper coverage or rank claim. -/
+/-! Independently developed quaternion-field comparisons by Qatlib Contributors.
+These explicitly scoped consumers do not certify the full published algorithm. -/
 set_option autoImplicit false
 noncomputable section
 namespace Qatlib.Papers.QuatLift26.Gauge

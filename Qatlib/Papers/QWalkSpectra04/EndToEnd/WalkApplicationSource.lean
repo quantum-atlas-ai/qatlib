@@ -153,7 +153,7 @@ def walkApplicationResidual : List String :=
   [ "the Johnson-data data-loading word and its relation to the general compiler are not built here",
     "the unknown-marked-mass schedule is not built here",
     "the fair-bit and elementary-gate ledgers of the application execution are not built here",
-    "the printed +I per-K program candidate of Foundations-A03/G39 is not built here" ]
+    "the printed +I per-K program candidate is not built here" ]
 
 /-- The proposition packaging decoder soundness, exact failure characterization, and the
 marked-mass output law of the general detection execution. -/

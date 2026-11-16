@@ -250,7 +250,7 @@ theorem natural_mul_charge_bound (x y : ℕ) :
     rw [hn] at hs ⊢
     nlinarith only [ih, hs]
 
-/-- G216: signed binary multiplication computes the true product and exposes
+/-- Signed binary multiplication computes the true product and exposes
 its radix length and a quadratic fee, without evaluating a product oracle. -/
 theorem gaussian_signed_mul_certificate (x y : ℤ) :
     let r := gaussianSignedMul x y
@@ -343,7 +343,7 @@ theorem point_horner_step_value (c x z : GaussianDyadicScalar) (E D : ℕ)
   simp only [Nat.mul_one] at hc
   rw [hc,← gaussian_point_value_fraction,gaussian_point_value_one]
 
-/-- G545: all finite coefficients enter the exact same Horner value. -/
+/-- All finite coefficients enter the exact same Horner value. -/
 theorem gaussian_point_horner_correct : ∀ (n : ℕ) (c : Fin n → GaussianDyadicScalar)
     (z : GaussianDyadicScalar) (D : ℕ), 0<D →
     let r := gaussianPointHorner z D (List.ofFn c)

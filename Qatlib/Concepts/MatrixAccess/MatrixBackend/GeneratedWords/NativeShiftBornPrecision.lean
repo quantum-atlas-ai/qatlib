@@ -23,7 +23,7 @@ open Qatlib.Foundations.PureStateMath
 open Qatlib.Concepts.CopyEvolution.Discriminate
 /-! The actual generated Householder column and all eight Born probabilities.
 The comparison simplex is the emitted rounded-radius weight vector. Root,
-normalization, seven-QuantumAlgorithmDev.Concepts.MatrixAccess.MatrixBackend.NativeWords.rotation and reflection errors belong to the same
+normalization, seven-rotation and reflection errors belong to the same
 parameters; no final error or generated certificate is a premise. -/
 set_option autoImplicit false
 noncomputable section
