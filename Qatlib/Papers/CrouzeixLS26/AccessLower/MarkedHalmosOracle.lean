@@ -60,8 +60,8 @@ set_option autoImplicit false
 set_option maxHeartbeats 1000000
 noncomputable section
 open Qatlib.Concepts.QueryComplexity.AdaptiveQuery.FiniteSupport.Constructor Qatlib.Concepts.QueryComplexity.AdaptiveQuery.FiniteSupport.JointAmplify Qatlib.Concepts.QueryComplexity.AdaptiveQuery.FiniteSupport.JointTranscript Qatlib.Concepts.QueryComplexity.AdaptiveQuery.FiniteSupport.Protocol Qatlib.Concepts.QueryComplexity.AdversarySearch.MarkedSupport Qatlib.Foundations.OpCalculus.ContourCalc
-/-! Original OQ #132 restricted finite shared-port hard family. This is an
-OQ access-boundary extension for the numerical-range normalization question,
+/-! Independently developed restricted finite shared-port hard family. This is an
+access-boundary extension for the numerical-range normalization question,
 not a claim proved by Lorist and Schwenninger. The model gives no free maximum
 and no general-machine or given-maximum impossibility theorem. -/
 namespace Qatlib.Papers.CrouzeixLS26.AccessLower.MarkedHalmos

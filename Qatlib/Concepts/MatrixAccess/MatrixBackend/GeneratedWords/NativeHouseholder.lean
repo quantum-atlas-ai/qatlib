@@ -45,7 +45,7 @@ open Qatlib.Concepts.OperatorAccess.EncodedAccess
 open Qatlib.Concepts.CopyEvolution.Discriminate
 
 /-! Native rational Householder/phase inner program for the fixed eight-slot backend.
-This module proves the actual six-wire Boolean/QuantumAlgorithmDev.Concepts.MatrixAccess.MatrixBackend.NativeWords.rotation table on its clean frame;
+This module proves the actual six-wire Boolean and rotation table on its clean frame;
 finite parameter generation and outer shared-word refinement remain separate. -/
 
 set_option autoImplicit false
@@ -650,7 +650,7 @@ theorem prepLogical_entries (p : Fin 7 → Qatlib.Concepts.MatrixAccess.MatrixBa
 /-! The first column below is the vector actually prepared by the logical
 Householder.  It is kept separate from `vLogical` because the reflection
 axis is `2 * v₀ * v - e₀`, and the LCU weights therefore come from this
-column rather than from the intermediate QuantumAlgorithmDev.Concepts.MatrixAccess.MatrixBackend.NativeWords.rotation axis. -/
+column rather than from the intermediate rotation axis. -/
 /-- Construction for prep Axis in the native householder model. -/
 def prepAxis (p : Fin 7 → Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle) : Fin 8 → ℂ :=
   fun i => prepLogical p i 0

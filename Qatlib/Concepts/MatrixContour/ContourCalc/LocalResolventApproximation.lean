@@ -86,7 +86,7 @@ theorem localResolventPolynomial_defect_of_inverse
   rw [hP]
   abel
 
-/-- G18: separation bounds the exact finite local-resolvent defect by a
+/-- Separation bounds the exact finite local-resolvent defect by a
 geometric tail, for the actual canonical pseudoinverse target. -/
 theorem local_resolvent_approximation
     {I : Type} [Fintype I] [DecidableEq I] (A : Matrix I I ℂ)

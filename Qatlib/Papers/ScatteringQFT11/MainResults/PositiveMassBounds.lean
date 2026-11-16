@@ -37,7 +37,7 @@ gradient energy `(∇ₐφ)²(y)`, taken as a positive semidefinite matrix — w
 exactly the only property of the gradient term that the argument uses. The
 concrete discretized square `(∇ₐφ)²(y) = ∑_j ((φ(y+ar̂ⱼ) − φ(y))/a)²` is a sum of
 squares of Hermitian matrices, hence positive semidefinite; see
-`QuantumAlgorithmDev.Papers.ScatteringQFT11.MainResults.diff_sq_posSemidef`.
+`Qatlib.Papers.ScatteringQFT11.MainResults.diff_sq_posSemidef`.
 -/
 
 namespace Qatlib.Papers.ScatteringQFT11.MainResults

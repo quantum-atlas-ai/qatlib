@@ -1,8 +1,6 @@
 name = "Qatlib"
 defaultTargets = ["Qatlib"]
-enableArtifactCache = true
 platformIndependent = true
-restoreAllArtifacts = false
 allowNonModules = true
 lintDriver = "lint"
 testDriver = "test"

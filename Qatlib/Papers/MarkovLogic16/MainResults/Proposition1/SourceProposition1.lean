@@ -21,8 +21,7 @@ set_option backward.isDefEq.respectTransparency false
 
 Fixed version: arXiv:1611.08104v1 (stat.ML, 24 Nov 2016),
 *Quantum Enhanced Inference in Markov Logic Networks*.
-Source read from `assets/1611.08104.pdf` (8 pages) and `assets/1611.08104.txt`;
-Proposition 1 is on PDF page 4, §IV (txt line 273).
+Proposition 1 is on PDF page 4, §IV of the fixed eight-page source.
 
 Proposition 1 (verbatim): "Assuming that the maximum size of the support of the
 local terms of the Hamiltonian `H` is constant [32] and that for some constant `α`
@@ -59,7 +58,7 @@ Chowdhury–Somma guarantee from the paper's assumptions (constant maximum suppo
 
 The numerical upper bound itself comes from [29] Chowdhury–Somma, whose
 thermal-state-preparation gate-complexity theorem is *not* formalized in the
-package or Dev (searched `Qatlib.*` and `QuantumAlgorithmDev`).  It is
+formalization below. It is
 carried as the explicit, documented hypothesis `ChowdhurySommaGuarantee`; the
 elementary scale algebra (positivity, square identity, geometric step in `n`) is
 proved outright below.  Completing the unconditional proposition would require

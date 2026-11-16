@@ -61,7 +61,7 @@ def zeroCheck (cs : List ℚ) (N : ℕ) (E : ℚ) : Bool :=
 def pack (standard : PhaseData) : Packet := ⟨standard,nativePacketFromStandard standard,[]⟩
 
 /-- Construction for produce in the native generated source packets model. -/
-noncomputable def produce (cs : List ℚ) (N : ℕ) (E : ℚ)
+def produce (cs : List ℚ) (N : ℕ) (E : ℚ)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0) : Option Packet :=
   if N=0 then some (pack (sourceZeroDegreeBoundaryPacket cs E))
   else if zeroCheck cs N E=true then some (pack (sourceZeroBoundaryPacket N))
@@ -229,7 +229,7 @@ open Qatlib.Concepts.TrotterFormula.SuzukiFourth
 /-- Source-order N=0, finite rounded-coefficient all-zero, constant and
 nonconstant dispatch. Numerical isolation and accepted factors are internal;
 there is no caller root certificate, phase packet or fuel plan. -/
-noncomputable def rootProjectionGeneratedPacket (cs : List ℚ) (N : ℕ) (E : ℚ)
+def rootProjectionGeneratedPacket (cs : List ℚ) (N : ℕ) (E : ℚ)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0) :
     Option (PhaseData×PhaseData×List ℕ) :=
   (GeneratedSourceInternal.ActualProjectionAllGeneratedPackets.produce cs N E hparity).map

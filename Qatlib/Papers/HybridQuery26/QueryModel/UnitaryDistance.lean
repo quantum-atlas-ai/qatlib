@@ -24,8 +24,8 @@ algorithms*, arXiv:2610.06803v1, §4 "Proofs of Theorems 1 and 2", Lemma 2:
 for an `r`-query quantum algorithm whose non-query operations do not depend on the oracle.
 
 This module does **not** re-prove Lemma 2 from scratch: the hybrid argument over oracle
-replacements is the existing Dev theorem
-`QuantumAlgorithmDev.Concepts.QueryComplexity.DegreeMethod.unitaryHybridDistance_fixed`,
+replacements is the existing library theorem
+`Qatlib.Concepts.QueryComplexity.DegreeMethod.unitaryHybridDistance_fixed`,
 which states exactly `‖Run O C ψ − Run O' C ψ‖ ≤ QueryCount C * ‖O − O'‖` for unitary
 oracles and a unitary circuit.  Here that result is restated in the paper's notation
 (`ε` for the oracle gap, `r` for the block's query bound) and composed with Lemma 1

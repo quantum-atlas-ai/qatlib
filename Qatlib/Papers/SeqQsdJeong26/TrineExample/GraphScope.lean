@@ -10,9 +10,9 @@ public import Qatlib.Foundations.DecisionRisk.HarmonicError.GraphPairCertificate
 
 @[expose] public section
 
-/-! Original scalar shared-axis certificate from OQ #145, beyond the paper's
+/-! Independently developed scalar shared-axis certificate, beyond the paper's
 one-parameter numerical trine example. It has no general Bloch/graph/POVM
-representation theorem and no new whole-family A rating. -/
+representation theorem; its scope is the displayed scalar inequality. -/
 set_option autoImplicit false
 noncomputable section
 namespace Qatlib.Papers.SeqQsdJeong26.TrineExample

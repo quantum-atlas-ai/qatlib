@@ -12,15 +12,15 @@ public import Qatlib.Concepts.EffectiveGauge.HopfAtlas.GaugeUniqueness
 
 set_option backward.isDefEq.respectTransparency false
 
-/-! Fixed OQ #139@6c330d5a2ea87d31e23d988d91a433eae284e422, preserving author history.
-These are explicitly scoped consumers, not a whole-paper coverage or rank claim. -/
+/-! Independently developed quaternion-field comparisons by Qatlib Contributors.
+These explicitly scoped consumers do not certify the full published algorithm. -/
 set_option autoImplicit false
 noncomputable section
 namespace Qatlib.Papers.QuatLift26.Boundary
 open Set Qatlib.Concepts.EffectiveGauge.HopfAtlas Qatlib.Concepts.EffectiveGauge.RationalFlow Qatlib.Concepts.EffectiveGauge.TorusFourier
 open scoped Quaternion ContDiff
 
-/-- OQ #139 extension: the same open mean cell of width 3/4 and the same origin value remove the integer and constant freedom. This is not the paper maximum-component selector or a full bit-time theorem. -/
+/-- Independent extension: the same open mean cell of width 3/4 and the same origin value remove the integer and constant freedom. This is not the paper maximum-component selector or a full bit-time theorem. -/
 theorem positive_margin_cell_origin_unique
     (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (q r : QuaternionField) (hq : ContDiff ℝ ∞ q) (hr : ContDiff ℝ ∞ r)

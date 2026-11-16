@@ -138,7 +138,7 @@ theorem rationalWeightMass_majorizes {J : Type} [Fintype J] (weights : J → Gau
     _ = _ := by simp [rationalWeightMass]
 
 /-- Exactly the existing grouped scalar hypothesis, obtained by a finite
-rational check over the supplied actual QuantumAlgorithmDev.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle table and phase data. -/
+rational check over the supplied actual Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle table and phase data. -/
 theorem rationalColumnCheck_sound {n : ℕ} {J : Type} [Fintype J] [DecidableEq J]
     (node : Option (Fin n) → J) (rs : List (Fin n × Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle)) (phase : Option (Fin n) → Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle)
     (weights : J → GaussianRat) (L D : ℚ) (hc : rationalColumnCheck node rs phase weights L D=true) :

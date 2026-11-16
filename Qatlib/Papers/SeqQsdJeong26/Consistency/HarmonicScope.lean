@@ -10,7 +10,7 @@ public import Qatlib.Foundations.DecisionRisk.HarmonicError.TrineGeometry
 
 @[expose] public section
 
-/-! Auxiliary risk comparisons from OQ #145@ac56ca3b5a8d35d29577588aeeafe08967be6c91.
+/-! Auxiliary risk comparisons independently developed by Qatlib Contributors.
 These three-state/first-copy results are separately attributed research extensions.
 They do not assert that Jeong et al. prove them, and do not certify Proposition 3.3
 for every ensemble, instrument syntax, or posterior planner. -/

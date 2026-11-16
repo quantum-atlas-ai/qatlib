@@ -113,7 +113,7 @@ lemma level_factor_le_log2 {L lmax : ℕ} (hL : 1 ≤ L) :
 /-- Bridge with claim `c002`: if a Hamiltonian has `N` summands obeying the
 coupling-sparsity bound `N ≤ 10 · V · (lmax + 2)`, then `N ≤ 20 · V · log₂ V`.
 The hypothesis is discharged for the wavelet coupling matrix by
-`QuantumAlgorithmDev.Papers.WaveletQFT14.MainResults.CouplingSparsity.source_coupling_sparsity`
+`Qatlib.Papers.WaveletQFT14.MainResults.CouplingSparsity.source_coupling_sparsity`
 (arXiv:1412.0750, p. 5), which is proved in
 `Papers/WaveletQFT14/MainResults/CouplingSparsity/SourceCouplingSparsity.lean`;
 this file states the gate-count consequence so that it is independent of the

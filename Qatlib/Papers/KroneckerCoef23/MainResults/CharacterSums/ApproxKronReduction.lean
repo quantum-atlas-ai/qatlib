@@ -28,9 +28,9 @@ Exact counting of `+1` eigenvalues is a `#BQP` problem, and relative-error
 approximation of this count is a `QXC` problem; the dimensional factor `d_μ d_ν d_λ`
 is efficiently computable via the hook-length formula.
 
-The library (both `QuantumAlgorithmDev` and Frozen) has no `#BQP`/`QXC` complexity-class
-framework and no hook-length formula, so the class-membership statement itself is not
-expressible.  What is formalised here is its mathematical core, the *counting* form of
+This formalization does not include a `#BQP`/`QXC` complexity-class
+framework or a hook-length formula, so the class-membership statement itself is not
+part of the result below.  What is formalised here is its mathematical core, the *counting* form of
 the identity: the map `(μ,ν,λ) ↦ d_μ d_ν d_λ g_{μνλ}` is the trace of a family of
 idempotent matrices, i.e. it is a projector counting function (number of `+1`
 eigenvalues).  The two missing layers are exactly (i) uniformity/poly-size of the

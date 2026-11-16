@@ -43,8 +43,8 @@ This module formalises exactly that argument.  It does not claim the physical
 derivation of the optimal-control Hamiltonian; it proves the pointwise optimal
 control statement that the paper applies at every time `0 < t < T`.  The
 time-ordered propagator entry point for the closed-system dynamics
-`|ψ(T)⟩ = T exp(-i ∫_0^T H_g(t) dt)|ψ(0)⟩` (Eq. (2)) is the existing frozen
-module `QuantumAlgorithmDev.Foundations.TimeEvolution.DysonPropagator.ContractiveDuhamel`
+`|ψ(T)⟩ = T exp(-i ∫_0^T H_g(t) dt)|ψ(0)⟩` (Eq. (2)) is the existing library
+module `Qatlib.Concepts.TimeEvolution.DysonPropagator.ContractiveDuhamel`
 (its constant-generator evolution and its identification with the Dyson order
 are `evolution` and `evolution_eq_ordered`), which is quoted here only as the
 semantic anchor of the dynamics — no statement of that module is re-proved.

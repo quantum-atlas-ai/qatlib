@@ -12,8 +12,8 @@ public import Qatlib.Concepts.CopyDecision.FreshPolicies.Data.SequentialOptimum
 
 @[expose] public section
 
-/-! Original OQ #145 fixed-copy trine comparison. This extension is separately
-attributed to its source research; Jeong et al. do not claim this arbitrary-POVM
+/-! Independently developed fixed-copy trine comparison. This research extension
+is attributed to Qatlib Contributors; Jeong et al. do not claim this arbitrary-POVM
 asymptotic ratio. All native/relaxed/collective model distinctions are retained. -/
 set_option autoImplicit false
 noncomputable section

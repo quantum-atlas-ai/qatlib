@@ -68,7 +68,7 @@ theorem uniform_polynomial_panel_gauss (Q : ℕ) (a h : ℝ) (hQ : 1 ≤ Q) (hh 
   · simpa only [hcoeff] using hexact (Matrix I I ℂ) (d+m) c hdegree
   · exact herror (Matrix I I ℂ) _ (d+m) c _ hf hdegree hE hbound
 
-/-- G21: one actual positive Gauss rule integrates the literal local polynomial
+/-- One actual positive Gauss rule integrates the literal local polynomial
 and bounds the actual polynomial-times-resolvent panel integral. -/
 theorem polynomial_panel_gauss
     {I : Type} [Fintype I] [DecidableEq I] (A : Matrix I I ℂ)

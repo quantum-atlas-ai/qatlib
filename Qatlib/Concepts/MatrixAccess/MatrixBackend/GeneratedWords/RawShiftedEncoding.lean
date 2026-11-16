@@ -185,7 +185,7 @@ theorem raw_shifted_word_wellFormed
     Qatlib.Concepts.QspSimulation.Achievability.WellFormedAdjointCircuit.forward_cons_iff, Qatlib.Concepts.QspSimulation.Achievability.WellFormedAdjointCircuit.nil, and_true]
   exact ⟨adjoint_unitary hrawprepare, hrawphase, hrawprepare⟩
 
-/-- G24: the original exact common-frame block encoding constructs the actual
+/-- The original exact common-frame block encoding constructs the actual
 normalized joint shifted encoding with the literal paid program and frames. -/
 theorem raw_shifted_encoding
     (H I L : Type) [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]

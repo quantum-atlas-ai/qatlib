@@ -24,7 +24,7 @@ Vanishing Excess Overhead" (Jing, Guo, Yao, Wang).  Supplemental Material,
 Appendix A, Definition S1, Eq. (S2)--(S4).
 
 This file fixes the operational objects used by every paper-layer contract of
-`QuantumAlgorithmDev.Papers.VirtChannel26.FullCPTP`.
+`Qatlib.Papers.VirtChannel26.FullCPTP`.
 
 * A channel is a linear map `MatrixMap A B ℂ := Matrix A A ℂ →ₗ[ℂ] Matrix B B ℂ`
   (input system `A`, output system `B`).
@@ -38,8 +38,8 @@ This file fixes the operational objects used by every paper-layer contract of
   (Eq. (S3)).
 * The diamond norm is the finite-reference cb trace norm of Appendix A
   (`‖T‖_◇ = sup_{r, ‖X‖_1 ≤ 1} ‖(I_r ⊗ T)(X)‖_1`), specialized to general finite
-  index types.  For `Fin d` indices it is definitionally the Frozen
-  `Qatlib.Papers.RandCompiler19.ChannelBudget.finiteDiamondNorm`.
+  index types.  For `Fin d` indices it is definitionally the library norm
+  `Qatlib.Concepts.SchattenDiamond.DiamondNorm.finiteDiamondNorm`.
 
 The paper works at `d_A = d_B = d` in the closed-form statements; the general
 definitions below keep `A` and `B` separate because Appendix A also covers

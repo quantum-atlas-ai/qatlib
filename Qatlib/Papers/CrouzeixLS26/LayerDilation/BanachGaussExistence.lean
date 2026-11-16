@@ -16,7 +16,7 @@ set_option backward.isDefEq.respectTransparency false
 /-!
 # Banach Gauss Existence
 
-G19: one actual positive Gauss rule has finite-vector polynomial exactness and uniform-approximation stability for every real Banach space.
+One actual positive Gauss rule has finite-vector polynomial exactness and uniform-approximation stability for every real Banach space.
 -/
 open Qatlib.Foundations.OpCalculus.ContourCalc
 
@@ -28,7 +28,7 @@ namespace Qatlib.Papers.CrouzeixLS26.LayerDilation
 open Qatlib.Concepts.LchsSimulation.Quadrature Set MeasureTheory
 open scoped BigOperators
 
-/-- G19: one actual positive Gauss rule has finite-vector polynomial exactness
+/-- One actual positive Gauss rule has finite-vector polynomial exactness
 and uniform-approximation stability for every real Banach space. -/
 theorem banach_gauss_stability (Q : ℕ) (a h : ℝ) (hQ : 1 ≤ Q) (hh : 0 < h) :
     ∃ node weight : Fin Q → ℝ,

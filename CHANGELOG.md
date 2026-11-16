@@ -9,7 +9,79 @@ All notable changes to **Qatlib** are documented in this file.
 * **Rolling releases (`main`)**: Every commit published on `main` is a complete,
   self-contained public release dated in UTC (with `.2`, `.3`, … suffixes when
   multiple releases land on the same UTC date), accompanied by precompiled Lake
-  caches (`lake update && lake exe get_cache`).
+  caches (`qatlib-env run -- lake update Qatlib` followed by
+  `qatlib-env run -- lake exe get_cache`).
+
+---
+
+## [2026-11-16] — PPT Maps, Quantum State Fidelity, and Gibbs Operators
+
+### Added
+
+* **Library expansion**: Add 1,003 modules and 6,522 explicit public theorem and
+  lemma declarations across finite algebra, probability, operator theory, and
+  paper-linked mathematical developments.
+* **PPT maps and entanglement breaking**: Prove that any ordered composition of at
+  least `2(d-1)` PPT maps on complex `d`-by-`d` matrices is entanglement breaking
+  for `d >= 2`, together with the corresponding index bound and an interleaving
+  bound for a repeated PPT map with completely positive maps. Include Choi-matrix
+  characterizations, separable block decompositions, and exact thin singular-value
+  expansions.
+* **Mixed-state fidelity and measurement**: Extend finite mixed-state interfaces
+  with root-fidelity tensor-product and tensor-power identities, Fuchs–van de Graaf
+  bounds, CPTP data processing, exact calibration of classical readout, and
+  repeated-measurement laws, including zero-copy cases.
+* **Gibbs parent operators and spectral gaps**: Develop full Bohr-transition Gibbs
+  parent operators, unitary bridges between energy and physical coordinates,
+  Gibbs-kernel descriptions, and attained gap eigenoperators. Establish strict
+  spectral-gap positivity in dimension at least two (`d >= 2`) at positive inverse
+  temperature under the stated scalar-common-commutant condition, with comparison
+  estimates retaining their sparse-proposal or finite-certificate hypotheses,
+  including the required population-energy bounds.
+* **Analytic, algebraic, and discrete foundations**: Add complex-Gaussian moment
+  integrals and controlled variance-rescaling bounds; fixed-particle bosonic
+  occupation counts and homogeneous-polynomial bridges; explicit left-coset
+  intersection and characteristic-`p` group-algebra identities; finite
+  Cauchy-kernel positivity; and cost minima over positive integers certified by
+  adjacent threshold inequalities.
+* **Paper-linked mathematical developments**: Extend paper-linked formalizations
+  across Hamiltonian simulation and signal processing; differential equations and
+  linear algebra; query complexity and adversaries; graph search and quantum walks;
+  finite-group and Fourier methods; number theory and cryptography; quantum
+  information and error correction; bosonic and fermionic models; learning,
+  statistics, optimization, and semidefinite programming; adiabatic computation and
+  metrology; and homology and topological algorithms. Definitions, proved
+  fragments, and conditional interfaces retain their stated mathematical scope.
+* **Query, statistical, and circuit models**: Formalize finite-field learning
+  executions with explicit oracle-query counts, finite Bernoulli
+  likelihood-affinity bounds, balanced-qubit phase-preparation comparisons, and
+  normalized output states and joint Born laws for modular-exponentiation
+  order-finding circuits under the specified finite-carrier and circuit
+  assumptions.
+* **Worked examples, counterexamples, and stability bounds**: Provide genuine empty
+  and nonempty coset-intersection examples alongside direct mixed-state consumers.
+  Formalize a minimum-outcome-mass union bound paired with a counterexample to the
+  maximum-mass variant, the forward-Euler obstruction to unrestricted A-stability,
+  and vector-normalization error bounds retaining their explicit dependence on a
+  nonzero target norm.
+
+### Changed
+
+* **Citation metadata and build cache**: Align project citation metadata with
+  rolling releases and adopt Lake's default artifact-cache settings.
+* **Library navigation and mathematical scope**: Refresh library navigation and
+  clarify the provenance and mathematical scope of numerical-range,
+  quaternion-field, spinor-preparation, and trine-state developments.
+
+### Fixed
+
+* **Documentation cross-references**: Update documentation cross-references to the
+  current quantum-channel, time-evolution, query, and Fourier interfaces.
+* **Toolchain compatibility**: Update deprecated Mathlib imports and proof
+  interfaces for the pinned toolchain.
+* **Rational QSP packet computability**: Provide a computable `Decidable` instance
+  for the rational lexicographic endpoint order in the Sturm model and restore
+  executable definitions for the rational QSP source-packet generation dispatchers.
 
 ---
 

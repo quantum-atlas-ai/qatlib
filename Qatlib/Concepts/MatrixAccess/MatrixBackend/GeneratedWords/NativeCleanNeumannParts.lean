@@ -125,7 +125,7 @@ per-node Neumann blocks; no whole-space SELECT is assumed. -/
 theorem nativeCleanNeumannWeight_encoding (b : ℕ) (hb : 0 < b)
     (F : Matrix H I ℂ) (A : Matrix I I ℂ) (U : Matrix H H ℂ) (α : ℝ)
     (hbe : BlockEncoding A U F F α 0)
-    (ps : J → Fin 7 → QuantumAlgorithmDev.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle) (p : J → QuantumAlgorithmDev.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle) (slack : J → Bool)
+    (ps : J → Fin 7 → Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle) (p : J → Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle) (slack : J → Bool)
     (d : J → ℂ) (j₀ : J) (hmass : 0 < coefficientMass d) :
     ProjectedUnitaryEncoding
       (∑ j, (d j / (coefficientMass d : ℂ)) •
