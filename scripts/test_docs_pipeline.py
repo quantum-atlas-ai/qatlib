@@ -16,6 +16,7 @@ import sqlite3
 import subprocess
 import tarfile
 import tempfile
+import textwrap
 import unittest
 from unittest.mock import patch
 
@@ -160,7 +161,7 @@ class DocsPipelineTests(unittest.TestCase):
             self.assertFalse(doc.exists())
             script = (SOURCE / "scripts/build_docs.sh").read_text()
             rendering = script.split("python3 scripts/docs_cache.py clean-html\n", 1)[1]
-            rendering = rendering.split("python3 scripts/docs_cache.py publish-html", 1)[0]
+            rendering = rendering.split("python3 scripts/docs_cache.py verify-html", 1)[0]
             # Simulate cached bibPrepass: fromDb checks its inputs without recreating the Bib file.
             phase = '''phase() {
                 test "$1" = fromDb
@@ -547,6 +548,106 @@ class DocsPipelineTests(unittest.TestCase):
         paths = build.split("paths: &build-paths\n", 1)[1].split("  pull_request:", 1)[0]
         expected = [line.split("'", 2)[1] for line in paths.splitlines() if "- '" in line]
         self.assertEqual(set(patterns), set(expected))
+        build_selector = build.split("          patterns = ", 1)[1].split("          build = True", 1)[0]
+        self.assertEqual(set(ast.literal_eval(build_selector.strip())), set(expected))
+
+    def test_build_selection_and_required_result_for_documentation_and_lean_changes(self):
+        workflow = (SOURCE / ".github/workflows/build.yml").read_text()
+        self.assertNotIn("paths:", workflow.split("  pull_request:", 1)[1].split("  workflow_dispatch:", 1)[0])
+        selector = workflow.split("          python3 - <<'PY'\n", 1)[1].split("          PY\n", 1)[0]
+        gate = workflow.split("      - name: Report required build result\n", 1)[1].split("        run: |\n", 1)[1]
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "output"
+            for changes, required in ((b"README.md\0CHANGELOG.md\0docs/design.md\0", False),
+                                      (b"README.md\0Qatlib/Example.lean\0", True),
+                                      (b"docbuild/lakefile.toml\0", True),
+                                      (b"scripts/docs_cache.py\0", True)):
+                with self.subTest(changes=changes), patch.dict(os.environ, {
+                        "EVENT_NAME": "pull_request", "BASE_SHA": "base", "GITHUB_OUTPUT": str(output)}), \
+                        patch.object(subprocess, "check_output", return_value=changes) as diff:
+                    output.write_text("")
+                    exec(compile(textwrap.dedent(selector), "build-selector", "exec"), {})
+                    self.assertEqual(output.read_text(), f"build={str(required).lower()}\n")
+                    self.assertEqual(diff.call_args.args[0][-1], "base...HEAD")
+            for selected, required, result, success in (
+                    ("success", "false", "skipped", True),
+                    ("success", "true", "success", True),
+                    ("success", "true", "failure", False),
+                    ("success", "true", "cancelled", False),
+                    ("failure", "false", "skipped", False),
+                    ("success", "", "skipped", False)):
+                with self.subTest(selected=selected, required=required, result=result):
+                    process = subprocess.run(["bash", "-c", textwrap.dedent(gate)],
+                                             env={**os.environ, "SELECT_RESULT": selected,
+                                                  "BUILD_REQUIRED": required, "BUILD_RESULT": result},
+                                             capture_output=True, text=True)
+                    self.assertEqual(process.returncode == 0, success, process.stderr)
+
+    def test_docs_miss_generates_on_hosted_runners_and_changelog_triggers_docs(self):
+        workflow = (SOURCE / ".github/workflows/docs.yml").read_text()
+        self.assertIn("- 'CHANGELOG.md'", workflow.split("  workflow_run:", 1)[0])
+        for name in ("Install elan on analysis cache miss",
+                     "Generate incrementally and publish snapshots when credentials are available"):
+            step = workflow.split(f"      - name: {name}\n", 1)[1].split("      - ", 1)[0]
+            self.assertIn("if: steps.html.outputs.hit != 'true'\n", step)
+            self.assertNotIn("runner.environment", step)
+        self.assertNotIn("Require prebuilt HTML on hosted runners", workflow)
+
+    def test_read_only_docs_build_without_exact_cache_still_renders(self):
+        with fixture() as root:
+            calls = root / "calls.log"
+            bin_dir = root / "bin"
+            bin_dir.mkdir()
+            programs = {
+                "git": '#!/bin/bash\nif [ "$1" = rev-parse ]; then echo fixture-hash; fi\n',
+                "curl": '#!/bin/bash\nexit 22\n',
+                "lake": '#!/bin/bash\nprintf "lake %s\\n" "$*" >> "$CALLS"\n'
+                        'if [ "$*" = "--no-build build Qatlib" ]; then exit 1; fi\n',
+                "python3": '#!/bin/bash\nprintf "python3 %s\\n" "$*" >> "$CALLS"\n'
+                           'if [ "$1" = scripts/docs_cache.py ]; then exit 0; fi\nexit 1\n',
+            }
+            for name, content in programs.items():
+                path = bin_dir / name
+                path.write_text(content)
+                path.chmod(0o755)
+            env = {key: value for key, value in os.environ.items() if key != "LAKE_CACHE_KEY"}
+            env.update(PATH=f"{bin_dir}:{env['PATH']}", LEAN_NUM_THREADS="2", CALLS=str(calls),
+                       RUNNER_TEMP=str(root), DOCS_PACKAGE_CACHE=str(root),
+                       GITHUB_STEP_SUMMARY=str(root / "summary"))
+            result = subprocess.run(["bash", str(SOURCE / "scripts/build_docs.sh")],
+                                    env=env, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            commands = calls.read_text()
+            for expected in ("lake --fail-fast build --wfail Qatlib", "restore-analysis", "prune",
+                             "normalize-analysis", "verify-html", "@Qatlib/+Qatlib:docInfo", "@Qatlib/Qatlib:docs"):
+                self.assertIn(expected, commands)
+            self.assertNotIn("publish-", commands)
+            self.assertLess(commands.index("normalize-analysis"), commands.index("@Qatlib/Qatlib:docs"))
+
+    def test_source_link_normalization_does_not_require_publication(self):
+        with cache.database(":memory:") as connection, patch.object(cache, "put") as upload:
+            connection.execute("CREATE TABLE modules(name TEXT PRIMARY KEY, source_url TEXT)")
+            connection.executemany("INSERT INTO modules VALUES (?, ?)",
+                                   [("Qatlib.Example", "private-url"), ("Mathlib.Example", "upstream-url")])
+            cache.normalize_analysis(connection)
+            self.assertEqual(dict(connection.execute("SELECT name, source_url FROM modules")), {
+                "Qatlib.Example": f"https://github.com/{cache.REPO}/blob/main/Qatlib/Example.lean",
+                "Mathlib.Example": "upstream-url"})
+            upload.assert_not_called()
+
+    def test_html_validation_without_publication_rejects_missing_pages_and_private_links(self):
+        with fixture() as root, patch.object(cache, "put") as upload:
+            api_files(root, cache.BUILD / "doc")
+            cache.verify_html()
+            index = cache.BUILD / "doc/index.html"
+            index.write_text("qatlib-" + "dev")
+            with self.assertRaisesRegex(RuntimeError, "private URL or machine path"):
+                cache.verify_html()
+            index.write_text("public HTML")
+            shutil.move(str(cache.BUILD / "doc/Qatlib/Example.html"), root / "retired-page")
+            with self.assertRaisesRegex(RuntimeError, "Incomplete"):
+                cache.verify_html()
+            upload.assert_not_called()
 
 
 if __name__ == "__main__":

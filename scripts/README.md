@@ -17,6 +17,8 @@
 - **`docs_cache.py` / `build_docs.sh`**：
   自维护的文档快照协议，使用 R2 存储，独立于 Lake 编译缓存；不是 `doc-gen4` 的稳定公共接口。HTML 按源码与渲染输入指纹精确复用，分析快照按 Lean 工具链、依赖锁和协议标识兼容复用。门户说明变更可直接复用原始 HTML。
 
+  未命中精确 HTML 时，托管与自托管 Runner 都恢复兼容的分析快照，并按当前源码增量生成 HTML。Lean 编译缓存依次尝试相同输入、当前提交和最近 25 个祖先提交；Lake 校验依赖哈希并补编缺失或过期模块。缺少 `LAKE_CACHE_KEY` 仅跳过 R2 快照上传，不阻止生成、门户校验或 Pages 部署；Pages 是否部署仍由工作流设置控制。`CHANGELOG.md` 变动会触发门户更新。纯文档 PR 通过轻量变更分类返回 `Build and kernel audit` 成功结果；改变 Lean、依赖或构建工具时仍须完成编译与内核审计。
+
   对象位于 `docs/quantum-atlas-ai/qatlib/tc/<toolchain>/`：
 
   ```text
@@ -28,7 +30,7 @@
 
   每份 JSON 只记录协议标识、输入指纹、兼容键和归档 SHA-256。归档按路径排序，固定 tar/gzip 时间为零、uid/gid 为零、用户名与组名为空，并统一文件权限。发布者须串行运行：先上传归档并回读校验，再更新 JSON；读取者在替换本地产物前校验兼容性、校验和与内容。两次写入之间的中断可能导致校验失败，重新发布完整快照即可修复。分析数据库通过 SQLite backup 保存已提交的 WAL 内容，与 `.doc` 分析标记共同归档；不带 HTML 渲染标记。仅在新分析归档缺失时，读取者可通过旧 `latest.json` 读取 `objects/<sha256>.tar.gz`；下次发布自然转为直存格式，不再写入旧对象路径。
 
-  `DOCGEN_SRC=github` 和规范的 Git remote 决定源码仓库地址。锁定的 `doc-gen4` v4.35 仍将链接固定到构建提交，无法通过环境变量指定分支，因此发布分析前将 Qatlib 的 `source_url` 统一为公开仓库的 `main` 链接。恢复、裁剪和发布前，`assert_analysis_schema` 集中检查 `modules(name TEXT PRIMARY KEY, source_url TEXT)` 及依赖行的级联删除约定；不符合时给出明确升级提示。其余表与序列化数据仍交由 `doc-gen4` 自身校验。
+  `DOCGEN_SRC=github` 和规范的 Git remote 决定源码仓库地址。锁定的 `doc-gen4` v4.35 仍将链接固定到构建提交，无法通过环境变量指定分支，因此渲染 HTML 前将 Qatlib 的 `source_url` 统一为公开仓库的 `main` 链接，无上传凭据时也执行。恢复、裁剪和发布前，`assert_analysis_schema` 集中检查 `modules(name TEXT PRIMARY KEY, source_url TEXT)` 及依赖行的级联删除约定；不符合时给出明确升级提示。其余表与序列化数据仍交由 `doc-gen4` 自身校验。
 
   打包分析快照时，`.doc.trace` 及引用预处理的 `.trace` JSON 副本只保留 `schemaVersion` 和 `depHash`。Lake v4.35 对这些标记文件的命中检查使用依赖哈希与文件是否存在，`inputs` 和 `log` 缺省为空，`outputs` 缺省为空值；因此移除依赖路径说明与日志不会改变命中结果。本地 trace 保持原样；归档中的数据库、标记与 HTML 仍须全部通过严格的发布内容检查。
 

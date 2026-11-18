@@ -5,6 +5,13 @@
 
 [上级目录](../README.md)
 
+- [Appendix](Appendix/README.md)
+- [Capacities](Capacities/README.md)
+- [ChannelInfo](ChannelInfo/README.md)
+- [ClassicalInfo](ClassicalInfo/README.md)
+- [FidelityMetric](FidelityMetric/README.md)
 - [Model](Model/README.md)
 - [Protocols](Protocols/README.md)
 - [QEntropy](QEntropy/README.md)
+- [Recovery](Recovery/README.md)
+- [StatesChannels](StatesChannels/README.md)

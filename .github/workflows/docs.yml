@@ -7,6 +7,7 @@ on:
       - 'README*'
       - 'CONTRIBUTING*'
       - 'CITATION.cff'
+      - 'CHANGELOG.md'
       - 'docs/**'
       - '!docs/references.bib'
       - 'scripts/README*'
@@ -121,14 +122,8 @@ jobs:
         id: html
         run: python3 scripts/docs_cache.py probe
 
-      - name: Require prebuilt HTML on hosted runners
-        if: steps.html.outputs.hit != 'true' && runner.environment != 'self-hosted'
-        run: |
-          echo 'No exact R2 documentation snapshot. Publish it with the configured Docs build runner first.' >&2
-          exit 1
-
       - name: Install elan on analysis cache miss
-        if: steps.html.outputs.hit != 'true' && runner.environment == 'self-hosted'
+        if: steps.html.outputs.hit != 'true'
         run: |
           set -euo pipefail
           if command -v lean >/dev/null 2>&1 && command -v lake >/dev/null 2>&1; then
@@ -146,8 +141,8 @@ jobs:
           sh "$ELAN_SCRIPT" --default-toolchain none -y
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
 
-      - name: Analyze incrementally and publish both R2 snapshots
-        if: steps.html.outputs.hit != 'true' && runner.environment == 'self-hosted'
+      - name: Generate incrementally and publish snapshots when credentials are available
+        if: steps.html.outputs.hit != 'true'
         env:
           LAKE_CACHE_KEY: ${{ secrets.LAKE_CACHE_KEY }}
         run: bash scripts/build_docs.sh

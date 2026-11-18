@@ -98,5 +98,13 @@ jobs:
           fi
           lake lint
 
+      - name: Prepare documentation test environment
+        run: |
+          python3 -m venv "$RUNNER_TEMP/docs-tests-venv"
+          "$RUNNER_TEMP/docs-tests-venv/bin/pip" install --quiet trash-cli==0.24.5.26
+          echo "$RUNNER_TEMP/docs-tests-venv/bin" >> "$GITHUB_PATH"
+
       - name: Check documentation snapshot regressions
-        run: python3 scripts/test_docs_pipeline.py
+        run: |
+          python3 scripts/test_docs_pipeline.py
+          python3 scripts/test_site_typography.py

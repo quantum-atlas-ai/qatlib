@@ -268,21 +268,34 @@ def prune() -> None:
     print(f"Pruned {len(stale)} stale database modules")
 
 
+def normalize_analysis(connection: sqlite3.Connection) -> None:
+    """Use canonical public source links for both read-only and publishing builds."""
+    assert_analysis_schema(connection)
+    # DOCGEN_SRC=github and origin set the repo, but srcUri.github always uses
+    # getProjectCommit; doc-gen4 v4.35 has no revision override.
+    connection.execute(
+        "UPDATE modules SET source_url = ? || replace(name, '.', '/') || '.lean' "
+        "WHERE name = 'Qatlib' OR name LIKE 'Qatlib.%'",
+        (f"https://github.com/{REPO}/blob/main/",))
+    checkpoint(connection)
+
+
+def verify_html() -> None:
+    """Validate complete, public HTML even when no R2 publication is requested."""
+    from build_site import verify_docgen
+    errors = verify_docgen(Path.cwd(), BUILD / "doc")
+    if errors:
+        raise RuntimeError("Incomplete doc-gen4 output: " + "; ".join(errors[:5]))
+    verify_public([BUILD / "doc"])
+
+
 def publish(kind: str) -> None:
     prefix, fingerprint, compatible = identity()
     with tempfile.TemporaryDirectory(dir=os.environ.get("RUNNER_TEMP")) as directory:
         tmp = Path(directory)
         if kind == "analysis":
             with database(BUILD / "api-docs.db") as connection:
-                assert_analysis_schema(connection)
-                # Use the stable public source URL even when the build commit is not public yet.
-                # DOCGEN_SRC=github and origin set the repo, but srcUri.github
-                # always uses getProjectCommit; v4.35 has no revision override.
-                connection.execute(
-                    "UPDATE modules SET source_url = ? || replace(name, '.', '/') || '.lean' "
-                    "WHERE name = 'Qatlib' OR name LIKE 'Qatlib.%'",
-                    (f"https://github.com/{REPO}/blob/main/",))
-                checkpoint(connection)
+                normalize_analysis(connection)
                 with database(tmp / "api-docs.db") as backup:
                     connection.backup(backup)
                     if backup.execute("PRAGMA quick_check").fetchone() != ("ok",):
@@ -299,10 +312,7 @@ def publish(kind: str) -> None:
             paths = [tmp / "api-docs.db", data]
             base = f"{prefix}/analysis/{compatible}/latest"
         else:
-            from build_site import verify_docgen
-            errors = verify_docgen(Path.cwd(), BUILD / "doc")
-            if errors:
-                raise RuntimeError("Incomplete doc-gen4 output: " + "; ".join(errors[:5]))
+            verify_html()
             paths = [BUILD / "doc"]
             base = f"{prefix}/html/{fingerprint}"
         verify_public(paths)
@@ -346,7 +356,8 @@ def clean_html() -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("action", choices=("probe", "restore-analysis", "publish-analysis",
-                                           "publish-html", "prune", "reset", "clean-html", "identity"))
+                                           "publish-html", "normalize-analysis", "verify-html",
+                                           "prune", "reset", "clean-html", "identity"))
     args = parser.parse_args()
     if args.action == "probe":
         hit = restore("html")
@@ -356,6 +367,11 @@ def main() -> None:
         if not restore("analysis"):
             reset_analysis()
             print("No compatible analysis snapshot; starting clean")
+    elif args.action == "normalize-analysis":
+        with database(BUILD / "api-docs.db") as connection:
+            normalize_analysis(connection)
+    elif args.action == "verify-html":
+        verify_html()
     elif args.action.startswith("publish-"):
         publish(args.action.removeprefix("publish-"))
     elif args.action == "prune":

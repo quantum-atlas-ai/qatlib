@@ -23,7 +23,7 @@ on:
   pull_request:
     branches:
       - main
-    paths: *build-paths
+    # Required checks must also report a result for documentation-only PRs.
   workflow_dispatch:
 
 concurrency:
@@ -34,8 +34,46 @@ permissions:
   contents: read
 
 jobs:
-  build:
-    name: Build and kernel audit
+  select:
+    name: Select build inputs
+    runs-on: ${{ fromJSON(vars.QATLIB_LIGHT_RUNNERS || '["ubuntu-latest"]') }}
+    outputs:
+      build: ${{ steps.select.outputs.build }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ssh-key: ${{ secrets.GH_CHECKOUT_DEPLOY_KEY }}
+      - id: select
+        name: Detect changes requiring Lean validation
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          python3 - <<'PY'
+          import fnmatch, os, subprocess
+          # Keep aligned with push paths and Docs routing (covered by tests).
+          patterns = ('Qatlib/**', 'Qatlib.lean', 'lakefile.toml', 'lean-toolchain',
+                      'lake-manifest.json', 'lake-cache.toml', 'scripts/*.lean',
+                      'scripts/complete_outputs.py', 'scripts/build_docs.sh',
+                      'scripts/docs_cache.py', 'scripts/test_docs_pipeline.py',
+                      'docbuild/**', 'docs/references.bib',
+                      '.github/workflows/build.yml', '.github/workflows/publish-cache.yml')
+          build = True
+          if os.environ['EVENT_NAME'] == 'pull_request':
+              changed = subprocess.check_output([
+                  'git', 'diff', '--name-only', '-z', os.environ['BASE_SHA'] + '...HEAD'
+              ]).decode().split('\0')
+              build = any(fnmatch.fnmatchcase(p, glob) for p in changed for glob in patterns)
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write(f'build={str(build).lower()}\n')
+          PY
+
+  compile:
+    name: Compile and audit Lean inputs
+    needs: select
+    if: needs.select.outputs.build == 'true'
     runs-on: ${{ fromJSON(vars.QATLIB_BUILD_RUNNERS || '["ubuntu-latest"]') }}
     timeout-minutes: 360
     env:
@@ -273,3 +311,26 @@ jobs:
           compression-level: 0
           retention-days: 1
           if-no-files-found: error
+
+  build:
+    name: Build and kernel audit
+    needs: [select, compile]
+    if: always()
+    runs-on: ${{ fromJSON(vars.QATLIB_LIGHT_RUNNERS || '["ubuntu-latest"]') }}
+    steps:
+      - name: Report required build result
+        env:
+          SELECT_RESULT: ${{ needs.select.result }}
+          BUILD_REQUIRED: ${{ needs.select.outputs.build }}
+          BUILD_RESULT: ${{ needs.compile.result }}
+        run: |
+          set -euo pipefail
+          test "$SELECT_RESULT" = success
+          if [ "$BUILD_REQUIRED" = true ]; then
+            test "$BUILD_RESULT" = success
+            echo 'Lean build and kernel audit passed.'
+          else
+            test "$BUILD_REQUIRED" = false
+            test "$BUILD_RESULT" = skipped
+            echo 'No Lean build inputs changed; documentation-only PR passed.'
+          fi

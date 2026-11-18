@@ -7,10 +7,6 @@ case "${LEAN_NUM_THREADS:-}" in
   ''|*[!0-9]*) echo 'LEAN_NUM_THREADS must be a positive integer' >&2; exit 1 ;;
 esac
 test "$LEAN_NUM_THREADS" -gt 0
-case "${LAKE_CACHE_KEY:-}" in
-  *:*) ;;
-  *) echo 'An R2 upload credential is required before starting analysis' >&2; exit 1 ;;
-esac
 unset LAKE_PKG_URL_MAP
 export DISABLE_EQUATIONS=1 DOCGEN_SRC=github MATHLIB_NO_CACHE_ON_UPDATE=1
 ROOT="$PWD"
@@ -19,7 +15,7 @@ exec 9>"${DOCS_PACKAGE_CACHE:?}/.build.lock"
 flock 9
 
 # Each Docs checkout has its own package directory and analysis DB. Build never
-# reads or cleans this cache, and hosted runners never enter this script.
+# reads or cleans this cache. Hosted runners can use the same read-only fallback.
 mkdir -p .lake
 cp lean-toolchain docbuild/lean-toolchain
 mkdir -p docbuild/docs
@@ -34,9 +30,13 @@ INPUT_TREE="$(git rev-parse HEAD:Qatlib HEAD:Qatlib.lean HEAD:lakefile.toml HEAD
 BASE="https://lake-cache.quantum-atlas.ai/revisions/quantum-atlas-ai/qatlib/tc/$TC_DIR"
 CANDIDATE="$RUNNER_TEMP/docs-outputs.jsonl"
 FOUND=false
-for attempt in $(seq 1 36); do
+for KEY in "inputs/$INPUT_TREE.jsonl" "$(git rev-parse HEAD).jsonl" $(git rev-list --max-count=25 HEAD~1 2>/dev/null || true); do
+  case "$KEY" in
+    *.jsonl) ;;
+    *) KEY="$KEY.jsonl" ;;
+  esac
   if curl --connect-timeout 10 --max-time 30 --retry 3 -fsSL \
-    "$BASE/inputs/$INPUT_TREE.jsonl" -o "$CANDIDATE" && \
+    "$BASE/$KEY" -o "$CANDIDATE" && \
     python3 - "$CANDIDATE" <<'PY'
 import json, sys
 from pathlib import Path
@@ -47,16 +47,16 @@ PY
     FOUND=true
     break
   fi
-  echo "Waiting for exact precompiled Qatlib cache ($attempt/36)"
-  sleep 10
 done
-if [ "$FOUND" != true ]; then
-  echo 'Exact precompiled Qatlib cache is missing; refusing to compile Lean modules in Docs' >&2
-  exit 1
-fi
 export LAKE_CONFIG="$ROOT/lake-cache.toml"
-lake cache get "$CANDIDATE" --package=Qatlib --repo=quantum-atlas-ai/qatlib
-lake --no-build build Qatlib
+if [ "$FOUND" = true ]; then
+  lake cache get "$CANDIDATE" --package=Qatlib --repo=quantum-atlas-ai/qatlib
+fi
+# Lake validates restored dependency hashes. Reuse complete artifacts or compile
+# only missing/stale modules, including when no precompiled mapping is available.
+if ! lake --no-build build Qatlib; then
+  lake --fail-fast build --wfail Qatlib
+fi
 # Materialize exactly the checked-in docbuild manifest, never lake update.
 lake --dir docbuild env lean --version
 git diff --exit-code -- docbuild/lake-manifest.json
@@ -85,12 +85,20 @@ if ! analyze; then
     exit 1
   fi
 fi
-# Persist expensive analysis before rendering HTML. A later render failure does
-# not lose hours of analysis or leave a DB/trace pair from different builds.
-python3 scripts/docs_cache.py publish-analysis
+# Canonical source links are also needed for read-only builds without an upload key.
+python3 scripts/docs_cache.py normalize-analysis
+# Persist expensive analysis before rendering HTML when this runner can publish.
+if [ -n "${LAKE_CACHE_KEY:-}" ]; then
+  python3 scripts/docs_cache.py publish-analysis
+else
+  echo 'No LAKE_CACHE_KEY; generating Docs without publishing R2 snapshots'
+fi
 python3 scripts/docs_cache.py clean-html
 # A cached bibPrepass retains references.json, but clean-html removes its Bib side effect.
 mkdir -p docbuild/.lake/build/doc
 cp docs/references.bib docbuild/.lake/build/doc/references.bib
 phase fromDb "$LEAN_NUM_THREADS" @Qatlib/Qatlib:docs
-python3 scripts/docs_cache.py publish-html
+python3 scripts/docs_cache.py verify-html
+if [ -n "${LAKE_CACHE_KEY:-}" ]; then
+  python3 scripts/docs_cache.py publish-html
+fi
