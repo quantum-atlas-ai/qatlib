@@ -1324,6 +1324,7 @@ def rewrite_repo_href(href: str, source_rel: str, lang: str, root_prefix: str) -
         "docs/architecture.md": f"{root_prefix}zh/architecture.html",
         "CONTRIBUTING.en.md": f"{root_prefix}contributing.html",
         "CONTRIBUTING.md": f"{root_prefix}zh/contributing.html",
+        "CHANGELOG.md": f"{root_prefix}changelog.html",
         "scripts/README.en.md": f"{root_prefix}architecture.html#tooling",
         "scripts/README.md": f"{root_prefix}architecture.html#tooling",
     }
@@ -1336,6 +1337,7 @@ def rewrite_repo_href(href: str, source_rel: str, lang: str, root_prefix: str) -
         "docs/architecture.en.md": f"{root_prefix}architecture.html",
         "CONTRIBUTING.md": f"{root_prefix}zh/contributing.html",
         "CONTRIBUTING.en.md": f"{root_prefix}contributing.html",
+        "CHANGELOG.md": f"{root_prefix}zh/changelog.html",
         "scripts/README.md": f"{root_prefix}zh/architecture.html#tooling",
         "scripts/README.en.md": f"{root_prefix}architecture.html#tooling",
     }
@@ -1533,8 +1535,13 @@ SITE_CSS = """/* Qatlib Documentation Portal — Clean Academic Design
   --shadow-md: 0 4px 16px rgba(15, 23, 36, 0.06), 0 1px 3px rgba(15, 23, 36, 0.04);
   --radius: 12px;
   --radius-sm: 8px;
-  --font-sans: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Noto Sans CJK SC", "Microsoft YaHei", sans-serif;
-  --font-mono: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --font-sans: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "PingFang SC", "HarmonyOS Sans SC", "Source Han Sans SC",
+    "Noto Sans CJK SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+  --font-mono: "JetBrains Mono", "JuliaMono", ui-monospace, SFMono-Regular,
+    Menlo, Monaco, Consolas, "Sarasa Mono SC", "Noto Sans Mono CJK SC",
+    "Source Han Mono SC", "PingFang SC", "Source Han Sans SC",
+    "Noto Sans CJK SC", "Noto Sans SC", "Microsoft YaHei", monospace;
   --nav-h: 64px;
 }
 
@@ -1561,6 +1568,7 @@ SITE_CSS = """/* Qatlib Documentation Portal — Clean Academic Design
 }
 
 *, *::before, *::after { box-sizing: border-box; }
+button, input, select, textarea { font-family: inherit; }
 html { scroll-behavior: smooth; scroll-padding-top: calc(var(--nav-h) + 24px); }
 body {
   margin: 0;
@@ -1580,21 +1588,27 @@ a:hover { color: var(--brand-hover); }
   position: sticky;
   top: 0;
   z-index: 100;
-  height: var(--nav-h);
+  min-height: var(--nav-h);
   background: color-mix(in srgb, var(--bg-elevated) 88%, transparent);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
 }
 .nav-inner {
-  max-width: 1280px;
-  height: 100%;
+  max-width: 1600px;
+  min-height: var(--nav-h);
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 8px 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+}
+.nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
 }
 .brand-link {
   display: inline-flex;
@@ -1648,6 +1662,7 @@ a:hover { color: var(--brand-hover); }
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-shrink: 0;
 }
 .nav-search-form {
   position: relative;
@@ -1901,6 +1916,7 @@ a:hover { color: var(--brand-hover); }
   gap: 20px;
 }
 .layer-card {
+  min-width: 0;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -1916,6 +1932,7 @@ a:hover { color: var(--brand-hover); }
 }
 .layer-badge {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
@@ -2361,7 +2378,7 @@ a:hover { color: var(--brand-hover); }
   border-radius: 5px;
 }
 .bib-chapter { font-size: 12px; color: var(--fg-faint); }
-.bib-title { margin: 0 0 4px; font-size: 16.5px; font-weight: 650; color: var(--fg); }
+.bib-title { margin: 0 0 4px; font-size: 16.5px; font-weight: 600; color: var(--fg); }
 .bib-authors { margin: 0 0 4px; font-size: 14px; color: var(--fg-muted); }
 .bib-venue { margin: 0 0 10px; font-size: 13.5px; color: var(--fg-faint); font-style: italic; }
 .bib-links {
@@ -2517,13 +2534,53 @@ a:hover { color: var(--brand-hover); }
 .panel-claim + .panel-claim { margin-top: 16px; }
 .panel-claim p { margin: 6px 0; color: var(--fg-muted); white-space: pre-line; }
 .panel-empty { color: var(--fg-faint); font-style: italic; }
+
+/* UI labels use the text family; keep numeric columns aligned. */
+.section-eyebrow, .layer-badge, .mod-layer-tag, .mod-count {
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums;
+}
+
+/* :lang() also matches inherited zh-CN and locally marked bilingual text. */
+body:lang(zh) {
+  line-height: 1.75;
+  text-spacing-trim: space-first;
+  font-kerning: normal;
+}
+.hero h1:lang(zh), .prose-header h1:lang(zh),
+.panel-detail-header h1:lang(zh), .explorer-wrap h1:lang(zh) {
+  letter-spacing: 0;
+  line-height: 1.36;
+  font-weight: 600;
+}
+.section-header h2:lang(zh), .prose h2:lang(zh) {
+  letter-spacing: 0;
+  line-height: 1.42;
+  font-weight: 600;
+}
+.area-card h3:lang(zh), .layer-card h3:lang(zh), .prose h3:lang(zh) {
+  line-height: 1.45;
+  font-weight: 600;
+}
+.section-eyebrow:lang(zh), .sidebar-group-title:lang(zh) {
+  font-family: var(--font-sans);
+  letter-spacing: 0.04em;
+  text-transform: none;
+  font-weight: 600;
+}
+.panel-empty:lang(zh), em:lang(zh), cite:lang(zh) { font-style: normal; }
+.filter-pill:lang(zh), .bib-ext-badge:lang(zh), .mod-actions:lang(zh) {
+  font-weight: 500;
+}
+.prose :not(pre) > code:lang(zh) { margin-inline: 0.14em; }
+
 @media (max-width: 760px) {
   .panel-grid { grid-template-columns: 1fr; }
   .panel-detail-wrap { padding: 22px 16px 48px; }
   .panel-table { font-size: 12px; }
 }
 
-@media (max-width: 1180px) {
+@media (max-width: 1540px) {
   .nav-links a { padding: 6px 9px; font-size: 13.8px; }
   .nav-search-input { width: 165px; }
   .nav-search-input:focus { width: 195px; }
@@ -2535,15 +2592,14 @@ a:hover { color: var(--brand-hover); }
   .layers-grid { grid-template-columns: 1fr; }
   .docs-shell { grid-template-columns: 200px minmax(0, 1fr); }
   .docs-toc { display: none; }
-  .nav-search-form { display: none; }
 }
 
-@media (max-width: 760px) {
+@media (max-width: 1400px) {
   .mobile-menu-btn { display: inline-flex; }
   .nav-links {
     display: none;
     position: absolute;
-    top: var(--nav-h);
+    top: 100%;
     left: 0;
     right: 0;
     flex-direction: column;
@@ -2554,6 +2610,30 @@ a:hover { color: var(--brand-hover); }
     box-shadow: var(--shadow-md);
   }
   .nav-links.open { display: flex; }
+}
+
+@media (max-width: 1024px) {
+  .nav-links { padding-top: 60px; }
+  .nav-search-form {
+    display: none;
+    position: absolute;
+    top: calc(100% + 12px);
+    left: 20px;
+    right: 20px;
+    z-index: 1;
+  }
+  .nav-links.open + .nav-actions .nav-search-form { display: flex; }
+  .nav-search-input, .nav-search-input:focus { width: 100%; }
+}
+
+@media (max-width: 480px) {
+  .nav-inner { padding: 8px 12px; gap: 8px; }
+  .nav-brand { flex-direction: column; align-items: flex-start; gap: 2px; }
+  .nav-wordmark { height: 24px; }
+  .toolchain-pill { font-size: 10px; padding: 2px 6px; }
+}
+
+@media (max-width: 760px) {
   .areas-grid, .mod-grid { grid-template-columns: 1fr; }
   .metrics-strip { grid-template-columns: repeat(2, 1fr); }
   .docs-shell { grid-template-columns: 1fr; padding: 20px 16px 48px; }
@@ -2598,16 +2678,29 @@ SITE_JS = """(() => {
   // Mobile navigation drawer
   const menuBtn = document.getElementById("mobile-menu-btn");
   const navLinks = document.getElementById("nav-links");
+  const setMenuOpen = (open) => {
+    if (!menuBtn || !navLinks) return;
+    navLinks.classList.toggle("open", open);
+    menuBtn.setAttribute("aria-expanded", String(open));
+  };
   if (menuBtn && navLinks) {
-    menuBtn.addEventListener("click", () => navLinks.classList.toggle("open"));
+    menuBtn.addEventListener("click", () => setMenuOpen(!navLinks.classList.contains("open")));
+    navLinks.addEventListener("click", (e) => {
+      if (e.target.closest("a")) setMenuOpen(false);
+    });
   }
 
   // '/' shortcut focuses search box
   document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && navLinks?.classList.contains("open")) {
+      setMenuOpen(false);
+      menuBtn.focus();
+    }
     if (e.key === "/" && !["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName || "")) {
       const target = document.getElementById("explorer-search") || document.querySelector(".nav-search-input");
       if (target) {
         e.preventDefault();
+        if (target.matches(".nav-search-input") && !target.getClientRects().length) setMenuOpen(true);
         target.focus();
       }
     }
@@ -2799,6 +2892,7 @@ UI_STRINGS = {
         "nav_modules": "Modules",
         "nav_papers": "Bibliography",
         "nav_contributing": "Contributing",
+        "nav_changelog": "Changelog",
         "nav_api": "API Docs ↗",
         "search_placeholder": "Search API declarations…",
         "switch_lang_label": "中文",
@@ -2825,6 +2919,7 @@ UI_STRINGS = {
         "nav_modules": "模块导览",
         "nav_papers": "文献索引",
         "nav_contributing": "参与贡献",
+        "nav_changelog": "更新日志",
         "nav_api": "API 文档 ↗",
         "search_placeholder": "搜索 API 声明…",
         "switch_lang_label": "EN",
@@ -2878,7 +2973,7 @@ def render_page_shell(
 <body>
   <header class="site-header">
     <div class="nav-inner">
-      <div style="display:flex;align-items:center;gap:10px;">
+      <div class="nav-brand">
         <a class="brand-link" href="{page_prefix}index.html" aria-label="{t['brand_home_label']}">
           {wordmark_nav}
         </a>
@@ -2892,6 +2987,7 @@ def render_page_shell(
         <a href="{page_prefix}modules.html"{nav_cls("modules.html")}>{t["nav_modules"]}</a>
         <a href="{page_prefix}papers.html"{nav_cls("papers.html")}>{t["nav_papers"]}</a>
         <a href="{page_prefix}contributing.html"{nav_cls("contributing.html")}>{t["nav_contributing"]}</a>
+        <a href="{page_prefix}changelog.html"{nav_cls("changelog.html")}>{t["nav_changelog"]}</a>
         <a href="{docs_prefix}index.html" class="nav-api-btn">{t["nav_api"]}</a>
       </nav>
 
@@ -2900,14 +2996,14 @@ def render_page_shell(
           <input class="nav-search-input" type="search" name="q" placeholder="{t['search_placeholder']}" autocomplete="off">
           <span class="nav-search-kbd">/</span>
         </form>
-        <a class="lang-switch" href="{alt_href}" title="{t['switch_lang_title']}">{t["switch_lang_label"]}</a>
+        <a class="lang-switch" lang="{UI_STRINGS['en' if lang == 'zh' else 'zh']['html_lang']}" href="{alt_href}" title="{t['switch_lang_title']}">{t["switch_lang_label"]}</a>
         <button id="theme-toggle" class="icon-btn" type="button" aria-label="{t['theme_toggle_label']}">☾</button>
         <a class="icon-btn" href="{GITHUB_REPO_URL}" target="_blank" rel="noopener" title="{t['github_title']}" aria-label="GitHub">
           <svg width="17" height="17" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
             <path d="M8 0C3.58 0 0 3.58 0 8a8 8 0 0 0 5.47 7.59c.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/>
           </svg>
         </a>
-        <button id="mobile-menu-btn" class="icon-btn mobile-menu-btn" type="button" aria-label="{t['menu_label']}">☰</button>
+        <button id="mobile-menu-btn" class="icon-btn mobile-menu-btn" type="button" aria-label="{t['menu_label']}" aria-controls="nav-links" aria-expanded="false">☰</button>
       </div>
     </div>
   </header>
@@ -2922,6 +3018,7 @@ def render_page_shell(
         <a href="{page_prefix}architecture.html">{t["nav_architecture"]}</a>
         <a href="{page_prefix}modules.html">{t["nav_modules"]}</a>
         <a href="{page_prefix}papers.html">{t["nav_papers"]}</a>
+        <a href="{page_prefix}changelog.html">{t["nav_changelog"]}</a>
         <a href="{docs_prefix}index.html">{t["footer_api"]}</a>
         <a href="{docs_prefix}references.html">{t["footer_refs"]}</a>
         <a href="{GITHUB_REPO_URL}" target="_blank" rel="noopener">GitHub</a>
@@ -2956,6 +3053,7 @@ def build_docs_layout(
         ("modules.html", t["nav_modules"]),
         ("papers.html", t["nav_papers"]),
         ("contributing.html", t["nav_contributing"]),
+        ("changelog.html", t["nav_changelog"]),
     ]
     sidebar_lis = "\n".join(
         f'<li><a href="{page_prefix}{slug}"{" class=\"active\"" if slug == page_slug else ""}>{label}</a></li>'
@@ -3211,6 +3309,7 @@ def build_home_body(
           <a class="btn btn-secondary" href="{docs_prefix}index.html">{html.escape(cta_api)}</a>
           <a class="btn btn-secondary" href="{page_prefix}modules.html">{html.escape(cta_mods)}</a>
           <a class="btn btn-secondary" href="{page_prefix}papers.html">{html.escape(cta_papers)}</a>
+          <a class="btn btn-secondary" href="{page_prefix}changelog.html">{html.escape(UI_STRINGS[lang]["nav_changelog"])}</a>
         </div>
       </div>
 
@@ -3516,7 +3615,7 @@ def build_papers_explorer_body(
                 f'target="_blank" rel="noopener">URL ↗</a>'
             )
         ext_links.append(
-            f'<a class="bib-ext-badge" href="{docs_prefix}references.html#{html.escape(ent.get("key", ""))}">{docgen_badge_lbl}</a>'
+            f'<a class="bib-ext-badge" href="{docs_prefix}references.html#ref_{html.escape(ent.get("key", ""))}">{docgen_badge_lbl}</a>'
         )
 
         dir_chips = ""
@@ -3591,12 +3690,12 @@ def build_smart_404_page(wordmark_nav: str, toolchain_tag: str) -> str:
     body = """
   <main class="section" style="text-align:center;padding:88px 24px;">
     <div class="section-eyebrow">404</div>
-    <h1 style="margin:0 0 12px;font-size:32px;">Page Not Found / 页面未找到</h1>
+    <h1 style="margin:0 0 12px;font-size:32px;">Page Not Found / <span lang="zh-CN">页面未找到</span></h1>
     <p id="redirect-msg" style="color:var(--fg-muted);max-width:560px;margin:0 auto 28px;">
       The requested path could not be found. API documentation generated by <code>doc-gen4</code> is hosted under <code>/docs/</code>.
     </p>
     <div class="hero-ctas" style="justify-content:center;">
-      <a class="btn btn-primary" href="./index.html">Qatlib Home / 返回首页</a>
+      <a class="btn btn-primary" href="./index.html">Qatlib Home / <span lang="zh-CN">返回首页</span></a>
       <a class="btn btn-secondary" href="./docs/index.html">API Reference (/docs/)</a>
       <a class="btn btn-secondary" href="./modules.html">Module Explorer</a>
     </div>
@@ -3617,6 +3716,27 @@ def build_smart_404_page(wordmark_nav: str, toolchain_tag: str) -> str:
 # doc-gen4 post-processing (_site/docs/)
 # ---------------------------------------------------------------------------
 
+DOCGEN_TYPOGRAPHY_CSS = """/* Qatlib typography: modern sans and CJK fallbacks */
+body, .inductive_ctor_doc, .structure_field_doc {
+  font-family: 'Lato Medium', Lato, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    "PingFang SC", "HarmonyOS Sans SC", "Source Han Sans SC",
+    "Noto Sans CJK SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+  line-height: 1.62;
+}
+h1, h2, h3, h4, h5, h6, strong, b {
+  font-family: Lato, 'Lato Medium', -apple-system, BlinkMacSystemFont, "Segoe UI",
+    "PingFang SC", "HarmonyOS Sans SC", "Source Han Sans SC",
+    "Noto Sans CJK SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+}
+.imports li, code, .decl_header, .attributes, .structure_field_info,
+.constructor, .instances li, .instances-for-list li, .equation, .structure_ext_ctor {
+  font-family: 'JuliaMono', ui-monospace, SFMono-Regular, Menlo, Consolas,
+    "Sarasa Mono SC", "Noto Sans Mono CJK SC", "PingFang SC",
+    "Noto Sans CJK SC", "Noto Sans SC", "Microsoft YaHei", monospace;
+}
+"""
+
+
 def upgrade_docgen_directory(
     docs_out: Path,
     toolchain_tag: str,
@@ -3625,6 +3745,14 @@ def upgrade_docgen_directory(
     areas_en: list[dict[str, Any]],
 ) -> None:
     """Enhance doc-gen4 output under _site/docs/ without breaking any relative assets."""
+    # Patch only the mounted output, after raw snapshot verification. Reuse the
+    # existing Lato family for real bold outlines without adding a font source.
+    style_file = docs_out / "style.css"
+    if style_file.is_file():
+        css = style_file.read_text(encoding="utf-8")
+        if DOCGEN_TYPOGRAPHY_CSS not in css:
+            style_file.write_text(css.rstrip() + "\n\n" + DOCGEN_TYPOGRAPHY_CSS, encoding="utf-8")
+
     # 1. Inject return-to-portal links at the top of navbar.html
     navbar_file = docs_out / "navbar.html"
     if navbar_file.is_file():
@@ -3662,7 +3790,7 @@ def upgrade_docgen_directory(
     &nbsp;·&nbsp; <a href="../architecture.html">Architecture</a>
     &nbsp;·&nbsp; <a href="../modules.html">Module Explorer</a>
     &nbsp;·&nbsp; <a href="../papers.html">Bibliography ({bib_count})</a>
-    &nbsp;·&nbsp; <a href="../zh/index.html">简体中文</a>
+    &nbsp;·&nbsp; <a href="../zh/index.html" lang="zh-CN">简体中文</a>
   </p>
   <h1>Qatlib API Reference (<code>doc-gen4</code>)</h1>
   <p>
@@ -4162,6 +4290,33 @@ def build_site(
                     root_prefix=root_prefix,
                     prose_html=contrib_html,
                     toc=contrib_toc,
+                ),
+            ),
+            encoding="utf-8",
+        )
+
+        # One authoritative English release history, with localized portal navigation.
+        changelog_src = repo_root / "CHANGELOG.md"
+        _, changelog_html, changelog_toc = process_markdown_guide(
+            changelog_src, repo_root, lang, root_prefix
+        )
+        changelog_title = UI_STRINGS[lang]["nav_changelog"]
+        (sub_dir / "changelog.html").write_text(
+            render_page_shell(
+                title=changelog_title,
+                lang=lang,
+                page_slug="changelog.html",
+                root_prefix=root_prefix,
+                toolchain_tag=toolchain_tag,
+                wordmark_nav=wordmark_nav,
+                body_html=build_docs_layout(
+                    page_title=changelog_title,
+                    source_rel="CHANGELOG.md",
+                    lang=lang,
+                    page_slug="changelog.html",
+                    root_prefix=root_prefix,
+                    prose_html=changelog_html,
+                    toc=changelog_toc,
                 ),
             ),
             encoding="utf-8",

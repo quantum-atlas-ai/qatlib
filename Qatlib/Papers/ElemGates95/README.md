@@ -6,5 +6,8 @@
 [上级目录](../README.md)
 
 - [BorrowedAnd](BorrowedAnd/README.md)
+- [MainResults](MainResults/README.md)
 - [MultiControl](MultiControl/README.md)
 - [QubitControl](QubitControl/README.md)
+- [ThreeQubit](ThreeQubit/README.md)
+- [Universality](Universality/README.md)

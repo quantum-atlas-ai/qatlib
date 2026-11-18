@@ -18,6 +18,7 @@ Loads compiled `Qatlib` artifacts into the Lean 4 kernel environment via `lake -
 and runs `Lean.collectAxioms` (transitive axiom closure) across all audited declarations.
 
 - **Full library audit** (`lake test` or `lake exe test`): audits all declarations under `Qatlib`.
+- **Strict consumers**: the full invocation first builds `QatlibTests` with warnings as errors.
 - **Targeted module audit** (`lake exe test Qatlib.Foundations.Foo ...`): audits only the named module(s).
 - Both modes import private module data; full mode explicitly loads every module listed in
   `Qatlib.lean`, including private helpers unused by the public interface.
@@ -99,6 +100,16 @@ private def rootAuditModules : IO (Array String) := do
 def main (args : List String) : IO UInt32 := do
   let modArgs := (args.filter (fun a => !a.startsWith "-")).toArray
   let isTargeted := !modArgs.isEmpty
+  unless isTargeted do
+    let consumers ← IO.Process.spawn {
+      cmd := "lake"
+      args := #["--fail-fast", "build", "--wfail", "QatlibTests"]
+      stdin := .inherit
+      stdout := .inherit
+      stderr := .inherit
+    }
+    let rc ← consumers.wait
+    unless rc == 0 do return rc
   let importMods ← if isTargeted then pure modArgs else rootAuditModules
   let scopeMods := if isTargeted then modArgs else #[]
   let keepProbe := args.contains "--keep-probe"

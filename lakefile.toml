@@ -23,6 +23,13 @@ rev = "v4.35.0"
 name = "Qatlib"
 requiresModuleSystem = true
 
+[[lean_lib]]
+name = "QatlibTests"
+srcDir = "verification"
+requiresModuleSystem = true
+globs = ["QatlibTests", "QatlibTests.+"]
+leanOptions = { warningAsError = true }
+
 [[lean_exe]]
 name = "get_cache"
 srcDir = "scripts"

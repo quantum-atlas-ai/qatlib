@@ -5,6 +5,8 @@
 
 [上级目录](../README.md)
 
+- [DlogCRTRecovery](DlogCRTRecovery/README.md)
+- [DlogDivBudget](DlogDivBudget/README.md)
 - [DlogGoodProb](DlogGoodProb/README.md)
 - [DlogSamplingLaw](DlogSamplingLaw/README.md)
 - [FactorAlgorithm](FactorAlgorithm/README.md)
