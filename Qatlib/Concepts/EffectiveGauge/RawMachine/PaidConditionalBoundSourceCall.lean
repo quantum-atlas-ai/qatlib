@@ -39,7 +39,7 @@ private def sourceFrame (saved : Fin 9 → CanonicalCodec.Bits) (out : Canonical
     PaidRationalZero.Slot ⊕ (Fin 9 ⊕ Fin 2) → CanonicalCodec.Bits :=
   Sum.elim (fun _ => []) (Sum.elim saved (Stacks.stackPair [] out))
 
-/-- Original `begin_call` guarantee for the `PaidConditionalBoundSourceCall` construction; the complete source hypotheses are retained. -/
+/-- The conditional bank starts query `i` by writing its canonical bits into the empty source frame and entering the call label with the saved table and output retained. -/
 theorem begin_call {states : ℕ}
     (machine : TM0.Machine CanonicalCodec.TM.Symbol (Fin (states+1)))
     (i : Fin 9) (saved : Fin 9 → CanonicalCodec.Bits) (out : CanonicalCodec.Bits) :
@@ -60,7 +60,7 @@ theorem begin_call {states : ℕ}
     simp only [Stacks.stackClock,sourceState,state,Sum.elim,List.length_nil,Nat.mul_zero,Nat.zero_add,Nat.add_zero]
     exact le_rfl
 
-/-- Original `source_call` guarantee for the `PaidConditionalBoundSourceCall` construction; the complete source hypotheses are retained. -/
+/-- Given a bounded source run on query `i`, the embedded call arrives at the store label with the reversed reply on the source output stack within the call budget. -/
 theorem source_call {states : ℕ}
     (machine : TM0.Machine CanonicalCodec.TM.Symbol (Fin (states+1)))
     (i : Fin 9) (saved : Fin 9 → CanonicalCodec.Bits) (out reply : CanonicalCodec.Bits)
@@ -85,11 +85,11 @@ theorem source_call {states : ℕ}
   · simpa only [RawCall.initial,TM2.init,hdefault,StackCall.cfg,Option.map_some,Option.getD_some,
       sourceState,state,sourceFrame,StackCall.leftFrame] using hnc.trans_le hc
 
-/-- Original `storeCode_injective` guarantee for the `PaidConditionalBoundSourceCall` construction; the complete source hypotheses are retained. -/
+/-- The conditional bank assigns distinct stacks to the source output and the saved destination for reply `i`. -/
 private theorem storeCode_injective (i : Fin 9) : Function.Injective (storeCode i) := by
   intro a b h; fin_cases a <;> fin_cases b <;> simp_all [storeCode]
 
-/-- Original `transfer_call` guarantee for the `PaidConditionalBoundSourceCall` construction; the complete source hypotheses are retained. -/
+/-- For a transfer embedded at the specified labels with distinct source and destination slots, the execution clears the source and prepends its reversal to the destination. For initial source and destination lengths `a` and `b`, the clock cost is at most `a*(2*(a+b)+5)+3`. -/
 theorem transfer_call {states : ℕ}
     (machine : TM0.Machine CanonicalCodec.TM.Symbol (Fin (states+1)))
     (code : Fin 2 → Slot) (hinj : Function.Injective code)
@@ -122,7 +122,7 @@ theorem transfer_call {states : ℕ}
   · simpa only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,hi,hf,hv] using hr
   · simpa only [StackCall.cfg,Option.map_some,Option.getD_some,hi,hv,Stacks.transfer_clock] using hc.le
 
-/-- Original `source_stage` guarantee for the `PaidConditionalBoundSourceCall` construction; the complete source hypotheses are retained. -/
+/-- Given a bounded source run for query `i` and an empty saved slot there, the conditional stage saves the forward reply, clears the source workspace, and reaches the label for the next operation within the stage budget. -/
 theorem source_stage {states : ℕ}
     (machine : TM0.Machine CanonicalCodec.TM.Symbol (Fin (states+1)))
     (i : Fin 9) (saved : Fin 9 → CanonicalCodec.Bits) (out reply : CanonicalCodec.Bits)
@@ -160,7 +160,7 @@ theorem source_stage {states : ℕ}
   rw [hs,ht,List.reverse_reverse,List.append_nil,hf,List.length_reverse] at e3
   simpa only [S,PaidBoundBank.stageBudget,List.length_nil,Nat.add_zero] using ee.trans e3
 
-/-- Original `initial_empty` guarantee for the `PaidConditionalBoundSourceCall` construction; the complete source hypotheses are retained. -/
+/-- The conditional bank initialized on empty input is at the first query label with default registers and empty stacks. -/
 private theorem initial_empty (states : ℕ) :
     (TM2.init sourceRaw [] : Config states)=
       ⟨some (.begin 0),default,sourceState (fun _ => []) [] (fun _ => [])⟩ := by

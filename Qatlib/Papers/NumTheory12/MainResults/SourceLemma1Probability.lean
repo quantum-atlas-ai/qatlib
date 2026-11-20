@@ -53,7 +53,7 @@ open Qatlib.Concepts.PeriodSampling.OrderRecovery
 the order `orderOf a` is even and `a^{orderOf a / 2} : ZMod N` is not `−1`.
 
 Uses the theorem
-`Qatlib.Papers.ShorFactoring97.OrderRecovery.random_base_exact_order_factor_characterization`. -/
+`Qatlib.Concepts.PeriodSampling.OrderRecovery.random_base_exact_order_factor_characterization`. -/
 theorem lemma1_event_characterization (N : ℕ) [NeZero N] (a : (ZMod N)ˣ)
     (hN : 1 < N) (hodd : Odd N) :
     randomBaseGood N a ↔ Even (orderOf a) ∧

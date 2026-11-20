@@ -34,7 +34,9 @@ noncomputable section
 open scoped Quaternion ContDiff
 open Set
 
-/-- Original `rescaledTerminalRatio_zero_y` guarantee for the `SourcePhaseLog` construction; the complete source hypotheses are retained. -/
+/-- For a smooth unit field with accurate spin samples, the rescaled terminal ratio equals one at
+transverse points `(0, z)` for `z ∈ [0, 1]` if the field is constant on the part of the fundamental
+cube outside a subset at positive distance from the boundary. -/
 private theorem rescaledTerminalRatio_zero_y (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (hu : ∀ w, ‖v w‖=1) (source : (Fin 3 → ℚ) × ℕ → RationalSpinSample) (hs : OriginalSpinSourceAccurate v source)
     (m1 m2 : ℚ) (B : Set SpatialPoint) (hB : ∀ w ∈ B, InFundamentalCube w) (mu : ℝ) (hm : 0<mu)
@@ -56,7 +58,12 @@ private theorem rescaledTerminalRatio_zero_y (v : SpatialPoint → SpatialPoint)
     change 0 ≤ mu/2
     positivity
 
-/-- Original `sourcePhaseLog_error` guarantee for the `SourcePhaseLog` construction; the complete source hypotheses are retained. -/
+/-- Suppose a smooth periodic unit field is constant on the part of the fundamental cube
+outside a subset at positive distance from the boundary. Given accurate spin samples and
+certified nonnegative rescaling bounds, phase-log evaluation succeeds at every rational
+unit-square address for positive `tau`. The terminal phase error is at most the recorded bound,
+which is at most `tau`. The run uses the prescribed step count and precision, with total series
+terms at most `r.steps * arctanFuel (tau / (2 * r.steps))`. -/
 theorem sourcePhaseLog_error (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (hu : ∀ w, ‖v w‖=1) (hp : IsPeriodicField v)
     (source : (Fin 3 → ℚ) × ℕ → RationalSpinSample) (hs : OriginalSpinSourceAccurate v source)

@@ -27,7 +27,7 @@ open scoped Quaternion RealInnerProductSpace NNReal Topology
 open Set intervalIntegral
 namespace Qatlib.Concepts.EffectiveGauge.HopfAtlas
 
-/-- Original `physicalPeriod_pos` guarantee for the `PathSpace` construction; the complete source hypotheses are retained. -/
+/-- The physical period is strictly positive, as it is twice π. -/
 theorem physicalPeriod_pos : 0 < physicalPeriod := by
   unfold physicalPeriod
   positivity
@@ -49,16 +49,19 @@ instance : Nonempty TransportTime := ⟨transportStart⟩
 def extendPath {E : Type*} [TopologicalSpace E] (f : C(TransportTime, E)) (t : ℝ) : E :=
   f (projIcc 0 physicalPeriod physicalPeriod_pos.le t)
 
-/-- Original `continuous_extendPath` guarantee for the `PathSpace` construction; the complete source hypotheses are retained. -/
+/-- Extending a continuous path by projecting real times onto the closed transport interval
+gives a continuous function on the real line. -/
 theorem continuous_extendPath {E : Type*} [TopologicalSpace E] (f : C(TransportTime, E)) :
     Continuous (extendPath f) := f.continuous.comp continuous_projIcc
 
-/-- Original `extendPath_on` guarantee for the `PathSpace` construction; the complete source hypotheses are retained. -/
+/-- At a real time belonging to the transport interval, the extended path evaluates to the
+original path at that time. -/
 @[simp] theorem extendPath_on {E : Type*} [TopologicalSpace E] (f : C(TransportTime, E))
     (t : ℝ) (ht : t ∈ Icc 0 physicalPeriod) : extendPath f t=f ⟨t, ht⟩ := by
   simp only [extendPath, projIcc_of_mem physicalPeriod_pos.le ht]
 
-/-- Original `extendPath_coe` guarantee for the `PathSpace` construction; the complete source hypotheses are retained. -/
+/-- Coercing an interval time to the reals and evaluating the extended path gives the original
+path value. -/
 @[simp] theorem extendPath_coe {E : Type*} [TopologicalSpace E] (f : C(TransportTime, E))
     (t : TransportTime) : extendPath f t=f t := extendPath_on f t t.2
 
@@ -66,11 +69,13 @@ theorem continuous_extendPath {E : Type*} [TopologicalSpace E] (f : C(TransportT
 def coefficientEmbedding : CoefficientPath →L[ℝ] QuaternionPath :=
   ContinuousLinearMap.compLeftContinuous ℝ TransportTime spinEmbedding.toContinuousLinearMap
 
-/-- Original `coefficientEmbedding_apply` guarantee for the `PathSpace` construction; the complete source hypotheses are retained. -/
+/-- The quaternion coefficient path at time `t` is the purely imaginary embedding of the vector
+coefficient at `t`. -/
 @[simp] theorem coefficientEmbedding_apply (K : CoefficientPath) (t : TransportTime) :
     coefficientEmbedding K t=spinOfVector (K t) := rfl
 
-/-- Original `coefficientEmbedding_norm` guarantee for the `PathSpace` construction; the complete source hypotheses are retained. -/
+/-- The pointwise imaginary-quaternion embedding preserves the supremum norm of a coefficient
+path. -/
 theorem coefficientEmbedding_norm (K : CoefficientPath) : ‖coefficientEmbedding K‖=‖K‖ := by
   apply le_antisymm
   · apply (ContinuousMap.norm_le _ (norm_nonneg K)).mpr
@@ -90,7 +95,8 @@ private def volterraPath (f : QuaternionPath) : QuaternionPath where
         ((continuous_extendPath f).integral_hasStrictDerivAt 0 t).hasDerivAt.continuousAt
     exact h.comp continuous_subtype_val
 
-/-- Original `volterraPath_norm` guarantee for the `PathSpace` construction; the complete source hypotheses are retained. -/
+/-- The supremum norm of the indefinite integral from zero along a quaternion path is at most
+the physical period times the original supremum norm. -/
 private theorem volterraPath_norm (f : QuaternionPath) : ‖volterraPath f‖ ≤ physicalPeriod*‖f‖ := by
   apply (ContinuousMap.norm_le _ (mul_nonneg physicalPeriod_pos.le (norm_nonneg f))).mpr
   intro t
@@ -123,11 +129,13 @@ def pathVolterra : QuaternionPath →L[ℝ] QuaternionPath :=
         exact integral_smul c (extendPath f) }
     physicalPeriod (by exact volterraPath_norm)
 
-/-- Original `pathVolterra_apply` guarantee for the `PathSpace` construction; the complete source hypotheses are retained. -/
+/-- The Volterra operator evaluates at time `t` as the integral of the extended quaternion path
+from zero to `t`. -/
 @[simp] theorem pathVolterra_apply (f : QuaternionPath) (t : TransportTime) :
     pathVolterra f t = ∫ u in (0 : ℝ)..(t : ℝ), extendPath f u := rfl
 
-/-- Original `pathVolterra_norm_le` guarantee for the `PathSpace` construction; the complete source hypotheses are retained. -/
+/-- The Volterra integration operator on continuous quaternion paths has operator norm at most
+the physical period. -/
 theorem pathVolterra_norm_le : ‖pathVolterra‖ ≤ physicalPeriod := by
   exact LinearMap.mkContinuous_norm_le _ physicalPeriod_pos.le volterraPath_norm
 

@@ -45,7 +45,7 @@ open Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords Qatlib.Foundations.O
 open Qatlib Matrix Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Prep Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords
 open scoped Classical BigOperators Kronecker Matrix.Norms.L2Operator
 
-/-- The finite construction in `HouseholderTableConsumer` satisfies `query_free_evaluate_eq` under the displayed hypotheses. -/
+/-- A word with zero adjoint queries evaluates to the same matrix with any two oracle matrices. -/
 private theorem query_free_evaluate_eq {D : Type} [Fintype D] [DecidableEq D]
     (O U : Matrix D D ℂ) (W : List (AdjointStep D)) (hW : adjointQueryCount W=0) :
     evaluate O W = evaluate U W := by
@@ -59,7 +59,7 @@ private theorem query_free_evaluate_eq {D : Type} [Fintype D] [DecidableEq D]
     | forward => simp [adjointQueryCount] at hW
     | backward => simp [adjointQueryCount] at hW
 
-/-- The finite construction in `HouseholderTableConsumer` satisfies `tablePreparedColumn_sum_sq` under the displayed hypotheses. -/
+/-- The rational amplitudes prepared by the rotation table have squared sum one over all labels, including the origin `none`. -/
 theorem tablePreparedColumn_sum_sq {n : ℕ} (rs : List (Fin n × Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle)) :
     (∑ a, (tablePreparedColumn rs a)^2) = 1 := by
   have hc : tableHouseholder rs *ᵥ Qatlib.Foundations.PureStateMath.Ket none = fun a => (tablePreparedColumn rs a : ℂ) := by
@@ -73,7 +73,7 @@ theorem tablePreparedColumn_sum_sq {n : ℕ} (rs : List (Fin n × Qatlib.Concept
     simpa [Qatlib.Foundations.PureStateMath.Inner, dotProduct, pow_two] using hi
   exact_mod_cast hs
 
-/-- The finite construction in `HouseholderTableConsumer` satisfies `table_column_phase_coefficient` under the displayed hypotheses. -/
+/-- At each label `a`, the phase coefficient for the origin column is the square of the rational amplitude prepared there, multiplied by `φ a`. -/
 theorem table_column_phase_coefficient {n : ℕ} (rs : List (Fin n × Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle))
     (φ : Option (Fin n) → ℂ) (a : Option (Fin n)) :
     columnPhaseCoefficient (tableHouseholder rs) φ none a =
@@ -85,7 +85,7 @@ def tablePrepLiftWord {n : ℕ} (H : Type) [Fintype H] [DecidableEq H]
     (rs : List (Fin n × Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle)) : List (AdjointStep (Option (Fin n) × H)) :=
   phaseLiftWord (prepareRegister (I := H)) (tableHouseholderWord rs)
 
-/-- The finite construction in `HouseholderTableConsumer` satisfies `tablePrepLiftWord_evaluate` under the displayed hypotheses. -/
+/-- For any oracle matrix, the lifted preparation word evaluates to the table Householder matrix on the label register tensored with the identity on `H`. -/
 theorem tablePrepLiftWord_evaluate {n : ℕ} {H : Type} [Fintype H] [DecidableEq H]
     [outer : DecidableEq (Option (Fin n) × H)]
     (rs : List (Fin n × Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle))
@@ -147,7 +147,7 @@ theorem householderInputWord_legal {n : ℕ} {H : Type} [Fintype H] [DecidableEq
     simpa only [Qatlib.Concepts.QspSimulation.Achievability.WellFormedAdjointCircuit.gate_cons_iff, Qatlib.Concepts.QspSimulation.Achievability.WellFormedAdjointCircuit.nil, and_true] using hD
   exact ((hp.adjointCircuit.append hW).append hd).append hp
 
-/-- The finite construction in `HouseholderTableConsumer` satisfies `householderInputWord_evaluate` under the displayed hypotheses. -/
+/-- For any oracle, the Householder input word evaluates to the same matrix as the input-phase column word with preparation matrix `tableHouseholder rs`. -/
 theorem householderInputWord_evaluate {n : ℕ} {H : Type} [Fintype H] [DecidableEq H]
     [outer : DecidableEq (Option (Fin n) × H)]
     (rs : List (Fin n × Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle)) (φ : Option (Fin n) → ℂ)

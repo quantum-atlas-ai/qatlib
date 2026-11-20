@@ -27,7 +27,7 @@ open scoped Quaternion ContDiff
 namespace Qatlib.Concepts.EffectiveGauge.SpectralH1
 open Qatlib.Concepts.EffectiveGauge.HopfAtlas Qatlib.Concepts.EffectiveGauge.RationalFlow Qatlib.Concepts.EffectiveGauge.TorusFourier
 
-/-- Original `quaternion_norm_sq_eq_coordinate_sum` guarantee for the `QuaternionH1Energy` construction; the complete source hypotheses are retained. -/
+/-- The squared quaternion norm equals the sum of squares of the norms of its four real coordinates. -/
 theorem quaternion_norm_sq_eq_coordinate_sum (q : ℍ) :
     ‖q‖^2=∑ j : Fin 4, ‖quaternionCoordinateCLM j q‖^2 := by
   have h := Quaternion.normSq_eq_norm_mul_self q
@@ -37,7 +37,8 @@ theorem quaternion_norm_sq_eq_coordinate_sum (q : ℍ) :
   simp only [Real.norm_eq_abs,sq_abs]
   nlinarith
 
-/-- Original `unitBoxEnergy_coordinates` guarantee for the `QuaternionH1Energy` construction; the complete source hypotheses are retained. -/
+/-- The unit-box energy of a continuous quaternion field is the sum of its four scalar coordinate
+energies. -/
 theorem unitBoxEnergy_coordinates (Q : QuaternionField) (hQ : Continuous Q) :
     unitBoxEnergy Q=∑ j : Fin 4, unitBoxEnergy (fun x => quaternionCoordinateCLM j (Q x)) := by
   simp_rw [unitBoxEnergy_eq_unitCubeIntegral]
@@ -50,7 +51,8 @@ theorem unitBoxEnergy_coordinates (Q : QuaternionField) (hQ : Continuous Q) :
   apply integral_congr_ae
   exact Filter.Eventually.of_forall (fun u => quaternion_norm_sq_eq_coordinate_sum (Q (WithLp.toLp 2 u)))
 
-/-- Original `unitFieldH1Energy_coordinates` guarantee for the `QuaternionH1Energy` construction; the complete source hypotheses are retained. -/
+/-- The unit-field H¹ energy of a smooth quaternion field is the sum of the unit-field H¹ energies
+of its four coordinates. -/
 theorem unitFieldH1Energy_coordinates (Q : QuaternionField) (hQ : ContDiff ℝ ∞ Q) :
     unitFieldH1Energy Q=∑ j : Fin 4, unitFieldH1Energy (fun x => quaternionCoordinateCLM j (Q x)) := by
   unfold unitFieldH1Energy
@@ -65,7 +67,7 @@ theorem unitFieldH1Energy_coordinates (Q : QuaternionField) (hQ : ContDiff ℝ �
   simp_rw [hgrad]
   rw [Finset.sum_comm,Finset.sum_div,Finset.sum_add_distrib]
 
-/-- Original `unitBoxEnergy_re_le` guarantee for the `QuaternionH1Energy` construction; the complete source hypotheses are retained. -/
+/-- Taking the real part of a continuous complex field can only decrease its unit-box energy. -/
 theorem unitBoxEnergy_re_le (f : SpatialPoint → ℂ) (hf : Continuous f) :
     unitBoxEnergy (fun x => (f x).re) ≤ unitBoxEnergy f := by
   rw [unitBoxEnergy_eq_unitCubeIntegral,unitBoxEnergy_eq_unitCubeIntegral]
@@ -82,7 +84,7 @@ theorem unitBoxEnergy_re_le (f : SpatialPoint → ℂ) (hf : Continuous f) :
   apply (sq_le_sq₀ (norm_nonneg ((f (WithLp.toLp 2 u)).re)) (norm_nonneg (f (WithLp.toLp 2 u)))).mpr
   simpa only [Real.norm_eq_abs] using Complex.abs_re_le_norm (f (WithLp.toLp 2 u))
 
-/-- Original `unitFieldH1Energy_re_le` guarantee for the `QuaternionH1Energy` construction; the complete source hypotheses are retained. -/
+/-- Taking the real part of a smooth complex field can only decrease its unit-field H¹ energy. -/
 theorem unitFieldH1Energy_re_le (f : SpatialPoint → ℂ) (hf : ContDiff ℝ ∞ f) :
     unitFieldH1Energy (fun x => (f x).re) ≤ unitFieldH1Energy f := by
   unfold unitFieldH1Energy

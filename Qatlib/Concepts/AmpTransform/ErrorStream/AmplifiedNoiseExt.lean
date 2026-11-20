@@ -19,7 +19,7 @@ them using fresh protected observations, and records all costs in `RecoveryTrace
 The module relates these executable traces to finite Bernoulli distributions and to explicit
 threshold sampling from fair-bit tapes.
 
-`frontier1` collects the transport, identification, and resource results. Fixed noise can leave
+`amplified_noise_transport_and_resampling_resources` collects the transport, identification, and resource results. Fixed noise can leave
 distinct planted periods indistinguishable; under the stated legality and marking assumptions,
 protected resampling instead yields the failure bound `B * pmax ^ t` and excludes a wrong
 returned period.
@@ -31,7 +31,7 @@ The error-stream setting is developed in [Cornwell2014].
 * `Multi.candidate_survival_probability`: exact survival probability from candidate separation.
 * `actualFailureMass_le`: a public failure bound for executable fallback recovery.
 * `Effective.roundsRun_fiber`: exact transport from fair tapes to Bernoulli rounds.
-* `frontier1`: the combined recovery and resource package.
+* `amplified_noise_transport_and_resampling_resources`: the combined recovery and resource package.
 
 ## References
 
@@ -2279,7 +2279,7 @@ theorem public_tail_tendsto (B : ℕ) (pmax : ℝ) (h0 : 0≤pmax) (h1 : pmax<1)
 
 /-- Combine raw Bernoulli transport, effective sampling, fixed-candidate transport, protected
 identification, and resource accounting into one result. -/
-theorem frontier1 :
+theorem amplified_noise_transport_and_resampling_resources :
     RawBernoulliTransport ∧ EffectiveBernoulliTransport ∧ FixedCandidateTransport ∧
       ProtectedResamplingIdentification ∧ SameRunResources :=
   ⟨rawBernoulliTransport,effectiveBernoulliTransport,fixedCandidateTransport,

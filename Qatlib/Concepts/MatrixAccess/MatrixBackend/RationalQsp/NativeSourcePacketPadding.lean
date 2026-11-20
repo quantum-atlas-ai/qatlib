@@ -39,7 +39,8 @@ def sourcePaddingHalves : ℕ → List GaussianRat
   | 0 => []
   | k+1 => (1,0)::(0,1)::sourcePaddingHalves k
 
-/-- The finite construction in `NativeSourcePacketPadding` satisfies `sourcePaddingHalves_eq_repeat` under the displayed hypotheses. -/
+/-- Padding with k pairs gives exactly k repetitions of the ordered Gaussian-rational pair (1, 0),
+(0, 1). -/
 theorem sourcePaddingHalves_eq_repeat (k : ℕ) :
     sourcePaddingHalves k=(List.replicate k ([(1,0),(0,1)] : List GaussianRat)).flatten := by
   induction k with
@@ -52,7 +53,7 @@ theorem sourcePaddingHalves_length (k : ℕ) : (sourcePaddingHalves k).length=2*
   | zero => rfl
   | succ k ih => simp only [sourcePaddingHalves,List.length_cons,ih]; omega
 
-/-- The finite construction in `NativeSourcePacketPadding` satisfies `sourcePaddingHalves_norm` under the displayed hypotheses. -/
+/-- Every rational half phase in the padding list has complex norm one for any number of pairs. -/
 theorem sourcePaddingHalves_norm (k : ℕ) : ∀ u∈sourcePaddingHalves k,‖gaussianRatComplex u‖=1 := by
   induction k with
   | zero => simp [sourcePaddingHalves]
@@ -64,7 +65,8 @@ theorem sourcePaddingHalves_norm (k : ℕ) : ∀ u∈sourcePaddingHalves k,‖ga
     · subst u; norm_num [gaussianRatComplex]
     · exact ih u hu
 
-/-- The finite construction in `NativeSourcePacketPadding` satisfies `sourceRotor_pair_cancel` under the displayed hypotheses. -/
+/-- If s squared equals one minus x squared, the equatorial rotors at coordinates 1 and −1
+multiply in that order to the identity. -/
 theorem sourceRotor_pair_cancel (x s : ℝ) (hs : s*s=1-x*x) :
     equatorialRotor 1 x s*equatorialRotor (-1) x s=1 := by
   have hstar : equatorialRotor (-1) x s=(equatorialRotor 1 x s).conjTranspose := by
@@ -73,7 +75,8 @@ theorem sourceRotor_pair_cancel (x s : ℝ) (hs : s*s=1-x*x) :
   rw [hstar]
   simpa only [Matrix.star_eq_conjTranspose] using (sourceRotor_unitary 1 (by norm_num) x s hs).2
 
-/-- The finite construction in `NativeSourcePacketPadding` satisfies `sourcePaddingHalves_product` under the displayed hypotheses. -/
+/-- When s squared equals one minus x squared, the rotor product of the squared padding
+coordinates is the identity for every k. -/
 theorem sourcePaddingHalves_product (k : ℕ) (x s : ℝ) (hs : s*s=1-x*x) :
     equatorialRotorProduct ((sourcePaddingHalves k).map (fun u => (gaussianRatComplex u)^2)) x s=1 := by
   induction k with
@@ -86,7 +89,8 @@ theorem sourcePaddingHalves_product (k : ℕ) (x s : ℝ) (hs : s*s=1-x*x) :
     norm_num [gaussianRatComplex]
     exact sourceRotor_pair_cancel x s hs
 
-/-- The finite construction in `NativeSourcePacketPadding` satisfies `sourceAppendPadding_product` under the displayed hypotheses. -/
+/-- Appending padding leaves the rotor product of the squared half phases unchanged at every x and
+s with s squared equal to one minus x squared. -/
 theorem sourceAppendPadding_product (us : List GaussianRat) (k : ℕ) (x s : ℝ) (hs : s*s=1-x*x) :
     equatorialRotorProduct ((us++sourcePaddingHalves k).map (fun u => (gaussianRatComplex u)^2)) x s=
       equatorialRotorProduct (us.map (fun u => (gaussianRatComplex u)^2)) x s := by

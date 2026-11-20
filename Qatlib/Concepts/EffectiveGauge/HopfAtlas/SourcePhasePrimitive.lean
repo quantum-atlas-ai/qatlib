@@ -21,13 +21,15 @@ open intervalIntegral
 namespace Qatlib.Concepts.EffectiveGauge.HopfAtlas
 open Qatlib.Concepts.EffectiveGauge.RationalFlow
 
-/-- Original `contDiff_sourceUnitRealPhase` guarantee for the `SourcePhasePrimitive` construction; the complete source hypotheses are retained. -/
+/-- For a smooth vector source and a unit seed, the normalized real terminal phase is a smooth
+spatial field. -/
 theorem contDiff_sourceUnitRealPhase (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (q₀ : ℍ) (h₀ : ‖q₀‖=1) : ContDiff ℝ ∞ (sourceUnitRealPhase v hv q₀ h₀) :=
   (contDiff_terminalRealPhase v hv q₀ h₀).comp
     ((contDiff_id.const_smul physicalPeriod).comp spatialTransverseProjection.contDiff)
 
-/-- Original `spatialTransverseProjection_face_one` guarantee for the `SourcePhasePrimitive` construction; the complete source hypotheses are retained. -/
+/-- Projecting onto the transverse coordinates after setting spatial coordinate `1` to `a` replaces
+the first transverse coordinate by `a` and preserves the second. -/
 theorem spatialTransverseProjection_face_one (a : ℝ) (x : SpatialPoint) :
     spatialTransverseProjection (coordinateFace 1 a x)=
       transversePair (a,(spatialTransverseProjection x) 1) := by
@@ -36,7 +38,8 @@ theorem spatialTransverseProjection_face_one (a : ℝ) (x : SpatialPoint) :
   · exact coordinateFace_same 1 a x
   · exact coordinateFace_other 1 2 a x (by decide)
 
-/-- Original `circleLogPrimitive_y_partial` guarantee for the `SourcePhasePrimitive` construction; the complete source hypotheses are retained. -/
+/-- The derivative of the anchored circle log primitive in its first transverse direction is the
+circle angular rate at that point for any smooth quaternion field. -/
 theorem circleLogPrimitive_y_partial (k : TransversePoint → ℍ) (hk : ContDiff ℝ ∞ k)
     (p : TransversePoint) :
     fderiv ℝ (circleLogPrimitive k) p (EuclideanSpace.single 0 1)=circleAngularRate k p := by
@@ -47,7 +50,9 @@ theorem circleLogPrimitive_y_partial (k : TransversePoint → ℍ) (hk : ContDif
   have he := hd.unique (circleLogPrimitive_hasDerivAt hk (p 1) (p 0))
   simpa only [hp] using he
 
-/-- Original `spatialWordPartial_scalar_transversePullback` guarantee for the `SourcePhasePrimitive` construction; the complete source hypotheses are retained. -/
+/-- For a smooth scalar function of two transverse coordinates, differentiating its spatial
+pullback along direction `1` equals differentiating the function along its first transverse axis at
+the projected point. -/
 theorem spatialWordPartial_scalar_transversePullback (f : TransversePoint → ℝ)
     (hf : ContDiff ℝ ∞ f) (x : SpatialPoint) :
     spatialWordPartial (fun y => f (spatialTransverseProjection y)) [1] x=
@@ -59,7 +64,8 @@ theorem spatialWordPartial_scalar_transversePullback (f : TransversePoint → �
   rw [hd.fderiv]
   simp only [ContinuousLinearMap.comp_apply,spatialTransverseProjection_axis_one]
 
-/-- Original `sourceUnitRealPhase_y_partial` guarantee for the `SourcePhasePrimitive` construction; the complete source hypotheses are retained. -/
+/-- For a smooth unit source and unit seed, differentiating the normalized terminal phase along
+spatial axis `1` gives the angular rate of the normalized terminal ratio in that direction. -/
 theorem sourceUnitRealPhase_y_partial (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (hu : ∀ x, ‖v x‖=1) (q₀ : ℍ) (h₀ : ‖q₀‖=1) :
     spatialWordPartial (sourceUnitRealPhase v hv q₀ h₀) [1]=

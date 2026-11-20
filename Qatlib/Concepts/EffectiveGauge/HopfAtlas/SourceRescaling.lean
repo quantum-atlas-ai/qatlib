@@ -48,22 +48,25 @@ def rescaledChargedSamples (source : (Fin 3 → ℚ) × ℕ → RationalSpinSamp
   let answer := source (fun j => length*label.1 j,b)
   ((answer.1.1,fun j => length*answer.1.2 j),answer.2)
 
-/-- Original `rescaledChargedSamples_value` guarantee for the `SourceRescaling` construction; the complete source hypotheses are retained. -/
+/-- The value component of a charged rescaled sample equals the rescaled spin sample obtained
+from the value-only source. -/
 theorem rescaledChargedSamples_value (source : (Fin 3 → ℚ) × ℕ → RationalSpinSample × ℕ)
     (m1 m2 : ℚ) (label : (Fin 3 → ℚ) × ℕ) :
     (rescaledChargedSamples source m1 m2 label).1=rescaledSpinSamples (fun q => (source q).1) m1 m2 label := rfl
 
-/-- Original `rescaledChargedSamples_fee` guarantee for the `SourceRescaling` construction; the complete source hypotheses are retained. -/
+/-- A charged rescaled query records exactly the fee supplied by the source at the modified
+coordinate and precision label. -/
 theorem rescaledChargedSamples_fee (source : (Fin 3 → ℚ) × ℕ → RationalSpinSample × ℕ)
     (m1 m2 : ℚ) (label : (Fin 3 → ℚ) × ℕ) :
     (rescaledChargedSamples source m1 m2 label).2=(source (rescaleSourceQuery m1 m2 label)).2 := rfl
 
-/-- Original `rescaleSourceOverhead_bound` guarantee for the `SourceRescaling` construction; the complete source hypotheses are retained. -/
+/-- The dyadic factor at the rescaling overhead dominates `128 * (m1 + m2 + 1)`. -/
 theorem rescaleSourceOverhead_bound (m1 m2 : ℚ) : 128*(m1+m2+1) ≤ (2^rescaleSourceOverhead m1 m2 : ℚ) := by
   have h : Nat.ceil (128*(m1+m2+1)) ≤ 2^rescaleSourceOverhead m1 m2 := Nat.le_pow_clog (by decide) _
   exact (Nat.le_ceil _).trans (by exact_mod_cast h)
 
-/-- Original `rescaleSourceOverhead_budget` guarantee for the `SourceRescaling` construction; the complete source hypotheses are retained. -/
+/-- Adding the rescaling overhead to the precision offsets the error factor
+`128 * (m1 + m2 + 1)`, leaving at most the original dyadic budget. -/
 theorem rescaleSourceOverhead_budget (m1 m2 : ℚ) (b : ℕ) :
     (128*(m1+m2+1))*(2^(b+rescaleSourceOverhead m1 m2) : ℚ)⁻¹ ≤ (2^b : ℚ)⁻¹ := by
   have h := rescaleSourceOverhead_bound m1 m2
@@ -121,7 +124,7 @@ theorem SourceAllRescalingBounds.directional (v : SpatialPoint → SpatialPoint)
 theorem SourceAllRescalingBounds.legacy (v : SpatialPoint → SpatialPoint) (m1 m2 : ℝ)
     (h : SourceAllRescalingBounds v m1 m2) : SourceRescalingBounds v m1 m2 := ⟨h.1,h.2 0⟩
 
-/-- Original `cube_convex` guarantee for the `SourceRescaling` construction; the complete source hypotheses are retained. -/
+/-- The fundamental cube is a convex subset of real three-dimensional space. -/
 private theorem cube_convex : Convex ℝ {x : SpatialPoint | InFundamentalCube x} := by
   intro a ha b hb r s hr hs hrs i
   change 0 ≤ r*a i+s*b i ∧ r*a i+s*b i ≤ physicalPeriod
@@ -130,7 +133,8 @@ private theorem cube_convex : Convex ℝ {x : SpatialPoint | InFundamentalCube x
   · have hscale : r*physicalPeriod+s*physicalPeriod=physicalPeriod := by rw [← add_mul,hrs,one_mul]
     nlinarith [mul_nonneg hr (sub_nonneg.mpr (ha i).2),mul_nonneg hs (sub_nonneg.mpr (hb i).2)]
 
-/-- Original `clm_axes_bound` guarantee for the `SourceRescaling` construction; the complete source hypotheses are retained. -/
+/-- If a continuous linear map has norms at most `C ≥ 0` on all three coordinate basis vectors,
+its operator norm is at most `3 * C`. -/
 private theorem clm_axes_bound (D : SpatialPoint →L[ℝ] SpatialPoint) (C : ℝ) (hC : 0 ≤ C)
     (hD : ∀ i, ‖D (EuclideanSpace.single i 1)‖ ≤ C) : ‖D‖ ≤ 3*C := by
   apply D.opNorm_le_bound (by positivity)
@@ -151,7 +155,8 @@ private theorem clm_axes_bound (D : SpatialPoint →L[ℝ] SpatialPoint) (C : �
       exact mul_le_mul (PiLp.norm_apply_le z i) (hD i) (norm_nonneg _) (norm_nonneg _)
     _ = (3*C)*‖z‖ := by rw [Fin.sum_univ_three]; ring
 
-/-- Original `source_cube_lipschitz` guarantee for the `SourceRescaling` construction; the complete source hypotheses are retained. -/
+/-- A smooth vector field whose three coordinate derivatives on the fundamental cube have norm
+at most `C ≥ 0` is `3 * C` -Lipschitz between points of the cube. -/
 private theorem source_cube_lipschitz (f : SpatialPoint → SpatialPoint) (hf : ContDiff ℝ ∞ f)
     (C : ℝ) (hC : 0 ≤ C)
     (hD : ∀ x, InFundamentalCube x → ∀ i, ‖fderiv ℝ f x (EuclideanSpace.single i 1)‖ ≤ C)
@@ -160,21 +165,24 @@ private theorem source_cube_lipschitz (f : SpatialPoint → SpatialPoint) (hf : 
   Convex.norm_image_sub_le_of_norm_fderiv_le (fun x _ => hf.differentiable (by simp) x)
     (fun x hx => clm_axes_bound _ C hC (hD x hx)) cube_convex ha hb
 
-/-- Original `vector_coords_bound` guarantee for the `SourceRescaling` construction; the complete source hypotheses are retained. -/
+/-- A spatial vector with all coordinate magnitudes at most `e ≥ 0` has Euclidean norm at most
+`2 * e`. -/
 private theorem vector_coords_bound (z : SpatialPoint) (e : ℝ) (he : 0 ≤ e)
     (hz : ∀ i, |z i| ≤ e) : ‖z‖ ≤ 2*e := by
   have h := pure_coordinate_norm_le (spinOfVector z) rfl e he (hz 0) (hz 1) (hz 2)
   rw [spinOfVector_norm] at h
   linarith
 
-/-- Original `scaled_unit_in_cube` guarantee for the `SourceRescaling` construction; the complete source hypotheses are retained. -/
+/-- Scaling a rational point of the unit cube by any factor between zero and the physical period
+gives a point of the physical fundamental cube. -/
 private theorem scaled_unit_in_cube (a : Fin 3 → ℚ) (ha : ∀ i, (a i : ℝ) ∈ Icc 0 1)
     (r : ℝ) (hr : 0 ≤ r ∧ r ≤ physicalPeriod) : InFundamentalCube (r • rationalSpatialPoint a) := by
   intro i
   change 0 ≤ r*(a i : ℝ) ∧ r*(a i : ℝ) ≤ physicalPeriod
   exact ⟨mul_nonneg hr.1 (ha i).1,(mul_le_mul_of_nonneg_left (ha i).2 hr.1).trans (by simpa using hr.2)⟩
 
-/-- Original `rescaleSourceQuery_cast` guarantee for the `SourceRescaling` construction; the complete source hypotheses are retained. -/
+/-- The rescaled query point casts to the original rational point multiplied by the lower period
+approximation at the requested precision plus overhead. -/
 theorem rescaleSourceQuery_cast (m1 m2 : ℚ) (a : Fin 3 → ℚ) (b : ℕ) :
     rationalSpatialPoint (rescaleSourceQuery m1 m2 (a,b)).1=
       (periodLower (b+rescaleSourceOverhead m1 m2) : ℝ) • rationalSpatialPoint a := by
@@ -182,7 +190,8 @@ theorem rescaleSourceQuery_cast (m1 m2 : ℚ) (a : Fin 3 → ℚ) (b : ℕ) :
   change ((periodLower (b+rescaleSourceOverhead m1 m2)*a i : ℚ) : ℝ)=_
   exact Rat.cast_mul _ _
 
-/-- Original `rescaleSourceQuery_legal` guarantee for the `SourceRescaling` construction; the complete source hypotheses are retained. -/
+/-- For a rational point of the unit cube, the rescaled query sends coordinates in the closed
+physical period interval. -/
 theorem rescaleSourceQuery_legal (m1 m2 : ℚ) (a : Fin 3 → ℚ) (b : ℕ)
     (ha : ∀ i, (a i : ℝ) ∈ Icc 0 1) :
     ∀ i, 0 ≤ ((rescaleSourceQuery m1 m2 (a,b)).1 i : ℝ) ∧

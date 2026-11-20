@@ -35,39 +35,44 @@ def quaternionCoordinateCLM (j : Fin 4) : ℍ →L[ℝ] ℝ :=
 def quaternionComplexCoordinateCLM (j : Fin 4) : ℍ →L[ℝ] ℂ :=
   Complex.ofRealCLM.comp (quaternionCoordinateCLM j)
 
-/-- Original `quaternionCoordinateCLM_norm_le` guarantee for the `GaugeCoordinates` construction; the complete source hypotheses are retained. -/
+/-- The absolute value of each real coordinate of a quaternion is bounded by its quaternion
+norm. -/
 theorem quaternionCoordinateCLM_norm_le (j : Fin 4) (q : ℍ) :
     ‖quaternionCoordinateCLM j q‖ ≤ ‖q‖ := by
   have h := PiLp.norm_apply_le (Quaternion.linearIsometryEquivTuple q) j
   change ‖(Quaternion.linearIsometryEquivTuple q) j‖ ≤ ‖q‖
   simpa only [LinearIsometryEquiv.norm_map] using h
 
-/-- Original `quaternionComplexCoordinateCLM_norm_le` guarantee for the `GaugeCoordinates` construction; the complete source hypotheses are retained. -/
+/-- The complex norm of a quaternion coordinate embedded as a real number is bounded by the norm
+of the quaternion. -/
 theorem quaternionComplexCoordinateCLM_norm_le (j : Fin 4) (q : ℍ) :
     ‖quaternionComplexCoordinateCLM j q‖ ≤ ‖q‖ := by
   change ‖((quaternionCoordinateCLM j q : ℝ) : ℂ)‖ ≤ ‖q‖
   rw [Complex.norm_real]
   exact quaternionCoordinateCLM_norm_le j q
 
-/-- Original `rationalQuaternionCoordinate_cast` guarantee for the `GaugeCoordinates` construction; the complete source hypotheses are retained. -/
+/-- Extracting a real coordinate after casting a rational quaternion gives the real cast of the
+corresponding rational coordinate. -/
 theorem rationalQuaternionCoordinate_cast (q : Quaternion ℚ) (j : Fin 4) :
     (rationalQuaternionCoordinate q j : ℝ)=quaternionCoordinateCLM j (rationalQuaternionCast q) := by
   fin_cases j <;> rfl
 
-/-- Original `rationalQuaternionCoordinate_complex_cast` guarantee for the `GaugeCoordinates` construction; the complete source hypotheses are retained. -/
+/-- Extracting a complex coordinate after casting a rational quaternion gives the complex cast
+of the corresponding rational coordinate. -/
 theorem rationalQuaternionCoordinate_complex_cast (q : Quaternion ℚ) (j : Fin 4) :
     ((rationalQuaternionCoordinate q j : ℚ) : ℂ)=
       quaternionComplexCoordinateCLM j (rationalQuaternionCast q) := by
   rw [← Complex.ofReal_ratCast,rationalQuaternionCoordinate_cast]
   rfl
 
-/-- Original `quaternionComplexCoordinate_error` guarantee for the `GaugeCoordinates` construction; the complete source hypotheses are retained. -/
+/-- Taking a complex-valued quaternion coordinate is 1-Lipschitz in the quaternion norm. -/
 theorem quaternionComplexCoordinate_error (j : Fin 4) (a b : ℍ) :
     ‖quaternionComplexCoordinateCLM j a-quaternionComplexCoordinateCLM j b‖ ≤ ‖a-b‖ := by
   rw [← map_sub]
   exact quaternionComplexCoordinateCLM_norm_le j (a-b)
 
-/-- Original `quaternionComplexCoordinate_word_bound` guarantee for the `GaugeCoordinates` construction; the complete source hypotheses are retained. -/
+/-- For a smooth quaternion field with its iterated partial along `w` bounded everywhere by `M`,
+the same iterated partial of each complex-valued coordinate is also bounded by `M`. -/
 theorem quaternionComplexCoordinate_word_bound (Q : QuaternionField) (hQ : ContDiff ℝ ∞ Q)
     (j : Fin 4) (w : List (Fin 3)) (M : ℝ)
     (hM : ∀ x, ‖spatialWordPartial Q w x‖ ≤ M) (x : SpatialPoint) :

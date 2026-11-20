@@ -77,7 +77,8 @@ noncomputable section
 open scoped BigOperators
 open Qatlib
 
-/-- Complete original `correlation_plan_copy_account` guarantee for `CorrelationPlan`; all source hypotheses and output obligations are retained. -/
+/-- The copy count stored by the correlation planner equals the total dictated by its mode,
+records per cohort, and block count. -/
 theorem correlation_plan_copy_account (M : ℕ) (rootM ε ρ : ℚ) :
     let p := correlationPlanQ M rootM ε ρ
     p.copies=scheduledCopies p := by
@@ -85,7 +86,7 @@ theorem correlation_plan_copy_account (M : ℕ) (rootM ε ρ : ℚ) :
   dsimp only [correlationPlanQ]
   split_ifs <;> rfl
 
-/-- Complete original `correlation_plan_odd_blocks` guarantee for `CorrelationPlan`; all source hypotheses and output obligations are retained. -/
+/-- Every correlation plan whose mode is other than zero has a positive odd block count. -/
 theorem correlation_plan_odd_blocks (M : ℕ) (rootM ε ρ : ℚ) :
     let p := correlationPlanQ M rootM ε ρ
     p.mode≠.zero → 0<p.blocks ∧ p.blocks%2=1 := by
@@ -99,7 +100,9 @@ theorem correlation_plan_odd_blocks (M : ℕ) (rootM ε ρ : ℚ) :
 
 variable {S : Type} [Fintype S] [Nonempty S] [DecidableEq S]
 
-/-- Complete original `signed_planned_fallback_confidence` guarantee for `CorrelationPlan`; all source hypotheses and output obligations are retained. -/
+/-- For bounded spin means and a site permutation, the scheduled median of independent spin
+U-statistic blocks exceeds error `ε` from the permuted site correlation with probability at most
+`ρ`. The bound uses positive `ε` and `ρ` and a square-root upper bound on the site count. -/
 theorem signed_planned_fallback_confidence (τ : Equiv.Perm S)
     (m : S → ℝ) (hm : ∀ x, |m x|≤1) (rootM ε ρ : ℚ)
     (hroot : Real.sqrt (Fintype.card S : ℝ)≤(rootM : ℝ))
@@ -122,7 +125,8 @@ theorem signed_planned_fallback_confidence (τ : Equiv.Perm S)
 -- For current-square, identity-shift spinStatisticQ is exactly the literal
 -- alpha=1,beta=0 velocity U-statistic, including self-pair subtraction.
 omit [Nonempty S] in
-/-- Complete original `current_fallback_statistic_eq` guarantee for `CorrelationPlan`; all source hypotheses and output obligations are retained. -/
+/-- On the same indexed records, the velocity statistic with zero field and coefficients
+`(1, 0)` equals the spin statistic at the identity permutation. -/
 theorem current_fallback_statistic_eq {n : ℕ} (r : Fin n → S × Bool) :
     velocityStatisticQ (Fintype.card S) (List.ofFn r) (fun _ => 0) 1 0 =
       spinStatisticQ (Fintype.card S) (List.ofFn r) id := by

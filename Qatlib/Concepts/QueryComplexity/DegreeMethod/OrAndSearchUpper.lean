@@ -612,7 +612,7 @@ theorem search_exactMinimum (n : ℕ) : searchExactMinimum n=n := by
 
 /-- Collects correctness and feasibility of first-marked search together with the exact and
 zero-error minimum query counts for OR, AND, and search. -/
-theorem frontier1 (n : ℕ) :
+theorem first_marked_search_and_or_and_query_minima (n : ℕ) :
     (∀ x : Fin n → Bool,FirstSpec x (firstMarked n x)) ∧
     SearchFirstFeasible n ∧
     SearchExactFeasible n n ∧

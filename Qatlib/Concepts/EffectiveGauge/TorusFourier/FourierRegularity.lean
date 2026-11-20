@@ -55,7 +55,7 @@ theorem smooth_pureWord_cube_bound (f : SpatialPoint → ℂ) (hf : ContDiff ℝ
     _ ≤ M := hM _ hbox
     _ ≤ max 0 M := le_max_right _ _
 
-/-- Original `unitFourierCoefficient_radius_decay` guarantee for the `FourierRegularity` construction; the complete source hypotheses are retained. -/
+/-- For a smooth unit-periodic field, if every pure order-`n` coordinate derivative has norm at most `M` on the unit cube, the coefficient at any nonzero `k` has norm at most `(M/physicalPeriod^n) * (frequencyRadius k)^(-n)`. -/
 theorem unitFourierCoefficient_radius_decay (f : SpatialPoint → ℂ) (hf : ContDiff ℝ ∞ f)
     (hp : IsUnitPeriodicField f) (k : SpatialFrequency) (hk : k≠0) (n : ℕ) (M : ℝ)
     (hb : ∀ i x, InUnitCube x → ‖spatialWordPartial f (List.replicate n i) x‖ ≤ M) :

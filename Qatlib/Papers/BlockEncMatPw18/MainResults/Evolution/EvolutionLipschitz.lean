@@ -24,7 +24,7 @@ Lemma 50, printed p. 55 (Appendix A), attributed to Chakraborty--Gilyén--Jeffer
 `‖e^{itH} - e^{itH'}‖ ≤ |t| · ‖H - H'‖` in the L2 operator norm.
 
 The library proves exactly this as
-`Qatlib.Papers.QSingValue19.HamiltonianSim.hermitianEvolutionLipschitz_answer`
+`Qatlib.Concepts.QsvtCore.HamiltonianSim.hermitianEvolutionLipschitz_answer`
 (full proof by the Duhamel integral) in the convention
 `HamiltonianEvolution H t = e^{-iHt}`; the printed `e^{itH}` is obtained with
 `t ↦ -t`.  The bridge below only fixes the sign convention.
@@ -50,7 +50,7 @@ def paperEvo {I : Type} [Fintype I] [DecidableEq I]
 `‖e^{itH} - e^{itH'}‖ ≤ |t| · ‖H - H'‖`.
 
 The corresponding library theorem is
-`Qatlib.Papers.QSingValue19.HamiltonianSim.hermitianEvolutionLipschitz_answer`,
+`Qatlib.Concepts.QsvtCore.HamiltonianSim.hermitianEvolutionLipschitz_answer`,
 which proves the library contract `HermitianEvolutionLipschitz` by the Duhamel
 integral (both evolution factors unitary, C*-identity, integrate `[0, t]`). -/
 theorem lemma50_evolution_lipschitz {I : Type} [Fintype I] [DecidableEq I]

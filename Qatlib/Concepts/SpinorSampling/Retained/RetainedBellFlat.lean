@@ -38,7 +38,7 @@ noncomputable section
 open scoped BigOperators Classical
 open Qatlib ShiftCircuit NativeBridge
 
-/-- Complete original `native_h_update` guarantee for `RetainedBellFlat`; all source hypotheses and output obligations are retained. -/
+/-- The Hadamard amplitude at x is the sum of the two input amplitudes obtained by setting the chosen bit to false and true, with the second signed by the output bit and the sum divided by √2. -/
 theorem native_h_update {N : ℕ} (f : QState (Reg N)) (w : Fin N) (x : Reg N) :
     ApplyGate (wireGate N w Hadamard) f x=
       (f (Function.update x w false)+(if x w then (-1 : ℂ) else 1)*
@@ -98,7 +98,7 @@ def restFactor (e : I × Bool → Fin N) (i : I) (f : I → QState (Reg 2))
     (u : unusedWires e → Bool → ℂ) (σ : Reg N) : ℂ :=
   (∏ j ∈ Finset.univ.erase i,f j (pairSite e σ j))*(∏ w : unusedWires e,u w (σ w.val))
 
-/-- Complete original `paired_state_split` guarantee for `RetainedBellFlat`; all source hypotheses and output obligations are retained. -/
+/-- At any register assignment, the product-state amplitude factors into the amplitude of the selected pair and the contribution of all other pairs and unused wires. -/
 theorem paired_state_split (e : I × Bool → Fin N) (i : I) (f : I → QState (Reg 2))
     (u : unusedWires e → Bool → ℂ) (σ : Reg N) :
     pairedState e f u σ=f i (pairSite e σ i)*restFactor e i f u σ := by
@@ -107,21 +107,21 @@ theorem paired_state_split (e : I × Bool → Fin N) (i : I) (f : I → QState (
   ring
 
 omit [Fintype I] [DecidableEq I] in
-/-- Complete original `other_pair_wire_ne` guarantee for `RetainedBellFlat`; all source hypotheses and output obligations are retained. -/
+/-- An injective wire assignment places any endpoint of a different pair on a wire distinct from either endpoint of the selected pair. -/
 theorem other_pair_wire_ne (e : I × Bool → Fin N) (he : Function.Injective e)
     {i j : I} (hji : j≠i) (a b : Bool) : e (j,a)≠e (i,b) := by
   intro h
   exact hji (congrArg Prod.fst (he h))
 
 omit [Fintype I] [DecidableEq I] in
-/-- Complete original `within_pair_wire_ne` guarantee for `RetainedBellFlat`; all source hypotheses and output obligations are retained. -/
+/-- The two endpoints of a pair occupy distinct physical wires under an injective assignment. -/
 theorem within_pair_wire_ne (e : I × Bool → Fin N) (he : Function.Injective e) (i : I) :
     e (i,false)≠e (i,true) := by
   intro h
   have hh := congrArg Prod.snd (he h)
   cases hh
 
-/-- Complete original `rest_factor_update_bit` guarantee for `RetainedBellFlat`; all source hypotheses and output obligations are retained. -/
+/-- For an injective assignment, changing either bit of the selected pair leaves the product over all other pairs and unused wires unchanged. -/
 theorem rest_factor_update_bit (e : I × Bool → Fin N) (he : Function.Injective e)
     (i : I) (f : I → QState (Reg 2)) (u : unusedWires e → Bool → ℂ)
     (σ : Reg N) (b value : Bool) :
@@ -140,7 +140,7 @@ theorem rest_factor_update_bit (e : I × Bool → Fin N) (he : Function.Injectiv
       exact w.property ⟨(i,b),h.symm⟩
     rw [Function.update_of_ne hw]
 
-/-- Complete original `rest_factor_update_family` guarantee for `RetainedBellFlat`; all source hypotheses and output obligations are retained. -/
+/-- Replacing the selected pair's state leaves the product of the other pair and unused-wire factors unchanged. -/
 theorem rest_factor_update_family (e : I × Bool → Fin N) (i : I)
     (f : I → QState (Reg 2)) (g : QState (Reg 2))
     (u : unusedWires e → Bool → ℂ) (σ : Reg N) :
@@ -152,7 +152,7 @@ theorem rest_factor_update_family (e : I × Bool → Fin N) (i : I)
   rw [Function.update_of_ne (Finset.mem_erase.mp hj).1]
 
 omit [Fintype I] [DecidableEq I] in
-/-- Complete original `pair_site_update_first` guarantee for `RetainedBellFlat`; all source hypotheses and output obligations are retained. -/
+/-- Updating the first wire of a pair changes its extracted first bit to the new value and preserves the second bit. -/
 theorem pair_site_update_first (e : I × Bool → Fin N) (he : Function.Injective e)
     (i : I) (σ : Reg N) (value : Bool) :
     pairSite e (Function.update σ (e (i,false)) value) i=pairReg value (σ (e (i,true))) := by
@@ -160,13 +160,13 @@ theorem pair_site_update_first (e : I × Bool → Fin N) (he : Function.Injectiv
     Function.update_of_ne (within_pair_wire_ne e he i).symm]
 
 omit [Fintype I] [DecidableEq I] in
-/-- Complete original `pair_site_update_second` guarantee for `RetainedBellFlat`; all source hypotheses and output obligations are retained. -/
+/-- Updating the second wire of a pair changes its extracted second bit to the new value and preserves the first bit. -/
 theorem pair_site_update_second (e : I × Bool → Fin N) (he : Function.Injective e)
     (i : I) (σ : Reg N) (value : Bool) :
     pairSite e (Function.update σ (e (i,true)) value) i=pairReg (σ (e (i,false))) value := by
   simp only [pairSite,Function.update_self,Function.update_of_ne (within_pair_wire_ne e he i)]
 
-/-- Complete original `native_cnot_paired_at` guarantee for `RetainedBellFlat`; all source hypotheses and output obligations are retained. -/
+/-- For an injective wire assignment, applying CNOT from the first to the second wire of a pair applies the two-qubit CNOT to that factor and preserves the remaining amplitude factor. -/
 theorem native_cnot_paired_at (e : I × Bool → Fin N) (he : Function.Injective e)
     (i : I) (f : I → QState (Reg 2)) (u : unusedWires e → Bool → ℂ) (σ : Reg N) :
     ApplyGate (cnotGate N (e (i,false)) (e (i,true))) (pairedState e f u) σ=
@@ -186,7 +186,7 @@ def pairWord (e : I × Bool → Fin N) (l : List I) : List (MeasurementGate N) :
 def pairProgram (e : I × Bool → Fin N) (l : List I) : Circuit (Reg N) :=
   measurementProgram (pairWord e l)
 
-/-- Complete original `one_pair_program_transport` guarantee for `RetainedBellFlat`; all source hypotheses and output obligations are retained. -/
+/-- Running the Bell program on the two embedded wires of one pair replaces its state factor by the output of the two-qubit Bell program. -/
 theorem one_pair_program_transport (e : I × Bool → Fin N) (he : Function.Injective e)
     (i : I) (f : I → QState (Reg 2)) (u : unusedWires e → Bool → ℂ) :
     Run (1 : Matrix (Reg N) (Reg N) ℂ) (pairProgram e [i]) (pairedState e f u)=
@@ -213,12 +213,12 @@ theorem one_pair_program_transport (e : I × Bool → Fin N) (he : Function.Inje
   ring
 
 omit [Fintype I] [DecidableEq I] in
-/-- Complete original `pair_program_cons` guarantee for `RetainedBellFlat`; all source hypotheses and output obligations are retained. -/
+/-- The program for a list with a head pair is the program for that single pair followed by the program for the tail. -/
 theorem pair_program_cons (e : I × Bool → Fin N) (i : I) (l : List I) :
     pairProgram e (i::l)=pairProgram e [i]++pairProgram e l := by
   simp [pairProgram,pairWord,measurementProgram,reflectionCompile]
 
-/-- Complete original `pair_program_transport` guarantee for `RetainedBellFlat`; all source hypotheses and output obligations are retained. -/
+/-- For a duplicate-free list under an injective wire assignment, running the pair program applies the Bell circuit once to each listed pair factor and preserves every other factor. -/
 theorem pair_program_transport (e : I × Bool → Fin N) (he : Function.Injective e)
     (l : List I) (hl : l.Nodup) (f : I → QState (Reg 2)) (u : unusedWires e → Bool → ℂ) :
     Run (1 : Matrix (Reg N) (Reg N) ℂ) (pairProgram e l) (pairedState e f u)=
@@ -238,7 +238,7 @@ theorem pair_program_transport (e : I × Bool → Fin N) (he : Function.Injectiv
     · simp [hji]
 
 omit [Fintype I] [DecidableEq I] in
-/-- Complete original `pair_word_length` guarantee for `RetainedBellFlat`; all source hypotheses and output obligations are retained. -/
+/-- The pair gate word contains exactly two gates per list entry. -/
 theorem pair_word_length (e : I × Bool → Fin N) (l : List I) : (pairWord e l).length=2*l.length := by
   induction l with
   | nil => simp [pairWord]
@@ -249,7 +249,7 @@ theorem pair_word_length (e : I × Bool → Fin N) (l : List I) : (pairWord e l)
     omega
 
 omit [Fintype I] [DecidableEq I] in
-/-- Complete original `pair_program_counts` guarantee for `RetainedBellFlat`; all source hypotheses and output obligations are retained. -/
+/-- The pair program makes zero queries and uses exactly two gates per list entry. -/
 theorem pair_program_counts (e : I × Bool → Fin N) (l : List I) :
     QueryCount (pairProgram e l)=0 ∧ GateCount (pairProgram e l)=2*l.length := by
   simpa only [pairProgram,pair_word_length] using measurement_program_counts (pairWord e l)

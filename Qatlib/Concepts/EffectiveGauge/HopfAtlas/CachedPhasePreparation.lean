@@ -37,14 +37,16 @@ def materializePhasePreparation (prepared : CachedMeanPreparation) : CachedPhase
 def cachedPhasePreparationRun (source : RationalJetSource) (bounds : ℕ → ℚ) : Option CachedPhasePreparation :=
   (cachedMeanPreparationRun source bounds).map materializePhasePreparation
 
-/-- Original `cachedPhasePreparationRun_angular` guarantee for the `CachedPhasePreparation` construction; the complete source hypotheses are retained. -/
+/-- Mapping the angular projection over the phase-preparation run gives exactly the
+angular-preparation run. -/
 theorem cachedPhasePreparationRun_angular (source : RationalJetSource) (bounds : ℕ → ℚ) :
     (cachedPhasePreparationRun source bounds).map CachedPhasePreparation.angular=
       cachedAngularPreparationRun source bounds := by
   simp [cachedPhasePreparationRun,cachedAngularPreparationRun,Option.map_map,
     Function.comp_def,materializePhasePreparation]
 
-/-- Original `materializePhasePreparation_phase` guarantee for the `CachedPhasePreparation` construction; the complete source hypotheses are retained. -/
+/-- The stored order-`r` phase bound for `r < 8` is the terminal phase majorant calculated from the
+cached derivative bounds. -/
 theorem materializePhasePreparation_phase (prepared : CachedMeanPreparation) (r : Fin 8) :
     (materializePhasePreparation prepared).phaseBounds[r.val]=
       sourceFrameLambdaMajorant prepared.derivativeBounds r := by

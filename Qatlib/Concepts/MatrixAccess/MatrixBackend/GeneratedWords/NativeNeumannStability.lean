@@ -36,7 +36,7 @@ noncomputable local instance {I : Type} [Fintype I] [DecidableEq I] :
 
 variable {I : Type} [Fintype I] [DecidableEq I]
 
-/-- The finite construction in `NativeNeumannStability` satisfies `defect_norm_le_one` under the displayed hypotheses. -/
+/-- If `X` has operator norm at most one, its left defect `1 - X*Xᴴ` also has operator norm at most one. -/
 private theorem defect_norm_le_one (X : Matrix I I ℂ) (hX : ‖X‖ ≤ 1) :
     ‖1-X*Xᴴ‖ ≤ 1 := by
   have hp : 0 ≤ X*Xᴴ := (Matrix.posSemidef_self_mul_conjTranspose X).nonneg
@@ -50,7 +50,7 @@ private theorem defect_norm_le_one (X : Matrix I I ℂ) (hX : ‖X‖ ≤ 1) :
   have hd : 0 ≤ 1-X*Xᴴ := sub_nonneg.mpr hle
   exact (CStarAlgebra.norm_le_one_iff_of_nonneg (1-X*Xᴴ) hd).mpr (sub_le_self _ hp)
 
-/-- The finite construction in `NativeNeumannStability` satisfies `defect_difference_le` under the displayed hypotheses. -/
+/-- For contractions `X` and `S`, the operator-norm distance between their left defects is at most twice `‖X - S‖`. -/
 private theorem defect_difference_le (X S : Matrix I I ℂ)
     (hX : ‖X‖ ≤ 1) (hS : ‖S‖ ≤ 1) :
     ‖(1-X*Xᴴ)-(1-S*Sᴴ)‖ ≤ 2*‖X-S‖ := by

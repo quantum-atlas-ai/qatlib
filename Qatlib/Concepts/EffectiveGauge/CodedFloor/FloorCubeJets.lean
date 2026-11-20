@@ -58,7 +58,8 @@ theorem spatialWordPartial_eq_on_closedPhysicalCube {E : Type*}
   have h := congrArg (fun value : E => (physicalPeriod^w.length)⁻¹ • value) hword
   simpa only [smul_smul,inv_mul_cancel₀ (pow_ne_zero w.length physicalPeriod_pos.ne'),one_smul] using h
 
-/-- Original `floorPeriodicLift_word_eq_raw` guarantee for the `FloorCubeJets` construction; the complete source hypotheses are retained. -/
+/-- At each point of the fundamental cube, the periodic and raw lifts have equal iterated spatial
+partial derivatives along every coordinate word. -/
 theorem floorPeriodicLift_word_eq_raw (a : ℝ) (w : List (Fin 3))
     (X : SpatialPoint) (hX : InFundamentalCube X) :
     spatialWordPartial (floorPeriodicLift a) w X=spatialWordPartial (floorRawLift a) w X :=

@@ -18,7 +18,7 @@ public import Mathlib.Analysis.InnerProductSpace.PiL2
 `programRoundedCertificate` checks exact finite conditions and returns residual and error data.
 `toProgram` interprets the table as a real semidefinite program on Hermitian matrices.
 
-`frontier1` transports successful checks to positivity, residual and norm bounds, a common
+`rounded_witness_feasibility_and_optimality_bounds` transports successful checks to positivity, residual and norm bounds, a common
 primal and dual optimal value with dual attainment, and quantitative objective estimates. For
 the semidefinite-programming framework, see [Watrous2018].
 
@@ -27,7 +27,7 @@ the semidefinite-programming framework, see [Watrous2018].
 * `checks_of_certificate`: Successful generation implies the checked rational and matrix
   conditions.
 * `realConstraintMap_adjoint`: The adjoint is a linear combination of constraint matrices.
-* `frontier1`: A successful certificate yields feasibility estimates, strong duality, dual
+* `rounded_witness_feasibility_and_optimality_bounds`: A successful certificate yields feasibility estimates, strong duality, dual
   attainment, and objective error bounds.
 
 ## References
@@ -647,7 +647,7 @@ theorem adjoint_mat_dualCombo (t : ProgramRoundedTable n m) (y : Fin m → ℚ)
 certified coordinate residual and norm bounds, and a common primal and dual optimal value
 attained on the dual side. It also bounds the candidate's primal overshoot and the supplied
 dual vector's undershoot by the certificate's error products. -/
-theorem frontier1 {n m : ℕ} (t : ProgramRoundedTable n m)
+theorem rounded_witness_feasibility_and_optimality_bounds {n m : ℕ} (t : ProgramRoundedTable n m)
     {c : ProgramRoundedCertificate m}
     (h : programRoundedCertificate t = some c) :
     0 ≤ hermMatC t.primal ∧

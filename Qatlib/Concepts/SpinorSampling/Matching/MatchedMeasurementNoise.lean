@@ -46,17 +46,18 @@ def rightMatchIndex {n m : ℕ} (J : Fin n → S) (K : Fin m → S) (τ : S → 
     (x : matchedSites J K τ) : Fin m :=
   chosenFirstIndex K (τ x) ((mem_matched_sites J K τ x).mp x.property).2
 
-/-- Complete original `left_match_address` guarantee for `MatchedMeasurementNoise`; all source hypotheses and output obligations are retained. -/
+/-- Reading the left array at the selected first index for a matched site gives that site. -/
 theorem left_match_address {n m : ℕ} (J : Fin n → S) (K : Fin m → S) (τ : S → S)
     (x : matchedSites J K τ) : J (leftMatchIndex J K τ x)=x :=
   (chosen_first_index_spec J x ((mem_matched_sites J K τ x).mp x.property).1).2
 
-/-- Complete original `right_match_address` guarantee for `MatchedMeasurementNoise`; all source hypotheses and output obligations are retained. -/
+/-- Reading the right array at the selected first index for a matched site `x` gives its image
+`τ x`. -/
 theorem right_match_address {n m : ℕ} (J : Fin n → S) (K : Fin m → S) (τ : S → S)
     (x : matchedSites J K τ) : K (rightMatchIndex J K τ x)=τ x :=
   (chosen_first_index_spec K (τ x) ((mem_matched_sites J K τ x).mp x.property).2).2
 
-/-- Complete original `left_match_index_injective` guarantee for `MatchedMeasurementNoise`; all source hypotheses and output obligations are retained. -/
+/-- Distinct matched sites select distinct first indices in the left array. -/
 theorem left_match_index_injective {n m : ℕ} (J : Fin n → S) (K : Fin m → S) (τ : S → S) :
     Function.Injective (leftMatchIndex J K τ) := by
   intro x y h
@@ -66,7 +67,8 @@ theorem left_match_index_injective {n m : ℕ} (J : Fin n → S) (K : Fin m → 
     _ = J (leftMatchIndex J K τ y) := congrArg J h
     _ = (y : S) := left_match_address J K τ y
 
-/-- Complete original `right_match_index_injective` guarantee for `MatchedMeasurementNoise`; all source hypotheses and output obligations are retained. -/
+/-- If the match map is injective, distinct matched sites select distinct first indices in the
+right array. -/
 theorem right_match_index_injective {n m : ℕ} (J : Fin n → S) (K : Fin m → S) (τ : S → S)
     (hτ : Function.Injective τ) : Function.Injective (rightMatchIndex J K τ) := by
   intro x y h
@@ -77,14 +79,16 @@ theorem right_match_index_injective {n m : ℕ} (J : Fin n → S) (K : Fin m →
     _ = K (rightMatchIndex J K τ y) := congrArg K h
     _ = τ y := right_match_address J K τ y
 
-/-- Complete original `left_first_sign` guarantee for `MatchedMeasurementNoise`; all source hypotheses and output obligations are retained. -/
+/-- The first sign at a matched left site is the sign encoded by the bit at its selected left
+index. -/
 theorem left_first_sign {n m : ℕ} (J : Fin n → S) (K : Fin m → S) (τ : S → S)
     (Q : Fin n → Bool) (x : matchedSites J K τ) :
     (firstSignZ (fun i => (J i,Q i)) x : ℝ)=recordSign (Q (leftMatchIndex J K τ x)) := by
   exact first_sign_real_eq (fun i => (J i,Q i)) x _
     (chosen_first_index_spec J x ((mem_matched_sites J K τ x).mp x.property).1).1
 
-/-- Complete original `right_first_sign` guarantee for `MatchedMeasurementNoise`; all source hypotheses and output obligations are retained. -/
+/-- The first sign at the right image of a matched site is the sign encoded by the bit at its
+selected right index. -/
 theorem right_first_sign {n m : ℕ} (J : Fin n → S) (K : Fin m → S) (τ : S → S)
     (Q : Fin m → Bool) (x : matchedSites J K τ) :
     (firstSignZ (fun i => (K i,Q i)) (τ x) : ℝ)=recordSign (Q (rightMatchIndex J K τ x)) := by
@@ -96,7 +100,8 @@ def conditionalMatched {n m : ℕ} (J : Fin n → S) (K : Fin m → S) (τ : S �
     (z : (Fin n → Bool) × (Fin m → Bool)) : ℝ :=
   matchedStatistic (fun i => (J i,z.1 i)) (fun i => (K i,z.2 i)) τ
 
-/-- Complete original `conditional_matched_rescale` guarantee for `MatchedMeasurementNoise`; all source hypotheses and output obligations are retained. -/
+/-- For a nonempty matched set, multiplying the conditional statistic's error by the match count
+gives the sum of the selected sign products minus their respective centers `a x * b (τ x)`. -/
 theorem conditional_matched_rescale {n m : ℕ} (J : Fin n → S) (K : Fin m → S)
     (τ : S → S) (hI : 0 < (matchedSites J K τ).card) (a b : S → ℝ)
     (z : (Fin n → Bool) × (Fin m → Bool)) :
@@ -129,7 +134,9 @@ theorem conditional_matched_rescale {n m : ℕ} (J : Fin n → S) (K : Fin m →
           (∑ x : I, a x*b (τ x)))/(I.card : ℝ))*(I.card : ℝ) := by ring
     _ = _ := by rw [div_mul_cancel₀ _ hIr,Finset.sum_sub_distrib]
 
-/-- Complete original `conditional_matched_mgf` guarantee for `MatchedMeasurementNoise`; all source hypotheses and output obligations are retained. -/
+/-- For fixed arrays with `k > 0` matches, an injective match map, and sign means in [−1, 1],
+the moment-generating function of the centered conditional statistic multiplied by `k` is at
+most `exp (k*t²/2)` for every real `t`. -/
 theorem conditional_matched_mgf {n m : ℕ} (J : Fin n → S) (K : Fin m → S)
     (τ : S → S) (hτ : Function.Injective τ) (hI : 0 < (matchedSites J K τ).card)
     (a b : S → ℝ) (ha : ∀ x, |a x| ≤ 1) (hb : ∀ x, |b x| ≤ 1) (t : ℝ) :
@@ -143,7 +150,9 @@ theorem conditional_matched_mgf {n m : ℕ} (J : Fin n → S) (K : Fin m → S)
     (left_match_index_injective J K τ) (right_match_index_injective J K τ hτ) t
   simpa only [conditionalSigns,left_match_address,right_match_address,Fintype.card_coe] using ht
 
-/-- Complete original `conditional_matched_noise_tail` guarantee for `MatchedMeasurementNoise`; all source hypotheses and output obligations are retained. -/
+/-- Given fixed arrays with `k > 0` matches and an injective match map, the conditional sign law
+gives absolute error above `ε > 0` with probability at most `2 * exp (-k*ε²/2)`. The center is
+the matched-set average of `a x * b (τ x)` for means bounded by one. -/
 theorem conditional_matched_noise_tail {n m : ℕ} (J : Fin n → S) (K : Fin m → S)
     (τ : S → S) (hτ : Function.Injective τ) (hI : 0 < (matchedSites J K τ).card)
     (a b : S → ℝ) (ha : ∀ x, |a x| ≤ 1) (hb : ∀ x, |b x| ≤ 1)
@@ -154,7 +163,10 @@ theorem conditional_matched_noise_tail {n m : ℕ} (J : Fin n → S) (K : Fin m 
   apply finite_subgaussian_bad_mass _ _ _ (matchedSites J K τ).card ε hI hε
   exact conditional_matched_mgf J K τ hτ hI a b ha hb
 
-/-- Complete original `conditional_matched_q_noise_tail` guarantee for `MatchedMeasurementNoise`; all source hypotheses and output obligations are retained. -/
+/-- For fixed arrays with a positive match count and an injective match map, the real cast of
+the rational matched statistic obeys the conditional sign tail `2 * exp (-k*ε²/2)` at positive
+tolerance. Here `k` is the match count and the center averages `a x * b (τ x)` over matched
+sites for means in [−1, 1]. -/
 theorem conditional_matched_q_noise_tail {n m : ℕ} (J : Fin n → S) (K : Fin m → S)
     (τ : S → S) (hτ : Function.Injective τ) (hI : 0 < (matchedSites J K τ).card)
     (a b : S → ℝ) (ha : ∀ x, |a x| ≤ 1) (hb : ∀ x, |b x| ≤ 1)

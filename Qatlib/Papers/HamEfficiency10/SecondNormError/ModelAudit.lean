@@ -91,7 +91,7 @@ theorem violatesOld :
   · norm_num [manyTermScalingConstant, abs_neg, abs_of_pos ht]
     linarith
   · rw [actualError]
-    have hl := (frontier1 t (by rwa [abs_of_pos ht])).1
+    have hl := (cubic_trotter_error_two_sided_bound t (by rwa [abs_of_pos ht])).1
     have hp : 0 < (1/6 : ℝ) * |t|^3 := by positivity
     simpa [generators] using hp.trans_le hl
 

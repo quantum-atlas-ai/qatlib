@@ -20,11 +20,11 @@ open Qatlib.Concepts.EffectiveGauge.RationalFlow
 /-- Definition of real Quaternion CLM in the Hopf Atlas construction. -/
 def realQuaternionCLM : ℝ →L[ℝ] ℍ := ContinuousLinearMap.toSpanSingleton ℝ (1 : ℍ)
 
-/-- Original `realQuaternionCLM_norm` guarantee for the `ScalarWordProduct` construction; the complete source hypotheses are retained. -/
+/-- The real-to-quaternion continuous linear embedding preserves norm. -/
 theorem realQuaternionCLM_norm (r : ℝ) : ‖realQuaternionCLM r‖=‖r‖ := by
   simp [realQuaternionCLM]
 
-/-- Original `realQuaternionCLM_mul` guarantee for the `ScalarWordProduct` construction; the complete source hypotheses are retained. -/
+/-- Embedding a product of real scalars as a quaternion gives the product of their embeddings. -/
 theorem realQuaternionCLM_mul (a b : ℝ) :
     realQuaternionCLM (a*b)=realQuaternionCLM a*realQuaternionCLM b := by
   simp [realQuaternionCLM,smul_smul,mul_comm]

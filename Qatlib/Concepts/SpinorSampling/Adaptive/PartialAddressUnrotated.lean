@@ -28,7 +28,8 @@ open RetainedSpin UniformMatching
 variable {E : Type} [Fintype E] [DecidableEq E] [Nonempty E]
 
 omit [DecidableEq E] in
-/-- Complete original `actual_minority_one` guarantee for `PartialAddressUnrotated`; all source hypotheses and output obligations are retained. -/
+/-- With unit spinors at both endpoints of every edge, the uniform average mass of the true
+spin sector is at most one. -/
 theorem actual_minority_one (u v : E → Bool → ℂ)
     (hu : ∀ e,qubitMass (u e)=1) (hv : ∀ e,qubitMass (v e)=1) :
     average (fun e => sectorMass (u e) (v e) true)≤1 := by
@@ -40,7 +41,9 @@ theorem actual_minority_one (u v : E → Bool → ℂ)
   simpa [average] using h
 
 -- q=1/2 here specifies the production count, not a false minority promise.
-/-- Complete original `unrotated_count_confidence` guarantee for `PartialAddressUnrotated`; all source hypotheses and output obligations are retained. -/
+/-- For normalized unrotated endpoints and positive `ε` and `δ`, the count formula at twice the
+edge count and parameter `q = 1/2` bounds the probability of sparse estimation error above `ε`
+from the mean Bell probability by `δ`. -/
 theorem unrotated_count_confidence (u v : E → Bool → ℂ)
     (hu : ∀ e,qubitMass (u e)=1) (hv : ∀ e,qubitMass (v e)=1)
     (ε δ : ℚ) (hε : 0<ε) (hδ : 0<δ) :
@@ -79,7 +82,9 @@ theorem unrotated_count_confidence (u v : E → Bool → ℂ)
       rw [div_le_iff₀ (sq_pos_of_pos heR)]
       linarith
 
-/-- Complete original `checked_unrotated_confidence` guarantee for `PartialAddressUnrotated`; all source hypotheses and output obligations are retained. -/
+/-- When the checked unrotated planner at parameter one half returns `n`, the sparse count
+estimate from `n` matching records has probability at most `δ` of exceeding absolute error `ε`
+from the average Bell probability. -/
 theorem checked_unrotated_confidence (u v : E → Bool → ℂ)
     (hu : ∀ e,qubitMass (u e)=1) (hv : ∀ e,qubitMass (v e)=1)
     (ε δ : ℚ) (n : ℕ) (hc : checkedXYZCountQ (2*Fintype.card E) (1/2) ε δ=some n) :

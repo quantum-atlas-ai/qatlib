@@ -35,21 +35,23 @@ open scoped BigOperators
 def gaussianRatMul (u v : ℚ × ℚ) : ℚ × ℚ :=
   (u.1 * v.1 - u.2 * v.2, u.1 * v.2 + u.2 * v.1)
 
-/-- The finite construction in `NativeRootCompletionMonic` satisfies `rootCompletion_decode_zero` under the displayed hypotheses. -/
+/-- The rational coordinate pair (0, 0) decodes to complex zero. -/
 private theorem rootCompletion_decode_zero : rootRationalCoordinate (0,0)=0 := by
   apply Complex.ext <;> simp [rootRationalCoordinate]
 
-/-- The finite construction in `NativeRootCompletionMonic` satisfies `rootCompletion_decode_add` under the displayed hypotheses. -/
+/-- Decoding the coordinatewise sum of rational pairs gives the sum of the decoded complex
+numbers. -/
 private theorem rootCompletion_decode_add (u v : ℚ×ℚ) :
     rootRationalCoordinate (u+v)=rootRationalCoordinate u+rootRationalCoordinate v := by
   apply Complex.ext <;> simp [rootRationalCoordinate]
 
-/-- The finite construction in `NativeRootCompletionMonic` satisfies `rootCompletion_decode_sub` under the displayed hypotheses. -/
+/-- Decoding the coordinatewise difference gives the difference of the corresponding complex
+points. -/
 private theorem rootCompletion_decode_sub (u v : ℚ×ℚ) :
     rootRationalCoordinate (u-v)=rootRationalCoordinate u-rootRationalCoordinate v := by
   apply Complex.ext <;> simp [rootRationalCoordinate]
 
-/-- The finite construction in `NativeRootCompletionMonic` satisfies `rootCompletion_decode_mul` under the displayed hypotheses. -/
+/-- Gaussian-rational multiplication decodes to complex multiplication. -/
 private theorem rootCompletion_decode_mul (u v : ℚ×ℚ) :
     rootRationalCoordinate (gaussianRatMul u v)=rootRationalCoordinate u*rootRationalCoordinate v := by
   apply Complex.ext <;> simp [rootRationalCoordinate,gaussianRatMul]
@@ -65,7 +67,8 @@ def rootCompletionLinearStep {n : ℕ} (rho : ℚ×ℚ) (a : Fin n → ℚ×ℚ)
   let t := fun k => if k=i.castSucc then s k-gaussianRatMul rho (a i) else s k
   fun k => if k=i.succ then t k+a i else t k
 
-/-- The finite construction in `NativeRootCompletionMonic` satisfies `rootCompletionLinearStep_coordinate` under the displayed hypotheses. -/
+/-- Processing input coefficient i adds its product with the negated root to output slot i and the
+coefficient itself to slot i + 1. All other slots retain their prior value. -/
 theorem rootCompletionLinearStep_coordinate {n : ℕ} (rho : ℚ×ℚ)
     (a : Fin n → ℚ×ℚ) (s : Fin (n+1) → ℚ×ℚ) (i : Fin n) (k : Fin (n+1)) :
     rootRationalCoordinate (rootCompletionLinearStep rho a s i k)=
@@ -118,7 +121,9 @@ def rootCompletionLinearLoop {n : ℕ} (rho : ℚ×ℚ) (a : Fin n → ℚ×ℚ)
     Fin (n+1) → ℚ×ℚ :=
   (List.finRange n).foldl (rootCompletionLinearStep rho a) (fun _ => (0,0))
 
-/-- The finite construction in `NativeRootCompletionMonic` satisfies `rootCompletionFold_polynomial` under the displayed hypotheses. -/
+/-- Folding over a list of coefficient indices adds the sum of their degree-i and degree-(i + 1)
+contributions to the initial state polynomial, counting repeated indices as often as they
+occur. -/
 private theorem rootCompletionFold_polynomial {n : ℕ} (rho : ℚ×ℚ)
     (a : Fin n → ℚ×ℚ) (l : List (Fin n)) (s : Fin (n+1) → ℚ×ℚ) :
     rootCompletionStatePolynomial (l.foldl (rootCompletionLinearStep rho a) s)=
@@ -131,7 +136,8 @@ private theorem rootCompletionFold_polynomial {n : ℕ} (rho : ℚ×ℚ)
     rw [List.foldl_cons,ih,rootCompletionLinearStep_polynomial]
     simp only [List.map_cons,List.sum_cons,add_assoc]
 
-/-- The finite construction in `NativeRootCompletionMonic` satisfies `rootCompletionLinearLoop_polynomial` under the displayed hypotheses. -/
+/-- The finite coefficient loop represents multiplication by the monic linear factor with decoded
+root rho. -/
 theorem rootCompletionLinearLoop_polynomial {n : ℕ} (rho : ℚ×ℚ) (a : Fin n → ℚ×ℚ) :
     rootCompletionStatePolynomial (rootCompletionLinearLoop rho a)=
       (X-C (rootRationalCoordinate rho))*rootCompletionStatePolynomial a := by
@@ -153,7 +159,7 @@ theorem rootCompletionLinearLoop_polynomial {n : ℕ} (rho : ℚ×ℚ) (a : Fin 
 def rootCompletionListPolynomial (a : List (ℚ×ℚ)) : ℂ[X] :=
   rootCompletionStatePolynomial (fun i : Fin a.length => a.get i)
 
-/-- The finite construction in `NativeRootCompletionMonic` satisfies `rootCompletionListPolynomial_ofFn` under the displayed hypotheses. -/
+/-- Enumerating the finite coefficient array into a list preserves its decoded complex polynomial. -/
 theorem rootCompletionListPolynomial_ofFn {n : ℕ} (a : Fin n → ℚ×ℚ) :
     rootCompletionListPolynomial (List.ofFn a)=rootCompletionStatePolynomial a := by
   apply Polynomial.ext
@@ -174,7 +180,8 @@ conversion back to the dynamic coefficient list. No trimming is performed. -/
 def rootCompletionLinearList (rho : ℚ×ℚ) (a : List (ℚ×ℚ)) : List (ℚ×ℚ) :=
   List.ofFn (rootCompletionLinearLoop rho (fun i : Fin a.length => a.get i))
 
-/-- The finite construction in `NativeRootCompletionMonic` satisfies `rootCompletionLinearList_polynomial` under the displayed hypotheses. -/
+/-- The linear list step represents the input polynomial times the monic linear factor with root
+rho. -/
 theorem rootCompletionLinearList_polynomial (rho : ℚ×ℚ) (a : List (ℚ×ℚ)) :
     rootCompletionListPolynomial (rootCompletionLinearList rho a)=
       (X-C (rootRationalCoordinate rho))*rootCompletionListPolynomial a := by
@@ -191,7 +198,8 @@ theorem rootCompletionLinearList_length (rho : ℚ×ℚ) (a : List (ℚ×ℚ)) :
 def rootCompletionMonicCoefficients (roots : List (ℚ×ℚ)) : List (ℚ×ℚ) :=
   roots.foldl (fun a rho => rootCompletionLinearList rho a) [(1,0)]
 
-/-- The finite construction in `NativeRootCompletionMonic` satisfies `rootCompletionRootsFold_polynomial` under the displayed hypotheses. -/
+/-- Folding the linear list step over the roots multiplies the initial polynomial by one monic
+linear factor for each list entry. -/
 private theorem rootCompletionRootsFold_polynomial (roots a : List (ℚ×ℚ)) :
     rootCompletionListPolynomial (roots.foldl (fun a rho => rootCompletionLinearList rho a) a)=
       rootCompletionListPolynomial a*(roots.map (fun rho => X-C (rootRationalCoordinate rho))).prod := by
@@ -202,7 +210,8 @@ private theorem rootCompletionRootsFold_polynomial (roots a : List (ℚ×ℚ)) :
     simp only [List.map_cons,List.prod_cons]
     ring
 
-/-- The finite construction in `NativeRootCompletionMonic` satisfies `rootCompletionMonicCoefficients_polynomial` under the displayed hypotheses. -/
+/-- The computed monic coefficient list represents the product of the linear factors at the
+decoded roots. -/
 theorem rootCompletionMonicCoefficients_polynomial (roots : List (ℚ×ℚ)) :
     rootCompletionListPolynomial (rootCompletionMonicCoefficients roots)=
       (roots.map (fun rho => X-C (rootRationalCoordinate rho))).prod := by
@@ -234,7 +243,8 @@ theorem rootCompletionMonicCoefficients_length (roots : List (ℚ×ℚ)) :
 def rootCompletionCoefficientSum (a : List (ℚ×ℚ)) : ℚ×ℚ :=
   a.foldl (fun s c => s+c) (0,0)
 
-/-- The finite construction in `NativeRootCompletionMonic` satisfies `rootCompletionCoefficientSum_fold` under the displayed hypotheses. -/
+/-- Decoding the coordinate sum accumulated from s gives the decoded initial value plus the sum of
+the decoded list entries. -/
 private theorem rootCompletionCoefficientSum_fold (a : List (ℚ×ℚ)) (s : ℚ×ℚ) :
     rootRationalCoordinate (a.foldl (fun s c => s+c) s)=
       rootRationalCoordinate s+(a.map rootRationalCoordinate).sum := by
@@ -244,7 +254,8 @@ private theorem rootCompletionCoefficientSum_fold (a : List (ℚ×ℚ)) (s : ℚ
     rw [List.foldl_cons,ih,rootCompletion_decode_add]
     simp only [List.map_cons,List.sum_cons,add_assoc]
 
-/-- The finite construction in `NativeRootCompletionMonic` satisfies `rootCompletionListPolynomial_eval_one` under the displayed hypotheses. -/
+/-- Evaluating the decoded coefficient-list polynomial at one gives the sum of the decoded
+coefficients. -/
 theorem rootCompletionListPolynomial_eval_one (a : List (ℚ×ℚ)) :
     (rootCompletionListPolynomial a).eval 1=(a.map rootRationalCoordinate).sum := by
   classical
@@ -258,14 +269,14 @@ theorem rootCompletionListPolynomial_eval_one (a : List (ℚ×ℚ)) :
       congrArg (List.map rootRationalCoordinate) (List.ofFn_get a)
   rw [he,← Fin.sum_ofFn,ho]
 
-/-- The finite construction in `NativeRootCompletionMonic` satisfies `rootCompletionCoefficientSum_decode` under the displayed hypotheses. -/
+/-- The rational coefficient sum decodes to evaluation of the represented polynomial at one. -/
 theorem rootCompletionCoefficientSum_decode (a : List (ℚ×ℚ)) :
     rootRationalCoordinate (rootCompletionCoefficientSum a)=
       (rootCompletionListPolynomial a).eval 1 := by
   rw [rootCompletionCoefficientSum,rootCompletionCoefficientSum_fold,
     rootCompletion_decode_zero,zero_add,rootCompletionListPolynomial_eval_one]
 
-/-- The finite construction in `NativeRootCompletionMonic` satisfies `rootCompletionMonicCoefficients_eval` under the displayed hypotheses. -/
+/-- At any complex z, the monic completion evaluates to the product of z minus each decoded root. -/
 theorem rootCompletionMonicCoefficients_eval (roots : List (ℚ×ℚ)) (z : ℂ) :
     (rootCompletionListPolynomial (rootCompletionMonicCoefficients roots)).eval z=
       (roots.map (fun rho => z-rootRationalCoordinate rho)).prod := by
@@ -273,7 +284,8 @@ theorem rootCompletionMonicCoefficients_eval (roots : List (ℚ×ℚ)) (z : ℂ)
   simp only [List.map_map,Function.comp_def,Polynomial.eval_sub,
     Polynomial.eval_X,Polynomial.eval_C]
 
-/-- The finite construction in `NativeRootCompletionMonic` satisfies `rootCompletionUnitProduct_ne_zero` under the displayed hypotheses. -/
+/-- If all decoded roots lie strictly inside the unit circle, the monic product evaluated at one
+is nonzero. -/
 private theorem rootCompletionUnitProduct_ne_zero (roots : List (ℚ×ℚ)) :
     (∀ q∈roots,‖rootRationalCoordinate q‖<1) →
       (roots.map (fun q => 1-rootRationalCoordinate q)).prod≠0 := by
@@ -305,7 +317,9 @@ theorem rootCompletionMonicCoefficients_sum_norm2_pos (roots : List (ℚ×ℚ))
   rw [rootRationalCoordinate_sq_norm] at hn
   exact_mod_cast hn
 
-/-- The finite construction in `NativeRootCompletionMonic` satisfies `rootCompletionPair_inside` under the displayed hypotheses. -/
+/-- A pairwise match to complex roots that bounds the distance by eta and places each decoded
+coordinate inside the unit circle implies that every coordinate in the rational list lies
+inside it. -/
 private theorem rootCompletionPair_inside {qs : List (ℚ×ℚ)} {zs : List ℂ} {eta : ℚ}
     (h : List.Forall₂ (fun q z => ‖rootRationalCoordinate q‖<1 ∧
       ‖rootRationalCoordinate q-z‖≤(eta : ℝ)) qs zs) :

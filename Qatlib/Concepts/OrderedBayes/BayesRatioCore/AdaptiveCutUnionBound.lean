@@ -31,7 +31,7 @@ and total mass bounds, and apply at every finite fuel value.
   events.
 * `learner_far_heavy_window_bound`: bounds the probability of a heavy cell beyond the window.
 * `learner_haltCut_far_bound`: bounds a far selected halting cut.
-* `frontier1` and `frontier2`: collect the absorbing and learner estimates.
+* `union_absorbing_kernel_ratio_bounds_and_calibration` and `truth_driven_learner_ratio_bounds_and_calibration`: collect the absorbing and learner estimates.
 
 ## References
 
@@ -1115,7 +1115,7 @@ theorem learner_far_heavy_calibration {n : ℕ} (hn : 0 < n) (j : Fin n) (p δ :
 /-- Under the stated noise and prior hypotheses, packages the truth driven learner's pairwise
 and finite union ratio bounds, far heavy cell and halting bounds, single cell bounds, and
 calibration to any positive error target. -/
-theorem frontier2 {n : ℕ} (hn : 0 < n) (j : Fin n) (p ε : ℝ)
+theorem truth_driven_learner_ratio_bounds_and_calibration {n : ℕ} (hn : 0 < n) (j : Fin n) (p ε : ℝ)
     (hp : 1 / 2 < p) (hp1 : p < 1) (hε : 0 < ε) (l : ℕ) (hl : 0 < l)
     (S : Finset (Fin n × Fin n)) (hside : ∀ pr ∈ S, crossSide j pr.1 pr.2)
     (a₀ : Fin n → ℝ) (hpos : ∀ m, 0 < a₀ m) (hsum : (∑ m, a₀ m) ≤ 1) :
@@ -1166,7 +1166,7 @@ theorem frontier2 {n : ℕ} (hn : 0 < n) (j : Fin n) (p ε : ℝ)
 /-- Under the stated noise and prior hypotheses, packages pairwise and finite union ratio bounds
 for the union absorbing kernel together with full pair calibration to any positive error
 target. -/
-theorem frontier1 {n : ℕ} (hn : 0 < n) (j : Fin n) (p ε : ℝ)
+theorem union_absorbing_kernel_ratio_bounds_and_calibration {n : ℕ} (hn : 0 < n) (j : Fin n) (p ε : ℝ)
     (hp : 1 / 2 < p) (hp1 : p < 1)
     (S : Finset (Fin n × Fin n)) (hside : ∀ pr ∈ S, crossSide j pr.1 pr.2)
     (a₀ : Fin n → ℝ) (hpos : ∀ m, 0 < a₀ m) (hsum : (∑ m, a₀ m) ≤ 1) :

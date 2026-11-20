@@ -341,7 +341,7 @@ theorem count_n1_boundary (M : ℕ) (hM : 2 ≤ M) (S : Finset (Fin 1)) :
 
 /-- Collects padded output and law transport, exact circuit counts, success windows, endpoint
 guarantees, and their counting specializations. -/
-theorem frontier1 :
+theorem padded_ae_output_law_counts_and_accuracy :
 
     (∀ (M : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I) (hM : 2 ≤ M)
       (hA : A ∈ Matrix.unitaryGroup I ℂ),

@@ -30,7 +30,7 @@ open scoped ContDiff Topology
 namespace Qatlib.Concepts.EffectiveGauge.TorusFourier
 open Qatlib.Concepts.EffectiveGauge.HopfAtlas Qatlib.Concepts.EffectiveGauge.RationalFlow
 
-/-- Original `unitFourierCoefficient_rapidlySummable` guarantee for the `PoissonRegularity` construction; the complete source hypotheses are retained. -/
+/-- The Fourier coefficients of a smooth unit-periodic field are absolutely summable against every natural power of the frequency radius. -/
 theorem unitFourierCoefficient_rapidlySummable (f : SpatialPoint → ℂ)
     (hf : ContDiff ℝ ∞ f) (hp : IsUnitPeriodicField f) :
     FourierRapidlySummable (unitFourierCoefficient f hf.continuous hp) := by
@@ -82,20 +82,21 @@ def unitRealPoisson (f : Fin 3 → SpatialPoint → ℂ)
     (hf : ∀ j, ContDiff ℝ ∞ (f j)) (hp : ∀ j, IsUnitPeriodicField (f j)) : SpatialPoint → ℝ :=
   fun x => Complex.reCLM (unitComplexPoisson f hf hp x)
 
-/-- Original `unitComplexPoisson_contDiff` guarantee for the `PoissonRegularity` construction; the complete source hypotheses are retained. -/
+/-- Fourier synthesis with the Poisson multiplier applied to the divergence of three smooth
+unit-periodic components gives a smooth complex potential. -/
 theorem unitComplexPoisson_contDiff (f : Fin 3 → SpatialPoint → ℂ)
     (hf : ∀ j, ContDiff ℝ ∞ (f j)) (hp : ∀ j, IsUnitPeriodicField (f j)) :
     ContDiff ℝ ∞ (unitComplexPoisson f hf hp) :=
   unitFourierSeries_contDiff _ (unitPoissonCoefficient_rapidlySummable _
     (fun j => unitFourierCoefficient_rapidlySummable (f j) (hf j) (hp j)))
 
-/-- Original `unitRealPoisson_contDiff` guarantee for the `PoissonRegularity` construction; the complete source hypotheses are retained. -/
+/-- Taking the real part of the complex Poisson synthesis for three smooth unit-periodic components gives a smooth real potential. -/
 theorem unitRealPoisson_contDiff (f : Fin 3 → SpatialPoint → ℂ)
     (hf : ∀ j, ContDiff ℝ ∞ (f j)) (hp : ∀ j, IsUnitPeriodicField (f j)) :
     ContDiff ℝ ∞ (unitRealPoisson f hf hp) :=
   Complex.reCLM.contDiff.comp (unitComplexPoisson_contDiff f hf hp)
 
-/-- Original `unitRealPoisson_periodic` guarantee for the `PoissonRegularity` construction; the complete source hypotheses are retained. -/
+/-- The real Poisson potential of three smooth unit-periodic components is invariant under all integer shifts. -/
 theorem unitRealPoisson_periodic (f : Fin 3 → SpatialPoint → ℂ)
     (hf : ∀ j, ContDiff ℝ ∞ (f j)) (hp : ∀ j, IsUnitPeriodicField (f j)) :
     IsUnitPeriodicField (unitRealPoisson f hf hp) := by

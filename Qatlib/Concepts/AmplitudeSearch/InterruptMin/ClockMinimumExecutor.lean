@@ -32,7 +32,7 @@ The final bound `source_timeout_half` gives success probability at least one hal
   `sourceMinimumPMF`.
 * `source_timeout_half`: At `sourceTimeout N`, the clocked minimum-search law succeeds with
   probability at least one half, as in the minimum-finding guarantee of [DurrHoyer1996].
-* `frontier1`: Combines the one-half success bound at `sourceTimeout N` with the expectation
+* `source_timeout_success_and_expected_payoff`: Combines the one-half success bound at `sourceTimeout N` with the expectation
   representation of the uniformly initialized evaluator.
 
 ## References
@@ -730,7 +730,7 @@ theorem source_timeout_half {N : ℕ} {α : Type*} [LinearOrder α]
 
 /-- Combines the one-half success bound at `sourceTimeout N` with the expectation representation
 of the uniformly initialized evaluator. -/
-theorem frontier1 {N : ℕ} {α : Type*} [LinearOrder α] (T : Fin N → α) (hN : 0 < N) :
+theorem source_timeout_success_and_expected_payoff {N : ℕ} {α : Type*} [LinearOrder α] (T : Fin N → α) (hN : 0 < N) :
     (1/2:ℝ) ≤ sourceSuccess T hN (sourceTimeout N) ∧
     (∀ payoff : Fin N → ℝ≥0∞,
       sourceInitialEval T hN (sourceTimeout N) payoff =

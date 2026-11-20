@@ -48,12 +48,12 @@ def sourceRootPrecision (N : ℕ) (u : ℚ) : ℕ :=
   sourceCeilLog2 (sourceK N u)+(N+1)*sourceCeilLog2 (128/h)+
     sourceCeilLog2 (max (16/h) (32*(N+1 : ℚ)/u))
 
-/-- The finite construction in `NativeSourceBitPrecision` satisfies `sourceGrid_pos` under the displayed hypotheses. -/
+/-- The dyadic grid spacing chosen for N and u is strictly positive for every rational u. -/
 theorem sourceGrid_pos (N : ℕ) (u : ℚ) : 0<sourceGrid N u := by
   dsimp only [sourceGrid]
   positivity
 
-/-- The finite construction in `NativeSourceBitPrecision` satisfies `sourceGrid_upper` under the displayed hypotheses. -/
+/-- For positive u, the chosen grid spacing is at most `u / (64 * (N + 1))`. -/
 theorem sourceGrid_upper (N : ℕ) (u : ℚ) (hu : 0<u) :
     sourceGrid N u ≤ u/(64*(N+1 : ℚ)) := by
   have h := sourceCeilLog2_envelope (64*(N+1 : ℚ)/u) (by positivity)
@@ -125,7 +125,7 @@ def sourceInputR (cs : List ℚ) (N : ℕ) (E : ℚ) : ℕ :=
 def sourceInputEta (cs : List ℚ) (N : ℕ) (E : ℚ) : ℚ :=
   1/(2 : ℚ)^sourceInputR cs N E
 
-/-- The finite construction in `NativeSourceBitPrecision` satisfies `sourceInputU_pos` under the displayed hypotheses. -/
+/-- A positive requested error E gives a strictly positive source input budget. -/
 theorem sourceInputU_pos (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E) :
     0<sourceInputU cs N E := by
   have hm : (0 : ℚ)<(max (N+1) cs.length : ℕ) := by
@@ -133,7 +133,8 @@ theorem sourceInputU_pos (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E) :
   dsimp only [sourceInputU]
   exact lt_min (by norm_num) (by positivity)
 
-/-- The finite construction in `NativeSourceBitPrecision` satisfies `sourceInputU_le_half` under the displayed hypotheses. -/
+/-- The source input budget is at most one half for every coefficient list, length and requested
+error. -/
 theorem sourceInputU_le_half (cs : List ℚ) (N : ℕ) (E : ℚ) :
     sourceInputU cs N E ≤ 1/2 := min_le_left _ _
 

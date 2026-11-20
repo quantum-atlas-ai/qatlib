@@ -49,24 +49,25 @@ def floorRationalCodeAdd (q r : FloorRationalCode) : FloorRationalCode :=
 def floorRationalCodeMul (q r : FloorRationalCode) : FloorRationalCode :=
   ((q.1.1*r.1.1+q.1.2*r.1.2,q.1.1*r.1.2+q.1.2*r.1.1),(q.2+1)*(r.2+1)-1)
 
-/-- Original `floorRationalCodeNat_value` guarantee for the `FloorRationalCode` construction; the complete source hypotheses are retained. -/
+/-- The code constructed from a natural number represents that number as a rational. -/
 theorem floorRationalCodeNat_value (n : ℕ) :
     floorRationalCodeValue (floorRationalCodeNat n)=(n : ℚ) := by
   simp [floorRationalCodeValue,floorRationalCodeNat]
 
-/-- Original `floorRationalCodeNeg_value` guarantee for the `FloorRationalCode` construction; the complete source hypotheses are retained. -/
+/-- Negating a rational code negates its decoded value. -/
 theorem floorRationalCodeNeg_value (q : FloorRationalCode) :
     floorRationalCodeValue (floorRationalCodeNeg q)= -floorRationalCodeValue q := by
   dsimp [floorRationalCodeValue,floorRationalCodeNeg]
   ring
 
-/-- Original `floorRationalCode_product_den` guarantee for the `FloorRationalCode` construction; the complete source hypotheses are retained. -/
+/-- Encoding the product of the two positive denominators by subtracting one and decoding by
+adding one recovers the exact product. -/
 theorem floorRationalCode_product_den (q r : FloorRationalCode) :
     (q.2+1)*(r.2+1)-1+1=(q.2+1)*(r.2+1) := by
   have h : 0<(q.2+1)*(r.2+1) := by positivity
   omega
 
-/-- Original `floorRationalCodeAdd_value` guarantee for the `FloorRationalCode` construction; the complete source hypotheses are retained. -/
+/-- The coded sum represents the sum of the two decoded rational values. -/
 theorem floorRationalCodeAdd_value (q r : FloorRationalCode) :
     floorRationalCodeValue (floorRationalCodeAdd q r)=
       floorRationalCodeValue q+floorRationalCodeValue r := by
@@ -79,7 +80,7 @@ theorem floorRationalCodeAdd_value (q r : FloorRationalCode) :
   field_simp
   ring
 
-/-- Original `floorRationalCodeMul_value` guarantee for the `FloorRationalCode` construction; the complete source hypotheses are retained. -/
+/-- The coded product represents the product of the two decoded rational values. -/
 theorem floorRationalCodeMul_value (q r : FloorRationalCode) :
     floorRationalCodeValue (floorRationalCodeMul q r)=
       floorRationalCodeValue q*floorRationalCodeValue r := by
@@ -92,15 +93,15 @@ theorem floorRationalCodeMul_value (q r : FloorRationalCode) :
   field_simp
   ring
 
-/-- Original `primrec_floorRationalCodeNat` guarantee for the `FloorRationalCode` construction; the complete source hypotheses are retained. -/
+/-- Encoding a natural as a rational with denominator one is primitive recursive. -/
 theorem primrec_floorRationalCodeNat : Primrec floorRationalCodeNat :=
   (Primrec.id.pair (Primrec.const 0)).pair (Primrec.const 0)
 
-/-- Original `primrec_floorRationalCodeNeg` guarantee for the `FloorRationalCode` construction; the complete source hypotheses are retained. -/
+/-- Negating a rational code is primitive recursive. -/
 theorem primrec_floorRationalCodeNeg : Primrec floorRationalCodeNeg :=
   ((Primrec.snd.comp Primrec.fst).pair (Primrec.fst.comp Primrec.fst)).pair Primrec.snd
 
-/-- Original `primrec_floorRationalCodeAdd` guarantee for the `FloorRationalCode` construction; the complete source hypotheses are retained. -/
+/-- Coded rational addition is primitive recursive in the two input codes. -/
 theorem primrec_floorRationalCodeAdd : Primrec₂ floorRationalCodeAdd := by
   have qp : Primrec (fun q : FloorRationalCode × FloorRationalCode => q.1.1.1) :=
     Primrec.fst.comp (Primrec.fst.comp Primrec.fst)
@@ -118,7 +119,7 @@ theorem primrec_floorRationalCodeAdd : Primrec₂ floorRationalCodeAdd := by
     (Primrec.nat_add.comp (Primrec.nat_mul.comp qn rd) (Primrec.nat_mul.comp rn qd))).pair
     (Primrec.nat_sub.comp (Primrec.nat_mul.comp qd rd) (Primrec.const 1))
 
-/-- Original `primrec_floorRationalCodeMul` guarantee for the `FloorRationalCode` construction; the complete source hypotheses are retained. -/
+/-- Coded rational multiplication is primitive recursive in the two input codes. -/
 theorem primrec_floorRationalCodeMul : Primrec₂ floorRationalCodeMul := by
   have qp : Primrec (fun q : FloorRationalCode × FloorRationalCode => q.1.1.1) :=
     Primrec.fst.comp (Primrec.fst.comp Primrec.fst)
@@ -151,7 +152,8 @@ def floorRationalCodeInv (q : FloorRationalCode) : FloorRationalCode :=
   else if q.1.2 ≤ q.1.1 then ((q.2+1,0),q.1.1-q.1.2-1)
   else ((0,q.2+1),q.1.2-q.1.1-1)
 
-/-- Original `floorRationalCodeLE_value` guarantee for the `FloorRationalCode` construction; the complete source hypotheses are retained. -/
+/-- The order test on two rational codes holds exactly when their decoded values satisfy the same
+weak inequality. -/
 theorem floorRationalCodeLE_value (q r : FloorRationalCode) :
     floorRationalCodeLE q r ↔ floorRationalCodeValue q ≤ floorRationalCodeValue r := by
   unfold floorRationalCodeLE floorRationalCodeValue
@@ -168,7 +170,8 @@ theorem floorRationalCodeLE_value (q r : FloorRationalCode) :
         (r.1.1 : ℚ)*((q.2 : ℚ)+1)+(q.1.2 : ℚ)*((r.2 : ℚ)+1) := by nlinarith
     exact_mod_cast hQ
 
-/-- Original `floorRationalCodeInv_value` guarantee for the `FloorRationalCode` construction; the complete source hypotheses are retained. -/
+/-- The inverse code represents the rational reciprocal of the decoded input, including the
+totalized inverse at zero. -/
 theorem floorRationalCodeInv_value (q : FloorRationalCode) :
     floorRationalCodeValue (floorRationalCodeInv q)=(floorRationalCodeValue q)⁻¹ := by
   by_cases he : q.1.1=q.1.2
@@ -190,7 +193,7 @@ theorem floorRationalCodeInv_value (q : FloorRationalCode) :
       field_simp [hne,hne']
       ring
 
-/-- Original `primrec_floorRationalCodeInv` guarantee for the `FloorRationalCode` construction; the complete source hypotheses are retained. -/
+/-- Computing the code of a rational inverse is primitive recursive. -/
 theorem primrec_floorRationalCodeInv : Primrec floorRationalCodeInv := by
   have qp : Primrec (fun q : FloorRationalCode => q.1.1) := Primrec.fst.comp Primrec.fst
   have qn : Primrec (fun q : FloorRationalCode => q.1.2) := Primrec.snd.comp Primrec.fst
@@ -201,7 +204,7 @@ theorem primrec_floorRationalCodeInv : Primrec floorRationalCodeInv := by
       ((qd.pair (Primrec.const 0)).pair (Primrec.nat_sub.comp (Primrec.nat_sub.comp qp qn) (Primrec.const 1)))
       (((Primrec.const 0).pair qd).pair (Primrec.nat_sub.comp (Primrec.nat_sub.comp qn qp) (Primrec.const 1))))
 
-/-- Original `primrec_floorRationalCodeLE` guarantee for the `FloorRationalCode` construction; the complete source hypotheses are retained. -/
+/-- The weak-order relation on rational codes is primitive recursive. -/
 theorem primrec_floorRationalCodeLE : PrimrecRel floorRationalCodeLE := by
   have qp : Primrec (fun q : FloorRationalCode × FloorRationalCode => q.1.1.1) :=
     Primrec.fst.comp (Primrec.fst.comp Primrec.fst)

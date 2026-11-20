@@ -1038,7 +1038,7 @@ structure GraphAccessSetupAccount (a : ℕ) (ha : 0 < a) : Prop where
 
 /-- For positive register size, establishes the bipartite graph setup account, including clean
 preparation, walk implementation, and setup and repeated-step costs. -/
-theorem frontier1 (a : ℕ) (ha : 0 < a) : GraphAccessSetupAccount a ha := by
+theorem bipartite_neighbor_setup_correctness_and_cost (a : ℕ) (ha : 0 < a) : GraphAccessSetupAccount a ha := by
   have hP := bipartite_nonLazyKernel_isTransition a ha
   obtain ⟨hSq, hSg⟩ := bipartiteSetupWord_cost a ha
   obtain ⟨_, hIg⟩ := bipartiteSetupWord_adjoint_cost a ha

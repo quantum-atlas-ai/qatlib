@@ -43,7 +43,8 @@ set_option autoImplicit false
 namespace Qatlib.Concepts.SpinorSampling.Model
 
 -- Coordinates of z - i*y*w for z,w in C^2, with y a Pauli-Y outcome.
-/-- Complete original `y_record_squared_norm` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For unit spinors `z` and `w`, the squared norm of `z - i*y*w` for `y^2 = 1` is two plus
+twice the signed imaginary part of their inner product. -/
 theorem y_record_squared_norm (a b c d e f g k y : ℝ)
     (hz : a^2+b^2+c^2+d^2=1)
     (hw : e^2+f^2+g^2+k^2=1)
@@ -52,38 +53,41 @@ theorem y_record_squared_norm (a b c d e f g k y : ℝ)
       2+2*y*(a*f-b*e+c*k-d*g) := by
   linear_combination hz + y^2*hw + hy
 
-/-- Complete original `y_record_pair_mass` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- With a nonzero normalization `M`, the two weights for currents `J` and `-J` add to `1/M`. -/
 theorem y_record_pair_mass (J M : ℝ) (hM : M ≠ 0) :
     (2+2*J)/(4*M)+(2-2*J)/(4*M)=1/M := by
   field_simp
   ring
 
-/-- Complete original `y_record_pair_signed_mass` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- With a nonzero normalization `M`, subtracting the negative-sign record weight from the
+positive-sign weight gives `J/M`. -/
 theorem y_record_pair_signed_mass (J M : ℝ) (hM : M ≠ 0) :
     (2+2*J)/(4*M)-(2-2*J)/(4*M)=J/M := by
   field_simp
   ring
 
 -- This is the source spin (Z,-Y,X), not a different spin normalization.
-/-- Complete original `source_spin_squared_norm` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The squared norm of the three spin coordinates `(Z, -Y, X)` equals the square of the
+spinor's total population. -/
 theorem source_spin_squared_norm (a b c d : ℝ) :
     (a^2+b^2-c^2-d^2)^2 + (2*(c*b-a*d))^2 + (2*(a*c+b*d))^2 =
       (a^2+b^2+c^2+d^2)^2 := by
   ring
 
-/-- Complete original `source_spin_unit` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The three spin coordinates `(Z, -Y, X)` form a unit vector when the spinor is normalized. -/
 theorem source_spin_unit (a b c d : ℝ) (hz : a^2+b^2+c^2+d^2=1) :
     (a^2+b^2-c^2-d^2)^2 + (2*(c*b-a*d))^2 + (2*(a*c+b*d))^2 = 1 := by
   rw [source_spin_squared_norm, hz]
   norm_num
 
-/-- Complete original `unit_spin_distance` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The squared distance between two unit spin vectors is twice one minus their dot product. -/
 theorem unit_spin_distance (u v w p q r : ℝ)
     (hs : u^2+v^2+w^2=1) (ht : p^2+q^2+r^2=1) :
     (u-p)^2+(v-q)^2+(w-r)^2 = 2-2*(u*p+v*q+w*r) := by
   linear_combination hs + ht
 
-/-- Complete original `central_spin_energy` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For two unit spin vectors and a nonzero step `h`, the squared central difference is one
+minus their dot product, divided by `2*h^2`. -/
 theorem central_spin_energy (u v w p q r h : ℝ) (hh : h ≠ 0)
     (hs : u^2+v^2+w^2=1) (ht : p^2+q^2+r^2=1) :
     ((u-p)/(2*h))^2+((v-q)/(2*h))^2+((w-r)/(2*h))^2 =
@@ -100,7 +104,8 @@ theorem central_spin_energy (u v w p q r h : ℝ) (hh : h ≠ 0)
 def intBit (a : Bool) : ℤ := a.toNat
 
 -- The diagonal phase of the 7-T CCX expansion, between its two target H gates.
-/-- Complete original `toffoli_phase_polynomial` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The integer inclusion-exclusion polynomial in three bits and their XORs equals four times
+the product of the bits, the phase exponent for the diagonal part of Toffoli. -/
 theorem toffoli_phase_polynomial (a b t : Bool) :
     intBit a + intBit b + intBit t - intBit (Bool.xor a b) -
       intBit (Bool.xor a t) - intBit (Bool.xor b t) +
@@ -117,7 +122,8 @@ theorem toffoli_phase_polynomial (a b t : Bool) :
 #print axioms Qatlib.Concepts.SpinorSampling.Model.central_spin_energy
 #print axioms Qatlib.Concepts.SpinorSampling.Model.toffoli_phase_polynomial
 
-/-- Complete original `normalized_inner_im_bound` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The absolute value of the imaginary part of the inner product of two normalized spinors is
+at most one. -/
 theorem normalized_inner_im_bound (a b c d e f g k : ℝ)
     (hz : a^2+b^2+c^2+d^2=1) (hw : e^2+f^2+g^2+k^2=1) :
     |a*f-b*e+c*k-d*g| ≤ 1 := by
@@ -133,13 +139,14 @@ theorem normalized_inner_im_bound (a b c d e f g k : ℝ)
     linarith
   exact abs_le.mpr ⟨by linarith, by linarith⟩
 
-/-- Complete original `central_record_mean_bound` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The half-difference of two real record means in `[-1, 1]` also lies in `[-1, 1]`. -/
 theorem central_record_mean_bound (p n : ℝ) (hp : |p| ≤ 1) (hn : |n| ≤ 1) :
     |(p-n)/2| ≤ 1 := by
   rw [abs_le] at hp hn ⊢
   constructor <;> linarith
 
-/-- Complete original `fair_neighbor_mixture` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For a nonzero normalization `M`, averaging the positive- and negative-neighbor weights
+yields the weight with current `(p - n)/2`. -/
 theorem fair_neighbor_mixture (p n q M : ℝ) (hM : M ≠ 0) :
     ((1+q*p)/(2*M)+(1-q*n)/(2*M))/2 =
       (1+q*((p-n)/2))/(2*M) := by
@@ -169,7 +176,9 @@ noncomputable section
 open scoped BigOperators
 variable {S : Type*} [Fintype S] [DecidableEq S]
 
-/-- Complete original `residual_streaming_consumer` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- Grouping signed residuals by site, squaring their sums, and subtracting the individual
+squares gives the same statistic as averaging the residual collision kernel over ordered
+distinct samples. -/
 theorem residual_streaming_consumer {n : ℕ} (r : Fin n → S × Bool)
     (u : S → ℝ) (α β : ℝ) :
     let J := fun i => (r i).1
@@ -205,7 +214,9 @@ def shiftedSpinCollision (τ : S → S) (l r : S × Bool) : ℝ :=
     ((if r.1=τ l.1 then 1 else 0)+(if l.1=τ r.1 then 1 else 0))*
     recordSign l.2*recordSign r.2
 
-/-- Complete original `spin_streaming_consumer` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The shifted-spin collision average can be computed from the grouped sign sums at each site
+and its shift. At a fixed point of the shift, subtract the site count to remove the diagonal
+pairs. -/
 theorem spin_streaming_consumer {n : ℕ} (r : Fin n → S × Bool) (τ : S → S) :
     let J := fun i => (r i).1
     let z := fun i => recordSign (r i).2
@@ -256,7 +267,8 @@ open Qatlib
 variable {X : Type*} [Fintype X] [DecidableEq X]
 
 omit [DecidableEq X] in
-/-- Complete original `expect_distinct_coordinate_product` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- In a product sample, the expectation of a product of scalar functions evaluated at distinct
+coordinates factors into the two individual expectations. -/
 theorem expect_distinct_coordinate_product {n : ℕ} (p : FinDist X)
     (i j : Fin n) (hij : i ≠ j) (f g : X → ℝ) :
     (∑ ω : Fin n → X, p.probOf ω*f (ω i)*g (ω j)) = p.expect f*p.expect g := by
@@ -288,7 +300,8 @@ theorem expect_distinct_coordinate_product {n : ℕ} (p : FinDist X)
     _ = _ := hright
 
 
-/-- Complete original `expect_two_coordinates` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- Evaluating a real two-input kernel at two distinct coordinates of a product sample has the
+same expectation as evaluating it on two independent draws from the marginal law. -/
 theorem expect_two_coordinates {n : ℕ} (p : FinDist X)
     (i j : Fin n) (hij : i ≠ j) (H : X → X → ℝ) :
     (∑ ω : Fin n → X, p.probOf ω*H (ω i) (ω j)) =
@@ -342,7 +355,8 @@ variable {X : Type*} [Fintype X] [DecidableEq X]
 def orderedUStatistic {n : ℕ} (H : X → X → ℝ) (ω : Fin n → X) : ℝ :=
   (∑ i : Fin n, ∑ j : Fin n, (if i ≠ j then H (ω i) (ω j) else 0))/(n*(n-1) : ℕ)
 
-/-- Complete original `ordered_ustatistic_unbiased` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For at least two samples, the average of a kernel over ordered pairs of distinct sample
+indices is unbiased for its two-draw expectation. -/
 theorem ordered_ustatistic_unbiased {n : ℕ} (p : FinDist X) (H : X → X → ℝ)
     (hn : 2 ≤ n) :
     (∑ ω : Fin n → X, p.probOf ω*orderedUStatistic H ω) =
@@ -394,7 +408,8 @@ theorem ordered_ustatistic_unbiased {n : ℕ} (p : FinDist X) (H : X → X → �
 
 variable {S : Type*} [Fintype S] [Nonempty S] [DecidableEq S]
 
-/-- Complete original `residual_all_samples_unbiased` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For at least two independent signed records with means in `[-1, 1]`, the ordered
+residual-collision average is unbiased for the spatial mean of `(α*m - β*u)^2`. -/
 theorem residual_all_samples_unbiased {n : ℕ} (m u : S → ℝ) (α β : ℝ)
     (hm : ∀ x, |m x| ≤ 1) (hn : 2 ≤ n) :
     (∑ ω : Fin n → S × Bool, (signedRecordLaw m hm).probOf ω *
@@ -419,7 +434,8 @@ variable {S : Type*} [Fintype S] [Nonempty S] [DecidableEq S]
 def orientedSpinCollision (τ : S → S) (l r : S × Bool) : ℝ :=
   if r.1=τ l.1 then (Fintype.card S : ℝ)*recordSign l.2*recordSign r.2 else 0
 
-/-- Complete original `oriented_spin_projection` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- Averaging the oriented spin collision over the second record leaves the first record's sign
+times the mean at its shifted site. -/
 theorem oriented_spin_projection (m : S → ℝ) (hm : ∀ x, |m x| ≤ 1)
     (τ : S → S) (l : S × Bool) :
     (signedRecordLaw m hm).expect (fun r => orientedSpinCollision τ l r) =
@@ -451,7 +467,8 @@ theorem oriented_spin_projection (m : S → ℝ) (hm : ∀ x, |m x| ≤ 1)
   simp_rw [hsite]
   simp
 
-/-- Complete original `oriented_spin_unbiased` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The expectation of the oriented spin collision on independent signed records is the spatial
+average of the product of the mean field and its shift. -/
 theorem oriented_spin_unbiased (m : S → ℝ) (hm : ∀ x, |m x| ≤ 1) (τ : S → S) :
     (signedRecordLaw m hm).expect (fun l =>
       (signedRecordLaw m hm).expect (fun r => orientedSpinCollision τ l r)) =
@@ -476,7 +493,8 @@ theorem oriented_spin_unbiased (m : S → ℝ) (hm : ∀ x, |m x| ≤ 1) (τ : S
       _ = _ := by rw [hcell]; ring
   simpa only [Finset.sum_div] using (Finset.sum_congr rfl fun x _ => hsite x)
 
-/-- Complete original `spin_collision_unbiased` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The symmetrized shifted spin collision on two independent signed records is unbiased for the
+spatial average of the shifted mean-field product. -/
 theorem spin_collision_unbiased (m : S → ℝ) (hm : ∀ x, |m x| ≤ 1) (τ : S → S) :
     (signedRecordLaw m hm).expect (fun l =>
       (signedRecordLaw m hm).expect (fun r => shiftedSpinCollision τ l r)) =
@@ -510,7 +528,8 @@ theorem spin_collision_unbiased (m : S → ℝ) (hm : ∀ x, |m x| ≤ 1) (τ : 
   rw [hmean]
   ring
 
-/-- Complete original `spin_all_samples_unbiased` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- With at least two signed records drawn independently from the bounded mean field, the
+ordered spin collision statistic is unbiased for the spatial mean of `m x * m (τ x)`. -/
 theorem spin_all_samples_unbiased {n : ℕ} (m : S → ℝ) (hm : ∀ x, |m x| ≤ 1)
     (τ : S → S) (hn : 2 ≤ n) :
     (∑ ω : Fin n → S × Bool, (signedRecordLaw m hm).probOf ω *
@@ -532,7 +551,8 @@ open Qatlib
 variable {X : Type*} [Fintype X] [DecidableEq X]
 
 omit [DecidableEq X] in
-/-- Complete original `product_expect_cons` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The product-law expectation on `n+1` coordinates can be evaluated by averaging the first
+coordinate and the remaining `n` coordinates separately. -/
 theorem product_expect_cons {n : ℕ} (p : FinDist X) (F : (Fin (n+1) → X) → ℝ) :
     (∑ ω : Fin (n+1) → X, p.probOf ω*F ω) =
       ∑ x : X, p.prob x*(∑ η : Fin n → X, p.probOf η*F (Fin.cons x η)) := by
@@ -550,7 +570,8 @@ theorem product_expect_cons {n : ℕ} (p : FinDist X) (F : (Fin (n+1) → X) →
 -- Conditional cancellation is later discharged from the centered kernel;
 -- it is not a variance/success certificate supplied to an SCWF estimator.
 omit [DecidableEq X] in
-/-- Complete original `product_conditional_zero` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- If averaging a function over the replacement value of one coordinate gives zero for every
+fixed sample, its full product-law expectation is zero. -/
 theorem product_conditional_zero (p : FinDist X) :
     ∀ (n : ℕ) (k : Fin n) (F : (Fin n → X) → ℝ),
       (∀ ω, (∑ x : X, p.prob x*F (Function.update ω k x))=0) →
@@ -633,7 +654,8 @@ def centeredPairKernel (p : FinDist X) (H : X → X → ℝ) (x y : X) : ℝ :=
   H x y-pairKernelProjection p H x-pairKernelProjection p H y+pairKernelMean p H
 
 omit [DecidableEq X] in
-/-- Complete original `centered_pair_conditional_zero` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- Fixing the first argument of the centered pair kernel and averaging over its second argument
+gives zero under the marginal law. -/
 theorem centered_pair_conditional_zero (p : FinDist X) (H : X → X → ℝ) (x : X) :
     p.expect (fun y => centeredPairKernel p H x y)=0 := by
   let g := pairKernelProjection p H
@@ -652,7 +674,8 @@ theorem centered_pair_conditional_zero (p : FinDist X) (H : X → X → ℝ) (x 
       ring
 
 omit [DecidableEq X] in
-/-- Complete original `centered_pair_symmetric` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- If the original pair kernel is symmetric in its arguments, its centered kernel is symmetric
+too. -/
 theorem centered_pair_symmetric (p : FinDist X) (H : X → X → ℝ)
     (hH : ∀ x y, H x y=H y x) (x y : X) :
     centeredPairKernel p H x y=centeredPairKernel p H y x := by
@@ -661,7 +684,8 @@ theorem centered_pair_symmetric (p : FinDist X) (H : X → X → ℝ)
   ring
 
 omit [DecidableEq X] in
-/-- Complete original `centered_pair_unique_endpoint_cancel` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The expected product of two centered pair terms vanishes if the second term's final sample
+index is distinct from the other three indices. -/
 theorem centered_pair_unique_endpoint_cancel {n : ℕ} (p : FinDist X) (H : X → X → ℝ)
     (i j k l : Fin n) (hli : l ≠ i) (hlj : l ≠ j) (hlk : l ≠ k) :
     (∑ ω : Fin n → X, p.probOf ω *
@@ -694,7 +718,8 @@ open Qatlib
 variable {X : Type*} [Fintype X] [DecidableEq X]
 
 omit [DecidableEq X] in
-/-- Complete original `centered_pair_distinct_edges_cancel` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For a symmetric kernel, two centered pair terms have zero expected product when the second
+pair is off diagonal and differs from the first in both orientations. -/
 theorem centered_pair_distinct_edges_cancel {n : ℕ} (p : FinDist X) (H : X → X → ℝ)
     (hH : ∀ x y, H x y=H y x) (i j k l : Fin n) (hkl : k ≠ l)
     (hsame : ¬(i=k ∧ j=l)) (hreverse : ¬(i=l ∧ j=k)) :
@@ -730,13 +755,14 @@ theorem centered_pair_distinct_edges_cancel {n : ℕ} (p : FinDist X) (H : X →
 
 variable {S : Type*} [Fintype S] [DecidableEq S]
 
-/-- Complete original `residual_kernel_symmetric` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The residual collision kernel is unchanged when its two records are swapped. -/
 theorem residual_kernel_symmetric (u : S → ℝ) (α β : ℝ) (l r : S × Bool) :
     residualCollision α β u l r=residualCollision α β u r l := by
   simp only [residualCollision, eq_comm]
   split_ifs <;> ring
 
-/-- Complete original `spin_kernel_symmetric` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The shifted spin collision kernel is symmetric in its records, with forward matches counted
+in both orientations. -/
 theorem spin_kernel_symmetric (τ : S → S) (l r : S × Bool) :
     shiftedSpinCollision τ l r=shiftedSpinCollision τ r l := by
   unfold shiftedSpinCollision
@@ -756,7 +782,8 @@ open Qatlib
 variable {X : Type*} [Fintype X] [DecidableEq X]
 
 omit [DecidableEq X] in
-/-- Complete original `offdiag_constant_sum` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- Summing a constant over the ordered off-diagonal pairs from `n ≥ 1` indices gives `n*(n-1)`
+times that constant. -/
 theorem offdiag_constant_sum {n : ℕ} (c : ℝ) (hn : 1 ≤ n) :
     (∑ i : Fin n, ∑ j : Fin n, if i ≠ j then c else 0) =
       ((n*(n-1) : ℕ) : ℝ)*c := by
@@ -770,7 +797,8 @@ theorem offdiag_constant_sum {n : ℕ} (c : ℝ) (hn : 1 ≤ n) :
   rw [Nat.cast_mul, Nat.cast_sub hn, Nat.cast_one]
   ring
 
-/-- Complete original `centered_pair_edge_row` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For a symmetric kernel and one fixed off-diagonal sample pair, summing its expected centered
+product with every off-diagonal pair gives twice the centered kernel's second moment. -/
 theorem centered_pair_edge_row {n : ℕ} (p : FinDist X) (H : X → X → ℝ)
     (hH : ∀ x y, H x y=H y x) (i j : Fin n) (hij : i ≠ j) :
     (∑ k : Fin n, ∑ l : Fin n, ∑ ω : Fin n → X, p.probOf ω *
@@ -822,7 +850,8 @@ theorem centered_pair_edge_row {n : ℕ} (p : FinDist X) (H : X → X → ℝ)
   simp [ite_and]
   ring
 
-/-- Complete original `centered_ustatistic_second_moment` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For a symmetric kernel on at least two independent samples, the centered ordered U-statistic
+has second moment `2/(n*(n-1))` times the two-draw second moment of the centered kernel. -/
 theorem centered_ustatistic_second_moment {n : ℕ} (p : FinDist X) (H : X → X → ℝ)
     (hH : ∀ x y, H x y=H y x) (hn : 2 ≤ n) :
     (∑ ω : Fin n → X, p.probOf ω*(orderedUStatistic (centeredPairKernel p H) ω)^2) =
@@ -889,7 +918,8 @@ open scoped BigOperators
 open Qatlib
 variable {X : Type*} [Fintype X] [DecidableEq X]
 
-/-- Complete original `offdiag_left_sum` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The off-diagonal double sum of a function of the first index is `(n - 1)` times its single
+sum, with the factor interpreted in the reals. -/
 theorem offdiag_left_sum {n : ℕ} (f : Fin n → ℝ) :
     (∑ i : Fin n, ∑ j : Fin n, if i ≠ j then f i else 0) =
       ((n : ℝ)-1)*(∑ i : Fin n, f i) := by
@@ -903,7 +933,9 @@ theorem offdiag_left_sum {n : ℕ} (f : Fin n → ℝ) :
   rw [Finset.mul_sum]
 
 omit [DecidableEq X] in
-/-- Complete original `ordered_ustatistic_decomposition` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For at least two samples, the mean-centered ordered U-statistic splits into twice the
+centered sample average of the first projection plus the ordered U-statistic of the centered
+pair kernel. -/
 theorem ordered_ustatistic_decomposition {n : ℕ} (p : FinDist X) (H : X → X → ℝ)
     (ω : Fin n → X) (hn : 2 ≤ n) :
     orderedUStatistic H ω-pairKernelMean p H =
@@ -942,7 +974,8 @@ theorem ordered_ustatistic_decomposition {n : ℕ} (p : FinDist X) (H : X → X 
   ring
 
 omit [DecidableEq X] in
-/-- Complete original `linear_centered_pair_cancel` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For a symmetric kernel, multiplying its centered term at a distinct-index pair by any
+shifted function of one sample coordinate gives a product with expectation zero. -/
 theorem linear_centered_pair_cancel {n : ℕ} (p : FinDist X) (H : X → X → ℝ)
     (hH : ∀ x y, H x y=H y x) (f : X → ℝ) (c : ℝ)
     (k i j : Fin n) (hij : i ≠ j) :
@@ -986,7 +1019,8 @@ open Qatlib
 variable {X : Type*} [Fintype X] [DecidableEq X]
 
 omit [DecidableEq X] in
-/-- Complete original `linear_centered_ustatistic_orthogonal` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For a symmetric kernel and at least two product samples, any shifted sample average is
+orthogonal in expectation to the U-statistic of the centered pair kernel. -/
 theorem linear_centered_ustatistic_orthogonal {n : ℕ} (p : FinDist X) (H : X → X → ℝ)
     (hH : ∀ x y, H x y=H y x) (f : X → ℝ) (c : ℝ) (hn : 2 ≤ n) :
     (∑ ω : Fin n → X, p.probOf ω *
@@ -1033,7 +1067,9 @@ theorem linear_centered_ustatistic_orthogonal {n : ℕ} (p : FinDist X) (H : X �
       exact Finset.sum_comm
     _ = 0 := by simp_rw [hterm]; simp
 
-/-- Complete original `ordered_ustatistic_hoeffding_variance` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For a symmetric kernel on `n ≥ 2` independent samples, the U-statistic variance is `4/n`
+times the variance of the first projection plus `2/(n*(n-1))` times the centered pair kernel's
+second moment. -/
 theorem ordered_ustatistic_hoeffding_variance {n : ℕ} (p : FinDist X) (H : X → X → ℝ)
     (hH : ∀ x y, H x y=H y x) (hn : 2 ≤ n) :
     (∑ ω : Fin n → X, p.probOf ω*(orderedUStatistic H ω-pairKernelMean p H)^2) =
@@ -1070,7 +1106,8 @@ open Qatlib
 variable {X : Type*} [Fintype X] [DecidableEq X]
 
 omit [DecidableEq X] in
-/-- Complete original `centered_pair_second_moment` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For a symmetric kernel, the centered pair kernel has second moment equal to the original
+kernel variance minus twice the first projection variance. -/
 theorem centered_pair_second_moment (p : FinDist X) (H : X → X → ℝ)
     (hH : ∀ x y, H x y=H y x) :
     p.expect (fun x => p.expect (fun y => (centeredPairKernel p H x y)^2)) =
@@ -1138,7 +1175,8 @@ theorem centered_pair_second_moment (p : FinDist X) (H : X → X → ℝ)
   rw [hleft, hright, hcross, hcross', hproduct]
   ring
 
-/-- Complete original `ordered_ustatistic_variance` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For a symmetric kernel on `n ≥ 2` draws, the ordered U-statistic variance weights the first
+projection variance by `4*(n-2)/(n*(n-1))` and the two-draw kernel variance by `2/(n*(n-1))`. -/
 theorem ordered_ustatistic_variance {n : ℕ} (p : FinDist X) (H : X → X → ℝ)
     (hH : ∀ x y, H x y=H y x) (hn : 2 ≤ n) :
     (∑ ω : Fin n → X, p.probOf ω*(orderedUStatistic H ω-pairKernelMean p H)^2) =
@@ -1181,18 +1219,22 @@ def spinStreamingStatistic {n : ℕ} (τ : S → S) (r : Fin n → S × Bool) : 
       if τ x=x then groupedRecordCount J x else 0))
 
 omit [Nonempty S] in
-/-- Complete original `residual_streaming_eq_ordered` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The streaming residual statistic on a finite record list equals the ordered U-statistic of
+its residual collision kernel. -/
 theorem residual_streaming_eq_ordered {n : ℕ} (u : S → ℝ) (α β : ℝ) (r : Fin n → S × Bool) :
     residualStreamingStatistic u α β r=orderedUStatistic (residualCollision α β u) r :=
   residual_streaming_consumer r u α β
 
 omit [Nonempty S] in
-/-- Complete original `spin_streaming_eq_ordered` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The streaming spin statistic for a site shift equals the ordered U-statistic of the
+corresponding shifted spin collision kernel. -/
 theorem spin_streaming_eq_ordered {n : ℕ} (τ : S → S) (r : Fin n → S × Bool) :
     spinStreamingStatistic τ r=orderedUStatistic (shiftedSpinCollision τ) r :=
   spin_streaming_consumer r τ
 
-/-- Complete original `residual_streaming_unbiased` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For at least two independent signed observations, the streaming residual statistic has
+expectation equal to the site average of the squared difference between scaled mean and scaled
+target. -/
 theorem residual_streaming_unbiased {n : ℕ} (m u : S → ℝ) (α β : ℝ)
     (hm : ∀ x, |m x| ≤ 1) (hn : 2 ≤ n) :
     (∑ ω : Fin n → S × Bool, (signedRecordLaw m hm).probOf ω*residualStreamingStatistic u α β ω) =
@@ -1200,7 +1242,8 @@ theorem residual_streaming_unbiased {n : ℕ} (m u : S → ℝ) (α β : ℝ)
   simp_rw [residual_streaming_eq_ordered]
   exact residual_all_samples_unbiased m u α β hm hn
 
-/-- Complete original `spin_streaming_unbiased` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For at least two independent signed observations with bounded means, the streaming spin
+statistic has expectation equal to the average of the pointwise mean times its shifted value. -/
 theorem spin_streaming_unbiased {n : ℕ} (m : S → ℝ) (hm : ∀ x, |m x| ≤ 1)
     (τ : S → S) (hn : 2 ≤ n) :
     (∑ ω : Fin n → S × Bool, (signedRecordLaw m hm).probOf ω*spinStreamingStatistic τ ω) =
@@ -1208,7 +1251,9 @@ theorem spin_streaming_unbiased {n : ℕ} (m : S → ℝ) (hm : ∀ x, |m x| ≤
   simp_rw [spin_streaming_eq_ordered]
   exact spin_all_samples_unbiased m hm τ hn
 
-/-- Complete original `residual_streaming_variance` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For at least two independent signed records with bounded means, the residual streaming
+variance about the mean squared residual is the sum of the first projection variance scaled by
+`4*(n-2)/(n*(n-1))` and the residual collision kernel variance scaled by `2/(n*(n-1))`. -/
 theorem residual_streaming_variance {n : ℕ} (m u : S → ℝ) (α β : ℝ)
     (hm : ∀ x, |m x| ≤ 1) (hn : 2 ≤ n) :
     let p := signedRecordLaw m hm
@@ -1226,7 +1271,9 @@ theorem residual_streaming_variance {n : ℕ} (m u : S → ℝ) (α β : ℝ)
   exact ordered_ustatistic_variance (signedRecordLaw m hm) (residualCollision α β u)
     (residual_kernel_symmetric u α β) hn
 
-/-- Complete original `spin_streaming_variance` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For at least two independent signed records with bounded means, the spin streaming variance
+about the shifted mean-field product has a first projection term scaled by `4*(n-2)/(n*(n-1))`
+and a two-record collision variance term scaled by `2/(n*(n-1))`. -/
 theorem spin_streaming_variance {n : ℕ} (m : S → ℝ) (hm : ∀ x, |m x| ≤ 1)
     (τ : S → S) (hn : 2 ≤ n) :
     let p := signedRecordLaw m hm
@@ -1258,22 +1305,22 @@ open scoped BigOperators
 open Qatlib
 variable {X : Type*} [Fintype X]
 
-/-- Complete original `finite_expect_const` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- A constant has the same expectation under any finite probability distribution. -/
 theorem finite_expect_const (p : FinDist X) (c : ℝ) : p.expect (fun _ => c)=c := by
   unfold FinDist.expect
   rw [← Finset.sum_mul, p.sum_one, one_mul]
 
-/-- Complete original `finite_expect_add` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- Finite expectation distributes over the pointwise sum of two real functions. -/
 theorem finite_expect_add (p : FinDist X) (f g : X → ℝ) :
     p.expect (fun x => f x+g x)=p.expect f+p.expect g := by
   simp only [FinDist.expect, mul_add, Finset.sum_add_distrib]
 
-/-- Complete original `finite_expect_sub` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- Finite expectation of a pointwise difference equals the difference of the expectations. -/
 theorem finite_expect_sub (p : FinDist X) (f g : X → ℝ) :
     p.expect (fun x => f x-g x)=p.expect f-p.expect g := by
   simp only [FinDist.expect, mul_sub, Finset.sum_sub_distrib]
 
-/-- Complete original `finite_expect_mul` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- A constant real factor can be taken outside finite expectation. -/
 theorem finite_expect_mul (p : FinDist X) (c : ℝ) (f : X → ℝ) :
     p.expect (fun x => c*f x)=c*p.expect f := by
   unfold FinDist.expect
@@ -1282,16 +1329,16 @@ theorem finite_expect_mul (p : FinDist X) (c : ℝ) (f : X → ℝ) :
   intro x _
   ring
 
-/-- Complete original `finite_expect_mono` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- A pointwise upper bound of real functions gives an upper bound on their finite expectations. -/
 theorem finite_expect_mono (p : FinDist X) (f g : X → ℝ) (hfg : ∀ x, f x ≤ g x) :
     p.expect f ≤ p.expect g :=
   Finset.sum_le_sum fun x _ => mul_le_mul_of_nonneg_left (hfg x) (p.nonneg x)
 
-/-- Complete original `finite_expect_nonneg` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The finite expectation of a pointwise nonnegative real function is nonnegative. -/
 theorem finite_expect_nonneg (p : FinDist X) (f : X → ℝ) (hf : ∀ x, 0 ≤ f x) :
     0 ≤ p.expect f := Finset.sum_nonneg fun x _ => mul_nonneg (p.nonneg x) (hf x)
 
-/-- Complete original `finite_variance_identity` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- Finite variance is the uncentered second moment minus the squared mean. -/
 theorem finite_variance_identity (p : FinDist X) (f : X → ℝ) :
     p.variance f=p.expect (fun x => (f x)^2)-(p.expect f)^2 := by
   have hpoly (x : X) : (f x-p.expect f)^2=(f x)^2-2*p.expect f*f x+(p.expect f)^2 := by ring
@@ -1300,13 +1347,14 @@ theorem finite_variance_identity (p : FinDist X) (f : X → ℝ) :
   simp only [finite_expect_add, finite_expect_sub, finite_expect_mul, finite_expect_const]
   ring
 
-/-- Complete original `finite_variance_le_second` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The uncentered second moment of a real function bounds its finite variance. -/
 theorem finite_variance_le_second (p : FinDist X) (f : X → ℝ) :
     p.variance f ≤ p.expect (fun x => (f x)^2) := by
   rw [finite_variance_identity]
   exact sub_le_self _ (sq_nonneg _)
 
-/-- Complete original `pair_variance_identity` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For two independent draws, the variance of a pair kernel is its second moment minus the
+square of its mean. -/
 theorem pair_variance_identity (p : FinDist X) (H : X → X → ℝ) :
     p.expect (fun x => p.expect (fun y => (H x y-pairKernelMean p H)^2)) =
       p.expect (fun x => p.expect (fun y => (H x y)^2))-(pairKernelMean p H)^2 := by
@@ -1318,17 +1366,18 @@ theorem pair_variance_identity (p : FinDist X) (H : X → X → ℝ) :
   change p.expect (fun x => p.expect (fun y => (H x y)^2))-2*μ*μ+μ^2=_
   ring
 
-/-- Complete original `pair_variance_le_second` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- A pair kernel's variance on two independent draws is at most its uncentered second moment. -/
 theorem pair_variance_le_second (p : FinDist X) (H : X → X → ℝ) :
     p.expect (fun x => p.expect (fun y => (H x y-pairKernelMean p H)^2)) ≤
       p.expect (fun x => p.expect (fun y => (H x y)^2)) := by
   rw [pair_variance_identity]
   exact sub_le_self _ (sq_nonneg _)
 
-/-- Complete original `record_sign_abs` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The sign assigned to a Boolean outcome has absolute value one. -/
 theorem record_sign_abs (b : Bool) : |recordSign b|=1 := by cases b <;> norm_num [recordSign]
 
-/-- Complete original `scaled_residual_abs` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- If the scale factors are nonnegative and `|x| ≤ 1` and `|y| ≤ U`, the residual magnitude
+`|α*x - β*y|` is at most `α + β*U`. -/
 theorem scaled_residual_abs (α β U x y : ℝ) (hα : 0 ≤ α) (hβ : 0 ≤ β)
     (hx : |x| ≤ 1) (hy : |y| ≤ U) : |α*x-β*y| ≤ α+β*U := by
   calc
@@ -1339,7 +1388,8 @@ theorem scaled_residual_abs (α β U x y : ℝ) (hα : 0 ≤ α) (hβ : 0 ≤ β
 variable {S : Type*} [Fintype S] [Nonempty S] [DecidableEq S]
 
 omit [DecidableEq S] in
-/-- Complete original `signed_record_site_expect` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- Under the signed-record law, a function of the site alone has expectation equal to its
+uniform site average. -/
 theorem signed_record_site_expect (m : S → ℝ) (hm : ∀ x, |m x| ≤ 1) (f : S → ℝ) :
     (signedRecordLaw m hm).expect (fun r => f r.1)=(∑ x : S, f x)/(Fintype.card S : ℝ) := by
   change (∑ r : S × Bool, signedRecordWeight m r*f r.1)=_
@@ -1350,7 +1400,8 @@ theorem signed_record_site_expect (m : S → ℝ) (hm : ∀ x, |m x| ≤ 1) (f :
   simp_rw [hcell]
   exact (Finset.sum_div _ _ _).symm
 
-/-- Complete original `residual_projection_second_bound` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For bounded means and targets with nonnegative scales, the residual collision projection has
+second moment bounded by the mean squared residual times `(α + β*U)^2`. -/
 theorem residual_projection_second_bound (m u : S → ℝ) (α β U : ℝ)
     (hm : ∀ x, |m x| ≤ 1) (hu : ∀ x, |u x| ≤ U) (hα : 0 ≤ α) (hβ : 0 ≤ β) :
     (signedRecordLaw m hm).expect (fun l =>
@@ -1374,7 +1425,8 @@ theorem residual_projection_second_bound (m u : S → ℝ) (α β U : ℝ)
       dsimp only [p]
       rw [finite_expect_mul, signed_record_site_expect m hm (fun x => (α*m x-β*u x)^2)]
 
-/-- Complete original `residual_projection_variance_bound` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- With nonnegative scales, means bounded by one, and targets bounded by `U`, the residual
+projection variance is at most `(α + β*U)^2` times the mean squared residual. -/
 theorem residual_projection_variance_bound (m u : S → ℝ) (α β U : ℝ)
     (hm : ∀ x, |m x| ≤ 1) (hu : ∀ x, |u x| ≤ U) (hα : 0 ≤ α) (hβ : 0 ≤ β) :
     (signedRecordLaw m hm).variance (pairKernelProjection (signedRecordLaw m hm) (residualCollision α β u)) ≤
@@ -1392,7 +1444,8 @@ open scoped BigOperators
 open Qatlib
 variable {S : Type*} [Fintype S] [Nonempty S] [DecidableEq S]
 
-/-- Complete original `residual_kernel_second_bound` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- With the bounded mean and target fields and nonnegative scales, the residual collision
+second moment on two independent records is at most the site count times `(α + β*U)^4`. -/
 theorem residual_kernel_second_bound (m u : S → ℝ) (α β U : ℝ)
     (hm : ∀ x, |m x| ≤ 1) (hu : ∀ x, |u x| ≤ U) (hα : 0 ≤ α) (hβ : 0 ≤ β) :
     (signedRecordLaw m hm).expect (fun l => (signedRecordLaw m hm).expect
@@ -1430,7 +1483,8 @@ theorem residual_kernel_second_bound (m u : S → ℝ) (α β U : ℝ)
     _ = M*A^4 := by simp_rw [hrow]; exact finite_expect_const p _
 
 omit [DecidableEq S] in
-/-- Complete original `residual_mean_bound` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For mean magnitude at most one, target magnitude at most `U`, and nonnegative scales, the
+spatial mean squared residual is bounded by `(α + β*U)^2`. -/
 theorem residual_mean_bound (m u : S → ℝ) (α β U : ℝ)
     (hm : ∀ x, |m x| ≤ 1) (hu : ∀ x, |u x| ≤ U) (hα : 0 ≤ α) (hβ : 0 ≤ β) :
     (∑ x : S, (α*m x-β*u x)^2)/(Fintype.card S : ℝ) ≤ (α+β*U)^2 := by
@@ -1443,7 +1497,8 @@ theorem residual_mean_bound (m u : S → ℝ) (α β U : ℝ)
 
 variable {X : Type*} [Fintype X] [DecidableEq X]
 
-/-- Complete original `ordered_ustatistic_variance_bound` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For a symmetric kernel with projection variance at most `B ≥ 0` and second moment at most
+`D`, the ordered U-statistic on `n ≥ 2` draws has variance at most `4*B/n + 2*D/(n*(n-1))`. -/
 theorem ordered_ustatistic_variance_bound {n : ℕ} (p : FinDist X) (H : X → X → ℝ)
     (hH : ∀ x y, H x y=H y x) (hn : 2 ≤ n) (B D : ℝ) (hB : 0 ≤ B)
     (hg : p.variance (pairKernelProjection p H) ≤ B)
@@ -1467,7 +1522,8 @@ theorem ordered_ustatistic_variance_bound {n : ℕ} (p : FinDist X) (H : X → X
       add_le_add (mul_le_mul_of_nonneg_right hc hB) le_rfl
     _ = _ := by ring
 
-/-- Complete original `residual_streaming_variance_bound` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For `n ≥ 2` records and bounded mean and target fields with nonnegative scales, the residual
+streaming variance is at most `(α + β*U)^4` times `4/n + 2*|S|/(n*(n-1))`. -/
 theorem residual_streaming_variance_bound {n : ℕ} (m u : S → ℝ) (α β U : ℝ)
     (hm : ∀ x, |m x| ≤ 1) (hu : ∀ x, |u x| ≤ U) (hα : 0 ≤ α) (hβ : 0 ≤ β) (hn : 2 ≤ n) :
     let L := (∑ x : S, (α*m x-β*u x)^2)/(Fintype.card S : ℝ)
@@ -1503,7 +1559,8 @@ open scoped BigOperators
 open Qatlib
 variable {X : Type*} [Fintype X]
 
-/-- Complete original `finite_pair_expect_swap` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The expectation of a two-input function over two independent draws from one law is unchanged
+by reversing the arguments. -/
 theorem finite_pair_expect_swap (p : FinDist X) (F : X → X → ℝ) :
     p.expect (fun x => p.expect (F x))=p.expect (fun x => p.expect (fun y => F y x)) := by
   unfold FinDist.expect
@@ -1517,7 +1574,8 @@ theorem finite_pair_expect_swap (p : FinDist X) (F : X → X → ℝ) :
 
 variable {S : Type*} [Fintype S] [Nonempty S] [DecidableEq S]
 
-/-- Complete original `spin_projection_equiv` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For a site permutation, the spin collision projection at a record is its sign times the
+average of the mean at its forward and inverse neighbors. -/
 theorem spin_projection_equiv (m : S → ℝ) (hm : ∀ x, |m x| ≤ 1) (e : S ≃ S) (l : S × Bool) :
     pairKernelProjection (signedRecordLaw m hm) (shiftedSpinCollision e) l =
       recordSign l.2*(m (e l.1)+m (e.symm l.1))/2 := by
@@ -1535,7 +1593,8 @@ theorem spin_projection_equiv (m : S → ℝ) (hm : ∀ x, |m x| ≤ 1) (e : S �
   rw [finite_expect_mul, finite_expect_add, oriented_spin_projection, oriented_spin_projection]
   ring
 
-/-- Complete original `spin_projection_abs_bound` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- If the signed-record means have magnitudes at most one, the projected spin collision for a
+site permutation also has magnitude at most one on every record. -/
 theorem spin_projection_abs_bound (m : S → ℝ) (hm : ∀ x, |m x| ≤ 1) (e : S ≃ S) (l : S × Bool) :
     |pairKernelProjection (signedRecordLaw m hm) (shiftedSpinCollision e) l| ≤ 1 := by
   rw [spin_projection_equiv, abs_div, abs_mul, record_sign_abs]
@@ -1544,7 +1603,8 @@ theorem spin_projection_abs_bound (m : S → ℝ) (hm : ∀ x, |m x| ≤ 1) (e :
     (abs_add_le _ _).trans (by linarith [hm (e l.1), hm (e.symm l.1)])
   linarith
 
-/-- Complete original `spin_projection_variance_bound` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The projection of the shifted spin collision for a site permutation has variance at most one
+under the signed-record law. -/
 theorem spin_projection_variance_bound (m : S → ℝ) (hm : ∀ x, |m x| ≤ 1) (e : S ≃ S) :
     (signedRecordLaw m hm).variance (pairKernelProjection (signedRecordLaw m hm) (shiftedSpinCollision e)) ≤ 1 := by
   calc
@@ -1556,7 +1616,8 @@ theorem spin_projection_variance_bound (m : S → ℝ) (hm : ∀ x, |m x| ≤ 1)
       simpa only [one_pow] using hsq)
     _ = 1 := finite_expect_const _ _
 
-/-- Complete original `spin_kernel_second_bound` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For any site map, the shifted spin collision has second moment at most the number of sites
+under two independent signed records with bounded means. -/
 theorem spin_kernel_second_bound (m : S → ℝ) (hm : ∀ x, |m x| ≤ 1) (τ : S → S) :
     (signedRecordLaw m hm).expect (fun l => (signedRecordLaw m hm).expect
       (fun r => (shiftedSpinCollision τ l r)^2)) ≤ (Fintype.card S : ℝ) := by
@@ -1587,7 +1648,8 @@ theorem spin_kernel_second_bound (m : S → ℝ) (hm : ∀ x, |m x| ≤ 1) (τ :
       field_simp
       ring
 
-/-- Complete original `spin_streaming_variance_bound` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For `n ≥ 2` independent signed records and a site permutation, the spin streaming variance
+is at most `4/n + 2*|S|/(n*(n-1))`. -/
 theorem spin_streaming_variance_bound {n : ℕ} (m : S → ℝ) (hm : ∀ x, |m x| ≤ 1)
     (e : S ≃ S) (hn : 2 ≤ n) :
     let C := (∑ x : S, m x*m (e x))/(Fintype.card S : ℝ)
@@ -1616,7 +1678,8 @@ open Qatlib
 variable {X : Type*} [Fintype X] [DecidableEq X]
 
 omit [DecidableEq X] in
-/-- Complete original `product_chebyshev` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For any positive threshold, a finite product law's probability that a statistic differs from
+`c` by more than `ε` is bounded by its mean squared deviation from `c` divided by `ε^2`. -/
 theorem product_chebyshev {n : ℕ} (p : FinDist X) (F : (Fin n → X) → ℝ)
     (c ε : ℝ) (hε : 0 < ε) :
     p.probEvent (fun ω : Fin n → X => ε < |F ω-c|) ≤
@@ -1647,7 +1710,8 @@ theorem product_chebyshev {n : ℕ} (p : FinDist X) (F : (Fin n → X) → ℝ)
       (Finset.sum_le_sum_of_subset_of_nonneg (Finset.filter_subset _ _)
         (fun ω _ _ => mul_nonneg (hnn ω) (sq_nonneg _))) hε2.le
 
-/-- Complete original `variance_budget_small` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- If `n ≥ 2` meets both the `32*B/ε^2` and `8*sqrt(D)/ε` sample thresholds with `D ≥ 0` and
+`ε > 0`, the two variance terms sum to at most `3*ε^2/16`. -/
 theorem variance_budget_small {n : ℕ} (B D ε : ℝ) (hn : 2 ≤ n) (hD : 0 ≤ D)
     (hε : 0 < ε) (hnB : 32*B/ε^2 ≤ (n : ℝ)) (hnD : 8*Real.sqrt D/ε ≤ (n : ℝ)) :
     4*B/(n : ℝ)+2*D/(n*(n-1) : ℕ) ≤ 3*ε^2/16 := by
@@ -1677,7 +1741,9 @@ theorem variance_budget_small {n : ℕ} (B D ε : ℝ) (hn : 2 ≤ n) (hD : 0 �
     _ = _ := by ring
 
 omit [DecidableEq X] in
-/-- Complete original `product_block_failure` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- A block with the stated two-term mean-square bound has failure probability at most `3/16`
+once its length is at least two and meets both sample thresholds for the positive error
+tolerance. -/
 theorem product_block_failure {n : ℕ} (p : FinDist X) (F : (Fin n → X) → ℝ)
     (c B D ε : ℝ) (hn : 2 ≤ n) (hD : 0 ≤ D) (hε : 0 < ε)
     (hvar : (∑ ω : Fin n → X, p.probOf ω*(F ω-c)^2) ≤ 4*B/(n : ℝ)+2*D/(n*(n-1) : ℕ))
@@ -1693,7 +1759,9 @@ theorem product_block_failure {n : ℕ} (p : FinDist X) (F : (Fin n → X) → �
 
 variable {S : Type*} [Fintype S] [Nonempty S] [DecidableEq S]
 
-/-- Complete original `residual_streaming_block_failure` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For a bounded mean and target field with nonnegative scales, a residual streaming block
+fails tolerance `ε > 0` with probability at most `3/16` when its length is at least two and
+meets the stated residual-scale and site-count thresholds. -/
 theorem residual_streaming_block_failure {n : ℕ} (m u : S → ℝ) (α β U ε : ℝ)
     (hm : ∀ x, |m x| ≤ 1) (hu : ∀ x, |u x| ≤ U) (hα : 0 ≤ α) (hβ : 0 ≤ β)
     (hn : 2 ≤ n) (hε : 0 < ε) (hnB : 32*(α+β*U)^4/ε^2 ≤ (n : ℝ))
@@ -1707,7 +1775,9 @@ theorem residual_streaming_block_failure {n : ℕ} (m u : S → ℝ) (α β U ε
   · exact hnB
   · exact hnD
 
-/-- Complete original `spin_streaming_block_failure` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For a site permutation and means bounded by one, the spin streaming block exceeds its
+positive error tolerance with probability at most `3/16` when its length is at least two and
+meets both thresholds `32/ε^2` and `8*sqrt(|S|)/ε`. -/
 theorem spin_streaming_block_failure {n : ℕ} (m : S → ℝ) (hm : ∀ x, |m x| ≤ 1)
     (e : S ≃ S) (ε : ℝ) (hn : 2 ≤ n) (hε : 0 < ε) (hnB : 32/ε^2 ≤ (n : ℝ))
     (hnD : 8*Real.sqrt (Fintype.card S : ℝ)/ε ≤ (n : ℝ)) :
@@ -1742,7 +1812,8 @@ def modularTranslation (N : ℕ) (a : ZMod N) : ZMod N ≃ ZMod N where
 def modularDoubleShift (N : ℕ) [NeZero N] : Fin N ≃ Fin N :=
   (ZMod.finEquiv N).toEquiv.trans ((modularTranslation N 2).trans (ZMod.finEquiv N).toEquiv.symm)
 
-/-- Complete original `modular_double_shift_apply` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- Under the equivalence from `Fin N` to `ZMod N` for nonzero `N`, the double shift is
+addition of two. -/
 theorem modular_double_shift_apply (N : ℕ) [NeZero N] (x : Fin N) :
     (ZMod.finEquiv N) (modularDoubleShift N x)=(ZMod.finEquiv N) x+2 := by
   simp [modularDoubleShift, modularTranslation]
@@ -1752,7 +1823,8 @@ def periodicDoubleShift (d N : ℕ) [NeZero N] (j : Fin d) :
     (Fin d → Fin N) ≃ (Fin d → Fin N) :=
   Equiv.piCongrRight (fun k => if k=j then modularDoubleShift N else Equiv.refl (Fin N))
 
-/-- Complete original `periodic_double_shift_coordinates` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- On a periodic grid with side length `N ≠ 0`, the double shift adds two in coordinate `j`
+modulo `N` and fixes all other coordinates. -/
 theorem periodic_double_shift_coordinates (d N : ℕ) [NeZero N] (j k : Fin d) (x : Fin d → Fin N) :
     (ZMod.finEquiv N) (periodicDoubleShift d N j x k)=
       (ZMod.finEquiv N) (x k)+(if k=j then 2 else 0) := by
@@ -1760,10 +1832,12 @@ theorem periodic_double_shift_coordinates (d N : ℕ) [NeZero N] (j k : Fin d) (
   · simp [periodicDoubleShift, Equiv.piCongrRight, h, modular_double_shift_apply]
   · simp [periodicDoubleShift, Equiv.piCongrRight, h]
 
-/-- Complete original `periodic_grid_card` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- A `d` -dimensional grid with side length `N` has `N^d` sites. -/
 theorem periodic_grid_card (d N : ℕ) : Fintype.card (Fin d → Fin N)=N^d := by simp
 
-/-- Complete original `periodic_spin_block_failure` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For bounded signed means on the nonzero periodic grid, the double-shift spin correlation has
+a block failure probability at most `3/16` at positive tolerance when the sample length meets
+the stated thresholds with `N^d` sites. -/
 theorem periodic_spin_block_failure {n : ℕ} (d N : ℕ) [NeZero N] (j : Fin d)
     (m : (Fin d → Fin N) → ℝ) (hm : ∀ x, |m x| ≤ 1)
     (ε : ℝ) (hn : 2 ≤ n) (hε : 0 < ε) (hnB : 32/ε^2 ≤ (n : ℝ))
@@ -1796,7 +1870,8 @@ def finiteBadMass (p : FinDist X) (f : X → ℝ) (c ε : ℝ) : ℝ :=
   ∑ x ∈ Finset.univ.filter (fun x => ε < |f x-c|), p.prob x
 
 omit [Fintype X] [DecidableEq X] in
-/-- Complete original `raw_median_bad_count` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- If the raw median of a nonempty block list misses tolerance `ε`, at least `K - K/2` of the
+`K` individual block values miss the same tolerance. -/
 theorem raw_median_bad_count {K : ℕ} (f : X → ℝ) (ω : Fin K → X)
     (c ε : ℝ) (hK : 0 < K) (hbad : ε < |rawBlockMedian f ω-c|) :
     K-K/2 ≤ (Finset.univ.filter (fun k => ε < |f (ω k)-c|)).card := by
@@ -1810,7 +1885,8 @@ theorem raw_median_bad_count {K : ℕ} (f : X → ℝ) (ω : Fin K → X)
   exact h
 
 omit [DecidableEq X] in
-/-- Complete original `finite_bad_indicator_mean` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The expectation of the indicator of a strict tolerance violation equals the probability mass
+of that violation. -/
 theorem finite_bad_indicator_mean (p : FinDist X) (f : X → ℝ) (c ε : ℝ) :
     p.expect (fun x => if ε < |f x-c| then (1 : ℝ) else 0)=finiteBadMass p f c ε := by
   unfold FinDist.expect finiteBadMass
@@ -1818,7 +1894,8 @@ theorem finite_bad_indicator_mean (p : FinDist X) (f : X → ℝ) (c ε : ℝ) :
   simp only [mul_ite, mul_one, mul_zero]
 
 omit [DecidableEq X] in
-/-- Complete original `finite_median_power_bound` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- If a single draw fails with mass at most `3/16`, the median of `K > 0` independent draws
+fails with probability at most `(25/32)^K`. -/
 theorem finite_median_power_bound {K : ℕ} (p : FinDist X) (f : X → ℝ) (c ε : ℝ)
     (hK : 0 < K) (hbad : finiteBadMass p f c ε ≤ 3/16) :
     p.probEvent (fun ω : Fin K → X => ε < |rawBlockMedian f ω-c|) ≤ (25/32 : ℝ)^K := by
@@ -1865,7 +1942,8 @@ theorem finite_median_power_bound {K : ℕ} (p : FinDist X) (f : X → ℝ) (c �
     _ = (25/32 : ℝ)^K := by rw [← div_pow]; norm_num
 
 omit [DecidableEq X] in
-/-- Complete original `finite_median_confidence` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- If a single draw fails with mass at most `3/16` and `ρ > 0`, a median of `K > 0`
+independent draws fails with probability at most `ρ` once `K ≥ (128/25)*log(1/ρ)`. -/
 theorem finite_median_confidence {K : ℕ} (p : FinDist X) (f : X → ℝ) (c ε ρ : ℝ)
     (hK0 : 0 < K) (hρ : 0 < ρ) (hbad : finiteBadMass p f c ε ≤ 3/16)
     (hK : (128/25 : ℝ)*Real.log (1/ρ) ≤ (K : ℝ)) :
@@ -1891,7 +1969,9 @@ def cohortLaw (p : FinDist X) (n : ℕ) : FinDist (Fin n → X) where
 
 variable {S : Type*} [Fintype S] [Nonempty S] [DecidableEq S]
 
-/-- Complete original `residual_streaming_median_confidence` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- Under the bounded-field and nonnegative-scale hypotheses, a median of independent residual
+streaming blocks misses the spatial mean squared residual by more than `ε` with probability at
+most `ρ` when both the block lengths and the number of blocks satisfy the stated thresholds. -/
 theorem residual_streaming_median_confidence {n K : ℕ} (m u : S → ℝ) (α β U ε ρ : ℝ)
     (hm : ∀ x, |m x| ≤ 1) (hu : ∀ x, |u x| ≤ U) (hα : 0 ≤ α) (hβ : 0 ≤ β)
     (hn : 2 ≤ n) (hε : 0 < ε) (hnB : 32*(α+β*U)^4/ε^2 ≤ (n : ℝ))
@@ -1904,7 +1984,9 @@ theorem residual_streaming_median_confidence {n K : ℕ} (m u : S → ℝ) (α �
   · exact residual_streaming_block_failure m u α β U ε hm hu hα hβ hn hε hnB hnD
   · exact hK
 
-/-- Complete original `spin_streaming_median_confidence` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For bounded signed means and a site permutation, the median of independent spin streaming
+blocks estimates the shifted spatial correlation within `ε` with failure probability at most `ρ`
+when the stated block length and count thresholds hold. -/
 theorem spin_streaming_median_confidence {n K : ℕ} (m : S → ℝ) (hm : ∀ x, |m x| ≤ 1)
     (e : S ≃ S) (ε ρ : ℝ) (hn : 2 ≤ n) (hε : 0 < ε) (hnB : 32/ε^2 ≤ (n : ℝ))
     (hnD : 8*Real.sqrt (Fintype.card S : ℝ)/ε ≤ (n : ℝ))
@@ -1930,7 +2012,8 @@ open Qatlib
 variable {I X Y : Type*} [Fintype I] [DecidableEq I] [Fintype X] [DecidableEq X] [Fintype Y]
 
 omit [DecidableEq X] in
-/-- Complete original `sum_family_mass` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The product weights of any finite family of probability distributions sum to one over all
+joint outcomes. -/
 theorem sum_family_mass (p : I → FinDist X) :
     (∑ ω : I → X, ∏ i : I, (p i).prob (ω i))=1 := by
   calc
@@ -1947,7 +2030,8 @@ def finiteFamilyLaw (p : I → FinDist X) : FinDist (I → X) where
   sum_one := sum_family_mass p
 
 omit [DecidableEq X] in
-/-- Complete original `finite_family_expect_product` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The expectation of a product of coordinate functions under a finite family of independent
+laws factors as the product of their marginal expectations. -/
 theorem finite_family_expect_product (p : I → FinDist X) (g : I → X → ℝ) :
     (finiteFamilyLaw p).expect (fun ω => ∏ i : I, g i (ω i)) =
       ∏ i : I, (p i).expect (g i) := by
@@ -1960,7 +2044,8 @@ theorem finite_family_expect_product (p : I → FinDist X) (g : I → X → ℝ)
       (t := fun _ : I => (Finset.univ : Finset X)) (f := fun i x => (p i).prob x*g i x)).symm
 
 omit [DecidableEq X] in
-/-- Complete original `finite_family_expect_coord` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- Under a finite family product law, the expectation of a function of coordinate `i` alone is
+its expectation under the law at `i`. -/
 theorem finite_family_expect_coord (p : I → FinDist X) (i : I) (f : X → ℝ) :
     (finiteFamilyLaw p).expect (fun ω => f (ω i))=(p i).expect f := by
   let g := fun k : I => fun x : X => if k=i then f x else 1
@@ -1980,7 +2065,8 @@ theorem finite_family_expect_coord (p : I → FinDist X) (i : I) (f : X → ℝ)
     _ = _ := hright
 
 omit [DecidableEq X] in
-/-- Complete original `finite_family_bad_mass_coord` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The tolerance violation mass for a statistic of coordinate `i` under the family product law
+equals the violation mass under the marginal at `i`. -/
 theorem finite_family_bad_mass_coord (p : I → FinDist X) (i : I) (f : X → ℝ) (c ε : ℝ) :
     finiteBadMass (finiteFamilyLaw p) (fun ω => f (ω i)) c ε=finiteBadMass (p i) f c ε := by
   rw [← finite_bad_indicator_mean, ← finite_bad_indicator_mean,
@@ -1996,7 +2082,8 @@ def independentPairLaw (p : FinDist X) (q : FinDist Y) : FinDist (X × Y) where
     exact p.sum_one
 
 omit [DecidableEq X] in
-/-- Complete original `independent_pair_expect_left` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- A function of the first component of an independent pair has expectation under the first
+component's law. -/
 theorem independent_pair_expect_left (p : FinDist X) (q : FinDist Y) (f : X → ℝ) :
     (independentPairLaw p q).expect (fun z => f z.1)=p.expect f := by
   change (∑ z : X × Y, (p.prob z.1*q.prob z.2)*f z.1)=_
@@ -2009,7 +2096,8 @@ theorem independent_pair_expect_left (p : FinDist X) (q : FinDist Y) (f : X → 
   rfl
 
 omit [DecidableEq X] in
-/-- Complete original `independent_pair_expect_right` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- A function of the second component of an independent pair has expectation under the second
+component's law. -/
 theorem independent_pair_expect_right (p : FinDist X) (q : FinDist Y) (f : Y → ℝ) :
     (independentPairLaw p q).expect (fun z => f z.2)=q.expect f := by
   change (∑ z : X × Y, (p.prob z.1*q.prob z.2)*f z.2)=_
@@ -2024,14 +2112,16 @@ theorem independent_pair_expect_right (p : FinDist X) (q : FinDist Y) (f : Y →
   rw [← Finset.sum_mul, p.sum_one, one_mul]
 
 omit [DecidableEq X] in
-/-- Complete original `independent_pair_bad_mass_left` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The probability of a tolerance violation on the first component of an independent pair is
+its probability under the first component's law. -/
 theorem independent_pair_bad_mass_left (p : FinDist X) (q : FinDist Y) (f : X → ℝ) (c ε : ℝ) :
     finiteBadMass (independentPairLaw p q) (fun z => f z.1) c ε=finiteBadMass p f c ε := by
   rw [← finite_bad_indicator_mean, ← finite_bad_indicator_mean,
     independent_pair_expect_left p q (fun x => if ε < |f x-c| then (1 : ℝ) else 0)]
 
 omit [DecidableEq X] in
-/-- Complete original `independent_pair_bad_mass_right` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The probability of a tolerance violation on the second component of an independent pair is
+its probability under the second component's law. -/
 theorem independent_pair_bad_mass_right (p : FinDist X) (q : FinDist Y) (f : Y → ℝ) (c ε : ℝ) :
     finiteBadMass (independentPairLaw p q) (fun z => f z.2) c ε=finiteBadMass q f c ε := by
   rw [← finite_bad_indicator_mean, ← finite_bad_indicator_mean,
@@ -2050,7 +2140,7 @@ open Qatlib
 variable {I X : Type*} [Fintype I] [DecidableEq I] [Fintype X]
 
 omit [DecidableEq I] in
-/-- Complete original `finite_expect_sum` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- Finite expectation commutes with summation over a finite family of real functions. -/
 theorem finite_expect_sum (p : FinDist X) (f : I → X → ℝ) :
     p.expect (fun x => ∑ i : I, f i x)=∑ i : I, p.expect (f i) := by
   unfold FinDist.expect
@@ -2058,7 +2148,8 @@ theorem finite_expect_sum (p : FinDist X) (f : I → X → ℝ) :
   exact Finset.sum_comm
 
 omit [DecidableEq I] in
-/-- Complete original `finite_bad_mass_from_components` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- If meeting every component tolerance implies meeting the aggregate tolerance, the aggregate
+failure mass is at most the sum of the component failure masses. -/
 theorem finite_bad_mass_from_components (p : FinDist X) (f : I → X → ℝ)
     (c ε : I → ℝ) (F : X → ℝ) (C E : ℝ)
     (hgood : ∀ x, (∀ i, |f i x-c i| ≤ ε i) → |F x-C| ≤ E) :
@@ -2086,7 +2177,8 @@ theorem finite_bad_mass_from_components (p : FinDist X) (f : I → X → ℝ)
 /-- Construction for interval Clip in the born current records model. -/
 def intervalClip (lo hi x : ℝ) : ℝ := min hi (max lo x)
 
-/-- Complete original `interval_clip_contract` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- Clipping a real value to an interval containing the comparison point cannot increase its
+distance from that point. -/
 theorem interval_clip_contract (lo hi x c : ℝ) (hlo : lo ≤ c) (hhi : c ≤ hi) :
     |intervalClip lo hi x-c| ≤ |x-c| := by
   have horder : lo ≤ hi := hlo.trans hhi
@@ -2108,11 +2200,11 @@ def siteMean {S : Type*} [Fintype S] (f : S → ℝ) : ℝ := (∑ x : S, f x)/(
 variable {S : Type*} [Fintype S] [Nonempty S]
 
 omit [Nonempty S] in
-/-- Complete original `site_mean_nonneg` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The spatial mean of a pointwise nonnegative field is nonnegative. -/
 theorem site_mean_nonneg (f : S → ℝ) (hf : ∀ x, 0 ≤ f x) : 0 ≤ siteMean f :=
   div_nonneg (Finset.sum_nonneg fun x _ => hf x) (Nat.cast_nonneg _)
 
-/-- Complete original `site_mean_abs_le_one` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The spatial mean of a field with magnitude bounded by one also has magnitude bounded by one. -/
 theorem site_mean_abs_le_one (f : S → ℝ) (hf : ∀ x, |f x| ≤ 1) : |siteMean f| ≤ 1 := by
   have hM : (0 : ℝ) < Fintype.card S := by exact_mod_cast Fintype.card_pos
   have hsum : |∑ x : S, f x| ≤ (Fintype.card S : ℝ) := by
@@ -2124,7 +2216,8 @@ theorem site_mean_abs_le_one (f : S → ℝ) (hf : ∀ x, |f x| ≤ 1) : |siteMe
   exact (div_le_one hM).mpr hsum
 
 omit [Fintype S] [Nonempty S] in
-/-- Complete original `unit_spin_component_bound` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- If each spin vector has squared norm one, each of its three coordinates has magnitude at
+most one. -/
 theorem unit_spin_component_bound (m : Fin 3 → S → ℝ)
     (hs : ∀ x, ∑ a : Fin 3, (m a x)^2=1) (a : Fin 3) (x : S) : |m a x| ≤ 1 := by
   have hsq : (m a x)^2 ≤ 1 := by
@@ -2133,7 +2226,8 @@ theorem unit_spin_component_bound (m : Fin 3 → S → ℝ)
   exact abs_le_of_sq_le_sq (by simpa only [one_pow] using hsq) (by norm_num)
 
 omit [Fintype S] [Nonempty S] in
-/-- Complete original `unit_spin_dot_bound` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- If the spin vectors at every site have squared norm one, the dot product between the vectors
+at any two sites has magnitude at most one. -/
 theorem unit_spin_dot_bound (m : Fin 3 → S → ℝ)
     (hs : ∀ x, ∑ a : Fin 3, (m a x)^2=1) (x y : S) :
     |∑ a : Fin 3, m a x*m a y| ≤ 1 := by
@@ -2153,7 +2247,8 @@ theorem unit_spin_dot_bound (m : Fin 3 → S → ℝ)
   rw [hplus] at hp
   exact abs_le.mpr ⟨by linarith, by linarith⟩
 
-/-- Complete original `spin_component_mean_range` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The spatial mean of the product between a unit spin field's chosen component and its shift
+has magnitude at most one. -/
 theorem spin_component_mean_range (m : Fin 3 → S → ℝ)
     (hs : ∀ x, ∑ a : Fin 3, (m a x)^2=1) (a : Fin 3) (τ : S → S) :
     |siteMean (fun x => m a x*m a (τ x))| ≤ 1 := by
@@ -2165,7 +2260,8 @@ theorem spin_component_mean_range (m : Fin 3 → S → ℝ)
       (unit_spin_component_bound m hs a (τ x)) (abs_nonneg _) (by norm_num)
     _ = 1 := by norm_num
 
-/-- Complete original `spin_total_mean_range` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For a pointwise unit spin field and nonnegative `γ`, the spin penalty from summing the
+correlation deficits across `d` shifts lies between zero and `2*d*γ`. -/
 theorem spin_total_mean_range {d : ℕ} (m : Fin 3 → S → ℝ)
     (hs : ∀ x, ∑ a : Fin 3, (m a x)^2=1) (τ : Fin d → S → S) (γ : ℝ) (hγ : 0 ≤ γ) :
     0 ≤ γ*((d : ℝ)-(∑ i : Fin 3 × Fin d, siteMean (fun x => m i.1 x*m i.1 (τ i.2 x)))) ∧
@@ -2210,7 +2306,8 @@ def pauliField {S : Type*} (a b c d : S → ℝ) (i : Fin 3) (x : S) : ℝ :=
   if i=0 then 2*(a x*c x+b x*d x) else
     if i=1 then 2*(a x*d x-b x*c x) else a x^2+b x^2-c x^2-d x^2
 
-/-- Complete original `pauli_field_unit` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The three Pauli components of a pointwise normalized spinor have squared norm one at each
+site. -/
 theorem pauli_field_unit {S : Type*} (a b c d : S → ℝ)
     (hz : ∀ x, a x^2+b x^2+c x^2+d x^2=1) (x : S) :
     (∑ i : Fin 3, (pauliField a b c d i x)^2)=1 := by
@@ -2220,7 +2317,8 @@ theorem pauli_field_unit {S : Type*} (a b c d : S → ℝ)
 
 variable {I : Type*} [Fintype I]
 
-/-- Complete original `finite_sum_error_bound` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- If all summands have error at most `ε`, the two sums differ by at most the number of terms
+times `ε`. -/
 theorem finite_sum_error_bound (f g : I → ℝ) (ε : ℝ) (h : ∀ i, |f i-g i| ≤ ε) :
     |(∑ i : I, f i)-(∑ i : I, g i)| ≤ (Fintype.card I : ℝ)*ε := by
   rw [← Finset.sum_sub_distrib]
@@ -2234,7 +2332,9 @@ def combinedLoss {d : ℕ} (A γ : ℝ) (v : Fin d → ℝ) (c : Fin 3 × Fin d 
   (∑ j : Fin d, intervalClip 0 (A^2) (v j))+
     intervalClip 0 (2*(d : ℝ)*γ) (γ*((d : ℝ)-(∑ i : Fin 3 × Fin d, intervalClip (-1) 1 (c i))))
 
-/-- Complete original `combined_loss_error` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- With admissible true velocity, correlation, and spin-penalty ranges and nonnegative `γ`,
+the clipped combined loss has error at most `d*εv + 3*d*γ*εs` from component error bounds `εv`
+and `εs`. -/
 theorem combined_loss_error {d : ℕ} (A γ εv εs : ℝ) (v V : Fin d → ℝ)
     (c C : Fin 3 × Fin d → ℝ) (hγ : 0 ≤ γ)
     (hVrange : ∀ j, 0 ≤ V j ∧ V j ≤ A^2) (hCrange : ∀ i, -1 ≤ C i ∧ C i ≤ 1)
@@ -2272,11 +2372,13 @@ theorem combined_loss_error {d : ℕ} (A γ εv εs : ℝ) (v V : Fin d → ℝ)
           γ*((d : ℝ)-(∑ i, C i))| := abs_add_le _ _
     _ ≤ _ := add_le_add hvel hspin
 
-/-- Complete original `combined_loss_zero` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- With spin weight zero, the combined loss reduces to the sum of the velocity terms clipped to
+`[0, A^2]`. -/
 theorem combined_loss_zero {d : ℕ} (A : ℝ) (v : Fin d → ℝ) (c : Fin 3 × Fin d → ℝ) :
     combinedLoss A 0 v c=∑ j : Fin d, intervalClip 0 (A^2) (v j) := by simp [combinedLoss, intervalClip]
 
-/-- Complete original `stochastic_error_budget` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For positive dimension and spin weight, the allocated velocity tolerance `η/(4*d)` and spin
+tolerance `min(1, η/(12*d*γ))` contribute a total error at most `η/2`. -/
 theorem stochastic_error_budget (d : ℕ) (γ η : ℝ) (hd : 0 < d) (hγ : 0 < γ) :
     (d : ℝ)*(η/(4*(d : ℝ)))+3*(d : ℝ)*γ*min 1 (η/(12*(d : ℝ)*γ)) ≤ η/2 := by
   have hd0 : (d : ℝ) ≠ 0 := by exact_mod_cast hd.ne'
@@ -2288,7 +2390,8 @@ theorem stochastic_error_budget (d : ℕ) (γ η : ℝ) (hd : 0 < d) (hγ : 0 < 
   rw [hv]
   linarith
 
-/-- Complete original `stochastic_failure_budget` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For positive dimension, allocating failure `δ/(2*d)` to each velocity component and
+`δ/(6*d)` to each spin component gives total failure budget `δ`. -/
 theorem stochastic_failure_budget (d : ℕ) (δ : ℝ) (hd : 0 < d) :
     (d : ℝ)*(δ/(2*(d : ℝ)))+3*(d : ℝ)*(δ/(6*(d : ℝ)))=δ := by
   have hd0 : (d : ℝ) ≠ 0 := by exact_mod_cast hd.ne'
@@ -2307,7 +2410,9 @@ open scoped BigOperators
 open Qatlib
 variable {X Y : Type*} [Fintype X] [Fintype Y]
 
-/-- Complete original `combined_loss_confidence` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For true velocity, correlation, and spin-penalty values in their clipping ranges, the
+combined estimator misses tolerance `d*εv + 3*d*γ*εs` with mass at most `d*ρv + 3*d*ρs` under
+the independent family laws. -/
 theorem combined_loss_confidence {d : ℕ} (pV : Fin d → FinDist X)
     (pS : Fin 3 × Fin d → FinDist Y) (fV : Fin d → X → ℝ) (fS : Fin 3 × Fin d → Y → ℝ)
     (V : Fin d → ℝ) (C : Fin 3 × Fin d → ℝ) (A γ εv εs ρv ρs : ℝ) (hγ : 0 ≤ γ)
@@ -2353,7 +2458,9 @@ theorem combined_loss_confidence {d : ℕ} (pV : Fin d → FinDist X)
       add_le_add (Finset.sum_le_sum fun j _ => hVbad j) (Finset.sum_le_sum fun i _ => hSbad i)
     _ = _ := by simp [nsmul_eq_mul]
 
-/-- Complete original `velocity_only_confidence` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- If the true velocity terms lie in their clipping intervals and each estimate has failure
+mass at most `ρv` at tolerance `εv`, the sum of clipped estimates has failure mass at most
+`d*ρv` at tolerance `d*εv`. -/
 theorem velocity_only_confidence {d : ℕ} (pV : Fin d → FinDist X) (fV : Fin d → X → ℝ)
     (V : Fin d → ℝ) (A εv ρv : ℝ) (hVrange : ∀ j, 0 ≤ V j ∧ V j ≤ A^2)
     (hVbad : ∀ j, finiteBadMass (pV j) (fV j) (V j) εv ≤ ρv) :
@@ -2382,7 +2489,8 @@ open scoped BigOperators
 open Qatlib
 variable {X : Type*} [Fintype X]
 
-/-- Complete original `finite_bad_mass_mono_radius` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- Increasing the allowed radius about a fixed target can only decrease the finite mass of
+tolerance violations. -/
 theorem finite_bad_mass_mono_radius (p : FinDist X) (F : X → ℝ) (C a b : ℝ) (hab : a ≤ b) :
     finiteBadMass p F C b ≤ finiteBadMass p F C a := by
   rw [← finite_bad_indicator_mean, ← finite_bad_indicator_mean]
@@ -2420,7 +2528,9 @@ def implementedResidualLoss {d : ℕ} (mv u : Fin d → S → ℝ) (ms : Fin 3 �
   (∑ j : Fin d, siteMean (fun x => (α*mv j x-β*u j x)^2))+
     γ*((d : ℝ)-(∑ i : Fin 3 × Fin d, siteMean (fun x => ms i.1 x*ms i.1 (e i.2 x))))
 
-/-- Complete original `total_median_confidence` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For bounded velocity means and targets, unit spin vectors, site permutations, and positive
+spin weight, the combined median estimates the implemented residual loss within `η/2` except on
+mass at most `δ` under the displayed sample and block bounds. -/
 theorem total_median_confidence {d nv Kv ns Ks : ℕ}
     (mv u : Fin d → S → ℝ) (hmv : ∀ j x, |mv j x| ≤ 1)
     (ms : Fin 3 → S → ℝ) (hs : ∀ x, ∑ a : Fin 3, (ms a x)^2=1)
@@ -2495,7 +2605,9 @@ def velocityMedianOutput {d nv Kv : ℕ} (u : Fin d → S → ℝ) (α β U : �
     (z : Fin d → Fin Kv → Fin nv → S × Bool) : ℝ :=
   ∑ j : Fin d, intervalClip 0 ((α+β*U)^2) (rawBlockMedian (residualStreamingStatistic (u j) α β) (z j))
 
-/-- Complete original `zero_spin_median_confidence` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For bounded velocity means and targets with nonnegative scales, the velocity-only median
+estimates the spatial sum of squared residuals within `η/4` except on mass at most `δ/2` when
+the displayed sample and block bounds hold. -/
 theorem zero_spin_median_confidence {d nv Kv : ℕ} (mv u : Fin d → S → ℝ) (hmv : ∀ j x, |mv j x| ≤ 1)
     (α β U η δ : ℝ) (hu : ∀ j x, |u j x| ≤ U) (hα : 0 ≤ α) (hβ : 0 ≤ β)
     (hd : 0 < d) (hη : 0 < η) (hδ : 0 < δ) (hnv : 2 ≤ nv) (hKv0 : 0 < Kv)
@@ -2544,7 +2656,8 @@ def spinorInnerIm (a b c k : S → ℝ) (x y : S) : ℝ :=
 def spinorCurrentMean {d : ℕ} (a b c k : S → ℝ) (e : Fin d → S ≃ S) (j : Fin d) (x : S) : ℝ :=
   (spinorInnerIm a b c k x (e j x)-spinorInnerIm a b c k x ((e j).symm x))/2
 
-/-- Complete original `spinor_current_mean_bound` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For a pointwise unit spinor, the central current mean along any of the prescribed site
+permutations lies in `[-1, 1]`. -/
 theorem spinor_current_mean_bound {d : ℕ} (a b c k : S → ℝ)
     (hz : ∀ x, a x^2+b x^2+c x^2+k x^2=1) (e : Fin d → S ≃ S) (j : Fin d) (x : S) :
     |spinorCurrentMean a b c k e j x| ≤ 1 := by
@@ -2555,7 +2668,9 @@ theorem spinor_current_mean_bound {d : ℕ} (a b c k : S → ℝ)
 
 variable [Fintype S] [Nonempty S] [DecidableEq S]
 
-/-- Complete original `spinor_total_median_confidence` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For a pointwise unit spinor and a bounded target, the joint median over current and Pauli
+records with doubled site shifts estimates the implemented residual loss within `η/2` except on
+mass at most `δ` under the displayed scale and sample conditions. -/
 theorem spinor_total_median_confidence {d nv Kv ns Ks : ℕ}
     (a b c k : S → ℝ) (hz : ∀ x, a x^2+b x^2+c x^2+k x^2=1)
     (u : Fin d → S → ℝ) (e : Fin d → S ≃ S) (α β U γ η δ : ℝ)
@@ -2591,44 +2706,45 @@ open scoped BigOperators
 open Qatlib
 variable {S I : Type*} [Fintype S] [Nonempty S] [Fintype I]
 
-/-- Complete original `site_mean_const` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- On a nonempty finite site space, the spatial mean of a constant is that constant. -/
 theorem site_mean_const (c : ℝ) : siteMean (fun _ : S => c)=c := by
   have hM : (Fintype.card S : ℝ) ≠ 0 := by exact_mod_cast Fintype.card_ne_zero
   simp only [siteMean, Finset.sum_const, Finset.card_univ, nsmul_eq_mul]
   exact mul_div_cancel_left₀ c hM
 
 omit [Nonempty S] in
-/-- Complete original `site_mean_sub` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The spatial mean of a difference of two fields is the difference of their spatial means. -/
 theorem site_mean_sub (f g : S → ℝ) : siteMean (fun x => f x-g x)=siteMean f-siteMean g := by
   simp only [siteMean, Finset.sum_sub_distrib, sub_div]
 
 omit [Nonempty S] in
-/-- Complete original `site_mean_mul` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- A constant real scale factor commutes with spatial averaging. -/
 theorem site_mean_mul (c : ℝ) (f : S → ℝ) : siteMean (fun x => c*f x)=c*siteMean f := by
   change (∑ x : S, c*f x)/(Fintype.card S : ℝ)=c*((∑ x : S, f x)/(Fintype.card S : ℝ))
   rw [← Finset.mul_sum]
   ring
 
 omit [Nonempty S] in
-/-- Complete original `site_mean_div` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- Dividing a field by a constant and taking the site mean is equivalent to dividing the mean
+by that constant. -/
 theorem site_mean_div (f : S → ℝ) (c : ℝ) : siteMean (fun x => f x/c)=siteMean f/c := by
   change (∑ x : S, f x/c)/(Fintype.card S : ℝ)=((∑ x : S, f x)/(Fintype.card S : ℝ))/c
   rw [← Finset.sum_div]
   ring
 
 omit [Nonempty S] in
-/-- Complete original `site_mean_sum` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The site mean of a finite sum of fields is the sum of their site means. -/
 theorem site_mean_sum (f : I → S → ℝ) : siteMean (fun x => ∑ i : I, f i x)=∑ i : I, siteMean (f i) := by
   simp only [siteMean, Finset.sum_div]
   exact Finset.sum_comm
 
 omit [Nonempty S] in
-/-- Complete original `site_mean_comp_equiv` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- Permuting the sites leaves the spatial mean of a field unchanged. -/
 theorem site_mean_comp_equiv (f : S → ℝ) (e : S ≃ S) : siteMean (fun x => f (e x))=siteMean f := by
   unfold siteMean
   rw [e.sum_comp]
 
-/-- Complete original `site_mean_abs_le_bound` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- A uniform bound on the magnitude of a real field also bounds the magnitude of its site mean. -/
 theorem site_mean_abs_le_bound (f : S → ℝ) (C : ℝ) (hf : ∀ x, |f x| ≤ C) : |siteMean f| ≤ C := by
   have hM : (0 : ℝ) < Fintype.card S := by exact_mod_cast Fintype.card_pos
   have hsum : |∑ x : S, f x| ≤ (Fintype.card S : ℝ)*C := by
@@ -2644,14 +2760,16 @@ def sourceSpinOfPauli (t : Fin 3 → S → ℝ) (i : Fin 3) (x : S) : ℝ :=
   if i=0 then t 2 x else if i=1 then -t 1 x else t 0 x
 
 omit [Fintype S] [Nonempty S] in
-/-- Complete original `source_pauli_difference_norm` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The change of coordinates from Pauli components to source-spin components preserves squared
+distances between sites. -/
 theorem source_pauli_difference_norm (t : Fin 3 → S → ℝ) (x y : S) :
     (∑ i : Fin 3, (sourceSpinOfPauli t i x-sourceSpinOfPauli t i y)^2)=
       ∑ i : Fin 3, (t i x-t i y)^2 := by
   simp [sourceSpinOfPauli, Fin.sum_univ_succ]
   ring
 
-/-- Complete original `central_spin_mean_identity` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For a pointwise unit spin field and nonzero spacing `h`, the mean squared central
+difference is the correlation deficit at the doubled shift divided by `2*h^2`. -/
 theorem central_spin_mean_identity (t : Fin 3 → S → ℝ)
     (hs : ∀ x, ∑ a : Fin 3, (t a x)^2=1) (e : S ≃ S) (h : ℝ) (hh : h ≠ 0) :
     siteMean (fun x => ∑ a : Fin 3, ((t a (e x)-t a (e.symm x))/(2*h))^2) =
@@ -2680,7 +2798,8 @@ theorem central_spin_mean_identity (t : Fin 3 → S → ℝ)
   simp_rw [hlocal]
   rw [site_mean_div, site_mean_sub, site_mean_const, hcross]
 
-/-- Complete original `source_central_spin_mean_identity` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For unit Pauli vectors and nonzero `h`, the squared central difference in source-spin
+coordinates averages to the Pauli correlation deficit at the doubled shift divided by `2*h^2`. -/
 theorem source_central_spin_mean_identity (t : Fin 3 → S → ℝ)
     (hs : ∀ x, ∑ a : Fin 3, (t a x)^2=1) (e : S ≃ S) (h : ℝ) (hh : h ≠ 0) :
     siteMean (fun x => ∑ a : Fin 3,
@@ -2715,7 +2834,9 @@ def spinorDiscreteLoss {d : ℕ} (a b c k : S → ℝ) (u : Fin d → S → ℝ)
       sourceSpinOfPauli (pauliField a b c k) i ((e j).symm x))/(2*h))^2))
 
 omit [DecidableEq S] in
-/-- Complete original `spinor_discrete_loss_eq` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For a pointwise unit spinor and nonzero step and scale, the discrete loss equals the
+implemented residual loss with scales `1/h` and `1/κ`, spin weight `lam^2/(2*h^2)`, and
+doubled site shifts. -/
 theorem spinor_discrete_loss_eq {d : ℕ} (a b c k : S → ℝ)
     (hz : ∀ x, a x^2+b x^2+c x^2+k x^2=1) (u : Fin d → S → ℝ)
     (e : Fin d → S ≃ S) (h κ lam : ℝ) (hh : h ≠ 0) (hκ : κ ≠ 0) :
@@ -2750,7 +2871,7 @@ theorem spinor_discrete_loss_eq {d : ℕ} (a b c k : S → ℝ)
 def modularUnitShift (N : ℕ) [NeZero N] : Fin N ≃ Fin N :=
   (ZMod.finEquiv N).toEquiv.trans ((modularTranslation N 1).trans (ZMod.finEquiv N).toEquiv.symm)
 
-/-- Complete original `modular_unit_shift_apply` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- Under the equivalence from `Fin N` to `ZMod N` for nonzero `N`, the unit shift adds one. -/
 theorem modular_unit_shift_apply (N : ℕ) [NeZero N] (x : Fin N) :
     (ZMod.finEquiv N) (modularUnitShift N x)=(ZMod.finEquiv N) x+1 := by
   simp [modularUnitShift, modularTranslation]
@@ -2760,7 +2881,8 @@ def periodicUnitShift (d N : ℕ) [NeZero N] (j : Fin d) :
     (Fin d → Fin N) ≃ (Fin d → Fin N) :=
   Equiv.piCongrRight (fun k => if k=j then modularUnitShift N else Equiv.refl (Fin N))
 
-/-- Complete original `periodic_unit_shift_coordinates` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- On a periodic grid with nonzero side length, the unit shift increments the chosen coordinate
+by one modulo the side length and fixes all others. -/
 theorem periodic_unit_shift_coordinates (d N : ℕ) [NeZero N] (j k : Fin d) (x : Fin d → Fin N) :
     (ZMod.finEquiv N) (periodicUnitShift d N j x k)=
       (ZMod.finEquiv N) (x k)+(if k=j then 1 else 0) := by
@@ -2768,7 +2890,7 @@ theorem periodic_unit_shift_coordinates (d N : ℕ) [NeZero N] (j k : Fin d) (x 
   · simp [periodicUnitShift, Equiv.piCongrRight, hk, modular_unit_shift_apply]
   · simp [periodicUnitShift, Equiv.piCongrRight, hk]
 
-/-- Complete original `periodic_unit_shift_square` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- Applying the periodic unit shift twice along the same axis gives the periodic double shift. -/
 theorem periodic_unit_shift_square (d N : ℕ) [NeZero N] (j : Fin d) :
     (periodicUnitShift d N j).trans (periodicUnitShift d N j)=periodicDoubleShift d N j := by
   apply Equiv.ext
@@ -2793,7 +2915,7 @@ noncomputable section
 open scoped BigOperators
 open Qatlib
 
-/-- Complete original `squared_residual_perturbation` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- If `|w| ≤ C` and `|v-w| ≤ ε`, squaring changes the absolute error to at most `2*C*ε + ε^2`. -/
 theorem squared_residual_perturbation (v w C ε : ℝ) (hw : |w| ≤ C) (hδ : |v-w| ≤ ε) :
     |v^2-w^2| ≤ 2*C*ε+ε^2 := by
   have hC : 0 ≤ C := (abs_nonneg w).trans hw
@@ -2809,7 +2931,8 @@ theorem squared_residual_perturbation (v w C ε : ℝ) (hw : |w| ≤ C) (hδ : |
     _ ≤ 2*(C*ε)+ε^2 := add_le_add (mul_le_mul_of_nonneg_left hm (by norm_num)) hs
     _ = _ := by ring
 
-/-- Complete original `residual_perturbation_abs` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For a unit-bounded mean, errors `ea` in its scale and `eb` in the target change the residual
+by at most `ea + β*eb` when `β ≥ 0`. -/
 theorem residual_perturbation_abs (m u û α0 α1 β ea eb : ℝ) (hm : |m| ≤ 1)
     (ha : |α1-α0| ≤ ea) (hu : |û-u| ≤ eb) (hβ : 0 ≤ β) :
     |(α1*m-β*û)-(α0*m-β*u)| ≤ ea+β*eb := by
@@ -2822,7 +2945,8 @@ theorem residual_perturbation_abs (m u û α0 α1 β ea eb : ℝ) (hm : |m| ≤ 
     _ ≤ ea*1+β*eb := add_le_add (mul_le_mul ha hm (abs_nonneg _) hea) (mul_le_mul_of_nonneg_left hu hβ)
     _ = _ := by ring
 
-/-- Complete original `rounded_target_abs_bound` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- A target bounded by `U` and approximated with absolute error at most `eb` gives an
+approximant bounded by `U + eb`. -/
 theorem rounded_target_abs_bound (u û U eb : ℝ) (hu : |u| ≤ U) (he : |û-u| ≤ eb) :
     |û| ≤ U+eb := by
   calc
@@ -2832,7 +2956,9 @@ theorem rounded_target_abs_bound (u û U eb : ℝ) (hu : |u| ≤ U) (he : |û-u|
 
 variable {S : Type*} [Fintype S] [Nonempty S]
 
-/-- Complete original `implemented_loss_bias_bound` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For bounded means and targets, unit spin vectors, and baseline residual bound `C`, errors
+`ea`, `eb`, and `eg` in the mean scale, target, and spin weight change the loss by at most
+`d*(2*C*r + r^2) + 2*d*eg`, where `r = ea + β*eb`. -/
 theorem implemented_loss_bias_bound {d : ℕ} (mv u û : Fin d → S → ℝ)
     (α0 α1 β γ0 γ1 U C ea eb eg : ℝ) (hmv : ∀ j x, |mv j x| ≤ 1) (hu : ∀ j x, |u j x| ≤ U)
     (htarget : ∀ j x, |û j x-u j x| ≤ eb)
@@ -2874,7 +3000,8 @@ theorem implemented_loss_bias_bound {d : ℕ} (mv u û : Fin d → S → ℝ)
 
 variable {X : Type*} [Fintype X]
 
-/-- Complete original `finite_bad_mass_change_center` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- If two centers differ by at most the increase in tolerance, the failure mass at the new
+larger radius about `C0` is at most the failure mass at the old smaller radius about `C1`. -/
 theorem finite_bad_mass_change_center (p : FinDist X) (F : X → ℝ) (C0 C1 ε0 ε1 : ℝ)
     (hbias : |C1-C0| ≤ ε1-ε0) : finiteBadMass p F C0 ε1 ≤ finiteBadMass p F C1 ε0 := by
   rw [← finite_bad_indicator_mean, ← finite_bad_indicator_mean]
@@ -2906,7 +3033,9 @@ open Qatlib
 /-- Construction for precision Step in the born current records model. -/
 def precisionStep (d : ℕ) (C η : ℝ) : ℝ := min (1/2) (η/(128*(d : ℝ)*(C+1)))
 
-/-- Complete original `sufficient_bias_budget` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For positive dimension, scale, and tolerance and nonnegative `C`, the displayed precision
+budgets for the scale, target, and spin weight make the total deterministic loss bias at most
+`η/16`. -/
 theorem sufficient_bias_budget (d : ℕ) (C κ η ea eb eg : ℝ)
     (hd : 0 < d) (hC : 0 ≤ C) (hκ : 0 < κ) (hη : 0 < η) (hea : 0 ≤ ea) (heb : 0 ≤ eb)
     (hEA : ea ≤ precisionStep d C η) (hEB : eb ≤ κ*precisionStep d C η)
@@ -2936,7 +3065,7 @@ theorem sufficient_bias_budget (d : ℕ) (C κ η ea eb eg : ℝ)
   change (d : ℝ)*(2*C*E+E^2)+2*(d : ℝ)*eg ≤ η/16
   nlinarith
 
-/-- Complete original `inverse_mesh_rational_upper` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The reciprocal mesh spacing `1/(2*π/N)` is at most `N/6` for every natural `N`. -/
 theorem inverse_mesh_rational_upper (N : ℕ) : 1/(2*Real.pi/(N : ℝ)) ≤ (N : ℝ)/6 := by
   rw [one_div_div]
   have hπ : (0 : ℝ) < 2*Real.pi := by positivity
@@ -2957,7 +3086,9 @@ open scoped BigOperators
 open Qatlib
 variable {S : Type*} [Fintype S] [Nonempty S] [DecidableEq S]
 
-/-- Complete original `original_loss_confidence` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For a pointwise unit spinor, sufficiently accurate rounded scale, spin weight, and bounded
+target and the stated block sizes, the combined current-and-spin median estimates the unrounded
+discrete loss within `η` with failure mass at most `δ`. -/
 theorem original_loss_confidence {d nv Kv ns Ks : ℕ}
     (a b c k : S → ℝ) (hz : ∀ x, a x^2+b x^2+c x^2+k x^2=1)
     (u û : Fin d → S → ℝ) (e : Fin d → S ≃ S) (h κ lam α γ U C ea eb eg η δ : ℝ)
@@ -3003,7 +3134,9 @@ theorem original_loss_confidence {d nv Kv ns Ks : ℕ}
   change finiteBadMass p F (spinorDiscreteLoss a b c k u e h κ lam) η ≤ δ
   exact (finite_bad_mass_change_center p F _ L1 (η/2) η (by linarith)).trans hstat
 
-/-- Complete original `original_loss_confidence_zero_spin` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The current-only median estimates the unrounded discrete loss within `η` with failure mass
+at most `δ/2` when the scale, target, and omitted spin weight meet the stated bias bounds and
+the velocity blocks meet their sample thresholds. -/
 theorem original_loss_confidence_zero_spin {d nv Kv : ℕ}
     (a b c k : S → ℝ) (hz : ∀ x, a x^2+b x^2+c x^2+k x^2=1)
     (u û : Fin d → S → ℝ) (e : Fin d → S ≃ S) (h κ lam α U C ea eb eg η δ : ℝ)
@@ -3053,7 +3186,9 @@ open scoped BigOperators
 open Qatlib
 
 set_option synthInstance.maxSize 512 in
-/-- Complete original `original_periodic_loss_confidence` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- On the nonempty periodic grid with spacing `2*π/N`, sufficiently accurate rounded
+coefficients and target and the stated sampling budgets give failure mass at most `δ` for a
+combined median error greater than `η`. -/
 theorem original_periodic_loss_confidence {d N nv Kv ns Ks : ℕ} [NeZero N]
     (a b c k : (Fin d → Fin N) → ℝ) (hz : ∀ x, a x^2+b x^2+c x^2+k x^2=1)
     (u û : Fin d → (Fin d → Fin N) → ℝ) (κ lam α γ U ea eb eg η δ : ℝ)
@@ -3119,7 +3254,8 @@ def piInitialIterationQ (bits : ℕ) : Option (ℚ × ℚ) :=
 
 noncomputable section
 
-/-- Complete original `atan_interval_width` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For `a ≥ 2`, the width of the rational alternating-series enclosure for the arctangent at
+`1/a` equals the next term's magnitude. -/
 theorem atan_interval_width (a n : ℕ) (ha : 2 ≤ a) :
     ((atanIntervalQ a n).2 : ℝ)-((atanIntervalQ a n).1 : ℝ)=atanMagnitude a n := by
   simp only [atanIntervalQ, Rat.cast_min, Rat.cast_max, Rat.cast_add]
@@ -3131,7 +3267,8 @@ theorem atan_interval_width (a n : ℕ) (ha : 2 ≤ a) :
   have hm : 0 ≤ atanMagnitude a n := by unfold atanMagnitude; positivity
   simp [abs_of_nonneg hm]
 
-/-- Complete original `machin_interval_width` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The width of the Machin enclosure is sixteen times the arctangent remainder magnitude at
+`1/5` plus four times the magnitude at `1/239`. -/
 theorem machin_interval_width (n : ℕ) :
     ((machinIntervalQ n).2 : ℝ)-((machinIntervalQ n).1 : ℝ) =
       16*atanMagnitude 5 n+4*atanMagnitude 239 n := by
@@ -3140,7 +3277,7 @@ theorem machin_interval_width (n : ℕ) :
   simp only [machinIntervalQ, Rat.cast_sub, Rat.cast_mul, Rat.cast_ofNat]
   linarith
 
-/-- Complete original `atan_magnitude_le_five_power` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For `a ≥ 5`, the arctangent remainder magnitude at `1/a` is at most `1/5^(2*n+1)`. -/
 theorem atan_magnitude_le_five_power (a n : ℕ) (ha : 5 ≤ a) :
     atanMagnitude a n ≤ 1/(5 : ℝ)^(2*n+1) := by
   have ha5 : (5 : ℝ) ≤ a := by exact_mod_cast ha
@@ -3151,7 +3288,7 @@ theorem atan_magnitude_le_five_power (a n : ℕ) (ha : 5 ≤ a) :
   unfold atanMagnitude
   exact one_div_le_one_div_of_le (by positivity) (hp.trans (by simpa only [one_mul] using hm))
 
-/-- Complete original `five_power_inv_le_dyadic` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The reciprocal power `1/5^(2*n+1)` is at most the dyadic bound `1/2^(4*n+2)`. -/
 theorem five_power_inv_le_dyadic (n : ℕ) : 1/(5 : ℝ)^(2*n+1) ≤ 1/(2 : ℝ)^(4*n+2) := by
   have hp : (4 : ℝ)^(2*n+1) ≤ (5 : ℝ)^(2*n+1) := pow_le_pow_left₀ (by norm_num) (by norm_num) _
   have he : (4 : ℝ)^(2*n+1)=(2 : ℝ)^(4*n+2) := by
@@ -3161,7 +3298,8 @@ theorem five_power_inv_le_dyadic (n : ℕ) : 1/(5 : ℝ)^(2*n+1) ≤ 1/(2 : ℝ)
   rw [he] at hp
   exact one_div_le_one_div_of_le (by positivity) hp
 
-/-- Complete original `pi_candidate_width` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The rational π candidate enclosure has width at most `5/32` times the requested dyadic unit
+`1/2^bits`. -/
 theorem pi_candidate_width (bits : ℕ) :
     ((piCandidateQ bits).2 : ℝ)-((piCandidateQ bits).1 : ℝ) ≤
       (5/32 : ℝ)*(1/(2 : ℝ)^bits) := by
@@ -3187,7 +3325,7 @@ theorem pi_candidate_width (bits : ℕ) :
       simpa only [mul_one_div] using hh
     _ = _ := by rw [pow_add]; norm_num; ring
 
-/-- Complete original `pi_candidate_guard` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The candidate π interval satisfies the rational acceptance bound of width at most `1/2^bits`. -/
 theorem pi_candidate_guard (bits : ℕ) :
     (piCandidateQ bits).2-(piCandidateQ bits).1 ≤ (1 : ℚ)/(2 : ℚ)^bits := by
   have hw := pi_candidate_width bits
@@ -3199,13 +3337,14 @@ theorem pi_candidate_guard (bits : ℕ) :
     simpa only [Rat.cast_sub, Rat.cast_div, Rat.cast_one, Rat.cast_pow, Rat.cast_ofNat] using hr
   exact Rat.cast_le.mp hr'
 
-/-- Complete original `pi_initial_iteration_returns` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The first π enclosure iteration succeeds and returns the computed candidate interval. -/
 theorem pi_initial_iteration_returns (bits : ℕ) :
     piInitialIterationQ bits=some (piCandidateQ bits) := by
   unfold piInitialIterationQ
   rw [ite_eq_left (pi_candidate_guard bits)]
 
-/-- Complete original `pi_candidate_valid` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- With at least one requested bit, the candidate interval contains π and lies strictly between
+three and four. -/
 theorem pi_candidate_valid (bits : ℕ) (hb : 1 ≤ bits) :
     (3 : ℝ) < ((piCandidateQ bits).1 : ℝ) ∧
     ((piCandidateQ bits).1 : ℝ) ≤ Real.pi ∧ Real.pi ≤ ((piCandidateQ bits).2 : ℝ) ∧
@@ -3261,17 +3400,20 @@ def coefficientIterationQ (d N bits : ℕ) (κ lam U η : ℚ) : Option Coeffici
 
 noncomputable section
 
-/-- Complete original `precision_step_cast` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- Casting the rational precision step to the reals yields the real precision step at the cast
+parameters. -/
 theorem precision_step_cast (d : ℕ) (C η : ℚ) : (precisionStepQ d C η : ℝ)=precisionStep d (C : ℝ) (η : ℝ) := by
   simp only [precisionStepQ, precisionStep, Rat.cast_min, Rat.cast_div, Rat.cast_add,
     Rat.cast_mul, Rat.cast_natCast, Rat.cast_ofNat, Rat.cast_one]
 
-/-- Complete original `midpoint_error_bound` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The distance from any point of a closed interval to its midpoint is at most half the
+interval width. -/
 theorem midpoint_error_bound (lo hi x : ℝ) (hl : lo ≤ x) (hu : x ≤ hi) :
     |(lo+hi)/2-x| ≤ (hi-lo)/2 := by
   exact abs_le.mpr ⟨by linarith, by linarith⟩
 
-/-- Complete original `inverse_pi_interval` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- A positive lower and an upper bound for π reverse under inversion and bound the reciprocal
+mesh spacing between `N/(2*q)` and `N/(2*p)`. -/
 theorem inverse_pi_interval (N : ℕ) (p q : ℝ) (hp : 0 < p)
     (hl : p ≤ Real.pi) (hu : Real.pi ≤ q) :
     (N : ℝ)/2/q ≤ 1/(2*Real.pi/(N : ℝ)) ∧
@@ -3281,7 +3423,8 @@ theorem inverse_pi_interval (N : ℕ) (p q : ℝ) (hp : 0 < p)
   rw [he]
   exact ⟨div_le_div_of_nonneg_left hnum Real.pi_pos hu, div_le_div_of_nonneg_left hnum hp hl⟩
 
-/-- Complete original `coefficient_candidate_errors` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- With at least one enclosure bit, the candidate's reported errors bound the deviations of its
+velocity scale and spin weight from their exact real mesh-dependent values. -/
 theorem coefficient_candidate_errors (d N bits : ℕ) (κ lam U η : ℚ) (hb : 1 ≤ bits) :
     |((coefficientCandidateQ d N bits κ lam U η).alpha : ℝ)-1/(2*Real.pi/(N : ℝ))| ≤
       ((coefficientCandidateQ d N bits κ lam U η).alphaError : ℝ) ∧
@@ -3313,12 +3456,13 @@ theorem coefficient_candidate_errors (d N bits : ℕ) (κ lam U η : ℚ) (hb : 
     simpa only [coefficientCandidateQ, Rat.cast_div, Rat.cast_add, Rat.cast_sub, Rat.cast_mul, Rat.cast_pow,
       Rat.cast_natCast, Rat.cast_ofNat, lo, hi, p] using hg
 
-/-- Complete original `coefficient_candidate_beta` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The candidate's target coefficient becomes exactly `1/κ` after coercion to the reals. -/
 theorem coefficient_candidate_beta (d N bits : ℕ) (κ lam U η : ℚ) :
     ((coefficientCandidateQ d N bits κ lam U η).beta : ℝ)=1/(κ : ℝ) := by
   simp only [coefficientCandidateQ, Rat.cast_div, Rat.cast_one]
 
-/-- Complete original `coefficient_iteration_sufficient` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- A successful coefficient iteration certifies the velocity-scale error against the precision
+step computed with `N/6 + U/κ` and the spin-weight error against `η/(64*d)`. -/
 theorem coefficient_iteration_sufficient (d N bits : ℕ) (κ lam U η : ℚ) (c : CoefficientCandidateQ)
     (hc : coefficientIterationQ d N bits κ lam U η=some c) :
     (c.alphaError : ℝ) ≤ precisionStep d ((N : ℝ)/6+(1/(κ : ℝ))*(U : ℝ)) (η : ℝ) ∧
@@ -3342,7 +3486,8 @@ end Qatlib.Concepts.SpinorSampling.Model
 namespace Qatlib.Concepts.SpinorSampling.Model
 noncomputable section
 
-/-- Complete original `coefficient_candidate_alpha_pos` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The candidate velocity coefficient is positive when the periodic side length is positive and
+at least one enclosure bit is used. -/
 theorem coefficient_candidate_alpha_pos (d N bits : ℕ) (κ lam U η : ℚ) (hN : 0 < N) (hb : 1 ≤ bits) :
     0 < (coefficientCandidateQ d N bits κ lam U η).alpha := by
   have hp := pi_candidate_valid bits hb
@@ -3352,20 +3497,22 @@ theorem coefficient_candidate_alpha_pos (d N bits : ℕ) (κ lam U η : ℚ) (hN
   dsimp only [coefficientCandidateQ]
   positivity
 
-/-- Complete original `coefficient_candidate_error_nonneg` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- With at least one enclosure bit, both the reported velocity-scale error and the reported
+spin-weight error are nonnegative. -/
 theorem coefficient_candidate_error_nonneg (d N bits : ℕ) (κ lam U η : ℚ) (hb : 1 ≤ bits) :
     0 ≤ (coefficientCandidateQ d N bits κ lam U η).alphaError ∧
       0 ≤ (coefficientCandidateQ d N bits κ lam U η).gammaError := by
   have he := coefficient_candidate_errors d N bits κ lam U η hb
   exact ⟨Rat.cast_nonneg.mp ((abs_nonneg _).trans he.1), Rat.cast_nonneg.mp ((abs_nonneg _).trans he.2)⟩
 
-/-- Complete original `coefficient_candidate_gamma_nonneg` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The candidate's spin weight is nonnegative. -/
 theorem coefficient_candidate_gamma_nonneg (d N bits : ℕ) (κ lam U η : ℚ) :
     0 ≤ (coefficientCandidateQ d N bits κ lam U η).gamma := by
   dsimp only [coefficientCandidateQ]
   positivity
 
-/-- Complete original `coefficient_candidate_gamma_zero_iff` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For positive lattice size and at least one enclosure bit, the candidate spin weight vanishes
+exactly when `lam` is zero. -/
 theorem coefficient_candidate_gamma_zero_iff (d N bits : ℕ) (κ lam U η : ℚ) (hN : 0 < N) (hb : 1 ≤ bits) :
     (coefficientCandidateQ d N bits κ lam U η).gamma=0 ↔ lam=0 := by
   constructor
@@ -3384,14 +3531,16 @@ theorem coefficient_candidate_gamma_zero_iff (d N bits : ℕ) (κ lam U η : ℚ
     subst lam
     simp [coefficientCandidateQ]
 
-/-- Complete original `coefficient_candidate_target_bound` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The candidate's maximum allowed target error is the real precision step at `N/6 + U/κ`,
+multiplied by `κ`. -/
 theorem coefficient_candidate_target_bound (d N bits : ℕ) (κ lam U η : ℚ) :
     ((coefficientCandidateQ d N bits κ lam U η).maxTargetError : ℝ)=
       (κ : ℝ)*precisionStep d ((N : ℝ)/6+(1/(κ : ℝ))*(U : ℝ)) (η : ℝ) := by
   simp only [coefficientCandidateQ, Rat.cast_mul, precision_step_cast, Rat.cast_add, Rat.cast_div,
     Rat.cast_natCast, Rat.cast_one, Rat.cast_ofNat]
 
-/-- Complete original `coefficient_candidate_target_pos` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The candidate allows a positive target error for positive dimension, scale, and tolerance
+and a nonnegative target bound. -/
 theorem coefficient_candidate_target_pos (d N bits : ℕ) (κ lam U η : ℚ)
     (hd : 0 < d) (hκ : 0 < κ) (hU : 0 ≤ U) (hη : 0 < η) :
     0 < (coefficientCandidateQ d N bits κ lam U η).maxTargetError := by
@@ -3408,7 +3557,8 @@ end Qatlib.Concepts.SpinorSampling.Model
 namespace Qatlib.Concepts.SpinorSampling.Model
 noncomputable section
 
-/-- Complete original `coefficient_candidate_error_rates` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- With at least one enclosure bit, the candidate errors in the velocity scale and spin weight
+are at most `N/(36*2^bits)` and `lam^2*N^2/(216*2^bits)`, respectively. -/
 theorem coefficient_candidate_error_rates (d N bits : ℕ) (κ lam U η : ℚ) (hb : 1 ≤ bits) :
     ((coefficientCandidateQ d N bits κ lam U η).alphaError : ℝ) ≤ (N : ℝ)/(36*(2 : ℝ)^bits) ∧
     ((coefficientCandidateQ d N bits κ lam U η).gammaError : ℝ) ≤
@@ -3472,7 +3622,8 @@ end Qatlib.Concepts.SpinorSampling.Model
 
 namespace Qatlib.Concepts.SpinorSampling.Model
 
-/-- Complete original `coefficient_iteration_result_eq` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- If the coefficient iteration accepts, its output is exactly the candidate at that bit
+precision. -/
 theorem coefficient_iteration_result_eq (d N bits : ℕ) (κ lam U η : ℚ) (c : CoefficientCandidateQ)
     (hc : coefficientIterationQ d N bits κ lam U η=some c) :
     c=coefficientCandidateQ d N bits κ lam U η := by
@@ -3483,7 +3634,9 @@ theorem coefficient_iteration_result_eq (d N bits : ℕ) (κ lam U η : ℚ) (c 
 
 noncomputable section
 
-/-- Complete original `coefficient_iteration_valid` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- An accepted coefficient iteration at positive bit precision certifies the two real
+coefficient approximations, the exact inverse target scale, the maximum target rounding error,
+and the required bias bounds. -/
 theorem coefficient_iteration_valid (d N bits : ℕ) (κ lam U η : ℚ) (c : CoefficientCandidateQ)
     (hb : 1 ≤ bits) (hc : coefficientIterationQ d N bits κ lam U η=some c) :
     |(c.alpha : ℝ)-1/(2*Real.pi/(N : ℝ))| ≤ (c.alphaError : ℝ) ∧
@@ -3525,10 +3678,10 @@ def medianBlocksQ (ρ : ℚ) : ℕ :=
 
 noncomputable section
 
-/-- Complete original `ceil_int_eq` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The executable integer ceiling of a rational equals its mathematical ceiling. -/
 theorem ceil_int_eq (q : ℚ) : ceilIntQ q=⌈q⌉ := (Rat.ceil_def' q).symm
 
-/-- Complete original `positive_rat_natAbs_repr` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- A positive rational is its absolute numerator divided by its denominator. -/
 theorem positive_rat_natAbs_repr (q : ℚ) (hq : 0 < q) :
     q=(q.num.natAbs : ℚ)/(q.den : ℚ) := by
   have hp : 0 < q.num := Rat.num_pos.mpr hq
@@ -3538,7 +3691,7 @@ theorem positive_rat_natAbs_repr (q : ℚ) (hq : 0 < q) :
   rw [hc]
   exact q.num_div_den.symm
 
-/-- Complete original `rat_gt_one_num_gt_den` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- A rational greater than one has absolute numerator strictly larger than its denominator. -/
 theorem rat_gt_one_num_gt_den (q : ℚ) (hq : 1 < q) : q.den < q.num.natAbs := by
   have hd : (0 : ℚ) < q.den := by exact_mod_cast q.pos
   have he := positive_rat_natAbs_repr q (by linarith)
@@ -3546,7 +3699,7 @@ theorem rat_gt_one_num_gt_den (q : ℚ) (hq : 1 < q) : q.den < q.num.natAbs := b
   have hn := (one_lt_div hd).mp hr
   exact_mod_cast hn
 
-/-- Complete original `numerator_bit_upper` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For `0 < d < n`, the bit lengths give `n ≤ 2^(n.size-d.size+1)*d`. -/
 theorem numerator_bit_upper (n d : ℕ) (hd : 0 < d) (hnd : d < n) :
     n ≤ 2^(n.size-d.size+1)*d := by
   have hs : d.size ≤ n.size := Nat.size_le_size hnd.le
@@ -3561,7 +3714,8 @@ theorem numerator_bit_upper (n d : ℕ) (hd : 0 < d) (hnd : d < n) :
     _ = _ := he
     _ ≤ _ := Nat.mul_le_mul_left _ hlower
 
-/-- Complete original `numerator_bit_lower` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For `d < n`, shifting `d` by the difference of the bit lengths gives a number strictly
+below `2*n`. -/
 theorem numerator_bit_lower (n d : ℕ) (hnd : d < n) :
     2^(n.size-d.size)*d < 2*n := by
   have hs : d.size ≤ n.size := Nat.size_le_size hnd.le
@@ -3577,7 +3731,8 @@ theorem numerator_bit_lower (n d : ℕ) (hnd : d < n) :
     _ = _ := he
     _ ≤ _ := Nat.mul_le_mul_left 2 hlower
 
-/-- Complete original `ceil_log2_power` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- Raising two to the computed rational ceiling-log exponent gives an upper bound on the input
+rational. -/
 theorem ceil_log2_power (q : ℚ) : q ≤ (2 : ℚ)^(ceilLog2Q q) := by
   by_cases hq : q ≤ 1
   · simpa only [ceilLog2Q, ite_eq_left hq, pow_zero] using hq
@@ -3596,7 +3751,8 @@ theorem ceil_log2_power (q : ℚ) : q ≤ (2 : ℚ)^(ceilLog2Q q) := by
     · exact hratio
     · exact le_of_not_gt hc
 
-/-- Complete original `ceil_log2_power_lt_twice` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For a rational exceeding one, the power of two chosen by the ceiling-log routine is less
+than twice the rational. -/
 theorem ceil_log2_power_lt_twice (q : ℚ) (hq : 1 < q) :
     (2 : ℚ)^(ceilLog2Q q) < 2*q := by
   have hnd := rat_gt_one_num_gt_den q hq
@@ -3615,7 +3771,8 @@ theorem ceil_log2_power_lt_twice (q : ℚ) (hq : 1 < q) :
     nlinarith
   · exact hlow
 
-/-- Complete original `ceil_log2_power_upper` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The power of two chosen by the ceiling-log routine is bounded by twice the larger of the
+input rational and one. -/
 theorem ceil_log2_power_upper (q : ℚ) : (2 : ℚ)^(ceilLog2Q q) ≤ 2*max 1 q := by
   by_cases hq : q ≤ 1
   · simp only [ceilLog2Q, ite_eq_left hq, pow_zero, max_eq_left hq]
@@ -3632,20 +3789,22 @@ end Qatlib.Concepts.SpinorSampling.Model
 namespace Qatlib.Concepts.SpinorSampling.Model
 noncomputable section
 
-/-- Complete original `ceil_nat_cast` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For a nonnegative rational, the natural and integer ceiling routines give the same value
+after coercion to the reals. -/
 theorem ceil_nat_cast (q : ℚ) (hq : 0 ≤ q) : (ceilNatQ q : ℝ)=(ceilIntQ q : ℝ) := by
   have hi : 0 ≤ ceilIntQ q := by rw [ceil_int_eq]; exact Int.ceil_nonneg hq
   have he : ((ceilNatQ q : ℕ) : ℤ)=ceilIntQ q := by
     exact Int.natCast_toNat_eq_self.mpr hi
   simpa only [Int.cast_natCast] using congrArg (fun z : ℤ => (z : ℝ)) he
 
-/-- Complete original `ceil_nat_bounds` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The natural ceiling of a nonnegative rational lies in the real interval `[q, q+1)`. -/
 theorem ceil_nat_bounds (q : ℚ) (hq : 0 ≤ q) :
     (q : ℝ) ≤ (ceilNatQ q : ℝ) ∧ (ceilNatQ q : ℝ) < (q : ℝ)+1 := by
   rw [ceil_nat_cast q hq, ceil_int_eq, ← Rat.ceil_cast (α := ℝ)]
   exact ⟨Int.le_ceil _, Int.ceil_lt_add_one _⟩
 
-/-- Complete original `ceil_log2_log_bound` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For a positive rational, the computed natural ceiling-log exponent also bounds its natural
+logarithm from above. -/
 theorem ceil_log2_log_bound (q : ℚ) (hq : 0 < q) : Real.log (q : ℝ) ≤ (ceilLog2Q q : ℝ) := by
   have hp : (q : ℝ) ≤ (2 : ℝ)^(ceilLog2Q q) := by exact_mod_cast ceil_log2_power q
   have hqr : (0 : ℝ) < q := Rat.cast_pos.mpr hq
@@ -3655,23 +3814,25 @@ theorem ceil_log2_log_bound (q : ℚ) (hq : 0 < q) : Real.log (q : ℝ) ≤ (cei
   have hm := mul_le_mul_of_nonneg_left htwo (Nat.cast_nonneg (ceilLog2Q q) : (0 : ℝ) ≤ ceilLog2Q q)
   exact hl.trans (by simpa only [mul_one] using hm)
 
-/-- Complete original `median_blocks_ge_ceil` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The planned median block count is at least the natural ceiling of `128/25` times the
+computed ceiling log of inverse confidence. -/
 theorem median_blocks_ge_ceil (ρ : ℚ) :
     ceilNatQ ((128/25 : ℚ)*(ceilLog2Q (1/ρ) : ℚ)) ≤ medianBlocksQ ρ := by
   dsimp only [medianBlocksQ]
   split_ifs <;> omega
 
-/-- Complete original `median_blocks_pos` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The rational median planner returns a positive number of blocks. -/
 theorem median_blocks_pos (ρ : ℚ) : 0 < medianBlocksQ ρ := by
   dsimp only [medianBlocksQ]
   split_ifs <;> omega
 
-/-- Complete original `median_blocks_odd` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The rational median planner chooses an odd number of blocks. -/
 theorem median_blocks_odd (ρ : ℚ) : medianBlocksQ ρ%2=1 := by
   dsimp only [medianBlocksQ]
   split_ifs <;> omega
 
-/-- Complete original `median_blocks_budget` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For positive failure budget `ρ`, the median planner reaches the real threshold
+`(128/25)*log(1/ρ)`. -/
 theorem median_blocks_budget (ρ : ℚ) (hρ : 0 < ρ) :
     (128/25 : ℝ)*Real.log (1/(ρ : ℝ)) ≤ (medianBlocksQ ρ : ℝ) := by
   have hq : 0 ≤ (128/25 : ℚ)*(ceilLog2Q (1/ρ) : ℚ) := by positivity
@@ -3685,7 +3846,8 @@ theorem median_blocks_budget (ρ : ℚ) (hρ : 0 < ρ) :
     exact_mod_cast median_blocks_ge_ceil ρ
   exact (mul_le_mul_of_nonneg_left hl (by norm_num)).trans (hc'.trans hn)
 
-/-- Complete original `median_blocks_upper` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The median planner uses at most two more blocks than `128/25` times the computed ceiling log
+of `1/ρ`. -/
 theorem median_blocks_upper (ρ : ℚ) :
     (medianBlocksQ ρ : ℝ) ≤ (128/25 : ℝ)*(ceilLog2Q (1/ρ) : ℝ)+2 := by
   let q : ℚ := (128/25 : ℚ)*(ceilLog2Q (1/ρ) : ℚ)
@@ -3705,12 +3867,13 @@ theorem median_blocks_upper (ρ : ℚ) :
   have hlast : (medianBlocksQ ρ : ℝ) ≤ (q : ℝ)+2 := by linarith
   simpa only [q, Rat.cast_mul, Rat.cast_div, Rat.cast_ofNat, Rat.cast_natCast] using hlast
 
-/-- Complete original `dyadic_root_square` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The site count `2^(d*r)` is at most the square of the dyadic root bound `2^((d*r+1)/2)`. -/
 theorem dyadic_root_square (d r : ℕ) : 2^(d*r) ≤ (2^((d*r+1)/2))^2 := by
   rw [← Nat.pow_mul]
   exact Nat.pow_le_pow_right (by decide : 1 ≤ 2) (by omega)
 
-/-- Complete original `dyadic_root_bounds` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The square root of the site count `2^(d*r)` is bounded by the power of two with exponent
+`(d*r+1)/2`. -/
 theorem dyadic_root_bounds (d r : ℕ) :
     Real.sqrt ((2^(d*r) : ℕ) : ℝ) ≤ ((2^((d*r+1)/2) : ℕ) : ℝ) := by
   have hs : ((2^(d*r) : ℕ) : ℝ) ≤ (((2^((d*r+1)/2) : ℕ) : ℝ))^2 := by exact_mod_cast dyadic_root_square d r
@@ -3720,7 +3883,7 @@ theorem dyadic_root_bounds (d r : ℕ) :
   rw [Real.sq_sqrt hx]
   exact hs
 
-/-- Complete original `dyadic_scaled_root_bound` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The square root of the site count times `A^4` is at most the dyadic root bound times `A^2`. -/
 theorem dyadic_scaled_root_bound (d r : ℕ) (A : ℝ) :
     Real.sqrt (((2^(d*r) : ℕ) : ℝ)*A^4) ≤ A^2*((2^((d*r+1)/2) : ℕ) : ℝ) := by
   have hs : ((2^(d*r) : ℕ) : ℝ) ≤ (((2^((d*r+1)/2) : ℕ) : ℝ))^2 := by exact_mod_cast dyadic_root_square d r
@@ -3772,7 +3935,8 @@ def samplePlanQ (d r : ℕ) (α β bound γ η δ : ℚ) : SamplePlanQ :=
 
 noncomputable section
 
-/-- Complete original `block_records_guards` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The record planner returns at least two records and meets the real thresholds `32*B/ε^2` and
+`8*rootD/ε` after coercion. -/
 theorem block_records_guards (B rootD ε : ℚ) :
     2 ≤ blockRecordsQ B rootD ε ∧
     32*(B : ℝ)/(ε : ℝ)^2 ≤ (blockRecordsQ B rootD ε : ℝ) ∧
@@ -3794,7 +3958,8 @@ theorem block_records_guards (B rootD ε : ℚ) :
     simpa only [Rat.cast_div, Rat.cast_mul, Rat.cast_ofNat] using hD
   exact ⟨by exact_mod_cast h2, hBr.trans hc, hDr.trans hc⟩
 
-/-- Complete original `block_records_sqrt_guard` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For positive tolerance, if the supplied root bound dominates `sqrt(D)`, the planned number
+of records also meets the threshold `8*sqrt(D)/ε`. -/
 theorem block_records_sqrt_guard (B rootD ε : ℚ) (D : ℝ) (hε : 0 < ε)
     (hroot : Real.sqrt D ≤ (rootD : ℝ)) :
     8*Real.sqrt D/(ε : ℝ) ≤ (blockRecordsQ B rootD ε : ℝ) := by
@@ -3802,26 +3967,30 @@ theorem block_records_sqrt_guard (B rootD ε : ℚ) (D : ℝ) (hε : 0 < ε)
   have hm := mul_le_mul_of_nonneg_left hroot (by norm_num : (0 : ℝ) ≤ 8)
   exact (div_le_div_of_nonneg_right hm hεr.le).trans (block_records_guards B rootD ε).2.2
 
-/-- Complete original `sample_plan_velocity_fields` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The velocity plan uses the block size for residual scale `α + β*bound`, dyadic root bound,
+and tolerance `η/(4*d)`, and the median count for failure budget `δ/(2*d)`. -/
 theorem sample_plan_velocity_fields (d r : ℕ) (α β bound γ η δ : ℚ) :
     (samplePlanQ d r α β bound γ η δ).velocityRecords=
       blockRecordsQ ((α+β*bound)^4) ((α+β*bound)^2*((2^((d*r+1)/2) : ℕ) : ℚ)) (η/(4*(d : ℚ))) ∧
     (samplePlanQ d r α β bound γ η δ).velocityBlocks=medianBlocksQ (δ/(2*(d : ℚ))) := by
   by_cases hg : γ=0 <;> simp [samplePlanQ, hg]
 
-/-- Complete original `sample_plan_spin_fields` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For nonzero spin weight, the spin plan uses unit projection bound, the dyadic site root
+bound, and tolerance `min(1, η/(12*d*γ))`, with median count for failure budget `δ/(6*d)`. -/
 theorem sample_plan_spin_fields (d r : ℕ) (α β bound γ η δ : ℚ) (hγ : γ ≠ 0) :
     (samplePlanQ d r α β bound γ η δ).spinRecords=
       blockRecordsQ 1 ((2^((d*r+1)/2) : ℕ) : ℚ) (min 1 (η/(12*(d : ℚ)*γ))) ∧
     (samplePlanQ d r α β bound γ η δ).spinBlocks=medianBlocksQ (δ/(6*(d : ℚ))) := by
   simp [samplePlanQ, hγ]
 
-/-- Complete original `sample_plan_zero_spin` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- A zero spin weight sets both spin records per block and the number of spin blocks to zero. -/
 theorem sample_plan_zero_spin (d r : ℕ) (α β bound η δ : ℚ) :
     (samplePlanQ d r α β bound 0 η δ).spinRecords=0 ∧
     (samplePlanQ d r α β bound 0 η δ).spinBlocks=0 := by simp [samplePlanQ]
 
-/-- Complete original `sample_plan_accounts` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The sample plan counts every velocity and spin record as one copy, with three spin
+components per axis. Only velocity records contribute a target query and a controlled shift
+each. -/
 theorem sample_plan_accounts (d r : ℕ) (α β bound γ η δ : ℚ) :
     let p := samplePlanQ d r α β bound γ η δ
     p.copies=d*p.velocityRecords*p.velocityBlocks+3*d*p.spinRecords*p.spinBlocks ∧
@@ -3839,7 +4008,9 @@ end Qatlib.Concepts.SpinorSampling.Model
 namespace Qatlib.Concepts.SpinorSampling.Model
 noncomputable section
 
-/-- Complete original `sample_plan_velocity_guards` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- With positive dimension, tolerance, and failure budget, the velocity plan supplies at least
+two records per block, satisfies both real sample thresholds, and selects a positive odd block
+count meeting the logarithmic confidence threshold. -/
 theorem sample_plan_velocity_guards (d r : ℕ) (α β bound γ η δ : ℚ)
     (hd : 0 < d) (hη : 0 < η) (hδ : 0 < δ) :
     let p := samplePlanQ d r α β bound γ η δ
@@ -3871,7 +4042,9 @@ theorem sample_plan_velocity_guards (d r : ℕ) (α β bound γ η δ : ℚ)
   refine ⟨hn.1, hB, hD', median_blocks_pos _, median_blocks_odd _, ?_⟩
   simpa only [Rat.cast_div, Rat.cast_mul, Rat.cast_natCast, Rat.cast_ofNat] using hK
 
-/-- Complete original `sample_plan_spin_guards` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- With positive dimension, spin weight, tolerance, and failure budget, the spin plan meets
+both real sample thresholds with at least two records per block and a positive odd block count
+meeting the logarithmic confidence threshold. -/
 theorem sample_plan_spin_guards (d r : ℕ) (α β bound γ η δ : ℚ)
     (hd : 0 < d) (hγ : 0 < γ) (hη : 0 < η) (hδ : 0 < δ) :
     let p := samplePlanQ d r α β bound γ η δ
@@ -3939,7 +4112,8 @@ def coefficientsGeneratedQ (d N : ℕ) (κ lam U η : ℚ) : Option CoefficientC
 
 noncomputable section
 
-/-- Complete original `precision_doubling_bounds` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- Starting at sixteen bits, the computed dyadic precision reaches `n` while staying within
+twice the larger of sixteen and `n`. -/
 theorem precision_doubling_bounds (n : ℕ) :
     n ≤ 16*2^(ceilLog2Q (max 1 ((n : ℚ)/16))) ∧
     16*2^(ceilLog2Q (max 1 ((n : ℚ)/16))) ≤ 2*max 16 n := by
@@ -3968,7 +4142,9 @@ theorem precision_doubling_bounds (n : ℕ) :
       have hnat : 16*2^j ≤ 2*n := by exact_mod_cast hh
       simpa only [max_eq_right (by omega : 16 ≤ n)] using hnat
 
-/-- Complete original `coefficient_iteration_ready` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- With positive dimension, scale, and tolerance and nonnegative target bound, a bit precision
+of at least one that reaches the required π precision makes the coefficient iteration accept its
+candidate. -/
 theorem coefficient_iteration_ready (d N bits : ℕ) (κ lam U η : ℚ)
     (hd : 0 < d) (hκ : 0 < κ) (hU : 0 ≤ U) (hη : 0 < η) (hb : 1 ≤ bits)
     (hbits : requiredPiBitsQ d N κ lam U η ≤ bits) :
@@ -4003,7 +4179,8 @@ theorem coefficient_iteration_ready (d N bits : ℕ) (κ lam U η : ℚ)
       (coefficientCandidateQ d N bits κ lam U η).gammaError ≤ g then _ else _) = _
   rw [ite_eq_left ⟨hEA,hEG⟩]
 
-/-- Complete original `doubling_loop_reaches` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- If the step succeeds at precision `bits*2^k`, a doubling loop with `k+1` attempts succeeds
+starting from `bits`. -/
 theorem doubling_loop_reaches {T : Type*} (step : ℕ → Option T) (k bits : ℕ)
     (hlast : ∃ c, step (bits*2^k)=some c) : ∃ c, doublingLoopQ step (k+1) bits=some c := by
   induction k generalizing bits with
@@ -4020,13 +4197,15 @@ theorem doubling_loop_reaches {T : Type*} (step : ℕ → Option T) (k bits : �
           obtain ⟨c,hc⟩ := ih (bits*2) ht
           exact ⟨c, by simpa only [doublingLoopQ, hs] using hc⟩
 
-/-- Complete original `coefficient_loop_reaches` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- If coefficient search succeeds at precision `bits*2^k`, the coefficient doubling loop
+starting at `bits` returns a candidate within `k+1` attempts. -/
 theorem coefficient_loop_reaches (d N : ℕ) (κ lam U η : ℚ) (k bits : ℕ)
     (hlast : ∃ c, coefficientIterationQ d N (bits*2^k) κ lam U η=some c) :
     ∃ c, coefficientLoopQ d N κ lam U η (k+1) bits=some c :=
   doubling_loop_reaches _ k bits hlast
 
-/-- Complete original `coefficients_generated_total` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The rational generator produces a coefficient candidate for positive dimension, scale, and
+tolerance and a nonnegative target bound. -/
 theorem coefficients_generated_total (d N : ℕ) (κ lam U η : ℚ)
     (hd : 0 < d) (hκ : 0 < κ) (hU : 0 ≤ U) (hη : 0 < η) :
     ∃ c, coefficientsGeneratedQ d N κ lam U η=some c := by
@@ -4038,7 +4217,8 @@ theorem coefficients_generated_total (d N : ℕ) (κ lam U η : ℚ)
   have hready := coefficient_iteration_ready d N (16*2^j) κ lam U η hd hκ hU hη hpos hb
   exact coefficient_loop_reaches d N κ lam U η j 16 ⟨_,hready⟩
 
-/-- Complete original `doubling_loop_trace` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- A successful doubling loop returns the result of some step at precision `bits*2^i` with
+`i < fuel`. -/
 theorem doubling_loop_trace {T : Type*} (step : ℕ → Option T) (fuel bits : ℕ) (c : T)
     (hc : doublingLoopQ step fuel bits=some c) :
     ∃ i, i < fuel ∧ step (bits*2^i)=some c := by
@@ -4057,7 +4237,8 @@ theorem doubling_loop_trace {T : Type*} (step : ℕ → Option T) (fuel bits : �
           obtain ⟨i,hi,hstep⟩ := ih (bits*2) ht
           exact ⟨i+1, by omega, by simpa only [pow_succ', Nat.mul_assoc] using hstep⟩
 
-/-- Complete original `coefficient_loop_trace` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- A coefficient returned by the doubling loop records the successful precision `bits*2^i` for
+some attempt `i < fuel`, and repeating that iteration yields the same coefficient. -/
 theorem coefficient_loop_trace (d N : ℕ) (κ lam U η : ℚ) (fuel bits : ℕ) (c : CoefficientCandidateQ)
     (hc : coefficientLoopQ d N κ lam U η fuel bits=some c) :
     ∃ i, i < fuel ∧ c.piBits=bits*2^i ∧ coefficientIterationQ d N (bits*2^i) κ lam U η=some c := by
@@ -4066,7 +4247,8 @@ theorem coefficient_loop_trace (d N : ℕ) (κ lam U η : ℚ) (fuel bits : ℕ)
   have hmeta : c.piBits=bits*2^i := by simpa only [coefficientCandidateQ] using congrArg CoefficientCandidateQ.piBits hEq
   exact ⟨i,hi,hmeta,hstep⟩
 
-/-- Complete original `coefficients_generated_bits_bound` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- A generated coefficient candidate uses at least one π bit and at most twice the larger of
+sixteen and the required π precision. -/
 theorem coefficients_generated_bits_bound (d N : ℕ) (κ lam U η : ℚ) (c : CoefficientCandidateQ)
     (hc : coefficientsGeneratedQ d N κ lam U η=some c) :
     1 ≤ c.piBits ∧ c.piBits ≤ 2*max 16 (requiredPiBitsQ d N κ lam U η) := by
@@ -4089,14 +4271,17 @@ end Qatlib.Concepts.SpinorSampling.Model
 namespace Qatlib.Concepts.SpinorSampling.Model
 noncomputable section
 
-/-- Complete original `coefficients_generated_step` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- Rerunning the coefficient iteration at the precision stored in a generated candidate returns
+that candidate. -/
 theorem coefficients_generated_step (d N : ℕ) (κ lam U η : ℚ) (c : CoefficientCandidateQ)
     (hc : coefficientsGeneratedQ d N κ lam U η=some c) :
     coefficientIterationQ d N c.piBits κ lam U η=some c := by
   obtain ⟨_,_,hm,hstep⟩ := coefficient_loop_trace d N κ lam U η _ 16 c hc
   simpa only [← hm] using hstep
 
-/-- Complete original `coefficients_generated_valid` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- A generated candidate certifies both real mesh-dependent coefficient errors, the exact
+target factor `1/κ`, the allowed target rounding error, and the two bias thresholds used for
+acceptance. -/
 theorem coefficients_generated_valid (d N : ℕ) (κ lam U η : ℚ) (c : CoefficientCandidateQ)
     (hc : coefficientsGeneratedQ d N κ lam U η=some c) :
     |(c.alpha : ℝ)-1/(2*Real.pi/(N : ℝ))| ≤ (c.alphaError : ℝ) ∧
@@ -4108,7 +4293,9 @@ theorem coefficients_generated_valid (d N : ℕ) (κ lam U η : ℚ) (c : Coeffi
   coefficient_iteration_valid d N c.piBits κ lam U η c (coefficients_generated_bits_bound d N κ lam U η c hc).1
     (coefficients_generated_step d N κ lam U η c hc)
 
-/-- Complete original `coefficients_generated_legal` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For positive dimension, lattice size, scale, and tolerance and a nonnegative target bound,
+the generated coefficients have positive velocity and target scales, nonnegative spin weight
+vanishing exactly when `lam = 0`, and a positive target error allowance. -/
 theorem coefficients_generated_legal (d N : ℕ) (κ lam U η : ℚ) (c : CoefficientCandidateQ)
     (hd : 0 < d) (hN : 0 < N) (hκ : 0 < κ) (hU : 0 ≤ U) (hη : 0 < η)
     (hc : coefficientsGeneratedQ d N κ lam U η=some c) :
@@ -4137,7 +4324,9 @@ open scoped BigOperators
 open Qatlib
 
 set_option synthInstance.maxSize 1024 in
-/-- Complete original `generated_plan_accuracy` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- With a normalized spinor, a bounded target approximated within the certified error
+allowance, and a valid positive-spin coefficient plan, the combined median estimates the
+periodic discrete loss within `η` with failure mass at most `δ`. -/
 theorem generated_plan_accuracy {d r : ℕ} (κ lam U η δ eb : ℚ) (coef : CoefficientCandidateQ)
     (hc : coefficientsGeneratedQ d (2^r) κ lam U η=some coef)
     (hd : 0 < d) (hκ : 0 < κ) (hU : 0 ≤ U) (hη : 0 < η) (hδ : 0 < δ)
@@ -4190,7 +4379,9 @@ open scoped BigOperators
 open Qatlib
 
 set_option synthInstance.maxSize 1024 in
-/-- Complete original `generated_plan_accuracy_zero_spin` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- If the generated spin weight is zero, the velocity-only median estimates the periodic
+discrete loss within `η` with failure mass at most `δ/2`, under the stated positivity,
+pointwise normalization, and target approximation assumptions. -/
 theorem generated_plan_accuracy_zero_spin {d r : ℕ} (κ lam U η δ eb : ℚ) (coef : CoefficientCandidateQ)
     (hc : coefficientsGeneratedQ d (2^r) κ lam U η=some coef)
     (hd : 0 < d) (hκ : 0 < κ) (hU : 0 ≤ U) (hη : 0 < η) (hδ : 0 < δ)
@@ -4257,7 +4448,8 @@ def updateRecordCounts (c : RecordCounts S) (r : S × Bool) : RecordCounts S :=
 def collectRecordCounts (rs : List (S × Bool)) : RecordCounts S :=
   rs.foldl updateRecordCounts ∅
 
-/-- Complete original `read_record_counts_update` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- Updating record counts adds one observation and its signed contribution at the record's own
+site and leaves every other site's counts unchanged. -/
 theorem read_record_counts_update (c : RecordCounts S) (r : S × Bool) (x : S) :
     readRecordCounts (updateRecordCounts c r) x =
       readRecordCounts c x + if r.1=x then (1, recordSignZ r.2) else (0, 0) := by
@@ -4267,7 +4459,8 @@ theorem read_record_counts_update (c : RecordCounts S) (r : S × Bool) (x : S) :
     rfl
   · simp [updateRecordCounts, readRecordCounts, AList.lookup_insert_ne (Ne.symm h), h]
 
-/-- Complete original `read_record_counts_fold` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- Folding a list into an existing count map adds the length and signed sum of the sublist of
+records at each queried site to the map's initial counts. -/
 theorem read_record_counts_fold (rs : List (S × Bool)) (c : RecordCounts S) (x : S) :
     readRecordCounts (rs.foldl updateRecordCounts c) x =
       readRecordCounts c x + (rs.map fun r => if r.1=x then (1, recordSignZ r.2) else (0, 0)).sum := by
@@ -4277,14 +4470,16 @@ theorem read_record_counts_fold (rs : List (S × Bool)) (c : RecordCounts S) (x 
     simp only [List.foldl_cons, List.map_cons, List.sum_cons]
     rw [ih, read_record_counts_update, add_assoc]
 
-/-- Complete original `read_record_counts_collect` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The collected entry at a site is the number of input records at that site together with
+their sum of signs. -/
 theorem read_record_counts_collect (rs : List (S × Bool)) (x : S) :
     readRecordCounts (collectRecordCounts rs) x =
       (rs.map fun r => if r.1=x then (1, recordSignZ r.2) else (0, 0)).sum := by
   rw [collectRecordCounts, read_record_counts_fold]
   simp [readRecordCounts]
 
-/-- Complete original `record_counts_mem_fold` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- A site appears in the updated map exactly when it was in the initial map or occurs in the
+list of input records. -/
 theorem record_counts_mem_fold (rs : List (S × Bool)) (c : RecordCounts S) (x : S) :
     x ∈ rs.foldl updateRecordCounts c ↔ x ∈ c ∨ x ∈ rs.map Prod.fst := by
   induction rs generalizing c with
@@ -4294,13 +4489,13 @@ theorem record_counts_mem_fold (rs : List (S × Bool)) (c : RecordCounts S) (x :
       List.mem_cons]
     tauto
 
-/-- Complete original `record_counts_keys_collect` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The collected map has a key for a site exactly when that site is present in the record list. -/
 theorem record_counts_keys_collect (rs : List (S × Bool)) (x : S) :
     x ∈ (collectRecordCounts rs).keys ↔ x ∈ rs.map Prod.fst := by
   rw [← AList.mem_keys, collectRecordCounts, record_counts_mem_fold]
   simp
 
-/-- Complete original `record_counts_keys_length` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- Folding `n` records into a count map adds at most `n` keys. -/
 theorem record_counts_keys_length (rs : List (S × Bool)) (c : RecordCounts S) :
     (rs.foldl updateRecordCounts c).keys.length ≤ c.keys.length+rs.length := by
   induction rs generalizing c with
@@ -4314,12 +4509,12 @@ theorem record_counts_keys_length (rs : List (S × Bool)) (c : RecordCounts S) :
       omega
     exact h.trans (by omega)
 
-/-- Complete original `record_counts_query_quota` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- Collecting `n` indexed records produces at most `n` distinct keys. -/
 theorem record_counts_query_quota {n : ℕ} (r : Fin n → S × Bool) :
     (collectRecordCounts (List.ofFn r)).keys.length ≤ n := by
   simpa [collectRecordCounts] using record_counts_keys_length (List.ofFn r) (∅ : RecordCounts S)
 
-/-- Complete original `record_counts_not_mem` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- A site absent from the count map's keys has zero ordinary and signed counts. -/
 theorem record_counts_not_mem (c : RecordCounts S) (x : S) (hx : x ∉ c.keys) :
     readRecordCounts c x = (0, 0) := by
   have h : c.lookup x = none := AList.lookup_eq_none.mpr (by simpa [AList.mem_keys] using hx)
@@ -4327,7 +4522,8 @@ theorem record_counts_not_mem (c : RecordCounts S) (x : S) (hx : x ∉ c.keys) :
 
 variable [Fintype S]
 
-/-- Complete original `record_counts_sparse_sum` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- If a rational-valued field vanishes off the count map's keys, summing it over those keys
+equals the full spatial sum. -/
 theorem record_counts_sparse_sum (c : RecordCounts S) (f : S → ℚ)
     (hf : ∀ x, x ∉ c.keys → f x=0) :
     (c.keys.map f).sum = ∑ x : S, f x := by
@@ -4336,12 +4532,14 @@ theorem record_counts_sparse_sum (c : RecordCounts S) (f : S → ℚ)
   intro x _ hx
   exact hf x (by simpa using hx)
 
-/-- Complete original `record_sign_cast` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- Casting the integer sign of a Boolean record to the reals gives the real sign of the same
+record. -/
 theorem record_sign_cast (b : Bool) : ((recordSignZ b : ℤ) : ℝ)=recordSign b := by
   cases b <;> norm_num [recordSignZ, recordSign]
 
 omit [Fintype S] in
-/-- Complete original `record_counts_real` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The natural count and integer sign sum from the sparse map cast to the grouped real count
+and real sign sum for the indexed input. -/
 theorem record_counts_real {n : ℕ} (r : Fin n → S × Bool) (x : S) :
     (((readRecordCounts (collectRecordCounts (List.ofFn r)) x).1 : ℕ) : ℝ)=
         groupedRecordCount (fun i => (r i).1) x ∧
@@ -4384,7 +4582,8 @@ def spinStatisticQ (M : ℕ) (rs : List (S × Bool)) (τ : S → S) : ℚ :=
   (M : ℚ)/(rs.length*(rs.length-1) : ℕ)*(c.keys.map (spinSiteQ c τ)).sum
 
 omit [Fintype S] in
-/-- Complete original `residual_grouped_sum_counts` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The grouped residual sum at a site is `α` times its signed count minus `β*u x` times its
+ordinary count. -/
 theorem residual_grouped_sum_counts {n : ℕ} (r : Fin n → S × Bool)
     (u : S → ℝ) (α β : ℝ) (x : S) :
     groupedRecordSum (fun i => (r i).1) (fun i => α*recordSign (r i).2-β*u (r i).1) x =
@@ -4397,7 +4596,8 @@ theorem residual_grouped_sum_counts {n : ℕ} (r : Fin n → S × Bool)
   by_cases h : (r i).1=x <;> simp [h]
 
 omit [Fintype S] in
-/-- Complete original `residual_grouped_squares_counts` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- At a site, the grouped residual squares are `α^2` times the count, minus `2*α*β*u x` times
+the sign sum, plus `(β*u x)^2` times the count. -/
 theorem residual_grouped_squares_counts {n : ℕ} (r : Fin n → S × Bool)
     (u : S → ℝ) (α β : ℝ) (x : S) :
     groupedRecordSquares (fun i => (r i).1) (fun i => α*recordSign (r i).2-β*u (r i).1) x =
@@ -4413,7 +4613,8 @@ theorem residual_grouped_squares_counts {n : ℕ} (r : Fin n → S × Bool)
   · cases hq : (r i).2 <;> simp [h, recordSign, hq] <;> ring
   · simp [h]
 
-/-- Complete original `velocity_statistic_cast` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The rational sparse-count velocity estimate casts to the real residual streaming statistic
+on the same records, target, and scales. -/
 theorem velocity_statistic_cast {n : ℕ} (r : Fin n → S × Bool)
     (u : S → ℚ) (α β : ℚ) :
     (velocityStatisticQ (Fintype.card S) (List.ofFn r) u α β : ℝ)=
@@ -4434,7 +4635,8 @@ theorem velocity_statistic_cast {n : ℕ} (r : Fin n → S × Bool)
     residual_grouped_squares_counts r (fun y => (u y : ℝ)) (α : ℝ) (β : ℝ)]
   ring
 
-/-- Complete original `spin_statistic_cast` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The rational sparse-count spin estimate casts to the real shifted spin streaming statistic
+on the same records. -/
 theorem spin_statistic_cast {n : ℕ} (r : Fin n → S × Bool) (τ : S → S) :
     (spinStatisticQ (Fintype.card S) (List.ofFn r) τ : ℝ)=spinStreamingStatistic τ r := by
   have hz (x : S) (hx : x ∉ (collectRecordCounts (List.ofFn r)).keys) :
@@ -4462,7 +4664,8 @@ open scoped BigOperators
 def medianQ {K : ℕ} (f : Fin K → ℚ) : ℚ :=
   ((List.ofFn f).mergeSort (· ≤ ·)).getD (K/2) 0
 
-/-- Complete original `median_cast` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- Casting the rational median to the reals gives the entry at index `K/2` of the sorted real
+values, with default zero. -/
 theorem median_cast {K : ℕ} (f : Fin K → ℚ) :
     (medianQ f : ℝ)=((List.ofFn fun k => (f k : ℝ)).mergeSort (· ≤ ·)).getD (K/2) 0 := by
   have hsort : ((List.ofFn f).mergeSort (· ≤ ·)).map (fun q : ℚ => (q : ℝ))=
@@ -4479,7 +4682,8 @@ theorem median_cast {K : ℕ} (f : Fin K → ℚ) :
 /-- Construction for interval Clip Q in the born current records model. -/
 def intervalClipQ (lo hi x : ℚ) : ℚ := min hi (max lo x)
 
-/-- Complete original `interval_clip_cast` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- Clipping a rational value to rational endpoints and casting the result agrees with clipping
+the cast value to the cast endpoints. -/
 theorem interval_clip_cast (lo hi x : ℚ) :
     (intervalClipQ lo hi x : ℝ)=intervalClip (lo : ℝ) (hi : ℝ) (x : ℝ) := by
   simp [intervalClipQ, intervalClip]
@@ -4490,7 +4694,8 @@ def combinedLossQ {d : ℕ} (A γ : ℚ) (v : Fin d → ℚ) (c : Fin 3 × Fin d
   if γ=0 then V else
     V+intervalClipQ 0 (2*(d : ℚ)*γ) (γ*((d : ℚ)-(∑ i : Fin 3 × Fin d, intervalClipQ (-1) 1 (c i))))
 
-/-- Complete original `combined_loss_cast` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The clipped combined loss commutes with casting rational estimates, residual amplitude
+bound, and spin weight to the reals. -/
 theorem combined_loss_cast {d : ℕ} (A γ : ℚ) (v : Fin d → ℚ) (c : Fin 3 × Fin d → ℚ) :
     (combinedLossQ A γ v c : ℝ)=combinedLoss (A : ℝ) (γ : ℝ)
       (fun j => (v j : ℝ)) (fun i => (c i : ℝ)) := by
@@ -4507,7 +4712,8 @@ open scoped BigOperators
 def rawBlockMedianQ {X : Type*} {K : ℕ} (f : X → ℚ) (ω : Fin K → X) : ℚ :=
   medianQ (fun k => f (ω k))
 
-/-- Complete original `raw_block_median_cast` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The rational block median casts to the real block median of the cast values on the same
+outcomes. -/
 theorem raw_block_median_cast {X : Type*} {K : ℕ} (f : X → ℚ) (ω : Fin K → X) :
     (rawBlockMedianQ f ω : ℝ)=rawBlockMedian (fun x => (f x : ℝ)) ω := median_cast _
 
@@ -4528,7 +4734,8 @@ def velocityOnlyOutputQ {d nv Kv : ℕ} (M : ℕ) (u : Fin d → S → ℚ) (α 
 
 variable [Fintype S]
 
-/-- Complete original `total_median_output_cast` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The complete rational median output casts to the real current-and-spin median output on the
+same records with the same shifts and cast parameters. -/
 theorem total_median_output_cast {d nv Kv ns Ks : ℕ} (u : Fin d → S → ℚ)
     (e : Fin d → S ≃ S) (α β U γ : ℚ) (z : TotalRecordData S d nv Kv ns Ks) :
     (totalMedianOutputQ (Fintype.card S) u (fun j => e j) α β U γ z : ℝ)=
@@ -4537,7 +4744,8 @@ theorem total_median_output_cast {d nv Kv ns Ks : ℕ} (u : Fin d → S → ℚ)
   simp_rw [velocity_statistic_cast, spin_statistic_cast]
   simp only [Rat.cast_add, Rat.cast_mul, totalMedianOutput]
 
-/-- Complete original `velocity_only_output_cast` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The rational velocity-only output casts to the sum of real per-axis residual block medians
+clipped to `[0, (α + β*U)^2]`. -/
 theorem velocity_only_output_cast {d nv Kv : ℕ} (u : Fin d → S → ℚ) (α β U : ℚ)
     (z : Fin d → Fin Kv → Fin nv → S × Bool) :
     (velocityOnlyOutputQ (Fintype.card S) u α β U z : ℝ)=
@@ -4554,7 +4762,10 @@ open scoped BigOperators
 open Qatlib
 
 set_option synthInstance.maxSize 1024 in
-/-- Complete original `executed_plan_accuracy` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For positive generated spin weight, a pointwise unit spinor, and a rational target within
+its certified error allowance, the executable rational median on the planned signed records
+misses the periodic discrete loss tolerance `η` with mass at most `δ`, under the stated
+positivity and target bounds. -/
 theorem executed_plan_accuracy {d r : ℕ} (κ lam U η δ eb : ℚ) (coef : CoefficientCandidateQ)
     (hc : coefficientsGeneratedQ d (2^r) κ lam U η=some coef)
     (hd : 0 < d) (hκ : 0 < κ) (hU : 0 ≤ U) (hη : 0 < η) (hδ : 0 < δ)
@@ -4588,7 +4799,9 @@ open scoped BigOperators
 open Qatlib
 
 set_option synthInstance.maxSize 1024 in
-/-- Complete original `executed_plan_accuracy_zero_spin` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For zero generated spin weight and the stated normalization, positivity, and target
+approximation bounds, the rational velocity-only median on the planned signed records misses the
+periodic loss tolerance `η` with mass at most `δ/2`. -/
 theorem executed_plan_accuracy_zero_spin {d r : ℕ} (κ lam U η δ eb : ℚ) (coef : CoefficientCandidateQ)
     (hc : coefficientsGeneratedQ d (2^r) κ lam U η=some coef)
     (hd : 0 < d) (hκ : 0 < κ) (hU : 0 ≤ U) (hη : 0 < η) (hδ : 0 < δ)
@@ -4648,7 +4861,8 @@ def readoutH {A : Type*} (f : Bool → A → ℂ) (b : Bool) (x : A) : ℂ :=
 def readoutSdg {A : Type*} (f : Bool → A → ℂ) (b : Bool) (x : A) : ℂ :=
   (if b then -Complex.I else 1)*f b x
 
-/-- Complete original `readout_h_apply_gate` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The Hadamard readout at a given data label is matrix multiplication on the two amplitudes of
+its readout bit. -/
 theorem readout_h_apply_gate {A : Type*} (f : Bool → A → ℂ) (b : Bool) (x : A) :
     readoutH f b x = ApplyGate Hadamard (fun q => f q x) b := by
   cases b <;> simp [readoutH, ApplyGate, Hadamard, Matrix.mulVec,
@@ -4658,7 +4872,8 @@ theorem readout_h_apply_gate {A : Type*} (f : Bool → A → ℂ) (b : Bool) (x 
 def readoutSdgMatrix : Matrix Bool Bool ℂ :=
   Matrix.diagonal (fun b => if b then -Complex.I else 1)
 
-/-- Complete original `readout_sdg_apply_gate` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The adjoint S readout at a fixed data label is matrix multiplication by the adjoint S matrix
+on its readout bit. -/
 theorem readout_sdg_apply_gate {A : Type*} (f : Bool → A → ℂ) (b : Bool) (x : A) :
     readoutSdg f b x = ApplyGate readoutSdgMatrix (fun q => f q x) b := by
   simp [readoutSdg, ApplyGate, readoutSdgMatrix, Matrix.mulVec_diagonal]
@@ -4677,7 +4892,8 @@ def controlledSiteBasis {S : Type*} (p : S ≃ S) :
   right_inv r := by rcases r with ⟨b,x,spin⟩; cases b <;> simp
 
 -- This uses p⁻¹, not an involutive-permutation lemma: N>=8 shifts need it.
-/-- Complete original `controlled_site_apply_gate` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The permutation matrix of the controlled site map implements the controlled site
+transformation on the label amplitudes. -/
 theorem controlled_site_apply_gate {S : Type*} [Fintype S] [DecidableEq S]
     (p : S ≃ S) (f : Bool → S × Bool → ℂ) (b : Bool) (x : S × Bool) :
     ApplyGate (permMatrix (controlledSiteBasis p)) (fun r => f r.1 r.2) (b,x) =
@@ -4711,7 +4927,9 @@ def velocityGateState {S : Type*} [Fintype S] (a b c k : S → ℝ) (e : S ≃ S
     Bool → S × Bool → ℂ :=
   readoutH (readoutSdg (controlledSite e.symm (readoutH (suppliedAncillaState a b c k))))
 
-/-- Complete original `velocity_gate_amplitude` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The velocity readout amplitude at a site and spin outcome is the local spinor amplitude
+minus `i` times the outcome sign times the corresponding neighboring amplitude, divided by twice
+the square root of the site count. -/
 theorem velocity_gate_amplitude {S : Type*} [Fintype S]
     (a b c k : S → ℝ) (e : S ≃ S) (test : Bool) (x : S) (spin : Bool) :
     velocityGateState a b c k e test (x,spin) =
@@ -4732,7 +4950,8 @@ theorem velocity_gate_amplitude {S : Type*} [Fintype S]
       Complex.ofReal_neg, mul_zero, add_zero, one_mul] <;>
     field_simp [hn] <;> ring_nf <;> simp only [hs]
 
-/-- Complete original `norm_sq_y_interference` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For complex amplitudes `z` and `w` and real `y`, the squared norm of `z - i*y*w` includes
+the interference term `2*y*Im(conj(z)*w)` in addition to the two squared-magnitude terms. -/
 theorem norm_sq_y_interference (z w : ℂ) (y : ℝ) :
     Complex.normSq (z-Complex.I*(y : ℂ)*w) =
       Complex.normSq z+y^2*Complex.normSq w+2*y*(starRingEnd ℂ z*w).im := by
@@ -4747,7 +4966,8 @@ def velocityBornMass {S : Type*} [Fintype S] (a b c k : S → ℝ)
     (e : S ≃ S) (r : S × Bool) : ℝ :=
   ∑ spin : Bool, BornProb (velocityGateState a b c k e r.2) (r.1,spin)
 
-/-- Complete original `velocity_born_mass` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For pointwise unit spinors on a nonempty finite site space, the velocity Born weight is the
+signed-record weight with mean given by the imaginary inner product with the selected neighbor. -/
 theorem velocity_born_mass {S : Type*} [Fintype S] [Nonempty S]
     (a b c k : S → ℝ) (hz : ∀ x, a x^2+b x^2+c x^2+k x^2=1)
     (e : S ≃ S) (r : S × Bool) :
@@ -4775,7 +4995,8 @@ def currentBornMass {S : Type*} [Fintype S] (a b c k : S → ℝ)
     (e : S ≃ S) (r : S × Bool) : ℝ :=
   (velocityBornMass a b c k e r + velocityBornMass a b c k e.symm (r.1,!r.2))/2
 
-/-- Complete original `current_born_mass` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For pointwise unit spinors, the mixed current Born weight is the signed-record weight with
+mean equal to half the difference of the forward and inverse neighbor imaginary inner products. -/
 theorem current_born_mass {S : Type*} [Fintype S] [Nonempty S]
     (a b c k : S → ℝ) (hz : ∀ x, a x^2+b x^2+c x^2+k x^2=1)
     (e : S ≃ S) (r : S × Bool) :
@@ -4801,7 +5022,8 @@ def spinBornMass {S : Type*} [Fintype S] (a b c k : S → ℝ)
     (p : Fin 3) (r : S × Bool) : ℝ :=
   BornProb (spinGateState a b c k p r.2) r.1
 
-/-- Complete original `spin_born_mass` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For a pointwise unit spinor, the spin Born probability of a site and outcome is its
+signed-record weight with mean given by the selected Pauli component. -/
 theorem spin_born_mass {S : Type*} [Fintype S] [Nonempty S]
     (a b c k : S → ℝ) (hz : ∀ x, a x^2+b x^2+c x^2+k x^2=1)
     (p : Fin 3) (r : S × Bool) :
@@ -4819,7 +5041,8 @@ theorem spin_born_mass {S : Type*} [Fintype S] [Nonempty S]
       Complex.add_re, Complex.add_im, Complex.mul_re, Complex.mul_im] <;>
     field_simp [hM] <;> nlinarith
 
-/-- Complete original `supplied_spin_state_normalized` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The supplied site-spin state is normalized whenever the four real spinor coordinates at each
+site have squared norm one. -/
 theorem supplied_spin_state_normalized {S : Type*} [Fintype S] [Nonempty S]
     (a b c k : S → ℝ) (hz : ∀ x, a x^2+b x^2+c x^2+k x^2=1) :
     Normalized (fun r : S × Bool => suppliedSpinState a b c k r.2 r.1) := by
@@ -4834,7 +5057,8 @@ theorem supplied_spin_state_normalized {S : Type*} [Fintype S] [Nonempty S]
     Complex.normSq_div, hden, ← Finset.sum_div, hsite]
   simp [nsmul_eq_mul, hM]
 
-/-- Complete original `velocity_gate_state_normalized` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For a pointwise unit spinor, the velocity gate state has total Born mass one over the site,
+test, and spin labels. -/
 theorem velocity_gate_state_normalized {S : Type*} [Fintype S] [Nonempty S]
     (a b c k : S → ℝ) (hz : ∀ x, a x^2+b x^2+c x^2+k x^2=1) (e : S ≃ S) :
     Normalized (fun r : S × (Bool × Bool) => velocityGateState a b c k e r.2.1 (r.1,r.2.2)) := by
@@ -4845,7 +5069,8 @@ theorem velocity_gate_state_normalized {S : Type*} [Fintype S] [Nonempty S]
   simp_rw [velocity_born_mass a b c k hz, signed_record_cell_mass]
   simp [nsmul_eq_mul, hM]
 
-/-- Complete original `spin_gate_state_normalized` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For a pointwise unit spinor, each of the three spin gate states has total Born mass one over
+the site and readout bit. -/
 theorem spin_gate_state_normalized {S : Type*} [Fintype S] [Nonempty S]
     (a b c k : S → ℝ) (hz : ∀ x, a x^2+b x^2+c x^2+k x^2=1) (p : Fin 3) :
     Normalized (fun r : S × Bool => spinGateState a b c k p r.2 r.1) := by
@@ -4884,7 +5109,8 @@ def spinCircuitLaw {S : Type*} [Fintype S] [Nonempty S]
     have hM : (Fintype.card S : ℝ) ≠ 0 := by exact_mod_cast Fintype.card_ne_zero
     simp [nsmul_eq_mul, hM]
 
-/-- Complete original `circuit_record_law_ext` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- Equality of the probability weights at every outcome determines equality of the circuit
+record distributions. -/
 private theorem circuit_record_law_ext {X : Type*} [Fintype X] (p q : FinDist X)
     (h : ∀ x, p.prob x=q.prob x) : p=q := by
   cases p with
@@ -4895,7 +5121,8 @@ private theorem circuit_record_law_ext {X : Type*} [Fintype X] (p q : FinDist X)
       subst q
       rfl
 
-/-- Complete original `current_circuit_law_eq` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The current circuit produces the signed-record law with central imaginary-inner-product
+mean, given pointwise unit spinors and the stated bound on that mean. -/
 theorem current_circuit_law_eq {S : Type*} [Fintype S] [Nonempty S]
     (a b c k : S → ℝ) (hz : ∀ x, a x^2+b x^2+c x^2+k x^2=1) (e : S ≃ S)
     (hm : ∀ x, |(spinorInnerIm a b c k x (e x)-spinorInnerIm a b c k x (e.symm x))/2| ≤ 1) :
@@ -4904,7 +5131,8 @@ theorem current_circuit_law_eq {S : Type*} [Fintype S] [Nonempty S]
   apply circuit_record_law_ext
   exact current_born_mass a b c k hz e
 
-/-- Complete original `spin_circuit_law_eq` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- The spin circuit produces the signed-record law with the chosen Pauli mean, given pointwise
+unit spinors and the stated bound on that component. -/
 theorem spin_circuit_law_eq {S : Type*} [Fintype S] [Nonempty S]
     (a b c k : S → ℝ) (hz : ∀ x, a x^2+b x^2+c x^2+k x^2=1) (p : Fin 3)
     (hm : ∀ x, |pauliField a b c k p x| ≤ 1) :
@@ -4922,7 +5150,8 @@ def circuitTotalRecordLaw {S : Type*} [Fintype S] [Nonempty S] [DecidableEq S]
     (finiteFamilyLaw (fun i : Fin 3 × Fin d =>
       cohortLaw (cohortLaw (spinCircuitLaw a b c k hz i.1) ns) Ks))
 
-/-- Complete original `circuit_total_record_law_eq` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For a pointwise unit spinor, the joint circuit law for the specified block counts equals the
+product record law for the central current and Pauli means. -/
 theorem circuit_total_record_law_eq {S : Type*} [Fintype S] [Nonempty S] [DecidableEq S]
     {d : ℕ} (a b c k : S → ℝ) (hz : ∀ x, a x^2+b x^2+c x^2+k x^2=1)
     (e : Fin d → S ≃ S) (nv Kv ns Ks : ℕ) :
@@ -4945,7 +5174,8 @@ def circuitVelocityRecordLaw {S : Type*} [Fintype S] [Nonempty S] [DecidableEq S
     FinDist (Fin d → Fin Kv → Fin nv → S × Bool) :=
   finiteFamilyLaw (fun j => cohortLaw (cohortLaw (currentCircuitLaw a b c k hz (e j)) nv) Kv)
 
-/-- Complete original `circuit_velocity_record_law_eq` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For a pointwise unit spinor, the circuit velocity record law equals the product law from its
+central current means for any record and block counts. -/
 theorem circuit_velocity_record_law_eq {S : Type*} [Fintype S] [Nonempty S] [DecidableEq S]
     {d : ℕ} (a b c k : S → ℝ) (hz : ∀ x, a x^2+b x^2+c x^2+k x^2=1)
     (e : Fin d → S ≃ S) (nv Kv : ℕ) :
@@ -4965,7 +5195,9 @@ open scoped BigOperators
 open Qatlib
 
 set_option synthInstance.maxSize 1024 in
-/-- Complete original `circuit_executed_plan_accuracy` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For positive generated spin weight and the stated normalization and target accuracy
+hypotheses, the rational postprocessor on circuit current-and-spin data estimates the periodic
+discrete loss within `η` except on mass at most `δ`. -/
 theorem circuit_executed_plan_accuracy {d r : ℕ} (κ lam U η δ eb : ℚ) (coef : CoefficientCandidateQ)
     (hc : coefficientsGeneratedQ d (2^r) κ lam U η=some coef)
     (hd : 0 < d) (hκ : 0 < κ) (hU : 0 ≤ U) (hη : 0 < η) (hδ : 0 < δ)
@@ -4982,7 +5214,9 @@ theorem circuit_executed_plan_accuracy {d r : ℕ} (κ lam U η δ eb : ℚ) (co
     executed_plan_accuracy κ lam U η δ eb coef hc hd hκ hU hη hδ heb0 heb hγ a b c k hz u û hu htarget
 
 set_option synthInstance.maxSize 1024 in
-/-- Complete original `circuit_executed_plan_accuracy_zero_spin` guarantee for `BornCurrentRecords`; all source hypotheses and output obligations are retained. -/
+/-- For zero generated spin weight and the stated normalization and target accuracy hypotheses,
+the rational velocity-only postprocessor on circuit current data estimates the periodic discrete
+loss within `η` except on mass at most `δ/2`. -/
 theorem circuit_executed_plan_accuracy_zero_spin {d r : ℕ} (κ lam U η δ eb : ℚ) (coef : CoefficientCandidateQ)
     (hc : coefficientsGeneratedQ d (2^r) κ lam U η=some coef)
     (hd : 0 < d) (hκ : 0 < κ) (hU : 0 ≤ U) (hη : 0 < η) (hδ : 0 < δ)

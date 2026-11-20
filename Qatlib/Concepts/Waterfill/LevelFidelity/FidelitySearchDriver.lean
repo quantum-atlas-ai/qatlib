@@ -31,7 +31,7 @@ and construct gap-separation rates from individual saturation pieces or finite s
 
 * `certifiedFidelityRun_exists_iff_in_range`: characterizes successful runs by the target range
   check and positive tolerance.
-* `frontier2`: gives bracket, fidelity-error, witness, and operation-count guarantees for a
+* `successful_fidelity_search_bracket_accuracy_and_work`: gives bracket, fidelity-error, witness, and operation-count guarantees for a
   successful run.
 * `certifiedSchedule_windows`: gives schedule bounds after source normalization.
 * `intervalFidelitySearch_eq`: identifies interval search brackets with exact search brackets.
@@ -807,7 +807,7 @@ theorem certifiedFidelityRun_exists_iff_in_range {m : ℕ} (π σ : Fin m → �
 /-- A successful run has an ordered bracket of the prescribed dyadic width, opposite endpoint
 tests, bounded mass variation, fidelity error at most `ε`, a valid witness, and explicit
 operation counts. -/
-theorem frontier2 {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ)
+theorem successful_fidelity_search_bracket_accuracy_and_work {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j)
     {r : CertifiedFidelityRun m} (h : certifiedFidelityRun π σ p ε = some r) :
 
@@ -891,7 +891,7 @@ theorem frontier2 {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ)
 
 /-- Collects the minimum source ratio formulas, existence of a margin witness, and existence
 criterion for a successful run with an in-range target and positive tolerance. -/
-theorem frontier3 {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ)
+theorem fidelity_search_margin_and_success_existence {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j)
     (hS : (sourceSupport π).Nonempty)
     (hR : targetRangeCheck π σ p = true) (hε : 0 < ε) :
@@ -1274,7 +1274,7 @@ theorem certifiedFidelityRun_level_stable {m : ℕ} (π σ : Fin m → ℚ) (p p
 
 /-- Collects target monotonicity, the grid-spacing bound, and bracket endpoint tests for targets
 above `computedPmin`. -/
-theorem frontier4 {m : ℕ} (π σ : Fin m → ℚ) (p p' : ℚ) (k : ℕ)
+theorem fidelity_target_monotonicity_and_bracket_bounds {m : ℕ} (π σ : Fin m → ℚ) (p p' : ℚ) (k : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j)
     (hmass : 0 < ∑ j, (π j) ^ 2)
     (hpmin : computedPmin π σ < p) (hpp' : p ≤ p') :
@@ -1649,7 +1649,7 @@ theorem certifiedRun_inherits_frozen_schedule {m : ℕ} (π σ : Fin m → ℚ) 
 
 /-- Collects amplitude positivity, mass and norm bounds, fidelity-preserving normalization, and
 exact schedule bounds for a successful run. -/
-theorem frontier5 {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ)
+theorem certified_run_normalization_preserves_fidelity_and_bounds_schedule {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j)
     {r : CertifiedFidelityRun m} (hr : certifiedFidelityRun π σ p ε = some r) :
 
@@ -2065,7 +2065,7 @@ theorem certifiedRoundBudget {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ)
 
 /-- Collects rational amplitude bounds, round-count bounds, and bounds on the schedule angle's
 sine from a successful run's normalized mass bounds. -/
-theorem frontier6 {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ)
+theorem normalized_mass_bounds_imply_amplitude_round_and_sine_bounds {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ)
     {r : CertifiedFidelityRun m} (hr : certifiedFidelityRun π σ p ε = some r)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j)
     (lo hi : ℚ) (hlo : 0 < lo) (hhi : 0 < hi)
@@ -2453,7 +2453,7 @@ theorem scheduleWindow_rational_precision {β : ℝ} {lo hi : ℚ}
 
 /-- Combines fidelity and endpoint-amplitude error bounds with a round budget and sine window
 enlarged by the amplitude error. -/
-theorem frontier7 {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ) (i : Fin m) (k : ℕ)
+theorem upper_bracket_fidelity_error_and_resampling_bounds {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ) (i : Fin m) (k : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j) (hp : 0 < p) (hε : 0 < ε) (hpi : 0 < π i)
     (hrange : (∑ j, π j * σ j) ^ 2 < p * (∑ j, (π j) ^ 2))
     (hmargin : computedDot π σ (π i / σ i) ^ 2 ≥ p * computedMass π σ (π i / σ i))
@@ -2817,7 +2817,7 @@ theorem certifiedRoundBudget_bitBudget {m : ℕ} (π σ : Fin m → ℚ) (p ε :
 
 /-- Combines fidelity, endpoint-amplitude, and entrywise rounding error bounds with preservation
 of a round budget under the combined precision loss. -/
-theorem frontier8 {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ) (i : Fin m) (k b : ℕ)
+theorem entrywise_rounding_error_and_round_budget_stability {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ) (i : Fin m) (k b : ℕ)
     (lo : ℚ) (t : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j) (hp : 0 < p) (hε : 0 < ε) (hpi : 0 < π i)
     (hm : 0 < m)
@@ -3467,7 +3467,7 @@ theorem certifiedRoundBudget_bitBudgetSeq {m : ℕ} (π σ : Fin m → ℚ) (p �
 
 /-- Combines fidelity and endpoint-amplitude accuracy, sequential mass error, a rounded
 amplitude lower bound, and round budget stability under the operation bit budget. -/
-theorem frontier9 {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ) (i : Fin m) (k b : ℕ) (lo : ℚ) (t : ℕ)
+theorem sequential_rounding_error_and_round_budget_stability {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ) (i : Fin m) (k b : ℕ) (lo : ℚ) (t : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j) (hp : 0 < p) (hε : 0 < ε) (hpi : 0 < π i)
     (hrange : (∑ j, π j * σ j) ^ 2 < p * (∑ j, (π j) ^ 2))
     (hmargin : computedDot π σ (π i / σ i) ^ 2 ≥ p * computedMass π σ (π i / σ i))
@@ -3903,7 +3903,7 @@ theorem jointBudget_certifies {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ) (i 
 
 /-- Combines joint budget guarantees with equality of sequential and entrywise rounded masses
 and the sharper sequential mass error bound. -/
-theorem frontier10 {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ) (i : Fin m) (k : ℕ)
+theorem joint_budget_fidelity_mass_and_round_bounds {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ) (i : Fin m) (k : ℕ)
     (lo : ℚ) (jb : JointBudget)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j) (hp : 0 < p) (hε : 0 < ε) (hpi : 0 < π i)
     (hrange : (∑ j, π j * σ j) ^ 2 < p * (∑ j, (π j) ^ 2))
@@ -4430,7 +4430,7 @@ theorem computedMassLo_pos_of_budget {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ)
 
 /-- Collects fidelity accuracy, mass and dot enclosures, a positive lower mass bound, and an
 amplitude error allowance under the interval bit budget. -/
-theorem frontier11 {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ) (i : Fin m) (k b n : ℕ)
+theorem interval_bit_budget_fidelity_mass_and_dot_bounds {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ) (i : Fin m) (k b n : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j) (hp : 0 < p) (hε : 0 < ε) (hpi : 0 < π i)
     (hrange : (∑ j, π j * σ j) ^ 2 < p * (∑ j, (π j) ^ 2))
     (hmargin : computedDot π σ (π i / σ i) ^ 2 ≥ p * computedMass π σ (π i / σ i))
@@ -5144,7 +5144,7 @@ theorem intervalAmbiguity_reported_certificate {m : ℕ} (π σ : Fin m → ℚ)
 
 /-- Combines an ambiguity-band bound at the upper endpoint with a nearby fidelity certificate
 and downward propagation of its interval reach test under a margin condition. -/
-theorem frontier12 {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ) (i : Fin m) (k b : ℕ)
+theorem ambiguous_upper_endpoint_gap_and_lower_grid_point_certificate {m : ℕ} (π σ : Fin m → ℚ) (p ε : ℚ) (i : Fin m) (k b : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j) (hp : 0 < p) (hε : 0 < ε) (hpi : 0 < π i)
     (hrange : (∑ j, π j * σ j) ^ 2 < p * (∑ j, (π j) ^ 2))
     (hsteps : 2 * (∑ j, π j * σ j) * p * computedWaterHigh π σ
@@ -5667,7 +5667,7 @@ theorem intervalSearch_budget {m : ℕ} (π σ : Fin m → ℚ) (p ε πi : ℚ)
 
 /-- Collects conditional propagation of interval decisions, ambiguity between endpoints, gap
 bounds, and accumulated precision bounds using the actual ambiguity count. -/
-theorem frontier13 {m : ℕ} (π σ : Fin m → ℚ) (p ε πi : ℚ) (b k : ℕ)
+theorem interval_decision_propagation_and_ambiguity_precision_bounds {m : ℕ} (π σ : Fin m → ℚ) (p ε πi : ℚ) (b k : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j) (hp : 0 < p) (hε : 0 < ε) (hπi : 0 < πi)
     (γ₁ γ₂ γ₃ : ℚ)
     (hγ₁ : 0 ≤ γ₁) (hγ₂ : 0 ≤ γ₂) (hγ₃ : 0 ≤ γ₃)
@@ -8739,7 +8739,7 @@ theorem no_breakpointCutsRate_common_rate {m : ℕ} (π σ : Fin m → ℚ) (p :
 
 /-- Collects the exact chain gap decomposition, the segmentwise common slope bounds, and the
 resulting lower bound on gap increase. -/
-theorem frontier21 {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (c : ℚ)
+theorem chain_gap_weighted_sum_and_slope_lower_bound {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (c : ℚ)
     (segs : List (ChainSegment (m := m))) (hne : segs ≠ [])
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j)
     (hv : ChainWellFormed π σ segs)
@@ -8806,7 +8806,7 @@ theorem bandRate_of_chain_lower {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p c
 
 /-- Combines plateau fidelity and gap formulas, failure-test exclusion at maximal target, the
 first-breakpoint characterization, and a band-rate bound on search ambiguities. -/
-theorem frontier14 {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (b k : ℕ)
+theorem plateau_fidelity_and_search_ambiguity_bounds {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (b k : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j) (hp : 0 ≤ p)
     (hsupp : (sourceSupport π).Nonempty)
     (c : ℚ) (hc : 0 < c) (hrate : bandRate π σ b p c k) :
@@ -8837,7 +8837,7 @@ theorem frontier14 {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (b k : ℕ)
 
 /-- Collects plateau gap growth above a positive cutoff, confinement and counting of plateau
 ambiguities, and a width-based upper bound on interval operation costs. -/
-theorem frontier15 {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (b k : ℕ)
+theorem plateau_gap_growth_and_interval_search_cost_bounds {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (b k : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j) (hp : 0 ≤ p)
     (hsupp : (sourceSupport π).Nonempty)
     (hpp : p < computedPmax π σ)
@@ -8887,7 +8887,7 @@ theorem frontier15 {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (b k : ℕ)
 
 /-- Combines plateau formulas with the plateau ambiguity count bound, at most one plateau
 ambiguity, and accumulated error bounds under the joint termination condition. -/
-theorem frontier16 {m : ℕ} (π σ : Fin m → ℚ) (p ε πi : ℚ) (b k n : ℕ)
+theorem plateau_ambiguity_and_error_bounds_of_joint_termination {m : ℕ} (π σ : Fin m → ℚ) (p ε πi : ℚ) (b k n : ℕ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j) (hp : 0 < p) (hε : 0 < ε) (hπi : 0 < πi)
     (hsupp : (sourceSupport π).Nonempty) (hpp : p < computedPmax π σ) (hn : 0 < n)
     (hj : jointTerminationSufficient π σ b p ε πi k n) :
@@ -8914,7 +8914,7 @@ theorem frontier16 {m : ℕ} (π σ : Fin m → ℚ) (p ε πi : ℚ) (b k n : �
 
 /-- Collects boundary agreement, the two-piece gap decomposition, and the gap increase bound
 from a common lower secant slope. -/
-theorem frontier17 {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (S₁ S₂ : Finset (Fin m))
+theorem two_piece_gap_decomposition_and_lower_bound_of_segment_slopes {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (S₁ S₂ : Finset (Fin m))
     (γ₁ γb γ₂ : ℚ) (c : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j)
     (hγ₁ : 0 ≤ γ₁) (hγ₂ : 0 ≤ γ₂)
@@ -8942,7 +8942,7 @@ theorem frontier17 {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (S₁ S₂ : Fins
 
 /-- Collects the two-piece gap decomposition, individual slope bounds from
 `crossPieceRateLower`, and the resulting lower bound on gap increase. -/
-theorem frontier18 {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (S₁ S₂ : Finset (Fin m))
+theorem two_piece_gap_growth_of_cross_piece_rate_lower {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (S₁ S₂ : Finset (Fin m))
     (γ₁ γb γ₂ : ℚ) (c : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j)
     (hγ₁ : 0 ≤ γ₁) (hγ₂ : 0 ≤ γ₂)
@@ -8972,7 +8972,7 @@ theorem frontier18 {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (S₁ S₂ : Fins
 
 /-- Combines the two-piece gap decomposition and absolute rate bound with a band rate obtained
 from the stated cross-piece conditions on search midpoints. -/
-theorem frontier19 {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p c : ℚ) (k : ℕ)
+theorem cross_piece_gap_rate_and_interval_band_rate {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p c : ℚ) (k : ℕ)
     (S₁ S₂ : Finset (Fin m)) (γ₁ γb γ₂ : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j)
     (hγ₁ : 0 ≤ γ₁) (hγ₂ : 0 ≤ γ₂)
@@ -9008,7 +9008,7 @@ theorem frontier19 {m : ℕ} (π σ : Fin m → ℚ) (b : ℕ) (p c : ℚ) (k : 
 
 /-- Collects the three-piece gap decomposition, individual slope bounds from `chainRateLower`,
 and the resulting lower bound on gap increase. -/
-theorem frontier20 {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ)
+theorem three_piece_gap_growth_of_chain_rate_lower {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ)
     (S₁ S₂ S₃ : Finset (Fin m)) (γ₁ γb₁ γb₂ γ₂ : ℚ) (c : ℚ)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 ≤ σ j)
     (hγ₁ : 0 ≤ γ₁) (hγ₂ : 0 ≤ γ₂)

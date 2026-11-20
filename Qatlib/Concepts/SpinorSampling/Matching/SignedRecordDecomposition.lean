@@ -40,7 +40,8 @@ def signLaw (a : ℝ) (ha : |a| ≤ 1) : FinDist Bool where
     cases b <;> simp only [recordSign, Bool.false_eq_true, ite_false, ite_true] <;> linarith
   sum_one := by simp only [Fintype.sum_bool, recordSign, Bool.false_eq_true, ite_false, ite_true]; ring
 
-/-- Complete original `sign_law_mean` guarantee for `SignedRecordDecomposition`; all source hypotheses and output obligations are retained. -/
+/-- For `a` in [−1, 1], the real sign encoded by a bit drawn from `signLaw a ha` has expectation
+exactly `a`. -/
 theorem sign_law_mean (a : ℝ) (ha : |a| ≤ 1) : (signLaw a ha).expect recordSign=a := by
   simp only [FinDist.expect,signLaw,Fintype.sum_bool,recordSign,Bool.false_eq_true,ite_false,ite_true]
   ring
@@ -54,7 +55,7 @@ def pairedSigns (a b : ℝ) (ha : |a| ≤ 1) (hb : |b| ≤ 1) : FinDist (Bool ×
     simp_rw [← Finset.mul_sum,(signLaw b hb).sum_one,mul_one]
     exact (signLaw a ha).sum_one
 
-/-- Complete original `paired_sign_mean` guarantee for `SignedRecordDecomposition`; all source hypotheses and output obligations are retained. -/
+/-- The product of two independent signs with means `a` and `b` has expectation `a*b`. -/
 theorem paired_sign_mean (a b : ℝ) (ha : |a| ≤ 1) (hb : |b| ≤ 1) :
     (pairedSigns a b ha hb).expect (fun z => recordSign z.1*recordSign z.2)=a*b := by
   calc
@@ -68,7 +69,8 @@ theorem paired_sign_mean (a b : ℝ) (ha : |a| ≤ 1) (hb : |b| ≤ 1) :
       ring
     _ = _ := by rw [sign_law_mean,sign_law_mean]
 
-/-- Complete original `paired_sign_mgf` guarantee for `SignedRecordDecomposition`; all source hypotheses and output obligations are retained. -/
+/-- For independent signs with means `a` and `b` in [−1, 1], the sign product minus `a*b` has
+moment-generating function at most `exp (t²/2)` for every real `t`. -/
 theorem paired_sign_mgf (a b : ℝ) (ha : |a| ≤ 1) (hb : |b| ≤ 1) (t : ℝ) :
     (pairedSigns a b ha hb).expect (fun z => Real.exp
       (t*(recordSign z.1*recordSign z.2-a*b))) ≤ Real.exp (t^2/2) := by
@@ -95,7 +97,8 @@ variable {S : Type} [Fintype S] [Nonempty S]
 def conditionalSigns {n : ℕ} (m : S → ℝ) (hm : ∀ x, |m x| ≤ 1) (J : Fin n → S) :
     FinDist (Fin n → Bool) := independentSampleLaw (fun i => signLaw (m (J i)) (hm (J i)))
 
-/-- Complete original `signed_record_factors` guarantee for `SignedRecordDecomposition`; all source hypotheses and output obligations are retained. -/
+/-- The point probability of record `(x,b)` is the uniform probability of site `x` times the
+conditional probability of bit `b` with sign mean `m x`. -/
 theorem signed_record_factors (m : S → ℝ) (hm : ∀ x, |m x| ≤ 1) (x : S) (b : Bool) :
     (signedRecordLaw m hm).prob (x,b)=(uniformLaw S).prob x*(signLaw (m x) (hm x)).prob b := by
   change (1+recordSign b*m x)/(2*(Fintype.card S : ℝ))=
@@ -103,7 +106,8 @@ theorem signed_record_factors (m : S → ℝ) (hm : ∀ x, |m x| ≤ 1) (x : S) 
   rw [div_mul_eq_div_div]
   ring
 
-/-- Complete original `signed_cohort_factors` guarantee for `SignedRecordDecomposition`; all source hypotheses and output obligations are retained. -/
+/-- The probability of a specified signed array factors into the probability of its uniform
+address array and the conditional probability of its specified bit array. -/
 theorem signed_cohort_factors {n : ℕ} (m : S → ℝ) (hm : ∀ x, |m x| ≤ 1)
     (J : Fin n → S) (Q : Fin n → Bool) :
     (signedRecordLaw m hm).probOf (fun i => (J i,Q i))=
@@ -113,7 +117,8 @@ theorem signed_cohort_factors {n : ℕ} (m : S → ℝ) (hm : ∀ x, |m x| ≤ 1
   simp_rw [signed_record_factors]
   exact Finset.prod_mul_distrib
 
-/-- Complete original `signed_cohort_disintegration` guarantee for `SignedRecordDecomposition`; all source hypotheses and output obligations are retained. -/
+/-- The expectation of any function of a signed cohort is the sum over uniform address arrays of
+its conditional expectation over bits, weighted by the address probabilities. -/
 theorem signed_cohort_disintegration {n : ℕ} (m : S → ℝ) (hm : ∀ x, |m x| ≤ 1)
     (F : (Fin n → S × Bool) → ℝ) :
     (∑ ω : Fin n → S × Bool, (signedRecordLaw m hm).probOf ω*F ω)=
@@ -132,7 +137,8 @@ theorem signed_cohort_disintegration {n : ℕ} (m : S → ℝ) (hm : ∀ x, |m x
   intro Q _
   ring
 
-/-- Complete original `signed_cohort_site_projection` guarantee for `SignedRecordDecomposition`; all source hypotheses and output obligations are retained. -/
+/-- A function that reads only the sites of a signed cohort has the same expectation as under an
+independent uniform address array. -/
 theorem signed_cohort_site_projection {n : ℕ} (m : S → ℝ) (hm : ∀ x, |m x| ≤ 1)
     (F : (Fin n → S) → ℝ) :
     (∑ ω : Fin n → S × Bool, (signedRecordLaw m hm).probOf ω*F (fun i => (ω i).1))=

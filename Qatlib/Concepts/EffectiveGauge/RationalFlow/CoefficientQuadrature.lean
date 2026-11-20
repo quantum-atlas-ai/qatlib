@@ -37,7 +37,8 @@ def exactFourierCoefficientGrid (f : SpatialPoint → ℂ) (k : SpatialFrequency
     let u := meanTensorSpatial ((a : ℝ)/(M : ℝ),(b : ℝ)/(M : ℝ),(c : ℝ)/(M : ℝ))
     unitFourierMode (-k) u*f u)
 
-/-- Original `fourierIntegrand_partial_bound` guarantee for the `CoefficientQuadrature` construction; the complete source hypotheses are retained. -/
+/-- If all components of `k` have magnitude at most `N`, amplitude and first partial bounds `C0` and
+`C1` on the unit cube bound each first partial of the Fourier integrand there by `C1 + 7 N C0`. -/
 theorem fourierIntegrand_partial_bound (f : SpatialPoint → ℂ) (hf : ContDiff ℝ ∞ f)
     (k : SpatialFrequency) (N : ℕ) (hk : ∀ i, |(k i : ℝ)| ≤ (N : ℝ))
     (C0 C1 : ℝ)
@@ -87,7 +88,8 @@ theorem unitFourierCoefficient_grid_error (M : ℕ) (hM : 0<M) (f : SpatialPoint
   rw [unitFourierCoefficient_eq_cubeIntegral]
   exact h
 
-/-- Original `complexProduct_sample_mode_error` guarantee for the `CoefficientQuadrature` construction; the complete source hypotheses are retained. -/
+/-- With a unit exact mode, exact sample norm at most `C0`, and sample and mode errors bounded by
+`s` and `d`, the product error is at most `s + (C0 + s) d`. -/
 theorem complexProduct_sample_mode_error (e ehat c chat : ℂ) (C0 s d : ℝ)
     (he : ‖e‖=1) (hc : ‖c‖ ≤ C0) (hs : ‖chat-c‖ ≤ s) (hd : ‖ehat-e‖ ≤ d) :
     ‖ehat*chat-e*c‖ ≤ s+(C0+s)*d := by

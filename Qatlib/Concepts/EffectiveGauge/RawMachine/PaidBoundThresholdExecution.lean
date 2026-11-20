@@ -49,40 +49,40 @@ def executionBudget (q : RedundantRational.Frac) (j : ℕ) :=
     ((leftWord q j).length^2+3*(leftWord q j).length+3))+
     ((rightWord q j).length^2+3*(rightWord q j).length+3))+1
 
-/-- Original `consumed_inputs` guarantee for the `PaidBoundThresholdExecution` construction; the complete source hypotheses are retained. -/
+/-- Clearing both prepared argument slots leaves the input stack family empty everywhere. -/
 private theorem consumed_inputs (q : RedundantRational.Frac) (j : ℕ) :
     Function.update (Function.update (preparedInputs q j) false []) true []=(fun _ => []) := by
   funext b
   cases b <;> rfl
 
-/-- Original `compare_inputs` guarantee for the `PaidBoundThresholdExecution` construction; the complete source hypotheses are retained. -/
+/-- Installing the left and right words into their distinct destination slots from an empty comparison state gives the comparator's initial stack layout. -/
 private theorem compare_inputs (left right : CanonicalCodec.Bits) :
     Function.update (Function.update (fun _ => []) (dest false) left) (dest true) right=
       ReadonlyCompare.store left right [] [] [] := by
   funext k
   cases k <;> rfl
 
-/-- Original `clear_first` guarantee for the `PaidBoundThresholdExecution` construction; the complete source hypotheses are retained. -/
+/-- Clearing the first comparison destination leaves only the second word in the comparison layout. -/
 private theorem clear_first (left right : CanonicalCodec.Bits) :
     Function.update (ReadonlyCompare.store left right [] [] []) (dest false) []=
       ReadonlyCompare.store [] right [] [] [] := by
   funext k
   cases k <;> rfl
 
-/-- Original `clear_second` guarantee for the `PaidBoundThresholdExecution` construction; the complete source hypotheses are retained. -/
+/-- Clearing the second destination after the first is empty leaves all comparison stacks empty. -/
 private theorem clear_second (right : CanonicalCodec.Bits) :
     Function.update (ReadonlyCompare.store [] right [] [] []) (dest true) []=(fun _ => []) := by
   funext k
   cases k <;> rfl
 
-/-- Original `output_only` guarantee for the `PaidBoundThresholdExecution` construction; the complete source hypotheses are retained. -/
+/-- When the input, comparison, and work families are empty, the threshold state has only its designated output stack populated. -/
 private theorem output_only (out : CanonicalCodec.Bits) :
     state (fun _ => []) (fun _ => []) out (fun _ => [])=
       Function.update (fun _ => []) Slot.output out := by
   funext k
   cases k <;> rfl
 
-/-- Original `done_step` guarantee for the `PaidBoundThresholdExecution` construction; the complete source hypotheses are retained. -/
+/-- From the done label with only output bits on the stacks, the machine halts within one clock unit with those bits in the output slot. -/
 private theorem done_step (out : CanonicalCodec.Bits) :
     Stacks.Execution program
       ⟨some .done,default,state (fun _ => []) (fun _ => []) out (fun _ => [])⟩
@@ -132,7 +132,7 @@ theorem prepared_execution (q : RedundantRational.Frac) (j : ℕ) :
   have hl : (Label.sum false default : Label) = default := rfl
   simpa [hb,hl,executionBudget,leftInput,rightInput,dest,ReadonlyCompare.store] using all
 
-/-- Original `prepared_length` guarantee for the `PaidBoundThresholdExecution` construction; the complete source hypotheses are retained. -/
+/-- Together the two prepared argument words use 38 fixed bits, the length of the fraction encoding, and two copies of the length of the canonical threshold encoding. -/
 theorem prepared_length (q : RedundantRational.Frac) (j : ℕ) :
     (leftInput q j).length+(rightInput q j).length=
       38+(PaidRationalBridge.encode q).length+2*(CanonicalCodec.natBits j).length := by

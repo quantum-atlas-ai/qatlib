@@ -20,7 +20,7 @@ Fixed source: A. W. Harrow, *Review of Quantum Algorithms for Systems of Linear
 Equations*, arXiv:1501.00008v1, §2.1, PDF p. 2. The quoted run-time (1a)
 `Õ(κT_B + log(N) s² κ² T_A / ε)` is the HHL 2009 [5] result, whose
 one-run success/cost certificate is formalized in the existing library under
-`Qatlib.Papers.LinearSystems09.SinEnvProgram.SinEnvelopeHHLConsumers`.
+`Qatlib.Concepts.HhlAlgorithms.SinEnvProgram.SinEnvelopeHHLConsumers`.
 
 The paper-layer bridges below do not reprove the established content: they restate
 it under the `QLinearSys15` namespace so that the review's §2.1 result is tied

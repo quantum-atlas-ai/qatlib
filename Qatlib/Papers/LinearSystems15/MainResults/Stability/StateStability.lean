@@ -53,7 +53,7 @@ distance at most `4ε`.
 The source additionally assumes `C` Hermitian; the argument only uses the
 inverse bound, so this statement is strictly more general.  Uses
 `normalize_error_of_gap` (full FQN
-`Qatlib.Papers.QSingValue19.QsVtStability.normalize_error_of_gap`),
+`Qatlib.Concepts.BlockEncoding.Postselection.normalize_error_of_gap`),
 which yields the sharper `2ε/‖Cψ‖ ≤ 2ε`. -/
 theorem proposition9_state_perturbation
     {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]

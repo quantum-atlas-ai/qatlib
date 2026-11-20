@@ -92,16 +92,17 @@ def sourceMeanUnitExecution (source : RationalJetSource) (m1 m2 : ℚ) (N b : �
   (sourceMeanIntegerExecution source m1 m2 N b).map
     (fun acc j => (acc j : ℚ)/((N : ℚ)^4*2^(3*(b+2)+1)))
 
-/-- Original `sourceMeanPacketSchedule_eq` guarantee for the `SourceMeanExecution` construction; the complete source hypotheses are retained. -/
+/-- Using the lowered period and the precision label increased by two and the rescaling overhead
+gives exactly the rescaled first-jet query schedule at the requested node and precision. -/
 theorem sourceMeanPacketSchedule_eq (m1 m2 : ℚ) (a : Fin 3 → ℚ) (b : ℕ) :
     sourceMeanPacketSchedule (periodLower (b+2+rescaleSourceOverhead m1 m2))
       (b+2+rescaleSourceOverhead m1 m2) a=sourceFirstJetSchedule m1 m2 a b := rfl
 
-/-- Original `sourceMeanGrid_length` guarantee for the `SourceMeanExecution` construction; the complete source hypotheses are retained. -/
+/-- The tensor grid has `N³` nodes, with `N` left endpoints per axis. -/
 theorem sourceMeanGrid_length (N : ℕ) : (sourceMeanGrid N).length=N^3 := by
   simp [sourceMeanGrid,List.length_flatMap,pow_succ,mul_assoc]
 
-/-- Original `sourceMeanSchedule_length` guarantee for the `SourceMeanExecution` construction; the complete source hypotheses are retained. -/
+/-- The full mean query schedule has `4 * N³` entries, four per grid node. -/
 theorem sourceMeanSchedule_length (m1 m2 : ℚ) (N b : ℕ) :
     (sourceMeanSchedule m1 m2 N b).length=4*N^3 := by
   simp [sourceMeanSchedule,sourceMeanPacketSchedule,List.length_flatMap,sourceMeanGrid_length,mul_comm]
@@ -140,7 +141,8 @@ theorem sourceMeanDecode_correct (source : RationalJetSource) (m1 m2 : ℚ) (N b
     rw [hpacket,ih]
     rfl
 
-/-- Original `sourceMeanIntegerExecution_correct` guarantee for the `SourceMeanExecution` construction; the complete source hypotheses are retained. -/
+/-- For any source and parameters, the integer execution returns the sum of the node contributions
+computed from the rounded first jets at every grid point. -/
 theorem sourceMeanIntegerExecution_correct (source : RationalJetSource) (m1 m2 : ℚ) (N b : ℕ) :
     sourceMeanIntegerExecution source m1 m2 N b=
       some (((sourceMeanGrid N).map (fun index => sourceMeanContribution index

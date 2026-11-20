@@ -28,20 +28,21 @@ namespace Qatlib.Concepts.EffectiveGauge.HopfAtlas
 /-- Definition of gluing Width in the Hopf Atlas construction. -/
 def gluingWidth (eta : ℝ) : ℝ := min (eta/4) (physicalPeriod/8)
 
-/-- Original `gluingWidth_pos` guarantee for the `CollarGluing` construction; the complete source hypotheses are retained. -/
+/-- A positive source collar width gives a strictly positive gluing width. -/
 theorem gluingWidth_pos {eta : ℝ} (he : 0<eta) : 0<gluingWidth eta :=
   lt_min (div_pos he (by norm_num)) (div_pos physicalPeriod_pos (by norm_num))
 
-/-- Original `gluingWidth_le_eta` guarantee for the `CollarGluing` construction; the complete source hypotheses are retained. -/
+/-- For a positive `eta`, the gluing width is at most the width `eta` of the source collar. -/
 theorem gluingWidth_le_eta {eta : ℝ} (he : 0<eta) : gluingWidth eta ≤ eta := by
   have h := min_le_left (eta/4) (physicalPeriod/8)
   dsimp [gluingWidth]
   linarith
 
-/-- Original `gluingWidth_le_period` guarantee for the `CollarGluing` construction; the complete source hypotheses are retained. -/
+/-- The gluing width is capped at one eighth of the physical period for every `eta`. -/
 theorem gluingWidth_le_period (eta : ℝ) : gluingWidth eta ≤ physicalPeriod/8 := min_le_right _ _
 
-/-- Original `gluingWidth_eq_quarter` guarantee for the `CollarGluing` construction; the complete source hypotheses are retained. -/
+/-- When `eta` is at most half a physical period, the minimum defining the gluing width selects
+`eta / 4`. -/
 theorem gluingWidth_eq_quarter {eta : ℝ} (he : eta ≤ physicalPeriod/2) : gluingWidth eta=eta/4 := by
   apply min_eq_left
   linarith
@@ -50,24 +51,27 @@ theorem gluingWidth_eq_quarter {eta : ℝ} (he : eta ≤ physicalPeriod/2) : glu
 def gluingCutoff (eta x : ℝ) : ℝ :=
   Real.smoothTransition ((x-(physicalPeriod-2*gluingWidth eta))/gluingWidth eta)
 
-/-- Original `contDiff_gluingCutoff` guarantee for the `CollarGluing` construction; the complete source hypotheses are retained. -/
+/-- For every fixed collar parameter, the gluing cutoff is a smooth function of its real
+coordinate. -/
 theorem contDiff_gluingCutoff (eta : ℝ) : ContDiff ℝ ∞ (gluingCutoff eta) :=
   (Real.smoothTransition.contDiff (n := ⊤)).comp ((contDiff_id.sub contDiff_const).div_const _)
 
-/-- Original `gluingCutoff_zero` guarantee for the `CollarGluing` construction; the complete source hypotheses are retained. -/
+/-- For positive `eta`, the cutoff is zero through `physicalPeriod - 2 * gluingWidth eta`,
+inclusive. -/
 theorem gluingCutoff_zero {eta x : ℝ} (he : 0<eta) (hx : x ≤ physicalPeriod-2*gluingWidth eta) :
     gluingCutoff eta x=0 := by
   apply Real.smoothTransition.zero_of_nonpos
   exact div_nonpos_of_nonpos_of_nonneg (sub_nonpos.mpr hx) (gluingWidth_pos he).le
 
-/-- Original `gluingCutoff_one` guarantee for the `CollarGluing` construction; the complete source hypotheses are retained. -/
+/-- For positive `eta`, the cutoff equals one from `physicalPeriod - gluingWidth eta` onward. -/
 theorem gluingCutoff_one {eta x : ℝ} (he : 0<eta) (hx : physicalPeriod-gluingWidth eta ≤ x) :
     gluingCutoff eta x=1 := by
   apply Real.smoothTransition.one_of_one_le
   apply (le_div_iff₀ (gluingWidth_pos he)).mpr
   linarith
 
-/-- Original `gluingCutoff_eq_backend` guarantee for the `CollarGluing` construction; the complete source hypotheses are retained. -/
+/-- When `eta` is at most half a period, the cutoff is the real smooth transition with argument
+`(x - (physicalPeriod - eta / 2)) / (eta / 4)`. -/
 theorem gluingCutoff_eq_backend {eta : ℝ} (he : eta ≤ physicalPeriod/2) (x : ℝ) :
     gluingCutoff eta x=Real.smoothTransition ((x-(physicalPeriod-eta/2))/(eta/4)) := by
   unfold gluingCutoff
@@ -85,7 +89,8 @@ def correctedReference (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ �
   phase (-(gluingCutoff eta (x 0)*terminalRealPhase v hv q₀ h₀ (transverseProjection x)))*
     sourceLiftSpatialExtension v hv q₀ h₀ x
 
-/-- Original `contDiff_correctedReference` guarantee for the `CollarGluing` construction; the complete source hypotheses are retained. -/
+/-- The phase-corrected reference is smooth for a smooth vector source and a unit initial
+quaternion, for any collar parameter. -/
 theorem contDiff_correctedReference (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (q₀ : ℍ) (h₀ : ‖q₀‖=1) (eta : ℝ) : ContDiff ℝ ∞ (correctedReference v hv q₀ h₀ eta) := by
   have hx : ContDiff ℝ ∞ (EuclideanSpace.proj (0 : Fin 3) : SpatialPoint → ℝ) := by
@@ -94,7 +99,9 @@ theorem contDiff_correctedReference (v : SpatialPoint → SpatialPoint) (hv : Co
     ((contDiff_terminalRealPhase v hv q₀ h₀).comp transverseProjection.contDiff)).neg).mul
       (contDiff_sourceLiftSpatialExtension v hv q₀ h₀)
 
-/-- Original `correctedReference_isSmoothUnitLift` guarantee for the `CollarGluing` construction; the complete source hypotheses are retained. -/
+/-- For a smooth unit vector source whose spin is periodic and constant on a positive-width
+collar, the corrected reference is a smooth unit Hopf lift of that spin if its unit seed lies
+over the collar value. -/
 theorem correctedReference_isSmoothUnitLift (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (hu : ∀ x, ‖v x‖=1) (q₀ : ℍ) (h₀ : ‖q₀‖=1)
     (hp : IsPeriodicField (sourceQuaternion v)) (eta : ℝ) (he : 0<eta) (sc : ℍ)
@@ -105,11 +112,13 @@ theorem correctedReference_isSmoothUnitLift (v : SpatialPoint → SpatialPoint) 
   exact ⟨by simp [correctedReference,norm_mul,phase_norm,(h.2 x).1],
     (hopf_phase _ _).trans (h.2 x).2⟩
 
-/-- Original `phase_neg_star` guarantee for the `CollarGluing` construction; the complete source hypotheses are retained. -/
+/-- The quaternion phase at the negative of an angle is the conjugate of the phase at that
+angle. -/
 private theorem phase_neg_star (t : ℝ) : phase (-t)=star (phase t) := by
   ext <;> simp [phase,iAxis]
 
-/-- Original `cube_transverse` guarantee for the `CollarGluing` construction; the complete source hypotheses are retained. -/
+/-- Both transverse coordinates of a point in the fundamental cube lie in the closed physical
+period interval. -/
 private theorem cube_transverse {x : SpatialPoint} (hx : InFundamentalCube x) :
     ∀ j, 0 ≤ transverseProjection x j ∧ transverseProjection x j ≤ physicalPeriod := by
   intro j
@@ -117,7 +126,8 @@ private theorem cube_transverse {x : SpatialPoint} (hx : InFundamentalCube x) :
   · exact hx 1
   · exact hx 2
 
-/-- Original `cube_line` guarantee for the `CollarGluing` construction; the complete source hypotheses are retained. -/
+/-- Combining two transverse coordinates and a longitudinal coordinate in the closed physical
+period interval gives a point of the fundamental cube. -/
 private theorem cube_line (p : TransversePoint) (hp : ∀ j, 0 ≤ p j ∧ p j ≤ physicalPeriod)
     (u : ℝ) (hu : 0 ≤ u ∧ u ≤ physicalPeriod) : InFundamentalCube (sourcePosition (p,u)) := by
   intro j
@@ -126,13 +136,17 @@ private theorem cube_line (p : TransversePoint) (hp : ∀ j, 0 ≤ p j ∧ p j �
   · exact hp 0
   · exact hp 1
 
-/-- Original `raw_eq_path` guarantee for the `CollarGluing` construction; the complete source hypotheses are retained. -/
+/-- At a point whose longitudinal coordinate lies in the transport interval, the spatial
+extension of a smooth unit source's lift agrees with its path indexed by the transverse
+coordinates and evaluated at that longitudinal coordinate. -/
 private theorem raw_eq_path (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (hu : ∀ x, ‖v x‖=1) (q₀ : ℍ) (h₀ : ‖q₀‖=1) (x : SpatialPoint) (hx : 0 ≤ x 0 ∧ x 0 ≤ physicalPeriod) :
     sourceLiftSpatialExtension v hv q₀ h₀ x=sourceLiftPaths v hv q₀ h₀ (transverseProjection x) ⟨x 0,hx⟩ :=
   sourceLiftExtension_eq v hv hu q₀ h₀ (transverseProjection x) ⟨x 0,hx⟩
 
-/-- Original `raw_initial_of_constant` guarantee for the `CollarGluing` construction; the complete source hypotheses are retained. -/
+/-- For a smooth unit source and a unit seed, the spatial lift equals the seed at a point in the
+transport interval if the spin is constant on the segment from longitudinal coordinate zero to
+that point. -/
 private theorem raw_initial_of_constant (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (hu : ∀ x, ‖v x‖=1) (q₀ : ℍ) (h₀ : ‖q₀‖=1) (x : SpatialPoint) (hx : 0 ≤ x 0 ∧ x 0 ≤ physicalPeriod)
     (sc : ℍ) (hs : ∀ u ∈ Icc (0 : ℝ) (x 0), sourceQuaternion v (sourcePosition (transverseProjection x,u))=sc) :
@@ -141,7 +155,9 @@ private theorem raw_initial_of_constant (v : SpatialPoint → SpatialPoint) (hv 
     sourceLiftPaths_eq_of_source_constant v hv hu q₀ h₀ _ transportStart ⟨x 0,hx⟩ hx.1 sc hs]
   exact pathTransport_start q₀ h₀ _
 
-/-- Original `correctedReference_left_collar` guarantee for the `CollarGluing` construction; the complete source hypotheses are retained. -/
+/-- On the left longitudinal collar of gluing width inside the cube, the corrected reference
+equals its unit seed when the smooth unit source has constant spin on a collar of positive width
+`eta`. -/
 theorem correctedReference_left_collar (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (hu : ∀ x, ‖v x‖=1) (q₀ : ℍ) (h₀ : ‖q₀‖=1) (eta : ℝ) (he : 0<eta) (sc : ℍ)
     (hc : HasConstantCollar (sourceQuaternion v) eta sc) (x : SpatialPoint)
@@ -156,7 +172,9 @@ theorem correctedReference_left_collar (v : SpatialPoint → SpatialPoint) (hv :
       ⟨0,Or.inl (hu'.2.trans (hleft.trans (gluingWidth_le_eta he)))⟩
   simp [correctedReference,hcut,hraw,phase]
 
-/-- Original `correctedReference_right_collar` guarantee for the `CollarGluing` construction; the complete source hypotheses are retained. -/
+/-- On the right longitudinal collar of gluing width inside the cube, the corrected reference
+equals its unit seed for a smooth unit source with periodic spin constant in a positive-width
+collar, provided the seed lifts that spin value. -/
 theorem correctedReference_right_collar (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (hu : ∀ x, ‖v x‖=1) (q₀ : ℍ) (h₀ : ‖q₀‖=1)
     (hp : IsPeriodicField (sourceQuaternion v)) (eta : ℝ) (he : 0<eta) (sc : ℍ)
@@ -184,7 +202,9 @@ theorem correctedReference_right_collar (v : SpatialPoint → SpatialPoint) (hv 
   rw [star_mul,star_star,mul_assoc,Quaternion.star_mul_self,(normSq_eq_one_iff _).mpr hn]
   simp
 
-/-- Original `correctedReference_transverse_collar` guarantee for the `CollarGluing` construction; the complete source hypotheses are retained. -/
+/-- Inside the cube, a point within `eta` of either endpoint of a transverse coordinate has
+corrected reference equal to the unit seed when the smooth unit source has periodic spin
+constant on the positive-width collar and the seed lifts that constant. -/
 theorem correctedReference_transverse_collar (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (hu : ∀ x, ‖v x‖=1) (q₀ : ℍ) (h₀ : ‖q₀‖=1)
     (hp : IsPeriodicField (sourceQuaternion v)) (eta : ℝ) (he : 0<eta) (sc : ℍ)
@@ -203,7 +223,9 @@ theorem correctedReference_transverse_collar (v : SpatialPoint → SpatialPoint)
     · exact ⟨2,hj⟩
   simp [correctedReference,ht,hraw,phase]
 
-/-- Original `correctedReference_collar` guarantee for the `CollarGluing` construction; the complete source hypotheses are retained. -/
+/-- For a smooth unit source with periodic spin constant on a positive-width collar and a unit
+seed over the collar spin, the corrected reference is constant equal to the seed on the collar
+of gluing width. -/
 theorem correctedReference_collar (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (hu : ∀ x, ‖v x‖=1) (q₀ : ℍ) (h₀ : ‖q₀‖=1)
     (hp : IsPeriodicField (sourceQuaternion v)) (eta : ℝ) (he : 0<eta) (sc : ℍ)

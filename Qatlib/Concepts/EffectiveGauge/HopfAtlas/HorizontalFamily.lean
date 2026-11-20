@@ -52,7 +52,8 @@ def imaginaryVector : ℍ →L[ℝ] SpatialPoint :=
      map_smul' c a := by ext j; fin_cases j <;> rfl } :
     ℍ →ₗ[ℝ] SpatialPoint).toContinuousLinearMap
 
-/-- Original `spinOfVector_imaginaryVector` guarantee for the `HorizontalFamily` construction; the complete source hypotheses are retained. -/
+/-- Embedding the imaginary-coordinate vector of a quaternion with zero real part recovers the
+quaternion. -/
 theorem spinOfVector_imaginaryVector (q : ℍ) (hq : q.re=0) :
     spinOfVector (imaginaryVector q)=q := by
   change (⟨0, q.imI, q.imJ, q.imK⟩ : ℍ)=q
@@ -69,16 +70,18 @@ def sourceXDerivative (v : SpatialPoint → SpatialPoint) (x : SpatialPoint) : �
 def sourceHorizontalQuaternion (v : SpatialPoint → SpatialPoint) (x : SpatialPoint) : ℍ :=
   horizontalCoefficient (sourceQuaternion v x) (sourceXDerivative v x)
 
-/-- Original `contDiff_sourceQuaternion` guarantee for the `HorizontalFamily` construction; the complete source hypotheses are retained. -/
+/-- The purely imaginary quaternion embedding of a smooth vector source is smooth. -/
 theorem contDiff_sourceQuaternion {v : SpatialPoint → SpatialPoint} (hv : ContDiff ℝ ∞ v) :
     ContDiff ℝ ∞ (sourceQuaternion v) := spinEmbedding.toContinuousLinearMap.contDiff.comp hv
 
-/-- Original `contDiff_sourceXDerivative` guarantee for the `HorizontalFamily` construction; the complete source hypotheses are retained. -/
+/-- The first coordinate derivative of the quaternion embedding of a smooth vector source is
+smooth. -/
 theorem contDiff_sourceXDerivative {v : SpatialPoint → SpatialPoint} (hv : ContDiff ℝ ∞ v) :
     ContDiff ℝ ∞ (sourceXDerivative v) :=
   ((contDiff_sourceQuaternion hv).fderiv_right (m := ∞) (by rfl)).clm_apply contDiff_const
 
-/-- Original `contDiff_sourceHorizontalQuaternion` guarantee for the `HorizontalFamily` construction; the complete source hypotheses are retained. -/
+/-- The horizontal transport coefficient obtained from a smooth vector source and its first
+derivative is a smooth quaternion field. -/
 theorem contDiff_sourceHorizontalQuaternion {v : SpatialPoint → SpatialPoint} (hv : ContDiff ℝ ∞ v) :
     ContDiff ℝ ∞ (sourceHorizontalQuaternion v) :=
   ((contDiff_sourceQuaternion hv).mul (contDiff_sourceXDerivative hv)).const_smul _
@@ -87,7 +90,8 @@ theorem contDiff_sourceHorizontalQuaternion {v : SpatialPoint → SpatialPoint} 
 def horizontalCoefficientSource (v : SpatialPoint → SpatialPoint) (z : TransversePoint × ℝ) : SpatialPoint :=
   imaginaryVector (sourceHorizontalQuaternion v (sourcePosition z))
 
-/-- Original `contDiff_horizontalCoefficientSource` guarantee for the `HorizontalFamily` construction; the complete source hypotheses are retained. -/
+/-- For a smooth vector source, the imaginary-coordinate vector of its horizontal coefficient
+depends smoothly on transverse position and longitudinal coordinate. -/
 theorem contDiff_horizontalCoefficientSource {v : SpatialPoint → SpatialPoint} (hv : ContDiff ℝ ∞ v) :
     ContDiff ℝ ∞ (horizontalCoefficientSource v) :=
   imaginaryVector.contDiff.comp ((contDiff_sourceHorizontalQuaternion hv).comp sourcePosition.contDiff)
@@ -97,12 +101,14 @@ def horizontalCoefficientPaths (v : SpatialPoint → SpatialPoint) (hv : ContDif
     TransversePoint → CoefficientPath :=
   sourcePath (horizontalCoefficientSource v) (contDiff_horizontalCoefficientSource hv).continuous
 
-/-- Original `contDiff_horizontalCoefficientPaths` guarantee for the `HorizontalFamily` construction; the complete source hypotheses are retained. -/
+/-- For a smooth vector source, its family of horizontal coefficient paths varies smoothly with
+transverse position. -/
 theorem contDiff_horizontalCoefficientPaths (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v) :
     ContDiff ℝ ∞ (horizontalCoefficientPaths v hv) :=
   contDiff_sourcePath (contDiff_horizontalCoefficientSource hv)
 
-/-- Original `sourcePosition_hasDerivAt` guarantee for the `HorizontalFamily` construction; the complete source hypotheses are retained. -/
+/-- At fixed transverse position, the derivative of the spatial path in the longitudinal
+parameter is the first coordinate basis vector. -/
 theorem sourcePosition_hasDerivAt (p : TransversePoint) (t : ℝ) :
     HasDerivAt (fun u : ℝ => sourcePosition (p, u)) (EuclideanSpace.single 0 1) t := by
   have hi := (hasDerivAt_const t p).prodMk (hasDerivAt_id t)
@@ -110,7 +116,8 @@ theorem sourcePosition_hasDerivAt (p : TransversePoint) (t : ℝ) :
   ext j
   fin_cases j <;> simp [sourcePosition]
 
-/-- Original `sourceCurve_hasDerivAt` guarantee for the `HorizontalFamily` construction; the complete source hypotheses are retained. -/
+/-- Along a longitudinal line, the derivative of a smooth vector source's quaternion embedding
+is its first spatial partial at the corresponding point. -/
 theorem sourceCurve_hasDerivAt {v : SpatialPoint → SpatialPoint} (hv : ContDiff ℝ ∞ v)
     (p : TransversePoint) (t : ℝ) :
     HasDerivAt (fun u : ℝ => sourceQuaternion v (sourcePosition (p, u)))
@@ -118,7 +125,9 @@ theorem sourceCurve_hasDerivAt {v : SpatialPoint → SpatialPoint} (hv : ContDif
   ((contDiff_sourceQuaternion hv).differentiable (by simp) _).hasFDerivAt.comp_hasDerivAt t
     (sourcePosition_hasDerivAt p t)
 
-/-- Original `horizontalCoefficientPaths_embed` guarantee for the `HorizontalFamily` construction; the complete source hypotheses are retained. -/
+/-- For a smooth unit vector source, the horizontal coefficient path embedded as a purely
+imaginary quaternion agrees with the quaternion coefficient at the given transverse position and
+time. -/
 theorem horizontalCoefficientPaths_embed (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (hu : ∀ x, ‖v x‖=1) (p : TransversePoint) (t : TransportTime) :
     spinOfVector (horizontalCoefficientPaths v hv p t) =
@@ -133,12 +142,15 @@ def sourceLiftPaths (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v
     (q₀ : ℍ) (h₀ : ‖q₀‖=1) (p : TransversePoint) : QuaternionPath :=
   pathTransport q₀ h₀ (horizontalCoefficientPaths v hv p)
 
-/-- Original `contDiff_sourceLiftPaths` guarantee for the `HorizontalFamily` construction; the complete source hypotheses are retained. -/
+/-- For a smooth vector source and a unit initial quaternion, the associated family of lift
+paths is smooth in the transverse variables. -/
 theorem contDiff_sourceLiftPaths (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (q₀ : ℍ) (h₀ : ‖q₀‖=1) : ContDiff ℝ ∞ (sourceLiftPaths v hv q₀ h₀) :=
   (contDiff_pathTransport q₀ h₀).comp (contDiff_horizontalCoefficientPaths v hv)
 
-/-- Original `sourceLiftPaths_hasDerivWithinAt` guarantee for the `HorizontalFamily` construction; the complete source hypotheses are retained. -/
+/-- For a smooth unit source and a unit seed, the time derivative of the extended lift path
+within the closed transport interval equals the current lift multiplied on the right by the
+source's horizontal coefficient. -/
 theorem sourceLiftPaths_hasDerivWithinAt (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (hu : ∀ x, ‖v x‖=1) (q₀ : ℍ) (h₀ : ‖q₀‖=1) (p : TransversePoint)
     (t : ℝ) (ht : t ∈ Icc 0 physicalPeriod) :
@@ -180,7 +192,8 @@ theorem sourceLiftPaths_hopf (v : SpatialPoint → SpatialPoint) (hv : ContDiff 
     (by simpa only [hstart] using h₀) (by simpa only [hstart] using hi) t t.2
   simpa only [q, s, extendPath_coe] using h.2
 
-/-- Original `wrapped_coordinate_bounds` guarantee for the `HorizontalFamily` construction; the complete source hypotheses are retained. -/
+/-- Subtracting the floor of `x / physicalPeriod` times the period places `x` in the closed
+interval from zero to the physical period. -/
 private theorem wrapped_coordinate_bounds (x : ℝ) :
     0 ≤ x+physicalPeriod*(-(⌊x/physicalPeriod⌋ : ℝ)) ∧
       x+physicalPeriod*(-(⌊x/physicalPeriod⌋ : ℝ)) ≤ physicalPeriod := by

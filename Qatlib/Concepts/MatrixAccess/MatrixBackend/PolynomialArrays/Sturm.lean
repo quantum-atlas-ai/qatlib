@@ -66,7 +66,7 @@ theorem candidate_bounds (D : ℕ) (a b : ℚ) (hab : a<b) (j : Fin (D+1)) :
   dsimp only [candidate]
   constructor <;> nlinarith
 
-/-- The finite construction in `Sturm` satisfies `candidate_injective` under the displayed hypotheses. -/
+/-- For rational endpoints `a < b`, distinct indices among the `D + 1` cut candidates give distinct rational points. -/
 theorem candidate_injective (D : ℕ) (a b : ℚ) (hab : a<b) :
     Function.Injective (candidate D a b) := by
   intro i j hij
@@ -80,7 +80,7 @@ theorem candidate_injective (D : ℕ) (a b : ℚ) (hab : a<b) :
   have hn : i.val+1=j.val+1 := by exact_mod_cast hc
   omega
 
-/-- The finite construction in `Sturm` satisfies `nonroot_candidate` under the displayed hypotheses. -/
+/-- A nonzero rational polynomial of degree at most `D` is nonzero at some cut candidate between ordered endpoints `a` and `b`. -/
 theorem nonroot_candidate (p : ℚ[X]) (hp : p≠0) (D : ℕ) (hD : p.natDegree≤D)
     (a b : ℚ) (hab : a<b) : ∃ j : Fin (D+1),p.eval (candidate D a b j)≠0 := by
   by_contra hn
@@ -92,7 +92,7 @@ theorem nonroot_candidate (p : ℚ[X]) (hp : p≠0) (D : ℕ) (hD : p.natDegree�
 /-- Construction for qpoly in the sturm model. -/
 def qpoly {D : ℕ} (a : Fin (D+1) → ℤ) : ℚ[X] := integerPolyQ (List.ofFn a)
 
-/-- The finite construction in `Sturm` satisfies `qpoly_map` under the displayed hypotheses. -/
+/-- Casting the rational polynomial of the integer coefficient vector `a` to complex coefficients gives `rootIntegerPolynomial a`. -/
 theorem qpoly_map {D : ℕ} (a : Fin (D+1) → ℤ) :
     (qpoly a).map (Rat.castHom ℂ)=rootIntegerPolynomial a := by
   rw [qpoly,integerPolyQ_map,rootIntegerListPolynomial_ofFn]
@@ -101,7 +101,7 @@ theorem qpoly_map {D : ℕ} (a : Fin (D+1) → ℤ) :
 def numerator {D : ℕ} (a : Fin (D+1) → ℤ) (v : ℚ) : ℤ :=
   (rootCompactHorner (rootSharedNumerator (v,0)) (rootSharedDenominator (v,0)) (List.ofFn a)).numerator.1
 
-/-- The finite construction in `Sturm` satisfies `numerator_nonzero_iff` under the displayed hypotheses. -/
+/-- The integer numerator computed at `v` is nonzero exactly when the rational polynomial evaluates to a nonzero value at `v`. -/
 theorem numerator_nonzero_iff {D : ℕ} (a : Fin (D+1) → ℤ) (v : ℚ) :
     numerator a v≠0 ↔ (qpoly a).eval v≠0 := by
   let s := rootCompactHorner (rootSharedNumerator (v,0)) (rootSharedDenominator (v,0)) (List.ofFn a)
@@ -130,7 +130,7 @@ def scan {D : ℕ} (a : Fin (D+1) → ℤ) : List ℚ → Option ℚ
   | [] => none
   | v::vs => if numerator a v=0 then scan a vs else some v
 
-/-- The finite construction in `Sturm` satisfies `scan_success` under the displayed hypotheses. -/
+/-- If a candidate in `vs` has a nonzero numerator, the scan returns a member of `vs` whose numerator is nonzero. -/
 theorem scan_success {D : ℕ} (a : Fin (D+1) → ℤ) (vs : List ℚ)
     (h : ∃ v∈vs,numerator a v≠0) :
     ∃ v,scan a vs=some v ∧ v∈vs ∧ numerator a v≠0 := by
@@ -151,7 +151,7 @@ theorem scan_success {D : ℕ} (a : Fin (D+1) → ℤ) (vs : List ℚ)
 def choose {D : ℕ} (a : Fin (D+1) → ℤ) (left right : ℚ) : Option ℚ :=
   scan a (List.ofFn (candidate D left right))
 
-/-- The finite construction in `Sturm` satisfies `choose_success` under the displayed hypotheses. -/
+/-- For a nonzero input polynomial and ordered endpoints, `choose` returns a nonroot strictly inside the middle half. Each resulting interval has length at most three quarters of the original length. -/
 theorem choose_success {D : ℕ} (a : Fin (D+1) → ℤ) (ha : qpoly a≠0)
     (left right : ℚ) (hab : left<right) :
     ∃ v,choose a left right=some v ∧ numerator a v≠0 ∧
@@ -183,7 +183,7 @@ open ActualYunContentSupply
 /-- Construction for lift in the sturm model. -/
 def lift (a : List ℤ) : List ℚ := a.map (fun z : ℤ => (z : ℚ))
 
-/-- The finite construction in `Sturm` satisfies `lift_poly` under the displayed hypotheses. -/
+/-- The polynomial of the rational lift of an integer list equals its integer-coefficient polynomial interpreted over the rationals. -/
 theorem lift_poly (a : List ℤ) : poly (lift a)=integerPolyQ a := castArray_poly a
 
 /-- The same emitted instruction list satisfies `canonical_of_degree_length` with the displayed gate and query accounting. -/
@@ -206,18 +206,18 @@ theorem canonical_of_degree_length (a : List ℚ) (ha : poly a≠0)
     change trim (a++[x])=a++[x]
     simp [trim,hx]
 
-/-- The finite construction in `Sturm` satisfies `primitive_lift_nonzero` under the displayed hypotheses. -/
+/-- Taking the primitive integer list and lifting it back to rationals preserves polynomial nonzeroness. -/
 theorem primitive_lift_nonzero (a : List ℚ) (ha : poly a≠0) :
     poly (lift (primitive a))≠0 := by
   rw [lift_poly,primitive_polynomialQ a ha]
   exact mul_ne_zero (Polynomial.C_ne_zero.mpr (primitiveScale_pos a ha).ne') ha
 
-/-- The finite construction in `Sturm` satisfies `primitive_lift_degree` under the displayed hypotheses. -/
+/-- For a nonzero rational polynomial, its lifted primitive coefficient list represents a polynomial of the same natural degree. -/
 theorem primitive_lift_degree (a : List ℚ) (ha : poly a≠0) :
     (poly (lift (primitive a))).natDegree=(poly a).natDegree := by
   rw [lift_poly,primitive_polynomialQ a ha,Polynomial.natDegree_C_mul (primitiveScale_pos a ha).ne']
 
-/-- The finite construction in `Sturm` satisfies `primitive_lift_canonical` under the displayed hypotheses. -/
+/-- If `a` represents a nonzero polynomial, the rational lift of its primitive integer coefficients is fixed by `trim`. -/
 theorem primitive_lift_canonical (a : List ℚ) (ha : poly a≠0) :
     Canonical (lift (primitive a)) := by
   have ht : trim a≠[] := (canonical_nonzero _ (trim_canonical a)).mpr (by rw [trim_poly]; exact ha)
@@ -226,7 +226,7 @@ theorem primitive_lift_canonical (a : List ℚ) (ha : poly a≠0) :
     primitive_length,canonical_length _ (trim_canonical a) ht,trim_poly,
     primitive_lift_degree a ha]
 
-/-- The finite construction in `Sturm` satisfies `poly_neg` under the displayed hypotheses. -/
+/-- Negating every rational coefficient negates the represented polynomial. -/
 theorem poly_neg (a : List ℚ) : poly (a.map (fun x : ℚ => -x))= -poly a := by
   ext i
   rw [ActualYunRationalArray.coeff,Polynomial.coeff_neg,ActualYunRationalArray.coeff]
@@ -239,7 +239,7 @@ namespace ActualSturmInitialization
 open Polynomial ActualYunInitial ActualYunStep ActualYunRationalArray ActualYunRationalCanonical
 open ActualYunGcd ActualYunArrayInitialization ActualYunPrimitive ActualSturmArrayTools
 
-/-- The finite construction in `Sturm` satisfies `coprime_scale_right` under the displayed hypotheses. -/
+/-- Multiplying the right member of a coprime polynomial pair by a nonzero rational constant preserves coprimality. -/
 theorem coprime_scale_right (F G : ℚ[X]) (s : ℚ) (hs : s≠0)
     (h : IsCoprime F G) : IsCoprime F (C s*G) := by
   obtain ⟨u,v,h⟩ := h
@@ -259,7 +259,7 @@ def initialChain (a : List ℚ) : Option (List (List ℤ)) :=
       if f.length<2 then some [] else
         some [f,primitive (derivative (lift f))]
 
-/-- The finite construction in `Sturm` satisfies `initialization_success` under the displayed hypotheses. -/
+/-- For a canonical nonzero input of positive degree, initialization returns two canonical lifts. The first represents a separable polynomial of positive degree at most the input degree, and the second is a nonzero positive rational multiple of its derivative and coprime to it. -/
 theorem initialization_success (a : List ℚ) (hcan : Canonical a) (ha : poly a≠0)
     (hd : 0<(poly a).natDegree) :
     ∃ f g,initialChain a=some [f,g] ∧ Canonical (lift f) ∧ Canonical (lift g) ∧
@@ -349,7 +349,7 @@ def step (a b : List ℤ) : Option Next :=
   | some (_,r) => if r=[] then some Next.done else
       some (Next.more (primitive (r.map (fun x : ℚ => -x))))
 
-/-- The finite construction in `Sturm` satisfies `coprime_scale_right` under the displayed hypotheses. -/
+/-- If `F` and `G` are coprime and `s` is nonzero, `F` is coprime to the polynomial `C s * G`. -/
 theorem coprime_scale_right (F G : ℚ[X]) (s : ℚ) (hs : s≠0)
     (h : IsCoprime F G) : IsCoprime F (C s*G) := by
   obtain ⟨u,v,h⟩ := h
@@ -368,7 +368,10 @@ def Good (a b : List ℤ) : Next → Prop
         (integerPolyQ a).eval₂ (Rat.castHom ℝ) x*
           (integerPolyQ c).eval₂ (Rat.castHom ℝ) x<0
 
-/-- The finite construction in `Sturm` satisfies `step_success` under the displayed hypotheses. -/
+/-- If `b` has a canonical lift and represents a nonzero polynomial coprime to that of `a`,
+the step returns a `Good a b` outcome. It either stops with `b` of degree zero or returns a
+shorter canonical array for a nonzero positive multiple of the negative remainder, coprime
+to `b` and opposite in sign to `a` at every real zero of `b`. -/
 theorem step_success (a b : List ℤ) (hbcan : Canonical (lift b)) (hbn : integerPolyQ b≠0)
     (hcop : IsCoprime (integerPolyQ a) (integerPolyQ b)) :
     ∃ result,step a b=some result ∧ Good a b result := by
@@ -472,7 +475,7 @@ def run : ℕ → List ℤ → List ℤ → Option (List (List ℤ))
     | some Next.done => some [a,b]
     | some (Next.more c) => (run fuel b c).map (fun rest => a::rest)
 
-/-- The finite construction in `Sturm` satisfies `run_success` under the displayed hypotheses. -/
+/-- For canonical nonzero coprime inputs with `b.length < a.length`, fuel at least `b.length` returns a chain starting with `a`, `b` and satisfying `ChainGood`. -/
 theorem run_success (fuel : ℕ) (a b : List ℤ) (hac : Canonical (lift a))
     (hbc : Canonical (lift b)) (han : integerPolyQ a≠0) (hbn : integerPolyQ b≠0)
     (hcop : IsCoprime (integerPolyQ a) (integerPolyQ b)) (hlen : b.length<a.length)
@@ -508,7 +511,7 @@ def sourceChain (a : List ℚ) : Option (List (List ℤ)) :=
   | some [f,g] => run g.length f g
   | some _ => none
 
-/-- The finite construction in `Sturm` satisfies `source_chain_success` under the displayed hypotheses. -/
+/-- A canonical nonzero input of positive degree yields a good chain whose first polynomial is separable of positive degree and whose second is a positive rational multiple of its derivative. -/
 theorem source_chain_success (a : List ℚ) (hcan : Canonical a) (ha : poly a≠0)
     (hd : 0<(poly a).natDegree) :
     ∃ f g xs,sourceChain a=some (f::g::xs) ∧ ChainGood (f::g::xs) ∧
@@ -539,7 +542,7 @@ open Polynomial ActualYunInitial ActualYunStep ActualYunRationalArray ActualYunR
 open ActualYunGcd ActualYunArrayInitialization ActualYunPrimitive ActualSturmArrayTools
 open ActualSturmInitialization ActualSturmChain
 
-/-- The finite construction in `Sturm` satisfies `radical_real_roots` under the displayed hypotheses. -/
+/-- For a nonzero real polynomial of positive degree, the quotient by its gcd with its derivative has exactly the same real zeros. -/
 theorem radical_real_roots (F : ℝ[X]) (hF : F≠0) (hd : 0<F.natDegree) (x : ℝ) :
     (F/gcd F F.derivative).eval x=0 ↔ F.eval x=0 := by
   classical
@@ -572,7 +575,7 @@ theorem radical_real_roots (F : ℝ[X]) (hF : F≠0) (hd : 0<F.natDegree) (x : �
     rw [hdroot] at hle
     omega
 
-/-- The finite construction in `Sturm` satisfies `gcdQ_map_real` under the displayed hypotheses. -/
+/-- Mapping the rational gcd to real coefficients gives the gcd of the two coefficientwise casts. -/
 theorem gcdQ_map_real (P Q : ℚ[X]) :
     (gcdQ P Q).map (Rat.castHom ℝ)=gcd (P.map (Rat.castHom ℝ)) (Q.map (Rat.castHom ℝ)) := by
   classical
@@ -580,7 +583,7 @@ theorem gcdQ_map_real (P Q : ℚ[X]) :
   rw [Polynomial.map_normalize,← Polynomial.gcd_map]
   exact normalized_euclidean_eq_gcd _ _
 
-/-- The finite construction in `Sturm` satisfies `quotient_real_roots` under the displayed hypotheses. -/
+/-- For a nonzero rational polynomial of positive degree, division by its normalized gcd with its derivative preserves vanishing at every real argument. -/
 theorem quotient_real_roots (P : ℚ[X]) (hP : P≠0) (hd : 0<P.natDegree) (x : ℝ) :
     (P/gcdQ P P.derivative).eval₂ (Rat.castHom ℝ) x=0 ↔ P.eval₂ (Rat.castHom ℝ) x=0 := by
   have hm : (P.map (Rat.castHom ℝ))≠0 := Polynomial.map_ne_zero hP
@@ -591,7 +594,7 @@ theorem quotient_real_roots (P : ℚ[X]) (hP : P≠0) (hd : 0<P.natDegree) (x : 
     ← Polynomial.eval_map]
   exact radical_real_roots _ hm hdeg x
 
-/-- The finite construction in `Sturm` satisfies `initialized_real_roots` under the displayed hypotheses. -/
+/-- For canonical nonzero input of positive degree, the first polynomial of any returned initial pair vanishes at precisely the real zeros of the input. -/
 theorem initialized_real_roots (a : List ℚ) (hcan : Canonical a) (ha : poly a≠0)
     (hd : 0<(poly a).natDegree) (f g : List ℤ) (hinit : initialChain a=some [f,g]) :
     ∀ x : ℝ,(integerPolyQ f).eval₂ (Rat.castHom ℝ) x=0 ↔ (poly a).eval₂ (Rat.castHom ℝ) x=0 := by
@@ -637,20 +640,20 @@ def signs : List ℝ → List Bool
 /-- Construction for variation in the sturm model. -/
 def variation (xs : List ℝ) : ℕ := flips (signs xs)
 
-/-- The finite construction in `Sturm` satisfies `variation_zero` under the displayed hypotheses. -/
+/-- An initial zero does not contribute to the sign-variation count. -/
 theorem variation_zero (xs : List ℝ) : variation (0::xs)=variation xs := by
   simp [variation,signs]
 
-/-- The finite construction in `Sturm` satisfies `variation_singleton` under the displayed hypotheses. -/
+/-- A list consisting of a single real number has no sign changes. -/
 theorem variation_singleton (x : ℝ) : variation [x]=0 := by
   by_cases hx : x=0 <;> simp [variation,signs,hx,flips]
 
-/-- The finite construction in `Sturm` satisfies `variation_pair` under the displayed hypotheses. -/
+/-- With nonzero first two values, the variation count is that of the tail beginning at `b`, plus one precisely when `a` and `b` have opposite signs. -/
 theorem variation_pair (a b : ℝ) (xs : List ℝ) (ha : a≠0) (hb : b≠0) :
     variation (a::b::xs)=(if decide (0<a)=decide (0<b) then 0 else 1)+variation (b::xs) := by
   simp only [variation,signs,ite_eq_right ha,ite_eq_right hb,flips]
 
-/-- The finite construction in `Sturm` satisfies `variation_opposite` under the displayed hypotheses. -/
+/-- If `a` and `c` have opposite signs, the three values `a`, `b`, `c` contribute one sign change regardless of `b`, in addition to the count for `c :: xs`. -/
 theorem variation_opposite (a b c : ℝ) (xs : List ℝ) (hac : a*c<0) :
     variation (a::b::c::xs)=1+variation (c::xs) := by
   rcases mul_neg_iff.mp hac with ⟨ha,hc⟩ | ⟨ha,hc⟩
@@ -677,7 +680,7 @@ def integerSigns : List ℤ → List Bool
 /-- Construction for integer Variation in the sturm model. -/
 def integerVariation (xs : List ℤ) : ℕ := flips (integerSigns xs)
 
-/-- The finite construction in `Sturm` satisfies `integer_cast_variation` under the displayed hypotheses. -/
+/-- Casting the integer list to reals preserves its sign-variation count. -/
 theorem integer_cast_variation (xs : List ℤ) :
     variation (xs.map (fun z : ℤ => (z : ℝ)))=integerVariation xs := by
   have hsigns : signs (xs.map (fun z : ℤ => (z : ℝ)))=integerSigns xs := by
@@ -703,11 +706,11 @@ open scoped Topology
 /-- Construction for V in the sturm model. -/
 def V (chain : List (List ℤ)) (x : ℝ) : ℕ := variation (chain.map (fun a => value a x))
 
-/-- The finite construction in `Sturm` satisfies `continuous_value` under the displayed hypotheses. -/
+/-- Evaluating the rational polynomial represented by an integer coefficient list is continuous as a function of the real argument. -/
 theorem continuous_value (a : List ℤ) : Continuous (value a) :=
   (integerPolyQ a).continuous_eval₂ (Rat.castHom ℝ)
 
-/-- The finite construction in `Sturm` satisfies `sign_eventually` under the displayed hypotheses. -/
+/-- Near a point where `value a` is nonzero, its evaluation stays nonzero and its positivity test stays constant. -/
 theorem sign_eventually (a : List ℤ) (x : ℝ) (hx : value a x≠0) :
     ∀ᶠ y in 𝓝 x,(decide (0<value a y)=decide (0<value a x)) ∧ value a y≠0 := by
   by_cases hp : 0<value a x
@@ -721,7 +724,7 @@ theorem sign_eventually (a : List ℤ) (x : ℝ) (hx : value a x≠0) :
     filter_upwards [hh] with y hy
     exact ⟨by simp [hp,not_lt.mpr hy.le],ne_of_lt hy⟩
 
-/-- The finite construction in `Sturm` satisfies `constant_value_nonzero` under the displayed hypotheses. -/
+/-- A nonzero polynomial of natural degree zero evaluates to a nonzero value at every real argument. -/
 theorem constant_value_nonzero (a : List ℤ) (ha : integerPolyQ a≠0)
     (hd : (integerPolyQ a).natDegree=0) (x : ℝ) : value a x≠0 := by
   have hc : (integerPolyQ a).coeff 0≠0 := by
@@ -732,7 +735,7 @@ theorem constant_value_nonzero (a : List ℤ) (ha : integerPolyQ a≠0)
   change (((integerPolyQ a).coeff 0 : ℚ) : ℝ)≠0
   exact_mod_cast hc
 
-/-- The finite construction in `Sturm` satisfies `variation_eventually_eq` under the displayed hypotheses. -/
+/-- For a good chain, the sign-variation count is locally constant at any point where its first polynomial does not vanish. -/
 theorem variation_eventually_eq (a : List ℤ) (tail : List (List ℤ))
     (hg : ChainGood (a::tail)) (x : ℝ) (hx : value a x≠0) :
     ∀ᶠ y in 𝓝 x,V (a::tail) y=V (a::tail) x := by
@@ -783,11 +786,11 @@ def state (a : List ℤ) (v : ℚ) : GaussianIntegerFraction :=
 /-- Construction for numerator in the sturm model. -/
 def numerator (a : List ℤ) (v : ℚ) : ℤ := (state a v).numerator.1
 
-/-- The finite construction in `Sturm` satisfies `denominator_pos` under the displayed hypotheses. -/
+/-- The denominator in the integer Horner state is positive at every rational argument. -/
 theorem denominator_pos (a : List ℤ) (v : ℚ) : 0<(state a v).denominator :=
   rootCompactHorner_denominator_pos _ _ _ (rootSharedDenominator_pos (v,0))
 
-/-- The finite construction in `Sturm` satisfies `numerator_value` under the displayed hypotheses. -/
+/-- Dividing the Horner numerator by its state denominator over the reals gives the polynomial evaluation at the rational input. -/
 theorem numerator_value (a : List ℤ) (v : ℚ) :
     (numerator a v : ℝ)/((state a v).denominator : ℝ)=value a (v : ℝ) := by
   have heval : gaussianPointValue (state a v)=((integerPolyQ a).eval v : ℚ) := by
@@ -812,7 +815,7 @@ theorem numerator_value (a : List ℤ) (v : ℚ) :
   rw [hval]
   simpa [gaussianPointValue,numerator] using hr
 
-/-- The finite construction in `Sturm` satisfies `numerator_zero_iff` under the displayed hypotheses. -/
+/-- The integer Horner numerator vanishes exactly when the polynomial vanishes at the rational argument viewed as a real number. -/
 theorem numerator_zero_iff (a : List ℤ) (v : ℚ) : numerator a v=0 ↔ value a (v : ℝ)=0 := by
   have hd : ((state a v).denominator : ℝ)≠0 := by exact_mod_cast (denominator_pos a v).ne'
   rw [← numerator_value a v,div_eq_zero_iff]
@@ -820,7 +823,7 @@ theorem numerator_zero_iff (a : List ℤ) (v : ℚ) : numerator a v=0 ↔ value 
   · intro h; left; exact_mod_cast h
   · intro h; exact_mod_cast (h.resolve_right hd)
 
-/-- The finite construction in `Sturm` satisfies `numerator_positive_iff` under the displayed hypotheses. -/
+/-- The integer Horner numerator is positive exactly when the real polynomial evaluation at the rational input is positive. -/
 theorem numerator_positive_iff (a : List ℤ) (v : ℚ) : 0<numerator a v ↔ 0<value a (v : ℝ) := by
   have hd : (0 : ℝ)<(state a v).denominator := by exact_mod_cast denominator_pos a v
   rw [← numerator_value a v]
@@ -835,7 +838,7 @@ theorem numerator_positive_iff (a : List ℤ) (v : ℚ) : 0<numerator a v ↔ 0<
 def sourceVariation (chain : List (List ℤ)) (v : ℚ) : ℕ :=
   integerVariation (chain.map (fun a => numerator a v))
 
-/-- The finite construction in `Sturm` satisfies `source_variation_value` under the displayed hypotheses. -/
+/-- Counting sign variations from the integer numerators gives the same count as evaluating every chain polynomial over the reals and counting its sign variations. -/
 theorem source_variation_value (chain : List (List ℤ)) (v : ℚ) :
     sourceVariation chain v=variation (chain.map (fun a => value a (v : ℝ))) := by
   have hsigns : integerSigns (chain.map (fun a => numerator a v))=
@@ -861,7 +864,7 @@ namespace ActualSturmRootCrossing
 open Polynomial Filter ActualYunPrimitive ActualSturmChain ActualSturmVariations ActualSturmLocalVariation
 open scoped Topology
 
-/-- The finite construction in `Sturm` satisfies `pair_negative` under the displayed hypotheses. -/
+/-- If the first two real values have negative product, they contribute one sign change in addition to the count for the tail beginning at `b`. -/
 theorem pair_negative (a b : ℝ) (xs : List ℝ) (hab : a*b<0) :
     variation (a::b::xs)=1+variation (b::xs) := by
   have han : a≠0 := (mul_ne_zero_iff.mp (ne_of_lt hab)).1
@@ -871,7 +874,7 @@ theorem pair_negative (a b : ℝ) (xs : List ℝ) (hab : a*b<0) :
   · simp [ha,not_lt.mpr hb.le]
   · simp [not_lt.mpr ha.le,hb]
 
-/-- The finite construction in `Sturm` satisfies `pair_positive` under the displayed hypotheses. -/
+/-- A positive product of the first two real values leaves the sign-variation count equal to that of the tail beginning at `b`. -/
 theorem pair_positive (a b : ℝ) (xs : List ℝ) (hab : 0<a*b) :
     variation (a::b::xs)=variation (b::xs) := by
   have han : a≠0 := (mul_ne_zero_iff.mp (ne_of_gt hab)).1
@@ -881,7 +884,7 @@ theorem pair_positive (a b : ℝ) (xs : List ℝ) (hab : 0<a*b) :
   · simp [ha,hb]
   · simp [not_lt.mpr ha.le,not_lt.mpr hb.le]
 
-/-- The finite construction in `Sturm` satisfies `root_crossing` under the displayed hypotheses. -/
+/-- Near a zero `x` of the head of a good chain, when the second polynomial is a positive multiple of its derivative, the variation equals the tail count at `x` plus one exactly to the left of `x`. -/
 theorem root_crossing (a b : List ℤ) (tail : List (List ℤ))
     (hg : ChainGood (a::b::tail)) (s : ℚ) (hs : 0<s)
     (hderiv : integerPolyQ b=C s*(integerPolyQ a).derivative)
@@ -958,7 +961,7 @@ open scoped Topology
 /-- Construction for left Count in the sturm model. -/
 def leftCount (s : Finset ℝ) (x : ℝ) : ℕ := (s.filter (fun r => r≤x)).card
 
-/-- The finite construction in `Sturm` satisfies `finite_order_stable` under the displayed hypotheses. -/
+/-- If `x` lies outside a finite set of real numbers, then for all `y` sufficiently near `x`, every member of the set is at most `y` exactly when it is at most `x`. -/
 theorem finite_order_stable (s : Finset ℝ) (x : ℝ) (hne : ∀ r∈s,r≠x) :
     ∀ᶠ y in 𝓝 x,∀ r∈s,(r≤y ↔ r≤x) := by
   classical
@@ -1070,7 +1073,7 @@ open scoped Topology
 def realRoots (a : List ℤ) : Finset ℝ :=
   ((integerPolyQ a).map (Rat.castHom ℝ)).roots.toFinset
 
-/-- The finite construction in `Sturm` satisfies `realRoots_mem` under the displayed hypotheses. -/
+/-- For a nonzero polynomial, membership in its real root finset is equivalent to vanishing at the given real argument. -/
 theorem realRoots_mem (a : List ℤ) (ha : integerPolyQ a≠0) (x : ℝ) :
     x∈realRoots a ↔ value a x=0 := by
   unfold realRoots
@@ -1206,10 +1209,10 @@ def zipLoop (xs : List ℤ) : ℕ :=
 
 /-- Construction for tag in the sturm model. -/
 def tag (b : Bool) : ℤ := if b then 1 else -1
-/-- The finite construction in `Sturm` satisfies `tag_injective` under the displayed hypotheses. -/
+/-- The integer signs `1` and `-1` distinguish the two Boolean values under `tag`. -/
 theorem tag_injective : Function.Injective tag := by decide +kernel
 
-/-- The finite construction in `Sturm` satisfies `signed_tags` under the displayed hypotheses. -/
+/-- Removing zeros and encoding each integer sign as `1` or `-1` gives the list of tags of `integerSigns xs`. -/
 theorem signed_tags (xs : List ℤ) : signed xs=(integerSigns xs).map tag := by
   induction xs with
   | nil => rfl
@@ -1219,7 +1222,7 @@ theorem signed_tags (xs : List ℤ) : signed xs=(integerSigns xs).map tag := by
       simp [signed,integerSigns,ih]
     · by_cases hp : 0<x <;> simp [signed,integerSigns,hz,hp,ih,tag]
 
-/-- The finite construction in `Sturm` satisfies `zipLoop_tags` under the displayed hypotheses. -/
+/-- The adjacent-pair loop on integer tags counts exactly the Boolean flips of the original list. -/
 theorem zipLoop_tags (xs : List Bool) : zipLoop (xs.map tag)=flips xs := by
   induction xs using List.twoStepInduction with
   | nil => rfl
@@ -1233,7 +1236,7 @@ theorem zipLoop_tags (xs : List Bool) : zipLoop (xs.map tag)=flips xs := by
 def literalSourceVariation (chain : List (List ℤ)) (v : ℚ) : ℕ :=
   zipLoop (signed (chain.map (fun a => numerator a v)))
 
-/-- The finite construction in `Sturm` satisfies `literal_variation_eq` under the displayed hypotheses. -/
+/-- The literal adjacent-pair loop computes the same sign-variation count as `sourceVariation` for every chain and rational input. -/
 theorem literal_variation_eq (chain : List (List ℤ)) (v : ℚ) :
     literalSourceVariation chain v=sourceVariation chain v := by
   rw [literalSourceVariation,signed_tags,zipLoop_tags]
@@ -1262,13 +1265,13 @@ open Polynomial
 open scoped NNReal
 open Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays
 
-/-- The finite construction in `Sturm` satisfies `max_seed` under the displayed hypotheses. -/
+/-- Folding maximum over a rational list produces a value at least as large as the starting value. -/
 theorem max_seed (xs : List ℚ) (s : ℚ) : s≤xs.foldl max s := by
   induction xs generalizing s with
   | nil => rfl
   | cons x xs ih => exact (le_max_left s x).trans (ih (max s x))
 
-/-- The finite construction in `Sturm` satisfies `max_member` under the displayed hypotheses. -/
+/-- Every member of the rational list is bounded above by the maximum folded from `s`. -/
 theorem max_member (xs : List ℚ) (s x : ℚ) (hx : x∈xs) : x≤xs.foldl max s := by
   induction xs generalizing s with
   | nil => simp at hx
@@ -1286,7 +1289,7 @@ def sourceCeil (q : ℚ) : ℤ := (q.num+(q.den : ℤ)-1)/(q.den : ℤ)
 /-- Construction for bound in the sturm model. -/
 def bound {d : ℕ} (a : Fin (d+1) → ℤ) : ℤ := 2+sourceCeil (ratio a)
 
-/-- The finite construction in `Sturm` satisfies `sourceCeil_upper` under the displayed hypotheses. -/
+/-- Every rational `q` is bounded above by the rational cast of the integer returned by `sourceCeil q`. -/
 theorem sourceCeil_upper (q : ℚ) : q≤(sourceCeil q : ℚ) := by
   have hdZ : (0 : ℤ)<q.den := by exact_mod_cast q.den_pos
   have hm := Int.emod_lt_of_pos (q.num+(q.den : ℤ)-1) hdZ
@@ -1298,15 +1301,15 @@ theorem sourceCeil_upper (q : ℚ) : q≤(sourceCeil q : ℚ) := by
   apply (div_le_iff₀ hdQ).mpr
   exact_mod_cast hn
 
-/-- The finite construction in `Sturm` satisfies `ratio_nonnegative` under the displayed hypotheses. -/
+/-- The coefficient-ratio maximum `ratio a` is nonnegative because its initial value is zero. -/
 theorem ratio_nonnegative {d : ℕ} (a : Fin (d+1) → ℤ) : 0≤ratio a := max_seed _ _
 
-/-- The finite construction in `Sturm` satisfies `ratio_member` under the displayed hypotheses. -/
+/-- Each absolute lower coefficient divided by the absolute final coefficient is at most `ratio a`. -/
 theorem ratio_member {d : ℕ} (a : Fin (d+1) → ℤ) (i : Fin d) :
     ((a i.castSucc).natAbs : ℚ)/((a (Fin.last d)).natAbs : ℚ)≤ratio a :=
   max_member _ 0 _ (List.mem_ofFn.mpr ⟨i,rfl⟩)
 
-/-- The finite construction in `Sturm` satisfies `int_norm` under the displayed hypotheses. -/
+/-- The complex norm of a cast integer equals its natural absolute value viewed as a real number. -/
 theorem int_norm (z : ℤ) : ‖(z : ℂ)‖=(z.natAbs : ℝ) := by
   simp only [Complex.norm_intCast,Nat.cast_natAbs,Int.cast_abs]
 
@@ -1369,7 +1372,7 @@ theorem source_bound_roots {d : ℕ} (a : Fin (d+1) → ℤ) (ha : a (Fin.last d
     linarith
   exact hroot.trans hb
 
-/-- The finite construction in `Sturm` satisfies `source_endpoints_nonzero` under the displayed hypotheses. -/
+/-- If the final coefficient is nonzero, neither `bound a` nor its negative is a complex zero of the integer input polynomial. -/
 theorem source_endpoints_nonzero {d : ℕ} (a : Fin (d+1) → ℤ) (ha : a (Fin.last d)≠0) :
     (rootIntegerPolynomial a).eval (bound a : ℂ)≠0 ∧
       (rootIntegerPolynomial a).eval (-(bound a : ℂ))≠0 := by
@@ -1401,14 +1404,14 @@ def listRatio (f : List ℤ) : ℚ :=
 /-- Construction for list Bound in the sturm model. -/
 def listBound (f : List ℤ) : ℤ := 2+sourceCeil (listRatio f)
 
-/-- The finite construction in `Sturm` satisfies `ofFn_last` under the displayed hypotheses. -/
+/-- Looking up the last position of `List.ofFn a` gives the coefficient at `Fin.last d`. -/
 theorem ofFn_last {d : ℕ} (a : Fin (d+1) → ℤ) :
     (List.ofFn a).getD ((List.ofFn a).length-1) 0=a (Fin.last d) := by
   simp only [List.length_ofFn,Nat.add_sub_cancel,List.getD_eq_getElem?_getD,
     List.getElem?_ofFn,dite_eq_left (Nat.lt_succ_self d),Option.getD_some]
   rfl
 
-/-- The finite construction in `Sturm` satisfies `listRatio_ofFn` under the displayed hypotheses. -/
+/-- The list-based coefficient-ratio calculation agrees with the vector-based calculation on `List.ofFn a`. -/
 theorem listRatio_ofFn {d : ℕ} (a : Fin (d+1) → ℤ) : listRatio (List.ofFn a)=ratio a := by
   have hd : (List.ofFn a).dropLast=List.ofFn (fun i : Fin d => a i.castSucc) := by
     rw [List.ofFn_succ']
@@ -1421,7 +1424,7 @@ theorem listBound_ofFn {d : ℕ} (a : Fin (d+1) → ℤ) : listBound (List.ofFn 
   rw [listBound,listRatio_ofFn]
   rfl
 
-/-- The finite construction in `Sturm` satisfies `coefficient_input` under the displayed hypotheses. -/
+/-- An integer list with nonzero zero-default lookup at its last index can be written as `List.ofFn` of a coefficient vector with nonzero final entry. -/
 theorem coefficient_input (f : List ℤ) (htop : f.getD (f.length-1) 0≠0) :
     ∃ (d : ℕ) (a : Fin (d+1) → ℤ),List.ofFn a=f ∧ a (Fin.last d)≠0 := by
   cases f with
@@ -1435,7 +1438,7 @@ theorem coefficient_input (f : List ℤ) (htop : f.getD (f.length-1) 0≠0) :
     rw [← hh]
     exact htop
 
-/-- The finite construction in `Sturm` satisfies `canonical_top` under the displayed hypotheses. -/
+/-- If the lift of `f` is canonical and its polynomial is nonzero, the last coefficient of `f` is nonzero. -/
 theorem canonical_top (f : List ℤ) (hcan : Canonical (lift f)) (hn : integerPolyQ f≠0) :
     f.getD (f.length-1) 0≠0 := by
   have hne : lift f≠[] := (canonical_nonzero _ hcan).mpr (by rw [lift_poly]; exact hn)
@@ -1459,7 +1462,7 @@ theorem list_bound_roots (f : List ℤ) (htop : f.getD (f.length-1) 0≠0)
   rw [hb] at hh
   exact hh hz
 
-/-- The finite construction in `Sturm` satisfies `list_endpoints` under the displayed hypotheses. -/
+/-- A list with nonzero last coefficient has positive `listBound`, and neither that bound nor its negative is a complex zero of the represented polynomial. -/
 theorem list_endpoints (f : List ℤ) (htop : f.getD (f.length-1) 0≠0) :
     0<listBound f ∧ (rootIntegerListPolynomial f).eval (listBound f : ℂ)≠0 ∧
       (rootIntegerListPolynomial f).eval (-(listBound f : ℂ))≠0 := by
@@ -1485,7 +1488,7 @@ open Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays
 def evaluate (f : List ℤ) (x : ℚ) : ℚ :=
   (lift f).reverse.foldl (fun acc c => acc*x+c) 0
 
-/-- The finite construction in `Sturm` satisfies `evaluate_from` under the displayed hypotheses. -/
+/-- Horner evaluation of the reversed coefficient list from `seed` equals the polynomial evaluation plus `seed * x^a.length`. -/
 theorem evaluate_from (a : List ℚ) (x seed : ℚ) :
     a.reverse.foldl (fun acc c => acc*x+c) seed=(poly a).eval x+seed*x^a.length := by
   induction a generalizing seed with
@@ -1496,11 +1499,11 @@ theorem evaluate_from (a : List ℚ) (x seed : ℚ) :
       List.length_cons,pow_succ]
     ring
 
-/-- The finite construction in `Sturm` satisfies `evaluate_value` under the displayed hypotheses. -/
+/-- The rational Horner evaluator on an integer list returns the value of its rational polynomial. -/
 theorem evaluate_value (f : List ℤ) (x : ℚ) : evaluate f x=(integerPolyQ f).eval x := by
   rw [evaluate,evaluate_from,zero_mul,add_zero,lift_poly]
 
-/-- The finite construction in `Sturm` satisfies `rational_value_complex` under the displayed hypotheses. -/
+/-- At a rational argument the complex polynomial's evaluation equals the cast of the rational Horner value. -/
 theorem rational_value_complex (f : List ℤ) (x : ℚ) :
     (rootIntegerListPolynomial f).eval (x : ℂ)=(evaluate f x : ℂ) := by
   rw [evaluate_value]
@@ -1508,7 +1511,7 @@ theorem rational_value_complex (f : List ℤ) (x : ℚ) :
   rw [integerPolyQ_map] at hh
   exact hh
 
-/-- The finite construction in `Sturm` satisfies `real_value_complex` under the displayed hypotheses. -/
+/-- At a real argument the complex polynomial's evaluation equals the cast of the real evaluation `value f x`. -/
 theorem real_value_complex (f : List ℤ) (x : ℝ) :
     (rootIntegerListPolynomial f).eval (x : ℂ)=(value f x : ℂ) := by
   let P := (integerPolyQ f).map (Rat.castHom ℝ)
@@ -1520,7 +1523,7 @@ theorem real_value_complex (f : List ℤ) (x : ℝ) :
   rw [hm] at hh
   simpa [P,Polynomial.eval_map,value] using hh
 
-/-- The finite construction in `Sturm` satisfies `computed_initial_queue` under the displayed hypotheses. -/
+/-- For a canonical nonzero input of positive degree, the returned good chain has exactly the input's real roots in its head. The positive bound from that head encloses all those roots strictly, both endpoints are nonroots, and the endpoint variation difference equals the number of distinct roots. -/
 theorem computed_initial_queue (a : List ℚ) (hcan : Canonical a) (ha : poly a≠0)
     (hd : 0<(poly a).natDegree) :
     ∃ f g xs,sourceChain a=some (f::g::xs) ∧ ChainGood (f::g::xs) ∧
@@ -1608,7 +1611,7 @@ open ActualSturmVariationLoop ActualSturmChain
 def rootsIn (S : Finset ℝ) (a b : ℚ) : Finset ℝ :=
   S.filter (fun r => (a : ℝ)<r ∧ r<(b : ℝ))
 
-/-- The finite construction in `Sturm` satisfies `root_partition` under the displayed hypotheses. -/
+/-- Splitting at a strict interior point `c` outside `S` partitions the members of `S` in `(a, b)` into two disjoint sets in `(a, c)` and `(c, b)`. -/
 theorem root_partition (S : Finset ℝ) (a c b : ℚ) (hac : a<c) (hcb : c<b) (hc : (c : ℝ)∉S) :
     rootsIn S a b=rootsIn S a c∪rootsIn S c b ∧ Disjoint (rootsIn S a c) (rootsIn S c b) := by
   classical
@@ -1651,7 +1654,7 @@ def delta (chain : List (List ℤ)) (a b : ℚ) : ℤ :=
 def split (chain : List (List ℤ)) (b : Box) (c : ℚ) : Box×Box :=
   (⟨b.left,c,delta chain b.left c⟩,⟨c,b.right,b.count-delta chain b.left c⟩)
 
-/-- The finite construction in `Sturm` satisfies `split_good` under the displayed hypotheses. -/
+/-- Given a good box, an interior nonroot cut, and a correct variation count for its left piece, both split boxes are good with nonnegative counts whose sum is the original count. -/
 theorem split_good (S : Finset ℝ) (chain : List (List ℤ)) (b : Box) (c : ℚ)
     (hb : GoodBox S b) (hac : b.left<c) (hcb : c<b.right) (hc : (c : ℝ)∉S)
     (hleft : delta chain b.left c=((rootsIn S b.left c).card : ℤ)) :
@@ -1676,7 +1679,7 @@ theorem split_good (S : Finset ℝ) (chain : List (List ℤ)) (b : Box) (c : ℚ
   · change b.count=delta chain b.left c+(b.count-delta chain b.left c)
     omega
 
-/-- The finite construction in `Sturm` satisfies `input_mem_rational` under the displayed hypotheses. -/
+/-- For a nonzero input polynomial, a rational `c` lies in the real root finset exactly when the rational evaluation at `c` is zero. -/
 theorem input_mem_rational (a : List ℚ) (ha : poly a≠0) (c : ℚ) :
     (c : ℝ)∈inputRoots a ↔ (poly a).eval c=0 := by
   unfold inputRoots
@@ -1688,7 +1691,7 @@ theorem input_mem_rational (a : List ℚ) (ha : poly a≠0) (c : ℚ) :
   rw [hv]
   constructor <;> intro h <;> exact_mod_cast h
 
-/-- The finite construction in `Sturm` satisfies `computed_split` under the displayed hypotheses. -/
+/-- For canonical nonzero input of positive degree, a good box split at an interior nonroot using the returned source chain yields two good boxes with nonnegative counts adding to the original count. -/
 theorem computed_split (a : List ℚ) (hcan : Canonical a) (ha : poly a≠0)
     (hd : 0<(poly a).natDegree) (b : Box) (hb : GoodBox (inputRoots a) b)
     (c : ℚ) (hac : b.left<c) (hcb : c<b.right) (hc : (c : ℝ)∉inputRoots a) :
@@ -1725,7 +1728,7 @@ def pick (f : List ℤ) : List ℚ → Option ℚ
 /-- Construction for choose in the sturm model. -/
 def choose (f : List ℤ) (left right : ℚ) : Option ℚ := pick f (cuts f left right)
 
-/-- The finite construction in `Sturm` satisfies `cuts_ofFn` under the displayed hypotheses. -/
+/-- On a list made from a `Fin (d + 1)` coefficient vector, `cuts` enumerates the same candidates as the vector-based search. -/
 theorem cuts_ofFn {d : ℕ} (a : Fin (d+1) → ℤ) (left right : ℚ) :
     cuts (List.ofFn a) left right=List.ofFn (ActualSturmCutSearch.candidate d left right) := by
   simp only [cuts,List.length_ofFn,Nat.cast_add,Nat.cast_one]
@@ -1735,7 +1738,7 @@ theorem cuts_ofFn {d : ℕ} (a : Fin (d+1) → ℤ) (left right : ℚ) :
   funext i
   simp only [ActualSturmCutSearch.candidate,Nat.cast_add,Nat.cast_one,Fin.val_cast]
 
-/-- The finite construction in `Sturm` satisfies `pick_ofFn` under the displayed hypotheses. -/
+/-- With coefficients supplied as `List.ofFn a`, the list-based picker agrees with scanning the same candidates using `a`. -/
 theorem pick_ofFn {d : ℕ} (a : Fin (d+1) → ℤ) (vs : List ℚ) :
     pick (List.ofFn a) vs=ActualSturmCutSearch.scan a vs := by
   induction vs with
@@ -1746,13 +1749,13 @@ theorem pick_ofFn {d : ℕ} (a : Fin (d+1) → ℤ) (vs : List ℚ) :
     have hn : numerator (List.ofFn a) v=ActualSturmCutSearch.numerator a v := rfl
     rw [hn,ih]
 
-/-- The finite construction in `Sturm` satisfies `choose_ofFn` under the displayed hypotheses. -/
+/-- Choosing a cut with the list `List.ofFn a` agrees with the vector-based cut search on `a`. -/
 theorem choose_ofFn {d : ℕ} (a : Fin (d+1) → ℤ) (left right : ℚ) :
     choose (List.ofFn a) left right=ActualSturmCutSearch.choose a left right := by
   rw [choose,cuts_ofFn,pick_ofFn]
   rfl
 
-/-- The finite construction in `Sturm` satisfies `choose_success` under the displayed hypotheses. -/
+/-- With a nonzero integer polynomial and ordered endpoints, the chooser returns a point strictly inside the middle half with nonzero numerator and evaluation. Both pieces have length at most three quarters of the original. -/
 theorem choose_success (f : List ℤ) (hn : integerPolyQ f≠0) (left right : ℚ) (hab : left<right) :
     ∃ v,choose f left right=some v ∧ numerator f v≠0 ∧ (integerPolyQ f).eval v≠0 ∧
       left+(right-left)/4<v ∧ v<left+3*(right-left)/4 ∧
@@ -1799,7 +1802,7 @@ def prepare (a : List ℚ) : Option (List (List ℤ)×Box) :=
       some (f::tail,initialBox (f::tail) f)
   | _ => none
 
-/-- The finite construction in `Sturm` satisfies `prepare_success` under the displayed hypotheses. -/
+/-- For canonical nonzero input of positive degree, preparation returns a good source chain and good initial box. The zeros of the chain head are precisely the input's real roots. -/
 theorem prepare_success (a : List ℚ) (hcan : Canonical a) (ha : poly a≠0)
     (hd : 0<(poly a).natDegree) :
     ∃ f g xs,sourceChain a=some (f::g::xs) ∧
@@ -1842,7 +1845,7 @@ theorem prepare_success (a : List ℚ) (hcan : Canonical a) (ha : poly a≠0)
 def advance (chain : List (List ℤ)) (f : List ℤ) (b : Box) : Option (Box×Box) :=
   (ActualSturmCutInput.choose f b.left b.right).map (fun c => split chain b c)
 
-/-- The finite construction in `Sturm` satisfies `advance_success` under the displayed hypotheses. -/
+/-- For canonical nonzero positive-degree input and a returned source chain whose nonzero head has the input's real zeros, advancing a good box chooses a cut and returns two good boxes. Their nonnegative counts sum to the original, and each width is at most three quarters of the original width. -/
 theorem advance_success (a : List ℚ) (hcan : Canonical a) (ha : poly a≠0)
     (hd : 0<(poly a).natDegree) (f : List ℤ) (tail : List (List ℤ))
     (hsource : sourceChain a=some (f::tail)) (hfn : integerPolyQ f≠0)
@@ -1879,13 +1882,13 @@ open ActualSturmQueueSplit
 def distances (S : Finset ℝ) : Finset ℝ :=
   ((S.product S).filter (fun p => p.1≠p.2)).image (fun p => |p.1-p.2|)
 
-/-- The finite construction in `Sturm` satisfies `distance_member` under the displayed hypotheses. -/
+/-- The absolute distance between distinct members of `S` belongs to its finset of pairwise distances. -/
 theorem distance_member (S : Finset ℝ) (x y : ℝ) (hx : x∈S) (hy : y∈S) (hne : x≠y) :
     |x-y|∈distances S := by
   classical
   exact Finset.mem_image.mpr ⟨(x,y),Finset.mem_filter.mpr ⟨Finset.mem_product.mpr ⟨hx,hy⟩,hne⟩,rfl⟩
 
-/-- The finite construction in `Sturm` satisfies `exists_gap` under the displayed hypotheses. -/
+/-- Every finite real set admits a positive lower bound on the absolute distance between any two distinct members. -/
 theorem exists_gap (S : Finset ℝ) :
     ∃ gap : ℝ,0<gap ∧ ∀ x∈S,∀ y∈S,x≠y → gap≤|x-y| := by
   classical
@@ -1917,7 +1920,7 @@ theorem small_box_count (S : Finset ℝ) (gap : ℝ)
   push_cast at hw
   linarith
 
-/-- The finite construction in `Sturm` satisfies `exists_small` under the displayed hypotheses. -/
+/-- A positive starting width `w` falls at or below any positive threshold `t` after some finite number of contractions by three quarters. -/
 theorem exists_small (t w : ℝ) (ht : 0<t) (hw : 0<w) :
     ∃ n : ℕ,w*(3/4 : ℝ)^n≤t := by
   obtain ⟨n,hn⟩ := exists_pow_lt_of_lt_one (div_pos ht hw) (by norm_num : (3/4 : ℝ)<1)
@@ -1929,25 +1932,25 @@ theorem exists_small (t w : ℝ) (ht : 0<t) (hw : 0<w) :
 noncomputable def rank (t : ℝ) (ht : 0<t) (w : ℝ) : ℕ :=
   if hw : 0<w then Nat.find (exists_small t w ht hw) else 0
 
-/-- The finite construction in `Sturm` satisfies `rank_spec` under the displayed hypotheses. -/
+/-- Contracting a positive width `w` by three quarters for `rank t ht w` steps gives a width at most `t`. -/
 theorem rank_spec (t : ℝ) (ht : 0<t) (w : ℝ) (hw : 0<w) :
     w*(3/4 : ℝ)^(rank t ht w)≤t := by
   rw [rank,dite_eq_left hw]
   exact Nat.find_spec (exists_small t w ht hw)
 
-/-- The finite construction in `Sturm` satisfies `rank_le` under the displayed hypotheses. -/
+/-- If `n` contractions by three quarters are enough to reach `t` from positive `w`, the rank for that threshold is at most `n`. -/
 theorem rank_le (t : ℝ) (ht : 0<t) (w : ℝ) (hw : 0<w) (n : ℕ)
     (hn : w*(3/4 : ℝ)^n≤t) : rank t ht w≤n := by
   rw [rank,dite_eq_left hw]
   exact Nat.find_min' (exists_small t w ht hw) hn
 
-/-- The finite construction in `Sturm` satisfies `rank_zero_small` under the displayed hypotheses. -/
+/-- A positive width of rank zero is already at or below the threshold `t`. -/
 theorem rank_zero_small (t : ℝ) (ht : 0<t) (w : ℝ) (hw : 0<w) (hz : rank t ht w=0) : w≤t := by
   have hh := rank_spec t ht w hw
   rw [hz,pow_zero,mul_one] at hh
   exact hh
 
-/-- The finite construction in `Sturm` satisfies `rank_contract` under the displayed hypotheses. -/
+/-- If positive `w` has positive rank and positive `u` is at most three quarters of `w`, the rank of `u` is strictly smaller. -/
 theorem rank_contract (t : ℝ) (ht : 0<t) (w u : ℝ) (hw : 0<w) (hu : 0<u)
     (hc : u≤(3/4 : ℝ)*w) (hn : 0<rank t ht w) : rank t ht u<rank t ht w := by
   let n := rank t ht w
@@ -1968,14 +1971,14 @@ theorem rank_contract (t : ℝ) (ht : 0<t) (w u : ℝ) (hw : 0<w) (hu : 0<u)
 /-- Construction for weight in the sturm model. -/
 def weight (n : ℕ) : ℕ := 2^(n+1)-1
 
-/-- The finite construction in `Sturm` satisfies `weight_positive` under the displayed hypotheses. -/
+/-- The weight `2^(n + 1) - 1` is positive for every natural rank `n`. -/
 theorem weight_positive (n : ℕ) : 0<weight n := by
   have hh : 0<2^n := Nat.pow_pos (by decide)
   dsimp only [weight]
   rw [pow_succ]
   omega
 
-/-- The finite construction in `Sturm` satisfies `weight_children` under the displayed hypotheses. -/
+/-- The sum of the weights of any two ranks strictly below `n` is less than the weight of `n`. -/
 theorem weight_children (n a b : ℕ) (ha : a<n) (hb : b<n) : weight a+weight b<weight n := by
   have hpa : 2^(a+1)≤2^n := Nat.pow_le_pow_right (by decide) (by omega)
   have hpb : 2^(b+1)≤2^n := Nat.pow_le_pow_right (by decide) (by omega)
@@ -2000,12 +2003,12 @@ def boxWeight (t : ℝ) (ht : 0<t) (b : Box) : ℕ := weight (rank t ht (width b
 def potential (t : ℝ) (ht : 0<t) (bs : List Box) : ℕ :=
   (bs.map (boxWeight t ht)).sum
 
-/-- The finite construction in `Sturm` satisfies `width_positive` under the displayed hypotheses. -/
+/-- A good box has positive width because its right endpoint exceeds its left endpoint. -/
 theorem width_positive (S : Finset ℝ) (b : Box) (hb : GoodBox S b) : 0<width b := by
   dsimp only [width]
   exact_mod_cast sub_pos.mpr hb.1
 
-/-- The finite construction in `Sturm` satisfies `rank_positive_of_branch` under the displayed hypotheses. -/
+/-- If `t` is positive, at most half a lower bound on root spacing, and at most the target width, a good box that must split has positive rank. Its count is nonzero and it fails the one-root stopping test. -/
 theorem rank_positive_of_branch (S : Finset ℝ) (gap target t : ℝ)
     (ht : 0<t) (htg : t≤gap/2) (htt : t≤target)
     (hsep : ∀ x∈S,∀ y∈S,x≠y → gap≤|x-y|)
@@ -2018,7 +2021,7 @@ theorem rank_positive_of_branch (S : Finset ℝ) (gap target t : ℝ)
   have hcount : b.count=1 := by rw [hb.2.2.2] at hz ⊢; omega
   exact hbranch ⟨hcount,hw.trans htt⟩
 
-/-- The finite construction in `Sturm` satisfies `split_potential` under the displayed hypotheses. -/
+/-- For good boxes, replacing a positive-rank parent by two children each at most three quarters as wide strictly decreases the queue potential. -/
 theorem split_potential (S : Finset ℝ) (t : ℝ) (ht : 0<t) (b l r : Box)
     (hb : GoodBox S b) (hl : GoodBox S l) (hr : GoodBox S r)
     (hbl : width l≤(3/4 : ℝ)*width b) (hbr : width r≤(3/4 : ℝ)*width b)
@@ -2032,7 +2035,7 @@ theorem split_potential (S : Finset ℝ) (t : ℝ) (ht : 0<t) (b l r : Box)
   simp only [potential,List.map_cons,List.sum_cons,boxWeight]
   omega
 
-/-- The finite construction in `Sturm` satisfies `pop_potential` under the displayed hypotheses. -/
+/-- Popping the first box strictly decreases the queue potential because that box has positive weight. -/
 theorem pop_potential (t : ℝ) (ht : 0<t) (b : Box) (bs : List Box) :
     potential t ht bs<potential t ht (b::bs) := by
   have hh := weight_positive (rank t ht (width b))
@@ -2066,7 +2069,7 @@ def StepGood (S : Finset ℝ) (chain : List (List ℤ)) (f : List ℤ) : Prop :=
     GoodBox S l ∧ GoodBox S r ∧
     width l≤(3/4 : ℝ)*width b ∧ width r≤(3/4 : ℝ)*width b
 
-/-- The finite construction in `Sturm` satisfies `core_terminates` under the displayed hypotheses. -/
+/-- With a correct contracting split for each good box and a positive threshold bounded by half the root gap and by the target width, fuel at least the potential of the good pending boxes suffices for `core` to return an interval list. -/
 theorem core_terminates (S : Finset ℝ) (chain : List (List ℤ)) (f : List ℤ)
     (target : ℚ) (gap t : ℝ) (ht : 0<t) (htg : t≤gap/2) (htt : t≤(target : ℝ))
     (hsep : ∀ x∈S,∀ y∈S,x≠y → gap≤|x-y|) (hstep : StepGood S chain f)
@@ -2114,7 +2117,7 @@ theorem core_terminates (S : Finset ℝ) (chain : List (List ℤ)) (f : List ℤ
           obtain ⟨result,hresult⟩ := ih (r::l::bs) done hgnew hnew
           exact ⟨result,by simp only [core,ite_eq_right hz,ite_eq_right hleaf,had]; exact hresult⟩
 
-/-- The finite construction in `Sturm` satisfies `original_step_good` under the displayed hypotheses. -/
+/-- For canonical nonzero input of positive degree, a returned source chain whose nonzero head has the input's real roots satisfies `StepGood`. Every good box can be advanced to good children with widths at most three quarters of the parent's width. -/
 theorem original_step_good (a : List ℚ) (hcan : Canonical a) (ha : poly a≠0)
     (hd : 0<(poly a).natDegree) (f : List ℤ) (tail : List (List ℤ))
     (hsource : sourceChain a=some (f::tail)) (hfn : integerPolyQ f≠0)
@@ -2137,7 +2140,7 @@ def run (a : List ℚ) (target : ℚ) (fuel : ℕ) : Option (List (ℚ×ℚ)) :=
   | some ([],_) => none
   | some (f::tail,b) => core (f::tail) f target fuel [b] []
 
-/-- The finite construction in `Sturm` satisfies `original_run_terminates` under the displayed hypotheses. -/
+/-- On canonical nonzero input of positive degree, every positive target width admits fuel for which the isolation run returns a list. -/
 theorem original_run_terminates (a : List ℚ) (hcan : Canonical a) (ha : poly a≠0)
     (hd : 0<(poly a).natDegree) (target : ℚ) (htarget : 0<target) :
     ∃ fuel result,run a target fuel=some result := by
@@ -2172,11 +2175,11 @@ noncomputable def hit (p : ℚ×ℚ) (x : ℝ) : ℕ := if (p.1 : ℝ)<x ∧ x<(
 /-- Construction for hits in the sturm model. -/
 noncomputable def hits (ps : List (ℚ×ℚ)) (x : ℝ) : ℕ := (ps.map (fun p => hit p x)).sum
 
-/-- The finite construction in `Sturm` satisfies `hits_cons` under the displayed hypotheses. -/
+/-- Prepending an interval adds its hit at `x` to the hit count of the original list. -/
 theorem hits_cons (p : ℚ×ℚ) (ps : List (ℚ×ℚ)) (x : ℝ) :
     hits (p::ps) x=hit p x+hits ps x := rfl
 
-/-- The finite construction in `Sturm` satisfies `hits_append` under the displayed hypotheses. -/
+/-- The hit count of the concatenated interval lists is the sum of their hit counts at `x`. -/
 theorem hits_append (ps qs : List (ℚ×ℚ)) (x : ℝ) :
     hits (ps++qs) x=hits ps x+hits qs x := by
   simp only [hits,List.map_append,List.sum_append]
@@ -2196,7 +2199,7 @@ def CorrectStep (S : Finset ℝ) (chain : List (List ℤ)) (f : List ℤ) : Prop
     GoodBox S l ∧ GoodBox S r ∧
     ∀ x∈S,hit (endpoints b) x=hit (endpoints l) x+hit (endpoints r) x
 
-/-- The finite construction in `Sturm` satisfies `zero_hit` under the displayed hypotheses. -/
+/-- No member of `S` hits the open interval of a good box whose count is zero. -/
 theorem zero_hit (S : Finset ℝ) (b : Box) (hb : GoodBox S b) (hz : b.count=0)
     (x : ℝ) (hx : x∈S) : hit (endpoints b) x=0 := by
   classical
@@ -2208,7 +2211,7 @@ theorem zero_hit (S : Finset ℝ) (b : Box) (hb : GoodBox S b) (hz : b.count=0)
     simp at hmem
   exact ite_eq_right hn
 
-/-- The finite construction in `Sturm` satisfies `split_hit` under the displayed hypotheses. -/
+/-- For an interior cut outside `S`, the hit of any `x` in `S` on the parent box equals the sum of its hits on the two split boxes. -/
 theorem split_hit (S : Finset ℝ) (chain : List (List ℤ)) (b : Box) (c : ℚ)
     (hac : b.left<c) (hcb : c<b.right) (hc : (c : ℝ)∉S) (x : ℝ) (hx : x∈S) :
     hit (endpoints b) x=hit (endpoints (split chain b c).1) x+
@@ -2233,7 +2236,7 @@ theorem split_hit (S : Finset ℝ) (chain : List (List ℤ)) (b : Box) (c : ℚ)
     · have hp : ¬((b.left : ℝ)<x ∧ x<(b.right : ℝ)) := fun hp => (he.mp hp).elim hl hr
       simp only [ite_eq_right hp,ite_eq_right hl,ite_eq_right hr]
 
-/-- The finite construction in `Sturm` satisfies `original_correct_step` under the displayed hypotheses. -/
+/-- For canonical nonzero input of positive degree and a returned source chain whose nonzero head has the input's real zeros, `CorrectStep` holds. Every successful advance of a good box returns good children and preserves the hit total of each input root. -/
 theorem original_correct_step (a : List ℚ) (hcan : Canonical a) (ha : poly a≠0)
     (hd : 0<(poly a).natDegree) (f : List ℤ) (tail : List (List ℤ))
     (hsource : sourceChain a=some (f::tail)) (hfn : integerPolyQ f≠0)
@@ -2254,7 +2257,7 @@ theorem original_correct_step (a : List ℚ) (hcan : Canonical a) (ha : poly a�
     exact hnum ((ActualSturmHornerSign.numerator_zero_iff f c).mpr ((hroots _).mp hm))
   exact ⟨hl,hr,fun x hx => split_hit _ _ _ _ hcl hcr hcS x hx⟩
 
-/-- The finite construction in `Sturm` satisfies `core_correct` under the displayed hypotheses. -/
+/-- With correct splits, good pending boxes, good finished intervals and one initial hit per root across both lists, a successful core run returns only good intervals and retains one hit per root. -/
 theorem core_correct (S : Finset ℝ) (chain : List (List ℤ)) (f : List ℤ) (target : ℚ)
     (hstep : CorrectStep S chain f) (fuel : ℕ) (bs : List Box) (done result : List (ℚ×ℚ))
     (hgood : ∀ b∈bs,GoodBox S b) (hdone : ∀ p∈done,GoodInterval S target p)
@@ -2338,16 +2341,16 @@ def Apart (p q : ℚ×ℚ) : Prop := p.2≤q.1 ∨ q.2≤p.1
 /-- Construction for Within in the sturm model. -/
 def Within (p q : ℚ×ℚ) : Prop := q.1≤p.1 ∧ p.2≤q.2
 
-/-- The finite construction in `Sturm` satisfies `apart_symm` under the displayed hypotheses. -/
+/-- If two intervals are apart in one order, they are apart in the reverse order. -/
 theorem apart_symm {p q : ℚ×ℚ} (h : Apart p q) : Apart q p := h.symm
 
-/-- The finite construction in `Sturm` satisfies `apart_sub` under the displayed hypotheses. -/
+/-- An interval `q` within `p` is apart from `z` whenever `p` is apart from `z`. -/
 theorem apart_sub {p q z : ℚ×ℚ} (h : Apart p z) (hp : Within q p) : Apart q z := by
   rcases h with h|h
   · exact Or.inl (hp.2.trans h)
   · exact Or.inr (h.trans hp.1)
 
-/-- The finite construction in `Sturm` satisfies `separated_split` under the displayed hypotheses. -/
+/-- Replacing `p` by two mutually apart intervals within it preserves pairwise apartness from each other and from the remaining intervals. -/
 theorem separated_split (p l r : ℚ×ℚ) (ps : List (ℚ×ℚ))
     (h : (p::ps).Pairwise Apart) (hl : Within l p) (hr : Within r p) (hlr : Apart r l) :
     (r::l::ps).Pairwise Apart := by
@@ -2360,7 +2363,7 @@ theorem separated_split (p l r : ℚ×ℚ) (ps : List (ℚ×ℚ))
     · exact apart_sub (hp z hz) hr
   · exact List.pairwise_cons.mpr ⟨fun z hz => apart_sub (hp z hz) hl,hps⟩
 
-/-- The finite construction in `Sturm` satisfies `separated_accept` under the displayed hypotheses. -/
+/-- Moving the front pending interval to the end of the finished list preserves pairwise apartness of the combined list. -/
 theorem separated_accept (p : ℚ×ℚ) (ps done : List (ℚ×ℚ))
     (h : (p::(ps++done)).Pairwise Apart) : (ps++(done++[p])).Pairwise Apart := by
   obtain ⟨hp,htail⟩ := List.pairwise_cons.mp h
@@ -2379,7 +2382,7 @@ def ShapeStep (S : Finset ℝ) (chain : List (List ℤ)) (f : List ℤ) : Prop :
     Within (endpoints l) (endpoints b) ∧ Within (endpoints r) (endpoints b) ∧
     Apart (endpoints r) (endpoints l)
 
-/-- The finite construction in `Sturm` satisfies `actual_shape_step` under the displayed hypotheses. -/
+/-- If `f` represents a nonzero polynomial, every successful advance of a good box returns two boxes within the parent whose intervals are apart. -/
 theorem actual_shape_step (S : Finset ℝ) (chain : List (List ℤ)) (f : List ℤ)
     (hfn : integerPolyQ f≠0) : ShapeStep S chain f := by
   intro b hb l r had
@@ -2392,7 +2395,7 @@ theorem actual_shape_step (S : Finset ℝ) (chain : List (List ℤ)) (f : List �
   have hcr : c≤b.right := by linarith [hb.1]
   exact ⟨⟨le_refl _,hcr⟩,⟨hcl,le_refl _⟩,Or.inr (le_refl _)⟩
 
-/-- The finite construction in `Sturm` satisfies `core_separated` under the displayed hypotheses. -/
+/-- With correct, geometrically valid splits and pairwise apart starting intervals from good pending boxes and the finished list, a successful core run returns pairwise apart intervals. -/
 theorem core_separated (S : Finset ℝ) (chain : List (List ℤ)) (f : List ℤ) (target : ℚ)
     (hstep : CorrectStep S chain f) (hshape : ShapeStep S chain f)
     (fuel : ℕ) (bs : List Box) (done result : List (ℚ×ℚ))
@@ -2458,7 +2461,7 @@ def lexCompare (p q : ℚ×ℚ) : Bool := decide (LexLE p q)
 /-- Construction for sort in the sturm model. -/
 def sort (ps : List (ℚ×ℚ)) : List (ℚ×ℚ) := ps.mergeSort lexCompare
 
-/-- The finite construction in `Sturm` satisfies `lex_trans` under the displayed hypotheses. -/
+/-- The lexicographic endpoint relation is transitive on rational endpoint pairs. -/
 theorem lex_trans (p q r : ℚ×ℚ) (hp : LexLE p q) (hq : LexLE q r) : LexLE p r := by
   rcases hp with hp|⟨hp,hp'⟩ <;> rcases hq with hq|⟨hq,hq'⟩
   · exact Or.inl (hp.trans hq)
@@ -2466,7 +2469,7 @@ theorem lex_trans (p q r : ℚ×ℚ) (hp : LexLE p q) (hq : LexLE q r) : LexLE p
   · exact Or.inl (by linarith)
   · exact Or.inr ⟨hp.trans hq,hp'.trans hq'⟩
 
-/-- The finite construction in `Sturm` satisfies `lex_total` under the displayed hypotheses. -/
+/-- Any two rational endpoint pairs are comparable in the lexicographic endpoint order. -/
 theorem lex_total (p q : ℚ×ℚ) : LexLE p q ∨ LexLE q p := by
   rcases lt_trichotomy p.1 q.1 with h|h|h
   · exact Or.inl (Or.inl h)
@@ -2475,7 +2478,7 @@ theorem lex_total (p q : ℚ×ℚ) : LexLE p q ∨ LexLE q p := by
     · exact Or.inr (Or.inr ⟨h.symm,hh⟩)
   · exact Or.inr (Or.inl h)
 
-/-- The finite construction in `Sturm` satisfies `lex_antisymm` under the displayed hypotheses. -/
+/-- Rational endpoint pairs that are lexicographically at most one another have equal endpoints. -/
 theorem lex_antisymm (p q : ℚ×ℚ) (hp : LexLE p q) (hq : LexLE q p) : p=q := by
   rcases hp with hp|⟨hp,hp'⟩ <;> rcases hq with hq|⟨hq,hq'⟩
   · exact (lt_asymm hp hq).elim
@@ -2483,10 +2486,10 @@ theorem lex_antisymm (p q : ℚ×ℚ) (hp : LexLE p q) (hq : LexLE q p) : p=q :=
   · exact (by linarith : False).elim
   · exact Prod.ext hp (le_antisymm hp' hq')
 
-/-- The finite construction in `Sturm` satisfies `sort_perm` under the displayed hypotheses. -/
+/-- Sorting the interval list permutes its entries, preserving multiplicities. -/
 theorem sort_perm (ps : List (ℚ×ℚ)) : (sort ps).Perm ps := List.mergeSort_perm _ _
 
-/-- The finite construction in `Sturm` satisfies `sort_ordered` under the displayed hypotheses. -/
+/-- The sorted list is pairwise nondecreasing in the lexicographic order of its endpoint pairs. -/
 theorem sort_ordered (ps : List (ℚ×ℚ)) : (sort ps).Pairwise LexLE := by
   classical
   have htrans : ∀ p q r,lexCompare p q → lexCompare q r → lexCompare p r := by
@@ -2504,13 +2507,13 @@ theorem sort_ordered (ps : List (ℚ×ℚ)) : (sort ps).Pairwise LexLE := by
   have hh := List.pairwise_mergeSort htrans htotal ps
   simpa [sort,lexCompare,decide_eq_true_eq] using hh
 
-/-- The finite construction in `Sturm` satisfies `canonical_sorted_value` under the displayed hypotheses. -/
+/-- Every lexicographically ordered permutation of `ps` equals `sort ps`. -/
 theorem canonical_sorted_value (ps qs : List (ℚ×ℚ)) (hp : qs.Perm ps) (hs : qs.Pairwise LexLE) :
     qs=sort ps :=
   List.Perm.eq_of_pairwise (fun p q _ _ => lex_antisymm p q) hs (sort_ordered ps)
     (hp.trans (sort_perm ps).symm)
 
-/-- The finite construction in `Sturm` satisfies `sort_preserves` under the displayed hypotheses. -/
+/-- Sorting preserves goodness of every interval, one hit per root and pairwise apartness, and orders the result lexicographically. -/
 theorem sort_preserves (S : Finset ℝ) (target : ℚ) (ps : List (ℚ×ℚ))
     (hgood : ∀ p∈ps,GoodInterval S target p) (hcover : ∀ x∈S,hits ps x=1)
     (hsep : ps.Pairwise Apart) :
@@ -2535,14 +2538,14 @@ open ActualYunPrimitive
 /-- Construction for source Width in the sturm model. -/
 def sourceWidth (bits : ℕ) : ℚ := 1/(2 : ℚ)^bits
 
-/-- The finite construction in `Sturm` satisfies `sourceWidth_positive` under the displayed hypotheses. -/
+/-- The target width `sourceWidth bits` is strictly positive at every natural precision `bits`. -/
 theorem sourceWidth_positive (bits : ℕ) : 0<sourceWidth bits := by dsimp only [sourceWidth]; positivity
 
 /-- Construction for intervals in the sturm model. -/
 def intervals (a : List ℚ) (bits fuel : ℕ) : Option (List (ℚ×ℚ)) :=
   (run a (sourceWidth bits) fuel).map sort
 
-/-- The finite construction in `Sturm` satisfies `initial_covered` under the displayed hypotheses. -/
+/-- For canonical nonzero input of positive degree, each real input root has one hit in the initial box of the returned source chain with an empty finished list. -/
 theorem initial_covered (a : List ℚ) (hcan : Canonical a) (ha : poly a≠0)
     (hd : 0<(poly a).natDegree) (f : List ℤ) (tail : List (List ℤ))
     (hsource : sourceChain a=some (f::tail)) :
@@ -2559,7 +2562,7 @@ theorem initial_covered (a : List ℚ) (hcan : Canonical a) (ha : poly a≠0)
   change hit (endpoints (initialBox (f::tail) f)) x+0+0=1
   rw [hp]
 
-/-- The finite construction in `Sturm` satisfies `computed_isolation` under the displayed hypotheses. -/
+/-- For canonical nonzero input of positive degree and any precision, some fuel returns lexicographically ordered, pairwise apart intervals. Each has width at most `sourceWidth bits` and exactly one real root with nonroot endpoints, and every real root is hit once. -/
 theorem computed_isolation (a : List ℚ) (hcan : Canonical a) (ha : poly a≠0)
     (hd : 0<(poly a).natDegree) (bits : ℕ) :
     ∃ fuel result,intervals a bits fuel=some result ∧

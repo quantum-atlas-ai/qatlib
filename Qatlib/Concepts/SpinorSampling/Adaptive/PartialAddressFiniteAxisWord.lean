@@ -46,7 +46,7 @@ inductive Gate where
 /-- Construction for half Root in the partial address finite axis word model. -/
 def halfRoot : ℝ := Real.sqrt 2/2
 
-/-- Complete original `half_square` guarantee for `PartialAddressFiniteAxisWord`; all source hypotheses and output obligations are retained. -/
+/-- The real gate coefficient `sqrt 2 / 2` has square one half. -/
 theorem half_square : halfRoot^2=1/2 := by
   unfold halfRoot
   nlinarith [Real.sq_sqrt (by norm_num : (0 : ℝ) ≤ 2)]
@@ -63,14 +63,15 @@ def wordAxis : List Gate → Fin 3 → ℝ
   | [] => ![0,0,1]
   | g::gs => rotate g (wordAxis gs)
 
-/-- Complete original `rotate_norm` guarantee for `PartialAddressFiniteAxisWord`; all source hypotheses and output obligations are retained. -/
+/-- Each gate's Bloch-axis rotation preserves the squared Euclidean norm of every real
+three-vector. -/
 theorem rotate_norm (g : Gate) (a : Fin 3 → ℝ) : dot (rotate g a) (rotate g a)=dot a a := by
   cases g <;> simp [rotate,dot,Fin.sum_univ_succ]
   · ring
   · linear_combination 2*((a 0)^2+(a 1)^2)*half_square
   · linear_combination 2*((a 0)^2+(a 1)^2)*half_square
 
-/-- Complete original `word_axis_unit` guarantee for `PartialAddressFiniteAxisWord`; all source hypotheses and output obligations are retained. -/
+/-- The measurement axis of every finite gate word has unit length. -/
 theorem word_axis_unit (gs : List Gate) : dot (wordAxis gs) (wordAxis gs)=1 := by
   induction gs with
   | nil => simp [wordAxis,dot,Fin.sum_univ_succ]
@@ -81,7 +82,8 @@ def accepted (s : Fin 3 → ℝ) (τ : ℝ) (gs : List Gate) : Prop :=
   if length s=0 then wordAxis gs=wordAxis [] else
     0 ≤ dot s (wordAxis gs) ∧ (1-τ/64)^2*dot s s ≤ (dot s (wordAxis gs))^2
 
-/-- Complete original `accepted_overlap` guarantee for `PartialAddressFiniteAxisWord`; all source hypotheses and output obligations are retained. -/
+/-- At `0 < τ ≤ 1/2`, an accepted word has overlap deficit at most `τ/64` relative to the axis
+of `s`, including the default axis when `s` is zero. -/
 theorem accepted_overlap (s : Fin 3 → ℝ) (τ : ℝ) (gs : List Gate)
     (hτ0 : 0<τ) (hτ1 : τ ≤ 1/2) (hc : accepted s τ gs) :
     1-dot (axis s) (wordAxis gs) ≤ τ/64 := by
@@ -104,7 +106,9 @@ theorem accepted_overlap (s : Fin 3 → ℝ) (τ : ℝ) (gs : List Gate)
       le_of_mul_le_mul_left (by simpa only [mul_comm] using hscaled) hLp
     linarith
 
-/-- Complete original `accepted_axis_risk` guarantee for `PartialAddressFiniteAxisWord`; all source hypotheses and output obligations are retained. -/
+/-- For `r` of length at most one and `0 < τ ≤ 1/2`, an accepted word incurs minority risk at
+most eight times the length defect `(1 - length r)/2`, plus four times the squared estimation
+error and `τ/32`. -/
 theorem accepted_axis_risk (r s : Fin 3 → ℝ) (τ : ℝ) (gs : List Gate)
     (hr : length r ≤ 1) (hτ0 : 0<τ) (hτ1 : τ ≤ 1/2) (hc : accepted s τ gs) :
     (1-dot r (wordAxis gs))/2 ≤ 8*((1-length r)/2)+4*distSq s r+τ/32 := by
@@ -124,14 +128,15 @@ def runSpin : List Gate → (Bool → ℂ) → Bool → ℂ
   | [],u => u
   | g::gs,u => runSpin gs (spinStep g u)
 
-/-- Complete original `spin_step_mass` guarantee for `PartialAddressFiniteAxisWord`; all source hypotheses and output obligations are retained. -/
+/-- Applying one of the spin gates preserves the total squared amplitude norm of the spinor. -/
 theorem spin_step_mass (g : Gate) (u : Bool → ℂ) : qubitMass (spinStep g u)=qubitMass u := by
   cases g <;> simp [spinStep,qubitMass,Complex.normSq_apply,Complex.mul_re,Complex.mul_im]
   all_goals ring_nf
   all_goals rw [half_square]
   all_goals ring
 
-/-- Complete original `spin_step_dot` guarantee for `PartialAddressFiniteAxisWord`; all source hypotheses and output obligations are retained. -/
+/-- Taking a Bloch dot product against `a` after one spin gate equals taking it before the gate
+against the rotated measurement axis. -/
 theorem spin_step_dot (g : Gate) (u : Bool → ℂ) (a : Fin 3 → ℝ) :
     dot (qubitBloch (spinStep g u)) a=dot (qubitBloch u) (rotate g a) := by
   cases g <;> simp [dot,qubitBloch,pauliField,spinStep,rotate,Fin.sum_univ_succ,
@@ -140,20 +145,22 @@ theorem spin_step_dot (g : Gate) (u : Bool → ℂ) (a : Fin 3 → ℝ) :
   all_goals rw [half_square]
   all_goals ring
 
-/-- Complete original `run_spin_mass` guarantee for `PartialAddressFiniteAxisWord`; all source hypotheses and output obligations are retained. -/
+/-- Executing the entire gate list preserves spinor mass for arbitrary input amplitudes. -/
 theorem run_spin_mass (gs : List Gate) (u : Bool → ℂ) : qubitMass (runSpin gs u)=qubitMass u := by
   induction gs generalizing u with
   | nil => rfl
   | cons g gs ih => rw [runSpin,ih,spin_step_mass]
 
-/-- Complete original `run_spin_z` guarantee for `PartialAddressFiniteAxisWord`; all source hypotheses and output obligations are retained. -/
+/-- The output Z component of the spinor's Bloch vector is the input Bloch vector dotted with
+the word's measurement axis. -/
 theorem run_spin_z (gs : List Gate) (u : Bool → ℂ) :
     qubitBloch (runSpin gs u) 2=dot (qubitBloch u) (wordAxis gs) := by
   induction gs generalizing u with
   | nil => simp [runSpin,wordAxis,dot,Fin.sum_univ_succ]
   | cons g gs ih => rw [runSpin,ih,wordAxis,spin_step_dot]
 
-/-- Complete original `minority_probability` guarantee for `PartialAddressFiniteAxisWord`; all source hypotheses and output obligations are retained. -/
+/-- For unit-mass input, the probability of the true spin outcome after the word is half of one
+minus the input Bloch overlap with the word axis. -/
 theorem minority_probability (gs : List Gate) (u : Bool → ℂ) (hu : qubitMass u=1) :
     Complex.normSq (runSpin gs u true)=(1-dot (qubitBloch u) (wordAxis gs))/2 := by
   have hm := run_spin_mass gs u
@@ -170,7 +177,8 @@ def gateMatrix : Gate → Matrix Bool Bool ℂ
   | .t => tGate
   | .tdg => tGateAdj
 
-/-- Complete original `half_inv` guarantee for `PartialAddressFiniteAxisWord`; all source hypotheses and output obligations are retained. -/
+/-- The inverse of the complex cast of `sqrt 2` is the cast of the real gate coefficient
+`halfRoot`. -/
 theorem half_inv : (Real.sqrt 2 : ℂ)⁻¹=(halfRoot : ℂ) := by
   have hr : (Real.sqrt 2)⁻¹=halfRoot := by
     have hne : Real.sqrt 2 ≠ 0 := by positivity
@@ -179,7 +187,7 @@ theorem half_inv : (Real.sqrt 2 : ℂ)⁻¹=(halfRoot : ℂ) := by
     nlinarith [Real.sq_sqrt (by norm_num : (0 : ℝ) ≤ 2)]
   exact_mod_cast hr
 
-/-- Complete original `spin_step_matrix` guarantee for `PartialAddressFiniteAxisWord`; all source hypotheses and output obligations are retained. -/
+/-- Matrix application for each gate agrees pointwise with its explicit spinor update. -/
 theorem spin_step_matrix (g : Gate) (u : Bool → ℂ) : ApplyGate (gateMatrix g) u=spinStep g u := by
   have hp : Complex.exp (((Real.pi/4 : ℝ) : ℂ)*Complex.I)=
       (halfRoot : ℂ)+(halfRoot : ℂ)*Complex.I := by
@@ -211,12 +219,13 @@ def nativeGate (g : Gate) : NativeGate (Fin 2) :=
 def program (gs : List Gate) : Circuit (Reg 2) :=
   measurementProgram (gs.map (fun g => MeasurementGate.native (nativeGate g)))
 
-/-- Complete original `program_counts` guarantee for `PartialAddressFiniteAxisWord`; all source hypotheses and output obligations are retained. -/
+/-- The native spin program makes zero oracle queries and uses one gate per list element. -/
 theorem program_counts (gs : List Gate) : QueryCount (program gs)=0 ∧ GateCount (program gs)=gs.length := by
   simpa only [program,List.length_map] using
     measurement_program_counts (gs.map (fun g => MeasurementGate.native (nativeGate g)))
 
-/-- Complete original `wire_spin_edge` guarantee for `PartialAddressFiniteAxisWord`; all source hypotheses and output obligations are retained. -/
+/-- Applying an arbitrary matrix to the spin wire of an edge state acts by that same matrix on
+both endpoint spinors. -/
 theorem wire_spin_edge (U : Matrix Bool Bool ℂ) (u v : Bool → ℂ) :
     ApplyGate (wireGate 2 1 U) (edgeInput u v)=edgeInput (ApplyGate U u) (ApplyGate U v) := by
   funext x
@@ -228,7 +237,8 @@ theorem wire_spin_edge (U : Matrix Bool Bool ℂ) (u v : Bool → ℂ) :
   cases a <;> cases b <;>
     simp [g,pairEquiv,wireGate_apply,pairReg,edgeInput,ApplyGate,Matrix.mulVec,dotProduct] <;> ring
 
-/-- Complete original `native_spin_step` guarantee for `PartialAddressFiniteAxisWord`; all source hypotheses and output obligations are retained. -/
+/-- The native matrix of one spin gate realizes its spinor update simultaneously at both
+endpoints. -/
 theorem native_spin_step (g : Gate) (u v : Bool → ℂ) :
     ApplyGate (reflectionGateMatrix (nativeMatrix (nativeGate g))) (edgeInput u v)=
       edgeInput (spinStep g u) (spinStep g v) := by
@@ -236,7 +246,8 @@ theorem native_spin_step (g : Gate) (u v : Bool → ℂ) :
     cases g <;> rfl
   rw [hmat,wire_spin_edge,spin_step_matrix,spin_step_matrix]
 
-/-- Complete original `program_edge_run` guarantee for `PartialAddressFiniteAxisWord`; all source hypotheses and output obligations are retained. -/
+/-- Running the lifted spin word with the identity oracle on an edge state gives the edge state
+formed by applying that word to each endpoint spinor. -/
 theorem program_edge_run (gs : List Gate) (u v : Bool → ℂ) :
     Run (1 : Matrix (Reg 2) (Reg 2) ℂ) (program gs) (edgeInput u v)=
       edgeInput (runSpin gs u) (runSpin gs v) := by
@@ -255,7 +266,8 @@ def determinantFactor (g : Gate) : ℂ :=
   | .t => (halfRoot : ℂ)+(halfRoot : ℂ)*Complex.I
   | .tdg => (halfRoot : ℂ)-(halfRoot : ℂ)*Complex.I
 
-/-- Complete original `determinant_step` guarantee for `PartialAddressFiniteAxisWord`; all source hypotheses and output obligations are retained. -/
+/-- Applying the same spin gate to each endpoint multiplies their spinor determinant by the
+gate's determinant factor. -/
 theorem determinant_step (g : Gate) (u v : Bool → ℂ) :
     determinant (spinStep g u) (spinStep g v)=determinantFactor g*determinant u v := by
   have hc : (halfRoot : ℂ)^2=(1/2 : ℂ) := by
@@ -267,18 +279,19 @@ theorem determinant_step (g : Gate) (u v : Bool → ℂ) :
   all_goals rw [hc]
   all_goals ring
 
-/-- Complete original `determinant_factor_unit` guarantee for `PartialAddressFiniteAxisWord`; all source hypotheses and output obligations are retained. -/
+/-- Each gate's determinant factor has squared complex norm one. -/
 theorem determinant_factor_unit (g : Gate) : Complex.normSq (determinantFactor g)=1 := by
   cases g <;> simp [determinantFactor,Complex.normSq_apply]
   all_goals nlinarith [half_square]
 
-/-- Complete original `spin_step_bell` guarantee for `PartialAddressFiniteAxisWord`; all source hypotheses and output obligations are retained. -/
+/-- A common spin gate preserves the Bell probability of an arbitrary pair of endpoint spinors. -/
 theorem spin_step_bell (g : Gate) (u v : Bool → ℂ) :
     bellProbability (spinStep g u) (spinStep g v)=bellProbability u v := by
   unfold bellProbability
   rw [determinant_step,Complex.normSq_mul,determinant_factor_unit,one_mul]
 
-/-- Complete original `run_spin_bell` guarantee for `PartialAddressFiniteAxisWord`; all source hypotheses and output obligations are retained. -/
+/-- Applying the same finite spin word at both endpoints leaves their Bell probability
+unchanged. -/
 theorem run_spin_bell (gs : List Gate) (u v : Bool → ℂ) :
     bellProbability (runSpin gs u) (runSpin gs v)=bellProbability u v := by
   induction gs generalizing u v with

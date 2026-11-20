@@ -36,7 +36,8 @@ variable {S : Type} [Fintype S] [DecidableEq S] [Nonempty S]
 def occupiedSiteMass (n : ℕ) (x : S) : ℝ :=
   (cohortLaw (uniformLaw S) n).expect (fun J => if x∈occupiedSites J then 1 else 0)
 
-/-- Complete original `uniform_cohort_relabel_expect` guarantee for `DenseMatchedMoments`; all source hypotheses and output obligations are retained. -/
+/-- Applying a site permutation to every entry of a uniform cohort leaves the expectation of any
+real function of the array unchanged. -/
 theorem uniform_cohort_relabel_expect (n : ℕ) (σ : Equiv.Perm S) (f : (Fin n → S) → ℝ) :
     (cohortLaw (uniformLaw S) n).expect (fun J => f (σ ∘ J))=
       (cohortLaw (uniformLaw S) n).expect f := by
@@ -46,7 +47,7 @@ theorem uniform_cohort_relabel_expect (n : ℕ) (σ : Equiv.Perm S) (f : (Fin n 
   simp_rw [he,uniform_cohort_address_perm_invariant] at h
   exact h
 
-/-- Complete original `occupied_site_mass_constant` guarantee for `DenseMatchedMoments`; all source hypotheses and output obligations are retained. -/
+/-- Any two sites have the same probability of appearing at least once in `n` uniform draws. -/
 theorem occupied_site_mass_constant (n : ℕ) (x y : S) :
     occupiedSiteMass n x=occupiedSiteMass n y := by
   have h := uniform_cohort_relabel_expect n (Equiv.swap x y)
@@ -54,7 +55,8 @@ theorem occupied_site_mass_constant (n : ℕ) (x y : S) :
   simp only [occupied_sites_perm_mem,Equiv.symm_swap,Equiv.swap_apply_left] at h
   exact h.symm
 
-/-- Complete original `occupied_site_mass_formula` guarantee for `DenseMatchedMoments`; all source hypotheses and output obligations are retained. -/
+/-- The probability that a given site appears is the expected number of occupied sites divided
+by the site count. -/
 theorem occupied_site_mass_formula (n : ℕ) (x : S) :
     occupiedSiteMass n x=expectedOccupied (S:=S) n/(Fintype.card S : ℝ) := by
   have hcount (J : Fin n → S) : occupiedCount J=∑ y : S,if y∈occupiedSites J then (1 : ℝ) else 0 := by
@@ -73,7 +75,8 @@ theorem occupied_site_mass_formula (n : ℕ) (x : S) :
 def matchedAddressCount {n m : ℕ} (τ : S → S) (J : Fin n → S) (L : Fin m → S) : ℝ :=
   (matchedSites J L τ).card
 
-/-- Complete original `matched_address_mean` guarantee for `DenseMatchedMoments`; all source hypotheses and output obligations are retained. -/
+/-- For independent uniform cohorts, the expected number of occupied left sites with an occupied
+image under `τ` is the sum of the products of the two occupancy probabilities over left sites. -/
 theorem matched_address_mean (τ : S → S) (n m : ℕ) :
     (productLaw (cohortLaw (uniformLaw S) n) (cohortLaw (uniformLaw S) m)).expect
       (fun z => matchedAddressCount τ z.1 z.2)=
@@ -105,7 +108,8 @@ theorem matched_address_mean (τ : S → S) (n m : ℕ) :
   simp_rw [hf,finite_expect_mul]
   exact mul_comm _ _
 
-/-- Complete original `matched_dense_mean_lower` guarantee for `DenseMatchedMoments`; all source hypotheses and output obligations are retained. -/
+/-- If both uniform cohorts have as many draws as there are sites, the expected number of
+matched sites is at least one quarter of the site count for any site map `τ`. -/
 theorem matched_dense_mean_lower (τ : S → S) :
     (Fintype.card S : ℝ)/4≤
       (productLaw (cohortLaw (uniformLaw S) (Fintype.card S))
@@ -124,7 +128,8 @@ theorem matched_dense_mean_lower (τ : S → S) :
         mul_nonneg (sub_nonneg.mpr (hhalf x)) (sub_nonneg.mpr (hhalf (τ x)))]
 
 omit [Fintype S] [Nonempty S] in
-/-- Complete original `matched_count_left_coordinate` guarantee for `DenseMatchedMoments`; all source hypotheses and output obligations are retained. -/
+/-- Two left arrays that agree off a single index give matched-site counts that differ by at
+most one against the same right array and site map. -/
 theorem matched_count_left_coordinate {n m : ℕ} (τ : S → S)
     (J J' : Fin n → S) (L : Fin m → S) (i : Fin n)
     (h : ∀ j,j≠i → J j=J' j) :
@@ -151,7 +156,8 @@ theorem matched_count_left_coordinate {n m : ℕ} (τ : S → S)
   exact abs_le.mpr ⟨by linarith,by linarith⟩
 
 omit [Fintype S] [Nonempty S] in
-/-- Complete original `matched_count_swap` guarantee for `DenseMatchedMoments`; all source hypotheses and output obligations are retained. -/
+/-- Swapping the two site arrays and replacing the matching permutation by its inverse preserves
+the matched-site count. -/
 theorem matched_count_swap {n m : ℕ} (τ : Equiv.Perm S) (J : Fin n → S) (L : Fin m → S) :
     matchedAddressCount τ J L=matchedAddressCount τ.symm L J := by
   have hs : (matchedSites J L τ).image τ=matchedSites L J τ.symm := by
@@ -172,7 +178,8 @@ theorem matched_count_swap {n m : ℕ} (τ : Equiv.Perm S) (J : Fin n → S) (L 
   exact_mod_cast hc
 
 omit [Fintype S] [Nonempty S] in
-/-- Complete original `matched_count_right_coordinate` guarantee for `DenseMatchedMoments`; all source hypotheses and output obligations are retained. -/
+/-- With a permutation as the matching map, changing at most one entry of the right array
+changes the matched-site count by at most one. -/
 theorem matched_count_right_coordinate {n m : ℕ} (τ : Equiv.Perm S)
     (J : Fin n → S) (L L' : Fin m → S) (i : Fin m)
     (h : ∀ j,j≠i → L j=L' j) :

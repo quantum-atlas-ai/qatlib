@@ -59,7 +59,7 @@ variable {D : ℕ}
 variable {ι : Type*} [Fintype ι]
 
 /-- Finite-dimensional complex matrices on `D` modes.  Definitionally equal to the
-`Qatlib.Concepts.MbqcFlow.FlowDecision.Operator`; redeclared here
+`Qatlib.Foundations.PureStateMath.Operator`; redeclared here
 so that every paper-layer module sees the same abbreviation without extra `open`. -/
 abbrev Operator (D : ℕ) := Matrix (Fin D) (Fin D) ℂ
 

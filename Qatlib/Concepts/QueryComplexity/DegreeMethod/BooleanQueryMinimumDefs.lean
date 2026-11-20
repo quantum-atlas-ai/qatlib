@@ -473,7 +473,7 @@ theorem minimum_degree_bounds (f : (Fin n→Bool)→Bool) :
 
 /-- The exact and bounded-error minima are attained, are ordered below the input length, and
 satisfy their respective polynomial degree lower bounds. -/
-theorem frontier1 (f : (Fin n→Bool)→Bool) :
+theorem exact_bounded_query_minima_attainment_and_degree_bounds (f : (Fin n→Bool)→Bool) :
     ExactFeasible f (exactMinimum f) ∧ BoundedFeasible f (boundedMinimum f) ∧
       boundedMinimum f≤exactMinimum f ∧ exactMinimum f≤n ∧
       exactDegree f≤2*exactMinimum f ∧ approxDegree f≤2*boundedMinimum f :=
@@ -833,7 +833,7 @@ theorem empty_minima (f : (Fin 0→Bool)→Bool) :
 
 /-- Both zero-error minima are attained and satisfy the full ordering with the bounded-error and
 exact minima and the input length. -/
-theorem frontier2 (f : (Fin n→Bool)→Bool) :
+theorem zero_error_query_minima_attainment_and_order (f : (Fin n→Bool)→Bool) :
     ZeroErrorFeasible false f (zeroErrorMinimum false f) ∧
       ZeroErrorFeasible true f (zeroErrorMinimum true f) ∧
       boundedMinimum f≤zeroErrorMinimum false f ∧

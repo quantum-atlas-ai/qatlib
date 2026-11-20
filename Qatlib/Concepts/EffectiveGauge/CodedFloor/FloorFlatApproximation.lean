@@ -35,13 +35,15 @@ def floorFlatApproximation (n : ℕ) (p tolerance : ℚ) : ℚ :=
 
 noncomputable section
 
-/-- Original `floorFlatPolynomialValue_cast` guarantee for the `FloorFlatApproximation` construction; the complete source hypotheses are retained. -/
+/-- Casting the rational cutoff polynomial evaluation to the reals agrees with evaluating the real
+cutoff polynomial at the cast point. -/
 theorem floorFlatPolynomialValue_cast (n : ℕ) (x : ℚ) :
     (floorFlatPolynomialValue n x : ℝ)=(cutoffRealPolynomial n).eval (x : ℝ) := by
   rw [Polynomial.eval_eq_sum_range' (Nat.lt_succ_of_le (cutoffRealPolynomial_degree n))]
   simp [floorFlatPolynomialValue,cutoffRealPolynomial_coeff,cutoffCoefficientAt_eq]
 
-/-- Original `floorFlatApproximation_error` guarantee for the `FloorFlatApproximation` construction; the complete source hypotheses are retained. -/
+/-- For a positive rational tolerance, the rational flat approximation is within that tolerance of
+the order-`n` derivative of `expNegInvGlue` at the supplied point. -/
 theorem floorFlatApproximation_error (n : ℕ) (p tolerance : ℚ) (ht : 0<tolerance) :
     |(floorFlatApproximation n p tolerance : ℝ)-iteratedDeriv n expNegInvGlue (p : ℝ)| ≤
       (tolerance : ℝ) := by

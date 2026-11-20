@@ -34,7 +34,8 @@ noncomputable section
 variable {S : Type} [Fintype S] [DecidableEq S]
 
 omit [Fintype S] in
-/-- Complete original `occupied_sites_perm_mem_local` guarantee for `MatchedEventSymmetry`; all source hypotheses and output obligations are retained. -/
+/-- A site occurs in a relabeled array exactly when its inverse image under the permutation
+occurs in the original array. -/
 theorem occupied_sites_perm_mem_local (σ : Equiv.Perm S)
     {n : ℕ} (J : Fin n → S) (x : S) :
     x ∈ occupiedSites (σ ∘ J) ↔ σ.symm x ∈ occupiedSites J := by
@@ -47,7 +48,8 @@ theorem occupied_sites_perm_mem_local (σ : Equiv.Perm S)
     exact ⟨a, by simpa using congrArg σ ha⟩
 
 omit [Fintype S] in
-/-- Complete original `matched_sites_perm_conjugate` guarantee for `MatchedEventSymmetry`; all source hypotheses and output obligations are retained. -/
+/-- Relabeling both arrays by `σ` and conjugating the matching permutation by `σ` sends the
+matched set to its image under `σ`. -/
 theorem matched_sites_perm_conjugate [Nonempty S]
     (σ τ : Equiv.Perm S) {n m : ℕ} (J : Fin n → S) (K : Fin m → S) :
     matchedSites (σ ∘ J) (σ ∘ K) (σ ∘ τ ∘ σ.symm) =
@@ -72,7 +74,8 @@ theorem matched_sites_perm_conjugate [Nonempty S]
       simpa [hax] using congrArg σ hja
 
 omit [DecidableEq S] in
-/-- Complete original `uniform_pair_address_perm_invariant` guarantee for `MatchedEventSymmetry`; all source hypotheses and output obligations are retained. -/
+/-- Applying the same site permutation to both uniform arrays preserves the product of their
+point probabilities. -/
 theorem uniform_pair_address_perm_invariant [Nonempty S]
     (σ : Equiv.Perm S) {n m : ℕ} (J : Fin n → S) (K : Fin m → S) :
     (cohortLaw (uniformLaw S) n).prob (σ ∘ J) *
@@ -92,7 +95,8 @@ theorem uniform_pair_address_perm_invariant [Nonempty S]
   rw [hJ,hK]
 
 omit [DecidableEq S] in
-/-- Complete original `uniform_pair_address_independent_perm_invariant` guarantee for `MatchedEventSymmetry`; all source hypotheses and output obligations are retained. -/
+/-- The joint point mass of two independent uniform arrays is invariant even when their sites
+are relabeled by separate permutations. -/
 theorem uniform_pair_address_independent_perm_invariant [Nonempty S]
     (σ ρ : Equiv.Perm S) {n m : ℕ} (J : Fin n → S) (K : Fin m → S) :
     (cohortLaw (uniformLaw S) n).prob (σ ∘ J) *
@@ -112,14 +116,16 @@ theorem uniform_pair_address_independent_perm_invariant [Nonempty S]
   rw [hJ,hK]
 
 omit [Fintype S] in
-/-- Complete original `exists_perm_map_finset` guarantee for `MatchedEventSymmetry`; all source hypotheses and output obligations are retained. -/
+/-- Any two finite subsets of the same cardinality can be mapped onto one another by a
+permutation of the ambient site space. -/
 theorem exists_perm_map_finset (A B : Finset S)
     (hcard : A.card=B.card) : ∃ σ : Equiv.Perm S, A.image σ=B := by
   obtain ⟨σ,hσ⟩ := Equiv.Perm.exists_map_finset_eq A B hcard
   exact ⟨σ, by simpa [Finset.map_eq_image] using hσ⟩
 
 omit [Fintype S] in
-/-- Complete original `matched_sites_perm_fixed_shift` guarantee for `MatchedEventSymmetry`; all source hypotheses and output obligations are retained. -/
+/-- With the match map `τ` fixed, relabel the left array by `σ` and the right array by its
+conjugate `τ ∘ σ ∘ τ.symm`. The resulting matched set is the `σ`-image of the original set. -/
 theorem matched_sites_perm_fixed_shift [Nonempty S]
     (σ τ : Equiv.Perm S) {n m : ℕ} (J : Fin n → S) (K : Fin m → S) :
     matchedSites (σ ∘ J) ((τ ∘ σ ∘ τ.symm) ∘ K) τ =
@@ -169,7 +175,8 @@ def fixedShiftAddressEquiv [Nonempty S]
       simp [Function.comp_apply]
 
 omit [Fintype S] in
-/-- Complete original `matched_card_fixed_shift_invariant` guarantee for `MatchedEventSymmetry`; all source hypotheses and output obligations are retained. -/
+/-- Relabeling the left array by `σ` and the right array by its conjugate through `τ` preserves
+the number of matches for the fixed map `τ`. -/
 theorem matched_card_fixed_shift_invariant [Nonempty S]
     (σ τ : Equiv.Perm S) {n m : ℕ} (J : Fin n → S) (K : Fin m → S) :
     (matchedSites (σ ∘ J) ((τ ∘ σ ∘ τ.symm) ∘ K) τ).card =
@@ -218,7 +225,8 @@ def pairAddressMass [Nonempty S]
     (cohortLaw (uniformLaw S) m).prob z.2
 
 omit [Fintype S] [DecidableEq S] in
-/-- Complete original `pairAddressMass_fixed_shift` guarantee for `MatchedEventSymmetry`; all source hypotheses and output obligations are retained. -/
+/-- The bijection that relabels the left array by `σ` and the right array by its conjugate
+through `τ` preserves the uniform pair mass of every input. -/
 theorem pairAddressMass_fixed_shift {S : Type}
     [_instFintypeS : Fintype S] [_instDecidableEqS : DecidableEq S] [Nonempty S]
     (σ τ : Equiv.Perm S) {n m : ℕ} (z : (Fin n → S) × (Fin m → S)) :
@@ -227,7 +235,8 @@ theorem pairAddressMass_fixed_shift {S : Type}
   exact uniform_pair_address_independent_perm_invariant σ
     (τ.symm.trans (σ.trans τ)) J K
 
-/-- Complete original `matched_fiber_mass_equal` guarantee for `MatchedEventSymmetry`; all source hypotheses and output obligations are retained. -/
+/-- If `σ` maps `A` onto `B`, the sums of the uniform pair masses over the exact matched-set
+fibers of `A` and `B` are equal for fixed `τ`. -/
 theorem matched_fiber_mass_equal [Nonempty S]
     (σ τ : Equiv.Perm S) {n m : ℕ} (A B : Finset S)
     (hAB : A.image σ=B) :
@@ -243,7 +252,8 @@ theorem matched_fiber_mass_equal [Nonempty S]
   change pairAddressMass z.1 = pairAddressMass ((fixedShiftAddressEquiv σ τ n m) z.1)
   exact (pairAddressMass_fixed_shift σ τ z.1).symm
 
-/-- Complete original `matched_fiber_mass_card_invariant` guarantee for `MatchedEventSymmetry`; all source hypotheses and output obligations are retained. -/
+/-- For a fixed matching permutation and cohort lengths, the uniform pair mass of an exact
+matched-set fiber depends only on the cardinality of the set. -/
 theorem matched_fiber_mass_card_invariant [Nonempty S]
     (τ : Equiv.Perm S) {n m : ℕ} (A B : Finset S)
     (hcard : A.card=B.card) :
@@ -254,7 +264,8 @@ theorem matched_fiber_mass_card_invariant [Nonempty S]
   obtain ⟨σ,hσ⟩ := exists_perm_map_finset A B hcard
   exact matched_fiber_mass_equal σ τ A B hσ
 
-/-- Complete original `matched_card_event_mass_decomposition` guarantee for `MatchedEventSymmetry`; all source hypotheses and output obligations are retained. -/
+/-- Summing the masses of the exact matched-set events over all `k`-element sets gives the mass
+of the event that the number of matches is `k`. -/
 theorem matched_card_event_mass_decomposition [Nonempty S]
     (τ : Equiv.Perm S) {n m k : ℕ} :
     (∑ A ∈ (Finset.univ : Finset S).powersetCard k,
@@ -269,7 +280,8 @@ theorem matched_card_event_mass_decomposition [Nonempty S]
       (t := (Finset.univ : Finset S).powersetCard k)
       (g := fun z => matchedSites z.1 z.2 τ) (f := pairAddressMass))
 
-/-- Complete original `matched_card_event_mass_const` guarantee for `MatchedEventSymmetry`; all source hypotheses and output obligations are retained. -/
+/-- If every exact `k`-element matched-set event has mass `c`, the probability of seeing `k`
+matches is the binomial count of those sets times `c`. -/
 theorem matched_card_event_mass_const [Nonempty S]
     (τ : Equiv.Perm S) {n m k : ℕ} (c : ℝ)
     (hc : ∀ A ∈ (Finset.univ : Finset S).powersetCard k,
@@ -290,7 +302,8 @@ theorem matched_card_event_mass_const [Nonempty S]
     _ = ((Fintype.card S).choose k : ℝ)*c := by
       rw [Finset.card_powersetCard, Finset.card_univ]
 
-/-- Complete original `matched_fiber_filter_mass_equal` guarantee for `MatchedEventSymmetry`; all source hypotheses and output obligations are retained. -/
+/-- For fixed `τ`, filtering the full set of array pairs by exact matched set gives equal total
+weights for `A` and `B` whenever a site permutation maps `A` onto `B`. -/
 theorem matched_fiber_filter_mass_equal [Nonempty S]
     (σ τ : Equiv.Perm S) {n m : ℕ} (A B : Finset S)
     (hAB : A.image σ=B) :
@@ -329,14 +342,15 @@ theorem matched_fiber_filter_mass_equal [Nonempty S]
     exact (pairAddressMass_fixed_shift σ τ z).symm
 
 omit [DecidableEq S] in
-/-- Complete original `univ_powersetCard_card` guarantee for `MatchedEventSymmetry`; all source hypotheses and output obligations are retained. -/
+/-- The number of `k`-element subsets of the finite site space is its cardinality choose `k`. -/
 theorem univ_powersetCard_card (k : ℕ) :
     ((Finset.univ : Finset S).powersetCard k).card =
       (Fintype.card S).choose k := by
   rw [Finset.card_powersetCard, Finset.card_univ]
 
 omit [DecidableEq S] in
-/-- Complete original `univ_powersetCard_nonempty` guarantee for `MatchedEventSymmetry`; all source hypotheses and output obligations are retained. -/
+/-- There is a `k`-element site subset whenever `k` is at most the cardinality of the site
+space. -/
 theorem univ_powersetCard_nonempty (k : ℕ) (hk : k ≤ Fintype.card S) :
     (Finset.univ : Finset S).powersetCard k |>.Nonempty := by
   exact Finset.powersetCard_nonempty.mpr (by simpa using hk)

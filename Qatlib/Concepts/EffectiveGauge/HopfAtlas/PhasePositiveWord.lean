@@ -25,7 +25,9 @@ open scoped Quaternion ContDiff
 namespace Qatlib.Concepts.EffectiveGauge.HopfAtlas
 open Qatlib.Concepts.EffectiveGauge.RationalFlow
 
-/-- Original `spatialWordPartial_phase_positive_norm_le` guarantee for the `PhasePositiveWord` construction; the complete source hypotheses are retained. -/
+/-- For a smooth real field whose positive-order partials at `x` up to order `N` obey `Phi`,
+every partial of its quaternion phase at `x` up to order `N` is bounded by the corresponding
+recursive phase majorant, including order zero. -/
 theorem spatialWordPartial_phase_positive_norm_le (f : SpatialPoint → ℝ) (hf : ContDiff ℝ ∞ f)
     (Phi : ℕ → ℚ) (N : ℕ) (x : SpatialPoint)
     (hPhi : ∀ z : List (Fin 3), 0<z.length → z.length ≤ N → ‖spatialWordPartial f z x‖ ≤ (Phi z.length : ℝ))

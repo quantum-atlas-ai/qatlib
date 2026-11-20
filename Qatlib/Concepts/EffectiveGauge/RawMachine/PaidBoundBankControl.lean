@@ -86,7 +86,7 @@ def program {states : ℕ} (machine : TM0.Machine CanonicalCodec.TM.Symbol (Fin 
       RawCall.getIO RawCall.putIO (Stacks.transferProgram l)
   | .done => .load (fun _ => default) .halt
 
-/-- Original `begin_call` guarantee for the `PaidBoundBankControl` construction; the complete source hypotheses are retained. -/
+/-- Starting with empty work stacks, the bank writes the canonical query for slot `i` and enters the source call with the saved replies and accumulated output intact. -/
 theorem begin_call {states : ℕ} (machine : TM0.Machine CanonicalCodec.TM.Symbol (Fin (states+1)))
     (i : Fin 9) (saved : Fin 9 → CanonicalCodec.Bits) (out : CanonicalCodec.Bits) :
     Stacks.Execution (program machine)
@@ -105,7 +105,7 @@ theorem begin_call {states : ℕ} (machine : TM0.Machine CanonicalCodec.TM.Symbo
       Nat.zero_add,Nat.add_zero]
     exact le_rfl
 
-/-- Original `source_call` guarantee for the `PaidBoundBankControl` construction; the complete source hypotheses are retained. -/
+/-- Given a bounded source run for query `i`, the embedded call reaches the store instruction with the reversed reply on the call output stack and the bank's saved slots and output intact. -/
 theorem source_call {states : ℕ} (machine : TM0.Machine CanonicalCodec.TM.Symbol (Fin (states+1)))
     (i : Fin 9) (saved : Fin 9 → CanonicalCodec.Bits) (out reply : CanonicalCodec.Bits)
     (time space : ℕ) (hrun : CanonicalCodec.Runs machine (queryBits i) reply time space) :
@@ -125,7 +125,7 @@ theorem source_call {states : ℕ} (machine : TM0.Machine CanonicalCodec.TM.Symb
   · simpa only [RawCall.initial,TM2.init,StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,frame] using hr
   · simpa only [RawCall.initial,TM2.init,StackCall.cfg,Option.map_some,Option.getD_some,frame] using hc.trans_le hclock
 
-/-- Original `transfer_execution` guarantee for the `PaidBoundBankControl` construction; the complete source hypotheses are retained. -/
+/-- When the specified instructions embed the transfer program on distinct slots, the run clears the first slot and prepends its reversed contents to the second. For initial lengths `a` and `b`, it reaches the return label within `a*(2*(a+b)+5)+3` clock units. -/
 private theorem transfer_execution {states : ℕ}
     (machine : TM0.Machine CanonicalCodec.TM.Symbol (Fin (states+1)))
     (code : Fin 2 → Slot) (hinj : Function.Injective code)
@@ -163,15 +163,15 @@ private theorem transfer_execution {states : ℕ}
   · simpa only [RawCall.initial,TM2.init,StackCall.cfg,Option.map_some,Option.getD_some,hi,hv,
       Stacks.transfer_clock] using hc.le
 
-/-- Original `storeCode_injective` guarantee for the `PaidBoundBankControl` construction; the complete source hypotheses are retained. -/
+/-- The source output slot and the bank slot for saving reply `i` are distinct. -/
 private theorem storeCode_injective (i : Fin 9) : Function.Injective (storeCode i) := by
   intro a b h; fin_cases a <;> fin_cases b <;> simp_all [storeCode,savedSlot]
 
-/-- Original `emitCode_injective` guarantee for the `PaidBoundBankControl` construction; the complete source hypotheses are retained. -/
+/-- The bank slot holding reply `i` and the final output slot are distinct. -/
 private theorem emitCode_injective (i : Fin 9) : Function.Injective (emitCode i) := by
   intro a b h; fin_cases a <;> fin_cases b <;> simp_all [emitCode,savedSlot]
 
-/-- Original `store_transfer` guarantee for the `PaidBoundBankControl` construction; the complete source hypotheses are retained. -/
+/-- The store instruction empties the call output stack into the front of saved slot `i` in reverse order and advances to the next source or emission label. -/
 theorem store_transfer {states : ℕ}
     (machine : TM0.Machine CanonicalCodec.TM.Symbol (Fin (states+1)))
     (i : Fin 9) (S : Slot → CanonicalCodec.Bits) :
@@ -184,7 +184,7 @@ theorem store_transfer {states : ℕ}
   transfer_execution machine (storeCode i) (storeCode_injective i)
     (Label.store i) (nextSource i) (fun _ => rfl) S
 
-/-- Original `emit_transfer` guarantee for the `PaidBoundBankControl` construction; the complete source hypotheses are retained. -/
+/-- The emission instruction clears saved slot `i`, prepends its reversed bits to the output stack, and advances to the next emission label or the final instruction. -/
 theorem emit_transfer {states : ℕ}
     (machine : TM0.Machine CanonicalCodec.TM.Symbol (Fin (states+1)))
     (i : Fin 9) (S : Slot → CanonicalCodec.Bits) :
@@ -202,7 +202,7 @@ def stageBudget (i : Fin 9) (reply : CanonicalCodec.Bits) (time : ℕ) : ℕ :=
   (1+(queryBits i).length*((queryBits i).length+2))+
     RawCall.budget (queryBits i).length time+(reply.length*(2*reply.length+5)+3)
 
-/-- Original `source_stage` guarantee for the `PaidBoundBankControl` construction; the complete source hypotheses are retained. -/
+/-- Given a bounded source run and an empty saved slot `i`, the full query stage records the reply in that slot, clears the work stacks, and reaches the next stage within the stated clock budget. -/
 theorem source_stage {states : ℕ}
     (machine : TM0.Machine CanonicalCodec.TM.Symbol (Fin (states+1)))
     (i : Fin 9) (saved : Fin 9 → CanonicalCodec.Bits) (out reply : CanonicalCodec.Bits)
@@ -247,7 +247,7 @@ theorem source_stage {states : ℕ}
 def emitBudget (saved : Fin 9 → CanonicalCodec.Bits) (out : CanonicalCodec.Bits) (i : Fin 9) : ℕ :=
   (saved i).length*(2*((saved i).length+out.length)+5)+3
 
-/-- Original `emit_stage` guarantee for the `PaidBoundBankControl` construction; the complete source hypotheses are retained. -/
+/-- Starting with empty work stacks, the emission stage clears saved slot `i` and prepends its reversed reply to the accumulated output within the emission budget. -/
 theorem emit_stage {states : ℕ}
     (machine : TM0.Machine CanonicalCodec.TM.Symbol (Fin (states+1)))
     (i : Fin 9) (saved : Fin 9 → CanonicalCodec.Bits) (out : CanonicalCodec.Bits) :

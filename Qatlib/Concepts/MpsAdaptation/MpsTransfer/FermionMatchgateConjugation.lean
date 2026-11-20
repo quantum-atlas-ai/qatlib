@@ -1428,7 +1428,7 @@ theorem covarianceMatrix_measurement_gaussianInput {n : ℕ} (k : Fin n) (b : Bo
 
 /-- Collects covariance propagation and Majorana conjugation for well-formed circuits, together
 with the measurement update for prepared inputs at a mode avoided by every gate. -/
-theorem frontier1 :
+theorem matchgate_covariance_and_untouched_mode_conditioning :
     (∀ (n : ℕ) (gl : MatchGateCircuit n) (_h : ∀ g ∈ gl, matchGateWellFormed g)
         (M : Matrix (Reg n) (Reg n) ℂ),
         covarianceMatrix (matchGateCircuitOp gl * M) = covarianceRun gl (covarianceMatrix M))

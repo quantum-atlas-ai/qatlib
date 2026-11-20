@@ -86,7 +86,7 @@ def bodyQueryWireEquiv : (Reg 6 × H) ≃
     (Equiv.prodAssoc _ _ _)
 
 omit [Fintype H] in
-/-- The finite construction in `NativeDataBody` satisfies `nativeDataQuery_relabel` under the displayed hypotheses. -/
+/-- Separating wire 2 from the other auxiliary wires exposes `nativeDataQuery U` as controlled `U` replicated over the spectator labels. -/
 theorem nativeDataQuery_relabel (U : Matrix H H ℂ) :
     relabelGate (bodyQueryWireEquiv (H := H)) (nativeDataQuery U) =
       parallelOracle (J := ElementaryWireLabel (2 : Fin 6)) (controlOracle U) := by
@@ -99,7 +99,7 @@ theorem nativeDataQuery_relabel (U : Matrix H H ℂ) :
     simp only [Equiv.apply_eq_iff_eq, Prod.mk.injEq]
   by_cases hx : x = y <;> by_cases hb : b = c <;> simp_all
 
-/-- The finite construction in `NativeDataBody` satisfies `bodyCleanFrame_isometry` under the displayed hypotheses. -/
+/-- The clean body frame is an isometry on the logical label and data registers. -/
 theorem bodyCleanFrame_isometry : Qatlib.Concepts.Execution.WorkspaceCP.IsIsometry (bodyCleanFrame (H := H)) := by
   change (bodyCleanFrame (H := H))ᴴ * bodyCleanFrame (H := H) = 1
   rw [bodyCleanFrame, Matrix.conjTranspose_kronecker, ← Matrix.mul_kronecker_mul,
@@ -200,7 +200,7 @@ theorem nativeBodyWord_legal (ps : Fin 7 → Qatlib.Concepts.MatrixAccess.Matrix
 def nativeKnownWord (gs : List Op) : List (AdjointStep (Reg 6 × H)) :=
   gs.reverse.map (fun g => .gate (TensorGate (matrix g) (1 : Matrix H H ℂ)))
 
-/-- The finite construction in `NativeDataBody` satisfies `nativeKnownWord_evaluate` under the displayed hypotheses. -/
+/-- For any oracle matrix `U`, the lifted list of known operations evaluates to the program matrix tensored with the identity on `H`. -/
 theorem nativeKnownWord_evaluate (U : Matrix (Reg 6 × H) (Reg 6 × H) ℂ)
     (gs : List Op) :
     evaluate U (nativeKnownWord (H := H) gs) = TensorGate (program gs) (1 : Matrix H H ℂ) := by
@@ -247,7 +247,7 @@ theorem nativeExpandedBody_legal (ps : Fin 7 → Qatlib.Concepts.MatrixAccess.Ma
     nativeKnownWord_legal (H := H) _ (phaseWord_legal p slack)⟩,
     (by simp)⟩, nativeKnownWord_legal (H := H) _ (prepWord_legal ps)⟩
 
-/-- The finite construction in `NativeDataBody` satisfies `nativeExpandedBody_evaluate` under the displayed hypotheses. -/
+/-- For every choice of preparation circles, phase circle, slack flag, and input matrix, expanding the native body into known operations preserves its evaluation at the native data query. -/
 theorem nativeExpandedBody_evaluate (ps : Fin 7 → Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle) (p : Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle)
     (slack : Bool) (U : Matrix H H ℂ) :
     evaluate (nativeDataQuery U) (nativeExpandedBodyWord (H := H) ps p slack) =
@@ -272,7 +272,7 @@ theorem nativeExpandedBody_cost (ps : Fin 7 → Qatlib.Concepts.MatrixAccess.Mat
   · trivial
   · omega
 
-/-- The finite construction in `NativeDataBody` satisfies `tensor_block_entry` under the displayed hypotheses. -/
+/-- Each entry of a block-diagonal matrix sandwiched between label matrices `A` and `B` is the sum of `A j l * D l d e * B l k` over the intermediate labels `l`. -/
 theorem tensor_block_entry (A B : Matrix (Fin 8) (Fin 8) ℂ)
     (D : Fin 8 → Matrix H H ℂ) (j k : Fin 8) (d e : H) :
     (TensorGate A (1 : Matrix H H ℂ) *
@@ -282,7 +282,7 @@ theorem tensor_block_entry (A B : Matrix (Fin 8) (Fin 8) ℂ)
     Matrix.kroneckerMap_apply, Matrix.one_apply, Matrix.of_apply]
   simp
 
-/-- The finite construction in `NativeDataBody` satisfies `innerBodyLogical_entry` under the displayed hypotheses. -/
+/-- A logical body entry sums over the eight intermediate labels, with preparation factors on both sides and a phase-weighted middle entry from the identity below label four and from `U` otherwise. -/
 theorem innerBodyLogical_entry (ps : Fin 7 → Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle) (p : Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle) (slack : Bool)
     (U : Matrix H H ℂ) (j k : Fin 8) (d e : H) :
     innerBodyLogical ps p slack U (j,d) (k,e) =
@@ -306,7 +306,7 @@ theorem innerBodyLogical_entry (ps : Fin 7 → Qatlib.Concepts.MatrixAccess.Matr
   · simp [effectiveSelector, hl]
 
 
-/-- The finite construction in `NativeDataBody` satisfies `innerBodyLogical_corner` under the displayed hypotheses. -/
+/-- Compressing the logical body to label zero on both sides yields the effective data block for the supplied circles, slack flag, and oracle matrix. -/
 theorem innerBodyLogical_corner (ps : Fin 7 → Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle) (p : Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle)
     (slack : Bool) (U : Matrix H H ℂ) :
     compress (encodingFiber (I := H) (0 : Fin 8)) (innerBodyLogical ps p slack U)
@@ -336,7 +336,7 @@ def oracleCoefficient (ps : Fin 7 → Qatlib.Concepts.MatrixAccess.MatrixBackend
   ∑ l : Fin 8, if l.val < 4 then 0 else Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Prep.effectiveCoefficients ps p slack l
 
 omit [Fintype H] in
-/-- The finite construction in `NativeDataBody` satisfies `effectiveBlock_affine` under the displayed hypotheses. -/
+/-- The effective block is the identity weighted by the identity coefficient plus `U` weighted by the oracle coefficient. -/
 theorem effectiveBlock_affine (ps : Fin 7 → Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle) (p : Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle)
     (slack : Bool) (U : Matrix H H ℂ) :
     effectiveBlock ps p slack U =
@@ -356,7 +356,7 @@ def nativeBaseFrame : Matrix (Reg 6 × H) H ℂ :=
     (Matrix (Reg 6 × H) H ℂ) Matrix.instHMulOfFintypeOfMulOfAddCommMonoid
     (bodyCleanFrame (H := H)) (encodingFiber (I := H) (0 : Fin 8))
 
-/-- The finite construction in `NativeDataBody` satisfies `nativeBaseFrame_isometry` under the displayed hypotheses. -/
+/-- Including the data register at logical label zero and then applying the clean body frame gives an isometry. -/
 theorem nativeBaseFrame_isometry : Qatlib.Concepts.Execution.WorkspaceCP.IsIsometry (nativeBaseFrame (H := H)) :=
   Qatlib.Concepts.BlockEncoding.EncodingCore.IsIsometry.mul bodyCleanFrame_isometry (encodingFiber_isIsometry _)
 
@@ -386,7 +386,7 @@ def nativeDataFrame (F : Matrix H I ℂ) : Matrix (Reg 6 × H) I ℂ :=
   @HMul.hMul (Matrix (Reg 6 × H) H ℂ) (Matrix H I ℂ) (Matrix (Reg 6 × H) I ℂ)
     Matrix.instHMulOfFintypeOfMulOfAddCommMonoid (nativeBaseFrame (H := H)) F
 
-/-- The finite construction in `NativeDataBody` satisfies `nativeDataFrame_isometry` under the displayed hypotheses. -/
+/-- An isometric input frame `F` remains isometric after embedding it through the native base frame. -/
 theorem nativeDataFrame_isometry (F : Matrix H I ℂ) (hF : Qatlib.Concepts.Execution.WorkspaceCP.IsIsometry F) :
     Qatlib.Concepts.Execution.WorkspaceCP.IsIsometry (nativeDataFrame F) := Qatlib.Concepts.BlockEncoding.EncodingCore.IsIsometry.mul nativeBaseFrame_isometry hF
 

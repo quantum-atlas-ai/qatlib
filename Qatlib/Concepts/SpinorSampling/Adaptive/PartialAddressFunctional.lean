@@ -99,7 +99,7 @@ def initial (C m d r p n : ℕ) : FinDist (History C m d r p n) where
 def order (d : ℕ) : List (Index d) :=
   List.ofFn (fun j : Fin (d*2) => (finProdFinEquiv (m:=d) (n:=2)).symm j)
 
-/-- Complete original `mem_order` guarantee for `PartialAddressFunctional`; all source hypotheses and output obligations are retained. -/
+/-- Every direction and color pair occurs in the list of adaptive sampling stages. -/
 theorem mem_order (d : ℕ) (i : Index d) : i∈order d := by
   simp only [order,List.mem_ofFn]
   exact ⟨finProdFinEquiv i,Equiv.symm_apply_apply _ i⟩
@@ -115,7 +115,8 @@ def law (C m d r p n : ℕ) [NeZero C] [NeZero m] [NeZero (2*m)] [NeZero (C*(2*m
 def valueQ {C m d r p n : ℕ} (p0 : ℚ) (h : History C m d r p n) : ℚ :=
   TwoColor.clippedValueQ p0 (fun j color => rawAt h (j,color))
 
-/-- Complete original `stage_keeps` guarantee for `PartialAddressFunctional`; all source hypotheses and output obligations are retained. -/
+/-- The stage for `j` preserves the expected error indicator for a different direction and
+color pair `i`, since it updates only its own history entry. -/
 theorem stage_keeps (C m d r p n : ℕ) [NeZero C] [NeZero m] [NeZero (2*m)] [NeZero (C*(2*m))]
     (hN : 2^r=C*(2*m)*2) (a b c k : (Fin d → Fin (2^r)) → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (words : Words C m d r p n)
@@ -127,7 +128,9 @@ theorem stage_keeps (C m d r p n : ℕ) [NeZero C] [NeZero m] [NeZero (2*m)] [Ne
   intro h Ω ω
   simp only [badAt,rawAt,Function.update_of_ne hne]
 
-/-- Complete original `stage_bound` guarantee for `PartialAddressFunctional`; all source hypotheses and output obligations are retained. -/
+/-- If the trained law at stage `i` has probability at most `bnd` of sparse count error above
+`ε/d` for every incoming history, the expected error indicator for `i` after that stage is at
+most `bnd` under any incoming law. -/
 private theorem stage_bound (C m d r p n : ℕ) [NeZero C] [NeZero m] [NeZero (2*m)] [NeZero (C*(2*m))]
     (hN : 2^r=C*(2*m)*2) (a b c k : (Fin d → Fin (2^r)) → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (words : Words C m d r p n)
@@ -148,7 +151,9 @@ private theorem stage_bound (C m d r p n : ℕ) [NeZero C] [NeZero m] [NeZero (2
   intro h Ω ω
   simp only [badAt,rawAt,Function.update_self]
 
-/-- Complete original `full_tail` guarantee for `PartialAddressFunctional`; all source hypotheses and output obligations are retained. -/
+/-- For positive dimension and directional Bell means bounded by `p0`, the clipped full
+estimator has probability at most `2d * bnd` of error above `ε` if every stage's conditional
+probability of component error above `ε/d` is at most `bnd` for every history. -/
 private theorem full_tail (C m d r p n : ℕ) [NeZero C] [NeZero m] [NeZero (2*m)] [NeZero (C*(2*m))]
     (hN : 2^r=C*(2*m)*2) (hd : 0<d) (a b c k : (Fin d → Fin (2^r)) → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (p0 : ℚ)
@@ -201,7 +206,11 @@ private theorem full_tail (C m d r p n : ℕ) [NeZero C] [NeZero m] [NeZero (2*m
         Nat.cast_mul,Nat.cast_ofNat,nsmul_eq_mul]
       ring
 
-/-- Complete original `trained_tail` guarantee for `PartialAddressFunctional`; all source hypotheses and output obligations are retained. -/
+/-- For a normalized field with `d > 0`, directional Bell means at most `p0`, and
+`d * (2m)^2 * p0 ≤ τ/32` at `0 < τ ≤ 1/2`, the clipped estimator exceeds absolute error `ε`
+with probability at most `2d(α + β)`. This requires positive pilot and main budgets `α` and
+`β`, a main count returned at component tolerance `ε/d`, and accepted words for every stage,
+incoming history, pilot outcome, and box. -/
 theorem trained_tail (C m d r : ℕ) [NeZero C] [NeZero m] [NeZero (2*m)] [NeZero (C*(2*m))]
     (hN : 2^r=C*(2*m)*2) (hd : 0<d) (a b c k : (Fin d → Fin (2^r)) → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (p0 : ℚ)
@@ -226,7 +235,9 @@ theorem trained_tail (C m d r : ℕ) [NeZero C] [NeZero m] [NeZero (2*m)] [NeZer
     (words i h) (hcheck i h) n hc
   simpa only [TrainedOriginal.originalLaw,Rat.cast_div,Rat.cast_natCast,center] using ht
 
-/-- Complete original `unrotated_tail` guarantee for `PartialAddressFunctional`; all source hypotheses and output obligations are retained. -/
+/-- Under the directional Bell cap, the clipped full estimator with no pilot records and empty
+spin words exceeds error `ε` with probability at most `2dβ` if `d > 0` and the checked planner
+returns the main count at parameter `q = 1/2`, component tolerance `ε/d`, and share `β`. -/
 theorem unrotated_tail (C m d r : ℕ) [NeZero C] [NeZero m] [NeZero (2*m)] [NeZero (C*(2*m))]
     (hN : 2^r=C*(2*m)*2) (hd : 0<d) (a b c k : (Fin d → Fin (2^r)) → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (p0 : ℚ)
@@ -254,14 +265,19 @@ theorem unrotated_tail (C m d r : ℕ) [NeZero C] [NeZero m] [NeZero (2*m)] [NeZ
 /-- Construction for failure Share in the partial address functional model. -/
 def failureShare (d : ℕ) (δ : ℚ) : ℚ := δ/(4*(d : ℚ))
 
-/-- Complete original `failure_share_pos` guarantee for `PartialAddressFunctional`; all source hypotheses and output obligations are retained. -/
+/-- The per-stage failure share `δ/(4d)` is positive when the dimension and total failure
+budget are positive. -/
 theorem failure_share_pos (d : ℕ) (hd : 0<d) (δ : ℚ) (hδ : 0<δ) : 0<failureShare d δ := by
   unfold failureShare
   apply div_pos hδ
   have hdQ : (0 : ℚ)<d := by exact_mod_cast hd
   positivity
 
-/-- Complete original `trained_confidence` guarantee for `PartialAddressFunctional`; all source hypotheses and output obligations are retained. -/
+/-- For positive `d` and `δ`, the clipped trained estimator has probability at most `δ` of
+absolute error above `ε` if the directional Bell cap `p0` satisfies `d * (2m)^2 * p0 ≤ τ/32`
+with `0 < τ ≤ 1/2`. Both pilot and main failure shares are `δ/(4d)`, the checked main planner
+must return `n`, and the word checks must pass for every stage, history, pilot outcome, and
+box. -/
 theorem trained_confidence (C m d r : ℕ) [NeZero C] [NeZero m] [NeZero (2*m)] [NeZero (C*(2*m))]
     (hN : 2^r=C*(2*m)*2) (hd : 0<d) (a b c k : (Fin d → Fin (2^r)) → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (p0 : ℚ)
@@ -286,7 +302,10 @@ theorem trained_confidence (C m d r : ℕ) [NeZero C] [NeZero m] [NeZero (2*m)] 
       field_simp
       ring
 
-/-- Complete original `unrotated_confidence` guarantee for `PartialAddressFunctional`; all source hypotheses and output obligations are retained. -/
+/-- With no pilot records and empty spin words, the clipped full estimator exceeds error `ε`
+with probability at most `δ` under the directional Bell cap when `d` and `δ` are positive and
+the checked planner returns `n` at parameter `q = 1/2`, component tolerance `ε/d`, and share
+`δ/(4d)`. -/
 theorem unrotated_confidence (C m d r : ℕ) [NeZero C] [NeZero m] [NeZero (2*m)] [NeZero (C*(2*m))]
     (hN : 2^r=C*(2*m)*2) (hd : 0<d) (a b c k : (Fin d → Fin (2^r)) → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (p0 : ℚ)

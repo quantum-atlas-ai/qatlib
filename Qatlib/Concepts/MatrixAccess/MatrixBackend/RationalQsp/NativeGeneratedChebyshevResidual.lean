@@ -48,7 +48,8 @@ private theorem ratSub_length (xs ys : List ℚ) :
   | nil => simp [ratSubList]
   | cons c cs ih => cases ys <;> simp [ratSubList,ih]
 
-/-- The finite construction in `NativeGeneratedChebyshevResidual` satisfies `chebPoly_add` under the displayed hypotheses. -/
+/-- Pointwise rational list addition represents addition of the two Chebyshev series starting at
+the same index j. -/
 private theorem chebPoly_add (xs ys : List ℚ) (j : ℕ) :
     nativeChebyshevPolynomialFrom j (ratAddList xs ys)=
       nativeChebyshevPolynomialFrom j xs+nativeChebyshevPolynomialFrom j ys := by
@@ -61,7 +62,8 @@ private theorem chebPoly_add (xs ys : List ℚ) (j : ℕ) :
       simp only [ratAddList,nativeChebyshevPolynomialFrom,ih,Rat.cast_add,C_add]
       ring
 
-/-- The finite construction in `NativeGeneratedChebyshevResidual` satisfies `chebPoly_scale` under the displayed hypotheses. -/
+/-- Scaling every coefficient by a rational a multiplies the Chebyshev polynomial starting at j by
+the corresponding real constant. -/
 private theorem chebPoly_scale (cs : List ℚ) (a : ℚ) (j : ℕ) :
     nativeChebyshevPolynomialFrom j (cs.map (fun c => a*c))=
       C (a : ℝ)*nativeChebyshevPolynomialFrom j cs := by
@@ -71,7 +73,8 @@ private theorem chebPoly_scale (cs : List ℚ) (a : ℚ) (j : ℕ) :
     simp only [List.map_cons,nativeChebyshevPolynomialFrom,ih,Rat.cast_mul,C_mul]
     ring
 
-/-- The finite construction in `NativeGeneratedChebyshevResidual` satisfies `chebPoly_three_term` under the displayed hypotheses. -/
+/-- Twice the indeterminate times a Chebyshev series starting at j + 1 equals the sum of the same
+series starting at j and at j + 2. -/
 private theorem chebPoly_three_term (cs : List ℚ) (j : ℕ) :
     2*X*nativeChebyshevPolynomialFrom (j+1) cs=
       nativeChebyshevPolynomialFrom j cs+nativeChebyshevPolynomialFrom (j+2) cs := by
@@ -90,7 +93,8 @@ def nativeChebyshevMulX : List ℚ → List ℚ
   | c::cs => ratAddList (0::c::cs.map (fun q => (1/2 : ℚ)*q))
       (cs.map (fun q => (1/2 : ℚ)*q))
 
-/-- The finite construction in `NativeGeneratedChebyshevResidual` satisfies `nativeChebyshevMulX_semantics` under the displayed hypotheses. -/
+/-- The computed Chebyshev coefficients represent multiplication of the input Chebyshev series by
+the indeterminate. -/
 theorem nativeChebyshevMulX_semantics (cs : List ℚ) :
     nativeChebyshevPolynomialFrom 0 (nativeChebyshevMulX cs)=
       X*nativeChebyshevPolynomialFrom 0 cs := by
@@ -140,7 +144,8 @@ def nativeChebyshevFromPower : List ℚ → List ℚ
   | [] => []
   | c::cs => ratAddList [c] (nativeChebyshevMulX (nativeChebyshevFromPower cs))
 
-/-- The finite construction in `NativeGeneratedChebyshevResidual` satisfies `nativeChebyshevFromPower_semantics` under the displayed hypotheses. -/
+/-- The computed Chebyshev series represents the same real polynomial as the input rational power
+coefficients. -/
 theorem nativeChebyshevFromPower_semantics (cs : List ℚ) :
     nativeChebyshevPolynomialFrom 0 (nativeChebyshevFromPower cs)=realTarget cs := by
   induction cs with
@@ -221,7 +226,8 @@ def nativeGeneratedChebyshevResidual (target : List ℚ) (data : PhaseData) : Li
     (nativeResponseRealCoefficients (nativePacketFromStandard data))
     (nativeChebyshevPowerSumFrom 0 target))
 
-/-- The finite construction in `NativeGeneratedChebyshevResidual` satisfies `nativeGeneratedChebyshevResidual_identity` under the displayed hypotheses. -/
+/-- The generated Chebyshev residual represents exactly the real response polynomial of the
+converted standard packet minus the target Chebyshev series. -/
 theorem nativeGeneratedChebyshevResidual_identity (target : List ℚ) (data : PhaseData) :
     realTarget (nativeResponseRealCoefficients (nativePacketFromStandard data))-
       nativeChebyshevPolynomialFrom 0 target=

@@ -5108,7 +5108,7 @@ theorem tensorSumNorm_pepsNet_site {a b d D : ℕ} [NeZero D]
 
 /-- Half-edge relabelling preserves network contraction after pullback and preserves the inner
 product of pulled-back state functions. -/
-theorem frontier1 (N : TensorNet) (π : Fin N.nh ≃ Fin N.nh) :
+theorem half_edge_relabel_contraction_and_inner_product (N : TensorNet) (π : Fin N.nh ≃ Fin N.nh) :
     (∀ y : OpenAssign (permNet N π),
       netContract (permNet N π) y = netContract N (openPull N π y))
     ∧ (∀ ψ φ : OpenAssign N → ℂ,

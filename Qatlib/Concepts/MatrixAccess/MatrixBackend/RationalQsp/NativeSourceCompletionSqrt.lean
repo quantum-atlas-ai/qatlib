@@ -39,12 +39,13 @@ def sourceSqrtLower (x : ℚ) (bits : ℕ) : ℚ :=
 def sourceCompletionSqrtBits (d : ℕ) (eta : ℚ) : ℕ :=
   sourceCeilLog2 (2*(3 : ℚ)^d/eta)
 
-/-- The finite construction in `NativeSourceCompletionSqrt` satisfies `sourceSqrtLower_nonneg` under the displayed hypotheses. -/
+/-- The dyadic square-root approximation is nonnegative for every rational input and bit count. -/
 theorem sourceSqrtLower_nonneg (x : ℚ) (bits : ℕ) : 0 ≤ sourceSqrtLower x bits := by
   unfold sourceSqrtLower
   positivity
 
-/-- The finite construction in `NativeSourceCompletionSqrt` satisfies `sourceSqrtLower_squared` under the displayed hypotheses. -/
+/-- For nonnegative x, the approximation squared is at most x, and the square after increasing the
+approximation by one dyadic grid step is strictly above x. -/
 private theorem sourceSqrtLower_squared (x : ℚ) (hx : 0 ≤ x) (bits : ℕ) :
     (sourceSqrtLower x bits)^2 ≤ x ∧
       x < (sourceSqrtLower x bits+1/(2 : ℚ)^bits)^2 := by
@@ -90,7 +91,8 @@ theorem sourceSqrtLower_error (x : ℚ) (hx : 0 ≤ x) (bits : ℕ) :
   have hdelta : (0 : ℝ)<1/(2 : ℝ)^bits := by positivity
   constructor <;> nlinarith
 
-/-- The finite construction in `NativeSourceCompletionSqrt` satisfies `sourceCompletionSqrtBits_envelope` under the displayed hypotheses. -/
+/-- For positive eta, the square-root precision selected at degree d gives a grid step no larger
+than eta divided by twice 3 to the power d. -/
 theorem sourceCompletionSqrtBits_envelope (d : ℕ) (eta : ℚ) (heta : 0<eta) :
     1/(2 : ℚ)^sourceCompletionSqrtBits d eta ≤ eta/(2*(3 : ℚ)^d) := by
   have h := sourceCeilLog2_envelope (2*(3 : ℚ)^d/eta) (by positivity)

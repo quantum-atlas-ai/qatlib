@@ -51,7 +51,8 @@ def rationalSeedTransitionRun (source : (Fin 3 → ℚ) × ℕ → RationalSpinS
 noncomputable section
 open scoped Quaternion
 
-/-- Original `originSeedOnAdmittedChart_error` guarantee for the `EffectiveSeedTransition` construction; the complete source hypotheses are retained. -/
+/-- For a unit source with accurate spin samples, an accepted chart on the rescaled origin sample
+yields a rational approximation to the chart's exact origin seed within any positive `tolerance`. -/
 theorem originSeedOnAdmittedChart_error (v : SpatialPoint → SpatialPoint) (hu : ∀ x, ‖v x‖=1)
     (source : (Fin 3 → ℚ) × ℕ → RationalSpinSample) (hs : OriginalSpinSourceAccurate v source)
     (m1 m2 : ℚ) (chart : SeedChart)
@@ -73,7 +74,8 @@ theorem originSeedOnAdmittedChart_error (v : SpatialPoint → SpatialPoint) (hu 
   push_cast at hb
   exact herr.trans hb
 
-/-- Original `transitionProduct_error` guarantee for the `EffectiveSeedTransition` construction; the complete source hypotheses are retained. -/
+/-- If `a` and `b` are within `delta ≤ 1` of unit quaternions `p` and `q`, respectively, the
+product `a * b` approximates `p * q` within `3 * delta`. -/
 private theorem transitionProduct_error (a b p q : ℍ) (delta : ℝ)
     (hp : ‖p‖=1) (hq : ‖q‖=1) (ha : ‖a-p‖ ≤ delta) (hb : ‖b-q‖ ≤ delta)
     (hd : delta ≤ 1) : ‖a*b-p*q‖ ≤ 3*delta := by
@@ -87,7 +89,9 @@ private theorem transitionProduct_error (a b p q : ℍ) (delta : ℝ)
     _ ≤ 2*delta+delta := add_le_add (mul_le_mul hn hb (norm_nonneg _) (by norm_num)) ha
     _ = _ := by ring
 
-/-- Original `rationalSeedTransitionRun_correct` guarantee for the `EffectiveSeedTransition` construction; the complete source hypotheses are retained. -/
+/-- For accurate spin samples of a unit field, if both charts pass the rescaled origin test and
+`tolerance > 0`, the transition run returns a rational quaternion within `tolerance / 2` of the
+exact origin transition from chart `a` to chart `b`. -/
 theorem rationalSeedTransitionRun_correct (v : SpatialPoint → SpatialPoint) (hu : ∀ x, ‖v x‖=1)
     (source : (Fin 3 → ℚ) × ℕ → RationalSpinSample) (hs : OriginalSpinSourceAccurate v source)
     (m1 m2 : ℚ) (a b : SeedChart)

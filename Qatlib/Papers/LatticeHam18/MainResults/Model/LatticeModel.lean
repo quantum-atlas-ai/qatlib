@@ -151,7 +151,7 @@ def heisenbergEvolve (H : Matrix Q Q ℂ) (t : ℝ) (A : Matrix Q Q ℂ) : Matri
 
 /-- The time-ordered propagator `U_t` of `i ∂_t U = H(t) U`, i.e.
 `U_t = 𝒯 exp(-i ∫_0^t H)`, built from the Dyson series in
-`Qatlib.Papers.QLinearODE17.TaylorAnalysis.orderedEvolution`
+`Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution.orderedEvolution`
 (generator `i • H`). -/
 def evolution (H : ℝ → Matrix Q Q ℂ) (t : ℝ) : Matrix Q Q ℂ :=
   Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution.orderedEvolution

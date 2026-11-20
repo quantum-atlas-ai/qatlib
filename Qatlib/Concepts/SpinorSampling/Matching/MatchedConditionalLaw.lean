@@ -46,7 +46,8 @@ def matchedSetConditionalMass [Nonempty S]
     (fun z => matchedSites z.1 z.2 τ=A), pairAddressMass z) /
     matchedCardEventMass τ n m k
 
-/-- Complete original `conditional_matched_set_uniform` guarantee for `MatchedConditionalLaw`; all source hypotheses and output obligations are retained. -/
+/-- For positive `k` no larger than either cohort length, each specified `k`-element set has
+conditional matched-set mass equal to the reciprocal of the number of `k`-element site sets. -/
 theorem conditional_matched_set_uniform [Nonempty S]
     (τ : Equiv.Perm S) {n m k : ℕ} (A : Finset S)
     (hA : A.card=k) (hk0 : 0<k) (hkn : k≤n) (hkm : k≤m) :
@@ -100,7 +101,9 @@ def matchedConditionalSetExpectation [Nonempty S]
   ∑ A ∈ (Finset.univ : Finset S).powersetCard k,
     matchedSetConditionalMass τ (n:=n) (m:=m) (k:=k) A * F A
 
-/-- Complete original `matchedConditionalSetExpectation_uniform` guarantee for `MatchedConditionalLaw`; all source hypotheses and output obligations are retained. -/
+/-- For positive `k` bounded by both cohort lengths, the conditional expectation of any
+matched-set statistic is the sum of its values over all `k`-element site sets divided by the
+binomial count. -/
 theorem matchedConditionalSetExpectation_uniform [Nonempty S]
     (τ : Equiv.Perm S) {n m k : ℕ} (F : Finset S → ℝ)
     (hk0 : 0<k) (hkn : k≤n) (hkm : k≤m) :

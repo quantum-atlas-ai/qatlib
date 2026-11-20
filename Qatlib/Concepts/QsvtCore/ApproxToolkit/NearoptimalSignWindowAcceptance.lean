@@ -84,7 +84,7 @@ theorem rectangleConstruction : RectangleConstructionClaim := by
   constructor
   · intro δ ε t hδ hδ2 hε hε2 ht
     have h :=
-        Qatlib.Concepts.QsvtCore.ApproxToolkit.NearoptimalSignWindow.frontier1 hδ hδ2 hε hε2 ht
+        Qatlib.Concepts.QsvtCore.ApproxToolkit.NearoptimalSignWindow.nearoptimal_sign_and_rectangle_degree_bounds hδ hδ2 hε hε2 ht
     exact ⟨h.2.1,h.2.2.1,h.2.2.2⟩
   · intro δ ε t hδ hδ2 hε hε2 ht
     exact ⟨nativeRectangleCoefficients_spec hδ hδ2 hε hε2 ht,

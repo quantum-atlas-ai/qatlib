@@ -33,8 +33,8 @@ instruments [DaviesLewis1970] and the density-operator and partial-trace framewo
   probability.
 * `referencePathMixture_tendsto`: finite conditional path mixtures converge when the limiting
   event mass is positive.
-* `frontier1`: collects execution-law, limiting-map, and mass-conservation guarantees.
-* `frontier2`: collects the reference-event probability and conditional-state convergence
+* `stopping_execution_limit_and_mass_conservation`: collects execution-law, limiting-map, and mass-conservation guarantees.
+* `conditional_stopping_output_density_and_convergence`: collects the reference-event probability and conditional-state convergence
   guarantees.
 
 ## References
@@ -1006,7 +1006,7 @@ theorem retry_limit_map {D : ℕ} (I : Instrument Bool D D) (price : Unit→Bool
 /-- Combines equality of finite path and execution laws with complete positivity, trace
 nonincrease, convergence, probability identification, and conservation of halting and
 nontermination mass. -/
-theorem frontier1 {C L O : Type} [Fintype L] {D : ℕ}
+theorem stopping_execution_limit_and_mass_conservation {C L O : Type} [Fintype L] {D : ℕ}
     (I : C→Instrument L D D) (dest : C→L→O⊕C) (price : C→L→ℕ)
     (c : C) (ρ : ClockDensity D) (E : O×ℕ→Prop) :
     (∀ n, FullLaw.fullPathLaw I dest price n c ρ =
@@ -1028,7 +1028,7 @@ theorem frontier1 {C L O : Type} [Fintype L] {D : ℕ}
 /-- For a joint density input with positive limiting event mass, identifies the event
 probability and proves that the normalized limiting output is a density operator approached
 by finite conditional path mixtures. -/
-theorem frontier2 {C L O : Type} [Fintype L] {D R : ℕ}
+theorem conditional_stopping_output_density_and_convergence {C L O : Type} [Fintype L] {D R : ℕ}
     (I : C→Instrument L D D) (dest : C→L→O⊕C) (price : C→L→ℕ)
     (c : C) (E : O×ℕ→Prop) (X : Matrix (Fin D×Fin R) (Fin D×Fin R) ℂ)
     (hX : X.PosSemidef) (htrace : Matrix.trace X=1)

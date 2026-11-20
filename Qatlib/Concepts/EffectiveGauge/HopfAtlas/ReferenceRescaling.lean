@@ -27,7 +27,8 @@ open Qatlib.Concepts.EffectiveGauge.RationalFlow
 /-- Definition of reference Unit Collar in the Hopf Atlas construction. -/
 def referenceUnitCollar (mu : ℚ) : ℚ := min (1/8) (mu/14)
 
-/-- Original `referenceUnitCollar_spec` guarantee for the `ReferenceRescaling` construction; the complete source hypotheses are retained. -/
+/-- A positive boundary gap `mu` produces a unit-coordinate collar width in `(0, 1/8]` that
+satisfies `7 * referenceUnitCollar mu ≤ mu / 2`. -/
 theorem referenceUnitCollar_spec (mu : ℚ) (hm : 0<mu) :
     0<referenceUnitCollar mu ∧ referenceUnitCollar mu ≤ 1/8 ∧ 7*referenceUnitCollar mu ≤ mu/2 := by
   refine ⟨lt_min (by norm_num) (by positivity),min_le_left _ _,?_⟩
@@ -39,7 +40,8 @@ noncomputable section
 open scoped Quaternion ContDiff
 open Set
 
-/-- Original `constantCollar_mono` guarantee for the `ReferenceRescaling` construction; the complete source hypotheses are retained. -/
+/-- A field with constant collar value `c` at width `eta` has the same constant collar at any width
+`delta ≤ eta`. -/
 theorem constantCollar_mono {f : QuaternionField} {eta delta : ℝ} {c : ℍ}
     (hf : HasConstantCollar f eta c) (h : delta ≤ eta) : HasConstantCollar f delta c := by
   intro x hx hb
@@ -47,7 +49,9 @@ theorem constantCollar_mono {f : QuaternionField} {eta delta : ℝ} {c : ℍ}
   rcases hb with ⟨j,hj⟩
   exact ⟨j,hj.elim (fun hj => Or.inl (hj.trans h)) (fun hj => Or.inr (by linarith))⟩
 
-/-- Original `support_rescaled_collar` guarantee for the `ReferenceRescaling` construction; the complete source hypotheses are retained. -/
+/-- If a field is constant on the part of the fundamental cube outside a subset at distance at
+least `mu > 0` from the boundary, its quaternion source equals its origin value on the collar of
+width `physicalPeriod * eta` for `eta ≥ 0` and `7 * eta ≤ mu / 2`. -/
 theorem support_rescaled_collar (v : SpatialPoint → SpatialPoint) (B : Set SpatialPoint)
     (hB : ∀ x ∈ B, InFundamentalCube x) (mu : ℝ) (hm : 0<mu)
     (hg : ∀ x ∈ B, ∀ a, OnCubeBoundary a → mu ≤ ‖x-a‖)
@@ -59,7 +63,8 @@ theorem support_rescaled_collar (v : SpatialPoint → SpatialPoint) (B : Set Spa
   have heR : (0 : ℝ) ≤ eta := by exact_mod_cast he
   exact (mul_le_mul_of_nonneg_right hL heR).trans hmargin
 
-/-- Original `gluingCutoff_scaled` guarantee for the `ReferenceRescaling` construction; the complete source hypotheses are retained. -/
+/-- For `0 < eta ≤ 1/2`, evaluating the physical cutoff at width `physicalPeriod * eta` and
+position `physicalPeriod * x` gives the smooth transition at `(x - (1 - eta / 2)) / (eta / 4)`. -/
 theorem gluingCutoff_scaled (eta x : ℝ) (he : 0<eta) (he1 : eta ≤ 1/2) :
     gluingCutoff (physicalPeriod*eta) (physicalPeriod*x)=
       Real.smoothTransition ((x-(1-eta/2))/(eta/4)) := by
@@ -75,7 +80,10 @@ def sourcePeriodicReference (v : SpatialPoint → SpatialPoint) (hv : ContDiff �
   periodicReference v hv (rescaledOriginSeed v source m1 m2)
     (rescaledOriginSeed_spec v hu source hs m1 m2).1 (physicalPeriod*(eta : ℝ))
 
-/-- Original `sourcePeriodicReference_spec` guarantee for the `ReferenceRescaling` construction; the complete source hypotheses are retained. -/
+/-- For a smooth periodic unit field with accurate spin samples, the reference at positive `eta` is
+a periodic smooth unit lift of its quaternion source and equals the rescaled origin seed at zero.
+Assume the field is constant on the part of the fundamental cube outside a subset buffered
+from its boundary by `mu > 0`, with `7 * eta ≤ mu / 2`. -/
 theorem sourcePeriodicReference_spec (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (hu : ∀ w, ‖v w‖=1) (hp : IsPeriodicField v)
     (source : (Fin 3 → ℚ) × ℕ → RationalSpinSample) (hs : OriginalSpinSourceAccurate v source)

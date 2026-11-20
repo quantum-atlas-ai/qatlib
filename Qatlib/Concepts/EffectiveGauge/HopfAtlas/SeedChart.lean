@@ -48,7 +48,9 @@ def chosenOriginSeed (v : SpatialPoint → SpatialPoint)
     (source : (Fin 3 → ℚ) × ℕ → RationalSpinSample) : ℍ :=
   exactChartSeed (chosenOriginChart source) (sourceQuaternion v 0)
 
-/-- Original `chooseSeedChart_valid` guarantee for the `SeedChart` construction; the complete source hypotheses are retained. -/
+/-- If the first rational sample differs from the spin's `i` coordinate by at most `1/16`, the
+selected chart requires the coordinate to be above `-1/2` for north and below `1/2` for
+south. -/
 theorem chooseSeedChart_valid (a : Fin 3 → ℚ) (s : ℍ) (he : |(a 0 : ℝ)-s.imI| ≤ (1/16 : ℝ)) :
     match chooseSeedChart a with
     | .north => -(1/2 : ℝ)<s.imI
@@ -66,7 +68,9 @@ theorem chooseSeedChart_valid (a : Fin 3 → ℚ) (s : ℍ) (he : |(a 0 : ℝ)-s
     dsimp
     linarith
 
-/-- Original `exactChartSeed_spec` guarantee for the `SeedChart` construction; the complete source hypotheses are retained. -/
+/-- For a purely imaginary unit spin satisfying the selected chart's strict margin, the exact
+chart seed is a unit Hopf preimage. Its real coordinate exceeds `1/2` in the north chart, and
+its `j` coordinate exceeds `1/2` in the south chart. -/
 theorem exactChartSeed_spec (chart : SeedChart) (s : ℍ) (hr : s.re=0) (hn : ‖s‖=1)
     (hc : match chart with
       | .north => -(1/2 : ℝ)<s.imI
@@ -79,7 +83,8 @@ theorem exactChartSeed_spec (chart : SeedChart) (s : ℍ) (hr : s.re=0) (hn : �
   | north => exact ⟨northSeed_norm s hr hn hc,northSeed_hopf s hr hn hc,northSeed_margin s hc⟩
   | south => exact ⟨southSeed_norm s hr hn hc,southSeed_hopf s hr hn hc,southSeed_margin s hc⟩
 
-/-- Original `originSpinSamples_error` guarantee for the `SeedChart` construction; the complete source hypotheses are retained. -/
+/-- For an accurate rational source, each coordinate of the origin sample at precision `b`
+approximates the corresponding source coordinate with absolute error at most `1 / 2^b`. -/
 theorem originSpinSamples_error (v : SpatialPoint → SpatialPoint)
     (source : (Fin 3 → ℚ) × ℕ → RationalSpinSample) (hsource : OriginalSpinSourceAccurate v source) (b : ℕ) :
     ∀ j, |(originSpinSamples source b j : ℝ)-v 0 j| ≤ (2^b : ℝ)⁻¹ := by
@@ -88,7 +93,8 @@ theorem originSpinSamples_error (v : SpatialPoint → SpatialPoint)
   rw [he] at h
   exact h
 
-/-- Original `chosenOriginChart_valid` guarantee for the `SeedChart` construction; the complete source hypotheses are retained. -/
+/-- An accurate rational source selects an origin chart whose strict margin holds for the `i`
+coordinate of the exact spin at the origin. -/
 theorem chosenOriginChart_valid (v : SpatialPoint → SpatialPoint)
     (source : (Fin 3 → ℚ) × ℕ → RationalSpinSample) (hsource : OriginalSpinSourceAccurate v source) :
     match chosenOriginChart source with

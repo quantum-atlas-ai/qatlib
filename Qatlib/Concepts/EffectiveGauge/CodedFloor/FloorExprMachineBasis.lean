@@ -66,7 +66,9 @@ structure FloorExprMachineBasisCorrect (basis : FloorExprMachineBasis) : Prop wh
   cos : floorCodeRealizes basis.cos floorExprCosRawCode
   tolerance : floorCodeRealizes basis.tolerance (fun q : FloorExprQueryCode => q.2.2)
 
-/-- Original `floorExprMachineBasis_exists` guarantee for the `FloorExprMachineBasis` construction; the complete source hypotheses are retained. -/
+/-- The expression compiler has a fixed partial-recursive basis realizing coordinate and parameter
+access, flat and trigonometric evaluation, query scaling, rational arithmetic, and tolerance
+extraction. -/
 theorem floorExprMachineBasis_exists : ∃ basis, FloorExprMachineBasisCorrect basis := by
   obtain ⟨coord,hcoord⟩ := floorCodeRealizes_exists
     (fun q : ℕ × FloorExprQueryCode => floorPointCodeAt q.1 q.2.2.1)

@@ -60,13 +60,15 @@ def sourceStoredScaledResponse {m : ℕ} (cs : List ℚ) (N : ℕ) (E : ℚ)
     (f : Fin m → RootIntegerFactorData) (z : ℂ) : ℂ :=
   (sourceStoredCompletionScale cs N E f : ℂ)*sourceReturnedRootProduct f (sourceInputEta cs N E) z
 
-/-- The finite construction in `NativeSourceStoredResponse` satisfies `sourceActualG1Norm2_eq` under the displayed hypotheses. -/
+/-- The rational norm calculation equals the squared complex norm of the returned root product at
+one. -/
 theorem sourceActualG1Norm2_eq {m : ℕ} (f : Fin m → RootIntegerFactorData) (eta : ℚ) :
     (sourceActualG1Norm2 f eta : ℝ)=‖sourceReturnedRootProduct f eta 1‖^2 := by
   rw [sourceReturnedRootProduct,← rootCompletionCoefficientSum_decode,rootRationalCoordinate_sq_norm]
   rfl
 
-/-- The finite construction in `NativeSourceStoredResponse` satisfies `pair_inside` under the displayed hypotheses. -/
+/-- If the paired root approximation places each decoded rational coordinate strictly inside the
+circle and within eta of its match, every rational entry decodes to an interior point. -/
 private theorem pair_inside {qs : List (ℚ×ℚ)} {zs : List ℂ} {eta : ℚ}
     (h : List.Forall₂ (fun q z => ‖rootRationalCoordinate q‖<1 ∧
       ‖rootRationalCoordinate q-z‖≤(eta : ℝ)) qs zs) :
@@ -98,7 +100,8 @@ private theorem unit_product_bound (qs : List (ℚ×ℚ)) (z : ℂ) (hz : ‖z�
       _ ≤ 2*(2 : ℝ)^qs.length := mul_le_mul hq htail (norm_nonneg _) (by norm_num)
       _ = _ := by ring
 
-/-- The finite construction in `NativeSourceStoredResponse` satisfies `alpha_sqrt` under the displayed hypotheses. -/
+/-- If one minus the squared regularized response at one is positive, the exact completion scale
+is its square root divided by the norm of the returned root product at one. -/
 private theorem alpha_sqrt {m : ℕ} (cs : List ℚ) (N : ℕ) (E : ℚ)
     (f : Fin m → RootIntegerFactorData) (hh : 0<sourceActualH1 cs N E) :
     Real.sqrt (sourceActualCompletionAlpha cs N E f : ℝ)=Real.sqrt (sourceActualH1 cs N E : ℝ)/
@@ -107,7 +110,8 @@ private theorem alpha_sqrt {m : ℕ} (cs : List ℚ) (N : ℕ) (E : ℚ)
   rw [sourceActualCompletionAlpha,Rat.cast_div,sourceActualG1Norm2_eq,Real.sqrt_div hhR,
     Real.sqrt_sq (norm_nonneg _)]
 
-/-- The finite construction in `NativeSourceStoredResponse` satisfies `idealScaled_norm` under the displayed hypotheses. -/
+/-- The norm of the ideal scaled response equals the norm of the ideal root product ratio at z and
+one, multiplied by the square root of one minus the squared regularized response at one. -/
 private theorem idealScaled_norm (cs : List ℚ) (N : ℕ) (E : ℚ) (z : ℂ) :
     ‖sourceIdealScaledResponse cs N E z‖=Real.sqrt (sourceActualH1 cs N E : ℝ)*
       ‖sourceIdealProduct cs N E z/sourceIdealProduct cs N E 1‖ := by
@@ -116,7 +120,9 @@ private theorem idealScaled_norm (cs : List ℚ) (N : ℕ) (E : ℚ) (z : ℂ) :
     abs_of_nonneg (Real.sqrt_nonneg _),Complex.norm_real,Real.norm_eq_abs,
     abs_of_nonneg (norm_nonneg _),norm_div,mul_div_assoc]
 
-/-- The finite construction in `NativeSourceStoredResponse` satisfies `normalized_difference` under the displayed hypotheses. -/
+/-- For nonzero Iz, I1 and A1, subtracting the scaled ideal response from the scaled actual
+response gives the scaled ideal response times `(Az / Iz) / ‖A1 / I1‖ - 1`. Each scaled
+response uses the norm of its own value at one as denominator. -/
 private theorem normalized_difference (H : ℝ) (Iz I1 Az A1 : ℂ)
     (hIz : Iz≠0) (hI1 : I1≠0) (hA1 : A1≠0) :
     (H : ℂ)*Az/(‖A1‖ : ℂ)-(H : ℂ)*Iz/(‖I1‖ : ℂ)=

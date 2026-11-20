@@ -27,8 +27,8 @@ Fourier transform.
 
 * `certStep_stability`: bound the parameter and coefficient errors of one certified step.
 * `certLayerStrip_stability`: propagate those bounds along a certified run.
-* `frontier1`: combine stability with parameter-list length and operation charge.
-* `frontier2`: bound recovery errors relative to a generating parameter list.
+* `certified_layer_strip_cost_and_error_bounds`: combine stability with parameter-list length and operation charge.
+* `certified_phase_recovery_cost_and_error_bound`: bound recovery errors relative to a generating parameter list.
 * `certRefA_exact_norm_ge`: an exact update does not decrease the first constant-coefficient
   norm.
 
@@ -823,7 +823,7 @@ theorem certLayerStrip_stability (η γc M δ0 : ℝ) (hγc : 0 < γc)
 
 /-- Under the stability hypotheses, a certified run has one parameter per step, operation charge
 `4 * s ^ 2 + 12 * s`, and the recursive coefficient and parameter error bounds. -/
-theorem frontier1 (η γc M δ0 : ℝ) (hγc : 0 < γc)
+theorem certified_layer_strip_cost_and_error_bounds (η γc M δ0 : ℝ) (hγc : 0 < γc)
     (A0 B0 Ai0 Bi0 : Polynomial ℂ) (r : CertLayerStrip η γc A0 B0)
     (hex : LayerStripExact Ai0 Bi0 r.certSteps)
     (hγcI : ∀ k < r.certSteps, γc ≤ ‖(idealPair Ai0 Bi0 k).1.coeff 0‖)
@@ -865,7 +865,7 @@ private theorem nlft_fst_coeff_pos_real (γs : List ℂ) :
 /-- A certified run of the same positive length as a generating parameter list has operation
 charge `4 * n ^ 2 + 12 * n` and recovers each parameter within `certPhaseBound`, under the
 stated initial, coefficient, and denominator bounds. -/
-theorem frontier2 (η γc M δ0 : ℝ) (hγc : 0 < γc)
+theorem certified_phase_recovery_cost_and_error_bound (η γc M δ0 : ℝ) (hγc : 0 < γc)
     (γtrue : List ℂ) (n : ℕ) (hn : γtrue.length = n) (hn1 : 1 ≤ n)
     (A0 B0 : Polynomial ℂ) (r : CertLayerStrip η γc A0 B0)
     (hrn : r.certSteps = n)

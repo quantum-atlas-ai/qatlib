@@ -69,7 +69,10 @@ theorem source_all_boundary_packet_spec {m : ℕ} (cs : List ℚ) (N : ℕ) (E :
   · exact source_constant_packet_spec cs N E hd hz hparity
   · exact source_boundary_packet_spec cs N E hparity (Nat.pos_of_ne_zero hd) f
 
-/-- The finite construction in `NativeSourceAllPackets` satisfies `source_all_native_uniform` under the displayed hypotheses. -/
+/-- For a target of degree at most N, matching parity and absolute value at most one on the
+interval from −1 to 1, with positive E and a valid root certificate when both N and the source
+degree are positive, the selected packet's native real response approximates the original
+target uniformly within 13 times the source input budget divided by 32. -/
 theorem source_all_native_uniform {m : ℕ} (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E)
     (htail : ∀ k,N+1≤ k → cs.getD k 0=0)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)
@@ -93,7 +96,9 @@ theorem source_all_native_uniform {m : ℕ} (cs : List ℚ) (N : ℕ) (E : ℚ) 
     obtain ⟨hc,hg,ha⟩ := hcert (Nat.pos_of_ne_zero hN) hdpos
     exact source_native_uniform cs N E hE htail hparity hdpos hnorm m content f hc hg ha x hx
 
-/-- The finite construction in `NativeSourceAllPackets` satisfies `source_all_posterior_accepts` under the displayed hypotheses. -/
+/-- With positive E and a Chebyshev target of degree at most N, parity N and absolute value at
+most one on the interval from −1 to 1, the selected packet and its generated residual pass the
+checker. A valid root certificate is required when both N and the source degree are positive. -/
 theorem source_all_posterior_accepts {m : ℕ} (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E)
     (htail : ∀ k,N+1≤ k → cs.getD k 0=0)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)

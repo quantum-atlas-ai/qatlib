@@ -28,12 +28,12 @@ open Qatlib.Concepts.FinitePrecision.ComputableInput.Arithmetic.SignedNatMachine
 open CanonicalCodec.TM
 namespace PaidBoundCompression.Fields
 
-/-- Original `square_fee` guarantee for the `PaidBoundFieldExecution` construction; the complete source hypotheses are retained. -/
+/-- An upper bound `L` on the sum of two stack lengths bounds the corresponding quadratic reader allowance by `500*(1+L)^2`. -/
 private theorem square_fee (a b L : ℕ) (h : a+b≤L) :
     500*(1+a+b)^2≤500*(1+L)^2 :=
   Nat.mul_le_mul_left _ (Nat.pow_le_pow_left (by omega) 2)
 
-/-- Original `drain_fee` guarantee for the `PaidBoundFieldExecution` construction; the complete source hypotheses are retained. -/
+/-- If the discarded stack length `n` is at most `L`, its drain allowance is at most `10*(1+L)^2`. -/
 private theorem drain_fee (n L : ℕ) (h : n≤L) : n^2+3*n+3≤10*(1+L)^2 := by
   have hh := Nat.pow_le_pow_left h 2
   nlinarith

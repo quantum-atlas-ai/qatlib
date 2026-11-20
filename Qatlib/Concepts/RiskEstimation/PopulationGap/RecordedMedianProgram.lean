@@ -19,14 +19,14 @@ weighted expectation is the risk CDF. Its variance is at most one quarter for un
 preparation, enabling a recorded median estimator in the quantum Monte Carlo framework of
 [Montanaro2015].
 
-`frontier1` combines an exponentially decreasing median failure bound with explicit comparison,
+`risk_cdf_median_error_and_resources` combines an exponentially decreasing median failure bound with explicit comparison,
 bit time, storage, output size, and query accounting.
 
 ## Main statements
 
 * `riskCDFPayoffRat_sum`: the indicator expectation is the risk CDF.
 * `riskCDFPayoffRat_variance`: the one quarter variance bound.
-* `frontier1`: confidence and resource guarantees for recorded median readout.
+* `risk_cdf_median_error_and_resources`: confidence and resource guarantees for recorded median readout.
 
 ## References
 
@@ -169,7 +169,7 @@ namespace output2
 /-- For unitary preparation and `k ≥ 4`, the recorded median estimates the risk CDF within `9 *
 (1 / 2) * (1 / 2) ^ k` except with probability at most `(143 / 144) ^ r`. It also gives
 explicit comparison, bit time, storage, output bit size, and per anchor query guarantees. -/
-theorem frontier1 :
+theorem risk_cdf_median_error_and_resources :
     ∀ (I : Type) [Fintype I] [DecidableEq I] (A : Matrix I I ℂ)
       (j : I) (loss : I → ℚ) (t : ℚ) (k r : ℕ)
       (hA : A ∈ Matrix.unitaryGroup I ℂ), 4 ≤ k →
@@ -215,7 +215,7 @@ theorem frontier1 :
     rw [hcσ]
     exact h
   obtain ⟨hfail, hres, hbits, hledger⟩ :=
-    output1.frontier1 I A j f (1/2) k r hA hk hσ hvar
+    output1.signed_trial_median_error_and_resources I A j f (1/2) k r hA hk hσ hvar
   have he : (∑ i, BornProb (A *ᵥ Ket j) i*(f i : ℝ))
       = Qatlib.Concepts.RiskEstimation.VaRQuantile.Papers.QuantumRiskAnalysis2018.riskCDF A j loss t :=
     riskCDFPayoffRat_sum A j loss t

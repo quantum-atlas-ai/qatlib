@@ -18,15 +18,15 @@ attached supports and bounds the number of such words using support size and sit
 These estimates describe the support combinatorics underlying commutator scaling in
 [ChildsEtAl2021Trotter].
 
-It also constructs swap lists that gather supports into consecutive wire intervals. `frontier1`
-and `frontier1_layers` route a disjoint-support layer with an explicit swap budget.
+It also constructs swap lists that gather supports into consecutive wire intervals. `exists_disjoint_support_layer_routing_within_swap_budget`
+and `scheduled_support_layers_have_disjoint_routings` route a disjoint-support layer with an explicit swap budget.
 
 ## Main statements
 
 * `nested_ne_zero_imp_supportAttached`: nonzero nested commutators require attached supports.
 * `nonzeroNestedWords_card_le`: a product bound on the number of nonzero nested words.
 * `gatherSwapPairs_spec`: gathering a nonempty support with at most its size minus one swaps.
-* `frontier1`: routing a disjoint-support layer into disjoint intervals.
+* `exists_disjoint_support_layer_routing_within_swap_budget`: routing a disjoint-support layer into disjoint intervals.
 
 ## References
 
@@ -1606,7 +1606,7 @@ end Attached
 
 /-- A duplicate-free layer of pairwise disjoint nonempty supports can be routed into disjoint
 consecutive intervals with at most `clause52LayerRouteSwaps F l` swaps. -/
-theorem frontier1 {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) (l : List (Fin Λ))
+theorem exists_disjoint_support_layer_routing_within_swap_budget {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) (l : List (Fin Λ))
     (ρ : Fin Λ → Fin Λ)
     (hF : ∀ i ∈ l, ∀ j ∈ l, i ≠ j → Disjoint (F i).support (F j).support)
     (hndup : l.Nodup) (hρ : Function.Bijective ρ)
@@ -1626,7 +1626,7 @@ theorem frontier1 {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) (l : List (Fin Λ
 
 /-- Every layer in `clause52Schedule F L` can be routed within its swap budget so that its
 nonempty supports occupy pairwise disjoint consecutive intervals. -/
-theorem frontier1_layers {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) (L : ℕ)
+theorem scheduled_support_layers_have_disjoint_routings {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) (L : ℕ)
     (ρ : Fin Λ → Fin Λ) (hρ : Function.Bijective ρ)
     (l : List (Fin Λ)) (hl : l ∈ clause52Schedule F L) :
     ∃ (W : List (Fin Λ × Fin Λ)) (anchor : Fin Λ → ℕ),
@@ -1645,7 +1645,7 @@ theorem frontier1_layers {D Λ : ℕ} (F : Fin Λ → LocalTerm D Λ) (L : ℕ)
     subst hcl
     exact (List.Nodup.filter _ (List.nodup_finRange Λ)).filter _
   obtain ⟨W, anchor, hlen', hfinal', hdisj'⟩ :=
-    frontier1 F (l.filter (fun i => (F i).support.Nonempty)) ρ
+    exists_disjoint_support_layer_routing_within_swap_budget F (l.filter (fun i => (F i).support.Nonempty)) ρ
       (fun i hi j hj hij =>
         hdisjL i (List.mem_of_mem_filter hi) j (List.mem_of_mem_filter hj) hij)
       hndup hρ (fun i hi => of_decide_eq_true (List.mem_filter.mp hi).2)

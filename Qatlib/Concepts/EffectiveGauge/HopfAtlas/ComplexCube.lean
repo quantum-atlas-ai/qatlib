@@ -28,7 +28,8 @@ open scoped Interval
 namespace Qatlib.Concepts.EffectiveGauge.HopfAtlas
 open Qatlib.Concepts.EffectiveGauge.RationalFlow Qatlib.Concepts.EffectiveGauge.TorusFourier
 
-/-- Original `unitComplexCubeIntegral_clm` guarantee for the `ComplexCube` construction; the complete source hypotheses are retained. -/
+/-- A real-valued continuous real-linear functional commutes with integration of a continuous
+complex field over the unit cube. -/
 theorem unitComplexCubeIntegral_clm (L : ℂ →L[ℝ] ℝ) (f : SpatialPoint → ℂ) (hf : Continuous f) :
     L (unitComplexCubeIntegral f)=unitCubeIntegral (fun x => L (f x)) := by
   let e := (PiLp.continuousLinearEquiv 2 ℝ (fun _ : Fin 3 => ℝ)).symm
@@ -38,7 +39,8 @@ theorem unitComplexCubeIntegral_clm (L : ℂ →L[ℝ] ℝ) (f : SpatialPoint �
     ∫ u : Fin 3 → ℝ in Icc 0 1, L (f (WithLp.toLp 2 u))
   exact (L.integral_comp_comm hi).symm
 
-/-- Original `complexMeanTensorIntegral_clm` guarantee for the `ComplexCube` construction; the complete source hypotheses are retained. -/
+/-- Applying a continuous real-linear functional to the complex tensor integral gives the real
+tensor integral of its pointwise application to the continuous integrand. -/
 theorem complexMeanTensorIntegral_clm (L : ℂ →L[ℝ] ℝ) (f : MeanTensorPoint → ℂ)
     (hf : Continuous f) :
     L (complexMeanTensorIntegral f)=meanTensorIntegral (fun p => L (f p)) := by
@@ -82,7 +84,9 @@ theorem unitComplexCubeIntegral_eq_tensor (f : SpatialPoint → ℂ) (hf : Conti
     rw [unitComplexCubeIntegral_clm _ f hf,complexMeanTensorIntegral_clm _ _ hc]
     exact unitCubeIntegral_eq_tensor (fun x => Complex.imCLM (f x)) (Complex.imCLM.continuous.comp hf)
 
-/-- Original `unitComplexCubeIntegral_tensor_error` guarantee for the `ComplexCube` construction; the complete source hypotheses are retained. -/
+/-- For positive mesh size `N`, a continuous complex field satisfying the `D`-Lipschitz bound in
+tensor coordinates on the unit cube has left-grid integration error at most `3 * D / N`, with
+`D ≥ 0`. -/
 theorem unitComplexCubeIntegral_tensor_error (N : ℕ) (hN : 0<N) (f : SpatialPoint → ℂ)
     (hf : Continuous f) (D : ℝ) (hD : 0 ≤ D)
     (hLip : ∀ p q, meanTensorInCube p → meanTensorInCube q →

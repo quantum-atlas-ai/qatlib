@@ -83,7 +83,7 @@ def inputColumnPhaseWord (Q : Matrix J J ℂ) (φ : J → ℂ)
     [.gate (prepareRegister (I := H) (Matrix.diagonal φ)), .gate (prepareRegister (I := H) Q)]
 
 omit [Fintype I] [DecidableEq I] in
-/-- The finite construction in `InputPhaseColumnWord` satisfies `inputColumnPhaseWord_evaluate` under the displayed hypotheses. -/
+/-- Evaluation gives the product of the lifted adjoint of `Q`, the evaluation of `W`, the lifted diagonal of `φ`, and the lifted `Q`, in that order. -/
 theorem inputColumnPhaseWord_evaluate (Q : Matrix J J ℂ) (φ : J → ℂ)
     (O : Matrix (J × H) (J × H) ℂ) (W : List (AdjointStep (J × H))) :
     evaluate O (inputColumnPhaseWord Q φ W) = (prepareRegister (I := H) Q)ᴴ * evaluate O W *

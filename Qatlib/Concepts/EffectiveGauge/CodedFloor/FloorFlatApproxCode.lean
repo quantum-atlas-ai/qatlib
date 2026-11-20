@@ -34,7 +34,8 @@ def floorFlatApproxCode (n : ℕ) (p t : FloorRationalCode) : FloorRationalCode 
       (floorRationalCodeInv p,floorRationalCodeMul t
         (floorRationalCodeInv (floorRationalCodeAdd (floorRationalCodeAbs c) (floorRationalCodeNat 1))))).1.1
 
-/-- Original `floorFlatApproxCode_value` guarantee for the `FloorFlatApproxCode` construction; the complete source hypotheses are retained. -/
+/-- The coded flat evaluation represents the rational approximation at the decoded point and
+tolerance for the given derivative order. -/
 theorem floorFlatApproxCode_value (n : ℕ) (p t : FloorRationalCode) :
     floorRationalCodeValue (floorFlatApproxCode n p t)=
       floorFlatApproximation n (floorRationalCodeValue p) (floorRationalCodeValue t) := by
@@ -55,7 +56,8 @@ theorem floorFlatApproxCode_value (n : ℕ) (p t : FloorRationalCode) :
       floorRationalCodeAdd_value,floorRationalCodeAbs_value,floorRationalCodeNat_value,Nat.cast_one,
       div_eq_mul_inv]
 
-/-- Original `primrec_floorFlatApproxCode` guarantee for the `FloorFlatApproxCode` construction; the complete source hypotheses are retained. -/
+/-- The coded flat approximation is primitive recursive on the packed derivative order, point, and
+tolerance. -/
 theorem primrec_floorFlatApproxCode :
     Primrec (fun q : FloorFlatCodeInput => floorFlatApproxCode q.1 q.2.1 q.2.2) := by
   have hn : Primrec (fun q : FloorFlatCodeInput => q.1) := Primrec.fst
@@ -80,14 +82,16 @@ theorem primrec_floorFlatApproxCode :
   intro q
   rfl
 
-/-- Original `floorFlatMachine_of_primrec` guarantee for the `FloorFlatApproxCode` construction; the complete source hypotheses are retained. -/
+/-- A primitive-recursive map on primitively codable types has a partial-recursive program that
+returns its encoded output for every encoded input. -/
 private theorem floorFlatMachine_of_primrec {A B : Type*} [Primcodable A] [Primcodable B]
     (f : A → B) (hf : Primrec f) : ∃ c : Nat.Partrec.Code, ∀ a,
       Nat.Partrec.Code.eval c (Encodable.encode a)=Part.some (Encodable.encode (f a)) := by
   obtain ⟨c,hc⟩ := Nat.Partrec.Code.exists_code.mp hf.to_comp
   exact ⟨c,fun a => by simpa using congrFun hc (Encodable.encode a)⟩
 
-/-- Original `floorFlatApproxCode_encoded` guarantee for the `FloorFlatApproxCode` construction; the complete source hypotheses are retained. -/
+/-- One partial-recursive program computes the coded flat approximation on every encoded triple of
+derivative order, point, and tolerance. -/
 theorem floorFlatApproxCode_encoded : ∃ c : Nat.Partrec.Code, ∀ n p t,
     Nat.Partrec.Code.eval c (Encodable.encode (n,(p,t)))=
       Part.some (Encodable.encode (floorFlatApproxCode n p t)) := by

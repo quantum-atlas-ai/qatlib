@@ -117,12 +117,12 @@ def state (saved : Fin 9 → CanonicalCodec.Bits) (out temp : CanonicalCodec.Bit
     Slot → CanonicalCodec.Bits :=
   Sum.elim source (Sum.elim zero (Sum.elim saved (Stacks.stackPair temp out)))
 
-/-- Original `afterStore_first` guarantee for the `PaidConditionalBoundBankControl` construction; the complete source hypotheses are retained. -/
+/-- Storing the first reply leads to the copy instruction of the zero test. -/
 theorem afterStore_first {states : ℕ} : afterStore (states := states) 0=.zero (.copy .emit) := rfl
-/-- Original `afterStore_last` guarantee for the `PaidConditionalBoundBankControl` construction; the complete source hypotheses are retained. -/
+/-- Storing the last reply leads to emission of the full reply list starting with the first saved slot. -/
 theorem afterStore_last {states : ℕ} : afterStore (states := states) 8=.emit 8 0 0 := rfl
 
-/-- Original `zeroCode_injective` guarantee for the `PaidConditionalBoundBankControl` construction; the complete source hypotheses are retained. -/
+/-- The embedded zero test assigns distinct host slots to its work stacks, the saved first reply, and the temporary stack. -/
 theorem zeroCode_injective : Function.Injective zeroCode := by
   intro a b h
   cases a with
@@ -135,7 +135,7 @@ theorem zeroCode_injective : Function.Injective zeroCode := by
     | inl b => fin_cases a <;> simp [zeroCode] at h
     | inr b => fin_cases a <;> fin_cases b <;> simp_all [zeroCode]
 
-/-- Original `update_zero_flag` guarantee for the `PaidConditionalBoundBankControl` construction; the complete source hypotheses are retained. -/
+/-- Clearing the zero tester's only populated stack, its output, gives the assembled bank state with empty source and zero-test stacks. -/
 private theorem update_zero_flag (saved : Fin 9 → CanonicalCodec.Bits) (out temp bits : CanonicalCodec.Bits) :
     Function.update (state saved out temp (fun _ => [])
       (Function.update (fun _ => []) PaidRationalZero.outputSlot bits))
@@ -153,7 +153,7 @@ private theorem update_zero_flag (saved : Fin 9 → CanonicalCodec.Bits) (out te
         grind
     | inr k => rfl
 
-/-- Original `update_output` guarantee for the `PaidConditionalBoundBankControl` construction; the complete source hypotheses are retained. -/
+/-- With both work stack families empty, replacing the final output slot is equivalent to rebuilding the state with the new output and the same saved and temporary stacks. -/
 private theorem update_output (saved : Fin 9 → CanonicalCodec.Bits) (out temp bits : CanonicalCodec.Bits) :
     Function.update (state saved out temp (fun _ => []) (fun _ => [])) outputSlot bits=
       state saved bits temp (fun _ => []) (fun _ => []) := by

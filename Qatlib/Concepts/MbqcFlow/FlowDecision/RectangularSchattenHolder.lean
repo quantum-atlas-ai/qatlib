@@ -460,7 +460,7 @@ theorem zero_dimensions (p : ℝ) (hp : 0 < p) (A : Matrix M N ℂ) (h : IsEmpty
 
 /-- Collects the rectangular Schatten Hölder inequality, the two operator-factor Schatten
 bounds, and operator-norm submultiplicativity. -/
-theorem frontier1 (A : Matrix M N ℂ) (B : Matrix N K ℂ)
+theorem rectangular_schatten_holder_and_operator_norm_bounds (A : Matrix M N ℂ) (B : Matrix N K ℂ)
     (r p q : ℝ) (hr : 0 < r) (hp : 0 < p) (hq : 0 < q) (hpqr : 1/r=1/p+1/q) :
     schattenPower r (A*B) ≤ schattenPower p A * schattenPower q B ∧
     schattenPower r (A*B) ≤ ‖A‖ * schattenPower r B ∧

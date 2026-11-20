@@ -28,7 +28,7 @@ open scoped ContDiff Topology
 namespace Qatlib.Concepts.EffectiveGauge.TorusFourier
 open Qatlib.Concepts.EffectiveGauge.HopfAtlas Qatlib.Concepts.EffectiveGauge.RationalFlow
 
-/-- Original `unitComplexCubeIntegral_mode` guarantee for the `FourierMean` construction; the complete source hypotheses are retained. -/
+/-- The integral of a unit Fourier mode over the unit cube is one at zero frequency and zero at every other frequency. -/
 theorem unitComplexCubeIntegral_mode (k : SpatialFrequency) :
     unitComplexCubeIntegral (unitFourierMode k)=if k=0 then 1 else 0 := by
   have h := unitFourierCoefficient_mode k 0
@@ -63,7 +63,7 @@ theorem unitFourierSeries_cubeIntegral (a : SpatialFrequency → ℂ)
   · intro k hk
     simp [hk]
 
-/-- Original `unitComplexPoisson_mean_zero` guarantee for the `FourierMean` construction; the complete source hypotheses are retained. -/
+/-- The complex Poisson potential of three smooth unit-periodic components has integral zero over the unit cube. -/
 theorem unitComplexPoisson_mean_zero (f : Fin 3 → SpatialPoint → ℂ)
     (hf : ∀ j, ContDiff ℝ ∞ (f j)) (hp : ∀ j, IsUnitPeriodicField (f j)) :
     unitComplexCubeIntegral (unitComplexPoisson f hf hp)=0 := by
@@ -72,7 +72,7 @@ theorem unitComplexPoisson_mean_zero (f : Fin 3 → SpatialPoint → ℂ)
       (fun j => unitFourierCoefficient_rapidlySummable (f j) (hf j) (hp j))),
     unitPoissonCoefficient_zero]
 
-/-- Original `unitRealPoisson_mean_zero` guarantee for the `FourierMean` construction; the complete source hypotheses are retained. -/
+/-- The real Poisson potential formed from three smooth unit-periodic complex components has integral zero on the closed unit cube. -/
 theorem unitRealPoisson_mean_zero (f : Fin 3 → SpatialPoint → ℂ)
     (hf : ∀ j, ContDiff ℝ ∞ (f j)) (hp : ∀ j, IsUnitPeriodicField (f j)) :
     (∫ u : Fin 3 → ℝ in Icc 0 1, unitRealPoisson f hf hp (WithLp.toLp 2 u))=0 := by

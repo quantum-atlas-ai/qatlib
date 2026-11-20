@@ -27,7 +27,8 @@ open scoped Quaternion ContDiff
 namespace Qatlib.Concepts.EffectiveGauge.HopfAtlas
 open Qatlib.Concepts.EffectiveGauge.RationalFlow Qatlib.Concepts.EffectiveGauge.TorusFourier
 
-/-- Original `spatialWordPartial_linear_real` guarantee for the `GaugePositivePhase` construction; the complete source hypotheses are retained. -/
+/-- The iterated partial of a continuous linear functional is the functional for the empty word,
+its value on the indicated basis vector for a single direction, and zero for all longer words. -/
 theorem spatialWordPartial_linear_real (A : SpatialPoint →L[ℝ] ℝ) (w : List (Fin 3)) :
     spatialWordPartial (fun x => A x) w=
       match w with
@@ -55,7 +56,9 @@ def normalizedGaugePhase (q : QuaternionField) (hq : ContDiff ℝ ∞ q) (hp : I
     (n : SpatialFrequency) (u : SpatialPoint) : ℝ :=
   physicalPeriod*windingLinear n u+normalizedConnectionPoisson q hq hp u-normalizedConnectionPoisson q hq hp 0
 
-/-- Original `selectedPoissonGauge_normalized` guarantee for the `GaugePositivePhase` construction; the complete source hypotheses are retained. -/
+/-- In coordinates scaled by the physical period, the selected gauge is the original field
+left-multiplied by the phase of the normalized Poisson and winding correction, for a smooth
+periodic input. -/
 theorem selectedPoissonGauge_normalized (q : QuaternionField) (hq : ContDiff ℝ ∞ q) (hp : IsPeriodicField q)
     (result : SourceMeanSectorResult) :
     (fun u => selectedPoissonGauge q hq hp result (physicalPeriod • u))=
@@ -67,7 +70,9 @@ theorem selectedPoissonGauge_normalized (q : QuaternionField) (hq : ContDiff ℝ
   simp only [map_smul,smul_eq_mul]
   ring
 
-/-- Original `normalizedConnectionPoisson_word_bound_third` guarantee for the `GaugePositivePhase` construction; the complete source hypotheses are retained. -/
+/-- For a smooth periodic field whose normalized connection has each pure sixth partial bounded
+by `M` on the unit cube, every normalized Poisson phase partial of order at most three is
+bounded everywhere by `156 * M`. -/
 theorem normalizedConnectionPoisson_word_bound_third (q : QuaternionField) (hq : ContDiff ℝ ∞ q)
     (hp : IsPeriodicField q) (M : ℝ)
     (hb : ∀ j i x, InUnitCube x →
@@ -92,7 +97,8 @@ def gaugeWindingSize (n : SpatialFrequency) : ℚ := ∑ j : Fin 3, |(n j : ℚ)
 def gaugePositivePhaseModulus (C6 : ℚ) (n : SpatialFrequency) (r : ℕ) : ℚ :=
   if r=1 then 7*gaugeWindingSize n+156*C6 else 156*C6
 
-/-- Original `gaugeWindingSize_bound` guarantee for the `GaugePositivePhase` construction; the complete source hypotheses are retained. -/
+/-- The sum of the absolute winding components bounds the absolute value of each individual
+winding component. -/
 theorem gaugeWindingSize_bound (n : SpatialFrequency) (j : Fin 3) :
     |(n j : ℝ)| ≤ (gaugeWindingSize n : ℝ) := by
   have h : |(n j : ℚ)| ≤ ∑ i : Fin 3, |(n i : ℚ)| :=
@@ -101,7 +107,10 @@ theorem gaugeWindingSize_bound (n : SpatialFrequency) (j : Fin 3) :
   push_cast at hcast
   simpa only [gaugeWindingSize,Rat.cast_sum,Rat.cast_abs,Rat.cast_intCast] using hcast
 
-/-- Original `normalizedGaugePhase_positive_bound` guarantee for the `GaugePositivePhase` construction; the complete source hypotheses are retained. -/
+/-- For a smooth periodic field with pure sixth partials of every normalized connection
+component bounded by `C6` on the unit cube, the normalized gauge phase has partials of orders
+one through three bounded everywhere by `156 * C6`, with an additional seven times the winding
+size at order one. -/
 theorem normalizedGaugePhase_positive_bound (q : QuaternionField) (hq : ContDiff ℝ ∞ q) (hp : IsPeriodicField q)
     (C6 : ℚ)
     (hC6 : ∀ j i x, InUnitCube x →

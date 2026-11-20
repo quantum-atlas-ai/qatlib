@@ -40,11 +40,12 @@ def sourceMeanSampleBits (m1 tolerance : ℚ) : ℕ :=
 def sourceMeanLengthBits (m1 tolerance : ℚ) : ℕ :=
   Nat.clog 2 (Nat.ceil (64*((7*m1)^2+1)/tolerance))
 
-/-- Original `sourceMeanMesh_pos` guarantee for the `SourceMeanPlan` construction; the complete source hypotheses are retained. -/
+/-- The selected source mean mesh size per axis is positive for all rational inputs. -/
 theorem sourceMeanMesh_pos (m1 m2 tolerance : ℚ) : 0<sourceMeanMesh m1 m2 tolerance := by
   exact lt_of_lt_of_le (by decide : 0<1) (le_max_left _ _)
 
-/-- Original `sourceMeanMesh_budget` guarantee for the `SourceMeanPlan` construction; the complete source hypotheses are retained. -/
+/-- At positive tolerance, three times the moment derivative budget divided by the selected mesh
+size is at most one quarter of the tolerance. -/
 theorem sourceMeanMesh_budget (m1 m2 tolerance : ℚ) (ht : 0<tolerance) :
     3*sourceMeanDerivativeBudget m1 m2/(sourceMeanMesh m1 m2 tolerance : ℚ) ≤ tolerance/4 := by
   have hn : (0 : ℚ)<sourceMeanMesh m1 m2 tolerance := by exact_mod_cast sourceMeanMesh_pos m1 m2 tolerance
@@ -54,7 +55,8 @@ theorem sourceMeanMesh_budget (m1 m2 tolerance : ℚ) (ht : 0<tolerance) :
   apply (div_le_iff₀ hn).mpr
   nlinarith
 
-/-- Original `sourceMeanSampleBits_budget` guarantee for the `SourceMeanPlan` construction; the complete source hypotheses are retained. -/
+/-- For positive tolerance, the selected dyadic spacing is at most `1 / 64`, and twice that spacing
+times `(7 * m1 + 1)^2` is at most one quarter of tolerance. -/
 theorem sourceMeanSampleBits_budget (m1 tolerance : ℚ) (ht : 0<tolerance) :
     (2^sourceMeanSampleBits m1 tolerance : ℚ)⁻¹ ≤ 1/64 ∧
       2*(2^sourceMeanSampleBits m1 tolerance : ℚ)⁻¹*(7*m1+1)^2 ≤ tolerance/4 := by
@@ -76,7 +78,8 @@ theorem sourceMeanSampleBits_budget (m1 tolerance : ℚ) (ht : 0<tolerance) :
     rw [hcancel] at he
     nlinarith
 
-/-- Original `sourceMeanLengthBits_budget` guarantee for the `SourceMeanPlan` construction; the complete source hypotheses are retained. -/
+/-- At positive tolerance the selected period spacing times `(7 * m1)^2 + 1` is at most tolerance
+divided by 64. -/
 theorem sourceMeanLengthBits_budget (m1 tolerance : ℚ) (ht : 0<tolerance) :
     ((7*m1)^2+1)*(2^sourceMeanLengthBits m1 tolerance : ℚ)⁻¹ ≤ tolerance/64 := by
   have hp : Nat.ceil (64*((7*m1)^2+1)/tolerance) ≤ 2^sourceMeanLengthBits m1 tolerance :=
@@ -102,7 +105,10 @@ def sourceMeanPlannedUnitExecution (source : RationalJetSource) (m1 m2 tolerance
 noncomputable section
 open scoped ContDiff
 
-/-- Original `sourceMeanPlannedUnitExecution_error` guarantee for the `SourceMeanPlan` construction; the complete source hypotheses are retained. -/
+/-- For a smooth unit spin with accurate first jets and nonnegative bounds on all first and ordered
+second partials in the physical cube, the planned execution returns a vector at positive tolerance.
+Each component approximates the negative integral of its rescaled curvature moment within half the
+tolerance. -/
 theorem sourceMeanPlannedUnitExecution_error (v : SpatialPoint → SpatialPoint)
     (hv : ContDiff ℝ ∞ v) (hu : ∀ x, ‖v x‖=1)
     (source : RationalJetSource) (hs : OriginalFirstJetAccurate v source)

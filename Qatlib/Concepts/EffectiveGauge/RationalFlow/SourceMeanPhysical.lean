@@ -32,13 +32,15 @@ def sourceMeanUnitBudget (m1 m2 tolerance : ℚ) : ℚ :=
   3*sourceMeanDerivativeBudget m1 m2/(sourceMeanMesh m1 m2 tolerance : ℚ)+
     2*(2^sourceMeanSampleBits m1 tolerance : ℚ)⁻¹*(7*m1+1)^2
 
-/-- Original `sourceMeanUnitBudget_nonneg` guarantee for the `SourceMeanPhysical` construction; the complete source hypotheses are retained. -/
+/-- Nonnegative first and second derivative bounds make the combined unit-cube quadrature and
+sampling budget nonnegative. -/
 theorem sourceMeanUnitBudget_nonneg (m1 m2 tolerance : ℚ) (hm1 : 0 ≤ m1) (hm2 : 0 ≤ m2) :
     0 ≤ sourceMeanUnitBudget m1 m2 tolerance := by
   dsimp [sourceMeanUnitBudget,sourceMeanDerivativeBudget]
   positivity
 
-/-- Original `sourceMeanUnitBudget_le` guarantee for the `SourceMeanPhysical` construction; the complete source hypotheses are retained. -/
+/-- At positive tolerance the combined unit-cube quadrature and sampling budget is at most half the
+tolerance. -/
 theorem sourceMeanUnitBudget_le (m1 m2 tolerance : ℚ) (ht : 0<tolerance) :
     sourceMeanUnitBudget m1 m2 tolerance ≤ tolerance/2 := by
   have hq := sourceMeanMesh_budget m1 m2 tolerance ht
@@ -75,7 +77,9 @@ theorem sourceMeanPhysicalExecution_success (source : RationalJetSource) (m1 m2 
 noncomputable section
 open scoped ContDiff
 
-/-- Original `sourceMeanPhysical_radius` guarantee for the `SourceMeanPhysical` construction; the complete source hypotheses are retained. -/
+/-- With nonnegative derivative bounds and tolerance in `(0, 1]`, suppose `|a|` is at most
+`(7 * m1)^2 / 2` plus the unit-cube error budget. The quotient interval using `a` as numerator
+center and the planned dyadic period interval has radius at most tolerance. -/
 theorem sourceMeanPhysical_radius (a m1 m2 tolerance : ℚ)
     (hm1 : 0 ≤ m1) (hm2 : 0 ≤ m2) (ht : 0<tolerance) (ht1 : tolerance ≤ 1)
     (ha : |a| ≤ (7*m1)^2/2+sourceMeanUnitBudget m1 m2 tolerance) :
@@ -104,7 +108,10 @@ theorem sourceMeanPhysical_radius (a m1 m2 tolerance : ℚ)
   have htpos : (0 : ℝ)<tolerance := by exact_mod_cast ht
   linarith
 
-/-- Original `sourceMeanPhysicalExecution_correct` guarantee for the `SourceMeanPhysical` construction; the complete source hypotheses are retained. -/
+/-- For a smooth unit spin with accurate first jets and nonnegative bounds for all first and ordered
+second partials on the physical cube, tolerance in `(0, 1]` yields a returned interval for every
+component. Each encloses the negative rescaled moment integral divided by the physical period, with
+radius and midpoint error at most tolerance. -/
 theorem sourceMeanPhysicalExecution_correct (v : SpatialPoint → SpatialPoint)
     (hv : ContDiff ℝ ∞ v) (hu : ∀ x, ‖v x‖=1)
     (source : RationalJetSource) (hs : OriginalFirstJetAccurate v source)

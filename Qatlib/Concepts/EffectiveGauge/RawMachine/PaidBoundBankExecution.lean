@@ -47,7 +47,7 @@ def sourcePrefixBudget (replies : Fin 9 → CanonicalCodec.Bits) (time : Fin 9 �
   | n+1 => sourcePrefixBudget replies time n+
       if h : n<9 then stageBudget ⟨n,h⟩ (replies ⟨n,h⟩) (time ⟨n,h⟩) else 0
 
-/-- Original `collected_step` guarantee for the `PaidBoundBankExecution` construction; the complete source hypotheses are retained. -/
+/-- For `n < 9`, storing reply `n` in the table containing the first `n` replies gives the table of the first `n+1` replies. -/
 private theorem collected_step (replies : Fin 9 → CanonicalCodec.Bits) (n : ℕ) (hn : n<9) :
     Function.update (collected replies n) ⟨n,hn⟩ (replies ⟨n,hn⟩)=collected replies (n+1) := by
   funext j
@@ -59,7 +59,7 @@ private theorem collected_step (replies : Fin 9 → CanonicalCodec.Bits) (n : �
     dsimp only [collected]
     split_ifs <;> first | rfl | omega
 
-/-- Original `source_prefix` guarantee for the `PaidBoundBankExecution` construction; the complete source hypotheses are retained. -/
+/-- Given a bounded source run for every bound query, the bank collects the first `n ≤ 9` replies in their designated slots within the source prefix budget. -/
 theorem source_prefix {states : ℕ}
     (machine : TM0.Machine CanonicalCodec.TM.Symbol (Fin (states+1)))
     (replies : Fin 9 → CanonicalCodec.Bits) (time space : Fin 9 → ℕ)
@@ -106,7 +106,7 @@ def emitPrefixBudget (replies : Fin 9 → CanonicalCodec.Bits) : ℕ → ℕ
   | n+1 => emitPrefixBudget replies n+
       if h : n<9 then emitBudget (remaining replies n) (emitted replies n).reverse ⟨n,h⟩ else 0
 
-/-- Original `remaining_step` guarantee for the `PaidBoundBankExecution` construction; the complete source hypotheses are retained. -/
+/-- Clearing slot `n < 9` after emitting the first `n` replies gives the remaining-slot contents after `n+1` emissions. -/
 private theorem remaining_step (replies : Fin 9 → CanonicalCodec.Bits) (n : ℕ) (hn : n<9) :
     Function.update (remaining replies n) ⟨n,hn⟩ []=remaining replies (n+1) := by
   funext j
@@ -118,7 +118,7 @@ private theorem remaining_step (replies : Fin 9 → CanonicalCodec.Bits) (n : �
     dsimp only [remaining]
     split_ifs <;> first | rfl | omega
 
-/-- Original `emit_prefix` guarantee for the `PaidBoundBankExecution` construction; the complete source hypotheses are retained. -/
+/-- From the full saved reply table, the emission loop reaches the configuration after the first `n ≤ 9` replies within the emission prefix budget. -/
 theorem emit_prefix {states : ℕ}
     (machine : TM0.Machine CanonicalCodec.TM.Symbol (Fin (states+1)))
     (replies : Fin 9 → CanonicalCodec.Bits) (n : ℕ) (hn : n≤9) :
@@ -144,7 +144,7 @@ theorem emit_prefix {states : ℕ}
     rw [←hi,←ho] at ee
     simpa only [emitPrefixBudget,dite_eq_left hn9] using (ih (by omega)).trans ee
 
-/-- Original `empty_frame` guarantee for the `PaidBoundBankExecution` construction; the complete source hypotheses are retained. -/
+/-- A frame with empty work and saved stacks consists of the designated output stack and empty stacks everywhere else. -/
 private theorem empty_frame (out : CanonicalCodec.Bits) :
     frame (fun _ => []) out (fun _ => [])=Function.update (fun _ => []) outputSlot out := by
   funext k
@@ -170,7 +170,7 @@ def bankOutput (replies : Fin 9 → CanonicalCodec.Bits) : CanonicalCodec.Bits :
 def bankBudget (replies : Fin 9 → CanonicalCodec.Bits) (time : Fin 9 → ℕ) : ℕ :=
   sourcePrefixBudget replies time 9+emitPrefixBudget replies 9+1
 
-/-- Original `bank_execution` guarantee for the `PaidBoundBankExecution` construction; the complete source hypotheses are retained. -/
+/-- Given bounded source runs for all nine queries, the bank runs from empty input to a halt with the reversed concatenation of replies on its output stack and all other stacks empty, within the bank clock budget. -/
 theorem bank_execution {states : ℕ}
     (machine : TM0.Machine CanonicalCodec.TM.Symbol (Fin (states+1)))
     (replies : Fin 9 → CanonicalCodec.Bits) (time space : Fin 9 → ℕ)

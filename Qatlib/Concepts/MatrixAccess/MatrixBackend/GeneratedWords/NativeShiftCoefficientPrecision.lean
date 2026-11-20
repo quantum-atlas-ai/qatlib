@@ -39,24 +39,24 @@ open scoped BigOperators Matrix.Norms.L2Operator
 /-- Construction for coordinate Size in the native shift coefficient precision model. -/
 private def coordinateSize (z : ℂ) : ℝ := |z.re|+|z.im|
 
-/-- The finite construction in `NativeShiftCoefficientPrecision` satisfies `coordinateSize_add` under the displayed hypotheses. -/
+/-- The sum of the absolute real and imaginary parts is subadditive under complex addition. -/
 private theorem coordinateSize_add (z w : ℂ) :
     coordinateSize (z+w) ≤ coordinateSize z+coordinateSize w := by
   simp only [coordinateSize,Complex.add_re,Complex.add_im]
   linarith [abs_add_le z.re w.re,abs_add_le z.im w.im]
 
-/-- The finite construction in `NativeShiftCoefficientPrecision` satisfies `coordinateSize_sum` under the displayed hypotheses. -/
+/-- For eight complex terms, the sum of the absolute coordinates of their total is at most the sum of their individual absolute coordinate totals. -/
 private theorem coordinateSize_sum (f : Fin 8 → ℂ) :
     coordinateSize (∑ i,f i) ≤ ∑ i,coordinateSize (f i) := by
   simp only [coordinateSize,Complex.re_sum,Complex.im_sum,Finset.sum_add_distrib]
   exact add_le_add (Finset.abs_sum_le_sum_abs _ _) (Finset.abs_sum_le_sum_abs _ _)
 
-/-- The finite construction in `NativeShiftCoefficientPrecision` satisfies `coordinateSize_real_mul` under the displayed hypotheses. -/
+/-- Multiplication by a real scalar scales the sum of absolute complex coordinates by the scalar's absolute value. -/
 private theorem coordinateSize_real_mul (r : ℝ) (z : ℂ) :
     coordinateSize ((r : ℂ)*z)=|r| *coordinateSize z := by
   simp [coordinateSize,Complex.mul_re,Complex.mul_im,abs_mul,mul_add]
 
-/-- The finite construction in `NativeShiftCoefficientPrecision` satisfies `coordinateSize_unit` under the displayed hypotheses. -/
+/-- A complex number of modulus one has sum of absolute coordinates at most `3/2`. -/
 private theorem coordinateSize_unit (z : ℂ) (hz : ‖z‖=1) : coordinateSize z ≤ 3/2 := by
   have hs : |z.re|^2+|z.im|^2=1 := by
     rw [sq_abs,sq_abs]
@@ -66,7 +66,7 @@ private theorem coordinateSize_unit (z : ℂ) (hz : ‖z‖=1) : coordinateSize 
   dsimp only [coordinateSize]
   nlinarith [sq_nonneg (|z.re|-|z.im|),abs_nonneg z.re,abs_nonneg z.im]
 
-/-- The finite construction in `NativeShiftCoefficientPrecision` satisfies `phaseCoefficient_norm` under the displayed hypotheses. -/
+/-- Every one of the eight phase coefficients has modulus one for either slack flag and any phase circle. -/
 private theorem phaseCoefficient_norm (p : Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle) (slack : Bool) (i : Fin 8) :
     ‖Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Prep.phaseCoefficient p slack i‖=1 := by
   have hp : ‖Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.phaseScalar p‖=1 := by
@@ -83,7 +83,7 @@ private def weightedIdentity (w : Fin 8 → ℝ) (p : Qatlib.Concepts.MatrixAcce
 private def weightedOracle (w : Fin 8 → ℝ) (p : Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle) (slack : Bool) : ℂ :=
   ∑ i : Fin 8,if i.val<4 then 0 else (w i : ℂ)*Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Prep.phaseCoefficient p slack i
 
-/-- The finite construction in `NativeShiftCoefficientPrecision` satisfies `effectiveCoefficient_born` under the displayed hypotheses. -/
+/-- At label `i`, the effective coefficient is the Born weight of preparation amplitude `prepAxis ps i` multiplied by the phase at `i`. -/
 private theorem effectiveCoefficient_born (ps : Fin 7 → Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle)
     (p : Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle) (slack : Bool) (i : Fin 8) :
     Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Prep.effectiveCoefficients ps p slack i=
@@ -135,7 +135,7 @@ private theorem coefficient_group_error (ps : Fin 7 → Qatlib.Concepts.MatrixAc
       Finset.sum_le_sum (fun i _ => hi i)
     _ = _ := by rw [←Finset.sum_mul]; ring
 
-/-- The finite construction in `NativeShiftCoefficientPrecision` satisfies `shift_weightedIdentity` under the displayed hypotheses. -/
+/-- With the rational shift weights, the identity coefficient is the lower radial mass times the supplied phase, plus the residual mass `1 - α/B - shiftMassLower B x y p` when slack is false. -/
 private theorem shift_weightedIdentity (α B x y : ℚ) (p : ℕ) (q : Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle) (slack : Bool) :
     weightedIdentity (fun i => (shiftWeights α B x y p i : ℝ)) q slack=
       (shiftMassLower B x y p : ℂ)*Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.phaseScalar q+
@@ -143,19 +143,19 @@ private theorem shift_weightedIdentity (α B x y : ℚ) (p : ℕ) (q : Qatlib.Co
   cases slack <;>
     simp [weightedIdentity,shiftWeights,Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Prep.phaseCoefficient,Fin.sum_univ_succ]
 
-/-- The finite construction in `NativeShiftCoefficientPrecision` satisfies `shift_weightedOracle` under the displayed hypotheses. -/
+/-- With the rational shift weights, the oracle coefficient is exactly `-α/B`, independently of the supplied phase circle and slack flag. -/
 private theorem shift_weightedOracle (α B x y : ℚ) (p : ℕ) (q : Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle) (slack : Bool) :
     weightedOracle (fun i => (shiftWeights α B x y p i : ℝ)) q slack=-(α/B : ℚ) := by
   simp [weightedOracle,shiftWeights,Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Prep.phaseCoefficient,Fin.sum_univ_succ]
 
 
-/-- The finite construction in `NativeShiftCoefficientPrecision` satisfies `gaussian_norm_sq` under the displayed hypotheses. -/
+/-- The squared complex modulus of `(x, y)` is the real cast of the rational sum `x² + y²`. -/
 private theorem gaussian_norm_sq (x y : ℚ) :
     ‖gaussianRatComplex (x,y)‖^2=((x*x+y*y : ℚ) : ℝ) := by
   simp only [Complex.sq_norm,Complex.normSq_apply,gaussianRatComplex]
   simp
 
-/-- The finite construction in `NativeShiftCoefficientPrecision` satisfies `gaussian_zero_iff` under the displayed hypotheses. -/
+/-- A Gaussian rational denotes zero exactly when both coordinates are zero. -/
 private theorem gaussian_zero_iff (x y : ℚ) :
     gaussianRatComplex (x,y)=0 ↔ x=0 ∧ y=0 := by
   constructor
@@ -170,7 +170,7 @@ private theorem gaussian_zero_iff (x y : ℚ) :
 /-- Construction for shift Target Radius in the native shift coefficient precision model. -/
 private def shiftTargetRadius (B x y : ℚ) : ℝ := ‖gaussianRatComplex (x,y)‖/(B : ℝ)
 
-/-- The finite construction in `NativeShiftCoefficientPrecision` satisfies `nativePhaseTarget_norm` under the displayed hypotheses. -/
+/-- The target phase has unit modulus, using the normalized node for nonzero input and one at the zero node. -/
 private theorem nativePhaseTarget_norm (x y : ℚ) : ‖nativePhaseTarget x y‖=1 := by
   by_cases hz : x=0 ∧ y=0
   · simp [nativePhaseTarget,hz]
@@ -179,7 +179,7 @@ private theorem nativePhaseTarget_norm (x y : ℚ) : ‖nativePhaseTarget x y‖
       exact fun h => hz ((gaussian_zero_iff x y).mp h)
     simp [nativePhaseTarget,hz,hn]
 
-/-- The finite construction in `NativeShiftCoefficientPrecision` satisfies `shiftTargetRadius_phase` under the displayed hypotheses. -/
+/-- For positive `B`, multiplying the target phase by the scaled node radius gives the complex rational node divided by `B`. -/
 private theorem shiftTargetRadius_phase (B x y : ℚ) (hB : 0<B) :
     (shiftTargetRadius B x y : ℂ)*nativePhaseTarget x y=
       gaussianRatComplex (x,y)/(B : ℂ) := by
@@ -213,7 +213,7 @@ private theorem shiftMassLower_error (B x y : ℚ) (p : ℕ) (hB : 0<B) :
   rw [hroot] at hi
   exact ⟨sub_nonneg.mpr hi.1,(le_abs_self _).trans hi.2.2.1⟩
 
-/-- The finite construction in `NativeShiftCoefficientPrecision` satisfies `shift_zeroSlack_radius` under the displayed hypotheses. -/
+/-- For `0 < α ≤ B`, a false generated slack flag implies that the scaled node radius is exactly `1 - α/B`. -/
 private theorem shift_zeroSlack_radius (α B x y : ℚ) (hα : 0<α) (hB : α ≤ B)
     (hflag : nativeShiftSlack α B x y=false) :
     shiftTargetRadius B x y=1-(α/B : ℚ) := by
@@ -375,7 +375,7 @@ theorem nativeShiftCoordinateResidual_error (α B x y : ℚ) (p : ℕ)
     nativeShiftCoordinateResidual α B x y p ≤ 12611/(65536*(2 : ℝ)^p) :=
   (nativeShiftCoordinateResidual_bound α B x y p hα hB hz).trans (precision_scalar_bound p)
 
-/-- The finite construction in `NativeShiftCoefficientPrecision` satisfies `nativeShiftCoordinateResidual_le` under the displayed hypotheses. -/
+/-- For `0 < α ≤ B` and `x² + y² ≤ (B - α)²`, the sum of the absolute real and imaginary parts of the generated identity and oracle coefficient residuals is at most `2^(-p)`. -/
 theorem nativeShiftCoordinateResidual_le (α B x y : ℚ) (p : ℕ)
     (hα : 0<α) (hB : α ≤ B) (hz : x*x+y*y ≤ (B-α)^2) :
     nativeShiftCoordinateResidual α B x y p ≤ 1/(2 : ℝ)^p := by

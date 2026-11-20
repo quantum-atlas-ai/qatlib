@@ -36,16 +36,17 @@ def ComplexUnitDisk := Metric.closedBall (0 : ℂ) 1
 def unitDiskBoundary (t : ℝ) : ComplexUnitDisk :=
   ⟨(Circle.exp t : ℂ),by simp [ComplexUnitDisk,Metric.mem_closedBall]⟩
 
-/-- Original `continuous_unitDiskBoundary` guarantee for the `DiskObstruction` construction; the complete source hypotheses are retained. -/
+/-- The map sending a real angle to its complex exponential on the boundary of the closed unit
+disk is continuous. -/
 theorem continuous_unitDiskBoundary : Continuous unitDiskBoundary :=
   (continuous_subtype_val.comp Circle.isCoveringMap_exp.continuous).subtype_mk _
 
-/-- Original `unitDiskBoundary_period` guarantee for the `DiskObstruction` construction; the complete source hypotheses are retained. -/
+/-- The boundary parametrization takes the same value at `physicalPeriod` and at zero. -/
 theorem unitDiskBoundary_period : unitDiskBoundary physicalPeriod=unitDiskBoundary 0 := by
   apply Subtype.ext
   simp [unitDiskBoundary,physicalPeriod]
 
-/-- Original `circleExp_eq_implies_phase_eq` guarantee for the `DiskObstruction` construction; the complete source hypotheses are retained. -/
+/-- Angles with equal complex circle exponentials give equal quaternion phases. -/
 theorem circleExp_eq_implies_phase_eq (a b : ℝ) (h : Circle.exp a=Circle.exp b) :
     phase a=phase b := by
   obtain ⟨n,hn⟩ := Circle.exp_eq_exp.mp h

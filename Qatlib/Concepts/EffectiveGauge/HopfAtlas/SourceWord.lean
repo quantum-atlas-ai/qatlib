@@ -35,21 +35,22 @@ def spatialWordPartial (f : SpatialPoint → E) : List (Fin 3) → SpatialPoint 
   | [] => f
   | i::w => fun x => fderiv ℝ (spatialWordPartial f w) x (EuclideanSpace.single i 1)
 
-/-- Original `contDiff_spatialWordPartial` guarantee for the `SourceWord` construction; the complete source hypotheses are retained. -/
+/-- Every finite iterated coordinate derivative of a smooth field into `E` is smooth. -/
 theorem contDiff_spatialWordPartial (f : SpatialPoint → E) (hf : ContDiff ℝ ∞ f)
     (w : List (Fin 3)) : ContDiff ℝ ∞ (spatialWordPartial f w) := by
   induction w with
   | nil => exact hf
   | cons i w ih => exact (ih.fderiv_right (m := ∞) (by rfl)).clm_apply contDiff_const
 
-/-- Original `spatialWordPartial_append` guarantee for the `SourceWord` construction; the complete source hypotheses are retained. -/
+/-- Differentiating along the concatenation `w ++ w'` equals applying the derivatives of `w` to the
+result of applying those of `w'`. -/
 theorem spatialWordPartial_append (f : SpatialPoint → E) (w w' : List (Fin 3)) :
     spatialWordPartial f (w++w')=spatialWordPartial (spatialWordPartial f w') w := by
   induction w with
   | nil => rfl
   | cons i w ih => simp only [List.cons_append,spatialWordPartial,ih]
 
-/-- Original `spatialWordPartial_add` guarantee for the `SourceWord` construction; the complete source hypotheses are retained. -/
+/-- Iterated coordinate-word differentiation distributes over addition of two smooth fields. -/
 theorem spatialWordPartial_add (f g : SpatialPoint → E) (hf : ContDiff ℝ ∞ f)
     (hg : ContDiff ℝ ∞ g) (w : List (Fin 3)) :
     spatialWordPartial (fun x => f x+g x) w=
@@ -65,7 +66,8 @@ theorem spatialWordPartial_add (f g : SpatialPoint → E) (hf : ContDiff ℝ ∞
     rw [hd.fderiv]
     rfl
 
-/-- Original `spatialWordPartial_const_smul` guarantee for the `SourceWord` construction; the complete source hypotheses are retained. -/
+/-- Every coordinate-word derivative commutes with multiplication of a smooth field by a fixed real
+scalar. -/
 theorem spatialWordPartial_const_smul (f : SpatialPoint → E) (hf : ContDiff ℝ ∞ f)
     (r : ℝ) (w : List (Fin 3)) :
     spatialWordPartial (fun x => r • f x) w=fun x => r • spatialWordPartial f w x := by
@@ -79,7 +81,8 @@ theorem spatialWordPartial_const_smul (f : SpatialPoint → E) (hf : ContDiff �
     rw [hd.fderiv]
     rfl
 
-/-- Original `spatialWordPartial_const` guarantee for the `SourceWord` construction; the complete source hypotheses are retained. -/
+/-- The empty derivative word returns the original constant field, and every nonempty word gives
+the zero field. -/
 theorem spatialWordPartial_const (c : E) (w : List (Fin 3)) :
     spatialWordPartial (fun _ : SpatialPoint => c) w=fun _ => if w=[] then c else 0 := by
   induction w with
@@ -89,7 +92,8 @@ theorem spatialWordPartial_const (c : E) (w : List (Fin 3)) :
     simp only [spatialWordPartial,ih,List.cons_ne_nil,ite_false]
     split_ifs <;> simp
 
-/-- Original `coordinateSecond` guarantee for the `SourceWord` construction; the complete source hypotheses are retained. -/
+/-- For a smooth field, differentiating its `j`-directional derivative along `i` is the second
+Fréchet derivative evaluated on the coordinate axes in order `i, j`. -/
 private theorem coordinateSecond (g : SpatialPoint → E) (hg : ContDiff ℝ ∞ g)
     (x : SpatialPoint) (i j : Fin 3) :
     fderiv ℝ (fun y => fderiv ℝ g y (EuclideanSpace.single j 1)) x (EuclideanSpace.single i 1)=
@@ -99,7 +103,8 @@ private theorem coordinateSecond (g : SpatialPoint → E) (hg : ContDiff ℝ ∞
   rw [hd.fderiv]
   simp
 
-/-- Original `spatialWordPartial_swap` guarantee for the `SourceWord` construction; the complete source hypotheses are retained. -/
+/-- Interchanging the first two coordinate directions in a derivative word leaves the derivative of
+a smooth field unchanged for any suffix word. -/
 theorem spatialWordPartial_swap (f : SpatialPoint → E) (hf : ContDiff ℝ ∞ f)
     (i j : Fin 3) (w : List (Fin 3)) :
     spatialWordPartial f (i::j::w)=spatialWordPartial f (j::i::w) := by
@@ -113,7 +118,8 @@ theorem spatialWordPartial_swap (f : SpatialPoint → E) (hf : ContDiff ℝ ∞ 
   rw [coordinateSecond _ hg,coordinateSecond _ hg]
   exact hsym (EuclideanSpace.single i 1) (EuclideanSpace.single j 1)
 
-/-- Original `spatialWordPartial_perm` guarantee for the `SourceWord` construction; the complete source hypotheses are retained. -/
+/-- Permuting a derivative word leaves the iterated coordinate derivative of a smooth field
+unchanged. -/
 theorem spatialWordPartial_perm (f : SpatialPoint → E) (hf : ContDiff ℝ ∞ f)
     {w w' : List (Fin 3)} (h : w.Perm w') :
     spatialWordPartial f w=spatialWordPartial f w' := by
@@ -132,17 +138,19 @@ def sourceWordMultiIndex (w : List (Fin 3)) : Fin 3 → ℕ := fun i => w.count 
 def sourceCanonicalWord (alpha : Fin 3 → ℕ) : List (Fin 3) :=
   List.replicate (alpha 0) 0++List.replicate (alpha 1) 1++List.replicate (alpha 2) 2
 
-/-- Original `sourceCanonicalWord_count` guarantee for the `SourceWord` construction; the complete source hypotheses are retained. -/
+/-- The canonical word associated to the multi-index `alpha` contains exactly `alpha i` copies of
+direction `i`. -/
 theorem sourceCanonicalWord_count (alpha : Fin 3 → ℕ) (i : Fin 3) :
     (sourceCanonicalWord alpha).count i=alpha i := by
   fin_cases i <;> simp [sourceCanonicalWord,List.count_replicate]
 
-/-- Original `sourceCanonicalWord_length` guarantee for the `SourceWord` construction; the complete source hypotheses are retained. -/
+/-- The canonical derivative word has length equal to the sum of the three entries of its
+multi-index. -/
 theorem sourceCanonicalWord_length (alpha : Fin 3 → ℕ) :
     (sourceCanonicalWord alpha).length=∑ i : Fin 3, alpha i := by
   simp [sourceCanonicalWord,Fin.sum_univ_three,Nat.add_assoc]
 
-/-- Original `sourceWordMultiIndex_perm` guarantee for the `SourceWord` construction; the complete source hypotheses are retained. -/
+/-- Sorting a derivative word by its direction counts gives a permutation of the original word. -/
 theorem sourceWordMultiIndex_perm (w : List (Fin 3)) :
     w.Perm (sourceCanonicalWord (sourceWordMultiIndex w)) := by
   apply List.perm_iff_count.mpr
@@ -150,7 +158,7 @@ theorem sourceWordMultiIndex_perm (w : List (Fin 3)) :
   rw [sourceCanonicalWord_count]
   rfl
 
-/-- Original `sourceWordMultiIndex_order` guarantee for the `SourceWord` construction; the complete source hypotheses are retained. -/
+/-- The sum of the three direction counts of any derivative word equals its length. -/
 theorem sourceWordMultiIndex_order (w : List (Fin 3)) :
     (∑ i : Fin 3, sourceWordMultiIndex w i)=w.length := by
   rw [← sourceCanonicalWord_length]
@@ -160,10 +168,11 @@ theorem sourceWordMultiIndex_order (w : List (Fin 3)) :
 def sourceCanonicalJet (v : SpatialPoint → SpatialPoint) (alpha : Fin 3 → ℕ) : SpatialPoint → SpatialPoint :=
   spatialWordPartial v (sourceCanonicalWord alpha)
 
-/-- Original `sourceCanonicalJet_zero` guarantee for the `SourceWord` construction; the complete source hypotheses are retained. -/
+/-- The canonical jet of multi-index zero is the source field itself. -/
 theorem sourceCanonicalJet_zero (v : SpatialPoint → SpatialPoint) : sourceCanonicalJet v 0=v := rfl
 
-/-- Original `sourceCanonicalJet_first` guarantee for the `SourceWord` construction; the complete source hypotheses are retained. -/
+/-- The canonical jet for the first-order multi-index in direction `i` is the corresponding
+physical partial derivative. -/
 theorem sourceCanonicalJet_first (v : SpatialPoint → SpatialPoint) (i : Fin 3) :
     sourceCanonicalJet v (firstJetIndex i)=sourcePhysicalPartial v i := by
   fin_cases i <;> funext x <;>
@@ -175,7 +184,8 @@ def OriginalAllJetAccurate (v : SpatialPoint → SpatialPoint) (source : Rationa
     (∀ i, 0 ≤ (a i : ℝ) ∧ (a i : ℝ) ≤ physicalPeriod) → ∀ j,
     |(source ((a,alpha),b) j : ℝ)-sourceCanonicalJet v alpha (rationalSpatialPoint a) j| ≤ (2^b : ℝ)⁻¹
 
-/-- Original `OriginalAllJetAccurate.first` guarantee for the `SourceWord` construction; the complete source hypotheses are retained. -/
+/-- An all-orders accurate rational jet source is also accurate for the value and first derivative
+queries. -/
 theorem OriginalAllJetAccurate.first (v : SpatialPoint → SpatialPoint) (source : RationalJetSource)
     (hs : OriginalAllJetAccurate v source) : OriginalFirstJetAccurate v source := by
   intro a b ha

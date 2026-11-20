@@ -1231,7 +1231,7 @@ theorem exactMinimum_logb_lower_bound {n : ℕ} (f : (Fin n → Bool) → Bool)
 /-- For a Boolean function depending on all coordinates, combines the bound `n ≤ d * 2 ^ (d -
 1)` for `d = exactDegree f` with the explicit logarithmic lower bound on `exactMinimum f`
 when `n ≥ 16` and its nonnegativity when `n < 16`. -/
-theorem frontier1 {n : ℕ} (f : (Fin n → Bool) → Bool)
+theorem all_coordinates_degree_and_exact_query_lower_bound {n : ℕ} (f : (Fin n → Bool) → Bool)
     (hdep : ∀ i, ∃ x, f x ≠ f (cubeFlip x i)) :
     n ≤ Qatlib.Concepts.QueryComplexity.DegreeMethod.exactDegree f *
         2 ^ (Qatlib.Concepts.QueryComplexity.DegreeMethod.exactDegree f - 1) ∧

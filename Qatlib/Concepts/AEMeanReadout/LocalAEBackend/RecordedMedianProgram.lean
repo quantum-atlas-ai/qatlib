@@ -28,7 +28,7 @@ underlying AE query ledger.
 * `recordedMedianProgram_correct`: identify the program output with the rational sample median.
 * `recordedMedianProgram_uniform_accounts`: bound comparisons and bit time and compute peak
   register accounts.
-* `output1.frontier1`: combine signed mean-estimation accuracy with the recorded median's
+* `output1.signed_trial_median_error_and_resources`: combine signed mean-estimation accuracy with the recorded median's
   resource accounts.
 
 ## References
@@ -324,7 +324,7 @@ namespace output1
 /-- Under unitary preparation, `k ≥ 4`, positive `σ`, and variance at most `σ²`, the recorded
 signed-trial median has error exceeding `9σ / 2^k` with probability at most `(143/144)^r`,
 together with the stated bit-size, median-resource, and AE query accounts [Montanaro2015]. -/
-theorem frontier1 :
+theorem signed_trial_median_error_and_resources :
     ∀ (I : Type) [Fintype I] [DecidableEq I] (A : Matrix I I ℂ)
       (j : I) (f : I → ℚ) (σ : ℚ) (k r : ℕ)
       (hA : A ∈ Matrix.unitaryGroup I ℂ), 4 ≤ k → 0 < σ →

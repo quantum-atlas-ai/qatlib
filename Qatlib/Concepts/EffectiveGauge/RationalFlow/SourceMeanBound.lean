@@ -27,7 +27,8 @@ open scoped ContDiff
 namespace Qatlib.Concepts.EffectiveGauge.RationalFlow
 open Qatlib.Concepts.EffectiveGauge.HopfAtlas
 
-/-- Original `unitCubeIntegral_abs_le` guarantee for the `SourceMeanBound` construction; the complete source hypotheses are retained. -/
+/-- A uniform absolute bound on a scalar field over the unit cube also bounds the absolute value of
+its cube integral. -/
 theorem unitCubeIntegral_abs_le (f : SpatialPoint → ℝ) (K : ℝ)
     (hbound : ∀ x, InUnitCube x → |f x| ≤ K) : |unitCubeIntegral f| ≤ K := by
   have hvol : volume (Icc (0 : Fin 3 → ℝ) 1)=(1 : ENNReal) := by
@@ -40,7 +41,9 @@ theorem unitCubeIntegral_abs_le (f : SpatialPoint → ℝ) (K : ℝ)
   · rw [Real.norm_eq_abs]
     exact hbound _ (fun i => ⟨hu.1 i,hu.2 i⟩)
 
-/-- Original `unitSourceMoment_abs_le` guarantee for the `SourceMeanBound` construction; the complete source hypotheses are retained. -/
+/-- For a smooth unit spin with physical first partials bounded by `m1 ≥ 0` on the fundamental cube,
+every curvature moment of the rescaled spin has magnitude at most `(7 * m1)^2 / 2` throughout the
+unit cube. -/
 theorem unitSourceMoment_abs_le (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (hu : ∀ x, ‖v x‖=1) (m1 : ℝ) (hm1 : 0 ≤ m1)
     (hb : ∀ x, InFundamentalCube x → ∀ i, ‖sourcePhysicalPartial v i x‖ ≤ m1)
@@ -65,14 +68,17 @@ theorem unitSourceMoment_abs_le (v : SpatialPoint → SpatialPoint) (hv : ContDi
   have hw : |u i| ≤ 1 := by rw [abs_of_nonneg (hucube i).1]; exact (hucube i).2
   simpa only [one_mul] using mul_le_mul hw hf (abs_nonneg _) (by norm_num : (0 : ℝ) ≤ 1)
 
-/-- Original `unitSourceMoment_integral_bound` guarantee for the `SourceMeanBound` construction; the complete source hypotheses are retained. -/
+/-- For a smooth unit spin whose physical first partials have norm at most `m1 ≥ 0` throughout the
+fundamental cube, each rescaled curvature moment has unit cube integral of magnitude at most
+`(7 * m1)^2 / 2`. -/
 theorem unitSourceMoment_integral_bound (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (hu : ∀ x, ‖v x‖=1) (m1 : ℝ) (hm1 : 0 ≤ m1)
     (hb : ∀ x, InFundamentalCube x → ∀ i, ‖sourcePhysicalPartial v i x‖ ≤ m1) (i j : Fin 3) :
     |unitCubeIntegral (sourceCurvatureMoment (unitCoordinateSpin v) i j)| ≤ (7*m1)^2/2 :=
   unitCubeIntegral_abs_le _ _ (fun u hucube => unitSourceMoment_abs_le v hv hu m1 hm1 hb u hucube i j)
 
-/-- Original `unitSourceMoment_integral_zero` guarantee for the `SourceMeanBound` construction; the complete source hypotheses are retained. -/
+/-- If all physical first partials of a smooth unit spin vanish on the fundamental cube, every
+rescaled curvature moment has zero unit cube integral. -/
 theorem unitSourceMoment_integral_zero (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (hu : ∀ x, ‖v x‖=1)
     (hb : ∀ x, InFundamentalCube x → ∀ i, ‖sourcePhysicalPartial v i x‖ ≤ 0) (i j : Fin 3) :

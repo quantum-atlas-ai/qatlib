@@ -36,17 +36,19 @@ def normalizedConnectionReal (q : QuaternionField) (j : Fin 3) (x : SpatialPoint
 def normalizedConnectionComplex (q : QuaternionField) (j : Fin 3) (x : SpatialPoint) : ℂ :=
   Complex.ofRealCLM (normalizedConnectionReal q j x)
 
-/-- Original `contDiff_normalizedConnectionReal` guarantee for the `SourceFourierCoefficient` construction; the complete source hypotheses are retained. -/
+/-- For a smooth field, each real connection component evaluated in normalized coordinates and
+multiplied by the physical period is smooth. -/
 theorem contDiff_normalizedConnectionReal (q : QuaternionField) (hq : ContDiff ℝ ∞ q) (j : Fin 3) :
     ContDiff ℝ ∞ (normalizedConnectionReal q j) :=
   contDiff_const.mul ((contDiff_connection q hq j).comp (contDiff_id.const_smul physicalPeriod))
 
-/-- Original `contDiff_normalizedConnectionComplex` guarantee for the `SourceFourierCoefficient` construction; the complete source hypotheses are retained. -/
+/-- Each complexified normalized connection component of a smooth quaternion field is smooth. -/
 theorem contDiff_normalizedConnectionComplex (q : QuaternionField) (hq : ContDiff ℝ ∞ q) (j : Fin 3) :
     ContDiff ℝ ∞ (normalizedConnectionComplex q j) :=
   Complex.ofRealCLM.contDiff.comp (contDiff_normalizedConnectionReal q hq j)
 
-/-- Original `unitPeriodic_normalizedConnectionComplex` guarantee for the `SourceFourierCoefficient` construction; the complete source hypotheses are retained. -/
+/-- If the smooth quaternion field is periodic in physical coordinates, each complex normalized
+connection component is periodic with unit coordinate periods. -/
 theorem unitPeriodic_normalizedConnectionComplex (q : QuaternionField) (hq : ContDiff ℝ ∞ q)
     (hp : IsPeriodicField q) (j : Fin 3) : IsUnitPeriodicField (normalizedConnectionComplex q j) := by
   have h := periodicField_rescale_unit (fun x => connection q x j) (periodicField_connection q hq hp j)

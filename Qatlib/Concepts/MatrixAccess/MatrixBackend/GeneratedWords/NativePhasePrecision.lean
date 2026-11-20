@@ -32,7 +32,7 @@ open Qatlib
 /-- Construction for real Cayley in the native phase precision model. -/
 private def realCayley (t : ℝ) : ℂ := ⟨(1-t^2)/(1+t^2),2*t/(1+t^2)⟩
 
-/-- The finite construction in `NativePhasePrecision` satisfies `realCayley_norm` under the displayed hypotheses. -/
+/-- The real Cayley parametrization gives a complex number of modulus one for every real parameter. -/
 private theorem realCayley_norm (t : ℝ) : ‖realCayley t‖=1 := by
   have ht : 1+t^2≠0 := by positivity
   have hs : ‖realCayley t‖^2=1 := by
@@ -42,7 +42,7 @@ private theorem realCayley_norm (t : ℝ) : ‖realCayley t‖=1 := by
     ring
   nlinarith [norm_nonneg (realCayley t)]
 
-/-- The finite construction in `NativePhasePrecision` satisfies `realCayley_chord` under the displayed hypotheses. -/
+/-- The chord distance between two real Cayley values is at most twice the absolute difference of their parameters. -/
 private theorem realCayley_chord (s t : ℝ) : ‖realCayley s-realCayley t‖≤2*|s-t| := by
   have hs : 1+s^2≠0 := by positivity
   have ht : 1+t^2≠0 := by positivity
@@ -58,7 +58,7 @@ private theorem realCayley_chord (s t : ℝ) : ‖realCayley s-realCayley t‖�
   apply (sq_le_sq₀ (norm_nonneg _) (by positivity : 0≤2*|s-t|)).mp
   simpa only [mul_pow,show (2 : ℝ)^2=4 by norm_num,sq_abs] using hb
 
-/-- The finite construction in `NativePhasePrecision` satisfies `rationalCayley_value` under the displayed hypotheses. -/
+/-- The rational Cayley pair, interpreted as a complex number, equals the real Cayley value at the same parameter. -/
 private theorem rationalCayley_value (t : ℚ) : gaussianRatComplex (cayleyRat t)=realCayley (t : ℝ) := by
   have hc : ((cayleyRat t).1 : ℝ)=(1-(t : ℝ)^2)/(1+(t : ℝ)^2) := by
     dsimp [cayleyRat]; push_cast; rfl
@@ -78,7 +78,7 @@ def phaseRootMidpoint (x y : ℚ) (p : ℕ) : ℚ :=
 def normalizedPhasePair (x y : ℚ) (p : ℕ) : GaussianRat :=
   cayleyRat (y/(phaseRootMidpoint x y p+x))
 
-/-- The finite construction in `NativePhasePrecision` satisfies `realCayley_ratio` under the displayed hypotheses. -/
+/-- If `x ≥ 0` and `R > 0` satisfies `R² = x² + y²`, the Cayley parameter `y / (R + x)` gives the normalized point with coordinates `x / R` and `y / R`. -/
 private theorem realCayley_ratio (x y R : ℝ) (hx : 0≤x) (hR : 0<R)
     (hR2 : R^2=x^2+y^2) : realCayley (y/(R+x))=⟨x/R,y/R⟩ := by
   have hd : R+x≠0 := by positivity
@@ -96,7 +96,7 @@ private theorem realCayley_ratio (x y R : ℝ) (hx : 0≤x) (hR : 0<R)
     rw [hplus]
     field_simp [hd,hR.ne']
 
-/-- The finite construction in `NativePhasePrecision` satisfies `gaussianRatComplex_div_real` under the displayed hypotheses. -/
+/-- Dividing the complex value of `(x, y)` by a real scalar `R` divides both real coordinates by `R`. -/
 private theorem gaussianRatComplex_div_real (x y : ℚ) (R : ℝ) :
     gaussianRatComplex (x,y)/(R : ℂ)=⟨(x : ℝ)/R,(y : ℝ)/R⟩ := by
   have hz : gaussianRatComplex (x,y)=((x : ℝ) : ℂ)+((y : ℝ) : ℂ)*Complex.I := by
@@ -106,7 +106,7 @@ private theorem gaussianRatComplex_div_real (x y : ℚ) (R : ℝ) :
     _ = (((x : ℝ)/R : ℝ) : ℂ)+(((y : ℝ)/R : ℝ) : ℂ)*Complex.I := by rw [←Complex.ofReal_div,←Complex.ofReal_div]
     _ = _ := Complex.re_add_im (Complex.mk ((x : ℝ)/R) ((y : ℝ)/R))
 
-/-- The finite construction in `NativePhasePrecision` satisfies `phase_halfangle_difference` under the displayed hypotheses. -/
+/-- For `|y| ≤ 1`, denominators `m + x` and `R + x` with `m, R ≥ 1` and `x ≥ 0` give half-angle ratios whose difference in absolute value is at most `|m - R|`. -/
 private theorem phase_halfangle_difference (y m R x : ℝ) (hy : |y|≤1)
     (hm : 1≤ m) (hR : 1≤R) (hx : 0≤x) :
     |y/(m+x)-y/(R+x)|≤|m-R| := by
@@ -162,7 +162,7 @@ private theorem normalizedPhasePair_error (x y : ℚ) (p : ℕ)
     _ ≤ 2*(1/(32*(2 : ℝ)^p)) := mul_le_mul_of_nonneg_left hmid (by norm_num)
     _ = _ := by ring
 
-/-- The finite construction in `NativePhasePrecision` satisfies `gaussianRatComplex_norm` under the displayed hypotheses. -/
+/-- The modulus of the complex number represented by the rational pair `(x, y)` is the real square root of `x² + y²`. -/
 private theorem gaussianRatComplex_norm (x y : ℚ) :
     ‖gaussianRatComplex (x,y)‖=Real.sqrt ((x*x+y*y : ℚ) : ℝ) := by
   have hz : gaussianRatComplex (x,y)=Complex.mk (x : ℝ) (y : ℝ) := by
@@ -172,14 +172,14 @@ private theorem gaussianRatComplex_norm (x y : ℚ) :
   push_cast
   ring
 
-/-- The finite construction in `NativePhasePrecision` satisfies `gaussianRatComplex_div_pair` under the displayed hypotheses. -/
+/-- Dividing both rational coordinates by `m` represents division of the corresponding complex number by `m`. -/
 private theorem gaussianRatComplex_div_pair (x y m : ℚ) :
     gaussianRatComplex (x/m,y/m)=gaussianRatComplex (x,y)/(m : ℂ) := by
   dsimp [gaussianRatComplex]
   push_cast
   ring
 
-/-- The finite construction in `NativePhasePrecision` satisfies `gaussianRatComplex_unit_scale` under the displayed hypotheses. -/
+/-- Dividing both coordinates by a positive rational `m` leaves the complex value divided by its modulus unchanged. -/
 private theorem gaussianRatComplex_unit_scale (x y m : ℚ) (hm : 0< m) :
     gaussianRatComplex (x/m,y/m)/(‖gaussianRatComplex (x/m,y/m)‖ : ℂ)=
       gaussianRatComplex (x,y)/(‖gaussianRatComplex (x,y)‖ : ℂ) := by
@@ -242,7 +242,7 @@ def nativePhasePair (x y : ℚ) (p : ℕ) : GaussianRat :=
 def nativePhaseTarget (x y : ℚ) : ℂ :=
   if x=0 ∧ y=0 then 1 else gaussianRatComplex (x,y)/(‖gaussianRatComplex (x,y)‖ : ℂ)
 
-/-- The finite construction in `NativePhasePrecision` satisfies `gaussianRatComplex_neg_pair` under the displayed hypotheses. -/
+/-- Negating both coordinates of a Gaussian rational pair negates its complex value. -/
 private theorem gaussianRatComplex_neg_pair (v : GaussianRat) :
     gaussianRatComplex (-v.1,-v.2)=-gaussianRatComplex v := by
   dsimp [gaussianRatComplex]
@@ -270,7 +270,7 @@ theorem nativePhasePair_error (x y : ℚ) (p : ℕ) :
     · rw [ite_eq_right hx]
       exact positivePhasePair_error x y p (le_of_not_gt hx) (by tauto)
 
-/-- The finite construction in `NativePhasePrecision` satisfies `nativePhasePair_norm` under the displayed hypotheses. -/
+/-- At every precision `p` and for every rational input pair, including zero, the generated phase pair represents a complex number of modulus one. -/
 theorem nativePhasePair_norm (x y : ℚ) (p : ℕ) : ‖gaussianRatComplex (nativePhasePair x y p)‖=1 := by
   have hn (x y : ℚ) : ‖gaussianRatComplex (positivePhasePair x y p)‖=1 := by
     unfold positivePhasePair normalizedPhasePair
@@ -282,7 +282,7 @@ theorem nativePhasePair_norm (x y : ℚ) (p : ℕ) : ‖gaussianRatComplex (nati
     exact hn _ _
   · exact hn _ _
 
-/-- The finite construction in `NativePhasePrecision` satisfies `nativePhasePair_circle` under the displayed hypotheses. -/
+/-- The two rational coordinates returned by native phase generation have squared sum exactly one for every input and precision. -/
 theorem nativePhasePair_circle (x y : ℚ) (p : ℕ) :
     (nativePhasePair x y p).1*(nativePhasePair x y p).1+
       (nativePhasePair x y p).2*(nativePhasePair x y p).2=1 := by

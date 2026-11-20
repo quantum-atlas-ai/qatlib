@@ -78,13 +78,13 @@ def program : Label → TM2.Stmt (fun _ : Slot => Bool) Label Local
   | .drain l => StackCall.stmt (fun _ : Fin 1 => readerSlot) Label.drain .done getIO putIO (Normalization.drainProgram l)
   | .done => .load (fun _ => default) .halt
 
-/-- Original `state_reader` guarantee for the `PaidRationalZeroControl` construction; the complete source hypotheses are retained. -/
+/-- The reader slot of an assembled zero-test state contains the supplied reader bits. -/
 private theorem state_reader (reader out : CanonicalCodec.Bits)
     (work : PaidFractionInverse.Slot → CanonicalCodec.Bits) : state reader out work readerSlot=reader := rfl
-/-- Original `state_output` guarantee for the `PaidRationalZeroControl` construction; the complete source hypotheses are retained. -/
+/-- The output slot of an assembled zero-test state contains the supplied output bits. -/
 private theorem state_output (reader out : CanonicalCodec.Bits)
     (work : PaidFractionInverse.Slot → CanonicalCodec.Bits) : state reader out work outputSlot=out := rfl
-/-- Original `update_reader` guarantee for the `PaidRationalZeroControl` construction; the complete source hypotheses are retained. -/
+/-- Updating the reader slot replaces the reader bits in the assembled state while preserving the output and inversion stacks. -/
 private theorem update_reader (reader out bits : CanonicalCodec.Bits)
     (work : PaidFractionInverse.Slot → CanonicalCodec.Bits) :
     Function.update (state reader out work) readerSlot bits=state bits out work := by
@@ -92,7 +92,7 @@ private theorem update_reader (reader out bits : CanonicalCodec.Bits)
   cases k with
   | inl k => rfl
   | inr k => fin_cases k <;> rfl
-/-- Original `update_output` guarantee for the `PaidRationalZeroControl` construction; the complete source hypotheses are retained. -/
+/-- Updating the output slot replaces the output bits in the assembled state while preserving the reader and inversion stacks. -/
 private theorem update_output (reader out bits : CanonicalCodec.Bits)
     (work : PaidFractionInverse.Slot → CanonicalCodec.Bits) :
     Function.update (state reader out work) outputSlot bits=state reader bits work := by
@@ -129,7 +129,7 @@ theorem inverse_call (p n r s : ℕ) :
   · simpa only [TM2.init,hdefault,StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,hf,state] using hn
   · simpa only [TM2.init,hdefault,StackCall.cfg,Option.map_some,Option.getD_some,state] using hnc.trans_le hc
 
-/-- Original `tag_step` guarantee for the `PaidRationalZeroControl` construction; the complete source hypotheses are retained. -/
+/-- The tag instruction drops up to two bits from the reader and writes a single true bit exactly when both original leading bits exist and are false. It starts the drain within `8+4*bits.length` clock units. -/
 theorem tag_step (bits : CanonicalCodec.Bits) :
     Stacks.Execution program ⟨some .tag,default,state bits [] (fun _ => [])⟩
       ⟨some (.drain 0),default,state bits.tail.tail [twoZeroBits bits] (fun _ => [])⟩
@@ -146,7 +146,7 @@ theorem tag_step (bits : CanonicalCodec.Bits) :
   simp only [List.length_tail]
   omega
 
-/-- Original `frame_target` guarantee for the `PaidRationalZeroControl` construction; the complete source hypotheses are retained. -/
+/-- A target that agrees with the replacement data on the injectively mapped slots and with the original state elsewhere equals the framed update. -/
 private theorem frame_target {K : Type} [DecidableEq K] (code : K → Slot)
     (hinj : Function.Injective code) (S T : Slot → CanonicalCodec.Bits)
     (data : K → CanonicalCodec.Bits) (hi : ∀ k,T (code k)=data k)
@@ -159,11 +159,11 @@ private theorem frame_target {K : Type} [DecidableEq K] (code : K → Slot)
   · rw [WordValidator.frame_outside code S data j (by simpa using hj)]
     exact (ho j (by simpa using hj)).symm
 
-/-- Original `transferCode_injective` guarantee for the `PaidRationalZeroControl` construction; the complete source hypotheses are retained. -/
+/-- The inversion output stack and the reader stack occupy distinct slots in the transfer call. -/
 private theorem transferCode_injective : Function.Injective transferCode := by
   intro a b h; fin_cases a <;> fin_cases b <;> simp_all [transferCode]
 
-/-- Original `transfer_call` guarantee for the `PaidRationalZeroControl` construction; the complete source hypotheses are retained. -/
+/-- Starting with reversed bits on the inversion output stack and an empty reader, the transfer clears that output, puts the bits in forward order on the reader, and reaches the tag instruction. -/
 theorem transfer_call (bits : CanonicalCodec.Bits) :
     Stacks.Execution program
       ⟨some (.transfer 0),default,
@@ -204,7 +204,7 @@ theorem transfer_call (bits : CanonicalCodec.Bits) :
     rw [hclock] at hc
     simpa only [StackCall.cfg,Option.map_some,Option.getD_some,hi,hv,List.length_reverse] using hc.le
 
-/-- Original `drain_call` guarantee for the `PaidRationalZeroControl` construction; the complete source hypotheses are retained. -/
+/-- With a single flag on the output stack, the drain clears the reader and reaches the done label with the flag intact within `bits.length^2+3*bits.length+3` clock units. -/
 theorem drain_call (bits : CanonicalCodec.Bits) (flag : Bool) :
     Stacks.Execution program ⟨some (.drain 0),default,state bits [flag] (fun _ => [])⟩
       ⟨some .done,default,state [] [flag] (fun _ => [])⟩

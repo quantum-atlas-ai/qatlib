@@ -28,7 +28,7 @@ open Qatlib.Concepts.FinitePrecision.ComputableInput.Arithmetic.SignedNatMachine
 open CanonicalCodec.TM
 namespace PaidRationalZero
 
-/-- Original `zero_state` guarantee for the `PaidRationalZeroMachine` construction; the complete source hypotheses are retained. -/
+/-- With the reader and inversion stacks empty, an assembled zero-test state consists solely of the designated output slot and its bits. -/
 private theorem zero_state (out : CanonicalCodec.Bits) :
     state [] out (fun _ => [])=Function.update (fun _ => []) outputSlot out := by
   funext k
@@ -36,7 +36,7 @@ private theorem zero_state (out : CanonicalCodec.Bits) :
   | inl k => rfl
   | inr k => fin_cases k <;> rfl
 
-/-- Original `initial_state` guarantee for the `PaidRationalZeroMachine` construction; the complete source hypotheses are retained. -/
+/-- Initializing the zero tester with reversed input bits enters the inverse call with its initialized stacks and empty reader and output slots. -/
 private theorem initial_state (bits : CanonicalCodec.Bits) :
     (TM2.init rawSlot bits.reverse : Config)=
       ⟨some (.invoke default),default,
@@ -50,7 +50,7 @@ private theorem initial_state (bits : CanonicalCodec.Bits) :
   change (⟨some (.invoke default),default,_⟩ : Config)=_
   rw [h]
 
-/-- Original `source_exec_raw` guarantee for the `PaidRationalZeroMachine` construction; the complete source hypotheses are retained. -/
+/-- For any four natural inputs, the stack program halts with just the Boolean test for two leading false bits of the inverse output. Its clock is bounded by `11000*(1+input length)^2`. -/
 theorem source_exec_raw (p n r s : ℕ) :
     Stacks.Execution program (TM2.init rawSlot (PaidFractionInverse.input p n r s).reverse)
       ⟨none,default,Function.update (fun _ => []) outputSlot
@@ -85,7 +85,7 @@ theorem source_exec (q : RedundantRational.Frac) :
   rw [PaidRationalBridge.inverse_output_codec,inverse_prefix] at hh
   exact hh
 
-/-- Original `raw_machine` guarantee for the `PaidRationalZeroMachine` construction; the complete source hypotheses are retained. -/
+/-- A single finite-state bit machine outputs one bit deciding equality of the two numerator entries for every encoded redundant fraction. Both its time and space are bounded by a common positive constant times the square of one plus the encoding length. -/
 theorem raw_machine :
     ∃ (states coef : ℕ) (machine : TM0.Machine CanonicalCodec.TM.Symbol (Fin (states+1))), 0<coef ∧
       ∀ q : RedundantRational.Frac,

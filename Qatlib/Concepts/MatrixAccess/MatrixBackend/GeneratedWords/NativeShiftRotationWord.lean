@@ -44,7 +44,7 @@ open scoped BigOperators Matrix.Norms.L2Operator
 def shiftPairGate (i : Fin 7) (c s : ℝ) : Matrix (Fin 8) (Fin 8) ℂ :=
   relabelGate (finSuccEquiv 7).symm (weightTwoLevel i c s)
 
-/-- The finite construction in `NativeShiftRotationWord` satisfies `nativePair_as_shiftPair` under the displayed hypotheses. -/
+/-- At each rotation index, the native logical pair matrix for a rational circle is the shift pair gate with the circle's cosine and sine coordinates. -/
 theorem nativePair_as_shiftPair (i : Fin 7) (q : Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle) :
     Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Prep.pairLogical i q=shiftPairGate i q.c q.s := by
   unfold Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Prep.pairLogical

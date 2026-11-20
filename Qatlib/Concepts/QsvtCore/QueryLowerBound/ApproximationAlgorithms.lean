@@ -35,7 +35,7 @@ words.
 
 ## Main statements
 
-* `frontier1`: Bound word perturbations by the query count and scalar approximation error.
+* `oracle_word_interior_and_uniform_perturbation_bounds`: Bound word perturbations by the query count and scalar approximation error.
 * `chebyshev_truncation_word_transport`: Transfer Chebyshev tail bounds through a word.
 * `quadratureCompositeComparisonEntry`: Collect composite quadrature error estimates and node
   counts.
@@ -205,7 +205,7 @@ theorem scalarSignalDistance_le_abs_div_window (m x y : ℝ)
 
 /-- A well-formed word with `q` oracle queries has perturbation bounds `q * ε / √(1 - m²)` on an
 interior window and `q * √(2 * ε)` on `[-1, 1]`. -/
-theorem frontier1 : ∀ (W : Type) [Fintype W] [DecidableEq W]
+theorem oracle_word_interior_and_uniform_perturbation_bounds : ∀ (W : Type) [Fintype W] [DecidableEq W]
     (word : List (AdjointStep (Bool × W))) (m ε : ℝ),
     WellFormedAdjointCircuit word → 0 ≤ ε → 0 ≤ m → m < 1 →
     (∀ x y : ℝ, x ∈ Set.Icc (-m) m → y ∈ Set.Icc (-m) m → |x - y| ≤ ε →
@@ -248,7 +248,7 @@ theorem uniform_approx_signal_transport (W : Type) [Fintype W] [DecidableEq W]
     ∀ x : ℝ, x ∈ Set.Icc (-m) m → approx x ∈ Set.Icc (-m) m →
       ‖evaluate (scalarSignalLift W (approx x)) word - evaluate (scalarSignalLift W x) word‖ ≤
         (adjointQueryCount word : ℝ) * ε / Real.sqrt (1 - m ^ 2) :=
-  fun x hx hax => (frontier1 W word m ε hw hε hm hm1).1 (approx x) x hax hx (huni x hx hax)
+  fun x hx hax => (oracle_word_interior_and_uniform_perturbation_bounds W word m ε hw hε hm hm1).1 (approx x) x hax hx (huni x hx hax)
 
 /-- Uniformly close polynomial signals staying in `[-m, m]` give both interior Lipschitz and
 global square-root bounds for a fixed well-formed word. -/
@@ -267,7 +267,7 @@ theorem polynomial_pair_word_transport (W : Type) [Fintype W] [DecidableEq W]
           evaluate (scalarSignalLift W (q.eval t)) word‖ ≤
         (adjointQueryCount word : ℝ) * Real.sqrt (2 * δ)) := by
   refine ⟨fun t ht =>
-    (frontier1 W word m δ hw hδ hm hm1).1 (p.eval t) (q.eval t)
+    (oracle_word_interior_and_uniform_perturbation_bounds W word m δ hw hδ hm hm1).1 (p.eval t) (q.eval t)
       (hwinp t ht) (hwinq t ht) (huni t ht), ?_⟩
   intro t ht
   have hp : p.eval t ∈ Set.Icc (-1) 1 := by
@@ -276,7 +276,7 @@ theorem polynomial_pair_word_transport (W : Type) [Fintype W] [DecidableEq W]
   have hq : q.eval t ∈ Set.Icc (-1) 1 := by
     obtain ⟨h1, h2⟩ := hwinq t ht
     exact ⟨by linarith, by linarith⟩
-  exact (frontier1 W word m δ hw hδ hm hm1).2 (p.eval t) (q.eval t) hp hq (huni t ht)
+  exact (oracle_word_interior_and_uniform_perturbation_bounds W word m δ hw hδ hm hm1).2 (p.eval t) (q.eval t) hp hq (huni t ht)
 
 /-- The Chebyshev expansion truncated after degree `N`, with real coefficients `c`. -/
 noncomputable def chebTrunc (N : ℕ) (c : ℕ → ℝ) : Polynomial ℝ :=
@@ -388,9 +388,9 @@ theorem chebyshev_truncation_word_transport (W : Type) [Fintype W] [DecidableEq 
     rw [abs_sub_comm] at h
     exact h.trans htail
   exact ⟨fun t ht =>
-    (frontier1 W word m δ hw hδ hm hm1).1 _ _ (hwinN t ht) (hwinN' t ht) (huni t ht),
+    (oracle_word_interior_and_uniform_perturbation_bounds W word m δ hw hδ hm hm1).1 _ _ (hwinN t ht) (hwinN' t ht) (huni t ht),
     fun t ht =>
-      (frontier1 W word m δ hw hδ hm hm1).2 _ _ (hgN t ht) (hgN' t ht) (huni t ht)⟩
+      (oracle_word_interior_and_uniform_perturbation_bounds W word m δ hw hδ hm hm1).2 _ _ (hgN t ht) (hgN' t ht) (huni t ht)⟩
 
 /-- The natural degree of the `n`th Chebyshev polynomial of the first kind is `n`. -/
 theorem chebT_natDegree_eq (n : ℕ) :
@@ -610,7 +610,7 @@ theorem chebyshev_word_output_transport : ∀ (n : ℕ) (x y ε : ℝ),
       (n : ℝ) * Real.sqrt (2 * ε) := by
   intro n x y ε hx hy hε hxy
   have hcost := signalChebyshevUnitWord_cost n
-  have hmain := (frontier1 Unit (signalChebyshevUnitWord n) (1 / 2) ε
+  have hmain := (oracle_word_interior_and_uniform_perturbation_bounds Unit (signalChebyshevUnitWord n) (1 / 2) ε
     hcost.1 hε (by norm_num) (by norm_num)).2 x y hx hy hxy
   rw [hcost.2.1] at hmain
   have hb := scalar_signal_fixed_word_hybrid_bound Unit (signalChebyshevUnitWord n) x y
@@ -991,7 +991,7 @@ theorem recipChebTruncWordTransport (W : Type) [Fintype W] [DecidableEq W]
   have hrb := recipChebRatio_bounds δ hδ hδ1
   have hε : (0 : ℝ) ≤ (1 + Real.sqrt δ) * (recipChebRatio δ) ^ (n + 1) / 2 :=
     div_nonneg (mul_nonneg (by positivity) (pow_nonneg hrb.1 _)) (by norm_num)
-  have hmain := frontier1 W word m _ hw hε (by nlinarith) hm1
+  have hmain := oracle_word_interior_and_uniform_perturbation_bounds W word m _ hw hε (by nlinarith) hm1
   have hu : ∀ t : ℝ, t ∈ Set.Icc (-1) 1 →
       (0 : ℝ) < 2 * ((1 + δ) / 2 + (1 - δ) / 2 * t) := by
     intro t ht
@@ -1870,9 +1870,9 @@ theorem signChebTruncWordTransport (W : Type) [Fintype W] [DecidableEq W]
       lt_of_le_of_lt hm hm1
     linarith
   have hm0 : (0 : ℝ) ≤ m := by linarith
-  have hmain1 := frontier1 W word m (1 / (((K + 1 : ℕ) : ℝ) * Real.pi * δ) / 2) hw
+  have hmain1 := oracle_word_interior_and_uniform_perturbation_bounds W word m (1 / (((K + 1 : ℕ) : ℝ) * Real.pi * δ) / 2) hw
     (by positivity) hm0 hm1
-  have hmain2 := frontier1 W word m (1 / (((K + 1 : ℕ) : ℝ) * Real.pi * δ)) hw hε hm0 hm1
+  have hmain2 := oracle_word_interior_and_uniform_perturbation_bounds W word m (1 / (((K + 1 : ℕ) : ℝ) * Real.pi * δ)) hw hε hm0 hm1
   have hhalf : (0 : ℝ) ≤ 1 / 2 := by norm_num
   have hmhalf : (1 : ℝ) / 2 ≤ m := by
     have h3 : (1 : ℝ) / 2 ≤ (1 + 1 / (((K + 1 : ℕ) : ℝ) * Real.pi * δ)) / 2 := by
@@ -2349,7 +2349,7 @@ theorem windowTruncWordTransport (W : Type) [Fintype W] [DecidableEq W]
       rw [div_le_div_iff₀ (by norm_num : (0 : ℝ) < 2) (by norm_num : (0 : ℝ) < 2)]
       linarith
     linarith
-  have hmain := frontier1 W word m (1 / (((K + 1 : ℕ) : ℝ) * Real.pi * δ)) hw hε hm0 hm1
+  have hmain := oracle_word_interior_and_uniform_perturbation_bounds W word m (1 / (((K + 1 : ℕ) : ℝ) * Real.pi * δ)) hw hε hm0 hm1
   have hpt : ∀ t ∈ Set.Icc (-1) 1, δ ≤ |t - a| → δ ≤ |t - b| →
       ((1 / 2) * (windowTrunc a b K).eval t ∈ Set.Icc (-m) m ∧
         (1 / 2) * (windowTrunc a b K).eval t ∈ Set.Icc (-1) 1 ∧
@@ -5019,7 +5019,7 @@ theorem adaptiveRoundTransport {W : Type} [Fintype W] [DecidableEq W]
         evaluate (scalarSignalLift W y) (adaptiveWordAt P y j)‖ ≤
         (adjointQueryCount (adaptiveWordAt P x j) : ℝ) * Real.sqrt (2 * η)) := by
   have hw : adaptiveWordAt P x j = adaptiveWordAt P y j := adaptiveWord_eq hagree
-  have hmain := frontier1 W (adaptiveWordAt P y j) m η
+  have hmain := oracle_word_interior_and_uniform_perturbation_bounds W (adaptiveWordAt P y j) m η
     (P.wordChoice_legal _) hε hm hm1
   have hxw : x ∈ Set.Icc (-m) m := abs_le.mp hxm
   have hyw : y ∈ Set.Icc (-m) m := abs_le.mp hym
@@ -5111,7 +5111,7 @@ theorem multiSignalAggregateTransport {ι W : Type} [Fintype ι] [DecidableEq ι
       ‖multiSignalOutput M x i - multiSignalOutput M y i‖ ≤
         (adjointQueryCount (M.word i) : ℝ) * Real.sqrt (2 * ε) := by
     intro i
-    have h := frontier1 W (M.word i) m ε (M.word_legal i) hε hm hm1
+    have h := oracle_word_interior_and_uniform_perturbation_bounds W (M.word i) m ε (M.word_legal i) hε hm hm1
     exact ⟨h.1 (x i) (y i) (abs_le.mp (hxm i)) (abs_le.mp (hym i)) (herr i),
       h.2 (x i) (y i) (hx i) (hy i) (herr i)⟩
   constructor
@@ -5152,7 +5152,7 @@ theorem multiSignalSingleCoordinateFloor {ι W : Type} [Fintype ι] [DecidableEq
     Finset.sum_eq_single i₀ hvanish (fun h => absurd (Finset.mem_univ i₀) h)
   have htrans : ‖multiSignalOutput M x i₀ - multiSignalOutput M x' i₀‖ ≤
       (adjointQueryCount (M.word i₀) : ℝ) * Real.sqrt (2 * η) :=
-    (frontier1 W (M.word i₀) (1 / 2) η (M.word_legal i₀) hη.le
+    (oracle_word_interior_and_uniform_perturbation_bounds W (M.word i₀) (1 / 2) η (M.word_legal i₀) hη.le
       (by norm_num) (by norm_num)).2 (x i₀) (x' i₀) (hx i₀) (hx' i₀) herr
   have hkey : ν ≤ L * ((adjointQueryCount (M.word i₀) : ℝ) * Real.sqrt (2 * η)) := by
     have hchain := (hLip (multiSignalOutput M x) (multiSignalOutput M x')).trans_eq

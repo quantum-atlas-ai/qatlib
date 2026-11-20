@@ -130,10 +130,11 @@ phase-estimation Lemma 3.4 to the pair `(U_AB, |Φ_b⟩)`.  The formalisation is
 model of the star-state Hilbert space, the unitary `U_AB` as a `Matrix I I ℂ`, its eigenbasis with
 the zero-phase set `T` and its spectral gap, and the identification of the amplitudes
 `c_j = ⟪v_j, Φ_b⟫`.  Candidate reusable dependency (verified present in Frozen):
-`Qatlib.Concepts.SpectralFilter.ZeroPhaseFilter.DegeneratePhaseFilter.degenerate_phase_zero_event_and_full_branch_error`
-and `...degenerate_phase_conditional_target_state_error` (they already prove the success
+`Qatlib.Concepts.SpectralFilter.ZeroPhaseFilter.degenerate_phase_zero_event_and_full_branch_error`
+and `Qatlib.Concepts.SpectralFilter.ZeroPhaseFilter.degenerate_phase_conditional_target_state_error`
+(they already prove the success
 probability lower bound `a ≤ p` and the branch error bound); plus
-`Qatlib.Concepts.SpectralFilter.PhaseReadout.PhaseEstimation.qpe_exact_readout`. -/
+`Qatlib.Concepts.SpectralFilter.PhaseReadout.qpe_exact_readout`. -/
 def theorem39_statement
     {I : Type*} [Fintype I] [DecidableEq I]
     (U : Matrix I I ℝ) (θstar Φb pBket w : EuclideanSpace ℝ I)
@@ -185,11 +186,11 @@ projector `I - H†H/‖H‖²`-type filter of QSVT (Appendix A, Theorem A.1); (
 approximation of the step function to precision `ε` needs degree `O(κ(A) log(1/ε))` (Lemma A.2);
 (3) each QSVT step uses one query each of `U_H` and `U_H†`.  Missing pieces: an LCU/QSVT model
 of `U_H = blockEnc(H/α)`, the polynomial-approximation lemma for the step function, and the
-query-accounting interface.  Candidate reusable dependencies (directories verified present in
-Frozen, but their public theorem surfaces do not yet match this claim):
-`Qatlib.Concepts.QsvtCore.SvtRobustness`,
-`Qatlib.Concepts.LcuQsvtApprox.Optimality`,
-`Qatlib.Concepts.LcuQsvtApprox.SparseWalkFrame.LcuQsvtSparseSimulation`.
+query-accounting interface. The related modules
+`Qatlib.Concepts.QsvtCore.QsVtStability.SquareRootQSVTRobustness` and
+`Qatlib.Concepts.LcuQsvtApprox.SparseWalkFrame` cover robustness and sparse-walk constructions,
+respectively. This statement still requires a step-function approximation and a query-count
+argument specialized to the kernel-projection algorithm.
 
 The statement is existential in the solver and its query count because the Lean development
 does not yet contain a model of Algorithm 3; the existential is the formal counterpart of "the

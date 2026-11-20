@@ -28,11 +28,11 @@ open Qatlib.Concepts.BitWordCompiler
 open CanonicalCodec.TM
 namespace PaidConditionalBoundBank
 
-/-- Original `emitCode_injective` guarantee for the `PaidConditionalBoundEmitter` construction; the complete source hypotheses are retained. -/
+/-- For each reply index, the emission map puts the selected saved reply and the final output on distinct stacks. -/
 private theorem emitCode_injective (i : Fin 9) : Function.Injective (emitCode i) := by
   intro a b h; fin_cases a <;> fin_cases b <;> simp_all [emitCode]
 
-/-- Original `emit_stage` guarantee for the `PaidConditionalBoundEmitter` construction; the complete source hypotheses are retained. -/
+/-- Starting at an emission label with empty work stacks, the stage clears the selected saved slot and prepends its reversed contents to the output within the bank emission budget. -/
 theorem emit_stage {states : ℕ}
     (machine : TM0.Machine CanonicalCodec.TM.Symbol (Fin (states+1)))
     (stop i : Fin 9) (saved : Fin 9 → CanonicalCodec.Bits) (out : CanonicalCodec.Bits) :
@@ -87,7 +87,7 @@ def emitPrefixBudget (replies : Fin 9 → CanonicalCodec.Bits) (stop : Fin 9) (f
       if h : n≤stop.val then PaidBoundBank.emitBudget (PaidBoundBank.remaining (activeReplies replies stop) n)
         ((PaidBoundBank.emitted (activeReplies replies stop) n).reverse++[flag]) ⟨n,by omega⟩ else 0
 
-/-- Original `remaining_step` guarantee for the `PaidConditionalBoundEmitter` construction; the complete source hypotheses are retained. -/
+/-- Clearing slot `n < 9` in the remaining-reply table after `n` emissions gives the table for `n+1` emissions. -/
 private theorem remaining_step (replies : Fin 9 → CanonicalCodec.Bits) (n : ℕ) (hn : n<9) :
     Function.update (PaidBoundBank.remaining replies n) ⟨n,hn⟩ []=PaidBoundBank.remaining replies (n+1) := by
   funext j
@@ -98,7 +98,7 @@ private theorem remaining_step (replies : Fin 9 → CanonicalCodec.Bits) (n : �
     dsimp only [PaidBoundBank.remaining]
     split_ifs <;> first | rfl | omega
 
-/-- Original `emit_prefix` guarantee for the `PaidConditionalBoundEmitter` construction; the complete source hypotheses are retained. -/
+/-- Starting with the flag on the output stack, the conditional bank can emit any prefix of the active replies within the corresponding clock budget. -/
 theorem emit_prefix {states : ℕ}
     (machine : TM0.Machine CanonicalCodec.TM.Symbol (Fin (states+1)))
     (replies : Fin 9 → CanonicalCodec.Bits) (stop : Fin 9) (flag : Bool) (n : ℕ) (hn : n≤stop.val+1) :
@@ -133,7 +133,7 @@ theorem emit_prefix {states : ℕ}
     rw [←hi,←ho] at ee
     simpa only [emitPrefixBudget,dite_eq_left hns] using (ih (by omega)).trans ee
 
-/-- Original `empty_output` guarantee for the `PaidConditionalBoundEmitter` construction; the complete source hypotheses are retained. -/
+/-- A conditional source state with no saved replies or work bits has only the designated output stack populated. -/
 private theorem empty_output (out : CanonicalCodec.Bits) :
     sourceState (fun _ => []) out (fun _ => [])=Function.update (fun _ => []) outputSlot out := by
   funext k

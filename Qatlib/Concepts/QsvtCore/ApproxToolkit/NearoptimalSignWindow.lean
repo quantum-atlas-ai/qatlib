@@ -424,7 +424,7 @@ theorem nearOptimalRectangle_degree {δ ε : ℝ} (hδ : 0 < δ) (hδ2 : δ ≤ 
 
 /-- Combines the sign approximation with constant 12000 and the rectangle band, evenness, and
 degree bound with constant 36000 for the stated gap, error, and threshold ranges. -/
-theorem frontier1 {δ ε t : ℝ} (hδ : 0 < δ) (hδ2 : δ ≤ 2)
+theorem nearoptimal_sign_and_rectangle_degree_bounds {δ ε t : ℝ} (hδ : 0 < δ) (hδ2 : δ ≤ 2)
     (hε : 0 < ε) (hε2 : ε < 1/2) (ht1 : t ≤ 1) :
     NearOptimalSignApproximation 12000 δ ε (nearOptimalPolynomial δ ε) ∧
     PrintedRectangleBand (nearOptimalRectangle δ ε t) ε δ t ∧

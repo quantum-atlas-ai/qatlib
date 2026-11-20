@@ -24,7 +24,7 @@ noncomputable section
 namespace Qatlib.Concepts.EffectiveGauge.TorusFourier
 open Qatlib.Concepts.EffectiveGauge.HopfAtlas Qatlib.Concepts.EffectiveGauge.RationalFlow
 
-/-- Original `poissonPeriod_inverse_error` guarantee for the `PoissonTermError` construction; the complete source hypotheses are retained. -/
+/-- If a real period approximation exceeds five and has absolute error at most `ell`, its reciprocal differs from the exact reciprocal by at most `ell/30` in complex norm. -/
 theorem poissonPeriod_inverse_error (length ell : ℝ) (hl : 5<length)
     (he : |length-physicalPeriod| ≤ ell) :
     ‖(length : ℂ)⁻¹-(physicalPeriod : ℂ)⁻¹‖ ≤ ell/30 := by

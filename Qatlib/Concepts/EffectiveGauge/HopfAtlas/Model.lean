@@ -93,7 +93,7 @@ def divergence (u : SpatialPoint → SpatialPoint) (x : SpatialPoint) : ℝ :=
 def IsSolenoidal (q : QuaternionField) : Prop :=
   ∀ x, divergence (velocity 1 q) x = 0
 
-/-- Original `normSq_eq_one_iff` guarantee for the `Model` construction; the complete source hypotheses are retained. -/
+/-- A quaternion has squared norm one exactly when its norm is one. -/
 theorem normSq_eq_one_iff (q : ℍ) : Quaternion.normSq q = 1 ↔ ‖q‖ = 1 := by
   rw [Quaternion.normSq_eq_norm_mul_self]
   constructor
@@ -103,50 +103,51 @@ theorem normSq_eq_one_iff (q : ℍ) : Quaternion.normSq q = 1 ↔ ‖q‖ = 1 :=
     rw [h]
     norm_num
 
-/-- Original `norm_iAxis` guarantee for the `Model` construction; the complete source hypotheses are retained. -/
+/-- The quaternion imaginary unit `iAxis` has norm one. -/
 @[simp] theorem norm_iAxis : ‖iAxis‖ = 1 := by
   apply (normSq_eq_one_iff _).mp
   simp [iAxis, Quaternion.normSq_def']
 
-/-- Original `hopf_re` guarantee for the `Model` construction; the complete source hypotheses are retained. -/
+/-- The Hopf map produces a quaternion with zero real part for every quaternion input. -/
 theorem hopf_re (q : ℍ) : (hopf q).re = 0 := by
   simp [hopf, iAxis]
   ring
 
-/-- Original `hopf_imI` guarantee for the `Model` construction; the complete source hypotheses are retained. -/
+/-- The `i` component of the Hopf image is the sum of the squared real and `i` coordinates minus
+the sum of the squared `j` and `k` coordinates. -/
 theorem hopf_imI (q : ℍ) :
     (hopf q).imI = q.re^2 + q.imI^2 - q.imJ^2 - q.imK^2 := by
   simp [hopf, iAxis]
   ring
 
-/-- Original `hopf_imJ` guarantee for the `Model` construction; the complete source hypotheses are retained. -/
+/-- The `j` component of the Hopf image is twice the difference `q.imI * q.imJ - q.re * q.imK`. -/
 theorem hopf_imJ (q : ℍ) : (hopf q).imJ = 2*(q.imI*q.imJ-q.re*q.imK) := by
   simp [hopf, iAxis]
   ring
 
-/-- Original `hopf_imK` guarantee for the `Model` construction; the complete source hypotheses are retained. -/
+/-- The `k` component of the Hopf image is twice the sum `q.re * q.imJ + q.imI * q.imK`. -/
 theorem hopf_imK (q : ℍ) : (hopf q).imK = 2*(q.re*q.imJ+q.imI*q.imK) := by
   simp [hopf, iAxis]
   ring
 
-/-- Original `hopf_norm` guarantee for the `Model` construction; the complete source hypotheses are retained. -/
+/-- The norm of the Hopf image equals the squared norm of the input quaternion. -/
 theorem hopf_norm (q : ℍ) : ‖hopf q‖ = ‖q‖^2 := by
   simp [hopf, norm_mul, norm_star, pow_two]
 
-/-- Original `phase_normSq` guarantee for the `Model` construction; the complete source hypotheses are retained. -/
+/-- The cosine-sine quaternion phase has squared norm one at every real angle. -/
 theorem phase_normSq (t : ℝ) : Quaternion.normSq (phase t) = 1 := by
   simp [phase, iAxis, Quaternion.normSq_def']
 
-/-- Original `phase_norm` guarantee for the `Model` construction; the complete source hypotheses are retained. -/
+/-- The quaternion phase has norm one at every real angle. -/
 @[simp] theorem phase_norm (t : ℝ) : ‖phase t‖ = 1 :=
   (normSq_eq_one_iff _).mp (phase_normSq t)
 
-/-- Original `phase_axis` guarantee for the `Model` construction; the complete source hypotheses are retained. -/
+/-- Conjugation by the quaternion phase fixes the imaginary axis `iAxis`. -/
 theorem phase_axis (t : ℝ) : star (phase t)*iAxis*phase t = iAxis := by
   have h := Real.cos_sq_add_sin_sq t
   ext <;> simp [phase, iAxis] <;> nlinarith
 
-/-- Original `hopf_phase` guarantee for the `Model` construction; the complete source hypotheses are retained. -/
+/-- The Hopf map is invariant under left multiplication by any quaternion phase. -/
 theorem hopf_phase (t : ℝ) (q : ℍ) : hopf (phase t*q) = hopf q := by
   unfold hopf
   rw [star_mul]
@@ -155,7 +156,8 @@ theorem hopf_phase (t : ℝ) (q : ℍ) : hopf (phase t*q) = hopf q := by
         star q*(star (phase t)*iAxis*phase t)*q := by simp only [mul_assoc]
     _ = star q*iAxis*q := by rw [phase_axis]
 
-/-- Original `connectionValue_eq` guarantee for the `Model` construction; the complete source hypotheses are retained. -/
+/-- The connection pairing is the imaginary-unit component pairing `q.re * v.imI - q.imI * v.re
++ q.imJ * v.imK - q.imK * v.imJ`. -/
 theorem connectionValue_eq (q v : ℍ) : connectionValue q v =
     q.re*v.imI-q.imI*v.re+q.imJ*v.imK-q.imK*v.imJ := by
   simp [connectionValue, Quaternion.inner_def, iAxis]

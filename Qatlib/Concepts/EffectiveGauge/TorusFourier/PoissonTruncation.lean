@@ -32,7 +32,7 @@ open Qatlib.Concepts.EffectiveGauge.HopfAtlas Qatlib.Concepts.EffectiveGauge.Rat
 def unitFourierTruncation (a : SpatialFrequency → ℂ) (N : ℕ) (x : SpatialPoint) : ℂ :=
   ∑ k ∈ Finset.Icc (-N : SpatialFrequency) N, a k*unitFourierMode k x
 
-/-- Original `unitPoissonCoefficient_tail_bound` guarantee for the `PoissonTruncation` construction; the complete source hypotheses are retained. -/
+/-- Given a common unit-cube norm bound `M` on the pure sixth derivatives of the smooth unit-periodic inputs, at any frequency of radius at least `N > 0` the Poisson coefficient has norm at most `(3*M/N^3)*(frequencyRadius k)^(-4)`. -/
 theorem unitPoissonCoefficient_tail_bound (f : Fin 3 → SpatialPoint → ℂ)
     (hf : ∀ j, ContDiff ℝ ∞ (f j)) (hp : ∀ j, IsUnitPeriodicField (f j)) (M : ℝ)
     (hb : ∀ j i x, InUnitCube x → ‖spatialWordPartial (f j) (List.replicate 6 i) x‖ ≤ M)
@@ -109,7 +109,7 @@ theorem unitComplexPoisson_truncation_bound (f : Fin 3 → SpatialPoint → ℂ)
       mul_le_mul_of_nonneg_left (tsum_frequencyRadius_rpow_le 4 (by norm_num)) (by positivity)
     _ = 156*M/(N : ℝ)^3 := by ring
 
-/-- Original `unitRealPoisson_truncation_bound` guarantee for the `PoissonTruncation` construction; the complete source hypotheses are retained. -/
+/-- With the pure sixth derivatives of the smooth unit-periodic inputs bounded by `M` on the unit cube, the real part of the radius-`N` Poisson Fourier truncation approximates the real potential at every point within `156*M/N^3` for `N > 0`. -/
 theorem unitRealPoisson_truncation_bound (f : Fin 3 → SpatialPoint → ℂ)
     (hf : ∀ j, ContDiff ℝ ∞ (f j)) (hp : ∀ j, IsUnitPeriodicField (f j)) (M : ℝ)
     (hb : ∀ j i x, InUnitCube x → ‖spatialWordPartial (f j) (List.replicate 6 i) x‖ ≤ M)

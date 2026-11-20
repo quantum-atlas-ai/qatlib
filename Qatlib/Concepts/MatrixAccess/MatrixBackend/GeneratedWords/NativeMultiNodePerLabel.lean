@@ -50,7 +50,7 @@ local instance multinodePerLabelBranchDecEq (b : ℕ) : DecidableEq
     (Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.NeumannBranchSpace (b-1) (Fin b × (J × (Reg 6 × H)))) := Classical.decEq _
 
 omit [Fintype J] [Fintype I] [DecidableEq I] in
-/-- The finite construction in `NativeMultiNodePerLabel` satisfies `select_scalar` under the displayed hypotheses. -/
+/-- Multiplying a selection matrix by `c` scales the matrix at each label by `c`. -/
 private theorem select_scalar (V : J → Matrix I I ℂ) (c : ℂ) :
     c • select V = select (fun j => c • V j) := by
   ext ⟨j, x⟩ ⟨k, y⟩

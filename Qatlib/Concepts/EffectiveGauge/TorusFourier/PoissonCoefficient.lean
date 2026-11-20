@@ -31,11 +31,11 @@ open Qatlib.Concepts.EffectiveGauge.HopfAtlas Qatlib.Concepts.EffectiveGauge.Rat
 /-- Definition of frequency Energy in the Torus Fourier construction. -/
 def frequencyEnergy (k : SpatialFrequency) : ℝ := ∑ j : Fin 3, (k j : ℝ)^2
 
-/-- Original `frequencyEnergy_nonneg` guarantee for the `PoissonCoefficient` construction; the complete source hypotheses are retained. -/
+/-- The sum of squares of the three real frequency coordinates is nonnegative. -/
 theorem frequencyEnergy_nonneg (k : SpatialFrequency) : 0 ≤ frequencyEnergy k :=
   Finset.sum_nonneg (fun j _ => sq_nonneg (k j : ℝ))
 
-/-- Original `frequencyEnergy_ge_radius_sq` guarantee for the `PoissonCoefficient` construction; the complete source hypotheses are retained. -/
+/-- The frequency energy dominates the square of the largest absolute coordinate. -/
 theorem frequencyEnergy_ge_radius_sq (k : SpatialFrequency) :
     (frequencyRadius k : ℝ)^2 ≤ frequencyEnergy k := by
   obtain ⟨i,hi⟩ := frequencyRadius_attained k
@@ -46,7 +46,7 @@ theorem frequencyEnergy_ge_radius_sq (k : SpatialFrequency) :
     _ ≤ ∑ j : Fin 3, (k j : ℝ)^2 :=
       Finset.single_le_sum (fun j _ => sq_nonneg (k j : ℝ)) (Finset.mem_univ i)
 
-/-- Original `frequencyEnergy_pos` guarantee for the `PoissonCoefficient` construction; the complete source hypotheses are retained. -/
+/-- A nonzero lattice frequency has strictly positive frequency energy. -/
 theorem frequencyEnergy_pos (k : SpatialFrequency) (hk : k≠0) : 0<frequencyEnergy k :=
   (sq_pos_of_pos (Nat.cast_pos.mpr (frequencyRadius_pos k hk))).trans_le
     (frequencyEnergy_ge_radius_sq k)
@@ -57,7 +57,7 @@ def unitPoissonCoefficient (a : Fin 3 → SpatialFrequency → ℂ) (k : Spatial
   Complex.I*(∑ j : Fin 3, (k j : ℂ)*a j k) /
     ((physicalPeriod : ℂ)*(frequencyEnergy k : ℂ))
 
-/-- Original `unitPoissonCoefficient_zero` guarantee for the `PoissonCoefficient` construction; the complete source hypotheses are retained. -/
+/-- The zero mode of the normalized Poisson potential has coefficient zero for every input coefficient family. -/
 theorem unitPoissonCoefficient_zero (a : Fin 3 → SpatialFrequency → ℂ) :
     unitPoissonCoefficient a 0=0 := by
   simp [unitPoissonCoefficient]
@@ -84,7 +84,8 @@ theorem unitPoissonCoefficient_laplacian (a : Fin 3 → SpatialFrequency → ℂ
     rw [heq]
     field_simp [hL,hE]
 
-/-- Original `unitPoissonCoefficient_norm_le` guarantee for the `PoissonCoefficient` construction; the complete source hypotheses are retained. -/
+/-- At nonzero `k`, if all three input coefficients have norm at most `B`, the potential coefficient
+has norm at most `3*B/(physicalPeriod * frequencyRadius k)`. -/
 theorem unitPoissonCoefficient_norm_le (a : Fin 3 → SpatialFrequency → ℂ)
     (k : SpatialFrequency) (hk : k≠0) (B : ℝ) (hb : ∀ j, ‖a j k‖ ≤ B) :
     ‖unitPoissonCoefficient a k‖ ≤ 3*B/(physicalPeriod*(frequencyRadius k : ℝ)) := by
@@ -113,7 +114,7 @@ theorem unitPoissonCoefficient_norm_le (a : Fin 3 → SpatialFrequency → ℂ)
         (mul_le_mul_of_nonneg_left (frequencyEnergy_ge_radius_sq k) physicalPeriod_pos.le)
     _ = _ := by field_simp [hr.ne']
 
-/-- Original `unitPoissonCoefficient_word_sum` guarantee for the `PoissonCoefficient` construction; the complete source hypotheses are retained. -/
+/-- At every frequency, multiplying the potential coefficient by the Fourier Laplacian factor gives the negative Fourier divergence of the three input coefficients. -/
 theorem unitPoissonCoefficient_word_sum (a : Fin 3 → SpatialFrequency → ℂ)
     (k : SpatialFrequency) :
     (∑ j : Fin 3, unitModeWordFactor k [j,j]*unitPoissonCoefficient a k)=

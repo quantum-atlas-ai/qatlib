@@ -27,7 +27,7 @@ tail by twice its first omitted term,
 `2·ln(2)^{K+1}/(K+1)! ≤ ε/r`, which is exactly the source's "so that" clause.
 
 The tail theorem used here is
-`Qatlib.Papers.TruncTaylor14.FactorialTaylor.factorialTaylor_tail`.
+`Qatlib.Concepts.CoherentSim.FactorialTaylor.factorialTaylor_tail`.
 -/
 
 set_option autoImplicit false

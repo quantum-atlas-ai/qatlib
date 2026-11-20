@@ -61,7 +61,8 @@ def nativeGaussianUnitCheck (z : GaussianRat) : Bool := decide (z.1*z.1+z.2*z.2=
 def nativeStandardUnitsCheck (data : PhaseData) : Bool :=
   nativeGaussianUnitCheck data.base && data.phases.all nativeGaussianUnitCheck
 
-/-- The finite construction in `NativeChebyshevWordCheck` satisfies `gaussian_norm_of_unit_coordinates` under the displayed hypotheses. -/
+/-- If the squares of the rational coordinates sum to one, the corresponding complex number has
+norm one. -/
 private theorem gaussian_norm_of_unit_coordinates (z : GaussianRat)
     (hz : z.1*z.1+z.2*z.2=1) : ‖gaussianRatComplex z‖=1 := by
   have hzR : (z.1 : ℝ)*(z.1 : ℝ)+(z.2 : ℝ)*(z.2 : ℝ)=1 := by exact_mod_cast hz
@@ -71,7 +72,8 @@ private theorem gaussian_norm_of_unit_coordinates (z : GaussianRat)
     nlinarith
   nlinarith [norm_nonneg (gaussianRatComplex z)]
 
-/-- The finite construction in `NativeChebyshevWordCheck` satisfies `nativeStandardUnitsCheck_sound` under the displayed hypotheses. -/
+/-- An accepted standard phase unit check certifies complex norm one for both the base and each
+phase in the list. -/
 theorem nativeStandardUnitsCheck_sound (data : PhaseData)
     (h : nativeStandardUnitsCheck data=true) :
     ‖gaussianRatComplex data.base‖=1 ∧ ∀ z∈data.phases,‖gaussianRatComplex z‖=1 := by
@@ -87,7 +89,9 @@ def nativeChebyshevPacketCheck (target residual : List ℚ) (data : PhaseData) (
     nativeChebyshevResidualCheck target residual (nativePacketFromStandard data) &&
     decide (nativeChebyshevMass residual≤E)
 
-/-- The finite construction in `NativeChebyshevWordCheck` satisfies `nativeChebyshevPacketCheck_uniform` under the displayed hypotheses. -/
+/-- Acceptance certifies a nonnegative budget E, unit base and phase norms, and uniform absolute
+error at most E between the imaginary standard response and the target Chebyshev series on the
+interval from −1 to 1. -/
 theorem nativeChebyshevPacketCheck_uniform (target residual : List ℚ) (data : PhaseData) (E : ℚ)
     (hcheck : nativeChebyshevPacketCheck target residual data E=true) :
     0≤(E : ℝ) ∧ ‖gaussianRatComplex data.base‖=1 ∧
@@ -105,7 +109,11 @@ theorem nativeChebyshevPacketCheck_uniform (target residual : List ℚ) (data : 
     hcheck.1.2 x hx
   exact h.trans ((Rat.cast_le (K := ℝ)).mpr hcheck.2)
 
-/-- The finite construction in `NativeChebyshevWordCheck` satisfies `native_chebyshev_checked_word_transform` under the displayed hypotheses. -/
+/-- Given a projected unitary encoding and an accepted packet, both projector orders give
+well-formed words. The word built from (R, L) uses one query per phase and one extra gate.
+Evaluated with U, it block-encodes the odd singular transform for odd length. For even length
+the word built from (L, R) uses Uᴴ to block-encode the right singular transform. Both
+encodings have scale one and error E. -/
 theorem native_chebyshev_checked_word_transform
     {H I O : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]

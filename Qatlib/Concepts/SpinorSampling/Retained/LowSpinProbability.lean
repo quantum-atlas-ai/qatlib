@@ -55,7 +55,7 @@ def bellAxisLaw (a b c k : S → ℝ)
           a b c k hz (e j) q.blocks).sum_one]
         simp
 
-/-- Complete original `bell_axis_expect_product` guarantee for `LowSpinProbability`; all source hypotheses and output obligations are retained. -/
+/-- The expectation of a product of per-axis functions under the Bell axis law factors into their expectations under the respective fresh-block laws. -/
 theorem bell_axis_expect_product (a b c k : S → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (e : Fin d → Equiv.Perm S) (q : BellPlanQ)
     (g : (j : Fin d) → (Fin q.blocks → CohortObservation q.records q.records (e j)) → ℝ) :
@@ -68,7 +68,7 @@ theorem bell_axis_expect_product (a b c k : S → ℝ)
   exact (Fintype.prod_sum (fun (j : Fin d) w =>
     (freshObservationBlocks a b c k hz (e j) q.blocks).prob w*g j w)).symm
 
-/-- Complete original `bell_axis_expect_coord` guarantee for `LowSpinProbability`; all source hypotheses and output obligations are retained. -/
+/-- Reading a single axis under the Bell family law gives the same expectation as sampling fresh blocks directly for that axis's permutation. -/
 theorem bell_axis_expect_coord (a b c k : S → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (e : Fin d → Equiv.Perm S) (q : BellPlanQ)
     (j : Fin d) (f : (Fin q.blocks → CohortObservation q.records q.records (e j)) → ℝ) :
@@ -101,7 +101,7 @@ theorem bell_axis_expect_coord (a b c k : S → ℝ)
       bell_axis_expect_product a b c k hz e q g
     _ = _ := hright
 
-/-- Complete original `bell_axis_bad_mass_coord` guarantee for `LowSpinProbability`; all source hypotheses and output obligations are retained. -/
+/-- For any center and radius, a statistic on one axis has the same bad mass under the full Bell axis law as under that axis's fresh-block law. -/
 theorem bell_axis_bad_mass_coord (a b c k : S → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (e : Fin d → Equiv.Perm S) (q : BellPlanQ)
     (j : Fin d) (f : (Fin q.blocks → CohortObservation q.records q.records (e j)) → ℝ)
@@ -134,7 +134,7 @@ def lowSpinLaw (p : LowSpinPlanQ) (mv : Fin d → S → ℝ)
       p.velocity.norm (mv j) (hmv j)))
     (lowSpinBellLaw a b c k hz e p.spin)
 
-/-- Complete original `low_spin_velocity_marginal` guarantee for `LowSpinProbability`; all source hypotheses and output obligations are retained. -/
+/-- Expectations of functions of the velocity data under the low-spin law are taken against the product of the per-axis raw velocity laws. -/
 theorem low_spin_velocity_marginal (p : LowSpinPlanQ) (mv : Fin d → S → ℝ)
     (hmv : ∀ j x, |mv j x|≤1) (a b c k : S → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (e : Fin d → Equiv.Perm S)
@@ -144,7 +144,7 @@ theorem low_spin_velocity_marginal (p : LowSpinPlanQ) (mv : Fin d → S → ℝ)
         p.velocity.norm (mv j) (hmv j))).expect f :=
   independent_pair_expect_left _ _ f
 
-/-- Complete original `low_spin_bell_marginal` guarantee for `LowSpinProbability`; all source hypotheses and output obligations are retained. -/
+/-- Expectations of functions of the spin projection under the low-spin law are taken against the Bell law selected by the optional spin plan. -/
 theorem low_spin_bell_marginal (p : LowSpinPlanQ) (mv : Fin d → S → ℝ)
     (hmv : ∀ j x, |mv j x|≤1) (a b c k : S → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (e : Fin d → Equiv.Perm S)

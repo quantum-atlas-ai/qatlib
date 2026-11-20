@@ -5841,13 +5841,11 @@ theorem primrec_tmCopyRunResetCompile : Primrec tmCopyRunResetCompile := by
 theorem computable_tmCopyRunResetCompile : Computable tmCopyRunResetCompile :=
   primrec_tmCopyRunResetCompile.to_comp
 
-/-- The first compilation frontier, defined by the copy–run–reset compiler. -/
-def frontier1 (code : Code) : CodeCore := tmCopyRunResetCompile code
+/-- The code produced by the copy–run–reset compiler. -/
+def copyRunResetCode (code : Code) : CodeCore := tmCopyRunResetCompile code
 
-/-- The first compilation frontier is computable jointly in the source code and an unused
+/-- The copy–run–reset code is computable jointly in the source code and an unused
 natural-number parameter. -/
-theorem computable₂_frontier1 :
-    Computable₂ (fun (code : Code) (_ : ℕ) => frontier1 code) :=
+theorem computable₂_copyRunResetCode :
+    Computable₂ (fun (code : Code) (_ : ℕ) => copyRunResetCode code) :=
   (primrec_tmCopyRunResetCompile.comp₂ Primrec₂.left).to_comp
-
-alias frontier1_run := tmCopyRunResetCompile_run

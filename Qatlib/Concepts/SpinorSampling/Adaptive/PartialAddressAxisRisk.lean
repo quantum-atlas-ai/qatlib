@@ -29,11 +29,12 @@ def dot (r a : Fin 3 → ℝ) : ℝ := ∑ i,r i*a i
 /-- Construction for dist Sq in the partial address axis risk model. -/
 def distSq (r s : Fin 3 → ℝ) : ℝ := ∑ i,(r i-s i)^2
 
-/-- Complete original `dist_sq_nonneg` guarantee for `PartialAddressAxisRisk`; all source hypotheses and output obligations are retained. -/
+/-- Squared Euclidean distance between any two real three-vectors is nonnegative. -/
 theorem dist_sq_nonneg (r s : Fin 3 → ℝ) : 0 ≤ distSq r s := by
   exact Finset.sum_nonneg fun i _ => sq_nonneg (r i-s i)
 
-/-- Complete original `dist_sq_triangle` guarantee for `PartialAddressAxisRisk`; all source hypotheses and output obligations are retained. -/
+/-- The squared distance from `r` to `a` is at most twice the sum of the squared distances
+along the path through `s`. -/
 theorem dist_sq_triangle (r s a : Fin 3 → ℝ) :
     distSq r a ≤ 2*distSq r s+2*distSq s a := by
   calc
@@ -43,7 +44,8 @@ theorem dist_sq_triangle (r s a : Fin 3 → ℝ) :
       nlinarith [sq_nonneg (r i-2*s i+a i)]
     _ = _ := by simp only [distSq,Finset.sum_add_distrib,Finset.mul_sum]
 
-/-- Complete original `robust_axis_risk` guarantee for `PartialAddressAxisRisk`; all source hypotheses and output obligations are retained. -/
+/-- Suppose `r = Rv` for `R` in `[0, 1]` and `v` unit. If a unit axis `a` is at least as close
+to `s` as `v` is, its risk is at most `2(1 - R)` plus twice the squared distance from `s` to `r`. -/
 theorem robust_axis_risk (R : ℝ) (r s a v : Fin 3 → ℝ)
     (hR0 : 0 ≤ R) (hR1 : R ≤ 1)
     (hr : ∀ i,r i=R*v i) (ha : dot a a=1) (hv : dot v v=1)
@@ -79,7 +81,7 @@ theorem robust_axis_risk (R : ℝ) (r s a v : Fin 3 → ℝ)
   have hpos := dist_sq_nonneg s r
   nlinarith [mul_nonneg hR0 (sub_nonneg.mpr hR1)]
 
-/-- Complete original `unit_dot_le_one` guarantee for `PartialAddressAxisRisk`; all source hypotheses and output obligations are retained. -/
+/-- The dot product of two unit real three-vectors is at most one. -/
 theorem unit_dot_le_one (a v : Fin 3 → ℝ) (ha : dot a a=1) (hv : dot v v=1) :
     dot a v ≤ 1 := by
   have h := dist_sq_nonneg a v
@@ -91,7 +93,8 @@ theorem unit_dot_le_one (a v : Fin 3 → ℝ) (ha : dot a a=1) (hv : dot v v=1) 
   rw [he,ha,hv] at h
   linarith
 
-/-- Complete original `nearest_scaled_axis` guarantee for `PartialAddressAxisRisk`; all source hypotheses and output obligations are retained. -/
+/-- If `s` is a nonnegative multiple of the unit vector `a`, the squared distance from `s` to
+`a` is no greater than its squared distance to any unit `v`. -/
 theorem nearest_scaled_axis (s a v : Fin 3 → ℝ) (L : ℝ) (hL : 0 ≤ L)
     (hs : ∀ i,s i=L*a i) (ha : dot a a=1) (hv : dot v v=1) :
     distSq a s ≤ distSq v s := by
@@ -115,15 +118,15 @@ noncomputable def length (s : Fin 3 → ℝ) : ℝ := Real.sqrt (dot s s)
 noncomputable def axis (s : Fin 3 → ℝ) : Fin 3 → ℝ :=
   if length s=0 then fun i => if i=2 then 1 else 0 else fun i => s i/length s
 
-/-- Complete original `dot_self_nonneg` guarantee for `PartialAddressAxisRisk`; all source hypotheses and output obligations are retained. -/
+/-- The self-dot product is nonnegative because each coordinate contributes its square. -/
 theorem dot_self_nonneg (s : Fin 3 → ℝ) : 0 ≤ dot s s :=
   Finset.sum_nonneg fun i _ => mul_self_nonneg (s i)
 
-/-- Complete original `length_sq` guarantee for `PartialAddressAxisRisk`; all source hypotheses and output obligations are retained. -/
+/-- Squaring the Euclidean length recovers the self-dot product. -/
 theorem length_sq (s : Fin 3 → ℝ) : length s^2=dot s s :=
   Real.sq_sqrt (dot_self_nonneg s)
 
-/-- Complete original `zero_length` guarantee for `PartialAddressAxisRisk`; all source hypotheses and output obligations are retained. -/
+/-- If a real three-vector has zero length, each of its coordinates is zero. -/
 theorem zero_length (s : Fin 3 → ℝ) (h : length s=0) (i : Fin 3) : s i=0 := by
   have hs := length_sq s
   rw [h] at hs
@@ -131,7 +134,8 @@ theorem zero_length (s : Fin 3 → ℝ) (h : length s=0) (i : Fin 3) : s i=0 := 
     Finset.single_le_sum (fun j _ => mul_self_nonneg (s j)) (Finset.mem_univ i)
   nlinarith [sq_nonneg (s i)]
 
-/-- Complete original `length_axis` guarantee for `PartialAddressAxisRisk`; all source hypotheses and output obligations are retained. -/
+/-- Each coordinate of `s` equals its length times the corresponding axis coordinate. This also
+holds for the zero vector with the default axis. -/
 theorem length_axis (s : Fin 3 → ℝ) (i : Fin 3) : s i=length s*axis s i := by
   by_cases h : length s=0
   · simp only [h,zero_mul]
@@ -139,7 +143,8 @@ theorem length_axis (s : Fin 3 → ℝ) (i : Fin 3) : s i=length s*axis s i := b
   · simp only [axis,ite_eq_right h]
     field_simp
 
-/-- Complete original `axis_unit` guarantee for `PartialAddressAxisRisk`; all source hypotheses and output obligations are retained. -/
+/-- The axis of every estimate is a unit vector, including the default third-coordinate axis at
+zero. -/
 theorem axis_unit (s : Fin 3 → ℝ) : dot (axis s) (axis s)=1 := by
   by_cases h : length s=0
   · simp [axis,h,dot]
@@ -152,7 +157,8 @@ theorem axis_unit (s : Fin 3 → ℝ) : dot (axis s) (axis s)=1 := by
     rw [he,← length_sq s]
     exact div_self (pow_ne_zero 2 h)
 
-/-- Complete original `estimated_axis_risk` guarantee for `PartialAddressAxisRisk`; all source hypotheses and output obligations are retained. -/
+/-- For a true vector `r` of length at most one, using the axis of `s` gives risk at most twice
+the length deficit of `r` plus twice the squared distance between `s` and `r`. -/
 theorem estimated_axis_risk (r s : Fin 3 → ℝ) (hr : length r ≤ 1) :
     (1-dot r (axis s))/2 ≤ 2*(1-length r)+2*distSq s r := by
   apply robust_axis_risk (length r) r s (axis s) (axis r)
@@ -160,7 +166,8 @@ theorem estimated_axis_risk (r s : Fin 3 → ℝ) (hr : length r ≤ 1) :
   exact nearest_scaled_axis s (axis s) (axis r) (length s) (Real.sqrt_nonneg _)
     (length_axis s) (axis_unit s) (axis_unit r)
 
-/-- Complete original `dist_sq_expand` guarantee for `PartialAddressAxisRisk`; all source hypotheses and output obligations are retained. -/
+/-- The squared distance expands as the sum of the two self-dot products minus twice the cross
+dot product. -/
 theorem dist_sq_expand (r s : Fin 3 → ℝ) :
     distSq r s=dot r r-2*dot r s+dot s s := by
   simp only [distSq,dot,Finset.mul_sum,← Finset.sum_add_distrib,← Finset.sum_sub_distrib]
@@ -168,7 +175,8 @@ theorem dist_sq_expand (r s : Fin 3 → ℝ) :
   intro i _
   ring
 
-/-- Complete original `dot_length` guarantee for `PartialAddressAxisRisk`; all source hypotheses and output obligations are retained. -/
+/-- A dot product against `r` factors into the length of `r` times the dot product against its
+axis. -/
 theorem dot_length (r a : Fin 3 → ℝ) : dot r a=length r*dot (axis r) a := by
   unfold dot
   rw [Finset.mul_sum]
@@ -177,7 +185,8 @@ theorem dot_length (r a : Fin 3 → ℝ) : dot r a=length r*dot (axis r) a := by
   rw [length_axis r i]
   ring
 
-/-- Complete original `approximate_axis_risk` guarantee for `PartialAddressAxisRisk`; all source hypotheses and output obligations are retained. -/
+/-- For a true vector of length at most one and unit axes `a` and `b`, the risk at `b` is at
+most twice the risk at `a` plus the overlap deficit `1 - dot a b`. -/
 theorem approximate_axis_risk (r a b : Fin 3 → ℝ) (hr : length r ≤ 1)
     (ha : dot a a=1) (hb : dot b b=1) :
     (1-dot r b)/2 ≤ 2*((1-dot r a)/2)+(1-dot a b) := by
@@ -192,7 +201,9 @@ theorem approximate_axis_risk (r a b : Fin 3 → ℝ) (hr : length r ≤ 1)
     length r*(2*(1-2*dot (axis r) a+1)+2*(1-2*dot a b+1)) at hmul
   nlinarith
 
-/-- Complete original `compiled_axis_risk` guarantee for `PartialAddressAxisRisk`; all source hypotheses and output obligations are retained. -/
+/-- For a true vector of length at most one and a unit compiled axis within overlap deficit
+`τ/32` of the estimated axis, the risk is at most eight times the defect plus four times the
+squared estimation error plus `τ/32`. -/
 theorem compiled_axis_risk (r s b : Fin 3 → ℝ) (τ : ℝ)
     (hr : length r ≤ 1) (hb : dot b b=1) (hclose : 1-dot (axis s) b ≤ τ/32) :
     (1-dot r b)/2 ≤ 8*((1-length r)/2)+4*distSq s r+τ/32 := by

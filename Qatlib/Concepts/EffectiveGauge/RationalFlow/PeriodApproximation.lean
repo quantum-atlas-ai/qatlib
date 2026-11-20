@@ -32,13 +32,13 @@ def periodLower (b : ℕ) : ℚ :=
   let p := rationalPi ((2^(b+3) : ℚ)⁻¹)
   periodDyadicFloor (2*p.value-2*p.error) (b+2)
 
-/-- Original `periodDyadicFloor_le` guarantee for the `PeriodApproximation` construction; the complete source hypotheses are retained. -/
+/-- Rounding a rational number down to the grid of spacing `2⁻ᵇ` gives a value at most the input. -/
 theorem periodDyadicFloor_le (a : ℚ) (b : ℕ) : periodDyadicFloor a b ≤ a := by
   unfold periodDyadicFloor
   apply (div_le_iff₀ (by positivity : (0 : ℚ)<2^b)).mpr
   exact Int.floor_le _
 
-/-- Original `periodDyadicFloor_gap` guarantee for the `PeriodApproximation` construction; the complete source hypotheses are retained. -/
+/-- The difference between the input and its dyadic floor is at most one grid spacing `2⁻ᵇ`. -/
 theorem periodDyadicFloor_gap (a : ℚ) (b : ℕ) : a-periodDyadicFloor a b ≤ (2^b : ℚ)⁻¹ := by
   have hp : (0 : ℚ)<2^b := by positivity
   have h := Int.lt_floor_add_one (a*(2^b : ℚ))
@@ -52,13 +52,16 @@ theorem periodDyadicFloor_gap (a : ℚ) (b : ℕ) : a-periodDyadicFloor a b ≤ 
   rw [hi]
   linarith
 
-/-- Original `periodLower_encoding` guarantee for the `PeriodApproximation` construction; the complete source hypotheses are retained. -/
+/-- The lower period approximation at precision `b` has an integer numerator over denominator
+`2^(b + 2)`. -/
 theorem periodLower_encoding (b : ℕ) : ∃ n : ℤ, periodLower b=(n : ℚ)/(2^(b+2) : ℚ) :=
   ⟨_,rfl⟩
 
 noncomputable section
 
-/-- Original `rationalPi_error` guarantee for the `PeriodApproximation` construction; the complete source hypotheses are retained. -/
+/-- At positive tolerance the rational pi result has a nonnegative error field that bounds the
+absolute error and is at most tolerance. The total term count is at most twice the arctangent fuel
+at tolerance divided by 32. -/
 theorem rationalPi_error (tolerance : ℚ) (ht : 0<tolerance) :
     |((rationalPi tolerance).value : ℝ)-Real.pi| ≤ ((rationalPi tolerance).error : ℝ) ∧
       0 ≤ (rationalPi tolerance).error ∧ (rationalPi tolerance).error ≤ tolerance ∧
@@ -99,7 +102,8 @@ theorem rationalPi_error (tolerance : ℚ) (ht : 0<tolerance) :
     have hb' : b.terms ≤ arctanFuel (tolerance/32) := hsb.2.2.1
     omega
 
-/-- Original `periodLower_enclosure` guarantee for the `PeriodApproximation` construction; the complete source hypotheses are retained. -/
+/-- The computed lower period is at most the physical period and falls short by at most
+`3 / 2^(b + 2)`. -/
 theorem periodLower_enclosure (b : ℕ) :
     (periodLower b : ℝ) ≤ physicalPeriod ∧
       physicalPeriod-(periodLower b : ℝ) ≤ 3*(2^(b+2) : ℝ)⁻¹ := by
@@ -129,9 +133,9 @@ theorem periodLower_enclosure (b : ℕ) :
   dsimp only [physicalPeriod]
   constructor <;> linarith
 
-/-- Original `periodLower_zero` guarantee for the `PeriodApproximation` construction; the complete source hypotheses are retained. -/
+/-- With zero precision bits the lower period approximation is exactly `25 / 4`. -/
 theorem periodLower_zero : periodLower 0=25/4 := by decide +kernel
-/-- Original `periodLower_one` guarantee for the `PeriodApproximation` construction; the complete source hypotheses are retained. -/
+/-- With one precision bit the lower period approximation is exactly `25 / 4`. -/
 theorem periodLower_one : periodLower 1=25/4 := by decide +kernel
 
 /-- All parameters are physical: the lower endpoint is positive and remains
@@ -164,7 +168,8 @@ theorem periodLower_spec (b : ℕ) :
   have hupper : physicalPeriod<(7 : ℝ) := by dsimp [physicalPeriod]; linarith [Real.pi_lt_d2]
   exact ⟨hlower,hle,hsmall,hle.trans_lt hupper⟩
 
-/-- Original `periodMachin_terms` guarantee for the `PeriodApproximation` construction; the complete source hypotheses are retained. -/
+/-- The Machin series evaluation at tolerance `2^(-(b + 3))` uses at most `2 * (b + 8)` terms across
+both arctangents. -/
 theorem periodMachin_terms (b : ℕ) :
     (rationalPi ((2^(b+3) : ℚ)⁻¹)).terms ≤ 2*(b+8) := by
   have ht : (0 : ℚ)<(2^(b+3) : ℚ)⁻¹ := by positivity

@@ -21,7 +21,7 @@ draws, and the RAM implementation into `AliasFrontier` for the sample/query sett
 
 ## Main statements
 
-* `frontier1`: Constructs the alias-table correctness and resource-accounting record.
+* `rational_alias_preprocessing_correctness_and_resources`: Constructs the alias-table correctness and resource-accounting record.
 * `ramPreprocess_sqLaw`: Identifies the output law of RAM preprocessing with the normalized
   input weights.
 
@@ -113,7 +113,7 @@ structure AliasFrontier (n : ℕ) (u : Fin n → ℕ) where
 
 /-- For any natural-weight vector with positive total weight, the constructed alias table
 satisfies all correctness and resource bounds in `AliasFrontier`. -/
-theorem frontier1 {n : ℕ} (u : Fin n → ℕ) (hU : 0 < aliasTotal u) : AliasFrontier n u where
+theorem rational_alias_preprocessing_correctness_and_resources {n : ℕ} (u : Fin n → ℕ) (hU : 0 < aliasTotal u) : AliasFrontier n u where
   hU := hU
   built := aliasTable_small_empty u
   steps_le := aliasTable_steps_le u

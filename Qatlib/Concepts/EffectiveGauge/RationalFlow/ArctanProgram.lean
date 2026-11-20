@@ -43,7 +43,8 @@ def arctanRationalLoop (x tolerance : ℚ) (j : ℕ) (answer power : ℚ) : ℕ 
 def rationalArctan (x tolerance : ℚ) : RationalScalarResult :=
   arctanRationalLoop x tolerance 0 0 x (arctanFuel tolerance)
 
-/-- Original `arctanTermMagnitude_dyadic` guarantee for the `ArctanProgram` construction; the complete source hypotheses are retained. -/
+/-- For a rational argument with magnitude at most one half, the magnitude of term `n` is bounded by
+`2⁻ⁿ`. -/
 theorem arctanTermMagnitude_dyadic (x : ℚ) (hx : |x| ≤ (1/2 : ℚ)) (n : ℕ) :
     arctanTermMagnitude x n ≤ (2^n : ℚ)⁻¹ := by
   have hx1 : |x| ≤ 1 := hx.trans (by norm_num)
@@ -53,7 +54,7 @@ theorem arctanTermMagnitude_dyadic (x : ℚ) (hx : |x| ≤ (1/2 : ℚ)) (n : ℕ
     _ ≤ (1/2 : ℚ)^n := pow_le_pow_left₀ (abs_nonneg _) hx n
     _ = _ := by rw [one_div,inv_pow]
 
-/-- Original `arctanFuel_budget` guarantee for the `ArctanProgram` construction; the complete source hypotheses are retained. -/
+/-- A positive tolerance bounds the reciprocal power of two at the computed fuel. -/
 theorem arctanFuel_budget (tolerance : ℚ) (ht : 0<tolerance) :
     (2^arctanFuel tolerance : ℚ)⁻¹ ≤ tolerance := by
   have hpow : Nat.ceil (1/tolerance) ≤ 2^arctanFuel tolerance := Nat.le_pow_clog (by decide) _
@@ -62,14 +63,16 @@ theorem arctanFuel_budget (tolerance : ℚ) (ht : 0<tolerance) :
   apply (inv_le_iff_one_le_mul₀ (by positivity : (0 : ℚ)<2^arctanFuel tolerance)).mpr
   simpa only [mul_comm] using (div_le_iff₀ ht).mp h
 
-/-- Original `arctanFuel_inverse_power_two` guarantee for the `ArctanProgram` construction; the complete source hypotheses are retained. -/
+/-- A tolerance of exactly `2⁻ᵏ` gives fuel `k`. -/
 theorem arctanFuel_inverse_power_two (k : ℕ) : arctanFuel ((2^k : ℚ)⁻¹)=k := by
   unfold arctanFuel
   rw [one_div,inv_inv]
   have hp : (2^k : ℚ)=((2^k : ℕ) : ℚ) := by norm_cast
   rw [hp,Nat.ceil_natCast,Nat.clog_pow 2 k (by decide)]
 
-/-- Original `arctanRationalLoop_spec` guarantee for the `ArctanProgram` construction; the complete source hypotheses are retained. -/
+/-- Starting with the exact partial sum and power at index `j`, the loop returns the partial sum at
+the first index in `[j, j + fuel]` whose term magnitude meets the tolerance, provided the last index
+meets it. The error field is that term magnitude. -/
 theorem arctanRationalLoop_spec (x tolerance : ℚ) (fuel j : ℕ)
     (hstop : arctanTermMagnitude x (j+fuel) ≤ tolerance) :
     let r := arctanRationalLoop x tolerance j (arctanPartial x j) (x^(2*j+1)) fuel
@@ -107,7 +110,9 @@ theorem arctanRationalLoop_spec (x tolerance : ℚ) (fuel j : ℕ)
         simpa only [arctanTermMagnitude,abs_pow] using lt_of_not_ge h
       · exact hprior k (by omega) hlt
 
-/-- Original `rationalArctan_spec` guarantee for the `ArctanProgram` construction; the complete source hypotheses are retained. -/
+/-- For an argument of magnitude at most one half and a positive tolerance, the result gives the
+partial sum at the first term index meeting the tolerance, together with that term's magnitude. The
+index is within the computed fuel. -/
 theorem rationalArctan_spec (x tolerance : ℚ) (hx : |x| ≤ (1/2 : ℚ)) (ht : 0<tolerance) :
     (rationalArctan x tolerance).value=arctanPartial x (rationalArctan x tolerance).terms ∧
     (rationalArctan x tolerance).error=arctanTermMagnitude x (rationalArctan x tolerance).terms ∧
@@ -121,7 +126,8 @@ theorem rationalArctan_spec (x tolerance : ℚ) (hx : |x| ≤ (1/2 : ℚ)) (ht :
 
 noncomputable section
 
-/-- Original `rationalArctan_error` guarantee for the `ArctanProgram` construction; the complete source hypotheses are retained. -/
+/-- For an argument of magnitude at most one half and a positive tolerance, the reported error
+bounds the absolute difference between the rational output and the real arctangent. -/
 theorem rationalArctan_error (x tolerance : ℚ) (hx : |x| ≤ (1/2 : ℚ)) (ht : 0<tolerance) :
     |((rationalArctan x tolerance).value : ℝ)-Real.arctan (x : ℝ)| ≤ ((rationalArctan x tolerance).error : ℝ) := by
   obtain ⟨hv,he,_⟩ := rationalArctan_spec x tolerance hx ht

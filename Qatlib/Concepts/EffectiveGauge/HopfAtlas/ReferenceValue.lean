@@ -37,7 +37,8 @@ def sourceReferenceAngleOnChart (source : (Fin 3 → ℚ) × ℕ → RationalSpi
     let rho := rationalSmoothStep ((x-(1-eta/2))/(eta/4)) (tolerance/(64*(Q+1)))
     ⟨(1-rho.value)*log.value,log.errorBound+rho.error*Q,log,rho⟩)
 
-/-- Original `sourceReferenceAngleOnChart_chosen` guarantee for the `ReferenceValue` construction; the complete source hypotheses are retained. -/
+/-- Evaluating the chart-specific reference angle on the chart chosen from the rescaled origin
+samples gives the automatic reference angle. -/
 theorem sourceReferenceAngleOnChart_chosen (source : (Fin 3 → ℚ) × ℕ → RationalSpinSample)
     (m1 m2 eta x y z tolerance : ℚ) :
     sourceReferenceAngleOnChart source m1 m2 (chosenOriginChart (rescaledSpinSamples source m1 m2)) eta x y z tolerance=
@@ -91,7 +92,8 @@ noncomputable section
 open scoped Quaternion ContDiff
 open Set
 
-/-- Original `product_error` guarantee for the `ReferenceValue` construction; the complete source hypotheses are retained. -/
+/-- If `a` approximates a unit quaternion `p` within `d ≤ 1` and `b` approximates a unit quaternion
+`q` within `s`, then the product error `‖a * b - p * q‖` is at most `d + 2 * s`. -/
 private theorem product_error (a b p q : ℍ) (d s : ℝ) (hp : ‖p‖=1) (hq : ‖q‖=1)
     (ha : ‖a-p‖ ≤ d) (hb : ‖b-q‖ ≤ s) (hd : d ≤ 1) : ‖a*b-p*q‖ ≤ d+2*s := by
   have hd0 : 0 ≤ d := (norm_nonneg _).trans ha

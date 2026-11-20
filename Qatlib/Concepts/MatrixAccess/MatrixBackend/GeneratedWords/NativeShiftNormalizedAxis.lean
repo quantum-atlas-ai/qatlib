@@ -35,7 +35,7 @@ open Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords Qatlib.Foundations.O
 open Qatlib Matrix
 open scoped BigOperators Matrix.Norms.L2Operator
 
-/-- The finite construction in `NativeShiftNormalizedAxis` satisfies `cayley_prefix_ratios` under the displayed hypotheses. -/
+/-- When `r, R > 0` and `R² = r² + a²`, the Cayley parameter `a / (R + r)` yields cosine coordinate `r / R` and sine coordinate `a / R`. -/
 private theorem cayley_prefix_ratios (a r R : ℝ) (hr : 0<r) (hR : 0<R)
     (hsq : R^2=r^2+a^2) :
     (1-(a/(R+r))^2)/(1+(a/(R+r))^2)=r/R ∧
@@ -47,7 +47,7 @@ private theorem cayley_prefix_ratios (a r R : ℝ) (hr : 0<r) (hR : 0<R)
   · field_simp [hd,ne_of_gt hR]
     linear_combination a*hsq
 
-/-- The finite construction in `NativeShiftNormalizedAxis` satisfies `shiftPairGate_mulVec` under the displayed hypotheses. -/
+/-- The pair gate mixes coordinates zero and `i.succ` by the matrix with rows `(c, -s)` and `(s, c)`, leaving all other coordinates unchanged. -/
 theorem shiftPairGate_mulVec (i : Fin 7) (c s : ℝ) (v : Fin 8 → ℂ) (a : Fin 8) :
     (shiftPairGate i c s *ᵥ v) a=
       if a=0 then (c : ℂ)*v 0-(s : ℂ)*v i.succ else
@@ -62,7 +62,7 @@ theorem shiftPairGate_mulVec (i : Fin 7) (c s : ℝ) (v : Fin 8 → ℂ) (a : Fi
     finSuccEquiv_symm_some,Equiv.symm_apply_apply]
 
 
-/-- The finite construction in `NativeShiftNormalizedAxis` satisfies `prefix_square_succ` under the displayed hypotheses. -/
+/-- Extending the inclusive sum of squares from `i.castSucc` to `i.succ` adds exactly the square at `i.succ`. -/
 private theorem prefix_square_succ (a : Fin 8 → ℚ) (i : Fin 7) :
     (∑ j : Fin 8,if j.val ≤ i.succ.val then a j^2 else 0)=
       (∑ j : Fin 8,if j.val ≤ i.castSucc.val then a j^2 else 0)+a i.succ^2 := by
@@ -87,7 +87,7 @@ private theorem prefix_square_succ (a : Fin 8 → ℚ) (i : Fin 7) :
 def shiftRadius (α B x y : ℚ) (p : ℕ) (i : Fin 8) : ℝ :=
   Real.sqrt (shiftPrefix α B x y p i : ℝ)
 
-/-- The finite construction in `NativeShiftNormalizedAxis` satisfies `shiftRadius_pos` under the displayed hypotheses. -/
+/-- For `0 < α ≤ B` and `x² + y² ≤ (B - α)²`, every prefix radius of the rounded shift axis is strictly positive. -/
 theorem shiftRadius_pos (α B x y : ℚ) (p : ℕ)
     (hα : 0<α) (hB : α ≤ B) (hz : x*x+y*y ≤ (B-α)^2) (i : Fin 8) :
     0<shiftRadius α B x y p i := by
@@ -96,7 +96,7 @@ theorem shiftRadius_pos (α B x y : ℚ) (p : ℕ)
     exact_mod_cast shiftPrefix_ge_one α B x y p hα hB hz i
   linarith
 
-/-- The finite construction in `NativeShiftNormalizedAxis` satisfies `shiftRadius_sq` under the displayed hypotheses. -/
+/-- Under the scale and disk conditions `0 < α ≤ B` and `x² + y² ≤ (B - α)²`, squaring each shift radius recovers its rational prefix sum of squares. -/
 theorem shiftRadius_sq (α B x y : ℚ) (p : ℕ)
     (hα : 0<α) (hB : α ≤ B) (hz : x*x+y*y ≤ (B-α)^2) (i : Fin 8) :
     (shiftRadius α B x y p i)^2=(shiftPrefix α B x y p i : ℝ) := by
@@ -104,7 +104,7 @@ theorem shiftRadius_sq (α B x y : ℚ) (p : ℕ)
   have hh := shiftPrefix_ge_one α B x y p hα hB hz i
   exact_mod_cast (show 0 ≤ shiftPrefix α B x y p i by linarith)
 
-/-- The finite construction in `NativeShiftNormalizedAxis` satisfies `shiftRadius_step` under the displayed hypotheses. -/
+/-- For `0 < α ≤ B` and `x² + y² ≤ (B - α)²`, the squared radius at `i.succ` is the previous squared radius plus the squared shift-axis coordinate at `i.succ`. -/
 theorem shiftRadius_step (α B x y : ℚ) (p : ℕ)
     (hα : 0<α) (hB : α ≤ B) (hz : x*x+y*y ≤ (B-α)^2) (i : Fin 7) :
     (shiftRadius α B x y p i.succ)^2=(shiftRadius α B x y p i.castSucc)^2+
@@ -112,7 +112,9 @@ theorem shiftRadius_step (α B x y : ℚ) (p : ℕ)
   rw [shiftRadius_sq α B x y p hα hB hz,shiftRadius_sq α B x y p hα hB hz]
   exact_mod_cast prefix_square_succ (shiftAxis α B x y p) i
 
-/-- The finite construction in `NativeShiftNormalizedAxis` satisfies `shiftComparisonGate_ratios` under the displayed hypotheses. -/
+/-- For `0 < α ≤ B` and `x² + y² ≤ (B - α)²`, the comparison gate at `i` uses
+the previous radius divided by the new radius for its cosine and the added
+axis coordinate divided by the new radius for its sine. -/
 theorem shiftComparisonGate_ratios (α B x y : ℚ) (p : ℕ)
     (hα : 0<α) (hB : α ≤ B) (hz : x*x+y*y ≤ (B-α)^2) (i : Fin 7) :
     shiftComparisonGate α B x y p i=shiftPairGate i
@@ -140,7 +142,7 @@ theorem shiftComparisonGate_ratios (α B x y : ℚ) (p : ℕ)
 private def prefixStage (a R : Fin 8 → ℝ) (k : Fin 8) : Fin 8 → ℂ := fun j =>
   if j=0 then (R k/R 7 : ℝ) else if k.val<j.val then (a j/R 7 : ℝ) else 0
 
-/-- The finite construction in `NativeShiftNormalizedAxis` satisfies `prefixStage_step` under the displayed hypotheses. -/
+/-- If `R i.succ` is nonzero, applying the two-coordinate gate with entries `R i.castSucc / R i.succ` and `a i.succ / R i.succ` transforms the prefix stage at `i.succ` into the stage at `i.castSucc`. -/
 private theorem prefixStage_step (a R : Fin 8 → ℝ) (i : Fin 7) (hRi : R i.succ≠0) :
     shiftPairGate i (R i.castSucc/R i.succ) (a i.succ/R i.succ) *ᵥ
       prefixStage a R i.succ=prefixStage a R i.castSucc := by
@@ -166,7 +168,7 @@ private theorem prefixStage_step (a R : Fin 8 → ℝ) (i : Fin 7) (hRi : R i.su
         omega
       simp only [hj,hij,ite_false,prefixStage,hlt]
 
-/-- The finite construction in `NativeShiftNormalizedAxis` satisfies `prefixStage_start` under the displayed hypotheses. -/
+/-- When the full radius `R 7` is nonzero, the stage at the last index is exactly the origin basis vector. -/
 private theorem prefixStage_start (a R : Fin 8 → ℝ) (hR : R 7≠0) :
     prefixStage a R 7=Qatlib.Foundations.PureStateMath.Ket 0 := by
   funext j
@@ -176,7 +178,7 @@ private theorem prefixStage_start (a R : Fin 8 → ℝ) (hR : R 7≠0) :
   · have hlt : ¬7<j.val := by have hh := j.isLt; omega
     simp [prefixStage,Qatlib.Foundations.PureStateMath.Ket,hj,hlt]
 
-/-- The finite construction in `NativeShiftNormalizedAxis` satisfies `prefixStage_finish` under the displayed hypotheses. -/
+/-- If `R 0 = a 0`, the prefix stage at zero has every coordinate equal to its entry in `a` divided by `R 7`. -/
 private theorem prefixStage_finish (a R : Fin 8 → ℝ) (hR0 : R 0=a 0) :
     prefixStage a R 0=(fun j => (a j/R 7 : ℂ)) := by
   funext j
@@ -186,7 +188,7 @@ private theorem prefixStage_finish (a R : Fin 8 → ℝ) (hR0 : R 0=a 0) :
   · simp [prefixStage,hj,Complex.ofReal_div]
 
 
-/-- The finite construction in `NativeShiftNormalizedAxis` satisfies `shiftRadius_zero` under the displayed hypotheses. -/
+/-- For `0 < α ≤ B` and `x² + y² ≤ (B - α)²`, the first prefix radius equals the coordinate of the shift axis at zero. -/
 theorem shiftRadius_zero (α B x y : ℚ) (p : ℕ)
     (hα : 0<α) (hB : α ≤ B) (hz : x*x+y*y ≤ (B-α)^2) :
     shiftRadius α B x y p 0=(shiftAxis α B x y p 0 : ℝ) := by
@@ -196,7 +198,7 @@ theorem shiftRadius_zero (α B x y : ℚ) (p : ℕ)
     exact_mod_cast (shiftAxis_bounds α B x y p hα hB hz).2.1 0
   simp only [shiftRadius,hp,Rat.cast_pow,Real.sqrt_sq ha]
 
-/-- The finite construction in `NativeShiftNormalizedAxis` satisfies `shiftComparisonLogical_axis` under the displayed hypotheses. -/
+/-- For `0 < α ≤ B` and `x² + y² ≤ (B - α)²`, the logical comparison circuit maps the origin basis vector to the rounded shift axis divided by its final prefix radius. -/
 theorem shiftComparisonLogical_axis (α B x y : ℚ) (p : ℕ)
     (hα : 0<α) (hB : α ≤ B) (hz : x*x+y*y ≤ (B-α)^2) :
     shiftComparisonLogical α B x y p *ᵥ Qatlib.Foundations.PureStateMath.Ket 0=
@@ -255,7 +257,7 @@ theorem nativeShiftAxis_error (α B x y : ℚ) (p : ℕ)
   exact he.trans (nativeShiftLogical_error α B x y p hα hB hz)
 
 
-/-- The finite construction in `NativeShiftNormalizedAxis` satisfies `shiftRadius_total_norm` under the displayed hypotheses. -/
+/-- Under the scale and disk conditions `0 < α ≤ B` and `x² + y² ≤ (B - α)²`, the last shift radius equals the Euclidean norm of the full rounded axis. -/
 theorem shiftRadius_total_norm (α B x y : ℚ) (p : ℕ)
     (hα : 0<α) (hB : α ≤ B) (hz : x*x+y*y ≤ (B-α)^2) :
     shiftRadius α B x y p 7=

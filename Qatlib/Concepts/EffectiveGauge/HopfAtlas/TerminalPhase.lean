@@ -30,11 +30,11 @@ def IsCircleQuaternion (q : ℍ) : Prop := ‖q‖=1 ∧ q.imJ=0 ∧ q.imK=0
 /-- Definition of fibre Ratio in the Hopf Atlas construction. -/
 def fibreRatio (q r : ℍ) : ℍ := q*star r
 
-/-- Original `fibreRatio_norm` guarantee for the `TerminalPhase` construction; the complete source hypotheses are retained. -/
+/-- The fibre ratio `q * star r` of two unit quaternions has unit norm. -/
 theorem fibreRatio_norm (q r : ℍ) (hq : ‖q‖=1) (hr : ‖r‖=1) : ‖fibreRatio q r‖=1 := by
   simp [fibreRatio, norm_mul, norm_star, hq, hr]
 
-/-- Original `fibreRatio_axis` guarantee for the `TerminalPhase` construction; the complete source hypotheses are retained. -/
+/-- The fibre ratio of two unit quaternions with the same Hopf image commutes with `iAxis`. -/
 theorem fibreRatio_axis (q r : ℍ) (hq : ‖q‖=1) (hr : ‖r‖=1) (hh : hopf q=hopf r) :
     iAxis*fibreRatio q r=fibreRatio q r*iAxis := by
   have hqu : q*star q=1 := by
@@ -48,14 +48,15 @@ theorem fibreRatio_axis (q r : ℍ) (hq : ‖q‖=1) (hr : ‖r‖=1) (hh : hopf
     _ = (q*star r)*iAxis*(r*star r) := by simp only [hopf, mul_assoc]
     _ = _ := by rw [hru, mul_one]; rfl
 
-/-- Original `axis_commute_coordinates` guarantee for the `TerminalPhase` construction; the complete source hypotheses are retained. -/
+/-- A quaternion that commutes with `iAxis` has zero `j` and `k` components. -/
 theorem axis_commute_coordinates (q : ℍ) (h : iAxis*q=q*iAxis) : q.imJ=0 ∧ q.imK=0 := by
   have hj := congrArg (fun r : ℍ => r.imJ) h
   have hk := congrArg (fun r : ℍ => r.imK) h
   simp [iAxis] at hj hk
   constructor <;> linarith
 
-/-- Original `fibreRatio_circle` guarantee for the `TerminalPhase` construction; the complete source hypotheses are retained. -/
+/-- Two unit quaternions with the same Hopf image have a fibre ratio in the quaternion unit circle
+in the real-`i` plane. -/
 theorem fibreRatio_circle (q r : ℍ) (hq : ‖q‖=1) (hr : ‖r‖=1) (hh : hopf q=hopf r) :
     IsCircleQuaternion (fibreRatio q r) :=
   ⟨fibreRatio_norm q r hq hr, axis_commute_coordinates _ (fibreRatio_axis q r hq hr hh)⟩
@@ -103,14 +104,16 @@ def terminalRatio (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (q₀ : ℍ) (h₀ : ‖q₀‖=1) (p : TransversePoint) : ℍ :=
   fibreRatio (sourceLiftPaths v hv q₀ h₀ p transportFinish) q₀
 
-/-- Original `contDiff_terminalRatio` guarantee for the `TerminalPhase` construction; the complete source hypotheses are retained. -/
+/-- The terminal ratio as a function of the two transverse coordinates is smooth for a smooth
+source field and a unit seed. -/
 theorem contDiff_terminalRatio (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (q₀ : ℍ) (h₀ : ‖q₀‖=1) : ContDiff ℝ ∞ (terminalRatio v hv q₀ h₀) := by
   have he : ContDiff ℝ ∞ (ContinuousMap.evalCLM ℝ transportFinish : QuaternionPath → ℍ) := by
     exact ContinuousLinearMap.contDiff _
   exact (he.comp (contDiff_sourceLiftPaths v hv q₀ h₀)).mul contDiff_const
 
-/-- Original `collar_final_face` guarantee for the `TerminalPhase` construction; the complete source hypotheses are retained. -/
+/-- A periodic quaternion field with constant value `sc` on a positive-width collar equals `sc` on
+the final longitudinal face for every transverse address. -/
 theorem collar_final_face (s : QuaternionField) (hp : IsPeriodicField s)
     (eta : ℝ) (he : 0<eta) (sc : ℍ) (hc : HasConstantCollar s eta sc)
     (p : TransversePoint) : s (sourcePosition (p,physicalPeriod))=sc := by
@@ -122,7 +125,8 @@ theorem collar_final_face (s : QuaternionField) (hp : IsPeriodicField s)
   rw [hpos, hp]
   exact collar_initial_face s hp eta he sc hc p
 
-/-- Original `terminalRatio_circle` guarantee for the `TerminalPhase` construction; the complete source hypotheses are retained. -/
+/-- For a smooth unit source with periodic spin and a positive-width constant collar, a unit seed
+over the collar spin yields a unit-circle terminal ratio at every transverse point. -/
 theorem terminalRatio_circle (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (hu : ∀ x, ‖v x‖=1) (q₀ : ℍ) (h₀ : ‖q₀‖=1)
     (hp : IsPeriodicField (sourceQuaternion v)) (eta : ℝ) (he : 0<eta) (sc : ℍ)
@@ -133,7 +137,8 @@ theorem terminalRatio_circle (v : SpatialPoint → SpatialPoint) (hv : ContDiff 
     (hi.trans (collar_initial_face _ hp eta he sc hc p).symm) transportFinish).trans
       ((collar_final_face _ hp eta he sc hc p).trans hi.symm)
 
-/-- Original `terminalRatio_boundary` guarantee for the `TerminalPhase` construction; the complete source hypotheses are retained. -/
+/-- For a smooth unit source with a constant collar and a unit seed, the terminal ratio is one at
+each point of the transverse physical square with at least one coordinate in the collar. -/
 theorem terminalRatio_boundary (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (hu : ∀ x, ‖v x‖=1) (q₀ : ℍ) (h₀ : ‖q₀‖=1) (eta : ℝ) (sc : ℍ)
     (hc : HasConstantCollar (sourceQuaternion v) eta sc) (p : TransversePoint)

@@ -29,7 +29,8 @@ open scoped ContDiff
 namespace Qatlib.Concepts.EffectiveGauge.SpectralH1
 open Qatlib.Concepts.EffectiveGauge.HopfAtlas Qatlib.Concepts.EffectiveGauge.RationalFlow Qatlib.Concepts.EffectiveGauge.TorusFourier
 
-/-- Original `physicalCubeIntegral_scale` guarantee for the `PhysicalH1Energy` construction; the complete source hypotheses are retained. -/
+/-- Integrating over the physical cube is equivalent to integrating the rescaled field over the unit
+cube and multiplying by the cubed physical period. -/
 theorem physicalCubeIntegral_scale (f : SpatialPoint → ℝ) :
     physicalCubeIntegral f=physicalPeriod^3*unitCubeIntegral (fun u => f (physicalPeriod • u)) := by
   have h := physicalCubeMean_scale f
@@ -37,7 +38,7 @@ theorem physicalCubeIntegral_scale (f : SpatialPoint → ℝ) :
   have he := (div_eq_iff (pow_ne_zero 3 physicalPeriod_pos.ne')).mp h
   simpa only [mul_comm] using he
 
-/-- Original `unitBoxEnergy_eq_unitCubeIntegral` guarantee for the `PhysicalH1Energy` construction; the complete source hypotheses are retained. -/
+/-- The unit-box energy of a field equals the unit cube integral of its squared norm. -/
 theorem unitBoxEnergy_eq_unitCubeIntegral {E : Type*} [NormedAddCommGroup E] (f : SpatialPoint → E) :
     unitBoxEnergy f=unitCubeIntegral (fun x => ‖f x‖^2) := by
   unfold unitBoxEnergy unitCubeIntegral
@@ -54,7 +55,8 @@ def unitFieldH1Energy {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     (f : SpatialPoint → E) : ℝ :=
   unitBoxEnergy f+(∑ i : Fin 3, unitBoxEnergy (spatialWordPartial f [i]))/physicalPeriod^2
 
-/-- Original `physicalFieldH1Energy_integrable` guarantee for the `PhysicalH1Energy` construction; the complete source hypotheses are retained. -/
+/-- For a smooth field, the squared norm of its value and the squared norm of each first coordinate
+partial are integrable on the closed physical coordinate box. -/
 theorem physicalFieldH1Energy_integrable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     (f : SpatialPoint → E) (hf : ContDiff ℝ ∞ f) :
     IntegrableOn (fun u : Fin 3 → ℝ => ‖f (WithLp.toLp 2 u)‖^2)
@@ -66,7 +68,8 @@ theorem physicalFieldH1Energy_integrable {E : Type*} [NormedAddCommGroup E] [Nor
   intro i
   exact (((contDiff_spatialWordPartial f hf [i]).continuous.comp e.continuous).norm.pow 2).integrableOn_Icc
 
-/-- Original `unitBoxEnergy_partial_scale` guarantee for the `PhysicalH1Energy` construction; the complete source hypotheses are retained. -/
+/-- The unit-box energy of a first partial of the rescaled field equals the unit cube integral of
+the squared physical partial at the corresponding physical points, multiplied by the squared period. -/
 theorem unitBoxEnergy_partial_scale {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     (f : SpatialPoint → E) (hf : ContDiff ℝ ∞ f) (i : Fin 3) :
     unitBoxEnergy (spatialWordPartial (fun u => f (physicalPeriod • u)) [i])=

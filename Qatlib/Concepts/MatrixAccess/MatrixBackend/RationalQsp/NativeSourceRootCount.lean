@@ -31,7 +31,8 @@ open Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays Qatlib.Concepts
 
 open Polynomial
 
-/-- The finite construction in `NativeSourceRootCount` satisfies `reverse_linear` under the displayed hypotheses. -/
+/-- For nonzero a, reversing the monic linear factor with root a gives the monic factor at the
+reciprocal root multiplied by −a. -/
 private theorem reverse_linear (a : ℂ) (ha : a≠0) :
     (X-C a : ℂ[X]).reverse=C (-a)*(X-C (a⁻¹)) := by
   have he : (X-C a : ℂ[X]).reverse=1-C a*X := by
@@ -42,7 +43,8 @@ private theorem reverse_linear (a : ℂ) (ha : a≠0) :
   simp only [neg_mul,mul_inv_cancel₀ ha,Polynomial.C_neg,Polynomial.C_1]
   ring
 
-/-- The finite construction in `NativeSourceRootCount` satisfies `reverse_root_product` under the displayed hypotheses. -/
+/-- For a multiset of nonzero roots, the roots of the reversed product of their monic linear
+factors are the reciprocals with the original multiplicities. -/
 private theorem reverse_root_product (l : Multiset ℂ) :
     (∀ a∈l,a≠0) →
       ((l.map (fun a => (X-C a : ℂ[X]))).prod.reverse).roots=l.map (fun a => a⁻¹) := by
@@ -65,7 +67,8 @@ private theorem reverse_root_product (l : Multiset ℂ) :
       Multiset.map_cons]
     rfl
 
-/-- The finite construction in `NativeSourceRootCount` satisfies `roots_reverse` under the displayed hypotheses. -/
+/-- Reversing a nonzero polynomial with nonzero constant term sends its root multiset to the
+reciprocals of its roots. -/
 private theorem roots_reverse (p : ℂ[X]) (hp : p≠0) (h0 : p.eval 0≠0) :
     p.reverse.roots=p.roots.map (fun a => a⁻¹) := by
   have hn : ∀ a∈p.roots,a≠0 := by
@@ -115,7 +118,7 @@ open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data
 open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data.SourceInput
 open Polynomial
 
-/-- The finite construction in `NativeSourceRootCount` satisfies `sourceLeading_ne_zero` under the displayed hypotheses. -/
+/-- At positive source degree, the source coefficient indexed by that degree is nonzero. -/
 private theorem sourceLeading_ne_zero (cs : List ℚ) (N : ℕ) (E : ℚ)
     (hd : 0<sourceDegree cs N E) :
     sourceCoefficient cs N E ⟨sourceDegree cs N E,by have h := sourceDegree_le cs N E; omega⟩≠0 := by
@@ -126,7 +129,8 @@ private theorem sourceLeading_ne_zero (cs : List ℚ) (N : ℕ) (E : ℚ)
   rw [he] at hi
   exact hi
 
-/-- The finite construction in `NativeSourceRootCount` satisfies `sourceInputP_coeff_zero` under the displayed hypotheses. -/
+/-- The constant term of the compressed input polynomial equals the source coefficient at the
+source degree. -/
 private theorem sourceInputP_coeff_zero (cs : List ℚ) (N : ℕ) (E : ℚ) :
     (sourceInputP cs N E).coeff 0=
       sourceCoefficient cs N E ⟨sourceDegree cs N E,by have h := sourceDegree_le cs N E; omega⟩ := by
@@ -138,7 +142,7 @@ private theorem sourceInputP_coeff_zero (cs : List ℚ) (N : ℕ) (E : ℚ) :
   change Nat.dist 0 (sourceDegree cs N E)=sourceDegree cs N E
   simp [Nat.dist]
 
-/-- The finite construction in `NativeSourceRootCount` satisfies `sourceF_eval_zero_ne` under the displayed hypotheses. -/
+/-- For positive source degree, the complement polynomial is nonzero at the origin. -/
 theorem sourceF_eval_zero_ne (cs : List ℚ) (N : ℕ) (E : ℚ)
     (hd : 0<sourceDegree cs N E) : (sourceF cs N E).eval 0≠0 := by
   have hlead : (sourceCoefficient cs N E
@@ -149,7 +153,8 @@ theorem sourceF_eval_zero_ne (cs : List ℚ) (N : ℕ) (E : ℚ)
     sourceInputP_coeff_zero]
   exact neg_ne_zero.mpr (pow_ne_zero 2 hlead)
 
-/-- The finite construction in `NativeSourceRootCount` satisfies `sourceF_natDegree_eq` under the displayed hypotheses. -/
+/-- If the source degree is positive, the complement polynomial has degree exactly twice that
+degree. -/
 theorem sourceF_natDegree_eq (cs : List ℚ) (N : ℕ) (E : ℚ)
     (hd : 0<sourceDegree cs N E) :
     (sourceF cs N E).natDegree=2*sourceDegree cs N E := by
@@ -160,13 +165,14 @@ theorem sourceF_natDegree_eq (cs : List ℚ) (N : ℕ) (E : ℚ)
   have htop : (sourceF cs N E).coeff (2*sourceDegree cs N E)≠0 := by rw [hc]; exact h0
   exact le_antisymm (sourceF_natDegree_le cs N E) (Polynomial.le_natDegree_of_ne_zero htop)
 
-/-- The finite construction in `NativeSourceRootCount` satisfies `sourceF_reverse` under the displayed hypotheses. -/
+/-- At positive source degree, ordinary degree-based reversal fixes the complement polynomial. -/
 theorem sourceF_reverse (cs : List ℚ) (N : ℕ) (E : ℚ) (hd : 0<sourceDegree cs N E) :
     (sourceF cs N E).reverse=sourceF cs N E := by
   unfold Polynomial.reverse
   rw [sourceF_natDegree_eq cs N E hd,sourceF_reflect]
 
-/-- The finite construction in `NativeSourceRootCount` satisfies `sourceF_inverse_roots` under the displayed hypotheses. -/
+/-- For positive source degree, taking reciprocals preserves the entire multiset of complex
+complement roots. -/
 theorem sourceF_inverse_roots (cs : List ℚ) (N : ℕ) (E : ℚ) (hd : 0<sourceDegree cs N E) :
     (sourceF cs N E).roots.map (fun z => z⁻¹)=(sourceF cs N E).roots := by
   have hp : sourceF cs N E≠0 := by
@@ -178,7 +184,9 @@ theorem sourceF_inverse_roots (cs : List ℚ) (N : ℕ) (E : ℚ) (hd : 0<source
   rw [sourceF_reverse cs N E hd] at h
   exact h.symm
 
-/-- The finite construction in `NativeSourceRootCount` satisfies `sourceF_no_unit_zero` under the displayed hypotheses. -/
+/-- If E and source degree are positive and the target has degree at most N, parity N and absolute
+value at most one on the interval from −1 to 1, no complex complement root lies on the unit
+circle. -/
 theorem sourceF_no_unit_zero (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E)
     (htail : ∀ k,N+1 ≤ k → cs.getD k 0=0)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)
@@ -191,7 +199,8 @@ theorem sourceF_no_unit_zero (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E)
   have hm := sourceMu_pos cs N E hE
   linarith
 
-/-- The finite construction in `NativeSourceRootCount` satisfies `sourceIntegerComplement_roots` under the displayed hypotheses. -/
+/-- With matching parity and positive source degree, the integer complement and its complex source
+polynomial have identical root multisets. -/
 theorem sourceIntegerComplement_roots (cs : List ℚ) (N : ℕ) (E : ℚ)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)
     (hd : 0<sourceDegree cs N E) :
@@ -222,7 +231,9 @@ theorem sourceIntegerComplement_inside_count (cs : List ℚ) (N : ℕ) (E : ℚ)
   rw [IsAlgClosed.card_roots_eq_natDegree,sourceF_natDegree_eq cs N E hd] at h
   omega
 
-/-- The finite construction in `NativeSourceRootCount` satisfies `sourceIntegerComplement_all_roots_gap` under the displayed hypotheses. -/
+/-- For positive E and source degree and a degree-bounded Chebyshev target of matching parity and
+absolute value at most one on the interval from −1 to 1, every root of the integer complement
+has modulus separated from one by at least the source radial gap. -/
 theorem sourceIntegerComplement_all_roots_gap (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E)
     (htail : ∀ k,N+1 ≤ k → cs.getD k 0=0)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)

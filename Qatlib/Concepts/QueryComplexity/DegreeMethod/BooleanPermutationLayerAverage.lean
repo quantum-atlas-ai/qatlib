@@ -27,7 +27,7 @@ The module also supplies standard Boolean points of prescribed weight and relate
 
 * `exists_perm_of_eq_weight`: inputs of equal Hamming weight differ by a coordinate permutation.
 * `permAverage_eq_layerAverage`: permutation and layer averages agree.
-* `frontier1`: permutation averages have a univariate representation with the expected degree
+* `permutation_average_eq_hamming_layer_and_polynomial`: permutation averages have a univariate representation with the expected degree
   bound.
 * `permLayerAverage_eq_layerAverage`: the standard-point permutation average equals the layer
   average.
@@ -203,7 +203,7 @@ theorem permAverage_eq_layerAverage (p : MvPolynomial I ℝ) (x : I → Bool) :
 
 /-- Permutation averages equal Hamming layer averages and are represented by a univariate
 polynomial of degree at most the total degree of the original polynomial [BealsEtAl2001]. -/
-theorem frontier1 :
+theorem permutation_average_eq_hamming_layer_and_polynomial :
     ∀ (I : Type) [Fintype I] [DecidableEq I] (p : MvPolynomial I ℝ),
       (∀ x : I → Bool,
         permAverage p x

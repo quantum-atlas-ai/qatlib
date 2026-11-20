@@ -579,7 +579,7 @@ theorem bracket_machine_word_width (tf sf : Bits → ℕ)
 
 /-- Collect the certified bracket, precision, encoding, bisection, and conditional TM0
 realization results for the rational-word construction. -/
-theorem frontier1 :
+theorem rational_word_sqrt_bracket_and_tm_realization :
     (∀ (q S : ℚ) (k : ℕ), 0 < S → 0 ≤ q → q ≤ S * S →
       (bracketEnc q S k).1.toRat = sqrtLo q S k ∧
         (bracketEnc q S k).2.toRat = sqrtHi q S k ∧
@@ -986,7 +986,7 @@ theorem intBisect_invariant (P Q : ℕ) (hPQ : P ≤ Q) (k : ℕ) :
 
 /-- Collect the integer representation of the rational bracket, midpoint-test equivalence, size
 bounds, and preserved square inequalities. -/
-theorem frontier3 :
+theorem integer_sqrt_bracket_midpoint_and_size_bounds :
     (∀ (q S : ℚ), 0 ≤ q → 0 < S → (sqNum q S : ℚ) / (sqDen q S : ℚ) = q / (S * S) ∧
       ∀ k : ℕ,
         sqrtLo q S k = S * (((intBisect (sqNum q S) (sqDen q S) k : ℕ) : ℚ) / 2 ^ k) ∧
@@ -1285,7 +1285,7 @@ theorem incrLinBits_value (Q : ℕ) (s : IncrState) :
 
 /-- Collect the incremental bisection invariants, agreement with integer bisection, and
 correctness of the binary arithmetic words. -/
-theorem frontier4 :
+theorem incremental_bisection_invariants_and_binary_word_correctness :
     (∀ (Q : ℕ) (s : IncrState), incrTrial Q s = quadNat s.sq + quadNat s.lin + Q) ∧
     (∀ (P Q k : ℕ), (incrIterate Q k (incrInit P)).a = intBisect P Q k) ∧
     (∀ (P Q k : ℕ),
@@ -3463,7 +3463,7 @@ theorem mIterate_intBisect (P Q k : ℕ) :
 
 /-- Collect termination and output of the emission machine, correctness of its comparison bit,
 the endpoint update formula, and agreement of iteration with integer bisection. -/
-theorem frontier5 :
+theorem trial_emission_machine_correctness_and_bisection_agreement :
     (∀ (sq lin q rhs aa : Bits),
       stackRun program (totalTicks sq lin q rhs) (startCfg sq lin q rhs aa) =
         some ⟨none, ⟨none, none, none, none, false, false, false⟩,

@@ -14,6 +14,60 @@ All notable changes to **Qatlib** are documented in this file.
 
 ---
 
+## [2026-11-20] — Quantum Error Correction, Rational Pilot Arithmetic, Span Programs, and Semantic Interfaces
+
+### Added
+
+* **Concepts — Quantum error-correction certificates, Kraus recovery, and syndrome circuits**:
+  Certify exact `GF(2)` parity-check ranks and CSS logical dimensions `k` via
+  kernel-checked Gaussian-elimination witnesses. Provide branch-and-bound
+  soundness certificates for CSS distance lower bounds together with
+  parity-check-to-Tanner bipartite graph bridges certifying four-cycle exclusion
+  and exact girth six. Establish coherent Kraus error recovery over certified
+  correctable subspaces—covering mixed states and entanglement with arbitrary
+  finite reference systems—and prove channel equivalence between CSS and
+  signed-tableau decoders. Formalize ordered-CNOT and bitwise-Hadamard CSS
+  syndrome-extraction instruments, gate-indexed bit-flip fault propagation,
+  residual weight bounds, and single-shot noisy-syndrome decoding contracts.
+* **Concepts — Executed rational pilot moments**: Evaluate the exact empirical
+  mean, second moment, and record count of a supplied rational table via binary
+  arithmetic that tracks its own Boolean-gate charge. Bound this arithmetic gate
+  charge on supplied samples by `3565 * (encodedSize + 1)^4`, and bound the
+  output-register width of each rational result by twice the encoded size.
+* **Papers — Classical shadows and positive-input span programs**: Verify that
+  the binary arithmetic evaluator agrees with the rational pilot moments used in
+  classical shadows while charging at least one arithmetic gate per supplied
+  record. Construct a literal-supported span-program composition from an outer
+  program and explicit inner programs for both Boolean outcomes; for accepting
+  inputs with finite input costs, prove two positive witness-size bounds in the
+  paired-program model and certify the one-bit identity example.
+* **Public interface checks**: Exercise the renamed declarations and new quantum
+  error-correction interfaces from ordinary Lean modules—covering Steane and
+  non-CSS five-qubit recovery, rank, distance, and girth certificates, and
+  syndrome-circuit fault-propagation instances—alongside signed and empty inputs
+  for the rational moment evaluator and acceptance and rejection checks for the
+  one-bit span-program composition.
+* **Bibliography**: Add the cited revision of Shelby Kimmel's *Quantum
+  Adversary (Upper) Bound*.
+
+### Changed
+
+* **Semantic declaration names**: Rename 378 declarations across the library to
+  reflect their mathematical content, and update imports of the matrix
+  optimization evidence module to
+  `Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationContractEvidence`.
+* **Mathematical documentation**: Rewrite 3,717 generic docstrings to state the
+  concrete objects, hypotheses, and guarantees across finite constructions,
+  gauge and polynomial interfaces, spinor sampling, matrix words, and rational
+  quantum signal processing.
+
+### Fixed
+
+* **Theorem documentation and cross-references**: Supply missing docstrings for
+  three public theorems and repair 65 stale declaration references.
+
+---
+
 ## [2026-11-18] — Quantum Codes, Circuit Semantics, and Fluid and Optical Models
 
 ### Added

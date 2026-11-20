@@ -36,13 +36,13 @@ def physicalPoissonPhase (q : QuaternionField) (hq : ContDiff ℝ ∞ q) (hp : I
     (x : SpatialPoint) : ℝ :=
   normalizedConnectionPoisson q hq hp (physicalPeriod⁻¹ • x)-normalizedConnectionPoisson q hq hp 0
 
-/-- Original `physicalPoissonPhase_contDiff` guarantee for the `PhysicalPoissonGauge` construction; the complete source hypotheses are retained. -/
+/-- For a smooth physically periodic quaternion field, the phase obtained by evaluating its normalized Poisson potential at the rescaled point and subtracting the value at zero is smooth. -/
 theorem physicalPoissonPhase_contDiff (q : QuaternionField) (hq : ContDiff ℝ ∞ q)
     (hp : IsPeriodicField q) : ContDiff ℝ ∞ (physicalPoissonPhase q hq hp) :=
   (((normalizedConnectionPoisson_spec q hq hp).1).comp
     (contDiff_id.const_smul physicalPeriod⁻¹)).sub contDiff_const
 
-/-- Original `physicalPoissonPhase_word` guarantee for the `PhysicalPoissonGauge` construction; the complete source hypotheses are retained. -/
+/-- For a nonempty derivative word, the physical phase derivative is the corresponding normalized potential derivative at the rescaled point multiplied by one inverse period per differentiation. -/
 theorem physicalPoissonPhase_word (q : QuaternionField) (hq : ContDiff ℝ ∞ q)
     (hp : IsPeriodicField q) (w : List (Fin 3)) (hw : w≠[]) :
     spatialWordPartial (physicalPoissonPhase q hq hp) w=fun x =>
@@ -57,7 +57,7 @@ theorem physicalPoissonPhase_word (q : QuaternionField) (hq : ContDiff ℝ ∞ q
   simp only [hw,ite_false,add_zero,smul_eq_mul]
   rfl
 
-/-- Original `unitNormalize_latticeShift` guarantee for the `PhysicalPoissonGauge` construction; the complete source hypotheses are retained. -/
+/-- Scaling a physically shifted point by the inverse period gives the scaled point shifted by the corresponding integer lattice vector. -/
 theorem unitNormalize_latticeShift (x : SpatialPoint) (n : SpatialFrequency) :
     physicalPeriod⁻¹ • (x+latticeShift n)=physicalPeriod⁻¹ • x+unitIntegerShift n := by
   ext j
@@ -65,7 +65,7 @@ theorem unitNormalize_latticeShift (x : SpatialPoint) (n : SpatialFrequency) :
     physicalPeriod⁻¹*x j+(n j : ℝ)
   field_simp [physicalPeriod_pos.ne']
 
-/-- Original `physicalPoissonPhase_periodic` guarantee for the `PhysicalPoissonGauge` construction; the complete source hypotheses are retained. -/
+/-- The origin-normalized physical Poisson phase of a smooth periodic quaternion field is invariant under physical lattice shifts. -/
 theorem physicalPoissonPhase_periodic (q : QuaternionField) (hq : ContDiff ℝ ∞ q)
     (hp : IsPeriodicField q) : IsPeriodicField (physicalPoissonPhase q hq hp) := by
   intro x n
@@ -76,35 +76,35 @@ theorem physicalPoissonPhase_periodic (q : QuaternionField) (hq : ContDiff ℝ �
 def poissonCorrectedLift (q : QuaternionField) (hq : ContDiff ℝ ∞ q) (hp : IsPeriodicField q) : QuaternionField :=
   fun x => phase (physicalPoissonPhase q hq hp x)*q x
 
-/-- Original `poissonCorrectedLift_contDiff` guarantee for the `PhysicalPoissonGauge` construction; the complete source hypotheses are retained. -/
+/-- Multiplying a smooth physically periodic quaternion field by its Poisson phase factor gives a smooth corrected lift. -/
 theorem poissonCorrectedLift_contDiff (q : QuaternionField) (hq : ContDiff ℝ ∞ q)
     (hp : IsPeriodicField q) : ContDiff ℝ ∞ (poissonCorrectedLift q hq hp) :=
   (contDiff_phase.comp (physicalPoissonPhase_contDiff q hq hp)).mul hq
 
-/-- Original `poissonCorrectedLift_norm` guarantee for the `PhysicalPoissonGauge` construction; the complete source hypotheses are retained. -/
+/-- At each point, the Poisson correction preserves unit norm when the original quaternion field has unit norm everywhere. -/
 theorem poissonCorrectedLift_norm (q : QuaternionField) (hq : ContDiff ℝ ∞ q)
     (hp : IsPeriodicField q) (hu : ∀ x, ‖q x‖=1) (x : SpatialPoint) :
     ‖poissonCorrectedLift q hq hp x‖=1 := by
   simp [poissonCorrectedLift,norm_mul,hu]
 
-/-- Original `poissonCorrectedLift_hopf` guarantee for the `PhysicalPoissonGauge` construction; the complete source hypotheses are retained. -/
+/-- The Poisson phase factor preserves the Hopf image of the quaternion at every point. -/
 theorem poissonCorrectedLift_hopf (q : QuaternionField) (hq : ContDiff ℝ ∞ q)
     (hp : IsPeriodicField q) (x : SpatialPoint) : hopf (poissonCorrectedLift q hq hp x)=hopf (q x) :=
   hopf_phase _ _
 
-/-- Original `poissonCorrectedLift_origin` guarantee for the `PhysicalPoissonGauge` construction; the complete source hypotheses are retained. -/
+/-- The Poisson phase vanishes at the origin, so the corrected lift has the original value there. -/
 theorem poissonCorrectedLift_origin (q : QuaternionField) (hq : ContDiff ℝ ∞ q)
     (hp : IsPeriodicField q) : poissonCorrectedLift q hq hp 0=q 0 := by
   simp [poissonCorrectedLift,physicalPoissonPhase,phase]
 
-/-- Original `poissonCorrectedLift_periodic` guarantee for the `PhysicalPoissonGauge` construction; the complete source hypotheses are retained. -/
+/-- The corrected lift inherits physical lattice periodicity from the original quaternion field and its Poisson phase. -/
 theorem poissonCorrectedLift_periodic (q : QuaternionField) (hq : ContDiff ℝ ∞ q)
     (hp : IsPeriodicField q) : IsPeriodicField (poissonCorrectedLift q hq hp) := by
   intro x n
   unfold poissonCorrectedLift
   rw [physicalPoissonPhase_periodic q hq hp x n,hp x n]
 
-/-- Original `poissonCorrectedLift_connection` guarantee for the `PhysicalPoissonGauge` construction; the complete source hypotheses are retained. -/
+/-- For a unit quaternion field, the corrected connection component equals the original component plus the matching derivative of the normalized potential at the rescaled point divided by the physical period. -/
 theorem poissonCorrectedLift_connection (q : QuaternionField) (hq : ContDiff ℝ ∞ q)
     (hp : IsPeriodicField q) (hu : ∀ x, ‖q x‖=1) (j : Fin 3) (x : SpatialPoint) :
     connection (poissonCorrectedLift q hq hp) x j=
@@ -117,7 +117,7 @@ theorem poissonCorrectedLift_connection (q : QuaternionField) (hq : ContDiff ℝ
   rw [physicalPoissonPhase_word q hq hp [j] (by simp)] at h
   simpa only [List.length_singleton,pow_one] using h
 
-/-- Original `normalizedConnectionReal_word` guarantee for the `PhysicalPoissonGauge` construction; the complete source hypotheses are retained. -/
+/-- For every coordinate word, the derivative of a normalized connection component is the physical connection derivative at `physicalPeriod • u` scaled by `physicalPeriod^(w.length+1)`. -/
 theorem normalizedConnectionReal_word (q : QuaternionField) (hq : ContDiff ℝ ∞ q)
     (j : Fin 3) (w : List (Fin 3)) :
     spatialWordPartial (normalizedConnectionReal q j) w=fun u =>
@@ -131,7 +131,7 @@ theorem normalizedConnectionReal_word (q : QuaternionField) (hq : ContDiff ℝ �
   simp only [smul_eq_mul,pow_succ]
   ring
 
-/-- Original `physicalPoissonPhase_laplacian` guarantee for the `PhysicalPoissonGauge` construction; the complete source hypotheses are retained. -/
+/-- At each physical point the Laplacian of the origin-normalized Poisson phase is the negative divergence of the original connection. -/
 theorem physicalPoissonPhase_laplacian (q : QuaternionField) (hq : ContDiff ℝ ∞ q)
     (hp : IsPeriodicField q) (x : SpatialPoint) :
     (∑ j : Fin 3, spatialWordPartial (physicalPoissonPhase q hq hp) [j,j] x)=
@@ -159,7 +159,7 @@ theorem physicalPoissonPhase_laplacian (q : QuaternionField) (hq : ContDiff ℝ 
       rw [hPDE]
       field_simp [physicalPeriod_pos.ne']
 
-/-- Original `poissonCorrectedLift_solenoidal` guarantee for the `PhysicalPoissonGauge` construction; the complete source hypotheses are retained. -/
+/-- For a smooth, physically periodic unit quaternion field, the Poisson-corrected lift has divergence-free velocity at unit density everywhere. -/
 theorem poissonCorrectedLift_solenoidal (q : QuaternionField) (hq : ContDiff ℝ ∞ q)
     (hp : IsPeriodicField q) (hu : ∀ x, ‖q x‖=1) : IsSolenoidal (poissonCorrectedLift q hq hp) := by
   intro x
@@ -183,7 +183,7 @@ theorem poissonCorrectedLift_solenoidal (q : QuaternionField) (hq : ContDiff ℝ
   simp_rw [heach]
   rw [Finset.sum_add_distrib,physicalPoissonPhase_laplacian q hq hp x,add_neg_cancel]
 
-/-- Original `physicalCubeMean_add` guarantee for the `PhysicalPoissonGauge` construction; the complete source hypotheses are retained. -/
+/-- The physical cube mean of the sum of two continuous real fields is the sum of their means. -/
 theorem physicalCubeMean_add (f g : SpatialPoint → ℝ) (hf : Continuous f) (hg : Continuous g) :
     physicalCubeMean (fun x => f x+g x)=physicalCubeMean f+physicalCubeMean g := by
   let e := (PiLp.continuousLinearEquiv 2 ℝ (fun _ : Fin 3 => ℝ)).symm

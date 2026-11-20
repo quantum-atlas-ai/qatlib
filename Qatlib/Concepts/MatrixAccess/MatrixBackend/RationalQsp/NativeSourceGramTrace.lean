@@ -45,18 +45,19 @@ def sourceGaussianGram (A : Matrix Bool Bool (ℚ×ℚ)) : Matrix Bool Bool (ℚ
 /-- Construction for source Gaussian Gram Trace in the native source gram trace model. -/
 def sourceGaussianGramTrace (A : Matrix Bool Bool (ℚ×ℚ)) : ℚ×ℚ := sourceGaussianGram A false false+sourceGaussianGram A true true
 
-/-- The finite construction in `NativeSourceGramTrace` satisfies `sourceGaussianGramTrace_identity` under the displayed hypotheses. -/
+/-- The rational Gram trace has real coordinate equal to the sum of the squared entry norms and
+zero imaginary coordinate. -/
 theorem sourceGaussianGramTrace_identity (A : Matrix Bool Bool (ℚ×ℚ)) :
     (sourceGaussianGramTrace A).1=(∑ i : Bool,∑ j : Bool,sourceGaussianNormSq (A i j)) ∧
       (sourceGaussianGramTrace A).2=0 := by
   constructor <;> simp [sourceGaussianGramTrace,sourceGaussianGram,sourceGaussianMatrixMul,sourceGaussianAdjoint,gaussianRatMul,sourceGaussianNormSq] <;> ring
 
-/-- The finite construction in `NativeSourceGramTrace` satisfies `qnorm2_nonneg` under the displayed hypotheses. -/
+/-- The sum of the squares of two rational coordinates is nonnegative. -/
 private theorem qnorm2_nonneg (v : ℚ×ℚ) : 0 ≤ sourceGaussianNormSq v := by
   unfold sourceGaussianNormSq
   positivity
 
-/-- The finite construction in `NativeSourceGramTrace` satisfies `qnorm2_pos` under the displayed hypotheses. -/
+/-- A nonzero rational coordinate pair has strictly positive squared norm. -/
 private theorem qnorm2_pos (v : ℚ×ℚ) (hv : v≠(0,0)) : 0<sourceGaussianNormSq v := by
   have hn : v.1≠0 ∨ v.2≠0 := by
     by_contra h
@@ -67,7 +68,8 @@ private theorem qnorm2_pos (v : ℚ×ℚ) (hv : v≠(0,0)) : 0<sourceGaussianNor
   · exact add_pos_of_pos_of_nonneg (sq_pos_of_ne_zero h) (sq_nonneg _)
   · exact add_pos_of_nonneg_of_pos (sq_nonneg _) (sq_pos_of_ne_zero h)
 
-/-- The finite construction in `NativeSourceGramTrace` satisfies `sourceGaussianGramTrace_guard` under the displayed hypotheses. -/
+/-- A rational matrix with at least one nonzero entry has Gram trace with zero imaginary
+coordinate and positive real coordinate. -/
 theorem sourceGaussianGramTrace_guard (A : Matrix Bool Bool (ℚ×ℚ))
     (hn : ∃ i j,A i j≠(0,0)) :
     (sourceGaussianGramTrace A).2=0 ∧ 0<(sourceGaussianGramTrace A).1 := by

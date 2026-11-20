@@ -35,14 +35,15 @@ open Qatlib.Concepts.NativeNumerics.PhaseSynthesis
 open Qatlib.Concepts.SignalPrimitive.PhaseFrontend
 open Qatlib.Concepts.TrotterFormula.SuzukiFourth
 
-/-- The finite construction in `NativeSourcePosterior` satisfies `cheb_neg` under the displayed hypotheses. -/
+/-- Negating all rational coefficients negates the Chebyshev polynomial at any starting index. -/
 private theorem cheb_neg (xs : List ℚ) (j : ℕ) :
     nativeChebyshevPolynomialFrom j (xs.map Neg.neg)= -nativeChebyshevPolynomialFrom j xs := by
   induction xs generalizing j with
   | nil => simp [nativeChebyshevPolynomialFrom]
   | cons c cs ih => simp only [List.map_cons,nativeChebyshevPolynomialFrom,ih,Rat.cast_neg,Polynomial.C_neg]; ring
 
-/-- The finite construction in `NativeSourcePosterior` satisfies `cheb_sub` under the displayed hypotheses. -/
+/-- Pointwise coefficient-list subtraction represents polynomial subtraction for two Chebyshev
+series that start at the same index. -/
 private theorem cheb_sub (xs ys : List ℚ) (j : ℕ) :
     nativeChebyshevPolynomialFrom j (ratSubList xs ys)=
       nativeChebyshevPolynomialFrom j xs-nativeChebyshevPolynomialFrom j ys := by
@@ -63,7 +64,8 @@ private theorem sub_length (xs ys : List ℚ) : (ratSubList xs ys).length=max xs
 def sourceResidual (target : List ℚ) (data : PhaseData) : List ℚ :=
   ratSubList (nativeChebyshevFromPower (nativeResponseRealCoefficients (nativePacketFromStandard data))) target
 
-/-- The finite construction in `NativeSourcePosterior` satisfies `sourceResidual_identity` under the displayed hypotheses. -/
+/-- The generated source residual represents exactly the real response polynomial of the converted
+standard packet minus the original Chebyshev target. -/
 theorem sourceResidual_identity (target : List ℚ) (data : PhaseData) :
     realTarget (nativeResponseRealCoefficients (nativePacketFromStandard data))-
       nativeChebyshevPolynomialFrom 0 target=nativeChebyshevPolynomialFrom 0 (sourceResidual target data) := by
@@ -79,7 +81,8 @@ theorem sourceResidual_length_le (target : List ℚ) (data : PhaseData) :
   rw [sourceResidual,sub_length]
   exact max_le_max hl (le_refl _)
 
-/-- The finite construction in `NativeSourcePosterior` satisfies `source_posterior_budget` under the displayed hypotheses. -/
+/-- Twice the greater of N + 1 and the full input list length, multiplied by the uniform error
+budget 13u/32, is at most 13E/32 for the chosen input budget u. -/
 theorem source_posterior_budget (cs : List ℚ) (N : ℕ) (E : ℚ) :
     2*(max (N+1) cs.length : ℝ)*(13*(sourceInputU cs N E : ℝ)/32)≤13*(E : ℝ)/32 := by
   let M := max (N+1) cs.length
@@ -93,7 +96,10 @@ theorem source_posterior_budget (cs : List ℚ) (N : ℕ) (E : ℚ) :
   push_cast at hr
   nlinarith
 
-/-- The finite construction in `NativeSourcePosterior` satisfies `source_posterior_accepts` under the displayed hypotheses. -/
+/-- With positive E and source degree, a degree-bounded target of matching parity and absolute
+value at most one on the interval from −1 to 1, and guarded factors reconstructing the
+complement with nonzero content, the standard boundary packet passes the Chebyshev packet
+check with its generated residual. -/
 theorem source_posterior_accepts (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E)
     (htail : ∀ k,N+1 ≤ k → cs.getD k 0=0)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)

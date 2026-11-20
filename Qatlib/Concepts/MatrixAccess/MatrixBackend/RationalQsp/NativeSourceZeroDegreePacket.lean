@@ -36,7 +36,8 @@ open Qatlib.Concepts.NativeNumerics.PhaseSynthesis
 open Qatlib.Concepts.TrotterFormula.SuzukiFourth
 open Polynomial
 
-/-- The finite construction in `NativeSourceZeroDegreePacket` satisfies `cheb_zero` under the displayed hypotheses. -/
+/-- If every entry of a zero-extended rational list is zero, its Chebyshev polynomial vanishes at
+any starting index. -/
 private theorem cheb_zero (cs : List ℚ) : ∀ j,
     (∀ k,cs.getD k 0=0) → nativeChebyshevPolynomialFrom j cs=0 := by
   induction cs with
@@ -48,7 +49,8 @@ private theorem cheb_zero (cs : List ℚ) : ∀ j,
     simp only [nativeChebyshevPolynomialFrom,hc,Rat.cast_zero,Polynomial.C_0,zero_mul,zero_add]
     exact ih (j+1) ht
 
-/-- The finite construction in `NativeSourceZeroDegreePacket` satisfies `sourceOriginalConstant_polynomial` under the displayed hypotheses. -/
+/-- When every coefficient at a positive index vanishes, the original Chebyshev polynomial is
+constant with value the head coefficient, or zero for an empty list. -/
 theorem sourceOriginalConstant_polynomial (cs : List ℚ) (htail : ∀ k,1≤ k → cs.getD k 0=0) :
     nativeChebyshevPolynomialFrom 0 cs=C (cs.getD 0 0 : ℝ) := by
   cases cs with
@@ -74,7 +76,9 @@ theorem sourceZeroDegreePrecision_literal (cs : List ℚ) (E : ℚ) :
     sourceZeroDegreePrecision cs E=sourceCeilLog2 (1/sourceInputU cs 0 E)+8 := by
   simp [sourceZeroDegreePrecision,sourcePacketPrecision]
 
-/-- The finite construction in `NativeSourceZeroDegreePacket` satisfies `source_zero_degree_base_spec` under the displayed hypotheses. -/
+/-- For positive E and an original constant target bounded by one, the computed zero-length base
+has norm one and is within 9u/32768 of the ideal base for the original constant, where u is
+the source input budget at N = 0. -/
 theorem source_zero_degree_base_spec (cs : List ℚ) (E : ℚ) (hE : 0<E)
     (htail : ∀ k,1≤ k → cs.getD k 0=0)
     (hnorm : ∀ x∈Set.Icc (-1 : ℝ) 1,|(nativeChebyshevPolynomialFrom 0 cs).eval x|≤ 1) :
@@ -98,7 +102,9 @@ theorem source_zero_degree_base_spec (cs : List ℚ) (E : ℚ) (hE : 0<E)
     simpa using source_output_rounding_budget cs 0 E hE
   exact ⟨hs.1,hs.2.trans (by nlinarith)⟩
 
-/-- The finite construction in `NativeSourceZeroDegreePacket` satisfies `source_zero_degree_uniform` under the displayed hypotheses. -/
+/-- For positive E and an original constant target bounded by one, the real native response of the
+zero-length packet differs from the original target by at most 9u/32768 throughout the
+interval from −1 to 1, where u is the source input budget at N = 0. -/
 theorem source_zero_degree_uniform (cs : List ℚ) (E : ℚ) (hE : 0<E)
     (htail : ∀ k,1≤ k → cs.getD k 0=0)
     (hnorm : ∀ x∈Set.Icc (-1 : ℝ) 1,|(nativeChebyshevPolynomialFrom 0 cs).eval x|≤ 1) :
@@ -115,7 +121,8 @@ theorem source_zero_degree_uniform (cs : List ℚ) (E : ℚ) (hE : 0<E)
   simpa only [sourceZeroDegreeBoundaryPacket,List.map_nil,standardResponseP_nil,Polynomial.eval_C,Complex.sub_im,
     sourceConstantIdealBase] using he
 
-/-- The finite construction in `NativeSourceZeroDegreePacket` satisfies `source_zero_degree_packet_spec` under the displayed hypotheses. -/
+/-- The zero-length boundary packet has a unit base and an empty phase list, so every listed phase
+has unit norm. -/
 theorem source_zero_degree_packet_spec (cs : List ℚ) (E : ℚ) :
     (sourceZeroDegreeBoundaryPacket cs E).phases.length=0 ∧
       ‖gaussianRatComplex (sourceZeroDegreeBoundaryPacket cs E).base‖=1 ∧
@@ -123,7 +130,8 @@ theorem source_zero_degree_packet_spec (cs : List ℚ) (E : ℚ) :
   refine ⟨rfl,?_,by simp [sourceZeroDegreeBoundaryPacket]⟩
   exact nativePhasePair_norm _ _ _
 
-/-- The finite construction in `NativeSourceZeroDegreePacket` satisfies `source_zero_degree_posterior_accepts` under the displayed hypotheses. -/
+/-- When E is positive and the Chebyshev target has only a constant coefficient of absolute value
+at most one, the zero-length standard packet and its generated residual pass the check. -/
 theorem source_zero_degree_posterior_accepts (cs : List ℚ) (E : ℚ) (hE : 0<E)
     (htail : ∀ k,1≤ k → cs.getD k 0=0)
     (hnorm : ∀ x∈Set.Icc (-1 : ℝ) 1,|(nativeChebyshevPolynomialFrom 0 cs).eval x|≤ 1) :

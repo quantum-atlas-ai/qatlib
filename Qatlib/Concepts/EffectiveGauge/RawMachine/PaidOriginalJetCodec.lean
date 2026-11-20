@@ -49,17 +49,17 @@ def replyValue (reply : Reply) : Fin 3 → ℚ := fun j => RedundantRational.val
 /-- Definition of reply Of Original in the Raw Machine construction. -/
 def replyOfOriginal (value : Fin 3 → ℚ) : Reply := Vector.ofFn (fun j => RedundantRational.ofRat (value j))
 
-/-- Original `queryValue_ofOriginal` guarantee for the `PaidOriginalJetCodec` construction; the complete source hypotheses are retained. -/
+/-- Converting an original jet query to the codec representation and reading back its value recovers the rational point, derivative multi-index, and precision exactly. -/
 theorem queryValue_ofOriginal (q : OriginalJetQuery) : queryValue (queryOfOriginal q)=q := by
   rcases q with ⟨⟨X,alpha⟩,b⟩
   simp only [queryValue,queryOfOriginal,Vector.getElem_ofFn,RedundantRational.value_ofRat]
 
-/-- Original `replyValue_ofOriginal` guarantee for the `PaidOriginalJetCodec` construction; the complete source hypotheses are retained. -/
+/-- Each entry of a rational triple is recovered exactly from its corresponding redundant fraction in the reply representation. -/
 theorem replyValue_ofOriginal (value : Fin 3 → ℚ) : replyValue (replyOfOriginal value)=value := by
   funext j
   simp only [replyValue,replyOfOriginal,Vector.getElem_ofFn,RedundantRational.value_ofRat]
 
-/-- Original `vector3_entries` guarantee for the `PaidOriginalJetCodec` construction; the complete source hypotheses are retained. -/
+/-- Rebuilding a length-three vector from its three entries in order yields the original vector. -/
 private theorem vector3_entries {α : Type} (xs : Vector α 3) :
     Vector.ofFn ![xs[0],xs[1],xs[2]]=xs := by
   apply Vector.ext
@@ -95,7 +95,7 @@ def readReply (bits : CanonicalCodec.Bits) : Option (Reply × CanonicalCodec.Bit
   let (z,tail) ← PaidRationalBridge.read tail
   return (Vector.ofFn ![x,y,z],tail)
 
-/-- Original `readQuery_complete` guarantee for the `PaidOriginalJetCodec` construction; the complete source hypotheses are retained. -/
+/-- Reading an encoded query followed by an arbitrary suffix returns the query, including all three coordinates, the multi-index, and precision, together with that suffix. -/
 theorem readQuery_complete (q : Query) (tail : CanonicalCodec.Bits) :
     readQuery (encodeQuery q++tail)=some (q,tail) := by
   cases q with
@@ -103,7 +103,7 @@ theorem readQuery_complete (q : Query) (tail : CanonicalCodec.Bits) :
     simp [readQuery,encodeQuery,List.append_assoc,PaidRationalBridge.read_complete,
       CanonicalCodec.readNat_complete,vector3_entries]
 
-/-- Original `readReply_complete` guarantee for the `PaidOriginalJetCodec` construction; the complete source hypotheses are retained. -/
+/-- Reading an encoded three-component reply followed by any suffix returns the original reply and the suffix. -/
 theorem readReply_complete (reply : Reply) (tail : CanonicalCodec.Bits) :
     readReply (encodeReply reply++tail)=some (reply,tail) := by
   simp [readReply,encodeReply,List.append_assoc,PaidRationalBridge.read_complete,vector3_entries]
@@ -115,7 +115,7 @@ theorem original_query_coverage (X : Fin 3 → ℚ) (alpha : Fin 3 → ℕ) (b :
       ∀ tail, readQuery (encodeQuery query++tail)=some (query,tail) :=
   ⟨queryOfOriginal ((X,alpha),b),queryValue_ofOriginal _,readQuery_complete _⟩
 
-/-- Original `original_reply_coverage` guarantee for the `PaidOriginalJetCodec` construction; the complete source hypotheses are retained. -/
+/-- Every rational triple has a reply representation with that exact value whose encoding can be read back before any trailing bits. -/
 theorem original_reply_coverage (value : Fin 3 → ℚ) :
     ∃ reply : Reply, replyValue reply=value ∧
       ∀ tail, readReply (encodeReply reply++tail)=some (reply,tail) :=

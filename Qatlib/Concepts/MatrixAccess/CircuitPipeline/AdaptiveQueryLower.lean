@@ -171,7 +171,7 @@ theorem native_expected (O : Operator d) (P : TniCircuit d) (hP : tniWellFormed 
 
 /-- A well formed trace nonincreasing circuit admits a unitary simulation with the same query
 budget and amplitudes encoding its observed traces. -/
-theorem frontier1 [Nonempty W] (e : Fin d ≃ (Fin n × Bool) × W)
+theorem exists_unitary_tni_trace_simulation_with_same_queries [Nonempty W] (e : Fin d ≃ (Fin n × Bool) × W)
     (P : TniCircuit d) (hP : tniWellFormed P) (hn : 0 < n) :
     ∃ (R : ℕ) (C : Circuit ((Fin n × Bool) × ((W × Fin (width P)) × Fin (R+1) × Bool))),
       IsUnitaryCircuit C ∧ QueryCount C = tniBudget P ∧

@@ -51,7 +51,8 @@ def sourceMeanSectorExecution (source : RationalJetSource) (m1 m2 : ℚ) :
   (sourceMeanPhysicalExecution source m1 m2 (1/64)).map (fun intervals =>
     ⟨intervals,selectMeanSector (fun j => (intervals j).midpoint) (fun j => (intervals j).radius)⟩)
 
-/-- Original `sourceMeanSectorExecution_zero` guarantee for the `SourceMeanSector` construction; the complete source hypotheses are retained. -/
+/-- With first derivative bound zero, the sector program returns the zero interval and sector triple
+`(-1/2, 0, 1/2)` in every component for any source and second bound. -/
 theorem sourceMeanSectorExecution_zero (source : RationalJetSource) (m2 : ℚ) :
     sourceMeanSectorExecution source 0 m2=some
       ⟨fun _ => ⟨0,0⟩,fun _ => ⟨-1/2,0,1/2⟩⟩ := by
@@ -62,7 +63,7 @@ theorem sourceMeanSectorExecution_zero (source : RationalJetSource) (m2 : ℚ) :
   change some (⟨fun _ => ⟨0,0⟩,fun _ => selectMeanCell 0 0⟩ : SourceMeanSectorResult)=_
   rw [hcell]
 
-/-- Original `sourceMeanMomentAxis_ne` guarantee for the `SourceMeanSector` construction; the complete source hypotheses are retained. -/
+/-- The axis used to weight the curvature moment for component `j` differs from `j`. -/
 theorem sourceMeanMomentAxis_ne (j : Fin 3) : sourceMeanMomentAxis j≠j := by
   fin_cases j <;> decide
 

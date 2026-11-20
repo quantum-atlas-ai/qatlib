@@ -32,19 +32,20 @@ open Qatlib.Concepts.EffectiveGauge.HopfAtlas Qatlib.Concepts.EffectiveGauge.Rat
 def unitFourierResidual (f : SpatialPoint → ℂ) (a : SpatialFrequency → ℂ) (N : ℕ) : SpatialPoint → ℂ :=
   fun x => f x-unitFourierTruncation a N x
 
-/-- Original `contDiff_unitFourierResidual` guarantee for the `FourierResidualParseval` construction; the complete source hypotheses are retained. -/
+/-- Subtracting the radius-`N` Fourier truncation with arbitrary coefficients from a smooth field leaves a smooth residual. -/
 theorem contDiff_unitFourierResidual (f : SpatialPoint → ℂ) (hf : ContDiff ℝ ∞ f)
     (a : SpatialFrequency → ℂ) (N : ℕ) : ContDiff ℝ ∞ (unitFourierResidual f a N) :=
   hf.sub (contDiff_unitFourierTruncation a N)
 
-/-- Original `unitPeriodic_unitFourierResidual` guarantee for the `FourierResidualParseval` construction; the complete source hypotheses are retained. -/
+/-- The residual after subtracting a finite Fourier truncation from a unit-periodic field is unit-periodic. -/
 theorem unitPeriodic_unitFourierResidual (f : SpatialPoint → ℂ) (hp : IsUnitPeriodicField f)
     (a : SpatialFrequency → ℂ) (N : ℕ) : IsUnitPeriodicField (unitFourierResidual f a N) := by
   intro x n
   change f (x+unitIntegerShift n)-unitFourierTruncation a N (x+unitIntegerShift n)=f x-unitFourierTruncation a N x
   rw [hp x n,unitPeriodic_unitFourierTruncation a N x n]
 
-/-- Original `unitFourierCoefficient_residual` guarantee for the `FourierResidualParseval` construction; the complete source hypotheses are retained. -/
+/-- For a smooth unit-periodic field, the residual coefficient at `k` is the original coefficient
+minus `a k` inside the radius-`N` cube. Outside the cube it is the original coefficient. -/
 theorem unitFourierCoefficient_residual (f : SpatialPoint → ℂ) (hf : ContDiff ℝ ∞ f)
     (hp : IsUnitPeriodicField f) (a : SpatialFrequency → ℂ) (N : ℕ) (k : SpatialFrequency) :
     unitFourierCoefficient (unitFourierResidual f a N) (contDiff_unitFourierResidual f hf a N).continuous
@@ -54,7 +55,7 @@ theorem unitFourierCoefficient_residual (f : SpatialPoint → ℂ) (hf : ContDif
   rw [unitFourierCoefficient_sub f (unitFourierTruncation a N) hf.continuous
     (contDiff_unitFourierTruncation a N).continuous hp (unitPeriodic_unitFourierTruncation a N),unitFourierCoefficient_truncation]
 
-/-- Original `unitFourierResidual_parseval` guarantee for the `FourierResidualParseval` construction; the complete source hypotheses are retained. -/
+/-- For a smooth unit-periodic field, the squared moduli of the residual coefficients sum to the integral of the squared residual norm over the unit box. -/
 theorem unitFourierResidual_parseval (f : SpatialPoint → ℂ) (hf : ContDiff ℝ ∞ f)
     (hp : IsUnitPeriodicField f) (a : SpatialFrequency → ℂ) (N : ℕ) :
     HasSum (fun k : SpatialFrequency =>
@@ -65,7 +66,7 @@ theorem unitFourierResidual_parseval (f : SpatialPoint → ℂ) (hf : ContDiff �
     (contDiff_unitFourierResidual f hf a N).continuous (unitPeriodic_unitFourierResidual f hp a N)
   exact HasSum.congr_fun hs (fun k => by rw [unitFourierCoefficient_residual f hf hp a N k])
 
-/-- Original `unitFourierResidual_partial_parseval` guarantee for the `FourierResidualParseval` construction; the complete source hypotheses are retained. -/
+/-- For a smooth unit-periodic field, the squared residual coefficients weighted by `physicalPeriod^2*(k i)^2` sum to the unit-box energy of the residual's first derivative in direction `i`. -/
 theorem unitFourierResidual_partial_parseval (f : SpatialPoint → ℂ) (hf : ContDiff ℝ ∞ f)
     (hp : IsUnitPeriodicField f) (a : SpatialFrequency → ℂ) (N : ℕ) (i : Fin 3) :
     HasSum (fun k : SpatialFrequency => physicalPeriod^2*(k i : ℝ)^2*

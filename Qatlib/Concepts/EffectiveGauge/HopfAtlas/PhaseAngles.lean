@@ -32,12 +32,13 @@ open Qatlib.Concepts.EffectiveGauge.RationalFlow
 /-- Definition of complex Phase in the Hopf Atlas construction. -/
 def complexPhase (t : ℝ) : ℂ := ⟨Real.cos t,Real.sin t⟩
 
-/-- Original `complexPhase_re` guarantee for the `PhaseAngles` construction; the complete source hypotheses are retained. -/
+/-- The real part of the complex phase at angle `t` is its cosine. -/
 @[simp] theorem complexPhase_re (t : ℝ) : (complexPhase t).re=Real.cos t := rfl
-/-- Original `complexPhase_im` guarantee for the `PhaseAngles` construction; the complete source hypotheses are retained. -/
+/-- The imaginary part of the complex phase at angle `t` is its sine. -/
 @[simp] theorem complexPhase_im (t : ℝ) : (complexPhase t).im=Real.sin t := rfl
 
-/-- Original `complexPhase_eq_cos_sin` guarantee for the `PhaseAngles` construction; the complete source hypotheses are retained. -/
+/-- The complex phase is the sum of the real cosine and the sine times the complex imaginary
+unit. -/
 theorem complexPhase_eq_cos_sin (t : ℝ) : complexPhase t=(Real.cos t : ℂ)+(Real.sin t : ℂ)*Complex.I := by
   apply Complex.ext
   · simp only [complexPhase, Complex.add_re, Complex.mul_re,
@@ -47,17 +48,17 @@ theorem complexPhase_eq_cos_sin (t : ℝ) : complexPhase t=(Real.cos t : ℂ)+(R
       Complex.ofReal_re, Complex.ofReal_im, Complex.I_re, Complex.I_im]
     ring
 
-/-- Original `complexPhase_norm` guarantee for the `PhaseAngles` construction; the complete source hypotheses are retained. -/
+/-- The complex phase lies on the unit circle at every real angle. -/
 @[simp] theorem complexPhase_norm (t : ℝ) : ‖complexPhase t‖=1 := by
   apply (sq_eq_sq₀ (norm_nonneg _) (by norm_num : (0 : ℝ) ≤ 1)).mp
   rw [pow_two,Complex.norm_mul_self_eq_normSq,Complex.normSq_apply]
   change Real.cos t*Real.cos t+Real.sin t*Real.sin t=1^2
   nlinarith [Real.cos_sq_add_sin_sq t]
 
-/-- Original `complexPhase_zero` guarantee for the `PhaseAngles` construction; the complete source hypotheses are retained. -/
+/-- The complex phase at angle zero is the complex number one. -/
 @[simp] theorem complexPhase_zero : complexPhase 0=1 := by apply Complex.ext <;> norm_num [complexPhase]
 
-/-- Original `complexPhase_add` guarantee for the `PhaseAngles` construction; the complete source hypotheses are retained. -/
+/-- Adding angles multiplies their complex phases. -/
 theorem complexPhase_add (s t : ℝ) : complexPhase (s+t)=complexPhase s*complexPhase t := by
   apply Complex.ext
   · simpa only [complexPhase, Complex.mul_re] using Real.cos_add s t
@@ -65,7 +66,7 @@ theorem complexPhase_add (s t : ℝ) : complexPhase (s+t)=complexPhase s*complex
     rw [Real.sin_add]
     ring
 
-/-- Original `complexPhase_conj` guarantee for the `PhaseAngles` construction; the complete source hypotheses are retained. -/
+/-- Complex conjugation of the phase negates its angle. -/
 @[simp] theorem complexPhase_conj (t : ℝ) : conj (complexPhase t)=complexPhase (-t) := by
   apply Complex.ext
   · change Real.cos t=Real.cos (-t)
@@ -73,7 +74,7 @@ theorem complexPhase_add (s t : ℝ) : complexPhase (s+t)=complexPhase s*complex
   · change -Real.sin t=Real.sin (-t)
     rw [Real.sin_neg]
 
-/-- Original `abs_arctan_le_abs` guarantee for the `PhaseAngles` construction; the complete source hypotheses are retained. -/
+/-- The absolute value of the real arctangent is bounded by the absolute value of its argument. -/
 theorem abs_arctan_le_abs (x : ℝ) : |Real.arctan x| ≤ |x| := by
   have h := Convex.norm_image_sub_le_of_norm_hasDerivWithin_le (C := 1)
     (fun y (_ : y ∈ (univ : Set ℝ)) => (Real.hasDerivAt_arctan y).hasDerivWithinAt)
@@ -83,13 +84,15 @@ theorem abs_arctan_le_abs (x : ℝ) : |Real.arctan x| ≤ |x| := by
     convex_univ (mem_univ (0 : ℝ)) (mem_univ x)
   simpa only [Real.arctan_zero,sub_zero,one_mul,Real.norm_eq_abs] using h
 
-/-- Original `arctan_ratio_eq_arg` guarantee for the `PhaseAngles` construction; the complete source hypotheses are retained. -/
+/-- For a complex number with positive real part, the principal argument is the arctangent of
+the imaginary-to-real ratio. -/
 theorem arctan_ratio_eq_arg (z : ℂ) (hz : 0<z.re) : Real.arctan (z.im/z.re)=z.arg := by
   have h := abs_lt.mp ((Complex.abs_arg_lt_pi_div_two_iff).mpr (Or.inl hz))
   rw [← Complex.tan_arg]
   exact Real.arctan_tan h.1 h.2
 
-/-- Original `complex_right_half_repr` guarantee for the `PhaseAngles` construction; the complete source hypotheses are retained. -/
+/-- A complex number with positive real part is its norm times the unit phase of the arctangent
+of its imaginary-to-real ratio. -/
 theorem complex_right_half_repr (z : ℂ) (hz : 0<z.re) :
     z=(‖z‖ : ℂ)*complexPhase (Real.arctan (z.im/z.re)) := by
   rw [arctan_ratio_eq_arg z hz]

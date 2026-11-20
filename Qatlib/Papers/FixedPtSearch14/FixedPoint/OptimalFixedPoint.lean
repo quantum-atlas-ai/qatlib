@@ -182,7 +182,7 @@ theorem phaseWord_publicPhases (l : ℕ) (delta lam : ℝ) :
 
 /-- For `lam ∈ [0, 1]`, the public word applied to the amplitude state equals the state
 represented by its public response polynomials. -/
-theorem frontier1 (l : ℕ) (delta lam : ℝ) (hl : 0 ≤ lam) (hu : lam ≤ 1) :
+theorem fixed_point_word_run_eq_response_state (l : ℕ) (delta lam : ℝ) (hl : 0 ≤ lam) (hu : lam ≤ 1) :
     publicWord l delta lam *ᵥ ampState lam =
       polynomialState lam (responsePolynomials (publicPhases l delta)) := by
   rw [← phaseWord_publicPhases]
@@ -196,7 +196,7 @@ theorem publicFailureProb_polynomial (l : ℕ) (delta lam : ℝ)
       ‖(responsePolynomials (publicPhases l delta)).1.eval (lam : ℂ)‖ ^ 2 := by
   have hs : ‖(Real.sqrt (1 - lam) : ℂ)‖ ^ 2 = 1 - lam := by
     rw [Complex.norm_real, Real.norm_eq_abs, sq_abs, Real.sq_sqrt (by linarith)]
-  rw [publicFailureProb, publicFailureAmplitude, inner_ylcFailVec, frontier1 l delta lam hl hu]
+  rw [publicFailureProb, publicFailureAmplitude, inner_ylcFailVec, fixed_point_word_run_eq_response_state l delta lam hl hu]
   simp only [polynomialState, Matrix.cons_val_zero, norm_mul, mul_pow, hs]
 
 /-- For `lam ∈ [0, 1]`, the public success probability is `lam` times the squared modulus of the
@@ -207,7 +207,7 @@ theorem publicSuccessProb_polynomial (l : ℕ) (delta lam : ℝ)
       ‖(responsePolynomials (publicPhases l delta)).2.eval (lam : ℂ)‖ ^ 2 := by
   have hs : ‖(Real.sqrt lam : ℂ)‖ ^ 2 = lam := by
     rw [Complex.norm_real, Real.norm_eq_abs, sq_abs, Real.sq_sqrt hl]
-  rw [publicSuccessProb, publicSuccessAmplitude, inner_ylcTargetVec, frontier1 l delta lam hl hu]
+  rw [publicSuccessProb, publicSuccessAmplitude, inner_ylcTargetVec, fixed_point_word_run_eq_response_state l delta lam hl hu]
   simp only [polynomialState, Matrix.cons_val_one, Matrix.cons_val_zero, norm_mul, mul_pow, hs]
 
 /-- The product of a complex polynomial with the polynomial obtained by conjugating its

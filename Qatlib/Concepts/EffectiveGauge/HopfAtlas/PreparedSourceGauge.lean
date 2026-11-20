@@ -31,7 +31,8 @@ def materializeSourceGaugeFromGap (source : RationalJetSource) (prepared : Cache
   (materializePoissonCoefficientPreparation source prepared (referenceUnitCollar gap)
     (physicalPoissonValueTolerance (gaugePhysicalValueAccuracy tolerance))).map materializeGeneralPoissonValueState
 
-/-- Original `automaticSourceGaugeFromGap_eq` guarantee for the `PreparedSourceGauge` construction; the complete source hypotheses are retained. -/
+/-- Automatic gauge preparation first runs the mean-cache computation, then uses its output for
+gauge preparation with the given gap and tolerance. -/
 theorem automaticSourceGaugeFromGap_eq (source : RationalJetSource) (bounds : ℕ → ℚ) (gap tolerance : ℚ) :
     automaticSourceGaugeFromGap source bounds gap tolerance=
       (cachedMeanPreparationRun source bounds).bind (fun prepared => materializeSourceGaugeFromGap source prepared gap tolerance) := by
@@ -43,7 +44,13 @@ noncomputable section
 open Set
 open scoped ContDiff Quaternion
 
-/-- Original `materializeSourceGaugeFromGap_correct` guarantee for the `PreparedSourceGauge` construction; the complete source hypotheses are retained. -/
+/-- Suppose the smooth periodic unit source is constant on the part of the fundamental cube
+outside `B`, and `B` lies in that cube at least the positive gap away from its boundary. With an
+accurate rational jet source, positive certified jet bounds, and a successful mean cache, the
+preparation succeeds for positive `tolerance`. Its certified result retains that cache and the
+beta coefficients computed from its coefficient list. At every rational physical address,
+evaluation with this result returns a quaternion within `tolerance / 2` of the selected Poisson
+gauge. -/
 theorem materializeSourceGaugeFromGap_correct (v : SpatialPoint → SpatialPoint)
     (hv : ContDiff ℝ ∞ v) (hu : ∀ x, ‖v x‖=1) (hp : IsPeriodicField v)
     (source : RationalJetSource) (hs : OriginalAllJetAccurate v source)

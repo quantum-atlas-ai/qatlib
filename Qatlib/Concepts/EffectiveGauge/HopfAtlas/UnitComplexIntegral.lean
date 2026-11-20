@@ -38,20 +38,22 @@ def coefficientCoordinateTop : CoefficientCoordinatePoint := fun _ => 1
 def unitComplexCubeIntegral (f : SpatialPoint → ℂ) : ℂ :=
   ∫ u : CoefficientCoordinatePoint in Icc 0 coefficientCoordinateTop, f (WithLp.toLp 2 u)
 
-/-- Original `unitComplexCubeIntegral_add` guarantee for the `UnitComplexIntegral` construction; the complete source hypotheses are retained. -/
+/-- The integral over the unit cube of the sum of two continuous complex fields is the sum of
+their cube integrals. -/
 theorem unitComplexCubeIntegral_add (f g : SpatialPoint → ℂ) (hf : Continuous f) (hg : Continuous g) :
     unitComplexCubeIntegral (fun x => f x+g x)=unitComplexCubeIntegral f+unitComplexCubeIntegral g := by
   let e := (PiLp.continuousLinearEquiv 2 ℝ (fun _ : Fin 3 => ℝ)).symm
   exact integral_add (μ := (volume : Measure CoefficientCoordinatePoint).restrict (Icc 0 coefficientCoordinateTop))
     ((hf.comp e.continuous).integrableOn_Icc) ((hg.comp e.continuous).integrableOn_Icc)
 
-/-- Original `unitComplexCubeIntegral_const_mul` guarantee for the `UnitComplexIntegral` construction; the complete source hypotheses are retained. -/
+/-- Multiplication by a constant complex scalar commutes with integration over the unit cube. -/
 theorem unitComplexCubeIntegral_const_mul (c : ℂ) (f : SpatialPoint → ℂ) :
     unitComplexCubeIntegral (fun x => c*f x)=c*unitComplexCubeIntegral f := by
   unfold unitComplexCubeIntegral
   exact integral_const_mul c _
 
-/-- Original `unit_complex_partial_integral_paired_faces` guarantee for the `UnitComplexIntegral` construction; the complete source hypotheses are retained. -/
+/-- For a smooth complex field with matching values on each pair of opposite unit-cube faces,
+the cube integral of any first coordinate partial is zero. -/
 private theorem unit_complex_partial_integral_paired_faces (f : CoefficientCoordinatePoint → ℂ) (hf : ContDiff ℝ ∞ f)
     (hfaces : ∀ (j : Fin 3) (y : Fin 2 → ℝ),
       f (j.insertNth 1 y)=f (j.insertNth 0 y)) (i : Fin 3) :

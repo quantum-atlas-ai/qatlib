@@ -36,21 +36,23 @@ open Qatlib.Concepts.NativeNumerics.PhaseSynthesis
 open Qatlib.Concepts.TrotterFormula.SuzukiFourth
 open Polynomial
 
-/-- The finite construction in `NativeSourceConstantPacket` satisfies `cheb_zero_replicate` under the displayed hypotheses. -/
+/-- Any finite list of zero coefficients represents the zero Chebyshev polynomial, regardless of
+starting index. -/
 private theorem cheb_zero_replicate (n j : ℕ) :
     nativeChebyshevPolynomialFrom j (List.replicate n 0)=0 := by
   induction n generalizing j with
   | zero => rfl
   | succ n ih => simp [List.replicate_succ,nativeChebyshevPolynomialFrom,ih]
 
-/-- The finite construction in `NativeSourceConstantPacket` satisfies `source_constant_tail` under the displayed hypotheses. -/
+/-- When the source degree is zero, every source coefficient at a positive index vanishes. -/
 theorem source_constant_tail (cs : List ℚ) (N : ℕ) (E : ℚ) (hd : sourceDegree cs N E=0)
     (j : Fin (N+1)) (hj : 0<j.val) : sourceCoefficient cs N E j=0 := by
   apply sourceArrayDegree_tail_zero _ j
   change sourceDegree cs N E<j.val
   rwa [hd]
 
-/-- The finite construction in `NativeSourceConstantPacket` satisfies `source_constant_polynomial` under the displayed hypotheses. -/
+/-- At source degree zero, the output Chebyshev polynomial is constant with value the zeroth
+source coefficient. -/
 theorem source_constant_polynomial (cs : List ℚ) (N : ℕ) (E : ℚ) (hd : sourceDegree cs N E=0) :
     nativeChebyshevPolynomialFrom 0 (sourceOutputList cs N E)=C (sourceCoefficient cs N E 0 : ℝ) := by
   have ht : (fun j : Fin N => sourceOutputCoefficient cs N E j.succ)=(fun _ : Fin N => 0) := by
@@ -60,7 +62,8 @@ theorem source_constant_polynomial (cs : List ℚ) (N : ℕ) (E : ℚ) (hd : sou
   rw [List.ofFn_succ,ht,List.ofFn_const]
   simp [nativeChebyshevPolynomialFrom,cheb_zero_replicate,sourceOutputCoefficient,sourceWeight]
 
-/-- The finite construction in `NativeSourceConstantPacket` satisfies `source_constant_nonzero` under the displayed hypotheses. -/
+/-- If the source degree is zero and some source coefficient is nonzero, the zeroth coefficient is
+nonzero. -/
 theorem source_constant_nonzero (cs : List ℚ) (N : ℕ) (E : ℚ) (hd : sourceDegree cs N E=0)
     (hnotzero : ¬∀ j : Fin (N+1),sourceCoefficient cs N E j=0) : sourceCoefficient cs N E 0≠0 := by
   intro h0
@@ -71,7 +74,7 @@ theorem source_constant_nonzero (cs : List ℚ) (N : ℕ) (E : ℚ) (hd : source
     simpa only [he] using h0
   · exact source_constant_tail cs N E hd j (Nat.pos_of_ne_zero hj)
 
-/-- The finite construction in `NativeSourceConstantPacket` satisfies `source_constant_even` under the displayed hypotheses. -/
+/-- A nonzero constant source produced from coefficients of parity N forces N to be even. -/
 theorem source_constant_even (cs : List ℚ) (N : ℕ) (E : ℚ) (hd : sourceDegree cs N E=0)
     (hnotzero : ¬∀ j : Fin (N+1),sourceCoefficient cs N E j=0)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0) : N%2=0 := by
@@ -80,7 +83,9 @@ theorem source_constant_even (cs : List ℚ) (N : ℕ) (E : ℚ) (hd : sourceDeg
   have hcs := hparity 0 (by simpa only [Fin.val_zero,Nat.zero_mod] using Ne.symm hN)
   exact hn (sourceCoefficient_zero cs N E 0 hcs)
 
-/-- The finite construction in `NativeSourceConstantPacket` satisfies `source_constant_abs` under the displayed hypotheses. -/
+/-- For positive E, a target of degree at most N and absolute value at most one on the interval
+from −1 to 1, and source degree zero, the absolute value of the zeroth source coefficient is
+at most one. -/
 theorem source_constant_abs (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E)
     (htail : ∀ k,N+1≤ k → cs.getD k 0=0)
     (hnorm : ∀ x∈Set.Icc (-1 : ℝ) 1,|(nativeChebyshevPolynomialFrom 0 cs).eval x|≤ 1)
@@ -90,7 +95,8 @@ theorem source_constant_abs (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E)
   have hu : (0 : ℝ)<(sourceInputU cs N E : ℝ) := by exact_mod_cast sourceInputU_pos cs N E hE
   exact_mod_cast hg.trans (show 1-3*(sourceInputU cs N E : ℝ)/32≤ 1 by linarith)
 
-/-- The finite construction in `NativeSourceConstantPacket` satisfies `source_eta_output_budget` under the displayed hypotheses. -/
+/-- For positive requested error E, the source tolerance is bounded above by the input budget
+divided by 32(N + 1). -/
 theorem source_eta_output_budget (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E) :
     sourceInputEta cs N E≤ sourceInputU cs N E/(32*(N+1 : ℚ)) := by
   let u := sourceInputU cs N E
@@ -155,7 +161,8 @@ theorem source_constant_base_error (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E
     (div_le_div_of_nonneg_left hu.le (by norm_num : (0 : ℝ)<16) (by nlinarith : (16 : ℝ)≤ 16*(N+1 : ℝ)))
   exact ⟨hs.1,hs.2.trans (by linarith)⟩
 
-/-- The finite construction in `NativeSourceConstantPacket` satisfies `source_constant_packet_spec` under the displayed hypotheses. -/
+/-- For a nonzero constant source from a target of parity N, the padded standard packet has N
+phases and both the base and every phase have complex norm one. -/
 theorem source_constant_packet_spec (cs : List ℚ) (N : ℕ) (E : ℚ)
     (hd : sourceDegree cs N E=0)
     (hnotzero : ¬∀ j : Fin (N+1),sourceCoefficient cs N E j=0)
@@ -166,7 +173,9 @@ theorem source_constant_packet_spec (cs : List ℚ) (N : ℕ) (E : ℚ)
   apply sourceConstantPaddedPacket_spec _ N (source_constant_even cs N E hd hnotzero hparity)
   exact nativePhasePair_norm _ _ _
 
-/-- The finite construction in `NativeSourceConstantPacket` satisfies `source_constant_native_uniform` under the displayed hypotheses. -/
+/-- With positive E, a degree-bounded target uniformly bounded by one and source degree zero, the
+converted constant packet's real response has uniform error at most 57 times the source input
+budget divided by 256 on the interval from −1 to 1. -/
 theorem source_constant_native_uniform (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E)
     (htail : ∀ k,N+1≤ k → cs.getD k 0=0)
     (hnorm : ∀ x∈Set.Icc (-1 : ℝ) 1,|(nativeChebyshevPolynomialFrom 0 cs).eval x|≤ 1)
@@ -192,7 +201,9 @@ theorem source_constant_native_uniform (cs : List ℚ) (N : ℕ) (E : ℚ) (hE :
   exact (abs_sub_le (gaussianRatComplex (sourceConstantBase cs N E)).im
     (sourceCoefficient cs N E 0 : ℝ) ((nativeChebyshevPolynomialFrom 0 cs).eval x)).trans (by linarith)
 
-/-- The finite construction in `NativeSourceConstantPacket` satisfies `source_constant_posterior_accepts` under the displayed hypotheses. -/
+/-- With positive E, a target bounded by one on the interval from −1 to 1, vanishing tail and
+matching parity, a nonzero constant source gives a standard packet and generated residual that
+pass the Chebyshev packet check. -/
 theorem source_constant_posterior_accepts (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E)
     (htail : ∀ k,N+1≤ k → cs.getD k 0=0)
     (hnorm : ∀ x∈Set.Icc (-1 : ℝ) 1,|(nativeChebyshevPolynomialFrom 0 cs).eval x|≤ 1)

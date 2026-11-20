@@ -37,7 +37,7 @@ def unitFourierSeries (a : SpatialFrequency → ℂ) (x : SpatialPoint) : ℂ :=
 def FourierRapidlySummable (a : SpatialFrequency → ℂ) : Prop :=
   ∀ n : ℕ, Summable (fun k : SpatialFrequency => (frequencyRadius k : ℝ)^n*‖a k‖)
 
-/-- Original `unitFourierTerm_iteratedFDeriv_norm_le` guarantee for the `FourierSeries` construction; the complete source hypotheses are retained. -/
+/-- The norm of the order-`n` Fréchet derivative of a single term with coefficient `a k` is at most `(3*physicalPeriod)^n * (frequencyRadius k)^n * ‖a k‖` at every point. -/
 theorem unitFourierTerm_iteratedFDeriv_norm_le (a : SpatialFrequency → ℂ)
     (n : ℕ) (k : SpatialFrequency) (x : SpatialPoint) :
     ‖iteratedFDeriv ℝ n (fun y => a k*unitFourierMode k y) x‖ ≤
@@ -58,7 +58,7 @@ theorem unitFourierTerm_iteratedFDeriv_norm_le (a : SpatialFrequency → ℂ)
         (pow_le_pow_left₀ (norm_nonneg _) (fourierModeExponent_norm_le k) n)
     _ = _ := by rw [mul_pow]; ring
 
-/-- Original `unitFourierSeries_contDiff` guarantee for the `FourierSeries` construction; the complete source hypotheses are retained. -/
+/-- Absolute summability of the coefficients against every natural power of the frequency radius makes their Fourier series smooth. -/
 theorem unitFourierSeries_contDiff (a : SpatialFrequency → ℂ) (ha : FourierRapidlySummable a) :
     ContDiff ℝ ∞ (unitFourierSeries a) := by
   apply contDiff_tsum (N := ⊤)
@@ -69,7 +69,7 @@ theorem unitFourierSeries_contDiff (a : SpatialFrequency → ℂ) (ha : FourierR
   · intro n k x hn
     exact unitFourierTerm_iteratedFDeriv_norm_le a n k x
 
-/-- Original `unitFourierSeries_iteratedFDeriv` guarantee for the `FourierSeries` construction; the complete source hypotheses are retained. -/
+/-- For coefficients summable in norm against every power of the frequency radius, the order-`n` Fréchet derivative at each point is the sum of the order-`n` derivatives of the individual terms there. -/
 theorem unitFourierSeries_iteratedFDeriv (a : SpatialFrequency → ℂ)
     (ha : FourierRapidlySummable a) (n : ℕ) (x : SpatialPoint) :
     iteratedFDeriv ℝ n (unitFourierSeries a) x=
@@ -83,7 +83,7 @@ theorem unitFourierSeries_iteratedFDeriv (a : SpatialFrequency → ℂ)
     exact unitFourierTerm_iteratedFDeriv_norm_le a m k y
   · exact le_top
 
-/-- Original `unitFourierSeries_periodic` guarantee for the `FourierSeries` construction; the complete source hypotheses are retained. -/
+/-- The pointwise Fourier series is invariant under integer lattice shifts for any coefficient family. -/
 theorem unitFourierSeries_periodic (a : SpatialFrequency → ℂ) :
     IsUnitPeriodicField (unitFourierSeries a) := by
   intro x m
@@ -91,7 +91,7 @@ theorem unitFourierSeries_periodic (a : SpatialFrequency → ℂ) :
   intro k
   rw [unitFourierMode_periodic k x m]
 
-/-- Original `unitFourierTerm_first` guarantee for the `FourierSeries` construction; the complete source hypotheses are retained. -/
+/-- The first derivative in direction `i` of the term at `k` keeps the same mode and multiplies its coefficient by the physical period times the imaginary unit times `k i`. -/
 theorem unitFourierTerm_first (a : SpatialFrequency → ℂ) (k : SpatialFrequency) (i : Fin 3) :
     spatialWordPartial (fun x => a k*unitFourierMode k x) [i]=fun x =>
       (((physicalPeriod : ℂ)*Complex.I*(k i : ℂ))*a k)*unitFourierMode k x := by
@@ -134,7 +134,7 @@ theorem unitFourierSeries_partial (a : SpatialFrequency → ℂ) (ha : FourierRa
   intro k
   exact congrFun (unitFourierTerm_first a k i) x
 
-/-- Original `FourierRapidlySummable.partial` guarantee for the `FourierSeries` construction; the complete source hypotheses are retained. -/
+/-- Absolute summability against all powers of the frequency radius survives multiplication by the differentiation factor in any one coordinate. -/
 theorem FourierRapidlySummable.partial {a : SpatialFrequency → ℂ}
     (ha : FourierRapidlySummable a) (i : Fin 3) :
     FourierRapidlySummable (fun k => ((physicalPeriod : ℂ)*Complex.I*(k i : ℂ))*a k) := by
@@ -174,7 +174,7 @@ theorem unitFourierSeries_word (a : SpatialFrequency → ℂ) (ha : FourierRapid
     simp only [unitModeWordFactor,List.map_append,List.prod_append,List.map_singleton,List.prod_singleton]
     ring
 
-/-- Original `FourierRapidlySummable.word` guarantee for the `FourierSeries` construction; the complete source hypotheses are retained. -/
+/-- Multiplying each coefficient by the product of differentiation factors for any finite coordinate word preserves absolute summability against every power of the frequency radius. -/
 theorem FourierRapidlySummable.word {a : SpatialFrequency → ℂ}
     (ha : FourierRapidlySummable a) (w : List (Fin 3)) :
     FourierRapidlySummable (fun k => unitModeWordFactor k w*a k) := by
@@ -187,7 +187,7 @@ theorem FourierRapidlySummable.word {a : SpatialFrequency → ℂ}
     simp only [unitModeWordFactor,List.map_append,List.prod_append,List.map_singleton,List.prod_singleton]
     ring
 
-/-- Original `unitFourierSeries_terms_summable` guarantee for the `FourierSeries` construction; the complete source hypotheses are retained. -/
+/-- Absolute summability against every power of the frequency radius implies that the complex Fourier terms are summable at each spatial point. -/
 theorem unitFourierSeries_terms_summable (a : SpatialFrequency → ℂ)
     (ha : FourierRapidlySummable a) (x : SpatialPoint) :
     Summable (fun k => a k*unitFourierMode k x) := by
@@ -195,7 +195,7 @@ theorem unitFourierSeries_terms_summable (a : SpatialFrequency → ℂ)
   intro k
   simp only [norm_mul,unitFourierMode_norm,mul_one,pow_zero,one_mul,le_refl]
 
-/-- Original `unitFourierSeries_finsetSum` guarantee for the `FourierSeries` construction; the complete source hypotheses are retained. -/
+/-- For a finite family of rapidly summable coefficient sequences, synthesizing the pointwise sum of their coefficients gives the pointwise sum of their synthesized Fourier series. -/
 theorem unitFourierSeries_finsetSum {J : Type*} (a : J → SpatialFrequency → ℂ)
     (ha : ∀ j, FourierRapidlySummable (a j)) (s : Finset J) (x : SpatialPoint) :
     unitFourierSeries (fun k => ∑ j ∈ s, a j k) x=

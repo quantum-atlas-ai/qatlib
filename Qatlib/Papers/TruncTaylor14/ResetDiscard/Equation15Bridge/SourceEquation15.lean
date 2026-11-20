@@ -24,8 +24,8 @@ scale-`s` encoding `W` is `δ₁`-close to a unitary `U` and the LCU scale is
 This is the quantitative form of the source's `O(δ)` estimate; the failure mass
 in the orthogonal fiber is the subject of Eq. (16).
 
-Reusable FQN: `Qatlib.Papers.TruncTaylor14.ResetDiscard.equation15`
-(`Statements/Equation15.lean:12`).
+The shared identity is `Qatlib.Concepts.CoherentSim.ResetDiscard.equation15`, proved in
+`Qatlib.Concepts.CoherentSim.ResetDiscard.Equation15Simu`.
 -/
 
 set_option autoImplicit false

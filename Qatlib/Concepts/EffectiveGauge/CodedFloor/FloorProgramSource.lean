@@ -35,7 +35,9 @@ def floorProgramJetSource (c : Nat.Partrec.Code) : RationalJetSource :=
 
 noncomputable section
 
-/-- Original `floorProgramJetSource_accurate` guarantee for the `FloorProgramSource` construction; the complete source hypotheses are retained. -/
+/-- For each rational point in the fundamental cube, multi-index, and precision `b`, the program
+jet source approximates every component of the canonical jet of its periodic spin to absolute
+error at most `1 / 2^b`. -/
 theorem floorProgramJetSource_accurate (c : Nat.Partrec.Code) :
     OriginalAllJetAccurate (floorPeriodicSpin (floorProgramAmplitude c : ℝ)) (floorProgramJetSource c) := by
   intro X alpha b hX j
@@ -47,7 +49,8 @@ theorem floorProgramJetSource_accurate (c : Nat.Partrec.Code) :
   rw [floorSourceJetExpr_correct _ alpha _ hcube j] at h
   simpa only [floorProgramJetSource,Rat.cast_inv,Rat.cast_pow,Rat.cast_ofNat] using h
 
-/-- Original `floorProgramJetSource_bounds` guarantee for the `FloorProgramSource` construction; the complete source hypotheses are retained. -/
+/-- Every positive-total-order canonical jet of the periodic spin from the program amplitude has
+norm bounded on the fundamental cube by `floorSourceJetBound` at its total order. -/
 theorem floorProgramJetSource_bounds (c : Nat.Partrec.Code) :
     OriginalPositiveJetBounds (floorPeriodicSpin (floorProgramAmplitude c : ℝ)) floorSourceJetBound :=
   floorSourceJetBound_correct _ (floorProgramAmplitude_abs_le_one c)
@@ -60,7 +63,8 @@ def floorProgramReferenceMean (c : Nat.Partrec.Code) : ℝ :=
     (floorSourceJetBound 1) (floorSourceJetBound 2)
 
 open scoped Classical in
-/-- Original `floorProgramReferenceMean_floor` guarantee for the `FloorProgramSource` construction; the complete source hypotheses are retained. -/
+/-- The floor of the program's reference mean is `-1` when its evaluation on zero is defined, and
+`0` otherwise. -/
 theorem floorProgramReferenceMean_floor (c : Nat.Partrec.Code) :
     ⌊floorProgramReferenceMean c⌋=
       if (Nat.Partrec.Code.eval c 0).Dom then (-1 : ℤ) else 0 := by
@@ -82,7 +86,8 @@ theorem floorProgramReferenceMean_floor (c : Nat.Partrec.Code) :
       exact le_antisymm (le_of_not_gt hn) (floorProgramAmplitude_spec c).1
     simp only [hz,Rat.cast_zero,ite_true,ite_eq_right hh]
 
-/-- Original `floorProgramReferenceMean_floor_iff_halts` guarantee for the `FloorProgramSource` construction; the complete source hypotheses are retained. -/
+/-- The program's reference mean has integer floor `-1` exactly when the program halts on input
+zero. -/
 theorem floorProgramReferenceMean_floor_iff_halts (c : Nat.Partrec.Code) :
     (⌊floorProgramReferenceMean c⌋=(-1 : ℤ)) ↔ (Nat.Partrec.Code.eval c 0).Dom := by
   classical

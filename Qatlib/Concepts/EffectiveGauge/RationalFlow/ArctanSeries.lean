@@ -30,14 +30,15 @@ def arctanPartial (x : ℚ) (n : ℕ) : ℚ :=
 /-- Definition of arctan Term Magnitude in the Rational Flow construction. -/
 def arctanTermMagnitude (x : ℚ) (n : ℕ) : ℚ := |x|^(2*n+1)/((2*n+1 : ℕ) : ℚ)
 
-/-- Original `arctanPartial_zero` guarantee for the `ArctanSeries` construction; the complete source hypotheses are retained. -/
+/-- The arctangent series with zero terms has sum zero. -/
 @[simp] theorem arctanPartial_zero (x : ℚ) : arctanPartial x 0=0 := rfl
 
-/-- Original `arctanPartial_succ` guarantee for the `ArctanSeries` construction; the complete source hypotheses are retained. -/
+/-- The partial sum with `n + 1` terms adds the signed monomial of degree `2 * n + 1`, divided by
+that degree, to the sum with `n` terms. -/
 theorem arctanPartial_succ (x : ℚ) (n : ℕ) : arctanPartial x (n+1)=
     arctanPartial x n+(-1 : ℚ)^n*x^(2*n+1)/((2*n+1 : ℕ) : ℚ) := Finset.sum_range_succ _ _
 
-/-- Original `arctanPartial_neg` guarantee for the `ArctanSeries` construction; the complete source hypotheses are retained. -/
+/-- Negating the argument negates the arctangent partial sum at every truncation length. -/
 theorem arctanPartial_neg (x : ℚ) (n : ℕ) : arctanPartial (-x) n= -arctanPartial x n := by
   rw [arctanPartial,arctanPartial,← Finset.sum_neg_distrib]
   apply Finset.sum_congr rfl
@@ -47,7 +48,8 @@ theorem arctanPartial_neg (x : ℚ) (n : ℕ) : arctanPartial (-x) n= -arctanPar
 
 noncomputable section
 
-/-- Original `arctanSeries_error_nonneg` guarantee for the `ArctanSeries` construction; the complete source hypotheses are retained. -/
+/-- For a real argument in `[0, 1)`, the first omitted term's magnitude bounds the absolute error of
+the `n`-term alternating arctangent sum. -/
 private theorem arctanSeries_error_nonneg (x : ℝ) (hx : 0 ≤ x) (hx1 : x<1) (n : ℕ) :
     |Real.arctan x-(∑ j ∈ Finset.range n, (-1 : ℝ)^j*x^(2*j+1)/((2*j+1 : ℕ) : ℝ))| ≤
       x^(2*n+1)/((2*n+1 : ℕ) : ℝ) := by
@@ -71,7 +73,8 @@ private theorem arctanSeries_error_nonneg (x : ℝ) (hx : 0 ≤ x) (hx1 : x<1) (
   rw [hs.tsum_eq] at he
   simpa only [f,mul_div_assoc] using he
 
-/-- Original `arctanPartial_error` guarantee for the `ArctanSeries` construction; the complete source hypotheses are retained. -/
+/-- For a rational argument of magnitude at most one half, the first omitted term bounds the
+absolute error of the rational partial sum after embedding it in the reals. -/
 theorem arctanPartial_error (x : ℚ) (hx : |x| ≤ (1/2 : ℚ)) (n : ℕ) :
     |(arctanPartial x n : ℝ)-Real.arctan (x : ℝ)| ≤ (arctanTermMagnitude x n : ℝ) := by
   by_cases hpos : 0 ≤ x

@@ -31,7 +31,8 @@ open RetainedSpin FiniteAxisWord UniformMatching TrainedGrid
 def offset (C m d : ℕ) [NeZero (C*(2*m))] (axis : Fin d) (color : Fin 2) : Fin d → Fin (C*(2*m)) :=
   MatchedGrid.matchingOffset C (2*m) d axis color (by omega)
 
-/-- Complete original `color_one_left` guarantee for `PartialAddressTwoColor`; all source hypotheses and output obligations are retained. -/
+/-- For a fixed matched edge label, the color-one left endpoint is the same native site as the
+color-zero right endpoint. -/
 theorem color_one_left (C m d r : ℕ) [NeZero (C*(2*m))]
     (hN : 2^r=C*(2*m)*2) (axis : Fin d) (e : Edge C m d axis) :
     (matchingEquiv C m d r hN (offset C m d axis 1) axis).symm (e,false)=
@@ -74,7 +75,8 @@ theorem color_one_left (C m d r : ℕ) [NeZero (C*(2*m))]
       simp [localEquiv,hj]
     rw [ho,hl]
 
-/-- Complete original `color_average` guarantee for `PartialAddressTwoColor`; all source hypotheses and output obligations are retained. -/
+/-- The arithmetic mean of the two color matching Bell targets is the full periodic
+double-shift Bell mean in the selected direction. -/
 theorem color_average (C m d r : ℕ) [NeZero C] [NeZero m]
     [NeZero (2*m)] [NeZero (C*(2*m))]
     (hN : 2^r=C*(2*m)*2) (axis : Fin d)
@@ -108,7 +110,8 @@ theorem color_average (C m d r : ℕ) [NeZero C] [NeZero m]
     _ = (∑ x : Fin d → Fin (2^r),f x)/(Fintype.card (Fin d → Fin (2^r)) : ℝ) := pair_mean g f
     _ = _ := by simp only [bellMean,populationMean,f,BoxGridEnergy.right_eq_periodic]
 
-/-- Complete original `target_range` guarantee for `PartialAddressTwoColor`; all source hypotheses and output obligations are retained. -/
+/-- With pointwise normalized spinors, the Bell mean on either color matching lies in
+`[0, 1/2]`. -/
 theorem target_range (C m d r : ℕ) [NeZero C] [NeZero m]
     [NeZero (2*m)] [NeZero (C*(2*m))]
     (hN : 2^r=C*(2*m)*2) (axis : Fin d) (color : Fin 2)
@@ -131,7 +134,8 @@ theorem target_range (C m d r : ℕ) [NeZero C] [NeZero m]
       field_simp
     exact h.trans_eq ha
 
-/-- Complete original `target_cap` guarantee for `PartialAddressTwoColor`; all source hypotheses and output obligations are retained. -/
+/-- If the directional Bell mean of normalized spinors is at most `p0`, each color matching
+mean lies between zero and `min (1/2) (2*p0)`. -/
 theorem target_cap (C m d r : ℕ) [NeZero C] [NeZero m]
     [NeZero (2*m)] [NeZero (C*(2*m))]
     (hN : 2^r=C*(2*m)*2) (axis : Fin d) (color : Fin 2)
@@ -160,7 +164,8 @@ def clippedValueQ {d : ℕ} (p0 : ℚ) (raw : Fin d → Fin 2 → ℚ) : ℚ :=
 def fullTarget (d r : ℕ) (a b c k : (Fin d → Fin (2^r)) → ℝ) : ℝ :=
   ∑ j : Fin d,bellMean a b c k (periodicDoubleShift d (2^r) j)
 
-/-- Complete original `full_target_range` guarantee for `PartialAddressTwoColor`; all source hypotheses and output obligations are retained. -/
+/-- For normalized spinors whose directional Bell means are all at most `p0`, their sum lies
+between zero and `d*p0`. -/
 theorem full_target_range (d r : ℕ) (a b c k : (Fin d → Fin (2^r)) → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (p0 : ℝ)
     (hp : ∀ j,bellMean a b c k (periodicDoubleShift d (2^r) j)≤p0) :
@@ -171,14 +176,16 @@ theorem full_target_range (d r : ℕ) (a b c k : (Fin d → Fin (2^r)) → ℝ)
       _ ≤ ∑ _ : Fin d,p0 := Finset.sum_le_sum (fun j _ => hp j)
       _ = _ := by simp
 
-/-- Complete original `zero_promise` guarantee for `PartialAddressTwoColor`; all source hypotheses and output obligations are retained. -/
+/-- If every directional Bell mean is bounded above by zero for the normalized field, the full
+target is zero. -/
 theorem zero_promise (d r : ℕ) (a b c k : (Fin d → Fin (2^r)) → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1)
     (hp : ∀ j,bellMean a b c k (periodicDoubleShift d (2^r) j)≤0) : fullTarget d r a b c k=0 := by
   have h := full_target_range d r a b c k hz 0 hp
   linarith [h.1,h.2]
 
-/-- Complete original `zero_side` guarantee for `PartialAddressTwoColor`; all source hypotheses and output obligations are retained. -/
+/-- When the native side length is at most two, the periodic double shift fixes each site and
+the full Bell target is zero for arbitrary amplitudes. -/
 theorem zero_side (d r : ℕ) (a b c k : (Fin d → Fin (2^r)) → ℝ)
     (hs : 2^r≤2) : fullTarget d r a b c k=0 := by
   have hp : 0<2^r := by positivity
@@ -197,7 +204,8 @@ theorem zero_side (d r : ℕ) (a b c k : (Fin d → Fin (2^r)) → ℝ)
     norm_num
   simp [fullTarget,bellMean,populationMean,hshift,hself]
 
-/-- Complete original `midpoint_error` guarantee for `PartialAddressTwoColor`; all source hypotheses and output obligations are retained. -/
+/-- If all directional means are capped by `p0` and `d*p0 ≤ 2ε`, the midpoint `d*p0/2`
+approximates the full Bell target to within absolute error `ε`. -/
 theorem midpoint_error (d r : ℕ) (a b c k : (Fin d → Fin (2^r)) → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (p0 : ℚ)
     (hp : ∀ j,bellMean a b c k (periodicDoubleShift d (2^r) j)≤(p0 : ℝ))
@@ -208,7 +216,9 @@ theorem midpoint_error (d r : ℕ) (a b c k : (Fin d → Fin (2^r)) → ℝ)
   apply abs_le.mpr
   constructor <;> linarith [h.1,h.2]
 
-/-- Complete original `clipped_value_error` guarantee for `PartialAddressTwoColor`; all source hypotheses and output obligations are retained. -/
+/-- For positive dimension and normalized spinors under the directional Bell cap, if every raw
+direction and color estimate is within `ε/d` of its own target, the clipped rational aggregate
+is within `ε` of the full target. -/
 theorem clipped_value_error (C m d r : ℕ) [NeZero C] [NeZero m]
     [NeZero (2*m)] [NeZero (C*(2*m))]
     (hN : 2^r=C*(2*m)*2) (hd : 0<d)

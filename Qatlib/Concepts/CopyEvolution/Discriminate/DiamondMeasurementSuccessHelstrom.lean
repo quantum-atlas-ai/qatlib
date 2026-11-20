@@ -15,7 +15,7 @@ public import Qatlib.Concepts.CopyEvolution.Discriminate.FiniteCopyHelstromDiscr
 # Helstrom success and diamond-norm bounds
 
 This module proves optimal equal-prior binary discrimination bounds for two quantum-channel
-outputs on a common density input. `frontier1` expresses success through the centered
+outputs on a common density input. `channel_measurement_helstrom_optimality_and_diamond_bound` expresses success through the centered
 measurement effect, bounds it by one half plus one quarter of the output trace-norm difference,
 and constructs an effect attaining equality, following the Helstrom formulation [Helstrom1976].
 
@@ -25,7 +25,7 @@ success event of the binary POVM instrument's discrimination law.
 
 ## Main statements
 
-* `frontier1`: the trace-norm optimum, attaining effect, and diamond-norm success bound.
+* `channel_measurement_helstrom_optimality_and_diamond_bound`: the trace-norm optimum, attaining effect, and diamond-norm success bound.
 * `helstromInstrument_optimal`: an optimal binary instrument and the bound for all binary
   effects.
 
@@ -103,7 +103,7 @@ private lemma exists_gamma_le_one {d : ℕ} (x : Fin d → ℝ) :
 /-- For two channel outputs on the same density input, binary measurement success is bounded by
 `1 / 2` plus one quarter of their trace-norm difference, and a positive spectral effect
 achieves equality. A finite diamond-norm bound `δ` also bounds success by `1 / 2 + δ / 4`. -/
-theorem frontier1 {D E : ℕ} (T S : Operator D →ₗ[ℂ] Operator E)
+theorem channel_measurement_helstrom_optimality_and_diamond_bound {D E : ℕ} (T S : Operator D →ₗ[ℂ] Operator E)
     (hTcp : CompletelyPositive T) (hScp : CompletelyPositive S)
     (hTtp : TracePreserving T) (hStp : TracePreserving S)
     (X : Operator D) (hX : IsDensityOperator X)
@@ -165,7 +165,7 @@ theorem helstromInstrument_optimal {D E : ℕ} (T S : QuantumChannel D E)
             (T.map X) (S.map X) (T.preservesDensity hX) (S.preservesDensity hX))
           (fun z => z.1 = z.2) ≤ 1 / 2 + Matrix.traceNorm (T.map X - S.map X) / 4 := by
   obtain ⟨M, hM, hMc, heq, hle⟩ :=
-    (frontier1 T.map S.map T.completelyPositive S.completelyPositive
+    (channel_measurement_helstrom_optimality_and_diamond_bound T.map S.map T.completelyPositive S.completelyPositive
       T.tracePreserving S.tracePreserving X hX 1 Matrix.PosSemidef.one
       (by rw [sub_self]; exact Matrix.PosSemidef.zero)).2.2.2.1
   refine ⟨M, hM, hMc, ?_, ?_⟩

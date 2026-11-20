@@ -67,7 +67,7 @@ def storedConnectionGrid (source : RationalJetSource) (frame : StoredReferenceFr
   connectionGridExecution (fun index => storedConnectionSampling source frame (sourceMeanUnitPoint M index) tolerance)
     (sourceMeanGrid M)
 
-/-- Original `storeReferenceFrame_prepared` guarantee for the `StoredReferenceFrame` construction; the complete source hypotheses are retained. -/
+/-- Storing a reference frame preserves the input mean preparation exactly. -/
 theorem storeReferenceFrame_prepared (source : RationalJetSource) (prepared : CachedMeanPreparation) (eta : ℚ) :
     (storeReferenceFrame source prepared eta).prepared=prepared := rfl
 
@@ -78,13 +78,15 @@ theorem storedReferenceValue_store (source : RationalJetSource) (prepared : Cach
     storedReferenceValue source (storeReferenceFrame source prepared eta) a tolerance=
       preparedReferenceValueProgram source prepared eta a tolerance := rfl
 
-/-- Original `storedConnectionSampling_store` guarantee for the `StoredReferenceFrame` construction; the complete source hypotheses are retained. -/
+/-- Sampling the connection from a newly stored reference frame agrees with direct sampling from
+the same source, preparation, and collar. -/
 theorem storedConnectionSampling_store (source : RationalJetSource) (prepared : CachedMeanPreparation)
     (eta : ℚ) (a : Fin 3 → ℚ) (tolerance : ℚ) :
     storedConnectionSampling source (storeReferenceFrame source prepared eta) a tolerance=
       sourceConnectionSampling source prepared eta a tolerance := rfl
 
-/-- Original `storedConnectionGrid_store` guarantee for the `StoredReferenceFrame` construction; the complete source hypotheses are retained. -/
+/-- The connection grid of the stored frame is the grid execution that samples the source
+connection at `sourceMeanUnitPoint M index` for the indices in `sourceMeanGrid M`. -/
 theorem storedConnectionGrid_store (source : RationalJetSource) (prepared : CachedMeanPreparation)
     (eta : ℚ) (M : ℕ) (tolerance : ℚ) :
     storedConnectionGrid source (storeReferenceFrame source prepared eta) M tolerance=
@@ -92,7 +94,8 @@ theorem storedConnectionGrid_store (source : RationalJetSource) (prepared : Cach
         (fun index => sourceConnectionSampling source prepared eta (sourceMeanUnitPoint M index) tolerance)
         (sourceMeanGrid M) := rfl
 
-/-- Original `storeReferenceFrame_gaugeBounds` guarantee for the `StoredReferenceFrame` construction; the complete source hypotheses are retained. -/
+/-- The newly stored reference frame records `cachedGaugeWordMajorant eta prepared r.val` as its
+gauge bound for each order `r < 4`. -/
 theorem storeReferenceFrame_gaugeBounds (source : RationalJetSource) (prepared : CachedMeanPreparation)
     (eta : ℚ) (r : Fin 4) :
     (storeReferenceFrame source prepared eta).gaugeBounds[r.val]=cachedGaugeWordMajorant eta prepared r.val := by
@@ -103,7 +106,12 @@ noncomputable section
 open Set
 open scoped ContDiff Quaternion
 
-/-- Original `storedConnectionSampling_error` guarantee for the `StoredReferenceFrame` construction; the complete source hypotheses are retained. -/
+/-- Suppose a smooth periodic unit source is constant on the part of the fundamental cube outside
+`B`, with `B` in the cube at distance at least `mu > 0` from its boundary. Given accurate rational
+jets, positive certified jet bounds, a successful mean cache, `0 < eta ≤ 1/2`, and
+`7 * eta ≤ mu / 2`, stored connection sampling succeeds at each rational address for positive
+`tolerance`. Every returned component approximates the normalized connection there within
+`tolerance / 2`. -/
 theorem storedConnectionSampling_error (v : SpatialPoint → SpatialPoint)
     (hv : ContDiff ℝ ∞ v) (hu : ∀ x, ‖v x‖=1) (hp : IsPeriodicField v)
     (source : RationalJetSource) (hs : OriginalAllJetAccurate v source)

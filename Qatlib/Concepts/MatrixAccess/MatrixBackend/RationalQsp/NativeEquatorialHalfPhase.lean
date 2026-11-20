@@ -30,7 +30,8 @@ open Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays Qatlib.Concepts
 
 open Qatlib.Concepts.NativeNumerics.PhaseSynthesis
 
-/-- The finite construction in `NativeEquatorialHalfPhase` satisfies `nativePhaseTarget_norm` under the displayed hypotheses. -/
+/-- The normalized phase target has complex norm one for all rational coordinate pairs, including
+the zero pair. -/
 theorem nativePhaseTarget_norm (x y : ℚ) : ‖nativePhaseTarget x y‖=1 := by
   by_cases hz : x=0 ∧ y=0
   · simp [nativePhaseTarget,hz]
@@ -42,7 +43,8 @@ theorem nativePhaseTarget_norm (x y : ℚ) : ‖nativePhaseTarget x y‖=1 := by
       exact hz ⟨by exact_mod_cast hr,by exact_mod_cast hi⟩
     simp [nativePhaseTarget,hz,Complex.norm_real,ne_of_gt (norm_pos_iff.mpr hn)]
 
-/-- The finite construction in `NativeEquatorialHalfPhase` satisfies `positive_half_phase_square` under the displayed hypotheses. -/
+/-- For unit rational coordinates with nonnegative real part x, the phase target formed from (1 +
+x, y) squares to the original complex point. -/
 private theorem positive_half_phase_square (x y : ℚ) (hx : 0≤x)
     (hq : x*x+y*y=1) :
     (nativePhaseTarget (1+x) y)^2=gaussianRatComplex (x,y) := by
@@ -81,13 +83,15 @@ def nativeEquatorialHalfPhase (q : GaussianRat) (p : ℕ) : GaussianRat :=
   if q.1<0 then gmul (0,1) (nativePhasePair (1-q.1) (-q.2) p)
   else nativePhasePair (1+q.1) q.2 p
 
-/-- The finite construction in `NativeEquatorialHalfPhase` satisfies `nativeEquatorialHalfTarget_norm` under the displayed hypotheses. -/
+/-- The equatorial half-phase target lies on the complex unit circle for every Gaussian-rational
+input. -/
 theorem nativeEquatorialHalfTarget_norm (q : GaussianRat) :
     ‖nativeEquatorialHalfTarget q‖=1 := by
   unfold nativeEquatorialHalfTarget
   split_ifs <;> simp [nativePhaseTarget_norm]
 
-/-- The finite construction in `NativeEquatorialHalfPhase` satisfies `nativeEquatorialHalfTarget_square` under the displayed hypotheses. -/
+/-- For a Gaussian rational on the unit circle, the selected equatorial half-phase target is a
+complex square root of that point. -/
 theorem nativeEquatorialHalfTarget_square (q : GaussianRat)
     (hq : q.1*q.1+q.2*q.2=1) :
     (nativeEquatorialHalfTarget q)^2=gaussianRatComplex q := by
@@ -102,7 +106,8 @@ theorem nativeEquatorialHalfTarget_square (q : GaussianRat)
     ring
   · exact positive_half_phase_square q.1 q.2 (le_of_not_gt hx) hq
 
-/-- The finite construction in `NativeEquatorialHalfPhase` satisfies `nativeEquatorialHalfPhase_norm` under the displayed hypotheses. -/
+/-- The rational equatorial half-phase output has complex norm one for every input and precision
+p. -/
 theorem nativeEquatorialHalfPhase_norm (q : GaussianRat) (p : ℕ) :
     ‖gaussianRatComplex (nativeEquatorialHalfPhase q p)‖=1 := by
   unfold nativeEquatorialHalfPhase

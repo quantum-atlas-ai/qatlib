@@ -59,7 +59,8 @@ theorem meanLeftSum_sub_bound (N : ℕ) (hN : 0<N) (f g : ℝ → ℝ)
       exact hfg _ (meanLeftNode_mem N hN k (Finset.mem_range.mp hk))
     _ = C*(N : ℝ) := by simp [mul_comm]
 
-/-- Original `continuous_meanLeftSum` guarantee for the `MeanTensor` construction; the complete source hypotheses are retained. -/
+/-- For a jointly continuous integrand, the `N`-point left sum depends continuously on the
+parameter. -/
 private theorem continuous_meanLeftSum {X : Type*} [TopologicalSpace X]
     (N : ℕ) (F : X → ℝ → ℝ) (hF : Continuous F.uncurry) :
     Continuous (fun x => meanLeftSum N (F x)) := by
@@ -67,7 +68,8 @@ private theorem continuous_meanLeftSum {X : Type*} [TopologicalSpace X]
     hF.comp (continuous_id.prodMk continuous_const)
   exact (continuous_finsetSum _ (fun k _ => hc k)).div_const _
 
-/-- Original `continuous_meanUnitIntegral` guarantee for the `MeanTensor` construction; the complete source hypotheses are retained. -/
+/-- Integrating a jointly continuous integrand over `[0, 1]` gives a continuous function of the
+parameter on a first-countable, locally compact space. -/
 private theorem continuous_meanUnitIntegral {X : Type*} [TopologicalSpace X]
     [FirstCountableTopology X] [LocallyCompactSpace X]
     (F : X → ℝ → ℝ) (hF : Continuous F.uncurry) :

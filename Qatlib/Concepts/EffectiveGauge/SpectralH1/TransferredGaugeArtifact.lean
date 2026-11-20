@@ -46,29 +46,34 @@ open scoped Quaternion ContDiff
 def transferredGaugeArtifactField (artifact : TransferredGaugeArtifact) : QuaternionField :=
   fun X => rationalQuaternionCast artifact.transition*gaugeFourierArtifactField artifact.base X
 
-/-- Original `rationalQuaternionL1_nonneg` guarantee for the `TransferredGaugeArtifact` construction; the complete source hypotheses are retained. -/
+/-- The sum of the absolute values of the four rational quaternion coordinates is nonnegative. -/
 theorem rationalQuaternionL1_nonneg (q : Quaternion ℚ) : 0 ≤ rationalQuaternionL1 q := by
   unfold rationalQuaternionL1
   positivity
 
-/-- Original `rationalQuaternionCast_norm_le_L1` guarantee for the `TransferredGaugeArtifact` construction; the complete source hypotheses are retained. -/
+/-- The norm of the cast quaternion is at most the sum of the absolute values of its rational
+coordinates. -/
 theorem rationalQuaternionCast_norm_le_L1 (q : Quaternion ℚ) :
     ‖rationalQuaternionCast q‖ ≤ (rationalQuaternionL1 q : ℝ) := by
   simpa [rationalQuaternionL1,Rat.cast_add,Rat.cast_abs,rationalQuaternionCast]
     using quaternion_norm_le_l1 (rationalQuaternionCast q)
 
-/-- Original `transferredGaugeArtifactField_contDiff` guarantee for the `TransferredGaugeArtifact` construction; the complete source hypotheses are retained. -/
+/-- Left multiplication of the reconstructed Fourier field by the stored constant transition
+quaternion gives a smooth field. -/
 theorem transferredGaugeArtifactField_contDiff (artifact : TransferredGaugeArtifact) :
     ContDiff ℝ ∞ (transferredGaugeArtifactField artifact) :=
   contDiff_const.mul (gaugeFourierArtifactField_contDiff artifact.base)
 
-/-- Original `transferredGaugeArtifactField_periodic` guarantee for the `TransferredGaugeArtifact` construction; the complete source hypotheses are retained. -/
+/-- The physical periodicity of the base Fourier field is preserved under left multiplication by the
+stored transition quaternion. -/
 theorem transferredGaugeArtifactField_periodic (artifact : TransferredGaugeArtifact) :
     IsPeriodicField (transferredGaugeArtifactField artifact) := by
   intro X n
   simp only [transferredGaugeArtifactField,gaugeFourierArtifactField_periodic artifact.base X n]
 
-/-- Original `transferredGaugeArtifactValue_error` guarantee for the `TransferredGaugeArtifact` construction; the complete source hypotheses are retained. -/
+/-- At every rational physical address and positive requested accuracy, the cast rational evaluation
+differs from the exact transferred artifact field at that point by at most half the requested
+accuracy. -/
 theorem transferredGaugeArtifactValue_error (artifact : TransferredGaugeArtifact)
     (X : Fin 3 → ℚ) (accuracy : ℚ) (ha : 0<accuracy) :
     ‖rationalQuaternionCast (transferredGaugeArtifactValue artifact X accuracy)-

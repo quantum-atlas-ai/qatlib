@@ -341,7 +341,7 @@ theorem bracketTablePrepare_state_error_width {D : ℕ} (q : Fin D → ℚ) (S :
 
 /-- Collects dense-table extension identities, preparation error estimates, explicit read and
 normalization costs, and square-root bracket preparation bounds. -/
-theorem frontier1 :
+theorem dense_table_preparation_error_and_cost :
     ((∀ (D : ℕ) (t : DenseTable D), tableAmps t none = ratZero ∧
         (∀ i : Fin D, tableAmps t (some i) = t i) ∧
         (Finset.univ : Finset (Option (Fin D))).card = D + 1 ∧
@@ -891,7 +891,7 @@ theorem prepareChainBitCostNormalized_le (D p j : ℕ) :
 
 /-- Collects positive-mass target normalization, scaled bracket and inverse-square-root error
 bounds, width-based preparation estimates, and augmented normalization cost bounds. -/
-theorem frontier2 :
+theorem normalized_scaled_bracket_preparation_error_and_cost :
     (∀ (D : ℕ) (q : Fin D → ℚ) (m : ℝ), (∀ i, 0 ≤ q i) → 0 < m →
       (∑ i, (q i : ℝ)) = m → ‖stateVector (normTarget q m)‖ = 1) ∧
     (∀ (D : ℕ) (q : Fin D → ℚ) (S r : ℚ) (k : ℕ) (m : ℝ),

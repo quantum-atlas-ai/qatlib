@@ -28,12 +28,13 @@ open Qatlib.Concepts.EffectiveGauge.HopfAtlas Qatlib.Concepts.EffectiveGauge.Rat
 /-- Definition of floor Expr Literal Code in the Coded Floor construction. -/
 def floorExprLiteralCode (p : ℕ) : FloorRationalCode := ((p.unpair.1,p.unpair.2),0)
 
-/-- Original `floorExprLiteralCode_value` guarantee for the `FloorExprBoundCode` construction; the complete source hypotheses are retained. -/
+/-- The rational literal code represents the decoded signed integer, coerced to the rationals. -/
 theorem floorExprLiteralCode_value (p : ℕ) :
     floorRationalCodeValue (floorExprLiteralCode p)=(floorExprInteger p : ℚ) := by
   simp [floorExprLiteralCode,floorRationalCodeValue,floorExprInteger]
 
-/-- Original `floorExprLiteralCode_magnitude` guarantee for the `FloorExprBoundCode` construction; the complete source hypotheses are retained. -/
+/-- The ceiling of the coded literal's absolute value equals the natural absolute value of the
+decoded integer. -/
 theorem floorExprLiteralCode_magnitude (p : ℕ) :
     floorRationalCodeCeil (floorRationalCodeAbs (floorExprLiteralCode p))=(floorExprInteger p).natAbs := by
   rw [floorRationalCodeCeil_value,floorRationalCodeAbs_value,floorExprLiteralCode_value]
@@ -56,13 +57,15 @@ def floorExprBoundFrom (n : ℕ) (history : List ℕ) : ℕ :=
     [floorRationalCodeCeil (floorRationalCodeAbs (floorExprLiteralCode p)),7,1,
       floorCutoffCodeBudget p,a+b,u,a*b,1,1].getD tag 0
 
-/-- Original `floorExprHistory_getD` guarantee for the `FloorExprBoundCode` construction; the complete source hypotheses are retained. -/
+/-- At an index `k < n`, defaulted lookup in the list of the first `n` values of `f` returns
+`f k`. -/
 theorem floorExprHistory_getD (f : ℕ → ℕ) (n k : ℕ) (hk : k<n) :
     ((List.range n).map f).getD k 0=f k := by
   rw [List.getD_eq_getElem _ _ (by simpa using hk)]
   simp only [List.getElem_map,List.getElem_range]
 
-/-- Original `floorExprBoundFrom_correct` guarantee for the `FloorExprBoundCode` construction; the complete source hypotheses are retained. -/
+/-- With the bounds of all smaller codes supplied in order, the local bound calculation at `n`
+gives the bound of the decoded expression. -/
 theorem floorExprBoundFrom_correct (n : ℕ) :
     floorExprBoundFrom n ((List.range n).map floorExprCodeBound)=floorExprCodeBound n := by
   by_cases hn : n=0
@@ -97,11 +100,12 @@ theorem floorExprBoundFrom_correct (n : ℕ) :
         ite_eq_right h6,ite_eq_right h7,ite_eq_right h8,floorJetBound,Int.natAbs_zero]
       exact List.getD_eq_default _ _ (by simp; omega)
 
-/-- Original `primrec_floorExprLiteralCode` guarantee for the `FloorExprBoundCode` construction; the complete source hypotheses are retained. -/
+/-- Constructing a rational literal code from the packed signed integer is primitive recursive. -/
 theorem primrec_floorExprLiteralCode : Primrec floorExprLiteralCode :=
   Primrec.unpair.pair (Primrec.const 0)
 
-/-- Original `primrec_floorExprBoundFrom` guarantee for the `FloorExprBoundCode` construction; the complete source hypotheses are retained. -/
+/-- Computing the local bound from the expression code and the supplied bound history is primitive
+recursive in both inputs. -/
 theorem primrec_floorExprBoundFrom : Primrec₂ floorExprBoundFrom := by
   have hparts : Primrec (fun q : ℕ × List ℕ => (q.1-1).unpair) :=
     Primrec.unpair.comp (Primrec.nat_sub.comp Primrec.fst (Primrec.const 1))
@@ -125,7 +129,7 @@ theorem primrec_floorExprBoundFrom : Primrec₂ floorExprBoundFrom := by
   exact Primrec.ite (Primrec.eq.comp Primrec.fst (Primrec.const 0)) (Primrec.const 0)
     ((Primrec.list_getD 0).comp hv ht)
 
-/-- Original `computable_floorExprCodeBound` guarantee for the `FloorExprBoundCode` construction; the complete source hypotheses are retained. -/
+/-- The bound of the expression decoded from a natural number is computable. -/
 theorem computable_floorExprCodeBound : Computable floorExprCodeBound := by
   have hg : Computable₂ (fun (_ : Unit) (history : List ℕ) =>
       some (floorExprBoundFrom history.length history)) :=
@@ -137,7 +141,8 @@ theorem computable_floorExprCodeBound : Computable floorExprCodeBound := by
       simp only [List.length_map,List.length_range,floorExprBoundFrom_correct])
   exact hf.comp (Computable.const ()) Computable.id
 
-/-- Original `floorExprCodeBound_encode` guarantee for the `FloorExprBoundCode` construction; the complete source hypotheses are retained. -/
+/-- Encoding a jet expression and computing its code bound gives exactly that expression's
+syntactic bound. -/
 theorem floorExprCodeBound_encode (e : FloorJetExpr) : floorExprCodeBound (floorExprEncode e)=floorJetBound e := by
   rw [floorExprCodeBound,floorExprDecode_encode]
 

@@ -236,7 +236,7 @@ theorem scalarBlock_safe_leakage_lower_bound :
 
 /-- Collects the legal scalar block constructions, dimension-independent hybrid lower bounds,
 and the strengthened leakage lower bound. -/
-theorem frontier1 :
+theorem scalar_oracle_block_hybrid_and_leakage_lower_bounds :
     (∀ (W : Type) [Fintype W] [DecidableEq W] (x y : ℝ),
       x ∈ Set.Icc (-1) 1 → y ∈ Set.Icc (-1) 1 →
       (scalarSignalLift W x ∈ Matrix.unitaryGroup (Bool × W) ℂ ∧

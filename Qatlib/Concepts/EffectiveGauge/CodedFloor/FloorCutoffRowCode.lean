@@ -44,7 +44,7 @@ def floorCutoffCodeRow : ℕ → List FloorRationalCode
   | 0 => [floorRationalCodeNat 1]
   | n+1 => floorCutoffNextCodeRow n (floorCutoffCodeRow n)
 
-/-- Original `floorCutoffCodeRow_length` guarantee for the `FloorCutoffRowCode` construction; the complete source hypotheses are retained. -/
+/-- The coded cutoff coefficient row of order `n` has length `2 * n + 1`. -/
 theorem floorCutoffCodeRow_length (n : ℕ) : (floorCutoffCodeRow n).length=2*n+1 := by
   cases n <;> simp [floorCutoffCodeRow,floorCutoffNextCodeRow]
 
@@ -79,11 +79,12 @@ theorem floorCutoffCodeAt_value (n m : ℕ) :
       rw [floorRationalCodeNat_value,cutoffCoefficientAt,dite_eq_right hm]
       simp
 
-/-- Original `primrec_floorCutoffCodeAt` guarantee for the `FloorCutoffRowCode` construction; the complete source hypotheses are retained. -/
+/-- Reading a coded cutoff coefficient by index with zero as the default is primitive recursive. -/
 theorem primrec_floorCutoffCodeAt : Primrec₂ floorCutoffCodeAt :=
   Primrec.list_getD (floorRationalCodeNat 0)
 
-/-- Original `primrec_floorCutoffCodeEntry` guarantee for the `FloorCutoffRowCode` construction; the complete source hypotheses are retained. -/
+/-- The coded next-row coefficient recurrence is primitive recursive in the previous row and the
+coefficient index. -/
 theorem primrec_floorCutoffCodeEntry : Primrec₂ floorCutoffCodeEntry := by
   have h2 : Primrec (fun p : List FloorRationalCode × ℕ => floorCutoffCodeAt p.1 (p.2-2)) :=
     primrec_floorCutoffCodeAt.comp Primrec.fst (Primrec.nat_sub.comp Primrec.snd (Primrec.const 2))
@@ -96,7 +97,8 @@ theorem primrec_floorCutoffCodeEntry : Primrec₂ floorCutoffCodeEntry := by
       (primrec_floorRationalCodeNeg.comp (primrec_floorRationalCodeMul.comp hn h1)))
     (Primrec.const (floorRationalCodeNat 0))
 
-/-- Original `primrec_floorCutoffNextCodeRow` guarantee for the `FloorCutoffRowCode` construction; the complete source hypotheses are retained. -/
+/-- Constructing the entire next row is primitive recursive in the previous order and the previous
+coded row. -/
 theorem primrec_floorCutoffNextCodeRow : Primrec₂ floorCutoffNextCodeRow := by
   have hl : Primrec (fun p : ℕ × List FloorRationalCode => 2*(p.1+1)+1) :=
     Primrec.nat_add.comp (Primrec.nat_mul.comp (Primrec.const 2)
@@ -105,7 +107,7 @@ theorem primrec_floorCutoffNextCodeRow : Primrec₂ floorCutoffNextCodeRow := by
     primrec_floorCutoffCodeEntry.comp (Primrec.snd.comp Primrec.fst) Primrec.snd
   exact Primrec.list_map (Primrec.list_range.comp hl) he
 
-/-- Original `primrec_floorCutoffCodeRow` guarantee for the `FloorCutoffRowCode` construction; the complete source hypotheses are retained. -/
+/-- Generating the coded cutoff coefficient row from its order is primitive recursive. -/
 theorem primrec_floorCutoffCodeRow : Primrec floorCutoffCodeRow := by
   apply (Primrec.nat_rec₁ [floorRationalCodeNat 1] primrec_floorCutoffNextCodeRow).of_eq
   intro n

@@ -33,7 +33,7 @@ def automaticPhysicalPoissonFromGap (source : RationalJetSource) (bounds : ℕ �
     (gap tolerance : ℚ) : Option GeneralPoissonValueState :=
   automaticGeneralPoissonFromGap source bounds gap (physicalPoissonValueTolerance tolerance)
 
-/-- Original `physicalPoissonValueTolerance_spec` guarantee for the `AutomaticPhysicalPoissonValue` construction; the complete source hypotheses are retained. -/
+/-- A positive requested tolerance gives a positive value tolerance bounded by both `1/64` and one quarter of the request. -/
 theorem physicalPoissonValueTolerance_spec (tolerance : ℚ) (ht : 0<tolerance) :
     0<physicalPoissonValueTolerance tolerance ∧ physicalPoissonValueTolerance tolerance ≤ 1/64 ∧
       physicalPoissonValueTolerance tolerance ≤ tolerance/4 := by

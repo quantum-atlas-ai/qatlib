@@ -46,19 +46,22 @@ def cachedCorrectionPreparationRun (source : RationalJetSource) (bounds : ℕ �
     Option CachedCorrectionPreparation :=
   (cachedMeanPreparationRun source bounds).map (materializeCorrectionPreparation eta)
 
-/-- Original `cachedCorrectionPreparationRun_phase` guarantee for the `CachedCorrectionPreparation` construction; the complete source hypotheses are retained. -/
+/-- Mapping the phase projection over the correction-preparation result recovers the
+phase-preparation run, with `none` preserved. -/
 theorem cachedCorrectionPreparationRun_phase (source : RationalJetSource) (bounds : ℕ → ℚ) (eta : ℚ) :
     (cachedCorrectionPreparationRun source bounds eta).map CachedCorrectionPreparation.phase=
       cachedPhasePreparationRun source bounds := by
   simp [cachedCorrectionPreparationRun,cachedPhasePreparationRun,Option.map_map,
     Function.comp_def,materializeCorrectionPreparation]
 
-/-- Original `materializeCorrectionPreparation_cutoff` guarantee for the `CachedCorrectionPreparation` construction; the complete source hypotheses are retained. -/
+/-- The correction cache stores `cutoffUnitMajorant eta r.val` as its order-`r` cutoff bound for
+every `r < 8`. -/
 theorem materializeCorrectionPreparation_cutoff (eta : ℚ) (prepared : CachedMeanPreparation) (r : Fin 8) :
     (materializeCorrectionPreparation eta prepared).cutoffBounds[r.val]=cutoffUnitMajorant eta r.val := by
   simp [materializeCorrectionPreparation]
 
-/-- Original `materializeCorrectionPreparation_correction` guarantee for the `CachedCorrectionPreparation` construction; the complete source hypotheses are retained. -/
+/-- The order-`r` correction entry, for `r < 8`, is the phase correction majorant obtained from the
+cached derivative bounds and the collar parameter. -/
 theorem materializeCorrectionPreparation_correction (eta : ℚ) (prepared : CachedMeanPreparation) (r : Fin 8) :
     (materializeCorrectionPreparation eta prepared).correctionBounds[r.val]=
       sourceFrameCorrectionMajorant prepared.derivativeBounds eta r := by
@@ -75,7 +78,10 @@ theorem materializeCorrectionPreparation_correction (eta : ℚ) (prepared : Cach
 noncomputable section
 open scoped Quaternion ContDiff
 
-/-- Original `materializeCorrectionPreparation_correction_bound` guarantee for the `CachedCorrectionPreparation` construction; the complete source hypotheses are retained. -/
+/-- For a smooth periodic unit source with certified jet bounds, a successful mean cache, a
+positive collar parameter and a unit seed, the stored correction bound controls each
+coordinate-word derivative of the real correction phase on the unit cube at the corresponding order
+`r < 8`. -/
 theorem materializeCorrectionPreparation_correction_bound (v : SpatialPoint → SpatialPoint)
     (hv : ContDiff ℝ ∞ v) (hu : ∀ x, ‖v x‖=1) (hp : IsPeriodicField v)
     (bounds : ℕ → ℚ) (hb : OriginalPositiveJetBounds v bounds)

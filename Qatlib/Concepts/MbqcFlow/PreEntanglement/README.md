@@ -98,7 +98,7 @@
 | `Qatlib.Concepts.MbqcFlow.PreEntanglement.teleWire_hasFlow` | theorem | L1401 | The two-vertex teleportation graph with the specified input and output sets possesses a flow. |
 | `Qatlib.Concepts.MbqcFlow.PreEntanglement.teleWire_strongDeterminism` | theorem | L1416 | The two-vertex teleportation pattern is strongly deterministic for every choice of XY measurement angles. |
 | `Qatlib.Concepts.MbqcFlow.PreEntanglement.teleWire_flow_determinism` | theorem | L1423 | The teleportation graph possesses a flow and its XY pattern is strongly deterministic. |
-| `Qatlib.Concepts.MbqcFlow.PreEntanglement.frontier1` | theorem | L1432 | Collect flow decision/search agreement, sequential and pre-entangled execution identities, measurement-count agreement, and flow-based strong determinism for the teleportation example. |
+| `Qatlib.Concepts.MbqcFlow.PreEntanglement.flow_decision_and_preentangled_execution` | theorem | L1432 | Collect flow decision/search agreement, sequential and pre-entangled execution identities, measurement-count agreement, and flow-based strong determinism for the teleportation example. |
 | `Qatlib.Concepts.MbqcFlow.PreEntanglement.wireRecord` | def | L1451 | The two-vertex record whose first bit is `b` and whose second bit is false. |
 | `Qatlib.Concepts.MbqcFlow.PreEntanglement.wireBranchMap` | def | L1455 | The teleportation branch map for a Boolean measurement record, summed over the Boolean output-frame record. |
 | `Qatlib.Concepts.MbqcFlow.PreEntanglement.wireBranchMap_apply` | theorem | L1460 | Each Boolean teleportation branch is one half of conjugation by the wire unitary. |

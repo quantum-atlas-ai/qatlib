@@ -23,7 +23,8 @@ set_option autoImplicit false
 namespace Qatlib.Concepts.EffectiveGauge.RationalFlow
 open Qatlib.Concepts.EffectiveGauge.HopfAtlas Qatlib.Concepts.EffectiveGauge.TorusFourier
 
-/-- Original `finiteGaugeOutputCutoff_spec` guarantee for the `GaugeSpectralBudget` construction; the complete source hypotheses are retained. -/
+/-- At positive tolerance the gauge output cutoff is positive and its product with the tolerance is
+at least `16 * |M3|`. -/
 theorem finiteGaugeOutputCutoff_spec (M3 tolerance : ℚ) (ht : 0<tolerance) :
     0<finiteGaugeOutputCutoff M3 tolerance ∧
       16*|M3| ≤ tolerance*(finiteGaugeOutputCutoff M3 tolerance : ℚ) := by
@@ -34,7 +35,8 @@ theorem finiteGaugeOutputCutoff_spec (M3 tolerance : ℚ) (ht : 0<tolerance) :
     exact_mod_cast (le_max_right 1 (Nat.ceil (16*|M3|/tolerance)))
   exact ⟨hN,by nlinarith [(div_le_iff₀ ht).mp hceil]⟩
 
-/-- Original `finiteGaugeCutoff_H1_tail_budget` guarantee for the `GaugeSpectralBudget` construction; the complete source hypotheses are retained. -/
+/-- For nonnegative `M3` and positive tolerance, the squared H¹ tail bound
+`48 * M3² / (cutoff + 1)^4` at the planned cutoff is at most `3 * tolerance² / 16`. -/
 theorem finiteGaugeCutoff_H1_tail_budget (M3 tolerance : ℚ) (hM : 0 ≤ M3) (ht : 0<tolerance) :
     48*M3^2/((finiteGaugeOutputCutoff M3 tolerance : ℚ)+1)^4 ≤ 3*tolerance^2/16 := by
   let N := finiteGaugeOutputCutoff M3 tolerance
@@ -50,7 +52,8 @@ theorem finiteGaugeCutoff_H1_tail_budget (M3 tolerance : ℚ) (hM : 0 ≤ M3) (h
   apply (div_le_iff₀ (by positivity : (0 : ℚ)<((N : ℚ)+1)^4)).mpr
   nlinarith [mul_le_mul_of_nonneg_left hden (sq_nonneg tolerance)]
 
-/-- Original `finiteGaugeCoefficient_H1_budget` guarantee for the `GaugeSpectralBudget` construction; the complete source hypotheses are retained. -/
+/-- The squared coefficient accuracy, weighted by the frequency count and `4 * 343 * (1 + 3 * N²)`,
+is bounded by `4116 * tolerance² / 262144`. -/
 theorem finiteGaugeCoefficient_H1_budget (N : ℕ) (tolerance : ℚ) :
     4*343*(finitePoissonFrequencyCount N : ℚ)*(1+3*(N : ℚ)^2)*
       (finiteGaugeCoefficientAccuracy N tolerance)^2 ≤ 4116*tolerance^2/262144 := by

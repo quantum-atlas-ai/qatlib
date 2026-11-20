@@ -1400,7 +1400,7 @@ theorem databaseXorOracle_run_schedule_from_empty_queryRecord {N : ℕ} (p : ℝ
 
 /-- Collects the decoding intertwining identity, mutual encoding-decoding inverse identities,
 and involutivity of the database and purified XOR oracles. -/
-theorem frontier1 (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) :
+theorem xor_database_intertwining_and_involutive_oracles (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) :
     xorDecode (I := I) (W := W) p * databaseXorOracle p
       = xorPurifiedQuery * xorDecode p ∧
     xorDecode (I := I) (W := W) p * xorEncode p = 1 ∧

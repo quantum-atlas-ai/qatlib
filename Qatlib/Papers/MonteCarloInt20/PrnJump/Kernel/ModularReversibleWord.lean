@@ -34,7 +34,7 @@ Carlo integration. See [KanekoEtAl2020].
 * `mod_add_value` and `mod_mul_value`: arithmetic correctness of the reduction DAGs.
 * `Native.add_basis` and `Native.mul_basis`: clean in-place updates, with a coprimality
   hypothesis for multiplication.
-* `Native.frontier1`: combined arithmetic semantics and resource bounds.
+* `Qatlib.Papers.MonteCarloInt20.PrnJump.Kernel.ReductionCore.ModularReversibleWord.clean_modular_arithmetic_program_correctness_and_resources`: combined arithmetic semantics and resource bounds.
 
 ## References
 
@@ -1467,7 +1467,7 @@ open scoped Classical
 /-- For a multiplier coprime to the represented modulus, the native programs implement total
 modular addition, subtraction, and multiplication with clean auxiliary registers, explicit
 gate and workspace bounds, and matrix inverse identities. -/
-theorem frontier1 (w : ℕ) (a m : Reg w)
+theorem clean_modular_arithmetic_program_correctness_and_resources (w : ℕ) (a m : Reg w)
     (hc : (booleanWordLSBValue w a).Coprime (booleanWordLSBValue w m)) :
     (∀ x : Reg w,
       Run 1 (reflectionCompile (addWord w a m))

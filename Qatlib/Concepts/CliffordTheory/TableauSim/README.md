@@ -78,7 +78,7 @@ tableau 上的 Clifford 门、Pauli 测量与经典反馈实现，证明与实�
 | `Qatlib.Concepts.CliffordTheory.TableauSim.physicalExecute_some` | theorem | L906 | Physical execution succeeds when the random tape meets the program's maximum fair bit requirement. |
 | `Qatlib.Concepts.CliffordTheory.TableauSim.physicalExecute_machine` | theorem | L946 | The machine component of a successful physical execution agrees with ordinary tableau execution. |
 | `Qatlib.Concepts.CliffordTheory.TableauSim.physicalExecute_correct` | theorem | L994 | Valid physical execution from a normalized state in a consistent tableau code space preserves normalization and code-space membership. |
-| `Qatlib.Concepts.CliffordTheory.TableauSim.frontier1` | theorem | L1086 | A valid program with a sufficient tape and `m ≤ n` has a physical execution preserving normalization, code-space membership, and tableau consistency. |
+| `Qatlib.Concepts.CliffordTheory.TableauSim.exists_physical_execution_of_valid_tableau_program` | theorem | L1086 | A valid program with a sufficient tape and `m ≤ n` has a physical execution preserving normalization, code-space membership, and tableau consistency. |
 | `Qatlib.Concepts.CliffordTheory.TableauSim.rowWidth_eq_bits_length` | theorem | L1110 | The bit encoding of a row has length `rowWidth n`. |
 | `Qatlib.Concepts.CliffordTheory.TableauSim.machine_tableauBits_length` | theorem | L1115 | The bit encoding of an `m`-row machine tableau has length `m * rowWidth n`. |
 | `Qatlib.Concepts.CliffordTheory.TableauSim.BitExecution.BitBank` | abbrev | L1125 | An array of Boolean registers with exactly `R` entries. |

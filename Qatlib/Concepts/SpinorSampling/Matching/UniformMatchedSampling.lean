@@ -43,7 +43,8 @@ def withoutReplacementExpect : Finset S → ℕ → (List S → ℝ) → ℝ
   | _, 0, F => F []
   | R, n+1, F => (∑ x ∈ R, withoutReplacementExpect (R.erase x) n (fun xs => F (x::xs)))/(R.card : ℝ)
 
-/-- Complete original `without_replacement_mono` guarantee for `UniformMatchedSampling`; all source hypotheses and output obligations are retained. -/
+/-- The recursive without-replacement expectation preserves pointwise ordering of real functions
+of the sampled list. -/
 theorem without_replacement_mono (R : Finset S) (n : ℕ) (F G : List S → ℝ)
     (h : ∀ xs, F xs ≤ G xs) :
     withoutReplacementExpect R n F ≤ withoutReplacementExpect R n G := by
@@ -56,7 +57,8 @@ theorem without_replacement_mono (R : Finset S) (n : ℕ) (F G : List S → ℝ)
     intro x hx
     exact ih (R.erase x) _ _ (fun xs => h (x::xs))
 
-/-- Complete original `without_replacement_mul` guarantee for `UniformMatchedSampling`; all source hypotheses and output obligations are retained. -/
+/-- A real scalar multiplying every list value factors out of the recursive without-replacement
+expectation. -/
 theorem without_replacement_mul (R : Finset S) (n : ℕ) (F : List S → ℝ) (c : ℝ) :
     withoutReplacementExpect R n (fun xs => c*F xs)=c*withoutReplacementExpect R n F := by
   induction n generalizing R F with
@@ -67,7 +69,8 @@ theorem without_replacement_mul (R : Finset S) (n : ℕ) (F : List S → ℝ) (c
     rw [← Finset.mul_sum]
     ring
 
-/-- Complete original `without_replacement_nonneg` guarantee for `UniformMatchedSampling`; all source hypotheses and output obligations are retained. -/
+/-- A list function with nonnegative values has nonnegative recursive expectation without
+replacement. -/
 theorem without_replacement_nonneg (R : Finset S) (n : ℕ) (F : List S → ℝ)
     (h : ∀ xs, 0 ≤ F xs) : 0 ≤ withoutReplacementExpect R n F := by
   induction n generalizing R F with
@@ -77,7 +80,8 @@ theorem without_replacement_nonneg (R : Finset S) (n : ℕ) (F : List S → ℝ)
     apply div_nonneg _ (by positivity)
     exact Finset.sum_nonneg fun x hx => ih (R.erase x) _ (fun xs => h (x::xs))
 
-/-- Complete original `without_replacement_const` guarantee for `UniformMatchedSampling`; all source hypotheses and output obligations are retained. -/
+/-- If the requested length fits in `R`, the without-replacement expectation of the constant
+list value `c` equals `c`. -/
 theorem without_replacement_const (R : Finset S) (n : ℕ) (hn : n ≤ R.card) (c : ℝ) :
     withoutReplacementExpect R n (fun _ => c)=c := by
   induction n generalizing R with
@@ -106,7 +110,8 @@ def uniformLaw (X : Type) [Fintype X] [Nonempty X] : FinDist X where
     field_simp
 
 omit [DecidableEq S] in
-/-- Complete original `uniform_set_expect` guarantee for `UniformMatchedSampling`; all source hypotheses and output obligations are retained. -/
+/-- On a nonempty finite set, expectation under the uniform law on its elements equals the set
+average. -/
 theorem uniform_set_expect (R : Finset S) (hR : R.Nonempty) (f : S → ℝ) :
     let : Nonempty R := ⟨⟨hR.choose,hR.choose_spec⟩⟩
     (uniformLaw R).expect (fun x => f x)=setAverage R f := by
@@ -116,21 +121,22 @@ theorem uniform_set_expect (R : Finset S) (hR : R.Nonempty) (f : S → ℝ) :
   exact Finset.sum_coe_sort R f
 
 omit [DecidableEq S] in
-/-- Complete original `set_average_mul` guarantee for `UniformMatchedSampling`; all source hypotheses and output obligations are retained. -/
+/-- Multiplying all site values by `c` multiplies their set average by `c`. -/
 theorem set_average_mul (R : Finset S) (c : ℝ) (f : S → ℝ) :
     setAverage R (fun x => c*f x)=c*setAverage R f := by
   unfold setAverage
   rw [← Finset.mul_sum]
   ring
 
-/-- Complete original `set_average_erase` guarantee for `UniformMatchedSampling`; all source hypotheses and output obligations are retained. -/
+/-- Removing a member `x` gives a set average with numerator equal to the original sum minus
+`f x` and denominator equal to the original size minus one. -/
 theorem set_average_erase (R : Finset S) (f : S → ℝ) (x : S) (hx : x ∈ R) :
     setAverage (R.erase x) f=((∑ y ∈ R, f y)-f x)/((R.card-1 : ℕ) : ℝ) := by
   unfold setAverage
   rw [Finset.card_erase_of_mem hx, Finset.sum_erase_eq_sub hx]
 
 omit [DecidableEq S] in
-/-- Complete original `set_average_congr` guarantee for `UniformMatchedSampling`; all source hypotheses and output obligations are retained. -/
+/-- Agreement at each member of `R` suffices for two functions to have equal averages over `R`. -/
 theorem set_average_congr (R : Finset S) (f g : S → ℝ) (h : ∀ x ∈ R, f x=g x) :
     setAverage R f=setAverage R g := by
   unfold setAverage
@@ -138,7 +144,7 @@ theorem set_average_congr (R : Finset S) (f g : S → ℝ) (h : ∀ x ∈ R, f x
   exact Finset.sum_congr rfl h
 
 omit [DecidableEq S] in
-/-- Complete original `set_average_const` guarantee for `UniformMatchedSampling`; all source hypotheses and output obligations are retained. -/
+/-- A constant function averages to its constant value on any nonempty finite set. -/
 theorem set_average_const (R : Finset S) (hR : R.Nonempty) (c : ℝ) :
     setAverage R (fun _ => c)=c := by
   have hc : (R.card : ℝ) ≠ 0 := by exact_mod_cast hR.card_pos.ne'
@@ -146,7 +152,9 @@ theorem set_average_const (R : Finset S) (hR : R.Nonempty) (c : ℝ) :
   field_simp
 
 omit [DecidableEq S] in
-/-- Complete original `bounded_set_centered_mgf` guarantee for `UniformMatchedSampling`; all source hypotheses and output obligations are retained. -/
+/-- On nonempty `R`, the centered value of a function bounded by one in absolute value on `R`,
+scaled by `c` between zero and one, has uniform-set moment-generating function at most
+`exp (t²/2)`. -/
 theorem bounded_set_centered_mgf (R : Finset S) (hR : R.Nonempty) (f : S → ℝ)
     (hf : ∀ x ∈ R, |f x| ≤ 1) (c t : ℝ) (hc0 : 0 ≤ c) (hc1 : c ≤ 1) :
     setAverage R (fun x => Real.exp (t*c*(f x-setAverage R f))) ≤ Real.exp (t^2/2) := by
@@ -176,7 +184,9 @@ theorem bounded_set_centered_mgf (R : Finset S) (hR : R.Nonempty) (f : S → ℝ
   have hprod := mul_nonneg (sq_nonneg t) (sub_nonneg.mpr hc2)
   nlinarith
 
-/-- Complete original `sampling_increment_identity` guarantee for `UniformMatchedSampling`; all source hypotheses and output obligations are retained. -/
+/-- For `x ∈ R` and `|R| > 1`, compare `f x` plus `n` times the mean on `R` with `x`
+erased to `n + 1` times the original set mean. Their difference is the centered value at `x`
+multiplied by `(|R| - (n+1))/(|R|-1)` for any `n`. -/
 theorem sampling_increment_identity (R : Finset S) (n : ℕ) (f : S → ℝ)
     (x : S) (hx : x ∈ R) (hcard : 1 < R.card) :
     f x+(n : ℝ)*setAverage (R.erase x) f-((n+1 : ℕ) : ℝ)*setAverage R f=
@@ -192,7 +202,8 @@ theorem sampling_increment_identity (R : Finset S) (n : ℕ) (f : S → ℝ)
   field_simp
   ring
 
-/-- Complete original `sampling_increment_mgf` guarantee for `UniformMatchedSampling`; all source hypotheses and output obligations are retained. -/
+/-- When `n + 1` draws fit in `R` and `|f x| ≤ 1` there, the change in the expected sample sum
+after revealing a uniform first draw has moment-generating function at most `exp (t²/2)`. -/
 theorem sampling_increment_mgf (R : Finset S) (n : ℕ) (hn : n+1 ≤ R.card)
     (f : S → ℝ) (hf : ∀ x ∈ R, |f x| ≤ 1) (t : ℝ) :
     setAverage R (fun x => Real.exp (t*(f x+(n : ℝ)*setAverage (R.erase x) f-
@@ -236,7 +247,8 @@ theorem sampling_increment_mgf (R : Finset S) (n : ℕ) (hn : n+1 ≤ R.card)
           ring)
       _ ≤ _ := bounded_set_centered_mgf R hR f hf c t hc0 hc1
 
-/-- Complete original `without_replacement_centered_mgf` guarantee for `UniformMatchedSampling`; all source hypotheses and output obligations are retained. -/
+/-- For `n ≤ |R|` draws without replacement and `|f x| ≤ 1` on `R`, the sampled sum minus `n`
+times the set mean has moment-generating function at most `exp (n*t²/2)` for every real `t`. -/
 theorem without_replacement_centered_mgf (R : Finset S) (n : ℕ) (hn : n ≤ R.card)
     (f : S → ℝ) (hf : ∀ x ∈ R, |f x| ≤ 1) (t : ℝ) :
     withoutReplacementExpect R n (fun xs => Real.exp

@@ -43,7 +43,8 @@ def floorExpCodeRun (p : FloorExpCodeParameters) (s : FloorExpCodeState) (fuel :
 def floorExpCodeResult (s : FloorExpCodeState) : RationalScalarResult :=
   ⟨floorRationalCodeValue s.2.1,|floorRationalCodeValue s.2.2|,s.1⟩
 
-/-- Original `floorExpCodeRun_value` guarantee for the `FloorNegativeExpCode` construction; the complete source hypotheses are retained. -/
+/-- Decoding a bounded coded run yields the rational negative-exponential Taylor loop with the
+same index and fuel and the decoded argument, tolerance, accumulated value, and current term. -/
 theorem floorExpCodeRun_value (p : FloorExpCodeParameters) (s : FloorExpCodeState) (fuel : ℕ) :
     floorExpCodeResult (floorExpCodeRun p s fuel)=
       negativeExpLoop (floorRationalCodeValue p.1) (floorRationalCodeValue p.2) s.1
@@ -72,7 +73,8 @@ theorem floorExpCodeRun_value (p : FloorExpCodeParameters) (s : FloorExpCodeStat
         floorRationalCodeNeg_value,floorRationalCodeInv_value,floorRationalCodeNat_value,
         negativeExpLoop,ite_eq_right hv,div_eq_mul_inv]
 
-/-- Original `primrec_floorExpCodeStep` guarantee for the `FloorNegativeExpCode` construction; the complete source hypotheses are retained. -/
+/-- The coded negative-exponential Taylor step, including its stopping test, is primitive
+recursive in the parameter pair and state. -/
 theorem primrec_floorExpCodeStep : Primrec₂ floorExpCodeStep := by
   have px : Primrec (fun x : FloorExpCodeParameters × FloorExpCodeState => x.1.1) :=
     Primrec.fst.comp Primrec.fst
@@ -92,7 +94,8 @@ theorem primrec_floorExpCodeStep : Primrec₂ floorExpCodeStep := by
         (primrec_floorRationalCodeMul.comp st (primrec_floorRationalCodeNeg.comp px))
         (primrec_floorRationalCodeInv.comp (primrec_floorRationalCodeNat.comp sn')))))
 
-/-- Original `primrec_floorExpCodeRun` guarantee for the `FloorNegativeExpCode` construction; the complete source hypotheses are retained. -/
+/-- The negative-exponential loop is primitive recursive jointly in the packed parameters, initial
+state, and fuel. -/
 theorem primrec_floorExpCodeRun :
     Primrec (fun x : (FloorExpCodeParameters × FloorExpCodeState) × ℕ =>
       floorExpCodeRun x.1.1 x.1.2 x.2) := by
@@ -119,12 +122,14 @@ def floorReducedNegativeExpCode (p : FloorExpCodeParameters) : FloorScalarCodeRe
   floorExpResultPayload (floorExpCodeRun p
     (1,(floorRationalCodeNat 1,floorRationalCodeNeg p.1)) (floorRationalCodeArctanFuel p.2))
 
-/-- Original `floorExpResultPayload_value` guarantee for the `FloorNegativeExpCode` construction; the complete source hypotheses are retained. -/
+/-- Decoding the state payload gives the same approximation, term magnitude, and index as
+interpreting the exponential Taylor state directly. -/
 theorem floorExpResultPayload_value (s : FloorExpCodeState) :
     floorScalarCodeResultValue (floorExpResultPayload s)=floorExpCodeResult s := by
   simp [floorScalarCodeResultValue,floorExpResultPayload,floorExpCodeResult,floorRationalCodeAbs_value]
 
-/-- Original `floorReducedNegativeExpCode_value` guarantee for the `FloorNegativeExpCode` construction; the complete source hypotheses are retained. -/
+/-- Decoding the reduced coded negative-exponential routine gives the rational reduced routine at
+the decoded argument and tolerance. -/
 theorem floorReducedNegativeExpCode_value (p : FloorExpCodeParameters) :
     floorScalarCodeResultValue (floorReducedNegativeExpCode p)=
       reducedNegativeExp (floorRationalCodeValue p.1) (floorRationalCodeValue p.2) := by
@@ -132,12 +137,14 @@ theorem floorReducedNegativeExpCode_value (p : FloorExpCodeParameters) :
   simp only [floorRationalCodeArctanFuel_value,floorRationalCodeNat_value,
     floorRationalCodeNeg_value,reducedNegativeExp,Nat.cast_one]
 
-/-- Original `primrec_floorExpResultPayload` guarantee for the `FloorNegativeExpCode` construction; the complete source hypotheses are retained. -/
+/-- Packing the approximation, the absolute value of the current term, and the term count into the
+result code is primitive recursive. -/
 theorem primrec_floorExpResultPayload : Primrec floorExpResultPayload :=
   ((Primrec.fst.comp Primrec.snd).pair
     (primrec_floorRationalCodeAbs.comp (Primrec.snd.comp Primrec.snd))).pair Primrec.fst
 
-/-- Original `primrec_floorReducedNegativeExpCode` guarantee for the `FloorNegativeExpCode` construction; the complete source hypotheses are retained. -/
+/-- The coded reduced negative-exponential computation, including its initialization, fuel
+calculation, and result packing, is primitive recursive. -/
 theorem primrec_floorReducedNegativeExpCode : Primrec floorReducedNegativeExpCode := by
   have hi : Primrec (fun p : FloorExpCodeParameters =>
       (1,(floorRationalCodeNat 1,floorRationalCodeNeg p.1))) :=

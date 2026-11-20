@@ -37,7 +37,7 @@ variable {H I : Type} [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
 def encodedInput (U : Matrix H H ℂ) (F : Matrix H I ℂ) (α : ℝ) : Matrix I I ℂ :=
   α • compress F U F
 
-/-- The finite construction in `NativeApproxInput` satisfies `encodedInput_exact` under the displayed hypotheses. -/
+/-- If `U` encodes `A` with frame `F`, scale `α`, and error at most `e`, it encodes its own scaled compression exactly with the same frame and scale. -/
 theorem encodedInput_exact (A : Matrix I I ℂ) (U : Matrix H H ℂ)
     (F : Matrix H I ℂ) (α e : ℝ) (hbe : BlockEncoding A U F F α e) :
     BlockEncoding (encodedInput U F α) U F F α 0 := by
@@ -56,7 +56,7 @@ theorem input_norm_bound (A : Matrix I I ℂ) (U : Matrix H H ℂ)
     _ ≤ ‖A-α • compress F U F‖+‖α • compress F U F‖ := norm_add_le _ _
     _ ≤ α+e := by linarith [hbe.error_le]
 
-/-- The finite construction in `NativeApproxInput` satisfies `reference_shift_perturb` under the displayed hypotheses. -/
+/-- For positive `B`, an input perturbation of operator norm at most `e` changes the reference shift at the same node `z` by at most `e / B`. -/
 theorem reference_shift_perturb (A At : Matrix I I ℂ) (B e : ℝ) (z : ℂ)
     (hB : 0<B) (he : ‖At-A‖≤e) :
     ‖referenceShiftBlock At B z-referenceShiftBlock A B z‖≤e/B := by

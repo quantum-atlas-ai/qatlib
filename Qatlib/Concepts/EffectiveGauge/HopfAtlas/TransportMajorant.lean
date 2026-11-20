@@ -44,7 +44,8 @@ def transportWordMajorant (K : ℕ → ℚ) : ℕ → ℚ
       (∑ j : Fin (n+1), (n.choose j.val : ℚ)*transportWordMajorant K j.val*K (n-j.val))
 termination_by n => n
 
-/-- Original `transportWordMajorant_nonneg` guarantee for the `TransportMajorant` construction; the complete source hypotheses are retained. -/
+/-- The recursive rational transport majorant is nonnegative at every order when all the
+coefficient bounds are nonnegative. -/
 theorem transportWordMajorant_nonneg (K : ℕ → ℚ) (hK : ∀ j, 0 ≤ K j) (n : ℕ) :
     0 ≤ transportWordMajorant K n := by
   induction n using Nat.strong_induction_on with

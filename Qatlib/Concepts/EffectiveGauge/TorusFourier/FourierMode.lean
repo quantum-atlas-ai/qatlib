@@ -27,12 +27,12 @@ abbrev SpatialFrequency := Fin 3 → ℤ
 def frequencyLinear (k : SpatialFrequency) : SpatialPoint →L[ℝ] ℝ :=
   ∑ j : Fin 3, (k j : ℝ) • (EuclideanSpace.proj j : SpatialPoint →L[ℝ] ℝ)
 
-/-- Original `frequencyLinear_apply` guarantee for the `FourierMode` construction; the complete source hypotheses are retained. -/
+/-- The real linear form associated with `k` pairs it with `x` by summing the three coordinate products. -/
 theorem frequencyLinear_apply (k : SpatialFrequency) (x : SpatialPoint) :
     frequencyLinear k x=∑ j : Fin 3, (k j : ℝ)*x j := by
   simp [frequencyLinear]
 
-/-- Original `frequencyLinear_axis` guarantee for the `FourierMode` construction; the complete source hypotheses are retained. -/
+/-- On the unit vector in direction `i`, the frequency linear form returns the real cast of `k i`. -/
 theorem frequencyLinear_axis (k : SpatialFrequency) (i : Fin 3) :
     frequencyLinear k (EuclideanSpace.single i 1)=(k i : ℝ) := by
   simp [frequencyLinear_apply]
@@ -45,20 +45,20 @@ def fourierModeExponent (k : SpatialFrequency) : SpatialPoint →L[ℝ] ℂ :=
 def unitFourierMode (k : SpatialFrequency) (x : SpatialPoint) : ℂ :=
   Complex.exp (fourierModeExponent k x)
 
-/-- Original `unitFourierMode_zero` guarantee for the `FourierMode` construction; the complete source hypotheses are retained. -/
+/-- The zero-frequency Fourier mode is the constant complex function one. -/
 theorem unitFourierMode_zero : unitFourierMode 0=fun _ => (1 : ℂ) := by
   funext x
   simp [unitFourierMode,fourierModeExponent,frequencyLinear_apply]
 
-/-- Original `contDiff_unitFourierMode` guarantee for the `FourierMode` construction; the complete source hypotheses are retained. -/
+/-- Every integer frequency defines a smooth complex Fourier mode on spatial points. -/
 theorem contDiff_unitFourierMode (k : SpatialFrequency) : ContDiff ℝ ∞ (unitFourierMode k) :=
   (fourierModeExponent k).contDiff.cexp
 
-/-- Original `unitFourierMode_norm` guarantee for the `FourierMode` construction; the complete source hypotheses are retained. -/
+/-- A unit Fourier mode has modulus one at every spatial point. -/
 theorem unitFourierMode_norm (k : SpatialFrequency) (x : SpatialPoint) : ‖unitFourierMode k x‖=1 := by
   simp [unitFourierMode,Complex.norm_exp,fourierModeExponent]
 
-/-- Original `unitFourierMode_first` guarantee for the `FourierMode` construction; the complete source hypotheses are retained. -/
+/-- Differentiating a Fourier mode in coordinate `i` multiplies it by the physical period times the imaginary unit times `k i`. -/
 theorem unitFourierMode_first (k : SpatialFrequency) (i : Fin 3) :
     spatialWordPartial (unitFourierMode k) [i]=fun x =>
       ((physicalPeriod : ℂ)*Complex.I*(k i : ℂ))*unitFourierMode k x := by
@@ -119,7 +119,7 @@ def unitIntegerShift (n : SpatialFrequency) : SpatialPoint := WithLp.toLp 2 (fun
 def IsUnitPeriodicField {E : Type*} (f : SpatialPoint → E) : Prop :=
   ∀ x n, f (x+unitIntegerShift n)=f x
 
-/-- Original `unitFourierMode_periodic` guarantee for the `FourierMode` construction; the complete source hypotheses are retained. -/
+/-- Each unit Fourier mode is invariant under all integer lattice shifts. -/
 theorem unitFourierMode_periodic (k : SpatialFrequency) : IsUnitPeriodicField (unitFourierMode k) := by
   intro x n
   rw [unitFourierMode_eq_mFourier,unitFourierMode_eq_mFourier]

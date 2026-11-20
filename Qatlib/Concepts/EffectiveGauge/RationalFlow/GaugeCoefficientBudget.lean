@@ -23,14 +23,16 @@ set_option autoImplicit false
 namespace Qatlib.Concepts.EffectiveGauge.RationalFlow
 open Qatlib.Concepts.EffectiveGauge.HopfAtlas Qatlib.Concepts.EffectiveGauge.TorusFourier
 
-/-- Original `finiteGaugeCoefficientAccuracy_pos` guarantee for the `GaugeCoefficientBudget` construction; the complete source hypotheses are retained. -/
+/-- Every output cutoff has a positive per-coefficient accuracy when the target tolerance is
+positive. -/
 theorem finiteGaugeCoefficientAccuracy_pos (N : ℕ) (tolerance : ℚ) (ht : 0<tolerance) :
     0<finiteGaugeCoefficientAccuracy N tolerance := by
   have hJ : (0 : ℚ)<finitePoissonFrequencyCount N := by
     exact_mod_cast finitePoissonFrequencyCount_pos N
   exact div_pos ht (by positivity)
 
-/-- Original `finiteGaugeCoefficientMesh_spec` guarantee for the `GaugeCoefficientBudget` construction; the complete source hypotheses are retained. -/
+/-- At positive coefficient accuracy the selected mesh is positive and its quadrature bound
+`3 * (P1 + 7 * N) / mesh` is at most one quarter of that accuracy. -/
 theorem finiteGaugeCoefficientMesh_spec (P1 : ℚ) (N : ℕ)
     (accuracy : ℚ) (ha : 0<accuracy) :
     0<finiteGaugeCoefficientMesh P1 N accuracy ∧
@@ -46,7 +48,8 @@ theorem finiteGaugeCoefficientMesh_spec (P1 : ℚ) (N : ℕ)
   refine ⟨hM,(div_le_iff₀ hMR).mpr ?_⟩
   nlinarith
 
-/-- Original `finiteGaugeModeAccuracy_spec` guarantee for the `GaugeCoefficientBudget` construction; the complete source hypotheses are retained. -/
+/-- For positive coefficient accuracy the mode accuracy lies in `(0, 1]`. Adding the sample accuracy
+to the mode accuracy times one plus the sample accuracy gives exactly half the coefficient accuracy. -/
 theorem finiteGaugeModeAccuracy_spec (accuracy : ℚ) (ha : 0<accuracy) :
     0<finiteGaugeModeAccuracy accuracy ∧ finiteGaugeModeAccuracy accuracy ≤ 1 ∧
       finiteGaugeSampleAccuracy accuracy+(1+finiteGaugeSampleAccuracy accuracy)*
@@ -61,7 +64,8 @@ theorem finiteGaugeModeAccuracy_spec (accuracy : ℚ) (ha : 0<accuracy) :
     field_simp
     ring
 
-/-- Original `finiteGaugeModePeriodAccuracy_spec` guarantee for the `GaugeCoefficientBudget` construction; the complete source hypotheses are retained. -/
+/-- For positive coefficient accuracy the selected period accuracy is positive and its product with
+`3 * N` is at most half the mode accuracy. -/
 theorem finiteGaugeModePeriodAccuracy_spec (N : ℕ) (accuracy : ℚ) (ha : 0<accuracy) :
     0<finiteGaugeModePeriodAccuracy N accuracy ∧
       3*(N : ℚ)*finiteGaugeModePeriodAccuracy N accuracy ≤ finiteGaugeModeAccuracy accuracy/2 := by
@@ -74,7 +78,8 @@ theorem finiteGaugeModePeriodAccuracy_spec (N : ℕ) (accuracy : ℚ) (ha : 0<ac
   have hn : (0 : ℚ) ≤ N := Nat.cast_nonneg _
   nlinarith [mul_nonneg hd.1.le hn]
 
-/-- Original `finiteGaugeCoefficientSampling_budget` guarantee for the `GaugeCoefficientBudget` construction; the complete source hypotheses are retained. -/
+/-- At positive coefficient accuracy the sum of the mesh quadrature bound and the sample-mode
+product error bound is at most that accuracy. -/
 theorem finiteGaugeCoefficientSampling_budget (P1 : ℚ) (N : ℕ)
     (accuracy : ℚ) (ha : 0<accuracy) :
     3*(P1+7*(N : ℚ))/(finiteGaugeCoefficientMesh P1 N accuracy : ℚ)+

@@ -31,7 +31,8 @@ open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data
 
 section IdealPreservation
 
-/-- The finite construction in `NativeSourceIdealPreservation` satisfies `sourceCompletionFrequency_rev` under the displayed hypotheses. -/
+/-- The centered completion frequency at the reversed index is the negative of the original
+frequency. -/
 private theorem sourceCompletionFrequency_rev {d : ℕ} (j : Fin (d+1)) :
     sourceCompletionFrequency j.rev= -sourceCompletionFrequency j := by
   simp only [sourceCompletionFrequency,Fin.val_rev]
@@ -46,7 +47,8 @@ local instance : Fact (0<2*Real.pi) := ⟨Real.two_pi_pos⟩
 def sourceCompletionReverseAdjoint {d : ℕ} (F : Fin (d+1) → Matrix Bool Bool ℂ) : Fin (d+1) → Matrix Bool Bool ℂ :=
   fun j => (F j.rev).conjTranspose
 
-/-- The finite construction in `NativeSourceIdealPreservation` satisfies `sourceCompletionReverseAdjoint_value` under the displayed hypotheses. -/
+/-- The circle value of the reversed array of adjoint coefficients is the adjoint of the original
+circle value. -/
 theorem sourceCompletionReverseAdjoint_value {d : ℕ} (F : Fin (d+1) → Matrix Bool Bool ℂ)
     (t : AddCircle (2*Real.pi)) : sourceCompletionCircleValue (sourceCompletionReverseAdjoint F) t=(sourceCompletionCircleValue F t).conjTranspose := by
   unfold sourceCompletionCircleValue sourceCompletionReverseAdjoint
@@ -54,7 +56,8 @@ theorem sourceCompletionReverseAdjoint_value {d : ℕ} (F : Fin (d+1) → Matrix
   simp only [Matrix.conjTranspose_smul]
   exact Fintype.sum_equiv Fin.revPerm _ _ (fun j => by simp [sourceCompletionFrequency_rev])
 
-/-- The finite construction in `NativeSourceIdealPreservation` satisfies `sourceCompletionCircle_extreme_left_orthogonality` under the displayed hypotheses. -/
+/-- For a positive-degree matrix array that is unitary at every circle point, the last coefficient
+times the adjoint of the first is zero. -/
 theorem sourceCompletionCircle_extreme_left_orthogonality {d : ℕ} (hd : 0<d) (F : Fin (d+1) → Matrix Bool Bool ℂ)
     (hunit : ∀ t : AddCircle (2*Real.pi),sourceCompletionCircleValue F t∈Matrix.unitaryGroup Bool ℂ) :
     F (Fin.last d)*(F 0).conjTranspose=0 := by
@@ -64,7 +67,7 @@ theorem sourceCompletionCircle_extreme_left_orthogonality {d : ℕ} (hd : 0<d) (
   have h := sourceCompletionCircle_extreme_orthogonality hd (sourceCompletionReverseAdjoint F) hrev
   simpa [sourceCompletionReverseAdjoint] using h
 
-/-- The finite construction in `NativeSourceIdealPreservation` satisfies `sourceComplexGram_trace_real` under the displayed hypotheses. -/
+/-- The complex trace of a Gram matrix equals the cast of its real part. -/
 theorem sourceComplexGram_trace_real (C : Matrix Bool Bool ℂ) :
     (C.conjTranspose*C).trace=(((C.conjTranspose*C).trace.re : ℝ) : ℂ) := by
   apply Complex.ext
@@ -73,7 +76,7 @@ theorem sourceComplexGram_trace_real (C : Matrix Bool Bool ℂ) :
     simp [Matrix.trace,Matrix.mul_apply,Matrix.conjTranspose_apply,Complex.mul_im]
     ring
 
-/-- The finite construction in `NativeSourceIdealPreservation` satisfies `sourceComplexGram_trace_pos` under the displayed hypotheses. -/
+/-- The Gram trace of a nonzero complex 2-by-2 matrix has strictly positive real part. -/
 theorem sourceComplexGram_trace_pos (C : Matrix Bool Bool ℂ) (hc : C≠0) :
     0<(C.conjTranspose*C).trace.re := by
   have h := sourceComplexGram_norm_le_trace C
@@ -81,7 +84,7 @@ theorem sourceComplexGram_trace_pos (C : Matrix Bool Bool ℂ) (hc : C≠0) :
   have hp := norm_pos_iff.mpr hc
   nlinarith
 
-/-- The finite construction in `NativeSourceIdealPreservation` satisfies `sourceComplexGramNormalize_trace` under the displayed hypotheses. -/
+/-- The trace-normalized Gram matrix of a nonzero input has trace one. -/
 theorem sourceComplexGramNormalize_trace (C : Matrix Bool Bool ℂ) (hc : C≠0) :
     (sourceComplexGramNormalize C).trace=1 := by
   have ht := sourceComplexGram_trace_pos C hc
@@ -89,21 +92,23 @@ theorem sourceComplexGramNormalize_trace (C : Matrix Bool Bool ℂ) (hc : C≠0)
   rw [Matrix.trace_smul,sourceComplexGram_trace_real,smul_eq_mul,← Complex.ofReal_mul,Complex.ofReal_re,
     one_div_mul_cancel ht.ne',Complex.ofReal_one]
 
-/-- The finite construction in `NativeSourceIdealPreservation` satisfies `sourceComplexGramNormalize_hermitian` under the displayed hypotheses. -/
+/-- The trace-normalized complex Gram matrix is Hermitian for every input matrix. -/
 theorem sourceComplexGramNormalize_hermitian (C : Matrix Bool Bool ℂ) :
     (sourceComplexGramNormalize C).conjTranspose=sourceComplexGramNormalize C := by
   unfold sourceComplexGramNormalize
   rw [Matrix.conjTranspose_smul]
   simp only [Complex.star_def,Complex.conj_ofReal,Matrix.conjTranspose_mul,Matrix.conjTranspose_conjTranspose]
 
-/-- The finite construction in `NativeSourceIdealPreservation` satisfies `two_matrix_bilinear` under the displayed hypotheses. -/
+/-- The anticommutator of two complex 2-by-2 matrices equals the trace of each times the other
+plus the identity scaled by the trace of their product minus the product of their traces. -/
 private theorem two_matrix_bilinear (P Q : Matrix Bool Bool ℂ) :
     P*Q+Q*P=P.trace • Q+Q.trace • P+((P*Q).trace-P.trace*Q.trace) • (1 : Matrix Bool Bool ℂ) := by
   ext i j
   cases i <;> cases j <;>
     simp [Matrix.mul_apply,Matrix.trace] <;> ring
 
-/-- The finite construction in `NativeSourceIdealPreservation` satisfies `sourceComplexGramNormalize_complement` under the displayed hypotheses. -/
+/-- For nonzero C and D with C times the adjoint of D equal to zero, their normalized Gram
+matrices have zero product in both orders and sum to the identity. -/
 theorem sourceComplexGramNormalize_complement (C D : Matrix Bool Bool ℂ)
     (hc : C≠0) (hd : D≠0) (hcross : C*D.conjTranspose=0) :
     sourceComplexGramNormalize C*sourceComplexGramNormalize D=0 ∧ sourceComplexGramNormalize D*sourceComplexGramNormalize C=0 ∧
@@ -130,14 +135,18 @@ section IdealStep
 open scoped BigOperators Matrix.Norms.L2Operator
 local instance : Fact (0<2*Real.pi) := ⟨Real.two_pi_pos⟩
 
-/-- The finite construction in `NativeSourceIdealPreservation` satisfies `sourceMulComplexGramNormalize_zero` under the displayed hypotheses. -/
+/-- If C times the adjoint of D is zero, C times the trace-normalized Gram matrix of D is zero as
+well. -/
 theorem sourceMulComplexGramNormalize_zero (C D : Matrix Bool Bool ℂ) (hcross : C*D.conjTranspose=0) :
     C*sourceComplexGramNormalize D=0 := by
   unfold sourceComplexGramNormalize
   rw [mul_smul_comm,← mul_assoc,hcross]
   simp
 
-/-- The finite construction in `NativeSourceIdealPreservation` satisfies `sourceIdealDeflation_endpoints` under the displayed hypotheses. -/
+/-- For a pointwise unitary array with nonzero endpoints, the normalized Gram matrices of the last
+and first coefficients are complementary idempotents. Right multiplication of either endpoint
+by its own idempotent preserves that endpoint, and multiplication by the opposite one gives
+zero. -/
 theorem sourceIdealDeflation_endpoints {m : ℕ} (F : Fin (m+2) → Matrix Bool Bool ℂ)
     (hunit : ∀ t : AddCircle (2*Real.pi),sourceCompletionCircleValue F t∈Matrix.unitaryGroup Bool ℂ)
     (hl : F 0≠0) (hr : F (Fin.last (m+1))≠0) :
@@ -183,7 +192,9 @@ theorem sourceIdealDeflation_elementary_unitary (P Q : Matrix Bool Bool ℂ)
     smul_zero,add_zero,zero_add,hmul,one_smul]
   simpa only [add_comm] using hplus
 
-/-- The finite construction in `NativeSourceIdealPreservation` satisfies `sourceIdealDeflation_circle` under the displayed hypotheses. -/
+/-- When each endpoint is annihilated by the other endpoint's normalized Gram matrix, the deflated
+circle value equals the original value multiplied on the right by the sum of the first
+normalization weighted by character 1 and the last weighted by character −1. -/
 theorem sourceIdealDeflation_circle {m : ℕ} (F : Fin (m+2) → Matrix Bool Bool ℂ)
     (hL : F 0*sourceComplexGramNormalize (F (Fin.last (m+1)))=0)
     (hR : F (Fin.last (m+1))*sourceComplexGramNormalize (F 0)=0)
@@ -237,7 +248,8 @@ section IdealInvariant
 
 open scoped Matrix.Norms.L2Operator ComplexOrder
 
-/-- The finite construction in `NativeSourceIdealPreservation` satisfies `sourceComplexGramNormalize_norm` under the displayed hypotheses. -/
+/-- The trace-normalized Gram matrix of a nonzero complex 2-by-2 input has operator norm at most
+one. -/
 theorem sourceComplexGramNormalize_norm (C : Matrix Bool Bool ℂ) (hc : C≠0) :
     ‖sourceComplexGramNormalize C‖ ≤ 1 := by
   have ht := sourceComplexGram_trace_pos C hc
@@ -246,7 +258,8 @@ theorem sourceComplexGramNormalize_norm (C : Matrix Bool Bool ℂ) (hc : C≠0) 
   rw [norm_smul,Complex.norm_real,Real.norm_eq_abs,abs_of_pos (one_div_pos.mpr ht)]
   exact (mul_le_mul_of_nonneg_left hb (by positivity)).trans_eq (one_div_mul_cancel ht.ne')
 
-/-- The finite construction in `NativeSourceIdealPreservation` satisfies `sourceIdealDeflation_endpoint_norm` under the displayed hypotheses. -/
+/-- For a pointwise unitary circle sum with nonzero endpoints, the norms of both endpoints can
+only increase under ideal deflation. -/
 theorem sourceIdealDeflation_endpoint_norm {m : ℕ} (F : Fin (m+2) → Matrix Bool Bool ℂ)
     (hunit : ∀ t : AddCircle (2*Real.pi),sourceCompletionCircleValue F t∈Matrix.unitaryGroup Bool ℂ)
     (hl : F 0≠0) (hr : F (Fin.last (m+1))≠0) :
@@ -274,7 +287,8 @@ def SourceIdealDeflationInvariant {d : ℕ} (F : Fin (d+1) → Matrix Bool Bool 
   (∀ t : AddCircle (2*Real.pi),sourceCompletionCircleValue F t∈Matrix.unitaryGroup Bool ℂ) ∧
     h ≤ ‖F 0‖ ∧ h ≤ ‖F (Fin.last d)‖
 
-/-- The finite construction in `NativeSourceIdealPreservation` satisfies `sourceIdealDeflation_invariant` under the displayed hypotheses. -/
+/-- One ideal deflation step preserves pointwise unitarity and a common positive lower bound h on
+the norms of the two endpoint coefficients. -/
 theorem sourceIdealDeflation_invariant {m : ℕ} (F : Fin (m+2) → Matrix Bool Bool ℂ)
     (h : ℝ) (hh : 0<h) (hinv : SourceIdealDeflationInvariant F h) :
     SourceIdealDeflationInvariant (sourceIdealDeflationStep F) h := by

@@ -24,7 +24,7 @@ noncomputable section
 namespace Qatlib.Concepts.EffectiveGauge.TorusFourier
 open Qatlib.Concepts.EffectiveGauge.HopfAtlas Qatlib.Concepts.EffectiveGauge.RationalFlow
 
-/-- Original `unitFourierCoefficient_add` guarantee for the `UnitFourierLinear` construction; the complete source hypotheses are retained. -/
+/-- At each frequency, the coefficient of the sum of two continuous unit-periodic fields is the sum of their coefficients. -/
 theorem unitFourierCoefficient_add (f g : SpatialPoint → ℂ) (hf : Continuous f) (hg : Continuous g)
     (hp : IsUnitPeriodicField f) (hpg : IsUnitPeriodicField g) (k : SpatialFrequency) :
     unitFourierCoefficient (fun x => f x+g x) (hf.add hg)
@@ -39,7 +39,7 @@ theorem unitFourierCoefficient_add (f g : SpatialPoint → ℂ) (hf : Continuous
   exact unitComplexCubeIntegral_add _ _ ((contDiff_unitFourierMode (-k)).continuous.mul hf)
     ((contDiff_unitFourierMode (-k)).continuous.mul hg)
 
-/-- Original `unitFourierCoefficient_const_mul` guarantee for the `UnitFourierLinear` construction; the complete source hypotheses are retained. -/
+/-- Multiplication of a continuous unit-periodic field by a constant complex scalar multiplies every Fourier coefficient by that scalar. -/
 theorem unitFourierCoefficient_const_mul (c : ℂ) (f : SpatialPoint → ℂ) (hf : Continuous f)
     (hp : IsUnitPeriodicField f) (k : SpatialFrequency) :
     unitFourierCoefficient (fun x => c*f x) (hf.const_mul c)
@@ -49,7 +49,7 @@ theorem unitFourierCoefficient_const_mul (c : ℂ) (f : SpatialPoint → ℂ) (h
       (fun x => c*(unitFourierMode (-k) x*f x)) := by funext x; ring
   rw [heq,unitComplexCubeIntegral_const_mul]
 
-/-- Original `unitFourierCoefficient_sub` guarantee for the `UnitFourierLinear` construction; the complete source hypotheses are retained. -/
+/-- The Fourier coefficient at `k` of the difference of two continuous unit-periodic fields is the difference of their coefficients at `k`. -/
 theorem unitFourierCoefficient_sub (f g : SpatialPoint → ℂ) (hf : Continuous f) (hg : Continuous g)
     (hp : IsUnitPeriodicField f) (hpg : IsUnitPeriodicField g) (k : SpatialFrequency) :
     unitFourierCoefficient (fun x => f x-g x) (hf.sub hg)

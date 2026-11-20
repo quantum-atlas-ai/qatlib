@@ -28,14 +28,14 @@ open scoped ContDiff Topology
 namespace Qatlib.Concepts.EffectiveGauge.TorusFourier
 open Qatlib.Concepts.EffectiveGauge.HopfAtlas Qatlib.Concepts.EffectiveGauge.RationalFlow
 
-/-- Original `frequency_coordinate_abs_le_radius` guarantee for the `FourierModeBounds` construction; the complete source hypotheses are retained. -/
+/-- The absolute value of each frequency coordinate is bounded by the maximum coordinate magnitude of the frequency. -/
 theorem frequency_coordinate_abs_le_radius (k : SpatialFrequency) (i : Fin 3) :
     |(k i : ℝ)| ≤ (frequencyRadius k : ℝ) := by
   have h := (frequencyRadius_le_iff k (frequencyRadius k)).mp le_rfl i
   have hR : ((k i).natAbs : ℝ) ≤ (frequencyRadius k : ℝ) := by exact_mod_cast h
   simpa only [Nat.cast_natAbs,Int.cast_abs] using hR
 
-/-- Original `frequencyLinear_norm_le` guarantee for the `FourierModeBounds` construction; the complete source hypotheses are retained. -/
+/-- The real frequency linear form has operator norm at most three times the maximum coordinate magnitude of `k`. -/
 theorem frequencyLinear_norm_le (k : SpatialFrequency) :
     ‖frequencyLinear k‖ ≤ 3*(frequencyRadius k : ℝ) := by
   apply (frequencyLinear k).opNorm_le_bound (by positivity)
@@ -51,7 +51,7 @@ theorem frequencyLinear_norm_le (k : SpatialFrequency) :
         (norm_nonneg _) (Nat.cast_nonneg _)
     _ = (3*(frequencyRadius k : ℝ))*‖x‖ := by simp; ring
 
-/-- Original `fourierModeExponent_norm_le` guarantee for the `FourierModeBounds` construction; the complete source hypotheses are retained. -/
+/-- The complex exponent map of a Fourier mode has operator norm at most three times the physical period times the frequency radius. -/
 theorem fourierModeExponent_norm_le (k : SpatialFrequency) :
     ‖fourierModeExponent k‖ ≤ 3*physicalPeriod*(frequencyRadius k : ℝ) := by
   have hp : 0 ≤ physicalPeriod := physicalPeriod_pos.le

@@ -29,9 +29,8 @@ This module fixes the objects that all claims of the paper are stated about:
   of §2 (Appendix A, Eq. (15)),
 * the indefinite Hermitian construction of §7 on the `4N`-dimensional space,
 * the schedules of Eq. (5)/(6) (AQC(p)) and Eq. (8) (AQC(exp)),
-* the Schrödinger evolution Eq. (2) as the Dyson propagator `orderedEvolution`
-  (`Qatlib.Papers.QLinearODE17.TaylorAnalysis`,
-  Reusable FQN `Qatlib.Papers.QLinearODE17.TaylorAnalysis.orderedEvolution`),
+* the Schrödinger evolution of Eq. (2), using the Dyson propagator
+  `Qatlib.Concepts.TimeEvolution.TimeOrderedEvolution.orderedEvolution`,
 * the density-matrix error `‖|ψ_T(s)⟩⟨ψ_T(s)| - |x̃⟩⟨x̃|‖₂` of §2.
 
 The paper is normalized as `‖A‖₂ = 1` and `N = 2ⁿ`; here `N : ℕ` is arbitrary and

@@ -24,7 +24,7 @@ The variable-time amplification setting is described in [Ambainis2012].
 * `runSuccess_stopHistory_split`: decomposition of the final success mass.
 * `receiptSecondMoment_le_max_mul_mean`: second moment bounded by the full receipt times the
   mean.
-* `frontier1`: combined history, receipt, and moment identities.
+* `stopped_history_decomposition_moment_and_resources`: combined history, receipt, and moment identities.
 
 ## References
 
@@ -649,7 +649,7 @@ theorem adaptive_receipt_budget (f : CoherentVtFrame H m) (ψ : QState H)
 
 /-- Combines the success-history decomposition, legal paid prefix receipts, the second-moment
 inequality, and the exact full receipt formulas. -/
-theorem frontier1 (f : CoherentVtFrame H m) (ψ : QState H) :
+theorem stopped_history_decomposition_moment_and_resources (f : CoherentVtFrame H m) (ψ : QState H) :
     f.runSuccess ψ = (∑ j : Fin m, freshStopSuccess f ψ j) + runningStopSuccess f ψ ∧
     (∀ j : Fin m,
       MeasureProb (ApplyGate (f.freshStop j) (payload (Qatlib.Concepts.QlsReadoutSpec.Amplification.run (by decide : 0 < 2)

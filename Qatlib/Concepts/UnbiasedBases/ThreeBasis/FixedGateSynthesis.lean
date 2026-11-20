@@ -1652,7 +1652,7 @@ def transportSynth (S : ScalarPhaseSynthesizer) : MiddleWindowSynthesizer where
 
 /-- The transported synthesizer's next segment is accepted for every request with precision at
 least one. -/
-theorem frontier1 (S : ScalarPhaseSynthesizer) :
+theorem transported_segment_accepted_of_positive_precision (S : ScalarPhaseSynthesizer) :
     ∀ (w : ℕ) (g : LocalQFTGate w) (k : ℕ), 1 ≤ k →
       Accepts w g k (nextSegment (transportSynth S) w g k) := by
   intro w g k hk
@@ -1667,7 +1667,7 @@ theorem frontier1 (S : ScalarPhaseSynthesizer) :
           omega)
 
 /-- The transported synthesizer's next segment uses at most one additional wire. -/
-theorem frontier1_ancilla (S : ScalarPhaseSynthesizer) (w : ℕ) (g : LocalQFTGate w)
+theorem transported_segment_extra_wires_le_one (S : ScalarPhaseSynthesizer) (w : ℕ) (g : LocalQFTGate w)
     (k : ℕ) : (nextSegment (transportSynth S) w g k).width ≤ w + 1 := by
   cases g with
   | h a => simp [nextSegment, effectiveEmit, effectiveAnc]
@@ -1680,7 +1680,7 @@ theorem frontier1_ancilla (S : ScalarPhaseSynthesizer) (w : ℕ) (g : LocalQFTGa
 
 /-- An explicit polynomial scalar length bound gives the stated polynomial gate ledger bound for
 the next segment. -/
-theorem frontier1_ledger (S : ScalarPhaseSynthesizer) (C₀ D₀ : ℕ)
+theorem transported_segment_polynomial_gate_ledger_bound (S : ScalarPhaseSynthesizer) (C₀ D₀ : ℕ)
     (hC₀ : ∀ (neg : Bool) (e k : ℕ), 4 ≤ e → 1 ≤ k →
       (S.emit neg e k).length ≤ C₀ * (e + k) ^ D₀) :
     ∀ (w : ℕ) (g : LocalQFTGate w) (k : ℕ), 1 ≤ k →

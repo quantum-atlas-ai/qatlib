@@ -19,14 +19,14 @@ used for ordered search [BenOrHassidim2007]. `equal_cell_conditional` gives the 
 conditional mass at the cut rank, with numerator `a.mass c * η.reliability` and the true-answer
 normalization.
 
-`frontier1` packages generation and normalization of the one-step joint law, positivity of
+`equal_cell_joint_law_conditioning_and_posterior_odds` packages generation and normalization of the one-step joint law, positivity of
 answer probabilities, the corrected conditional update, adaptive transcript conditioning, and
 the ordered fixed-pair ratio mean identity.
 
 ## Main statements
 
 * `equal_cell_conditional`: the conditional mass of the rank equal to the comparison cut.
-* `frontier1`: the combined one-step, adaptive, and fixed-pair probability identities.
+* `equal_cell_joint_law_conditioning_and_posterior_odds`: the combined one-step, adaptive, and fixed-pair probability identities.
 
 ## References
 
@@ -55,7 +55,7 @@ theorem equal_cell_conditional {n : ℕ} (a : Prior n) (η : Noise) (c : Fin n) 
 conditional probabilities, and adaptive transcript conditioning. It also includes the
 answer-weighted fixed-pair posterior-odds identity for `u ≤ k < i` with positive mass at
 `k`. -/
-theorem frontier1 {n : ℕ} (a : Prior n) (η : Noise) :
+theorem equal_cell_joint_law_conditioning_and_posterior_odds {n : ℕ} (a : Prior n) (η : Noise) :
     (∀ c : Fin n, joint a η c = (priorPMF a).bind
         (fun m => (answerPMF η m c).map (fun b => (m,b))) ∧
       (∑ z : Fin n × Bool, joint a η c z) = 1 ∧

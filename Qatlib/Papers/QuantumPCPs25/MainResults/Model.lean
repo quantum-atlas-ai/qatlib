@@ -20,14 +20,13 @@ The file fixes the finite semantic model used by the claim statements:
   verifiers (semantic projection of Definition 4) and the induced classes
   `QPCP[k,q,c,s]`, `QMA`, `QCMA`;
 * phase-marking oracles for the oracle-separation claims (§5, Lemmas 20-21);
-* faithful `Prop` statements for the remaining claims (`c001_statement` …),
-  each docstring recording the claim id and the scope of the formalisation;
+* `Prop` statements for the remaining claims, with docstrings describing the
+  scope of the formalisation;
 * two fully proved numerical cores: the weighted-energy identity of Eq. (11)
-  (c010) and the robustness bound behind Eq. (30)'s analysis (c026).
+  and the robustness bound used in the analysis of Eq. (30).
 
-Claims c004, c005, c013, c016, c017 are not stated here: their faithful
-formalisation needs partial-trace / tensor-product / quantum de Finetti
-infrastructure or full reduction syntax beyond the scope of this module.
+Results requiring partial traces, tensor products, quantum de Finetti theorems,
+or full reduction syntax are outside the scope of this module.
 
 All objects are concrete matrices and functions over `ZMod 2` index sets.
 -/
@@ -176,7 +175,7 @@ def InQCMAClass (P : RegisterPromise) (prf : ℕ → ℕ) (c s : ℝ) : Prop :=
       (∀ n x, P.no n x → ∀ ξ, (V n).accept ξ x ≤ s)
 
 /-- AND composition of two promise problems on the same input
-(used by c018): yes iff both are yes, no if either is no. -/
+(used by `qma_and_composition_statement`): yes iff both are yes, no if either is no. -/
 def andPP (P Q : RegisterPromise) : RegisterPromise where
   yes n x := P.yes n x ∧ Q.yes n x
   no n x := P.no n x ∨ Q.no n x
@@ -209,182 +208,182 @@ def FailsMarkingDistinction {n : ℕ} (alg : OracleAlgorithm n) : Prop :=
 
 /-! ## Claim statements -/
 
-/-- **c001 (Theorem 1, Eq. (9))**: for constant `q` and polynomials
+/-- **(Theorem 1, Eq. (9))**: for constant `q` and polynomials
 `p1, p2, p3`, every `(k,q,p1,p2,p3)`-QPCP verifier on input `x` admits,
 with success probability `1 − δ` and time `poly(n,1/ϵ,log(1/δ))`, a
 `q`-local Hamiltonian with `m = poly(n)` PSD terms and operator norm `≤ 1`
 such that `|Pr[V_x accepts ξ] − (1 − tr[H ξ])| ≤ ϵ` for all proofs `ξ`.
 The quantum reduction construction (and the norm/time side conditions) is
 the outside the scope of this module; the statement keeps its universal shape. -/
-def c001_statement (k q : ℕ) (p1 p2 : ℕ → ℕ) (m : ℕ) (ϵ : ℝ) : Prop :=
+def qpcp_acceptance_approximated_by_local_energy_statement (k q : ℕ) (p1 p2 : ℕ → ℕ) (m : ℕ) (ϵ : ℝ) : Prop :=
   ∀ n (x : BitStr n) (V : QPCPVerifier n (p2 n * k + p1 n)),
     ∃ H : LHInstance (p2 n * k + p1 n) m q,
       ∀ ξ, |V.accept ξ x - (1 - (traceProd (totalOp H) ξ).re)| ≤ ϵ
 
-/-- **c002 (Theorem 3)**: parallel repetition amplifies a constant gap:
+/-- **(Theorem 3)**: parallel repetition amplifies a constant gap:
 `QPCP[1,q,c,s] ⊆ QPCP[1,O(qt),1−2^{−t},2^{−t}]`, soundness surviving
 entangled proofs via Chernoff bounds for conditional expectations.  The
 repeated-verifier construction and Chernoff analysis are the recorded
 obstacle. -/
-def c002_statement (P : RegisterPromise) (prf prf' : ℕ → ℕ) (q : ℕ) (c s : ℝ)
+def single_prover_qpcp_repetition_error_bounds_statement (P : RegisterPromise) (prf prf' : ℕ → ℕ) (q : ℕ) (c s : ℝ)
     (t : ℕ) : Prop :=
   InQPCPClass P 1 prf q c s →
     InQPCPClass P 1 prf' (q * t) (1 - ((2 ^ t : ℝ))⁻¹) (((2 ^ t : ℝ))⁻¹)
 
-/-- **c003 (Theorem 4)**: near-complete non-adaptive QPCPs repeat on the
+/-- **(Theorem 4)**: near-complete non-adaptive QPCPs repeat on the
 same quantum proof: `QPCPNA[1,q,c,s] = QPCPNA[1,lq,c′,s′]` with
 `s′ = 2^{−O(l)}`.  The repeated-query verifier analysis is the recorded
 obstacle. -/
-def c003_statement (P : RegisterPromise) (prf : ℕ → ℕ) (q l : ℕ) (c s c' s' : ℝ) :
+def qpcp_same_proof_repetition_statement (P : RegisterPromise) (prf : ℕ → ℕ) (q l : ℕ) (c s c' s' : ℝ) :
     Prop :=
   InQPCPClass P 1 prf q c s → InQPCPClass P 1 prf (l * q) c' s'
 
-/-- **c006 (Eq. (3))**: for constant `q` and polynomials `p1, p2, p3`,
+/-- **(Eq. (3))**: for constant `q` and polynomials `p1, p2, p3`,
 every `(k,q,p1,p2,p3)`-QPCP verifier and proof admits a PSD `q`-local
 Hamiltonian with `Pr[V accepts ξ] = 1 − tr[H ξ]` exactly.  Constructing
 `H` from the verifier (Eq. (2) composed PVM operator) needs
 measurement-composition semantics, the outside the scope of this module. -/
-def c006_statement (k q : ℕ) (p1 p2 : ℕ → ℕ) (m : ℕ) : Prop :=
+def qpcp_acceptance_eq_one_sub_local_energy_statement (k q : ℕ) (p1 p2 : ℕ → ℕ) (m : ℕ) : Prop :=
   ∀ n (x : BitStr n) (V : QPCPVerifier n (p2 n * k + p1 n)),
     ∃ H : LHInstance (p2 n * k + p1 n) m q,
       ∀ ξ, V.accept ξ x = 1 - (traceProd (totalOp H) ξ).re
 
-/-- **c008 (Theorem 2)**: the reduction of Theorem 1 can output one fixed
+/-- **(Theorem 2)**: the reduction of Theorem 1 can output one fixed
 Hamiltonian `H̃_x` realising the error bound; i.e. the output does not
 resample across the `1 − δ` probability branch.  Reduction-output
 semantics beyond the acceptance interface is the outside the scope of this module. -/
-def c008_statement (k q : ℕ) (p1 p2 : ℕ → ℕ) (m : ℕ) (ϵ : ℝ) : Prop :=
-  c001_statement k q p1 p2 m ϵ
+def qpcp_fixed_hamiltonian_acceptance_approximation_statement (k q : ℕ) (p1 p2 : ℕ → ℕ) (m : ℕ) (ϵ : ℝ) : Prop :=
+  qpcp_acceptance_approximated_by_local_energy_statement k q p1 p2 m ϵ
 
-/-- **c009 (Lemma 5)**: gap amplification with locality doubling: a
+/-- **(Lemma 5)**: gap amplification with locality doubling: a
 `q`-local instance with gap `b − a ≥ γ` yields a `2q`-local instance with
 normalised terms and gap at least `γ/2`.  The Kitaev-style clock/flag
 construction is the outside the scope of this module. -/
-def c009_statement {n m : ℕ} (q : ℕ) (a b γ : ℝ)
+def local_hamiltonian_gap_under_locality_doubling_statement {n m : ℕ} (q : ℕ) (a b γ : ℝ)
     (H : LHInstance n m q) (H' : LHInstance n m (2 * q)) : Prop :=
   HasGap H a b → b - a ≥ γ → ∃ a' b', b' - a' ≥ γ / 2 ∧ HasGap H' a' b'
 
-/-- **c010 (Lemma 6, Eq. (11))**: weighted energy estimation — sampling a
+/-- **(Lemma 6, Eq. (11))**: weighted energy estimation — sampling a
 term `i` with probability `w_i` and measuring its `q` qubits outputs `1`
 with probability `Σ_i w_i (1 − ⟨ψ|H_i|ψ⟩) = 1 − ⟨ψ|H|ψ⟩`.  The
 sampling-measurement protocol semantics is abstracted; the algebraic
-identity is proved below as `c010_weighted_energy`. -/
-def c010_statement {n m q : ℕ} (H : LHInstance n m q) : Prop :=
+identity is proved below as `weighted_rejection_eq_one_sub_energy`. -/
+def weighted_energy_estimation_identity_statement {n m q : ℕ} (H : LHInstance n m q) : Prop :=
   ∀ ψ : BitStr n → ℂ,
     ∑ i, H.weights i * (1 - (expectation (H.terms i) ψ).re) = 1 - energy H ψ
 
-/-- **c011 (Theorem 6)**: `q-LH[δ] ⊆ QPCPNA[q′]` for constant `q`: the
+/-- **(Theorem 6)**: `q-LH[δ] ⊆ QPCPNA[q′]` for constant `q`: the
 promise problem `P` of `q`-local Hamiltonians with gap `δ` has
 constant-query non-adaptive QPCP verifiers.  The verifier construction is
 the outside the scope of this module. -/
-def c011_statement (P : RegisterPromise) (prf : ℕ → ℕ) (q' : ℕ) (δ : ℝ) :
+def local_hamiltonian_qpcp_membership_statement (P : RegisterPromise) (prf : ℕ → ℕ) (q' : ℕ) (δ : ℝ) :
     Prop :=
   InQPCPClass P 1 prf q' (1 - δ) δ
 
-/-- **c012 (Lemma 8)**: random reduction to `2q`-local instances with
+/-- **(Lemma 8)**: random reduction to `2q`-local instances with
 `l = O(n)` terms preserving a constant relative gap, with success
 probability `1 − δ`.  The term-subsampling reduction is the recorded
 obstacle. -/
-def c012_statement {n m l : ℕ} (q : ℕ) (a b γ' δ : ℝ)
+def subsampled_hamiltonian_gap_statement {n m l : ℕ} (q : ℕ) (a b γ' δ : ℝ)
     (H : LHInstance n m q) (G' : LHInstance n l (2 * q)) : Prop :=
   HasGap H a b → 0 < δ → γ' ≤ (b - a) / 2 ∧ HasGap G' (a + γ') b
 
-/-- **c014 (Theorem 8)**: if constant-gap `q`-local Hamiltonians are in
+/-- **(Theorem 8)**: if constant-gap `q`-local Hamiltonians are in
 QCMA for all constant `q`, then `QPCP[q] ⊆ QCMA` for all constant `q`.
 The derandomised Hamiltonian reproduction inside a QCMA verifier is the
 outside the scope of this module. -/
-def c014_statement (prf : ℕ → ℕ) : Prop :=
+def single_query_qpcp_in_qcma_statement (prf : ℕ → ℕ) : Prop :=
   ∀ P : RegisterPromise, InQPCPClass P 1 prf 1 (2 / 3) (1 / 3) →
     InQCMAClass P prf (2 / 3) (1 / 3)
 
-/-- **c015 (Theorem 5)**: adaptive constant-query QPCPs are simulated by
+/-- **(Theorem 5)**: adaptive constant-query QPCPs are simulated by
 non-adaptive ones with `q′ = O(q(4q/(c−s))²)` queries:
 `QPCP_{c,s}[q] ⊆ QPCPNA[q′]`; the induced completeness/soundness loss is
 parametrised as `(c−s)/4`.  The simulation construction is the recorded
 obstacle. -/
-def c015_statement (P : RegisterPromise) (prf : ℕ → ℕ) (q q' : ℕ) (c s : ℝ) :
+def qpcp_simulation_with_quarter_gap_loss_statement (P : RegisterPromise) (prf : ℕ → ℕ) (q q' : ℕ) (c s : ℝ) :
     Prop :=
   InQPCPClass P 1 prf q c s →
     InQPCPClass P 1 prf q' (c - (c - s) / 4) (s + (c - s) / 4)
 
-/-- **c018 (Lemma 14)**: QMA is closed under AND composition of promise
+/-- **(Lemma 14)**: QMA is closed under AND composition of promise
 problems: the parallel-composition verifier runs each QMA verifier and
 accepts iff all accept.  The threshold bookkeeping is the recorded
 obstacle. -/
-def c018_statement (P Q : RegisterPromise) (prf : ℕ → ℕ) : Prop :=
+def qma_and_composition_statement (P Q : RegisterPromise) (prf : ℕ → ℕ) : Prop :=
   InQMAClass P prf (2 / 3) (1 / 3) → InQMAClass Q prf (2 / 3) (1 / 3) →
     ∃ prf' : ℕ → ℕ, InQMAClass (andPP P Q) prf' (2 / 3) (1 / 3)
 
-/-- **c020 (Corollary 3)**: if every two-prover problem reduces to
+/-- **(Corollary 3)**: if every two-prover problem reduces to
 `QPCP[k′,q]` (class form of `QMA[2] ⊆ QPCP[k′,q]`), then every such problem
 is in QMA: compose the reduction to a `q`-local Hamiltonian (Theorem 1)
 with the QMA simulation of QPCP verifiers (Lemma 14).  The composed
 construction is the outside the scope of this module. -/
-def c020_statement (prf prf2 : ℕ → ℕ) (k' q : ℕ) : Prop :=
+def multiprover_qpcp_in_qma_statement (prf prf2 : ℕ → ℕ) (k' q : ℕ) : Prop :=
   ∀ P : RegisterPromise, InQPCPClass P k' prf2 q (2 / 3) (1 / 3) →
     InQMAClass P prf (2 / 3) (1 / 3)
 
-/-- **c021 (Lemma 12)**: `d`-dimensional density matrices admit a trace
+/-- **(Lemma 12)**: `d`-dimensional density matrices admit a trace
 -distance `ϵ`-net of size `≤ C (1/ϵ)^{5d}`, obtained by taking partial
 traces of an `h`-net of pure states in dimension `2d`.  The trace distance
 is abstracted as a parameter `dist`; the volumetric net construction is
 the outside the scope of this module. -/
-def c021_statement (d : ℕ) (dist : Op d → Op d → ℝ) (C ϵ : ℝ) : Prop :=
+def density_matrix_epsilon_net_cardinality_statement (d : ℕ) (dist : Op d → Op d → ℝ) (C ϵ : ℝ) : Prop :=
   ∃ net : Finset (Op d),
     (∀ ρ : Op d, IsDensity ρ → ∃ σ ∈ net, IsDensity σ ∧ dist ρ σ ≤ ϵ) ∧
       (net.card : ℝ) ≤ C * (1 / ϵ) ^ (5 * d)
 
-/-- **c022 (Lemma 13)**: replacing a proof state by its projection onto an
+/-- **(Lemma 13)**: replacing a proof state by its projection onto an
 `ϵ`-net of density matrices degrades completeness/soundness by at most
 `ϵ`: `QPCP^U[k,q] ⊆ QPCP_ϵ^U[k,q,2/3−ϵ,1/3+ϵ]` for every oracle `U`
 (the oracle is abstracted away by the class predicate).  The
 net-projection verifier analysis is the outside the scope of this module. -/
-def c022_statement (P : RegisterPromise) (prf : ℕ → ℕ) (k q : ℕ) (ϵ : ℝ) : Prop :=
+def qpcp_proof_discretization_threshold_loss_statement (P : RegisterPromise) (prf : ℕ → ℕ) (k q : ℕ) (ϵ : ℝ) : Prop :=
   InQPCPClass P k prf q (2 / 3) (1 / 3) →
     InQPCPClass P k prf q (2 / 3 - ϵ) (1 / 3 + ϵ)
 
-/-- **c023 (Lemma 20, Eq. (40))**: marking-oracle witness verification
+/-- **(Lemma 20, Eq. (40))**: marking-oracle witness verification
 lower bound: any algorithm distinguishing a marked oracle from the identity
 with bounded error, even granted `q` indices and `ϵ`-net density-matrix
 witnesses (absorbed into the algorithm interface), needs
 `Ω(√(2^n/(5·2^q log(1/ϵ) + q·polylog(n,q) + C)))` queries.  The
 polynomial-method lower bound is the outside the scope of this module. -/
-def c023_statement (n : ℕ) (T : ℝ) : Prop :=
+def quantum_marking_distinction_query_lower_bound_statement (n : ℕ) (T : ℝ) : Prop :=
   ∀ alg : OracleAlgorithm n, alg.nq < T → FailsMarkingDistinction alg
 
-/-- **c024 (Theorem 9)**: there is a quantum oracle `U` such that
+/-- **(Theorem 9)**: there is a quantum oracle `U` such that
 `QCMA^U ≠ QMA^U` and `QPCP[k,q]^U ≠ QMA^U` for all `q ∈ O(log n)` and
 `1 ≤ k ≤ poly(n)`: the marking-oracle separation defeats every
 sub-`√(2^n)`-query verifier.  The oracle-construction diagonalisation is
 the outside the scope of this module. -/
-def c024_statement (n : ℕ) : Prop :=
+def quantum_marking_oracle_separation_statement (n : ℕ) : Prop :=
   ∃ (U : Op n) (xs : BitStr n), IsMarkingOracle U xs ∧
     ∀ alg : OracleAlgorithm n, alg.nq < 2 ^ (n / 2) →
       alg.pr1 U < 2 / 3 ∨ 1 / 3 < alg.pr1 (1 : Op n)
 
-/-- **c025 (Theorem 10)**: there is a classical oracle `O` with
+/-- **(Theorem 10)**: there is a classical oracle `O` with
 `QPCP[k,q]^O ≠ QMA^O` (indeed `≠ NP^O`) for all constant `q`; the counting
 lower bound of Lemma 21 replaces the quantum one. -/
-def c025_statement (n : ℕ) : Prop :=
+def classical_phase_marking_oracle_separation_statement (n : ℕ) : Prop :=
   ∃ (O : Op n) (xs : BitStr n), IsMarkingOracle O xs ∧
     ∀ alg : OracleAlgorithm n, alg.nq < 2 ^ (n / 2) →
       alg.pr1 O < 2 / 3 ∨ 1 / 3 < alg.pr1 (1 : Op n)
 
-/-- **c027 (Lemma 21, Eq. (41))**: classical phase-oracle search with
+/-- **(Lemma 21, Eq. (41))**: classical phase-oracle search with
 `(q, ϵ)`-net density-matrix witnesses requires
 `Ω(√(2^n/((e·p(n)/q)^q C(1/ϵ)^{5·2^q})))` queries for bounded-error
-verification; the counting lower bound used by c025. -/
-def c027_statement (n : ℕ) (T : ℝ) : Prop :=
+verification; the counting lower bound used by `classical_phase_marking_oracle_separation_statement`. -/
+def classical_phase_marking_distinction_query_lower_bound_statement (n : ℕ) (T : ℝ) : Prop :=
   ∀ alg : OracleAlgorithm n, alg.nq < T → FailsMarkingDistinction alg
 
 /-! ## Proved numerical cores -/
 
-/-- **c010, algebraic core (Eq. (11))**: the weighted rejection
+/-- **algebraic core (Eq. (11))**: the weighted rejection
 probability of the sampled energy-estimation measurement equals
 `1 − ⟨ψ|H|ψ⟩` whenever the weights sum to one.  This is the exact
 identity of Eq. (11); the Born-rule identification of each term with a
 `q`-qubit measurement outcome is the remaining (semantics) gap. -/
-theorem c010_weighted_energy {n m q : ℕ} (H : LHInstance n m q)
+theorem weighted_rejection_eq_one_sub_energy {n m q : ℕ} (H : LHInstance n m q)
     (hsumW : ∑ i, H.weights i = 1) (ψ : BitStr n → ℂ) :
     ∑ i, H.weights i * (1 - (expectation (H.terms i) ψ).re) = 1 - energy H ψ := by
   rw [energy]
@@ -394,7 +393,7 @@ theorem c010_weighted_energy {n m q : ℕ} (H : LHInstance n m q)
     ring
   rw [Finset.sum_congr rfl (fun i _ => key i), Finset.sum_sub_distrib, hsumW]
 
-/-- **c026, numerical core (Eq. (30) analysis)**: stability of the
+/-- **numerical core (Eq. (30) analysis)**: stability of the
 Hamiltonian energy under weight and term perturbations: if the weights
 differ by at most `ϵ0 ≤ ϵ/(8m²)` and each term's expectation differs by at
 most `ϵ1 ≤ ϵ/6` (relative to `⟨ψ|ψ⟩`), then the weighted energies differ
@@ -402,7 +401,7 @@ by at most `ϵ·⟨ψ|ψ⟩`.  With the paper's hypotheses (unit-norm terms and
 probability weights) this is exactly the operator-norm bound
 `‖H − H̃‖ ≤ ϵ` evaluated on states; the renormalisation step
 (`p̂ = p̃/W̃`, `Ĥ = H̃/max{‖H̃‖,1}`) is the remaining gap. -/
-theorem c026_energy_stability {n m : ℕ} (H Ht : Fin m → Op n) (p pt : Fin m → ℝ)
+theorem weighted_energy_sub_abs_le_of_perturbation {n m : ℕ} (H Ht : Fin m → Op n) (p pt : Fin m → ℝ)
     (ψ : BitStr n → ℂ) (ϵ ϵ0 ϵ1 : ℝ)
     (hnorm : ∀ i, |(expectation (H i) ψ).re| ≤ normSq ψ)
     (hdiff : ∀ i, |(expectation (H i) ψ).re - (expectation (Ht i) ψ).re|

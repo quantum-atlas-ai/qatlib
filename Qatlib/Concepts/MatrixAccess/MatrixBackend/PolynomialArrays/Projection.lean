@@ -54,7 +54,7 @@ def sourceMatrix {R : Type} [CommRing R] (f g : R[X]) (m n : ℕ) :
   else
     if i.val-n ≤ j.val ∧ j.val ≤ i.val then g.coeff (i.val-j.val) else 0
 
-/-- The finite construction in `Projection` satisfies `source_matrix_eq` under the displayed hypotheses. -/
+/-- The source Sylvester matrix is the transpose of Mathlib's Sylvester matrix with both index orders reversed, for arbitrary size parameters `m` and `n`. -/
 theorem source_matrix_eq {R : Type} [CommRing R] (f g : R[X]) (m n : ℕ) :
     sourceMatrix f g m n=(f.sylvester g m n).transpose.submatrix Fin.rev Fin.rev := by
   ext i j
@@ -86,7 +86,7 @@ theorem source_matrix_eq {R : Type} [CommRing R] (f g : R[X]) (m n : ℕ) :
     · have hcond : ¬(m+n-(i.val+1) ≤ m+n-(j.val+1) ∧ m+n-(j.val+1) ≤ m+n-(i.val+1)+n) := by omega
       rw [ite_eq_right hj,ite_eq_right hcond]
 
-/-- The finite construction in `Projection` satisfies `source_det_eq_resultant` under the displayed hypotheses. -/
+/-- The determinant of the source Sylvester matrix over a commutative ring is the resultant with the same size parameters. -/
 theorem source_det_eq_resultant {R : Type} [CommRing R] (f g : R[X]) (m n : ℕ) :
     (sourceMatrix f g m n).det=f.resultant g m n := by
   rw [source_matrix_eq]
@@ -100,12 +100,12 @@ end ActualProjectionSylvester
 namespace ActualProjectionRows
 open ActualProjectionSylvester ActualYunRationalArray
 
-/-- The finite construction in `Projection` satisfies `zero_getD` under the displayed hypotheses. -/
+/-- A rational list of `n` zeros gives zero at every index when lookup defaults to zero. -/
 theorem zero_getD (n j : ℕ) : (List.replicate n (0 : ℚ)).getD j 0=0 := by
   simp only [List.getD_eq_getElem?_getD,List.getElem?_replicate]
   split_ifs <;> rfl
 
-/-- The finite construction in `Projection` satisfies `append_zeros_getD` under the displayed hypotheses. -/
+/-- Appending any number of zeros leaves zero-default lookup of `a` unchanged at every index. -/
 theorem append_zeros_getD (a : List ℚ) (n j : ℕ) :
     (a++List.replicate n 0).getD j 0=a.getD j 0 := by
   by_cases hj : j<a.length
@@ -119,7 +119,7 @@ theorem append_zeros_getD (a : List ℚ) (n j : ℕ) :
 def row (a : List ℚ) (shift trailing : ℕ) : List ℚ :=
   List.replicate shift 0++a.reverse++List.replicate trailing 0
 
-/-- The finite construction in `Projection` satisfies `row_getD` under the displayed hypotheses. -/
+/-- For a list of length `m + 1`, column `j` in the padded, reversed row reads coefficient `m + shift - j` when `shift ≤ j ≤ shift + m`, and reads zero elsewhere. -/
 theorem row_getD (a : List ℚ) (m shift trailing j : ℕ) (hlen : a.length=m+1) :
     (row a shift trailing).getD j 0=
       if shift ≤ j ∧ j ≤ shift+m then a.getD (m+shift-j) 0 else 0 := by
@@ -156,7 +156,7 @@ theorem rows_length (a b : List ℚ) (m n : ℕ) : (rows a b m n).length=m+n := 
 def listMatrix (a b : List ℚ) (m n : ℕ) : Matrix (Fin (m+n)) (Fin (m+n)) ℚ :=
   fun i j => ((rows a b m n).getD i.val []).getD j.val 0
 
-/-- The finite construction in `Projection` satisfies `rows_matrix_eq` under the displayed hypotheses. -/
+/-- With coefficient-list lengths `m + 1` and `n + 1`, the matrix read from the generated rows equals the source Sylvester matrix of the represented polynomials. -/
 theorem rows_matrix_eq (a b : List ℚ) (m n : ℕ) (ha : a.length=m+1) (hb : b.length=n+1) :
     listMatrix a b m n=sourceMatrix (poly a) (poly b) m n := by
   ext i j
@@ -183,7 +183,7 @@ theorem rows_matrix_eq (a b : List ℚ) (m n : ℕ) (ha : a.length=m+1) (hb : b.
     have he2 : n+(i.val-n)=i.val := by omega
     rw [he1,he2]
 
-/-- The finite construction in `Projection` satisfies `rows_det_eq_resultant` under the displayed hypotheses. -/
+/-- For lists of lengths `m + 1` and `n + 1`, the determinant of their row matrix equals the fixed-size resultant of their polynomials. -/
 theorem rows_det_eq_resultant (a b : List ℚ) (m n : ℕ)
     (ha : a.length=m+1) (hb : b.length=n+1) :
     (listMatrix a b m n).det=(poly a).resultant (poly b) m n := by
@@ -204,7 +204,7 @@ open Polynomial ActualYunRationalArray ActualProjectionRows
 def specializeArray (F : Polynomial (Polynomial ℚ)) (m : ℕ) (t : ℚ) : List ℚ :=
   List.ofFn (fun i : Fin (m+1) => (F.coeff i.val).eval t)
 
-/-- The finite construction in `Projection` satisfies `specialize_poly` under the displayed hypotheses. -/
+/-- If the outer degree of `F` is at most `m`, the specialized list represents the polynomial obtained by evaluating each coefficient of `F` at `t`. -/
 theorem specialize_poly (F : Polynomial (Polynomial ℚ)) (m : ℕ) (t : ℚ)
     (hF : F.natDegree ≤ m) :
     poly (specializeArray F m t)=F.map (Polynomial.evalRingHom t) := by
@@ -220,7 +220,7 @@ theorem specialize_poly (F : Polynomial (Polynomial ℚ)) (m : ℕ) (t : ℚ)
     rw [List.getD_eq_getElem?_getD,List.getElem?_ofFn,dite_eq_right hk]
     simp only [map_zero,Option.getD_none]
 
-/-- The finite construction in `Projection` satisfies `specialized_rows_det` under the displayed hypotheses. -/
+/-- If the outer degrees of `F` and `G` are bounded by `m` and `n`, the determinant of the specialized row matrix at `t` equals the fixed-size resultant evaluated at `t`. -/
 theorem specialized_rows_det (F G : Polynomial (Polynomial ℚ)) (m n : ℕ) (t : ℚ)
     (hF : F.natDegree ≤ m) (hG : G.natDegree ≤ n) :
     (listMatrix (specializeArray F m t) (specializeArray G n t) m n).det=
@@ -244,7 +244,7 @@ def sweep {n : ℕ} (A : Matrix (Fin (n+1)) (Fin (n+1)) ℚ) :
 def trailing {n : ℕ} (A : Matrix (Fin (n+1)) (Fin (n+1)) ℚ) : Matrix (Fin n) (Fin n) ℚ :=
   fun i j => A i.succ j.succ-(A i.succ 0/A 0 0)*A 0 j.succ
 
-/-- The finite construction in `Projection` satisfies `sweep_det` under the displayed hypotheses. -/
+/-- Eliminating the entries below a nonzero top-left pivot preserves the determinant. -/
 theorem sweep_det {n : ℕ} (A : Matrix (Fin (n+1)) (Fin (n+1)) ℚ) (hp : A 0 0≠0) :
     (sweep A).det=A.det := by
   apply Matrix.det_eq_of_forall_row_eq_smul_add_const (fun i => if i=0 then 0 else -(A i 0/A 0 0)) 0
@@ -260,7 +260,7 @@ theorem sweep_det {n : ℕ} (A : Matrix (Fin (n+1)) (Fin (n+1)) ℚ) (hp : A 0 0
       · simp only [sweep,ite_eq_right hi,ite_eq_right hj]
         ring
 
-/-- The finite construction in `Projection` satisfies `first_column_det` under the displayed hypotheses. -/
+/-- When every entry below the first entry of the first column is zero, the determinant is that entry times the determinant obtained by dropping the first row and column. -/
 theorem first_column_det {n : ℕ} (A : Matrix (Fin (n+1)) (Fin (n+1)) ℚ)
     (hz : ∀ i : Fin n,A i.succ 0=0) :
     A.det=A 0 0*(A.submatrix Fin.succ Fin.succ).det := by
@@ -268,7 +268,7 @@ theorem first_column_det {n : ℕ} (A : Matrix (Fin (n+1)) (Fin (n+1)) ℚ)
   simp only [Fin.val_zero,pow_zero,one_mul,Fin.succAbove_zero,hz,mul_zero,zero_mul,
     Finset.sum_const_zero,add_zero]
 
-/-- The finite construction in `Projection` satisfies `schur_det` under the displayed hypotheses. -/
+/-- A nonzero top-left entry factors the determinant into that pivot times the determinant of the trailing block after elimination. -/
 theorem schur_det {n : ℕ} (A : Matrix (Fin (n+1)) (Fin (n+1)) ℚ) (hp : A 0 0≠0) :
     A.det=A 0 0*(trailing A).det := by
   rw [← sweep_det A hp,first_column_det (sweep A) (by intro i; simp [sweep])]
@@ -281,11 +281,11 @@ def swapRows {n : ℕ} (A : Matrix (Fin (n+1)) (Fin (n+1)) ℚ) (p : Fin (n+1)) 
 /-- Construction for swap Sign in the projection model. -/
 def swapSign {n : ℕ} (p : Fin (n+1)) : ℚ := if p=0 then 1 else -1
 
-/-- The finite construction in `Projection` satisfies `swap_pivot` under the displayed hypotheses. -/
+/-- Swapping rows `0` and `p` moves entry `A p 0` into the top-left position. -/
 theorem swap_pivot {n : ℕ} (A : Matrix (Fin (n+1)) (Fin (n+1)) ℚ) (p : Fin (n+1)) :
     swapRows A p 0 0=A p 0 := by simp [swapRows]
 
-/-- The finite construction in `Projection` satisfies `swap_det` under the displayed hypotheses. -/
+/-- Swapping rows `0` and `p` multiplies the determinant by `swapSign p`, which is one for `p = 0` and minus one otherwise. -/
 theorem swap_det {n : ℕ} (A : Matrix (Fin (n+1)) (Fin (n+1)) ℚ) (p : Fin (n+1)) :
     (swapRows A p).det=swapSign p*A.det := by
   rw [swapRows,Matrix.det_permute]
@@ -294,7 +294,7 @@ theorem swap_det {n : ℕ} (A : Matrix (Fin (n+1)) (Fin (n+1)) ℚ) (p : Fin (n+
     simp [swapSign]
   · simp [swapSign,hp,Equiv.Perm.sign_swap (Ne.symm hp)]
 
-/-- The finite construction in `Projection` satisfies `pivot_schur_det` under the displayed hypotheses. -/
+/-- A nonzero entry `A p 0` expresses the determinant as the row-swap sign times the moved pivot times the determinant of the trailing block after elimination. -/
 theorem pivot_schur_det {n : ℕ} (A : Matrix (Fin (n+1)) (Fin (n+1)) ℚ)
     (p : Fin (n+1)) (hp : A p 0≠0) :
     A.det=swapSign p*(swapRows A p 0 0)*(trailing (swapRows A p)).det := by
@@ -317,13 +317,13 @@ open Matrix ActualProjectionGaussianHead
 def pivot {n : ℕ} (A : Matrix (Fin (n+1)) (Fin (n+1)) ℚ) : Option (Fin (n+1)) :=
   (List.finRange (n+1)).find? (fun i => decide (A i 0≠0))
 
-/-- The finite construction in `Projection` satisfies `pivot_some` under the displayed hypotheses. -/
+/-- A row returned by `pivot` has a nonzero first-column entry. -/
 theorem pivot_some {n : ℕ} (A : Matrix (Fin (n+1)) (Fin (n+1)) ℚ) (p : Fin (n+1))
     (hp : pivot A=some p) : A p 0≠0 := by
   have hh : decide (A p 0≠0)=true := List.find?_some (p:=fun i => decide (A i 0≠0)) hp
   exact of_decide_eq_true hh
 
-/-- The finite construction in `Projection` satisfies `pivot_none` under the displayed hypotheses. -/
+/-- If `pivot` returns `none`, every entry of the first column is zero. -/
 theorem pivot_none {n : ℕ} (A : Matrix (Fin (n+1)) (Fin (n+1)) ℚ)
     (hp : pivot A=none) : ∀ i,A i 0=0 := by
   have hh := List.find?_eq_none.mp hp
@@ -338,7 +338,7 @@ def gauss : (n : ℕ) → Matrix (Fin n) (Fin n) ℚ → ℚ
     | none => 0
     | some p => swapSign p*(swapRows A p 0 0)*gauss n (trailing (swapRows A p))
 
-/-- The finite construction in `Projection` satisfies `gauss_eq_det` under the displayed hypotheses. -/
+/-- On every square rational matrix, the recursive Gaussian algorithm returns its determinant. -/
 theorem gauss_eq_det (n : ℕ) (A : Matrix (Fin n) (Fin n) ℚ) : gauss n A=A.det := by
   induction n with
   | zero => simp only [gauss,Matrix.det_isEmpty]
@@ -361,7 +361,7 @@ def gaussAcc : (n : ℕ) → Matrix (Fin n) (Fin n) ℚ → ℚ → ℚ
       let B := swapRows A p
       gaussAcc n (trailing B) ((if p=0 then value else -value)*B 0 0)
 
-/-- The finite construction in `Projection` satisfies `gaussAcc_eq` under the displayed hypotheses. -/
+/-- The accumulator version of Gaussian elimination returns the starting `value` multiplied by the determinant of `A`. -/
 theorem gaussAcc_eq (n : ℕ) (A : Matrix (Fin n) (Fin n) ℚ) (value : ℚ) :
     gaussAcc n A value=value*A.det := by
   induction n generalizing value with
@@ -391,7 +391,7 @@ open Matrix
 def writeCell {N : ℕ} (A : Matrix (Fin N) (Fin N) ℚ) (k t : Fin N) (v : ℚ) :
     Matrix (Fin N) (Fin N) ℚ := A.updateRow k (Function.update (A k) t v)
 
-/-- The finite construction in `Projection` satisfies `writeCell_apply` under the displayed hypotheses. -/
+/-- Writing `v` at row `k` and column `t` changes the entry read there to `v` and preserves the entry read at every other position. -/
 theorem writeCell_apply {N : ℕ} (A : Matrix (Fin N) (Fin N) ℚ) (k t i j : Fin N) (v : ℚ) :
     writeCell A k t v i j=if i=k ∧ j=t then v else A i j := by
   by_cases hi : i=k <;> by_cases hj : j=t <;> simp [writeCell,Matrix.updateRow_apply,hi,hj]
@@ -402,7 +402,7 @@ def columns {N : ℕ} (p k : Fin N) (ratio : ℚ) : List (Fin N) →
   | [],A => A
   | t::ts,A => columns p k ratio ts (writeCell A k t (A k t-ratio*A p t))
 
-/-- The finite construction in `Projection` satisfies `columns_apply` under the displayed hypotheses. -/
+/-- For duplicate-free `ts`, the column updates subtract `ratio * A p j` exactly at cells in row `k` with column `j` in `ts`. -/
 theorem columns_apply {N : ℕ} (p k : Fin N) (ratio : ℚ)
     (ts : List (Fin N)) (hts : ts.Nodup) (A : Matrix (Fin N) (Fin N) ℚ) (i j : Fin N) :
     columns p k ratio ts A i j=
@@ -432,7 +432,7 @@ def eliminateRow {N : ℕ} (p k : Fin N) (ts : List (Fin N))
     let B := columns p k ratio ts A
     writeCell B k p 0
 
-/-- The finite construction in `Projection` satisfies `eliminateRow_apply` under the displayed hypotheses. -/
+/-- For duplicate-free `ts` excluding `p`, eliminating row `k` sets column `p` to zero and subtracts `(A k p / A p p) * A p j` in each listed column `j`, preserving every other cell. -/
 theorem eliminateRow_apply {N : ℕ} (p k : Fin N)
     (ts : List (Fin N)) (hts : ts.Nodup) (hp : p∉ts)
     (A : Matrix (Fin N) (Fin N) ℚ) (i j : Fin N) :
@@ -463,7 +463,7 @@ def eliminateRows {N : ℕ} (p : Fin N) (ts : List (Fin N)) : List (Fin N) →
   | [],A => A
   | k::ks,A => eliminateRows p ts ks (eliminateRow p k ts A)
 
-/-- The finite construction in `Projection` satisfies `eliminateRows_apply` under the displayed hypotheses. -/
+/-- When the row list `ks` and column list `ts` are each duplicate-free and omit `p`, elimination zeroes column `p` in each listed row `i` and subtracts `(A i p / A p p) * A p j` in that row's listed columns `j`. Other cells retain their original values. -/
 theorem eliminateRows_apply {N : ℕ} (p : Fin N) (ts ks : List (Fin N))
     (hts : ts.Nodup) (hpt : p∉ts) (hks : ks.Nodup) (hpk : p∉ks)
     (A : Matrix (Fin N) (Fin N) ℚ) (i j : Fin N) :
@@ -502,7 +502,7 @@ def remaining {N n : ℕ} (e : Fin (n+1) → Fin N) : List (Fin N) :=
 def swapFull {N : ℕ} (A : Matrix (Fin N) (Fin N) ℚ) (p q : Fin N) :
     Matrix (Fin N) (Fin N) ℚ := A.submatrix (Equiv.swap p q) id
 
-/-- The finite construction in `Projection` satisfies `swap_project` under the displayed hypotheses. -/
+/-- For injective `e`, projecting the full matrix after swapping rows `e 0` and `e p` equals swapping rows `0` and `p` in the projected matrix. -/
 theorem swap_project {N n : ℕ} (A : Matrix (Fin N) (Fin N) ℚ)
     (e : Fin (n+1) → Fin N) (he : Function.Injective e) (p : Fin (n+1)) :
     (swapFull A (e 0) (e p)).submatrix e e=swapRows (A.submatrix e e) p := by
@@ -510,22 +510,22 @@ theorem swap_project {N n : ℕ} (A : Matrix (Fin N) (Fin N) ℚ)
   change A (Equiv.swap (e 0) (e p) (e i)) (e j)=A (e (Equiv.swap 0 p i)) (e j)
   rw [he.swap_apply]
 
-/-- The finite construction in `Projection` satisfies `remaining_nodup` under the displayed hypotheses. -/
+/-- The list of indices after the head of an injective embedding `e` has no duplicates. -/
 theorem remaining_nodup {N n : ℕ} (e : Fin (n+1) → Fin N) (he : Function.Injective e) :
     (remaining e).Nodup := List.nodup_ofFn.mpr (he.comp (Fin.succ_injective n))
 
-/-- The finite construction in `Projection` satisfies `head_not_remaining` under the displayed hypotheses. -/
+/-- The head index `e 0` is absent from the remaining indices of an injective embedding `e`. -/
 theorem head_not_remaining {N n : ℕ} (e : Fin (n+1) → Fin N) (he : Function.Injective e) :
     e 0∉remaining e := by
   simp only [remaining,List.mem_ofFn]
   rintro ⟨i,hi⟩
   exact Fin.succ_ne_zero i (he hi)
 
-/-- The finite construction in `Projection` satisfies `remaining_mem` under the displayed hypotheses. -/
+/-- Every index `e i.succ` belongs to the list of remaining indices. -/
 theorem remaining_mem {N n : ℕ} (e : Fin (n+1) → Fin N) (i : Fin n) :
     e i.succ∈remaining e := List.mem_ofFn.mpr ⟨i,rfl⟩
 
-/-- The finite construction in `Projection` satisfies `eliminate_project` under the displayed hypotheses. -/
+/-- Under an injective index embedding, full-matrix elimination at `e 0` restricted to the remaining indices gives the trailing block of the corresponding projected matrix. -/
 theorem eliminate_project {N n : ℕ} (A : Matrix (Fin N) (Fin N) ℚ)
     (e : Fin (n+1) → Fin N) (he : Function.Injective e) :
     (eliminateRows (e 0) (remaining e) (remaining e) A).submatrix
@@ -542,7 +542,7 @@ theorem eliminate_project {N n : ℕ} (A : Matrix (Fin N) (Fin N) ℚ)
 def firstPivot {N : ℕ} (A : Matrix (Fin N) (Fin N) ℚ) (p : Fin N)
     (ids : List (Fin N)) : Option (Fin N) := ids.find? (fun i => decide (A i p≠0))
 
-/-- The finite construction in `Projection` satisfies `pivot_project` under the displayed hypotheses. -/
+/-- Searching the embedded index list for a nonzero pivot gives the projected matrix's pivot mapped through `e`. -/
 theorem pivot_project {N n : ℕ} (A : Matrix (Fin N) (Fin N) ℚ)
     (e : Fin (n+1) → Fin N) :
     firstPivot A (e 0) (List.ofFn e)=(pivot (A.submatrix e e)).map e := by
@@ -568,7 +568,7 @@ def sourceLoop {N : ℕ} : List (Fin N) → Matrix (Fin N) (Fin N) ℚ → ℚ �
       let C := eliminateRows p ps ps B
       sourceLoop ps C value'
 
-/-- The finite construction in `Projection` satisfies `loop_project` under the displayed hypotheses. -/
+/-- For an injective `e`, running the source loop on `List.ofFn e` gives the same accumulated value as Gaussian elimination on the corresponding submatrix. -/
 theorem loop_project {N : ℕ} (n : ℕ) (e : Fin n → Fin N) (he : Function.Injective e)
     (A : Matrix (Fin N) (Fin N) ℚ) (value : ℚ) :
     sourceLoop (List.ofFn e) A value=gaussAcc n (A.submatrix e e) value := by
@@ -602,7 +602,7 @@ theorem loop_project {N : ℕ} (n : ℕ) (e : Fin n → Fin N) (he : Function.In
 def determinant (N : ℕ) (A : Matrix (Fin N) (Fin N) ℚ) : ℚ :=
   sourceLoop (List.finRange N) A 1
 
-/-- The finite construction in `Projection` satisfies `source_determinant_eq` under the displayed hypotheses. -/
+/-- The source loop for the full index list computes the determinant of any square rational matrix. -/
 theorem source_determinant_eq (N : ℕ) (A : Matrix (Fin N) (Fin N) ℚ) :
     determinant N A=A.det := by
   have hh := loop_project N (fun i : Fin N => i) Function.injective_id A 1
@@ -623,7 +623,7 @@ open ActualProjectionSpecialization
 /-- Construction for pad in the projection model. -/
 def pad (a : List ℚ) (m : ℕ) : List ℚ := a++List.replicate (m+1-a.length) 0
 
-/-- The finite construction in `Projection` satisfies `poly_append_zeros` under the displayed hypotheses. -/
+/-- Appending any number of zeros at the high-degree end of a rational coefficient list leaves its polynomial unchanged. -/
 theorem poly_append_zeros (a : List ℚ) (r : ℕ) : poly (a++List.replicate r 0)=poly a := by
   induction r generalizing a with
   | zero => simp only [List.replicate_zero,List.append_nil]
@@ -633,7 +633,7 @@ theorem poly_append_zeros (a : List ℚ) (r : ℕ) : poly (a++List.replicate r 0
       rfl
     rw [he,ih,poly_append_zero]
 
-/-- The finite construction in `Projection` satisfies `pad_poly` under the displayed hypotheses. -/
+/-- Padding a coefficient list for degree bound `m` leaves its represented polynomial unchanged. -/
 theorem pad_poly (a : List ℚ) (m : ℕ) : poly (pad a m)=poly a := poly_append_zeros _ _
 
 /-- The same emitted instruction list satisfies `pad_length` with the displayed gate and query accounting. -/
@@ -641,7 +641,7 @@ theorem pad_length (a : List ℚ) (m : ℕ) (ha : a.length ≤ m+1) : (pad a m).
   simp only [pad,List.length_append,List.length_replicate]
   omega
 
-/-- The finite construction in `Projection` satisfies `square_rows` under the displayed hypotheses. -/
+/-- If `a` and `b` have lengths `m + 1` and `n + 1`, the generated Sylvester array has `m + n` rows, each of length `m + n`. -/
 theorem square_rows (a b : List ℚ) (m n : ℕ) (ha : a.length=m+1) (hb : b.length=n+1) :
     (rows a b m n).length=m+n ∧ ∀ r∈rows a b m n,r.length=m+n := by
   refine ⟨rows_length a b m n,?_⟩
@@ -664,7 +664,7 @@ def listDeterminant (rs : List (List ℚ)) : ℚ :=
 def fixedResultant (a b : List ℚ) (m n : ℕ) : ℚ :=
   listDeterminant (rows (pad a m) (pad b n) m n)
 
-/-- The finite construction in `Projection` satisfies `fixedResultant_eq` under the displayed hypotheses. -/
+/-- If `a` has at most `m + 1` coefficients and `b` at most `n + 1`, the padded list determinant computes their polynomials' resultant with size parameters `m` and `n`. -/
 theorem fixedResultant_eq (a b : List ℚ) (m n : ℕ)
     (ha : a.length ≤ m+1) (hb : b.length ≤ n+1) :
     fixedResultant a b m n=(poly a).resultant (poly b) m n := by
@@ -678,7 +678,7 @@ def samples (F G : Polynomial (Polynomial ℚ)) (m n D : ℕ) : List ℚ :=
   List.ofFn (fun i : Fin (2*D*D+1) => fixedResultant
     (specializeArray F m (i.val : ℚ)) (specializeArray G n (i.val : ℚ)) m n)
 
-/-- The finite construction in `Projection` satisfies `actual_samples` under the displayed hypotheses. -/
+/-- If the outer degree bounds hold, `samples` lists the resultant evaluated at every integer from zero through `2 * D * D`, in order. -/
 theorem actual_samples (F G : Polynomial (Polynomial ℚ)) (m n D : ℕ)
     (hF : F.natDegree ≤ m) (hG : G.natDegree ≤ n) :
     samples F G m n D=List.ofFn (fun i : Fin (2*D*D+1) => (F.resultant G m n).eval (i.val : ℚ)) := by
@@ -697,7 +697,7 @@ end ActualProjectionResultantSamples
 namespace ActualProjectionDegree
 open Matrix Polynomial
 
-/-- The finite construction in `Projection` satisfies `determinant_degree` under the displayed hypotheses. -/
+/-- If each entry of the `N × N` polynomial matrix has natural degree at most `D`, its determinant has natural degree at most `N * D`. -/
 theorem determinant_degree {N D : ℕ} (A : Matrix (Fin N) (Fin N) (Polynomial ℚ))
     (hA : ∀ i j,(A i j).natDegree ≤ D) : A.det.natDegree ≤ N*D := by
   rw [Matrix.det_apply]
@@ -715,7 +715,7 @@ theorem determinant_degree {N D : ℕ} (A : Matrix (Fin N) (Fin N) (Polynomial �
         _ ≤ ∑ _i : Fin N,D := Finset.sum_le_sum (fun i _ => hA (p i) i)
         _ = N*D := by simp
 
-/-- The finite construction in `Projection` satisfies `resultant_degree` under the displayed hypotheses. -/
+/-- When every coefficient polynomial of `F` and `G` has natural degree at most `D`, their fixed-size resultant has natural degree at most `(m + n) * D`. -/
 theorem resultant_degree (F G : Polynomial (Polynomial ℚ)) (m n D : ℕ)
     (hF : ∀ k,(F.coeff k).natDegree ≤ D) (hG : ∀ k,(G.coeff k).natDegree ≤ D) :
     (F.resultant G m n).natDegree ≤ (m+n)*D := by
@@ -729,7 +729,7 @@ theorem resultant_degree (F G : Polynomial (Polynomial ℚ)) (m n D : ℕ)
   · exact hF _
   · simp only [Polynomial.natDegree_zero]; omega
 
-/-- The finite construction in `Projection` satisfies `source_sample_degree` under the displayed hypotheses. -/
+/-- With both size parameters and all coefficient degrees bounded by `D`, the resultant degree is strictly below the sample count `2 * D * D + 1`. -/
 theorem source_sample_degree (F G : Polynomial (Polynomial ℚ)) (m n D : ℕ)
     (hm : m ≤ D) (hn : n ≤ D)
     (hF : ∀ k,(F.coeff k).natDegree ≤ D) (hG : ∀ k,(G.coeff k).natDegree ≤ D) :
@@ -752,10 +752,10 @@ theorem diffs_length (vs : List ℚ) : (diffs vs).length=vs.length-1 := by
   simp only [diffs,List.length_map,List.length_zip,List.length_tail]
   omega
 
-/-- The finite construction in `Projection` satisfies `diffs_cons` under the displayed hypotheses. -/
+/-- With two leading samples `a` and `b`, the first forward difference is `b - a` and the remaining differences use the tail starting at `b`. -/
 theorem diffs_cons (a b : ℚ) (vs : List ℚ) : diffs (a::b::vs)=(b-a)::diffs (b::vs) := rfl
 
-/-- The finite construction in `Projection` satisfies `diffs_getD` under the displayed hypotheses. -/
+/-- Whenever sample `n + 1` exists, forward difference `n` is sample `n + 1` minus sample `n`. -/
 theorem diffs_getD (vs : List ℚ) (n : ℕ) (hn : n+1 < vs.length) :
     (diffs vs).getD n 0=vs.getD (n+1) 0-vs.getD n 0 := by
   induction n generalizing vs with
@@ -786,7 +786,7 @@ def coefficient : ℕ → List ℚ → ℚ
 def binomialSum (f : ℕ → ℚ) (n : ℕ) : ℚ :=
   ∑ k∈Finset.range (n+1),(n.choose k : ℚ)*f k
 
-/-- The finite construction in `Projection` satisfies `binomial_succ` under the displayed hypotheses. -/
+/-- The binomial sum at `n + 1` splits into the sum at `n` for `f` and the sum at `n` for `k ↦ f (k + 1)`. -/
 theorem binomial_succ (f : ℕ → ℚ) (n : ℕ) :
     binomialSum f (n+1)=binomialSum f n+binomialSum (fun k => f (k+1)) n := by
   have hzero : n.choose (n+1)=0 := Nat.choose_eq_zero_of_lt (by omega)
@@ -805,7 +805,7 @@ theorem binomial_succ (f : ℕ → ℚ) (n : ℕ) :
   change binomialSum (fun k => f (k+1)) n+(binomialSum f n-f 0)+f 0=_
   ring
 
-/-- The finite construction in `Projection` satisfies `reconstruct` under the displayed hypotheses. -/
+/-- At an index `n` within the samples, the binomial sum of the forward-difference coefficients reconstructs sample `n`. -/
 theorem reconstruct (vs : List ℚ) (n : ℕ) (hn : n < vs.length) :
     binomialSum (fun k => coefficient k vs) n=vs.getD n 0 := by
   induction n generalizing vs with
@@ -828,7 +828,7 @@ def basis : ℕ → Polynomial ℚ
   | 0 => 1
   | k+1 => C (1/((k+1 : ℕ) : ℚ))*(basis k*(X-C (k : ℚ)))
 
-/-- The finite construction in `Projection` satisfies `basis_eq` under the displayed hypotheses. -/
+/-- The Newton basis polynomial of index `k` is the falling factorial of order `k` divided by `k!`. -/
 theorem basis_eq (k : ℕ) : basis k=C (1/(k.factorial : ℚ))*descPochhammer ℚ k := by
   induction k with
   | zero => simp [basis]
@@ -840,12 +840,12 @@ theorem basis_eq (k : ℕ) : basis k=C (1/(k.factorial : ℚ))*descPochhammer �
     simp only [C_eq_natCast]
     ring
 
-/-- The finite construction in `Projection` satisfies `basis_eval` under the displayed hypotheses. -/
+/-- At a natural input `n`, the Newton basis polynomial of index `k` evaluates to the binomial coefficient `n.choose k`. -/
 theorem basis_eval (k n : ℕ) : (basis k).eval (n : ℚ)=(n.choose k : ℚ) := by
   rw [basis_eq,Polynomial.eval_mul,Polynomial.eval_C,Nat.cast_choose_eq_descPochhammer_div]
   ring
 
-/-- The finite construction in `Projection` satisfies `basis_degree` under the displayed hypotheses. -/
+/-- The Newton basis polynomial of index `k` has natural degree exactly `k`. -/
 theorem basis_degree (k : ℕ) : (basis k).natDegree=k := by
   rw [basis_eq,Polynomial.natDegree_C_mul (by
     exact div_ne_zero (by norm_num) (by exact_mod_cast k.factorial_ne_zero)),descPochhammer_natDegree]
@@ -854,7 +854,7 @@ theorem basis_degree (k : ℕ) : (basis k).natDegree=k := by
 def newton (vs : List ℚ) : Polynomial ℚ :=
   ∑ k∈Finset.range vs.length,C (coefficient k vs)*basis k
 
-/-- The finite construction in `Projection` satisfies `newton_eval` under the displayed hypotheses. -/
+/-- The Newton polynomial evaluates to sample `n` at each natural index `n` within the list. -/
 theorem newton_eval (vs : List ℚ) (n : ℕ) (hn : n < vs.length) :
     (newton vs).eval (n : ℚ)=vs.getD n 0 := by
   rw [newton,Polynomial.eval_finsetSum]
@@ -876,7 +876,7 @@ theorem newton_eval (vs : List ℚ) (n : ℕ) (hn : n < vs.length) :
   have hh := reconstruct vs n hn
   simpa only [binomialSum,mul_comm] using hh
 
-/-- The finite construction in `Projection` satisfies `newton_degree` under the displayed hypotheses. -/
+/-- The Newton interpolant has natural degree at most the sample-list length minus one. -/
 theorem newton_degree (vs : List ℚ) : (newton vs).natDegree ≤ vs.length-1 := by
   apply Polynomial.natDegree_sum_le_of_forall_le
   intro k hk
@@ -887,7 +887,7 @@ theorem newton_degree (vs : List ℚ) : (newton vs).natDegree ≤ vs.length-1 :=
     _ = k := by simp only [Polynomial.natDegree_C,basis_degree,zero_add]
     _ ≤ vs.length-1 := by omega
 
-/-- The finite construction in `Projection` satisfies `recover_polynomial` under the displayed hypotheses. -/
+/-- If the samples match `P` at every integer index and their number exceeds its natural degree, the Newton interpolant equals `P`. -/
 theorem recover_polynomial (P : Polynomial ℚ) (vs : List ℚ)
     (hd : P.natDegree < vs.length)
     (hv : ∀ i : Fin vs.length,vs.getD i.val 0=P.eval (i.val : ℚ)) : newton vs=P := by
@@ -916,14 +916,14 @@ def qScale (v : ℚ) (a : List ℚ) : List ℚ := a.map (fun c => v*c)
 /-- Construction for q Divide in the projection model. -/
 def qDivide (a : List ℚ) (d : ℚ) : List ℚ := a.map (fun c => c/d)
 
-/-- The finite construction in `Projection` satisfies `qScale_poly` under the displayed hypotheses. -/
+/-- Scaling the coefficient list by `v` multiplies its polynomial by the constant polynomial `C v`. -/
 theorem qScale_poly (v : ℚ) (a : List ℚ) : poly (qScale v a)=C v*poly a := by
   ext k
   rw [ActualYunRationalArray.coeff,Polynomial.coeff_C_mul,ActualYunRationalArray.coeff]
   simp only [qScale,List.getD_eq_getElem?_getD,List.getElem?_map]
   cases h : a[k]? <;> simp
 
-/-- The finite construction in `Projection` satisfies `qDivide_poly` under the displayed hypotheses. -/
+/-- Dividing the list by `d` represents multiplication by the constant polynomial `C (1 / d)`. -/
 theorem qDivide_poly (a : List ℚ) (d : ℚ) : poly (qDivide a d)=C (1/d)*poly a := by
   have he : qDivide a d=qScale (1/d) a := by
     apply List.map_congr_left
@@ -931,7 +931,7 @@ theorem qDivide_poly (a : List ℚ) (d : ℚ) : poly (qDivide a d)=C (1/d)*poly 
     ring
   rw [he,qScale_poly]
 
-/-- The finite construction in `Projection` satisfies `zeros_poly` under the displayed hypotheses. -/
+/-- A coefficient list of any number of rational zeros represents the zero polynomial. -/
 theorem zeros_poly (n : ℕ) : poly (List.replicate n (0 : ℚ))=0 := by
   ext k
   rw [ActualYunRationalArray.coeff]
@@ -942,7 +942,7 @@ theorem zeros_poly (n : ℕ) : poly (List.replicate n (0 : ℚ))=0 := by
 def qAdd (a b : List ℚ) : List ℚ :=
   trim (subtractShift (subtractShift (List.replicate (max a.length b.length) 0) a 0 (-1)) b 0 (-1))
 
-/-- The finite construction in `Projection` satisfies `qAdd_poly` under the displayed hypotheses. -/
+/-- The coefficient-list sum represents the sum of the polynomials of `a` and `b`. -/
 theorem qAdd_poly (a b : List ℚ) : poly (qAdd a b)=poly a+poly b := by
   rw [qAdd,trim_poly,subtractShift_poly _ _ _ _ (by rw [subtractShift_length,List.length_replicate]; omega),
     subtractShift_poly _ _ _ _ (by rw [List.length_replicate]; omega),zeros_poly]
@@ -952,7 +952,7 @@ theorem qAdd_poly (a b : List ℚ) : poly (qAdd a b)=poly a+poly b := by
 def nextBasis (a : List ℚ) (k : ℕ) : List ℚ :=
   qDivide (qMul a [-(k : ℚ),1]) ((k+1 : ℕ) : ℚ)
 
-/-- The finite construction in `Projection` satisfies `nextBasis_poly` under the displayed hypotheses. -/
+/-- If `a` represents Newton basis polynomial `k`, the coefficient update `nextBasis` represents basis polynomial `k + 1`. -/
 theorem nextBasis_poly (a : List ℚ) (k : ℕ) (ha : poly a=basis k) :
     poly (nextBasis a k)=basis (k+1) := by
   rw [nextBasis,qDivide_poly,qMul_poly,ha]
@@ -977,7 +977,7 @@ def run : ℕ → List ℚ → List ℚ → List ℚ → ℕ → Option (List �
   | fuel+1,v::vs,b,out,k => run fuel (diffs (v::vs)) (nextBasis b k)
       (qAdd out (qScale v b)) (k+1)
 
-/-- The finite construction in `Projection` satisfies `tail_sum` under the displayed hypotheses. -/
+/-- The Newton sum starting at basis index `k` splits into the contribution of the first sample `v` and the sum on forward differences starting at `k + 1`. -/
 theorem tail_sum (v : ℚ) (vs : List ℚ) (k : ℕ) :
     (∑ j∈Finset.range (v::vs).length,C (coefficient j (v::vs))*basis (k+j))=
       C v*basis k+(∑ j∈Finset.range (diffs (v::vs)).length,
@@ -993,7 +993,7 @@ theorem tail_sum (v : ℚ) (vs : List ℚ) (k : ℕ) :
     rw [show k+(j+1)=(k+1)+j by omega]
   rw [he,add_comm]
 
-/-- The finite construction in `Projection` satisfies `run_success` under the displayed hypotheses. -/
+/-- With fuel at least the sample count and `b` representing basis polynomial `k`, the loop returns a list representing the initial output polynomial plus the Newton sum starting at `k`. -/
 theorem run_success (fuel : ℕ) (values b out : List ℚ) (k : ℕ)
     (hfuel : values.length ≤ fuel) (hb : poly b=basis k) :
     ∃ result,run fuel values b out k=some result ∧
@@ -1020,7 +1020,7 @@ theorem run_success (fuel : ℕ) (values b out : List ℚ) (k : ℕ)
 /-- Construction for interpolate in the projection model. -/
 def interpolate (values : List ℚ) : Option (List ℚ) := run values.length values [1] [] 0
 
-/-- The finite construction in `Projection` satisfies `interpolate_poly` under the displayed hypotheses. -/
+/-- Interpolation returns a coefficient list representing the Newton polynomial of the given samples. -/
 theorem interpolate_poly (values : List ℚ) :
     ∃ result,interpolate values=some result ∧ poly result=newton values := by
   obtain ⟨result,hrun,hpoly⟩ := run_success values.length values [1] [] 0 (le_refl _) (by
@@ -1029,7 +1029,7 @@ theorem interpolate_poly (values : List ℚ) :
   refine ⟨result,hrun,?_⟩
   simpa only [newton,poly_nil,zero_add,Nat.zero_add] using hpoly
 
-/-- The finite construction in `Projection` satisfies `interpolate_recovers` under the displayed hypotheses. -/
+/-- If the sample count exceeds the natural degree of `P` and each sample agrees with `P` at its integer index, interpolation returns a list representing `P`. -/
 theorem interpolate_recovers (P : Polynomial ℚ) (values : List ℚ)
     (hd : P.natDegree < values.length)
     (hv : ∀ i : Fin values.length,values.getD i.val 0=P.eval (i.val : ℚ)) :
@@ -1050,7 +1050,7 @@ open ActualProjectionSpecialization ActualProjectionDegree ActualProjectionInter
 def compute (F G : Polynomial (Polynomial ℚ)) (m n D : ℕ) : Option (List ℚ) :=
   interpolate (samples F G m n D)
 
-/-- The finite construction in `Projection` satisfies `computed_resultant` under the displayed hypotheses. -/
+/-- If the outer degrees are bounded by `m` and `n`, and those sizes and all coefficient degrees are bounded by `D`, `compute` returns a list representing the fixed-size resultant. -/
 theorem computed_resultant (F G : Polynomial (Polynomial ℚ)) (m n D : ℕ)
     (hFm : F.natDegree ≤ m) (hGn : G.natDegree ≤ n) (hm : m ≤ D) (hn : n ≤ D)
     (hF : ∀ k,(F.coeff k).natDegree ≤ D) (hG : ∀ k,(G.coeff k).natDegree ≤ D) :
@@ -1067,12 +1067,12 @@ theorem computed_resultant (F G : Polynomial (Polynomial ℚ)) (m n D : ℕ)
 def castBivariate (F : Polynomial (Polynomial ℤ)) : Polynomial (Polynomial ℚ) :=
   F.map (Polynomial.mapRingHom (Int.castRingHom ℚ))
 
-/-- The finite construction in `Projection` satisfies `cast_resultant` under the displayed hypotheses. -/
+/-- Casting the two integer bivariate polynomials to rationals before taking their fixed-size resultant gives the coefficientwise cast of their integer resultant. -/
 theorem cast_resultant (F G : Polynomial (Polynomial ℤ)) (m n : ℕ) :
     (castBivariate F).resultant (castBivariate G) m n=(F.resultant G m n).map (Int.castRingHom ℚ) :=
   Polynomial.resultant_map_map F G m n (Polynomial.mapRingHom (Int.castRingHom ℚ))
 
-/-- The finite construction in `Projection` satisfies `integral_computed_resultant` under the displayed hypotheses. -/
+/-- With outer degrees bounded by `m` and `n` and both sizes and all coefficient degrees bounded by `D`, computation on the rational casts returns the cast integer resultant, with denominator one at every coefficient lookup. -/
 theorem integral_computed_resultant (F G : Polynomial (Polynomial ℤ)) (m n D : ℕ)
     (hFm : F.natDegree ≤ m) (hGn : G.natDegree ≤ n) (hm : m ≤ D) (hn : n ≤ D)
     (hF : ∀ k,(F.coeff k).natDegree ≤ D) (hG : ∀ k,(G.coeff k).natDegree ≤ D) :
@@ -1099,7 +1099,9 @@ theorem integral_computed_resultant (F G : Polynomial (Polynomial ℤ)) (m n D :
   rw [hc]
   simp
 
-/-- The finite construction in `Projection` satisfies `nonzero_guard_of_symbolic` under the displayed hypotheses. -/
+/-- If the outer degrees fit `m` and `n`, those sizes and all coefficient degrees are at most
+`D`, and the integer resultant is nonzero, `compute` on the rational casts returns a nonempty
+list representing the cast resultant with denominator one at every index. -/
 theorem nonzero_guard_of_symbolic (F G : Polynomial (Polynomial ℤ)) (m n D : ℕ)
     (hFm : F.natDegree ≤ m) (hGn : G.natDegree ≤ n) (hm : m ≤ D) (hn : n ≤ D)
     (hF : ∀ k,(F.coeff k).natDegree ≤ D) (hG : ∀ k,(G.coeff k).natDegree ≤ D)
@@ -1127,14 +1129,14 @@ open ActualProjectionComputedResultant
 def finish (result : List ℚ) : Option (List ℤ) :=
   if result=[] ∨ result.any (fun c => decide (c.den≠1))=true then none else some (result.map Rat.num)
 
-/-- The finite construction in `Projection` satisfies `den_one_mem` under the displayed hypotheses. -/
+/-- If every zero-default lookup has denominator one, then each member of the rational list has denominator one. -/
 theorem den_one_mem (result : List ℚ) (hd : ∀ j : ℕ,(result.getD j 0).den=1)
     (c : ℚ) (hc : c∈result) : c.den=1 := by
   obtain ⟨i,hi⟩ := List.mem_iff_getElem?.mp hc
   have hh := hd i
   simpa only [List.getD_eq_getElem?_getD,hi,Option.getD_some] using hh
 
-/-- The finite construction in `Projection` satisfies `finish_success` under the displayed hypotheses. -/
+/-- For a nonempty list with denominator one at every index, `finish` returns the list of numerators, whose rational casts recover the input list. -/
 theorem finish_success (result : List ℚ) (hn : result≠[]) (hd : ∀ j : ℕ,(result.getD j 0).den=1) :
     finish result=some (result.map Rat.num) ∧
       (result.map Rat.num).map (fun z : ℤ => (z : ℚ))=result := by
@@ -1157,7 +1159,8 @@ theorem finish_success (result : List ℚ) (hn : result≠[]) (hd : ∀ j : ℕ,
 def project (F G : Polynomial (Polynomial ℤ)) (m n D : ℕ) : Option (List ℤ) :=
   (compute (castBivariate F) (castBivariate G) m n D).bind finish
 
-/-- The finite construction in `Projection` satisfies `source_integer_guard` under the displayed hypotheses. -/
+/-- If the outer degrees fit `m` and `n` and those sizes and all coefficient degrees are at
+most `D`, a nonzero fixed-size resultant ensures `project` returns its integer coefficient list. -/
 theorem source_integer_guard (F G : Polynomial (Polynomial ℤ)) (m n D : ℕ)
     (hFm : F.natDegree ≤ m) (hGn : G.natDegree ≤ n) (hm : m ≤ D) (hn : n ≤ D)
     (hF : ∀ k,(F.coeff k).natDegree ≤ D) (hG : ∀ k,(G.coeff k).natDegree ≤ D)
@@ -1180,7 +1183,7 @@ end ActualProjectionIntegerGuard
 namespace ActualProjectionResultantCriteria
 open Polynomial
 
-/-- The finite construction in `Projection` satisfies `fixed_common_root_zero` under the displayed hypotheses. -/
+/-- Two complex polynomials with a common root have zero fixed-size resultant when both size parameters bound the respective degrees and at least one size is nonzero. -/
 theorem fixed_common_root_zero (f g : Polynomial ℂ) (m n : ℕ)
     (hf : f.natDegree ≤ m) (hg : g.natDegree ≤ n) (hsize : m≠0 ∨ n≠0)
     (z : ℂ) (hfr : f.eval z=0) (hgr : g.eval z=0) : f.resultant g m n=0 := by
@@ -1189,7 +1192,7 @@ theorem fixed_common_root_zero (f g : Polynomial ℂ) (m n : ℕ)
   simpa only [Polynomial.eval_add,Polynomial.eval_mul,Polynomial.eval_C,hfr,hgr,
     zero_mul,zero_add] using hh.symm
 
-/-- The finite construction in `Projection` satisfies `fixed_nonzero_of_saturated` under the displayed hypotheses. -/
+/-- Coprime complex polynomials have nonzero fixed-size resultant if the first polynomial is nonzero with degree exactly `m` and the second has degree at most `n`. -/
 theorem fixed_nonzero_of_saturated (f g : Polynomial ℂ) (m n : ℕ)
     (hfn : f≠0) (hfm : f.natDegree=m) (hgn : g.natDegree ≤ n) (hc : IsCoprime f g) :
     f.resultant g m n≠0 := by
@@ -1199,7 +1202,7 @@ theorem fixed_nonzero_of_saturated (f g : Polynomial ℂ) (m n : ℕ)
   have hr : f.resultant g m g.natDegree≠0 := by rw [← hfm]; exact Polynomial.resultant_ne_zero f g hc
   exact mul_ne_zero (pow_ne_zero _ hl) hr
 
-/-- The finite construction in `Projection` satisfies `coordinate_vanishing` under the displayed hypotheses. -/
+/-- If the outer degrees fit the two sizes and at least one size is nonzero, a common root `y` after specialization at `x` forces the resultant to vanish at `x`. -/
 theorem coordinate_vanishing (F G : Polynomial (Polynomial ℂ)) (m n : ℕ)
     (hF : F.natDegree ≤ m) (hG : G.natDegree ≤ n) (hsize : m≠0 ∨ n≠0)
     (x y : ℂ) (hFx : (F.map (Polynomial.evalRingHom x)).eval y=0)
@@ -1217,7 +1220,7 @@ end ActualProjectionResultantCriteria
 namespace ActualProjectionRootSeparation
 open Polynomial
 
-/-- The finite construction in `Projection` satisfies `coprime_of_no_common_root` under the displayed hypotheses. -/
+/-- If every complex root of `f` gives a nonzero value of `g`, the two complex polynomials are coprime. -/
 theorem coprime_of_no_common_root (f g : Polynomial ℂ)
     (hno : ∀ z : ℂ,f.eval z=0 → g.eval z≠0) : IsCoprime f g := by
   classical
@@ -1234,7 +1237,7 @@ theorem coprime_of_no_common_root (f g : Polynomial ℂ)
     rw [ha,Polynomial.eval_mul,hz,zero_mul]
   exact hno z hfz hgz
 
-/-- The finite construction in `Projection` satisfies `coprime_real_outside` under the displayed hypotheses. -/
+/-- If `B` is positive and all roots of `p` have norm below `B`, the two identities at `B + I * y` and `B - I * y` for every complex `y` imply that `f` and `g` are coprime. -/
 theorem coprime_real_outside (p f g : Polynomial ℂ) (B : ℝ) (hB : 0 < B)
     (hroots : ∀ z : ℂ,p.eval z=0 → ‖z‖ < B)
     (hplus : ∀ y : ℂ,p.eval ((B : ℂ)+Complex.I*y)=f.eval y+Complex.I*g.eval y)
@@ -1252,7 +1255,7 @@ theorem coprime_real_outside (p f g : Polynomial ℂ) (B : ℝ) (hB : 0 < B)
   rw [he,hn] at ht
   linarith
 
-/-- The finite construction in `Projection` satisfies `coprime_imag_outside` under the displayed hypotheses. -/
+/-- If `B` is positive and all roots of `p` have norm below `B`, the two identities at `x + I * B` and `x - I * B` for every complex `x` imply that `f` and `g` are coprime. -/
 theorem coprime_imag_outside (p f g : Polynomial ℂ) (B : ℝ) (hB : 0 < B)
     (hroots : ∀ z : ℂ,p.eval z=0 → ‖z‖ < B)
     (hplus : ∀ x : ℂ,p.eval (x+Complex.I*(B : ℂ))=f.eval x+Complex.I*g.eval x)
@@ -1306,7 +1309,7 @@ def entries (cs : List ℤ) (parity : ℕ) : List Term :=
 /-- Construction for key in the projection model. -/
 def key (t : Term) : ℕ×ℕ := (t.x,t.y)
 
-/-- The finite construction in `Projection` satisfies `pairs_mem` under the displayed hypotheses. -/
+/-- A pair belongs to `pairs cs` exactly when its first index is in the coefficient list and its second index is at most the first. -/
 theorem pairs_mem (cs : List ℤ) (p : ℕ×ℕ) : p∈pairs cs ↔ p.1 < cs.length ∧ p.2 ≤ p.1 := by
   simp only [pairs,List.mem_flatMap,List.mem_range,List.mem_map]
   constructor
@@ -1316,7 +1319,7 @@ theorem pairs_mem (cs : List ℤ) (p : ℕ×ℕ) : p∈pairs cs ↔ p.1 < cs.len
   · rintro ⟨hk,hj⟩
     exact ⟨p.1,hk,p.2,by omega,Prod.eta p⟩
 
-/-- The finite construction in `Projection` satisfies `pairs_nodup` under the displayed hypotheses. -/
+/-- Enumerating `k` in the coefficient list and `j` from zero through `k` produces no duplicate pairs. -/
 theorem pairs_nodup (cs : List ℤ) : (pairs cs).Nodup := by
   apply List.nodup_flatMap.mpr
   constructor
@@ -1333,7 +1336,7 @@ theorem pairs_nodup (cs : List ℤ) : (pairs cs).Nodup := by
     have h2 : l=p.1 := congrArg Prod.fst he'
     exact hkl (h1.trans h2.symm)
 
-/-- The finite construction in `Projection` satisfies `entry_mem` under the displayed hypotheses. -/
+/-- A term belongs to `entries cs parity` exactly when it comes from an admissible pair whose second index has the requested parity and whose binomial coefficient contribution is nonzero. -/
 theorem entry_mem (cs : List ℤ) (parity : ℕ) (t : Term) :
     t∈entries cs parity ↔ ∃ p : ℕ×ℕ,p.1 < cs.length ∧ p.2 ≤ p.1 ∧
       p.2%2=parity ∧ value cs p.1 p.2≠0 ∧ rawTerm cs p=t := by
@@ -1350,7 +1353,7 @@ theorem entry_bounds (cs : List ℤ) (parity : ℕ) (t : Term) (ht : t∈entries
   obtain ⟨p,hk,hj,hpar,hv,rfl⟩ := (entry_mem cs parity t).mp ht
   exact ⟨by dsimp only [rawTerm]; omega,hpar,hv⟩
 
-/-- The finite construction in `Projection` satisfies `keys_nodup` under the displayed hypotheses. -/
+/-- Within either parity filter, the generated terms have pairwise distinct exponent pairs. -/
 theorem keys_nodup (cs : List ℤ) (parity : ℕ) : ((entries cs parity).map key).Nodup := by
   rw [entries,List.map_map]
   apply List.Nodup.map_on ?_ ((pairs_nodup cs).filter (keep cs parity))
@@ -1389,7 +1392,7 @@ def eliminated : Axis → Term → ℕ
 /-- Construction for source Degree in the projection model. -/
 def sourceDegree (axis : Axis) (es : List Term) : Option ℕ := (es.map (eliminated axis)).max?
 
-/-- The finite construction in `Projection` satisfies `generated_nonempty` under the displayed hypotheses. -/
+/-- A coefficient list of length `D + 1` with `D > 0` and nonzero coefficient at `D` generates a nonempty term list for each parity. -/
 theorem generated_nonempty (cs : List ℤ) (D : ℕ) (hlen : cs.length=D+1)
     (hD : 0 < D) (hlead : cs.getD D 0≠0) : entries cs 0≠[] ∧ entries cs 1≠[] := by
   have he : rawTerm cs (D,0)∈entries cs 0 := by
@@ -1410,7 +1413,7 @@ theorem dimension_bound (cs : List ℤ) (parity : ℕ) (axis : Axis) (t : Term)
   have hh := (entry_bounds cs parity t ht).1
   cases axis <;> dsimp only [eliminated,kept] <;> omega
 
-/-- The finite construction in `Projection` satisfies `max_success` under the displayed hypotheses. -/
+/-- For a nonempty term list, `sourceDegree` returns the eliminated exponent attained by some term and bounding the eliminated exponents of all terms. -/
 theorem max_success (axis : Axis) (es : List Term) (hes : es≠[]) :
     ∃ d,sourceDegree axis es=some d ∧
       (∃ t∈es,eliminated axis t=d) ∧ ∀ t∈es,eliminated axis t ≤ d := by
@@ -1421,7 +1424,7 @@ theorem max_success (axis : Axis) (es : List Term) (hes : es≠[]) :
   obtain ⟨t,ht,he⟩ := List.mem_map.mp info.1
   exact ⟨d,hd,⟨t,ht,he⟩,fun u hu => info.2 _ (List.mem_map.mpr ⟨u,hu,rfl⟩)⟩
 
-/-- The finite construction in `Projection` satisfies `generated_sizes` under the displayed hypotheses. -/
+/-- For either axis, a positive-degree list of length `D + 1` with nonzero leading coefficient yields two source degrees at most `D`, each bounding the eliminated exponents of its parity list. -/
 theorem generated_sizes (cs : List ℤ) (D : ℕ) (hlen : cs.length=D+1)
     (hD : 0 < D) (hlead : cs.getD D 0≠0) (axis : Axis) :
     ∃ m n,sourceDegree axis (entries cs 0)=some m ∧ sourceDegree axis (entries cs 1)=some n ∧
@@ -1457,16 +1460,16 @@ def symbolic (axis : Axis) : List Term → Polynomial (Polynomial ℤ)
 def evalSymbolic (F : Polynomial (Polynomial ℤ)) (v : ℚ) : Polynomial ℚ :=
   (castBivariate F).map (Polynomial.evalRingHom v)
 
-/-- The finite construction in `Projection` satisfies `evalSymbolic_add` under the displayed hypotheses. -/
+/-- Specializing the kept variable at `v` commutes with addition of integer bivariate polynomials. -/
 theorem evalSymbolic_add (F G : Polynomial (Polynomial ℤ)) (v : ℚ) :
     evalSymbolic (F+G) v=evalSymbolic F v+evalSymbolic G v := by
   simp only [evalSymbolic,castBivariate,Polynomial.map_add]
 
-/-- The finite construction in `Projection` satisfies `evalSymbolic_zero` under the displayed hypotheses. -/
+/-- Specializing the zero bivariate polynomial at any rational `v` yields the zero polynomial. -/
 theorem evalSymbolic_zero (v : ℚ) : evalSymbolic 0 v=0 := by
   simp only [evalSymbolic,castBivariate,Polynomial.map_zero]
 
-/-- The finite construction in `Projection` satisfies `term_specialization` under the displayed hypotheses. -/
+/-- After the kept variable is set to `v`, a term becomes a monomial in the eliminated variable with coefficient `t.c * v^(kept axis t)` over the rationals. -/
 theorem term_specialization (axis : Axis) (t : Term) (v : ℚ) :
     evalSymbolic (termPoly axis t) v=C ((t.c : ℚ)*v^(kept axis t))*X^(eliminated axis t) := by
   simp [evalSymbolic,castBivariate,termPoly,Polynomial.map_monomial]
@@ -1484,7 +1487,7 @@ theorem loop_length (axis : Axis) (v : ℚ) (es : List Term) (out : List ℚ) :
   | nil => rfl
   | cons t ts ih => rw [loop,ih,List.length_set]
 
-/-- The finite construction in `Projection` satisfies `loop_poly` under the displayed hypotheses. -/
+/-- If every eliminated exponent fits within `out`, the loop adds the specialized symbolic polynomial of the term list to the polynomial already represented by `out`. -/
 theorem loop_poly (axis : Axis) (v : ℚ) (es : List Term) (out : List ℚ)
     (hbound : ∀ t∈es,eliminated axis t < out.length) :
     poly (loop axis v es out)=poly out+evalSymbolic (symbolic axis es) v := by
@@ -1503,7 +1506,7 @@ theorem loop_poly (axis : Axis) (v : ℚ) (es : List Term) (out : List ℚ)
     rw [he,← Polynomial.C_mul_X_pow_eq_monomial]
     ring
 
-/-- The finite construction in `Projection` satisfies `zeros_poly` under the displayed hypotheses. -/
+/-- A list of `d` zero rational coefficients represents the zero polynomial. -/
 theorem zeros_poly (d : ℕ) : poly (List.replicate d (0 : ℚ))=0 := by
   ext k
   rw [ActualYunRationalArray.coeff]
@@ -1518,7 +1521,7 @@ def specialize (axis : Axis) (es : List Term) (v : ℚ) (d : ℕ) : List ℚ :=
 theorem specialize_length (axis : Axis) (es : List Term) (v : ℚ) (d : ℕ) :
     (specialize axis es v d).length=d+1 := by rw [specialize,loop_length,List.length_replicate]
 
-/-- The finite construction in `Projection` satisfies `specialize_poly` under the displayed hypotheses. -/
+/-- If `sourceDegree` returns `d`, the specialized coefficient list of size `d + 1` represents the symbolic polynomial evaluated at `v` in the kept variable. -/
 theorem specialize_poly (axis : Axis) (es : List Term) (v : ℚ) (d : ℕ)
     (hd : sourceDegree axis es=some d) :
     poly (specialize axis es v d)=evalSymbolic (symbolic axis es) v := by
@@ -1530,7 +1533,7 @@ theorem specialize_poly (axis : Axis) (es : List Term) (v : ℚ) (d : ℕ)
     rw [List.length_replicate]
     omega
 
-/-- The finite construction in `Projection` satisfies `symbolic_degree` under the displayed hypotheses. -/
+/-- A uniform bound `d` on the eliminated exponents bounds the natural outer degree of the symbolic polynomial. -/
 theorem symbolic_degree (axis : Axis) (es : List Term) (d : ℕ)
     (hb : ∀ t∈es,eliminated axis t ≤ d) : (symbolic axis es).natDegree ≤ d := by
   induction es with
@@ -1552,7 +1555,7 @@ namespace ActualProjectionEntryArrays
 open Polynomial ActualProjectionEntries ActualProjectionEntryDegrees
 open ActualProjectionEntrySpecialization ActualYunRationalArray ActualProjectionComputedResultant
 
-/-- The finite construction in `Projection` satisfies `arrays_eq` under the displayed hypotheses. -/
+/-- Two rational coefficient lists of equal length that represent the same polynomial are equal. -/
 theorem arrays_eq (a b : List ℚ) (hlen : a.length=b.length) (he : poly a=poly b) : a=b := by
   apply List.ext_getElem hlen
   intro k hka hkb
@@ -1560,7 +1563,7 @@ theorem arrays_eq (a b : List ℚ) (hlen : a.length=b.length) (he : poly a=poly 
   simpa only [List.getD_eq_getElem?_getD,List.getElem?_eq_getElem hka,
     List.getElem?_eq_getElem hkb,Option.getD_some] using hh
 
-/-- The finite construction in `Projection` satisfies `specialize_array` under the displayed hypotheses. -/
+/-- When `sourceDegree` returns `d`, termwise specialization gives the same coefficient list as specializing the rational cast of the symbolic polynomial through index `d`. -/
 theorem specialize_array (axis : Axis) (es : List Term) (v : ℚ) (d : ℕ)
     (hd : sourceDegree axis es=some d) : specialize axis es v d=
       ActualProjectionSpecialization.specializeArray (castBivariate (symbolic axis es)) d v := by
@@ -1575,12 +1578,12 @@ theorem specialize_array (axis : Axis) (es : List Term) (v : ℚ) (d : ℕ)
   · exact (specialize_poly axis es v d hd).trans
       (ActualProjectionSpecialization.specialize_poly _ d v hcast).symm
 
-/-- The finite construction in `Projection` satisfies `term_coeff` under the displayed hypotheses. -/
+/-- At outer index `j`, the coefficient polynomial of a term is its kept-variable monomial if the eliminated exponent equals `j`, and zero otherwise. -/
 theorem term_coeff (axis : Axis) (t : Term) (j : ℕ) :
     (termPoly axis t).coeff j=if eliminated axis t=j then Polynomial.monomial (kept axis t) t.c else 0 := by
   rw [termPoly,Polynomial.C_mul_X_pow_eq_monomial,Polynomial.coeff_monomial]
 
-/-- The finite construction in `Projection` satisfies `symbolic_coeff_degree` under the displayed hypotheses. -/
+/-- If each kept exponent is at most `D`, every outer coefficient of the symbolic polynomial has natural degree at most `D`. -/
 theorem symbolic_coeff_degree (axis : Axis) (es : List Term) (D : ℕ)
     (hbound : ∀ t∈es,kept axis t ≤ D) (j : ℕ) : ((symbolic axis es).coeff j).natDegree ≤ D := by
   induction es with
@@ -1631,7 +1634,7 @@ def writeAll : List Term → List Term → List Term
   | [],state => state
   | t::ts,state => writeAll ts (assign state t)
 
-/-- The finite construction in `Projection` satisfies `writeAll_fresh` under the displayed hypotheses. -/
+/-- If the exponent keys in `state ++ ts` are duplicate-free, writing all terms of `ts` appends them to `state` in order. -/
 theorem writeAll_fresh (ts state : List Term) (hn : ((state++ts).map key).Nodup) :
     writeAll ts state=state++ts := by
   induction ts generalizing state with
@@ -1651,7 +1654,7 @@ def buildPart (cs : List ℤ) (parity : ℕ) : List (ℕ×ℕ) → List Term →
   | p::ps,state => if keep cs parity p then buildPart cs parity ps (assign state (rawTerm cs p))
       else buildPart cs parity ps state
 
-/-- The finite construction in `Projection` satisfies `buildPart_filter` under the displayed hypotheses. -/
+/-- Building one parity dictionary from `ps` is equivalent to filtering the pairs by `keep`, converting the survivors to terms, then writing them into `state`. -/
 theorem buildPart_filter (cs : List ℤ) (parity : ℕ) (ps : List (ℕ×ℕ)) (state : List Term) :
     buildPart cs parity ps state=writeAll ((ps.filter (keep cs parity)).map (rawTerm cs)) state := by
   induction ps generalizing state with
@@ -1670,7 +1673,7 @@ def buildBoth (cs : List ℤ) : List (ℕ×ℕ) → List Term×List Term → Lis
     if p.2%2=0 then buildBoth cs ps (assign u (rawTerm cs p),v)
     else buildBoth cs ps (u,assign v (rawTerm cs p))
 
-/-- The finite construction in `Projection` satisfies `buildBoth_parts` under the displayed hypotheses. -/
+/-- Starting from `u` and `v`, the combined builder returns the separate updates for parity zero and parity one. -/
 theorem buildBoth_parts (cs : List ℤ) (ps : List (ℕ×ℕ)) (u v : List Term) :
     buildBoth cs ps (u,v)=(buildPart cs 0 ps u,buildPart cs 1 ps v) := by
   induction ps generalizing u v with
@@ -1686,7 +1689,7 @@ theorem buildBoth_parts (cs : List ℤ) (ps : List (ℕ×ℕ)) (u v : List Term)
 /-- Construction for dictionaries in the projection model. -/
 def dictionaries (cs : List ℤ) : List Term×List Term := buildBoth cs (pairs cs) ([],[])
 
-/-- The finite construction in `Projection` satisfies `dictionaries_eq` under the displayed hypotheses. -/
+/-- The two generated dictionaries are precisely the lists of even and odd binomial terms, respectively. -/
 theorem dictionaries_eq (cs : List ℤ) : dictionaries cs=(entries cs 0,entries cs 1) := by
   rw [dictionaries,buildBoth_parts,buildPart_filter,buildPart_filter]
   change (writeAll (entries cs 0) [],writeAll (entries cs 1) [])=_
@@ -1721,7 +1724,7 @@ def projections (cs : List ℤ) : Option (List ℤ) × Option (List ℤ) :=
   let D := cs.length-1
   (axisProject Axis.real uv.1 uv.2 D,axisProject Axis.imag uv.1 uv.2 D)
 
-/-- The finite construction in `Projection` satisfies `axis_samples_eq` under the displayed hypotheses. -/
+/-- Given the two source degrees, direct term sampling agrees with resultant sampling of the corresponding rational-cast symbolic polynomials. -/
 theorem axis_samples_eq (axis : Axis) (u v : List Term) (m n D : ℕ)
     (hm : sourceDegree axis u=some m) (hn : sourceDegree axis v=some n) :
     axisSamples axis u v m n D=ActualProjectionResultantSamples.samples
@@ -1730,7 +1733,7 @@ theorem axis_samples_eq (axis : Axis) (u v : List Term) (m n D : ℕ)
   funext i
   rw [specialize_array axis u _ m hm,specialize_array axis v _ n hn]
 
-/-- The finite construction in `Projection` satisfies `axis_project_eq` under the displayed hypotheses. -/
+/-- Given source degrees `m` and `n`, `axisProject` agrees with the integer-guarded projection on the two symbolic polynomials at those sizes. -/
 theorem axis_project_eq (axis : Axis) (u v : List Term) (m n D : ℕ)
     (hm : sourceDegree axis u=some m) (hn : sourceDegree axis v=some n) :
     axisProject axis u v D=ActualProjectionIntegerGuard.project
@@ -1738,7 +1741,7 @@ theorem axis_project_eq (axis : Axis) (u v : List Term) (m n D : ℕ)
   simp only [axisProject,hm,hn,Option.bind_some,axis_samples_eq axis u v m n D hm hn,
     ActualProjectionIntegerGuard.project,compute]
 
-/-- The finite construction in `Projection` satisfies `generated_axis` under the displayed hypotheses. -/
+/-- For a list of positive degree `D` with nonzero leading coefficient, if the resultant is nonzero at the returned source sizes, axis projection returns a list representing that integer resultant together with witnesses for the two sizes. -/
 theorem generated_axis (cs : List ℤ) (D : ℕ) (hlen : cs.length=D+1)
     (hD : 0 < D) (hlead : cs.getD D 0≠0) (axis : Axis)
     (hres : ∀ m n,sourceDegree axis (entries cs 0)=some m →
@@ -1752,7 +1755,7 @@ theorem generated_axis (cs : List ℤ) (D : ℕ) (hlen : cs.length=D+1)
     hFm hGn hmD hnD hF hG (hres m n hm hn)
   exact ⟨result,m,n,(axis_project_eq axis _ _ m n D hm hn).trans hr,hm,hn,hp⟩
 
-/-- The finite construction in `Projection` satisfies `actual_dictionaries_axis` under the displayed hypotheses. -/
+/-- For a list of length `D + 1` with `D > 0` and nonzero leading coefficient, the nonzero-resultant hypothesis at the source sizes ensures that projecting the generated dictionaries with bound `cs.length - 1` returns a list representing a resultant at some sizes `m` and `n`. -/
 theorem actual_dictionaries_axis (cs : List ℤ) (D : ℕ) (hlen : cs.length=D+1)
     (hD : 0 < D) (hlead : cs.getD D 0≠0) (axis : Axis)
     (hres : ∀ m n,sourceDegree axis (entries cs 0)=some m →
@@ -1773,7 +1776,7 @@ namespace ActualProjectionBinomial
 open Polynomial ActualProjectionEntries ActualProjectionEntryDegrees
 open ActualProjectionEntrySpecialization
 
-/-- The finite construction in `Projection` satisfies `square_minus_one_power` under the displayed hypotheses. -/
+/-- For `u^2 = -1`, the power `u^j` is `(-1)^(j / 2)` at even `j` and that value multiplied by `u` at odd `j`. -/
 theorem square_minus_one_power (u : ℂ) (hu : u^2=-1) (j : ℕ) :
     u^j=if j%2=0 then (-1 : ℂ)^(j/2) else u*(-1 : ℂ)^(j/2) := by
   have hj : j=2*(j/2)+j%2 := by omega
@@ -1791,7 +1794,7 @@ def entryValue (t : Term) (x y : ℂ) : ℂ := (t.c : ℂ)*x^t.x*y^t.y
 def mixedValue (cs : List ℤ) (p : ℕ×ℕ) (x y u : ℂ) : ℂ :=
   (cs.getD p.1 0 : ℂ)*(p.1.choose p.2 : ℂ)*x^(p.1-p.2)*(u*y)^p.2
 
-/-- The finite construction in `Projection` satisfies `mixed_value` under the displayed hypotheses. -/
+/-- When `u^2 = -1`, the mixed contribution of a pair is its term value for even second index and `u` times that value for odd second index. -/
 theorem mixed_value (cs : List ℤ) (p : ℕ×ℕ) (x y u : ℂ) (hu : u^2=-1) :
     mixedValue cs p x y u=if p.2%2=0 then entryValue (rawTerm cs p) x y
       else u*entryValue (rawTerm cs p) x y := by
@@ -1803,7 +1806,7 @@ theorem mixed_value (cs : List ℤ) (p : ℕ×ℕ) (x y u : ℂ) (hu : u^2=-1) :
 def partSum (cs : List ℤ) (parity : ℕ) (ps : List (ℕ×ℕ)) (x y : ℂ) : ℂ :=
   (((ps.filter (keep cs parity)).map (rawTerm cs)).map (fun t => entryValue t x y)).sum
 
-/-- The finite construction in `Projection` satisfies `part_sum_cons` under the displayed hypotheses. -/
+/-- Prepending a pair adds its term value to `partSum` precisely when its second index has the requested parity. -/
 theorem part_sum_cons (cs : List ℤ) (parity : ℕ) (p : ℕ×ℕ) (ps : List (ℕ×ℕ)) (x y : ℂ) :
     partSum cs parity (p::ps) x y=(if p.2%2=parity then entryValue (rawTerm cs p) x y else 0)+
       partSum cs parity ps x y := by
@@ -1815,7 +1818,7 @@ theorem part_sum_cons (cs : List ℤ) (parity : ℕ) (p : ℕ×ℕ) (ps : List (
     · simp [partSum,keep,hz,hp]
     · simp [partSum,keep,hz,hp]
 
-/-- The finite construction in `Projection` satisfies `split_sum` under the displayed hypotheses. -/
+/-- For `u^2 = -1`, the sum of mixed contributions is the even part plus `u` times the odd part. -/
 theorem split_sum (cs : List ℤ) (ps : List (ℕ×ℕ)) (x y u : ℂ) (hu : u^2=-1) :
     partSum cs 0 ps x y+u*partSum cs 1 ps x y=(ps.map (fun p => mixedValue cs p x y u)).sum := by
   induction ps with
@@ -1844,12 +1847,12 @@ def bivariateValue (axis : Axis) (F : Polynomial (Polynomial ℤ)) (x y : ℂ) :
   | .real => F.eval₂ (Polynomial.eval₂RingHom (Int.castRingHom ℂ) x) y
   | .imag => F.eval₂ (Polynomial.eval₂RingHom (Int.castRingHom ℂ) y) x
 
-/-- The finite construction in `Projection` satisfies `bivariate_add` under the displayed hypotheses. -/
+/-- Complex evaluation in the variable order selected by `axis` preserves addition of bivariate polynomials. -/
 theorem bivariate_add (axis : Axis) (F G : Polynomial (Polynomial ℤ)) (x y : ℂ) :
     bivariateValue axis (F+G) x y=bivariateValue axis F x y+bivariateValue axis G x y := by
   cases axis <;> exact Polynomial.eval₂_add _ _
 
-/-- The finite construction in `Projection` satisfies `bivariate_term` under the displayed hypotheses. -/
+/-- Evaluating the bivariate monomial of a term gives its value at `x` and `y` for either variable order. -/
 theorem bivariate_term (axis : Axis) (t : Term) (x y : ℂ) :
     bivariateValue axis (termPoly axis t) x y=entryValue t x y := by
   cases axis with
@@ -1860,19 +1863,19 @@ theorem bivariate_term (axis : Axis) (t : Term) (x y : ℂ) :
       Polynomial.eval₂_monomial,Polynomial.eval₂_mul]
     ring
 
-/-- The finite construction in `Projection` satisfies `bivariate_symbolic` under the displayed hypotheses. -/
+/-- Evaluating the symbolic polynomial over the complex numbers gives the sum of the listed terms' values at `x` and `y`. -/
 theorem bivariate_symbolic (axis : Axis) (es : List Term) (x y : ℂ) :
     bivariateValue axis (symbolic axis es) x y=(es.map (fun t => entryValue t x y)).sum := by
   induction es with
   | nil => cases axis <;> simp [symbolic,bivariateValue]
   | cons t ts ih => rw [symbolic,bivariate_add,bivariate_term,ih,List.map_cons,List.sum_cons]
 
-/-- The finite construction in `Projection` satisfies `bivariate_entries` under the displayed hypotheses. -/
+/-- The evaluation of the symbolic polynomial built from `entries cs parity` equals the contribution of that parity in the binomial-pair sum. -/
 theorem bivariate_entries (axis : Axis) (cs : List ℤ) (parity : ℕ) (x y : ℂ) :
     bivariateValue axis (symbolic axis (entries cs parity)) x y=partSum cs parity (pairs cs) x y :=
   bivariate_symbolic axis (entries cs parity) x y
 
-/-- The finite construction in `Projection` satisfies `list_range_sum` under the displayed hypotheses. -/
+/-- Summing the mapped list of indices below `n` gives the finite sum of `f` over those same indices. -/
 theorem list_range_sum (f : ℕ → ℂ) (n : ℕ) :
     ((List.range n).map f).sum=∑ k∈Finset.range n,f k := by
   induction n with
@@ -1880,7 +1883,7 @@ theorem list_range_sum (f : ℕ → ℂ) (n : ℕ) :
   | succ n ih => simp only [List.range_succ,List.map_append,List.sum_append,
       List.map_singleton,List.sum_singleton,Finset.sum_range_succ,ih]
 
-/-- The finite construction in `Projection` satisfies `flat_sum` under the displayed hypotheses. -/
+/-- Summing `f` on a concatenation of pair lists is the sum of the separate contributions from each list `g k`, with multiplicity. -/
 theorem flat_sum (ks : List ℕ) (g : ℕ → List (ℕ×ℕ)) (f : ℕ×ℕ → ℂ) :
     ((ks.flatMap g).map f).sum=(ks.map (fun k => ((g k).map f).sum)).sum := by
   induction ks with
@@ -1892,14 +1895,14 @@ theorem flat_sum (ks : List ℕ) (g : ℕ → List (ℕ×ℕ)) (f : ℕ×ℕ →
 def inputPoly (cs : List ℤ) : Polynomial ℂ :=
   (ActualYunPrimitiveContent.integerPoly cs).map (Int.castRingHom ℂ)
 
-/-- The finite construction in `Projection` satisfies `input_coeff` under the displayed hypotheses. -/
+/-- Each complex coefficient of `inputPoly cs` is the cast of the corresponding integer lookup from `cs`, defaulting to zero. -/
 theorem input_coeff (cs : List ℤ) (k : ℕ) : (inputPoly cs).coeff k=(cs.getD k 0 : ℂ) := by
   rw [inputPoly,Polynomial.coeff_map]
   change (Int.castRingHom ℂ) (cs.toFinsupp k)=_
   rw [List.toFinsupp_apply]
   rfl
 
-/-- The finite construction in `Projection` satisfies `input_eval` under the displayed hypotheses. -/
+/-- Evaluating the input polynomial at `z` gives the sum of each listed coefficient times `z` to its index. -/
 theorem input_eval (cs : List ℤ) (z : ℂ) :
     (inputPoly cs).eval z=∑ k∈Finset.range cs.length,(cs.getD k 0 : ℂ)*z^k := by
   by_cases he : cs=[]
@@ -1920,7 +1923,7 @@ theorem input_eval (cs : List ℤ) (z : ℂ) :
     rw [Polynomial.eval_eq_sum_range' hdeg]
     simp only [input_coeff]
 
-/-- The finite construction in `Projection` satisfies `pair_sum` under the displayed hypotheses. -/
+/-- For arbitrary complex `x`, `y`, and `u`, the sum over all binomial pairs equals the input polynomial evaluated at `x + u * y`. -/
 theorem pair_sum (cs : List ℤ) (x y u : ℂ) :
     ((pairs cs).map (fun p => mixedValue cs p x y u)).sum=(inputPoly cs).eval (x+u*y) := by
   rw [pairs,flat_sum,list_range_sum,input_eval]
@@ -1932,19 +1935,19 @@ theorem pair_sum (cs : List ℤ) (x y u : ℂ) :
   simp only [Function.comp_apply,mixedValue]
   ring
 
-/-- The finite construction in `Projection` satisfies `paired_identity` under the displayed hypotheses. -/
+/-- For either axis and any `u` with `u^2 = -1`, evaluation at `x + u * y` splits into the even symbolic part plus `u` times the odd symbolic part. -/
 theorem paired_identity (axis : Axis) (cs : List ℤ) (x y u : ℂ) (hu : u^2=-1) :
     (inputPoly cs).eval (x+u*y)=bivariateValue axis (symbolic axis (entries cs 0)) x y+
       u*bivariateValue axis (symbolic axis (entries cs 1)) x y := by
   rw [bivariate_entries,bivariate_entries,split_sum cs (pairs cs) x y u hu,pair_sum]
 
-/-- The finite construction in `Projection` satisfies `plus_identity` under the displayed hypotheses. -/
+/-- Evaluation at `x + I * y` is the even symbolic value plus `I` times the odd symbolic value, in either axis convention. -/
 theorem plus_identity (axis : Axis) (cs : List ℤ) (x y : ℂ) :
     (inputPoly cs).eval (x+Complex.I*y)=bivariateValue axis (symbolic axis (entries cs 0)) x y+
       Complex.I*bivariateValue axis (symbolic axis (entries cs 1)) x y :=
   paired_identity axis cs x y Complex.I Complex.I_sq
 
-/-- The finite construction in `Projection` satisfies `minus_identity` under the displayed hypotheses. -/
+/-- Evaluation at `x - I * y` is the even symbolic value minus `I` times the odd symbolic value, in either axis convention. -/
 theorem minus_identity (axis : Axis) (cs : List ℤ) (x y : ℂ) :
     (inputPoly cs).eval (x-Complex.I*y)=bivariateValue axis (symbolic axis (entries cs 0)) x y-
       Complex.I*bivariateValue axis (symbolic axis (entries cs 1)) x y := by
@@ -1958,7 +1961,7 @@ namespace ActualProjectionLeading
 open Polynomial ActualProjectionEntries ActualProjectionEntryDegrees
 open ActualProjectionEntrySpecialization ActualProjectionEntryArrays
 
-/-- The finite construction in `Projection` satisfies `coeff_zero_of_absent` under the displayed hypotheses. -/
+/-- If no listed term has eliminated exponent `d`, the outer coefficient at `d` is zero. -/
 theorem coeff_zero_of_absent (axis : Axis) (es : List Term) (d : ℕ)
     (habs : ∀ t∈es,eliminated axis t≠d) : (symbolic axis es).coeff d=0 := by
   induction es with
@@ -1967,7 +1970,7 @@ theorem coeff_zero_of_absent (axis : Axis) (es : List Term) (d : ℕ)
     rw [symbolic,Polynomial.coeff_add,term_coeff,ite_eq_right (habs t (by simp)),zero_add]
     exact ih (fun u hu => habs u (by simp only [List.mem_cons]; exact Or.inr hu))
 
-/-- The finite construction in `Projection` satisfies `coeff_isolated` under the displayed hypotheses. -/
+/-- If `es` is duplicate-free and `t` is its unique term with eliminated exponent `d`, the outer coefficient at `d` is the kept-variable monomial of `t`. -/
 theorem coeff_isolated (axis : Axis) (es : List Term) (d : ℕ) (t : Term)
     (hnd : es.Nodup) (ht : t∈es) (he : eliminated axis t=d)
     (honly : ∀ u∈es,eliminated axis u=d → u=t) :
@@ -1999,7 +2002,7 @@ def topParity : Axis → ℕ → ℕ
   | .real,D => D%2
   | .imag,_ => 0
 
-/-- The finite construction in `Projection` satisfies `top_entry` under the displayed hypotheses. -/
+/-- For a list of length `D + 1` with nonzero coefficient at `D`, the binomial term indexed by `topPair axis D` survives in the parity list selected by `topParity`. -/
 theorem top_entry (axis : Axis) (cs : List ℤ) (D : ℕ) (hlen : cs.length=D+1)
     (hlead : cs.getD D 0≠0) : rawTerm cs (topPair axis D)∈entries cs (topParity axis D) := by
   apply (entry_mem cs _ _).mpr
@@ -2014,7 +2017,7 @@ theorem top_entry (axis : Axis) (cs : List ℤ) (D : ℕ) (hlen : cs.length=D+1)
     | imag =>
       simpa only [topPair,value,Nat.choose_zero_right,Nat.cast_one,mul_one,Nat.zero_div,pow_zero] using hlead
 
-/-- The finite construction in `Projection` satisfies `top_unique` under the displayed hypotheses. -/
+/-- In the top parity list for an input of length `D + 1`, every term with eliminated exponent `D` is the term generated by `topPair axis D`. -/
 theorem top_unique (axis : Axis) (cs : List ℤ) (D : ℕ) (hlen : cs.length=D+1)
     (t : Term) (ht : t∈entries cs (topParity axis D)) (he : eliminated axis t=D) :
     t=rawTerm cs (topPair axis D) := by
@@ -2023,7 +2026,7 @@ theorem top_unique (axis : Axis) (cs : List ℤ) (D : ℕ) (hlen : cs.length=D+1
     cases axis <;> dsimp only [eliminated,rawTerm,topPair] at he ⊢ <;> apply Prod.ext <;> dsimp <;> omega
   rw [hp]
 
-/-- The finite construction in `Projection` satisfies `top_coefficient` under the displayed hypotheses. -/
+/-- For a list of length `D + 1` with nonzero leading coefficient, the outer coefficient at `D` in the top parity part is the constant polynomial given by the top term's value. -/
 theorem top_coefficient (axis : Axis) (cs : List ℤ) (D : ℕ) (hlen : cs.length=D+1)
     (hlead : cs.getD D 0≠0) :
     (symbolic axis (entries cs (topParity axis D))).coeff D=C (value cs
@@ -2037,7 +2040,7 @@ theorem top_coefficient (axis : Axis) (cs : List ℤ) (D : ℕ) (hlen : cs.lengt
   rw [hk,Polynomial.monomial_zero_left] at hh
   exact hh
 
-/-- The finite construction in `Projection` satisfies `top_max` under the displayed hypotheses. -/
+/-- For length `D + 1` and nonzero leading coefficient, the top parity list has maximum eliminated exponent exactly `D`. -/
 theorem top_max (axis : Axis) (cs : List ℤ) (D : ℕ) (hlen : cs.length=D+1)
     (hlead : cs.getD D 0≠0) : sourceDegree axis (entries cs (topParity axis D))=some D := by
   apply List.max?_eq_some_iff.mpr
@@ -2050,7 +2053,7 @@ theorem top_max (axis : Axis) (cs : List ℤ) (D : ℕ) (hlen : cs.length=D+1)
     rw [hlen] at hh
     omega
 
-/-- The finite construction in `Projection` satisfies `top_value_ne_zero` under the displayed hypotheses. -/
+/-- If the input list has length `D + 1` and nonzero leading coefficient, the binomial contribution indexed by `topPair axis D` is nonzero. -/
 theorem top_value_ne_zero (axis : Axis) (cs : List ℤ) (D : ℕ) (hlen : cs.length=D+1)
     (hlead : cs.getD D 0≠0) : value cs (topPair axis D).1 (topPair axis D).2≠0 :=
   (entry_bounds cs _ _ (top_entry axis cs D hlen hlead)).2.2
@@ -2067,17 +2070,17 @@ open ActualProjectionBinomialEval ActualProjectionLeading
 def complexSpecialize (F : Polynomial (Polynomial ℤ)) (z : ℂ) : Polynomial ℂ :=
   F.map (Polynomial.eval₂RingHom (Int.castRingHom ℂ) z)
 
-/-- The finite construction in `Projection` satisfies `eval_real` under the displayed hypotheses. -/
+/-- Specializing the coefficients at `x` and evaluating the resulting polynomial at `y` gives the real-axis evaluation of `F`. -/
 theorem eval_real (F : Polynomial (Polynomial ℤ)) (x y : ℂ) :
     (complexSpecialize F x).eval y=bivariateValue Axis.real F x y :=
   Polynomial.eval_map _ y
 
-/-- The finite construction in `Projection` satisfies `eval_imag` under the displayed hypotheses. -/
+/-- Specializing the coefficients at `y` and evaluating the resulting polynomial at `x` gives the imaginary-axis evaluation of `F`. -/
 theorem eval_imag (F : Polynomial (Polynomial ℤ)) (x y : ℂ) :
     (complexSpecialize F y).eval x=bivariateValue Axis.imag F x y :=
   Polynomial.eval_map _ x
 
-/-- The finite construction in `Projection` satisfies `top_specialized_coeff` under the displayed hypotheses. -/
+/-- With input length `D + 1` and nonzero leading coefficient, the top parity part has the same outer coefficient at `D` under every complex specialization, namely the cast of the top term's value. -/
 theorem top_specialized_coeff (axis : Axis) (cs : List ℤ) (D : ℕ) (hlen : cs.length=D+1)
     (hlead : cs.getD D 0≠0) (z : ℂ) :
     (complexSpecialize (symbolic axis (entries cs (topParity axis D))) z).coeff D=
@@ -2085,7 +2088,7 @@ theorem top_specialized_coeff (axis : Axis) (cs : List ℤ) (D : ℕ) (hlen : cs
   rw [complexSpecialize,Polynomial.coeff_map,top_coefficient axis cs D hlen hlead]
   exact Polynomial.eval₂_C _ _
 
-/-- The finite construction in `Projection` satisfies `top_specialized_degree` under the displayed hypotheses. -/
+/-- For length `D + 1` and nonzero leading coefficient, every complex specialization of the top parity part is nonzero of natural degree exactly `D`. -/
 theorem top_specialized_degree (axis : Axis) (cs : List ℤ) (D : ℕ) (hlen : cs.length=D+1)
     (hlead : cs.getD D 0≠0) (z : ℂ) :
     complexSpecialize (symbolic axis (entries cs (topParity axis D))) z≠0 ∧
@@ -2102,7 +2105,7 @@ theorem top_specialized_degree (axis : Axis) (cs : List ℤ) (D : ℕ) (hlen : c
   exact ⟨fun hz => hc (by rw [hz,Polynomial.coeff_zero]),
     Polynomial.natDegree_eq_of_le_of_coeff_ne_zero (Polynomial.natDegree_map_le.trans hd) hc⟩
 
-/-- The finite construction in `Projection` satisfies `generated_coprime` under the displayed hypotheses. -/
+/-- For a list of length `D + 1` with nonzero leading coefficient, specializing both parity polynomials at `listBound cs` makes them coprime over the complex numbers for either axis. -/
 theorem generated_coprime (axis : Axis) (cs : List ℤ) (D : ℕ) (hlen : cs.length=D+1)
     (hlead : cs.getD D 0≠0) :
     IsCoprime (complexSpecialize (symbolic axis (entries cs 0)) (ActualSturmCauchyInput.listBound cs : ℂ))
@@ -2139,13 +2142,13 @@ open ActualProjectionEntrySpecialization ActualProjectionEntryArrays
 open ActualProjectionLeading ActualProjectionComplexSpecialization
 open ActualProjectionGeneratedAxes ActualYunPrimitiveContent
 
-/-- The finite construction in `Projection` satisfies `top_parity_cases` under the displayed hypotheses. -/
+/-- The parity containing the top eliminated power is either zero or one. -/
 theorem top_parity_cases (axis : Axis) (D : ℕ) : topParity axis D=0 ∨ topParity axis D=1 := by
   cases axis with
   | real => dsimp only [topParity]; have hh := Nat.mod_lt D (by decide : 0 < 2); omega
   | imag => exact Or.inl rfl
 
-/-- The finite construction in `Projection` satisfies `actual_sizes_positive` under the displayed hypotheses. -/
+/-- For length `D + 1`, positive `D`, and nonzero leading coefficient, at least one of the returned source sizes `m` and `n` is nonzero. -/
 theorem actual_sizes_positive (axis : Axis) (cs : List ℤ) (D m n : ℕ) (hlen : cs.length=D+1)
     (hD : 0 < D) (hlead : cs.getD D 0≠0)
     (hm : sourceDegree axis (entries cs 0)=some m) (hn : sourceDegree axis (entries cs 1)=some n) :
@@ -2157,7 +2160,7 @@ theorem actual_sizes_positive (axis : Axis) (cs : List ℤ) (D m n : ℕ) (hlen 
   · rw [hp,hn] at ht
     exact Or.inr (by have hh := Option.some.inj ht; omega)
 
-/-- The finite construction in `Projection` satisfies `actual_symbolic_nonzero` under the displayed hypotheses. -/
+/-- For a list of length `D + 1` with nonzero leading coefficient, the symbolic parity polynomials have nonzero resultant at their returned source sizes. -/
 theorem actual_symbolic_nonzero (axis : Axis) (cs : List ℤ) (D m n : ℕ) (hlen : cs.length=D+1)
     (hlead : cs.getD D 0≠0)
     (hm : sourceDegree axis (entries cs 0)=some m) (hn : sourceDegree axis (entries cs 1)=some n) :
@@ -2196,7 +2199,7 @@ theorem actual_symbolic_nonzero (axis : Axis) (cs : List ℤ) (D m n : ℕ) (hle
   rw [complexSpecialize,complexSpecialize,Polynomial.resultant_map_map,hz]
   exact map_zero _
 
-/-- The finite construction in `Projection` satisfies `actual_axis_success` under the displayed hypotheses. -/
+/-- On a positive-degree list of length `D + 1` with nonzero leading coefficient, axis projection returns a list representing the nonzero integer resultant at the two returned source sizes. -/
 theorem actual_axis_success (axis : Axis) (cs : List ℤ) (D : ℕ) (hlen : cs.length=D+1)
     (hD : 0 < D) (hlead : cs.getD D 0≠0) :
     ∃ result m n,axisProject axis (ActualProjectionDictionary.dictionaries cs).1
@@ -2220,11 +2223,11 @@ open ActualProjectionEntrySpecialization ActualProjectionEntryArrays
 open ActualProjectionBinomial ActualProjectionBinomialEval
 open ActualProjectionComplexSpecialization ActualProjectionGeneratedNonzero
 
-/-- The finite construction in `Projection` satisfies `entry_real` under the displayed hypotheses. -/
+/-- A term with integer coefficient evaluates to a real value at two real coordinates. -/
 theorem entry_real (t : Term) (x y : ℝ) : (entryValue t (x : ℂ) (y : ℂ)).im=0 := by
   simp [entryValue,← Complex.ofReal_pow]
 
-/-- The finite construction in `Projection` satisfies `symbolic_real` under the displayed hypotheses. -/
+/-- The imaginary part of the symbolic term sum vanishes on every pair of real inputs, for either axis. -/
 theorem symbolic_real (axis : Axis) (es : List Term) (x y : ℝ) :
     (bivariateValue axis (symbolic axis es) (x : ℂ) (y : ℂ)).im=0 := by
   rw [bivariate_symbolic]
@@ -2232,7 +2235,7 @@ theorem symbolic_real (axis : Axis) (es : List Term) (x y : ℝ) :
   | nil => rfl
   | cons t ts ih => rw [List.map_cons,List.sum_cons,Complex.add_im,entry_real,ih,zero_add]
 
-/-- The finite construction in `Projection` satisfies `original_root_pair` under the displayed hypotheses. -/
+/-- At the real and imaginary coordinates of a complex input root, both generated parity polynomials evaluate to zero. -/
 theorem original_root_pair (axis : Axis) (cs : List ℤ) (z : ℂ) (hz : (inputPoly cs).eval z=0) :
     bivariateValue axis (symbolic axis (entries cs 0)) (z.re : ℂ) (z.im : ℂ)=0 ∧
       bivariateValue axis (symbolic axis (entries cs 1)) (z.re : ℂ) (z.im : ℂ)=0 := by
@@ -2249,7 +2252,7 @@ theorem original_root_pair (axis : Axis) (cs : List ℤ) (z : ℂ) (hz : (inputP
   · exact Complex.ext hr.symm hu
   · exact Complex.ext hi.symm hv
 
-/-- The finite construction in `Projection` satisfies `generated_coordinate_zero` under the displayed hypotheses. -/
+/-- For input length `D + 1`, positive `D`, and nonzero leading coefficient, the resultant at the returned source sizes vanishes at the selected coordinate of every complex input root. -/
 theorem generated_coordinate_zero (axis : Axis) (cs : List ℤ) (D m n : ℕ)
     (hlen : cs.length=D+1) (hD : 0 < D) (hlead : cs.getD D 0≠0)
     (hm : sourceDegree axis (entries cs 0)=some m) (hn : sourceDegree axis (entries cs 1)=some n)
@@ -2289,7 +2292,7 @@ namespace ActualProjectionOutputCanonical
 open ActualYunRationalArray ActualYunRationalCanonical ActualYunPrimitive ActualSturmArrayTools
 open ActualProjectionEntries ActualProjectionEntryDegrees ActualProjectionGeneratedAxes
 
-/-- The finite construction in `Projection` satisfies `run_canonical` under the displayed hypotheses. -/
+/-- Any list successfully returned by the interpolation loop is fixed by `trim`. -/
 theorem run_canonical (fuel : ℕ) (values b out : List ℚ) (k : ℕ) (result : List ℚ)
     (hr : ActualProjectionInterpolationLoop.run fuel values b out k=some result) : Canonical result := by
   induction fuel generalizing values b out k with
@@ -2302,12 +2305,12 @@ theorem run_canonical (fuel : ℕ) (values b out : List ℚ) (k : ℕ) (result :
     | nil => have he := Option.some.inj hr; subst result; exact trim_canonical out
     | cons v vs => exact ih _ _ _ _ hr
 
-/-- The finite construction in `Projection` satisfies `interpolate_canonical` under the displayed hypotheses. -/
+/-- If interpolation returns `result`, then `result` is already trimmed. -/
 theorem interpolate_canonical (values result : List ℚ)
     (hr : ActualProjectionInterpolationLoop.interpolate values=some result) : Canonical result :=
   run_canonical values.length values [1] [] 0 result hr
 
-/-- The finite construction in `Projection` satisfies `finish_lift` under the displayed hypotheses. -/
+/-- If `finish` returns the integer list `result`, lifting `result` to rational coefficients recovers `out` exactly. -/
 theorem finish_lift (out : List ℚ) (result : List ℤ)
     (hr : ActualProjectionIntegerGuard.finish out=some result) : lift result=out := by
   unfold ActualProjectionIntegerGuard.finish at hr
@@ -2330,7 +2333,7 @@ theorem finish_lift (out : List ℚ) (result : List ℤ)
       exact Rat.coe_int_num_of_den_eq_one (hd c hc)
     _ = out := List.map_id out
 
-/-- The finite construction in `Projection` satisfies `axis_output_canonical` under the displayed hypotheses. -/
+/-- Every successful integer axis projection has a canonical rational lift. -/
 theorem axis_output_canonical (axis : Axis) (u v : List Term) (D : ℕ) (result : List ℤ)
     (hr : axisProject axis u v D=some result) : Canonical (lift result) := by
   unfold axisProject at hr
@@ -2359,7 +2362,7 @@ def OutputProperties (cs : List ℤ) (axis : Axis) (out : List ℤ) : Prop :=
   Canonical (lift out) ∧ poly (lift out)≠0 ∧ 0 < (poly (lift out)).natDegree ∧
     ∀ z : ℂ,(inputPoly cs).eval z=0 → (inputPoly out).eval (coordinate axis z : ℂ)=0
 
-/-- The finite construction in `Projection` satisfies `original_degree` under the displayed hypotheses. -/
+/-- A coefficient list of length `D + 1` with a nonzero last coefficient represents a complex polynomial of natural degree `D`. -/
 theorem original_degree (cs : List ℤ) (D : ℕ) (hlen : cs.length=D+1) (hlead : cs.getD D 0≠0) :
     (inputPoly cs).natDegree=D := by
   apply Polynomial.natDegree_eq_of_le_of_coeff_ne_zero
@@ -2369,14 +2372,14 @@ theorem original_degree (cs : List ℤ) (D : ℕ) (hlen : cs.length=D+1) (hlead 
   · rw [input_coeff]
     exact_mod_cast hlead
 
-/-- The finite construction in `Projection` satisfies `original_exists_root` under the displayed hypotheses. -/
+/-- A coefficient list of length `D + 1`, with `D > 0` and nonzero last coefficient, represents a polynomial with at least one complex root. -/
 theorem original_exists_root (cs : List ℤ) (D : ℕ) (hlen : cs.length=D+1)
     (hD : 0 < D) (hlead : cs.getD D 0≠0) : ∃ z : ℂ,(inputPoly cs).eval z=0 := by
   have hd : 0 < (inputPoly cs).degree := Polynomial.natDegree_pos_iff_degree_pos.mp
     (by rw [original_degree cs D hlen hlead]; exact hD)
   exact IsAlgClosed.exists_root _ (ne_of_gt hd)
 
-/-- The finite construction in `Projection` satisfies `actual_axis_output` under the displayed hypotheses. -/
+/-- With the positive-degree input hypotheses, projecting either axis returns an integer list with canonical lift and nonzero polynomial of positive degree, vanishing at every selected input-root coordinate. -/
 theorem actual_axis_output (axis : Axis) (cs : List ℤ) (D : ℕ) (hlen : cs.length=D+1)
     (hD : 0 < D) (hlead : cs.getD D 0≠0) :
     ∃ out,axisProject axis (ActualProjectionDictionary.dictionaries cs).1
@@ -2407,7 +2410,7 @@ theorem actual_axis_output (axis : Axis) (cs : List ℤ) (D : ℕ) (hlen : cs.le
     omega
   exact ⟨out,hr,axis_output_canonical axis _ _ _ out hr,hqn,hqpos,hcoord⟩
 
-/-- The finite construction in `Projection` satisfies `actual_projection_pair` under the displayed hypotheses. -/
+/-- With length `D + 1`, positive `D`, and nonzero leading coefficient, both projections return canonical lifts of nonzero positive-degree polynomials that vanish at the corresponding coordinates of all input roots. -/
 theorem actual_projection_pair (cs : List ℤ) (D : ℕ) (hlen : cs.length=D+1)
     (hD : 0 < D) (hlead : cs.getD D 0≠0) :
     ∃ rx ry,projections cs=(some rx,some ry) ∧ OutputProperties cs Axis.real rx ∧ OutputProperties cs Axis.imag ry := by
@@ -2432,7 +2435,7 @@ def isolateAxes (cs : List ℤ) (bits fuelX fuelY : ℕ) : Option (List (ℚ×�
       (intervals (lift ry) bits fuelY).map (fun iy => (ix,iy)))
   | _ => none
 
-/-- The finite construction in `Projection` satisfies `real_root_member` under the displayed hypotheses. -/
+/-- If the lifted polynomial is nonzero, a real number that is a complex root of `inputPoly out` belongs to the real root finset of the lift. -/
 theorem real_root_member (out : List ℤ) (hn : poly (lift out)≠0) (x : ℝ)
     (hx : (inputPoly out).eval (x : ℂ)=0) : x∈inputRoots (lift out) := by
   let P := (poly (lift out)).map (Rat.castHom ℝ)
@@ -2455,7 +2458,9 @@ def IsolationProperties (cs : List ℤ) (axis : Axis) (out : List ℤ) (bits : �
     (∀ x∈inputRoots (lift out),hits ps x=1) ∧ ps.Pairwise Apart ∧ ps.Pairwise LexLE ∧
     ∀ z : ℂ,(inputPoly cs).eval z=0 → hits ps (coordinate axis z)=1
 
-/-- The finite construction in `Projection` satisfies `actual_axis_isolation` under the displayed hypotheses. -/
+/-- Given the axis output properties, some fuel yields pairwise apart, lexicographically
+ordered intervals of width at most `sourceWidth bits`, each isolating one projection root.
+Every projection root and every selected input-root coordinate has exactly one hit. -/
 theorem actual_axis_isolation (cs : List ℤ) (axis : Axis) (out : List ℤ)
     (houtput : OutputProperties cs axis out) (bits : ℕ) :
     ∃ fuel ps,intervals (lift out) bits fuel=some ps ∧ IsolationProperties cs axis out bits ps := by
@@ -2464,7 +2469,7 @@ theorem actual_axis_isolation (cs : List ℤ) (axis : Axis) (out : List ℤ)
   exact ⟨fuel,ps,hrun,hgood,hcover,hapart,hsort,fun z hz =>
     hcover _ (real_root_member out hn (coordinate axis z) (hcoord z hz))⟩
 
-/-- The finite construction in `Projection` satisfies `computed_axes` under the displayed hypotheses. -/
+/-- With length `D + 1`, positive `D`, and nonzero leading coefficient, both projections satisfy their output properties and there are fuel values yielding intervals satisfying the isolation properties for both axes. -/
 theorem computed_axes (cs : List ℤ) (D bits : ℕ) (hlen : cs.length=D+1)
     (hD : 0 < D) (hlead : cs.getD D 0≠0) :
     ∃ fuelX fuelY rx ry ix iy,projections cs=(some rx,some ry) ∧
@@ -2507,7 +2512,7 @@ def midpoint (p : Interval) : ℚ := (p.1+p.2)/2
 def centers (ix iy : List Interval) : List (ℚ×ℚ) :=
   (ix.map midpoint).flatMap (fun x => (iy.map midpoint).map (fun y => (x,y)))
 
-/-- The finite construction in `Projection` satisfies `centers_rectangles` under the displayed hypotheses. -/
+/-- The center list is the Cartesian rectangle list mapped to the midpoint of each of its two intervals. -/
 theorem centers_rectangles (ix iy : List Interval) :
     centers ix iy=(rectangles ix iy).map (fun r => (midpoint r.1,midpoint r.2)) := by
   induction ix with
@@ -2518,7 +2523,7 @@ theorem centers_rectangles (ix iy : List Interval) :
     rw [List.map_append,ih,List.map_map,List.map_map]
     rfl
 
-/-- The finite construction in `Projection` satisfies `rectangle_hits_product` under the displayed hypotheses. -/
+/-- The number of open Cartesian rectangles containing `z` is the product of the interval hit counts of its real and imaginary parts. -/
 theorem rectangle_hits_product (ix iy : List Interval) (z : ℂ) :
     rectangleHits (rectangles ix iy) z=hits ix z.re*hits iy z.im := by
   induction ix with
@@ -2540,7 +2545,7 @@ theorem rectangle_hits_product (ix iy : List Interval) (z : ℂ) :
     rw [ih,hits_cons]
     ring
 
-/-- The finite construction in `Projection` satisfies `containing_interval` under the displayed hypotheses. -/
+/-- If `hits ps x = 1`, some listed interval has endpoints strictly below and above `x`. -/
 theorem containing_interval (ps : List Interval) (x : ℝ) (hh : hits ps x=1) :
     ∃ p∈ps,(p.1 : ℝ)<x ∧ x<(p.2 : ℝ) := by
   classical
@@ -2569,7 +2574,7 @@ theorem midpoint_error (ax bx ay byy e : ℚ) (z : ℂ)
   push_cast
   linarith
 
-/-- The finite construction in `Projection` satisfies `source_midpoint_near` under the displayed hypotheses. -/
+/-- Under the two axis isolation properties, each complex input root hits exactly one Cartesian rectangle and lies within `sourceWidth bits` of some listed rational center. -/
 theorem source_midpoint_near (cs : List ℤ) (rx ry : List ℤ) (bits : ℕ) (ix iy : List Interval)
     (hx : IsolationProperties cs Axis.real rx bits ix) (hy : IsolationProperties cs Axis.imag ry bits iy)
     (z : ℂ) (hz : (inputPoly cs).eval z=0) :
@@ -2589,7 +2594,7 @@ theorem source_midpoint_near (cs : List ℤ) (rx ry : List ℤ) (bits : ℕ) (ix
   · exact midpoint_error px.1 px.2 py.1 py.2 (sourceWidth bits)
       z hxp.1.le hxp.2.le hyp.1.le hyp.2.le hwx hwy
 
-/-- The finite construction in `Projection` satisfies `computed_cartesian` under the displayed hypotheses. -/
+/-- For an input of length `D + 1` with positive `D` and nonzero leading coefficient, some pair of fuel values returns axis intervals whose Cartesian rectangles hit every complex input root once, with a candidate center within `sourceWidth bits` of each root. -/
 theorem computed_cartesian (cs : List ℤ) (D bits : ℕ) (hlen : cs.length=D+1)
     (hD : 0 < D) (hlead : cs.getD D 0≠0) :
     ∃ fuelX fuelY ix iy,isolateAxes cs bits fuelX fuelY=some (ix,iy) ∧

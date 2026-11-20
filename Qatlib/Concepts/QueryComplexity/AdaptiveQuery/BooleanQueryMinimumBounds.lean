@@ -305,7 +305,7 @@ theorem zeroError_minimum_bounds (strict : Bool) (f : (Fin n→Bool)→Bool) :
 
 /-- Collect the quadratic block sensitivity and sixth power deterministic query bounds for
 exact, bounded error, and both zero error quantum query minima. -/
-theorem frontier3 (f : (Fin n→Bool)→Bool) :
+theorem query_minima_block_sensitivity_and_deterministic_bounds (f : (Fin n→Bool)→Bool) :
     blockSensitivity f≤8*exactMinimum f^2 ∧
       blockSensitivity f≤16*boundedMinimum f^2 ∧
       deterministicQueryComplexity f≤4096*exactMinimum f^6 ∧
@@ -338,9 +338,9 @@ theorem complete_clause67 (n : ℕ) (f : (Fin n → Bool) → Bool) :
         deterministicQueryComplexity f ≤ 4096 * zeroErrorMinimum strict f ^ 6)) ∧
     (∀ strict : Bool,
       Qatlib.Concepts.QueryComplexity.DegreeMethod.approxDegree f ≤ 2 * zeroErrorMinimum strict f) :=
-  ⟨Qatlib.Concepts.QueryComplexity.DegreeMethod.BooleanQueryMinimumDefs.frontier1 f,
-    Qatlib.Concepts.QueryComplexity.DegreeMethod.BooleanQueryMinimumDefs.frontier2 f,
-    frontier3 f, fun strict => (zeroError_minimum_bounds strict f).1⟩
+  ⟨Qatlib.Concepts.QueryComplexity.DegreeMethod.BooleanQueryMinimumDefs.exact_bounded_query_minima_attainment_and_degree_bounds f,
+    Qatlib.Concepts.QueryComplexity.DegreeMethod.BooleanQueryMinimumDefs.zero_error_query_minima_attainment_and_order f,
+    query_minima_block_sensitivity_and_deterministic_bounds f, fun strict => (zeroError_minimum_bounds strict f).1⟩
 
 end
 end Qatlib.Concepts.QueryComplexity.AdaptiveQuery

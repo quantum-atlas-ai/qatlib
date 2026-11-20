@@ -23,7 +23,8 @@ set_option autoImplicit false
 namespace Qatlib.Concepts.EffectiveGauge.SpectralH1
 open Qatlib.Concepts.EffectiveGauge.HopfAtlas Qatlib.Concepts.EffectiveGauge.RationalFlow Qatlib.Concepts.EffectiveGauge.TorusFourier
 
-/-- Original `gaugeArtifactCoefficientL1_nonneg` guarantee for the `GaugeArtifactDecode` construction; the complete source hypotheses are retained. -/
+/-- The sum of the absolute real and imaginary coefficient coordinates over the artifact is
+nonnegative. -/
 theorem gaugeArtifactCoefficientL1_nonneg (artifact : RationalGaugeFourierArtifact) :
     0 ≤ gaugeArtifactCoefficientL1 artifact := by
   apply List.sum_nonneg
@@ -31,7 +32,8 @@ theorem gaugeArtifactCoefficientL1_nonneg (artifact : RationalGaugeFourierArtifa
   obtain ⟨record,_,rfl⟩ := List.mem_map.mp hv
   exact Finset.sum_nonneg (fun _ _ => add_nonneg (abs_nonneg _) (abs_nonneg _))
 
-/-- Original `gaugeArtifactCisAccuracy_spec` guarantee for the `GaugeArtifactDecode` construction; the complete source hypotheses are retained. -/
+/-- At positive requested accuracy, the phase accuracy lies in `(0, 1]`. Four times the product of
+the coefficient absolute sum and the phase accuracy is at most half the requested accuracy. -/
 theorem gaugeArtifactCisAccuracy_spec (artifact : RationalGaugeFourierArtifact) (accuracy : ℚ)
     (ha : 0<accuracy) :
     0<gaugeArtifactCisAccuracy artifact accuracy ∧ gaugeArtifactCisAccuracy artifact accuracy ≤ 1 ∧
@@ -48,7 +50,8 @@ theorem gaugeArtifactCisAccuracy_spec (artifact : RationalGaugeFourierArtifact) 
 noncomputable section
 open scoped Quaternion
 
-/-- Original `rationalCircleCast_norm_le` guarantee for the `GaugeArtifactDecode` construction; the complete source hypotheses are retained. -/
+/-- The complex norm of a rational pair is bounded by the sum of the absolute values of its two
+coordinates. -/
 theorem rationalCircleCast_norm_le (value : RationalCircleSample) :
     ‖rationalCircleCast value‖ ≤ ((|value.1|+|value.2| : ℚ) : ℝ) := by
   have h := Complex.norm_le_abs_re_add_abs_im (rationalCircleCast value)
@@ -56,7 +59,8 @@ theorem rationalCircleCast_norm_le (value : RationalCircleSample) :
     Complex.ofReal_im,Complex.I_re,Complex.I_im,Complex.add_im,Complex.mul_im,
     mul_zero,mul_one,sub_zero,add_zero,zero_add,Rat.cast_add,Rat.cast_abs] using h
 
-/-- Original `quaternion_norm_le_coordinate_sum` guarantee for the `GaugeArtifactDecode` construction; the complete source hypotheses are retained. -/
+/-- A quaternion's norm is bounded by the sum of the absolute values of its four projected
+coordinates. -/
 theorem quaternion_norm_le_coordinate_sum (q : ℍ) :
     ‖q‖ ≤ ∑ j : Fin 4, |quaternionCoordinateCLM j q| := by
   have hsq := Quaternion.normSq_eq_norm_mul_self q
@@ -72,7 +76,8 @@ theorem quaternion_norm_le_coordinate_sum (q : ℍ) :
     mul_nonneg (abs_nonneg q.imI) (abs_nonneg q.imK),
     mul_nonneg (abs_nonneg q.imJ) (abs_nonneg q.imK)]
 
-/-- Original `gaugeArtifactPhysicalMode_eq` guarantee for the `GaugeArtifactDecode` construction; the complete source hypotheses are retained. -/
+/-- Evaluating the unit Fourier mode at the physical rational point divided by the period gives the
+complex phase of its rational winding angle. -/
 theorem gaugeArtifactPhysicalMode_eq (k : SpatialFrequency) (X : Fin 3 → ℚ) :
     unitFourierMode k (physicalPeriod⁻¹ • rationalSpatialPoint X)=
       complexPhase (rationalWindingAngle k X : ℝ) := by
@@ -81,7 +86,9 @@ theorem gaugeArtifactPhysicalMode_eq (k : SpatialFrequency) (X : Fin 3 → ℚ) 
   rw [map_smul,smul_eq_mul,← mul_assoc,mul_inv_cancel₀ physicalPeriod_pos.ne',one_mul]
   simp only [frequencyLinear_apply,windingLinear_apply]
 
-/-- Original `gaugeArtifactDecode_complex_error` guarantee for the `GaugeArtifactDecode` construction; the complete source hypotheses are retained. -/
+/-- At any rational address and positive accuracy, for each coordinate the complex sum using
+computed phases differs from the exact mode sum by at most the total coefficient absolute sum times
+the selected phase accuracy. -/
 theorem gaugeArtifactDecode_complex_error (artifact : RationalGaugeFourierArtifact)
     (X : Fin 3 → ℚ) (accuracy : ℚ) (ha : 0<accuracy) (j : Fin 4) :
     ‖(artifact.coefficients.map (fun record => rationalCircleCast (cisPairMul (record.2[j.val])
@@ -137,7 +144,8 @@ theorem gaugeArtifactDecode_complex_error (artifact : RationalGaugeFourierArtifa
       ring
   exact hsum artifact.coefficients
 
-/-- Original `gaugeArtifactField_coordinate` guarantee for the `GaugeArtifactDecode` construction; the complete source hypotheses are retained. -/
+/-- Each coordinate of the exact artifact field is the real part of the sum of its stored complex
+coefficients times the corresponding modes evaluated at the physical point divided by the period. -/
 theorem gaugeArtifactField_coordinate (artifact : RationalGaugeFourierArtifact)
     (X : SpatialPoint) (j : Fin 4) :
     quaternionCoordinateCLM j (gaugeFourierArtifactField artifact X)=
@@ -145,7 +153,8 @@ theorem gaugeArtifactField_coordinate (artifact : RationalGaugeFourierArtifact)
         unitFourierMode (gaugeArtifactFrequency record.1) (physicalPeriod⁻¹ • X))).sum).re := by
   fin_cases j <;> rfl
 
-/-- Original `gaugeArtifactValue_coordinate` guarantee for the `GaugeArtifactDecode` construction; the complete source hypotheses are retained. -/
+/-- Each coordinate of the cast rational artifact value is the real part of the complex sum of the
+stored coefficients multiplied by the computed rational phases. -/
 theorem gaugeArtifactValue_coordinate (artifact : RationalGaugeFourierArtifact)
     (X : Fin 3 → ℚ) (accuracy : ℚ) (j : Fin 4) :
     quaternionCoordinateCLM j (rationalQuaternionCast (gaugeFourierArtifactValue artifact X accuracy))=

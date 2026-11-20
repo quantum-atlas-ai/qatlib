@@ -61,13 +61,13 @@ def generalPoissonStateValue (r : GeneralPoissonValueState) (address : Fin 3 →
 
 noncomputable section
 
-/-- Original `rationalCircleCast_div` guarantee for the `PoissonValueExecution` construction; the complete source hypotheses are retained. -/
+/-- Casting both coordinates of the scaled rational pair to a complex number agrees with dividing the cast pair by the rational scalar in the complex field. -/
 theorem rationalCircleCast_div (a : RationalCircleSample) (r : ℚ) :
     rationalCircleCast (a.1/r,a.2/r)=rationalCircleCast a/((r : ℝ) : ℂ) := by
   rw [Complex.div_ofReal]
   apply Complex.ext <;> simp [rationalCircleCast]
 
-/-- Original `rationalPoissonValuePair_cast` guarantee for the `PoissonValueExecution` construction; the complete source hypotheses are retained. -/
+/-- The cast rational value pair is the sum of the cast beta coefficients multiplied by the approximated modes at the wrapped address, divided by the supplied period. -/
 theorem rationalPoissonValuePair_cast (beta : List (SpatialFrequency × RationalCircleSample))
     (length d : ℚ) (address : Fin 3 → ℚ) :
     rationalCircleCast (rationalPoissonValuePair beta length d address)=
@@ -77,13 +77,13 @@ theorem rationalPoissonValuePair_cast (beta : List (SpatialFrequency × Rational
   rw [rationalPoissonValuePair,rationalCircleCast_div,rationalCircleCast_list_sum]
   simp only [List.map_map,Function.comp_def,rationalPoissonValueTerm,cisPairMul_cast]
 
-/-- Original `rationalPoissonValue_eq_re` guarantee for the `PoissonValueExecution` construction; the complete source hypotheses are retained. -/
+/-- The rational Poisson value, viewed as a real number, is the real part of the cast rational value pair. -/
 theorem rationalPoissonValue_eq_re (beta : List (SpatialFrequency × RationalCircleSample))
     (length d : ℚ) (address : Fin 3 → ℚ) :
     (rationalPoissonValue beta length d address : ℝ)=
       (rationalCircleCast (rationalPoissonValuePair beta length d address)).re := rfl
 
-/-- Original `rationalPoissonBetaList_keys` guarantee for the `PoissonValueExecution` construction; the complete source hypotheses are retained. -/
+/-- Converting coefficient records to beta records preserves their frequency keys in the same order. -/
 theorem rationalPoissonBetaList_keys (coefficients : RationalFourierCoefficientList) :
     (rationalPoissonBetaList coefficients).map Prod.fst=coefficients.map Prod.fst := by
   simp only [rationalPoissonBetaList,List.map_map,Function.comp_def]

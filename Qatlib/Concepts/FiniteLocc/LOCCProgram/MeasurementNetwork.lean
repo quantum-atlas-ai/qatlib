@@ -30,7 +30,7 @@ connect the runtime to `FiniteNetwork`.
   `completedReceipt`.
 * `consumed_pair_factorization`: the measured registers factor from the teleported input.
 * `history_inventory`: execution respects the prepared-pair inventory.
-* `frontier1`: collects branch semantics, resource factorization, peak auxiliary use, and
+* `qubit_teleportation_branch_and_auxiliary_account`: collects branch semantics, resource factorization, peak auxiliary use, and
   program well-formedness.
 
 ## References
@@ -465,7 +465,7 @@ theorem alice_projector_local (o : Outcome) :
 /-- Collects the reference-preserving branch formula, prepared and consumed register
 factorizations, outcome-sum identity, peak auxiliary count, and observed well-formedness of
 the qubit teleportation program [BennettEtAl1993Teleportation]. -/
-theorem frontier1 {R : ℕ} (X : Joint R) (o : Outcome) :
+theorem qubit_teleportation_branch_and_auxiliary_account {R : ℕ} (X : Joint R) (o : Outcome) :
     run X o=some (.finished (((1:ℂ)/4) • X),completedReceipt) ∧
       relabelGate (preparedReferenceEquiv R) (applyGates prepareGates (allocate X))=
         TensorGate X (outerProduct (quditResource 2)) ∧

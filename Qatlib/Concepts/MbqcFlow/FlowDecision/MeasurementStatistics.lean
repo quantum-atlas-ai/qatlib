@@ -18,7 +18,7 @@ Defines the kernel variance `kernelVarianceK` and the covariance `overlapCovaria
 coordinate selections from an independent sample. It proves an exact overlap expansion for the
 variance of `povmUStatisticK`, a combinatorial variance bound, and a Chebyshev deviation bound.
 
-The results specialize to repeated finite POVM measurements through `frontier1_povm`. The
+The results specialize to repeated finite POVM measurements through `povm_u_statistic_unbiasedness_overlap_variance_and_deviation`. The
 measurement setting is described in [Watrous2018].
 
 ## Main statements
@@ -966,7 +966,7 @@ theorem probEvent_uStatistic_le (p : FinDist O) {n k : ℕ} (h : (Fin k → O) �
 
 /-- Collects unbiasedness, the overlap variance formula, covariance identities, and variance and
 deviation bounds for independent finite-sample U-statistics. -/
-theorem frontier1 :
+theorem u_statistic_unbiasedness_overlap_variance_and_deviation :
     ∀ {O : Type} [Fintype O] [DecidableEq O] (p : FinDist O) {n k : ℕ},
       (distinctTupleCount n k : ℕ) ≠ 0 → ∀ (h : (Fin k → O) → ℝ) (ε : ℝ), 0 < ε →
       (∑ ω : Fin n → O, p.probOf ω * povmUStatisticK h ω = kernelMeanK p h) ∧
@@ -1008,7 +1008,7 @@ variable {D : ℕ}
 /-- Specializes the U-statistic expectation, overlap covariance identities, variance expansion,
 and variance and deviation bounds to repeated measurements of a density operator by a finite
 POVM. -/
-theorem frontier1_povm (E : FinitePOVM O D) (ρ : Operator D) (hρ : IsDensityOperator ρ)
+theorem povm_u_statistic_unbiasedness_overlap_variance_and_deviation (E : FinitePOVM O D) (ρ : Operator D) (hρ : IsDensityOperator ρ)
     {n k : ℕ} (hN : (distinctTupleCount n k : ℕ) ≠ 0) (h : (Fin k → O) → ℝ)
     (ε : ℝ) (hε : 0 < ε) :
     ((povmSampleLaw E ρ hρ).expect (fun ω : Fin n → O => povmUStatisticK h ω)
@@ -1040,7 +1040,7 @@ theorem frontier1_povm (E : FinitePOVM O D) (ρ : Operator D) (hρ : IsDensityOp
           ε < |povmUStatisticK h ω - kernelMeanK (povmRecordLaw E ρ hρ) h|)
       ≤ kernelVarianceK (povmRecordLaw E ρ hρ) h * (overlapDegreeBound n k : ℝ)
           / (((distinctTupleCount n k : ℕ) : ℝ) * ε ^ 2)) := by
-  have hb := frontier1 (povmRecordLaw E ρ hρ) hN h ε hε
+  have hb := u_statistic_unbiasedness_overlap_variance_and_deviation (povmRecordLaw E ρ hρ) hN h ε hε
   have hexpect : ∀ f : (Fin n → O) → ℝ,
       (povmSampleLaw E ρ hρ).expect f
         = ∑ ω : Fin n → O, (povmRecordLaw E ρ hρ).probOf ω * f ω := by

@@ -18,9 +18,8 @@ import Mathlib.Algebra.CharP.Two
 The certificate checks syndrome agreement and a weight bound for the actual
 program output. It does not assume successful logical recovery. The main theorem
 derives that property below half the distance, then connects it to the existing
-recovery channel. Assigned
-`Qatlib.Concepts.CodingDecoding.CssTesters.RecoveryProgram.decodeTime` values
-play no role in these statements.
+recovery channel. The decoder's assigned `RecoveryProgram.decodeTime` values play no role
+in these statements.
 -/
 
 namespace Qatlib.Concepts.ErrorCorrection.Recovery

@@ -40,10 +40,11 @@ def originSeedOnChart (source : (Fin 3 → ℚ) × ℕ → RationalSpinSample)
 def originSeedApproximation (source : (Fin 3 → ℚ) × ℕ → RationalSpinSample) (tolerance : ℚ) : Quaternion ℚ :=
   originSeedOnChart source (chosenOriginChart source) tolerance
 
-/-- Original `seedValuePrecision_eight` guarantee for the `SeedApproximation` construction; the complete source hypotheses are retained. -/
+/-- The selected seed precision is at least eight bits for every tolerance. -/
 theorem seedValuePrecision_eight (tolerance : ℚ) : 8 ≤ seedValuePrecision tolerance := le_max_left _ _
 
-/-- Original `seedValuePrecision_budget` guarantee for the `SeedApproximation` construction; the complete source hypotheses are retained. -/
+/-- For positive tolerance, 32 times the dyadic spacing at the selected seed precision is at most
+tolerance. -/
 theorem seedValuePrecision_budget (tolerance : ℚ) (ht : 0<tolerance) :
     32*(2^seedValuePrecision tolerance : ℚ)⁻¹ ≤ tolerance := by
   have hpow : Nat.ceil (32/tolerance) ≤ 2^seedValuePrecision tolerance :=
@@ -56,12 +57,14 @@ theorem seedValuePrecision_budget (tolerance : ℚ) (ht : 0<tolerance) :
 noncomputable section
 open scoped Quaternion
 
-/-- Original `seed_dyadic_small` guarantee for the `SeedApproximation` construction; the complete source hypotheses are retained. -/
+/-- Eight or more bits place the real dyadic spacing at or below `1 / 256`. -/
 theorem seed_dyadic_small (b : ℕ) (hb : 8 ≤ b) : (2^b : ℝ)⁻¹ ≤ (1/256 : ℝ) := by
   have h : (256 : ℝ) ≤ 2^b := by exact_mod_cast (Nat.pow_le_pow_right (by decide : 0<2) hb)
   simpa only [one_div] using one_div_le_one_div_of_le (by norm_num : (0 : ℝ)<256) h
 
-/-- Original `seedRoot_error` guarantee for the `SeedApproximation` construction; the complete source hypotheses are retained. -/
+/-- If `z > -1/2` and `u` approximates `z` within one dyadic spacing at precision at least eight,
+the rounded root of `(1 + u) / 2` is at least one quarter and within two spacings of the exact root
+of `(1 + z) / 2`. -/
 theorem seedRoot_error (u : ℚ) (z : ℝ) (b : ℕ) (hb : 8 ≤ b) (hc : -(1/2 : ℝ)<z)
     (he : |(u : ℝ)-z| ≤ (2^b : ℝ)⁻¹) :
     (1/4 : ℝ) ≤ (seedSqrtFloor ((1+u)/2) b : ℝ) ∧
@@ -108,7 +111,9 @@ theorem seedRoot_error (u : ℚ) (z : ℝ) (b : ℕ) (hb : 8 ≤ b) (hc : -(1/2 
       _ = _ := by ring
   exact ⟨by have h := (abs_le.mp hdelta).1; linarith,hdelta⟩
 
-/-- Original `seedQuotient_error` guarantee for the `SeedApproximation` construction; the complete source hypotheses are retained. -/
+/-- If `n` approximates `N` within `e ≥ 0` and `a` approximates `A` within `2 * e`, then
+`n / (2 * a)` differs from `N / (2 * A)` by at most `10 * e`, provided `|N| ≤ 1`, `a ≥ 1/4`, and
+`A ≥ 1/2`. -/
 theorem seedQuotient_error (n a : ℚ) (N A e : ℝ) (he : 0 ≤ e)
     (ha : (1/4 : ℝ) ≤ (a : ℝ)) (hA : (1/2 : ℝ) ≤ A) (hN : |N| ≤ 1)
     (hn : |(n : ℝ)-N| ≤ e) (hd : |(a : ℝ)-A| ≤ 2*e) :
@@ -135,7 +140,7 @@ theorem seedQuotient_error (n a : ℚ) (N A e : ℝ) (he : 0 ≤ e)
   rw [hid]
   exact (abs_add_le _ _).trans (by linarith)
 
-/-- Original `quaternion_norm_le_l1` guarantee for the `SeedApproximation` construction; the complete source hypotheses are retained. -/
+/-- A quaternion's norm is at most the sum of the absolute values of its four real coordinates. -/
 theorem quaternion_norm_le_l1 (q : ℍ) : ‖q‖ ≤ |q.re|+|q.imI|+|q.imJ|+|q.imK| := by
   have hs : ‖q‖^2=|q.re|^2+|q.imI|^2+|q.imJ|^2+|q.imK|^2 := by
     simp only [sq_abs]
@@ -146,7 +151,7 @@ theorem quaternion_norm_le_l1 (q : ℍ) : ‖q‖ ≤ |q.re|+|q.imI|+|q.imJ|+|q.
     mul_nonneg (abs_nonneg q.imI) (abs_nonneg q.imJ),mul_nonneg (abs_nonneg q.imI) (abs_nonneg q.imK),
     mul_nonneg (abs_nonneg q.imJ) (abs_nonneg q.imK)]
 
-/-- Original `unit_transverse_bounds` guarantee for the `SeedApproximation` construction; the complete source hypotheses are retained. -/
+/-- Both transverse imaginary coordinates of a unit quaternion have magnitude at most one. -/
 private theorem unit_transverse_bounds (s : ℍ) (hn : ‖s‖=1) : |s.imJ| ≤ 1 ∧ |s.imK| ≤ 1 := by
   have hs := (normSq_eq_one_iff s).mpr hn
   rw [Quaternion.normSq_def'] at hs
@@ -220,7 +225,9 @@ theorem rationalChartSeed_error (chart : SeedChart) (a : Fin 3 → ℚ) (s : ℍ
     have h := quaternion_norm_le_l1 d
     linarith
 
-/-- Original `originSeedApproximation_error` guarantee for the `SeedApproximation` construction; the complete source hypotheses are retained. -/
+/-- For a unit spin and a source accurate for the spin and its first-axis derivative at physical
+rational points, the rational origin seed lies within any requested positive tolerance of the exact
+seed on the chosen chart. -/
 theorem originSeedApproximation_error (v : SpatialPoint → SpatialPoint) (hu : ∀ w, ‖v w‖=1)
     (source : (Fin 3 → ℚ) × ℕ → RationalSpinSample) (hsource : OriginalSpinSourceAccurate v source)
     (tolerance : ℚ) (ht : 0<tolerance) :

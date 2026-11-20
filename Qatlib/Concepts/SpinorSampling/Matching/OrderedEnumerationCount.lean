@@ -31,7 +31,7 @@ noncomputable section
 
 variable {S : Type} [DecidableEq S]
 
-/-- Complete original `finset_ordered_enumeration_count` guarantee for `OrderedEnumerationCount`; all source hypotheses and output obligations are retained. -/
+/-- A site set of cardinality `k` has exactly `k!` bijective enumerations indexed by `Fin k`. -/
 theorem finset_ordered_enumeration_count (A : Finset S) {k : ℕ}
     (hcard : A.card=k) :
     Fintype.card (Fin k ≃ A)=Nat.factorial k := by

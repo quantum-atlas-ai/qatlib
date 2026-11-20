@@ -31,19 +31,20 @@ termination_by n => n
 noncomputable section
 open scoped ContDiff
 
-/-- Original `cutoffDenominator_pos` guarantee for the `CutoffReciprocal` construction; the complete source hypotheses are retained. -/
+/-- The denominator of the cutoff is strictly positive at every real input. -/
 theorem cutoffDenominator_pos (x : ℝ) : 0<cutoffDenominator x :=
   Real.smoothTransition.pos_denom x
 
-/-- Original `contDiff_cutoffDenominator` guarantee for the `CutoffReciprocal` construction; the complete source hypotheses are retained. -/
+/-- The cutoff denominator is continuously differentiable to every order `n : ℕ∞`. -/
 theorem contDiff_cutoffDenominator {n : ℕ∞} : ContDiff ℝ n cutoffDenominator :=
   expNegInvGlue.contDiff.add (expNegInvGlue.contDiff.comp (contDiff_const.sub contDiff_id))
 
-/-- Original `contDiff_cutoffReciprocal` guarantee for the `CutoffReciprocal` construction; the complete source hypotheses are retained. -/
+/-- The reciprocal of the cutoff denominator is continuously differentiable to every order
+`n : ℕ∞`. -/
 theorem contDiff_cutoffReciprocal {n : ℕ∞} : ContDiff ℝ n cutoffReciprocal :=
   contDiff_cutoffDenominator.inv (fun x => (cutoffDenominator_pos x).ne')
 
-/-- Original `cutoffDenominator_lower` guarantee for the `CutoffReciprocal` construction; the complete source hypotheses are retained. -/
+/-- The cutoff denominator is at least `1/8` at every real input. -/
 theorem cutoffDenominator_lower (x : ℝ) : (1/8 : ℝ) ≤ cutoffDenominator x := by
   have he : Real.exp 1 ≤ (11/4 : ℝ) :=
     Real.exp_one_lt_d9.le.trans (by norm_num)
@@ -67,14 +68,15 @@ theorem cutoffDenominator_lower (x : ℝ) : (1/8 : ℝ) ≤ cutoffDenominator x 
     dsimp only [cutoffDenominator]
     linarith
 
-/-- Original `cutoffReciprocal_abs_le` guarantee for the `CutoffReciprocal` construction; the complete source hypotheses are retained. -/
+/-- The absolute value of the reciprocal cutoff denominator is at most `8` everywhere. -/
 theorem cutoffReciprocal_abs_le (x : ℝ) : |cutoffReciprocal x| ≤ 8 := by
   rw [cutoffReciprocal,abs_inv,abs_of_pos (cutoffDenominator_pos x)]
   rw [← one_div]
   apply (div_le_iff₀ (cutoffDenominator_pos x)).mpr
   linarith [cutoffDenominator_lower x]
 
-/-- Original `cutoffDenominator_derivative_bound` guarantee for the `CutoffReciprocal` construction; the complete source hypotheses are retained. -/
+/-- The absolute value of the order-`n` cutoff denominator derivative is bounded by twice the
+order-`n` bump majorant at every real input. -/
 theorem cutoffDenominator_derivative_bound (n : ℕ) (x : ℝ) :
     |iteratedDeriv n cutoffDenominator x| ≤ 2*(cutoffBumpMajorant n : ℝ) := by
   have hf : ContDiffAt ℝ n expNegInvGlue x := expNegInvGlue.contDiff.contDiffAt

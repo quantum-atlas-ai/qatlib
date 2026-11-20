@@ -64,7 +64,7 @@ def readMany : ℕ → CanonicalCodec.Bits → Option (List RedundantRational.Fr
     let (rest,tail) ← readMany n tail
     pure (answer::rest,tail)
 
-/-- Original `readMany_complete` guarantee for the `PaidBoundBankMachine` construction; the complete source hypotheses are retained. -/
+/-- Reading the number of fractions in the list from their concatenated encodings recovers the fractions in order together with the untouched suffix. -/
 theorem readMany_complete (answers : List RedundantRational.Frac) (tail : CanonicalCodec.Bits) :
     readMany answers.length (answers.flatMap PaidRationalBridge.encode++tail)=some (answers,tail) := by
   induction answers with
@@ -72,13 +72,13 @@ theorem readMany_complete (answers : List RedundantRational.Frac) (tail : Canoni
   | cons answer rest ih =>
     simp [readMany,List.append_assoc,PaidRationalBridge.read_complete,ih]
 
-/-- Original `bankOutput_encode` guarantee for the `PaidBoundBankMachine` construction; the complete source hypotheses are retained. -/
+/-- When the nine replies encode fractions, the bank output is the concatenation of their encodings in slot order. -/
 theorem bankOutput_encode (answers : Fin 9 → RedundantRational.Frac) :
     bankOutput (fun i => PaidRationalBridge.encode (answers i))=
       (List.ofFn answers).flatMap PaidRationalBridge.encode := by
   simp [bankOutput,emitted,List.ofFn_succ,List.append_assoc]
 
-/-- Original `read_bank` guarantee for the `PaidBoundBankMachine` construction; the complete source hypotheses are retained. -/
+/-- Reading nine fractions from a bank output of encoded answers followed by a suffix returns the ordered answers and that suffix. -/
 theorem read_bank (answers : Fin 9 → RedundantRational.Frac) (tail : CanonicalCodec.Bits) :
     readMany 9 (bankOutput (fun i => PaidRationalBridge.encode (answers i))++tail)=
       some (List.ofFn answers,tail) := by

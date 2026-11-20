@@ -673,7 +673,7 @@ theorem bandLocalQFTCircuit_gate_bound (n : ℕ) (bands : List (ℚ × ℚ)) (b 
 /-- The band classifier has the stated Boolean semantics, reversible basis action, comparison
 count, and circuit resource bounds. Its sign word acts coherently by the prescribed signs,
 and the Fourier circuit uses the embedded program adjoint with the stated exact counts. -/
-theorem frontier1 :
+theorem reversible_band_classifier_sign_and_fourier_resources :
     (∀ (n : ℕ) (bands : List (ℚ × ℚ)) (x : Reg n) (y : Reg 1),
       (bandProgram n bands).value x = decide (bitVecEquiv n x ∈ bandLabels (2 ^ n) bands) ∧
       Run (1 : Matrix (Reg (n + (bandProgram n bands).nodes + 1))

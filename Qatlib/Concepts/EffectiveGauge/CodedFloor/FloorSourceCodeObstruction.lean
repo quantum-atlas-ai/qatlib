@@ -42,7 +42,9 @@ def FloorProgramSourceCodeRealizes (jets bounds c : Nat.Partrec.Code) : Prop :=
   (∀ order, Nat.Partrec.Code.eval bounds (Encodable.encode order)=
     Part.some (Encodable.encode (floorSourceBoundRawCode order)))
 
-/-- Original `floorProgramSourceCode_generated` guarantee for the `FloorSourceCodeObstruction` construction; the complete source hypotheses are retained. -/
+/-- There is a computable generator of jet programs and one shared bound program. For every input
+program, the generated jet code realizes its coded source and the shared code realizes its
+order-bound function. -/
 theorem floorProgramSourceCode_generated :
     ∃ generate : Nat.Partrec.Code → Nat.Partrec.Code, Computable generate ∧
     ∃ bounds : Nat.Partrec.Code, ∀ c, FloorProgramSourceCodeRealizes (generate c) bounds c := by

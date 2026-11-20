@@ -29,7 +29,7 @@ these estimates with the counted division bound and correctness of the resulting
 * `smithIsolatePivotEuclidLoop_entryBound`: entry and peak-bit bounds for a pivot loop with
   specified fuel.
 * `smithRectangularEuclid_entryBound`: bounds for the complete rectangular reduction.
-* `output1.frontier1`: the bounds together with encoding correctness and Smith form.
+* `output1.rectangular_smith_run_correctness_and_bit_bounds`: the bounds together with encoding correctness and Smith form.
 
 ## References
 
@@ -897,7 +897,7 @@ namespace output1
 /-- The counted rectangular routine satisfies the entry and peak-bit bounds defined by
 `rectangularSup (m + n + 2) A (max b 1)` and the stated quotient-remainder count bound. Its
 reduction equals `rectangularSmith A`, encodes `A`, and has value in Smith form. -/
-theorem frontier1 {m n : ℕ} (A : Matrix (Fin m) (Fin n) ℤ) (b : ℕ)
+theorem rectangular_smith_run_correctness_and_bit_bounds {m n : ℕ} (A : Matrix (Fin m) (Fin n) ℤ) (b : ℕ)
     (hA : ∀ i j, (A i j).natAbs ≤ b) :
     let dim := m+n+2
     let B := rectangularSup dim A (max b 1)

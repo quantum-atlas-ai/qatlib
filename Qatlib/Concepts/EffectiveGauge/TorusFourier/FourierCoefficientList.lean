@@ -41,7 +41,16 @@ noncomputable section
 open Set
 open scoped ContDiff Quaternion
 
-/-- Original `sourceFourierCoefficientListExecution_error` guarantee for the `FourierCoefficientList` construction; the complete source hypotheses are retained. -/
+/-- Suppose a smooth, physically periodic unit field is constant on the part of the fundamental cube
+outside `B`, and `B` is contained in the cube at least `mu > 0` from the boundary, with
+`7*eta ≤ mu/2`. With accurate
+all-order jets, valid positive-order bounds, and a successful cached mean preparation, take a positive
+grid size `M`, a positive sampling tolerance `s`, and requested frequencies bounded by `N` in every
+coordinate. If the period error is at most `ell` with `3*N*ell ≤ d/2`, `0 < d ≤ 1`, and
+`0 < eta ≤ 1/2`, the run returns the sampled grid in grid order and coefficients in the requested
+order. Every requested frequency has an entry whose componentwise error against the Fourier
+coefficients of the reference's normalized connection is at most
+`3*(C1+7*N*C0)/M + s + (C0+s)*d`, using the prepared bounds `C0` and `C1`. -/
 theorem sourceFourierCoefficientListExecution_error (v : SpatialPoint → SpatialPoint)
     (hv : ContDiff ℝ ∞ v) (hu : ∀ x, ‖v x‖=1) (hp : IsPeriodicField v)
     (source : RationalJetSource) (hs : OriginalAllJetAccurate v source)

@@ -35,7 +35,7 @@ open Polynomial
 /-- Construction for source Reciprocal Conjugate in the native source spectral roots model. -/
 def sourceReciprocalConjugate (z : ℂ) : ℂ := (star z)⁻¹
 
-/-- The finite construction in `NativeSourceSpectralRoots` satisfies `sourceF_map_conj` under the displayed hypotheses. -/
+/-- Conjugating every coefficient of the complex complement polynomial leaves it unchanged. -/
 theorem sourceF_map_conj (cs : List ℚ) (N : ℕ) (E : ℚ) :
     (sourceF cs N E).map (starRingEnd ℂ)=sourceF cs N E := by
   unfold sourceF
@@ -44,7 +44,7 @@ theorem sourceF_map_conj (cs : List ℚ) (N : ℕ) (E : ℚ) :
   ext q
   simp
 
-/-- The finite construction in `NativeSourceSpectralRoots` satisfies `sourceF_conj_roots` under the displayed hypotheses. -/
+/-- Complex conjugation preserves the complement's root multiset with multiplicities. -/
 private theorem sourceF_conj_roots (cs : List ℚ) (N : ℕ) (E : ℚ) :
     (sourceF cs N E).roots.map (fun z : ℂ => star z)=(sourceF cs N E).roots := by
   have h := Polynomial.roots_map_of_injective_of_card_eq_natDegree
@@ -52,7 +52,8 @@ private theorem sourceF_conj_roots (cs : List ℚ) (N : ℕ) (E : ℚ) :
     (IsAlgClosed.card_roots_eq_natDegree (p := sourceF cs N E))
   simpa only [sourceF_map_conj, show (starRingEnd ℂ : ℂ → ℂ) = (fun z => star z) from rfl] using h
 
-/-- The finite construction in `NativeSourceSpectralRoots` satisfies `sourceF_reciprocalConjugate_roots` under the displayed hypotheses. -/
+/-- At positive source degree, replacing each root by its reciprocal conjugate preserves the
+complement's entire root multiset. -/
 private theorem sourceF_reciprocalConjugate_roots (cs : List ℚ) (N : ℕ) (E : ℚ)
     (hd : 0<sourceDegree cs N E) :
     (sourceF cs N E).roots.map sourceReciprocalConjugate=(sourceF cs N E).roots := by
@@ -63,7 +64,8 @@ private theorem sourceF_reciprocalConjugate_roots (cs : List ℚ) (N : ℕ) (E :
     _ = (sourceF cs N E).roots.map (fun z => z⁻¹) := by rw [sourceF_conj_roots]
     _ = _ := sourceF_inverse_roots cs N E hd
 
-/-- The finite construction in `NativeSourceSpectralRoots` satisfies `split_inside_reciprocalConjugate` under the displayed hypotheses. -/
+/-- A multiset invariant under reciprocal conjugation with no zero or unit-circle entries is its
+interior submultiset plus the reciprocal conjugates of that submultiset. -/
 private theorem split_inside_reciprocalConjugate (l : Multiset ℂ)
     (hmap : l.map sourceReciprocalConjugate=l)
     (hnz : ∀ z∈l,z≠0) (hunit : ∀ z∈l,‖z‖≠1) :
@@ -89,7 +91,9 @@ private theorem split_inside_reciprocalConjugate (l : Multiset ℂ)
   rw [hnot,hout] at h
   exact h.symm
 
-/-- The finite construction in `NativeSourceSpectralRoots` satisfies `sourceF_roots_split` under the displayed hypotheses. -/
+/-- For positive E and source degree and a degree-bounded target of matching parity bounded by one
+on the interval from −1 to 1, the complement root multiset is the sum of the interior roots
+and their reciprocal conjugates. -/
 theorem sourceF_roots_split (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E)
     (htail : ∀ k,N+1 ≤ k → cs.getD k 0=0)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)

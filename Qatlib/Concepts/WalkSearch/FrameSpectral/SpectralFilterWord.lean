@@ -21,7 +21,7 @@ registers. It proves their well-formedness, exact query and gate counts, and act
 eigenstates and finite spectral superpositions.
 
 `envelope_phase_actual_spectral_packet` identifies the zero branch with the diagonal kernel
-filter. The bound `frontier1` compares the actual reflection with the ideal target reflection
+filter. The bound `envelope_reflection_error_and_exact_resources` compares the actual reflection with the ideal target reflection
 while retaining the explicit target-amplitude error terms. The quantum walk spectral framework
 is developed in [Szegedy2004].
 
@@ -29,7 +29,7 @@ is developed in [Szegedy2004].
 
 * `envelopeDetectionWord_resources`: Well-formedness and exact detection resources.
 * `envelope_phase_actual_spectral_packet`: Spectral packet and zero branch formulas.
-* `frontier1`: Reflection error bound with explicit target terms and resource counts.
+* `envelope_reflection_error_and_exact_resources`: Reflection error bound with explicit target terms and resource counts.
 
 ## References
 
@@ -657,7 +657,7 @@ theorem envelope_zero_phase_kernel (M : ℕ) (hM : 0 < M) (φ : ℝ)
 /-- Bounds the actual envelope reflection error by off-target contraction and explicit
 target-amplitude terms under the stated spectral gap hypotheses, and gives its exact query
 and gate counts. -/
-theorem frontier1
+theorem envelope_reflection_error_and_exact_resources
     (J : Type) [Fintype J] [DecidableEq J]
     (W : Matrix I I ℂ) (M k : ℕ) (hM : 2 ≤ M) (v : J → QState I) (c : J → ℂ)
     (φ : J → ℝ) (T : Finset J) (η : ℝ)

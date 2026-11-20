@@ -27,32 +27,36 @@ open scoped Quaternion ContDiff
 namespace Qatlib.Concepts.EffectiveGauge.HopfAtlas
 open Qatlib.Concepts.EffectiveGauge.RationalFlow Qatlib.Concepts.EffectiveGauge.SpectralH1 Qatlib.Concepts.EffectiveGauge.TorusFourier
 
-/-- Original `cubeIntegrableContinuous` guarantee for the `ConstantGaugeEnergy` construction; the complete source hypotheses are retained. -/
+/-- A continuous real-valued spatial function is integrable on the physical cube after embedding
+triples into the spatial Euclidean space. -/
 private theorem cubeIntegrableContinuous (f : SpatialPoint → ℝ) (hf : Continuous f) :
     IntegrableOn (fun u : Fin 3 → ℝ => f (WithLp.toLp 2 u))
       (Icc (0 : Fin 3 → ℝ) (fun _ => physicalPeriod)) := by
   let e := (PiLp.continuousLinearEquiv 2 ℝ (fun _ : Fin 3 => ℝ)).symm
   exact (hf.comp e.continuous).integrableOn_Icc
 
-/-- Original `physicalCubeIntegral_mono_continuous` guarantee for the `ConstantGaugeEnergy` construction; the complete source hypotheses are retained. -/
+/-- Pointwise order between continuous real-valued fields is preserved by integration over the
+physical cube. -/
 theorem physicalCubeIntegral_mono_continuous (f g : SpatialPoint → ℝ)
     (hf : Continuous f) (hg : Continuous g) (h : ∀ X, f X ≤ g X) :
     physicalCubeIntegral f ≤ physicalCubeIntegral g :=
   integral_mono (cubeIntegrableContinuous f hf) (cubeIntegrableContinuous g hg) (fun u => h (WithLp.toLp 2 u))
 
-/-- Original `physicalCubeIntegral_add_continuous` guarantee for the `ConstantGaugeEnergy` construction; the complete source hypotheses are retained. -/
+/-- The physical cube integral of the pointwise sum of two continuous real fields is the sum of
+their integrals. -/
 theorem physicalCubeIntegral_add_continuous (f g : SpatialPoint → ℝ)
     (hf : Continuous f) (hg : Continuous g) :
     physicalCubeIntegral (fun X => f X+g X)=physicalCubeIntegral f+physicalCubeIntegral g :=
   integral_add (cubeIntegrableContinuous f hf) (cubeIntegrableContinuous g hg)
 
-/-- Original `physicalCubeIntegral_const_mul` guarantee for the `ConstantGaugeEnergy` construction; the complete source hypotheses are retained. -/
+/-- A real scalar factor pulls out of the physical cube integral. -/
 theorem physicalCubeIntegral_const_mul (f : SpatialPoint → ℝ) (c : ℝ) :
     physicalCubeIntegral (fun X => c*f X)=c*physicalCubeIntegral f := by
   unfold physicalCubeIntegral
   exact integral_const_mul c _
 
-/-- Original `physicalCubeSquare_add_le` guarantee for the `ConstantGaugeEnergy` construction; the complete source hypotheses are retained. -/
+/-- For two continuous quaternion fields, the physical cube integral of the squared norm of their
+sum is at most twice the sum of their individual squared-norm integrals. -/
 theorem physicalCubeSquare_add_le (f g : QuaternionField) (hf : Continuous f) (hg : Continuous g) :
     physicalCubeIntegral (fun X => ‖f X+g X‖^2) ≤
       2*physicalCubeIntegral (fun X => ‖f X‖^2)+2*physicalCubeIntegral (fun X => ‖g X‖^2) := by
@@ -64,7 +68,8 @@ theorem physicalCubeSquare_add_le (f g : QuaternionField) (hf : Continuous f) (h
     ((hg.norm.pow 2).const_mul 2),physicalCubeIntegral_const_mul,physicalCubeIntegral_const_mul] at h
   exact h
 
-/-- Original `spatialWordPartial_constant_left` guarantee for the `ConstantGaugeEnergy` construction; the complete source hypotheses are retained. -/
+/-- Every iterated coordinate-word derivative commutes with left multiplication of a smooth
+quaternion field by a constant quaternion. -/
 theorem spatialWordPartial_constant_left (c : ℍ) (f : QuaternionField)
     (hf : ContDiff ℝ ∞ f) (w : List (Fin 3)) :
     spatialWordPartial (fun X => c*f X) w=fun X => c*spatialWordPartial f w X := by
@@ -79,7 +84,8 @@ theorem physicalFieldH1Energy_constant_left (c : ℍ) (f : QuaternionField) (hf 
   rw [← Finset.mul_sum]
   ring
 
-/-- Original `physicalFieldH1Energy_add_le` guarantee for the `ConstantGaugeEnergy` construction; the complete source hypotheses are retained. -/
+/-- For smooth quaternion fields the physical `H¹` energy of their pointwise sum is bounded by
+twice the sum of their energies. -/
 theorem physicalFieldH1Energy_add_le (f g : QuaternionField)
     (hf : ContDiff ℝ ∞ f) (hg : ContDiff ℝ ∞ g) :
     physicalFieldH1Energy (fun X => f X+g X) ≤ 2*physicalFieldH1Energy f+2*physicalFieldH1Energy g := by
@@ -92,7 +98,7 @@ theorem physicalFieldH1Energy_add_le (f g : QuaternionField)
   have h := add_le_add h0 hsum
   simpa only [Finset.sum_add_distrib,← Finset.mul_sum,mul_add,add_assoc,add_left_comm,add_comm] using h
 
-/-- Original `physicalFieldH1Energy_nonneg` guarantee for the `ConstantGaugeEnergy` construction; the complete source hypotheses are retained. -/
+/-- The physical `H¹` energy of any quaternion field is nonnegative. -/
 theorem physicalFieldH1Energy_nonneg (f : QuaternionField) : 0 ≤ physicalFieldH1Energy f := by
   unfold physicalFieldH1Energy physicalCubeIntegral
   exact add_nonneg (integral_nonneg (fun _ => sq_nonneg _))
@@ -117,7 +123,8 @@ theorem physicalFieldH1Energy_transfer_error (A C : ℍ) (F Q : QuaternionField)
     physicalFieldH1Energy_constant_left (A-C) Q hQ] at h
   simpa only [mul_assoc] using h
 
-/-- Original `physicalFieldH1Energy_unit_bound` guarantee for the `ConstantGaugeEnergy` construction; the complete source hypotheses are retained. -/
+/-- A smooth unit quaternion field with each first coordinate derivative bounded in norm by `M ≥ 0`
+has physical `H¹` energy at most `physicalPeriod^3 * (1 + 3 * M^2)`. -/
 theorem physicalFieldH1Energy_unit_bound (Q : QuaternionField) (hQ : ContDiff ℝ ∞ Q)
     (hu : ∀ X, ‖Q X‖=1) (M : ℝ) (hM : 0 ≤ M)
     (hder : ∀ (i : Fin 3) X, ‖spatialWordPartial Q [i] X‖ ≤ M) :
@@ -142,7 +149,8 @@ theorem physicalFieldH1Energy_unit_bound (Q : QuaternionField) (hQ : ContDiff �
     _ ≤ physicalPeriod^3+(3 : ℕ)*(physicalPeriod^3*M^2) := add_le_add le_rfl hsum
     _ = _ := by push_cast; ring
 
-/-- Original `physicalFieldH1Energy_sub_comm` guarantee for the `ConstantGaugeEnergy` construction; the complete source hypotheses are retained. -/
+/-- Reversing the subtraction of two smooth quaternion fields leaves the physical `H¹` energy of
+their difference unchanged. -/
 theorem physicalFieldH1Energy_sub_comm (F Q : QuaternionField)
     (hF : ContDiff ℝ ∞ F) (hQ : ContDiff ℝ ∞ Q) :
     physicalFieldH1Energy (fun X => F X-Q X)=physicalFieldH1Energy (fun X => Q X-F X) := by
@@ -152,7 +160,8 @@ theorem physicalFieldH1Energy_sub_comm (F Q : QuaternionField)
   rw [hid,physicalFieldH1Energy_constant_left (-1) _ (hQ.sub hF)]
   simp only [norm_neg,norm_one,one_pow,one_mul]
 
-/-- Original `physicalFirstWord_of_normalized_bound` guarantee for the `ConstantGaugeEnergy` construction; the complete source hypotheses are retained. -/
+/-- For a smooth quaternion field, a uniform norm bound `M` on each normalized first coordinate
+derivative also bounds each first derivative in physical coordinates. -/
 theorem physicalFirstWord_of_normalized_bound (Q : QuaternionField) (hQ : ContDiff ℝ ∞ Q)
     (M : ℝ) (hM : ∀ (i : Fin 3) u, ‖spatialWordPartial (fun x => Q (physicalPeriod • x)) [i] u‖ ≤ M)
     (i : Fin 3) (X : SpatialPoint) : ‖spatialWordPartial Q [i] X‖ ≤ M := by

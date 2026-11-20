@@ -19,7 +19,7 @@ of the four Bell states. A normalized state with either subsystem of dimension o
 state with Schmidt rank one. The Bell family provides the complementary two-qubit examples from
 standard quantum information theory [Wilde2017].
 
-`bell_inner` proves orthonormality, and `frontier1` combines these results with Bell-state
+`bell_inner` proves orthonormality, and `dimension_one_product_states_and_bell_family` combines these results with Bell-state
 normalization, entanglement, a maximally mixed first marginal, and entropy `Real.log 2`.
 
 ## Main statements
@@ -27,7 +27,7 @@ normalization, entanglement, a maximally mixed first marginal, and entropy `Real
 * `boundary_dim_one`: product structure and Schmidt rank one at dimension-one boundaries.
 * `bell_inner`: orthonormality of the Bell family.
 * `bell_two_le_schmidtRank`: a lower bound of two on Bell-state Schmidt rank.
-* `frontier1`: the combined boundary and Bell-state properties.
+* `dimension_one_product_states_and_bell_family`: the combined boundary and Bell-state properties.
 
 ## References
 
@@ -211,7 +211,7 @@ theorem bell_two_le_schmidtRank (s : Bool × Bool) : 2 ≤ schmidtRank (bell s) 
 
 /-- Dimension-one bipartite states have Schmidt rank one, and the Bell family is orthonormal,
 normalized, and entangled, with maximally mixed first marginal and entropy `Real.log 2`. -/
-theorem frontier1 :
+theorem dimension_one_product_states_and_bell_family :
     (∀ (D E : ℕ), D = 1 ∨ E = 1 → ∀ ψ : QState (Fin D × Fin E), Normalized ψ →
       IsProductState ψ ∧ schmidtRank ψ = 1) ∧
     (∀ s t : Bool × Bool, Qatlib.Foundations.PureStateMath.Inner (bell s) (bell t) = if s = t then (1 : ℂ) else 0) ∧

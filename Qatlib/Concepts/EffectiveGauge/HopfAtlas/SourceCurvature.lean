@@ -71,7 +71,8 @@ theorem spinCurvatureValue_packet_error (s ds dt a b c : ℍ) (M e : ℝ)
   have h := (hre (a*b*c-s*ds*dt)).trans hn
   nlinarith [mul_nonneg he (sq_nonneg M)]
 
-/-- Original `spinCurvatureValue_components` guarantee for the `SourceCurvature` construction; the complete source hypotheses are retained. -/
+/-- The curvature evaluated on three vector-to-quaternion embeddings is half the scalar triple
+product `s · (a × b)`. -/
 theorem spinCurvatureValue_components (s a b : SpatialPoint) :
     spinCurvatureValue (spinOfVector s) (spinOfVector a) (spinOfVector b)=
       (s 0*(a 1*b 2-a 2*b 1)+s 1*(a 2*b 0-a 0*b 2)+s 2*(a 0*b 1-a 1*b 0))/2 := by
@@ -99,7 +100,8 @@ theorem hopf_curvature_algebra (q v w : ℍ) :
   simp [spinCurvatureValue,hopf,hopfDifferential,Quaternion.normSq_def',Quaternion.inner_def,connectionValue,iAxis]
   ring
 
-/-- Original `hopf_curvature_tangent` guarantee for the `SourceCurvature` construction; the complete source hypotheses are retained. -/
+/-- For two tangent vectors `v` and `w` at a unit quaternion `q`, the spin curvature on their Hopf
+differentials equals twice the real inner product of `iAxis * v` with `w`. -/
 theorem hopf_curvature_tangent (q v w : ℍ) (hn : ‖q‖=1)
     (hv : inner ℝ q v=0) (hw : inner ℝ q w=0) :
     spinCurvatureValue (hopf q) (hopfDifferential q v) (hopfDifferential q w)=2*inner ℝ (iAxis*v) w := by
@@ -111,7 +113,8 @@ theorem hopf_curvature_tangent (q v w : ℍ) (hn : ‖q‖=1)
 local instance : StarModule ℝ ℍ where
   star_smul r q := by ext <;> simp
 
-/-- Original `actual_hopf_derivative` guarantee for the `SourceCurvature` construction; the complete source hypotheses are retained. -/
+/-- The directional derivative of the Hopf image of a smooth field is the Hopf differential at the
+field value applied to its directional derivative. -/
 private theorem actual_hopf_derivative (q : QuaternionField) (hq : ContDiff ℝ ∞ q)
     (x : SpatialPoint) (h : SpatialPoint) :
     fderiv ℝ (fun y => hopf (q y)) x h=hopfDifferential (q x) (fderiv ℝ q x h) := by
@@ -122,7 +125,8 @@ private theorem actual_hopf_derivative (q : QuaternionField) (hq : ContDiff ℝ 
   rw [hprod.fderiv]
   simp [hopfDifferential,add_comm]
 
-/-- Original `actual_unit_tangent` guarantee for the `SourceCurvature` construction; the complete source hypotheses are retained. -/
+/-- Each directional derivative of a smooth field of unit quaternions is orthogonal to the field
+value. -/
 private theorem actual_unit_tangent (q : QuaternionField) (hq : ContDiff ℝ ∞ q) (hu : ∀ y, ‖q y‖=1)
     (x h : SpatialPoint) : inner ℝ (q x) (fderiv ℝ q x h)=0 := by
   have hd := (hq.differentiable (by simp) x).hasFDerivAt
@@ -137,7 +141,9 @@ private theorem actual_unit_tangent (q : QuaternionField) (hq : ContDiff ℝ ∞
   have hcomm := real_inner_comm (q x) (fderiv ℝ q x h)
   linarith
 
-/-- Original `actual_connection_derivative` guarantee for the `SourceCurvature` construction; the complete source hypotheses are retained. -/
+/-- For a smooth quaternion field, differentiating connection component `j` along `i` gives the sum
+of the inner product of `iAxis * q x` with the second derivative in directions `i, j` and that of
+`iAxis * ∂ᵢq` with `∂ⱼq`. -/
 private theorem actual_connection_derivative (q : QuaternionField) (hq : ContDiff ℝ ∞ q)
     (x : SpatialPoint) (i j : Fin 3) :
     fderiv ℝ (fun y => connection q y j) x (EuclideanSpace.single i 1)=
@@ -151,7 +157,8 @@ private theorem actual_connection_derivative (q : QuaternionField) (hq : ContDif
   rw [hi.fderiv]
   simp [spatialPartial]
 
-/-- Original `connectionCurvature_eq_tangent` guarantee for the `SourceCurvature` construction; the complete source hypotheses are retained. -/
+/-- The curvature of a smooth field's connection in directions `i, j` is twice the real inner
+product of `iAxis * ∂ᵢq` with `∂ⱼq`. -/
 theorem connectionCurvature_eq_tangent (q : QuaternionField) (hq : ContDiff ℝ ∞ q)
     (x : SpatialPoint) (i j : Fin 3) :
     connectionCurvature q x i j=2*inner ℝ (iAxis*spatialPartial q x i) (spatialPartial q x j) := by

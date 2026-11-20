@@ -336,7 +336,7 @@ theorem badRecord_multi_step_probability_normalized {I W : Type} [Fintype I] [De
 
 /-- Package the single-step norm, multi-step norm and multi-step Born mass bounds for the tensor
 query model at cutoff `Q` and `p` in [0, 1]. -/
-theorem frontier1 {I W : Type} [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
+theorem bosonic_bad_record_norm_and_born_mass_bounds {I W : Type} [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
     (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1) {m Q : ℕ}
     (i : Fin m) (creation : Bool) (threshold steps : ℕ)
     (v : QState (JointBasis I W m Q)) :

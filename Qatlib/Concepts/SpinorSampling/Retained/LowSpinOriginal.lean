@@ -38,7 +38,7 @@ open Qatlib
 open Qatlib.Concepts.SpinorSampling.FiniteExecution.ParameterEncoding
 open Qatlib.Concepts.SpinorSampling.Matching.Matched
 
-/-- Complete original `generated_low_spin_original_accuracy` guarantee for `LowSpinOriginal`; all source hypotheses and output obligations are retained. -/
+/-- If coefficient generation returns the candidate and the target enclosure holds, the native low-spin output has bad mass at most δ at tolerance η for the original discrete loss. The Bell mean bound is required on every double-shift axis when the generated spin coefficient is nonzero. -/
 theorem generated_low_spin_original_accuracy {d r : ℕ}
     (κ lam U η δ eb p₀ : ℚ) (coef : CoefficientCandidateQ)
     (hc : coefficientsGeneratedQ d (2^r) κ lam U η=some coef)
@@ -112,7 +112,7 @@ theorem generated_low_spin_original_accuracy {d r : ℕ}
   exact (finite_bad_mass_change_center law F _ L1 ((η : ℝ)/2) (η : ℝ)
     (by linarith [hbias])).trans hstat
 
-/-- Complete original `enclosed_low_spin_original_accuracy` guarantee for `LowSpinOriginal`; all source hypotheses and output obligations are retained. -/
+/-- If coefficient generation at the rational parameter approximations returns the candidate, the native low-spin output estimates the real-parameter loss with bad mass at most δ at tolerance η under the parameter bias, target error and conditional Bell mean bounds. -/
 theorem enclosed_low_spin_original_accuracy {d r : ℕ} (box : PhysicalBoxQ) (U η0 δ0 eb p₀ : ℚ)
     (κ lam η δ : ℝ) (coef : CoefficientCandidateQ)
     (hc : coefficientsGeneratedQ d (2^r) (kappaApproxQ box) (lambdaApproxQ box) U (η0/2)=some coef)

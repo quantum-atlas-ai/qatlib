@@ -27,7 +27,11 @@ open scoped Quaternion ContDiff
 namespace Qatlib.Concepts.EffectiveGauge.SpectralH1
 open Qatlib.Concepts.EffectiveGauge.HopfAtlas Qatlib.Concepts.EffectiveGauge.RationalFlow Qatlib.Concepts.EffectiveGauge.TorusFourier
 
-/-- Original `gaugeArtifact_normalized_H1_bound` guarantee for the `GaugeArtifactH1Bound` construction; the complete source hypotheses are retained. -/
+/-- Suppose the grid rows approximate every retained coefficient of every coordinate of the smooth
+unit-periodic field `G` within `delta ≥ 0` at cutoff `N`. If all pure third partials of `G` are
+bounded by `M3 ≥ 0`, the unit-cube H¹ energy of the residual against the rescaled artifact is at
+most four times the sum of `(2 * N + 1)^3 * (1 + 3 * N²) * delta²` and
+`12 * M3² / (physicalPeriod^6 * (N + 1)^4)`. -/
 theorem gaugeArtifact_normalized_H1_bound (G : QuaternionField) (hG : ContDiff ℝ ∞ G)
     (hp : IsUnitPeriodicField G) (artifact : RationalGaugeFourierArtifact)
     (N M : ℕ) (length d : ℚ) (data : RationalGaugeGridData)

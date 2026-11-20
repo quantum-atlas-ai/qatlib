@@ -251,7 +251,7 @@ theorem sparseLookup_word (a p v rows slots : ℕ) (hD : rows * slots ≤ 2 ^ a)
 
 /-- Collects row-major addressing, last-write resolution, output decoding, valid-address lookup,
 out-of-range rejection, and bounded reversible compilation for sparse record tables. -/
-theorem frontier1 (a p v rows slots : ℕ) (hD : rows * slots ≤ 2 ^ a) :
+theorem sparse_record_resolution_lookup_and_compilation (a p v rows slots : ℕ) (hD : rows * slots ≤ 2 ^ a) :
     (∀ (row : Fin rows) (slot : Fin slots),
       (recordIndex row slot).val = row.val * slots + slot.val) ∧
     (∀ (es : List (SparseRecord p v)) (e : SparseRecord p v)

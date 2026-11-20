@@ -22,7 +22,8 @@ open Set intervalIntegral
 namespace Qatlib.Concepts.EffectiveGauge.HopfAtlas
 open Qatlib.Concepts.EffectiveGauge.RationalFlow
 
-/-- Original `coordinateFace_comp` guarantee for the `WordPrimitive` construction; the complete source hypotheses are retained. -/
+/-- Setting coordinate `j` to `a` after setting it to `b` gives the same point as setting it to `a`
+directly. -/
 theorem coordinateFace_comp (j : Fin 3) (a b : ℝ) (x : SpatialPoint) :
     coordinateFace j a (coordinateFace j b x)=coordinateFace j a x := by
   ext i
@@ -32,7 +33,7 @@ theorem coordinateFace_comp (j : Fin 3) (a b : ℝ) (x : SpatialPoint) :
   · rw [coordinateFace_other j i a _ hi,coordinateFace_other j i b _ hi,
       coordinateFace_other j i a _ hi]
 
-/-- Original `coordinateFace_at_coordinate` guarantee for the `WordPrimitive` construction; the complete source hypotheses are retained. -/
+/-- Setting a coordinate to its original value leaves the spatial point unchanged. -/
 theorem coordinateFace_at_coordinate (j : Fin 3) (x : SpatialPoint) :
     coordinateFace j (x j) x=x := by simp [coordinateFace]
 
@@ -44,7 +45,8 @@ def coordinatePrimitive (gamma : SpatialPoint → ℝ) (x : SpatialPoint) : ℝ 
 def coordinatePrimitiveSource (gamma : SpatialPoint → ℝ) (p : SpatialPoint × ℝ) : ℝ :=
   (p.1 1/physicalPeriod)*gamma (coordinateFace 1 ((p.1 1/physicalPeriod)*p.2) p.1)
 
-/-- Original `contDiff_coordinatePrimitiveSource` guarantee for the `WordPrimitive` construction; the complete source hypotheses are retained. -/
+/-- The rescaled integrand defining the coordinate primitive is smooth in both the spatial point
+and the integration parameter when `gamma` is smooth. -/
 theorem contDiff_coordinatePrimitiveSource (gamma : SpatialPoint → ℝ) (hg : ContDiff ℝ ∞ gamma) :
     ContDiff ℝ ∞ (coordinatePrimitiveSource gamma) := by
   have hy : ContDiff ℝ ∞ (fun p : SpatialPoint × ℝ => p.1 1) :=
@@ -94,7 +96,9 @@ theorem spatialWordPartial_coordinatePrimitiveSource (gamma : SpatialPoint → �
     spatialWordPartial_coordinateFace gamma hg]
   simp only [ite_eq_right hw,smul_eq_mul]
 
-/-- Original `coordinatePrimitive_transverse_word_bound` guarantee for the `WordPrimitive` construction; the complete source hypotheses are retained. -/
+/-- If word `w` omits direction `1` and the derivative of smooth `gamma` along `w` is bounded by
+`M ≥ 0` on the unit cube, the same bound holds on that cube for the word derivative of its
+coordinate primitive. -/
 theorem coordinatePrimitive_transverse_word_bound (gamma : SpatialPoint → ℝ)
     (hg : ContDiff ℝ ∞ gamma) (w : List (Fin 3)) (hw : (1 : Fin 3)∉w)
     (M : ℝ) (hM : 0 ≤ M)

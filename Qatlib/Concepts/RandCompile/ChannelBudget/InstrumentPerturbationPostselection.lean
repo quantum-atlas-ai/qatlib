@@ -19,14 +19,14 @@ This module represents a finite instrument by a classical-quantum record map and
 selecting outcomes preserves a diamond-norm error bound. The reference-register extensions and
 trace-norm estimates use the finite-dimensional quantum information framework of [Watrous2018].
 
-`frontier1` transfers record error to success and failure branches, success mass, and normalized
+`instrument_error_controls_branch_mass_and_postselection` transfers record error to success and failure branches, success mass, and normalized
 postselected outputs. An explicit pair of two-outcome instruments shows that agreement on a
 selected event alone does not bound the complementary branch error.
 
 ## Main statements
 
 * `selectiveMap_diamond_le_cqRecordFin`: transfer record error to a selective outcome map.
-* `frontier1`: bound postselection error using a positive lower bound on ideal success mass.
+* `instrument_error_controls_branch_mass_and_postselection`: bound postselection error using a positive lower bound on ideal success mass.
 * `selectiveOnly_no_free_failure_witness`: exhibit identical selected maps with separated
   failure outputs.
 
@@ -402,7 +402,7 @@ theorem selectiveBranch_error_of_cqDiamond (J K : Instrument O D E) (S : Finset 
 and success-mass error at most `ε` on a positive input of trace norm at most one. If the
 ideal success mass is at least `p > 0`, the perturbed success mass is positive and the
 normalized success branches differ by at most `2 * ε / p` in trace norm. -/
-theorem frontier1 :
+theorem instrument_error_controls_branch_mass_and_postselection :
     ∀ (O : Type) [Fintype O] [DecidableEq O] (D E R : ℕ) (J K : Instrument O D E)
       (S : Finset O) (ρ : Matrix (Fin D × Fin R) (Fin D × Fin R) ℂ) (p ε : ℝ),
       0 ≤ ε → 0 < p → ε < p / 2 → ρ.PosSemidef → Matrix.traceNorm ρ ≤ 1 →

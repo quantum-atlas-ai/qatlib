@@ -29,7 +29,8 @@ def seedChartAccepted (sample : Fin 3 → ℚ) (chart : SeedChart) : Bool :=
   | .north => decide (-(1/2 : ℚ)<sample 0-1/16)
   | .south => decide (sample 0+1/16<(1/2 : ℚ))
 
-/-- Original `seedChartAccepted_choose` guarantee for the `CoarseSeedAtlas` construction; the complete source hypotheses are retained. -/
+/-- The chart chosen from a rational three-component sample always passes the finite
+positive-margin test. -/
 theorem seedChartAccepted_choose (sample : Fin 3 → ℚ) :
     seedChartAccepted sample (chooseSeedChart sample)=true := by
   unfold chooseSeedChart
@@ -49,7 +50,9 @@ def SeedChartValid (chart : SeedChart) (s : ℍ) : Prop :=
   | .north => -(1/2 : ℝ)<s.imI
   | .south => s.imI<(1/2 : ℝ)
 
-/-- Original `seedChartAccepted_valid` guarantee for the `CoarseSeedAtlas` construction; the complete source hypotheses are retained. -/
+/-- If the first sample coordinate approximates the quaternion's `i` component within `1/16`,
+acceptance ensures that component is above `-1/2` for the north chart and below `1/2` for the south
+chart. -/
 theorem seedChartAccepted_valid (sample : Fin 3 → ℚ) (s : ℍ)
     (he : |(sample 0 : ℝ)-s.imI| ≤ (1/16 : ℝ))
     (chart : SeedChart) (hchart : seedChartAccepted sample chart=true) :

@@ -36,13 +36,15 @@ def cachedTransportPreparationRun (source : RationalJetSource) (bounds : ℕ →
     Option CachedTransportPreparation :=
   (cachedMeanPreparationRun source bounds).map materializeTransportPreparation
 
-/-- Original `materializeTransportPreparation_coefficient` guarantee for the `CachedTransportPreparation` construction; the complete source hypotheses are retained. -/
+/-- The transport cache stores the coefficient majorant from the prepared derivative bounds at each
+order `r < 9`. -/
 theorem materializeTransportPreparation_coefficient (prepared : CachedMeanPreparation) (r : Fin 9) :
     (materializeTransportPreparation prepared).coefficientBounds[r.val]=
       sourceFrameCoefficientMajorant prepared.derivativeBounds r := by
   simp [materializeTransportPreparation]
 
-/-- Original `materializeTransportPreparation_transport` guarantee for the `CachedTransportPreparation` construction; the complete source hypotheses are retained. -/
+/-- The transport cache stores the transport majorant from the prepared derivative bounds at each
+order `r < 9`. -/
 theorem materializeTransportPreparation_transport (prepared : CachedMeanPreparation) (r : Fin 9) :
     (materializeTransportPreparation prepared).transportBounds[r.val]=
       sourceFrameTransportMajorant prepared.derivativeBounds r := by

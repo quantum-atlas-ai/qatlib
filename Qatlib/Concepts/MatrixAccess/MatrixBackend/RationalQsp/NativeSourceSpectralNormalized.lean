@@ -36,7 +36,9 @@ open Polynomial
 private def rootRatio (l : Multiset ℂ) (z : ℂ) : ℂ :=
   (l.map (fun r => (z-r)/(1-r))).prod
 
-/-- The finite construction in `NativeSourceSpectralNormalized` satisfies `reciprocal_pair_ratio` under the displayed hypotheses. -/
+/-- For r distinct from zero and one and z on the unit circle, the factor for the reciprocal
+conjugate of r, normalized at one, equals z times the conjugate of the normalized factor for
+r. -/
 private theorem reciprocal_pair_ratio (r z : ℂ) (hr0 : r≠0) (hr1 : r≠1)
     (hz : z*star z=1) :
     (z-sourceReciprocalConjugate r)/(1-sourceReciprocalConjugate r)=z*star ((z-r)/(1-r)) := by
@@ -60,12 +62,15 @@ private theorem reciprocal_pair_ratio (r z : ℂ) (hr0 : r≠0) (hr1 : r≠1)
   congr 1
   rw [mul_sub,hz]
 
-/-- The finite construction in `NativeSourceSpectralNormalized` satisfies `rootRatio_cons` under the displayed hypotheses. -/
+/-- Adding one root to the multiset multiplies the normalized root product by that root's linear
+factor at z divided by its value at one. -/
 private theorem rootRatio_cons (r : ℂ) (l : Multiset ℂ) (z : ℂ) :
     rootRatio (r::ₘl) z=((z-r)/(1-r))*rootRatio l z := by
   simp only [rootRatio,Multiset.map_cons,Multiset.prod_cons]
 
-/-- The finite construction in `NativeSourceSpectralNormalized` satisfies `paired_ratio` under the displayed hypotheses. -/
+/-- On the unit circle, the normalized product for the reciprocal conjugates of roots distinct
+from zero and one is the conjugate of the original normalized product times z to the power of
+the root count. -/
 private theorem paired_ratio (l : Multiset ℂ) (z : ℂ) (hz : z*star z=1) :
     (∀ r∈l,r≠0) → (∀ r∈l,r≠1) →
       rootRatio (l.map sourceReciprocalConjugate) z=z^l.card*star (rootRatio l z) := by
@@ -80,7 +85,9 @@ private theorem paired_ratio (l : Multiset ℂ) (z : ℂ) (hz : z*star z=1) :
       ih ht0 ht1,Multiset.card_cons,pow_succ,star_mul]
     ring
 
-/-- The finite construction in `NativeSourceSpectralNormalized` satisfies `paired_product_ratio` under the displayed hypotheses. -/
+/-- For a multiset excluding zero and one and for unit z, the combined normalized product over the
+roots and their reciprocal conjugates equals the squared norm of the original normalized
+product times z to the power of the multiset cardinality. -/
 private theorem paired_product_ratio (l : Multiset ℂ) (z : ℂ) (hz : ‖z‖=1)
     (h0 : ∀ r∈l,r≠0) (h1 : ∀ r∈l,r≠1) :
     rootRatio (l+l.map sourceReciprocalConjugate) z=
@@ -97,7 +104,8 @@ private theorem paired_product_ratio (l : Multiset ℂ) (z : ℂ) (hz : ‖z‖=
     _=z^l.card*(rootRatio l z*star (rootRatio l z)) := by ring
     _=_ := by rw [hsq]
 
-/-- The finite construction in `NativeSourceSpectralNormalized` satisfies `eval_root_product` under the displayed hypotheses. -/
+/-- A complex polynomial evaluated at z is its leading coefficient times the product of z minus
+each root, counted with multiplicity. -/
 private theorem eval_root_product (p : ℂ[X]) (z : ℂ) :
     p.eval z=p.leadingCoeff*(p.roots.map (fun r => z-r)).prod := by
   have h := congrArg (fun q : ℂ[X] => q.eval z)
@@ -106,7 +114,8 @@ private theorem eval_root_product (p : ℂ[X]) (z : ℂ) :
   simpa only [Polynomial.eval_mul,Polynomial.eval_C,Polynomial.eval_multiset_prod,
     Multiset.map_map,Polynomial.eval_sub,Polynomial.eval_X,Function.comp_def] using h.symm
 
-/-- The finite construction in `NativeSourceSpectralNormalized` satisfies `polynomial_ratio` under the displayed hypotheses. -/
+/-- For a nonzero complex polynomial, the ratio of its values at z and one is the product of the
+root factors normalized at one, using totalized division. -/
 private theorem polynomial_ratio (p : ℂ[X]) (hp : p≠0) (z : ℂ) :
     p.eval z/p.eval 1=rootRatio p.roots z := by
   have hl := Polynomial.leadingCoeff_ne_zero.mpr hp
@@ -130,7 +139,7 @@ def sourceInsideRoots (cs : List ℚ) (N : ℕ) (E : ℚ) : Multiset ℂ :=
 def sourceIdealProduct (cs : List ℚ) (N : ℕ) (E : ℚ) (z : ℂ) : ℂ :=
   ((sourceInsideRoots cs N E).map (fun r => z-r)).prod
 
-/-- The finite construction in `NativeSourceSpectralNormalized` satisfies `sourceIdealProduct_ne_zero` under the displayed hypotheses. -/
+/-- The ideal product over interior roots is nonzero at every point of the unit circle. -/
 theorem sourceIdealProduct_ne_zero (cs : List ℚ) (N : ℕ) (E : ℚ) (z : ℂ) (hz : ‖z‖=1) :
     sourceIdealProduct cs N E z≠0 := by
   classical
@@ -143,13 +152,17 @@ theorem sourceIdealProduct_ne_zero (cs : List ℚ) (N : ℕ) (E : ℚ) (z : ℂ)
   rw [← hrz,hz] at hi
   exact (lt_irrefl (1 : ℝ)) hi
 
-/-- The finite construction in `NativeSourceSpectralNormalized` satisfies `sourceRatio_eq` under the displayed hypotheses. -/
+/-- The product of the normalized interior-root factors equals the ideal monic product at z
+divided by its value at one. -/
 private theorem sourceRatio_eq (cs : List ℚ) (N : ℕ) (E : ℚ) (z : ℂ) :
     rootRatio (sourceInsideRoots cs N E) z=
       sourceIdealProduct cs N E z/sourceIdealProduct cs N E 1 := by
   exact Multiset.prod_map_div
 
-/-- The finite construction in `NativeSourceSpectralNormalized` satisfies `sourceNormalizedSpectralIdentity` under the displayed hypotheses. -/
+/-- For positive E and source degree d, and a Chebyshev target of degree at most N, parity N and
+absolute value at most one on the interval from −1 to 1, the complement at unit z equals its
+value at one times z to the power d times the squared norm of the ideal interior-root product
+normalized at one. -/
 theorem sourceNormalizedSpectralIdentity (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E)
     (htail : ∀ k,N+1 ≤ k → cs.getD k 0=0)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)
@@ -187,7 +200,9 @@ theorem sourceNormalizedSpectralIdentity (cs : List ℚ) (N : ℕ) (E : ℚ) (hE
   have he := (div_eq_iff hnz).mp h
   exact he.trans (by ring)
 
-/-- The finite construction in `NativeSourceSpectralNormalized` satisfies `sourceIdealNormalized_norm_le_one` under the displayed hypotheses. -/
+/-- With positive E and source degree and a degree-bounded target of matching parity bounded by
+one on the interval from −1 to 1, the ideal interior-root product normalized at one and scaled
+by the square root of the complement value at one has norm at most one on the unit circle. -/
 theorem sourceIdealNormalized_norm_le_one (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E)
     (htail : ∀ k,N+1 ≤ k → cs.getD k 0=0)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)

@@ -19,7 +19,7 @@ open scoped Quaternion ContDiff
 namespace Qatlib.Concepts.EffectiveGauge.HopfAtlas
 open Qatlib.Concepts.EffectiveGauge.RationalFlow
 
-/-- Original `spatialTransverseProjection_eq` guarantee for the `SourceCorrectedIdentity` construction; the complete source hypotheses are retained. -/
+/-- The continuous linear transverse projection acts by the existing transverse projection map. -/
 theorem spatialTransverseProjection_eq : spatialTransverseProjection=transverseProjection := rfl
 
 /-- A global identity of smooth functions, before wrapping. It can therefore

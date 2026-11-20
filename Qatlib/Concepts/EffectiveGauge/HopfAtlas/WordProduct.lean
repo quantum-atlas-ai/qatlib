@@ -20,7 +20,8 @@ open Finset
 namespace Qatlib.Concepts.EffectiveGauge.HopfAtlas
 open Qatlib.Concepts.EffectiveGauge.RationalFlow
 
-/-- Original `spatialWordPartial_clm` guarantee for the `WordProduct` construction; the complete source hypotheses are retained. -/
+/-- Applying a continuous real-linear map to a smooth field commutes with every iterated
+coordinate-word derivative. -/
 theorem spatialWordPartial_clm {E H : Type*}
     [NormedAddCommGroup E] [NormedSpace ℝ E] [NormedAddCommGroup H] [NormedSpace ℝ H]
     (A : E →L[ℝ] H) (f : SpatialPoint → E) (hf : ContDiff ℝ ∞ f) (w : List (Fin 3)) :
@@ -45,11 +46,12 @@ This is the forcing remainder, not a bound assuming that unknown derivative. -/
 def wordProductRemainderMajorant (F G : ℕ → ℝ) (n : ℕ) : ℝ :=
   wordProductMajorant F G n-F n*G 0
 
-/-- Original `wordProductMajorant_zero` guarantee for the `WordProduct` construction; the complete source hypotheses are retained. -/
+/-- The zeroth word product majorant is `F 0 * G 0`. -/
 theorem wordProductMajorant_zero (F G : ℕ → ℝ) : wordProductMajorant F G 0=F 0*G 0 := by
   simp [wordProductMajorant]
 
-/-- Original `wordProductMajorant_succ` guarantee for the `WordProduct` construction; the complete source hypotheses are retained. -/
+/-- The order-`n + 1` product majorant is the sum of the order-`n` majorants with the index of `G`
+shifted by one in the first and that of `F` shifted by one in the second. -/
 theorem wordProductMajorant_succ (F G : ℕ → ℝ) (n : ℕ) :
     wordProductMajorant F G (n+1)=
       wordProductMajorant F (fun j => G (j+1)) n+
@@ -63,7 +65,8 @@ theorem wordProductMajorant_succ (F G : ℕ → ℝ) (n : ℕ) :
   have hjn : j ≤ n := Nat.le_of_lt_succ (mem_range.mp hj)
   rw [show n+1-j=n-j+1 by omega]
 
-/-- Original `wordProductRemainderMajorant_succ` guarantee for the `WordProduct` construction; the complete source hypotheses are retained. -/
+/-- The next remainder majorant is the order-`n` remainder with `F` shifted by one plus the full
+order-`n` majorant with `G` shifted by one. -/
 theorem wordProductRemainderMajorant_succ (F G : ℕ → ℝ) (n : ℕ) :
     wordProductRemainderMajorant F G (n+1)=
       wordProductRemainderMajorant (fun j => F (j+1)) G n+
@@ -71,13 +74,15 @@ theorem wordProductRemainderMajorant_succ (F G : ℕ → ℝ) (n : ℕ) :
   rw [wordProductRemainderMajorant,wordProductMajorant_succ,wordProductRemainderMajorant]
   ring
 
-/-- Original `wordProductRemainderMajorant_eq` guarantee for the `WordProduct` construction; the complete source hypotheses are retained. -/
+/-- The remainder majorant is the binomial sum `n.choose j * F j * G (n - j)` over `j < n`,
+omitting the highest-order term of `F`. -/
 theorem wordProductRemainderMajorant_eq (F G : ℕ → ℝ) (n : ℕ) :
     wordProductRemainderMajorant F G n=
       ∑ j ∈ range n, (n.choose j : ℝ)*F j*G (n-j) := by
   simp [wordProductRemainderMajorant,wordProductMajorant,sum_range_succ]
 
-/-- Original `spatialWordPartial_mul_first` guarantee for the `WordProduct` construction; the complete source hypotheses are retained. -/
+/-- The first coordinate derivative of a product of smooth quaternion fields satisfies the product
+rule in the original multiplication order. -/
 theorem spatialWordPartial_mul_first (f g : SpatialPoint → ℍ)
     (hf : ContDiff ℝ ∞ f) (hg : ContDiff ℝ ∞ g) (i : Fin 3) :
     spatialWordPartial (fun x => f x*g x) [i]=fun x =>

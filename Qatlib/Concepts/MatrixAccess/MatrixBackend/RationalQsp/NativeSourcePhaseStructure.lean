@@ -33,13 +33,15 @@ open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data.SourceInput
 open Polynomial
 open scoped Matrix.Norms.L2Operator
 
-/-- The finite construction in `NativeSourcePhaseStructure` satisfies `integer_polynomial_conj` under the displayed hypotheses. -/
+/-- Conjugating the coefficients of a polynomial built from an integer list leaves the complex
+polynomial unchanged. -/
 private theorem integer_polynomial_conj (a : List ℤ) :
     (rootIntegerListPolynomial a).map (starRingEnd ℂ)=rootIntegerListPolynomial a := by
   ext n
   simp [Polynomial.coeff_map,rootIntegerListPolynomial_coeff]
 
-/-- The finite construction in `NativeSourcePhaseStructure` satisfies `sourceInsideRoots_conj` under the displayed hypotheses. -/
+/-- Complex conjugation preserves the multiset of interior complement roots, including their
+multiplicities. -/
 theorem sourceInsideRoots_conj (cs : List ℚ) (N : ℕ) (E : ℚ) :
     (sourceInsideRoots cs N E).map (fun z : ℂ => star z)=sourceInsideRoots cs N E := by
   classical
@@ -54,7 +56,8 @@ theorem sourceInsideRoots_conj (cs : List ℚ) (N : ℕ) (E : ℚ) :
   rw [Multiset.filter_map] at h
   simpa only [Function.comp_def,norm_star] using h
 
-/-- The finite construction in `NativeSourcePhaseStructure` satisfies `sourceIdealMonicPolynomial_conj` under the displayed hypotheses. -/
+/-- The monic polynomial formed from the interior roots is fixed by coefficientwise complex
+conjugation. -/
 theorem sourceIdealMonicPolynomial_conj (cs : List ℚ) (N : ℕ) (E : ℚ) :
     (sourceIdealMonicPolynomial cs N E).map (starRingEnd ℂ)=sourceIdealMonicPolynomial cs N E := by
   unfold sourceIdealMonicPolynomial
@@ -69,7 +72,7 @@ theorem sourceIdealMonicPolynomial_conj (cs : List ℚ) (N : ℕ) (E : ℚ) :
   have hprod := congrArg (fun l : Multiset ℂ => (l.map (fun r => (X-C r : ℂ[X]))).prod) h
   simpa only [Multiset.map_map, Function.comp_def] using hprod
 
-/-- The finite construction in `NativeSourcePhaseStructure` satisfies `sourceIdealEArray_real` under the displayed hypotheses. -/
+/-- Each ideal completion coefficient is fixed by complex conjugation and hence is real. -/
 theorem sourceIdealEArray_real (cs : List ℚ) (N : ℕ) (E : ℚ) (j : Fin (sourceDegree cs N E+1)) :
     star (sourceIdealEArray cs N E j)=sourceIdealEArray cs N E j := by
   have hc := congrArg (fun p : ℂ[X] => p.coeff j.val) (sourceIdealMonicPolynomial_conj cs N E)
@@ -91,37 +94,40 @@ open scoped Matrix.Norms.L2Operator
 def sourceConjugateSwap (C : Matrix Bool Bool ℂ) : Matrix Bool Bool ℂ :=
   fun i j => star (C (!i) (!j))
 
-/-- The finite construction in `NativeSourcePhaseStructure` satisfies `sourceConjugateSwap_add` under the displayed hypotheses. -/
+/-- Conjugation combined with reversing both Boolean indices distributes over matrix addition. -/
 theorem sourceConjugateSwap_add (A B : Matrix Bool Bool ℂ) :
     sourceConjugateSwap (A+B)=sourceConjugateSwap A+sourceConjugateSwap B := by
   ext i j
   simp [sourceConjugateSwap]
 
-/-- The finite construction in `NativeSourcePhaseStructure` satisfies `sourceConjugateSwap_mul` under the displayed hypotheses. -/
+/-- Applying the conjugate swap to a matrix product gives the product of the two swapped
+conjugates in the same order. -/
 theorem sourceConjugateSwap_mul (A B : Matrix Bool Bool ℂ) :
     sourceConjugateSwap (A*B)=sourceConjugateSwap A*sourceConjugateSwap B := by
   ext i j
   cases i <;> cases j <;> simp [sourceConjugateSwap,Matrix.mul_apply] <;> ring
 
-/-- The finite construction in `NativeSourcePhaseStructure` satisfies `sourceConjugateSwap_adjoint` under the displayed hypotheses. -/
+/-- Taking the conjugate transpose commutes with swapping both indices and conjugating the
+entries. -/
 theorem sourceConjugateSwap_adjoint (A : Matrix Bool Bool ℂ) :
     sourceConjugateSwap A.conjTranspose=(sourceConjugateSwap A).conjTranspose := by
   ext i j
   simp [sourceConjugateSwap,Matrix.conjTranspose_apply]
 
-/-- The finite construction in `NativeSourcePhaseStructure` satisfies `sourceConjugateSwap_real_smul` under the displayed hypotheses. -/
+/-- Multiplying by a real scalar commutes with the conjugate swap. -/
 theorem sourceConjugateSwap_real_smul (A : Matrix Bool Bool ℂ) (r : ℝ) :
     sourceConjugateSwap ((r : ℂ) • A)=(r : ℂ) • sourceConjugateSwap A := by
   ext i j
   simp [sourceConjugateSwap,mul_comm]
 
-/-- The finite construction in `NativeSourcePhaseStructure` satisfies `sourceComplexGramNormalize_fixed` under the displayed hypotheses. -/
+/-- Trace normalization of the Gram matrix preserves invariance under the conjugate swap. -/
 theorem sourceComplexGramNormalize_fixed (C : Matrix Bool Bool ℂ) (hC : sourceConjugateSwap C=C) :
     sourceConjugateSwap (sourceComplexGramNormalize C)=sourceComplexGramNormalize C := by
   unfold sourceComplexGramNormalize
   rw [sourceConjugateSwap_real_smul,sourceConjugateSwap_mul,sourceConjugateSwap_adjoint,hC]
 
-/-- The finite construction in `NativeSourcePhaseStructure` satisfies `sourceIdealDeflation_fixed` under the displayed hypotheses. -/
+/-- If the conjugate swap fixes every input matrix coefficient, it fixes every coefficient after
+one ideal deflation step. -/
 theorem sourceIdealDeflation_fixed {m : ℕ} (F : Fin (m+2) → Matrix Bool Bool ℂ)
     (hF : ∀ j,sourceConjugateSwap (F j)=F j) :
     ∀ j,sourceConjugateSwap (sourceIdealDeflationStep F j)=sourceIdealDeflationStep F j := by
@@ -129,7 +135,8 @@ theorem sourceIdealDeflation_fixed {m : ℕ} (F : Fin (m+2) → Matrix Bool Bool
   simp only [sourceIdealDeflationStep,sourceConjugateSwap_add,sourceConjugateSwap_mul,hF,
     sourceComplexGramNormalize_fixed _ (hF _)]
 
-/-- The finite construction in `NativeSourcePhaseStructure` satisfies `sourceIdealArray_fixed` under the displayed hypotheses. -/
+/-- Each ideal matrix coefficient is fixed by conjugating entries and reversing both Boolean
+indices. -/
 theorem sourceIdealArray_fixed (cs : List ℚ) (N : ℕ) (E : ℚ) (j : Fin (sourceDegree cs N E+1)) :
     sourceConjugateSwap (sourceIdealMatrixArray cs N E j)=sourceIdealMatrixArray cs N E j := by
   let a : ℝ := sourceRealArray cs N E j
@@ -148,7 +155,8 @@ theorem sourceIdealArray_fixed (cs : List ℚ) (N : ℕ) (E : ℚ) (j : Fin (sou
   cases i <;> cases j <;>
     simp [sourceConjugateSwap,star_sub,star_add,star_div₀,hv,hw]
 
-/-- The finite construction in `NativeSourcePhaseStructure` satisfies `sourceComplexGramNormalize_diagonal_half` under the displayed hypotheses. -/
+/-- The trace-normalized Gram matrix of a nonzero input fixed by the conjugate swap has both
+diagonal entries equal to one half. -/
 theorem sourceComplexGramNormalize_diagonal_half (C : Matrix Bool Bool ℂ) (hc : C≠0)
     (hC : sourceConjugateSwap C=C) :
     sourceComplexGramNormalize C false false=1/2 ∧ sourceComplexGramNormalize C true true=1/2 := by
@@ -170,7 +178,8 @@ section PhaseUnit
 
 open scoped Matrix.Norms.L2Operator
 
-/-- The finite construction in `NativeSourcePhaseStructure` satisfies `sourceIdealDiscoveredPhase_norm` under the displayed hypotheses. -/
+/-- For a nonzero input fixed by the conjugate swap whose normalized Gram matrix is idempotent,
+twice its upper-right entry has complex norm one. -/
 theorem sourceIdealDiscoveredPhase_norm (C : Matrix Bool Bool ℂ) (hc : C≠0)
     (hC : sourceConjugateSwap C=C) (hpp : sourceComplexGramNormalize C*sourceComplexGramNormalize C=sourceComplexGramNormalize C) :
     ‖2*sourceComplexGramNormalize C false true‖=1 := by

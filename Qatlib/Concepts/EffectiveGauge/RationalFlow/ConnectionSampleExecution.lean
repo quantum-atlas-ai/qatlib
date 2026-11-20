@@ -50,7 +50,8 @@ def connectionSampleExecution (value : (Fin 3 → ℚ) → ℚ → Option (Quate
 noncomputable section
 open scoped ContDiff Quaternion
 
-/-- Original `rationalUnitWrap_mem` guarantee for the `ConnectionSampleExecution` construction; the complete source hypotheses are retained. -/
+/-- Every coordinate of a wrapped rational address lies in the closed unit interval when cast to the
+reals. -/
 theorem rationalUnitWrap_mem (a : Fin 3 → ℚ) (j : Fin 3) :
     (rationalUnitWrap a j : ℝ)∈Icc 0 1 := by
   have hl := Int.floor_le (a j)
@@ -60,7 +61,8 @@ theorem rationalUnitWrap_mem (a : Fin 3 → ℚ) (j : Fin 3) :
   · have h : a j-(Int.floor (a j) : ℚ) ≤ 1 := by linarith
     exact_mod_cast h
 
-/-- Original `rationalUnitWrap_periodic` guarantee for the `ConnectionSampleExecution` construction; the complete source hypotheses are retained. -/
+/-- Wrapping a rational address coordinatewise leaves the value of any unit-periodic field
+unchanged. -/
 theorem rationalUnitWrap_periodic {E : Type*} (f : SpatialPoint → E)
     (hp : IsUnitPeriodicField f) (a : Fin 3 → ℚ) :
     f (rationalSpatialPoint (rationalUnitWrap a))=f (rationalSpatialPoint a) := by
@@ -71,7 +73,8 @@ theorem rationalUnitWrap_periodic {E : Type*} (f : SpatialPoint → E)
   rw [he]
   exact hp _ _
 
-/-- Original `rationalUnitNeighbor_cast` guarantee for the `ConnectionSampleExecution` construction; the complete source hypotheses are retained. -/
+/-- The neighboring rational address casts to the original spatial point shifted by `h` along axis
+`j`. -/
 theorem rationalUnitNeighbor_cast (a : Fin 3 → ℚ) (h : ℚ) (j : Fin 3) :
     rationalSpatialPoint (rationalUnitNeighbor a h j)=
       rationalSpatialPoint a+(h : ℝ) • EuclideanSpace.single j 1 := by

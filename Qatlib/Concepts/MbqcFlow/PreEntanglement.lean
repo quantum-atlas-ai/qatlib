@@ -1429,7 +1429,7 @@ theorem teleWire_flow_determinism (a2 : Fin 2 → ℝ) :
 /-- Collect flow decision/search agreement, sequential and pre-entangled execution identities,
 measurement-count agreement, and flow-based strong determinism for the teleportation
 example. -/
-theorem frontier1 {n : ℕ} (G : MbqcGraph n) (I O : Finset (Fin n))
+theorem flow_decision_and_preentangled_execution {n : ℕ} (G : MbqcGraph n) (I O : Finset (Fin n))
     (r : Fin n → Fin n) (lam : Fin n → MbqcPlane) (a : Fin n → ℝ)
     (corr : (Fin n → Bool) → Fin n → Operator 2) (s z : Fin n → Bool)
     (ρ : Operator (2 ^ I.card)) (f : Fin n → Option (Fin n)) :

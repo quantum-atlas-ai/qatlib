@@ -36,7 +36,8 @@ def samples (p : FinDist H) (pilot : FinDist P) (u v : E → Bool → ℂ)
   TrainedMain.trainedLaw (independentPairLaw p pilot) u v hu hv (fun z => words z.1 z.2) n
 
 omit [DecidableEq E] in
-/-- Complete original `samples_expect` guarantee for `PartialAddressAdaptive`; all source hypotheses and output obligations are retained. -/
+/-- Average a statistic of the history, pilot, and main records by first taking its expectation
+under the trained law for each history and then averaging over the incoming history law. -/
 theorem samples_expect (p : FinDist H) (pilot : FinDist P) (u v : E → Bool → ℂ)
     (hu : ∀ e,qubitMass (u e)=1) (hv : ∀ e,qubitMass (v e)=1)
     (words : H → P → E → List Gate) (n : ℕ)
@@ -55,7 +56,8 @@ def step [DecidableEq H] (p : FinDist H) (pilot : FinDist P) (u v : E → Bool �
   PilotProjection.pushLaw (samples p pilot u v hu hv words n) (fun z => update z.1.1 z.1.2 z.2)
 
 omit [DecidableEq E] in
-/-- Complete original `step_keep` guarantee for `PartialAddressAdaptive`; all source hypotheses and output obligations are retained. -/
+/-- An update that leaves the observable unchanged for every history, pilot outcome, and main
+sample preserves its expectation after one adaptive step. -/
 theorem step_keep [DecidableEq H] (p : FinDist H) (pilot : FinDist P) (u v : E → Bool → ℂ)
     (hu : ∀ e,qubitMass (u e)=1) (hv : ∀ e,qubitMass (v e)=1)
     (words : H → P → E → List Gate) (n : ℕ)
@@ -76,7 +78,9 @@ theorem step_keep [DecidableEq H] (p : FinDist H) (pilot : FinDist P) (u v : E �
   rw [← Finset.sum_mul,FinDist.sum_one,one_mul]
 
 omit [DecidableEq E] in
-/-- Complete original `step_bound` guarantee for `PartialAddressAdaptive`; all source hypotheses and output obligations are retained. -/
+/-- If the updated observable is a function of the pilot and main records alone and its trained
+expectation is at most `b` for every history, the updated history law also has expectation at
+most `b`. -/
 theorem step_bound [DecidableEq H] (p : FinDist H) (pilot : FinDist P) (u v : E → Bool → ℂ)
     (hu : ∀ e,qubitMass (u e)=1) (hv : ∀ e,qubitMass (v e)=1)
     (words : H → P → E → List Gate) (n : ℕ)
@@ -99,7 +103,8 @@ theorem step_bound [DecidableEq H] (p : FinDist H) (pilot : FinDist P) (u v : E 
       rw [← Finset.sum_mul,p.sum_one,one_mul]
 
 omit [DecidableEq E] in
-/-- Complete original `empty_words_expect` guarantee for `PartialAddressAdaptive`; all source hypotheses and output obligations are retained. -/
+/-- With empty spin words on every edge for every pilot outcome, the main records have the
+unrotated uniform matching expectation for every statistic of those records. -/
 theorem empty_words_expect (pilot : FinDist P) (u v : E → Bool → ℂ)
     (hu : ∀ e,qubitMass (u e)=1) (hv : ∀ e,qubitMass (v e)=1)
     (n : ℕ) (f : (Fin n → GlobalRecord E) → ℝ) :
@@ -118,7 +123,8 @@ def run (transition : I → FinDist X → FinDist X) : List I → FinDist X → 
   | [],p => p
   | i::is,p => run transition is (transition i p)
 
-/-- Complete original `run_preserves` guarantee for `PartialAddressAdaptive`; all source hypotheses and output obligations are retained. -/
+/-- Successively applying the listed transitions preserves the expectation of `f` if each
+listed transition preserves it for every input law. -/
 theorem run_preserves (transition : I → FinDist X → FinDist X) (f : X → ℝ)
     (order : List I) (hkeep : ∀ i∈order,∀ p,(transition i p).expect f=p.expect f) (p : FinDist X) :
     (run transition order p).expect f=p.expect f := by
@@ -128,7 +134,9 @@ theorem run_preserves (transition : I → FinDist X → FinDist X) (f : X → �
     rw [run,ih (by intro i hi; exact hkeep i (by simp [hi]))]
     exact hkeep a (by simp) p
 
-/-- Complete original `run_bound` guarantee for `PartialAddressAdaptive`; all source hypotheses and output obligations are retained. -/
+/-- For any index `i` occurring in the run order, the final expectation of `f i` is at most
+`b i` if its own transition enforces that bound for every law and every other transition
+preserves the expectation. -/
 theorem run_bound [DecidableEq I] (transition : I → FinDist X → FinDist X)
     (f : I → X → ℝ) (b : I → ℝ)
     (hkeep : ∀ i j,i≠j → ∀ p,(transition j p).expect (f i)=p.expect (f i))

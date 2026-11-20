@@ -42,14 +42,16 @@ def occupiedCount {n : ℕ} (J : Fin n → S) : ℝ := (occupiedSites J).card
 def expectedOccupied (n : ℕ) : ℝ := (cohortLaw (uniformLaw S) n).expect occupiedCount
 
 omit [Fintype S] [Nonempty S] in
-/-- Complete original `occupied_sites_cons` guarantee for `OccupiedAddressMoments`; all source hypotheses and output obligations are retained. -/
+/-- The occupied set of an array with a new first entry is obtained by inserting that site into
+the occupied set of the tail. -/
 theorem occupied_sites_cons {n : ℕ} (x : S) (J : Fin n → S) :
     occupiedSites (Fin.cons x J)=insert x (occupiedSites J) := by
   ext y
   simp [occupiedSites, Fin.exists_fin_succ, eq_comm]
 
 omit [Fintype S] [Nonempty S] in
-/-- Complete original `occupied_count_cons` guarantee for `OccupiedAddressMoments`; all source hypotheses and output obligations are retained. -/
+/-- Prepending an address adds one to the occupied-site count exactly when that address was
+absent from the tail. -/
 theorem occupied_count_cons {n : ℕ} (x : S) (J : Fin n → S) :
     occupiedCount (Fin.cons x J)=occupiedCount J+if x ∈ occupiedSites J then 0 else 1 := by
   rw [occupiedCount,occupied_sites_cons]
@@ -59,7 +61,8 @@ theorem occupied_count_cons {n : ℕ} (x : S) (J : Fin n → S) :
   · rw [ite_eq_right hx,Finset.card_insert_of_notMem hx]
     simp [occupiedCount]
 
-/-- Complete original `uniform_missing_mass` guarantee for `OccupiedAddressMoments`; all source hypotheses and output obligations are retained. -/
+/-- A uniform draw misses the fixed set `R` with probability one minus the fraction of sites in
+`R`. -/
 theorem uniform_missing_mass (R : Finset S) :
     (uniformLaw S).expect (fun x => if x ∈ R then 0 else 1)=
       1-(R.card : ℝ)/(Fintype.card S : ℝ) := by
@@ -77,7 +80,8 @@ theorem uniform_missing_mass (R : Finset S) :
       split_ifs <;> norm_num
     _ = _ := by rw [finite_expect_sub,finite_expect_const,hmember]
 
-/-- Complete original `expected_occupied_recurrence` guarantee for `OccupiedAddressMoments`; all source hypotheses and output obligations are retained. -/
+/-- The expected occupied count after `n + 1` uniform draws equals the expectation after `n`
+draws plus one minus that expectation divided by the site count. -/
 theorem expected_occupied_recurrence (n : ℕ) :
     expectedOccupied (S := S) (n+1)=expectedOccupied (S := S) n+1-
       expectedOccupied (S := S) n/(Fintype.card S : ℝ) := by
@@ -113,7 +117,7 @@ theorem expected_occupied_recurrence (n : ℕ) :
     (1-expectedOccupied (S := S) n/(Fintype.card S : ℝ)) = _
   ring
 
-/-- Complete original `expected_occupied_upper` guarantee for `OccupiedAddressMoments`; all source hypotheses and output obligations are retained. -/
+/-- The expected number of occupied sites after `n` uniform draws is at most `n`. -/
 theorem expected_occupied_upper (n : ℕ) : expectedOccupied (S := S) n ≤ n := by
   calc
     _ ≤ (cohortLaw (uniformLaw S) n).expect (fun _ => (n : ℝ)) := by
@@ -123,7 +127,8 @@ theorem expected_occupied_upper (n : ℕ) : expectedOccupied (S := S) n ≤ n :=
       exact_mod_cast occupied_sites_card J
     _ = _ := finite_expect_const _ _
 
-/-- Complete original `expected_occupied_lower` guarantee for `OccupiedAddressMoments`; all source hypotheses and output obligations are retained. -/
+/-- The expected number of occupied sites after `n` uniform draws is at least
+`n - n*(n-1)/(2*|S|)`. -/
 theorem expected_occupied_lower (n : ℕ) :
     (n : ℝ)-(n : ℝ)*((n : ℝ)-1)/(2*(Fintype.card S : ℝ)) ≤
       expectedOccupied (S := S) n := by
@@ -141,7 +146,8 @@ theorem expected_occupied_lower (n : ℕ) :
     rw [hstep]
     linarith
 
-/-- Complete original `expected_occupied_half` guarantee for `OccupiedAddressMoments`; all source hypotheses and output obligations are retained. -/
+/-- With at most as many uniform draws as sites, the expected occupied count is at least half
+the number of draws. -/
 theorem expected_occupied_half (n : ℕ) (hn : n ≤ Fintype.card S) :
     (n : ℝ)/2 ≤ expectedOccupied (S := S) n := by
   have hM : (0 : ℝ) < Fintype.card S := by exact_mod_cast Fintype.card_pos
@@ -153,7 +159,8 @@ theorem expected_occupied_half (n : ℕ) (hn : n ≤ Fintype.card S) :
   linarith [expected_occupied_lower (S := S) n]
 
 omit [Fintype S] [Nonempty S] in
-/-- Complete original `occupied_count_coordinate` guarantee for `OccupiedAddressMoments`; all source hypotheses and output obligations are retained. -/
+/-- Two address arrays agreeing away from one index have occupied-site counts that differ by at
+most one. -/
 theorem occupied_count_coordinate {n : ℕ} (J K : Fin n → S) (i : Fin n)
     (h : ∀ j, j ≠ i → J j=K j) : |occupiedCount J-occupiedCount K| ≤ 1 := by
   have hsubset (A B : Fin n → S) (hAB : ∀ j, j ≠ i → A j=B j) :

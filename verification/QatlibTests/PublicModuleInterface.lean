@@ -7,8 +7,10 @@ Authors: Qatlib Contributors
 module
 
 import Lean
+import Qatlib.Concepts.AdversaryBounds.AdvDuality.TmCopyRunResetCompiler
 import Qatlib.Foundations.ScaledSqrt.SqrtBounds.RationalRootFloor
 import Qatlib.Papers.GenerativeAdv25.MainResults.Source.GenerativeAdvantage
+import Qatlib.Papers.GenerativeAdv25.MainResults.StatementBank
 import Qatlib.Papers.TruncTaylor14.PrepareSelectTaylor
 import Qatlib.Papers.ExactSimon97.SampleStoppingQuantum
 import Qatlib.Papers.HamLCUSim12.FullSimulation.Lemma10Inverse
@@ -47,6 +49,15 @@ example (n : ℕ) : signedCount false n = (n : ℤ) := rfl
 example (n : ℕ) : signedCount true n = -(n : ℤ) := rfl
 example (n : ℕ) :
     Qatlib.Papers.GenerativeAdv25.MainResults.zeroBits n = (fun _ => false) := rfl
+
+open Qatlib.Papers.GenerativeAdv25.MainResults in
+example (quantumCost classicalCost : ℕ → ℝ) :
+    idqnn_generative_learning_advantage_statement quantumCost classicalCost =
+      quantum_advantage quantumCost classicalCost := rfl
+
+open Qatlib.Concepts.AdversaryBounds.AdvDuality.TmCopyRunResetCompiler in
+example : Computable₂ (fun code (_ : ℕ) => copyRunResetCode code) :=
+  computable₂_copyRunResetCode
 
 #guard signedCount false 7 == 7
 #guard signedCount true 7 == -7

@@ -55,7 +55,8 @@ theorem physicalCubeIntegral_eq_volume (f : SpatialPoint → ℝ) :
     (PiLp.volume_preserving_toLp (Fin 3)).setIntegral_preimage_emb
       (MeasurableEquiv.toLp 2 CoordinatePoint).measurableEmbedding f {x | InFundamentalCube x}
 
-/-- Original `scalar_partial_integral_zero` guarantee for the `MeanIntegral` construction; the complete source hypotheses are retained. -/
+/-- For a smooth scalar function vanishing wherever a coordinate is zero or the physical period on
+the closed box, the integral of each coordinate partial over that box is zero. -/
 private theorem scalar_partial_integral_zero (f : CoordinatePoint → ℝ) (hf : ContDiff ℝ ∞ f)
     (hb : ∀ x ∈ Icc (0 : CoordinatePoint) coordinateTop,
       (∃ j, x j=0 ∨ x j=physicalPeriod) → f x=0) (i : Fin 3) :
@@ -120,13 +121,15 @@ private theorem scalar_partial_integral_zero (f : CoordinatePoint → ℝ) (hf :
   simpa only [heq,hfront,hback,
     sub_self,Finset.sum_const_zero] using hdiv
 
-/-- Original `cube_integrable` guarantee for the `MeanIntegral` construction; the complete source hypotheses are retained. -/
+/-- A continuous scalar field pulled back to Cartesian coordinates is integrable on the closed
+physical cube. -/
 private theorem cube_integrable (f : SpatialPoint → ℝ) (hf : Continuous f) :
     IntegrableOn (fun x : CoordinatePoint => f (WithLp.toLp 2 x))
       (Icc (0 : CoordinatePoint) coordinateTop) :=
   (hf.comp (PiLp.continuousLinearEquiv 2 ℝ (fun _ : Fin 3 => ℝ)).symm.continuous).integrableOn_Icc
 
-/-- Original `physicalCubeIntegral_partial_zero` guarantee for the `MeanIntegral` construction; the complete source hypotheses are retained. -/
+/-- If a smooth scalar field vanishes on the cube boundary, the physical cube integral of its
+partial along any coordinate axis is zero. -/
 theorem physicalCubeIntegral_partial_zero (f : SpatialPoint → ℝ) (hf : ContDiff ℝ ∞ f)
     (hb : ∀ x, OnCubeBoundary x → f x=0) (i : Fin 3) :
     physicalCubeIntegral (fun x => fderiv ℝ f x (EuclideanSpace.single i 1))=0 := by
@@ -146,7 +149,8 @@ theorem physicalCubeIntegral_partial_zero (f : SpatialPoint → ℝ) (hf : ContD
   simp only [hder] at h
   exact h
 
-/-- Original `contDiff_connection` guarantee for the `MeanIntegral` construction; the complete source hypotheses are retained. -/
+/-- Every component of the connection computed from a smooth quaternion field is smooth on the
+spatial domain. -/
 theorem contDiff_connection (q : QuaternionField) (hq : ContDiff ℝ ∞ q) (j : Fin 3) :
     ContDiff ℝ ∞ (fun x => connection q x j) := by
   exact (contDiff_const.mul hq).inner ℝ
@@ -176,29 +180,32 @@ theorem periodicReference_connection_boundary_zero (v : SpatialPoint → Spatial
 /-- Definition of physical Cube Mean in the Rational Flow construction. -/
 def physicalCubeMean (f : SpatialPoint → ℝ) : ℝ := physicalCubeIntegral f/physicalPeriod^3
 
-/-- Original `physicalCubeIntegral_one` guarantee for the `MeanIntegral` construction; the complete source hypotheses are retained. -/
+/-- The physical cube integral of one is the cube of the physical period. -/
 theorem physicalCubeIntegral_one : physicalCubeIntegral (fun _ => 1)=physicalPeriod^3 := by
   simp [physicalCubeIntegral,Measure.real,Real.volume_Icc_pi,coordinateTop,
     physicalPeriod_pos.le,pow_succ]
 
-/-- Original `physicalCubeMean_const` guarantee for the `MeanIntegral` construction; the complete source hypotheses are retained. -/
+/-- Averaging a constant scalar field over the physical cube gives that constant. -/
 theorem physicalCubeMean_const (c : ℝ) : physicalCubeMean (fun _ => c)=c := by
   have hc : physicalCubeIntegral (fun _ => c)=c*physicalCubeIntegral (fun _ => 1) := by
     simp [physicalCubeIntegral,mul_comm]
   rw [physicalCubeMean,hc,physicalCubeIntegral_one]
   field_simp [physicalPeriod_pos.ne']
 
-/-- Original `cubeIntegral_add` guarantee for the `MeanIntegral` construction; the complete source hypotheses are retained. -/
+/-- The cube integral of the pointwise sum of two continuous scalar fields is the sum of their
+integrals. -/
 private theorem cubeIntegral_add (f g : SpatialPoint → ℝ) (hf : Continuous f) (hg : Continuous g) :
     physicalCubeIntegral (fun x => f x+g x)=physicalCubeIntegral f+physicalCubeIntegral g :=
   integral_add (cube_integrable f hf) (cube_integrable g hg)
 
-/-- Original `cubeIntegral_sub` guarantee for the `MeanIntegral` construction; the complete source hypotheses are retained. -/
+/-- The cube integral of the pointwise difference of two continuous scalar fields is the difference
+of their integrals. -/
 private theorem cubeIntegral_sub (f g : SpatialPoint → ℝ) (hf : Continuous f) (hg : Continuous g) :
     physicalCubeIntegral (fun x => f x-g x)=physicalCubeIntegral f-physicalCubeIntegral g :=
   integral_sub (cube_integrable f hf) (cube_integrable g hg)
 
-/-- Original `coordinate_mul_partial` guarantee for the `MeanIntegral` construction; the complete source hypotheses are retained. -/
+/-- The axis-`j` partial of `y ↦ y i * f y` is `x i` times the axis-`j` partial of `f`, plus `f x`
+exactly when `i = j`. -/
 private theorem coordinate_mul_partial (f : SpatialPoint → ℝ) (hf : ContDiff ℝ ∞ f)
     (x : SpatialPoint) (i j : Fin 3) :
     fderiv ℝ (fun y => y i*f y) x (EuclideanSpace.single j 1)=
@@ -313,7 +320,8 @@ theorem physicalCubeMean_scale (f : SpatialPoint → ℝ) :
 def unitCoordinateSpin (v : SpatialPoint → SpatialPoint) : SpatialPoint → SpatialPoint :=
   fun u => v (physicalPeriod • u)
 
-/-- Original `sourceCurvature_unitCoordinateSpin` guarantee for the `MeanIntegral` construction; the complete source hypotheses are retained. -/
+/-- Rescaling the argument of a smooth spin field by the physical period multiplies its curvature
+components by the squared period at the corresponding physical point. -/
 theorem sourceCurvature_unitCoordinateSpin (v : SpatialPoint → SpatialPoint)
     (hv : ContDiff ℝ ∞ v) (u : SpatialPoint) (i j : Fin 3) :
     sourceCurvature (unitCoordinateSpin v) u i j=

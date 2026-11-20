@@ -20,7 +20,7 @@ small set hitting all maximum-degree monomials; restricting that set lowers the 
 permits a recursive deterministic query-tree construction.
 
 Combining this construction with the quadratic block-sensitivity bound gives deterministic query
-complexity at most twice the fourth power of exact degree. The theorem `frontier1` also gives
+complexity at most twice the fourth power of exact degree. The theorem `deterministic_query_le_fourth_powers_of_degree_and_exact_queries` also gives
 the corresponding bound in `exactMinimum`, in the polynomial-method setting of [BealsEtAl2001].
 
 ## Main statements
@@ -30,7 +30,7 @@ the corresponding bound in `exactMinimum`, in the polynomial-method setting of [
   sensitivity.
 * `exists_dec_tree`: a query tree is constructed with cost bounded by degree squared times block
   sensitivity.
-* `frontier1`: the fourth-power bounds in exact degree and exact quantum query complexity.
+* `deterministic_query_le_fourth_powers_of_degree_and_exact_queries`: the fourth-power bounds in exact degree and exact quantum query complexity.
 
 ## References
 
@@ -1285,7 +1285,7 @@ theorem det_le_two_exactDegree_fourth (f : (Fin N → Bool) → Bool) :
 /-- Deterministic query complexity is at most `2 * exactDegree f ^ 4` and at most `32 *
 exactMinimum f ^ 4`, giving the exact-query fourth-power comparison discussed in
 [BealsEtAl2001]. -/
-theorem frontier1 (f : (Fin N → Bool) → Bool) :
+theorem deterministic_query_le_fourth_powers_of_degree_and_exact_queries (f : (Fin N → Bool) → Bool) :
     deterministicQueryComplexity f ≤ 2 * exactDegree f ^ 4 ∧
       deterministicQueryComplexity f ≤ 32 * exactMinimum f ^ 4 := by
   refine ⟨det_le_two_exactDegree_fourth f, ?_⟩

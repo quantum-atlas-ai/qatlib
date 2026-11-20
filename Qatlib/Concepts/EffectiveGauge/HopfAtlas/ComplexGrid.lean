@@ -30,7 +30,8 @@ open Qatlib.Concepts.EffectiveGauge.RationalFlow
 def complexGridAverage (N : ℕ) (a : ℕ → ℕ → ℕ → ℂ) : ℂ :=
   ((N : ℝ)^3)⁻¹ • (∑ k ∈ Finset.range N, ∑ l ∈ Finset.range N, ∑ m ∈ Finset.range N, a k l m)
 
-/-- Original `complexRangeSum_norm_le` guarantee for the `ComplexGrid` construction; the complete source hypotheses are retained. -/
+/-- If each of the first `N` complex terms has norm at most `E`, the norm of their finite sum is at
+most `N * E`. -/
 private theorem complexRangeSum_norm_le (N : ℕ) (a : ℕ → ℂ) (E : ℝ)
     (ha : ∀ k, k<N → ‖a k‖ ≤ E) : ‖∑ k ∈ Finset.range N, a k‖ ≤ (N : ℝ)*E := by
   calc
@@ -64,7 +65,8 @@ theorem complexGridAverage_sub_bound (N : ℕ) (hN : 0<N) (a b : ℕ → ℕ →
     _ ≤ ((N : ℝ)^3)⁻¹*((N : ℝ)^3*E) := mul_le_mul_of_nonneg_left hs (by positivity)
     _ = E := by rw [← mul_assoc,inv_mul_cancel₀ (pow_ne_zero 3 hn.ne'),one_mul]
 
-/-- Original `complexMeanTensorLeftSum_eq_grid` guarantee for the `ComplexGrid` construction; the complete source hypotheses are retained. -/
+/-- The tensor left sum equals the grid average obtained by evaluating the integrand at
+`(k / N, l / N, m / N)`. -/
 theorem complexMeanTensorLeftSum_eq_grid (N : ℕ) (f : MeanTensorPoint → ℂ) :
     complexMeanTensorLeftSum N f=complexGridAverage N
       (fun k l m => f ((k : ℝ)/(N : ℝ),(l : ℝ)/(N : ℝ),(m : ℝ)/(N : ℝ))) := by

@@ -28,7 +28,7 @@ finite-horizon failure probability tends to zero.
 ## Main statements
 
 * `compute_phase_uncompute`: implement the good-seed phase oracle with clean workspace.
-* `frontier1`: combine receipt soundness and ledger identities with an expected cost bound.
+* `heuristic_qsearch_receipt_and_expected_cost_bound`: combine receipt soundness and ledger identities with an expected cost bound.
 * `consumer_terminates`: show failure tends to zero as the search horizon grows.
 
 ## References
@@ -690,7 +690,7 @@ theorem actual_first_stop (c : DepthConvention) (F : Y → Bool) (G : (Y → Boo
 /-- For positive good-seed probability, combine receipt provenance, output validity, and ledger
 identities with the expected weighted cost bound from amplitude-amplified search
 [BrassardEtAl2002]. -/
-theorem frontier1 (c : DepthConvention) (F : Y → Bool) (G : (Y → Bool) → R → Y)
+theorem heuristic_qsearch_receipt_and_expected_cost_bound (c : DepthConvention) (F : Y → Bool) (G : (Y → Bool) → R → Y)
     (A : Matrix R R ℂ) (hA : A ∈ Matrix.unitaryGroup R ℂ) (r₀ : R) (fuel : ℕ) (w : Prices)
     (ha : 0 < MeasureProb (preparedAAState A r₀) (goodSeeds F G)) :
     (∀ tr ∈ (consumer c F G A hA r₀ fuel 0).support,

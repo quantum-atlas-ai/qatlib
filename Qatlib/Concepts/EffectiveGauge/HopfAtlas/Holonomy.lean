@@ -18,7 +18,8 @@ noncomputable section
 open scoped Quaternion
 namespace Qatlib.Concepts.EffectiveGauge.HopfAtlas
 
-/-- Original `windingLift_connection_period` guarantee for the `Holonomy` construction; the complete source hypotheses are retained. -/
+/-- For a winding lift with a unit seed, the integral of the connection along the `j`-th
+coordinate period equals the physical period times `n j`. -/
 theorem windingLift_connection_period (n : Fin 3 → ℤ) (q0 : ℍ) (hq : ‖q0‖=1)
     (x : SpatialPoint) (j : Fin 3) :
     (∫ t in (0 : ℝ)..physicalPeriod,
@@ -30,7 +31,8 @@ theorem windingLift_connection_period (n : Fin 3 → ℤ) (q0 : ℍ) (hq : ‖q0
   simp_rw [h]
   simp
 
-/-- Original `windingLift_velocity_period` guarantee for the `Holonomy` construction; the complete source hypotheses are retained. -/
+/-- For a winding lift with a unit seed, the velocity component integrates over one coordinate
+period to the physical period times `hbar * n j`. -/
 theorem windingLift_velocity_period (n : Fin 3 → ℤ) (q0 : ℍ) (hq : ‖q0‖=1)
     (hbar : ℝ) (x : SpatialPoint) (j : Fin 3) :
     (∫ t in (0 : ℝ)..physicalPeriod,
@@ -40,7 +42,8 @@ theorem windingLift_velocity_period (n : Fin 3 → ℤ) (q0 : ℍ) (hq : ‖q0�
   simp
   ring
 
-/-- Original `windingLift_holonomy` guarantee for the `Holonomy` construction; the complete source hypotheses are retained. -/
+/-- The phase of the connection integral around any coordinate period of a winding lift with a
+unit seed is one. -/
 theorem windingLift_holonomy (n : Fin 3 → ℤ) (q0 : ℍ) (hq : ‖q0‖=1)
     (x : SpatialPoint) (j : Fin 3) :
     phase (∫ t in (0 : ℝ)..physicalPeriod,

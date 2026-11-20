@@ -95,7 +95,7 @@ theorem normalized_no (C : QmaHistoryCircuit) (ε : ℝ)
 /-- Assemble locality, term normalization, polynomial description length, and
 the yes/no energy guarantees for the history encoding. For the reduction
 framework, see [Kempe, Kitaev & Regev][KempeKitaevRegev2006]. -/
-theorem frontier1 (C : QmaHistoryCircuit) :
+theorem qma_history_locality_description_and_energy_bounds (C : QmaHistoryCircuit) :
     lhLocal 5 (normalizedEncoding C) ∧ lhHermitian (normalizedEncoding C) ∧
     (∀t∈(normalizedEncoding C).terms,
       ‖Matrix.toEuclideanCLM (𝕜:=ℂ) (lhEmbedTerm (normalizedEncoding C).width t)‖ ≤ 1) ∧

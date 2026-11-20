@@ -31,7 +31,8 @@ open Qatlib.Concepts.EffectiveGauge.RationalFlow Qatlib.Concepts.EffectiveGauge.
 /-- Definition of unit Torus Projection in the Hopf Atlas construction. -/
 def unitTorusProjection (x : SpatialPoint) : UnitAddTorus (Fin 3) := fun j => (x j : UnitAddCircle)
 
-/-- Original `unitTorusProjection_quotient` guarantee for the `UnitTorusDescent` construction; the complete source hypotheses are retained. -/
+/-- The coordinatewise reduction modulo one is an open quotient map from spatial points onto the
+unit torus. -/
 theorem unitTorusProjection_quotient : IsOpenQuotientMap unitTorusProjection := by
   have hpi : IsOpenQuotientMap (fun x : Fin 3 → ℝ => fun j => (x j : UnitAddCircle)) :=
     IsOpenQuotientMap.piMap (fun _ => (QuotientAddGroup.isOpenQuotientMap_mk :
@@ -63,12 +64,12 @@ function on the compact torus. No evaluator or algorithm is inferred from it. -/
 def unitTorusLift {E : Type*} (f : SpatialPoint → E) (z : UnitAddTorus (Fin 3)) : E :=
   f (Function.surjInv unitTorusProjection_quotient.surjective z)
 
-/-- Original `unitTorusLift_apply` guarantee for the `UnitTorusDescent` construction; the complete source hypotheses are retained. -/
+/-- If `f` has unit periods, evaluating its torus lift on the class of `x` gives `f x`. -/
 theorem unitTorusLift_apply {E : Type*} (f : SpatialPoint → E) (hp : IsUnitPeriodicField f) (x : SpatialPoint) :
     unitTorusLift f (unitTorusProjection x)=f x :=
   unitPeriodic_eq_of_projection_eq f hp _ x (Function.surjInv_eq unitTorusProjection_quotient.surjective _)
 
-/-- Original `continuous_unitTorusLift` guarantee for the `UnitTorusDescent` construction; the complete source hypotheses are retained. -/
+/-- The torus lift of a continuous field with unit periods is continuous. -/
 theorem continuous_unitTorusLift {E : Type*} [TopologicalSpace E]
     (f : SpatialPoint → E) (hf : Continuous f) (hp : IsUnitPeriodicField f) : Continuous (unitTorusLift f) := by
   apply unitTorusProjection_quotient.isQuotientMap.continuous_iff.mpr
@@ -81,7 +82,8 @@ def unitTorusContinuousLift {E : Type*} [TopologicalSpace E]
     (f : SpatialPoint → E) (hf : Continuous f) (hp : IsUnitPeriodicField f) : C(UnitAddTorus (Fin 3),E) :=
   ⟨unitTorusLift f,continuous_unitTorusLift f hf hp⟩
 
-/-- Original `unitTorusContinuousLift_apply` guarantee for the `UnitTorusDescent` construction; the complete source hypotheses are retained. -/
+/-- Pulling the continuous torus lift back along the spatial projection recovers the original
+continuous unit-periodic field pointwise. -/
 theorem unitTorusContinuousLift_apply {E : Type*} [TopologicalSpace E]
     (f : SpatialPoint → E) (hf : Continuous f) (hp : IsUnitPeriodicField f) (x : SpatialPoint) :
     unitTorusContinuousLift f hf hp (unitTorusProjection x)=f x := unitTorusLift_apply f hp x

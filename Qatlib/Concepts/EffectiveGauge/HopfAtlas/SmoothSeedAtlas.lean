@@ -36,7 +36,8 @@ def seedChartDomain (chart : SeedChart) : Set ℍ := {s | SeedChartValid chart s
 /-- Definition of quaternion From Components in the Hopf Atlas construction. -/
 def quaternionFromComponents (a b c d : ℝ) : ℍ := ⟨a,b,c,d⟩
 
-/-- Original `quaternionMk_contDiffOn` guarantee for the `SmoothSeedAtlas` construction; the complete source hypotheses are retained. -/
+/-- Combining four component functions that are smooth on `S` gives a quaternion-valued function
+smooth on `S`. -/
 private theorem quaternionMk_contDiffOn (S : Set ℍ) (f0 f1 f2 f3 : ℍ → ℝ)
     (h0 : ContDiffOn ℝ ∞ f0 S) (h1 : ContDiffOn ℝ ∞ f1 S)
     (h2 : ContDiffOn ℝ ∞ f2 S) (h3 : ContDiffOn ℝ ∞ f3 S) :
@@ -51,7 +52,7 @@ private theorem quaternionMk_contDiffOn (S : Set ℍ) (f0 f1 f2 f3 : ℍ → ℝ
   funext x
   ext <;> simp [quaternionFromComponents,e0,e1,e2,e3]
 
-/-- Original `northSeed_contDiffOn` guarantee for the `SmoothSeedAtlas` construction; the complete source hypotheses are retained. -/
+/-- The north seed map is smooth on the north seed chart domain. -/
 theorem northSeed_contDiffOn : ContDiffOn ℝ ∞ northSeed (seedChartDomain .north) := by
   have hI : ContDiff ℝ ∞ (fun s : ℍ => s.imI) := (quaternionCoordinateCLM 1).contDiff
   have hJ : ContDiff ℝ ∞ (fun s : ℍ => s.imJ) := (quaternionCoordinateCLM 2).contDiff
@@ -67,7 +68,7 @@ theorem northSeed_contDiffOn : ContDiffOn ℝ ∞ northSeed (seedChartDomain .no
     (hK.contDiffOn.div (contDiffOn_const.mul hroot) hden)
     (hJ.contDiffOn.neg.div (contDiffOn_const.mul hroot) hden)
 
-/-- Original `southSeed_contDiffOn` guarantee for the `SmoothSeedAtlas` construction; the complete source hypotheses are retained. -/
+/-- The south seed map is smooth on the south seed chart domain. -/
 theorem southSeed_contDiffOn : ContDiffOn ℝ ∞ southSeed (seedChartDomain .south) := by
   have hI : ContDiff ℝ ∞ (fun s : ℍ => s.imI) := (quaternionCoordinateCLM 1).contDiff
   have hJ : ContDiff ℝ ∞ (fun s : ℍ => s.imJ) := (quaternionCoordinateCLM 2).contDiff
@@ -83,7 +84,7 @@ theorem southSeed_contDiffOn : ContDiffOn ℝ ∞ southSeed (seedChartDomain .so
     (hK.contDiffOn.div (contDiffOn_const.mul hroot) hden)
     (hJ.contDiffOn.div (contDiffOn_const.mul hroot) hden) hroot contDiffOn_const
 
-/-- Original `exactChartSeed_contDiffOn` guarantee for the `SmoothSeedAtlas` construction; the complete source hypotheses are retained. -/
+/-- For either choice of seed chart, its exact seed map is smooth on its chart domain. -/
 theorem exactChartSeed_contDiffOn (chart : SeedChart) :
     ContDiffOn ℝ ∞ (exactChartSeed chart) (seedChartDomain chart) := by
   cases chart with
@@ -107,7 +108,7 @@ theorem seedChartTransition_contDiffOn (a b : SeedChart) :
     ext <;> simp [quaternionFromComponents]
   exact hb.mul (hstar.comp_contDiffOn ha)
 
-/-- Original `isOpen_seedChartDomain` guarantee for the `SmoothSeedAtlas` construction; the complete source hypotheses are retained. -/
+/-- The domain of each seed chart is open in quaternion space. -/
 theorem isOpen_seedChartDomain (chart : SeedChart) : IsOpen (seedChartDomain chart) := by
   have hI : Continuous (fun s : ℍ => s.imI) := (quaternionCoordinateCLM 1).continuous
   cases chart with

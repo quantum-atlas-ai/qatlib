@@ -33,7 +33,7 @@ open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data
 open scoped Matrix.Norms.L2Operator
 local instance : Fact (0<2*Real.pi) := ⟨Real.two_pi_pos⟩
 
-/-- The finite construction in `NativeSourceRotorFactorization` satisfies `sourceCompletionFourier_one` under the displayed hypotheses. -/
+/-- On the circle of period 2π, the character of frequency one at θ is cos θ plus i sin θ. -/
 theorem sourceCompletionFourier_one (theta : ℝ) :
     fourier 1 (theta : AddCircle (2*Real.pi))=
       (Real.cos theta : ℂ)+Complex.I*(Real.sin theta : ℂ) := by
@@ -41,7 +41,9 @@ theorem sourceCompletionFourier_one (theta : ℝ) :
   simp only [Int.cast_one,one_mul,Complex.exp_mul_I,← Complex.ofReal_cos,← Complex.ofReal_sin]
   ring
 
-/-- The finite construction in `NativeSourceRotorFactorization` satisfies `sourceIdealDeflation_inverse_rotor` under the displayed hypotheses. -/
+/-- If P is Hermitian with both diagonals one half and Q is its complement, the sum of P weighted
+by x + is and Q weighted by its conjugate is the equatorial rotor at twice the upper-right
+entry of P. -/
 theorem sourceIdealDeflation_inverse_rotor (P Q : Matrix Bool Bool ℂ)
     (hplus : P+Q=1) (hP : P.conjTranspose=P)
     (h00 : P false false=1/2) (h11 : P true true=1/2) (x s : ℝ) :
@@ -55,7 +57,9 @@ theorem sourceIdealDeflation_inverse_rotor (P Q : Matrix Bool Bool ℂ)
   cases i <;> cases j <;>
     simp [equatorialRotor,h00,h11,h10,star_add,star_mul] <;> ring
 
-/-- The finite construction in `NativeSourceRotorFactorization` satisfies `sourceIdealDeflation_inverse` under the displayed hypotheses. -/
+/-- For a pointwise unitary array with a common positive endpoint norm bound and conjugate-swap
+symmetry, the original circle value is recovered from the once-deflated value by right
+multiplication by the equatorial rotor from the normalized last coefficient at that angle. -/
 theorem sourceIdealDeflation_inverse {m : ℕ} (G : Fin (m+2) → Matrix Bool Bool ℂ)
     (h : ℝ) (hh : 0<h) (hinv : SourceIdealDeflationInvariant G h)
     (hfixed : ∀ j,sourceConjugateSwap (G j)=G j) (theta : ℝ) :
@@ -89,7 +93,9 @@ theorem sourceIdealDeflation_inverse {m : ℕ} (G : Fin (m+2) → Matrix Bool Bo
     _ = sourceCompletionCircleValue (sourceIdealDeflationStep G) t*E.conjTranspose := by rw [← hstep]
     _ = _ := by rw [hstar]
 
-/-- The finite construction in `NativeSourceRotorFactorization` satisfies `sourceIdealDeflationLoop_rotor_factorization` under the displayed hypotheses. -/
+/-- For a pointwise unitary array with positive endpoint norm lower bound and conjugate-swap
+symmetry in each coefficient, its circle value at any angle factors into the ideal terminal
+matrix followed by the rotor product of the discovered coordinates in reverse order. -/
 theorem sourceIdealDeflationLoop_rotor_factorization {d : ℕ} (G : Fin (d+1) → Matrix Bool Bool ℂ)
     (h : ℝ) (hh : 0<h) (hinv : SourceIdealDeflationInvariant G h)
     (hfixed : ∀ j,sourceConjugateSwap (G j)=G j) (theta : ℝ) :
@@ -111,14 +117,17 @@ open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data
 open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data.SourceInput
 open scoped Matrix.Norms.L2Operator
 
-/-- The finite construction in `NativeSourceRotorFactorization` satisfies `sourceIdealDeflationLoop_fixed` under the displayed hypotheses. -/
+/-- If every coefficient is fixed by the conjugate swap, the terminal matrix of the ideal
+deflation loop is fixed as well. -/
 theorem sourceIdealDeflationLoop_fixed {d : ℕ} (G : Fin (d+1) → Matrix Bool Bool ℂ)
     (hfixed : ∀ j,sourceConjugateSwap (G j)=G j) : sourceConjugateSwap (sourceIdealDeflationLoop G)=sourceIdealDeflationLoop G := by
   induction d with
   | zero => exact hfixed 0
   | succ m ih => exact ih (sourceIdealDeflationStep G) (sourceIdealDeflation_fixed G hfixed)
 
-/-- The finite construction in `NativeSourceRotorFactorization` satisfies `source_ideal_terminal_matrix` under the displayed hypotheses. -/
+/-- With positive E and source degree, vanishing tail, matching parity and a target bounded by one
+on the interval from −1 to 1, the ideal terminal matrix equals the standard phase matrix of
+its upper-left entry. -/
 theorem source_ideal_terminal_matrix (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E)
     (htail : ∀ k,N+1 ≤ k → cs.getD k 0=0)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)
@@ -137,7 +146,10 @@ theorem source_ideal_terminal_matrix (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0
   ext i j
   cases i <;> cases j <;> simp [standardPhaseMatrix,h01,h10,h11]
 
-/-- The finite construction in `NativeSourceRotorFactorization` satisfies `source_ideal_curve_packet` under the displayed hypotheses. -/
+/-- For positive E and source degree and a target of degree at most N, parity N and absolute value
+at most one on the interval from −1 to 1, the ideal completion curve factors at every angle
+into the standard phase matrix of the terminal upper-left entry and the rotor product of the
+reversed discovered coordinates. -/
 theorem source_ideal_curve_packet (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E)
     (htail : ∀ k,N+1 ≤ k → cs.getD k 0=0)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)

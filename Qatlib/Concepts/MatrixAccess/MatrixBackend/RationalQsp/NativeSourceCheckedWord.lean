@@ -55,7 +55,12 @@ open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data
 open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data.SourceInput
 open scoped Matrix.Norms.L2Operator
 
-/-- The finite construction in `NativeSourceCheckedWord` satisfies `source_checked_word_transform` under the displayed hypotheses. -/
+/-- With positive E, a nonconstant source, a degree-bounded Chebyshev target of parity N and
+absolute value at most one on the interval from −1 to 1, and guarded factors reconstructing
+the integer complement with nonzero content, the projected unitary encoding yields well-formed
+words in both projector orders. The right-first word uses N queries and N + 1 gates. The U
+word for odd N and the Uᴴ word for even N encode the corresponding odd and right singular
+transforms at scale one and error E. -/
 theorem source_checked_word_transform
     {H I O : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]

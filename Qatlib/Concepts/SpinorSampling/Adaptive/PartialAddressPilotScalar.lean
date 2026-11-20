@@ -63,11 +63,13 @@ def count {n : ℕ} (ω : Fin n → Option Bool) : ℕ := ∑ i,hit (ω i)
 def centered {n : ℕ} (μ : ℝ) (ω : Fin n → Option Bool) : ℝ :=
   ∑ i,(sign (ω i)-μ*(hit (ω i) : ℝ))
 
-/-- Complete original `count_cons` guarantee for `PartialAddressPilotScalar`; all source hypotheses and output obligations are retained. -/
+/-- Prepending an optional outcome adds one to the sample count if it is present and zero if it
+is absent. -/
 theorem count_cons {n : ℕ} (r : Option Bool) (ω : Fin n → Option Bool) :
     count (Fin.cons r ω)=hit r+count ω := by simp [count,Fin.sum_univ_succ]
 
-/-- Complete original `centered_cons` guarantee for `PartialAddressPilotScalar`; all source hypotheses and output obligations are retained. -/
+/-- The centered sign sum of a sample with a new head is the tail sum plus the head sign minus
+`μ` times the head hit indicator. -/
 theorem centered_cons {n : ℕ} (μ : ℝ) (r : Option Bool) (ω : Fin n → Option Bool) :
     centered μ (Fin.cons r ω)=sign r-μ*(hit r : ℝ)+centered μ ω := by
   simp [centered,Fin.sum_univ_succ]
@@ -77,20 +79,24 @@ theorem centered_cons {n : ℕ} (μ : ℝ) (r : Option Bool) (ω : Fin n → Opt
 def total (d : FinDist (Option Bool)) {n : ℕ} (f : (Fin n → Option Bool) → ℝ) : ℝ :=
   ∑ ω,d.probOf ω*f ω
 
-/-- Complete original `total_cons` guarantee for `PartialAddressPilotScalar`; all source hypotheses and output obligations are retained. -/
+/-- The expectation for a cohort of size `n+1` is the weighted sum over the first outcome of
+the independent tail expectations. -/
 theorem total_cons (d : FinDist (Option Bool)) {n : ℕ}
     (f : (Fin (n+1) → Option Bool) → ℝ) :
     total d f=∑ r : Option Bool,d.prob r*total d (fun ω : Fin n → Option Bool => f (Fin.cons r ω)) :=
   product_expect_cons d f
 
-/-- Complete original `conditional_square` guarantee for `PartialAddressPilotScalar`; all source hypotheses and output obligations are retained. -/
+/-- For a tail with centered sum `z` and count `c`, averaging the square after adding the head
+gives a miss term with square `z^2` and a hit term with square `z^2+1-μ^2`, weighted at counts
+`c` and `c+1` respectively. -/
 theorem conditional_square (p μ z : ℝ) (c : ℕ) (f : ℕ → ℝ) :
     (∑ r : Option Bool,weight p μ r*((sign r-μ*(hit r : ℝ)+z)^2*f (hit r+c)))=
       (1-p)*z^2*f c+p*(z^2+1-μ^2)*f (c+1) := by
   norm_num [Fintype.sum_option,Fintype.sum_bool,weight,sign,hit,bitSign,Nat.add_comm 1 c]
   ring
 
-/-- Complete original `total_cons_swapped` guarantee for `PartialAddressPilotScalar`; all source hypotheses and output obligations are retained. -/
+/-- The cohort expectation can also be computed by averaging over the tail, with the weighted
+head sum performed for each fixed tail. -/
 theorem total_cons_swapped (d : FinDist (Option Bool)) {n : ℕ}
     (f : (Fin (n+1) → Option Bool) → ℝ) :
     total d f=∑ ω : Fin n → Option Bool,d.probOf ω*(∑ r : Option Bool,d.prob r*f (Fin.cons r ω)) := by
@@ -104,18 +110,22 @@ theorem total_cons_swapped (d : FinDist (Option Bool)) {n : ℕ}
   intro r _
   ring
 
-/-- Complete original `law_prob` guarantee for `PartialAddressPilotScalar`; all source hypotheses and output obligations are retained. -/
+/-- When `p` is a probability and the sign mean `μ` lies in `[-1, 1]`, each optional outcome
+has its specified scalar weight as probability. -/
 theorem law_prob (p μ : ℝ) (hp : 0 ≤ p ∧ p ≤ 1) (hμ : |μ| ≤ 1) (r : Option Bool) :
     (law p μ hp hμ).prob r=weight p μ r := rfl
 
-/-- Complete original `conditional_count` guarantee for `PartialAddressPilotScalar`; all source hypotheses and output obligations are retained. -/
+/-- After fixing tail count `c`, the expected count times a function of the count is the miss
+contribution at `c` plus the hit contribution at `c+1`, weighted by `1-p` and `p`. -/
 theorem conditional_count (p μ : ℝ) (c : ℕ) (f : ℕ → ℝ) :
     (∑ r : Option Bool,weight p μ r*(((hit r+c : ℕ) : ℝ)*f (hit r+c)))=
       (1-p)*(c : ℝ)*f c+p*((c : ℝ)+1)*f (c+1) := by
   norm_num [Fintype.sum_option,Fintype.sum_bool,weight,hit,bitSign,Nat.add_comm 1 c]
   ring
 
-/-- Complete original `weighted_square` guarantee for `PartialAddressPilotScalar`; all source hypotheses and output obligations are retained. -/
+/-- For independent draws with hit probability `p` and conditional sign mean `μ`, weighting the
+squared centered sum by any function of the count gives the same expectation as weighting
+`(1-μ^2)` times the count. -/
 theorem weighted_square (p μ : ℝ) (hp : 0 ≤ p ∧ p ≤ 1) (hμ : |μ| ≤ 1) (n : ℕ) :
     ∀ f : ℕ → ℝ,
       total (law p μ hp hμ) (fun ω : Fin n → Option Bool => (centered μ ω)^2*f (count ω))=
@@ -150,13 +160,13 @@ theorem weighted_square (p μ : ℝ) (hp : 0 ≤ p ∧ p ≤ 1) (hμ : |μ| ≤ 
     rw [hleft,hright,ih f,ih (fun c => f (c+1))]
     ring
 
-/-- Complete original `total_add` guarantee for `PartialAddressPilotScalar`; all source hypotheses and output obligations are retained. -/
+/-- Cohort expectation distributes over pointwise addition of two statistics. -/
 theorem total_add (d : FinDist (Option Bool)) {n : ℕ}
     (f g : (Fin n → Option Bool) → ℝ) :
     total d (fun ω => f ω+g ω)=total d f+total d g := by
   simp only [total,mul_add,Finset.sum_add_distrib]
 
-/-- Complete original `total_mul` guarantee for `PartialAddressPilotScalar`; all source hypotheses and output obligations are retained. -/
+/-- A constant real scalar factors out of the cohort expectation of a statistic. -/
 theorem total_mul (d : FinDist (Option Bool)) {n : ℕ}
     (a : ℝ) (f : (Fin n → Option Bool) → ℝ) :
     total d (fun ω => a*f ω)=a*total d f := by
@@ -166,7 +176,7 @@ theorem total_mul (d : FinDist (Option Bool)) {n : ℕ}
   intro ω _
   ring
 
-/-- Complete original `total_mono` guarantee for `PartialAddressPilotScalar`; all source hypotheses and output obligations are retained. -/
+/-- A pointwise bound between cohort statistics gives the same ordering of their expectations. -/
 theorem total_mono (d : FinDist (Option Bool)) {n : ℕ}
     (f g : (Fin n → Option Bool) → ℝ) (hfg : ∀ ω,f ω ≤ g ω) :
     total d f ≤ total d g := by
@@ -178,7 +188,8 @@ theorem total_mono (d : FinDist (Option Bool)) {n : ℕ}
 def empirical {n : ℕ} (ω : Fin n → Option Bool) : ℝ :=
   (∑ i,sign (ω i))/(count ω : ℝ)
 
-/-- Complete original `centered_sum` guarantee for `PartialAddressPilotScalar`; all source hypotheses and output obligations are retained. -/
+/-- The centered tally is the sum of observed signs minus the target mean times the number of
+hits. -/
 theorem centered_sum {n : ℕ} (μ : ℝ) (ω : Fin n → Option Bool) :
     centered μ ω=(∑ i,sign (ω i))-μ*(count ω : ℝ) := by
   simp only [centered,count,Finset.sum_sub_distrib,Nat.cast_sum,Finset.mul_sum]
@@ -187,7 +198,8 @@ theorem centered_sum {n : ℕ} (μ : ℝ) (ω : Fin n → Option Bool) :
 def riskExpression (μ : ℝ) (c : ℕ) : ℝ :=
   (1-μ^2)*((c : ℝ)*((c : ℝ)^2)⁻¹)+μ^2*(if c=0 then 1 else 0)
 
-/-- Complete original `empirical_risk_identity` guarantee for `PartialAddressPilotScalar`; all source hypotheses and output obligations are retained. -/
+/-- The squared empirical error is the squared centered tally divided by the squared hit count,
+with an additional `μ^2` contribution when the hit count is zero. -/
 theorem empirical_risk_identity {n : ℕ} (μ : ℝ) (ω : Fin n → Option Bool) :
     (empirical ω-μ)^2=(centered μ ω)^2*((count ω : ℝ)^2)⁻¹+
       μ^2*(if count ω=0 then 1 else 0) := by
@@ -198,7 +210,8 @@ theorem empirical_risk_identity {n : ℕ} (μ : ℝ) (ω : Fin n → Option Bool
     simp only [empirical,ite_eq_right h,mul_zero,add_zero]
     field_simp
 
-/-- Complete original `risk_expression_bound` guarantee for `PartialAddressPilotScalar`; all source hypotheses and output obligations are retained. -/
+/-- For a sign mean in `[-1, 1]`, the count-dependent risk at `c` is at most `2/(c+1)`,
+including `c = 0`. -/
 theorem risk_expression_bound (μ : ℝ) (hμ : |μ| ≤ 1) (c : ℕ) :
     riskExpression μ c ≤ 2/((c : ℝ)+1) := by
   have hμsq : μ^2 ≤ 1 := by nlinarith [abs_le.mp hμ |>.1,abs_le.mp hμ |>.2]
@@ -215,7 +228,8 @@ theorem risk_expression_bound (μ : ℝ) (hμ : |μ| ≤ 1) (c : ℕ) :
     apply (div_le_div_iff₀ hc (by positivity : (0 : ℝ)<(c : ℝ)+1)).mpr
     nlinarith [sq_nonneg μ,mul_nonneg (sq_nonneg μ) (by positivity : (0 : ℝ) ≤ (c : ℝ)+1)]
 
-/-- Complete original `empirical_risk_bound` guarantee for `PartialAddressPilotScalar`; all source hypotheses and output obligations are retained. -/
+/-- With a valid scalar record law, the mean squared error of the empirical sign mean is at
+most twice the expected reciprocal of one plus the random hit count. -/
 theorem empirical_risk_bound (p μ : ℝ) (hp : 0 ≤ p ∧ p ≤ 1) (hμ : |μ| ≤ 1) (n : ℕ) :
     total (law p μ hp hμ) (fun ω : Fin n → Option Bool => (empirical ω-μ)^2) ≤
       2*total (law p μ hp hμ) (fun ω : Fin n → Option Bool => 1/((count ω : ℝ)+1)) := by
@@ -235,18 +249,20 @@ def reindex {n : ℕ} (e : Equiv.Perm (Fin n)) :
   left_inv ω := by funext i; simp
   right_inv ω := by funext i; simp
 
-/-- Complete original `count_reindex` guarantee for `PartialAddressPilotScalar`; all source hypotheses and output obligations are retained. -/
+/-- Permuting the entries of a cohort preserves its number of hits. -/
 theorem count_reindex {n : ℕ} (e : Equiv.Perm (Fin n)) (ω : Fin n → Option Bool) :
     count (reindex e ω)=count ω := by
   exact Equiv.sum_comp e (fun i => hit (ω i))
 
-/-- Complete original `prob_reindex` guarantee for `PartialAddressPilotScalar`; all source hypotheses and output obligations are retained. -/
+/-- Independent draws from the same law assign equal product probabilities to a cohort and any
+permutation of its entries. -/
 theorem prob_reindex (d : FinDist (Option Bool)) {n : ℕ}
     (e : Equiv.Perm (Fin n)) (ω : Fin n → Option Bool) :
     d.probOf (reindex e ω)=d.probOf ω := by
   exact Equiv.prod_comp e (fun i => d.prob (ω i))
 
-/-- Complete original `total_reindex` guarantee for `PartialAddressPilotScalar`; all source hypotheses and output obligations are retained. -/
+/-- The expectation of any statistic under a common independent record law is invariant under
+permuting the cohort coordinates. -/
 theorem total_reindex (d : FinDist (Option Bool)) {n : ℕ}
     (e : Equiv.Perm (Fin n)) (f : (Fin n → Option Bool) → ℝ) :
     total d (fun ω => f (reindex e ω))=total d f := by
@@ -255,7 +271,8 @@ theorem total_reindex (d : FinDist (Option Bool)) {n : ℕ}
       simp only [total,prob_reindex]
     _ = _ := (reindex e).sum_comp (fun ω => d.probOf ω*f ω)
 
-/-- Complete original `total_coordinate_ratio` guarantee for `PartialAddressPilotScalar`; all source hypotheses and output obligations are retained. -/
+/-- In a cohort of size `n+1`, the expected ratio of a specified coordinate's hit indicator to
+the total count is the same for every coordinate as for the first. -/
 theorem total_coordinate_ratio (d : FinDist (Option Bool)) (n : ℕ) (i : Fin (n+1)) :
     total d (fun ω : Fin (n+1) → Option Bool => (hit (ω i) : ℝ)/(count ω : ℝ))=
       total d (fun ω : Fin (n+1) → Option Bool => (hit (ω 0) : ℝ)/(count ω : ℝ)) := by
@@ -266,7 +283,7 @@ theorem total_coordinate_ratio (d : FinDist (Option Bool)) (n : ℕ) (i : Fin (n
     count_reindex (Equiv.swap (0 : Fin (n+1)) i) ω
   simpa only [reindex,Equiv.coe_fn_mk,Equiv.swap_apply_left,hc] using h
 
-/-- Complete original `total_sum` guarantee for `PartialAddressPilotScalar`; all source hypotheses and output obligations are retained. -/
+/-- The expectation of a finite sum of cohort statistics is the sum of their expectations. -/
 theorem total_sum (d : FinDist (Option Bool)) {n k : ℕ}
     (f : Fin k → (Fin n → Option Bool) → ℝ) :
     total d (fun ω => ∑ i,f i ω)=∑ i,total d (f i) := by
@@ -274,19 +291,21 @@ theorem total_sum (d : FinDist (Option Bool)) {n k : ℕ}
   simp_rw [Finset.mul_sum]
   rw [Finset.sum_comm]
 
-/-- Complete original `total_one` guarantee for `PartialAddressPilotScalar`; all source hypotheses and output obligations are retained. -/
+/-- The expectation of the constant one is one for every cohort size, including zero. -/
 theorem total_one (d : FinDist (Option Bool)) (n : ℕ) :
     total d (fun _ : Fin n → Option Bool => (1 : ℝ))=1 := by
   simpa only [total,mul_one] using d.sum_probOf n
 
-/-- Complete original `conditional_head_ratio` guarantee for `PartialAddressPilotScalar`; all source hypotheses and output obligations are retained. -/
+/-- For fixed tail count `c`, the weighted head hit divided by the updated count averages to
+`p/(c+1)`. -/
 theorem conditional_head_ratio (p μ : ℝ) (c : ℕ) :
     (∑ r : Option Bool,weight p μ r*((hit r : ℝ)/((hit r+c : ℕ) : ℝ)))=
       p*(1/((c : ℝ)+1)) := by
   norm_num [Fintype.sum_option,Fintype.sum_bool,weight,hit,bitSign,Nat.add_comm 1 c]
   ring
 
-/-- Complete original `head_ratio` guarantee for `PartialAddressPilotScalar`; all source hypotheses and output obligations are retained. -/
+/-- The expected ratio of the first hit indicator to the full count is the hit probability
+times the expected reciprocal of one plus the count in the independent tail. -/
 theorem head_ratio (p μ : ℝ) (hp : 0 ≤ p ∧ p ≤ 1) (hμ : |μ| ≤ 1) (n : ℕ) :
     total (law p μ hp hμ) (fun ω : Fin (n+1) → Option Bool => (hit (ω 0) : ℝ)/(count ω : ℝ))=
       p*total (law p μ hp hμ) (fun ω : Fin n → Option Bool => 1/((count ω : ℝ)+1)) := by
@@ -294,7 +313,8 @@ theorem head_ratio (p μ : ℝ) (hp : 0 ≤ p ∧ p ≤ 1) (hμ : |μ| ≤ 1) (n
   simp only [law_prob,Fin.cons_zero,count_cons,conditional_head_ratio]
   exact total_mul _ _ _
 
-/-- Complete original `inverse_count_bound` guarantee for `PartialAddressPilotScalar`; all source hypotheses and output obligations are retained. -/
+/-- For positive hit probability `p` and a valid conditional sign mean, the expected reciprocal
+of one plus the hit count in `n` draws is at most `1/(p*(n+1))`. -/
 theorem inverse_count_bound (p μ : ℝ) (hp : 0 ≤ p ∧ p ≤ 1) (hμ : |μ| ≤ 1)
     (hpos : 0<p) (n : ℕ) :
     total (law p μ hp hμ) (fun ω : Fin n → Option Bool => 1/((count ω : ℝ)+1)) ≤
@@ -314,7 +334,8 @@ theorem inverse_count_bound (p μ : ℝ) (hp : 0 ≤ p ∧ p ≤ 1) (hμ : |μ| 
   apply (le_div_iff₀ (mul_pos hpos (by positivity : (0 : ℝ)<(n : ℝ)+1))).mpr
   nlinarith
 
-/-- Complete original `scalar_pilot_risk` guarantee for `PartialAddressPilotScalar`; all source hypotheses and output obligations are retained. -/
+/-- For independent optional signed records with positive hit probability `p`, the empirical
+mean with a zero default on no hits has mean squared error at most `2/(p*(n+1))`. -/
 theorem scalar_pilot_risk (p μ : ℝ) (hp : 0 ≤ p ∧ p ≤ 1) (hμ : |μ| ≤ 1)
     (hpos : 0<p) (n : ℕ) :
     total (law p μ hp hμ) (fun ω : Fin n → Option Bool => (empirical ω-μ)^2) ≤

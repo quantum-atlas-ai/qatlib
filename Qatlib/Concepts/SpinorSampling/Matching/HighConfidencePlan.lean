@@ -67,7 +67,9 @@ def gridHighConfidencePlanQ (d r : ℕ) (α β U γ η δ : ℚ) : HighConfidenc
 
 noncomputable section
 
-/-- Complete original `high_plan_current_fields` guarantee for `HighConfidencePlan`; all source hypotheses and output obligations are retained. -/
+/-- The current-square subplan divides the per-term tolerance `η/(8*d)` by `α²`. The cross-term
+schedule uses bound `2*α*β*U` and the norm plan uses bound `β*U` at the unscaled tolerance. All
+three use failure budget `δ/(4*d)`. -/
 theorem high_plan_current_fields (d M : ℕ) (rootM α β U γ η δ : ℚ) :
     (highConfidencePlanQ d M rootM α β U γ η δ).current=
       correlationPlanQ M rootM ((η/(8*(d : ℚ)))/α^2) (δ/(4*(d : ℚ))) ∧
@@ -77,13 +79,15 @@ theorem high_plan_current_fields (d M : ℕ) (rootM α β U γ η δ : ℚ) :
       targetNormPlanQ M (β*U) (η/(8*(d : ℚ))) (δ/(4*(d : ℚ))) := by
   exact ⟨rfl,rfl,rfl⟩
 
-/-- Complete original `high_plan_spin_fields` guarantee for `HighConfidencePlan`; all source hypotheses and output obligations are retained. -/
+/-- For nonzero spin weight, the spin schedule uses the correlation planner at tolerance
+`η/(24*d*γ)` and failure budget `δ/(12*d)`. -/
 theorem high_plan_spin_fields (d M : ℕ) (rootM α β U γ η δ : ℚ) (hγ : γ≠0) :
     (highConfidencePlanQ d M rootM α β U γ η δ).spinSchedule=
       correlationPlanQ M rootM (η/(24*(d : ℚ)*γ)) (δ/(12*(d : ℚ))) := by
   simp only [highConfidencePlanQ,ite_eq_right hγ,HighConfidencePlanQ.spinSchedule,Option.getD_some]
 
-/-- Complete original `high_plan_zero_spin` guarantee for `HighConfidencePlan`; all source hypotheses and output obligations are retained. -/
+/-- A zero spin weight leaves the optional spin plan absent and gives its effective schedule
+zero mode, records, and blocks. -/
 theorem high_plan_zero_spin (d M : ℕ) (rootM α β U η δ : ℚ) :
     (highConfidencePlanQ d M rootM α β U 0 η δ).spin=none ∧
     (highConfidencePlanQ d M rootM α β U 0 η δ).spinSchedule.mode=.zero ∧
@@ -91,7 +95,9 @@ theorem high_plan_zero_spin (d M : ℕ) (rootM α β U η δ : ℚ) :
     (highConfidencePlanQ d M rootM α β U 0 η δ).spinSchedule.blocks=0 := by
   exact ⟨rfl,rfl,rfl,rfl⟩
 
-/-- Complete original `high_plan_accounts` guarantee for `HighConfidencePlan`; all source hypotheses and output obligations are retained. -/
+/-- The copy total includes one current and cross-term allocation per direction and one spin
+allocation per component and direction. The target-query total is `d` times the sum of the norm
+query count and the smaller of the cross-record count and site count. -/
 theorem high_plan_accounts (d M : ℕ) (rootM α β U γ η δ : ℚ) :
     let p := highConfidencePlanQ d M rootM α β U γ η δ
     p.copies=d*(p.current.copies+p.crossRecords)+3*d*p.spinSchedule.copies ∧

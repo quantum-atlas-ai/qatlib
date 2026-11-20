@@ -33,7 +33,7 @@ open Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords Qatlib.Foundations.O
 open Qatlib Matrix
 open scoped BigOperators Matrix.Norms.L2Operator
 
-/-- The finite construction in `NativeShiftBornPrecision` satisfies `vec_coordinate_le` under the displayed hypotheses. -/
+/-- The modulus of any one of the eight coordinates is bounded above by the Euclidean norm of the vector. -/
 private theorem vec_coordinate_le (v : Fin 8 → ℂ) (i : Fin 8) :
     ‖v i‖ ≤ ‖toEuclidean_fromVec v‖ := by
   have hs := Finset.single_le_sum (s := Finset.univ) (f := fun j : Fin 8 => ‖v j‖^2)
@@ -41,7 +41,7 @@ private theorem vec_coordinate_le (v : Fin 8 → ℂ) (i : Fin 8) :
   rw [←norm_toEuclidean_fromVec_sq] at hs
   nlinarith [norm_nonneg (v i),norm_nonneg (toEuclidean_fromVec v)]
 
-/-- The finite construction in `NativeShiftBornPrecision` satisfies `vec_sqrt_norm` under the displayed hypotheses. -/
+/-- The square root of the sum of the eight squared coordinate magnitudes equals the Euclidean norm. -/
 private theorem vec_sqrt_norm (v : Fin 8 → ℂ) :
     Real.sqrt (∑ i : Fin 8,‖v i‖^2)=‖toEuclidean_fromVec v‖ := by
   rw [←norm_toEuclidean_fromVec_sq,Real.sqrt_sq (norm_nonneg _)]
@@ -132,14 +132,14 @@ private theorem reflection_error (u v : Fin 8 → ℂ)
 private def normalizedState (v : Fin 8 → ℂ) : Fin 8 → ℂ :=
   fun i => v i/(‖toEuclidean_fromVec v‖ : ℂ)
 
-/-- The finite construction in `NativeShiftBornPrecision` satisfies `normalizedState_lp` under the displayed hypotheses. -/
+/-- In Euclidean coordinates, normalizing `v` is scalar multiplication by the real reciprocal of its norm. -/
 private theorem normalizedState_lp (v : Fin 8 → ℂ) :
     toEuclidean_fromVec (normalizedState v)=
       (‖toEuclidean_fromVec v‖⁻¹ : ℝ) • toEuclidean_fromVec v := by
   ext i
   simp [normalizedState,toEuclidean_fromVec,div_eq_mul_inv,mul_comm]
 
-/-- The finite construction in `NativeShiftBornPrecision` satisfies `normalizedState_norm` under the displayed hypotheses. -/
+/-- A vector of positive Euclidean norm has norm one after coordinatewise normalization. -/
 private theorem normalizedState_norm (v : Fin 8 → ℂ) (hv : 0<‖toEuclidean_fromVec v‖) :
     ‖toEuclidean_fromVec (normalizedState v)‖=1 := by
   rw [normalizedState_lp,norm_smul,Real.norm_eq_abs,abs_of_pos (inv_pos.mpr hv)]
@@ -156,7 +156,7 @@ private theorem normalizedState_error (u v : Fin 8 → ℂ)
   rw [he,normalizedState_lp,normalizedState_lp]
   exact normalization_error (toEuclidean_fromVec u) (toEuclidean_fromVec v) hu hv
 
-/-- The finite construction in `NativeShiftBornPrecision` satisfies `vec_norm_le_eight` under the displayed hypotheses. -/
+/-- If each of the eight coordinate magnitudes is at most a nonnegative `h`, the Euclidean norm is at most `8*h`. -/
 private theorem vec_norm_le_eight (v : Fin 8 → ℂ) (h : ℝ) (hh : 0 ≤ h)
     (he : ∀ i,‖v i‖ ≤ h) : ‖toEuclidean_fromVec v‖ ≤ 8*h := by
   have hs : (∑ i : Fin 8,‖v i‖^2) ≤ 8*h^2 := by
@@ -171,7 +171,7 @@ private theorem vec_norm_le_eight (v : Fin 8 → ℂ) (h : ℝ) (hh : 0 ≤ h)
 private def simplexAxis (s : Fin 8 → ℝ) : Fin 8 → ℂ :=
   fun i => ((s i+if i=0 then 1 else 0 : ℝ) : ℂ)
 
-/-- The finite construction in `NativeShiftBornPrecision` satisfies `simplexAxis_norm_sq` under the displayed hypotheses. -/
+/-- Adding the origin basis vector to real coordinates of squared sum one gives a vector of squared norm `2 + 2 * s 0`. -/
 private theorem simplexAxis_norm_sq (s : Fin 8 → ℝ) (hs : (∑ i : Fin 8,s i^2)=1) :
     ‖toEuclidean_fromVec (simplexAxis s)‖^2=2+2*s 0 := by
   rw [norm_toEuclidean_fromVec_sq]
@@ -188,7 +188,7 @@ private theorem simplexAxis_norm_sq (s : Fin 8 → ℝ) (hs : (∑ i : Fin 8,s i
   simp
   ring
 
-/-- The finite construction in `NativeShiftBornPrecision` satisfies `simplexAxis_norm_ge_one` under the displayed hypotheses. -/
+/-- When `s 0` is nonnegative, adding the origin basis vector to `s` gives a vector of norm at least one. -/
 private theorem simplexAxis_norm_ge_one (s : Fin 8 → ℝ) (hs : 0 ≤ s 0) :
     1 ≤ ‖toEuclidean_fromVec (simplexAxis s)‖ := by
   have hc := vec_coordinate_le (simplexAxis s) 0
@@ -198,7 +198,7 @@ private theorem simplexAxis_norm_ge_one (s : Fin 8 → ℝ) (hs : 0 ≤ s 0) :
   rw [h0] at hc
   linarith
 
-/-- The finite construction in `NativeShiftBornPrecision` satisfies `simplexAxis_reflected` under the displayed hypotheses. -/
+/-- For a real vector of squared sum one and nonnegative origin coordinate, reflecting the origin basis vector with the normalized axis `s + e₀` gives exactly `s` as a complex column. -/
 private theorem simplexAxis_reflected (s : Fin 8 → ℝ)
     (hs : (∑ i : Fin 8,s i^2)=1) (hs0 : 0 ≤ s 0) :
     reflectedColumn (normalizedState (simplexAxis s))=(fun i => (s i : ℂ)) := by
@@ -225,14 +225,14 @@ private theorem simplexAxis_reflected (s : Fin 8 → ℝ)
 private def shiftSimplexRoot (α B x y : ℚ) (p : ℕ) (i : Fin 8) : ℝ :=
   Real.sqrt (shiftWeights α B x y p i : ℝ)
 
-/-- The finite construction in `NativeShiftBornPrecision` satisfies `shiftSimplexRoot_sq` under the displayed hypotheses. -/
+/-- For `0 < α ≤ B` and `x² + y² ≤ (B - α)²`, the square of each real shift simplex root recovers the corresponding rational weight at precision `p`. -/
 private theorem shiftSimplexRoot_sq (α B x y : ℚ) (p : ℕ)
     (hα : 0<α) (hB : α ≤ B) (hz : x*x+y*y ≤ (B-α)^2) (i : Fin 8) :
     (shiftSimplexRoot α B x y p i)^2=(shiftWeights α B x y p i : ℝ) := by
   apply Real.sq_sqrt
   exact_mod_cast (shiftWeights_simplex α B x y p hα hB hz).1 i
 
-/-- The finite construction in `NativeShiftBornPrecision` satisfies `shiftSimplexRoot_sum` under the displayed hypotheses. -/
+/-- Under the positive-scale and node-disk conditions `0 < α ≤ B` and `x² + y² ≤ (B - α)²`, the eight shift simplex roots have squared sum one. -/
 private theorem shiftSimplexRoot_sum (α B x y : ℚ) (p : ℕ)
     (hα : 0<α) (hB : α ≤ B) (hz : x*x+y*y ≤ (B-α)^2) :
     (∑ i : Fin 8,(shiftSimplexRoot α B x y p i)^2)=1 := by
@@ -240,7 +240,7 @@ private theorem shiftSimplexRoot_sum (α B x y : ℚ) (p : ℕ)
   rw [←Rat.cast_sum,(shiftWeights_simplex α B x y p hα hB hz).2]
   norm_num
 
-/-- The finite construction in `NativeShiftBornPrecision` satisfies `shiftSimplexRoot_norm` under the displayed hypotheses. -/
+/-- For `0 < α ≤ B` and a node in the disk of radius `B - α`, the complex vector of shift simplex roots has Euclidean norm one at any precision. -/
 private theorem shiftSimplexRoot_norm (α B x y : ℚ) (p : ℕ)
     (hα : 0<α) (hB : α ≤ B) (hz : x*x+y*y ≤ (B-α)^2) :
     ‖toEuclidean_fromVec (fun i => (shiftSimplexRoot α B x y p i : ℂ))‖=1 := by
@@ -271,7 +271,7 @@ private theorem shiftRootAxis_error (α B x y : ℚ) (p : ℕ)
   have hx := vec_norm_le_eight _ _ hh he
   simpa only [mul_one_div] using hx
 
-/-- The finite construction in `NativeShiftBornPrecision` satisfies `shiftRoundedAxis_norm_ge_one` under the displayed hypotheses. -/
+/-- For `0 < α ≤ B` and `x² + y² ≤ (B - α)²`, the rounded shift axis has Euclidean norm at least one at every precision. -/
 private theorem shiftRoundedAxis_norm_ge_one (α B x y : ℚ) (p : ℕ)
     (hα : 0<α) (hB : α ≤ B) (hz : x*x+y*y ≤ (B-α)^2) :
     1 ≤ ‖toEuclidean_fromVec (fun i => (shiftAxis α B x y p i : ℂ))‖ := by
@@ -281,7 +281,7 @@ private theorem shiftRoundedAxis_norm_ge_one (α B x y : ℚ) (p : ℕ)
     exact_mod_cast shiftPrefix_ge_one α B x y p hα hB hz (7 : Fin 8)
   nlinarith [shiftRadius_pos α B x y p hα hB hz 7]
 
-/-- The finite construction in `NativeShiftBornPrecision` satisfies `nativeVColumn_norm` under the displayed hypotheses. -/
+/-- For any seven preparation circles, the origin column of the logical rotation matrix `vLogical ps` has Euclidean norm one. -/
 private theorem nativeVColumn_norm (ps : Fin 7 → Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle) :
     ‖toEuclidean_fromVec (fun i => Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Prep.vLogical ps i 0)‖=1 := by
   have he : (fun i => Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Prep.vLogical ps i 0)=ApplyGate (Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Prep.vLogical ps) (Qatlib.Foundations.PureStateMath.Ket 0) := by
@@ -291,7 +291,7 @@ private theorem nativeVColumn_norm (ps : Fin 7 → Qatlib.Concepts.MatrixAccess.
   exact (normalized_iff_norm_toEuclidean_fromVec _).mp
     (normalized_applyGate (Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Prep.pairProduct_unitary _ ps) (normalized_ket _))
 
-/-- The finite construction in `NativeShiftBornPrecision` satisfies `nativePrepared_norm` under the displayed hypotheses. -/
+/-- For any seven preparation circles, the native preparation axis `prepAxis ps` has Euclidean norm one. -/
 private theorem nativePrepared_norm (ps : Fin 7 → Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle) :
     ‖toEuclidean_fromVec (Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Prep.prepAxis ps)‖=1 := by
   have he : Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Prep.prepAxis ps=ApplyGate (Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Prep.prepLogical ps) (Qatlib.Foundations.PureStateMath.Ket 0) := by

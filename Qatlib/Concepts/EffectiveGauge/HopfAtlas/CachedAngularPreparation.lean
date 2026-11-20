@@ -50,7 +50,8 @@ theorem cachedAngularPreparationRun_transport (source : RationalJetSource) (boun
   simp [cachedAngularPreparationRun,cachedTransportPreparationRun,Option.map_map,
     Function.comp_def,materializeAngularPreparation]
 
-/-- Original `materializeAngularPreparation_angular` guarantee for the `CachedAngularPreparation` construction; the complete source hypotheses are retained. -/
+/-- The stored angular derivative bound of order `r < 8` is the angular-rate majorant computed from
+the cached derivative bounds. -/
 theorem materializeAngularPreparation_angular (prepared : CachedMeanPreparation) (r : Fin 8) :
     (materializeAngularPreparation prepared).angularBounds[r.val]=
       sourceFrameGammaMajorant prepared.derivativeBounds r := by

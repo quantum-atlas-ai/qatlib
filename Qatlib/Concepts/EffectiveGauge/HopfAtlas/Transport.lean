@@ -37,13 +37,14 @@ def horizontalCoefficient (s ds : ℍ) : ℍ := (-1/2 : ℝ) • (s*ds)
 /-- Definition of commutator in the Hopf Atlas construction. -/
 def commutator (a b : ℍ) : ℍ := a*b-b*a
 
-/-- Original `source_square` guarantee for the `Transport` construction; the complete source hypotheses are retained. -/
+/-- The square of a purely imaginary unit quaternion is negative one. -/
 theorem source_square (s : ℍ) (hr : s.re=0) (hn : ‖s‖=1) : s*s = -1 := by
   have h := Quaternion.sq_eq_neg_normSq.mpr hr
   rw [(normSq_eq_one_iff _).mpr hn] at h
   simpa only [pow_two, Quaternion.coe_one] using h
 
-/-- Original `source_tangent` guarantee for the `Transport` construction; the complete source hypotheses are retained. -/
+/-- The derivative of a differentiable curve of purely imaginary unit quaternions anticommutes
+with the curve value at each time. -/
 theorem source_tangent {s ds : ℝ → ℍ} (hs : ∀ t, HasDerivAt s (ds t) t)
     (hr : ∀ t, (s t).re=0) (hn : ∀ t, ‖s t‖=1) (t : ℝ) :
     s t*ds t+ds t*s t=0 := by
@@ -55,7 +56,7 @@ theorem source_tangent {s ds : ℝ → ℍ} (hs : ∀ t, HasDerivAt s (ds t) t)
   have hz := hd.unique (hasDerivAt_const t (-1 : ℍ))
   simpa only [add_comm] using hz
 
-/-- Original `horizontal_re` guarantee for the `Transport` construction; the complete source hypotheses are retained. -/
+/-- If `s` and `ds` anticommute, the transport coefficient `-s * ds / 2` is purely imaginary. -/
 theorem horizontal_re (s ds : ℍ) (ht : s*ds+ds*s=0) :
     (horizontalCoefficient s ds).re = 0 := by
   have h : (s*ds).re+(ds*s).re=0 := by
@@ -66,7 +67,8 @@ theorem horizontal_re (s ds : ℍ) (ht : s*ds+ds*s=0) :
   change (-1/2 : ℝ) * (s*ds).re = 0
   rw [hz, mul_zero]
 
-/-- Original `horizontal_commutator` guarantee for the `Transport` construction; the complete source hypotheses are retained. -/
+/-- If `s` squares to negative one and anticommutes with `ds`, its commutator with the
+horizontal coefficient equals `ds`. -/
 theorem horizontal_commutator (s ds : ℍ) (hu : s*s = -1) (ht : s*ds+ds*s=0) :
     commutator s (horizontalCoefficient s ds)=ds := by
   have hv : ds*s=-(s*ds) := eq_neg_iff_add_eq_zero.mpr (by simpa [add_comm] using ht)
@@ -77,28 +79,33 @@ theorem horizontal_commutator (s ds : ℍ) (hu : s*s = -1) (ht : s*ds+ds*s=0) :
       simp only [hv, mul_neg, ← mul_assoc, hu, neg_one_mul]
       ext <;> simp <;> ring
 
-/-- Original `horizontal_norm` guarantee for the `Transport` construction; the complete source hypotheses are retained. -/
+/-- For a unit spin, the norm of the horizontal coefficient is half the norm of the spin
+derivative. -/
 theorem horizontal_norm (s ds : ℍ) (hu : ‖s‖=1) :
     ‖horizontalCoefficient s ds‖ = (1/2 : ℝ)*‖ds‖ := by
   simp [horizontalCoefficient, norm_smul, norm_mul, hu]
 
-/-- Original `inner_self_mul` guarantee for the `Transport` construction; the complete source hypotheses are retained. -/
+/-- The real inner product of `q` with `q * k` equals the squared norm of `q` times the real
+coordinate of `k`. -/
 theorem inner_self_mul (q k : ℍ) : inner ℝ q (q*k)=Quaternion.normSq q*k.re := by
   simp [Quaternion.inner_def, Quaternion.normSq_def']
   ring
 
-/-- Original `normSq_hasDerivAt` guarantee for the `Transport` construction; the complete source hypotheses are retained. -/
+/-- If a quaternion curve has derivative `v` at `t`, its squared norm has derivative twice the
+real inner product of `q t` with `v`. -/
 theorem normSq_hasDerivAt {q : ℝ → ℍ} {v : ℍ} {t : ℝ} (hq : HasDerivAt q v t) :
     HasDerivAt (fun u => Quaternion.normSq (q u)) (2*inner ℝ (q t) v) t := by
   simpa only [Quaternion.normSq_eq_norm_mul_self, pow_two] using hq.norm_sq
 
-/-- Original `transport_normSq_derivative` guarantee for the `Transport` construction; the complete source hypotheses are retained. -/
+/-- Right transport by a purely imaginary coefficient makes the squared norm derivative zero at
+the transport point. -/
 theorem transport_normSq_derivative {q : ℝ → ℍ} {k : ℍ} {t : ℝ}
     (hq : HasDerivAt q (q t*k) t) (hk : k.re=0) :
     HasDerivAt (fun u => Quaternion.normSq (q u)) 0 t := by
   simpa [inner_self_mul, hk] using normSq_hasDerivAt hq
 
-/-- Original `transport_hopf_derivative` guarantee for the `Transport` construction; the complete source hypotheses are retained. -/
+/-- Under right transport by a purely imaginary coefficient `k`, the derivative of the Hopf
+image is its commutator with `k`. -/
 theorem transport_hopf_derivative {q : ℝ → ℍ} {k : ℍ} {t : ℝ}
     (hq : HasDerivAt q (q t*k) t) (hk : k.re=0) :
     HasDerivAt (fun u => hopf (q u)) (commutator (hopf (q t)) k) t := by
@@ -107,13 +114,15 @@ theorem transport_hopf_derivative {q : ℝ → ℍ} {k : ℍ} {t : ℝ}
   simp only [star_mul, hstar, hopf, commutator]
   noncomm_ring
 
-/-- Original `norm_commutator` guarantee for the `Transport` construction; the complete source hypotheses are retained. -/
+/-- The norm of the quaternion commutator is bounded by twice the product of the two quaternion
+norms. -/
 theorem norm_commutator (a b : ℍ) : ‖commutator a b‖ ≤ 2*‖b‖*‖a‖ := by
   calc
     _ ≤ ‖a*b‖+‖b*a‖ := norm_sub_le _ _
     _ = _ := by rw [norm_mul, norm_mul]; ring
 
-/-- Original `source_derivative_re` guarantee for the `Transport` construction; the complete source hypotheses are retained. -/
+/-- The derivative of a differentiable curve with identically zero real coordinate is purely
+imaginary at every time. -/
 theorem source_derivative_re {s ds : ℝ → ℍ} (hs : ∀ t, HasDerivAt s (ds t) t)
     (hr : ∀ t, (s t).re=0) (t : ℝ) : (ds t).re=0 := by
   have heq : (fun u => star (s u)) = fun u => -s u := by
@@ -126,14 +135,17 @@ theorem source_derivative_re {s ds : ℝ → ℍ} (hs : ∀ t, HasDerivAt s (ds 
   simp only [Quaternion.re_star, Quaternion.re_neg] at hreal
   linarith
 
-/-- Original `normSq_within` guarantee for the `Transport` construction; the complete source hypotheses are retained. -/
+/-- For a curve with within-set derivative given by right multiplication by a purely imaginary
+coefficient, the squared norm has zero derivative within that set. -/
 theorem normSq_within {q : ℝ → ℍ} {k : ℍ} {t : ℝ} {S : Set ℝ}
     (hq : HasDerivWithinAt q (q t*k) S t) (hk : k.re=0) :
     HasDerivWithinAt (fun u => Quaternion.normSq (q u)) 0 S t := by
   simpa only [Quaternion.normSq_eq_norm_mul_self, pow_two, inner_self_mul,
     hk, mul_zero] using hq.norm_sq
 
-/-- Original `hopf_within` guarantee for the `Transport` construction; the complete source hypotheses are retained. -/
+/-- For a curve with within-set derivative given by right multiplication by a purely imaginary
+coefficient, its Hopf image has within-set derivative given by the commutator with that
+coefficient. -/
 theorem hopf_within {q : ℝ → ℍ} {k : ℍ} {t : ℝ} {S : Set ℝ}
     (hq : HasDerivWithinAt q (q t*k) S t) (hk : k.re=0) :
     HasDerivWithinAt (fun u => hopf (q u)) (commutator (hopf (q t)) k) S t := by
@@ -142,11 +154,13 @@ theorem hopf_within {q : ℝ → ℍ} {k : ℍ} {t : ℝ} {S : Set ℝ}
   simp only [star_mul, hstar, hopf, commutator]
   noncomm_ring
 
-/-- Original `continuous_hopf` guarantee for the `Transport` construction; the complete source hypotheses are retained. -/
+/-- The quaternion Hopf map is continuous on the whole quaternion space. -/
 theorem continuous_hopf : Continuous hopf :=
   (continuous_star.mul continuous_const).mul continuous_id
 
-/-- Original `unit_transport` guarantee for the `Transport` construction; the complete source hypotheses are retained. -/
+/-- A curve continuous on a closed interval, starting at a unit quaternion and solving the right
+transport equation with purely imaginary coefficient in the right-sided sense before the final
+time, has unit norm throughout the interval. -/
 theorem unit_transport {q k : ℝ → ℍ} {a b : ℝ}
     (hc : ContinuousOn q (Set.Icc a b))
     (hq : ∀ t ∈ Set.Ico a b, HasDerivWithinAt q (q t*k t) (Set.Ici t) t)
@@ -166,7 +180,10 @@ theorem unit_transport {q k : ℝ → ℍ} {a b : ℝ}
   intro t ht
   exact (normSq_eq_one_iff _).mp (sub_eq_zero.mp (hz t ht))
 
-/-- Original `horizontal_transport` guarantee for the `Transport` construction; the complete source hypotheses are retained. -/
+/-- A differentiable curve of purely imaginary unit spins with bounded speed is lifted by
+horizontal transport throughout the closed interval. The transporting curve must be continuous
+there, satisfy the right-sided equation before the final time, and start at a unit quaternion
+over the initial spin. -/
 theorem horizontal_transport {s ds q : ℝ → ℍ} {a b M : ℝ}
     (hs : ∀ t, HasDerivAt s (ds t) t) (hr : ∀ t, (s t).re=0) (hn : ∀ t, ‖s t‖=1)
     (hb : ∀ t ∈ Set.Ico a b, ‖ds t‖ ≤ M)

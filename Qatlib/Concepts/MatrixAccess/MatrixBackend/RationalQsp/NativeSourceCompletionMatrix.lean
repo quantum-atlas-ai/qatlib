@@ -40,7 +40,8 @@ def sourceCompletionPointMatrix (a : ℝ) (v : ℂ) : Matrix Bool Bool ℂ :=
   (-(v.re : ℂ)) • (1 : Matrix Bool Bool ℂ)+
     (a : ℂ) • standardPhaseMatrix Complex.I+(v.im : ℂ) • standardSignalMatrix 0 1
 
-/-- The finite construction in `NativeSourceCompletionMatrix` satisfies `sourceCompletionPointMatrix_entries` under the displayed hypotheses. -/
+/-- Both diagonal entries have real part minus the real part of v and imaginary parts a and −a,
+respectively. Both off-diagonal entries are i times the imaginary part of v. -/
 private theorem sourceCompletionPointMatrix_entries (a : ℝ) (v : ℂ) :
     sourceCompletionPointMatrix a v false false=-(v.re : ℂ)+Complex.I*(a : ℂ) ∧
       sourceCompletionPointMatrix a v false true=Complex.I*(v.im : ℂ) ∧
@@ -103,11 +104,13 @@ def sourceStoredCompletionPhase {m : ℕ} (cs : List ℚ) (N : ℕ) (E : ℚ)
 def sourceCompletionResponseA (cs : List ℚ) (N : ℕ) (E : ℚ) (theta : ℝ) : ℝ :=
   (nativeChebyshevPolynomialFrom 0 (sourceOutputList cs N E)).eval (Real.cos theta)
 
-/-- The finite construction in `NativeSourceCompletionMatrix` satisfies `signal_norm` under the displayed hypotheses. -/
+/-- The completion signal exp(iθ) has norm one for every real angle. -/
 private theorem signal_norm (theta : ℝ) : ‖sourceCompletionSignal theta‖=1 :=
   Complex.norm_exp_ofReal_mul_I theta
 
-/-- The finite construction in `NativeSourceCompletionMatrix` satisfies `sourceIdealPhase_balance` under the displayed hypotheses. -/
+/-- With positive E and source degree, vanishing tail and wrong-parity coefficients, and a
+Chebyshev target bounded by one on the interval from −1 to 1, the squared real response and
+the squared norm of the ideal completion sum to one at every angle. -/
 theorem sourceIdealPhase_balance (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E)
     (htail : ∀ k,N+1 ≤ k → cs.getD k 0=0)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)
@@ -211,12 +214,12 @@ def character (k : ℤ) (theta : ℝ) : ℂ :=
 private def laurentValue {d : ℕ} (a : Fin (d+1) → ℂ) (theta : ℝ) : ℂ :=
   ∑ j, a j*character (sourceCompletionFrequency j) theta
 
-/-- The finite construction in `NativeSourceCompletionMatrix` satisfies `frequency_rev` under the displayed hypotheses. -/
+/-- Reversing the array index negates its centered Laurent frequency 2j − d. -/
 private theorem frequency_rev {d : ℕ} (j : Fin (d+1)) : sourceCompletionFrequency j.rev= -sourceCompletionFrequency j := by
   simp only [sourceCompletionFrequency,Fin.val_rev]
   omega
 
-/-- The finite construction in `NativeSourceCompletionMatrix` satisfies `character_neg` under the displayed hypotheses. -/
+/-- Negating the integer frequency conjugates the complex character at any real angle. -/
 private theorem character_neg (k : ℤ) (theta : ℝ) :
     character (-k) theta=star (character k theta) := by
   change Complex.exp _=(starRingEnd ℂ) (Complex.exp _)
@@ -224,7 +227,8 @@ private theorem character_neg (k : ℤ) (theta : ℝ) :
   congr 1
   simp
 
-/-- The finite construction in `NativeSourceCompletionMatrix` satisfies `laurentValue_reflect` under the displayed hypotheses. -/
+/-- Reversing and conjugating the Laurent coefficient array gives the complex conjugate of its
+value at every real angle. -/
 private theorem laurentValue_reflect {d : ℕ} (a : Fin (d+1) → ℂ) (theta : ℝ) :
     laurentValue (fun j => star (a j.rev)) theta=star (laurentValue a theta) := by
   unfold laurentValue
@@ -240,7 +244,8 @@ private theorem laurentValue_reflect {d : ℕ} (a : Fin (d+1) → ℂ) (theta : 
       rw [frequency_rev,character_neg,map_mul]
       rfl
 
-/-- The finite construction in `NativeSourceCompletionMatrix` satisfies `laurentValue_polynomial` under the displayed hypotheses. -/
+/-- The Laurent value at a signal point equals the ordinary coefficient polynomial at the squared
+signal divided by the dth power of the signal. -/
 private theorem laurentValue_polynomial {d : ℕ} (a : Fin (d+1) → ℂ) (theta : ℝ) :
     laurentValue a theta=(Polynomial.ofFn (d+1) a).eval ((sourceCompletionSignal theta)^2)/
       (sourceCompletionSignal theta)^d := by
@@ -283,7 +288,8 @@ def sourceStoredE {m : ℕ} (cs : List ℚ) (N : ℕ) (E : ℚ)
 def sourceRealArray (cs : List ℚ) (N : ℕ) (E : ℚ) : Fin (sourceDegree cs N E+1) → ℚ :=
   sourceP (sourceLiftedArray cs N E)
 
-/-- The finite construction in `NativeSourceCompletionMatrix` satisfies `getD_polynomial` under the displayed hypotheses. -/
+/-- Reindexing a rational coordinate list of length n as a finite array of n decoded entries
+preserves the represented polynomial. -/
 private theorem getD_polynomial (a : List (ℚ×ℚ)) (n : ℕ) (hlen : a.length=n) :
     Polynomial.ofFn n (fun j => rootRationalCoordinate (a.getD j.val (0,0)))=
       rootCompletionListPolynomial a := by
@@ -293,12 +299,13 @@ private theorem getD_polynomial (a : List (ℚ×ℚ)) (n : ℕ) (hlen : a.length
   funext j
   rw [List.getD_eq_get a (0,0) j]
 
-/-- The finite construction in `NativeSourceCompletionMatrix` satisfies `scale_decode` under the displayed hypotheses. -/
+/-- Scaling both rational coordinates by s decodes to multiplication by the complex cast of s. -/
 private theorem scale_decode (s : ℚ) (v : ℚ×ℚ) :
     rootRationalCoordinate (s*v.1,s*v.2)=(s : ℂ)*rootRationalCoordinate v := by
   apply Complex.ext <;> simp [rootRationalCoordinate]
 
-/-- The finite construction in `NativeSourceCompletionMatrix` satisfies `eval_real_array` under the displayed hypotheses. -/
+/-- Complex evaluation of the array of real source coefficients agrees with evaluation of the
+compressed rational input polynomial. -/
 private theorem eval_real_array (cs : List ℚ) (N : ℕ) (E : ℚ) (z : ℂ) :
     (Polynomial.ofFn (sourceDegree cs N E+1) (fun j => (sourceRealArray cs N E j : ℂ))).eval z=
       (sourceInputP cs N E).eval₂ (Rat.castHom ℂ) z := by
@@ -308,7 +315,8 @@ private theorem eval_real_array (cs : List ℚ) (N : ℕ) (E : ℚ) (z : ℂ) :
   simp only [Polynomial.eval_monomial,Polynomial.eval₂_monomial]
   rfl
 
-/-- The finite construction in `NativeSourceCompletionMatrix` satisfies `sourceRealArray_value` under the displayed hypotheses. -/
+/-- For positive source degree and matching input parity, the Laurent value of the real
+coefficient array is the regularized real response at the angle. -/
 private theorem sourceRealArray_value (cs : List ℚ) (N : ℕ) (E : ℚ)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)
     (hd : 0<sourceDegree cs N E) (theta : ℝ) :
@@ -319,7 +327,10 @@ private theorem sourceRealArray_value (cs : List ℚ) (N : ℕ) (E : ℚ)
   rw [hz,sourceInputP_circle cs N E hparity hd theta,sourceCompletionSignal,← Complex.exp_nat_mul]
   exact mul_div_cancel_left₀ _ (Complex.exp_ne_zero _)
 
-/-- The finite construction in `NativeSourceCompletionMatrix` satisfies `sourceStoredE_value` under the displayed hypotheses. -/
+/-- For positive E and nonconstant source with the degree, parity and unit bounds on the target,
+assume guarded factors reconstruct the integer complement with nonzero content. The decoded
+stored completion array then has Laurent value exactly equal to the stored completion phase at
+each angle. -/
 private theorem sourceStoredE_value (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E)
     (htail : ∀ k,N+1 ≤ k → cs.getD k 0=0)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)
@@ -387,7 +398,8 @@ def sourceRawMatrix {m : ℕ} (cs : List ℚ) (N : ℕ) (E : ℚ)
     Matrix Bool Bool (ℚ×ℚ) :=
   qraw (sourceRealArray cs N E j) (sourceStoredE cs N E f j) (qconj (sourceStoredE cs N E f j.rev))
 
-/-- The finite construction in `NativeSourceCompletionMatrix` satisfies `qraw_decode` under the displayed hypotheses. -/
+/-- Decoding the rational matrix entrywise gives the complex matrix with diagonal entries ±ia
+minus half the sum of the two decoded inputs, and off-diagonal entries half their difference. -/
 private theorem qraw_decode (a : ℚ) (v w : ℚ×ℚ) :
     (fun i j => rootRationalCoordinate (qraw a v w i j))=
       rawEntry (a : ℂ) (rootRationalCoordinate v) (rootRationalCoordinate w) := by
@@ -396,11 +408,12 @@ private theorem qraw_decode (a : ℚ) (v w : ℚ×ℚ) :
     apply Complex.ext <;>
     simp [qraw,qscale,rawEntry,gaussianRatMul,rootRationalCoordinate] <;> ring
 
-/-- The finite construction in `NativeSourceCompletionMatrix` satisfies `qconj_decode` under the displayed hypotheses. -/
+/-- Negating the second rational coordinate decodes to complex conjugation. -/
 private theorem qconj_decode (v : ℚ×ℚ) : rootRationalCoordinate (qconj v)=star (rootRationalCoordinate v) := by
   apply Complex.ext <;> simp [qconj,rootRationalCoordinate]
 
-/-- The finite construction in `NativeSourceCompletionMatrix` satisfies `rawEntry_conj` under the displayed hypotheses. -/
+/-- With real a and conjugate inputs v and v̄, the raw entry formula gives the completion matrix
+at a and v. -/
 private theorem rawEntry_conj (a : ℝ) (v : ℂ) :
     rawEntry (a : ℂ) v (star v)=sourceCompletionPointMatrix a v := by
   ext i j
@@ -408,7 +421,8 @@ private theorem rawEntry_conj (a : ℝ) (v : ℂ) :
     apply Complex.ext <;>
     simp [rawEntry,sourceCompletionPointMatrix,standardPhaseMatrix,standardSignalMatrix]
 
-/-- The finite construction in `NativeSourceCompletionMatrix` satisfies `rawEntry_value` under the displayed hypotheses. -/
+/-- The matrix Laurent sum of the raw entries is the raw matrix formed from the three scalar
+Laurent sums at the same angle. -/
 private theorem rawEntry_value {d : ℕ} (a v w : Fin (d+1) → ℂ) (theta : ℝ) :
     sourceCompletionLaurentMatrix (fun j => rawEntry (a j) (v j) (w j)) theta=
       rawEntry (laurentValue a theta) (laurentValue v theta) (laurentValue w theta) := by
@@ -418,7 +432,10 @@ private theorem rawEntry_value {d : ℕ} (a v w : Fin (d+1) → ℂ) (theta : �
       div_eq_mul_inv,mul_add,add_mul,mul_sub,sub_mul,Finset.sum_add_distrib,
       Finset.sum_sub_distrib,Finset.mul_sum,mul_assoc,mul_comm,mul_left_comm]
 
-/-- The finite construction in `NativeSourceCompletionMatrix` satisfies `sourceRawMatrix_value` under the displayed hypotheses. -/
+/-- For a bounded Chebyshev target of degree at most N and parity N, positive E and source degree,
+and guarded factors reconstructing the integer complement with nonzero content, the decoded
+raw array evaluates exactly to the completion point matrix of the real response and stored
+completion phase. -/
 theorem sourceRawMatrix_value (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E)
     (htail : ∀ k,N+1 ≤ k → cs.getD k 0=0)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)
@@ -481,7 +498,7 @@ variable {V : Type*} [NormedAddCommGroup V] [NormedSpace ℂ V] [CompleteSpace V
 def circleValue {d : ℕ} (a : Fin (d+1) → V) (t : AddCircle (2*Real.pi)) : V :=
   ∑ j, fourier (sourceCompletionFrequency j) t • a j
 
-/-- The finite construction in `NativeSourceCompletionMatrix` satisfies `frequency_injective` under the displayed hypotheses. -/
+/-- The centered frequencies distinguish all positions in a coefficient array. -/
 private theorem frequency_injective {d : ℕ} : Function.Injective (@sourceCompletionFrequency d) := by
   intro i j h
   apply Fin.ext
@@ -489,18 +506,20 @@ private theorem frequency_injective {d : ℕ} : Function.Injective (@sourceCompl
   omega
 
 omit [CompleteSpace V] in
-/-- The finite construction in `NativeSourceCompletionMatrix` satisfies `continuous_term` under the displayed hypotheses. -/
+/-- A fixed vector scaled by the frequency-k character is continuous on the circle of period 2π. -/
 private theorem continuous_term (k : ℤ) (a : V) :
     Continuous (fun t : AddCircle (2*Real.pi) => fourier k t • a) :=
   (map_continuous (fourier k)).smul continuous_const
 
 omit [CompleteSpace V] in
-/-- The finite construction in `NativeSourceCompletionMatrix` satisfies `term_integrable` under the displayed hypotheses. -/
+/-- A fixed vector times a single circle character is integrable with respect to normalized Haar
+measure. -/
 private theorem term_integrable (k : ℤ) (a : V) :
     Integrable (fun t : AddCircle (2*Real.pi) => fourier k t • a) AddCircle.haarAddCircle :=
   (continuous_term k a).integrable_of_hasCompactSupport (HasCompactSupport.of_compactSpace _)
 
-/-- The finite construction in `NativeSourceCompletionMatrix` satisfies `term_coefficient` under the displayed hypotheses. -/
+/-- The Fourier coefficient at n of a vector times the k-th character is the vector when n = k and
+zero otherwise. -/
 private theorem term_coefficient (k n : ℤ) (a : V) :
     fourierCoeff (fun t : AddCircle (2*Real.pi) => fourier k t • a) n=
       if n=k then a else 0 := by
@@ -515,12 +534,13 @@ private theorem term_coefficient (k n : ℤ) (a : V) :
   · simp [h]
 
 omit [CompleteSpace V] in
-/-- The finite construction in `NativeSourceCompletionMatrix` satisfies `circleValue_integrable` under the displayed hypotheses. -/
+/-- The finite sum of character-weighted vectors is Haar integrable on the circle of period 2π. -/
 private theorem circleValue_integrable {d : ℕ} (a : Fin (d+1) → V) :
     Integrable (circleValue a) AddCircle.haarAddCircle := by
   exact integrable_finsetSum _ (fun j _ => term_integrable (sourceCompletionFrequency j) (a j))
 
-/-- The finite construction in `NativeSourceCompletionMatrix` satisfies `circleValue_coefficient` under the displayed hypotheses. -/
+/-- Taking the Fourier coefficient at the centered frequency of slot j recovers the vector stored
+in that slot. -/
 private theorem circleValue_coefficient {d : ℕ} (a : Fin (d+1) → V) (j : Fin (d+1)) :
     fourierCoeff (circleValue a) (sourceCompletionFrequency j)=a j := by
   have he : circleValue a=∑ i : Fin (d+1),fun t : AddCircle (2*Real.pi) => fourier (sourceCompletionFrequency i) t • a i := by
@@ -530,7 +550,7 @@ private theorem circleValue_coefficient {d : ℕ} (a : Fin (d+1) → V) (j : Fin
   simp only [Finset.sum_apply,term_coefficient,frequency_injective.eq_iff]
   simp
 
-/-- The finite construction in `NativeSourceCompletionMatrix` satisfies `fourier_character` under the displayed hypotheses. -/
+/-- At the class of a real angle θ modulo 2π, the k-th Fourier character is exp(ikθ). -/
 private theorem fourier_character (k : ℤ) (theta : ℝ) :
     fourier (T := 2*Real.pi) k (theta : AddCircle (2*Real.pi))=character k theta := by
   rw [fourier_coe_apply]
@@ -641,17 +661,18 @@ def sourceRoundedMatrix {m : ℕ} (cs : List ℚ) (N : ℕ) (E : ℚ)
     Matrix Bool Bool (ℚ×ℚ) :=
   roundMatrix (sourceRawMatrix cs N E f j) (sourceInputEta cs N E)
 
-/-- The finite construction in `NativeSourceCompletionMatrix` satisfies `scalar_coe` under the displayed hypotheses. -/
+/-- At a real angle modulo 2π, the scalar circle sum agrees with the scalar Laurent evaluation. -/
 private theorem scalar_coe {d : ℕ} (a : Fin (d+1) → ℂ) (theta : ℝ) :
     circleValue a (theta : AddCircle (2*Real.pi))=laurentValue a theta := by
   simp only [circleValue,laurentValue,fourier_character,smul_eq_mul,mul_comm]
 
-/-- The finite construction in `NativeSourceCompletionMatrix` satisfies `matrix_coe` under the displayed hypotheses. -/
+/-- At a real angle modulo 2π, the matrix circle sum agrees with the matrix Laurent evaluation. -/
 private theorem matrix_coe {d : ℕ} (a : Fin (d+1) → Matrix Bool Bool ℂ) (theta : ℝ) :
     circleValue a (theta : AddCircle (2*Real.pi))=sourceCompletionLaurentMatrix a theta := by
   simp only [circleValue,sourceCompletionLaurentMatrix,fourier_character]
 
-/-- The finite construction in `NativeSourceCompletionMatrix` satisfies `idealCircle_coe` under the displayed hypotheses. -/
+/-- With matching parity and positive source degree, the ideal circle function at a real angle is
+the completion matrix of the response and ideal completion phase there. -/
 private theorem idealCircle_coe (cs : List ℚ) (N : ℕ) (E : ℚ)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)
     (hd : 0<sourceDegree cs N E) (theta : ℝ) :
@@ -664,7 +685,7 @@ private theorem idealCircle_coe (cs : List ℚ) (N : ℕ) (E : ℚ)
   rw [scalar_coe,sourceRealArray_value cs N E hparity hd theta,hf]
   simp
 
-/-- The finite construction in `NativeSourceCompletionMatrix` satisfies `idealCircle_continuous` under the displayed hypotheses. -/
+/-- The ideal completion matrix is a continuous function on the circle of period 2π. -/
 private theorem idealCircle_continuous (cs : List ℚ) (N : ℕ) (E : ℚ) : Continuous (sourceIdealCompletionCircle cs N E) := by
   have hf : Continuous (fun t : AddCircle (2*Real.pi) => fourier 1 t) := map_continuous _
   have hn (t : AddCircle (2*Real.pi)) : fourier (T := 2*Real.pi) 1 t≠0 := by
@@ -763,12 +784,14 @@ def sourceIdealEArray (cs : List ℚ) (N : ℕ) (E : ℚ) (j : Fin (sourceDegree
 def sourceIdealMatrixArray (cs : List ℚ) (N : ℕ) (E : ℚ) (j : Fin (sourceDegree cs N E+1)) : Matrix Bool Bool ℂ :=
   rawEntry (sourceRealArray cs N E j : ℂ) (sourceIdealEArray cs N E j) (star (sourceIdealEArray cs N E j.rev))
 
-/-- The finite construction in `NativeSourceCompletionMatrix` satisfies `idealMonic_eval` under the displayed hypotheses. -/
+/-- Evaluating the ideal monic polynomial gives the product of the factors z minus each interior
+root, counted with multiplicity. -/
 private theorem idealMonic_eval (cs : List ℚ) (N : ℕ) (E : ℚ) (z : ℂ) :
     (sourceIdealMonicPolynomial cs N E).eval z=sourceIdealProduct cs N E z := by
   simp [sourceIdealMonicPolynomial,sourceIdealProduct,Polynomial.eval_multiset_prod,Multiset.map_map]
 
-/-- The finite construction in `NativeSourceCompletionMatrix` satisfies `idealE_value` under the displayed hypotheses. -/
+/-- When the interior root multiset has cardinality equal to the source degree, the Laurent sum of
+the ideal completion coefficients gives the ideal completion phase. -/
 private theorem idealE_value (cs : List ℚ) (N : ℕ) (E : ℚ)
     (hcard : (sourceInsideRoots cs N E).card=sourceDegree cs N E) (theta : ℝ) :
     laurentValue (sourceIdealEArray cs N E) theta=sourceIdealCompletionPhase cs N E theta := by
@@ -786,14 +809,17 @@ private theorem idealE_value (cs : List ℚ) (N : ℕ) (E : ℚ)
   unfold sourceIdealCompletionPhase sourceIdealScaledResponse
   ring
 
-/-- The finite construction in `NativeSourceCompletionMatrix` satisfies `rawEntry_conjugate` under the displayed hypotheses. -/
+/-- Substituting a real response and a conjugate pair into the raw formula recovers the point
+completion matrix. -/
 private theorem rawEntry_conjugate (a : ℝ) (v : ℂ) :
     rawEntry (a : ℂ) v (star v)=sourceCompletionPointMatrix a v := by
   ext i j
   cases i <;> cases j <;> apply Complex.ext <;>
     simp [rawEntry,sourceCompletionPointMatrix,standardPhaseMatrix,standardSignalMatrix]
 
-/-- The finite construction in `NativeSourceCompletionMatrix` satisfies `sourceIdealArray_value` under the displayed hypotheses. -/
+/-- For a Chebyshev target bounded by one on the interval from −1 to 1, with degree at most N,
+parity N, positive E and positive source degree, the ideal matrix array evaluates at every
+angle to the point completion matrix using the ideal phase. -/
 theorem sourceIdealArray_value (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E)
     (htail : ∀ k,N+1 ≤ k → cs.getD k 0=0)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)
@@ -809,7 +835,8 @@ theorem sourceIdealArray_value (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E)
     idealE_value cs N E hcard theta,
     laurentValue_reflect (sourceIdealEArray cs N E),idealE_value cs N E hcard theta,rawEntry_conjugate]
 
-/-- The finite construction in `NativeSourceCompletionMatrix` satisfies `sourceIdealArray_circle` under the displayed hypotheses. -/
+/-- With positive E and source degree, matching parity, vanishing tail and a target bounded by
+one, the ideal matrix array represents the ideal completion function on the whole circle. -/
 private theorem sourceIdealArray_circle (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E)
     (htail : ∀ k,N+1 ≤ k → cs.getD k 0=0)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)
@@ -832,7 +859,9 @@ private theorem sourceIdealArray_circle (cs : List ℚ) (N : ℕ) (E : ℚ) (hE 
   rw [ha,hf]
   simp
 
-/-- The finite construction in `NativeSourceCompletionMatrix` satisfies `sourceIdealArray_coefficient` under the displayed hypotheses. -/
+/-- With positive E and source degree, matching parity, vanishing tail and a target bounded by
+one, the ideal completion's Fourier coefficient at the frequency of slot j equals the ideal
+matrix array entry at j. -/
 private theorem sourceIdealArray_coefficient (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E)
     (htail : ∀ k,N+1 ≤ k → cs.getD k 0=0)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)
@@ -898,19 +927,22 @@ def sourceCompletionCircleValue {d : ℕ} (A : Fin (d+1) → Matrix Bool Bool �
     (t : AddCircle (2*Real.pi)) : Matrix Bool Bool ℂ :=
   ∑ j, fourier (sourceCompletionFrequency j) t • A j
 
-/-- The finite construction in `NativeSourceCompletionMatrix` satisfies `sourceCompletionCircleValue_coefficient` under the displayed hypotheses. -/
+/-- The completion circle function has Fourier coefficient A j at the centered frequency of array
+index j. -/
 theorem sourceCompletionCircleValue_coefficient {d : ℕ} (A : Fin (d+1) → Matrix Bool Bool ℂ)
     (j : Fin (d+1)) : fourierCoeff (sourceCompletionCircleValue A) (sourceCompletionFrequency j)=A j :=
   circleValue_coefficient A j
 
-/-- The finite construction in `NativeSourceCompletionMatrix` satisfies `sourceCompletionCircleValue_real` under the displayed hypotheses. -/
+/-- The completion circle sum at the class of a real angle equals the matrix Laurent evaluation at
+that angle. -/
 theorem sourceCompletionCircleValue_real {d : ℕ} (A : Fin (d+1) → Matrix Bool Bool ℂ) (theta : ℝ) :
     sourceCompletionCircleValue A (theta : AddCircle (2*Real.pi))=sourceCompletionLaurentMatrix A theta := by
   simp only [sourceCompletionCircleValue,sourceCompletionLaurentMatrix,fourier_character]
 
 end ContinuationInterfaces
 
-/-- The finite construction in `NativeSourceCompletionMatrix` satisfies `sourceCompletionFourier_real` under the displayed hypotheses. -/
+/-- At a real angle θ viewed modulo 2π, the Fourier character of integer frequency k evaluates to
+exp(ikθ). -/
 theorem sourceCompletionFourier_real (k : ℤ) (theta : ℝ) :
     fourier (T := 2*Real.pi) k (theta : AddCircle (2*Real.pi))=
       Complex.exp ((k : ℂ)*((theta : ℂ)*Complex.I)) :=

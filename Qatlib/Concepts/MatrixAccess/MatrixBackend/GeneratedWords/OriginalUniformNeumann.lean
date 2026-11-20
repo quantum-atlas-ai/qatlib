@@ -65,18 +65,18 @@ def rawUniformNeumannWord (b : ℕ) (hb : 0 < b) (F : Matrix H I ℂ)
     (Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.uniformNeumannWord b hb (rangeProjector (rawShiftedFrame F)))
 
 omit [Fintype H] in
-/-- The finite construction in `OriginalUniformNeumann` satisfies `oracle_one` under the displayed hypotheses. -/
+/-- At every cutoff parameter `b`, the uniform Neumann oracle lift sends the identity on `H` to the identity on the full branch register. -/
 private theorem oracle_one (b : ℕ) : Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.uniformNeumannOracle (H := H) b 1 = 1 := by
   simp only [Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.uniformNeumannOracle, parallelOracle, parallel_select_one,
     Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.neumannDataOracle, TensorGate, Matrix.one_kronecker_one]
 
-/-- The finite construction in `OriginalUniformNeumann` satisfies `oracle_mul` under the displayed hypotheses. -/
+/-- Lifting the product `U*V` into the uniform Neumann oracle register gives the product of the lifts in the same order. -/
 private theorem oracle_mul (b : ℕ) (U V : Matrix H H ℂ) :
     Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.uniformNeumannOracle b (U*V) = Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.uniformNeumannOracle b U * Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.uniformNeumannOracle b V := by
   simp only [Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.uniformNeumannOracle, Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.neumannDataOracle, tensorGate_mul, Matrix.one_mul,
     parallelOracle, parallel_select_mul]
 
-/-- The finite construction in `OriginalUniformNeumann` satisfies `oracle_adjoint` under the displayed hypotheses. -/
+/-- The uniform Neumann oracle lift commutes with conjugate transpose on matrices on `H`. -/
 private theorem oracle_adjoint (b : ℕ) (U : Matrix H H ℂ) :
     Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.uniformNeumannOracle b Uᴴ = (Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.uniformNeumannOracle b U)ᴴ := by
   simp only [Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.uniformNeumannOracle, Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.neumannDataOracle, tensorGate_conjTranspose,
@@ -167,7 +167,7 @@ theorem original_uniform_neumann_resolvent (b : ℕ) (hb : 0 < b)
   simpa only [norm_sub_rev] using herr
 
 
-/-- The finite construction in `OriginalUniformNeumann` satisfies `reciprocal_condition_mono` under the displayed hypotheses. -/
+/-- For `1 ≤ κ ≤ K`, the reciprocal truncation bound at cutoff `b` with gap `1/K` is at least the bound with gap `1/κ`. -/
 private theorem reciprocal_condition_mono (κ K : ℝ) (hκ : 1 ≤ κ) (hK : κ ≤ K) (b : ℕ) :
     reciprocalError κ⁻¹ b ≤ reciprocalError K⁻¹ b := by
   have hκp : 0 < κ := lt_of_lt_of_le zero_lt_one hκ

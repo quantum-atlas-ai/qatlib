@@ -599,7 +599,7 @@ theorem embedSchedule_leaf_card (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
 /-- For a unitary adaptive XOR word, decoding transports each valid leaf, total leaf mass is
 preserved, and nonzero amplitudes have XOR update witnesses bounded by the leaf query
 count. -/
-theorem frontier1 (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
+theorem adaptive_xor_leaf_transport_mass_and_update_witnesses (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     {O : Type} [Fintype O] [DecidableEq O] (σ : AdaptiveXorWord I W O)
     (hσ : IsAdaptiveXorUnitary σ) :
     (∀ ω : List O, IsAdaptiveLeaf σ ω →
@@ -623,7 +623,7 @@ theorem frontier1 (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
 
 /-- A valid leaf marked as a failure still satisfies decoding transport, and its Born mass is at
 most the initial Born mass. -/
-theorem frontier1_failure_leaves (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
+theorem adaptive_xor_failure_leaf_transport_and_mass_bound (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
     {O : Type} [Fintype O] [DecidableEq O] (σ : AdaptiveXorWord I W O)
     (hσ : IsAdaptiveXorUnitary σ) (fail : List O → Bool) {ω : List O}
     (hleaf : IsAdaptiveLeaf σ ω) (_hfail : fail ω = true)
@@ -632,7 +632,7 @@ theorem frontier1_failure_leaves (p : ℝ) (hp0 : 0 ≤ p) (hp1 : p ≤ 1)
       = Run xorPurifiedQuery (adaptiveWord σ ω) (ApplyGate (xorDecode p) v)
       ∧ ∑ z, BornProb (Run (databaseXorOracle p) (adaptiveWord σ ω) v) z
         ≤ ∑ z, BornProb v z := by
-  refine ⟨(frontier1 p hp0 hp1 σ hσ).1 ω hleaf v, ?_⟩
+  refine ⟨(adaptive_xor_leaf_transport_mass_and_update_witnesses p hp0 hp1 σ hσ).1 ω hleaf v, ?_⟩
   have hleafmem : ω ∈ adaptiveLeaves σ := mem_adaptiveLeaves hleaf
   rw [← adaptive_leaf_mass p hp0 hp1 hσ v, ← Finset.sum_erase_add _ _ hleafmem]
   exact le_add_of_nonneg_left

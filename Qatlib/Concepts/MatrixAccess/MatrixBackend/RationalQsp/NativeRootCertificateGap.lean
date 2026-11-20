@@ -32,7 +32,7 @@ open Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays Qatlib.Concepts
 def rootCertificateDiskMargin (c : ℚ×ℚ) (r : ℚ) : ℚ :=
   ((1-r)^2-(c.1^2+c.2^2))/2
 
-/-- The finite construction in `NativeRootCertificateGap` satisfies `rootCertificateDiskMargin_pos` under the displayed hypotheses. -/
+/-- A disk classified strictly inside the unit circle has positive rational squared-test margin. -/
 theorem rootCertificateDiskMargin_pos (c : ℚ×ℚ) (r : ℚ)
     (hc : rootRationalDiskClassify c r=some true) : 0<rootCertificateDiskMargin c r := by
   have h := (rootRationalDiskClassify_true c r hc).2
@@ -78,7 +78,7 @@ def rootCertificateMarginValues {m : ℕ} (f : Fin m → RootIntegerFactorData) 
 def rootDecodedCertificateGap {m : ℕ} (f : Fin m → RootIntegerFactorData) : ℚ :=
   (rootCertificateMarginValues f).foldl min 1
 
-/-- The finite construction in `NativeRootCertificateGap` satisfies `rootMarginFold_le_init` under the displayed hypotheses. -/
+/-- Taking successive minima over a rational list yields a value at most the initial value. -/
 private theorem rootMarginFold_le_init (l : List ℚ) (s : ℚ) : (l.foldl min s) ≤ s := by
   induction l generalizing s with
   | nil => exact le_rfl
@@ -86,7 +86,7 @@ private theorem rootMarginFold_le_init (l : List ℚ) (s : ℚ) : (l.foldl min s
     rw [List.foldl_cons]
     exact (ih (min s a)).trans (min_le_left _ _)
 
-/-- The finite construction in `NativeRootCertificateGap` satisfies `rootMarginFold_le_mem` under the displayed hypotheses. -/
+/-- The running minimum from any starting value is at most each member of the rational list. -/
 private theorem rootMarginFold_le_mem (l : List ℚ) (s x : ℚ) (hx : x∈l) :
     (l.foldl min s) ≤ x := by
   induction l generalizing s with
@@ -98,7 +98,8 @@ private theorem rootMarginFold_le_mem (l : List ℚ) (s x : ℚ) (hx : x∈l) :
       exact (rootMarginFold_le_init l (min s a)).trans (min_le_right _ _)
     · exact ih (min s a) he
 
-/-- The finite construction in `NativeRootCertificateGap` satisfies `rootMarginFold_pos` under the displayed hypotheses. -/
+/-- A positive starting value and a list of positive rationals have a strictly positive running
+minimum. -/
 private theorem rootMarginFold_pos (l : List ℚ) :
     ∀ s,0<s → (∀ x∈l,0<x) → 0 < (l.foldl min s) := by
   induction l with
@@ -109,11 +110,13 @@ private theorem rootMarginFold_pos (l : List ℚ) :
     exact ih (min s a) (lt_min hs (h a (by simp)))
       (fun x hx => h x (List.mem_cons_of_mem a hx))
 
-/-- The finite construction in `NativeRootCertificateGap` satisfies `rootDecodedCertificateGap_le_one` under the displayed hypotheses. -/
+/-- The decoded root certificate gap is at most one, its initial value before taking disk margins
+into account. -/
 theorem rootDecodedCertificateGap_le_one {m : ℕ} (f : Fin m → RootIntegerFactorData) :
     rootDecodedCertificateGap f≤1 := rootMarginFold_le_init _ _
 
-/-- The finite construction in `NativeRootCertificateGap` satisfies `rootDecodedCertificateGap_le_margin` under the displayed hypotheses. -/
+/-- A tagged inside disk contributes its margin to the minimum, so the decoded gap cannot exceed
+that disk's margin. -/
 theorem rootDecodedCertificateGap_le_margin {m : ℕ} (f : Fin m → RootIntegerFactorData)
     (j : Fin m) (i : Fin ((f j).n+1))
     (ht : rootRationalDiskComputedTag ((f j).centers i) ((f j).radii i)=true) :
@@ -125,7 +128,8 @@ theorem rootDecodedCertificateGap_le_margin {m : ℕ} (f : Fin m → RootInteger
   apply List.mem_map.mpr
   exact ⟨i,by simp,by simp only [ite_eq_left ht]⟩
 
-/-- The finite construction in `NativeRootCertificateGap` satisfies `rootDecodedCertificateGap_pos` under the displayed hypotheses. -/
+/-- If every factor satisfies the root certificate guards at tolerance eta, all selected inside
+margins are positive and their minimum with one is positive. -/
 theorem rootDecodedCertificateGap_pos {m : ℕ} (f : Fin m → RootIntegerFactorData) (eta : ℚ)
     (haccepted : ∀ j,RootIntegerFactorGuards (f j) eta) : 0<rootDecodedCertificateGap f := by
   apply rootMarginFold_pos _ _ (by norm_num)

@@ -42,7 +42,7 @@ variable {S : Type} [Fintype S] [DecidableEq S] [Nonempty S]
 def populationMean (p : S → ℝ) : ℝ := (∑ x : S,p x)/(Fintype.card S : ℝ)
 
 omit [DecidableEq S] in
-/-- Complete original `bernoulli_subset_mean` guarantee for `RetainedBellLowMean`; all source hypotheses and output obligations are retained. -/
+/-- For site probabilities in [0, 1] and u ≥ 0, the average product of r distinct Bernoulli generating factors is bounded by the rth power of their population mean. -/
 theorem bernoulli_subset_mean (p : S → ℝ) (hp : ∀ x,0≤p x ∧ p x≤1)
     (u : ℝ) (hu : 0≤u) (r : ℕ) :
     (1/(Fintype.card S).choose r : ℝ)*
@@ -64,7 +64,7 @@ theorem bernoulli_subset_mean (p : S → ℝ) (hp : ∀ x,0≤p x ∧ p x≤1)
   exact h
 
 omit [DecidableEq S] in
-/-- Complete original `bernoulli_subset_poisson` guarantee for `RetainedBellLowMean`; all source hypotheses and output obligations are retained. -/
+/-- For u ≥ 0, the average product of Bernoulli generating factors over size-r subsets is at most exp(rμ(u − 1)), where μ is the mean site probability. -/
 theorem bernoulli_subset_poisson (p : S → ℝ) (hp : ∀ x,0≤p x ∧ p x≤1)
     (u : ℝ) (hu : 0≤u) (r : ℕ) :
     (1/(Fintype.card S).choose r : ℝ)*
@@ -91,7 +91,7 @@ def bellMean (a b c k : S → ℝ) (τ : S → S) : ℝ :=
   populationMean (fun x => bellProbability (complexSpinor a b c k x) (complexSpinor a b c k (τ x)))
 
 omit [DecidableEq S] [Nonempty S] in
-/-- Complete original `bell_mean_nonneg` guarantee for `RetainedBellLowMean`; all source hypotheses and output obligations are retained. -/
+/-- For normalized spinors, the site average of Bell hit probabilities is nonnegative for any site map. -/
 theorem bell_mean_nonneg (a b c k : S → ℝ) (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1)
     (τ : S → S) : 0≤bellMean a b c k τ := by
   apply div_nonneg _ (Nat.cast_nonneg _)
@@ -100,7 +100,7 @@ theorem bell_mean_nonneg (a b c k : S → ℝ) (hz : ∀ x,a x^2+b x^2+c x^2+k x
   exact (bell_probability_range _ _ (complex_spinor_mass a b c k hz x)
     (complex_spinor_mass a b c k hz (τ x))).1
 
-/-- Complete original `matched_card_mass_nonneg` guarantee for `RetainedBellLowMean`; all source hypotheses and output obligations are retained. -/
+/-- For any prescribed match count, the total address probability of obtaining that count is nonnegative. -/
 theorem matched_card_mass_nonneg (τ : Equiv.Perm S) (r : ℕ) :
     0 ≤ matchedCardEventMass τ n m r := by
   apply Finset.sum_nonneg
@@ -108,7 +108,7 @@ theorem matched_card_mass_nonneg (τ : Equiv.Perm S) (r : ℕ) :
   exact mul_nonneg ((cohortLaw (uniformLaw S) n).nonneg z.1)
     ((cohortLaw (uniformLaw S) m).nonneg z.2)
 
-/-- Complete original `observation_stratum_nonneg` guarantee for `RetainedBellLowMean`; all source hypotheses and output obligations are retained. -/
+/-- At any nonnegative argument, the hit-count generating function restricted to observations with exactly r matches is nonnegative. -/
 theorem observation_stratum_nonneg (a b c k : S → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (τ : Equiv.Perm S)
     (r : ℕ) (u : ℝ) (hu : 0≤u) :
@@ -121,7 +121,7 @@ theorem observation_stratum_nonneg (a b c k : S → ℝ)
   · exact pow_nonneg hu _
   · exact le_rfl
 
-/-- Complete original `observation_stratum_poisson` guarantee for `RetainedBellLowMean`; all source hypotheses and output obligations are retained. -/
+/-- At u ≥ 0, the hit-count generating function on the r-match event is at most the mass of that event times exp(rμ(u − 1)), with μ the mean Bell probability. -/
 theorem observation_stratum_poisson (a b c k : S → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (τ : Equiv.Perm S)
     (r : ℕ) (u : ℝ) (hu : 0≤u) :
@@ -140,7 +140,7 @@ theorem observation_stratum_poisson (a b c k : S → ℝ)
 
 -- The actual pooled rational output, centered at the actual population mean.
 -- This is still unnormalized, including every zero-probability R vector.
-/-- Complete original `pooled_centered_low_mean_mgf` guarantee for `RetainedBellLowMean`; all source hypotheses and output obligations are retained. -/
+/-- On the event of a specified vector of match counts, the centered exponential moment is at most the event mass times exp(Rμ(exp(t) − 1 − t)), with R the total count and μ the Bell mean. -/
 theorem pooled_centered_low_mean_mgf (a b c k : S → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (τ : Equiv.Perm S)
     (ρ : Fin K → ℕ) (t : ℝ) :
@@ -166,14 +166,14 @@ theorem pooled_centered_low_mean_mgf (a b c k : S → ℝ)
 
 
 omit [Fintype S] [DecidableEq S] [Nonempty S] in
-/-- Complete original `exp_remainder_le_square` guarantee for `RetainedBellLowMean`; all source hypotheses and output obligations are retained. -/
+/-- For |t| ≤ 1, the exponential remainder after subtracting 1 + t is at most t². -/
 theorem exp_remainder_le_square (t : ℝ) (ht : |t|≤1) : Real.exp t-1-t≤t^2 := by
   have h := Real.exp_bound ht (n:=2) (by decide)
   norm_num [Finset.sum_range_succ] at h
   have hh := (abs_le.mp h).2
   nlinarith [sq_nonneg t,sq_abs t]
 
-/-- Complete original `pooled_centered_quadratic_mgf` guarantee for `RetainedBellLowMean`; all source hypotheses and output obligations are retained. -/
+/-- For |t| ≤ 1, the centered exponential moment restricted to a fixed match-count vector is bounded by its event mass times exp(Rμt²), with R total matches and μ the Bell mean. -/
 theorem pooled_centered_quadratic_mgf (a b c k : S → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (τ : Equiv.Perm S)
     (ρ : Fin K → ℕ) (t : ℝ) (ht : |t|≤1) :

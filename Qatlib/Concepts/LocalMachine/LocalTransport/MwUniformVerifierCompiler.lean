@@ -27,7 +27,7 @@ for uniform witness families.
 
 * `run_acceptSegment`: realize a pulled-back acceptance measurement.
 * `compiled_record_mixture`: express outcome-record weights as a finite weighted sum.
-* `frontier1`: combine execution, record-weight, and uniform resource statements.
+* `uniform_alternating_verifier_semantics_and_resources`: combine execution, record-weight, and uniform resource statements.
 
 ## References
 
@@ -368,7 +368,7 @@ theorem compiled_record_mixture (A : ClassicalOracle) (p : WitnessVerifierProgra
   have hU : U ∈ unitaryGroup (Reg (programQubits p)) ℂ := programMatrix_unitary A p
   have hE : Eᴴ * E = 1 := witnessEmbed_conjTranspose_mul p x
   obtain ⟨B, t, ht, hB, hBQ, hlaw, hclean⟩ :=
-    Qatlib.Concepts.QueryComplexity.DegreeMethod.MwActualTwoProjectors.frontier1
+    Qatlib.Concepts.QueryComplexity.DegreeMethod.MwActualTwoProjectors.exists_clean_subspace_frame_for_alternating_record_law
       U (programOutputEvent p) E hU hE
   refine ⟨B, t, ht, hB, hBQ, ?_, hclean⟩
   intro w z hlength
@@ -380,7 +380,7 @@ theorem compiled_record_mixture (A : ClassicalOracle) (p : WitnessVerifierProgra
 /-- For a uniform witness family, combine the compiled alternating-measurement semantics,
 projector-support record-weight formula, and polynomial word and ledger bounds. The
 alternating verifier construction follows the framework of [MarriottWatrous2005]. -/
-theorem frontier1 (f : UniformWitnessFamily) (A : ClassicalOracle)
+theorem uniform_alternating_verifier_semantics_and_resources (f : UniformWitnessFamily) (A : ClassicalOracle)
     (x : List Bool) (rounds : ℕ) :
     let p := f.generator x
     let input := listToInput p x

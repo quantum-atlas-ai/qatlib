@@ -69,18 +69,20 @@ def localEquiv (m d : ℕ) (axis : Fin d) :
         simp [j.property]
     · simp
 
-/-- Complete original `local_left_axis` guarantee for `PartialAddressTrainedGrid`; all source hypotheses and output obligations are retained. -/
+/-- The local left endpoint of edge `e` has matching-axis coordinate twice the edge's pair
+index. -/
 theorem local_left_axis (m d : ℕ) (axis : Fin d) (e : LocalEdge m d axis) :
     ((localEquiv m d axis).symm (e,false) axis).val=2*e.1.val := by
   simp [localEquiv,finProdFinEquiv,finTwoEquiv]
 
-/-- Complete original `local_right_axis` guarantee for `PartialAddressTrainedGrid`; all source hypotheses and output obligations are retained. -/
+/-- The local right endpoint has matching-axis coordinate twice the pair index plus one. -/
 theorem local_right_axis (m d : ℕ) (axis : Fin d) (e : LocalEdge m d axis) :
     ((localEquiv m d axis).symm (e,true) axis).val=2*e.1.val+1 := by
   simp [localEquiv,finProdFinEquiv,finTwoEquiv]
   omega
 
-/-- Complete original `local_right_update` guarantee for `PartialAddressTrainedGrid`; all source hypotheses and output obligations are retained. -/
+/-- The right endpoint of a local edge is obtained by incrementing the left endpoint's matching
+coordinate and leaving all transverse coordinates fixed. -/
 theorem local_right_update (m d : ℕ) (axis : Fin d) (e : LocalEdge m d axis) :
     (localEquiv m d axis).symm (e,true)=
       Function.update ((localEquiv m d axis).symm (e,false)) axis
@@ -103,7 +105,8 @@ def matchingEquiv (C m d r : ℕ) [NeZero (C*(2*m))]
     ((Equiv.prodCongr (Equiv.refl (Box C d)) (localEquiv m d axis)).trans
       (Equiv.prodAssoc (Box C d) (LocalEdge m d axis) Bool).symm)
 
-/-- Complete original `matching_inverse` guarantee for `PartialAddressTrainedGrid`; all source hypotheses and output obligations are retained. -/
+/-- To recover a native endpoint from an edge and bit, first recover its local point and then
+invert the grid decomposition with the edge's box. -/
 theorem matching_inverse (C m d r : ℕ) [NeZero (C*(2*m))]
     (hN : 2^r=C*(2*m)*2) (offset : Fin d → Fin (C*(2*m))) (axis : Fin d)
     (e : Edge C m d axis) (bit : Bool) :
@@ -111,7 +114,8 @@ theorem matching_inverse (C m d r : ℕ) [NeZero (C*(2*m))]
       (GridPatch.nativeGridEquiv C (2*m) d r hN offset).symm
         (e.1,(localEquiv m d axis).symm (e.2,bit)) := rfl
 
-/-- Complete original `matching_same_box` guarantee for `PartialAddressTrainedGrid`; all source hypotheses and output obligations are retained. -/
+/-- Both endpoint bits of any matched edge decode to native sites with the box label carried by
+that edge. -/
 theorem matching_same_box (C m d r : ℕ) [NeZero (C*(2*m))]
     (hN : 2^r=C*(2*m)*2) (offset : Fin d → Fin (C*(2*m))) (axis : Fin d)
     (e : Edge C m d axis) (bit : Bool) :
@@ -119,7 +123,8 @@ theorem matching_same_box (C m d r : ℕ) [NeZero (C*(2*m))]
       ((matchingEquiv C m d r hN offset axis).symm (e,bit))).1=e.1 := by
   rw [matching_inverse,Equiv.apply_symm_apply]
 
-/-- Complete original `matching_right` guarantee for `PartialAddressTrainedGrid`; all source hypotheses and output obligations are retained. -/
+/-- In native coordinates the true endpoint of a matched edge is the periodic two-site shift of
+the false endpoint along the matching axis. -/
 theorem matching_right (C m d r : ℕ) [NeZero (C*(2*m))]
     (hN : 2^r=C*(2*m)*2) (offset : Fin d → Fin (C*(2*m))) (axis : Fin d)
     (e : Edge C m d axis) :
@@ -130,7 +135,8 @@ theorem matching_right (C m d r : ℕ) [NeZero (C*(2*m))]
   · have := e.2.1.isLt
     omega
 
-/-- Complete original `matching_card` guarantee for `PartialAddressTrainedGrid`; all source hypotheses and output obligations are retained. -/
+/-- The matched edge count is half the number of native sites, since each edge labels two
+endpoints. -/
 theorem matching_card (C m d r : ℕ) [NeZero (C*(2*m))]
     (hN : 2^r=C*(2*m)*2) (offset : Fin d → Fin (C*(2*m))) (axis : Fin d) :
     2*Fintype.card (Edge C m d axis)=(2^r)^d := by
@@ -142,7 +148,8 @@ theorem matching_card (C m d r : ℕ) [NeZero (C*(2*m))]
   omega
 
 -- Exact complete matching coverage; no independence or sampling law assumption.
-/-- Complete original `pair_mean` guarantee for `PartialAddressTrainedGrid`; all source hypotheses and output obligations are retained. -/
+/-- Under a pairing equivalence, the mean over all sites equals the uniform edge average of the
+arithmetic means of the two endpoint values. -/
 theorem pair_mean {S E : Type} [Fintype S] [Fintype E] [Nonempty E]
     (g : S ≃ E × Bool) (f : S → ℝ) :
     (∑ e : E,(f (g.symm (e,false))+f (g.symm (e,true)))/2)/(Fintype.card E : ℝ)=
@@ -162,7 +169,8 @@ theorem pair_mean {S E : Type} [Fintype S] [Fintype E] [Nonempty E]
   simp only [div_eq_mul_inv,mul_inv_rev]
   ring
 
-/-- Complete original `box_minor_mean` guarantee for `PartialAddressTrainedGrid`; all source hypotheses and output obligations are retained. -/
+/-- Averaging `(1 - overlap)/2` over local sites in a box gives the same quantity computed
+using the mean Bloch vector of the box and its fixed axis. -/
 theorem box_minor_mean {B A : Type} [Fintype A] [Nonempty A]
     (fields : Fin 3 → B × A → ℝ) (axes : B → Fin 3 → ℝ) (box : B) :
     (∑ a : A,(1-AxisRisk.dot (fun h => fields h (box,a)) (axes box))/2)/
@@ -179,7 +187,8 @@ theorem box_minor_mean {B A : Type} [Fintype A] [Nonempty A]
   simp only [Finset.sum_const,Finset.card_univ,nsmul_eq_mul,mul_one]
   field_simp
 
-/-- Complete original `supplied_amplitude` guarantee for `PartialAddressTrainedGrid`; all source hypotheses and output obligations are retained. -/
+/-- At any matching edge, endpoint bit, and spin bit, the supplied matching amplitude equals
+the original supplied spin amplitude at the decoded native site. -/
 theorem supplied_amplitude (C m d r : ℕ) [NeZero (C*(2*m))]
     (hN : 2^r=C*(2*m)*2) (offset : Fin d → Fin (C*(2*m))) (axis : Fin d)
     (a b c k : (Fin d → Fin (2^r)) → ℝ) (e : Edge C m d axis) (bit spin : Bool) :
@@ -200,7 +209,8 @@ theorem supplied_amplitude (C m d r : ℕ) [NeZero (C*(2*m))]
     exact_mod_cast matching_card C m d r hN offset axis
   cases bit <;> simp only [Bool.false_eq_true,ite_false,ite_true,suppliedSpinState,hc]
 
-/-- Complete original `box_average` guarantee for `PartialAddressTrainedGrid`; all source hypotheses and output obligations are retained. -/
+/-- A site equivalence with a product of boxes and local sites turns the uniform site average
+into the uniform average of the within-box means. -/
 theorem box_average {S B A : Type} [Fintype S] [Fintype B] [Fintype A]
     (g : S ≃ B × A) (f : S → ℝ) :
     (∑ x : S,f x)/(Fintype.card S : ℝ)=
@@ -212,7 +222,9 @@ theorem box_average {S B A : Type} [Fintype S] [Fintype B] [Fintype A]
   congr 1
   ring
 
-/-- Complete original `grid_minority` guarantee for `PartialAddressTrainedGrid`; all source hypotheses and output obligations are retained. -/
+/-- For normalized spinors, the site average of the true-spin probabilities after applying a
+fixed word per box equals the box-average minority risk computed from their Bloch fields and
+word axes. -/
 theorem grid_minority {S B A : Type} [Fintype S] [Fintype B] [Fintype A] [Nonempty A]
     (g : S ≃ B × A) (ψ : S → Bool → ℂ) (hu : ∀ x,qubitMass (ψ x)=1)
     (words : B → List Gate) :
@@ -228,7 +240,9 @@ theorem grid_minority {S B A : Type} [Fintype S] [Fintype B] [Fintype A] [Nonemp
   simp_rw [minority_probability _ _ (hu _)]
   exact box_minor_mean (fun h y => qubitBloch (ψ (g.symm y)) h) (fun b => wordAxis (words b)) box
 
-/-- Complete original `actual_matching_minority` guarantee for `PartialAddressTrainedGrid`; all source hypotheses and output obligations are retained. -/
+/-- On the normalized native grid, rotating both endpoints of each edge by its box word gives
+average true-spin sector mass equal to the minority risk from the native box fields and word
+axes. -/
 theorem actual_matching_minority (C m d r : ℕ) [NeZero C] [NeZero m]
     [NeZero (2*m)] [NeZero (C*(2*m))]
     (hN : 2^r=C*(2*m)*2) (offset : Fin d → Fin (C*(2*m))) (axis : Fin d)
@@ -262,7 +276,7 @@ theorem actual_matching_minority (C m d r : ℕ) [NeZero C] [NeZero m]
       simp only [complex_spinor_bloch] at h
       exact h
 
-/-- Complete original `local_endpoint_value` guarantee for `PartialAddressTrainedGrid`; all source hypotheses and output obligations are retained. -/
+/-- The bit labeling a local endpoint is the parity of its coordinate on the matching axis. -/
 theorem local_endpoint_value (m d : ℕ) (axis : Fin d) (x : Fin d → Fin (2*m)) :
     (finTwoEquiv.symm ((localEquiv m d axis x).2)).val=(x axis).val%2 := by
   change (finTwoEquiv.symm (finTwoEquiv
@@ -270,7 +284,8 @@ theorem local_endpoint_value (m d : ℕ) (axis : Fin d) (x : Fin d → Fin (2*m)
   rw [Equiv.symm_apply_apply]
   rfl
 
-/-- Complete original `matching_endpoint_value` guarantee for `PartialAddressTrainedGrid`; all source hypotheses and output obligations are retained. -/
+/-- The native endpoint bit is the parity of the half-index along the matching axis after
+subtracting the offset modulo the half-grid size. -/
 theorem matching_endpoint_value (C m d r : ℕ) [NeZero (C*(2*m))]
     (hN : 2^r=C*(2*m)*2) (offset : Fin d → Fin (C*(2*m))) (axis : Fin d)
     (x : Fin d → Fin (2^r)) :
@@ -282,7 +297,8 @@ theorem matching_endpoint_value (C m d r : ℕ) [NeZero (C*(2*m))]
   change (((((C*(2*m)-(offset axis).val)+(x axis).val/2)%(C*(2*m)))%(2*m))%2)=_
   exact Nat.mod_mod_of_dvd _ ⟨m,rfl⟩
 
-/-- Complete original `matching_color_bit` guarantee for `PartialAddressTrainedGrid`; all source hypotheses and output obligations are retained. -/
+/-- For the selected color offset, the endpoint bit is the parity of the native half-index plus
+the color value. -/
 theorem matching_color_bit (C m d r : ℕ) [NeZero (C*(2*m))]
     (hN : 2^r=C*(2*m)*2) (axis : Fin d) (color : Fin 2)
     (x : Fin d → Fin (2^r)) :
@@ -306,7 +322,8 @@ def basisEquiv (C m d r : ℕ) [NeZero (C*(2*m))]
     ((Equiv.prodAssoc (Edge C m d axis) Bool Bool).trans
       ((Equiv.refl (Edge C m d axis)).prodCongr pairEquiv))
 
-/-- Complete original `basis_amplitude` guarantee for `PartialAddressTrainedGrid`; all source hypotheses and output obligations are retained. -/
+/-- Relabeling any native site and spin by the matching basis equivalence preserves its
+supplied amplitude. -/
 theorem basis_amplitude (C m d r : ℕ) [NeZero (C*(2*m))]
     (hN : 2^r=C*(2*m)*2) (offset : Fin d → Fin (C*(2*m))) (axis : Fin d)
     (a b c k : (Fin d → Fin (2^r)) → ℝ) (x : (Fin d → Fin (2^r)) × Bool) :

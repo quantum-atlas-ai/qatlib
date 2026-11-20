@@ -28,7 +28,9 @@ namespace Qatlib.Concepts.EffectiveGauge.HopfAtlas
 local instance : StarModule ℝ ℍ where
   star_smul r q := by ext <;> simp
 
-/-- Original `relative_transport_derivative` guarantee for the `RelativeTransport` construction; the complete source hypotheses are retained. -/
+/-- If the within-set right generators of `q` and `r` at `t` are respectively `k` and `l`, with
+`k` purely imaginary, the relative curve `r * star q` has derivative
+`r t * (l - k) * star (q t)` within the same set. -/
 theorem relative_transport_derivative {q r : ℝ → ℍ} {k l : ℍ} {t : ℝ} {S : Set ℝ}
     (hq : HasDerivWithinAt q (q t*k) S t)
     (hr : HasDerivWithinAt r (r t*l) S t) (hk : k.re=0) :

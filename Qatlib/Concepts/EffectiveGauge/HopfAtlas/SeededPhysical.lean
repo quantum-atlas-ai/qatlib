@@ -52,7 +52,8 @@ def seededPhysicalChargedValue (source : (Fin 3 → ℚ) × ℕ → RationalSpin
   let transported := physicalCayleyChargedExecution source y z x m1 m2 (tolerance/4)
   ⟨seed*rationalCayleyValue transported.state,coarse.2+fine.2+transported.sourceFee,chart⟩
 
-/-- Original `seededPhysicalChargedValue_value` guarantee for the `SeededPhysical` construction; the complete source hypotheses are retained. -/
+/-- The value obtained by the charged seeded-transport program equals the uncharged value when the
+source's fee component is discarded. -/
 theorem seededPhysicalChargedValue_value (source : (Fin 3 → ℚ) × ℕ → RationalSpinSample × ℕ)
     (y z x m1 m2 tolerance : ℚ) :
     (seededPhysicalChargedValue source y z x m1 m2 tolerance).value=
@@ -64,14 +65,18 @@ theorem seededPhysicalChargedValue_value (source : (Fin 3 → ℚ) × ℕ → Ra
 def seededPhysicalSourceSchedule (y z x m1 m2 tolerance : ℚ) : List ((Fin 3 → ℚ) × ℕ) :=
   [(0,4),(0,seedValuePrecision (tolerance/8))]++physicalCayleySourceSchedule y z x m1 m2 (tolerance/4)
 
-/-- Original `seededPhysicalSourceSchedule_length` guarantee for the `SeededPhysical` construction; the complete source hypotheses are retained. -/
+/-- The physical seeded query schedule has two origin queries plus one query per Cayley step, with
+coefficients `x * m1 / 2`, `x^2 * (m1^2 + m2) / 2`, and tolerance `tolerance / 4` determining the
+step count. -/
 @[simp] theorem seededPhysicalSourceSchedule_length (y z x m1 m2 tolerance : ℚ) :
     (seededPhysicalSourceSchedule y z x m1 m2 tolerance).length=
       2+cayleySteps (x*m1/2) (x^2*(m1^2+m2)/2) (tolerance/4) := by
   simp only [seededPhysicalSourceSchedule,List.length_append,List.length_cons,List.length_nil,
     physicalCayleySourceSchedule_length]
 
-/-- Original `seededPhysicalChargedValue_fee_le` guarantee for the `SeededPhysical` construction; the complete source hypotheses are retained. -/
+/-- If both origin samples and every queried Cayley coefficient sample cost at most `T`, the
+charged physical value costs at most `T` times the number of Cayley steps plus two origin charges
+of size `T`. -/
 theorem seededPhysicalChargedValue_fee_le (source : (Fin 3 → ℚ) × ℕ → RationalSpinSample × ℕ)
     (y z x m1 m2 tolerance : ℚ) (T : ℕ)
     (hcoarse : (source (0,4)).2 ≤ T)
@@ -93,7 +98,8 @@ noncomputable section
 open scoped Quaternion ContDiff
 open Set
 
-/-- Original `seededPhysicalSourceSchedule_legal` guarantee for the `SeededPhysical` construction; the complete source hypotheses are retained. -/
+/-- If the three rational coordinate values lie in `[0, physicalPeriod]`, every address in the
+physical seeded source schedule lies in that interval in every coordinate. -/
 theorem seededPhysicalSourceSchedule_legal (y z x m1 m2 tolerance : ℚ)
     (hx : 0 ≤ (x : ℝ) ∧ (x : ℝ) ≤ physicalPeriod)
     (hy : 0 ≤ (y : ℝ) ∧ (y : ℝ) ≤ physicalPeriod)
@@ -109,7 +115,8 @@ theorem seededPhysicalSourceSchedule_legal (y z x m1 m2 tolerance : ℚ)
     simpa using (show (0 : ℝ) ≤ 0 ∧ (0 : ℝ) ≤ physicalPeriod from ⟨le_rfl,physicalPeriod_pos.le⟩)
   · exact physicalCayleySourceSchedule_legal y z x m1 m2 (tolerance/4) hx hy hz query hq
 
-/-- Original `rationalCayleyValue_cast` guarantee for the `SeededPhysical` construction; the complete source hypotheses are retained. -/
+/-- Casting the rational quaternion read from a Cayley integer state agrees with decoding that
+state directly as a real quaternion. -/
 theorem rationalCayleyValue_cast (s : CayleyIntegerState) :
     rationalQuaternionCast (rationalCayleyValue s)=decodeCayleyState s := by
   ext <;> simp [rationalCayleyValue,rationalQuaternionCast,decodeCayleyState,integerQuaternionCast]

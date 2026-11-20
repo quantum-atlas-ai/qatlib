@@ -29,7 +29,7 @@ def fourierPeriodExecution (ell : ℚ) : ℚ := 2*(rationalPi (ell/2)).value
 
 noncomputable section
 
-/-- Original `fourierPeriodExecution_error` guarantee for the `FourierPeriodExecution` construction; the complete source hypotheses are retained. -/
+/-- For every positive rational tolerance `ell`, the rational period approximation differs from the physical period by at most `ell`. -/
 theorem fourierPeriodExecution_error (ell : ℚ) (he : 0<ell) :
     |(fourierPeriodExecution ell : ℝ)-physicalPeriod| ≤ (ell : ℝ) := by
   have hp := rationalPi_error (ell/2) (by positivity)
@@ -42,7 +42,7 @@ theorem fourierPeriodExecution_error (ell : ℚ) (he : 0<ell) :
   rw [hid,abs_mul,abs_of_pos (by norm_num : (0 : ℝ)<2)]
   exact (mul_le_mul_of_nonneg_left (hp.1.trans hbudget) (by norm_num)).trans_eq (by ring)
 
-/-- Original `fourierPeriodExecution_gt_five` guarantee for the `FourierPeriodExecution` construction; the complete source hypotheses are retained. -/
+/-- With a positive tolerance at most one, the computed rational period is strictly greater than five. -/
 theorem fourierPeriodExecution_gt_five (ell : ℚ) (he : 0<ell) (he1 : ell ≤ 1) :
     (5 : ℝ)<fourierPeriodExecution ell := by
   have hbounds := abs_le.mp (fourierPeriodExecution_error ell he)

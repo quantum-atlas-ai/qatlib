@@ -64,7 +64,8 @@ def sourceFrameBoundExpected (bounds : ℕ → ℚ) (r : Fin 10) : ℚ :=
 def sourceFrameUnitBound (packet : SourceFrameBoundPacket) (r : Fin 10) : ℚ :=
   (7 : ℚ)^r.val*packet r
 
-/-- Original `sourceFrameBoundRun_eq` guarantee for the `SourceFrameBounds` construction; the complete source hypotheses are retained. -/
+/-- The frame-bound program always returns the expected derivative-bound packet and the labels
+determined by the compressed first-order bound. -/
 theorem sourceFrameBoundRun_eq (bounds : ℕ → ℚ) :
     sourceFrameBoundRun bounds=some
       (sourceFrameBoundExpected bounds,sourceFrameBoundLabels (sourceMeanCompressedBound (bounds 1))) := by
@@ -83,22 +84,25 @@ theorem sourceFrameBoundRun_eq (bounds : ℕ → ℚ) :
       fin_cases r <;> simp [sourceFrameBoundExpected,h]
     · rfl
 
-/-- Original `sourceFrameBoundLabels_length` guarantee for the `SourceFrameBounds` construction; the complete source hypotheses are retained. -/
+/-- The frame-bound label list has length one when the compressed bound input `m1` is zero, and
+length nine otherwise. -/
 theorem sourceFrameBoundLabels_length (m1 : ℚ) :
     (sourceFrameBoundLabels m1).length=if m1=0 then 1 else 9 := by
   by_cases h : m1=0 <;> simp [sourceFrameBoundLabels,h,sourceFrameHigherBoundLabels]
 
-/-- Original `sourceFrameBoundLabels_domain` guarantee for the `SourceFrameBounds` construction; the complete source hypotheses are retained. -/
+/-- Every derivative order in the frame-bound label list lies between one and nine, inclusive. -/
 theorem sourceFrameBoundLabels_domain (m1 : ℚ) :
     ∀ r ∈ sourceFrameBoundLabels m1, 1 ≤ r ∧ r ≤ 9 := by
   by_cases h : m1=0 <;> simp [sourceFrameBoundLabels,h,sourceFrameHigherBoundLabels]
 
-/-- Original `sourceFrameBoundExpected_first` guarantee for the `SourceFrameBounds` construction; the complete source hypotheses are retained. -/
+/-- The expected order-one frame bound is the compressed mean-source bound computed from the
+order-one input. -/
 theorem sourceFrameBoundExpected_first (bounds : ℕ → ℚ) :
     sourceFrameBoundExpected bounds 1=sourceMeanCompressedBound (bounds 1) := by
   simp [sourceFrameBoundExpected]
 
-/-- Original `sourceFrameBoundExpected_second` guarantee for the `SourceFrameBounds` construction; the complete source hypotheses are retained. -/
+/-- The expected order-two frame bound is the effective second bound computed using the compressed
+first bound and the full input bound table. -/
 theorem sourceFrameBoundExpected_second (bounds : ℕ → ℚ) :
     sourceFrameBoundExpected bounds 2=
       sourceMeanEffectiveSecondBound (sourceMeanCompressedBound (bounds 1)) bounds := by

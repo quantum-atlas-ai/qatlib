@@ -45,7 +45,8 @@ def cayleyIntegerRun (D p : ℕ) (a : ℕ → Fin 3 → ℤ) : ℕ → CayleyInt
   | 0 => ⟨1,1⟩
   | n+1 => cayleyIntegerStep (cayleyIntegerRun D p a n) (cayleyIntegerFactor D p (a n))
 
-/-- Original `cayleyIntegerFactor_den_pos` guarantee for the `CayleyIntegers` construction; the complete source hypotheses are retained. -/
+/-- A positive grid size makes the integer Cayley factor's denominator strictly positive for every
+precision and integer triple. -/
 theorem cayleyIntegerFactor_den_pos (D p : ℕ) (hD : 0<D) (a : Fin 3 → ℤ) :
     0<(cayleyIntegerFactor D p a).denominator := by
   have hd : (0 : ℤ)<D := by exact_mod_cast hD
@@ -53,13 +54,15 @@ theorem cayleyIntegerFactor_den_pos (D p : ℕ) (hD : 0<D) (a : Fin 3 → ℤ) :
   change 0<4*(D : ℤ)^2*(2^p : ℤ)^2+((a 0)^2+(a 1)^2+(a 2)^2)
   positivity
 
-/-- Original `cayleyIntegerFactor_normSq` guarantee for the `CayleyIntegers` construction; the complete source hypotheses are retained. -/
+/-- The squared norm of the integer factor's numerator equals the square of its denominator for
+every grid size, precision, and sample. -/
 theorem cayleyIntegerFactor_normSq (D p : ℕ) (a : Fin 3 → ℤ) :
     Quaternion.normSq (cayleyIntegerFactor D p a).numerator=(cayleyIntegerFactor D p a).denominator^2 := by
   simp [cayleyIntegerFactor,Quaternion.normSq_def']
   ring
 
-/-- Original `cayleyIntegerRun_certificate` guarantee for the `CayleyIntegers` construction; the complete source hypotheses are retained. -/
+/-- Every prefix of the integer Cayley run with positive grid size has positive denominator and
+squared numerator norm equal to the squared denominator. -/
 theorem cayleyIntegerRun_certificate (D p : ℕ) (hD : 0<D) (a : ℕ → Fin 3 → ℤ) (n : ℕ) :
     0<(cayleyIntegerRun D p a n).denominator ∧
       Quaternion.normSq (cayleyIntegerRun D p a n).numerator=(cayleyIntegerRun D p a n).denominator^2 := by
@@ -78,7 +81,7 @@ theorem cayleyIntegerRun_certificate (D p : ℕ) (hD : 0<D) (a : ℕ → Fin 3 �
 def cayleyQuerySchedule (D p : ℕ) : List (ℚ × ℕ) :=
   (List.range D).map (fun j : ℕ => ((j : ℚ)/(D : ℚ),p))
 
-/-- Original `cayleyQuerySchedule_length` guarantee for the `CayleyIntegers` construction; the complete source hypotheses are retained. -/
+/-- The schedule contains one query label for each of the `D` left grid endpoints. -/
 @[simp] theorem cayleyQuerySchedule_length (D p : ℕ) : (cayleyQuerySchedule D p).length=D := by
   simp [cayleyQuerySchedule]
 
@@ -90,7 +93,8 @@ def cayleyRunSamples (D p : ℕ) (samples : List (Fin 3 → ℤ)) : CayleyIntege
 def cayleyOracleExecution (D p : ℕ) (oracle : ℚ × ℕ → Fin 3 → ℤ) : CayleyIntegerState :=
   cayleyRunSamples D p ((cayleyQuerySchedule D p).map oracle)
 
-/-- Original `cayleyRunSamples_range` guarantee for the `CayleyIntegers` construction; the complete source hypotheses are retained. -/
+/-- Folding the ordered list of the first `n` samples gives the same integer state as running the
+recurrence for `n` steps. -/
 theorem cayleyRunSamples_range (D p : ℕ) (a : ℕ → Fin 3 → ℤ) (n : ℕ) :
     cayleyRunSamples D p ((List.range n).map a)=cayleyIntegerRun D p a n := by
   induction n with
@@ -99,7 +103,8 @@ theorem cayleyRunSamples_range (D p : ℕ) (a : ℕ → Fin 3 → ℤ) (n : ℕ)
     simpa [cayleyRunSamples,cayleyIntegerRun,List.range_succ,List.foldl_append] using
       congrArg (fun s => cayleyIntegerStep s (cayleyIntegerFactor D p (a n))) ih
 
-/-- Original `cayleyOracleExecution_eq` guarantee for the `CayleyIntegers` construction; the complete source hypotheses are retained. -/
+/-- The oracle execution equals the `D`-step integer recurrence with sample `j` taken from the query
+at rational time `j / D` and precision `p`. -/
 theorem cayleyOracleExecution_eq (D p : ℕ) (oracle : ℚ × ℕ → Fin 3 → ℤ) :
     cayleyOracleExecution D p oracle=cayleyIntegerRun D p (fun j : ℕ => oracle ((j : ℚ)/(D : ℚ),p)) D := by
   simp only [cayleyOracleExecution,cayleyQuerySchedule,List.map_map,Function.comp_def]
@@ -110,7 +115,7 @@ that determine the returned integer samples. It is not an arithmetic cost. -/
 def cayleyOracleCharge (D p : ℕ) (cost : ℚ × ℕ → ℕ) : ℕ :=
   ((cayleyQuerySchedule D p).map cost).sum
 
-/-- Original `cayleyOracleCharge_le` guarantee for the `CayleyIntegers` construction; the complete source hypotheses are retained. -/
+/-- If each scheduled query costs at most `T`, the total charge is at most `D * T`. -/
 theorem cayleyOracleCharge_le (D p T : ℕ) (cost : ℚ × ℕ → ℕ)
     (hcost : ∀ j < D, cost ((j : ℚ)/(D : ℚ),p) ≤ T) : cayleyOracleCharge D p cost ≤ D*T := by
   simp only [cayleyOracleCharge,cayleyQuerySchedule,List.map_map,Function.comp_def]
@@ -139,17 +144,18 @@ def cayleyChargedExecution (D p : ℕ) (oracle : ℚ × ℕ → (Fin 3 → ℤ) 
   let answers := (cayleyQuerySchedule D p).map oracle
   ⟨cayleyRunSamples D p (answers.map Prod.fst),(answers.map Prod.snd).sum⟩
 
-/-- Original `cayleyChargedExecution_state` guarantee for the `CayleyIntegers` construction; the complete source hypotheses are retained. -/
+/-- The charged execution's state is exactly the oracle execution that uses the sample component of
+every query result. -/
 theorem cayleyChargedExecution_state (D p : ℕ) (oracle : ℚ × ℕ → (Fin 3 → ℤ) × ℕ) :
     (cayleyChargedExecution D p oracle).state=cayleyOracleExecution D p (fun label => (oracle label).1) := by
   simp only [cayleyChargedExecution,cayleyOracleExecution,List.map_map,Function.comp_def]
 
-/-- Original `cayleyChargedExecution_fee` guarantee for the `CayleyIntegers` construction; the complete source hypotheses are retained. -/
+/-- The charged execution's source fee is the sum of the fee components over the scheduled queries. -/
 theorem cayleyChargedExecution_fee (D p : ℕ) (oracle : ℚ × ℕ → (Fin 3 → ℤ) × ℕ) :
     (cayleyChargedExecution D p oracle).sourceFee=cayleyOracleCharge D p (fun label => (oracle label).2) := by
   simp only [cayleyChargedExecution,cayleyOracleCharge,List.map_map,Function.comp_def]
 
-/-- Original `cayleyChargedExecution_fee_le` guarantee for the `CayleyIntegers` construction; the complete source hypotheses are retained. -/
+/-- A per-query fee bound `T` at all `D` scheduled labels bounds the recorded source fee by `D * T`. -/
 theorem cayleyChargedExecution_fee_le (D p T : ℕ) (oracle : ℚ × ℕ → (Fin 3 → ℤ) × ℕ)
     (hfee : ∀ j < D, (oracle ((j : ℚ)/(D : ℚ),p)).2 ≤ T) :
     (cayleyChargedExecution D p oracle).sourceFee ≤ D*T := by

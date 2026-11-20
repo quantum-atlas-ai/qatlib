@@ -27,7 +27,8 @@ set_option autoImplicit false
 namespace Qatlib.Concepts.EffectiveGauge.SpectralH1
 open Qatlib.Concepts.EffectiveGauge.HopfAtlas Qatlib.Concepts.EffectiveGauge.RationalFlow Qatlib.Concepts.EffectiveGauge.TorusFourier
 
-/-- Original `storedSourceGaugeFromPrepared_fields` guarantee for the `StoredGaugeArtifact` construction; the complete source hypotheses are retained. -/
+/-- If the stored gauge constructor returns a state, that state contains the supplied frame and its
+Poisson preparation contains the frame's cached preparation. -/
 theorem storedSourceGaugeFromPrepared_fields (source : RationalJetSource) (frame : StoredReferenceFrame)
     (tolerance : ℚ) (state : StoredGaugeState)
     (h : storedSourceGaugeFromPrepared source frame tolerance=some state) :
@@ -36,7 +37,8 @@ theorem storedSourceGaugeFromPrepared_fields (source : RationalJetSource) (frame
   rcases Option.map_eq_some_iff.mp h with ⟨result,hresult,rfl⟩
   exact ⟨rfl,(storedPoissonCoefficientPreparation_fields source frame _ result hresult).1⟩
 
-/-- Original `materializeStoredGaugeUnitSampling_fields` guarantee for the `StoredGaugeArtifact` construction; the complete source hypotheses are retained. -/
+/-- If stored unit sampling returns a plan, its gauge contains the supplied frame and its Poisson
+state contains that frame's cached preparation. -/
 theorem materializeStoredGaugeUnitSampling_fields (source : RationalJetSource) (frame : StoredReferenceFrame)
     (tolerance : ℚ) (plan : StoredGaugeUnitSamplingPlan)
     (h : materializeStoredGaugeUnitSampling source frame tolerance=some plan) :
@@ -45,7 +47,8 @@ theorem materializeStoredGaugeUnitSampling_fields (source : RationalJetSource) (
   rcases Option.map_eq_some_iff.mp h with ⟨state,hstate,rfl⟩
   exact storedSourceGaugeFromPrepared_fields source frame tolerance state hstate
 
-/-- Original `materializeStoredGaugeUnitSampling_output` guarantee for the `StoredGaugeArtifact` construction; the complete source hypotheses are retained. -/
+/-- For the frame stored with the gap-derived collar, projecting the optional stored sampling plan
+gives exactly the optional unit sampling plan constructed from the gap. -/
 theorem materializeStoredGaugeUnitSampling_output (source : RationalJetSource) (prepared : CachedMeanPreparation)
     (gap tolerance : ℚ) :
     (materializeStoredGaugeUnitSampling source
@@ -100,7 +103,8 @@ def seededGaugeArtifactExecution (source : RationalJetSource) (plan : StoredGaug
   storedGaugeArtifactExecution (fun address => gaugePhysicalWithSeeds source plan.gauge palette
     (fun j => plan.period*rationalUnitWrap address j) plan.tolerance) p
 
-/-- Original `seededGaugeArtifactExecution_correct` guarantee for the `StoredGaugeArtifact` construction; the complete source hypotheses are retained. -/
+/-- Reusing the frame's seed palette across the grid gives the same optional Fourier artifact as
+running the grid with the stored unit sampler. -/
 theorem seededGaugeArtifactExecution_correct (source : RationalJetSource) (plan : StoredGaugeUnitSamplingPlan)
     (p : StoredGaugeArtifactParameters) :
     seededGaugeArtifactExecution source plan p=
@@ -131,7 +135,9 @@ def automaticStoredGaugeArtifactFromGap (source : RationalJetSource) (bounds : �
   let frame := storeReferenceFrame source prepared (referenceUnitCollar gap)
   materializeStoredGaugeArtifact source frame tolerance
 
-/-- Original `storedGaugeArtifactExecution_output` guarantee for the `StoredGaugeArtifact` construction; the complete source hypotheses are retained. -/
+/-- When the plan uses the frame stored for the given gap and its Poisson state uses the matching
+preparation, the two unit samplers yield the same optional Fourier artifact for any artifact
+parameters. -/
 theorem storedGaugeArtifactExecution_output (source : RationalJetSource) (prepared : CachedMeanPreparation)
     (gap : ℚ) (plan : StoredGaugeUnitSamplingPlan)
     (hframe : plan.gauge.frame=storeReferenceFrame source prepared (referenceUnitCollar gap))
@@ -143,7 +149,9 @@ theorem storedGaugeArtifactExecution_output (source : RationalJetSource) (prepar
     exact storedSourceGaugeUnitSampling_output source prepared gap plan hframe hprepared address
   rw [he]
 
-/-- Original `materializeGaugeArtifact_old_execution` guarantee for the `StoredGaugeArtifact` construction; the complete source hypotheses are retained. -/
+/-- The gap-based Fourier constructor equals first obtaining the unit sampling plan at the
+frame-derived sample accuracy and then, if returned, executing the Fourier grid with that plan and
+the frame-derived parameters. -/
 private theorem materializeGaugeArtifact_old_execution (source : RationalJetSource) (prepared : CachedMeanPreparation)
     (gap tolerance : ℚ) :
     let p := storedGaugeArtifactParameters (storeReferenceFrame source prepared (referenceUnitCollar gap)) tolerance
@@ -162,7 +170,8 @@ private theorem materializeGaugeArtifact_old_execution (source : RationalJetSour
   simp only [storedGaugeArtifactExecution,Option.map_eq_bind,Function.comp_def,
     Option.bind_eq_bind,Option.pure_def]
 
-/-- Original `materializeStoredGaugeArtifact_output` guarantee for the `StoredGaugeArtifact` construction; the complete source hypotheses are retained. -/
+/-- Constructing the Fourier artifact from the frame stored with the gap-derived collar gives
+exactly the optional output of the constructor using the preparation and gap. -/
 theorem materializeStoredGaugeArtifact_output (source : RationalJetSource) (prepared : CachedMeanPreparation)
     (gap tolerance : ℚ) :
     materializeStoredGaugeArtifact source
@@ -187,7 +196,8 @@ theorem materializeStoredGaugeArtifact_output (source : RationalJetSource) (prep
     have hfields := materializeStoredGaugeUnitSampling_fields source frame p.sampleAccuracy plan hs
     exact storedGaugeArtifactExecution_output source prepared gap plan hfields.1 hfields.2 p
 
-/-- Original `automaticStoredGaugeArtifactFromGap_output` guarantee for the `StoredGaugeArtifact` construction; the complete source hypotheses are retained. -/
+/-- The automatic stored-frame constructor and the automatic gap-based constructor give the same
+optional Fourier artifact for every source, bounds, gap, and tolerance. -/
 theorem automaticStoredGaugeArtifactFromGap_output (source : RationalJetSource) (bounds : ℕ → ℚ)
     (gap tolerance : ℚ) :
     automaticStoredGaugeArtifactFromGap source bounds gap tolerance=

@@ -53,7 +53,8 @@ def rationalNegativeExp (x tolerance : ℚ) : RationalScalarResult :=
     let r := reducedNegativeExp (x/(2^h : ℚ)) (tolerance/(2^h : ℚ))
     negativeExpSquares h ⟨scalarClamp r.value,r.error,r.terms⟩
 
-/-- Original `negativeExpCutoff_first` guarantee for the `NegativeExpProgram` construction; the complete source hypotheses are retained. -/
+/-- For positive `tolerance`, every index `k` strictly below `arctanFuel tolerance` has reciprocal
+dyadic value `2⁻ᵏ` strictly greater than the tolerance. -/
 theorem negativeExpCutoff_first (tolerance : ℚ) (ht : 0<tolerance) (k : ℕ)
     (hk : k<arctanFuel tolerance) : tolerance<(2^k : ℚ)⁻¹ := by
   have hp : 2^k<Nat.ceil (1/tolerance) := (Nat.lt_clog_iff_pow_lt (by decide)).mp hk
@@ -62,20 +63,25 @@ theorem negativeExpCutoff_first (tolerance : ℚ) (ht : 0<tolerance) (k : ℕ)
   have hd : tolerance<1/(2^k : ℚ) := (lt_div_iff₀ (by positivity)).mpr (by nlinarith)
   simpa only [one_div] using hd
 
-/-- Original `negativeExp_term_step` guarantee for the `NegativeExpProgram` construction; the complete source hypotheses are retained. -/
+/-- Multiplying the order-`n` signed exponential series term by `-x / (n + 1)` gives the
+order-`n + 1` term. -/
 theorem negativeExp_term_step (x : ℚ) (n : ℕ) :
     ((-x)^n/(n.factorial : ℚ))*(-x)/((n+1 : ℕ) : ℚ)=(-x)^(n+1)/((n+1).factorial : ℚ) := by
   rw [Nat.factorial_succ,pow_succ]
   push_cast
   field_simp
 
-/-- Original `negativeExpTerm_abs` guarantee for the `NegativeExpProgram` construction; the complete source hypotheses are retained. -/
+/-- The absolute value of the rational signed exponential term of order `n` equals
+`negativeExpMagnitude x n`. -/
 theorem negativeExpTerm_abs (x : ℚ) (n : ℕ) :
     |(-x)^n/(n.factorial : ℚ)|=negativeExpMagnitude x n := by
   rw [abs_div,abs_pow,abs_neg,abs_of_nonneg (by positivity : (0 : ℚ) ≤ n.factorial)]
   rfl
 
-/-- Original `negativeExpLoop_spec` guarantee for the `NegativeExpProgram` construction; the complete source hypotheses are retained. -/
+/-- If the term magnitude at index `n + fuel` meets the tolerance, the loop started from the exact
+order-`n` partial sum and term stops between `n` and `n + fuel`. Its result records the exact
+partial sum and term magnitude at the stopping index. That magnitude is at most the tolerance and
+all tested earlier magnitudes are strictly greater. -/
 theorem negativeExpLoop_spec (x tolerance : ℚ) (fuel n : ℕ)
     (hstop : negativeExpMagnitude x (n+fuel) ≤ tolerance) :
     let r := negativeExpLoop x tolerance n (negativeExpPartial x n) ((-x)^n/(n.factorial : ℚ)) fuel
@@ -109,7 +115,9 @@ theorem negativeExpLoop_spec (x tolerance : ℚ) (fuel n : ℕ)
         simpa only [negativeExpTerm_abs] using lt_of_not_ge h
       · exact hprior k (by omega) hlt
 
-/-- Original `reducedNegativeExp_spec` guarantee for the `NegativeExpProgram` construction; the complete source hypotheses are retained. -/
+/-- For `|x| ≤ 1/2` and positive tolerance, the reduced exponential program returns the partial sum
+and the first term magnitude at most the tolerance, with the stopping index between `1` and
+`1 + arctanFuel tolerance`. -/
 theorem reducedNegativeExp_spec (x tolerance : ℚ) (hx : |x| ≤ 1/2) (ht : 0<tolerance) :
     let r := reducedNegativeExp x tolerance
     r.value=negativeExpPartial x r.terms ∧ r.error=negativeExpMagnitude x r.terms ∧
@@ -125,7 +133,8 @@ theorem reducedNegativeExp_spec (x tolerance : ℚ) (hx : |x| ≤ 1/2) (ht : 0<t
   simpa only [reducedNegativeExp,hinit,Nat.factorial_one,Nat.cast_one,div_one,pow_one]
     using negativeExpLoop_spec x tolerance (arctanFuel tolerance) 1 hstop
 
-/-- Original `negativeExpHalvings_reduced` guarantee for the `NegativeExpProgram` construction; the complete source hypotheses are retained. -/
+/-- For nonnegative `x`, dividing it by the power of two determined by `negativeExpHalvings x` puts
+it in `[0, 1/2]`. -/
 theorem negativeExpHalvings_reduced (x : ℚ) (hx : 0 ≤ x) :
     0 ≤ x/(2^negativeExpHalvings x : ℚ) ∧ x/(2^negativeExpHalvings x : ℚ) ≤ 1/2 := by
   refine ⟨by positivity,?_⟩
@@ -134,7 +143,8 @@ theorem negativeExpHalvings_reduced (x : ℚ) (hx : 0 ≤ x) :
     (Nat.le_ceil _).trans (by exact_mod_cast Nat.le_pow_clog (by decide : 1<2) (Nat.ceil (2*x)))
   linarith
 
-/-- Original `negativeExpHalvings_first` guarantee for the `NegativeExpProgram` construction; the complete source hypotheses are retained. -/
+/-- Using strictly fewer than `negativeExpHalvings x` halvings leaves the reduced rational argument
+greater than `1/2`. -/
 theorem negativeExpHalvings_first (x : ℚ) (k : ℕ) (hk : k<negativeExpHalvings x) :
     1/2<x/(2^k : ℚ) := by
   have hp : 2^k<Nat.ceil (2*x) := (Nat.lt_clog_iff_pow_lt (by decide)).mp hk
@@ -142,7 +152,8 @@ theorem negativeExpHalvings_first (x : ℚ) (k : ℕ) (hk : k<negativeExpHalving
   apply (lt_div_iff₀ (by positivity : (0 : ℚ)<2^k)).mpr
   linarith
 
-/-- Original `negativeExpSquares_spec` guarantee for the `NegativeExpProgram` construction; the complete source hypotheses are retained. -/
+/-- Repeating the squaring step `h` times raises the stored value to the power `2^h`, multiplies
+the recorded error by `2^h`, and keeps the term count. -/
 theorem negativeExpSquares_spec (h : ℕ) (r : RationalScalarResult) :
     (negativeExpSquares h r).value=r.value^(2^h) ∧
       (negativeExpSquares h r).error=(2^h : ℚ)*r.error ∧ (negativeExpSquares h r).terms=r.terms := by
@@ -162,13 +173,14 @@ theorem negativeExpSquares_spec (h : ℕ) (r : RationalScalarResult) :
       rw [pow_succ]
       ring
 
-/-- Original `scalarClamp_range` guarantee for the `NegativeExpProgram` construction; the complete source hypotheses are retained. -/
+/-- Clamping a rational number maps it into `[0, 1]`. -/
 theorem scalarClamp_range (x : ℚ) : 0 ≤ scalarClamp x ∧ scalarClamp x ≤ 1 :=
   ⟨le_min (by norm_num) (le_max_left _ _),min_le_left _ _⟩
 
 noncomputable section
 
-/-- Original `unit_pow_error` guarantee for the `NegativeExpProgram` construction; the complete source hypotheses are retained. -/
+/-- For `a` and `b` in `[0, 1]`, taking the `n`-th power increases their distance by at most a
+factor of `n`. -/
 private theorem unit_pow_error (a b : ℝ) (ha : a ∈ Set.Icc 0 1) (hb : b ∈ Set.Icc 0 1) (n : ℕ) :
     |a^n-b^n| ≤ (n : ℝ)*|a-b| := by
   have hm : max |a| |b| ≤ 1 := by simpa only [abs_of_nonneg ha.1,abs_of_nonneg hb.1] using max_le ha.2 hb.2
@@ -178,7 +190,7 @@ private theorem unit_pow_error (a b : ℝ) (ha : a ∈ Set.Icc 0 1) (hb : b ∈ 
     _ ≤ |a-b| *(n : ℝ)*1 := mul_le_mul_of_nonneg_left hp (by positivity)
     _ = _ := by ring
 
-/-- Original `negativeExp_cutoff` guarantee for the `NegativeExpProgram` construction; the complete source hypotheses are retained. -/
+/-- If the natural number `n` is at most the real `x`, then `exp (-x)` is at most `2⁻ⁿ`. -/
 theorem negativeExp_cutoff (x : ℝ) (n : ℕ) (hn : (n : ℝ) ≤ x) :
     Real.exp (-x) ≤ (2^n : ℝ)⁻¹ := by
   rw [Real.exp_neg]
@@ -189,7 +201,8 @@ theorem negativeExp_cutoff (x : ℝ) (n : ℕ) (hn : (n : ℝ) ≤ x) :
       _ ≤ Real.exp x := Real.exp_le_exp.mpr hn
   simpa only [one_div] using one_div_le_one_div_of_le (by positivity : (0 : ℝ)<2^n) hpow
 
-/-- Original `scalarClamp_error` guarantee for the `NegativeExpProgram` construction; the complete source hypotheses are retained. -/
+/-- Clamping a rational input to `[0, 1]` preserves any given error bound `e` relative to a real
+target in that interval. -/
 theorem scalarClamp_error (x : ℚ) (a e : ℝ) (ha : 0 ≤ a) (ha1 : a ≤ 1) (herr : |(x : ℝ)-a| ≤ e) :
     |(scalarClamp x : ℝ)-a| ≤ e := by
   have h := abs_le.mp herr
@@ -205,7 +218,8 @@ theorem scalarClamp_error (x : ℚ) (a e : ℝ) (ha : 0 ≤ a) (ha1 : a ≤ 1) (
       linarith
     · simpa only [scalarClamp,max_eq_right (le_of_not_ge hx),min_eq_right (le_of_not_ge hx1)] using herr
 
-/-- Original `reducedNegativeExp_error` guarantee for the `NegativeExpProgram` construction; the complete source hypotheses are retained. -/
+/-- For `0 ≤ x ≤ 1/2` and positive tolerance, the reduced rational exponential result approximates
+`exp (-x)` within its recorded error. -/
 theorem reducedNegativeExp_error (x tolerance : ℚ) (hx : 0 ≤ x) (hx1 : x ≤ 1/2) (ht : 0<tolerance) :
     |((reducedNegativeExp x tolerance).value : ℝ)-Real.exp (-(x : ℝ))| ≤
       ((reducedNegativeExp x tolerance).error : ℝ) := by

@@ -25,7 +25,7 @@ query; the reverse conversion preserves both query and gate counts.
 
 ## Main statements
 
-* `frontier1`: simulate a unitary bit-oracle circuit using a reference of known value.
+* `exists_bare_phase_simulation_with_query_and_gate_counts`: simulate a unitary bit-oracle circuit using a reference of known value.
 * `run_valueToPhaseCircuit`: correctness of value-to-phase compilation.
 * `phaseToValue_resources`: resource preservation for phase-to-value compilation.
 
@@ -54,7 +54,7 @@ variable {I W : Type} [Fintype I] [DecidableEq I] [Fintype W] [DecidableEq W]
 
 /-- Every unitary workspace bit-oracle circuit has a unitary bare-phase simulation using a
 reference index of known value, preserving queries and adding five gates per query. -/
-theorem frontier1 (c : Bool) (C : Circuit (Data I W)) (hC : IsUnitaryCircuit C) :
+theorem exists_bare_phase_simulation_with_query_and_gate_counts (c : Bool) (C : Circuit (Data I W)) (hC : IsUnitaryCircuit C) :
     ∃ C' : Circuit (Full I W), IsUnitaryCircuit C' ∧
       QueryCount C' = QueryCount C ∧ GateCount C' = GateCount C + 5 * QueryCount C ∧
       ∀ (f : I → Bool) (r : I), f r = c → ∀ ψ : QState (Data I W),

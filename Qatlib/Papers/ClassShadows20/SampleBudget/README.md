@@ -10,4 +10,9 @@
 
 **覆盖等级**：A
 
-本 Block 尚无 Lean 声明。
+## 声明
+
+| FQN | 种类 | 源码 | 一句话 |
+| --- | --- | --- | --- |
+| `Qatlib.Papers.ClassShadows20.SampleBudget.pilot_moments_execution` | theorem | L41 | The counted binary evaluator returns exactly the original rational pilot moments. |
+| `Qatlib.Papers.ClassShadows20.SampleBudget.pilot_moments_executed_cost` | theorem | L51 | The same evaluator returns nonzero, uniformly bounded Boolean-gate charges for a nonempty supplied table, together with output-width bounds. |

@@ -36,7 +36,8 @@ def rescaledLineChargedValue (source : (Fin 3 → ℚ) × ℕ → RationalSpinSa
     ⟨rationalChartSeed chart fine.1.1 b,coarse.2+fine.2,chart⟩
   else seededPhysicalChargedValue samples (a 1) (a 2) (a 0) (7*m1) (49*m2) tolerance
 
-/-- Original `rescaledLineChargedValue_value` guarantee for the `RescaledLine` construction; the complete source hypotheses are retained. -/
+/-- Charging fees to the rescaled line computation preserves its returned quaternion value
+compared with executing on the source samples alone. -/
 theorem rescaledLineChargedValue_value (source : (Fin 3 → ℚ) × ℕ → RationalSpinSample × ℕ)
     (m1 m2 : ℚ) (a : Fin 3 → ℚ) (tolerance : ℚ) :
     (rescaledLineChargedValue source m1 m2 a tolerance).value=
@@ -58,7 +59,9 @@ def rescaledLineLogicalSchedule (m1 m2 : ℚ) (a : Fin 3 → ℚ) (tolerance : �
 def rescaledLineSourceSchedule (m1 m2 : ℚ) (a : Fin 3 → ℚ) (tolerance : ℚ) : List ((Fin 3 → ℚ) × ℕ) :=
   (rescaledLineLogicalSchedule m1 m2 a tolerance).map (rescaleSourceQuery m1 m2)
 
-/-- Original `rescaledLineSourceSchedule_length` guarantee for the `RescaledLine` construction; the complete source hypotheses are retained. -/
+/-- The rescaled line query schedule contains two origin queries if `m1 = 0`. Otherwise it
+contains those two queries plus one per Cayley step, using the bounds scaled by `7` and `49` and
+tolerance divided by four. -/
 @[simp] theorem rescaledLineSourceSchedule_length (m1 m2 : ℚ) (a : Fin 3 → ℚ) (tolerance : ℚ) :
     (rescaledLineSourceSchedule m1 m2 a tolerance).length=
       if m1=0 then 2 else 2+cayleySteps ((a 0)*(7*m1)/2) ((a 0)^2*((7*m1)^2+49*m2)/2) (tolerance/4) := by
@@ -74,7 +77,8 @@ def rescaledOriginSeed (v : SpatialPoint → SpatialPoint)
     (source : (Fin 3 → ℚ) × ℕ → RationalSpinSample) (m1 m2 : ℚ) : ℍ :=
   exactChartSeed (chosenOriginChart (rescaledSpinSamples source m1 m2)) (sourceQuaternion v 0)
 
-/-- Original `rescaledOriginSamples_error` guarantee for the `RescaledLine` construction; the complete source hypotheses are retained. -/
+/-- Rescaling an accurate rational source leaves its origin sample accurate in every coordinate
+to the requested bound `1 / 2^b`. -/
 theorem rescaledOriginSamples_error (v : SpatialPoint → SpatialPoint)
     (source : (Fin 3 → ℚ) × ℕ → RationalSpinSample) (hs : OriginalSpinSourceAccurate v source)
     (m1 m2 : ℚ) (b : ℕ) :
@@ -87,7 +91,8 @@ theorem rescaledOriginSamples_error (v : SpatialPoint → SpatialPoint)
   intro j
   simpa [originSpinSamples,rescaledSpinSamples,Pi.zero_def] using (he j).trans hi
 
-/-- Original `rescaledOriginChart_valid` guarantee for the `RescaledLine` construction; the complete source hypotheses are retained. -/
+/-- An accurate source's rescaled origin samples select a chart whose strict `i` coordinate
+margin holds for the exact spin at the origin. -/
 theorem rescaledOriginChart_valid (v : SpatialPoint → SpatialPoint)
     (source : (Fin 3 → ℚ) × ℕ → RationalSpinSample) (hs : OriginalSpinSourceAccurate v source) (m1 m2 : ℚ) :
     match chosenOriginChart (rescaledSpinSamples source m1 m2) with
@@ -96,7 +101,9 @@ theorem rescaledOriginChart_valid (v : SpatialPoint → SpatialPoint)
   apply chooseSeedChart_valid
   simpa only [sourceQuaternion,spinOfVector,show (2^4 : ℝ)⁻¹=(1/16 : ℝ) by norm_num] using rescaledOriginSamples_error v source hs m1 m2 4 0
 
-/-- Original `rescaledOriginSeed_spec` guarantee for the `RescaledLine` construction; the complete source hypotheses are retained. -/
+/-- For an accurate rational source representing a unit vector field, the selected rescaled seed
+is a unit quaternion lifting the origin spin. It has real part above `1/2` in the north chart or
+`j` coordinate above `1/2` in the south chart. -/
 theorem rescaledOriginSeed_spec (v : SpatialPoint → SpatialPoint) (hu : ∀ w, ‖v w‖=1)
     (source : (Fin 3 → ℚ) × ℕ → RationalSpinSample) (hs : OriginalSpinSourceAccurate v source) (m1 m2 : ℚ) :
     ‖rescaledOriginSeed v source m1 m2‖=1 ∧ hopf (rescaledOriginSeed v source m1 m2)=sourceQuaternion v 0 ∧
@@ -113,7 +120,8 @@ theorem rescaledOriginSeed_spec (v : SpatialPoint → SpatialPoint) (hu : ∀ w,
     simp only [hchart] at hc
     simpa only [rescaledOriginSeed,hchart] using exactChartSeed_spec .south (sourceQuaternion v 0) rfl hn hc
 
-/-- Original `rescaledOriginSeed_error` guarantee for the `RescaledLine` construction; the complete source hypotheses are retained. -/
+/-- For a unit source with accurate rational samples and positive tolerance, the cast rational
+origin-seed approximation is within that tolerance of the exact rescaled origin seed. -/
 theorem rescaledOriginSeed_error (v : SpatialPoint → SpatialPoint) (hu : ∀ w, ‖v w‖=1)
     (source : (Fin 3 → ℚ) × ℕ → RationalSpinSample) (hs : OriginalSpinSourceAccurate v source)
     (m1 m2 tolerance : ℚ) (ht : 0<tolerance) :
@@ -130,7 +138,9 @@ theorem rescaledOriginSeed_error (v : SpatialPoint → SpatialPoint) (hu : ∀ w
   push_cast at hb
   exact h.trans hb
 
-/-- Original `scaledLine_cube` guarantee for the `RescaledLine` construction; the complete source hypotheses are retained. -/
+/-- For rational coordinates in the unit cube, scaling the transverse coordinates by the period
+and taking any longitudinal coordinate between zero and the scaled endpoint gives a point in the
+physical cube. -/
 private theorem scaledLine_cube (x y z : ℚ)
     (hx : (x : ℝ) ∈ Icc 0 1) (hy : (y : ℝ) ∈ Icc 0 1) (hz : (z : ℝ) ∈ Icc 0 1)
     (r : ℝ) (hr : r ∈ Icc 0 (physicalPeriod*(x : ℝ))) :
@@ -144,7 +154,9 @@ private theorem scaledLine_cube (x y z : ℚ)
   · change 0 ≤ physicalPeriod*(z : ℝ) ∧ physicalPeriod*(z : ℝ) ≤ physicalPeriod
     exact ⟨mul_nonneg physicalPeriod_pos.le hz.1,by simpa only [mul_one] using mul_le_mul_of_nonneg_left hz.2 physicalPeriod_pos.le⟩
 
-/-- Original `scaledLine_derivative_bounds` guarantee for the `RescaledLine` construction; the complete source hypotheses are retained. -/
+/-- For a smooth field with the given first- and second-derivative bounds throughout the
+physical cube, the corresponding longitudinal spin derivatives on the physical line from a
+normalized cube point are bounded by `m1` and `m2`. -/
 private theorem scaledLine_derivative_bounds (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (m1 m2 : ℚ) (hb : SourceRescalingBounds v (m1 : ℝ) (m2 : ℝ)) (x y z : ℚ)
     (hx : (x : ℝ) ∈ Icc 0 1) (hy : (y : ℝ) ∈ Icc 0 1) (hz : (z : ℝ) ∈ Icc 0 1) :
@@ -160,7 +172,8 @@ private theorem scaledLine_derivative_bounds (v : SpatialPoint → SpatialPoint)
     rw [sourceXXDerivative_eq_spin v hv,spinOfVector_norm]
     exact hb.2 _ (scaledLine_cube x y z hx hy hz r hr) 0
 
-/-- Original `scaledPoint_position` guarantee for the `RescaledLine` construction; the complete source hypotheses are retained. -/
+/-- Scaling the rational line sample by the physical period scales its transverse coordinates
+and its longitudinal coordinate `x * t` by that period. -/
 private theorem scaledPoint_position (x y z t : ℚ) :
     physicalPeriod • rationalSpatialPoint (physicalLinePoint y z x t)=
       sourcePosition (physicalPeriod • rationalTransversePoint y z,(physicalPeriod*(x : ℝ))*(t : ℝ)) := by
@@ -171,7 +184,9 @@ private theorem scaledPoint_position (x y z t : ℚ) :
   · rfl
   · rfl
 
-/-- Original `rescaledCoefficientOracle_error` guarantee for the `RescaledLine` construction; the complete source hypotheses are retained. -/
+/-- For smooth unit data with accurate rational samples and nonnegative source derivative
+bounds, at normalized cube coordinates and unit-interval time the rescaled coefficient query
+approximates the exact normalized generator to `1 / 2^b` in norm. -/
 theorem rescaledCoefficientOracle_error (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (hu : ∀ w, ‖v w‖=1) (source : (Fin 3 → ℚ) × ℕ → RationalSpinSample) (hs : OriginalSpinSourceAccurate v source)
     (m1 m2 : ℚ) (hm1 : 0 ≤ m1) (hm2 : 0 ≤ m2) (hb : SourceRescalingBounds v (m1 : ℝ) (m2 : ℝ))
@@ -247,7 +262,9 @@ theorem rescaledCoefficientOracle_error (v : SpatialPoint → SpatialPoint) (hv 
   rw [he] at h
   exact h
 
-/-- Original `sourceLine_zero` guarantee for the `RescaledLine` construction; the complete source hypotheses are retained. -/
+/-- For a smooth unit source and a unit seed, if the normalized generator vanishes throughout
+the unit interval on a line of length between zero and one period, its extended lift endpoint is
+the seed. -/
 private theorem sourceLine_zero (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (hu : ∀ w, ‖v w‖=1) (q₀ : ℍ) (h₀ : ‖q₀‖=1) (p : TransversePoint) (x : ℝ)
     (hx : 0 ≤ x ∧ x ≤ physicalPeriod)
@@ -362,7 +379,9 @@ theorem rescaledLineValue_error (v : SpatialPoint → SpatialPoint) (hv : ContDi
     have hp : (0 : ℝ)<tolerance := by exact_mod_cast ht
     linarith
 
-/-- Original `rescaledOriginRaw_from_support` guarantee for the `RescaledLine` construction; the complete source hypotheses are retained. -/
+/-- A smooth periodic unit source with accurate rational samples and constant value outside a
+set `B` separated by a positive distance from the cube boundary has a smooth unit lift from the
+rescaled origin seed. -/
 theorem rescaledOriginRaw_from_support (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (hu : ∀ w, ‖v w‖=1) (hp : IsPeriodicField v)
     (source : (Fin 3 → ℚ) × ℕ → RationalSpinSample) (hs : OriginalSpinSourceAccurate v source)

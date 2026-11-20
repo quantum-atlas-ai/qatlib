@@ -35,14 +35,14 @@ open scoped BigOperators
 variable {J H : Type} [Fintype J] [DecidableEq J] [Fintype H] [DecidableEq H]
 
 omit [Fintype J] [Fintype H] [DecidableEq H] in
-/-- The finite construction in `NativeMultiNodePolynomial` satisfies `select_sub_family` under the displayed hypotheses. -/
+/-- Subtracting two selection matrices yields the selection of the differences at each label. -/
 private theorem select_sub_family (U V : J → Matrix H H ℂ) :
     select U - select V = select (fun j => U j - V j) := by
   ext ⟨j, h⟩ ⟨k, h'⟩
   by_cases hj : j = k <;> simp [select, hj]
 
 omit [Fintype J] [Fintype H] [DecidableEq H] in
-/-- The finite construction in `NativeMultiNodePolynomial` satisfies `select_sum_family` under the displayed hypotheses. -/
+/-- A finite sum of selections over `s` has at each label the sum of the corresponding blocks over `s`. -/
 private theorem select_sum_family {K : Type} (s : Finset K) (U : K → J → Matrix H H ℂ) :
     (∑ k ∈ s, select (U k)) = select (fun j => ∑ k ∈ s, U k j) := by
   classical
@@ -55,7 +55,7 @@ private theorem select_sum_family {K : Type} (s : Finset K) (U : K → J → Mat
     ext ⟨j, h⟩ ⟨l, h'⟩
     by_cases hj : j = l <;> simp [select, hj]
 
-/-- The finite construction in `NativeMultiNodePolynomial` satisfies `select_pow_family` under the displayed hypotheses. -/
+/-- The `n`th power of a selection matrix is the selection of the `n`th powers of its individual blocks. -/
 private theorem select_pow_family (U : J → Matrix H H ℂ) (n : ℕ) :
     (select U)^n = select (fun j => (U j)^n) := by
   induction n with

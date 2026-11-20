@@ -43,7 +43,7 @@ purely analytic cores of the seven active claims:
 
 Nothing here imports the whole quantum-algorithm stack: the block-encoding
 vocabulary is reused verbatim from
-`Qatlib.Papers.QSingValue19.BlockEncoding.BlockEncoding`
+`Qatlib.Concepts.BlockEncoding.Basic`
 (`BlockEncoding`, `BlockEncoding.perturb`, `compress`, `IsIsometry`).
 -/
 

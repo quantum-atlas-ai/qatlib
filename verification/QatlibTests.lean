@@ -10,6 +10,10 @@ public import QatlibTests.AlgFillExactSimon97Regression
 public import QatlibTests.AlgFillNoncommHSP98Regression
 public import QatlibTests.ArmillaryRateRegression
 public import QatlibTests.BatemanTorusRegression
+public import QatlibTests.BinaryRank
+public import QatlibTests.CssChannel
+public import QatlibTests.CssCircuit
+public import QatlibTests.CssDistanceCert
 public import QatlibTests.CssSignedRecoveryRegression
 public import QatlibTests.DecisionLevel
 public import QatlibTests.ErrorCorrectionRegression
@@ -17,16 +21,22 @@ public import QatlibTests.HamLCUSim12DefectRegression
 public import QatlibTests.HydroSpinLatticeRegression
 public import QatlibTests.InterfaceConsumer
 public import QatlibTests.KnottedLightRegression
+public import QatlibTests.KrausRecovery
 public import QatlibTests.MiscFillPrecondQLSA13
 public import QatlibTests.MiscFillVarTimeAmpAmp10
+public import QatlibTests.ParityCircuit
+public import QatlibTests.PilotExecutionRegression
 public import QatlibTests.PublicModuleInterface
 public import QatlibTests.QueryFillQWeakness97Regression
 public import QatlibTests.RootCountOrder
 public import QatlibTests.RootRankCases
+public import QatlibTests.SemanticDeclarationConsumers
 public import QatlibTests.SemanticInterfaces
+public import QatlibTests.SignedNoise
 public import QatlibTests.SimonQuantumExpectationRegression
 public import QatlibTests.SuperfluidHelicityRegression
 public import QatlibTests.SuperfoilLiftRegression
+public import QatlibTests.TannerGirth
 public import QatlibTests.TaylorAnglesSegmentsRegression
 public import QatlibTests.ToolkitCircuitRegression
 public import QatlibTests.ToolkitControlledCircuitRegression
@@ -38,5 +48,6 @@ public import QatlibTests.ToolkitProgramBilling
 public import QatlibTests.ToolkitProgramBorn
 public import QatlibTests.ToolkitWirePlacementRegression
 public import QatlibTests.TruncTaylor14ResourceCountRegression
+public import QatlibTests.WitnessCompositionConsumer
 
 @[expose] public section

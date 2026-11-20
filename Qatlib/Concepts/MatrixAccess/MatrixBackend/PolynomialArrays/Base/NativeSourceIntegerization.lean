@@ -40,7 +40,7 @@ def sourceIntegerTarget (a : List ℚ) : List ℤ :=
 def sourceRationalPolynomial (a : List ℚ) : ℂ[X] :=
   (⟨⟨a.toFinsupp⟩⟩ : ℚ[X]).map (Rat.castHom ℂ)
 
-/-- The finite construction in `rational array integerization` satisfies `lcmFold_dvd_seed` under the displayed hypotheses. -/
+/-- The initial value `s` divides the result of folding least common multiples of the rational denominators from `s`. -/
 private theorem lcmFold_dvd_seed (a : List ℚ) (s : ℕ) :
     s ∣ a.foldl (fun D q => Nat.lcm D q.den) s := by
   induction a generalizing s with
@@ -49,7 +49,7 @@ private theorem lcmFold_dvd_seed (a : List ℚ) (s : ℕ) :
     rw [List.foldl_cons]
     exact (Nat.dvd_lcm_left s q.den).trans (ih (Nat.lcm s q.den))
 
-/-- The finite construction in `rational array integerization` satisfies `lcmFold_dvd_mem` under the displayed hypotheses. -/
+/-- The denominator of each rational `q` in `a` divides the least-common-multiple fold starting from any seed `s`. -/
 private theorem lcmFold_dvd_mem (a : List ℚ) (s : ℕ) (q : ℚ) (hq : q∈a) :
     q.den ∣ a.foldl (fun D q => Nat.lcm D q.den) s := by
   induction a generalizing s with
@@ -61,7 +61,7 @@ private theorem lcmFold_dvd_mem (a : List ℚ) (s : ℕ) (q : ℚ) (hq : q∈a) 
       exact (Nat.dvd_lcm_right s b.den).trans (lcmFold_dvd_seed a (Nat.lcm s b.den))
     · exact ih (Nat.lcm s b.den) he
 
-/-- The finite construction in `rational array integerization` satisfies `lcmFold_pos` under the displayed hypotheses. -/
+/-- Folding least common multiples of rational denominators from a positive seed gives a positive result. -/
 private theorem lcmFold_pos (a : List ℚ) (s : ℕ) (hs : 0<s) :
     0<a.foldl (fun D q => Nat.lcm D q.den) s := by
   induction a generalizing s with
@@ -72,7 +72,7 @@ private theorem lcmFold_pos (a : List ℚ) (s : ℕ) (hs : 0<s) :
     apply Nat.pos_of_ne_zero
     simp [ne_of_gt hs]
 
-/-- The finite construction in `rational array integerization` satisfies `gcdFold_dvd_seed` under the displayed hypotheses. -/
+/-- The result of folding greatest common divisors with the absolute integer entries divides the initial value `s`. -/
 private theorem gcdFold_dvd_seed (a : List ℤ) (s : ℕ) :
     a.foldl (fun g x => Nat.gcd g x.natAbs) s ∣ s := by
   induction a generalizing s with
@@ -81,7 +81,7 @@ private theorem gcdFold_dvd_seed (a : List ℤ) (s : ℕ) :
     rw [List.foldl_cons]
     exact (ih (Nat.gcd s q.natAbs)).trans (Nat.gcd_dvd_left s q.natAbs)
 
-/-- The finite construction in `rational array integerization` satisfies `gcdFold_dvd_mem` under the displayed hypotheses. -/
+/-- For each integer `x` in the list, its absolute value is divisible by the greatest-common-divisor fold from `s`. -/
 private theorem gcdFold_dvd_mem (a : List ℤ) (s : ℕ) (x : ℤ) (hx : x∈a) :
     a.foldl (fun g x => Nat.gcd g x.natAbs) s ∣ x.natAbs := by
   induction a generalizing s with
@@ -93,25 +93,25 @@ private theorem gcdFold_dvd_mem (a : List ℤ) (s : ℕ) (x : ℤ) (hx : x∈a) 
       exact (gcdFold_dvd_seed a (Nat.gcd s b.natAbs)).trans (Nat.gcd_dvd_right s b.natAbs)
     · exact ih (Nat.gcd s b.natAbs) he
 
-/-- The finite construction in `rational array integerization` satisfies `sourceDenominator_pos` under the displayed hypotheses. -/
+/-- The common denominator of the rational coefficient list is positive, including for the empty list. -/
 theorem sourceDenominator_pos (a : List ℚ) : 0<sourceDenominator a :=
   lcmFold_pos a 1 (by decide)
 
-/-- The finite construction in `rational array integerization` satisfies `sourceDenominator_dvd` under the displayed hypotheses. -/
+/-- The denominator of any entry `q` of `a` divides their computed common denominator. -/
 theorem sourceDenominator_dvd (a : List ℚ) (q : ℚ) (hq : q∈a) :
     q.den ∣ sourceDenominator a := lcmFold_dvd_mem a 1 q hq
 
-/-- The finite construction in `rational array integerization` satisfies `sourceRawIntegers_exact` under the displayed hypotheses. -/
+/-- For each coefficient `q` in `a`, casting its scaled integer numerator back to ℚ gives exactly `q` times the list's common denominator. -/
 theorem sourceRawIntegers_exact (a : List ℚ) (q : ℚ) (hq : q∈a) :
     (rootScaledNumerator q (sourceDenominator a) : ℚ)=q*(sourceDenominator a : ℚ) :=
   rootScaledNumerator_exact q _ (sourceDenominator_dvd a q hq)
 
-/-- The finite construction in `rational array integerization` satisfies `sourceContent_dvd` under the displayed hypotheses. -/
+/-- The computed integer content divides every entry in the denominator-cleared list. -/
 theorem sourceContent_dvd (a : List ℚ) (x : ℤ) (hx : x∈sourceRawIntegers a) :
     (sourceContent a : ℤ) ∣ x :=
   Int.natCast_dvd.mpr (gcdFold_dvd_mem (sourceRawIntegers a) 0 x hx)
 
-/-- The finite construction in `rational array integerization` satisfies `sourceContent_pos` under the displayed hypotheses. -/
+/-- If the rational coefficient list contains a nonzero entry, the greatest common divisor of the absolute cleared coefficients is positive. -/
 theorem sourceContent_pos (a : List ℚ) (h : ∃ q∈a,q≠0) : 0<sourceContent a := by
   obtain ⟨q,hq,hnq⟩ := h
   have hD : (sourceDenominator a : ℚ)≠0 := by
@@ -129,7 +129,9 @@ theorem sourceContent_pos (a : List ℚ) (h : ∃ q∈a,q≠0) : 0<sourceContent
   rw [he,Nat.cast_zero] at hd
   exact hx (zero_dvd_iff.mp hd)
 
-/-- The finite construction in `rational array integerization` satisfies `sourceIntegerEntry_exact` under the displayed hypotheses. -/
+/-- If `a` contains a nonzero entry, then dividing the cleared integer coefficient for
+ any `q` in `a` by the content is exact. Its rational cast equals `q` times the
+ common denominator divided by that content. -/
 theorem sourceIntegerEntry_exact (a : List ℚ) (h : ∃ q∈a,q≠0)
     (q : ℚ) (hq : q∈a) :
     ((rootScaledNumerator q (sourceDenominator a)/(sourceContent a : ℤ) : ℤ) : ℚ)=
@@ -146,7 +148,7 @@ theorem sourceIntegerEntry_exact (a : List ℚ) (h : ∃ q∈a,q≠0)
     exact_mod_cast he
   exact hc.trans (sourceRawIntegers_exact a q hq)
 
-/-- The finite construction in `rational array integerization` satisfies `sourceRationalPolynomial_coeff` under the displayed hypotheses. -/
+/-- The coefficient at `k` is the rational entry of `a` at that index cast to ℂ, with zero beyond the end of the list. -/
 theorem sourceRationalPolynomial_coeff (a : List ℚ) (k : ℕ) :
     (sourceRationalPolynomial a).coeff k=(a.getD k 0 : ℂ) := by
   rw [sourceRationalPolynomial,Polynomial.coeff_map]

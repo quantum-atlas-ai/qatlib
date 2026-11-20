@@ -82,43 +82,50 @@ def sourceSeedPalette (source : RationalJetSource) (frame : StoredReferenceFrame
     (tolerance : ℚ) : ReferenceSeedPalette :=
   (referenceSeedPaletteExecution (fun query => (source query,0)) frame tolerance).palette
 
-/-- Original `chargedFrameSeed_value` guarantee for the `SeedPaletteExecution` construction; the complete source hypotheses are retained. -/
+/-- The charged seed's value is the rational origin seed on the stored chart, using the rescaled
+first-axis source pair obtained from the value components of the oracle and the frame's derivative
+bounds. -/
 theorem chargedFrameSeed_value (source : ChargedOriginalJetSource) (frame : StoredReferenceFrame)
     (tolerance : ℚ) :
     (chargedFrameSeed source frame tolerance).value=
       originSeedOnChart (rescaledSpinSamples (originalFirstJetPair (fun q => (source q).1) 0)
         (frame.prepared.derivativeBounds 1) (frame.prepared.derivativeBounds 2)) frame.chart tolerance := rfl
 
-/-- Original `referenceSeedPaletteExecution_value` guarantee for the `SeedPaletteExecution` construction; the complete source hypotheses are retained. -/
+/-- The charged execution returns exactly the palette computed from the oracle's jet values and the
+same frame and tolerance. -/
 theorem referenceSeedPaletteExecution_value (source : ChargedOriginalJetSource) (frame : StoredReferenceFrame)
     (tolerance : ℚ) :
     (referenceSeedPaletteExecution source frame tolerance).palette=
       storeReferenceSeedPalette (fun q => (source q).1) frame tolerance := by
   simp only [referenceSeedPaletteExecution,chargedFrameSeed_value,storeReferenceSeedPalette]
 
-/-- Original `sourceSeedPalette_correct` guarantee for the `SeedPaletteExecution` construction; the complete source hypotheses are retained. -/
+/-- The uncharged palette constructor agrees exactly with storing the reference seed palette from
+the same source, frame, and tolerance. -/
 theorem sourceSeedPalette_correct (source : RationalJetSource) (frame : StoredReferenceFrame)
     (tolerance : ℚ) : sourceSeedPalette source frame tolerance=storeReferenceSeedPalette source frame tolerance :=
   referenceSeedPaletteExecution_value (fun query => (source query,0)) frame tolerance
 
-/-- Original `referenceSeedPaletteExecution_requests` guarantee for the `SeedPaletteExecution` construction; the complete source hypotheses are retained. -/
+/-- The charged palette execution records precisely the prescribed list of seed requests for its
+frame and tolerance. -/
 theorem referenceSeedPaletteExecution_requests (source : ChargedOriginalJetSource) (frame : StoredReferenceFrame)
     (tolerance : ℚ) :
     (referenceSeedPaletteExecution source frame tolerance).requests=referenceSeedRequests frame tolerance := rfl
 
-/-- Original `referenceSeedRequests_length` guarantee for the `SeedPaletteExecution` construction; the complete source hypotheses are retained. -/
+/-- The palette requests consist of eight entries, two for each of the four seed evaluations. -/
 theorem referenceSeedRequests_length (frame : StoredReferenceFrame) (tolerance : ℚ) :
     (referenceSeedRequests frame tolerance).length=8 := by
   simp [referenceSeedRequests,frameSeedRequests]
 
-/-- Original `referenceSeedPaletteExecution_charge` guarantee for the `SeedPaletteExecution` construction; the complete source hypotheses are retained. -/
+/-- The recorded palette charge is the sum of the oracle's fee components over the prescribed seed
+request list. -/
 theorem referenceSeedPaletteExecution_charge (source : ChargedOriginalJetSource) (frame : StoredReferenceFrame)
     (tolerance : ℚ) :
     (referenceSeedPaletteExecution source frame tolerance).sourceCharge=
       ((referenceSeedRequests frame tolerance).map (fun query => (source query).2)).sum := by
   simp [referenceSeedPaletteExecution,referenceSeedRequests,chargedFrameSeed,frameSeedRequests,Nat.add_assoc]
 
-/-- Original `sourceRequestSum_le` guarantee for the `SeedPaletteExecution` construction; the complete source hypotheses are retained. -/
+/-- If every query in the list costs at most `T`, the sum of its charges is bounded by the list
+length times `T`. -/
 private theorem sourceRequestSum_le (source : ChargedOriginalJetSource) (labels : List OriginalJetQuery) (T : ℕ)
     (hT : ∀ query∈labels, (source query).2 ≤ T) :
     (labels.map (fun query => (source query).2)).sum ≤ labels.length*T := by

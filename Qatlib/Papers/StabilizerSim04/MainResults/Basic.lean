@@ -584,7 +584,7 @@ theorem theorem4_gottesman_knill_in_xorL {n : ℕ} (program : Program n n) (t : 
         result.machine.elapsed ≤ program.maxSteps * stepPolynomial n ∧
         result.machine.peakSpace ≤ spacePolynomial n + program.maxMeasurements := by
   obtain ⟨r, hr, -, -, -, -, htime, hspace⟩ :=
-    frontier1 program t tape ψ (le_refl n) hv ht hn hψ hbudget
+    exists_physical_execution_of_valid_tableau_program program t tape ψ (le_refl n) hv ht hn hψ hbudget
   exact ⟨r, hr, htime, hspace⟩
 
 /-- The property that physical execution from the standard all-zero initial state on `tape`

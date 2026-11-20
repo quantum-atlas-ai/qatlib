@@ -43,7 +43,9 @@ theorem sourceIdealDiscovered_length {d : ℕ} (G : Fin (d+1) → Matrix Bool Bo
   | zero => rfl
   | succ m ih => simp only [sourceIdealDiscovered,List.length_cons,ih]
 
-/-- The finite construction in `NativeSourceDiscoveredPhases` satisfies `sourceIdealDiscovered_unit` under the displayed hypotheses. -/
+/-- If the completion array is pointwise unitary with both endpoint norms bounded below by a
+positive h, and every coefficient is fixed by the conjugate swap, every coordinate discovered
+by ideal deflation has complex norm one. -/
 theorem sourceIdealDiscovered_unit {d : ℕ} (G : Fin (d+1) → Matrix Bool Bool ℂ)
     (h : ℝ) (hh : 0<h) (hinv : SourceIdealDeflationInvariant G h)
     (hfixed : ∀ j,sourceConjugateSwap (G j)=G j) :
@@ -64,7 +66,9 @@ theorem sourceIdealDiscovered_unit {d : ℕ} (G : Fin (d+1) → Matrix Bool Bool
 open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data
 open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data.SourceInput
 
-/-- The finite construction in `NativeSourceDiscoveredPhases` satisfies `source_ideal_discovered_unit` under the displayed hypotheses. -/
+/-- For positive E and source degree, and a Chebyshev target of degree at most N, parity N and
+absolute value at most one on the interval from −1 to 1, all coordinates discovered from the
+ideal source matrix have complex norm one. -/
 theorem source_ideal_discovered_unit (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E)
     (htail : ∀ k,N+1 ≤ k → cs.getD k 0=0)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)
@@ -170,12 +174,13 @@ def sourceDiscoveredGaussian : {d : ℕ} → (Fin (d+1) → Matrix Bool Bool (�
       let z := sourceGramNormalize (F (Fin.last (m+1))) eta false true
       (2*z.1,2*z.2)::sourceDiscoveredGaussian (sourceDeflationStep F eta) eta
 
-/-- The finite construction in `NativeSourceDiscoveredPhases` satisfies `gaussian_twice_decode` under the displayed hypotheses. -/
+/-- Doubling both rational coordinates decodes to twice the original complex value. -/
 private theorem gaussian_twice_decode (z : ℚ×ℚ) :
     rootRationalCoordinate (2*z.1,2*z.2)=2*rootRationalCoordinate z := by
   apply Complex.ext <;> norm_num [rootRationalCoordinate,Complex.mul_re,Complex.mul_im]
 
-/-- The finite construction in `NativeSourceDiscoveredPhases` satisfies `sourceDiscovered_decode` under the displayed hypotheses. -/
+/-- Decoding each entry of the discovered rational coordinate list gives exactly the discovered
+complex list. -/
 theorem sourceDiscovered_decode {d : ℕ} (F : Fin (d+1) → Matrix Bool Bool (ℚ×ℚ)) (eta : ℚ) :
     (sourceDiscoveredGaussian F eta).map rootRationalCoordinate=sourceDiscovered F eta := by
   induction d with
@@ -193,7 +198,8 @@ open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data
 open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data.SourceInput
 open scoped Matrix.Norms.L2Operator
 
-/-- The finite construction in `NativeSourceDiscoveredPhases` satisfies `paired_nonzero` under the displayed hypotheses. -/
+/-- If two complex lists match pairwise within 7/40 and every entry of the second list has norm
+one, all entries of the first list are nonzero. -/
 private theorem paired_nonzero {xs ys : List ℂ}
     (hp : List.Forall₂ (fun z w : ℂ => ‖z-w‖≤(7/40 : ℝ)) xs ys)
     (hy : ∀ y∈ys,‖y‖=1) : ∀ x∈xs,x≠0 := by

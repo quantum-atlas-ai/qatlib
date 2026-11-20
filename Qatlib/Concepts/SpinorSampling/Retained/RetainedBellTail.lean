@@ -35,7 +35,7 @@ noncomputable section
 open scoped BigOperators Classical
 open Qatlib Matched
 
-/-- Complete original `two_sided_exp_indicator` guarantee for `RetainedBellTail`; all source hypotheses and output obligations are retained. -/
+/-- For t ≥ 0, the indicator of |y| > s is bounded by exp(−ts) times the sum of exp(ty) and exp(−ty). -/
 theorem two_sided_exp_indicator (y s t : ℝ) (ht : 0≤t) :
     (if s< |y| then (1 : ℝ) else 0)≤
       Real.exp (-t*s)*(Real.exp (t*y)+Real.exp (-t*y)) := by
@@ -59,7 +59,7 @@ theorem two_sided_exp_indicator (y s t : ℝ) (ht : 0≤t) :
   · rw [ite_eq_right h]
     positivity
 
-/-- Complete original `event_exp_chernoff` guarantee for `RetainedBellTail`; all source hypotheses and output obligations are retained. -/
+/-- For t ≥ 0, the probability of E and |f| > s is bounded by exp(−ts) times the sum of the exponential moments at t and −t restricted to E. -/
 theorem event_exp_chernoff {X : Type} [Fintype X] [DecidableEq X]
     (p : FinDist X) (E : X → Prop) (f : X → ℝ) (s t : ℝ) (ht : 0≤t) :
     p.expect (fun x => if E x ∧ s< |f x| then 1 else 0)≤
@@ -81,7 +81,7 @@ def pooledStratumBadMass (a b c k : S → ℝ)
   (freshObservationBlocks (n:=n) (m:=m) a b c k hz τ K).expect (fun ω =>
     if observedRvec τ ω=ρ ∧ ε< |(pooledMeanQ τ ω : ℝ)-bellMean a b c k τ| then 1 else 0)
 
-/-- Complete original `pooled_stratum_bad_le_mass` guarantee for `RetainedBellTail`; all source hypotheses and output obligations are retained. -/
+/-- The joint probability of pooled mean error above ε and the specified match-count vector is at most the probability of that vector. -/
 theorem pooled_stratum_bad_le_mass (a b c k : S → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (τ : Equiv.Perm S)
     (ρ : Fin K → ℕ) (ε : ℝ) :
@@ -94,7 +94,7 @@ theorem pooled_stratum_bad_le_mass (a b c k : S → ℝ)
   simp only [one_pow]
   split_ifs <;> simp_all
 
-/-- Complete original `pooled_stratum_chernoff` guarantee for `RetainedBellTail`; all source hypotheses and output obligations are retained. -/
+/-- For a match-count vector with positive total R and t ≥ 0, the joint mass of the vector and error above ε is bounded by exp(−tRε) times the two centered moments restricted to that vector at t and −t. -/
 theorem pooled_stratum_chernoff (a b c k : S → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (τ : Equiv.Perm S)
     (ρ : Fin K → ℕ) (ε t : ℝ) (ht : 0≤t) (hR : 0<∑ j : Fin K,(ρ j : ℝ)) :
@@ -139,7 +139,7 @@ theorem pooled_stratum_chernoff (a b c k : S → ℝ)
 
 -- No positive-stratum or positive-total-match promise is supplied as input.
 -- Zero/small R remains in the right side through the actual event mass.
-/-- Complete original `pooled_stratum_low_mean_tail` guarantee for `RetainedBellTail`; all source hypotheses and output obligations are retained. -/
+/-- For ε > 0, the joint mass of a match-count vector and pooled mean error above ε is at most twice the vector mass times exp(−Rε²/(4(μ + ε))), where R is its total and μ the Bell mean. -/
 theorem pooled_stratum_low_mean_tail (a b c k : S → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (τ : Equiv.Perm S)
     (ρ : Fin K → ℕ) (ε : ℝ) (hε : 0<ε) :

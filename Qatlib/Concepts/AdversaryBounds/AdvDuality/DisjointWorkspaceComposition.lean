@@ -29,7 +29,7 @@ These use the tensor-product channel formalism of [Watrous2018].
 
 ## Main statements
 
-* `frontier1`: combines disjoint branch commutation, resource counts, live-space bounds, and
+* `disjoint_clean_words_commute_and_release_resources`: combines disjoint branch commutation, resource counts, live-space bounds, and
   release guarantees.
 * `lcu_select_consumer`: gives exact counts and peaks for two query-phase words.
 * `stopping_joint_consumer`: combines measured stopping traces with a disjoint clean word.
@@ -682,7 +682,7 @@ end TwoFactorRelease
 /-- Disjoint clean-word branches commute, their sequential resources follow the stated sum and
 peak rules, and stacked live-space peaks obey the additive bound. Sequential releases are
 trace-norm contractive on Hermitian operators and undo joint allocation with any reference. -/
-theorem frontier1 {n₁ n₂ : ℕ} (U₁ : Operator (2^n₁)) (U₂ : Operator (2^n₂))
+theorem disjoint_clean_words_commute_and_release_resources {n₁ n₂ : ℕ} (U₁ : Operator (2^n₁)) (U₂ : Operator (2^n₂))
     (w₁ : List (CleanOp n₁)) (w₂ : List (CleanOp n₂))
     (ρ : Operator ((2^n₁*1)*(2^n₂*1))) (ρ₁ : Operator ((2^n₁)*1)) (ρ₂ : Operator ((2^n₂)*1)) :
     conjBranch (tensorLiftL (wordMatrix U₁ w₁))

@@ -32,7 +32,7 @@ def sourceUnitTerminalRatio (v : SpatialPoint → SpatialPoint) (hv : ContDiff �
     (q₀ : ℍ) (h₀ : ‖q₀‖=1) (u : SpatialPoint) : ℍ :=
   sourceLiftSpatialExtension v hv q₀ h₀ (physicalPeriod • coordinateFace 0 1 u)*star q₀
 
-/-- Original `contDiff_sourceUnitTerminalRatio` guarantee for the `SourceAngularWord` construction; the complete source hypotheses are retained. -/
+/-- The normalized terminal ratio of a smooth source field with a unit seed is smooth. -/
 theorem contDiff_sourceUnitTerminalRatio (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (q₀ : ℍ) (h₀ : ‖q₀‖=1) : ContDiff ℝ ∞ (sourceUnitTerminalRatio v hv q₀ h₀) :=
   (((contDiff_sourceLiftSpatialExtension v hv q₀ h₀).comp
@@ -56,7 +56,8 @@ theorem sourceUnitTerminalRatio_eq (v : SpatialPoint → SpatialPoint) (hv : Con
   exact congrArg (fun q : ℍ => q*star q₀)
     (sourceLiftExtension_eq v hv hu q₀ h₀ (physicalPeriod • (sourcePositionInverse u).1) transportFinish)
 
-/-- Original `coordinateFace_zero_one_unit` guarantee for the `SourceAngularWord` construction; the complete source hypotheses are retained. -/
+/-- Setting the longitudinal coordinate of a unit-cube point to `1` leaves the point in the unit
+cube. -/
 theorem coordinateFace_zero_one_unit (u : SpatialPoint) (hu : InUnitCube u) :
     InUnitCube (coordinateFace 0 1 u) := by
   intro i
@@ -86,7 +87,8 @@ theorem sourceUnitTerminalRatio_word_bound (v : SpatialPoint → SpatialPoint)
   · simpa only [ite_eq_left hw,norm_zero] using hF
   · simpa only [ite_eq_right hw] using hb
 
-/-- Original `sourceFrameGammaMajorant_cast` guarantee for the `SourceAngularWord` construction; the complete source hypotheses are retained. -/
+/-- The real cast of the order-`r` angular majorant combines the transport derivative bounds for
+orders `j` and `j + 1` by the word product majorant, for `r < 8`. -/
 theorem sourceFrameGammaMajorant_cast (packet : SourceFrameBoundPacket) (r : Fin 8) :
     (sourceFrameGammaMajorant packet r : ℝ)=
       wordProductMajorant (fun j => (transportWordMajorant (sourceFrameCoefficientNat packet) j : ℝ))

@@ -35,7 +35,11 @@ open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data
 open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data.SourceInput
 open scoped Matrix.Norms.L2Operator
 
-/-- The finite construction in `NativeSourceOriginalDeflation` satisfies `source_deflation_loop` under the displayed hypotheses. -/
+/-- For a degree-bounded, parity-matched target bounded by one, positive E and source degree d,
+and guarded factors reconstructing the integer complement with nonzero content, both endpoints
+have real positive Gram traces at every nonterminal deflation step. The decoded terminal
+matrix differs from the ideal one by at most K·eta·(30/h)^d and by at most h/16, with h the
+grid spacing, eta the root tolerance and K the initial error constant. -/
 theorem source_deflation_loop (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E)
     (htail : ∀ k,N+1 ≤ k → cs.getD k 0=0)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)

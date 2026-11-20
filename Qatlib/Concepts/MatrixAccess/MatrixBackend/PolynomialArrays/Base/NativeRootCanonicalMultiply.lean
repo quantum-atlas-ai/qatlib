@@ -54,7 +54,7 @@ theorem rootCanonicalCoefficients_shape (a : List ℤ) :
       refine ⟨a,x,?_,hx⟩
       simp [rootCanonicalCoefficients,hx]
 
-/-- The finite construction in `NativeRootCanonicalMultiply` satisfies `rootCanonicalCoefficients_polynomial` under the displayed hypotheses. -/
+/-- Removing trailing zeros from an integer coefficient list preserves its complex polynomial. -/
 theorem rootCanonicalCoefficients_polynomial (a : List ℤ) :
     rootIntegerListPolynomial (rootCanonicalCoefficients a)=rootIntegerListPolynomial a :=
   (rootIntegerListPolynomial_zero_tail_trace (rootCanonicalCoefficients_trace a)).symm
@@ -68,7 +68,7 @@ def rootIntegerListMultiply : List ℤ → List ℤ → List ℤ
       (rootIntegerConvolutionLoop (fun i : Fin (xs.length+1) => (x::xs).get i)
         (fun j : Fin (ys.length+1) => (y::ys).get j)))
 
-/-- The finite construction in `NativeRootCanonicalMultiply` satisfies `rootIntegerListMultiply_polynomial` under the displayed hypotheses. -/
+/-- The normalized convolution of two integer coefficient lists represents the product of their complex polynomials, including when either list is empty. -/
 theorem rootIntegerListMultiply_polynomial (a b : List ℤ) :
     rootIntegerListPolynomial (rootIntegerListMultiply a b)=
       rootIntegerListPolynomial a*rootIntegerListPolynomial b := by

@@ -19,7 +19,7 @@ and factorization for disjoint families, and expands centered U-statistic moment
 families and their overlap labels.
 
 The absolute kernel moments `centeredAbsMomentK` and a count of coinciding families yield
-explicit moment and deviation bounds. The finite-POVM specialization `frontier1_povm` places
+explicit moment and deviation bounds. The finite-POVM specialization `povm_u_statistic_overlap_moment_and_deviation_bounds` places
 these identities in the measurement-record estimation setting of [HuangKuengPreskill2020].
 
 ## Main statements
@@ -28,7 +28,7 @@ these identities in the measurement-record estimation setting of [HuangKuengPres
 * `overlapMoment_append_disjoint`: factorization for families using disjoint records.
 * `uStatistic_moment_abs_le`: a moment bound from the coincidence count.
 * `probEvent_uStatistic_hkp`: an even-moment bound on the deviation probability.
-* `frontier1_povm`: the combined results for independent finite-POVM records.
+* `povm_u_statistic_overlap_moment_and_deviation_bounds`: the combined results for independent finite-POVM records.
 
 ## References
 
@@ -1167,7 +1167,7 @@ theorem probEvent_uStatistic_hkp (p : FinDist O) {n k s : ℕ} (hs : 0 < s)
 /-- Collects the overlap and overlap-type moment expansions, permutation invariance, disjoint
 factorization, vanishing and covariance identities, and moment and deviation bounds for
 finite U-statistics. -/
-theorem frontier1 :
+theorem u_statistic_overlap_moment_and_deviation_bounds :
     ∀ {O : Type} [Fintype O] [DecidableEq O] (p : FinDist O) {n k r : ℕ},
       0 < r → (distinctTupleCount n k : ℕ) ≠ 0 → ∀ (h : (Fin k → O) → ℝ),
       (∑ ω : Fin n → O, p.probOf ω * (povmUStatisticK h ω - kernelMeanK p h) ^ r
@@ -1226,7 +1226,7 @@ variable {D : ℕ}
 /-- Specializes the overlap expansions, permutation invariance, factorization, vanishing and
 covariance identities, and moment and deviation bounds to independent records of a finite
 POVM. -/
-theorem frontier1_povm (E : FinitePOVM O D) (ρ : Operator D) (hρ : IsDensityOperator ρ)
+theorem povm_u_statistic_overlap_moment_and_deviation_bounds (E : FinitePOVM O D) (ρ : Operator D) (hρ : IsDensityOperator ρ)
     {n k r : ℕ} (hr : 0 < r) (hN : (distinctTupleCount n k : ℕ) ≠ 0)
     (h : (Fin k → O) → ℝ) :
     ((povmSampleLaw E ρ hρ).expect (fun ω : Fin n → O =>
@@ -1269,7 +1269,7 @@ theorem frontier1_povm (E : FinitePOVM O D) (ρ : Operator D) (hρ : IsDensityOp
         ≤ centeredAbsMomentK (povmRecordLaw E ρ hρ) h (2 * s)
             * ((((2 * s) * k) * ((2 * s) * k) * n ^ ((2 * s) * k - 1) : ℕ) : ℝ)
             / (((distinctTupleCount n k : ℕ) : ℝ) ^ (2 * s) * ε ^ (2 * s))) := by
-  have hb := frontier1 (povmRecordLaw E ρ hρ) hr hN h
+  have hb := u_statistic_overlap_moment_and_deviation_bounds (povmRecordLaw E ρ hρ) hr hN h
   have hexpect : ∀ f : (Fin n → O) → ℝ,
       (povmSampleLaw E ρ hρ).expect f
         = ∑ ω : Fin n → O, (povmRecordLaw E ρ hρ).probOf ω * f ω := fun _ => rfl

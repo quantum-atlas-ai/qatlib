@@ -33,7 +33,7 @@ open Qatlib.Concepts.EffectiveGauge.HopfAtlas
 def meanTensorSpatial (p : MeanTensorPoint) : SpatialPoint :=
   WithLp.toLp 2 ![p.1,p.2.1,p.2.2]
 
-/-- Original `continuous_meanTensorSpatial` guarantee for the `MeanCube` construction; the complete source hypotheses are retained. -/
+/-- Embedding the three tensor-loop coordinates into Euclidean space is continuous. -/
 theorem continuous_meanTensorSpatial : Continuous meanTensorSpatial := by
   apply (PiLp.continuousLinearEquiv 2 ℝ (fun _ : Fin 3 => ℝ)).symm.continuous.comp
   apply continuous_pi
@@ -49,17 +49,20 @@ private def cubeCoordinateEquiv : (Fin 3 → ℝ) ≃ᵐ MeanTensorPoint :=
     (MeasurableEquiv.prodCongr (MeasurableEquiv.refl ℝ)
       (MeasurableEquiv.piFinTwo (fun _ : Fin 2 => ℝ)))
 
-/-- Original `cubeCoordinateEquiv_apply` guarantee for the `MeanCube` construction; the complete source hypotheses are retained. -/
+/-- The measurable coordinate equivalence lists the three components in index order as a nested
+product. -/
 private theorem cubeCoordinateEquiv_apply (u : Fin 3 → ℝ) :
     cubeCoordinateEquiv u=(u 0,u 1,u 2) := rfl
 
-/-- Original `cubeCoordinateEquiv_symm` guarantee for the `MeanCube` construction; the complete source hypotheses are retained. -/
+/-- The inverse coordinate equivalence puts the entries of the nested product back at indices zero,
+one, and two. -/
 private theorem cubeCoordinateEquiv_symm (p : MeanTensorPoint) :
     cubeCoordinateEquiv.symm p=![p.1,p.2.1,p.2.2] := by
   ext i
   fin_cases i <;> rfl
 
-/-- Original `cubeCoordinateEquiv_volume` guarantee for the `MeanCube` construction; the complete source hypotheses are retained. -/
+/-- The coordinate equivalence pushes volume on three real coordinates forward to volume on the
+nested product. -/
 private theorem cubeCoordinateEquiv_volume : MeasurePreserving cubeCoordinateEquiv := by
   exact ((MeasurePreserving.id (volume : Measure ℝ)).prod
     (volume_preserving_piFinTwo (fun _ : Fin 2 => ℝ))).comp

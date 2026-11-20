@@ -36,7 +36,8 @@ open Qatlib.Concepts.NativeNumerics.PhaseSynthesis
 open Qatlib.Concepts.TrotterFormula.SuzukiFourth
 open Polynomial
 
-/-- The finite construction in `NativeSourceDegeneratePacket` satisfies `sourceOnesResponse_real` under the displayed hypotheses. -/
+/-- At every real argument, the standard responses with base one and n copies of phase one have
+zero imaginary P component and zero real Q component. -/
 theorem sourceOnesResponse_real (n : ℕ) (x : ℝ) :
     ((standardResponseP 1 (List.replicate n 1)).eval (x : ℂ)).im=0 ∧
       ((standardResponseQ 1 (List.replicate n 1)).eval (x : ℂ)).re=0 := by
@@ -63,7 +64,8 @@ theorem sourceOnesBoundary (N : ℕ) :
 def sourceZeroBoundaryPacket (N : ℕ) : PhaseData :=
   nativeEquatorialBoundaryPacket (1,0) (List.replicate N (1,0))
 
-/-- The finite construction in `NativeSourceDegeneratePacket` satisfies `sourceZeroNative_response` under the displayed hypotheses. -/
+/-- The native packet for the zero branch has exactly zero real response at every real argument,
+for any requested length N. -/
 theorem sourceZeroNative_response (N : ℕ) (x : ℝ) :
     let data := nativePacketFromStandard (sourceZeroBoundaryPacket N)
     ((responseP (gaussianRatComplex data.base) (data.phases.map gaussianRatComplex)).eval (x : ℂ)).re=0 := by
@@ -76,7 +78,7 @@ theorem sourceZeroNative_response (N : ℕ) (x : ℝ) :
   simpa only [List.map_replicate,show gaussianRatComplex (1,0)=1 by norm_num [gaussianRatComplex]]
     using (sourceOnesResponse_real N x).1
 
-/-- The finite construction in `NativeSourceDegeneratePacket` satisfies `sourceZeroPacket_spec` under the displayed hypotheses. -/
+/-- The zero branch emits N phases, with unit complex norm for its base and every phase. -/
 theorem sourceZeroPacket_spec (N : ℕ) :
     (sourceZeroBoundaryPacket N).phases.length=N ∧
       ‖gaussianRatComplex (sourceZeroBoundaryPacket N).base‖=1 ∧
@@ -86,14 +88,16 @@ theorem sourceZeroPacket_spec (N : ℕ) :
   rw [h]
   simp [gaussianRatComplex]
 
-/-- The finite construction in `NativeSourceDegeneratePacket` satisfies `cheb_replicate_zero` under the displayed hypotheses. -/
+/-- Replicating the zero coefficient n times gives the zero polynomial in a Chebyshev expansion
+starting at any j. -/
 private theorem cheb_replicate_zero (n j : ℕ) :
     nativeChebyshevPolynomialFrom j (List.replicate n 0)=0 := by
   induction n generalizing j with
   | zero => rfl
   | succ n ih => simp [List.replicate_succ,nativeChebyshevPolynomialFrom,ih]
 
-/-- The finite construction in `NativeSourceDegeneratePacket` satisfies `sourceZeroRegularized_polynomial` under the displayed hypotheses. -/
+/-- When all finite source coefficients vanish, the regularized output Chebyshev polynomial is
+zero. -/
 theorem sourceZeroRegularized_polynomial (cs : List ℚ) (N : ℕ) (E : ℚ)
     (hzero : ∀ j : Fin (N+1),sourceCoefficient cs N E j=0) :
     nativeChebyshevPolynomialFrom 0 (sourceOutputList cs N E)=0 := by
@@ -104,7 +108,9 @@ theorem sourceZeroRegularized_polynomial (cs : List ℚ) (N : ℕ) (E : ℚ)
     simp only [sourceOutputList,hf,List.ofFn_const]
   rw [hl,cheb_replicate_zero]
 
-/-- The finite construction in `NativeSourceDegeneratePacket` satisfies `source_zero_native_uniform` under the displayed hypotheses. -/
+/-- If all source coefficients vanish for a positive budget and a degree-bounded target bounded by
+one, the zero packet's real response differs from the original target by at most five
+thirty-seconds of the source input budget throughout the interval from −1 to 1. -/
 theorem source_zero_native_uniform (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E)
     (htail : ∀ k,N+1≤k → cs.getD k 0=0)
     (hnorm : ∀ x∈Set.Icc (-1 : ℝ) 1,|(nativeChebyshevPolynomialFrom 0 cs).eval x|≤1)
@@ -120,7 +126,9 @@ theorem source_zero_native_uniform (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E
   rw [sourceZeroRegularized_polynomial cs N E hzero,Polynomial.eval_zero] at he
   exact he
 
-/-- The finite construction in `NativeSourceDegeneratePacket` satisfies `sourcePacket_accepts_of_original_uniform` under the displayed hypotheses. -/
+/-- For positive E, a standard packet of length N with a unit base and phases passes the
+generated-residual check if its native real response approximates the original target on the
+interval from −1 to 1 within 13 times the source input budget divided by 32. -/
 theorem sourcePacket_accepts_of_original_uniform (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E)
     (data : PhaseData) (hlen : data.phases.length=N)
     (hb : ‖gaussianRatComplex data.base‖=1)
@@ -147,7 +155,9 @@ theorem sourcePacket_accepts_of_original_uniform (cs : List ℚ) (N : ℕ) (E : 
         have hER : (0 : ℝ)<(E : ℝ) := by exact_mod_cast hE
         linarith
 
-/-- The finite construction in `NativeSourceDegeneratePacket` satisfies `source_zero_posterior_accepts` under the displayed hypotheses. -/
+/-- If E is positive, the original Chebyshev target has degree at most N and is bounded by one on
+the interval from −1 to 1, and every source coefficient vanishes, the zero packet passes the
+check with its generated residual. -/
 theorem source_zero_posterior_accepts (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E)
     (htail : ∀ k,N+1≤k → cs.getD k 0=0)
     (hnorm : ∀ x∈Set.Icc (-1 : ℝ) 1,|(nativeChebyshevPolynomialFrom 0 cs).eval x|≤1)
@@ -179,7 +189,8 @@ def sourceConstantRawBase (a : ℚ) (q : ℕ) : GaussianRat := (-sourceSqrtLower
 def sourceConstantRoundedBase (a : ℚ) (q p : ℕ) : GaussianRat :=
   nativePhasePair (sourceConstantRawBase a q).1 (sourceConstantRawBase a q).2 p
 
-/-- The finite construction in `NativeSourceDegeneratePacket` satisfies `sourceConstantIdealBase_norm` under the displayed hypotheses. -/
+/-- If the rational constant a has absolute value at most one, its ideal base with imaginary part
+a and nonpositive real part has complex norm one. -/
 theorem sourceConstantIdealBase_norm (a : ℚ) (ha : |a|≤1) : ‖sourceConstantIdealBase a‖=1 := by
   have haR : |(a : ℝ)|≤1 := by exact_mod_cast ha
   have hrad : 0≤1-(a : ℝ)^2 := by nlinarith [(abs_le.mp haR).1,(abs_le.mp haR).2]
@@ -203,7 +214,8 @@ theorem sourceConstantRawBase_error (a : ℚ) (ha : |a|≤1) (q : ℕ) :
   rw [hid,Complex.norm_real,Real.norm_eq_abs,abs_of_nonneg (sub_nonneg.mpr hs.1)]
   exact hs.2.le
 
-/-- The finite construction in `NativeSourceDegeneratePacket` satisfies `sourceConstantRoundedBase_spec` under the displayed hypotheses. -/
+/-- For a rational a in the interval from −1 to 1, the rounded base has norm one and its distance
+from the ideal base is at most 2/2^q + 1/(16·2^p). -/
 theorem sourceConstantRoundedBase_spec (a : ℚ) (ha : |a|≤1) (q p : ℕ) :
     ‖gaussianRatComplex (sourceConstantRoundedBase a q p)‖=1 ∧
       ‖gaussianRatComplex (sourceConstantRoundedBase a q p)-sourceConstantIdealBase a‖≤
@@ -217,7 +229,8 @@ theorem sourceConstantRoundedBase_spec (a : ℚ) (ha : |a|≤1) (q p : ℕ) :
 def sourceConstantPaddedPacket (b : GaussianRat) (N : ℕ) : PhaseData :=
   nativeEquatorialBoundaryPacket b (sourcePaddingHalves (N/2))
 
-/-- The finite construction in `NativeSourceDegeneratePacket` satisfies `sourceConstantPaddedPacket_spec` under the displayed hypotheses. -/
+/-- Even N and a unit supplied base give a constant packet with N phases and unit norms for the
+base and each phase. -/
 theorem sourceConstantPaddedPacket_spec (b : GaussianRat) (N : ℕ) (hN : N%2=0)
     (hb : ‖gaussianRatComplex b‖=1) :
     (sourceConstantPaddedPacket b N).phases.length=N ∧
@@ -227,7 +240,8 @@ theorem sourceConstantPaddedPacket_spec (b : GaussianRat) (N : ℕ) (hN : N%2=0)
   have hl : (sourcePaddingHalves (N/2)).length=N := by rw [sourcePaddingHalves_length]; omega
   exact ⟨hs.1.trans hl,hs.2⟩
 
-/-- The finite construction in `NativeSourceDegeneratePacket` satisfies `sourceConstantPaddedPacket_response` under the displayed hypotheses. -/
+/-- On the interval from −1 to 1, the real native response of the padded constant packet equals
+the imaginary part of the supplied base, for every N. -/
 theorem sourceConstantPaddedPacket_response (b : GaussianRat) (N : ℕ) (x : ℝ)
     (hx : x∈Set.Icc (-1 : ℝ) 1) :
     let data := nativePacketFromStandard (sourceConstantPaddedPacket b N)

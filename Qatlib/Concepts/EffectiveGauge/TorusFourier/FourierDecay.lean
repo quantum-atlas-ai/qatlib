@@ -50,7 +50,7 @@ theorem unitFourierCoefficient_pure_word (f : SpatialPoint → ℂ) (hf : ContDi
     rw [hnew,ih,pow_succ]
     ring
 
-/-- Original `fourierFrequencyFactor_norm` guarantee for the `FourierDecay` construction; the complete source hypotheses are retained. -/
+/-- The coordinate differentiation multiplier has norm equal to the physical period times the absolute value of the corresponding integer frequency. -/
 theorem fourierFrequencyFactor_norm (k : SpatialFrequency) (i : Fin 3) :
     ‖(physicalPeriod : ℂ)*Complex.I*(k i : ℂ)‖=physicalPeriod*|(k i : ℝ)| := by
   simp only [norm_mul,Complex.norm_real,Real.norm_eq_abs,Complex.norm_I,Complex.norm_intCast,

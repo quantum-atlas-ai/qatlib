@@ -41,7 +41,8 @@ instance (q : RedundantRational.Frac) (j : ℕ) : Decidable (enough q j) := by
 /-- Definition of enough Bit in the Raw Machine construction. -/
 def enoughBit (q : RedundantRational.Frac) (j : ℕ) : Bool := decide (enough q j)
 
-/-- Original `enough_iff` guarantee for the `PaidBoundCompressionTest` construction; the complete source hypotheses are retained. -/
+/-- The natural-arithmetic threshold predicate holds exactly when `j` is at least 256 times the
+rational value of `q`. -/
 theorem enough_iff (q : RedundantRational.Frac) (j : ℕ) :
     enough q j ↔ 256*RedundantRational.value q≤(j : ℚ) := by
   rw [←positiveDen_value q]
@@ -58,7 +59,7 @@ theorem enough_iff (q : RedundantRational.Frac) (j : ℕ) :
         256*(positiveDen q).num.2+(j : ℚ)*(positiveDen q).den.1 := by linarith
     exact_mod_cast hh
 
-/-- Original `enough_mono` guarantee for the `PaidBoundCompressionTest` construction; the complete source hypotheses are retained. -/
+/-- Any larger natural threshold also passes the comparison once `j` passes it. -/
 theorem enough_mono (q : RedundantRational.Frac) {j k : ℕ} (h : enough q j) (hjk : j≤k) : enough q k := by
   rw [enough_iff] at h ⊢
   exact h.trans (by exact_mod_cast hjk)
@@ -66,19 +67,19 @@ theorem enough_mono (q : RedundantRational.Frac) {j k : ℕ} (h : enough q j) (h
 /-- Proof-side least stopping index, not an extra input or runtime fuel. -/
 def ceilingWitness (q : RedundantRational.Frac) : ℕ := (Int.ceil (256*RedundantRational.value q)).toNat
 
-/-- Original `ceilingWitness_cast` guarantee for the `PaidBoundCompressionTest` construction; the complete source hypotheses are retained. -/
+/-- For a nonnegative represented rational, the natural witness casts to the integer ceiling of 256 times that rational. -/
 theorem ceilingWitness_cast (q : RedundantRational.Frac) (hm : 0≤RedundantRational.value q) :
     (ceilingWitness q : ℚ)=(Int.ceil (256*RedundantRational.value q) : ℚ) := by
   have hz := Int.ceil_nonneg (mul_nonneg (by norm_num : (0 : ℚ)≤256) hm)
   exact_mod_cast Int.toNat_of_nonneg hz
 
-/-- Original `enough_witness` guarantee for the `PaidBoundCompressionTest` construction; the complete source hypotheses are retained. -/
+/-- The ceiling witness for a nonnegative rational passes the scaled threshold test. -/
 theorem enough_witness (q : RedundantRational.Frac) (hm : 0≤RedundantRational.value q) :
     enough q (ceilingWitness q) := by
   rw [enough_iff,ceilingWitness_cast q hm]
   exact Int.le_ceil _
 
-/-- Original `witness_le_iff` guarantee for the `PaidBoundCompressionTest` construction; the complete source hypotheses are retained. -/
+/-- For a nonnegative rational, a natural threshold passes exactly when it is at least the ceiling witness. -/
 theorem witness_le_iff (q : RedundantRational.Frac) (hm : 0≤RedundantRational.value q) (j : ℕ) :
     ceilingWitness q≤j ↔ enough q j := by
   rw [enough_iff]
@@ -91,7 +92,7 @@ theorem witness_le_iff (q : RedundantRational.Frac) (hm : 0≤RedundantRational.
     rw [←ceilingWitness_cast q hm] at hq
     exact_mod_cast hq
 
-/-- Original `witness_packet` guarantee for the `PaidBoundCompressionTest` construction; the complete source hypotheses are retained. -/
+/-- Dividing the ceiling witness for a nonnegative rational by 256 gives its compressed mean bound. -/
 theorem witness_packet (q : RedundantRational.Frac) (hm : 0≤RedundantRational.value q) :
     (ceilingWitness q : ℚ)/256=sourceMeanCompressedBound (RedundantRational.value q) := by
   rw [ceilingWitness_cast q hm]

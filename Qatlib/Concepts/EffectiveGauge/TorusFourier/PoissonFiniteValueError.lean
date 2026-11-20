@@ -25,14 +25,14 @@ noncomputable section
 namespace Qatlib.Concepts.EffectiveGauge.TorusFourier
 open Qatlib.Concepts.EffectiveGauge.HopfAtlas Qatlib.Concepts.EffectiveGauge.RationalFlow
 
-/-- Original `poissonList_sum_div` guarantee for the `PoissonFiniteValueError` construction; the complete source hypotheses are retained. -/
+/-- Dividing the sum of a complex list by `z` equals summing the entries after dividing each by `z`. -/
 theorem poissonList_sum_div (values : List ℂ) (z : ℂ) :
     values.sum/z=(values.map (fun value => value/z)).sum := by
   induction values with
   | nil => simp
   | cons a rest ih => simp only [List.sum_cons,List.map_cons,add_div,ih]
 
-/-- Original `poissonList_sum_map_eq_finset` guarantee for the `PoissonFiniteValueError` construction; the complete source hypotheses are retained. -/
+/-- For a frequency list without repetitions, summing the values of `f` over the list equals summing them over its associated finite set. -/
 theorem poissonList_sum_map_eq_finset (frequencies : List SpatialFrequency)
     (hn : frequencies.Nodup) (f : SpatialFrequency → ℂ) :
     (frequencies.map f).sum=∑ k∈frequencies.toFinset, f k := by
@@ -43,7 +43,7 @@ theorem poissonList_sum_map_eq_finset (frequencies : List SpatialFrequency)
     have h := List.nodup_cons.mp hn
     simp [h.1,ih h.2]
 
-/-- Original `poissonList_sum_error` guarantee for the `PoissonFiniteValueError` construction; the complete source hypotheses are retained. -/
+/-- A norm error bound that holds for each record bounds the difference of the two mapped complex sums by the list length times that error. -/
 theorem poissonList_sum_error {α : Type*} (records : List α) (f g : α → ℂ) (error : ℝ)
     (he : ∀ record∈records, ‖f record-g record‖ ≤ error) :
     ‖(records.map f).sum-(records.map g).sum‖ ≤ (records.length : ℝ)*error := by
@@ -83,7 +83,11 @@ theorem rationalCoefficientList_row_error (coefficients : RationalFourierCoeffic
   have hs : record.2=out := congrArg Prod.snd heq
   simpa only [hs] using herror
 
-/-- Original `rationalPoissonValuePair_error` guarantee for the `PoissonFiniteValueError` construction; the complete source hypotheses are retained. -/
+/-- Suppose the coefficient records enumerate the radius-`N` grid in order, with exact component
+norms at most `B` and componentwise record errors at most `E`, both nonnegative. If the period
+approximation exceeds five and has error at most `ell`, with `0 < d ≤ 1` and `3*N*ell ≤ d/2`,
+the cast rational value pair at any rational address differs from the exact Poisson Fourier
+truncation by at most the grid cardinality times `3*E/5 + 3*(B+E)*d/5 + 3*B*ell/30`. -/
 theorem rationalPoissonValuePair_error (coefficients : RationalFourierCoefficientList)
     (N : ℕ) (hkeys : coefficients.map Prod.fst=sourceFrequencyGrid N)
     (a : Fin 3 → SpatialFrequency → ℂ) (B E : ℝ) (hB : 0 ≤ B) (hE : 0 ≤ E)

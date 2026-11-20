@@ -33,7 +33,7 @@ def read (bits : CanonicalCodec.Bits) : Option (RedundantRational.Frac × Canoni
   let (s,tail) ← CanonicalCodec.readNat tail
   if h : r≠s then pure (⟨(p,n),(r,s),h⟩,tail) else none
 
-/-- Original `read_complete` guarantee for the `PaidRationalCodec` construction; the complete source hypotheses are retained. -/
+/-- Reading one redundant fraction from its encoding followed by any tail returns the exact fraction and that tail. -/
 theorem read_complete (q : RedundantRational.Frac) (tail : CanonicalCodec.Bits) :
     read (encode q++tail)=some (q,tail) := by
   cases q with
@@ -42,7 +42,7 @@ theorem read_complete (q : RedundantRational.Frac) (tail : CanonicalCodec.Bits) 
     rcases den with ⟨r,s⟩
     simp [read,encode,PaidFractionInverse.input,List.append_assoc,CanonicalCodec.readNat_complete,hd]
 
-/-- Original `read_sound` guarantee for the `PaidRationalCodec` construction; the complete source hypotheses are retained. -/
+/-- If reading a fraction succeeds with result `q` and remainder `tail`, the input is exactly the encoding of `q` followed by `tail`. -/
 theorem read_sound (input : CanonicalCodec.Bits) (q : RedundantRational.Frac) (tail : CanonicalCodec.Bits)
     (h : read input=some (q,tail)) : input=encode q++tail := by
   unfold read at h
@@ -59,7 +59,7 @@ theorem read_sound (input : CanonicalCodec.Bits) (q : RedundantRational.Frac) (t
       CanonicalCodec.readNat_sound t2 r t3 hr,CanonicalCodec.readNat_sound t3 s tail hs]
     simp only [encode,PaidFractionInverse.input,List.append_assoc]
 
-/-- Original `read_eq_some_iff` guarantee for the `PaidRationalCodec` construction; the complete source hypotheses are retained. -/
+/-- The reader returns `q` with remainder `tail` exactly for the input consisting of its encoding followed by that tail. -/
 theorem read_eq_some_iff (input : CanonicalCodec.Bits) (q : RedundantRational.Frac)
     (tail : CanonicalCodec.Bits) : read input=some (q,tail) ↔ input=encode q++tail := by
   constructor

@@ -44,13 +44,15 @@ noncomputable section
 variable {X : Type} [Fintype X] [DecidableEq X]
 
 omit [Fintype X] [DecidableEq X] in
-/-- Complete original `bounded_average_cast` guarantee for `BoundedAveragePlan`; all source hypotheses and output obligations are retained. -/
+/-- Casting the rational average of `f` over an indexed sample to the reals gives the real
+average of the pointwise casts. -/
 theorem bounded_average_cast {n : ℕ} (f : X → ℚ) (ω : Fin n → X) :
     (boundedAverageQ f ω : ℝ)=FinDist.avg (fun x => (f x : ℝ)) ω := by
   simp only [boundedAverageQ, FinDist.avg, Rat.cast_div, Rat.cast_sum, Rat.cast_natCast]
 
 omit [DecidableEq X] in
-/-- Complete original `bounded_expect_abs` guarantee for `BoundedAveragePlan`; all source hypotheses and output obligations are retained. -/
+/-- If every value of `f` has absolute value at most `A`, its expectation under the finite law
+`p` has absolute value at most `A`. -/
 theorem bounded_expect_abs (p : FinDist X) (f : X → ℝ) (A : ℝ)
     (hf : ∀ x, |f x|≤A) : |p.expect f|≤A := by
   have hl := finite_expect_mono p (fun _ => -A) f (fun x => (abs_le.mp (hf x)).1)
@@ -58,7 +60,9 @@ theorem bounded_expect_abs (p : FinDist X) (f : X → ℝ) (A : ℝ)
   rw [finite_expect_const] at hl hu
   exact abs_le.mpr ⟨hl,hu⟩
 
-/-- Complete original `bounded_average_tail` guarantee for `BoundedAveragePlan`; all source hypotheses and output obligations are retained. -/
+/-- If `|f x| ≤ A` everywhere and `A > 0`, the average of `f` over `n > 0` independent
+draws from `p` differs from its expectation by more than `ε > 0` with probability at most
+`2 * exp (-n * ε² / (2 * A²))`. -/
 theorem bounded_average_tail (p : FinDist X) (f : X → ℝ) (n : ℕ) (A ε : ℝ)
     (hn : 0<n) (hA : 0<A) (hε : 0<ε) (hf : ∀ x, |f x|≤A) :
     finiteBadMass (cohortLaw p n) (FinDist.avg f) (p.expect f) ε ≤
@@ -90,7 +94,8 @@ theorem bounded_average_tail (p : FinDist X) (f : X → ℝ) (n : ℕ) (A ε : �
   exact (Finset.sum_le_sum_of_subset_of_nonneg hsubset
     (fun ω _ _ => (cohortLaw p n).nonneg ω)).trans ht
 
-/-- Complete original `linear_count_guards` guarantee for `BoundedAveragePlan`; all source hypotheses and output obligations are retained. -/
+/-- When `0 < ε < A`, the linear schedule takes at least two draws and its count times `ε²` is
+at least twice `A²` times `ceilLog2Q (2/ρ)`. -/
 theorem linear_count_guards (A ε ρ : ℚ) (hA : 0<A) (hε : 0<ε) (hεA : ε<A) :
     2≤linearCountQ A ε ρ ∧
       2*(A : ℝ)^2*(ceilLog2Q (2/ρ) : ℝ) ≤
@@ -121,7 +126,8 @@ theorem linear_count_guards (A ε ρ : ℚ) (hA : 0<A) (hε : 0<ε) (hεA : ε<A
   rw [hdef]
   exact ⟨by exact_mod_cast h2, hb'⟩
 
-/-- Complete original `planned_bounded_average_confidence` guarantee for `BoundedAveragePlan`; all source hypotheses and output obligations are retained. -/
+/-- If `A ≥ 0` bounds `|f x|` at every point, the scheduled rational average differs from the
+real expectation by more than `ε > 0` with probability at most the positive budget `ρ`. -/
 theorem planned_bounded_average_confidence (p : FinDist X) (f : X → ℚ) (A ε ρ : ℚ)
     (hA : 0≤A) (hε : 0<ε) (hρ : 0<ρ)
     (hf : ∀ x, |f x|≤A) :

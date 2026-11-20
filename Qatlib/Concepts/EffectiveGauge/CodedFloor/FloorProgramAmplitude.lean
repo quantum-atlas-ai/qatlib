@@ -29,11 +29,12 @@ The cutoff is the library's numeric evaluation bound, not a runtime clock. -/
 def floorProgramHaltsWithin (c : Nat.Partrec.Code) (k : ℕ) : Bool :=
   (Nat.Partrec.Code.evaln k c 0).isSome
 
-/-- Original `floorProgramHaltsWithin_zero` guarantee for the `FloorProgramAmplitude` construction; the complete source hypotheses are retained. -/
+/-- With fuel zero, bounded evaluation on input zero reports no result for every program code. -/
 theorem floorProgramHaltsWithin_zero (c : Nat.Partrec.Code) : floorProgramHaltsWithin c 0=false := by
   simp [floorProgramHaltsWithin, Nat.Partrec.Code.evaln]
 
-/-- Original `floorProgramHaltsWithin_mono` guarantee for the `FloorProgramAmplitude` construction; the complete source hypotheses are retained. -/
+/-- If bounded evaluation on input zero sees a halt at fuel `k`, it also sees a halt at any fuel
+`l ≥ k`. -/
 theorem floorProgramHaltsWithin_mono (c : Nat.Partrec.Code) (k l : ℕ) (hkl : k ≤ l)
     (hk : floorProgramHaltsWithin c k=true) : floorProgramHaltsWithin c l=true := by
   cases he : Nat.Partrec.Code.evaln k c 0 with
@@ -56,7 +57,8 @@ noncomputable def floorProgramAmplitude (c : Nat.Partrec.Code) : ℚ := by
   classical
   exact if h : ∃ k, floorProgramHaltsWithin c k=true then 1/(2 : ℚ)^(Nat.find h+4) else 0
 
-/-- Original `floorProgramAmplitude_spec` guarantee for the `FloorProgramAmplitude` construction; the complete source hypotheses are retained. -/
+/-- The program amplitude is between zero and `1/16`, and is strictly positive exactly when
+evaluation on zero halts at some finite fuel. -/
 theorem floorProgramAmplitude_spec (c : Nat.Partrec.Code) :
     0 ≤ floorProgramAmplitude c ∧ floorProgramAmplitude c ≤ 1/16 ∧
       (0<floorProgramAmplitude c ↔ ∃ k, floorProgramHaltsWithin c k=true) := by
@@ -73,7 +75,8 @@ theorem floorProgramAmplitude_spec (c : Nat.Partrec.Code) :
   · rw [floorProgramAmplitude,dite_eq_right h]
     simp [h]
 
-/-- Original `floorProgramAmplitudeApprox_eq_of_seen` guarantee for the `FloorProgramAmplitude` construction; the complete source hypotheses are retained. -/
+/-- Once bounded evaluation detects a halt at budget `b`, the rational amplitude approximant
+equals the program's amplitude exactly. -/
 theorem floorProgramAmplitudeApprox_eq_of_seen (c : Nat.Partrec.Code) (b : ℕ)
     (hb : floorProgramHaltsWithin c b=true) : floorProgramAmplitudeApprox c b=floorProgramAmplitude c := by
   classical
@@ -102,7 +105,8 @@ theorem floorProgramAmplitudeApprox_eq_of_seen (c : Nat.Partrec.Code) (b : ℕ)
   congr 2
   omega
 
-/-- Original `floorProgramAmplitudeApprox_error` guarantee for the `FloorProgramAmplitude` construction; the complete source hypotheses are retained. -/
+/-- At every budget `b`, the absolute error of the rational amplitude approximant is at most
+`2⁻ᵇ`. -/
 theorem floorProgramAmplitudeApprox_error (c : Nat.Partrec.Code) (b : ℕ) :
     |floorProgramAmplitudeApprox c b-floorProgramAmplitude c| ≤ 1/(2 : ℚ)^b := by
   classical
@@ -121,7 +125,8 @@ theorem floorProgramAmplitudeApprox_error (c : Nat.Partrec.Code) (b : ℕ) :
     · rw [floorProgramAmplitude,dite_eq_right h]
       positivity
 
-/-- Original `floorProgramHaltsWithin_iff_dom` guarantee for the `FloorProgramAmplitude` construction; the complete source hypotheses are retained. -/
+/-- A program on input zero has a result at some finite fuel exactly when its unbounded partial
+evaluation is defined. -/
 theorem floorProgramHaltsWithin_iff_dom (c : Nat.Partrec.Code) :
     (∃ k, floorProgramHaltsWithin c k=true) ↔ (Nat.Partrec.Code.eval c 0).Dom := by
   constructor
@@ -140,7 +145,7 @@ theorem floorProgramHaltsWithin_iff_dom (c : Nat.Partrec.Code) :
     | none => simp [he] at hk
     | some w => simp [floorProgramHaltsWithin,he]
 
-/-- Original `floorProgramAmplitude_pos_iff_dom` guarantee for the `FloorProgramAmplitude` construction; the complete source hypotheses are retained. -/
+/-- The program amplitude is strictly positive exactly when the program halts on input zero. -/
 theorem floorProgramAmplitude_pos_iff_dom (c : Nat.Partrec.Code) :
     (0<floorProgramAmplitude c) ↔ (Nat.Partrec.Code.eval c 0).Dom :=
   (floorProgramAmplitude_spec c).2.2.trans (floorProgramHaltsWithin_iff_dom c)
@@ -151,20 +156,22 @@ def floorProgramAmplitudePayload (c : Nat.Partrec.Code) (b : ℕ) : ℕ × ℕ :
     (1,2^(Nat.findGreatest (fun k => floorProgramHaltsWithin c k=false) b+1+4))
   else (0,1)
 
-/-- Original `floorProgramAmplitudePayload_value` guarantee for the `FloorProgramAmplitude` construction; the complete source hypotheses are retained. -/
+/-- The quotient of the two natural payload entries is the rational amplitude approximant at the
+given budget. -/
 theorem floorProgramAmplitudePayload_value (c : Nat.Partrec.Code) (b : ℕ) :
     (floorProgramAmplitudePayload c b).1 / ((floorProgramAmplitudePayload c b).2 : ℚ) =
       floorProgramAmplitudeApprox c b := by
   unfold floorProgramAmplitudePayload floorProgramAmplitudeApprox
   split <;> simp
 
-/-- Original `primrec_floorProgramHaltsWithin` guarantee for the `FloorProgramAmplitude` construction; the complete source hypotheses are retained. -/
+/-- Bounded halt detection on input zero is primitive recursive in the packed program and fuel. -/
 theorem primrec_floorProgramHaltsWithin :
     Primrec fun x : Nat.Partrec.Code × ℕ => floorProgramHaltsWithin x.1 x.2 := by
   exact Primrec.option_isSome.comp
     (Nat.Partrec.Code.primrec_evaln.comp ((Primrec.snd.pair Primrec.fst).pair (Primrec.const 0)))
 
-/-- Original `primrec_floorProgramAmplitudePayload` guarantee for the `FloorProgramAmplitude` construction; the complete source hypotheses are retained. -/
+/-- The numerator–denominator payload of the amplitude approximant is primitive recursive in the
+packed program and budget. -/
 theorem primrec_floorProgramAmplitudePayload :
     Primrec fun x : Nat.Partrec.Code × ℕ => floorProgramAmplitudePayload x.1 x.2 := by
   have hg : Primrec fun x : Nat.Partrec.Code × ℕ =>

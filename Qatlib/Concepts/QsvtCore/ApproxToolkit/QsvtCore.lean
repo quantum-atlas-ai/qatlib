@@ -22,7 +22,7 @@ are discussed in [GilyenSuLowWiebe2019].
 ## Main statements
 
 * `gapSign_approximation`: packages the error bound as a sign approximation.
-* `frontier1`: chooses a polynomial with prescribed gap error and an explicit degree budget.
+* `exists_odd_gap_sign_approximation_with_degree_bound`: chooses a polynomial with prescribed gap error and an explicit degree budget.
 
 ## References
 
@@ -316,7 +316,7 @@ theorem gapSign_approximation (K : ℕ) (δ : ℝ) (hδ : 0 < δ) :
 
 /-- For 0 < δ ≤ 2 and 0 < ε ≤ 1/2, a gap sign polynomial is odd, bounded by one on [−2, 2], and
 approximates sign within `ε` outside the gap. Its degree is at most 8 log(2/(εδ))/δ² + 3. -/
-theorem frontier1 (δ ε : ℝ) (hδ : 0 < δ) (hδ2 : δ ≤ 2) (hε : 0 < ε) (hε2 : ε ≤ 1 / 2) :
+theorem exists_odd_gap_sign_approximation_with_degree_bound (δ ε : ℝ) (hδ : 0 < δ) (hδ2 : δ ≤ 2) (hε : 0 < ε) (hε2 : ε ≤ 1 / 2) :
     ∃ (P : Polynomial ℝ) (K : ℕ),
       P = gapSignPolynomial K ∧
       P.natDegree ≤ 8 * Real.log (2 / (ε * δ)) / (δ * δ) + 3 ∧

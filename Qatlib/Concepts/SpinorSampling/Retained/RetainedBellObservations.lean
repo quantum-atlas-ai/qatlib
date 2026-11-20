@@ -80,7 +80,7 @@ def cohortObservationLaw (a b c k : S → ℝ) (hz : ∀ x,a x^2+b x^2+c x^2+k x
     simp_rw [← Finset.mul_sum,(cohortLaw (uniformLaw S) m).sum_one,mul_one]
     exact (cohortLaw (uniformLaw S) n).sum_one
 
-/-- Complete original `cohort_observation_mass` guarantee for `RetainedBellObservations`; all source hypotheses and output obligations are retained. -/
+/-- For normalized spinors and an injective site map, the mass of a specified observation is the uniform mass of its two address arrays times the product of its matched-site Bell event probabilities. -/
 theorem cohort_observation_mass (a b c k : S → ℝ) (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1)
     (τ : S → S) (hτ : Function.Injective τ) (ω : CohortObservation n m τ) :
     (cohortObservationLaw a b c k hz τ hτ).prob ω=
@@ -103,13 +103,13 @@ def observedMeanQ (τ : S → S) (ω : CohortObservation n m τ) : ℚ :=
   observedHitsQ τ ω/(matchedSites ω.1 ω.2.1 τ).card
 
 omit [Fintype S] [Nonempty S] in
-/-- Complete original `observed_empty` guarantee for `RetainedBellObservations`; all source hypotheses and output obligations are retained. -/
+/-- The observed rational Bell mean is zero when the two address cohorts contain no matches. -/
 theorem observed_empty (τ : S → S) (ω : CohortObservation n m τ)
     (h : (matchedSites ω.1 ω.2.1 τ).card=0) : observedMeanQ τ ω=0 := by
   simp [observedMeanQ,h]
 
 omit [Fintype S] [Nonempty S] in
-/-- Complete original `observation_bell_counts` guarantee for `RetainedBellObservations`; all source hypotheses and output obligations are retained. -/
+/-- The program for the observed matched pairs uses zero queries and exactly two gates per matched site. -/
 theorem observation_bell_counts (τ : S → S) (ω : CohortObservation n m τ) :
     QueryCount (pairProgram (matchedPhysicalFin ω.1 ω.2.1 τ)
       (matchedEnumeration ω.1 ω.2.1 τ))=0 ∧
@@ -120,7 +120,7 @@ theorem observation_bell_counts (τ : S → S) (ω : CohortObservation n m τ) :
 
 -- The left side is the unnormalized original fresh-copy address branch,
 -- evolved by the same native gates and then actually read out.
-/-- Complete original `raw_capture_native_mass` guarantee for `RetainedBellObservations`; all source hypotheses and output obligations are retained. -/
+/-- For any pair list and specified hit pattern, the Born mass from the unnormalized address-projected state equals the native spin-only hit mass times the uniform probability of the address arrays. -/
 theorem raw_capture_native_mass (a b c k : S → ℝ) (J : Fin n → S) (K : Fin m → S)
     (τ : S → S) (l : List (matchedSites J K τ)) (z : matchedSites J K τ → Bool) :
     (∑ σ : Reg (n+m),if pairHits (matchedPhysicalFin J K τ) σ=z then
@@ -154,7 +154,7 @@ theorem raw_capture_native_mass (a b c k : S → ℝ) (J : Fin n → S) (K : Fin
   split_ifs <;> simp
 
 
-/-- Complete original `cohort_observation_is_raw_born` guarantee for `RetainedBellObservations`; all source hypotheses and output obligations are retained. -/
+/-- For normalized spinors and an injective site map, the mass of an observation equals the Born mass obtained by projecting onto its addresses, running the matched-pair circuit and summing over register outcomes with its observed hit pattern. -/
 theorem cohort_observation_is_raw_born (a b c k : S → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (τ : S → S) (hτ : Function.Injective τ)
     (ω : CohortObservation n m τ) :

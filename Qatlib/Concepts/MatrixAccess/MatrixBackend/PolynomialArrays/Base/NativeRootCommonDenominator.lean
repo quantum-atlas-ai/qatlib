@@ -32,7 +32,7 @@ def rootSharedNumerator (c : ℚ×ℚ) : GaussianDyadicScalar :=
   (rootScaledNumerator c.1 (rootSharedDenominator c),
     rootScaledNumerator c.2 (rootSharedDenominator c))
 
-/-- The finite construction in `NativeRootCommonDenominator` satisfies `rootSharedDenominator_pos` under the displayed hypotheses. -/
+/-- The least common multiple of the two rational coordinate denominators is positive. -/
 theorem rootSharedDenominator_pos (c : ℚ×ℚ) : 0<rootSharedDenominator c := by
   apply Nat.pos_of_ne_zero
   simp [rootSharedDenominator]
@@ -49,7 +49,7 @@ theorem rootScaledNumerator_exact (x : ℚ) (D : ℕ) (h : x.den∣D) :
     _ = x*(((D/x.den : ℕ) : ℚ)*(x.den : ℚ)) := by rw [hx]; ring
     _ = x*(D : ℚ) := by rw [hD]
 
-/-- The finite construction in `NativeRootCommonDenominator` satisfies `rootSharedNumerator_exact` under the displayed hypotheses. -/
+/-- Each integer coordinate of the shared numerator equals the corresponding rational coordinate multiplied by the common denominator, after casting to rationals. -/
 theorem rootSharedNumerator_exact (c : ℚ×ℚ) :
     ((rootSharedNumerator c).1 : ℚ)=c.1*(rootSharedDenominator c : ℚ) ∧
     ((rootSharedNumerator c).2 : ℚ)=c.2*(rootSharedDenominator c : ℚ) := by

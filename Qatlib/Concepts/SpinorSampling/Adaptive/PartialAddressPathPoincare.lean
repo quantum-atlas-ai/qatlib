@@ -29,11 +29,12 @@ namespace Qatlib.Concepts.SpinorSampling.Adaptive.PartialAddress.BoxPoincare
 def pathEnergy (f : ℕ → ℝ) (a b : ℕ) : ℝ :=
   ∑ j ∈ Finset.Ico a b,(f (j+1)-f j)^2
 
-/-- Complete original `energy_nonneg` guarantee for `PartialAddressPathPoincare`; all source hypotheses and output obligations are retained. -/
+/-- The sum of squared forward differences on the interval from `a` to `b` is nonnegative. -/
 theorem energy_nonneg (f : ℕ → ℝ) (a b : ℕ) : 0 ≤ pathEnergy f a b :=
   Finset.sum_nonneg fun _ _ => sq_nonneg _
 
-/-- Complete original `interval_square` guarantee for `PartialAddressPathPoincare`; all source hypotheses and output obligations are retained. -/
+/-- For `a ≤ b`, the squared endpoint difference is bounded by the number of steps times the
+path energy. -/
 theorem interval_square (f : ℕ → ℝ) (a b : ℕ) (hab : a ≤ b) :
     (f b-f a)^2 ≤ ((b-a : ℕ) : ℝ)*pathEnergy f a b := by
   have h := Finset.sum_mul_sq_le_sq_mul_sq (Finset.Ico a b)
@@ -41,7 +42,8 @@ theorem interval_square (f : ℕ → ℝ) (a b : ℕ) (hab : a ≤ b) :
   simpa only [mul_one,one_pow,Finset.sum_const,Nat.card_Ico,nsmul_eq_mul,
     Finset.sum_Ico_sub f hab,pathEnergy,mul_comm] using h
 
-/-- Complete original `energy_mono` guarantee for `PartialAddressPathPoincare`; all source hypotheses and output obligations are retained. -/
+/-- If `a ≤ c` and `d ≤ b`, the energy on the half-open edge index interval from `c` to `d` is
+at most the energy from `a` to `b`. -/
 theorem energy_mono (f : ℕ → ℝ) (a b c d : ℕ) (hac : a ≤ c) (hdb : d ≤ b) :
     pathEnergy f c d ≤ pathEnergy f a b := by
   apply Finset.sum_le_sum_of_subset_of_nonneg
@@ -51,7 +53,8 @@ theorem energy_mono (f : ℕ → ℝ) (a b c d : ℕ) (hac : a ≤ c) (hdb : d �
   · intro j _ _
     exact sq_nonneg _
 
-/-- Complete original `left_anchor` guarantee for `PartialAddressPathPoincare`; all source hypotheses and output obligations are retained. -/
+/-- For a site `i < m` to the left of the anchor, the squared difference from `f m` is at most
+`m` times the energy on the path from zero to `m`. -/
 theorem left_anchor (f : ℕ → ℝ) (m i : ℕ) (hi : i< m) :
     (f i-f m)^2 ≤ (m : ℝ)*pathEnergy f 0 m := by
   have hs := interval_square f i m hi.le
@@ -60,7 +63,8 @@ theorem left_anchor (f : ℕ → ℝ) (m i : ℕ) (hi : i< m) :
   have hprod := mul_le_mul hc he (energy_nonneg f i m) (Nat.cast_nonneg m)
   nlinarith
 
-/-- Complete original `right_anchor` guarantee for `PartialAddressPathPoincare`; all source hypotheses and output obligations are retained. -/
+/-- For a site `m ≤ i < 2m`, the squared difference from `f m` is at most `m` times the energy
+on the path from the anchor to `2m-1`. -/
 theorem right_anchor (f : ℕ → ℝ) (m i : ℕ) (hi0 : m ≤ i) (hi1 : i<2*m) :
     (f i-f m)^2 ≤ (m : ℝ)*pathEnergy f m (2*m-1) := by
   have hs := interval_square f m i hi0
@@ -68,7 +72,8 @@ theorem right_anchor (f : ℕ → ℝ) (m i : ℕ) (hi0 : m ≤ i) (hi1 : i<2*m)
   have hc : ((i-m : ℕ) : ℝ) ≤ (m : ℝ) := by exact_mod_cast (show i-m ≤ m by omega)
   exact hs.trans (mul_le_mul hc he (energy_nonneg f m i) (Nat.cast_nonneg m))
 
-/-- Complete original `anchor_sum` guarantee for `PartialAddressPathPoincare`; all source hypotheses and output obligations are retained. -/
+/-- For `m > 0`, the sum of squared deviations from the middle-site value over `2m` sites is
+bounded by `m^2` times the energy of the whole path. -/
 theorem anchor_sum (f : ℕ → ℝ) (m : ℕ) (hm : 0< m) :
     (∑ i : Fin (2*m),(f i.val-f m)^2) ≤
       (m : ℝ)^2*pathEnergy f 0 (2*m-1) := by
@@ -92,7 +97,8 @@ theorem anchor_sum (f : ℕ → ℝ) (m : ℕ) (hm : 0< m) :
 noncomputable def pathMean (f : ℕ → ℝ) (ell : ℕ) : ℝ :=
   (∑ i : Fin ell,f i.val)/(ell : ℝ)
 
-/-- Complete original `centered_le_anchor` guarantee for `PartialAddressPathPoincare`; all source hypotheses and output obligations are retained. -/
+/-- On a nonempty finite path, centering at its arithmetic mean gives a sum of squared
+deviations no larger than centering at any constant `a`. -/
 theorem centered_le_anchor (f : ℕ → ℝ) (ell : ℕ) (hell : 0<ell) (a : ℝ) :
     (∑ i : Fin ell,(f i.val-pathMean f ell)^2) ≤ ∑ i : Fin ell,(f i.val-a)^2 := by
   have hp : (ell : ℝ) ≠ 0 := by exact_mod_cast Nat.ne_of_gt hell
@@ -115,7 +121,8 @@ theorem centered_le_anchor (f : ℕ → ℝ) (ell : ℕ) (hell : 0<ell) (a : ℝ
   have hpos := mul_nonneg (Nat.cast_nonneg ell) (sq_nonneg (pathMean f ell-a))
   linarith
 
-/-- Complete original `even_path_poincare` guarantee for `PartialAddressPathPoincare`; all source hypotheses and output obligations are retained. -/
+/-- For `m > 0`, the average squared deviation from the mean on the `2m`-site path is bounded
+by `(2m)/4` times its internal energy. -/
 theorem even_path_poincare (f : ℕ → ℝ) (m : ℕ) (hm : 0< m) :
     (∑ i : Fin (2*m),(f i.val-pathMean f (2*m))^2)/((2*m : ℕ) : ℝ) ≤
       (((2*m : ℕ) : ℝ)/4)*pathEnergy f 0 (2*m-1) := by

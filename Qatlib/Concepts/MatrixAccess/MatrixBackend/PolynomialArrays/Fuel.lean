@@ -56,13 +56,13 @@ def fuel (trial : ℕ → Option α) (h : ∃ n,(trial n).isSome=true) : ℕ := 
 def value (trial : ℕ → Option α) (h : ∃ n,(trial n).isSome=true) : α :=
   (trial (fuel trial h)).get (Nat.find_spec h)
 
-/-- The finite construction in `Fuel` satisfies `trial_value` under the displayed hypotheses. -/
+/-- Given evidence that some trial succeeds, the trial at the least successful fuel returns the extracted value. -/
 theorem trial_value (trial : ℕ → Option α) (h : ∃ n,(trial n).isSome=true) :
     trial (fuel trial h)=some (value trial h) := by
   unfold value
   exact (Option.some_get _).symm
 
-/-- The finite construction in `Fuel` satisfies `least_fuel` under the displayed hypotheses. -/
+/-- Every trial with fuel strictly below the least successful fuel returns `none`. -/
 theorem least_fuel (trial : ℕ → Option α) (h : ∃ n,(trial n).isSome=true) (n : ℕ)
     (hn : n < fuel trial h) : trial n=none := by
   have hf := Nat.find_min h hn
@@ -78,7 +78,7 @@ open ActualSturmComputedIsolation ActualSturmQueueRun ActualSturmQueueSplit Actu
 open ActualSturmQueueCoverage ActualSturmQueueGeometry ActualSturmQueueReady ActualSturmSourceCount
 open ActualYunRationalArray ActualYunRationalCanonical
 
-/-- The finite construction in `Fuel` satisfies `core_add` under the displayed hypotheses. -/
+/-- If the Sturm queue loop returns `result` from `bs` and `done`, adding any `extra` to its fuel returns that same list. -/
 theorem core_add (chain : List (List ℤ)) (f : List ℤ) (target : ℚ) (fuel extra : ℕ)
     (bs : List Box) (done result : List (ℚ×ℚ))
     (h : core chain f target fuel bs done=some result) :
@@ -112,7 +112,7 @@ theorem core_add (chain : List (List ℤ)) (f : List ℤ) (target : ℚ) (fuel e
             simp only [ha] at h ⊢
             exact ih (r::l::bs) done h
 
-/-- The finite construction in `Fuel` satisfies `run_add` under the displayed hypotheses. -/
+/-- If the Sturm run on `a` at target width `target` returns `result`, increasing its fuel by `extra` returns the same list. -/
 theorem run_add (a : List ℚ) (target : ℚ) (fuel extra : ℕ) (result : List (ℚ×ℚ))
     (h : run a target fuel=some result) : run a target (fuel+extra)=some result := by
   cases hp : ActualSturmQueueReady.prepare a with
@@ -125,7 +125,7 @@ theorem run_add (a : List ℚ) (target : ℚ) (fuel extra : ℕ) (result : List 
       simp only [run,hp] at h ⊢
       exact core_add (f::tail) f target fuel extra [b] [] result h
 
-/-- The finite construction in `Fuel` satisfies `intervals_add` under the displayed hypotheses. -/
+/-- If interval isolation at precision `bits` returns a list, every larger fuel allowance returns exactly that sorted list. -/
 theorem intervals_add (a : List ℚ) (bits fuel extra : ℕ) (result : List (ℚ×ℚ))
     (h : intervals a bits fuel=some result) : intervals a bits (fuel+extra)=some result := by
   cases hr : run a (sourceWidth bits) fuel with
@@ -134,7 +134,7 @@ theorem intervals_add (a : List ℚ) (bits fuel extra : ℕ) (result : List (ℚ
     have hs := run_add a (sourceWidth bits) fuel extra raw hr
     simpa only [intervals,hs,hr,Option.map_some] using h
 
-/-- The finite construction in `Fuel` satisfies `intervals_unique` under the displayed hypotheses. -/
+/-- Two successful interval calls for the same coefficients and precision return identical lists, even at different fuel allowances. -/
 theorem intervals_unique (a : List ℚ) (bits first second : ℕ) (x y : List (ℚ×ℚ))
     (hx : intervals a bits first=some x) (hy : intervals a bits second=some y) : x=y := by
   have h1 := intervals_add a bits first second x hx
@@ -142,7 +142,7 @@ theorem intervals_unique (a : List ℚ) (bits first second : ℕ) (x y : List (�
   rw [Nat.add_comm first second] at h1
   exact Option.some.inj (h1.symm.trans h2)
 
-/-- The finite construction in `Fuel` satisfies `exists_success` under the displayed hypotheses. -/
+/-- For a canonical rational coefficient list representing a nonzero polynomial of positive degree, there is a successful fuel allowance at every precision `bits`. -/
 theorem exists_success (a : List ℚ) (hcan : Canonical a) (ha : poly a≠0)
     (hd : 0 < (poly a).natDegree) (bits : ℕ) : ∃ fuel,(intervals a bits fuel).isSome=true := by
   obtain ⟨fuel,result,hr,_,_,_⟩ := computed_isolation a hcan ha hd bits
@@ -153,7 +153,11 @@ def searched (a : List ℚ) (hcan : Canonical a) (ha : poly a≠0)
     (hd : 0 < (poly a).natDegree) (bits : ℕ) : List (ℚ×ℚ) :=
   ActualFiniteFuelSearch.value (intervals a bits) (exists_success a hcan ha hd bits)
 
-/-- The finite construction in `Fuel` satisfies `searched_correct` under the displayed hypotheses. -/
+/-- For canonical rational coefficients of a nonzero positive-degree polynomial,
+ the list at the least successful fuel consists of nondegenerate intervals of
+ width at most `1 / 2^bits`. Each has root-free endpoints and contains exactly
+ one real root. Each real root occurs in exactly one interval, and the list is
+ pairwise apart and lexicographically ordered by endpoints. -/
 theorem searched_correct (a : List ℚ) (hcan : Canonical a) (ha : poly a≠0)
     (hd : 0 < (poly a).natDegree) (bits : ℕ) :
     (∀ p∈searched a hcan ha hd bits,GoodInterval (inputRoots a) (sourceWidth bits) p) ∧
@@ -176,7 +180,8 @@ open ActualSturmQueuePotential ActualSturmQueueRank
 open ActualSturmChain ActualSturmSourceCount ActualYunRationalArray ActualYunRationalCanonical
 open ActualYunPrimitive
 
-/-- The finite construction in `Fuel` satisfies `mass_children` under the displayed hypotheses. -/
+/-- If a positive natural count `c` splits as `a + b` and both ranks `x` and `y`
+ are smaller than `R`, the two child weights sum to less than `2 * c * R + 1`. -/
 theorem mass_children (c a b R x y : ℕ) (hc : 0<c) (hs : c=a+b)
     (hx : x<R) (hy : y<R) :
     (2*a*x+1)+(2*b*y+1)<2*c*R+1 := by
@@ -192,13 +197,16 @@ def massWeight (t : ℝ) (ht : 0<t) (b : Box) : ℕ :=
 def massPotential (t : ℝ) (ht : 0<t) (bs : List Box) : ℕ :=
   (bs.map (massWeight t ht)).sum
 
-/-- The finite construction in `Fuel` satisfies `mass_pop` under the displayed hypotheses. -/
+/-- For `t > 0`, dropping the head box strictly decreases the queue's total weight, since its contribution is at least one. -/
 theorem mass_pop (t : ℝ) (ht : 0<t) (b : Box) (bs : List Box) :
     massPotential t ht bs < massPotential t ht (b::bs) := by
   simp only [massPotential,List.map_cons,List.sum_cons,massWeight]
   omega
 
-/-- The finite construction in `Fuel` satisfies `mass_split` under the displayed hypotheses. -/
+/-- Replacing a box with its two children strictly decreases total queue weight
+ when all three have ordered, root-free endpoints and correct counts, the two
+ child counts sum to the nonzero parent count, each child is at most three
+ quarters as wide as the parent, and the parent's rank at `t > 0` is positive. -/
 theorem mass_split (S : Finset ℝ) (t : ℝ) (ht : 0<t) (b l r : Box)
     (hb : GoodBox S b) (hl : GoodBox S l) (hr : GoodBox S r)
     (hbl : width l≤(3/4 : ℝ)*width b) (hbr : width r≤(3/4 : ℝ)*width b)
@@ -226,7 +234,11 @@ def MassStepGood (S : Finset ℝ) (chain : List (List ℤ)) (f : List ℤ) : Pro
     width l≤(3/4 : ℝ)*width b ∧ width r≤(3/4 : ℝ)*width b ∧
     b.count=l.count+r.count
 
-/-- The finite construction in `Fuel` satisfies `core_mass_terminates` under the displayed hypotheses. -/
+/-- The Sturm queue loop returns a result if the initial boxes have ordered,
+ root-free endpoints and correct counts, and fuel covers their total weight.
+ This assumes distinct roots in `S` are separated by `gap`, `0 < t ≤ gap / 2`,
+ `t ≤ target`, and every valid box admits a successful split into valid
+ children of width at most three quarters of the parent, preserving the count. -/
 theorem core_mass_terminates (S : Finset ℝ) (chain : List (List ℤ)) (f : List ℤ)
     (target : ℚ) (gap t : ℝ) (ht : 0<t) (htg : t≤gap/2) (htt : t≤(target : ℝ))
     (hsep : ∀ x∈S,∀ y∈S,x≠y → gap≤|x-y|) (hstep : MassStepGood S chain f)
@@ -275,7 +287,11 @@ theorem core_mass_terminates (S : Finset ℝ) (chain : List (List ℤ)) (f : Lis
           exact ⟨result,by simp only [core,ite_eq_right hz,ite_eq_right hleaf,had]; exact hresult⟩
 
 
-/-- The finite construction in `Fuel` satisfies `original_mass_step` under the displayed hypotheses. -/
+/-- For canonical rational input of nonzero positive degree, suppose the computed
+ Sturm chain has head `f`, whose nonzero polynomial has exactly the input's
+ real roots. Each valid box then admits a successful split into two valid
+ boxes with counts summing to the parent count and widths at most three
+ quarters of the parent width. -/
 theorem original_mass_step (a : List ℚ) (hcan : Canonical a) (ha : poly a≠0)
     (hd : 0<(poly a).natDegree) (f : List ℤ) (tail : List (List ℤ))
     (hsource : sourceChain a=some (f::tail)) (hfn : integerPolyQ f≠0)
@@ -302,7 +318,8 @@ open ActualYunRationalArray ActualYunRationalCanonical ActualYunPrimitive
 open ActualProjectionSquarefreeHeight ActualProjectionSeparationBudget
 open Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays
 
-/-- The finite construction in `Fuel` satisfies `rank_numeric` under the displayed hypotheses. -/
+/-- For positive `t` and `w`, if `w ≤ 2^B` and `1 / 2^K ≤ t`, at most `4 * (B + K)`
+ contractions by `3/4` are needed to bring the width down to `t` or below. -/
 theorem rank_numeric (t w : ℝ) (ht : 0<t) (hw : 0<w) (B K : ℕ)
     (hwidth : w≤(2 : ℝ)^B) (htarget : 1/(2 : ℝ)^K≤t) :
     rank t ht w≤4*(B+K) := by
@@ -321,7 +338,7 @@ theorem rank_numeric (t w : ℝ) (ht : 0<t) (hw : 0<w) (B K : ℕ)
   rw [dite_eq_left hw]
   exact Nat.find_min' _ hsmall
 
-/-- The finite construction in `Fuel` satisfies `max_upper` under the displayed hypotheses. -/
+/-- If both the seed and every entry of `xs` are at most `upper`, the left fold of `max` is at most `upper`. -/
 theorem max_upper (xs : List ℚ) (seed upper : ℚ)
     (hs : seed≤upper) (hx : ∀x∈xs,x≤upper) : xs.foldl max seed≤upper := by
   induction xs generalizing seed with
@@ -329,7 +346,7 @@ theorem max_upper (xs : List ℚ) (seed upper : ℚ)
   | cons x xs ih =>
     exact ih (max seed x) (max_le hs (hx x (by simp))) (fun y hy => hx y (by simp only [List.mem_cons]; exact Or.inr hy))
 
-/-- The finite construction in `Fuel` satisfies `sourceCeil_le_integer` under the displayed hypotheses. -/
+/-- If the rational `q` is at most the integer `C`, the computed ceiling is also at most `C`. -/
 theorem sourceCeil_le_integer (q : ℚ) (C : ℤ) (hq : q≤(C : ℚ)) : sourceCeil q≤C := by
   have hdQ : (0 : ℚ)<q.den := by exact_mod_cast q.den_pos
   have hdZ : (0 : ℤ)<q.den := by exact_mod_cast q.den_pos
@@ -390,7 +407,9 @@ def depthBudget (a : List ℤ) (bits : ℕ) : ℕ :=
 /-- Construction for fuel Budget in the fuel model. -/
 def fuelBudget (a : List ℤ) (bits : ℕ) : ℕ := 2*degree a*depthBudget a bits+1
 
-/-- The finite construction in `Fuel` satisfies `original_intervals_numerical` under the displayed hypotheses. -/
+/-- For integer coefficients whose rational lift is canonical and represents a
+ nonzero positive-degree polynomial, interval isolation succeeds at precision
+ `bits` with the computed numerical fuel budget. -/
 theorem original_intervals_numerical (a : List ℤ) (hcan : Canonical (lift a))
     (hn : poly (lift a)≠0) (hd : 0<(poly (lift a)).natDegree) (bits : ℕ) :
     ∃ result,intervals (lift a) bits (fuelBudget a bits)=some result := by
@@ -488,7 +507,9 @@ theorem original_intervals_numerical (a : List ℤ) (hcan : Canonical (lift a))
     simpa only [ActualSturmQueueRun.run,hprepare] using hresult
   exact ⟨ActualSturmIntervalSort.sort result,by simp only [intervals,hrunResult,Option.map_some]⟩
 
-/-- The finite construction in `Fuel` satisfies `original_search_numerical` under the displayed hypotheses. -/
+/-- For a canonical rational lift of integer coefficients with nonzero positive
+ degree, the least successful fuel at precision `bits` is at most the numerical
+ budget. The run at that budget returns exactly the least-fuel interval list. -/
 theorem original_search_numerical (a : List ℤ) (hcan : Canonical (lift a))
     (hn : poly (lift a)≠0) (hd : 0<(poly (lift a)).natDegree) (bits : ℕ) :
     ActualFiniteFuelSearch.fuel (intervals (lift a) bits) (exists_success (lift a) hcan hn hd bits)
@@ -502,7 +523,9 @@ theorem original_search_numerical (a : List ℤ) (hcan : Canonical (lift a))
     (searched (lift a) hcan hn hd bits) hr hs
   exact ⟨hf,by simpa only [he] using hr⟩
 
-/-- The finite construction in `Fuel` satisfies `fuelBudget_formula` under the displayed hypotheses. -/
+/-- The fuel budget is `8 * d * (H + 3 + max bits (s + 1)) + 1`, where `d` is the
+ array's length-based degree, `H` its squarefree height bound, and `s` its
+ separation exponent. -/
 theorem fuelBudget_formula (a : List ℤ) (bits : ℕ) :
     fuelBudget a bits=8*degree a*(squarefreeHeight (degree a) (height a)+3+
       max bits (separationExponent a+1))+1 := by

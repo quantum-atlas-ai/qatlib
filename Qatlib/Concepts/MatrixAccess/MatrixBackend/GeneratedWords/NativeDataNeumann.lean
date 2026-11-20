@@ -59,19 +59,19 @@ def nativeOriginalNeumannWord (b : ℕ) (hb : 0 < b) (F : Matrix H I ℂ)
     (Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.uniformNeumannWord b hb (rangeProjector (nativeDataFrame F)))
 
 omit [Fintype H] in
-/-- The finite construction in `NativeDataNeumann` satisfies `data_lift_one` under the displayed hypotheses. -/
+/-- The uniform Neumann lift of the identity on the six auxiliary wires and the data register is identity on the enlarged register, for any `b`. -/
 private theorem data_lift_one (b : ℕ) :
     Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.uniformNeumannOracle (H := Reg 6 × H) b 1 = 1 := by
   simp only [Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.uniformNeumannOracle, parallelOracle, parallel_select_one,
     Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.neumannDataOracle, TensorGate, Matrix.one_kronecker_one]
 
-/-- The finite construction in `NativeDataNeumann` satisfies `data_lift_mul` under the displayed hypotheses. -/
+/-- Lifting the product of two native-register matrices to the uniform Neumann register equals multiplying their lifts at the same `b`. -/
 private theorem data_lift_mul (b : ℕ) (U V : Matrix (Reg 6 × H) (Reg 6 × H) ℂ) :
     Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.uniformNeumannOracle b (U*V) = Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.uniformNeumannOracle b U * Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.uniformNeumannOracle b V := by
   simp only [Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.uniformNeumannOracle, Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.neumannDataOracle, tensorGate_mul, Matrix.one_mul,
     parallelOracle, parallel_select_mul]
 
-/-- The finite construction in `NativeDataNeumann` satisfies `data_lift_adjoint` under the displayed hypotheses. -/
+/-- Taking the adjoint of a native-register matrix before the uniform Neumann lift equals taking the adjoint of its lift. -/
 private theorem data_lift_adjoint (b : ℕ) (U : Matrix (Reg 6 × H) (Reg 6 × H) ℂ) :
     Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.uniformNeumannOracle b Uᴴ = (Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.uniformNeumannOracle b U)ᴴ := by
   simp only [Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.uniformNeumannOracle, Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.neumannDataOracle, tensorGate_conjTranspose,

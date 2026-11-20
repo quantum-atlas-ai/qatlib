@@ -39,7 +39,7 @@
 | `Qatlib.Concepts.PauliClifford.PauliAlgebra.projectorAux_posSemidef` | theorem | L62 | The projector product of commuting Hermitian Pauli generators is positive semidefinite. |
 | `Qatlib.Concepts.PauliClifford.PauliAlgebra.PauliWord` | abbrev | L63 | A Pauli letter assigned to each of n qubit positions. |
 | `Qatlib.Concepts.PauliClifford.PauliAlgebra.conjugate_smul` | theorem | L63 | Matrix conjugation commutes with complex scalar multiplication. |
-| `Qatlib.Concepts.PauliClifford.PauliAlgebra.frontier1` | theorem | L63 | A legal Clifford run on a consistent tableau with independent generators preserves projector covariance, a valid code density, dimension 2^(n - k), and exclusion of the negative identity. |
+| `Qatlib.Concepts.PauliClifford.PauliAlgebra.clifford_run_preserves_stabilizer_projector_and_expectation` | theorem | L63 | A legal Clifford run on a consistent tableau with independent generators preserves projector covariance, a valid code density, dimension 2^(n - k), and exclusion of the negative identity. |
 | `Qatlib.Concepts.PauliClifford.PauliAlgebra.regToVec` | def | L63 | Convert a Boolean register to a vector over GF(2) by applying `boolZModEquiv` at each site. |
 | `Qatlib.Concepts.PauliClifford.PauliAlgebra.verifiedAction_hermitian_iff` | theorem | L63 | The verified action of a Clifford gate preserves and reflects the Hermitian Pauli condition. |
 | `Qatlib.Concepts.PauliClifford.PauliAlgebra.zero_tableau_consistent` | theorem | L63 | The zero tableau is consistent. |

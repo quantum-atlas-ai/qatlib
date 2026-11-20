@@ -30,11 +30,13 @@ open scoped ContDiff
 def unitGluingCutoff (eta : ℝ) (x : ℝ) : ℝ :=
   Real.smoothTransition ((x-(1-eta/2))/(eta/4))
 
-/-- Original `contDiff_unitGluingCutoff` guarantee for the `CutoffTransition` construction; the complete source hypotheses are retained. -/
+/-- The unit-coordinate gluing cutoff is continuously differentiable to every order for any real
+`eta`. -/
 theorem contDiff_unitGluingCutoff {n : ℕ∞} (eta : ℝ) : ContDiff ℝ n (unitGluingCutoff eta) :=
   Real.smoothTransition.contDiff.comp ((contDiff_id.sub contDiff_const).div_const _)
 
-/-- Original `cutoffTransition_derivative_bound` guarantee for the `CutoffTransition` construction; the complete source hypotheses are retained. -/
+/-- The absolute order-`n` derivative of the smooth transition is bounded by
+`cutoffTransitionMajorant n` at every real argument. -/
 theorem cutoffTransition_derivative_bound (n : ℕ) (x : ℝ) :
     |iteratedDeriv n Real.smoothTransition x| ≤ (cutoffTransitionMajorant n : ℝ) := by
   have heq : Real.smoothTransition=fun y => expNegInvGlue y*cutoffReciprocal y := by

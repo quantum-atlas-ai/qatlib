@@ -37,14 +37,14 @@ variable {X : Type*} [Fintype X]
 def addLinear (H : X → X → ℝ) (f : X → ℝ) (c : ℝ) (x y : X) : ℝ :=
   H x y+f x+f y+c
 
-/-- Complete original `projection_add_linear` guarantee for `SplitResidualRecords`; all source hypotheses and output obligations are retained. -/
+/-- Projecting a kernel after adding f at both arguments and a constant c adds f(x), the expectation of f under p, and c to the projection at x. -/
 theorem projection_add_linear (p : FinDist X) (H : X → X → ℝ) (f : X → ℝ) (c : ℝ) (x : X) :
     pairKernelProjection p (addLinear H f c) x=pairKernelProjection p H x+f x+p.expect f+c := by
   change p.expect (fun y => H x y+f x+f y+c)=_
   simp only [finite_expect_add, finite_expect_const]
   rfl
 
-/-- Complete original `mean_add_linear` guarantee for `SplitResidualRecords`; all source hypotheses and output obligations are retained. -/
+/-- Adding f at both arguments and a constant c changes the pair-kernel mean by twice the expectation of f under p plus c. -/
 theorem mean_add_linear (p : FinDist X) (H : X → X → ℝ) (f : X → ℝ) (c : ℝ) :
     pairKernelMean p (addLinear H f c)=pairKernelMean p H+2*p.expect f+c := by
   change p.expect (fun x => pairKernelProjection p (addLinear H f c) x)=_
@@ -53,14 +53,14 @@ theorem mean_add_linear (p : FinDist X) (H : X → X → ℝ) (f : X → ℝ) (c
   change pairKernelMean p H+p.expect f+p.expect f+c=_
   ring
 
-/-- Complete original `centered_add_linear` guarantee for `SplitResidualRecords`; all source hypotheses and output obligations are retained. -/
+/-- The centered pair kernel is unchanged pointwise when the same one-record function is added at both arguments along with a constant. -/
 theorem centered_add_linear (p : FinDist X) (H : X → X → ℝ) (f : X → ℝ) (c : ℝ) (x y : X) :
     centeredPairKernel p (addLinear H f c) x y=centeredPairKernel p H x y := by
   rw [centeredPairKernel, projection_add_linear, projection_add_linear, mean_add_linear]
   unfold addLinear centeredPairKernel
   ring
 
-/-- Complete original `variance_add_constant` guarantee for `SplitResidualRecords`; all source hypotheses and output obligations are retained. -/
+/-- Adding the same constant to every value of a function preserves its variance under the finite law p. -/
 theorem variance_add_constant (p : FinDist X) (f : X → ℝ) (c : ℝ) :
     p.variance (fun x => f x+c)=p.variance f := by
   unfold FinDist.variance
@@ -84,21 +84,21 @@ def splitKernel (α β : ℝ) (u : S → ℝ) : (S × Bool) → (S × Bool) → 
   addLinear (residualCollision α 0 (fun _ => 0)) (targetLinear α β u) (targetSquare β u)
 
 omit [Nonempty S] in
-/-- Complete original `split_kernel_symmetric` guarantee for `SplitResidualRecords`; all source hypotheses and output obligations are retained. -/
+/-- The split residual kernel is invariant under exchanging its two signed records. -/
 theorem split_kernel_symmetric (α β : ℝ) (u : S → ℝ) (l r : S × Bool) :
     splitKernel α β u l r=splitKernel α β u r l := by
   unfold splitKernel addLinear
   rw [residual_kernel_symmetric (fun _ : S => 0) α 0 l r]
   ring
 
-/-- Complete original `split_centered_target_free` guarantee for `SplitResidualRecords`; all source hypotheses and output obligations are retained. -/
+/-- Under the signed-record law with conditional mean m, centering the split residual kernel gives the centered zero-target collision kernel at every pair of records. -/
 theorem split_centered_target_free (m u : S → ℝ) (hm : ∀ x, |m x| ≤ 1)
     (α β : ℝ) (l r : S × Bool) :
     centeredPairKernel (signedRecordLaw m hm) (splitKernel α β u) l r=
       centeredPairKernel (signedRecordLaw m hm) (residualCollision α 0 (fun _ => 0)) l r :=
   centered_add_linear _ _ _ _ l r
 
-/-- Complete original `split_projection` guarantee for `SplitResidualRecords`; all source hypotheses and output obligations are retained. -/
+/-- The split kernel projection is α times the first record's sign times the residual αm − βu at its site, plus the mean target linear term and the target-square constant. -/
 theorem split_projection (m u : S → ℝ) (hm : ∀ x, |m x| ≤ 1) (α β : ℝ) (l : S × Bool) :
     pairKernelProjection (signedRecordLaw m hm) (splitKernel α β u) l=
       α*recordSign l.2*(α*m l.1-β*u l.1)+
@@ -110,7 +110,7 @@ theorem split_projection (m u : S → ℝ) (hm : ∀ x, |m x| ≤ 1) (α β : �
   ring
 
 omit [DecidableEq S] in
-/-- Complete original `signed_weighted_sign_expect` guarantee for `SplitResidualRecords`; all source hypotheses and output obligations are retained. -/
+/-- The expectation of a site weight times the recorded sign equals the uniform site average of that weight times the conditional sign mean m. -/
 theorem signed_weighted_sign_expect (m f : S → ℝ) (hm : ∀ x, |m x| ≤ 1) :
     (signedRecordLaw m hm).expect (fun z => recordSign z.2*f z.1)=
       (∑ x : S, m x*f x)/(Fintype.card S : ℝ) := by
@@ -131,7 +131,7 @@ theorem signed_weighted_sign_expect (m f : S → ℝ) (hm : ∀ x, |m x| ≤ 1) 
         ring
   simpa only [Finset.sum_div] using Finset.sum_congr rfl (fun x _ => hc x)
 
-/-- Complete original `split_kernel_unbiased` guarantee for `SplitResidualRecords`; all source hypotheses and output obligations are retained. -/
+/-- Under the signed-record law with mean m, the split kernel has mean equal to the uniform site average of (αm − βu)². -/
 theorem split_kernel_unbiased (m u : S → ℝ) (hm : ∀ x, |m x| ≤ 1) (α β : ℝ) :
     pairKernelMean (signedRecordLaw m hm) (splitKernel α β u)=
       (∑ x : S, (α*m x-β*u x)^2)/(Fintype.card S : ℝ) := by
@@ -156,7 +156,7 @@ theorem split_kernel_unbiased (m u : S → ℝ) (hm : ∀ x, |m x| ≤ 1) (α β
   intro x _
   ring
 
-/-- Complete original `split_projection_variance_bound` guarantee for `SplitResidualRecords`; all source hypotheses and output obligations are retained. -/
+/-- The variance of the split kernel projection under the signed-record law is at most α² times the mean squared residual. -/
 theorem split_projection_variance_bound (m u : S → ℝ) (hm : ∀ x, |m x| ≤ 1) (α β : ℝ) :
     (signedRecordLaw m hm).variance (pairKernelProjection (signedRecordLaw m hm) (splitKernel α β u)) ≤
       α^2*((∑ x : S, (α*m x-β*u x)^2)/(Fintype.card S : ℝ)) := by
@@ -177,7 +177,7 @@ theorem split_projection_variance_bound (m u : S → ℝ) (hm : ∀ x, |m x| ≤
   exact congrArg (fun z : ℝ => α^2*z)
     (signed_record_site_expect m hm (fun x => (α*m x-β*u x)^2))
 
-/-- Complete original `split_centered_second_bound` guarantee for `SplitResidualRecords`; all source hypotheses and output obligations are retained. -/
+/-- For nonnegative α, the second moment of the centered split kernel over two independent signed records is at most the site count times α⁴. -/
 theorem split_centered_second_bound (m u : S → ℝ) (hm : ∀ x, |m x| ≤ 1)
     (α β : ℝ) (hα : 0 ≤ α) :
     (signedRecordLaw m hm).expect (fun l => (signedRecordLaw m hm).expect
@@ -194,7 +194,7 @@ theorem split_centered_second_bound (m u : S → ℝ) (hm : ∀ x, |m x| ≤ 1)
   simpa using residual_kernel_second_bound m (fun _ : S => 0) α 0 0 hm
     (by simp) hα (by norm_num)
 
-/-- Complete original `split_ustatistic_variance_bound` guarantee for `SplitResidualRecords`; all source hypotheses and output obligations are retained. -/
+/-- With at least two independent signed records and nonnegative α, bound the variance by the sum of 4α² times the mean squared residual divided by n and 2α⁴ times the site count divided by n(n − 1). -/
 theorem split_ustatistic_variance_bound {n : ℕ} (m u : S → ℝ) (hm : ∀ x, |m x| ≤ 1)
     (α β : ℝ) (hα : 0 ≤ α) (hn : 2 ≤ n) :
     (∑ ω : Fin n → S × Bool, (signedRecordLaw m hm).probOf ω*
@@ -211,7 +211,7 @@ theorem split_ustatistic_variance_bound {n : ℕ} (m u : S → ℝ) (hm : ∀ x,
   convert add_le_add ha hb using 1
   ring
 
-/-- Complete original `split_block_failure` guarantee for `SplitResidualRecords`; all source hypotheses and output obligations are retained. -/
+/-- For nonnegative coefficients and a target bounded by U, an independent block of at least two records obeying both the residual and collision sample-size bounds has error above positive ε with probability at most 3/16. -/
 theorem split_block_failure {n : ℕ} (m u : S → ℝ) (hm : ∀ x, |m x| ≤ 1)
     (α β U ε : ℝ) (hu : ∀ x, |u x| ≤ U) (hα : 0 ≤ α) (hβ : 0 ≤ β)
     (hn : 2 ≤ n) (hε : 0 < ε)
@@ -230,7 +230,7 @@ theorem split_block_failure {n : ℕ} (m u : S → ℝ) (hm : ∀ x, |m x| ≤ 1
   have hd := div_le_div_of_nonneg_right hb (by positivity : (0 : ℝ) ≤ n)
   convert add_le_add_right hd (2*(Fintype.card S : ℝ)*α^4/(n*(n-1) : ℕ)) using 1 <;> ring
 
-/-- Complete original `split_median_confidence` guarantee for `SplitResidualRecords`; all source hypotheses and output obligations are retained. -/
+/-- For nonnegative coefficients and a target bounded by U, take K independent blocks that each satisfy the two sample-size bounds. If K is positive and K ≥ (128/25) log(1/ρ) for ρ > 0, the median has error above ε with probability at most ρ. -/
 theorem split_median_confidence {n K : ℕ} (m u : S → ℝ) (hm : ∀ x, |m x| ≤ 1)
     (α β U ε ρ : ℝ) (hu : ∀ x, |u x| ≤ U) (hα : 0 ≤ α) (hβ : 0 ≤ β)
     (hn : 2 ≤ n) (hε : 0 < ε)

@@ -68,7 +68,8 @@ def velocityRawLaw (current : CorrelationPlanQ) (cross : ℕ) (norm : TargetNorm
     (independentPairLaw (cohortLaw (signedRecordLaw m hm) cross)
       (targetNormLaw norm.mode norm.records norm.blocks))
 
-/-- Complete original `finite_bad_mass_positive_scale` guarantee for `HighConfidenceVelocity`; all source hypotheses and output obligations are retained. -/
+/-- Multiplying both the statistic and its center by a positive `A` gives the same bad-event
+mass at tolerance `ε` as the original statistic at tolerance `ε/A`. -/
 theorem finite_bad_mass_positive_scale {X : Type} [Fintype X] [DecidableEq X]
     (p : FinDist X) (f : X → ℝ) (c A ε : ℝ) (hA : 0<A) :
     finiteBadMass p (fun x => A*f x) (A*c) ε=finiteBadMass p f c (ε/A) := by
@@ -81,7 +82,9 @@ theorem finite_bad_mass_positive_scale {X : Type} [Fintype X] [DecidableEq X]
 
 -- Prove the finite union step over abstract record types. Keeping plan
 -- constructors opaque here avoids normalizing their dependent data instances.
-/-- Complete original `finite_three_sum_confidence` guarantee for `HighConfidenceVelocity`; all source hypotheses and output obligations are retained. -/
+/-- If each of three statistics has error above `ε` on mass at most `ρ` under its own law, the
+sum under the product law has error above `3*ε` from the sum of the centers on mass at most
+`3*ρ`. -/
 theorem finite_three_sum_confidence {X Y Z : Type}
     [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y] [Fintype Z] [DecidableEq Z]
     (pC : FinDist X) (pL : FinDist Y) (pN : FinDist Z)
@@ -129,7 +132,8 @@ theorem finite_three_sum_confidence {X Y Z : Type}
 
 
 omit [DecidableEq S] [Nonempty S] in
-/-- Complete original `split_velocity_center` guarantee for `HighConfidenceVelocity`; all source hypotheses and output obligations are retained. -/
+/-- The scaled current-square mean, negative cross term, and target-square term sum to the site
+mean of `(α*m x - β*u x)²`. -/
 theorem split_velocity_center (m : S → ℝ) (u : S → ℚ) (α β : ℚ) :
     (α : ℝ)^2*siteMean (fun x => (m x)^2)-
       2*(α : ℝ)*(β : ℝ)*siteMean (fun x => m x*(u x : ℝ))+
@@ -143,7 +147,10 @@ theorem split_velocity_center (m : S → ℝ) (u : S → ℚ) (α β : ℚ) :
   intro x _
   ring
 
-/-- Complete original `planned_velocity_raw_confidence` guarantee for `HighConfidenceVelocity`; all source hypotheses and output obligations are retained. -/
+/-- For bounded sign means and target values, the sum of the planned current-square, cross, and
+target-norm estimates has error above `3*ε` from the mean squared velocity residual with
+probability at most `3*ρ`. The bound uses `α > 0`, `β, U ≥ 0`, a square-root upper bound on the
+site count, and `ε > 0` with `0 < ρ < 1`. -/
 theorem planned_velocity_raw_confidence (m : S → ℝ) (hm : ∀ x, |m x|≤1)
     (u : S → ℚ) (α β U rootM ε ρ : ℚ) (hα : 0<α) (hβ : 0≤β) (hU : 0≤U)
     (hu : ∀ x, |u x|≤U) (hroot : Real.sqrt (Fintype.card S : ℝ)≤(rootM : ℝ))

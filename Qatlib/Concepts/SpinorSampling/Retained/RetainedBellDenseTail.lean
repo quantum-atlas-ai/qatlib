@@ -42,7 +42,7 @@ def flatMatchTotal (τ : S → S) (n m K : ℕ)
     (A : Fin (Fintype.card (AddressIndex n m K)) → S) : ℝ :=
   groupedMatchTotal τ (addressBlocksEquiv n m K A)
 
-/-- Complete original `pooled_small_as_flat` guarantee for `RetainedBellDenseTail`; all source hypotheses and output obligations are retained. -/
+/-- The probability that fresh observations have fewer than r₀ pooled matches equals the probability of the same strict inequality in the flat uniform address model. -/
 theorem pooled_small_as_flat (a b c k : S → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (τ : Equiv.Perm S)
     (n m K : ℕ) (r₀ : ℝ) :
@@ -56,7 +56,7 @@ theorem pooled_small_as_flat (a b c k : S → ℝ)
     simp only [groupedMatchTotal,matchedAddressCount,pooledMatches,observedRvec,Nat.cast_sum]
   simpa only [hcount,pooledSmallMass,flatMatchTotal] using he
 
-/-- Complete original `flat_dense_mean_lower` guarantee for `RetainedBellDenseTail`; all source hypotheses and output obligations are retained. -/
+/-- With both cohorts as large as the site set, the expected total match count in K uniform blocks is at least one quarter of K times the site count. -/
 theorem flat_dense_mean_lower (τ : S → S) (K : ℕ) :
     (K : ℝ)*(Fintype.card S : ℝ)/4≤
       (cohortLaw (uniformLaw S)
@@ -83,7 +83,7 @@ theorem flat_dense_mean_lower (τ : S → S) (K : ℕ) :
 
 -- A single captured address changes one block's cardinality by at most one.
 omit [Fintype S] [Nonempty S] in
-/-- Complete original `flat_match_coordinate` guarantee for `RetainedBellDenseTail`; all source hypotheses and output obligations are retained. -/
+/-- Changing at most one address in the flat array changes the pooled match count by at most one under a permutation of sites. -/
 theorem flat_match_coordinate (τ : Equiv.Perm S) (n m K : ℕ)
     (A B : Fin (Fintype.card (AddressIndex n m K)) → S)
     (i : Fin (Fintype.card (AddressIndex n m K)))
@@ -147,7 +147,7 @@ theorem flat_match_coordinate (τ : Equiv.Perm S) (n m K : ℕ)
     rw [hu] at hc
     exact hw (Sum.inr.inj hc)
 
-/-- Complete original `dense_small_match_tail` guarantee for `RetainedBellDenseTail`; all source hypotheses and output obligations are retained. -/
+/-- With M sites and M draws per cohort, the probability of fewer than KM/8 pooled matches over K fresh blocks is at most exp(−KM/64). -/
 theorem dense_small_match_tail (a b c k : S → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (τ : Equiv.Perm S) (K : ℕ) :
     pooledSmallMass (n:=Fintype.card S) (m:=Fintype.card S) (K:=K) a b c k hz τ
@@ -213,7 +213,7 @@ theorem dense_small_match_tail (a b c k : S → ℝ)
         simp only [p,cohortLaw,independentSampleLaw,FinDist.probOf,mul_ite,mul_one,mul_zero]
       _ ≤ _ := ht
 
-/-- Complete original `clipped_pooled_dense_tail` guarantee for `RetainedBellDenseTail`; all source hypotheses and output obligations are retained. -/
+/-- For M draws per cohort on M sites and a Bell mean bounded by p₀, the error probability at positive tolerance ε is bounded by the sum of the dense match-shortage tail and the Bell deviation tail at KM/8 matches. -/
 theorem clipped_pooled_dense_tail (a b c k : S → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (τ : Equiv.Perm S) (K : ℕ)
     (p₀ : ℚ) (ε : ℝ) (hmean : bellMean a b c k τ≤(p₀ : ℝ)) (hε : 0<ε) :

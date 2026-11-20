@@ -46,7 +46,8 @@ def floorCisReducedArguments (p : FloorExpCodeParameters) : FloorExpCodeParamete
 def floorRationalCisCode (p : FloorExpCodeParameters) : FloorCisCodeResult :=
   floorCisSquaresCode (floorReducedCisCode (floorCisReducedArguments p)) (floorCisHalvingsCode p.1)
 
-/-- Original `floorCisSquareStepCode_value` guarantee for the `FloorCisBackendCode` construction; the complete source hypotheses are retained. -/
+/-- Decoding a squaring step squares the complex pair, changes the stored error `e` to
+`e * (2 + e)`, and preserves the term count. -/
 theorem floorCisSquareStepCode_value (r : FloorCisCodeResult) :
     floorCisCodeResultValue (floorCisSquareStepCode r)=
       ⟨cisPairSquare (floorCisCodeResultValue r).value,
@@ -55,7 +56,8 @@ theorem floorCisSquareStepCode_value (r : FloorCisCodeResult) :
   simp [floorCisCodeResultValue,floorCisSquareStepCode,floorComplexCodeSquare_value,
     floorRationalCodeMul_value,floorRationalCodeAdd_value,floorRationalCodeNat_value]
 
-/-- Original `floorCisSquaresCode_value` guarantee for the `FloorCisBackendCode` construction; the complete source hypotheses are retained. -/
+/-- Decoding after `h` coded squarings gives the result of applying `cisSquares h` to the decoded
+initial result. -/
 theorem floorCisSquaresCode_value (r : FloorCisCodeResult) (h : ℕ) :
     floorCisCodeResultValue (floorCisSquaresCode r h)=cisSquares h (floorCisCodeResultValue r) := by
   induction h with
@@ -66,13 +68,15 @@ theorem floorCisSquaresCode_value (r : FloorCisCodeResult) (h : ℕ) :
     change floorCisCodeResultValue (floorCisSquareStepCode (floorCisSquaresCode r h))=_
     rw [floorCisSquareStepCode_value,ih,cisSquares]
 
-/-- Original `floorCisHalvingsCode_value` guarantee for the `FloorCisBackendCode` construction; the complete source hypotheses are retained. -/
+/-- The coded halving count is the halving count for the rational angle represented by the input
+code. -/
 theorem floorCisHalvingsCode_value (q : FloorRationalCode) :
     floorCisHalvingsCode q=cisHalvings (floorRationalCodeValue q) := by
   simp only [floorCisHalvingsCode,floorNegativeExpHalvingsCode_value,
     floorRationalCodeAbs_value,cisHalvings]
 
-/-- Original `floorCisReducedArguments_value` guarantee for the `FloorCisBackendCode` construction; the complete source hypotheses are retained. -/
+/-- If `h` is the halving count of the decoded angle, the reduced codes represent the angle
+divided by `2^h` and the tolerance divided by `8 * 2^h`. -/
 theorem floorCisReducedArguments_value (p : FloorExpCodeParameters) :
     (floorRationalCodeValue (floorCisReducedArguments p).1,
       floorRationalCodeValue (floorCisReducedArguments p).2)=
@@ -81,7 +85,8 @@ theorem floorCisReducedArguments_value (p : FloorExpCodeParameters) :
   simp [floorCisReducedArguments,floorRationalCodeMul_value,floorRationalCodeInv_value,
     floorRationalCodePow_value,floorRationalCodeNat_value,floorCisHalvingsCode_value,div_eq_mul_inv]
 
-/-- Original `floorRationalCisCode_value` guarantee for the `FloorCisBackendCode` construction; the complete source hypotheses are retained. -/
+/-- Decoding the full coded cis evaluation gives the rational cis routine evaluated at the decoded
+angle and tolerance. -/
 theorem floorRationalCisCode_value (p : FloorExpCodeParameters) :
     floorCisCodeResultValue (floorRationalCisCode p)=
       rationalCis (floorRationalCodeValue p.1) (floorRationalCodeValue p.2) := by
@@ -93,24 +98,26 @@ theorem floorRationalCisCode_value (p : FloorExpCodeParameters) :
   rw [h1,h2]
   rfl
 
-/-- Original `primrec_floorCisSquareStepCode` guarantee for the `FloorCisBackendCode` construction; the complete source hypotheses are retained. -/
+/-- The coded step that squares a cis approximation and updates its error field is primitive
+recursive. -/
 theorem primrec_floorCisSquareStepCode : Primrec floorCisSquareStepCode :=
   ((primrec_floorComplexCodeSquare.comp (Primrec.fst.comp Primrec.fst)).pair
     (primrec_floorRationalCodeMul.comp (Primrec.snd.comp Primrec.fst)
       (primrec_floorRationalCodeAdd.comp (Primrec.const (floorRationalCodeNat 2))
         (Primrec.snd.comp Primrec.fst)))).pair Primrec.snd
 
-/-- Original `primrec_floorCisSquaresCode` guarantee for the `FloorCisBackendCode` construction; the complete source hypotheses are retained. -/
+/-- Applying the cis squaring step a supplied number of times is primitive recursive jointly in
+the initial result and the number of steps. -/
 theorem primrec_floorCisSquaresCode : Primrec₂ floorCisSquaresCode := by
   have hs : Primrec₂ (fun (_ : FloorCisCodeResult × ℕ) (r : FloorCisCodeResult) =>
       floorCisSquareStepCode r) := primrec_floorCisSquareStepCode.comp Primrec.snd
   exact Primrec.nat_iterate Primrec.snd Primrec.fst hs
 
-/-- Original `primrec_floorCisHalvingsCode` guarantee for the `FloorCisBackendCode` construction; the complete source hypotheses are retained. -/
+/-- The halving count for a coded rational angle is primitive recursive. -/
 theorem primrec_floorCisHalvingsCode : Primrec floorCisHalvingsCode :=
   primrec_floorNegativeExpHalvingsCode.comp primrec_floorRationalCodeAbs
 
-/-- Original `primrec_floorCisReducedArguments` guarantee for the `FloorCisBackendCode` construction; the complete source hypotheses are retained. -/
+/-- The pair of reduced codes for the angle and tolerance can be computed by primitive recursion. -/
 theorem primrec_floorCisReducedArguments : Primrec floorCisReducedArguments := by
   have hs : Primrec (fun p : FloorExpCodeParameters =>
       floorRationalCodePow (floorRationalCodeNat 2) (floorCisHalvingsCode p.1)) :=
@@ -120,20 +127,23 @@ theorem primrec_floorCisReducedArguments : Primrec floorCisReducedArguments := b
     (primrec_floorRationalCodeMul.comp Primrec.snd (primrec_floorRationalCodeInv.comp
       (primrec_floorRationalCodeMul.comp (Primrec.const (floorRationalCodeNat 8)) hs)))
 
-/-- Original `primrec_floorRationalCisCode` guarantee for the `FloorCisBackendCode` construction; the complete source hypotheses are retained. -/
+/-- The complete coded cis routine, including argument reduction, Taylor evaluation, and squaring,
+is primitive recursive. -/
 theorem primrec_floorRationalCisCode : Primrec floorRationalCisCode :=
   primrec_floorCisSquaresCode.comp
     (primrec_floorReducedCisCode.comp primrec_floorCisReducedArguments)
     (primrec_floorCisHalvingsCode.comp Primrec.fst)
 
-/-- Original `floorCisMachine_of_primrec` guarantee for the `FloorCisBackendCode` construction; the complete source hypotheses are retained. -/
+/-- A primitive-recursive function between primitively codable types admits one partial-recursive
+code that returns its encoded value on every encoded input. -/
 private theorem floorCisMachine_of_primrec {A B : Type*} [Primcodable A] [Primcodable B]
     (f : A → B) (hf : Primrec f) : ∃ c : Nat.Partrec.Code, ∀ a,
       Nat.Partrec.Code.eval c (Encodable.encode a)=Part.some (Encodable.encode (f a)) := by
   obtain ⟨c,hc⟩ := Nat.Partrec.Code.exists_code.mp hf.to_comp
   exact ⟨c,fun a => by simpa using congrFun hc (Encodable.encode a)⟩
 
-/-- Original `floorRationalCisCode_encoded` guarantee for the `FloorCisBackendCode` construction; the complete source hypotheses are retained. -/
+/-- There is one partial-recursive code that returns the encoded rational cis result on every
+encoded angle–tolerance pair. -/
 theorem floorRationalCisCode_encoded : ∃ c : Nat.Partrec.Code, ∀ p : FloorExpCodeParameters,
     Nat.Partrec.Code.eval c (Encodable.encode p)=Part.some (Encodable.encode (floorRationalCisCode p)) :=
   floorCisMachine_of_primrec floorRationalCisCode primrec_floorRationalCisCode

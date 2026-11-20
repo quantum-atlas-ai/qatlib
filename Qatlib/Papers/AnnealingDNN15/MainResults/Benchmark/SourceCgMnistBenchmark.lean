@@ -14,7 +14,7 @@ public import Mathlib.Tactic.NormNum
 set_option backward.isDefEq.respectTransparency false
 
 /-!
-# CG-MNIST training comparison (c001)
+# CG-MNIST training comparison
 
 Source: *Application of Quantum Annealing to Training of Deep Neural Networks*,
 arXiv:1510.06356 (2015), fixed local PDF
@@ -50,7 +50,7 @@ structure TrainingRun where
   backpropIters : ℕ
   testAccuracy : ℝ
 
-/-- **c001 — comparable accuracy with fewer generative-training iterations.**
+/-- **comparable accuracy with fewer generative-training iterations.**
 
 There exist a quantum sampling-based run and a classical CD run with the
 paper's reported iteration counts (20 pre-training / 100 backprop versus
@@ -61,7 +61,7 @@ discriminative iterations.
 `hAcc` is the paper's measured accuracy ordering (Section 4, p. 16: the
 quantum runs "were more accurate than" the classical runs); it is the empirical
 input of the claim. -/
-theorem c001_comparable_accuracy_fewer_iterations
+theorem exists_mnist_runs_with_fewer_iterations_of_accuracy_le
     (quantumAccuracy classicalAccuracy : ℝ)
     (hAcc : classicalAccuracy ≤ quantumAccuracy) :
     ∃ q c : TrainingRun,
@@ -76,16 +76,16 @@ theorem c001_comparable_accuracy_fewer_iterations
 uses `2 * 20 ≤ 50` generative and `2 * 100 ≤ 800` discriminative iterations,
 i.e. less than half of the classical budget in both phases ("significantly
 fewer iterations"). -/
-theorem c001_iteration_budget_savings :
+theorem mnist_quantum_iteration_budgets_at_most_half :
     2 * (20 : ℕ) ≤ 50 ∧ 2 * (100 : ℕ) ≤ 800 := by
   norm_num
 
-/-- **c001, general form.**  For any reported pair of runs in which the quantum
+/-- **general form.**  For any reported pair of runs in which the quantum
 run uses strictly fewer generative iterations, no more discriminative
 iterations, and achieves at least the classical accuracy, the paper's
 conclusion holds.  This packages the comparison independently of the particular
 20/100 vs 50/800 numbers. -/
-theorem c001_of_reported_run (q c : TrainingRun)
+theorem reported_run_iteration_and_accuracy_comparison (q c : TrainingRun)
     (hgen : q.pretrainIters < c.pretrainIters)
     (hdis : q.backpropIters ≤ c.backpropIters)
     (hacc : c.testAccuracy ≤ q.testAccuracy) :

@@ -27,7 +27,7 @@ open scoped ContDiff
 namespace Qatlib.Concepts.EffectiveGauge.TorusFourier
 open Qatlib.Concepts.EffectiveGauge.HopfAtlas Qatlib.Concepts.EffectiveGauge.RationalFlow
 
-/-- Original `generalPoissonPhysicalPhaseValue_error` guarantee for the `PhysicalPoissonPhaseValueError` construction; the complete source hypotheses are retained. -/
+/-- Assume the cached sixth-order bound controls every pure sixth derivative of the normalized connection on the unit cube, and the saved evaluator approximates the potential within `tau/2` at every rational unit-coordinate address. Then the physical phase value at any rational physical address has error at most `tau + tolerance/30` for positive `tolerance`. -/
 theorem generalPoissonPhysicalPhaseValue_error (r : GeneralPoissonValueState)
     (q : QuaternionField) (hq : ContDiff ℝ ∞ q) (hp : IsPeriodicField q)
     (hC6 : ∀ j i x, InUnitCube x →

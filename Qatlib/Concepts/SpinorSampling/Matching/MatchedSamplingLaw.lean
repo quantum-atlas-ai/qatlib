@@ -41,7 +41,8 @@ def withoutReplacementMass : (R : Finset S) → (n : ℕ) → (Fin n → S) → 
       withoutReplacementMass (R.erase (ω 0)) n (fun i => ω i.succ)/(R.card : ℝ) else 0
 
 omit [Fintype S] in
-/-- Complete original `without_replacement_mass_nonneg` guarantee for `MatchedSamplingLaw`; all source hypotheses and output obligations are retained. -/
+/-- The recursive mass assigned to any indexed array by sampling without replacement is
+nonnegative. -/
 theorem without_replacement_mass_nonneg (R : Finset S) (n : ℕ) (ω : Fin n → S) :
     0 ≤ withoutReplacementMass R n ω := by
   induction n generalizing R with
@@ -52,7 +53,8 @@ theorem without_replacement_mass_nonneg (R : Finset S) (n : ℕ) (ω : Fin n →
     · exact div_nonneg (ih _ _) (by positivity)
     · exact le_rfl
 
-/-- Complete original `sum_mem_indicator` guarantee for `MatchedSamplingLaw`; all source hypotheses and output obligations are retained. -/
+/-- A sum over the whole site space with summands zero outside `R` equals the sum restricted to
+`R`. -/
 theorem sum_mem_indicator (R : Finset S) (f : S → ℝ) :
     (∑ x : S, if x ∈ R then f x else 0)=∑ x ∈ R, f x := by
   rw [← Finset.sum_filter]
@@ -60,7 +62,8 @@ theorem sum_mem_indicator (R : Finset S) (f : S → ℝ) :
   ext x
   simp
 
-/-- Complete original `without_replacement_mass_sum` guarantee for `MatchedSamplingLaw`; all source hypotheses and output obligations are retained. -/
+/-- The masses of all indexed arrays sum to one when the sample length is at most the size of
+the starting set. -/
 theorem without_replacement_mass_sum (R : Finset S) (n : ℕ) (hn : n ≤ R.card) :
     (∑ ω : Fin n → S, withoutReplacementMass R n ω)=1 := by
   induction n generalizing R with
@@ -88,7 +91,8 @@ def withoutReplacementLaw (R : Finset S) (n : ℕ) (hn : n ≤ R.card) : FinDist
   nonneg := without_replacement_mass_nonneg R n
   sum_one := without_replacement_mass_sum R n hn
 
-/-- Complete original `without_replacement_expect_eq` guarantee for `MatchedSamplingLaw`; all source hypotheses and output obligations are retained. -/
+/-- Summing the recursive array masses against a function of the corresponding lists gives the
+recursive without-replacement expectation, for every sample length. -/
 theorem without_replacement_expect_eq (R : Finset S) (n : ℕ) (F : List S → ℝ) :
     (∑ ω : Fin n → S, withoutReplacementMass R n ω*F (List.ofFn ω))=
       withoutReplacementExpect R n F := by
@@ -114,7 +118,9 @@ theorem without_replacement_expect_eq (R : Finset S) (n : ℕ) (F : List S → �
     simp_rw [hrow]
     rw [sum_mem_indicator, withoutReplacementExpect, Finset.sum_div]
 
-/-- Complete original `without_replacement_law_mgf` guarantee for `MatchedSamplingLaw`; all source hypotheses and output obligations are retained. -/
+/-- For at most `|R|` draws without replacement and `|f x| ≤ 1` on `R`, the sum of sampled
+values centered at `n` times the population mean has moment-generating function at most
+`exp (n*t²/2)` for every real `t`. -/
 theorem without_replacement_law_mgf (R : Finset S) (n : ℕ) (hn : n ≤ R.card)
     (f : S → ℝ) (hf : ∀ x ∈ R, |f x| ≤ 1) (t : ℝ) :
     (withoutReplacementLaw R n hn).expect (fun ω => Real.exp
@@ -132,7 +138,9 @@ theorem without_replacement_law_mgf (R : Finset S) (n : ℕ) (hn : n ≤ R.card)
 
 variable {X : Type} [Fintype X]
 
-/-- Complete original `finite_subgaussian_bad_mass` guarantee for `MatchedSamplingLaw`; all source hypotheses and output obligations are retained. -/
+/-- If the moment-generating function of `n * (F - μ)` is bounded by `exp (n*t²/2)` for all real
+`t`, then for positive `n` and `ε` the mass of absolute error above `ε` is at most
+`2 * exp (-n*ε²/2)`. -/
 theorem finite_subgaussian_bad_mass (p : FinDist X) (F : X → ℝ) (μ : ℝ) (n : ℕ)
     (ε : ℝ) (hn : 0 < n) (hε : 0 < ε)
     (hmgf : ∀ t : ℝ, p.expect (fun x => Real.exp (t*((n : ℝ)*(F x-μ)))) ≤
@@ -185,7 +193,9 @@ theorem finite_subgaussian_bad_mass (p : FinDist X) (F : X → ℝ) (μ : ℝ) (
       congr 1
       ring
 
-/-- Complete original `without_replacement_average_tail` guarantee for `MatchedSamplingLaw`; all source hypotheses and output obligations are retained. -/
+/-- For a positive sample size `n ≤ |R|` and a function bounded in absolute value by one on `R`,
+the mean of draws without replacement differs from the population mean by more than `ε > 0` with
+probability at most `2 * exp (-n*ε²/2)`. -/
 theorem without_replacement_average_tail (R : Finset S) (n : ℕ) (hn : n ≤ R.card)
     (hn0 : 0 < n) (f : S → ℝ) (hf : ∀ x ∈ R, |f x| ≤ 1) (ε : ℝ) (hε : 0 < ε) :
     finiteBadMass (withoutReplacementLaw R n hn) (FinDist.avg f) (setAverage R f) ε ≤

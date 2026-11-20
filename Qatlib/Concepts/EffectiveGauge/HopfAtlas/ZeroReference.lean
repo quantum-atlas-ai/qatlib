@@ -21,7 +21,8 @@ open Set
 namespace Qatlib.Concepts.EffectiveGauge.HopfAtlas
 open Qatlib.Concepts.EffectiveGauge.RationalFlow
 
-/-- Original `raw_eq_initial_of_zero_x` guarantee for the `ZeroReference` construction; the complete source hypotheses are retained. -/
+/-- If a smooth unit field's longitudinal quaternion derivative vanishes throughout the fundamental
+cube, its raw lift equals the unit seed at every point of that cube. -/
 theorem raw_eq_initial_of_zero_x (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (hu : ∀ w, ‖v w‖=1) (q₀ : ℍ) (h₀ : ‖q₀‖=1)
     (hz : ∀ w, InFundamentalCube w → sourceXDerivative v w=0)
@@ -41,7 +42,9 @@ theorem raw_eq_initial_of_zero_x (v : SpatialPoint → SpatialPoint) (hv : ContD
   change (x 0) • sourceHorizontalQuaternion v w=0
   simp only [sourceHorizontalQuaternion,horizontalCoefficient,hz w hw,mul_zero,smul_zero]
 
-/-- Original `periodicReference_eq_initial_of_zero_x` guarantee for the `ZeroReference` construction; the complete source hypotheses are retained. -/
+/-- For a smooth unit source with periodic spin and a positive-width constant collar, take a unit
+seed over the collar spin. If the longitudinal source derivative vanishes throughout the
+fundamental cube, the periodic reference equals that seed at every point of the cube. -/
 theorem periodicReference_eq_initial_of_zero_x (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (hu : ∀ w, ‖v w‖=1) (q₀ : ℍ) (h₀ : ‖q₀‖=1) (hp : IsPeriodicField (sourceQuaternion v))
     (eta : ℝ) (he : 0<eta) (sc : ℍ) (hc : HasConstantCollar (sourceQuaternion v) eta sc) (hi : hopf q₀=sc)

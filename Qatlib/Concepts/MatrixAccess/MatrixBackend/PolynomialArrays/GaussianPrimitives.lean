@@ -56,7 +56,7 @@ noncomputable def gaussianPointValue (x : GaussianIntegerFraction) : ℂ :=
   (x.numerator.1 : ℂ) / (x.denominator : ℂ) +
     ((x.numerator.2 : ℂ) / (x.denominator : ℂ)) * Complex.I
 
-/-- The finite construction in `Gaussian integer arithmetic` satisfies `gaussian_point_value_fraction` under the displayed hypotheses. -/
+/-- Interpreting the integer numerator pair over `D` directly in ℂ equals embedding the pair of rational quotients in ℂ. -/
 theorem gaussian_point_value_fraction (x : GaussianDyadicScalar) (D : ℕ) :
     gaussianPointValue ⟨x,D⟩ = gaussianRatComplex (gaussianFractionValue x D) := by
   simp only [gaussianPointValue,gaussianRatComplex,gaussianFractionValue,
@@ -169,7 +169,9 @@ def gaussianIntegerMul (x y : GaussianDyadicScalar) : GaussianDyadicScalar :=
 def gaussianScalarAdd (x y : GaussianDyadicScalar) : GaussianDyadicScalar :=
   (x.1 + y.1, x.2 + y.2)
 
-/-- The finite construction in `Gaussian integer arithmetic` satisfies `natural_mul_bit` under the displayed hypotheses. -/
+/-- When `Nat.bit bit x` is nonzero, the shift-and-add step doubles the product
+ accumulated for `x` and adds `y` if `bit` is set. It increments the round count
+ by one and adds the scan charge for that step. -/
 theorem natural_mul_bit (x y : ℕ) (bit : Bool) (hb : x = 0 → bit = true) :
     gaussianNaturalMul (Nat.bit bit x) y =
       let r := gaussianNaturalMul x y
@@ -212,7 +214,7 @@ theorem gaussian_integer_mul_bits (x y : ℤ) (a b : ℕ)
   exact (Nat.mul_le_mul_right y.natAbs (Nat.size_le.mp hx).le).trans_lt
     (Nat.mul_lt_mul_of_pos_left (Nat.size_le.mp hy) (by positivity))
 
-/-- The finite construction in `Gaussian integer arithmetic` satisfies `natural_mul_bits` under the displayed hypotheses. -/
+/-- The binary length of a natural-number product is at most the sum of the input lengths. -/
 theorem natural_mul_bits (x y : ℕ) : (x * y).size ≤ x.size + y.size := by
   have h := gaussian_integer_mul_bits (x : ℤ) (y : ℤ) x.size y.size
     (by simp) (by simp)
@@ -278,23 +280,25 @@ theorem gaussian_signed_mul_certificate (x y : ℤ) :
     change (gaussianNaturalMul x.natAbs y.natAbs).charge + 6 * W ≤ 64 * W ^ 2
     nlinarith only [hh, hm, hs, hy]
 
-/-- The finite construction in `Gaussian integer arithmetic` satisfies `gaussian_scan_int_mul_value` under the displayed hypotheses. -/
+/-- The value field of scanned signed integer multiplication is the exact product `x * y`. -/
 theorem gaussian_scan_int_mul_value (x y : ℤ) :
     (gaussianScanIntMul x y).value = x * y := (gaussian_signed_mul_certificate x y).1
 
-/-- The finite construction in `Gaussian integer arithmetic` satisfies `gaussian_scan_complex_mul_value` under the displayed hypotheses. -/
+/-- The scan returns the Gaussian integer product, with real coordinate `x₁y₁ - x₂y₂` and imaginary coordinate `x₁y₂ + x₂y₁`. -/
 theorem gaussian_scan_complex_mul_value (x y : GaussianDyadicScalar) :
     (gaussianScanComplexMul x y).value = gaussianIntegerMul x y := by
   simp only [gaussianScanComplexMul, gaussian_scan_int_mul_value,
     gaussianScanIntSub, gaussianScanIntAdd, gaussianIntegerMul]
 
-/-- The finite construction in `Gaussian integer arithmetic` satisfies `gaussian_scan_nat_mul_value` under the displayed hypotheses. -/
+/-- The value field of scanned natural-number multiplication equals the natural product `x * y`. -/
 theorem gaussian_scan_nat_mul_value (x y : ℕ) :
     (gaussianScanNatMul x y).value = x * y := by
   simp only [gaussianScanNatMul, (gaussian_signed_mul_certificate (x : ℤ) (y : ℤ)).1,
     Int.natAbs_mul, Int.natAbs_natCast]
 
-/-- The finite construction in `Gaussian integer arithmetic` satisfies `gaussian_point_horner_cons` under the displayed hypotheses. -/
+/-- With `c` prepended to the coefficient list, Horner multiplies the tail
+ denominator by `D`. Its new numerator is the Gaussian product of the tail
+ numerator and `z` plus `c` scaled by that new denominator. -/
 theorem gaussian_point_horner_cons (c : GaussianDyadicScalar) (cs : List GaussianDyadicScalar)
     (z : GaussianDyadicScalar) (D : ℕ) :
     (gaussianPointHorner z D (c::cs)).value =
@@ -305,7 +309,7 @@ theorem gaussian_point_horner_cons (c : GaussianDyadicScalar) (cs : List Gaussia
     gaussian_scan_complex_mul_value,gaussian_scan_int_mul_value,gaussianScanIntAdd,
     gaussianIntegerScale,gaussianScalarAdd]
 
-/-- The finite construction in `Gaussian integer arithmetic` satisfies `gaussian_point_horner_denominator` under the displayed hypotheses. -/
+/-- The returned Horner fraction has denominator `D` raised to the coefficient list length, including denominator one for the empty list. -/
 theorem gaussian_point_horner_denominator (cs : List GaussianDyadicScalar)
     (z : GaussianDyadicScalar) (D : ℕ) :
     (gaussianPointHorner z D cs).value.denominator = D^cs.length := by
@@ -327,12 +331,14 @@ theorem gaussian_fraction_mul (x y : GaussianDyadicScalar) (D E : ℕ) :
     simp only [gaussianFractionValue, gaussianIntegerMul, gmul, Int.cast_sub,
       Int.cast_add, Int.cast_mul, Nat.cast_mul] <;> ring
 
-/-- The finite construction in `Gaussian integer arithmetic` satisfies `gaussian_point_value_one` under the displayed hypotheses. -/
+/-- A Gaussian integer pair over denominator one has the same complex value as its dyadic decoding at scale zero. -/
 theorem gaussian_point_value_one (x : GaussianDyadicScalar) :
     gaussianPointValue ⟨x,1⟩ = gaussianScalarDecode 0 x := by
   apply Complex.ext <;> simp [gaussianPointValue,gaussianScalarDecode]
 
-/-- The finite construction in `Gaussian integer arithmetic` satisfies `point_horner_step_value` under the displayed hypotheses. -/
+/-- For positive `E` and `D`, the Horner update over denominator `E * D` decodes
+ to the Gaussian integer coefficient `c` plus the product of the decoded
+ accumulator `x / E` and point `z / D`. -/
 theorem point_horner_step_value (c x z : GaussianDyadicScalar) (E D : ℕ)
     (hE : 0<E) (hD : 0<D) :
     gaussianPointValue ⟨gaussianScalarAdd (gaussianIntegerScale (E*D) c) (gaussianIntegerMul x z),E*D⟩ =

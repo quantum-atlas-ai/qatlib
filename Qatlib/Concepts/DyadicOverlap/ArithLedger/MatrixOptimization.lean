@@ -15,14 +15,14 @@ public import Qatlib.Concepts.MpsAdaptation.MpsTransfer.MatrixOptimizationSemant
 /-!
 # Stopped sampling laws for dual vectors
 
-`frontier1` relates the dual vector of a matrix family to the actual output distribution of a
+`stopped_dual_output_law_and_read_cost` relates the dual vector of a matrix family to the actual output distribution of a
 stopped rejection sampler. It combines positive normalization, exact capped success and failure
 probabilities, legality, and finite expected costs. The surrounding sampling-based
 matrix-arithmetic setting is represented by [ChiaEtAl2022].
 
 ## Main statements
 
-* `frontier1`: scaled dual-vector semantics and cost guarantees for stopped and capped samplers.
+* `stopped_dual_output_law_and_read_cost`: scaled dual-vector semantics and cost guarantees for stopped and capped samplers.
 
 ## References
 
@@ -46,7 +46,7 @@ open scoped ENNReal Classical
 dual vector up to a positive scale. Every capped program is legal with the stated exact
 success and failure masses, and the stopped read cost and every natural-valued function of
 its leaf counts have finite expectation. -/
-theorem frontier1 {T D m : ℕ} (F : Family T D m) (j₀ : Fin m) (hT : 0 < T)
+theorem stopped_dual_output_law_and_read_cost {T D m : ℕ} (F : Family T D m) (j₀ : Fin m) (hT : 0 < T)
     (a : ℚ) (μ : Fin T → ℚ) (ha : 0 < a) (hμ : ∀ t, 0 ≤ μ t) :
     let w := intWeights (selectorMasses T a μ)
     let b := blockWidth w

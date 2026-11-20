@@ -34,13 +34,15 @@ open MeasureTheory Matrix
 open scoped BigOperators Matrix.Norms.L2Operator
 local instance : Fact (0<2*Real.pi) := ⟨Real.two_pi_pos⟩
 
-/-- The finite construction in `NativeSourceIdealExtremes` satisfies `term_integrable` under the displayed hypotheses. -/
+/-- A fixed complex 2-by-2 matrix scaled by a circle character is integrable against Haar measure
+on the circle of period 2π. -/
 private theorem term_integrable (k : ℤ) (A : Matrix Bool Bool ℂ) :
     Integrable (fun t : AddCircle (2*Real.pi) => fourier k t • A) AddCircle.haarAddCircle :=
   ((map_continuous (fourier k)).smul continuous_const).integrable_of_hasCompactSupport
     (HasCompactSupport.of_compactSpace _)
 
-/-- The finite construction in `NativeSourceIdealExtremes` satisfies `term_coefficient` under the displayed hypotheses. -/
+/-- The Fourier coefficient at n of a fixed matrix times the k-th character is the matrix if n = k
+and zero otherwise. -/
 private theorem term_coefficient (k n : ℤ) (A : Matrix Bool Bool ℂ) :
     fourierCoeff (fun t : AddCircle (2*Real.pi) => fourier k t • A) n=if n=k then A else 0 := by
   have he : fourierCoeff (fun t : AddCircle (2*Real.pi) => fourier k t • A) n=
@@ -53,13 +55,15 @@ private theorem term_coefficient (k n : ℤ) (A : Matrix Bool Bool ℂ) :
   · subst n; simp
   · simp [h]
 
-/-- The finite construction in `NativeSourceIdealExtremes` satisfies `star_fourier_mul` under the displayed hypotheses. -/
+/-- Multiplying the conjugate of character i by character j gives character j − i pointwise on the
+circle. -/
 private theorem star_fourier_mul (i j : ℤ) (t : AddCircle (2*Real.pi)) :
     star (fourier i t)*fourier j t=fourier (j-i) t := by
   rw [sub_eq_add_neg,fourier_add,fourier_neg]
   rw [Complex.star_def,mul_comm]
 
-/-- The finite construction in `NativeSourceIdealExtremes` satisfies `gram_fourier_coefficient` under the displayed hypotheses. -/
+/-- The nth Fourier coefficient of the pointwise Gram matrix sums the products of adjoint
+coefficient i with coefficient j over pairs whose frequency difference is n. -/
 private theorem gram_fourier_coefficient {d : ℕ} (F : Fin (d+1) → Matrix Bool Bool ℂ) (n : ℤ) :
     fourierCoeff (fun t : AddCircle (2*Real.pi) => (sourceCompletionCircleValue F t).conjTranspose*sourceCompletionCircleValue F t) n=
       ∑ i : Fin (d+1),∑ j : Fin (d+1),
@@ -84,7 +88,8 @@ private theorem gram_fourier_coefficient {d : ℕ} (F : Fin (d+1) → Matrix Boo
   rw [fourierCoeff.sum _ _ (fun j _ => term_integrable _ _)]
   simp only [Finset.sum_apply,term_coefficient]
 
-/-- The finite construction in `NativeSourceIdealExtremes` satisfies `extreme_orthogonality` under the displayed hypotheses. -/
+/-- If a positive-degree Laurent matrix array is unitary at every angle, the adjoint of its first
+coefficient annihilates its last coefficient on the left. -/
 private theorem extreme_orthogonality {d : ℕ} (hd : 0<d) (F : Fin (d+1) → Matrix Bool Bool ℂ)
     (hunit : ∀ t : AddCircle (2*Real.pi),sourceCompletionCircleValue F t∈Matrix.unitaryGroup Bool ℂ) :
     (F 0).conjTranspose*F (Fin.last d)=0 := by
@@ -105,7 +110,7 @@ private theorem extreme_orthogonality {d : ℕ} (hd : 0<d) (F : Fin (d+1) → Ma
   simpa [hfreq,ite_and] using hc.symm
 
 
-/-- The finite construction in `NativeSourceIdealExtremes` satisfies `determinant_zero_of_zero_product` under the displayed hypotheses. -/
+/-- If A is nonzero and the product AB is zero, the complex 2-by-2 matrix B has determinant zero. -/
 private theorem determinant_zero_of_zero_product (A B : Matrix Bool Bool ℂ)
     (ha : A≠0) (hab : A*B=0) : B.det=0 := by
   by_contra hdet
@@ -115,13 +120,14 @@ private theorem determinant_zero_of_zero_product (A B : Matrix Bool Bool ℂ)
   apply ha
   simpa [← hu,mul_assoc] using hz
 
-/-- The finite construction in `NativeSourceIdealExtremes` satisfies `transpose_nonzero` under the displayed hypotheses. -/
+/-- Taking the conjugate transpose of a nonzero complex matrix preserves nonzeroness. -/
 private theorem transpose_nonzero {A : Matrix Bool Bool ℂ} (ha : A≠0) : A.conjTranspose≠0 := by
   intro hz
   apply ha
   simpa using congrArg Matrix.conjTranspose hz
 
-/-- The finite construction in `NativeSourceIdealExtremes` satisfies `extreme_determinants_zero` under the displayed hypotheses. -/
+/-- If a positive-degree matrix array evaluates to a unitary everywhere on the circle and both
+endpoints are nonzero, each endpoint matrix has determinant zero. -/
 private theorem extreme_determinants_zero {d : ℕ} (hd : 0<d) (F : Fin (d+1) → Matrix Bool Bool ℂ)
     (hunit : ∀ t : AddCircle (2*Real.pi),sourceCompletionCircleValue F t∈Matrix.unitaryGroup Bool ℂ)
     (hl : F 0≠0) (hr : F (Fin.last d)≠0) : (F 0).det=0 ∧ (F (Fin.last d)).det=0 := by
@@ -131,7 +137,8 @@ private theorem extreme_determinants_zero {d : ℕ} (hd : 0<d) (F : Fin (d+1) �
   exact ⟨determinant_zero_of_zero_product _ _ (transpose_nonzero hr) hcross',
     determinant_zero_of_zero_product _ _ (transpose_nonzero hl) hcross⟩
 
-/-- The finite construction in `NativeSourceIdealExtremes` satisfies `coefficient_norm_le_one` under the displayed hypotheses. -/
+/-- Every coefficient of a matrix Laurent sum that is unitary on the whole circle has operator
+norm at most one. -/
 private theorem coefficient_norm_le_one {d : ℕ} (F : Fin (d+1) → Matrix Bool Bool ℂ)
     (hunit : ∀ t : AddCircle (2*Real.pi),sourceCompletionCircleValue F t∈Matrix.unitaryGroup Bool ℂ)
     (j : Fin (d+1)) : ‖F j‖ ≤ 1 := by
@@ -153,7 +160,8 @@ open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data.SourceInput
 open scoped Matrix.Norms.L2Operator
 local instance : Fact (0<2*Real.pi) := ⟨Real.two_pi_pos⟩
 
-/-- The finite construction in `NativeSourceIdealExtremes` satisfies `ideal_diagonal_im_difference` under the displayed hypotheses. -/
+/-- At any ideal coefficient slot, subtracting the second diagonal entry's imaginary part from the
+first gives twice the corresponding real source coefficient. -/
 private theorem ideal_diagonal_im_difference (cs : List ℚ) (N : ℕ) (E : ℚ)
     (j : Fin (sourceDegree cs N E+1)) :
     (sourceIdealMatrixArray cs N E j false false).im-(sourceIdealMatrixArray cs N E j true true).im=
@@ -165,7 +173,7 @@ private theorem ideal_diagonal_im_difference (cs : List ℚ) (N : ℕ) (E : ℚ)
   simp
   ring
 
-/-- The finite construction in `NativeSourceIdealExtremes` satisfies `real_extreme_eq` under the displayed hypotheses. -/
+/-- In the real source array, either endpoint coefficient equals the last coefficient. -/
 private theorem real_extreme_eq (cs : List ℚ) (N : ℕ) (E : ℚ)
     (j : Fin (sourceDegree cs N E+1)) (hj : j.val=0 ∨ j.val=sourceDegree cs N E) :
     sourceRealArray cs N E j=sourceRealArray cs N E (Fin.last (sourceDegree cs N E)) := by
@@ -180,7 +188,8 @@ private theorem real_extreme_eq (cs : List ℚ) (N : ℕ) (E : ℚ)
     omega
   · rw [hj]
 
-/-- The finite construction in `NativeSourceIdealExtremes` satisfies `source_ideal_extreme_lower` under the displayed hypotheses. -/
+/-- For positive source degree, the norm of each extreme ideal matrix coefficient is at least the
+source grid spacing. -/
 theorem source_ideal_extreme_lower (cs : List ℚ) (N : ℕ) (E : ℚ)
     (hd : 0<sourceDegree cs N E) (j : Fin (sourceDegree cs N E+1))
     (hj : j.val=0 ∨ j.val=sourceDegree cs N E) :
@@ -215,7 +224,9 @@ private theorem source_ideal_circle_unitary (cs : List ℚ) (N : ℕ) (E : ℚ) 
   rw [he]
   exact sourceIdealArray_unitary cs N E hE htail hparity hd hnorm theta
 
-/-- The finite construction in `NativeSourceIdealExtremes` satisfies `source_ideal_extreme_rank_one` under the displayed hypotheses. -/
+/-- With positive E and source degree, matching parity, vanishing tail and a target of absolute
+value at most one on the interval from −1 to 1, either extreme ideal coefficient has norm at
+least the source grid spacing and real Gram trace equal to its squared norm. -/
 theorem source_ideal_extreme_rank_one (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E)
     (htail : ∀ k,N+1 ≤ k → cs.getD k 0=0)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)
@@ -240,7 +251,9 @@ theorem source_ideal_extreme_rank_one (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 
       simpa only [he] using hdet.2
   exact ⟨source_ideal_extreme_lower cs N E hd j hj,sourceGram_trace_eq_norm_sq _ hjdet⟩
 
-/-- The finite construction in `NativeSourceIdealExtremes` satisfies `source_ideal_coefficient_norm` under the displayed hypotheses. -/
+/-- For positive E and source degree and a degree-bounded Chebyshev target with matching parity
+and absolute value at most one on the interval from −1 to 1, every ideal matrix coefficient
+has operator norm at most one. -/
 theorem source_ideal_coefficient_norm (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E)
     (htail : ∀ k,N+1 ≤ k → cs.getD k 0=0)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)
@@ -254,20 +267,23 @@ end IdealExtremes
 section DeflationContinuation
 open scoped Matrix.Norms.L2Operator
 
-/-- The finite construction in `NativeSourceIdealExtremes` satisfies `sourceCompletionCircle_extreme_orthogonality` under the displayed hypotheses. -/
+/-- For a positive-degree array whose circle value is everywhere unitary, multiplying the first
+coefficient's adjoint by the last coefficient gives zero. -/
 theorem sourceCompletionCircle_extreme_orthogonality {d : ℕ} (hd : 0<d)
     (F : Fin (d+1) → Matrix Bool Bool ℂ)
     (hunit : ∀ t : AddCircle (2*Real.pi),sourceCompletionCircleValue F t∈Matrix.unitaryGroup Bool ℂ) :
     (F 0).conjTranspose*F (Fin.last d)=0 := extreme_orthogonality hd F hunit
 
-/-- The finite construction in `NativeSourceIdealExtremes` satisfies `sourceCompletionCircle_extreme_determinants_zero` under the displayed hypotheses. -/
+/-- For a pointwise unitary positive-degree circle sum with nonzero endpoint coefficients, the
+first and last coefficient matrices are both singular. -/
 theorem sourceCompletionCircle_extreme_determinants_zero {d : ℕ} (hd : 0<d)
     (F : Fin (d+1) → Matrix Bool Bool ℂ)
     (hunit : ∀ t : AddCircle (2*Real.pi),sourceCompletionCircleValue F t∈Matrix.unitaryGroup Bool ℂ)
     (hl : F 0≠0) (hr : F (Fin.last d)≠0) : (F 0).det=0 ∧ (F (Fin.last d)).det=0 :=
   extreme_determinants_zero hd F hunit hl hr
 
-/-- The finite construction in `NativeSourceIdealExtremes` satisfies `sourceCompletionCircle_coefficient_norm` under the displayed hypotheses. -/
+/-- Pointwise unitarity of the circle value bounds the operator norm of each array coefficient by
+one. -/
 theorem sourceCompletionCircle_coefficient_norm {d : ℕ} (F : Fin (d+1) → Matrix Bool Bool ℂ)
     (hunit : ∀ t : AddCircle (2*Real.pi),sourceCompletionCircleValue F t∈Matrix.unitaryGroup Bool ℂ)
     (j : Fin (d+1)) : ‖F j‖≤1 := coefficient_norm_le_one F hunit j

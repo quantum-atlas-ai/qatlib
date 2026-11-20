@@ -57,7 +57,8 @@ theorem complexMeanLeftSum_sub_bound (N : ℕ) (hN : 0<N) (f g : ℝ → ℂ)
     _ ≤ (N : ℝ)⁻¹*((N : ℝ)*C) := mul_le_mul_of_nonneg_left hsum (inv_nonneg.mpr hn.le)
     _ = C := by rw [← mul_assoc,inv_mul_cancel₀ hn.ne',one_mul]
 
-/-- Original `continuous_complexMeanLeftSum` guarantee for the `ComplexTensor` construction; the complete source hypotheses are retained. -/
+/-- Joint continuity of a parameterized complex integrand makes its finite left sum continuous in
+the parameter for every `N`. -/
 private theorem continuous_complexMeanLeftSum {X : Type*} [TopologicalSpace X]
     (N : ℕ) (F : X → ℝ → ℂ) (hF : Continuous F.uncurry) :
     Continuous (fun x => complexMeanLeftSum N (F x)) := by
@@ -65,7 +66,8 @@ private theorem continuous_complexMeanLeftSum {X : Type*} [TopologicalSpace X]
     hF.comp (continuous_id.prodMk continuous_const)
   exact (continuous_finsetSum _ (fun k _ => hc k)).const_smul ((N : ℝ)⁻¹)
 
-/-- Original `continuous_complexMeanUnitIntegral` guarantee for the `ComplexTensor` construction; the complete source hypotheses are retained. -/
+/-- On a first-countable locally compact parameter space, joint continuity of the integrand makes
+its complex integral over `[0, 1]` a continuous function of the parameter. -/
 theorem continuous_complexMeanUnitIntegral {X : Type*} [TopologicalSpace X]
     [FirstCountableTopology X] [LocallyCompactSpace X]
     (F : X → ℝ → ℂ) (hF : Continuous F.uncurry) :

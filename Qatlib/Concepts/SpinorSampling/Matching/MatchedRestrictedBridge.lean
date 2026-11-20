@@ -34,7 +34,8 @@ open Qatlib
 
 variable {S : Type} [DecidableEq S]
 
-/-- Complete original `restricted_occupied_shifted_image` guarantee for `MatchedRestrictedBridge`; all source hypotheses and output obligations are retained. -/
+/-- The right-array sites that belong to the shifted left occupied set are exactly the images
+under `τ` of the matched sites. -/
 theorem restricted_occupied_shifted_image (τ : Equiv.Perm S) {n m : ℕ}
     (J : Fin n → S) (K : Fin m → S) :
     restrictedOccupied ((occupiedSites J).image τ) K = (matchedSites J K τ).image τ := by
@@ -49,7 +50,8 @@ theorem restricted_occupied_shifted_image (τ : Equiv.Perm S) {n m : ℕ}
     refine ⟨?_,x,hxJ,hxy⟩
     rwa [← hxy]
 
-/-- Complete original `restricted_occupied_shifted_card` guarantee for `MatchedRestrictedBridge`; all source hypotheses and output obligations are retained. -/
+/-- Counting the right occupied sites in the image of the left occupied set gives the
+matched-set count because the shift is a permutation. -/
 theorem restricted_occupied_shifted_card (τ : Equiv.Perm S) {n m : ℕ}
     (J : Fin n → S) (K : Fin m → S) :
     (restrictedOccupied ((occupiedSites J).image τ) K).card = (matchedSites J K τ).card := by
@@ -58,7 +60,9 @@ theorem restricted_occupied_shifted_card (τ : Equiv.Perm S) {n m : ℕ}
 
 variable [Fintype S] [Nonempty S]
 
-/-- Complete original `matched_card_conditional_lower_tail` guarantee for `MatchedRestrictedBridge`; all source hypotheses and output obligations are retained. -/
+/-- Fix the left array with `a` occupied sites. For `m ≤ |S|` independent uniform right draws,
+fewer than `r = m*a/(8*|S|)` sites match under the permutation with probability at most
+`exp (-r)`. -/
 theorem matched_card_conditional_lower_tail (τ : Equiv.Perm S) {n m : ℕ}
     (J : Fin n → S) (hm : m ≤ Fintype.card S) :
     (cohortLaw (uniformLaw S) m).expect (fun K =>

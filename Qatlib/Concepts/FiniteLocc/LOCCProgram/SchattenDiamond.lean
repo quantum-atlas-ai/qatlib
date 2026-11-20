@@ -29,7 +29,7 @@ arbitrary operator inputs and norm-bounded test matrices.
 
 * `traceNorm_tensorLeft_le_factorization`: a factorization bounds every finite reference
   extension.
-* `frontier1`: `finiteDiamondNorm T` is at most `cbNormDual T`.
+* `finiteDiamondNorm_le_cbNormDual`: `finiteDiamondNorm T` is at most `cbNormDual T`.
 * `channel_discrimination_bias_le_diamond`: the diamond norm controls the difference of real
   trace statistics.
 
@@ -585,7 +585,7 @@ theorem diamondNorm_le_cbFactorizationNorm {D E : ℕ} {T : Operator D →ₗ[�
 
 /-- The finite diamond norm of a complex-linear map is bounded above by its factorization
 infimum `cbNormDual` [Watrous2018]. -/
-theorem frontier1 {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E) :
+theorem finiteDiamondNorm_le_cbNormDual {D E : ℕ} (T : Operator D →ₗ[ℂ] Operator E) :
     Qatlib.Concepts.SchattenDiamond.DiamondNorm.finiteDiamondNorm T
       ≤ Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.cbNormDual T := by
   unfold Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.cbNormDual
@@ -608,7 +608,7 @@ theorem finiteDiamondNorm_lt_top_of_strictlyFeasible {D E : ℕ}
     {T : Operator D →ₗ[ℂ] Operator E}
     (h : Qatlib.Concepts.PhaseErrorBound.PhaseErrorSum.CbStrictlyFeasible T) :
     Qatlib.Concepts.SchattenDiamond.DiamondNorm.finiteDiamondNorm T < ⊤ :=
-  lt_of_le_of_lt (frontier1 T) (cbNormDual_lt_top_of_strictlyFeasible h)
+  lt_of_le_of_lt (finiteDiamondNorm_le_cbNormDual T) (cbNormDual_lt_top_of_strictlyFeasible h)
 
 /-- For a test matrix of operator norm at most one, the absolute difference of real output trace
 statistics is bounded by the trace norm of the reference-extended map difference. -/

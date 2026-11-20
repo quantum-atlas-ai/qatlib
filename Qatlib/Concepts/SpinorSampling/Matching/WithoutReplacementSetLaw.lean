@@ -34,7 +34,8 @@ open scoped BigOperators
 
 variable {S : Type} [Fintype S] [DecidableEq S]
 
-/-- Complete original `without_replacement_constant_eq` guarantee for `WithoutReplacementSetLaw`; all source hypotheses and output obligations are retained. -/
+/-- The recursive ordered-sample weight for population size `M` and sample size `k` equals the
+reciprocal of the descending factorial of `M` of length `k`. -/
 theorem without_replacement_constant_eq (M k : ℕ) :
     withoutReplacementConstant M k = 1 / (M.descFactorial k : ℝ) := by
   induction k generalizing M with
@@ -47,7 +48,8 @@ theorem without_replacement_constant_eq (M k : ℕ) :
         Nat.succ_descFactorial_succ, Nat.cast_mul]
       rw [div_div, mul_comm]
 
-/-- Complete original `without_replacement_fiber_mass` guarantee for `WithoutReplacementSetLaw`; all source hypotheses and output obligations are retained. -/
+/-- For a `k`-element subset `A` of `R`, the total mass of all length-`k` arrays with occupied
+set `A` is one divided by the number of `k`-element subsets of `R`. -/
 theorem without_replacement_fiber_mass (R A : Finset S) {k : ℕ}
     (hA : A.card = k) (hsub : A ⊆ R) :
     (∑ ω ∈ (Finset.univ : Finset (Fin k → S)).filter
@@ -100,7 +102,9 @@ theorem without_replacement_fiber_mass (R A : Finset S) {k : ℕ}
       have hf : (k.factorial : ℝ) ≠ 0 := by exact_mod_cast Nat.factorial_ne_zero k
       rw [← div_div, div_self hf]
 
-/-- Complete original `without_replacement_set_expectation` guarantee for `WithoutReplacementSetLaw`; all source hypotheses and output obligations are retained. -/
+/-- Summing a statistic of the occupied set against the recursive array masses gives the sum of
+that statistic over `k`-subsets of `R` times the reciprocal binomial count. The identity holds
+for every `k`. -/
 theorem without_replacement_set_expectation (R : Finset S) {k : ℕ}
     (F : Finset S → ℝ) :
     (∑ ω : Fin k → S, withoutReplacementMass R k ω * F (occupiedSites ω)) =

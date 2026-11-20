@@ -31,7 +31,9 @@ open Qatlib.Concepts.EffectiveGauge.RationalFlow Qatlib.Concepts.EffectiveGauge.
 def seedChartTransition (fromChart toChart : SeedChart) (s : ℍ) : ℍ :=
   exactChartSeed toChart s*star (exactChartSeed fromChart s)
 
-/-- Original `seedChartTransition_spec` guarantee for the `SeedChartTransfer` construction; the complete source hypotheses are retained. -/
+/-- For a pure imaginary unit spin satisfying both charts' admission inequalities, the transition
+quaternion has unit norm and zero `j` and `k` components. Left multiplication by the transition
+takes the seed of chart `a` to the seed of chart `b`. -/
 theorem seedChartTransition_spec (a b : SeedChart) (s : ℍ) (hr : s.re=0) (hn : ‖s‖=1)
     (ha : match a with | .north => -(1/2 : ℝ)<s.imI | .south => s.imI<(1/2 : ℝ))
     (hb : match b with | .north => -(1/2 : ℝ)<s.imI | .south => s.imI<(1/2 : ℝ)) :
@@ -58,20 +60,22 @@ theorem seedChartTransition_cocycle (a b c : SeedChart) (s : ℍ) (hr : s.re=0) 
 /-- Definition of constant Left Gauge in the Hopf Atlas construction. -/
 def constantLeftGauge (c : ℍ) (q : QuaternionField) : QuaternionField := fun x => c*q x
 
-/-- Original `constantLeftGauge_contDiff` guarantee for the `SeedChartTransfer` construction; the complete source hypotheses are retained. -/
+/-- Left multiplication by any fixed quaternion preserves smoothness of the field. -/
 theorem constantLeftGauge_contDiff (c : ℍ) (q : QuaternionField) (hq : ContDiff ℝ ∞ q) :
     ContDiff ℝ ∞ (constantLeftGauge c q) := contDiff_const.mul hq
 
-/-- Original `constantLeftGauge_periodic` guarantee for the `SeedChartTransfer` construction; the complete source hypotheses are retained. -/
+/-- Left multiplication by any fixed quaternion preserves periodicity of a periodic field. -/
 theorem constantLeftGauge_periodic (c : ℍ) (q : QuaternionField) (hp : IsPeriodicField q) :
     IsPeriodicField (constantLeftGauge c q) := by intro x n; simp only [constantLeftGauge,hp x n]
 
-/-- Original `constantLeftGauge_norm` guarantee for the `SeedChartTransfer` construction; the complete source hypotheses are retained. -/
+/-- Left multiplication of a unit quaternion field by a unit quaternion keeps every field value on
+the unit sphere. -/
 theorem constantLeftGauge_norm (c : ℍ) (hu : ‖c‖=1) (q : QuaternionField)
     (hq : ∀ x, ‖q x‖=1) (x : SpatialPoint) : ‖constantLeftGauge c q x‖=1 := by
   simp only [constantLeftGauge,norm_mul,hu,hq x,one_mul]
 
-/-- Original `constantLeftGauge_hopf` guarantee for the `SeedChartTransfer` construction; the complete source hypotheses are retained. -/
+/-- Left multiplication by a unit quaternion with zero `j` and `k` components preserves the Hopf
+image at every point. -/
 theorem constantLeftGauge_hopf (c : ℍ) (hu : ‖c‖=1) (hc : c.imJ=0 ∧ c.imK=0)
     (q : QuaternionField) (x : SpatialPoint) : hopf (constantLeftGauge c q x)=hopf (q x) := by
   have hn := (normSq_eq_one_iff c).mpr hu
@@ -85,7 +89,8 @@ theorem constantLeftGauge_hopf (c : ℍ) (hu : ‖c‖=1) (hc : c.imJ=0 ∧ c.im
     _ = star (q x)*(star c*iAxis*c)*q x := by simp only [mul_assoc]
     _ = _ := by rw [haxis]
 
-/-- Original `constantLeftGauge_connection` guarantee for the `SeedChartTransfer` construction; the complete source hypotheses are retained. -/
+/-- For a smooth field, left multiplication by a constant unit quaternion with zero `j` and `k`
+components preserves each component of the connection at every point. -/
 theorem constantLeftGauge_connection (c : ℍ) (hu : ‖c‖=1) (hc : c.imJ=0 ∧ c.imK=0)
     (q : QuaternionField) (hq : ContDiff ℝ ∞ q) (x : SpatialPoint) (j : Fin 3) :
     connection (constantLeftGauge c q) x j=connection q x j := by
@@ -100,7 +105,8 @@ theorem constantLeftGauge_connection (c : ℍ) (hu : ‖c‖=1) (hc : c.imJ=0 �
   rw [hder]
   simpa [connection,connectionValue_eq] using h
 
-/-- Original `constantLeftGauge_solenoidal` guarantee for the `SeedChartTransfer` construction; the complete source hypotheses are retained. -/
+/-- For a smooth solenoidal field, left multiplication by a constant unit quaternion with zero `j`
+and `k` components preserves the solenoidal property. -/
 theorem constantLeftGauge_solenoidal (c : ℍ) (hu : ‖c‖=1) (hc : c.imJ=0 ∧ c.imK=0)
     (q : QuaternionField) (hq : ContDiff ℝ ∞ q) (hs : IsSolenoidal q) :
     IsSolenoidal (constantLeftGauge c q) := by

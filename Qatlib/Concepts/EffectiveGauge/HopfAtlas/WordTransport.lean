@@ -21,7 +21,8 @@ open Set Filter
 namespace Qatlib.Concepts.EffectiveGauge.HopfAtlas
 open Qatlib.Concepts.EffectiveGauge.RationalFlow
 
-/-- Original `spatialWordPartial_eventuallyEq` guarantee for the `WordTransport` construction; the complete source hypotheses are retained. -/
+/-- If two fields agree on a neighborhood of `x`, their derivatives along any coordinate word agree
+on a neighborhood of `x`. -/
 theorem spatialWordPartial_eventuallyEq {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     {f g : SpatialPoint → E} {x : SpatialPoint} (h : f =ᶠ[𝓝 x] g) (w : List (Fin 3)) :
     spatialWordPartial f w =ᶠ[𝓝 x] spatialWordPartial g w := by
@@ -74,7 +75,8 @@ theorem spatialWordPartial_transport_slab (q K : SpatialPoint → ℍ)
     exact hx
   simpa only [line,sub_self,zero_smul,add_zero] using hc hxcl
 
-/-- Original `sourceLiftSpatialExtension_unit_initial` guarantee for the `WordTransport` construction; the complete source hypotheses are retained. -/
+/-- The raw lift from a unit seed of a smooth unit source equals that seed on the normalized
+initial face `x 0 = 0`. -/
 theorem sourceLiftSpatialExtension_unit_initial (v : SpatialPoint → SpatialPoint)
     (hv : ContDiff ℝ ∞ v) (hu : ∀ x, ‖v x‖=1) (q₀ : ℍ) (h₀ : ‖q₀‖=1)
     (x : SpatialPoint) (hx : x 0=0) :
@@ -85,7 +87,8 @@ theorem sourceLiftSpatialExtension_unit_initial (v : SpatialPoint → SpatialPoi
   rw [hzero,sourceLiftExtension_eq v hv hu q₀ h₀ _ ⟨0,⟨le_rfl,physicalPeriod_pos.le⟩⟩]
   exact pathTransport_start q₀ h₀ _
 
-/-- Original `sourceLiftSpatialExtension_unit_transverse_initial` guarantee for the `WordTransport` construction; the complete source hypotheses are retained. -/
+/-- For a smooth unit source and unit seed, any nonempty coordinate word containing only transverse
+directions gives zero derivative of the normalized raw lift on the initial face. -/
 theorem sourceLiftSpatialExtension_unit_transverse_initial (v : SpatialPoint → SpatialPoint)
     (hv : ContDiff ℝ ∞ v) (hu : ∀ x, ‖v x‖=1) (q₀ : ℍ) (h₀ : ‖q₀‖=1)
     (w : List (Fin 3)) (htrans : ∀ i ∈ w, i≠0) (hw : w≠[])
@@ -95,7 +98,10 @@ theorem sourceLiftSpatialExtension_unit_transverse_initial (v : SpatialPoint →
     ((contDiff_sourceLiftSpatialExtension v hv q₀ h₀).comp (contDiff_id.const_smul physicalPeriod))
     q₀ (sourceLiftSpatialExtension_unit_initial v hv hu q₀ h₀) w htrans hw x hx
 
-/-- Original `sourceLiftSpatialExtension_unit_word_ode` guarantee for the `WordTransport` construction; the complete source hypotheses are retained. -/
+/-- For a smooth unit source and unit seed, the normalized raw lift satisfies the differentiated
+transport equation at `x` when `x 0 ∈ [0, 1]`. Its derivative along `0 :: w` equals the word-`w`
+derivative of the pointwise product of the lift and the horizontal generator of the normalized
+source, in that order. -/
 theorem sourceLiftSpatialExtension_unit_word_ode (v : SpatialPoint → SpatialPoint)
     (hv : ContDiff ℝ ∞ v) (hu : ∀ x, ‖v x‖=1) (q₀ : ℍ) (h₀ : ‖q₀‖=1)
     (w : List (Fin 3)) (x : SpatialPoint) (hx : 0 ≤ x 0 ∧ x 0 ≤ 1) :

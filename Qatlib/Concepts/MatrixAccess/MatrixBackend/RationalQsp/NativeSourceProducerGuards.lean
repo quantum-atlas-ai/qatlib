@@ -29,7 +29,10 @@ open Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays Qatlib.Concepts
 open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data
 open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data.SourceInput
 
-/-- The finite construction in `NativeSourceProducerGuards` satisfies `source_proposer_root_prerequisites` under the displayed hypotheses. -/
+/-- For positive E and source degree d and a degree-bounded target of matching parity with
+absolute value at most one on the interval from −1 to 1, the integer complement has 2d roots
+counting multiplicities, exactly d inside the unit circle. Every root's distance in modulus
+from one is at least the source radial gap. -/
 theorem source_proposer_root_prerequisites (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E)
     (htail : ∀ k,N+1 ≤ k → cs.getD k 0=0)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)

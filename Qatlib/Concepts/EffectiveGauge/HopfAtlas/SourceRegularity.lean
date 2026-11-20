@@ -24,7 +24,8 @@ open Qatlib.Concepts.EffectiveGauge.RationalFlow
 def sourceXXDerivative (v : SpatialPoint → SpatialPoint) (y : SpatialPoint) : ℍ :=
   fderiv ℝ (sourceXDerivative v) y (EuclideanSpace.single 0 1)
 
-/-- Original `sourceXDerivative_eq_spin` guarantee for the `SourceRegularity` construction; the complete source hypotheses are retained. -/
+/-- The longitudinal quaternion source derivative of a smooth vector field is the spin embedding of
+its first spatial directional derivative. -/
 theorem sourceXDerivative_eq_spin (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v) (y : SpatialPoint) :
     sourceXDerivative v y=spinOfVector (fderiv ℝ v y (EuclideanSpace.single 0 1)) := by
   have h : HasFDerivAt (sourceQuaternion v)
@@ -34,7 +35,8 @@ theorem sourceXDerivative_eq_spin (v : SpatialPoint → SpatialPoint) (hv : Cont
   rw [h.fderiv]
   rfl
 
-/-- Original `sourceXXDerivative_eq_spin` guarantee for the `SourceRegularity` construction; the complete source hypotheses are retained. -/
+/-- The second longitudinal quaternion source derivative of a smooth vector field is the spin
+embedding of its repeated first-coordinate derivative. -/
 theorem sourceXXDerivative_eq_spin (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v) (y : SpatialPoint) :
     sourceXXDerivative v y=spinOfVector
       (fderiv ℝ (fun w => fderiv ℝ v w (EuclideanSpace.single 0 1)) y (EuclideanSpace.single 0 1)) := by
@@ -45,7 +47,8 @@ theorem sourceXXDerivative_eq_spin (v : SpatialPoint → SpatialPoint) (hv : Con
   rw [he]
   exact sourceXDerivative_eq_spin dv hdv y
 
-/-- Original `sourceXDerivativeCurve_hasDerivAt` guarantee for the `SourceRegularity` construction; the complete source hypotheses are retained. -/
+/-- Along a longitudinal line through a fixed transverse coordinate, the derivative of the first
+source derivative is the second source derivative at the same point. -/
 theorem sourceXDerivativeCurve_hasDerivAt (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (z : TransversePoint) (t : ℝ) :
     HasDerivAt (fun u => sourceXDerivative v (sourcePosition (z,u)))
@@ -53,7 +56,9 @@ theorem sourceXDerivativeCurve_hasDerivAt (v : SpatialPoint → SpatialPoint) (h
   ((contDiff_sourceXDerivative hv).differentiable (by simp) _).hasFDerivAt.comp_hasDerivAt t
     (sourcePosition_hasDerivAt z t)
 
-/-- Original `normalizedSourceGenerator_hasDerivAt` guarantee for the `SourceRegularity` construction; the complete source hypotheses are retained. -/
+/-- For a smooth vector source, the time derivative of the generator along the scaled line at
+longitudinal parameter `x * t` is `-(x^2 / 2)` times the sum of the square of the first quaternion
+source derivative and the ordered product of the source quaternion with the second derivative. -/
 theorem normalizedSourceGenerator_hasDerivAt (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (z : TransversePoint) (x t : ℝ) :
     HasDerivAt (normalizedSourceGenerator v z x)
@@ -69,7 +74,8 @@ theorem normalizedSourceGenerator_hasDerivAt (v : SpatialPoint → SpatialPoint)
   congr 1
   ring
 
-/-- Original `horizontalDerivative_norm_le` guarantee for the `SourceRegularity` construction; the complete source hypotheses are retained. -/
+/-- For a unit quaternion `q`, if `‖d‖ ≤ m1` and `‖dd‖ ≤ m2` with `m1 ≥ 0`, the norm of
+`(-1/2) • (d * d + q * dd)` is at most `(m1^2 + m2) / 2`. -/
 private theorem horizontalDerivative_norm_le (q d dd : ℍ) (hq : ‖q‖=1)
     (m1 m2 : ℝ) (hm1 : 0 ≤ m1) (hd : ‖d‖ ≤ m1) (hdd : ‖dd‖ ≤ m2) :
     ‖(-1/2 : ℝ) • (d*d+q*dd)‖ ≤ (m1^2+m2)/2 := by

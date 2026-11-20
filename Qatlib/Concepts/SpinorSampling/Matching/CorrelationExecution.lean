@@ -88,7 +88,8 @@ def correlationLaw (mode : CorrelationMode) (n K : ℕ) (m : S → ℝ)
   | .ustatisticMedian => cohortLaw (cohortLaw (signedRecordLaw m hm) n) K
 
 omit [Fintype S] [Nonempty S] [DecidableEq S] in
-/-- Complete original `consumed_correlation_records_length` guarantee for `CorrelationExecution`; all source hypotheses and output obligations are retained. -/
+/-- The consumed record list has the scheduled length for any input of the chosen mode, record
+count, and block count. -/
 theorem consumed_correlation_records_length (mode : CorrelationMode) (n K : ℕ)
     (ω : CorrelationData S mode n K) :
     (consumedCorrelationRecords mode n K ω).length =
@@ -97,7 +98,8 @@ theorem consumed_correlation_records_length (mode : CorrelationMode) (n K : ℕ)
     List.map_ofFn, List.sum_ofFn] <;> ring
 
 omit [Fintype S] [Nonempty S] [DecidableEq S] in
-/-- Complete original `planned_correlation_consumed_copies` guarantee for `CorrelationExecution`; all source hypotheses and output obligations are retained. -/
+/-- For every input with the shape prescribed by the correlation plan, the consumed record list
+has length exactly equal to the plan's copy count. -/
 theorem planned_correlation_consumed_copies (M : ℕ) (rootM ε ρ : ℚ)
     (ω : CorrelationData S (correlationPlanQ M rootM ε ρ).mode
       (correlationPlanQ M rootM ε ρ).records (correlationPlanQ M rootM ε ρ).blocks) :
@@ -107,7 +109,8 @@ theorem planned_correlation_consumed_copies (M : ℕ) (rootM ε ρ : ℚ)
   rw [correlation_plan_copy_account]
   exact consumed_correlation_records_length _ _ _ ω
 
-/-- Complete original `finite_bad_clip` guarantee for `CorrelationExecution`; all source hypotheses and output obligations are retained. -/
+/-- When the center lies in the interval from `lo` to one, clipping a rational statistic to that
+interval can only decrease the probability of absolute error greater than `ε`. -/
 private theorem finite_bad_clip {X : Type} [Fintype X] [DecidableEq X]
     (p : FinDist X) (f : X → ℚ) (lo : ℚ) (μ ε : ℝ)
     (hlo : (lo : ℝ)≤μ) (hhi : μ≤1) :
@@ -125,7 +128,8 @@ private theorem finite_bad_clip {X : Type} [Fintype X] [DecidableEq X]
     split_ifs <;> norm_num
 
 omit [DecidableEq S] in
-/-- Complete original `correlation_center_bound` guarantee for `CorrelationExecution`; all source hypotheses and output obligations are retained. -/
+/-- For any site map `τ`, the site mean of `m x * m (τ x)` has absolute value at most one when
+each `m x` does. -/
 private theorem correlation_center_bound (m : S → ℝ) (hm : ∀ x, |m x|≤1)
     (τ : S → S) : |siteMean (fun x => m x*m (τ x))|≤1 := by
   apply site_mean_abs_le_one
@@ -133,7 +137,10 @@ private theorem correlation_center_bound (m : S → ℝ) (hm : ∀ x, |m x|≤1)
   rw [abs_mul]
   exact (mul_le_mul (hm x) (hm (τ x)) (abs_nonneg _) (by norm_num)).trans_eq (one_mul 1)
 
-/-- Complete original `planned_correlation_confidence` guarantee for `CorrelationExecution`; all source hypotheses and output obligations are retained. -/
+/-- With site means bounded in absolute value by one, a square-root upper bound on the site
+count, positive tolerance, and `0 < ρ < 1`, the planned estimator misses the permuted site
+correlation by more than `ε` with probability at most `ρ`. The clipping floor must lie below or
+at the correlation. -/
 theorem planned_correlation_confidence (τ : Equiv.Perm S)
     (m : S → ℝ) (hm : ∀ x, |m x|≤1) (rootM ε ρ lo : ℚ)
     (hroot : Real.sqrt (Fintype.card S : ℝ)≤(rootM : ℝ))
@@ -172,7 +179,9 @@ theorem planned_correlation_confidence (τ : Equiv.Perm S)
     simp only [finiteBadMass, correlationLaw, cohortLaw, FinDist.probEvent] at ht ⊢
     exact ht
 
-/-- Complete original `planned_spin_correlation_confidence` guarantee for `CorrelationExecution`; all source hypotheses and output obligations are retained. -/
+/-- For spin means in [−1, 1] and a site permutation `τ`, the planned output with clipping floor
+−1 differs from the site mean of `m x * m (τ x)` by more than `ε` with probability at most `ρ`.
+This uses a square-root upper bound on the site count, `ε > 0`, and `0 < ρ < 1`. -/
 theorem planned_spin_correlation_confidence (τ : Equiv.Perm S)
     (m : S → ℝ) (hm : ∀ x, |m x|≤1) (rootM ε ρ : ℚ)
     (hroot : Real.sqrt (Fintype.card S : ℝ)≤(rootM : ℝ))
@@ -185,7 +194,10 @@ theorem planned_spin_correlation_confidence (τ : Equiv.Perm S)
   simpa only [Rat.cast_neg, Rat.cast_one] using
     (abs_le.mp (correlation_center_bound m hm τ)).1
 
-/-- Complete original `planned_current_correlation_confidence` guarantee for `CorrelationExecution`; all source hypotheses and output obligations are retained. -/
+/-- For current means in [−1, 1], the planned output with identity site map and clipping floor
+zero estimates the site average of the squared means. Its absolute error exceeds `ε` with
+probability at most `ρ` given a square-root upper bound on the site count, `ε > 0`, and
+`0 < ρ < 1`. -/
 theorem planned_current_correlation_confidence
     (m : S → ℝ) (hm : ∀ x, |m x|≤1) (rootM ε ρ : ℚ)
     (hroot : Real.sqrt (Fintype.card S : ℝ)≤(rootM : ℝ))

@@ -29,7 +29,9 @@ open scoped ContDiff
 namespace Qatlib.Concepts.EffectiveGauge.HopfAtlas
 open Qatlib.Concepts.EffectiveGauge.RationalFlow Qatlib.Concepts.EffectiveGauge.TorusFourier
 
-/-- Original `closed_divFree_frequency_zero` guarantee for the `HarmonicConnection` construction; the complete source hypotheses are retained. -/
+/-- At a nonzero spatial frequency, a complex coefficient vector satisfying the Fourier
+closedness relations and having zero contraction with the frequency must vanish in each
+component. -/
 theorem closed_divFree_frequency_zero (k : SpatialFrequency) (hk : k≠0) (a : Fin 3 → ℂ)
     (hc : ∀ i j, (k i : ℂ)*a j=(k j : ℂ)*a i)
     (hd : (∑ i : Fin 3, (k i : ℂ)*a i)=0) (j : Fin 3) : a j=0 := by
@@ -51,7 +53,8 @@ theorem closed_divFree_frequency_zero (k : SpatialFrequency) (hk : k≠0) (a : F
       _ = 0 := by rw [hd,mul_zero]
   exact (mul_eq_zero.mp hzero).resolve_left hE
 
-/-- Original `unitFourierCoefficient_fin3Sum` guarantee for the `HarmonicConnection` construction; the complete source hypotheses are retained. -/
+/-- The Fourier coefficient of a sum of three continuous unit-periodic complex fields is the sum
+of their coefficients at the same frequency. -/
 theorem unitFourierCoefficient_fin3Sum (f : Fin 3 → SpatialPoint → ℂ)
     (hf : ∀ j, Continuous (f j)) (hp : ∀ j, IsUnitPeriodicField (f j)) (k : SpatialFrequency) :
     unitFourierCoefficient (fun x => ∑ j : Fin 3, f j x) (continuous_finsetSum _ (fun j _ => hf j))
@@ -66,7 +69,8 @@ theorem unitFourierCoefficient_fin3Sum (f : Fin 3 → SpatialPoint → ℂ)
     (fun x => unitFourierMode (-k) x*f 2 x) ((hcont 0).add (hcont 1)) (hcont 2),
     unitComplexCubeIntegral_add _ _ (hcont 0) (hcont 1)]
 
-/-- Original `unitClosed_divFree_coefficients` guarantee for the `HarmonicConnection` construction; the complete source hypotheses are retained. -/
+/-- A smooth unit-periodic complex vector field with symmetric cross-partials and zero
+divergence has zero Fourier coefficients at every nonzero frequency. -/
 theorem unitClosed_divFree_coefficients (f : Fin 3 → SpatialPoint → ℂ)
     (hf : ∀ j, ContDiff ℝ ∞ (f j)) (hp : ∀ j, IsUnitPeriodicField (f j))
     (hc : ∀ x i j, spatialWordPartial (f j) [i] x=spatialWordPartial (f i) [j] x)
@@ -105,7 +109,8 @@ theorem unitClosed_divFree_coefficients (f : Fin 3 → SpatialPoint → ℂ)
 
   exact closed_divFree_frequency_zero k hk a hclosed hsum0 j
 
-/-- Original `unitClosed_divFree_constant` guarantee for the `HarmonicConnection` construction; the complete source hypotheses are retained. -/
+/-- Each component of a smooth unit-periodic complex vector field with symmetric cross-partials
+and zero divergence is constant, with value given by its zero-frequency Fourier coefficient. -/
 theorem unitClosed_divFree_constant (f : Fin 3 → SpatialPoint → ℂ)
     (hf : ∀ j, ContDiff ℝ ∞ (f j)) (hp : ∀ j, IsUnitPeriodicField (f j))
     (hc : ∀ x i j, spatialWordPartial (f j) [i] x=spatialWordPartial (f i) [j] x)
@@ -118,7 +123,8 @@ theorem unitClosed_divFree_constant (f : Fin 3 → SpatialPoint → ℂ)
   · intro k hk
     rw [unitClosed_divFree_coefficients f hf hp hc hd k hk j,zero_mul]
 
-/-- Original `physicalClosed_divFree_constant` guarantee for the `HarmonicConnection` construction; the complete source hypotheses are retained. -/
+/-- For a smooth real vector field periodic with the physical period, symmetric cross-partials
+and zero divergence force every component to equal its value at the origin. -/
 theorem physicalClosed_divFree_constant (f : Fin 3 → SpatialPoint → ℝ)
     (hf : ∀ j, ContDiff ℝ ∞ (f j)) (hp : ∀ j, IsPeriodicField (f j))
     (hc : ∀ x i j, spatialWordPartial (f j) [i] x=spatialWordPartial (f i) [j] x)
@@ -151,7 +157,8 @@ theorem physicalClosed_divFree_constant (f : Fin 3 → SpatialPoint → ℝ)
   simpa only [g,smul_smul,mul_inv_cancel₀ physicalPeriod_pos.ne',one_smul,smul_zero,
     Complex.ofRealCLM_apply,Complex.reCLM_apply,Complex.ofReal_re] using h
 
-/-- Original `sameSource_solenoidal_connection_difference_constant` guarantee for the `HarmonicConnection` construction; the complete source hypotheses are retained. -/
+/-- For two smooth periodic solenoidal unit lifts of the same smooth spin source, their
+connection difference in each coordinate is constant and equals the difference at the origin. -/
 theorem sameSource_solenoidal_connection_difference_constant
     (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (q r : QuaternionField) (hq : ContDiff ℝ ∞ q) (hr : ContDiff ℝ ∞ r)

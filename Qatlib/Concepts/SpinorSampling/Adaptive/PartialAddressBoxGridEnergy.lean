@@ -29,7 +29,8 @@ open Qatlib.Foundations.ProbabilityCore.Concentration Qatlib.Concepts.SpinorSamp
 set_option autoImplicit false
 namespace Qatlib.Concepts.SpinorSampling.Adaptive.PartialAddress.BoxGridEnergy
 
-/-- Complete original `inside_step` guarantee for `PartialAddressBoxGridEnergy`; all source hypotheses and output obligations are retained. -/
+/-- If `y` is in range and its remainder has room to advance within a block of length
+`ell > 0`, then `y+1` stays in range, keeps the quotient, and increments the remainder. -/
 theorem inside_step (C ell y : ℕ) (hell : 0<ell) (hy : y<C*ell) (hi : y%ell+1<ell) :
     y+1<C*ell ∧ (y+1)/ell=y/ell ∧ (y+1)%ell=y%ell+1 := by
   have hq : y/ell<C := Nat.div_lt_of_lt_mul (show y<ell*C by simpa only [Nat.mul_comm] using hy)
@@ -48,7 +49,9 @@ theorem inside_step (C ell y : ℕ) (hell : 0<ell) (hy : y<C*ell) (hi : y%ell+1<
       _ = _ := by rw [Nat.div_eq_of_lt hi]; omega
   · rw [← Nat.mod_add_mod y ell 1,Nat.mod_eq_of_lt hi]
 
-/-- Complete original `internal_right_image` guarantee for `PartialAddressBoxGridEnergy`; all source hypotheses and output obligations are retained. -/
+/-- On the native grid of side `2^r = 2 * C * ell` with `ell > 0`, suppose the local coordinate
+on axis `j` can advance inside its box. The periodic two-site shift then keeps the box label and
+increments just that local coordinate. -/
 theorem internal_right_image (C ell : ℕ) [NeZero (C*ell)] (d r : ℕ)
     (hN : 2^r=C*ell*2) (offset : Fin d → Fin (C*ell))
     (x : Fin d → Fin (2^r)) (j : Fin d) (hell : 0<ell)
@@ -95,7 +98,8 @@ theorem internal_right_image (C ell : ℕ) [NeZero (C*ell)] (d r : ℕ)
         (GridPatch.coordinateEquiv C ell (offset i) (Fin.cast hN (x i))).2
       simp only [MatchedGrid.right,Function.update_of_ne hij]
 
-/-- Complete original `internal_right_inverse` guarantee for `PartialAddressBoxGridEnergy`; all source hypotheses and output obligations are retained. -/
+/-- On the native grid of side `2^r = 2 * C * ell` with `ell > 0`, an internal unit step on local
+axis `j` maps back to the periodic two-site shift of the original native point. -/
 theorem internal_right_inverse (C ell : ℕ) [NeZero (C*ell)] (d r : ℕ)
     (hN : 2^r=C*ell*2) (offset : Fin d → Fin (C*ell))
     (box : Fin d → Fin 2 × Fin C) (a : Fin d → Fin ell) (j : Fin d) (hell : 0<ell)
@@ -115,7 +119,9 @@ theorem internal_right_inverse (C ell : ℕ) [NeZero (C*ell)] (d r : ℕ)
 def periodicEnergy (d r : ℕ) (f : (Fin d → Fin (2^r)) → ℝ) : ℝ :=
   ∑ x,∑ j : Fin d,(f (MatchedGrid.right d r j x)-f x)^2
 
-/-- Complete original `scalar_energy_transport` guarantee for `PartialAddressBoxGridEnergy`; all source hypotheses and output obligations are retained. -/
+/-- On the native grid of side `2^r = 2 * C * ell` with `ell > 0`, the sum of internal scalar
+energies over the boxes of the offset decomposition is bounded by the full periodic two-site
+energy. -/
 theorem scalar_energy_transport (C ell : ℕ) [NeZero (C*ell)] (d r : ℕ)
     (hN : 2^r=C*ell*2) (offset : Fin d → Fin (C*ell)) (hell : 0<ell)
     (f : (Fin d → Fin (2^r)) → ℝ) :
@@ -145,13 +151,15 @@ theorem scalar_energy_transport (C ell : ℕ) [NeZero (C*ell)] (d r : ℕ)
         (f (MatchedGrid.right d r j (e.symm z))-f (e.symm z))^2)]
       exact e.symm.sum_comp (fun x => ∑ j : Fin d,(f (MatchedGrid.right d r j x)-f x)^2)
 
-/-- Complete original `fin_equiv_two` guarantee for `PartialAddressBoxGridEnergy`; all source hypotheses and output obligations are retained. -/
+/-- For any nonzero modulus, the finite-index equivalence sends the modular numeral two to two
+in `ZMod N`. -/
 theorem fin_equiv_two (N : ℕ) [NeZero N] : (ZMod.finEquiv N) (2 : Fin N)=2 := by
   cases N with
   | zero => exact False.elim (NeZero.ne 0 rfl)
   | succ N => rfl
 
-/-- Complete original `right_eq_periodic` guarantee for `PartialAddressBoxGridEnergy`; all source hypotheses and output obligations are retained. -/
+/-- The right move used by the matched grid is exactly the periodic two-site shift in the
+specified coordinate. -/
 theorem right_eq_periodic (d r : ℕ) (j : Fin d) (x : Fin d → Fin (2^r)) :
     MatchedGrid.right d r j x=periodicDoubleShift d (2^r) j x := by
   funext i
@@ -164,7 +172,8 @@ theorem right_eq_periodic (d r : ℕ) (j : Fin d) (x : Fin d → Fin (2^r)) :
     exact fin_equiv_two (2^r)
   · simp only [MatchedGrid.right,Function.update_of_ne hi,ite_eq_right hi,add_zero]
 
-/-- Complete original `pauli_edge_bell` guarantee for `PartialAddressBoxGridEnergy`; all source hypotheses and output obligations are retained. -/
+/-- For a pointwise unit spinor field, the squared distance between the three Pauli coordinates
+at any two sites is eight times their Bell probability. -/
 theorem pauli_edge_bell {S : Type*} (a b c k : S → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (x y : S) :
     (∑ h : Fin 3,(pauliField a b c k h y-pauliField a b c k h x)^2)=
@@ -182,7 +191,8 @@ noncomputable def directionalBellMean {d r : ℕ} (a b c k : (Fin d → Fin (2^r
     (complexSpinor a b c k (periodicDoubleShift d (2^r) j x))
     (complexSpinor a b c k x))/((2^r : ℕ) : ℝ)^d
 
-/-- Complete original `directional_bell_mean_eq` guarantee for `PartialAddressBoxGridEnergy`; all source hypotheses and output obligations are retained. -/
+/-- The directional Bell average for the native right move is the Bell mean for the periodic
+double shift along that direction. -/
 theorem directional_bell_mean_eq {d r : ℕ}
     (a b c k : (Fin d → Fin (2^r)) → ℝ) (j : Fin d) :
     directionalBellMean a b c k j=
@@ -198,7 +208,8 @@ theorem directional_bell_mean_eq {d r : ℕ}
     ring
   rw [h,Complex.normSq_neg]
 
-/-- Complete original `pauli_periodic_energy` guarantee for `PartialAddressBoxGridEnergy`; all source hypotheses and output obligations are retained. -/
+/-- For a pointwise normalized spinor field, summing periodic energy over the three Pauli
+components gives eight times the number of sites times the sum of the directional Bell means. -/
 theorem pauli_periodic_energy {d r : ℕ} (a b c k : (Fin d → Fin (2^r)) → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) :
     (∑ h : Fin 3,periodicEnergy d r (pauliField a b c k h))=
@@ -220,7 +231,9 @@ theorem pauli_periodic_energy {d r : ℕ} (a b c k : (Fin d → Fin (2^r)) → �
   have hM : ((2^r : ℕ) : ℝ)^d ≠ 0 := by positivity
   field_simp
 
-/-- Complete original `native_average_defect_energy` guarantee for `PartialAddressBoxGridEnergy`; all source hypotheses and output obligations are retained. -/
+/-- For a pointwise unit spinor field on a native grid of side `2^r = 2 * C * (2*m)` with
+`C,m > 0`, the average defect of the offset boxes is bounded by the total Pauli energy times
+`(2*m)^2 / (8 * (2^r)^d)`. -/
 theorem native_average_defect_energy (C m d r : ℕ) [NeZero C] [NeZero m]
     [NeZero (2*m)] [NeZero (C*(2*m))]
     (hN : 2^r=C*(2*m)*2) (offset : Fin d → Fin (C*(2*m)))
@@ -265,7 +278,9 @@ theorem native_average_defect_energy (C m d r : ℕ) [NeZero C] [NeZero m]
       div_le_div_of_nonneg_right (mul_le_mul_of_nonneg_left hE hcoef) hnb.le
     _ = _ := by rw [← hcard]; field_simp
 
-/-- Complete original `native_average_defect_bell` guarantee for `PartialAddressBoxGridEnergy`; all source hypotheses and output obligations are retained. -/
+/-- For a pointwise unit spinor field on a native grid of side `2^r = 2 * C * (2*m)` with
+`C,m > 0`, the average defect of the offset boxes is at most `(2*m)^2` times the sum of the
+directional Bell means. -/
 theorem native_average_defect_bell (C m d r : ℕ) [NeZero C] [NeZero m]
     [NeZero (2*m)] [NeZero (C*(2*m))]
     (hN : 2^r=C*(2*m)*2) (offset : Fin d → Fin (C*(2*m)))
@@ -282,7 +297,9 @@ theorem native_average_defect_bell (C m d r : ℕ) [NeZero C] [NeZero m]
     field_simp
   rwa [heq] at h
 
-/-- Complete original `native_average_defect_promise` guarantee for `PartialAddressBoxGridEnergy`; all source hypotheses and output obligations are retained. -/
+/-- For a pointwise unit spinor field on a native grid of side `2^r = 2 * C * (2*m)` with
+`C,m > 0`, suppose every periodic double-shift Bell mean is at most `p0`. The average defect of
+the offset boxes is then at most `d * (2*m)^2 * p0`. -/
 theorem native_average_defect_promise (C m d r : ℕ) [NeZero C] [NeZero m]
     [NeZero (2*m)] [NeZero (C*(2*m))]
     (hN : 2^r=C*(2*m)*2) (offset : Fin d → Fin (C*(2*m)))

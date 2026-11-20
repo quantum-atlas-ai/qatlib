@@ -26,7 +26,9 @@ open scoped ContDiff
 namespace Qatlib.Concepts.EffectiveGauge.HopfAtlas
 open Qatlib.Concepts.EffectiveGauge.RationalFlow
 
-/-- Original `spatialAxes_norm_l1_bound` guarantee for the `SpatialNormLipschitz` construction; the complete source hypotheses are retained. -/
+/-- If a continuous real-linear map into a real normed space takes the three spatial unit axes to
+vectors of norm at most `D ≥ 0`, its norm at `w` is bounded by `D` times the sum of the absolute
+coordinates of `w`. -/
 theorem spatialAxes_norm_l1_bound {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     (A : SpatialPoint →L[ℝ] E) (D : ℝ) (_hD : 0 ≤ D)
     (hA : ∀ i, ‖A (EuclideanSpace.single i 1)‖ ≤ D) (w : SpatialPoint) :

@@ -36,7 +36,8 @@ open Qatlib
 variable {I J X Y : Type} [Fintype I] [Fintype J] [DecidableEq J]
   [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y]
 
-/-- Complete original `product_supported_on_injection` guarantee for `SelectedSignProducts`; all source hypotheses and output obligations are retained. -/
+/-- The product over `J` equals the product over `I` when `G` agrees with `H` along the
+injection and equals one off its image. -/
 theorem product_supported_on_injection (f : I → J) (hf : Function.Injective f)
     (G : J → ℝ) (H : I → ℝ) (hon : ∀ i, G (f i)=H i)
     (hoff : ∀ j, (¬∃ i, f i=j) → G j=1) : (∏ j : J, G j)=∏ i : I, H i := by
@@ -49,7 +50,8 @@ theorem product_supported_on_injection (f : I → J) (hf : Function.Injective f)
     _ = ∏ i : I, G (f i) := Finset.prod_image hf.injOn
     _ = _ := Finset.prod_congr rfl (fun i _ => hon i)
 
-/-- Complete original `independent_product_along_injection` guarantee for `SelectedSignProducts`; all source hypotheses and output obligations are retained. -/
+/-- For an injective selection of independent sample coordinates, the expectation of the product
+of the selected observables is the product of their coordinate expectations. -/
 theorem independent_product_along_injection {n : ℕ} (p : Fin n → FinDist X)
     (f : I → Fin n) (hf : Function.Injective f) (H : I → X → ℝ) :
     (independentSampleLaw p).expect (fun ω => ∏ i : I, H i (ω (f i)))=
@@ -81,7 +83,8 @@ def productLaw (p : FinDist X) (q : FinDist Y) : FinDist (X × Y) where
     exact p.sum_one
 
 omit [DecidableEq X] [DecidableEq Y] in
-/-- Complete original `product_law_expect` guarantee for `SelectedSignProducts`; all source hypotheses and output obligations are retained. -/
+/-- Expectation under the product of two finite laws equals the iterated expectation with the
+second law inside the first. -/
 theorem product_law_expect (p : FinDist X) (q : FinDist Y) (F : X × Y → ℝ) :
     (productLaw p q).expect F=p.expect (fun x => q.expect (fun y => F (x,y))) := by
   unfold FinDist.expect productLaw
@@ -93,7 +96,9 @@ theorem product_law_expect (p : FinDist X) (q : FinDist Y) (F : X × Y → ℝ) 
   intro y _
   ring
 
-/-- Complete original `independent_selected_pair_product` guarantee for `SelectedSignProducts`; all source hypotheses and output obligations are retained. -/
+/-- Selecting coordinates injectively from each of two independent arrays gives pairs whose
+observables factor in expectation. Each factor integrates its selected coordinates against their
+two marginal laws. -/
 theorem independent_selected_pair_product {n m : ℕ} (p : Fin n → FinDist X)
     (q : Fin m → FinDist Y) (f : I → Fin n) (g : I → Fin m)
     (hf : Function.Injective f) (hg : Function.Injective g) (H : I → X → Y → ℝ) :
@@ -108,7 +113,9 @@ theorem independent_selected_pair_product {n m : ℕ} (p : Fin n → FinDist X)
   simp_rw [hinner]
   exact independent_product_along_injection p f hf (fun i x => (q (g i)).expect (H i x))
 
-/-- Complete original `selected_sign_product_mgf` guarantee for `SelectedSignProducts`; all source hypotheses and output obligations are retained. -/
+/-- For two independent sign arrays with means in [−1, 1] and injective selections on both
+sides, the sum of selected sign products centered at their mean products has moment-generating
+function at most `exp (|I|*t²/2)` for every real `t`. -/
 theorem selected_sign_product_mgf {n m : ℕ} (a : Fin n → ℝ) (b : Fin m → ℝ)
     (ha : ∀ i, |a i| ≤ 1) (hb : ∀ i, |b i| ≤ 1)
     (f : I → Fin n) (g : I → Fin m) (hf : Function.Injective f) (hg : Function.Injective g)

@@ -48,7 +48,7 @@ def nativeShiftBudgetPrecision (K k : ℕ) : ℕ :=
 /-- Construction for native Shift Budget Cutoff in the native generated shift budget model. -/
 def nativeShiftBudgetCutoff (K k : ℕ) : ℕ := K*K*(k+Nat.size (K-1)+2)
 
-/-- The finite construction in `NativeGeneratedShiftBudget` satisfies `size_pred_eq_clog` under the displayed hypotheses. -/
+/-- For a positive natural `n`, the binary bit length of `n - 1` equals the ceiling base-two logarithm of `n`. -/
 private theorem size_pred_eq_clog (n : ℕ) (hn : 0<n) : Nat.size (n-1)=Nat.clog 2 n := by
   apply Nat.le_antisymm
   · apply Nat.size_le.mpr
@@ -58,7 +58,7 @@ private theorem size_pred_eq_clog (n : ℕ) (hn : 0<n) : Nat.size (n-1)=Nat.clog
     have hh := Nat.lt_size_self (n-1)
     omega
 
-/-- The finite construction in `NativeGeneratedShiftBudget` satisfies `nativeShiftBudgetCutoff_eq` under the displayed hypotheses. -/
+/-- For `K ≥ 2`, the shift cutoff is `K²` times the sum of requested precision `k`, the ceiling base-two logarithm of `K`, and two. -/
 theorem nativeShiftBudgetCutoff_eq (K k : ℕ) (hK : 2 ≤ K) :
     nativeShiftBudgetCutoff K k=K*K*(k+Nat.clog 2 K+2) := by
   rw [nativeShiftBudgetCutoff,size_pred_eq_clog K (by omega)]
@@ -68,12 +68,12 @@ theorem nativeShiftBudgetPrecision_eq (K k : ℕ) (hK : 2 ≤ K) :
     nativeShiftBudgetPrecision K k=k+Nat.clog 2 (2*nativeShiftGapFactor K) := by
   rw [nativeShiftBudgetPrecision,size_pred_eq_clog _ (by unfold nativeShiftGapFactor; positivity)]
 
-/-- The finite construction in `NativeGeneratedShiftBudget` satisfies `nativeShiftGapFactor_real` under the displayed hypotheses. -/
+/-- Casting the natural shift gap factor to the reals gives the polynomial `2*K² + 4*K³` evaluated at real `K`. -/
 private theorem nativeShiftGapFactor_real (K : ℕ) :
     (nativeShiftGapFactor K : ℝ)=2*(K : ℝ)^2+4*(K : ℝ)^3 := by
   simp [nativeShiftGapFactor]
 
-/-- The finite construction in `NativeGeneratedShiftBudget` satisfies `budget_power_lower` under the displayed hypotheses. -/
+/-- For `K ≥ 2`, two to the budgeted precision is at least twice the gap factor `2*K² + 4*K³` times `2^k`. -/
 private theorem budget_power_lower (K k : ℕ) (hK : 2 ≤ K) :
     2*(2*(K : ℝ)^2+4*(K : ℝ)^3)*(2 : ℝ)^k ≤
       (2 : ℝ)^(nativeShiftBudgetPrecision K k) := by
@@ -135,7 +135,7 @@ theorem nativeShift_generated_coordinate_budget (K k : ℕ) (hK : 2 ≤ K)
       (2*(K : ℝ)^2+4*(K : ℝ)^3)*δ+((2 : ℝ)⁻¹)^(k+2) ≤ ((2 : ℝ)⁻¹)^k :=
   budget_of_precision K k hK _ (nativeShiftCoordinateResidual_le α B x y _ hα hB hz)
 
-/-- The finite construction in `NativeGeneratedShiftBudget` satisfies `nativeShift_generated_coefficient_budget` under the displayed hypotheses. -/
+/-- For `K ≥ 2`, positive rational `α ≤ B`, and a node with `x² + y² ≤ (B - α)²`, the circles generated at the budgeted precision give coefficient error `δ ≤ 1/(4*K²)`. The gap factor times `δ`, plus `2^(-(k+2))`, is at most `2^(-k)`. -/
 private theorem nativeShift_generated_coefficient_budget (K k : ℕ) (hK : 2 ≤ K)
     (α B x y : ℚ) (hα : 0<α) (hB : α ≤ B) (hz : x*x+y*y ≤ (B-α)^2) :
     let p := nativeShiftBudgetPrecision K k

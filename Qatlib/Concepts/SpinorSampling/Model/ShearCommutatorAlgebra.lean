@@ -24,7 +24,8 @@ namespace Qatlib.Concepts.SpinorSampling.Model
 
 -- V = Rz(pi), W = Ry(pi/2), s = cos(pi/4) = sin(pi/4).
 -- The four real coordinates are (Re z0, Im z0, Re z1, Im z1).
-/-- Complete original `commutator_coordinates` guarantee for `ShearCommutatorAlgebra`; all source hypotheses and output obligations are retained. -/
+/-- When `2 * s^2 = 1`, the four coordinate operations of the commutator send `(a, b, c, d)` to
+`(c, d, -a, -b)`. -/
 theorem commutator_coordinates (a b c d s : ℝ) (hs : 2*s^2=1) :
     (let a1 := s*a+s*c
      let b1 := s*b+s*d
@@ -60,7 +61,8 @@ def realSpinorAt : ℕ → (ℝ × ℝ) → (ℝ × ℝ)
   | 0,q => q
   | n+1,q => halfTurn (realSpinorAt n q)
 
-/-- Complete original `repeated_halfTurn_normalization` guarantee for `ShearCommutatorAlgebra`; all source hypotheses and output obligations are retained. -/
+/-- Any number of iterations of `(x, y) ↦ (y, -x)` preserves the sum of the squared real
+amplitudes. -/
 theorem repeated_halfTurn_normalization (n : ℕ) (x y : ℝ) :
     (realSpinorAt n (x,y)).1^2 + (realSpinorAt n (x,y)).2^2 = x^2+y^2 := by
   induction n with
@@ -69,7 +71,8 @@ theorem repeated_halfTurn_normalization (n : ℕ) (x y : ℝ) :
     change (realSpinorAt n (x,y)).2^2 + (-(realSpinorAt n (x,y)).1)^2 = x^2+y^2
     simpa only [neg_sq,add_comm] using ih
 
-/-- Complete original `repeated_halfTurn_population` guarantee for `ShearCommutatorAlgebra`; all source hypotheses and output obligations are retained. -/
+/-- After `n` iterations of `(x, y) ↦ (y, -x)`, the population difference is the initial
+difference `x^2 - y^2` multiplied by `(-1)^n`. -/
 theorem repeated_halfTurn_population (n : ℕ) (x y : ℝ) :
     (realSpinorAt n (x,y)).1^2 - (realSpinorAt n (x,y)).2^2 =
       (-1 : ℝ)^n * (x^2-y^2) := by

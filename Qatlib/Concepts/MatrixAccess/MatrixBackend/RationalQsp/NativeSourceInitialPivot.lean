@@ -31,7 +31,8 @@ section InitialPivot
 open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data
 open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data.SourceInput
 
-/-- The finite construction in `NativeSourceInitialPivot` satisfies `raw_diagonal_im_difference` under the displayed hypotheses. -/
+/-- At any raw matrix slot, subtracting the second diagonal imaginary coordinate from the first
+gives twice the real source array coefficient. -/
 theorem raw_diagonal_im_difference {m : ℕ} (cs : List ℚ) (N : ℕ) (E : ℚ)
     (f : Fin m → RootIntegerFactorData) (j : Fin (sourceDegree cs N E+1)) :
     (sourceRawMatrix cs N E f j false false).2-(sourceRawMatrix cs N E f j true true).2=
@@ -46,7 +47,7 @@ theorem raw_diagonal_im_difference {m : ℕ} (cs : List ℚ) (N : ℕ) (E : ℚ)
   ring
 
 
-/-- The finite construction in `NativeSourceInitialPivot` satisfies `grid_nonzero_lower` under the displayed hypotheses. -/
+/-- A nonzero rational truncated to a positive grid has absolute value at least one grid step. -/
 private theorem grid_nonzero_lower (x h : ℚ) (hh : 0<h) (hn : rootGridTruncate x h≠0) :
     h ≤ |rootGridTruncate x h| := by
   have hk : ⌊|x|/h⌋₊≠0 := by
@@ -60,12 +61,13 @@ private theorem grid_nonzero_lower (x h : ℚ) (hh : 0<h) (hn : rootGridTruncate
   unfold rootGridTruncate
   split_ifs <;> simpa only [abs_neg,abs_of_nonneg hb0] using hb
 
-/-- The finite construction in `NativeSourceInitialPivot` satisfies `source_grid_le_one` under the displayed hypotheses. -/
+/-- The dyadic grid spacing used for the source is at most one for all N and u. -/
 private theorem source_grid_le_one (N : ℕ) (u : ℚ) : sourceGrid N u ≤ 1 := by
   unfold sourceGrid
   exact (div_le_one (by positivity)).mpr (one_le_pow₀ (by norm_num))
 
-/-- The finite construction in `NativeSourceInitialPivot` satisfies `source_eta_le_grid` under the displayed hypotheses. -/
+/-- For positive requested error, the root tolerance is at most one sixteenth of the source grid
+spacing. -/
 theorem source_eta_le_grid (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E) :
     sourceInputEta cs N E ≤ sourceGrid N (sourceInputU cs N E)/16 := by
   let u := sourceInputU cs N E
@@ -92,7 +94,7 @@ theorem source_eta_le_grid (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E) :
     _ ≤ sourceK N u*eta*(128/h)^(N+1) := le_mul_of_one_le_right (by positivity) hpow
     _ ≤ h/16 := hb
 
-/-- The finite construction in `NativeSourceInitialPivot` satisfies `source_real_last` under the displayed hypotheses. -/
+/-- The last entry of the real array equals the source coefficient at its actual degree. -/
 private theorem source_real_last (cs : List ℚ) (N : ℕ) (E : ℚ) :
     sourceRealArray cs N E (Fin.last (sourceDegree cs N E))=
       sourceCoefficient cs N E ⟨sourceDegree cs N E,by have h := sourceDegree_le cs N E; omega⟩ := by
@@ -103,7 +105,8 @@ private theorem source_real_last (cs : List ℚ) (N : ℕ) (E : ℚ) :
   simp only [Nat.dist]
   omega
 
-/-- The finite construction in `NativeSourceInitialPivot` satisfies `source_real_last_grid_lower` under the displayed hypotheses. -/
+/-- If the source degree is positive, the last real array coefficient has absolute value at least
+one source grid step. -/
 theorem source_real_last_grid_lower (cs : List ℚ) (N : ℕ) (E : ℚ)
     (hd : 0<sourceDegree cs N E) :
     sourceGrid N (sourceInputU cs N E) ≤ |sourceRealArray cs N E (Fin.last (sourceDegree cs N E))| := by
@@ -116,7 +119,8 @@ theorem source_real_last_grid_lower (cs : List ℚ) (N : ℕ) (E : ℚ)
   exact grid_nonzero_lower _ _ (sourceGrid_pos _ _) hi
 
 
-/-- The finite construction in `NativeSourceInitialPivot` satisfies `source_real_extreme` under the displayed hypotheses. -/
+/-- The real array takes the same value at both ends, so either extreme entry equals the last
+entry. -/
 private theorem source_real_extreme (cs : List ℚ) (N : ℕ) (E : ℚ)
     (j : Fin (sourceDegree cs N E+1)) (hj : j.val=0 ∨ j.val=sourceDegree cs N E) :
     sourceRealArray cs N E j=sourceRealArray cs N E (Fin.last (sourceDegree cs N E)) := by
@@ -127,7 +131,8 @@ private theorem source_real_extreme (cs : List ℚ) (N : ℕ) (E : ℚ)
   change Nat.dist (2*j.val) (sourceDegree cs N E)=sourceDegree cs N E
   rcases hj with hj|hj <;> rw [hj] <;> simp only [Nat.dist] <;> omega
 
-/-- The finite construction in `NativeSourceInitialPivot` satisfies `rounded_nonzero_of_real_lower` under the displayed hypotheses. -/
+/-- For positive E, if the magnitude of the real source coefficient at j is at least the grid
+spacing, the rounded matrix at j has a nonzero entry for any supplied factor data. -/
 private theorem rounded_nonzero_of_real_lower {m : ℕ} (cs : List ℚ) (N : ℕ) (E : ℚ)
     (hE : 0<E) (f : Fin m → RootIntegerFactorData) (j : Fin (sourceDegree cs N E+1))
     (ha : sourceGrid N (sourceInputU cs N E) ≤ |sourceRealArray cs N E j|) :
@@ -156,7 +161,8 @@ private theorem rounded_nonzero_of_real_lower {m : ℕ} (cs : List ℚ) (N : ℕ
   have hh := sourceGrid_pos N (sourceInputU cs N E)
   linarith
 
-/-- The finite construction in `NativeSourceInitialPivot` satisfies `source_initial_extreme_nonzero` under the displayed hypotheses. -/
+/-- With positive E and source degree, the rounded matrix at either extreme slot contains a
+nonzero rational entry for any supplied factor data. -/
 theorem source_initial_extreme_nonzero {m : ℕ} (cs : List ℚ) (N : ℕ) (E : ℚ)
     (hE : 0<E) (hd : 0<sourceDegree cs N E) (f : Fin m → RootIntegerFactorData)
     (j : Fin (sourceDegree cs N E+1)) (hj : j.val=0 ∨ j.val=sourceDegree cs N E) :
@@ -165,7 +171,8 @@ theorem source_initial_extreme_nonzero {m : ℕ} (cs : List ℚ) (N : ℕ) (E : 
   rw [source_real_extreme cs N E j hj]
   exact source_real_last_grid_lower cs N E hd
 
-/-- The finite construction in `NativeSourceInitialPivot` satisfies `source_initial_extreme_gram_guard` under the displayed hypotheses. -/
+/-- When E and the source degree are positive, the rounded matrix at either extreme has Gram trace
+with zero imaginary coordinate and positive real coordinate. -/
 theorem source_initial_extreme_gram_guard {m : ℕ} (cs : List ℚ) (N : ℕ) (E : ℚ)
     (hE : 0<E) (hd : 0<sourceDegree cs N E) (f : Fin m → RootIntegerFactorData)
     (j : Fin (sourceDegree cs N E+1)) (hj : j.val=0 ∨ j.val=sourceDegree cs N E) :

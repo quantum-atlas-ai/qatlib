@@ -32,10 +32,8 @@ The load-bearing facts are `data_qubits_le_linear` (`log₂ N + 1 ≤ N`) and
 hardware is exponential in the number of data qubits.  Together they express
 "`O(N)` qubits versus `O(log N)` data qubits" without inventing a gate model.
 
-`Qatlib.Concepts.EffectiveAccess.AccessImpl`
-models the address/register split; the bucket-brigade QRAM compilation is
-`Qatlib.Concepts.TableAccess.LookupCompile`.  This module records the
-qubit-count assessment only.
+The distinction here is between the address register and the physical memory cells.
+The statements concern their sizes and assume no bucket-brigade gate realization.
 -/
 
 set_option autoImplicit false

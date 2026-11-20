@@ -39,7 +39,9 @@ open Polynomial
 open Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays
 open Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.Gaussian
 
-/-- The finite construction in `NativeRootProjectionBudget` satisfies `rootProjectionInternal_integer_coordinate_complete` under the displayed hypotheses. -/
+/-- With positive denominators for `v` and `w`, the real inequality comparing `n` times
+ the sum of the absolute coordinates of `v` with `r` times the larger absolute
+ coordinate of `w` implies the cross-multiplied integer inequality. -/
 private theorem rootProjectionInternal_integer_coordinate_complete (n : ℕ) (v w : GaussianIntegerFraction) (r : ℚ)
     (hE : 0 < v.denominator) (hF : 0 < w.denominator)
     (h : (n : ℝ) * (|(gaussianPointValue v).re| + |(gaussianPointValue v).im|) ≤
@@ -63,7 +65,11 @@ private theorem rootProjectionInternal_integer_coordinate_complete (n : ℕ) (v 
   dsimp only [rootIntegerCoordinateBound]
   exact_mod_cast hraw'
 
-/-- The finite construction in `NativeRootProjectionBudget` satisfies `rootProjectionInternal_nearby_root_coordinate` under the displayed hypotheses. -/
+/-- Let `f` have positive degree and `z` be a root within `e` of `c`. Suppose `A > 0`
+ bounds the derivative norm at `z` below, `M ≥ 0` bounds both derivative norms on
+ the closed `e`-ball above, and `0 ≤ r ≤ 1`, `e ≥ 0` and `8 * degree * M * e ≤ r * A`.
+ Then the degree times the sum of absolute coordinates of `f(c)` is at most `r`
+ times the larger absolute coordinate of `f'(c)`, which is positive. -/
 private theorem rootProjectionInternal_nearby_root_coordinate (f : ℂ[X]) (z c : ℂ) (A M e r : ℝ)
     (hm : 0 < f.natDegree) (hA : 0 < A) (hM : 0 ≤ M) (he : 0 ≤ e)
     (hr : 0 ≤ r) (hr1 : r ≤ 1) (hz : f.eval z = 0) (hc : ‖c-z‖ ≤ e)
@@ -107,7 +113,11 @@ private theorem rootProjectionInternal_nearby_root_coordinate (f : ℂ[X]) (z c 
   have hp := mul_le_mul_of_nonneg_left hlinf hr
   nlinarith only [hv, hp, hbudget]
 
-/-- The finite construction in `NativeRootProjectionBudget` satisfies `rootProjectionInternal_nearby_root_actual_horner` under the displayed hypotheses. -/
+/-- For an integer array with nonzero last entry, let `z` be a root within `e` of the
+ rational center `c`. If `A > 0` bounds the derivative norm at `z` below, `M ≥ 0`
+ bounds the first two derivative norms on the closed `e`-ball above, and `0 ≤ r ≤ 1`,
+ `e ≥ 0` and `8 * (n + 1) * M * e ≤ r * A`, the compact Horner values pass the
+ integer coordinate test at radius `r` and the derivative numerator is nonzero. -/
 private theorem rootProjectionInternal_nearby_root_actual_horner (n : ℕ) (a : Fin (n+2) → ℤ)
     (ha : a (Fin.last (n+1)) ≠ 0) (z : ℂ) (c : ℚ×ℚ) (A M e : ℝ) (r : ℚ)
     (hA : 0 < A) (hM : 0 ≤ M) (he : 0 ≤ e) (hr : 0 ≤ r) (hr1 : r ≤ 1)
@@ -203,12 +213,12 @@ def rootProjectionRadius (contexts : List RootProjectionContext) (bits : ℕ) (g
 def rootProjectionMidpointError (contexts : List RootProjectionContext) (bits : ℕ) (gap : ℚ) : ℚ :=
   1/(2 : ℚ)^rootProjectionCap contexts bits gap
 
-/-- The finite construction in `NativeRootProjectionBudget` satisfies `rootProjectionInternal_fold_max_initial` under the displayed hypotheses. -/
+/-- A left fold of `max` over natural numbers is at least its initial value `a`. -/
 private theorem rootProjectionInternal_fold_max_initial (xs : List ℕ) (a : ℕ) : a ≤ xs.foldl max a := by
   induction xs generalizing a with
   | nil => rfl
   | cons x xs ih => exact (le_max_left a x).trans (ih (max a x))
-/-- The finite construction in `NativeRootProjectionBudget` satisfies `rootProjectionInternal_capFoldMaxMember` under the displayed hypotheses. -/
+/-- Every term `x` in the list is bounded above by the maximum fold from seed `a`. -/
 private theorem rootProjectionInternal_capFoldMaxMember (xs : List ℕ) (a x : ℕ) (hx : x ∈ xs) :
     x ≤ xs.foldl max a := by
   induction xs generalizing a with
@@ -219,7 +229,7 @@ private theorem rootProjectionInternal_capFoldMaxMember (xs : List ℕ) (a x : �
       exact (le_max_right a x).trans (rootProjectionInternal_fold_max_initial ys (max a x))
     · exact ih (max a y) h
 
-/-- The finite construction in `NativeRootProjectionBudget` satisfies `rootProjectionInternal_half_ge_term` under the displayed hypotheses. -/
+/-- Half the projection precision cap is at least two more than each term used to compute it. -/
 private theorem rootProjectionInternal_half_ge_term (contexts : List RootProjectionContext) (bits t : ℕ) (gap : ℚ)
     (ht : t ∈ rootProjectionTerms contexts bits gap) : t+2 ≤ rootProjectionHalf contexts bits gap := by
   have hm := rootProjectionInternal_capFoldMaxMember (rootProjectionTerms contexts bits gap) 0 t ht
@@ -229,13 +239,13 @@ private theorem rootProjectionInternal_half_ge_term (contexts : List RootProject
   change t ≤ rootProjectionListMax (rootProjectionTerms contexts bits gap) at hm
   omega
 
-/-- The finite construction in `NativeRootProjectionBudget` satisfies `rootProjectionCap_even` under the displayed hypotheses. -/
+/-- The projection precision cap is exactly twice its natural-number half. -/
 theorem rootProjectionCap_even (contexts : List RootProjectionContext) (bits : ℕ) (gap : ℚ) :
     rootProjectionCap contexts bits gap = 2*rootProjectionHalf contexts bits gap := by
   unfold rootProjectionCap rootProjectionHalf rootProjectionCap
   omega
 
-/-- The finite construction in `NativeRootProjectionBudget` satisfies `rootProjectionInternal_half_ge_bits` under the displayed hypotheses. -/
+/-- Half the projection precision cap is at least `bits + 8`. -/
 private theorem rootProjectionInternal_half_ge_bits (contexts : List RootProjectionContext) (bits : ℕ) (gap : ℚ) :
     bits+8 ≤ rootProjectionHalf contexts bits gap := by
   have hc := le_max_left (2*bits+16) (2*(rootProjectionListMax (rootProjectionTerms contexts bits gap)+2))
@@ -243,14 +253,15 @@ private theorem rootProjectionInternal_half_ge_bits (contexts : List RootProject
   unfold rootProjectionCap
   omega
 
-/-- The finite construction in `NativeRootProjectionBudget` satisfies `rootProjectionInternal_midpoint_square` under the displayed hypotheses. -/
+/-- The midpoint error tolerance is exactly the square of the projection radius. -/
 private theorem rootProjectionInternal_midpoint_square (contexts : List RootProjectionContext) (bits : ℕ) (gap : ℚ) :
     rootProjectionMidpointError contexts bits gap = rootProjectionRadius contexts bits gap ^ 2 := by
   unfold rootProjectionMidpointError rootProjectionRadius
   rw [rootProjectionCap_even, Nat.mul_comm 2 (rootProjectionHalf contexts bits gap), pow_mul]
   simp only [one_div, inv_pow]
 
-/-- The finite construction in `NativeRootProjectionBudget` satisfies `rootProjectionCap_radius_budgets` under the displayed hypotheses. -/
+/-- For a positive `gap`, the projection radius is positive and bounded above by one,
+ `2^(-bits) / 256`, and `gap / 64`. -/
 theorem rootProjectionCap_radius_budgets (contexts : List RootProjectionContext) (bits : ℕ) (gap : ℚ)
     (hg : 0 < gap) :
     0 < rootProjectionRadius contexts bits gap ∧ rootProjectionRadius contexts bits gap ≤ 1 ∧
@@ -286,7 +297,9 @@ theorem rootProjectionCap_radius_budgets (contexts : List RootProjectionContext)
   unfold rootProjectionRadius
   exact (div_le_one (by positivity)).mpr (one_le_pow₀ (by norm_num))
 
-/-- The finite construction in `NativeRootProjectionBudget` satisfies `rootProjectionInternal_cap_analytic_budget` under the displayed hypotheses. -/
+/-- For a listed context whose factor has positive length-based degree, the computed
+ midpoint tolerance times eight, the degree, and `2` to the M exponent is at most
+ the computed radius divided by `2` to the A exponent. -/
 private theorem rootProjectionInternal_cap_analytic_budget (contexts : List RootProjectionContext) (bits : ℕ) (gap : ℚ)
     (c : RootProjectionContext) (hc : c ∈ contexts) (hm : 0 < rootProjectionDegree c.factor) :
     8*(rootProjectionDegree c.factor : ℚ)*(2 : ℚ)^rootProjectionMExponent c * rootProjectionMidpointError contexts bits gap ≤
@@ -324,7 +337,13 @@ private theorem rootProjectionInternal_cap_analytic_budget (contexts : List Root
     _ = _ := by field_simp
 
 
-/-- The finite construction in `NativeRootProjectionBudget` satisfies `rootProjectionInternal_cap_actual_horner` under the displayed hypotheses. -/
+/-- Take a positive `gap` and a listed context whose factor is the coefficient list
+ of an integer array with nonzero last entry. Suppose the rational center `c`
+ lies within the computed midpoint tolerance of a root `z`. Write `A` and `M`
+ for the context's two exponents. If the derivative norm at `z` is at least
+ `1 / 2^A` and the first two derivative norms are at most `2^M` throughout that
+ closed ball, the compact Horner values pass the integer coordinate test at
+ the computed radius and the derivative numerator is nonzero. -/
 private theorem rootProjectionInternal_cap_actual_horner (contexts : List RootProjectionContext) (bits : ℕ) (gap : ℚ)
     (hg : 0 < gap) (ctx : RootProjectionContext) (hctx : ctx ∈ contexts)
     (n : ℕ) (a : Fin (n+2) → ℤ) (ha : a (Fin.last (n+1)) ≠ 0)
@@ -375,7 +394,10 @@ private theorem rootProjectionInternal_norm_product_bound (s : Multiset ℂ) (M 
     have hr := ih (fun y hy => hs y (Multiset.mem_cons_of_mem hy))
     nlinarith [mul_le_mul hx hr (norm_nonneg xs.prod) hM]
 
-/-- The finite construction in `NativeRootProjectionBudget` satisfies `rootProjectionInternal_integer_resultant_derivative_lower` under the displayed hypotheses. -/
+/-- For a positive-degree integer polynomial with nonzero resultant against its
+ derivative, bound the complex leading coefficient norm by `B` and every root's
+ derivative norm by `M`, with `B` and `M` nonnegative. At any complex root `z`,
+ the derivative norm times `B^(degree - 1) * M^(degree - 1)` is at least one. -/
 private theorem rootProjectionInternal_integer_resultant_derivative_lower (p : ℤ[X]) (hp : 0 < p.natDegree)
     (hres : p.resultant p.derivative p.natDegree (p.natDegree-1) ≠ 0)
     (B M : ℝ) (hB : 0 ≤ B) (hM : 0 ≤ M)
@@ -458,7 +480,9 @@ private theorem rootProjectionInternal_eval_bound (p : ℂ[X]) (m : ℕ) (C R : 
       · exact hC
     _ = _ := by simp; ring
 
-/-- The finite construction in `NativeRootProjectionBudget` satisfies `rootProjectionInternal_derivatives_from_coefficients` under the displayed hypotheses. -/
+/-- For a complex polynomial of degree `m > 0` with every coefficient norm at most
+ `B ≥ 0`, the first and second derivative norms at any `w` with `‖w‖ ≤ R` and
+ `R ≥ 1` are both at most `m^3 * B * R^m`. -/
 private theorem rootProjectionInternal_derivatives_from_coefficients (p : ℂ[X]) (m : ℕ) (hm : 0 < m)
     (hd : p.natDegree = m) (B R : ℝ) (hB : 0 ≤ B) (hR : 1 ≤ R)
     (hcoeff : ∀ i, ‖p.coeff i‖ ≤ B) (w : ℂ) (hw : ‖w‖ ≤ R) :
@@ -498,7 +522,8 @@ private theorem rootProjectionInternal_derivatives_from_coefficients (p : ℂ[X]
   have hmul := mul_le_mul_of_nonneg_right hmp (by positivity : (0 : ℝ) ≤ B*R^m)
   nlinarith only [hf,hmul]
 
-/-- The finite construction in `NativeRootProjectionBudget` satisfies `rootProjectionInternal_heightFoldMaxMember` under the displayed hypotheses. -/
+/-- Any member of the list of natural numbers is at most the result of folding `max`
+ over that list from `a`. -/
 private theorem rootProjectionInternal_heightFoldMaxMember (xs : List ℕ) (a x : ℕ) (hx : x ∈ xs) :
     x ≤ xs.foldl max a := by
   have init : ∀ (ys : List ℕ) (b : ℕ), b ≤ ys.foldl max b := by
@@ -513,7 +538,9 @@ private theorem rootProjectionInternal_heightFoldMaxMember (xs : List ℕ) (a x 
     · subst y; exact (le_max_right a x).trans (init ys (max a x))
     · exact ih (max a y) h
 
-/-- The finite construction in `NativeRootProjectionBudget` satisfies `rootProjectionInternal_coefficient_from_height` under the displayed hypotheses. -/
+/-- At any index `k`, the complex coefficient norm is at most two to the largest
+ bit length of the absolute integer entries of `cs`, with maximum zero for an
+ empty list. -/
 private theorem rootProjectionInternal_coefficient_from_height (cs : List ℤ) (k : ℕ) :
     ‖(rootIntegerListPolynomial cs).coeff k‖ ≤ (2 : ℝ)^rootProjectionHeight cs := by
   have hsize : (cs.getD k 0).natAbs.size ≤ rootProjectionHeight cs := by
@@ -531,7 +558,9 @@ private theorem rootProjectionInternal_coefficient_from_height (cs : List ℤ) (
   simpa only [Int.norm_eq_abs, Nat.cast_natAbs, Int.cast_abs, Nat.cast_pow, Nat.cast_ofNat] using
     (show ((cs.getD k 0).natAbs : ℝ) ≤ (2 : ℝ)^rootProjectionHeight cs by exact_mod_cast hn)
 
-/-- The finite construction in `NativeRootProjectionBudget` satisfies `rootProjectionInternal_source_M_envelope` under the displayed hypotheses. -/
+/-- For a factor of positive length-based degree `m` and maximum coefficient bit
+ length `h`, the bound `m^3 * 2^h * (3 * 2^h)^m` is at most two to the context's
+ M exponent. -/
 private theorem rootProjectionInternal_source_M_envelope (ctx : RootProjectionContext) (hm : 0 < rootProjectionDegree ctx.factor) :
     (rootProjectionDegree ctx.factor : ℝ)^3*(2 : ℝ)^rootProjectionHeight ctx.factor*
       (3*(2 : ℝ)^rootProjectionHeight ctx.factor)^rootProjectionDegree ctx.factor ≤ (2 : ℝ)^rootProjectionMExponent ctx := by
@@ -575,7 +604,8 @@ private theorem rootProjectionInternal_root_bound (p : ℂ[X]) (hp : p ≠ 0) (B
   have hrR : ‖z‖ < B+1 := by exact_mod_cast hr
   linarith
 
-/-- The finite construction in `NativeRootProjectionBudget` satisfies `rootProjectionInternal_actual_leading_lower` under the displayed hypotheses. -/
+/-- A nonzero final integer coefficient gives the complex polynomial a leading
+ coefficient of norm at least one. -/
 private theorem rootProjectionInternal_actual_leading_lower (n : ℕ) (a : Fin (n+2) → ℤ)
     (ha : a (Fin.last (n+1)) ≠ 0) : 1 ≤ ‖(rootIntegerPolynomial a).leadingCoeff‖ := by
   have hd := rootIntegerPolynomial_natDegree a ha
@@ -586,7 +616,9 @@ private theorem rootProjectionInternal_actual_leading_lower (n : ℕ) (a : Fin (
   have h := Int.one_le_abs ha
   exact_mod_cast h
 
-/-- The finite construction in `NativeRootProjectionBudget` satisfies `rootProjectionFactor_local_derivatives` under the displayed hypotheses. -/
+/-- If the context's factor is the coefficient array with nonzero last entry, then
+ throughout the closed `e`-ball about a root `z`, both derivative norms are at
+ most two to the context's M exponent, provided `e ≤ 1`. -/
 theorem rootProjectionFactor_local_derivatives (ctx : RootProjectionContext) (n : ℕ) (a : Fin (n+2) → ℤ)
     (hfactor : ctx.factor = List.ofFn a) (ha : a (Fin.last (n+1)) ≠ 0)
     (z : ℂ) (hz : (rootIntegerPolynomial a).eval z = 0) (e : ℝ) (he : e ≤ 1) :
@@ -619,7 +651,8 @@ theorem rootProjectionFactor_local_derivatives (ctx : RootProjectionContext) (n 
 The generated factor must still be shown to have nonzero resultant. -/
 open Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.SourceInput
 
-/-- The finite construction in `NativeRootProjectionBudget` satisfies `rootProjectionInternal_ceil_nat_le_of_power` under the displayed hypotheses. -/
+/-- For a positive natural number `m` bounded by `2^k`, the computed ceiling binary
+ logarithm of its rational cast is at most `k`. -/
 private theorem rootProjectionInternal_ceil_nat_le_of_power (m k : ℕ) (hm : 0 < m) (hk : m ≤ 2^k) :
     sourceCeilLog2 (m : ℚ) ≤ k := by
   let v := m.size-1
@@ -643,14 +676,17 @@ private theorem rootProjectionInternal_ceil_nat_le_of_power (m k : ℕ) (hm : 0 
       (by omega : v+1 ≤ k)
   · simpa only [Rat.num_natCast,Rat.den_natCast,Int.natAbs_natCast,Nat.size_one,Nat.add_zero] using hv
 
-/-- The finite construction in `NativeRootProjectionBudget` satisfies `rootProjectionInternal_ceil_nat_le_pred` under the displayed hypotheses. -/
+/-- The computed ceiling binary logarithm of a positive natural number `m` is at
+ most `m - 1`. -/
 private theorem rootProjectionInternal_ceil_nat_le_pred (m : ℕ) (hm : 0 < m) :
     sourceCeilLog2 (m : ℚ) ≤ m-1 := by
   apply rootProjectionInternal_ceil_nat_le_of_power m (m-1) hm
   have h := (m-1).lt_two_pow_self
   omega
 
-/-- The finite construction in `NativeRootProjectionBudget` satisfies `rootProjectionInternal_source_exponent_budget` under the displayed hypotheses. -/
+/-- For a factor of positive length-based degree `m`, write `h` for the maximum
+ coefficient bit length and `M` for the M exponent. The A exponent is at least
+ `(h + M) * (m - 1)`. -/
 private theorem rootProjectionInternal_source_exponent_budget (ctx : RootProjectionContext) (hm : 0 < rootProjectionDegree ctx.factor) :
     (rootProjectionHeight ctx.factor+rootProjectionMExponent ctx)*(rootProjectionDegree ctx.factor-1) ≤ rootProjectionAExponent ctx := by
   let m := rootProjectionDegree ctx.factor
@@ -683,14 +719,17 @@ open Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays
 /-- Construction for root Projection Internal factor Polynomial in the native root projection budget model. -/
 private def rootProjectionInternal_factorPolynomial (ctx : RootProjectionContext) : ℤ[X] := ⟨⟨ctx.factor.toFinsupp⟩⟩
 
-/-- The finite construction in `NativeRootProjectionBudget` satisfies `rootProjectionInternal_factor_map` under the displayed hypotheses. -/
+/-- If the context's coefficient list is obtained from `a` in index order, casting
+ its integer polynomial to ℂ gives exactly the polynomial represented by `a`. -/
 private theorem rootProjectionInternal_factor_map (ctx : RootProjectionContext) (n : ℕ) (a : Fin (n+2) → ℤ)
     (hfactor : ctx.factor = List.ofFn a) :
     (rootProjectionInternal_factorPolynomial ctx).map (Int.castRingHom ℂ) = rootIntegerPolynomial a := by
   change rootIntegerListPolynomial ctx.factor = rootIntegerPolynomial a
   rw [hfactor,rootIntegerListPolynomial_ofFn]
 
-/-- The finite construction in `NativeRootProjectionBudget` satisfies `rootProjectionInternal_factor_resultant_nonzero` under the displayed hypotheses. -/
+/-- If the context's factor is the coefficient list of `a`, the last coefficient
+ is nonzero, and the resulting complex polynomial is separable, the integer
+ resultant of the factor and its derivative at their degrees is nonzero. -/
 private theorem rootProjectionInternal_factor_resultant_nonzero (ctx : RootProjectionContext) (n : ℕ) (a : Fin (n+2) → ℤ)
     (hfactor : ctx.factor = List.ofFn a) (ha : a (Fin.last (n+1)) ≠ 0)
     (hsep : (rootIntegerPolynomial a).Separable) :
@@ -714,7 +753,9 @@ private theorem rootProjectionInternal_factor_resultant_nonzero (ctx : RootProje
     (rootProjectionInternal_factorPolynomial ctx).natDegree ((rootProjectionInternal_factorPolynomial ctx).natDegree-1) : ℂ) = 0
   rw [hzero,Int.cast_zero]
 
-/-- The finite construction in `NativeRootProjectionBudget` satisfies `rootProjectionFactor_derivative_lower` under the displayed hypotheses. -/
+/-- At a root of the separable complex polynomial represented by `a`, the derivative
+ norm is at least two to the negative of the context's A exponent, provided the
+ context's factor matches `a` and the final coefficient is nonzero. -/
 theorem rootProjectionFactor_derivative_lower (ctx : RootProjectionContext) (n : ℕ) (a : Fin (n+2) → ℤ)
     (hfactor : ctx.factor = List.ofFn a) (ha : a (Fin.last (n+1)) ≠ 0)
     (hsep : (rootIntegerPolynomial a).Separable)
@@ -768,7 +809,10 @@ theorem rootProjectionFactor_derivative_lower (ctx : RootProjectionContext) (n :
   apply (div_le_iff₀ (by positivity : (0 : ℝ) < (2 : ℝ)^rootProjectionAExponent ctx)).mpr
   simpa only [mul_comm] using hnorm
 
-/-- The finite construction in `NativeRootProjectionBudget` satisfies `rootProjectionInternal_cap_horner_without_analytic_answers` under the displayed hypotheses. -/
+/-- For a positive `gap` and a listed context matching a separable integer factor
+ with nonzero last coefficient, any rational center within the computed midpoint
+ tolerance of a root passes the integer Horner test at the computed radius and
+ yields a nonzero derivative numerator. -/
 private theorem rootProjectionInternal_cap_horner_without_analytic_answers (contexts : List RootProjectionContext) (bits : ℕ) (gap : ℚ)
     (hg : 0 < gap) (ctx : RootProjectionContext) (hctx : ctx ∈ contexts)
     (n : ℕ) (a : Fin (n+2) → ℤ) (ha : a (Fin.last (n+1)) ≠ 0)
@@ -838,7 +882,11 @@ private theorem rootProjectionInternal_midpoint_error (ax bx ay byy e : ℚ) (z 
   push_cast
   linarith
 
-/-- The finite construction in `NativeRootProjectionBudget` satisfies `rootProjectionCap_candidate_passes` under the displayed hypotheses. -/
+/-- For a positive `gap` and a listed context matching a separable integer factor
+ with nonzero last coefficient, consider real and imaginary intervals enclosing
+ a root, both of width at most the computed midpoint tolerance. Their rational
+ midpoint passes the integer Horner test at the computed radius and yields a
+ nonzero derivative numerator. -/
 theorem rootProjectionCap_candidate_passes (contexts : List RootProjectionContext) (bits : ℕ) (gap : ℚ)
     (hg : 0 < gap) (ctx : RootProjectionContext) (hctx : ctx ∈ contexts)
     (n : ℕ) (a : Fin (n+2) → ℤ) (ha : a (Fin.last (n+1)) ≠ 0)

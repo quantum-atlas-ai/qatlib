@@ -20,7 +20,8 @@ Proves `floorComputableFixedCode`, `floorPartrecCodeFamily`.
 set_option autoImplicit false
 namespace Qatlib.Concepts.EffectiveGauge.CodedFloor
 
-/-- Original `floorComputableFixedCode` guarantee for the `FloorCodeFamilyCompiler` construction; the complete source hypotheses are retained. -/
+/-- A computable function between primitively codable types admits a single partial-recursive code
+that returns the encoding of each function value on the corresponding encoded input. -/
 theorem floorComputableFixedCode {A B : Type*} [Primcodable A] [Primcodable B]
     (f : A → B) (hf : Computable f) : ∃ c : Nat.Partrec.Code, ∀ a,
       Nat.Partrec.Code.eval c (Encodable.encode a)=Part.some (Encodable.encode (f a)) := by

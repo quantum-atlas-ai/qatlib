@@ -26,7 +26,9 @@ open scoped ContDiff
 namespace Qatlib.Concepts.EffectiveGauge.HopfAtlas
 open Qatlib.Concepts.EffectiveGauge.RationalFlow
 
-/-- Original `spatialAxes_l1_bound` guarantee for the `SpatialLipschitz` construction; the complete source hypotheses are retained. -/
+/-- If a continuous real-linear functional has absolute value at most `D ≥ 0` on each of the three
+spatial coordinate unit vectors, its absolute value at `w` is at most `D` times the sum of the
+absolute coordinates of `w`. -/
 theorem spatialAxes_l1_bound (A : SpatialPoint →L[ℝ] ℝ) (D : ℝ) (_hD : 0 ≤ D)
     (hA : ∀ i, |A (EuclideanSpace.single i 1)| ≤ D) (w : SpatialPoint) :
     |A w| ≤ D*(|w 0|+|w 1|+|w 2|) := by

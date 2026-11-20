@@ -25,7 +25,11 @@ open scoped Quaternion ContDiff
 namespace Qatlib.Concepts.EffectiveGauge.SpectralH1
 open Qatlib.Concepts.EffectiveGauge.HopfAtlas Qatlib.Concepts.EffectiveGauge.RationalFlow Qatlib.Concepts.EffectiveGauge.TorusFourier
 
-/-- Original `gaugeArtifact_physical_H1_bound` guarantee for the `GaugeArtifactPhysicalH1` construction; the complete source hypotheses are retained. -/
+/-- For a smooth periodic field, suppose the artifact stores the supplied grid coefficients up to
+cutoff `N`, with error at most `delta ≥ 0` in every retained coefficient of each normalized
+coordinate. If the normalized field's pure third partials are bounded by `M3 ≥ 0`, the physical H¹
+energy of the difference between the original field and the artifact field is at most
+`4 * 343 * (2 * N + 1)^3 * (1 + 3 * N²) * delta² + 48 * M3² / (N + 1)^4`. -/
 theorem gaugeArtifact_physical_H1_bound (Q : QuaternionField) (hQ : ContDiff ℝ ∞ Q)
     (hp : IsPeriodicField Q) (artifact : RationalGaugeFourierArtifact)
     (N M : ℕ) (length d : ℚ) (data : RationalGaugeGridData)

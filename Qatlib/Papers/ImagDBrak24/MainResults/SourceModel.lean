@@ -127,6 +127,8 @@ def energyVariance (lam : ι → ℝ) (ψ : ι → ℂ) : ℝ :=
 omit [Fintype ι] [DecidableEq ι] in
 
 
+/-- On a finite index type with decidable equality, the weight of any coordinate `i` of `ψ`
+is nonnegative, since it is `Complex.normSq (ψ i)`. -/
 theorem weight_nonneg {ι : Type*} [_scopeInst0 : Fintype ι] [_scopeInst1 : DecidableEq ι] (ψ : ι → ℂ) (i : ι) : 0 ≤ weight ψ i :=
   Complex.normSq_nonneg _
 

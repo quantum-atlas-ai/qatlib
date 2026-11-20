@@ -31,7 +31,8 @@ open Qatlib.Concepts.BlockEncoding
 open Qatlib.Concepts.BlockEncoding.Encoding
 open scoped Matrix.Norms.L2Operator
 
-/-- The finite construction in `NativeStandardPhaseStability` satisfies `standardPhaseMatrix_norm_le` under the displayed hypotheses. -/
+/-- The standard phase matrix has operator norm at most the modulus of its complex phase
+parameter. -/
 theorem standardPhaseMatrix_norm_le (z : ℂ) : ‖standardPhaseMatrix z‖≤‖z‖ := by
   have he : standardPhaseMatrix z=diagonal (fun b : Bool => if b then star z else z) := by
     ext i j
@@ -61,7 +62,8 @@ theorem standardSignalMatrix_unitary (x s : ℝ) (hs : s*s=1-x*x) :
       Matrix.conjTranspose_apply,map_mul,Complex.conj_I] <;>
       ring_nf <;> simp only [Complex.I_sq,neg_mul,neg_neg,one_mul] <;> linear_combination hsc
 
-/-- The finite construction in `NativeStandardPhaseStability` satisfies `standardMatrixWord_norm_le_one` under the displayed hypotheses. -/
+/-- When the base and every phase have norm one and s squared equals one minus x squared, the
+standard matrix word has operator norm at most one. -/
 theorem standardMatrixWord_norm_le_one (base : ℂ) (zs : List ℂ) (x s : ℝ)
     (hs : s*s=1-x*x) (hb : ‖base‖=1) (hz : ∀ z∈zs,‖z‖=1) :
     ‖standardMatrixWord base x s zs‖≤1 := by

@@ -28,7 +28,7 @@ algorithms such as [BrandaoSvore2017].
 
 * `deviation_failure_mass`: two-sided cumulative deviation bound.
 * `MmwRunBornReceipt.discipline`: combined stop and timeout mass bound.
-* `frontier1`: combined statistical and regret guarantees.
+* `gibbs_updates_born_statistics_and_regret_bound`: combined statistical and regret guarantees.
 
 ## References
 
@@ -920,7 +920,7 @@ theorem expected_recorded_le_comparator {O D T : ℕ}
 
 /-- Combines conditional unbiasedness, zero expected cumulative deviation, exponential deviation
 and stop-timeout bounds, and the expected recorded regret bound under Gibbs updates. -/
-theorem frontier1 :
+theorem gibbs_updates_born_statistics_and_regret_bound :
     (∀ (O D T : ℕ) (R : MmwAdaptiveRun O D T) (t : ℕ) (ht : t < T)
         (h : Fin t → Fin O),
       (∑ o : Fin O, (R.round t ht h).law.prob o * (R.round t ht h).record o)

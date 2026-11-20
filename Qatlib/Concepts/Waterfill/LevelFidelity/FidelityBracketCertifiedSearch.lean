@@ -25,7 +25,7 @@ quantum rejection sampling [OzolsRoettelerRoland2013].
 * `certifiedFidelitySearch_eq`: identify the returned bracket and exact search ledger.
 * `certifiedFidelity_error`: bound the upper-endpoint fidelity error under margin and depth
   conditions.
-* `frontier1`: combine bracket, mass, error, and operation-count guarantees.
+* `fidelity_bracket_accuracy_and_exact_work`: combine bracket, mass, error, and operation-count guarantees.
 
 ## References
 
@@ -464,7 +464,7 @@ theorem certifiedFidelity_work {m : ℕ} (π σ : Fin m → ℚ) (p : ℚ) (k : 
 /-- Under the stated positivity, range, margin, and depth conditions, combine bracket
 invariants, endpoint mass bounds, the fidelity-error estimate, and exact search and
 certificate work counts. -/
-theorem frontier1
+theorem fidelity_bracket_accuracy_and_exact_work
     (m k : ℕ) (π σ : Fin m → ℚ) (p ε : ℚ) (i : Fin m)
     (hπ : ∀ j, 0 ≤ π j) (hσ : ∀ j, 0 < σ j)
     (hp : 0 < p) (hε : 0 < ε) (hpi : 0 < π i)

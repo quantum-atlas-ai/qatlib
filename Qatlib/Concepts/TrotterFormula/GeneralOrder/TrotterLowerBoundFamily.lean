@@ -27,7 +27,7 @@ scaling, and `not_fourth_order` excludes any local bound of the form `K * t ^ 4`
 ## Main statements
 
 * `cubic`: identifies the cubic coefficient deviation.
-* `frontier1`: gives two-sided cubic bounds on the actual error.
+* `cubic_trotter_error_two_sided_bound`: gives two-sided cubic bounds on the actual error.
 * `execution_unitary`: proves unitarity of the executed and ideal operators.
 * `family_bounds`: gives the scaled cubic bounds.
 * `not_fourth_order`: rules out a fourth-power local error bound.
@@ -265,7 +265,7 @@ theorem remainder_half_leading (t : ℝ) (ht : |t| ≤ radius) :
   linarith
 
 /-- Within `radius`, the actual error norm lies between `|t| ^ 3 / 6` and `3 * |t| ^ 3`. -/
-theorem frontier1 (t : ℝ) (ht : |t| ≤ radius) :
+theorem cubic_trotter_error_two_sided_bound (t : ℝ) (ht : |t| ≤ radius) :
     (1/6 : ℝ) * |t|^3 ≤ ‖error t‖ ∧ ‖error t‖ ≤ 3 * |t|^3 := by
   have hr := remainder_small t ht
   have hlow := leading_lower
@@ -336,7 +336,7 @@ theorem family_bounds (a t : ℝ) (ht : |a*t| ≤ radius) :
     (1/6 : ℝ) * |a|^3 * |t|^3 ≤ ‖scaledError a t‖ ∧
       ‖scaledError a t‖ ≤ 3 * |a|^3 * |t|^3 := by
   rw [scaled_execution]
-  simpa only [abs_mul, mul_pow, mul_assoc] using! frontier1 (a*t) ht
+  simpa only [abs_mul, mul_pow, mul_assoc] using! cubic_trotter_error_two_sided_bound (a*t) ht
 
 /-- For every real `K` and positive `δ`, some `0 < t ≤ δ` has error norm greater than `K * t ^
 4`. -/
@@ -350,7 +350,7 @@ theorem not_fourth_order (K δ : ℝ) (hδ : 0 < δ) :
   have hkpos : 0 < 12 * (|K|+1) := by positivity
   have hk := (le_div_iff₀ hkpos).mp htk
   have habs : |t| = t := abs_of_pos ht
-  have hl := (frontier1 t (by rwa [habs])).1
+  have hl := (cubic_trotter_error_two_sided_bound t (by rwa [habs])).1
   rw [habs] at hl
   have hKt : K*t < 1/6 := by
     have hle := mul_le_mul_of_nonneg_right (le_abs_self K) ht.le

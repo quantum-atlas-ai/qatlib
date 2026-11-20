@@ -21,7 +21,8 @@ open scoped ContDiff
 namespace Qatlib.Concepts.EffectiveGauge.HopfAtlas
 open Qatlib.Concepts.EffectiveGauge.RationalFlow
 
-/-- Original `spatialWordPartial_scale` guarantee for the `UnitSourceWord` construction; the complete source hypotheses are retained. -/
+/-- If `f` is smooth, precomposing it with uniform spatial scaling by `length` multiplies its word
+derivative at the scaled point by `length^w.length`. -/
 theorem spatialWordPartial_scale {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     (f : SpatialPoint → E) (hf : ContDiff ℝ ∞ f) (length : ℝ) (w : List (Fin 3)) :
     spatialWordPartial (fun x => f (length • x)) w=
@@ -38,7 +39,9 @@ theorem spatialWordPartial_scale {E : Type*} [NormedAddCommGroup E] [NormedSpace
     rw [hd.fderiv]
     simp [smul_smul,pow_succ]
 
-/-- Original `unitCoordinateSpin_word` guarantee for the `UnitSourceWord` construction; the complete source hypotheses are retained. -/
+/-- For a smooth source, the normalized coordinate spin has a word derivative equal to the source
+derivative at the corresponding physical point multiplied by one physical period factor per
+derivative. -/
 theorem unitCoordinateSpin_word (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (w : List (Fin 3)) :
     spatialWordPartial (unitCoordinateSpin v) w=

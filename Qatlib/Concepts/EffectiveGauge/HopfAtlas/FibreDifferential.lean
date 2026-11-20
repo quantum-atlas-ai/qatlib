@@ -46,7 +46,8 @@ theorem unit_iPlane_tangent (z dz : ℍ) (hz : ‖z‖=1)
   have hd := congrArg (fun t : ℝ => t*z.imI) ht
   ext <;> simp [connectionValue_eq,iAxis,hj,hk,hdj,hdk] <;> nlinarith
 
-/-- Original `unitField_inner_fderiv` guarantee for the `FibreDifferential` construction; the complete source hypotheses are retained. -/
+/-- The real inner product of a smooth unit quaternion field with its directional derivative
+vanishes at every point and direction. -/
 theorem unitField_inner_fderiv (q : QuaternionField) (hq : ContDiff ℝ ∞ q)
     (hu : ∀ y, ‖q y‖=1) (x h : SpatialPoint) : inner ℝ (q x) (fderiv ℝ q x h)=0 := by
   have hd := (hq.differentiable (by simp) x).hasFDerivAt
@@ -63,7 +64,8 @@ theorem unitField_inner_fderiv (q : QuaternionField) (hq : ContDiff ℝ ∞ q)
   have hcomm := real_inner_comm (q x) (fderiv ℝ q x h)
   linarith
 
-/-- Original `iPlaneField_fderiv` guarantee for the `FibreDifferential` construction; the complete source hypotheses are retained. -/
+/-- If a smooth quaternion field has zero `j` and `k` components everywhere, both components vanish
+on every directional derivative as well. -/
 theorem iPlaneField_fderiv (q : QuaternionField) (hq : ContDiff ℝ ∞ q)
     (hc : ∀ y, (q y).imJ=0 ∧ (q y).imK=0) (x h : SpatialPoint) :
     (fderiv ℝ q x h).imJ=0 ∧ (fderiv ℝ q x h).imK=0 := by

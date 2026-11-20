@@ -48,7 +48,8 @@ def saturatedBlocksQ (M : ℕ) (ε ρ : ℚ) : ℕ :=
 
 noncomputable section
 
-/-- Complete original `ceil_sqrt_q_square` guarantee for `MatchedPlanArithmetic`; all source hypotheses and output obligations are retained. -/
+/-- The square of the integer square-root ceiling of a nonnegative rational `q` is at least `q`
+after casting to the reals. -/
 theorem ceil_sqrt_q_square (q : ℚ) (hq : 0≤q) : (q : ℝ) ≤ (ceilSqrtQ q : ℝ)^2 := by
   dsimp only [ceilSqrtQ]
   split_ifs with h
@@ -58,23 +59,25 @@ theorem ceil_sqrt_q_square (q : ℚ) (hq : 0≤q) : (q : ℝ) ≤ (ceilSqrtQ q :
     exact (hc.trans hs.le)
   · exact_mod_cast le_of_not_gt h
 
-/-- Complete original `saturated_blocks_pos` guarantee for `MatchedPlanArithmetic`; all source hypotheses and output obligations are retained. -/
+/-- The saturated matching schedule always requests a positive number of blocks. -/
 theorem saturated_blocks_pos (M : ℕ) (ε ρ : ℚ) : 0<saturatedBlocksQ M ε ρ := by
   dsimp only [saturatedBlocksQ]
   omega
 
-/-- Complete original `saturated_blocks_odd` guarantee for `MatchedPlanArithmetic`; all source hypotheses and output obligations are retained. -/
+/-- The saturated block count is odd for every site count, tolerance, and failure budget. -/
 theorem saturated_blocks_odd (M : ℕ) (ε ρ : ℚ) : (saturatedBlocksQ M ε ρ)%2=1 := by
   dsimp only [saturatedBlocksQ]
   omega
 
-/-- Complete original `saturated_blocks_ge_ceil` guarantee for `MatchedPlanArithmetic`; all source hypotheses and output obligations are retained. -/
+/-- The saturated block count is at least the natural ceiling of
+`2048 * ceilLog2Q (7/ρ) / (M*ε²)`. -/
 theorem saturated_blocks_ge_ceil (M : ℕ) (ε ρ : ℚ) :
     ceilNatQ (2048*(ceilLog2Q (7/ρ) : ℚ)/((M : ℚ)*ε^2)) ≤ saturatedBlocksQ M ε ρ := by
   dsimp only [saturatedBlocksQ]
   omega
 
-/-- Complete original `saturated_blocks_log_budget` guarantee for `MatchedPlanArithmetic`; all source hypotheses and output obligations are retained. -/
+/-- For positive `M`, `ε`, and `ρ`, the saturated block count times `M*ε²` is at least
+`2048 * log (1/ρ)`. -/
 theorem saturated_blocks_log_budget (M : ℕ) (hM : 0<M) (ε ρ : ℚ)
     (hε : 0<ε) (hρ : 0<ρ) :
     2048*Real.log (1/(ρ : ℝ)) ≤
@@ -107,7 +110,7 @@ theorem saturated_blocks_log_budget (M : ℕ) (hM : 0<M) (ε ρ : ℚ)
     _ ≤ (saturatedBlocksQ M ε ρ : ℝ)*((M : ℝ)*(ε : ℝ)^2) := hb
     _ = _ := by ring
 
-/-- Complete original `confidence_log_count_pos` guarantee for `MatchedPlanArithmetic`; all source hypotheses and output obligations are retained. -/
+/-- When `0 < ρ < 1`, the integer ceiling log used for the matching budget at `7/ρ` is positive. -/
 theorem confidence_log_count_pos (ρ : ℚ) (hρ : 0<ρ) (hρ1 : ρ<1) :
     0<ceilLog2Q (7/ρ) := by
   have harg : (1 : ℚ)<7/ρ := (lt_div_iff₀ hρ).mpr (by linarith)
@@ -117,7 +120,8 @@ theorem confidence_log_count_pos (ρ : ℚ) (hρ : 0<ρ) (hρ1 : ρ<1) :
   rw [hn0, pow_zero] at hp
   linarith
 
-/-- Complete original `matched_count_square_budget` guarantee for `MatchedPlanArithmetic`; all source hypotheses and output obligations are retained. -/
+/-- At positive tolerance, the square of the requested cohort length times `ε²` covers the
+budget `256 * M * ceilLog2Q (7/ρ)`. -/
 theorem matched_count_square_budget (M : ℕ) (ε ρ : ℚ) (hε : 0<ε) :
     256*(M : ℝ)*(ceilLog2Q (7/ρ) : ℝ) ≤
       (matchedCountQ M ε ρ : ℝ)^2*(ε : ℝ)^2 := by
@@ -132,7 +136,8 @@ theorem matched_count_square_budget (M : ℕ) (ε ρ : ℚ) (hε : 0<ε) :
     positivity
   exact (div_le_iff₀ he).mp hsr
 
-/-- Complete original `matched_count_pos` guarantee for `MatchedPlanArithmetic`; all source hypotheses and output obligations are retained. -/
+/-- A positive site count, positive tolerance, and `0 < ρ < 1` give a positive requested matched
+cohort length. -/
 theorem matched_count_pos (M : ℕ) (hM : 0<M) (ε ρ : ℚ)
     (hε : 0<ε) (hρ : 0<ρ) (hρ1 : ρ<1) : 0<matchedCountQ M ε ρ := by
   have hL := confidence_log_count_pos ρ hρ hρ1
@@ -147,7 +152,9 @@ theorem matched_count_pos (M : ℕ) (hM : 0<M) (ε ρ : ℚ)
 
 variable {S : Type} [Fintype S] [Nonempty S] [DecidableEq S]
 
-/-- Complete original `signed_planned_saturated_median_confidence` guarantee for `MatchedPlanArithmetic`; all source hypotheses and output obligations are retained. -/
+/-- For bounded sign means and a matching permutation, the scheduled saturated median estimates
+the population mean of `a x * b (τ x)` with probability of error above `ε` at most `ρ` when
+`0 < ε ≤ 1`, `ρ > 0`, and `|S|*ε² ≥ 2048`. -/
 theorem signed_planned_saturated_median_confidence (τ : Equiv.Perm S)
     (a b : S → ℝ) (ha : ∀ x, |a x|≤1) (hb : ∀ x, |b x|≤1)
     (ε ρ : ℚ) (hε : 0<ε) (hε1 : ε≤1) (hρ : 0<ρ)
@@ -165,7 +172,10 @@ theorem signed_planned_saturated_median_confidence (τ : Equiv.Perm S)
   · exact_mod_cast hx
   · exact saturated_blocks_log_budget _ Fintype.card_pos ε ρ hε hρ
 
-/-- Complete original `signed_planned_single_match_confidence` guarantee for `MatchedPlanArithmetic`; all source hypotheses and output obligations are retained. -/
+/-- If the scheduled matched cohort length fits in the site count, one pair of independent
+signed cohorts at that length estimates the population mean of `a x * b (τ x)` with probability
+of error above `ε` at most `ρ`. The bound uses a matching permutation, bounded sign means,
+`0 < ε ≤ 1`, and `0 < ρ < 1`. -/
 theorem signed_planned_single_match_confidence (τ : Equiv.Perm S)
     (a b : S → ℝ) (ha : ∀ x, |a x|≤1) (hb : ∀ x, |b x|≤1)
     (ε ρ : ℚ) (hε : 0<ε) (hε1 : ε≤1) (hρ : 0<ρ) (hρ1 : ρ<1)

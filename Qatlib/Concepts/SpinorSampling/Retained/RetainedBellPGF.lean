@@ -40,7 +40,7 @@ open Qatlib Matched
 def hitCount {I : Type*} [Fintype I] (z : I → Bool) : ℕ :=
   ∑ i : I,if z i then 1 else 0
 
-/-- Complete original `bool_law_pgf` guarantee for `RetainedBellPGF`; all source hypotheses and output obligations are retained. -/
+/-- The expectation of the function taking value u on true and one on false is 1 + p(true)(u − 1). -/
 theorem bool_law_pgf (p : FinDist Bool) (u : ℝ) :
     p.expect (fun b => if b then u else 1)=1+p.prob true*(u-1) := by
   have h := p.sum_one
@@ -49,7 +49,7 @@ theorem bool_law_pgf (p : FinDist Bool) (u : ℝ) :
   change p.prob true*u+p.prob false*1=_
   nlinarith
 
-/-- Complete original `family_hit_pgf` guarantee for `RetainedBellPGF`; all source hypotheses and output obligations are retained. -/
+/-- For independent Boolean draws, the generating function of the number of true outcomes is the product of their one-draw generating factors. -/
 theorem family_hit_pgf {I : Type} [Fintype I] [DecidableEq I]
     (p : I → FinDist Bool) (u : ℝ) :
     (finiteFamilyLaw p).expect (fun z => u^(hitCount z))=
@@ -66,13 +66,13 @@ theorem family_hit_pgf {I : Type} [Fintype I] [DecidableEq I]
 variable {S : Type} [Fintype S] [DecidableEq S] [Nonempty S] {n m : ℕ}
 
 omit [Fintype S] [Nonempty S] in
-/-- Complete original `observed_hits_cast` guarantee for `RetainedBellPGF`; all source hypotheses and output obligations are retained. -/
+/-- Counting true entries in the observation's hit vector and casting to the rationals gives the recorded rational hit count. -/
 theorem observed_hits_cast (τ : S → S) (ω : CohortObservation n m τ) :
     (hitCount ω.2.2 : ℚ)=observedHitsQ τ ω := by
   simp only [hitCount,observedHitsQ,Nat.cast_sum,Nat.cast_ite,Nat.cast_one,Nat.cast_zero]
 
 omit [Fintype S] [Nonempty S] in
-/-- Complete original `native_matched_pgf` guarantee for `RetainedBellPGF`; all source hypotheses and output obligations are retained. -/
+/-- With the cohort addresses fixed and the site map injective, the native hit-count generating function is the product of one Bernoulli factor per matched site. -/
 theorem native_matched_pgf (a b c k : S → ℝ) (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1)
     (J : Fin n → S) (K : Fin m → S) (τ : S → S) (hτ : Function.Injective τ) (u : ℝ) :
     (nativeMatchedLaw a b c k hz J K τ hτ).expect (fun z => u^(hitCount z))=
@@ -99,7 +99,7 @@ def observationStratumPGF (a b c k : S → ℝ) (hz : ∀ x,a x^2+b x^2+c x^2+k 
   (cohortObservationLaw (n:=n) (m:=m) a b c k hz τ τ.injective).expect
     (fun ω => if (matchedSites ω.1 ω.2.1 τ).card=r then u^(hitCount ω.2.2) else 0)
 
-/-- Complete original `observation_stratum_address_pgf` guarantee for `RetainedBellPGF`; all source hypotheses and output obligations are retained. -/
+/-- The generating function restricted to exactly r matches is the sum over address pairs with that match count, weighted by their address mass and the product of their matched-site Bernoulli factors. -/
 theorem observation_stratum_address_pgf (a b c k : S → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (τ : Equiv.Perm S) (r : ℕ) (u : ℝ) :
     observationStratumPGF (n:=n) (m:=m) a b c k hz τ r u=

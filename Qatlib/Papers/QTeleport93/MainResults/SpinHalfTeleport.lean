@@ -43,7 +43,7 @@ namespace Qatlib.Papers.QTeleport93.MainResults.SpinHalfTeleport
 
 /-- The Bell resource is normalized with matching index amplitudes `1 / sqrt 2`, and the unitary
 preparation gate carries the initial isometric frame to the prepared frame. -/
-theorem c001_resource_preparation_eqs1_3 :
+theorem bell_resource_and_preparation_frame :
     Normalized teleportBellResource ∧
       (∀ b c, teleportBellResource (b, c) =
         if b = c then ((Real.sqrt 2)⁻¹ : ℝ) else 0) ∧
@@ -54,7 +54,7 @@ theorem c001_resource_preparation_eqs1_3 :
 
 /-- The Bell decoding gate is unitary, and each branch Kraus operator is one half of the
 relabeled Pauli product selected by the outcome bits. -/
-theorem c001_bell_basis_branches_eq5 :
+theorem bell_decode_unitary_and_branch_operators :
     teleportDecodeGate ∈ Matrix.unitaryGroup (Fin 8) ℂ ∧
       (∀ o : Bool × Bool, teleportBranchKraus o = (1 / 2 : ℂ) •
         relabelGate boolEquivFin2
@@ -63,14 +63,14 @@ theorem c001_bell_basis_branches_eq5 :
 
 /-- Every prescribed Pauli correction is unitary and turns its Bell branch Kraus operator into
 one half of the identity. -/
-theorem c001_pauli_corrections_eq6 :
+theorem bell_pauli_correction_mul_kraus_eq_half_identity :
     ∀ o : Bool × Bool, teleportCorrection o ∈ Matrix.unitaryGroup (Fin 2) ℂ ∧
       teleportCorrection o * teleportBranchKraus o = (1 / 2 : ℂ) • (1 : Operator 2) :=
   bell_pauli_corrections
 
 /-- Every corrected branch is `ρ / 4`, and their sum is `ρ`, realizing the
 teleportation protocol of [Bennett et al.][BennettEtAl1993Teleportation]. -/
-theorem c001_perfect_teleportation_eqs5_6 :
+theorem bell_corrected_branch_mass_and_identity_channel :
     ∀ ρ : Operator 2,
       (∀ o, teleportCorrectedInstrument.branch o ρ = (1 / 4 : ℂ) • ρ ∧
         instrumentProb teleportCorrectedInstrument ρ o = (Matrix.trace ρ).re / 4) ∧
@@ -79,7 +79,7 @@ theorem c001_perfect_teleportation_eqs5_6 :
 
 /-- For every qubit density operator, each corrected Bell outcome has probability one quarter
 and its conditional state equals the input [BennettEtAl1993Teleportation]. -/
-theorem c001_conditional_recovery_mixed :
+theorem bell_density_operator_conditional_recovery :
     ∀ (ρ : Operator 2) (_hρ : IsDensityOperator ρ) (o : Bool × Bool),
       instrumentProb teleportCorrectedInstrument ρ o = 1 / 4 ∧
       (∀ h : 0 < instrumentProb teleportCorrectedInstrument ρ o,
@@ -87,21 +87,21 @@ theorem c001_conditional_recovery_mixed :
   bell_conditional_recovery
 
 /-- Each of the four Bell outcomes has an injective classical encoding of length two bits. -/
-theorem c001_two_bit_classical_message :
+theorem bell_outcome_two_bit_message_encoding :
     (∀ o : Bool × Bool, (teleportMessage o).length = 2) ∧
       Function.Injective teleportMessage ∧ Fintype.card (Bool × Bool) = 4 :=
   bell_classical_message_cost
 
 /-- Each branch map of the actual qubit teleportation program equals the corresponding branch of
 the corrected instrument. -/
-theorem c001_actual_program_branch_bridge :
+theorem bell_program_branch_eq_corrected_instrument_branch :
     ∀ o : Bool × Bool, teleportActualBranchMap o = teleportCorrectedInstrument.branch o :=
   bell_actual_program_branch_bridge
 
 /-- Teleportation recovers the input even with an untouched finite reference;
 each classical outcome contributes one quarter of the joint operator
 [BennettEtAl1993Teleportation]. -/
-theorem c001_entangled_reference_recovery :
+theorem bell_reference_branch_scaling_and_recovery :
     ∀ (R : ℕ) (ρ : Matrix (Fin 2 × Fin R) (Fin 2 × Fin R) ℂ) (o : Bool × Bool),
       tensorLeft (teleportActualBranchMap o) ρ = (1 / 4 : ℂ) • ρ ∧
       (∑ o : Bool × Bool, tensorLeft (teleportActualBranchMap o) ρ) = ρ :=
@@ -109,17 +109,17 @@ theorem c001_entangled_reference_recovery :
 
 /-- Relates singlet convention branches to signed, relabeled Bell branches and shows that each
 corrected singlet branch gives one quarter of the input [BennettEtAl1993Teleportation]. -/
-theorem c001_singlet_convention_eqs1_5_6 : SingletConventionBridge :=
+theorem singlet_to_bell_convention_branch_bridge : SingletConventionBridge :=
   singletConventionBridge
 
 /-- Summing uncorrected teleportation branches gives the input trace times the maximally mixed
 operator for both qubits and positive dimensional qudits. -/
-theorem c001_guessing_depolarizing : TeleportGuessingDepolarizing :=
+theorem uncorrected_teleportation_depolarizing : TeleportGuessingDepolarizing :=
   teleportGuessingDepolarizing
 
 /-- For every qubit density operator, summing the uncorrected Bell branches gives the maximally
 mixed state `1 / 2` times the identity. -/
-theorem c001_guessing_state_maximally_mixed
+theorem uncorrected_bell_density_operator_maximally_mixed
     (ρ : Operator 2) (hρ : IsDensityOperator ρ) :
     (∑ o : Bool × Bool, conjBranch (teleportBranchKraus o) ρ) =
       (1 / 2 : ℂ) • (1 : Operator 2) := by

@@ -551,7 +551,7 @@ theorem schur_multiplier_error_transport {n m : ℕ} (P : QuadratureProgram n m)
 
 /-- Collect the residual inverse estimate, normal and general quadrature error bounds, program
 cost formula, and soundness and cost statements for finite node checks. -/
-theorem frontier1 :
+theorem resolvent_quadrature_error_and_certificate_cost :
     (∀ {R : Type} [NormedRing R] [HasSummableGeomSeries R] (M B : R) (q : ℝ),
       IsUnit B → q < 1 → ‖1 - M * B‖ ≤ q →
         IsUnit M ∧ ‖M⁻¹ʳ - B‖ ≤ ‖B‖ * q / (1 - q)) ∧

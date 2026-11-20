@@ -43,7 +43,7 @@ def higherPrefixBudget (replies : Fin 9 → CanonicalCodec.Bits) (time : Fin 9 �
   | k+1 => higherPrefixBudget replies time k+
       if h : k+1<9 then PaidBoundBank.stageBudget ⟨k+1,h⟩ (replies ⟨k+1,h⟩) (time ⟨k+1,h⟩) else 0
 
-/-- Original `collected_step` guarantee for the `PaidConditionalBoundBankExecution` construction; the complete source hypotheses are retained. -/
+/-- Filling the next unused saved slot with its reply extends the collected prefix by one. -/
 private theorem collected_step (replies : Fin 9 → CanonicalCodec.Bits) (n : ℕ) (hn : n<9) :
     Function.update (PaidBoundBank.collected replies n) ⟨n,hn⟩ (replies ⟨n,hn⟩)=PaidBoundBank.collected replies (n+1) := by
   funext j
@@ -54,7 +54,7 @@ private theorem collected_step (replies : Fin 9 → CanonicalCodec.Bits) (n : �
     dsimp only [PaidBoundBank.collected]
     split_ifs <;> first | rfl | omega
 
-/-- Original `higher_prefix` guarantee for the `PaidConditionalBoundBankExecution` construction; the complete source hypotheses are retained. -/
+/-- Given bounded source runs for all queries, a state with just the first reply saved and a false flag can collect the next `k ≤ 8` replies within the higher-order prefix budget. -/
 theorem higher_prefix {states : ℕ}
     (machine : TM0.Machine CanonicalCodec.TM.Symbol (Fin (states+1)))
     (replies : Fin 9 → CanonicalCodec.Bits) (time space : Fin 9 → ℕ)
@@ -94,7 +94,7 @@ def bankBudget (replies : Fin 9 → CanonicalCodec.Bits) (time : Fin 9 → ℕ) 
     if flag then emitPrefixBudget replies 0 true 1+1 else
       higherPrefixBudget replies time 8+(emitPrefixBudget replies 8 false 9+1)
 
-/-- Original `first_collected` guarantee for the `PaidConditionalBoundBankExecution` construction; the complete source hypotheses are retained. -/
+/-- The collected table for a one-reply prefix contains just the first reply in its designated slot. -/
 private theorem first_collected (replies : Fin 9 → CanonicalCodec.Bits) :
     Function.update (fun _ => []) 0 (replies 0)=PaidBoundBank.collected replies 1 := by
   funext j
@@ -103,7 +103,7 @@ private theorem first_collected (replies : Fin 9 → CanonicalCodec.Bits) :
   · have hj : j.val≠0 := fun he => h (Fin.ext he)
     simp only [Function.update_of_ne h,PaidBoundBank.collected,ite_eq_right (show ¬j.val<1 by omega)]
 
-/-- Original `first_active` guarantee for the `PaidConditionalBoundBankExecution` construction; the complete source hypotheses are retained. -/
+/-- When the stopping slot is the first, the active reply table is obtained by storing just the first reply in an empty table. -/
 private theorem first_active (replies : Fin 9 → CanonicalCodec.Bits) :
     Function.update (fun _ => []) 0 (replies 0)=activeReplies replies 0 := by
   funext j
@@ -112,7 +112,7 @@ private theorem first_active (replies : Fin 9 → CanonicalCodec.Bits) :
   · have hj : j.val≠0 := fun he => h (Fin.ext he)
     simp only [Function.update_of_ne h,activeReplies,Fin.val_zero,ite_eq_right (show ¬j.val≤0 by omega)]
 
-/-- Original `all_active` guarantee for the `PaidConditionalBoundBankExecution` construction; the complete source hypotheses are retained. -/
+/-- With the stopping slot at the last reply, every reply is active and the active table equals the supplied table. -/
 private theorem all_active (replies : Fin 9 → CanonicalCodec.Bits) : activeReplies replies 8=replies := by
   funext j
   exact ite_eq_left (by have hj := j.isLt; omega)

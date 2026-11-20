@@ -37,7 +37,8 @@ open scoped BigOperators
 /-- Construction for even Index in the native source complement square model. -/
 def evenIndex {d : ℕ} (i : Fin (d+1)) : Fin (d+d+1) := ⟨2*i.val,by omega⟩
 
-/-- The finite construction in `NativeSourceComplementSquare` satisfies `even_sum` under the displayed hypotheses. -/
+/-- If a rational function on indices zero through 2d vanishes at all odd indices, its sum reduces
+to the d + 1 even indices. -/
 private theorem even_sum {d : ℕ} (f : Fin (d+d+1) → ℚ)
     (hf : ∀ i,Odd i.val → f i=0) :
     (∑ i,f i)=∑ j : Fin (d+1),f (evenIndex j) := by
@@ -82,7 +83,8 @@ def sourceComplementCell {d : ℕ} (a : Fin (d+d+1) → ℚ) (k : Fin (d+d+1)) :
 def convolution {d e : ℕ} (a : Fin (d+1) → ℚ) (b : Fin (e+1) → ℚ) :
     Fin (d+e+1) → ℚ := fun k => ∑ i,∑ j,if i.val+j.val=k.val then a i*b j else 0
 
-/-- The finite construction in `NativeSourceComplementSquare` satisfies `convolution_polynomial` under the displayed hypotheses. -/
+/-- The rational convolution array represents the product of the polynomials of the two input
+arrays. -/
 private theorem convolution_polynomial {d e : ℕ}
     (a : Fin (d+1) → ℚ) (b : Fin (e+1) → ℚ) :
     Polynomial.ofFn (d+e+1) (convolution a b)=
@@ -106,7 +108,8 @@ private theorem convolution_polynomial {d e : ℕ}
     have hij : j.val+i.val≠k := by have hi := i.isLt; have hj := j.isLt; omega
     simp [hij]
 
-/-- The finite construction in `NativeSourceComplementSquare` satisfies `sourceComplementCell_reindex` under the displayed hypotheses. -/
+/-- For an input array with zero odd entries, complement coefficient k is the indicator of k = d
+minus the convolution of the extracted even coefficients at k. -/
 private theorem sourceComplementCell_reindex {d : ℕ} (a : Fin (d+d+1) → ℚ)
     (ha : ∀ i,Odd i.val → a i=0) (k : Fin (d+d+1)) :
     sourceComplementCell a k=(if k.val=d then 1 else 0)-

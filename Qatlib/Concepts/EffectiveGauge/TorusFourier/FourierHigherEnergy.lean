@@ -27,7 +27,7 @@ open scoped ContDiff
 namespace Qatlib.Concepts.EffectiveGauge.TorusFourier
 open Qatlib.Concepts.EffectiveGauge.HopfAtlas Qatlib.Concepts.EffectiveGauge.RationalFlow
 
-/-- Original `unitFourierCoefficient_pure_parseval` guarantee for the `FourierHigherEnergy` construction; the complete source hypotheses are retained. -/
+/-- For a smooth unit-periodic field, the squared Fourier coefficients weighted by `physicalPeriod^(2*n) * (k i)^(2*n)` sum to the integral over the unit box of the squared norm of the pure order-`n` derivative in direction `i`. -/
 theorem unitFourierCoefficient_pure_parseval (f : SpatialPoint → ℂ) (hf : ContDiff ℝ ∞ f)
     (hp : IsUnitPeriodicField f) (i : Fin 3) (n : ℕ) :
     HasSum (fun k : SpatialFrequency => physicalPeriod^(2*n)*(k i : ℝ)^(2*n)*

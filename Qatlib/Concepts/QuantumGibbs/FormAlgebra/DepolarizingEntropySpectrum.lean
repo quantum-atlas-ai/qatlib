@@ -361,13 +361,13 @@ theorem depolarizing_entropyProduction (γ : ℝ) (hγ : 0 < γ) :
 
 /-- For positive definite qubit states and nonnegative time, proves exponential relative-entropy
 decay at twice the depolarizing rate and the corresponding trace-distance bound. -/
-theorem frontier1 (γ : ℝ) (hγ : 0 < γ) {σ : Operator 2}
+theorem qubit_depolarizing_entropy_decay_and_trace_distance (γ : ℝ) (hγ : 0 < γ) {σ : Operator 2}
     (hσ : IsDensityOperator σ) (hσfull : σ.PosDef) (t : ℝ) (ht : 0 ≤ t) :
     relativeEntropy (lindbladSemigroup (depolarizingGKSL γ) t σ) maximallyMixed
       ≤ Real.exp (-2 * γ * t) * relativeEntropy σ maximallyMixed
       ∧ traceDistance (lindbladSemigroup (depolarizingGKSL γ) t σ) maximallyMixed
         ≤ Real.exp (-γ * t) * Real.sqrt (2 * relativeEntropy σ maximallyMixed) := by
-  refine Qatlib.Concepts.QuantumGibbs.FormAlgebra.LindbladSemigroup.frontier1
+  refine Qatlib.Concepts.QuantumGibbs.FormAlgebra.LindbladSemigroup.relative_entropy_decay_and_trace_distance_mixing
     (depolarizingGKSL γ) hσ hσfull (depolarizing_entropyProduction γ hγ)
     (by norm_num : (0 : ℝ) ≤ 2) ?_ ?_ t ht
   · exact mul_nonneg (by norm_num) (relativeEntropy_maximallyMixed_nonneg hσ)

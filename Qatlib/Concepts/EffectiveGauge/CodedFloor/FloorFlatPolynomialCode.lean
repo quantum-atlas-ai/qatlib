@@ -33,7 +33,8 @@ def floorFlatPolynomialCodeLoop (p : List FloorRationalCode × FloorRationalCode
 def floorFlatPolynomialCode (n : ℕ) (x : FloorRationalCode) : FloorRationalCode :=
   floorFlatPolynomialCodeLoop (floorCutoffCodeRow n,x) (2*n+1)
 
-/-- Original `floorFlatPolynomialCodeLoop_value` guarantee for the `FloorFlatPolynomialCode` construction; the complete source hypotheses are retained. -/
+/-- Decoding the running polynomial sum through `m` terms gives the sum of the first `m` decoded
+coefficients times the corresponding powers of the decoded argument. -/
 theorem floorFlatPolynomialCodeLoop_value (p : List FloorRationalCode × FloorRationalCode) (m : ℕ) :
     floorRationalCodeValue (floorFlatPolynomialCodeLoop p m)=
       ∑ k ∈ Finset.range m, floorRationalCodeValue (floorCutoffCodeAt p.1 k)*(floorRationalCodeValue p.2)^k := by
@@ -43,13 +44,15 @@ theorem floorFlatPolynomialCodeLoop_value (p : List FloorRationalCode × FloorRa
     rw [floorFlatPolynomialCodeLoop,floorRationalCodeAdd_value,floorRationalCodeMul_value,
       floorRationalCodePow_value,ih,Finset.sum_range_succ]
 
-/-- Original `floorFlatPolynomialCode_value` guarantee for the `FloorFlatPolynomialCode` construction; the complete source hypotheses are retained. -/
+/-- The coded polynomial evaluates to the rational cutoff polynomial value at the decoded argument
+and the given derivative order. -/
 theorem floorFlatPolynomialCode_value (n : ℕ) (x : FloorRationalCode) :
     floorRationalCodeValue (floorFlatPolynomialCode n x)=floorFlatPolynomialValue n (floorRationalCodeValue x) := by
   simp only [floorFlatPolynomialCode,floorFlatPolynomialCodeLoop_value,
     floorCutoffCodeAt_value,floorFlatPolynomialValue]
 
-/-- Original `primrec_floorFlatPolynomialCodeLoop` guarantee for the `FloorFlatPolynomialCode` construction; the complete source hypotheses are retained. -/
+/-- The partial polynomial sum is primitive recursive in the packed coefficient list and argument
+and the number of terms. -/
 theorem primrec_floorFlatPolynomialCodeLoop : Primrec₂ floorFlatPolynomialCodeLoop := by
   have hr : Primrec (fun p : (List FloorRationalCode × FloorRationalCode) × (ℕ × FloorRationalCode) => p.1.1) :=
     Primrec.fst.comp Primrec.fst
@@ -72,7 +75,8 @@ theorem primrec_floorFlatPolynomialCodeLoop : Primrec₂ floorFlatPolynomialCode
       congrArg (fun a => floorRationalCodeAdd a
         (floorRationalCodeMul (floorCutoffCodeAt p.1 m) (floorRationalCodePow p.2 m))) ih
 
-/-- Original `primrec_floorFlatPolynomialCode` guarantee for the `FloorFlatPolynomialCode` construction; the complete source hypotheses are retained. -/
+/-- Evaluating the coded cutoff polynomial is primitive recursive in the derivative order and the
+coded argument. -/
 theorem primrec_floorFlatPolynomialCode : Primrec₂ floorFlatPolynomialCode :=
   primrec_floorFlatPolynomialCodeLoop.comp
     ((primrec_floorCutoffCodeRow.comp Primrec.fst).pair Primrec.snd)

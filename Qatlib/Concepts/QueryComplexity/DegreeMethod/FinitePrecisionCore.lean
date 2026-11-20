@@ -27,7 +27,7 @@ to this development.
 
 ## Main statements
 
-* `frontier1` supplies a fixed machine and positive constant `C`, proves `Runs` with bounds `C *
+* `exists_rational_quotient_machine_with_size_bounds` supplies a fixed machine and positive constant `C`, proves `Runs` with bounds `C *
   size^4` and `C * size^2`, and identifies the output's rational value with the exact quotient.
 
 ## References
@@ -53,7 +53,7 @@ open Qatlib.Concepts.QueryComplexity.DegreeMethod.FinitePrecisionDivisionDefs (i
 for the quotient encoding of every pair of word rationals whose divisor numerator has
 positive binary value. The bounds are `C * size^4` for time and `C * size^2` for space, and
 the output represents the exact rational quotient. -/
-theorem frontier1 :
+theorem exists_rational_quotient_machine_with_size_bounds :
     ∃ (q : ℕ) (M : TM0.Machine (Option Bool) (Fin (q+1))) (C : ℕ), 0<C ∧
       ∀ (a b : WordRat) (hb : 0<Qatlib.Concepts.BitWordCompiler.CanonicalCodec.binaryValue b.numerator),
         let c := quotient a b hb

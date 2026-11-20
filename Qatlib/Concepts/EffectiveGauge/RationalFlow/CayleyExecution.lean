@@ -29,7 +29,7 @@ open Qatlib.Concepts.EffectiveGauge.HopfAtlas
 /-- Definition of cayley Denominator in the Rational Flow construction. -/
 def cayleyDenominator (k : ℍ) (t : ℝ) : ℝ := 4+Quaternion.normSq k*t^2
 
-/-- Original `cayleyDenominator_pos` guarantee for the `CayleyExecution` construction; the complete source hypotheses are retained. -/
+/-- The real Cayley denominator `4 + ‖k‖² t²` is strictly positive for every quaternion and time. -/
 theorem cayleyDenominator_pos (k : ℍ) (t : ℝ) : 0<cayleyDenominator k t := by
   have h := mul_nonneg (Quaternion.normSq_nonneg (a := k)) (sq_nonneg t)
   dsimp [cayleyDenominator]
@@ -40,13 +40,13 @@ def cayleyFactor (k : ℍ) (t : ℝ) : ℍ :=
   ((4-Quaternion.normSq k*t^2)/cayleyDenominator k t) • (1 : ℍ)+
     ((4*t)/cayleyDenominator k t) • k
 
-/-- Original `normSq_scalar_pure` guarantee for the `CayleyExecution` construction; the complete source hypotheses are retained. -/
+/-- For pure `k`, the squared norm of `a + b k` is the sum of `a²` and `b² ‖k‖²`. -/
 private theorem normSq_scalar_pure (a b : ℝ) (k : ℍ) (hk : k.re=0) :
     Quaternion.normSq (a • (1 : ℍ)+b • k)=a^2+b^2*Quaternion.normSq k := by
   simp [Quaternion.normSq_def',hk]
   ring
 
-/-- Original `cayleyFactor_unit` guarantee for the `CayleyExecution` construction; the complete source hypotheses are retained. -/
+/-- The Cayley factor of a pure quaternion has unit norm at every real time. -/
 theorem cayleyFactor_unit (k : ℍ) (hk : k.re=0) (t : ℝ) : ‖cayleyFactor k t‖=1 := by
   apply (normSq_eq_one_iff _).mp
   rw [cayleyFactor,normSq_scalar_pure _ _ k hk]
@@ -61,7 +61,7 @@ theorem cayleyFactor_unit (k : ℍ) (hk : k.re=0) (t : ℝ) : ‖cayleyFactor k 
       ring
     _ = 1 := div_self (pow_ne_zero 2 hn)
 
-/-- Original `cayleyFactor_zero` guarantee for the `CayleyExecution` construction; the complete source hypotheses are retained. -/
+/-- At time zero the Cayley factor is the identity for every quaternion parameter. -/
 @[simp] theorem cayleyFactor_zero (k : ℍ) : cayleyFactor k 0=1 := by
   simp [cayleyFactor,cayleyDenominator]
 
@@ -77,17 +77,19 @@ def integerQuaternionCast : Quaternion ℤ →+* ℍ where
 def decodeCayleyState (s : CayleyIntegerState) : ℍ :=
   ((s.denominator : ℝ)⁻¹) • integerQuaternionCast s.numerator
 
-/-- Original `integerQuaternionCast_normSq` guarantee for the `CayleyExecution` construction; the complete source hypotheses are retained. -/
+/-- Casting integer quaternion coordinates to the reals commutes with computing the squared norm. -/
 theorem integerQuaternionCast_normSq (q : Quaternion ℤ) :
     Quaternion.normSq (integerQuaternionCast q)=((Quaternion.normSq q : ℤ) : ℝ) := by
   simp [integerQuaternionCast,Quaternion.normSq_def']
 
-/-- Original `decodeCayleyState_mul` guarantee for the `CayleyExecution` construction; the complete source hypotheses are retained. -/
+/-- Decoding a single integer Cayley step gives the product of the decoded state and factor in that
+order. -/
 theorem decodeCayleyState_mul (s f : CayleyIntegerState) :
     decodeCayleyState (cayleyIntegerStep s f)=decodeCayleyState s*decodeCayleyState f := by
   simp [decodeCayleyState,cayleyIntegerStep,map_mul,smul_smul]
 
-/-- Original `cayleyIntegerRun_unit` guarantee for the `CayleyExecution` construction; the complete source hypotheses are retained. -/
+/-- With positive grid size, any finite integer Cayley run decodes to a unit quaternion for
+arbitrary integer samples. -/
 theorem cayleyIntegerRun_unit (D p : ℕ) (hD : 0<D) (a : ℕ → Fin 3 → ℤ) (n : ℕ) :
     ‖decodeCayleyState (cayleyIntegerRun D p a n)‖=1 := by
   have h := cayleyIntegerRun_certificate D p hD a n
@@ -101,11 +103,13 @@ theorem cayleyIntegerRun_unit (D p : ℕ) (hD : 0<D) (a : ℕ → Fin 3 → ℤ)
 def dyadicCoefficient (p : ℕ) (a : Fin 3 → ℤ) : ℍ :=
   ((2^p : ℝ)⁻¹) • (⟨0,(a 0 : ℝ),(a 1 : ℝ),(a 2 : ℝ)⟩ : ℍ)
 
-/-- Original `dyadicCoefficient_re` guarantee for the `CayleyExecution` construction; the complete source hypotheses are retained. -/
+/-- The coefficient uses the three integers scaled by `2⁻ᵖ` as its imaginary coordinates and has
+zero real part. -/
 @[simp] theorem dyadicCoefficient_re (p : ℕ) (a : Fin 3 → ℤ) : (dyadicCoefficient p a).re=0 := by
   simp [dyadicCoefficient]
 
-/-- Original `decodeCayleyIntegerFactor` guarantee for the `CayleyExecution` construction; the complete source hypotheses are retained. -/
+/-- With positive grid size `D`, the decoded integer factor equals the real Cayley factor at time
+`1 / D` for the decoded dyadic coefficient. -/
 theorem decodeCayleyIntegerFactor (D p : ℕ) (hD : 0<D) (a : Fin 3 → ℤ) :
     decodeCayleyState (cayleyIntegerFactor D p a)=cayleyFactor (dyadicCoefficient p a) (1/(D : ℝ)) := by
   have hd : (0 : ℝ)<D := by exact_mod_cast hD
@@ -120,7 +124,8 @@ def realCayleyRun (D p : ℕ) (a : ℕ → Fin 3 → ℤ) : ℕ → ℍ
   | 0 => 1
   | n+1 => realCayleyRun D p a n*cayleyFactor (dyadicCoefficient p (a n)) (1/(D : ℝ))
 
-/-- Original `decodeCayleyIntegerRun` guarantee for the `CayleyExecution` construction; the complete source hypotheses are retained. -/
+/-- With positive grid size, decoding the integer state after `n` samples gives exactly the
+corresponding real Cayley product. -/
 theorem decodeCayleyIntegerRun (D p : ℕ) (hD : 0<D) (a : ℕ → Fin 3 → ℤ) (n : ℕ) :
     decodeCayleyState (cayleyIntegerRun D p a n)=realCayleyRun D p a n := by
   induction n with
@@ -129,7 +134,8 @@ theorem decodeCayleyIntegerRun (D p : ℕ) (hD : 0<D) (a : ℕ → Fin 3 → ℤ
     rw [cayleyIntegerRun,decodeCayleyState_mul,decodeCayleyIntegerFactor D p hD,ih]
     rfl
 
-/-- Original `cayley_initial_error` guarantee for the `CayleyExecution` construction; the complete source hypotheses are retained. -/
+/-- Right multiplication by a unit quaternion preserves the distance between the initial and exact
+states. -/
 theorem cayley_initial_error (word initial exact : ℍ) (hw : ‖word‖=1) :
     ‖initial*word-exact*word‖=‖initial-exact‖ := by
   rw [← sub_mul,norm_mul,hw,mul_one]

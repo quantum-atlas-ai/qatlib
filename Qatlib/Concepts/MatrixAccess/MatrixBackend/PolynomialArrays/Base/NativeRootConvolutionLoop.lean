@@ -20,7 +20,7 @@ noncomputable section
 namespace Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays
 open scoped BigOperators
 
-/-- The finite construction in `NativeRootConvolutionLoop` satisfies `rootArrayFold_coordinate` under the displayed hypotheses. -/
+/-- If every step adds `v i` to coordinate `k` regardless of the current state, folding over `l` adds the sum of those increments to `s k`. -/
 private theorem rootArrayFold_coordinate {α : Type} {N : ℕ}
     (l : List α) (step : (Fin N → ℤ) → α → (Fin N → ℤ))
     (v : α → ℤ) (k : Fin N)
@@ -40,7 +40,7 @@ def rootIntegerConvolutionInner {d e : ℕ}
   (List.finRange (e+1)).foldl
     (fun state j k => if i.val+j.val=k.val then state k+a i*b j else state k) s
 
-/-- The finite construction in `NativeRootConvolutionLoop` satisfies `rootIntegerConvolutionInner_coordinate` under the displayed hypotheses. -/
+/-- At a fixed left index `i`, the inner convolution loop adds to `s k` exactly the sum of products `a i * b j` with `i + j = k`. -/
 theorem rootIntegerConvolutionInner_coordinate {d e : ℕ}
     (a : Fin (d+1) → ℤ) (b : Fin (e+1) → ℤ) (i : Fin (d+1))
     (s : Fin (d+e+1) → ℤ) (k : Fin (d+e+1)) :
@@ -59,7 +59,7 @@ def rootIntegerConvolutionLoop {d e : ℕ}
   (List.finRange (d+1)).foldl (fun state i => rootIntegerConvolutionInner a b i state)
     (fun _ => 0)
 
-/-- The finite construction in `NativeRootConvolutionLoop` satisfies `rootIntegerConvolutionLoop_eq` under the displayed hypotheses. -/
+/-- Starting from zero, the nested convolution loop returns the coefficient array given by the finite convolution sums. -/
 theorem rootIntegerConvolutionLoop_eq {d e : ℕ}
     (a : Fin (d+1) → ℤ) (b : Fin (e+1) → ℤ) :
     rootIntegerConvolutionLoop a b=rootIntegerConvolution a b := by

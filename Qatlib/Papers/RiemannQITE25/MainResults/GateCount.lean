@@ -32,7 +32,7 @@ logical-AND uncomputation (Gidney 2018) are all cited primitives.
 Those references carry the substance of the counting arithmetic, so
 here the claim is recorded as a cost model (`dbqiteEntanglingWith`,
 `dbqiteEntanglingWithout`, `dbqitePhaseGates`) plus a faithful `Prop`
-(`c001_statement`) over an abstract compilation; the circuit
+(`dbqite_entangling_and_phase_gate_counts_statement`) over an abstract compilation; the circuit
 correctness the count refers to is proved in `DBQITERecursion`
 (`dbqite_step_implements`).
 
@@ -71,7 +71,7 @@ measurement, and `6n − 6` entangling gates without. The compilation
 measurement, 1 = without); the counts are the paper's
 cited-primitive accounting (Yamamoto–Ohira two-local evolution,
 Balauca–Arusoaie multi-control, Gidney logical AND). -/
-def c001_statement (compile : ℕ → ℕ → ℕ) (n : ℕ) : Prop :=
+def dbqite_entangling_and_phase_gate_counts_statement (compile : ℕ → ℕ → ℕ) (n : ℕ) : Prop :=
   2 ≤ n ∧ compile 0 n = 1 ∧
     (7 : ℚ) / 2 * (n : ℚ) - 4 = dbqiteEntanglingWith n
       ∧ 6 * (n : ℚ) - 6 = dbqiteEntanglingWithout n

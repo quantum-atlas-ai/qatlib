@@ -68,7 +68,7 @@ def bodyQueryWireEquiv : (Reg 6 × Bool) ≃
   ((elementaryWireSplit (2 : Fin 6)).prodCongr (Equiv.refl Bool)).trans
     (Equiv.prodAssoc _ _ _)
 
-/-- The finite construction in `NativeShiftedBody` satisfies `nativeDataQuery_relabel` under the displayed hypotheses. -/
+/-- On a Boolean data register, relabeling to expose auxiliary wire 2 identifies the native query with controlled `U` on each spectator fibre. -/
 theorem nativeDataQuery_relabel (U : Matrix Bool Bool ℂ) :
     relabelGate bodyQueryWireEquiv (nativeDataQuery U) =
       parallelOracle (J := ElementaryWireLabel (2 : Fin 6)) (controlOracle U) := by
@@ -81,7 +81,7 @@ theorem nativeDataQuery_relabel (U : Matrix Bool Bool ℂ) :
     simp only [Equiv.apply_eq_iff_eq, Prod.mk.injEq]
   by_cases hx : x = y <;> by_cases hb : b = c <;> simp_all
 
-/-- The finite construction in `NativeShiftedBody` satisfies `bodyCleanFrame_isometry` under the displayed hypotheses. -/
+/-- The clean body frame embeds the three logical label bits and the Boolean data register isometrically into the six auxiliary wires and data. -/
 theorem bodyCleanFrame_isometry : Qatlib.Concepts.Execution.WorkspaceCP.IsIsometry bodyCleanFrame := by
   change bodyCleanFrameᴴ * bodyCleanFrame = 1
   rw [bodyCleanFrame, Matrix.conjTranspose_kronecker, ← Matrix.mul_kronecker_mul,
@@ -124,7 +124,7 @@ theorem nativeDataQuery_unitary (U : Matrix Bool Bool ℂ)
   intro x
   split <;> first | exact hU | exact (unitaryGroup _ ℂ).one_mem
 
-/-- The finite construction in `NativeShiftedBody` satisfies `prepLogical_conjTranspose` under the displayed hypotheses. -/
+/-- The logical preparation is self-adjoint because it conjugates the diagonal origin reflection by the logical rotation matrix. -/
 theorem prepLogical_conjTranspose (ps : Fin 7 → Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle) :
     (prepLogical ps)ᴴ = prepLogical ps := by
   ext i j
@@ -186,7 +186,7 @@ theorem nativeBodyWord_legal (ps : Fin 7 → Qatlib.Concepts.MatrixAccess.Matrix
 def nativeKnownWord (gs : List Op) : List (AdjointStep (Reg 6 × Bool)) :=
   gs.reverse.map (fun g => .gate (TensorGate (matrix g) (1 : Matrix Bool Bool ℂ)))
 
-/-- The finite construction in `NativeShiftedBody` satisfies `nativeKnownWord_evaluate` under the displayed hypotheses. -/
+/-- The lifted known-operation word evaluates for every oracle matrix to the program on the six auxiliary wires tensored with identity on the Boolean data register. -/
 theorem nativeKnownWord_evaluate (U : Matrix (Reg 6 × Bool) (Reg 6 × Bool) ℂ)
     (gs : List Op) :
     evaluate U (nativeKnownWord gs) = TensorGate (program gs) (1 : Matrix Bool Bool ℂ) := by
@@ -232,7 +232,7 @@ theorem nativeExpandedBody_legal (ps : Fin 7 → Qatlib.Concepts.MatrixAccess.Ma
     nativeKnownWord_legal _ (phaseWord_legal p slack)⟩,
     (by simp)⟩, nativeKnownWord_legal _ (prepWord_legal ps)⟩
 
-/-- The finite construction in `NativeShiftedBody` satisfies `nativeExpandedBody_evaluate` under the displayed hypotheses. -/
+/-- For a Boolean data matrix `U`, the expanded and compact native body words for the same circles and slack flag have equal evaluations at `nativeDataQuery U`. -/
 theorem nativeExpandedBody_evaluate (ps : Fin 7 → Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle) (p : Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle)
     (slack : Bool) (U : Matrix Bool Bool ℂ) :
     evaluate (nativeDataQuery U) (nativeExpandedBodyWord ps p slack) =
@@ -275,7 +275,7 @@ theorem nativeBodyWord_compress (ps : Fin 7 → Qatlib.Concepts.MatrixAccess.Mat
     Matrix.one_mul]
   simpa only [compress, Matrix.mul_assoc] using innerBodyLogical_clean_compress ps p slack U
 
-/-- The finite construction in `NativeShiftedBody` satisfies `nativePhysicalFrame_isometry` under the displayed hypotheses. -/
+/-- The physical frame obtained by inserting the Boolean data at logical label zero and then applying the clean body frame is an isometry. -/
 theorem nativePhysicalFrame_isometry : Qatlib.Concepts.Execution.WorkspaceCP.IsIsometry nativePhysicalFrame := by
   apply Qatlib.Concepts.BlockEncoding.EncodingCore.IsIsometry.mul bodyCleanFrame_isometry
   change cleanSlotFrameᴴ * cleanSlotFrame = 1

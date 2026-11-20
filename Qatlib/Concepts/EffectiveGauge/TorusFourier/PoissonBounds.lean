@@ -29,7 +29,7 @@ open scoped ContDiff Topology
 namespace Qatlib.Concepts.EffectiveGauge.TorusFourier
 open Qatlib.Concepts.EffectiveGauge.HopfAtlas Qatlib.Concepts.EffectiveGauge.RationalFlow
 
-/-- Original `unitPoisson_word_coefficient_bound` guarantee for the `PoissonBounds` construction; the complete source hypotheses are retained. -/
+/-- For three smooth unit-periodic components whose pure sixth derivatives have unit-cube norm at most `M`, the Poisson coefficient after any derivative word of length at most two has norm at most `3*M*(frequencyRadius k)^(-5)` at every frequency. -/
 theorem unitPoisson_word_coefficient_bound (f : Fin 3 → SpatialPoint → ℂ)
     (hf : ∀ j, ContDiff ℝ ∞ (f j)) (hp : ∀ j, IsUnitPeriodicField (f j)) (M : ℝ)
     (hb : ∀ j i x, InUnitCube x → ‖spatialWordPartial (f j) (List.replicate 6 i) x‖ ≤ M)
@@ -102,7 +102,7 @@ theorem unitComplexPoisson_word_bound (f : Fin 3 → SpatialPoint → ℂ)
     _ ≤ 3*M*52 := mul_le_mul_of_nonneg_left (tsum_frequencyRadius_rpow_le 5 (by norm_num)) (by positivity)
     _ = 156*M := by ring
 
-/-- Original `unitRealPoisson_word_bound` guarantee for the `PoissonBounds` construction; the complete source hypotheses are retained. -/
+/-- If the pure sixth derivatives of all three smooth unit-periodic components are bounded by `M` on the unit cube, every ordered derivative of the real potential of length at most two has norm at most `156*M` at every point. -/
 theorem unitRealPoisson_word_bound (f : Fin 3 → SpatialPoint → ℂ)
     (hf : ∀ j, ContDiff ℝ ∞ (f j)) (hp : ∀ j, IsUnitPeriodicField (f j)) (M : ℝ)
     (hb : ∀ j i x, InUnitCube x → ‖spatialWordPartial (f j) (List.replicate 6 i) x‖ ≤ M)

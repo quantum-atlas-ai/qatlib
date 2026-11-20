@@ -27,7 +27,7 @@ open scoped Topology
 namespace Qatlib.Concepts.EffectiveGauge.TorusFourier
 open Qatlib.Concepts.EffectiveGauge.HopfAtlas Qatlib.Concepts.EffectiveGauge.RationalFlow
 
-/-- Original `tsum_nat_rpow_neg_two_le_two` guarantee for the `LatticeSumBound` construction; the complete source hypotheses are retained. -/
+/-- The sum over natural indices of the real power with exponent negative two is at most two, with the zero index contributing zero. -/
 theorem tsum_nat_rpow_neg_two_le_two : (∑' n : ℕ, (n : ℝ)^(-2 : ℝ)) ≤ 2 := by
   apply Real.tsum_le_of_sum_range_le (fun n => Real.rpow_nonneg (Nat.cast_nonneg _) _)
   intro n

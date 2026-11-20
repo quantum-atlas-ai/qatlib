@@ -27,7 +27,7 @@ control labels. Its receipts and compiled copy-run-reset execution are related t
 
 * `coinReceiptRun_agree`: receipt output, reads, and clock agree with the tape interpreters.
 * `race_receipt_run`: the walk receipt has exact time and read counts and a bounded tape extent.
-* `output1.frontier1`: the compiled program reaches a cleaned tape with exact counts for the
+* `output1.compiled_race_endpoint_run_and_coin_counts`: the compiled program reaches a cleaned tape with exact counts for the
   prescribed coin blocks.
 
 ## References
@@ -916,7 +916,7 @@ theorem race_receipt_run (N a : ℕ) (ha : a ≤ N) (w : List Bool) :
 program reaches the specified cleaned, home-positioned tape configuration. For coin blocks
 of the prescribed lengths, it has the displayed exact read and transition counts and returns
 the race readout. -/
-theorem output1.frontier1 (N a : ℕ) (ha : a ≤ N) (w fs : List Bool)
+theorem output1.compiled_race_endpoint_run_and_coin_counts (N a : ℕ) (ha : a ≤ N) (w fs : List Bool)
     (habs : raceWalk N a w = 0 ∨ raceWalk N a w = N)
     (hend : raceTime N a w = w.length)
     (hfs : w.length ≤ fs.length) :

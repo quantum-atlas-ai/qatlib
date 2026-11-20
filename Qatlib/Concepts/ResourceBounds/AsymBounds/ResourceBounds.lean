@@ -848,7 +848,7 @@ end Parity
 /-- Combines a uniform square-root search implementation bound, the universal parity query lower
 bound, and a nonconstant exact one-query implementation of two-input parity; see
 [Grover1996] and [BealsEtAl2001]. -/
-theorem frontier1 :
+theorem search_upper_and_parity_query_bounds :
     (∀ (W : Type) [Fintype W] [DecidableEq W] (w : W),
       ∃ c : ℝ, 0<c ∧ ∀ (n : ℕ) (hn : 2≤n),
         Implements (Search.searchProgram n w hn) (Search.searchAccess (W:=W) n)

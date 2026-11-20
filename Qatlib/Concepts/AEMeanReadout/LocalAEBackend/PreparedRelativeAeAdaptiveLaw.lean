@@ -1373,7 +1373,7 @@ theorem adaptiveStopsAt_or_before {J : ℕ} {w : ℕ → ℕ} (eps : ℝ) (heps 
 
 /-- Combine stage success-window mass, conditional relative accuracy, readiness scale bounds,
 the zero endpoint, and stopping-stage resources for prepared AE [BrassardEtAl2002]. -/
-theorem frontier1 (A : Matrix I I ℂ) (j : I) (S : Finset I)
+theorem adaptive_ae_window_accuracy_and_stopping_resources (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (ha1 : MeasureProb (preparedAAState A j) S ≤ 1)
     (eps : ℝ) (heps : 0 < eps) (heps1 : eps ≤ 1) (w : ℕ → ℕ) (k : ℕ) :
     (∀ j' : ℕ,
@@ -1431,7 +1431,7 @@ theorem frontier1 (A : Matrix I I ℂ) (j : I) (S : Finset I)
 
 /-- Combine exact cumulative access identities, conditional stopping budgets, and readiness and
 stopping at sufficiently fine accurate stages for positive marked probability. -/
-theorem frontier2 (A : Matrix I I ℂ) (j : I) (S : Finset I)
+theorem adaptive_ae_cumulative_cost_and_fine_stage_stopping (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (ha0 : 0 < MeasureProb (preparedAAState A j) S)
     (ha1 : MeasureProb (preparedAAState A j) S ≤ 1)
     (eps : ℝ) (heps : 0 < eps) (heps1 : eps ≤ 1) (w : ℕ → ℕ) (k : ℕ) :
@@ -1533,7 +1533,7 @@ theorem adaptiveStageLaw_zero_branch (k : ℕ) (A : Matrix I I ℂ) (j : I) (S :
 
 /-- Package the deterministic zero-amplitude stage law, zero-branch certification, exact
 estimate, and failure of positive readiness. -/
-theorem frontier3 (k : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I)
+theorem adaptive_ae_zero_amplitude_certification (k : ℕ) (A : Matrix I I ℂ) (j : I) (S : Finset I)
     (hA : A ∈ Matrix.unitaryGroup I ℂ) (eps : ℝ) (heps : 0 < eps)
     (ha : MeasureProb (preparedAAState A j) S = 0) :
     (adaptiveStageLaw k A j S hA).prob ⟨0, adaptiveGrid_pos k⟩ = 1 ∧

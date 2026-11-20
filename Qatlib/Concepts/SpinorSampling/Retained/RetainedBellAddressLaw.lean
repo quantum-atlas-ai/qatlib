@@ -30,14 +30,14 @@ noncomputable section
 open scoped BigOperators Classical
 open Matched
 
-/-- Complete original `cohort_expect_cons` guarantee for `RetainedBellAddressLaw`; all source hypotheses and output obligations are retained. -/
+/-- The expectation over N + 1 independent draws from p can be taken by averaging over the first draw and an independent tail of N draws. -/
 theorem cohort_expect_cons {X : Type} [Fintype X] (p : FinDist X) (N : ℕ)
     (f : (Fin (N+1) → X) → ℝ) :
     (cohortLaw p (N+1)).expect f=
       p.expect (fun x => (cohortLaw p N).expect (fun η => f (Fin.cons x η))) :=
   product_expect_cons p f
 
-/-- Complete original `cohort_expect_projection` guarantee for `RetainedBellAddressLaw`; all source hypotheses and output obligations are retained. -/
+/-- If π sends the expectation under p to that under q for every test function, applying π to each coordinate sends the N-draw cohort law to the N-draw law of q. -/
 theorem cohort_expect_projection {X Y : Type} [Fintype X] [Fintype Y]
     (p : FinDist X) (q : FinDist Y) (π : X → Y)
     (hπ : ∀ f : Y → ℝ,p.expect (fun x => f (π x))=q.expect f)
@@ -77,14 +77,14 @@ theorem cohort_expect_projection {X Y : Type} [Fintype X] [Fintype Y]
     simp_rw [hinner]
     exact hπ (fun y => (cohortLaw q N).expect (fun η => f (Fin.cons y η)))
 
-/-- Complete original `uniform_expect_equiv` guarantee for `RetainedBellAddressLaw`; all source hypotheses and output obligations are retained. -/
+/-- Transporting a uniform draw across an equivalence preserves the uniform expectation on the destination type. -/
 theorem uniform_expect_equiv {X Y : Type} [Fintype X] [Fintype Y]
     [Nonempty X] [Nonempty Y] (e : X ≃ Y) (f : Y → ℝ) :
     (uniformLaw X).expect (fun x => f (e x))=(uniformLaw Y).expect f := by
   have h := e.sum_comp (fun y => (1/(Fintype.card Y : ℝ))*f y)
   simpa only [FinDist.expect,uniformLaw,Fintype.card_congr e] using h
 
-/-- Complete original `uniform_product_expect` guarantee for `RetainedBellAddressLaw`; all source hypotheses and output obligations are retained. -/
+/-- Independent uniform draws from two finite nonempty types give the uniform expectation on their Cartesian product. -/
 theorem uniform_product_expect {X Y : Type} [Fintype X] [Fintype Y]
     [Nonempty X] [Nonempty Y] (f : X × Y → ℝ) :
     (productLaw (uniformLaw X) (uniformLaw Y)).expect f=(uniformLaw (X × Y)).expect f := by
@@ -94,7 +94,7 @@ theorem uniform_product_expect {X Y : Type} [Fintype X] [Fintype Y]
 variable {S : Type} [Fintype S] [DecidableEq S] [Nonempty S]
 
 omit [DecidableEq S] in
-/-- Complete original `uniform_cohort_expect` guarantee for `RetainedBellAddressLaw`; all source hypotheses and output obligations are retained. -/
+/-- The expectation over N independent uniform site draws equals the uniform expectation on site assignments indexed by Fin N. -/
 theorem uniform_cohort_expect (N : ℕ) (f : (Fin N → S) → ℝ) :
     (cohortLaw (uniformLaw S) N).expect f=(uniformLaw (Fin N → S)).expect f := by
   unfold FinDist.expect
@@ -104,7 +104,7 @@ theorem uniform_cohort_expect (N : ℕ) (f : (Fin N → S) → ℝ) :
   simp [uniformLaw]
 
 omit [DecidableEq S] in
-/-- Complete original `uniform_address_pair_expect` guarantee for `RetainedBellAddressLaw`; all source hypotheses and output obligations are retained. -/
+/-- Two independent uniform address cohorts of sizes n and m have the uniform law on pairs of address arrays. -/
 theorem uniform_address_pair_expect (n m : ℕ) (f : (Fin n → S) × (Fin m → S) → ℝ) :
     (productLaw (cohortLaw (uniformLaw S) n) (cohortLaw (uniformLaw S) m)).expect f=
       (uniformLaw ((Fin n → S) × (Fin m → S))).expect f := by
@@ -113,7 +113,7 @@ theorem uniform_address_pair_expect (n m : ℕ) (f : (Fin n → S) × (Fin m →
   rw [← product_law_expect,uniform_product_expect]
 
 -- The only output being projected out is the actual measured native hit data.
-/-- Complete original `observation_blocks_address_expect` guarantee for `RetainedBellAddressLaw`; all source hypotheses and output obligations are retained. -/
+/-- For normalized spinors, the address projection of K fresh Bell observation blocks has the expectation of K independent pairs of uniform cohorts of sizes n and m. -/
 theorem observation_blocks_address_expect (a b c k : S → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (τ : Equiv.Perm S) (n m K : ℕ)
     (f : (Fin K → (Fin n → S) × (Fin m → S)) → ℝ) :
@@ -156,7 +156,7 @@ def addressBlocksEquiv (n m K : ℕ) :
     apply Prod.ext <;> funext i <;> simp only [Equiv.symm_apply_apply]
 
 omit [DecidableEq S] in
-/-- Complete original `grouped_address_expect_flat` guarantee for `RetainedBellAddressLaw`; all source hypotheses and output obligations are retained. -/
+/-- Expectations over grouped independent address cohorts equal expectations over a single uniform address array read through the block indexing equivalence. -/
 theorem grouped_address_expect_flat (n m K : ℕ)
     (f : (Fin K → (Fin n → S) × (Fin m → S)) → ℝ) :
     (cohortLaw (productLaw (cohortLaw (uniformLaw S) n)
@@ -173,7 +173,7 @@ theorem grouped_address_expect_flat (n m K : ℕ)
       (uniform_expect_equiv (addressBlocksEquiv n m K) f).symm
     _ = _ := (uniform_cohort_expect _ _).symm
 
-/-- Complete original `observation_blocks_flat_address_expect` guarantee for `RetainedBellAddressLaw`; all source hypotheses and output obligations are retained. -/
+/-- For normalized spinors, any function of the observed block addresses has the expectation obtained by grouping a flat array of independent uniform site draws. -/
 theorem observation_blocks_flat_address_expect (a b c k : S → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (τ : Equiv.Perm S) (n m K : ℕ)
     (f : (Fin K → (Fin n → S) × (Fin m → S)) → ℝ) :
