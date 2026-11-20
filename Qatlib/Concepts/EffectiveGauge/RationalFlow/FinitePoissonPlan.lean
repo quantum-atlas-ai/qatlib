@@ -43,16 +43,17 @@ def finitePoissonModeAccuracy (C0 : ℚ) (N : ℕ) (tolerance : ℚ) : ℚ :=
 def finitePoissonPeriodAccuracy (C0 : ℚ) (N : ℕ) (tolerance : ℚ) : ℚ :=
   tolerance/(4096*(finitePoissonFrequencyCount N : ℚ)*(C0+1)*((N : ℚ)+1))
 
-/-- Original `finitePoissonFrequencyCount_pos` guarantee for the `FinitePoissonPlan` construction; the complete source hypotheses are retained. -/
+/-- The cube of retained frequencies has positive cardinality even at cutoff zero. -/
 theorem finitePoissonFrequencyCount_pos (N : ℕ) : 0<finitePoissonFrequencyCount N := by
   dsimp only [finitePoissonFrequencyCount]
   positivity
 
-/-- Original `finitePoissonMesh_pos` guarantee for the `FinitePoissonPlan` construction; the complete source hypotheses are retained. -/
+/-- The integer mesh size per axis is positive for every choice of bounds, cutoff, and tolerance. -/
 theorem finitePoissonMesh_pos (C0 C1 : ℚ) (N : ℕ) (tolerance : ℚ) :
     0<finitePoissonMesh C0 C1 N tolerance := lt_of_lt_of_le (by decide : 0<1) (le_max_left _ _)
 
-/-- Original `finitePoissonSampleAccuracy_spec` guarantee for the `FinitePoissonPlan` construction; the complete source hypotheses are retained. -/
+/-- For tolerance in `(0, 1/64]`, the selected sample accuracy is positive and at most one at every
+cutoff. -/
 theorem finitePoissonSampleAccuracy_spec (N : ℕ) (tolerance : ℚ)
     (ht : 0<tolerance) (ht1 : tolerance ≤ 1/64) :
     0<finitePoissonSampleAccuracy N tolerance ∧ finitePoissonSampleAccuracy N tolerance ≤ 1 := by
@@ -64,7 +65,8 @@ theorem finitePoissonSampleAccuracy_spec (N : ℕ) (tolerance : ℚ)
   · apply (div_le_iff₀ (by positivity : (0 : ℚ)<96*(finitePoissonFrequencyCount N : ℚ))).mpr
     linarith
 
-/-- Original `finitePoissonModeAccuracy_spec` guarantee for the `FinitePoissonPlan` construction; the complete source hypotheses are retained. -/
+/-- A nonnegative amplitude bound and tolerance in `(0, 1/64]` give a Fourier mode accuracy in
+`(0, 1]`. -/
 theorem finitePoissonModeAccuracy_spec (C0 : ℚ) (hC0 : 0 ≤ C0) (N : ℕ) (tolerance : ℚ)
     (ht : 0<tolerance) (ht1 : tolerance ≤ 1/64) :
     0<finitePoissonModeAccuracy C0 N tolerance ∧ finitePoissonModeAccuracy C0 N tolerance ≤ 1 := by
@@ -76,7 +78,7 @@ theorem finitePoissonModeAccuracy_spec (C0 : ℚ) (hC0 : 0 ≤ C0) (N : ℕ) (to
   · apply (div_le_iff₀ (by positivity : (0 : ℚ)<192*(finitePoissonFrequencyCount N : ℚ)*(C0+1))).mpr
     nlinarith [mul_nonneg hJ.le hC0]
 
-/-- Original `finitePoissonPeriodAccuracy_spec` guarantee for the `FinitePoissonPlan` construction; the complete source hypotheses are retained. -/
+/-- A nonnegative amplitude bound and tolerance in `(0, 1/64]` give a period accuracy in `(0, 1]`. -/
 theorem finitePoissonPeriodAccuracy_spec (C0 : ℚ) (hC0 : 0 ≤ C0) (N : ℕ) (tolerance : ℚ)
     (ht : 0<tolerance) (ht1 : tolerance ≤ 1/64) :
     0<finitePoissonPeriodAccuracy C0 N tolerance ∧ finitePoissonPeriodAccuracy C0 N tolerance ≤ 1 := by
@@ -94,7 +96,8 @@ theorem finitePoissonPeriodAccuracy_spec (C0 : ℚ) (hC0 : 0 ≤ C0) (N : ℕ) (
       4096*(finitePoissonFrequencyCount N : ℚ)*(C0+1)*((N : ℚ)+1))).mpr
     nlinarith
 
-/-- Original `finitePoissonModePeriod_budget` guarantee for the `FinitePoissonPlan` construction; the complete source hypotheses are retained. -/
+/-- With nonnegative amplitude bound and positive tolerance, three times the cutoff times the period
+accuracy is at most half the mode accuracy. -/
 theorem finitePoissonModePeriod_budget (C0 : ℚ) (hC0 : 0 ≤ C0) (N : ℕ) (tolerance : ℚ)
     (ht : 0<tolerance) :
     3*(N : ℚ)*finitePoissonPeriodAccuracy C0 N tolerance ≤ finitePoissonModeAccuracy C0 N tolerance/2 := by
@@ -110,7 +113,8 @@ theorem finitePoissonModePeriod_budget (C0 : ℚ) (hC0 : 0 ≤ C0) (N : ℕ) (to
     norm_num
   nlinarith
 
-/-- Original `finitePoissonMesh_budget` guarantee for the `FinitePoissonPlan` construction; the complete source hypotheses are retained. -/
+/-- At positive tolerance the selected mesh bounds the cubical quadrature term
+`3 * (C1 + 7 * N * C0) / mesh` by `tolerance / (48 * J)`, where `J` is the frequency count. -/
 theorem finitePoissonMesh_budget (C0 C1 : ℚ) (N : ℕ) (tolerance : ℚ) (ht : 0<tolerance) :
     3*(C1+7*(N : ℚ)*C0)/(finitePoissonMesh C0 C1 N tolerance : ℚ) ≤
       tolerance/(48*(finitePoissonFrequencyCount N : ℚ)) := by
@@ -130,7 +134,9 @@ theorem finitePoissonMesh_budget (C0 C1 : ℚ) (N : ℕ) (tolerance : ℚ) (ht :
   apply (le_div_iff₀ (by positivity : (0 : ℚ)<48*(finitePoissonFrequencyCount N : ℚ))).mpr
   nlinarith
 
-/-- Original `finitePoissonSampleMode_budget` guarantee for the `FinitePoissonPlan` construction; the complete source hypotheses are retained. -/
+/-- For nonnegative amplitude bound `C0` and tolerance in `(0, 1/64]`, the selected sample and
+mode accuracies `s` and `d` give `s + (C0 + s) * d ≤ tolerance / (64 * J)`, where `J` is the
+frequency count. -/
 theorem finitePoissonSampleMode_budget (C0 : ℚ) (hC0 : 0 ≤ C0) (N : ℕ) (tolerance : ℚ)
     (ht : 0<tolerance) (ht1 : tolerance ≤ 1/64) :
     finitePoissonSampleAccuracy N tolerance+
@@ -155,7 +161,9 @@ theorem finitePoissonSampleMode_budget (C0 : ℚ) (hC0 : 0 ≤ C0) (N : ℕ) (to
       field_simp [hJ.ne']
       norm_num
 
-/-- Original `finitePoissonCoefficient_budget` guarantee for the `FinitePoissonPlan` construction; the complete source hypotheses are retained. -/
+/-- For nonnegative amplitude bound and tolerance in `(0, 1/64]`, the mesh quadrature bound plus
+the sample-mode product error bound is at most `tolerance / (24 * J)`, where `J` is the frequency
+count. -/
 theorem finitePoissonCoefficient_budget (C0 C1 : ℚ) (hC0 : 0 ≤ C0) (N : ℕ) (tolerance : ℚ)
     (ht : 0<tolerance) (ht1 : tolerance ≤ 1/64) :
     3*(C1+7*(N : ℚ)*C0)/(finitePoissonMesh C0 C1 N tolerance : ℚ)+
@@ -176,7 +184,8 @@ theorem finitePoissonCoefficient_budget (C0 C1 : ℚ) (hC0 : 0 ≤ C0) (N : ℕ)
         (by positivity : (0 : ℚ)<24*(finitePoissonFrequencyCount N : ℚ))).mpr
       nlinarith [mul_nonneg ht.le hJ.le]
 
-/-- Original `finitePoissonCutoff_tail_budget` guarantee for the `FinitePoissonPlan` construction; the complete source hypotheses are retained. -/
+/-- For positive tolerance, the tail bound `156 * C6 / cutoff³` at the planned cutoff is at most 39
+percent of tolerance. -/
 theorem finitePoissonCutoff_tail_budget (C6 tolerance : ℚ) (ht : 0<tolerance) :
     156*C6/(finitePoissonCutoff C6 tolerance : ℚ)^3 ≤ 39*tolerance/100 := by
   have hN : (0 : ℚ)<finitePoissonCutoff C6 tolerance := by exact_mod_cast finitePoissonCutoff_pos C6 tolerance

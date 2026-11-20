@@ -17,14 +17,14 @@ Copying a computational-basis witness into fresh ancillas removes its off-diagon
 to the verifier acceptance functional. The module proves this directly from circuit matrices and
 readout sums, using the standard dephasing mechanism described in [NielsenChuang2010].
 
-`frontier1` gives the diagonal formula for arbitrary witness matrices. For density matrices it
+`dephaseProgram_acceptProb_eq_diagonal_sum` gives the diagonal formula for arbitrary witness matrices. For density matrices it
 transfers classical-witness soundness bounds to the dephased verifier, while preserving
 classical-witness completeness, oracle counts, and uniform-family witness width.
 
 ## Main statements
 
 * `acceptProb_dephase_classical`: preserve acceptance on each classical basis witness.
-* `frontier1`: express acceptance using only diagonal witness entries.
+* `dephaseProgram_acceptProb_eq_diagonal_sum`: express acceptance using only diagonal witness entries.
 * `dephase_soundness_bound`: transfer a classical-witness bound to arbitrary witness density
   matrices.
 * `dephaseFamily`: lift dephasing to uniform witness families with polynomial resource bounds.
@@ -573,7 +573,7 @@ theorem dephase_classicalAcceptFunctional (A : ClassicalOracle) (p : WitnessVeri
 
 /-- For any witness matrix, acceptance by the dephased legal verifier is the sum of the real
 diagonal entries times the original classical-witness acceptance probabilities. -/
-theorem frontier1 (A : ClassicalOracle) (p : WitnessVerifierProgram)
+theorem dephaseProgram_acceptProb_eq_diagonal_sum (A : ClassicalOracle) (p : WitnessVerifierProgram)
     (hlegal : witnessProgramLegal p) (x : Reg p.inputBits)
     (σ : Matrix (Reg p.witnessBits) (Reg p.witnessBits) ℂ) :
     acceptProb A (dephaseProgram p) x σ
@@ -604,7 +604,7 @@ theorem dephase_soundness_bound (A : ClassicalOracle) (p : WitnessVerifierProgra
     rw [hre_sum]
     simpa using htrle.1
   by_cases hb : 0 ≤ b
-  · rw [frontier1 A p hlegal x σ]
+  · rw [dephaseProgram_acceptProb_eq_diagonal_sum A p hlegal x σ]
     have hterm : ∀ e : Reg p.witnessBits,
         (σ e e).re * acceptProb A p x (classicalWitnessDensity e)
           ≤ (σ e e).re * b := fun e => mul_le_mul_of_nonneg_left (hsound e) (hnonneg e)

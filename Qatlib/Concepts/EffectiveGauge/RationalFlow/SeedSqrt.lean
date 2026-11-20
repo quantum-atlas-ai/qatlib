@@ -20,7 +20,7 @@ open Qatlib.Concepts.EffectiveGauge.HopfAtlas
 def seedSqrtFloor (a : ℚ) (b : ℕ) : ℚ :=
   (Nat.sqrt (Nat.floor (a*(2^b : ℚ)^2)) : ℚ)/(2^b : ℚ)
 
-/-- Original `seedSqrtFloor_nonneg` guarantee for the `SeedSqrt` construction; the complete source hypotheses are retained. -/
+/-- The dyadic square-root floor is nonnegative for every rational input and bit count. -/
 theorem seedSqrtFloor_nonneg (a : ℚ) (b : ℕ) : 0 ≤ seedSqrtFloor a b := by
   unfold seedSqrtFloor
   positivity

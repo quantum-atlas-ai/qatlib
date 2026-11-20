@@ -86,7 +86,7 @@ theorem shiftMassLower_bounds (α B x y : ℚ) (p : ℕ)
     exact hz
   exact ⟨hL,by nlinarith [hsq.trans hrat]⟩
 
-/-- The finite construction in `NativeShiftPreparation` satisfies `shiftWeights_simplex` under the displayed hypotheses. -/
+/-- For `0 < α ≤ B` and `x² + y² ≤ (B - α)²`, the eight rational shift weights at any precision are nonnegative and sum to one. -/
 theorem shiftWeights_simplex (α B x y : ℚ) (p : ℕ)
     (hα : 0<α) (hB : α ≤ B) (hz : x*x+y*y ≤ (B-α)^2) :
     (∀ i,0 ≤ shiftWeights α B x y p i) ∧ (∑ i,shiftWeights α B x y p i)=1 := by
@@ -134,7 +134,7 @@ theorem shiftAxis_bounds (α B x y : ℚ) (p : ℕ)
   · intro i hi
     simpa only [shiftAxis,ite_eq_right hi,add_zero] using (hh i).2
 
-/-- The finite construction in `NativeShiftPreparation` satisfies `shiftPrefix_ge_one` under the displayed hypotheses. -/
+/-- For `0 < α ≤ B` and `x² + y² ≤ (B - α)²`, every inclusive prefix sum of squared shift-axis coordinates is at least one. -/
 theorem shiftPrefix_ge_one (α B x y : ℚ) (p : ℕ)
     (hα : 0<α) (hB : α ≤ B) (hz : x*x+y*y ≤ (B-α)^2) (i : Fin 8) :
     1 ≤ shiftPrefix α B x y p i := by
@@ -171,7 +171,9 @@ theorem half_bracket_bounds (a l l' u u' h : ℚ) (ha : 0 ≤ a) (ha1 : a ≤ 1)
     have hab : a*((u-l)+(u'-l')) ≤ 2*h := by nlinarith
     nlinarith [mul_nonneg hh (sub_nonneg.mpr hprod)]
 
-/-- The finite construction in `NativeShiftPreparation` satisfies `shiftHalf_bracket` under the displayed hypotheses. -/
+/-- For `0 < α ≤ B` and `x² + y² ≤ (B - α)²`, the rational half-angle estimates
+at each rotation form an ordered interval contained in `[0, 1/2]` of width at
+most `2^(-(p+13))`. -/
 theorem shiftHalf_bracket (α B x y : ℚ) (p : ℕ)
     (hα : 0<α) (hB : α ≤ B) (hz : x*x+y*y ≤ (B-α)^2) (i : Fin 7) :
     0 ≤ shiftHalfLower α B x y p i ∧ shiftHalfLower α B x y p i ≤ shiftHalfUpper α B x y p i ∧

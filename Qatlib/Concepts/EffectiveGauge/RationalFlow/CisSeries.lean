@@ -36,7 +36,7 @@ def cisTaylorPartial (x : ℚ) : ℕ → RationalCircleSample
   | 0 => (0,0)
   | n+1 => cisPairAdd (cisTaylorPartial x n) (cisTaylorTerm x n)
 
-/-- Original `cisMagnitude_step` guarantee for the `CisSeries` construction; the complete source hypotheses are retained. -/
+/-- The magnitude of term `n + 1` equals that of term `n` multiplied by `|x| / (n + 1)`. -/
 theorem cisMagnitude_step (x : ℚ) (n : ℕ) :
     negativeExpMagnitude x (n+1)=negativeExpMagnitude x n*|x|/((n+1 : ℕ) : ℚ) := by
   unfold negativeExpMagnitude
@@ -46,28 +46,29 @@ theorem cisMagnitude_step (x : ℚ) (n : ℕ) :
 
 noncomputable section
 
-/-- Original `cisPairAdd_cast` guarantee for the `CisSeries` construction; the complete source hypotheses are retained. -/
+/-- Adding rational circle pairs and casting gives the sum of the two complex casts. -/
 theorem cisPairAdd_cast (a b : RationalCircleSample) :
     rationalCircleCast (cisPairAdd a b)=rationalCircleCast a+rationalCircleCast b := by
   apply Complex.ext <;> simp [cisPairAdd,rationalCircleCast]
 
-/-- Original `cisPairMul_cast` guarantee for the `CisSeries` construction; the complete source hypotheses are retained. -/
+/-- Multiplying rational circle pairs and casting gives the product of the two complex casts. -/
 theorem cisPairMul_cast (a b : RationalCircleSample) :
     rationalCircleCast (cisPairMul a b)=rationalCircleCast a*rationalCircleCast b := by
   apply Complex.ext <;> simp [cisPairMul,rationalCircleCast]
 
-/-- Original `cisTermStep_cast` guarantee for the `CisSeries` construction; the complete source hypotheses are retained. -/
+/-- After casting, a Taylor term update multiplies the input by `x * I` and divides by the supplied
+index `n`. -/
 theorem cisTermStep_cast (x : ℚ) (n : ℕ) (t : RationalCircleSample) :
     rationalCircleCast (cisTermStep x n t)=
       rationalCircleCast t*((x : ℂ)*Complex.I)/(n : ℂ) := by
   rw [Complex.div_natCast]
   apply Complex.ext <;> simp [cisTermStep,rationalCircleCast]
 
-/-- Original `rationalCircleCast_zero` guarantee for the `CisSeries` construction; the complete source hypotheses are retained. -/
+/-- The rational pair with both coordinates zero casts to complex zero. -/
 @[simp] theorem rationalCircleCast_zero : rationalCircleCast (0,0)=0 := by
   apply Complex.ext <;> norm_num [rationalCircleCast]
 
-/-- Original `cisTaylorTerm_cast` guarantee for the `CisSeries` construction; the complete source hypotheses are retained. -/
+/-- The rational Taylor term at index `n` casts to `(x * I)^n / n!`. -/
 theorem cisTaylorTerm_cast (x : ℚ) (n : ℕ) :
     rationalCircleCast (cisTaylorTerm x n)=((x : ℂ)*Complex.I)^n/(n.factorial : ℂ) := by
   induction n with
@@ -77,7 +78,8 @@ theorem cisTaylorTerm_cast (x : ℚ) (n : ℕ) :
     push_cast
     field_simp
 
-/-- Original `cisTaylorPartial_cast` guarantee for the `CisSeries` construction; the complete source hypotheses are retained. -/
+/-- The rational partial sum casts to the complex exponential series summed over indices strictly
+below `n` at argument `x * I`. -/
 theorem cisTaylorPartial_cast (x : ℚ) (n : ℕ) :
     rationalCircleCast (cisTaylorPartial x n)=
       ∑ j ∈ Finset.range n, ((x : ℂ)*Complex.I)^j/(j.factorial : ℂ) := by
@@ -85,7 +87,7 @@ theorem cisTaylorPartial_cast (x : ℚ) (n : ℕ) :
   | zero => simp [cisTaylorPartial]
   | succ n ih => rw [cisTaylorPartial,cisPairAdd_cast,ih,cisTaylorTerm_cast,Finset.sum_range_succ]
 
-/-- Original `complexPhase_eq_exp` guarantee for the `CisSeries` construction; the complete source hypotheses are retained. -/
+/-- The complex phase at real angle `x` is the complex exponential of `x * I`. -/
 theorem complexPhase_eq_exp (x : ℝ) : complexPhase x=Complex.exp ((x : ℂ)*Complex.I) := by
   apply Complex.ext
   · exact (Complex.exp_ofReal_mul_I_re x).symm

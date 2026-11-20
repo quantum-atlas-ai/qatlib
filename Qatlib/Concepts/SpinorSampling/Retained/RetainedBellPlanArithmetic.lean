@@ -80,7 +80,7 @@ def bellScheduledCopies (p : BellPlanQ) : ℕ :=
   | .identity | .midpoint => 0
   | .sparse | .pooled => 2*p.records*p.blocks
 
-/-- Complete original `bell_plan_copy_account` guarantee for `RetainedBellPlanArithmetic`; all source hypotheses and output obligations are retained. -/
+/-- The constructed Bell plan's copy field equals its scheduled copies, with zero copies in the identity and midpoint modes and two cohorts per block in the sampling modes. -/
 theorem bell_plan_copy_account (side M : ℕ) (p ε δ : ℚ) :
     (bellPlanQ side M p ε δ).copies=bellScheduledCopies (bellPlanQ side M p ε δ) := by
   by_cases hside : side≤2
@@ -92,7 +92,7 @@ theorem bell_plan_copy_account (side M : ℕ) (p ε δ : ℚ) :
 
 noncomputable section
 
-/-- Complete original `bell_log_pos` guarantee for `RetainedBellPlanArithmetic`; all source hypotheses and output obligations are retained. -/
+/-- For a failure budget δ strictly between zero and one, the natural ceiling log of 4/δ in base two is positive. -/
 theorem bell_log_pos (δ : ℚ) (hδ : 0<δ) (hδ1 : δ<1) : 0<ceilLog2Q (4/δ) := by
   have hq : (1 : ℚ)<4/δ := (lt_div_iff₀ hδ).mpr (by linarith)
   by_contra h
@@ -101,7 +101,7 @@ theorem bell_log_pos (δ : ℚ) (hδ : 0<δ) (hδ1 : δ<1) : 0<ceilLog2Q (4/δ) 
   rw [hL,pow_zero] at hp
   linarith
 
-/-- Complete original `bell_exp_log_quarter` guarantee for `RetainedBellPlanArithmetic`; all source hypotheses and output obligations are retained. -/
+/-- For positive δ, exponentiating the negative base-two ceiling log of 4/δ gives a value at most δ/4. -/
 theorem bell_exp_log_quarter (δ : ℚ) (hδ : 0<δ) :
     Real.exp (-(ceilLog2Q (4/δ) : ℝ))≤(δ : ℝ)/4 := by
   have hδR : (0 : ℝ)<δ := Rat.cast_pos.mpr hδ
@@ -111,7 +111,7 @@ theorem bell_exp_log_quarter (δ : ℚ) (hδ : 0<δ) :
     _ ≤ Real.exp (-Real.log (4/(δ : ℝ))) := Real.exp_le_exp.mpr (neg_le_neg hlog)
     _ = _ := by rw [Real.exp_neg,Real.exp_log (by positivity)]; field_simp
 
-/-- Complete original `bell_nonzero_tolerance` guarantee for `RetainedBellPlanArithmetic`; all source hypotheses and output obligations are retained. -/
+/-- If p ≤ 1/2 and p exceeds twice the positive tolerance, then the real tolerance lies in (0, 1/4) and is at most p + ε. -/
 theorem bell_nonzero_tolerance (p ε : ℚ) (hp : p≤1/2) (hε : 0<ε) (hmid : ¬p≤2*ε) :
     0<(ε : ℝ) ∧ (ε : ℝ)<1/4 ∧ (ε : ℝ)≤(p : ℝ)+(ε : ℝ) := by
   have hq : 2*ε<p := lt_of_not_ge hmid
@@ -125,7 +125,7 @@ theorem bell_nonzero_tolerance (p ε : ℚ) (hp : p≤1/2) (hε : 0<ε) (hmid : 
   · exact hεR
   · constructor <;> linarith
 
-/-- Complete original `bell_strength_pos` guarantee for `RetainedBellPlanArithmetic`; all source hypotheses and output obligations are retained. -/
+/-- A nonnegative mean bound, positive tolerance and failure budget strictly between zero and one make the rational Bell strength positive. -/
 theorem bell_strength_pos (p ε δ : ℚ) (hp : 0≤p) (hε : 0<ε)
     (hδ : 0<δ) (hδ1 : δ<1) : 0<bellStrengthQ p ε δ := by
   have hL := bell_log_pos δ hδ hδ1
@@ -133,7 +133,7 @@ theorem bell_strength_pos (p ε δ : ℚ) (hp : 0≤p) (hε : 0<ε)
   unfold bellStrengthQ
   positivity
 
-/-- Complete original `bell_records_square_budget` guarantee for `RetainedBellPlanArithmetic`; all source hypotheses and output obligations are retained. -/
+/-- For p ≥ 0 and ε > 0, the squared cohort size times ε² is at least 128M(p + ε) times the plan's ceiling log. -/
 theorem bell_records_square_budget (M : ℕ) (p ε δ : ℚ) (hp : 0≤p) (hε : 0<ε) :
     128*(M : ℝ)*((p : ℝ)+(ε : ℝ))*(ceilLog2Q (4/δ) : ℝ)≤
       (bellRecordsQ M p ε δ : ℝ)^2*(ε : ℝ)^2 := by
@@ -150,7 +150,7 @@ theorem bell_records_square_budget (M : ℕ) (p ε δ : ℚ) (hp : 0≤p) (hε :
     positivity
   exact (div_le_iff₀ hsq).mp hsR
 
-/-- Complete original `bell_records_pos` guarantee for `RetainedBellPlanArithmetic`; all source hypotheses and output obligations are retained. -/
+/-- With a positive site count and positive Bell strength from the tolerance and failure assumptions, the rounded cohort size is positive. -/
 theorem bell_records_pos (M : ℕ) (hM : 0<M) (p ε δ : ℚ) (hp : 0≤p) (hε : 0<ε)
     (hδ : 0<δ) (hδ1 : δ<1) : 0<bellRecordsQ M p ε δ := by
   have hs := ceil_sqrt_q_square ((M : ℚ)*bellStrengthQ p ε δ)
@@ -165,7 +165,7 @@ theorem bell_records_pos (M : ℕ) (hM : 0<M) (p ε δ : ℚ) (hp : 0≤p) (hε 
   norm_num at hs
   linarith
 
-/-- Complete original `bell_blocks_budget` guarantee for `RetainedBellPlanArithmetic`; all source hypotheses and output obligations are retained. -/
+/-- For positive site count and tolerance and nonnegative p, the rounded block count times Mε² is at least 128(p + ε) times the plan's ceiling log. -/
 theorem bell_blocks_budget (M : ℕ) (hM : 0<M) (p ε δ : ℚ) (hp : 0≤p) (hε : 0<ε) :
     128*((p : ℝ)+(ε : ℝ))*(ceilLog2Q (4/δ) : ℝ)≤
       (bellBlocksQ M p ε δ : ℝ)*(M : ℝ)*(ε : ℝ)^2 := by
@@ -185,7 +185,7 @@ theorem bell_blocks_budget (M : ℕ) (hM : 0<M) (p ε δ : ℚ) (hp : 0≤p) (h�
   nlinarith
 
 -- The inequalities use the actual rounded budgets, not plan certificates.
-/-- Complete original `bell_sparse_rates` guarantee for `RetainedBellPlanArithmetic`; all source hypotheses and output obligations are retained. -/
+/-- When 2ε < p ≤ 1/2 and M > 0, the ceiling log is bounded by both n²/(32M) and that rate times ε²/(4(p + ε)), where n is the rounded cohort size. -/
 theorem bell_sparse_rates (M : ℕ) (hM : 0<M) (p ε δ : ℚ)
     (hp : 0≤p) (hp1 : p≤1/2) (hε : 0<ε) (hmid : ¬p≤2*ε) :
     let r := (bellRecordsQ M p ε δ : ℝ)^2/(32*(M : ℝ))
@@ -214,7 +214,7 @@ theorem bell_sparse_rates (M : ℕ) (hM : 0<M) (p ε δ : ℚ)
     nlinarith [mul_nonneg hr0 (sub_nonneg.mpr hs)]
   exact ⟨hrate.trans hrate1,hrate⟩
 
-/-- Complete original `bell_dense_rates` guarantee for `RetainedBellPlanArithmetic`; all source hypotheses and output obligations are retained. -/
+/-- When 2ε < p ≤ 1/2 and M > 0, both KM/64 and (KM/8)ε²/(4(p + ε)) dominate the ceiling log for the rounded dense block count K. -/
 theorem bell_dense_rates (M : ℕ) (hM : 0<M) (p ε δ : ℚ)
     (hp : 0≤p) (hp1 : p≤1/2) (hε : 0<ε) (hmid : ¬p≤2*ε) :
     (ceilLog2Q (4/δ) : ℝ)≤(bellBlocksQ M p ε δ : ℝ)*(M : ℝ)/64 ∧

@@ -183,6 +183,7 @@ def channelDiamondDist {D : ℕ} (Φ Ψ : Op D → Op D) : ENNReal :=
 
 /-! ## Proven basic facts about the norms and the diamond distance -/
 
+/-- The spectral operator norm of any complex `D × D` matrix is nonnegative. -/
 theorem opNorm_nonneg {D : ℕ} (A : Op D) : 0 ≤ opNorm A := norm_nonneg A
 
 /-- The quantity `maxNorm` is nonnegative. -/

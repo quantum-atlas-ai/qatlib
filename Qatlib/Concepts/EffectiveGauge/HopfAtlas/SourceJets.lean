@@ -100,7 +100,8 @@ open scoped Quaternion ContDiff
 def firstJetPacketVector (p : ℕ) (w : Fin 3 → ℤ) : SpatialPoint :=
   rationalSpatialPoint (fun j => (w j : ℚ)/(2^p : ℚ))
 
-/-- Original `rounded_coordinate_error` guarantee for the `SourceJets` construction; the complete source hypotheses are retained. -/
+/-- If `q` approximates `x` within `2⁻⁽ᵇ⁺²⁾`, rounding `q` to a dyadic with denominator `2^(b + 2)`
+leaves error at most `2⁻ᵇ`. -/
 private theorem rounded_coordinate_error (q : ℚ) (x : ℝ) (b : ℕ)
     (h : |(q : ℝ)-x| ≤ (2^(b+2) : ℝ)⁻¹) :
     |((nearestDyadicNumerator q (b+2) : ℤ) : ℝ)/(2^(b+2) : ℝ)-x| ≤ (2^b : ℝ)⁻¹ := by
@@ -122,7 +123,8 @@ private theorem rounded_coordinate_error (q : ℚ) (x : ℝ) (b : ℕ)
       have ht : (0 : ℝ) ≤ (2^b : ℝ)⁻¹ := by positivity
       linarith
 
-/-- Original `packet_norm_error` guarantee for the `SourceJets` construction; the complete source hypotheses are retained. -/
+/-- If each decoded coordinate of the three-component packet is within `e ≥ 0` of its target, the
+decoded spatial vector differs in norm from the target by at most `2 * e`. -/
 private theorem packet_norm_error (p : ℕ) (w : Fin 3 → ℤ) (x : SpatialPoint)
     (e : ℝ) (he : 0 ≤ e)
     (h : ∀ j, |((w j : ℤ) : ℝ)/(2^p : ℝ)-x j| ≤ e) :

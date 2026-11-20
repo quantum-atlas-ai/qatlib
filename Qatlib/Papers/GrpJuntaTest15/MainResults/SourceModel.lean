@@ -35,7 +35,7 @@ This module fixes the paper-level vocabulary used by every claim file:
   randomized query model), and the "fresh variables" lists of Lemma 3.6;
 * the concrete bounded-error quantum query model of the shared library
   (`Circuit`, `Run`, `IsPovm`, `povmProb` from
-  `Qatlib.Foundations.ReferenceError.MixturePaths` and
+  `Qatlib.Concepts.ReferenceError.MixturePaths` and
   `Qatlib.Concepts.AdversaryBounds.AdvDuality`), specialized to a
   bit phase oracle and to the QGGT block oracle of Definition 5.1;
 * the adversary-bound SDP feasibility/objective vocabulary of Eq. (3), and the

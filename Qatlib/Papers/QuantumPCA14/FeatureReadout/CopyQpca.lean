@@ -28,7 +28,7 @@ measurements, and sine envelope phase accuracy bounds. The definitions `spectral
 
 Threshold selection approximates normalized principal spectral parts under a spectral gap and
 retained mass condition. The normalized Choi state construction also connects process phase
-estimation to complete Kraus representations, and `frontier1` assembles the six resulting
+estimation to complete Kraus representations, and `qpca_evolution_eigenvectors_sampling_and_learning` assembles the six resulting
 specifications. See [LloydMohseniRebentrost2014].
 
 ## Main statements
@@ -43,7 +43,7 @@ specifications. See [LloydMohseniRebentrost2014].
   than `δ`, the sine schedule produces a positive selected branch whose normalized state is
   within `2 * δ` divided by retained mass of the normalized principal part, with the stated rank
   bound and resource tuple.
-* `frontier1`: The six specifications `FullEq2`, `ConditionalEigenvectors`,
+* `qpca_evolution_eigenvectors_sampling_and_learning`: The six specifications `FullEq2`, `ConditionalEigenvectors`,
   `IndependentLearning`, `ImprovedPhase`, `PrincipalComponents`, and `ProcessLearning` all hold.
 
 ## References
@@ -1789,7 +1789,7 @@ def ProcessLearning : Prop :=
 
 /-- The six specifications `FullEq2`, `ConditionalEigenvectors`, `IndependentLearning`,
 `ImprovedPhase`, `PrincipalComponents`, and `ProcessLearning` all hold. -/
-theorem frontier1 : FullEq2 ∧ ConditionalEigenvectors ∧ IndependentLearning ∧
+theorem qpca_evolution_eigenvectors_sampling_and_learning : FullEq2 ∧ ConditionalEigenvectors ∧ IndependentLearning ∧
     ImprovedPhase ∧ PrincipalComponents ∧ ProcessLearning := by
   refine ⟨fun _ _ _ hM hn ρ V eig hρ hV hs => offgrid_full_output hM hn ρ V eig hρ hV hs,
     fun _ _ _ hM hn ρ V eig hρ hV hs z i δ hp hb =>

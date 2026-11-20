@@ -26,7 +26,13 @@ open scoped Quaternion ContDiff
 namespace Qatlib.Concepts.EffectiveGauge.SpectralH1
 open Qatlib.Concepts.EffectiveGauge.HopfAtlas Qatlib.Concepts.EffectiveGauge.RationalFlow Qatlib.Concepts.EffectiveGauge.TorusFourier
 
-/-- Original `materializeSeedTransferredArtifact_H1_correct` guarantee for the `SeedTransferredH1` construction; the complete source hypotheses are retained. -/
+/-- Suppose a smooth periodic unit spin is constant on the part of the fundamental cube outside a
+subset separated from its boundary by a positive gap. Given an accurate all-order jet source, bounds
+for every positive derivative order, a successful cached preparation, and acceptance of the target
+chart for that preparation, the constructor returns an artifact at positive tolerance. The physical
+H¹ energy of its difference from the chart-transferred Poisson gauge is at most tolerance squared
+over four, and its square root is at most half the tolerance. At every rational point, evaluation
+approximates the artifact field within half any requested positive accuracy. -/
 theorem materializeSeedTransferredArtifact_H1_correct (v : SpatialPoint → SpatialPoint)
     (hv : ContDiff ℝ ∞ v) (hu : ∀ x, ‖v x‖=1) (hp : IsPeriodicField v)
     (source : RationalJetSource) (hs : OriginalAllJetAccurate v source)
@@ -155,7 +161,13 @@ theorem materializeSeedTransferredArtifact_H1_correct (v : SpatialPoint → Spat
       exact transferredGaugeArtifactValue_error artifact X accuracy hacc
 
 
-/-- Original `automaticSeedTransferredArtifact_H1_correct` guarantee for the `SeedTransferredH1` construction; the complete source hypotheses are retained. -/
+/-- Suppose a smooth periodic unit spin is constant on the part of the fundamental cube outside a
+subset separated from its boundary by a positive gap. Given an accurate all-order jet source, bounds
+for every positive derivative order, and acceptance of the target chart for every successful cached
+preparation, positive tolerance gives both a returned preparation and a returned artifact. The
+physical H¹ energy of the difference from the chart-transferred Poisson gauge is at most tolerance
+squared over four, and its square root is at most half the tolerance. At every rational point,
+evaluation differs from the artifact field by at most half any requested positive accuracy. -/
 theorem automaticSeedTransferredArtifact_H1_correct (v : SpatialPoint → SpatialPoint)
     (hv : ContDiff ℝ ∞ v) (hu : ∀ x, ‖v x‖=1) (hp : IsPeriodicField v)
     (source : RationalJetSource) (hs : OriginalAllJetAccurate v source)
@@ -202,7 +214,12 @@ theorem automaticSeedTransferredArtifact_H1_correct (v : SpatialPoint → Spatia
   exact hmat
 
 
-/-- Original `seedTransferredTarget_spec` guarantee for the `SeedTransferredH1` construction; the complete source hypotheses are retained. -/
+/-- Suppose a smooth periodic unit spin with an accurate all-order jet source is constant on the
+part of the fundamental cube outside a subset at positive distance from its boundary, and the target
+chart is accepted for the supplied preparation. The transferred target is a smooth periodic unit
+Hopf lift with divergence-free connection. At every point its connection components equal those of
+the selected Poisson gauge. Its value at the origin is the exact target-chart seed and has the
+chart's real component greater than one half and the corresponding imaginary component zero. -/
 theorem seedTransferredTarget_spec (v : SpatialPoint → SpatialPoint)
     (hv : ContDiff ℝ ∞ v) (hu : ∀ x, ‖v x‖=1) (hp : IsPeriodicField v)
     (source : RationalJetSource) (hs : OriginalAllJetAccurate v source)

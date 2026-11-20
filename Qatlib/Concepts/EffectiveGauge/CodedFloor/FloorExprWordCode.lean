@@ -34,7 +34,9 @@ def floorExprJetCode (code : ℕ) (alpha : ℕ × ℕ × ℕ) : ℕ :=
   floorExprRepeatDiffCode 0 alpha.1
     (floorExprRepeatDiffCode 1 alpha.2.1 (floorExprRepeatDiffCode 2 alpha.2.2 code))
 
-/-- Original `floorComputableNatIterate` guarantee for the `FloorExprWordCode` construction; the complete source hypotheses are retained. -/
+/-- With a computable two-input step on primitively codable types, iterating the step while
+holding its first argument fixed is computable in the argument, iteration count, and initial
+state. -/
 private theorem floorComputableNatIterate {A B : Type*} [Primcodable A] [Primcodable B]
     (step : A → B → B) (hstep : Computable₂ step) :
     Computable (fun q : A × ℕ × B => Nat.rec (motive := fun _ => B) q.2.2 (fun _ value => step q.1 value) q.2.1) :=
@@ -42,12 +44,14 @@ private theorem floorComputableNatIterate {A B : Type*} [Primcodable A] [Primcod
     (Computable.snd.comp Computable.snd)
     ((hstep.comp (Computable.fst.comp Computable.fst) (Computable.snd.comp Computable.snd)).to₂)
 
-/-- Original `computable_floorExprRepeatDiffCode` guarantee for the `FloorExprWordCode` construction; the complete source hypotheses are retained. -/
+/-- Repeated coded differentiation is computable in the packed axis, repetition count, and
+starting expression code. -/
 theorem computable_floorExprRepeatDiffCode : Computable (fun q : ℕ × ℕ × ℕ =>
     floorExprRepeatDiffCode q.1 q.2.1 q.2.2) :=
   floorComputableNatIterate floorExprDiffCode computable_floorExprDiffCode
 
-/-- Original `floorComputableThreeIterates` guarantee for the `FloorExprWordCode` construction; the complete source hypotheses are retained. -/
+/-- If the given iterator is computable, applying the axis-2, axis-1, and axis-0 iterations in
+that order with their respective counts remains computable. -/
 private theorem floorComputableThreeIterates (iter : ℕ → ℕ → ℕ → ℕ)
     (hrep : Computable (fun q : ℕ × ℕ × ℕ => iter q.1 q.2.1 q.2.2)) :
     Computable (fun q : ℕ × (ℕ × ℕ × ℕ) =>
@@ -61,11 +65,13 @@ private theorem floorComputableThreeIterates (iter : ℕ → ℕ → ℕ → ℕ
       ((Computable.fst.comp (Computable.snd.comp Computable.snd)).pair hz))
   exact hrep.comp ((Computable.const 0).pair ((Computable.fst.comp Computable.snd).pair hy))
 
-/-- Original `computable_floorExprJetCode` guarantee for the `FloorExprWordCode` construction; the complete source hypotheses are retained. -/
+/-- The coded jet constructor is computable jointly in the expression code and the triple of
+coordinate derivative counts. -/
 theorem computable_floorExprJetCode : Computable₂ floorExprJetCode :=
   floorComputableThreeIterates floorExprRepeatDiffCode computable_floorExprRepeatDiffCode
 
-/-- Original `floorExprDecode_iterDiffCode` guarantee for the `FloorExprWordCode` construction; the complete source hypotheses are retained. -/
+/-- Decoding `count` coded differentiations in one axis gives the jet word consisting of `count`
+repetitions of the decoded coordinate. -/
 theorem floorExprDecode_iterDiffCode (axis count code : ℕ) :
     floorExprDecode (floorExprRepeatDiffCode axis count code)=
       floorJetWord (floorExprDecode code) (List.replicate count (floorExprAxis axis)) := by
@@ -75,7 +81,8 @@ theorem floorExprDecode_iterDiffCode (axis count code : ℕ) :
     change floorExprDecode (floorExprDiffCode axis (floorExprRepeatDiffCode axis count code))=_
     rw [floorExprDecode_diffCode,List.replicate_succ,floorJetWord,ih]
 
-/-- Original `floorExprDecode_jetCode` guarantee for the `FloorExprWordCode` construction; the complete source hypotheses are retained. -/
+/-- Decoding the jet code for the three counts of `alpha` differentiates the decoded expression
+along the canonical coordinate word of `alpha`. -/
 theorem floorExprDecode_jetCode (code : ℕ) (alpha : Fin 3 → ℕ) :
     floorExprDecode (floorExprJetCode code (alpha 0,alpha 1,alpha 2))=
       floorJetWord (floorExprDecode code) (sourceCanonicalWord alpha) := by

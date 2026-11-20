@@ -29,7 +29,7 @@ def rationalSmoothStep (x tolerance : ℚ) : RationalScalarResult :=
 
 noncomputable section
 
-/-- Original `exp_neg_two_lower` guarantee for the `SmoothStepProgram` construction; the complete source hypotheses are retained. -/
+/-- The exponential of `-2` is at least `1/8`. -/
 private theorem exp_neg_two_lower : (1/8 : ℝ) ≤ Real.exp (-2) := by
   have h1 : Real.exp 1<11/4 := lt_trans Real.exp_one_lt_d9 (by norm_num)
   have h2 : Real.exp 2<8 := by
@@ -39,7 +39,7 @@ private theorem exp_neg_two_lower : (1/8 : ℝ) ≤ Real.exp (-2) := by
   rw [Real.exp_neg]
   simpa only [one_div] using (one_div_le_one_div_of_le (Real.exp_pos 2) h2.le)
 
-/-- Original `smoothStep_sum_lower` guarantee for the `SmoothStepProgram` construction; the complete source hypotheses are retained. -/
+/-- For every positive `x`, the sum of `exp (-x⁻¹)` and `exp (-(1 - x)⁻¹)` is at least `1/8`. -/
 private theorem smoothStep_sum_lower (x : ℝ) (hx : 0<x) :
     (1/8 : ℝ) ≤ Real.exp (-x⁻¹)+Real.exp (-(1-x)⁻¹) := by
   by_cases hh : 1/2 ≤ x

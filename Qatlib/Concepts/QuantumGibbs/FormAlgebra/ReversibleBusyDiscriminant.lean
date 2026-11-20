@@ -574,7 +574,7 @@ theorem exists_one_of_busy_spectral_frame {I : Type} [Fintype I] [DecidableEq I]
 
 /-- Constructs a busy Szegedy spectral frame with a unique stationary eigenvector and nonzero
 phase distances at least half the positive absolute gap. -/
-theorem frontier1 {I : Type} [Fintype I] [Nonempty I] [DecidableEq I]
+theorem exists_busy_szegedy_frame_of_positive_absolute_gap {I : Type} [Fintype I] [Nonempty I] [DecidableEq I]
     (P : I → I → ℝ) (π : I → ℝ) (δ : ℝ) (hP : IsTransitionMatrix P)
     (hprim : Matrix.IsPrimitive P) (hπ : ∀ x, 0 < π x) (hsum : ∑ x, π x = 1)
     (hrev : IsReversible P π) (hδ : 0 < δ) (hgap : AbsoluteDiscriminantGap P δ) :

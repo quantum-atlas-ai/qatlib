@@ -35,7 +35,8 @@ open Qatlib
 
 variable {S : Type} [DecidableEq S]
 
-/-- Complete original `occupied_set_average_eq_ordered_average` guarantee for `OrderedSetAverageBridge`; all source hypotheses and output obligations are retained. -/
+/-- When the site array is injective, averaging a function over its occupied set gives the same
+result as averaging it over the indexed entries. -/
 theorem occupied_set_average_eq_ordered_average {n : ℕ} (J : Fin n → S)
     (hJ : Function.Injective J) (f : S → ℝ) :
     setAverage (occupiedSites J) f = FinDist.avg f J := by

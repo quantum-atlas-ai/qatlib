@@ -37,7 +37,8 @@ def controlledEmbedding (U : I → Matrix A A ℂ) : Matrix (I × A) A ℂ :=
   fun z a => orbitCoefficient (I := I)*U z.1 z.2 a
 
 omit [Fintype A] [DecidableEq A] in
-/-- Complete original `orbit_coefficient_normalization` guarantee for `LabelPhaseIsometry`; all source hypotheses and output obligations are retained. -/
+/-- For a nonempty finite label type, the squared magnitude of the uniform orbit coefficient
+times the number of labels is one. -/
 theorem orbit_coefficient_normalization :
     (Fintype.card I : ℂ)*(star (orbitCoefficient (I := I))*orbitCoefficient (I := I))=1 := by
   have hN : (0 : ℝ) < (Fintype.card I : ℝ) := by exact_mod_cast Fintype.card_pos
@@ -49,7 +50,8 @@ theorem orbit_coefficient_normalization :
   unfold orbitCoefficient
   simpa using (congrArg (fun x : ℝ => (x : ℂ)) hr)
 
-/-- Complete original `controlled_embedding_isometry` guarantee for `LabelPhaseIsometry`; all source hypotheses and output obligations are retained. -/
+/-- If every branch matrix satisfies `U† U = 1`, the orbit-weighted controlled embedding into
+the label and data registers is an isometry. -/
 theorem controlled_embedding_isometry (U : I → Matrix A A ℂ)
     (hU : ∀ i, (U i).conjTranspose*U i=1) :
     (controlledEmbedding U).conjTranspose*controlledEmbedding U=1 := by
@@ -72,20 +74,23 @@ theorem controlled_embedding_isometry (U : I → Matrix A A ℂ)
     _ = (1 : Matrix A A ℂ) a b := by rw [orbit_coefficient_normalization]; ring
 
 omit [Nonempty I] in
-/-- Complete original `permutation_isometry` guarantee for `LabelPhaseIsometry`; all source hypotheses and output obligations are retained. -/
+/-- The complex matrix of a permutation is an isometry, so its conjugate transpose times itself
+is the identity. -/
 theorem permutation_isometry (e : Equiv.Perm A) :
     (e.permMatrix ℂ).conjTranspose*e.permMatrix ℂ=1 := by
   rw [Matrix.conjTranspose_permMatrix, ← Matrix.permMatrix_mul]
   simp
 
-/-- Complete original `controlled_permutation_isometry` guarantee for `LabelPhaseIsometry`; all source hypotheses and output obligations are retained. -/
+/-- Controlling a family of permutations by a uniform label register gives an isometric
+embedding of the data register. -/
 theorem controlled_permutation_isometry (e : I → Equiv.Perm A) :
     (controlledEmbedding (fun i => (e i).permMatrix ℂ)).conjTranspose*
       controlledEmbedding (fun i => (e i).permMatrix ℂ)=1 :=
   controlled_embedding_isometry _ (fun i => permutation_isometry (e i))
 
 omit [Nonempty I] [DecidableEq A] in
-/-- Complete original `controlled_embedding_apply` guarantee for `LabelPhaseIsometry`; all source hypotheses and output obligations are retained. -/
+/-- The amplitude at label `i` and data index `a` is the amplitude of `U i` applied to the input
+vector at `a`, scaled by the uniform orbit coefficient. -/
 theorem controlled_embedding_apply (U : I → Matrix A A ℂ) (v : A → ℂ) (i : I) (a : A) :
     ((controlledEmbedding U)*ᵥ v) (i,a)=orbitCoefficient (I := I)*((U i)*ᵥ v) a := by
   simp only [Matrix.mulVec, dotProduct, controlledEmbedding]
@@ -94,7 +99,8 @@ theorem controlled_embedding_apply (U : I → Matrix A A ℂ) (v : A → ℂ) (i
   intro x _
   ring
 
-/-- Complete original `controlled_embedding_trace` guarantee for `LabelPhaseIsometry`; all source hypotheses and output obligations are retained. -/
+/-- If each branch matrix is an isometry, conjugating a data matrix by the controlled embedding
+preserves its trace. -/
 theorem controlled_embedding_trace (U : I → Matrix A A ℂ)
     (hU : ∀ i, (U i).conjTranspose*U i=1) (ρ : Matrix A A ℂ) :
     Matrix.trace (controlledEmbedding U*ρ*(controlledEmbedding U).conjTranspose)=Matrix.trace ρ := by

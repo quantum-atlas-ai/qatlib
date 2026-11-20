@@ -60,7 +60,7 @@ def lowSpinBellReceipts (e : Fin d → Equiv.Perm S) (spin : Option BellPlanQ) :
   | none => fun _ => []
   | some q => fun ω => List.ofFn (fun j : Fin d => executePlannedBellQ q (e j) (ω j))
 
-/-- Complete original `low_spin_bell_wire_account` guarantee for `LowSpinAccounting`; all source hypotheses and output obligations are retained. -/
+/-- Across all Bell receipts, the copies split into discarded wires and two wires per test. Each test charges two native gates, and the Bell receipts charge zero native queries. -/
 theorem low_spin_bell_wire_account (e : Fin d → Equiv.Perm S) (spin : Option BellPlanQ)
     (ω : LowSpinBellData S d e spin) :
     let rs := lowSpinBellReceipts e spin ω
@@ -82,7 +82,7 @@ theorem low_spin_bell_wire_account (e : Fin d → Equiv.Perm S) (spin : Option B
 
 -- This helper's consistency premise is proved from the literal constructor
 -- below; it is not supplied by an execution caller or a success certificate.
-/-- Complete original `low_spin_bell_copy_sum` guarantee for `LowSpinAccounting`; all source hypotheses and output obligations are retained. -/
+/-- If any present Bell plan budgets two cohorts of the stated size per block, the receipt copy counts sum to the scheduled spin copy count for every observation. -/
 theorem low_spin_bell_copy_sum (e : Fin d → Equiv.Perm S) (spin : Option BellPlanQ)
     (hplan : ∀ q,spin=some q → q.blocks*(q.records+q.records)=q.copies)
     (ω : LowSpinBellData S d e spin) :
@@ -95,7 +95,7 @@ theorem low_spin_bell_copy_sum (e : Fin d → Equiv.Perm S) (spin : Option BellP
     simp
 
 omit [DecidableEq S] in
-/-- Complete original `bell_plan_geometric_copies` guarantee for `LowSpinAccounting`; all source hypotheses and output obligations are retained. -/
+/-- The Bell plan for any side length budgets exactly two cohorts of `records` copies per block. -/
 theorem bell_plan_geometric_copies (side M : ℕ) (p ε δ : ℚ) :
     let q := bellPlanQ side M p ε δ
     q.blocks*(q.records+q.records)=q.copies := by
@@ -110,7 +110,7 @@ theorem bell_plan_geometric_copies (side M : ℕ) (p ε δ : ℚ) :
         ring
 
 omit [DecidableEq S] in
-/-- Complete original `low_spin_plan_bell_consistency` guarantee for `LowSpinAccounting`; all source hypotheses and output obligations are retained. -/
+/-- Whenever the constructed low-spin plan contains a Bell plan, that plan's copies equal the total sizes of its two cohorts across all blocks. -/
 theorem low_spin_plan_bell_consistency (side d M : ℕ) (rootM α β U γ η δ p₀ : ℚ) :
     ∀ q,(lowSpinPlanQ side d M rootM α β U γ η δ p₀).spin=some q →
       q.blocks*(q.records+q.records)=q.copies := by
@@ -150,7 +150,7 @@ def executeLowSpinQ [LinearOrder S] (p : LowSpinPlanQ) (u : Fin d → S → ℚ)
       p.velocity.norm.blocks (z.1 j).2.2).length else 0
   spin := lowSpinBellReceipts e p.spin z.2
 
-/-- Complete original `executed_low_spin_copies` guarantee for `LowSpinAccounting`; all source hypotheses and output obligations are retained. -/
+/-- For every input of the generated low-spin plan, the execution receipt accounts for exactly the planned number of copies. -/
 theorem executed_low_spin_copies [LinearOrder S] (side d : ℕ)
     (rootM α β U γ η δ p₀ : ℚ) (u : Fin d → S → ℚ) (e : Fin d → Equiv.Perm S)
     (z : LowSpinData S d e (lowSpinPlanQ side d (Fintype.card S) rootM α β U γ η δ p₀)) :
@@ -174,7 +174,7 @@ theorem executed_low_spin_copies [LinearOrder S] (side d : ℕ)
   rw [hpv]
   simp [lowSpinBellScheduledCopies]
 
-/-- Complete original `executed_low_spin_query_bound` guarantee for `LowSpinAccounting`; all source hypotheses and output obligations are retained. -/
+/-- For every input of the generated low-spin plan, the receipt's target-query count is bounded by the plan's target-query budget. -/
 theorem executed_low_spin_query_bound [LinearOrder S] (side d : ℕ)
     (rootM α β U γ η δ p₀ : ℚ) (u : Fin d → S → ℚ) (e : Fin d → Equiv.Perm S)
     (z : LowSpinData S d e (lowSpinPlanQ side d (Fintype.card S) rootM α β U γ η δ p₀)) :
@@ -196,7 +196,7 @@ theorem executed_low_spin_query_bound [LinearOrder S] (side d : ℕ)
       change (∑ _j : Fin d,_)=d*min p.velocity.crossRecords (Fintype.card S)+d*p.velocity.norm.queries
       simp [Nat.mul_add]
 
-/-- Complete original `executed_low_spin_uniform_sites` guarantee for `LowSpinAccounting`; all source hypotheses and output obligations are retained. -/
+/-- The receipt counts d times the per-axis norm query count as uniform site draws in sampled norm mode, and zero in the other modes. -/
 theorem executed_low_spin_uniform_sites [LinearOrder S] (side d : ℕ)
     (rootM α β U γ η δ p₀ : ℚ) (u : Fin d → S → ℚ) (e : Fin d → Equiv.Perm S)
     (z : LowSpinData S d e (lowSpinPlanQ side d (Fintype.card S) rootM α β U γ η δ p₀)) :
@@ -213,7 +213,7 @@ theorem executed_low_spin_uniform_sites [LinearOrder S] (side d : ℕ)
   simp_rw [hN]
   simp [p]
 
-/-- Complete original `executed_low_spin_bell_wire_account` guarantee for `LowSpinAccounting`; all source hypotheses and output obligations are retained. -/
+/-- The execution receipt counts velocity copies plus Bell discards and two copies per Bell test. The spin receipts charge two native gates per test and zero native queries. -/
 theorem executed_low_spin_bell_wire_account [LinearOrder S] (p : LowSpinPlanQ)
     (u : Fin d → S → ℚ) (e : Fin d → Equiv.Perm S) (α β U γ : ℚ) (z : LowSpinData S d e p) :
     let r := executeLowSpinQ p u e α β U γ z
@@ -250,7 +250,7 @@ open Matched ParameterEncoding
 variable {S : Type} [Fintype S] [LinearOrder S] {d : ℕ}
 
 omit [Fintype S] in
-/-- Complete original `low_spin_bell_value_receipts` guarantee for `LowSpinAccounting`; all source hypotheses and output obligations are retained. -/
+/-- For nonnegative spin weight γ, the spin value is 4γ times the sum of the Bell receipt values, clipped to [0, 2dγ]. -/
 theorem low_spin_bell_value_receipts (e : Fin d → Equiv.Perm S) (γ : ℚ) (hγ : 0≤γ)
     (spin : Option BellPlanQ) (ω : LowSpinBellData S d e spin) :
     lowSpinBellValueQ e γ spin ω=intervalClipQ 0 (2*(d : ℚ)*γ)
@@ -263,7 +263,7 @@ theorem low_spin_bell_value_receipts (e : Fin d → Equiv.Perm S) (γ : ℚ) (h�
   | some q =>
     simp only [lowSpinBellValueQ,lowSpinBellReceipts,List.map_ofFn,Function.comp_def,List.sum_ofFn]
 
-/-- Complete original `executed_low_spin_value` guarantee for `LowSpinAccounting`; all source hypotheses and output obligations are retained. -/
+/-- For nonnegative γ, the receipt value is its velocity value plus 4γ times the sum of the Bell receipt values clipped to [0, 2dγ]. -/
 theorem executed_low_spin_value (p : LowSpinPlanQ) (u : Fin d → S → ℚ)
     (e : Fin d → Equiv.Perm S) (α β U γ : ℚ) (hγ : 0≤γ) (z : LowSpinData S d e p) :
     let r := executeLowSpinQ p u e α β U γ z
@@ -275,7 +275,7 @@ theorem executed_low_spin_value (p : LowSpinPlanQ) (u : Fin d → S → ℚ)
 
 -- The data-dependent receipt and literal plan are the ones used by the
 -- statistical endpoint. The order supplies classical enumeration only.
-/-- Complete original `executed_low_spin_original_guarantees` guarantee for `LowSpinAccounting`; all source hypotheses and output obligations are retained. -/
+/-- If coefficient generation returns the candidate and the target and conditional Bell mean bounds hold, the receipt value has error above η with probability at most δ for the original grid loss. Every input yields the planned copy count, at most the budgeted target queries and exactly d times the per-axis norm query count in uniform site draws in sampled norm mode, or zero such draws otherwise. -/
 theorem executed_low_spin_original_guarantees {d r : ℕ}
     [LinearOrder (Fin d → Fin (2^r))]
     (κ lam U η δ eb p₀ : ℚ) (coef : CoefficientCandidateQ)
@@ -313,7 +313,7 @@ theorem executed_low_spin_original_guarantees {d r : ℕ}
   exact ⟨hledger,generated_low_spin_original_accuracy κ lam U η δ eb p₀ coef hc hd hκ hU hη
     hδ hδ1 heb0 heb a b c k hz u û hu htarget hp hp1 hmean⟩
 
-/-- Complete original `executed_enclosed_low_spin_original_accuracy` guarantee for `LowSpinAccounting`; all source hypotheses and output obligations are retained. -/
+/-- If coefficient generation returns the candidate at the enclosed parameter approximations, the low-spin receipt value has bad mass at most δ at tolerance η for the real grid loss, under the target error, conditional Bell mean and parameter bias bounds. -/
 theorem executed_enclosed_low_spin_original_accuracy {d r : ℕ}
     [LinearOrder (Fin d → Fin (2^r))] (box : PhysicalBoxQ) (U η0 δ0 eb p₀ : ℚ)
     (κ lam η δ : ℝ) (coef : CoefficientCandidateQ)
@@ -370,7 +370,7 @@ def executeBellExecutableQ (q : BellPlanQ) (τ : Equiv.Perm S)
 
 noncomputable section
 
-/-- Complete original `bell_executable_eq` guarantee for `LowSpinAccounting`; all source hypotheses and output obligations are retained. -/
+/-- For every Bell observation batch, the executable pooling routine returns the same value and resource fields as planned Bell execution. -/
 theorem bell_executable_eq (q : BellPlanQ) (τ : Equiv.Perm S)
     (ω : Fin q.blocks → CohortObservation q.records q.records τ) :
     executeBellExecutableQ q τ ω=executePlannedBellQ q τ ω := by
@@ -416,7 +416,7 @@ def executeLowSpinExecutableQ (p : LowSpinPlanQ) (u : Fin d → S → ℚ)
 noncomputable section
 
 omit [Fintype S] [LinearOrder S] in
-/-- Complete original `low_spin_bell_executable_receipts_eq` guarantee for `LowSpinAccounting`; all source hypotheses and output obligations are retained. -/
+/-- The executable per-axis Bell receipts agree with the planned receipts for every observation, including the empty list when spin sampling is absent. -/
 theorem low_spin_bell_executable_receipts_eq (e : Fin d → Equiv.Perm S) (spin : Option BellPlanQ)
     (ω : LowSpinBellData S d e spin) :
     lowSpinBellExecutableReceipts e spin ω=lowSpinBellReceipts e spin ω := by
@@ -429,13 +429,13 @@ theorem low_spin_bell_executable_receipts_eq (e : Fin d → Equiv.Perm S) (spin 
     exact bell_executable_eq q (e j) (ω j)
 
 omit [Fintype S] [LinearOrder S] in
-/-- Complete original `low_spin_bell_executable_value_eq` guarantee for `LowSpinAccounting`; all source hypotheses and output obligations are retained. -/
+/-- Computing the spin value from executable Bell receipts gives exactly the planned Bell value for the same weight and observations. -/
 theorem low_spin_bell_executable_value_eq (e : Fin d → Equiv.Perm S) (γ : ℚ) (spin : Option BellPlanQ)
     (ω : LowSpinBellData S d e spin) :
     lowSpinBellExecutableValueQ e γ spin ω=lowSpinBellValueQ e γ spin ω := by
   cases spin <;> rfl
 
-/-- Complete original `low_spin_executable_eq` guarantee for `LowSpinAccounting`; all source hypotheses and output obligations are retained. -/
+/-- For every low-spin input, the executable routine returns the same estimate and resource receipt as the planned routine. -/
 theorem low_spin_executable_eq (p : LowSpinPlanQ) (u : Fin d → S → ℚ)
     (e : Fin d → Equiv.Perm S) (α β U γ : ℚ) (z : LowSpinData S d e p) :
     executeLowSpinExecutableQ p u e α β U γ z=executeLowSpinQ p u e α β U γ z := by

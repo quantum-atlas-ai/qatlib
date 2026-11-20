@@ -21,7 +21,7 @@ one-way computation framework of [RaussendorfBriegel2000].
 
 ## Main statements
 
-* `frontier1`: Constructs the branch instrument and gives subset probability and joint-output
+* `reflection_graph_instrument_subset_mass_and_output`: Constructs the branch instrument and gives subset probability and joint-output
   formulas.
 * `conditional_reference`: Normalizing any nonempty subset of histories gives `referenceOutput`.
 
@@ -56,7 +56,7 @@ def referenceOutput {n : ℕ} (gs : List (ReflectionGate n)) (R : ℕ)
 /-- A legal local gate list yields an instrument realizing its graph branches, with subset
 probabilities proportional to subset cardinality. The corresponding subset sum on any joint
 operator is the same scalar times `referenceOutput`. -/
-theorem frontier1 {n : ℕ} (gs : List (ReflectionGate n)) (hgs : reflectionLegal gs) :
+theorem reflection_graph_instrument_subset_mass_and_output {n : ℕ} (gs : List (ReflectionGate n)) (hgs : reflectionLegal gs) :
     let G := mbqcGraphWord gs
     let m := 4*(mbqcLocalCounts gs).1 + 2*(mbqcLocalCounts gs).2
     ∃ I : Instrument (GraphHistory G) (2^n) (2^n),
@@ -83,7 +83,7 @@ theorem conditional_reference {n : ℕ} (gs : List (ReflectionGate n)) (hgs : re
     (X : Matrix (Fin (2^n) × Fin R) (Fin (2^n) × Fin R) ℂ) :
     (((S.card : ℂ) * (1/2 : ℂ)^(4*(mbqcLocalCounts gs).1+2*(mbqcLocalCounts gs).2))⁻¹) •
       (∑ h ∈ S, graphActualReference true (mbqcGraphWord gs) h R X) = referenceOutput gs R X := by
-  obtain ⟨_, _, _, href⟩ := frontier1 gs hgs
+  obtain ⟨_, _, _, href⟩ := reflection_graph_instrument_subset_mass_and_output gs hgs
   rw [href S R X, smul_smul]
   have hc : (S.card : ℂ) ≠ 0 := by exact_mod_cast (Finset.card_pos.mpr hS).ne'
   have hw : (S.card : ℂ) * (1/2 : ℂ)^(4*(mbqcLocalCounts gs).1+2*(mbqcLocalCounts gs).2) ≠ 0 :=

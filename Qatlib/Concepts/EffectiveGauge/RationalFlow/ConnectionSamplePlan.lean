@@ -37,13 +37,15 @@ def rationalConnectionForwardSample (center neighbor : Quaternion ℚ) (h : ℚ)
   ((-center.imI)*(neighbor.re-center.re)+center.re*(neighbor.imI-center.imI)
     -center.imK*(neighbor.imJ-center.imJ)+center.imJ*(neighbor.imK-center.imK))/h
 
-/-- Original `connectionSampleSpacing_pos` guarantee for the `ConnectionSamplePlan` construction; the complete source hypotheses are retained. -/
+/-- The selected forward-difference spacing is positive for a nonnegative second derivative bound
+and positive tolerance. -/
 theorem connectionSampleSpacing_pos (R2 tolerance : ℚ) (hR : 0 ≤ R2) (ht : 0<tolerance) :
     0<connectionSampleSpacing R2 tolerance := by
   apply lt_min (by norm_num)
   exact div_pos ht (by positivity)
 
-/-- Original `connectionSampleAccuracy_pos` guarantee for the `ConnectionSamplePlan` construction; the complete source hypotheses are retained. -/
+/-- The selected quaternion sample accuracy is positive for nonnegative first and second derivative
+bounds and positive tolerance. -/
 theorem connectionSampleAccuracy_pos (R1 R2 tolerance : ℚ)
     (h1 : 0 ≤ R1) (h2 : 0 ≤ R2) (ht : 0<tolerance) :
     0<connectionSampleAccuracy R1 R2 tolerance := by
@@ -84,7 +86,8 @@ theorem connectionSamplePlan_budget (R1 R2 tolerance : ℚ)
 noncomputable section
 open scoped Quaternion
 
-/-- Original `rationalConnectionForwardSample_cast` guarantee for the `ConnectionSamplePlan` construction; the complete source hypotheses are retained. -/
+/-- Casting the rational forward connection sample gives the real forward connection sample of the
+cast quaternions and spacing. -/
 theorem rationalConnectionForwardSample_cast (center neighbor : Quaternion ℚ) (h : ℚ) :
     (rationalConnectionForwardSample center neighbor h : ℝ)=
       connectionForwardSample (rationalQuaternionCast center) (rationalQuaternionCast neighbor) (h : ℝ) := by

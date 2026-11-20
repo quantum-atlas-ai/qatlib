@@ -40,7 +40,11 @@ noncomputable section
 open Set
 open scoped Quaternion ContDiff
 
-/-- Original `selectedPoissonGauge_normalized_word_bound` guarantee for the `GaugeWordBound` construction; the complete source hypotheses are retained. -/
+/-- For a smooth periodic quaternion field, if `C6` bounds the repeated sixth axis derivatives of
+each normalized connection component on the unit cube and `R` bounds the normalized field
+derivatives through order three globally, the selected Poisson gauge has normalized coordinate-word
+derivatives bounded globally by `gaugeWordMajorant` with the selected winding and the given order.
+-/
 theorem selectedPoissonGauge_normalized_word_bound (q : QuaternionField) (hq : ContDiff ℝ ∞ q)
     (hp : IsPeriodicField q) (C6 : ℚ)
     (hC6 : ∀ j i x, InUnitCube x →
@@ -74,7 +78,11 @@ theorem selectedPoissonGauge_normalized_word_bound (q : QuaternionField) (hq : C
     (fun z hz => hphase z (hz.trans hw)) (fun z hz => hR z (hz.trans hw) x)
   simpa only [gaugeWordMajorant,wordProductMajorant,Rat.cast_sum,Rat.cast_mul,Rat.cast_natCast] using h
 
-/-- Original `materializeReferencePreparation_gauge_word_bound` guarantee for the `GaugeWordBound` construction; the complete source hypotheses are retained. -/
+/-- For a smooth periodic unit source with accurate rational jets, positive certified jet bounds
+and a successful mean cache, the cached gauge majorant bounds all normalized derivatives of the
+selected Poisson gauge through order three. The collar must satisfy `0 < eta ≤ 1/2` and
+`7 * eta ≤ mu / 2`. The field must be constant on the part of the fundamental cube outside a
+subset at distance at least `mu > 0` from its boundary. -/
 theorem materializeReferencePreparation_gauge_word_bound (v : SpatialPoint → SpatialPoint)
     (hv : ContDiff ℝ ∞ v) (hu : ∀ x, ‖v x‖=1) (hp : IsPeriodicField v)
     (source : RationalJetSource) (hs : OriginalAllJetAccurate v source)

@@ -39,18 +39,18 @@ def frequencyGridIndex (N : ℕ) (k : SpatialFrequency) : SourceMeanIndex :=
 def sourceFrequencyGrid (N : ℕ) : List SpatialFrequency :=
   (sourceMeanGrid (2*N+1)).map (frequencyGridValue N)
 
-/-- Original `frequencyGridIndex_leftInverse` guarantee for the `FrequencyGridExecution` construction; the complete source hypotheses are retained. -/
+/-- Converting a natural grid index to a frequency by subtracting `N` in each coordinate and then converting back recovers the original index. -/
 theorem frequencyGridIndex_leftInverse (N : ℕ) :
     Function.LeftInverse (frequencyGridIndex N) (frequencyGridValue N) := by
   intro index
   rcases index with ⟨a,b,c⟩
   simp [frequencyGridIndex,frequencyGridValue,sourceMeanIndexCoord]
 
-/-- Original `sourceFrequencyGrid_length` guarantee for the `FrequencyGridExecution` construction; the complete source hypotheses are retained. -/
+/-- The list enumerating the three-dimensional radius-`N` frequency grid has length `(2*N+1)^3`. -/
 theorem sourceFrequencyGrid_length (N : ℕ) : (sourceFrequencyGrid N).length=(2*N+1)^3 := by
   simp only [sourceFrequencyGrid,List.length_map,sourceMeanGrid_length]
 
-/-- Original `sourceMeanGrid_nodup` guarantee for the `FrequencyGridExecution` construction; the complete source hypotheses are retained. -/
+/-- Each triple of indices in the mean grid occurs at most once. -/
 theorem sourceMeanGrid_nodup (M : ℕ) : (sourceMeanGrid M).Nodup := by
   have heq : sourceMeanGrid M=(List.range M).product ((List.range M).product (List.range M)) := by
     simp only [sourceMeanGrid,List.product,List.map_flatMap,List.map_map,Function.comp_def]
@@ -58,11 +58,11 @@ theorem sourceMeanGrid_nodup (M : ℕ) : (sourceMeanGrid M).Nodup := by
   exact (List.nodup_range (n := M)).product
     ((List.nodup_range (n := M)).product (List.nodup_range (n := M)))
 
-/-- Original `sourceFrequencyGrid_nodup` guarantee for the `FrequencyGridExecution` construction; the complete source hypotheses are retained. -/
+/-- The frequency list contains no duplicate integer triples. -/
 theorem sourceFrequencyGrid_nodup (N : ℕ) : (sourceFrequencyGrid N).Nodup :=
   (sourceMeanGrid_nodup _).map (frequencyGridIndex_leftInverse N).injective
 
-/-- Original `sourceFrequencyGrid_mem` guarantee for the `FrequencyGridExecution` construction; the complete source hypotheses are retained. -/
+/-- A frequency occurs in the grid list exactly when each integer coordinate lies between `-N` and `N`, inclusive. -/
 theorem sourceFrequencyGrid_mem (N : ℕ) (k : SpatialFrequency) :
     k∈sourceFrequencyGrid N ↔ ∀ j, -(N : ℤ) ≤ k j ∧ k j ≤ (N : ℤ) := by
   constructor
@@ -96,7 +96,7 @@ theorem sourceFrequencyGrid_mem (N : ℕ) (k : SpatialFrequency) :
       all_goals omega
     exact List.mem_map.mpr ⟨index,hidx,hval⟩
 
-/-- Original `sourceFrequencyGrid_toFinset` guarantee for the `FrequencyGridExecution` construction; the complete source hypotheses are retained. -/
+/-- The set of entries in the frequency list is the closed integer coordinate box of radius `N`. -/
 theorem sourceFrequencyGrid_toFinset (N : ℕ) :
     (sourceFrequencyGrid N).toFinset=Finset.Icc (-N : SpatialFrequency) N := by
   apply Finset.ext
@@ -106,7 +106,7 @@ theorem sourceFrequencyGrid_toFinset (N : ℕ) :
 
 noncomputable section
 
-/-- Original `sourceFrequencyGrid_real_bound` guarantee for the `FrequencyGridExecution` construction; the complete source hypotheses are retained. -/
+/-- Every listed frequency has real coordinate magnitudes at most the grid radius `N`. -/
 theorem sourceFrequencyGrid_real_bound (N : ℕ) (k : SpatialFrequency) (hk : k∈sourceFrequencyGrid N)
     (j : Fin 3) : |(k j : ℝ)| ≤ (N : ℝ) := by
   have h := (sourceFrequencyGrid_mem N k).mp hk j

@@ -59,13 +59,15 @@ def storedSourceGaugePhysicalValue (source : RationalJetSource) (state : StoredG
     generalPoissonPhysicalPhaseValue state.poisson X gamma
   return rationalCircleQuaternion (rationalCis angle gamma).value*reference
 
-/-- Original `storedReferencePhysicalValue_store` guarantee for the `StoredGaugeState` construction; the complete source hypotheses are retained. -/
+/-- Evaluating the reference at a rational physical point using the frame stored for a given
+preparation and collar returns exactly the direct reference evaluation with those inputs. -/
 theorem storedReferencePhysicalValue_store (source : RationalJetSource) (prepared : CachedMeanPreparation)
     (eta : ℚ) (X : Fin 3 → ℚ) (tolerance : ℚ) :
     storedReferencePhysicalValue source (storeReferenceFrame source prepared eta) X tolerance=
       sourceReferencePhysicalValue source prepared eta X tolerance := rfl
 
-/-- Original `storedSourceGaugeFromPrepared_output` guarantee for the `StoredGaugeState` construction; the complete source hypotheses are retained. -/
+/-- For the frame stored with the gap-derived collar, projecting the Poisson state from the optional
+stored gauge gives the optional gauge state constructed from the same preparation and gap. -/
 theorem storedSourceGaugeFromPrepared_output (source : RationalJetSource) (prepared : CachedMeanPreparation)
     (gap tolerance : ℚ) :
     (storedSourceGaugeFromPrepared source
@@ -74,7 +76,8 @@ theorem storedSourceGaugeFromPrepared_output (source : RationalJetSource) (prepa
   simp [storedSourceGaugeFromPrepared,materializeSourceGaugeFromGap,
     storedPoissonCoefficientPreparation_store,Option.map_map,Function.comp_def]
 
-/-- Original `storedAutomaticSourceGaugeFromGap_output` guarantee for the `StoredGaugeState` construction; the complete source hypotheses are retained. -/
+/-- Projecting the Poisson state from the automatic stored gauge's optional output gives exactly the
+result of the automatic gap-based gauge constructor. -/
 theorem storedAutomaticSourceGaugeFromGap_output (source : RationalJetSource) (bounds : ℕ → ℚ)
     (gap tolerance : ℚ) :
     (storedAutomaticSourceGaugeFromGap source bounds gap tolerance).map StoredGaugeState.poisson=
@@ -85,7 +88,8 @@ theorem storedAutomaticSourceGaugeFromGap_output (source : RationalJetSource) (b
   simpa [storedAutomaticSourceGaugeFromGap,automaticSourceGaugeFromGap,automaticPhysicalPoissonFromGap,
     automaticGeneralPoissonFromGap,Option.map_map,Function.comp_def] using h
 
-/-- Original `storedSourceGaugePhysicalValue_store` guarantee for the `StoredGaugeState` construction; the complete source hypotheses are retained. -/
+/-- With a Poisson state using the supplied preparation, evaluating with the frame stored for the
+gap-derived collar gives exactly the gap-based physical gauge value at the same point and tolerance. -/
 theorem storedSourceGaugePhysicalValue_store (source : RationalJetSource) (prepared : CachedMeanPreparation)
     (gap : ℚ) (r : GeneralPoissonValueState) (hprepared : r.preparation.prepared=prepared)
     (X : Fin 3 → ℚ) (tolerance : ℚ) :

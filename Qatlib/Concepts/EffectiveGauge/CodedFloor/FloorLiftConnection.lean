@@ -25,7 +25,8 @@ open scoped Quaternion ContDiff
 namespace Qatlib.Concepts.EffectiveGauge.CodedFloor
 open Qatlib.Concepts.EffectiveGauge.HopfAtlas Qatlib.Concepts.EffectiveGauge.RationalFlow Qatlib.Concepts.EffectiveGauge.SpectralH1 Qatlib.Concepts.EffectiveGauge.TorusFourier
 
-/-- Original `floorRawLift_connection_formula` guarantee for the `FloorLiftConnection` construction; the complete source hypotheses are retained. -/
+/-- The raw lift's connection component is the squared sine of the bump-scaled parameter times the
+coordinate derivative of the azimuth `-X 1`. -/
 theorem floorRawLift_connection_formula (a : ℝ) (X : SpatialPoint) (i : Fin 3) :
     connection (floorRawLift a) X i=(Real.sin (a*floorInteriorBump X))^2*
       fderiv ℝ (fun Y : SpatialPoint => -Y 1) X (EuclideanSpace.single i 1) := by
@@ -75,7 +76,8 @@ theorem floorRawLift_connection_formula (a : ℝ) (X : SpatialPoint) (i : Fin 3)
   have hmul := congrArg (fun t : ℝ => (Real.sin (theta X))^2*P*t) hphase
   nlinarith
 
-/-- Original `floorRawLift_connection` guarantee for the `FloorLiftConnection` construction; the complete source hypotheses are retained. -/
+/-- The raw lift's connection vanishes outside coordinate `1`, and the component in that
+coordinate is minus the squared sine of the bump-scaled parameter. -/
 theorem floorRawLift_connection (a : ℝ) (X : SpatialPoint) (i : Fin 3) :
     connection (floorRawLift a) X i=if i=1 then -(Real.sin (a*floorInteriorBump X))^2 else 0 := by
   rw [floorRawLift_connection_formula]
@@ -85,7 +87,8 @@ theorem floorRawLift_connection (a : ℝ) (X : SpatialPoint) (i : Fin 3) :
   rw [hd.fderiv]
   fin_cases i <;> simp
 
-/-- Original `floorPeriodicLift_connection` guarantee for the `FloorLiftConnection` construction; the complete source hypotheses are retained. -/
+/-- On the fundamental cube, the periodic lift's connection equals minus the squared sine of the
+bump-scaled parameter in coordinate `1` and zero in every other coordinate. -/
 theorem floorPeriodicLift_connection (a : ℝ) (X : SpatialPoint) (hX : InFundamentalCube X) (i : Fin 3) :
     connection (floorPeriodicLift a) X i=if i=1 then -(Real.sin (a*floorInteriorBump X))^2 else 0 := by
   change connectionValue (floorPeriodicLift a X) (spatialWordPartial (floorPeriodicLift a) [i] X)=_

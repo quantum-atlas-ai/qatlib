@@ -16,7 +16,7 @@ public import Qatlib.Concepts.PauliClifford.PauliAlgebra.CliffordStabilizerCanon
 
 This module combines projector covariance, code density, code-space dimension, exclusion of the
 negative identity, and Pauli measurement covariance for legal Clifford runs. The theorem
-`frontier1` packages these guarantees for consistent tableaux with independent generators, in
+`clifford_run_preserves_stabilizer_projector_and_expectation` packages these guarantees for consistent tableaux with independent generators, in
 the binary stabilizer setting of [DehaeneDeMoor2003].
 
 For full independent tableaux it also proves purity and uniqueness of normalized evolved code
@@ -24,7 +24,7 @@ states up to a scalar of norm one.
 
 ## Main statements
 
-* `frontier1`: The combined projector, density, dimension, subgroup, and measurement guarantees.
+* `clifford_run_preserves_stabilizer_projector_and_expectation`: The combined projector, density, dimension, subgroup, and measurement guarantees.
 * `pure_density_after_run`: Full independent tableaux retain pure code density after a legal
   run.
 * `normalized_run_unique`: Normalized states in the evolved full code differ by a scalar of norm
@@ -60,7 +60,7 @@ open Matrix
 covariance, a valid code density, dimension 2^(n - k), and exclusion of the negative
 identity. Simultaneously transforming a Hermitian Pauli observable preserves its measurement
 probabilities. -/
-theorem frontier1 {n k : ℕ} (t : Tableau n k) (ht : ConsistentTableau t)
+theorem clifford_run_preserves_stabilizer_projector_and_expectation {n k : ℕ} (t : Tableau n k) (ht : ConsistentTableau t)
     (hind : IndependentGenerators (tableauGenerators t))
     (gates : List (CliffordGate n)) (hg : ∀ g ∈ gates, legalGate g) :
     projectorAux (tableauGenerators (run gates t)) =

@@ -54,7 +54,7 @@ theorem unitPoissonCoefficient_sixthOrder_decay (f : Fin 3 → SpatialPoint → 
   apply h.trans_eq
   field_simp [hr,physicalPeriod_pos.ne']
 
-/-- Original `unitModeWordFactor_norm_le` guarantee for the `PoissonEffective` construction; the complete source hypotheses are retained. -/
+/-- The product of the coordinate differentiation factors for `w` has norm bounded by `(physicalPeriod * frequencyRadius k)^w.length`. -/
 theorem unitModeWordFactor_norm_le (k : SpatialFrequency) (w : List (Fin 3)) :
     ‖unitModeWordFactor k w‖ ≤ (physicalPeriod*(frequencyRadius k : ℝ))^w.length := by
   have hL : 0≤physicalPeriod := physicalPeriod_pos.le

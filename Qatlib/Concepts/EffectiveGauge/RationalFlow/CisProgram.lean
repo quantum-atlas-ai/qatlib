@@ -60,7 +60,9 @@ def rationalCis (x tolerance : ℚ) : RationalCisResult :=
   let h := cisHalvings x
   cisSquares h (reducedCis (x/(2^h : ℚ)) (tolerance/(8*2^h : ℚ)))
 
-/-- Original `cisTaylorLoop_spec` guarantee for the `CisProgram` construction; the complete source hypotheses are retained. -/
+/-- Starting from the exact Taylor data at index `n`, the loop returns the partial sum at the first
+index in `[n, n + fuel]` where twice the term magnitude meets tolerance, provided it meets tolerance
+at the last index. The error field is twice that magnitude. -/
 theorem cisTaylorLoop_spec (x tolerance : ℚ) (fuel n : ℕ)
     (hstop : 2*negativeExpMagnitude x (n+fuel) ≤ tolerance) :
     let r := cisTaylorLoop x tolerance n (cisTaylorPartial x n) (cisTaylorTerm x n)
@@ -95,7 +97,9 @@ theorem cisTaylorLoop_spec (x tolerance : ℚ) (fuel n : ℕ)
         exact lt_of_not_ge h
       · exact hprior k (by omega) hlt
 
-/-- Original `reducedCis_spec` guarantee for the `CisProgram` construction; the complete source hypotheses are retained. -/
+/-- For an argument of magnitude at most one half and positive tolerance, the result is the Taylor
+sum at the first index at least one where twice the term magnitude meets tolerance. Its error is
+twice that magnitude and the index is at most one plus the fuel at half tolerance. -/
 theorem reducedCis_spec (x tolerance : ℚ) (hx : |x| ≤ 1/2) (ht : 0<tolerance) :
     let r := reducedCis x tolerance
     r.value=cisTaylorPartial x r.terms ∧ r.error=2*negativeExpMagnitude x r.terms ∧
@@ -113,18 +117,20 @@ theorem reducedCis_spec (x tolerance : ℚ) (hx : |x| ≤ 1/2) (ht : 0<tolerance
   have hm1 : negativeExpMagnitude x 1=|x| := by simp [negativeExpMagnitude]
   simpa only [reducedCis,hp1,ht1,hm1] using cisTaylorLoop_spec x tolerance (arctanFuel (tolerance/2)) 1 hstop
 
-/-- Original `cisHalvings_reduced` guarantee for the `CisProgram` construction; the complete source hypotheses are retained. -/
+/-- The selected number of halvings reduces any rational argument to magnitude at most one half. -/
 theorem cisHalvings_reduced (x : ℚ) : |x/(2^cisHalvings x : ℚ)| ≤ 1/2 := by
   rw [abs_div,abs_of_nonneg (by positivity : (0 : ℚ) ≤ 2^cisHalvings x)]
   exact (negativeExpHalvings_reduced |x| (abs_nonneg x)).2
 
-/-- Original `cisHalvings_first` guarantee for the `CisProgram` construction; the complete source hypotheses are retained. -/
+/-- Any number of halvings smaller than the selected count leaves the argument's magnitude strictly
+above one half. -/
 theorem cisHalvings_first (x : ℚ) (k : ℕ) (hk : k<cisHalvings x) :
     1/2< |x/(2^k : ℚ)| := by
   rw [abs_div,abs_of_nonneg (by positivity : (0 : ℚ) ≤ 2^k)]
   exact negativeExpHalvings_first |x| k hk
 
-/-- Original `cisSquares_fields` guarantee for the `CisProgram` construction; the complete source hypotheses are retained. -/
+/-- Repeated squaring preserves the Taylor term count and updates the error by iterating
+`e ↦ e * (2 + e)` once per square. -/
 theorem cisSquares_fields (h : ℕ) (r : RationalCisResult) :
     (cisSquares h r).error=cisErrorIter h r.error ∧ (cisSquares h r).terms=r.terms := by
   induction h with
@@ -153,7 +159,8 @@ theorem cisErrorIter_invariant (e : ℚ) (he : 0 ≤ e) (h : ℕ) (hsmall : (2^h
       _ = ((1+cisErrorIter h e)*(1-x))^2 := by ring
       _ ≤ 1 := hB
 
-/-- Original `cisErrorIter_budget` guarantee for the `CisProgram` construction; the complete source hypotheses are retained. -/
+/-- For tolerance in `(0, 1]` and initial error between zero and `tolerance / (8 * 2^h)`, the error
+after `h` squarings lies between zero and tolerance. -/
 theorem cisErrorIter_budget (e tolerance : ℚ) (h : ℕ) (he : 0 ≤ e) (ht : 0<tolerance) (ht1 : tolerance ≤ 1)
     (heps : e ≤ tolerance/(8*2^h : ℚ)) : 0 ≤ cisErrorIter h e ∧ cisErrorIter h e ≤ tolerance := by
   have hp : (0 : ℚ)<2^h := by positivity

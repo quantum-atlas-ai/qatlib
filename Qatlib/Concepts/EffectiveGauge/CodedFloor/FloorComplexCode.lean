@@ -50,26 +50,29 @@ def floorCisTermStepCode (x : FloorRationalCode) (n : ℕ) (a : FloorComplexCode
     floorRationalCodeMul (floorRationalCodeMul a.1 x)
       (floorRationalCodeInv (floorRationalCodeNat n)))
 
-/-- Original `floorComplexCodeAdd_value` guarantee for the `FloorComplexCode` construction; the complete source hypotheses are retained. -/
+/-- Componentwise addition of two complex codes decodes to addition of their rational
+real–imaginary pairs. -/
 theorem floorComplexCodeAdd_value (a b : FloorComplexCode) :
     floorComplexCodeValue (floorComplexCodeAdd a b)=
       cisPairAdd (floorComplexCodeValue a) (floorComplexCodeValue b) := by
   simp [floorComplexCodeValue,floorComplexCodeAdd,floorRationalCodeAdd_value,cisPairAdd]
 
-/-- Original `floorComplexCodeMul_value` guarantee for the `FloorComplexCode` construction; the complete source hypotheses are retained. -/
+/-- Multiplication of complex codes decodes to the rational complex product, with real coordinate
+`ac - bd` and imaginary coordinate `ad + bc`. -/
 theorem floorComplexCodeMul_value (a b : FloorComplexCode) :
     floorComplexCodeValue (floorComplexCodeMul a b)=
       cisPairMul (floorComplexCodeValue a) (floorComplexCodeValue b) := by
   simp [floorComplexCodeValue,floorComplexCodeMul,floorRationalCodeAdd_value,
     floorRationalCodeMul_value,floorRationalCodeNeg_value,cisPairMul,sub_eq_add_neg]
 
-/-- Original `floorComplexCodeSquare_value` guarantee for the `FloorComplexCode` construction; the complete source hypotheses are retained. -/
+/-- Squaring a complex code decodes to the square of its rational real–imaginary pair. -/
 theorem floorComplexCodeSquare_value (a : FloorComplexCode) :
     floorComplexCodeValue (floorComplexCodeSquare a)=cisPairSquare (floorComplexCodeValue a) := by
   rw [floorComplexCodeSquare,floorComplexCodeMul_value]
   apply Prod.ext <;> dsimp [cisPairMul,cisPairSquare] <;> ring
 
-/-- Original `floorCisTermStepCode_value` guarantee for the `FloorComplexCode` construction; the complete source hypotheses are retained. -/
+/-- Decoding the coded Taylor term step gives multiplication of the decoded term by `i * x / n` in
+rational complex coordinates, with `x` the decoded input angle. -/
 theorem floorCisTermStepCode_value (x : FloorRationalCode) (n : ℕ) (a : FloorComplexCode) :
     floorComplexCodeValue (floorCisTermStepCode x n a)=
       cisTermStep (floorRationalCodeValue x) n (floorComplexCodeValue a) := by
@@ -77,13 +80,13 @@ theorem floorCisTermStepCode_value (x : FloorRationalCode) (n : ℕ) (a : FloorC
     floorRationalCodeNeg_value,floorRationalCodeInv_value,floorRationalCodeNat_value,cisTermStep,
     div_eq_mul_inv]
 
-/-- Original `primrec_floorComplexCodeAdd` guarantee for the `FloorComplexCode` construction; the complete source hypotheses are retained. -/
+/-- Addition is primitive recursive jointly in the two complex codes. -/
 theorem primrec_floorComplexCodeAdd : Primrec₂ floorComplexCodeAdd :=
   (primrec_floorRationalCodeAdd.comp (Primrec.fst.comp Primrec.fst)
     (Primrec.fst.comp Primrec.snd)).pair
     (primrec_floorRationalCodeAdd.comp (Primrec.snd.comp Primrec.fst) (Primrec.snd.comp Primrec.snd))
 
-/-- Original `primrec_floorComplexCodeMul` guarantee for the `FloorComplexCode` construction; the complete source hypotheses are retained. -/
+/-- Complex multiplication is primitive recursive jointly in its input codes. -/
 theorem primrec_floorComplexCodeMul : Primrec₂ floorComplexCodeMul := by
   have ar : Primrec (fun p : FloorComplexCode × FloorComplexCode => p.1.1) := Primrec.fst.comp Primrec.fst
   have ai : Primrec (fun p : FloorComplexCode × FloorComplexCode => p.1.2) := Primrec.snd.comp Primrec.fst
@@ -94,11 +97,12 @@ theorem primrec_floorComplexCodeMul : Primrec₂ floorComplexCodeMul := by
     (primrec_floorRationalCodeAdd.comp (primrec_floorRationalCodeMul.comp ar bi)
       (primrec_floorRationalCodeMul.comp ai br))
 
-/-- Original `primrec_floorComplexCodeSquare` guarantee for the `FloorComplexCode` construction; the complete source hypotheses are retained. -/
+/-- Squaring a complex code is primitive recursive. -/
 theorem primrec_floorComplexCodeSquare : Primrec floorComplexCodeSquare :=
   primrec_floorComplexCodeMul.comp Primrec.id Primrec.id
 
-/-- Original `primrec_floorCisTermStepCode` guarantee for the `FloorComplexCode` construction; the complete source hypotheses are retained. -/
+/-- The coded cis term update is primitive recursive in the packed rational angle and natural
+index and in the previous term code. -/
 theorem primrec_floorCisTermStepCode :
     Primrec₂ (fun (p : FloorRationalCode × ℕ) (a : FloorComplexCode) => floorCisTermStepCode p.1 p.2 a) := by
   have x : Primrec (fun p : (FloorRationalCode × ℕ) × FloorComplexCode => p.1.1) :=

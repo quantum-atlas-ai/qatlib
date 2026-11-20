@@ -36,7 +36,7 @@ program whose rejected mass decays geometrically for unitary oracles.
 * `wordTrace_resources`: trace resources agree with the word's declared cost.
 * `chebyshevOps_response`: the scalar response equals a Chebyshev polynomial.
 * `stoppingProgram_failed_mass`: rejected mass is `2⁻ʰ` times the input's real trace.
-* `frontier1` and `frontier2`: collect the word-compilation and bounded-stopping guarantees.
+* `clean_word_compilation_traces_and_resources` and `stopping_program_trace_count_and_unique_rejection`: collect the word-compilation and bounded-stopping guarantees.
 
 ## References
 
@@ -1181,7 +1181,7 @@ theorem stoppingProgram_failed_mass {n : ℕ} (U : Operator (2^n))
 
 /-- Combines well-formedness of a compiled clean-operation word with its unique measured and
 native traces and its exact resource accounting. -/
-theorem frontier1 {n : ℕ} (U : Operator (2^n)) (w : List (CleanOp n)) (ρ : Operator ((2^n)*1)) :
+theorem clean_word_compilation_traces_and_resources {n : ℕ} (U : Operator (2^n)) (w : List (CleanOp n)) (ρ : Operator ((2^n)*1)) :
     workspaceCircuitWellFormed (compileWord n w) ∧
     measuredTraces U (compileWord n w) ρ = [wordTrace U w ρ] ∧
     workspaceTraces U (compileWord n w) ρ = [(wordTrace U w ρ).native] ∧
@@ -1190,7 +1190,7 @@ theorem frontier1 {n : ℕ} (U : Operator (2^n)) (w : List (CleanOp n)) (ρ : Op
 
 /-- Combines well-formedness of the stopping program with its measured-trace specification, its
 `h + 1` trace count, and uniqueness of the rejected trace. -/
-theorem frontier2 {n : ℕ} (U : Operator (2^n)) (i : Fin n) (h : ℕ) (ρ : Operator ((2^n)*1)) :
+theorem stopping_program_trace_count_and_unique_rejection {n : ℕ} (U : Operator (2^n)) (i : Fin n) (h : ℕ) (ρ : Operator ((2^n)*1)) :
     workspaceCircuitWellFormed (stoppingProgram n i h) ∧
     measuredTraces U (stoppingProgram n i h) ρ = stopMeasured U i h ρ ∧
     (stopMeasured U i h ρ).length=h+1 ∧

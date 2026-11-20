@@ -70,7 +70,7 @@ namespace RootYunInternal
 namespace ActualYunInitial
 open Polynomial
 
-/-- The finite construction in `Yun` satisfies `initial_quotient_separable` under the displayed hypotheses. -/
+/-- Dividing a nonzero complex polynomial by its gcd with its derivative gives a separable polynomial. -/
 theorem initial_quotient_separable (f : ℂ[X]) (hf : f ≠ 0) :
     (f / gcd f f.derivative).Separable := by
   classical
@@ -100,7 +100,7 @@ theorem initial_quotient_separable (f : ℂ[X]) (hf : f ≠ 0) :
     omega
 
 
-/-- The finite construction in `Yun` satisfies `normalized_euclidean_eq_gcd` under the displayed hypotheses. -/
+/-- Over a field with decidable equality, normalizing the Euclidean algorithm's polynomial gcd gives the polynomial gcd. -/
 theorem normalized_euclidean_eq_gcd {K : Type} [Field K] [DecidableEq K] (f g : K[X]) :
     normalize (EuclideanDomain.gcd f g) = gcd f g := by
   symm
@@ -112,7 +112,7 @@ theorem normalized_euclidean_eq_gcd {K : Type} [Field K] [DecidableEq K] (f g : 
 The actual rational-list Euclidean loop still needs refinement. -/
 def gcdQ (f g : ℚ[X]) : ℚ[X] := normalize (EuclideanDomain.gcd f g)
 
-/-- The finite construction in `Yun` satisfies `gcdQ_map` under the displayed hypotheses. -/
+/-- The normalized rational gcd maps to the gcd of the two coefficientwise casts to complex polynomials. -/
 theorem gcdQ_map (f g : ℚ[X]) :
     (gcdQ f g).map (Rat.castHom ℂ) = gcd (f.map (Rat.castHom ℂ)) (g.map (Rat.castHom ℂ)) := by
   classical
@@ -120,7 +120,7 @@ theorem gcdQ_map (f g : ℚ[X]) :
   rw [Polynomial.map_normalize,← Polynomial.gcd_map]
   exact normalized_euclidean_eq_gcd _ _
 
-/-- The finite construction in `Yun` satisfies `initial_rational_quotient_separable` under the displayed hypotheses. -/
+/-- For nonzero rational `f`, the quotient by `gcdQ f f.derivative` is separable after casting its coefficients to the complex numbers. -/
 theorem initial_rational_quotient_separable (f : ℚ[X]) (hf : f ≠ 0) :
     ((f/gcdQ f f.derivative).map (Rat.castHom ℂ)).Separable := by
   classical
@@ -168,10 +168,10 @@ structure Invariant (F : ℚ[X]) (s : State) : Prop where
   product : F=factorProduct s*s.w^s.exponent*s.c
   factors : ∀ f ∈ s.factors,f.1.Monic ∧ (f.1.map (Rat.castHom ℂ)).Separable ∧ 0<f.2
 
-/-- The finite construction in `Yun` satisfies `gcdQ_eq_gcd` under the displayed hypotheses. -/
+/-- The normalized Euclidean gcd `gcdQ` agrees with the polynomial gcd over the rationals. -/
 theorem gcdQ_eq_gcd (f g : ℚ[X]) : gcdQ f g=gcd f g := normalized_euclidean_eq_gcd f g
 
-/-- The finite construction in `Yun` satisfies `gcdQ_monic` under the displayed hypotheses. -/
+/-- If the first rational polynomial is nonzero, its gcd with the second polynomial is monic. -/
 theorem gcdQ_monic (f g : ℚ[X]) (hf : f≠0) : (gcdQ f g).Monic := by
   have hg : EuclideanDomain.gcd f g≠0 := by
     intro hz
@@ -180,7 +180,7 @@ theorem gcdQ_monic (f g : ℚ[X]) (hf : f≠0) : (gcdQ f g).Monic := by
     exact hf hdiv
   exact Polynomial.monic_normalize hg
 
-/-- The finite construction in `Yun` satisfies `step_invariant` under the displayed hypotheses. -/
+/-- One Yun step preserves the state invariant, including its root-support condition, product identity and guarantees on the stored factors. -/
 theorem step_invariant (F : ℚ[X]) (s : State) (h : Invariant F s) : Invariant F (step s) := by
   classical
   let y := gcdQ s.w s.c
@@ -228,7 +228,7 @@ theorem step_invariant (F : ℚ[X]) (s : State) (h : Invariant F s) : Invariant 
         exact ⟨hz,hzs,h.exponent_pos⟩
     · exact h.factors f hf
 
-/-- The finite construction in `Yun` satisfies `step_measure` under the displayed hypotheses. -/
+/-- If both state polynomials are nonzero, after one step the sum of their degrees equals the old degree of `s.c`. -/
 theorem step_measure (s : State) (hw : s.w≠0) (hc : s.c≠0) :
     measure (step s)=s.c.natDegree := by
   let y := gcdQ s.w s.c
@@ -240,7 +240,7 @@ theorem step_measure (s : State) (hw : s.w≠0) (hc : s.c≠0) :
   rw [hprod] at hn
   exact hn.symm
 
-/-- The finite construction in `Yun` satisfies `step_measure_strict` under the displayed hypotheses. -/
+/-- If the state satisfies the Yun invariant and `s.w` has positive degree, one step strictly decreases the sum of the working degrees. -/
 theorem step_measure_strict (F : ℚ[X]) (s : State) (h : Invariant F s)
     (hw : 0<s.w.natDegree) : measure (step s) < measure s := by
   rw [step_measure s h.w_monic.ne_zero h.c_monic.ne_zero]
@@ -253,7 +253,7 @@ end ActualYunStep
 namespace ActualYunLoop
 open Polynomial ActualYunInitial ActualYunStep
 
-/-- The finite construction in `Yun` satisfies `initial_complex_support` under the displayed hypotheses. -/
+/-- For a nonzero complex polynomial of positive degree, every zero of the derivative gcd is also a zero of the quotient by that gcd. -/
 theorem initial_complex_support (f : ℂ[X]) (hf : f≠0) (hd : 0<f.natDegree) :
     ∀ z : ℂ,(gcd f f.derivative).eval z=0 → (f/gcd f f.derivative).eval z=0 := by
   classical
@@ -284,7 +284,7 @@ theorem initial_complex_support (f : ℂ[X]) (hf : f≠0) (hd : 0<f.natDegree) :
 /-- Construction for initial in the yun model. -/
 def initial (F : ℚ[X]) : State := ⟨F/gcdQ F F.derivative,gcdQ F F.derivative,1,[]⟩
 
-/-- The finite construction in `Yun` satisfies `initial_invariant` under the displayed hypotheses. -/
+/-- A monic rational polynomial of positive degree has an initial Yun state satisfying `Invariant`. -/
 theorem initial_invariant (F : ℚ[X]) (hF : F.Monic) (hd : 0<F.natDegree) :
     Invariant F (initial F) := by
   classical
@@ -314,7 +314,7 @@ theorem initial_invariant (F : ℚ[X]) (hF : F.Monic) (hd : 0<F.natDegree) :
   · intro f hf
     cases hf
 
-/-- The finite construction in `Yun` satisfies `initial_measure` under the displayed hypotheses. -/
+/-- For monic `F`, the degrees of the two initial working polynomials sum to the natural degree of `F`. -/
 theorem initial_measure (F : ℚ[X]) (hF : F.Monic) : measure (initial F)=F.natDegree := by
   let c := gcdQ F F.derivative
   have hc : c.Monic := gcdQ_monic F F.derivative hF.ne_zero
@@ -331,7 +331,7 @@ def run : ℕ → State → State
   | 0,s => s
   | fuel+1,s => if 0<s.w.natDegree then run fuel (step s) else s
 
-/-- The finite construction in `Yun` satisfies `run_invariant_terminal` under the displayed hypotheses. -/
+/-- If the initial state satisfies the invariant and fuel is at least its degree measure, the final state still satisfies the invariant and has `w = 1`. -/
 theorem run_invariant_terminal (F : ℚ[X]) (fuel : ℕ) (s : State) (h : Invariant F s)
     (hm : measure s≤fuel) : Invariant F (run fuel s) ∧ (run fuel s).w=1 := by
   induction fuel generalizing s with
@@ -362,7 +362,7 @@ theorem run_counter_bound (F : ℚ[X]) (fuel : ℕ) (s : State) (h : Invariant F
       omega
     · exact Nat.le_refl _
 
-/-- The finite construction in `Yun` satisfies `terminal_product` under the displayed hypotheses. -/
+/-- In a state satisfying the invariant, `w = 1` forces `c = 1` and the product of stored factor powers to equal `F`. -/
 theorem terminal_product (F : ℚ[X]) (s : State) (h : Invariant F s) (hw : s.w=1) :
     s.c=1 ∧ F=factorProduct s := by
   have hcdeg : (s.c.map (Rat.castHom ℂ)).natDegree=0 := by
@@ -377,7 +377,7 @@ theorem terminal_product (F : ℚ[X]) (s : State) (h : Invariant F s) (hw : s.w=
   refine ⟨hc,?_⟩
   simpa only [hw,hc,one_pow,mul_one] using h.product
 
-/-- The finite construction in `Yun` satisfies `generated_polynomial_factors` under the displayed hypotheses. -/
+/-- Running Yun for the degree of a monic positive-degree polynomial gives `w = c = 1` and a factor product equal to the input. The final exponent counter is at most the degree plus one, and every stored factor is monic, complex-separable after casting, and has positive exponent. -/
 theorem generated_polynomial_factors (F : ℚ[X]) (hF : F.Monic) (hd : 0<F.natDegree) :
     let out := run F.natDegree (initial F)
     F=factorProduct out ∧ out.w=1 ∧ out.c=1 ∧ out.exponent≤F.natDegree+1 ∧
@@ -438,7 +438,7 @@ theorem every_prefix_counter (F : ℚ[X]) (hF : F.Monic) (hd : 0<F.natDegree) (f
   change ActualYunStep.measure (run fuel (initial F))+(run fuel (initial F)).exponent≤F.natDegree+1 at h
   omega
 
-/-- The finite construction in `Yun` satisfies `run_invariant` under the displayed hypotheses. -/
+/-- Yun preserves the state invariant for every fuel value. -/
 theorem run_invariant (F : ℚ[X]) (fuel : ℕ) (s : State) (h : Invariant F s) :
     Invariant F (run fuel s) := by
   induction fuel generalizing s with
@@ -449,7 +449,7 @@ theorem run_invariant (F : ℚ[X]) (fuel : ℕ) (s : State) (h : Invariant F s) 
     · exact ih (step s) (step_invariant F s h)
     · exact h
 
-/-- The finite construction in `Yun` satisfies `every_stored_factor` under the displayed hypotheses. -/
+/-- After any number of iterations from a monic positive-degree input, every stored factor has positive degree and exponent between one and the input degree. -/
 theorem every_stored_factor (F : ℚ[X]) (hF : F.Monic) (hd : 0<F.natDegree) (fuel : ℕ) :
     ∀ f∈(run fuel (initial F)).factors,0<f.1.natDegree ∧ 0<f.2 ∧ f.2≤F.natDegree := by
   have hi := initial_invariant F hF hd
@@ -471,15 +471,15 @@ def poly (a : List ℚ) : ℚ[X] := ⟨⟨a.toFinsupp⟩⟩
 /-- Construction for trim in the yun model. -/
 def trim (a : List ℚ) : List ℚ := (a.reverse.dropWhile (fun x => x==0)).reverse
 
-/-- The finite construction in `Yun` satisfies `coeff` under the displayed hypotheses. -/
+/-- Coefficient `k` of the rational polynomial represented by `a` is the zero-default lookup of `a` at `k`. -/
 theorem coeff (a : List ℚ) (k : ℕ) : (poly a).coeff k=a.getD k 0 := by
   change a.toFinsupp k=a.getD k 0
   exact List.toFinsupp_apply _ _
 
-/-- The finite construction in `Yun` satisfies `poly_nil` under the displayed hypotheses. -/
+/-- The empty rational coefficient list represents the zero polynomial. -/
 theorem poly_nil : poly []=0 := by ext k; simp [coeff]
 
-/-- The finite construction in `Yun` satisfies `poly_append_zero` under the displayed hypotheses. -/
+/-- Appending a zero at the high-degree end of a coefficient list leaves the represented polynomial unchanged. -/
 theorem poly_append_zero (a : List ℚ) : poly (a++[0])=poly a := by
   apply Polynomial.ext
   intro k
@@ -492,7 +492,7 @@ inductive ZeroTailTrace : List ℚ → List ℚ → Prop where
   | refl (a : List ℚ) : ZeroTailTrace a a
   | pop (a b : List ℚ) : ZeroTailTrace a b → ZeroTailTrace (a++[0]) b
 
-/-- The finite construction in `Yun` satisfies `trim_trace` under the displayed hypotheses. -/
+/-- Trimming `a` is witnessed by a finite sequence of trailing-zero removals. -/
 theorem trim_trace (a : List ℚ) : ZeroTailTrace a (trim a) := by
   induction a using List.reverseRecOn with
   | nil => simpa [trim] using ZeroTailTrace.refl ([] : List ℚ)
@@ -504,16 +504,16 @@ theorem trim_trace (a : List ℚ) : ZeroTailTrace a (trim a) := by
       rw [ht]
       exact ZeroTailTrace.refl _
 
-/-- The finite construction in `Yun` satisfies `trace_poly` under the displayed hypotheses. -/
+/-- If `b` is obtained from `a` by removing trailing zeros, both lists represent the same polynomial. -/
 theorem trace_poly {a b : List ℚ} (h : ZeroTailTrace a b) : poly a=poly b := by
   induction h with
   | refl => rfl
   | pop a _ _ ih => exact (poly_append_zero a).trans ih
 
-/-- The finite construction in `Yun` satisfies `trim_poly` under the displayed hypotheses. -/
+/-- Trimming trailing zeros preserves the polynomial represented by the coefficient list. -/
 theorem trim_poly (a : List ℚ) : poly (trim a)=poly a := (trace_poly (trim_trace a)).symm
 
-/-- The finite construction in `Yun` satisfies `trim_shape` under the displayed hypotheses. -/
+/-- The trimmed list is either empty or ends in a nonzero coefficient. -/
 theorem trim_shape (a : List ℚ) : trim a=[] ∨ ∃ b x,trim a=b++[x] ∧ x≠0 := by
   induction a using List.reverseRecOn with
   | nil => left; simp [trim]
@@ -523,7 +523,7 @@ theorem trim_shape (a : List ℚ) : trim a=[] ∨ ∃ b x,trim a=b++[x] ∧ x≠
       simpa only [show trim (a++[0])=trim a by simp [trim]] using ih
     · exact Or.inr ⟨a,x,by simp [trim,hx],hx⟩
 
-/-- The finite construction in `Yun` satisfies `poly_set` under the displayed hypotheses. -/
+/-- Replacing an in-bounds coefficient at index `i` adds a monomial whose coefficient is the new value minus the original one. -/
 theorem poly_set (a : List ℚ) (i : ℕ) (v : ℚ) (hi : i<a.length) :
     poly (a.set i v)=poly a+monomial i (v-a.getD i 0) := by
   ext k
@@ -536,7 +536,7 @@ theorem poly_set (a : List ℚ) (i : ℕ) (v : ℚ) (hi : i<a.length) :
   · rw [ite_eq_right hk]
     simp only [List.getD_eq_getElem?_getD,List.getElem?_set_ne hk,add_zero]
 
-/-- The finite construction in `Yun` satisfies `poly_cons` under the displayed hypotheses. -/
+/-- Prepending `c` gives the constant term `C c` plus `X` times the polynomial represented by the tail. -/
 theorem poly_cons (c : ℚ) (cs : List ℚ) : poly (c::cs)=C c+X*poly cs := by
   ext k
   cases k with
@@ -557,7 +557,7 @@ theorem subtractShift_length (a b : List ℚ) (j : ℕ) (v : ℚ) :
   | cons c cs ih =>
     simpa only [subtractShift,List.length_set] using ih (a.set j (a.getD j 0-v*c)) (j+1)
 
-/-- The finite construction in `Yun` satisfies `subtractShift_poly` under the displayed hypotheses. -/
+/-- If all shifted indices of `b` fit in `a`, the update represents subtraction of `C v * X^j * poly b` from `poly a`. -/
 theorem subtractShift_poly (a b : List ℚ) (j : ℕ) (v : ℚ)
     (hbound : j+b.length≤a.length) :
     poly (subtractShift a b j v)=poly a-C v*X^j*poly b := by
@@ -593,20 +593,20 @@ theorem poly_degree_lt_length (a : List ℚ) : (poly a).degree<a.length := by
   rw [coeff]
   simp only [List.getD_eq_getElem?_getD,List.getElem?_eq_none hk,Option.getD_none]
 
-/-- The finite construction in `Yun` satisfies `append_last_coeff` under the displayed hypotheses. -/
+/-- Appending `x` to `a` puts coefficient `x` at index `a.length` of the represented polynomial. -/
 theorem append_last_coeff (a : List ℚ) (x : ℚ) : (poly (a++[x])).coeff a.length=x := by
   rw [coeff]
   simp only [List.getD_eq_getElem?_getD,List.getElem?_append_right (Nat.le_refl _),
     Nat.sub_self,List.getElem?_cons_zero,Option.getD_some]
 
-/-- The finite construction in `Yun` satisfies `append_last_nonzero` under the displayed hypotheses. -/
+/-- Appending a nonzero coefficient makes the represented polynomial nonzero. -/
 theorem append_last_nonzero (a : List ℚ) (x : ℚ) (hx : x≠0) : poly (a++[x])≠0 := by
   intro hp
   have hc := append_last_coeff a x
   rw [hp,Polynomial.coeff_zero] at hc
   exact hx hc.symm
 
-/-- The finite construction in `Yun` satisfies `append_last_degree` under the displayed hypotheses. -/
+/-- If `x` is nonzero, the polynomial of `a ++ [x]` has degree exactly `a.length`. -/
 theorem append_last_degree (a : List ℚ) (x : ℚ) (hx : x≠0) :
     (poly (a++[x])).natDegree=a.length := by
   have hnz := append_last_nonzero a x hx
@@ -615,7 +615,7 @@ theorem append_last_degree (a : List ℚ) (x : ℚ) (hx : x≠0) :
   rw [append_last_coeff]
   exact hx
 
-/-- The finite construction in `Yun` satisfies `trim_canonical` under the displayed hypotheses. -/
+/-- The result of trimming a rational coefficient list is canonical, so trimming it again leaves it unchanged. -/
 theorem trim_canonical (a : List ℚ) : Canonical (trim a) := by
   rcases trim_shape a with he | ⟨b,x,he,hx⟩
   · change trim (trim a)=trim a
@@ -625,7 +625,7 @@ theorem trim_canonical (a : List ℚ) : Canonical (trim a) := by
     rw [he]
     simp [trim,hx]
 
-/-- The finite construction in `Yun` satisfies `canonical_nonzero` under the displayed hypotheses. -/
+/-- A canonical coefficient list is nonempty exactly when it represents a nonzero polynomial. -/
 theorem canonical_nonzero (a : List ℚ) (ha : Canonical a) : a≠[] ↔ poly a≠0 := by
   rcases trim_shape a with he | ⟨b,x,he,hx⟩
   · rw [ha] at he
@@ -644,7 +644,7 @@ theorem canonical_length (a : List ℚ) (ha : Canonical a) (hn : a≠[]) :
     rw [he,append_last_degree b x hx]
     simp
 
-/-- The finite construction in `Yun` satisfies `canonical_leading` under the displayed hypotheses. -/
+/-- The leading coefficient of the polynomial of a nonempty canonical list is the last coefficient in that list. -/
 theorem canonical_leading (a : List ℚ) (ha : Canonical a) (hn : a≠[]) :
     (poly a).leadingCoeff=a.getD (a.length-1) 0 := by
   have hd : (poly a).natDegree=a.length-1 := by have h := canonical_length a ha hn; omega
@@ -663,19 +663,19 @@ def scale (a b : List ℚ) : ℚ := a.getD (a.length-1) 0 / b.getD (b.length-1) 
 /-- Construction for remainder Step in the yun model. -/
 def remainderStep (a b : List ℚ) : List ℚ := trim (subtractShift a b (offset a b) (scale a b))
 
-/-- The finite construction in `Yun` satisfies `remainderStep_poly` under the displayed hypotheses. -/
+/-- If the divisor list fits inside the dividend list, the remainder step subtracts the divisor polynomial shifted by `offset a b` and scaled by `scale a b`. -/
 theorem remainderStep_poly (a b : List ℚ) (hlen : b.length≤a.length) :
     poly (remainderStep a b)=poly a-C (scale a b)*X^(offset a b)*poly b := by
   rw [remainderStep,trim_poly,subtractShift_poly]
   dsimp only [offset]
   omega
 
-/-- The finite construction in `Yun` satisfies `scale_leading` under the displayed hypotheses. -/
+/-- For nonempty canonical lists, the step multiplier is the dividend's leading coefficient divided by the divisor's leading coefficient. -/
 theorem scale_leading (a b : List ℚ) (ha : Canonical a) (hb : Canonical b)
     (hna : a≠[]) (hnb : b≠[]) : scale a b=(poly a).leadingCoeff/(poly b).leadingCoeff := by
   rw [scale,canonical_leading a ha hna,canonical_leading b hb hnb]
 
-/-- The finite construction in `Yun` satisfies `remainderStep_degree` under the displayed hypotheses. -/
+/-- One remainder step strictly lowers polynomial degree for nonempty canonical lists when the divisor list fits inside the dividend list. -/
 theorem remainderStep_degree (a b : List ℚ) (ha : Canonical a) (hb : Canonical b)
     (hna : a≠[]) (hnb : b≠[]) (hlen : b.length≤a.length) :
     (poly (remainderStep a b)).degree < (poly a).degree := by
@@ -744,7 +744,7 @@ def core : ℕ → List ℚ → List ℚ → List ℚ → List ℚ×List ℚ
       core fuel (remainderStep a b) b (q.set (offset a b) (scale a b))
     else (trim q,a)
 
-/-- The finite construction in `Yun` satisfies `core_correct` under the displayed hypotheses. -/
+/-- With canonical inputs, nonempty divisor, enough quotient capacity and fuel, and zero initial entries at the quotient indices to be set, the division core returns canonical quotient and remainder lists. Their recombination is the initial quotient times the divisor plus the initial dividend, and the remainder degree is below the divisor degree. -/
 theorem core_correct (fuel : ℕ) (a b q : List ℚ)
     (ha : Canonical a) (hb : Canonical b) (hnb : b≠[])
     (hz : LowZeros q a b) (hc : Capacity q a b) (hf : a.length≤fuel) :
@@ -820,17 +820,17 @@ def divrem (a b : List ℚ) : Option (List ℚ×List ℚ) :=
   let b := trim b
   if b=[] then none else some (core a.length a b (List.replicate (a.length+1-b.length) 0))
 
-/-- The finite construction in `Yun` satisfies `zero_array` under the displayed hypotheses. -/
+/-- Every zero-default lookup in an array of `n` rational zeros gives zero. -/
 theorem zero_array (n : ℕ) (k : ℕ) : (List.replicate n (0 : ℚ)).getD k 0=0 := by
   simp only [List.getD_eq_getElem?_getD,List.getElem?_replicate]
   split_ifs <;> rfl
 
-/-- The finite construction in `Yun` satisfies `zero_poly` under the displayed hypotheses. -/
+/-- An array consisting of `n` rational zeros represents the zero polynomial. -/
 theorem zero_poly (n : ℕ) : poly (List.replicate n (0 : ℚ))=0 := by
   ext k
   rw [coeff,zero_array,Polynomial.coeff_zero]
 
-/-- The finite construction in `Yun` satisfies `divrem_success` under the displayed hypotheses. -/
+/-- If the divisor polynomial is nonzero, `divrem` returns canonical lists for the polynomial quotient and remainder. The remainder list is shorter than the trimmed divisor list. -/
 theorem divrem_success (a b : List ℚ) (hb : poly b≠0) :
     ∃ q r,divrem a b=some (q,r) ∧ Canonical q ∧ Canonical r ∧
       poly q=poly a/poly b ∧ poly r=poly a%poly b ∧ r.length < (trim b).length := by
@@ -888,7 +888,7 @@ def monic (a : List ℚ) : List ℚ :=
   let a := trim a
   if a=[] then [] else a.map (fun c => c/a.getD (a.length-1) 0)
 
-/-- The finite construction in `Yun` satisfies `map_div_poly` under the displayed hypotheses. -/
+/-- Dividing each coefficient by `d` multiplies the represented polynomial by the constant `C d⁻¹`. -/
 theorem map_div_poly (a : List ℚ) (d : ℚ) :
     poly (a.map (fun c => c/d))=poly a*C d⁻¹ := by
   ext k
@@ -896,7 +896,7 @@ theorem map_div_poly (a : List ℚ) (d : ℚ) :
   simp only [List.getD_eq_getElem?_getD,List.getElem?_map]
   cases h : a[k]? <;> simp [div_eq_mul_inv]
 
-/-- The finite construction in `Yun` satisfies `map_div_canonical` under the displayed hypotheses. -/
+/-- Dividing every entry of a canonical list by a nonzero rational keeps the list canonical. -/
 theorem map_div_canonical (a : List ℚ) (ha : Canonical a) (d : ℚ) (hd : d≠0) :
     Canonical (a.map (fun c => c/d)) := by
   rcases trim_shape a with he | ⟨b,x,he,hx⟩
@@ -908,7 +908,7 @@ theorem map_div_canonical (a : List ℚ) (ha : Canonical a) (d : ℚ) (hd : d≠
     have hdiv : x/d≠0 := div_ne_zero hx hd
     simp [Canonical,trim,List.map_append,hdiv]
 
-/-- The finite construction in `Yun` satisfies `monic_poly` under the displayed hypotheses. -/
+/-- The monic array routine represents the normalization of the input polynomial, including the zero case. -/
 theorem monic_poly (a : List ℚ) : poly (monic a)=normalize (poly a) := by
   let t := trim a
   have ht : Canonical t := trim_canonical a
@@ -926,7 +926,7 @@ theorem monic_poly (a : List ℚ) : poly (monic a)=normalize (poly a) := by
     rw [normalize_apply,Polynomial.coe_normUnit,
       CommGroupWithZero.coe_normUnit ℚ (Polynomial.leadingCoeff_ne_zero.mpr hnz)]
 
-/-- The finite construction in `Yun` satisfies `monic_canonical` under the displayed hypotheses. -/
+/-- The monic array routine always returns a canonical list. -/
 theorem monic_canonical (a : List ℚ) : Canonical (monic a) := by
   unfold monic
   dsimp only
@@ -948,7 +948,7 @@ namespace ActualYunGcd
 open Polynomial ActualYunInitial ActualYunStep
 open ActualYunRationalArray ActualYunRationalCanonical ActualYunMonic
 
-/-- The finite construction in `Yun` satisfies `gcdQ_remainder` under the displayed hypotheses. -/
+/-- A Euclidean step from `A`, `B` to `B`, `A % B` leaves the normalized rational gcd unchanged. -/
 theorem gcdQ_remainder (A B : ℚ[X]) : gcdQ A B=gcdQ B (A%B) := by
   rw [gcdQ_eq_gcd,gcdQ_eq_gcd]
   apply dvd_antisymm_of_normalize_eq (normalize_gcd A B) (normalize_gcd B (A%B))
@@ -968,7 +968,7 @@ def gcdCore : ℕ → List ℚ → List ℚ → Option (List ℚ)
       | none => none
       | some (_,r) => gcdCore fuel b r
 
-/-- The finite construction in `Yun` satisfies `gcdCore_success` under the displayed hypotheses. -/
+/-- For canonical inputs and fuel strictly greater than the second list's length, the gcd loop returns a canonical list for their normalized polynomial gcd. -/
 theorem gcdCore_success (fuel : ℕ) (a b : List ℚ) (ha : Canonical a) (hb : Canonical b)
     (hf : b.length<fuel) : ∃ c,gcdCore fuel a b=some c ∧ Canonical c ∧
       poly c=gcdQ (poly a) (poly b) := by
@@ -992,7 +992,7 @@ theorem gcdCore_success (fuel : ℕ) (a b : List ℚ) (ha : Canonical a) (hb : C
 /-- Construction for poly Gcd in the yun model. -/
 def polyGcd (a b : List ℚ) : Option (List ℚ) := gcdCore (b.length+1) a b
 
-/-- The finite construction in `Yun` satisfies `polyGcd_success` under the displayed hypotheses. -/
+/-- On two canonical rational coefficient lists, `polyGcd` returns the normalized polynomial gcd as a canonical list. -/
 theorem polyGcd_success (a b : List ℚ) (ha : Canonical a) (hb : Canonical b) :
     ∃ c,polyGcd a b=some c ∧ Canonical c ∧ poly c=gcdQ (poly a) (poly b) :=
   gcdCore_success (b.length+1) a b ha hb (Nat.lt_succ_self _)
@@ -1010,7 +1010,7 @@ open ActualYunRationalArray ActualYunRationalCanonical ActualYunMonic ActualYunG
 def derivative (a : List ℚ) : List ℚ := trim (List.ofFn
   (fun i : Fin (a.length-1) => ((i.val+1 : ℕ) : ℚ)*a.getD (i.val+1) 0))
 
-/-- The finite construction in `Yun` satisfies `derivative_poly` under the displayed hypotheses. -/
+/-- The derivative array represents the formal derivative of the input polynomial. -/
 theorem derivative_poly (a : List ℚ) : poly (derivative a)=(poly a).derivative := by
   rw [derivative,trim_poly]
   ext k
@@ -1030,7 +1030,7 @@ def exactDiv (a b : List ℚ) : Option (List ℚ) :=
   | none => none
   | some (q,r) => if r=[] then some q else none
 
-/-- The finite construction in `Yun` satisfies `exactDiv_success` under the displayed hypotheses. -/
+/-- For a nonzero divisor that divides the dividend polynomial, the exact division routine returns a canonical coefficient list for the quotient. -/
 theorem exactDiv_success (a b : List ℚ) (hb : poly b≠0) (hd : poly b∣poly a) :
     ∃ q,exactDiv a b=some q ∧ Canonical q ∧ poly q=poly a/poly b := by
   obtain ⟨q,r,hqr,hq,hr,hquot,hrem,_⟩ := ActualYunDivrem.divrem_success a b hb
@@ -1051,7 +1051,7 @@ def sourceInitialize (a : List ℚ) : Option (List ℚ×List ℚ×List ℚ) :=
     | none => none
     | some w => some (A,c,w)
 
-/-- The finite construction in `Yun` satisfies `initialize_success` under the displayed hypotheses. -/
+/-- For any list representing a nonzero polynomial, initialization returns canonical lists for its normalization, the gcd of that normalization with its derivative, and the corresponding quotient. The quotient is separable after casting to complex coefficients. -/
 theorem initialize_success (a : List ℚ) (ha : poly a≠0) :
     ∃ A c w,sourceInitialize a=some (A,c,w) ∧ Canonical A ∧ Canonical c ∧ Canonical w ∧
       poly A=normalize (poly a) ∧ poly c=gcdQ (poly A) (poly A).derivative ∧
@@ -1096,21 +1096,21 @@ def primitive (a : List ℚ) : List ℤ := sourceIntegerTarget (trim a)
 def primitiveScale (a : List ℚ) : ℚ :=
   (sourceDenominator (trim a) : ℚ)/(sourceContent (trim a) : ℚ)
 
-/-- The finite construction in `Yun` satisfies `nonzero_member` under the displayed hypotheses. -/
+/-- If the input polynomial is nonzero, its trimmed list contains a nonzero coefficient. -/
 theorem nonzero_member (a : List ℚ) (ha : poly a≠0) : ∃ q∈trim a,q≠0 := by
   rcases trim_shape a with he | ⟨b,x,he,hx⟩
   · have hz : poly a=0 := by rw [← trim_poly a,he,poly_nil]
     exact (ha hz).elim
   · exact ⟨x,by rw [he]; simp,hx⟩
 
-/-- The finite construction in `Yun` satisfies `primitiveScale_pos` under the displayed hypotheses. -/
+/-- The scale used to make a primitive integer list is positive whenever the input rational polynomial is nonzero. -/
 theorem primitiveScale_pos (a : List ℚ) (ha : poly a≠0) : 0<primitiveScale a := by
   have hD : (0 : ℚ)<sourceDenominator (trim a) := by exact_mod_cast sourceDenominator_pos (trim a)
   have hG : (0 : ℚ)<sourceContent (trim a) := by
     exact_mod_cast sourceContent_pos (trim a) (nonzero_member a ha)
   exact div_pos hD hG
 
-/-- The finite construction in `Yun` satisfies `primitive_polynomial` under the displayed hypotheses. -/
+/-- For a nonzero input, the primitive integer array represents the complex cast of the input polynomial multiplied by `primitiveScale a`. -/
 theorem primitive_polynomial (a : List ℚ) (ha : poly a≠0) :
     rootIntegerListPolynomial (primitive a)=
       C (primitiveScale a : ℂ)*(poly a).map (Rat.castHom ℂ) := by
@@ -1121,7 +1121,7 @@ theorem primitive_polynomial (a : List ℚ) (ha : poly a≠0) :
   rw [trim_poly] at h
   simpa only [primitiveScale,Rat.cast_div,Rat.cast_natCast] using h
 
-/-- The finite construction in `Yun` satisfies `primitive_separable` under the displayed hypotheses. -/
+/-- For a nonzero input whose complex polynomial is separable, passing to the primitive integer list preserves separability over the complex numbers. -/
 theorem primitive_separable (a : List ℚ) (ha : poly a≠0)
     (hsep : ((poly a).map (Rat.castHom ℂ)).Separable) :
     (rootIntegerListPolynomial (primitive a)).Separable := by
@@ -1130,7 +1130,7 @@ theorem primitive_separable (a : List ℚ) (ha : poly a≠0)
   rw [primitive_polynomial a ha]
   exact Polynomial.Separable.unit_mul (Polynomial.isUnit_C.mpr (isUnit_iff_ne_zero.mpr hs)) hsep
 
-/-- The finite construction in `Yun` satisfies `primitive_degree` under the displayed hypotheses. -/
+/-- For a nonzero rational polynomial, the complex polynomial of its primitive integer array has the same natural degree. -/
 theorem primitive_degree (a : List ℚ) (ha : poly a≠0) :
     (rootIntegerListPolynomial (primitive a)).natDegree=(poly a).natDegree := by
   have hs : (primitiveScale a : ℂ)≠0 := by exact_mod_cast (primitiveScale_pos a ha).ne'
@@ -1144,14 +1144,14 @@ theorem primitive_length (a : List ℚ) : (primitive a).length=(trim a).length :
 /-- Construction for integer Poly Q in the yun model. -/
 def integerPolyQ (a : List ℤ) : ℚ[X] := (⟨⟨a.toFinsupp⟩⟩ : ℤ[X]).map (Int.castRingHom ℚ)
 
-/-- The finite construction in `Yun` satisfies `integerPolyQ_map` under the displayed hypotheses. -/
+/-- Lifting an integer coefficient list to a rational polynomial and casting to the complex numbers gives its complex integer-list polynomial. -/
 theorem integerPolyQ_map (a : List ℤ) :
     (integerPolyQ a).map (Rat.castHom ℂ)=rootIntegerListPolynomial a := by
   unfold integerPolyQ rootIntegerListPolynomial
   rw [Polynomial.map_map]
   congr 1
 
-/-- The finite construction in `Yun` satisfies `primitive_polynomialQ` under the displayed hypotheses. -/
+/-- For nonzero input, interpreting the primitive list over the rationals gives `poly a` multiplied by the constant `C (primitiveScale a)`. -/
 theorem primitive_polynomialQ (a : List ℚ) (ha : poly a≠0) :
     integerPolyQ (primitive a)=C (primitiveScale a)*poly a := by
   apply Polynomial.map_injective (Rat.castHom ℂ) (Rat.castHom ℂ).injective
@@ -1204,7 +1204,7 @@ structure ArrayInvariant (F : ℚ[X]) (s : ArrayState) : Prop where
   output_order : ActualYunOutputBounds.OutputBound (decode s)
   outputs : ∀ f∈s.factors,FactorGood f
 
-/-- The finite construction in `Yun` satisfies `primitive_good` under the displayed hypotheses. -/
+/-- A canonical list for a monic positive-degree polynomial separable over the complex numbers yields a good primitive factor at every positive exponent. -/
 theorem primitive_good (a : List ℚ) (ha : Canonical a) (hm : (poly a).Monic)
     (hs : ((poly a).map (Rat.castHom ℂ)).Separable) (hd : 0<(poly a).natDegree)
     (e : ℕ) (he : 0<e) : FactorGood (primitive a,e) := by
@@ -1240,7 +1240,7 @@ def advance (s : ArrayState) : Option ArrayState :=
       | none => none
       | some c => some ⟨y,c,s.exponent+1,factors⟩
 
-/-- The finite construction in `Yun` satisfies `advance_success` under the displayed hypotheses. -/
+/-- From an array state satisfying `ArrayInvariant`, `advance` returns a state satisfying the same invariant whose decoding is the polynomial-level Yun step. -/
 theorem advance_success (F : ℚ[X]) (s : ArrayState) (h : ArrayInvariant F s) :
     ∃ t,advance s=some t ∧ ArrayInvariant F t ∧ decode t=ActualYunStep.step (decode s) := by
   have hwm : (poly s.w).Monic := h.model.w_monic
@@ -1302,7 +1302,7 @@ open Polynomial ActualYunInitial ActualYunStep ActualYunLoop ActualYunOutputBoun
 open ActualYunRationalArray ActualYunRationalCanonical ActualYunMonic ActualYunGcd
 open ActualYunArrayInitialization ActualYunPrimitive ActualYunArrayStep
 
-/-- The finite construction in `Yun` satisfies `while_iff` under the displayed hypotheses. -/
+/-- In an array state satisfying the invariant, the working list has length greater than one exactly when its decoded polynomial has positive natural degree. -/
 theorem while_iff (F : ℚ[X]) (s : ArrayState) (h : ArrayInvariant F s) :
     1<s.w.length ↔ 0<(decode s).w.natDegree := by
   have hn : s.w≠[] := (canonical_nonzero s.w h.canonical_w).mpr h.model.w_monic.ne_zero
@@ -1325,7 +1325,7 @@ def arrayRun : ℕ → ℕ → ArrayState → Option ArrayState
       | some t => arrayRun fuel limit t
     else some s
 
-/-- The finite construction in `Yun` satisfies `arrayRun_success` under the displayed hypotheses. -/
+/-- If the decoded degree measure fits the fuel and that measure plus the current exponent fits the limit, the array loop returns an invariant state agreeing with the polynomial loop. Its working list has length at most one and its exponent stays within the limit. -/
 theorem arrayRun_success (F : ℚ[X]) (fuel limit : ℕ) (s : ArrayState) (h : ArrayInvariant F s)
     (hbudget : ActualYunStep.measure (decode s)+s.exponent≤limit)
     (hfuel : ActualYunStep.measure (decode s)≤fuel) :
@@ -1364,7 +1364,7 @@ theorem arrayRun_success (F : ℚ[X]) (fuel limit : ℕ) (s : ArrayState) (h : A
       · have hnot : ¬0<(decode s).w.natDegree := fun hp => hw ((while_iff F s h).mpr hp)
         simp only [ActualYunLoop.run,ite_eq_right hnot]
 
-/-- The finite construction in `Yun` satisfies `initialize_array_invariant` under the displayed hypotheses. -/
+/-- For a nonzero positive-degree input, initialization returns a state with exponent one satisfying the array invariant for the normalized polynomial. Its decoding equals polynomial-level initialization, and the normalized input list has length one more than the degree. -/
 theorem initialize_array_invariant (a : List ℚ) (ha : poly a≠0) (hd : 0<(poly a).natDegree) :
     ∃ A s,sourceInitialize a=some (A,s.c,s.w) ∧
       ArrayInvariant (normalize (poly a)) s ∧
@@ -1400,7 +1400,7 @@ def squarefreeArrays (a : List ℚ) : Option (List (List ℤ×ℕ)) :=
   | some (A,c,w) =>
     (arrayRun (A.length-1) A.length ⟨w,c,1,[]⟩).map (fun s => s.factors)
 
-/-- The finite construction in `Yun` satisfies `generated_integer_factors` under the displayed hypotheses. -/
+/-- On a nonzero positive-degree input, `squarefreeArrays` returns good integer factors with exponents bounded by the input degree. The product of their normalized rational polynomials raised to those exponents equals the normalized input. -/
 theorem generated_integer_factors (a : List ℚ) (ha : poly a≠0) (hd : 0<(poly a).natDegree) :
     ∃ out,squarefreeArrays a=some out ∧
       normalize (poly a)=(out.map (fun f => normalize (integerPolyQ f.1)^f.2)).prod ∧
@@ -1463,11 +1463,11 @@ open Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.SourceInput
 /-- Construction for integer Poly in the yun model. -/
 def integerPoly (a : List ℤ) : ℤ[X] := ⟨⟨a.toFinsupp⟩⟩
 
-/-- The finite construction in `Yun` satisfies `integerCoeff` under the displayed hypotheses. -/
+/-- Coefficient `i` of the represented integer polynomial is entry `i` of the list, with zero as the default. -/
 theorem integerCoeff (a : List ℤ) (i : ℕ) :
     (integerPoly a).coeff i=a.getD i 0 := List.toFinsupp_apply _ _
 
-/-- The finite construction in `Yun` satisfies `dvd_gcdFold` under the displayed hypotheses. -/
+/-- If `d` divides the seed and the absolute value of every listed integer, it divides the result of folding gcd over those absolute values. -/
 theorem dvd_gcdFold (xs : List ℤ) (d s : ℕ) (hs : d∣s)
     (hx : ∀ x∈xs,d∣x.natAbs) : d∣xs.foldl (fun g x => Nat.gcd g x.natAbs) s := by
   induction xs generalizing s with
@@ -1476,7 +1476,7 @@ theorem dvd_gcdFold (xs : List ℤ) (d s : ℕ) (hs : d∣s)
     rw [List.foldl_cons]
     exact ih _ (Nat.dvd_gcd hs (hx x (by simp))) (fun y hy => hx y (by simp [hy]))
 
-/-- The finite construction in `Yun` satisfies `primitive_isPrimitive` under the displayed hypotheses. -/
+/-- For every nonzero rational input polynomial, its primitive coefficient list represents a primitive integer polynomial. -/
 theorem primitive_isPrimitive (a : List ℚ) (ha : poly a≠0) :
     (integerPoly (primitive a)).IsPrimitive := by
   have hmember : ∃ q∈trim a,q≠0 := by
@@ -1529,7 +1529,7 @@ open ActualYunPrimitiveContent
 def PrimitiveOutputs (s : ArrayState) : Prop :=
   ∀ f∈s.factors,(integerPoly f.1).IsPrimitive
 
-/-- The finite construction in `Yun` satisfies `advance_primitive` under the displayed hypotheses. -/
+/-- If the current array state satisfies the invariant and all its stored factors are primitive, any state returned by one advance still has only primitive stored factors. -/
 theorem advance_primitive (F : ℚ[X]) (s t : ArrayState)
     (h : ArrayInvariant F s) (hp : PrimitiveOutputs s) (ht : advance s=some t) :
     PrimitiveOutputs t := by
@@ -1555,7 +1555,7 @@ theorem advance_primitive (F : ℚ[X]) (s t : ArrayState)
       exact primitive_isPrimitive z hzm.ne_zero
   · exact hp f hf
 
-/-- The finite construction in `Yun` satisfies `run_primitive` under the displayed hypotheses. -/
+/-- With an invariant input state whose factors are primitive, any state returned by the array loop likewise has only primitive factors. -/
 theorem run_primitive (F : ℚ[X]) (fuel limit : ℕ) (s t : ArrayState)
     (h : ArrayInvariant F s) (hp : PrimitiveOutputs s) (ht : arrayRun fuel limit s=some t) :
     PrimitiveOutputs t := by
@@ -1576,7 +1576,7 @@ theorem run_primitive (F : ℚ[X]) (fuel limit : ℕ) (s t : ArrayState)
       subst t
       exact hp
 
-/-- The finite construction in `Yun` satisfies `generated_primitive` under the displayed hypotheses. -/
+/-- For a nonzero positive-degree input, every factor in any successful `squarefreeArrays` output represents a primitive integer polynomial. -/
 theorem generated_primitive (a : List ℚ) (ha : poly a≠0) (hd : 0<(poly a).natDegree)
     (out : List (List ℤ×ℕ)) (hout : squarefreeArrays a=some out) :
     ∀ f∈out,(integerPoly f.1).IsPrimitive := by
@@ -1612,14 +1612,14 @@ open ActualYunIntegerProduct ActualYunArrayStep ActualYunArrayLoop
 def rawProduct (out : List (List ℤ×ℕ)) : ℤ[X] :=
   (out.map (fun f => (integerPoly f.1)^f.2)).prod
 
-/-- The finite construction in `Yun` satisfies `primitive_pow` under the displayed hypotheses. -/
+/-- Every natural power of a primitive integer polynomial is primitive. -/
 theorem primitive_pow (p : ℤ[X]) (hp : p.IsPrimitive) (e : ℕ) :
     (p^e).IsPrimitive := by
   induction e with
   | zero => simpa only [pow_zero] using (Polynomial.isPrimitive_one (R := ℤ))
   | succ e ih => rw [pow_succ]; exact ih.mul hp
 
-/-- The finite construction in `Yun` satisfies `rawProduct_primitive` under the displayed hypotheses. -/
+/-- If every listed factor is a primitive integer polynomial, the product of the listed factor powers is primitive. -/
 theorem rawProduct_primitive (out : List (List ℤ×ℕ))
     (h : ∀ f∈out,(integerPoly f.1).IsPrimitive) : (rawProduct out).IsPrimitive := by
   induction out with
@@ -1628,7 +1628,7 @@ theorem rawProduct_primitive (out : List (List ℤ×ℕ))
     change ((integerPoly f.1)^f.2*rawProduct fs).IsPrimitive
     exact (primitive_pow _ (h f (by simp)) _).mul (ih (fun g hg => h g (by simp [hg])))
 
-/-- The finite construction in `Yun` satisfies `normalized_rawProduct` under the displayed hypotheses. -/
+/-- Normalizing the rational cast of the integer product equals the product of the separately normalized rational factors raised to their listed exponents. -/
 theorem normalized_rawProduct (out : List (List ℤ×ℕ)) :
     normalize ((rawProduct out).map (Int.castRingHom ℚ))=
       (out.map (fun f => normalize (integerPolyQ f.1)^f.2)).prod := by
@@ -1641,13 +1641,13 @@ theorem normalized_rawProduct (out : List (List ℤ×ℕ)) :
     exact congrArg (fun q => q*(fs.map (fun f => normalize (integerPolyQ f.1)^f.2)).prod)
       (map_pow normalizeHom (integerPolyQ f.1) f.2)
 
-/-- The finite construction in `Yun` satisfies `normalize_field` under the displayed hypotheses. -/
+/-- A nonzero rational polynomial is normalized by multiplying it by the inverse of its leading coefficient. -/
 theorem normalize_field (p : ℚ[X]) (hp : p≠0) :
     normalize p=p*C p.leadingCoeff⁻¹ := by
   rw [normalize_apply,Polynomial.coe_normUnit,
     CommGroupWithZero.coe_normUnit ℚ (Polynomial.leadingCoeff_ne_zero.mpr hp)]
 
-/-- The finite construction in `Yun` satisfies `integral_content` under the displayed hypotheses. -/
+/-- If nonzero `H` and primitive `P` have the same rational normalization, the ratio of their rational leading coefficients is a nonzero integer `c`, and `H = C c * P`. -/
 theorem integral_content (H P : ℤ[X]) (hH : H≠0) (hP : P.IsPrimitive)
     (hnorm : normalize (H.map (Int.castRingHom ℚ))=normalize (P.map (Int.castRingHom ℚ))) :
     ∃ c : ℤ,(c : ℚ)=(H.map (Int.castRingHom ℚ)).leadingCoeff/
@@ -1688,7 +1688,7 @@ theorem integral_content (H P : ℤ[X]) (hH : H≠0) (hP : P.IsPrimitive)
   exact hidentity
 
 
-/-- The finite construction in `Yun` satisfies `castArray_poly` under the displayed hypotheses. -/
+/-- Casting each entry of an integer coefficient list to the rationals represents the coefficientwise cast of its integer polynomial. -/
 theorem castArray_poly (a : List ℤ) :
     poly (a.map (fun z : ℤ => (z : ℚ)))=(integerPoly a).map (Int.castRingHom ℚ) := by
   ext i
@@ -1696,7 +1696,7 @@ theorem castArray_poly (a : List ℤ) :
   change (a.map (fun z : ℤ => (z : ℚ))).getD i 0=(a.getD i 0 : ℚ)
   simpa only [Int.cast_zero] using (List.getD_map a 0 (n := i) (fun z : ℤ => (z : ℚ)))
 
-/-- The finite construction in `Yun` satisfies `generated_content` under the displayed hypotheses. -/
+/-- A nonzero positive-degree integer input yields squarefree array factors and nonzero integer content equal to the rational leading-coefficient ratio. Multiplying the factor powers by that content recovers the input, and every factor is good and primitive with exponent bounded by the input degree. -/
 theorem generated_content (a : List ℤ) (ha : integerPoly a≠0)
     (hd : 0<(integerPoly a).natDegree) :
     ∃ (out : List (List ℤ×ℕ)) (c : ℤ),squarefreeArrays (a.map (fun z : ℤ => (z : ℚ)))=some out ∧
@@ -1742,7 +1742,8 @@ def rows (c : List ℚ) : List ℚ → List ℚ → ℕ → List ℚ
   | [],_,_ => c
   | x::xs,b,j => rows (subtractShift c b j (-x)) xs b (j+1)
 
-/-- The finite construction in `Yun` satisfies `rows_poly` under the displayed hypotheses. -/
+/-- Accumulating the shifted convolution rows adds `X^j * poly a * poly b` to `poly c`
+when `j + a.length + b.length ≤ c.length + 1`. -/
 theorem rows_poly (c a b : List ℚ) (j : ℕ)
     (hbound : j+a.length+b.length≤c.length+1) :
     poly (rows c a b j)=poly c+X^j*poly a*poly b := by
@@ -1762,14 +1763,15 @@ def qMul (a b : List ℚ) : List ℚ :=
   if a=[] ∨ b=[] then [] else
     trim (rows (List.replicate (a.length+b.length-1) 0) a b 0)
 
-/-- The finite construction in `Yun` satisfies `zeros_poly` under the displayed hypotheses. -/
+/-- A rational coefficient list of `n` zeros represents the zero polynomial. -/
 theorem zeros_poly (n : ℕ) : poly (List.replicate n (0 : ℚ))=0 := by
   ext k
   rw [coeff]
   simp only [List.getD_eq_getElem?_getD,List.getElem?_replicate,Polynomial.coeff_zero]
   split_ifs <;> rfl
 
-/-- The finite construction in `Yun` satisfies `qMul_poly` under the displayed hypotheses. -/
+/-- Rational array convolution represents the product of the input polynomials, including
+when either coefficient list is empty. -/
 theorem qMul_poly (a b : List ℚ) : poly (qMul a b)=poly a*poly b := by
   by_cases h : a=[] ∨ b=[]
   · rw [qMul,ite_eq_left h,poly_nil]
@@ -1788,7 +1790,8 @@ def repeatMul : ℕ → List ℚ → List ℚ → List ℚ
   | 0,product,_ => product
   | e+1,product,f => repeatMul e (qMul product f) f
 
-/-- The finite construction in `Yun` satisfies `repeatMul_poly` under the displayed hypotheses. -/
+/-- Multiplying the accumulator array by `f` a total of `e` times represents
+the polynomial `poly a * (poly f)^e`. -/
 theorem repeatMul_poly (e : ℕ) (a f : List ℚ) :
     poly (repeatMul e a f)=poly a*poly f^e := by
   induction e generalizing a with
@@ -1803,7 +1806,8 @@ def factorsProduct : List (List ℤ×ℕ) → List ℚ → List ℚ
   | f::fs,product => factorsProduct fs
       (repeatMul f.2 product (f.1.map (fun z : ℤ => (z : ℚ))))
 
-/-- The finite construction in `Yun` satisfies `factorsProduct_poly` under the displayed hypotheses. -/
+/-- Accumulating integer factor arrays at their recorded multiplicities multiplies the
+initial rational polynomial by the rational image of their integer polynomial product. -/
 theorem factorsProduct_poly (out : List (List ℤ×ℕ)) (product : List ℚ) :
     poly (factorsProduct out product)=poly product*(rawProduct out).map (Int.castRingHom ℚ) := by
   induction out generalizing product with
@@ -1822,32 +1826,37 @@ namespace ActualYunContentGuard
 open Polynomial ActualYunRationalArray ActualYunRationalCanonical ActualYunPrimitive
 open ActualYunPrimitiveContent ActualYunContentSupply ActualYunProductArrays ActualYunArrayLoop
 
-/-- The finite construction in `Yun` satisfies `qMul_canonical` under the displayed hypotheses. -/
+/-- Convolution returns a trimmed coefficient list for every pair of rational input arrays. -/
 theorem qMul_canonical (a b : List ℚ) : Canonical (qMul a b) := by
   unfold qMul
   split_ifs
   · rfl
   · exact trim_canonical _
 
-/-- The finite construction in `Yun` satisfies `repeatMul_canonical` under the displayed hypotheses. -/
+/-- Repeated multiplication by an arbitrary factor array preserves a trimmed accumulator,
+including the zero-step case. -/
 theorem repeatMul_canonical (e : ℕ) (a f : List ℚ) (h : Canonical a) :
     Canonical (repeatMul e a f) := by
   induction e generalizing a with
   | zero => exact h
   | succ e ih => exact ih _ (qMul_canonical _ _)
 
-/-- The finite construction in `Yun` satisfies `factorsProduct_canonical` under the displayed hypotheses. -/
+/-- Multiplying a trimmed rational accumulator by the listed integer factors at their
+multiplicities leaves the resulting coefficient list trimmed. -/
 theorem factorsProduct_canonical (out : List (List ℤ×ℕ)) (a : List ℚ)
     (h : Canonical a) : Canonical (factorsProduct out a) := by
   induction out generalizing a with
   | nil => exact h
   | cons f fs ih => exact ih _ (repeatMul_canonical _ _ _ h)
 
-/-- The finite construction in `Yun` satisfies `poly_one` under the displayed hypotheses. -/
+/-- The singleton rational coefficient list `[1]` represents the constant polynomial one. -/
 theorem poly_one : poly [1]=1 := by
   rw [poly_cons,poly_nil,mul_zero,add_zero,Polynomial.C_1]
 
-/-- The finite construction in `Yun` satisfies `generated_source_content_guard` under the displayed hypotheses. -/
+/-- For a nonzero integer polynomial of positive degree with a trimmed coefficient list,
+`squarefreeArrays` succeeds on its rational cast. The ratio of the input and product leading
+coefficients is a nonzero integer with rational denominator one, and scaling the product array
+by that ratio recovers the input coefficient list. -/
 theorem generated_source_content_guard (a : List ℤ) (ha : integerPoly a≠0)
     (hd : 0<(integerPoly a).natDegree)
     (hcanonical : Canonical (a.map (fun z : ℤ => (z : ℚ)))) :

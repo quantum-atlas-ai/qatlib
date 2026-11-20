@@ -44,13 +44,13 @@ private def rectLabelLift {M N L : Type} [DecidableEq L]
     (V : L → Matrix M N ℂ) : Matrix (L × M) (L × N) ℂ :=
   (Matrix.blockDiagonal V).submatrix (Equiv.prodComm L M) (Equiv.prodComm L N)
 
-/-- The finite construction in `NativeMultiNodeNeumannEncoding` satisfies `rectLabelLift_adjoint` under the displayed hypotheses. -/
+/-- The adjoint of a rectangular block-diagonal lift has the adjoint of `V j` in each label block. -/
 private theorem rectLabelLift_adjoint {M N L : Type} [DecidableEq L]
     (V : L → Matrix M N ℂ) :
     (rectLabelLift V)ᴴ = rectLabelLift (fun j => (V j)ᴴ) := by
   simp only [rectLabelLift, Matrix.conjTranspose_submatrix, Matrix.blockDiagonal_conjTranspose]
 
-/-- The finite construction in `NativeMultiNodeNeumannEncoding` satisfies `rectLabelLift_mul` under the displayed hypotheses. -/
+/-- Multiplying two rectangular block-diagonal lifts multiplies their corresponding blocks at each label. -/
 private theorem rectLabelLift_mul {M N P L : Type}
     [Fintype N] [Fintype L] [DecidableEq L]
     (V : L → Matrix M N ℂ) (W : L → Matrix N P ℂ) :
@@ -58,13 +58,13 @@ private theorem rectLabelLift_mul {M N P L : Type}
   unfold rectLabelLift
   rw [Matrix.submatrix_mul_equiv, ← Matrix.blockDiagonal_mul]
 
-/-- The finite construction in `NativeMultiNodeNeumannEncoding` satisfies `rectLabelLift_select` under the displayed hypotheses. -/
+/-- For square blocks, the rectangular label lift is the usual block-diagonal selection matrix. -/
 private theorem rectLabelLift_select {L M : Type} [DecidableEq L]
     (V : L → Matrix M M ℂ) : rectLabelLift V = select V := by
   rfl
 
 omit [Fintype J] [Fintype I] [DecidableEq I] in
-/-- The finite construction in `NativeMultiNodeNeumannEncoding` satisfies `nativeMultiNodeFrame_eq_lift` under the displayed hypotheses. -/
+/-- The multi-node frame has the same native data frame for `F` in every diagonal label block and zero cross-label blocks. -/
 private theorem nativeMultiNodeFrame_eq_lift (F : Matrix H I ℂ) :
     nativeMultiNodeFrame (J := J) F = rectLabelLift (fun _ : J => nativeDataFrame F) := by
   ext ⟨j,h⟩ ⟨k,i⟩

@@ -38,7 +38,8 @@ def rationalCubicCeiling (value : ℚ) : ℕ :=
 def finitePoissonCutoff (C6 tolerance : ℚ) : ℕ :=
   max 1 (rationalCubicCeiling (400*C6/tolerance))
 
-/-- Original `cubicCutoffSearch_spec` guarantee for the `CubicCutoffExecution` construction; the complete source hypotheses are retained. -/
+/-- If the cube of `n + fuel` reaches the rational target, the search returns the first index in
+`[n, n + fuel]` whose cube reaches it. -/
 theorem cubicCutoffSearch_spec (value : ℚ) (fuel n : ℕ)
     (hstop : value ≤ ((n+fuel : ℕ) : ℚ)^3) :
     let r := cubicCutoffSearch value n fuel
@@ -66,7 +67,7 @@ theorem cubicCutoffSearch_spec (value : ℚ) (fuel n : ℕ)
         exact lt_of_not_ge h
       · exact hprior k (by omega) hkr
 
-/-- Original `rationalCubicCeiling_spec` guarantee for the `CubicCutoffExecution` construction; the complete source hypotheses are retained. -/
+/-- The rational cubic ceiling is the least natural number whose cube is at least the input. -/
 theorem rationalCubicCeiling_spec (value : ℚ) :
     value ≤ (rationalCubicCeiling value : ℚ)^3 ∧
       ∀ k, k<rationalCubicCeiling value → (k : ℚ)^3<value := by
@@ -84,11 +85,12 @@ theorem rationalCubicCeiling_spec (value : ℚ) :
   have h := cubicCutoffSearch_spec value (Nat.ceil value+1) 0 hstop
   exact ⟨h.1,fun k hk => h.2.2.2 k (Nat.zero_le _) hk⟩
 
-/-- Original `finitePoissonCutoff_pos` guarantee for the `CubicCutoffExecution` construction; the complete source hypotheses are retained. -/
+/-- The finite Poisson frequency cutoff is positive for every rational derivative bound and
+tolerance. -/
 theorem finitePoissonCutoff_pos (C6 tolerance : ℚ) : 0<finitePoissonCutoff C6 tolerance :=
   lt_of_lt_of_le (by decide : 0<1) (le_max_left _ _)
 
-/-- Original `finitePoissonCutoff_budget` guarantee for the `CubicCutoffExecution` construction; the complete source hypotheses are retained. -/
+/-- At positive tolerance the selected cutoff satisfies `400 * C6 ≤ tolerance * cutoff³`. -/
 theorem finitePoissonCutoff_budget (C6 tolerance : ℚ) (ht : 0<tolerance) :
     400*C6 ≤ tolerance*(finitePoissonCutoff C6 tolerance : ℚ)^3 := by
   have hroot := (rationalCubicCeiling_spec (400*C6/tolerance)).1

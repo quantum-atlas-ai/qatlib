@@ -29,7 +29,8 @@ def sourceFrameTransportMajorant (packet : SourceFrameBoundPacket) (r : Fin 9) :
 noncomputable section
 open scoped Quaternion ContDiff
 
-/-- Original `sourceHorizontalQuaternion_pure` guarantee for the `SourceTransportWord` construction; the complete source hypotheses are retained. -/
+/-- The horizontal quaternion coefficient of a smooth unit vector field has zero real part
+everywhere. -/
 theorem sourceHorizontalQuaternion_pure (v : SpatialPoint → SpatialPoint)
     (hv : ContDiff ℝ ∞ v) (hu : ∀ x, ‖v x‖=1) (x : SpatialPoint) :
     (sourceHorizontalQuaternion v x).re=0 := by

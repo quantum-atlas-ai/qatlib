@@ -39,7 +39,8 @@ def sourceF (cs : List ℚ) (N : ℕ) (E : ℚ) : ℂ[X] :=
 def sourceMu (cs : List ℚ) (N : ℕ) (E : ℚ) : ℝ :=
   3*(sourceInputU cs N E : ℝ)/32
 
-/-- The finite construction in `NativeSourceCircleBounds` satisfies `sourceMu_pos` under the displayed hypotheses. -/
+/-- The source complement's lower-bound parameter, three thirty-seconds of the input budget, is
+strictly positive when E is positive. -/
 theorem sourceMu_pos (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E) :
     0<sourceMu cs N E := by
   have hu : (0 : ℝ)<(sourceInputU cs N E : ℝ) :=
@@ -47,7 +48,7 @@ theorem sourceMu_pos (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E) :
   unfold sourceMu
   positivity
 
-/-- The finite construction in `NativeSourceCircleBounds` satisfies `sourceMu_le_one` under the displayed hypotheses. -/
+/-- The source complement parameter is at most one for any source input. -/
 theorem sourceMu_le_one (cs : List ℚ) (N : ℕ) (E : ℚ) :
     sourceMu cs N E ≤ 1 := by
   have hu : (sourceInputU cs N E : ℝ) ≤ 1/2 := by
@@ -56,7 +57,8 @@ theorem sourceMu_le_one (cs : List ℚ) (N : ℕ) (E : ℚ) :
   unfold sourceMu
   linarith
 
-/-- The finite construction in `NativeSourceCircleBounds` satisfies `sourceF_exp` under the displayed hypotheses. -/
+/-- For positive source degree d and matching input parity, evaluating the complement at exp(2iθ)
+gives exp(idθ) squared times one minus the square of the output Chebyshev series at cos θ. -/
 theorem sourceF_exp (cs : List ℚ) (N : ℕ) (E : ℚ)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)
     (hd : 0<sourceDegree cs N E) (theta : ℝ) :

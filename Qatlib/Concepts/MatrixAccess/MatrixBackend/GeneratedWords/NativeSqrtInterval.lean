@@ -36,7 +36,7 @@ def nativeSqrtInterval (q : ℚ) (p : ℕ) : ℚ × ℚ × ℕ :=
   let lo := (Nat.sqrt n : ℚ)/(2 : ℚ)^p
   (lo,if lo^2=q then lo else lo+1/(2 : ℚ)^p,Nat.size n)
 
-/-- The finite construction in `NativeSqrtInterval` satisfies `nativeSqrtRadicand_floor` under the displayed hypotheses. -/
+/-- For a nonnegative rational `q`, the integer square-root operand is the natural floor of `q * 2^(2*p)`. -/
 theorem nativeSqrtRadicand_floor (q : ℚ) (p : ℕ) (hq : 0≤q) :
     nativeSqrtRadicand q p=⌊q*(2 : ℚ)^(2*p)⌋₊ := by
   have hn : (q.num.toNat : ℚ)=(q.num : ℚ) := by
@@ -50,7 +50,7 @@ theorem nativeSqrtRadicand_floor (q : ℚ) (p : ℕ) (hq : 0≤q) :
   unfold nativeSqrtRadicand
   rw [←Rat.natFloor_natCast_div_natCast,harg]
 
-/-- The finite construction in `NativeSqrtInterval` satisfies `nativeSqrtInterval_rational` under the displayed hypotheses. -/
+/-- For `q ≥ 0`, the returned rational endpoints are ordered and nonnegative, their squares bracket `q`, and their width is at most `2^(-p)`. The third component is the bit length of the integer square-root operand. -/
 theorem nativeSqrtInterval_rational (q : ℚ) (p : ℕ) (hq : 0≤q) :
     let b := nativeSqrtInterval q p
     0≤b.1 ∧ b.1≤b.2.1 ∧ b.1^2≤q ∧ q≤b.2.1^2 ∧
@@ -90,7 +90,7 @@ theorem nativeSqrtInterval_rational (q : ℚ) (p : ℕ) (hq : 0≤q) :
     · linarith
 
 
-/-- The finite construction in `NativeSqrtInterval` satisfies `nativeSqrtInterval_real` under the displayed hypotheses. -/
+/-- For nonnegative `q`, the returned endpoints enclose its real square root. The lower endpoint is within `2^(-p)` of the root, and the midpoint is within `1 / (2 * 2^p)`. -/
 theorem nativeSqrtInterval_real (q : ℚ) (p : ℕ) (hq : 0≤q) :
       ((nativeSqrtInterval q p).1 : ℝ)≤Real.sqrt (q : ℝ) ∧ Real.sqrt (q : ℝ)≤((nativeSqrtInterval q p).2.1 : ℝ) ∧
       |Real.sqrt (q : ℝ)-((nativeSqrtInterval q p).1 : ℝ)|≤1/(2 : ℝ)^p ∧
@@ -115,7 +115,7 @@ theorem nativeSqrtInterval_real (q : ℚ) (p : ℕ) (hq : 0≤q) :
     rw [abs_le,show 1/(2*(2 : ℝ)^p)=(1/(2 : ℝ)^p)/2 by ring]
     constructor <;> linarith
 
-/-- The finite construction in `NativeSqrtInterval` satisfies `nativeSqrtInterval_lower_one` under the displayed hypotheses. -/
+/-- When the rational radicand is at least one, the returned lower square-root endpoint is at least one. -/
 theorem nativeSqrtInterval_lower_one (q : ℚ) (p : ℕ) (hq : 1≤q) :
     1≤(nativeSqrtInterval q p).1 := by
   have hq0 : 0≤q := by linarith
@@ -130,7 +130,7 @@ theorem nativeSqrtInterval_lower_one (q : ℚ) (p : ℕ) (hq : 1≤q) :
   apply (le_div_iff₀ (by positivity : (0 : ℚ)<2^p)).mpr
   simpa only [one_mul,Nat.cast_pow,Nat.cast_ofNat] using (show ((2^p : ℕ) : ℚ)≤Nat.sqrt (nativeSqrtRadicand q p) by exact_mod_cast hm)
 
-/-- The finite construction in `NativeSqrtInterval` satisfies `nativeSqrtInterval_operand_bits` under the displayed hypotheses. -/
+/-- The reported bit length of the square-root operand is at most the bit length of `q.num.toNat` plus twice the precision `p`. -/
 theorem nativeSqrtInterval_operand_bits (q : ℚ) (p : ℕ) :
     (nativeSqrtInterval q p).2.2≤Nat.size q.num.toNat+2*p := by
   change Nat.size (nativeSqrtRadicand q p)≤_

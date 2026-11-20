@@ -33,7 +33,8 @@ section PacketBudget
 
 open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data.SourceInput
 
-/-- The finite construction in `NativeSourcePacketAccuracy` satisfies `source_output_rounding_budget` under the displayed hypotheses. -/
+/-- A positive requested error makes the rounding step at the selected phase precision at most the
+source input budget divided by 16(N + 1). -/
 theorem source_output_rounding_budget (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E) :
     1/(16*(2 : ℝ)^(sourcePacketPrecision cs N E))≤(sourceInputU cs N E : ℝ)/(16*(N+1 : ℝ)) := by
   let u := sourceInputU cs N E
@@ -52,7 +53,8 @@ theorem source_output_rounding_budget (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 
   push_cast at hr
   exact hr
 
-/-- The finite construction in `NativeSourcePacketAccuracy` satisfies `numeric_budget` under the displayed hypotheses. -/
+/-- Given M at least two, d at most M, nonnegative u, h and r, and bounds h ≤ u/(64M) and r ≤
+u/(16M), the sum h/8 + r + d(7h/20 + 3r) is at most u/4. -/
 private theorem numeric_budget (M d u h r : ℝ) (hM : 2≤M) (hu : 0≤u) (hh : 0≤h) (hr : 0≤r)
     (hd : d≤M) (hhb : h≤u/(64*M)) (hrb : r≤u/(16*M)) :
     h/8+r+d*(7*h/20+3*r)≤u/4 := by
@@ -64,7 +66,8 @@ private theorem numeric_budget (M d u h r : ℝ) (hM : 2≤M) (hu : 0≤u) (hh :
   have hdr := mul_le_mul_of_nonneg_right hd hr
   nlinarith
 
-/-- The finite construction in `NativeSourcePacketAccuracy` satisfies `source_packet_budget` under the displayed hypotheses. -/
+/-- For positive E and source degree d, the source grid spacing h and phase rounding step r
+satisfy h/8 + r + d(7h/20 + 3r) ≤ u/4, where u is the source input budget. -/
 theorem source_packet_budget (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E)
     (hd : 0<sourceDegree cs N E) :
     let u := sourceInputU cs N E
@@ -96,7 +99,9 @@ open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data.SourceInput
 open Qatlib.Concepts.NativeNumerics.PhaseSynthesis
 open scoped Matrix.Norms.L2Operator
 
-/-- The finite construction in `NativeSourcePacketAccuracy` satisfies `squared_pair` under the displayed hypotheses. -/
+/-- If each rational half phase has unit norm and its square is within delta of its paired unit
+target, the squared decoded list matches the target list with both norms one and pairwise
+error at most delta. -/
 private theorem squared_pair {us : List GaussianRat} {qs : List ℂ} (delta : ℝ)
     (hp : List.Forall₂ (fun u q => ‖gaussianRatComplex u‖=1 ∧ ‖(gaussianRatComplex u)^2-q‖≤delta) us qs)
     (hq : ∀ q∈qs,‖q‖=1) :
@@ -175,7 +180,8 @@ theorem source_unpadded_length {m : ℕ} (cs : List ℚ) (N : ℕ) (E : ℚ) (f 
   have hl := congrArg List.length (sourceDiscovered_decode (sourceRoundedMatrix cs N E f) (sourceInputEta cs N E))
   simpa only [List.length_map,sourceDiscovered_length] using hl
 
-/-- The finite construction in `NativeSourcePacketAccuracy` satisfies `source_unpadded_unit` under the displayed hypotheses. -/
+/-- Every half-phase coordinate in the unpadded source list decodes to a complex number of norm
+one. -/
 theorem source_unpadded_unit {m : ℕ} (cs : List ℚ) (N : ℕ) (E : ℚ) (f : Fin m → RootIntegerFactorData) :
     ∀ u∈sourceUnpaddedHalves cs N E f,‖gaussianRatComplex u‖=1 := by
   intro u hu
@@ -183,7 +189,8 @@ theorem source_unpadded_unit {m : ℕ} (cs : List ℚ) (N : ℕ) (E : ℚ) (f : 
   obtain ⟨q,_,rfl⟩ := List.mem_map.mp hu
   exact nativeEquatorialHalfPhase_norm q _
 
-/-- The finite construction in `NativeSourcePacketAccuracy` satisfies `source_padded_unit` under the displayed hypotheses. -/
+/-- Every coordinate of the padded half-phase list, including the added cancellation pairs, has
+complex norm one. -/
 theorem source_padded_unit {m : ℕ} (cs : List ℚ) (N : ℕ) (E : ℚ) (f : Fin m → RootIntegerFactorData) :
     ∀ u∈sourcePaddedHalves cs N E f,‖gaussianRatComplex u‖=1 := by
   intro u hu

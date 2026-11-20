@@ -216,13 +216,13 @@ variable {G : Type} [AddCommGroup G] [Fintype G] [DecidableEq G]
 variable [MeasurableSpace G] [DiscreteMeasurableSpace G]
 
 /-- The idealized uniform subgroup law as a genuine probability measure on the
-discrete sample group: a weighted sum of dirac masses with the `Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.prob`
+discrete sample group: a weighted sum of dirac masses with the `FinDist.prob`
 weights of `unifOnSub H`. This is the one-draw marginal of the sampling process. -/
 noncomputable def unifSubMeasure (H : AddSubgroup G) : Measure G :=
   Measure.sum fun g => ENNReal.ofReal ((unifOnSub H).prob g) • Measure.dirac g
 
 /-- The one-draw law evaluated on a singleton: the measure of `{g}` is the
-`Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.prob` weight of `g`. -/
+`FinDist.prob` weight of `g`. -/
 theorem unifSubMeasure_singleton (H : AddSubgroup G) (g : G) :
     unifSubMeasure H {g} = ENNReal.ofReal ((unifOnSub H).prob g) := by
   classical
@@ -247,7 +247,7 @@ theorem unifSubMeasure_singleton (H : AddSubgroup G) (g : G) :
 
 omit [DecidableEq G] in
 /-- The one-draw law is a probability measure: total mass one, since the
-`Qatlib.Concepts.MonteCarloMean.FinDistBounds.FinDist.prob` weights sum to one. -/
+`FinDist.prob` weights sum to one. -/
 theorem isProbabilityMeasure_unifSubMeasure (H : AddSubgroup G) :
     IsProbabilityMeasure (unifSubMeasure H) := by
   classical

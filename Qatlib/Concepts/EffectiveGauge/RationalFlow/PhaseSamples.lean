@@ -28,7 +28,9 @@ open Qatlib.Concepts.EffectiveGauge.HopfAtlas
 def sampleAngleError (z : ℂ) (theta : ℝ) : ℝ :=
   Real.arctan ((z*conj (complexPhase theta)).im/(z*conj (complexPhase theta)).re)
 
-/-- Original `sampleAngleError_spec` guarantee for the `PhaseSamples` construction; the complete source hypotheses are retained. -/
+/-- If a complex sample lies within `e ≤ 1/64` of the phase at angle `theta`, its norm is positive
+and its computed angle correction has magnitude at most `2 * e`. The sample equals its norm times
+the phase at the corrected angle. -/
 theorem sampleAngleError_spec (z : ℂ) (theta e : ℝ) (he : 0 ≤ e) (he64 : e ≤ 1/64)
     (hz : ‖z-complexPhase theta‖ ≤ e) :
     0<‖z‖ ∧ |sampleAngleError z theta| ≤ 2*e ∧
@@ -56,7 +58,7 @@ theorem sampleAngleError_spec (z : ℂ) (theta e : ℝ) (he : 0 ≤ e) (he64 : e
       rfl
     _ = _ := by rw [complexPhase_add]; ring
 
-/-- Original `sampleAngleError_one` guarantee for the `PhaseSamples` construction; the complete source hypotheses are retained. -/
+/-- The sample one has zero angle correction relative to angle zero. -/
 @[simp] theorem sampleAngleError_one : sampleAngleError 1 0=0 := by simp [sampleAngleError]
 
 /-- Both actual branch guards succeed, and the exact local arctangent equals

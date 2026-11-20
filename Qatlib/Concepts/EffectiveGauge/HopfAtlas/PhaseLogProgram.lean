@@ -79,15 +79,18 @@ def rationalPhaseLog (oracle : ℚ × ℕ → RationalCircleSample) (endpoint bo
   (rationalPhasePrefix (tolerance/(2*(steps : ℚ))) (phaseLogSamples oracle endpoint steps b) steps).map
     (fun r => ⟨r.value,r.arithmeticError,2*(2^b : ℚ)⁻¹+r.arithmeticError,steps,b,r.terms⟩)
 
-/-- Original `phaseLogSteps_pos` guarantee for the `PhaseLogProgram` construction; the complete source hypotheses are retained. -/
+/-- The rational phase-log grid always uses at least one step, even when the endpoint or bound
+is zero. -/
 theorem phaseLogSteps_pos (endpoint bound : ℚ) : 0<phaseLogSteps endpoint bound :=
   Nat.lt_of_lt_of_le (by decide) (le_max_left _ _)
 
-/-- Original `phaseLogSteps_bound` guarantee for the `PhaseLogProgram` construction; the complete source hypotheses are retained. -/
+/-- The number of phase-log grid steps is at least eight times the rational endpoint times the
+angular rate bound. -/
 theorem phaseLogSteps_bound (endpoint bound : ℚ) : 8*endpoint*bound ≤ (phaseLogSteps endpoint bound : ℚ) :=
   (Nat.le_ceil _).trans (by exact_mod_cast (le_max_right 1 (Nat.ceil (8*endpoint*bound))))
 
-/-- Original `phaseLogPrecision_budget` guarantee for the `PhaseLogProgram` construction; the complete source hypotheses are retained. -/
+/-- For positive tolerance `tau`, the dyadic sample error at the chosen precision is at most
+`tau / 8`. -/
 theorem phaseLogPrecision_budget (tau : ℚ) (ht : 0<tau) : (2^phaseLogPrecision tau : ℚ)⁻¹ ≤ tau/8 := by
   have hp : Nat.ceil (8/tau) ≤ 2^phaseLogPrecision tau :=
     (Nat.clog_le_iff_le_pow (by decide)).mp (le_max_right _ _)
@@ -96,7 +99,7 @@ theorem phaseLogPrecision_budget (tau : ℚ) (ht : 0<tau) : (2^phaseLogPrecision
   have hh := (div_le_iff₀ ht).mp h
   nlinarith
 
-/-- Original `phaseLogPrecision_small` guarantee for the `PhaseLogProgram` construction; the complete source hypotheses are retained. -/
+/-- The chosen phase-log precision always gives a dyadic sample error at most `1/64`. -/
 theorem phaseLogPrecision_small (tau : ℚ) : (2^phaseLogPrecision tau : ℚ)⁻¹ ≤ (1/64 : ℚ) := by
   have hp : (64 : ℚ) ≤ 2^phaseLogPrecision tau := by
     exact_mod_cast Nat.pow_le_pow_right (by decide : 0<2) (le_max_left 6 (Nat.clog 2 (Nat.ceil (8/tau))))
@@ -108,22 +111,27 @@ open scoped ComplexConjugate
 /-- Definition of rational Circle Cast in the Hopf Atlas construction. -/
 def rationalCircleCast (a : RationalCircleSample) : ℂ := ⟨(a.1 : ℝ),(a.2 : ℝ)⟩
 
-/-- Original `rationalCircleCast_ratio_re` guarantee for the `PhaseLogProgram` construction; the complete source hypotheses are retained. -/
+/-- The rational real ratio component agrees after casting with the real part of the current
+sample times the conjugate of the previous sample. -/
 theorem rationalCircleCast_ratio_re (previous current : RationalCircleSample) :
     (phaseRatioRe previous current : ℝ)=(rationalCircleCast current*conj (rationalCircleCast previous)).re := by
   simp [phaseRatioRe,rationalCircleCast]
 
-/-- Original `rationalCircleCast_ratio_im` guarantee for the `PhaseLogProgram` construction; the complete source hypotheses are retained. -/
+/-- The rational imaginary ratio component agrees after casting with the imaginary part of the
+current sample times the conjugate of the previous sample. -/
 theorem rationalCircleCast_ratio_im (previous current : RationalCircleSample) :
     (phaseRatioIm previous current : ℝ)=(rationalCircleCast current*conj (rationalCircleCast previous)).im := by
   simp [phaseRatioIm,rationalCircleCast]
   ring
 
-/-- Original `rationalCircleCast_one` guarantee for the `PhaseLogProgram` construction; the complete source hypotheses are retained. -/
+/-- The rational sample with coordinates `(1, 0)` casts to the complex number one. -/
 @[simp] theorem rationalCircleCast_one : rationalCircleCast (1,0)=1 := by
   apply Complex.ext <;> norm_num [rationalCircleCast]
 
-/-- Original `rationalPhaseStep_spec` guarantee for the `PhaseLogProgram` construction; the complete source hypotheses are retained. -/
+/-- For positive `tau`, an angle increment of magnitude at most `1/8`, and both complex
+samples within a common error `0 ≤ e ≤ 1/64` of their phases, the rational step succeeds. It
+approximates the increment plus the change in sample angle error to within its reported error,
+bounded by `tau`, and uses at most the arctangent fuel for `tau`. -/
 theorem rationalPhaseStep_spec (previous current : RationalCircleSample) (theta0 theta1 e : ℝ)
     (tau : ℚ) (htau : 0<tau) (he : 0 ≤ e) (he64 : e ≤ 1/64) (hstep : |theta1-theta0| ≤ 1/8)
     (hp : ‖rationalCircleCast previous-complexPhase theta0‖ ≤ e)

@@ -44,7 +44,7 @@ Reused FQNs:
 `Qatlib.Concepts.CoherentSim.CoherentOAA.qsvt_even_left_eq_dilation`,
 `Qatlib.Concepts.CoherentSim.CoherentOAA.aeval_oddSingularPolynomial`,
 `aeval_evenSingularPolynomial`,
-`Qatlib.Papers.QSingValue19.PhaseExistence.PhaseSynthesis.completedPair_iff_response`.
+`Qatlib.Concepts.QsvtCore.PhaseExistence.PhaseSynthesis.completedPair_iff_response`.
 
 Boundary: matrix-level corner identity; the paper's Π-controlled-NOT gate
 assembly and the polynomial-degree/parity conditions are represented by

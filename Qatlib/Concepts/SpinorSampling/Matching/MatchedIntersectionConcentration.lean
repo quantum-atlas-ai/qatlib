@@ -41,7 +41,9 @@ def matchedSmallMass (τ : Equiv.Perm S) (n m : ℕ) (r : ℝ) : ℝ :=
   (productLaw (cohortLaw (uniformLaw S) n) (cohortLaw (uniformLaw S) m)).expect
     (fun z => if ((matchedSites z.1 z.2 τ).card : ℝ)<r then 1 else 0)
 
-/-- Complete original `matched_intersection_lower_tail` guarantee for `MatchedIntersectionConcentration`; all source hypotheses and output obligations are retained. -/
+/-- For independent uniform arrays of lengths `n` and `m` and a matching permutation, let
+`r = n*m/(32*|S|)`. If `0 < n ≤ |S|` and `m ≤ |S|`, the probability of fewer than `r` matched
+sites is at most `2 * exp (-r)`. -/
 theorem matched_intersection_lower_tail (τ : Equiv.Perm S) (n m : ℕ)
     (hn0 : 0<n) (hn : n ≤ Fintype.card S) (hm : m ≤ Fintype.card S) :
     matchedSmallMass τ n m ((n : ℝ)*(m : ℝ)/(32*(Fintype.card S : ℝ))) ≤
@@ -119,7 +121,9 @@ theorem matched_intersection_lower_tail (τ : Equiv.Perm S) (n m : ℕ)
       rw [he]
       ring
 
-/-- Complete original `signed_matched_intersection_lower_tail` guarantee for `MatchedIntersectionConcentration`; all source hypotheses and output obligations are retained. -/
+/-- For independent signed cohorts with pointwise means in [−1, 1], their addresses have the
+same lower-tail bound as uniform arrays. With `0 < n ≤ |S|`, `m ≤ |S|`, and a matching
+permutation, fewer than `r = n*m/(32*|S|)` sites match with probability at most `2 * exp (-r)`. -/
 theorem signed_matched_intersection_lower_tail (τ : Equiv.Perm S) (n m : ℕ)
     (hn0 : 0<n) (hn : n ≤ Fintype.card S) (hm : m ≤ Fintype.card S)
     (a b : S → ℝ) (ha : ∀ x, |a x|≤1) (hb : ∀ x, |b x|≤1) :

@@ -114,7 +114,10 @@ theorem sameSource_solenoidal_eq_of_mean_cell_origin
   rw [hn0,hlin0] at h
   simpa [phase,h0,unit_self_mul_star (q 0) (huq 0)] using h
 
-/-- Original `selectedPoissonGauge_unique` guarantee for the `GaugeUniqueness` construction; the complete source hypotheses are retained. -/
+/-- For a smooth source and a smooth periodic unit reference lift with certified mean sector,
+any smooth periodic solenoidal unit lift of the same source equals the selected Poisson gauge
+when it agrees with the reference at the origin and each connection mean lies in the open
+interval from its chosen shift plus `1/8` to the shift plus `7/8`. -/
 theorem selectedPoissonGauge_unique (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (q : QuaternionField) (hq : ContDiff ℝ ∞ q) (hp : IsPeriodicField q) (hu : ∀ x, ‖q x‖=1)
     (hh : ∀ x, hopf (q x)=spinOfVector (v x)) (result : SourceMeanSectorResult)

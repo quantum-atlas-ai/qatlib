@@ -21,7 +21,7 @@ namespace Qatlib.Concepts.EffectiveGauge.HopfAtlas
 /-- Definition of spin Of Vector in the Hopf Atlas construction. -/
 def spinOfVector (v : SpatialPoint) : ℍ := ⟨0,v 0,v 1,v 2⟩
 
-/-- Original `spinOfVector_norm` guarantee for the `SpinRepresentation` construction; the complete source hypotheses are retained. -/
+/-- Embedding a spatial vector as a pure imaginary spin quaternion preserves its norm. -/
 theorem spinOfVector_norm (v : SpatialPoint) : ‖spinOfVector v‖=‖v‖ := by
   apply (sq_eq_sq₀ (norm_nonneg _) (norm_nonneg _)).mp
   have hv : ‖v‖^2=(v 0)^2+(v 1)^2+(v 2)^2 := by
@@ -41,7 +41,8 @@ def spinEmbedding : SpatialPoint →ₗᵢ[ℝ] ℍ where
   map_smul' r v := by ext <;> simp [spinOfVector]
   norm_map' := spinOfVector_norm
 
-/-- Original `spin_field_isSmooth` guarantee for the `SpinRepresentation` construction; the complete source hypotheses are retained. -/
+/-- A smooth unit vector field gives a smooth spin field under the pure imaginary quaternion
+embedding. -/
 theorem spin_field_isSmooth {v : SpatialPoint → SpatialPoint}
     (hv : ContDiff ℝ ∞ v) (hu : ∀ x, ‖v x‖=1) :
     IsSmoothSpin (fun x => spinOfVector (v x)) := by
@@ -49,13 +50,15 @@ theorem spin_field_isSmooth {v : SpatialPoint → SpatialPoint}
   intro x
   exact ⟨rfl, (spinOfVector_norm (v x)).trans (hu x)⟩
 
-/-- Original `spinOfVector_hasDerivAt` guarantee for the `SpinRepresentation` construction; the complete source hypotheses are retained. -/
+/-- The spin embedding takes a real-parameter curve derivative to the embedded derivative of the
+spin curve. -/
 theorem spinOfVector_hasDerivAt {s : ℝ → SpatialPoint} {v : SpatialPoint} {t : ℝ}
     (hs : HasDerivAt s v t) :
     HasDerivAt (fun u => spinOfVector (s u)) (spinOfVector v) t :=
   spinEmbedding.toContinuousLinearMap.hasFDerivAt.comp_hasDerivAt t hs
 
-/-- Original `spin_field_periodic` guarantee for the `SpinRepresentation` construction; the complete source hypotheses are retained. -/
+/-- Embedding each value of a periodic vector field as a spin quaternion preserves the field's
+periodicity. -/
 theorem spin_field_periodic {v : SpatialPoint → SpatialPoint} (hv : IsPeriodicField v) :
     IsPeriodicField (fun x => spinOfVector (v x)) := by
   intro x n

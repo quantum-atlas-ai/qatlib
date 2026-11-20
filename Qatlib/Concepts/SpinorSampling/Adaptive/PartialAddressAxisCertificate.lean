@@ -35,20 +35,23 @@ noncomputable def evaluate : Quad →ₐ[ℚ] ℝ :=
   QuadraticAlgebra.lift ⟨Real.sqrt 2,by
     norm_num⟩
 
-/-- Complete original `evaluate_formula` guarantee for `PartialAddressAxisCertificate`; all source hypotheses and output obligations are retained. -/
+/-- The real interpretation adds the rational constant coefficient to the second rational
+coefficient times the positive square root of two. -/
 theorem evaluate_formula (q : Quad) : evaluate q=(q.re : ℝ)+(q.im : ℝ)*Real.sqrt 2 := by
   change q.re • (1 : ℝ)+q.im • Real.sqrt 2=_
   simp only [Algebra.smul_def,mul_one]
   rfl
 
-/-- Complete original `evaluate_C` guarantee for `PartialAddressAxisCertificate`; all source hypotheses and output obligations are retained. -/
+/-- A rational constant in the quadratic algebra evaluates to the same rational number viewed
+as a real. -/
 @[simp] theorem evaluate_C (r : ℚ) : evaluate (QuadraticAlgebra.C r : Quad)=(r : ℝ) := by
   simp
 
 /-- Construction for q Half in the partial address axis certificate model. -/
 def qHalf : Quad := ⟨0,1/2⟩
 
-/-- Complete original `evaluate_half` guarantee for `PartialAddressAxisCertificate`; all source hypotheses and output obligations are retained. -/
+/-- The quadratic element with coefficients zero and one half evaluates to the real rotation
+coefficient `halfRoot`. -/
 theorem evaluate_half : evaluate qHalf=halfRoot := by
   simp [evaluate_formula,qHalf,halfRoot]
   ring
@@ -65,7 +68,8 @@ def qAxis : List Gate → Fin 3 → Quad
   | [] => ![0,0,1]
   | g::gs => qRotate g (qAxis gs)
 
-/-- Complete original `evaluate_axis` guarantee for `PartialAddressAxisCertificate`; all source hypotheses and output obligations are retained. -/
+/-- For every finite gate word and coordinate, evaluating the exact quadratic coordinate gives
+the corresponding real word axis coordinate. -/
 theorem evaluate_axis (gs : List Gate) (i : Fin 3) : evaluate (qAxis gs i)=wordAxis gs i := by
   induction gs generalizing i with
   | nil => fin_cases i <;> simp [qAxis,wordAxis]
@@ -78,7 +82,8 @@ def nonneg (q : Quad) : Bool :=
     if 0≤q.im then true else decide (2*q.im^2≤q.re^2)
   else if 0≤q.im then decide (q.re^2≤2*q.im^2) else false
 
-/-- Complete original `nonneg_correct` guarantee for `PartialAddressAxisCertificate`; all source hypotheses and output obligations are retained. -/
+/-- The rational sign test returns true exactly when the real interpretation of the quadratic
+element is nonnegative. -/
 theorem nonneg_correct (q : Quad) : nonneg q=true ↔ 0≤evaluate q := by
   rw [evaluate_formula]
   have hs : ((q.im : ℝ)*Real.sqrt 2)^2=2*(q.im : ℝ)^2 := by
@@ -129,16 +134,20 @@ def check (s : Fin 3 → ℚ) (τ : ℚ) (gs : List Gate) : Bool :=
     nonneg (numerator s gs) &&
       nonneg ((numerator s gs)^2-QuadraticAlgebra.C ((1-τ/64)^2*normQ s))
 
-/-- Complete original `norm_cast` guarantee for `PartialAddressAxisCertificate`; all source hypotheses and output obligations are retained. -/
+/-- Casting the rational squared norm to the reals gives the dot product of the cast vector
+with itself. -/
 theorem norm_cast (s : Fin 3 → ℚ) : (normQ s : ℝ)=dot (fun i => (s i : ℝ)) (fun i => (s i : ℝ)) := by
   simp [normQ,dot]
 
-/-- Complete original `numerator_evaluate` guarantee for `PartialAddressAxisCertificate`; all source hypotheses and output obligations are retained. -/
+/-- The quadratic numerator evaluates to the dot product of the cast rational estimate with the
+real axis of the gate word. -/
 theorem numerator_evaluate (s : Fin 3 → ℚ) (gs : List Gate) :
     evaluate (numerator s gs)=dot (fun i => (s i : ℝ)) (wordAxis gs) := by
   simp [numerator,dot,evaluate_axis]
 
-/-- Complete original `check_sound` guarantee for `PartialAddressAxisCertificate`; all source hypotheses and output obligations are retained. -/
+/-- A successful rational check certifies the real acceptance predicate. The zero estimate
+requires the empty-word axis, and a nonzero estimate requires a nonnegative dot product and the
+prescribed squared overlap inequality. -/
 theorem check_sound (s : Fin 3 → ℚ) (τ : ℚ) (gs : List Gate) (hc : check s τ gs=true) :
     accepted (fun i => (s i : ℝ)) (τ : ℝ) gs := by
   have hL : length (fun i => (s i : ℝ))=0 ↔ normQ s=0 := by
@@ -168,7 +177,8 @@ theorem check_sound (s : Fin 3 → ℚ) (τ : ℚ) (gs : List Gate) (hc : check 
         Rat.cast_sub,Rat.cast_div,Rat.cast_one,Rat.cast_ofNat,norm_cast] at h
       linarith
 
-/-- Complete original `checked_overlap` guarantee for `PartialAddressAxisCertificate`; all source hypotheses and output obligations are retained. -/
+/-- For a tolerance in `(0, 1/2]`, a word that passes the rational check has a dot product with
+the normalized estimate of at least `1 - τ/64`, including the default axis for a zero estimate. -/
 theorem checked_overlap (s : Fin 3 → ℚ) (τ : ℚ) (gs : List Gate)
     (hτ0 : 0<τ) (hτ1 : τ ≤ 1/2) (hc : check s τ gs=true) :
     1-dot (axis (fun i => (s i : ℝ))) (wordAxis gs) ≤ (τ : ℝ)/64 := by
@@ -176,7 +186,9 @@ theorem checked_overlap (s : Fin 3 → ℚ) (τ : ℚ) (gs : List Gate)
   apply accepted_overlap _ _ _ (by exact_mod_cast hτ0) (by linarith)
   exact check_sound s τ gs hc
 
-/-- Complete original `checked_axis_risk` guarantee for `PartialAddressAxisCertificate`; all source hypotheses and output obligations are retained. -/
+/-- For `r` of length at most one and `0 < τ ≤ 1/2`, a word accepted for the rational estimate
+`s` has minority risk at most eight times the defect, plus four times the squared estimation
+error, plus `τ/32`. -/
 theorem checked_axis_risk (r : Fin 3 → ℝ) (s : Fin 3 → ℚ) (τ : ℚ) (gs : List Gate)
     (hr : length r ≤ 1) (hτ0 : 0<τ) (hτ1 : τ ≤ 1/2) (hc : check s τ gs=true) :
     (1-dot r (wordAxis gs))/2 ≤ 8*((1-length r)/2)+
@@ -190,7 +202,9 @@ variable {B A : Type} [Fintype B] [Fintype A] [Nonempty B] [Nonempty A]
   [DecidableEq B] [DecidableEq A]
 
 omit [Nonempty A] [DecidableEq A] in
-/-- Complete original `checked_average_risk` guarantee for `PartialAddressAxisCertificate`; all source hypotheses and output obligations are retained. -/
+/-- If each box mean has length at most one and each word passes the check against that box's
+rational pilot means at `0 < τ ≤ 1/2`, average minority risk is at most eight times average
+defect plus four times average squared estimation error plus `τ/32`. -/
 theorem checked_average_risk {n : ℕ} (m : Fin 3 → B × A → ℝ)
     (Ω : Fin 3 → Fin n → (B × A) × Bool) (words : B → List Gate) (τ : ℚ)
     (hr : ∀ b,length (PilotVector.boxVector m b) ≤ 1)
@@ -206,7 +220,9 @@ theorem checked_average_risk {n : ℕ} (m : Fin 3 → B × A → ℝ)
   linarith
 
 omit [Nonempty A] [DecidableEq A] in
-/-- Complete original `checked_good_minority` guarantee for `PartialAddressAxisCertificate`; all source hypotheses and output obligations are retained. -/
+/-- For box means of length at most one and words passing every rational pilot check at
+`0 < τ ≤ 1/2`, average defect at most `τ/32` and average squared estimation error at most
+`τ/16` imply average minority risk at most `17τ/32`. -/
 theorem checked_good_minority {n : ℕ} (m : Fin 3 → B × A → ℝ)
     (Ω : Fin 3 → Fin n → (B × A) × Bool) (words : B → List Gate) (τ : ℚ)
     (hr : ∀ b,length (PilotVector.boxVector m b) ≤ 1)

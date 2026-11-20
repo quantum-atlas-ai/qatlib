@@ -53,7 +53,8 @@ def endpointProgram (basis : Fin 3) : Circuit (Reg 2) := measurementProgram (end
 /-- Construction for quarter Phase in the partial address born model. -/
 def quarterPhase : ℂ := Complex.exp (((-(Real.pi/4) : ℝ) : ℂ)*Complex.I)
 
-/-- Complete original `native_tadj_at` guarantee for `PartialAddressBorn`; all source hypotheses and output obligations are retained. -/
+/-- Applying the adjoint T gate to the endpoint wire multiplies the amplitude at `(a, b)` by
+the phase for angle `-π/4` when `a` is true and by one otherwise. -/
 theorem native_tadj_at (f : QState (Reg 2)) (a b : Bool) :
     ApplyGate (wireGate 2 0 tGateAdj) f (pairReg a b)=
       (if a then quarterPhase else 1)*f (pairReg a b) := by
@@ -64,7 +65,7 @@ theorem native_tadj_at (f : QState (Reg 2)) (a b : Bool) :
   cases a <;> cases b <;>
     simp [g,pairEquiv,wireGate_apply,tGateAdj,Rz,Matrix.diagonal_apply,quarterPhase]
 
-/-- Complete original `quarter_phase_square` guarantee for `PartialAddressBorn`; all source hypotheses and output obligations are retained. -/
+/-- Two factors of the phase for angle `-π/4` multiply to `-i`. -/
 theorem quarter_phase_square : quarterPhase*quarterPhase = -Complex.I := by
   rw [quarterPhase,← Complex.exp_add,
     show (((-(Real.pi/4) : ℝ) : ℂ)*Complex.I)+
@@ -74,14 +75,16 @@ theorem quarter_phase_square : quarterPhase*quarterPhase = -Complex.I := by
     Complex.exp_neg,Complex.exp_pi_div_two_mul_I]
   norm_num
 
-/-- Complete original `endpoint_program_counts` guarantee for `PartialAddressBorn`; all source hypotheses and output obligations are retained. -/
+/-- The endpoint circuit uses zero queries in every basis, with one native gate in X, three in
+Y, and zero in Z. -/
 theorem endpoint_program_counts (basis : Fin 3) :
     QueryCount (endpointProgram basis)=0 ∧
       GateCount (endpointProgram basis)=(if basis=0 then 1 else if basis=1 then 3 else 0) := by
   have h := measurement_program_counts (endpointWord basis)
   fin_cases basis <;> simpa [endpointProgram,endpointWord] using h
 
-/-- Complete original `endpoint_x_amplitude` guarantee for `PartialAddressBorn`; all source hypotheses and output obligations are retained. -/
+/-- With the identity oracle, the X-basis circuit returns half the sum or difference of the two
+endpoint amplitudes at spin `b`, according to the endpoint bit `a`. -/
 theorem endpoint_x_amplitude (u v : Bool → ℂ) (a b : Bool) :
     Run (1 : Matrix (Reg 2) (Reg 2) ℂ) (endpointProgram 0) (edgeInput u v) (pairReg a b)=
       (u b+(if a then (-1 : ℂ) else 1)*v b)/2 := by
@@ -94,7 +97,8 @@ theorem endpoint_x_amplitude (u v : Bool → ℂ) (a b : Bool) :
   field_simp
   linear_combination -(u b+(if a then (-1 : ℂ) else 1)*v b)*hs
 
-/-- Complete original `endpoint_y_amplitude` guarantee for `PartialAddressBorn`; all source hypotheses and output obligations are retained. -/
+/-- With the identity oracle, the Y-basis amplitude at `(a, b)` is half of `u b` plus the
+contribution from `v b` with phase `-i` for false and `i` for true. -/
 theorem endpoint_y_amplitude (u v : Bool → ℂ) (a b : Bool) :
     Run (1 : Matrix (Reg 2) (Reg 2) ℂ) (endpointProgram 1) (edgeInput u v) (pairReg a b)=
       (u b-(if a then (-1 : ℂ) else 1)*Complex.I*v b)/2 := by
@@ -118,14 +122,15 @@ def spinFilter (spin : Bool) (u : Bool → ℂ) : Bool → ℂ :=
 def spinProjection (spin : Bool) (f : QState (Reg 2)) : QState (Reg 2) :=
   fun x => if x 1=spin then f x else 0
 
-/-- Complete original `edge_spin_filter` guarantee for `PartialAddressBorn`; all source hypotheses and output obligations are retained. -/
+/-- Filtering both endpoint spinors to the chosen spin before forming the edge state equals
+projecting the resulting two-wire state onto that spin. -/
 theorem edge_spin_filter (u v : Bool → ℂ) (spin : Bool) :
     edgeInput (spinFilter spin u) (spinFilter spin v)=spinProjection spin (edgeInput u v) := by
   funext x
   cases h0 : x 0 <;> cases h1 : x 1 <;> cases spin <;>
     simp [edgeInput,spinFilter,spinProjection,h0,h1]
 
-/-- Complete original `edge_input_normalized` guarantee for `PartialAddressBorn`; all source hypotheses and output obligations are retained. -/
+/-- The edge state has unit mass when both endpoint spinors have unit mass. -/
 theorem edge_input_normalized (u v : Bool → ℂ) (hu : qubitMass u=1) (hv : qubitMass v=1) :
     Normalized (edgeInput u v) := by
   unfold Normalized
@@ -162,7 +167,8 @@ def sectorBloch (u v : Bool → ℂ) (spin : Bool) (basis : Fin 3) : ℝ :=
 def signedProb (u v : Bool → ℂ) (spin : Bool) (basis : Fin 3) (outcome : Bool) : ℝ :=
   (sectorMass u v spin+bitSign outcome*sectorBloch u v spin basis)/6
 
-/-- Complete original `actual_prob_eq_signed` guarantee for `PartialAddressBorn`; all source hypotheses and output obligations are retained. -/
+/-- For each spin, basis, and endpoint outcome, the Born weight with uniform basis choice
+equals the signed sector formula using the basis component of the Bloch vector. -/
 theorem actual_prob_eq_signed (u v : Bool → ℂ) (spin : Bool)
     (basis : Fin 3) (outcome : Bool) :
     actualProb u v spin basis outcome=signedProb u v spin basis outcome := by
@@ -189,13 +195,14 @@ theorem actual_prob_eq_signed (u v : Bool → ℂ) (spin : Bool)
       simp [edgeInput,pairReg,spinFilter,signedProb,sectorMass,sectorBloch,bitSign,
         Complex.normSq_ofReal,Real.mul_self_sqrt] <;> ring
 
-/-- Complete original `actual_prob_nonneg` guarantee for `PartialAddressBorn`; all source hypotheses and output obligations are retained. -/
+/-- Every Born record weight is nonnegative for arbitrary endpoint amplitudes. -/
 theorem actual_prob_nonneg (u v : Bool → ℂ) (spin : Bool) (basis : Fin 3) (a : Bool) :
     0 ≤ actualProb u v spin basis a := by
   unfold actualProb BornProb
   positivity
 
-/-- Complete original `actual_prob_sector_sum` guarantee for `PartialAddressBorn`; all source hypotheses and output obligations are retained. -/
+/-- Summing the Born weights over all three bases and both endpoint outcomes at fixed spin
+recovers the mass of that spin sector. -/
 theorem actual_prob_sector_sum (u v : Bool → ℂ) (spin : Bool) :
     (∑ basis : Fin 3,∑ a : Bool,actualProb u v spin basis a)=sectorMass u v spin := by
   simp_rw [actual_prob_eq_signed]
@@ -203,7 +210,7 @@ theorem actual_prob_sector_sum (u v : Bool → ℂ) (spin : Bool) :
   norm_num
   ring
 
-/-- Complete original `sector_mass_total` guarantee for `PartialAddressBorn`; all source hypotheses and output obligations are retained. -/
+/-- Unit mass at both endpoints makes the two spin sector masses sum to one. -/
 theorem sector_mass_total (u v : Bool → ℂ) (hu : qubitMass u=1) (hv : qubitMass v=1) :
     sectorMass u v false+sectorMass u v true=1 := by
   dsimp [sectorMass,qubitMass] at *
@@ -229,7 +236,9 @@ def kernel (r s : Record) : ℝ :=
 def projection (u v : Bool → ℂ) (r : Record) : ℝ :=
   ∑ s : Record,actualProb u v s.1 s.2.1 s.2.2*kernel r s
 
-/-- Complete original `projection_formula` guarantee for `PartialAddressBorn`; all source hypotheses and output obligations are retained. -/
+/-- Averaging the kernel over its second record yields half the opposite sector mass minus half
+of three times the first record's outcome sign and the opposite sector's Bloch component in
+that basis. -/
 theorem projection_formula (u v : Bool → ℂ) (r : Record) :
     projection u v r=(sectorMass u v (!r.1)-3*bitSign r.2.2*sectorBloch u v (!r.1) r.2.1)/2 := by
   rcases r with ⟨spin,basis,a⟩
@@ -241,7 +250,8 @@ theorem projection_formula (u v : Bool → ℂ) (r : Record) :
 def kernelMean (u v : Bool → ℂ) : ℝ :=
   ∑ r : Record,actualProb u v r.1 r.2.1 r.2.2*projection u v r
 
-/-- Complete original `kernel_mean_eq_bell` guarantee for `PartialAddressBorn`; all source hypotheses and output obligations are retained. -/
+/-- The Born-weighted mean of the two-record kernel equals the Bell probability for the
+endpoint pair. -/
 theorem kernel_mean_eq_bell (u v : Bool → ℂ) : kernelMean u v=bellProbability u v := by
   simp only [kernelMean,projection_formula,Fintype.sum_prod_type,Fintype.sum_bool,Fin.sum_univ_succ]
   simp [actual_prob_eq_signed,signedProb,sectorMass,sectorBloch,bitSign,
@@ -253,7 +263,9 @@ theorem kernel_mean_eq_bell (u v : Bool → ℂ) : kernelMean u v=bellProbabilit
 def squareProjection (u v : Bool → ℂ) (r : Record) : ℝ :=
   ∑ s : Record,actualProb u v s.1 s.2.1 s.2.2*(kernel r s)^2
 
-/-- Complete original `square_projection_formula` guarantee for `PartialAddressBorn`; all source hypotheses and output obligations are retained. -/
+/-- Averaging the squared kernel over its second record gives seven times the opposite spin
+mass minus `3/2` times the fixed record's sign and the opposite sector Bloch component in its
+basis. -/
 theorem square_projection_formula (u v : Bool → ℂ) (r : Record) :
     squareProjection u v r=7*sectorMass u v (!r.1)-
       3*bitSign r.2.2*sectorBloch u v (!r.1) r.2.1/2 := by
@@ -269,7 +281,8 @@ def sectorProduct (u v : Bool → ℂ) : ℝ :=sectorMass u v false*sectorMass u
 def kernelSecond (u v : Bool → ℂ) : ℝ :=
   ∑ r : Record,actualProb u v r.1 r.2.1 r.2.2*squareProjection u v r
 
-/-- Complete original `kernel_second_exact` guarantee for `PartialAddressBorn`; all source hypotheses and output obligations are retained. -/
+/-- The Born-weighted second moment of the pair kernel is thirteen times the product of the
+sector masses plus the Bell probability. -/
 theorem kernel_second_exact (u v : Bool → ℂ) :
     kernelSecond u v=13*sectorProduct u v+bellProbability u v := by
   simp only [kernelSecond,square_projection_formula,Fintype.sum_prod_type,Fintype.sum_bool,Fin.sum_univ_succ]
@@ -282,7 +295,8 @@ theorem kernel_second_exact (u v : Bool → ℂ) :
 def projectionSecond (u v : Bool → ℂ) : ℝ :=
   ∑ r : Record,actualProb u v r.1 r.2.1 r.2.2*(projection u v r)^2
 
-/-- Complete original `projection_second_homogeneous` guarantee for `PartialAddressBorn`; all source hypotheses and output obligations are retained. -/
+/-- For arbitrary endpoint amplitudes, the weighted second moment of the kernel projection is
+half the sum of the sector product and Bell probability, multiplied by the total spin mass. -/
 theorem projection_second_homogeneous (u v : Bool → ℂ) :
     projectionSecond u v=(sectorMass u v false+sectorMass u v true)*
       (sectorProduct u v+bellProbability u v)/2 := by
@@ -292,22 +306,25 @@ theorem projection_second_homogeneous (u v : Bool → ℂ) :
     Complex.sub_re,Complex.sub_im,Complex.conj_re,Complex.conj_im]
   ring
 
-/-- Complete original `projection_second_exact` guarantee for `PartialAddressBorn`; all source hypotheses and output obligations are retained. -/
+/-- When both endpoint spinors have unit mass, the projection's second moment is the arithmetic
+mean of the sector product and the Bell probability. -/
 theorem projection_second_exact (u v : Bool → ℂ) (hu : qubitMass u=1) (hv : qubitMass v=1) :
     projectionSecond u v=(sectorProduct u v+bellProbability u v)/2 := by
   rw [projection_second_homogeneous,sector_mass_total u v hu hv,one_mul]
 
-/-- Complete original `kernel_symmetric` guarantee for `PartialAddressBorn`; all source hypotheses and output obligations are retained. -/
+/-- Swapping the two records leaves the kernel unchanged. -/
 theorem kernel_symmetric (r s : Record) : kernel r s=kernel s r := by
   simp [kernel,eq_comm,mul_comm]
 
-/-- Complete original `record_kernel_mean` guarantee for `PartialAddressBorn`; all source hypotheses and output obligations are retained. -/
+/-- With unit endpoint masses, the expected kernel value for two independent draws from the
+Born record law is the edge Bell probability. -/
 theorem record_kernel_mean (u v : Bool → ℂ) (hu : qubitMass u=1) (hv : qubitMass v=1) :
     pairKernelMean (recordLaw u v hu hv) kernel=bellProbability u v := by
   change kernelMean u v=bellProbability u v
   exact kernel_mean_eq_bell u v
 
-/-- Complete original `actual_ustatistic_unbiased` guarantee for `PartialAddressBorn`; all source hypotheses and output obligations are retained. -/
+/-- For at least two independent Born records from unit-mass endpoints, the ordered U-statistic
+has expectation equal to the edge Bell probability. -/
 theorem actual_ustatistic_unbiased {n : ℕ} (u v : Bool → ℂ)
     (hu : qubitMass u=1) (hv : qubitMass v=1) (hn : 2 ≤ n) :
     (∑ ω : Fin n → Record,(recordLaw u v hu hv).probOf ω*orderedUStatistic kernel ω)=
@@ -315,7 +332,8 @@ theorem actual_ustatistic_unbiased {n : ℕ} (u v : Bool → ℂ)
   rw [ordered_ustatistic_unbiased (recordLaw u v hu hv) kernel hn]
   exact record_kernel_mean u v hu hv
 
-/-- Complete original `actual_projection_variance` guarantee for `PartialAddressBorn`; all source hypotheses and output obligations are retained. -/
+/-- Under the normalized Born record law, the variance of the one-record kernel projection is
+half the sector product plus half the Bell probability, minus the squared Bell probability. -/
 theorem actual_projection_variance (u v : Bool → ℂ)
     (hu : qubitMass u=1) (hv : qubitMass v=1) :
     (recordLaw u v hu hv).variance (pairKernelProjection (recordLaw u v hu hv) kernel)=
@@ -324,7 +342,8 @@ theorem actual_projection_variance (u v : Bool → ℂ)
   change projectionSecond u v-(kernelMean u v)^2=_
   rw [projection_second_exact u v hu hv,kernel_mean_eq_bell]
 
-/-- Complete original `actual_pair_variance` guarantee for `PartialAddressBorn`; all source hypotheses and output obligations are retained. -/
+/-- For independent Born records from unit-mass endpoints, the centered pair kernel has second
+moment equal to thirteen times the sector product plus the Bell probability minus its square. -/
 theorem actual_pair_variance (u v : Bool → ℂ)
     (hu : qubitMass u=1) (hv : qubitMass v=1) :
     (recordLaw u v hu hv).expect (fun x => (recordLaw u v hu hv).expect
@@ -334,7 +353,9 @@ theorem actual_pair_variance (u v : Bool → ℂ)
   change kernelSecond u v-(kernelMean u v)^2=_
   rw [kernel_second_exact,kernel_mean_eq_bell]
 
-/-- Complete original `actual_ustatistic_variance` guarantee for `PartialAddressBorn`; all source hypotheses and output obligations are retained. -/
+/-- For unit-mass endpoints and `n ≥ 2`, the mean squared Bell estimation error is the
+projection variance weighted by `4(n-2)/(n(n-1))` plus the pair kernel variance weighted by
+`2/(n(n-1))`. -/
 theorem actual_ustatistic_variance {n : ℕ} (u v : Bool → ℂ)
     (hu : qubitMass u=1) (hv : qubitMass v=1) (hn : 2 ≤ n) :
     (∑ ω : Fin n → Record,(recordLaw u v hu hv).probOf ω*
@@ -346,15 +367,16 @@ theorem actual_ustatistic_variance {n : ℕ} (u v : Bool → ℂ)
   rw [actual_projection_variance,actual_pair_variance,record_kernel_mean] at h
   exact h
 
-/-- Complete original `sector_mass_nonneg` guarantee for `PartialAddressBorn`; all source hypotheses and output obligations are retained. -/
+/-- The spin sector mass is nonnegative since it averages two squared amplitude norms. -/
 theorem sector_mass_nonneg (u v : Bool → ℂ) (spin : Bool) : 0 ≤ sectorMass u v spin := by
   exact div_nonneg (add_nonneg (Complex.normSq_nonneg _) (Complex.normSq_nonneg _)) (by norm_num)
 
-/-- Complete original `sector_product_nonneg` guarantee for `PartialAddressBorn`; all source hypotheses and output obligations are retained. -/
+/-- The product of the false and true spin sector masses is nonnegative. -/
 theorem sector_product_nonneg (u v : Bool → ℂ) : 0 ≤ sectorProduct u v := by
   exact mul_nonneg (sector_mass_nonneg u v false) (sector_mass_nonneg u v true)
 
-/-- Complete original `bell_le_twice_sector_product` guarantee for `PartialAddressBorn`; all source hypotheses and output obligations are retained. -/
+/-- For any endpoint amplitudes, the edge Bell probability is at most twice the product of the
+two spin sector masses. -/
 theorem bell_le_twice_sector_product (u v : Bool → ℂ) :
     bellProbability u v ≤ 2*sectorProduct u v := by
   have heq : 2*sectorProduct u v-bellProbability u v=
@@ -367,7 +389,8 @@ theorem bell_le_twice_sector_product (u v : Bool → ℂ) :
     exact div_nonneg (Complex.normSq_nonneg _) (by norm_num)
   linarith
 
-/-- Complete original `sector_product_le_minority` guarantee for `PartialAddressBorn`; all source hypotheses and output obligations are retained. -/
+/-- For unit-mass endpoints, the product of the spin sector masses is at most the mass of the
+true spin sector. -/
 theorem sector_product_le_minority (u v : Bool → ℂ) (hu : qubitMass u=1) (hv : qubitMass v=1) :
     sectorProduct u v ≤ sectorMass u v true := by
   have ht := sector_mass_total u v hu hv
@@ -375,7 +398,8 @@ theorem sector_product_le_minority (u v : Bool → ℂ) (hu : qubitMass u=1) (hv
   have hm := congrArg (fun x : ℝ => x*sectorMass u v true) ht
   nlinarith [sq_nonneg (sectorMass u v true)]
 
-/-- Complete original `actual_ustatistic_variance_bound` guarantee for `PartialAddressBorn`; all source hypotheses and output obligations are retained. -/
+/-- With unit-mass endpoints, `n ≥ 2`, and true-spin mass at most `q`, the ordered
+U-statistic's mean squared Bell estimation error is at most `6q/n + 30q/(n(n-1))`. -/
 theorem actual_ustatistic_variance_bound {n : ℕ} (u v : Bool → ℂ)
     (hu : qubitMass u=1) (hv : qubitMass v=1) (hn : 2 ≤ n) (q : ℝ)
     (hq : sectorMass u v true ≤ q) :

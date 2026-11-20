@@ -671,10 +671,15 @@ public import Qatlib.Concepts.ClusterPatterns.WireComposition.CountedClusterCZ
 public import Qatlib.Concepts.ClusterPatterns.WireComposition.CountedClusterWire
 public import Qatlib.Concepts.ClusterPatterns.WireComposition.PauliMixtureTwirling
 public import Qatlib.Concepts.ClusterPatterns.WireComposition.WireTeleportation
+public import Qatlib.Concepts.CodeCert.DistCert.Branch
+public import Qatlib.Concepts.CodeCert.DistCert.Tanner
 public import Qatlib.Concepts.CodeCert.PermBlocks.Algebra
 public import Qatlib.Concepts.CodeCert.PermBlocks.Rank
+public import Qatlib.Concepts.CodeCert.RankCert.Binary
 public import Qatlib.Concepts.CodingDecoding.CssRecovery.CodingDecoding
+public import Qatlib.Concepts.CodingDecoding.CssRecovery.CssCircuit
 public import Qatlib.Concepts.CodingDecoding.CssRecovery.LinearHelpers
+public import Qatlib.Concepts.CodingDecoding.CssRecovery.ParityCircuit
 public import Qatlib.Concepts.CodingDecoding.CssTesters.BinaryConversionSoundness
 public import Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding
 public import Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecodingCoreDefs
@@ -1274,6 +1279,10 @@ public import Qatlib.Concepts.ErrorCorrection.ErrorClasses.Stabilizer
 public import Qatlib.Concepts.ErrorCorrection.LogicalOps.Distance
 public import Qatlib.Concepts.ErrorCorrection.Recovery.Certified
 public import Qatlib.Concepts.ErrorCorrection.Recovery.CssBridge
+public import Qatlib.Concepts.ErrorCorrection.Recovery.CssChannel
+public import Qatlib.Concepts.ErrorCorrection.Recovery.CssNoise
+public import Qatlib.Concepts.ErrorCorrection.Recovery.Kraus
+public import Qatlib.Concepts.ErrorCorrection.Recovery.SignedBranch
 public import Qatlib.Concepts.ErrorCorrection.Recovery.Stabilizer
 public import Qatlib.Concepts.EstimatorLaws.MergedEstimator.Lemma18TransportContracts
 public import Qatlib.Concepts.EstimatorLaws.MergedEstimator.MontanaroLemma18RestrictedSubgoalMont
@@ -2623,6 +2632,8 @@ public import Qatlib.Concepts.MonteCarloMean.LayeredMean.NativeComposedMean
 public import Qatlib.Concepts.MonteCarloMean.PayoffEncoding
 public import Qatlib.Concepts.MonteCarloMean.PayoffRotation.LayerStrippingCertifiedStability
 public import Qatlib.Concepts.MonteCarloMean.PayoffRotation.RationalPayoffRotation
+public import Qatlib.Concepts.MonteCarloMean.PilotVariance.BitMoments
+public import Qatlib.Concepts.MonteCarloMean.PilotVariance.BitMomentsBounds
 public import Qatlib.Concepts.MonteCarloMean.PilotVariance.PilotQuantumMeanConsumers
 public import Qatlib.Concepts.MonteCarloMean.PilotVariance.UnknownVariancePilot
 public import Qatlib.Concepts.MpsAdaptation.MpsTransfer.DualMixtureDensityInput
@@ -3803,13 +3814,13 @@ public import Qatlib.Concepts.SdpDuality.ConeSeparation.DualMixtureDensityInput
 public import Qatlib.Concepts.SdpDuality.ConeSeparation.Macros
 public import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimization
 public import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationAlgorithmsDefs
+public import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationContractEvidence
 public import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationDefs
 public import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationExecutionRefutations
 public import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationExt
 public import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationInterfaces
 public import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationInterfacesDefs
 public import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationRefutations
-public import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationS1ContractEvidence
 public import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationSharedDefs
 public import Qatlib.Concepts.SdpDuality.ConeSeparation.MeasurementStatistics
 public import Qatlib.Concepts.SdpDuality.ConeSeparation.MeasurementStatisticsDefs
@@ -6005,6 +6016,7 @@ public import Qatlib.Papers.ClassShadows20.MainTheorem.GlobalShadowEffective
 public import Qatlib.Papers.ClassShadows20.MainTheorem.GlobalShadowEffectiveDefs
 public import Qatlib.Papers.ClassShadows20.MainTheorem.Shadows
 public import Qatlib.Papers.ClassShadows20.MainTheorem.ShadowsDefs
+public import Qatlib.Papers.ClassShadows20.SampleBudget.PilotExecution
 public import Qatlib.Papers.ClassShadows20.ShadowChannel.CliffordQuadraticVariance
 public import Qatlib.Papers.ClassShadows20.ShadowVariance.FinitePairVarianceUpper
 public import Qatlib.Papers.ClawFinding07.MainResults.QueryBound.ClawFind
@@ -8982,6 +8994,7 @@ public import Qatlib.Papers.QAdversary11.ComposeUpper.NonconstructiveUpperBound.
 public import Qatlib.Papers.QAdversary11.FaultTree.DirectTrees.SourceTheorem2
 public import Qatlib.Papers.QAdversary11.PartialCompose.AdversaryIteration.SourceLemma1
 public import Qatlib.Papers.QAdversary11.PartialCompose.DualSolution.SourceLemma6
+public import Qatlib.Papers.QAdversary11.WitnessCompose.LiteralComposition
 public import Qatlib.Papers.QAlgorithms97.DJSlice
 public import Qatlib.Papers.QAlgorithms97.MainResults.AffineCoefficients
 public import Qatlib.Papers.QAlgorithms97.MainResults.BernsteinVazirani

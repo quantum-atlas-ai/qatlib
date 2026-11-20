@@ -17,7 +17,7 @@ public import Mathlib.Tactic
 set_option backward.isDefEq.respectTransparency false
 
 /-!
-# Chain embedding of the 32×32 RBM into the 512-qubit Chimera chip (c002)
+# Chain embedding of the 32×32 RBM into the 512-qubit Chimera chip
 
 Source: *Application of Quantum Annealing to Training of Deep Neural Networks*,
 arXiv:1510.06356 (2015), fixed local PDF
@@ -288,12 +288,12 @@ theorem usableCouplers_card_ge (Fv Fh : Finset PhysIndex)
   rw [coupler_card] at hc
   omega
 
-/-- **c002 — training scale.**  The 8×8 Chimera chip has 512 physical qubits;
+/-- **training scale.**  The 8×8 Chimera chip has 512 physical qubits;
 there are 32 visible and 32 hidden chain indices; every visible-hidden chain
 pair is joined by exactly one coupler (full 32×32 bipartite graph, 1024
 couplers); and any 8 faulty qubits leave at least 992 couplers usable, so a
 32 visible × 32 hidden RBM layer remains embeddable. -/
-theorem c002_32x32_on_512_qubit_8_faulty :
+theorem chimera_rbm32_coupler_counts_and_fault_tolerance :
     Fintype.card Qubit = 512 ∧
     Fintype.card VChain = 32 ∧
     Fintype.card HChain = 32 ∧

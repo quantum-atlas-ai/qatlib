@@ -51,7 +51,8 @@ def sourceGaugeUnitSampling (source : RationalJetSource) (gap : ℚ) (plan : Gau
     (address : Fin 3 → ℚ) : Option (Quaternion ℚ) :=
   sourceGaugePhysicalValue source gap plan.gauge (fun j => plan.period*rationalUnitWrap address j) plan.tolerance
 
-/-- Original `gaugeUnitPeriodAccuracy_spec` guarantee for the `NormalizedGaugeSampling` construction; the complete source hypotheses are retained. -/
+/-- At positive tolerance, the selected period accuracy lies in `(0, 1]` and gives
+`3 * |P1| * periodAccuracy ≤ tolerance / 4`. -/
 theorem gaugeUnitPeriodAccuracy_spec (P1 tolerance : ℚ) (ht : 0<tolerance) :
     0<gaugeUnitPeriodAccuracy P1 tolerance ∧ gaugeUnitPeriodAccuracy P1 tolerance ≤ 1 ∧
       3*|P1| * gaugeUnitPeriodAccuracy P1 tolerance ≤ tolerance/4 := by
@@ -66,7 +67,10 @@ noncomputable section
 open Set
 open scoped Quaternion ContDiff
 
-/-- Original `normalizedGaugeSampling_error` guarantee for the `NormalizedGaugeSampling` construction; the complete source hypotheses are retained. -/
+/-- For a smooth periodic gauge with normalized first partials bounded by `P1`, assume the physical
+sampler returns a value within half the positive tolerance at every rational point. At each unit
+address, sampling at its wrapped coordinates scaled by the computed period returns a value within
+tolerance of the gauge at the exact physical address. -/
 theorem normalizedGaugeSampling_error (value : (Fin 3 → ℚ) → Option (Quaternion ℚ))
     (Q : QuaternionField) (hQ : ContDiff ℝ ∞ Q) (hp : IsPeriodicField Q)
     (P1 tolerance : ℚ) (ht : 0<tolerance)
@@ -130,7 +134,12 @@ theorem normalizedGaugeSampling_error (value : (Fin 3 → ℚ) → Option (Quate
   simp only [dist_eq_norm] at htri
   exact (htri.trans (add_le_add herror hdist)).trans (by have htR : (0 : ℝ)<tolerance := Rat.cast_pos.mpr ht; linarith)
 
-/-- Original `materializeGaugeUnitSamplingFromGap_correct` guarantee for the `NormalizedGaugeSampling` construction; the complete source hypotheses are retained. -/
+/-- Suppose a smooth periodic unit spin has an accurate all-order jet source at physical rational
+points, bounds on every positive derivative order, and a successful cached preparation. If the spin
+is constant on the part of the fundamental cube outside a subset separated from its boundary by a
+positive gap, the constructor returns a plan retaining that preparation at positive tolerance. At
+every rational unit address the plan returns a sample within tolerance of the selected Poisson gauge
+at the corresponding physical point. -/
 theorem materializeGaugeUnitSamplingFromGap_correct (v : SpatialPoint → SpatialPoint)
     (hv : ContDiff ℝ ∞ v) (hu : ∀ x, ‖v x‖=1) (hp : IsPeriodicField v)
     (source : RationalJetSource) (hs : OriginalAllJetAccurate v source)

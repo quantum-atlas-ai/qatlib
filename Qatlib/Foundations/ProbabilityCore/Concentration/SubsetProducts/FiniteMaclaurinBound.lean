@@ -25,7 +25,9 @@ open scoped BigOperators Classical
 variable {S : Type*} [DecidableEq S]
 
 omit [DecidableEq S] in
-/-- Complete original `covariance_double_sum` guarantee for `FiniteMaclaurinBound`; all source hypotheses and output obligations are retained. -/
+/-- Over all ordered pairs in `R`, the sum of `(a i - a j) * (w j - w i)` is twice
+the product of the two weight sums minus twice the cardinality times the sum of
+pointwise products. -/
 theorem covariance_double_sum (R : Finset S) (a w : S → ℝ) :
     (∑ i ∈ R,∑ j ∈ R,(a i-a j)*(w j-w i))=
       2*((∑ i ∈ R,a i)*(∑ i ∈ R,w i)-(R.card : ℝ)*(∑ i ∈ R,a i*w i)) := by
@@ -49,7 +51,9 @@ theorem covariance_double_sum (R : Finset S) (a w : S → ℝ) :
   ring
 
 -- Nonnegative square weights supply the full, all-positive-vector recursion.
-/-- Complete original `elementary_ratio_step` guarantee for `FiniteMaclaurinBound`; all source hypotheses and output obligations are retained. -/
+/-- For nonnegative weights on `R`, the degree-`k + 2` sum scaled by `R.card * (k + 2)`
+is bounded by the degree-`k + 1` sum times the total weight and the real-valued
+difference `R.card - (k + 1)`. -/
 theorem elementary_ratio_step (R : Finset S) (a : S → ℝ)
     (ha : ∀ x∈R,0≤a x) (k : ℕ) :
     (R.card : ℝ)*((k+2 : ℕ) : ℝ)*elementary R a (k+2)≤
@@ -80,7 +84,9 @@ theorem elementary_ratio_step (R : Finset S) (a : S → ℝ)
 
 -- The unscaled form also covers k beyond the population size without
 -- conditioning on a positive event or dividing by a zero binomial count.
-/-- Complete original `elementary_le_mean_pow` guarantee for `FiniteMaclaurinBound`; all source hypotheses and output obligations are retained. -/
+/-- For nonnegative weights on `R`, the degree-`k` elementary symmetric sum is at most
+`R.card.choose k` times the `k`-th power of the arithmetic mean. The formula also
+covers an empty set and degrees greater than its cardinality. -/
 theorem elementary_le_mean_pow (R : Finset S) (a : S → ℝ)
     (ha : ∀ x∈R,0≤a x) (k : ℕ) :
     elementary R a k≤(R.card.choose k : ℝ)*((∑ x ∈ R,a x)/(R.card : ℝ))^k := by
@@ -128,7 +134,9 @@ theorem elementary_le_mean_pow (R : Finset S) (a : S → ℝ)
         Nat.choose_eq_zero_of_lt hl,Nat.cast_zero,zero_mul]
 
 omit [DecidableEq S] in
-/-- Complete original `subset_product_mean_bound` guarantee for `FiniteMaclaurinBound`; all source hypotheses and output obligations are retained. -/
+/-- On a finite type with nonnegative weights, the average product over subsets of size
+`k` is at most the `k`-th power of the arithmetic mean of the weights. The normalized
+sum on the left is zero when `k` exceeds the cardinality. -/
 theorem subset_product_mean_bound [Fintype S]
     (a : S → ℝ) (ha : ∀ x,0≤a x) (k : ℕ) :
     (1/(Fintype.card S).choose k : ℝ)*

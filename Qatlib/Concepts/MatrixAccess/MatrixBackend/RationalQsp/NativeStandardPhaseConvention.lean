@@ -54,7 +54,8 @@ def standardResponseQ (base : ℂ) (zs : List ℂ) : Polynomial ℂ := (standard
 @[simp] theorem standardResponseP_cons (base z : ℂ) (zs : List ℂ) :
     standardResponseP base (z::zs)=C z*(X*standardResponseP base zs+
       C Complex.I*(1-X^2)*standardResponseQ base zs) := rfl
-/-- The finite construction in `NativeStandardPhaseConvention` satisfies `standardResponseQ_cons` under the displayed hypotheses. -/
+/-- Prepending phase z makes the lower standard response the conjugate of z times the sum of i
+times the tail's upper response and the indeterminate times its lower response. -/
 @[simp] theorem standardResponseQ_cons (base z : ℂ) (zs : List ℂ) :
     standardResponseQ base (z::zs)=C (star z)*(C Complex.I*standardResponseP base zs+
       X*standardResponseQ base zs) := rfl
@@ -91,7 +92,7 @@ def nativeQuarterPower (n : ℕ) : GaussianRat :=
   if n%4=0 then (1,0) else if n%4=1 then (0,1)
   else if n%4=2 then (-1,0) else (0,-1)
 
-/-- The finite construction in `NativeStandardPhaseConvention` satisfies `nativeQuarterPower_complex` under the displayed hypotheses. -/
+/-- The rational quarter-power coordinate chosen by n modulo four decodes to i to the power n. -/
 theorem nativeQuarterPower_complex (n : ℕ) : gaussianRatComplex (nativeQuarterPower n)=Complex.I^n := by
   rw [Complex.I_pow_eq_pow_mod]
   have hn : n%4<4 := Nat.mod_lt n (by decide)
@@ -111,7 +112,7 @@ theorem nativePacketFromStandard_length (data : PhaseData) :
   cases data with
   | mk base zs => cases zs <;> simp [nativePacketFromStandard]
 
-/-- The finite construction in `NativeStandardPhaseConvention` satisfies `nativeMinusI_complex` under the displayed hypotheses. -/
+/-- The Gaussian-rational pair with coordinates zero and minus one decodes to −i. -/
 @[simp] theorem nativeMinusI_complex : gaussianRatComplex ((0,-1) : GaussianRat)= -Complex.I := by
   norm_num [gaussianRatComplex]
 
@@ -120,12 +121,13 @@ def standardToNativePhases : List ℂ → List ℂ
   | [] => []
   | z::tail => Complex.I^tail.length*z :: tail.map (fun z => (-Complex.I)*z)
 
-/-- The finite construction in `NativeStandardPhaseConvention` satisfies `quarter_power_cancel` under the displayed hypotheses. -/
+/-- The nth powers of i and −i multiply to one for every natural n. -/
 private theorem quarter_power_cancel (n : ℕ) : Complex.I^n*(-Complex.I)^n=1 := by
   rw [←mul_pow]
   simp
 
-/-- The finite construction in `NativeStandardPhaseConvention` satisfies `converted_response_head` under the displayed hypotheses. -/
+/-- With the base rotated by −i, the native upper response using the converted phases equals i to
+the list length times the response obtained by rotating each original phase by −i. -/
 private theorem converted_response_head (base : ℂ) (zs : List ℂ) :
     responseP ((-Complex.I)*base) (standardToNativePhases zs)=
       C (Complex.I^zs.length)*responseP ((-Complex.I)*base) (zs.map (fun z => (-Complex.I)*z)) := by
@@ -139,13 +141,14 @@ private theorem converted_response_head (base : ℂ) (zs : List ℂ) :
     simp only [standardToNativePhases,List.map_cons,List.length_cons,responseP_cons]
     rw [←mul_assoc,←Polynomial.C_mul,hc]
 
-/-- The finite construction in `NativeStandardPhaseConvention` satisfies `nativePacketFromStandard_base_complex` under the displayed hypotheses. -/
+/-- Converting a standard packet multiplies its decoded base by −i. -/
 theorem nativePacketFromStandard_base_complex (data : PhaseData) :
     gaussianRatComplex (nativePacketFromStandard data).base=(-Complex.I)*gaussianRatComplex data.base := by
   change gaussianRatComplex (gmul (0,-1) data.base)=_
   rw [complex_gmul,nativeMinusI_complex]
 
-/-- The finite construction in `NativeStandardPhaseConvention` satisfies `nativePacketFromStandard_phases_complex` under the displayed hypotheses. -/
+/-- Decoding each converted rational phase gives the complex phase list defined by the
+standard-to-native convention. -/
 theorem nativePacketFromStandard_phases_complex (data : PhaseData) :
     (nativePacketFromStandard data).phases.map gaussianRatComplex=
       standardToNativePhases (data.phases.map gaussianRatComplex) := by
@@ -167,7 +170,8 @@ theorem nativePacketFromStandard_response (data : PhaseData) :
     rw [pow_succ,←mul_assoc,quarter_power_cancel,one_mul]
   rw [hp]
 
-/-- The finite construction in `NativeStandardPhaseConvention` satisfies `nativePacketFromStandard_real_imag` under the displayed hypotheses. -/
+/-- At every complex argument, the real part of the converted packet's native upper response
+equals the imaginary part of the original standard upper response. -/
 theorem nativePacketFromStandard_real_imag (data : PhaseData) (x : ℂ) :
     ((responseP (gaussianRatComplex (nativePacketFromStandard data).base)
       ((nativePacketFromStandard data).phases.map gaussianRatComplex)).eval x).re=

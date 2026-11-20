@@ -605,7 +605,7 @@ theorem exists_boundary_level (π σ : Fin m → ℝ) (hπ : ∀ i,0≤π i) (h�
 
 /-- Each fidelity in the finite-level endpoint range is realized by a checked fill in the
 bracket, with mass and fidelity recovered as limits of positive target regularization. -/
-theorem frontier1 (π σ : Fin m → ℝ) (hπ : ∀ i,0≤π i) (hσ : ∀ i,0≤σ i)
+theorem exists_checked_fill_with_regularized_endpoint_limits (π σ : Fin m → ℝ) (hπ : ∀ i,0≤π i) (hσ : ∀ i,0≤σ i)
     (ho : HasOverlap π σ) (p : ℝ)
     (hp : (overlap π σ)^2/projectedMass π σ≤p ∧ p≤realPmax π σ) :
     ∃ γ∈Set.Icc (low π σ) (high π σ),

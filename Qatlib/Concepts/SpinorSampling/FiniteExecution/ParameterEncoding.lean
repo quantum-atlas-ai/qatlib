@@ -65,14 +65,14 @@ open Qatlib
 variable {S : Type*} [Fintype S] [Nonempty S]
 
 omit [Nonempty S] in
-/-- Complete original `implemented_target_absorb` guarantee for `ParameterEncoding`; all source hypotheses and output obligations are retained. -/
+/-- Multiplying the target field by β pointwise and setting its coefficient to one leaves the implemented residual loss unchanged. -/
 theorem implemented_target_absorb {d : ℕ} (mv u : Fin d → S → ℝ) (ms : Fin 3 → S → ℝ)
     (e : Fin d → S ≃ S) (α β γ : ℝ) :
     implementedResidualLoss mv u ms e α β γ =
       implementedResidualLoss mv (fun j x => β*u j x) ms e α 1 γ := by
   simp only [implementedResidualLoss, one_mul]
 
-/-- Complete original `scalar_parameter_loss_bias` guarantee for `ParameterEncoding`; all source hypotheses and output obligations are retained. -/
+/-- For normalized spinors and targets bounded by U, bound the loss change at fixed positive spacing when the reciprocal of κ and the spin coefficient change by at most eβ and eγ. The bound uses C to dominate the original residual amplitude. -/
 theorem scalar_parameter_loss_bias {d : ℕ} (a b c k : S → ℝ)
     (hz : ∀ x, a x^2+b x^2+c x^2+k x^2=1) (u : Fin d → S → ℝ) (e : Fin d → S ≃ S)
     (h κ0 κ1 κmin lam0 lam1 U C eβ eγ : ℝ)
@@ -107,7 +107,7 @@ theorem scalar_parameter_loss_bias {d : ℕ} (a b c k : S → ℝ)
     (by positivity) (by norm_num) (by simp) hγ (by simpa only [one_mul] using hC)
   simpa only [zero_add, one_mul] using hb
 
-/-- Complete original `reciprocal_interval_error` guarantee for `ParameterEncoding`; all source hypotheses and output obligations are retained. -/
+/-- For κ in a positive interval, the reciprocal of the lower endpoint overestimates 1/κ by at most the difference of the endpoint reciprocals. -/
 theorem reciprocal_interval_error (lo hi κ : ℝ) (hlo : 0 < lo) (hlκ : lo ≤ κ) (hκu : κ ≤ hi) :
     |1/lo-1/κ| ≤ 1/lo-1/hi := by
   have hu : 1/κ ≤ 1/lo := one_div_le_one_div_of_le hlo hlκ
@@ -115,7 +115,7 @@ theorem reciprocal_interval_error (lo hi κ : ℝ) (hlo : 0 < lo) (hlκ : lo ≤
   rw [abs_of_nonneg (sub_nonneg.mpr hu)]
   linarith
 
-/-- Complete original `lambda_interval_error` guarantee for `ParameterEncoding`; all source hypotheses and output obligations are retained. -/
+/-- For nonnegative λ in the interval and positive spacing h, the error from using the clipped lower endpoint in λ²/(2h²) is bounded by the spread of that coefficient over the two clipped endpoints. -/
 theorem lambda_interval_error (lo hi lam h : ℝ) (h0 : 0 ≤ lam)
     (hl : lo ≤ lam) (hu : lam ≤ hi) (hh : 0 < h) :
     |(max 0 lo)^2/(2*h^2)-lam^2/(2*h^2)| ≤
@@ -130,7 +130,7 @@ theorem lambda_interval_error (lo hi lam h : ℝ) (h0 : 0 ≤ lam)
   apply div_le_div_of_nonneg_right _ hden.le
   linarith
 
-/-- Complete original `periodic_grid_scale_bounds` guarantee for `ParameterEncoding`; all source hypotheses and output obligations are retained. -/
+/-- For N = 2^r sites per axis, the periodic spacing h = 2π/N is positive, with 1/h ≤ N/6 and 1/(2h²) ≤ N²/72. -/
 theorem periodic_grid_scale_bounds (r : ℕ) :
     let N : ℝ := ((2^r : ℕ) : ℝ)
     let h := 2*Real.pi/N
@@ -148,7 +148,7 @@ theorem periodic_grid_scale_bounds (r : ℕ) :
   have hg : 1/(2*h^2) ≤ N^2/72 := (div_le_iff₀ (by positivity : (0 : ℝ) < 2*h^2)).mpr (by nlinarith [hs2])
   exact ⟨hh,hi,hg⟩
 
-/-- Complete original `rat_max_zero_cast` guarantee for `ParameterEncoding`; all source hypotheses and output obligations are retained. -/
+/-- Clipping a rational scalar below at zero commutes with casting it to the reals. -/
 theorem rat_max_zero_cast (q : ℚ) : ((max 0 q : ℚ) : ℝ)=max 0 (q : ℝ) := by
   by_cases hq : q ≤ 0
   · have hr : (q : ℝ) ≤ 0 := by exact_mod_cast hq
@@ -158,7 +158,10 @@ theorem rat_max_zero_cast (q : ℚ) : ((max 0 q : ℚ) : ℝ)=max 0 (q : ℝ) :=
     have hr : (0 : ℝ) ≤ (q : ℝ) := by exact_mod_cast hq0
     rw [max_eq_right hq0, max_eq_right hr]
 
-/-- Complete original `physical_box_loss_bias` guarantee for `ParameterEncoding`; all source hypotheses and output obligations are retained. -/
+/-- At spacing `2π / 2^r` and for the supplied site permutations, replacing `κ` and `λ` by
+their rational representatives changes the loss by at most the bias budget. This assumes
+pointwise unit spinors, target magnitudes at most `U ≥ 0`, `κ` in its interval with positive
+lower endpoint, and nonnegative `λ` in its interval. -/
 theorem physical_box_loss_bias {d r : ℕ} (box : PhysicalBoxQ) (U : ℚ)
     (a b c k : S → ℝ) (hz : ∀ x, a x^2+b x^2+c x^2+k x^2=1)
     (u : Fin d → S → ℝ) (e : Fin d → S ≃ S) (κ lam : ℝ)
@@ -216,7 +219,7 @@ theorem physical_box_loss_bias {d r : ℕ} (box : PhysicalBoxQ) (U : ℚ)
   push_cast
   rfl
 
-/-- Complete original `physical_box_accuracy_transfer` guarantee for `ParameterEncoding`; all source hypotheses and output obligations are retained. -/
+/-- For enclosed parameters and bounded targets, a parameter bias of at most η0/2 transfers the bad-mass bound δ0 at tolerance η0/2 for the approximated loss to δ at tolerance η for the physical loss, provided η ≥ η0 and δ ≥ δ0. -/
 theorem physical_box_accuracy_transfer {d r : ℕ} {X : Type*} [Fintype X]
     (box : PhysicalBoxQ) (U η0 δ0 : ℚ) (a b c k : S → ℝ)
     (hz : ∀ x, a x^2+b x^2+c x^2+k x^2=1) (u : Fin d → S → ℝ) (e : Fin d → S ≃ S)
@@ -245,7 +248,7 @@ theorem physical_box_accuracy_transfer {d r : ℕ} {X : Type*} [Fintype X]
   exact (finite_bad_mass_change_center law F _ _ _ _ hdist).trans (haccuracy.trans hδ)
 
 set_option synthInstance.maxSize 1024 in
-/-- Complete original `enclosed_native_estimator_accuracy` guarantee for `ParameterEncoding`; all source hypotheses and output obligations are retained. -/
+/-- If generation at the rational parameter approximations returns the specified candidate with positive spin weight, the full native median output has error above η with probability at most δ for the enclosed physical loss. The target error must fit the candidate's allowance and parameter bias must fit half the tolerance budget. -/
 theorem enclosed_native_estimator_accuracy {d r : ℕ} (box : PhysicalBoxQ) (U η0 δ0 eb : ℚ)
     (κ lam η δ : ℝ) (coef : CoefficientCandidateQ)
     (hc : coefficientsGeneratedQ d (2^r) (kappaApproxQ box) (lambdaApproxQ box) U (η0/2)=some coef)
@@ -271,7 +274,7 @@ theorem enclosed_native_estimator_accuracy {d r : ℕ} (box : PhysicalBoxQ) (U �
     κ lam η δ _ _ hklo hU hκlo hκhi hlam0 hlamlo hlamhi hu hbudget hη hδ hs
 
 set_option synthInstance.maxSize 1024 in
-/-- Complete original `enclosed_native_estimator_accuracy_zero_spin` guarantee for `ParameterEncoding`; all source hypotheses and output obligations are retained. -/
+/-- If generation at the rational parameter approximations returns the specified candidate with zero spin weight, the velocity-only native output has error above η with probability at most δ for the enclosed physical loss. The target and parameter approximations must satisfy their stated error budgets. -/
 theorem enclosed_native_estimator_accuracy_zero_spin {d r : ℕ} (box : PhysicalBoxQ) (U η0 δ0 eb : ℚ)
     (κ lam η δ : ℝ) (coef : CoefficientCandidateQ)
     (hc : coefficientsGeneratedQ d (2^r) (kappaApproxQ box) (lambdaApproxQ box) U (η0/2)=some coef)

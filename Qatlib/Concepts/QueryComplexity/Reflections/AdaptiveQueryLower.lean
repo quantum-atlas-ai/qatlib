@@ -15,7 +15,7 @@ public import Qatlib.Concepts.AdversaryBounds.AdvDuality.GeneralAdversaryCompila
 # Adaptive query adversary bounds
 
 Transfers query-budget accounting from trace-nonincreasing circuits to instrument circuits and
-proves `frontier1`, an adversary inequality for adaptive computations with decoded classical
+proves `adaptive_tni_adversary_lower_bound`, an adversary inequality for adaptive computations with decoded classical
 outcomes. The bound uses a Hermitian adversary matrix vanishing on equal-output pairs and the
 maximum input-filtered norm.
 
@@ -25,7 +25,7 @@ The result supplies an adaptive circuit interface to the adversary viewpoint on 
 ## Main statements
 
 * `native_budget`: the circuit-to-instrument translation preserves the query budget.
-* `frontier1`: bounded-error adaptive computation satisfies the stated filtered adversary
+* `adaptive_tni_adversary_lower_bound`: bounded-error adaptive computation satisfies the stated filtered adversary
   inequality.
 
 ## References
@@ -68,7 +68,7 @@ theorem native_budget (P : TniCircuit d) :
 /-- A well-formed adaptive trace-nonincreasing circuit computing `f` with error at most `eps ≤
 1/2` satisfies the adversary inequality with coefficient `1 - 2 * sqrt (eps * (1 - eps)) - 2
 * eps` and right side twice its query budget times the maximum filtered norm. -/
-theorem frontier1 {X Y : Type} [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y]
+theorem adaptive_tni_adversary_lower_bound {X Y : Type} [Fintype X] [DecidableEq X] [Fintype Y] [DecidableEq Y]
     (e : Fin d ≃ (Fin n × Fin q) × W)
     (input : X → Fin n → Fin q) (f : X → Y) (Gamma : Matrix X X ℂ)
     (P : TniCircuit d) (hP : tniWellFormed P)

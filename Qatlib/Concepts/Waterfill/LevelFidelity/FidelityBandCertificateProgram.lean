@@ -24,7 +24,7 @@ rejection sampling [OzolsRoettelerRoland2013].
 * `ambiguityCount_le_of_shards`: bound ambiguous search steps from a cover by shards and cuts.
 * `intervalSearch_budget_of_shards`: derive operation-error bounds from a shard-based precision
   budget.
-* `frontier1`: collect the rate, breakpoint, ambiguity, and precision certificates for the
+* `fidelity_band_rate_and_ambiguity_certificates`: collect the rate, breakpoint, ambiguity, and precision certificates for the
   example.
 
 ## References
@@ -816,7 +816,7 @@ theorem crossBreak_intervalSearch_budget_of_shards (ε πi : ℚ)
 
 /-- Collect the example's global band-rate certificate, width-based ambiguity and precision
 bounds, breakpoint-cut condition, and shard-based ambiguity and precision bounds. -/
-theorem frontier1 :
+theorem fidelity_band_rate_and_ambiguity_certificates :
     bandRate crossBreakSource crossBreakTarget 15 crossBreakFidelity crossBreakRate 13 ∧
     (intervalFidelitySearch 15 crossBreakSource crossBreakTarget crossBreakFidelity 13).2.ambiguities
       ≤ Nat.floor (2 * ambiguityBandBound crossBreakSource crossBreakTarget 15 crossBreakFidelity

@@ -64,13 +64,13 @@ def readBank (bits : CanonicalCodec.Bits) : Option (Bool × List RedundantRation
     let (answers,rest) ← PaidBoundBank.readMany (if flag then 1 else 9) tail
     pure (flag,answers,rest)
 
-/-- Original `output_true` guarantee for the `PaidConditionalBoundBankMachine` construction; the complete source hypotheses are retained. -/
+/-- The early-stop bank output for encoded fractions is a true flag followed by the encoding of the first answer. -/
 private theorem output_true (answers : Fin 9 → RedundantRational.Frac) :
     bankOutput (fun i => PaidRationalBridge.encode (answers i)) 0 true=
       true::PaidRationalBridge.encode (answers 0) := by
   simp [bankOutput,PaidBoundBank.emitted,activeReplies]
 
-/-- Original `output_false` guarantee for the `PaidConditionalBoundBankMachine` construction; the complete source hypotheses are retained. -/
+/-- The full bank output for encoded fractions is a false flag followed by all nine encodings in slot order. -/
 private theorem output_false (answers : Fin 9 → RedundantRational.Frac) :
     bankOutput (fun i => PaidRationalBridge.encode (answers i)) 8 false=
       false::(List.ofFn answers).flatMap PaidRationalBridge.encode := by

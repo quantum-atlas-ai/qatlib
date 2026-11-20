@@ -33,7 +33,8 @@ open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data.SourceInput
 open scoped BigOperators Matrix.Norms.L2Operator
 local instance : Fact (0<2*Real.pi) := ⟨Real.two_pi_pos⟩
 
-/-- The finite construction in `NativeSourceTerminalBase` satisfies `sourceIdealDeflation_at_zero` under the displayed hypotheses. -/
+/-- A single ideal deflation preserves the circle value at angle zero when the array is pointwise
+unitary and both endpoint norms have a common positive lower bound. -/
 theorem sourceIdealDeflation_at_zero {m : ℕ} (G : Fin (m+2) → Matrix Bool Bool ℂ)
     (h : ℝ) (hh : 0<h) (hinv : SourceIdealDeflationInvariant G h) :
     sourceCompletionCircleValue (sourceIdealDeflationStep G) (0 : AddCircle (2*Real.pi))=sourceCompletionCircleValue G 0 := by
@@ -46,7 +47,8 @@ theorem sourceIdealDeflation_at_zero {m : ℕ} (G : Fin (m+2) → Matrix Bool Bo
     simpa only [add_comm] using hplus
   rw [hs,mul_one]
 
-/-- The finite construction in `NativeSourceTerminalBase` satisfies `sourceIdealDeflationLoop_at_zero` under the displayed hypotheses. -/
+/-- For an array that is pointwise unitary with both endpoint norms bounded below by a positive h,
+ideal deflation terminates at the original circle value at angle zero. -/
 theorem sourceIdealDeflationLoop_at_zero {d : ℕ} (G : Fin (d+1) → Matrix Bool Bool ℂ)
     (h : ℝ) (hh : 0<h) (hinv : SourceIdealDeflationInvariant G h) :
     sourceIdealDeflationLoop G=sourceCompletionCircleValue G (0 : AddCircle (2*Real.pi)) := by
@@ -58,7 +60,8 @@ theorem sourceIdealDeflationLoop_at_zero {d : ℕ} (G : Fin (d+1) → Matrix Boo
       _ = sourceCompletionCircleValue (sourceIdealDeflationStep G) 0 := ih _ (sourceIdealDeflation_invariant G h hh hinv)
       _ = sourceCompletionCircleValue G 0 := sourceIdealDeflation_at_zero G h hh hinv
 
-/-- The finite construction in `NativeSourceTerminalBase` satisfies `source_initial_zero_offdiag` under the displayed hypotheses. -/
+/-- Both off-diagonal entries of the ideal completion array's circle value at angle zero vanish
+for every source input. -/
 theorem source_initial_zero_offdiag (cs : List ℚ) (N : ℕ) (E : ℚ) :
     sourceCompletionCircleValue (sourceIdealMatrixArray cs N E) (0 : AddCircle (2*Real.pi)) false true=0 ∧
       sourceCompletionCircleValue (sourceIdealMatrixArray cs N E) (0 : AddCircle (2*Real.pi)) true false=0 := by
@@ -73,7 +76,9 @@ theorem source_initial_zero_offdiag (cs : List ℚ) (N : ℕ) (E : ℚ) :
       (sourceIdealEArray cs N E j-star (sourceIdealEArray cs N E j.rev))/2)=0
     rw [← Finset.sum_div,Finset.sum_sub_distrib,hrev,sub_self,zero_div]
 
-/-- The finite construction in `NativeSourceTerminalBase` satisfies `source_ideal_terminal_base` under the displayed hypotheses. -/
+/-- For positive E and source degree and a degree-bounded target of matching parity bounded by one
+on the interval from −1 to 1, the ideal terminal matrix is diagonal and its upper-left entry
+has norm one. -/
 theorem source_ideal_terminal_base (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E)
     (htail : ∀ k,N+1 ≤ k → cs.getD k 0=0)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)
@@ -103,7 +108,10 @@ theorem source_ideal_terminal_base (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E
   simp only [norm_mul,norm_star,norm_one] at hn
   nlinarith [norm_nonneg (sourceIdealDeflationLoop G false false)]
 
-/-- The finite construction in `NativeSourceTerminalBase` satisfies `source_actual_terminal_base` under the displayed hypotheses. -/
+/-- For positive E and source degree, a degree-bounded target of matching parity bounded by one,
+and guarded factors reconstructing the integer complement with nonzero content, the ideal
+terminal upper-left entry has norm one. The corresponding decoded rational entry is nonzero
+and within one sixteenth of the grid spacing of the ideal entry. -/
 theorem source_actual_terminal_base (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E)
     (htail : ∀ k,N+1 ≤ k → cs.getD k 0=0)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)

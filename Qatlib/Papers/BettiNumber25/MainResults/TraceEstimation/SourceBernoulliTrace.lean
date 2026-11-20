@@ -29,7 +29,7 @@ Fixed source: arXiv:2408.16934v3 (Quantum 9, 1901, 2025).
 
 * Source Lemma 3.1 (p. 4, "Hoeffding") is the two-sided Hoeffding bound.  It is
   reused from the shared library as
-  `Qatlib.Foundations.ProbabilityCore.Concentration.ProbabilityInterfaces.independent_weighted_hoeffding`
+  `Qatlib.Concepts.ProbabilityCore.Concentration.ProbabilityInterfaces.independent_weighted_hoeffding`
   and specialised to `q` i.i.d. `{0,1}`-valued records below
   (`lemma_3_1_hoeffding_iid`).
 * Source Lemma 3.3 (p. 7): each sample `s_i` of Algorithm 2 is Bernoulli with

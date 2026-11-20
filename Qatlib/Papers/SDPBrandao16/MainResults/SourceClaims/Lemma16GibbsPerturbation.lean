@@ -46,7 +46,7 @@ between the Gibbs states `e^H / tr(e^H)` and `e^{H'} / tr(e^{H'})` is at most
 required.
 
 The theorem used here is:
-`Qatlib.Foundations.MatrixExpTrace.GibbsNorm.sdp_gibbs_perturbation_noncommuting`. -/
+`Qatlib.Concepts.MatrixExpTrace.GibbsNorm.sdp_gibbs_perturbation_noncommuting`. -/
 theorem lemma16_gibbsTraceDistance (D : ℕ) (H H' : Operator D) (hD : 0 < D)
     (hH : H.IsHermitian) (hH' : H'.IsHermitian) :
     Matrix.traceNorm

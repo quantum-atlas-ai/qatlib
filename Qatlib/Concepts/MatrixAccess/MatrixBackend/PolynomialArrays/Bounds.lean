@@ -85,12 +85,12 @@ def radius (contexts : List Context) (bits : ℕ) (gap : ℚ) : ℚ :=
 def midpointError (contexts : List Context) (bits : ℕ) (gap : ℚ) : ℚ :=
   1/(2 : ℚ)^cap contexts bits gap
 
-/-- The finite construction in `Bounds` satisfies `fold_max_initial` under the displayed hypotheses. -/
+/-- Folding maximum over a list of natural numbers yields a value at least as large as the initial `a`. -/
 theorem fold_max_initial (xs : List ℕ) (a : ℕ) : a ≤ xs.foldl max a := by
   induction xs generalizing a with
   | nil => rfl
   | cons x xs ih => exact (le_max_left a x).trans (ih (max a x))
-/-- The finite construction in `Bounds` satisfies `fold_max_member` under the displayed hypotheses. -/
+/-- Every member of the natural-number list is at most the maximum folded from `a`. -/
 theorem fold_max_member (xs : List ℕ) (a x : ℕ) (hx : x ∈ xs) :
     x ≤ xs.foldl max a := by
   induction xs generalizing a with
@@ -101,7 +101,7 @@ theorem fold_max_member (xs : List ℕ) (a x : ℕ) (hx : x ∈ xs) :
       exact (le_max_right a x).trans (fold_max_initial ys (max a x))
     · exact ih (max a y) h
 
-/-- The finite construction in `Bounds` satisfies `half_ge_term` under the displayed hypotheses. -/
+/-- The half cap is at least two greater than every term contributed by the precision, gap or contexts. -/
 theorem half_ge_term (contexts : List Context) (bits t : ℕ) (gap : ℚ)
     (ht : t ∈ terms contexts bits gap) : t+2 ≤ half contexts bits gap := by
   have hm := fold_max_member (terms contexts bits gap) 0 t ht
@@ -111,13 +111,13 @@ theorem half_ge_term (contexts : List Context) (bits t : ℕ) (gap : ℚ)
   change t ≤ listMax (terms contexts bits gap) at hm
   omega
 
-/-- The finite construction in `Bounds` satisfies `cap_even` under the displayed hypotheses. -/
+/-- The precision cap is even and equals twice its half cap. -/
 theorem cap_even (contexts : List Context) (bits : ℕ) (gap : ℚ) :
     cap contexts bits gap = 2*half contexts bits gap := by
   unfold cap half cap
   omega
 
-/-- The finite construction in `Bounds` satisfies `half_ge_bits` under the displayed hypotheses. -/
+/-- The half cap is at least eight more than the requested precision `bits`. -/
 theorem half_ge_bits (contexts : List Context) (bits : ℕ) (gap : ℚ) :
     bits+8 ≤ half contexts bits gap := by
   have hc := le_max_left (2*bits+16) (2*(listMax (terms contexts bits gap)+2))
@@ -125,14 +125,14 @@ theorem half_ge_bits (contexts : List Context) (bits : ℕ) (gap : ℚ) :
   unfold cap
   omega
 
-/-- The finite construction in `Bounds` satisfies `midpoint_square` under the displayed hypotheses. -/
+/-- The midpoint error budget is exactly the square of the disk radius. -/
 theorem midpoint_square (contexts : List Context) (bits : ℕ) (gap : ℚ) :
     midpointError contexts bits gap = radius contexts bits gap ^ 2 := by
   unfold midpointError radius
   rw [cap_even, Nat.mul_comm 2 (half contexts bits gap), pow_mul]
   simp only [one_div, inv_pow]
 
-/-- The finite construction in `Bounds` satisfies `cap_radius_budgets` under the displayed hypotheses. -/
+/-- For positive `gap`, the common radius is positive and at most each of `1`, `1 / (256 * 2^bits)` and `gap / 64`. -/
 theorem cap_radius_budgets (contexts : List Context) (bits : ℕ) (gap : ℚ)
     (hg : 0 < gap) :
     0 < radius contexts bits gap ∧ radius contexts bits gap ≤ 1 ∧
@@ -186,7 +186,7 @@ theorem norm_product_bound (s : Multiset ℂ) (M : ℝ) (hM : 0 ≤ M)
     have hr := ih (fun y hy => hs y (Multiset.mem_cons_of_mem hy))
     nlinarith [mul_le_mul hx hr (norm_nonneg xs.prod) hM]
 
-/-- The finite construction in `Bounds` satisfies `integer_resultant_derivative_lower` under the displayed hypotheses. -/
+/-- For a positive-degree integer polynomial with nonzero derivative resultant, at any complex root the derivative norm times `B^(p.natDegree - 1) * M^(p.natDegree - 1)` is at least one. Here `B` bounds the leading-coefficient norm and `M` bounds the derivative norm at every root, with both bounds nonnegative. -/
 theorem integer_resultant_derivative_lower (p : ℤ[X]) (hp : 0 < p.natDegree)
     (hres : p.resultant p.derivative p.natDegree (p.natDegree-1) ≠ 0)
     (B M : ℝ) (hB : 0 ≤ B) (hM : 0 ≤ M)
@@ -272,7 +272,7 @@ theorem eval_bound (p : ℂ[X]) (m : ℕ) (C R : ℝ) (hC : 0 ≤ C) (hR : 1 ≤
       · exact hC
     _ = _ := by simp; ring
 
-/-- The finite construction in `Bounds` satisfies `derivatives_from_coefficients` under the displayed hypotheses. -/
+/-- If `p` has positive degree `m`, coefficient norms at most `B ≥ 0`, and `R ≥ 1`, both first and second derivative values at every `w` with `‖w‖ ≤ R` have norm at most `m^3 * B * R^m`. -/
 theorem derivatives_from_coefficients (p : ℂ[X]) (m : ℕ) (hm : 0 < m)
     (hd : p.natDegree = m) (B R : ℝ) (hB : 0 ≤ B) (hR : 1 ≤ R)
     (hcoeff : ∀ i, ‖p.coeff i‖ ≤ B) (w : ℂ) (hw : ‖w‖ ≤ R) :
@@ -312,7 +312,7 @@ theorem derivatives_from_coefficients (p : ℂ[X]) (m : ℕ) (hm : 0 < m)
   have hmul := mul_le_mul_of_nonneg_right hmp (by positivity : (0 : ℝ) ≤ B*R^m)
   nlinarith only [hf,hmul]
 
-/-- The finite construction in `Bounds` satisfies `fold_max_member` under the displayed hypotheses. -/
+/-- Every natural number in `xs` is bounded above by folding maximum over `xs` from seed `a`. -/
 theorem fold_max_member (xs : List ℕ) (a x : ℕ) (hx : x ∈ xs) :
     x ≤ xs.foldl max a := by
   have init : ∀ (ys : List ℕ) (b : ℕ), b ≤ ys.foldl max b := by
@@ -327,7 +327,7 @@ theorem fold_max_member (xs : List ℕ) (a x : ℕ) (hx : x ∈ xs) :
     · subst y; exact (le_max_right a x).trans (init ys (max a x))
     · exact ih (max a y) h
 
-/-- The finite construction in `Bounds` satisfies `coefficient_from_height` under the displayed hypotheses. -/
+/-- At every index, the norm of the complex coefficient of `cs` is at most two raised to the list's coefficient bit height. -/
 theorem coefficient_from_height (cs : List ℤ) (k : ℕ) :
     ‖(rootIntegerListPolynomial cs).coeff k‖ ≤ (2 : ℝ)^height cs := by
   have hsize : (cs.getD k 0).natAbs.size ≤ height cs := by
@@ -352,7 +352,7 @@ end ActualRootHeightEnvelope
 namespace ActualRootAnalyticSupply
 open ActualRootProjectionCap
 open Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays
-/-- The finite construction in `Bounds` satisfies `cap_horner_without_analytic_answers` under the displayed hypotheses. -/
+/-- For a member context with positive gap and a separable factor represented by a vector with nonzero final entry, any rational point within the midpoint error of a factor root satisfies the integer Horner coordinate bound at the common radius and has a nonzero derivative numerator. -/
 theorem cap_horner_without_analytic_answers (contexts : List Context) (bits : ℕ) (gap : ℚ)
     (hg : 0 < gap) (ctx : Context) (hctx : ctx ∈ contexts)
     (n : ℕ) (a : Fin (n+2) → ℤ) (ha : a (Fin.last (n+1)) ≠ 0)
@@ -382,14 +382,14 @@ def derivativeRaw (cs : List ℤ) : List ℤ := List.ofFn
 /-- Construction for derivative in the bounds model. -/
 def derivative (cs : List ℤ) : List ℤ := rootCanonicalCoefficients (derivativeRaw cs)
 
-/-- The finite construction in `Bounds` satisfies `canonical_ofFn` under the displayed hypotheses. -/
+/-- If the final entry of `a` is nonzero, trimming `List.ofFn a` leaves the list unchanged. -/
 theorem canonical_ofFn (d : ℕ) (a : Fin (d+1) → ℤ) (ha : a (Fin.last d)≠0) :
     rootCanonicalCoefficients (List.ofFn a)=List.ofFn a := by
   have he : List.ofFn a=List.ofFn (fun i : Fin d => a i.castSucc)++[a (Fin.last d)] := by simpa only [List.concat_eq_append] using List.ofFn_succ' a
   rw [he]
   simp [rootCanonicalCoefficients,ha]
 
-/-- The finite construction in `Bounds` satisfies `raw_ofFn` under the displayed hypotheses. -/
+/-- Applying the raw list derivative to `List.ofFn a` enumerates the entries of `rootIntegerDerivative n a` in order. -/
 theorem raw_ofFn (n : ℕ) (a : Fin (n+2) → ℤ) :
     derivativeRaw (List.ofFn a)=List.ofFn (rootIntegerDerivative n a) := by
   unfold derivativeRaw
@@ -401,7 +401,7 @@ theorem raw_ofFn (n : ℕ) (a : Fin (n+2) → ℤ) :
   simp only [List.getD_eq_getElem?_getD,List.getElem?_ofFn,dite_eq_left hi,Option.getD_some]
   rfl
 
-/-- The finite construction in `Bounds` satisfies `derivative_ofFn` under the displayed hypotheses. -/
+/-- For a vector with nonzero last coefficient, the canonical list derivative is exactly the list of vector derivative coefficients. -/
 theorem derivative_ofFn (n : ℕ) (a : Fin (n+2) → ℤ) (ha : a (Fin.last (n+1))≠0) :
     derivative (List.ofFn a)=List.ofFn (rootIntegerDerivative n a) := by
   rw [derivative,raw_ofFn]
@@ -437,7 +437,7 @@ def sourcePasses (cs : List ℤ) (c : ℚ×ℚ) (r : ℚ) : Bool :=
   decide (0 < lower ∧ ((cs.length-1 : ℕ) : ℤ)*upper*(w.denominator : ℤ)*(r.den : ℤ) ≤
     r.num*lower*(v.denominator : ℤ))
 
-/-- The finite construction in `Bounds` satisfies `passes_exact` under the displayed hypotheses. -/
+/-- The disk test passes exactly when the value numerator is zero or the derivative numerator has positive maximum absolute coordinate and the integer coordinate bound holds. -/
 theorem passes_exact (cs : List ℤ) (c : ℚ×ℚ) (r : ℚ) :
     sourcePasses cs c r=true ↔ (horner cs c).numerator=(0,0) ∨
       (0 < max |(horner (derivative cs) c).numerator.1| |(horner (derivative cs) c).numerator.2| ∧
@@ -485,12 +485,12 @@ open Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays
 def retained (cs : List ℤ) (r : ℚ) (ix iy : List (ℚ×ℚ)) : List (ℚ×ℚ) :=
   (centers ix iy).filter (fun c => sourcePasses cs c r)
 
-/-- The finite construction in `Bounds` satisfies `retained_mem` under the displayed hypotheses. -/
+/-- A point is retained exactly when it is a Cartesian midpoint candidate and passes the factor's disk test at radius `r`. -/
 theorem retained_mem (cs : List ℤ) (r : ℚ) (ix iy : List (ℚ×ℚ)) (c : ℚ×ℚ) :
     c∈retained cs r ix iy ↔ c∈centers ix iy ∧ sourcePasses cs c r=true :=
   List.mem_filter
 
-/-- The finite construction in `Bounds` satisfies `actual_cap_retention` under the displayed hypotheses. -/
+/-- For positive gap and a member context with a separable factor and nonzero final coefficient, there is fuel for axis isolation at the cap such that every factor root has a retained center within the midpoint error. -/
 theorem actual_cap_retention (contexts : List Context) (bits : ℕ) (gap : ℚ)
     (hg : 0 < gap) (ctx : Context) (hctx : ctx∈contexts)
     (n : ℕ) (a : Fin (n+2) → ℤ) (ha : a (Fin.last (n+1))≠0)
@@ -536,7 +536,7 @@ def ContextGood (ctx : Context) : Prop :=
     OutputProperties ctx.factor Axis.real ctx.xProjection ∧
     OutputProperties ctx.factor Axis.imag ctx.yProjection
 
-/-- The finite construction in `Bounds` satisfies `factor_projections` under the displayed hypotheses. -/
+/-- A good factor has successful real and imaginary projections satisfying the output properties for their respective axes. -/
 theorem factor_projections (f : List ℤ×ℕ) (hf : FactorGood f) :
     ∃ rx ry,projections f.1=(some rx,some ry) ∧
       OutputProperties f.1 Axis.real rx ∧ OutputProperties f.1 Axis.imag ry := by
@@ -544,7 +544,7 @@ theorem factor_projections (f : List ℤ×ℕ) (hf : FactorGood f) :
   let D := (Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays.rootIntegerListPolynomial f.1).natDegree
   exact actual_projection_pair f.1 D hlen hd (by simpa only [hlen,Nat.add_sub_cancel] using htop)
 
-/-- The finite construction in `Bounds` satisfies `build_success` under the displayed hypotheses. -/
+/-- If every listed factor and exponent pair is good, `build` returns good contexts whose factor and exponent fields recover the original list in order. -/
 theorem build_success (fs : List (List ℤ×ℕ)) (hgood : ∀ f∈fs,FactorGood f) :
     ∃ contexts,build fs=some contexts ∧ contexts.map (fun ctx => (ctx.factor,ctx.exponent))=fs ∧
       ∀ ctx∈contexts,ContextGood ctx := by
@@ -573,7 +573,7 @@ open ActualProjectionSourceDerivative ActualProjectionSourcePasses ActualProject
 open ActualRootProjectionCap ActualProjectionSturmAxes
 open Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays
 
-/-- The finite construction in `Bounds` satisfies `source_passes_disk` under the displayed hypotheses. -/
+/-- For an integer coefficient vector with nonzero last entry and positive radius, a passing source disk test guarantees a complex root at distance at most `r` from `c`. -/
 theorem source_passes_disk (n : ℕ) (a : Fin (n+2) → ℤ) (ha : a (Fin.last (n+1))≠0)
     (c : ℚ×ℚ) (r : ℚ) (hr : 0 < r) (hp : sourcePasses (List.ofFn a) c r=true) :
     ∃ z : ℂ,(rootIntegerPolynomial a).eval z=0 ∧ ‖z-rootRationalCoordinate c‖ ≤ (r : ℝ) := by
@@ -583,7 +583,7 @@ theorem source_passes_disk (n : ℕ) (a : Fin (n+2) → ℤ) (ha : a (Fin.last (
     simpa only [horner,derivative_ofFn n a ha,List.length_ofFn,
       show n+2-1=n+1 by omega] using hb
 
-/-- The finite construction in `Bounds` satisfies `retained_disks_sound` under the displayed hypotheses. -/
+/-- For an integer coefficient vector with nonzero final entry and any positive radius, every retained center has at least one complex factor root within that radius. -/
 theorem retained_disks_sound (n : ℕ) (a : Fin (n+2) → ℤ) (ha : a (Fin.last (n+1))≠0)
     (r : ℚ) (hr : 0 < r) (ix iy : List (ℚ×ℚ)) :
     ∀ c∈retained (List.ofFn a) r ix iy,
@@ -591,14 +591,14 @@ theorem retained_disks_sound (n : ℕ) (a : Fin (n+2) → ℤ) (ha : a (Fin.last
   intro c hc
   exact source_passes_disk n a ha c r hr ((retained_mem _ _ _ _ _).mp hc).2
 
-/-- The finite construction in `Bounds` satisfies `cap_midpoint_le_radius` under the displayed hypotheses. -/
+/-- With positive gap, the common midpoint error is at most the common disk radius. -/
 theorem cap_midpoint_le_radius (contexts : List Context) (bits : ℕ) (gap : ℚ) (hg : 0 < gap) :
     midpointError contexts bits gap ≤ radius contexts bits gap := by
   have hr := cap_radius_budgets contexts bits gap hg
   rw [midpoint_square]
   nlinarith [hr.1,hr.2.1]
 
-/-- The finite construction in `Bounds` satisfies `actual_cap_disks` under the displayed hypotheses. -/
+/-- For positive gap and a member context with a separable factor and nonzero last coefficient, some fuel isolates both axes at the cap. Every root lies within the common radius of a retained center, and every retained center has a root within that radius. -/
 theorem actual_cap_disks (contexts : List Context) (bits : ℕ) (gap : ℚ)
     (hg : 0 < gap) (ctx : Context) (hctx : ctx∈contexts)
     (n : ℕ) (a : Fin (n+2) → ℤ) (ha : a (Fin.last (n+1))≠0)
@@ -630,7 +630,7 @@ open scoped BigOperators
 /-- Construction for complex Poly in the bounds model. -/
 def complexPoly (p : ℤ[X]) : ℂ[X] := p.map (Int.castRingHom ℂ)
 
-/-- The finite construction in `Bounds` satisfies `integer_mahler_one` under the displayed hypotheses. -/
+/-- The complex cast of a nonzero integer polynomial has Mahler measure at least one. -/
 theorem integer_mahler_one (p : ℤ[X]) (hp : p≠0) : 1 ≤ (complexPoly p).mahlerMeasure := by
   apply Polynomial.one_le_mahlerMeasure_of_one_le_norm_leadingCoeff
   rw [complexPoly,Polynomial.leadingCoeff_map_of_injective Int.cast_injective]
@@ -659,7 +659,7 @@ theorem mahler_coefficient_bound (p : ℂ[X]) (D H : ℕ)
     _ ≤ ∑ _k∈Finset.range (D+1),(2 : ℝ)^H := Finset.sum_le_sum (fun k _ => hc k)
     _ = _ := by simp
 
-/-- The finite construction in `Bounds` satisfies `divisor_coefficients` under the displayed hypotheses. -/
+/-- If nonzero `p = g * h` has degree at most `D` and complex coefficient norms at most `2^H`, then every complex coefficient of `g` has norm at most `2^(H + D * (H + 2))`. -/
 theorem divisor_coefficients (p g h : ℤ[X]) (hp : p≠0) (hprod : p=g*h)
     (D H : ℕ) (hd : p.natDegree ≤ D)
     (hc : ∀ k,‖(complexPoly p).coeff k‖ ≤ (2 : ℝ)^H) (k : ℕ) :
@@ -697,7 +697,7 @@ open Polynomial ActualYunRationalArray ActualYunRationalCanonical
 open ActualYunGcd ActualYunArrayInitialization ActualYunPrimitive ActualYunPrimitiveContent
 open ActualSturmArrayTools ActualSturmInitialization
 
-/-- The finite construction in `Bounds` satisfies `primitive_dvd_integral` under the displayed hypotheses. -/
+/-- If primitive `p` divides nonzero `q` after both are cast to rational coefficients, it already divides `q` over the integers. -/
 theorem primitive_dvd_integral (p q : ℤ[X]) (hp : p.IsPrimitive) (hq : q≠0)
     (hdvd : p.map (Int.castRingHom ℚ)∣q.map (Int.castRingHom ℚ)) : p∣q := by
   have hc : q.content≠0 := fun hz => hq (Polynomial.content_eq_zero_iff.mp hz)
@@ -715,7 +715,7 @@ theorem primitive_dvd_integral (p q : ℤ[X]) (hp : p.IsPrimitive) (hq : q≠0)
     ring
   exact ((Polynomial.IsPrimitive.Int.dvd_iff_map_cast_dvd_map_cast p q.primPart hp).mpr hprim).trans q.primPart_dvd
 
-/-- The finite construction in `Bounds` satisfies `initialized_rational_divisor` under the displayed hypotheses. -/
+/-- If Sturm initialization of a canonical nonzero rational list returns `[f, g]`, the first integer polynomial is primitive and its rational cast divides the input polynomial. -/
 theorem initialized_rational_divisor (a : List ℚ) (hcan : Canonical a) (ha : poly a≠0)
     (f g : List ℤ) (hinit : initialChain a=some [f,g]) :
     (integerPoly f).IsPrimitive ∧ integerPolyQ f∣poly a := by
@@ -742,7 +742,7 @@ theorem initialized_rational_divisor (a : List ℚ) (hcan : Canonical a) (ha : p
         rw [← Polynomial.C_mul,mul_inv_cancel₀ hs,Polynomial.C_1,one_mul,hprod]
       _=(C (primitiveScale q)*poly q)*(C (primitiveScale q)⁻¹*poly c) := by ring
 
-/-- The finite construction in `Bounds` satisfies `initialized_integer_divisor` under the displayed hypotheses. -/
+/-- For a nonzero integer input with canonical lift, the first member of any returned Sturm initialization pair is primitive and divides the input over the integers. -/
 theorem initialized_integer_divisor (a : List ℤ) (hcan : Canonical (lift a)) (ha : integerPoly a≠0)
     (f g : List ℤ) (hinit : initialChain (lift a)=some [f,g]) :
     (integerPoly f).IsPrimitive ∧ integerPoly f∣integerPoly a := by
@@ -773,7 +773,7 @@ theorem product_bound (s : Multiset ℂ) (M : ℝ) (hM : 0 ≤ M)
     have hr := ih (fun y hy => hs y (Multiset.mem_cons_of_mem hy))
     nlinarith [mul_le_mul hx hr (norm_nonneg xs.prod) hM]
 
-/-- The finite construction in `Bounds` satisfies `derivative_root_product` under the displayed hypotheses. -/
+/-- At a root `z` in the multiset of roots of `f`, the derivative is the leading coefficient times the product of `z - w` over the multiset with one occurrence of `z` removed. -/
 theorem derivative_root_product (f : ℂ[X]) (z : ℂ) (hz : z∈f.roots) :
     f.derivative.eval z=f.leadingCoeff*((f.roots.erase z).map (fun w => z-w)).prod := by
   have hsplit := IsAlgClosed.splits f
@@ -824,14 +824,14 @@ open ActualYunRationalArray ActualYunRationalCanonical ActualYunPrimitive Actual
 open ActualSturmArrayTools ActualSturmInitialization
 open Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays
 
-/-- The finite construction in `Bounds` satisfies `integer_leading_one` under the displayed hypotheses. -/
+/-- The leading coefficient of the complex cast of a nonzero integer polynomial has norm at least one. -/
 theorem integer_leading_one (p : ℤ[X]) (hp : p≠0) : 1 ≤ ‖(complexPoly p).leadingCoeff‖ := by
   rw [complexPoly,Polynomial.leadingCoeff_map_of_injective Int.cast_injective]
   change (1 : ℝ) ≤ ‖(p.leadingCoeff : ℂ)‖
   have hh : (1 : ℝ) ≤ |(p.leadingCoeff : ℝ)| := by exact_mod_cast Int.one_le_abs (Polynomial.leadingCoeff_ne_zero.mpr hp)
   simpa only [Complex.norm_intCast,Int.norm_eq_abs,Int.cast_abs] using hh
 
-/-- The finite construction in `Bounds` satisfies `cauchy_radius` under the displayed hypotheses. -/
+/-- If a nonzero complex polynomial has coefficient norms bounded by `B ≥ 1` and leading-coefficient norm at least one, every root has norm at most `2 * B`. -/
 theorem cauchy_radius (p : ℂ[X]) (hp : p≠0) (B : ℝ) (hB : 1 ≤ B)
     (hc : ∀ k,‖p.coeff k‖ ≤ B) (hl : 1 ≤ ‖p.leadingCoeff‖) (z : ℂ) (hz : p.eval z=0) : ‖z‖ ≤ 2*B := by
   let b : NNReal := ⟨B,by linarith⟩
@@ -851,7 +851,7 @@ theorem cauchy_radius (p : ℂ[X]) (hp : p≠0) (B : ℝ) (hB : 1 ≤ B)
   have hrR : ‖z‖ < B+1 := by exact_mod_cast hr
   linarith
 
-/-- The finite construction in `Bounds` satisfies `integer_root_radius` under the displayed hypotheses. -/
+/-- If the complex coefficient norms of a nonzero integer polynomial are bounded by `2^H`, every complex root has norm at most `2^(H + 1)`. -/
 theorem integer_root_radius (p : ℤ[X]) (hp : p≠0) (H : ℕ)
     (hc : ∀ k,‖(complexPoly p).coeff k‖ ≤ (2 : ℝ)^H) (z : ℂ) (hz : (complexPoly p).eval z=0) :
     ‖z‖ ≤ (2 : ℝ)^(H+1) := by
@@ -968,7 +968,7 @@ namespace ActualProjectionPairSeparation
 open Polynomial ActualProjectionDivisorHeight ActualProjectionPairProduct ActualProjectionSeparationBudget
 open ActualRootResultantDerivative
 
-/-- The finite construction in `Bounds` satisfies `integer_derivative_resultant_nonzero` under the displayed hypotheses. -/
+/-- A positive-degree integer polynomial whose complex cast is separable has nonzero fixed-size resultant with its derivative at sizes given by its degree and that degree minus one. -/
 theorem integer_derivative_resultant_nonzero (p : ℤ[X]) (hd : 0 < p.natDegree)
     (hs : (complexPoly p).Separable) : p.resultant p.derivative p.natDegree (p.natDegree-1)≠0 := by
   let f := complexPoly p
@@ -985,7 +985,7 @@ theorem integer_derivative_resultant_nonzero (p : ℤ[X]) (hd : 0 < p.natDegree)
   change (p.resultant p.derivative p.natDegree (p.natDegree-1) : ℂ)=0
   rw [hz,Int.cast_zero]
 
-/-- The finite construction in `Bounds` satisfies `separated` under the displayed hypotheses. -/
+/-- For nonzero `p` of degree at most `D` with separable complex cast, coefficient norms bounded by `2^(squarefreeHeight D H)`, and all root norms at most `2^(H + 1)`, distinct roots have distance at least `1 / 2^(sourceExponent D H)`. -/
 theorem separated (p : ℤ[X]) (hp : p≠0) (D H : ℕ) (hD : p.natDegree ≤ D)
     (hs : (complexPoly p).Separable)
     (hc : ∀ k,‖(complexPoly p).coeff k‖ ≤ (2 : ℝ)^squarefreeHeight D H)
@@ -1056,7 +1056,7 @@ open ActualYunRationalArray ActualYunRationalCanonical ActualYunPrimitive Actual
 open ActualSturmArrayTools ActualSturmRootset ActualSturmSourceCount
 open Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays
 
-/-- The finite construction in `Bounds` satisfies `real_eval_zero` under the displayed hypotheses. -/
+/-- At any real argument, complex evaluation of the integer-list polynomial vanishes exactly when the rational polynomial evaluated over the reals vanishes. -/
 theorem real_eval_zero (a : List ℤ) (x : ℝ) :
     (rootIntegerListPolynomial a).eval (x : ℂ)=0 ↔ (integerPolyQ a).eval₂ (Rat.castHom ℝ) x=0 := by
   let P := (integerPolyQ a).map (Rat.castHom ℝ)
@@ -1071,7 +1071,7 @@ theorem real_eval_zero (a : List ℤ) (x : ℝ) :
   simp only [P,Polynomial.eval_map]
   exact Complex.ofReal_eq_zero
 
-/-- The finite construction in `Bounds` satisfies `member_zero_iff` under the displayed hypotheses. -/
+/-- For a nonzero lifted polynomial, a real argument belongs to its root finset exactly when the complex integer-list polynomial vanishes there. -/
 theorem member_zero_iff (a : List ℤ) (hn : poly (lift a)≠0) (x : ℝ) :
     x∈inputRoots (lift a) ↔ (rootIntegerListPolynomial a).eval (x : ℂ)=0 := by
   rw [inputRoots,Multiset.mem_toFinset,Polynomial.mem_roots (Polynomial.map_ne_zero hn)]
@@ -1079,7 +1079,7 @@ theorem member_zero_iff (a : List ℤ) (hn : poly (lift a)≠0) (x : ℝ) :
   rw [Polynomial.eval_map,lift_poly]
   exact (real_eval_zero a x).symm
 
-/-- The finite construction in `Bounds` satisfies `original_real_separated` under the displayed hypotheses. -/
+/-- For a nonzero positive-degree integer list with canonical lift, distinct real roots are separated by at least `1 / 2^(separationExponent a)`. -/
 theorem original_real_separated (a : List ℤ) (hcan : Canonical (lift a)) (ha : integerPoly a≠0)
     (hd : 0 < (integerPoly a).natDegree) (x y : ℝ)
     (hx : (rootIntegerListPolynomial a).eval (x : ℂ)=0)
@@ -1107,7 +1107,7 @@ theorem original_real_separated (a : List ℤ) (hcan : Canonical (lift a)) (ha :
     (x : ℂ) (y : ℂ) hfx hfy hxy
   simpa only [sourceExponent,squarefreeHeight,separationExponent,← Complex.ofReal_sub,Complex.norm_real,Real.norm_eq_abs] using hh
 
-/-- The finite construction in `Bounds` satisfies `lifted_real_separated` under the displayed hypotheses. -/
+/-- If the rational lift is canonical and represents a nonzero polynomial of positive degree, any two distinct real roots of the complex integer-list polynomial are at least `1 / 2^(separationExponent a)` apart. -/
 theorem lifted_real_separated (a : List ℤ) (hcan : Canonical (lift a)) (hn : poly (lift a)≠0)
     (hd : 0 < (poly (lift a)).natDegree) (x y : ℝ)
     (hx : (rootIntegerListPolynomial a).eval (x : ℂ)=0)
@@ -1130,7 +1130,7 @@ end ActualProjectionRealSeparation
 namespace ActualProjectionCapSeparationScale
 open ActualRootProjectionCap ActualProjectionAcceptedDisks
 
-/-- The finite construction in `Bounds` satisfies `radius_projection_small` under the displayed hypotheses. -/
+/-- For either projection stored in a member context, the common radius is at most one hundred twenty-eighth of `1 / 2^(separationExponent projection)`. -/
 theorem radius_projection_small (contexts : List Context) (bits : ℕ) (gap : ℚ)
     (ctx : Context) (hctx : ctx∈contexts) (projection : List ℤ)
     (hp : projection=ctx.xProjection ∨ projection=ctx.yProjection) :

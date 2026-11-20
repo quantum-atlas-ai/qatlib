@@ -34,7 +34,8 @@ open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data
 open Polynomial
 open scoped BigOperators
 
-/-- The finite construction in `NativeSourceCircleInput` satisfies `even_array_expand` under the displayed hypotheses. -/
+/-- An array of 2d + 1 rational coefficients with zero odd entries represents the polynomial of
+its even coefficients with the indeterminate squared. -/
 private theorem even_array_expand {d : ℕ} (a : Fin (d+d+1) → ℚ)
     (ha : ∀ i,Odd i.val → a i=0) :
     Polynomial.ofFn (d+d+1) a=Polynomial.expand ℚ 2 (Polynomial.ofFn (d+1) (sourceP a)) := by
@@ -68,14 +69,16 @@ private theorem even_array_expand {d : ℕ} (a : Fin (d+d+1) → ℚ)
 def sourceShiftedPolynomial (cs : List ℚ) (N : ℕ) (E : ℚ) : ℚ[X] :=
   Polynomial.ofFn (sourceDegree cs N E+sourceDegree cs N E+1) (sourceLiftedArray cs N E)
 
-/-- The finite construction in `NativeSourceCircleInput` satisfies `sourceShifted_expand` under the displayed hypotheses. -/
+/-- Matching input parity and positive source degree make the shifted polynomial the input
+polynomial with the indeterminate squared. -/
 theorem sourceShifted_expand (cs : List ℚ) (N : ℕ) (E : ℚ)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)
     (hd : 0<sourceDegree cs N E) :
     sourceShiftedPolynomial cs N E=Polynomial.expand ℚ 2 (sourceInputP cs N E) :=
   even_array_expand _ (sourceLiftedArray_odd_zero cs N E hparity hd)
 
-/-- The finite construction in `NativeSourceCircleInput` satisfies `sourceInputP_eval_square` under the displayed hypotheses. -/
+/-- With positive source degree and matching parity, evaluating the compressed input polynomial at
+the square of any complex t gives the shifted polynomial at t. -/
 theorem sourceInputP_eval_square (cs : List ℚ) (N : ℕ) (E : ℚ)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)
     (hd : 0<sourceDegree cs N E) (t : ℂ) :
@@ -84,7 +87,8 @@ theorem sourceInputP_eval_square (cs : List ℚ) (N : ℕ) (E : ℚ)
   rw [sourceShifted_expand cs N E hparity hd,Polynomial.expand_eq_comp_X_pow]
   simp only [Polynomial.eval₂_comp,Polynomial.eval₂_X_pow]
 
-/-- The finite construction in `NativeSourceCircleInput` satisfies `exp_pair` under the displayed hypotheses. -/
+/-- When j is at most d, the two exponentials with indices d − j and d + j sum to the central
+exponential times twice the hyperbolic cosine at index j. -/
 private theorem exp_pair (d j : ℕ) (hj : j ≤ d) (z : ℂ) :
     Complex.exp (((d-j : ℕ) : ℂ)*z)+Complex.exp (((d+j : ℕ) : ℂ)*z)=
       Complex.exp ((d : ℂ)*z)*(2*Complex.cosh ((j : ℂ)*z)) := by
@@ -153,12 +157,14 @@ open scoped BigOperators
 def sourceAAt (cs : List ℚ) (N : ℕ) (E : ℚ) (j : ℕ) : ℚ :=
   (List.ofFn (sourceCoefficient cs N E)).getD j 0
 
-/-- The finite construction in `NativeSourceCircleInput` satisfies `sourceAAt_of_lt` under the displayed hypotheses. -/
+/-- Within the source array bounds, the zero-extended accessor agrees with the finite source
+coefficient. -/
 theorem sourceAAt_of_lt (cs : List ℚ) (N : ℕ) (E : ℚ) (j : ℕ) (hj : j<N+1) :
     sourceAAt cs N E j=sourceCoefficient cs N E ⟨j,hj⟩ := by
   simp only [sourceAAt,List.getD_eq_getElem?_getD,List.getElem?_ofFn,dite_eq_left hj,Option.getD_some]
 
-/-- The finite construction in `NativeSourceCircleInput` satisfies `sourceAAt_tail` under the displayed hypotheses. -/
+/-- The zero-extended source coefficient is zero at every index strictly above the actual source
+degree. -/
 theorem sourceAAt_tail (cs : List ℚ) (N : ℕ) (E : ℚ) (j : ℕ)
     (hj : sourceDegree cs N E < j) : sourceAAt cs N E j=0 := by
   by_cases hi : j<N+1
@@ -166,7 +172,8 @@ theorem sourceAAt_tail (cs : List ℚ) (N : ℕ) (E : ℚ) (j : ℕ)
     exact sourceArrayDegree_tail_zero (sourceCoefficient cs N E) ⟨j,hi⟩ hj
   · simp only [sourceAAt,List.getD_eq_getElem?_getD,List.getElem?_ofFn,dite_eq_right hi,Option.getD_none]
 
-/-- The finite construction in `NativeSourceCircleInput` satisfies `sourceLiftedArray_asAt` under the displayed hypotheses. -/
+/-- The lifted coefficient at any slot equals the source coefficient at that slot's distance from
+the center index. -/
 private theorem sourceLiftedArray_asAt (cs : List ℚ) (N : ℕ) (E : ℚ)
     (i : Fin (sourceDegree cs N E+sourceDegree cs N E+1)) :
     sourceLiftedArray cs N E i=sourceAAt cs N E (Nat.dist i.val (sourceDegree cs N E)) := by
@@ -179,7 +186,8 @@ private theorem sourceLiftedArray_asAt (cs : List ℚ) (N : ℕ) (E : ℚ)
   change sourceCoefficient cs N E ⟨Nat.dist i.val (sourceDegree cs N E),hj⟩=_
   exact (sourceAAt_of_lt cs N E _ hj).symm
 
-/-- The finite construction in `NativeSourceCircleInput` satisfies `sourceShifted_eval_exp` under the displayed hypotheses. -/
+/-- Evaluating the shifted polynomial at a complex exponential sums the lifted coefficients at
+each distance from the center, weighted by the exponential at the slot index. -/
 private theorem sourceShifted_eval_exp (cs : List ℚ) (N : ℕ) (E : ℚ) (z : ℂ) :
     (sourceShiftedPolynomial cs N E).eval₂ (Rat.castHom ℂ) (Complex.exp z)=
       ∑ i : Fin (sourceDegree cs N E+sourceDegree cs N E+1),
@@ -193,7 +201,9 @@ private theorem sourceShifted_eval_exp (cs : List ℚ) (N : ℕ) (E : ℚ) (z : 
   rw [sourceLiftedArray_asAt,Complex.exp_nat_mul]
   rfl
 
-/-- The finite construction in `NativeSourceCircleInput` satisfies `sourceOutput_cosh_sum` under the displayed hypotheses. -/
+/-- Evaluating the output Chebyshev series at cos θ gives the constant source coefficient plus the
+positive-index source coefficients weighted by twice the corresponding complex hyperbolic
+cosines. -/
 private theorem sourceOutput_cosh_sum (cs : List ℚ) (N : ℕ) (E : ℚ) (theta : ℝ) :
     (((nativeChebyshevPolynomialFrom 0 (sourceOutputList cs N E)).eval (Real.cos theta) : ℝ) : ℂ)=
       (sourceAAt cs N E 0 : ℂ)+∑ j : Fin (sourceDegree cs N E),

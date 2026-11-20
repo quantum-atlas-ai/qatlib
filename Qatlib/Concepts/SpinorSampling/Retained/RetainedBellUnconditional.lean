@@ -30,7 +30,7 @@ open scoped BigOperators Classical
 open Matched
 
 -- Partition only the finite image of a real observation, not all Nat vectors.
-/-- Complete original `finite_image_expectation` guarantee for `RetainedBellUnconditional`; all source hypotheses and output obligations are retained. -/
+/-- Summing the expectations of f restricted to each fiber of r over its finite image recovers the expectation of f under p. -/
 theorem finite_image_expectation {X Y : Type} [Fintype X] [DecidableEq Y]
     (p : FinDist X) (r : X → Y) (f : X → ℝ) :
     (∑ y ∈ Finset.univ.image r,p.expect (fun x => if r x=y then f x else 0))=
@@ -56,12 +56,12 @@ def rvecMass (τ : Equiv.Perm S) (n m : ℕ) (ρ : Fin K → ℕ) : ℝ :=
   ∏ j : Fin K,matchedCardEventMass τ n m (ρ j)
 
 omit [Fintype S] [Nonempty S] in
-/-- Complete original `pooled_matches_cast` guarantee for `RetainedBellUnconditional`; all source hypotheses and output obligations are retained. -/
+/-- The real-valued pooled match count is the sum of the entries of the observed block match-count vector. -/
 theorem pooled_matches_cast (τ : S → S) (ω : Fin K → CohortObservation n m τ) :
     (pooledMatches τ ω : ℝ)=rvecTotal (observedRvec τ ω) := by
   simp only [pooledMatches,rvecTotal,Nat.cast_sum]
 
-/-- Complete original `rvec_mass_as_event` guarantee for `RetainedBellUnconditional`; all source hypotheses and output obligations are retained. -/
+/-- The probability that the observed match-count vector equals ρ is the product of the per-block match-count probabilities. -/
 theorem rvec_mass_as_event (a b c k : S → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (τ : Equiv.Perm S) (ρ : Fin K → ℕ) :
     (freshObservationBlocks (n:=n) (m:=m) a b c k hz τ K).expect
@@ -69,7 +69,7 @@ theorem rvec_mass_as_event (a b c k : S → ℝ)
   simpa only [pooledStratumPGF,one_pow,rvecMass] using
     pooled_stratum_at_one (n:=n) (m:=m) a b c k hz τ ρ
 
-/-- Complete original `rvec_mass_sum` guarantee for `RetainedBellUnconditional`; all source hypotheses and output obligations are retained. -/
+/-- The masses of the match-count vectors attainable from the observation type sum to one. -/
 theorem rvec_mass_sum (a b c k : S → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (τ : Equiv.Perm S) :
     (∑ ρ ∈ possibleRvec τ n m K,rvecMass τ n m ρ)=1 := by
@@ -83,7 +83,7 @@ def pooledBadMass (a b c k : S → ℝ)
   (freshObservationBlocks (n:=n) (m:=m) a b c k hz τ K).expect
     (fun ω => if ε< |(pooledMeanQ τ ω : ℝ)-bellMean a b c k τ| then 1 else 0)
 
-/-- Complete original `pooled_bad_strata_sum` guarantee for `RetainedBellUnconditional`; all source hypotheses and output obligations are retained. -/
+/-- Summing the joint masses of the error event and each possible match-count vector gives the unconditional probability of pooled mean error exceeding ε. -/
 theorem pooled_bad_strata_sum (a b c k : S → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (τ : Equiv.Perm S) (ε : ℝ) :
     (∑ ρ ∈ possibleRvec τ n m K,
@@ -107,7 +107,7 @@ def pooledSmallMass (a b c k : S → ℝ)
   (freshObservationBlocks (n:=n) (m:=m) a b c k hz τ K).expect
     (fun ω => if (pooledMatches τ ω : ℝ)<r₀ then 1 else 0)
 
-/-- Complete original `pooled_small_strata_sum` guarantee for `RetainedBellUnconditional`; all source hypotheses and output obligations are retained. -/
+/-- The probability of fewer than r₀ pooled matches is the sum of the masses of attainable match-count vectors whose totals are below r₀. -/
 theorem pooled_small_strata_sum (a b c k : S → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (τ : Equiv.Perm S) (r₀ : ℝ) :
     (∑ ρ ∈ possibleRvec τ n m K,
@@ -140,7 +140,7 @@ theorem pooled_small_strata_sum (a b c k : S → ℝ)
   exact finite_image_expectation _ _ _
 
 -- The public mean bound replaces the unknown mean only in the denominator.
-/-- Complete original `pooled_stratum_public_tail` guarantee for `RetainedBellUnconditional`; all source hypotheses and output obligations are retained. -/
+/-- If p₀ bounds the Bell mean, the joint mass of a fixed match-count vector and error above positive ε is at most twice the vector mass times exp(−Rε²/(4(p₀ + ε))), with R its total match count. -/
 theorem pooled_stratum_public_tail (a b c k : S → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (τ : Equiv.Perm S)
     (ρ : Fin K → ℕ) (p₀ ε : ℝ) (hmean : bellMean a b c k τ≤p₀) (hε : 0<ε) :
@@ -159,7 +159,7 @@ theorem pooled_stratum_public_tail (a b c k : S → ℝ)
       (mul_nonneg (by norm_num) (Finset.prod_nonneg fun j _ =>
         matched_card_mass_nonneg (n:=n) (m:=m) τ (ρ j))))
 
-/-- Complete original `pooled_unconditional_tail` guarantee for `RetainedBellUnconditional`; all source hypotheses and output obligations are retained. -/
+/-- For a Bell mean bounded by p₀ and positive ε, the pooled mean error probability is at most the probability of fewer than r₀ matches plus 2 exp(−r₀ε²/(4(p₀ + ε))). -/
 theorem pooled_unconditional_tail (a b c k : S → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (τ : Equiv.Perm S)
     (p₀ ε r₀ : ℝ) (hmean : bellMean a b c k τ≤p₀) (hε : 0<ε) :
@@ -206,7 +206,7 @@ theorem pooled_unconditional_tail (a b c k : S → ℝ)
 def clippedPooledMeanQ (p₀ : ℚ) (τ : S → S) (ω : Fin K → CohortObservation n m τ) : ℚ :=
   intervalClipQ 0 p₀ (pooledMeanQ τ ω)
 
-/-- Complete original `clipped_pooled_unconditional_tail` guarantee for `RetainedBellUnconditional`; all source hypotheses and output obligations are retained. -/
+/-- Clipping the pooled mean to [0, p₀] preserves the error bound given by the probability of fewer than r₀ matches plus 2 exp(−r₀ε²/(4(p₀ + ε))) when p₀ bounds the Bell mean and ε is positive. -/
 theorem clipped_pooled_unconditional_tail (a b c k : S → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (τ : Equiv.Perm S)
     (p₀ : ℚ) (ε r₀ : ℝ) (hmean : bellMean a b c k τ≤(p₀ : ℝ)) (hε : 0<ε) :

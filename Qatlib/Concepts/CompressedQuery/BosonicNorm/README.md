@@ -40,7 +40,7 @@
 | `Qatlib.Concepts.CompressedQuery.BosonicNorm.badRecord_multi_step_norm` | theorem | L274 | For `p` in [0, 1], bad-record projection after `steps` tensor query steps has norm at most `(√Q)^steps` times the input norm. |
 | `Qatlib.Concepts.CompressedQuery.BosonicNorm.badRecord_multi_step_probability` | theorem | L299 | For `p` in [0, 1], the bad-record Born mass after `steps` tensor query steps is at most `Q ^ steps` times the initial total Born mass. |
 | `Qatlib.Concepts.CompressedQuery.BosonicNorm.badRecord_multi_step_probability_normalized` | theorem | L325 | For a normalized input and `p` in [0, 1], the bad-record Born mass after `steps` tensor query steps is at most `Q ^ steps`. |
-| `Qatlib.Concepts.CompressedQuery.BosonicNorm.frontier1` | theorem | L339 | Package the single-step norm, multi-step norm and multi-step Born mass bounds for the tensor query model at cutoff `Q` and `p` in [0, 1]. |
+| `Qatlib.Concepts.CompressedQuery.BosonicNorm.bosonic_bad_record_norm_and_born_mass_bounds` | theorem | L339 | Package the single-step norm, multi-step norm and multi-step Born mass bounds for the tensor query model at cutoff `Q` and `p` in [0, 1]. |
 | `Qatlib.Concepts.CompressedQuery.BosonicNorm.recordProjector` | def | L361 | The diagonal projector onto database XOR basis states with at least `k` recorded true bits. |
 | `Qatlib.Concepts.CompressedQuery.BosonicNorm.recordLow` | def | L366 | The complementary projector onto database XOR basis states with fewer than `k` recorded true bits. |
 | `Qatlib.Concepts.CompressedQuery.BosonicNorm.recordEvent` | def | L369 | The finite set of database XOR basis states with database cardinality at least `k`. |

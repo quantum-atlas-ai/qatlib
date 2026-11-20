@@ -20,7 +20,8 @@ open scoped BigOperators
 namespace Qatlib.Concepts.EffectiveGauge.RationalFlow
 open Qatlib.Concepts.EffectiveGauge.HopfAtlas
 
-/-- Original `sum_map_flatMap` guarantee for the `SourceMeanSum` construction; the complete source hypotheses are retained. -/
+/-- Summing a mapped flattened list equals summing within each constituent list and then summing
+those results in the original list order. -/
 private theorem sum_map_flatMap {A B M : Type*} [AddMonoid M]
     (indices : List A) (nodes : A → List B) (f : B → M) :
     ((indices.flatMap nodes).map f).sum=
@@ -30,7 +31,8 @@ private theorem sum_map_flatMap {A B M : Type*} [AddMonoid M]
   | cons a indices ih => simp only [List.flatMap_cons,List.map_append,List.sum_append,
       List.map_cons,List.sum_cons,ih]
 
-/-- Original `sum_map_range` guarantee for the `SourceMeanSum` construction; the complete source hypotheses are retained. -/
+/-- Summing the values on the list of naturals below `N` agrees with the finite set sum up to that
+cutoff in an additive commutative monoid. -/
 private theorem sum_map_range {M : Type*} [AddCommMonoid M] (N : ℕ) (f : ℕ → M) :
     ((List.range N).map f).sum=∑ k ∈ Finset.range N, f k := by
   induction N with
@@ -38,7 +40,8 @@ private theorem sum_map_range {M : Type*} [AddCommMonoid M] (N : ℕ) (f : ℕ �
   | succ N ih => simp only [List.range_succ,List.map_append,List.sum_append,
       List.map_cons,List.map_nil,List.sum_cons,List.sum_nil,add_zero,Finset.sum_range_succ,ih]
 
-/-- Original `sourceMeanGrid_sum` guarantee for the `SourceMeanSum` construction; the complete source hypotheses are retained. -/
+/-- Summing over the source mean grid list equals the iterated finite sum with each of the three
+indices ranging from zero to strictly below `N`. -/
 theorem sourceMeanGrid_sum {M : Type*} [AddCommMonoid M] (N : ℕ) (f : SourceMeanIndex → M) :
     ((sourceMeanGrid N).map f).sum=
       ∑ k ∈ Finset.range N, ∑ l ∈ Finset.range N, ∑ m ∈ Finset.range N, f (k,l,m) := by

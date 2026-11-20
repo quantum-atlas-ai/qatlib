@@ -28,9 +28,8 @@ word implementation predicates connect those counters to evaluated operations.
 The conditional transfer theorem assumes a supplied primitive interpretation and
 an encoding proof; it does not construct the paper's quantum algorithms.
 
-Reused FQN: the same notion is available in the existing library as
-`Qatlib.Papers.QSingValue19.BlockEncoding.BlockEncoding`; the paper-level statement
-here only needs the top-left block, so we keep the local, minimal definition.
+The local definitions use the top-left block. The shared predicate
+`Qatlib.Concepts.BlockEncoding.BlockEncoding` handles arbitrary isometric frames.
 -/
 
 set_option autoImplicit false

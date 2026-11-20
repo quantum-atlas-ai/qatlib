@@ -31,7 +31,7 @@ the construction with the gradient-grid continuation.
 * `valueAccessWord_resources`: exact query and gate counts.
 * `noisyValueKickbackOperatorError`: operator error at most `2πη`.
 * `noisyValueKickbackStateError`: Euclidean state error with a clean value register.
-* `frontier1`: the combined kickback specification.
+* `noisy_value_phase_kickback_correctness_and_error`: the combined kickback specification.
 
 ## References
 
@@ -547,7 +547,7 @@ def noisy_value_phase_kickback_spec : Prop :=
 
 /-- Establishes `noisy_value_phase_kickback_spec`, including exact execution and resource counts
 together with noisy, adjoint, and controlled error bounds. -/
-theorem frontier1 : noisy_value_phase_kickback_spec := by
+theorem noisy_value_phase_kickback_correctness_and_error : noisy_value_phase_kickback_spec := by
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
   · intro X _ _ Q _ v
     exact ⟨valueAccessWord_unitary Q v, valueAccessWord_ket_clean Q v,

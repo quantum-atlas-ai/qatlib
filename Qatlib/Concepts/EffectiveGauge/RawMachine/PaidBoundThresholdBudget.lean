@@ -28,7 +28,7 @@ open Qatlib.Concepts.FinitePrecision.ComputableInput.Arithmetic.SignedNatMachine
 open CanonicalCodec.TM
 namespace PaidBoundCompression.Threshold
 
-/-- Original `comparison_cube` guarantee for the `PaidBoundThresholdBudget` construction; the complete source hypotheses are retained. -/
+/-- When the combined comparison input length is at most `2*B+2`, its quadratic length factor is bounded by `9*(1+B)^3`. -/
 private theorem comparison_cube (x y B : ℕ) (h : x+y≤2*B+2) :
     (1+x+y)^2≤9*(1+B)^3 := by
   have hl : 1+x+y≤3*(1+B) := by omega
@@ -36,7 +36,7 @@ private theorem comparison_cube (x y B : ℕ) (h : x+y≤2*B+2) :
   have hc : (1+B)^2≤(1+B)^3 := Nat.pow_le_pow_right (by omega) (by decide)
   nlinarith only [hs,hc]
 
-/-- Original `drain_cube` guarantee for the `PaidBoundThresholdBudget` construction; the complete source hypotheses are retained. -/
+/-- For a stack length `x ≤ 2*B+2`, the drain clock polynomial is at most `100*(1+B)^3`. -/
 private theorem drain_cube (x B : ℕ) (h : x≤2*B+2) :
     x^2+3*x+3≤100*(1+B)^3 := by
   have hl : x≤2*(1+B) := by omega
@@ -46,7 +46,7 @@ private theorem drain_cube (x B : ℕ) (h : x≤2*B+2) :
   have hp : 0<(1+B)^3 := by positivity
   nlinarith only [hl,hs,hc,h1,hp]
 
-/-- Original `polynomial_budget` guarantee for the `PaidBoundThresholdBudget` construction; the complete source hypotheses are retained. -/
+/-- If the two comparison lengths are at most `2*L+1` and `2*R+1`, the allowances for both computations, comparison, output, drains, and halt total at most `500000*(1+L+R)^3`. -/
 private theorem polynomial_budget (L R x y : ℕ) (hx : x≤2*L+1) (hy : y≤2*R+1) :
     (((((200000*(1+L)^3+200000*(1+R)^3)+100*(1+x+y)^2)+4)+
       (x^2+3*x+3))+(y^2+3*y+3))+1≤500000*(1+L+R)^3 := by
@@ -59,7 +59,7 @@ private theorem polynomial_budget (L R x y : ℕ) (hx : x≤2*L+1) (hy : y≤2*R
   rw [Nat.add_assoc 1 L R]
   omega
 
-/-- Original `execution_budget_bound` guarantee for the `PaidBoundThresholdBudget` construction; the complete source hypotheses are retained. -/
+/-- For any fraction and natural threshold, the comparison program's clock budget is bounded by 500000 times the cube of one plus the combined length of its two prepared inputs. -/
 theorem execution_budget_bound (q : RedundantRational.Frac) (j : ℕ) :
     executionBudget q j≤500000*(1+(leftInput q j).length+(rightInput q j).length)^3 := by
   have hx := PaidSumProducts.output_length 256 (positiveDen q).num.1 j (positiveDen q).den.2

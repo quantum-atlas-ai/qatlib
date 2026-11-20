@@ -82,7 +82,7 @@ abbrev operands := PaidFractionInverse.operands
 /-- Definition of read Last in the Raw Machine construction. -/
 def readLast (n : ℕ) : Local := ((true,CheckedNat.lastField n.bits none),none)
 
-/-- Original `frame_target` guarantee for the `PaidBoundFieldControl` construction; the complete source hypotheses are retained. -/
+/-- With injectively assigned slots, a target that has the prescribed data on assigned slots and agrees with the original elsewhere equals the updated frame. -/
 private theorem frame_target {K : Type} [DecidableEq K] (code : K → Slot) (hinj : Function.Injective code)
     (S T : Slot → CanonicalCodec.Bits) (data : K → CanonicalCodec.Bits)
     (hi : ∀ k,T (code k)=data k) (ho : ∀ j,(∀ k,code k≠j) → T j=S j) : StackCall.frame code S data=T := by
@@ -94,7 +94,7 @@ private theorem frame_target {K : Type} [DecidableEq K] (code : K → Slot) (hin
   · rw [WordValidator.frame_outside code S data j (by simpa using hj)]
     exact (ho j (by simpa using hj)).symm
 
-/-- Original `lift` guarantee for the `PaidBoundFieldControl` construction; the complete source hypotheses are retained. -/
+/-- An execution of the embedded stack machine lifts to the host with the same clock allowance when the slot map is injective, the local accessors satisfy the lens laws, and the host instructions implement the call. The endpoints use the corresponding active stack contents, retain the other stacks, and install the final local value at the return label. -/
 private theorem lift {K Λ σ : Type} [DecidableEq K]
     (code : K → Slot) (hinj : Function.Injective code) (labels : Λ → Label) (ret : Label)
     (get : Local → σ) (put : Local → σ → Local)
@@ -117,7 +117,7 @@ private theorem lift {K Λ σ : Type} [DecidableEq K]
   · simpa only [StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,hs,hi,hf] using hn
   · simpa only [StackCall.cfg,Option.map_some,Option.getD_some,hs,hi] using hnc.trans_le hc
 
-/-- Original `start_call` guarantee for the `PaidBoundFieldControl` construction; the complete source hypotheses are retained. -/
+/-- The initialization call transfers the reversed raw input into the reader stack in forward order, clears the I/O register, and enters the first field read within `20*(1+bits.length)^2` clock units. -/
 theorem start_call (bits : CanonicalCodec.Bits) (v : Local) :
     Stacks.Execution program ⟨some (.start 0),v,state (fun _ => []) bits.reverse [] []⟩
       ⟨some (.read 0 default),putIO v none,state (fun _ => []) [] bits []⟩
@@ -134,7 +134,7 @@ theorem start_call (bits : CanonicalCodec.Bits) (v : Local) :
   · intro k hk
     cases k <;> first | rfl | exact (hk 0 rfl).elim | exact (hk 1 rfl).elim
 
-/-- Original `read_call` guarantee for the `PaidBoundFieldControl` construction; the complete source hypotheses are retained. -/
+/-- Given an empty destination field, reading a canonical code for `n` saves `n.bits` there, leaves the suffix in the reader, and prepends the reversed code to the consumed-bit stack before advancing. -/
 theorem read_call (i : Fin 4) (n : ℕ) (tail encoded : CanonicalCodec.Bits)
     (fields : Fin 4 → CanonicalCodec.Bits) (v : Local) (he : fields i=[]) :
     Stacks.Execution program ⟨some (.read i default),v,state fields [] (CanonicalCodec.natBits n++tail) encoded⟩
@@ -155,7 +155,7 @@ theorem read_call (i : Fin 4) (n : ℕ) (tail encoded : CanonicalCodec.Bits)
       simp [state,Ne.symm h]
     | _ => first | rfl | exact (hk .reader rfl).elim | exact (hk .output rfl).elim
 
-/-- Original `discard_call` guarantee for the `PaidBoundFieldControl` construction; the complete source hypotheses are retained. -/
+/-- The discard call clears the consumed-bit stack and I/O register, keeps all four fields, and reaches the done label within `encoded.length^2+3*encoded.length+3` clock units. -/
 theorem discard_call (fields : Fin 4 → CanonicalCodec.Bits) (encoded : CanonicalCodec.Bits) (v : Local) :
     Stacks.Execution program ⟨some (.discard 0),v,state fields [] [] encoded⟩
       ⟨some .done,putIO v none,state fields [] [] []⟩
@@ -170,7 +170,7 @@ theorem discard_call (fields : Fin 4 → CanonicalCodec.Bits) (encoded : Canonic
   · intro k hk
     cases k <;> first | rfl | exact (hk 0 rfl).elim
 
-/-- Original `done_step` guarantee for the `PaidBoundFieldControl` construction; the complete source hypotheses are retained. -/
+/-- The done instruction halts in one clock unit, resets the local state, and retains the saved fields. -/
 theorem done_step (fields : Fin 4 → CanonicalCodec.Bits) (v : Local) :
     Stacks.Execution program ⟨some .done,v,state fields [] [] []⟩
       ⟨none,default,state fields [] [] []⟩ 1 := by

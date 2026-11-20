@@ -28,7 +28,8 @@ open Qatlib.Concepts.EffectiveGauge.HopfAtlas Qatlib.Concepts.EffectiveGauge.Spe
 def seedTransferArtifactAccuracy (M tolerance : ℚ) : ℚ :=
   min (1/2) (tolerance/(256*(|M|+1)))
 
-/-- Original `seedTransferArtifactAccuracy_spec` guarantee for the `SeedTransferBudget` construction; the complete source hypotheses are retained. -/
+/-- At positive tolerance the selected artifact accuracy lies in `(0, 1/2]` and its product with
+`|M| + 1` is at most tolerance divided by 256. -/
 theorem seedTransferArtifactAccuracy_spec (M tolerance : ℚ) (ht : 0<tolerance) :
     0<seedTransferArtifactAccuracy M tolerance ∧ seedTransferArtifactAccuracy M tolerance ≤ 1/2 ∧
       seedTransferArtifactAccuracy M tolerance*(|M|+1) ≤ tolerance/256 := by
@@ -41,7 +42,8 @@ theorem seedTransferArtifactAccuracy_spec (M tolerance : ℚ) (ht : 0<tolerance)
 noncomputable section
 open scoped Quaternion ContDiff
 
-/-- Original `seedTransferArtifactAccuracy_budget` guarantee for the `SeedTransferBudget` construction; the complete source hypotheses are retained. -/
+/-- At positive tolerance the squared artifact accuracy weighted by `343 * (1 + 3 * |M|²)` is at
+most one thirty-second of the squared tolerance. -/
 theorem seedTransferArtifactAccuracy_budget (M tolerance : ℚ) (ht : 0<tolerance) :
     (seedTransferArtifactAccuracy M tolerance : ℝ)^2*(343*(1+3*|(M : ℝ)|^2)) ≤ (tolerance : ℝ)^2/32 := by
   let delta : ℝ := seedTransferArtifactAccuracy M tolerance

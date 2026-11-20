@@ -54,7 +54,8 @@ def transversePair : ℝ × ℝ →L[ℝ] TransversePoint :=
 def circleAngularRate (k : TransversePoint → ℍ) (p : TransversePoint) : ℝ :=
   (star (k p)*fderiv ℝ k p (EuclideanSpace.single 0 1)).imI
 
-/-- Original `contDiff_circleAngularRate` guarantee for the `CircleLog` construction; the complete source hypotheses are retained. -/
+/-- The first transverse angular rate of a smooth quaternion field is smooth. It takes the `i`
+component after left multiplication of the partial derivative by the conjugate field. -/
 theorem contDiff_circleAngularRate {k : TransversePoint → ℍ} (hk : ContDiff ℝ ∞ k) :
     ContDiff ℝ ∞ (circleAngularRate k) := by
   have hs : ContDiff ℝ ∞ (fun p => star (k p)) :=
@@ -65,7 +66,8 @@ theorem contDiff_circleAngularRate {k : TransversePoint → ℍ} (hk : ContDiff 
 def circleLogPrimitive (k : TransversePoint → ℍ) (p : TransversePoint) : ℝ :=
   ∫ y in (0 : ℝ)..p 0, circleAngularRate k (transversePair (y,p 1))
 
-/-- Original `circle_curve_velocity` guarantee for the `CircleLog` construction; the complete source hypotheses are retained. -/
+/-- The derivative of a differentiable circle-valued quaternion curve is its current value times
+the imaginary-axis tangent, with coefficient given by the `i` component of `star (k t) * d`. -/
 private theorem circle_curve_velocity {k : ℝ → ℍ} {d : ℍ} {t : ℝ}
     (hk : HasDerivAt k d t) (hc : ∀ u, IsCircleQuaternion (k u)) :
     d=k t*((star (k t)*d).imI • iAxis) := by
@@ -99,14 +101,16 @@ private theorem circle_curve_velocity {k : ℝ → ℍ} {d : ℍ} {t : ℝ}
     _ = k t*(star (k t)*d) := mul_assoc _ _ _
     _ = _ := congrArg (fun a : ℍ => k t*a) hprod
 
-/-- Original `transversePair_hasDerivAt` guarantee for the `CircleLog` construction; the complete source hypotheses are retained. -/
+/-- Varying the first coordinate of a transverse pair at fixed second coordinate has derivative
+equal to the first transverse basis vector. -/
 theorem transversePair_hasDerivAt (z y : ℝ) :
     HasDerivAt (fun u : ℝ => transversePair (u,z)) (EuclideanSpace.single 0 1) y := by
   apply (transversePair.hasFDerivAt.comp_hasDerivAt y
     ((hasDerivAt_id y).prodMk (hasDerivAt_const y z))).congr_deriv
   ext j; fin_cases j <;> simp [transversePair]
 
-/-- Original `circle_curve_hasDerivAt` guarantee for the `CircleLog` construction; the complete source hypotheses are retained. -/
+/-- For a smooth circle-valued field, the derivative along the first transverse coordinate is
+the current quaternion times its angular rate times `iAxis`. -/
 theorem circle_curve_hasDerivAt {k : TransversePoint → ℍ} (hk : ContDiff ℝ ∞ k)
     (hc : ∀ p, IsCircleQuaternion (k p)) (z y : ℝ) :
     HasDerivAt (fun u : ℝ => k (transversePair (u,z)))
@@ -115,7 +119,8 @@ theorem circle_curve_hasDerivAt {k : TransversePoint → ℍ} (hk : ContDiff ℝ
     (transversePair_hasDerivAt z y)
   exact hd.congr_deriv (circle_curve_velocity hd (fun u => hc _))
 
-/-- Original `circleLogPrimitive_hasDerivAt` guarantee for the `CircleLog` construction; the complete source hypotheses are retained. -/
+/-- For a smooth quaternion field, differentiating the anchored angular-rate integral with
+respect to its first transverse coordinate gives the angular rate at the endpoint. -/
 theorem circleLogPrimitive_hasDerivAt {k : TransversePoint → ℍ} (hk : ContDiff ℝ ∞ k) (z y : ℝ) :
     HasDerivAt (fun u : ℝ => circleLogPrimitive k (transversePair (u,z)))
       (circleAngularRate k (transversePair (y,z))) y := by
@@ -144,7 +149,8 @@ private def integrateRealPath : C(TransportTime, ℝ) →L[ℝ] ℝ :=
 private def scaledAngularSource (k : TransversePoint → ℍ) (z : TransversePoint × ℝ) : ℝ :=
   (z.1 0/physicalPeriod)*circleAngularRate k (transversePair ((z.1 0/physicalPeriod)*z.2,z.1 1))
 
-/-- Original `contDiff_scaledAngularSource` guarantee for the `CircleLog` construction; the complete source hypotheses are retained. -/
+/-- The angular-rate integrand for a smooth field stays smooth after rescaling the first
+coordinate to an integration interval of fixed physical length. -/
 private theorem contDiff_scaledAngularSource {k : TransversePoint → ℍ} (hk : ContDiff ℝ ∞ k) :
     ContDiff ℝ ∞ (scaledAngularSource k) := by
   have hy : ContDiff ℝ ∞ (fun p : TransversePoint => p 0) := by
@@ -160,7 +166,8 @@ private theorem contDiff_scaledAngularSource {k : TransversePoint → ℍ} (hk :
   exact ha.mul ((contDiff_circleAngularRate hk).comp
     (transversePair.contDiff.comp ((ha.mul contDiff_snd).prodMk hz)))
 
-/-- Original `contDiff_circleLogPrimitive` guarantee for the `CircleLog` construction; the complete source hypotheses are retained. -/
+/-- For a smooth quaternion field, integrating its first transverse angular rate from zero to
+the first coordinate gives a smooth function of both transverse coordinates. -/
 theorem contDiff_circleLogPrimitive {k : TransversePoint → ℍ} (hk : ContDiff ℝ ∞ k) :
     ContDiff ℝ ∞ (circleLogPrimitive k) := by
   let G := scaledAngularSource k

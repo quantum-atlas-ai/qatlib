@@ -54,7 +54,8 @@ def storedAutomaticPoissonCoefficientsFromGap (source : RationalJetSource) (boun
   let result ← storedPoissonCoefficientPreparation source frame tolerance
   return (frame,result)
 
-/-- Original `storedFourierCoefficientListExecution_store` guarantee for the `StoredPoissonPreparation` construction; the complete source hypotheses are retained. -/
+/-- Computing the requested Fourier coefficient list from the stored reference frame gives exactly
+the source computation at the same mesh, accuracies, period length, and frequencies. -/
 theorem storedFourierCoefficientListExecution_store (source : RationalJetSource) (prepared : CachedMeanPreparation)
     (eta : ℚ) (M : ℕ) (s length d : ℚ) (frequencies : List SpatialFrequency) :
     storedFourierCoefficientListExecution source (storeReferenceFrame source prepared eta) M s length d frequencies=
@@ -63,7 +64,8 @@ theorem storedFourierCoefficientListExecution_store (source : RationalJetSource)
   rw [connectionGridWithSeeds_correct,storedConnectionGrid_store]
   rfl
 
-/-- Original `storedPoissonCoefficientPreparation_store` guarantee for the `StoredPoissonPreparation` construction; the complete source hypotheses are retained. -/
+/-- Poisson coefficient preparation from a newly stored reference frame returns the same optional
+result as direct materialization from the source, cache, and collar. -/
 theorem storedPoissonCoefficientPreparation_store (source : RationalJetSource) (prepared : CachedMeanPreparation)
     (eta tolerance : ℚ) :
     storedPoissonCoefficientPreparation source (storeReferenceFrame source prepared eta) tolerance=
@@ -82,7 +84,8 @@ theorem storedAutomaticPoissonCoefficientsFromGap_output (source : RationalJetSo
   simp [storedAutomaticPoissonCoefficientsFromGap,automaticPoissonCoefficientsFromGap,
     Option.map_bind,storedPoissonCoefficientPreparation_store]
 
-/-- Original `storedPoissonCoefficientPreparation_fields` guarantee for the `StoredPoissonPreparation` construction; the complete source hypotheses are retained. -/
+/-- When Poisson coefficient preparation from an existing frame succeeds, its preparation and
+regularity cache are the corresponding fields of the input frame. -/
 theorem storedPoissonCoefficientPreparation_fields (source : RationalJetSource)
     (frame : StoredReferenceFrame) (tolerance : ℚ) (result : PoissonCoefficientPreparation)
     (h : storedPoissonCoefficientPreparation source frame tolerance=some result) :
@@ -91,7 +94,10 @@ theorem storedPoissonCoefficientPreparation_fields (source : RationalJetSource)
   rcases Option.map_eq_some_iff.mp h with ⟨out,_,rfl⟩
   exact ⟨rfl,rfl⟩
 
-/-- Original `storedAutomaticPoissonCoefficientsFromGap_frame` guarantee for the `StoredPoissonPreparation` construction; the complete source hypotheses are retained. -/
+/-- If automatic stored Poisson preparation from a gap returns a frame and coefficient data, a
+mean-cache run produced the preparation from which that frame was stored at
+`referenceUnitCollar gap`. The coefficient data's preparation and regularity cache agree with the
+returned frame. -/
 theorem storedAutomaticPoissonCoefficientsFromGap_frame (source : RationalJetSource) (bounds : ℕ → ℚ)
     (gap tolerance : ℚ) (frame : StoredReferenceFrame) (result : PoissonCoefficientPreparation)
     (h : storedAutomaticPoissonCoefficientsFromGap source bounds gap tolerance=some (frame,result)) :

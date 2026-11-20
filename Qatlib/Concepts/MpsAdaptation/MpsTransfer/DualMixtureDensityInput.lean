@@ -401,7 +401,7 @@ open Qatlib
 /-- The grid-weighted capped offset program has exact density-output receipts and
 successful-output L1 error from the normalized dual vector bounded by the rejection tail
 plus the stated selector-grid error. -/
-theorem frontier1 {T D m : ℕ} (F : Family T D m) (j₀ : Fin m)
+theorem capped_dual_mixture_receipts_and_l1_error {T D m : ℕ} (F : Family T D m) (j₀ : Fin m)
     (hT : 0 < T) (a : ℚ) (μ : Fin T → ℚ) (ha : 0 ≤ a) (hμ : ∀ t, 0 ≤ μ t)
     (hS : 0 < ∑ u, (selectorMasses T a μ u : ℝ)) (n fuel : ℕ) :
     let v := selectorMasses T a μ

@@ -28,7 +28,8 @@ open Qatlib.Concepts.EffectiveGauge.HopfAtlas
 /-- Definition of cayley Generator in the Rational Flow construction. -/
 def cayleyGenerator (k : ℍ) (t : ℝ) : ℍ := (4/cayleyDenominator k t) • k
 
-/-- Original `scalarPlane_mul_pure` guarantee for the `CayleyAnalysis` construction; the complete source hypotheses are retained. -/
+/-- Multiplying `a + b k` by `c k` for a pure quaternion `k` gives scalar part `-b c ‖k‖²` and
+coefficient `a c` along `k`. -/
 private theorem scalarPlane_mul_pure (a b c : ℝ) (k : ℍ) (hk : k.re=0) :
     (a • (1 : ℍ)+b • k)*(c • k)=(-b*c*Quaternion.normSq k) • (1 : ℍ)+(a*c) • k := by
   have hs : k*k=(-Quaternion.normSq k) • (1 : ℍ) := by
@@ -36,7 +37,8 @@ private theorem scalarPlane_mul_pure (a b c : ℝ) (k : ℍ) (hk : k.re=0) :
   simp only [add_mul,smul_mul_assoc,mul_smul_comm,one_mul,smul_smul,hs]
   module
 
-/-- Original `cayleyFactor_hasDerivAt` guarantee for the `CayleyAnalysis` construction; the complete source hypotheses are retained. -/
+/-- For a pure quaternion, the time derivative of the Cayley factor at any real time is the factor
+multiplied on the right by its Cayley generator. -/
 theorem cayleyFactor_hasDerivAt (k : ℍ) (hk : k.re=0) (t : ℝ) :
     HasDerivAt (cayleyFactor k) (cayleyFactor k t*cayleyGenerator k t) t := by
   let n := Quaternion.normSq k
@@ -64,16 +66,17 @@ theorem cayleyFactor_hasDerivAt (k : ℍ) (hk : k.re=0) (t : ℝ) :
   rw [hA,hB] at h
   exact h.congr_deriv (scalarPlane_mul_pure _ _ _ k hk).symm
 
-/-- Original `continuous_cayleyGenerator` guarantee for the `CayleyAnalysis` construction; the complete source hypotheses are retained. -/
+/-- The Cayley generator is continuous in real time for every quaternion parameter. -/
 theorem continuous_cayleyGenerator (k : ℍ) : Continuous (cayleyGenerator k) := by
   have hd : Continuous (cayleyDenominator k) := continuous_const.add (continuous_const.mul (continuous_id.pow 2))
   exact (continuous_const.div hd (fun t => (cayleyDenominator_pos k t).ne')).smul continuous_const
 
-/-- Original `cayleyGenerator_re` guarantee for the `CayleyAnalysis` construction; the complete source hypotheses are retained. -/
+/-- The Cayley generator of a pure quaternion has zero real part at every time. -/
 theorem cayleyGenerator_re (k : ℍ) (hk : k.re=0) (t : ℝ) : (cayleyGenerator k t).re=0 := by
   simp [cayleyGenerator,hk]
 
-/-- Original `cayleyGenerator_error` guarantee for the `CayleyAnalysis` construction; the complete source hypotheses are retained. -/
+/-- The generator differs from its quaternion parameter by at most the cubed parameter norm times
+the squared time divided by four. -/
 theorem cayleyGenerator_error (k : ℍ) (t : ℝ) :
     ‖cayleyGenerator k t-k‖ ≤ ‖k‖^3*t^2/4 := by
   have hn := cayleyDenominator_pos k t
@@ -117,7 +120,9 @@ theorem unit_transport_integral_bound {q r k l : ℝ → ℍ} {a b : ℝ} (hab :
       rw [uIcc_of_le hab] at ht
       simp only [norm_mul,Quaternion.norm_star,hnq t ht,hnr t ht,one_mul,mul_one])
 
-/-- Original `cayleyStep_error` guarantee for the `CayleyAnalysis` construction; the complete source hypotheses are retained. -/
+/-- For unit transport on `[0, h]` with a continuous pure generator, a step using a pure `v` of norm
+at most `B` incurs error at most `M h² / 2 + e h + B³ h³ / 12` when its generator discrepancy is
+bounded by `M t + e` throughout the step. -/
 theorem cayleyStep_error {q k : ℝ → ℍ} {h M e B : ℝ} (hh : 0 ≤ h)
     (hk : ContinuousOn k (Icc 0 h)) (hp : ∀ t ∈ Icc 0 h, (k t).re=0)
     (hq : ∀ t ∈ Icc 0 h, HasDerivWithinAt q (q t*k t) (Icc 0 h) t)

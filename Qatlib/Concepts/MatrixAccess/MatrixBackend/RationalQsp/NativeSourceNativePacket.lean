@@ -41,7 +41,8 @@ open scoped Matrix.Norms.L2Operator
 def sourceNativePacket {m : ℕ} (cs : List ℚ) (N : ℕ) (E : ℚ) (f : Fin m → RootIntegerFactorData) : PhaseData :=
   nativePacketFromStandard (sourceBoundaryPacket cs N E f)
 
-/-- The finite construction in `NativeSourceNativePacket` satisfies `source_native_packet_spec` under the displayed hypotheses. -/
+/-- If the target has parity N and the source degree is positive, the native packet has N phases
+and its base and every phase have complex norm one. -/
 theorem source_native_packet_spec {m : ℕ} (cs : List ℚ) (N : ℕ) (E : ℚ)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)
     (hd : 0<sourceDegree cs N E) (f : Fin m → RootIntegerFactorData) :
@@ -52,7 +53,10 @@ theorem source_native_packet_spec {m : ℕ} (cs : List ℚ) (N : ℕ) (E : ℚ)
   have hu := nativePacketFromStandard_unit (sourceBoundaryPacket cs N E f) hs.2.1 hs.2.2
   exact ⟨(nativePacketFromStandard_length _).trans hs.1,hu⟩
 
-/-- The finite construction in `NativeSourceNativePacket` satisfies `source_native_to_regularized` under the displayed hypotheses. -/
+/-- For a degree-bounded target of matching parity and absolute value at most one, with positive E
+and source degree and guarded factors reconstructing the integer complement with nonzero
+content, the native real response differs from the regularized target by at most one quarter
+of the source input budget at every point of the interval from −1 to 1. -/
 theorem source_native_to_regularized (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E)
     (htail : ∀ k,N+1 ≤ k → cs.getD k 0=0)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)
@@ -121,7 +125,10 @@ theorem source_regularized_error (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E)
       _ = _ := mul_one _
   exact (abs_sub_le out ((1-(u : ℝ)/8)*v) v).trans (by linarith)
 
-/-- The finite construction in `NativeSourceNativePacket` satisfies `source_native_uniform` under the displayed hypotheses. -/
+/-- Given positive E and source degree, a Chebyshev target of degree at most N, parity N and
+absolute value at most one on the interval from −1 to 1, and guarded factors reconstructing
+the integer complement with nonzero content, the native real response approximates the
+original target uniformly within 13 times the source input budget divided by 32. -/
 theorem source_native_uniform (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E)
     (htail : ∀ k,N+1 ≤ k → cs.getD k 0=0)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)

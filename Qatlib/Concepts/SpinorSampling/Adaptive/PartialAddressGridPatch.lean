@@ -42,16 +42,19 @@ def coordinateEquiv (c : Fin (C*ell)) :
   right_inv y := by
     simp only [Equiv.symm_apply_apply,add_sub_cancel_right,Prod.mk.eta]
 
-/-- Complete original `coordinate_parity` guarantee for `PartialAddressGridPatch`; all source hypotheses and output obligations are retained. -/
+/-- The parity component of the coordinate decomposition is the original index modulo two,
+independent of the offset. -/
 theorem coordinate_parity (c : Fin (C*ell)) (x : Fin (C*ell*2)) :
     ((coordinateEquiv C ell c x).1.1 : ℕ)=x.val%2 := rfl
 
-/-- Complete original `coordinate_box` guarantee for `PartialAddressGridPatch`; all source hypotheses and output obligations are retained. -/
+/-- The box coordinate is the quotient by `ell` of the parity-stripped index shifted back by
+`c` modulo `C*ell`. -/
 theorem coordinate_box (c : Fin (C*ell)) (x : Fin (C*ell*2)) :
     ((coordinateEquiv C ell c x).1.2 : ℕ)=
       (((C*ell-c.val)+x.val/2)%(C*ell))/ell := rfl
 
-/-- Complete original `coordinate_local` guarantee for `PartialAddressGridPatch`; all source hypotheses and output obligations are retained. -/
+/-- The local coordinate is the remainder modulo `ell` of the parity-stripped index shifted
+back by `c` modulo `C*ell`. -/
 theorem coordinate_local (c : Fin (C*ell)) (x : Fin (C*ell*2)) :
     ((coordinateEquiv C ell c x).2 : ℕ)=
       (((C*ell-c.val)+x.val/2)%(C*ell))%ell := rfl
@@ -71,7 +74,8 @@ def gridEquiv (d : ℕ) (offset : Fin d → Fin (C*ell)) :
     · exact congrArg Prod.fst ((coordinateEquiv C ell (offset j)).apply_symm_apply (y.1 j,y.2 j))
     · exact congrArg Prod.snd ((coordinateEquiv C ell (offset j)).apply_symm_apply (y.1 j,y.2 j))
 
-/-- Complete original `grid_key_formula` guarantee for `PartialAddressGridPatch`; all source hypotheses and output obligations are retained. -/
+/-- In direction `j`, the grid key pairs the original parity bit with the quotient by `ell` of
+the offset-adjusted half-index. -/
 theorem grid_key_formula (d : ℕ) (offset : Fin d → Fin (C*ell))
     (x : Fin d → Fin (C*ell*2)) (j : Fin d) :
     (((gridEquiv C ell d offset x).1 j).1.val,
@@ -79,11 +83,12 @@ theorem grid_key_formula (d : ℕ) (offset : Fin d → Fin (C*ell))
       ((x j).val%2,(((C*ell-(offset j).val)+(x j).val/2)%(C*ell))/ell) := rfl
 
 omit [NeZero (C*ell)] in
-/-- Complete original `box_card` guarantee for `PartialAddressGridPatch`; all source hypotheses and output obligations are retained. -/
+/-- There are `(2*C)^d` box labels because each of the `d` axes carries a parity and one of `C`
+block indices. -/
 theorem box_card (d : ℕ) : Fintype.card (Fin d → Fin 2 × Fin C)=(2*C)^d := by simp
 
 omit [NeZero (C*ell)] in
-/-- Complete original `local_card` guarantee for `PartialAddressGridPatch`; all source hypotheses and output obligations are retained. -/
+/-- A box of side `ell` in `d` dimensions has `ell^d` local points. -/
 theorem local_card (d : ℕ) : Fintype.card (Fin d → Fin ell)=ell^d := by simp
 
 #print axioms gridEquiv
@@ -91,7 +96,8 @@ theorem local_card (d : ℕ) : Fintype.card (Fin d → Fin ell)=ell^d := by simp
 #print axioms box_card
 #print axioms local_card
 omit [NeZero (C*ell)] in
-/-- Complete original `dyadic_side` guarantee for `PartialAddressGridPatch`; all source hypotheses and output obligations are retained. -/
+/-- Multiplying dyadic block count `2^t`, dyadic block width `2^s`, and the two parities gives
+side length `2^(s+t+1)`. -/
 theorem dyadic_side (s t : ℕ) : (2^t*2^s)*2=2^(s+t+1) := by
   simp only [pow_add,pow_one]
   ring
@@ -101,7 +107,8 @@ def nativeGridEquiv (d r : ℕ) (hN : 2^r=C*ell*2) (offset : Fin d → Fin (C*el
     (Fin d → Fin (2^r)) ≃ ((Fin d → Fin 2 × Fin C) × (Fin d → Fin ell)) :=
   (Equiv.piCongrRight (fun _ : Fin d => finCongr hN)).trans (gridEquiv C ell d offset)
 
-/-- Complete original `native_key_formula` guarantee for `PartialAddressGridPatch`; all source hypotheses and output obligations are retained. -/
+/-- After identifying the native side length with `C*ell*2`, each key coordinate still consists
+of native parity and the block quotient of the cyclically offset half-index. -/
 theorem native_key_formula (d r : ℕ) (hN : 2^r=C*ell*2)
     (offset : Fin d → Fin (C*ell)) (x : Fin d → Fin (2^r)) (j : Fin d) :
     (((nativeGridEquiv C ell d r hN offset x).1 j).1.val,

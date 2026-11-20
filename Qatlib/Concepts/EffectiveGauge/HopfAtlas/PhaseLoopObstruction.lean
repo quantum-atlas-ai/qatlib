@@ -25,7 +25,8 @@ open Set
 open scoped Quaternion
 namespace Qatlib.Concepts.EffectiveGauge.HopfAtlas
 
-/-- Original `phase_eq_implies_period_integer` guarantee for the `PhaseLoopObstruction` construction; the complete source hypotheses are retained. -/
+/-- If two real angles give the same quaternion phase, their difference is an integer multiple
+of the physical period. -/
 theorem phase_eq_implies_period_integer (a b : ℝ) (h : phase a=phase b) :
     ∃ n : ℤ, a-b=(n : ℝ)*physicalPeriod := by
   have hc : Real.cos a=Real.cos b := by

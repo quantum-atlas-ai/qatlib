@@ -29,7 +29,8 @@ open scoped ContDiff
 namespace Qatlib.Concepts.EffectiveGauge.HopfAtlas
 open Qatlib.Concepts.EffectiveGauge.RationalFlow
 
-/-- Original `periodicSource_zero_first_fderiv` guarantee for the `ZeroSource` construction; the complete source hypotheses are retained. -/
+/-- If every first coordinate directional derivative of a smooth periodic source vanishes on the
+fundamental cube, its full Fréchet derivative vanishes everywhere. -/
 theorem periodicSource_zero_first_fderiv (v : SpatialPoint → SpatialPoint)
     (hv : ContDiff ℝ ∞ v) (hp : IsPeriodicField v)
     (hb : ∀ x, InFundamentalCube x → ∀ i, ‖fderiv ℝ v x (EuclideanSpace.single i 1)‖ ≤ 0)
@@ -52,7 +53,8 @@ theorem periodicSource_zero_first_fderiv (v : SpatialPoint → SpatialPoint)
   rw [hw]
   simp only [map_add,map_smul,haxes,smul_zero,add_zero]
 
-/-- Original `periodicSource_zero_first_constant` guarantee for the `ZeroSource` construction; the complete source hypotheses are retained. -/
+/-- A smooth periodic source whose first coordinate directional derivatives vanish throughout the
+fundamental cube is constant everywhere with value `v 0`. -/
 theorem periodicSource_zero_first_constant (v : SpatialPoint → SpatialPoint)
     (hv : ContDiff ℝ ∞ v) (hp : IsPeriodicField v)
     (hb : ∀ x, InFundamentalCube x → ∀ i, ‖fderiv ℝ v x (EuclideanSpace.single i 1)‖ ≤ 0) :
@@ -61,7 +63,8 @@ theorem periodicSource_zero_first_constant (v : SpatialPoint → SpatialPoint)
   exact is_const_of_fderiv_eq_zero (hv.differentiable (by simp))
     (periodicSource_zero_first_fderiv v hv hp hb) x 0
 
-/-- Original `periodicSource_zero_first_word` guarantee for the `ZeroSource` construction; the complete source hypotheses are retained. -/
+/-- If the first coordinate directional derivatives of a smooth periodic source vanish on the
+fundamental cube, each nonempty word derivative is the zero field. -/
 theorem periodicSource_zero_first_word (v : SpatialPoint → SpatialPoint)
     (hv : ContDiff ℝ ∞ v) (hp : IsPeriodicField v)
     (hb : ∀ x, InFundamentalCube x → ∀ i, ‖fderiv ℝ v x (EuclideanSpace.single i 1)‖ ≤ 0)

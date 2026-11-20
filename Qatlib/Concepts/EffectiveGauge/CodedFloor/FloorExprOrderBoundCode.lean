@@ -35,7 +35,8 @@ def floorExprOrderMachineStep (merge d0 d1 d2 previous : Nat.Partrec.Code) : Nat
 def floorExprOrderMachine (base merge d0 d1 d2 : Nat.Partrec.Code) (order : ℕ) : Nat.Partrec.Code :=
   (floorExprOrderMachineStep merge d0 d1 d2)^[order] base
 
-/-- Original `primrec_floorExprOrderMachine` guarantee for the `FloorExprOrderBoundCode` construction; the complete source hypotheses are retained. -/
+/-- For fixed base, merger, and three derivative codes, constructing the order-indexed machine by
+iterating its composition step is primitive recursive in the order. -/
 theorem primrec_floorExprOrderMachine (base merge d0 d1 d2 : Nat.Partrec.Code) :
     Primrec (floorExprOrderMachine base merge d0 d1 d2) := by
   have hs : Primrec (floorExprOrderMachineStep merge d0 d1 d2) :=
@@ -47,7 +48,9 @@ theorem primrec_floorExprOrderMachine (base merge d0 d1 d2 : Nat.Partrec.Code) :
           (Nat.Partrec.Code.primrec₂_comp.comp Primrec.id (Primrec.const d2))))
   exact Primrec.nat_iterate Primrec.id (Primrec.const base) (hs.comp Primrec.snd)
 
-/-- Original `floorExprOrderMachine_correct` guarantee for the `FloorExprOrderBoundCode` construction; the complete source hypotheses are retained. -/
+/-- If the base program computes expression bounds, the merger adds its three inputs, and the
+derivative programs implement the three coordinate derivatives, the iterated program realizes the
+order bound on expression codes. -/
 theorem floorExprOrderMachine_correct (base merge d0 d1 d2 : Nat.Partrec.Code)
     (hbase : floorCodeRealizes base floorExprCodeBound)
     (hmerge : floorCodeRealizes merge (fun p : ℕ × ℕ × ℕ => p.1+p.2.1+p.2.2))
@@ -66,7 +69,8 @@ theorem floorExprOrderMachine_correct (base merge d0 d1 d2 : Nat.Partrec.Code)
       floorExprOrderBoundCode,floorJetOrderBound,Fin.sum_univ_three,floorExprDecode_diffCode,floorExprAxis]
       using h code
 
-/-- Original `floorExprOrderBoundCompiler` guarantee for the `FloorExprOrderBoundCode` construction; the complete source hypotheses are retained. -/
+/-- A computable generator returns, for each order, a partial-recursive program realizing the
+expression bound at that order. -/
 theorem floorExprOrderBoundCompiler : ∃ generate : ℕ → Nat.Partrec.Code,
     Computable generate ∧ ∀ n, floorCodeRealizes (generate n) (floorExprOrderBoundCode n) := by
   obtain ⟨base,hbase⟩ := floorCodeRealizes_exists floorExprCodeBound computable_floorExprCodeBound
@@ -83,7 +87,8 @@ theorem floorExprOrderBoundCompiler : ∃ generate : ℕ → Nat.Partrec.Code,
     (primrec_floorExprOrderMachine base merge d0 d1 d2).to_comp,
     floorExprOrderMachine_correct base merge d0 d1 d2 hbase hmerge h0 h1 h2⟩
 
-/-- Original `computable_floorExprOrderBoundCode` guarantee for the `FloorExprOrderBoundCode` construction; the complete source hypotheses are retained. -/
+/-- The bound obtained from a derivative order and a coded expression is computable jointly in
+both. -/
 theorem computable_floorExprOrderBoundCode : Computable₂ floorExprOrderBoundCode := by
   obtain ⟨generate,hgenerate,hcorrect⟩ := floorExprOrderBoundCompiler
   exact floorUniformCodeRealizes_computable generate hgenerate floorExprOrderBoundCode hcorrect
@@ -94,13 +99,14 @@ def floorSourceBoundRawCode (order : ℕ) : FloorRationalCode :=
     floorExprOrderBoundCode order (floorExprEncode (floorSpinExpr 1))+
     floorExprOrderBoundCode order (floorExprEncode (floorSpinExpr 2)))
 
-/-- Original `floorSourceBoundRawCode_value` guarantee for the `FloorExprOrderBoundCode` construction; the complete source hypotheses are retained. -/
+/-- The decoded source bound is the source jet bound, formed by adding the order bounds for the
+three spin expressions. -/
 theorem floorSourceBoundRawCode_value (order : ℕ) :
     floorRationalCodeValue (floorSourceBoundRawCode order)=floorSourceJetBound order := by
   simp [floorSourceBoundRawCode,floorRationalCodeNat_value,floorExprOrderBoundCode,
     floorExprDecode_encode,floorSourceJetBound,Fin.sum_univ_three]
 
-/-- Original `computable_floorSourceBoundRawCode` guarantee for the `FloorExprOrderBoundCode` construction; the complete source hypotheses are retained. -/
+/-- The rational code for the source jet bound is computable from the derivative order. -/
 theorem computable_floorSourceBoundRawCode : Computable floorSourceBoundRawCode :=
   primrec_floorRationalCodeNat.to_comp.comp (Primrec.nat_add.to_comp.comp
     (Primrec.nat_add.to_comp.comp
@@ -108,7 +114,8 @@ theorem computable_floorSourceBoundRawCode : Computable floorSourceBoundRawCode 
       (computable_floorExprOrderBoundCode.comp Computable.id (Computable.const (floorExprEncode (floorSpinExpr 1)))))
     (computable_floorExprOrderBoundCode.comp Computable.id (Computable.const (floorExprEncode (floorSpinExpr 2)))))
 
-/-- Original `floorSourceBoundRawCode_encoded` guarantee for the `FloorExprOrderBoundCode` construction; the complete source hypotheses are retained. -/
+/-- There exists one partial-recursive program that returns the encoded source jet bound code for
+each encoded order. -/
 theorem floorSourceBoundRawCode_encoded : ∃ machine : Nat.Partrec.Code, ∀ order,
     Nat.Partrec.Code.eval machine (Encodable.encode order)=
       Part.some (Encodable.encode (floorSourceBoundRawCode order)) :=

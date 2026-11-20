@@ -44,7 +44,8 @@ def equatorialRotor (q : ℂ) (x s : ℝ) : Matrix Bool Bool ℂ
 def equatorialRotorProduct (qs : List ℂ) (x s : ℝ) : Matrix Bool Bool ℂ :=
   (qs.map (fun q => equatorialRotor q x s)).prod
 
-/-- The finite construction in `NativeEquatorialPhasePacket` satisfies `standardPhaseMatrix_mul` under the displayed hypotheses. -/
+/-- Multiplying two standard phase matrices gives the standard phase matrix of the product of
+their complex parameters. -/
 theorem standardPhaseMatrix_mul (z w : ℂ) :
     standardPhaseMatrix z*standardPhaseMatrix w=standardPhaseMatrix (z*w) := by
   ext i j
@@ -115,7 +116,8 @@ theorem nativeEquatorialBoundaryPacket_matrix (base : GaussianRat) (us : List Ga
 def nativeEquatorialPacket (base : GaussianRat) (qs : List GaussianRat) (p : ℕ) : PhaseData :=
   nativeEquatorialBoundaryPacket base (qs.map (fun q => nativeEquatorialHalfPhase q p))
 
-/-- The finite construction in `NativeEquatorialPhasePacket` satisfies `nativeEquatorialPacket_spec` under the displayed hypotheses. -/
+/-- Given a unit base, the equatorial packet has one phase per supplied coordinate and both its
+base and all its phases have complex norm one. -/
 theorem nativeEquatorialPacket_spec (base : GaussianRat) (qs : List GaussianRat) (p : ℕ)
     (hb : ‖gaussianRatComplex base‖=1) :
     (nativeEquatorialPacket base qs p).phases.length=qs.length ∧

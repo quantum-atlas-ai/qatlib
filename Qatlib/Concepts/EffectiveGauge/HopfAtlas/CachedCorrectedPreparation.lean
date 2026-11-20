@@ -43,7 +43,8 @@ def cachedCorrectedPreparationRun (source : RationalJetSource) (bounds : ℕ →
     Option CachedCorrectedPreparation :=
   (cachedMeanPreparationRun source bounds).map (materializeCorrectedPreparation eta)
 
-/-- Original `cachedCorrectedPreparationRun_correction` guarantee for the `CachedCorrectedPreparation` construction; the complete source hypotheses are retained. -/
+/-- Mapping the correction projection over the corrected-preparation result gives exactly the
+correction-preparation result, including `none` when preparation fails. -/
 theorem cachedCorrectedPreparationRun_correction (source : RationalJetSource) (bounds : ℕ → ℚ) (eta : ℚ) :
     (cachedCorrectedPreparationRun source bounds eta).map CachedCorrectedPreparation.correction=
       cachedCorrectionPreparationRun source bounds eta := by
@@ -59,13 +60,17 @@ def sourceCorrectedUnitLift (v : SpatialPoint → SpatialPoint) (hv : ContDiff �
   phase (sourceCorrectionPhase v hv q₀ h₀ eta x)*
     sourceLiftSpatialExtension v hv q₀ h₀ (physicalPeriod • x)
 
-/-- Original `contDiff_sourceCorrectedUnitLift` guarantee for the `CachedCorrectedPreparation` construction; the complete source hypotheses are retained. -/
+/-- The phase-corrected lift of a smooth source field with a unit quaternion seed is smooth for
+every real collar parameter `eta`. -/
 theorem contDiff_sourceCorrectedUnitLift (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (q₀ : ℍ) (h₀ : ‖q₀‖=1) (eta : ℝ) : ContDiff ℝ ∞ (sourceCorrectedUnitLift v hv q₀ h₀ eta) :=
   (contDiff_phase.comp (contDiff_sourceCorrectionPhase v hv q₀ h₀ eta)).mul
     ((contDiff_sourceLiftSpatialExtension v hv q₀ h₀).comp (contDiff_id.const_smul physicalPeriod))
 
-/-- Original `materializeCorrectedPreparation_exponential_bound` guarantee for the `CachedCorrectedPreparation` construction; the complete source hypotheses are retained. -/
+/-- For a smooth periodic unit source with certified positive jet bounds and a successful mean
+cache, the stored exponential entry bounds the norm of each coordinate-word derivative of the
+correction phase exponential on the unit cube. The collar parameter is positive, the seed is unit,
+and the word has the indicated length `r < 8`. -/
 theorem materializeCorrectedPreparation_exponential_bound (v : SpatialPoint → SpatialPoint)
     (hv : ContDiff ℝ ∞ v) (hu : ∀ x, ‖v x‖=1) (hp : IsPeriodicField v)
     (bounds : ℕ → ℚ) (hb : OriginalPositiveJetBounds v bounds)

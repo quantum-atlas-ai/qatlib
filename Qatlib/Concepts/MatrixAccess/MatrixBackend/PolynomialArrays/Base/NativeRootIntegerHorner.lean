@@ -59,7 +59,7 @@ theorem rootCompactHorner_reference (z : GaussianDyadicScalar) (D : ℕ) :
           simp [gaussianScalarAdd,gaussianIntegerScale,gaussianIntegerMul,Nat.cast_mul] <;> ring
       · ring
 
-/-- The finite construction in `NativeRootIntegerHorner` satisfies `rootCompactHorner_denominator` under the displayed hypotheses. -/
+/-- For every coefficient list, compact Horner stores denominator `D` to the power of the list length minus one (using natural subtraction). -/
 theorem rootCompactHorner_denominator (z : GaussianDyadicScalar) (D : ℕ) :
     ∀ cs : List ℤ,(rootCompactHorner z D cs).denominator=D^(cs.length-1) := by
   intro cs
@@ -73,7 +73,7 @@ theorem rootCompactHorner_denominator (z : GaussianDyadicScalar) (D : ℕ) :
       rw [ih]
       simp [pow_succ]
 
-/-- The finite construction in `NativeRootIntegerHorner` satisfies `rootCompactHorner_denominator_pos` under the displayed hypotheses. -/
+/-- A positive input denominator `D` gives a positive compact Horner denominator for any coefficient list. -/
 theorem rootCompactHorner_denominator_pos (z : GaussianDyadicScalar) (D : ℕ)
     (cs : List ℤ) (hD : 0<D) : 0<(rootCompactHorner z D cs).denominator := by
   rw [rootCompactHorner_denominator]

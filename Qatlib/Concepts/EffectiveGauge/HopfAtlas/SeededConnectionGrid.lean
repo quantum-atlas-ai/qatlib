@@ -41,7 +41,9 @@ def connectionGridWithSeeds (source : RationalJetSource) (frame : StoredReferenc
     (fun index => connectionSampleWithSeeds source frame palette (sourceMeanUnitPoint M index) tolerance)
     (sourceMeanGrid M)
 
-/-- Original `connectionSampleWithSeeds_correct` guarantee for the `SeededConnectionGrid` construction; the complete source hypotheses are retained. -/
+/-- Connection sampling with a seed palette prepared at the accuracy prescribed by the first two
+corrected derivative bounds and the requested tolerance equals the direct stored-reference
+connection sample. -/
 theorem connectionSampleWithSeeds_correct (source : RationalJetSource) (frame : StoredReferenceFrame)
     (a : Fin 3 → ℚ) (tolerance : ℚ) :
     connectionSampleWithSeeds source frame
@@ -52,7 +54,8 @@ theorem connectionSampleWithSeeds_correct (source : RationalJetSource) (frame : 
   simp only [connectionSampleWithSeeds,storedConnectionSampling,connectionSampleExecution,
     referenceValueWithSeeds_correct]
 
-/-- Original `connectionGridWithSeeds_correct` guarantee for the `SeededConnectionGrid` construction; the complete source hypotheses are retained. -/
+/-- Building the connection grid with precomputed seeds returns the same optional grid as the
+direct stored-reference construction at the same mesh and tolerance. -/
 theorem connectionGridWithSeeds_correct (source : RationalJetSource) (frame : StoredReferenceFrame)
     (M : ℕ) (tolerance : ℚ) :
     connectionGridWithSeeds source frame M tolerance=storedConnectionGrid source frame M tolerance := by

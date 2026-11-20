@@ -36,7 +36,8 @@ variable {S : Type} [Fintype S] [DecidableEq S]
 
 omit [DecidableEq S] in
 
-/-- Complete original `pairAddressMass_pos` guarantee for `MatchedMassPositivity`; all source hypotheses and output obligations are retained. -/
+/-- Every pair of fixed arrays has positive joint point mass under the independent uniform
+cohort laws on a nonempty site space. -/
 theorem pairAddressMass_pos {S : Type} [_scopeInst0 : Fintype S] [_scopeInst1 : DecidableEq S] [Nonempty S]
     {n m : ℕ} (z : (Fin n → S) × (Fin m → S)) : 0 < pairAddressMass z := by
   unfold pairAddressMass
@@ -54,7 +55,8 @@ theorem pairAddressMass_pos {S : Type} [_scopeInst0 : Fintype S] [_scopeInst1 : 
     positivity
   exact mul_pos hJ hK
 
-/-- Complete original `matched_fiber_filter_mass_pos` guarantee for `MatchedMassPositivity`; all source hypotheses and output obligations are retained. -/
+/-- The exact matched-set event for `A` has positive mass when `A` has positive size and both
+uniform cohorts are at least that long. -/
 theorem matched_fiber_filter_mass_pos [Nonempty S]
     (τ : Equiv.Perm S) (A : Finset S) {k n m : ℕ}
     (hcard : A.card=k) (hk0 : 0 < k) (hkn : k ≤ n) (hkm : k ≤ m) :

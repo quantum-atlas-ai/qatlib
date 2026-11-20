@@ -27,7 +27,9 @@ open scoped ContDiff
 namespace Qatlib.Concepts.EffectiveGauge.HopfAtlas
 open Qatlib.Concepts.EffectiveGauge.RationalFlow
 
-/-- Original `complex_axes_l1_bound` guarantee for the `ComplexLipschitz` construction; the complete source hypotheses are retained. -/
+/-- If a continuous real-linear map sends each of the three spatial unit axes to a complex number
+of norm at most `D ≥ 0`, then `‖A w‖` is at most `D` times the sum of the absolute coordinates of
+`w`. -/
 private theorem complex_axes_l1_bound (A : SpatialPoint →L[ℝ] ℂ) (D : ℝ) (_hD : 0 ≤ D)
     (hA : ∀ i, ‖A (EuclideanSpace.single i 1)‖ ≤ D) (w : SpatialPoint) :
     ‖A w‖ ≤ D*(|w 0|+|w 1|+|w 2|) := by

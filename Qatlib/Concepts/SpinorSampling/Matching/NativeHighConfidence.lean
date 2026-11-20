@@ -64,14 +64,16 @@ def highRecordDistribution {d : ℕ} (p : HighConfidencePlanQ)
       p.spinSchedule.records p.spinSchedule.blocks (qS i.1)))
 
 omit [Fintype S] [Nonempty S] [DecidableEq S] in
-/-- Complete original `correlation_record_law_signed` guarantee for `NativeHighConfidence`; all source hypotheses and output obligations are retained. -/
+/-- Building the mode-specific cohort law from the signed-record distribution gives the same law
+as building it directly from the bounded site mean `m`. -/
 theorem correlation_record_law_signed {S : Type} [_inst0 : Fintype S] [_inst1 : Nonempty S]
     [_inst2 : DecidableEq S] (mode : CorrelationMode) (n K : ℕ)
     (m : S → ℝ) (hm : ∀ x, |m x|≤1) :
     correlationRecordLaw mode n K (signedRecordLaw m hm)=correlationLaw mode n K m hm := by
   cases mode <;> rfl
 
-/-- Complete original `high_record_distribution_signed` guarantee for `NativeHighConfidence`; all source hypotheses and output obligations are retained. -/
+/-- Supplying the signed-record laws for the bounded current and spin means to the general
+record sampler gives exactly the high-confidence data law for those means. -/
 theorem high_record_distribution_signed {d : ℕ} (p : HighConfidencePlanQ)
     (mv : Fin d → S → ℝ) (hmv : ∀ j x, |mv j x|≤1)
     (ms : Fin 3 → S → ℝ) (hms : ∀ i x, |ms i x|≤1) :
@@ -86,7 +88,8 @@ def nativeHighConfidenceLaw (d r : ℕ) (p : HighConfidencePlanQ)
   highRecordDistribution p (fun j => nativeCurrentLaw d r j a b c k hz)
     (fun i => nativeSpinLaw d r i a b c k hz)
 
-/-- Complete original `native_high_confidence_law_eq` guarantee for `NativeHighConfidence`; all source hypotheses and output obligations are retained. -/
+/-- For a pointwise normalized grid spinor, the native current and spin measurements induce the
+planned law with sign means given by the unit-shift current and the Pauli field. -/
 theorem native_high_confidence_law_eq (d r : ℕ) (p : HighConfidencePlanQ)
     (a b c k : (Fin d → Fin (2^r)) → ℝ) (hz : ∀ x, a x^2+b x^2+c x^2+k x^2=1) :
     nativeHighConfidenceLaw d r p a b c k hz=
@@ -97,11 +100,15 @@ theorem native_high_confidence_law_eq (d r : ℕ) (p : HighConfidencePlanQ)
   simp only [nativeHighConfidenceLaw,native_current_law_eq_signed,native_spin_law_eq_signed,
     high_record_distribution_signed]
 
-/-- Complete original `grid_cardinality` guarantee for `NativeHighConfidence`; all source hypotheses and output obligations are retained. -/
+/-- A `d`-dimensional grid with `2^r` values in each coordinate contains exactly `2^(d*r)`
+sites. -/
 theorem grid_cardinality (d r : ℕ) : Fintype.card (Fin d → Fin (2^r))=2^(d*r) := by
   simp only [Fintype.card_fun,Fintype.card_fin,← Nat.pow_mul,Nat.mul_comm]
 
-/-- Complete original `native_high_confidence_accuracy` guarantee for `NativeHighConfidence`; all source hypotheses and output obligations are retained. -/
+/-- For positive grid dimension and pointwise unit spinors, the native plan's error relative to
+the implemented residual loss exceeds `η/2` with probability at most `δ`. The loss uses
+unit-shift currents and double-shift spin correlations. The bound assumes `α > 0`, nonnegative
+`β`, `U`, and `γ`, targets bounded by `U`, and `η > 0` with `0 < δ < 1`. -/
 theorem native_high_confidence_accuracy {d r : ℕ} (hd : 0<d)
     (a b c k : (Fin d → Fin (2^r)) → ℝ) (hz : ∀ x, a x^2+b x^2+c x^2+k x^2=1)
     (u : Fin d → (Fin d → Fin (2^r)) → ℚ) (α β U γ η δ : ℚ)

@@ -44,7 +44,8 @@ def directed (edge : E) (r s : GlobalRecord E) : ℝ :=
   countFeature edge false r*countFeature edge true s-
     9*∑ basis : Fin 3,signFeature edge false basis r*signFeature edge true basis s
 
-/-- Complete original `basis_delta` guarantee for `PartialAddressCountMap`; all source hypotheses and output obligations are retained. -/
+/-- Summing the product of two single-basis features yields `x*y` if their bases agree and zero
+otherwise. -/
 theorem basis_delta (a b : Fin 3) (x y : ℝ) :
     (∑ h : Fin 3,(if a=h then x else 0)*(if b=h then y else 0))=
       if a=b then x*y else 0 := by
@@ -57,7 +58,9 @@ theorem basis_delta (a b : Fin 3) (x y : ℝ) :
   · simp
 
 omit [Fintype E] in
-/-- Complete original `directed_formula` guarantee for `PartialAddressCountMap`; all source hypotheses and output obligations are retained. -/
+/-- The directed term vanishes except for a false-spin record followed by a true-spin record on
+edge `e`. In that case it is one minus nine times their signed product if their bases agree,
+and one if they differ. -/
 theorem directed_formula (e : E) (r s : GlobalRecord E) :
     directed e r s=
       if (r.1=e ∧ r.2.1=false) ∧ (s.1=e ∧ s.2.1=true) then
@@ -68,7 +71,8 @@ theorem directed_formula (e : E) (r s : GlobalRecord E) :
     · simp [directed,countFeature,signFeature,hr,hs]
   · simp [directed,countFeature,signFeature,hr]
 
-/-- Complete original `directed_sum` guarantee for `PartialAddressCountMap`; all source hypotheses and output obligations are retained. -/
+/-- Summing directed terms over edges leaves a contribution only when the records share an edge
+and have spins false then true. Its signed correction applies only in a shared basis. -/
 theorem directed_sum (r s : GlobalRecord E) :
     (∑ e : E,directed e r s)=
       if r.1=s.1 ∧ r.2.1=false ∧ s.2.1=true then
@@ -82,7 +86,8 @@ theorem directed_sum (r s : GlobalRecord E) :
     simp [directed_formula,Ne.symm he]
   · simp
 
-/-- Complete original `global_kernel_rank` guarantee for `PartialAddressCountMap`; all source hypotheses and output obligations are retained. -/
+/-- The global pair kernel is half the edge count times the sum of both orientations of the
+directed edge terms. -/
 theorem global_kernel_rank (r s : GlobalRecord E) :
     globalKernel r s=(Fintype.card E : ℝ)/2*((∑ e : E,directed e r s)+(∑ e : E,directed e s r)) := by
   rw [directed_sum,directed_sum]
@@ -105,7 +110,9 @@ def numerator {n : ℕ} (ω : Fin n → GlobalRecord E) : ℝ :=
     9*∑ h : Fin 3,signTotal e false h ω*signTotal e true h ω)
 
 omit [Fintype E] in
-/-- Complete original `directed_double_sum` guarantee for `PartialAddressCountMap`; all source hypotheses and output obligations are retained. -/
+/-- On a fixed edge, summing directed terms over all ordered record pairs gives the product of
+opposite-spin counts less nine times the sum of opposite-spin signed products within each
+basis. -/
 theorem directed_double_sum {n : ℕ} (e : E) (ω : Fin n → GlobalRecord E) :
     (∑ i : Fin n,∑ j : Fin n,directed e (ω i) (ω j))=
       countTotal e false ω*countTotal e true ω-
@@ -126,7 +133,8 @@ theorem directed_double_sum {n : ℕ} (e : E) (ω : Fin n → GlobalRecord E) :
         intro h _
         rw [Finset.sum_comm]
 
-/-- Complete original `directed_edge_sums` guarantee for `PartialAddressCountMap`; all source hypotheses and output obligations are retained. -/
+/-- Summing the directed contributions over every record pair and edge yields the numerator
+built from the edge counts and signed totals. -/
 theorem directed_edge_sums {n : ℕ} (ω : Fin n → GlobalRecord E) :
     (∑ i : Fin n,∑ j : Fin n,∑ e : E,directed e (ω i) (ω j))=numerator ω := by
   calc
@@ -138,7 +146,8 @@ theorem directed_edge_sums {n : ℕ} (ω : Fin n → GlobalRecord E) :
       rw [Finset.sum_comm]
     _ = _ := by simp_rw [directed_double_sum]; rfl
 
-/-- Complete original `global_double_sum` guarantee for `PartialAddressCountMap`; all source hypotheses and output obligations are retained. -/
+/-- The all-pairs sum of the global kernel, including diagonal indices, is the edge count times
+the count-map numerator. -/
 theorem global_double_sum {n : ℕ} (ω : Fin n → GlobalRecord E) :
     (∑ i : Fin n,∑ j : Fin n,globalKernel (ω i) (ω j))=
       (Fintype.card E : ℝ)*numerator ω := by
@@ -151,7 +160,8 @@ theorem global_double_sum {n : ℕ} (ω : Fin n → GlobalRecord E) :
   rw [hf,hb]
   ring
 
-/-- Complete original `ordered_ustatistic_count_formula` guarantee for `PartialAddressCountMap`; all source hypotheses and output obligations are retained. -/
+/-- The ordered global U-statistic is the count-map numerator times the edge count divided by
+`n(n-1)` in Lean's totalized division, for any sample size. -/
 theorem ordered_ustatistic_count_formula {n : ℕ} (ω : Fin n → GlobalRecord E) :
     orderedUStatistic globalKernel ω=
       (Fintype.card E : ℝ)*numerator ω/(n*(n-1) : ℕ) := by
@@ -173,13 +183,15 @@ def signZ {n : ℕ} (e : E) (spin : Bool) (h : Fin 3) (ω : Fin n → GlobalReco
     if (ω i).2.2.1=h then if (ω i).2.2.2 then -1 else 1 else 0 else 0
 
 omit [Fintype E] in
-/-- Complete original `countN_cast` guarantee for `PartialAddressCountMap`; all source hypotheses and output obligations are retained. -/
+/-- Casting the natural-number count for a fixed edge and spin to real gives the corresponding
+indicator total. -/
 theorem countN_cast {n : ℕ} (e : E) (spin : Bool) (ω : Fin n → GlobalRecord E) :
     (countN e spin ω : ℝ)=countTotal e spin ω := by
   simp [countN,countTotal,countFeature]
 
 omit [Fintype E] in
-/-- Complete original `signZ_cast` guarantee for `PartialAddressCountMap`; all source hypotheses and output obligations are retained. -/
+/-- Casting the integer sign sum for a fixed edge, spin, and basis to real gives the
+corresponding signed feature total. -/
 theorem signZ_cast {n : ℕ} (e : E) (spin : Bool) (h : Fin 3) (ω : Fin n → GlobalRecord E) :
     (signZ e spin h ω : ℝ)=signTotal e spin h ω := by
   simp [signZ,signTotal,signFeature,bitSign]
@@ -189,7 +201,8 @@ def countValueQ {n : ℕ} (ω : Fin n → GlobalRecord E) : ℚ :=
   (Fintype.card E : ℚ)*(∑ e : E,((countN e false ω : ℚ)*(countN e true ω : ℚ)-
     9*∑ h : Fin 3,(signZ e false h ω : ℚ)*(signZ e true h ω : ℚ)))/(n*(n-1) : ℕ)
 
-/-- Complete original `count_value_eq_ustatistic` guarantee for `PartialAddressCountMap`; all source hypotheses and output obligations are retained. -/
+/-- For every record sample, the dense rational count formula casts to exactly the real ordered
+U-statistic. -/
 theorem count_value_eq_ustatistic {n : ℕ} (ω : Fin n → GlobalRecord E) :
     (countValueQ ω : ℝ)=orderedUStatistic globalKernel ω := by
   rw [ordered_ustatistic_count_formula]
@@ -206,7 +219,8 @@ def sparseCountValueQ {n : ℕ} (ω : Fin n → GlobalRecord E) : ℚ :=
     ((countN e false ω : ℚ)*(countN e true ω : ℚ)-
     9*∑ h : Fin 3,(signZ e false h ω : ℚ)*(signZ e true h ω : ℚ)))/(n*(n-1) : ℕ)
 
-/-- Complete original `sparse_value_eq_dense` guarantee for `PartialAddressCountMap`; all source hypotheses and output obligations are retained. -/
+/-- Summing the rational count formula over observed edges only gives the same value as summing
+over all edges. -/
 theorem sparse_value_eq_dense {n : ℕ} (ω : Fin n → GlobalRecord E) :
     sparseCountValueQ ω=countValueQ ω := by
   have hsum : (∑ e ∈ observedEdges ω,
@@ -225,12 +239,15 @@ theorem sparse_value_eq_dense {n : ℕ} (ω : Fin n → GlobalRecord E) :
     simp [hc,hs]
   simp only [sparseCountValueQ,countValueQ,hsum]
 
-/-- Complete original `sparse_value_eq_ustatistic` guarantee for `PartialAddressCountMap`; all source hypotheses and output obligations are retained. -/
+/-- Casting the rational value computed from observed edges gives exactly the ordered global
+U-statistic for every cohort. -/
 theorem sparse_value_eq_ustatistic {n : ℕ} (ω : Fin n → GlobalRecord E) :
     (sparseCountValueQ ω : ℝ)=orderedUStatistic globalKernel ω := by
   rw [sparse_value_eq_dense,count_value_eq_ustatistic]
 
-/-- Complete original `checked_sparse_value_confidence` guarantee for `PartialAddressCountMap`; all source hypotheses and output obligations are retained. -/
+/-- If the checked planner returns `n` and the average true-spin mass is at most `q`, then the
+sparse count estimate from `n` unrotated uniform matching records exceeds absolute error `ε`
+from the mean Bell probability with probability at most `δ`. -/
 theorem checked_sparse_value_confidence [Nonempty E] (u v : E → Bool → ℂ)
     (hu : ∀ e,RetainedSpin.qubitMass (u e)=1) (hv : ∀ e,RetainedSpin.qubitMass (v e)=1)
     (q ε δ : ℚ) (n : ℕ) (hc : checkedXYZCountQ (2*Fintype.card E) q ε δ=some n)

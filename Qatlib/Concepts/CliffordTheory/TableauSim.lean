@@ -25,7 +25,7 @@ estimates, keeping the abstract machine counters separate from the elementary ev
 
 ## Main statements
 
-* `frontier1`: physical correctness, exact branch mass, and abstract resource bounds for valid
+* `exists_physical_execution_of_valid_tableau_program`: physical correctness, exact branch mass, and abstract resource bounds for valid
   programs.
 * `measuredTableauCode_correct`: correctness of the compiled measurement update on encoded
   tableau bits.
@@ -1083,7 +1083,7 @@ theorem physicalExecute_correct {n m : ℕ} (program : Program n m) :
 /-- A valid program with a sufficient tape and `m ≤ n` has a physical execution preserving
 normalization, code-space membership, and tableau consistency. The result has the stated
 exact branch mass and fair bit count, with quadratic abstract time and space bounds. -/
-theorem frontier1 {n m : ℕ} (program : Program n m) (t : Tableau n m) (tape : List Bool)
+theorem exists_physical_execution_of_valid_tableau_program {n m : ℕ} (program : Program n m) (t : Tableau n m) (tape : List Bool)
     (ψ : QState (Reg n)) (hm : m ≤ n) (hv : Program.Valid t program)
     (ht : ConsistentTableau t) (hn : Normalized ψ) (hψ : ψ ∈ codeSpace t)
     (hbudget : program.maxFairBits ≤ tape.length) :

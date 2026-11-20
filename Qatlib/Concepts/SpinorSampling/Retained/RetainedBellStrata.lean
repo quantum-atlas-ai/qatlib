@@ -38,7 +38,7 @@ open Qatlib Matched
 variable {S : Type} [Fintype S] [DecidableEq S] [Nonempty S] {n m : ℕ}
 
 -- No positivity of this particular event is needed, including empty fibers.
-/-- Complete original `matched_fiber_mass_formula` guarantee for `RetainedBellStrata`; all source hypotheses and output obligations are retained. -/
+/-- Under the uniform address law and a site permutation, the probability of obtaining exactly A as the matched set is the mass of its cardinality divided by the number of subsets of that size. -/
 theorem matched_fiber_mass_formula (τ : Equiv.Perm S) (A : Finset S) :
     (∑ z ∈ (Finset.univ : Finset ((Fin n → S) × (Fin m → S))).filter
       (fun z => matchedSites z.1 z.2 τ=A),pairAddressMass z)=
@@ -69,7 +69,7 @@ theorem matched_fiber_mass_formula (τ : Equiv.Perm S) (A : Finset S) :
   rw [hD]
   field_simp
 
-/-- Complete original `matched_stratum_weighted` guarantee for `RetainedBellStrata`; all source hypotheses and output obligations are retained. -/
+/-- On the event of exactly r matches under a site permutation, the unnormalized expectation of F on the matched set equals the event mass times the uniform size-r subset average of F. -/
 theorem matched_stratum_weighted (τ : Equiv.Perm S) (r : ℕ) (F : Finset S → ℝ) :
     (∑ z ∈ (Finset.univ : Finset ((Fin n → S) × (Fin m → S))).filter
       (fun z => (matchedSites z.1 z.2 τ).card=r),pairAddressMass z*F (matchedSites z.1 z.2 τ))=
@@ -108,7 +108,7 @@ theorem matched_stratum_weighted (τ : Equiv.Perm S) (r : ℕ) (F : Finset S →
       have hAr := (Finset.mem_powersetCard.mp hA).2
       rw [matched_fiber_mass_formula τ A,hAr]
 
-/-- Complete original `observation_stratum_pgf` guarantee for `RetainedBellStrata`; all source hypotheses and output obligations are retained. -/
+/-- The restricted hit-count generating function for exactly r matches equals the probability of that match count times the uniform size-r subset average of the product of Bell generating factors. -/
 theorem observation_stratum_pgf (a b c k : S → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (τ : Equiv.Perm S) (r : ℕ) (u : ℝ) :
     observationStratumPGF (n:=n) (m:=m) a b c k hz τ r u=

@@ -21,7 +21,7 @@ open scoped ContDiff
 namespace Qatlib.Concepts.EffectiveGauge.HopfAtlas
 open Qatlib.Concepts.EffectiveGauge.RationalFlow
 
-/-- Original `periodicField_spatialWordPartial` guarantee for the `WordPeriodic` construction; the complete source hypotheses are retained. -/
+/-- Every coordinate-word derivative of a smooth physical-periodic field is still periodic. -/
 theorem periodicField_spatialWordPartial {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     (f : SpatialPoint → E) (hf : ContDiff ℝ ∞ f) (hp : IsPeriodicField f) (w : List (Fin 3)) :
     IsPeriodicField (spatialWordPartial f w) := by

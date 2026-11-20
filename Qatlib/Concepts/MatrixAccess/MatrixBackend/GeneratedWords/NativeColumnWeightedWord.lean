@@ -53,7 +53,7 @@ variable {J H I : Type} [Fintype J] [DecidableEq J]
   [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
 
 omit [Fintype H] [DecidableEq H] in
-/-- The finite construction in `NativeColumnWeightedWord` satisfies `label_frame_fiber` under the displayed hypotheses. -/
+/-- The tagged frame is the composition of inclusion at `j₀` on the input register and application of `F` within each label fibre. -/
 private theorem label_frame_fiber (F : Matrix H I ℂ) (j₀ : J) :
     tagFrame j₀ F =
       ((1 : Matrix J J ℂ) ⊗ₖ F) * encodingFiber (I := I) j₀ := by
@@ -65,7 +65,7 @@ private theorem label_frame_fiber (F : Matrix H I ℂ) (j₀ : J) :
     simp [encodingFiber_apply, hx]
   · simp
 
-/-- The finite construction in `NativeColumnWeightedWord` satisfies `label_prepare_intertwine` under the displayed hypotheses. -/
+/-- The label preparation commutes past the frame acting independently at each label, with the preparation lifted to `H` on the output and to `I` on the input. -/
 private theorem label_prepare_intertwine (F : Matrix H I ℂ) (P : Matrix J J ℂ) :
     prepareRegister (I := H) P * ((1 : Matrix J J ℂ) ⊗ₖ F) =
       ((1 : Matrix J J ℂ) ⊗ₖ F) * prepareRegister (I := I) P := by
@@ -170,7 +170,7 @@ def columnPhaseWord (Q : Matrix J J ℂ) (φ : J → ℂ)
     W ++ [.gate (prepareRegister (I := H) Q)]
 
 omit [Fintype I] [DecidableEq I] in
-/-- The finite construction in `NativeColumnWeightedWord` satisfies `columnPhaseWord_evaluate` under the displayed hypotheses. -/
+/-- Evaluating the column-phase word yields the product of the lifted adjoint of `Q`, the lifted diagonal of `φ`, the evaluation of `W`, and the lifted `Q`, in that order. -/
 theorem columnPhaseWord_evaluate (Q : Matrix J J ℂ) (φ : J → ℂ)
     (O : Matrix (J × H) (J × H) ℂ) (W : List (AdjointStep (J × H))) :
     evaluate O (columnPhaseWord Q φ W) =

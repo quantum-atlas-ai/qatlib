@@ -78,21 +78,22 @@ def measurementMatrix {n : ℕ} : MeasurementGate n → ReflectionGate n
 def measurementProgram {n : ℕ} (word : List (MeasurementGate n)) : Circuit (Reg n) :=
   reflectionCompile (word.map measurementMatrix)
 
-/-- Complete original `measurement_program_counts` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- Compiling a measurement word uses zero oracle queries and one gate per word entry. -/
 theorem measurement_program_counts {n : ℕ} (word : List (MeasurementGate n)) :
     QueryCount (measurementProgram word)=0 ∧ GateCount (measurementProgram word)=word.length := by
   constructor
   · exact queryCount_reflectionCompile _
   · simpa only [measurementProgram,List.length_map] using gateCount_reflectionCompile (word.map measurementMatrix)
 
-/-- Complete original `readout_sdg_unitary` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- The adjoint S phase used for readout is a unitary two-by-two complex matrix. -/
 theorem readout_sdg_unitary : readoutSdgMatrix ∈ Matrix.unitaryGroup Bool ℂ := by
   rw [Matrix.mem_unitaryGroup_iff', Matrix.star_eq_conjTranspose]
   ext b c
   cases b <;> cases c <;>
     simp [readoutSdgMatrix, Matrix.mul_apply, Matrix.diagonal_apply]
 
-/-- Complete original `velocity_word_legal` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- The matrices of the native velocity readout word are legal for either choice of neighbor
+direction. -/
 theorem velocity_word_legal (d r : ℕ) (j : Fin d) (positiveNeighbor : Bool) :
     reflectionLegal ((velocityWord d r j positiveNeighbor).map measurementMatrix) := by
   let selected := if positiveNeighbor then (spatialIncrementWord d r j).reverse else spatialIncrementWord d r j
@@ -121,7 +122,7 @@ theorem velocity_word_legal (d r : ℕ) (j : Fin d) (positiveNeighbor : Bool) :
   · subst g
     exact hadamard_unitary
 
-/-- Complete original `spin_word_legal` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- Each of the three spin readout choices yields a legal native matrix word. -/
 theorem spin_word_legal (d r : ℕ) (p : Fin 3) :
     reflectionLegal ((spinWord d r p).map measurementMatrix) := by
   fin_cases p <;>
@@ -129,7 +130,8 @@ theorem spin_word_legal (d r : ℕ) (p : Fin 3) :
       hadamard_unitary, readout_sdg_unitary]
 
 -- The physical low-endian neighbor is the same spatial equivalence used by L_h.
-/-- Complete original `decoded_neighbor_eq_original` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- On a lattice with `2^r` sites per axis, the neighbor permutation decoded from the bit
+register equals the periodic unit shift on that axis. -/
 theorem decoded_neighbor_eq_original (d r : ℕ) (j : Fin d) :
     decodedNeighbor d r j=periodicUnitShift d (2^r) j := by
   apply Equiv.ext
@@ -148,7 +150,8 @@ abbrev MeasurementLabel (d r : ℕ) := Bool × ((Fin d → Fin (2^r)) × Bool)
 def encodeLabel (d r : ℕ) (z : MeasurementLabel d r) : Reg (registerWidth d r) :=
   encodeClean d r z.2.1 z.2.2 z.1
 
-/-- Complete original `encode_label_injective` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- The full clean register encoding uniquely determines the measurement label, consisting of
+the test bit, site, and spin bit. -/
 theorem encode_label_injective (d r : ℕ) : Function.Injective (encodeLabel d r) := by
   intro z w h
   have hs := congrArg (siteAddress d r) h
@@ -159,7 +162,7 @@ theorem encode_label_injective (d r : ℕ) : Function.Injective (encodeLabel d r
   simp only [encodeLabel, encode_clean_test] at ht
   exact Prod.ext ht (Prod.ext hs hspin)
 
-/-- Complete original `site_address_update_off` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- Updating a wire outside every position axis block leaves the decoded site unchanged. -/
 private theorem site_address_update_off (d r : ℕ) (x : Reg (registerWidth d r))
     (w : Fin (registerWidth d r)) (b : Bool) (hw : ∀ j, w ∉ axisWires d r j) :
     siteAddress d r (Function.update x w b)=siteAddress d r x := by
@@ -173,14 +176,14 @@ private theorem site_address_update_off (d r : ℕ) (x : Reg (registerWidth d r)
     exact hw j (List.mem_ofFn.mpr ⟨i,h⟩)
   exact Function.update_of_ne hne _ _
 
-/-- Complete original `spin_test_ne` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- The spin and test readout wires occupy distinct positions in the full register. -/
 private theorem spin_test_ne (d r : ℕ) : spinWire d r ≠ testWire d r := by
   intro h
   have hh := congrArg Fin.val h
   change d*r=d*r+1 at hh
   omega
 
-/-- Complete original `work_readout_ne` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- Every work wire differs from both readout wires. -/
 private theorem work_readout_ne (d r : ℕ) (i : Fin (r-2)) :
     workWire d r i ≠ spinWire d r ∧ workWire d r i ≠ testWire d r := by
   constructor <;> intro h <;> have hh := congrArg Fin.val h
@@ -189,7 +192,7 @@ private theorem work_readout_ne (d r : ℕ) (i : Fin (r-2)) :
   · change d*r+2+i.val=d*r+1 at hh
     omega
 
-/-- Complete original `encode_clean_update_test` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- Changing the test wire of a clean label encoding changes just its encoded test bit. -/
 theorem encode_clean_update_test (d r : ℕ) (s : Fin d → Fin (2^r)) (spin test b : Bool) :
     Function.update (encodeClean d r s spin test) (testWire d r) b=encodeClean d r s spin b := by
   apply layout_readout_injective d r
@@ -199,7 +202,7 @@ theorem encode_clean_update_test (d r : ℕ) (s : Fin d → Fin (2^r)) (spin tes
   · intro i
     simp only [Function.update_of_ne (work_readout_ne d r i).2, encode_clean_work]
 
-/-- Complete original `encode_clean_update_spin` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- Changing the spin wire of a clean label encoding changes just its encoded spin bit. -/
 theorem encode_clean_update_spin (d r : ℕ) (s : Fin d → Fin (2^r)) (spin test b : Bool) :
     Function.update (encodeClean d r s spin test) (spinWire d r) b=encodeClean d r s b test := by
   apply layout_readout_injective d r
@@ -214,7 +217,8 @@ def encodeAmplitude (d r : ℕ) (f : Bool → ((Fin d → Fin (2^r)) × Bool) �
     QState (Reg (registerWidth d r)) :=
   ∑ z : MeasurementLabel d r, f z.1 z.2 • Ket (encodeLabel d r z)
 
-/-- Complete original `encode_amplitude_apply_label` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- At the clean encoding of a measurement label, the encoded amplitude is the supplied
+amplitude at that test bit and site-spin pair. -/
 theorem encode_amplitude_apply_label (d r : ℕ)
     (f : Bool → ((Fin d → Fin (2^r)) × Bool) → ℂ) (z : MeasurementLabel d r) :
     encodeAmplitude d r f (encodeLabel d r z)=f z.1 z.2 := by
@@ -228,7 +232,8 @@ theorem encode_amplitude_apply_label (d r : ℕ)
     simp only [ite_eq_right hne, mul_zero]
   · simp
 
-/-- Complete original `test_wire_ket` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- A matrix on the test wire expands a clean basis ket over the two possible test bits, with
+coefficients from the matrix column of the input test bit. -/
 theorem test_wire_ket (d r : ℕ) (U : Matrix Bool Bool ℂ) (z : MeasurementLabel d r) :
     ApplyGate (wireGate (registerWidth d r) (testWire d r) U) (Ket (encodeLabel d r z)) =
       ∑ b : Bool, U b z.1 • Ket (encodeLabel d r (b,z.2)) := by
@@ -236,7 +241,8 @@ theorem test_wire_ket (d r : ℕ) (U : Matrix Bool Bool ℂ) (z : MeasurementLab
   simp only [encodeLabel, encode_clean_test, encode_clean_update_test, Fintype.sum_bool]
   exact add_comm _ _
 
-/-- Complete original `spin_wire_ket` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- A matrix on the spin wire expands a clean basis ket over the two possible spin bits, with
+coefficients from the input spin column and fixed test bit and site. -/
 theorem spin_wire_ket (d r : ℕ) (U : Matrix Bool Bool ℂ) (z : MeasurementLabel d r) :
     ApplyGate (wireGate (registerWidth d r) (spinWire d r) U) (Ket (encodeLabel d r z)) =
       ∑ b : Bool, U b z.2.2 • Ket (encodeLabel d r (z.1,z.2.1,b)) := by
@@ -244,7 +250,8 @@ theorem spin_wire_ket (d r : ℕ) (U : Matrix Bool Bool ℂ) (z : MeasurementLab
   simp only [encodeLabel, encode_clean_spin, encode_clean_update_spin, Fintype.sum_bool]
   exact add_comm _ _
 
-/-- Complete original `apply_gate_sum_smul` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- Applying a matrix gate to a finite linear combination of states distributes over the terms
+and their complex coefficients. -/
 private theorem apply_gate_sum_smul {I J : Type*} [Fintype I] [DecidableEq I] [Fintype J]
     (U : Matrix I I ℂ) (f : J → QState I) (a : J → ℂ) :
     ApplyGate U (∑ j, a j • f j)=∑ j, a j • ApplyGate U (f j) := by
@@ -260,19 +267,22 @@ def testAction {S : Type*} (U : Matrix Bool Bool ℂ) (f : Bool → S × Bool �
 def spinAction {S : Type*} (U : Matrix Bool Bool ℂ) (f : Bool → S × Bool → ℂ)
     (b : Bool) (x : S × Bool) : ℂ := ApplyGate U (fun q => f b (x.1,q)) x.2
 
-/-- Complete original `test_action_h` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- On a label amplitude function, the test-axis action of the Hadamard matrix is the Hadamard
+readout transformation. -/
 theorem test_action_h {S : Type*} (f : Bool → S × Bool → ℂ) :
     testAction Hadamard f=readoutH f := by
   funext b x
   exact (readout_h_apply_gate f b x).symm
 
-/-- Complete original `test_action_sdg` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- On a label amplitude function, applying the adjoint S matrix along the test axis gives the
+adjoint S readout transformation. -/
 theorem test_action_sdg {S : Type*} (f : Bool → S × Bool → ℂ) :
     testAction readoutSdgMatrix f=readoutSdg f := by
   funext b x
   exact (readout_sdg_apply_gate f b x).symm
 
-/-- Complete original `test_matrix_transport` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- Applying a matrix on the physical test wire commutes with clean encoding when the label
+amplitudes are acted on along the test axis. -/
 theorem test_matrix_transport (d r : ℕ) (U : Matrix Bool Bool ℂ)
     (f : Bool → ((Fin d → Fin (2^r)) × Bool) → ℂ) :
     ApplyGate (wireGate (registerWidth d r) (testWire d r) U) (encodeAmplitude d r f) =
@@ -297,7 +307,8 @@ theorem test_matrix_transport (d r : ℕ) (U : Matrix Bool Bool ℂ)
       rw [Finset.sum_comm]
       simp only [mul_comm]
 
-/-- Complete original `spin_matrix_transport` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- Applying a matrix on the physical spin wire commutes with clean encoding when the label
+amplitudes are acted on along the spin axis. -/
 theorem spin_matrix_transport (d r : ℕ) (U : Matrix Bool Bool ℂ)
     (f : Bool → ((Fin d → Fin (2^r)) × Bool) → ℂ) :
     ApplyGate (wireGate (registerWidth d r) (spinWire d r) U) (encodeAmplitude d r f) =
@@ -313,7 +324,8 @@ theorem spin_matrix_transport (d r : ℕ) (U : Matrix Bool Bool ℂ)
   rw [Finset.sum_comm]
   simp only [mul_comm]
 
-/-- Complete original `encode_controlled_site` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- Encoding a label after the controlled site permutation applies the site map only in the true
+test branch and preserves both readout bits. -/
 theorem encode_controlled_site (d r : ℕ)
     (p : (Fin d → Fin (2^r)) ≃ (Fin d → Fin (2^r))) (z : MeasurementLabel d r) :
     encodeLabel d r (controlledSiteBasis p z)=
@@ -321,7 +333,8 @@ theorem encode_controlled_site (d r : ℕ)
   rcases z with ⟨b,s,spin⟩
   cases b <;> rfl
 
-/-- Complete original `encoded_permuted_sum` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- In a sum of encoded basis kets permuted by a label equivalence, reindexing to the original
+kets composes the coefficients with the inverse equivalence. -/
 theorem encoded_permuted_sum (d r : ℕ) (e : MeasurementLabel d r ≃ MeasurementLabel d r)
     (f : MeasurementLabel d r → ℂ) :
     (∑ z, f z • Ket (encodeLabel d r (e z))) =
@@ -329,7 +342,8 @@ theorem encoded_permuted_sum (d r : ℕ) (e : MeasurementLabel d r ≃ Measureme
   simpa only [Equiv.symm_apply_apply] using
     e.sum_comp (fun z => f (e.symm z) • Ket (encodeLabel d r z))
 
-/-- Complete original `encoded_controlled_sum` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- The sum of clean kets obtained by applying a controlled site permutation to each label is
+the encoding of the resulting controlled amplitude state. -/
 theorem encoded_controlled_sum (d r : ℕ)
     (p : (Fin d → Fin (2^r)) ≃ (Fin d → Fin (2^r)))
     (f : Bool → ((Fin d → Fin (2^r)) × Bool) → ℂ) :
@@ -355,7 +369,8 @@ def forwardShiftProgram (d r : ℕ) (j : Fin d) : Circuit (Reg (registerWidth d 
 def reverseShiftProgram (d r : ℕ) (j : Fin d) : Circuit (Reg (registerWidth d r)) :=
   reflectionCompile ((nativeWord (spatialIncrementWord d r j).reverse).map nativeMatrix)
 
-/-- Complete original `forward_shift_transport` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- The native forward-shift program takes a clean encoded amplitude state to the encoding of
+the forward controlled site action. -/
 theorem forward_shift_transport (d r : ℕ) (j : Fin d)
     (f : Bool → ((Fin d → Fin (2^r)) × Bool) → ℂ) :
     Run (1 : Matrix (Reg (registerWidth d r)) (Reg (registerWidth d r)) ℂ)
@@ -367,7 +382,8 @@ theorem forward_shift_transport (d r : ℕ) (j : Fin d)
   rw [native_spatial_increment_encoded_superposition]
   exact encoded_controlled_sum d r (decodedNeighbor d r j) f
 
-/-- Complete original `reverse_shift_transport` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- The native reverse-shift program takes a clean encoded amplitude state to the encoding of
+the inverse controlled site action. -/
 theorem reverse_shift_transport (d r : ℕ) (j : Fin d)
     (f : Bool → ((Fin d → Fin (2^r)) × Bool) → ℂ) :
     Run (1 : Matrix (Reg (registerWidth d r)) (Reg (registerWidth d r)) ℂ)
@@ -383,7 +399,8 @@ theorem reverse_shift_transport (d r : ℕ) (j : Fin d)
 def velocityProgram (d r : ℕ) (j : Fin d) (positiveNeighbor : Bool) :
     Circuit (Reg (registerWidth d r)) := measurementProgram (velocityWord d r j positiveNeighbor)
 
-/-- Complete original `velocity_program_expand` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- The velocity program is test-wire Hadamard, then the reverse shift for a positive neighbor
+or the forward shift for a negative neighbor, then test-wire adjoint S and Hadamard. -/
 theorem velocity_program_expand (d r : ℕ) (j : Fin d) (positiveNeighbor : Bool) :
     velocityProgram d r j positiveNeighbor =
       [Step.gate (wireGate (registerWidth d r) (testWire d r) Hadamard)] ++
@@ -395,19 +412,21 @@ theorem velocity_program_expand (d r : ℕ) (j : Fin d) (positiveNeighbor : Bool
       reflectionCompile, reflectionGateMatrix, forwardShiftProgram, reverseShiftProgram,
       List.map_append, List.map_map, Function.comp_def]
 
-/-- Complete original `velocity_program_unitary` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- The velocity readout circuit is unitary for either choice of neighbor direction. -/
 theorem velocity_program_unitary (d r : ℕ) (j : Fin d) (positiveNeighbor : Bool) :
     IsUnitaryCircuit (velocityProgram d r j positiveNeighbor) :=
   (local_reflection_gate_support_unitarity_counts (registerWidth d r)
     ((velocityWord d r j positiveNeighbor).map measurementMatrix) (velocity_word_legal d r j positiveNeighbor)).1
 
-/-- Complete original `velocity_program_counts` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- The velocity readout circuit makes zero oracle queries and executes one gate per entry of
+its native word. -/
 theorem velocity_program_counts (d r : ℕ) (j : Fin d) (positiveNeighbor : Bool) :
     QueryCount (velocityProgram d r j positiveNeighbor)=0 ∧
       GateCount (velocityProgram d r j positiveNeighbor)=(velocityWord d r j positiveNeighbor).length :=
   measurement_program_counts _
 
-/-- Complete original `velocity_program_evolution_positive` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- For the positive-neighbor program, the encoded state evolves by Hadamard, inverse controlled
+site shift, adjoint S, and Hadamard on the test register. -/
 theorem velocity_program_evolution_positive (d r : ℕ) (j : Fin d)
     (f : Bool → ((Fin d → Fin (2^r)) × Bool) → ℂ) :
     Run (1 : Matrix (Reg (registerWidth d r)) (Reg (registerWidth d r)) ℂ)
@@ -417,7 +436,8 @@ theorem velocity_program_evolution_positive (d r : ℕ) (j : Fin d)
   simp only [velocity_program_expand, ite_true, run_append, run_gate, run_nil,
     test_matrix_transport, reverse_shift_transport, test_action_h, test_action_sdg]
 
-/-- Complete original `velocity_program_evolution_negative` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- For the negative-neighbor program, the encoded state evolves by Hadamard, forward controlled
+site shift, adjoint S, and Hadamard on the test register. -/
 theorem velocity_program_evolution_negative (d r : ℕ) (j : Fin d)
     (f : Bool → ((Fin d → Fin (2^r)) × Bool) → ℂ) :
     Run (1 : Matrix (Reg (registerWidth d r)) (Reg (registerWidth d r)) ℂ)
@@ -427,7 +447,8 @@ theorem velocity_program_evolution_negative (d r : ℕ) (j : Fin d)
   simp only [velocity_program_expand, Bool.false_eq_true, ite_false, run_append, run_gate, run_nil,
     test_matrix_transport, forward_shift_transport, test_action_h, test_action_sdg]
 
-/-- Complete original `velocity_program_supplied_state` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- Running the native velocity circuit on the encoded supplied spinor with ancilla gives the
+encoded macro-level velocity state for the selected periodic neighbor direction. -/
 theorem velocity_program_supplied_state (d r : ℕ) (j : Fin d) (positiveNeighbor : Bool)
     (a b c k : (Fin d → Fin (2^r)) → ℝ) :
     Run (1 : Matrix (Reg (registerWidth d r)) (Reg (registerWidth d r)) ℂ)
@@ -446,19 +467,21 @@ theorem velocity_program_supplied_state (d r : ℕ) (j : Fin d) (positiveNeighbo
 def basisAt (d r : ℕ) (s : Fin d → Fin (2^r)) (spin test : Bool) (work : Reg (r-2)) :
     Reg (registerWidth d r) := (layoutEquiv d r).symm (s,spin,test,work)
 
-/-- Complete original `decode_basis_at` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- Decoding a basis register assembled from a site, spin bit, test bit, and arbitrary work
+register returns those four components. -/
 theorem decode_basis_at (d r : ℕ) (s : Fin d → Fin (2^r)) (spin test : Bool) (work : Reg (r-2)) :
     decodeLayout d r (basisAt d r s spin test work)=(s,spin,test,work) :=
   (layoutEquiv d r).apply_symm_apply _
 
-/-- Complete original `encode_amplitude_at_clean` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- The encoded amplitude at a basis register with zero work bits is the input amplitude for its
+test bit, site, and spin bit. -/
 theorem encode_amplitude_at_clean (d r : ℕ)
     (f : Bool → ((Fin d → Fin (2^r)) × Bool) → ℂ)
     (s : Fin d → Fin (2^r)) (spin test : Bool) :
     encodeAmplitude d r f (basisAt d r s spin test (fun _ => false))=f test (s,spin) :=
   encode_amplitude_apply_label d r f (test,s,spin)
 
-/-- Complete original `encode_amplitude_at_dirty` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- A basis register with any nonzero work bit has zero amplitude in the clean state encoding. -/
 theorem encode_amplitude_at_dirty (d r : ℕ)
     (f : Bool → ((Fin d → Fin (2^r)) × Bool) → ℂ)
     (s : Fin d → Fin (2^r)) (spin test : Bool) (work : Reg (r-2))
@@ -480,7 +503,8 @@ def physicalVelocityMass (d r : ℕ) (ψ : QState (Reg (registerWidth d r)))
     (out : (Fin d → Fin (2^r)) × Bool) : ℝ :=
   ∑ spin : Bool, ∑ work : Reg (r-2), BornProb ψ (basisAt d r out.1 spin out.2 work)
 
-/-- Complete original `physical_velocity_mass_encoded` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- The physical Born mass of a site and test outcome in an encoded state is the sum of the
+corresponding label probabilities over both spin bits. -/
 theorem physical_velocity_mass_encoded (d r : ℕ)
     (f : Bool → ((Fin d → Fin (2^r)) × Bool) → ℂ)
     (out : (Fin d → Fin (2^r)) × Bool) :
@@ -496,7 +520,8 @@ theorem physical_velocity_mass_encoded (d r : ℕ)
     simp
   · simp
 
-/-- Complete original `physical_velocity_mass_total` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- Summing the physical velocity outcome masses over sites and test bits gives the total
+computational-basis Born mass of the input state. -/
 theorem physical_velocity_mass_total (d r : ℕ) (ψ : QState (Reg (registerWidth d r))) :
     (∑ out : (Fin d → Fin (2^r)) × Bool, physicalVelocityMass d r ψ out) =
       ∑ x : Reg (registerWidth d r), BornProb ψ x := by
@@ -508,7 +533,8 @@ theorem physical_velocity_mass_total (d r : ℕ) (ψ : QState (Reg (registerWidt
       exact Finset.sum_comm
     _ = _ := (layoutEquiv d r).symm.sum_comp (BornProb ψ)
 
-/-- Complete original `physical_velocity_mass_supplied` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- For the supplied encoded spinor and either neighbor direction, the physical velocity
+probability at a site-test pair equals the corresponding macro-level Born weight. -/
 theorem physical_velocity_mass_supplied (d r : ℕ) (j : Fin d) (positiveNeighbor : Bool)
     (a b c k : (Fin d → Fin (2^r)) → ℝ) (out : (Fin d → Fin (2^r)) × Bool) :
     physicalVelocityMass d r
@@ -519,7 +545,8 @@ theorem physical_velocity_mass_supplied (d r : ℕ) (j : Fin d) (positiveNeighbo
   rw [velocity_program_supplied_state, physical_velocity_mass_encoded]
   rfl
 
-/-- Complete original `native_velocity_normalized` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- If the supplied spinor is normalized at each site, its encoded state after the velocity
+program is normalized for either neighbor direction. -/
 theorem native_velocity_normalized (d r : ℕ) (j : Fin d) (positiveNeighbor : Bool)
     (a b c k : (Fin d → Fin (2^r)) → ℝ) (hz : ∀ x, a x^2+b x^2+c x^2+k x^2=1) :
     Normalized (Run (1 : Matrix (Reg (registerWidth d r)) (Reg (registerWidth d r)) ℂ)
@@ -531,7 +558,8 @@ theorem native_velocity_normalized (d r : ℕ) (j : Fin d) (positiveNeighbor : B
   simp_rw [signed_record_cell_mass]
   simp [nsmul_eq_mul]
 
-/-- Complete original `native_supplied_input_normalized` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- Pointwise normalization of the supplied spinor implies normalization of its physical
+register encoding with ancilla. -/
 theorem native_supplied_input_normalized (d r : ℕ)
     (a b c k : (Fin d → Fin (2^r)) → ℝ) (hz : ∀ x, a x^2+b x^2+c x^2+k x^2=1) :
     Normalized (encodeAmplitude d r (suppliedAncillaState a b c k)) := by
@@ -551,7 +579,8 @@ def nativeCurrentWeight (d r : ℕ) (j : Fin d) (a b c k : (Fin d → Fin (2^r))
       (Run (1 : Matrix (Reg (registerWidth d r)) (Reg (registerWidth d r)) ℂ)
         (velocityProgram d r j false) (encodeAmplitude d r (suppliedAncillaState a b c k))) (out.1,!out.2))/2
 
-/-- Complete original `native_current_weight_eq` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- For a pointwise unit spinor, averaging the native forward and relabeled backward branch
+weights gives the signed-record weight of the periodic central current. -/
 theorem native_current_weight_eq (d r : ℕ) (j : Fin d) (a b c k : (Fin d → Fin (2^r)) → ℝ)
     (hz : ∀ x, a x^2+b x^2+c x^2+k x^2=1) (out : (Fin d → Fin (2^r)) × Bool) :
     nativeCurrentWeight d r j a b c k out =
@@ -574,7 +603,7 @@ def nativeCurrentLaw (d r : ℕ) (j : Fin d) (a b c k : (Fin d → Fin (2^r)) �
     simp_rw [signed_record_cell_mass]
     simp [nsmul_eq_mul]
 
-/-- Complete original `law_eq_of_prob` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- Two finite probability distributions are equal if they assign every outcome the same weight. -/
 private theorem law_eq_of_prob {X : Type*} [Fintype X] (p q : FinDist X)
     (h : ∀ x, p.prob x=q.prob x) : p=q := by
   cases p with
@@ -585,7 +614,8 @@ private theorem law_eq_of_prob {X : Type*} [Fintype X] (p q : FinDist X)
       subst q
       rfl
 
-/-- Complete original `native_current_law_eq_macro` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- For a pointwise unit spinor, the native central-current outcome law equals the macro-level
+law on the lattice with its periodic unit shift. -/
 theorem native_current_law_eq_macro (d r : ℕ) (j : Fin d)
     (a b c k : (Fin d → Fin (2^r)) → ℝ) (hz : ∀ x, a x^2+b x^2+c x^2+k x^2=1) :
     nativeCurrentLaw d r j a b c k hz=currentCircuitLaw a b c k hz (periodicUnitShift d (2^r) j) := by
@@ -594,7 +624,8 @@ theorem native_current_law_eq_macro (d r : ℕ) (j : Fin d)
   exact (native_current_weight_eq d r j a b c k hz out).trans
     (current_born_mass a b c k hz (periodicUnitShift d (2^r) j) out).symm
 
-/-- Complete original `native_current_law_eq_signed` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- For a pointwise unit spinor, the native one-current law is the signed law whose conditional
+mean is the spinor current along the selected periodic axis. -/
 theorem native_current_law_eq_signed (d r : ℕ) (j : Fin d)
     (a b c k : (Fin d → Fin (2^r)) → ℝ) (hz : ∀ x, a x^2+b x^2+c x^2+k x^2=1) :
     nativeCurrentLaw d r j a b c k hz =
@@ -610,7 +641,8 @@ def nativeVelocityRecordLaw (d r : ℕ) (a b c k : (Fin d → Fin (2^r)) → ℝ
     FinDist (Fin d → Fin Kv → Fin nv → (Fin d → Fin (2^r)) × Bool) :=
   finiteFamilyLaw (fun j => cohortLaw (cohortLaw (nativeCurrentLaw d r j a b c k hz) nv) Kv)
 
-/-- Complete original `native_velocity_record_law_eq` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- For a pointwise unit spinor and any record and block counts, the native velocity record law
+equals the grouped signed-record law with means given by the periodic spinor currents. -/
 theorem native_velocity_record_law_eq (d r : ℕ) (a b c k : (Fin d → Fin (2^r)) → ℝ)
     (hz : ∀ x, a x^2+b x^2+c x^2+k x^2=1) (nv Kv : ℕ) :
     nativeVelocityRecordLaw d r a b c k hz nv Kv =
@@ -623,7 +655,8 @@ def positionEquiv (d r : ℕ) : Reg (d*r) ≃ (Fin d → Fin (2^r)) :=
   (Equiv.arrowCongr (finProdFinEquiv : Fin d × Fin r ≃ Fin (d*r)) (Equiv.refl Bool)).symm.trans
     ((Equiv.curry (Fin d) (Fin r) Bool).trans (Equiv.piCongrRight (fun _ => littleEndianEquiv r)))
 
-/-- Complete original `position_equiv_apply` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- The position-register equivalence decodes each axis by reading its block of `r` wires in
+little-endian order. -/
 theorem position_equiv_apply (d r : ℕ) (x : Reg (d*r)) (j : Fin d) :
     positionEquiv d r x j=littleAddress r (fun i => x (finProdFinEquiv (j,i))) := rfl
 
@@ -631,22 +664,24 @@ theorem position_equiv_apply (d r : ℕ) (x : Reg (d*r)) (j : Fin d) :
 def spinLayoutEquiv (d r : ℕ) : Reg (d*r+1) ≃ ((Fin d → Fin (2^r)) × Bool) :=
   (regSuccEquiv (d*r)).trans (Equiv.prodCongr (positionEquiv d r) (Equiv.refl Bool))
 
-/-- Complete original `spin_layout_decode` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- The narrow spin-register equivalence acts by decoding the position and spin readout bit. -/
 theorem spin_layout_decode (d r : ℕ) (x : Reg (d*r+1)) : spinLayoutEquiv d r x=spinDecode d r x := rfl
 
 /-- Construction for spin Encode in the native born bridge model. -/
 def spinEncode (d r : ℕ) (s : Fin d → Fin (2^r)) (spin : Bool) : Reg (d*r+1) :=
   (spinLayoutEquiv d r).symm (s,spin)
 
-/-- Complete original `spin_decode_encode` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- Decoding a narrow spin register obtained by encoding a site and spin bit recovers the
+supplied pair. -/
 theorem spin_decode_encode (d r : ℕ) (s : Fin d → Fin (2^r)) (spin : Bool) :
     spinDecode d r (spinEncode d r s spin)=(s,spin) := (spinLayoutEquiv d r).apply_symm_apply _
 
-/-- Complete original `spin_encode_readout` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- The readout wire of a narrow encoding carries the supplied spin bit. -/
 @[simp] theorem spin_encode_readout (d r : ℕ) (s : Fin d → Fin (2^r)) (spin : Bool) :
     spinEncode d r s spin (spinReadoutWire d r)=spin := congrArg Prod.snd (spin_decode_encode d r s spin)
 
-/-- Complete original `spin_layout_update` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- Updating the spin wire of a narrow register preserves its decoded position and replaces its
+decoded spin bit. -/
 theorem spin_layout_update (d r : ℕ) (x : Reg (d*r+1)) (b : Bool) :
     spinLayoutEquiv d r (Function.update x (spinReadoutWire d r) b)=((spinLayoutEquiv d r x).1,b) := by
   apply Prod.ext
@@ -664,7 +699,8 @@ theorem spin_layout_update (d r : ℕ) (x : Reg (d*r+1)) (b : Bool) :
     exact Function.update_of_ne hne _ _
   · exact Function.update_self _ _ _
 
-/-- Complete original `spin_encode_update` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- Updating the spin wire of an encoded narrow register gives the encoding of the same site and
+the new spin bit. -/
 theorem spin_encode_update (d r : ℕ) (s : Fin d → Fin (2^r)) (spin b : Bool) :
     Function.update (spinEncode d r s spin) (spinReadoutWire d r) b=spinEncode d r s b := by
   apply (spinLayoutEquiv d r).injective
@@ -673,7 +709,8 @@ theorem spin_encode_update (d r : ℕ) (s : Fin d → Fin (2^r)) (spin b : Bool)
     (spinLayoutEquiv d r) ((spinLayoutEquiv d r).symm (s,b))
   simp only [Equiv.apply_symm_apply]
 
-/-- Complete original `narrow_spin_wire_ket` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- A one-qubit matrix on the narrow readout wire sends a site-spin basis ket to the sum over
+output spin bits at that site with matrix entries from the input spin column. -/
 theorem narrow_spin_wire_ket (d r : ℕ) (U : Matrix Bool Bool ℂ)
     (s : Fin d → Fin (2^r)) (spin : Bool) :
     ApplyGate (wireGate (d*r+1) (spinReadoutWire d r) U) (Ket (spinEncode d r s spin)) =
@@ -690,17 +727,18 @@ def encodeSpinAmplitude (d r : ℕ) (f : Bool → (Fin d → Fin (2^r)) → ℂ)
 def spinRotate {S : Type*} (U : Matrix Bool Bool ℂ) (f : Bool → S → ℂ) (b : Bool) (x : S) : ℂ :=
   ApplyGate U (fun q => f q x) b
 
-/-- Complete original `spin_rotate_h` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- The Hadamard rotation on spin amplitudes agrees with the Hadamard readout transformation. -/
 theorem spin_rotate_h {S : Type*} (f : Bool → S → ℂ) : spinRotate Hadamard f=readoutH f := by
   funext b x
   exact (readout_h_apply_gate f b x).symm
 
-/-- Complete original `spin_rotate_sdg` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- The adjoint S rotation on spin amplitudes agrees with the adjoint S readout transformation. -/
 theorem spin_rotate_sdg {S : Type*} (f : Bool → S → ℂ) : spinRotate readoutSdgMatrix f=readoutSdg f := by
   funext b x
   exact (readout_sdg_apply_gate f b x).symm
 
-/-- Complete original `narrow_spin_matrix_transport` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- A matrix acting on the narrow spin readout wire gives the same state as rotating the
+spin-label amplitudes and then encoding them. -/
 theorem narrow_spin_matrix_transport (d r : ℕ) (U : Matrix Bool Bool ℂ)
     (f : Bool → (Fin d → Fin (2^r)) → ℂ) :
     ApplyGate (wireGate (d*r+1) (spinReadoutWire d r) U) (encodeSpinAmplitude d r f) =
@@ -717,17 +755,19 @@ theorem narrow_spin_matrix_transport (d r : ℕ) (U : Matrix Bool Bool ℂ)
 /-- Construction for spin Program in the native born bridge model. -/
 def spinProgram (d r : ℕ) (p : Fin 3) : Circuit (Reg (d*r+1)) := measurementProgram (spinWord d r p)
 
-/-- Complete original `spin_program_unitary` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- The native spin measurement circuit is unitary for each of the three readout choices. -/
 theorem spin_program_unitary (d r : ℕ) (p : Fin 3) : IsUnitaryCircuit (spinProgram d r p) :=
   (local_reflection_gate_support_unitarity_counts (d*r+1)
     ((spinWord d r p).map measurementMatrix) (spin_word_legal d r p)).1
 
-/-- Complete original `spin_program_counts` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- Each native spin readout choice uses zero queries and one gate per entry of its measurement
+word. -/
 theorem spin_program_counts (d r : ℕ) (p : Fin 3) :
     QueryCount (spinProgram d r p)=0 ∧ GateCount (spinProgram d r p)=(spinWord d r p).length :=
   measurement_program_counts _
 
-/-- Complete original `spin_program_supplied_state` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- Running the chosen native spin program on the supplied encoded spinor produces the encoding
+of its macro-level spin readout state. -/
 theorem spin_program_supplied_state (d r : ℕ) (p : Fin 3)
     (a b c k : (Fin d → Fin (2^r)) → ℝ) :
     Run (1 : Matrix (Reg (d*r+1)) (Reg (d*r+1)) ℂ)
@@ -738,7 +778,8 @@ theorem spin_program_supplied_state (d r : ℕ) (p : Fin 3)
       reflectionCompile, reflectionGateMatrix, run_gate, run_nil, narrow_spin_matrix_transport,
       spin_rotate_h, spin_rotate_sdg, spinGateState]
 
-/-- Complete original `encode_spin_amplitude_apply` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- At the narrow encoding of a site and spin outcome, the encoded state has the corresponding
+supplied spin-site amplitude. -/
 theorem encode_spin_amplitude_apply (d r : ℕ) (f : Bool → (Fin d → Fin (2^r)) → ℂ)
     (out : (Fin d → Fin (2^r)) × Bool) :
     encodeSpinAmplitude d r f ((spinLayoutEquiv d r).symm out)=f out.2 out.1 := by
@@ -760,7 +801,8 @@ def nativeSpinWeight (d r : ℕ) (p : Fin 3) (a b c k : (Fin d → Fin (2^r)) �
     (spinProgram d r p) (encodeSpinAmplitude d r (suppliedSpinState a b c k)))
     ((spinLayoutEquiv d r).symm out)
 
-/-- Complete original `native_spin_weight_eq_macro` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- The native spin weight at each site and outcome equals the macro-level spin Born weight for
+the same readout choice. -/
 theorem native_spin_weight_eq_macro (d r : ℕ) (p : Fin 3) (a b c k : (Fin d → Fin (2^r)) → ℝ)
     (out : (Fin d → Fin (2^r)) × Bool) :
     nativeSpinWeight d r p a b c k out=spinBornMass a b c k p out := by
@@ -768,13 +810,15 @@ theorem native_spin_weight_eq_macro (d r : ℕ) (p : Fin 3) (a b c k : (Fin d �
   rw [spin_program_supplied_state]
   simp only [BornProb, encode_spin_amplitude_apply, spinBornMass]
 
-/-- Complete original `native_spin_weight_eq` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- With pointwise unit spinors, each native spin outcome has the signed-record weight
+determined by its selected Pauli field component. -/
 theorem native_spin_weight_eq (d r : ℕ) (p : Fin 3) (a b c k : (Fin d → Fin (2^r)) → ℝ)
     (hz : ∀ x, a x^2+b x^2+c x^2+k x^2=1) (out : (Fin d → Fin (2^r)) × Bool) :
     nativeSpinWeight d r p a b c k out=signedRecordWeight (pauliField a b c k p) out := by
   rw [native_spin_weight_eq_macro, spin_born_mass a b c k hz]
 
-/-- Complete original `native_spin_input_normalized` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- The narrow physical encoding of the supplied spinor is normalized when its four real
+coordinates have unit norm at every site. -/
 theorem native_spin_input_normalized (d r : ℕ) (a b c k : (Fin d → Fin (2^r)) → ℝ)
     (hz : ∀ x, a x^2+b x^2+c x^2+k x^2=1) :
     Normalized (encodeSpinAmplitude d r (suppliedSpinState a b c k)) := by
@@ -783,7 +827,8 @@ theorem native_spin_input_normalized (d r : ℕ) (a b c k : (Fin d → Fin (2^r)
   simp only [BornProb, encode_spin_amplitude_apply]
   exact supplied_spin_state_normalized a b c k hz
 
-/-- Complete original `native_spin_output_normalized` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- A pointwise normalized supplied spinor gives a normalized narrow register output after any
+of the three native spin readout circuits. -/
 theorem native_spin_output_normalized (d r : ℕ) (p : Fin 3) (a b c k : (Fin d → Fin (2^r)) → ℝ)
     (hz : ∀ x, a x^2+b x^2+c x^2+k x^2=1) :
     Normalized (Run (1 : Matrix (Reg (d*r+1)) (Reg (d*r+1)) ℂ)
@@ -809,7 +854,8 @@ def nativeSpinLaw (d r : ℕ) (p : Fin 3) (a b c k : (Fin d → Fin (2^r)) → �
     simp_rw [signed_record_cell_mass]
     simp [nsmul_eq_mul]
 
-/-- Complete original `native_spin_law_eq_signed` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- For a pointwise unit spinor, the native spin law is the signed-record law whose mean field
+is the selected Pauli component. -/
 theorem native_spin_law_eq_signed (d r : ℕ) (p : Fin 3) (a b c k : (Fin d → Fin (2^r)) → ℝ)
     (hz : ∀ x, a x^2+b x^2+c x^2+k x^2=1) :
     nativeSpinLaw d r p a b c k hz=signedRecordLaw (pauliField a b c k p)
@@ -825,7 +871,8 @@ def nativeTotalRecordLaw (d r : ℕ) (a b c k : (Fin d → Fin (2^r)) → ℝ)
     (finiteFamilyLaw (fun j => cohortLaw (cohortLaw (nativeCurrentLaw d r j a b c k hz) nv) Kv))
     (finiteFamilyLaw (fun i : Fin 3 × Fin d => cohortLaw (cohortLaw (nativeSpinLaw d r i.1 a b c k hz) ns) Ks))
 
-/-- Complete original `native_total_record_law_eq` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- For a pointwise unit spinor and any velocity and spin record and block counts, the joint
+native law equals the total signed-record law for its periodic current and Pauli fields. -/
 theorem native_total_record_law_eq (d r : ℕ) (a b c k : (Fin d → Fin (2^r)) → ℝ)
     (hz : ∀ x, a x^2+b x^2+c x^2+k x^2=1) (nv Kv ns Ks : ℕ) :
     nativeTotalRecordLaw d r a b c k hz nv Kv ns Ks =
@@ -837,7 +884,10 @@ theorem native_total_record_law_eq (d r : ℕ) (a b c k : (Fin d → Fin (2^r)) 
   simp only [nativeTotalRecordLaw, totalRecordLaw, native_current_law_eq_signed, native_spin_law_eq_signed]
 
 set_option synthInstance.maxSize 1024 in
-/-- Complete original `native_zero_spin_estimator_accuracy` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- When the generated coefficients have zero spin weight, positive dimension and scale, and an
+allowed uniform approximation error for the bounded target field, the prescribed velocity-only
+plan estimates the periodic discrete loss within `η` except on mass at most `δ/2`. The
+tolerance and confidence parameters are positive and the input spinor is normalized pointwise. -/
 theorem native_zero_spin_estimator_accuracy {d r : ℕ} (κ lam U η δ eb : ℚ) (coef : CoefficientCandidateQ)
     (hc : coefficientsGeneratedQ d (2^r) κ lam U η=some coef)
     (hd : 0 < d) (hκ : 0 < κ) (hU : 0 ≤ U) (hη : 0 < η) (hδ : 0 < δ)
@@ -854,7 +904,10 @@ theorem native_zero_spin_estimator_accuracy {d r : ℕ} (κ lam U η δ eb : ℚ
     executed_plan_accuracy_zero_spin κ lam U η δ eb coef hc hd hκ hU hη hδ heb0 heb hγ a b c k hz u û hu htarget
 
 set_option synthInstance.maxSize 1024 in
-/-- Complete original `native_estimator_accuracy` guarantee for `NativeBornBridge`; all source hypotheses and output obligations are retained. -/
+/-- When the generated coefficients have positive spin weight, positive dimension and scale, and
+an allowed uniform approximation error for the bounded target field, the joint velocity-and-spin
+median plan estimates the periodic discrete loss within `η` except on mass at most `δ`. The
+tolerance and confidence parameters are positive and the input spinor is normalized pointwise. -/
 theorem native_estimator_accuracy {d r : ℕ} (κ lam U η δ eb : ℚ) (coef : CoefficientCandidateQ)
     (hc : coefficientsGeneratedQ d (2^r) κ lam U η=some coef)
     (hd : 0 < d) (hκ : 0 < κ) (hU : 0 ≤ U) (hη : 0 < η) (hδ : 0 < δ)

@@ -26,14 +26,14 @@ open scoped ContDiff
 namespace Qatlib.Concepts.EffectiveGauge.TorusFourier
 open Qatlib.Concepts.EffectiveGauge.HopfAtlas Qatlib.Concepts.EffectiveGauge.RationalFlow
 
-/-- Original `unitPeriodicField_finset_sum` guarantee for the `FourierFiniteCoefficient` construction; the complete source hypotheses are retained. -/
+/-- A finite sum of complex unit-periodic fields is invariant under every integer lattice shift. -/
 theorem unitPeriodicField_finset_sum {α : Type*} (s : Finset α) (f : α → SpatialPoint → ℂ)
     (hp : ∀ i, IsUnitPeriodicField (f i)) : IsUnitPeriodicField (fun x => ∑ i∈s, f i x) := by
   intro x n
   dsimp only
   exact Finset.sum_congr rfl (fun i _ => hp i x n)
 
-/-- Original `unitFourierCoefficient_finset_sum` guarantee for the `FourierFiniteCoefficient` construction; the complete source hypotheses are retained. -/
+/-- For continuous unit-periodic summands, the Fourier coefficient at `k` of their finite sum is the sum of their coefficients at `k`. -/
 theorem unitFourierCoefficient_finset_sum {α : Type*} (s : Finset α) (f : α → SpatialPoint → ℂ)
     (hf : ∀ i, Continuous (f i)) (hp : ∀ i, IsUnitPeriodicField (f i)) (k : SpatialFrequency) :
     unitFourierCoefficient (fun x => ∑ i∈s, f i x) (continuous_finsetSum s (fun i _ => hf i))
@@ -46,12 +46,12 @@ theorem unitFourierCoefficient_finset_sum {α : Type*} (s : Finset α) (f : α �
     rw [unitFourierCoefficient_add (f i) (fun x => ∑ j∈s, f j x) (hf i)
       (continuous_finsetSum s (fun j _ => hf j)) (hp i) (unitPeriodicField_finset_sum s f hp),ih]
 
-/-- Original `contDiff_unitFourierTruncation` guarantee for the `FourierFiniteCoefficient` construction; the complete source hypotheses are retained. -/
+/-- The finite Fourier truncation at radius `N` is smooth for any complex coefficient family. -/
 theorem contDiff_unitFourierTruncation (a : SpatialFrequency → ℂ) (N : ℕ) :
     ContDiff ℝ ∞ (unitFourierTruncation a N) := by
   exact ContDiff.sum (fun k _ => contDiff_const.mul (contDiff_unitFourierMode k))
 
-/-- Original `unitPeriodic_unitFourierTruncation` guarantee for the `FourierFiniteCoefficient` construction; the complete source hypotheses are retained. -/
+/-- Every integer lattice shift leaves the radius-`N` Fourier truncation unchanged for arbitrary complex coefficients. -/
 theorem unitPeriodic_unitFourierTruncation (a : SpatialFrequency → ℂ) (N : ℕ) :
     IsUnitPeriodicField (unitFourierTruncation a N) := by
   apply unitPeriodicField_finset_sum

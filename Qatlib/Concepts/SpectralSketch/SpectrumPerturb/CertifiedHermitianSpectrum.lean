@@ -1999,7 +1999,7 @@ theorem certifiedPoints_length {n : ℕ} (A : Matrix (Fin n) (Fin n) ℚ) (hA : 
 
 /-- The constructed spectral certificate passes its checker, gives exact interval counts,
 encloses every eigenvalue, and has the stated number of points. -/
-theorem frontier1 {n : ℕ} (A : Matrix (Fin n) (Fin n) ℚ) (hA : IsSymmRat A) (m : ℕ) :
+theorem spectral_certificate_soundness_and_completeness {n : ℕ} (A : Matrix (Fin n) (Fin n) ℚ) (hA : IsSymmRat A) (m : ℕ) :
     checkPoints A (certifiedPoints A hA m) = true ∧
       (∀ p q, (p, q) ∈ (certifiedPoints A hA m).zip ((certifiedPoints A hA m).drop 1) →
         (Finset.univ.filter fun i => (p.q : ℝ) ≤ (realify_isHermitian hA).eigenvalues i ∧
@@ -3104,7 +3104,7 @@ theorem certifiedPoints_bits {n : ℕ} (A : Matrix (Fin n) (Fin n) ℚ) (hA : Is
 
 /-- The spectral certificate has the stated total step count, total operation bound, and uniform
 witness height bound. -/
-theorem frontier1_cost {n : ℕ} (A : Matrix (Fin n) (Fin n) ℚ) (hA : IsSymmRat A)
+theorem spectral_certificate_generation_cost_and_witness_height {n : ℕ} (A : Matrix (Fin n) (Fin n) ℚ) (hA : IsSymmRat A)
     (m : ℕ) :
     totalSteps A hA (gridOf A m) = (gridSteps A m + 1) * n ∧
       totalOps A hA (gridOf A m) ≤ (gridSteps A m + 1) * opsBound n ∧
@@ -3647,7 +3647,7 @@ theorem certifiedPointsC_cost {n : ℕ} (X Y : Matrix (Fin n) (Fin n) ℚ) (h : 
     ∧ ∀ q ∈ gridOf (blockRealFin X Y) m,
         WitnessBitLe (certificateBits (blockRealFin X Y) m)
           (diagAux (n + n) (shift (blockRealFin X Y) q) (shift_symm (blockRealFin_symm h) q)) :=
-  frontier1_cost (blockRealFin X Y) (blockRealFin_symm h) m
+  spectral_certificate_generation_cost_and_witness_height (blockRealFin X Y) (blockRealFin_symm h) m
 
 end CertifiedHermitianSpectrum
 end Qatlib.Concepts.SpectralSketch.SpectrumPerturb.CertifiedStage
@@ -3821,7 +3821,7 @@ theorem certifiedPoints_checker_ops {n : ℕ} (A : Matrix (Fin n) (Fin n) ℚ)
 
 /-- The constructed real spectral certificate satisfies the stated generation step count,
 operation bound, witness height bound, and exact point-checking cost. -/
-theorem frontier1_resources {n : ℕ} (A : Matrix (Fin n) (Fin n) ℚ) (hA : IsSymmRat A)
+theorem real_spectral_certificate_generation_and_checking_cost {n : ℕ} (A : Matrix (Fin n) (Fin n) ℚ) (hA : IsSymmRat A)
     (m : ℕ) :
     totalSteps A hA (gridOf A m) = (gridSteps A m + 1) * n ∧
       totalOps A hA (gridOf A m) ≤ (gridSteps A m + 1) * opsBound n ∧
@@ -4396,7 +4396,7 @@ theorem certifiedPointsR_interval {n : ℕ} (A : Matrix (Fin n) (Fin n) ℚ) (hA
 
 /-- Under the strict spectral radius bound, the radius-based certificate passes its checker,
 gives exact interval counts, encloses every eigenvalue, and has the stated length. -/
-theorem frontier1R {n : ℕ} (A : Matrix (Fin n) (Fin n) ℚ) (hA : IsSymmRat A)
+theorem radius_spectral_certificate_soundness_and_completeness {n : ℕ} (A : Matrix (Fin n) (Fin n) ℚ) (hA : IsSymmRat A)
     {R : ℚ} (hR : ∀ i, |(realify_isHermitian hA).eigenvalues i| < (R : ℝ))
     (m : ℕ) :
     checkPoints A (certifiedPointsR A hA R m) = true ∧

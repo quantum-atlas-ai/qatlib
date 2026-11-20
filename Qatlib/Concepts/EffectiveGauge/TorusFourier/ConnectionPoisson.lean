@@ -37,14 +37,14 @@ def normalizedConnectionPoisson (q : QuaternionField) (hq : ContDiff ℝ ∞ q)
   unitRealPoisson (normalizedConnectionComplex q)
     (contDiff_normalizedConnectionComplex q hq) (unitPeriodic_normalizedConnectionComplex q hq hp)
 
-/-- Original `normalizedConnectionPoisson_mean_zero` guarantee for the `ConnectionPoisson` construction; the complete source hypotheses are retained. -/
+/-- For a smooth physically periodic quaternion field, the normalized connection potential has integral zero over the closed unit cube. -/
 theorem normalizedConnectionPoisson_mean_zero (q : QuaternionField) (hq : ContDiff ℝ ∞ q)
     (hp : IsPeriodicField q) :
     (∫ u : Fin 3 → ℝ in Set.Icc 0 1, normalizedConnectionPoisson q hq hp (WithLp.toLp 2 u))=0 :=
   unitRealPoisson_mean_zero (normalizedConnectionComplex q)
     (contDiff_normalizedConnectionComplex q hq) (unitPeriodic_normalizedConnectionComplex q hq hp)
 
-/-- Original `normalizedConnectionPoisson_spec` guarantee for the `ConnectionPoisson` construction; the complete source hypotheses are retained. -/
+/-- The normalized connection potential of a smooth physically periodic quaternion field is smooth and unit-periodic. At every point its Laplacian equals the negative divergence of the normalized connection. -/
 theorem normalizedConnectionPoisson_spec (q : QuaternionField) (hq : ContDiff ℝ ∞ q)
     (hp : IsPeriodicField q) :
     ContDiff ℝ ∞ (normalizedConnectionPoisson q hq hp) ∧
@@ -59,7 +59,7 @@ theorem normalizedConnectionPoisson_spec (q : QuaternionField) (hq : ContDiff �
       normalizedConnectionReal q j := rfl
   simpa only [normalizedConnectionPoisson,heq] using h
 
-/-- Original `normalizedConnectionPoisson_c6_decay` guarantee for the `ConnectionPoisson` construction; the complete source hypotheses are retained. -/
+/-- If all pure sixth derivatives of every normalized connection component have norm at most `M` on the unit cube, each nonzero Poisson coefficient is bounded in norm by `3*M/(physicalPeriod^7*(frequencyRadius k)^7)`. -/
 theorem normalizedConnectionPoisson_c6_decay (q : QuaternionField) (hq : ContDiff ℝ ∞ q)
     (hp : IsPeriodicField q) (M : ℝ)
     (hb : ∀ j i x, InUnitCube x →
@@ -78,7 +78,7 @@ theorem normalizedConnectionPoisson_c6_decay (q : QuaternionField) (hq : ContDif
   rw [Complex.norm_real]
   exact hb j i x hx
 
-/-- Original `normalizedConnectionPoisson_word_bound` guarantee for the `ConnectionPoisson` construction; the complete source hypotheses are retained. -/
+/-- A common unit-cube norm bound `M` on the pure sixth derivatives of the normalized connection bounds every ordered derivative of its potential of length at most two by `156*M` everywhere. -/
 theorem normalizedConnectionPoisson_word_bound (q : QuaternionField) (hq : ContDiff ℝ ∞ q)
     (hp : IsPeriodicField q) (M : ℝ)
     (hb : ∀ j i x, InUnitCube x →

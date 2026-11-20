@@ -29,7 +29,8 @@ open scoped BigOperators
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open PilotProjection
 
-/-- Complete original `finite_markov` guarantee for `PartialAddressPilotVector`; all source hypotheses and output obligations are retained. -/
+/-- For a nonnegative statistic under a finite law and positive threshold `t`, the probability
+of exceeding `t` is at most its expectation divided by `t`. -/
 theorem finite_markov {X : Type} [Fintype X] (d : FinDist X) (f : X → ℝ)
     (hf : ∀ x,0 ≤ f x) (t : ℝ) (ht : 0<t) :
     d.expect (fun x => if t<f x then (1 : ℝ) else 0) ≤ d.expect f/t := by
@@ -68,7 +69,8 @@ def averageError {n : ℕ} (m : Fin 3 → B × A → ℝ)
     (Ω : Fin 3 → Fin n → (B × A) × Bool) : ℝ :=
   (∑ b : B,meanSquared m b Ω)/(Fintype.card B : ℝ)
 
-/-- Complete original `box_risk` guarantee for `PartialAddressPilotVector`; all source hypotheses and output obligations are retained. -/
+/-- With each component field bounded by one, the pilot vector estimate at any fixed box has
+expected squared error at most `6 * card B / (n+1)` for `n` records per axis. -/
 theorem box_risk (m : Fin 3 → B × A → ℝ) (hm : ∀ h x,|m h x| ≤ 1) (n : ℕ) (b : B) :
     (trainingLaw m hm n).expect (meanSquared m b) ≤
       6*(Fintype.card B : ℝ)/((n : ℝ)+1) := by
@@ -92,13 +94,15 @@ theorem box_risk (m : Fin 3 → B × A → ℝ) (hm : ∀ h x,|m h x| ≤ 1) (n 
       ring
 
 omit [Nonempty B] [Nonempty A] [DecidableEq A] in
-/-- Complete original `average_error_nonneg` guarantee for `PartialAddressPilotVector`; all source hypotheses and output obligations are retained. -/
+/-- For every realization of the three training cohorts, the box average of squared vector
+errors is nonnegative. -/
 theorem average_error_nonneg {n : ℕ} (m : Fin 3 → B × A → ℝ)
     (Ω : Fin 3 → Fin n → (B × A) × Bool) : 0 ≤ averageError m Ω := by
   exact div_nonneg (Finset.sum_nonneg fun b _ => AxisRisk.dist_sq_nonneg _ _)
     (Nat.cast_nonneg _)
 
-/-- Complete original `average_risk` guarantee for `PartialAddressPilotVector`; all source hypotheses and output obligations are retained. -/
+/-- With all three component fields bounded in absolute value by one, the expected box-average
+squared pilot error is at most six times the box count divided by `n+1`. -/
 theorem average_risk (m : Fin 3 → B × A → ℝ) (hm : ∀ h x,|m h x| ≤ 1) (n : ℕ) :
     (trainingLaw m hm n).expect (averageError m) ≤
       6*(Fintype.card B : ℝ)/((n : ℝ)+1) := by
@@ -119,7 +123,8 @@ theorem average_risk (m : Fin 3 → B × A → ℝ) (hm : ∀ h x,|m h x| ≤ 1)
 /-- Construction for pilot Count Q in the partial address pilot vector model. -/
 def pilotCountQ (boxes : ℕ) (α τ : ℚ) : ℕ := ceilNatQ (96*(boxes : ℚ)/(α*τ))
 
-/-- Complete original `pilot_count_budget` guarantee for `PartialAddressPilotVector`; all source hypotheses and output obligations are retained. -/
+/-- For positive `α` and `τ`, the chosen pilot count times `ατ` is at least 96 times the number
+of boxes. -/
 theorem pilot_count_budget (boxes : ℕ) (α τ : ℚ) (hα : 0<α) (hτ : 0<τ) :
     96*(boxes : ℝ) ≤ (pilotCountQ boxes α τ : ℝ)*((α : ℝ)*(τ : ℝ)) := by
   let q : ℚ :=96*(boxes : ℚ)/(α*τ)
@@ -137,7 +142,8 @@ def badProbability (m : Fin 3 → B × A → ℝ) (hm : ∀ h x,|m h x| ≤ 1)
   (trainingLaw m hm (pilotCountQ (Fintype.card B) α τ)).expect
     (fun Ω => if (τ : ℝ)/16<averageError m Ω then 1 else 0)
 
-/-- Complete original `pilot_error_tail` guarantee for `PartialAddressPilotVector`; all source hypotheses and output obligations are retained. -/
+/-- At the prescribed pilot count, bounded component fields and positive `α` and `τ` give
+probability at most `α` for average squared error above `τ/16`. -/
 theorem pilot_error_tail (m : Fin 3 → B × A → ℝ) (hm : ∀ h x,|m h x| ≤ 1)
     (α τ : ℚ) (hα : 0<α) (hτ : 0<τ) : badProbability m hm α τ ≤ (α : ℝ) := by
   let n := pilotCountQ (Fintype.card B) α τ
@@ -165,7 +171,9 @@ def averageMinority (m : Fin 3 → B × A → ℝ) (axes : B → Fin 3 → ℝ) 
   (∑ b : B,(1-AxisRisk.dot (boxVector m b) (axes b))/2)/(Fintype.card B : ℝ)
 
 omit [Nonempty A] [DecidableEq A] in
-/-- Complete original `average_compiled_risk` guarantee for `PartialAddressPilotVector`; all source hypotheses and output obligations are retained. -/
+/-- If every box mean has length at most one and each compiled axis is unit with overlap
+deficit at most `τ/32` from its estimated axis, average minority risk is bounded by eight times
+average defect plus four times average squared error plus `τ/32`. -/
 theorem average_compiled_risk {n : ℕ} (m : Fin 3 → B × A → ℝ)
     (Ω : Fin 3 → Fin n → (B × A) × Bool) (axes : B → Fin 3 → ℝ) (τ : ℝ)
     (hr : ∀ b,AxisRisk.length (boxVector m b) ≤ 1)
@@ -186,7 +194,9 @@ theorem average_compiled_risk {n : ℕ} (m : Fin 3 → B × A → ℝ)
       field_simp
 
 omit [Nonempty A] [DecidableEq A] in
-/-- Complete original `good_average_minority` guarantee for `PartialAddressPilotVector`; all source hypotheses and output obligations are retained. -/
+/-- For box means of length at most one and unit compiled axes satisfying the overlap bound
+`τ/32`, average defect at most `τ/32` and average squared error at most `τ/16` imply average
+minority risk at most `17τ/32`. -/
 theorem good_average_minority {n : ℕ} (m : Fin 3 → B × A → ℝ)
     (Ω : Fin 3 → Fin n → (B × A) × Bool) (axes : B → Fin 3 → ℝ) (τ : ℝ)
     (hr : ∀ b,AxisRisk.length (boxVector m b) ≤ 1)

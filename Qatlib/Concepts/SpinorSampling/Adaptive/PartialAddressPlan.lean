@@ -36,11 +36,12 @@ def checkedXYZCountQ (M : ℕ) (q ε δ : ℚ) : Option ℕ :=
 
 noncomputable section
 
-/-- Complete original `xyz_count_two` guarantee for `PartialAddressPlan`; all source hypotheses and output obligations are retained. -/
+/-- The rational sample-count formula returns at least two records for every input. -/
 theorem xyz_count_two (M : ℕ) (q ε δ : ℚ) : 2 ≤ xyzCountQ M q ε δ := by
   exact Nat.le_max_left _ _
 
-/-- Complete original `xyz_count_linear_budget` guarantee for `PartialAddressPlan`; all source hypotheses and output obligations are retained. -/
+/-- For nonnegative `q` and positive `ε` and `δ`, the returned count `n` satisfies
+`nδε² ≥ 32q`, the budget for the projection variance term. -/
 theorem xyz_count_linear_budget (M : ℕ) (q ε δ : ℚ)
     (hq : 0 ≤ q) (hε : 0<ε) (hδ : 0<δ) :
     32*(q : ℝ) ≤ (xyzCountQ M q ε δ : ℝ)*((δ : ℝ)*(ε : ℝ)^2) := by
@@ -57,7 +58,8 @@ theorem xyz_count_linear_budget (M : ℕ) (q ε δ : ℚ)
   have hdR : (0 : ℝ)<δ := Rat.cast_pos.mpr hδ
   exact (div_le_iff₀ (by positivity : (0 : ℝ)<(δ : ℝ)*(ε : ℝ)^2)).mp hr
 
-/-- Complete original `xyz_count_collision_budget` guarantee for `PartialAddressPlan`; all source hypotheses and output obligations are retained. -/
+/-- For nonnegative `q` and positive `ε` and `δ`, the returned count provides an ordered-pair
+budget `n(n-1)δε² ≥ 100Mq`. -/
 theorem xyz_count_collision_budget (M : ℕ) (q ε δ : ℚ)
     (hq : 0 ≤ q) (hε : 0<ε) (hδ : 0<δ) :
     100*(M : ℝ)*(q : ℝ) ≤ (((xyzCountQ M q ε δ)*(xyzCountQ M q ε δ-1) : ℕ) : ℝ)*
@@ -83,7 +85,9 @@ theorem xyz_count_collision_budget (M : ℕ) (q ε δ : ℚ)
 namespace UniformMatching
 variable {E : Type*} [Fintype E] [DecidableEq E] [Nonempty E]
 
-/-- Complete original `xyz_count_confidence` guarantee for `PartialAddressPlan`; all source hypotheses and output obligations are retained. -/
+/-- For normalized endpoints with mean true-spin mass at most nonnegative `q`, the sample count
+with size parameter twice the edge count gives ordered U-statistic error above `ε` with
+probability at most `δ` for positive `ε` and `δ`. -/
 theorem xyz_count_confidence (u v : E → Bool → ℂ)
     (hu : ∀ e,RetainedSpin.qubitMass (u e)=1) (hv : ∀ e,RetainedSpin.qubitMass (v e)=1)
     (q ε δ : ℚ) (hq0 : 0 ≤ q) (hε : 0<ε) (hδ : 0<δ)
@@ -123,7 +127,9 @@ theorem xyz_count_confidence (u v : E → Bool → ℂ)
       rw [div_le_iff₀ (sq_pos_of_pos heR)]
       linarith
 
-/-- Complete original `checked_xyz_count_confidence` guarantee for `PartialAddressPlan`; all source hypotheses and output obligations are retained. -/
+/-- If the checked planner at twice the edge count returns `n` and average true-spin mass is at
+most `q`, the ordered U-statistic on `n` matching records exceeds error `ε` from the mean Bell
+probability with probability at most `δ`. -/
 theorem checked_xyz_count_confidence (u v : E → Bool → ℂ)
     (hu : ∀ e,RetainedSpin.qubitMass (u e)=1) (hv : ∀ e,RetainedSpin.qubitMass (v e)=1)
     (q ε δ : ℚ) (n : ℕ) (hc : checkedXYZCountQ (2*Fintype.card E) q ε δ=some n)

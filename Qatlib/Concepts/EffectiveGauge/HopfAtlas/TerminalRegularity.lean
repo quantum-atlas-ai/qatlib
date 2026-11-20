@@ -19,7 +19,8 @@ open Set intervalIntegral
 namespace Qatlib.Concepts.EffectiveGauge.HopfAtlas
 open Qatlib.Concepts.EffectiveGauge.RationalFlow
 
-/-- Original `variation_endpoint_le` guarantee for the `TerminalRegularity` construction; the complete source hypotheses are retained. -/
+/-- The terminal variation of transport from a unit seed in coefficient direction `H` has norm at
+most `physicalPeriod * ‖H‖` for every base coefficient path `K`. -/
 private theorem variation_endpoint_le (q₀ : ℍ) (h₀ : ‖q₀‖=1) (K H : CoefficientPath) :
     ‖pathVariation (pathTransport q₀ h₀ K) H transportFinish‖ ≤ physicalPeriod*‖H‖ := by
   rw [pathVariation_apply,norm_mul,pathTransport_unit q₀ h₀ K transportFinish,mul_one]
@@ -29,14 +30,18 @@ private theorem variation_endpoint_le (q₀ : ℍ) (h₀ : ‖q₀‖=1) (K H : 
       exact H.norm_coe_le_norm _)
     _ = _ := by rw [sub_zero,abs_of_pos physicalPeriod_pos]; ring
 
-/-- Original `position_y_hasDerivAt` guarantee for the `TerminalRegularity` construction; the complete source hypotheses are retained. -/
+/-- Varying the first transverse coordinate `y` at fixed `z` and `t` gives a derivative equal to
+spatial axis `1`. -/
 private theorem position_y_hasDerivAt (z t y : ℝ) :
     HasDerivAt (fun s => sourcePosition (transversePair (s,z),t)) (EuclideanSpace.single 1 1) y := by
   apply (sourcePosition.hasFDerivAt.comp_hasDerivAt y
     ((transversePair_hasDerivAt z y).prodMk (hasDerivAt_const y t))).congr_deriv
   ext i; fin_cases i <;> rfl
 
-/-- Original `horizontal_y_hasDerivAt` guarantee for the `TerminalRegularity` construction; the complete source hypotheses are retained. -/
+/-- For a smooth source, the derivative of the horizontal quaternion coefficient in the first
+transverse coordinate is `-1/2` times the sum of two ordered products. They multiply the transverse
+derivative by the longitudinal derivative, and the source quaternion by the mixed
+transverse–longitudinal derivative, respectively. -/
 private theorem horizontal_y_hasDerivAt (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (y z t : ℝ) :
     let p := sourcePosition (transversePair (y,z),t)
@@ -59,7 +64,8 @@ private theorem horizontal_y_hasDerivAt (v : SpatialPoint → SpatialPoint) (hv 
     exact hd
   convert (hq.mul hd').const_smul (-1/2 : ℝ) using 1 <;> rfl
 
-/-- Original `horizontal_y_norm` guarantee for the `TerminalRegularity` construction; the complete source hypotheses are retained. -/
+/-- If `s` is unit, `sy` and `sx` have norm at most `m1 ≥ 0`, and `sxy` has norm at most `m2`, the
+norm of `(-1/2) • (sy * sx + s * sxy)` is at most `(m1^2 + m2) / 2`. -/
 private theorem horizontal_y_norm (s sy sx sxy : ℍ) (hs : ‖s‖=1) (m1 m2 : ℝ)
     (hm1 : 0 ≤ m1) (hy : ‖sy‖ ≤ m1) (hx : ‖sx‖ ≤ m1) (hxy : ‖sxy‖ ≤ m2) :
     ‖(-1/2 : ℝ) • (sy*sx+s*sxy)‖ ≤ (m1^2+m2)/2 := by
@@ -70,7 +76,8 @@ private theorem horizontal_y_norm (s sy sx sxy : ℍ) (hs : ‖s‖=1) (m1 m2 : 
   have hp : ‖sy‖*‖sx‖ ≤ m1*m1 := mul_le_mul hy hx (norm_nonneg _) hm1
   nlinarith
 
-/-- Original `position_cube` guarantee for the `TerminalRegularity` construction; the complete source hypotheses are retained. -/
+/-- Taking the two transverse coordinates in `[0, physicalPeriod]` and the longitudinal coordinate
+from `TransportTime` gives a point in the fundamental cube. -/
 private theorem position_cube (y z : ℝ) (hy : y ∈ Icc 0 physicalPeriod) (hz : z ∈ Icc 0 physicalPeriod)
     (t : TransportTime) : InFundamentalCube (sourcePosition (transversePair (y,z),t)) := by
   intro i
@@ -117,7 +124,9 @@ private theorem coefficient_y_bound (v : SpatialPoint → SpatialPoint) (hv : Co
     _ = _ := congrArg norm he
     _ ≤ _ := horizontal_y_norm _ _ _ _ hunit m1 m2 hm1 hsy hsx hsxy
 
-/-- Original `terminalRatio_y_derivative_bound` guarantee for the `TerminalRegularity` construction; the complete source hypotheses are retained. -/
+/-- For a smooth unit source, a unit seed, and nonnegative rescaling bounds `m1` and `m2`, the norm
+of the terminal ratio derivative in the first transverse direction is at most
+`physicalPeriod * (m1^2 + m2) / 2` on the physical transverse square. -/
 theorem terminalRatio_y_derivative_bound (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (hu : ∀ w, ‖v w‖=1) (q₀ : ℍ) (h₀ : ‖q₀‖=1) (m1 m2 : ℝ) (hm1 : 0 ≤ m1) (hm2 : 0 ≤ m2)
     (hb : SourceRescalingBounds v m1 m2) (y z : ℝ) (hy : y ∈ Icc 0 physicalPeriod) (hz : z ∈ Icc 0 physicalPeriod) :
@@ -141,7 +150,9 @@ theorem terminalRatio_y_derivative_bound (v : SpatialPoint → SpatialPoint) (hv
   exact (variation_endpoint_le q₀ h₀ K H).trans (mul_le_mul_of_nonneg_left
     (coefficient_y_bound v hv hu m1 m2 hm1 hm2 hb y z hy hz) physicalPeriod_pos.le)
 
-/-- Original `rescaledTerminalRatio_y_bound` guarantee for the `TerminalRegularity` construction; the complete source hypotheses are retained. -/
+/-- For a smooth unit source with accurate spin samples and certified nonnegative rescaling bounds,
+the norm of the scaled terminal ratio derivative in the first transverse direction on the unit
+square is at most `((7 * m1)^2 + 49 * m2) / 2`. -/
 theorem rescaledTerminalRatio_y_bound (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (hu : ∀ w, ‖v w‖=1) (source : (Fin 3 → ℚ) × ℕ → RationalSpinSample) (hs : OriginalSpinSourceAccurate v source)
     (m1 m2 : ℚ) (hm1 : 0 ≤ m1) (hm2 : 0 ≤ m2) (hb : SourceRescalingBounds v (m1 : ℝ) (m2 : ℝ))

@@ -45,13 +45,13 @@ open scoped Matrix.Norms.L2Operator
 
 variable {H I : Type} [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
 
-/-- The finite construction in `NativeNeumannGapResolvent` satisfies `gap_reference_shift_eq` under the displayed hypotheses. -/
+/-- For any real `B`, the reference shift is `z • 1 - A` scaled by the complex cast of `B⁻¹`. -/
 private theorem gap_reference_shift_eq (A : Matrix I I ℂ) (B : ℝ) (z : ℂ) :
     referenceShiftBlock A B z = ((B⁻¹ : ℝ) : ℂ) • matrixShift A z := by
   simp only [referenceShiftBlock, matrixShift, smul_sub, smul_smul,
     Complex.ofReal_inv, div_eq_mul_inv, mul_comm]
 
-/-- The finite construction in `NativeNeumannGapResolvent` satisfies `gap_reference_shift_norm` under the displayed hypotheses. -/
+/-- If the exact input encoding has scale `α` and `B > 0` covers `α + ‖z‖`, the reference shift has operator norm at most one. -/
 private theorem gap_reference_shift_norm (A : Matrix I I ℂ) (U : Matrix H H ℂ)
     (F : Matrix H I ℂ) (α B : ℝ) (z : ℂ)
     (hbe : BlockEncoding A U F F α 0) (hB : 0 < B)

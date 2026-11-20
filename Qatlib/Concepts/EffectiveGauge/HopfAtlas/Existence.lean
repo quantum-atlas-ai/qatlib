@@ -35,14 +35,14 @@ namespace Qatlib.Concepts.EffectiveGauge.HopfAtlas
 /-- Definition of radial Unit in the Hopf Atlas construction. -/
 private def radialUnit (q : ℍ) : ℍ := (2/(1+‖q‖) : ℝ) • q
 
-/-- Original `radialUnit_norm` guarantee for the `Existence` construction; the complete source hypotheses are retained. -/
+/-- The radial rescaling `q ↦ (2 / (1 + ‖q‖)) • q` has norm at most `2` at every quaternion. -/
 private theorem radialUnit_norm (q : ℍ) : ‖radialUnit q‖ ≤ 2 := by
   have hp : 0 < 1+‖q‖ := by positivity
   rw [radialUnit, norm_smul, Real.norm_eq_abs, abs_of_nonneg (by positivity)]
   rw [div_mul_eq_mul_div, div_le_iff₀ hp]
   nlinarith [norm_nonneg q]
 
-/-- Original `radialUnit_lipschitz` guarantee for the `Existence` construction; the complete source hypotheses are retained. -/
+/-- The radial rescaling of quaternions is globally `4`-Lipschitz. -/
 private theorem radialUnit_lipschitz : LipschitzWith 4 radialUnit := by
   apply LipschitzWith.of_dist_le_mul
   intro q p
@@ -78,11 +78,12 @@ private theorem radialUnit_lipschitz : LipschitzWith 4 radialUnit := by
           mul_nonneg hnd hnq]
     _ = (4 : ℝ)*dist q p := by rw [dist_eq_norm]; ring
 
-/-- Original `radialUnit_eq` guarantee for the `Existence` construction; the complete source hypotheses are retained. -/
+/-- The radial rescaling fixes every unit quaternion. -/
 private theorem radialUnit_eq (q : ℍ) (hq : ‖q‖=1) : radialUnit q=q := by
   norm_num [radialUnit, hq]
 
-/-- Original `right_derivative_of_Icc` guarantee for the `Existence` construction; the complete source hypotheses are retained. -/
+/-- At any `t ∈ [a, b)`, a derivative within `[a, b]` is also a right derivative within `[t, ∞)`
+with the same value. -/
 private theorem right_derivative_of_Icc {q : ℝ → ℍ} {v : ℍ} {a b t : ℝ}
     (ht : t ∈ Ico a b) (hq : HasDerivWithinAt q v (Icc a b) t) :
     HasDerivWithinAt q v (Ici t) t := by

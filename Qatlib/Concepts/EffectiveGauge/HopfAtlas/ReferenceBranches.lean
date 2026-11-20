@@ -27,7 +27,8 @@ open Set
 namespace Qatlib.Concepts.EffectiveGauge.HopfAtlas
 open Qatlib.Concepts.EffectiveGauge.RationalFlow
 
-/-- Original `scaledUnitPoint_cube` guarantee for the `ReferenceBranches` construction; the complete source hypotheses are retained. -/
+/-- A point with each coordinate in `[0, 1]` lies in the fundamental cube after multiplication by
+the physical period. -/
 theorem scaledUnitPoint_cube (u : SpatialPoint) (hu : ∀ j, u j ∈ Icc 0 1) :
     InFundamentalCube (physicalPeriod • u) := by
   intro j
@@ -35,7 +36,7 @@ theorem scaledUnitPoint_cube (u : SpatialPoint) (hu : ∀ j, u j ∈ Icc 0 1) :
   exact ⟨mul_nonneg physicalPeriod_pos.le (hu j).1,
     by simpa only [mul_one] using mul_le_mul_of_nonneg_left (hu j).2 physicalPeriod_pos.le⟩
 
-/-- Original `phase_add` guarantee for the `ReferenceBranches` construction; the complete source hypotheses are retained. -/
+/-- Quaternion phase converts addition of real angles into quaternion multiplication. -/
 theorem phase_add (a b : ℝ) : phase (a+b)=phase a*phase b := by
   apply Quaternion.ext
   · simp [phase,iAxis,Real.cos_add]
@@ -44,12 +45,15 @@ theorem phase_add (a b : ℝ) : phase (a+b)=phase a*phase b := by
   · simp [phase,iAxis]
   · simp [phase,iAxis]
 
-/-- Original `scaled_width` guarantee for the `ReferenceBranches` construction; the complete source hypotheses are retained. -/
+/-- When `eta ≤ 1/2`, the physical gluing width at scale `physicalPeriod * eta` is
+`physicalPeriod * eta / 4`. -/
 private theorem scaled_width (eta : ℝ) (he1 : eta ≤ 1/2) :
     gluingWidth (physicalPeriod*eta)=physicalPeriod*eta/4 :=
   gluingWidth_eq_quarter (by nlinarith [physicalPeriod_pos])
 
-/-- Original `raw_end_on_collar` guarantee for the `ReferenceBranches` construction; the complete source hypotheses are retained. -/
+/-- For a smooth unit source with a constant physical collar and a unit seed, the raw spatial lift
+on the rear collar of the fundamental cube equals the corresponding transverse transport path at
+its terminal time. -/
 private theorem raw_end_on_collar (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (hu : ∀ w, ‖v w‖=1) (q₀ : ℍ) (h₀ : ‖q₀‖=1) (eta : ℝ) (sc : ℍ)
     (hc : HasConstantCollar (sourceQuaternion v) eta sc) (x : SpatialPoint)
@@ -71,7 +75,9 @@ private theorem raw_end_on_collar (v : SpatialPoint → SpatialPoint) (hv : Cont
   rw [sourceLiftExtension_eq v hv hu q₀ h₀ _ ⟨x 0,hx 0⟩]
   exact hpath.symm
 
-/-- Original `unitReference_front` guarantee for the `ReferenceBranches` construction; the complete source hypotheses are retained. -/
+/-- For a smooth periodic unit source with a constant collar and a unit seed lying over its collar
+spin, the periodic reference agrees with the raw lift at scaled unit-cube points with longitudinal
+coordinate at most `1 - eta / 2`. This branch formula assumes `0 < eta ≤ 1/2`. -/
 theorem unitReference_front (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (hu : ∀ w, ‖v w‖=1) (q₀ : ℍ) (h₀ : ‖q₀‖=1) (hp : IsPeriodicField (sourceQuaternion v))
     (eta : ℝ) (he : 0<eta) (he1 : eta ≤ 1/2) (sc : ℍ)
@@ -87,7 +93,9 @@ theorem unitReference_front (v : SpatialPoint → SpatialPoint) (hv : ContDiff �
   rw [hz,zero_mul]
   simp [phase]
 
-/-- Original `unitReference_back` guarantee for the `ReferenceBranches` construction; the complete source hypotheses are retained. -/
+/-- For a smooth periodic unit source with a constant collar and a unit seed lying over its collar
+spin, the periodic reference equals that seed at scaled unit-cube points with first coordinate at
+least `1 - eta / 4`, when `0 < eta ≤ 1/2`. -/
 theorem unitReference_back (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (hu : ∀ w, ‖v w‖=1) (q₀ : ℍ) (h₀ : ‖q₀‖=1) (hp : IsPeriodicField (sourceQuaternion v))
     (eta : ℝ) (he : 0<eta) (he1 : eta ≤ 1/2) (sc : ℍ)
@@ -100,7 +108,9 @@ theorem unitReference_back (v : SpatialPoint → SpatialPoint) (hv : ContDiff �
   change physicalPeriod-physicalPeriod*eta/4 ≤ physicalPeriod*(u 0)
   nlinarith [physicalPeriod_pos]
 
-/-- Original `unitReference_transverse` guarantee for the `ReferenceBranches` construction; the complete source hypotheses are retained. -/
+/-- For a smooth periodic unit source with a constant collar of width `physicalPeriod * eta`, the
+periodic reference equals the given unit seed over the collar spin at any scaled unit-cube point
+within normalized distance `eta` of a transverse face. Here `eta` is positive. -/
 theorem unitReference_transverse (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (hu : ∀ w, ‖v w‖=1) (q₀ : ℍ) (h₀ : ‖q₀‖=1) (hp : IsPeriodicField (sourceQuaternion v))
     (eta : ℝ) (he : 0<eta) (sc : ℍ)

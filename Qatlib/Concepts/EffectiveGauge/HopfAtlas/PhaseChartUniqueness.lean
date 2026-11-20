@@ -34,7 +34,8 @@ def HasSeedChartPhase (chart : SeedChart) (q : ℍ) : Prop :=
   | .north => q.imI=0 ∧ (1/2 : ℝ)<q.re
   | .south => q.imK=0 ∧ (1/2 : ℝ)<q.imJ
 
-/-- Original `sameHopf_eq_of_seedChartPhase` guarantee for the `PhaseChartUniqueness` construction; the complete source hypotheses are retained. -/
+/-- Two unit quaternions over the same Hopf spin coincide if both satisfy the same chart's phase
+normalization. -/
 theorem sameHopf_eq_of_seedChartPhase (chart : SeedChart) (q r : ℍ)
     (hq : ‖q‖=1) (hr : ‖r‖=1) (hh : hopf r=hopf q)
     (hpq : HasSeedChartPhase chart q) (hpr : HasSeedChartPhase chart r) : r=q := by
@@ -75,7 +76,9 @@ theorem sameHopf_eq_of_seedChartPhase (chart : SeedChart) (q r : ℍ)
   have hc1 : c=1 := by ext <;> simp [hcr,hci.1,hc.1,hc.2]
   simpa only [hc1,one_mul] using ha.symm
 
-/-- Original `exactChartSeed_phase` guarantee for the `PhaseChartUniqueness` construction; the complete source hypotheses are retained. -/
+/-- For a purely imaginary unit spin in the chart domain, the north seed has zero `i` component
+and real part greater than `1/2`, and the south seed has zero `k` component and `j` part
+greater than `1/2`, in the respective chart. -/
 theorem exactChartSeed_phase (chart : SeedChart) (s : ℍ) (hr : s.re=0) (hn : ‖s‖=1)
     (hc : match chart with
       | .north => -(1/2 : ℝ)<s.imI
@@ -85,7 +88,8 @@ theorem exactChartSeed_phase (chart : SeedChart) (s : ℍ) (hr : s.re=0) (hn : �
   | north => exact ⟨rfl,h⟩
   | south => exact ⟨rfl,h⟩
 
-/-- Original `rescaledOriginSeed_phase` guarantee for the `PhaseChartUniqueness` construction; the complete source hypotheses are retained. -/
+/-- For a unit source with accurate rational samples, the rescaled origin seed satisfies the
+phase normalization of the chart chosen from the rescaled samples. -/
 theorem rescaledOriginSeed_phase (v : SpatialPoint → SpatialPoint) (hu : ∀ x, ‖v x‖=1)
     (source : (Fin 3 → ℚ) × ℕ → RationalSpinSample) (hs : OriginalSpinSourceAccurate v source)
     (m1 m2 : ℚ) :
@@ -94,7 +98,10 @@ theorem rescaledOriginSeed_phase (v : SpatialPoint → SpatialPoint) (hu : ∀ x
   exactChartSeed_phase _ _ rfl ((spinOfVector_norm _).trans (hu 0))
     (rescaledOriginChart_valid v source hs m1 m2)
 
-/-- Original `selectedPoissonGauge_unique_chart` guarantee for the `PhaseChartUniqueness` construction; the complete source hypotheses are retained. -/
+/-- For a smooth source with a smooth periodic unit reference and a certified mean sector, a
+smooth periodic solenoidal unit lift of the same source equals the selected Poisson gauge if
+both origin values satisfy the same chart phase and the competing lift's means lie strictly in
+the certified cells. -/
 theorem selectedPoissonGauge_unique_chart (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (q : QuaternionField) (hq : ContDiff ℝ ∞ q) (hp : IsPeriodicField q) (hu : ∀ x, ‖q x‖=1)
     (hh : ∀ x, hopf (q x)=spinOfVector (v x)) (result : SourceMeanSectorResult)

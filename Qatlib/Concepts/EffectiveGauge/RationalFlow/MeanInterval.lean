@@ -43,7 +43,8 @@ def meanIntervalQuotient (a e length width : ℚ) : RationalMeanInterval :=
 
 noncomputable section
 
-/-- Original `scalar_interval_product` guarantee for the `MeanInterval` construction; the complete source hypotheses are retained. -/
+/-- Multiplying a real point in a closed interval by `z` gives a value between the smaller and
+larger of the two scaled endpoints. -/
 private theorem scalar_interval_product (z lo hi t : ℝ) (ht : lo ≤ t ∧ t ≤ hi) :
     min (z*lo) (z*hi) ≤ z*t ∧ z*t ≤ max (z*lo) (z*hi) := by
   by_cases hz : 0 ≤ z
@@ -53,7 +54,9 @@ private theorem scalar_interval_product (z lo hi t : ℝ) (ht : lo ≤ t ∧ t �
     exact ⟨(min_le_right _ _).trans (mul_le_mul_of_nonpos_left ht.2 hz'),
       (mul_le_mul_of_nonpos_left ht.1 hz').trans (le_max_left _ _)⟩
 
-/-- Original `meanQuotient_real_bounds` guarantee for the `MeanInterval` construction; the complete source hypotheses are retained. -/
+/-- If the numerator is within `e` of `a` and the denominator lies in `[length, length + width]`
+with positive lower endpoint, their quotient lies between the minimum and maximum of the four
+endpoint quotients. -/
 private theorem meanQuotient_real_bounds (a e length width x y : ℝ) (hl : 0<length)
     (hx : |x-a| ≤ e) (hy : length ≤ y ∧ y ≤ length+width) :
     min (min ((a-e)/length) ((a-e)/(length+width)))
@@ -79,7 +82,8 @@ private theorem meanQuotient_real_bounds (a e length width x y : ℝ) (hl : 0<le
   · exact (min_le_left _ _).trans (hlo'.trans hlow)
   · exact (hhigh.trans hhi').trans (le_max_right _ _)
 
-/-- Original `meanIntervalQuotient_sound` guarantee for the `MeanInterval` construction; the complete source hypotheses are retained. -/
+/-- The computed rational interval encloses a real quotient when the numerator meets the given
+absolute error bound and the denominator lies in the given interval with positive lower endpoint. -/
 theorem meanIntervalQuotient_sound (a e length width : ℚ) (x y : ℝ)
     (hl : 0<(length : ℝ)) (hx : |x-(a : ℝ)| ≤ (e : ℝ))
     (hy : (length : ℝ) ≤ y ∧ y ≤ (length+width : ℚ)) :
@@ -89,7 +93,8 @@ theorem meanIntervalQuotient_sound (a e length width : ℚ) (x y : ℝ)
     (by simpa only [Rat.cast_add] using hy)
   simpa [meanIntervalQuotient] using h
 
-/-- Original `rationalMeanInterval_midpoint_error` guarantee for the `MeanInterval` construction; the complete source hypotheses are retained. -/
+/-- A real number between the interval endpoints is at most one radius away from its rational
+midpoint. -/
 theorem rationalMeanInterval_midpoint_error (I : RationalMeanInterval) (x : ℝ)
     (hx : (I.lower : ℝ) ≤ x ∧ x ≤ (I.upper : ℝ)) :
     |x-(I.midpoint : ℝ)| ≤ (I.radius : ℝ) := by
@@ -98,7 +103,9 @@ theorem rationalMeanInterval_midpoint_error (I : RationalMeanInterval) (x : ℝ)
     Rat.cast_add,Rat.cast_sub,Rat.cast_ofNat]
   constructor <;> linarith [hx.1,hx.2]
 
-/-- Original `meanQuotient_corner_error` guarantee for the `MeanInterval` construction; the complete source hypotheses are retained. -/
+/-- Suppose the numerator is within `e ≥ 0` of `a` and has magnitude at most `B`, and the
+denominator lies in `[length, length + width]` with `length ≥ 6`. The quotient differs from
+`a / length` by at most `e / 6 + B * width / 36`. -/
 private theorem meanQuotient_corner_error (a e length width x y B : ℝ)
     (he : 0 ≤ e) (hl : 6 ≤ length) (hx : |x-a| ≤ e) (hB : |x| ≤ B)
     (hy : length ≤ y ∧ y ≤ length+width) :
@@ -130,7 +137,8 @@ private theorem meanQuotient_corner_error (a e length width x y B : ℝ)
           (mul_nonneg hy0.le hl0.le)).trans
           (div_le_div_of_nonneg_left (mul_nonneg hB0 hw0) (by norm_num) hden)
 
-/-- Original `meanIntervalQuotient_radius_bound` guarantee for the `MeanInterval` construction; the complete source hypotheses are retained. -/
+/-- With nonnegative numerator error and denominator width and denominator lower bound at least six,
+the rational quotient interval has radius at most `e / 6 + (|a| + e) * width / 36`. -/
 theorem meanIntervalQuotient_radius_bound (a e length width : ℚ)
     (he : 0 ≤ e) (hl : 6 ≤ length) (hw : 0 ≤ width) :
     ((meanIntervalQuotient a e length width).radius : ℝ) ≤

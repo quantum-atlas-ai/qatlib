@@ -45,7 +45,9 @@ noncomputable section
 open scoped Quaternion ContDiff
 open Set
 
-/-- Original `rescaledTerminalPrimitive_eq` guarantee for the `ReferenceAngle` construction; the complete source hypotheses are retained. -/
+/-- For a smooth unit source with accurate spin samples, the integrated angular rate of the scaled
+terminal ratio at a rational transverse point equals the physical terminal phase at the
+period-scaled point, using the corresponding rescaled origin seed. -/
 theorem rescaledTerminalPrimitive_eq (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (hu : ∀ w, ‖v w‖=1) (source : (Fin 3 → ℚ) × ℕ → RationalSpinSample)
     (hs : OriginalSpinSourceAccurate v source) (m1 m2 y z : ℚ) :
@@ -58,7 +60,9 @@ theorem rescaledTerminalPrimitive_eq (v : SpatialPoint → SpatialPoint) (hv : C
   rw [← transversePair_scale] at h
   exact h
 
-/-- Original `primitive_abs_bound` guarantee for the `ReferenceAngle` construction; the complete source hypotheses are retained. -/
+/-- For a smooth circle-valued quaternion field and `y ≥ 0`, a bound `Q` on the first directional
+derivative along the segment from `(0, z)` to `(y, z)` implies that the absolute anchored phase
+integral is at most `Q * y`. -/
 private theorem primitive_abs_bound (k : TransversePoint → ℍ) (hk : ContDiff ℝ ∞ k)
     (hc : ∀ p, IsCircleQuaternion (k p)) (z y Q : ℝ) (hy : 0 ≤ y)
     (hd : ∀ t ∈ Icc 0 y, ‖fderiv ℝ k (transversePair (t,z)) (EuclideanSpace.single 0 1)‖ ≤ Q) :
@@ -72,7 +76,11 @@ private theorem primitive_abs_bound (k : TransversePoint → ℍ) (hk : ContDiff
     (show y ∈ Icc 0 y from ⟨hy,le_rfl⟩)
   simpa only [circleLogPrimitive_zero,sub_zero,Real.norm_eq_abs,abs_of_nonneg hy] using h
 
-/-- Original `sourceTerminalRealPhase_bound` guarantee for the `ReferenceAngle` construction; the complete source hypotheses are retained. -/
+/-- For a smooth periodic unit field with accurate rational spin samples and nonnegative rescaling
+bounds `m1` and `m2`, the rescaled terminal phase at any rational transverse coordinates in
+`[0, 1]` has absolute value at most `((7 * m1)^2 + 49 * m2) / 2`. Assume the field is constant
+on the part of the fundamental cube outside a subset separated from the boundary by a positive
+distance. -/
 theorem sourceTerminalRealPhase_bound (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (hu : ∀ w, ‖v w‖=1) (hp : IsPeriodicField v)
     (source : (Fin 3 → ℚ) × ℕ → RationalSpinSample) (hs : OriginalSpinSourceAccurate v source)
@@ -92,7 +100,9 @@ theorem sourceTerminalRealPhase_bound (v : SpatialPoint → SpatialPoint) (hv : 
     (fun t ht => rescaledTerminalRatio_y_bound v hv hu source hs m1 m2 hm1 hm2 hb t (z : ℝ) ⟨ht.1,ht.2.trans hy.2⟩ hz)
   exact h.trans (by simpa only [mul_one] using mul_le_mul_of_nonneg_left hy.2 hQ)
 
-/-- Original `transition_angle_error` guarantee for the `ReferenceAngle` construction; the complete source hypotheses are retained. -/
+/-- If the approximate cutoff lies in `[0, 1]`, differs from `rho` by at most `cutoffError ≥ 0`,
+and `log` approximates `lambda` within `logError` with `|lambda| ≤ Q`, the error of the corrected
+angle product is at most `logError + cutoffError * Q`. -/
 private theorem transition_angle_error (rho lambda log cutoff logError cutoffError Q : ℝ)
     (hc : cutoff ∈ Icc 0 1) (hce : 0 ≤ cutoffError)
     (hlog : |log-lambda| ≤ logError) (hcut : |cutoff-rho| ≤ cutoffError) (hlambda : |lambda| ≤ Q) :
@@ -106,7 +116,11 @@ private theorem transition_angle_error (rho lambda log cutoff logError cutoffErr
       (mul_le_mul hcut hlambda (abs_nonneg _) hce)
     _ = _ := by ring
 
-/-- Original `sourceReferenceAngle_spec` guarantee for the `ReferenceAngle` construction; the complete source hypotheses are retained. -/
+/-- Suppose a smooth periodic unit source is constant on the part of the fundamental cube
+outside a subset separated from the boundary by a positive distance. Given accurate rational spin
+samples and certified nonnegative rescaling bounds, angle evaluation succeeds for rational
+unit-square transverse coordinates and positive `tau`. Its value approximates the exact terminal
+phase times one minus the normalized gluing cutoff, with recorded error at most `tau / 16`. -/
 theorem sourceReferenceAngle_spec (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (hu : ∀ w, ‖v w‖=1) (hp : IsPeriodicField v)
     (source : (Fin 3 → ℚ) × ℕ → RationalSpinSample) (hs : OriginalSpinSourceAccurate v source)
@@ -144,7 +158,8 @@ theorem sourceReferenceAngle_spec (v : SpatialPoint → SpatialPoint) (hv : Cont
     nlinarith
 
 
-/-- Original `phase_lipschitz` guarantee for the `ReferenceAngle` construction; the complete source hypotheses are retained. -/
+/-- The norm distance between two quaternion phases is at most the absolute difference of their
+real angles. -/
 theorem phase_lipschitz (a b : ℝ) : ‖phase a-phase b‖ ≤ |a-b| := by
   have h := Convex.norm_image_sub_le_of_norm_hasDerivWithin_le (C := 1)
     (fun t (_ : t ∈ (univ : Set ℝ)) => (phase_hasDerivAt t).hasDerivWithinAt)

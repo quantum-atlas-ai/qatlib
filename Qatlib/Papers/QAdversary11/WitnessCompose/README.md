@@ -6,8 +6,47 @@
 
 构造部分函数复合的 span program 并证明带正成本的输入依赖 witness-size 不等式。
 
-**边界**：给定局部 span program 与合法输入；strong-input 精化仅在 direct 函数条件下适用。
+**边界**：`LiteralComposition` 在双内层程序的字面量模型中证明正输入的见证能量界。单一源程序的原始与对偶见证对应、负输入能量界、部分定义域和 strong-input 精化仍待证明。
 
 **覆盖等级**：D
 
-本 Block 尚无 Lean 声明。
+## 声明
+
+| FQN | 种类 | 源码 | 一句话 |
+| --- | --- | --- | --- |
+| `Qatlib.Papers.QAdversary11.WitnessCompose.LiteralComposition.LiteralProgram` | structure | L58 | A finite span program whose columns are labelled by actual input literals. |
+| `Qatlib.Papers.QAdversary11.WitnessCompose.LiteralComposition.LiteralProgram.available` | def | L69 | A column is available precisely when its input literal is true. |
+| `Qatlib.Papers.QAdversary11.WitnessCompose.LiteralComposition.LiteralProgram.WitnessSet` | abbrev | L73 | Actual supported solutions of the finite linear system. |
+| `Qatlib.Papers.QAdversary11.WitnessCompose.LiteralComposition.LiteralProgram.Computes` | def | L78 | The literal-labelled program accepts exactly the one-inputs of a Boolean function. |
+| `Qatlib.Papers.QAdversary11.WitnessCompose.LiteralComposition.LiteralProgram.energy` | def | L82 | The squared amplitude of one witness coefficient. |
+| `Qatlib.Papers.QAdversary11.WitnessCompose.LiteralComposition.LiteralProgram.cost` | def | L85 | The actual weighted energy of a supported witness. |
+| `Qatlib.Papers.QAdversary11.WitnessCompose.LiteralComposition.LiteralProgram.wsizeS` | def | L90 | The positive witness size, defined by minimization of actual linear solutions. |
+| `Qatlib.Papers.QAdversary11.WitnessCompose.LiteralComposition.LiteralProgram.wsize1` | def | L94 | The unweighted positive witness size. |
+| `Qatlib.Papers.QAdversary11.WitnessCompose.LiteralComposition.LiteralProgram.energy_ne_top` | theorem | L98 | The squared amplitude is finite. |
+| `Qatlib.Papers.QAdversary11.WitnessCompose.LiteralComposition.LiteralProgram.energy_one` | theorem | L101 | The unit scalar has positive unit energy. |
+| `Qatlib.Papers.QAdversary11.WitnessCompose.LiteralComposition.LiteralProgram.energy_mul` | theorem | L107 | Tensoring scalar coefficients multiplies their squared amplitudes. |
+| `Qatlib.Papers.QAdversary11.WitnessCompose.LiteralComposition.Composition` | structure | L120 | The reconstructed finite linear reduction. |
+| `Qatlib.Papers.QAdversary11.WitnessCompose.LiteralComposition.Composition.Coefficients` | abbrev | L127 | The free outer coefficients and the charged inner coefficients. |
+| `Qatlib.Papers.QAdversary11.WitnessCompose.LiteralComposition.Composition.WitnessSet` | abbrev | L131 | Supported solutions to the actual composed linear equations. |
+| `Qatlib.Papers.QAdversary11.WitnessCompose.LiteralComposition.Composition.Computes` | def | L140 | Acceptance is witnessed by the finite block system. |
+| `Qatlib.Papers.QAdversary11.WitnessCompose.LiteralComposition.Composition.cost` | def | L145 | Every inner coefficient is charged according to its actual queried literal. |
+| `Qatlib.Papers.QAdversary11.WitnessCompose.LiteralComposition.Composition.wsizeS` | def | L151 | Positive witness size of the composed linear system. |
+| `Qatlib.Papers.QAdversary11.WitnessCompose.LiteralComposition.Composition.InnerWitnesses` | abbrev | L156 | On each outer available literal, an actual inner witness is supplied. |
+| `Qatlib.Papers.QAdversary11.WitnessCompose.LiteralComposition.Composition.lift` | def | L162 | The explicit tensor witness used by span-program composition. |
+| `Qatlib.Papers.QAdversary11.WitnessCompose.LiteralComposition.Composition.innerWitnesses_nonempty` | theorem | L183 | Correct inner programs provide precisely the active inner witnesses. |
+| `Qatlib.Papers.QAdversary11.WitnessCompose.LiteralComposition.Composition.unscale` | def | L192 | A nonzero scaled inner solution can be divided to yield a genuine inner witness. |
+| `Qatlib.Papers.QAdversary11.WitnessCompose.LiteralComposition.Composition.computes` | theorem | L203 | The constructed linear reduction computes the composed Boolean function; neither the matrix equations nor the literal support inspect the answer. |
+| `Qatlib.Papers.QAdversary11.WitnessCompose.LiteralComposition.Composition.cost_lift` | theorem | L226 | The energy of the constructed witness is the sum of the actual tensor-block energies, with zero blocks on unavailable outer literals. |
+| `Qatlib.Papers.QAdversary11.WitnessCompose.LiteralComposition.Composition.iInf_pi_sum` | theorem | L252 | Finite independent witness choices commute with taking infima of their nonnegative energies. |
+| `Qatlib.Papers.QAdversary11.WitnessCompose.LiteralComposition.Composition.wsize_le_weighted` | theorem | L274 | The composed witness infimum is bounded by the outer infimum weighted by the actual inner witness sizes. |
+| `Qatlib.Papers.QAdversary11.WitnessCompose.LiteralComposition.LiteralProgram.cost_ne_top` | theorem | L327 | Finite input costs give finite energy to every actual finite witness. |
+| `Qatlib.Papers.QAdversary11.WitnessCompose.LiteralComposition.LiteralProgram.wsize_ne_top` | theorem | L335 | On an accepted input, finite input costs give a finite witness infimum. |
+| `Qatlib.Papers.QAdversary11.WitnessCompose.LiteralComposition.LiteralProgram.weighted_le_max` | theorem | L344 | The outer variational cost is bounded by its unweighted cost times the largest finite input cost. |
+| `Qatlib.Papers.QAdversary11.WitnessCompose.LiteralComposition.span_program_composition` | theorem | L374 | Positive-input span-program composition for literal-labelled outer programs and explicit inner programs for both Boolean outcomes. |
+| `Qatlib.Papers.QAdversary11.WitnessCompose.LiteralComposition.bitProgram` | def | L396 | A nonconstant one-bit literal program with a nonzero target. |
+| `Qatlib.Papers.QAdversary11.WitnessCompose.LiteralComposition.bitProgram_accepts` | theorem | L403 | The one-bit program accepts exactly its labelled literal. |
+| `Qatlib.Papers.QAdversary11.WitnessCompose.LiteralComposition.identityComposition` | def | L422 | The actual composition of two one-bit identity problems. |
+| `Qatlib.Papers.QAdversary11.WitnessCompose.LiteralComposition.identity_computes` | theorem | L427 | The composed finite equations evaluate the input bit, so both acceptance and rejection occur in the reconstructed model. |
+| `Qatlib.Papers.QAdversary11.WitnessCompose.LiteralComposition.identity_witness_cost` | theorem | L435 | Every accepting witness of the one-bit composition has positive unit energy: the output cannot be obtained through a free coefficient alone. |
+| `Qatlib.Papers.QAdversary11.WitnessCompose.LiteralComposition.identity_wsize` | theorem | L448 | The actual minimum energy for the identity composition is one, providing a satisfiable, nonzero-cost positive example for the model. |
+| `Qatlib.Papers.QAdversary11.WitnessCompose.LiteralComposition.identity_rejects` | theorem | L455 | The same finite reduction rejects the opposite input. |

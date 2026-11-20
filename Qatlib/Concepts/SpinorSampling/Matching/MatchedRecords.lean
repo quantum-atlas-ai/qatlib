@@ -65,7 +65,8 @@ def matchedStatistic {n m : ℕ} (ω : Fin n → S × Bool) (ν : Fin m → S ×
   if I.card=0 then 0 else
     (∑ x ∈ I, (firstSignZ ω x : ℝ)*(firstSignZ ν (τ x) : ℝ))/(I.card : ℝ)
 
-/-- Complete original `matched_statistic_cast` guarantee for `MatchedRecords`; all source hypotheses and output obligations are retained. -/
+/-- The rational matched statistic casts to the real average of the first-sign products, with
+zero returned in both versions for an empty matched set. -/
 theorem matched_statistic_cast {n m : ℕ} (ω : Fin n → S × Bool) (ν : Fin m → S × Bool)
     (τ : S → S) : (matchedStatisticQ ω ν τ : ℝ)=matchedStatistic ω ν τ := by
   dsimp only [matchedStatisticQ, matchedStatistic]
@@ -74,14 +75,15 @@ theorem matched_statistic_cast {n m : ℕ} (ω : Fin n → S × Bool) (ν : Fin 
   · push_cast
     rfl
 
-/-- Complete original `first_sign_abs` guarantee for `MatchedRecords`; all source hypotheses and output obligations are retained. -/
+/-- The first-sign lookup has absolute value at most one, including its zero value at an absent
+site. -/
 theorem first_sign_abs {n : ℕ} (ω : Fin n → S × Bool) (x : S) :
     |(firstSignZ ω x : ℝ)| ≤ 1 := by
   cases h : firstAddressIndex (fun i => (ω i).1) x with
   | none => simp [firstSignZ,h]
   | some i => cases hb : (ω i).2 <;> norm_num [firstSignZ,h,recordSignZ,hb]
 
-/-- Complete original `matched_statistic_abs` guarantee for `MatchedRecords`; all source hypotheses and output obligations are retained. -/
+/-- For any two record arrays and any match map, the real matched statistic lies in [−1, 1]. -/
 theorem matched_statistic_abs {n m : ℕ} (ω : Fin n → S × Bool) (ν : Fin m → S × Bool)
     (τ : S → S) : |matchedStatistic ω ν τ| ≤ 1 := by
   let I := matchedSites (fun i => (ω i).1) (fun i => (ν i).1) τ
@@ -101,27 +103,28 @@ theorem matched_statistic_abs {n m : ℕ} (ω : Fin n → S × Bool) (ν : Fin m
           (abs_nonneg _) (by norm_num : (0 : ℝ) ≤ 1)).trans_eq (by ring)
       _ = 1*(I.card : ℝ) := by simp
 
-/-- Complete original `occupied_sites_card` guarantee for `MatchedRecords`; all source hypotheses and output obligations are retained. -/
+/-- An array of length `n` occupies at most `n` distinct sites. -/
 theorem occupied_sites_card {n : ℕ} (J : Fin n → S) : (occupiedSites J).card ≤ n := by
   simpa [occupiedSites] using Finset.card_image_le (s := (Finset.univ : Finset (Fin n))) (f := J)
 
-/-- Complete original `matched_sites_card_left` guarantee for `MatchedRecords`; all source hypotheses and output obligations are retained. -/
+/-- The matched set contains at most as many sites as there are entries in the left array. -/
 theorem matched_sites_card_left {n m : ℕ} (J : Fin n → S) (K : Fin m → S) (τ : S → S) :
     (matchedSites J K τ).card ≤ n :=
   (Finset.card_le_card (Finset.filter_subset _ _)).trans (occupied_sites_card J)
 
-/-- Complete original `first_address_none_iff` guarantee for `MatchedRecords`; all source hypotheses and output obligations are retained. -/
+/-- The first-index search returns `none` exactly for sites absent from the array. -/
 theorem first_address_none_iff {n : ℕ} (J : Fin n → S) (x : S) :
     firstAddressIndex J x=none ↔ x ∉ occupiedSites J := by
   simp [firstAddressIndex,occupiedSites]
 
-/-- Complete original `first_address_some` guarantee for `MatchedRecords`; all source hypotheses and output obligations are retained. -/
+/-- If the first-index search for `x` returns `i`, the array entry at `i` is `x`. -/
 theorem first_address_some {n : ℕ} (J : Fin n → S) (x : S) (i : Fin n)
     (h : firstAddressIndex J x=some i) : J i=x := by
   change (List.finRange n).find? (fun j => decide (J j=x))=some i at h
   simpa only [decide_eq_true_eq] using List.find?_some h
 
-/-- Complete original `first_address_exists` guarantee for `MatchedRecords`; all source hypotheses and output obligations are retained. -/
+/-- For an occupied site, the first-index search returns some index at which the array contains
+that site. -/
 theorem first_address_exists {n : ℕ} (J : Fin n → S) (x : S) (hx : x ∈ occupiedSites J) :
     ∃ i : Fin n, firstAddressIndex J x=some i ∧ J i=x := by
   cases h : firstAddressIndex J x with
@@ -132,12 +135,14 @@ theorem first_address_exists {n : ℕ} (J : Fin n → S) (x : S) (hx : x ∈ occ
 def chosenFirstIndex {n : ℕ} (J : Fin n → S) (x : S) (hx : x ∈ occupiedSites J) : Fin n :=
   Classical.choose (first_address_exists J x hx)
 
-/-- Complete original `chosen_first_index_spec` guarantee for `MatchedRecords`; all source hypotheses and output obligations are retained. -/
+/-- For an occupied site, the chosen index is exactly the index returned by the first-address
+lookup and its array entry is the given site. -/
 theorem chosen_first_index_spec {n : ℕ} (J : Fin n → S) (x : S) (hx : x ∈ occupiedSites J) :
     firstAddressIndex J x=some (chosenFirstIndex J x hx) ∧ J (chosenFirstIndex J x hx)=x :=
   Classical.choose_spec (first_address_exists J x hx)
 
-/-- Complete original `chosen_first_index_injective` guarantee for `MatchedRecords`; all source hypotheses and output obligations are retained. -/
+/-- Choosing the first index of each occupied site gives an injection from occupied sites into
+array indices. -/
 theorem chosen_first_index_injective {n : ℕ} (J : Fin n → S) :
     Function.Injective (fun x : occupiedSites J => chosenFirstIndex J x x.property) := by
   intro x y h
@@ -147,18 +152,20 @@ theorem chosen_first_index_injective {n : ℕ} (J : Fin n → S) :
     _ = J (chosenFirstIndex J y y.property) := congrArg J h
     _ = (y : S) := (chosen_first_index_spec J y y.property).2
 
-/-- Complete original `first_sign_real_eq` guarantee for `MatchedRecords`; all source hypotheses and output obligations are retained. -/
+/-- When the address lookup finds `i` for a site, the real cast of its first sign is the sign
+encoded by record `i`. -/
 theorem first_sign_real_eq {n : ℕ} (ω : Fin n → S × Bool) (x : S) (i : Fin n)
     (h : firstAddressIndex (fun j => (ω j).1) x=some i) :
     (firstSignZ ω x : ℝ)=recordSign (ω i).2 := by
   rw [firstSignZ,h]
   exact record_sign_cast _
 
-/-- Complete original `mem_matched_sites` guarantee for `MatchedRecords`; all source hypotheses and output obligations are retained. -/
+/-- A site is matched exactly when it occurs in the left array and its image under `τ` occurs in
+the right array. -/
 theorem mem_matched_sites {n m : ℕ} (J : Fin n → S) (K : Fin m → S) (τ : S → S) (x : S) :
     x ∈ matchedSites J K τ ↔ x ∈ occupiedSites J ∧ τ x ∈ occupiedSites K := Finset.mem_filter
 
-/-- Complete original `matched_sites_card_right` guarantee for `MatchedRecords`; all source hypotheses and output obligations are retained. -/
+/-- An injective match map bounds the number of matched sites by the length of the right array. -/
 theorem matched_sites_card_right {n m : ℕ} (J : Fin n → S) (K : Fin m → S) (τ : S → S)
     (hτ : Function.Injective τ) : (matchedSites J K τ).card ≤ m := by
   have hm : Set.MapsTo τ (matchedSites J K τ) (occupiedSites K) := by

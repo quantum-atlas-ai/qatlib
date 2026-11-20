@@ -44,7 +44,8 @@ def endpointSpin (C m d r : ℕ) [NeZero (C*(2*m))]
     (a b c k : (Fin d → Fin (2^r)) → ℝ) (bit : Bool) : TrainedGrid.Edge C m d axis → Bool → ℂ :=
   fun e => complexSpinor a b c k ((TrainedGrid.matchingEquiv C m d r hN offset axis).symm (e,bit))
 
-/-- Complete original `endpoint_mass` guarantee for `PartialAddressTrainedOriginal`; all source hypotheses and output obligations are retained. -/
+/-- For a pointwise normalized native field, the spinor at the selected endpoint bit of every
+matched edge has unit mass. -/
 theorem endpoint_mass (C m d r : ℕ) [NeZero (C*(2*m))]
     (hN : 2^r=C*(2*m)*2) (offset : Fin d → Fin (C*(2*m))) (axis : Fin d)
     (a b c k : (Fin d → Fin (2^r)) → ℝ)
@@ -75,7 +76,9 @@ def originalLaw (C m d r : ℕ) [NeZero C] [NeZero m] [NeZero (2*m)] [NeZero (C*
     (endpoint_mass C m d r hN offset axis a b c k hz true)
     (fun Ω e => words Ω e.1) n
 
-/-- Complete original `original_law_native` guarantee for `PartialAddressTrainedOriginal`; all source hypotheses and output obligations are retained. -/
+/-- The joint probability of a native pilot and matching cohort is the native training
+probability times the product of the main Born weights using that pilot's word for each edge's
+box. -/
 theorem original_law_native (C m d r : ℕ) [NeZero C] [NeZero m] [NeZero (2*m)] [NeZero (C*(2*m))]
     (hN : 2^r=C*(2*m)*2) (offset : Fin d → Fin (C*(2*m))) (axis : Fin d)
     (a b c k : (Fin d → Fin (2^r)) → ℝ)
@@ -90,7 +93,8 @@ theorem original_law_native (C m d r : ℕ) [NeZero C] [NeZero m] [NeZero (2*m)]
           (fun e => words z.1 e.1) (z.2 i) := by
   exact TrainedMain.trained_law_native _ _ _ _ _ _ _ z
 
-/-- Complete original `original_sparse_unbiased` guarantee for `PartialAddressTrainedOriginal`; all source hypotheses and output obligations are retained. -/
+/-- With at least two main records, the sparse count estimator under the joint native training
+and matching law has expectation equal to the unrotated Bell mean on the selected matching. -/
 theorem original_sparse_unbiased (C m d r : ℕ) [NeZero C] [NeZero m] [NeZero (2*m)] [NeZero (C*(2*m))]
     (hN : 2^r=C*(2*m)*2) (offset : Fin d → Fin (C*(2*m))) (axis : Fin d)
     (a b c k : (Fin d → Fin (2^r)) → ℝ)
@@ -102,7 +106,10 @@ theorem original_sparse_unbiased (C m d r : ℕ) [NeZero C] [NeZero m] [NeZero (
 
 -- The word selection may be specialized at any fixed earlier classical history.
 -- It is not assumed independent of this pilot or of compiler cache contents.
-/-- Complete original `original_matching_tail` guarantee for `PartialAddressTrainedOriginal`; all source hypotheses and output obligations are retained. -/
+/-- With positive `α` and `β`, `0 < τ ≤ 1/2`, and a directional Bell cap satisfying
+`d * (2m)^2 * p0 ≤ τ/32`, sparse count error above `ε` on the selected matching has probability
+at most `α+β`, provided the checked planner returns the main count and the chosen word passes
+the rational check for every pilot outcome and box. -/
 theorem original_matching_tail (C m d r : ℕ) [NeZero C] [NeZero m]
     [NeZero (2*m)] [NeZero (C*(2*m))]
     (hN : 2^r=C*(2*m)*2) (offset : Fin d → Fin (C*(2*m))) (axis : Fin d)

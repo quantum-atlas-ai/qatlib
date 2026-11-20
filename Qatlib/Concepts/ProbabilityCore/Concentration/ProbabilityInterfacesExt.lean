@@ -23,7 +23,7 @@ versions of the Monte Carlo estimates used in [Montanaro2015].
 
 ## Main statements
 
-* `frontier1`: the product output law and weighted expectation, variance, and central moment
+* `independent_record_joint_law_and_moments`: the product output law and weighted expectation, variance, and central moment
   identities.
 * `product_hoeffding` and `product_output_hoeffding`: record and output measure concentration.
 * `record_median_output`: a median of means error bound for the output law.
@@ -252,7 +252,7 @@ omit [DecidableEq R] in
 
 /-- A product record has the prescribed joint PMF, weighted mean and variance formulas, and the
 same weighted central moments as the independent law. -/
-theorem frontier1 (r : FinDist R) (read : R → ∀ i, X i) (p : ∀ i, FinDist (X i))
+theorem independent_record_joint_law_and_moments (r : FinDist R) (read : R → ∀ i, X i) (p : ∀ i, FinDist (X i))
     (hjoint : ProductRecord r read p) (w : I → ℝ) (f : ∀ i, X i → ℝ) :
     (toPMF r).map read = toPMF (independent p) ∧
     r.expect (fun z => weightedSum w f (read z)) = ∑ i, w i * (p i).expect (f i) ∧

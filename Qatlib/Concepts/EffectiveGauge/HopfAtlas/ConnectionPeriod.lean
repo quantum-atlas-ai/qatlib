@@ -51,7 +51,8 @@ theorem physicalLoopIntegral_partial_periodic (f : SpatialPoint → ℝ)
   rw [hft,hl,hp x (Pi.single j 1)]
   simp
 
-/-- Original `poissonCorrectedLift_connection_period` guarantee for the `ConnectionPeriod` construction; the complete source hypotheses are retained. -/
+/-- For a smooth periodic unit quaternion field, the real Poisson correction preserves the
+integral of the connection component along any full coordinate period. -/
 theorem poissonCorrectedLift_connection_period (q : QuaternionField) (hq : ContDiff ℝ ∞ q)
     (hp : IsPeriodicField q) (hu : ∀ x, ‖q x‖=1) (j : Fin 3) (x : SpatialPoint) :
     (∫ t in (0 : ℝ)..physicalPeriod,
@@ -77,7 +78,9 @@ theorem poissonCorrectedLift_connection_period (q : QuaternionField) (hq : ContD
   rw [intervalIntegral.integral_add hiA hiT,
     physicalLoopIntegral_partial_periodic theta ht (physicalPoissonPhase_periodic q hq hp),add_zero]
 
-/-- Original `selectedPoissonGauge_connection_period` guarantee for the `ConnectionPeriod` construction; the complete source hypotheses are retained. -/
+/-- For a smooth periodic unit quaternion field, the selected Poisson gauge changes the
+connection integral along the `j`-th coordinate period by the physical period times the selected
+integer winding in that direction. -/
 theorem selectedPoissonGauge_connection_period (q : QuaternionField) (hq : ContDiff ℝ ∞ q)
     (hp : IsPeriodicField q) (hu : ∀ x, ‖q x‖=1) (result : SourceMeanSectorResult)
     (j : Fin 3) (x : SpatialPoint) :
@@ -89,7 +92,8 @@ theorem selectedPoissonGauge_connection_period (q : QuaternionField) (hq : ContD
     (poissonCorrectedLift_norm q hq hp hu),poissonCorrectedLift_connection_period q hq hp hu]
   rfl
 
-/-- Original `coordinateEdge_on_boundary` guarantee for the `ConnectionPeriod` construction; the complete source hypotheses are retained. -/
+/-- A point on a coordinate segment from the origin lies on the boundary of the fundamental cube
+whenever its coordinate is between zero and the physical period. -/
 theorem coordinateEdge_on_boundary (j : Fin 3) (t : ℝ) (ht : t∈Icc 0 physicalPeriod) :
     OnCubeBoundary (t • EuclideanSpace.single j 1) := by
   constructor
@@ -101,7 +105,10 @@ theorem coordinateEdge_on_boundary (j : Fin 3) (t : ℝ) (ht : t∈Icc 0 physica
     obtain ⟨k,hk⟩ := hk
     exact ⟨k,Or.inl (by simp [hk])⟩
 
-/-- Original `sourcePeriodicReference_connection_period` guarantee for the `ConnectionPeriod` construction; the complete source hypotheses are retained. -/
+/-- For a smooth periodic unit source with accurate rational samples, the source reference has
+zero connection integral along each coordinate edge from the origin. The source must be constant
+off a set `B` inside the cube at distance at least `mu > 0` from its boundary, with `0 < eta`
+and `7 * eta ≤ mu / 2`. -/
 theorem sourcePeriodicReference_connection_period (v : SpatialPoint → SpatialPoint)
     (hv : ContDiff ℝ ∞ v) (hu : ∀ x, ‖v x‖=1) (hp : IsPeriodicField v)
     (source : (Fin 3 → ℚ) × ℕ → RationalSpinSample) (hs : OriginalSpinSourceAccurate v source)

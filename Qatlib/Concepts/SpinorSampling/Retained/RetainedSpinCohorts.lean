@@ -41,7 +41,7 @@ open Qatlib Matched
 def spinTensor {W : Type*} [Fintype W] (u : W → Bool → ℂ) (σ : W → Bool) : ℂ :=
   ∏ w : W,u w (σ w)
 
-/-- Complete original `sum_tensor_weights` guarantee for `RetainedSpinCohorts`; all source hypotheses and output obligations are retained. -/
+/-- Summing a product of coordinate weights over all assignments factors into the product of the sums over each coordinate. -/
 theorem sum_tensor_weights {W X : Type*} [Fintype W] [DecidableEq W] [Fintype X]
     (f : W → X → ℝ) :
     (∑ σ : W → X,∏ w : W,f w (σ w))=∏ w : W,∑ x : X,f w x := by
@@ -51,7 +51,7 @@ theorem sum_tensor_weights {W X : Type*} [Fintype W] [DecidableEq W] [Fintype X]
     _ = _ := (Finset.prod_univ_sum (t := fun _ : W => (Finset.univ : Finset X))
       (f := f)).symm
 
-/-- Complete original `spin_tensor_normalized` guarantee for `RetainedSpinCohorts`; all source hypotheses and output obligations are retained. -/
+/-- The spin tensor is normalized if every wire's qubit amplitude has unit mass. -/
 theorem spin_tensor_normalized {W : Type*} [Fintype W] [DecidableEq W]
     (u : W → Bool → ℂ) (hu : ∀ w,qubitMass (u w)=1) : Normalized (spinTensor u) := by
   unfold Normalized
@@ -67,7 +67,7 @@ def capturedCohortAmplitude {S : Type*} [Fintype S] {n : ℕ}
     (a b c k : S → ℝ) (J : Fin n → S) (σ : Fin n → Bool) : ℂ :=
   ∏ i : Fin n,suppliedSpinState a b c k (σ i) (J i)
 
-/-- Complete original `cohort_address_mass` guarantee for `RetainedSpinCohorts`; all source hypotheses and output obligations are retained. -/
+/-- For normalized site spinors, the total squared amplitude of any specified n-address cohort is M⁻ⁿ, where M is the number of sites. -/
 theorem cohort_address_mass {S : Type*} [Fintype S] [Nonempty S] {n : ℕ}
     (a b c k : S → ℝ) (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (J : Fin n → S) :
     (∑ σ : Fin n → Bool,Complex.normSq (capturedCohortAmplitude a b c k J σ))=
@@ -86,7 +86,7 @@ theorem cohort_address_mass {S : Type*} [Fintype S] [Nonempty S] {n : ℕ}
   simp_rw [h]
   simp
 
-/-- Complete original `retained_cohort_amplitude` guarantee for `RetainedSpinCohorts`; all source hypotheses and output obligations are retained. -/
+/-- Scaling the captured cohort amplitude by the nth power of the square root of the site count gives the tensor of spinors at the specified addresses. -/
 theorem retained_cohort_amplitude {S : Type*} [Fintype S] [Nonempty S] {n : ℕ}
     (a b c k : S → ℝ) (J : Fin n → S) (σ : Fin n → Bool) :
     (Real.sqrt (Fintype.card S : ℝ) : ℂ)^n*capturedCohortAmplitude a b c k J σ=
@@ -106,7 +106,7 @@ theorem retained_cohort_amplitude {S : Type*} [Fintype S] [Nonempty S] {n : ℕ}
         suppliedSpinState a b c k (σ i) (J i) := (Finset.prod_mul_distrib).symm
     _ = _ := by simp_rw [h]; rfl
 
-/-- Complete original `retained_cohort_normalized` guarantee for `RetainedSpinCohorts`; all source hypotheses and output obligations are retained. -/
+/-- For normalized site spinors, scaling the captured n-record amplitude by the nth power of the square root of the site count gives a normalized retained spin state. -/
 theorem retained_cohort_normalized {S : Type*} [Fintype S] [Nonempty S] {n : ℕ}
     (a b c k : S → ℝ) (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (J : Fin n → S) :
     Normalized (fun σ => (Real.sqrt (Fintype.card S : ℝ) : ℂ)^n*
@@ -129,15 +129,15 @@ def wirePartition {I W : Type*} (e : I → W) (he : Function.Injective e) :
   (Equiv.sumCongr (Equiv.ofInjective e he) (Equiv.refl _)).trans
     (Equiv.sumCompl (fun w => ∃ i,e i=w))
 
-/-- Complete original `wire_partition_left` guarantee for `RetainedSpinCohorts`; all source hypotheses and output obligations are retained. -/
+/-- The wire partition sends a selected index to its image under the injective wire assignment. -/
 @[simp] theorem wire_partition_left {I W : Type*} (e : I → W) (he : Function.Injective e) (i : I) :
     wirePartition e he (Sum.inl i)=e i := rfl
 
-/-- Complete original `wire_partition_right` guarantee for `RetainedSpinCohorts`; all source hypotheses and output obligations are retained. -/
+/-- The wire partition sends an unused-wire index to the underlying wire itself. -/
 @[simp] theorem wire_partition_right {I W : Type*} (e : I → W) (he : Function.Injective e)
     (w : unusedWires e) : wirePartition e he (Sum.inr w)=w.val := rfl
 
-/-- Complete original `product_wire_partition` guarantee for `RetainedSpinCohorts`; all source hypotheses and output obligations are retained. -/
+/-- The product over all physical wires factors into the product over the image of the injective assignment and the product over unused wires. -/
 theorem product_wire_partition {I W : Type*} [Fintype I] [Fintype W]
     (e : I → W) (he : Function.Injective e) (f : W → ℂ) :
     (∏ w : W,f w)=(∏ i : I,f (e i))*(∏ w : unusedWires e,f w.val) := by
@@ -152,7 +152,7 @@ def pairPhysicalWire {S : Type} [DecidableEq S] {n m : ℕ}
     (z : matchedSites J K τ × Bool) : Fin n ⊕ Fin m :=
   if z.2 then Sum.inr (rightMatchIndex J K τ z.1) else Sum.inl (leftMatchIndex J K τ z.1)
 
-/-- Complete original `pair_physical_wire_injective` guarantee for `RetainedSpinCohorts`; all source hypotheses and output obligations are retained. -/
+/-- An injective site map ensures that the selected endpoints of all matched pairs map to distinct physical wires in the disjoint union of the cohorts. -/
 theorem pair_physical_wire_injective {S : Type} [DecidableEq S] {n m : ℕ}
     (J : Fin n → S) (K : Fin m → S) (τ : S → S) (hτ : Function.Injective τ) :
     Function.Injective (pairPhysicalWire J K τ) := by
@@ -170,7 +170,7 @@ def taggedSpin {S : Type*} {n m : ℕ} (a b c k : S → ℝ)
     (J : Fin n → S) (K : Fin m → S) : (Fin n ⊕ Fin m) → Bool → ℂ :=
   Sum.elim (fun i => complexSpinor a b c k (J i)) (fun i => complexSpinor a b c k (K i))
 
-/-- Complete original `spin_tensor_pair_partition` guarantee for `RetainedSpinCohorts`; all source hypotheses and output obligations are retained. -/
+/-- With an injective wire assignment, the spin tensor amplitude is the product of both endpoint amplitudes for each pair and the single-wire amplitudes on unused wires. -/
 theorem spin_tensor_pair_partition {I W : Type*} [Fintype I] [Fintype W]
     (e : I × Bool → W) (he : Function.Injective e) (u : W → Bool → ℂ) (σ : W → Bool) :
     spinTensor u σ=
@@ -184,7 +184,7 @@ theorem spin_tensor_pair_partition {I W : Type*} [Fintype I] [Fintype W]
   rw [Fintype.prod_bool]
   exact mul_comm _ _
 
-/-- Complete original `selected_pair_input_factorization` guarantee for `RetainedSpinCohorts`; all source hypotheses and output obligations are retained. -/
+/-- For an injective site map, the tagged cohort amplitude is the product of two-spin amplitudes at the selected matched endpoints and the original amplitudes on unused wires. -/
 theorem selected_pair_input_factorization {S : Type} [DecidableEq S] {n m : ℕ}
     (a b c k : S → ℝ) (J : Fin n → S) (K : Fin m → S) (τ : S → S)
     (hτ : Function.Injective τ) (σ : (Fin n ⊕ Fin m) → Bool) :

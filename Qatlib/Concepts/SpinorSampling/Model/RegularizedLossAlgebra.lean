@@ -34,7 +34,8 @@ def squaredDerivative (da db dc dd : ℝ) : ℝ := da^2 + db^2 + dc^2 + dd^2
 def shiftedEnergy (a b c d da db dc dd κ t : ℝ) : ℝ :=
   (κ*da+t*b)^2 + (κ*db-t*a)^2 + (κ*dc+t*d)^2 + (κ*dd-t*c)^2
 
-/-- Complete original `horizontal_identity` guarantee for `RegularizedLossAlgebra`; all source hypotheses and output obligations are retained. -/
+/-- For a normalized spinor, setting the shift to the scaled current subtracts the square of
+that current from the scaled derivative energy. -/
 theorem horizontal_identity (a b c d da db dc dd κ v : ℝ)
     (hnorm : a^2+b^2+c^2+d^2=1)
     (hcurrent : v=κ*(a*db-b*da+c*dd-d*dc)) :
@@ -43,7 +44,8 @@ theorem horizontal_identity (a b c d da db dc dd κ v : ℝ)
   unfold shiftedEnergy squaredDerivative
   linear_combination v^2 * hnorm + 2*v * hcurrent
 
-/-- Complete original `unit_regularizer_is_quadratic` guarantee for `RegularizedLossAlgebra`; all source hypotheses and output obligations are retained. -/
+/-- For a normalized spinor with scaled current `v`, the shifted energies at `v` and `u` differ
+by the squared shift difference `(v - u)^2`. -/
 theorem unit_regularizer_is_quadratic (a b c d da db dc dd κ v u : ℝ)
     (hnorm : a^2+b^2+c^2+d^2=1)
     (hcurrent : v=κ*(a*db-b*da+c*dd-d*dc)) :
@@ -72,7 +74,8 @@ def gridShiftedEnergy {N : ℕ} [NeZero N] (κ h : ℝ)
     (centralDifference h a j) (centralDifference h b j)
     (centralDifference h c j) (centralDifference h d j) κ (t j)
 
-/-- Complete original `periodic_grid_unit_regularizer` guarantee for `RegularizedLossAlgebra`; all source hypotheses and output obligations are retained. -/
+/-- On a nonempty periodic grid with unit spinors, the summed velocity mismatch plus the energy
+shifted by the grid velocity equals the summed energy shifted by the comparison field. -/
 theorem periodic_grid_unit_regularizer {N : ℕ} [NeZero N] (κ h : ℝ)
     (a b c d u : Fin N → ℝ)
     (hnorm : ∀ j, (a j)^2+(b j)^2+(c j)^2+(d j)^2=1) :

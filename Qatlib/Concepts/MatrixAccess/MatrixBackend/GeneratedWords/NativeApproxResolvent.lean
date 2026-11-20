@@ -38,7 +38,16 @@ open Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords Qatlib.Foundations.O
 open Qatlib Matrix
 open scoped Matrix.Norms.L2Operator
 variable {H I : Type} [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
-/-- The finite construction in `NativeApproxResolvent` satisfies `native_approx_input_neumann_resolvent` under the displayed hypotheses. -/
+/-- Suppose `U` encodes `A` with error at most `e`, `B > 0` covers `α + e + ‖z‖`,
+and `z` is at distance at least `r > 0` from every point of the numerical range of `A`.
+For `b > 0`, the well-formed native word evaluated at the lifted query for `U`
+exactly encodes the left-defect Neumann polynomial of the shifted scaled
+compression, divided by `b`, using the same lifted frame on both sides.
+Scaling the polynomial by `1 / B` instead gives an approximation to the
+resolvent of `A` at `z`. The error bound adds `b²` times the sum of the
+coefficient error and `e / B` to the reciprocal truncation bound with gap
+`1 / max 2 (B / r)`, then divides by `B`. The word uses `2*b-1` queries and
+`2*b + (2*b-1)*(436+(if slack then 1 else 0))` gates. -/
 theorem native_approx_input_neumann_resolvent
     (b : ℕ) (hb : 0 < b)
     (ps : Fin 7 → Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle) (p : Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle) (slack : Bool)

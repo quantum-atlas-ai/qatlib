@@ -43,7 +43,7 @@ def sourceRoundingMass (cs : List ℚ) (N : ℕ) (E : ℚ) : ℚ :=
   ∑ j : Fin (N+1),|sourceOutputCoefficient cs N E j-
     (1-sourceInputU cs N E/8)*cs.getD j.val 0|
 
-/-- The finite construction in `NativeSourceRoundingBound` satisfies `sourceWeight_pos` under the displayed hypotheses. -/
+/-- Each source coefficient weight, one at index zero and two elsewhere, is positive. -/
 theorem sourceWeight_pos {N : ℕ} (j : Fin (N+1)) : 0<sourceWeight j := by
   unfold sourceWeight
   split_ifs <;> norm_num
@@ -65,7 +65,7 @@ theorem sourceCoefficient_error (cs : List ℚ) (N : ℕ) (E : ℚ) (j : Fin (N+
   exact mul_lt_mul_of_pos_left
     (rootGridTruncate_spec (s*c/w) h (sourceGrid_pos N (sourceInputU cs N E))).2 hw
 
-/-- The finite construction in `NativeSourceRoundingBound` satisfies `sourceWeight_sum` under the displayed hypotheses. -/
+/-- The source weights through index N sum to 2N + 1. -/
 theorem sourceWeight_sum (N : ℕ) :
     (∑ j : Fin (N+1),sourceWeight j)=2*(N : ℚ)+1 := by
   rw [Fin.sum_univ_succ]
@@ -74,7 +74,8 @@ theorem sourceWeight_sum (N : ℕ) :
   simp only [h0,hs,Finset.sum_const,Finset.card_univ,Fintype.card_fin,nsmul_eq_mul]
   ring
 
-/-- The finite construction in `NativeSourceRoundingBound` satisfies `sourceRoundingMass_lt` under the displayed hypotheses. -/
+/-- The sum of absolute rounding errors relative to the scaled input coefficients is strictly less
+than the source grid spacing multiplied by (2N + 1). -/
 theorem sourceRoundingMass_lt (cs : List ℚ) (N : ℕ) (E : ℚ) :
     sourceRoundingMass cs N E < (2*(N : ℚ)+1)*sourceGrid N (sourceInputU cs N E) := by
   have hs : (∑ j : Fin (N+1),|sourceOutputCoefficient cs N E j-
@@ -87,7 +88,8 @@ theorem sourceRoundingMass_lt (cs : List ℚ) (N : ℕ) (E : ℚ) :
   rw [← Finset.sum_mul,sourceWeight_sum] at hs
   exact hs
 
-/-- The finite construction in `NativeSourceRoundingBound` satisfies `sourceRoundingMass_small` under the displayed hypotheses. -/
+/-- With positive requested error, the sum of absolute rounding errors relative to the scaled
+input coefficients is at most one thirty-second of the source input budget. -/
 theorem sourceRoundingMass_small (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E) :
     sourceRoundingMass cs N E ≤ sourceInputU cs N E/32 := by
   let u := sourceInputU cs N E
@@ -116,7 +118,8 @@ def sourceErrorList (cs : List ℚ) (N : ℕ) (E : ℚ) : List ℚ :=
   List.ofFn (fun j : Fin (N+1) => sourceOutputCoefficient cs N E j-
     (1-sourceInputU cs N E/8)*cs.getD j.val 0)
 
-/-- The finite construction in `NativeSourceRoundingBound` satisfies `cheb_zero` under the displayed hypotheses. -/
+/-- A zero-extended rational list that vanishes at every index represents the zero Chebyshev
+polynomial at any starting degree. -/
 private theorem cheb_zero (cs : List ℚ) : ∀ j,
     (∀ k,cs.getD k 0=0) → nativeChebyshevPolynomialFrom j cs=0 := by
   induction cs with
@@ -129,7 +132,8 @@ private theorem cheb_zero (cs : List ℚ) : ∀ j,
       zero_mul,zero_add]
     exact ih (j+1) ht
 
-/-- The finite construction in `NativeSourceRoundingBound` satisfies `cheb_getD_eq` under the displayed hypotheses. -/
+/-- Two rational lists that agree at every index after zero extension represent the same Chebyshev
+polynomial at any common starting index. -/
 private theorem cheb_getD_eq (xs : List ℚ) : ∀ ys j,
     (∀ k,xs.getD k 0=ys.getD k 0) →
     nativeChebyshevPolynomialFrom j xs=nativeChebyshevPolynomialFrom j ys := by
@@ -154,7 +158,8 @@ private theorem cheb_getD_eq (xs : List ℚ) : ∀ ys j,
       have ht : ∀ k,cs.getD k 0=ds.getD k 0 := by intro k; simpa using h (k+1)
       simp only [nativeChebyshevPolynomialFrom,hc,ih ds (j+1) ht]
 
-/-- The finite construction in `NativeSourceRoundingBound` satisfies `cheb_ofFn` under the displayed hypotheses. -/
+/-- The Chebyshev polynomial of a finite coefficient array listed in order is the sum of its cast
+coefficients times the basis polynomials at j plus each array index. -/
 private theorem cheb_ofFn (m : ℕ) : ∀ (f : Fin m → ℚ) j,
     nativeChebyshevPolynomialFrom j (List.ofFn f)=
       ∑ i : Fin m,Polynomial.C (f i : ℝ)*Polynomial.Chebyshev.T ℝ ((j+i.val : ℕ) : ℤ) := by
@@ -170,7 +175,8 @@ private theorem cheb_ofFn (m : ℕ) : ∀ (f : Fin m → ℚ) j,
     have he : j+1+i.val=j+(i.val+1) := by omega
     rw [he]
 
-/-- The finite construction in `NativeSourceRoundingBound` satisfies `sourcePadded_polynomial` under the displayed hypotheses. -/
+/-- If all original coefficients beyond index N vanish, padding to the source length preserves the
+Chebyshev polynomial at every starting index. -/
 private theorem sourcePadded_polynomial (cs : List ℚ) (N : ℕ)
     (htail : ∀ k,N+1 ≤ k → cs.getD k 0=0) (j : ℕ) :
     nativeChebyshevPolynomialFrom j (sourcePaddedList cs N)=nativeChebyshevPolynomialFrom j cs := by

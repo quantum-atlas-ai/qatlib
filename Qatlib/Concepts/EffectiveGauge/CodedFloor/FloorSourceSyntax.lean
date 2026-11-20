@@ -51,14 +51,16 @@ def floorJetOrderBound : ℕ → FloorJetExpr → ℕ
 def floorSourceJetBound (n : ℕ) : ℚ :=
   (∑ j : Fin 3, floorJetOrderBound n (floorSpinExpr j) : ℕ)
 
-/-- Original `floorJetWord_append` guarantee for the `FloorSourceSyntax` construction; the complete source hypotheses are retained. -/
+/-- Differentiating along an appended word applies the derivatives of the second word first, then
+the derivatives of the first word. -/
 theorem floorJetWord_append (e : FloorJetExpr) (w w' : List (Fin 3)) :
     floorJetWord e (w++w')=floorJetWord (floorJetWord e w') w := by
   induction w with
   | nil => rfl
   | cons i w ih => simp only [List.cons_append,floorJetWord,ih]
 
-/-- Original `floorJetOrderBound_word` guarantee for the `FloorSourceSyntax` construction; the complete source hypotheses are retained. -/
+/-- The syntactic bound after differentiation along a word is at most the order bound for the
+length of that word. -/
 theorem floorJetOrderBound_word (e : FloorJetExpr) (w : List (Fin 3)) :
     floorJetBound (floorJetWord e w) ≤ floorJetOrderBound w.length e := by
   induction w using List.reverseRecOn generalizing e with
@@ -71,7 +73,8 @@ theorem floorJetOrderBound_word (e : FloorJetExpr) (w : List (Fin 3)) :
 
 noncomputable section
 
-/-- Original `floorSpinExpr_correct` guarantee for the `FloorSourceSyntax` construction; the complete source hypotheses are retained. -/
+/-- The expression for spin coordinate `j` evaluates to the `j`th coordinate of the raw spin at
+the given amplitude and point. -/
 theorem floorSpinExpr_correct (a : ℝ) (X : SpatialPoint) (j : Fin 3) :
     floorJetEval a X (floorSpinExpr j)=floorRawSpin a X j := by
   fin_cases j <;>
@@ -79,7 +82,8 @@ theorem floorSpinExpr_correct (a : ℝ) (X : SpatialPoint) (j : Fin 3) :
       floorJetEval,iteratedDeriv_zero,floorInteriorBump,floorRawSpin,quaternionSpinProjection,
       hopf,floorRawLift_mk,quaternionCoordinateCLM,iAxis] <;> ring
 
-/-- Original `floorSourceJetExpr_correct` guarantee for the `FloorSourceSyntax` construction; the complete source hypotheses are retained. -/
+/-- On the fundamental cube, evaluating the spin expression differentiated along the canonical
+multi-index word gives the selected component of the periodic spin's canonical jet. -/
 theorem floorSourceJetExpr_correct (a : ℝ) (alpha : Fin 3 → ℕ) (X : SpatialPoint)
     (hX : InFundamentalCube X) (j : Fin 3) :
     floorJetEval a X (floorJetWord (floorSpinExpr j) (sourceCanonicalWord alpha))=
@@ -94,7 +98,8 @@ theorem floorSourceJetExpr_correct (a : ℝ) (alpha : Fin 3 → ℕ) (X : Spatia
     spatialWordPartial (floorPeriodicSpin a) (sourceCanonicalWord alpha) X j
   rw [floorPeriodicSpin_word_eq_raw a _ X hX]
 
-/-- Original `floorSourceJetBound_correct` guarantee for the `FloorSourceSyntax` construction; the complete source hypotheses are retained. -/
+/-- For amplitude of absolute value at most one, the norm of every positive-order canonical jet of
+the periodic spin on the fundamental cube is bounded by the source bound at that total order. -/
 theorem floorSourceJetBound_correct (a : ℝ) (ha : |a| ≤ 1) :
     OriginalPositiveJetBounds (floorPeriodicSpin a) floorSourceJetBound := by
   intro alpha _ X hX

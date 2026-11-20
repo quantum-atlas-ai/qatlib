@@ -34,7 +34,7 @@ variable {S : Type} [Fintype S] [DecidableEq S] [Nonempty S] {d : ℕ}
 
 -- Union bound on the actual joint data. The Bell marginal uses a dependent
 -- product: its matching carrier differs with the direction.
-/-- Complete original `low_spin_some_confidence` guarantee for `LowSpinConfidence`; all source hypotheses and output obligations are retained. -/
+/-- With a Bell plan present, nonnegative spin weight γ and every true velocity term in its clipping range, the per-axis velocity and Bell error bounds give total bad mass at most dρv + dρb at tolerance dεv + 4γdεb for the implemented loss. -/
 theorem low_spin_some_confidence (pV : HighConfidencePlanQ) (q : BellPlanQ)
     (copies queries : ℕ) (mv : Fin d → S → ℝ) (hmv : ∀ j x, |mv j x|≤1)
     (a b c k : S → ℝ) (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1)

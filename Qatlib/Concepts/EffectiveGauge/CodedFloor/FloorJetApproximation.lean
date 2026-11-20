@@ -48,7 +48,7 @@ def floorJetApproximation (c : Nat.Partrec.Code) (X : Fin 3 → ℚ) : FloorJetE
 
 noncomputable section
 
-/-- Original `floorProgramAmplitude_abs_le_one` guarantee for the `FloorJetApproximation` construction; the complete source hypotheses are retained. -/
+/-- Every program code induces an amplitude whose absolute value is at most one. -/
 theorem floorProgramAmplitude_abs_le_one (c : Nat.Partrec.Code) :
     |(floorProgramAmplitude c : ℝ)| ≤ 1 := by
   have hp : (0 : ℝ) ≤ floorProgramAmplitude c := by exact_mod_cast (floorProgramAmplitude_spec c).1
@@ -58,12 +58,14 @@ theorem floorProgramAmplitude_abs_le_one (c : Nat.Partrec.Code) :
   norm_num at h
   linarith
 
-/-- Original `floorRationalBumpArgument_cast` guarantee for the `FloorJetApproximation` construction; the complete source hypotheses are retained. -/
+/-- The rational bump argument, interpreted as a real, equals the spatial bump argument at the
+point obtained by casting each coordinate. -/
 theorem floorRationalBumpArgument_cast (X : Fin 3 → ℚ) :
     (floorRationalBumpArgument X : ℝ)=floorBumpArgument (rationalSpatialPoint X) := by
   simp [floorRationalBumpArgument,floorBumpArgument,rationalSpatialPoint]
 
-/-- Original `floorJetProduct_error` guarantee for the `FloorJetApproximation` construction; the complete source hypotheses are retained. -/
+/-- If `|f| ≤ F` and `|g| ≤ G`, approximating each factor to absolute error `t ∈ [0, 1]` gives
+product error at most `t * (F + G + 1)`. -/
 theorem floorJetProduct_error (f0 g0 f g F G t : ℝ)
     (ht : 0 ≤ t) (ht1 : t ≤ 1) (hF : |f| ≤ F) (hG : |g| ≤ G)
     (hf : |f0-f| ≤ t) (hg : |g0-g| ≤ t) :
@@ -85,7 +87,8 @@ theorem floorJetProduct_error (f0 g0 f g F G t : ℝ)
         (mul_le_mul hf hG (abs_nonneg _) ht)
     _ ≤ t*(F+G+1) := by nlinarith
 
-/-- Original `floorCis_components_error` guarantee for the `FloorJetApproximation` construction; the complete source hypotheses are retained. -/
+/-- For a rational tolerance in `(0, 1]`, the real and imaginary coordinates of the rational cis
+approximation have absolute errors at most that tolerance against cosine and sine, respectively. -/
 theorem floorCis_components_error (x t : ℚ) (ht : 0<t) (ht1 : t ≤ 1) :
     |((rationalCis x t).value.1 : ℝ)-Real.cos (x : ℝ)| ≤ (t : ℝ) ∧
     |((rationalCis x t).value.2 : ℝ)-Real.sin (x : ℝ)| ≤ (t : ℝ) := by
@@ -96,7 +99,8 @@ theorem floorCis_components_error (x t : ℚ) (ht : 0<t) (ht1 : t ≤ 1) :
       (Complex.abs_re_le_norm _).trans hb,
     by simpa [rationalCircleCast,complexPhase] using (Complex.abs_im_le_norm _).trans hb⟩
 
-/-- Original `floorJetApproximation_error` guarantee for the `FloorJetApproximation` construction; the complete source hypotheses are retained. -/
+/-- At any rational point in the fundamental cube and tolerance `t ∈ (0, 1]`, the rational jet
+approximation differs from the real jet evaluation at the program amplitude by at most `t`. -/
 theorem floorJetApproximation_error (e : FloorJetExpr) (c : Nat.Partrec.Code)
     (X : Fin 3 → ℚ) (hX : InFundamentalCube (rationalSpatialPoint X))
     (t : ℚ) (ht : 0<t) (ht1 : t ≤ 1) :

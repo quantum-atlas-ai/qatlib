@@ -35,7 +35,8 @@ open Qatlib
 
 variable {S : Type} [Fintype S] [DecidableEq S]
 
-/-- Complete original `matched_card_event_mass_pos` guarantee for `MatchedRecordConditionalTail`; all source hypotheses and output obligations are retained. -/
+/-- For any matching permutation, the uniform pair event of exactly `k` matches has positive
+mass when `k` is positive and fits both cohort lengths and the site count. -/
 theorem matched_card_event_mass_pos [Nonempty S]
     (τ : Equiv.Perm S) {n m k : ℕ} (hk0 : 0 < k)
     (hkn : k ≤ n) (hkm : k ≤ m) (hkS : k ≤ Fintype.card S) :
@@ -51,7 +52,8 @@ theorem matched_card_event_mass_pos [Nonempty S]
     simp only [Finset.mem_filter, Finset.mem_univ, true_and]
     rw [hmatch,hcard]
 
-/-- Complete original `finite_bad_mass_split_center` guarantee for `MatchedRecordConditionalTail`; all source hypotheses and output obligations are retained. -/
+/-- The mass of error greater than `ε` about `μ` is bounded by the mass of error greater than
+`ε/2` about `c`, plus one if the centers are farther apart than `ε/2`. -/
 theorem finite_bad_mass_split_center {X : Type} [Fintype X] [DecidableEq X]
     (p : FinDist X) (F : X → ℝ) (μ c ε : ℝ) :
     finiteBadMass p F μ ε ≤ finiteBadMass p F c (ε/2) +
@@ -91,7 +93,10 @@ def matchedRecordConditionalBadMass [Nonempty S]
       finiteBadMass (productLaw (conditionalSigns a ha z.1) (conditionalSigns b hb z.2))
         (conditionalMatched z.1 z.2 τ) μ ε) / matchedCardEventMass τ n m k
 
-/-- Complete original `matched_record_conditional_tail` guarantee for `MatchedRecordConditionalTail`; all source hypotheses and output obligations are retained. -/
+/-- Conditional on exactly `k` matches, the signed matched statistic misses the population
+product mean by more than `ε > 0` with probability at most `4 * exp (-k*ε²/8)`. This assumes
+means bounded in absolute value by one, a matching permutation, and positive `k` within both
+cohort lengths and the site count. -/
 theorem matched_record_conditional_tail [Nonempty S]
     (τ : Equiv.Perm S) {n m k : ℕ} (hk0 : 0 < k)
     (hkn : k ≤ n) (hkm : k ≤ m) (hkS : k ≤ Fintype.card S)

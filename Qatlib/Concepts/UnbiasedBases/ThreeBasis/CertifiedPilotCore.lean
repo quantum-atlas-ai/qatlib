@@ -36,7 +36,7 @@ finite-record bounds stated explicitly here.
   every certificate lies in `[0, 4]` under the unit payoff assumptions.
 * `joint_failure` and `worst_resources`: the main empirical mean has failure bound `2 / (N nu²)
   + δ` and uses at most `N + sampleCount 4 eps δ` observations.
-* `frontier1`: the rescaled bounded-payoff readout has failure probability at most `δpilot +
+* `bounded_payoff_pilot_error_mass_le_add`: the rescaled bounded-payoff readout has failure probability at most `δpilot +
   δmain`.
 * `quantum_bounded_failure` and `quantum_precision`: the quantum readout has failure bound `2 /
   (N nu²) + (8/9)^r` and a certified precision range.
@@ -465,7 +465,7 @@ def boundedReadout (B : ℚ) (N depth : ℕ) (f : I → ℚ) (nu eps δ : ℚ)
 /-- For a payoff bounded by positive `B` and positive parameters with `nu ≤ 1/4`, the rescaled
 main readout with stage-scheduled pilot size exceeds error `eps` with probability at most
 `δpilot + δmain`. -/
-theorem frontier1 (p : FinDist I) (B : ℚ) (depth j : ℕ) (f : I → ℚ) (nu eps δpilot δmain : ℚ)
+theorem bounded_payoff_pilot_error_mass_le_add (p : FinDist I) (B : ℚ) (depth j : ℕ) (f : I → ℚ) (nu eps δpilot δmain : ℚ)
     (hB : 0 < B) (hf : ∀ i, |f i| ≤ B) (hnu : 0 < nu) (hnu1 : nu ≤ 1/4)
     (heps : 0 < eps) (hp : 0 < δpilot) (hm : 0 < δmain) :
     eventMass (mainLaw p (pilotCount δpilot nu j) depth (normalized B f) nu (eps/B) δmain)

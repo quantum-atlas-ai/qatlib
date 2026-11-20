@@ -37,7 +37,8 @@ def integrateWordPath [CompleteSpace E] : C(TransportTime,E) →L[ℝ] E :=
           (fun t _ => f.norm_coe_le_norm _)
         _ = physicalPeriod*‖f‖ := by rw [sub_zero,abs_of_pos physicalPeriod_pos]; ring)
 
-/-- Original `spatialWordPartial_sourcePathOver_eval` guarantee for the `WordIntegral` construction; the complete source hypotheses are retained. -/
+/-- Evaluating the word derivative of the path-valued function of a smooth `g` at `t` equals the
+same word derivative of `g` with `t` fixed. -/
 theorem spatialWordPartial_sourcePathOver_eval (g : SpatialPoint × ℝ → E)
     (hg : ContDiff ℝ ∞ g) (w : List (Fin 3)) (x : SpatialPoint) (t : TransportTime) :
     spatialWordPartial (sourcePathOver g hg.continuous) w x t=
@@ -46,7 +47,8 @@ theorem spatialWordPartial_sourcePathOver_eval (g : SpatialPoint × ℝ → E)
     (sourcePathOver g hg.continuous) (contDiff_sourcePathOver hg) w) x
   exact h.symm
 
-/-- Original `spatialWordPartial_intervalIntegral` guarantee for the `WordIntegral` construction; the complete source hypotheses are retained. -/
+/-- For a smooth integrand valued in a complete normed space, any spatial word derivative passes
+through the integral over the fixed interval from zero to the physical period. -/
 theorem spatialWordPartial_intervalIntegral [CompleteSpace E] (g : SpatialPoint × ℝ → E)
     (hg : ContDiff ℝ ∞ g) (w : List (Fin 3)) (x : SpatialPoint) :
     spatialWordPartial (fun y => ∫ t in (0 : ℝ)..physicalPeriod, g (y,t)) w x=

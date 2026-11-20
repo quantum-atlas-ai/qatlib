@@ -38,7 +38,7 @@ def rootDecodedReturnList {m : ℕ} (f : Fin m → RootIntegerFactorData) (eta :
   (rootDecodedReturnIndices f).map
     (fun s => rootGridPoint ((f s.1).centers s.2) (eta/16))
 
-/-- The finite construction in `NativeRootReturnedList` satisfies `rootDecodedReturnIndices_inside` under the displayed hypotheses. -/
+/-- Any factor and disk index in the return list has computed tag `true` for its center and radius. -/
 theorem rootDecodedReturnIndices_inside {m : ℕ} (f : Fin m → RootIntegerFactorData)
     (s : RootDecodedIndex f) (hs : s∈rootDecodedReturnIndices f) :
     rootRationalDiskComputedTag ((f s.1).centers s.2) ((f s.1).radii s.2)=true := by
@@ -51,7 +51,7 @@ theorem rootDecodedReturnIndices_inside {m : ℕ} (f : Fin m → RootIntegerFact
     exact ht
   · simp only [ite_eq_right ht,List.not_mem_nil] at hs
 
-/-- The finite construction in `NativeRootReturnedList` satisfies `rootPairMap` under the displayed hypotheses. -/
+/-- If `q s` and `z s` satisfy `R` for every member `s` of `l`, the two mapped lists satisfy `R` at corresponding positions. -/
 private theorem rootPairMap {α β γ : Type} (l : List α) (q : α → β) (z : α → γ)
     (R : β → γ → Prop) (h : ∀ s∈l,R (q s) (z s)) :
     List.Forall₂ R (l.map q) (l.map z) := by

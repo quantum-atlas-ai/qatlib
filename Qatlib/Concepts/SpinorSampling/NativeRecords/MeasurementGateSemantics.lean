@@ -83,7 +83,7 @@ def multiX {W : Type*} (controls : List W) (t : W) (work : List W) : List (BitGa
   | _, _ => []
 termination_by work.length
 
-/-- Complete original `all_update_not_mem` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- Changing a wire outside the input list leaves the conjunction of its listed bits unchanged. -/
 private theorem all_update_not_mem {W : Type*} [DecidableEq W]
     (l : List W) (x : W → Bool) (w : W) (v : Bool) (hw : w ∉ l) :
     l.all (Function.update x w v) = l.all x := by
@@ -93,7 +93,8 @@ private theorem all_update_not_mem {W : Type*} [DecidableEq W]
     simp only [List.mem_cons, not_or] at hw
     simp only [List.all_cons, Function.update_of_ne (Ne.symm hw.1), ih hw.2]
 
-/-- Complete original `multiX_basis` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- With at least one control, enough clean work wires, and distinct wires throughout, the
+multi-controlled X word flips only the target, and only when all controls are true. -/
 theorem multiX_basis {W : Type*} [DecidableEq W] (cs : List W) (t : W)
     (ws : List W) (x : W → Bool) (hpos : 0 < cs.length)
     (hsize : cs.length ≤ ws.length+2) (hn : (cs ++ t::ws).Nodup)
@@ -157,7 +158,8 @@ def legal {W : Type*} : BitGate W → Prop
   | .cx c t => c ≠ t
   | .ccx a b t => a ≠ b ∧ a ≠ t ∧ b ≠ t
 
-/-- Complete original `multiX_legal` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- Distinct control, target, and work wires make each primitive bit gate in the
+multi-controlled X word legal. -/
 theorem multiX_legal {W : Type*} (cs : List W) (t : W) (ws : List W)
     (hn : (cs ++ t::ws).Nodup) : ∀ g ∈ multiX cs t ws, legal g := by
   induction ws generalizing cs with
@@ -204,7 +206,8 @@ theorem multiX_legal {W : Type*} (cs : List W) (t : W) (ws : List W)
       · exact ih (w::c::rest) hrec g h
       · subst g; exact ⟨hab,haw,hbw⟩
 
-/-- Complete original `multiX_length` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- For `c > 0` controls and at least `c - 2` work wires, the bit-gate word has one gate for a
+single control and `2*c - 3` gates otherwise. -/
 theorem multiX_length {W : Type*} (cs : List W) (t : W) (ws : List W)
     (hpos : 0 < cs.length) (hsize : cs.length ≤ ws.length+2) :
     (multiX cs t ws).length = if cs.length=1 then 1 else 2*cs.length-3 := by
@@ -248,11 +251,13 @@ noncomputable def nativeMatrix {n : ℕ} : NativeGate (Fin n) → ReflectionGate
   | .tdg w => .inl (w,tGateAdj)
   | .cx c t => .inr (c,t)
 
-/-- Complete original `native_toffoli_table` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- Mapping the native Toffoli word to matrices gives the specified sequence of local Toffoli
+steps. -/
 theorem native_toffoli_table {n : ℕ} (a b t : Fin n) :
     (toffoliWord a b t).map nativeMatrix = toffoliLocalSteps a b t := rfl
 
-/-- Complete original `native_word_compile` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- The matrices of the native compilation of a bit-gate list agree in order with the direct
+matrix compilation. -/
 theorem native_word_compile {n : ℕ} (gs : List (BitGate (Fin n))) :
     (nativeWord gs).map nativeMatrix = compileBits gs := by
   induction gs with
@@ -262,7 +267,8 @@ theorem native_word_compile {n : ℕ} (gs : List (BitGate (Fin n))) :
     rw [ih]
     cases g <;> rfl
 
-/-- Complete original `compile_one_exact` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- For a legal bit gate, its compiled reflection program sends each basis ket to the ket of the
+classical gate output. -/
 theorem compile_one_exact {n : ℕ} (g : BitGate (Fin n)) (hg : legal g) (x : Reg n) :
     Run (1 : Matrix (Reg n) (Reg n) ℂ) (reflectionCompile (compileOne g)) (Ket x) =
       Ket (act g x) := by
@@ -272,12 +278,14 @@ theorem compile_one_exact {n : ℕ} (g : BitGate (Fin n)) (hg : legal g) (x : Re
       applyGate_cnotGate_ket n c t hg x
   | ccx a b t => exact (local_toffoli_fifteen_exact n a b t hg.1 hg.2.1 hg.2.2).2.2 x
 
-/-- Complete original `compile_append` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- Compiling the concatenation of two reflection gate lists concatenates their compiled
+programs in the same order. -/
 private theorem compile_append {n : ℕ} (gs hs : List (ReflectionGate n)) :
     reflectionCompile (gs ++ hs) = reflectionCompile gs ++ reflectionCompile hs :=
   List.map_append
 
-/-- Complete original `compile_bits_exact` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- Compiling a list of legal bit gates sends the input basis ket to the ket obtained by running
+the classical list. -/
 theorem compile_bits_exact {n : ℕ} (gs : List (BitGate (Fin n)))
     (hg : ∀ g ∈ gs, legal g) (x : Reg n) :
     Run (1 : Matrix (Reg n) (Reg n) ℂ) (reflectionCompile (compileBits gs)) (Ket x) =
@@ -291,7 +299,9 @@ theorem compile_bits_exact {n : ℕ} (gs : List (BitGate (Fin n)))
     rw [compile_one_exact g hhead]
     exact ih htail (act g x)
 
-/-- Complete original `compiled_multiX_clean_ket` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- For distinct wires, at least one control, and enough initially zero work wires, the compiled
+multi-controlled X sends a basis ket to the ket with its target toggled by the conjunction of
+the controls. -/
 theorem compiled_multiX_clean_ket {n : ℕ} (cs : List (Fin n)) (t : Fin n)
     (ws : List (Fin n)) (x : Reg n) (hpos : 0 < cs.length)
     (hsize : cs.length ≤ ws.length+2) (hn : (cs ++ t::ws).Nodup)
@@ -302,7 +312,9 @@ theorem compiled_multiX_clean_ket {n : ℕ} (cs : List (Fin n)) (t : Fin n)
   rw [compile_bits_exact _ (multiX_legal cs t ws hn), multiX_basis cs t ws x hpos hsize hn hclean]
 
 -- Full complex linearity, including relative phases, on the clean-work subspace.
-/-- Complete original `compiled_multiX_clean_superposition` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- The compiled multi-controlled X toggles the target in each term of a finite superposition,
+preserving its coefficient, when the wires are distinct and there are enough work wires that are
+zero in every term. -/
 theorem compiled_multiX_clean_superposition {n : ℕ} {J : Type*} [Fintype J]
     (cs : List (Fin n)) (t : Fin n) (ws : List (Fin n))
     (x : J → Reg n) (φ : J → ℂ) (hpos : 0 < cs.length)
@@ -320,7 +332,7 @@ theorem compiled_multiX_clean_superposition {n : ℕ} {J : Type*} [Fintype J]
   change φ j • ApplyGate (reflectionProgramMatrix (compileBits (multiX cs t ws))) (Ket (x j)) = _
   rw [← run_reflectionCompile, compiled_multiX_clean_ket cs t ws (x j) hpos hsize hn (hclean j)]
 
-/-- Complete original `compile_bits_legal` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- If every input bit gate is legal, its matrix compilation is a legal reflection word. -/
 theorem compile_bits_legal {n : ℕ} (gs : List (BitGate (Fin n)))
     (hg : ∀ g ∈ gs, legal g) : reflectionLegal (compileBits gs) := by
   intro g h
@@ -333,7 +345,8 @@ theorem compile_bits_legal {n : ℕ} (gs : List (BitGate (Fin n)))
     exact hlegal
   | ccx a b t => exact toffoliLocalSteps_legal a b t hlegal.1 hlegal.2.1 hlegal.2.2 g hmem
 
-/-- Complete original `compiled_multiX_gate_count` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- For a nonempty control list of length `c` with enough work wires, the compiled matrix word
+has one gate when `c = 1` and `15 * (2*c - 3)` otherwise. -/
 theorem compiled_multiX_gate_count {n : ℕ} (cs : List (Fin n)) (t : Fin n)
     (ws : List (Fin n)) (hpos : 0 < cs.length) (hsize : cs.length ≤ ws.length+2) :
     (compileBits (multiX cs t ws)).length =
@@ -360,7 +373,9 @@ theorem compiled_multiX_gate_count {n : ℕ} (cs : List (Fin n)) (t : Fin n)
       simp only [List.length_cons]
       split_ifs <;> omega
 
-/-- Complete original `compiled_multiX_semantics_and_cost` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- With distinct wires, a nonempty control list of length `c`, and enough work wires, the
+compiled word is legal and query-free, costs one gate for `c = 1` and `15 * (2*c - 3)`
+otherwise, and performs the target toggle on every clean-work basis input. -/
 theorem compiled_multiX_semantics_and_cost {n : ℕ} (cs : List (Fin n)) (t : Fin n)
     (ws : List (Fin n)) (hpos : 0 < cs.length) (hsize : cs.length ≤ ws.length+2)
     (hn : (cs ++ t::ws).Nodup) :
@@ -375,7 +390,8 @@ theorem compiled_multiX_semantics_and_cost {n : ℕ} (cs : List (Fin n)) (t : Fi
   · rw [gateCount_reflectionCompile, compiled_multiX_gate_count cs t ws hpos hsize]
   · exact fun x hclean => compiled_multiX_clean_ket cs t ws x hpos hsize hn hclean
 
-/-- Complete original `native_multiX_gate_count` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- For `c > 0` controls and enough work wires, the native multi-controlled X word has one gate
+for one control and `15 * (2*c - 3)` gates otherwise. -/
 theorem native_multiX_gate_count {n : ℕ} (cs : List (Fin n)) (t : Fin n)
     (ws : List (Fin n)) (hpos : 0 < cs.length) (hsize : cs.length ≤ ws.length+2) :
     (nativeWord (multiX cs t ws)).length =
@@ -384,7 +400,9 @@ theorem native_multiX_gate_count {n : ℕ} (cs : List (Fin n)) (t : Fin n)
     _ = ((nativeWord (multiX cs t ws)).map nativeMatrix).length := (List.length_map _).symm
     _ = _ := by rw [native_word_compile, compiled_multiX_gate_count cs t ws hpos hsize]
 
-/-- Complete original `native_multiX_clean_superposition` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- On distinct wires with a nonempty control list and enough work wires, the native word
+toggles the target term by term in a superposition whose work wires are all zero, leaving each
+amplitude coefficient intact. -/
 theorem native_multiX_clean_superposition {n : ℕ} {J : Type*} [Fintype J]
     (cs : List (Fin n)) (t : Fin n) (ws : List (Fin n))
     (x : J → Reg n) (φ : J → ℂ) (hpos : 0 < cs.length)
@@ -435,7 +453,7 @@ def axisIncrement {W : Type*} [DecidableEq W] (carry : Bool) (axis : List W)
   | [] => x
   | a::rest => Function.update (axisIncrement (carry && x a) rest x) a (x a ^^ carry)
 
-/-- Complete original `axis_increment_off` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- Ripple increment on a list of axis wires leaves any wire outside that list unchanged. -/
 theorem axis_increment_off {W : Type*} [DecidableEq W] (carry : Bool)
     (axis : List W) (x : W → Bool) (v : W) (hv : v ∉ axis) :
     axisIncrement carry axis x v=x v := by
@@ -455,14 +473,14 @@ def axisValue : List Bool → ℕ
   | [] => 0
   | b::bs => b.toNat+2*axisValue bs
 
-/-- Complete original `ripple_length` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- Ripple addition of a carry bit preserves the length of the bit list. -/
 theorem ripple_length (bits : List Bool) (carry : Bool) :
     (ripple carry bits).length=bits.length := by
   induction bits generalizing carry with
   | nil => rfl
   | cons b bs ih => simp only [ripple, List.length_cons, ih]
 
-/-- Complete original `axis_value_bound` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- The natural number decoded from a little-endian list of `r` bits is less than `2^r`. -/
 theorem axis_value_bound (bits : List Bool) : axisValue bits < 2^bits.length := by
   induction bits with
   | nil => decide
@@ -470,7 +488,8 @@ theorem axis_value_bound (bits : List Bool) : axisValue bits < 2^bits.length := 
     cases b <;> simp only [axisValue, Bool.toNat_false, Bool.toNat_true,
       List.length_cons, Nat.pow_succ] <;> omega
 
-/-- Complete original `ripple_with_overflow` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- The decoded ripple result plus its overflow contribution equals the original decoded value
+plus the incoming carry. Overflow occurs when the carry and every input bit are true. -/
 theorem ripple_with_overflow (bits : List Bool) (carry : Bool) :
     axisValue (ripple carry bits)+2^bits.length*(carry && bits.all id).toNat =
       axisValue bits+carry.toNat := by
@@ -485,7 +504,8 @@ theorem ripple_with_overflow (bits : List Bool) (carry : Bool) :
         Bool.not_false, Bool.not_true, id_eq, Nat.mul_zero, Nat.add_zero,
         Nat.zero_add] at hh ⊢ <;> first | omega | ((try ring_nf at hh); (try ring_nf); omega)
 
-/-- Complete original `ripple_value` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- At width `r`, decoding the ripple result gives the original value plus the input carry
+modulo `2^r`. -/
 theorem ripple_value (bits : List Bool) (carry : Bool) :
     axisValue (ripple carry bits)=(axisValue bits+carry.toNat) % 2^bits.length := by
   have h := congrArg (fun k => k % 2^bits.length) (ripple_with_overflow bits carry)
@@ -494,7 +514,8 @@ theorem ripple_value (bits : List Bool) (carry : Bool) :
   rw [Nat.add_mul_mod_self_left, Nat.mod_eq_of_lt hlt] at h
   exact h
 
-/-- Complete original `axis_increment_bits` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- On a duplicate-free axis, reading the updated axis wires gives the ripple of their original
+bits with the specified carry. -/
 theorem axis_increment_bits {W : Type*} [DecidableEq W] (carry : Bool)
     (axis : List W) (x : W → Bool) (hn : axis.Nodup) :
     axis.map (axisIncrement carry axis x)=ripple carry (axis.map x) := by
@@ -511,7 +532,9 @@ theorem axis_increment_bits {W : Type*} [DecidableEq W] (carry : Bool)
     have hva : v ≠ a := by intro h; subst v; exact ha hv
     exact Function.update_of_ne hva _ _
 
-/-- Complete original `increment_aux_basis` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- If the lower list is nonempty and the lower, axis, and work wires are distinct, enough
+initially zero work wires let the auxiliary word increment the axis with the conjunction of the
+lower bits as carry. -/
 theorem increment_aux_basis {W : Type*} [DecidableEq W]
     (lower axis ws : List W) (x : W → Bool) (hpos : 0 < lower.length)
     (hsize : lower.length+axis.length ≤ ws.length+3)
@@ -558,7 +581,8 @@ theorem increment_aux_basis {W : Type*} [DecidableEq W]
     rw [hya, hall]
     simp only [y, axisIncrement, List.all_append, List.all_cons, List.all_nil, Bool.and_true]
 
-/-- Complete original `increment_word_value` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- On distinct wires with enough initially zero work wires, the increment word adds the control
+bit to the decoded axis value modulo `2^axis.length`. -/
 theorem increment_word_value {W : Type*} [DecidableEq W]
     (control : W) (axis ws : List W) (x : W → Bool)
     (hsize : axis.length ≤ ws.length+2) (hn : (control::(axis++ws)).Nodup)
@@ -571,7 +595,8 @@ theorem increment_word_value {W : Type*} [DecidableEq W]
   have haxisws : (axis++ws).Nodup := hn.tail
   rw [axis_increment_bits _ _ _ haxisws.of_append_left, ripple_value, List.length_map]
 
-/-- Complete original `increment_word_basis` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- On distinct wires with enough initially zero work wires, the increment word implements the
+complete register update obtained by ripple increment with the control bit as carry. -/
 theorem increment_word_basis {W : Type*} [DecidableEq W]
     (control : W) (axis ws : List W) (x : W → Bool)
     (hsize : axis.length ≤ ws.length+2) (hn : (control::(axis++ws)).Nodup)
@@ -581,7 +606,8 @@ theorem increment_word_basis {W : Type*} [DecidableEq W]
     increment_aux_basis [control] axis ws x (by simp)
       (by simp only [List.length_cons, List.length_nil]; omega) hn hclean
 
-/-- Complete original `increment_aux_legal` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- If the lower, axis, and work wires are distinct, every gate emitted by the auxiliary
+increment word is legal. -/
 theorem increment_aux_legal {W : Type*} (lower axis ws : List W)
     (hn : (lower++(axis++ws)).Nodup) : ∀ g ∈ incrementAux lower axis ws, legal g := by
   induction axis generalizing lower with
@@ -598,7 +624,7 @@ theorem increment_aux_legal {W : Type*} (lower axis ws : List W)
     · exact ih (lower++[a]) htail g h
     · exact multiX_legal lower a ws hnow g h
 
-/-- Complete original `act_involutive` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- The classical action of a legal bit gate is an involution. -/
 theorem act_involutive {W : Type*} [DecidableEq W] (g : BitGate W) (hg : legal g) :
     Function.Involutive (act g) := by
   intro x
@@ -615,7 +641,7 @@ theorem act_involutive {W : Type*} [DecidableEq W] (g : BitGate W) (hg : legal g
       simp [act, Function.update_of_ne hg.2.1, Function.update_of_ne hg.2.2]
     · simp [act, Function.update_of_ne hv]
 
-/-- Complete original `run_reverse_cancel` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- Running a legal bit-gate list and then its reverse restores the input register. -/
 theorem run_reverse_cancel {W : Type*} [DecidableEq W] (gs : List (BitGate W))
     (hg : ∀ g ∈ gs, legal g) (x : W → Bool) : run gs.reverse (run gs x)=x := by
   induction gs generalizing x with
@@ -628,7 +654,8 @@ theorem run_reverse_cancel {W : Type*} [DecidableEq W] (gs : List (BitGate W))
     rw [ih htail]
     exact act_involutive g (hg g (by simp)) x
 
-/-- Complete original `run_cancel_reverse` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- Running the reverse of a legal bit-gate list and then the list itself restores the input
+register. -/
 theorem run_cancel_reverse {W : Type*} [DecidableEq W] (gs : List (BitGate W))
     (hg : ∀ g ∈ gs, legal g) (x : W → Bool) : run gs (run gs.reverse x)=x := by
   have hr : ∀ g ∈ gs.reverse, legal g := by simpa only [List.mem_reverse] using hg
@@ -641,7 +668,8 @@ namespace Qatlib.Concepts.SpinorSampling.NativeRecords.ShiftCircuit
 open Qatlib
 open scoped BigOperators
 
-/-- Complete original `native_word_superposition` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- The native compilation of a legal bit-gate list maps each ket in a finite superposition
+according to the classical run and retains its coefficient. -/
 private theorem native_word_superposition {n : ℕ} {J : Type*} [Fintype J]
     (gs : List (BitGate (Fin n))) (hg : ∀ g ∈ gs, legal g)
     (x : J → Reg n) (φ : J → ℂ) :
@@ -657,7 +685,8 @@ private theorem native_word_superposition {n : ℕ} {J : Type*} [Fintype J]
   change φ j • ApplyGate (reflectionProgramMatrix (compileBits gs)) (Ket (x j)) = _
   rw [← run_reflectionCompile, compile_bits_exact gs hg]
 
-/-- Complete original `native_increment_clean_ket` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- With distinct wires and enough clean work wires, the native increment on a basis ket yields
+the ket of the axis increment controlled by the input control bit. -/
 theorem native_increment_clean_ket {n : ℕ} (control : Fin n)
     (axis ws : List (Fin n)) (x : Reg n) (hsize : axis.length ≤ ws.length+2)
     (hn : (control::(axis++ws)).Nodup) (hclean : ∀ w ∈ ws, x w=false) :
@@ -667,7 +696,9 @@ theorem native_increment_clean_ket {n : ℕ} (control : Fin n)
   rw [native_word_compile, compile_bits_exact (incrementWord control axis ws) (increment_aux_legal [control] axis ws hn)]
   exact congrArg Ket (increment_word_basis control axis ws x hsize hn hclean)
 
-/-- Complete original `native_increment_clean_superposition` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- With distinct wires and enough work wires that are zero in every basis term, the native
+increment applies the classical controlled axis update to each term and preserves its amplitude
+coefficient. -/
 theorem native_increment_clean_superposition {n : ℕ} {J : Type*} [Fintype J]
     (control : Fin n) (axis ws : List (Fin n)) (x : J → Reg n) (φ : J → ℂ)
     (hsize : axis.length ≤ ws.length+2) (hn : (control::(axis++ws)).Nodup)
@@ -681,7 +712,8 @@ theorem native_increment_clean_superposition {n : ℕ} {J : Type*} [Fintype J]
   intro j _
   rw [increment_word_basis control axis ws (x j) hsize hn (hclean j)]
 
-/-- Complete original `native_word_reverse_cancel` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- For a list of legal classical gates, native execution followed by native execution of the
+reverse list recovers the input superposition. -/
 theorem native_word_reverse_cancel {n : ℕ} {J : Type*} [Fintype J]
     (gs : List (BitGate (Fin n))) (hg : ∀ g ∈ gs, legal g)
     (x : J → Reg n) (φ : J → ℂ) :
@@ -694,7 +726,9 @@ theorem native_word_reverse_cancel {n : ℕ} {J : Type*} [Fintype J]
   rw [native_word_superposition gs hg, native_word_superposition gs.reverse hr]
   simp_rw [run_reverse_cancel gs hg]
 
-/-- Complete original `native_increment_semantics_and_cost` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- With distinct wires and enough work wires, native controlled increment is legal, uses zero
+queries and one gate per native word entry, and realizes the register update on every basis
+input with clean work wires. -/
 theorem native_increment_semantics_and_cost {n : ℕ} (control : Fin n)
     (axis ws : List (Fin n)) (hsize : axis.length ≤ ws.length+2)
     (hn : (control::(axis++ws)).Nodup) :
@@ -737,7 +771,7 @@ end Qatlib.Concepts.SpinorSampling.NativeRecords.ShiftCircuit
 namespace Qatlib.Concepts.SpinorSampling.NativeRecords.ShiftCircuit
 open Qatlib
 
-/-- Complete original `axis_value_injective` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- Two equal-length bit lists with the same decoded little-endian value are equal. -/
 theorem axis_value_injective (a b : List Bool) (hlen : a.length=b.length)
     (hv : axisValue a=axisValue b) : a=b := by
   induction a generalizing b with
@@ -758,7 +792,7 @@ theorem axis_value_injective (a b : List Bool) (hlen : a.length=b.length)
 def littleAddress (r : ℕ) (x : Reg r) : Fin (2^r) :=
   ⟨axisValue (List.ofFn x), by simpa only [List.length_ofFn] using axis_value_bound (List.ofFn x)⟩
 
-/-- Complete original `little_address_injective` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- At fixed width, little-endian address decoding is injective on Boolean registers. -/
 theorem little_address_injective (r : ℕ) : Function.Injective (littleAddress r) := by
   intro x y h
   apply List.ofFn_injective
@@ -771,7 +805,7 @@ noncomputable def littleEndianEquiv (r : ℕ) : Reg r ≃ Fin (2^r) :=
   Equiv.ofBijective (littleAddress r) ((Fintype.bijective_iff_injective_and_card _).2
     ⟨little_address_injective r, by simp only [card_reg, Fintype.card_fin]⟩)
 
-/-- Complete original `little_endian_equiv_apply` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- The little-endian register equivalence sends a bit register to its decoded address. -/
 @[simp] theorem little_endian_equiv_apply (r : ℕ) (x : Reg r) :
     littleEndianEquiv r x=littleAddress r x := rfl
 
@@ -802,17 +836,17 @@ def axisWires (d r : ℕ) (j : Fin d) : List (Fin (registerWidth d r)) :=
 /-- Construction for work Wires in the measurement gate semantics model. -/
 def workWires (d r : ℕ) : List (Fin (registerWidth d r)) := List.ofFn (workWire d r)
 
-/-- Complete original `axis_wire_val` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- The wire for bit `i` of axis `j` is at offset `j*r + i` in the flattened register. -/
 theorem axis_wire_val (d r : ℕ) (j : Fin d) (i : Fin r) :
     (axisWire d r j i).val=j.val*r+i.val := by
   change i.val+r*j.val=j.val*r+i.val
   ac_rfl
 
-/-- Complete original `axis_wire_lt_positions` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- Every flattened axis wire lies below the `d*r` boundary of the position register. -/
 theorem axis_wire_lt_positions (d r : ℕ) (j : Fin d) (i : Fin r) :
     (axisWire d r j i).val < d*r := (finProdFinEquiv (j,i)).isLt
 
-/-- Complete original `axis_wire_pair_injective` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- Distinct axis and bit index pairs give distinct wires in the flattened position register. -/
 theorem axis_wire_pair_injective (d r : ℕ) :
     Function.Injective (fun p : Fin d × Fin r => axisWire d r p.1 p.2) := by
   intro x y h
@@ -820,13 +854,13 @@ theorem axis_wire_pair_injective (d r : ℕ) :
   apply Fin.ext
   exact congrArg (fun z : Fin (registerWidth d r) => z.val) h
 
-/-- Complete original `axis_wires_nodup` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- An axis block lists each of its wires at most once. -/
 theorem axis_wires_nodup (d r : ℕ) (j : Fin d) : (axisWires d r j).Nodup := by
   apply List.nodup_ofFn.mpr
   intro i k h
   exact congrArg Prod.snd (@axis_wire_pair_injective d r (j,i) (j,k) h)
 
-/-- Complete original `work_wires_nodup` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- The work register wire list has no repeated entries. -/
 theorem work_wires_nodup (d r : ℕ) : (workWires d r).Nodup := by
   apply List.nodup_ofFn.mpr
   intro i k h
@@ -835,7 +869,7 @@ theorem work_wires_nodup (d r : ℕ) : (workWires d r).Nodup := by
   change d*r+2+i.val=d*r+2+k.val at hv
   omega
 
-/-- Complete original `axis_work_disjoint` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- No wire in an axis block is also a work wire. -/
 theorem axis_work_disjoint (d r : ℕ) (j : Fin d) :
     List.Disjoint (axisWires d r j) (workWires d r) := by
   rw [List.disjoint_left]
@@ -847,7 +881,8 @@ theorem axis_work_disjoint (d r : ℕ) (j : Fin d) :
   change (axisWire d r j i).val=d*r+2+k.val at he
   omega
 
-/-- Complete original `layout_wires_nodup` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- The test wire, the wires of a chosen axis, and the work wires are pairwise distinct in the
+concatenated layout. -/
 theorem layout_wires_nodup (d r : ℕ) (j : Fin d) :
     (testWire d r :: (axisWires d r j ++ workWires d r)).Nodup := by
   apply List.nodup_cons.mpr
@@ -866,7 +901,8 @@ theorem layout_wires_nodup (d r : ℕ) (j : Fin d) :
       omega
   · exact (axis_wires_nodup d r j).append (work_wires_nodup d r) (axis_work_disjoint d r j)
 
-/-- Complete original `layout_work_sufficient` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- Each axis block has at most two more wires than the available work register, as required by
+the controlled increment. -/
 theorem layout_work_sufficient (d r : ℕ) (j : Fin d) :
     (axisWires d r j).length ≤ (workWires d r).length+2 := by
   simp only [axisWires, workWires, List.length_ofFn]
@@ -880,7 +916,7 @@ def spatialIncrementWord (d r : ℕ) (j : Fin d) : List (BitGate (Fin (registerW
 def siteAddress (d r : ℕ) (x : Reg (registerWidth d r)) (j : Fin d) : Fin (2^r) :=
   littleAddress r (fun i => x (axisWire d r j i))
 
-/-- Complete original `other_axis_wire_not_mem` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- A wire of axis `k` is absent from the axis-`j` list whenever `k ≠ j`. -/
 theorem other_axis_wire_not_mem (d r : ℕ) (j k : Fin d) (hkj : k ≠ j) (i : Fin r) :
     axisWire d r k i ∉ axisWires d r j := by
   intro h
@@ -888,7 +924,8 @@ theorem other_axis_wire_not_mem (d r : ℕ) (j k : Fin d) (hkj : k ≠ j) (i : F
   have hp := @axis_wire_pair_injective d r (j,l) (k,i) hl
   exact hkj (congrArg Prod.fst hp).symm
 
-/-- Complete original `spatial_increment_address` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- On an input with clean work wires, the spatial increment adds the test bit to the selected
+address coordinate modulo `2^r` and leaves the other coordinates unchanged. -/
 theorem spatial_increment_address (d r : ℕ) (j k : Fin d) (x : Reg (registerWidth d r))
     (hclean : ∀ w ∈ workWires d r, x w=false) :
     (siteAddress d r (run (spatialIncrementWord d r j) x) k).val =
@@ -910,7 +947,8 @@ theorem spatial_increment_address (d r : ℕ) (j k : Fin d) (x : Reg (registerWi
         (fun i => x (axisWire d r k i)) := funext hb
     exact congrArg (fun b => (littleAddress r b).val) he
 
-/-- Complete original `spatial_increment_off` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- With clean work wires, the spatial increment leaves each wire outside the chosen axis block
+unchanged. -/
 theorem spatial_increment_off (d r : ℕ) (j : Fin d) (x : Reg (registerWidth d r))
     (hclean : ∀ w ∈ workWires d r, x w=false) (v : Fin (registerWidth d r))
     (hv : v ∉ axisWires d r j) : run (spatialIncrementWord d r j) x v=x v := by
@@ -918,7 +956,7 @@ theorem spatial_increment_off (d r : ℕ) (j : Fin d) (x : Reg (registerWidth d 
     (layout_wires_nodup d r j) hclean]
   exact axis_increment_off _ _ _ _ hv
 
-/-- Complete original `spin_wire_not_axis` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- The spin bit lies outside every position axis block. -/
 theorem spin_wire_not_axis (d r : ℕ) (j : Fin d) : spinWire d r ∉ axisWires d r j := by
   intro h
   obtain ⟨i,hi⟩ := List.mem_ofFn.mp h
@@ -927,12 +965,12 @@ theorem spin_wire_not_axis (d r : ℕ) (j : Fin d) : spinWire d r ∉ axisWires 
   change (axisWire d r j i).val=d*r at he
   omega
 
-/-- Complete original `test_wire_not_axis` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- The test bit lies outside every position axis block. -/
 theorem test_wire_not_axis (d r : ℕ) (j : Fin d) : testWire d r ∉ axisWires d r j := by
   intro h
   exact (List.nodup_cons.mp (layout_wires_nodup d r j)).1 (List.mem_append_left _ h)
 
-/-- Complete original `work_wire_not_axis` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- Every work bit lies outside every position axis block. -/
 theorem work_wire_not_axis (d r : ℕ) (j : Fin d) (i : Fin (r-2)) :
     workWire d r i ∉ axisWires d r j := by
   exact List.disjoint_right.mp (axis_work_disjoint d r j) (List.mem_ofFn.mpr ⟨i,rfl⟩)
@@ -942,7 +980,8 @@ def decodedNeighbor (d r : ℕ) (j : Fin d) :
     (Fin d → Fin (2^r)) ≃ (Fin d → Fin (2^r)) :=
   Equiv.piCongrRight (fun k => if k=j then finRotate (2^r) else Equiv.refl (Fin (2^r)))
 
-/-- Complete original `decoded_neighbor_coordinate` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- The decoded forward neighbor increases coordinate `j` by one modulo `2^r` and preserves
+every other coordinate. -/
 theorem decoded_neighbor_coordinate (d r : ℕ) (j k : Fin d) (s : Fin d → Fin (2^r)) :
     (decodedNeighbor d r j s k).val = if k=j then ((s k).val+1) % 2^r else (s k).val := by
   by_cases hk : k=j
@@ -952,7 +991,8 @@ theorem decoded_neighbor_coordinate (d r : ℕ) (j k : Fin d) (s : Fin d → Fin
     exact Nat.add_mod_mod _ _ _
   · simp [decodedNeighbor, Equiv.piCongrRight, hk]
 
-/-- Complete original `spatial_increment_site` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- With clean work wires, the decoded site moves to its forward neighbor on the chosen axis
+exactly in the true test branch. The false branch preserves the site. -/
 theorem spatial_increment_site (d r : ℕ) (j : Fin d) (x : Reg (registerWidth d r))
     (hclean : ∀ w ∈ workWires d r, x w=false) :
     siteAddress d r (run (spatialIncrementWord d r j) x) =
@@ -976,7 +1016,8 @@ abbrev LayoutData (d r : ℕ) := (Fin d → Fin (2^r)) × Bool × Bool × Reg (r
 def decodeLayout (d r : ℕ) (x : Reg (registerWidth d r)) : LayoutData d r :=
   (siteAddress d r x, x (spinWire d r), x (testWire d r), fun i => x (workWire d r i))
 
-/-- Complete original `layout_readout_injective` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- The decoded site, spin and test bits, and all work bits together determine the full
+register. -/
 theorem layout_readout_injective (d r : ℕ) (x y : Reg (registerWidth d r))
     (hs : siteAddress d r x=siteAddress d r y)
     (hspin : x (spinWire d r)=y (spinWire d r)) (htest : x (testWire d r)=y (testWire d r))
@@ -1006,7 +1047,7 @@ theorem layout_readout_injective (d r : ℕ) (x y : Reg (registerWidth d r))
           omega
         simpa only [hwire] using hw i
 
-/-- Complete original `decode_layout_injective` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- Decoding the register into its site, spin, test, and work components is injective. -/
 theorem decode_layout_injective (d r : ℕ) : Function.Injective (decodeLayout d r) := by
   intro x y h
   apply layout_readout_injective d r x y
@@ -1016,7 +1057,7 @@ theorem decode_layout_injective (d r : ℕ) : Function.Injective (decodeLayout d
   · intro i
     exact congrArg (fun z => z.2.2.2 i) h
 
-/-- Complete original `layout_card_eq` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- The Boolean register type and the decoded layout type have the same finite cardinality. -/
 theorem layout_card_eq (d r : ℕ) : Fintype.card (Reg (registerWidth d r))=Fintype.card (LayoutData d r) := by
   simp only [LayoutData, Fintype.card_prod, Fintype.card_fun, Fintype.card_fin, Fintype.card_bool]
   simp only [registerWidth, Nat.pow_add, ← Nat.pow_mul]
@@ -1028,11 +1069,12 @@ noncomputable def layoutEquiv (d r : ℕ) : Reg (registerWidth d r) ≃ LayoutDa
   Equiv.ofBijective (decodeLayout d r) ((Fintype.bijective_iff_injective_and_card _).2
     ⟨decode_layout_injective d r,layout_card_eq d r⟩)
 
-/-- Complete original `layout_equiv_apply` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- The layout equivalence acts on a register by decoding its site, readout bits, and work bits. -/
 @[simp] theorem layout_equiv_apply (d r : ℕ) (x : Reg (registerWidth d r)) :
     layoutEquiv d r x=decodeLayout d r x := rfl
 
-/-- Complete original `spatial_increment_layout` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- On clean-work inputs, the full decoded register update consists of the conditional forward
+site shift with the original spin, test, and work bits. -/
 theorem spatial_increment_layout (d r : ℕ) (j : Fin d) (x : Reg (registerWidth d r))
     (hclean : ∀ w ∈ workWires d r, x w=false) :
     decodeLayout d r (run (spatialIncrementWord d r j) x) =
@@ -1051,39 +1093,42 @@ theorem spatial_increment_layout (d r : ℕ) (j : Fin d) (x : Reg (registerWidth
 noncomputable def encodeClean (d r : ℕ) (s : Fin d → Fin (2^r)) (spin test : Bool) :
     Reg (registerWidth d r) := (layoutEquiv d r).symm (s,spin,test,fun _ => false)
 
-/-- Complete original `decode_encode_clean` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- Decoding the clean encoding returns the prescribed site, spin bit, and test bit with an
+all-zero work register. -/
 theorem decode_encode_clean (d r : ℕ) (s : Fin d → Fin (2^r)) (spin test : Bool) :
     decodeLayout d r (encodeClean d r s spin test)=(s,spin,test,fun _ => false) :=
   (layoutEquiv d r).apply_symm_apply _
 
-/-- Complete original `encode_clean_site` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- The site component of a clean encoding is the supplied site. -/
 @[simp] theorem encode_clean_site (d r : ℕ) (s : Fin d → Fin (2^r)) (spin test : Bool) :
     siteAddress d r (encodeClean d r s spin test)=s :=
   congrArg Prod.fst (decode_encode_clean d r s spin test)
 
-/-- Complete original `encode_clean_spin` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- The clean encoding stores the supplied spin bit at the spin wire. -/
 @[simp] theorem encode_clean_spin (d r : ℕ) (s : Fin d → Fin (2^r)) (spin test : Bool) :
     encodeClean d r s spin test (spinWire d r)=spin :=
   congrArg (fun z : LayoutData d r => z.2.1) (decode_encode_clean d r s spin test)
 
-/-- Complete original `encode_clean_test` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- The clean encoding stores the supplied test bit at the test wire. -/
 @[simp] theorem encode_clean_test (d r : ℕ) (s : Fin d → Fin (2^r)) (spin test : Bool) :
     encodeClean d r s spin test (testWire d r)=test :=
   congrArg (fun z : LayoutData d r => z.2.2.1) (decode_encode_clean d r s spin test)
 
-/-- Complete original `encode_clean_work` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- Each work wire of the clean encoding contains zero. -/
 @[simp] theorem encode_clean_work (d r : ℕ) (s : Fin d → Fin (2^r)) (spin test : Bool)
     (i : Fin (r-2)) : encodeClean d r s spin test (workWire d r i)=false :=
   congrArg (fun z : LayoutData d r => z.2.2.2 i) (decode_encode_clean d r s spin test)
 
-/-- Complete original `encoded_work_clean` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- Every wire in the work list is zero in the clean encoding, regardless of the encoded site or
+readout bits. -/
 theorem encoded_work_clean (d r : ℕ) (s : Fin d → Fin (2^r)) (spin test : Bool) :
     ∀ w ∈ workWires d r, encodeClean d r s spin test w=false := by
   intro w hw
   obtain ⟨i,hi⟩ := List.mem_ofFn.mp hw
   simpa only [hi] using encode_clean_work d r s spin test i
 
-/-- Complete original `spatial_increment_encoded_basis` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- The spatial increment maps a clean encoding to a clean encoding with the same readout bits,
+shifting the site forward on the chosen axis if the test bit is true. -/
 theorem spatial_increment_encoded_basis (d r : ℕ) (j : Fin d)
     (s : Fin d → Fin (2^r)) (spin test : Bool) :
     run (spatialIncrementWord d r j) (encodeClean d r s spin test) =
@@ -1092,7 +1137,9 @@ theorem spatial_increment_encoded_basis (d r : ℕ) (j : Fin d)
   rw [spatial_increment_layout d r j _ (encoded_work_clean d r s spin test), decode_encode_clean]
   simp only [encode_clean_site, encode_clean_spin, encode_clean_test, encode_clean_work]
 
-/-- Complete original `spatial_reverse_encoded_basis` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- Executing the reversed bit word moves a clean encoded site to the inverse neighbor in the
+true test branch, preserves the site in the false branch, and leaves the readout bits and clean
+work register intact. -/
 theorem spatial_reverse_encoded_basis (d r : ℕ) (j : Fin d)
     (s : Fin d → Fin (2^r)) (spin test : Bool) :
     run (spatialIncrementWord d r j).reverse (encodeClean d r s spin test) =
@@ -1109,7 +1156,8 @@ theorem spatial_reverse_encoded_basis (d r : ℕ) (j : Fin d)
 
 open scoped BigOperators
 
-/-- Complete original `native_spatial_increment_encoded_ket` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- The native increment sends a clean basis ket to the encoded forward-neighbor ket in the true
+test branch and to itself in the false branch. -/
 theorem native_spatial_increment_encoded_ket (d r : ℕ) (j : Fin d)
     (s : Fin d → Fin (2^r)) (spin test : Bool) :
     Run (1 : Matrix (Reg (registerWidth d r)) (Reg (registerWidth d r)) ℂ)
@@ -1121,7 +1169,9 @@ theorem native_spatial_increment_encoded_ket (d r : ℕ) (j : Fin d)
   rw [native_word_compile, compile_bits_exact (spatialIncrementWord d r j) hg,
     spatial_increment_encoded_basis]
 
-/-- Complete original `native_spatial_increment_encoded_superposition` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- The native increment acts term by term on a finite superposition of clean encodings,
+shifting the site on the chosen axis exactly in the terms whose test bit is true and retaining
+all coefficients. -/
 theorem native_spatial_increment_encoded_superposition {J : Type*} [Fintype J]
     (d r : ℕ) (j : Fin d) (s : J → Fin d → Fin (2^r)) (spin test : J → Bool) (φ : J → ℂ) :
     Run (1 : Matrix (Reg (registerWidth d r)) (Reg (registerWidth d r)) ℂ)
@@ -1133,7 +1183,8 @@ theorem native_spatial_increment_encoded_superposition {J : Type*} [Fintype J]
   rw [native_word_superposition (spatialIncrementWord d r j) hg]
   simp_rw [spatial_increment_encoded_basis]
 
-/-- Complete original `native_spatial_reverse_encoded_superposition` guarantee for `MeasurementGateSemantics`; all source hypotheses and output obligations are retained. -/
+/-- Native compilation of the reversed spatial word acts term by term on clean encodings, moving
+to the inverse neighbor only in the true test branch and retaining all coefficients. -/
 theorem native_spatial_reverse_encoded_superposition {J : Type*} [Fintype J]
     (d r : ℕ) (j : Fin d) (s : J → Fin d → Fin (2^r)) (spin test : J → Bool) (φ : J → ℂ) :
     Run (1 : Matrix (Reg (registerWidth d r)) (Reg (registerWidth d r)) ℂ)

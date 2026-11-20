@@ -15,7 +15,7 @@ public import Qatlib.Concepts.QueryComplexity.DegreeMethod.MwSpectralMixture
 # Two-projector mixtures and verifier promises
 
 A spectral frame for two orthogonal projectors expresses alternating measurement records as
-mixtures of Bernoulli record laws. `frontier1` supplies such a frame for concrete verifier and
+mixtures of Bernoulli record laws. `exists_clean_subspace_frame_for_alternating_record_law` supplies such a frame for concrete verifier and
 clean-subspace projectors, while the remaining results transfer spectral bounds and verifier
 promises to threshold error estimates.
 
@@ -62,7 +62,7 @@ variable {H W : Type} [Fintype H] [DecidableEq H] [Fintype W] [DecidableEq W]
 clean-subspace frame with parameters in `[0, 1]` giving the spectral mixture formula for
 every embedded witness's alternating record mass. Every output of the clean projector also
 lies in the witness embedding's image. -/
-theorem frontier1 (U : Matrix H H ℂ) (S : Finset H) (E : Matrix H W ℂ)
+theorem exists_clean_subspace_frame_for_alternating_record_law (U : Matrix H H ℂ) (S : Finset H) (E : Matrix H W ℂ)
     (hU : U ∈ unitaryGroup H ℂ) (hE : Eᴴ * E = 1) :
     let P := pulledAccept U S
     let Q := cleanProjector E

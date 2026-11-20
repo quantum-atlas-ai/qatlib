@@ -87,7 +87,7 @@ def floorJetBound : FloorJetExpr → ℕ
 
 noncomputable section
 
-/-- Original `contDiff_iterated_flat` guarantee for the `FloorJetSyntax` construction; the complete source hypotheses are retained. -/
+/-- Every order of ordinary derivative of the glued flat function `expNegInvGlue` is smooth. -/
 theorem contDiff_iterated_flat (n : ℕ) : ContDiff ℝ ∞ (iteratedDeriv n expNegInvGlue) := by
   induction n with
   | zero => exact expNegInvGlue.contDiff
@@ -95,12 +95,13 @@ theorem contDiff_iterated_flat (n : ℕ) : ContDiff ℝ ∞ (iteratedDeriv n exp
     rw [iteratedDeriv_succ]
     exact (contDiff_infty_iff_deriv.mp ih).2
 
-/-- Original `contDiff_floorBumpArgument` guarantee for the `FloorJetSyntax` construction; the complete source hypotheses are retained. -/
+/-- The bump argument is smooth as a function on real spatial points. -/
 theorem contDiff_floorBumpArgument : ContDiff ℝ ∞ floorBumpArgument :=
   contDiff_const.sub (ContDiff.sum (s := Finset.univ) (fun i _ =>
     ((EuclideanSpace.proj i : SpatialPoint →L[ℝ] ℝ).contDiff.sub contDiff_const).pow 2))
 
-/-- Original `contDiff_floorJetEval` guarantee for the `FloorJetSyntax` construction; the complete source hypotheses are retained. -/
+/-- For any fixed jet expression and real amplitude, its evaluation is smooth in the spatial
+point. -/
 theorem contDiff_floorJetEval (e : FloorJetExpr) (a : ℝ) :
     ContDiff ℝ ∞ (fun X => floorJetEval a X e) := by
   induction e with
@@ -114,7 +115,7 @@ theorem contDiff_floorJetEval (e : FloorJetExpr) (a : ℝ) :
   | sin f hf => exact hf.sin
   | cos f hf => exact hf.cos
 
-/-- Original `floorBumpArgument_fderiv` guarantee for the `FloorJetSyntax` construction; the complete source hypotheses are retained. -/
+/-- The derivative of the bump argument along coordinate `i` is `-2 * (X i - 3)`. -/
 theorem floorBumpArgument_fderiv (X : SpatialPoint) (i : Fin 3) :
     fderiv ℝ floorBumpArgument X (EuclideanSpace.single i 1)= -2*(X i-3) := by
   let p := fun j : Fin 3 => (EuclideanSpace.proj j : SpatialPoint →L[ℝ] ℝ)
@@ -131,7 +132,8 @@ theorem floorBumpArgument_fderiv (X : SpatialPoint) (i : Fin 3) :
   rw [he,hd.fderiv]
   fin_cases i <;> simp [p]
 
-/-- Original `floorJetDiff_correct` guarantee for the `FloorJetSyntax` construction; the complete source hypotheses are retained. -/
+/-- Evaluating the symbolic derivative in coordinate `i` gives the corresponding coordinate
+derivative of the evaluated expression at the same point and parameter. -/
 theorem floorJetDiff_correct (e : FloorJetExpr) (a : ℝ) (X : SpatialPoint) (i : Fin 3) :
     floorJetEval a X (floorJetDiff i e)=
       fderiv ℝ (fun Y => floorJetEval a Y e) X (EuclideanSpace.single i 1) := by
@@ -184,7 +186,8 @@ theorem floorJetDiff_correct (e : FloorJetExpr) (a : ℝ) (X : SpatialPoint) (i 
     rw [hd.fderiv]
     simp [floorJetDiff,floorJetEval,hf,_root_.smul_apply,smul_eq_mul]
 
-/-- Original `floorJetWord_correct` guarantee for the `FloorJetSyntax` construction; the complete source hypotheses are retained. -/
+/-- Evaluation of a jet differentiated along a coordinate word agrees, as a function of position,
+with the iterated spatial partial derivative of its original evaluation. -/
 theorem floorJetWord_correct (e : FloorJetExpr) (a : ℝ) (w : List (Fin 3)) :
     (fun X => floorJetEval a X (floorJetWord e w))=
       spatialWordPartial (fun X => floorJetEval a X e) w := by
@@ -194,7 +197,8 @@ theorem floorJetWord_correct (e : FloorJetExpr) (a : ℝ) (w : List (Fin 3)) :
     funext X
     simp only [floorJetWord,spatialWordPartial,floorJetDiff_correct,ih]
 
-/-- Original `floorJetBound_correct` guarantee for the `FloorJetSyntax` construction; the complete source hypotheses are retained. -/
+/-- At points of the fundamental cube and for amplitude with absolute value at most one, the
+absolute evaluation of a jet expression is bounded by its syntactic bound. -/
 theorem floorJetBound_correct (e : FloorJetExpr) (a : ℝ) (ha : |a| ≤ 1)
     (X : SpatialPoint) (hX : InFundamentalCube X) :
     |floorJetEval a X e| ≤ (floorJetBound e : ℝ) := by

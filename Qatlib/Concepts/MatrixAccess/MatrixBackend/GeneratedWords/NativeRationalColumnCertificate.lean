@@ -77,7 +77,7 @@ def rationalWeightMass {J : Type} [Fintype J] (weights : J → GaussianRat) : �
 def rationalWeightMassCheck {J : Type} [Fintype J] (weights : J → GaussianRat) (L : ℚ) : Bool :=
   (L==rationalWeightMass weights) && decide (0 < L)
 
-/-- The finite construction in `NativeRationalColumnCertificate` satisfies `rationalWeightMassCheck_iff` under the displayed hypotheses. -/
+/-- The weight-mass check accepts exactly when `L` is positive and equals the sum of the absolute real and imaginary coordinates of all the weights. -/
 theorem rationalWeightMassCheck_iff {J : Type} [Fintype J] (weights : J → GaussianRat) (L : ℚ) :
     rationalWeightMassCheck weights L=true ↔ L=rationalWeightMass weights ∧ 0<L := by
   simp [rationalWeightMassCheck]
@@ -85,7 +85,7 @@ theorem rationalWeightMassCheck_iff {J : Type} [Fintype J] (weights : J → Gaus
 noncomputable section
 open scoped Classical
 
-/-- The finite construction in `NativeRationalColumnCertificate` satisfies `rationalColumnCoefficient_complex` under the displayed hypotheses. -/
+/-- The rational coefficient at label `a` represents the origin-column phase coefficient of the table Householder preparation with the supplied phases. -/
 theorem rationalColumnCoefficient_complex {n : ℕ} (rs : List (Fin n × Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle))
     (phase : Option (Fin n) → Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle) (a : Option (Fin n)) :
     gaussianRatComplex (rationalColumnCoefficient rs phase a) =
@@ -94,7 +94,7 @@ theorem rationalColumnCoefficient_complex {n : ℕ} (rs : List (Fin n × Qatlib.
     ← phaseScalar_as_gaussian]
   simp [gaussianRatComplex, Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Data.columnPhaseCoefficient, tableHouseholder_origin_column, pow_two]
 
-/-- The finite construction in `NativeRationalColumnCertificate` satisfies `rationalGroupedCoefficient_complex` under the displayed hypotheses. -/
+/-- The rational grouped coefficient at `j` represents the sum of the table's origin-column phase coefficients over labels mapped to node `j`. -/
 theorem rationalGroupedCoefficient_complex {n : ℕ} {J : Type} [Fintype J] [DecidableEq J]
     (node : Option (Fin n) → J) (rs : List (Fin n × Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle)) (phase : Option (Fin n) → Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle) (j : J) :
     gaussianRatComplex (rationalGroupedCoefficient node rs phase j) =
@@ -108,13 +108,13 @@ theorem rationalGroupedCoefficient_complex {n : ℕ} {J : Type} [Fintype J] [Dec
   · simpa [ite_eq_left ha,gaussianValueAddHom] using rationalColumnCoefficient_complex rs phase a
   · simp [ha, gaussianValueAddHom, gaussianRatComplex]
 
-/-- The finite construction in `NativeRationalColumnCertificate` satisfies `rationalDesiredCoefficient_complex` under the displayed hypotheses. -/
+/-- At label `j`, the desired rational coefficient represents the complex weight divided by `L`. -/
 theorem rationalDesiredCoefficient_complex {J : Type} (weights : J → GaussianRat) (L : ℚ) (j : J) :
     gaussianRatComplex (rationalDesiredCoefficient weights L j)=gaussianRatComplex (weights j)/(L : ℂ) := by
   simp only [rationalDesiredCoefficient, gaussianRatComplex, Rat.cast_div]
   ring
 
-/-- The finite construction in `NativeRationalColumnCertificate` satisfies `rationalColumnResidual_complex` under the displayed hypotheses. -/
+/-- At each node `j`, the complex value of the rational residual is the weight divided by `L` minus the grouped coefficient obtained from the table's origin column and phases. -/
 theorem rationalColumnResidual_complex {n : ℕ} {J : Type} [Fintype J] [DecidableEq J]
     (node : Option (Fin n) → J) (rs : List (Fin n × Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle)) (phase : Option (Fin n) → Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle)
     (weights : J → GaussianRat) (L : ℚ) (j : J) :
@@ -124,12 +124,12 @@ theorem rationalColumnResidual_complex {n : ℕ} {J : Type} [Fintype J] [Decidab
   rw [rationalColumnResidual, Qatlib.Concepts.NativeNumerics.PhaseSynthesis.complex_gsub,
     rationalDesiredCoefficient_complex, rationalGroupedCoefficient_complex]
 
-/-- The finite construction in `NativeRationalColumnCertificate` satisfies `gaussianRat_norm_le_coordinate` under the displayed hypotheses. -/
+/-- The modulus of a Gaussian rational is bounded above by the sum of the absolute values of its two coordinates. -/
 theorem gaussianRat_norm_le_coordinate (z : GaussianRat) :
     ‖gaussianRatComplex z‖ ≤ ((|z.1|+|z.2| : ℚ) : ℝ) := by
   simpa [gaussianRatComplex] using Complex.norm_le_abs_re_add_abs_im (gaussianRatComplex z)
 
-/-- The finite construction in `NativeRationalColumnCertificate` satisfies `rationalWeightMass_majorizes` under the displayed hypotheses. -/
+/-- Summing the complex magnitudes of the weights gives at most their rational mass, which sums both absolute coordinates at each label. -/
 theorem rationalWeightMass_majorizes {J : Type} [Fintype J] (weights : J → GaussianRat) :
     (∑ j,‖gaussianRatComplex (weights j)‖) ≤ (rationalWeightMass weights : ℝ) := by
   calc

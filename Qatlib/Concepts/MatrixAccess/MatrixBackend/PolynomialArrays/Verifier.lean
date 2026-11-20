@@ -42,7 +42,7 @@ def pack (n : ℕ) (a : Fin (n+2) → ℤ) (record : Record) : RootIntegerFactor
   centers := fun i => (record.disks.getD i.val ((0,0),0)).1
   radii := fun i => (record.disks.getD i.val ((0,0),0)).2
 
-/-- The finite construction in `raw polynomial certificate checker` satisfies `pack_disks` under the displayed hypotheses. -/
+/-- If the record has `n + 1` disks, listing the packed centers and radii in index order recovers the original disk list exactly. -/
 theorem pack_disks (n : ℕ) (a : Fin (n+2) → ℤ) (record : Record) (hlen : record.disks.length=n+1) :
     List.ofFn (fun i => ((pack n a record).centers i,(pack n a record).radii i))=record.disks := by
   apply List.ext_getElem (by simp only [List.length_ofFn]; exact hlen.symm)
@@ -111,13 +111,16 @@ def radiusCheck (f : RootIntegerFactorData) : Bool :=
 def groupCheck (f : RootIntegerFactorData) (eta : ℚ) : Bool :=
   (List.finRange (f.n+1)).all (diskCheck f eta)
 
-/-- The finite construction in `raw polynomial certificate checker` satisfies `denominator_assert` under the displayed hypotheses. -/
+/-- At each disk center, the factor's compact Horner denominator equals the derivative's denominator times that center's common denominator. -/
 theorem denominator_assert (f : RootIntegerFactorData) (i : Fin (f.n+1)) :
     (diskValue f i).denominator=(diskPrime f i).denominator*rootSharedDenominator (f.centers i) := by
   simp only [diskValue,diskPrime,rootCompactHorner_denominator,List.length_ofFn,
     show f.n+2-1=f.n+1 by omega,Nat.add_sub_cancel,pow_succ]
 
-/-- The finite construction in `raw polynomial certificate checker` satisfies `inclusion_check_of_guards` under the displayed hypotheses. -/
+/-- The factor guards make the inclusion check pass at every disk index. A zero
+ Horner numerator passes directly. Otherwise the integer coordinate inequality
+ and denominator relation give the required checks, including a nonzero
+ derivative numerator. -/
 theorem inclusion_check_of_guards (f : RootIntegerFactorData) (eta : ℚ)
     (h : RootIntegerFactorGuards f eta) (i : Fin (f.n+1)) : inclusionCheck f i=true := by
   let v := diskValue f i
@@ -153,7 +156,7 @@ theorem inclusion_check_of_guards (f : RootIntegerFactorData) (eta : ℚ)
     simp only [Bool.and_eq_true,decide_eq_true_eq]
     exact ⟨⟨denominator_assert f i,hl⟩,hb⟩
 
-/-- The finite construction in `raw polynomial certificate checker` satisfies `previous_check_of_guards` under the displayed hypotheses. -/
+/-- The factor guard on separation makes the check against every earlier disk pass at the given index. -/
 theorem previous_check_of_guards (f : RootIntegerFactorData) (eta : ℚ)
     (h : RootIntegerFactorGuards f eta) (i : Fin (f.n+1)) : previousCheck f i=true := by
   apply List.all_eq_true.mpr
@@ -166,7 +169,9 @@ theorem previous_check_of_guards (f : RootIntegerFactorData) (eta : ℚ)
   apply decide_eq_true
   exact h.separation i j (fun h => by have hv := congrArg Fin.val h; omega)
 
-/-- The finite construction in `raw polynomial certificate checker` satisfies `disk_check_of_guards` under the displayed hypotheses. -/
+/-- The factor guards make the disk check pass at the given index, including
+ separation from earlier disks, inclusion, classification, and the positive
+ tolerance and grid error budget for an inside disk. -/
 theorem disk_check_of_guards (f : RootIntegerFactorData) (eta : ℚ)
     (h : RootIntegerFactorGuards f eta) (i : Fin (f.n+1)) : diskCheck f eta i=true := by
   unfold diskCheck
@@ -179,7 +184,9 @@ theorem disk_check_of_guards (f : RootIntegerFactorData) (eta : ℚ)
     simp only [Bool.and_eq_true,decide_eq_true_eq]
     exact ⟨h.eta_pos i ht,h.budget i ht⟩
 
-/-- The finite construction in `raw polynomial certificate checker` satisfies `all_checks_of_guards` under the displayed hypotheses. -/
+/-- The factor guards give a passing header check for the leading coefficient
+ and exponent, a passing positivity check for every radius, and a passing
+ disk check at tolerance `eta` for every disk in the group. -/
 theorem all_checks_of_guards (f : RootIntegerFactorData) (eta : ℚ)
     (h : RootIntegerFactorGuards f eta) :
     headerCheck f=true ∧ radiusCheck f=true ∧ groupCheck f eta=true := by
@@ -201,7 +208,8 @@ def factorList (fs : List RootIntegerFactorData) : List (List ℤ×ℕ) :=
 /-- Construction for family in the verifier model. -/
 def family (fs : List RootIntegerFactorData) : Fin fs.length → RootIntegerFactorData := fs.get
 
-/-- The finite construction in `raw polynomial certificate checker` satisfies `family_factor_list` under the displayed hypotheses. -/
+/-- Reading the coefficient lists and exponents from the indexed family gives
+ the same ordered list as reading those fields directly from `fs`. -/
 theorem family_factor_list (fs : List RootIntegerFactorData) :
     List.ofFn (fun j => (List.ofFn (family fs j).coefficients,(family fs j).exponent))=factorList fs := by
   have he := congrArg (List.map (fun f : RootIntegerFactorData => (List.ofFn f.coefficients,f.exponent))) (List.ofFn_get fs)
@@ -234,13 +242,13 @@ def radiusBitValues (fs : List RootIntegerFactorData) : List ℕ :=
 /-- Construction for maximum Radius Bits in the verifier model. -/
 def maximumRadiusBits (fs : List RootIntegerFactorData) : ℕ := (radiusBitValues fs).foldl max 0
 
-/-- The finite construction in `raw polynomial certificate checker` satisfies `fold_max_initial` under the displayed hypotheses. -/
+/-- The left fold of `max` over `xs` never falls below its initial value `a`. -/
 theorem fold_max_initial (xs : List ℕ) (a : ℕ) : a ≤ xs.foldl max a := by
   induction xs generalizing a with
   | nil => rfl
   | cons x xs ih => exact (le_max_left a x).trans (ih (max a x))
 
-/-- The finite construction in `raw polynomial certificate checker` satisfies `fold_max_member` under the displayed hypotheses. -/
+/-- Every member `k` of `xs` is at most the result of folding `max` from `a`. -/
 theorem fold_max_member (xs : List ℕ) (a k : ℕ) (hk : k∈xs) : k ≤ xs.foldl max a := by
   induction xs generalizing a with
   | nil => cases hk
@@ -250,14 +258,16 @@ theorem fold_max_member (xs : List ℕ) (a k : ℕ) (hk : k∈xs) : k ≤ xs.fol
       exact (le_max_right a k).trans (fold_max_initial xs (max a k))
     · exact ih (max a x) he
 
-/-- The finite construction in `raw polynomial certificate checker` satisfies `radius_bits_member` under the displayed hypotheses. -/
+/-- For any factor in `fs` and any of its disk indices, the radius denominator's
+ bit length is at most the maximum taken over all encoded radii. -/
 theorem radius_bits_member (fs : List RootIntegerFactorData) (f : RootIntegerFactorData)
     (hf : f∈fs) (i : Fin (f.n+1)) : (f.radii i).den.size ≤ maximumRadiusBits fs := by
   apply fold_max_member
   apply List.mem_flatMap.mpr
   exact ⟨f,hf,List.mem_map.mpr ⟨i,by simp,rfl⟩⟩
 
-/-- The finite construction in `raw polynomial certificate checker` satisfies `guard_member` under the displayed hypotheses. -/
+/-- If the factor guards hold at every index of `fs`, they hold for each member
+ of the list at the same tolerance `eta`. -/
 theorem guard_member (fs : List RootIntegerFactorData) (eta : ℚ)
     (h : ∀ j,RootIntegerFactorGuards (family fs j) eta) (f : RootIntegerFactorData) (hf : f∈fs) :
     RootIntegerFactorGuards f eta := by
@@ -267,7 +277,8 @@ theorem guard_member (fs : List RootIntegerFactorData) (eta : ℚ)
   rw [he] at hj
   exact hj
 
-/-- The finite construction in `raw polynomial certificate checker` satisfies `all_header_checks` under the displayed hypotheses. -/
+/-- If every factor in `fs` satisfies the guards at tolerance `eta`, every header,
+ every radius check, and every group of disk checks passes. -/
 theorem all_header_checks (fs : List RootIntegerFactorData) (eta : ℚ)
     (h : ∀ j,RootIntegerFactorGuards (family fs j) eta) :
     fs.all headerCheck=true ∧ fs.all radiusCheck=true ∧ fs.all (fun f => groupCheck f eta)=true := by
@@ -279,7 +290,9 @@ theorem all_header_checks (fs : List RootIntegerFactorData) (eta : ℚ)
   · intro f hf
     exact (all_checks_of_guards f eta (guard_member fs eta h f hf)).2.2
 
-/-- The finite construction in `raw polynomial certificate checker` satisfies `radius_precheck` under the displayed hypotheses. -/
+/-- At tolerance `1 / 2^bits`, if every factor satisfies the guards and the
+ computed return list is nonempty, the maximum radius-denominator bit length
+ is strictly larger than `bits`. -/
 theorem radius_precheck (fs : List RootIntegerFactorData) (bits : ℕ) (eta : ℚ)
     (heta : eta=1/(2 : ℚ)^bits) (h : ∀ j,RootIntegerFactorGuards (family fs j) eta)
     (hpos : 0 < (rootDecodedReturnList (family fs) eta).length) : bits < maximumRadiusBits fs := by
@@ -308,7 +321,9 @@ namespace ActualProjectionVerifierDiskSound
 open ActualProjectionVerifierDiskChecks
 open Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays
 
-/-- The finite construction in `raw polynomial certificate checker` satisfies `inclusion_of_check` under the displayed hypotheses. -/
+/-- If the Boolean inclusion check passes, either the factor's Horner numerator
+ is zero or the factor and derivative Horner values satisfy the integer
+ coordinate inequality at the disk radius. -/
 theorem inclusion_of_check (f : RootIntegerFactorData) (i : Fin (f.n+1))
     (h : inclusionCheck f i=true) :
     (diskValue f i).numerator=(0,0) ∨
@@ -318,7 +333,7 @@ theorem inclusion_of_check (f : RootIntegerFactorData) (i : Fin (f.n+1))
   · simp only [inclusionCheck,hz,ite_false,Bool.and_eq_true,decide_eq_true_eq] at h
     exact Or.inr h.2
 
-/-- The finite construction in `raw polynomial certificate checker` satisfies `prior_member` under the displayed hypotheses. -/
+/-- Every index `j` strictly below `i` belongs to the first `i.val` entries of the increasing list of indices in `Fin n`. -/
 theorem prior_member (n : ℕ) (i j : Fin n) (hji : j.val < i.val) :
     j∈(List.finRange n).take i.val := by
   apply List.mem_iff_getElem.mpr
@@ -328,7 +343,8 @@ theorem prior_member (n : ℕ) (i j : Fin n) (hji : j.val < i.val) :
   · apply Fin.ext
     simp only [List.getElem_take,List.getElem_finRange, Fin.val_cast]
 
-/-- The finite construction in `raw polynomial certificate checker` satisfies `separation_of_checks` under the displayed hypotheses. -/
+/-- When every check against earlier disks passes, any two distinct indices have
+ squared center distance strictly larger than the square of the sum of radii. -/
 theorem separation_of_checks (f : RootIntegerFactorData)
     (h : ∀ i,previousCheck f i=true) (i j : Fin (f.n+1)) (hne : i≠j) :
     (f.radii i+f.radii j)^2<
@@ -341,7 +357,9 @@ theorem separation_of_checks (f : RootIntegerFactorData)
   · have hs := List.all_eq_true.mp (h i) j (prior_member _ i j hji)
     exact of_decide_eq_true hs
 
-/-- The finite construction in `raw polynomial certificate checker` satisfies `side_of_check` under the displayed hypotheses. -/
+/-- A passing disk check gives a classification tag. If that tag is inside,
+ `eta` is positive and the radius plus the sum of the two absolute coordinate
+ shifts on the `eta / 16` grid is at most `eta`. -/
 theorem side_of_check (f : RootIntegerFactorData) (eta : ℚ) (i : Fin (f.n+1))
     (h : diskCheck f eta i=true) :
     rootRationalDiskClassify (f.centers i) (f.radii i)≠none ∧
@@ -370,7 +388,11 @@ theorem side_of_check (f : RootIntegerFactorData) (eta : ℚ) (i : Fin (f.n+1))
       simp only [Bool.and_eq_true,decide_eq_true_eq] at hb
       exact ⟨by simp,fun _ => hb.1,fun _ => hb.2⟩
 
-/-- The finite construction in `raw polynomial certificate checker` satisfies `guards_of_all_checks` under the displayed hypotheses. -/
+/-- Passing the header, radius and group checks establishes the factor guards.
+ The leading coefficient is nonzero and the exponent is positive. Every disk
+ has positive radius, passes the inclusion criterion and is classified. Every
+ distinct pair passes separation, and each inside disk has positive tolerance
+ and meets its grid error budget. -/
 theorem guards_of_all_checks (f : RootIntegerFactorData) (eta : ℚ)
     (hh : headerCheck f=true) (hr : radiusCheck f=true) (hg : groupCheck f eta=true) :
     RootIntegerFactorGuards f eta := by
@@ -420,7 +442,13 @@ def verify (target : List ℤ) (bits inside : ℕ) (content : ℤ) (fs : List Ro
   let points := rootDecodedReturnList (family fs) eta
   if points.length≠inside ∨ rootDecodedOutsideCount (family fs)≠degree-inside then none else some points
 
-/-- The finite construction in `raw polynomial certificate checker` satisfies `verify_of_generated_checks` under the displayed hypotheses. -/
+/-- Suppose `bits` and `inside` are positive, `eta = 1 / 2^bits`, and the degree
+ `d` of the trimmed target is positive and at least `inside`. Assume the
+ nonzero content `c` times the factors raised to their listed exponents gives
+ the trimmed target by integer coefficient multiplication, and all factors
+ satisfy the guards at `eta`. If the degrees weighted by exponents sum to `d`,
+ the computed inside list has length `inside`, and the weighted outside count
+ is `d - inside`, `verify` returns that exact inside grid list. -/
 theorem verify_of_generated_checks (H : List ℤ) (bits inside : ℕ) (c : ℤ) (fs : List RootIntegerFactorData)
     (eta : ℚ) (heta : eta=1/(2 : ℚ)^bits) (hbits : 0 < bits) (hinside : 0 < inside)
     (hdegree : 2 ≤ (rootCanonicalCoefficients H).length)
@@ -503,7 +531,12 @@ open ActualProjectionDecodedVerifier ActualProjectionVerifierPrimitives ActualPr
 open ActualProjectionVerifierDiskSound
 open Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays
 
-/-- The finite construction in `raw polynomial certificate checker` satisfies `accepted_guards` under the displayed hypotheses. -/
+/-- If the typed verifier returns `points`, the content is nonzero and the
+ integer coefficient product with the indicated factor powers equals the
+ trimmed target. Every factor satisfies the guards at `eta`, which is zero
+ for `inside = 0` and `1 / 2^bits` otherwise. The result is the computed grid
+ list of length `inside`, and the weighted outside count is the degree of
+ the trimmed target minus `inside`. -/
 theorem accepted_guards (H : List ℤ) (bits inside : ℕ) (c : ℤ) (fs : List RootIntegerFactorData)
     (points : List (ℚ×ℚ)) (h : verify H bits inside c fs=some points) :
     let eta : ℚ := if inside=0 then 0 else 1/(2 : ℚ)^bits
@@ -532,7 +565,11 @@ theorem accepted_guards (H : List ℤ) (bits inside : ℕ) (c : ℤ) (fs : List 
   · rw [family_factor_list]
     exact hproduct
 
-/-- The finite construction in `raw polynomial certificate checker` satisfies `returned_of_verify` under the displayed hypotheses. -/
+/-- If verification of the typed factor data returns `points`, the list pairs
+ in order with all roots of the polynomial represented by `H` strictly inside
+ the unit circle, counted with multiplicity. Each returned point is strictly
+ inside and within `1 / 2^bits` of its paired root, with tolerance zero if
+ `inside = 0`. -/
 theorem returned_of_verify (H : List ℤ) (bits inside : ℕ) (c : ℤ) (fs : List RootIntegerFactorData)
     (points : List (ℚ×ℚ)) (h : verify H bits inside c fs=some points) :
     ∃ zs : List ℂ,(zs : Multiset ℂ)=(rootIntegerListPolynomial H).roots.filter (fun z => ‖z‖ < 1) ∧
@@ -557,7 +594,10 @@ open ActualProjectionCapRound ActualProjectionRawRecordDecode ActualProjectionDe
 def verifyRecords (H : List ℤ) (bits inside : ℕ) (c : ℤ) (records : List Record) :
     Option (List (ℚ×ℚ)) := (decode records).bind (verify H bits inside c)
 
-/-- The finite construction in `raw polynomial certificate checker` satisfies `raw_returned_of_verify` under the displayed hypotheses. -/
+/-- If verification after trimming and decoding the raw factor records returns
+ `points`, those rational coordinates lie strictly inside the unit circle.
+ In list order they pair with all interior roots of `H`, with multiplicity,
+ within `1 / 2^bits` of their partners, or with tolerance zero if `inside = 0`. -/
 theorem raw_returned_of_verify (H : List ℤ) (bits inside : ℕ) (c : ℤ)
     (records : List Record) (points : List (ℚ×ℚ))
     (h : verifyRecords H bits inside c records=some points) :
@@ -590,7 +630,10 @@ def rootProjectionDecodedVerify (target : List ℤ) (bits inside : ℕ) (content
   RootYunInternal.ActualProjectionRawVerifier.verifyRecords target bits inside content
     (records.map rootProjectionInternalRecord)
 
-/-- The finite construction in `raw polynomial certificate checker` satisfies `rootProjectionDecodedVerify_returned` under the displayed hypotheses. -/
+/-- Whenever the public decoded verifier returns rational points, they lie
+ strictly inside the unit circle and admit a position-by-position pairing
+ with the target polynomial's entire interior root multiset. Each paired
+ distance is at most `1 / 2^bits`, with tolerance zero if `inside = 0`. -/
 theorem rootProjectionDecodedVerify_returned (target : List ℤ) (bits inside : ℕ) (content : ℤ)
     (records : List RootProjectionFactorRecord) (points : List (ℚ×ℚ))
     (h : rootProjectionDecodedVerify target bits inside content records=some points) :

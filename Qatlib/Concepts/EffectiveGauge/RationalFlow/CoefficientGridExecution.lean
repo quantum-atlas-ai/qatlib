@@ -83,24 +83,25 @@ theorem connectionGridExecution_eq_map (sample : SourceMeanIndex → Option (Fin
 noncomputable section
 open scoped BigOperators
 
-/-- Original `rationalCircleCast_add` guarantee for the `CoefficientGridExecution` construction; the complete source hypotheses are retained. -/
+/-- The complex cast of a pair sum is the sum of the casts. -/
 theorem rationalCircleCast_add (a b : RationalCircleSample) :
     rationalCircleCast (a+b)=rationalCircleCast a+rationalCircleCast b := by
   apply Complex.ext <;> simp [rationalCircleCast]
 
-/-- Original `rationalCircleCast_smul` guarantee for the `CoefficientGridExecution` construction; the complete source hypotheses are retained. -/
+/-- Scaling a rational pair by `r` and casting to the complex plane gives real scalar multiplication
+by the cast of `r`. -/
 theorem rationalCircleCast_smul (r : ℚ) (a : RationalCircleSample) :
     rationalCircleCast (r • a)=(r : ℝ) • rationalCircleCast a := by
   apply Complex.ext <;> simp [rationalCircleCast,smul_eq_mul]
 
-/-- Original `rationalCircleCast_list_sum` guarantee for the `CoefficientGridExecution` construction; the complete source hypotheses are retained. -/
+/-- Casting the sum of a list of rational pairs gives the sum of the list of their complex casts. -/
 theorem rationalCircleCast_list_sum (values : List RationalCircleSample) :
     rationalCircleCast values.sum=(values.map rationalCircleCast).sum := by
   induction values with
   | nil => apply Complex.ext <;> simp [rationalCircleCast]
   | cons a values ih => simp only [List.sum_cons,List.map_cons,rationalCircleCast_add,ih]
 
-/-- Original `rationalPairAverage_cast` guarantee for the `CoefficientGridExecution` construction; the complete source hypotheses are retained. -/
+/-- The cast of the rational grid average is the sum of the cast entries scaled by `1 / M³`. -/
 theorem rationalPairAverage_cast (M : ℕ) (values : List RationalCircleSample) :
     rationalCircleCast (rationalPairAverage M values)=
       ((M : ℝ)^3)⁻¹ • (values.map rationalCircleCast).sum := by
@@ -109,7 +110,8 @@ theorem rationalPairAverage_cast (M : ℕ) (values : List RationalCircleSample) 
   rw [hid,rationalCircleCast_smul,rationalCircleCast_list_sum]
   simp only [Rat.cast_inv,Rat.cast_pow,Rat.cast_natCast]
 
-/-- Original `rationalCoefficientTerm_cast` guarantee for the `CoefficientGridExecution` construction; the complete source hypotheses are retained. -/
+/-- The complex cast of a coefficient summand is the computed mode at frequency `-k` at the grid
+node multiplied by component `j` of the sampled vector. -/
 theorem rationalCoefficientTerm_cast (M : ℕ) (length : ℚ) (k : SpatialFrequency) (d : ℚ)
     (index : SourceMeanIndex) (value : Fin 3 → ℚ) (j : Fin 3) :
     rationalCircleCast (rationalCoefficientTerm M length k d (index,value) j)=

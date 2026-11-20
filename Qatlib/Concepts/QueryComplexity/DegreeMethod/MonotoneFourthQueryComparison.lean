@@ -28,7 +28,7 @@ The mathematical background is developed in [BealsEtAl2001].
   certificate-times-sensitivity bound.
 * `monotone_deterministicQueryComplexity_le_256_boundedMinimum_pow_four`: gives the fourth-power
   comparison.
-* `frontier1`: collects the monotone certificate and query bounds.
+* `monotone_certificate_and_fourth_power_query_bounds`: collects the monotone certificate and query bounds.
 
 ## References
 
@@ -87,7 +87,7 @@ theorem monotone_deterministicQueryComplexity_le_256_boundedMinimum_pow_four {n 
     (hmono : ∀ x y : Fin n → Bool, (∀ i : Fin n, x i = true → y i = true) →
       f x = true → f y = true) :
     deterministicQueryComplexity f ≤ 256 * boundedMinimum f ^ 4 := by
-  have hb : blockSensitivity f ≤ 16 * boundedMinimum f ^ 2 := (frontier3 f).2.1
+  have hb : blockSensitivity f ≤ 16 * boundedMinimum f ^ 2 := (query_minima_block_sensitivity_and_deterministic_bounds f).2.1
   calc
     deterministicQueryComplexity f ≤ blockSensitivity f ^ 2 :=
       monotone_deterministicQueryComplexity_le_blockSensitivity_sq f hmono
@@ -97,7 +97,7 @@ theorem monotone_deterministicQueryComplexity_le_256_boundedMinimum_pow_four {n 
 /-- A monotone Boolean function has one-certificate complexity at most its block sensitivity and
 deterministic query complexity at most `256 * boundedMinimum f ^ 4`. This gives the stated
 monotone fourth-power comparison associated with [BealsEtAl2001]. -/
-theorem frontier1 {n : ℕ} (f : (Fin n → Bool) → Bool)
+theorem monotone_certificate_and_fourth_power_query_bounds {n : ℕ} (f : (Fin n → Bool) → Bool)
     (hmono : ∀ x y : Fin n → Bool, (∀ i : Fin n, x i = true → y i = true) →
       f x = true → f y = true) :
     oneCertificateComplexity f ≤ blockSensitivity f ∧

@@ -28,7 +28,7 @@ open Qatlib.Concepts.FinitePrecision.ComputableInput.Arithmetic.SignedNatMachine
 open CanonicalCodec.TM
 namespace PaidConditionalBoundBank
 
-/-- Original `active_length` guarantee for the `PaidConditionalBoundBankBudget` construction; the complete source hypotheses are retained. -/
+/-- A length bound `B` for replies through the stopping slot also holds for the active reply table, which is empty after that slot. -/
 private theorem active_length (replies : Fin 9 → CanonicalCodec.Bits) (stop : Fin 9) (B : ℕ)
     (hsize : ∀ i,i.val≤stop.val → (replies i).length≤B) :
     ∀ i,(activeReplies replies stop i).length≤B := by
@@ -38,7 +38,7 @@ private theorem active_length (replies : Fin 9 → CanonicalCodec.Bits) (stop : 
   · exact hsize i hi
   · exact Nat.zero_le _
 
-/-- Original `output_length` guarantee for the `PaidConditionalBoundBankBudget` construction; the complete source hypotheses are retained. -/
+/-- If every reply through the stopping slot has length at most `B`, the output including the branch flag has length at most `9*B+1`. -/
 theorem output_length (replies : Fin 9 → CanonicalCodec.Bits) (stop : Fin 9) (flag : Bool) (B : ℕ)
     (hsize : ∀ i,i.val≤stop.val → (replies i).length≤B) :
     (bankOutput replies stop flag).length≤9*B+1 := by
@@ -48,7 +48,8 @@ theorem output_length (replies : Fin 9 → CanonicalCodec.Bits) (stop : Fin 9) (
   have hs := stop.isLt
   nlinarith only [hh,hs,Nat.zero_le B]
 
-/-- Original `higherPrefixBudget_bound` guarantee for the `PaidConditionalBoundBankBudget` construction; the complete source hypotheses are retained. -/
+/-- With all reply lengths and source times bounded by `B`, the clock allowance for the prefix of
+length `k` after the first query is at most `k*1006000*(1+B)^2`. -/
 theorem higherPrefixBudget_bound (replies : Fin 9 → CanonicalCodec.Bits) (time : Fin 9 → ℕ)
     (B : ℕ) (hsize : ∀ i,(replies i).length≤B) (htime : ∀ i,time i≤B) (k : ℕ) :
     higherPrefixBudget replies time k≤k*1006000*(1+B)^2 := by
@@ -62,7 +63,7 @@ theorem higherPrefixBudget_bound (replies : Fin 9 → CanonicalCodec.Bits) (time
       nlinarith only [ih,hs]
     · nlinarith only [ih,Nat.zero_le ((1+B)^2)]
 
-/-- Original `emitPrefixBudget_bound` guarantee for the `PaidConditionalBoundBankBudget` construction; the complete source hypotheses are retained. -/
+/-- If the active replies have length at most `B`, the clock budget for emitting the first `n` of them is at most `n*30*(1+B)^2` for either flag and any `n` within the active prefix. -/
 theorem emitPrefixBudget_bound (replies : Fin 9 → CanonicalCodec.Bits) (stop : Fin 9) (flag : Bool)
     (B : ℕ) (hsize : ∀ i,i.val≤stop.val → (replies i).length≤B) (n : ℕ) (hn : n≤stop.val+1) :
     emitPrefixBudget replies stop flag n≤n*30*(1+B)^2 := by

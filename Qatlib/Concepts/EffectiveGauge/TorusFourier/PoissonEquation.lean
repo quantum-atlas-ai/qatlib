@@ -27,7 +27,7 @@ open scoped ContDiff Topology
 namespace Qatlib.Concepts.EffectiveGauge.TorusFourier
 open Qatlib.Concepts.EffectiveGauge.HopfAtlas Qatlib.Concepts.EffectiveGauge.RationalFlow
 
-/-- Original `unitFourierSeries_reconstruction` guarantee for the `PoissonEquation` construction; the complete source hypotheses are retained. -/
+/-- Synthesizing the Fourier coefficients of a smooth unit-periodic complex field recovers the field at every point. -/
 theorem unitFourierSeries_reconstruction (f : SpatialPoint → ℂ) (hf : ContDiff ℝ ∞ f)
     (hp : IsUnitPeriodicField f) :
     unitFourierSeries (unitFourierCoefficient f hf.continuous hp)=f := by
@@ -38,7 +38,7 @@ theorem unitFourierSeries_reconstruction (f : SpatialPoint → ℂ) (hf : ContDi
   have h := unitFourier_hasSum_of_summable f hf.continuous hp hnorm.of_norm x
   simpa only [unitFourierSeries,mul_comm] using h.tsum_eq
 
-/-- Original `unitFourierSeries_neg` guarantee for the `PoissonEquation` construction; the complete source hypotheses are retained. -/
+/-- Negating every coefficient negates the synthesized Fourier series at each point. -/
 theorem unitFourierSeries_neg (a : SpatialFrequency → ℂ) (x : SpatialPoint) :
     unitFourierSeries (fun k => -a k) x= -unitFourierSeries a x := by
   simp only [unitFourierSeries,neg_mul,tsum_neg]
@@ -76,7 +76,7 @@ theorem unitComplexPoisson_equation (f : Fin 3 → SpatialPoint → ℂ)
     _ = -(unitFourierSeries (fun k => ∑ j : Fin 3, d j k) x) := unitFourierSeries_neg _ x
     _ = _ := by rw [unitFourierSeries_finsetSum d hd Finset.univ x]
 
-/-- Original `unitRealPoisson_equation` guarantee for the `PoissonEquation` construction; the complete source hypotheses are retained. -/
+/-- The Laplacian of the real Poisson potential of three smooth unit-periodic complex components equals the negative divergence of their real parts at every point. -/
 theorem unitRealPoisson_equation (f : Fin 3 → SpatialPoint → ℂ)
     (hf : ∀ j, ContDiff ℝ ∞ (f j)) (hp : ∀ j, IsUnitPeriodicField (f j)) (x : SpatialPoint) :
     (∑ j : Fin 3, spatialWordPartial (unitRealPoisson f hf hp) [j,j] x)=

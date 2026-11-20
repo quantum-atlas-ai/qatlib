@@ -37,7 +37,9 @@ def originalSeedTransitionRun (source : RationalJetSource) (m1 m2 : ℚ)
 noncomputable section
 open scoped Quaternion
 
-/-- Original `originalSeedTransitionRun_correct` guarantee for the `OriginalSeedAtlas` construction; the complete source hypotheses are retained. -/
+/-- For a unit field with accurate rational jets, two charts accepted by the original sample
+procedure admit a rational origin transition within `tolerance / 2` of the exact transition
+whenever `tolerance > 0`. -/
 theorem originalSeedTransitionRun_correct (v : SpatialPoint → SpatialPoint) (hu : ∀ x, ‖v x‖=1)
     (source : RationalJetSource) (hs : OriginalAllJetAccurate v source)
     (m1 m2 : ℚ) (a b : SeedChart)

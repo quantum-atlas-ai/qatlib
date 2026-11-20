@@ -28,11 +28,11 @@ open Qatlib.Concepts.FinitePrecision.ComputableInput.Arithmetic.SignedNatMachine
 open CanonicalCodec.TM
 namespace PaidBoundCompression
 
-/-- Original `binary_cons` guarantee for the `PaidBoundThresholdOrder` construction; the complete source hypotheses are retained. -/
+/-- Under the little-endian bit valuation, prepending a bit doubles the tail value and adds one when the new bit is true. -/
 private theorem binary_cons (b : Bool) (bits : CanonicalCodec.Bits) :
     CanonicalCodec.binaryValue (b::bits)=2*CanonicalCodec.binaryValue bits+(if b then 1 else 0) := rfl
 
-/-- Original `true_prefix` guarantee for the `PaidBoundThresholdOrder` construction; the complete source hypotheses are retained. -/
+/-- Prepending `k` true bits multiplies one plus the little-endian value of the original word by `2^k`. -/
 private theorem true_prefix (k : ℕ) (bits : CanonicalCodec.Bits) :
     CanonicalCodec.binaryValue (List.replicate k true++bits)+1=
       2^k*(CanonicalCodec.binaryValue bits+1) := by
@@ -43,7 +43,7 @@ private theorem true_prefix (k : ℕ) (bits : CanonicalCodec.Bits) :
     simp only [ite_true]
     nlinarith only [ih]
 
-/-- Original `encoded_value` guarantee for the `PaidBoundThresholdOrder` construction; the complete source hypotheses are retained. -/
+/-- One plus the little-endian value of the canonical natural code for `n` is `2^n.bits.length * (2*n+1)`. -/
 private theorem encoded_value (n : ℕ) :
     CanonicalCodec.binaryValue (CanonicalCodec.natBits n)+1=2^n.bits.length*(2*n+1) := by
   have h : CanonicalCodec.natBits n=List.replicate n.bits.length true++false::n.bits := by
@@ -51,7 +51,7 @@ private theorem encoded_value (n : ℕ) :
   rw [h,true_prefix,binary_cons,CanonicalCodec.binaryValue_bits]
   rfl
 
-/-- Original `encoded_strictMono` guarantee for the `PaidBoundThresholdOrder` construction; the complete source hypotheses are retained. -/
+/-- The little-endian values of the canonical natural encodings are strictly increasing with the encoded natural. -/
 private theorem encoded_strictMono : StrictMono (fun n => CanonicalCodec.binaryValue (CanonicalCodec.natBits n)) := by
   intro a b hab
   change CanonicalCodec.binaryValue (CanonicalCodec.natBits a)<CanonicalCodec.binaryValue (CanonicalCodec.natBits b)
@@ -68,7 +68,7 @@ private theorem encoded_strictMono : StrictMono (fun n => CanonicalCodec.binaryV
     exact hm.trans_le hw
   omega
 
-/-- Original `encoded_lt_iff` guarantee for the `PaidBoundThresholdOrder` construction; the complete source hypotheses are retained. -/
+/-- The little-endian value of the code for `a` is strictly smaller than that for `b` exactly when `a < b`. -/
 private theorem encoded_lt_iff (a b : ℕ) :
     CanonicalCodec.binaryValue (CanonicalCodec.natBits a)<CanonicalCodec.binaryValue (CanonicalCodec.natBits b) ↔ a<b :=
   encoded_strictMono.lt_iff_lt

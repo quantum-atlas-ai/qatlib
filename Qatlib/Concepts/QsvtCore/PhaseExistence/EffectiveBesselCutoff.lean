@@ -248,7 +248,7 @@ theorem source_truncation_rate (t ε : ℝ) (ht : t ≠ 0) (hε : 0 < ε)
 /-- For nonzero rational t and 0 < ε < 1/e, packages the effective cutoff guard, cosine and sine
 degree and error bounds, and a source radius bounding the cutoff. It also records the
 degree-budget estimate for every positive auxiliary scale. -/
-theorem frontier1 (t ε : ℚ) (hε : 0 < ε) (ht : t ≠ 0)
+theorem effective_bessel_cutoff_degree_error_and_radius (t ε : ℚ) (hε : 0 < ε) (ht : t ≠ 0)
     (hε1 : (ε:ℝ) < 1/Real.exp 1) :
     let R := cutoff t ε hε
     Guard t ε R ∧

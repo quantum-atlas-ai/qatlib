@@ -33,7 +33,8 @@ def OnCubeBoundary (x : SpatialPoint) : Prop :=
 private def cubeFacePoint (x : SpatialPoint) (j : Fin 3) (t : ℝ) : SpatialPoint :=
   WithLp.toLp 2 (Function.update x.ofLp j t)
 
-/-- Original `cubeFacePoint_cube` guarantee for the `SupportGeometry` construction; the complete source hypotheses are retained. -/
+/-- Changing one coordinate of a point in the fundamental cube to any value in
+`[0, physicalPeriod]` keeps the point in that cube. -/
 private theorem cubeFacePoint_cube (x : SpatialPoint) (hx : InFundamentalCube x) (j : Fin 3)
     (t : ℝ) (ht : 0 ≤ t ∧ t ≤ physicalPeriod) : InFundamentalCube (cubeFacePoint x j t) := by
   intro i
@@ -41,7 +42,8 @@ private theorem cubeFacePoint_cube (x : SpatialPoint) (hx : InFundamentalCube x)
   · subst i; simpa [cubeFacePoint] using ht
   · simpa [cubeFacePoint,hi] using hx i
 
-/-- Original `cubeFacePoint_norm` guarantee for the `SupportGeometry` construction; the complete source hypotheses are retained. -/
+/-- The distance from `x` to the point obtained by replacing its `j`-th coordinate by `t` equals
+`|x j - t|`. -/
 private theorem cubeFacePoint_norm (x : SpatialPoint) (j : Fin 3) (t : ℝ) :
     ‖x-cubeFacePoint x j t‖=|x j-t| := by
   have h : x-cubeFacePoint x j t=EuclideanSpace.single j (x j-t) := by
@@ -52,7 +54,8 @@ private theorem cubeFacePoint_norm (x : SpatialPoint) (j : Fin 3) (t : ℝ) :
   rw [h]
   simp
 
-/-- Original `support_coordinate_margin` guarantee for the `SupportGeometry` construction; the complete source hypotheses are retained. -/
+/-- If every point of `B` lies in the fundamental cube at distance at least `mu` from every
+boundary point, all its coordinates lie in `[mu, physicalPeriod - mu]`. -/
 theorem support_coordinate_margin (B : Set SpatialPoint)
     (hB : ∀ x ∈ B, InFundamentalCube x) (mu : ℝ)
     (hgap : ∀ x ∈ B, ∀ z, OnCubeBoundary z → mu ≤ ‖x-z‖) :
@@ -68,7 +71,9 @@ theorem support_coordinate_margin (B : Set SpatialPoint)
   rw [cubeFacePoint_norm,abs_of_nonpos (sub_nonpos.mpr (hB x hx j).2)] at hhigh
   exact ⟨hlow,by linarith⟩
 
-/-- Original `support_background_collar` guarantee for the `SupportGeometry` construction; the complete source hypotheses are retained. -/
+/-- If `B` lies at distance at least `mu > 0` from the fundamental cube boundary and the field is
+constant on the part of that cube outside `B`, the quaternion source equals its origin value on the
+collar of width `mu / 2`. -/
 theorem support_background_collar (v : SpatialPoint → SpatialPoint) (B : Set SpatialPoint)
     (hB : ∀ x ∈ B, InFundamentalCube x) (mu : ℝ) (hm : 0<mu)
     (hgap : ∀ x ∈ B, ∀ z, OnCubeBoundary z → mu ≤ ‖x-z‖)

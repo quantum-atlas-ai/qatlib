@@ -84,7 +84,13 @@ noncomputable section
 open Set
 open scoped ContDiff Quaternion
 
-/-- Original `materializePoissonCoefficientPreparation_correct` guarantee for the `AutomaticCoefficientPreparation` construction; the complete source hypotheses are retained. -/
+/-- Suppose a smooth periodic unit field is constant on the part of the fundamental cube outside
+`B`, and `B` lies in the cube at distance at least `mu > 0` from its boundary. Assume accurate
+rational jets, positive certified jet bounds, a successful mean cache, `0 < eta ≤ 1/2`,
+`7 * eta ≤ mu / 2`, and `0 < tolerance ≤ 1/64`. Poisson coefficient preparation then succeeds.
+Its result retains the cache, satisfies the parameter and numerical certificates, and contains
+each mode in the cutoff cube with componentwise normalized connection coefficient error at most
+`tolerance / (24 * finitePoissonFrequencyCount result.cutoff)`. -/
 theorem materializePoissonCoefficientPreparation_correct (v : SpatialPoint → SpatialPoint)
     (hv : ContDiff ℝ ∞ v) (hu : ∀ x, ‖v x‖=1) (hp : IsPeriodicField v)
     (source : RationalJetSource) (hs : OriginalAllJetAccurate v source)

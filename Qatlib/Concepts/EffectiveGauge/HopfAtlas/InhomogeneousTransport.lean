@@ -27,7 +27,9 @@ namespace Qatlib.Concepts.EffectiveGauge.HopfAtlas
 local instance : StarModule ℝ ℍ where
   star_smul r q := by ext <;> simp
 
-/-- Original `inhomogeneous_transport_derivative` guarantee for the `InhomogeneousTransport` construction; the complete source hypotheses are retained. -/
+/-- If `q` and `z` have the same purely imaginary right transport coefficient `k` at `t`, with
+an extra forcing `f` in the derivative of `z`, then `z * star q` has derivative
+`f * star (q t)` within the same set. -/
 theorem inhomogeneous_transport_derivative {q z : ℝ → ℍ} {k f : ℍ} {t : ℝ} {S : Set ℝ}
     (hq : HasDerivWithinAt q (q t*k) S t)
     (hz : HasDerivWithinAt z (z t*k+f) S t) (hk : k.re=0) :
@@ -37,7 +39,9 @@ theorem inhomogeneous_transport_derivative {q z : ℝ → ℍ} {k f : ℍ} {t : 
   simp only [star_mul,hstar]
   noncomm_ring
 
-/-- Original `inhomogeneous_transport_integral` guarantee for the `InhomogeneousTransport` construction; the complete source hypotheses are retained. -/
+/-- On an ordered closed interval, suppose `q` and `z` have the same purely imaginary
+right generator and the equation for `z` has additional continuous forcing `f`.
+The change in `z * star q` from one endpoint to the other is the integral of `f * star q`. -/
 theorem inhomogeneous_transport_integral {q z k f : ℝ → ℍ} {a b : ℝ} (hab : a ≤ b)
     (hf : ContinuousOn f (Icc a b))
     (hq : ∀ t ∈ Icc a b, HasDerivWithinAt q (q t*k t) (Icc a b) t)

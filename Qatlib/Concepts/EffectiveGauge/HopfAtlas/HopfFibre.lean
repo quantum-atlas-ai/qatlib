@@ -23,12 +23,12 @@ noncomputable section
 open scoped Quaternion
 namespace Qatlib.Concepts.EffectiveGauge.HopfAtlas
 
-/-- Original `unit_self_mul_star` guarantee for the `HopfFibre` construction; the complete source hypotheses are retained. -/
+/-- For a unit quaternion, right multiplication by its conjugate gives one. -/
 theorem unit_self_mul_star (q : ℍ) (hq : ‖q‖=1) : q*star q=1 := by
   rw [Quaternion.self_mul_star,(normSq_eq_one_iff q).mpr hq]
   rfl
 
-/-- Original `unit_star_mul_self` guarantee for the `HopfFibre` construction; the complete source hypotheses are retained. -/
+/-- For a unit quaternion, left multiplication by its conjugate gives one. -/
 theorem unit_star_mul_self (q : ℍ) (hq : ‖q‖=1) : star q*q=1 := by
   rw [Quaternion.star_mul_self,(normSq_eq_one_iff q).mpr hq]
   rfl
@@ -44,23 +44,24 @@ theorem sameHopf_ratio_commutes (q r : ℍ) (hq : ‖q‖=1) (hr : ‖r‖=1)
     _ = (r*star q)*iAxis*(q*star q) := by simp only [hopf,mul_assoc]
     _ = _ := by rw [unit_self_mul_star q hq,mul_one]
 
-/-- Original `commutes_iAxis_components` guarantee for the `HopfFibre` construction; the complete source hypotheses are retained. -/
+/-- A quaternion commuting with `iAxis` has zero `j` and `k` components. -/
 theorem commutes_iAxis_components (z : ℍ) (h : iAxis*z=z*iAxis) : z.imJ=0 ∧ z.imK=0 := by
   have hj := congrArg QuaternionAlgebra.imJ h
   have hk := congrArg QuaternionAlgebra.imK h
   simp [iAxis] at hj hk
   constructor <;> linarith
 
-/-- Original `sameHopf_ratio_components` guarantee for the `HopfFibre` construction; the complete source hypotheses are retained. -/
+/-- If two unit quaternions have the same Hopf value, their relative quaternion `r * star q` has
+zero `j` and `k` components. -/
 theorem sameHopf_ratio_components (q r : ℍ) (hq : ‖q‖=1) (hr : ‖r‖=1)
     (h : hopf r=hopf q) : (r*star q).imJ=0 ∧ (r*star q).imK=0 :=
   commutes_iAxis_components _ (sameHopf_ratio_commutes q r hq hr h)
 
-/-- Original `sameHopf_ratio_norm` guarantee for the `HopfFibre` construction; the complete source hypotheses are retained. -/
+/-- The relative quaternion `r * star q` of two unit quaternions has unit norm. -/
 theorem sameHopf_ratio_norm (q r : ℍ) (hq : ‖q‖=1) (hr : ‖r‖=1) : ‖r*star q‖=1 := by
   simp [norm_mul,norm_star,hq,hr]
 
-/-- Original `sameHopf_ratio_action` guarantee for the `HopfFibre` construction; the complete source hypotheses are retained. -/
+/-- If `q` has unit norm, left multiplication of `q` by `r * star q` recovers `r`. -/
 theorem sameHopf_ratio_action (q r : ℍ) (hq : ‖q‖=1) : (r*star q)*q=r := by
   rw [mul_assoc,unit_star_mul_self q hq,mul_one]
 

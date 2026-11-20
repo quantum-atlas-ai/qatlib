@@ -35,7 +35,7 @@ place when the operand and modulus are coprime, while restoring their ancillary 
 * `ModularReversibleWord.mod_add_value` and `ModularReversibleWord.mod_mul_value`: identify the
   arithmetic values.
 * `InPlace.basis`: turns a pair of inverse value functions into an in-place circuit.
-* `ModularReversibleWord.frontier1`: collects native arithmetic correctness and resource bounds.
+* `ModularReversibleWord.clean_modular_arithmetic_word_correctness_and_resources`: collects native arithmetic correctness and resource bounds.
 
 ## References
 
@@ -1478,7 +1478,7 @@ open scoped Classical
 /-- For coprime operand and modulus values, the native words implement total modular addition,
 subtraction, and multiplication with clean ancillary blocks. The result also supplies
 quadratic length and workspace bounds and explicit matrix left inverses. -/
-theorem frontier1 (w : ℕ) (a m : Reg w)
+theorem clean_modular_arithmetic_word_correctness_and_resources (w : ℕ) (a m : Reg w)
     (hc : (booleanWordLSBValue w a).Coprime (booleanWordLSBValue w m)) :
     (∀ x : Reg w,
       Run 1 (reflectionCompile (addWord w a m))

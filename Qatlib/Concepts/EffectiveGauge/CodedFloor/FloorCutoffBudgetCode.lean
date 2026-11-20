@@ -32,7 +32,8 @@ def floorCutoffCodeBudgetLoop (row : List FloorRationalCode) : ℕ → ℕ
 /-- Definition of floor Cutoff Code Budget in the Coded Floor construction. -/
 def floorCutoffCodeBudget (n : ℕ) : ℕ := floorCutoffCodeBudgetLoop (floorCutoffCodeRow n) (2*n+1)
 
-/-- Original `floorCutoffCodeMagnitude_value` guarantee for the `FloorCutoffBudgetCode` construction; the complete source hypotheses are retained. -/
+/-- Taking the ceiling of the absolute coded coefficient gives the natural absolute value of its
+integer counterpart. -/
 theorem floorCutoffCodeMagnitude_value (n m : ℕ) :
     floorRationalCodeCeil (floorRationalCodeAbs (floorCutoffCodeAt (floorCutoffCodeRow n) m))=
       (cutoffCoefficientAt (cutoffCoefficientRow n) m).natAbs := by
@@ -43,7 +44,8 @@ theorem floorCutoffCodeMagnitude_value (n m : ℕ) :
   rw [← hz]
   exact Nat.ceil_natCast _
 
-/-- Original `floorCutoffCodeBudgetLoop_value` guarantee for the `FloorCutoffBudgetCode` construction; the complete source hypotheses are retained. -/
+/-- The coded budget accumulated through `k` coefficients equals the sum of their integer
+magnitudes weighted by `max 1 (m^m)` for `m < k`. -/
 theorem floorCutoffCodeBudgetLoop_value (n k : ℕ) :
     floorCutoffCodeBudgetLoop (floorCutoffCodeRow n) k=
       ∑ m ∈ Finset.range k, (cutoffCoefficientAt (cutoffCoefficientRow n) m).natAbs*max 1 (m^m) := by
@@ -51,12 +53,14 @@ theorem floorCutoffCodeBudgetLoop_value (n k : ℕ) :
   | zero => simp [floorCutoffCodeBudgetLoop]
   | succ k ih => rw [floorCutoffCodeBudgetLoop,ih,floorCutoffCodeMagnitude_value,Finset.sum_range_succ]
 
-/-- Original `floorCutoffCodeBudget_value` guarantee for the `FloorCutoffBudgetCode` construction; the complete source hypotheses are retained. -/
+/-- The total coded budget of the cutoff coefficient row equals the cutoff bump majorant of the
+same order. -/
 theorem floorCutoffCodeBudget_value (n : ℕ) : floorCutoffCodeBudget n=cutoffBumpMajorant n := by
   rw [floorCutoffCodeBudget,floorCutoffCodeBudgetLoop_value]
   rfl
 
-/-- Original `primrec_floorCutoffCodeBudgetLoop` guarantee for the `FloorCutoffBudgetCode` construction; the complete source hypotheses are retained. -/
+/-- Accumulating the weighted coefficient magnitudes is primitive recursive in the coded row and
+the number of terms. -/
 theorem primrec_floorCutoffCodeBudgetLoop : Primrec₂ floorCutoffCodeBudgetLoop := by
   have hr : Primrec (fun p : List FloorRationalCode × (ℕ × ℕ) => p.1) := Primrec.fst
   have hm : Primrec (fun p : List FloorRationalCode × (ℕ × ℕ) => p.2.1) := Primrec.fst.comp Primrec.snd
@@ -76,12 +80,12 @@ theorem primrec_floorCutoffCodeBudgetLoop : Primrec₂ floorCutoffCodeBudgetLoop
     simpa only [Nat.rec_add_one,floorCutoffCodeBudgetLoop] using congrArg (fun a =>
       a+floorRationalCodeCeil (floorRationalCodeAbs (floorCutoffCodeAt row k))*max 1 (k^k)) ih
 
-/-- Original `primrec_floorCutoffCodeBudget` guarantee for the `FloorCutoffBudgetCode` construction; the complete source hypotheses are retained. -/
+/-- The cutoff bump budget computed from the coded row is primitive recursive in its order. -/
 theorem primrec_floorCutoffCodeBudget : Primrec floorCutoffCodeBudget :=
   primrec_floorCutoffCodeBudgetLoop.comp primrec_floorCutoffCodeRow
     (Primrec.nat_add.comp (Primrec.nat_mul.comp (Primrec.const 2) Primrec.id) (Primrec.const 1))
 
-/-- Original `floorCutoffCodeBudget_encoded` guarantee for the `FloorCutoffBudgetCode` construction; the complete source hypotheses are retained. -/
+/-- A single partial-recursive code returns the encoded cutoff budget on every encoded order. -/
 theorem floorCutoffCodeBudget_encoded : ∃ c : Nat.Partrec.Code, ∀ n,
     Nat.Partrec.Code.eval c (Encodable.encode n)=Part.some (Encodable.encode (floorCutoffCodeBudget n)) :=
   floorComputableFixedCode floorCutoffCodeBudget primrec_floorCutoffCodeBudget.to_comp

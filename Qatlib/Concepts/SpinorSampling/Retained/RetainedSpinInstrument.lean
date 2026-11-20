@@ -46,7 +46,7 @@ def pairReg (first second : Bool) : Reg 2 := fun i => if i=0 then first else sec
 /-- Reading wire one from the explicit two-bit pair returns its second bit. -/
 @[simp] theorem pair_reg_second (a b : Bool) : pairReg a b 1=b := by simp [pairReg]
 
-/-- Complete original `pair_reg_eta` guarantee for `RetainedSpinInstrument`; all source hypotheses and output obligations are retained. -/
+/-- A two-bit register is recovered by forming a pair from its values on wires 0 and 1. -/
 theorem pair_reg_eta (x : Reg 2) : pairReg (x 0) (x 1)=x := by
   funext i
   fin_cases i <;> simp [pairReg]
@@ -58,7 +58,7 @@ def pairEquiv : (Bool × Bool) ≃ Reg 2 where
   left_inv p := by cases p; simp
   right_inv := pair_reg_eta
 
-/-- Complete original `pair_off_first` guarantee for `RetainedSpinInstrument`; all source hypotheses and output obligations are retained. -/
+/-- Two pair registers agree off the first wire exactly when their second bits agree. -/
 theorem pair_off_first (a b c d : Bool) :
     (∀ k : Fin 2, k≠0 → pairReg a b k=pairReg c d k) ↔ b=d := by
   constructor
@@ -69,7 +69,7 @@ theorem pair_off_first (a b c d : Bool) :
     · exact (hk rfl).elim
     · simpa using h
 
-/-- Complete original `pair_update_second` guarantee for `RetainedSpinInstrument`; all source hypotheses and output obligations are retained. -/
+/-- Updating wire 1 of a pair register replaces the second bit and preserves the first. -/
 theorem pair_update_second (a b c : Bool) :
     Function.update (pairReg a b) 1 c=pairReg a c := by
   funext i
@@ -88,15 +88,15 @@ def swapWord : List (MeasurementGate 2) :=
 /-- Construction for swap Program in the retained spin instrument model. -/
 def swapProgram : Circuit (Reg 2) := measurementProgram swapWord
 
-/-- Complete original `bell_program_counts` guarantee for `RetainedSpinInstrument`; all source hypotheses and output obligations are retained. -/
+/-- The Bell readout circuit consists of two gates and makes zero queries. -/
 theorem bell_program_counts : QueryCount bellProgram=0 ∧ GateCount bellProgram=2 := by
   simpa [bellProgram,bellWord] using measurement_program_counts bellWord
 
-/-- Complete original `swap_program_counts` guarantee for `RetainedSpinInstrument`; all source hypotheses and output obligations are retained. -/
+/-- The SWAP circuit consists of three gates and makes zero queries. -/
 theorem swap_program_counts : QueryCount swapProgram=0 ∧ GateCount swapProgram=3 := by
   simpa [swapProgram,swapWord] using measurement_program_counts swapWord
 
-/-- Complete original `bell_program_unitary` guarantee for `RetainedSpinInstrument`; all source hypotheses and output obligations are retained. -/
+/-- The two-qubit Bell readout circuit is unitary. -/
 theorem bell_program_unitary : IsUnitaryCircuit bellProgram := by
   apply (local_reflection_gate_support_unitarity_counts 2
     (bellWord.map measurementMatrix) ?_).1
@@ -106,7 +106,7 @@ theorem bell_program_unitary : IsUnitaryCircuit bellProgram := by
   · norm_num [reflectionGateLegal]
   · exact hadamard_unitary
 
-/-- Complete original `swap_program_unitary` guarantee for `RetainedSpinInstrument`; all source hypotheses and output obligations are retained. -/
+/-- The three-CNOT SWAP circuit is unitary. -/
 theorem swap_program_unitary : IsUnitaryCircuit swapProgram := by
   apply (local_reflection_gate_support_unitarity_counts 2
     (swapWord.map measurementMatrix) ?_).1
@@ -117,13 +117,13 @@ theorem swap_program_unitary : IsUnitaryCircuit swapProgram := by
   · norm_num [reflectionGateLegal]
   · norm_num [reflectionGateLegal]
 
-/-- Complete original `native_cnot_at` guarantee for `RetainedSpinInstrument`; all source hypotheses and output obligations are retained. -/
+/-- The CNOT output amplitude at (a, b) is the input amplitude at (a, b XOR a). -/
 theorem native_cnot_at (f : QState (Reg 2)) (a b : Bool) :
     ApplyGate (cnotGate 2 0 1) f (pairReg a b)=f (pairReg a (b ^^ a)) := by
   rw [cnotGate,applyGate_permMatrix (cnotUpdate_involutive 2 0 1 (by decide))]
   simp only [pair_reg_first,pair_reg_second,pair_update_second]
 
-/-- Complete original `native_h_at` guarantee for `RetainedSpinInstrument`; all source hypotheses and output obligations are retained. -/
+/-- The Hadamard output amplitude at (a, b) is the sum of the input amplitudes at (false, b) and (true, b), with the latter signed by a and the sum divided by √2. -/
 theorem native_h_at (f : QState (Reg 2)) (a b : Bool) :
     ApplyGate (wireGate 2 0 Hadamard) f (pairReg a b)=
       (f (pairReg false b)+(if a then (-1 : ℂ) else 1)*f (pairReg true b))/
@@ -135,7 +135,7 @@ theorem native_h_at (f : QState (Reg 2)) (a b : Bool) :
   cases a <;> cases b <;>
     simp [g,pairEquiv,wireGate_apply,Hadamard,div_eq_mul_inv] <;> ring
 
-/-- Complete original `bell_program_amplitude` guarantee for `RetainedSpinInstrument`; all source hypotheses and output obligations are retained. -/
+/-- After CNOT and Hadamard on the product input, the amplitude at (a, b) is the sum of u(false)v(b) and the signed term u(true)v(¬b), divided by √2. The sign is negative exactly when a is true. -/
 theorem bell_program_amplitude (u v : Bool → ℂ) (first second : Bool) :
     Run (1 : Matrix (Reg 2) (Reg 2) ℂ) bellProgram (pairInput u v)
         (pairReg first second)=
@@ -146,7 +146,7 @@ theorem bell_program_amplitude (u v : Bool → ℂ) (first second : Bool) :
   rw [native_h_at,native_cnot_at,native_cnot_at]
   simp [pairInput]
 
-/-- Complete original `swap_program_amplitude` guarantee for `RetainedSpinInstrument`; all source hypotheses and output obligations are retained. -/
+/-- After running SWAP, the output amplitude at (a, b) equals the input amplitude at (b, a). -/
 theorem swap_program_amplitude (f : QState (Reg 2)) (a b : Bool) :
     Run (1 : Matrix (Reg 2) (Reg 2) ℂ) swapProgram f (pairReg a b)=f (pairReg b a) := by
   change ApplyGate (cnotGate 2 0 1) (ApplyGate (cnotGate 2 1 0)
@@ -161,7 +161,7 @@ theorem swap_program_amplitude (f : QState (Reg 2)) (a b : Bool) :
   rw [native_cnot_at]
   cases a <;> cases b <;> rfl
 
-/-- Complete original `swap_empty_memory` guarantee for `RetainedSpinInstrument`; all source hypotheses and output obligations are retained. -/
+/-- SWAP moves the input qubit to the second wire when that wire starts in the false basis state, leaving the first wire in that basis state. -/
 theorem swap_empty_memory (u : Bool → ℂ) :
     Run (1 : Matrix (Reg 2) (Reg 2) ℂ) swapProgram (pairInput u (Ket false))=
       pairInput (Ket false) u := by
@@ -179,7 +179,7 @@ def qubitMass (u : Bool → ℂ) : ℝ := Complex.normSq (u false)+Complex.normS
 /-- Construction for bell Probability in the retained spin instrument model. -/
 def bellProbability (u v : Bool → ℂ) : ℝ := Complex.normSq (determinant u v)/2
 
-/-- Complete original `determinant_overlap_identity` guarantee for `RetainedSpinInstrument`; all source hypotheses and output obligations are retained. -/
+/-- For arbitrary qubit amplitudes, the squared norms of the determinant and inner product sum to the product of the two qubit masses. -/
 theorem determinant_overlap_identity (u v : Bool → ℂ) :
     Complex.normSq (determinant u v)+Complex.normSq (overlap u v)=qubitMass u*qubitMass v := by
   simp [determinant,overlap,qubitMass,Complex.normSq_apply,Complex.mul_re,
@@ -187,7 +187,7 @@ theorem determinant_overlap_identity (u v : Bool → ℂ) :
     Complex.conj_re,Complex.conj_im]
   ring
 
-/-- Complete original `bell_probability_eq_overlap` guarantee for `RetainedSpinInstrument`; all source hypotheses and output obligations are retained. -/
+/-- For two unit-mass qubits, the Bell hit probability is half of one minus the squared norm of their inner product. -/
 theorem bell_probability_eq_overlap (u v : Bool → ℂ)
     (hu : qubitMass u=1) (hv : qubitMass v=1) :
     bellProbability u v=(1-Complex.normSq (overlap u v))/2 := by
@@ -196,7 +196,7 @@ theorem bell_probability_eq_overlap (u v : Bool → ℂ)
   dsimp [bellProbability]
   linarith
 
-/-- Complete original `bell_probability_range` guarantee for `RetainedSpinInstrument`; all source hypotheses and output obligations are retained. -/
+/-- For two unit-mass qubits, the Bell hit probability lies in [0, 1/2]. -/
 theorem bell_probability_range (u v : Bool → ℂ)
     (hu : qubitMass u=1) (hv : qubitMass v=1) :
     0≤bellProbability u v ∧ bellProbability u v≤1/2 := by
@@ -205,7 +205,7 @@ theorem bell_probability_range (u v : Bool → ℂ)
   · rw [bell_probability_eq_overlap u v hu hv]
     linarith [Complex.normSq_nonneg (overlap u v)]
 
-/-- Complete original `bell_program_hit_probability` guarantee for `RetainedSpinInstrument`; all source hypotheses and output obligations are retained. -/
+/-- For any two input amplitudes, the Born weight of the all-true readout after the Bell circuit equals half the squared norm of their determinant. -/
 theorem bell_program_hit_probability (u v : Bool → ℂ) :
     BornProb (Run (1 : Matrix (Reg 2) (Reg 2) ℂ) bellProgram (pairInput u v))
       (pairReg true true)=bellProbability u v := by
@@ -213,7 +213,7 @@ theorem bell_program_hit_probability (u v : Bool → ℂ) :
   rw [bell_program_amplitude,Complex.sq_norm,Complex.normSq_div]
   simp [bellProbability,determinant,Complex.normSq_ofReal,Real.mul_self_sqrt,sub_eq_add_neg]
 
-/-- Complete original `pair_input_normalized` guarantee for `RetainedSpinInstrument`; all source hypotheses and output obligations are retained. -/
+/-- The product input on two wires is normalized when both qubit factors have unit mass. -/
 theorem pair_input_normalized (u v : Bool → ℂ)
     (hu : qubitMass u=1) (hv : qubitMass v=1) : Normalized (pairInput u v) := by
   unfold Normalized
@@ -241,7 +241,7 @@ def bellOutcomeLaw (u v : Bool → ℂ) (hu : qubitMass u=1) (hv : qubitMass v=1
 /-- Construction for is Bell Hit in the retained spin instrument model. -/
 def isBellHit (r : Reg 2) : Bool := r 0 && r 1
 
-/-- Complete original `is_bell_hit_iff` guarantee for `RetainedSpinInstrument`; all source hypotheses and output obligations are retained. -/
+/-- A readout is a Bell hit exactly when both register bits are true. -/
 theorem is_bell_hit_iff (r : Reg 2) : isBellHit r=true ↔ r=pairReg true true := by
   constructor
   · intro h
@@ -266,7 +266,7 @@ def bellEventLaw (u v : Bool → ℂ) (hu : qubitMass u=1) (hv : qubitMass v=1) 
         cases isBellHit r <;> simp
       _ = 1 := (bellOutcomeLaw u v hu hv).sum_one
 
-/-- Complete original `bell_event_law_hit` guarantee for `RetainedSpinInstrument`; all source hypotheses and output obligations are retained. -/
+/-- For normalized inputs, the true probability of the Boolean Bell outcome law equals the Bell hit probability. -/
 theorem bell_event_law_hit (u v : Bool → ℂ) (hu : qubitMass u=1) (hv : qubitMass v=1) :
     (bellEventLaw u v hu hv).prob true=bellProbability u v := by
   change (∑ r : Reg 2,if isBellHit r=true then (bellOutcomeLaw u v hu hv).prob r else 0)=_
@@ -280,7 +280,7 @@ def qubitBloch (u : Bool → ℂ) : Fin 3 → ℝ := fun i =>
   pauliField (fun _ : Unit => (u false).re) (fun _ => (u false).im)
     (fun _ => (u true).re) (fun _ => (u true).im) i ()
 
-/-- Complete original `bloch_distance_identity` guarantee for `RetainedSpinInstrument`; all source hypotheses and output obligations are retained. -/
+/-- For arbitrary qubit amplitudes, the squared distance of their Bloch coordinates equals the squared mass difference plus four times the squared determinant norm. -/
 theorem bloch_distance_identity (u v : Bool → ℂ) :
     (∑ i : Fin 3,(qubitBloch u i-qubitBloch v i)^2)=
       (qubitMass u-qubitMass v)^2+4*Complex.normSq (determinant u v) := by
@@ -288,7 +288,7 @@ theorem bloch_distance_identity (u v : Bool → ℂ) :
     Complex.normSq_apply,Complex.mul_re,Complex.mul_im,Complex.sub_re,Complex.sub_im]
   ring
 
-/-- Complete original `bell_probability_eq_bloch_distance` guarantee for `RetainedSpinInstrument`; all source hypotheses and output obligations are retained. -/
+/-- For two unit-mass qubits, the Bell hit probability is one eighth of the squared distance between their Bloch vectors. -/
 theorem bell_probability_eq_bloch_distance (u v : Bool → ℂ)
     (hu : qubitMass u=1) (hv : qubitMass v=1) :
     bellProbability u v=(∑ i : Fin 3,(qubitBloch u i-qubitBloch v i)^2)/8 := by
@@ -300,13 +300,13 @@ theorem bell_probability_eq_bloch_distance (u v : Bool → ℂ)
 def projectAddress {S : Type*} [DecidableEq S] (f : Bool → S → ℂ) (x : S) : Bool → S → ℂ :=
   fun spin y => if y=x then f spin y else 0
 
-/-- Complete original `address_projection_selected` guarantee for `RetainedSpinInstrument`; all source hypotheses and output obligations are retained. -/
+/-- Projecting onto address x preserves the original spin amplitudes at x. -/
 theorem address_projection_selected {S : Type*} [DecidableEq S]
     (f : Bool → S → ℂ) (x : S) : (fun spin => projectAddress f x spin x)=fun spin => f spin x := by
   funext spin
   simp [projectAddress]
 
-/-- Complete original `projected_spin_mass` guarantee for `RetainedSpinInstrument`; all source hypotheses and output obligations are retained. -/
+/-- For a normalized spinor field, projection of the supplied state onto any address has total squared mass equal to the reciprocal site count. -/
 theorem projected_spin_mass {S : Type*} [Fintype S] [DecidableEq S] [Nonempty S]
     (a b c k : S → ℝ) (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (x : S) :
     (∑ y : S, ∑ spin : Bool, Complex.normSq
@@ -325,7 +325,7 @@ theorem projected_spin_mass {S : Type*} [Fintype S] [DecidableEq S] [Nonempty S]
     simp [projectAddress,hy]
   · simp
 
-/-- Complete original `retained_spin_amplitude` guarantee for `RetainedSpinInstrument`; all source hypotheses and output obligations are retained. -/
+/-- Multiplying the selected address amplitude by the square root of the site count recovers the complex spinor at that address. -/
 theorem retained_spin_amplitude {S : Type*} [Fintype S] [DecidableEq S] [Nonempty S]
     (a b c k : S → ℝ) (x : S) :
     (fun spin => (Real.sqrt (Fintype.card S : ℝ) : ℂ)*
@@ -337,20 +337,20 @@ theorem retained_spin_amplitude {S : Type*} [Fintype S] [DecidableEq S] [Nonempt
   simp only [projectAddress,ite_true,suppliedSpinState]
   field_simp
 
-/-- Complete original `complex_spinor_mass` guarantee for `RetainedSpinInstrument`; all source hypotheses and output obligations are retained. -/
+/-- Pointwise normalization of the four real components gives unit mass for the complex spinor at any site. -/
 theorem complex_spinor_mass {S : Type*} (a b c k : S → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (x : S) :
     qubitMass (complexSpinor a b c k x)=1 := by
   simpa [qubitMass,complexSpinor,Complex.normSq_apply,pow_two,
     add_assoc,add_left_comm,add_comm] using hz x
 
-/-- Complete original `complex_spinor_bloch` guarantee for `RetainedSpinInstrument`; all source hypotheses and output obligations are retained. -/
+/-- The Bloch coordinates of the complex spinor at a site are the three Pauli-field values there. -/
 theorem complex_spinor_bloch {S : Type*} (a b c k : S → ℝ) (x : S) :
     qubitBloch (complexSpinor a b c k x)=fun i => pauliField a b c k i x := by
   funext i
   simp [qubitBloch,complexSpinor,pauliField]
 
-/-- Complete original `fresh_captures_joint_hit` guarantee for `RetainedSpinInstrument`; all source hypotheses and output obligations are retained. -/
+/-- The joint Born weight for the two prescribed addresses and a Bell hit is the Bell probability of the two site spinors divided by the square of the site count. -/
 theorem fresh_captures_joint_hit {S : Type*} [Fintype S] [Nonempty S]
     (a b c k : S → ℝ) (x y : S) :
     BornProb (Run (1 : Matrix (Reg 2) (Reg 2) ℂ) bellProgram

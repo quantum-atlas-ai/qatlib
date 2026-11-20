@@ -2899,31 +2899,31 @@ theorem sk_scalar_nonempty {e k : ℕ} (neg : Bool) (he : 4 ≤ e) (hk : e ≤ k
 
 /-- Every positive-precision request is accepted by the transported Solovay-Kitaev synthesizer's
 next segment. -/
-theorem frontier1 :
+theorem solovay_kitaev_segment_accepted_of_positive_precision :
     ∀ (w : ℕ) (g : LocalQFTGate w) (k : ℕ), 1 ≤ k →
       Accepts w g k (nextSegment (transportSynth skScalarSynthesizer) w g k) :=
-  Qatlib.Concepts.UnbiasedBases.ThreeBasis.FixedGateSynthesis.frontier1 skScalarSynthesizer
+  Qatlib.Concepts.UnbiasedBases.ThreeBasis.FixedGateSynthesis.transported_segment_accepted_of_positive_precision skScalarSynthesizer
 
 /-- The transported Solovay-Kitaev synthesizer's next segment uses at most one extra wire. -/
-theorem frontier1_ancilla (w : ℕ) (g : LocalQFTGate w) (k : ℕ) :
+theorem solovay_kitaev_segment_extra_wires_le_one (w : ℕ) (g : LocalQFTGate w) (k : ℕ) :
     (nextSegment (transportSynth skScalarSynthesizer) w g k).width ≤ w + 1 :=
-  Qatlib.Concepts.UnbiasedBases.ThreeBasis.FixedGateSynthesis.frontier1_ancilla skScalarSynthesizer w g k
+  Qatlib.Concepts.UnbiasedBases.ThreeBasis.FixedGateSynthesis.transported_segment_extra_wires_le_one skScalarSynthesizer w g k
 
 /-- Bounds the transported Solovay-Kitaev segment length by the stated explicit fifth-degree
 polynomial in request size. -/
-theorem frontier1_explicitLedger (w : ℕ) (g : LocalQFTGate w) (k : ℕ) (hk : 1 ≤ k) :
+theorem solovay_kitaev_segment_explicit_length_bound (w : ℕ) (g : LocalQFTGate w) (k : ℕ) (hk : 1 ≤ k) :
     (nextSegment (transportSynth skScalarSynthesizer) w g k).word.length
       ≤ (23 + skGateCoefficient * 16) * (requestSize w g k) ^ 5 := by
-  simpa using! Qatlib.Concepts.UnbiasedBases.ThreeBasis.FixedGateSynthesis.frontier1_ledger
+  simpa using! Qatlib.Concepts.UnbiasedBases.ThreeBasis.FixedGateSynthesis.transported_segment_polynomial_gate_ledger_bound
     skScalarSynthesizer skGateCoefficient 4 sk_scalar_quartic_bound w g k hk
 
 /-- The transported Solovay-Kitaev segment lengths possess a uniform fifth-degree polynomial bound
 in request size. -/
-theorem frontier1_polynomial :
+theorem solovay_kitaev_segment_uniform_polynomial_length_bound :
     ∃ C : ℕ, ∀ (w : ℕ) (g : LocalQFTGate w) (k : ℕ), 1 ≤ k →
       (nextSegment (transportSynth skScalarSynthesizer) w g k).word.length
         ≤ (23 + C * 16) * (requestSize w g k) ^ 5 := by
-  exact ⟨skGateCoefficient, frontier1_explicitLedger⟩
+  exact ⟨skGateCoefficient, solovay_kitaev_segment_explicit_length_bound⟩
 
 open Qatlib
 open Qatlib
@@ -3522,7 +3522,7 @@ theorem htScalar_nonempty {e k : ℕ} (neg : Bool) (he : 4 ≤ e) (hk : e ≤ k 
 
 /-- The H, T, and CNOT synthesis word satisfies the gate restriction, legality, zero-query,
 approximation, ancilla restoration, and explicit quartic length guarantees. -/
-theorem frontier1_htc (w : ℕ) (a c : Fin w) (e : ℕ) (neg : Bool) (k : ℕ)
+theorem htc_segment_approximation_ancilla_and_length (w : ℕ) (a c : Fin w) (e : ℕ) (neg : Bool) (k : ℕ)
     (he : 4 ≤ e) (hk : 1 ≤ k) :
     (∀ g ∈ htcWord w a c e neg k, isHTC g) ∧
     reflectionLegal (htcWord w a c e neg k) ∧

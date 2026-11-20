@@ -52,7 +52,8 @@ noncomputable section
 variable [Fintype S] [Nonempty S]
 
 omit [Fintype S] [Nonempty S] [DecidableEq S] in
-/-- Complete original `cross_record_value_cast` guarantee for `LinearTargetExecution`; all source hypotheses and output obligations are retained. -/
+/-- In real arithmetic the cross-term contribution of one record is `-2*α*β` times the target
+value at its site and the sign encoded by its bit. -/
 theorem cross_record_value_cast (u : S → ℚ) (α β : ℚ) (z : S × Bool) :
     (crossRecordValueQ u α β z : ℝ)=
       -2*(α : ℝ)*(β : ℝ)*(u z.1 : ℝ)*recordSign z.2 := by
@@ -60,7 +61,8 @@ theorem cross_record_value_cast (u : S → ℚ) (α β : ℚ) (z : S × Bool) :
     record_sign_cast]
 
 omit [Nonempty S] in
-/-- Complete original `cross_output_average_cast` guarantee for `LinearTargetExecution`; all source hypotheses and output obligations are retained. -/
+/-- Casting the rational cross-term output to the reals gives the sample average of the
+real-valued per-record contributions. -/
 theorem cross_output_average_cast {n : ℕ} (u : S → ℚ) (α β : ℚ)
     (ω : Fin n → S × Bool) :
     (crossTargetOutputQ u α β ω : ℝ)=
@@ -74,7 +76,8 @@ theorem cross_output_average_cast {n : ℕ} (u : S → ℚ) (α β : ℚ)
   ring
 
 omit [DecidableEq S] in
-/-- Complete original `cross_record_mean` guarantee for `LinearTargetExecution`; all source hypotheses and output obligations are retained. -/
+/-- Under the signed-record law with site means `m` bounded by one in absolute value, the mean
+cross-term contribution is `-2*α*β` times the site mean of `m x * u x`. -/
 theorem cross_record_mean (u : S → ℚ) (α β : ℚ) (m : S → ℝ) (hm : ∀ x, |m x|≤1) :
     (signedRecordLaw m hm).expect (fun z => (crossRecordValueQ u α β z : ℝ))=
       -2*(α : ℝ)*(β : ℝ)*siteMean (fun x => m x*(u x : ℝ)) := by
@@ -92,7 +95,8 @@ theorem cross_record_mean (u : S → ℚ) (α β : ℚ) (m : S → ℝ) (hm : �
   ring
 
 omit [Fintype S] [Nonempty S] [DecidableEq S] in
-/-- Complete original `cross_record_abs_bound` guarantee for `LinearTargetExecution`; all source hypotheses and output obligations are retained. -/
+/-- Nonnegative `α` and `β` and the pointwise bound `|u x| ≤ U` bound every record's cross-term
+contribution in absolute value by `2*α*β*U`. -/
 theorem cross_record_abs_bound (u : S → ℚ) (α β U : ℚ)
     (hα : 0≤α) (hβ : 0≤β) (hu : ∀ x, |u x|≤U) (z : S × Bool) :
     |crossRecordValueQ u α β z|≤2*α*β*U := by
@@ -103,7 +107,9 @@ theorem cross_record_abs_bound (u : S → ℚ) (α β U : ℚ)
         abs_of_nonneg hβ,hs,mul_one]
     _ ≤ 2*α*β*U := mul_le_mul_of_nonneg_left (hu z.1) (by positivity)
 
-/-- Complete original `planned_cross_target_confidence` guarantee for `LinearTargetExecution`; all source hypotheses and output obligations are retained. -/
+/-- For bounded sign means and target values, nonnegative `α`, `β`, and `U`, and positive `ε`
+and `ρ`, the scheduled cross-term average differs from `-2*α*β` times the mean of `m x * u x` by
+more than `ε` with probability at most `ρ`. -/
 theorem planned_cross_target_confidence (u : S → ℚ) (α β U ε ρ : ℚ)
     (m : S → ℝ) (hm : ∀ x, |m x|≤1) (hα : 0≤α) (hβ : 0≤β) (hU : 0≤U)
     (hu : ∀ x, |u x|≤U) (hε : 0<ε) (hρ : 0<ρ) :
@@ -118,7 +124,8 @@ theorem planned_cross_target_confidence (u : S → ℚ) (α β U ε ρ : ℚ)
   simpa only [cross_output_average_cast] using ht
 
 omit [Nonempty S] in
-/-- Complete original `cross_target_queries_bound` guarantee for `LinearTargetExecution`; all source hypotheses and output obligations are retained. -/
+/-- The number of distinct site queries for the cross term is bounded both by the number of
+records and by the size of the site space. -/
 theorem cross_target_queries_bound {n : ℕ} (ω : Fin n → S × Bool) :
     (crossTargetQueries ω).length≤min n (Fintype.card S) := by
   apply le_min
@@ -127,7 +134,8 @@ theorem cross_target_queries_bound {n : ℕ} (ω : Fin n → S × Bool) :
     rw [← List.toFinset_card_of_nodup (collectRecordCounts (List.ofFn ω)).keys_nodup]
     exact Finset.card_le_univ _
 
-/-- Complete original `planned_squared_target_norm_confidence` guarantee for `LinearTargetExecution`; all source hypotheses and output obligations are retained. -/
+/-- For `β ≥ 0` and `|u x| ≤ U`, the norm plan at scale `β*U` estimates the site mean of
+`(β*u x)²` with probability of absolute error above `ε` at most `ρ`, for positive `ε` and `ρ`. -/
 theorem planned_squared_target_norm_confidence (u : S → ℚ) (β U ε ρ : ℚ)
     (hβ : 0≤β) (hu : ∀ x, |u x|≤U) (hε : 0<ε) (hρ : 0<ρ) :
     let p := targetNormPlanQ (Fintype.card S) (β*U) ε ρ
@@ -146,7 +154,8 @@ theorem planned_squared_target_norm_confidence (u : S → ℚ) (β U ε ρ : ℚ
   simpa only [siteMean,targetSquare,Rat.cast_mul,Rat.cast_pow] using ht
 
 omit [Fintype S] [Nonempty S] in
-/-- Complete original `cross_output_uses_queries` guarantee for `LinearTargetExecution`; all source hypotheses and output obligations are retained. -/
+/-- Two rational targets that agree at all sites queried by the cross-term estimator give the
+same output on the given records. -/
 theorem cross_output_uses_queries {n : ℕ} (ω : Fin n → S × Bool)
     (u v : S → ℚ) (α β : ℚ) (h : ∀ x ∈ crossTargetQueries ω, u x=v x) :
     crossTargetOutputQ u α β ω=crossTargetOutputQ v α β ω := by

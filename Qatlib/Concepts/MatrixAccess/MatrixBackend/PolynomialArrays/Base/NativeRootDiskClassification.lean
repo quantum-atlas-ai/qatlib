@@ -25,7 +25,7 @@ def rootRationalDiskClassify (c : ℚ×ℚ) (r : ℚ) : Option Bool :=
   if r<1 ∧ c.1^2+c.2^2<(1-r)^2 then some true
   else if (1+r)^2<c.1^2+c.2^2 then some false else none
 
-/-- The finite construction in `NativeRootDiskClassification` satisfies `rootRationalDiskClassify_true` under the displayed hypotheses. -/
+/-- An inside classification implies that the radius `r` is less than one and the squared center norm is strictly below `(1 - r)^2`. -/
 theorem rootRationalDiskClassify_true (c : ℚ×ℚ) (r : ℚ)
     (h : rootRationalDiskClassify c r=some true) :
     r<1 ∧ c.1^2+c.2^2<(1-r)^2 := by
@@ -34,7 +34,7 @@ theorem rootRationalDiskClassify_true (c : ℚ×ℚ) (r : ℚ)
   · exact hi
   · cases h
 
-/-- The finite construction in `NativeRootDiskClassification` satisfies `rootRationalDiskClassify_false` under the displayed hypotheses. -/
+/-- An outside classification implies that the squared center norm strictly exceeds `(1 + r)^2`. -/
 theorem rootRationalDiskClassify_false (c : ℚ×ℚ) (r : ℚ)
     (h : rootRationalDiskClassify c r=some false) :
     (1+r)^2<c.1^2+c.2^2 := by
@@ -43,7 +43,7 @@ theorem rootRationalDiskClassify_false (c : ℚ×ℚ) (r : ℚ)
   · cases h
   · exact ho
 
-/-- The finite construction in `NativeRootDiskClassification` satisfies `rootRationalCoordinate_sq_norm` under the displayed hypotheses. -/
+/-- The squared norm of the complex number with rational coordinates `c` is the real cast of their rational sum of squares. -/
 theorem rootRationalCoordinate_sq_norm (c : ℚ×ℚ) :
     ‖rootRationalCoordinate c‖^2=((c.1^2+c.2^2 : ℚ) : ℝ) := by
   rw [Complex.sq_norm,Complex.normSq_apply]

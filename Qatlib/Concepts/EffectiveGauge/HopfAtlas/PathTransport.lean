@@ -29,7 +29,9 @@ namespace Qatlib.Concepts.EffectiveGauge.HopfAtlas
 local instance : StarModule ℝ ℍ where
   star_smul r q := by ext <;> simp
 
-/-- Original `rawTransport_exists` guarantee for the `PathTransport` construction; the complete source hypotheses are retained. -/
+/-- A unit seed and a continuous vector coefficient give a quaternion curve continuous on the
+transport interval, starting at the seed, with unit norm throughout and within-interval
+derivative given by right multiplication by the embedded imaginary coefficient. -/
 private theorem rawTransport_exists (q₀ : ℍ) (h₀ : ‖q₀‖=1) (K : CoefficientPath) :
     ∃ q : ℝ → ℍ, q 0=q₀ ∧ ContinuousOn q (Icc 0 physicalPeriod) ∧
       (∀ t ∈ Icc 0 physicalPeriod, HasDerivWithinAt q
@@ -47,7 +49,9 @@ private theorem rawTransport_exists (q₀ : ℍ) (h₀ : ‖q₀‖=1) (K : Coef
 private def rawTransport (q₀ : ℍ) (h₀ : ‖q₀‖=1) (K : CoefficientPath) : ℝ → ℍ :=
   Classical.choose (rawTransport_exists q₀ h₀ K)
 
-/-- Original `rawTransport_spec` guarantee for the `PathTransport` construction; the complete source hypotheses are retained. -/
+/-- The chosen raw transport starts at the unit seed, is continuous on the closed transport
+interval, solves the right transport equation there in the within-interval sense, and stays unit
+throughout. -/
 private theorem rawTransport_spec (q₀ : ℍ) (h₀ : ‖q₀‖=1) (K : CoefficientPath) :
     rawTransport q₀ h₀ K 0=q₀ ∧ ContinuousOn (rawTransport q₀ h₀ K) (Icc 0 physicalPeriod) ∧
       (∀ t ∈ Icc 0 physicalPeriod, HasDerivWithinAt (rawTransport q₀ h₀ K)
@@ -64,16 +68,19 @@ def pathTransport (q₀ : ℍ) (h₀ : ‖q₀‖=1) (K : CoefficientPath) : Qua
         ∀ t ∈ Icc 0 physicalPeriod, ‖q t‖=1 from by exact rawTransport_exists q₀ h₀ K) t,
     by exact (rawTransport_spec q₀ h₀ K).2.1.domRestrict⟩
 
-/-- Original `pathTransport_start` guarantee for the `PathTransport` construction; the complete source hypotheses are retained. -/
+/-- The continuous path obtained by transporting a unit seed takes the seed value at the initial
+time. -/
 @[simp] theorem pathTransport_start (q₀ : ℍ) (h₀ : ‖q₀‖=1) (K : CoefficientPath) :
     pathTransport q₀ h₀ K transportStart=q₀ := (rawTransport_spec q₀ h₀ K).1
 
-/-- Original `pathTransport_unit` guarantee for the `PathTransport` construction; the complete source hypotheses are retained. -/
+/-- Transport by the quaternion embedding of a coefficient path preserves the unit norm of the
+seed at every interval time. -/
 @[simp] theorem pathTransport_unit (q₀ : ℍ) (h₀ : ‖q₀‖=1) (K : CoefficientPath)
     (t : TransportTime) : ‖pathTransport q₀ h₀ K t‖=1 :=
   (rawTransport_spec q₀ h₀ K).2.2.2 t t.2
 
-/-- Original `pathTransport_hasDerivWithinAt` guarantee for the `PathTransport` construction; the complete source hypotheses are retained. -/
+/-- The extended transported path has within-interval derivative equal to the path value times
+its imaginary quaternion coefficient on the right at each interval time. -/
 theorem pathTransport_hasDerivWithinAt (q₀ : ℍ) (h₀ : ‖q₀‖=1) (K : CoefficientPath)
     (t : ℝ) (ht : t ∈ Icc 0 physicalPeriod) :
     HasDerivWithinAt (extendPath (pathTransport q₀ h₀ K))
@@ -93,13 +100,16 @@ def pathVariation (Q : QuaternionPath) : CoefficientPath →L[ℝ] QuaternionPat
     (pathVolterra.comp (((ContinuousLinearMap.mul ℝ QuaternionPath).flip (star Q)).comp
       ((ContinuousLinearMap.mul ℝ QuaternionPath Q).comp coefficientEmbedding)))
 
-/-- Original `pathVariation_apply` guarantee for the `PathTransport` construction; the complete source hypotheses are retained. -/
+/-- The first variation in coefficient direction `H` integrates the embedded perturbation
+conjugated by the path from zero to `t`, then right-multiplies the integral by `Q t`. -/
 @[simp] theorem pathVariation_apply (Q : QuaternionPath) (H : CoefficientPath) (t : TransportTime) :
     pathVariation Q H t =
       (∫ u in (0 : ℝ)..(t : ℝ),
         extendPath Q u*spinOfVector (extendPath H u)*star (extendPath Q u))*Q t := rfl
 
-/-- Original `pathTransport_point_estimates` guarantee for the `PathTransport` construction; the complete source hypotheses are retained. -/
+/-- For two coefficient paths with the same unit seed, the transport difference at time `t` is
+bounded by `t` times their supremum-norm difference. Subtracting its first variation leaves a
+remainder bounded by `t²` times the squared coefficient difference norm. -/
 private theorem pathTransport_point_estimates (q₀ : ℍ) (h₀ : ‖q₀‖=1)
     (K J : CoefficientPath) (t : TransportTime) :
     ‖pathTransport q₀ h₀ J t-pathTransport q₀ h₀ K t‖ ≤ (t : ℝ)*‖J-K‖ ∧
@@ -148,7 +158,8 @@ private theorem pathTransport_point_estimates (q₀ : ℍ) (h₀ : ‖q₀‖=1)
     rw [hi] at hR
     simpa only [r, q, extendPath_coe, sub_zero, pathVariation_apply] using hR
 
-/-- Original `pathTransport_stability` guarantee for the `PathTransport` construction; the complete source hypotheses are retained. -/
+/-- With the same unit seed, transport on the closed interval is Lipschitz in the continuous
+coefficient path, with constant equal to the physical period in supremum norm. -/
 theorem pathTransport_stability (q₀ : ℍ) (h₀ : ‖q₀‖=1) (K J : CoefficientPath) :
     ‖pathTransport q₀ h₀ J-pathTransport q₀ h₀ K‖ ≤ physicalPeriod*‖J-K‖ := by
   apply (ContinuousMap.norm_le _ (mul_nonneg physicalPeriod_pos.le (norm_nonneg _))).mpr
@@ -156,7 +167,9 @@ theorem pathTransport_stability (q₀ : ℍ) (h₀ : ‖q₀‖=1) (K J : Coeffi
   exact (pathTransport_point_estimates q₀ h₀ K J t).1.trans
     (mul_le_mul_of_nonneg_right t.2.2 (norm_nonneg _))
 
-/-- Original `pathTransport_quadratic_remainder` guarantee for the `PathTransport` construction; the complete source hypotheses are retained. -/
+/-- With a fixed unit seed, subtracting the linear path variation from the transport increment
+leaves a supremum-norm error at most the squared period times the squared coefficient increment
+norm. -/
 theorem pathTransport_quadratic_remainder (q₀ : ℍ) (h₀ : ‖q₀‖=1) (K J : CoefficientPath) :
     ‖pathTransport q₀ h₀ J-pathTransport q₀ h₀ K-
       pathVariation (pathTransport q₀ h₀ K) (J-K)‖ ≤ physicalPeriod^2*‖J-K‖^2 := by
@@ -165,7 +178,8 @@ theorem pathTransport_quadratic_remainder (q₀ : ℍ) (h₀ : ‖q₀‖=1) (K 
   exact (pathTransport_point_estimates q₀ h₀ K J t).2.trans
     (mul_le_mul_of_nonneg_right (pow_le_pow_left₀ t.2.1 t.2.2 2) (sq_nonneg _))
 
-/-- Original `pathTransport_hasFDerivAt` guarantee for the `PathTransport` construction; the complete source hypotheses are retained. -/
+/-- At a fixed unit seed, the Fréchet derivative of transport with respect to its continuous
+coefficient path is the path variation along the resulting quaternion path. -/
 theorem pathTransport_hasFDerivAt (q₀ : ℍ) (h₀ : ‖q₀‖=1) (K : CoefficientPath) :
     HasFDerivAt (pathTransport q₀ h₀) (pathVariation (pathTransport q₀ h₀ K)) K := by
   rw [hasFDerivAt_iff_tendsto]
@@ -187,7 +201,8 @@ theorem pathTransport_hasFDerivAt (q₀ : ℍ) (h₀ : ‖q₀‖=1) (K : Coeffi
     simpa using hc.tendsto K
   exact squeeze_zero (fun J => mul_nonneg (inv_nonneg.mpr (norm_nonneg _)) (norm_nonneg _)) hb ht
 
-/-- Original `contDiff_pathVariation` guarantee for the `PathTransport` construction; the complete source hypotheses are retained. -/
+/-- The operator sending a quaternion path to its linear coefficient-variation map is smooth
+between the continuous path spaces. -/
 theorem contDiff_pathVariation : ContDiff ℝ ∞ pathVariation := by
   have hL : ContDiff ℝ ∞ (ContinuousLinearMap.mul ℝ QuaternionPath :
       QuaternionPath → QuaternionPath →L[ℝ] QuaternionPath) :=

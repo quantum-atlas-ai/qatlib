@@ -30,12 +30,13 @@ namespace Qatlib.Concepts.EffectiveGauge.HopfAtlas
 /-- Definition of quaternion Complex Part in the Hopf Atlas construction. -/
 def quaternionComplexPart (q : ℍ) : ℂ := (q.re : ℂ)+(q.imI : ℂ)*Complex.I
 
-/-- Original `quaternionComplexPart_continuous` guarantee for the `HopfSectionObstruction` construction; the complete source hypotheses are retained. -/
+/-- The map to the complex number formed from the real and `i` components of a quaternion is
+continuous. -/
 theorem quaternionComplexPart_continuous : Continuous quaternionComplexPart :=
   (Complex.continuous_ofReal.comp Quaternion.continuous_re).add
     ((Complex.continuous_ofReal.comp Quaternion.continuous_imI).mul continuous_const)
 
-/-- Original `quaternionComplexPart_norm` guarantee for the `HopfSectionObstruction` construction; the complete source hypotheses are retained. -/
+/-- A unit quaternion with zero `j` and `k` components has a complex part of unit norm. -/
 theorem quaternionComplexPart_norm (q : ℍ) (hq : ‖q‖=1) (hj : q.imJ=0) (hk : q.imK=0) :
     ‖quaternionComplexPart q‖=1 := by
   have h := (normSq_eq_one_iff q).mpr hq
@@ -53,14 +54,16 @@ def diskQuaternion (z : ComplexUnitDisk) : Quaternion ℝ :=
   (z.val.re) • (1 : ℍ)+(z.val.im) • iAxis+
     Real.sqrt (1-Complex.normSq z.val) • diskJAxis
 
-/-- Original `diskQuaternion_continuous` guarantee for the `HopfSectionObstruction` construction; the complete source hypotheses are retained. -/
+/-- The quaternion-valued extension of the circle phase over the closed complex unit disk is
+continuous. -/
 theorem diskQuaternion_continuous : Continuous diskQuaternion :=
   (((Complex.continuous_re.comp continuous_subtype_val).smul continuous_const).add
     ((Complex.continuous_im.comp continuous_subtype_val).smul continuous_const)).add
       ((Real.continuous_sqrt.comp
         (continuous_const.sub (Complex.continuous_normSq.comp continuous_subtype_val))).smul continuous_const)
 
-/-- Original `diskQuaternion_norm` guarantee for the `HopfSectionObstruction` construction; the complete source hypotheses are retained. -/
+/-- The extension is unit at every point of the closed disk, since the extra `j` component
+contributes one minus the squared complex norm. -/
 theorem diskQuaternion_norm (z : ComplexUnitDisk) : ‖diskQuaternion z‖=1 := by
   have hz : ‖(z : ℂ)‖ ≤ 1 := by
     have hz := z.property
@@ -74,7 +77,8 @@ theorem diskQuaternion_norm (z : ComplexUnitDisk) : ‖diskQuaternion z‖=1 := 
   simp [diskQuaternion,diskJAxis,Quaternion.normSq_def',iAxis,Complex.normSq_apply] at hs ⊢
   nlinarith
 
-/-- Original `diskQuaternion_boundary` guarantee for the `HopfSectionObstruction` construction; the complete source hypotheses are retained. -/
+/-- On the disk boundary parametrized by `t`, the quaternion extension agrees with the
+quaternion phase at `t`. -/
 theorem diskQuaternion_boundary (t : ℝ) : diskQuaternion (unitDiskBoundary t)=phase t := by
   have hN : Complex.normSq (unitDiskBoundary t).val=1 := by
     rw [Complex.normSq_eq_norm_sq]
@@ -93,11 +97,13 @@ def diskHopfSpin (z : ComplexUnitDisk) : UnitHopfSpin :=
 /-- Definition of base Hopf Spin in the Hopf Atlas construction. -/
 def baseHopfSpin : UnitHopfSpin := ⟨iAxis,by simp [iAxis],norm_iAxis⟩
 
-/-- Original `diskHopfSpin_continuous` guarantee for the `HopfSectionObstruction` construction; the complete source hypotheses are retained. -/
+/-- The Hopf image of the disk extension is continuous as a map into the unit imaginary
+quaternions. -/
 theorem diskHopfSpin_continuous : Continuous diskHopfSpin :=
   (continuous_hopf.comp diskQuaternion_continuous).subtype_mk _
 
-/-- Original `diskHopfSpin_boundary` guarantee for the `HopfSectionObstruction` construction; the complete source hypotheses are retained. -/
+/-- The Hopf image of the disk extension is constant on the parametrized boundary, where it
+equals the base spin `iAxis`. -/
 theorem diskHopfSpin_boundary (t : ℝ) : diskHopfSpin (unitDiskBoundary t)=baseHopfSpin := by
   apply Subtype.ext
   change hopf (diskQuaternion (unitDiskBoundary t))=iAxis

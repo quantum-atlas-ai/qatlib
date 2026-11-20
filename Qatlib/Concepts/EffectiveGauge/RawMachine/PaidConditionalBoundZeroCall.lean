@@ -28,7 +28,7 @@ open Qatlib.Concepts.FinitePrecision.ComputableInput.Arithmetic.SignedNatMachine
 open CanonicalCodec.TM
 namespace PaidConditionalBoundBank
 
-/-- Original `zero_frame_target` guarantee for the `PaidConditionalBoundZeroCall` construction; the complete source hypotheses are retained. -/
+/-- A target with the specified contents on the embedded zero-test slots and the original contents at all other slots is exactly the framed zero-test update. -/
 private theorem zero_frame_target (S T : Slot → CanonicalCodec.Bits)
     (data : PaidBoundZeroRetention.Slot → CanonicalCodec.Bits)
     (hi : ∀ k,T (zeroCode k)=data k)

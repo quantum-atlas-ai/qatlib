@@ -174,7 +174,7 @@ outer error bound `δ₂ = δ`; then running an `L₁`-word at `δ₁` inside an
 `P_{L₂}(P_{L₁}(λ,δ₁),δ₂) = P_{L₁L₂}(λ,δ)`.
 
 Reused result: `nestedResponseIdentity` from
-`Qatlib.Papers.FixedPtSearch14.FixedPoint.InfrastructureOptimalFixedPoint`,
+`Qatlib.Papers.FixedPtSearch14.FixedPoint.OptimalFixedPointCore`,
 proved from the Chebyshev semigroup law. -/
 theorem claim_c005_nesting_composition (L1 L2 : ℕ) (delta lam : ℝ)
     (hL1 : 1 ≤ L1) (hL2 : 1 ≤ L2) (hd : 0 < delta) (hdu : delta < 1)
@@ -194,7 +194,7 @@ success probability can be kept at least `1−δ²` is widest for the
 Chebyshev/Dolph response — the paper's "broadest possible range of λ".
 
 Reused result: `chebyshev_suppression_optimal` from
-`Qatlib.Papers.FixedPtSearch14.FixedPoint.InfrastructureOptimalFixedPoint`,
+`Qatlib.Papers.FixedPtSearch14.FixedPoint.OptimalFixedPointCore`,
 proved from Mathlib's Chebyshev extremal property. -/
 theorem claim_c006_optimal_lambda_range {L : ℕ} {delta : ℝ} {q : ℝ[X]} {a : ℝ}
     (hL : 1 ≤ L) (hd : 0 < delta) (hdu : delta < 1)

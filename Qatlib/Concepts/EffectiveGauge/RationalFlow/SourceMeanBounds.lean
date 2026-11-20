@@ -34,7 +34,8 @@ request bound 1 again. -/
 def sourceMeanEffectiveSecondBound (m1 : ℚ) (bounds : ℕ → ℚ) : ℚ :=
   if m1=0 then 0 else sourceMeanCompressedBound (bounds 2)
 
-/-- Original `sourceMeanCompressedBound_encloses` guarantee for the `SourceMeanBounds` construction; the complete source hypotheses are retained. -/
+/-- Rounding up to a multiple of `1 / 256` gives a bound at least as large as the input and strictly
+less than one grid spacing above it. -/
 theorem sourceMeanCompressedBound_encloses (m : ℚ) :
     m ≤ sourceMeanCompressedBound m ∧ sourceMeanCompressedBound m < m+1/256 := by
   have hlo := Int.le_ceil (256*m)
@@ -42,7 +43,7 @@ theorem sourceMeanCompressedBound_encloses (m : ℚ) :
   dsimp only [sourceMeanCompressedBound]
   constructor <;> linarith
 
-/-- Original `sourceMeanCompressedBound_nonneg` guarantee for the `SourceMeanBounds` construction; the complete source hypotheses are retained. -/
+/-- Rounding a nonnegative bound up to a multiple of `1 / 256` leaves it nonnegative. -/
 theorem sourceMeanCompressedBound_nonneg (m : ℚ) (hm : 0 ≤ m) :
     0 ≤ sourceMeanCompressedBound m := hm.trans (sourceMeanCompressedBound_encloses m).1
 
@@ -92,7 +93,8 @@ theorem sourceMeanBoundsSectorExecution_effective_eq (source : RationalJetSource
   · simp only [h,sourceMeanEffectiveSecondBound,ite_true,sourceMeanSectorExecution_zero]
   · simp only [sourceMeanEffectiveSecondBound,ite_eq_right h]
 
-/-- Original `sourceMeanBoundsPhysicalExecution_zero` guarantee for the `SourceMeanBounds` construction; the complete source hypotheses are retained. -/
+/-- If the rounded first derivative bound is zero, the physical mean program returns the singleton
+zero interval in every component for any source and tolerance. -/
 theorem sourceMeanBoundsPhysicalExecution_zero (source : RationalJetSource) (bounds : ℕ → ℚ)
     (hz : sourceMeanCompressedBound (bounds 1)=0) (tolerance : ℚ) :
     sourceMeanBoundsPhysicalExecution source bounds tolerance=some (fun _ => ⟨0,0⟩) := by
@@ -102,7 +104,8 @@ noncomputable section
 open Set
 open scoped ContDiff
 
-/-- Original `sourceMeanCompressedBounds_valid` guarantee for the `SourceMeanBounds` construction; the complete source hypotheses are retained. -/
+/-- Rounding the two bounds upward preserves their validity for all first partials and ordered
+second partials on the physical cube. -/
 theorem sourceMeanCompressedBounds_valid (v : SpatialPoint → SpatialPoint) (bounds : ℕ → ℚ)
     (hb : SourceAllRescalingBounds v (bounds 1 : ℝ) (bounds 2 : ℝ)) :
     SourceAllRescalingBounds v (sourceMeanCompressedBound (bounds 1) : ℝ)

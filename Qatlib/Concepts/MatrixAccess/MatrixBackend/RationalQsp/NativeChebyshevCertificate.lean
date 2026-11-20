@@ -46,7 +46,8 @@ def nativeChebyshevPowerPair : ℕ → List ℚ × List ℚ
 /-- Construction for native Chebyshev Power in the native chebyshev certificate model. -/
 def nativeChebyshevPower (n : ℕ) : List ℚ := (nativeChebyshevPowerPair n).1
 
-/-- The finite construction in `NativeChebyshevCertificate` satisfies `realTarget_twiceShift` under the displayed hypotheses. -/
+/-- Prepending a zero to the doubled power coefficients represents twice the original polynomial
+multiplied by the indeterminate. -/
 private theorem realTarget_twiceShift (cs : List ℚ) :
     realTarget (0::cs.map (fun q => 2*q))=2*X*realTarget cs := by
   rw [realTarget_cons,realTarget_scale]
@@ -58,7 +59,8 @@ private theorem realTarget_twiceShift (cs : List ℚ) :
   rw [hC2]
   ring
 
-/-- The finite construction in `NativeChebyshevCertificate` satisfies `nativeChebyshevPowerPair_semantics` under the displayed hypotheses. -/
+/-- The two rational power-coefficient lists represent the real Chebyshev polynomials of the first
+kind of degrees n and n + 1, respectively. -/
 theorem nativeChebyshevPowerPair_semantics (n : ℕ) :
     realTarget (nativeChebyshevPowerPair n).1=Polynomial.Chebyshev.T ℝ (n : ℤ) ∧
     realTarget (nativeChebyshevPowerPair n).2=Polynomial.Chebyshev.T ℝ ((n+1 : ℕ) : ℤ) := by
@@ -74,7 +76,8 @@ theorem nativeChebyshevPowerPair_semantics (n : ℕ) :
       have hn2 : ((n+1+1 : ℕ) : ℤ)=(n : ℤ)+2 := by omega
       rw [hn1,hn2,Polynomial.Chebyshev.T_add_two]
 
-/-- The finite construction in `NativeChebyshevCertificate` satisfies `nativeChebyshevPower_semantics` under the displayed hypotheses. -/
+/-- The rational power coefficients computed at index n represent the nth Chebyshev polynomial of
+the first kind over the reals. -/
 theorem nativeChebyshevPower_semantics (n : ℕ) :
     realTarget (nativeChebyshevPower n)=Polynomial.Chebyshev.T ℝ (n : ℤ) :=
   (nativeChebyshevPowerPair_semantics n).1
@@ -91,7 +94,8 @@ def nativeChebyshevPowerSumFrom (j : ℕ) : List ℚ → List ℚ
   | c::cs => ratAddList ((nativeChebyshevPower j).map (fun a => c*a))
       (nativeChebyshevPowerSumFrom (j+1) cs)
 
-/-- The finite construction in `NativeChebyshevCertificate` satisfies `nativeChebyshevPowerSumFrom_semantics` under the displayed hypotheses. -/
+/-- Converting a rational Chebyshev series starting at index j to power coefficients preserves its
+real polynomial. -/
 theorem nativeChebyshevPowerSumFrom_semantics (j : ℕ) (cs : List ℚ) :
     realTarget (nativeChebyshevPowerSumFrom j cs)=nativeChebyshevPolynomialFrom j cs := by
   induction cs generalizing j with
@@ -104,7 +108,7 @@ theorem nativeChebyshevPowerSumFrom_semantics (j : ℕ) (cs : List ℚ) :
 /-- Construction for native Chebyshev Mass in the native chebyshev certificate model. -/
 def nativeChebyshevMass (cs : List ℚ) : ℚ := (cs.map abs).sum
 
-/-- The finite construction in `NativeChebyshevCertificate` satisfies `nativeChebyshevMass_nonneg` under the displayed hypotheses. -/
+/-- The sum of the absolute values of the rational Chebyshev coefficients is nonnegative. -/
 theorem nativeChebyshevMass_nonneg (cs : List ℚ) : 0≤nativeChebyshevMass cs := by
   apply List.sum_nonneg
   intro a ha
@@ -136,7 +140,8 @@ theorem nativeChebyshevPolynomialFrom_eval_bound (j : ℕ) (cs : List ℚ)
 def nativeRationalCoefficientCheck (xs ys : List ℚ) : Bool :=
   decide (∀ i : Fin (max xs.length ys.length),xs.getD i.val 0=ys.getD i.val 0)
 
-/-- The finite construction in `NativeChebyshevCertificate` satisfies `nativeRationalCoefficientCheck_sound` under the displayed hypotheses. -/
+/-- A successful rational coefficient comparison implies that the two lists represent the same
+real polynomial. -/
 theorem nativeRationalCoefficientCheck_sound (xs ys : List ℚ)
     (h : nativeRationalCoefficientCheck xs ys=true) : realTarget xs=realTarget ys := by
   have hc : ∀ i : Fin (max xs.length ys.length),xs.getD i.val 0=ys.getD i.val 0 := of_decide_eq_true h
@@ -148,7 +153,8 @@ theorem nativeRationalCoefficientCheck_sound (xs ys : List ℚ)
     have hy : ys.length ≤ i := (le_max_right _ _).trans (le_of_not_gt hi)
     rw [List.getD_eq_default _ _ hx,List.getD_eq_default _ _ hy]
 
-/-- The finite construction in `NativeChebyshevCertificate` satisfies `gaussian_realTarget_eval` under the displayed hypotheses. -/
+/-- At a real argument, evaluating the power polynomial of the real coordinates gives the real
+part of the Gaussian-rational polynomial evaluation. -/
 theorem gaussian_realTarget_eval (cs : List GaussianRat) (x : ℝ) :
     (realTarget (cs.map Prod.fst)).eval x=((dataPolynomial cs).eval (x : ℂ)).re := by
   induction cs with
@@ -162,7 +168,8 @@ theorem gaussian_realTarget_eval (cs : List GaussianRat) (x : ℝ) :
 def nativeResponseRealCoefficients (data : PhaseData) : List ℚ :=
   ((responseData data.base data.phases).1.1).map Prod.fst
 
-/-- The finite construction in `NativeChebyshevCertificate` satisfies `nativeResponseRealCoefficients_eval` under the displayed hypotheses. -/
+/-- Evaluating the stored real response coefficients at any real x gives the real part of the
+phase response evaluated at x. -/
 theorem nativeResponseRealCoefficients_eval (data : PhaseData) (x : ℝ) :
     (realTarget (nativeResponseRealCoefficients data)).eval x=
       ((responseP (gaussianRatComplex data.base) (data.phases.map gaussianRatComplex)).eval (x : ℂ)).re := by

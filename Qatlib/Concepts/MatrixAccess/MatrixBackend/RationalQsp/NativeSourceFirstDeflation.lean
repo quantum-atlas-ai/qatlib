@@ -152,7 +152,12 @@ def sourceFirstIdealDeflationArray (cs : List ℚ) (N : ℕ) (E : ℚ) {k : ℕ}
     Fin (k+2) → Matrix Bool Bool ℂ :=
   fun j => sourceIdealMatrixArray cs N E ⟨j.val,by omega⟩
 
-/-- The finite construction in `NativeSourceFirstDeflation` satisfies `source_first_deflation` under the displayed hypotheses. -/
+/-- For positive E and source degree, a degree-bounded target of matching parity bounded by one,
+and guarded factors reconstructing the integer complement with nonzero content, the first
+rational deflation has real, strictly positive Gram traces at both endpoints. Writing the
+source degree as k + 1, every coefficient of the degree-k result is within 30K·eta/h of the
+corresponding ideal coefficient, where K is the source error constant and h is the source grid
+spacing. -/
 theorem source_first_deflation (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E)
     (htail : ∀ k,N+1 ≤ k → cs.getD k 0=0)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)

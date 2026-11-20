@@ -53,7 +53,9 @@ def storedSourceGaugeUnitSampling (source : RationalJetSource) (plan : StoredGau
   storedSourceGaugePhysicalValue source plan.gauge
     (fun j => plan.period*rationalUnitWrap address j) plan.tolerance
 
-/-- Original `materializeStoredGaugeUnitSamplingPlan_output` guarantee for the `StoredGaugeUnitSampling` construction; the complete source hypotheses are retained. -/
+/-- When the Poisson state uses the supplied preparation, building a plan with the frame stored for
+the gap-derived collar and projecting it gives exactly the plan built directly from the gap and
+Poisson state. -/
 theorem materializeStoredGaugeUnitSamplingPlan_output (source : RationalJetSource) (prepared : CachedMeanPreparation)
     (gap : ℚ) (r : GeneralPoissonValueState) (hprepared : r.preparation.prepared=prepared) (tolerance : ℚ) :
     (materializeStoredGaugeUnitSamplingPlan
@@ -65,7 +67,9 @@ theorem materializeStoredGaugeUnitSamplingPlan_output (source : RationalJetSourc
   simp [materializeStoredGaugeUnitSamplingPlan,StoredGaugeUnitSamplingPlan.toPlan,
     materializeGaugeUnitSamplingPlan,hprepared,hb]
 
-/-- Original `storedSourceGaugeUnitSampling_output` guarantee for the `StoredGaugeUnitSampling` construction; the complete source hypotheses are retained. -/
+/-- If the stored plan uses the frame for the gap-derived collar and its Poisson state uses the same
+preparation, sampling at any rational unit address gives the same optional quaternion as sampling
+with the projected plan and gap. -/
 theorem storedSourceGaugeUnitSampling_output (source : RationalJetSource) (prepared : CachedMeanPreparation)
     (gap : ℚ) (plan : StoredGaugeUnitSamplingPlan)
     (hframe : plan.gauge.frame=storeReferenceFrame source prepared (referenceUnitCollar gap))

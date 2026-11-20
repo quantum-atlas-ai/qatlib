@@ -37,7 +37,7 @@ open scoped Matrix.Norms.L2Operator
 
 variable {H I : Type} [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
 
-/-- The finite construction in `NativeNeumannLogPrecision` satisfies `log_reciprocal_condition_mono` under the displayed hypotheses. -/
+/-- For `1 ≤ κ ≤ K` and any cutoff `b`, replacing the reciprocal gap `κ⁻¹` by the smaller `K⁻¹` can only increase the reciprocal truncation bound. -/
 private theorem log_reciprocal_condition_mono (κ K : ℝ) (hκ : 1 ≤ κ) (hK : κ ≤ K) (b : ℕ) :
     reciprocalError κ⁻¹ b ≤ reciprocalError K⁻¹ b := by
   have hκp : 0 < κ := lt_of_lt_of_le zero_lt_one hκ

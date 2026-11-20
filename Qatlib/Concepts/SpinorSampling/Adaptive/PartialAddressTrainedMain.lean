@@ -38,13 +38,14 @@ open scoped BigOperators
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 open RetainedSpin FiniteAxisWord UniformMatching
 
-/-- Complete original `spin_step_scale` guarantee for `PartialAddressTrainedMain`; all source hypotheses and output obligations are retained. -/
+/-- A common complex scalar on both input amplitudes factors through a single spin gate. -/
 theorem spin_step_scale (g : Gate) (c : ℂ) (u : Bool → ℂ) :
     spinStep g (fun b => c*u b)=fun b => c*spinStep g u b := by
   funext b
   cases g <;> cases b <;> simp [spinStep] <;> ring
 
-/-- Complete original `run_spin_scale` guarantee for `PartialAddressTrainedMain`; all source hypotheses and output obligations are retained. -/
+/-- Executing a finite spin word on a scaled input gives the scaled output of the word on the
+original spinor. -/
 theorem run_spin_scale (gs : List Gate) (c : ℂ) (u : Bool → ℂ) :
     runSpin gs (fun b => c*u b)=fun b => c*runSpin gs u b := by
   induction gs generalizing u with
@@ -58,7 +59,8 @@ def rotated (u : E → Bool → ℂ) (words : E → List Gate) : E → Bool → 
   fun e => runSpin (words e) (u e)
 
 omit [Fintype E] [DecidableEq E] [Nonempty E] in
-/-- Complete original `rotated_mass` guarantee for `PartialAddressTrainedMain`; all source hypotheses and output obligations are retained. -/
+/-- If the input spinor has unit mass at every edge, it remains unit mass at every edge after
+its selected word. -/
 theorem rotated_mass (u : E → Bool → ℂ) (words : E → List Gate)
     (hu : ∀ e,qubitMass (u e)=1) : ∀ e,qubitMass (rotated u words e)=1 := by
   intro e
@@ -74,7 +76,8 @@ def wordNativeProb (u v : E → Bool → ℂ) (words : E → List Gate)
         (fun x => supplied u v (z.1,x))))) (pairReg z.2.2.2 z.2.1)/3
 
 omit [DecidableEq E] [Nonempty E] in
-/-- Complete original `word_native_prob` guarantee for `PartialAddressTrainedMain`; all source hypotheses and output obligations are retained. -/
+/-- The native record weight of executing the edge word before the spin projection and endpoint
+measurement equals the native weight formed directly from the word-rotated endpoint spinors. -/
 theorem word_native_prob (u v : E → Bool → ℂ) (words : E → List Gate)
     (z : GlobalRecord E) :
     wordNativeProb u v words z=nativeProb (rotated u words) (rotated v words) z := by
@@ -92,14 +95,16 @@ def mainLaw (u v : E → Bool → ℂ) (hu : ∀ e,qubitMass (u e)=1)
   law (rotated u words) (rotated v words) (rotated_mass u words hu) (rotated_mass v words hv)
 
 omit [DecidableEq E] in
-/-- Complete original `main_law_native` guarantee for `PartialAddressTrainedMain`; all source hypotheses and output obligations are retained. -/
+/-- For unit endpoint spinors, every record probability under the main law equals the Born
+weight of the native circuit with the selected edge word. -/
 theorem main_law_native (u v : E → Bool → ℂ) (hu : ∀ e,qubitMass (u e)=1)
     (hv : ∀ e,qubitMass (v e)=1) (words : E → List Gate) (z : GlobalRecord E) :
     (mainLaw u v hu hv words).prob z=wordNativeProb u v words z := by
   rw [mainLaw,law_prob_native,word_native_prob]
 
 omit [DecidableEq E] [Nonempty E] in
-/-- Complete original `main_target` guarantee for `PartialAddressTrainedMain`; all source hypotheses and output obligations are retained. -/
+/-- Because both endpoints of each edge receive the same word, the average Bell target is
+unchanged by edge-dependent spin rotations. -/
 theorem main_target (u v : E → Bool → ℂ) (words : E → List Gate) :
     average (fun e => bellProbability (rotated u words e) (rotated v words e))=
       average (fun e => bellProbability (u e) (v e)) := by
@@ -121,7 +126,8 @@ def trainedLaw (p : FinDist T) (u v : E → Bool → ℂ)
     exact p.sum_one
 
 omit [Fintype E] [DecidableEq E] [Nonempty E] [Fintype T] in
-/-- Complete original `trained_law_native` guarantee for `PartialAddressTrainedMain`; all source hypotheses and output obligations are retained. -/
+/-- A specified pilot and main cohort have joint probability equal to the pilot probability
+times the product of native main record weights with the words fixed by that pilot. -/
 theorem trained_law_native {E : Type} [_inst0 : Fintype E] [_inst1 : DecidableEq E]
     [_inst2 : Nonempty E] {T : Type} [_inst3 : Fintype T]
     (p : FinDist T) (u v : E → Bool → ℂ)
@@ -131,7 +137,8 @@ theorem trained_law_native {E : Type} [_inst0 : Fintype E] [_inst1 : DecidableEq
       p.prob z.1*∏ i,wordNativeProb u v (words z.1) (z.2 i) := by
   simp only [trainedLaw,FinDist.probOf,main_law_native]
 
-/-- Complete original `trained_sparse_unbiased` guarantee for `PartialAddressTrainedMain`; all source hypotheses and output obligations are retained. -/
+/-- For at least two main records, the sparse count estimator averaged over the pilot and the
+conditional main cohort is unbiased for the original average edge Bell probability. -/
 theorem trained_sparse_unbiased (p : FinDist T) (u v : E → Bool → ℂ)
     (hu : ∀ e,qubitMass (u e)=1) (hv : ∀ e,qubitMass (v e)=1)
     (words : T → E → List Gate) (n : ℕ) (hn : 2≤n) :
@@ -149,14 +156,16 @@ theorem trained_sparse_unbiased (p : FinDist T) (u v : E → Bool → ℂ)
   simp_rw [hm]
   rw [← Finset.sum_mul,p.sum_one,one_mul]
 
-/-- Complete original `event_weighted` guarantee for `PartialAddressTrainedMain`; all source hypotheses and output obligations are retained. -/
+/-- The probability of a decidable event on `n` independent draws is the sum of the product
+weights times its indicator. -/
 theorem event_weighted {X : Type} [Fintype X] (p : FinDist X) (n : ℕ)
     (event : (Fin n → X) → Prop) [DecidablePred event] :
     p.probEvent event=∑ ω : Fin n → X,p.probOf ω*(if event ω then (1 : ℝ) else 0) := by
   classical
   simp only [FinDist.probEvent,Finset.sum_filter,mul_ite,mul_one,mul_zero]
 
-/-- Complete original `event_le_one` guarantee for `PartialAddressTrainedMain`; all source hypotheses and output obligations are retained. -/
+/-- Every decidable event on a cohort of independent draws from a finite law has probability at
+most one. -/
 theorem event_le_one {X : Type} [Fintype X] (p : FinDist X) (n : ℕ)
     (event : (Fin n → X) → Prop) [DecidablePred event] : p.probEvent event≤1 := by
   classical
@@ -172,7 +181,9 @@ theorem event_le_one {X : Type} [Fintype X] (p : FinDist X) (n : ℕ)
     _ = 1 := p.sum_probOf n
 
 omit [Fintype E] [DecidableEq E] [Nonempty E] [Fintype T] in
-/-- Complete original `trained_event_bound` guarantee for `PartialAddressTrainedMain`; all source hypotheses and output obligations are retained. -/
+/-- If bad pilot outcomes have probability at most `α` and each other pilot outcome gives
+conditional main event probability at most a nonnegative `β`, the joint law gives the main
+event probability at most `α+β`. -/
 theorem trained_event_bound {E : Type} [_inst0 : Fintype E] [_inst1 : DecidableEq E]
     [_inst2 : Nonempty E] {T : Type} [_inst3 : Fintype T]
     (p : FinDist T) (u v : E → Bool → ℂ)

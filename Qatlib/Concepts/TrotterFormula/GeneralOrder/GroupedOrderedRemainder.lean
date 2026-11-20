@@ -19,7 +19,7 @@ recursive ordered form. It expands the outer remainder into explicit commutator 
 matches the last grouping level to that expansion, in the commutator-scaling setting of
 [ChildsEtAl2021Trotter].
 
-The theorem `frontier1` combines this identity with segmented error bounds, an explicit
+The theorem `grouped_trotter_remainder_and_tagged_word_error` combines this identity with segmented error bounds, an explicit
 tolerance-based segment choice, and label-visit counts.
 
 ## Main statements
@@ -28,7 +28,7 @@ tolerance-based segment choice, and label-visit counts.
   compositions.
 * `groupedIntegralRemainder_eq_orderedRemainder`: equality of the grouped and recursive
   remainders for positive order.
-* `frontier1`: remainder identity, segmented estimates, selected accuracy, and tagged visit
+* `grouped_trotter_remainder_and_tagged_word_error`: remainder identity, segmented estimates, selected accuracy, and tagged visit
   counts.
 
 ## References
@@ -303,7 +303,7 @@ theorem grouped_identity [DecidableEq I] (xs : List (Matrix I I ℂ))
 /-- For a matched skew-Hermitian word of positive order, combines the grouped remainder identity
 with ordered and raw commutator error bounds. The selected tagged word attains the requested
 tolerance and has the stated number of visits to each label. -/
-theorem frontier1 [DecidableEq I] {m : ℕ} (xs : List (Matrix I I ℂ))
+theorem grouped_trotter_remainder_and_tagged_word_error [DecidableEq I] {m : ℕ} (xs : List (Matrix I I ℂ))
     (lab : Fin xs.length → Fin m) (B H : Matrix I I ℂ) (p r : ℕ) (t ε : ℝ)
     (hp : 1 ≤ p) (hr : 0<r) (hε : 0<ε)
     (hc : ∀ n≤p,suzukiSeries xs n=((n.factorial:ℝ)⁻¹) • H^n)

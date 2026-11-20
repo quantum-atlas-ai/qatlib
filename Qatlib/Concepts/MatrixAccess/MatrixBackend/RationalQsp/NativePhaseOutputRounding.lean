@@ -110,7 +110,8 @@ def nativeRoundStandardPacket (data : PhaseData) (p : ℕ) : PhaseData where
   base := nativePhasePair data.base.1 data.base.2 p
   phases := data.phases.map (fun z => nativePhasePair z.1 z.2 p)
 
-/-- The finite construction in `NativePhaseOutputRounding` satisfies `nativeRoundStandardPacket_spec` under the displayed hypotheses. -/
+/-- Rounding a standard packet preserves the number of phases and gives a base and phases of
+complex norm one at every precision p. -/
 theorem nativeRoundStandardPacket_spec (data : PhaseData) (p : ℕ) :
     (nativeRoundStandardPacket data p).phases.length=data.phases.length ∧
     ‖gaussianRatComplex (nativeRoundStandardPacket data p).base‖=1 ∧

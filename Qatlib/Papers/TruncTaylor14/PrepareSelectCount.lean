@@ -93,7 +93,7 @@ section Skeleton
 variable {I ι : Type*} [Fintype I] [DecidableEq I]
 
 /-- The serial macro-gate word over an index list: one
-`Qatlib.Foundations.QueryWordCore.Circuit.Step.gate` per list entry,
+`Step.gate` per list entry,
 in list order. This is the composition skeleton all words below are instances of. -/
 def gateWord (M : ι → Matrix I I ℂ) (l : List ι) : Circuit I :=
   l.map (fun i => Step.gate (M i))
@@ -118,7 +118,7 @@ theorem gateWordGC (M : ι → Matrix I I ℂ) (l : List ι) :
 omit [Fintype I] [DecidableEq I] in
 
 /-- A skeleton word makes no oracle queries: the query count is measured, and it is
-zero because no `Qatlib.Foundations.QueryWordCore.Circuit.Step.query` occurs in the
+zero because no `Step.query` occurs in the
 composition. -/
 theorem gateWordQC (M : ι → Matrix I I ℂ) (l : List ι) :
     QueryCount (gateWord M l) = 0 := by

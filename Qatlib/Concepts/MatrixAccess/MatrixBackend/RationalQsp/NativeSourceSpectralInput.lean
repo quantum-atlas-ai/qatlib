@@ -39,7 +39,8 @@ def sourceActualA1 (cs : List ℚ) (N : ℕ) (E : ℚ) : ℚ :=
 /-- Construction for source Actual H1 in the native source spectral input model. -/
 def sourceActualH1 (cs : List ℚ) (N : ℕ) (E : ℚ) : ℚ := 1-(sourceActualA1 cs N E)^2
 
-/-- The finite construction in `NativeSourceSpectralInput` satisfies `sourceActualA1_sum` under the displayed hypotheses. -/
+/-- The sum of the regularized output coefficients equals the rational value computed for the
+response at one. -/
 private theorem sourceActualA1_sum (cs : List ℚ) (N : ℕ) (E : ℚ) :
     (∑ j : Fin (N+1),sourceOutputCoefficient cs N E j)=sourceActualA1 cs N E := by
   let d := sourceDegree cs N E
@@ -63,7 +64,8 @@ private theorem sourceActualA1_sum (cs : List ℚ) (N : ℕ) (E : ℚ) :
   simp [f,sourceActualA1,Finset.mul_sum]
   rfl
 
-/-- The finite construction in `NativeSourceSpectralInput` satisfies `sourceActualA1_eval` under the displayed hypotheses. -/
+/-- At one, the output Chebyshev polynomial evaluates exactly to the computed rational response
+value. -/
 theorem sourceActualA1_eval (cs : List ℚ) (N : ℕ) (E : ℚ) :
     (nativeChebyshevPolynomialFrom 0 (sourceOutputList cs N E)).eval 1=
       (sourceActualA1 cs N E : ℝ) := by
@@ -74,7 +76,8 @@ theorem sourceActualA1_eval (cs : List ℚ) (N : ℕ) (E : ℚ) :
   push_cast at he
   exact he
 
-/-- The finite construction in `NativeSourceSpectralInput` satisfies `sourceActualH1_pos` under the displayed hypotheses. -/
+/-- For positive E and an original target of degree at most N bounded by one on the interval from
+−1 to 1, one minus the squared regularized response at one is strictly positive. -/
 theorem sourceActualH1_pos (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E)
     (htail : ∀ k,N+1 ≤ k → cs.getD k 0=0)
     (hnorm : ∀ x∈Set.Icc (-1 : ℝ) 1,|(nativeChebyshevPolynomialFrom 0 cs).eval x| ≤ 1) :
@@ -87,13 +90,14 @@ theorem sourceActualH1_pos (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E)
   unfold sourceActualH1
   exact_mod_cast sub_pos.mpr hs
 
-/-- The finite construction in `NativeSourceSpectralInput` satisfies `sourceActualH1_le_one` under the displayed hypotheses. -/
+/-- One minus the square of the rational response at one is at most one for every input. -/
 theorem sourceActualH1_le_one (cs : List ℚ) (N : ℕ) (E : ℚ) :
     sourceActualH1 cs N E ≤ 1 := by
   unfold sourceActualH1
   nlinarith [sq_nonneg (sourceActualA1 cs N E)]
 
-/-- The finite construction in `NativeSourceSpectralInput` satisfies `sourceF_eval_one` under the displayed hypotheses. -/
+/-- With positive source degree and matching input parity, the complement at one is exactly one
+minus the squared rational response there. -/
 theorem sourceF_eval_one (cs : List ℚ) (N : ℕ) (E : ℚ)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)
     (hd : 0<sourceDegree cs N E) :

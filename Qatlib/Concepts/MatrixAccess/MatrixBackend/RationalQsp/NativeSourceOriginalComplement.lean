@@ -43,7 +43,7 @@ def sourceRationalComplement (cs : List ℚ) (N : ℕ) (E : ℚ) : List ℚ :=
 def sourceIntegerComplement (cs : List ℚ) (N : ℕ) (E : ℚ) : List ℤ :=
   sourceIntegerTarget (sourceRationalComplement cs N E)
 
-/-- The finite construction in `NativeSourceOriginalComplement` satisfies `sourceLeading_ne_zero` under the displayed hypotheses. -/
+/-- For positive source degree, the coefficient at that degree is nonzero. -/
 private theorem sourceLeading_ne_zero (cs : List ℚ) (N : ℕ) (E : ℚ)
     (hd : 0<sourceDegree cs N E) :
     sourceCoefficient cs N E ⟨sourceDegree cs N E,by have h := sourceDegree_le cs N E; omega⟩≠0 := by
@@ -54,7 +54,8 @@ private theorem sourceLeading_ne_zero (cs : List ℚ) (N : ℕ) (E : ℚ)
   rw [he] at hi
   exact hi
 
-/-- The finite construction in `NativeSourceOriginalComplement` satisfies `sourceP_zero` under the displayed hypotheses. -/
+/-- The first compressed coefficient of the lifted array is the source coefficient at the source
+degree. -/
 private theorem sourceP_zero (cs : List ℚ) (N : ℕ) (E : ℚ) :
     sourceP (sourceLiftedArray cs N E) (⟨0,Nat.succ_pos _⟩ : Fin (sourceDegree cs N E+1))=
       sourceCoefficient cs N E ⟨sourceDegree cs N E,by have h := sourceDegree_le cs N E; omega⟩ := by
@@ -64,7 +65,8 @@ private theorem sourceP_zero (cs : List ℚ) (N : ℕ) (E : ℚ) :
   change Nat.dist 0 (sourceDegree cs N E)=sourceDegree cs N E
   simp [Nat.dist]
 
-/-- The finite construction in `NativeSourceOriginalComplement` satisfies `sourceRationalComplement_nonzero` under the displayed hypotheses. -/
+/-- Matching input parity and positive source degree ensure that the rational complement list has
+at least one nonzero coefficient. -/
 theorem sourceRationalComplement_nonzero (cs : List ℚ) (N : ℕ) (E : ℚ)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)
     (hd : 0<sourceDegree cs N E) : ∃ q∈sourceRationalComplement cs N E,q≠0 := by
@@ -99,7 +101,8 @@ theorem sourceIntegerComplement_polynomial (cs : List ℚ) (N : ℕ) (E : ℚ)
   rw [sourceOriginalComplement_polynomial cs N E hparity hd]
   rfl
 
-/-- The finite construction in `NativeSourceOriginalComplement` satisfies `sourceIntegerComplement_scalar_ne_zero` under the displayed hypotheses. -/
+/-- With matching parity and positive source degree, the denominator-clearing scale divided by the
+rational complement's integer content is nonzero in the complex numbers. -/
 theorem sourceIntegerComplement_scalar_ne_zero (cs : List ℚ) (N : ℕ) (E : ℚ)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)
     (hd : 0<sourceDegree cs N E) :

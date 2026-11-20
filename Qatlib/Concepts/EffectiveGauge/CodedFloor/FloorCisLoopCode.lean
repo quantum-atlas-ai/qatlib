@@ -57,7 +57,8 @@ def floorReducedCisCode (p : FloorExpCodeParameters) : FloorCisCodeResult :=
     (1,(((floorRationalCodeNat 1,floorRationalCodeNat 0),(floorRationalCodeNat 0,p.1)),floorRationalCodeAbs p.1))
     (floorRationalCodeArctanFuel (floorRationalCodeMul p.2 (floorRationalCodeInv (floorRationalCodeNat 2)))))
 
-/-- Original `floorCisCodeRun_value` guarantee for the `FloorCisLoopCode` construction; the complete source hypotheses are retained. -/
+/-- Decoding a fuel-bounded coded run yields the rational cis Taylor loop started with the same
+index and fuel and the decoded angle, tolerance, accumulated sum, term, and scalar bound. -/
 theorem floorCisCodeRun_value (p : FloorExpCodeParameters) (s : FloorCisCodeState) (fuel : ℕ) :
     floorCisCodeStateValue (floorCisCodeRun p s fuel)=
       cisTaylorLoop (floorRationalCodeValue p.1) (floorRationalCodeValue p.2) s.1
@@ -88,13 +89,15 @@ theorem floorCisCodeRun_value (p : FloorExpCodeParameters) (s : FloorCisCodeStat
         floorRationalCodeAbs_value,floorRationalCodeInv_value,floorRationalCodeNat_value,
         cisTaylorLoop,ite_eq_right hv,div_eq_mul_inv]
 
-/-- Original `floorCisResultPayload_value` guarantee for the `FloorCisLoopCode` construction; the complete source hypotheses are retained. -/
+/-- Decoding the result payload extracted from a Taylor state gives that state's decoded
+approximation, error, and term count. -/
 theorem floorCisResultPayload_value (s : FloorCisCodeState) :
     floorCisCodeResultValue (floorCisResultPayload s)=floorCisCodeStateValue s := by
   simp [floorCisCodeResultValue,floorCisResultPayload,floorCisCodeStateValue,
     floorRationalCodeMul_value,floorRationalCodeNat_value]
 
-/-- Original `floorReducedCisCode_value` guarantee for the `FloorCisLoopCode` construction; the complete source hypotheses are retained. -/
+/-- Decoding the reduced coded cis routine yields `reducedCis` at the rational angle and tolerance
+represented by its input. -/
 theorem floorReducedCisCode_value (p : FloorExpCodeParameters) :
     floorCisCodeResultValue (floorReducedCisCode p)=
       reducedCis (floorRationalCodeValue p.1) (floorRationalCodeValue p.2) := by
@@ -103,7 +106,8 @@ theorem floorReducedCisCode_value (p : FloorExpCodeParameters) :
     floorRationalCodeNat_value,floorRationalCodeAbs_value,floorComplexCodeValue,
     reducedCis,Nat.cast_one,Nat.cast_zero,Nat.cast_ofNat,div_eq_mul_inv]
 
-/-- Original `primrec_floorCisCodeStep` guarantee for the `FloorCisLoopCode` construction; the complete source hypotheses are retained. -/
+/-- The coded Taylor step is primitive recursive in the angle–tolerance codes and the current
+state, including the stopping comparison. -/
 theorem primrec_floorCisCodeStep : Primrec₂ floorCisCodeStep := by
   have px : Primrec (fun x : FloorExpCodeParameters × FloorCisCodeState => x.1.1) :=
     Primrec.fst.comp Primrec.fst
@@ -129,7 +133,8 @@ theorem primrec_floorCisCodeStep : Primrec₂ floorCisCodeStep := by
         (primrec_floorRationalCodeMul.comp ss (primrec_floorRationalCodeAbs.comp px))
         (primrec_floorRationalCodeInv.comp (primrec_floorRationalCodeNat.comp sn')))))
 
-/-- Original `primrec_floorCisCodeRun` guarantee for the `FloorCisLoopCode` construction; the complete source hypotheses are retained. -/
+/-- The fuel-bounded Taylor iteration is primitive recursive in the packed parameters, initial
+state, and fuel. -/
 theorem primrec_floorCisCodeRun :
     Primrec (fun x : (FloorExpCodeParameters × FloorCisCodeState) × ℕ => floorCisCodeRun x.1.1 x.1.2 x.2) := by
   have hp : Primrec (fun x : ((FloorExpCodeParameters × FloorCisCodeState) × ℕ) × FloorCisCodeState =>
@@ -138,13 +143,15 @@ theorem primrec_floorCisCodeRun :
       (s : FloorCisCodeState) => floorCisCodeStep x.1.1 s) := primrec_floorCisCodeStep.comp hp Primrec.snd
   exact Primrec.nat_iterate Primrec.snd (Primrec.snd.comp Primrec.fst) hs
 
-/-- Original `primrec_floorCisResultPayload` guarantee for the `FloorCisLoopCode` construction; the complete source hypotheses are retained. -/
+/-- Extracting the approximation and term count and doubling the coded scalar error bound is
+primitive recursive. -/
 theorem primrec_floorCisResultPayload : Primrec floorCisResultPayload :=
   ((Primrec.fst.comp (Primrec.fst.comp Primrec.snd)).pair
     (primrec_floorRationalCodeMul.comp (Primrec.const (floorRationalCodeNat 2))
       (Primrec.snd.comp Primrec.snd))).pair Primrec.fst
 
-/-- Original `primrec_floorReducedCisCode` guarantee for the `FloorCisLoopCode` construction; the complete source hypotheses are retained. -/
+/-- Initialization, the fuel-bounded cis Taylor run, and result extraction together form a
+primitive-recursive reduced routine. -/
 theorem primrec_floorReducedCisCode : Primrec floorReducedCisCode := by
   have hi : Primrec (fun p : FloorExpCodeParameters =>
       (1,(((floorRationalCodeNat 1,floorRationalCodeNat 0),(floorRationalCodeNat 0,p.1)),

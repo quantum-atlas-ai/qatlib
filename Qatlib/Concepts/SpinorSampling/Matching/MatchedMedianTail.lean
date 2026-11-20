@@ -32,7 +32,9 @@ noncomputable section
 open scoped BigOperators
 open Qatlib
 
-/-- Complete original `median_exp_weight_bound` guarantee for `MatchedMedianTail`; all source hypotheses and output obligations are retained. -/
+/-- For `K > 0` independent blocks and `t ≥ 0`, bound the probability of median error above `ε`
+by the `K` th power of the expected single-block weight divided by `exp (t*K/2)`. The weight is
+`exp t` on a block whose error exceeds `ε` and one elsewhere. -/
 private theorem median_exp_weight_bound {X : Type} [Fintype X] [DecidableEq X]
     {K : ℕ} (p : FinDist X) (f : X → ℝ) (μ ε t : ℝ) (hK : 0<K) (ht : 0≤t) :
     p.probEvent (fun ω : Fin K → X => ε < |rawBlockMedian f ω-μ|) ≤
@@ -80,7 +82,9 @@ private theorem median_exp_weight_bound {X : Type} [Fintype X] [DecidableEq X]
         Real.exp (t*(K : ℝ)/2) := by simp only [mul_div_assoc, Finset.sum_div]
     _ = _ := by rw [hmoment]
 
-/-- Complete original `finite_median_strong_exponential_tail` guarantee for `MatchedMedianTail`; all source hypotheses and output obligations are retained. -/
+/-- When each block's bad-event mass is at most `6 * exp (-x/256)` for `x ≥ 2048`, the median of
+`K > 0` independent blocks has bad-event mass at most `exp (-K*x/2048)` at the same center and
+tolerance. -/
 theorem finite_median_strong_exponential_tail {X : Type} [Fintype X] [DecidableEq X]
     {K : ℕ} (p : FinDist X) (f : X → ℝ) (μ ε x : ℝ) (hK : 0<K) (hx : 2048≤x)
     (hbad : finiteBadMass p f μ ε ≤ 6*Real.exp (-x/256)) :
@@ -138,7 +142,10 @@ theorem finite_median_strong_exponential_tail {X : Type} [Fintype X] [DecidableE
 
 variable {S : Type} [Fintype S] [Nonempty S] [DecidableEq S]
 
-/-- Complete original `signed_saturated_median_tail` guarantee for `MatchedMedianTail`; all source hypotheses and output obligations are retained. -/
+/-- For `K > 0` independent blocks of two signed cohorts of length `M = |S|`, the matched
+median's error from the population mean of `a x * b (τ x)` exceeds `ε` with probability at most
+`exp (-K*M*ε²/2048)`. This uses bounded sign means, a matching permutation, `0 < ε ≤ 1`, and
+`M*ε² ≥ 2048`. -/
 theorem signed_saturated_median_tail (τ : Equiv.Perm S) {K : ℕ} (hK : 0<K)
     (a b : S → ℝ) (ha : ∀ x, |a x|≤1) (hb : ∀ x, |b x|≤1)
     (ε : ℝ) (hε0 : 0<ε) (hε1 : ε≤1) (hx : 2048≤(Fintype.card S : ℝ)*ε^2) :
@@ -166,7 +173,9 @@ theorem signed_saturated_median_tail (τ : Equiv.Perm S) {K : ℕ} (hK : 0<K)
     _ ≤ Real.exp (-(K : ℝ)*((Fintype.card S : ℝ)*ε^2)/2048) := hmain
     _ = _ := by congr 1; ring
 
-/-- Complete original `signed_saturated_median_confidence` guarantee for `MatchedMedianTail`; all source hypotheses and output obligations are retained. -/
+/-- For bounded sign means and a matching permutation, the median of `K > 0` blocks with both
+cohort lengths `M = |S|` misses the population product mean by more than `ε` with probability at
+most `ρ`, provided `0 < ε ≤ 1`, `ρ > 0`, `M*ε² ≥ 2048`, and `K*M*ε² ≥ 2048*log (1/ρ)`. -/
 theorem signed_saturated_median_confidence (τ : Equiv.Perm S) {K : ℕ} (hK : 0<K)
     (a b : S → ℝ) (ha : ∀ x, |a x|≤1) (hb : ∀ x, |b x|≤1)
     (ε ρ : ℝ) (hε0 : 0<ε) (hε1 : ε≤1) (hρ : 0<ρ)

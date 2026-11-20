@@ -23,13 +23,15 @@ open scoped Quaternion RealInnerProductSpace Topology ContDiff
 open Set intervalIntegral
 namespace Qatlib.Concepts.EffectiveGauge.HopfAtlas
 
-/-- Original `circleLogPrimitive_zero` guarantee for the `CircleLogReconstruction` construction; the complete source hypotheses are retained. -/
+/-- The anchored angular-rate integral is zero on the transverse line with first coordinate
+zero. -/
 theorem circleLogPrimitive_zero (k : TransversePoint → ℍ) (z : ℝ) :
     circleLogPrimitive k (transversePair (0,z))=0 := by
   change (∫ y in (0 : ℝ)..0, circleAngularRate k (transversePair (y,z)))=0
   simp
 
-/-- Original `circleLogPrimitive_reconstruct` guarantee for the `CircleLogReconstruction` construction; the complete source hypotheses are retained. -/
+/-- For a smooth circle-valued field, applying the phase of the integrated angular rate to the
+value at `(0, z)` recovers the value at `(y, z)`. -/
 theorem circleLogPrimitive_reconstruct {k : TransversePoint → ℍ} (hk : ContDiff ℝ ∞ k)
     (hc : ∀ p, IsCircleQuaternion (k p)) (y z : ℝ) :
     phase (circleLogPrimitive k (transversePair (y,z)))*k (transversePair (0,z)) =
@@ -80,7 +82,8 @@ theorem circleLogPrimitive_reconstruct {k : TransversePoint → ℍ} (hk : ContD
   have ha : a*physicalPeriod=y := div_mul_cancel₀ _ physicalPeriod_pos.ne'
   simpa only [r,q,theta,ha,b] using heq.symm
 
-/-- Original `circleLogPrimitive_eq_zero_of_one` guarantee for the `CircleLogReconstruction` construction; the complete source hypotheses are retained. -/
+/-- If a smooth quaternion field is one along the segment from `(0, z)` to `(y, z)` with `y ≥ 0`,
+its anchored angular-rate integral at `(y, z)` is zero. -/
 theorem circleLogPrimitive_eq_zero_of_one {k : TransversePoint → ℍ} (hk : ContDiff ℝ ∞ k)
     (z y : ℝ) (hy : 0 ≤ y) (hone : ∀ u ∈ Icc (0 : ℝ) y, k (transversePair (u,z))=1) :
     circleLogPrimitive k (transversePair (y,z))=0 := by
@@ -128,12 +131,15 @@ def terminalRealPhase (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞
     (q₀ : ℍ) (h₀ : ‖q₀‖=1) : TransversePoint → ℝ :=
   circleLogPrimitive (terminalRatio v hv q₀ h₀)
 
-/-- Original `contDiff_terminalRealPhase` guarantee for the `CircleLogReconstruction` construction; the complete source hypotheses are retained. -/
+/-- The anchored real phase of the terminal lift ratio is smooth in both transverse coordinates
+for a smooth source and a unit initial quaternion. -/
 theorem contDiff_terminalRealPhase (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (q₀ : ℍ) (h₀ : ‖q₀‖=1) : ContDiff ℝ ∞ (terminalRealPhase v hv q₀ h₀) :=
   contDiff_circleLogPrimitive (contDiff_terminalRatio v hv q₀ h₀)
 
-/-- Original `terminalRealPhase_reconstruct` guarantee for the `CircleLogReconstruction` construction; the complete source hypotheses are retained. -/
+/-- For a smooth unit source with periodic spin constant on a positive-width collar and a unit
+seed over that spin, exponentiating the terminal real phase gives the terminal ratio for each
+`y` and every `z` in the closed physical period interval. -/
 theorem terminalRealPhase_reconstruct (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (hu : ∀ x, ‖v x‖=1) (q₀ : ℍ) (h₀ : ‖q₀‖=1)
     (hp : IsPeriodicField (sourceQuaternion v)) (eta : ℝ) (he : 0<eta) (sc : ℍ)
@@ -152,7 +158,9 @@ theorem terminalRealPhase_reconstruct (v : SpatialPoint → SpatialPoint) (hv : 
     (terminalRatio_circle v hv hu q₀ h₀ hp eta he sc hc hi) y z
   simpa only [terminalRealPhase,hb,mul_one] using h
 
-/-- Original `terminalRealPhase_z_collar_zero` guarantee for the `CircleLogReconstruction` construction; the complete source hypotheses are retained. -/
+/-- For a smooth unit source and a unit seed, the terminal phase vanishes on the collars near
+either endpoint of the second transverse coordinate, when the source spin is constant on the
+fundamental-cube collar and both coordinates lie in the cube. -/
 theorem terminalRealPhase_z_collar_zero (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (hu : ∀ x, ‖v x‖=1) (q₀ : ℍ) (h₀ : ‖q₀‖=1) (eta : ℝ) (sc : ℍ)
     (hc : HasConstantCollar (sourceQuaternion v) eta sc) (y z : ℝ)
@@ -168,7 +176,9 @@ theorem terminalRealPhase_z_collar_zero (v : SpatialPoint → SpatialPoint) (hv 
     · exact hz
   · exact ⟨1,hb⟩
 
-/-- Original `terminalRealPhase_upper_zero` guarantee for the `CircleLogReconstruction` construction; the complete source hypotheses are retained. -/
+/-- For a smooth unit source with periodic spin constant on a positive-width collar, and a unit
+seed over that spin, the terminal real phase at first transverse coordinate `physicalPeriod`
+vanishes for every second coordinate in the closed period interval. -/
 theorem terminalRealPhase_upper_zero (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (hu : ∀ x, ‖v x‖=1) (q₀ : ℍ) (h₀ : ‖q₀‖=1)
     (hp : IsPeriodicField (sourceQuaternion v)) (eta : ℝ) (he : 0<eta) (sc : ℍ)
@@ -192,7 +202,9 @@ theorem terminalRealPhase_upper_zero (v : SpatialPoint → SpatialPoint) (hv : C
     ⟨physicalPeriod_pos.le,le_rfl⟩ ⟨le_rfl,physicalPeriod_pos.le⟩ (Or.inl he.le)
   exact real_phase_one_zero hf hphase hbase z hz
 
-/-- Original `terminalRealPhase_left_collar_zero` guarantee for the `CircleLogReconstruction` construction; the complete source hypotheses are retained. -/
+/-- For a smooth unit source and a unit seed, if the spin is constant on the cube collar, the
+terminal real phase vanishes inside the transverse square wherever the first coordinate is at
+most `eta`. -/
 theorem terminalRealPhase_left_collar_zero (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (hu : ∀ x, ‖v x‖=1) (q₀ : ℍ) (h₀ : ‖q₀‖=1) (eta : ℝ) (sc : ℍ)
     (hc : HasConstantCollar (sourceQuaternion v) eta sc) (y z : ℝ)
@@ -207,7 +219,9 @@ theorem terminalRealPhase_left_collar_zero (v : SpatialPoint → SpatialPoint) (
     · exact hz
   · exact ⟨0,Or.inl (hu'.2.trans hb)⟩
 
-/-- Original `terminalRealPhase_right_collar_zero` guarantee for the `CircleLogReconstruction` construction; the complete source hypotheses are retained. -/
+/-- For a smooth unit source with periodic spin constant on a positive-width collar and a unit
+seed over that spin, the terminal phase vanishes inside the transverse square when the first
+coordinate is at least `physicalPeriod - eta`. -/
 theorem terminalRealPhase_right_collar_zero (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (hu : ∀ x, ‖v x‖=1) (q₀ : ℍ) (h₀ : ‖q₀‖=1)
     (hp : IsPeriodicField (sourceQuaternion v)) (eta : ℝ) (he : 0<eta) (sc : ℍ)
@@ -241,11 +255,12 @@ theorem terminalRealPhase_right_collar_zero (v : SpatialPoint → SpatialPoint) 
   have h := real_phase_one_zero hf hphase hbase physicalPeriod ⟨physicalPeriod_pos.le,le_rfl⟩
   simpa only [f,hcL,sub_sub_cancel] using h
 
-/-- Original `transversePair_eta` guarantee for the `CircleLogReconstruction` construction; the complete source hypotheses are retained. -/
+/-- Reconstructing a transverse vector from its two coordinates gives the original vector. -/
 @[simp] theorem transversePair_eta (p : TransversePoint) : transversePair (p 0,p 1)=p := by
   ext j; fin_cases j <;> rfl
 
-/-- Original `terminalRealPhase_boundary_zero` guarantee for the `CircleLogReconstruction` construction; the complete source hypotheses are retained. -/
+/-- For a smooth unit source with periodic spin constant on a positive-width collar and a unit
+seed over that spin, the terminal real phase is zero on the collar of the transverse square. -/
 theorem terminalRealPhase_boundary_zero (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (hu : ∀ x, ‖v x‖=1) (q₀ : ℍ) (h₀ : ‖q₀‖=1)
     (hp : IsPeriodicField (sourceQuaternion v)) (eta : ℝ) (he : 0<eta) (sc : ℍ)

@@ -25,14 +25,14 @@ def negativeExpPartial (x : ℚ) (n : ℕ) : ℚ :=
 /-- Definition of negative Exp Magnitude in the Hopf Atlas construction. -/
 def negativeExpMagnitude (x : ℚ) (n : ℕ) : ℚ := |x|^n/(n.factorial : ℚ)
 
-/-- Original `negativeExpPartial_zero` guarantee for the `NegativeExpSeries` construction; the complete source hypotheses are retained. -/
+/-- The rational partial exponential sum with zero terms is zero. -/
 @[simp] theorem negativeExpPartial_zero (x : ℚ) : negativeExpPartial x 0=0 := rfl
 
-/-- Original `negativeExpPartial_succ` guarantee for the `NegativeExpSeries` construction; the complete source hypotheses are retained. -/
+/-- Extending the rational partial sum by one term adds `(-x)^n / n!` to its order-`n` value. -/
 theorem negativeExpPartial_succ (x : ℚ) (n : ℕ) :
     negativeExpPartial x (n+1)=negativeExpPartial x n+(-x)^n/(n.factorial : ℚ) := Finset.sum_range_succ _ _
 
-/-- Original `negativeExpMagnitude_dyadic` guarantee for the `NegativeExpSeries` construction; the complete source hypotheses are retained. -/
+/-- When `|x| ≤ 1/2`, the magnitude of the order-`n` rational exponential term is at most `2⁻ⁿ`. -/
 theorem negativeExpMagnitude_dyadic (x : ℚ) (hx : |x| ≤ (1/2 : ℚ)) (n : ℕ) :
     negativeExpMagnitude x n ≤ (2^n : ℚ)⁻¹ := by
   calc
@@ -42,7 +42,8 @@ theorem negativeExpMagnitude_dyadic (x : ℚ) (hx : |x| ≤ (1/2 : ℚ)) (n : �
 
 noncomputable section
 
-/-- Original `negativeExpSeries_error` guarantee for the `NegativeExpSeries` construction; the complete source hypotheses are retained. -/
+/-- For `0 ≤ x ≤ 1`, the error of the first `n` terms of the alternating series for `exp (-x)` is
+at most `x^n / n!`. -/
 private theorem negativeExpSeries_error (x : ℝ) (hx : 0 ≤ x) (hx1 : x ≤ 1) (n : ℕ) :
     |Real.exp (-x)-(∑ j ∈ Finset.range n, (-x)^j/(j.factorial : ℝ))| ≤ x^n/(n.factorial : ℝ) := by
   let f := fun j : ℕ => x^j/(j.factorial : ℝ)
@@ -77,7 +78,8 @@ private theorem negativeExpSeries_error (x : ℝ) (hx : 0 ≤ x) (hx1 : x ≤ 1)
   rw [hsum_eq]
   exact h
 
-/-- Original `negativeExpPartial_error` guarantee for the `NegativeExpSeries` construction; the complete source hypotheses are retained. -/
+/-- For rational `x ∈ [0, 1/2]`, the real error of the rational partial sum for `exp (-x)` is at
+most the magnitude of the first omitted term. -/
 theorem negativeExpPartial_error (x : ℚ) (hx : 0 ≤ x) (hx1 : x ≤ 1/2) (n : ℕ) :
     |(negativeExpPartial x n : ℝ)-Real.exp (-(x : ℝ))| ≤ (negativeExpMagnitude x n : ℝ) := by
   have hxR : (0 : ℝ) ≤ x := by exact_mod_cast hx

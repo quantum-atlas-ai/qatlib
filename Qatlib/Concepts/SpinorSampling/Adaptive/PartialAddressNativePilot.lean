@@ -38,7 +38,8 @@ variable {X Y : Type*} [Fintype X] [Fintype Y] [Nonempty X] [Nonempty Y]
 def recordEquiv (e : X ≃ Y) : (X × Bool) ≃ (Y × Bool) := e.prodCongr (Equiv.refl Bool)
 
 omit [Nonempty X] [Nonempty Y] [DecidableEq X] [DecidableEq Y] in
-/-- Complete original `record_weight_relabel` guarantee for `PartialAddressNativePilot`; all source hypotheses and output obligations are retained. -/
+/-- The signed record weight of an inverse-relabeled outcome equals the signed weight at the
+new label with the mean field pulled back. The outcome bit is unchanged. -/
 theorem record_weight_relabel (e : X ≃ Y) (m : X → ℝ) (z : Y × Bool) :
     signedRecordWeight m ((recordEquiv e).symm z)=
       signedRecordWeight (fun y => m (e.symm y)) z := by
@@ -54,7 +55,8 @@ noncomputable section
 variable {X Y : Type} [Fintype X] [Fintype Y] [DecidableEq X] [DecidableEq Y]
 
 omit [DecidableEq X] in
-/-- Complete original `push_equiv_prob` guarantee for `PartialAddressNativePilot`; all source hypotheses and output obligations are retained. -/
+/-- The pushforward under an equivalence assigns each new label exactly the probability of its
+unique preimage. -/
 theorem push_equiv_prob (e : X ≃ Y) (p : FinDist X) (y : Y) :
     (pushLaw p e).prob y=p.prob (e.symm y) := by
   change (∑ x : X,if e x=y then p.prob x else 0)=_
@@ -67,7 +69,8 @@ theorem push_equiv_prob (e : X ≃ Y) (p : FinDist X) (y : Y) :
     simp only [ite_eq_right hn]
   · simp
 
-/-- Complete original `independent_relabel` guarantee for `PartialAddressNativePilot`; all source hypotheses and output obligations are retained. -/
+/-- Relabeling each independent observation by an equivalence gives the same expectation as
+drawing independently from the individually relabeled laws, which may vary by index. -/
 theorem independent_relabel {n : ℕ} (e : X ≃ Y) (p : Fin n → FinDist X)
     (F : (Fin n → Y) → ℝ) :
     (independentSampleLaw p).expect (fun ω => F (fun i => e (ω i)))=
@@ -96,7 +99,7 @@ end
 noncomputable section
 open NativeBridge
 
-/-- Complete original `law_ext` guarantee for `PartialAddressNativePilot`; all source hypotheses and output obligations are retained. -/
+/-- Two finite laws are equal if they give the same probability to every outcome. -/
 private theorem law_ext {Z : Type*} [Fintype Z] (p q : FinDist Z)
     (h : ∀ z,p.prob z=q.prob z) : p=q := by
   cases p with
@@ -128,14 +131,16 @@ def actualFields {d r : ℕ} (e : (Fin d → Fin (2^r)) ≃ B × A)
   fun h y => pauliField a b c k h (e.symm y)
 
 omit [Fintype B] [Fintype A] [Nonempty B] [Nonempty A] [DecidableEq B] [DecidableEq A] in
-/-- Complete original `actual_fields_bound` guarantee for `PartialAddressNativePilot`; all source hypotheses and output obligations are retained. -/
+/-- For pointwise normalized native spinors, every Pauli component after relabeling to a box
+and local coordinate has absolute value at most one. -/
 theorem actual_fields_bound {d r : ℕ} (e : (Fin d → Fin (2^r)) ≃ B × A)
     (a b c k : (Fin d → Fin (2^r)) → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) : ∀ h y,|actualFields e a b c k h y| ≤ 1 := by
   intro h y
   exact unit_spin_component_bound (pauliField a b c k) (pauli_field_unit a b c k hz) h (e.symm y)
 
-/-- Complete original `original_cohort_relabel` guarantee for `PartialAddressNativePilot`; all source hypotheses and output obligations are retained. -/
+/-- At a fixed Pauli axis and any cohort size, relabeling the site of every native spin record
+gives the independent law of signed records for the corresponding relabeled field. -/
 theorem original_cohort_relabel {d r : ℕ} (e : (Fin d → Fin (2^r)) ≃ B × A)
     (a b c k : (Fin d → Fin (2^r)) → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (h : Fin 3) (n : ℕ) :
@@ -153,7 +158,8 @@ theorem original_cohort_relabel {d r : ℕ} (e : (Fin d → Fin (2^r)) ≃ B × 
   rw [native_spin_weight_eq d r h a b c k hz]
   exact record_weight_relabel e (pauliField a b c k h) (η i)
 
-/-- Complete original `original_training_relabel` guarantee for `PartialAddressNativePilot`; all source hypotheses and output obligations are retained. -/
+/-- A statistic of all three relabeled native pilot cohorts has the same expectation as under
+vector training with the pulled-back Pauli fields. -/
 theorem original_training_relabel {d r : ℕ} (e : (Fin d → Fin (2^r)) ≃ B × A)
     (a b c k : (Fin d → Fin (2^r)) → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (n : ℕ)
@@ -169,7 +175,8 @@ theorem original_training_relabel {d r : ℕ} (e : (Fin d → Fin (2^r)) ≃ B �
   simp_rw [original_cohort_relabel]
   rfl
 
-/-- Complete original `original_pilot_tail` guarantee for `PartialAddressNativePilot`; all source hypotheses and output obligations are retained. -/
+/-- For positive `α` and `τ`, native training at the pilot count for the box cardinality has
+probability at most `α` that the relabeled estimates' average squared error exceeds `τ/16`. -/
 theorem original_pilot_tail {d r : ℕ} (e : (Fin d → Fin (2^r)) ≃ B × A)
     (a b c k : (Fin d → Fin (2^r)) → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1)
@@ -191,7 +198,8 @@ theorem original_pilot_tail {d r : ℕ} (e : (Fin d → Fin (2^r)) ≃ B × A)
 end
 
 noncomputable section
-/-- Complete original `grid_pilot_tail` guarantee for `PartialAddressNativePilot`; all source hypotheses and output obligations are retained. -/
+/-- Under the native grid decomposition, training with the pilot count for `(2*C)^d` boxes
+bounds the probability of average squared error above `τ/16` by `α` for positive `α` and `τ`. -/
 theorem grid_pilot_tail (C ell : ℕ) [NeZero C] [NeZero ell] [NeZero (C*ell)]
     (d r : ℕ) (hN : 2^r=C*ell*2) (offset : Fin d → Fin (C*ell))
     (a b c k : (Fin d → Fin (2^r)) → ℝ)
@@ -215,7 +223,8 @@ open PilotVector AxisRisk
 variable {B A : Type} [Fintype B] [Fintype A] [Nonempty A]
 
 omit [Fintype B] in
-/-- Complete original `mean_bloch_length` guarantee for `PartialAddressNativePilot`; all source hypotheses and output obligations are retained. -/
+/-- The mean of a pointwise unit three-vector field over the local points in any fixed box has
+length at most one. -/
 theorem mean_bloch_length (m : Fin 3 → B × A → ℝ)
     (hu : ∀ x,∑ h : Fin 3,(m h x)^2=1) (b : B) :
     length (boxVector m b) ≤ 1 := by
@@ -241,7 +250,8 @@ theorem mean_bloch_length (m : Fin 3 → B × A → ℝ)
   nlinarith [length_sq (boxVector m b)]
 
 omit [Fintype B] in
-/-- Complete original `actual_box_length` guarantee for `PartialAddressNativePilot`; all source hypotheses and output obligations are retained. -/
+/-- For any box and any grid relabeling, averaging the Pauli vectors of the normalized native
+spinors over that box gives a vector of length at most one. -/
 theorem actual_box_length {d r : ℕ} (e : (Fin d → Fin (2^r)) ≃ B × A)
     (a b c k : (Fin d → Fin (2^r)) → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (box : B) :

@@ -42,7 +42,8 @@ def cayleyPrecision (tolerance : ℚ) : ℕ := Nat.clog 2 (Nat.ceil (4/tolerance
 def cayleyPlannedExecution (K M tolerance : ℚ) (oracle : ℚ × ℕ → Fin 3 → ℤ) : CayleyIntegerState :=
   cayleyOracleExecution (cayleySteps K M tolerance) (cayleyPrecision tolerance) oracle
 
-/-- Original `cayleyCeilSqrt_sq` guarantee for the `CayleyBudget` construction; the complete source hypotheses are retained. -/
+/-- Squaring the natural-number ceiling square root and casting to the rationals gives an upper
+bound on the input. -/
 theorem cayleyCeilSqrt_sq (a : ℚ) : a ≤ (cayleyCeilSqrt a : ℚ)^2 := by
   simp only [cayleyCeilSqrt]
   split_ifs with h
@@ -52,7 +53,8 @@ theorem cayleyCeilSqrt_sq (a : ℚ) : a ≤ (cayleyCeilSqrt a : ℚ)^2 := by
     have hs' : (Nat.floor a : ℚ)+1 ≤ ((Nat.sqrt (Nat.floor a) : ℚ)+1)^2 := by exact_mod_cast hs
     simpa only [Nat.cast_add,Nat.cast_one] using hf.le.trans hs'
 
-/-- Original `cayleySteps_spec` guarantee for the `CayleyBudget` construction; the complete source hypotheses are retained. -/
+/-- The planned step count is positive, is at least `M / tolerance`, and has square at least
+`(K + 1)^3 / (3 * tolerance)`. -/
 theorem cayleySteps_spec (K M tolerance : ℚ) :
     0<cayleySteps K M tolerance ∧ M/tolerance ≤ cayleySteps K M tolerance ∧
       (K+1)^3/(3*tolerance) ≤ (cayleySteps K M tolerance : ℚ)^2 := by
@@ -63,7 +65,8 @@ theorem cayleySteps_spec (K M tolerance : ℚ) :
   refine ⟨Nat.lt_of_lt_of_le (by decide) h1,(Nat.le_ceil _).trans (by exact_mod_cast hm),?_⟩
   exact (cayleyCeilSqrt_sq _).trans (pow_le_pow_left₀ (by positivity) (by exact_mod_cast hs) 2)
 
-/-- Original `cayleyPrecision_spec` guarantee for the `CayleyBudget` construction; the complete source hypotheses are retained. -/
+/-- For positive tolerance, the dyadic error at the selected precision is at most one quarter of the
+tolerance. -/
 theorem cayleyPrecision_spec (tolerance : ℚ) (ht : 0<tolerance) :
     (2^cayleyPrecision tolerance : ℚ)⁻¹ ≤ tolerance/4 := by
   have hpow : Nat.ceil (4/tolerance) ≤ 2^cayleyPrecision tolerance := Nat.le_pow_clog (by decide) _
@@ -74,7 +77,8 @@ theorem cayleyPrecision_spec (tolerance : ℚ) (ht : 0<tolerance) :
   have hh := (div_le_iff₀ ht).mp h
   nlinarith
 
-/-- Original `cayleyPrecision_minimal` guarantee for the `CayleyBudget` construction; the complete source hypotheses are retained. -/
+/-- For positive tolerance, any precision whose dyadic error fits one quarter of the tolerance is at
+least the selected precision. -/
 theorem cayleyPrecision_minimal (tolerance : ℚ) (ht : 0<tolerance) (p : ℕ)
     (hp : (2^p : ℚ)⁻¹ ≤ tolerance/4) : cayleyPrecision tolerance ≤ p := by
   apply (Nat.clog_le_iff_le_pow (by decide)).mpr
@@ -89,7 +93,9 @@ noncomputable section
 open scoped Quaternion RealInnerProductSpace ContDiff
 open Set
 
-/-- Original `cayleyBudget_le` guarantee for the `CayleyBudget` construction; the complete source hypotheses are retained. -/
+/-- For `K ≥ 0`, `0 < tolerance ≤ 1`, and `D > 0`, suppose `D ≥ M / tolerance`,
+`D^2 ≥ (K + 1)^3 / (3 * tolerance)`, and `1 / 2^p ≤ tolerance / 4`. The sum of the variation,
+sampling, and Cayley error terms is then at most the tolerance. -/
 theorem cayleyBudget_le (K M tolerance : ℝ) (hK : 0 ≤ K) (ht : 0<tolerance)
     (ht1 : tolerance ≤ 1) (D p : ℕ) (hD : 0<D)
     (hM : M/tolerance ≤ D) (hc : (K+1)^3/(3*tolerance) ≤ (D : ℝ)^2)

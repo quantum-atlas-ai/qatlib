@@ -64,14 +64,17 @@ def terminalCircleWithSeeds (source : RationalJetSource) (frame : StoredReferenc
   let ratio := q*star palette.logBase
   (ratio.re,ratio.imI)
 
-/-- Original `referenceLineWithSeed_correct` guarantee for the `ReferenceSeedPalette` construction; the complete source hypotheses are retained. -/
+/-- Using the rescaled origin seed precomputed on the given chart with tolerance divided by eight
+produces exactly the corresponding chart-specific line evaluation. -/
 theorem referenceLineWithSeed_correct (source : (Fin 3 → ℚ) × ℕ → RationalSpinSample)
     (m1 m2 : ℚ) (chart : SeedChart) (a : Fin 3 → ℚ) (tolerance : ℚ) :
     referenceLineWithSeed source m1 m2
       (originSeedOnChart (rescaledSpinSamples source m1 m2) chart (tolerance/8)) a tolerance=
       rescaledLineOnChart source m1 m2 chart a tolerance := rfl
 
-/-- Original `terminalCircleWithSeeds_correct` guarantee for the `ReferenceSeedPalette` construction; the complete source hypotheses are retained. -/
+/-- For a stored reference frame, the terminal circle value obtained using a seed palette at the
+chosen tolerance agrees with direct sampling on the frame's chart at precision
+`phaseLogPrecision (tolerance / 32)`. -/
 theorem terminalCircleWithSeeds_correct (source : RationalJetSource) (frame : StoredReferenceFrame)
     (tolerance z x : ℚ) :
     terminalCircleWithSeeds source frame (storeReferenceSeedPalette source frame tolerance) z
@@ -112,7 +115,8 @@ def referenceValueWithSeeds (source : RationalJetSource) (frame : StoredReferenc
   else (referenceAngleWithSeeds source frame palette (a 0) (a 1) (a 2)).map
     (referenceAngleValue palette.transition palette.tolerance)
 
-/-- Original `referenceAngleWithSeeds_correct` guarantee for the `ReferenceSeedPalette` construction; the complete source hypotheses are retained. -/
+/-- Using the frame's seed palette at the chosen tolerance produces exactly the same rational
+reference angle as direct evaluation with the frame's chart, collar and stored derivative bounds. -/
 theorem referenceAngleWithSeeds_correct (source : RationalJetSource) (frame : StoredReferenceFrame)
     (tolerance x y z : ℚ) :
     referenceAngleWithSeeds source frame (storeReferenceSeedPalette source frame tolerance) x y z=
@@ -125,7 +129,8 @@ theorem referenceAngleWithSeeds_correct (source : RationalJetSource) (frame : St
   rw [rationalPhaseLog_same_precision _ _ y _ (tolerance/32)
     (fun x => terminalCircleWithSeeds_correct source frame tolerance z x)]
 
-/-- Original `referenceValueWithSeeds_correct` guarantee for the `ReferenceSeedPalette` construction; the complete source hypotheses are retained. -/
+/-- Reference evaluation at a rational address using the seed palette precomputed with the same
+tolerance returns the same optional value as the existing stored-reference evaluator. -/
 theorem referenceValueWithSeeds_correct (source : RationalJetSource) (frame : StoredReferenceFrame)
     (tolerance : ℚ) (a : Fin 3 → ℚ) :
     referenceValueWithSeeds source frame (storeReferenceSeedPalette source frame tolerance) a=

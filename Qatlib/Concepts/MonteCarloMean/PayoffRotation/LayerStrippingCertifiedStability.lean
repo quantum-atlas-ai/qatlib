@@ -26,8 +26,8 @@ synthesis in quantum signal processing; see [LowChuang2017] for background.
 
 * `exists_ratRotPair`: both reference polynomials have coefficientwise Gaussian rational
   approximations.
-* `frontier3`: arbitrary step counts have rational certificates with zero divisor threshold.
-* `frontier3_nondeg_of_head`: a sufficiently large initial constant coefficient gives a positive
+* `exists_zero_threshold_layer_strip_certificate`: arbitrary step counts have rational certificates with zero divisor threshold.
+* `exists_positive_threshold_layer_strip_certificate_of_head_margin`: a sufficiently large initial constant coefficient gives a positive
   threshold.
 
 ## References
@@ -207,7 +207,7 @@ theorem exists_ratRotPair (η : ℝ) (hη : 0 < η) (γ : ℂ) (A B : Polynomial
 /-- For positive tolerance and any two initial Gaussian rational coefficient lists, a
 certificate with divisor threshold zero exists for exactly `n` steps and 4n² + 12n
 operations. -/
-theorem frontier3 (η : ℝ) (hη : 0 < η) (a0 b0 : List GaussianRat) (n : ℕ) :
+theorem exists_zero_threshold_layer_strip_certificate (η : ℝ) (hη : 0 < η) (a0 b0 : List GaussianRat) (n : ℕ) :
     ∃ r : CertLayerStrip η 0 (ratPoly a0) (ratPoly b0),
       r.certSteps = n ∧ r.certOps = 4 * n ^ 2 + 12 * n := by
   induction n generalizing a0 b0 with
@@ -246,7 +246,7 @@ theorem gaussianRatComplex_eq_zero (z : GaussianRat) :
 /-- For positive tolerance `η`, a positive threshold `γc` with γc + nη at most the initial
 constant-coefficient norm yields a certificate with exactly `n` steps and 4n² + 12n
 operations. -/
-theorem frontier3_nondeg (η : ℝ) (hη : 0 < η) :
+theorem exists_layer_strip_certificate_of_coefficient_margin (η : ℝ) (hη : 0 < η) :
     ∀ (n : ℕ) (γc : ℝ) (a0 b0 : List GaussianRat),
       0 < γc → γc + n * η ≤ ‖(ratPoly a0).coeff 0‖ →
       ∃ r : CertLayerStrip η γc (ratPoly a0) (ratPoly b0),
@@ -312,7 +312,7 @@ theorem exists_divisor_cert_rat (η : ℝ) (hη : 0 < η) (n : ℕ) (a0 : List G
 
 /-- For positive tolerance `η`, if nη is below the initial list-head norm, some positive divisor
 threshold yields a certificate with exactly `n` steps and 4n² + 12n operations. -/
-theorem frontier3_nondeg_of_head (η : ℝ) (hη : 0 < η) (n : ℕ)
+theorem exists_positive_threshold_layer_strip_certificate_of_head_margin (η : ℝ) (hη : 0 < η) (n : ℕ)
     (a0 b0 : List GaussianRat)
     (hηn : n * η < ‖gaussianRatComplex (a0.getD 0 0)‖) :
     ∃ γc : ℝ, 0 < γc ∧ ∃ r : CertLayerStrip η γc (ratPoly a0) (ratPoly b0),
@@ -321,7 +321,7 @@ theorem frontier3_nondeg_of_head (η : ℝ) (hη : 0 < η) (n : ℕ)
   have h1 : (0 : ℝ) ≤ n * η := mul_nonneg (Nat.cast_nonneg n) hη.le
   have h2 : (γ0 : ℝ) - n * η + n * η = (γ0 : ℝ) := by linarith
   obtain ⟨r, hs, ho⟩ :=
-    frontier3_nondeg η hη n ((γ0 : ℝ) - n * η) a0 b0 (by linarith) (by linarith)
+    exists_layer_strip_certificate_of_coefficient_margin η hη n ((γ0 : ℝ) - n * η) a0 b0 (by linarith) (by linarith)
   exact ⟨(γ0 : ℝ) - n * η, by linarith, r, hs, ho⟩
 
 end Qatlib.Concepts.MonteCarloMean.PayoffRotation

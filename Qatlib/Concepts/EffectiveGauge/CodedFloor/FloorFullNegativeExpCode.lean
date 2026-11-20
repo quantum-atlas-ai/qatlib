@@ -42,7 +42,8 @@ def floorRationalNegativeExpCode (p : FloorExpCodeParameters) : FloorScalarCodeR
     (floorClampScalarResultCode (floorReducedNegativeExpCode (floorNegativeExpReducedArguments p)))
     (floorNegativeExpHalvingsCode p.1)
 
-/-- Original `floorNegativeExpReducedArguments_value` guarantee for the `FloorFullNegativeExpCode` construction; the complete source hypotheses are retained. -/
+/-- The reduced codes represent both the argument and the tolerance divided by `2^h`, where `h` is
+the negative-exponential halving count of the decoded argument. -/
 theorem floorNegativeExpReducedArguments_value (p : FloorExpCodeParameters) :
     (floorRationalCodeValue (floorNegativeExpReducedArguments p).1,
       floorRationalCodeValue (floorNegativeExpReducedArguments p).2)=
@@ -51,14 +52,16 @@ theorem floorNegativeExpReducedArguments_value (p : FloorExpCodeParameters) :
   simp [floorNegativeExpReducedArguments,floorRationalCodeMul_value,floorRationalCodeInv_value,
     floorRationalCodePow_value,floorRationalCodeNat_value,floorNegativeExpHalvingsCode_value,div_eq_mul_inv]
 
-/-- Original `floorClampScalarResultCode_value` guarantee for the `FloorFullNegativeExpCode` construction; the complete source hypotheses are retained. -/
+/-- Decoding a clamp step gives the input result with its value clamped to `[0, 1]` and with the
+same error and term count. -/
 theorem floorClampScalarResultCode_value (r : FloorScalarCodeResult) :
     floorScalarCodeResultValue (floorClampScalarResultCode r)=
       ⟨scalarClamp (floorScalarCodeResultValue r).value,
         (floorScalarCodeResultValue r).error,(floorScalarCodeResultValue r).terms⟩ := by
   simp [floorClampScalarResultCode,floorScalarCodeResultValue,floorScalarClampCode_value]
 
-/-- Original `floorRationalNegativeExpCode_value` guarantee for the `FloorFullNegativeExpCode` construction; the complete source hypotheses are retained. -/
+/-- The complete coded negative-exponential result decodes to `rationalNegativeExp` at the
+represented argument and tolerance. -/
 theorem floorRationalNegativeExpCode_value (p : FloorExpCodeParameters) :
     floorScalarCodeResultValue (floorRationalNegativeExpCode p)=
       rationalNegativeExp (floorRationalCodeValue p.1) (floorRationalCodeValue p.2) := by
@@ -79,7 +82,8 @@ theorem floorRationalNegativeExpCode_value (p : FloorExpCodeParameters) :
     dsimp only [Prod.fst,Prod.snd] at h1 h2
     rw [h1,h2]
 
-/-- Original `primrec_floorNegativeExpReducedArguments` guarantee for the `FloorFullNegativeExpCode` construction; the complete source hypotheses are retained. -/
+/-- Constructing the coded reduced argument and tolerance for negative-exponential evaluation is
+primitive recursive. -/
 theorem primrec_floorNegativeExpReducedArguments : Primrec floorNegativeExpReducedArguments := by
   have hp : Primrec (fun p : FloorExpCodeParameters =>
       floorRationalCodePow (floorRationalCodeNat 2) (floorNegativeExpHalvingsCode p.1)) :=
@@ -88,12 +92,14 @@ theorem primrec_floorNegativeExpReducedArguments : Primrec floorNegativeExpReduc
   exact (primrec_floorRationalCodeMul.comp Primrec.fst (primrec_floorRationalCodeInv.comp hp)).pair
     (primrec_floorRationalCodeMul.comp Primrec.snd (primrec_floorRationalCodeInv.comp hp))
 
-/-- Original `primrec_floorClampScalarResultCode` guarantee for the `FloorFullNegativeExpCode` construction; the complete source hypotheses are retained. -/
+/-- Clamping the value field of a coded scalar result while retaining its metadata is primitive
+recursive. -/
 theorem primrec_floorClampScalarResultCode : Primrec floorClampScalarResultCode :=
   ((primrec_floorScalarClampCode.comp (Primrec.fst.comp Primrec.fst)).pair
     (Primrec.snd.comp Primrec.fst)).pair Primrec.snd
 
-/-- Original `primrec_floorRationalNegativeExpCode` guarantee for the `FloorFullNegativeExpCode` construction; the complete source hypotheses are retained. -/
+/-- The full coded negative-exponential routine is primitive recursive in its input pair,
+including the branch test and reconstruction. -/
 theorem primrec_floorRationalNegativeExpCode : Primrec floorRationalNegativeExpCode := by
   have hc : Primrec (fun p : FloorExpCodeParameters => floorRationalCodeArctanFuel p.2) :=
     primrec_floorRationalCodeArctanFuel.comp Primrec.snd
@@ -116,14 +122,16 @@ theorem primrec_floorRationalNegativeExpCode : Primrec floorRationalNegativeExpC
   intro p
   rfl
 
-/-- Original `floorFullMachine_of_primrec` guarantee for the `FloorFullNegativeExpCode` construction; the complete source hypotheses are retained. -/
+/-- For a primitive-recursive function on primitively codable types, one partial-recursive code
+computes and returns the encoded result for every encoded argument. -/
 private theorem floorFullMachine_of_primrec {A B : Type*} [Primcodable A] [Primcodable B]
     (f : A → B) (hf : Primrec f) : ∃ c : Nat.Partrec.Code, ∀ a,
       Nat.Partrec.Code.eval c (Encodable.encode a)=Part.some (Encodable.encode (f a)) := by
   obtain ⟨c,hc⟩ := Nat.Partrec.Code.exists_code.mp hf.to_comp
   exact ⟨c,fun a => by simpa using congrFun hc (Encodable.encode a)⟩
 
-/-- Original `floorRationalNegativeExpCode_encoded` guarantee for the `FloorFullNegativeExpCode` construction; the complete source hypotheses are retained. -/
+/-- A single partial-recursive program returns the coded negative-exponential result for every
+encoded argument–tolerance pair. -/
 theorem floorRationalNegativeExpCode_encoded :
     ∃ c : Nat.Partrec.Code, ∀ p : FloorExpCodeParameters,
       Nat.Partrec.Code.eval c (Encodable.encode p)=

@@ -32,7 +32,7 @@ namespace PaidRationalZero
 def twoZeroBits (bits : CanonicalCodec.Bits) : Bool :=
   bits.head?==some false && bits.tail.head?==some false
 
-/-- Original `bits_nonempty` guarantee for the `PaidRationalZeroProtocol` construction; the complete source hypotheses are retained. -/
+/-- The binary digit list of a nonzero natural number is nonempty. -/
 private theorem bits_nonempty (n : ℕ) (hn : n≠0) : n.bits≠[] := by
   induction n using Nat.binaryRec' with
   | zero => exact (hn rfl).elim
@@ -40,7 +40,7 @@ private theorem bits_nonempty (n : ℕ) (hn : n≠0) : n.bits≠[] := by
     rw [Nat.bits_append_bit n b h]
     intro hbad; cases hbad
 
-/-- Original `natBits_head` guarantee for the `PaidRationalZeroProtocol` construction; the complete source hypotheses are retained. -/
+/-- The first bit of a canonical natural code is the nonzero flag of the encoded number, regardless of the appended suffix. -/
 private theorem natBits_head (n : ℕ) (tail : CanonicalCodec.Bits) :
     (CanonicalCodec.natBits n++tail).head?=some (decide (n≠0)) := by
   by_cases hn : n=0
@@ -49,7 +49,7 @@ private theorem natBits_head (n : ℕ) (tail : CanonicalCodec.Bits) :
     obtain ⟨k,hk⟩ := Nat.exists_eq_succ_of_ne_zero (by omega : n.bits.length≠0)
     simp [CanonicalCodec.natBits,hk,hn,List.replicate_succ]
 
-/-- Original `prefix_encode` guarantee for the `PaidRationalZeroProtocol` construction; the complete source hypotheses are retained. -/
+/-- The first two bits of an encoded redundant fraction are both false exactly when both natural numerator entries are zero. -/
 theorem prefix_encode (q : RedundantRational.Frac) :
     twoZeroBits (PaidRationalBridge.encode q)=decide (q.num.1=0 ∧ q.num.2=0) := by
   by_cases hp : q.num.1=0
@@ -63,7 +63,7 @@ theorem prefix_encode (q : RedundantRational.Frac) :
     simp only [PaidRationalBridge.encode,PaidFractionInverse.input,twoZeroBits,hh]
     simp [hp]
 
-/-- Original `inverse_prefix` guarantee for the `PaidRationalZeroProtocol` construction; the complete source hypotheses are retained. -/
+/-- The first two bits in the encoding of the total inverse are both false exactly when the original fraction's numerator entries are equal. -/
 theorem inverse_prefix (q : RedundantRational.Frac) :
     twoZeroBits (PaidRationalBridge.encode (RedundantRational.inv q))=decide (q.num.1=q.num.2) := by
   rw [prefix_encode]
@@ -73,13 +73,14 @@ theorem inverse_prefix (q : RedundantRational.Frac) :
   · have hd : ¬(q.den.1=0 ∧ q.den.2=0) := by rintro ⟨h1,h2⟩; exact q.den_ne (h1.trans h2.symm)
     simp [hd,hz]
 
-/-- Original `value_zero` guarantee for the `PaidRationalZeroProtocol` construction; the complete source hypotheses are retained. -/
+/-- A redundant fraction represents zero exactly when its two natural numerator entries are equal. -/
 theorem value_zero (q : RedundantRational.Frac) :
     RedundantRational.value q=0 ↔ q.num.1=q.num.2 := by
   simp only [RedundantRational.value,div_eq_zero_iff,RedundantRational.den_value_ne q,
     or_false,RedundantRational.Pair.value_eq_zero]
 
-/-- Original `compressed_zero` guarantee for the `PaidRationalZeroProtocol` construction; the complete source hypotheses are retained. -/
+/-- For a fraction with nonnegative value, the smallest multiple of `1/256` at least as large as
+its value is zero exactly when its numerator entries are equal. -/
 theorem compressed_zero (q : RedundantRational.Frac) (hn : 0≤RedundantRational.value q) :
     sourceMeanCompressedBound (RedundantRational.value q)=0 ↔ q.num.1=q.num.2 := by
   rw [←value_zero]
@@ -92,7 +93,7 @@ theorem compressed_zero (q : RedundantRational.Frac) (hn : 0≤RedundantRational
     rw [hz]
     norm_num [sourceMeanCompressedBound]
 
-/-- Original `inverse_prefix_compressed` guarantee for the `PaidRationalZeroProtocol` construction; the complete source hypotheses are retained. -/
+/-- For a nonnegative fraction, testing for two leading false bits in the encoded total inverse gives exactly the Boolean decision that its compressed bound is zero. -/
 theorem inverse_prefix_compressed (q : RedundantRational.Frac) (hn : 0≤RedundantRational.value q) :
     twoZeroBits (PaidRationalBridge.encode (RedundantRational.inv q))=
       decide (sourceMeanCompressedBound (RedundantRational.value q)=0) := by

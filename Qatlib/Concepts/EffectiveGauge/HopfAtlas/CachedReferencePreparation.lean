@@ -51,11 +51,13 @@ def cachedReferencePreparationFromGap (source : RationalJetSource) (bounds : ℕ
     Option CachedReferencePreparation :=
   cachedReferencePreparationRun source bounds (referenceUnitCollar gap)
 
-/-- Original `materializeReferencePreparation_prepared` guarantee for the `CachedReferencePreparation` construction; the complete source hypotheses are retained. -/
+/-- Materializing the reference cache for any rational collar parameter retains the original mean
+preparation. -/
 theorem materializeReferencePreparation_prepared (eta : ℚ) (prepared : CachedMeanPreparation) :
     (materializeReferencePreparation eta prepared).prepared=prepared := rfl
 
-/-- Original `cachedReferencePreparationRun_corrected` guarantee for the `CachedReferencePreparation` construction; the complete source hypotheses are retained. -/
+/-- Mapping the corrected-preparation projection over the reference-preparation run gives the
+corrected-preparation run. -/
 theorem cachedReferencePreparationRun_corrected (source : RationalJetSource) (bounds : ℕ → ℚ) (eta : ℚ) :
     (cachedReferencePreparationRun source bounds eta).map CachedReferencePreparation.corrected=
       cachedCorrectedPreparationRun source bounds eta := by
@@ -73,7 +75,11 @@ def preparedPeriodicReference (v : SpatialPoint → SpatialPoint) (hv : ContDiff
     (OriginalFirstJetAccurate.legacy v source (OriginalAllJetAccurate.first v source hs))
     (prepared.derivativeBounds 1) (prepared.derivativeBounds 2) eta
 
-/-- Original `materializeReferencePreparation_reference_bound` guarantee for the `CachedReferencePreparation` construction; the complete source hypotheses are retained. -/
+/-- For a smooth periodic unit source with accurate rational jets, certified positive jet bounds,
+and a successful mean cache, the corrected reference bound of order `r < 8` controls every
+order-`r` coordinate-word derivative of the periodic reference in normalized coordinates at every
+point. Assume `0 < eta ≤ 1/2` and `7 * eta ≤ mu / 2`, with the source constant on the part of the
+fundamental cube outside a subset separated from its boundary by `mu > 0`. -/
 theorem materializeReferencePreparation_reference_bound (v : SpatialPoint → SpatialPoint)
     (hv : ContDiff ℝ ∞ v) (hu : ∀ x, ‖v x‖=1) (hp : IsPeriodicField v)
     (source : RationalJetSource) (hs : OriginalAllJetAccurate v source)
@@ -96,7 +102,12 @@ theorem materializeReferencePreparation_reference_bound (v : SpatialPoint → Sp
   exact materializeCorrectedPreparation_periodic_bound v hv hu hp source hs bounds hb prepared hrun
     eta he he1 B hB mu hm hg hoff hmargin r w hw u hu0
 
-/-- Original `materializeReferencePreparation_connection_bound` guarantee for the `CachedReferencePreparation` construction; the complete source hypotheses are retained. -/
+/-- For a smooth periodic unit source with accurate rational jets, certified positive jet bounds,
+and a successful mean cache, the cached connection bound of order `r < 7` controls every order-`r`
+coordinate-word derivative of each connection component in normalized coordinates, including the
+multiplicative period factor. Assume `0 < eta ≤ 1/2` and `7 * eta ≤ mu / 2`. The source is
+assumed constant on the part of the fundamental cube outside a subset buffered from the
+boundary by `mu > 0`. -/
 theorem materializeReferencePreparation_connection_bound (v : SpatialPoint → SpatialPoint)
     (hv : ContDiff ℝ ∞ v) (hu : ∀ x, ‖v x‖=1) (hp : IsPeriodicField v)
     (source : RationalJetSource) (hs : OriginalAllJetAccurate v source)

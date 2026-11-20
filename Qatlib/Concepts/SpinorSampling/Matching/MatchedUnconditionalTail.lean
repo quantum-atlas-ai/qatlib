@@ -33,7 +33,8 @@ noncomputable section
 open scoped BigOperators
 open Qatlib
 
-/-- Complete original `expect_finset_nat_sum` guarantee for `MatchedUnconditionalTail`; all source hypotheses and output obligations are retained. -/
+/-- Expectation under a finite law commutes with summation over a finite set of natural-number
+indices. -/
 private theorem expect_finset_nat_sum {X : Type} [Fintype X]
     (p : FinDist X) (s : Finset ℕ) (g : ℕ → X → ℝ) :
     p.expect (fun x => ∑ k ∈ s, g k x) = ∑ k ∈ s, p.expect (g k) := by
@@ -43,7 +44,10 @@ private theorem expect_finset_nat_sum {X : Type} [Fintype X]
 
 variable {S : Type} [Fintype S] [Nonempty S] [DecidableEq S]
 
-/-- Complete original `signed_matched_unconditional_tail` guarantee for `MatchedUnconditionalTail`; all source hypotheses and output obligations are retained. -/
+/-- For independent signed cohorts with bounded means and positive lengths `n` and `m` at most
+`|S|`, the rational matched estimate misses the population mean of `a x * b (τ x)` by more than
+`0 < ε ≤ 1` with probability at most `6 * exp (-n*m*ε²/(256*|S|))`. This includes outcomes with
+few or no matches. -/
 theorem signed_matched_unconditional_tail (τ : Equiv.Perm S) (n m : ℕ)
     (hn0 : 0<n) (hm0 : 0<m) (hn : n ≤ Fintype.card S) (hm : m ≤ Fintype.card S)
     (a b : S → ℝ) (ha : ∀ x, |a x|≤1) (hb : ∀ x, |b x|≤1)

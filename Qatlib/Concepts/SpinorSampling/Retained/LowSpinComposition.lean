@@ -36,7 +36,7 @@ def bellVelocityLoss {d : ℕ} (A γ : ℝ) (v b : Fin d → ℝ) : ℝ :=
 -- Deterministic error propagation for the actual two clipped terms.
 -- The statistical endpoint must derive these component events from the
 -- literal schedules; they are not extra certificates given to the algorithm.
-/-- Complete original `bell_velocity_loss_error` guarantee for `LowSpinComposition`; all source hypotheses and output obligations are retained. -/
+/-- If the true velocity terms lie in the velocity clipping interval and the weighted Bell term lies in the spin clipping interval, axis errors εv and εb give total error at most dεv + 4γdεb for nonnegative γ. -/
 theorem bell_velocity_loss_error {d : ℕ} (A γ εv εb : ℝ)
     (v V b μ : Fin d → ℝ) (hγ : 0≤γ)
     (hV : ∀ j,0≤V j ∧ V j≤A^2)
@@ -68,7 +68,7 @@ theorem bell_velocity_loss_error {d : ℕ} (A γ εv εb : ℝ)
 
 variable {S : Type} [Fintype S] [DecidableEq S] {d : ℕ}
 
-/-- Complete original `low_spin_velocity_value_cast` guarantee for `LowSpinComposition`; all source hypotheses and output obligations are retained. -/
+/-- Casting the rational velocity estimate gives the sum of the raw axis estimates cast to the reals and clipped to [0, (α + βU)²]. -/
 theorem low_spin_velocity_value_cast (p : HighConfidencePlanQ) (u : Fin d → S → ℚ)
     (α β U : ℚ) (z : Fin d → VelocityData S p.current p.crossRecords p.norm) :
     (lowSpinVelocityValueQ p u α β U z : ℝ)=
@@ -78,7 +78,7 @@ theorem low_spin_velocity_value_cast (p : HighConfidencePlanQ) (u : Fin d → S 
     Rat.cast_pow,Rat.cast_add,Rat.cast_mul]
 
 omit [Fintype S] in
-/-- Complete original `low_spin_bell_value_cast_some` guarantee for `LowSpinComposition`; all source hypotheses and output obligations are retained. -/
+/-- With a Bell plan present, the cast spin estimate is the real clipping to [0, 2dγ] of 4γ times the sum of the per-axis Bell receipt values. -/
 theorem low_spin_bell_value_cast_some (e : Fin d → Equiv.Perm S) (q : BellPlanQ) (γ : ℚ)
     (ω : LowSpinBellData S d e (some q)) :
     (lowSpinBellValueQ e γ (some q) ω : ℝ)=
@@ -87,7 +87,7 @@ theorem low_spin_bell_value_cast_some (e : Fin d → Equiv.Perm S) (q : BellPlan
   simp only [lowSpinBellValueQ,interval_clip_cast,Rat.cast_zero,Rat.cast_mul,
     Rat.cast_ofNat,Rat.cast_natCast,Rat.cast_sum]
 
-/-- Complete original `low_spin_output_cast_some` guarantee for `LowSpinComposition`; all source hypotheses and output obligations are retained. -/
+/-- When a Bell plan is present, casting the rational output gives the clipped real velocity-plus-Bell loss applied to the cast estimates on each axis. -/
 theorem low_spin_output_cast_some (pV : HighConfidencePlanQ) (q : BellPlanQ)
     (copies targetQueries : ℕ) (u : Fin d → S → ℚ) (e : Fin d → Equiv.Perm S)
     (α β U γ : ℚ) (z : LowSpinData S d e ⟨pV,some q,copies,targetQueries⟩) :
@@ -99,7 +99,7 @@ theorem low_spin_output_cast_some (pV : HighConfidencePlanQ) (q : BellPlanQ)
   simp only [lowSpinOutputQ,Rat.cast_add,low_spin_velocity_value_cast,
     low_spin_bell_value_cast_some,bellVelocityLoss]
 
-/-- Complete original `low_spin_output_cast_none` guarantee for `LowSpinComposition`; all source hypotheses and output obligations are retained. -/
+/-- Without a Bell plan, the cast output is the sum of the real raw velocity estimates clipped separately to [0, (α + βU)²]. -/
 theorem low_spin_output_cast_none (pV : HighConfidencePlanQ) (copies targetQueries : ℕ)
     (u : Fin d → S → ℚ) (e : Fin d → Equiv.Perm S) (α β U γ : ℚ)
     (z : LowSpinData S d e ⟨pV,none,copies,targetQueries⟩) :

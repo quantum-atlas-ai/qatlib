@@ -73,19 +73,22 @@ def executeHighConfidenceQ [LinearOrder S] {d : ℕ} (p : HighConfidencePlanQ)
 noncomputable section
 
 omit [Fintype S] [DecidableEq S] in
-/-- Complete original `correlation_records_length_schedule` guarantee for `HighConfidenceAccounting`; all source hypotheses and output obligations are retained. -/
+/-- For any correlation plan and data of its prescribed shape, the length of the consumed record
+list is the copy count computed from the schedule. -/
 theorem correlation_records_length_schedule (p : CorrelationPlanQ)
     (z : CorrelationData S p.mode p.records p.blocks) :
     (consumedCorrelationRecords p.mode p.records p.blocks z).length=scheduledCopies p := by
   simpa only [scheduledCopies] using consumed_correlation_records_length p.mode p.records p.blocks z
 
-/-- Complete original `high_plan_current_schedule_account` guarantee for `HighConfidenceAccounting`; all source hypotheses and output obligations are retained. -/
+/-- The current-correlation schedule in the generated high-confidence plan accounts for exactly
+the copies stored in that subplan. -/
 theorem high_plan_current_schedule_account (d M : ℕ) (rootM α β U γ η δ : ℚ) :
     let p := highConfidencePlanQ d M rootM α β U γ η δ
     scheduledCopies p.current=p.current.copies :=
   (correlation_plan_copy_account M rootM ((η/(8*(d : ℚ)))/α^2) (δ/(4*(d : ℚ)))).symm
 
-/-- Complete original `high_plan_spin_schedule_account` guarantee for `HighConfidenceAccounting`; all source hypotheses and output obligations are retained. -/
+/-- The spin schedule accounts for exactly its stored copies, including the zero schedule used
+when the spin term is absent. -/
 theorem high_plan_spin_schedule_account (d M : ℕ) (rootM α β U γ η δ : ℚ) :
     let p := highConfidencePlanQ d M rootM α β U γ η δ
     scheduledCopies p.spinSchedule=p.spinSchedule.copies := by
@@ -95,7 +98,8 @@ theorem high_plan_spin_schedule_account (d M : ℕ) (rootM α β U γ η δ : �
   · rw [high_plan_spin_fields d M rootM α β U γ η δ hγ]
     exact (correlation_plan_copy_account M rootM (η/(24*(d : ℚ)*γ)) (δ/(12*(d : ℚ)))).symm
 
-/-- Complete original `executed_high_confidence_copies` guarantee for `HighConfidenceAccounting`; all source hypotheses and output obligations are retained. -/
+/-- For every input of the generated high-confidence plan, the receipt reports exactly the
+planned number of copies. -/
 theorem executed_high_confidence_copies [LinearOrder S] (d : ℕ)
     (rootM α β U γ η δ : ℚ)
     (u : Fin d → S → ℚ) (e : Fin d → S → S)
@@ -117,7 +121,9 @@ theorem executed_high_confidence_copies [LinearOrder S] (d : ℕ)
     (high_plan_accounts d (Fintype.card S) rootM α β U γ η δ).1]
   simp
 
-/-- Complete original `executed_high_confidence_query_bound` guarantee for `HighConfidenceAccounting`; all source hypotheses and output obligations are retained. -/
+/-- The receipt's target-query count is at most the plan's budget for every input. Each
+direction uses at most one cross-term query per distinct observed site plus the scheduled norm
+queries. -/
 theorem executed_high_confidence_query_bound [LinearOrder S] (d : ℕ)
     (rootM α β U γ η δ : ℚ)
     (u : Fin d → S → ℚ) (e : Fin d → S → S)
@@ -139,7 +145,8 @@ theorem executed_high_confidence_query_bound [LinearOrder S] (d : ℕ)
         (high_plan_accounts d (Fintype.card S) rootM α β U γ η δ).2]
       simp [Nat.mul_add]
 
-/-- Complete original `executed_high_confidence_uniform_sites` guarantee for `HighConfidenceAccounting`; all source hypotheses and output obligations are retained. -/
+/-- The receipt reports `d` times the norm plan's query count as uniform site draws in sampled
+norm mode and zero in the other norm modes. -/
 theorem executed_high_confidence_uniform_sites [LinearOrder S] (d : ℕ)
     (rootM α β U γ η δ : ℚ)
     (u : Fin d → S → ℚ) (e : Fin d → S → S)
@@ -158,7 +165,10 @@ theorem executed_high_confidence_uniform_sites [LinearOrder S] (d : ℕ)
   simp
 
 
-/-- Complete original `executed_high_confidence_accuracy` guarantee for `HighConfidenceAccounting`; all source hypotheses and output obligations are retained. -/
+/-- Under the planned sampling law, the receipt's value has absolute error greater than `η/2`
+from the implemented residual loss with probability at most `δ`. The bound assumes positive
+dimension, bounded current means and target, unit spin vectors, a square-root upper bound on the
+site count, `α > 0`, nonnegative `β`, `U`, and `γ`, and `η > 0` with `0 < δ < 1`. -/
 theorem executed_high_confidence_accuracy [LinearOrder S] [Nonempty S] {d : ℕ} (hd : 0<d)
     (mv : Fin d → S → ℝ) (hmv : ∀ j x, |mv j x|≤1)
     (ms : Fin 3 → S → ℝ) (hs : ∀ x, ∑ a : Fin 3, (ms a x)^2=1)

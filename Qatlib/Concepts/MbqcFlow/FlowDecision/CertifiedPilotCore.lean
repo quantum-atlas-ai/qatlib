@@ -29,7 +29,7 @@ estimator's resource count.
 * `finite_clipping_bias` and `finite_clipping_bias4`: clipping bias bounds from second and
   fourth moments.
 * `radius_bias`: the computed threshold meets the requested positive bias budget.
-* `frontier1` and `computed_radius_frontier`: failure-probability bounds including clipping
+* `clipped_pilot_error_mass_le_add` and `computed_radius_frontier`: failure-probability bounds including clipping
   bias.
 * `table_worst`: a worst-case bound on table and estimator resources.
 
@@ -228,7 +228,7 @@ theorem radius_bias {I : Type} [Fintype I] (c : TailClass) (f : I → ℚ) (η :
 
 /-- Under the stated positivity assumptions and pilot parameter bound, the probability that the
 clipped pilot readout error exceeds `eps + tailBias c f T` is at most `δpilot + δmain`. -/
-theorem frontier1 {I : Type} [Fintype I] [DecidableEq I] (p : FinDist I)
+theorem clipped_pilot_error_mass_le_add {I : Type} [Fintype I] [DecidableEq I] (p : FinDist I)
     (c : TailClass) (f : I → ℚ) (T : ℚ) (depth j : ℕ) (nu eps δpilot δmain : ℚ)
     (hT : 0 < T) (hnu : 0 < nu) (hnu1 : nu ≤ 1/4)
     (heps : 0 < eps) (hp : 0 < δpilot) (hm : 0 < δmain) :
@@ -238,7 +238,7 @@ theorem frontier1 {I : Type} [Fintype I] [DecidableEq I] (p : FinDist I)
         |(boundedReadout T _ depth (fun i => rationalClip T (f i)) nu eps δmain z : ℝ) -
           p.expect (fun i => (f i : ℝ))|) ≤ (δpilot : ℝ) + δmain := by
   apply (eventMass_mono _ _ _ ?_).trans
-    (Qatlib.Concepts.UnbiasedBases.ThreeBasis.CertifiedPilotCore.frontier1 p T depth j (fun i => rationalClip T (f i)) nu eps δpilot δmain
+    (Qatlib.Concepts.UnbiasedBases.ThreeBasis.CertifiedPilotCore.bounded_payoff_pilot_error_mass_le_add p T depth j (fun i => rationalClip T (f i)) nu eps δpilot δmain
       hT (fun i => rationalClip_bound T (f i) hT.le) hnu hnu1 heps hp hm)
   intro z hz
   have hb := tailBias_valid p c f T hT
@@ -282,7 +282,7 @@ theorem computed_radius_frontier {I : Type} [Fintype I] [DecidableEq I] (p : Fin
           p.expect (fun i => (f i : ℝ))|) ≤ (δpilot : ℝ) + δmain := by
   (try dsimp only)
   apply (eventMass_mono _ _ _ ?_).trans
-    (frontier1 p c f (radius c f η) depth j nu eps δpilot δmain
+    (clipped_pilot_error_mass_le_add p c f (radius c f η) depth j nu eps δpilot δmain
       (radius_pos c f η) hnu hnu1 heps hp hm)
   intro z hz
   have hb : (tailBias c f (radius c f η) : ℝ) ≤ η := by exact_mod_cast radius_bias c f η hη

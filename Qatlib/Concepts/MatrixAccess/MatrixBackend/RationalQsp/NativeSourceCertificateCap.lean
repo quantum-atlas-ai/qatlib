@@ -31,7 +31,8 @@ open Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays Qatlib.Concepts
 open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data
 open scoped BigOperators
 
-/-- The finite construction in `NativeSourceCertificateCap` satisfies `sourceEta_le_gamma_budget` under the displayed hypotheses. -/
+/-- For positive E and positive source degree d, the root tolerance is at most the guaranteed
+radial gap divided by 128(d + 1). -/
 theorem sourceEta_le_gamma_budget (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E)
     (hd : 0<sourceDegree cs N E) :
     sourceInputEta cs N E ≤ sourceGamma0 cs N E/(128*((sourceDegree cs N E : ℚ)+1)) := by
@@ -69,7 +70,8 @@ theorem sourceEta_le_gamma_budget (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E)
       _ = _ := by ring
   exact (source_input_eta_small cs N E hE).trans hsmall
 
-/-- The finite construction in `NativeSourceCertificateCap` satisfies `margin_of_radial` under the displayed hypotheses. -/
+/-- If a disk with radius between zero and gamma/4 contains a point of norm at most 1 − gamma, its
+rational inside margin is at least gamma/8 for gamma in (0, 1]. -/
 private theorem margin_of_radial (c : ℚ×ℚ) (r gamma : ℚ) (rho : ℂ)
     (hr : 0 ≤ r) (hg : 0<gamma) (hg1 : gamma ≤ 1) (hrg : r ≤ gamma/4)
     (hroot : ‖rho‖ ≤ 1-(gamma : ℝ))
@@ -99,7 +101,8 @@ private theorem margin_of_radial (c : ℚ×ℚ) (r gamma : ℚ) (rho : ℂ)
     nlinarith
   exact_mod_cast hbound
 
-/-- The finite construction in `NativeSourceCertificateCap` satisfies `min_fold_lower` under the displayed hypotheses. -/
+/-- A lower bound shared by the starting value and every list entry also bounds the running
+minimum from below. -/
 private theorem min_fold_lower (l : List ℚ) (a b : ℚ) (ha : b ≤ a)
     (hl : ∀ x∈l,b ≤ x) : b ≤ l.foldl min a := by
   induction l generalizing a with
@@ -110,7 +113,9 @@ private theorem min_fold_lower (l : List ℚ) (a b : ℚ) (ha : b ≤ a)
     intro y hy
     exact hl y (List.mem_cons_of_mem x hy)
 
-/-- The finite construction in `NativeSourceCertificateCap` satisfies `sourceCertificateGap_lower` under the displayed hypotheses. -/
+/-- For a positive budget and source degree, a degree-bounded Chebyshev target of matching parity
+and norm at most one, and an accepted factorization of the integer complement with nonzero
+content, the decoded gap is at least one eighth of the source radial gap. -/
 theorem sourceCertificateGap_lower (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E)
     (htail : ∀ k,N+1 ≤ k → cs.getD k 0=0)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)
@@ -165,7 +170,10 @@ theorem sourceCertificateGap_lower (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E
   · simp only [ite_eq_right ht]
     linarith
 
-/-- The finite construction in `NativeSourceCertificateCap` satisfies `sourceCertificate_numeric_cap` under the displayed hypotheses. -/
+/-- Under the positive-budget, nonconstant bounded-target and degree and parity hypotheses,
+suppose the guarded factors reconstruct the integer complement with nonzero content and the
+returned root count equals the source degree. The count times the root tolerance divided by
+the decoded gap is then at most one quarter. -/
 theorem sourceCertificate_numeric_cap (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E)
     (htail : ∀ k,N+1 ≤ k → cs.getD k 0=0)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)

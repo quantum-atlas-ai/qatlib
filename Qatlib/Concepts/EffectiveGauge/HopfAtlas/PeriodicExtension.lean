@@ -28,14 +28,15 @@ namespace Qatlib.Concepts.EffectiveGauge.HopfAtlas
 /-- Definition of wrap Coordinate in the Hopf Atlas construction. -/
 def wrapCoordinate (x : ℝ) : ℝ := x-physicalPeriod*(⌊x/physicalPeriod⌋ : ℝ)
 
-/-- Original `wrapCoordinate_bounds` guarantee for the `PeriodicExtension` construction; the complete source hypotheses are retained. -/
+/-- Wrapping a real coordinate puts it in the half-open interval from zero to the physical
+period. -/
 theorem wrapCoordinate_bounds (x : ℝ) : 0 ≤ wrapCoordinate x ∧ wrapCoordinate x < physicalPeriod := by
   have hlo := (le_div_iff₀ physicalPeriod_pos).mp (Int.floor_le (x/physicalPeriod))
   have hhi := (div_lt_iff₀ physicalPeriod_pos).mp (Int.lt_floor_add_one (x/physicalPeriod))
   dsimp [wrapCoordinate]
   constructor <;> nlinarith
 
-/-- Original `wrapCoordinate_add_period` guarantee for the `PeriodicExtension` construction; the complete source hypotheses are retained. -/
+/-- Wrapping is invariant under adding an integer multiple of the physical period. -/
 theorem wrapCoordinate_add_period (x : ℝ) (n : ℤ) :
     wrapCoordinate (x+physicalPeriod*(n : ℝ))=wrapCoordinate x := by
   have hd : (x+physicalPeriod*(n : ℝ))/physicalPeriod=x/physicalPeriod+(n : ℝ) := by
@@ -48,11 +49,12 @@ theorem wrapCoordinate_add_period (x : ℝ) (n : ℤ) :
 /-- Definition of wrap Point in the Hopf Atlas construction. -/
 def wrapPoint (x : SpatialPoint) : SpatialPoint := WithLp.toLp 2 (fun j => wrapCoordinate (x j))
 
-/-- Original `wrapPoint_cube` guarantee for the `PeriodicExtension` construction; the complete source hypotheses are retained. -/
+/-- Wrapping each coordinate puts a spatial point in the fundamental cube. -/
 theorem wrapPoint_cube (x : SpatialPoint) : InFundamentalCube (wrapPoint x) :=
   fun j => ⟨(wrapCoordinate_bounds (x j)).1,(wrapCoordinate_bounds (x j)).2.le⟩
 
-/-- Original `wrapPoint_shift` guarantee for the `PeriodicExtension` construction; the complete source hypotheses are retained. -/
+/-- A wrapped point differs from the input by the lattice shift whose `j`-th integer is the
+negative floor of `x j / physicalPeriod`. -/
 theorem wrapPoint_shift (x : SpatialPoint) :
     wrapPoint x=x+latticeShift (fun j => -⌊x j/physicalPeriod⌋) := by
   ext j
@@ -61,7 +63,7 @@ theorem wrapPoint_shift (x : SpatialPoint) :
   push_cast
   ring
 
-/-- Original `wrapPoint_periodic` guarantee for the `PeriodicExtension` construction; the complete source hypotheses are retained. -/
+/-- The coordinatewise wrapping map is invariant under lattice shifts. -/
 theorem wrapPoint_periodic : IsPeriodicField wrapPoint := by
   intro x n
   ext j
@@ -70,12 +72,12 @@ theorem wrapPoint_periodic : IsPeriodicField wrapPoint := by
 /-- Definition of periodic Extension in the Hopf Atlas construction. -/
 def periodicExtension (f : QuaternionField) (x : SpatialPoint) : ℍ := f (wrapPoint x)
 
-/-- Original `periodicExtension_periodic` guarantee for the `PeriodicExtension` construction; the complete source hypotheses are retained. -/
+/-- Composing any quaternion field with coordinatewise wrapping makes it periodic. -/
 theorem periodicExtension_periodic (f : QuaternionField) : IsPeriodicField (periodicExtension f) := by
   intro x n
   exact congrArg f (wrapPoint_periodic x n)
 
-/-- Original `wrapPoint_zero` guarantee for the `PeriodicExtension` construction; the complete source hypotheses are retained. -/
+/-- Wrapping the spatial origin fixes it. -/
 @[simp] theorem wrapPoint_zero : wrapPoint 0=0 := by
   ext j
   simp [wrapPoint,wrapCoordinate]
@@ -104,7 +106,8 @@ theorem periodicExtension_eq_on_cube (f : QuaternionField) (delta : ℝ) (hd : 0
       simp only [hf,Int.cast_zero,mul_zero,sub_zero]
     exact congrArg f hw
 
-/-- Original `floor_eventual` guarantee for the `PeriodicExtension` construction; the complete source hypotheses are retained. -/
+/-- If the wrapped coordinate is strictly positive, the period index stays equal to the index at
+`x` in a neighbourhood of `x`. -/
 private theorem floor_eventual {x : ℝ} (hx : 0<wrapCoordinate x) :
     ∀ᶠ y in 𝓝 x, ⌊y/physicalPeriod⌋=⌊x/physicalPeriod⌋ := by
   have hlo : physicalPeriod*(⌊x/physicalPeriod⌋ : ℝ)<x := by dsimp [wrapCoordinate] at hx; linarith
@@ -121,7 +124,8 @@ private theorem floor_eventual {x : ℝ} (hx : 0<wrapCoordinate x) :
   · apply (div_lt_iff₀ physicalPeriod_pos).mpr
     nlinarith
 
-/-- Original `wrap_near_seam` guarantee for the `PeriodicExtension` construction; the complete source hypotheses are retained. -/
+/-- Within distance `delta` of a wrapping seam, the wrapped coordinate lies within `delta` of an
+endpoint, for `0 < delta ≤ physicalPeriod / 8`. -/
 private theorem wrap_near_seam (delta x y : ℝ) (hd : 0<delta) (hL : delta ≤ physicalPeriod/8)
     (hx : wrapCoordinate x=0) (hy : |y-x|<delta) :
     wrapCoordinate y ≤ delta ∨ physicalPeriod-delta ≤ wrapCoordinate y := by
@@ -168,7 +172,8 @@ theorem periodicExtension_eventually_constant_of_seam (f : QuaternionField)
   exact hc (wrapPoint y) (wrapPoint_cube y)
     ⟨j,wrap_near_seam delta (x j) (y j) hd hL hj hy⟩
 
-/-- Original `contDiff_periodicExtension` guarantee for the `PeriodicExtension` construction; the complete source hypotheses are retained. -/
+/-- Wrapping preserves smoothness of a quaternion field constant on a fundamental-cube collar of
+width `delta` with `0 < delta ≤ physicalPeriod / 8`. -/
 theorem contDiff_periodicExtension (f : QuaternionField) (hf : ContDiff ℝ ∞ f)
     (delta : ℝ) (hd : 0<delta) (hL : delta ≤ physicalPeriod/8) (q₀ : ℍ)
     (hc : HasConstantCollar f delta q₀) : ContDiff ℝ ∞ (periodicExtension f) := by
@@ -208,7 +213,9 @@ theorem contDiff_periodicExtension (f : QuaternionField) (hf : ContDiff ℝ ∞ 
       ring
     exact (hf.comp (contDiff_id.add contDiff_const)).contDiffAt.congr_of_eventuallyEq heq
 
-/-- Original `periodicExtension_isSmoothUnitLift` guarantee for the `PeriodicExtension` construction; the complete source hypotheses are retained. -/
+/-- If a field smoothly lifts a periodic spin with unit norm and is constant on a
+fundamental-cube collar of width `delta` with `0 < delta ≤ physicalPeriod / 8`, its periodic
+extension is again a smooth unit lift of the same spin. -/
 theorem periodicExtension_isSmoothUnitLift (s f : QuaternionField) (hp : IsPeriodicField s)
     (hf : IsSmoothUnitLift s f) (delta : ℝ) (hd : 0<delta) (hL : delta ≤ physicalPeriod/8)
     (q₀ : ℍ) (hc : HasConstantCollar f delta q₀) : IsSmoothUnitLift s (periodicExtension f) := by
@@ -220,7 +227,8 @@ def periodicReference (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞
     (q₀ : ℍ) (h₀ : ‖q₀‖=1) (eta : ℝ) : QuaternionField :=
   periodicExtension (correctedReference v hv q₀ h₀ eta)
 
-/-- Original `periodicReference_spec` guarantee for the `PeriodicExtension` construction; the complete source hypotheses are retained. -/
+/-- For a smooth unit vector source with periodic spin constant on a positive-width collar, a
+unit seed lifting the collar spin gives a periodic smooth unit reference lift. -/
 theorem periodicReference_spec (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (hu : ∀ x, ‖v x‖=1) (q₀ : ℍ) (h₀ : ‖q₀‖=1)
     (hp : IsPeriodicField (sourceQuaternion v)) (eta : ℝ) (he : 0<eta) (sc : ℍ)
@@ -232,7 +240,9 @@ theorem periodicReference_spec (v : SpatialPoint → SpatialPoint) (hv : ContDif
     (gluingWidth eta) (gluingWidth_pos he) (gluingWidth_le_period eta) q₀
     (correctedReference_collar v hv hu q₀ h₀ hp eta he sc hc hi)⟩
 
-/-- Original `periodicReference_collar` guarantee for the `PeriodicExtension` construction; the complete source hypotheses are retained. -/
+/-- For a smooth unit vector source with periodic spin constant on a positive-width collar and a
+unit seed over that spin value, the periodic reference is equal to the seed on the collar of
+gluing width. -/
 theorem periodicReference_collar (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (hu : ∀ x, ‖v x‖=1) (q₀ : ℍ) (h₀ : ‖q₀‖=1)
     (hp : IsPeriodicField (sourceQuaternion v)) (eta : ℝ) (he : 0<eta) (sc : ℍ)
@@ -244,7 +254,9 @@ theorem periodicReference_collar (v : SpatialPoint → SpatialPoint) (hv : ContD
     periodicExtension_eq_on_cube _ _ (gluingWidth_pos he) q₀ hr x hx]
   exact hr x hx hb
 
-/-- Original `periodicReference_origin` guarantee for the `PeriodicExtension` construction; the complete source hypotheses are retained. -/
+/-- For a smooth unit vector source with periodic spin constant on a positive-width collar, the
+periodic reference takes its initial unit seed value at the origin when the seed lifts the
+collar spin. -/
 theorem periodicReference_origin (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (hu : ∀ x, ‖v x‖=1) (q₀ : ℍ) (h₀ : ‖q₀‖=1)
     (hp : IsPeriodicField (sourceQuaternion v)) (eta : ℝ) (he : 0<eta) (sc : ℍ)

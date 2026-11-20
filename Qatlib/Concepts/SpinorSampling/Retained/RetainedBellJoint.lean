@@ -47,7 +47,7 @@ def assemblePairBits (e : I × Bool → Fin N) (he : Function.Injective e)
   | .inr v => ω.2 v
 
 omit [Fintype I] [DecidableEq I] in
-/-- Complete original `assemble_selected` guarantee for `RetainedBellJoint`; all source hypotheses and output obligations are retained. -/
+/-- Assembling the full register from pair assignments puts bit 0 or bit 1 of the chosen pair on its false or true endpoint, respectively. -/
 theorem assemble_selected (e : I × Bool → Fin N) (he : Function.Injective e)
     (ω : (I → Reg 2) × (unusedWires e → Bool)) (i : I) (b : Bool) :
     assemblePairBits e he ω (e (i,b))=ω.1 i (if b then 1 else 0) := by
@@ -56,7 +56,7 @@ theorem assemble_selected (e : I × Bool → Fin N) (he : Function.Injective e)
   simp only [assemblePairBits,hs]
 
 omit [Fintype I] [DecidableEq I] in
-/-- Complete original `assemble_unused` guarantee for `RetainedBellJoint`; all source hypotheses and output obligations are retained. -/
+/-- At a wire outside the pair embedding, the assembled register has the supplied unused-wire bit. -/
 theorem assemble_unused (e : I × Bool → Fin N) (he : Function.Injective e)
     (ω : (I → Reg 2) × (unusedWires e → Bool)) (w : unusedWires e) :
     assemblePairBits e he ω w.val=ω.2 w := by
@@ -90,7 +90,7 @@ def pairBasis (e : I × Bool → Fin N) (he : Function.Injective e) :
       exact assemble_unused e he ω w
 
 omit [DecidableEq I] in
-/-- Complete original `pair_basis_state` guarantee for `RetainedBellJoint`; all source hypotheses and output obligations are retained. -/
+/-- In the basis indexed by pair and unused-wire assignments, the amplitude is the product of the corresponding local pair and unused-wire amplitudes. -/
 theorem pair_basis_state (e : I × Bool → Fin N) (he : Function.Injective e)
     (f : I → QState (Reg 2)) (u : unusedWires e → Bool → ℂ)
     (ω : (I → Reg 2) × (unusedWires e → Bool)) :
@@ -108,7 +108,7 @@ def pairHits (e : I × Bool → Fin N) (σ : Reg N) : I → Bool :=
   fun i => isBellHit (pairSite e σ i)
 
 omit [Fintype I] [DecidableEq I] in
-/-- Complete original `pair_basis_hits` guarantee for `RetainedBellJoint`; all source hypotheses and output obligations are retained. -/
+/-- In the pair basis, the hit vector applies the two-bit Bell hit predicate separately to each pair assignment. -/
 theorem pair_basis_hits (e : I × Bool → Fin N) (he : Function.Injective e)
     (ω : (I → Reg 2) × (unusedWires e → Bool)) :
     pairHits e ((pairBasis e he).symm ω)=(fun i => isBellHit (ω.1 i)) := by
@@ -117,7 +117,7 @@ theorem pair_basis_hits (e : I × Bool → Fin N) (he : Function.Injective e)
   rw [h]
 
 -- The unused outcomes are summed, never conditioned on or supplied as data.
-/-- Complete original `paired_hit_mass` guarantee for `RetainedBellJoint`; all source hypotheses and output obligations are retained. -/
+/-- With normalized unused-wire factors, the Born mass of a specified hit pattern factors into the product of the corresponding local pair hit or miss masses. -/
 theorem paired_hit_mass (e : I × Bool → Fin N) (he : Function.Injective e)
     (f : I → QState (Reg 2)) (u : unusedWires e → Bool → ℂ)
     (hu : ∀ w,qubitMass (u w)=1) (z : I → Bool) :
@@ -172,7 +172,7 @@ def nativePairHitMass (e : I × Bool → Fin N) (l : List I) (u : Fin N → Bool
   ∑ σ : Reg N,if pairHits e σ=z then
     BornProb (Run (1 : Matrix (Reg N) (Reg N) ℂ) (pairProgram e l) (spinTensor u)) σ else 0
 
-/-- Complete original `native_pair_hit_product` guarantee for `RetainedBellJoint`; all source hypotheses and output obligations are retained. -/
+/-- For normalized input qubits and a duplicate-free enumeration of all disjoint pairs, the native mass of a specified hit pattern factors into the product of the pairs' Bell event probabilities. -/
 theorem native_pair_hit_product (e : I × Bool → Fin N) (he : Function.Injective e)
     (l : List I) (hl : l.Nodup) (hall : ∀ i,i∈l) (u : Fin N → Bool → ℂ)
     (hu : ∀ w,qubitMass (u w)=1) (z : I → Bool) :
@@ -204,7 +204,7 @@ def nativePairHitLaw (e : I × Bool → Fin N) (he : Function.Injective e)
     simp_rw [native_pair_hit_product e he l hl hall u hu]
     exact sum_family_mass _
 
-/-- Complete original `native_pair_hit_enumeration` guarantee for `RetainedBellJoint`; all source hypotheses and output obligations are retained. -/
+/-- Any two duplicate-free enumerations of all disjoint pairs give the same native mass for every hit pattern on normalized input qubits. -/
 theorem native_pair_hit_enumeration (e : I × Bool → Fin N) (he : Function.Injective e)
     (l k : List I) (hl : l.Nodup) (hk : k.Nodup) (hall : ∀ i,i∈l) (hkal : ∀ i,i∈k)
     (u : Fin N → Bool → ℂ) (hu : ∀ w,qubitMass (u w)=1) (z : I → Bool) :
@@ -230,27 +230,27 @@ def flatCohortSpin (a b c k : S → ℝ) (J : Fin n → S) (K : Fin m → S) :
     Fin (n+m) → Bool → ℂ := fun w => complexSpinor a b c k (flatCohortAddress J K w)
 
 omit [Fintype I] [DecidableEq I] in
-/-- Complete original `matched_physical_fin_injective` guarantee for `RetainedBellJoint`; all source hypotheses and output obligations are retained. -/
+/-- An injective site map makes the flattened physical wire assignment injective on matched sites and their two endpoints. -/
 theorem matched_physical_fin_injective (J : Fin n → S) (K : Fin m → S) (τ : S → S)
     (hτ : Function.Injective τ) : Function.Injective (matchedPhysicalFin J K τ) :=
   finSumFinEquiv.injective.comp (pair_physical_wire_injective J K τ hτ)
 
 omit [Fintype I] [DecidableEq I] in
-/-- Complete original `flat_cohort_left` guarantee for `RetainedBellJoint`; all source hypotheses and output obligations are retained. -/
+/-- The first wire picked for a matched site x carries the spinor at x in the flattened cohorts. -/
 theorem flat_cohort_left (a b c k : S → ℝ) (J : Fin n → S) (K : Fin m → S)
     (τ : S → S) (x : matchedSites J K τ) :
     flatCohortSpin a b c k J K (matchedPhysicalFin J K τ (x,false))=complexSpinor a b c k x := by
   simp [flatCohortSpin,flatCohortAddress,matchedPhysicalFin,pairPhysicalWire,left_match_address]
 
 omit [Fintype I] [DecidableEq I] in
-/-- Complete original `flat_cohort_right` guarantee for `RetainedBellJoint`; all source hypotheses and output obligations are retained. -/
+/-- The second wire picked for a matched site x carries the spinor at its shifted site τ(x) in the flattened cohorts. -/
 theorem flat_cohort_right (a b c k : S → ℝ) (J : Fin n → S) (K : Fin m → S)
     (τ : S → S) (x : matchedSites J K τ) :
     flatCohortSpin a b c k J K (matchedPhysicalFin J K τ (x,true))=complexSpinor a b c k (τ x) := by
   simp [flatCohortSpin,flatCohortAddress,matchedPhysicalFin,pairPhysicalWire,right_match_address]
 
 omit [Fintype I] [DecidableEq I] in
-/-- Complete original `native_matched_hit_product` guarantee for `RetainedBellJoint`; all source hypotheses and output obligations are retained. -/
+/-- For normalized spinors, an injective site map and a duplicate-free list of all matched sites, the native mass of a hit pattern is the product of the Bell event probabilities for the spinors at x and τ(x). -/
 theorem native_matched_hit_product (a b c k : S → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1)
     (J : Fin n → S) (K : Fin m → S) (τ : S → S) (hτ : Function.Injective τ)
@@ -266,7 +266,7 @@ theorem native_matched_hit_product (a b c k : S → ℝ)
   simpa only [flat_cohort_left,flat_cohort_right] using h
 
 omit [Fintype I] [DecidableEq I] [DecidableEq S] in
-/-- Complete original `flat_cohort_from_address_projection` guarantee for `RetainedBellJoint`; all source hypotheses and output obligations are retained. -/
+/-- Multiplying the amplitude projected onto the given cohort addresses by √M to the power n + m removes uniform address normalization, leaving the spin tensor amplitude, where M is the site count. -/
 theorem flat_cohort_from_address_projection [Fintype S] [Nonempty S]
     (a b c k : S → ℝ) (J : Fin n → S) (K : Fin m → S) (σ : Reg (n+m)) :
     (Real.sqrt (Fintype.card S : ℝ) : ℂ)^(n+m)*

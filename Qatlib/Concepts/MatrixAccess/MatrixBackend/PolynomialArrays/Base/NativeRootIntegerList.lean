@@ -25,14 +25,14 @@ open Polynomial
 def rootIntegerListPolynomial (a : List ℤ) : ℂ[X] :=
   (⟨⟨a.toFinsupp⟩⟩ : ℤ[X]).map (Int.castRingHom ℂ)
 
-/-- The finite construction in `NativeRootIntegerList` satisfies `rootIntegerListPolynomial_coeff` under the displayed hypotheses. -/
+/-- The coefficient at index `k` is the `k`th list entry cast to ℂ, with zero for an out-of-range index. -/
 theorem rootIntegerListPolynomial_coeff (a : List ℤ) (k : ℕ) :
     (rootIntegerListPolynomial a).coeff k=(a.getD k 0 : ℂ) := by
   rw [rootIntegerListPolynomial,Polynomial.coeff_map]
   change (a.toFinsupp k : ℂ)=(a.getD k 0 : ℂ)
   rw [List.toFinsupp_apply]
 
-/-- The finite construction in `NativeRootIntegerList` satisfies `rootIntegerListPolynomial_ofFn` under the displayed hypotheses. -/
+/-- Listing the entries of the finite integer array in index order gives the same complex polynomial as interpreting the array directly. -/
 theorem rootIntegerListPolynomial_ofFn {d : ℕ} (a : Fin (d+1) → ℤ) :
     rootIntegerListPolynomial (List.ofFn a)=rootIntegerPolynomial a := by
   apply Polynomial.ext
@@ -42,13 +42,13 @@ theorem rootIntegerListPolynomial_ofFn {d : ℕ} (a : Fin (d+1) → ℤ) :
   · simp only [List.getD_eq_getElem?_getD,List.getElem?_ofFn,dite_eq_left hk,Option.getD_some]
   · simp only [List.getD_eq_getElem?_getD,List.getElem?_ofFn,dite_eq_right hk,Option.getD_none,Int.cast_zero]
 
-/-- The finite construction in `NativeRootIntegerList` satisfies `rootIntegerListPolynomial_nil` under the displayed hypotheses. -/
+/-- The empty integer coefficient list represents the zero complex polynomial. -/
 theorem rootIntegerListPolynomial_nil : rootIntegerListPolynomial []=0 := by
   apply Polynomial.ext
   intro k
   simp [rootIntegerListPolynomial_coeff]
 
-/-- The finite construction in `NativeRootIntegerList` satisfies `rootIntegerListPolynomial_pop_zero` under the displayed hypotheses. -/
+/-- Appending one zero to the high-degree end of an integer coefficient list preserves its complex polynomial. -/
 theorem rootIntegerListPolynomial_pop_zero (a : List ℤ) :
     rootIntegerListPolynomial (a++[0])=rootIntegerListPolynomial a := by
   apply Polynomial.ext
@@ -65,7 +65,7 @@ inductive RootZeroTailDeletion : List ℤ → List ℤ → Prop where
   | pop (a b : List ℤ) (h : RootZeroTailDeletion a b) :
       RootZeroTailDeletion (a++[0]) b
 
-/-- The finite construction in `NativeRootIntegerList` satisfies `rootIntegerListPolynomial_zero_tail_trace` under the displayed hypotheses. -/
+/-- If `b` is obtained from `a` by any finite sequence of trailing-zero deletions, the two lists represent the same complex polynomial. -/
 theorem rootIntegerListPolynomial_zero_tail_trace {a b : List ℤ}
     (h : RootZeroTailDeletion a b) :
     rootIntegerListPolynomial a=rootIntegerListPolynomial b := by

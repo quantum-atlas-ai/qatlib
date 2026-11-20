@@ -32,7 +32,7 @@ open Qatlib.Concepts.EffectiveGauge.HopfAtlas Qatlib.Concepts.EffectiveGauge.Rat
 def unitBoxEnergy {E : Type*} [NormedAddCommGroup E] (f : SpatialPoint → E) : ℝ :=
   ∫ u : Fin 3 → ℝ in Set.pi Set.univ (fun _ => Ioc (0 : ℝ) 1), ‖f (WithLp.toLp 2 u)‖^2
 
-/-- Original `unitBoxEnergy_le` guarantee for the `FourierEnergyTail` construction; the complete source hypotheses are retained. -/
+/-- A nonnegative pointwise norm bound `M` on the unit cube bounds the integral of the squared norm over the unit box by `M^2`. -/
 theorem unitBoxEnergy_le {E : Type*} [NormedAddCommGroup E] (f : SpatialPoint → E) (M : ℝ) (hM : 0 ≤ M)
     (hb : ∀ x, InUnitCube x → ‖f x‖ ≤ M) : unitBoxEnergy f ≤ M^2 := by
   have hfinite : volume (Set.pi Set.univ (fun _ : Fin 3 => Ioc (0 : ℝ) 1))<⊤ := by
@@ -51,7 +51,7 @@ theorem unitBoxEnergy_le {E : Type*} [NormedAddCommGroup E] (f : SpatialPoint �
     simpa only [unitBoxEnergy,Measure.real,unitCoefficientBox_volume,ENNReal.toReal_one,mul_one] using hbound
   exact (le_abs_self _).trans hnorm
 
-/-- Original `unitFourierCoefficient_sixth_hasSum` guarantee for the `FourierEnergyTail` construction; the complete source hypotheses are retained. -/
+/-- For a smooth unit-periodic field, the squared Fourier coefficients weighted by the sum of the sixth powers of the coordinate frequencies sum to the combined energy of the three pure third derivatives divided by the sixth power of the physical period. -/
 theorem unitFourierCoefficient_sixth_hasSum (f : SpatialPoint → ℂ) (hf : ContDiff ℝ ∞ f)
     (hp : IsUnitPeriodicField f) :
     HasSum (fun k : SpatialFrequency => frequencySixthEnergy k*‖unitFourierCoefficient f hf.continuous hp k‖^2)
@@ -76,7 +76,7 @@ def unitFourierH1TailEnergy (f : SpatialPoint → ℂ) (hf : Continuous f)
   ∑' k : SpatialFrequency, if k∈Finset.Icc (-N : SpatialFrequency) N then 0
     else (1+frequencyEnergy k)*‖unitFourierCoefficient f hf hp k‖^2
 
-/-- Original `unitFourierH1TailEnergy_le` guarantee for the `FourierEnergyTail` construction; the complete source hypotheses are retained. -/
+/-- If every pure third derivative of a smooth unit-periodic field has norm at most `M3 ≥ 0` on the unit cube, its weighted Fourier energy outside the radius-`N` box is at most `12*M3^2/(physicalPeriod^6*(N+1)^4)`. -/
 theorem unitFourierH1TailEnergy_le (f : SpatialPoint → ℂ) (hf : ContDiff ℝ ∞ f)
     (hp : IsUnitPeriodicField f) (N : ℕ) (M3 : ℝ) (hM : 0 ≤ M3)
     (hb : ∀ i x, InUnitCube x → ‖spatialWordPartial f [i,i,i] x‖ ≤ M3) :

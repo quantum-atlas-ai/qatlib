@@ -26,7 +26,8 @@ def floorCodeRealizes {A B : Type*} [Primcodable A] [Primcodable B]
     (c : Nat.Partrec.Code) (f : A → B) : Prop :=
   ∀ a, Nat.Partrec.Code.eval c (Encodable.encode a)=Part.some (Encodable.encode (f a))
 
-/-- Original `floorCodeRealizes_comp` guarantee for the `FloorTypedCode` construction; the complete source hypotheses are retained. -/
+/-- If the two codes realize typed functions `g : A → B` and `f : B → C`, composing the codes
+realizes `f ∘ g` on encoded inputs. -/
 theorem floorCodeRealizes_comp {A B C : Type*} [Primcodable A] [Primcodable B] [Primcodable C]
     {cf cg : Nat.Partrec.Code} {f : B → C} {g : A → B}
     (hf : floorCodeRealizes cf f) (hg : floorCodeRealizes cg g) :
@@ -37,7 +38,8 @@ theorem floorCodeRealizes_comp {A B C : Type*} [Primcodable A] [Primcodable B] [
   rw [Part.bind_some]
   exact hf (g a)
 
-/-- Original `floorCodeRealizes_pair` guarantee for the `FloorTypedCode` construction; the complete source hypotheses are retained. -/
+/-- Pairing codes that realize two functions with a common input type realizes their pointwise
+ordered pair. -/
 theorem floorCodeRealizes_pair {A B C : Type*} [Primcodable A] [Primcodable B] [Primcodable C]
     {cf cg : Nat.Partrec.Code} {f : A → B} {g : A → C}
     (hf : floorCodeRealizes cf f) (hg : floorCodeRealizes cg g) :
@@ -48,12 +50,14 @@ theorem floorCodeRealizes_pair {A B C : Type*} [Primcodable A] [Primcodable B] [
   rw [hf a,hg a]
   simp [Seq.seq,Encodable.encode_prod_val]
 
-/-- Original `floorCodeRealizes_const` guarantee for the `FloorTypedCode` construction; the complete source hypotheses are retained. -/
+/-- The partial-recursive constant code for the encoding of `b` realizes the constant function
+with value `b` on encoded inputs of any primitively codable type. -/
 theorem floorCodeRealizes_const {A B : Type*} [Primcodable A] [Primcodable B] (b : B) :
     floorCodeRealizes (Nat.Partrec.Code.const (Encodable.encode b)) (fun _ : A => b) :=
   fun _ => Nat.Partrec.Code.eval_const _ _
 
-/-- Original `floorCodeRealizes_curry` guarantee for the `FloorTypedCode` construction; the complete source hypotheses are retained. -/
+/-- If a code realizes a function on encoded pairs, currying it at the encoding of `a` realizes
+the function of the remaining input obtained by fixing the first argument to `a`. -/
 theorem floorCodeRealizes_curry {A B C : Type*} [Primcodable A] [Primcodable B] [Primcodable C]
     {c : Nat.Partrec.Code} {f : A × B → C} (hf : floorCodeRealizes c f) (a : A) :
     floorCodeRealizes (Nat.Partrec.Code.curry c (Encodable.encode a)) (fun b => f (a,b)) := by
@@ -61,12 +65,14 @@ theorem floorCodeRealizes_curry {A B C : Type*} [Primcodable A] [Primcodable B] 
   rw [Nat.Partrec.Code.eval_curry]
   exact hf (a,b)
 
-/-- Original `floorCodeRealizes_exists` guarantee for the `FloorTypedCode` construction; the complete source hypotheses are retained. -/
+/-- Every computable function between primitively codable types has a partial-recursive code
+realizing it on encoded inputs. -/
 theorem floorCodeRealizes_exists {A B : Type*} [Primcodable A] [Primcodable B]
     (f : A → B) (hf : Computable f) : ∃ c, floorCodeRealizes c f :=
   floorComputableFixedCode f hf
 
-/-- Original `floorCodeRealizes_computable` guarantee for the `FloorTypedCode` construction; the complete source hypotheses are retained. -/
+/-- A function between primitively codable types is computable whenever a partial-recursive code
+realizes it on every encoded input. -/
 theorem floorCodeRealizes_computable {A B : Type*} [Primcodable A] [Primcodable B]
     {c : Nat.Partrec.Code} {f : A → B} (hf : floorCodeRealizes c f) : Computable f := by
   apply Partrec.of_eq_tot

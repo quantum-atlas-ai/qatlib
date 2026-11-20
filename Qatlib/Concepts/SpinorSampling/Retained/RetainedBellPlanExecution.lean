@@ -37,7 +37,7 @@ variable {S : Type} [DecidableEq S] {n m K : ℕ}
 def capturedAddressRecords (τ : S → S) (ω : Fin K → CohortObservation n m τ) : List S :=
   (List.ofFn fun j => (List.ofFn (ω j).1)++(List.ofFn (ω j).2.1)).flatten
 
-/-- Complete original `captured_address_records_length` guarantee for `RetainedBellPlanExecution`; all source hypotheses and output obligations are retained. -/
+/-- Capturing both cohorts in each of K blocks produces exactly K(n + m) address records. -/
 theorem captured_address_records_length (τ : S → S) (ω : Fin K → CohortObservation n m τ) :
     (capturedAddressRecords τ ω).length=K*(n+m) := by
   simp [capturedAddressRecords,List.length_flatten,List.map_ofFn,Function.comp_def,List.ofFn_const]
@@ -48,7 +48,7 @@ theorem captured_address_records_length (τ : S → S) (ω : Fin K → CohortObs
 def usedCaptureWires (τ : S → S) (ω : CohortObservation n m τ) : Finset (Fin (n+m)) :=
   Finset.univ.image (matchedPhysicalFin ω.1 ω.2.1 τ)
 
-/-- Complete original `used_capture_wires_card` guarantee for `RetainedBellPlanExecution`; all source hypotheses and output obligations are retained. -/
+/-- For a site permutation, the used wires of one observation number exactly twice its matched sites. -/
 theorem used_capture_wires_card (τ : Equiv.Perm S) (ω : CohortObservation n m τ) :
     (usedCaptureWires τ ω).card=2*(matchedSites ω.1 ω.2.1 τ).card := by
   rw [usedCaptureWires,Finset.card_image_of_injective _
@@ -60,7 +60,7 @@ theorem used_capture_wires_card (τ : Equiv.Perm S) (ω : CohortObservation n m 
 def observedDiscardCount (τ : S → S) (ω : Fin K → CohortObservation n m τ) : ℕ :=
   ∑ j : Fin K,((Finset.univ : Finset (Fin (n+m)))\usedCaptureWires τ (ω j)).card
 
-/-- Complete original `observed_discard_account` guarantee for `RetainedBellPlanExecution`; all source hypotheses and output obligations are retained. -/
+/-- For a site permutation, the discarded wires plus two wires for every pooled match account for all captured address records. -/
 theorem observed_discard_account (τ : Equiv.Perm S) (ω : Fin K → CohortObservation n m τ) :
     observedDiscardCount τ ω+2*pooledMatches τ ω=(capturedAddressRecords τ ω).length := by
   have hblock (j : Fin K) :
@@ -85,7 +85,7 @@ def observedNativeBellQueries (τ : S → S) (ω : Fin K → CohortObservation n
   ∑ j : Fin K,QueryCount (pairProgram (matchedPhysicalFin (ω j).1 (ω j).2.1 τ)
     (matchedEnumeration (ω j).1 (ω j).2.1 τ))
 
-/-- Complete original `observed_native_bell_account` guarantee for `RetainedBellPlanExecution`; all source hypotheses and output obligations are retained. -/
+/-- The observed Bell circuits use exactly two native gates per pooled match and make zero native queries. -/
 theorem observed_native_bell_account (τ : S → S) (ω : Fin K → CohortObservation n m τ) :
     observedNativeBellGates τ ω=2*pooledMatches τ ω ∧ observedNativeBellQueries τ ω=0 := by
   constructor
@@ -115,7 +115,7 @@ def executePlannedBellQ (q : BellPlanQ) (τ : Equiv.Perm S)
   nativeBellGates := observedNativeBellGates τ ω
   nativeBellQueries := observedNativeBellQueries τ ω
 
-/-- Complete original `executed_bell_wire_account` guarantee for `RetainedBellPlanExecution`; all source hypotheses and output obligations are retained. -/
+/-- The planned execution receipt counts two copies per Bell test plus all discards. It records two native gates per test and zero native queries. -/
 theorem executed_bell_wire_account (q : BellPlanQ) (τ : Equiv.Perm S)
     (ω : Fin q.blocks → CohortObservation q.records q.records τ) :
     (executePlannedBellQ q τ ω).copies=
@@ -124,7 +124,7 @@ theorem executed_bell_wire_account (q : BellPlanQ) (τ : Equiv.Perm S)
     (executePlannedBellQ q τ ω).nativeBellQueries=0 := by
   exact ⟨(observed_discard_account τ ω).symm,observed_native_bell_account τ ω⟩
 
-/-- Complete original `executed_bell_plan_copies` guarantee for `RetainedBellPlanExecution`; all source hypotheses and output obligations are retained. -/
+/-- Every batch of the scheduled dimensions produces a Bell receipt with exactly the constructed plan's copy count. -/
 theorem executed_bell_plan_copies (side M : ℕ) (p ε δ : ℚ) (τ : Equiv.Perm S)
     (ω : Fin (bellPlanQ side M p ε δ).blocks →
       CohortObservation (bellPlanQ side M p ε δ).records
@@ -143,7 +143,7 @@ theorem executed_bell_plan_copies (side M : ℕ) (p ε δ : ℚ) (τ : Equiv.Per
       · simp only [bellPlanQ,ite_eq_right hside,ite_eq_right hmid,ite_eq_right hn]
         ring
 
-/-- Complete original `executed_bell_plan_copies_upper` guarantee for `RetainedBellPlanExecution`; all source hypotheses and output obligations are retained. -/
+/-- With positive site count and tolerance and nonnegative p, every scheduled Bell receipt uses at most 4B + 2√(M B) + 2 copies for Bell strength B. -/
 theorem executed_bell_plan_copies_upper (side M : ℕ) (hM : 0<M) (p ε δ : ℚ)
     (hp : 0≤p) (hε : 0<ε) (τ : Equiv.Perm S)
     (ω : Fin (bellPlanQ side M p ε δ).blocks →
@@ -158,7 +158,7 @@ theorem executed_bell_plan_copies_upper (side M : ℕ) (hM : 0<M) (p ε δ : ℚ
 -- The same receipt carries the output and observed native Bell-word counts.
 -- Address measurement, routing, memory, loading and classical processing are
 -- additional costs; nativeBellGates does not purport to include them.
-/-- Complete original `executed_periodic_bell_confidence` guarantee for `RetainedBellPlanExecution`; all source hypotheses and output obligations are retained. -/
+/-- For normalized periodic-grid spinors with selected double-shift mean at most p in [0, 1/2], the value in the scheduled Bell receipt has error above positive ε with probability at most δ for 0 < δ < 1. -/
 theorem executed_periodic_bell_confidence (d N : ℕ) [NeZero N] (j : Fin d)
     (a b c k : (Fin d → Fin N) → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1)

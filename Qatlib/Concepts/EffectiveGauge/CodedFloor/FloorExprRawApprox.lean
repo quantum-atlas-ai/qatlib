@@ -101,19 +101,21 @@ def floorExprApproxOps : FloorExprApproxOps where
 def floorExprRawApprox : ℕ → FloorExprQueryCode → FloorRationalCode :=
   floorExprRawApproxWith floorExprApproxOps
 
-/-- Original `floorPointCodeAt_axis_value` guarantee for the `FloorExprRawApprox` construction; the complete source hypotheses are retained. -/
+/-- Reading a coordinate from the point code and decoding it gives the decoded point at the
+coordinate selected by the natural axis. -/
 theorem floorPointCodeAt_axis_value (axis : ℕ) (X : FloorPointCode) :
     floorRationalCodeValue (floorPointCodeAt axis X)=floorPointCodeValue X (floorExprAxis axis) := by
   have h := floorPointCodeAt_value (floorExprAxis axis) X
   simpa [floorPointCodeAt,floorExprAxis] using h
 
-/-- Original `floorExprHalfQuery_tolerance` guarantee for the `FloorExprRawApprox` construction; the complete source hypotheses are retained. -/
+/-- The half query represents exactly half of the original rational tolerance. -/
 theorem floorExprHalfQuery_tolerance (q : FloorExprQueryCode) :
     floorRationalCodeValue (floorExprHalfQuery q).2.2=floorRationalCodeValue q.2.2/2 := by
   simp [floorExprHalfQuery,floorExprQueryScale,floorRationalCodeMul_value,
     floorRationalCodeInv_value,floorRationalCodeNat_value,div_eq_mul_inv]
 
-/-- Original `floorExprProductQuery_tolerance` guarantee for the `FloorExprRawApprox` construction; the complete source hypotheses are retained. -/
+/-- For factor bounds `A` and `B`, the product query divides the decoded tolerance by
+`2 * (A + B + 1)`. -/
 theorem floorExprProductQuery_tolerance (a b : ℕ) (q : FloorExprQueryCode) :
     floorRationalCodeValue (floorExprProductQuery a b q).2.2=
       floorRationalCodeValue q.2.2/(2*((floorExprCodeBound a : ℚ)+floorExprCodeBound b+1)) := by
@@ -121,33 +123,36 @@ theorem floorExprProductQuery_tolerance (a b : ℕ) (q : FloorExprQueryCode) :
     floorRationalCodeMul_value,floorRationalCodeInv_value,floorRationalCodeAdd_value,
     floorRationalCodeNat_value,div_eq_mul_inv]
 
-/-- Original `floorExprHalfQuery_program` guarantee for the `FloorExprRawApprox` construction; the complete source hypotheses are retained. -/
+/-- Halving the tolerance leaves the query's program code unchanged. -/
 theorem floorExprHalfQuery_program (q : FloorExprQueryCode) : (floorExprHalfQuery q).1=q.1 := rfl
 
-/-- Original `floorExprHalfQuery_point` guarantee for the `FloorExprRawApprox` construction; the complete source hypotheses are retained. -/
+/-- Halving the tolerance leaves the query's point code unchanged. -/
 theorem floorExprHalfQuery_point (q : FloorExprQueryCode) : (floorExprHalfQuery q).2.1=q.2.1 := rfl
 
-/-- Original `floorExprProductQuery_program` guarantee for the `FloorExprRawApprox` construction; the complete source hypotheses are retained. -/
+/-- Rescaling the tolerance for a product of expressions leaves the program code unchanged. -/
 theorem floorExprProductQuery_program (a b : ℕ) (q : FloorExprQueryCode) :
     (floorExprProductQuery a b q).1=q.1 := rfl
 
-/-- Original `floorExprProductQuery_point` guarantee for the `FloorExprRawApprox` construction; the complete source hypotheses are retained. -/
+/-- Rescaling the tolerance for a product of expressions leaves the point code unchanged. -/
 theorem floorExprProductQuery_point (a b : ℕ) (q : FloorExprQueryCode) :
     (floorExprProductQuery a b q).2.1=q.2.1 := rfl
 
-/-- Original `floorExprSinRawCode_value` guarantee for the `FloorExprRawApprox` construction; the complete source hypotheses are retained. -/
+/-- The decoded sine output is the imaginary coordinate of the rational cis value at the decoded
+angle and tolerance. -/
 theorem floorExprSinRawCode_value (p : FloorExpCodeParameters) :
     floorRationalCodeValue (floorExprSinRawCode p)=
       (rationalCis (floorRationalCodeValue p.1) (floorRationalCodeValue p.2)).value.2 :=
   congrArg (fun r : RationalCisResult => r.value.2) (floorRationalCisCode_value p)
 
-/-- Original `floorExprCosRawCode_value` guarantee for the `FloorExprRawApprox` construction; the complete source hypotheses are retained. -/
+/-- The decoded cosine output is the real coordinate of the rational cis value at the decoded
+angle and tolerance. -/
 theorem floorExprCosRawCode_value (p : FloorExpCodeParameters) :
     floorRationalCodeValue (floorExprCosRawCode p)=
       (rationalCis (floorRationalCodeValue p.1) (floorRationalCodeValue p.2)).value.1 :=
   congrArg (fun r : RationalCisResult => r.value.1) (floorRationalCisCode_value p)
 
-/-- Original `floorExprRawApprox_value` guarantee for the `FloorExprRawApprox` construction; the complete source hypotheses are retained. -/
+/-- Decoding the raw approximation gives the rational jet approximation of the decoded expression
+for the supplied program, decoded point, and decoded tolerance. -/
 theorem floorExprRawApprox_value (n : ℕ) (q : FloorExprQueryCode) :
     floorRationalCodeValue (floorExprRawApprox n q)=
       floorJetApproximation q.1 (floorPointCodeValue q.2.1) (floorExprDecode n)

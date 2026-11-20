@@ -26,7 +26,7 @@ setting of [LowChuang2017].
   with the squared amplitude norm.
 * `sourceSuccessProb_le_one` and `sourceSuccessProb_zero` give its universal upper bound and
   exact zero-angle value.
-* `frontier1` constructs a phase list of prescribed positive even length, with amplitude error
+* `exists_qsp_phases_of_even_odd_approximants` constructs a phase list of prescribed positive even length, with amplitude error
   at most `8 * eps` and success probability between `(1 - 8 * eps)^2` and one on the specified
   angle interval.
 
@@ -81,7 +81,7 @@ constructs a length-`N` source phase list whose extracted amplitude has error at
 eps` on the angle interval. Its Hadamard-conjugated word is unitary at every angle, its
 zero-angle success probability is one, and `sourceSuccessProb` lies between `(1 - 8 *
 eps)^2` and one on that interval. -/
-theorem frontier1 (N : ℕ) (h : ℝ → ℝ) (A Qt : Polynomial ℝ) (eps : ℝ)
+theorem exists_qsp_phases_of_even_odd_approximants (N : ℕ) (h : ℝ → ℝ) (A Qt : Polynomial ℝ) (eps : ℝ)
     (hN : Even N) (hp : 0 < N) (hodd : ∀ theta, h (-theta) = -h theta)
     (hAeven : A.comp (-X) = A) (hQtodd : Qt.comp (-X) = -Qt)
     (hAdeg : A.degree ≤ (N : WithBot ℕ)) (hQtdeg : Qt.degree < (N : WithBot ℕ))

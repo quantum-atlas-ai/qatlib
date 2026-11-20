@@ -35,7 +35,9 @@ open Qatlib
 
 variable {S : Type} [Fintype S] [Nonempty S] [DecidableEq S]
 
-/-- Complete original `signed_pair_matched_card_expectation` guarantee for `MatchedSignedConditionalTail`; all source hypotheses and output obligations are retained. -/
+/-- An expectation restricted to signed cohort pairs with exactly `k` matches is the sum over
+the corresponding address pairs, weighted by their point masses, of the expectations over the
+two conditional sign arrays. -/
 theorem signed_pair_matched_card_expectation
     (τ : Equiv.Perm S) {n m k : ℕ} (a b : S → ℝ)
     (ha : ∀ x, |a x| ≤ 1) (hb : ∀ x, |b x| ≤ 1)
@@ -73,7 +75,8 @@ theorem signed_pair_matched_card_expectation
         rfl
       · simp only [h, ite_false, mul_zero]
 
-/-- Complete original `signed_pair_matched_card_mass` guarantee for `MatchedSignedConditionalTail`; all source hypotheses and output obligations are retained. -/
+/-- The probability of exactly `k` matches under the independent signed cohort laws equals the
+uniform address-pair event mass for that count. -/
 theorem signed_pair_matched_card_mass
     (τ : Equiv.Perm S) {n m k : ℕ} (a b : S → ℝ)
     (ha : ∀ x, |a x| ≤ 1) (hb : ∀ x, |b x| ≤ 1) :
@@ -96,7 +99,9 @@ def signedMatchedConditionalBadMass
   p.expect (fun z =>
     if (matchedSites (fun i => (z.1 i).1) (fun i => (z.2 i).1) τ).card=k then 1 else 0)
 
-/-- Complete original `signed_matched_conditional_bad_mass_eq` guarantee for `MatchedSignedConditionalTail`; all source hypotheses and output obligations are retained. -/
+/-- The ratio defining the rational matched statistic's conditional bad mass equals the ratio
+formed by averaging the fixed-address sign-law bad masses over address pairs with exactly `k`
+matches. -/
 theorem signed_matched_conditional_bad_mass_eq
     (τ : Equiv.Perm S) {n m k : ℕ} (a b : S → ℝ)
     (ha : ∀ x, |a x| ≤ 1) (hb : ∀ x, |b x| ≤ 1) (μ ε : ℝ) :
@@ -121,7 +126,10 @@ theorem signed_matched_conditional_bad_mass_eq
     rfl
   rw [hcast, finite_bad_indicator_mean]
 
-/-- Complete original `signed_matched_conditional_tail` guarantee for `MatchedSignedConditionalTail`; all source hypotheses and output obligations are retained. -/
+/-- For independent signed cohorts with bounded site means, the rational matched estimate
+exceeds error `ε > 0` from the population product mean with conditional probability at most
+`4 * exp (-k*ε²/8)` given exactly `k` matches. The positive count must fit both cohorts and the
+site space. -/
 theorem signed_matched_conditional_tail
     (τ : Equiv.Perm S) {n m k : ℕ} (hk0 : 0 < k)
     (hkn : k ≤ n) (hkm : k ≤ m) (hkS : k ≤ Fintype.card S)

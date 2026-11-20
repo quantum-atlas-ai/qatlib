@@ -39,7 +39,7 @@ explicit fixed-gate counts and additive hardware and numerical error bounds.
 
 * `four_reconstruct`: The four scaled real parity routes reconstruct the complex polynomial.
 * `Native.word_block`: The compiled single-control word compresses to `aeval A P`.
-* `ComplexFourRouteLcu.frontier1`: Unitarity, compression error, query and gate counts, and
+* `ComplexFourRouteLcu.four_route_lcu_compression_error_and_resources`: Unitarity, compression error, query and gate counts, and
   register size.
 * `ComplexFourRouteLcu.numerical_block_encoding`: A normalized approximate block encoding with
   combined oracle and known-gate errors.
@@ -574,6 +574,8 @@ theorem hInner_hOuter : hInner (K:=K) * hOuter = prep := by
 omit [Fintype K] in
 omit [Fintype I] [DecidableEq I] in
 
+/-- The preparation matrix applying Hadamard gates to both Boolean route flags and the
+identity to the data register is equal to its conjugate transpose. -/
 theorem prep_adjoint : (prep (K:=K))ᴴ = prep := by
   simp [prep, tensorGate_conjTranspose, hadamard_conjTranspose]
 
@@ -1418,7 +1420,7 @@ variable {I H : Type} [Fintype I] [DecidableEq I] [Fintype H] [DecidableEq H]
 /-- With unitary controlled-oracle error at most `δ ≥ 0`, the native word is unitary and its
 isometric compression approximates `aeval A P` within the total phase-list length times `δ`,
 with the stated query, fixed-gate, and five-flag counts. -/
-theorem frontier1 (A : Matrix I I ℂ) (hA : A.IsHermitian)
+theorem four_route_lcu_compression_error_and_resources (A : Matrix I I ℂ) (hA : A.IsHermitian)
     (U : Matrix H H ℂ) (F : Matrix H I ℂ) (h : ProjectedUnitaryEncoding A U F F)
     (P : Polynomial ℂ) (tables : PhaseTables P)
     (C : Matrix (Bool × H) (Bool × H) ℂ) (hC : C ∈ unitaryGroup (Bool × H) ℂ)
@@ -1492,7 +1494,7 @@ theorem numerical_word_error (A : Matrix I I ℂ) (hA : A.IsHermitian)
   have hF := frame_isometry F h.right_isometry
   have hg := (compress_sub_norm_le hF hF _ _).trans
     (evaluate_known_gate_error _ f η (parallelOracle (J:=Header) C) hw (parallelOracle_unitary hC) hf)
-  have hb := (frontier1 A hA U F h P tables C hC δ hδ hnear).2.2.1
+  have hb := (four_route_lcu_compression_error_and_resources A hA U F h P tables C hC δ hδ hnear).2.2.1
   have ht := (norm_sub_le_norm_sub_add_norm_sub
     (compress (frame F) (evaluate (parallelOracle (J:=Header) C) (replaceKnownGates f (word F tables))) (frame F))
     (compress (frame F) (evaluate (parallelOracle (J:=Header) C) (word F tables)) (frame F))

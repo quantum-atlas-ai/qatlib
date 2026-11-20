@@ -22,7 +22,7 @@ the envelope so that zero phase gives the zero label. Repeated detection packets
 alongside the corresponding spectral superposition formulas.
 
 The finite difference estimates for `overlapSum` give quadratic decay away from zero phase.
-`frontier1` combines this decay with an orthonormal spectral decomposition to bound the
+`aligned_sine_packet_reflection_error_and_resources` combines this decay with an orthonormal spectral decomposition to bound the
 reflection error by the unmarked coefficient norm, with exact preservation of the zero phase
 component. For background on search via quantum walks, see [MagniezNayakRolandSantha2011].
 
@@ -30,7 +30,7 @@ component. For background on search via quantum walks, see [MagniezNayakRolandSa
 
 * `alignedDetectionWord_resources`: The repeated detection word is well formed and uses `k * (M
   - 1)` queries and `k * (2 * (M - 1) + 2)` explicit gates.
-* `frontier1`: For an orthonormal eigenvector family with normalized coefficients, zero phase on
+* `aligned_sine_packet_reflection_error_and_resources`: For an orthonormal eigenvector family with normalized coefficients, zero phase on
   `T`, and phase distance at least `η > 0` outside `T`, the aligned reflection error is at most
   `2 * (π^2 / (M^2 * η^2))^k` times the square root of the coefficient mass outside `T`. The
   reflection word has `2 * k * (M - 1)` queries and `4 * k * (M - 1) + 4 * k + 1` gates.
@@ -1125,7 +1125,7 @@ open scoped Classical Matrix.Norms.L2Operator
 phase distance at least `η > 0` outside `T`, the aligned reflection error is at most `2 *
 (π^2 / (M^2 * η^2))^k` times the square root of the coefficient mass outside `T`. The
 reflection word has `2 * k * (M - 1)` queries and `4 * k * (M - 1) + 4 * k + 1` gates. -/
-theorem frontier1
+theorem aligned_sine_packet_reflection_error_and_resources
     (J : Type) [Fintype J] [DecidableEq J]
     (W : Matrix I I ℂ) (M k : ℕ) (hM : 2 ≤ M) (v : J → QState I) (c : J → ℂ)
     (φ : J → ℝ) (T : Finset J) (η : ℝ)

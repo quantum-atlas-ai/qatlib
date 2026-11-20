@@ -34,7 +34,7 @@ variable {S : Type} [Fintype S] [DecidableEq S] [Nonempty S]
 
 -- These laws are the existing native observation laws, with the rounded
 -- integers computed by the public schedule rather than supplied as witnesses.
-/-- Complete original `bell_sparse_integer_confidence` guarantee for `RetainedBellPlanConfidence`; all source hypotheses and output obligations are retained. -/
+/-- If p bounds the Bell mean, 2ε < p ≤ 1/2, and the rounded positive cohort size fits within the site count, a single block gives clipped mean error above ε with probability at most δ for 0 < δ < 1. -/
 theorem bell_sparse_integer_confidence (a b c k : S → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (τ : Equiv.Perm S)
     (p ε δ : ℚ) (hp : 0≤p) (hp1 : p≤1/2) (hε : 0<ε)
@@ -68,7 +68,7 @@ theorem bell_sparse_integer_confidence (a b c k : S → ℝ)
     (bell_records_pos M hM p ε δ hp hε hδ hδ1) hn hn p (ε : ℝ) hmean he
   exact ht.trans (by linarith)
 
-/-- Complete original `bell_dense_integer_confidence` guarantee for `RetainedBellPlanConfidence`; all source hypotheses and output obligations are retained. -/
+/-- For 2ε < p ≤ 1/2, positive ε and δ, and Bell mean at most p, the clipped pooled estimate from the rounded number of full-size blocks has error above ε with probability at most δ. -/
 theorem bell_dense_integer_confidence (a b c k : S → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (τ : Equiv.Perm S)
     (p ε δ : ℚ) (hp : 0≤p) (hp1 : p≤1/2) (hε : 0<ε)
@@ -117,7 +117,7 @@ private def plannedBellFailure (a b c k : S → ℝ)
 
 -- All four branches return the same public plan's output. The sole geometric
 -- premise below is discharged by the concrete periodic-grid endpoint.
-/-- Complete original `bell_plan_confidence` guarantee for `RetainedBellPlanConfidence`; all source hypotheses and output obligations are retained. -/
+/-- For a Bell mean bounded by p in [0, 1/2], positive ε and 0 < δ < 1, the scheduled estimate has error above ε with probability at most δ. Sides at most two require the permutation to be the identity. -/
 theorem bell_plan_confidence (side : ℕ) (a b c k : S → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (τ : Equiv.Perm S)
     (p ε δ : ℚ) (hp : 0≤p) (hp1 : p≤1/2) (hε : 0<ε)
@@ -167,7 +167,7 @@ theorem bell_plan_confidence (side : ℕ) (a b c k : S → ℝ)
 -- This is the actual physical site type and two-step periodic shift.
 -- No success-probability, positive-match or caller-selected budget certificate
 -- is an input to this endpoint.
-/-- Complete original `periodic_bell_plan_confidence` guarantee for `RetainedBellPlanConfidence`; all source hypotheses and output obligations are retained. -/
+/-- For any axis of a nonempty periodic grid, if the double-shift Bell mean is at most p in [0, 1/2], the planned estimate has error above positive ε with probability at most δ for 0 < δ < 1. -/
 theorem periodic_bell_plan_confidence (d N : ℕ) [NeZero N] (j : Fin d)
     (a b c k : (Fin d → Fin N) → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1)

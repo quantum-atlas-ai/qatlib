@@ -37,14 +37,15 @@ def floorSinEnergy (a : ℝ) (X : SpatialPoint) : ℝ := (Real.sin (a*floorInter
 /-- Definition of floor Mean Candidate in the Coded Floor construction. -/
 def floorMeanCandidate (a : ℝ) : ℝ := -physicalCubeMean (floorSinEnergy a)
 
-/-- Original `floorSinEnergy_continuous` guarantee for the `FloorMeanSign` construction; the complete source hypotheses are retained. -/
+/-- The squared sine of the bump-scaled amplitude is continuous in the spatial point for every
+amplitude. -/
 theorem floorSinEnergy_continuous (a : ℝ) : Continuous (floorSinEnergy a) :=
   (((contDiff_const.mul contDiff_floorInteriorBump).sin).pow 2).continuous
 
-/-- Original `floorSinEnergy_nonneg` guarantee for the `FloorMeanSign` construction; the complete source hypotheses are retained. -/
+/-- The sine energy is nonnegative at all spatial points. -/
 theorem floorSinEnergy_nonneg (a : ℝ) (X : SpatialPoint) : 0 ≤ floorSinEnergy a X := sq_nonneg _
 
-/-- Original `floorSinEnergy_le` guarantee for the `FloorMeanSign` construction; the complete source hypotheses are retained. -/
+/-- For a nonnegative amplitude `a`, the sine energy is bounded pointwise by `a^2`. -/
 theorem floorSinEnergy_le (a : ℝ) (ha : 0 ≤ a) (X : SpatialPoint) : floorSinEnergy a X ≤ a^2 := by
   have ht : 0 ≤ a*floorInteriorBump X := mul_nonneg ha (floorInteriorBump_nonneg X)
   have hle : a*floorInteriorBump X ≤ a := by nlinarith [floorInteriorBump_le_one X]
@@ -52,7 +53,7 @@ theorem floorSinEnergy_le (a : ℝ) (ha : 0 ≤ a) (X : SpatialPoint) : floorSin
     (Real.abs_sin_le_abs).trans (by rw [abs_of_nonneg ht]; exact hle)
   simpa only [floorSinEnergy,sq_abs] using (sq_le_sq₀ (abs_nonneg _) ha).mpr hsin
 
-/-- Original `floorSinEnergy_compactSupport` guarantee for the `FloorMeanSign` construction; the complete source hypotheses are retained. -/
+/-- The sine energy has compact support for each amplitude. -/
 theorem floorSinEnergy_compactSupport (a : ℝ) : HasCompactSupport (floorSinEnergy a) := by
   apply HasCompactSupport.intro (isCompact_closedBall floorFamilyCenter 1)
   intro X hX
@@ -61,7 +62,8 @@ theorem floorSinEnergy_compactSupport (a : ℝ) : HasCompactSupport (floorSinEne
     simpa only [dist_eq_norm] using h
   simp only [floorSinEnergy,floorInteriorBump_off_ball X hnorm.le,mul_zero,Real.sin_zero,zero_pow (by decide : 2≠0)]
 
-/-- Original `floorSinEnergy_pos_on_ball` guarantee for the `FloorMeanSign` construction; the complete source hypotheses are retained. -/
+/-- For amplitude `0 < a ≤ 1/16`, the sine energy is strictly positive in the open unit ball
+centered at the family center. -/
 theorem floorSinEnergy_pos_on_ball (a : ℝ) (ha : 0<a) (ha1 : a ≤ 1/16)
     (X : SpatialPoint) (hX : X∈ball floorFamilyCenter 1) : 0<floorSinEnergy a X := by
   have hnorm : ‖X-floorFamilyCenter‖<1 := by simpa only [dist_eq_norm] using (mem_ball.mp hX)
@@ -74,7 +76,8 @@ theorem floorSinEnergy_pos_on_ball (a : ℝ) (ha : 0<a) (ha1 : a ≤ 1/16)
     linarith [Real.pi_gt_three]
   exact sq_pos_of_pos (Real.sin_pos_of_pos_of_lt_pi (mul_pos ha hpos) htheta)
 
-/-- Original `floorSinEnergy_physicalIntegral_pos` guarantee for the `FloorMeanSign` construction; the complete source hypotheses are retained. -/
+/-- For amplitude `0 < a ≤ 1/16`, the integral of the sine energy over the physical cube is
+strictly positive. -/
 theorem floorSinEnergy_physicalIntegral_pos (a : ℝ) (ha : 0<a) (ha1 : a ≤ 1/16) :
     0<physicalCubeIntegral (floorSinEnergy a) := by
   let cube := {X : SpatialPoint | InFundamentalCube X}
@@ -93,13 +96,14 @@ theorem floorSinEnergy_physicalIntegral_pos (a : ℝ) (ha : 0<a) (ha1 : a ≤ 1/
   rw [physicalCubeIntegral_eq_volume]
   exact (integral_pos_iff_support_of_nonneg (floorSinEnergy_nonneg a) hi.integrableOn).mpr hm
 
-/-- Original `floorMeanCandidate_neg` guarantee for the `FloorMeanSign` construction; the complete source hypotheses are retained. -/
+/-- The negative cube mean of the sine energy is strictly negative when `0 < a ≤ 1/16`. -/
 theorem floorMeanCandidate_neg (a : ℝ) (ha : 0<a) (ha1 : a ≤ 1/16) : floorMeanCandidate a<0 := by
   have h : 0<physicalCubeMean (floorSinEnergy a) :=
     div_pos (floorSinEnergy_physicalIntegral_pos a ha ha1) (pow_pos physicalPeriod_pos 3)
   exact neg_neg_of_pos h
 
-/-- Original `floorMeanCandidate_abs_le` guarantee for the `FloorMeanSign` construction; the complete source hypotheses are retained. -/
+/-- For a nonnegative amplitude, the absolute value of the negative cube mean of the sine energy
+is at most the amplitude squared. -/
 theorem floorMeanCandidate_abs_le (a : ℝ) (ha : 0 ≤ a) : |floorMeanCandidate a| ≤ a^2 := by
   rw [floorMeanCandidate,abs_neg,physicalCubeMean_scale]
   apply unitCubeIntegral_abs_le
@@ -107,7 +111,7 @@ theorem floorMeanCandidate_abs_le (a : ℝ) (ha : 0 ≤ a) : |floorMeanCandidate
   rw [abs_of_nonneg (floorSinEnergy_nonneg a _)]
   exact floorSinEnergy_le a ha _
 
-/-- Original `floorMeanCandidate_floor_of_pos` guarantee for the `FloorMeanSign` construction; the complete source hypotheses are retained. -/
+/-- For amplitude `0 < a ≤ 1/16`, the integer floor of the negative mean candidate is `-1`. -/
 theorem floorMeanCandidate_floor_of_pos (a : ℝ) (ha : 0<a) (ha1 : a ≤ 1/16) :
     ⌊floorMeanCandidate a⌋=(-1 : ℤ) := by
   have hm := floorMeanCandidate_neg a ha ha1
@@ -119,14 +123,14 @@ theorem floorMeanCandidate_floor_of_pos (a : ℝ) (ha : 0<a) (ha1 : a ≤ 1/16) 
     nlinarith
   · exact hm
 
-/-- Original `floorMeanCandidate_zero` guarantee for the `FloorMeanSign` construction; the complete source hypotheses are retained. -/
+/-- The mean candidate of the sine energy at zero amplitude is zero. -/
 theorem floorMeanCandidate_zero : floorMeanCandidate 0=0 := by
   have heq : floorSinEnergy 0=fun _ : SpatialPoint => (0 : ℝ) := by
     funext X
     simp [floorSinEnergy]
   rw [floorMeanCandidate,heq,physicalCubeMean_const,neg_zero]
 
-/-- Original `floorMeanCandidate_floor_zero` guarantee for the `FloorMeanSign` construction; the complete source hypotheses are retained. -/
+/-- At amplitude zero, the integer floor of the mean candidate is zero. -/
 theorem floorMeanCandidate_floor_zero : ⌊floorMeanCandidate 0⌋=(0 : ℤ) := by rw [floorMeanCandidate_zero]; norm_num
 
 end Qatlib.Concepts.EffectiveGauge.CodedFloor

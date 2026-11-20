@@ -30,7 +30,8 @@ open Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays Qatlib.Concepts
 open Polynomial MeasureTheory
 open Polynomial.Chebyshev
 
-/-- The finite construction in `NativeChebyshevUniformMass` satisfies `chebMoment_cons` under the displayed hypotheses. -/
+/-- The degree-k Chebyshev moment of a series starting at j splits into its head coefficient times
+the degree-j and degree-k inner product, plus the moment of the tail starting at j + 1. -/
 private theorem chebMoment_cons (c : ℚ) (cs : List ℚ) (j k : ℕ) :
     (∫ x, (nativeChebyshevPolynomialFrom j (c::cs)).eval x *
       (T ℝ (k : ℤ)).eval x ∂measureT) =
@@ -41,7 +42,8 @@ private theorem chebMoment_cons (c : ℚ) (cs : List ℚ) (j k : ℕ) :
   rw [integral_add (integrable_measureT (by fun_prop))
     (integrable_measureT (by fun_prop)),integral_const_mul]
 
-/-- The finite construction in `NativeChebyshevUniformMass` satisfies `chebMoment_above` under the displayed hypotheses. -/
+/-- The degree-k moment under the Chebyshev weight vanishes when the series starts strictly above
+k. -/
 private theorem chebMoment_above (cs : List ℚ) (j k : ℕ) (h : k<j) :
     (∫ x, (nativeChebyshevPolynomialFrom j cs).eval x *
       (T ℝ (k : ℤ)).eval x ∂measureT)=0 := by
@@ -52,7 +54,8 @@ private theorem chebMoment_above (cs : List ℚ) (j k : ℕ) (h : k<j) :
       (by omega : j≠k),ih (j+1) (by omega)]
     simp
 
-/-- The finite construction in `NativeChebyshevUniformMass` satisfies `chebMoment_diagonal` under the displayed hypotheses. -/
+/-- Under the Chebyshev weight, the squared norm of the degree-zero basis polynomial is π, and
+that of every positive-degree basis polynomial is π/2. -/
 private theorem chebMoment_diagonal (k : ℕ) :
     (∫ x, (T ℝ (k : ℤ)).eval x * (T ℝ (k : ℤ)).eval x ∂measureT)=
       if k=0 then Real.pi else Real.pi/2 := by
@@ -61,7 +64,8 @@ private theorem chebMoment_diagonal (k : ℕ) :
     exact integral_eval_T_real_mul_self_measureT_zero
   · exact integral_T_real_mul_self_measureT_of_ne_zero hk
 
-/-- The finite construction in `NativeChebyshevUniformMass` satisfies `chebMoment_from` under the displayed hypotheses. -/
+/-- For k at least j, the degree-k moment of the series starting at j is coefficient k − j times
+the squared norm of the degree-k basis polynomial, using zero for a missing coefficient. -/
 private theorem chebMoment_from (cs : List ℚ) (j k : ℕ) (h : j≤k) :
     (∫ x, (nativeChebyshevPolynomialFrom j cs).eval x *
       (T ℝ (k : ℤ)).eval x ∂measureT)=
@@ -101,7 +105,9 @@ private theorem chebMoment_bound (cs : List ℚ) (u : ℝ)
           _ = u := mul_one _)
   simpa only [Real.norm_eq_abs,sub_zero,abs_of_pos Real.pi_pos] using hb
 
-/-- The finite construction in `NativeChebyshevUniformMass` satisfies `nativeChebyshevCoefficient_of_uniform` under the displayed hypotheses. -/
+/-- A uniform absolute bound u on the Chebyshev series over the closed interval from −1 to 1
+bounds the absolute value of every coefficient, including missing entries interpreted as zero,
+by 2u. -/
 theorem nativeChebyshevCoefficient_of_uniform (cs : List ℚ) (u : ℝ)
     (hu : ∀ x∈Set.Icc (-1 : ℝ) 1,
       |(nativeChebyshevPolynomialFrom 0 cs).eval x|≤u) (k : ℕ) :
@@ -118,7 +124,8 @@ theorem nativeChebyshevCoefficient_of_uniform (cs : List ℚ) (u : ℝ)
     apply le_of_mul_le_mul_right (a:=Real.pi) (a0:=Real.pi_pos)
     nlinarith
 
-/-- The finite construction in `NativeChebyshevUniformMass` satisfies `chebMass_cast` under the displayed hypotheses. -/
+/-- Casting the rational Chebyshev mass to the reals gives the sum of the absolute values of the
+cast coefficients. -/
 private theorem chebMass_cast (cs : List ℚ) :
     (nativeChebyshevMass cs : ℝ)=(cs.map (fun q : ℚ => |(q : ℝ)|)).sum := by
   induction cs with

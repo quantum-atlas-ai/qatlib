@@ -53,7 +53,10 @@ open scoped BigOperators Kronecker Matrix.Norms.L2Operator
 variable {J T I : Type} [Fintype J] [DecidableEq J]
   [Fintype T] [DecidableEq T] [Fintype I] [DecidableEq I]
 
-/-- The finite construction in `NativeEndpointDiagnosis` satisfies `abstract_classical_pue` under the displayed hypotheses. -/
+/-- If `L` is isometric and the unitary evaluation of `W` compresses through the
+labelwise `L` to `select Y`, the weighted slot word evaluated at the same `O`
+encodes the sum of `d j • Y j` divided by the positive coefficient mass.
+Both frames are `L` tagged at `j₀`. -/
 theorem abstract_classical_pue
     [outer : DecidableEq (J × T)]
     (L : Matrix T I ℂ) (O : Matrix (J × T) (J × T) ℂ)
@@ -76,7 +79,10 @@ variable {H : Type} [Fintype H] [DecidableEq H]
 local instance diagnosisOuterDecEq (b : ℕ) : DecidableEq
     (J × Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.NeumannBranchSpace (b-1) (Fin b × (Reg 6 × H))) := Classical.decEq _
 
-/-- The finite construction in `NativeEndpointDiagnosis` satisfies `diagnosis_endpoint_pue` under the displayed hypotheses. -/
+/-- For an exact input block encoding, positive cutoff, and positive coefficient
+mass, evaluating the weighted clean endpoint word at the lifted query for `U`
+encodes the sum of the endpoint blocks with weights `d j / coefficientMass d`.
+The frame on both sides is the clean endpoint frame tagged at `j₀`. -/
 theorem diagnosis_endpoint_pue (b : ℕ) (hb : 0 < b)
     (F : Matrix H I ℂ) (A : Matrix I I ℂ) (U : Matrix H H ℂ) (α : ℝ)
     (hbe : BlockEncoding A U F F α 0)

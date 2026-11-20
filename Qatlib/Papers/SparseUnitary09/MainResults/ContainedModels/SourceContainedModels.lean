@@ -18,27 +18,27 @@ set_option linter.unusedTactic false
 set_option backward.isDefEq.respectTransparency false
 
 /-!
-# SparseUnitary09 — MainResults / ContainedModels (claim c003)
+# SparseUnitary09 — MainResults / ContainedModels
 
 Source: Stephen P. Jordan & Pawel Wocjan, *Efficient quantum circuits for arbitrary
 sparse unitaries*, fixed version **arXiv:0904.2211v2 (11 Feb 2010)**.
 
-Claim c003 (Section II, p. 3, line 59): the quantum Turing machine model, anyonic
+`qtm_window_simulation_by_phi3` (Section II, p. 3, line 59): the quantum Turing machine model, anyonic
 models, permutational quantum computation and discrete-time quantum walks all lie within
-the sparse unitary model, so (by the c001 implementation and c002 equivalence) all are
+the sparse unitary model, so (by the `unitary_dilation_evolution_implements_with_ancilla_flip` implementation and `sparse_realizable_iff_unitary_realizable_poly_steps` equivalence) all are
 contained in BQP.
 
 Formalised legs in this file:
 
-* **QTM** — `c003_qtm_contained`: reference bridge to
+* **QTM** — `qtm_window_simulation_by_phi3`: reference bridge to
   `Qatlib.Concepts.UniformBqp.Phi3Compile.qtmPhi3WindowSimulation`, which
   compiles every local QTM `t`-step window into an explicit `Φ₃` gate word with `0`
   queries and an explicit gate-count bound, preserving the Born law of each
   configuration.  This is exactly the paper's "the QTM model lies within the gate /
   sparse model" leg.
-* **Permutational quantum computation** — `c003_permutational_contained`: permutation
+* **Permutational quantum computation** — `permutation_gate_family_contained_in_sparse_unitaries`: permutation
   gates are 1-sparse unitary matrices, hence sparse steps (`gateFamilyContained_of_sparse`).
-* **Discrete-time quantum walk** — `c003_dtqw_shift_contained`: the walk shift operator
+* **Discrete-time quantum walk** — `walk_shift_permutation_family_contained_in_sparse_unitaries`: the walk shift operator
   is a position permutation, i.e. a 1-sparse unitary; the walk step (shift+coin) is a
   sparse step.  It reduces to the permutational leg.
 
@@ -62,7 +62,7 @@ open Qatlib.Papers.SparseUnitary09.MainResults.Model
 
 /-! ## Quantum Turing machine leg (reference bridge to the concept layer) -/
 
-/-- Claim c003, quantum-Turing-machine leg (arXiv:0904.2211v2, Sec. II, p. 3, line 59).
+/-- `qtm_window_simulation_by_phi3`, quantum-Turing-machine leg (arXiv:0904.2211v2, Sec. II, p. 3, line 59).
 
 The theorem `Qatlib.Concepts.UniformBqp.Phi3Compile.qtmPhi3WindowSimulation`
 in `Qatlib.Concepts.UniformBqp.Phi3Compile.QtmPhi3WindowSimulationQuan` has the statement
@@ -71,7 +71,7 @@ in `Qatlib.Concepts.UniformBqp.Phi3Compile.QtmPhi3WindowSimulationQuan` has the 
 `≤ t·((2t−1)·phi3PaddingBudget(3b) + (2t+1)·phi3PaddingBudget b)`, that exactly implements
 the `t`-step window transition and preserves each configuration's Born probability.  This
 is precisely the paper's "the QTM model lies within the (sparse) gate model" step. -/
-theorem c003_qtm_contained :
+theorem qtm_window_simulation_by_phi3 :
     Qatlib.Concepts.UniformBqp.Phi3Compile.QtmPhi3WindowSimulation :=
   Qatlib.Concepts.UniformBqp.Phi3Compile.qtmPhi3WindowSimulation
 
@@ -147,38 +147,38 @@ theorem permMatrix_unitary {ι : Type*} [Fintype ι] [DecidableEq ι]
   have h : σ * σ⁻¹ = 1 := mul_inv_cancel σ
   rw [h, Matrix.permMatrix_one]
 
-/-- Claim c003, permutational-quantum-computation leg (arXiv:0904.2211v2, Sec. II, p. 3,
+/-- `qtm_window_simulation_by_phi3`, permutational-quantum-computation leg (arXiv:0904.2211v2, Sec. II, p. 3,
 line 59; the paper's refs. [22] Moore–Rockmore–Russell, [23] Beals).  Permutation gates
 (the elementary gates of the permutational model) are 1-sparse unitary matrices, hence
 sparse steps; therefore the permutational model lies within the sparse unitary model. -/
-theorem c003_permutational_contained {ι : Type*} [Fintype ι] [DecidableEq ι] :
+theorem permutation_gate_family_contained_in_sparse_unitaries {ι : Type*} [Fintype ι] [DecidableEq ι] :
     GateFamilyContained (Equiv.Perm ι) (fun σ => σ.permMatrix ℂ) :=
   gateFamilyContained_of_sparse _ 1
     (fun σ => ⟨permMatrix_unitary σ, permMatrix_rowSparse σ, permMatrix_colSparse σ⟩)
 
-/-- Claim c003, discrete-time-quantum-walk leg (arXiv:0904.2211v2, Sec. II, p. 3, line 59).
+/-- `qtm_window_simulation_by_phi3`, discrete-time-quantum-walk leg (arXiv:0904.2211v2, Sec. II, p. 3, line 59).
 The DTQW step is built from a coin (a fixed local unitary) and a shift operator; the
 shift is a permutation of the walker's position register, hence a 1-sparse unitary.  So
 the walk's shift model lies within the sparse unitary model (it reduces to the
 permutational leg, since every shift operator is a permutation matrix). -/
-theorem c003_dtqw_shift_contained {ι : Type*} [Fintype ι] [DecidableEq ι] :
+theorem walk_shift_permutation_family_contained_in_sparse_unitaries {ι : Type*} [Fintype ι] [DecidableEq ι] :
     GateFamilyContained (Equiv.Perm ι) (fun σ => σ.permMatrix ℂ) :=
-  c003_permutational_contained
+  permutation_gate_family_contained_in_sparse_unitaries
 
-/-- Claim **c003** (arXiv:0904.2211v2, Sec. II, p. 3, line 59): the QTM, permutational
+/-- Claim **`qtm_window_simulation_by_phi3`** (arXiv:0904.2211v2, Sec. II, p. 3, line 59): the QTM, permutational
 and discrete-time-quantum-walk models all lie within the sparse unitary model (hence,
-by c001 and c002, in BQP).
+by `unitary_dilation_evolution_implements_with_ancilla_flip` and `sparse_realizable_iff_unitary_realizable_poly_steps`, in BQP).
 
 This conjoins the three formalised legs.  The anyonic leg and the literal decision-class
 BQP identification are not formalised (see the file-level note and the PR write-up). -/
-theorem c003_contained_models :
+theorem qtm_window_and_sparse_permutation_containment :
     Qatlib.Concepts.UniformBqp.Phi3Compile.QtmPhi3WindowSimulation ∧
     (∀ {ι : Type*} [Fintype ι] [DecidableEq ι],
         GateFamilyContained (Equiv.Perm ι) (fun σ => σ.permMatrix ℂ)) ∧
     (∀ {ι : Type*} [Fintype ι] [DecidableEq ι],
         GateFamilyContained (Equiv.Perm ι) (fun σ => σ.permMatrix ℂ)) :=
-  ⟨c003_qtm_contained,
-   fun {_ι} _ _ => c003_permutational_contained,
-   fun {_ι} _ _ => c003_dtqw_shift_contained⟩
+  ⟨qtm_window_simulation_by_phi3,
+   fun {_ι} _ _ => permutation_gate_family_contained_in_sparse_unitaries,
+   fun {_ι} _ _ => walk_shift_permutation_family_contained_in_sparse_unitaries⟩
 
 end Qatlib.Papers.SparseUnitary09.MainResults.ContainedModels

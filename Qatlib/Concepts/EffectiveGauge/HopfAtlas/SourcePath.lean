@@ -40,12 +40,14 @@ def sourcePathOver (g : P × ℝ → F) (hg : Continuous g)
   ⟨fun t => g (p, t), hg.comp (continuous_const.prodMk continuous_subtype_val)⟩
 
 omit [NormedSpace ℝ P] [NormedSpace ℝ F] in
-/-- Original `sourcePathOver_apply` guarantee for the `SourcePath` construction; the complete source hypotheses are retained. -/
+/-- Evaluating the path associated with a continuous parameter-time function at parameter `p`
+and time `t` gives the original value at `(p, t)`. -/
 @[simp] theorem sourcePathOver_apply (g : P × ℝ → F) (hg : Continuous g)
     (p : P) (t : TransportTime) : sourcePathOver g hg p t=g (p, t) := rfl
 
 omit [NormedSpace ℝ P] [NormedSpace ℝ F] in
-/-- Original `continuous_sourcePathOver` guarantee for the `SourcePath` construction; the complete source hypotheses are retained. -/
+/-- On the compact transport interval, a continuous parameter-time function induces a continuous
+family of paths in supremum norm. -/
 theorem continuous_sourcePathOver (g : P × ℝ → F) (hg : Continuous g) :
     Continuous (sourcePathOver g hg) := by
   apply ContinuousMap.continuous_of_continuous_uncurry
@@ -65,7 +67,8 @@ private def pathLinear (A : C(TransportTime, P →L[ℝ] F)) :
       exact ((A t).le_opNorm v).trans
         (mul_le_mul_of_nonneg_right (A.norm_coe_le_norm t) (norm_nonneg v)))
 
-/-- Original `pathLinear_norm` guarantee for the `SourcePath` construction; the complete source hypotheses are retained. -/
+/-- The operator norm of applying a continuous path of linear maps to one parameter direction is
+bounded by the supremum of the pointwise operator norms. -/
 private theorem pathLinear_norm (A : C(TransportTime, P →L[ℝ] F)) :
     ‖pathLinear A‖ ≤ ‖A‖ := by
   apply ContinuousLinearMap.opNorm_le_bound (pathLinear A) (M := ‖A‖) (norm_nonneg A)
@@ -84,7 +87,8 @@ private def pathLinearCLM : C(TransportTime, P →L[ℝ] F) →L[ℝ]
       map_smul' := by intro c A; apply ContinuousLinearMap.ext; intro v; apply ContinuousMap.ext; intro t; rfl }
     1 (by intro A; simpa using pathLinear_norm A)
 
-/-- Original `hasFDerivAt_path_of_pointwise` guarantee for the `SourcePath` construction; the complete source hypotheses are retained. -/
+/-- If each time evaluation has derivative given by evaluating a common continuous
+operator-valued map `D`, the path-valued derivative at `p₀` equals `D p₀`. -/
 private theorem hasFDerivAt_path_of_pointwise
     (f : P → C(TransportTime, F))
     (D : P → P →L[ℝ] C(TransportTime, F))
@@ -125,12 +129,14 @@ private theorem hasFDerivAt_path_of_pointwise
 private def sourceDerivative (g : P × ℝ → F) (z : P × ℝ) :
     P →L[ℝ] F := (fderiv ℝ g z).comp (ContinuousLinearMap.inl ℝ P ℝ)
 
-/-- Original `continuous_sourceDerivative` guarantee for the `SourcePath` construction; the complete source hypotheses are retained. -/
+/-- For a continuously differentiable parameter-time function, the Fréchet derivative restricted
+to the parameter directions is jointly continuous. -/
 private theorem continuous_sourceDerivative {g : P × ℝ → F}
     (hg : ContDiff ℝ 1 g) : Continuous (sourceDerivative g) := by
   exact (hg.fderiv_right (m := 0) (by simp)).continuous.clm_comp continuous_const
 
-/-- Original `sourcePathOver_hasFDerivAt` guarantee for the `SourcePath` construction; the complete source hypotheses are retained. -/
+/-- For a continuously differentiable parameter-time function, the derivative of its path family
+applies the pointwise parameter derivative to the same parameter direction at each time. -/
 private theorem sourcePathOver_hasFDerivAt {g : P × ℝ → F} (hg : ContDiff ℝ 1 g)
     (p : P) : HasFDerivAt (sourcePathOver g hg.continuous)
       (pathLinearCLM (sourcePathOver (sourceDerivative g) (continuous_sourceDerivative hg) p)) p := by
@@ -147,7 +153,8 @@ private theorem sourcePathOver_hasFDerivAt {g : P × ℝ → F} (hg : ContDiff �
 
 variable [FiniteDimensional ℝ P]
 
-/-- Original `contDiff_sourcePathOver_nat` guarantee for the `SourcePath` construction; the complete source hypotheses are retained. -/
+/-- Forming the continuous path in the time variable preserves `C^n` dependence on the parameter
+for every finite order `n`. -/
 private theorem contDiff_sourcePathOver_nat (n : ℕ) :
     ∀ (g : P × ℝ → F) (hg : ContDiff ℝ (n : ℕ∞ω) g),
       ContDiff ℝ (n : ℕ∞ω) (sourcePathOver g hg.continuous) := by
@@ -196,12 +203,14 @@ def sourcePath (g : TransversePoint × ℝ → F) (hg : Continuous g)
     (p : TransversePoint) : C(TransportTime, F) := sourcePathOver g hg p
 
 omit [NormedSpace ℝ F] in
-/-- Original `sourcePath_apply` guarantee for the `SourcePath` construction; the complete source hypotheses are retained. -/
+/-- For a continuous function of transverse position and time, evaluating its corresponding path
+at time `t` and position `p` recovers the function's value at `(p, t)`. -/
 @[simp] theorem sourcePath_apply (g : TransversePoint × ℝ → F) (hg : Continuous g)
     (p : TransversePoint) (t : TransportTime) : sourcePath g hg p t=g (p, t) := rfl
 
 omit [NormedSpace ℝ F] in
-/-- Original `continuous_sourcePath` guarantee for the `SourcePath` construction; the complete source hypotheses are retained. -/
+/-- A continuous function of transverse position and time gives a continuous map from transverse
+position to its path on the closed transport interval. -/
 theorem continuous_sourcePath (g : TransversePoint × ℝ → F) (hg : Continuous g) :
     Continuous (sourcePath g hg) := continuous_sourcePathOver g hg
 

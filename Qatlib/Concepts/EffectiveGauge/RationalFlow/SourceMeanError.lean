@@ -22,13 +22,15 @@ open scoped ContDiff BigOperators
 namespace Qatlib.Concepts.EffectiveGauge.RationalFlow
 open Qatlib.Concepts.EffectiveGauge.HopfAtlas
 
-/-- Original `sourceMeanGrid_mem` guarantee for the `SourceMeanError` construction; the complete source hypotheses are retained. -/
+/-- An index triple belongs to the source mean grid exactly when each of its three entries is below
+`N`. -/
 theorem sourceMeanGrid_mem (N : ℕ) (index : SourceMeanIndex) :
     index ∈ sourceMeanGrid N ↔ index.1<N ∧ index.2.1<N ∧ index.2.2<N := by
   rcases index with ⟨k,l,m⟩
   simp [sourceMeanGrid,List.mem_flatMap,List.mem_map,List.mem_range]
 
-/-- Original `sourceMeanUnitPoint_mem` guarantee for the `SourceMeanError` construction; the complete source hypotheses are retained. -/
+/-- With a positive mesh size, every coordinate of a source mean grid node belongs to the real unit
+interval. -/
 theorem sourceMeanUnitPoint_mem (N : ℕ) (hN : 0<N) (index : SourceMeanIndex)
     (hi : index ∈ sourceMeanGrid N) : ∀ i, (sourceMeanUnitPoint N index i : ℝ) ∈ Icc 0 1 := by
   have hidx := (sourceMeanGrid_mem N index).mp hi
@@ -41,7 +43,8 @@ theorem sourceMeanUnitPoint_mem (N : ℕ) (hN : 0<N) (index : SourceMeanIndex)
   simpa only [sourceMeanUnitPoint,Rat.cast_div,Rat.cast_natCast] using
     meanLeftNode_mem N hN (sourceMeanIndexCoord index i) hc
 
-/-- Original `sourceMeanUnitPoint_cast` guarantee for the `SourceMeanError` construction; the complete source hypotheses are retained. -/
+/-- Casting the rational node indexed by `(k, l, m)` gives the spatial tensor point with real
+coordinates `k / N`, `l / N`, and `m / N`. -/
 theorem sourceMeanUnitPoint_cast (N : ℕ) (k l m : ℕ) :
     rationalSpatialPoint (sourceMeanUnitPoint N (k,l,m))=
       meanTensorSpatial ((k : ℝ)/(N : ℝ),(l : ℝ)/(N : ℝ),(m : ℝ)/(N : ℝ)) := by
@@ -59,7 +62,8 @@ theorem sourceMeanSchedule_legal (m1 m2 : ℚ) (N b : ℕ) (hN : 0<N) :
   rw [sourceMeanPacketSchedule_eq] at hq
   exact sourceFirstJetSchedule_legal m1 m2 _ b (sourceMeanUnitPoint_mem N hN index hi) q hq
 
-/-- Original `meanGridAverage_sub_bound` guarantee for the `SourceMeanError` construction; the complete source hypotheses are retained. -/
+/-- On a positive-sized mesh, a uniform absolute difference bound at every indexed triple also
+bounds the difference between the two normalized grid sums. -/
 private theorem meanGridAverage_sub_bound (N : ℕ) (hN : 0<N) (A B : ℕ → ℕ → ℕ → ℝ)
     (E : ℝ) (hAB : ∀ k<N, ∀ l<N, ∀ m<N, |A k l m-B k l m| ≤ E) :
     |(∑ k ∈ Finset.range N, ∑ l ∈ Finset.range N, ∑ m ∈ Finset.range N, A k l m)/(N : ℝ)^3-

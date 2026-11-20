@@ -37,12 +37,14 @@ def sourceCorrectionPhase (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ
     (q₀ : ℍ) (h₀ : ‖q₀‖=1) (eta : ℝ) (x : SpatialPoint) : ℝ :=
   -(unitCutoffField eta x*sourceUnitRealPhase v hv q₀ h₀ x)
 
-/-- Original `contDiff_sourceCorrectionPhase` guarantee for the `SourceCorrectionWord` construction; the complete source hypotheses are retained. -/
+/-- For a smooth source field and unit seed, the negative product of the unit cutoff field and the
+normalized terminal phase is smooth for every real `eta`. -/
 theorem contDiff_sourceCorrectionPhase (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (q₀ : ℍ) (h₀ : ‖q₀‖=1) (eta : ℝ) : ContDiff ℝ ∞ (sourceCorrectionPhase v hv q₀ h₀ eta) :=
   ((contDiff_unitCutoffField eta).mul (contDiff_sourceUnitRealPhase v hv q₀ h₀)).neg
 
-/-- Original `sourceFrameCorrectionMajorant_cast` guarantee for the `SourceCorrectionWord` construction; the complete source hypotheses are retained. -/
+/-- For `r < 8`, the real cast of the correction majorant is the order-`r` word product majorant
+formed from the cutoff bounds and the terminal phase bounds. -/
 theorem sourceFrameCorrectionMajorant_cast (packet : SourceFrameBoundPacket) (eta : ℚ) (r : Fin 8) :
     (sourceFrameCorrectionMajorant packet eta r : ℝ)=
       wordProductMajorant (fun j => (cutoffUnitMajorant eta j : ℝ))

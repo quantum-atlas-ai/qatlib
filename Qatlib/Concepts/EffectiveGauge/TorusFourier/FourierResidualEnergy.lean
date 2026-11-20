@@ -33,7 +33,7 @@ multiplication by L^3. The derivative term has L^-2, not an extra L^2. -/
 def unitFourierH1Energy (f : SpatialPoint → ℂ) : ℝ :=
   unitBoxEnergy f+(∑ i : Fin 3, unitBoxEnergy (spatialWordPartial f [i]))/physicalPeriod^2
 
-/-- Original `unitFourierResidual_H1_hasSum` guarantee for the `FourierResidualEnergy` construction; the complete source hypotheses are retained. -/
+/-- For a smooth unit-periodic field minus a finite Fourier truncation, the squared residual coefficients weighted by one plus frequency energy sum to the residual energy, with first derivative energies scaled by the inverse period squared. -/
 theorem unitFourierResidual_H1_hasSum (f : SpatialPoint → ℂ) (hf : ContDiff ℝ ∞ f)
     (hp : IsUnitPeriodicField f) (a : SpatialFrequency → ℂ) (N : ℕ) :
     HasSum (fun k : SpatialFrequency => (1+frequencyEnergy k)*
@@ -57,7 +57,8 @@ theorem unitFourierResidual_H1_hasSum (f : SpatialPoint → ℂ) (hf : ContDiff 
     ring
   · simp only [unitFourierH1Energy,unitBoxEnergy,Finset.sum_div]
 
-/-- Original `unitFourierResidual_H1_split` guarantee for the `FourierResidualEnergy` construction; the complete source hypotheses are retained. -/
+/-- For a smooth unit-periodic field, the residual energy splits into the weighted squared errors of
+its coefficients inside the radius-`N` cube and the original field's weighted Fourier tail outside it. -/
 theorem unitFourierResidual_H1_split (f : SpatialPoint → ℂ) (hf : ContDiff ℝ ∞ f)
     (hp : IsUnitPeriodicField f) (a : SpatialFrequency → ℂ) (N : ℕ) :
     unitFourierH1Energy (unitFourierResidual f a N)=
@@ -104,7 +105,8 @@ theorem unitFourierResidual_H1_split (f : SpatialPoint → ℂ) (hf : ContDiff �
   · simp only [inside,outside,ite_eq_left hk,add_zero]
   · simp only [inside,outside,ite_eq_right hk,zero_add,sub_zero]
 
-/-- Original `unitFourierResidual_H1_le` guarantee for the `FourierResidualEnergy` construction; the complete source hypotheses are retained. -/
+/-- For a smooth unit-periodic field with coefficient errors at most `delta ≥ 0` inside the radius-`N` cube and pure third derivatives bounded in norm by `M3 ≥ 0` on the unit cube, the residual energy is bounded by
+`(2*N+1)^3*(1+3*N^2)*delta^2 + 12*M3^2/(physicalPeriod^6*(N+1)^4)`. -/
 theorem unitFourierResidual_H1_le (f : SpatialPoint → ℂ) (hf : ContDiff ℝ ∞ f)
     (hp : IsUnitPeriodicField f) (a : SpatialFrequency → ℂ) (N : ℕ)
     (delta M3 : ℝ) (hd : 0 ≤ delta) (hM : 0 ≤ M3)

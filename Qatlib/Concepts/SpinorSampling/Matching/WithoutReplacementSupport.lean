@@ -38,7 +38,8 @@ def withoutReplacementConstant : ℕ → ℕ → ℝ
   | M, n+1 => withoutReplacementConstant (M-1) n/(M : ℝ)
 
 omit [Fintype S] in
-/-- Complete original `without_replacement_mass_valid_eq_constant` guarantee for `WithoutReplacementSupport`; all source hypotheses and output obligations are retained. -/
+/-- An injective array of length `n` in `R` has the same without-replacement mass as any other
+such array, given by the recursive weight for `|R|` and `n`. -/
 theorem without_replacement_mass_valid_eq_constant
     (R : Finset S) (n : ℕ) (hn : n ≤ R.card) (ω : Fin n → S)
     (hmem : ∀ i, ω i ∈ R) (hinj : Function.Injective ω) :
@@ -67,7 +68,8 @@ theorem without_replacement_mass_valid_eq_constant
 
 
 omit [Fintype S] in
-/-- Complete original `without_replacement_mass_pos_mem` guarantee for `WithoutReplacementSupport`; all source hypotheses and output obligations are retained. -/
+/-- If an array has positive mass under the recursive without-replacement rule, every entry
+belongs to the starting set `R`. -/
 theorem without_replacement_mass_pos_mem
     (R : Finset S) (n : ℕ) (ω : Fin n → S)
     (hpos : 0 < withoutReplacementMass R n ω) :
@@ -101,7 +103,7 @@ theorem without_replacement_mass_pos_mem
       exact (Finset.mem_erase.mp hs').2
 
 omit [Fintype S] in
-/-- Complete original `without_replacement_mass_pos_injective` guarantee for `WithoutReplacementSupport`; all source hypotheses and output obligations are retained. -/
+/-- An array with positive without-replacement mass has distinct entries. -/
 theorem without_replacement_mass_pos_injective
     (R : Finset S) (n : ℕ) (ω : Fin n → S)
     (hpos : 0 < withoutReplacementMass R n ω) :

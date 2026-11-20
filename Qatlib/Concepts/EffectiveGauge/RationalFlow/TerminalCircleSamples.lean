@@ -35,7 +35,8 @@ def rescaledLineOnChart (source : (Fin 3 → ℚ) × ℕ → RationalSpinSample)
   else seed*rationalCayleyValue
     (physicalCayleyExecution samples (a 1) (a 2) (a 0) (7*m1) (49*m2) (tolerance/4))
 
-/-- Original `rescaledLineOnChart_chosen` guarantee for the `TerminalCircleSamples` construction; the complete source hypotheses are retained. -/
+/-- Supplying the origin chart chosen from the rescaled samples gives exactly the ordinary rescaled
+line value at every address and tolerance. -/
 theorem rescaledLineOnChart_chosen (source : (Fin 3 → ℚ) × ℕ → RationalSpinSample)
     (m1 m2 : ℚ) (a : Fin 3 → ℚ) (tolerance : ℚ) :
     rescaledLineOnChart source m1 m2 (chosenOriginChart (rescaledSpinSamples source m1 m2)) a tolerance=
@@ -51,7 +52,8 @@ def terminalCircleSamplesOnChart (source : (Fin 3 → ℚ) × ℕ → RationalSp
   let ratio := q*star qc
   (ratio.re,ratio.imI)
 
-/-- Original `terminalCircleSamplesOnChart_chosen` guarantee for the `TerminalCircleSamples` construction; the complete source hypotheses are retained. -/
+/-- For fixed slice coordinate `z`, using the origin chart chosen from the rescaled source gives the
+ordinary terminal sample function at every query label. -/
 theorem terminalCircleSamplesOnChart_chosen (source : (Fin 3 → ℚ) × ℕ → RationalSpinSample)
     (m1 m2 z : ℚ) :
     terminalCircleSamplesOnChart source m1 m2 z (chosenOriginChart (rescaledSpinSamples source m1 m2))=
@@ -70,11 +72,13 @@ def rescaledTerminalRatio (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ
   terminalRatio v hv (rescaledOriginSeed v source m1 m2) (rescaledOriginSeed_spec v hu source hs m1 m2).1
     (physicalPeriod • p)
 
-/-- Original `rationalQuaternionCast_star` guarantee for the `TerminalCircleSamples` construction; the complete source hypotheses are retained. -/
+/-- Quaternion conjugation commutes with casting rational coordinates to the reals. -/
 theorem rationalQuaternionCast_star (q : Quaternion ℚ) : rationalQuaternionCast (star q)=star (rationalQuaternionCast q) := by
   apply Quaternion.ext <;> simp [rationalQuaternionCast]
 
-/-- Original `rescaledRaw_finish` guarantee for the `TerminalCircleSamples` construction; the complete source hypotheses are retained. -/
+/-- Evaluating the source lift extension on the physical terminal face at transverse coordinates
+scaled from `(t, z)` gives the transport path's terminal quaternion there for a smooth unit spin and
+unit initial quaternion. -/
 private theorem rescaledRaw_finish (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (hu : ∀ w, ‖v w‖=1) (q₀ : ℍ) (h₀ : ‖q₀‖=1) (t z : ℚ) :
     sourceLiftSpatialExtension v hv q₀ h₀ (physicalPeriod • rationalSpatialPoint ![1,t,z])=
@@ -87,14 +91,17 @@ private theorem rescaledRaw_finish (v : SpatialPoint → SpatialPoint) (hv : Con
       simp
   rw [sourceLiftSpatialExtension,hpos,sourceLiftExtension_eq v hv hu q₀ h₀ _ transportFinish]
 
-/-- Original `contDiff_rescaledTerminalRatio` guarantee for the `TerminalCircleSamples` construction; the complete source hypotheses are retained. -/
+/-- For a smooth unit spin and a source accurate for the spin and its first-axis derivative, the
+rescaled terminal ratio is smooth in the transverse coordinates. -/
 theorem contDiff_rescaledTerminalRatio (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (hu : ∀ w, ‖v w‖=1) (source : (Fin 3 → ℚ) × ℕ → RationalSpinSample)
     (hs : OriginalSpinSourceAccurate v source) (m1 m2 : ℚ) :
     ContDiff ℝ ∞ (rescaledTerminalRatio v hv hu source hs m1 m2) :=
   (contDiff_terminalRatio v hv _ _).comp (contDiff_id.const_smul physicalPeriod)
 
-/-- Original `rescaledTerminalRatio_circle` guarantee for the `TerminalCircleSamples` construction; the complete source hypotheses are retained. -/
+/-- For a smooth periodic unit spin with accurate spin and first-axis samples, assume the spin is
+constant outside a cube subset at distance at least `mu > 0` from the boundary. At every transverse
+point the rescaled terminal ratio is a unit quaternion with vanishing J and K coordinates. -/
 theorem rescaledTerminalRatio_circle (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (hu : ∀ w, ‖v w‖=1) (hp : IsPeriodicField v)
     (source : (Fin 3 → ℚ) × ℕ → RationalSpinSample) (hs : OriginalSpinSourceAccurate v source) (m1 m2 : ℚ)

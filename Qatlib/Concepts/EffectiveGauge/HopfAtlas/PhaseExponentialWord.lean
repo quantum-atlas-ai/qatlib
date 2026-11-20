@@ -29,7 +29,8 @@ termination_by n => n
 noncomputable section
 open scoped Quaternion ContDiff
 
-/-- Original `phaseWordMajorant_succ_cast` guarantee for the `PhaseExponentialWord` construction; the complete source hypotheses are retained. -/
+/-- After casting to reals, the phase derivative bound at order `n + 1` is the product majorant
+at order `n` for the shifted input bounds and the original phase bounds. -/
 theorem phaseWordMajorant_succ_cast (Phi : ℕ → ℚ) (n : ℕ) :
     (phaseWordMajorant Phi (n+1) : ℝ)=
       wordProductMajorant (fun j => (Phi (j+1) : ℝ)) (fun j => (phaseWordMajorant Phi j : ℝ)) n := by
@@ -38,7 +39,8 @@ theorem phaseWordMajorant_succ_cast (Phi : ℕ → ℚ) (n : ℕ) :
   exact (Finset.sum_range (n := n+1) (fun j => (n.choose j : ℝ)*(Phi (j+1) : ℝ)*
     (phaseWordMajorant Phi (n-j) : ℝ))).symm
 
-/-- Original `spatialWordPartial_phase_first` guarantee for the `PhaseExponentialWord` construction; the complete source hypotheses are retained. -/
+/-- For a smooth real phase function, its quaternion exponential's first partial is the real
+quaternion corresponding to the angle partial times `iAxis * phase (f x)`. -/
 theorem spatialWordPartial_phase_first (f : SpatialPoint → ℝ) (hf : ContDiff ℝ ∞ f) (i : Fin 3) :
     spatialWordPartial (fun x => phase (f x)) [i]=fun x =>
       realQuaternionCLM (spatialWordPartial f [i] x)*(iAxis*phase (f x)) := by

@@ -52,7 +52,9 @@ def physicalCoefficientOracle (source : (Fin 3 → ℚ) × ℕ → RationalSpinS
 def physicalCoefficientSourceQuery (y z x m1 : ℚ) (label : ℚ × ℕ) : (Fin 3 → ℚ) × ℕ :=
   physicalLineSourceQuery y z x (coefficientSourceQuery (x*m1) label)
 
-/-- Original `physicalCoefficientSourceQuery_eq` guarantee for the `PhysicalLine` construction; the complete source hypotheses are retained. -/
+/-- A coefficient query on the physical line samples the point with longitudinal coordinate
+`x * label.1` and transverse coordinates `y, z`. It adds both the spin-coefficient and
+line-scaling overheads to the requested precision. -/
 theorem physicalCoefficientSourceQuery_eq (y z x m1 : ℚ) (label : ℚ × ℕ) :
     physicalCoefficientSourceQuery y z x m1 label=
       (physicalLinePoint y z x label.1,label.2+spinCoefficientOverhead (x*m1)+physicalLineOverhead x) := rfl
@@ -76,7 +78,8 @@ def physicalCayleyChargedExecution (source : (Fin 3 → ℚ) × ℕ → Rational
       let answer := source (physicalCoefficientSourceQuery y z x m1 label)
       (roundedHorizontalSample (scaledPhysicalSample x answer.1) label.2,answer.2))
 
-/-- Original `physicalCayleyChargedExecution_state` guarantee for the `PhysicalLine` construction; the complete source hypotheses are retained. -/
+/-- Keeping the fees of the physical Cayley queries produces the same final state as running the
+value-only physical Cayley execution on the same samples. -/
 theorem physicalCayleyChargedExecution_state (source : (Fin 3 → ℚ) × ℕ → RationalSpinSample × ℕ)
     (y z x m1 m2 tolerance : ℚ) :
     (physicalCayleyChargedExecution source y z x m1 m2 tolerance).state=
@@ -85,7 +88,8 @@ theorem physicalCayleyChargedExecution_state (source : (Fin 3 → ℚ) × ℕ �
     cayleyPlannedExecution,physicalCoefficientOracle,physicalCoefficientSourceQuery]
   rfl
 
-/-- Original `physicalCayleyChargedExecution_fee_le` guarantee for the `PhysicalLine` construction; the complete source hypotheses are retained. -/
+/-- If every scheduled physical Cayley query has fee at most `T`, the total source fee is at
+most the number of Cayley steps times `T`. -/
 theorem physicalCayleyChargedExecution_fee_le (source : (Fin 3 → ℚ) × ℕ → RationalSpinSample × ℕ)
     (y z x m1 m2 tolerance : ℚ) (T : ℕ)
     (hfee : ∀ j < cayleySteps (x*m1/2) (x^2*(m1^2+m2)/2) tolerance,
@@ -95,14 +99,16 @@ theorem physicalCayleyChargedExecution_fee_le (source : (Fin 3 → ℚ) × ℕ �
       cayleySteps (x*m1/2) (x^2*(m1^2+m2)/2) tolerance*T :=
   cayleyChargedExecution_fee_le _ _ T _ hfee
 
-/-- Original `physicalLineOverhead_bound` guarantee for the `PhysicalLine` construction; the complete source hypotheses are retained. -/
+/-- The dyadic precision factor from the physical line overhead bounds both one and the rational
+line length `x`. -/
 theorem physicalLineOverhead_bound (x : ℚ) :
     1 ≤ (2^physicalLineOverhead x : ℚ) ∧ x ≤ (2^physicalLineOverhead x : ℚ) := by
   have hpow : Nat.ceil (max 1 x) ≤ 2^physicalLineOverhead x := Nat.le_pow_clog (by decide) _
   have h : max 1 x ≤ (2^physicalLineOverhead x : ℚ) := (Nat.le_ceil _).trans (by exact_mod_cast hpow)
   exact ⟨(le_max_left _ _).trans h,(le_max_right _ _).trans h⟩
 
-/-- Original `physicalLineOverhead_error` guarantee for the `PhysicalLine` construction; the complete source hypotheses are retained. -/
+/-- Increasing precision by the physical-line overhead keeps both the new dyadic error and the
+error multiplied by `x` below the original dyadic error bound. -/
 theorem physicalLineOverhead_error (x : ℚ) (b : ℕ) :
     (2^(b+physicalLineOverhead x) : ℚ)⁻¹ ≤ (2^b : ℚ)⁻¹ ∧
       x*(2^(b+physicalLineOverhead x) : ℚ)⁻¹ ≤ (2^b : ℚ)⁻¹ := by
@@ -120,7 +126,8 @@ theorem physicalLineOverhead_error (x : ℚ) (b : ℕ) :
       _ ≤ 1*(2^b : ℚ)⁻¹ := mul_le_mul_of_nonneg_right hxi (inv_nonneg.mpr hp.le)
       _ = _ := one_mul _
 
-/-- Original `physicalCayleySourceSchedule_length` guarantee for the `PhysicalLine` construction; the complete source hypotheses are retained. -/
+/-- The physical Cayley query schedule contains one entry per Cayley step computed from the
+line-scaled coefficient and derivative bounds. -/
 @[simp] theorem physicalCayleySourceSchedule_length (y z x m1 m2 tolerance : ℚ) :
     (physicalCayleySourceSchedule y z x m1 m2 tolerance).length=
       cayleySteps (x*m1/2) (x^2*(m1^2+m2)/2) tolerance := by simp [physicalCayleySourceSchedule]
@@ -135,7 +142,8 @@ def rationalSpatialPoint (a : Fin 3 → ℚ) : SpatialPoint := WithLp.toLp 2 (fu
 /-- Definition of rational Transverse Point in the Hopf Atlas construction. -/
 def rationalTransversePoint (y z : ℚ) : TransversePoint := WithLp.toLp 2 ![(y : ℝ),(z : ℝ)]
 
-/-- Original `physicalLinePoint_cast` guarantee for the `PhysicalLine` construction; the complete source hypotheses are retained. -/
+/-- The rational physical-line point casts to the spatial point with transverse coordinates
+`y, z` and longitudinal coordinate `x * t`. -/
 theorem physicalLinePoint_cast (y z x t : ℚ) : rationalSpatialPoint (physicalLinePoint y z x t)=
     sourcePosition (rationalTransversePoint y z,(x : ℝ)*(t : ℝ)) := by
   ext j
@@ -155,7 +163,9 @@ def OriginalSpinSourceAccurate (v : SpatialPoint → SpatialPoint)
     (∀ j, |((source (a,b)).2 j : ℝ)-fderiv ℝ v (rationalSpatialPoint a) (EuclideanSpace.single 0 1) j| ≤
       (2^b : ℝ)⁻¹)
 
-/-- Original `physicalLinePoint_in_cube` guarantee for the `PhysicalLine` construction; the complete source hypotheses are retained. -/
+/-- If `x`, `y`, and `z` are in the closed physical period interval and `t` is in the unit
+interval, every coordinate of the physical-line sample point lies in the physical period
+interval. -/
 theorem physicalLinePoint_in_cube (y z x t : ℚ)
     (hx : 0 ≤ (x : ℝ) ∧ (x : ℝ) ≤ physicalPeriod)
     (hy : 0 ≤ (y : ℝ) ∧ (y : ℝ) ≤ physicalPeriod)
@@ -170,7 +180,8 @@ theorem physicalLinePoint_in_cube (y z x t : ℚ)
   · exact hy
   · exact hz
 
-/-- Original `physicalGrid_mem` guarantee for the `PhysicalLine` construction; the complete source hypotheses are retained. -/
+/-- A grid index strictly below its positive denominator represents a point in the closed unit
+interval after casting the rational quotient to the reals. -/
 private theorem physicalGrid_mem (D : ℕ) (hD : 0<D) (j : ℕ) (hj : j<D) :
     (((j : ℚ)/(D : ℚ) : ℚ) : ℝ) ∈ Icc 0 1 := by
   have hDr : (0 : ℝ)<D := by exact_mod_cast hD
@@ -192,7 +203,9 @@ theorem physicalCayleySourceSchedule_legal (y z x m1 m2 tolerance : ℚ)
   exact physicalLinePoint_in_cube y z x _ hx hy hz
     (physicalGrid_mem _ (cayleySteps_spec _ _ _).1 j hj)
 
-/-- Original `physicalLineSamples_accuracy` guarantee for the `PhysicalLine` construction; the complete source hypotheses are retained. -/
+/-- For an accurate source and a line in the fundamental cube with normalized time in `[0, 1]`,
+both the sampled value and the first derivative scaled by `x` have coordinatewise error at most
+`1 / 2^b`. -/
 theorem physicalLineSamples_accuracy (v : SpatialPoint → SpatialPoint)
     (source : (Fin 3 → ℚ) × ℕ → RationalSpinSample) (hsource : OriginalSpinSourceAccurate v source)
     (y z x t : ℚ) (b : ℕ)

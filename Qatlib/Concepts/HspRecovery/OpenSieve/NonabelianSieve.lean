@@ -30,7 +30,7 @@ hidden-reflection label probabilities.
 The charged execution `PhysicalTrace.runT` connects actual record preparation, pair extraction,
 and parity readout to the sieve of [Kuperberg2005]. Its marginal agrees with the actual sieve,
 and `actualSieveConsumer` combines the success bound with query, gate, measurement, and
-live-record bounds; `frontier1` collects the Fourier, record, extraction, and consumer
+live-record bounds; `nonabelian_sieve_transport_and_extraction` collects the Fourier, record, extraction, and consumer
 statements.
 
 ## Main statements
@@ -43,7 +43,7 @@ statements.
   extraction branches.
 * `actualSieveConsumer` establishes the actual parity sieve's probability and resource
   guarantees.
-- `frontier1` combines the four transport and execution guarantees.
+- `nonabelian_sieve_transport_and_extraction` combines the four transport and execution guarantees.
 
 ## References
 
@@ -2312,7 +2312,7 @@ theorem actualSieveConsumer : ActualSieveConsumer := by
 
 /-- The finite Fourier transform, representation-record transport, explicit two-qubit extraction
 law, and actual sieve consumer properties all hold. -/
-theorem frontier1 :
+theorem nonabelian_sieve_transport_and_extraction :
     FiniteFourierTransport ∧ RepresentationRecordTransport ∧
       ExplicitExtractionLaw ∧ ActualSieveConsumer :=
   ⟨finiteFourierTransport, representationRecordTransport, explicitExtractionLaw, actualSieveConsumer⟩

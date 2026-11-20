@@ -28,13 +28,15 @@ open scoped ContDiff
 namespace Qatlib.Concepts.EffectiveGauge.HopfAtlas
 open Qatlib.Concepts.EffectiveGauge.RationalFlow
 
-/-- Original `contDiff_unitCoordinateSpin` guarantee for the `UnitSourceMoment` construction; the complete source hypotheses are retained. -/
+/-- Evaluating a smooth vector source at spatial points scaled by the physical period gives a
+smooth vector field on unit coordinates. -/
 theorem contDiff_unitCoordinateSpin (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v) :
     ContDiff ℝ ∞ (unitCoordinateSpin v) := by
   change ContDiff ℝ ∞ (fun u : SpatialPoint => v (physicalPeriod • u))
   exact hv.comp ((contDiff_id : ContDiff ℝ ∞ (fun u : SpatialPoint => u)).const_smul physicalPeriod)
 
-/-- Original `sourcePhysicalPartial_unitCoordinateSpin` guarantee for the `UnitSourceMoment` construction; the complete source hypotheses are retained. -/
+/-- The first partial of the rescaled smooth source is the corresponding physical partial at
+`physicalPeriod • u` multiplied by one factor of `physicalPeriod`. -/
 theorem sourcePhysicalPartial_unitCoordinateSpin (v : SpatialPoint → SpatialPoint)
     (hv : ContDiff ℝ ∞ v) (u : SpatialPoint) (i : Fin 3) :
     sourcePhysicalPartial (unitCoordinateSpin v) i u=
@@ -45,7 +47,8 @@ theorem sourcePhysicalPartial_unitCoordinateSpin (v : SpatialPoint → SpatialPo
   rw [sourcePhysicalPartial,hd.fderiv]
   simp [sourcePhysicalPartial]
 
-/-- Original `sourcePhysicalSecond_unitCoordinateSpin` guarantee for the `UnitSourceMoment` construction; the complete source hypotheses are retained. -/
+/-- The derivative in direction `k` of the rescaled smooth source's partial in direction `i` is the
+corresponding derivative at `physicalPeriod • u` multiplied by `physicalPeriod^2`. -/
 theorem sourcePhysicalSecond_unitCoordinateSpin (v : SpatialPoint → SpatialPoint)
     (hv : ContDiff ℝ ∞ v) (u : SpatialPoint) (i k : Fin 3) :
     fderiv ℝ (sourcePhysicalPartial (unitCoordinateSpin v) i) u (EuclideanSpace.single k 1)=
@@ -62,7 +65,7 @@ theorem sourcePhysicalSecond_unitCoordinateSpin (v : SpatialPoint → SpatialPoi
   rw [heq,hd.fderiv]
   simp [smul_smul]
 
-/-- Original `unitCube_scale_physical` guarantee for the `UnitSourceMoment` construction; the complete source hypotheses are retained. -/
+/-- Scaling a unit-cube point by the physical period places it in the fundamental cube. -/
 theorem unitCube_scale_physical (u : SpatialPoint) (hu : InUnitCube u) :
     InFundamentalCube (physicalPeriod • u) := by
   intro k

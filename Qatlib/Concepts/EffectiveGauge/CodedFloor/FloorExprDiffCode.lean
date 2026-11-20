@@ -30,7 +30,8 @@ def floorExprBumpDerivativeCode (axis : ℕ) : ℕ :=
     (floorExprNode 4 (Nat.pair (floorExprNode 1 (axis%3))
       (floorExprNode 0 (Nat.pair 0 3)))))
 
-/-- Original `floorExprDecode_bumpDerivative` guarantee for the `FloorExprDiffCode` construction; the complete source hypotheses are retained. -/
+/-- The bump derivative code decodes to the bump derivative expression in the coordinate selected
+by the natural axis code. -/
 theorem floorExprDecode_bumpDerivative (axis : ℕ) :
     floorExprDecode (floorExprBumpDerivativeCode axis)=floorBumpDerivativeExpr (floorExprAxis axis) := by
   simp [floorExprBumpDerivativeCode,floorExprDecode_node,floorBumpDerivativeExpr,
@@ -66,7 +67,8 @@ decreasing_by
     | exact (Nat.unpair_right_le _).trans_lt hp
     | exact hp
 
-/-- Original `floorExprDecode_diffCode` guarantee for the `FloorExprDiffCode` construction; the complete source hypotheses are retained. -/
+/-- Decoding the coded differentiation result equals differentiating the decoded expression with
+respect to the decoded axis. -/
 theorem floorExprDecode_diffCode (axis n : ℕ) :
     floorExprDecode (floorExprDiffCode axis n)=floorJetDiff (floorExprAxis axis) (floorExprDecode n) := by
   induction n using Nat.strong_induction_on with
@@ -105,7 +107,7 @@ theorem floorExprDecode_diffCode (axis n : ℕ) :
         rw [List.getD_eq_default _ _ (by simp; omega)]
         simp [floorExprDecode_node,floorJetDiff,floorExprInteger,h0,h1,h2,h3,h4,h5,h6,h7,h8]
 
-/-- Original `primrec_floorExprBumpDerivativeCode` guarantee for the `FloorExprDiffCode` construction; the complete source hypotheses are retained. -/
+/-- Assembling the code for the bump derivative from a natural axis index is primitive recursive. -/
 theorem primrec_floorExprBumpDerivativeCode : Primrec floorExprBumpDerivativeCode := by
   have haxis := Primrec.nat_mod.comp Primrec.id (Primrec.const 3)
   have hcoord := primrec_floorExprNode.comp (Primrec.const 1) haxis
@@ -114,7 +116,8 @@ theorem primrec_floorExprBumpDerivativeCode : Primrec floorExprBumpDerivativeCod
   exact primrec_floorExprNode.comp (Primrec.const 6)
     (Primrec₂.natPair.comp (Primrec.const (floorExprNode 0 (Nat.pair 0 2))) hinner)
 
-/-- Original `primrec_floorExprDiffStep` guarantee for the `FloorExprDiffCode` construction; the complete source hypotheses are retained. -/
+/-- The one-node derivative update is primitive recursive on the packed axis, expression code, and
+three subordinate derivative codes. -/
 theorem primrec_floorExprDiffStep : Primrec (fun q : ℕ × ℕ × ℕ × ℕ × ℕ =>
     floorExprDiffStep q.1 q.2.1 q.2.2.1 q.2.2.2.1 q.2.2.2.2) := by
   have haxis : Primrec (fun q : ℕ × ℕ × ℕ × ℕ × ℕ => q.1) := Primrec.fst
@@ -163,7 +166,7 @@ def floorExprDiffFrom (axis : ℕ) (history : List ℕ) : ℕ :=
   floorExprDiffStep axis n (history.getD p.unpair.1 0)
     (history.getD p.unpair.2 0) (history.getD p 0)
 
-/-- Original `computable_floorExprDiffCode` guarantee for the `FloorExprDiffCode` construction; the complete source hypotheses are retained. -/
+/-- Coded symbolic differentiation is computable jointly in the natural axis and expression codes. -/
 theorem computable_floorExprDiffCode : Computable₂ floorExprDiffCode := by
   have hn : Primrec (fun q : ℕ × List ℕ => q.2.length) := Primrec.list_length.comp Primrec.snd
   have hp := (Primrec.snd.comp Primrec.unpair).comp (Primrec.nat_sub.comp hn (Primrec.const 1))

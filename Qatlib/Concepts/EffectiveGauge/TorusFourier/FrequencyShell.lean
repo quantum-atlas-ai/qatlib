@@ -31,7 +31,7 @@ open Qatlib.Concepts.EffectiveGauge.HopfAtlas Qatlib.Concepts.EffectiveGauge.Rat
 /-- Definition of frequency Radius in the Torus Fourier construction. -/
 def frequencyRadius (k : SpatialFrequency) : ℕ := max (k 0).natAbs (max (k 1).natAbs (k 2).natAbs)
 
-/-- Original `frequencyRadius_le_iff` guarantee for the `FrequencyShell` construction; the complete source hypotheses are retained. -/
+/-- The frequency radius is at most `n` exactly when each integer coordinate has natural absolute value at most `n`. -/
 theorem frequencyRadius_le_iff (k : SpatialFrequency) (n : ℕ) :
     frequencyRadius k ≤ n ↔ ∀ i, (k i).natAbs ≤ n := by
   constructor
@@ -43,7 +43,7 @@ theorem frequencyRadius_le_iff (k : SpatialFrequency) (n : ℕ) :
   · intro h
     exact max_le (h 0) (max_le (h 1) (h 2))
 
-/-- Original `frequencyRadius_eq_zero_iff` guarantee for the `FrequencyShell` construction; the complete source hypotheses are retained. -/
+/-- The maximum of the coordinate magnitudes vanishes exactly for the zero frequency. -/
 theorem frequencyRadius_eq_zero_iff (k : SpatialFrequency) : frequencyRadius k=0 ↔ k=0 := by
   constructor
   · intro h
@@ -54,12 +54,12 @@ theorem frequencyRadius_eq_zero_iff (k : SpatialFrequency) : frequencyRadius k=0
   · rintro rfl
     rfl
 
-/-- Original `frequencyRadius_pos` guarantee for the `FrequencyShell` construction; the complete source hypotheses are retained. -/
+/-- Any nonzero integer frequency has strictly positive radius. -/
 theorem frequencyRadius_pos (k : SpatialFrequency) (hk : k≠0) : 0<frequencyRadius k := by
   have hz : frequencyRadius k≠0 := fun h => hk ((frequencyRadius_eq_zero_iff k).mp h)
   omega
 
-/-- Original `frequencyRadius_attained` guarantee for the `FrequencyShell` construction; the complete source hypotheses are retained. -/
+/-- Some coordinate realizes the maximum absolute value defining the frequency radius. -/
 theorem frequencyRadius_attained (k : SpatialFrequency) : ∃ i, (k i).natAbs=frequencyRadius k := by
   by_cases h0 : max (k 1).natAbs (k 2).natAbs ≤ (k 0).natAbs
   · exact ⟨0,(max_eq_left h0).symm⟩
@@ -67,7 +67,7 @@ theorem frequencyRadius_attained (k : SpatialFrequency) : ∃ i, (k i).natAbs=fr
     · exact ⟨1,by rw [frequencyRadius,max_eq_right (by omega),max_eq_left h1]⟩
     · exact ⟨2,by rw [frequencyRadius,max_eq_right (by omega),max_eq_right (by omega)]⟩
 
-/-- Original `frequency_mem_cube` guarantee for the `FrequencyShell` construction; the complete source hypotheses are retained. -/
+/-- Membership in the closed integer cube from `-n` to `n` is equivalent to having radius at most `n`. -/
 theorem frequency_mem_cube (k : SpatialFrequency) (n : ℕ) :
     k ∈ Finset.Icc (-n : SpatialFrequency) n ↔ frequencyRadius k ≤ n := by
   have habs (a : ℤ) : a.natAbs ≤ n ↔ -(n : ℤ) ≤ a ∧ a ≤ (n : ℤ) := by
@@ -75,7 +75,7 @@ theorem frequency_mem_cube (k : SpatialFrequency) (n : ℕ) :
   rw [frequencyRadius_le_iff]
   simp only [Finset.mem_Icc,Pi.le_def,Pi.neg_apply,Pi.natCast_apply,habs,forall_and]
 
-/-- Original `frequency_mem_shell` guarantee for the `FrequencyShell` construction; the complete source hypotheses are retained. -/
+/-- Membership in the integer shell of radius `n` means that the maximum coordinate magnitude is exactly `n`. -/
 theorem frequency_mem_shell (k : SpatialFrequency) (n : ℕ) :
     k ∈ Finset.box n ↔ frequencyRadius k=n := by
   cases n with
@@ -84,7 +84,7 @@ theorem frequency_mem_shell (k : SpatialFrequency) (n : ℕ) :
     rw [Finset.box_succ_eq_sdiff,Finset.mem_sdiff,frequency_mem_cube,frequency_mem_cube]
     omega
 
-/-- Original `frequencyCube_card` guarantee for the `FrequencyShell` construction; the complete source hypotheses are retained. -/
+/-- The three-dimensional integer cube of radius `n` has `(2*n+1)^3` points. -/
 theorem frequencyCube_card (n : ℕ) : #(Finset.Icc (-n : SpatialFrequency) n)=(2*n+1)^3 := by
   have hcard : #(Finset.Icc (-n : ℤ) n)=2*n+1 := by
     rw [Int.card_Icc]
@@ -93,7 +93,7 @@ theorem frequencyCube_card (n : ℕ) : #(Finset.Icc (-n : SpatialFrequency) n)=(
   have heach (i : Fin 3) : #(Finset.Icc ((-n : SpatialFrequency) i) ((n : SpatialFrequency) i))=2*n+1 := hcard
   simp only [heach,Finset.prod_const,Finset.card_univ,Fintype.card_fin]
 
-/-- Original `frequencyShell_card_succ` guarantee for the `FrequencyShell` construction; the complete source hypotheses are retained. -/
+/-- The shell at successor radius `n+1` has `24*(n+1)^2+2` integer points. -/
 theorem frequencyShell_card_succ (n : ℕ) : #(Finset.box (n+1) : Finset SpatialFrequency)=24*(n+1)^2+2 := by
   have hsub : Finset.Icc (-n : SpatialFrequency) n ⊆ Finset.Icc (-Nat.succ n : SpatialFrequency) (Nat.succ n) := by
     apply Finset.Icc_subset_Icc
@@ -109,13 +109,13 @@ theorem frequencyShell_card_succ (n : ℕ) : #(Finset.box (n+1) : Finset Spatial
     ring
   rw [hpoly,Nat.add_sub_cancel_left]
 
-/-- Original `frequencyShell_card` guarantee for the `FrequencyShell` construction; the complete source hypotheses are retained. -/
+/-- At any positive radius `n`, the integer shell has `24*n^2+2` points. -/
 theorem frequencyShell_card (n : ℕ) (hn : 0<n) : #(Finset.box n : Finset SpatialFrequency)=24*n^2+2 := by
   cases n with
   | zero => omega
   | succ n => exact frequencyShell_card_succ n
 
-/-- Original `frequencyShell_partition` guarantee for the `FrequencyShell` construction; the complete source hypotheses are retained. -/
+/-- Each frequency lies in exactly one integer shell, indexed by its maximum coordinate magnitude. -/
 theorem frequencyShell_partition (k : SpatialFrequency) : ∃! n, k ∈ Finset.box n := by
   use frequencyRadius k
   simp only [frequency_mem_shell,true_and,forall_eq']

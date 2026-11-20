@@ -29,7 +29,7 @@ open scoped BigOperators
 variable {S : Type} [Fintype S] [Nonempty S]
 
 omit [Fintype S] [Nonempty S] in
-/-- Complete original `spinor_bell_probability_identity` guarantee for `LowSpinLossBridge`; all source hypotheses and output obligations are retained. -/
+/-- For two normalized spinors, four times the Bell probability is one minus the dot product of their three Pauli expectations. -/
 theorem spinor_bell_probability_identity (a b c k : S → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (x y : S) :
     4*bellProbability (complexSpinor a b c k x) (complexSpinor a b c k y)=
@@ -51,7 +51,7 @@ theorem spinor_bell_probability_identity (a b c k : S → ℝ)
   rw [hdiff] at hd
   linarith
 
-/-- Complete original `bell_mean_as_spin_correlation` guarantee for `LowSpinLossBridge`; all source hypotheses and output obligations are retained. -/
+/-- For normalized spinors, four times the mean Bell probability along a site map equals one minus the sum of the three site-averaged Pauli correlations. -/
 theorem bell_mean_as_spin_correlation (a b c k : S → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (τ : S → S) :
     4*bellMean a b c k τ=
@@ -67,7 +67,7 @@ theorem bell_mean_as_spin_correlation (a b c k : S → ℝ)
       exact spinor_bell_probability_identity a b c k hz x (τ x)
     _ = _ := by rw [site_mean_sub,site_mean_const,site_mean_sum]
 
-/-- Complete original `bell_spin_term_identity` guarantee for `LowSpinLossBridge`; all source hypotheses and output obligations are retained. -/
+/-- The sum of axis Bell means weighted by 4γ equals γ times the direction count minus γ times the sum of Pauli correlations across components and directions. -/
 theorem bell_spin_term_identity {d : ℕ} (a b c k : S → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (τ : Fin d → S → S) (γ : ℝ) :
     4*γ*(∑ j : Fin d,bellMean a b c k (τ j))=
@@ -91,7 +91,7 @@ theorem bell_spin_term_identity {d : ℕ} (a b c k : S → ℝ)
       rw [Finset.sum_sub_distrib,hswap]
       simp only [Finset.sum_const,Finset.card_univ,Fintype.card_fin,nsmul_eq_mul,mul_one]
 
-/-- Complete original `bell_spin_term_range` guarantee for `LowSpinLossBridge`; all source hypotheses and output obligations are retained. -/
+/-- For normalized spinors and nonnegative γ, the sum of the Bell means over d directions weighted by 4γ lies in [0, 2dγ]. -/
 theorem bell_spin_term_range {d : ℕ} (a b c k : S → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (τ : Fin d → S → S)
     (γ : ℝ) (hγ : 0≤γ) :
@@ -100,7 +100,7 @@ theorem bell_spin_term_range {d : ℕ} (a b c k : S → ℝ)
   rw [bell_spin_term_identity a b c k hz τ γ]
   exact spin_total_mean_range (pauliField a b c k) (pauli_field_unit a b c k hz) τ γ hγ
 
-/-- Complete original `implemented_loss_bell_form` guarantee for `LowSpinLossBridge`; all source hypotheses and output obligations are retained. -/
+/-- For normalized spinors, the implemented loss equals the summed mean-square velocity residuals plus 4γ times the sum of Bell means for the direction permutations. -/
 theorem implemented_loss_bell_form {d : ℕ} (mv u : Fin d → S → ℝ) (a b c k : S → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (τ : Fin d → Equiv.Perm S) (α β γ : ℝ) :
     implementedResidualLoss mv u (pauliField a b c k) τ α β γ=

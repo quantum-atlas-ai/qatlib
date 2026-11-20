@@ -28,7 +28,7 @@ This file re-states the two source definitions used throughout the paper:
   normalisation `μ`.
 
 The shared library carries the *exact* (`ε = 0`) notion `IsBlockEncoding`
-(`Qatlib.Papers.Qubitization19.LCUConsumers.IsBlockEncoding`).  The
+(`Qatlib.Concepts.BlockEncoding.StateBlockEncoding.IsBlockEncoding`).  The
 paper's results are all stated with the error `ε ≥ 0`, so the paper layer keeps
 the approximate form above and connects the two with
 `isApproxBlockEncoding_zero_iff`.
@@ -65,7 +65,7 @@ def IsApproxBlockEncoding (U : Matrix (J × I) (J × I) ℂ) (j₀ : J)
     ‖A - ((α : ℂ)) • BlockCorner U j₀‖ ≤ ε
 
 /-- The exact (`ε = 0`) block encoding of Definition 1 is the shared
-`IsBlockEncoding` (`Qatlib.Papers.Qubitization19.LCUConsumers`). -/
+`Qatlib.Concepts.BlockEncoding.StateBlockEncoding.IsBlockEncoding`. -/
 theorem isApproxBlockEncoding_zero_iff {U : Matrix (J × I) (J × I) ℂ} {j₀ : J}
     {A : Matrix I I ℂ} {α : ℝ} :
     IsApproxBlockEncoding U j₀ A α 0 ↔ IsBlockEncoding U j₀ A α := by

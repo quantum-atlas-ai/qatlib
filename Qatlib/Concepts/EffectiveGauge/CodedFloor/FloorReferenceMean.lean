@@ -28,7 +28,8 @@ open scoped Quaternion ContDiff
 namespace Qatlib.Concepts.EffectiveGauge.CodedFloor
 open Qatlib.Concepts.EffectiveGauge.HopfAtlas Qatlib.Concepts.EffectiveGauge.RationalFlow Qatlib.Concepts.EffectiveGauge.SpectralH1 Qatlib.Concepts.EffectiveGauge.TorusFourier
 
-/-- Original `physicalCubeMean_congr_on_cube` guarantee for the `FloorReferenceMean` construction; the complete source hypotheses are retained. -/
+/-- Two real fields that agree everywhere on the fundamental cube have the same physical cube
+mean. -/
 theorem physicalCubeMean_congr_on_cube (f g : SpatialPoint → ℝ)
     (he : ∀ X, InFundamentalCube X → f X=g X) : physicalCubeMean f=physicalCubeMean g := by
   unfold physicalCubeMean
@@ -40,7 +41,8 @@ theorem physicalCubeMean_congr_on_cube (f g : SpatialPoint → ℝ)
   intro i
   exact ⟨hx.1 i,hx.2 i⟩
 
-/-- Original `floorPeriodicLift_mean` guarantee for the `FloorReferenceMean` construction; the complete source hypotheses are retained. -/
+/-- The physical cube mean of coordinate `1` of the periodic lift's connection is the negative
+cube mean of the sine energy. -/
 theorem floorPeriodicLift_mean (a : ℝ) :
     physicalCubeMean (fun X => connection (floorPeriodicLift a) X 1)=floorMeanCandidate a := by
   calc

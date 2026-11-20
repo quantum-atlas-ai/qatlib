@@ -27,7 +27,7 @@ local instance : StarModule ℝ ℍ where
 def quaternionImICoordinate : ℍ →L[ℝ] ℝ :=
   (EuclideanSpace.proj (1 : Fin 4)).comp Quaternion.linearIsometryEquivTuple.toContinuousLinearMap
 
-/-- Original `quaternion_imI_abs_le_norm` guarantee for the `WordAngular` construction; the complete source hypotheses are retained. -/
+/-- The absolute value of the `i` component of a quaternion is at most its norm. -/
 theorem quaternion_imI_abs_le_norm (q : ℍ) : |q.imI| ≤ ‖q‖ := by
   apply (sq_le_sq₀ (abs_nonneg _) (norm_nonneg _)).mp
   rw [sq_abs,pow_two,pow_two,← Quaternion.normSq_eq_norm_mul_self,Quaternion.normSq_def']
@@ -37,14 +37,17 @@ theorem quaternion_imI_abs_le_norm (q : ℍ) : |q.imI| ≤ ‖q‖ := by
 def wordAngularRate (g : SpatialPoint → ℍ) (i : Fin 3) (x : SpatialPoint) : ℝ :=
   (star (g x)*spatialWordPartial g [i] x).imI
 
-/-- Original `contDiff_wordAngularRate` guarantee for the `WordAngular` construction; the complete source hypotheses are retained. -/
+/-- For a smooth quaternion field, the `i` component of the conjugate field times its directional
+derivative is a smooth angular rate for each spatial direction. -/
 theorem contDiff_wordAngularRate (g : SpatialPoint → ℍ) (hg : ContDiff ℝ ∞ g) (i : Fin 3) :
     ContDiff ℝ ∞ (wordAngularRate g i) :=
   quaternionImICoordinate.contDiff.comp
     (((starL' ℝ : ℍ ≃L[ℝ] ℍ).toContinuousLinearMap.contDiff.comp hg).mul
       (contDiff_spatialWordPartial g hg [i]))
 
-/-- Original `wordAngularRate_word_bound` guarantee for the `WordAngular` construction; the complete source hypotheses are retained. -/
+/-- For a smooth quaternion field, if `F` bounds each word derivative at `x` through order
+`w.length + 1`, the norm of the angular rate's derivative along `w` is bounded there by the word
+product majorant for `F j` and `F (j + 1)`. -/
 theorem wordAngularRate_word_bound (g : SpatialPoint → ℍ) (hg : ContDiff ℝ ∞ g)
     (i : Fin 3) (F : ℕ → ℝ) (w : List (Fin 3)) (x : SpatialPoint)
     (hb : ∀ u : List (Fin 3), u.length ≤ w.length+1 →

@@ -72,7 +72,8 @@ decreasing_by
     | exact (Nat.unpair_right_le _).trans_lt hp
     | exact hp
 
-/-- Original `floorExprDecode_node` guarantee for the `FloorExprCodec` construction; the complete source hypotheses are retained. -/
+/-- Decoding a tagged node dispatches on its tag to the integer, coordinate, parameter, flat, sum,
+negation, product, sine, or cosine constructor. An unrecognized tag decodes to integer zero. -/
 theorem floorExprDecode_node (tag p : ℕ) :
     floorExprDecode (floorExprNode tag p)=
       if tag=0 then .integer (floorExprInteger p)
@@ -88,18 +89,20 @@ theorem floorExprDecode_node (tag p : ℕ) :
   rw [floorExprDecode]
   simp only [floorExprNode,Nat.succ_ne_zero,↓reduceDIte,Nat.succ_sub_one,Nat.unpair_pair]
 
-/-- Original `floorExprInteger_pair` guarantee for the `FloorExprCodec` construction; the complete source hypotheses are retained. -/
+/-- Pairing the positive and negative natural parts of an integer and decoding by subtraction
+recovers the integer. -/
 theorem floorExprInteger_pair (z : ℤ) :
     floorExprInteger (Nat.pair z.toNat (-z).toNat)=z := by
   simp only [floorExprInteger,Nat.unpair_pair]
   omega
 
-/-- Original `floorExprAxis_val` guarantee for the `FloorExprCodec` construction; the complete source hypotheses are retained. -/
+/-- The natural representative of a three-dimensional coordinate decodes to the original
+coordinate. -/
 theorem floorExprAxis_val (i : Fin 3) : floorExprAxis i.val=i := by
   apply Fin.ext
   exact Nat.mod_eq_of_lt i.isLt
 
-/-- Original `floorExprDecode_encode` guarantee for the `FloorExprCodec` construction; the complete source hypotheses are retained. -/
+/-- Decoding the encoding of a jet expression recovers the original syntax tree. -/
 theorem floorExprDecode_encode (e : FloorJetExpr) : floorExprDecode (floorExprEncode e)=e := by
   induction e with
   | integer z => rw [floorExprEncode,floorExprDecode_node]; simp only [ite_true,floorExprInteger_pair]
@@ -116,19 +119,21 @@ theorem floorExprDecode_encode (e : FloorJetExpr) : floorExprDecode (floorExprEn
   | sin f hf => rw [floorExprEncode,floorExprDecode_node]; norm_num [hf]
   | cos f hf => rw [floorExprEncode,floorExprDecode_node]; norm_num [hf]
 
-/-- Original `floorExprNode_payload_lt` guarantee for the `FloorExprCodec` construction; the complete source hypotheses are retained. -/
+/-- A tagged node code is strictly greater than its payload, allowing recursion on the payload. -/
 theorem floorExprNode_payload_lt (tag p : ℕ) : p<floorExprNode tag p :=
   Nat.lt_succ_of_le (Nat.right_le_pair tag p)
 
-/-- Original `floorExprNode_left_lt` guarantee for the `FloorExprCodec` construction; the complete source hypotheses are retained. -/
+/-- The left component of a paired payload is strictly smaller than its enclosing tagged node
+code. -/
 theorem floorExprNode_left_lt (tag a b : ℕ) : a<floorExprNode tag (Nat.pair a b) :=
   (Nat.left_le_pair a b).trans_lt (floorExprNode_payload_lt tag _)
 
-/-- Original `floorExprNode_right_lt` guarantee for the `FloorExprCodec` construction; the complete source hypotheses are retained. -/
+/-- The right component of a paired payload is strictly smaller than its enclosing tagged node
+code. -/
 theorem floorExprNode_right_lt (tag a b : ℕ) : b<floorExprNode tag (Nat.pair a b) :=
   (Nat.right_le_pair a b).trans_lt (floorExprNode_payload_lt tag _)
 
-/-- Original `primrec_floorExprNode` guarantee for the `FloorExprCodec` construction; the complete source hypotheses are retained. -/
+/-- Packing a node tag and payload into a natural code is primitive recursive in both arguments. -/
 theorem primrec_floorExprNode : Primrec₂ floorExprNode :=
   Primrec.succ.comp Primrec₂.natPair
 

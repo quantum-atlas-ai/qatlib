@@ -43,11 +43,11 @@ def generalPoissonPhysicalPhaseValue (r : GeneralPoissonValueState) (X : Fin 3 �
   let ell := physicalPoissonAddressAccuracy r.preparation.referenceCache.connectionBounds[6] X tolerance
   generalPoissonStateValue r (rationalPhysicalPoissonAddress X ell)-generalPoissonStateValue r 0
 
-/-- Original `rationalAddressMagnitude_nonneg` guarantee for the `PhysicalPoissonAddress` construction; the complete source hypotheses are retained. -/
+/-- The sum of the absolute values of the three rational address coordinates is nonnegative. -/
 theorem rationalAddressMagnitude_nonneg (X : Fin 3 → ℚ) : 0 ≤ rationalAddressMagnitude X :=
   Finset.sum_nonneg (fun _ _ => abs_nonneg _)
 
-/-- Original `physicalPoissonAddressAccuracy_spec` guarantee for the `PhysicalPoissonAddress` construction; the complete source hypotheses are retained. -/
+/-- For any stored sixth-order bound and rational address, a positive requested tolerance yields a period tolerance in `(0, 1]`. -/
 theorem physicalPoissonAddressAccuracy_spec (C6 : ℚ) (X : Fin 3 → ℚ)
     (tolerance : ℚ) (ht : 0<tolerance) :
     0<physicalPoissonAddressAccuracy C6 X tolerance ∧ physicalPoissonAddressAccuracy C6 X tolerance ≤ 1 := by
@@ -55,7 +55,7 @@ theorem physicalPoissonAddressAccuracy_spec (C6 : ℚ) (X : Fin 3 → ℚ)
   have hden : 0<(156*|C6|+1)*(rationalAddressMagnitude X+1) := by positivity
   exact ⟨lt_min (by norm_num) (div_pos ht hden),min_le_left _ _⟩
 
-/-- Original `physicalPoissonAddressAccuracy_budget` guarantee for the `PhysicalPoissonAddress` construction; the complete source hypotheses are retained. -/
+/-- For positive requested tolerance, the chosen period tolerance times `156*|C6|` times the sum of the absolute address coordinates is at most the request. -/
 theorem physicalPoissonAddressAccuracy_budget (C6 : ℚ) (X : Fin 3 → ℚ)
     (tolerance : ℚ) (ht : 0<tolerance) :
     (156*|C6|)*rationalAddressMagnitude X*physicalPoissonAddressAccuracy C6 X tolerance ≤ tolerance := by
@@ -73,7 +73,7 @@ theorem physicalPoissonAddressAccuracy_budget (C6 : ℚ) (X : Fin 3 → ℚ)
 
 noncomputable section
 
-/-- Original `rationalPhysicalPoissonAddress_error` guarantee for the `PhysicalPoissonAddress` construction; the complete source hypotheses are retained. -/
+/-- With the period tolerance `ell` chosen from a positive request, dividing the rational address by the computed period approximates exact normalization in coordinate `j` within `|X j| * ell / 30`. -/
 theorem rationalPhysicalPoissonAddress_error (C6 : ℚ) (X : Fin 3 → ℚ)
     (tolerance : ℚ) (ht : 0<tolerance) (j : Fin 3) :
     let ell := physicalPoissonAddressAccuracy C6 X tolerance

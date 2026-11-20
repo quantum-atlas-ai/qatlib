@@ -56,7 +56,7 @@ theorem unitFourierCoefficient_eq_integral (f : SpatialPoint → ℂ) (hf : Cont
   rw [unitTorusContinuousLift_apply]
   rfl
 
-/-- Original `unitCoefficientBox_volume` guarantee for the `FourierCoefficient` construction; the complete source hypotheses are retained. -/
+/-- The half-open box `(0, 1]^3` has Lebesgue volume one. -/
 theorem unitCoefficientBox_volume :
     volume (Set.pi Set.univ (fun _ : Fin 3 => Ioc (0 : ℝ) 1))=1 := by
   change Measure.pi (fun _ : Fin 3 => (volume : Measure ℝ))

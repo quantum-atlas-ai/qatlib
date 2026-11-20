@@ -35,14 +35,16 @@ def floorRationalCodePow (q : FloorRationalCode) : ℕ → FloorRationalCode
 def floorRationalCodeCeil (q : FloorRationalCode) : ℕ :=
   (q.1.1-q.1.2+q.2)/(q.2+1)
 
-/-- Original `floorRationalCodePow_value` guarantee for the `FloorRationalScalarCode` construction; the complete source hypotheses are retained. -/
+/-- Decoding the natural power of a rational code gives the corresponding power of its rational
+value. -/
 theorem floorRationalCodePow_value (q : FloorRationalCode) (n : ℕ) :
     floorRationalCodeValue (floorRationalCodePow q n)=(floorRationalCodeValue q)^n := by
   induction n with
   | zero => simp [floorRationalCodePow,floorRationalCodeNat_value]
   | succ n ih => rw [floorRationalCodePow,floorRationalCodeMul_value,ih,pow_succ]
 
-/-- Original `primrec_floorRationalCodePow` guarantee for the `FloorRationalScalarCode` construction; the complete source hypotheses are retained. -/
+/-- Exponentiation of a rational code is primitive recursive jointly in the code and the natural
+exponent. -/
 theorem primrec_floorRationalCodePow : Primrec₂ floorRationalCodePow := by
   have hs : Primrec₂ (fun (q : FloorRationalCode) (state : ℕ × FloorRationalCode) =>
       floorRationalCodeMul state.2 q) :=
@@ -53,7 +55,7 @@ theorem primrec_floorRationalCodePow : Primrec₂ floorRationalCodePow := by
   | zero => rfl
   | succ n ih => simpa only [Nat.rec_add_one,floorRationalCodePow] using congrArg (fun x => floorRationalCodeMul x q) ih
 
-/-- Original `floorRationalCodeCeil_value` guarantee for the `FloorRationalScalarCode` construction; the complete source hypotheses are retained. -/
+/-- The ceiling computed from a rational code is the natural ceiling of its decoded value. -/
 theorem floorRationalCodeCeil_value (q : FloorRationalCode) :
     floorRationalCodeCeil q=Nat.ceil (floorRationalCodeValue q) := by
   have he : floorRationalCodeCeil q=(q.1.1-q.1.2) ⌈/⌉ (q.2+1) := by
@@ -74,14 +76,15 @@ theorem floorRationalCodeCeil_value (q : FloorRationalCode) :
     have hQ : (q.1.1 : ℚ) ≤ ((q.2 : ℚ)+1)*(k : ℚ)+(q.1.2 : ℚ) := by nlinarith
     exact_mod_cast hQ
 
-/-- Original `primrec_floorRationalCodeCeil` guarantee for the `FloorRationalScalarCode` construction; the complete source hypotheses are retained. -/
+/-- Computing the natural ceiling directly from a rational code is primitive recursive. -/
 theorem primrec_floorRationalCodeCeil : Primrec floorRationalCodeCeil :=
   Primrec.nat_div.comp
     (Primrec.nat_add.comp
       (Primrec.nat_sub.comp (Primrec.fst.comp Primrec.fst) (Primrec.snd.comp Primrec.fst)) Primrec.snd)
     (Primrec.nat_add.comp Primrec.snd (Primrec.const 1))
 
-/-- Original `floorClogTwo_graph` guarantee for the `FloorRationalScalarCode` construction; the complete source hypotheses are retained. -/
+/-- The ceiling base-two logarithm of `n` equals `k` exactly when `n ≤ 2^k` and either `k = 0` or
+the previous power `2^(k - 1)` is strictly below `n`. -/
 theorem floorClogTwo_graph (n k : ℕ) :
     Nat.clog 2 n=k ↔ n ≤ 2^k ∧ (k=0 ∨ 2^(k-1)<n) := by
   constructor
@@ -98,7 +101,7 @@ theorem floorClogTwo_graph (n k : ℕ) :
     · have hl := (Nat.lt_clog_iff_pow_lt (by decide)).mpr hminimal
       omega
 
-/-- Original `primrec_floorClogTwo` guarantee for the `FloorRationalScalarCode` construction; the complete source hypotheses are retained. -/
+/-- The natural ceiling logarithm to base two is primitive recursive. -/
 theorem primrec_floorClogTwo : Primrec (Nat.clog 2) := by
   have hpow : Primrec₂ ((· ^ ·) : ℕ → ℕ → ℕ) := Primrec₂.unpaired'.1 Nat.Primrec.pow
   have hgraph : PrimrecRel (fun n k : ℕ =>
@@ -128,7 +131,7 @@ def floorRationalCodeMax (q r : FloorRationalCode) : FloorRationalCode :=
 def floorRationalCodeArctanFuel (q : FloorRationalCode) : ℕ :=
   Nat.clog 2 (floorRationalCodeCeil (floorRationalCodeInv q))
 
-/-- Original `floorRationalCodeAbs_value` guarantee for the `FloorRationalScalarCode` construction; the complete source hypotheses are retained. -/
+/-- The absolute-value code decodes to the absolute value of the represented rational. -/
 theorem floorRationalCodeAbs_value (q : FloorRationalCode) :
     floorRationalCodeValue (floorRationalCodeAbs q)=|floorRationalCodeValue q| := by
   unfold floorRationalCodeAbs
@@ -143,7 +146,7 @@ theorem floorRationalCodeAbs_value (q : FloorRationalCode) :
     apply div_nonpos_of_nonpos_of_nonneg _ (by positivity)
     exact sub_nonpos.mpr (by exact_mod_cast (not_le.mp h).le)
 
-/-- Original `floorRationalCodeMin_value` guarantee for the `FloorRationalScalarCode` construction; the complete source hypotheses are retained. -/
+/-- Selecting the minimum by coded comparison represents the minimum of the two rational values. -/
 theorem floorRationalCodeMin_value (q r : FloorRationalCode) :
     floorRationalCodeValue (floorRationalCodeMin q r)=
       min (floorRationalCodeValue q) (floorRationalCodeValue r) := by
@@ -152,7 +155,7 @@ theorem floorRationalCodeMin_value (q r : FloorRationalCode) :
   · rw [min_eq_left ((floorRationalCodeLE_value q r).mp h)]
   · rw [min_eq_right (le_of_not_ge (fun hh => h ((floorRationalCodeLE_value q r).mpr hh)))]
 
-/-- Original `floorRationalCodeMax_value` guarantee for the `FloorRationalScalarCode` construction; the complete source hypotheses are retained. -/
+/-- Selecting the maximum by coded comparison represents the maximum of the two rational values. -/
 theorem floorRationalCodeMax_value (q r : FloorRationalCode) :
     floorRationalCodeValue (floorRationalCodeMax q r)=
       max (floorRationalCodeValue q) (floorRationalCodeValue r) := by
@@ -161,26 +164,28 @@ theorem floorRationalCodeMax_value (q r : FloorRationalCode) :
   · rw [max_eq_right ((floorRationalCodeLE_value q r).mp h)]
   · rw [max_eq_left (le_of_not_ge (fun hh => h ((floorRationalCodeLE_value q r).mpr hh)))]
 
-/-- Original `floorRationalCodeArctanFuel_value` guarantee for the `FloorRationalScalarCode` construction; the complete source hypotheses are retained. -/
+/-- The fuel computed from a rational code equals the arctangent series fuel for the decoded
+tolerance. -/
 theorem floorRationalCodeArctanFuel_value (q : FloorRationalCode) :
     floorRationalCodeArctanFuel q=arctanFuel (floorRationalCodeValue q) := by
   simp only [floorRationalCodeArctanFuel,arctanFuel,floorRationalCodeCeil_value,
     floorRationalCodeInv_value,one_div]
 
-/-- Original `primrec_floorRationalCodeAbs` guarantee for the `FloorRationalScalarCode` construction; the complete source hypotheses are retained. -/
+/-- Taking the absolute value of a coded rational is primitive recursive. -/
 theorem primrec_floorRationalCodeAbs : Primrec floorRationalCodeAbs :=
   Primrec.ite (Primrec.nat_le.comp (Primrec.snd.comp Primrec.fst) (Primrec.fst.comp Primrec.fst))
     Primrec.id primrec_floorRationalCodeNeg
 
-/-- Original `primrec_floorRationalCodeMin` guarantee for the `FloorRationalScalarCode` construction; the complete source hypotheses are retained. -/
+/-- Selecting the minimum rational code by value is primitive recursive in both input codes. -/
 theorem primrec_floorRationalCodeMin : Primrec₂ floorRationalCodeMin :=
   Primrec.ite primrec_floorRationalCodeLE Primrec.fst Primrec.snd
 
-/-- Original `primrec_floorRationalCodeMax` guarantee for the `FloorRationalScalarCode` construction; the complete source hypotheses are retained. -/
+/-- Selecting the maximum rational code by value is primitive recursive in both input codes. -/
 theorem primrec_floorRationalCodeMax : Primrec₂ floorRationalCodeMax :=
   Primrec.ite primrec_floorRationalCodeLE Primrec.snd Primrec.fst
 
-/-- Original `primrec_floorRationalCodeArctanFuel` guarantee for the `FloorRationalScalarCode` construction; the complete source hypotheses are retained. -/
+/-- Computing arctangent series fuel by taking the base-two ceiling logarithm of the natural
+ceiling of the coded reciprocal is primitive recursive. -/
 theorem primrec_floorRationalCodeArctanFuel : Primrec floorRationalCodeArctanFuel :=
   primrec_floorClogTwo.comp (primrec_floorRationalCodeCeil.comp primrec_floorRationalCodeInv)
 

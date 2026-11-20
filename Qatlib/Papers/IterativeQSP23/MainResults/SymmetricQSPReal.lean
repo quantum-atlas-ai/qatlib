@@ -42,7 +42,7 @@ This file formalises **Claim c003** (`IterativeQSP23.MainResults`): §3.3, Eqs
   (3.11)/(A.5).
 
 The signal matrix `W(x)` and the phase rotation `e^{iφZ}` are reused from the
-Frozen concept `Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalModel`
+Frozen concept `Qatlib.Concepts.LcuQsvtApprox.PhaseRecovery.SignalDefs`
 (`SignalMatrix`, `PhaseRotation`); the bridge is `SignalMatrix_eq` below.
 -/
 

@@ -29,13 +29,13 @@ open Set Finset
 namespace Qatlib.Concepts.EffectiveGauge.TorusFourier
 open Qatlib.Concepts.EffectiveGauge.HopfAtlas Qatlib.Concepts.EffectiveGauge.RationalFlow
 
-/-- Original `complexPhase_lipschitz` guarantee for the `FourierModeApproximation` construction; the complete source hypotheses are retained. -/
+/-- The chord length between two complex phases is bounded by the absolute difference of their real angles. -/
 theorem complexPhase_lipschitz (a b : ℝ) : ‖complexPhase a-complexPhase b‖ ≤ |a-b| := by
   have h := phase_lipschitz a b
   rw [← complexPhase_quaternion a,← complexPhase_quaternion b,← map_sub,norm_ofComplex] at h
   exact h
 
-/-- Original `unitFourierMode_eq_complexPhase` guarantee for the `FourierModeApproximation` construction; the complete source hypotheses are retained. -/
+/-- At `x`, the unit Fourier mode for `k` is the complex phase of the physical period times the frequency pairing with `x`. -/
 theorem unitFourierMode_eq_complexPhase (k : SpatialFrequency) (x : SpatialPoint) :
     unitFourierMode k x=complexPhase (physicalPeriod*frequencyLinear k x) := by
   rw [complexPhase_eq_exp]
@@ -45,7 +45,7 @@ theorem unitFourierMode_eq_complexPhase (k : SpatialFrequency) (x : SpatialPoint
     Complex.ofRealCLM_apply,Complex.ofReal_mul]
   ring
 
-/-- Original `frequencyLinear_unitCube_bound` guarantee for the `FourierModeApproximation` construction; the complete source hypotheses are retained. -/
+/-- If the three frequency coordinates have absolute value at most `N`, the frequency pairing at any point in the unit cube has absolute value at most `3*N`. -/
 theorem frequencyLinear_unitCube_bound (k : SpatialFrequency) (N : ℕ)
     (hk : ∀ i, |(k i : ℝ)| ≤ (N : ℝ)) (x : SpatialPoint) (hx : InUnitCube x) :
     |frequencyLinear k x| ≤ 3*(N : ℝ) := by
@@ -60,7 +60,7 @@ theorem frequencyLinear_unitCube_bound (k : SpatialFrequency) (N : ℕ)
       exact (mul_le_mul (hk i) hxi (abs_nonneg _) (Nat.cast_nonneg _)).trans_eq (mul_one _)
     _ = _ := by simp
 
-/-- Original `rationalFrequencyLinear_cast` guarantee for the `FourierModeApproximation` construction; the complete source hypotheses are retained. -/
+/-- Casting the rational coordinate sum of products with `k` to the reals gives the real frequency pairing at the embedded rational point. -/
 theorem rationalFrequencyLinear_cast (k : SpatialFrequency) (a : Fin 3 → ℚ) :
     ((∑ i : Fin 3, (k i : ℚ)*a i : ℚ) : ℝ)=frequencyLinear k (rationalSpatialPoint a) := by
   rw [frequencyLinear_apply]

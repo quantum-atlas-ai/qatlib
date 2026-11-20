@@ -46,7 +46,7 @@ def lowSpinRecordDistribution {d : ℕ} (p : LowSpinPlanQ)
         (targetNormLaw p.velocity.norm.mode p.velocity.norm.records p.velocity.norm.blocks))))
     (lowSpinBellLaw a b c k hz e p.spin)
 
-/-- Complete original `low_spin_record_distribution_signed` guarantee for `NativeLowSpin`; all source hypotheses and output obligations are retained. -/
+/-- Using signed-record inputs with conditional means mv in the record distribution yields the low-spin law for mv and the given spinors. -/
 theorem low_spin_record_distribution_signed {d : ℕ} (p : LowSpinPlanQ)
     (mv : Fin d → S → ℝ) (hmv : ∀ j x, |mv j x|≤1) (a b c k : S → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (e : Fin d → Equiv.Perm S) :
@@ -61,7 +61,7 @@ def nativeLowSpinLaw (d r : ℕ) (p : LowSpinPlanQ)
   lowSpinRecordDistribution p (fun j => nativeCurrentLaw d r j a b c k hz)
     a b c k hz (periodicDoubleShift d (2^r))
 
-/-- Complete original `native_low_spin_law_eq` guarantee for `NativeLowSpin`; all source hypotheses and output obligations are retained. -/
+/-- On the periodic grid, the native low-spin law equals the abstract law with unit-shift current means and double-shift Bell observations. -/
 theorem native_low_spin_law_eq (d r : ℕ) (p : LowSpinPlanQ)
     (a b c k : (Fin d → Fin (2^r)) → ℝ) (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) :
     nativeLowSpinLaw d r p a b c k hz=
@@ -70,7 +70,7 @@ theorem native_low_spin_law_eq (d r : ℕ) (p : LowSpinPlanQ)
         a b c k hz (periodicDoubleShift d (2^r)) := by
   simp only [nativeLowSpinLaw,native_current_law_eq_signed,low_spin_record_distribution_signed]
 
-/-- Complete original `native_low_spin_accuracy` guarantee for `NativeLowSpin`; all source hypotheses and output obligations are retained. -/
+/-- On a positive-dimensional periodic grid with normalized spinors and bounded targets, the native low-spin output has error above η/2 with probability at most δ under the sign and budget assumptions. If the spin weight is nonzero, each double-shift Bell mean must be bounded by p₀ in [0, 1/2]. -/
 theorem native_low_spin_accuracy {d r : ℕ} (hd : 0<d)
     (a b c k : (Fin d → Fin (2^r)) → ℝ) (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1)
     (u : Fin d → (Fin d → Fin (2^r)) → ℚ) (α β U γ η δ p₀ : ℚ)

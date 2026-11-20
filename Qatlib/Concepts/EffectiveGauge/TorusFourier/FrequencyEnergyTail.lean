@@ -28,7 +28,7 @@ open Qatlib.Concepts.EffectiveGauge.HopfAtlas Qatlib.Concepts.EffectiveGauge.Rat
 /-- Definition of frequency Sixth Energy in the Torus Fourier construction. -/
 def frequencySixthEnergy (k : SpatialFrequency) : ℝ := ∑ j : Fin 3, (k j : ℝ)^6
 
-/-- Original `frequencySixthEnergy_ge_radius` guarantee for the `FrequencyEnergyTail` construction; the complete source hypotheses are retained. -/
+/-- The sixth power of the largest absolute frequency coordinate is bounded by the sum of the sixth powers of all three coordinates. -/
 theorem frequencySixthEnergy_ge_radius (k : SpatialFrequency) :
     (frequencyRadius k : ℝ)^6 ≤ frequencySixthEnergy k := by
   obtain ⟨i,hi⟩ := frequencyRadius_attained k
@@ -40,7 +40,7 @@ theorem frequencySixthEnergy_ge_radius (k : SpatialFrequency) :
     _ ≤ ∑ j : Fin 3, (k j : ℝ)^6 := Finset.single_le_sum
       (fun (j : Fin 3) _ => Even.pow_nonneg (by decide : Even (6 : ℕ)) (k j : ℝ)) (Finset.mem_univ i)
 
-/-- Original `frequencyEnergy_le_radius` guarantee for the `FrequencyEnergyTail` construction; the complete source hypotheses are retained. -/
+/-- The sum of squared frequency coordinates is at most three times the square of their maximum absolute value. -/
 theorem frequencyEnergy_le_radius (k : SpatialFrequency) :
     frequencyEnergy k ≤ 3*(frequencyRadius k : ℝ)^2 := by
   have hterm (j : Fin 3) : (k j : ℝ)^2 ≤ (frequencyRadius k : ℝ)^2 := by

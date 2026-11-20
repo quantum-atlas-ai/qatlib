@@ -35,13 +35,15 @@ theorem floorUniformCodeRealizes_computable {A B C : Type*} [Primcodable A] [Pri
   intro q
   simp [hf q.1 q.2,Encodable.encodek]
 
-/-- Original `computable_floorExprRawApprox` guarantee for the `FloorExprMachineExecution` construction; the complete source hypotheses are retained. -/
+/-- The raw coded approximation is computable jointly in the expression code and the encoded
+query. -/
 theorem computable_floorExprRawApprox : Computable₂ floorExprRawApprox := by
   obtain ⟨basis,hbasis⟩ := floorExprMachineBasis_exists
   exact floorUniformCodeRealizes_computable (floorExprCompile basis) (computable_floorExprCompile basis)
     floorExprRawApprox (floorExprCompile_correct basis hbasis)
 
-/-- Original `floorExprRawApprox_encoded` guarantee for the `FloorExprMachineExecution` construction; the complete source hypotheses are retained. -/
+/-- One partial-recursive code takes an encoded expression–query pair and returns the encoded
+rational approximation for that pair. -/
 theorem floorExprRawApprox_encoded : ∃ c : Nat.Partrec.Code, ∀ n q,
     Nat.Partrec.Code.eval c (Encodable.encode (n,q))=
       Part.some (Encodable.encode (floorExprRawApprox n q)) := by
@@ -49,7 +51,8 @@ theorem floorExprRawApprox_encoded : ∃ c : Nat.Partrec.Code, ∀ n q,
     (fun p : ℕ × FloorExprQueryCode => floorExprRawApprox p.1 p.2) computable_floorExprRawApprox
   exact ⟨machine,fun n q => hmachine (n,q)⟩
 
-/-- Original `floorExprUniformCompiler` guarantee for the `FloorExprMachineExecution` construction; the complete source hypotheses are retained. -/
+/-- A computable generator specializes the approximation program to an expression code. The
+generated program then returns the encoded approximation for every encoded query. -/
 theorem floorExprUniformCompiler : ∃ generate : ℕ → Nat.Partrec.Code,
     Computable generate ∧ ∀ n q,
       Nat.Partrec.Code.eval (generate n) (Encodable.encode q)=
@@ -57,7 +60,9 @@ theorem floorExprUniformCompiler : ∃ generate : ℕ → Nat.Partrec.Code,
   obtain ⟨basis,hbasis⟩ := floorExprMachineBasis_exists
   exact ⟨floorExprCompile basis,computable_floorExprCompile basis,floorExprCompile_correct basis hbasis⟩
 
-/-- Original `floorExprRawApprox_error` guarantee for the `FloorExprMachineExecution` construction; the complete source hypotheses are retained. -/
+/-- At a coded point in the fundamental cube and for a decoded tolerance in `(0, 1]`, the decoded
+rational output has absolute error at most that tolerance against the decoded jet expression at
+the program amplitude. -/
 theorem floorExprRawApprox_error (n : ℕ) (q : FloorExprQueryCode)
     (hX : InFundamentalCube (rationalSpatialPoint (floorPointCodeValue q.2.1)))
     (ht : 0<floorRationalCodeValue q.2.2) (ht1 : floorRationalCodeValue q.2.2 ≤ 1) :

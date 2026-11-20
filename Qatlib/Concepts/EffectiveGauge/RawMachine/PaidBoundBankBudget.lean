@@ -28,11 +28,11 @@ open Qatlib.Concepts.BitWordCompiler.WordComposition.PaidMachineSupport
 open CanonicalCodec.TM
 namespace PaidBoundBank
 
-/-- Original `queryBits_length` guarantee for the `PaidBoundBankBudget` construction; the complete source hypotheses are retained. -/
+/-- The canonical natural code for any of the nine bound queries uses at most nine bits. -/
 theorem queryBits_length (i : Fin 9) : (queryBits i).length≤9 := by
   fin_cases i <;> decide
 
-/-- Original `emitted_length` guarantee for the `PaidBoundBankBudget` construction; the complete source hypotheses are retained. -/
+/-- If every reply has length at most `B`, the concatenated reply prefix for `n` stages has length at most `n*B`. -/
 theorem emitted_length (replies : Fin 9 → CanonicalCodec.Bits) (B : ℕ)
     (hsize : ∀ i, (replies i).length≤B) (n : ℕ) :
     (emitted replies n).length≤n*B := by
@@ -44,7 +44,7 @@ theorem emitted_length (replies : Fin 9 → CanonicalCodec.Bits) (B : ℕ)
     · have hh := hsize ⟨n,hn⟩; nlinarith only [ih,hh]
     · simp only [List.length_nil]; nlinarith only [ih,Nat.zero_le B]
 
-/-- Original `stageBudget_bound` guarantee for the `PaidBoundBankBudget` construction; the complete source hypotheses are retained. -/
+/-- When reply length and source time are both at most `B`, the clock allowance for writing a query, running it, and storing its reply is at most `1006000*(1+B)^2`. -/
 theorem stageBudget_bound (i : Fin 9) (reply : CanonicalCodec.Bits) (time B : ℕ)
     (hr : reply.length≤B) (ht : time≤B) :
     stageBudget i reply time≤1006000*(1+B)^2 := by
@@ -58,7 +58,7 @@ theorem stageBudget_bound (i : Fin 9) (reply : CanonicalCodec.Bits) (time B : �
   dsimp only [stageBudget,RawCall.budget]
   nlinarith only [hquery,hsquare,hr2,hr,hpos,Nat.zero_le B]
 
-/-- Original `sourcePrefixBudget_bound` guarantee for the `PaidBoundBankBudget` construction; the complete source hypotheses are retained. -/
+/-- Uniform bounds `B` on reply length and source time give a clock allowance of at most `n*1006000*(1+B)^2` for collecting the first `n` replies. -/
 theorem sourcePrefixBudget_bound (replies : Fin 9 → CanonicalCodec.Bits) (time : Fin 9 → ℕ)
     (B : ℕ) (hsize : ∀ i,(replies i).length≤B) (htime : ∀ i,time i≤B) (n : ℕ) :
     sourcePrefixBudget replies time n≤n*1006000*(1+B)^2 := by
@@ -72,7 +72,7 @@ theorem sourcePrefixBudget_bound (replies : Fin 9 → CanonicalCodec.Bits) (time
       nlinarith only [ih,hh]
     · nlinarith only [ih,Nat.zero_le ((1+B)^2)]
 
-/-- Original `emitPrefixBudget_bound` guarantee for the `PaidBoundBankBudget` construction; the complete source hypotheses are retained. -/
+/-- With each reply at most `B` bits long, emitting the first `n ≤ 9` replies has clock allowance at most `n*30*(1+B)^2`. -/
 theorem emitPrefixBudget_bound (replies : Fin 9 → CanonicalCodec.Bits) (B : ℕ)
     (hsize : ∀ i,(replies i).length≤B) (n : ℕ) (hn : n≤9) :
     emitPrefixBudget replies n≤n*30*(1+B)^2 := by
@@ -93,7 +93,7 @@ theorem emitPrefixBudget_bound (replies : Fin 9 → CanonicalCodec.Bits) (B : �
       nlinarith only [hr2,hr,hm,hpos,Nat.zero_le B]
     nlinarith only [hh,he]
 
-/-- Original `bankBudget_bound` guarantee for the `PaidBoundBankBudget` construction; the complete source hypotheses are retained. -/
+/-- If all reply lengths and source times are bounded by `B`, the bank clock allowance plus `1 + (1 + output length)^2` is at most `10000000*(1+B)^2`. -/
 theorem bankBudget_bound (replies : Fin 9 → CanonicalCodec.Bits) (time : Fin 9 → ℕ)
     (B : ℕ) (hsize : ∀ i,(replies i).length≤B) (htime : ∀ i,time i≤B) :
     1+bankBudget replies time+(1+(bankOutput replies).length)^2≤10000000*(1+B)^2 := by

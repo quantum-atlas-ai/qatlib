@@ -20,14 +20,14 @@ noncomputable section
 namespace Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays
 
 
-/-- The finite construction in `NativeRootReturnedCompleteness` satisfies `filter_nsmul` under the displayed hypotheses. -/
+/-- Filtering a multiset scaled by `n` scales the multiplicity of each retained element exactly as filtering first and then scaling. -/
 private theorem filter_nsmul {α : Type} (p : α → Prop) [DecidablePred p]
     (n : ℕ) (s : Multiset α) : (n • s).filter p=n • s.filter p := by
   induction n with
   | zero => simp
   | succ n ih => simp [succ_nsmul,Multiset.filter_add,ih]
 
-/-- The finite construction in `NativeRootReturnedCompleteness` satisfies `bind_nsmul` under the displayed hypotheses. -/
+/-- In a multiset bind, multiplying every output multiset by `n` gives the entire bind with its multiplicities multiplied by `n`. -/
 private theorem bind_nsmul {α β : Type} (s : Multiset α) (f : α → Multiset β)
     (n : ℕ) : s.bind (fun a => n • f a)=n • s.bind f := by
   induction n with
@@ -41,7 +41,7 @@ private def rootSelected {α : Type} {m : ℕ} (d e : Fin m → ℕ)
   (List.finRange m).flatMap (fun j => (List.finRange (d j)).flatMap
     (fun i => if tag j i=true then List.replicate (e j) (w j i) else []))
 
-/-- The finite construction in `NativeRootReturnedCompleteness` satisfies `rootSelected_multiset` under the displayed hypotheses. -/
+/-- If every tag is true exactly when its indexed value satisfies `p`, the selected list represents the full multiset of indexed values, repeated `e j` times for group `j` and filtered by `p`. -/
 private theorem rootSelected_multiset {α : Type} {m : ℕ} (d e : Fin m → ℕ)
     (tag : (j : Fin m) → Fin (d j) → Bool)
     (w : (j : Fin m) → Fin (d j) → α)
@@ -109,7 +109,7 @@ def rootSelectionCount {m : Nat} (d e : Fin m → Nat)
   ((List.finRange m).map (fun j =>
     ((List.finRange (d j)).map (fun i => if tag j i=true then e j else 0)).sum)).sum
 
-/-- The finite construction in `NativeRootReturnedCompleteness` satisfies `sum_map_add` under the displayed hypotheses. -/
+/-- The sum of the two natural-valued map sums equals the sum of the pointwise additions over the list. -/
 private theorem sum_map_add {α : Type} (l : List α) (a b : α → Nat) :
     (l.map a).sum+(l.map b).sum=(l.map (fun i => a i+b i)).sum := by
   induction l with
@@ -119,7 +119,7 @@ private theorem sum_map_add {α : Type} (l : List α) (a b : α → Nat) :
     rw [← ih]
     simp only [Nat.add_assoc,Nat.add_left_comm]
 
-/-- The finite construction in `NativeRootReturnedCompleteness` satisfies `sum_const` under the displayed hypotheses. -/
+/-- Summing the constant `c` over a list gives its length times `c`. -/
 private theorem sum_const {α : Type} (l : List α) (c : Nat) :
     (l.map (fun _ => c)).sum=l.length*c := by
   induction l with
@@ -150,7 +150,7 @@ private theorem rootSelectionCount_complement {m : Nat} (d e : Fin m → Nat)
   rw [h,sum_const,List.length_finRange]
 
 
-/-- The finite construction in `NativeRootReturnedCompleteness` satisfies `sum_map_le` under the displayed hypotheses. -/
+/-- If `a i ≤ b i` for every input `i`, summing `a` over the list gives at most the sum of `b`. -/
 private theorem sum_map_le {α : Type} (l : List α) (a b : α → Nat)
     (h : ∀ i,a i≤b i) : (l.map a).sum≤(l.map b).sum := by
   induction l with

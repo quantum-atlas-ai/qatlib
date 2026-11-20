@@ -33,7 +33,8 @@ def scaledCoefficientSource (v : SpatialPoint → SpatialPoint)
     (z : (TransversePoint × ℝ) × ℝ) : SpatialPoint :=
   (z.1.2/physicalPeriod) • horizontalCoefficientSource v (z.1.1, (z.1.2/physicalPeriod)*z.2)
 
-/-- Original `contDiff_scaledCoefficientSource` guarantee for the `MixedTime` construction; the complete source hypotheses are retained. -/
+/-- For a smooth source, the horizontal coefficient rescaled in both time and speed is smooth
+jointly in transverse position, target time, and integration time. -/
 theorem contDiff_scaledCoefficientSource {v : SpatialPoint → SpatialPoint} (hv : ContDiff ℝ ∞ v) :
     ContDiff ℝ ∞ (scaledCoefficientSource v) := by
   have ha : ContDiff ℝ ∞ (fun z : (TransversePoint × ℝ) × ℝ => z.1.2/physicalPeriod) :=
@@ -46,7 +47,8 @@ def scaledCoefficientPaths (v : SpatialPoint → SpatialPoint) (hv : ContDiff �
     TransversePoint × ℝ → CoefficientPath :=
   sourcePathOver (scaledCoefficientSource v) (contDiff_scaledCoefficientSource hv).continuous
 
-/-- Original `contDiff_scaledCoefficientPaths` guarantee for the `MixedTime` construction; the complete source hypotheses are retained. -/
+/-- For a smooth source, the family of rescaled coefficient paths depends smoothly on transverse
+position and target time in the continuous path space. -/
 theorem contDiff_scaledCoefficientPaths (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v) :
     ContDiff ℝ ∞ (scaledCoefficientPaths v hv) :=
   contDiff_sourcePathOver (contDiff_scaledCoefficientSource hv)
@@ -56,7 +58,8 @@ def sourceLiftExtension (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ �
     (q₀ : ℍ) (h₀ : ‖q₀‖=1) (z : TransversePoint × ℝ) : ℍ :=
   pathTransport q₀ h₀ (scaledCoefficientPaths v hv z) transportFinish
 
-/-- Original `contDiff_sourceLiftExtension` guarantee for the `MixedTime` construction; the complete source hypotheses are retained. -/
+/-- For a smooth source and a unit seed, endpoint transport with the rescaled coefficient
+defines an extension smooth in transverse position and real target time. -/
 theorem contDiff_sourceLiftExtension (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (q₀ : ℍ) (h₀ : ‖q₀‖=1) : ContDiff ℝ ∞ (sourceLiftExtension v hv q₀ h₀) := by
   have he : ContDiff ℝ ∞ (fun Q : QuaternionPath => Q transportFinish) := by
@@ -64,7 +67,9 @@ theorem contDiff_sourceLiftExtension (v : SpatialPoint → SpatialPoint) (hv : C
     exact ContinuousLinearMap.contDiff _
   exact he.comp ((contDiff_pathTransport q₀ h₀).comp (contDiff_scaledCoefficientPaths v hv))
 
-/-- Original `scaledCoefficientPaths_embed` guarantee for the `MixedTime` construction; the complete source hypotheses are retained. -/
+/-- For a smooth unit source, embedding the rescaled coefficient as a quaternion gives
+`t / physicalPeriod` times the horizontal coefficient at the same transverse point and at
+integration time scaled by that factor. -/
 theorem scaledCoefficientPaths_embed (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (hu : ∀ x, ‖v x‖=1) (p : TransversePoint) (t : ℝ) (u : TransportTime) :
     spinOfVector (scaledCoefficientPaths v hv (p,t) u) =
@@ -78,7 +83,8 @@ theorem scaledCoefficientPaths_embed (v : SpatialPoint → SpatialPoint) (hv : C
   exact source_tangent (sourceCurve_hasDerivAt hv p) (fun _ => rfl)
     (fun r => (spinOfVector_norm (v (sourcePosition (p,r)))).trans (hu _)) _
 
-/-- Original `timeScale_maps` guarantee for the `MixedTime` construction; the complete source hypotheses are retained. -/
+/-- If the target time is in the transport interval, multiplication by `t / physicalPeriod` maps
+the interval into itself. -/
 private theorem timeScale_maps (t : ℝ) (ht : t ∈ Icc 0 physicalPeriod) :
     MapsTo (fun u : ℝ => (t/physicalPeriod)*u) (Icc 0 physicalPeriod) (Icc 0 physicalPeriod) := by
   have ha : 0 ≤ t/physicalPeriod := div_nonneg ht.1 physicalPeriod_pos.le
@@ -139,7 +145,8 @@ theorem sourceLiftExtension_eq (v : SpatialPoint → SpatialPoint) (hv : ContDif
     simp only [r, ha, Q, extendPath_coe]
   exact hend.symm.trans hold
 
-/-- Original `contDiffOn_sourceLiftSpacetime` guarantee for the `MixedTime` construction; the complete source hypotheses are retained. -/
+/-- For a smooth unit source and a unit seed, the extended path evaluation is jointly smooth in
+transverse position and time on the closed transport strip. -/
 theorem contDiffOn_sourceLiftSpacetime (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (hu : ∀ x, ‖v x‖=1) (q₀ : ℍ) (h₀ : ‖q₀‖=1) :
     ContDiffOn ℝ ∞ (fun z : TransversePoint × ℝ => extendPath (sourceLiftPaths v hv q₀ h₀ z.1) z.2)
@@ -194,7 +201,8 @@ def sourcePositionInverse : SpatialPoint →L[ℝ] TransversePoint × ℝ :=
        · ext j; fin_cases j <;> rfl
        · rfl } : SpatialPoint →ₗ[ℝ] TransversePoint × ℝ).toContinuousLinearMap
 
-/-- Original `sourcePosition_inverse` guarantee for the `MixedTime` construction; the complete source hypotheses are retained. -/
+/-- Splitting a point into its transverse coordinates and first coordinate and then applying
+`sourcePosition` recovers the point. -/
 @[simp] theorem sourcePosition_inverse (x : SpatialPoint) :
     sourcePosition (sourcePositionInverse x)=x := by ext j; fin_cases j <;> rfl
 
@@ -203,12 +211,14 @@ def sourceLiftSpatialExtension (v : SpatialPoint → SpatialPoint) (hv : ContDif
     (q₀ : ℍ) (h₀ : ‖q₀‖=1) (x : SpatialPoint) : ℍ :=
   sourceLiftExtension v hv q₀ h₀ (sourcePositionInverse x)
 
-/-- Original `contDiff_sourceLiftSpatialExtension` guarantee for the `MixedTime` construction; the complete source hypotheses are retained. -/
+/-- For a smooth source and a unit seed, the lift extension expressed in spatial coordinates is
+globally smooth. -/
 theorem contDiff_sourceLiftSpatialExtension (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (q₀ : ℍ) (h₀ : ‖q₀‖=1) : ContDiff ℝ ∞ (sourceLiftSpatialExtension v hv q₀ h₀) :=
   (contDiff_sourceLiftExtension v hv q₀ h₀).comp sourcePositionInverse.contDiff
 
-/-- Original `sourceLiftSpatialExtension_unit` guarantee for the `MixedTime` construction; the complete source hypotheses are retained. -/
+/-- For a smooth source and a unit seed, the spatial lift extension has unit norm at every
+point. -/
 theorem sourceLiftSpatialExtension_unit (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (q₀ : ℍ) (h₀ : ‖q₀‖=1) (x : SpatialPoint) : ‖sourceLiftSpatialExtension v hv q₀ h₀ x‖=1 :=
   pathTransport_unit q₀ h₀ _ transportFinish
@@ -227,7 +237,8 @@ theorem sourceLiftSpatialExtension_hopf (v : SpatialPoint → SpatialPoint) (hv 
   rw [sourceLiftPaths_hopf v hv hu q₀ h₀ (sourcePositionInverse x).1 hinit]
   exact congrArg (sourceQuaternion v) (sourcePosition_inverse x)
 
-/-- Original `sourceLiftSpatialExtension_timePartial` guarantee for the `MixedTime` construction; the complete source hypotheses are retained. -/
+/-- For a smooth unit source and a unit seed, the first spatial partial inside the closed
+transport interval is the extended lift times the source horizontal quaternion on the right. -/
 theorem sourceLiftSpatialExtension_timePartial (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (hu : ∀ x, ‖v x‖=1) (q₀ : ℍ) (h₀ : ‖q₀‖=1)
     (x : SpatialPoint) (hx : 0 ≤ x 0 ∧ x 0 ≤ physicalPeriod) :
@@ -248,7 +259,8 @@ theorem sourceLiftSpatialExtension_timePartial (v : SpatialPoint → SpatialPoin
   exact congrArg (fun y => sourceLiftExtension v hv q₀ h₀ (sourcePositionInverse x)*
     sourceHorizontalQuaternion v y) (sourcePosition_inverse x)
 
-/-- Original `horizontal_scaled_derivative` guarantee for the `MixedTime` construction; the complete source hypotheses are retained. -/
+/-- Scaling the spin derivative by a real factor scales the horizontal coefficient by the same
+factor. -/
 private theorem horizontal_scaled_derivative (s d : ℍ) (a : ℝ) :
     horizontalCoefficient s (a • d)=a • horizontalCoefficient s d := by
   simp only [horizontalCoefficient, mul_smul_comm, smul_smul]
@@ -307,7 +319,8 @@ theorem sourceLiftExtension_hopf_global (v : SpatialPoint → SpatialPoint) (hv 
     rw [div_mul_cancel₀ _ physicalPeriod_pos.ne']
   simpa only [hEndQ,hEndS] using h.2
 
-/-- Original `sourceLiftSpatialExtension_isSmoothUnitLift` guarantee for the `MixedTime` construction; the complete source hypotheses are retained. -/
+/-- For a smooth unit source with periodic spin constant on a positive-width collar, a unit seed
+lying over that constant yields a smooth unit spatial lift of the source spin. -/
 theorem sourceLiftSpatialExtension_isSmoothUnitLift (v : SpatialPoint → SpatialPoint)
     (hv : ContDiff ℝ ∞ v) (hu : ∀ x, ‖v x‖=1) (q₀ : ℍ) (h₀ : ‖q₀‖=1)
     (hp : IsPeriodicField (sourceQuaternion v)) (eta : ℝ) (he : 0<eta) (sc : ℍ)

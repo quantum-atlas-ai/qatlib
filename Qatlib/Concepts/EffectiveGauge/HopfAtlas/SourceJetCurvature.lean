@@ -53,7 +53,7 @@ theorem firstJetPacketCurvature_cast (p : ℕ) (packet : RationalFirstJetPacket)
   rw [hp]
   field_simp
 
-/-- Original `spinVector_difference_norm` guarantee for the `SourceJetCurvature` construction; the complete source hypotheses are retained. -/
+/-- Embedding two spatial vectors as spin quaternions preserves the norm of their difference. -/
 private theorem spinVector_difference_norm (a b : SpatialPoint) :
     ‖spinOfVector a-spinOfVector b‖=‖a-b‖ := by
   have he : spinOfVector a-spinOfVector b=spinOfVector (a-b) := by ext <;> simp [spinOfVector]

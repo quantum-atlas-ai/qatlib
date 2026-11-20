@@ -811,7 +811,7 @@ theorem raceMass_timeout_decay (N a : ℕ) (ha : a ≤ N) (hne : 1 ≤ N) (t : �
 /-- For a valid starting position and positive `N`, machine counts equal walk counts, outcome
 masses sum to one, boundary masses are bounded by their targets, and total variation equals
 the geometrically bounded timeout mass. -/
-theorem output2.frontier1 (N a : ℕ) (ha : a ≤ N) (hne : 1 ≤ N) (t : ℕ) :
+theorem output2.race_machine_counts_mass_and_timeout_bound (N a : ℕ) (ha : a ≤ N) (hne : 1 ≤ N) (t : ℕ) :
     (∀ o, machineCountOf N a t o = fiberCountOf N a t o)
     ∧ raceMass N a t .left + raceMass N a t .right + raceMass N a t .timeout = 1
     ∧ raceMass N a t .right ≤ raceTarget N a .right

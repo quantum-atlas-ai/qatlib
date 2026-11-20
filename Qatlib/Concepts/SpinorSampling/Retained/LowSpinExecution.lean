@@ -43,7 +43,7 @@ private def lowSpinFailure {d : ℕ} (mv : Fin d → S → ℝ) (hmv : ∀ j x, 
 
 -- The schedule is the literal production schedule. Neither success events
 -- nor caller-selected integer budgets are premises of this endpoint.
-/-- Complete original `low_spin_accuracy` guarantee for `LowSpinExecution`; all source hypotheses and output obligations are retained. -/
+/-- Under the coefficient, target and grid-size bounds, the low-spin plan estimates the implemented loss with bad mass at most δ at tolerance η/2. A nonzero spin weight requires each Bell mean to be bounded by p₀, and sides of length at most two require identity shifts. -/
 theorem low_spin_accuracy {d : ℕ} (hd : 0<d) (side : ℕ)
     (mv : Fin d → S → ℝ) (hmv : ∀ j x, |mv j x|≤1)
     (a b c k : S → ℝ) (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1)

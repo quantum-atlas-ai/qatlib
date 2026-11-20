@@ -21,13 +21,16 @@ open Finset
 namespace Qatlib.Concepts.EffectiveGauge.HopfAtlas
 open Qatlib.Concepts.EffectiveGauge.RationalFlow
 
-/-- Original `sourceQuaternion_word` guarantee for the `SourceCoefficientWord` construction; the complete source hypotheses are retained. -/
+/-- For a smooth vector field, every coordinate-word derivative of its quaternion source is the
+spin embedding of the corresponding derivative of the vector field. -/
 theorem sourceQuaternion_word (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (w : List (Fin 3)) : spatialWordPartial (sourceQuaternion v) w=
       fun x => spinOfVector (spatialWordPartial v w x) :=
   spatialWordPartial_clm spinEmbedding.toContinuousLinearMap v hv w
 
-/-- Original `sourceHorizontalQuaternion_word_bound` guarantee for the `SourceCoefficientWord` construction; the complete source hypotheses are retained. -/
+/-- If `M` bounds all coordinate-word derivatives of `v` through order `w.length + 1` at `x`, the
+horizontal quaternion coefficient's derivative along `w` is bounded there by half the product
+majorant formed from `M j` and `M (j + 1)`. -/
 theorem sourceHorizontalQuaternion_word_bound (v : SpatialPoint → SpatialPoint)
     (hv : ContDiff ℝ ∞ v) (M : ℕ → ℝ) (w : List (Fin 3)) (x : SpatialPoint)
     (hb : ∀ u : List (Fin 3), u.length ≤ w.length+1 →
@@ -108,7 +111,8 @@ def sourceFrameCoefficientMajorant (packet : SourceFrameBoundPacket) (r : Fin 9)
   ∑ j ∈ range (r.val+1), (r.val.choose j : ℚ)/2 *
     sourceFrameUnitMajorant packet j*sourceFrameUnitMajorant packet (r.val-j+1)
 
-/-- Original `sourceFrameCoefficientMajorant_cast` guarantee for the `SourceCoefficientWord` construction; the complete source hypotheses are retained. -/
+/-- For `r < 9`, the real cast of the coefficient majorant is half the word product majorant for
+the normalized source bounds at orders `j` and `j + 1`. -/
 theorem sourceFrameCoefficientMajorant_cast (packet : SourceFrameBoundPacket) (r : Fin 9) :
     (sourceFrameCoefficientMajorant packet r : ℝ)=
       wordProductMajorant (fun j => (sourceFrameUnitMajorant packet j : ℝ))

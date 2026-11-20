@@ -65,7 +65,7 @@ def floorExprCompile (basis : FloorExprMachineBasis) : ℕ → Nat.Partrec.Code 
   floorExprCompileWith (floorExprCompileStep basis)
     (Nat.Partrec.Code.const (Encodable.encode (floorRationalCodeNat 0)))
 
-/-- Original `computable_floorExprProductScale` guarantee for the `FloorExprCompiler` construction; the complete source hypotheses are retained. -/
+/-- The rational rescaling code for a product query is computable from the two factor codes. -/
 theorem computable_floorExprProductScale : Computable₂ floorExprProductScale := by
   have ha : Computable (fun q : ℕ × ℕ => floorRationalCodeNat (floorExprCodeBound q.1)) :=
     primrec_floorRationalCodeNat.to_comp.comp (computable_floorExprCodeBound.comp Computable.fst)
@@ -76,7 +76,8 @@ theorem computable_floorExprProductScale : Computable₂ floorExprProductScale :
     (primrec_floorRationalCodeAdd.to_comp.comp
       (primrec_floorRationalCodeAdd.to_comp.comp ha hb) (Computable.const (floorRationalCodeNat 1))))
 
-/-- Original `computable_floorExprCompileStep` guarantee for the `FloorExprCompiler` construction; the complete source hypotheses are retained. -/
+/-- For a fixed machine basis, selecting and composing the code for one expression node is
+computable in the node code and its three supplied subordinate programs. -/
 theorem computable_floorExprCompileStep (basis : FloorExprMachineBasis) :
     Computable (fun q : ℕ × Nat.Partrec.Code × Nat.Partrec.Code × Nat.Partrec.Code =>
       floorExprCompileStep basis q.1 q.2.1 q.2.2.1 q.2.2.2) := by
@@ -124,7 +125,8 @@ theorem computable_floorExprCompileStep (basis : FloorExprMachineBasis) :
         (Computable.list_cons.comp h7 (Computable.list_cons.comp h8 (Computable.const [])))))))))
   exact (Primrec.list_getD (Nat.Partrec.Code.const (Encodable.encode (floorRationalCodeNat 0)))).to_comp.comp hlist ht
 
-/-- Original `floorComputableCompileWith` guarantee for the `FloorExprCompiler` construction; the complete source hypotheses are retained. -/
+/-- If the compilation step is computable on its packed arguments, recursion over expression codes
+gives a computable compiler with the supplied zero program as base case. -/
 private theorem floorComputableCompileWith
     (step : ℕ → Nat.Partrec.Code → Nat.Partrec.Code → Nat.Partrec.Code → Nat.Partrec.Code)
     (hstep : Computable (fun q : ℕ × Nat.Partrec.Code × Nat.Partrec.Code × Nat.Partrec.Code =>
@@ -166,11 +168,13 @@ private theorem floorComputableCompileWith
         rw [hh _ ha,hh _ hb,hh _ hp])
   exact hf.comp (Computable.const ()) Computable.id
 
-/-- Original `computable_floorExprCompile` guarantee for the `FloorExprCompiler` construction; the complete source hypotheses are retained. -/
+/-- Fixing a machine basis makes compilation from expression codes to partial-recursive program
+codes a computable function. -/
 theorem computable_floorExprCompile (basis : FloorExprMachineBasis) : Computable (floorExprCompile basis) :=
   floorComputableCompileWith (floorExprCompileStep basis) (computable_floorExprCompileStep basis) _
 
-/-- Original `floorExprCompile_correct` guarantee for the `FloorExprCompiler` construction; the complete source hypotheses are retained. -/
+/-- If the supplied basis implements its primitive operations, the program compiled from `n`
+realizes the coded raw approximation function specialized to `n`. -/
 theorem floorExprCompile_correct (basis : FloorExprMachineBasis) (h : FloorExprMachineBasisCorrect basis)
     (n : ℕ) : floorCodeRealizes (floorExprCompile basis n) (floorExprRawApprox n) := by
   induction n using Nat.strong_induction_on with

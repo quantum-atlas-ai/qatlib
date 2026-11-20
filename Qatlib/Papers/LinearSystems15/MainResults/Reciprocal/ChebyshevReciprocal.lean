@@ -67,7 +67,7 @@ the truncated series `g(x) = 4 Σ_{j≤j₀} (-1)^j [Σ_{i=j+1}^{b} C(2b,b+i)/2^
 is `2ε`-close to `1/x` on the signed gap domain `D_κ = {x | 1/κ ≤ |x| ≤ 1}`.
 
 Uses the `QSingValue19` theorem `nearOptimalReciprocal_error_of_abs`
-(full FQN `Qatlib.Papers.QSingValue19.LinearSystems.nearOptimalReciprocal_error_of_abs`),
+(full FQN `Qatlib.Concepts.QsvtCore.LinearSystems.nearOptimalReciprocal_error_of_abs`),
 whose `nearOptimalReciprocalPolynomial κ ε` is definitionally the paper's `g`. -/
 theorem lemma14_chebyshev_reciprocal (κ ε : ℝ) (hκ : 1 < κ) (hε : 0 < ε)
     (hε1 : ε ≤ 1 / 2) (x : ℝ) (hx : |x| ∈ Set.Icc κ⁻¹ 1) :
@@ -157,7 +157,7 @@ theorem lemma17_geometric_reciprocal (κd ε : ℝ) (hκd : 1 < κd) (hε : 0 < 
 `f(x) = (1-(1-x²)^b)/x = 4 Σ_{j=0}^{b-1} (-1)^j [Σ_{i=j+1}^{b} C(2b,b+i)/2^{2b}] T_{2j+1}(x)`.
 
 Uses the polynomial identity `nearOptimalReciprocal_full_expansion`
-(full FQN `Qatlib.Papers.QSingValue19.LinearSystems.nearOptimalReciprocal_full_expansion`)
+(full FQN `Qatlib.Concepts.QsvtCore.LinearSystems.nearOptimalReciprocal_full_expansion`)
 together with the geometric closed form `reciprocalPolynomial_eval_div`. -/
 theorem lemma18_full_expansion (b : ℕ) (x : ℝ) (hx0 : x ≠ 0) :
     (1 - (1 - x ^ 2) ^ b) / x =
@@ -176,7 +176,7 @@ Truncating (77) at `j₀ = ⌈√(b log(4b/ε))⌉`, `b = ⌈κ² log(κ/ε)⌉`
 polynomial `g` that is `ε`-close to `f` on `[-1,1]`.
 
 Uses `nearOptimalReciprocal_truncation_error` (full FQN
-`Qatlib.Papers.QSingValue19.LinearSystems.nearOptimalReciprocal_truncation_error`)
+`Qatlib.Concepts.QsvtCore.LinearSystems.nearOptimalReciprocal_truncation_error`)
 and the geometric closed form of `reciprocalPolynomial`. -/
 theorem lemma19_truncation_error (κ ε : ℝ) (hκ : 1 < κ) (hε : 0 < ε)
     (hε1 : ε ≤ 1 / 2) (x : ℝ) (hx : x ∈ Set.Icc (-1 : ℝ) 1) :

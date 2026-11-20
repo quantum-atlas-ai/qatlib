@@ -47,11 +47,11 @@ of the consulted oracle (`step_pc`, `qcount_pc_indep`,
 (`qcount_oneQueryProg`). Loading a `ClInput` address vector into the standard
 register (`initConf`) lifts a scale-uniform machine family to a cost profile
 `machineQueries` whose cube bound (`machineQueries_cube`) matches the budget
-premise of `Qatlib.Papers.ExactSimon97.MainResults.ScaleQual.defeat`; `MachineCostValid` records that a raw `ClProc`'s
+premise of `ScaleQual.defeat`; `MachineCostValid` records that a raw `ClProc`'s
 cost component is execution-derived from a bounded family, and
 `machineCostValid_cube_budget` derives that budget premise for such profiles.
 
-Honest non-coverage: no success event is defined and `Qatlib.Papers.ExactSimon97.MainResults.ClProc.success` is
+Honest non-coverage: no success event is defined and `ClProc.success` is
 constrained nowhere (`MachineCostValid` governs only the cost component); there
 is no probability, no Theorem 9 transcript estimate, no diagonalizing
 constructor, and no `QP^O` membership. Per DESIGN §12.8 nothing here is the
@@ -69,7 +69,7 @@ original Corollary 10, and the work block is fixed to width zero because
 * `qcount_add` / `qcount_le` / `qcount_oracle_indep`: the per-execution query
   count is a fuel-additive cost bounded by the fuel, independent of the oracle.
 * `machineCostValid_cube_budget`: execution-derived profiles satisfy the cube
-  budget premise of `Qatlib.Papers.ExactSimon97.MainResults.ScaleQual.defeat`.
+  budget premise of `ScaleQual.defeat`.
 -/
 
 set_option autoImplicit false
@@ -447,7 +447,7 @@ NOT constrained here — no success semantics is posited in this slice (DESIGN
 def MachineCostValid (d k : ℕ) (A : ClProc) : Prop :=
   ∃ M : (n : ℕ) → Prog n 0, (∀ n : ℕ, (M n).length ≤ d) ∧ A.queries = machineQueries M k
 
-/-- The cost half of the `Qatlib.Papers.ExactSimon97.MainResults.ScaleQual.defeat` budget premise is execution-derived:
+/-- The cost half of the `ScaleQual.defeat` budget premise is execution-derived:
 every machine-cost admissible profile satisfies the cube budget at every input
 whose scale absorbs `k ^ 3` into `2 ^ scale`. -/
 theorem machineCostValid_cube_budget {d k : ℕ} {A : ClProc}

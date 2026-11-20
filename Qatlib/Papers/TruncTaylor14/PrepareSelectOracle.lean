@@ -990,9 +990,8 @@ theorem approxWordQC (A : ApproxGate) : QueryCount (approxWord A) = 0 :=
 
 /-- The synthesis bound of the first ring: if the approximate contract targets
 the leading rotation `rot2 θ`, the approximated word's denotation is entrywise
-within the tolerance stored in
-`Qatlib.Concepts.GateKit.GateContract.ApproxGate.eps` of the exact contract
-word's denotation.
+within `A.eps` of the exact contract word's denotation, where `A` is the
+supplied `ApproxGate` contract.
 An existence-level synthesis statement; no compiler is constructed. -/
 theorem approxWordEntry (A : ApproxGate) (θ : ℝ) (hT : A.target = rot2 θ)
     (x y : Reg 1) :

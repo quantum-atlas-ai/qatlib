@@ -64,7 +64,7 @@ def pooledStratumPGF (a b c k : S → ℝ) (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1
   (freshObservationBlocks (n:=n) (m:=m) a b c k hz τ K).expect
     (fun ω => if observedRvec τ ω=ρ then u^(pooledHits τ ω) else 0)
 
-/-- Complete original `pooled_stratum_product` guarantee for `RetainedBellPooling`; all source hypotheses and output obligations are retained. -/
+/-- The pooled hit-count generating function restricted to a match-count vector factors into the generating functions restricted to each block's prescribed count. -/
 theorem pooled_stratum_product (a b c k : S → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (τ : Equiv.Perm S) (ρ : Fin K → ℕ) (u : ℝ) :
     pooledStratumPGF (n:=n) (m:=m) a b c k hz τ ρ u=
@@ -96,14 +96,14 @@ theorem pooled_stratum_product (a b c k : S → ℝ)
   exact (cohortObservationLaw a b c k hz τ τ.injective).expect_prod
     (fun j ω => if (matchedSites ω.1 ω.2.1 τ).card=ρ j then u^(hitCount ω.2.2) else 0)
 
-/-- Complete original `observation_stratum_at_one` guarantee for `RetainedBellPooling`; all source hypotheses and output obligations are retained. -/
+/-- At argument one, the restricted observation generating function gives exactly the probability of r matches. -/
 theorem observation_stratum_at_one (a b c k : S → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (τ : Equiv.Perm S) (r : ℕ) :
     observationStratumPGF (n:=n) (m:=m) a b c k hz τ r 1=matchedCardEventMass τ n m r := by
   rw [observation_stratum_address_pgf]
   simp [matchedCardEventMass]
 
-/-- Complete original `pooled_stratum_at_one` guarantee for `RetainedBellPooling`; all source hypotheses and output obligations are retained. -/
+/-- At argument one, the pooled generating function for the prescribed match-count vector equals the product of the single-block probabilities of its counts. -/
 theorem pooled_stratum_at_one (a b c k : S → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (τ : Equiv.Perm S) (ρ : Fin K → ℕ) :
     pooledStratumPGF (n:=n) (m:=m) a b c k hz τ ρ 1=
@@ -111,7 +111,7 @@ theorem pooled_stratum_at_one (a b c k : S → ℝ)
   rw [pooled_stratum_product]
   simp_rw [observation_stratum_at_one]
 
-/-- Complete original `pooled_stratum_pgf` guarantee for `RetainedBellPooling`; all source hypotheses and output obligations are retained. -/
+/-- The restricted pooled generating function is the product over blocks of their match-count masses times the subset averages of the corresponding Bell generating factors. -/
 theorem pooled_stratum_pgf (a b c k : S → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (τ : Equiv.Perm S) (ρ : Fin K → ℕ) (u : ℝ) :
     pooledStratumPGF (n:=n) (m:=m) a b c k hz τ ρ u=
@@ -123,13 +123,13 @@ theorem pooled_stratum_pgf (a b c k : S → ℝ)
   simp_rw [observation_stratum_pgf]
 
 omit [Fintype S] [Nonempty S] in
-/-- Complete original `pooled_zero_matches` guarantee for `RetainedBellPooling`; all source hypotheses and output obligations are retained. -/
+/-- The rational pooled Bell mean is zero when there are no pooled matches. -/
 theorem pooled_zero_matches (τ : S → S) (ω : Fin K → CohortObservation n m τ)
     (h : pooledMatches τ ω=0) : pooledMeanQ τ ω=0 := by
   simp [pooledMeanQ,h]
 
 omit [Fintype S] [Nonempty S] in
-/-- Complete original `pooled_hits_from_output` guarantee for `RetainedBellPooling`; all source hypotheses and output obligations are retained. -/
+/-- With a nonzero pooled match count, multiplying the pooled mean by the count recovers the sum of the blocks' rational hit counts. -/
 theorem pooled_hits_from_output (τ : S → S) (ω : Fin K → CohortObservation n m τ)
     (h : pooledMatches τ ω≠0) :
     pooledMeanQ τ ω*(pooledMatches τ ω : ℚ)=∑ j : Fin K,observedHitsQ τ (ω j) := by
@@ -138,7 +138,7 @@ theorem pooled_hits_from_output (τ : S → S) (ω : Fin K → CohortObservation
 
 
 omit [Fintype S] [Nonempty S] in
-/-- Complete original `pooled_hits_le_matches` guarantee for `RetainedBellPooling`; all source hypotheses and output obligations are retained. -/
+/-- The pooled hit count is at most the pooled match count for every batch of observations. -/
 theorem pooled_hits_le_matches (τ : S → S) (ω : Fin K → CohortObservation n m τ) :
     pooledHits τ ω≤pooledMatches τ ω := by
   unfold pooledHits pooledMatches observedRvec hitCount
@@ -152,7 +152,7 @@ theorem pooled_hits_le_matches (τ : S → S) (ω : Fin K → CohortObservation 
     _ = _ := by simp
 
 omit [Fintype S] [Nonempty S] in
-/-- Complete original `pooled_output_rescale` guarantee for `RetainedBellPooling`; all source hypotheses and output obligations are retained. -/
+/-- The real pooled match count times the cast mean equals the real hit count, including the case of zero matches. -/
 theorem pooled_output_rescale (τ : S → S) (ω : Fin K → CohortObservation n m τ) :
     (pooledMatches τ ω : ℝ)*(pooledMeanQ τ ω : ℝ)=(pooledHits τ ω : ℝ) := by
   by_cases h : pooledMatches τ ω=0
@@ -172,7 +172,7 @@ def pooledCenteredStratumMGF (a b c k : S → ℝ)
     if observedRvec τ ω=ρ then Real.exp
       (t*(pooledMatches τ ω : ℝ)*((pooledMeanQ τ ω : ℝ)-pbar)) else 0)
 
-/-- Complete original `pooled_centered_stratum_mgf` guarantee for `RetainedBellPooling`; all source hypotheses and output obligations are retained. -/
+/-- For any center pbar and argument t, the restricted moment generating function equals the pooled hit-count generating function at exp(t) times exp(−tR pbar), where R sums the prescribed counts. -/
 theorem pooled_centered_stratum_mgf (a b c k : S → ℝ)
     (hz : ∀ x,a x^2+b x^2+c x^2+k x^2=1) (τ : Equiv.Perm S)
     (ρ : Fin K → ℕ) (pbar t : ℝ) :

@@ -33,7 +33,7 @@ def positiveDen (q : RedundantRational.Frac) : RedundantRational.Frac :=
   if q.den.2<q.den.1 then q else
     ⟨(q.num.2,q.num.1),(q.den.2,q.den.1),fun h => q.den_ne h.symm⟩
 
-/-- Original `positiveDen_value` guarantee for the `PaidBoundOrientation` construction; the complete source hypotheses are retained. -/
+/-- Orienting the denominator to be positive preserves the rational value of the fraction. -/
 theorem positiveDen_value (q : RedundantRational.Frac) :
     RedundantRational.value (positiveDen q)=RedundantRational.value q := by
   dsimp only [positiveDen]
@@ -44,7 +44,7 @@ theorem positiveDen_value (q : RedundantRational.Frac) :
     have hd : (q.den.2 : ℚ)-q.den.1=-((q.den.1 : ℚ)-q.den.2) := by ring
     rw [hn,hd,neg_div_neg_eq]
 
-/-- Original `positiveDen_order` guarantee for the `PaidBoundOrientation` construction; the complete source hypotheses are retained. -/
+/-- In the oriented denominator pair, the second natural entry is strictly smaller than the first. -/
 theorem positiveDen_order (q : RedundantRational.Frac) :
     (positiveDen q).den.2<(positiveDen q).den.1 := by
   dsimp only [positiveDen]
@@ -54,14 +54,14 @@ theorem positiveDen_order (q : RedundantRational.Frac) :
     dsimp only
     omega
 
-/-- Original `positiveDen_den_value` guarantee for the `PaidBoundOrientation` construction; the complete source hypotheses are retained. -/
+/-- The difference represented by the oriented denominator pair is strictly positive. -/
 theorem positiveDen_den_value (q : RedundantRational.Frac) :
     (0 : ℚ)<RedundantRational.Pair.value (positiveDen q).den := by
   dsimp only [RedundantRational.Pair.value]
   apply sub_pos.mpr
   exact_mod_cast positiveDen_order q
 
-/-- Original `positiveDen_num_order` guarantee for the `PaidBoundOrientation` construction; the complete source hypotheses are retained. -/
+/-- If the fraction has nonnegative rational value, the second entry in its oriented numerator pair is at most the first. -/
 theorem positiveDen_num_order (q : RedundantRational.Frac) (hm : 0≤RedundantRational.value q) :
     (positiveDen q).num.2≤(positiveDen q).num.1 := by
   have hv : 0≤RedundantRational.value (positiveDen q) := by rw [positiveDen_value]; exact hm

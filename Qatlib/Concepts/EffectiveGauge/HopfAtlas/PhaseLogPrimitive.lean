@@ -23,11 +23,13 @@ open Qatlib.Concepts.EffectiveGauge.RationalFlow
 /-- Definition of circle Complex in the Hopf Atlas construction. -/
 def circleComplex (q : ℍ) : ℂ := ⟨q.re,q.imI⟩
 
-/-- Original `circleComplex_phase` guarantee for the `PhaseLogPrimitive` construction; the complete source hypotheses are retained. -/
+/-- Taking the real and `i` components of a quaternion phase recovers the complex phase at the
+same angle. -/
 theorem circleComplex_phase (t : ℝ) : circleComplex (phase t)=complexPhase t := by
   apply Complex.ext <;> simp [circleComplex,phase,iAxis,complexPhase]
 
-/-- Original `circleComplex_norm_le` guarantee for the `PhaseLogPrimitive` construction; the complete source hypotheses are retained. -/
+/-- The complex number formed from the real and `i` components has norm at most the original
+quaternion norm. -/
 theorem circleComplex_norm_le (q : ℍ) : ‖circleComplex q‖ ≤ ‖q‖ := by
   apply (sq_le_sq₀ (norm_nonneg _) (norm_nonneg _)).mp
   rw [pow_two,pow_two,Complex.norm_mul_self_eq_normSq,← Quaternion.normSq_eq_norm_mul_self,
@@ -36,24 +38,26 @@ theorem circleComplex_norm_le (q : ℍ) : ‖circleComplex q‖ ≤ ‖q‖ := b
   change q.re*q.re+q.imI*q.imI ≤ q.re*q.re+q.imI*q.imI+q.imJ*q.imJ+q.imK*q.imK
   nlinarith [sq_nonneg q.imJ,sq_nonneg q.imK]
 
-/-- Original `circleComplex_sub` guarantee for the `PhaseLogPrimitive` construction; the complete source hypotheses are retained. -/
+/-- Extracting the real and `i` coordinates as a complex number commutes with subtraction. -/
 theorem circleComplex_sub (q r : ℍ) : circleComplex (q-r)=circleComplex q-circleComplex r := by
   apply Complex.ext <;> rfl
 
-/-- Original `abs_imI_le_norm` guarantee for the `PhaseLogPrimitive` construction; the complete source hypotheses are retained. -/
+/-- The absolute value of the `i` coordinate of any quaternion is at most its norm. -/
 private theorem abs_imI_le_norm (q : ℍ) : |q.imI| ≤ ‖q‖ := by
   apply (sq_le_sq₀ (abs_nonneg _) (norm_nonneg _)).mp
   simp only [pow_two]
   rw [← Quaternion.normSq_eq_norm_mul_self,Quaternion.normSq_def']
   nlinarith [sq_abs q.imI,sq_nonneg q.re,sq_nonneg q.imJ,sq_nonneg q.imK]
 
-/-- Original `circleAngularRate_abs_le` guarantee for the `PhaseLogPrimitive` construction; the complete source hypotheses are retained. -/
+/-- At a point of unit quaternion norm, the absolute first transverse angular rate is bounded by
+the norm of the first transverse derivative. -/
 theorem circleAngularRate_abs_le (k : TransversePoint → ℍ) (p : TransversePoint) (hn : ‖k p‖=1) :
     |circleAngularRate k p| ≤ ‖fderiv ℝ k p (EuclideanSpace.single 0 1)‖ := by
   apply (abs_imI_le_norm _).trans
   rw [norm_mul,Quaternion.norm_star,hn,one_mul]
 
-/-- Original `fderiv_scaled_argument` guarantee for the `PhaseLogPrimitive` construction; the complete source hypotheses are retained. -/
+/-- For a smooth quaternion field with its argument scaled by `c`, the Fréchet derivative in
+direction `h` is `c` times the original derivative at the scaled point in the same direction. -/
 theorem fderiv_scaled_argument (k : TransversePoint → ℍ) (hk : ContDiff ℝ ∞ k)
     (c : ℝ) (p h : TransversePoint) :
     fderiv ℝ (fun q => k (c • q)) p h=c • (fderiv ℝ k (c • p) h) := by
@@ -64,11 +68,12 @@ theorem fderiv_scaled_argument (k : TransversePoint → ℍ) (hk : ContDiff ℝ 
   rw [hd.fderiv]
   simp only [ContinuousLinearMap.comp_apply,_root_.smul_apply,ContinuousLinearMap.id_apply,map_smul]
 
-/-- Original `transversePair_scale` guarantee for the `PhaseLogPrimitive` construction; the complete source hypotheses are retained. -/
+/-- Scalar multiplication of a transverse pair scales both coordinates by the same scalar. -/
 theorem transversePair_scale (c y z : ℝ) :
     c • transversePair (y,z)=transversePair (c*y,c*z) := by ext i; fin_cases i <;> rfl
 
-/-- Original `circleAngularRate_scaled` guarantee for the `PhaseLogPrimitive` construction; the complete source hypotheses are retained. -/
+/-- For a smooth quaternion field, scaling the argument by `c` scales its angular rate by `c` at
+the corresponding scaled point. -/
 theorem circleAngularRate_scaled (k : TransversePoint → ℍ) (hk : ContDiff ℝ ∞ k) (c : ℝ) (p : TransversePoint) :
     circleAngularRate (fun q => k (c • q)) p=c*circleAngularRate k (c • p) := by
   unfold circleAngularRate
@@ -95,7 +100,8 @@ theorem circleLogPrimitive_scaled (k : TransversePoint → ℍ) (hk : ContDiff �
       simpa only [smul_eq_mul,mul_zero] using h
     _ = _ := rfl
 
-/-- Original `phaseGrid_mem` guarantee for the `PhaseLogPrimitive` construction; the complete source hypotheses are retained. -/
+/-- For a nonnegative endpoint and a positive step count `D`, the equally spaced grid point
+with index `j ≤ D` lies in the interval from zero to the endpoint. -/
 private theorem phaseGrid_mem (endpoint : ℚ) (hy : 0 ≤ endpoint) (D : ℕ) (hD : 0<D)
     (j : ℕ) (hj : j ≤ D) :
     (endpoint : ℝ)*((j : ℝ)/(D : ℝ)) ∈ Icc 0 (endpoint : ℝ) := by

@@ -19,7 +19,7 @@ public import Mathlib.Analysis.SpecialFunctions.Exponential
 set_option backward.isDefEq.respectTransparency false
 
 /-!
-# SparseUnitary09 — MainResults / Dilation (claim c001)
+# SparseUnitary09 — MainResults / Dilation
 
 Source: Stephen P. Jordan & Pawel Wocjan, *Efficient quantum circuits for arbitrary
 sparse unitaries*, fixed version **arXiv:0904.2211v2 (11 Feb 2010)**.
@@ -33,7 +33,7 @@ evolving the ancilla-`|1⟩` input `|1⟩|ψ⟩` for time `π/2` produces `−i|
 The remaining part of the paper's main claim — that the gate count is
 `poly(log N, d, ‖Ht‖, 1/ε)` — is the standard sparse-Hamiltonian-simulation cost
 ([1,3] of the paper), reused at the concept layer; see the docstring of
-`c001_implementation_reduction`.
+`unitary_dilation_evolution_implements_with_ancilla_flip`.
 -/
 
 set_option autoImplicit false
@@ -269,7 +269,7 @@ theorem sparse_unitary_dilation_main [Nonempty ι] (U : Matrix ι ι ℂ)
 "sparse unitary is efficiently implementable" step: evolve under the sparse
 Hamiltonian `H` for time `π/2`, then the ancilla carries `|1⟩ → |0⟩`. The gate cost is
 exactly that of the time-`π/2` simulation of `H` plus one NOT gate. -/
-theorem c001_implementation_reduction (U : Matrix ι ι ℂ)
+theorem unitary_dilation_evolution_implements_with_ancilla_flip (U : Matrix ι ι ℂ)
     (hU : U ∈ Matrix.unitaryGroup ι ℂ) (ψ : ι → ℂ) :
     ∃ φ : ℂ, φ = -Complex.I ∧
       NormedSpace.exp ((Complex.I * (-(((Real.pi / 2 : ℝ) : ℂ)))) • unitaryDilation U) *ᵥ anc1 ψ

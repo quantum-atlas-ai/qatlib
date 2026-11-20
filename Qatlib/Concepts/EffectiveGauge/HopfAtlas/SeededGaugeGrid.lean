@@ -49,7 +49,9 @@ def gaugePhysicalWithSeedCache (source : RationalJetSource) (state : StoredGauge
     (referencePhysicalValueAccuracy (gaugePhysicalValueAccuracy tolerance))
   gaugePhysicalWithSeeds source state palette X tolerance
 
-/-- Original `referencePhysicalWithSeeds_correct` guarantee for the `SeededGaugeGrid` construction; the complete source hypotheses are retained. -/
+/-- Physical reference evaluation with a seed palette prepared at
+`referencePhysicalValueAccuracy tolerance` returns the same result as direct evaluation of the
+stored frame. -/
 theorem referencePhysicalWithSeeds_correct (source : RationalJetSource) (frame : StoredReferenceFrame)
     (X : Fin 3 → ℚ) (tolerance : ℚ) :
     referencePhysicalWithSeeds source frame
@@ -58,7 +60,8 @@ theorem referencePhysicalWithSeeds_correct (source : RationalJetSource) (frame :
   simp only [referencePhysicalWithSeeds,storedReferencePhysicalValue,referencePhysicalValueExecution,
     referenceValueWithSeeds_correct]
 
-/-- Original `gaugePhysicalWithSeeds_correct` guarantee for the `SeededGaugeGrid` construction; the complete source hypotheses are retained. -/
+/-- Physical gauge evaluation using the frame's seed palette prepared at the nested gauge and
+reference value accuracies agrees with direct evaluation of the stored gauge state. -/
 theorem gaugePhysicalWithSeeds_correct (source : RationalJetSource) (state : StoredGaugeState)
     (X : Fin 3 → ℚ) (tolerance : ℚ) :
     gaugePhysicalWithSeeds source state
@@ -69,7 +72,8 @@ theorem gaugePhysicalWithSeeds_correct (source : RationalJetSource) (state : Sto
   dsimp only
   rw [referencePhysicalWithSeeds_correct]
 
-/-- Original `gaugePhysicalWithSeedCache_correct` guarantee for the `SeededGaugeGrid` construction; the complete source hypotheses are retained. -/
+/-- Using the cached seed palette for a stored physical gauge evaluation yields the same result as
+direct evaluation at every rational address and tolerance. -/
 theorem gaugePhysicalWithSeedCache_correct (source : RationalJetSource) (state : StoredGaugeState)
     (X : Fin 3 → ℚ) (tolerance : ℚ) :
     gaugePhysicalWithSeedCache source state X tolerance=storedSourceGaugePhysicalValue source state X tolerance :=

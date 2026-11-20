@@ -30,7 +30,8 @@ set_option autoImplicit false
 namespace Qatlib.Concepts.SpinorSampling.Matching.Matched
 noncomputable section
 
-/-- Complete original `ceil_sqrt_q_upper` guarantee for `CorrelationPlanBounds`; all source hypotheses and output obligations are retained. -/
+/-- For a nonnegative rational `q`, its integer square-root ceiling is at most one above the
+real square root. -/
 theorem ceil_sqrt_q_upper (q : ℚ) (hq : 0≤q) :
     (ceilSqrtQ q : ℝ) ≤ Real.sqrt (q : ℝ)+1 := by
   have hqR : (0 : ℝ)≤q := Rat.cast_nonneg.mpr hq
@@ -48,7 +49,8 @@ theorem ceil_sqrt_q_upper (q : ℚ) (hq : 0≤q) :
     have hn0 : (0 : ℝ)≤(Nat.sqrt (ceilNatQ q) : ℕ) := Nat.cast_nonneg _
     nlinarith
 
-/-- Complete original `saturated_blocks_upper` guarantee for `CorrelationPlanBounds`; all source hypotheses and output obligations are retained. -/
+/-- For positive site count and tolerance and `0 < ρ < 1`, the saturated block count is at most
+`2048 * ceilLog2Q (7/ρ) / (M * ε²) + 2`. -/
 theorem saturated_blocks_upper (M : ℕ) (hM : 0<M) (ε ρ : ℚ) (hε : 0<ε)
     (hρ : 0<ρ) (hρ1 : ρ<1) :
     (saturatedBlocksQ M ε ρ : ℝ) ≤
@@ -80,7 +82,8 @@ theorem saturated_blocks_upper (M : ℕ) (hM : 0<M) (ε ρ : ℚ) (hε : 0<ε)
 
 -- A rejected single cohort does not permit an arbitrary M-sized rounding
 -- payment. The literal root bound makes that payment O(L/epsilon^2).
-/-- Complete original `rejected_match_size_budget` guarantee for `CorrelationPlanBounds`; all source hypotheses and output obligations are retained. -/
+/-- If `M ≥ 2` and the matched count for positive tolerance exceeds `M`, the product `M * ε²` is
+at most `1024 * ceilLog2Q (7/ρ)`. -/
 theorem rejected_match_size_budget (M : ℕ) (hM : 2≤M) (ε ρ : ℚ) (hε : 0<ε)
     (hreject : M<matchedCountQ M ε ρ) :
     (M : ℝ)*(ε : ℝ)^2 ≤ 1024*(ceilLog2Q (7/ρ) : ℝ) := by
@@ -109,7 +112,8 @@ theorem rejected_match_size_budget (M : ℕ) (hM : 2≤M) (ε ρ : ℚ) (hε : 0
   have hMpos : (0 : ℝ)<M := by linarith
   nlinarith only [hb, hMpos]
 
-/-- Complete original `planned_saturated_copy_bound` guarantee for `CorrelationPlanBounds`; all source hypotheses and output obligations are retained. -/
+/-- If the requested matched count exceeds `M ≥ 2`, the saturated schedule uses at most
+`8192 * ceilLog2Q (7/ρ) / ε²` copies for positive tolerance and `0 < ρ < 1`. -/
 theorem planned_saturated_copy_bound (M : ℕ) (hM : 2≤M) (ε ρ : ℚ)
     (hε : 0<ε) (hρ : 0<ρ) (hρ1 : ρ<1) (hreject : M<matchedCountQ M ε ρ) :
     ((2*M*saturatedBlocksQ M ε ρ : ℕ) : ℝ) ≤
@@ -129,7 +133,7 @@ theorem planned_saturated_copy_bound (M : ℕ) (hM : 2≤M) (ε ρ : ℚ)
   nlinarith only [hK', hsize]
 
 
-/-- Complete original `confidence_log_count_dominates` guarantee for `CorrelationPlanBounds`; all source hypotheses and output obligations are retained. -/
+/-- For `0 < ρ < 1`, the base-two ceiling log at `1/ρ` is no larger than the one at `7/ρ`. -/
 theorem confidence_log_count_dominates (ρ : ℚ) (hρ : 0<ρ) (hρ1 : ρ<1) :
     ceilLog2Q (1/ρ)≤ceilLog2Q (7/ρ) := by
   have harg : (1 : ℚ)<1/ρ := (lt_div_iff₀ hρ).mpr (by simpa using hρ1)
@@ -144,7 +148,8 @@ theorem confidence_log_count_dominates (ρ : ℚ) (hρ : 0<ρ) (hρ1 : ρ<1) :
   have hc := (div_lt_div_iff_of_pos_right hρ).mp hlt
   norm_num at hc
 
-/-- Complete original `fallback_block_count_upper` guarantee for `CorrelationPlanBounds`; all source hypotheses and output obligations are retained. -/
+/-- For a nonnegative `rootM` and positive tolerance, a unit-norm fallback block takes at most
+`3 + 32 / ε² + 8 * rootM / ε` records. -/
 theorem fallback_block_count_upper (rootM ε : ℚ) (hroot : 0≤rootM) (hε : 0<ε) :
     (blockRecordsQ 1 rootM ε : ℝ) ≤
       3+32/(ε : ℝ)^2+8*(rootM : ℝ)/(ε : ℝ) := by
@@ -166,7 +171,8 @@ theorem fallback_block_count_upper (rootM ε : ℚ) (hroot : 0≤rootM) (hε : 0
   rw [heq]
   linarith
 
-/-- Complete original `planned_fallback_copy_bound` guarantee for `CorrelationPlanBounds`; all source hypotheses and output obligations are retained. -/
+/-- The fallback blocks cost at most `4376 * ceilLog2Q (7/ρ) / ε²` copies when `0 ≤ rootM`, its
+square is at most `2 * M`, `0 < ε < 1`, `0 < ρ < 1`, and `M * ε² < 2048`. -/
 theorem planned_fallback_copy_bound (M : ℕ) (rootM ε ρ : ℚ)
     (hroot : 0≤rootM) (hroot2 : (rootM : ℝ)^2≤2*(M : ℝ))
     (hε : 0<ε) (hε1 : ε<1) (hρ : 0<ρ) (hρ1 : ρ<1)
@@ -198,7 +204,8 @@ theorem planned_fallback_copy_bound (M : ℕ) (rootM ε ρ : ℚ)
   push_cast
   nlinarith only [hp]
 
-/-- Complete original `dyadic_root_square_upper` guarantee for `CorrelationPlanBounds`; all source hypotheses and output obligations are retained. -/
+/-- Rounding the half exponent of `2^(d*r)` upward gives a dyadic root whose square is at most
+twice the original power. -/
 theorem dyadic_root_square_upper (d r : ℕ) :
     (((2^((d*r+1)/2) : ℕ) : ℝ))^2 ≤ 2*((2^(d*r) : ℕ) : ℝ) := by
   have hn : (2^((d*r+1)/2) : ℕ)^2≤2*2^(d*r) := by
@@ -207,7 +214,8 @@ theorem dyadic_root_square_upper (d r : ℕ) :
   exact_mod_cast hn
 
 
-/-- Complete original `matched_count_upper` guarantee for `CorrelationPlanBounds`; all source hypotheses and output obligations are retained. -/
+/-- For positive tolerance, the requested matched count is at most one plus `16 / ε` times the
+square root of `M * ceilLog2Q (7/ρ)`. -/
 theorem matched_count_upper (M : ℕ) (ε ρ : ℚ) (hε : 0<ε) :
     (matchedCountQ M ε ρ : ℝ) ≤
       16*Real.sqrt ((M : ℝ)*(ceilLog2Q (7/ρ) : ℝ))/(ε : ℝ)+1 := by
@@ -225,7 +233,9 @@ theorem matched_count_upper (M : ℕ) (ε ρ : ℚ) (hε : 0<ε) :
   rw [hs256] at hn
   exact hn
 
-/-- Complete original `correlation_plan_copy_bound` guarantee for `CorrelationPlanBounds`; all source hypotheses and output obligations are retained. -/
+/-- If `rootM` is nonnegative with square at most `2 * M`, the plan uses at most `16384` times
+the sum of `ceilLog2Q (7/ρ) / ε²` and `sqrt (M * ceilLog2Q (7/ρ)) / ε` for `ε > 0` and
+`0 < ρ < 1`. -/
 theorem correlation_plan_copy_bound (M : ℕ) (rootM ε ρ : ℚ)
     (hroot : 0≤rootM) (hroot2 : (rootM : ℝ)^2≤2*(M : ℝ))
     (hε : 0<ε) (hρ : 0<ρ) (hρ1 : ρ<1) :
@@ -260,7 +270,9 @@ theorem correlation_plan_copy_bound (M : ℕ) (rootM ε ρ : ℚ)
       (lt_of_not_ge hz) hρ hρ1 (lt_of_not_ge hx)
     exact hc.trans (by simp only [mul_div_assoc]; nlinarith only [hA,hB])
 
-/-- Complete original `grid_correlation_plan_copy_bound` guarantee for `CorrelationPlanBounds`; all source hypotheses and output obligations are retained. -/
+/-- For a grid with `2^(d*r)` cells and the dyadic root used by the planner, positive `ε` and
+`0 < ρ < 1` give the copy bound `16384 * (L / ε² + sqrt (2^(d*r) * L) / ε)` with
+`L = ceilLog2Q (7/ρ)`. -/
 theorem grid_correlation_plan_copy_bound (d r : ℕ) (ε ρ : ℚ)
     (hε : 0<ε) (hρ : 0<ρ) (hρ1 : ρ<1) :
     let p := correlationPlanQ (2^(d*r)) ((2^((d*r+1)/2) : ℕ) : ℚ) ε ρ

@@ -1199,7 +1199,7 @@ theorem covarianceUpdate_ne_covarianceUpdateComplete :
 
 /-- Collects the complete covariance propagation identities, the measurement identities and
 conditional update, and the counterexample separating the two covariance update rules. -/
-theorem frontier1 :
+theorem fermionic_covariance_propagation_and_measurement_updates :
     (∀ (n : ℕ) (Γ : Matrix (Fin (2 * n)) (Fin (2 * n)) ℝ) (i j : Fin n) (_hij : i ≠ j)
         (R : Matrix (Fin 4) (Fin 4) ℝ) (p : Fin 4) (b : Fin (2 * n))
         (_hb : ¬ isLocalMajorana i j b),

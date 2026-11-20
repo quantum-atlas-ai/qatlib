@@ -29,7 +29,15 @@ open Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays Qatlib.Concepts
 
 open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data
 
-/-- The finite construction in `NativeSourceCompletionAccuracy` satisfies `source_completion_accuracy` under the displayed hypotheses. -/
+/-- Assume positive `E` and source degree, with a Chebyshev target of degree at most `N`, parity
+`N`, and absolute value at most one on `[-1, 1]`. If guarded factors with nonzero content
+reconstruct the integer complement and return as many roots as the source degree, the returned
+coordinates lie inside the unit circle and match all interior roots with multiplicity to within
+the root tolerance. The monic list has one more entry than roots. The actual-to-ideal product
+ratio on the unit circle differs from one by at most `2 * s`, where `s` is the returned root
+count times the tolerance divided by the decoded gap. The ratio at `1` is nonzero, and dividing
+the ratio at each unit-circle point by the norm of the ratio at `1` gives error at most `8 * s`.
+-/
 theorem source_completion_accuracy (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E)
     (htail : ∀ k,N+1 ≤ k → cs.getD k 0=0)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)

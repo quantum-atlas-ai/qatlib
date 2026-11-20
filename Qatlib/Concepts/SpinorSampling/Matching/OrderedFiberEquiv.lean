@@ -88,13 +88,15 @@ def orderedFiberEquiv (A : Finset S) (k : ℕ) : orderedFiber A k ≃ (Fin k ≃
 instance orderedFiberFintype (A : Finset S) (k : ℕ) : Fintype (orderedFiber A k) :=
   Fintype.ofEquiv (Fin k ≃ A) (orderedFiberEquiv A k).symm
 
-/-- Complete original `ordered_fiber_card` guarantee for `OrderedFiberEquiv`; all source hypotheses and output obligations are retained. -/
+/-- The number of injective arrays of length `k` with occupied set `A` equals the number of
+bijections from `Fin k` to `A`. -/
 theorem ordered_fiber_card (A : Finset S) (k : ℕ) :
     Fintype.card (orderedFiber A k)=
       Fintype.card (Fin k ≃ A) :=
   Fintype.card_congr (orderedFiberEquiv A k)
 
-/-- Complete original `ordered_fiber_card_factorial` guarantee for `OrderedFiberEquiv`; all source hypotheses and output obligations are retained. -/
+/-- For a `k`-element set `A`, exactly `k!` injective arrays of length `k` have occupied set
+`A`. -/
 theorem ordered_fiber_card_factorial (A : Finset S) {k : ℕ} (hcard : A.card = k) :
     Fintype.card (orderedFiber A k) = Nat.factorial k := by
   rw [ordered_fiber_card, finset_ordered_enumeration_count A hcard]

@@ -47,7 +47,7 @@ open scoped BigOperators Kronecker
 variable {J H I : Type} [Fintype J] [DecidableEq J]
   [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
 
-/-- The finite construction in `NativeCleanBlockLCU` satisfies `fiber_frame_apply` under the displayed hypotheses. -/
+/-- Composing `F` with the fibre inclusion at `k₀` gives entry `F l m` on the `k₀` slice and zero on every other slice. -/
 private theorem fiber_frame_apply {K L M : Type} [Fintype L] [DecidableEq K] [DecidableEq L]
     (k₀ : K) (F : Matrix L M ℂ) (k : K) (l : L) (m : M) :
     (encodingFiber (I := L) k₀ * F) (k,l) m = if k = k₀ then F l m else 0 := by
@@ -72,7 +72,7 @@ theorem relabeled_neumann_frame (b : ℕ) (hb : 0 < b) (F : Matrix H I ℂ) :
     Matrix.kroneckerMap_apply, Matrix.one_apply]
 
 omit [Fintype H] [DecidableEq H] in
-/-- The finite construction in `NativeCleanBlockLCU` satisfies `label_frame_fiber` under the displayed hypotheses. -/
+/-- The frame tagged at `j₀` first inserts the input into that label fibre and then applies `F` at every label. -/
 private theorem label_frame_fiber (F : Matrix H I ℂ) (j₀ : J) :
     tagFrame j₀ F =
       ((1 : Matrix J J ℂ) ⊗ₖ F) * encodingFiber (I := I) j₀ := by
@@ -84,14 +84,14 @@ private theorem label_frame_fiber (F : Matrix H I ℂ) (j₀ : J) :
     simp [encodingFiber_apply, hx]
   · simp
 
-/-- The finite construction in `NativeCleanBlockLCU` satisfies `label_prepare_intertwine` under the displayed hypotheses. -/
+/-- Applying the label preparation after the labelwise frame `F` equals applying it on the input labels before that frame. -/
 private theorem label_prepare_intertwine (F : Matrix H I ℂ) (P : Matrix J J ℂ) :
     prepareRegister (I := H) P * ((1 : Matrix J J ℂ) ⊗ₖ F) =
       ((1 : Matrix J J ℂ) ⊗ₖ F) * prepareRegister (I := I) P := by
   simp only [prepareRegister, ← Matrix.mul_kronecker_mul, Matrix.mul_one, Matrix.one_mul]
 
 omit [Fintype J] [Fintype I] in
-/-- The finite construction in `NativeCleanBlockLCU` satisfies `diagonal_phase_select` under the displayed hypotheses. -/
+/-- Lifting the diagonal of the coefficient phases to the joint register gives the block-diagonal selection of those phases times the identity on `I`. -/
 private theorem diagonal_phase_select (d : J → ℂ) :
     prepareRegister (I := I) (Matrix.diagonal (fun j => coefficientPhase (d j))) =
       select (phaseAbsorbed d (fun _ => (1 : Matrix I I ℂ))) := by

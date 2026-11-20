@@ -35,13 +35,15 @@ def normalizedSourceLine (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ 
 def normalizedSourceGenerator (v : SpatialPoint → SpatialPoint) (p : TransversePoint) (x t : ℝ) : ℍ :=
   x • sourceHorizontalQuaternion v (sourcePosition (p,x*t))
 
-/-- Original `normalizedTime_maps` guarantee for the `CayleySource` construction; the complete source hypotheses are retained. -/
+/-- If `x` lies between zero and the physical period, multiplying normalized times in `[0, 1]` by
+`x` gives times in the physical interval. -/
 private theorem normalizedTime_maps (x : ℝ) (hx : 0 ≤ x ∧ x ≤ physicalPeriod) :
     MapsTo (fun t : ℝ => x*t) (Icc 0 1) (Icc 0 physicalPeriod) := by
   intro t ht
   exact ⟨mul_nonneg hx.1 ht.1,(mul_le_mul_of_nonneg_left ht.2 hx.1).trans (by simpa using hx.2)⟩
 
-/-- Original `normalizedSourceLine_initial` guarantee for the `CayleySource` construction; the complete source hypotheses are retained. -/
+/-- The normalized source lift of a smooth unit field starts at the supplied unit quaternion for
+every transverse point and endpoint coordinate. -/
 theorem normalizedSourceLine_initial (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (hu : ∀ x, ‖v x‖=1) (q₀ : ℍ) (h₀ : ‖q₀‖=1) (p : TransversePoint) (x : ℝ) :
     normalizedSourceLine v hv q₀ h₀ p x 0=q₀ := by
@@ -51,18 +53,21 @@ theorem normalizedSourceLine_initial (v : SpatialPoint → SpatialPoint) (hv : C
   rw [sourceLiftExtension_eq v hv hu q₀ h₀ p transportStart]
   exact pathTransport_start q₀ h₀ _
 
-/-- Original `normalizedSourceLine_unit` guarantee for the `CayleySource` construction; the complete source hypotheses are retained. -/
+/-- The normalized source lift from a unit initial quaternion has unit norm for every real endpoint
+coordinate and normalized time, given a smooth source field. -/
 theorem normalizedSourceLine_unit (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (q₀ : ℍ) (h₀ : ‖q₀‖=1) (p : TransversePoint) (x t : ℝ) :
     ‖normalizedSourceLine v hv q₀ h₀ p x t‖=1 := pathTransport_unit q₀ h₀ _ transportFinish
 
-/-- Original `continuous_normalizedSourceGenerator` guarantee for the `CayleySource` construction; the complete source hypotheses are retained. -/
+/-- For a smooth source field, the normalized generator is continuous in time at any fixed
+transverse point and endpoint coordinate. -/
 theorem continuous_normalizedSourceGenerator (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (p : TransversePoint) (x : ℝ) : Continuous (normalizedSourceGenerator v p x) :=
   ((contDiff_sourceHorizontalQuaternion hv).continuous.comp
     (sourcePosition.continuous.comp (continuous_const.prodMk (continuous_const.mul continuous_id)))).const_smul x
 
-/-- Original `normalizedSourceGenerator_re` guarantee for the `CayleySource` construction; the complete source hypotheses are retained. -/
+/-- For a smooth unit source field, the normalized generator has zero real part at every transverse
+point, endpoint coordinate, and time. -/
 theorem normalizedSourceGenerator_re (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (hu : ∀ x, ‖v x‖=1) (p : TransversePoint) (x t : ℝ) : (normalizedSourceGenerator v p x t).re=0 := by
   have h := horizontal_re _ _ (source_tangent (sourceCurve_hasDerivAt hv p) (fun _ => rfl)
@@ -71,7 +76,9 @@ theorem normalizedSourceGenerator_re (v : SpatialPoint → SpatialPoint) (hv : C
   rw [show (sourceHorizontalQuaternion v (sourcePosition (p,x*t))).re=0 from h]
   exact smul_zero x
 
-/-- Original `normalizedSourceLine_hasDerivWithinAt` guarantee for the `CayleySource` construction; the complete source hypotheses are retained. -/
+/-- For a smooth unit source field and a unit initial quaternion, an endpoint coordinate in the
+physical interval gives a normalized lift whose derivative within `[0, 1]` is right multiplication
+by the normalized generator. -/
 theorem normalizedSourceLine_hasDerivWithinAt (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (hu : ∀ x, ‖v x‖=1) (q₀ : ℍ) (h₀ : ‖q₀‖=1) (p : TransversePoint)
     (x : ℝ) (hx : 0 ≤ x ∧ x ≤ physicalPeriod) (t : ℝ) (ht : t ∈ Icc 0 1) :

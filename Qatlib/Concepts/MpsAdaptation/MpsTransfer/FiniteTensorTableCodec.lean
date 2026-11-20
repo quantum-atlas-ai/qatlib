@@ -323,7 +323,7 @@ theorem tableDecode_zero_bond_contract (N : TensorNet) (T : TableTensorNet N)
 
 /-- Collects compatibility of decoding and contraction with half-edge permutation, preservation
 of dimensions, and invariance of table height and bond dimension. -/
-theorem frontier1 (N : TensorNet) (T : TableTensorNet N) (π : Fin N.nh ≃ Fin N.nh) :
+theorem half_edge_permutation_preserves_tensor_decoding_and_contraction (N : TensorNet) (T : TableTensorNet N) (π : Fin N.nh ≃ Fin N.nh) :
     tableDecode (permNet N π) (tablePermute N T π) = permNet (tableDecode N T) π
     ∧ (∀ y : OpenAssign (permNet N π),
         netContract (tableDecode (permNet N π) (tablePermute N T π)) y

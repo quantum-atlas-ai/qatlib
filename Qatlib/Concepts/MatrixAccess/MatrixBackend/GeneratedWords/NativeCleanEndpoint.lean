@@ -122,7 +122,10 @@ theorem endpoint_word_unitary (b : ℕ) (hb : 0 < b)
       (cleanEndpointBody b hb F ps p slack) ∈ unitaryGroup _ ℂ :=
   nativeCleanRelabeledWord_unitary b hb F A U α hbe ps p slack
 
-/-- The finite construction in `NativeCleanEndpoint` satisfies `endpoint_block` under the displayed hypotheses. -/
+/-- For an exact input block encoding and `b > 0`, evaluating the clean endpoint
+body at the lifted query for `U` and compressing through the common frame at
+each label yields a block-diagonal matrix. Each block is the left-defect
+Neumann polynomial of that label's native shift of `A`, divided by `b`. -/
 theorem endpoint_block (b : ℕ) (hb : 0 < b)
     (F : Matrix H I ℂ) (A : Matrix I I ℂ) (U : Matrix H H ℂ) (α : ℝ)
     (hbe : BlockEncoding A U F F α 0)

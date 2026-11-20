@@ -71,17 +71,17 @@ theorem controlled_unitary (c t : Fin 6) (B : Matrix Bool Bool ℂ)
   intro x
   split <;> first | exact hB | exact (unitaryGroup Bool ℂ).one_mem
 
-/-- The finite construction in `NativeHouseholder` satisfies `apply_ket` under the displayed hypotheses. -/
+/-- The output amplitude at `y` after applying a square matrix to basis ket `x` is its entry in row `y`, column `x`. -/
 private theorem apply_ket {I : Type} [Fintype I] [DecidableEq I]
     (A : Matrix I I ℂ) (x y : I) : ApplyGate A (Qatlib.Foundations.PureStateMath.Ket x) y=A y x := by
   simp [ApplyGate, Matrix.mulVec, dotProduct, Qatlib.Foundations.PureStateMath.Ket, mul_ite]
 
-/-- The finite construction in `NativeHouseholder` satisfies `rect_ket` under the displayed hypotheses. -/
+/-- Multiplying a rectangular matrix by the input basis ket at `x` extracts its `x` column, including entry `A y x` at output index `y`. -/
 private theorem rect_ket {I J : Type} [Fintype I] [DecidableEq I]
     (A : Matrix J I ℂ) (x : I) (y : J) : (A *ᵥ Qatlib.Foundations.PureStateMath.Ket x) y=A y x := by
   simp [Matrix.mulVec,dotProduct,Qatlib.Foundations.PureStateMath.Ket,mul_ite]
 
-/-- The finite construction in `NativeHouseholder` satisfies `controlled_ket` under the displayed hypotheses. -/
+/-- For distinct control and target wires, the controlled matrix fixes a basis ket when the control is false. When it is true, the two target-bit outputs carry the entries of `B` in the column indexed by the original target bit. -/
 theorem controlled_ket (c t : Fin 6) (hct : c ≠ t) (B : Matrix Bool Bool ℂ) (x : Reg 6) :
     ApplyGate (controlled c t B) (Qatlib.Foundations.PureStateMath.Ket x) =
       if x c then B false (x t) • Qatlib.Foundations.PureStateMath.Ket (Function.update x t false)+
@@ -119,7 +119,7 @@ theorem controlled_ket (c t : Fin 6) (hct : c ≠ t) (B : Matrix Bool Bool ℂ) 
 def ccxUpdate (a b t : Fin 6) (x : Reg 6) : Reg 6 :=
   Function.update x t (x t ^^ (x a && x b))
 
-/-- The finite construction in `NativeHouseholder` satisfies `ccx_involutive` under the displayed hypotheses. -/
+/-- The doubly controlled bit update is an involution whenever the target is distinct from each control. -/
 theorem ccx_involutive (a b t : Fin 6) (hat : a ≠ t) (hbt : b ≠ t) :
     Function.Involutive (ccxUpdate a b t) := by
   intro x
@@ -186,17 +186,17 @@ def run : List Op → Qatlib.Foundations.PureStateMath.QState (Reg 6) → Qatlib
   | [], ψ => ψ
   | g :: gs, ψ => run gs (ApplyGate (matrix g) ψ)
 
-/-- The finite construction in `NativeHouseholder` satisfies `run_eq` under the displayed hypotheses. -/
+/-- Running the gate list on a six-wire state equals applying the product matrix `program gs` to that state. -/
 theorem run_eq (gs : List Op) (ψ : Qatlib.Foundations.PureStateMath.QState (Reg 6)) : run gs ψ=ApplyGate (program gs) ψ := by
   induction gs generalizing ψ with
   | nil => simp [run, program, ApplyGate]
   | cons g gs ih => simp only [run, program, ih, ApplyGate, Matrix.mulVec_mulVec]
 
-/-- The finite construction in `NativeHouseholder` satisfies `run_add` under the displayed hypotheses. -/
+/-- Running a fixed gate list on the sum of two states adds the two resulting states. -/
 @[simp] theorem run_add (gs : List Op) (ψ φ : Qatlib.Foundations.PureStateMath.QState (Reg 6)) :
     run gs (ψ+φ)=run gs ψ+run gs φ := by simp [run_eq, ApplyGate, Matrix.mulVec_add]
 
-/-- The finite construction in `NativeHouseholder` satisfies `run_smul` under the displayed hypotheses. -/
+/-- A complex scalar multiplying the input state can be pulled outside execution of the gate list. -/
 @[simp] theorem run_smul (gs : List Op) (z : ℂ) (ψ : Qatlib.Foundations.PureStateMath.QState (Reg 6)) :
     run gs (z • ψ)=z • run gs ψ := by simp [run_eq, ApplyGate, Matrix.mulVec_smul]
 
@@ -209,13 +209,13 @@ theorem program_unitary (gs : List Op) (hgs : ∀ g ∈ gs, legal g) :
     exact (unitaryGroup (Reg 6) ℂ).mul_mem
       (ih (fun a ha => hgs a (List.mem_cons_of_mem g ha))) (matrix_unitary g (hgs g List.mem_cons_self))
 
-/-- The finite construction in `NativeHouseholder` satisfies `act_x` under the displayed hypotheses. -/
+/-- An `X` gate on wire `w` sends a basis ket to the ket with that bit flipped. -/
 @[simp] theorem act_x (w : Fin 6) (x : Reg 6) :
     ApplyGate (matrix (.x w)) (Qatlib.Foundations.PureStateMath.Ket x)=Qatlib.Foundations.PureStateMath.Ket (Function.update x w (!x w)) := by
   rw [matrix, applyGate_wireGate_ket]
   cases x w <;> simp [PauliX, permMatrix]
 
-/-- The finite construction in `NativeHouseholder` satisfies `act_z` under the displayed hypotheses. -/
+/-- A `Z` gate multiplies a basis ket by `-1` if its bit at `w` is true and by `1` otherwise. -/
 @[simp] theorem act_z (w : Fin 6) (x : Reg 6) :
     ApplyGate (matrix (.z w)) (Qatlib.Foundations.PureStateMath.Ket x)=(if x w then (-1:ℂ) else 1) • Qatlib.Foundations.PureStateMath.Ket x := by
   rw [matrix, applyGate_wireGate_ket]
@@ -228,24 +228,24 @@ theorem program_unitary (gs : List Op) (hgs : ∀ g ∈ gs, legal g) :
     have ht : Function.update x w true=x := by simpa only [hx] using hu
     simp [PauliZ, ht]
 
-/-- The finite construction in `NativeHouseholder` satisfies `act_cx` under the displayed hypotheses. -/
+/-- With distinct control and target wires, controlled `X` replaces the target bit by its exclusive-or with the control bit. -/
 @[simp] theorem act_cx (c t : Fin 6) (hct : c ≠ t) (x : Reg 6) :
     ApplyGate (matrix (.cx c t)) (Qatlib.Foundations.PureStateMath.Ket x)=Qatlib.Foundations.PureStateMath.Ket (Function.update x t (x t ^^ x c)) :=
   applyGate_cnotGate_ket _ _ _ hct x
 
-/-- The finite construction in `NativeHouseholder` satisfies `act_ccx` under the displayed hypotheses. -/
+/-- With the target distinct from both controls, the doubly controlled `X` maps the basis ket to the ket whose target is flipped exactly when both controls are true. -/
 @[simp] theorem act_ccx (a b t : Fin 6) (hat : a ≠ t) (hbt : b ≠ t) (x : Reg 6) :
     ApplyGate (matrix (.ccx a b t)) (Qatlib.Foundations.PureStateMath.Ket x)=Qatlib.Foundations.PureStateMath.Ket (ccxUpdate a b t x) :=
   applyGate_permMatrix_ket (ccx_involutive a b t hat hbt) x
 
-/-- The finite construction in `NativeHouseholder` satisfies `act_cry` under the displayed hypotheses. -/
+/-- For distinct control and target wires, the controlled rotation fixes a basis ket when the control is false. When it is true, the amplitudes of the two target-bit outputs are the entries in the rotation column for the original target bit. -/
 @[simp] theorem act_cry (c t : Fin 6) (hct : c ≠ t) (p : Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle) (x : Reg 6) :
     ApplyGate (matrix (.cry c t p)) (Qatlib.Foundations.PureStateMath.Ket x)=
       if x c then Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.rotation p false (x t) • Qatlib.Foundations.PureStateMath.Ket (Function.update x t false)+
         Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.rotation p true (x t) • Qatlib.Foundations.PureStateMath.Ket (Function.update x t true) else Qatlib.Foundations.PureStateMath.Ket x :=
   controlled_ket c t hct _ x
 
-/-- The finite construction in `NativeHouseholder` satisfies `act_phase` under the displayed hypotheses. -/
+/-- The phase gate multiplies a basis ket by the scalar from `p` when wire `w` is true and by one when it is false. -/
 @[simp] theorem act_phase (w : Fin 6) (p : Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle) (x : Reg 6) :
     ApplyGate (matrix (.phase w p)) (Qatlib.Foundations.PureStateMath.Ket x)=
       (if x w then phaseScalar p else 1) • Qatlib.Foundations.PureStateMath.Ket x := by
@@ -259,22 +259,22 @@ theorem program_unitary (gs : List Op) (hgs : ∀ g ∈ gs, legal g) :
     have ht : Function.update x w true=x := by simpa only [hx] using hu
     simp [phaseMatrix,rationalPhaseGate,ht,← phaseScalar_as_gaussian]
 
-/-- The finite construction in `NativeHouseholder` satisfies `act_neg` under the displayed hypotheses. -/
+/-- For any operation `g`, applying its matrix to the negation of a state negates the output state. -/
 @[simp] theorem act_neg (g : Op) (ψ : Qatlib.Foundations.PureStateMath.QState (Reg 6)) :
     ApplyGate (matrix g) (-ψ) = -ApplyGate (matrix g) ψ := by
   simp [ApplyGate, Matrix.mulVec_neg]
 
-/-- The finite construction in `NativeHouseholder` satisfies `act_add` under the displayed hypotheses. -/
+/-- The matrix of any operation maps a sum of states to the sum of the separate outputs. -/
 @[simp] theorem act_add (g : Op) (ψ φ : Qatlib.Foundations.PureStateMath.QState (Reg 6)) :
     ApplyGate (matrix g) (ψ+φ)=ApplyGate (matrix g) ψ+ApplyGate (matrix g) φ := by
   simp [ApplyGate, Matrix.mulVec_add]
 
-/-- The finite construction in `NativeHouseholder` satisfies `act_smul` under the displayed hypotheses. -/
+/-- The matrix of any operation commutes with complex scaling of the state. -/
 @[simp] theorem act_smul (g : Op) (z : ℂ) (ψ : Qatlib.Foundations.PureStateMath.QState (Reg 6)) :
     ApplyGate (matrix g) (z • ψ)=z • ApplyGate (matrix g) ψ := by
   simp [ApplyGate, Matrix.mulVec_smul]
 
-/-- The finite construction in `NativeHouseholder` satisfies `update_six` under the displayed hypotheses. -/
+/-- Updating a six-bit vector at wire `w` replaces precisely the matching coordinate with `z`, keeping each other coordinate at its original value. -/
 @[simp] theorem update_six (a b c d e f z : Bool) (w : Fin 6) :
     Function.update ![a,b,c,d,e,f] w z =
       ![if w=0 then z else a,if w=1 then z else b,if w=2 then z else c,
@@ -289,7 +289,7 @@ def seed (i : Fin 8) : Reg 6 :=
     ![false,false,true,false,false,true],![true,false,true,false,false,true],
     ![false,true,true,false,false,true],![true,true,true,false,false,true]] i
 
-/-- The finite construction in `NativeHouseholder` satisfies `seed_injective` under the displayed hypotheses. -/
+/-- Distinct logical slots have distinct physical seed configurations. -/
 theorem seed_injective : Function.Injective seed := by decide
 
 /-- Construction for other in the native householder model. -/
@@ -316,7 +316,7 @@ def pairWord (i : Fin 7) (p : Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeW
 theorem pairWord_legal (i : Fin 7) (p : Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle) : ∀ g ∈ pairWord i p, legal g := by
   fin_cases i <;> simp [pairWord,moves,pivot,zeroPair,other,legal]
 
-/-- The finite construction in `NativeHouseholder` satisfies `pairWord_action` under the displayed hypotheses. -/
+/-- On the physical seed kets for slots zero and `i.succ`, the pair word acts by the two columns `(p.c, p.s)` and `(-p.s, p.c)` in that order. It fixes the other seed kets. -/
 theorem pairWord_action (i : Fin 7) (p : Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle) (j : Fin 8) :
     run (pairWord i p) (Qatlib.Foundations.PureStateMath.Ket (seed j)) =
       if j=0 then (p.c:ℂ) • Qatlib.Foundations.PureStateMath.Ket (seed 0)+(p.s:ℂ) • Qatlib.Foundations.PureStateMath.Ket (seed ⟨i.val+1,by omega⟩)
@@ -336,7 +336,7 @@ def invOp : Op → Op
 /-- Construction for inv Word in the native householder model. -/
 def invWord (gs : List Op) : List Op := gs.reverse.map invOp
 
-/-- The finite construction in `NativeHouseholder` satisfies `controlled_adjoint` under the displayed hypotheses. -/
+/-- The adjoint of the controlled matrix is the controlled matrix of `Bᴴ` with the same control and target indices. -/
 theorem controlled_adjoint (c t : Fin 6) (B : Matrix Bool Bool ℂ) :
     (controlled c t B)ᴴ=controlled c t Bᴴ := by
   unfold controlled
@@ -353,7 +353,7 @@ theorem controlled_adjoint (c t : Fin 6) (B : Matrix Bool Bool ℂ) :
   simpa only [relabelGate, Matrix.conjTranspose_reindex] using
     congrArg (relabelGate (elementaryWireSplit t).symm) he
 
-/-- The finite construction in `NativeHouseholder` satisfies `matrix_invOp` under the displayed hypotheses. -/
+/-- For a legal operation `g`, the matrix of `invOp g` is the conjugate transpose of the matrix of `g`. -/
 theorem matrix_invOp (g : Op) (hg : legal g) : matrix (invOp g)=(matrix g)ᴴ := by
   have hx : PauliXᴴ=PauliX := permMatrix_conjTranspose (fun b => by cases b <;> rfl)
   cases g with
@@ -368,13 +368,13 @@ theorem matrix_invOp (g : Op) (hg : legal g) : matrix (invOp g)=(matrix g)ᴴ :=
 theorem invOp_legal (g : Op) (hg : legal g) : legal (invOp g) := by
   cases g <;> exact hg
 
-/-- The finite construction in `NativeHouseholder` satisfies `program_append` under the displayed hypotheses. -/
+/-- The matrix for running `gs` followed by `hs` is `program hs * program gs`. -/
 theorem program_append (gs hs : List Op) : program (gs++hs)=program hs*program gs := by
   induction gs with
   | nil => simp [program]
   | cons g gs ih => simp only [List.cons_append,program,ih,Matrix.mul_assoc]
 
-/-- The finite construction in `NativeHouseholder` satisfies `program_invWord` under the displayed hypotheses. -/
+/-- When every operation in `gs` is legal, reversing the list and replacing each operation by `invOp` gives a program whose matrix is the adjoint of `program gs`. -/
 theorem program_invWord (gs : List Op) (hgs : ∀ g ∈ gs, legal g) :
     program (invWord gs)=(program gs)ᴴ := by
   induction gs with
@@ -397,12 +397,12 @@ theorem invWord_legal (gs : List Op) (hgs : ∀ g ∈ gs, legal g) :
 /-- Construction for clean Frame in the native householder model. -/
 def cleanFrame : Matrix (Reg 6) (Fin 8) ℂ := fun x j => if x=seed j then 1 else 0
 
-/-- The finite construction in `NativeHouseholder` satisfies `cleanFrame_ket` under the displayed hypotheses. -/
+/-- The clean frame maps each logical basis ket to the physical basis ket at its seed configuration. -/
 @[simp] theorem cleanFrame_ket (j : Fin 8) : cleanFrame *ᵥ Qatlib.Foundations.PureStateMath.Ket j=Qatlib.Foundations.PureStateMath.Ket (seed j) := by
   funext x
   simp [cleanFrame,Matrix.mulVec,dotProduct,Qatlib.Foundations.PureStateMath.Ket,mul_ite]
 
-/-- The finite construction in `NativeHouseholder` satisfies `cleanFrame_isometry` under the displayed hypotheses. -/
+/-- The embedding of the eight logical slots into their physical seed states is an isometry. -/
 theorem cleanFrame_isometry : Qatlib.Concepts.Execution.WorkspaceCP.IsIsometry cleanFrame := by
   ext i j
   simp only [Matrix.mul_apply,Matrix.conjTranspose_apply,cleanFrame]
@@ -417,7 +417,7 @@ theorem cleanFrame_isometry : Qatlib.Concepts.Execution.WorkspaceCP.IsIsometry c
 def pairLogical (i : Fin 7) (p : Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle) : Matrix (Fin 8) (Fin 8) ℂ :=
   twoLevelMatrix (.pair 0 ⟨i.val+1,by omega⟩ (Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.rotation p))
 
-/-- The finite construction in `NativeHouseholder` satisfies `zero_ne_succ` under the displayed hypotheses. -/
+/-- The partner slot with value `i.val + 1` is distinct from the origin for every pair rotation index. -/
 private theorem zero_ne_succ (i : Fin 7) : (0 : Fin 8) ≠ ⟨i.val+1,by omega⟩ := by
   intro h
   have hh := congrArg Fin.val h
@@ -430,7 +430,7 @@ theorem pairLogical_unitary (i : Fin 7) (p : Qatlib.Concepts.MatrixAccess.Matrix
   twoLevel_pair_unitary _ _ _ (zero_ne_succ i)
     (rotation_unitary p)
 
-/-- The finite construction in `NativeHouseholder` satisfies `pairLogical_ket` under the displayed hypotheses. -/
+/-- The logical pair matrix acts on basis kets at zero and `i.succ` by the columns `(p.c, p.s)` and `(-p.s, p.c)` in that order. All other logical basis kets are fixed. -/
 theorem pairLogical_ket (i : Fin 7) (p : Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle) (j : Fin 8) :
     pairLogical i p *ᵥ Qatlib.Foundations.PureStateMath.Ket j =
       if j=0 then (p.c:ℂ) • Qatlib.Foundations.PureStateMath.Ket 0+(p.s:ℂ) • Qatlib.Foundations.PureStateMath.Ket ⟨i.val+1,by omega⟩
@@ -508,7 +508,7 @@ def zeroLogical : Matrix (Fin 8) (Fin 8) ℂ := diagonal (fun i => if i=0 then 1
 theorem zeroWord_legal : ∀ g ∈ zeroWord, legal g := by
   simp [zeroWord,mcxZero,legal]
 
-/-- The finite construction in `NativeHouseholder` satisfies `zeroWord_action` under the displayed hypotheses. -/
+/-- On the physical seed kets, `zeroWord` has eigenvalue one at slot zero and minus one at every other slot. -/
 theorem zeroWord_action (j : Fin 8) : run zeroWord (Qatlib.Foundations.PureStateMath.Ket (seed j))=
     (if j=0 then (1:ℂ) else -1) • Qatlib.Foundations.PureStateMath.Ket (seed j) := by
   fin_cases j <;> simp [zeroWord,mcxZero,run,act_x,act_z,act_ccx,ccxUpdate,seed]
@@ -520,7 +520,7 @@ theorem zeroLogical_unitary : zeroLogical ∈ unitaryGroup (Fin 8) ℂ := by
   fin_cases i <;> fin_cases j <;>
     simp [zeroLogical,Matrix.mul_apply,Matrix.diagonal_apply]
 
-/-- The finite construction in `NativeHouseholder` satisfies `zeroLogical_ket` under the displayed hypotheses. -/
+/-- The diagonal logical reflection keeps the origin ket fixed and negates every other logical basis ket. -/
 theorem zeroLogical_ket (j : Fin 8) : zeroLogical *ᵥ Qatlib.Foundations.PureStateMath.Ket j=
     (if j=0 then (1:ℂ) else -1) • Qatlib.Foundations.PureStateMath.Ket j := by
   funext k
@@ -629,7 +629,7 @@ theorem prepWord_counts (p : Fin 7 → Qatlib.Concepts.MatrixAccess.MatrixBacken
 /-- An explicit axis projector, used to identify the entire logical reflection. -/
 def seedProjector : Matrix (Fin 8) (Fin 8) ℂ := fun i j => if i=0 then if j=0 then 1 else 0 else 0
 
-/-- The finite construction in `NativeHouseholder` satisfies `zeroLogical_reflection` under the displayed hypotheses. -/
+/-- The origin reflection is twice the projector onto the origin ket minus the identity. -/
 theorem zeroLogical_reflection : zeroLogical=(2:ℂ) • seedProjector-1 := by
   ext i j
   fin_cases i <;> fin_cases j <;> norm_num [zeroLogical,seedProjector]
@@ -655,13 +655,13 @@ column rather than from the intermediate rotation axis. -/
 def prepAxis (p : Fin 7 → Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle) : Fin 8 → ℂ :=
   fun i => prepLogical p i 0
 
-/-- The finite construction in `NativeHouseholder` satisfies `prepAxis_entries` under the displayed hypotheses. -/
+/-- The prepared amplitude at `i` is twice the rotation matrix's origin-column entry at `i` times the conjugate of its origin entry, with one subtracted at `i = 0`. -/
 theorem prepAxis_entries (p : Fin 7 → Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle) (i : Fin 8) :
     prepAxis p i = 2 * (vLogical p i 0) * star (vLogical p 0 0) -
       (if i = 0 then 1 else 0) := by
   exact prepLogical_entries p i 0
 
-/-- The finite construction in `NativeHouseholder` satisfies `prepLogical_entry_adjoint` under the displayed hypotheses. -/
+/-- The logical preparation has conjugate-symmetric entries at every pair of indices. -/
 theorem prepLogical_entry_adjoint (p : Fin 7 → Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle) (i j : Fin 8) :
     prepLogical p i j = star (prepLogical p j i) := by
   rw [prepLogical_entries, prepLogical_entries]
@@ -675,7 +675,7 @@ theorem prepLogical_entry_adjoint (p : Fin 7 → Qatlib.Concepts.MatrixAccess.Ma
     simp [h, h']
     ring
 
-/-- The finite construction in `NativeHouseholder` satisfies `prepAxis_norm` under the displayed hypotheses. -/
+/-- The sum of the squared magnitudes of the eight amplitudes in the prepared column is one. -/
 theorem prepAxis_norm (p : Fin 7 → Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle) :
     ∑ i : Fin 8, star (prepAxis p i) * prepAxis p i = 1 := by
   have h := (Matrix.mem_unitaryGroup_iff').mp (prepLogical_unitary p)
@@ -711,13 +711,13 @@ theorem phaseWord_legal (p : Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWo
     ∀ g ∈ phaseWord p slack, legal g := by
   cases slack <;> simp [phaseWord,mcxZero,mcxSlot2,mcxSlot4,legal]
 
-/-- The finite construction in `NativeHouseholder` satisfies `phaseWord_action` under the displayed hypotheses. -/
+/-- The physical phase word multiplies every seed ket by the phase for its logical slot, as determined by the circle and slack flag. -/
 theorem phaseWord_action (p : Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle) (slack : Bool) (j : Fin 8) :
     run (phaseWord p slack) (Qatlib.Foundations.PureStateMath.Ket (seed j))=phaseCoefficient p slack j • Qatlib.Foundations.PureStateMath.Ket (seed j) := by
   fin_cases j <;> cases slack <;>
     simp [phaseWord,mcxZero,mcxSlot2,mcxSlot4,phaseCoefficient,run,seed,ccxUpdate]
 
-/-- The finite construction in `NativeHouseholder` satisfies `phaseLogical_ket` under the displayed hypotheses. -/
+/-- Each logical basis ket is an eigenvector of the logical phase matrix with eigenvalue `phaseCoefficient p slack j` at slot `j`. -/
 theorem phaseLogical_ket (p : Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle) (slack : Bool) (j : Fin 8) :
     phaseLogical p slack *ᵥ Qatlib.Foundations.PureStateMath.Ket j=phaseCoefficient p slack j • Qatlib.Foundations.PureStateMath.Ket j := by
   funext k
@@ -803,7 +803,7 @@ def innerBodyLogical (ps : Fin 7 → Qatlib.Concepts.MatrixAccess.MatrixBackend.
     BlockDiag (fun j : Fin 8 => if j.val < 4 then 1 else U) *
     TensorGate (prepLogical ps) (1 : Matrix Bool Bool ℂ)
 
-/-- The finite construction in `NativeHouseholder` satisfies `tensor_block_entry` under the displayed hypotheses. -/
+/-- For Boolean data indices `d` and `e`, the sandwich between the lifted matrices `A` and `B` has entry given by summing `A j l * D l d e * B l k` over the eight intermediate slots. -/
 theorem tensor_block_entry (A B : Matrix (Fin 8) (Fin 8) ℂ)
     (D : Fin 8 → Matrix Bool Bool ℂ) (j k : Fin 8) (d e : Bool) :
     (TensorGate A (1 : Matrix Bool Bool ℂ) *
@@ -813,7 +813,7 @@ theorem tensor_block_entry (A B : Matrix (Fin 8) (Fin 8) ℂ)
     Matrix.kroneckerMap_apply, Matrix.one_apply, Matrix.of_apply]
   simp
 
-/-- The finite construction in `NativeHouseholder` satisfies `innerBodyLogical_entry` under the displayed hypotheses. -/
+/-- Each logical body entry is a sum over intermediate slots of the two preparation entries times the slot phase and the data entry. The data entry comes from the identity in the first four slots and from `U` in the last four. -/
 theorem innerBodyLogical_entry (ps : Fin 7 → Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle) (p : Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle) (slack : Bool)
     (U : Matrix Bool Bool ℂ) (j k : Fin 8) (d e : Bool) :
     innerBodyLogical ps p slack U (j,d) (k,e) =
@@ -840,7 +840,7 @@ theorem innerBodyLogical_entry (ps : Fin 7 → Qatlib.Concepts.MatrixAccess.Matr
 def cleanSlotFrame : Matrix (Fin 8 × Bool) Bool ℂ :=
   fun x b => if x = (0,b) then 1 else 0
 
-/-- The finite construction in `NativeHouseholder` satisfies `phaseCoefficient_nonzero` under the displayed hypotheses. -/
+/-- All slot phase coefficients are nonzero for every circle and either choice of slack flag. -/
 theorem phaseCoefficient_nonzero (p : Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle) (slack : Bool) (l : Fin 8) :
     phaseCoefficient p slack l ≠ 0 := by
   have hp : phaseScalar p ≠ 0 := by
@@ -863,7 +863,7 @@ def effectiveBlock (ps : Fin 7 → Qatlib.Concepts.MatrixAccess.MatrixBackend.Na
     (U : Matrix Bool Bool ℂ) : Matrix Bool Bool ℂ :=
   ∑ l : Fin 8, effectiveCoefficients ps p slack l • effectiveSelector U l
 
-/-- The finite construction in `NativeHouseholder` satisfies `effectiveCoefficients_mass_pos` under the displayed hypotheses. -/
+/-- The effective coefficients have positive total absolute mass for every preparation, phase circle, and slack flag. -/
 theorem effectiveCoefficients_mass_pos (ps : Fin 7 → Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle) (p : Qatlib.Concepts.MatrixAccess.MatrixBackend.NativeWords.Circle) (slack : Bool) :
     0 < coefficientMass (effectiveCoefficients ps p slack) := by
   rw [coefficientMass_pos_iff]
@@ -1023,7 +1023,7 @@ def slotEquiv : Fin 8 ≃ (Bool × Fin 4) where
   left_inv i := by fin_cases i <;> rfl
   right_inv x := by obtain ⟨b,i⟩ := x; cases b <;> fin_cases i <;> rfl
 
-/-- The finite construction in `NativeHouseholder` satisfies `effectiveSelector_slotEquiv` under the displayed hypotheses. -/
+/-- Under the slot equivalence, the effective selector at `(b, i)` agrees with the shifted slot matrix, using `U` for true `b` and the identity for false `b`. -/
 theorem effectiveSelector_slotEquiv (U : Matrix Bool Bool ℂ) (s : Bool × Fin 4) :
     effectiveSelector U (slotEquiv.symm s) =
       Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.Shifts.shiftSlotMatrix U s := by
@@ -1039,7 +1039,7 @@ def nativeShiftSlotEquiv : (Fin 8 × Bool) ≃
   left_inv x := by cases x; simp
   right_inv y := by obtain ⟨u, s, b⟩ := y; cases u; simp
 
-/-- The finite construction in `NativeHouseholder` satisfies `effectiveSelector_relabel_shiftedSelect` under the displayed hypotheses. -/
+/-- Relabeling the block-diagonal effective selector by the shift slot equivalence gives the shifted selection matrix with a single outer label. -/
 theorem effectiveSelector_relabel_shiftedSelect (U : Matrix Bool Bool ℂ) :
     relabelGate nativeShiftSlotEquiv
       (BlockDiag (fun j : Fin 8 => effectiveSelector U j)) =
@@ -1058,7 +1058,7 @@ theorem effectiveSelector_relabel_shiftedSelect (U : Matrix Bool Bool ℂ) :
     simp [Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.Shifts.shiftSlotMatrix]
   · simp [h]
 
-/-- The finite construction in `NativeHouseholder` satisfies `seed_control` under the displayed hypotheses. -/
+/-- Wire 2 of the physical seed equals the Boolean control component of the corresponding shift slot. -/
 theorem seed_control (i : Fin 8) : seed i 2=(slotEquiv i).1 := by fin_cases i <;> rfl
 
 end Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Prep

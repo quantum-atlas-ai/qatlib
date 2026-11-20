@@ -35,7 +35,8 @@ open Qatlib.Concepts.NativeNumerics.PhaseSynthesis
 open Qatlib.Concepts.SignalPrimitive.PhaseFrontend
 open Qatlib.Concepts.TrotterFormula.SuzukiFourth
 
-/-- The finite construction in `NativeChebyshevUniformAcceptance` satisfies `nativeRationalCoefficientCheck_complete` under the displayed hypotheses. -/
+/-- Equality of the real power polynomials represented by two rational lists suffices for the
+exact coefficient check to accept. -/
 theorem nativeRationalCoefficientCheck_complete (xs ys : List ℚ)
     (h : realTarget xs=realTarget ys) : nativeRationalCoefficientCheck xs ys=true := by
   simp only [nativeRationalCoefficientCheck,decide_eq_true_eq]
@@ -44,7 +45,8 @@ theorem nativeRationalCoefficientCheck_complete (xs ys : List ℚ)
   rw [realTarget_coeff,realTarget_coeff] at hc
   exact_mod_cast hc
 
-/-- The finite construction in `NativeChebyshevUniformAcceptance` satisfies `nativeChebyshevResidualCheck_complete` under the displayed hypotheses. -/
+/-- If the Chebyshev residual represents the real response polynomial minus the target series, the
+residual coefficient check accepts. -/
 theorem nativeChebyshevResidualCheck_complete (target residual : List ℚ) (data : PhaseData)
     (h : realTarget (nativeResponseRealCoefficients data)-
       nativeChebyshevPolynomialFrom 0 target=nativeChebyshevPolynomialFrom 0 residual) :
@@ -52,7 +54,7 @@ theorem nativeChebyshevResidualCheck_complete (target residual : List ℚ) (data
   apply nativeRationalCoefficientCheck_complete
   simpa only [realTarget_sub,nativeChebyshevPowerSumFrom_semantics] using h
 
-/-- The finite construction in `NativeChebyshevUniformAcceptance` satisfies `gaussian_unit_coordinates_of_norm` under the displayed hypotheses. -/
+/-- A Gaussian rational of complex norm one has rational coordinates whose squares sum to one. -/
 private theorem gaussian_unit_coordinates_of_norm (z : GaussianRat)
     (hz : ‖gaussianRatComplex z‖=1) : z.1*z.1+z.2*z.2=1 := by
   have hs : ‖gaussianRatComplex z‖^2=1 := by rw [hz]; norm_num
@@ -61,7 +63,8 @@ private theorem gaussian_unit_coordinates_of_norm (z : GaussianRat)
     simpa [gaussianRatComplex,pow_two] using hs
   exact_mod_cast hr
 
-/-- The finite construction in `NativeChebyshevUniformAcceptance` satisfies `nativeStandardUnitsCheck_complete` under the displayed hypotheses. -/
+/-- The standard phase unit check accepts when the base and every listed phase have complex norm
+one. -/
 theorem nativeStandardUnitsCheck_complete (data : PhaseData)
     (hb : ‖gaussianRatComplex data.base‖=1)
     (hz : ∀ z∈data.phases,‖gaussianRatComplex z‖=1) :

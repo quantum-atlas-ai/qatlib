@@ -28,7 +28,10 @@ def TransportMajorantSpec (Q K : ℕ → ℝ) (N : ℕ) : Prop :=
   (∀ n < N, wordProductMajorant Q K n ≤ Q (n+1)) ∧
   (∀ n < N, 7*(∑ j ∈ range (n+1), ((n+1).choose (j+1) : ℝ)*K (j+1)*Q (n-j)) ≤ Q (n+1))
 
-/-- Original `transportWordBound_on_cube` guarantee for the `TransportWordBound` construction; the complete source hypotheses are retained. -/
+/-- On the unit cube, the iterated partials of a smooth unit transport field are bounded by `Q`
+through order `N`. This uses the first-coordinate transport equation on the slab with smooth
+coefficient `K` purely imaginary on the cube, constant initial data on the zero plane, and the
+majorant recurrence for `Q` and the coefficient derivative bounds `G`. -/
 theorem transportWordBound_on_cube (q K : SpatialPoint → ℍ)
     (hq : ContDiff ℝ ∞ q) (hK : ContDiff ℝ ∞ K)
     (hunit : ∀ x : SpatialPoint, InUnitCube x → ‖q x‖=1)

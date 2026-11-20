@@ -32,7 +32,7 @@ noncomputable section
 variable {S : Type} [Fintype S] [DecidableEq S]
 
 omit [Fintype S] in
-/-- Complete original `occupied_sites_finset_equiv` guarantee for `MatchedFiberConstruction`; all source hypotheses and output obligations are retained. -/
+/-- Every `k`-element site set is the occupied set of some site array of length `k`. -/
 theorem occupied_sites_finset_equiv (A : Finset S) {k : ℕ}
     (hcard : A.card=k) :
     ∃ J : Fin k → S, occupiedSites J=A := by
@@ -48,7 +48,8 @@ theorem occupied_sites_finset_equiv (A : Finset S) {k : ℕ}
     exact ⟨i, congrArg Subtype.val hi⟩
 
 omit [Fintype S] in
-/-- Complete original `saturated_matched_fiber_nonempty` guarantee for `MatchedFiberConstruction`; all source hypotheses and output obligations are retained. -/
+/-- For any `k`-element set and matching permutation, there are two arrays of length `k` whose
+matched set is exactly that set. -/
 theorem saturated_matched_fiber_nonempty [Nonempty S]
     (τ : Equiv.Perm S) (A : Finset S) {k : ℕ}
     (hcard : A.card=k) :
@@ -74,7 +75,8 @@ def padAddress {k n : ℕ} (J : Fin k → S) (_hk : k ≤ n) (hk0 : 0 < k) : Fin
   fun i => if hi : i.val < k then J ⟨i.val,hi⟩ else J ⟨0,Nat.zero_lt_of_lt hk0⟩
 
 omit [Fintype S] in
-/-- Complete original `occupied_sites_padAddress` guarantee for `MatchedFiberConstruction`; all source hypotheses and output obligations are retained. -/
+/-- Padding a nonempty site array to a longer length by repeating its first site preserves its
+occupied set. -/
 theorem occupied_sites_padAddress {k n : ℕ} (J : Fin k → S)
     (hk : k ≤ n) (hk0 : 0 < k) :
     occupiedSites (padAddress J hk hk0)=occupiedSites J := by
@@ -89,7 +91,8 @@ theorem occupied_sites_padAddress {k n : ℕ} (J : Fin k → S)
     refine ⟨Fin.castLE hk j,by simp [padAddress,j.isLt]⟩
 
 omit [Fintype S] in
-/-- Complete original `padded_matched_fiber_nonempty` guarantee for `MatchedFiberConstruction`; all source hypotheses and output obligations are retained. -/
+/-- Any set of positive size `k` occurs as the exact matched set for some pair of arrays of
+lengths `n` and `m` when both lengths are at least `k`. -/
 theorem padded_matched_fiber_nonempty [Nonempty S]
     (τ : Equiv.Perm S) (A : Finset S) {k n m : ℕ}
     (hcard : A.card=k) (hk0 : 0 < k) (hkn : k ≤ n) (hkm : k ≤ m) :

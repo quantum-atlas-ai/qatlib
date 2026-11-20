@@ -13,14 +13,14 @@ public import Qatlib.Papers.SparseUnitary09.MainResults.Dilation.SourceSparseDil
 set_option backward.isDefEq.respectTransparency false
 
 /-!
-# SparseUnitary09 — MainResults / Model (claim c002)
+# SparseUnitary09 — MainResults / Model
 
 Source: Stephen P. Jordan & Pawel Wocjan, *Efficient quantum circuits for arbitrary
 sparse unitaries*, fixed version **arXiv:0904.2211v2 (11 Feb 2010)**.
 
 This file formalises the *sparse unitary model* of Section II (p. 3, line 57:
 "Thus the sparse unitary model is equivalent to BQP") and the model-level
-equivalence content of claim **c002**.
+equivalence content of claim **`sparse_realizable_iff_unitary_realizable_poly_steps`**.
 
 The sparse unitary model has, as its elementary step, the application of a unitary
 that has at most polynomially many nonzero entries in any row or column and whose
@@ -30,10 +30,10 @@ entries are efficiently computable ("d-sparse").  We formalise:
   "witness finset" form (`≤ d` nonzero positions per row/column is the same as the
   nonzero positions being contained in a `d`-element finset);
 * `SparseStepOn` — one elementary step of the model;
-* the fact that the Hermitian dilation of `c001` preserves sparsity (`unitaryDilation`
-  is `d`-sparse whenever `U` is), which is what makes the c001 reduction *efficient*;
+* the fact that the Hermitian dilation of `unitary_dilation_evolution_implements_with_ancilla_flip` preserves sparsity (`unitaryDilation`
+  is `d`-sparse whenever `U` is), which is what makes the `unitary_dilation_evolution_implements_with_ancilla_flip` reduction *efficient*;
 * `RealizableIn` — a `k`-step computation is a product of `k` elementary steps;
-* `c002_sparse_unitary_model_equals_BQP` — the two-model equivalence.
+* `sparse_realizable_iff_unitary_realizable_poly_steps` — the two-model equivalence.
 
 On the identification with **BQP**: the paper (as ref. [17], Bernstein–Vazirani)
 *defines* BQP through uniform polynomial-size quantum circuit families.  The gate
@@ -72,7 +72,7 @@ def ColSparse {m n : Type*} [Fintype m] (U : Matrix m n ℂ) (d : ℕ) : Prop :=
 
 /-- Every matrix is `card n`-row-sparse (take the full row as witness).  This is the
 `d = N` extreme of the paper's "polynomially many nonzero entries"; the interesting
-regime is `d ≪ N`, which is what the c001 reduction makes cheap. -/
+regime is `d ≪ N`, which is what the `unitary_dilation_evolution_implements_with_ancilla_flip` reduction makes cheap. -/
 theorem dense_rowSparse {m n : Type*} [Fintype n] (U : Matrix m n ℂ) :
     RowSparse U (Fintype.card n) :=
   fun i => ⟨Finset.univ, by simp, fun j _ => Finset.mem_univ j⟩
@@ -84,7 +84,7 @@ theorem dense_colSparse {m n : Type*} [Fintype m] (U : Matrix m n ℂ) :
 
 /-! ## The Hermitian dilation preserves sparsity
 
-The c001 reduction `U ↦ H = [[0,U],[U†,0]]` is only an *efficient* implementation
+The `unitary_dilation_evolution_implements_with_ancilla_flip` reduction `U ↦ H = [[0,U],[U†,0]]` is only an *efficient* implementation
 because `H` is as sparse as `U`.  Each row of `H` is a row (or a transposed column) of
 `U`, so `d`-row/column-sparsity is preserved exactly. -/
 
@@ -174,9 +174,9 @@ def SparseStepOn {ι : Type*} [Fintype ι] [DecidableEq ι] (U : Matrix ι ι �
   U ∈ Matrix.unitaryGroup ι ℂ ∧ ∃ d : ℕ, RowSparse U d ∧ ColSparse U d
 
 /-- Every unitary is a valid sparse step (it is `card ι`-sparse), and every sparse step
-is unitary.  This is the model-level heart of c002: the sparse unitary model imposes no
+is unitary.  This is the model-level heart of `sparse_realizable_iff_unitary_realizable_poly_steps`: the sparse unitary model imposes no
 *restriction* on which unitaries are reachable at the `d = N` extreme; its content is the
-cost of *compiling* a `d ≪ N` step into gates, which is c001. -/
+cost of *compiling* a `d ≪ N` step into gates, which is `unitary_dilation_evolution_implements_with_ancilla_flip`. -/
 theorem sparseStepOn_iff_unitary {ι : Type*} [Fintype ι] [DecidableEq ι]
     (U : Matrix ι ι ℂ) :
     SparseStepOn U ↔ U ∈ Matrix.unitaryGroup ι ℂ := by
@@ -185,7 +185,7 @@ theorem sparseStepOn_iff_unitary {ι : Type*} [Fintype ι] [DecidableEq ι]
   · intro hU
     exact ⟨hU, Fintype.card ι, dense_rowSparse U, dense_colSparse U⟩
 
-/-! ## Multi-step computations and the model equivalence (c002) -/
+/-! ## Multi-step computations and the model equivalence -/
 
 /-- `RealizableIn R k U`: the unitary `U` is the product of `k` elementary steps, each
 satisfying the step relation `R`.  This is the execution trace of a `k`-step
@@ -209,7 +209,7 @@ steps, i.e. `poly(log N)`.  Written in `Nat.log` to keep the `poly` dependence e
 (the paper only asserts "polynomial", this is one concrete witness of such a bound). -/
 def polyStepBound (N : ℕ) : ℕ := (Nat.log 2 N + 1) ^ 2
 
-/-- Claim **c002** (arXiv:0904.2211v2, Sec. II, p. 3, line 57): "the sparse unitary model
+/-- Claim **`sparse_realizable_iff_unitary_realizable_poly_steps`** (arXiv:0904.2211v2, Sec. II, p. 3, line 57): "the sparse unitary model
 is equivalent to BQP."
 
 Formal content: a `poly(log N)`-step computation in the sparse unitary model
@@ -221,7 +221,7 @@ Proof: both models are `polyStepBound N`-step products, so it suffices that a si
 sparse step and a single gate step coincide, which is `sparseStepOn_iff_unitary`.
 The two directions are exactly the paper's argument:
 * (⊆, sparse model ⊆ BQP) every sparse step is a unitary, hence a (legitimate) gate —
-  for the *efficient* compilation with `d ≪ N` see `c001`'s dilation reduction;
+  for the *efficient* compilation with `d ≪ N` see `unitary_dilation_evolution_implements_with_ancilla_flip`'s dilation reduction;
 * (⊇, BQP ⊆ sparse model) every gate on the register is a `2^n`-sparse unitary for
   `d = N`, hence a sparse step (`dense_rowSparse`, `dense_colSparse`).
 
@@ -229,7 +229,7 @@ Note: the library has no formalized BQP *decision class*, no uniformity/asymptot
 framework and no function-complexity class; the identification with the class BQP is the
 standard definitional one ([17]) and is not re-derived here.  See the PR note for the
 residual formalization gap. -/
-theorem c002_sparse_unitary_model_equals_BQP (N : ℕ) (U : Matrix (Fin N) (Fin N) ℂ) :
+theorem sparse_realizable_iff_unitary_realizable_poly_steps (N : ℕ) (U : Matrix (Fin N) (Fin N) ℂ) :
     RealizableIn SparseStepOn (polyStepBound N) U ↔
       RealizableIn (fun V => V ∈ Matrix.unitaryGroup (Fin N) ℂ) (polyStepBound N) U :=
   RealizableIn_congr (ι := Fin N) SparseStepOn (fun V => V ∈ Matrix.unitaryGroup (Fin N) ℂ)

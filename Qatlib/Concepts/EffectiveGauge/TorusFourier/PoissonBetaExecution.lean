@@ -45,21 +45,21 @@ noncomputable section
 def complexPoissonBeta (a : Fin 3 → SpatialFrequency → ℂ) (k : SpatialFrequency) : ℂ :=
   (physicalPeriod : ℂ)*unitPoissonCoefficient a k
 
-/-- Original `rationalFrequencyEnergy_cast` guarantee for the `PoissonBetaExecution` construction; the complete source hypotheses are retained. -/
+/-- Casting the rational sum of squared frequency coordinates to the reals gives the real frequency energy. -/
 theorem rationalFrequencyEnergy_cast (k : SpatialFrequency) :
     (rationalFrequencyEnergy k : ℝ)=frequencyEnergy k := by
   simp only [rationalFrequencyEnergy,frequencyEnergy,Rat.cast_sum,Rat.cast_pow,Rat.cast_intCast]
 
-/-- Original `rationalPoissonBeta_zero` guarantee for the `PoissonBetaExecution` construction; the complete source hypotheses are retained. -/
+/-- The rational Poisson numerator divided by frequency energy returns the zero pair at zero frequency for any input coefficients. -/
 theorem rationalPoissonBeta_zero (coefficient : Fin 3 → RationalCircleSample) :
     rationalPoissonBeta 0 coefficient=(0,0) := by
   simp [rationalPoissonBeta,rationalFrequencyEnergy]
 
-/-- Original `complexPoissonBeta_zero` guarantee for the `PoissonBetaExecution` construction; the complete source hypotheses are retained. -/
+/-- The complex Poisson beta factor at zero frequency is zero for every component family. -/
 theorem complexPoissonBeta_zero (a : Fin 3 → SpatialFrequency → ℂ) : complexPoissonBeta a 0=0 := by
   simp only [complexPoissonBeta,unitPoissonCoefficient_zero,mul_zero]
 
-/-- Original `complexPoissonBeta_eq` guarantee for the `PoissonBetaExecution` construction; the complete source hypotheses are retained. -/
+/-- At any frequency, the complex beta factor is the imaginary unit times the frequency-weighted sum of the component coefficients divided by frequency energy. Division is total at zero. -/
 theorem complexPoissonBeta_eq (a : Fin 3 → SpatialFrequency → ℂ) (k : SpatialFrequency) :
     complexPoissonBeta a k=Complex.I*(∑ j : Fin 3, (k j : ℂ)*a j k)/(frequencyEnergy k : ℂ) := by
   have hL : (physicalPeriod : ℂ)≠0 := by exact_mod_cast physicalPeriod_pos.ne'
@@ -69,19 +69,19 @@ theorem complexPoissonBeta_eq (a : Fin 3 → SpatialFrequency → ℂ) (k : Spat
         (Complex.I*(∑ j : Fin 3, (k j : ℂ)*a j k)*(frequencyEnergy k : ℂ)⁻¹) := by ring
     _ = _ := by rw [mul_inv_cancel₀ hL,one_mul]
 
-/-- Original `rationalPoissonBeta_cast` guarantee for the `PoissonBetaExecution` construction; the complete source hypotheses are retained. -/
+/-- Casting the rational beta result to a complex number agrees with evaluating complex beta at the same frequency using the cast component samples. -/
 theorem rationalPoissonBeta_cast (k : SpatialFrequency) (coefficient : Fin 3 → RationalCircleSample) :
     rationalCircleCast (rationalPoissonBeta k coefficient)=
       complexPoissonBeta (fun j _ => rationalCircleCast (coefficient j)) k := by
   rw [complexPoissonBeta_eq,Complex.div_ofReal]
   apply Complex.ext <;> simp [rationalPoissonBeta,rationalFrequencyEnergy,rationalCircleCast,frequencyEnergy]
 
-/-- Original `complexPoissonBeta_sub` guarantee for the `PoissonBetaExecution` construction; the complete source hypotheses are retained. -/
+/-- Subtracting the beta factors of two coefficient families at a frequency gives the beta factor of their componentwise difference there. -/
 theorem complexPoissonBeta_sub (a b : Fin 3 → SpatialFrequency → ℂ) (k : SpatialFrequency) :
     complexPoissonBeta a k-complexPoissonBeta b k=complexPoissonBeta (fun j l => a j l-b j l) k := by
   simp only [complexPoissonBeta,unitPoissonCoefficient,mul_sub,Finset.sum_sub_distrib,sub_div]
 
-/-- Original `complexPoissonBeta_norm_le` guarantee for the `PoissonBetaExecution` construction; the complete source hypotheses are retained. -/
+/-- If each component coefficient at `k` has norm at most `B`, the complex beta factor at `k` has norm at most `3*B`. -/
 theorem complexPoissonBeta_norm_le (a : Fin 3 → SpatialFrequency → ℂ) (k : SpatialFrequency)
     (B : ℝ) (hb : ∀ j, ‖a j k‖ ≤ B) : ‖complexPoissonBeta a k‖ ≤ 3*B := by
   have hB : 0 ≤ B := (norm_nonneg _).trans (hb 0)
@@ -102,7 +102,7 @@ theorem complexPoissonBeta_norm_le (a : Fin 3 → SpatialFrequency → ℂ) (k :
         apply (div_le_iff₀ hr).mpr
         nlinarith [mul_nonneg hB (sub_nonneg.mpr hr1)]
 
-/-- Original `complexPoissonBeta_sub_norm_le` guarantee for the `PoissonBetaExecution` construction; the complete source hypotheses are retained. -/
+/-- If each pair of component coefficients at `k` differs by at most `E` in norm, the complex beta factors at `k` differ by at most `3*E`. -/
 theorem complexPoissonBeta_sub_norm_le (a b : Fin 3 → SpatialFrequency → ℂ)
     (k : SpatialFrequency) (E : ℝ) (he : ∀ j, ‖a j k-b j k‖ ≤ E) :
     ‖complexPoissonBeta a k-complexPoissonBeta b k‖ ≤ 3*E := by

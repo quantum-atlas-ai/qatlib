@@ -99,12 +99,14 @@ def targetNormLaw (mode : TargetNormMode) (n K : ℕ) : FinDist (TargetNormData 
   | .sampled => cohortLaw (cohortLaw (uniformLaw S) n) K
 
 omit [DecidableEq S] in
-/-- Complete original `uniform_expect_site_mean` guarantee for `TargetNormPlan`; all source hypotheses and output obligations are retained. -/
+/-- The expectation of `f` at a uniform random site equals its arithmetic mean over the site
+space. -/
 theorem uniform_expect_site_mean (f : S → ℝ) :
     (uniformLaw S).expect f=siteMean f := by
   simp only [FinDist.expect, uniformLaw, siteMean, one_div_mul_eq_div, ← Finset.sum_div]
 
-/-- Complete original `norm_count_guards` guarantee for `TargetNormPlan`; all source hypotheses and output obligations are retained. -/
+/-- For all rational scales and tolerances, the norm block size is at least one and, as a real
+number, at least `16*B⁴/ε²`. -/
 theorem norm_count_guards (B ε : ℚ) :
     1≤normCountQ B ε ∧ 16*(B : ℝ)^4/(ε : ℝ)^2≤(normCountQ B ε : ℝ) := by
   let q := max 1 (16*B^4/ε^2)
@@ -117,7 +119,9 @@ theorem norm_count_guards (B ε : ℚ) :
     exact_mod_cast (show 16*B^4/ε^2≤q from le_max_right _ _)
   exact ⟨by exact_mod_cast h1, hB.trans hc⟩
 
-/-- Complete original `planned_norm_median_confidence` guarantee for `TargetNormPlan`; all source hypotheses and output obligations are retained. -/
+/-- For a rational observable bounded by `B²` in absolute value and positive `ε` and `ρ`, the
+planned median of independent block averages differs from its real expectation by more than `ε`
+with probability at most `ρ`. -/
 theorem planned_norm_median_confidence {X : Type} [Fintype X] [DecidableEq X]
     (p : FinDist X) (f : X → ℚ) (B ε ρ : ℚ) (hε : 0<ε) (hρ : 0<ρ)
     (hf : ∀ x, |f x|≤B^2) :
@@ -154,7 +158,8 @@ theorem planned_norm_median_confidence {X : Type} [Fintype X] [DecidableEq X]
   exact finite_median_confidence _ _ _ _ (ρ : ℝ) (median_blocks_pos ρ)
     (Rat.cast_pos.mpr hρ) hblock (median_blocks_budget ρ hρ)
 
-/-- Complete original `target_norm_plan_queries` guarantee for `TargetNormPlan`; all source hypotheses and output obligations are retained. -/
+/-- The norm planner's query count is zero for `B = 0` and otherwise the smaller of the site
+count and the sampled schedule's total number of draws. -/
 theorem target_norm_plan_queries (M : ℕ) (B ε ρ : ℚ) :
     (targetNormPlanQ M B ε ρ).queries =
       if B=0 then 0 else min M (normCountQ B ε*medianBlocksQ ρ) := by
@@ -165,7 +170,8 @@ theorem target_norm_plan_queries (M : ℕ) (B ε ρ : ℚ) :
   · exact (min_eq_right (lt_of_not_ge hscan).le).symm
 
 omit [Nonempty S] [DecidableEq S] in
-/-- Complete original `planned_norm_queries_length` guarantee for `TargetNormPlan`; all source hypotheses and output obligations are retained. -/
+/-- For any data of the generated norm plan's shape, the query list has exactly the length
+recorded in the plan. -/
 theorem planned_norm_queries_length [LinearOrder S] (B ε ρ : ℚ)
     (ω : TargetNormData S (targetNormPlanQ (Fintype.card S) B ε ρ).mode
       (targetNormPlanQ (Fintype.card S) B ε ρ).records
@@ -180,7 +186,8 @@ theorem planned_norm_queries_length [LinearOrder S] (B ε ρ : ℚ)
   all_goals simp [targetNormQueries, List.length_flatMap, List.map_ofFn, List.sum_ofFn]
   ring
 
-/-- Complete original `planned_target_norm_confidence` guarantee for `TargetNormPlan`; all source hypotheses and output obligations are retained. -/
+/-- For rational site values between zero and `B²`, the planned norm output has absolute error
+above `ε` from the site mean on mass at most `ρ`, for positive `ε` and `ρ`. -/
 theorem planned_target_norm_confidence (f : S → ℚ) (B ε ρ : ℚ)
     (hε : 0<ε) (hρ : 0<ρ) (hf : ∀ x, 0≤f x ∧ f x≤B^2) :
     let p := targetNormPlanQ (Fintype.card S) B ε ρ
@@ -212,7 +219,8 @@ theorem planned_target_norm_confidence (f : S → ℚ) (B ε ρ : ℚ)
     exact ht
 
 omit [Nonempty S] [DecidableEq S] in
-/-- Complete original `target_norm_exact_query_value` guarantee for `TargetNormPlan`; all source hypotheses and output obligations are retained. -/
+/-- In exact mode the norm output is the sum of the values at the listed query sites divided by
+the site count. -/
 theorem target_norm_exact_query_value [LinearOrder S] (f : S → ℚ) (n K : ℕ)
     (ω : TargetNormData S .exact n K) :
     targetNormOutputQ .exact n K f ω=
@@ -221,7 +229,8 @@ theorem target_norm_exact_query_value [LinearOrder S] (f : S → ℚ) (n K : ℕ
   rw [← List.sum_toFinset f (Finset.sort_nodup _ _),Finset.sort_toFinset]
 
 omit [Nonempty S] [DecidableEq S] in
-/-- Complete original `target_norm_output_uses_queries` guarantee for `TargetNormPlan`; all source hypotheses and output obligations are retained. -/
+/-- In every norm mode, agreeing on the input's queried sites is sufficient for two rational
+functions to give the same output. -/
 theorem target_norm_output_uses_queries [LinearOrder S] (mode : TargetNormMode) (n K : ℕ)
     (ω : TargetNormData S mode n K) (f g : S → ℚ)
     (h : ∀ x ∈ targetNormQueries mode n K ω, f x=g x) :

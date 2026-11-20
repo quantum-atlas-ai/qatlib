@@ -29,7 +29,8 @@ open scoped Quaternion ContDiff
 namespace Qatlib.Concepts.EffectiveGauge.HopfAtlas
 open Qatlib.Concepts.EffectiveGauge.RationalFlow Qatlib.Concepts.EffectiveGauge.TorusFourier
 
-/-- Original `hasDerivAt_coordinateLine` guarantee for the `LinearGaugeClassification` construction; the complete source hypotheses are retained. -/
+/-- The derivative at parameter zero along the `j`-th coordinate line through a
+differentiability point is the Fréchet derivative in that coordinate direction. -/
 theorem hasDerivAt_coordinateLine {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     (f : SpatialPoint → E) (x : SpatialPoint) (hf : DifferentiableAt ℝ f x) (j : Fin 3) :
     HasDerivAt (fun t : ℝ => f (x+t • EuclideanSpace.single j 1))
@@ -41,7 +42,9 @@ theorem hasDerivAt_coordinateLine {E : Type*} [NormedAddCommGroup E] [NormedSpac
     simpa using hf.hasFDerivAt
   simpa only [Function.comp_def] using hd.comp_hasDerivAt 0 hl
 
-/-- Original `spatialPartial_gauge_actual` guarantee for the `LinearGaugeClassification` construction; the complete source hypotheses are retained. -/
+/-- For a field and angle differentiable at `x`, the `j`-th partial after left phase
+multiplication is the phase times the original partial plus the angle partial times `iAxis * q
+x`, with both terms inside the phase factor. -/
 theorem spatialPartial_gauge_actual (q : QuaternionField) (theta : SpatialPoint → ℝ)
     (x : SpatialPoint) (hq : DifferentiableAt ℝ q x) (ht : DifferentiableAt ℝ theta x) (j : Fin 3) :
     spatialPartial (fun y => phase (theta y)*q y) x j=
@@ -58,19 +61,21 @@ theorem spatialPartial_gauge_actual (q : QuaternionField) (theta : SpatialPoint 
 def realGaugeLinear (b : Fin 3 → ℝ) : SpatialPoint →L[ℝ] ℝ :=
   innerSL ℝ (WithLp.toLp 2 b)
 
-/-- Original `realGaugeLinear_apply` guarantee for the `LinearGaugeClassification` construction; the complete source hypotheses are retained. -/
+/-- The real linear gauge at `x` is the sum of the three coordinate products `b j * x j`. -/
 theorem realGaugeLinear_apply (b : Fin 3 → ℝ) (x : SpatialPoint) :
     realGaugeLinear b x=∑ j : Fin 3, b j*x j := by
   change inner ℝ (WithLp.toLp 2 b : SpatialPoint) x=_
   simp [PiLp.inner_apply,RCLike.inner_apply,mul_comm]
 
-/-- Original `realGaugeLinear_basis` guarantee for the `LinearGaugeClassification` construction; the complete source hypotheses are retained. -/
+/-- Evaluating the real linear gauge on the `j`-th coordinate basis vector gives its coefficient
+`b j`. -/
 theorem realGaugeLinear_basis (b : Fin 3 → ℝ) (j : Fin 3) :
     realGaugeLinear b (EuclideanSpace.single j 1)=b j := by
   change inner ℝ (WithLp.toLp 2 b : SpatialPoint) (EuclideanSpace.single j 1)=_
   simpa using EuclideanSpace.inner_single_right j (1 : ℝ) (WithLp.toLp 2 b : SpatialPoint)
 
-/-- Original `realGaugeLinear_latticeBasis` guarantee for the `LinearGaugeClassification` construction; the complete source hypotheses are retained. -/
+/-- Evaluating the real linear gauge on a single period shift along axis `j` gives
+`physicalPeriod * b j`. -/
 theorem realGaugeLinear_latticeBasis (b : Fin 3 → ℝ) (j : Fin 3) :
     realGaugeLinear b (latticeShift (Pi.single j 1))=physicalPeriod*b j := by
   rw [realGaugeLinear_apply]
@@ -116,7 +121,8 @@ theorem constantFibreDerivative_classification (z : QuaternionField) (hz : ContD
     _ = phase (realGaugeLinear b x)*(phase (-realGaugeLinear b x)*z x) := mul_assoc _ _ _
     _ = _ := congrArg (fun q => phase (realGaugeLinear b x)*q) hc
 
-/-- Original `periodic_constantFibreDerivative_integer` guarantee for the `LinearGaugeClassification` construction; the complete source hypotheses are retained. -/
+/-- A smooth periodic unit quaternion field whose coordinate derivatives are constant multiples
+of `iAxis * z x` has integer coefficients in all three directions. -/
 theorem periodic_constantFibreDerivative_integer (z : QuaternionField) (hz : ContDiff ℝ ∞ z)
     (hu : ∀ x, ‖z x‖=1) (hp : IsPeriodicField z) (b : Fin 3 → ℝ)
     (hd : ∀ x j, spatialPartial z x j=b j • (iAxis*z x)) :

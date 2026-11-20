@@ -37,7 +37,8 @@ def sourceCoefficient (cs : List ℚ) (N : ℕ) (E : ℚ) (j : Fin (N+1)) : ℚ 
   let u := sourceInputU cs N E
   rootGridTruncate ((1-u/8)*cs.getD j.val 0/(if j.val=0 then 1 else 2)) (sourceGrid N u)
 
-/-- The finite construction in `NativeSourceRegularization` satisfies `sourceCoefficient_zero` under the displayed hypotheses. -/
+/-- A zero input coefficient at a finite source index remains zero after scaling and truncation to
+the grid. -/
 theorem sourceCoefficient_zero (cs : List ℚ) (N : ℕ) (E : ℚ) (j : Fin (N+1))
     (hj : cs.getD j.val 0=0) : sourceCoefficient cs N E j=0 := by
   simp only [sourceCoefficient,hj,mul_zero,zero_div]
@@ -65,7 +66,7 @@ private theorem degreeFold_bound {N : ℕ} (a : Fin (N+1) → ℚ)
     · exact ih s hs
     · exact ih (max s i.val) (max_le hs (Nat.le_of_lt_succ i.isLt))
 
-/-- The finite construction in `NativeSourceRegularization` satisfies `degreeFold_ge_seed` under the displayed hypotheses. -/
+/-- The degree scan over a list of indices never decreases its initial degree. -/
 private theorem degreeFold_ge_seed {N : ℕ} (a : Fin (N+1) → ℚ)
     (l : List (Fin (N+1))) (s : ℕ) : s ≤ degreeFold a l s := by
   unfold degreeFold
@@ -77,7 +78,8 @@ private theorem degreeFold_ge_seed {N : ℕ} (a : Fin (N+1) → ℚ)
     · exact ih s
     · exact (Nat.le_max_left s i.val).trans (ih (max s i.val))
 
-/-- The finite construction in `NativeSourceRegularization` satisfies `degreeFold_mem_or_seed` under the displayed hypotheses. -/
+/-- The degree scan returns either its starting value or the index of a nonzero coefficient
+encountered in the list. -/
 private theorem degreeFold_mem_or_seed {N : ℕ} (a : Fin (N+1) → ℚ)
     (l : List (Fin (N+1))) (s : ℕ) :
     degreeFold a l s=s ∨ ∃ i∈l,a i≠0 ∧ degreeFold a l s=i.val := by
@@ -98,7 +100,7 @@ private theorem degreeFold_mem_or_seed {N : ℕ} (a : Fin (N+1) → ℚ)
         · exact Or.inl (by simpa only [max_eq_left (le_of_not_ge hs)] using he)
       · exact Or.inr ⟨j,List.mem_cons_of_mem i hj,hn,hv⟩
 
-/-- The finite construction in `NativeSourceRegularization` satisfies `degreeFold_ge_mem` under the displayed hypotheses. -/
+/-- The final degree from the scan is at least the index of each nonzero coefficient visited. -/
 private theorem degreeFold_ge_mem {N : ℕ} (a : Fin (N+1) → ℚ)
     (l : List (Fin (N+1))) (s : ℕ) (i : Fin (N+1)) (hi : i∈l) (hn : a i≠0) :
     i.val ≤ degreeFold a l s := by
@@ -117,25 +119,25 @@ private theorem degreeFold_ge_mem {N : ℕ} (a : Fin (N+1) → ℚ)
       · rw [ite_eq_right hz]
         exact ih (max s j.val) he
 
-/-- The finite construction in `NativeSourceRegularization` satisfies `sourceArrayDegree_le` under the displayed hypotheses. -/
+/-- The degree calculated from an array indexed from zero to N is at most N. -/
 theorem sourceArrayDegree_le {N : ℕ} (a : Fin (N+1) → ℚ) : sourceArrayDegree a ≤ N :=
   degreeFold_bound a _ 0 (Nat.zero_le N)
 
-/-- The finite construction in `NativeSourceRegularization` satisfies `sourceArrayDegree_leading` under the displayed hypotheses. -/
+/-- A strictly positive computed array degree is attained at an index with nonzero coefficient. -/
 theorem sourceArrayDegree_leading {N : ℕ} (a : Fin (N+1) → ℚ) (hd : 0<sourceArrayDegree a) :
     ∃ i : Fin (N+1),a i≠0 ∧ sourceArrayDegree a=i.val := by
   rcases degreeFold_mem_or_seed a (List.finRange (N+1)) 0 with he|⟨i,_,hi,hv⟩
   · exact False.elim ((Nat.ne_of_gt hd) he)
   · exact ⟨i,hi,hv⟩
 
-/-- The finite construction in `NativeSourceRegularization` satisfies `sourceArrayDegree_tail_zero` under the displayed hypotheses. -/
+/-- Every array entry at an index strictly above the computed degree is zero. -/
 theorem sourceArrayDegree_tail_zero {N : ℕ} (a : Fin (N+1) → ℚ)
     (i : Fin (N+1)) (hi : sourceArrayDegree a < i.val) : a i=0 := by
   by_contra hn
   have h := degreeFold_ge_mem a (List.finRange (N+1)) 0 i (by simp) hn
   exact (not_le_of_gt hi) h
 
-/-- The finite construction in `NativeSourceRegularization` satisfies `sourceDegree_le` under the displayed hypotheses. -/
+/-- Regularizing the source coefficients through index N gives a source degree at most N. -/
 theorem sourceDegree_le (cs : List ℚ) (N : ℕ) (E : ℚ) : sourceDegree cs N E ≤ N :=
   sourceArrayDegree_le _
 

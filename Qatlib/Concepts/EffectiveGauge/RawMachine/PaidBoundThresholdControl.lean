@@ -99,12 +99,12 @@ def state (inputs : Bool → CanonicalCodec.Bits) (cmp : ReadonlyCompare.Slot �
   | .output => out
 
 set_option maxHeartbeats 1000000 in
-/-- Original `sumCode_injective` guarantee for the `PaidBoundThresholdControl` construction; the complete source hypotheses are retained. -/
+/-- For either arithmetic call, the input, corresponding comparison destination, and arithmetic work stacks receive distinct host slots. -/
 private theorem sumCode_injective (right : Bool) : Function.Injective (sumCode right) := by
   intro a b h
   cases a <;> cases b <;> simp_all [sumCode]
 
-/-- Original `frame_target` guarantee for the `PaidBoundThresholdControl` construction; the complete source hypotheses are retained. -/
+/-- A target with the prescribed contents at the injectively assigned slots and the original contents elsewhere is exactly the framed update. -/
 private theorem frame_target {K : Type} [DecidableEq K] (code : K → Slot) (hinj : Function.Injective code)
     (S T : Slot → CanonicalCodec.Bits) (data : K → CanonicalCodec.Bits)
     (hi : ∀ k,T (code k)=data k) (ho : ∀ j,(∀ k,code k≠j) → T j=S j) : StackCall.frame code S data=T := by
@@ -180,7 +180,7 @@ theorem sum_call (right : Bool) (a b c d : ℕ) (inputs : Bool → CanonicalCode
 def cmpFinal (left right : CanonicalCodec.Bits) : Local :=
   (default,((ReadonlyCompare.order left right,none,none),none))
 
-/-- Original `compare_call` guarantee for the `PaidBoundThresholdControl` construction; the complete source hypotheses are retained. -/
+/-- With empty auxiliary stacks, the read-only comparison records the ordering of the two input words in the local state and reaches the choice instruction, preserving the words and output within the quadratic clock allowance. -/
 theorem compare_call (left right out : CanonicalCodec.Bits) :
     Stacks.Execution program
       ⟨some (.compare default),default,
@@ -206,19 +206,19 @@ theorem compare_call (left right out : CanonicalCodec.Bits) :
   · simpa only [StackCall.cfg,hl,hiVar,hfVar,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,hi] using hn
   · simpa only [StackCall.cfg,hl,hiVar,Option.map_some,Option.getD_some,hi] using hnc.trans_le hc
 
-/-- Original `state_output` guarantee for the `PaidBoundThresholdControl` construction; the complete source hypotheses are retained. -/
+/-- The output projection of an assembled threshold state returns the supplied output bits. -/
 private theorem state_output (inputs : Bool → CanonicalCodec.Bits) (cmp : ReadonlyCompare.Slot → CanonicalCodec.Bits)
     (out : CanonicalCodec.Bits) (work : PaidSumProducts.Slot → CanonicalCodec.Bits) :
     state inputs cmp out work .output=out := rfl
 
-/-- Original `update_output` guarantee for the `PaidBoundThresholdControl` construction; the complete source hypotheses are retained. -/
+/-- Updating the output slot of an assembled threshold state replaces its output bits while retaining the input, comparison, and arithmetic stacks. -/
 private theorem update_output (inputs : Bool → CanonicalCodec.Bits) (cmp : ReadonlyCompare.Slot → CanonicalCodec.Bits)
     (out bits : CanonicalCodec.Bits) (work : PaidSumProducts.Slot → CanonicalCodec.Bits) :
     Function.update (state inputs cmp out work) Slot.output bits=state inputs cmp bits work := by
   funext k
   cases k <;> rfl
 
-/-- Original `choose_step` guarantee for the `PaidBoundThresholdControl` construction; the complete source hypotheses are retained. -/
+/-- With an empty output stack, the choice instruction writes one bit indicating that the left word compares less than or equal to the right, resets the local state, and starts the first drain within four clock units. -/
 theorem choose_step (left right : CanonicalCodec.Bits) :
     Stacks.Execution program
       ⟨some .choose,cmpFinal left right,
@@ -237,7 +237,7 @@ theorem choose_step (left right : CanonicalCodec.Bits) :
   rw [Stacks.stackRunClock,hs]
   exact le_rfl
 
-/-- Original `drain_call` guarantee for the `PaidBoundThresholdControl` construction; the complete source hypotheses are retained. -/
+/-- The drain call clears the selected comparison input stack and keeps the output bits. It advances to the second drain after the first, or to the done label after the second. -/
 theorem drain_call (right : Bool) (cmp : ReadonlyCompare.Slot → CanonicalCodec.Bits) (out : CanonicalCodec.Bits) :
     Stacks.Execution program
       ⟨some (.drain right 0),default,state (fun _ => []) cmp out (fun _ => [])⟩

@@ -43,7 +43,8 @@ def pushLaw {X Y : Type*} [Fintype X] [Fintype Y] [DecidableEq Y]
     rw [Finset.sum_comm]
     simpa using d.sum_one
 
-/-- Complete original `push_expect` guarantee for `PartialAddressPilotProjection`; all source hypotheses and output obligations are retained. -/
+/-- Taking the expectation under the pushforward law is equivalent to composing the statistic
+with the record map and averaging under the original law. -/
 theorem push_expect {X Y : Type*} [Fintype X] [Fintype Y] [DecidableEq Y]
     (d : FinDist X) (g : X → Y) (f : Y → ℝ) :
     (pushLaw d g).expect f=d.expect (fun x => f (g x)) := by
@@ -58,7 +59,8 @@ theorem push_expect {X Y : Type*} [Fintype X] [Fintype Y] [DecidableEq Y]
     simp [Ne.symm hy]
   · simp
 
-/-- Complete original `iid_push_expect` guarantee for `PartialAddressPilotProjection`; all source hypotheses and output obligations are retained. -/
+/-- For every cohort statistic, applying `g` to each independent draw from `d` gives the same
+expectation as independent draws from the pushforward law. -/
 theorem iid_push_expect {X Y : Type*} [Fintype X] [Fintype Y] [DecidableEq Y]
     (d : FinDist X) (g : X → Y) (n : ℕ) :
     ∀ F : (Fin n → Y) → ℝ,
@@ -100,7 +102,8 @@ def boxMean (m : B × A → ℝ) (b : B) : ℝ :=
   (∑ a : A,m (b,a))/(Fintype.card A : ℝ)
 
 omit [DecidableEq A] in
-/-- Complete original `collapse_some_prob` guarantee for `PartialAddressPilotProjection`; all source hypotheses and output obligations are retained. -/
+/-- The probability of retaining a particular bit in box `b` is the sum of its signed record
+weights over the local positions of that box. -/
 theorem collapse_some_prob (m : B × A → ℝ) (hm : ∀ x,|m x| ≤ 1) (b : B) (bit : Bool) :
     (pushLaw (signedRecordLaw m hm) (collapse b)).prob (some bit)=
       ∑ a : A,signedRecordWeight m ((b,a),bit) := by
@@ -113,7 +116,7 @@ theorem collapse_some_prob (m : B × A → ℝ) (hm : ∀ x,|m x| ≤ 1) (b : B)
   · simp
 
 omit [Fintype B] [Nonempty B] [DecidableEq B] [DecidableEq A] in
-/-- Complete original `box_mean_bound` guarantee for `PartialAddressPilotProjection`; all source hypotheses and output obligations are retained. -/
+/-- When every local mean is in `[-1, 1]`, the uniform mean of each box also lies in `[-1, 1]`. -/
 theorem box_mean_bound (m : B × A → ℝ) (hm : ∀ x,|m x| ≤ 1) (b : B) :
     |boxMean m b| ≤ 1 := by
   have hA : (0 : ℝ)<Fintype.card A := by exact_mod_cast Fintype.card_pos
@@ -131,7 +134,8 @@ theorem box_mean_bound (m : B × A → ℝ) (hm : ∀ x,|m x| ≤ 1) (b : B) :
   · exact (div_le_iff₀ hA).mpr (by simpa using hhi)
 
 omit [DecidableEq B] [DecidableEq A] in
-/-- Complete original `box_sign_mass` guarantee for `PartialAddressPilotProjection`; all source hypotheses and output obligations are retained. -/
+/-- Summing the signed record weight for a fixed bit over box `b` gives one plus its sign times
+the box mean, divided by twice the number of boxes. -/
 theorem box_sign_mass (m : B × A → ℝ) (b : B) (bit : Bool) :
     (∑ a : A,signedRecordWeight m ((b,a),bit))=
       (1+bitSign bit*boxMean m b)/(2*(Fintype.card B : ℝ)) := by
@@ -149,7 +153,8 @@ theorem box_sign_mass (m : B × A → ℝ) (b : B) (bit : Bool) :
 def hitRate (B : Type*) [Fintype B] : ℝ := 1/(Fintype.card B : ℝ)
 
 omit [Fintype A] [Nonempty A] [DecidableEq B] [DecidableEq A] in
-/-- Complete original `hit_rate_bounds` guarantee for `PartialAddressPilotProjection`; all source hypotheses and output obligations are retained. -/
+/-- The reciprocal of the number of boxes is strictly positive and at most one for a nonempty
+box set. -/
 theorem hit_rate_bounds : 0<hitRate B ∧ hitRate B ≤ 1 := by
   have hB : (0 : ℝ)<Fintype.card B := by exact_mod_cast Fintype.card_pos
   have hB1 : (1 : ℝ) ≤ Fintype.card B := by exact_mod_cast Fintype.card_pos
@@ -158,7 +163,8 @@ theorem hit_rate_bounds : 0<hitRate B ∧ hitRate B ≤ 1 := by
   · exact (div_le_one hB).mpr hB1
 
 omit [DecidableEq A] in
-/-- Complete original `collapsed_prob` guarantee for `PartialAddressPilotProjection`; all source hypotheses and output obligations are retained. -/
+/-- After retaining bits only from box `b`, the weight of every optional outcome agrees with
+the scalar law with hit rate `1/card B` and conditional sign mean given by that box. -/
 theorem collapsed_prob (m : B × A → ℝ) (hm : ∀ x,|m x| ≤ 1) (b : B) (out : Option Bool) :
     (pushLaw (signedRecordLaw m hm) (collapse b)).prob out=
       PilotScalar.weight (hitRate B) (boxMean m b) out := by
@@ -180,7 +186,8 @@ theorem collapsed_prob (m : B × A → ℝ) (hm : ∀ x,|m x| ≤ 1) (b : B) (ou
     linarith
 
 omit [DecidableEq B] [DecidableEq A] in
-/-- Complete original `hit_rate_box_ratio` guarantee for `PartialAddressPilotProjection`; all source hypotheses and output obligations are retained. -/
+/-- With nonempty local sites, the hit rate is the number of sites in one box divided by the
+number of sites in the whole grid. -/
 theorem hit_rate_box_ratio : hitRate B=(Fintype.card A : ℝ)/
     ((Fintype.card B : ℝ)*(Fintype.card A : ℝ)) := by
   have hA : (Fintype.card A : ℝ) ≠ 0 := by exact_mod_cast Fintype.card_ne_zero
@@ -188,7 +195,9 @@ theorem hit_rate_box_ratio : hitRate B=(Fintype.card A : ℝ)/
   field_simp
 
 omit [DecidableEq A] in
-/-- Complete original `target_box_risk` guarantee for `PartialAddressPilotProjection`; all source hypotheses and output obligations are retained. -/
+/-- For a field bounded by one in absolute value, the empirical signed mean from `n`
+independent records restricted to a given box has mean squared error at most twice the box
+count divided by `n+1`. -/
 theorem target_box_risk (m : B × A → ℝ) (hm : ∀ x,|m x| ≤ 1) (b : B) (n : ℕ) :
     (∑ ω : Fin n → (B × A) × Bool,(signedRecordLaw m hm).probOf ω*
       (PilotScalar.empirical (fun i => collapse b (ω i))-boxMean m b)^2) ≤
@@ -230,7 +239,8 @@ def counterMeanQ {n : ℕ} (b : B) (ω : Fin n → (B × A) × Bool) : ℚ :=
   (counterZ b ω : ℚ)/(counterN b ω : ℚ)
 
 omit [Fintype B] [Fintype A] [Nonempty B] [Nonempty A] [DecidableEq A] in
-/-- Complete original `collapsed_count` guarantee for `PartialAddressPilotProjection`; all source hypotheses and output obligations are retained. -/
+/-- The scalar hit count after collapsing to box `b` equals the natural-number counter of
+records in that box. -/
 theorem collapsed_count {n : ℕ} (b : B) (ω : Fin n → (B × A) × Bool) :
     PilotScalar.count (fun i => collapse b (ω i))=counterN b ω := by
   unfold PilotScalar.count counterN
@@ -239,7 +249,8 @@ theorem collapsed_count {n : ℕ} (b : B) (ω : Fin n → (B × A) × Bool) :
   by_cases h : (ω i).1.1=b <;> simp [collapse,PilotScalar.hit,h]
 
 omit [Fintype B] [Fintype A] [Nonempty B] [Nonempty A] [DecidableEq A] in
-/-- Complete original `collapsed_sign_sum` guarantee for `PartialAddressPilotProjection`; all source hypotheses and output obligations are retained. -/
+/-- Summing the real signs after collapse gives the cast of the integer signed count for box
+`b`. -/
 theorem collapsed_sign_sum {n : ℕ} (b : B) (ω : Fin n → (B × A) × Bool) :
     (∑ i : Fin n,PilotScalar.sign (collapse b (ω i)))=(counterZ b ω : ℝ) := by
   simp only [counterZ,Int.cast_sum]
@@ -248,14 +259,16 @@ theorem collapsed_sign_sum {n : ℕ} (b : B) (ω : Fin n → (B × A) × Bool) :
   by_cases h : (ω i).1.1=b <;> simp [collapse,PilotScalar.sign,bitSign,h]
 
 omit [Fintype B] [Fintype A] [Nonempty B] [Nonempty A] [DecidableEq A] in
-/-- Complete original `counter_mean_cast` guarantee for `PartialAddressPilotProjection`; all source hypotheses and output obligations are retained. -/
+/-- The cast of the rational signed counter mean equals the scalar empirical mean on the
+collapsed cohort, including the zero-hit case. -/
 theorem counter_mean_cast {n : ℕ} (b : B) (ω : Fin n → (B × A) × Bool) :
     (counterMeanQ b ω : ℝ)=PilotScalar.empirical (fun i => collapse b (ω i)) := by
   simp only [counterMeanQ,Rat.cast_div,Rat.cast_intCast,Rat.cast_natCast,
     PilotScalar.empirical,collapsed_count,collapsed_sign_sum]
 
 omit [DecidableEq A] in
-/-- Complete original `counter_mean_risk` guarantee for `PartialAddressPilotProjection`; all source hypotheses and output obligations are retained. -/
+/-- Under the bounded signed record law, the cast rational counter mean for each fixed box has
+mean squared error at most `2 * card B / (n+1)`. -/
 theorem counter_mean_risk (m : B × A → ℝ) (hm : ∀ x,|m x| ≤ 1) (b : B) (n : ℕ) :
     (∑ ω : Fin n → (B × A) × Bool,(signedRecordLaw m hm).probOf ω*
       ((counterMeanQ b ω : ℝ)-boxMean m b)^2) ≤

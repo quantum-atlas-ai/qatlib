@@ -25,7 +25,10 @@ def sourceFrameLambdaMajorant (packet : SourceFrameBoundPacket) (r : Fin 8) : �
 noncomputable section
 open scoped Quaternion ContDiff
 
-/-- Original `sourceFrameBoundRun_phase_correct` guarantee for the `SourcePhaseWord` construction; the complete source hypotheses are retained. -/
+/-- Given certified positive jet bounds for a smooth periodic unit source, the frame-bound run
+returns a packet and order labels between one and nine. The list length is one if the compressed
+first bound vanishes and nine otherwise. The packet's phase majorant bounds every coordinate-word
+derivative of the normalized terminal phase of order `r < 8` on the unit cube for any unit seed. -/
 theorem sourceFrameBoundRun_phase_correct (v : SpatialPoint → SpatialPoint)
     (hv : ContDiff ℝ ∞ v) (hu : ∀ x, ‖v x‖=1) (hp : IsPeriodicField v)
     (bounds : ℕ → ℚ) (hb : OriginalPositiveJetBounds v bounds) :

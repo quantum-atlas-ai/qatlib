@@ -28,7 +28,7 @@ open scoped BigOperators
 
 -- The identity branch is justified by the actual periodic shift, not the
 -- number of observed matches or the cardinality of an unrelated site type.
-/-- Complete original `periodic_double_shift_small_side` guarantee for `RetainedBellPlanGeometry`; all source hypotheses and output obligations are retained. -/
+/-- Along any axis of a periodic grid of side length one or two, the double shift is the identity permutation. -/
 theorem periodic_double_shift_small_side (d N : ℕ) [NeZero N] (j : Fin d)
     (hN : N≤2) : periodicDoubleShift d N j=Equiv.refl (Fin d → Fin N) := by
   have hpos : 0<N := Nat.pos_of_ne_zero (NeZero.ne N)
@@ -42,12 +42,12 @@ theorem periodic_double_shift_small_side (d N : ℕ) [NeZero N] (j : Fin d)
   rw [periodic_double_shift_coordinates]
   split_ifs <;> simp [htwo]
 
-/-- Complete original `bell_mean_identity` guarantee for `RetainedBellPlanGeometry`; all source hypotheses and output obligations are retained. -/
+/-- Matching each site with itself gives zero mean Bell hit probability for any spinor field. -/
 theorem bell_mean_identity {S : Type} [Fintype S] (a b c k : S → ℝ) :
     bellMean a b c k (Equiv.refl S)=0 := by
   simp [bellMean,populationMean,bellProbability,determinant,mul_comm]
 
-/-- Complete original `periodic_bell_mean_small_side` guarantee for `RetainedBellPlanGeometry`; all source hypotheses and output obligations are retained. -/
+/-- A periodic double shift on a side of length one or two has zero Bell mean for any spinor field. -/
 theorem periodic_bell_mean_small_side (d N : ℕ) [NeZero N] (j : Fin d)
     (a b c k : (Fin d → Fin N) → ℝ) (hN : N≤2) :
     bellMean a b c k (periodicDoubleShift d N j)=0 := by
@@ -55,7 +55,7 @@ theorem periodic_bell_mean_small_side (d N : ℕ) [NeZero N] (j : Fin d)
   exact bell_mean_identity a b c k
 
 -- The zero-copy midpoint is p/2, whereas the identity output is zero.
-/-- Complete original `bell_midpoint_accuracy` guarantee for `RetainedBellPlanGeometry`; all source hypotheses and output obligations are retained. -/
+/-- If the true mean lies in [0, p] and p ≤ 2ε, the rational midpoint p/2 is within ε of the mean. -/
 theorem bell_midpoint_accuracy (p ε : ℚ) (μ : ℝ) (hμ0 : 0≤μ)
     (hμ : μ≤(p : ℝ)) (hmid : p≤2*ε) : |((p/2 : ℚ) : ℝ)-μ|≤(ε : ℝ) := by
   have hmidR : (p : ℝ)≤2*(ε : ℝ) := by exact_mod_cast hmid

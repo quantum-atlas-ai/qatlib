@@ -30,7 +30,8 @@ open Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays Qatlib.Concepts
 
 open scoped BigOperators
 
-/-- The finite construction in `NativeRootCompletionProductBound` satisfies `rootCompletion_product_defect` under the displayed hypotheses. -/
+/-- If the sum of the norms of the complex perturbations is at most s and s is at most one, their
+factors 1 + u have product within 2s of one. -/
 private theorem rootCompletion_product_defect {n : ℕ} (u : Fin n → ℂ) (s : ℝ)
     (hsum : (Finset.univ.sum (fun i : Fin n => norm (u i))) ≤ s) (hs : s ≤ 1) :
     ‖(∏ i : Fin n, (1+u i))-1‖≤2*s := by

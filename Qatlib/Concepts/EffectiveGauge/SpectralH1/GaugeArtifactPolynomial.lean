@@ -33,13 +33,13 @@ def quaternionTupleCLM : (Fin 4 → ℝ) →L[ℝ] ℍ :=
   Quaternion.linearIsometryEquivTuple.symm.toContinuousLinearMap.comp
     (PiLp.continuousLinearEquiv 2 ℝ (fun _ : Fin 4 => ℝ)).symm.toContinuousLinearMap
 
-/-- Original `contDiff_quaternion_components` guarantee for the `GaugeArtifactPolynomial` construction; the complete source hypotheses are retained. -/
+/-- Assembling four smooth scalar component fields into a quaternion gives a smooth field. -/
 theorem contDiff_quaternion_components (c : Fin 4 → SpatialPoint → ℝ)
     (hc : ∀ j, ContDiff ℝ ∞ (c j)) :
     ContDiff ℝ ∞ (fun x : SpatialPoint => quaternionTupleCLM (fun j => c j x)) :=
   quaternionTupleCLM.contDiff.comp (contDiff_pi.mpr hc)
 
-/-- Original `gaugeFourierArtifactField_contDiff` guarantee for the `GaugeArtifactPolynomial` construction; the complete source hypotheses are retained. -/
+/-- The real quaternion field reconstructed from the finite Fourier coefficients is smooth. -/
 theorem gaugeFourierArtifactField_contDiff (artifact : RationalGaugeFourierArtifact) :
     ContDiff ℝ ∞ (gaugeFourierArtifactField artifact) := by
   have hs (j : Fin 4) (records : RationalGaugeFourierCoefficients) :
@@ -53,7 +53,8 @@ theorem gaugeFourierArtifactField_contDiff (artifact : RationalGaugeFourierArtif
         (contDiff_id.const_smul physicalPeriod⁻¹))).add ih
   exact contDiff_quaternion_components _ (fun j => Complex.reCLM.contDiff.comp (hs j artifact.coefficients))
 
-/-- Original `gaugeFourierArtifactField_periodic` guarantee for the `GaugeArtifactPolynomial` construction; the complete source hypotheses are retained. -/
+/-- The finite Fourier reconstruction is periodic with the physical period along every coordinate
+axis. -/
 theorem gaugeFourierArtifactField_periodic (artifact : RationalGaugeFourierArtifact) :
     IsPeriodicField (gaugeFourierArtifactField artifact) := by
   intro X n
@@ -77,7 +78,8 @@ theorem gaugeFourierArtifactField_periodic (artifact : RationalGaugeFourierArtif
   · exact hcoord 2
   · exact hcoord 3
 
-/-- Original `sourceFrequencyGrid_sum` guarantee for the `GaugeArtifactPolynomial` construction; the complete source hypotheses are retained. -/
+/-- The sum of a complex function on the frequency grid list equals its finite sum over the integer
+box from `-N` to `N`, inclusive in each coordinate. -/
 theorem sourceFrequencyGrid_sum (N : ℕ) (g : SpatialFrequency → ℂ) :
     ((sourceFrequencyGrid N).map g).sum=∑ k∈Finset.Icc (-N : SpatialFrequency) N, g k := by
   rw [← List.sum_toFinset g (sourceFrequencyGrid_nodup N),sourceFrequencyGrid_toFinset]

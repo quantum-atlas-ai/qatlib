@@ -35,11 +35,11 @@ def ofFloorCode (q : FloorRationalCode) : RedundantRational.Frac :=
 /-- Definition of encode in the Raw Machine construction. -/
 def encode (q : RedundantRational.Frac) : CanonicalCodec.Bits := PaidFractionInverse.input q.num.1 q.num.2 q.den.1 q.den.2
 
-/-- Original `ofFloorCode_value` guarantee for the `PaidRationalBridge` construction; the complete source hypotheses are retained. -/
+/-- The redundant fraction constructed from a floor rational code represents the same quotient, with the signed numerator over the stored denominator plus one. -/
 theorem ofFloorCode_value (q : FloorRationalCode) : RedundantRational.value (ofFloorCode q)=floorRationalCodeValue q := by
   simp only [RedundantRational.value,ofFloorCode,RedundantRational.Pair.value,floorRationalCodeValue,Nat.cast_zero,sub_zero]
 
-/-- Original `inverse_output_codec` guarantee for the `PaidRationalBridge` construction; the complete source hypotheses are retained. -/
+/-- The fraction-inversion output on the four natural entries of a redundant fraction is exactly the encoding of its total inverse. -/
 theorem inverse_output_codec (q : RedundantRational.Frac) :
     PaidFractionInverse.output q.num.1 q.num.2 q.den.1 q.den.2=encode (RedundantRational.inv q) := by
   by_cases h : q.num.1=q.num.2

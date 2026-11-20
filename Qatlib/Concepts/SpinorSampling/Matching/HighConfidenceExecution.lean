@@ -68,7 +68,7 @@ def highConfidenceLaw {d : ℕ} (p : HighConfidencePlanQ)
     (finiteFamilyLaw (fun i : Fin 3 × Fin d => correlationLaw p.spinSchedule.mode
       p.spinSchedule.records p.spinSchedule.blocks (ms i.1) (hms i.1)))
 
-/-- Complete original `interval_clip_q_idempotent` guarantee for `HighConfidenceExecution`; all source hypotheses and output obligations are retained. -/
+/-- Clipping a rational value to an interval with ordered endpoints is idempotent. -/
 private theorem interval_clip_q_idempotent (lo hi x : ℚ) (h : lo≤hi) :
     intervalClipQ lo hi (intervalClipQ lo hi x)=intervalClipQ lo hi x := by
   have hlo : lo ≤ intervalClipQ lo hi x := le_min h (le_max_left _ _)
@@ -76,7 +76,8 @@ private theorem interval_clip_q_idempotent (lo hi x : ℚ) (h : lo≤hi) :
   exact (congrArg (min hi) (max_eq_right hlo)).trans (min_eq_right hhi)
 
 omit [Fintype S] [Nonempty S] in
-/-- Complete original `correlation_output_reclip` guarantee for `HighConfidenceExecution`; all source hypotheses and output obligations are retained. -/
+/-- In every mode, the correlation output computed with lower endpoint −1 is fixed by clipping
+again to [−1, 1]. -/
 theorem correlation_output_reclip (mode : CorrelationMode) (n K M : ℕ) (τ : S → S)
     (z : CorrelationData S mode n K) :
     intervalClipQ (-1) 1 (correlationOutputQ mode n K M τ (-1) z)=
@@ -88,7 +89,9 @@ theorem correlation_output_reclip (mode : CorrelationMode) (n K M : ℕ) (τ : S
   | ustatisticMedian => exact interval_clip_q_idempotent _ _ _ (by norm_num)
 
 omit [Nonempty S] in
-/-- Complete original `high_confidence_output_cast` guarantee for `HighConfidenceExecution`; all source hypotheses and output obligations are retained. -/
+/-- Casting the rational high-confidence output to the reals yields the combined clipped loss of
+the directional velocity outputs and the spin correlations, with velocity scale `α + β * U` and
+spin weight `γ`. -/
 theorem high_confidence_output_cast {d : ℕ} (p : HighConfidencePlanQ)
     (u : Fin d → S → ℚ) (e : Fin d → S → S) (α β U γ : ℚ)
     (z : HighConfidenceData S d p) :
@@ -107,7 +110,10 @@ theorem high_confidence_output_cast {d : ℕ} (p : HighConfidencePlanQ)
     simp only [highConfidenceOutputQ,combinedLossQ,correlation_output_reclip]
   rw [hq,combined_loss_cast,Rat.cast_add,Rat.cast_mul]
 
-/-- Complete original `high_confidence_accuracy` guarantee for `HighConfidenceExecution`; all source hypotheses and output obligations are retained. -/
+/-- For positive dimension, bounded current means and target, and unit spin vectors, the planned
+output estimates the implemented residual loss with error above `η/2` on mass at most `δ`. The
+parameters require a square-root upper bound on the site count, `α > 0`, nonnegative `β`, `U`,
+and `γ`, and `η > 0` with `0 < δ < 1`. -/
 theorem high_confidence_accuracy {d : ℕ} (hd : 0<d)
     (mv : Fin d → S → ℝ) (hmv : ∀ j x, |mv j x|≤1)
     (ms : Fin 3 → S → ℝ) (hs : ∀ x, ∑ a : Fin 3, (ms a x)^2=1)

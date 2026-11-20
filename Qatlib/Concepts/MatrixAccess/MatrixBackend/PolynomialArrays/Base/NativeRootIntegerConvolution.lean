@@ -26,7 +26,7 @@ def rootIntegerConvolution {d e : ℕ} (a : Fin (d+1) → ℤ) (b : Fin (e+1) �
     Fin (d+e+1) → ℤ :=
   fun k => ∑ i,∑ j,if i.val+j.val=k.val then a i*b j else 0
 
-/-- The finite construction in `NativeRootIntegerConvolution` satisfies `rootIntegerPolynomial_convolution` under the displayed hypotheses. -/
+/-- The integer array obtained by summing products at each combined index represents the product of the two complex polynomials. -/
 theorem rootIntegerPolynomial_convolution {d e : ℕ}
     (a : Fin (d+1) → ℤ) (b : Fin (e+1) → ℤ) :
     rootIntegerPolynomial (rootIntegerConvolution a b)=

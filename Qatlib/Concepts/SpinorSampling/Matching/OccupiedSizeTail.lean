@@ -39,7 +39,8 @@ def occupiedQuarterBadMass (n : ℕ) : ℝ :=
   (cohortLaw (uniformLaw S) n).expect
     (fun J => if occupiedCount J < (n : ℝ)/4 then 1 else 0)
 
-/-- Complete original `occupied_quarter_lower_tail` guarantee for `OccupiedSizeTail`; all source hypotheses and output obligations are retained. -/
+/-- For `0 < n ≤ |S|` independent uniform draws, the probability of occupying strictly fewer
+than `n/4` sites is at most `exp (-n/8)`. -/
 theorem occupied_quarter_lower_tail (n : ℕ) (hn0 : 0 < n) (hn : n ≤ Fintype.card S) :
     occupiedQuarterBadMass (S:=S) n ≤ Real.exp (-(n : ℝ)/8) := by
   classical

@@ -40,7 +40,8 @@ def restrictedOccupied {n : ℕ} (A : Finset S) (J : Fin n → S) : Finset S :=
   occupiedSites J ∩ A
 
 omit [Fintype S] [Nonempty S] in
-/-- Complete original `restricted_occupied_cons` guarantee for `RestrictedOccupancyTail`; all source hypotheses and output obligations are retained. -/
+/-- Prepending a site updates the occupied subset of `A` by inserting that site only if it
+belongs to `A`. -/
 theorem restricted_occupied_cons {n : ℕ} (A : Finset S) (x : S) (J : Fin n → S) :
     restrictedOccupied A (Fin.cons x J) = restrictedInsert A (restrictedOccupied A J) x := by
   ext y
@@ -56,7 +57,8 @@ theorem restricted_occupied_cons {n : ℕ} (A : Finset S) (x : S) (J : Fin n →
 def expectedRestrictedWeight (A : Finset S) (T : ℝ) (n : ℕ) : ℝ :=
   (cohortLaw (uniformLaw S) n).expect (fun J => truncatedHitWeight T (restrictedOccupied A J))
 
-/-- Complete original `expected_restricted_weight_step` guarantee for `RestrictedOccupancyTail`; all source hypotheses and output obligations are retained. -/
+/-- For a cutoff `T ≤ |A|/2`, the expected truncated exponential weight after `n + 1` draws
+is at most its value after `n` draws multiplied by `1 - |A|/(4*|S|)`. -/
 theorem expected_restricted_weight_step (A : Finset S) (T : ℝ)
     (hT : T ≤ (A.card : ℝ)/2) (n : ℕ) :
     expectedRestrictedWeight A T (n+1) ≤
@@ -79,7 +81,8 @@ theorem expected_restricted_weight_step (A : Finset S) (T : ℝ)
         Finset.inter_subset_right T hT
     _ = _ := finite_expect_mul _ _ _
 
-/-- Complete original `expected_restricted_weight_geometric` guarantee for `RestrictedOccupancyTail`; all source hypotheses and output obligations are retained. -/
+/-- At a cutoff no greater than half the size of `A`, the expected truncated weight after `n`
+uniform draws is at most `(1 - |A|/(4*|S|))^n`. -/
 theorem expected_restricted_weight_geometric (A : Finset S) (T : ℝ)
     (hT : T ≤ (A.card : ℝ)/2) (n : ℕ) :
     expectedRestrictedWeight A T n ≤
@@ -112,7 +115,8 @@ def restrictedHitBadMass (A : Finset S) (T : ℝ) (n : ℕ) : ℝ :=
   (cohortLaw (uniformLaw S) n).expect
     (fun J => if ((restrictedOccupied A J).card : ℝ)<T then 1 else 0)
 
-/-- Complete original `restricted_occupancy_lower_tail` guarantee for `RestrictedOccupancyTail`; all source hypotheses and output obligations are retained. -/
+/-- For `m ≤ |S|` uniform draws, the probability of hitting strictly fewer than
+`r = m*|A|/(8*|S|)` distinct sites in `A` is at most `exp (-r)`. -/
 theorem restricted_occupancy_lower_tail (A : Finset S) (m : ℕ)
     (hm : m ≤ Fintype.card S) :
     restrictedHitBadMass A ((m : ℝ)*(A.card : ℝ)/(8*(Fintype.card S : ℝ))) m ≤

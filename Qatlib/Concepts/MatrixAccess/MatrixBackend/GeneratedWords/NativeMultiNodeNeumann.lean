@@ -73,7 +73,7 @@ def nativeMultiNodeNeumannWord (b : ℕ) (hb : 0 < b) (F : Matrix H I ℂ)
     (Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.uniformNeumannWord b hb (rangeProjector (nativeMultiNodeFrame (J := J) F)))
 
 omit [Fintype J] [Fintype H] in
-/-- The finite construction in `NativeMultiNodeNeumann` satisfies `multinode_lift_one` under the displayed hypotheses. -/
+/-- For every `b`, the uniform Neumann lift of identity on the joint label and native data register is identity on the enlarged register. -/
 private theorem multinode_lift_one (b : ℕ) :
     Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.uniformNeumannOracle (H := J × (Reg 6 × H)) b 1 = 1 := by
   simp only [Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.uniformNeumannOracle, parallelOracle, parallel_select_one,
@@ -82,7 +82,7 @@ private theorem multinode_lift_one (b : ℕ) :
   simp [Matrix.one_apply]
 
 omit [DecidableEq J] [DecidableEq H] in
-/-- The finite construction in `NativeMultiNodeNeumann` satisfies `multinode_lift_mul` under the displayed hypotheses. -/
+/-- The uniform Neumann lift preserves products of matrices on the joint label, auxiliary, and data registers. -/
 private theorem multinode_lift_mul (b : ℕ)
     (U V : Matrix (J × (Reg 6 × H)) (J × (Reg 6 × H)) ℂ) :
     Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.uniformNeumannOracle b (U*V) = Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.uniformNeumannOracle b U * Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.uniformNeumannOracle b V := by
@@ -90,7 +90,7 @@ private theorem multinode_lift_mul (b : ℕ)
     parallelOracle, parallel_select_mul]
 
 omit [Fintype J] [DecidableEq J] [Fintype H] [DecidableEq H] in
-/-- The finite construction in `NativeMultiNodeNeumann` satisfies `multinode_lift_adjoint` under the displayed hypotheses. -/
+/-- The uniform Neumann lift of the adjoint of a matrix on the joint native register is the adjoint of its lift. -/
 private theorem multinode_lift_adjoint (b : ℕ)
     (U : Matrix (J × (Reg 6 × H)) (J × (Reg 6 × H)) ℂ) :
     Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.uniformNeumannOracle b Uᴴ = (Qatlib.Concepts.MatrixAccess.MatrixBackend.GeneratedWords.Neumann.uniformNeumannOracle b U)ᴴ := by

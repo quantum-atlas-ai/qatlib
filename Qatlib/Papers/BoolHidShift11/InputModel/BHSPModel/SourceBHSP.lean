@@ -21,7 +21,7 @@ Fixed version: arXiv:1103.3017v1 (2011-03-15, Gavinsky–Roetteler–Roland,
 This file records the paper's notation (Definitions 1 and 2, §2, p.2):
 
 * `Reg n = Fin n → Bool` is the cube `Z_2^n` (shared
-  `Qatlib.Concepts.MbqcFlow.FlowDecision.Reg`); group addition is
+  `Qatlib.Foundations.PureStateMath.Reg`); group addition is
   `regXor`, the paper's `x + v`.
 * `parityDot u x` is the inner product `⟨u,x⟩ ∈ Z_2`; `chi u x` is the real
   character `χ_u(x) = (-1)^{⟨u,x⟩}`.

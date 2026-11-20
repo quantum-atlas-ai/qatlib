@@ -21,7 +21,8 @@ set_option autoImplicit false
 namespace Qatlib.Concepts.EffectiveGauge.CodedFloor
 open Qatlib.Concepts.EffectiveGauge.HopfAtlas Qatlib.Concepts.EffectiveGauge.RationalFlow
 
-/-- Original `floorCode_of_primrec` guarantee for the `FloorEncodedExecution` construction; the complete source hypotheses are retained. -/
+/-- For a primitive-recursive function on primitively codable types, one partial-recursive code
+computes every encoded output from the corresponding encoded input. -/
 private theorem floorCode_of_primrec {A B : Type*} [Primcodable A] [Primcodable B]
     (f : A → B) (hf : Primrec f) :
     ∃ c : Nat.Partrec.Code, ∀ a,
@@ -42,7 +43,8 @@ theorem floorExpCodeRun_encoded :
     primrec_floorExpCodeRun
   exact ⟨c,fun p s fuel => hc ((p,s),fuel)⟩
 
-/-- Original `floorReducedNegativeExpCode_encoded` guarantee for the `FloorEncodedExecution` construction; the complete source hypotheses are retained. -/
+/-- One partial-recursive code computes the encoded result of the reduced negative-exponential
+routine for every encoded input pair. -/
 theorem floorReducedNegativeExpCode_encoded :
     ∃ c : Nat.Partrec.Code, ∀ p : FloorExpCodeParameters,
       Nat.Partrec.Code.eval c (Encodable.encode p)=

@@ -50,7 +50,7 @@ def groupedColumnCoefficient (node : K → J) (Q : Matrix K K ℂ)
   ∑ k, if node k = j then columnPhaseCoefficient Q φ k₀ k else 0
 
 omit [DecidableEq K] [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I] in
-/-- The finite construction in `NativeGroupedColumnError` satisfies `sum_grouped_column` under the displayed hypotheses. -/
+/-- Summing the column-phase contributions by label gives the same matrix as summing by node after adding all coefficients of labels mapped to that node. -/
 theorem sum_grouped_column (node : K → J) (Q : Matrix K K ℂ)
     (φ : K → ℂ) (k₀ : K) (Y : J → Matrix I I ℂ) :
     (∑ k, columnPhaseCoefficient Q φ k₀ k • Y (node k)) =

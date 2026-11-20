@@ -25,7 +25,10 @@ open Set
 namespace Qatlib.Concepts.EffectiveGauge.RationalFlow
 open Qatlib.Concepts.EffectiveGauge.HopfAtlas
 
-/-- Original `grid_step_error` guarantee for the `CayleyError` construction; the complete source hypotheses are retained. -/
+/-- For unit transport with a continuous pure generator bounded by `K` and Lipschitz with constant
+`M` on `[0, 1]`, take grid interval `j < D` of a positive-sized mesh. A pure left-end sample within
+`e` of the generator gives one-step error at most `M h² / 2 + e h + (K + e)³ h³ / 12`, where
+`h = 1 / D`. -/
 private theorem grid_step_error {q k : ℝ → ℍ} (D : ℕ) (hD : 0<D) (j : ℕ) (hj : j<D)
     (hk : ContinuousOn k (Icc 0 1)) (hp : ∀ t ∈ Icc 0 1, (k t).re=0)
     (hq : ∀ t ∈ Icc 0 1, HasDerivWithinAt q (q t*k t) (Icc 0 1) t)
@@ -125,7 +128,10 @@ theorem cayleyIntegerRun_error {q k : ℝ → ℍ} (D p : ℕ) (hD : 0<D)
       field_simp [hd.ne']
       ring
 
-/-- Original `cayleyOracleExecution_error` guarantee for the `CayleyError` construction; the complete source hypotheses are retained. -/
+/-- For unit transport on `[0, 1]` with a continuous pure generator bounded by `K` and Lipschitz
+with constant `M`, suppose the oracle's dyadic error is at most `e = 2⁻ᵖ` at each of the `D > 0`
+left endpoints. Applying the decoded Cayley product to a state within `delta0` of the exact initial
+value gives final error at most `delta0 + M / (2 D) + e + (K + e)³ / (12 D²)`. -/
 theorem cayleyOracleExecution_error {q k : ℝ → ℍ} (D p : ℕ) (hD : 0<D)
     (oracle : ℚ × ℕ → Fin 3 → ℤ) (hk : ContinuousOn k (Icc 0 1))
     (hp : ∀ t ∈ Icc 0 1, (k t).re=0)

@@ -27,7 +27,7 @@ open scoped BigOperators
 def rootRationalDiskComputedTag (c : ℚ×ℚ) (r : ℚ) : Bool :=
   (rootRationalDiskClassify c r).getD false
 
-/-- The finite construction in `NativeRootClassifiedCatalogue` satisfies `rootRationalDiskClassify_computed_tag` under the displayed hypotheses. -/
+/-- If classification of the rational center `c` and radius `r` returns a tag, that tag is the Boolean given by `rootRationalDiskComputedTag c r`. -/
 theorem rootRationalDiskClassify_computed_tag (c : ℚ×ℚ) (r : ℚ)
     (h : rootRationalDiskClassify c r≠none) :
     rootRationalDiskClassify c r=some (rootRationalDiskComputedTag c r) := by

@@ -20,7 +20,7 @@ representation.
 
 ## Main statements
 
-* `frontier1`: a legal reversible prefix with exact gate and access costs.
+* `exists_clean_paid_word_for_coherent_prefix`: a legal reversible prefix with exact gate and access costs.
 * `paid_history_retained`: preservation of earlier stopped components.
 * `paid_complete_fresh_total`: total fresh-stop mass for complete stopping.
 
@@ -68,7 +68,7 @@ theorem paidPrefix_payload (f : CoherentVtFrame H m) (ψ : QState H)
 
 /-- Every valid coherent prefix has a legal paid word implementing it cleanly and reversibly,
 with `4 * n` known gates and weighted access cost `2 ^ n - 1`. -/
-theorem frontier1 (f : CoherentVtFrame H m) (ψ : QState H) (n : ℕ) (hn : n ≤ m) :
+theorem exists_clean_paid_word_for_coherent_prefix (f : CoherentVtFrame H m) (ψ : QState H) (n : ℕ) (hn : n ≤ m) :
     ∃ C : Qatlib.Concepts.QlsReadoutSpec.Amplification.Word H 2, Qatlib.Concepts.QlsReadoutSpec.Amplification.legal m C ∧
       Qatlib.Concepts.QlsReadoutSpec.Amplification.wordMatrix (baseOracles f) C *ᵥ Qatlib.Concepts.QlsReadoutSpec.Amplification.clean 2 (by decide) ψ =
         Qatlib.Concepts.QlsReadoutSpec.Amplification.clean 2 (by decide) (f.stageState ψ n hn) ∧

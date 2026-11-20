@@ -33,22 +33,22 @@ def rootIntegerPolynomial {d : ℕ} (a : Fin (d+1) → ℤ) : ℂ[X] :=
 def rootIntegerDerivative (n : ℕ) (a : Fin (n+2) → ℤ) : Fin (n+1) → ℤ :=
   fun i => ((i.val+1 : ℕ) : ℤ)*a i.succ
 
-/-- The finite construction in `NativeRootIntegerPolynomial` satisfies `rootIntegerScalar_decode` under the displayed hypotheses. -/
+/-- At dyadic scale zero, the Gaussian pair `(a, 0)` decodes to the complex cast of `a`. -/
 theorem rootIntegerScalar_decode (a : ℤ) : gaussianScalarDecode 0 (a,0)=(a : ℂ) := by
   apply Complex.ext <;> simp [gaussianScalarDecode]
 
-/-- The finite construction in `NativeRootIntegerPolynomial` satisfies `rootIntegerPolynomial_coeff` under the displayed hypotheses. -/
+/-- At each index below `d + 1`, the polynomial coefficient is the corresponding integer array entry cast to ℂ. All higher coefficients are zero. -/
 theorem rootIntegerPolynomial_coeff {d : ℕ} (a : Fin (d+1) → ℤ) (k : ℕ) :
     (rootIntegerPolynomial a).coeff k=if h : k<d+1 then (a ⟨k,h⟩ : ℂ) else 0 :=
   laurentCoefficientPolynomial_coeff _ k
 
-/-- The finite construction in `NativeRootIntegerPolynomial` satisfies `rootIntegerPolynomial_degree` under the displayed hypotheses. -/
+/-- An integer array of length `d + 1` represents a polynomial of natural degree at most `d`. -/
 theorem rootIntegerPolynomial_degree {d : ℕ} (a : Fin (d+1) → ℤ) :
     (rootIntegerPolynomial a).natDegree≤d := by
   simpa only [rootIntegerPolynomial,Nat.add_sub_cancel] using
     laurentCoefficientPolynomial_degree (fun i => (a i : ℂ))
 
-/-- The finite construction in `NativeRootIntegerPolynomial` satisfies `rootIntegerPolynomial_natDegree` under the displayed hypotheses. -/
+/-- If the last entry of the length-`d + 1` array is nonzero, the represented polynomial has natural degree exactly `d`. -/
 theorem rootIntegerPolynomial_natDegree {d : ℕ} (a : Fin (d+1) → ℤ)
     (ha : a (Fin.last d)≠0) : (rootIntegerPolynomial a).natDegree=d := by
   apply Polynomial.natDegree_eq_of_le_of_coeff_ne_zero (rootIntegerPolynomial_degree a)
@@ -56,7 +56,7 @@ theorem rootIntegerPolynomial_natDegree {d : ℕ} (a : Fin (d+1) → ℤ)
   change (a (Fin.last d) : ℂ)≠0
   exact_mod_cast ha
 
-/-- The finite construction in `NativeRootIntegerPolynomial` satisfies `rootIntegerPolynomial_derivative` under the displayed hypotheses. -/
+/-- The derivative is represented by the array whose entry at `i` is `(i + 1)` times the original entry at `i + 1`. -/
 theorem rootIntegerPolynomial_derivative (n : ℕ) (a : Fin (n+2) → ℤ) :
     (rootIntegerPolynomial a).derivative=rootIntegerPolynomial (rootIntegerDerivative n a) := by
   apply Polynomial.ext
@@ -73,7 +73,7 @@ theorem rootIntegerPolynomial_derivative (n : ℕ) (a : Fin (n+2) → ℤ) :
   · have hk' : ¬k+1<n+2 := by omega
     simp only [dite_eq_right hk,dite_eq_right hk',zero_mul]
 
-/-- The finite construction in `NativeRootIntegerPolynomial` satisfies `rootIntegerPolynomial_horner` under the displayed hypotheses. -/
+/-- Compact Horner on the integer coefficients and the shared-denominator representation of `c` decodes to the polynomial evaluated at that complex point. -/
 theorem rootIntegerPolynomial_horner {d : ℕ} (a : Fin (d+1) → ℤ) (c : ℚ×ℚ) :
     gaussianPointValue (rootCompactHorner (rootSharedNumerator c)
       (rootSharedDenominator c) (List.ofFn a))=
@@ -81,7 +81,7 @@ theorem rootIntegerPolynomial_horner {d : ℕ} (a : Fin (d+1) → ℤ) (c : ℚ�
   rw [rootSharedCompactHorner_correct,rootIntegerPolynomial,laurentCoefficientPolynomial_eval]
   simp only [rootIntegerScalar_decode]
 
-/-- The finite construction in `NativeRootIntegerPolynomial` satisfies `rootIntegerDerivative_denominator` under the displayed hypotheses. -/
+/-- At the same rational center, the compact Horner denominator for `a` is the derivative array's Horner denominator times the center's common denominator. -/
 theorem rootIntegerDerivative_denominator (n : ℕ) (a : Fin (n+2) → ℤ) (c : ℚ×ℚ) :
     (rootCompactHorner (rootSharedNumerator c) (rootSharedDenominator c) (List.ofFn a)).denominator=
       rootSharedDenominator c*(rootCompactHorner (rootSharedNumerator c)

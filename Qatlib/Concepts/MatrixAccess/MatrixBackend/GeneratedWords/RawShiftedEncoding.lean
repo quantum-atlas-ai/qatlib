@@ -65,13 +65,13 @@ private def shiftLabelLift {M N L : Type} [DecidableEq L]
     (V : L → Matrix M N ℂ) : Matrix (L × M) (L × N) ℂ :=
   (Matrix.blockDiagonal V).submatrix (Equiv.prodComm L M) (Equiv.prodComm L N)
 
-/-- The finite construction in `RawShiftedEncoding` satisfies `shift_label_lift_adjoint` under the displayed hypotheses. -/
+/-- Taking the adjoint of a shift label lift replaces each rectangular block by its adjoint at the same label. -/
 private theorem shift_label_lift_adjoint {M N L : Type} [DecidableEq L]
     (V : L → Matrix M N ℂ) :
     (shiftLabelLift V)ᴴ = shiftLabelLift (fun j => (V j)ᴴ) := by
   simp only [shiftLabelLift, Matrix.conjTranspose_submatrix, Matrix.blockDiagonal_conjTranspose]
 
-/-- The finite construction in `RawShiftedEncoding` satisfies `shift_label_lift_mul` under the displayed hypotheses. -/
+/-- The product of two shift label lifts is the lift of their labelwise matrix products. -/
 private theorem shift_label_lift_mul {M N P L : Type}
     [Fintype N] [Fintype L] [DecidableEq L]
     (V : L → Matrix M N ℂ) (W : L → Matrix N P ℂ) :
@@ -79,19 +79,19 @@ private theorem shift_label_lift_mul {M N P L : Type}
   unfold shiftLabelLift
   rw [Matrix.submatrix_mul_equiv, ← Matrix.blockDiagonal_mul]
 
-/-- The finite construction in `RawShiftedEncoding` satisfies `shift_label_lift_one` under the displayed hypotheses. -/
+/-- Lifting the identity matrix at every label gives the identity on the joint register. -/
 private theorem shift_label_lift_one {I L : Type} [DecidableEq I] [DecidableEq L] :
     shiftLabelLift (fun _ : L => (1 : Matrix I I ℂ)) = 1 := by
   change (Matrix.blockDiagonal (1 : L → Matrix I I ℂ)).submatrix
     (Equiv.prodComm L I) (Equiv.prodComm L I) = 1
   rw [Matrix.blockDiagonal_one, Matrix.submatrix_one_equiv]
 
-/-- The finite construction in `RawShiftedEncoding` satisfies `shift_label_lift_eq_select` under the displayed hypotheses. -/
+/-- For square matrices `V j`, the shift label lift is the selection matrix with blocks `V j`. -/
 private theorem shift_label_lift_eq_select {H L : Type} [DecidableEq L]
     (V : L → Matrix H H ℂ) : shiftLabelLift V = select V := by
   rfl
 
-/-- The finite construction in `RawShiftedEncoding` satisfies `shifted_logical_frame_eq_lift` under the displayed hypotheses. -/
+/-- The shifted logical frame is the block-diagonal lift of `F` tagged with the shift seed at every outer label. -/
 private theorem shifted_logical_frame_eq_lift
     {H I L : Type} [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
     [Fintype L] [DecidableEq L] (F : Matrix H I ℂ) :

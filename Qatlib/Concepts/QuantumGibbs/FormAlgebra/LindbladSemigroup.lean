@@ -690,7 +690,7 @@ theorem lindbladSemigroup_depolarizing_apply (γ : ℝ) (hγ : 0 ≤ γ) (t : �
 
 /-- Combines exponential relative-entropy decay and trace-distance mixing under the
 entropy-production and entropy-to-distance hypotheses. -/
-theorem frontier1 {D : ℕ} (G : GKSL D) {ρstar σ : Operator D}
+theorem relative_entropy_decay_and_trace_distance_mixing {D : ℕ} (G : GKSL D) {ρstar σ : Operator D}
     (hσ : IsDensityOperator σ) (hσfull : σ.PosDef) {α : ℝ}
     (hep : EntropyProductionIneq G ρstar α) {κ : ℝ} (hκ : 0 ≤ κ)
     (hS0 : 0 ≤ κ * relativeEntropy σ ρstar)

@@ -34,7 +34,7 @@ section RoundedDiscovered
 open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data
 open scoped Matrix.Norms.L2Operator
 
-/-- The finite construction in `NativeSourceRoundedPhases` satisfies `sourceCoordinate_eq_gaussian` under the displayed hypotheses. -/
+/-- Both Gaussian-rational embeddings send a rational coordinate pair to the same complex number. -/
 theorem sourceCoordinate_eq_gaussian (q : ℚ×ℚ) : rootRationalCoordinate q=gaussianRatComplex q := by
   apply Complex.ext <;> simp [rootRationalCoordinate,gaussianRatComplex]
 
@@ -60,7 +60,8 @@ theorem sourceRoundPhases_error {qs : List (ℚ×ℚ)} {zs : List ℂ} (p : ℕ)
         (by rwa [← sourceCoordinate_eq_gaussian]))
       (ih (fun w hw => hz w (List.mem_cons_of_mem _ hw)))
 
-/-- The finite construction in `NativeSourceRoundedPhases` satisfies `rational_norm_equation` under the displayed hypotheses. -/
+/-- If the Gaussian rational has complex norm one, the squares of its rational coordinates sum to
+one. -/
 private theorem rational_norm_equation (q : ℚ×ℚ) (hq : ‖gaussianRatComplex q‖=1) :
     q.1*q.1+q.2*q.2=1 := by
   have hs : ‖gaussianRatComplex q‖^2=(1 : ℝ) := by rw [hq]; norm_num
@@ -97,7 +98,12 @@ open scoped Matrix.Norms.L2Operator
 def sourcePacketPrecision (cs : List ℚ) (N : ℕ) (E : ℚ) : ℕ :=
   sourceCeilLog2 ((N+1 : ℚ)/sourceInputU cs N E)
 
-/-- The finite construction in `NativeSourceRoundedPhases` satisfies `source_rounded_halves` under the displayed hypotheses. -/
+/-- For positive E and source degree, a degree-bounded target of matching parity and absolute
+value at most one on the interval from −1 to 1, and guarded factors reconstructing the integer
+complement with nonzero content, the rounded base has unit norm and lies within h/8 + r of the
+ideal terminal entry. The half phases are paired with the ideal coordinates in reverse
+discovery order. Each half phase has unit norm and its square lies within 7h/20 + 3r of its
+paired ideal coordinate, where h is the source grid spacing and r is the phase rounding step. -/
 theorem source_rounded_halves (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E)
     (htail : ∀ k,N+1 ≤ k → cs.getD k 0=0)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)

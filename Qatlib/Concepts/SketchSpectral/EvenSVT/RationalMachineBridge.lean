@@ -90,7 +90,7 @@ theorem rational_sketch_paid_native (a : ℕ) (P : TM0.Machine Symbol (Fin (a+1)
       (cacheOutputProgram p output).countP (sourceField (matrixRows*n))=
         5*(sketchArithmeticLedger n r 0 q).reads ∧
       cachePolynomialWork p cs output B ≤ 625*(1+(cacheInput p cs output).length)^4*(B+1)^4 := by
-  obtain ⟨b,N,C,hC,hN⟩ := frontier1
+  obtain ⟨b,N,C,hC,hN⟩ := exists_batch_rational_machine_with_polynomial_cost
   refine ⟨(a+1)+b,composeMachine (a:=a) (b:=b) P N,C,hC,?_⟩
   intro matrixRows n q r rows A X choice B raw Ts Ss
   (try dsimp only)

@@ -69,7 +69,8 @@ def produce (cs : List ℚ) (N : ℕ) (E : ℚ)
   else (rootProjectionGeneratedNonconstantPacket cs N E hparity).map
     (fun result => ⟨result.1,result.2.1,result.2.2⟩)
 
-/-- The finite construction in `NativeGeneratedSourcePackets` satisfies `zero_check_iff` under the displayed hypotheses. -/
+/-- The finite zero test accepts exactly when every regularized source coefficient through index N
+is zero. -/
 private theorem zero_check_iff (cs : List ℚ) (N : ℕ) (E : ℚ) :
     zeroCheck cs N E=true ↔ ∀ j : Fin (N+1),sourceCoefficient cs N E j=0 := by
   constructor
@@ -81,7 +82,7 @@ private theorem zero_check_iff (cs : List ℚ) (N : ℕ) (E : ℚ) :
     obtain ⟨j,rfl⟩ := List.mem_ofFn.mp hq
     exact decide_eq_true (h j)
 
-/-- The finite construction in `NativeGeneratedSourcePackets` satisfies `zero_degree` under the displayed hypotheses. -/
+/-- If the finite test finds all source coefficients zero, the source degree is zero. -/
 private theorem zero_degree (cs : List ℚ) (N : ℕ) (E : ℚ) (hz : zeroCheck cs N E=true) :
     sourceDegree cs N E=0 := by
   by_contra hn
@@ -91,7 +92,8 @@ private theorem zero_degree (cs : List ℚ) (N : ℕ) (E : ℚ) (hz : zeroCheck 
 /-- Abbreviation for empty Family in the native generated source packets model. -/
 private abbrev emptyFamily : Fin 0 → RootIntegerFactorData := Fin.elim0
 
-/-- The finite construction in `NativeGeneratedSourcePackets` satisfies `degenerate_equal` under the displayed hypotheses. -/
+/-- When the requested length or the source degree is zero, the producer returns the packed
+standard boundary packet selected with an empty root family. -/
 private theorem degenerate_equal (cs : List ℚ) (N : ℕ) (E : ℚ)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)
     (hdeg : N=0 ∨ sourceDegree cs N E=0) :
@@ -125,7 +127,11 @@ private def Good (cs : List ℚ) (N : ℕ) (E : ℚ) (result : Packet) : Prop :=
     (nativeChebyshevMass (sourceResidual cs result.standard) : ℝ) ≤ 13*(E : ℝ)/32 ∧
     nativeChebyshevPacketCheck cs (sourceResidual cs result.standard) result.standard E=true
 
-/-- The finite construction in `NativeGeneratedSourcePackets` satisfies `original_all_generated_packet` under the displayed hypotheses. -/
+/-- For positive E and a Chebyshev target of degree at most N, parity N and absolute value at most
+one on the interval from −1 to 1, the producer returns a standard packet and its native
+conversion. Both have N phases and unit norms for the base and phases. The generated residual
+has mass at most 13E/32 and the standard packet passes the check. The native real response has
+uniform error at most 13 times the source input budget divided by 32. -/
 private theorem original_all_generated_packet (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0 < E)
     (htail : ∀ k,N+1 ≤ k → cs.getD k 0=0)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)
@@ -180,7 +186,11 @@ open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data
 open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data.SourceInput
 open scoped Matrix.Norms.L2Operator
 
-/-- The finite construction in `NativeGeneratedSourcePackets` satisfies `original_all_generated_word` under the displayed hypotheses. -/
+/-- For a projected unitary encoding and a Chebyshev target bounded by one on the interval from −1
+to 1, with degree at most N, parity N and positive E, the producer returns a certified packet.
+Both projector orders give well-formed words with N queries and N + 1 gates. The U word for
+odd N and the Uᴴ word for even N give the odd and right singular transforms, respectively, at
+scale one and error E. -/
 private theorem original_all_generated_word
     {H I O : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]
@@ -281,7 +291,11 @@ open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data
 open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data.SourceInput
 open scoped Matrix.Norms.L2Operator
 
-/-- The finite construction in `NativeGeneratedSourcePackets` satisfies `source_original_generated_word` under the displayed hypotheses. -/
+/-- Given a projected unitary encoding and a Chebyshev target of degree at most N, parity N and
+absolute value at most one on the interval from −1 to 1, the generator returns a standard
+packet, a native packet and a trace for positive E. Both standard word orders are well formed
+with N queries and N + 1 gates. The odd branch uses U for the odd singular transform and the
+even branch uses Uᴴ for the right singular transform, at scale one and error E. -/
 theorem source_original_generated_word
     {H I O : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]

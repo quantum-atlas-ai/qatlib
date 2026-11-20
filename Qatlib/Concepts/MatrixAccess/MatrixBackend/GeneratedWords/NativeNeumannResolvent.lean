@@ -47,7 +47,7 @@ open scoped Matrix.Norms.L2Operator
 
 variable {H I : Type} [Fintype H] [DecidableEq H] [Fintype I] [DecidableEq I]
 
-/-- The finite construction in `NativeNeumannResolvent` satisfies `exact_original_norm` under the displayed hypotheses. -/
+/-- An exact block encoding with common frame `F` and scale `α` bounds the operator norm of `A` by `α`. -/
 private theorem exact_original_norm (A : Matrix I I ℂ) (U : Matrix H H ℂ)
     (F : Matrix H I ℂ) (α : ℝ) (hbe : BlockEncoding A U F F α 0) : ‖A‖ ≤ α := by
   have hc := Qatlib.Concepts.BlockEncoding.EncodingCore.l2_norm_compress_le_one hbe.left_isometry hbe.unitary hbe.right_isometry
@@ -59,13 +59,13 @@ private theorem exact_original_norm (A : Matrix I I ℂ) (U : Matrix H H ℂ)
     _ ≤ ‖A - α • compress F U F‖ + ‖α • compress F U F‖ := norm_add_le _ _
     _ ≤ α := by linarith [hbe.error_le]
 
-/-- The finite construction in `NativeNeumannResolvent` satisfies `reference_shift_eq` under the displayed hypotheses. -/
+/-- The reference shift at `z` equals the matrix shift `z • 1 - A` multiplied by `B⁻¹` as a complex scalar. -/
 private theorem reference_shift_eq (A : Matrix I I ℂ) (B : ℝ) (z : ℂ) :
     referenceShiftBlock A B z = ((B⁻¹ : ℝ) : ℂ) • matrixShift A z := by
   simp only [referenceShiftBlock, matrixShift, smul_sub, smul_smul,
     Complex.ofReal_inv, div_eq_mul_inv, mul_comm]
 
-/-- The finite construction in `NativeNeumannResolvent` satisfies `reference_shift_norm` under the displayed hypotheses. -/
+/-- With an exact common-frame input encoding and a positive `B` at least `α + ‖z‖`, the normalized shift of `A` at `z` is a contraction. -/
 private theorem reference_shift_norm (A : Matrix I I ℂ) (U : Matrix H H ℂ)
     (F : Matrix H I ℂ) (α B : ℝ) (z : ℂ)
     (hbe : BlockEncoding A U F F α 0) (hB : 0 < B)

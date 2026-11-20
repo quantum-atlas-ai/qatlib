@@ -74,7 +74,7 @@ theorem normalized_matrixShift_lower_bound (A : Matrix I I ℂ) (z : ℂ) (B₀ 
 private def jointLabelFibre (x : EuclideanSpace ℂ (L × I)) (j : L) :
     EuclideanSpace ℂ I := WithLp.toLp 2 (fun i => x (j, i))
 
-/-- The finite construction in `JointResolventWord` satisfies `jointLabelFibre_select_apply` under the displayed hypotheses. -/
+/-- The fibre at label `j` of a vector acted on by `select V` is obtained by applying `V j` to the original fibre at `j`. -/
 private theorem jointLabelFibre_select_apply (V : L → Matrix I I ℂ)
     (x : EuclideanSpace ℂ (L × I)) (j : L) :
     jointLabelFibre ((select V).toEuclideanLin x) j =
@@ -85,7 +85,7 @@ private theorem jointLabelFibre_select_apply (V : L → Matrix I I ℂ)
   simp [select, Matrix.mulVec, dotProduct, Fintype.sum_prod_type, ite_mul]
 
 omit [DecidableEq I] [DecidableEq L] in
-/-- The finite construction in `JointResolventWord` satisfies `joint_norm_sq` under the displayed hypotheses. -/
+/-- The squared Euclidean norm of a vector on the joint register is the sum of the squared norms of its label fibres. -/
 private theorem joint_norm_sq (x : EuclideanSpace ℂ (L × I)) :
     ‖x‖ ^ 2 = ∑ j, ‖jointLabelFibre x j‖ ^ 2 := by
   rw [EuclideanSpace.norm_sq_eq, Fintype.sum_prod_type]
@@ -131,7 +131,7 @@ theorem jointNormalizedShift_singularValues_lower (A : Matrix I I ℂ) (z : L �
   simpa only [norm_rightSingularBasis, norm_apply_rightSingularBasis, mul_one] using hb
 
 omit [Fintype I] [DecidableEq I] [Fintype L] in
-/-- The finite construction in `JointResolventWord` satisfies `select_smul` under the displayed hypotheses. -/
+/-- Scaling all label blocks by the same complex scalar scales their block-diagonal selection matrix by that scalar. -/
 private theorem select_smul (V : L → Matrix I I ℂ) (c : ℂ) :
     select (fun j => c • V j) = c • select V := by
   ext p q

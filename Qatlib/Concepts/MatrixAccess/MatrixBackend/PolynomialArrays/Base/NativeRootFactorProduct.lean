@@ -24,7 +24,7 @@ def rootIntegerListRepeatMultiply (factor : List ℤ) : ℕ → List ℤ → Lis
   | 0,acc => acc
   | n+1,acc => rootIntegerListRepeatMultiply factor n (rootIntegerListMultiply acc factor)
 
-/-- The finite construction in `NativeRootFactorProduct` satisfies `rootIntegerListRepeatMultiply_polynomial` under the displayed hypotheses. -/
+/-- Multiplying an accumulator list by a factor list `n` times represents the accumulator polynomial times the factor polynomial raised to `n`. -/
 theorem rootIntegerListRepeatMultiply_polynomial (factor : List ℤ) (n : ℕ) (acc : List ℤ) :
     rootIntegerListPolynomial (rootIntegerListRepeatMultiply factor n acc)=
       rootIntegerListPolynomial acc*(rootIntegerListPolynomial factor)^n := by
@@ -39,7 +39,7 @@ theorem rootIntegerListRepeatMultiply_polynomial (factor : List ℤ) (n : ℕ) (
 def rootIntegerFactorProduct (content : ℤ) (factors : List (List ℤ×ℕ)) : List ℤ :=
   factors.foldl (fun acc f => rootIntegerListRepeatMultiply f.1 f.2 acc) [content]
 
-/-- The finite construction in `NativeRootFactorProduct` satisfies `rootIntegerListPolynomial_singleton` under the displayed hypotheses. -/
+/-- The one-entry integer coefficient list `[c]` represents the constant complex polynomial with coefficient `c`. -/
 theorem rootIntegerListPolynomial_singleton (c : ℤ) :
     rootIntegerListPolynomial [c]=C (c : ℂ) := by
   apply Polynomial.ext
@@ -47,7 +47,7 @@ theorem rootIntegerListPolynomial_singleton (c : ℤ) :
   rw [rootIntegerListPolynomial_coeff,Polynomial.coeff_C]
   cases k <;> simp
 
-/-- The finite construction in `NativeRootFactorProduct` satisfies `rootFactorFold_polynomial` under the displayed hypotheses. -/
+/-- Folding the factor and exponent pairs from `acc` represents the accumulator polynomial times the product of the indicated powers. -/
 private theorem rootFactorFold_polynomial (factors : List (List ℤ×ℕ)) (acc : List ℤ) :
     rootIntegerListPolynomial
       (factors.foldl (fun acc f => rootIntegerListRepeatMultiply f.1 f.2 acc) acc)=
@@ -59,7 +59,7 @@ private theorem rootFactorFold_polynomial (factors : List (List ℤ×ℕ)) (acc 
     rw [List.foldl_cons,ih,rootIntegerListRepeatMultiply_polynomial]
     simp only [List.map_cons,List.prod_cons,mul_assoc]
 
-/-- The finite construction in `NativeRootFactorProduct` satisfies `rootIntegerFactorProduct_polynomial` under the displayed hypotheses. -/
+/-- The coefficient list built from `content` and the factor entries represents the constant `content` times the product of the factor polynomials raised to their listed exponents. -/
 theorem rootIntegerFactorProduct_polynomial (content : ℤ) (factors : List (List ℤ×ℕ)) :
     rootIntegerListPolynomial (rootIntegerFactorProduct content factors)=
       C (content : ℂ)*(factors.map (fun f => (rootIntegerListPolynomial f.1)^f.2)).prod := by

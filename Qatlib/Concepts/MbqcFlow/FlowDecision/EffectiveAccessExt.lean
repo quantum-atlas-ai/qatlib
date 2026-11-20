@@ -333,7 +333,7 @@ theorem prepareInverseMatrix_error {D : ℕ} (k : ℕ) (w : Option (Fin D) → �
 
 /-- Collects inverse preparation semantics, gate counts, well-formedness, exact unitarity, and
 quantitative uncomputation bounds. -/
-theorem frontier1 :
+theorem inverse_preparation_semantics_and_uncomputation_bounds :
     (∀ {D : ℕ} (k : ℕ) (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex),
       evaluate 1 (prepareInverseWord k w amp) = (prepareMatrix k w amp)ᴴ) ∧
     (∀ {D : ℕ} (k : ℕ) (w : Option (Fin D) → ℚ) (amp : Option (Fin D) → RatComplex),

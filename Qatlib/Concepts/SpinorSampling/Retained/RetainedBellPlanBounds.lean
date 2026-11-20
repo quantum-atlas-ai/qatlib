@@ -29,7 +29,7 @@ open Matched
 
 -- Minimality, in addition to the previously proved square lower bound, is
 -- needed to absorb the dense branch's M-sized integer-rounding payment.
-/-- Complete original `ceil_sqrt_q_le_integer` guarantee for `RetainedBellPlanBounds`; all source hypotheses and output obligations are retained. -/
+/-- If q is at most the square of a natural M, its rounded-up rational square-root routine returns a natural at most M. -/
 theorem ceil_sqrt_q_le_integer (q : ℚ) (M : ℕ) (hq : q≤(M : ℚ)^2) :
     ceilSqrtQ q≤M := by
   have hc : ceilNatQ q≤M^2 := by
@@ -49,7 +49,7 @@ theorem ceil_sqrt_q_le_integer (q : ℚ) (M : ℕ) (hq : q≤(M : ℚ)^2) :
     omega
   · exact hr
 
-/-- Complete original `bell_rejected_records_strength` guarantee for `RetainedBellPlanBounds`; all source hypotheses and output obligations are retained. -/
+/-- If the rounded sparse cohort size exceeds the positive site count M, the rational Bell strength exceeds M. -/
 theorem bell_rejected_records_strength (M : ℕ) (hM : 0<M) (p ε δ : ℚ)
     (hreject : M<bellRecordsQ M p ε δ) : (M : ℚ)<bellStrengthQ p ε δ := by
   have hs : (M : ℚ)^2<(M : ℚ)*bellStrengthQ p ε δ := by
@@ -60,7 +60,7 @@ theorem bell_rejected_records_strength (M : ℕ) (hM : 0<M) (p ε δ : ℚ)
   apply (mul_lt_mul_iff_right₀ hm).mp
   simpa only [pow_two] using hs
 
-/-- Complete original `bell_sparse_copies_upper` guarantee for `RetainedBellPlanBounds`; all source hypotheses and output obligations are retained. -/
+/-- For nonnegative p and positive ε, the two sparse cohorts cost at most 2√(M B) + 2 copies, where B is the rational Bell strength. -/
 theorem bell_sparse_copies_upper (M : ℕ) (p ε δ : ℚ) (hp : 0≤p) (hε : 0<ε) :
     ((2*bellRecordsQ M p ε δ : ℕ) : ℝ)≤
       2*Real.sqrt ((M : ℝ)*(bellStrengthQ p ε δ : ℝ))+2 := by
@@ -74,7 +74,7 @@ theorem bell_sparse_copies_upper (M : ℕ) (p ε δ : ℚ) (hp : 0≤p) (hε : 0
   push_cast
   linarith
 
-/-- Complete original `bell_dense_copies_upper` guarantee for `RetainedBellPlanBounds`; all source hypotheses and output obligations are retained. -/
+/-- With positive M, nonnegative p and positive ε, rejection of the sparse cohort size implies the dense copy count is strictly less than four times the Bell strength. -/
 theorem bell_dense_copies_upper (M : ℕ) (hM : 0<M) (p ε δ : ℚ)
     (hp : 0≤p) (hε : 0<ε) (hreject : M<bellRecordsQ M p ε δ) :
     ((2*M*bellBlocksQ M p ε δ : ℕ) : ℝ)<4*(bellStrengthQ p ε δ : ℝ) := by
@@ -98,7 +98,7 @@ theorem bell_dense_copies_upper (M : ℕ) (hM : 0<M) (p ε δ : ℚ)
 
 -- An all-branch bound on the actual schedule. In particular, the dense
 -- rounding term is absorbed; it is not left as a gratuitous O(M) cost.
-/-- Complete original `bell_plan_copies_upper` guarantee for `RetainedBellPlanBounds`; all source hypotheses and output obligations are retained. -/
+/-- For positive site count and tolerance and nonnegative p, the Bell plan uses at most 4B + 2√(M B) + 2 copies, where B is its rational strength. -/
 theorem bell_plan_copies_upper (side M : ℕ) (hM : 0<M) (p ε δ : ℚ)
     (hp : 0≤p) (hε : 0<ε) :
     ((bellPlanQ side M p ε δ).copies : ℝ)≤

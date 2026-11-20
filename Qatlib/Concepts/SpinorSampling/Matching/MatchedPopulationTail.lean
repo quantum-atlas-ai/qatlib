@@ -36,7 +36,8 @@ open Qatlib
 
 variable {S : Type} [Fintype S] [DecidableEq S]
 
-/-- Complete original `matched_conditional_set_expectation_pair` guarantee for `MatchedPopulationTail`; all source hypotheses and output obligations are retained. -/
+/-- The matched-set expectation can be written as a sum over array pairs with exactly `k`
+matches, weighted by their joint point masses and divided by the total mass of that event. -/
 theorem matched_conditional_set_expectation_pair [Nonempty S]
     (τ : Equiv.Perm S) {n m k : ℕ} (F : Finset S → ℝ) :
     matchedConditionalSetExpectation τ (n:=n) (m:=m) (k:=k) F =
@@ -75,7 +76,8 @@ theorem matched_conditional_set_expectation_pair [Nonempty S]
       simp only [Finset.mem_filter, Finset.mem_univ, true_and, Finset.mem_powersetCard,
         Finset.subset_univ, true_and]
 
-/-- Complete original `without_replacement_set_average_expectation` guarantee for `MatchedPopulationTail`; all source hypotheses and output obligations are retained. -/
+/-- For `k` at most the size of `R`, the uniform average of `G` applied to each `k`-subset's
+mean agrees with the expectation of `G` applied to the ordered sample mean without replacement. -/
 theorem without_replacement_set_average_expectation
     (R : Finset S) {k : ℕ} (hk : k ≤ R.card) (f : S → ℝ) (G : ℝ → ℝ) :
     (1 / (R.card.choose k : ℝ)) *
@@ -94,7 +96,9 @@ theorem without_replacement_set_average_expectation
     rw [occupied_set_average_eq_ordered_average ω
       (without_replacement_mass_pos_injective R k ω hpos)]
 
-/-- Complete original `matched_conditional_population_expectation` guarantee for `MatchedPopulationTail`; all source hypotheses and output obligations are retained. -/
+/-- When the positive match count `k` fits both cohorts and the site space, any real function of
+the matched-set average has the same conditional expectation as under `k` ordered draws without
+replacement from all sites. -/
 theorem matched_conditional_population_expectation [Nonempty S]
     (τ : Equiv.Perm S) {n m k : ℕ} (hk0 : 0 < k) (hkn : k ≤ n) (hkm : k ≤ m)
     (hkS : k ≤ Fintype.card S) (f : S → ℝ) (G : ℝ → ℝ) :
@@ -107,7 +111,9 @@ theorem matched_conditional_population_expectation [Nonempty S]
     (Finset.univ : Finset S) (by simpa using hkS) f G
   simpa only [Finset.card_univ] using he
 
-/-- Complete original `matched_conditional_population_tail` guarantee for `MatchedPopulationTail`; all source hypotheses and output obligations are retained. -/
+/-- Conditional on a positive feasible match count `k`, the matched-set average of a function
+bounded by one in absolute value differs from its population average by more than `ε > 0` with
+probability at most `2 * exp (-k*ε²/2)`. -/
 theorem matched_conditional_population_tail [Nonempty S]
     (τ : Equiv.Perm S) {n m k : ℕ} (hk0 : 0 < k) (hkn : k ≤ n) (hkm : k ≤ m)
     (hkS : k ≤ Fintype.card S) (f : S → ℝ) (hf : ∀ x, |f x| ≤ 1)
@@ -122,7 +128,10 @@ theorem matched_conditional_population_tail [Nonempty S]
   exact without_replacement_average_tail Finset.univ k (by simpa using hkS)
     hk0 f (fun x _ => hf x) ε hε
 
-/-- Complete original `matched_address_pair_conditional_population_tail` guarantee for `MatchedPopulationTail`; all source hypotheses and output obligations are retained. -/
+/-- Among array pairs with exactly `k` matches, the fraction of uniform pair mass for which the
+matched-set average misses the population average by more than `ε` is at most
+`2 * exp (-k*ε²/2)`. This uses `ε > 0`, `|f x| ≤ 1`, and positive `k` bounded by both lengths
+and the site count. -/
 theorem matched_address_pair_conditional_population_tail [Nonempty S]
     (τ : Equiv.Perm S) {n m k : ℕ} (hk0 : 0 < k) (hkn : k ≤ n) (hkm : k ≤ m)
     (hkS : k ≤ Fintype.card S) (f : S → ℝ) (hf : ∀ x, |f x| ≤ 1)

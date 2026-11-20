@@ -26,7 +26,7 @@ the amplitude amplification setting of [BrassardEtAl2002].
 * `born_restart`: establishes the measured restart specification and its cost identities.
 * `prepared_family_limits`: transfers the scaled expectation limits to families of prepared
   states.
-* `frontier1`: collects the restart specification, asymptotic costs, and optimal-angle bounds.
+* `measured_restart_cost_limits_and_optimal_angle`: collects the restart specification, asymptotic costs, and optimal-angle bounds.
 
 ## References
 
@@ -507,7 +507,7 @@ theorem prepared_family_limits (I : ℝ → Type) [∀ θ,Fintype (I θ)] [∀ �
 
 /-- Collects the measured restart specification, both selected-cost limits, and the equation and
 rational bounds for `restartOptimalAngle`. -/
-theorem frontier1 (step init verify : ℕ) :
+theorem measured_restart_cost_limits_and_optimal_angle (step init verify : ℕ) :
     (∀ (I : Type) [Fintype I] [DecidableEq I] (A : Matrix I I ℂ)
       (hA : A ∈ Matrix.unitaryGroup I ℂ) (j₀ : I) (S : Finset I) (θ : ℝ) (j : ℕ),
       0 < θ → θ < Real.pi/2 → MeasureProb (preparedAAState A j₀) S=(Real.sin θ)^2 →

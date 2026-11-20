@@ -47,7 +47,8 @@ def sourceGaugePhysicalValue (source : RationalJetSource) (gap : ℚ) (r : Gener
     generalPoissonPhysicalPhaseValue r X gamma
   return rationalCircleQuaternion (rationalCis angle gamma).value*reference
 
-/-- Original `gaugePhysicalValueAccuracy_spec` guarantee for the `SourceGaugePhysicalValue` construction; the complete source hypotheses are retained. -/
+/-- For positive requested `tolerance`, the physical gauge value accuracy is positive and at most
+both `1/64` and `tolerance / 16`. -/
 theorem gaugePhysicalValueAccuracy_spec (tolerance : ℚ) (ht : 0<tolerance) :
     0<gaugePhysicalValueAccuracy tolerance ∧ gaugePhysicalValueAccuracy tolerance ≤ 1/64 ∧
       gaugePhysicalValueAccuracy tolerance ≤ tolerance/16 := by
@@ -56,13 +57,15 @@ theorem gaugePhysicalValueAccuracy_spec (tolerance : ℚ) (ht : 0<tolerance) :
 noncomputable section
 open scoped Quaternion ContDiff
 
-/-- Original `rationalWindingAngle_cast` guarantee for the `SourceGaugePhysicalValue` construction; the complete source hypotheses are retained. -/
+/-- Casting the rational winding angle to the reals gives the winding linear form evaluated at the
+rational physical address. -/
 theorem rationalWindingAngle_cast (n : SpatialFrequency) (X : Fin 3 → ℚ) :
     (rationalWindingAngle n X : ℝ)=windingLinear n (rationalSpatialPoint X) := by
   rw [windingLinear_apply]
   simp only [rationalWindingAngle,Rat.cast_sum,Rat.cast_mul,Rat.cast_intCast,rationalSpatialPoint]
 
-/-- Original `gaugeProduct_error` guarantee for the `SourceGaugePhysicalValue` construction; the complete source hypotheses are retained. -/
+/-- For `0 ≤ d ≤ 1`, approximating unit quaternions `p` and `q` within `3 * d / 2` and `d / 2`,
+respectively, gives product error at most `3 * d`. -/
 theorem gaugeProduct_error (a b p q : ℍ) (d : ℝ) (hd : 0 ≤ d) (hd1 : d ≤ 1)
     (hp : ‖p‖=1) (hq : ‖q‖=1) (ha : ‖a-p‖ ≤ 3*d/2) (hb : ‖b-q‖ ≤ d/2) :
     ‖a*b-p*q‖ ≤ 3*d := by
@@ -126,7 +129,12 @@ theorem sourceGaugePhysicalValue_error (source : RationalJetSource) (gap : ℚ) 
 
 open Set
 
-/-- Original `automaticSourceGaugeFromGap_correct` guarantee for the `SourceGaugePhysicalValue` construction; the complete source hypotheses are retained. -/
+/-- Suppose the smooth periodic unit field is constant on the part of the fundamental cube
+outside `B`, and `B` lies in that cube at least the positive gap away from its boundary. Given
+accurate rational jets and positive certified jet bounds, the automatic preparation succeeds for
+positive `tolerance`. It returns a successful mean cache, beta coefficients from the certified
+Fourier list, and parameter and numerical certificates. At every rational physical address,
+evaluation succeeds with error at most `tolerance / 2` against the selected Poisson gauge. -/
 theorem automaticSourceGaugeFromGap_correct (v : SpatialPoint → SpatialPoint)
     (hv : ContDiff ℝ ∞ v) (hu : ∀ x, ‖v x‖=1) (hp : IsPeriodicField v)
     (source : RationalJetSource) (hs : OriginalAllJetAccurate v source)

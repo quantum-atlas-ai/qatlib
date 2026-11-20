@@ -39,7 +39,8 @@ theorem sourceInputP_degree_bound (cs : List ℚ) (N : ℕ) (E : ℚ) :
     (sourceP (sourceLiftedArray cs N E))
   omega
 
-/-- The finite construction in `NativeSourceReciprocal` satisfies `sourceInputP_reflect` under the displayed hypotheses. -/
+/-- Reversing the compressed input coefficient array from index zero through the source degree
+leaves the polynomial unchanged. -/
 theorem sourceInputP_reflect (cs : List ℚ) (N : ℕ) (E : ℚ) :
     (sourceInputP cs N E).reflect (sourceDegree cs N E)=sourceInputP cs N E := by
   let d := sourceDegree cs N E
@@ -59,7 +60,8 @@ theorem sourceInputP_reflect (cs : List ℚ) (N : ℕ) (E : ℚ) :
     omega
   · rw [Polynomial.revAt_eq_self_of_lt (Nat.lt_of_not_ge hi)]
 
-/-- The finite construction in `NativeSourceReciprocal` satisfies `sourceF_reflect` under the displayed hypotheses. -/
+/-- Reversing the complement coefficients through twice the source degree gives the same
+complement polynomial. -/
 theorem sourceF_reflect (cs : List ℚ) (N : ℕ) (E : ℚ) :
     (sourceF cs N E).reflect (2*sourceDegree cs N E)=sourceF cs N E := by
   unfold sourceF
@@ -71,7 +73,8 @@ theorem sourceF_reflect (cs : List ℚ) (N : ℕ) (E : ℚ) :
       sourceDegree cs N E ≤ sourceDegree cs N E+sourceDegree cs N E),
     Nat.add_sub_cancel_left]
 
-/-- The finite construction in `NativeSourceReciprocal` satisfies `sourceIntegerComplement_inverse_zero` under the displayed hypotheses. -/
+/-- For positive source degree and matching input parity, a nonzero complex number is a root of
+the integer complement if and only if its reciprocal is. -/
 theorem sourceIntegerComplement_inverse_zero (cs : List ℚ) (N : ℕ) (E : ℚ)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)
     (hd : 0<sourceDegree cs N E) (rho : ℂ) (hrho : rho≠0) :
@@ -85,7 +88,9 @@ theorem sourceIntegerComplement_inverse_zero (cs : List ℚ) (N : ℕ) (E : ℚ)
   rw [sourceF_reflect] at h
   simpa only [invOf_eq_inv,Polynomial.eval₂_id, sourceF] using h
 
-/-- The finite construction in `NativeSourceReciprocal` satisfies `sourceIntegerComplement_outside_gap` under the displayed hypotheses. -/
+/-- With positive E and source degree and a Chebyshev target of degree at most N, parity N and
+absolute value at most one on the interval from −1 to 1, every exterior root of the integer
+complement has modulus at least one plus the source radial gap. -/
 theorem sourceIntegerComplement_outside_gap (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E)
     (htail : ∀ k,N+1 ≤ k → cs.getD k 0=0)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)

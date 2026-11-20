@@ -18,7 +18,7 @@ This module defines self-delimiting Boolean encodings of words, natural numbers,
 together with parsers and injectivity proofs. The two-state `selfCodeParserMachine` scans the
 first encoded word with a linear emission bound.
 
-The circuit interfaces record compiled gate counts and ordered wire skeletons. `frontier1`
+The circuit interfaces record compiled gate counts and ordered wire skeletons. `native_machine_codec_emitter_and_window_simulation`
 packages these encoding properties with the existence and resource bound of an exact
 finite-window Phi3 simulation.
 
@@ -28,7 +28,7 @@ For background, see [Yao1993].
 
 * `natSelfParse_natSelfCode`: parsing recovers a number and preserves the suffix.
 * `pairSelfCode_injective`: pair codes determine both components.
-* `frontier1`: combined coding and finite-window compilation guarantees.
+* `native_machine_codec_emitter_and_window_simulation`: combined coding and finite-window compilation guarantees.
 
 ## References
 
@@ -595,7 +595,7 @@ theorem generalPhi3_cellTable_gateDesc {Q A : Type} [Fintype Q] [DecidableEq Q]
 
 /-- Combines injective pair coding, parser correctness and emission, description consistency,
 skeleton recovery, and bounded exact Phi3 window simulation for a general native machine. -/
-theorem frontier1 {Q A : Type} [Fintype Q] [DecidableEq Q] [Fintype A] [DecidableEq A]
+theorem native_machine_codec_emitter_and_window_simulation {Q A : Type} [Fintype Q] [DecidableEq Q] [Fintype A] [DecidableEq A]
     (M : GeneralNativeMachine Q A) :
     (∀ n t n' t' : ℕ, pairSelfCode n t = pairSelfCode n' t' → n = n' ∧ t = t') ∧
     (∀ n t : ℕ, pairParse (pairSelfCode n t) = some ((n.bits, t.bits), [])) ∧

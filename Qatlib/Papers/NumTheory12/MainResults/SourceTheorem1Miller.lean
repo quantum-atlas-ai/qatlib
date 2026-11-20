@@ -37,7 +37,7 @@ The formalization follows the program steps:
   from `2 ≤ a < N` and `gcd(a,N) ≠ 1` the gcd is a nontrivial divisor;
 * steps 3–4 — `theorem1_half_power_gcd_yields_factor`: the checked program
   `orderFactor N a r` returns only `1 < d < N` with `d ∣ N`
-  (`Qatlib.Papers.ShorFactoring97.OrderRecovery.orderFactor_sound`);
+  (`Qatlib.Concepts.PeriodSampling.OrderRecovery.orderFactor_sound`);
 * steps 2–4 jointly — `theorem1_attempt_yields_nontrivial_factor`: every
   branch of one attempt (`attemptOutcomeFactor`, covering the classical gcd
   branch and the quantum order branch) returns a nontrivial divisor or nothing
@@ -78,7 +78,7 @@ half-order/gcd program `orderFactor N a r` — which computes
 nontrivial factors.
 
 Uses the theorem
-`Qatlib.Papers.ShorFactoring97.OrderRecovery.orderFactor_sound`. -/
+`Qatlib.Concepts.PeriodSampling.OrderRecovery.orderFactor_sound`. -/
 theorem theorem1_half_power_gcd_yields_factor (N : ℕ) [NeZero N]
     (a : (ZMod N)ˣ) (r d : ℕ) (h : orderFactor N a r = some d) :
     1 < d ∧ d < N ∧ d ∣ N :=
@@ -90,7 +90,7 @@ The attempt outcome covers both the classical gcd branch (step 2) and the
 quantum order branch (steps 3–4).
 
 Uses the theorem
-`Qatlib.Concepts.FourierRecovery.ModularFourier.ShorOrderCompletion.attemptOutcomeFactor_sound`. -/
+`Qatlib.Concepts.FourierRecovery.ModularFourier.ShorOrder.attemptOutcomeFactor_sound`. -/
 theorem theorem1_attempt_yields_nontrivial_factor (N M : ℕ) [NeZero N]
     (t : AttemptOutcome N M) (d : ℕ)
     (h : attemptOutcomeFactor N M t = some d) :
@@ -106,7 +106,7 @@ whose product is `n` and all of whose leaves are prime (up to the trivial
 leaves `p ≤ 1`).
 
 Uses the theorem
-`Qatlib.Concepts.FourierRecovery.ModularFourier.ShorOrderCompletion.factorTreeOf_complete`. -/
+`Qatlib.Concepts.FourierRecovery.ModularFourier.ShorOrder.factorTreeOf_complete`. -/
 theorem theorem1_finds_all_factors (split : ∀ n, Option (ProperDivisor n)) :
     ∀ n, (∀ m, 2 ≤ m → m ≤ n → ∀ _h : ¬Nat.Prime m, split m ≠ none) →
       (factorTreeOf split n).complete :=

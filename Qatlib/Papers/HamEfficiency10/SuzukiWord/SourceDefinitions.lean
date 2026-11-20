@@ -25,7 +25,7 @@ The paper studies Suzuki's recursive splitting `S_{2k}` for
 `exp(-i(H_1 + ... + H_m)Δt)` and its exponential cost.  This file gives the
 paper-layer model.  Hamiltonians are honest finite-dimensional Hermitian
 matrices and the evolution is the actual Banach-algebra exponential
-`Qatlib.Papers.HamSimQSP17.Achievability.hamiltonianEvolution`
+`Qatlib.Concepts.QspSimulation.Achievability.hamiltonianEvolution`
 (L2 operator norm), so no numerical sampling or abstract operator algebra is
 introduced.
 

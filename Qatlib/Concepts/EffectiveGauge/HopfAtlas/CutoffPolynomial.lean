@@ -47,12 +47,14 @@ noncomputable section
 def cutoffRealPolynomial (n : ℕ) : ℝ[X] :=
   (cutoffDerivativePolynomial n).map (Int.castRingHom ℝ)
 
-/-- Original `cutoffRealPolynomial_succ` guarantee for the `CutoffPolynomial` construction; the complete source hypotheses are retained. -/
+/-- The next real cutoff derivative polynomial is `X^2` times the difference of the current
+polynomial and its derivative. -/
 theorem cutoffRealPolynomial_succ (n : ℕ) :
     cutoffRealPolynomial (n+1)=X^2*(cutoffRealPolynomial n-(cutoffRealPolynomial n).derivative) := by
   simp [cutoffRealPolynomial,cutoffDerivativePolynomial,Polynomial.derivative_map]
 
-/-- Original `iteratedDeriv_expNegInvGlue` guarantee for the `CutoffPolynomial` construction; the complete source hypotheses are retained. -/
+/-- The order-`n` derivative of `expNegInvGlue` is the function obtained by evaluating the real
+cutoff polynomial at the reciprocal input and multiplying by `expNegInvGlue` at that input. -/
 theorem iteratedDeriv_expNegInvGlue (n : ℕ) :
     iteratedDeriv n expNegInvGlue=fun x => (cutoffRealPolynomial n).eval x⁻¹*expNegInvGlue x := by
   induction n with
@@ -63,7 +65,7 @@ theorem iteratedDeriv_expNegInvGlue (n : ℕ) :
     rw [cutoffRealPolynomial_succ]
     exact (expNegInvGlue.hasDerivAt_polynomial_eval_inv_mul (cutoffRealPolynomial n) x).deriv
 
-/-- Original `cutoffDerivativePolynomial_degree` guarantee for the `CutoffPolynomial` construction; the complete source hypotheses are retained. -/
+/-- The integer cutoff derivative polynomial of order `n` has natural degree at most `2 * n`. -/
 theorem cutoffDerivativePolynomial_degree (n : ℕ) :
     (cutoffDerivativePolynomial n).natDegree ≤ 2*n := by
   induction n with
@@ -81,7 +83,7 @@ theorem cutoffDerivativePolynomial_degree (n : ℕ) :
       _ ≤ 2+2*n := by simpa only [Polynomial.natDegree_X_pow] using Nat.add_le_add_left hs 2
       _ = 2*(n+1) := by omega
 
-/-- Original `cutoffRealPolynomial_degree` guarantee for the `CutoffPolynomial` construction; the complete source hypotheses are retained. -/
+/-- The real cutoff derivative polynomial of order `n` has natural degree at most `2 * n`. -/
 theorem cutoffRealPolynomial_degree (n : ℕ) : (cutoffRealPolynomial n).natDegree ≤ 2*n :=
   (Polynomial.natDegree_map_le).trans (cutoffDerivativePolynomial_degree n)
 
@@ -124,14 +126,16 @@ theorem monomial_mul_exp_neg_le (u : ℝ) (hu : 0 ≤ u) (m : ℕ) :
   apply hbound.trans
   exact_mod_cast (Nat.factorial_le_pow m).trans (le_max_right 1 (m^m))
 
-/-- Original `cutoffBumpMajorant_cast` guarantee for the `CutoffPolynomial` construction; the complete source hypotheses are retained. -/
+/-- As a real number, the cutoff bump majorant is the sum through degree `2 * n` of the absolute
+integer polynomial coefficient in degree `m` weighted by `max 1 (m^m)`. -/
 theorem cutoffBumpMajorant_cast (n : ℕ) : (cutoffBumpMajorant n : ℝ)=
     ∑ m ∈ range (2*n+1), |((cutoffDerivativePolynomial n).coeff m : ℝ)| *
       ((max 1 (m^m) : ℕ) : ℝ) := by
   simp only [cutoffBumpMajorant,Nat.cast_sum,Nat.cast_mul,cutoffCoefficientAt_eq,
     Nat.cast_natAbs,Int.cast_abs]
 
-/-- Original `cutoffRealPolynomial_coeff` guarantee for the `CutoffPolynomial` construction; the complete source hypotheses are retained. -/
+/-- Each coefficient of the real cutoff polynomial is the corresponding integer cutoff derivative
+coefficient cast to `ℝ`. -/
 theorem cutoffRealPolynomial_coeff (n m : ℕ) :
     (cutoffRealPolynomial n).coeff m=((cutoffDerivativePolynomial n).coeff m : ℝ) := by
   simp [cutoffRealPolynomial]

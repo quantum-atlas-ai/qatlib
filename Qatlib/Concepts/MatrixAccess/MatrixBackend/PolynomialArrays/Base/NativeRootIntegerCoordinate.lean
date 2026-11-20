@@ -25,14 +25,14 @@ def rootIntegerCoordinateBound (n : ℕ) (v w : GaussianIntegerFraction) (r : �
   (n : ℤ)*(|v.numerator.1|+|v.numerator.2|)*(w.denominator : ℤ)*(r.den : ℤ)≤
     r.num*max |w.numerator.1| |w.numerator.2| *(v.denominator : ℤ)
 
-/-- The finite construction in `NativeRootIntegerCoordinate` satisfies `rootIntegerValue_l1` under the displayed hypotheses. -/
+/-- With a positive denominator, the sum of the absolute real and imaginary parts of the decoded value is the sum of the absolute numerator coordinates divided by that denominator. -/
 theorem rootIntegerValue_l1 (v : GaussianIntegerFraction) (hD : 0<v.denominator) :
     |(gaussianPointValue v).re|+|(gaussianPointValue v).im|=
       (|(v.numerator.1 : ℝ)|+|(v.numerator.2 : ℝ)|)/(v.denominator : ℝ) := by
   have hp : (0 : ℝ)<v.denominator := by exact_mod_cast hD
   simp [gaussianPointValue,abs_div,abs_of_pos hp,add_div]
 
-/-- The finite construction in `NativeRootIntegerCoordinate` satisfies `rootIntegerValue_linf` under the displayed hypotheses. -/
+/-- With a positive denominator, the larger absolute coordinate of the decoded value is the larger absolute numerator coordinate divided by that denominator. -/
 theorem rootIntegerValue_linf (v : GaussianIntegerFraction) (hD : 0<v.denominator) :
     max |(gaussianPointValue v).re| |(gaussianPointValue v).im|=
       max |(v.numerator.1 : ℝ)| |(v.numerator.2 : ℝ)|/(v.denominator : ℝ) := by

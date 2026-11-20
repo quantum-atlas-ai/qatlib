@@ -23,7 +23,7 @@ outer band estimates, including a specialization to `gapSignPolynomial`. See
 ## Main statements
 
 * `printedRectangle_bands`: transfer sign approximation bounds to rectangle bands.
-* `frontier2_gapSign`: obtain rectangle bounds from an explicit gap-sign error budget.
+* `exists_rectangle_approximation_of_gap_sign`: obtain rectangle bounds from an explicit gap-sign error budget.
 * `middle_band_nonempty_iff` and `outer_band_nonempty_iff`: characterize nonempty bands.
 
 ## References
@@ -261,7 +261,7 @@ theorem printedRectangle_bands_abs {S : Polynomial ℝ} {ε₀ δ' t σ : ℝ}
 
 /-- A sign approximation with error `ε' / 2` yields a rectangle polynomial with error `ε'` on
 the inner and outer bands and absolute value at most one on `[-1, 1]`. -/
-theorem frontier2 {S : Polynomial ℝ} (δ' ε' t : ℝ) (hδ' : 0 < δ') (hε' : 0 < ε')
+theorem exists_rectangle_approximation_of_half_error_sign {S : Polynomial ℝ} (δ' ε' t : ℝ) (hδ' : 0 < δ') (hε' : 0 < ε')
     (hε'2 : ε' ≤ 1 / 2) (ht : |t| ≤ 1) (hS : SignApproximation S δ' (ε' / 2)) :
     (∀ x : ℝ, |x| ≤ 1 → |(printedRectanglePolynomial S ε' |t|).eval x| ≤ 1) ∧
     (∀ x : ℝ, |x| ≤ 1 → -(|t| - δ') ≤ x → x ≤ |t| - δ' →
@@ -279,7 +279,7 @@ theorem frontier2 {S : Polynomial ℝ} (δ' ε' t : ℝ) (hδ' : 0 < δ') (hε' 
 
 /-- A gap-sign polynomial with error at most `σ` yields a rectangle polynomial with band error
 `4 * σ` and absolute value at most one on `[-1, 1]`. -/
-theorem frontier2_gapSign (K : ℕ) (δ σ t : ℝ)
+theorem exists_rectangle_approximation_of_gap_sign (K : ℕ) (δ σ t : ℝ)
     (hδ : 0 < δ) (hσ : 0 < σ) (hσ8 : σ ≤ 1 / 8) (ht : |t| ≤ 1)
     (hbudget : gapSignError K δ ≤ σ) :
     (∀ x : ℝ, |x| ≤ 1 → |(printedRectanglePolynomial (gapSignPolynomial K) (4 * σ) |t|).eval x| ≤ 1) ∧

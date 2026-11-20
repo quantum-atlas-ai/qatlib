@@ -37,7 +37,7 @@ zero-error majority lower bounds, using the polynomial approach of [BealsEtAl200
   AND query lower bound.
 * `majority_zeroError_lower`, `majority_exact_lower`, and `majority_minima_lower` give the lower
   bound `k+1` for majority on `2*k+1` bits.
-* `frontier1` packages the program-level and minimum query bounds.
+* `odd_majority_query_program_and_minimum_lower_bounds` packages the program-level and minimum query bounds.
 
 ## References
 
@@ -453,7 +453,7 @@ theorem majority_minima_lower (k : ℕ) :
 
 /-- Collects the exact and zero-error program lower bounds for odd majority together with the
 corresponding lower bounds on all three query minima. -/
-theorem frontier1 (k : ℕ) :
+theorem odd_majority_query_program_and_minimum_lower_bounds (k : ℕ) :
     (∀ (P : Program (k+k+1) W), Exact P MajorityBit → k+1 ≤ QueryCount P.circuit) ∧
     (∀ (strict : Bool) (P : Program (k+k+1) W) (E0 : Finset (Space (k+k+1) W)),
       ZeroError strict P E0 MajorityBit → k+1 ≤ QueryCount P.circuit) ∧

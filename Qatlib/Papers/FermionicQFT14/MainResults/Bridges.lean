@@ -21,14 +21,14 @@ are fully proved in the shared library and only need a paper-layer reference at
 the statement the paper uses:
 
 * `Qatlib.Concepts.FermionAlgebra.CarJordanWigner.g1`
-  (shared module `Qatlib.Concepts.FermionAlgebra.CarJordanWigner.Fermion.Fermion`,
-  module docstring "g1（G6）拼装"): the complete fermionic CAR contract — the
+  (shared module `Qatlib.Concepts.FermionAlgebra.CarJordanWigner.Fermion`):
+  the complete fermionic CAR contract — the
   anticommutation relations, the adjoint identity `c_i† = (c_i)ᴴ`, the number
   operator, parity, the exact Jordan–Wigner isomorphism and the vacuum rule.
   This is the encoding layer that the paper's §3.1 (Bravyi–Kitaev / Jordan–Wigner
   representation of the lattice fermions) relies on.
 * `Qatlib.Concepts.TrotterFormula.SuzukiFourth.suzuki_fourth_order_local_error`
-  (shared module `Qatlib.Concepts.TrotterFormula.SuzukiFourth.SuzukiFourthOrder.SuzukiFourthOrder`):
+  (shared module `Qatlib.Concepts.TrotterFormula.SuzukiFourth.SuzukiFourthOrder`):
   a fifth-order local error bound `‖W₄(t) - e^{-i(A+B)t}‖ ≤ 100 (‖A‖+‖B‖)⁵ |t|⁵`
   for the symmetric fifteen-exponential fourth-order Suzuki word.  This is the
   Suzuki–Trotter subroutine used in steps 2, 3 and 5 of the algorithm.

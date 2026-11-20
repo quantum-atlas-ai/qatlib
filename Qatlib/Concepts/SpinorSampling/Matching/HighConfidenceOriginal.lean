@@ -37,7 +37,11 @@ open scoped BigOperators
 open Qatlib
 open Qatlib.Concepts.SpinorSampling.FiniteExecution.ParameterEncoding
 
-/-- Complete original `generated_high_confidence_original_accuracy` guarantee for `HighConfidenceOriginal`; all source hypotheses and output obligations are retained. -/
+/-- If coefficient generation returns `coef` for the given periodic grid and physical
+parameters, the native sampling plan using those coefficients estimates the original discrete
+spinor loss. For positive dimension and `κ`, pointwise unit spinors, a target bounded by `U`,
+and rational target error bounded by `eb` within the returned allowance, the probability of
+error above `η` is at most `δ` when `η > 0` and `0 < δ < 1`. -/
 theorem generated_high_confidence_original_accuracy {d r : ℕ}
     (κ lam U η δ eb : ℚ) (coef : CoefficientCandidateQ)
     (hc : coefficientsGeneratedQ d (2^r) κ lam U η=some coef)
@@ -107,7 +111,12 @@ theorem generated_high_confidence_original_accuracy {d r : ℕ}
   exact (finite_bad_mass_change_center law F _ L1 ((η : ℝ)/2) (η : ℝ)
     (by linarith [hbias])).trans hstat
 
-/-- Complete original `enclosed_high_confidence_original_accuracy` guarantee for `HighConfidenceOriginal`; all source hypotheses and output obligations are retained. -/
+/-- If generation at the box's rational parameters and tolerance `η0/2` returns `coef`, the
+native plan for those coefficients estimates the original discrete loss at enclosed `κ` and
+enclosed nonnegative `lam`. For positive grid dimension and positive lower endpoint of `κ`,
+pointwise normalized spinors, a target bounded by nonnegative `U`, a nonnegative target error
+bound `eb` within the returned allowance, and box bias at most `η0/2`, the probability of
+error above `η ≥ η0 > 0` is at most `δ ≥ δ0` with `0 < δ0 < 1`. -/
 theorem enclosed_high_confidence_original_accuracy {d r : ℕ} (box : PhysicalBoxQ) (U η0 δ0 eb : ℚ)
     (κ lam η δ : ℝ) (coef : CoefficientCandidateQ)
     (hc : coefficientsGeneratedQ d (2^r) (kappaApproxQ box) (lambdaApproxQ box) U (η0/2)=some coef)

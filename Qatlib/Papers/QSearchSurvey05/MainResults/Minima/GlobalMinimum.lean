@@ -47,6 +47,6 @@ theorem theorem31_global_minimum {N : ℕ} {α : Type*} [LinearOrder α]
     (1 / 2 : ℝ) ≤ sourceSuccess T hN (sourceTimeout N) ∧
       sourceTimeout N ≤
         ((45 / 2 : ℝ) + (112 / 5 : ℝ) / (Real.log 2) ^ 2) * Real.sqrt N := by
-  exact ⟨(frontier1 T hN).1, sourceTimeout_le_sqrt N hN⟩
+  exact ⟨(source_timeout_success_and_expected_payoff T hN).1, sourceTimeout_le_sqrt N hN⟩
 
 end Qatlib.Papers.QSearchSurvey05.MainResults

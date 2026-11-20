@@ -23,14 +23,16 @@ open Qatlib.Concepts.EffectiveGauge.RationalFlow
 def spatialTransverseProjection : SpatialPoint →L[ℝ] TransversePoint :=
   (ContinuousLinearMap.fst ℝ TransversePoint ℝ).comp sourcePositionInverse
 
-/-- Original `spatialTransverseProjection_axis_one` guarantee for the `SourceAngularIdentity` construction; the complete source hypotheses are retained. -/
+/-- The transverse projection takes the first transverse spatial axis, indexed by `1`, to the axis
+indexed by `0` in the two-dimensional transverse space. -/
 theorem spatialTransverseProjection_axis_one :
     spatialTransverseProjection (EuclideanSpace.single (1 : Fin 3) (1 : ℝ))=
       EuclideanSpace.single (0 : Fin 2) (1 : ℝ) := by
   ext j
   fin_cases j <;> rfl
 
-/-- Original `wordAngularRate_transversePullback` guarantee for the `SourceAngularIdentity` construction; the complete source hypotheses are retained. -/
+/-- For a smooth transverse quaternion field, the word angular rate in spatial direction `1` of its
+pullback equals the circle angular rate of the original field at the projected point. -/
 theorem wordAngularRate_transversePullback (k : TransversePoint → ℍ) (hk : ContDiff ℝ ∞ k)
     (u : SpatialPoint) :
     wordAngularRate (fun x => k (spatialTransverseProjection x)) 1 u=

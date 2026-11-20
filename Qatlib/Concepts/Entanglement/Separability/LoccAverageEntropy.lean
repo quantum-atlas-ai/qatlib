@@ -230,7 +230,7 @@ def GeneralTwoOutcomeAverageEntropy (D E : ℕ) : Prop :=
 /-- Collects probability normalization and nonnegativity, the zero-mass criterion, normalization
 and entropy nonnegativity of positive-mass branches, and preservation of the second marginal
 after summing branches. -/
-theorem frontier1 :
+theorem two_outcome_branch_mass_entropy_and_marginal :
     (∀ (I : TwoOutcomeInstrument D) (ψ : QState (Fin D × Fin E)) (_hψ : Normalized ψ),
       (∑ i, branchMass I ψ i) = 1) ∧
     (∀ (I : TwoOutcomeInstrument D) (ψ : QState (Fin D × Fin E)) (i : Fin 2),

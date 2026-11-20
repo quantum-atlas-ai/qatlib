@@ -30,7 +30,8 @@ open Qatlib.Concepts.EffectiveGauge.RationalFlow Qatlib.Concepts.EffectiveGauge.
 def rationalPhysicalAddressAccuracy (D : ℚ) (X : Fin 3 → ℚ) (tolerance : ℚ) : ℚ :=
   physicalPoissonAddressAccuracy (D/156) X tolerance
 
-/-- Original `rationalPhysicalAddressAccuracy_eq` guarantee for the `PhysicalReferenceValue` construction; the complete source hypotheses are retained. -/
+/-- Physical address accuracy is the smaller of `1` and the tolerance divided by the product of
+`|D| + 1` and `rationalAddressMagnitude X + 1`. -/
 theorem rationalPhysicalAddressAccuracy_eq (D : ℚ) (X : Fin 3 → ℚ) (tolerance : ℚ) :
     rationalPhysicalAddressAccuracy D X tolerance=
       min 1 (tolerance/((|D|+1)*(rationalAddressMagnitude X+1))) := by
@@ -57,7 +58,10 @@ noncomputable section
 open Set
 open scoped ContDiff Quaternion
 
-/-- Original `referencePhysicalValueExecution_error` guarantee for the `PhysicalReferenceValue` construction; the complete source hypotheses are retained. -/
+/-- For a smooth periodic reference with normalized first derivatives bounded by `R1`, a successful
+evaluator guaranteed on rational unit-cube addresses at accuracies in `(0, 1]` extends to arbitrary
+rational physical addresses. At any positive `tolerance` it returns a rational quaternion within
+`tolerance / 2` of the exact physical-coordinate value. -/
 theorem referencePhysicalValueExecution_error
     (value : (Fin 3 → ℚ) → ℚ → Option (Quaternion ℚ))
     (q : QuaternionField) (hq : ContDiff ℝ ∞ q) (hp : IsPeriodicField q) (R1 : ℚ)
@@ -114,7 +118,11 @@ theorem referencePhysicalValueExecution_error
   have htR : (0 : ℝ)<tolerance := Rat.cast_pos.mpr ht
   exact (htri.trans (add_le_add herror hdist)).trans (by linarith)
 
-/-- Original `sourceReferencePhysicalValue_error` guarantee for the `PhysicalReferenceValue` construction; the complete source hypotheses are retained. -/
+/-- For a smooth periodic unit source with accurate rational jets, positive certified jet bounds
+and a successful mean cache, physical reference evaluation at a rational address returns a value
+within `tolerance / 2` of the prepared reference for every positive `tolerance`. Assume
+`0 < eta ≤ 1/2`, `7 * eta ≤ mu / 2`, and constancy on the part of the fundamental cube outside
+a subset at distance at least `mu > 0` from its boundary. -/
 theorem sourceReferencePhysicalValue_error (v : SpatialPoint → SpatialPoint)
     (hv : ContDiff ℝ ∞ v) (hu : ∀ x, ‖v x‖=1) (hp : IsPeriodicField v)
     (source : RationalJetSource) (hs : OriginalAllJetAccurate v source)

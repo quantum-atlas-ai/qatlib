@@ -43,7 +43,8 @@ def truncatedHitWeight (T : ℝ) (B : Finset S) : ℝ :=
   if (B.card : ℝ) < T then Real.exp (-(B.card : ℝ)) else 0
 
 omit [Fintype S] [Nonempty S] in
-/-- Complete original `restricted_insert_card` guarantee for `IntersectionTruncatedWeight`; all source hypotheses and output obligations are retained. -/
+/-- A restricted insertion increases the size of `B` by one exactly when the draw lies in `A`
+and is new to `B`. -/
 theorem restricted_insert_card (A B : Finset S) (x : S) :
     (restrictedInsert A B x).card = B.card + if x ∈ A \ B then 1 else 0 := by
   by_cases ha : x ∈ A
@@ -53,21 +54,23 @@ theorem restricted_insert_card (A B : Finset S) (x : S) :
   · simp [restrictedInsert, ha]
 
 omit [Fintype S] [Nonempty S] in
-/-- Complete original `restricted_insert_card_mono` guarantee for `IntersectionTruncatedWeight`; all source hypotheses and output obligations are retained. -/
+/-- The restricted insertion step cannot decrease the size of the hit set. -/
 theorem restricted_insert_card_mono (A B : Finset S) (x : S) :
     B.card ≤ (restrictedInsert A B x).card := by
   rw [restricted_insert_card]
   omega
 
 omit [Fintype S] [Nonempty S] in
-/-- Complete original `restricted_insert_subset` guarantee for `IntersectionTruncatedWeight`; all source hypotheses and output obligations are retained. -/
+/-- If every member of `B` belongs to `A`, inserting a draw only when it lies in `A` preserves
+that inclusion. -/
 theorem restricted_insert_subset (A B : Finset S) (hB : B ⊆ A) (x : S) :
     restrictedInsert A B x ⊆ A := by
   by_cases hx : x ∈ A
   · simpa only [restrictedInsert, ite_eq_left hx] using Finset.insert_subset hx hB
   · simpa only [restrictedInsert, ite_eq_right hx] using hB
 
-/-- Complete original `uniform_insert_exponential` guarantee for `IntersectionTruncatedWeight`; all source hypotheses and output obligations are retained. -/
+/-- For a uniform draw, the expected exponential of minus the updated hit count equals
+`exp (-|B|)` times one minus the probability of a new allowed hit multiplied by `1 - exp (-1)`. -/
 theorem uniform_insert_exponential (A B : Finset S) :
     (uniformLaw S).expect (fun x => Real.exp (-((restrictedInsert A B x).card : ℝ))) =
       Real.exp (-(B.card : ℝ)) *
@@ -86,7 +89,7 @@ theorem uniform_insert_exponential (A B : Finset S) :
     finite_expect_mul, uniform_missing_mass]
   ring
 
-/-- Complete original `exp_neg_one_le_half` guarantee for `IntersectionTruncatedWeight`; all source hypotheses and output obligations are retained. -/
+/-- The exponential discount for one additional hit, `exp (-1)`, is at most one half. -/
 theorem exp_neg_one_le_half : Real.exp (-1 : ℝ) ≤ 1/2 := by
   have htwo : (2 : ℝ) ≤ Real.exp 1 := by linarith [Real.add_one_le_exp (1 : ℝ)]
   have hprod : Real.exp (-1 : ℝ)*Real.exp 1=1 := by
@@ -95,7 +98,8 @@ theorem exp_neg_one_le_half : Real.exp (-1 : ℝ) ≤ 1/2 := by
   have hmul := mul_le_mul_of_nonneg_right htwo (Real.exp_pos (-1 : ℝ)).le
   nlinarith
 
-/-- Complete original `uniform_truncated_weight_step` guarantee for `IntersectionTruncatedWeight`; all source hypotheses and output obligations are retained. -/
+/-- For `B ⊆ A` and a cutoff at most half the size of `A`, the expected truncated exponential
+weight after one uniform draw is at most the starting weight times `1 - |A| / (4 * |S|)`. -/
 theorem uniform_truncated_weight_step (A B : Finset S) (hB : B ⊆ A)
     (T : ℝ) (hT : T ≤ (A.card : ℝ)/2) :
     (uniformLaw S).expect (fun x => truncatedHitWeight T (restrictedInsert A B x)) ≤

@@ -32,7 +32,8 @@ noncomputable section
 open scoped BigOperators
 open Qatlib
 
-/-- Complete original `finite_expect_comm` guarantee for `CohortRecordPairs`; all source hypotheses and output obligations are retained. -/
+/-- Iterated expectations of a real function of two finite variables agree in either order when
+the inner and outer laws are the fixed laws `p` and `q`. -/
 theorem finite_expect_comm {X Y : Type} [Fintype X] [Fintype Y]
     (p : FinDist X) (q : FinDist Y) (F : X → Y → ℝ) :
     p.expect (fun x => q.expect (F x))=q.expect (fun y => p.expect (fun x => F x y)) := by
@@ -48,7 +49,8 @@ theorem finite_expect_comm {X Y : Type} [Fintype X] [Fintype Y]
 variable {S : Type} [Fintype S] [Nonempty S] [DecidableEq S]
 
 omit [DecidableEq S] in
-/-- Complete original `signed_cohort_expect` guarantee for `CohortRecordPairs`; all source hypotheses and output obligations are retained. -/
+/-- An expectation over an independent signed cohort can be computed by first averaging over its
+uniform site array and then over the sign array drawn conditionally on those sites. -/
 theorem signed_cohort_expect {n : ℕ} (a : S → ℝ) (ha : ∀ x, |a x| ≤ 1)
     (F : (Fin n → S × Bool) → ℝ) :
     (cohortLaw (signedRecordLaw a ha) n).expect F=
@@ -57,7 +59,8 @@ theorem signed_cohort_expect {n : ℕ} (a : S → ℝ) (ha : ∀ x, |a x| ≤ 1)
   signed_cohort_disintegration a ha F
 
 omit [Fintype S] [Nonempty S] [DecidableEq S] in
-/-- Complete original `signed_pair_disintegration` guarantee for `CohortRecordPairs`; all source hypotheses and output obligations are retained. -/
+/-- To integrate a function of two independent signed cohorts, average over two independent
+uniform site arrays, then over the product of the two conditional sign laws at those arrays. -/
 theorem signed_pair_disintegration {S : Type}
     [_instFintypeS : Fintype S] [_instNonemptyS : Nonempty S]
     [_instDecidableEqS : DecidableEq S] {n m : ℕ} (a b : S → ℝ)
@@ -82,7 +85,8 @@ theorem signed_pair_disintegration {S : Type}
   exact (product_law_expect (conditionalSigns a ha J) (conditionalSigns b hb K)
     (fun z => F (fun i => (J i,z.1 i),fun i => (K i,z.2 i)))).symm
 
-/-- Complete original `signed_pair_site_projection` guarantee for `CohortRecordPairs`; all source hypotheses and output obligations are retained. -/
+/-- Projecting both independent signed cohorts to their site arrays gives the product of uniform
+cohort laws, as tested by any real function of the pair of arrays. -/
 theorem signed_pair_site_projection {n m : ℕ} (a b : S → ℝ)
     (ha : ∀ x, |a x| ≤ 1) (hb : ∀ x, |b x| ≤ 1)
     (F : ((Fin n → S) × (Fin m → S)) → ℝ) :

@@ -25,7 +25,7 @@ determines its action on the kernel.
 
 * `right_as_gram`: expresses the right singular transform through `Aᴴ * A` and the square root.
 * `odd_bound`: bounds the odd singular-transform difference.
-* `frontier1`: packages the Hermitian bound and both rectangular stability estimates.
+* `singular_transform_continuity_bounds`: packages the Hermitian bound and both rectangular stability estimates.
 
 ## References
 
@@ -202,7 +202,7 @@ theorem hermitian_zero (A B : Matrix I I ℂ) (hA : A.IsHermitian) (hB : B.IsHer
 even singular transforms of rectangular contractions. The rectangular estimates require
 positive matrix distance and the corresponding parity only on [-1, 1]
 [GilyenSuLowWiebe2019]. -/
-theorem frontier1 : Th20MainBound ∧
+theorem singular_transform_continuity_bounds : Th20MainBound ∧
     (∀ (A B : Matrix O I ℂ) (f : ℝ → ℂ) (ω : ℝ → ℝ),
       ‖A‖ ≤ 1 → ‖B‖ ≤ 1 → ModulusOfContinuity f ω → 0 < ‖A-B‖ →
       ((∀ x ∈ Set.Icc (-1:ℝ) 1, f (-x) = -f x) →

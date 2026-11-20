@@ -79,7 +79,7 @@ open ActualYunContentGuard
 open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data
 open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data.SourceInput
 
-/-- The finite construction in `SourceProposer` satisfies `original_target_preconditions` under the displayed hypotheses. -/
+/-- If the coefficients of parity opposite to `N` vanish through index `N` and the source degree is positive, the integer complement is nonzero of twice the source degree and its rational lift is canonical. -/
 private theorem original_target_preconditions (cs : List ℚ) (N : ℕ) (E : ℚ)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)
     (hd : 0<sourceDegree cs N E) :
@@ -119,7 +119,7 @@ private theorem original_target_preconditions (cs : List ℚ) (N : ℕ) (E : ℚ
   dsimp only [A]
   rw [List.length_map,hlen,hAdeg]
 
-/-- The finite construction in `SourceProposer` satisfies `original_generated_guard` under the displayed hypotheses. -/
+/-- Under the parity and positive source degree hypotheses, squarefree array factorization of the lifted integer complement returns factors. Their array product from `[1]` scales back to the input by the nonzero integer given by the leading-coefficient ratio. -/
 private theorem original_generated_guard (cs : List ℚ) (N : ℕ) (E : ℚ)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)
     (hd : 0<sourceDegree cs N E) :
@@ -154,13 +154,13 @@ def prepare (a : List ℤ) : Option (ℤ×List Context) :=
     if content.den≠1 ∨ product.map (fun v => content*v)≠a.map (fun z : ℤ => (z : ℚ)) then none
     else (build fs).map (fun contexts => (content.num,contexts)))
 
-/-- The finite construction in `SourceProposer` satisfies `scale_poly` under the displayed hypotheses. -/
+/-- Multiplying every coefficient by `c` multiplies the represented polynomial by the constant polynomial `C c`. -/
 private theorem scale_poly (a : List ℚ) (c : ℚ) : poly (a.map (fun v => c*v))=C c*poly a := by
   ext k
   rw [ActualYunRationalArray.coeff,Polynomial.coeff_C_mul,ActualYunRationalArray.coeff]
   simpa only [mul_zero] using (List.getD_map a 0 (n:=k) (fun v => c*v))
 
-/-- The finite construction in `SourceProposer` satisfies `source_guard_product` under the displayed hypotheses. -/
+/-- If scaling the rational factor-product list by `c` recovers the lift of `a`, then `integerPoly a` is `C c` times the integer product of those factor powers. -/
 private theorem source_guard_product (a : List ℤ) (fs : List (List ℤ×ℕ)) (c : ℤ)
     (hfull : (factorsProduct fs [1]).map (fun v => (c : ℚ)*v)=a.map (fun z : ℤ => (z : ℚ))) :
     integerPoly a=C c*rawProduct fs := by
@@ -172,7 +172,7 @@ private theorem source_guard_product (a : List ℤ) (fs : List (List ℤ×ℕ)) 
   rw [Polynomial.map_mul,Polynomial.map_C]
   exact he.symm
 
-/-- The finite construction in `SourceProposer` satisfies `prepare_success` under the displayed hypotheses. -/
+/-- A nonzero positive-degree integer input with canonical lift yields squarefree factors, nonzero integer content and prepared contexts. The content times the factor powers reconstructs the input, and each context is good with primitive factor and exponent at most the input degree. -/
 private theorem prepare_success (a : List ℤ) (ha : integerPoly a≠0) (hd : 0 < (integerPoly a).natDegree)
     (hcanonical : Canonical (a.map (fun z : ℤ => (z : ℚ)))) :
     ∃ fs c contexts,squarefreeArrays (a.map (fun z : ℤ => (z : ℚ)))=some fs ∧
@@ -205,7 +205,7 @@ private theorem prepare_success (a : List ℤ) (ha : integerPoly a≠0) (hd : 0 
   have hf : (ctx.factor,ctx.exponent)∈fs := by rw [← hmap]; exact List.mem_map.mpr ⟨ctx,hc,rfl⟩
   exact ⟨hctx ctx hc,(hg _ hf).2⟩
 
-/-- The finite construction in `SourceProposer` satisfies `original_prepare_success` under the displayed hypotheses. -/
+/-- Under the parity and positive source degree hypotheses, preparation of the integer complement returns nonzero content and good contexts matching the squarefree factor list. The content times the factor powers reconstructs the complement, and each factor is primitive with exponent at most twice the source degree. -/
 private theorem original_prepare_success (cs : List ℚ) (N : ℕ) (E : ℚ)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)
     (hd : 0 < Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data.SourceInput.sourceDegree cs N E) :
@@ -234,7 +234,7 @@ open ActualYunArrayStep ActualYunPrimitiveContent ActualYunContentSupply
 open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data
 open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data.SourceInput
 
-/-- The finite construction in `SourceProposer` satisfies `factor_as_ofFn` under the displayed hypotheses. -/
+/-- A good factor admits a coefficient vector of length `n + 2` for some `n`, with nonzero last entry and separable complex polynomial. -/
 private theorem factor_as_ofFn (f : List ℤ×ℕ) (hf : FactorGood f) :
     ∃ (n : ℕ) (a : Fin (n+2) → ℤ),f.1=List.ofFn a ∧ a (Fin.last (n+1))≠0 ∧ (rootIntegerPolynomial a).Separable := by
   obtain ⟨hs,hd,hlen,htop,_⟩ := hf
@@ -264,7 +264,7 @@ private def DiskCoverage (ctx : Context) (contexts : List Context) (bits : ℕ) 
     ∃ z : ℂ,(rootIntegerListPolynomial ctx.factor).eval z=0 ∧
       ‖z-rootRationalCoordinate c‖ ≤ (radius contexts bits gap : ℝ))
 
-/-- The finite construction in `SourceProposer` satisfies `context_cap_coverage` under the displayed hypotheses. -/
+/-- For a good member of `contexts` and positive `gap`, some pair of fuel values isolates its axes at the common precision cap and yields intervals satisfying `DiskCoverage`. -/
 private theorem context_cap_coverage (contexts : List Context) (bits : ℕ) (gap : ℚ) (hg : 0 < gap)
     (ctx : Context) (hctx : ctx∈contexts) (hgood : ContextGood ctx) :
     ∃ fx fy ix iy,isolateAxes ctx.factor (cap contexts bits gap) fx fy=some (ix,iy) ∧
@@ -278,7 +278,7 @@ private theorem context_cap_coverage (contexts : List Context) (bits : ℕ) (gap
     rw [hlist,rootIntegerListPolynomial_ofFn]
     exact ⟨hcomplete,hsound⟩
 
-/-- The finite construction in `SourceProposer` satisfies `raw_product_root` under the displayed hypotheses. -/
+/-- Every complex zero of the cast product of factor powers is a zero of at least one listed factor. -/
 private theorem raw_product_root (fs : List (List ℤ×ℕ)) (z : ℂ)
     (hz : ((rawProduct fs).map (Int.castRingHom ℂ)).eval z=0) :
     ∃ f∈fs,(rootIntegerListPolynomial f.1).eval z=0 := by
@@ -293,7 +293,7 @@ private theorem raw_product_root (fs : List (List ℤ×ℕ)) (z : ℂ)
     · obtain ⟨g,hg,hgz⟩ := ih hfs
       exact ⟨g,by simp only [List.mem_cons]; exact Or.inr hg,hgz⟩
 
-/-- The finite construction in `SourceProposer` satisfies `original_root_context` under the displayed hypotheses. -/
+/-- If the contexts match the factors with exponents and the input polynomial is their product times a nonzero constant, every complex input root is a root of some context's factor. -/
 private theorem original_root_context (H : List ℤ) (fs : List (List ℤ×ℕ)) (c : ℤ) (contexts : List Context)
     (hc : c≠0) (hprod : integerPoly H=C c*rawProduct fs)
     (hmap : contexts.map (fun ctx => (ctx.factor,ctx.exponent))=fs)
@@ -309,7 +309,7 @@ private theorem original_root_context (H : List ℤ) (fs : List (List ℤ×ℕ))
   have hfactor : ctx.factor=f.1 := congrArg Prod.fst he
   exact ⟨ctx,hctx,by rw [hfactor]; exact hfz⟩
 
-/-- The finite construction in `SourceProposer` satisfies `original_prepared_coverage` under the displayed hypotheses. -/
+/-- Under the source parity and positive degree hypotheses and with positive `gap`, preparation yields a factorization with nonzero content and good contexts admitting isolation with disk coverage. Every complement root has a retained center within the common radius in at least one of those contexts. -/
 private theorem original_prepared_coverage (cs : List ℚ) (N : ℕ) (E : ℚ) (bits : ℕ) (gap : ℚ)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)
     (hd : 0 < sourceDegree cs N E) (hg : 0 < gap) :
@@ -365,7 +365,7 @@ private def RecordGood (ctx : Context) (r : ℚ) (record : Record) : Prop :=
   (∀ z : ℂ,(rootIntegerListPolynomial ctx.factor).eval z=0 →
     ∃ d∈record.disks,‖z-rootRationalCoordinate d.1‖ ≤ (d.2 : ℝ))
 
-/-- The finite construction in `SourceProposer` satisfies `factor_record_good` under the displayed hypotheses. -/
+/-- If the intervals satisfy `DiskCoverage`, their factor record satisfies `RecordGood` at the common radius, including the disk validity and coverage conditions. -/
 private theorem factor_record_good (ctx : Context) (contexts : List Context) (bits : ℕ) (gap : ℚ)
     (ix iy : List (ℚ×ℚ)) (hc : DiskCoverage ctx contexts bits gap ix iy) :
     RecordGood ctx (radius contexts bits gap) (factorRecord ctx (radius contexts bits gap) ix iy) := by
@@ -377,7 +377,7 @@ private theorem factor_record_good (ctx : Context) (contexts : List Context) (bi
     obtain ⟨c,hc',hnear⟩ := hc.1 z hz
     exact ⟨(c,radius contexts bits gap),List.mem_map.mpr ⟨c,hc',rfl⟩,hnear⟩
 
-/-- The finite construction in `SourceProposer` satisfies `round_success` under the displayed hypotheses. -/
+/-- If every pending context has fuel for isolation with disk coverage, some fuel list of the same length makes the cap round return records related pointwise to the contexts by `RecordGood`. -/
 private theorem round_success (todo contexts : List Context) (bits : ℕ) (gap : ℚ)
     (hc : ∀ ctx∈todo,∃ fx fy ix iy,isolateAxes ctx.factor (cap contexts bits gap) fx fy=some (ix,iy) ∧
       DiskCoverage ctx contexts bits gap ix iy) :
@@ -395,7 +395,7 @@ private theorem round_success (todo contexts : List Context) (bits : ℕ) (gap :
     · simp only [round,hr,Option.bind_some,hrun,Option.map_some]
     · exact List.Forall₂.cons (factor_record_good ctx contexts bits gap ix iy hcoverage) hrecords
 
-/-- The finite construction in `SourceProposer` satisfies `record_for_context` under the displayed hypotheses. -/
+/-- If `RecordGood` relates the two lists pointwise, every member of the context list has a corresponding good record in the record list. -/
 private theorem record_for_context (todo : List Context) (records : List Record) (r : ℚ)
     (h : List.Forall₂ (fun ctx record => RecordGood ctx r record) todo records)
     (ctx : Context) (hc : ctx∈todo) : ∃ record∈records,RecordGood ctx r record := by
@@ -413,7 +413,7 @@ private def atCap (target : List ℤ) (bits : ℕ) (gap : ℚ) (fuels : List (�
   (prepare target).bind (fun pair =>
     (round pair.2 (cap pair.2 bits gap) (radius pair.2 bits gap) fuels).map (fun records => (pair.1,records)))
 
-/-- The finite construction in `SourceProposer` satisfies `original_cap_round` under the displayed hypotheses. -/
+/-- Under the source parity and positive degree hypotheses and with positive `gap`, a cap round returns nonzero content and good records using one fuel pair per prepared context. The contexts encode a factorization of the complement, and every complement root lies in a returned disk. -/
 private theorem original_cap_round (cs : List ℚ) (N : ℕ) (E : ℚ) (bits : ℕ) (gap : ℚ)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)
     (hd : 0 < sourceDegree cs N E) (hg : 0 < gap) :
@@ -450,7 +450,7 @@ def storedAxes (ctx : Context) (P fx fy : ℕ) : Option (List (ℚ×ℚ)×List (
   (intervals (lift ctx.xProjection) P fx).bind (fun ix =>
     (intervals (lift ctx.yProjection) P fy).map (fun iy => (ix,iy)))
 
-/-- The finite construction in `SourceProposer` satisfies `stored_axes_eq` under the displayed hypotheses. -/
+/-- In a good context, isolation on the stored projections agrees with recomputing the projections and isolating the factor's axes, for any precision and fuel pair. -/
 private theorem stored_axes_eq (ctx : Context) (hgood : ContextGood ctx) (P fx fy : ℕ) :
     storedAxes ctx P fx fy=isolateAxes ctx.factor P fx fy := by
   simp only [storedAxes,isolateAxes,hgood.2.1]
@@ -463,7 +463,7 @@ def roundStored : List Context → ℕ → ℚ → List (ℕ×ℕ) → Option (L
     (storedAxes ctx P fx fy).bind (fun pair =>
       (roundStored cs P r fuels).map (fun records => factorRecord ctx r pair.1 pair.2::records))
 
-/-- The finite construction in `SourceProposer` satisfies `stored_round_eq` under the displayed hypotheses. -/
+/-- When every pending context is good, the stored-projection and recomputing rounds return the same result for every precision, radius and fuel list. -/
 private theorem stored_round_eq (todo : List Context) (P : ℕ) (r : ℚ) (fuels : List (ℕ×ℕ))
     (hgood : ∀ ctx∈todo,ContextGood ctx) : roundStored todo P r fuels=round todo P r fuels := by
   induction todo generalizing fuels with
@@ -482,7 +482,7 @@ def atCapStored (target : List ℤ) (bits : ℕ) (gap : ℚ) (fuels : List (ℕ�
   (prepare target).bind (fun pair =>
     (roundStored pair.2 (cap pair.2 bits gap) (radius pair.2 bits gap) fuels).map (fun records => (pair.1,records)))
 
-/-- The finite construction in `SourceProposer` satisfies `original_contexts_good` under the displayed hypotheses. -/
+/-- Under the source parity and positive degree hypotheses, all contexts in any successful preparation of the integer complement satisfy `ContextGood`. -/
 private theorem original_contexts_good (cs : List ℚ) (N : ℕ) (E : ℚ)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)
     (hd : 0 < sourceDegree cs N E) (c : ℤ) (contexts : List Context)
@@ -494,14 +494,14 @@ private theorem original_contexts_good (cs : List ℚ) (N : ℕ) (E : ℚ)
   subst contexts'
   exact fun ctx hc => (hgood ctx hc).1
 
-/-- The finite construction in `SourceProposer` satisfies `source_cap_value` under the displayed hypotheses. -/
+/-- If preparation of `target` returns only good contexts, reusing its stored projections gives exactly the ordinary cap result for the same precision, gap and fuel list. -/
 private theorem source_cap_value (target : List ℤ) (c : ℤ) (contexts : List Context)
     (hprepare : prepare target=some (c,contexts)) (hgood : ∀ ctx∈contexts,ContextGood ctx)
     (bits : ℕ) (gap : ℚ) (fuels : List (ℕ×ℕ)) :
     atCapStored target bits gap fuels=atCap target bits gap fuels := by
   simp only [atCapStored,atCap,hprepare,Option.bind_some,stored_round_eq contexts _ _ fuels hgood]
 
-/-- The finite construction in `SourceProposer` satisfies `original_stored_cap_round` under the displayed hypotheses. -/
+/-- Under the source parity and positive degree hypotheses and with positive `gap`, the stored cap round succeeds for some fuel list with one pair per context. It returns nonzero content and pointwise good records for a factorization of the complement, covering every complement root with a returned disk. -/
 private theorem original_stored_cap_round (cs : List ℚ) (N : ℕ) (E : ℚ) (bits : ℕ) (gap : ℚ)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)
     (hd : 0 < sourceDegree cs N E) (hg : 0 < gap) :
@@ -536,7 +536,7 @@ open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data
 private def Inside (px py : ℚ×ℚ) (z : ℂ) : Prop :=
   (px.1 : ℝ)<z.re ∧ z.re<(px.2 : ℝ) ∧ (py.1 : ℝ)<z.im ∧ z.im<(py.2 : ℝ)
 
-/-- The finite construction in `SourceProposer` satisfies `interval_root` under the displayed hypotheses. -/
+/-- A good interval contains a member of `S` strictly between its endpoints. -/
 private theorem interval_root (S : Finset ℝ) (e : ℚ) (p : ℚ×ℚ) (hp : GoodInterval S e p) :
     ∃ x∈S,(p.1 : ℝ)<x ∧ x<(p.2 : ℝ) := by
   classical
@@ -544,7 +544,7 @@ private theorem interval_root (S : Finset ℝ) (e : ℚ) (p : ℚ×ℚ) (hp : Go
   obtain ⟨x,hx⟩ := Finset.card_pos.mp hpos
   exact ⟨x,(Finset.mem_filter.mp hx).1,(Finset.mem_filter.mp hx).2⟩
 
-/-- The finite construction in `SourceProposer` satisfies `nearby_root_in_rectangle` under the displayed hypotheses. -/
+/-- For a good member context and positive gap, if both coordinate intervals are good at the common cap, every factor root within the common radius of the midpoint lies strictly inside their rectangle. -/
 private theorem nearby_root_in_rectangle (contexts : List Context) (bits : ℕ) (gap : ℚ) (hg : 0 < gap)
     (ctx : Context) (hctx : ctx∈contexts) (hgood : ContextGood ctx)
     (px py : ℚ×ℚ)
@@ -591,7 +591,7 @@ private theorem nearby_root_in_rectangle (contexts : List Context) (bits : ℕ) 
   exact ⟨by rw [hxeq]; exact hxi.1,by rw [hxeq]; exact hxi.2,
     by rw [hyeq]; exact hyi.1,by rw [hyeq]; exact hyi.2⟩
 
-/-- The finite construction in `SourceProposer` satisfies `passing_rectangle_has_root` under the displayed hypotheses. -/
+/-- For a good member context with positive gap and good coordinate intervals at the cap, a passing test at the rectangle midpoint certifies a factor root strictly inside the rectangle. -/
 private theorem passing_rectangle_has_root (contexts : List Context) (bits : ℕ) (gap : ℚ) (hg : 0 < gap)
     (ctx : Context) (hctx : ctx∈contexts) (hgood : ContextGood ctx) (px py : ℚ×ℚ)
     (hx : GoodInterval (inputRoots (lift ctx.xProjection)) (sourceWidth (cap contexts bits gap)) px)
@@ -605,7 +605,7 @@ private theorem passing_rectangle_has_root (contexts : List Context) (bits : ℕ
   have hzf : (rootIntegerListPolynomial ctx.factor).eval z=0 := by rw [hlist,rootIntegerListPolynomial_ofFn]; exact hz
   exact ⟨z,hzf,nearby_root_in_rectangle contexts bits gap hg ctx hctx hgood px py hx hy z hzf hnear⟩
 
-/-- The finite construction in `SourceProposer` satisfies `inside_rectangle_passes` under the displayed hypotheses. -/
+/-- For a good member context with positive gap and good coordinate intervals at the cap, a factor root strictly inside the rectangle makes the midpoint test pass at the common radius. -/
 private theorem inside_rectangle_passes (contexts : List Context) (bits : ℕ) (gap : ℚ) (hg : 0 < gap)
     (ctx : Context) (hctx : ctx∈contexts) (hgood : ContextGood ctx) (px py : ℚ×ℚ)
     (hx : GoodInterval (inputRoots (lift ctx.xProjection)) (sourceWidth (cap contexts bits gap)) px)
@@ -624,7 +624,7 @@ private theorem inside_rectangle_passes (contexts : List Context) (bits : ℕ) (
   rw [hlist]
   exact passes_of_ofFn_bound n a ha _ _ hb hl
 
-/-- The finite construction in `SourceProposer` satisfies `interval_root_unique` under the displayed hypotheses. -/
+/-- Any two members of `S` strictly inside the same good interval are equal. -/
 private theorem interval_root_unique (S : Finset ℝ) (e : ℚ) (p : ℚ×ℚ) (hp : GoodInterval S e p)
     (x y : ℝ) (hx : x∈S) (hy : y∈S)
     (hpx : (p.1 : ℝ)<x ∧ x<(p.2 : ℝ)) (hpy : (p.1 : ℝ)<y ∧ y<(p.2 : ℝ)) : x=y := by
@@ -632,7 +632,7 @@ private theorem interval_root_unique (S : Finset ℝ) (e : ℚ) (p : ℚ×ℚ) (
   have hc : (rootsIn S p.1 p.2).card ≤ 1 := by rw [hp.2.2.2.1]
   exact Finset.card_le_one.mp hc x (Finset.mem_filter.mpr ⟨hx,hpx⟩) y (Finset.mem_filter.mpr ⟨hy,hpy⟩)
 
-/-- The finite construction in `SourceProposer` satisfies `roots_same_rectangle` under the displayed hypotheses. -/
+/-- If the two coordinate intervals are good for the projections of a good context, two factor roots strictly inside the rectangle must coincide. -/
 private theorem roots_same_rectangle (ctx : Context) (hgood : ContextGood ctx) (e : ℚ) (px py : ℚ×ℚ)
     (hx : GoodInterval (inputRoots (lift ctx.xProjection)) e px)
     (hy : GoodInterval (inputRoots (lift ctx.yProjection)) e py)
@@ -650,7 +650,7 @@ private theorem roots_same_rectangle (ctx : Context) (hgood : ContextGood ctx) (
       ((member_zero_iff _ hyn w.im).mpr (hycoord w hw))
       ⟨hiz.2.2.1,hiz.2.2.2⟩ ⟨hiw.2.2.1,hiw.2.2.2⟩
 
-/-- The finite construction in `SourceProposer` satisfies `passing_rectangle_iff_unique` under the displayed hypotheses. -/
+/-- For a good member context with positive gap and good coordinate intervals at the cap, the midpoint test passes at the common radius exactly when the open rectangle contains a unique factor root. -/
 private theorem passing_rectangle_iff_unique (contexts : List Context) (bits : ℕ) (gap : ℚ) (hg : 0 < gap)
     (ctx : Context) (hctx : ctx∈contexts) (hgood : ContextGood ctx) (px py : ℚ×ℚ)
     (hx : GoodInterval (inputRoots (lift ctx.xProjection)) (sourceWidth (cap contexts bits gap)) px)
@@ -671,7 +671,7 @@ end ActualProjectionAcceptedRectangle
 namespace ActualProjectionIntervalIdentity
 open ActualProjectionCartesian ActualProjectionCapRetention ActualSturmQueueGeometry
 
-/-- The finite construction in `SourceProposer` satisfies `apart_no_shared` under the displayed hypotheses. -/
+/-- Two apart intervals have no real point strictly between the endpoints of both. -/
 private theorem apart_no_shared (p q : ℚ×ℚ) (h : Apart p q) (x : ℝ)
     (hp : (p.1 : ℝ)<x ∧ x<(p.2 : ℝ)) (hq : (q.1 : ℝ)<x ∧ x<(q.2 : ℝ)) : False := by
   rcases h with h|h
@@ -680,7 +680,7 @@ private theorem apart_no_shared (p q : ℚ×ℚ) (h : Apart p q) (x : ℝ)
   · have hh : (q.2 : ℝ) ≤ (p.1 : ℝ) := by exact_mod_cast h
     linarith [hq.2,hp.1]
 
-/-- The finite construction in `SourceProposer` satisfies `same_interval` under the displayed hypotheses. -/
+/-- In a pairwise apart interval list, any two members that strictly contain the same real point are equal. -/
 private theorem same_interval (ps : List (ℚ×ℚ)) (ha : ps.Pairwise Apart) (p q : ℚ×ℚ)
     (hp : p∈ps) (hq : q∈ps) (x : ℝ)
     (hpx : (p.1 : ℝ)<x ∧ x<(p.2 : ℝ)) (hqx : (q.1 : ℝ)<x ∧ x<(q.2 : ℝ)) : p=q := by
@@ -698,7 +698,7 @@ private theorem same_interval (ps : List (ℚ×ℚ)) (ha : ps.Pairwise Apart) (p
         exact (apart_no_shared a p (hhead p hp) x hqx hpx).elim
       · exact ih htail p q hp hq hpx hqx
 
-/-- The finite construction in `SourceProposer` satisfies `intervals_nodup` under the displayed hypotheses. -/
+/-- A pairwise apart list of intervals with strictly ordered endpoints has no duplicate entries. -/
 private theorem intervals_nodup (ps : List (ℚ×ℚ)) (ha : ps.Pairwise Apart)
     (hpos : ∀ p∈ps,p.1 < p.2) : ps.Nodup := by
   induction ps with
@@ -711,7 +711,7 @@ private theorem intervals_nodup (ps : List (ℚ×ℚ)) (ha : ps.Pairwise Apart)
       rcases hhead p hp with h|h <;> exact (not_le_of_gt (hpos p (by simp))) h
     · exact ih htail (fun q hq => hpos q (by simp only [List.mem_cons]; exact Or.inr hq))
 
-/-- The finite construction in `SourceProposer` satisfies `midpoint_inside` under the displayed hypotheses. -/
+/-- The midpoint of an interval with strictly ordered endpoints lies strictly between them. -/
 private theorem midpoint_inside (p : ℚ×ℚ) (hp : p.1 < p.2) :
     (p.1 : ℝ)<(midpoint p : ℝ) ∧ (midpoint p : ℝ)<(p.2 : ℝ) := by
   have hR : (p.1 : ℝ)<(p.2 : ℝ) := by exact_mod_cast hp
@@ -719,7 +719,7 @@ private theorem midpoint_inside (p : ℚ×ℚ) (hp : p.1 < p.2) :
   push_cast
   constructor <;> linarith
 
-/-- The finite construction in `SourceProposer` satisfies `midpoints_nodup` under the displayed hypotheses. -/
+/-- Pairwise apart intervals with strictly ordered endpoints have a duplicate-free list of midpoints. -/
 private theorem midpoints_nodup (ps : List (ℚ×ℚ)) (ha : ps.Pairwise Apart)
     (hpos : ∀ p∈ps,p.1 < p.2) : (ps.map midpoint).Nodup := by
   apply List.Nodup.map_on ?_ (intervals_nodup ps ha hpos)
@@ -728,7 +728,7 @@ private theorem midpoints_nodup (ps : List (ℚ×ℚ)) (ha : ps.Pairwise Apart)
   rw [he]
   exact midpoint_inside q (hpos q hq)
 
-/-- The finite construction in `SourceProposer` satisfies `centers_nodup` under the displayed hypotheses. -/
+/-- If each axis list is pairwise apart and all its intervals have positive width, their Cartesian list of midpoint pairs has no duplicates. -/
 private theorem centers_nodup (ix iy : List (ℚ×ℚ)) (hx : ix.Pairwise Apart) (hy : iy.Pairwise Apart)
     (hxpos : ∀ p∈ix,p.1 < p.2) (hypos : ∀ p∈iy,p.1 < p.2) : (centers ix iy).Nodup := by
   have hxn := midpoints_nodup ix hx hxpos
@@ -748,7 +748,7 @@ private theorem centers_nodup (ix iy : List (ℚ×ℚ)) (hx : ix.Pairwise Apart)
     have he2 : y=c.1 := congrArg Prod.fst hv
     exact hxy (he1.trans he2.symm)
 
-/-- The finite construction in `SourceProposer` satisfies `retained_nodup` under the displayed hypotheses. -/
+/-- With pairwise apart positive-width intervals on each axis, filtering the midpoint pairs by the disk test gives a duplicate-free list. -/
 private theorem retained_nodup (cs : List ℤ) (r : ℚ) (ix iy : List (ℚ×ℚ))
     (hx : ix.Pairwise Apart) (hy : iy.Pairwise Apart)
     (hxpos : ∀ p∈ix,p.1 < p.2) (hypos : ∀ p∈iy,p.1 < p.2) : (retained cs r ix iy).Nodup :=
@@ -765,7 +765,7 @@ open ActualProjectionAcceptedDisks ActualRootProjectionCap ActualSturmQueueCover
 open ActualSturmComputedIsolation ActualSturmArrayTools ActualYunArrayStep
 open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data
 
-/-- The finite construction in `SourceProposer` satisfies `stored_axes_success` under the displayed hypotheses. -/
+/-- For a good context at any precision `P`, some pair of fuel values isolates the stored projections and yields both axis isolation properties. -/
 private theorem stored_axes_success (ctx : Context) (hg : ContextGood ctx) (P : ℕ) :
     ∃ fx fy ix iy,storedAxes ctx P fx fy=some (ix,iy) ∧
       IsolationProperties ctx.factor Axis.real ctx.xProjection P ix ∧
@@ -774,7 +774,7 @@ private theorem stored_axes_success (ctx : Context) (hg : ContextGood ctx) (P : 
   obtain ⟨fy,iy,hry,hy⟩ := actual_axis_isolation ctx.factor Axis.imag ctx.yProjection hg.2.2.2 P
   exact ⟨fx,fy,ix,iy,by simp only [storedAxes,hrx,hry,Option.bind_some,Option.map_some],hx,hy⟩
 
-/-- The finite construction in `SourceProposer` satisfies `center_parents` under the displayed hypotheses. -/
+/-- Every listed center is the pair of midpoints of some intervals from the real and imaginary axis lists. -/
 private theorem center_parents (ix iy : List (ℚ×ℚ)) (c : ℚ×ℚ) (hc : c∈centers ix iy) :
     ∃ px∈ix,∃ py∈iy,c=(midpoint px,midpoint py) := by
   rw [centers_rectangles] at hc
@@ -787,7 +787,7 @@ private theorem center_parents (ix iy : List (ℚ×ℚ)) (c : ℚ×ℚ) (hc : c�
   subst q
   exact ⟨px,hp,py,hq,hc.symm⟩
 
-/-- The finite construction in `SourceProposer` satisfies `root_unique_for_center` under the displayed hypotheses. -/
+/-- For positive gap and a good member context whose interval lists satisfy axis isolation at the cap, every retained center has exactly one factor root within the common radius. -/
 private theorem root_unique_for_center (contexts : List Context) (bits : ℕ) (gap : ℚ) (hg : 0<gap)
     (ctx : Context) (hctx : ctx∈contexts) (hgood : ContextGood ctx) (ix iy : List (ℚ×ℚ))
     (hx : IsolationProperties ctx.factor Axis.real ctx.xProjection (cap contexts bits gap) ix)
@@ -811,7 +811,7 @@ private theorem root_unique_for_center (contexts : List Context) (bits : ℕ) (g
     (nearby_root_in_rectangle contexts bits gap hg ctx hctx hgood px py (hx.1 px hpx) (hy.1 py hpy) w hw.1 hw.2)
     (nearby_root_in_rectangle contexts bits gap hg ctx hctx hgood px py (hx.1 px hpx) (hy.1 py hpy) z hzf hnear)
 
-/-- The finite construction in `SourceProposer` satisfies `center_unique_for_root` under the displayed hypotheses. -/
+/-- With the cap isolation properties in a good member context and positive gap, two retained centers within the common radius of the same factor root are equal. -/
 private theorem center_unique_for_root (contexts : List Context) (bits : ℕ) (gap : ℚ) (hg : 0<gap)
     (ctx : Context) (hctx : ctx∈contexts) (hgood : ContextGood ctx) (ix iy : List (ℚ×ℚ))
     (hx : IsolationProperties ctx.factor Axis.real ctx.xProjection (cap contexts bits gap) ix)
@@ -833,7 +833,7 @@ private theorem center_unique_for_root (contexts : List Context) (bits : ℕ) (g
   have hye := same_interval iy hy.2.2.1 py qy hpy hqy z.im ⟨hi.2.2.1,hi.2.2.2⟩ ⟨hj.2.2.1,hj.2.2.2⟩
   rw [hxe,hye]
 
-/-- The finite construction in `SourceProposer` satisfies `root_covered` under the displayed hypotheses. -/
+/-- For positive gap and a good member context with both axis isolation properties at the cap, each factor root has a retained center within the common radius. -/
 private theorem root_covered (contexts : List Context) (bits : ℕ) (gap : ℚ) (hg : 0<gap)
     (ctx : Context) (hctx : ctx∈contexts) (hgood : ContextGood ctx) (ix iy : List (ℚ×ℚ))
     (hx : IsolationProperties ctx.factor Axis.real ctx.xProjection (cap contexts bits gap) ix)
@@ -1008,7 +1008,7 @@ open ActualProjectionEntryDegrees ActualProjectionCartesian ActualRootProjection
 open ActualSturmComputedIsolation ActualSturmArrayTools
 open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data
 
-/-- The finite construction in `SourceProposer` satisfies `roots_far` under the displayed hypotheses. -/
+/-- In a good member context with positive gap, distinct roots of its factor are farther apart than four times the common radius. -/
 private theorem roots_far (contexts : List Context) (bits : ℕ) (gap : ℚ) (hg : 0<gap)
     (ctx : Context) (hctx : ctx∈contexts) (hgood : ContextGood ctx)
     (z w : ℂ) (hz : (rootIntegerListPolynomial ctx.factor).eval z=0)
@@ -1033,7 +1033,7 @@ private theorem roots_far (contexts : List Context) (bits : ℕ) (gap : ℚ) (hg
     have habs : |z.re-w.re| ≤ ‖z-w‖ := by simpa only [Complex.sub_re] using Complex.abs_re_le_norm (z-w)
     linarith
 
-/-- The finite construction in `SourceProposer` satisfies `retained_centers_far` under the displayed hypotheses. -/
+/-- For a good member context with positive gap and both cap isolation properties, distinct retained centers are farther apart than twice the common radius. -/
 private theorem retained_centers_far (contexts : List Context) (bits : ℕ) (gap : ℚ) (hg : 0<gap)
     (ctx : Context) (hctx : ctx∈contexts) (hgood : ContextGood ctx) (ix iy : List (ℚ×ℚ))
     (hx : IsolationProperties ctx.factor Axis.real ctx.xProjection (cap contexts bits gap) ix)
@@ -1058,7 +1058,7 @@ private theorem retained_centers_far (contexts : List Context) (bits : ℕ) (gap
       _ ≤ _ := by rw [norm_sub_rev (rootRationalCoordinate d) w]; gcongr
   linarith
 
-/-- The finite construction in `SourceProposer` satisfies `retained_squared_guard` under the displayed hypotheses. -/
+/-- Under the good member context, positive-gap and cap isolation hypotheses, the squared distance between distinct retained centers strictly exceeds the square of the sum of their radii. -/
 private theorem retained_squared_guard (contexts : List Context) (bits : ℕ) (gap : ℚ) (hg : 0<gap)
     (ctx : Context) (hctx : ctx∈contexts) (hgood : ContextGood ctx) (ix iy : List (ℚ×ℚ))
     (hx : IsolationProperties ctx.factor Axis.real ctx.xProjection (cap contexts bits gap) ix)
@@ -1089,7 +1089,7 @@ open ActualSturmComputedIsolation ActualSturmArrayTools ActualYunContentSupply A
 open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data
 open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data.SourceInput
 
-/-- The finite construction in `SourceProposer` satisfies `classify_of_radial_gap` under the displayed hypotheses. -/
+/-- If `r > 0`, the radial gap of a point is at least `gap > 2 * r`, and the point is within `r` of `c`, then the disk classifier returns a class. -/
 private theorem classify_of_radial_gap (c : ℚ×ℚ) (r gap : ℚ) (hr : 0<r) (hgap : 2*r<gap)
     (z : ℂ) (hz : (gap : ℝ) ≤ |‖z‖-1|) (hd : ‖z-rootRationalCoordinate c‖ ≤ (r : ℝ)) :
     rootRationalDiskClassify c r≠none := by
@@ -1121,7 +1121,7 @@ private theorem classify_of_radial_gap (c : ℚ×ℚ) (r gap : ℚ) (hr : 0<r) (
     unfold rootRationalDiskClassify
     split_ifs <;> simp_all
 
-/-- The finite construction in `SourceProposer` satisfies `raw_product_factor_root` under the displayed hypotheses. -/
+/-- A root of a listed factor with positive exponent is also a root of the cast product of factor powers. -/
 private theorem raw_product_factor_root (fs : List (List ℤ×ℕ)) (f : List ℤ×ℕ) (hf : f∈fs) (he : 0<f.2)
     (z : ℂ) (hz : (rootIntegerListPolynomial f.1).eval z=0) :
     ((rawProduct fs).map (Int.castRingHom ℂ)).eval z=0 := by
@@ -1138,7 +1138,7 @@ private theorem raw_product_factor_root (fs : List (List ℤ×ℕ)) (f : List �
         ((rawProduct fs).map (Int.castRingHom ℂ)).eval z=0
       rw [ih hf,mul_zero]
 
-/-- The finite construction in `SourceProposer` satisfies `factor_root_original` under the displayed hypotheses. -/
+/-- If the context list encodes the factor powers in the stated factorization of `H`, each root of a member context with positive exponent is a root of `H`. -/
 private theorem factor_root_original (H : List ℤ) (fs : List (List ℤ×ℕ)) (c : ℤ) (contexts : List Context)
     (hprod : integerPoly H=C c*rawProduct fs)
     (hmap : contexts.map (fun ctx => (ctx.factor,ctx.exponent))=fs)
@@ -1151,7 +1151,7 @@ private theorem factor_root_original (H : List ℤ) (fs : List (List ℤ×ℕ)) 
   change ((integerPoly H).map (Int.castRingHom ℂ)).eval z=0
   rw [hprod,Polynomial.map_mul,Polynomial.eval_mul,raw_product_factor_root fs _ hf he z hz,mul_zero]
 
-/-- The finite construction in `SourceProposer` satisfies `original_context_radial_gap` under the displayed hypotheses. -/
+/-- With positive `E` and source degree, the tail and parity conditions, and Chebyshev norm at most one on `[-1, 1]`, every root of a successfully prepared context's factor has radial gap at least `sourceGamma0 cs N E`. -/
 private theorem original_context_radial_gap (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E)
     (htail : ∀ k,N+1≤k → cs.getD k 0=0)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)
@@ -1171,7 +1171,9 @@ private theorem original_context_radial_gap (cs : List ℚ) (N : ℕ) (E : ℚ) 
   exact sourceIntegerComplement_all_roots_gap cs N E hE htail hparity hd hnorm z
     (factor_root_original _ fs c contexts hprod hmap ctx hctx hexp z hz)
 
-/-- The finite construction in `SourceProposer` satisfies `original_retained_classified` under the displayed hypotheses. -/
+/-- With positive `E` and source degree, coefficients supported through `N` with the parity
+of `N`, and Chebyshev norm at most one on `[-1, 1]`, the classifier returns a class for every
+retained center of a prepared context whose intervals satisfy cap isolation at `sourceGamma0 cs N E`. -/
 private theorem original_retained_classified (cs : List ℚ) (N : ℕ) (E : ℚ) (bits : ℕ) (hE : 0<E)
     (htail : ∀ k,N+1≤k → cs.getD k 0=0)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)
@@ -1214,7 +1216,7 @@ private def GuardRecordGood (ctx : Context) (r eta : ℚ) (record : Record) : Pr
     (∀ d∈record.disks,d.2+|(rootGridPoint d.1 (eta/16)).1-d.1.1|+
       |(rootGridPoint d.1 (eta/16)).2-d.1.2|≤eta)
 
-/-- The finite construction in `SourceProposer` satisfies `cap_grid_budget` under the displayed hypotheses. -/
+/-- For positive gap, the common radius plus the two absolute coordinate shifts from rounding `c` to the grid of step `sourceWidth bits / 16` stays within `sourceWidth bits`. -/
 private theorem cap_grid_budget (contexts : List Context) (bits : ℕ) (gap : ℚ) (hg : 0<gap) (c : ℚ×ℚ) :
     radius contexts bits gap+|(rootGridPoint c (sourceWidth bits/16)).1-c.1|+
       |(rootGridPoint c (sourceWidth bits/16)).2-c.2|≤ sourceWidth bits := by
@@ -1226,7 +1228,7 @@ private theorem cap_grid_budget (contexts : List Context) (bits : ℕ) (gap : �
     |rootGridTruncate c.2 (sourceWidth bits/16)-c.2|≤ sourceWidth bits
   linarith
 
-/-- The finite construction in `SourceProposer` satisfies `factor_record_guards` under the displayed hypotheses. -/
+/-- For a good member context with positive gap, a radial gap bound on every factor root and both cap isolation properties, the generated record satisfies the count, duplicate, separation, classification and grid guards at the specified radius and target width. -/
 private theorem factor_record_guards (contexts : List Context) (bits : ℕ) (gap : ℚ) (hg : 0<gap)
     (ctx : Context) (hctx : ctx∈contexts) (hgood : ContextGood ctx)
     (hradial : ∀ z : ℂ,(rootIntegerListPolynomial ctx.factor).eval z=0 → (gap : ℝ)≤|‖z‖-1|)
@@ -1261,7 +1263,7 @@ private theorem factor_record_guards (contexts : List Context) (bits : ℕ) (gap
     obtain ⟨c,_,rfl⟩ := List.mem_map.mp hd
     exact cap_grid_budget contexts bits gap hg c
 
-/-- The finite construction in `SourceProposer` satisfies `stored_guard_record_success` under the displayed hypotheses. -/
+/-- If `gap` is positive and bounds the radial gap of every root of a good member context's factor, some fuel isolates its stored axes at the cap and yields a record satisfying the guards. -/
 private theorem stored_guard_record_success (contexts : List Context) (bits : ℕ) (gap : ℚ) (hg : 0<gap)
     (ctx : Context) (hctx : ctx∈contexts) (hgood : ContextGood ctx)
     (hradial : ∀ z : ℂ,(rootIntegerListPolynomial ctx.factor).eval z=0 → (gap : ℝ)≤|‖z‖-1|) :
@@ -1271,7 +1273,7 @@ private theorem stored_guard_record_success (contexts : List Context) (bits : �
   obtain ⟨fx,fy,ix,iy,hr,hx,hy⟩ := stored_axes_success ctx hgood (cap contexts bits gap)
   exact ⟨fx,fy,ix,iy,hr,factor_record_guards contexts bits gap hg ctx hctx hgood hradial ix iy hx hy⟩
 
-/-- The finite construction in `SourceProposer` satisfies `stored_guard_round_success` under the displayed hypotheses. -/
+/-- If all pending contexts are good members of `contexts` and every root of each factor has radial gap at least the positive `gap`, some fuel list of matching length makes the stored round return pointwise guarded records. -/
 private theorem stored_guard_round_success (todo contexts : List Context) (bits : ℕ) (gap : ℚ) (hg : 0<gap)
     (hm : ∀ ctx∈todo,ctx∈contexts) (hgood : ∀ ctx∈todo,ContextGood ctx)
     (hradial : ∀ ctx∈todo,∀ z : ℂ,(rootIntegerListPolynomial ctx.factor).eval z=0 → (gap : ℝ)≤|‖z‖-1|) :
@@ -1300,7 +1302,10 @@ private theorem guard_records_count_sound (todo : List Context) (records : List 
   | nil => exact List.Forall₂.nil
   | cons hhead _ ih => exact List.Forall₂.cons hhead.1 ih
 
-/-- The finite construction in `SourceProposer` satisfies `original_stored_cap_guards` under the displayed hypotheses. -/
+/-- For positive `E` and source degree, a vanishing coefficient tail above `N`, matching
+parity, and Chebyshev norm at most one on `[-1, 1]`, some fuel with one pair per context makes
+the stored cap round succeed. Its nonzero content and factors reconstruct the complement,
+and the guarded records at the source tolerance cover every complement root with a disk. -/
 private theorem original_stored_cap_guards (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E)
     (htail : ∀ k,N+1≤k → cs.getD k 0=0)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)
@@ -1339,7 +1344,7 @@ open ActualProjectionCapRound ActualProjectionContexts ActualProjectionOriginalR
 open ActualProjectionSourcePasses ActualProjectionSourceDerivative ActualRootProjectionCap
 open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data
 
-/-- The finite construction in `SourceProposer` satisfies `pack_guards` under the displayed hypotheses. -/
+/-- With positive radius and tolerance, a coefficient vector with nonzero last entry representing the context factor, positive exponent, the stated disk count and a guarded record, `pack` satisfies `RootIntegerFactorGuards`. -/
 private theorem pack_guards (ctx : Context) (record : Record) (r eta : ℚ) (hr : 0<r) (heta : 0<eta)
     (n : ℕ) (a : Fin (n+2) → ℤ) (ha : a (Fin.last (n+1))≠0)
     (hfactor : ctx.factor=List.ofFn a) (hexp : 0<ctx.exponent)
@@ -1387,7 +1392,7 @@ private theorem pack_guards (ctx : Context) (record : Record) (r eta : ℚ) (hr 
   · intro i _
     exact h.2.2.2.2 (d i) (hmem i)
 
-/-- The finite construction in `SourceProposer` satisfies `context_record_typed` under the displayed hypotheses. -/
+/-- For a good context and guarded record at positive radius and tolerance, a coefficient vector for the context factor exists whose packing preserves the context exponent and record disks and satisfies the typed factor guards. -/
 private theorem context_record_typed (ctx : Context) (hctx : ContextGood ctx)
     (record : Record) (r eta : ℚ) (hr : 0<r) (heta : 0<eta)
     (h : GuardRecordGood ctx r eta record) :
@@ -1408,7 +1413,7 @@ private theorem context_record_typed (ctx : Context) (hctx : ContextGood ctx)
   refine ⟨n,a,hfactor,h.1.1.2.1,pack_disks n a record hlen,?_⟩
   exact pack_guards ctx record r eta hr heta n a ha hfactor hctx.1.2.2.2.2 hlen h
 
-/-- The finite construction in `SourceProposer` satisfies `actual_record_typed` under the displayed hypotheses. -/
+/-- For a good context and guarded record at positive radius and tolerance, `packRecord` preserves the record coefficients, exponent and disks and satisfies the typed factor guards. -/
 private theorem actual_record_typed (ctx : Context) (hctx : ContextGood ctx)
     (record : Record) (r eta : ℚ) (hr : 0<r) (heta : 0<eta)
     (h : GuardRecordGood ctx r eta record) :
@@ -1465,7 +1470,7 @@ private def PackedGood (record : Record) (eta : ℚ) : Prop :=
     List.ofFn (fun i => ((packRecord record).centers i,(packRecord record).radii i))=record.disks ∧
     RootIntegerFactorGuards (packRecord record) eta
 
-/-- The finite construction in `SourceProposer` satisfies `records_typed` under the displayed hypotheses. -/
+/-- For positive radius and tolerance, good contexts and pointwise guarded records, each packed record preserves its data and satisfies the typed guards. The packed list also matches the contexts' coefficient lists and exponents pointwise. -/
 private theorem records_typed (contexts : List Context) (records : List Record) (r eta : ℚ)
     (hr : 0<r) (heta : 0<eta) (hctx : ∀ ctx∈contexts,ContextGood ctx)
     (hrecords : List.Forall₂ (fun ctx record => GuardRecordGood ctx r eta record) contexts records) :
@@ -1493,7 +1498,10 @@ private def atCapTyped (target : List ℤ) (bits : ℕ) (gap : ℚ) (fuels : Lis
     Option (ℤ×List RootIntegerFactorData) :=
   (atCapStored target bits gap fuels).map (fun p => (p.1,p.2.map packRecord))
 
-/-- The finite construction in `SourceProposer` satisfies `original_stored_cap_typed` under the displayed hypotheses. -/
+/-- For positive `E` and source degree, coefficient support and parity matching `N`, and
+Chebyshev norm at most one on `[-1, 1]`, the stored and typed cap runs succeed at the same
+fuel. Packing the guarded records preserves the factors and exponents of a nonzero-content
+complement factorization and gives disk coverage of every complement root. -/
 private theorem original_stored_cap_typed (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E)
     (htail : ∀ k,N+1≤k → cs.getD k 0=0)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)
@@ -1555,7 +1563,7 @@ private theorem normalized_length_le (a b : List ℤ) (hb : Normalized b)
     rw [ha,hb] at he
     exact hx he.symm
 
-/-- The finite construction in `SourceProposer` satisfies `normalized_ext` under the displayed hypotheses. -/
+/-- Two normalized integer coefficient lists representing the same complex polynomial are equal. -/
 private theorem normalized_ext (a b : List ℤ) (ha : Normalized a) (hb : Normalized b)
     (hp : rootIntegerListPolynomial a=rootIntegerListPolynomial b) : a=b := by
   have hc : ∀ k,a.getD k 0=b.getD k 0 := by
@@ -1571,11 +1579,11 @@ private theorem normalized_ext (a b : List ℤ) (ha : Normalized a) (hb : Normal
   rw [← List.getD_eq_getElem a 0 hi,← List.getD_eq_getElem b 0 hj]
   exact hc i
 
-/-- The finite construction in `SourceProposer` satisfies `canonical_normalized` under the displayed hypotheses. -/
+/-- Trimming an integer coefficient list with `rootCanonicalCoefficients` yields the empty list or a list with nonzero last coefficient. -/
 private theorem canonical_normalized (a : List ℤ) : Normalized (rootCanonicalCoefficients a) :=
   rootCanonicalCoefficients_shape a
 
-/-- The finite construction in `SourceProposer` satisfies `multiply_normalized` under the displayed hypotheses. -/
+/-- Integer coefficient-list multiplication returns a normalized coefficient list. -/
 private theorem multiply_normalized (a b : List ℤ) : Normalized (rootIntegerListMultiply a b) := by
   cases a with
   | nil => exact Or.inl rfl
@@ -1584,27 +1592,27 @@ private theorem multiply_normalized (a b : List ℤ) : Normalized (rootIntegerLi
     | nil => exact Or.inl rfl
     | cons y ys => exact canonical_normalized _
 
-/-- The finite construction in `SourceProposer` satisfies `repeat_normalized` under the displayed hypotheses. -/
+/-- Repeatedly multiplying a normalized accumulator by `factor` preserves normalization for every repeat count. -/
 private theorem repeat_normalized (factor : List ℤ) (n : ℕ) (acc : List ℤ) (ha : Normalized acc) :
     Normalized (rootIntegerListRepeatMultiply factor n acc) := by
   induction n generalizing acc with
   | zero => exact ha
   | succ n ih => exact ih _ (multiply_normalized acc factor)
 
-/-- The finite construction in `SourceProposer` satisfies `fold_normalized` under the displayed hypotheses. -/
+/-- Folding repeated coefficient-list multiplication over the factor and exponent pairs preserves normalization of the initial accumulator. -/
 private theorem fold_normalized (factors : List (List ℤ×ℕ)) (acc : List ℤ) (ha : Normalized acc) :
     Normalized (factors.foldl (fun acc f => rootIntegerListRepeatMultiply f.1 f.2 acc) acc) := by
   induction factors generalizing acc with
   | nil => exact ha
   | cons f fs ih => exact ih _ (repeat_normalized f.1 f.2 acc ha)
 
-/-- The finite construction in `SourceProposer` satisfies `product_normalized` under the displayed hypotheses. -/
+/-- The integer list for the factor product is normalized when its content `c` is nonzero. -/
 private theorem product_normalized (c : ℤ) (hc : c≠0) (factors : List (List ℤ×ℕ)) :
     Normalized (rootIntegerFactorProduct c factors) := by
   apply fold_normalized factors [c]
   exact Or.inr ⟨[],c,rfl,hc⟩
 
-/-- The finite construction in `SourceProposer` satisfies `coefficient_list_guard` under the displayed hypotheses. -/
+/-- If the complex polynomial of `H` equals the factor powers multiplied by nonzero integer content `c`, the integer list product equals `rootCanonicalCoefficients H`. -/
 private theorem coefficient_list_guard (H : List ℤ) (c : ℤ) (hc : c≠0) (factors : List (List ℤ×ℕ))
     (hp : rootIntegerListPolynomial H=C (c : ℂ)*
       (factors.map (fun f => (rootIntegerListPolynomial f.1)^f.2)).prod) :
@@ -1629,7 +1637,7 @@ private def factorList (fs : List RootIntegerFactorData) : List (List ℤ×ℕ) 
 /-- Construction for family in the source proposer model. -/
 private def family (fs : List RootIntegerFactorData) : Fin fs.length → RootIntegerFactorData := fs.get
 
-/-- The finite construction in `SourceProposer` satisfies `raw_product_map` under the displayed hypotheses. -/
+/-- Casting `rawProduct fs` to complex coefficients gives the product of the complex polynomial of each listed factor raised to its listed exponent. -/
 private theorem raw_product_map (fs : List (List ℤ×ℕ)) :
     (rawProduct fs).map (Int.castRingHom ℂ)=
       (fs.map (fun f => (rootIntegerListPolynomial f.1)^f.2)).prod := by
@@ -1640,7 +1648,7 @@ private theorem raw_product_map (fs : List (List ℤ×ℕ)) :
     rw [Polynomial.map_mul,Polynomial.map_pow,ih,List.map_cons,List.prod_cons]
     rfl
 
-/-- The finite construction in `SourceProposer` satisfies `integer_product_guard` under the displayed hypotheses. -/
+/-- A factorization of `integerPoly H` with nonzero content `c` implies exact equality between the integer coefficient-list product and the canonical coefficients of `H`. -/
 private theorem integer_product_guard (H : List ℤ) (c : ℤ) (fs : List (List ℤ×ℕ))
     (hc : c≠0) (hp : integerPoly H=C c*rawProduct fs) :
     rootIntegerFactorProduct c fs=rootCanonicalCoefficients H := by
@@ -1650,7 +1658,7 @@ private theorem integer_product_guard (H : List ℤ) (c : ℤ) (fs : List (List 
   rw [Polynomial.map_mul,Polynomial.map_C,raw_product_map] at he
   exact he
 
-/-- The finite construction in `SourceProposer` satisfies `typed_factor_list` under the displayed hypotheses. -/
+/-- If each typed factor matches its context's coefficient list and exponent, extracting those pairs from the typed list gives the pairs from the context list. -/
 private theorem typed_factor_list (contexts : List ActualRootProjectionCap.Context) (fs : List RootIntegerFactorData)
     (h : List.Forall₂ (fun ctx f => List.ofFn f.coefficients=ctx.factor ∧ f.exponent=ctx.exponent) contexts fs) :
     factorList fs=contexts.map (fun ctx => (ctx.factor,ctx.exponent)) := by
@@ -1660,13 +1668,16 @@ private theorem typed_factor_list (contexts : List ActualRootProjectionCap.Conte
     change (List.ofFn _,_)::factorList _=(_,_)::List.map _ _
     rw [hhead.1,hhead.2,ih]
 
-/-- The finite construction in `SourceProposer` satisfies `family_factor_list` under the displayed hypotheses. -/
+/-- Enumerating the factors of the finite family in index order recovers their coefficient and exponent pairs in list order. -/
 private theorem family_factor_list (fs : List RootIntegerFactorData) :
     List.ofFn (fun j => (List.ofFn (family fs j).coefficients,(family fs j).exponent))=factorList fs := by
   have he := congrArg (List.map (fun f : RootIntegerFactorData => (List.ofFn f.coefficients,f.exponent))) (List.ofFn_get fs)
   simpa only [List.map_ofFn,Function.comp_def,factorList,family] using he
 
-/-- The finite construction in `SourceProposer` satisfies `original_typed_certificate` under the displayed hypotheses. -/
+/-- If `E` and the source degree are positive, the list has no nonzero coefficients above
+`N` or of opposite parity, and the Chebyshev norm on `[-1, 1]` is at most one, some typed
+cap run returns nonzero content and factors reconstructing the canonical complement
+coefficients. Every factor satisfies the guards at the source tolerance. -/
 private theorem original_typed_certificate (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E)
     (htail : ∀ k,N+1≤k → cs.getD k 0=0)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)
@@ -1699,7 +1710,7 @@ open ActualProjectionPreparedContexts ActualYunOriginalTarget ActualYunPrimitive
 open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data
 open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data.SourceInput
 
-/-- The finite construction in `SourceProposer` satisfies `complete_weighted_degree` under the displayed hypotheses. -/
+/-- If the root multiset of `H` is the union of the indexed witness sets counted with their factor exponents, injectivity within each witness family makes the decoded weighted degree equal the multiset cardinality. -/
 private theorem complete_weighted_degree (m : ℕ) (H : List ℤ) (f : Fin m → RootIntegerFactorData)
     (w : (j : Fin m) → Fin ((f j).n+1) → ℂ) (hinj : ∀ j,Function.Injective (w j))
     (hroots : (rootIntegerListPolynomial H).roots=(Finset.univ : Finset (Fin m)).val.bind
@@ -1720,7 +1731,12 @@ private theorem complete_weighted_degree (m : ℕ) (H : List ℤ) (f : Fin m →
     ((List.finRange m).map (fun j => ((f j).exponent • (Finset.univ.image (w j)).val).card)).sum
   simp only [hcard]
 
-/-- The finite construction in `SourceProposer` satisfies `original_computed_allocation` under the displayed hypotheses. -/
+/-- For positive `E` and source degree, coefficient support and parity matching `N`, and
+Chebyshev norm at most one on `[-1, 1]`, some typed cap run returns guarded factors
+reconstructing the complement. Their weighted degree is twice the source degree. Both decoded
+side counts and the returned list length equal the source degree. Each returned point lies
+inside the unit disk and matches an interior complement root within the source tolerance,
+with the roots counted with multiplicity. -/
 private theorem original_computed_allocation (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E)
     (htail : ∀ k,N+1≤k → cs.getD k 0=0)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)
@@ -1770,7 +1786,7 @@ open Polynomial ActualProjectionIntegerProductGuard ActualYunOriginalTarget Actu
 open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data
 open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data.SourceInput
 
-/-- The finite construction in `SourceProposer` satisfies `normalized_of_last` under the displayed hypotheses. -/
+/-- A coefficient list with nonzero zero-default lookup at its last index is normalized. -/
 private theorem normalized_of_last (a : List ℤ) (ha : a.getD (a.length-1) 0≠0) : Normalized a := by
   induction a using List.reverseRecOn with
   | nil => simp at ha
@@ -1853,7 +1869,7 @@ open ActualProjectionCapRound ActualProjectionContexts ActualProjectionIntegerPr
 open ActualProjectionVerifierBounds
 open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data
 
-/-- The finite construction in `SourceProposer` satisfies `generated_record_checks` under the displayed hypotheses. -/
+/-- A good context's guarded record is fixed by record normalization and passes the count check. -/
 private theorem generated_record_checks (ctx : ActualRootProjectionCap.Context) (hctx : ContextGood ctx)
     (record : Record) (r eta : ℚ) (h : GuardRecordGood ctx r eta record) :
     normalizeRecord record=record ∧ countCheck record=true := by
@@ -1877,7 +1893,7 @@ private theorem generated_record_checks (ctx : ActualRootProjectionCap.Context) 
   · apply decide_eq_true
     constructor <;> omega
 
-/-- The finite construction in `SourceProposer` satisfies `generated_list_checks` under the displayed hypotheses. -/
+/-- If all contexts are good and the records satisfy the guards pointwise, every record is fixed by normalization and passes the count check. -/
 private theorem generated_list_checks (contexts : List ActualRootProjectionCap.Context) (records : List Record) (r eta : ℚ)
     (hctx : ∀ ctx∈contexts,ContextGood ctx)
     (h : List.Forall₂ (fun ctx record => GuardRecordGood ctx r eta record) contexts records) :
@@ -1891,7 +1907,7 @@ private theorem generated_list_checks (contexts : List ActualRootProjectionCap.C
       exact generated_record_checks ctx (hctx ctx (by simp)) record r eta hhead
     · exact ih (fun c hc => hctx c (by simp only [List.mem_cons]; exact Or.inr hc)) d he
 
-/-- The finite construction in `SourceProposer` satisfies `decode_generated` under the displayed hypotheses. -/
+/-- Given good contexts and pointwise guarded records, decoding succeeds and returns `records.map packRecord`. -/
 private theorem decode_generated (contexts : List ActualRootProjectionCap.Context) (records : List Record) (r eta : ℚ)
     (hctx : ∀ ctx∈contexts,ContextGood ctx)
     (h : List.Forall₂ (fun ctx record => GuardRecordGood ctx r eta record) contexts records) :
@@ -1915,7 +1931,10 @@ open ActualProjectionVerifierPrimitives ActualProjectionVerifierBounds ActualPro
 open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data
 open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data.SourceInput
 
-/-- The finite construction in `SourceProposer` satisfies `original_verified_cap` under the displayed hypotheses. -/
+/-- With positive `E` and source degree, the required coefficient tail and parity at `N`,
+and Chebyshev norm at most one on `[-1, 1]`, some typed cap result passes verification.
+Its decoded points lie inside the unit disk and match all interior complement roots with
+multiplicity within the source tolerance. -/
 private theorem original_verified_cap (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0 < E)
     (htail : ∀ k,N+1 ≤ k → cs.getD k 0=0)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)
@@ -1960,7 +1979,10 @@ open ActualYunPrimitiveContent ActualYunContentSupply
 open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data
 open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data.SourceInput
 
-/-- The finite construction in `SourceProposer` satisfies `original_raw_verified_cap` under the displayed hypotheses. -/
+/-- For positive `E` and source degree, coefficients supported at indices at most `N` of
+the same parity as `N`, and Chebyshev norm at most one on `[-1, 1]`, some stored cap result
+passes raw-record verification. Its list has source-degree length, with points inside the
+unit disk paired with interior complement roots with multiplicity within the source tolerance. -/
 private theorem original_raw_verified_cap (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0 < E)
     (htail : ∀ k,N+1 ≤ k → cs.getD k 0=0)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)
@@ -2055,7 +2077,7 @@ private theorem next_bounds (cap P : ℕ) (hP : 0 < P) (hcap : P < cap) :
   unfold next
   omega
 
-/-- The finite construction in `SourceProposer` satisfies `run_success` under the displayed hypotheses. -/
+/-- For a successful run started at `0 < P ≤ cap`, the nonempty, strictly increasing trace starts at `P` and ends at a precision `Q` in that range at which the round returns the reported points. -/
 private theorem run_success (round : ℕ → Option Points) (cap fuel P : ℕ) (hP : 0 < P) (hcap : P ≤ cap)
     (points : Points) (trace : List ℕ) (h : run round cap fuel P=some (points,trace)) :
     ∃ Q,round Q=some points ∧ P ≤ Q ∧ Q ≤ cap ∧ trace≠[] ∧
@@ -2101,7 +2123,7 @@ private theorem run_success (round : ℕ → Option Points) (cap fuel P : ℕ) (
             · exact (List.pairwise_cons.mp hpair).1 x hxe |>.le
           omega
 
-/-- The finite construction in `SourceProposer` satisfies `run_reaches_cap` under the displayed hypotheses. -/
+/-- If `0 < P ≤ cap`, the cap round succeeds, and fuel exceeds `cap - P`, the precision loop returns points and a trace. -/
 private theorem run_reaches_cap (round : ℕ → Option Points) (cap fuel P : ℕ)
     (hP : 0 < P) (hcap : P ≤ cap) (hbudget : cap-P < fuel)
     (capPoints : Points) (hterminal : round cap=some capPoints) :
@@ -2146,7 +2168,7 @@ def propose (H : List ℤ) (bits inside : ℕ) (gap : ℚ) (plan : FuelPlan) : O
     let limit := cap pair.2 bits gap
     run (roundValue H bits inside pair.1 pair.2 plan) limit (limit+1) (2*bits+16))
 
-/-- The finite construction in `SourceProposer` satisfies `stored_round_finite` under the displayed hypotheses. -/
+/-- For a list of good contexts, any precision and radius admit a fuel list for which the stored round returns records. -/
 private theorem stored_round_finite (contexts : List Context) (P : ℕ) (r : ℚ)
     (hctx : ∀ ctx∈contexts,ContextGood ctx) :
     ∃ fuels records,roundStored contexts P r fuels=some records := by
@@ -2158,7 +2180,7 @@ private theorem stored_round_finite (contexts : List Context) (P : ℕ) (r : ℚ
     exact ⟨(fx,fy)::fuels,factorRecord ctx r ix iy::records,by
       simp only [roundStored,hr,Option.bind_some,hs,Option.map_some]⟩
 
-/-- The finite construction in `SourceProposer` satisfies `finite_plan` under the displayed hypotheses. -/
+/-- For good contexts, a successful terminal round at radius `1 / 2^(limit / 2)` extends to a fuel plan of length `limit + 1`. It keeps `capFuels` at the limit and supplies a successful round at every precision up to the limit with the corresponding radius. -/
 private theorem finite_plan (contexts : List Context) (limit : ℕ)
     (hctx : ∀ ctx∈contexts,ContextGood ctx) (capFuels : List (ℕ×ℕ)) (capRecords : List Record)
     (hr : roundStored contexts limit (1/(2 : ℚ)^(limit/2)) capFuels=some capRecords) :
@@ -2186,7 +2208,7 @@ private theorem finite_plan (contexts : List Context) (limit : ℕ)
   · intro P hP
     exact ⟨records P,by rw [hget P hP]; exact (hs P).1⟩
 
-/-- The finite construction in `SourceProposer` satisfies `round_value_sound` under the displayed hypotheses. -/
+/-- A successful planned round pairs its points inside the unit disk with the interior roots of `H` counted with multiplicity. The distance bound is zero when `inside = 0` and `1 / 2^bits` otherwise. -/
 private theorem round_value_sound (H : List ℤ) (bits inside : ℕ) (c : ℤ) (contexts : List Context)
     (plan : FuelPlan) (P : ℕ) (points : Points) (h : roundValue H bits inside c contexts plan P=some points) :
     ∃ zs : List ℂ,(zs : Multiset ℂ)=(rootIntegerListPolynomial H).roots.filter (fun z => ‖z‖ < 1) ∧
@@ -2199,7 +2221,11 @@ private theorem round_value_sound (H : List ℤ) (bits inside : ℕ) (c : ℤ) (
       simpa only [roundValue,hr,Option.bind_some] using h
     exact raw_returned_of_verify H bits inside c records points hv
 
-/-- The finite construction in `SourceProposer` satisfies `original_prepared_loop` under the displayed hypotheses. -/
+/-- For positive `E` and source degree, coefficient support and parity matching `N`, and
+Chebyshev norm at most one on `[-1, 1]`, a fuel plan supplies successful stored rounds
+through the cap. The proposer returns a strictly increasing trace from `2 * bits + 16` to
+a successful round at or below the cap. Its point list has source-degree length and lies
+inside the unit disk, matching the interior roots with multiplicity within the source tolerance. -/
 private theorem original_prepared_loop (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0 < E)
     (htail : ∀ k,N+1 ≤ k → cs.getD k 0=0)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)
@@ -2270,14 +2296,14 @@ def axes (ctx : Context) (hg : ContextGood ctx) (P : ℕ) : List (ℚ×ℚ)×Lis
   (searched (lift ctx.xProjection) hg.2.2.1.1 hg.2.2.1.2.1 hg.2.2.1.2.2.1 P,
    searched (lift ctx.yProjection) hg.2.2.2.1 hg.2.2.2.2.1 hg.2.2.2.2.2.1 P)
 
-/-- The finite construction in `SourceProposer` satisfies `searched_of_run` under the displayed hypotheses. -/
+/-- For canonical nonzero input of positive degree, any successful fixed-fuel isolation at precision `P` agrees exactly with the intervals obtained by searching for fuel. -/
 private theorem searched_of_run (a : List ℚ) (hcan : ActualYunRationalCanonical.Canonical a)
     (ha : ActualYunRationalArray.poly a≠0) (hd : 0 < (ActualYunRationalArray.poly a).natDegree)
     (P fuel : ℕ) (ps : List (ℚ×ℚ)) (hr : intervals a P fuel=some ps) :
     searched a hcan ha hd P=ps :=
   intervals_unique a P _ fuel _ ps (ActualFiniteFuelSearch.trial_value _ _) hr
 
-/-- The finite construction in `SourceProposer` satisfies `axes_of_run` under the displayed hypotheses. -/
+/-- For a good context, the searched axis isolation at precision `P` equals the pair returned by any successful fixed-fuel run at that precision. -/
 private theorem axes_of_run (ctx : Context) (hg : ContextGood ctx) (P fx fy : ℕ)
     (ix iy : List (ℚ×ℚ)) (hr : storedAxes ctx P fx fy=some (ix,iy)) : axes ctx hg P=(ix,iy) := by
   cases hx : intervals (lift ctx.xProjection) P fx with
@@ -2300,7 +2326,7 @@ def records : (contexts : List Context) → (∀ ctx∈contexts,ContextGood ctx)
     factorRecord ctx r pair.1 pair.2::records tail
       (fun c hc => hg c (by simp only [List.mem_cons]; exact Or.inr hc)) P r
 
-/-- The finite construction in `SourceProposer` satisfies `records_of_run` under the displayed hypotheses. -/
+/-- For good contexts, any successful stored round gives exactly the records computed by searching for fuel at the same precision and radius. -/
 private theorem records_of_run (contexts : List Context) (hg : ∀ ctx∈contexts,ContextGood ctx)
     (P : ℕ) (r : ℚ) (fuels : List (ℕ×ℕ)) (rs : List Record)
     (hr : roundStored contexts P r fuels=some rs) : records contexts hg P r=rs := by
@@ -2354,7 +2380,7 @@ def propose (H : List ℤ) (bits inside : ℕ) (gap : ℚ) (good : PreparationGo
     let limit := cap pair.2 bits gap
     run (roundValue H bits inside pair.1 pair.2 (good pair.1 pair.2 hp)) limit (limit+1) (2*bits+16)
 
-/-- The finite construction in `SourceProposer` satisfies `propose_of_prepare` under the displayed hypotheses. -/
+/-- After successful preparation, the searched proposer is the round-value loop started at `2 * bits + 16` with fuel one greater than the common precision cap. -/
 private theorem propose_of_prepare (H : List ℤ) (bits inside : ℕ) (gap : ℚ) (good : PreparationGood H)
     (c : ℤ) (contexts : List Context) (hp : prepare H=some (c,contexts)) :
     propose H bits inside gap good=
@@ -2368,7 +2394,7 @@ private theorem propose_of_prepare (H : List ℤ) (bits inside : ℕ) (gap : ℚ
     subst pair
     rfl
 
-/-- The finite construction in `SourceProposer` satisfies `original_preparation_good` under the displayed hypotheses. -/
+/-- Under the source parity and positive degree hypotheses, every context of every successful preparation of the integer complement is good, as required by `PreparationGood`. -/
 theorem original_preparation_good (cs : List ℚ) (N : ℕ) (E : ℚ)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)
     (hd : 0 < sourceDegree cs N E) : PreparationGood (sourceIntegerComplement cs N E) :=
@@ -2381,7 +2407,7 @@ def originalPropose (cs : List ℚ) (N : ℕ) (E : ℚ)
   propose (sourceIntegerComplement cs N E) (sourceInputR cs N E) (sourceDegree cs N E)
     (sourceGamma0 cs N E) (original_preparation_good cs N E hparity hd)
 
-/-- The finite construction in `SourceProposer` satisfies `round_value_sound` under the displayed hypotheses. -/
+/-- For good contexts, points from a successful searched round are inside the unit disk and match the interior roots of `H` with multiplicity. The distance bound is zero for `inside = 0` and `1 / 2^bits` otherwise. -/
 private theorem round_value_sound (H : List ℤ) (bits inside : ℕ) (c : ℤ) (contexts : List Context)
     (hg : ∀ ctx∈contexts,ContextGood ctx) (P : ℕ) (points : Points)
     (h : roundValue H bits inside c contexts hg P=some points) :
@@ -2390,7 +2416,11 @@ private theorem round_value_sound (H : List ℤ) (bits inside : ℕ) (c : ℤ) (
         ‖rootRationalCoordinate q-z‖ ≤ ((if inside=0 then (0 : ℚ) else 1/(2 : ℚ)^bits) : ℝ)) points zs :=
   raw_returned_of_verify H bits inside c _ points h
 
-/-- The finite construction in `SourceProposer` satisfies `original_searched_loop` under the displayed hypotheses. -/
+/-- If `E` and the source degree are positive, coefficients beyond `N` or of opposite
+parity vanish, and the Chebyshev norm on `[-1, 1]` is at most one, the searched proposer
+returns a strictly increasing trace from `2 * bits + 16` to a successful round at or below
+the cap. Its point list has source-degree length, lies inside the unit disk and matches
+the interior complement roots with multiplicity within the source tolerance. -/
 private theorem original_searched_loop (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0 < E)
     (htail : ∀ k,N+1 ≤ k → cs.getD k 0=0)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)
@@ -2469,7 +2499,7 @@ private theorem next_bounds (cap P : ℕ) (hP : 0 < P) (hcap : P < cap) :
   unfold next
   omega
 
-/-- The finite construction in `SourceProposer` satisfies `run_success` under the displayed hypotheses. -/
+/-- When `0 < P ≤ cap`, a successful payload run returns a nonempty strictly increasing trace from `P` to some `Q` in that range, where the round returns the same payload. -/
 theorem run_success (round : ℕ → Option α) (cap fuel P : ℕ) (hP : 0 < P) (hcap : P ≤ cap)
     (points : α) (trace : List ℕ) (h : run round cap fuel P=some (points,trace)) :
     ∃ Q,round Q=some points ∧ P ≤ Q ∧ Q ≤ cap ∧ trace≠[] ∧
@@ -2516,7 +2546,7 @@ theorem run_success (round : ℕ → Option α) (cap fuel P : ℕ) (hP : 0 < P) 
               omega
           omega
 
-/-- The finite construction in `SourceProposer` satisfies `run_reaches_cap` under the displayed hypotheses. -/
+/-- For any payload type, if `0 < P ≤ cap`, fuel exceeds `cap - P`, and the round at the cap succeeds, the payload loop returns a value and trace. -/
 theorem run_reaches_cap (round : ℕ → Option α) (cap fuel P : ℕ)
     (hP : 0 < P) (hcap : P ≤ cap) (hbudget : cap-P < fuel)
     (capValue : α) (hterminal : round cap=some capValue) :
@@ -2579,7 +2609,7 @@ def originalPropose (cs : List ℚ) (N : ℕ) (E : ℚ)
   propose (sourceIntegerComplement cs N E) (sourceInputR cs N E) (sourceDegree cs N E)
     (sourceGamma0 cs N E) (original_preparation_good cs N E hparity hd)
 
-/-- The finite construction in `SourceProposer` satisfies `propose_of_prepare` under the displayed hypotheses. -/
+/-- Given successful preparation, the certificate proposer runs the payload loop on the checked rounds from `2 * bits + 16`, with fuel one greater than the cap. -/
 private theorem propose_of_prepare (H : List ℤ) (bits inside : ℕ) (gap : ℚ) (good : PreparationGood H)
     (c : ℤ) (contexts : List Context) (hp : prepare H=some (c,contexts)) :
     propose H bits inside gap good=
@@ -2593,7 +2623,7 @@ private theorem propose_of_prepare (H : List ℤ) (bits inside : ℕ) (gap : ℚ
     subst pair
     rfl
 
-/-- The finite construction in `SourceProposer` satisfies `checked_of_verified` under the displayed hypotheses. -/
+/-- If raw-record verification returns `points`, the checked-record path returns a certificate with content `c`, some typed factors, and the same `points`. -/
 private theorem checked_of_verified (H : List ℤ) (bits inside : ℕ) (c : ℤ) (raw : List Record)
     (points : List (ℚ×ℚ)) (h : verifyRecords H bits inside c raw=some points) :
     ∃ fs,checkedRecords H bits inside c raw=some ⟨c,fs,points⟩ := by
@@ -2603,7 +2633,7 @@ private theorem checked_of_verified (H : List ℤ) (bits inside : ℕ) (c : ℤ)
     have hv : verify H bits inside c fs=some points := by simpa only [verifyRecords,hd,Option.bind_some] using h
     exact ⟨fs,by simp only [checkedRecords,hd,Option.bind_some,hv,Option.map_some]⟩
 
-/-- The finite construction in `SourceProposer` satisfies `checked_spec` under the displayed hypotheses. -/
+/-- A certificate returned by `checkedRecords` has the supplied content `c`, and typed verification of its factors returns its stored points. -/
 private theorem checked_spec (H : List ℤ) (bits inside : ℕ) (c : ℤ) (raw : List Record)
     (result : Certificate) (h : checkedRecords H bits inside c raw=some result) :
     result.content=c ∧ verify H bits inside result.content result.factors=some result.points := by
@@ -2618,7 +2648,11 @@ private theorem checked_spec (H : List ℤ) (bits inside : ℕ) (c : ℤ) (raw :
       subst result
       exact ⟨rfl,hv⟩
 
-/-- The finite construction in `SourceProposer` satisfies `original_certificate_loop` under the displayed hypotheses. -/
+/-- For positive `E` and source degree, coefficient support and parity matching `N`, and
+Chebyshev norm at most one on `[-1, 1]`, the proposer returns a certificate and a strictly
+increasing trace from `2 * sourceInputR cs N E + 16` to a successful round at or below the
+cap. The certificate's nonzero prepared content and guarded factors reconstruct the
+canonical complement. Its points are the decoded return list and have source-degree length. -/
 private theorem original_certificate_loop (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0 < E)
     (htail : ∀ k,N+1 ≤ k → cs.getD k 0=0)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)
@@ -2725,7 +2759,11 @@ private def PacketGood (cs : List ℚ) (N : ℕ) (E : ℚ) (result : PacketRetur
     (nativeChebyshevMass (sourceResidual cs result.standard) : ℝ) ≤ 13*(E : ℝ)/32 ∧
     nativeChebyshevPacketCheck cs (sourceResidual cs result.standard) result.standard E=true
 
-/-- The finite construction in `SourceProposer` satisfies `original_generated_packet` under the displayed hypotheses. -/
+/-- With positive `E` and source degree, coefficient support and parity matching `N`, and
+Chebyshev norm at most one on `[-1, 1]`, the proposer returns a valid complement certificate
+and trace. Finishing gives standard and native packets with `N` phases and unit-norm bases
+and phases. The native real response has error at most `13 * sourceInputU cs N E / 32` on
+`[-1, 1]`, the residual mass is at most `13 * E / 32`, and the packet check accepts. -/
 private theorem original_generated_packet (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0 < E)
     (htail : ∀ k,N+1 ≤ k → cs.getD k 0=0)
     (hparity : ∀ j : Fin (N+1),j.val%2≠N%2 → cs.getD j.val 0=0)
@@ -2772,7 +2810,12 @@ open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data
 open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data.SourceInput
 open scoped Matrix.Norms.L2Operator
 
-/-- The finite construction in `SourceProposer` satisfies `original_generated_checked_word` under the displayed hypotheses. -/
+/-- Suppose `A` has the given projected unitary encoding and the Chebyshev input has
+positive `E` and source degree, support and parity matching `N`, and norm at most one
+on `[-1, 1]`. The generated packet gives well-formed words in both projector orders.
+The `R`, `L` word uses `N` queries and `N + 1` gates. For odd `N` its evaluation with `U`
+block-encodes the odd singular transform. For even `N` the reversed projector order with
+`Uᴴ` block-encodes the right singular transform. Both bounds use unit scale and error `E`. -/
 private theorem original_generated_checked_word
     {H I O : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]
@@ -2888,7 +2931,8 @@ theorem source_original_sturm_intervals (cs : List ℚ) (N : ℕ) (E : ℚ)
     (by rw [hAdeg]; omega) bits
 
 
-/-- The finite construction in `SourceProposer` satisfies `projection_output_public` under the displayed hypotheses. -/
+/-- The internal axis output properties imply that the public array has length one more
+than its positive polynomial degree and vanishes on the selected coordinate of every input root. -/
 private theorem projection_output_public (cs out : List ℤ)
     (axis : RootYunInternal.ActualProjectionEntryDegrees.Axis)
     (h : RootYunInternal.ActualProjectionProducedArrays.OutputProperties cs axis out) :
@@ -2940,7 +2984,7 @@ def RootProjectionFactorRecordGood (ctx : RootProjectionContext) (r eta : ℚ)
     (∀ d∈record.disks,d.2+|(rootGridPoint d.1 (eta/16)).1-d.1.1|+
       |(rootGridPoint d.1 (eta/16)).2-d.1.2|≤eta)
 
-/-- The finite construction in `SourceProposer` satisfies `rootProjectionPublishGood` under the displayed hypotheses. -/
+/-- At positive radius, publishing a guarded internal record preserves the factor, exponent and disk guards in the public contract. -/
 private theorem rootProjectionPublishGood (ctx : RootProjectionContext) (r eta : ℚ) (hr : 0<r)
     (record : RootYunInternal.ActualProjectionCapRound.Record)
     (h : RootYunInternal.ActualProjectionCapGuardRound.GuardRecordGood ctx r eta record) :
@@ -2952,7 +2996,7 @@ private theorem rootProjectionPublishGood (ctx : RootProjectionContext) (r eta :
   rw [hrr]
   exact hz
 
-/-- The finite construction in `SourceProposer` satisfies `rootProjectionPublishRecordsGood` under the displayed hypotheses. -/
+/-- At positive radius, publishing pointwise guarded records gives a list satisfying the public factor-record predicate pointwise against the same contexts. -/
 private theorem rootProjectionPublishRecordsGood (contexts : List RootProjectionContext)
     (records : List RootYunInternal.ActualProjectionCapRound.Record) (r eta : ℚ) (hr : 0<r)
     (h : List.Forall₂ (fun ctx record => RootYunInternal.ActualProjectionCapGuardRound.GuardRecordGood ctx r eta record) contexts records) :
@@ -3121,7 +3165,13 @@ open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data
 open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data.SourceInput
 open scoped Matrix.Norms.L2Operator
 
-/-- The finite construction in `SourceProposer` satisfies `source_original_generated_nonconstant_word` under the displayed hypotheses. -/
+/-- Given a projected unitary encoding of `A` and a Chebyshev input with positive `E` and
+source degree, coefficients supported through `N` with its parity, and norm at most one on
+`[-1, 1]`, the generator returns standard and native phase data and a trace. The standard
+words in both projector orders are well formed. The `R`, `L` word has `N` queries and
+`N + 1` gates and for odd `N` block-encodes the odd singular transform with oracle `U`.
+For even `N` the `L`, `R` word with oracle `Uᴴ` block-encodes the right singular transform.
+Both error bounds use unit scale and tolerance `E`. -/
 theorem source_original_generated_nonconstant_word
     {H I O : Type} [Fintype H] [DecidableEq H]
     [Fintype I] [DecidableEq I] [Fintype O] [DecidableEq O]

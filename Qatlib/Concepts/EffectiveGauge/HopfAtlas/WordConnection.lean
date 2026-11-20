@@ -28,13 +28,13 @@ local instance : StarModule ℝ ℍ where
 def quaternionReCoordinate : ℍ →L[ℝ] ℝ :=
   (EuclideanSpace.proj (0 : Fin 4)).comp Quaternion.linearIsometryEquivTuple.toContinuousLinearMap
 
-/-- Original `quaternion_re_abs_le_norm` guarantee for the `WordConnection` construction; the complete source hypotheses are retained. -/
+/-- The absolute value of the real part of a quaternion is at most its norm. -/
 theorem quaternion_re_abs_le_norm (q : ℍ) : |q.re| ≤ ‖q‖ := by
   apply (sq_le_sq₀ (abs_nonneg _) (norm_nonneg _)).mp
   rw [sq_abs,pow_two,pow_two,← Quaternion.normSq_eq_norm_mul_self,Quaternion.normSq_def']
   nlinarith [sq_nonneg q.imI,sq_nonneg q.imJ,sq_nonneg q.imK]
 
-/-- Original `connection_eq_real_product` guarantee for the `WordConnection` construction; the complete source hypotheses are retained. -/
+/-- The connection component in direction `i` is the real part of `(iAxis * q x) * star (∂ᵢq x)`. -/
 theorem connection_eq_real_product (q : QuaternionField) (i : Fin 3) :
     (fun x => connection q x i)=fun x => quaternionReCoordinate
       ((iAxis*q x)*star (spatialWordPartial q [i] x)) := by
@@ -42,7 +42,9 @@ theorem connection_eq_real_product (q : QuaternionField) (i : Fin 3) :
   simp only [connection,spatialPartial,connectionValue,Quaternion.inner_def,spatialWordPartial]
   rfl
 
-/-- Original `connection_word_bound` guarantee for the `WordConnection` construction; the complete source hypotheses are retained. -/
+/-- If `F` bounds every word derivative of a smooth quaternion field at `x` through order
+`w.length + 1`, the norm of the word-`w` derivative of its `i`-th connection component is bounded
+by the product majorant of `F j` and `F (j + 1)`. -/
 theorem connection_word_bound (q : QuaternionField) (hq : ContDiff ℝ ∞ q)
     (i : Fin 3) (F : ℕ → ℝ) (w : List (Fin 3)) (x : SpatialPoint)
     (hb : ∀ z : List (Fin 3), z.length ≤ w.length+1 → ‖spatialWordPartial q z x‖ ≤ F z.length) :

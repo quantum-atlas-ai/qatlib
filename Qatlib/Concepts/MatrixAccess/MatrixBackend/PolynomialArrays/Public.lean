@@ -177,12 +177,14 @@ map(int,out). Symbolic nonzero still has to be proved for actual source U/V. -/
 def rootProjectionFromBivariate (F G : ℤ[X][X]) (m n D : ℕ) : Option (List ℤ) :=
   RootYunInternal.ActualProjectionIntegerGuard.project F G m n D
 
-/-- The finite construction in `Public` satisfies `rootProjection_gaussian_value` under the displayed hypotheses. -/
+/-- For every rational square matrix `A`, the Gaussian elimination computation returns exactly its determinant. -/
 theorem rootProjection_gaussian_value (N : ℕ) (A : Matrix (Fin N) (Fin N) ℚ) :
     rootProjectionGaussian N A=A.det :=
   RootYunInternal.ActualProjectionGaussianLoop.source_determinant_eq N A
 
-/-- The finite construction in `Public` satisfies `rootProjection_fixed_resultant_value` under the displayed hypotheses. -/
+/-- If `a` and `b` fit within the specified coefficient lengths `m + 1` and `n + 1`,
+ the padded coefficient computation equals the resultant of their rational
+ polynomials taken at the fixed degrees `m` and `n`. -/
 theorem rootProjection_fixed_resultant_value (a b : List ℚ) (m n : ℕ)
     (ha : a.length ≤ m+1) (hb : b.length ≤ n+1) :
     rootProjectionFixedResultant a b m n=(⟨⟨a.toFinsupp⟩⟩ : ℚ[X]).resultant (⟨⟨b.toFinsupp⟩⟩ : ℚ[X]) m n :=
@@ -234,7 +236,10 @@ def RootProjectionArrayGood (cs out : List ℤ) (coord : ℂ → ℝ) : Prop :=
     ∀ z : ℂ,(rootIntegerListPolynomial cs).eval z=0 →
       (rootIntegerListPolynomial out).eval (coord z : ℂ)=0
 
-/-- The finite construction in `Public` satisfies `projection_output_public` under the displayed hypotheses. -/
+/-- The projection output properties imply that `out` has length one more than
+ its rational polynomial's natural degree, that this polynomial is nonzero
+ and of positive degree, and that the chosen coordinate of each complex root
+ of `cs` is a root of the projection. -/
 private theorem projection_output_public (cs out : List ℤ)
     (axis : RootYunInternal.ActualProjectionEntryDegrees.Axis)
     (h : RootYunInternal.ActualProjectionProducedArrays.OutputProperties cs axis out) :

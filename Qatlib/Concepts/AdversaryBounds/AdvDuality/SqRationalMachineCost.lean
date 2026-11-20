@@ -21,7 +21,7 @@ This module compiles successful rational word-program executions to finite-state
 with separate time and space bounds. `compiled_execution` supplies total and peak stack-machine
 clock bounds, and `native_program_polynomial` turns a payload-width bound into polynomial native
 resource bounds. The cache, row, batch, and matrix results add decoding correctness and exact
-source-field instruction counts; `SqRationalMachineCost.frontier1` combines the matrix execution
+source-field instruction counts; `SqRationalMachineCost.exists_batch_rational_machine_with_polynomial_cost` combines the matrix execution
 statement with polynomial work and program-length bounds.
 
 The compilation results here use the machine and encodings developed in this library. For
@@ -32,7 +32,7 @@ general background on Turing-machine computation and its resource measures, see
 
 * `native_program_polynomial`: native execution with polynomial resource bounds.
 * `native_cache_polynomial`: polynomial execution bounds for cache programs.
-* `SqRationalMachineCost.frontier1`: matrix execution, decoding, and instruction counts.
+* `SqRationalMachineCost.exists_batch_rational_machine_with_polynomial_cost`: matrix execution, decoding, and instruction counts.
 
 ## References
 
@@ -535,7 +535,7 @@ returns the associated `batchRatValue` with polynomial time and space bounds and
 decoding remainder. The statement also records exact source-read, multiplication, row-build,
 and source-field instruction counts, together with explicit work and compiled-program length
 bounds. -/
-theorem frontier1 :
+theorem exists_batch_rational_machine_with_polynomial_cost :
     ∃ (states : ℕ) (N : TM0.Machine Symbol (Fin (states+1))) (C : ℕ),0 < C ∧
       ∀ (matrixRows n q r : ℕ) (rows : Fin q → Fin r → Fin matrixRows)
         (A : Fin matrixRows → Fin n → GaussianCode) (X : Fin q → Fin n → GaussianCode)

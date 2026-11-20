@@ -25,7 +25,7 @@ also studied through amplitude estimation in [BrassardEtAl2002].
 
 * `ecCollProb_eq`: the exact average count of distinct pairs in the zero fiber.
 * `ecTapeFailureProb_le_eps`: transport of the counting failure budget to random tapes.
-* `frontier2`: polynomial time, random bit, time charge, and stored seed guarantees.
+* `hash_charge_time_coins_and_seed_decoding`: polynomial time, random bit, time charge, and stored seed guarantees.
 
 ## References
 
@@ -327,7 +327,7 @@ theorem ecTapeFailureProb_le_eps {L ℓ : ℕ} (R : Set (Fin L → Bool))
 
 /-- Combine the tape failure bound, exact collision sum and average, and sampler random bit
 identity. -/
-theorem frontier1 {L ℓ : ℕ} (R : Set (Fin L → Bool)) (hm : 0 < EcRelCount R)
+theorem hash_collision_average_and_sampler_failure_bound {L ℓ : ℕ} (R : Set (Fin L → Bool)) (hm : 0 < EcRelCount R)
     {ε : ℝ} (hb : CcFailureBudget (ℓ := ℓ) (EcRelCount R) ε) :
     ecTapeFailureProb L ℓ R ≤ ε
       ∧ (∑ s : EcHashSeed L ℓ, ecCollCount R s)
@@ -1266,7 +1266,7 @@ theorem ecSeedStoreMachine_polytime (L ℓ : ℕ) :
 
 /-- Combine the charge program's polynomial time, exact coin usage, and time lower bound with
 correctness of stored seed decoding. -/
-theorem frontier2 (L ℓ addrBits queries outputBits : ℕ) (A : List Bool → Bool)
+theorem hash_charge_time_coins_and_seed_decoding (L ℓ addrBits queries outputBits : ℕ) (A : List Bool → Bool)
     (ρ : ℕ → Bool) (x : List Bool) :
     CcPolyTime (ecSamplerChargeMachine L ℓ addrBits queries outputBits)
       (L + EcHashSeedBits L ℓ + queries * (addrBits + 1) + 2 * outputBits + 1) 0

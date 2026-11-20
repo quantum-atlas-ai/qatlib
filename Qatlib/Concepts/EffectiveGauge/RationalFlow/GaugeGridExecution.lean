@@ -28,7 +28,8 @@ open Qatlib.Concepts.EffectiveGauge.HopfAtlas Qatlib.Concepts.EffectiveGauge.Spe
 def gaugeGridNode (sample : SourceMeanIndex → Option (Quaternion ℚ))
     (index : SourceMeanIndex) : Quaternion ℚ := (sample index).getD 0
 
-/-- Original `gaugeGridExecution_eq_map` guarantee for the `GaugeGridExecution` construction; the complete source hypotheses are retained. -/
+/-- When a quaternion sample exists at every requested index, grid execution returns the ordered
+list of indices paired with those samples. -/
 theorem gaugeGridExecution_eq_map (sample : SourceMeanIndex → Option (Quaternion ℚ))
     (indices : List SourceMeanIndex) (hs : ∀ index∈indices, ∃ value, sample index=some value) :
     gaugeGridExecution sample indices=some (indices.map (fun index => (index,gaugeGridNode sample index))) := by
@@ -45,7 +46,8 @@ theorem gaugeGridExecution_eq_map (sample : SourceMeanIndex → Option (Quaterni
 
 noncomputable section
 
-/-- Original `rationalGaugeCoefficientTerm_cast` guarantee for the `GaugeGridExecution` construction; the complete source hypotheses are retained. -/
+/-- The complex cast of a gauge coefficient summand is the computed mode at frequency `-k` at the
+node times the selected quaternion coordinate. -/
 theorem rationalGaugeCoefficientTerm_cast (M : ℕ) (length : ℚ) (k : SpatialFrequency) (d : ℚ)
     (index : SourceMeanIndex) (value : Quaternion ℚ) (j : Fin 4) :
     rationalCircleCast (rationalGaugeCoefficientTerm M length k d (index,value) j)=
@@ -53,7 +55,9 @@ theorem rationalGaugeCoefficientTerm_cast (M : ℕ) (length : ℚ) (k : SpatialF
         ((rationalQuaternionCoordinate value j : ℚ) : ℂ) := by
   apply Complex.ext <;> simp [rationalGaugeCoefficientTerm,rationalCircleCast]
 
-/-- Original `rationalGaugeFourierCoefficientsOfData_cast` guarantee for the `GaugeGridExecution` construction; the complete source hypotheses are retained. -/
+/-- For an ordered grid of quaternion values, casting coordinate `j` of the rational coefficient
+gives the complex grid sum with the same coordinate samples and approximate negative-frequency
+modes, normalized by the grid size cubed. -/
 theorem rationalGaugeFourierCoefficientsOfData_cast (M : ℕ) (length : ℚ) (k : SpatialFrequency) (d : ℚ)
     (values : SourceMeanIndex → Quaternion ℚ) (j : Fin 4) :
     rationalCircleCast (rationalGaugeFourierCoefficientsOfData M length k d
@@ -66,7 +70,8 @@ theorem rationalGaugeFourierCoefficientsOfData_cast (M : ℕ) (length : ℚ) (k 
   rw [sourceMeanGrid_sum]
   rfl
 
-/-- Original `gaugeArtifactFrequency_ofFn` guarantee for the `GaugeGridExecution` construction; the complete source hypotheses are retained. -/
+/-- Building a vector from a frequency function and reading its entries back recovers the original
+function. -/
 theorem gaugeArtifactFrequency_ofFn (k : SpatialFrequency) :
     gaugeArtifactFrequency (Vector.ofFn k)=k := by
   funext j

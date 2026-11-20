@@ -17,7 +17,7 @@ This module relates binary relation encodings to entry bounds for a counted Smit
 bounds decoded magnitudes using code lengths, then combines the resulting matrix bound with peak
 Euclidean-input bit sizes and a division-count estimate.
 
-The combined statement `frontier1` also identifies the returned reduction with the binary Smith
+The combined statement `binary_smith_pivot_correctness_and_bit_bounds` also identifies the returned reduction with the binary Smith
 run and records that it encodes the input and has Smith form. The quantum-algorithmic context
 for this integer postprocessing is exemplified by [Shor1997].
 
@@ -25,7 +25,7 @@ for this integer postprocessing is exemplified by [Shor1997].
 
 * `smithDecodeNat_lt_pow`: a bit-list value is bounded by its encoding length.
 * `smithDecodeRelations_entryBound`: total relation bits bound all decoded matrix entries.
-* `frontier1`: the binary Euclidean run satisfies entry, bit-size, division-count, and
+* `binary_smith_pivot_correctness_and_bit_bounds`: the binary Euclidean run satisfies entry, bit-size, division-count, and
   Smith-form guarantees.
 
 ## References
@@ -94,7 +94,7 @@ namespace output2
 /-- For binary-encoded relations, the Euclidean Smith run satisfies the stated reduction-entry,
 peak-input-bit, and division-count bounds. It agrees with the binary Smith run and returns
 an encoding of the input matrix in Smith form. -/
-theorem frontier1 {m n : ℕ} (rows : Vector (Vector SmithIntegerCode n) m) :
+theorem binary_smith_pivot_correctness_and_bit_bounds {m n : ℕ} (rows : Vector (Vector SmithIntegerCode n) m) :
     let A := tableMatrix (smithDecodeRelations rows)
     let B := rectangularSup (m+n+2) A (2 ^ smithRelationBits rows)
     ReductionEntryBound (smithRunBinaryEuclid rows).1.1.reduction B ∧

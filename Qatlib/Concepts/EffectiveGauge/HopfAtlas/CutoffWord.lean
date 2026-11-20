@@ -22,7 +22,8 @@ open scoped ContDiff
 namespace Qatlib.Concepts.EffectiveGauge.HopfAtlas
 open Qatlib.Concepts.EffectiveGauge.RationalFlow
 
-/-- Original `spatialWordPartial_coordinate_first` guarantee for the `CutoffWord` construction; the complete source hypotheses are retained. -/
+/-- The first derivative of the smooth coordinate function `f (x j)` along axis `i` is
+`deriv f (x j)` when `i = j` and zero otherwise. -/
 theorem spatialWordPartial_coordinate_first (f : ℝ → ℝ) (hf : ContDiff ℝ ∞ f)
     (j i : Fin 3) : spatialWordPartial (fun x : SpatialPoint => f (x j)) [i]=
       fun x => if i=j then deriv f (x j) else 0 := by
@@ -74,7 +75,8 @@ theorem spatialWordPartial_coordinate (f : ℝ → ℝ) (hf : ContDiff ℝ ∞ f
 /-- Definition of unit Cutoff Field in the Hopf Atlas construction. -/
 def unitCutoffField (eta : ℝ) (x : SpatialPoint) : ℝ := unitGluingCutoff eta (x 0)
 
-/-- Original `contDiff_unitCutoffField` guarantee for the `CutoffWord` construction; the complete source hypotheses are retained. -/
+/-- The spatial cutoff, obtained from the unit gluing cutoff in the longitudinal coordinate, is
+smooth for every real `eta`. -/
 theorem contDiff_unitCutoffField (eta : ℝ) : ContDiff ℝ ∞ (unitCutoffField eta) :=
   (contDiff_unitGluingCutoff eta).comp
     (EuclideanSpace.proj (0 : Fin 3) : SpatialPoint →L[ℝ] ℝ).contDiff
@@ -85,7 +87,8 @@ theorem unitCutoffField_eq_physical (eta : ℝ) (he : 0<eta) (he1 : eta ≤ 1/2)
     unitCutoffField eta x=gluingCutoff (physicalPeriod*eta) (physicalPeriod*x 0) :=
   (gluingCutoff_scaled eta (x 0) he he1).symm
 
-/-- Original `unitCutoffField_word_bound` guarantee for the `CutoffWord` construction; the complete source hypotheses are retained. -/
+/-- For positive rational `eta`, the norm of every coordinate-word derivative of the unit cutoff
+field is bounded everywhere by the cutoff majorant for that word's length. -/
 theorem unitCutoffField_word_bound (eta : ℚ) (he : 0<eta) (w : List (Fin 3)) (x : SpatialPoint) :
     ‖spatialWordPartial (unitCutoffField (eta : ℝ)) w x‖ ≤
       (cutoffUnitMajorant eta w.length : ℝ) := by

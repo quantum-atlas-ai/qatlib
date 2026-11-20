@@ -25,13 +25,14 @@ def rationalCircleQuaternion (p : RationalCircleSample) : Quaternion ℚ := ⟨p
 noncomputable section
 open scoped Quaternion
 
-/-- Original `cisPairSquare_cast` guarantee for the `CisApproximation` construction; the complete source hypotheses are retained. -/
+/-- Casting the squared rational circle pair gives the square of its complex cast. -/
 theorem cisPairSquare_cast (a : RationalCircleSample) :
     rationalCircleCast (cisPairSquare a)=rationalCircleCast a*rationalCircleCast a := by
   have he : cisPairSquare a=cisPairMul a a := by apply Prod.ext <;> dsimp [cisPairSquare,cisPairMul] <;> ring
   rw [he,cisPairMul_cast]
 
-/-- Original `complex_square_error` guarantee for the `CisApproximation` construction; the complete source hypotheses are retained. -/
+/-- If `w` has unit norm and `z` lies within distance `E` of it, the distance between their squares
+is at most `E * (2 + E)`. -/
 private theorem complex_square_error (z w : ℂ) (E : ℝ) (hw : ‖w‖=1) (he : ‖z-w‖ ≤ E) :
     ‖z*z-w*w‖ ≤ E*(2+E) := by
   have hE : 0 ≤ E := (norm_nonneg _).trans he
@@ -45,7 +46,8 @@ private theorem complex_square_error (z w : ℂ) (E : ℝ) (hw : ‖w‖=1) (he 
     _ ≤ E*(1+E)+E := add_le_add (mul_le_mul he hn (norm_nonneg _) hE) he
     _ = _ := by ring
 
-/-- Original `cisSquares_error` guarantee for the `CisApproximation` construction; the complete source hypotheses are retained. -/
+/-- An initial phase error bounded by the result's error field propagates through `h` squarings to
+the updated error bound at angle `2ʰ x`. -/
 theorem cisSquares_error (h : ℕ) (r : RationalCisResult) (x : ℝ)
     (he : ‖rationalCircleCast r.value-complexPhase x‖ ≤ (r.error : ℝ)) :
     ‖rationalCircleCast (cisSquares h r).value-complexPhase ((2^h : ℝ)*x)‖ ≤ ((cisSquares h r).error : ℝ) := by
@@ -91,16 +93,17 @@ theorem rationalCis_spec (x tolerance : ℚ) (ht : 0<tolerance) (ht1 : tolerance
     rw [← htHalf]
     exact hs.2.2.2.1
 
-/-- Original `rationalCircleQuaternion_cast` guarantee for the `CisApproximation` construction; the complete source hypotheses are retained. -/
+/-- Converting a rational circle pair to a quaternion and casting gives the same quaternion as
+embedding its complex cast. -/
 theorem rationalCircleQuaternion_cast (p : RationalCircleSample) :
     rationalQuaternionCast (rationalCircleQuaternion p)=Quaternion.ofComplex (rationalCircleCast p) := by
   apply Quaternion.ext <;> simp [rationalQuaternionCast,rationalCircleQuaternion,rationalCircleCast,Quaternion.ofComplex,Quaternion.coeComplex]
 
-/-- Original `complexPhase_quaternion` guarantee for the `CisApproximation` construction; the complete source hypotheses are retained. -/
+/-- The complex phase at a real angle embeds as the quaternion phase at that angle. -/
 theorem complexPhase_quaternion (x : ℝ) : Quaternion.ofComplex (complexPhase x)=phase x := by
   apply Quaternion.ext <;> simp [Quaternion.ofComplex,Quaternion.coeComplex,complexPhase,phase,iAxis]
 
-/-- Original `norm_ofComplex` guarantee for the `CisApproximation` construction; the complete source hypotheses are retained. -/
+/-- The complex embedding into quaternions preserves the norm of every complex number. -/
 theorem norm_ofComplex (z : ℂ) : ‖Quaternion.ofComplex z‖=‖z‖ := by
   apply (sq_eq_sq₀ (norm_nonneg _) (norm_nonneg _)).mp
   rw [pow_two,pow_two,← Quaternion.normSq_eq_norm_mul_self,Complex.norm_mul_self_eq_normSq]

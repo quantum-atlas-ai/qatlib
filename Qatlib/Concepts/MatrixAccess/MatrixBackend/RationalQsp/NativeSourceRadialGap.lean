@@ -31,7 +31,8 @@ open Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays Qatlib.Concepts
 open Polynomial MeasureTheory
 open scoped BigOperators
 
-/-- The finite construction in `NativeSourceRadialGap` satisfies `coeff_norm_le_of_circle` under the displayed hypotheses. -/
+/-- A complex polynomial bounded in modulus by one on the unit circle has every coefficient
+bounded in modulus by one. -/
 private theorem coeff_norm_le_of_circle (p : ℂ[X])
     (hp : ∀ z : ℂ, ‖z‖=1 → ‖p.eval z‖ ≤ 1) (n : ℕ) : ‖p.coeff n‖ ≤ 1 := by
   let : Fact (0 < 2*Real.pi) := ⟨Real.two_pi_pos⟩
@@ -50,7 +51,8 @@ private theorem coeff_norm_le_of_circle (p : ℂ[X])
     exact hp _ (Circle.norm_coe _)
   simpa using norm_integral_le_of_norm_le_const h
 
-/-- The finite construction in `NativeSourceRadialGap` satisfies `pow_sub_norm_le` under the displayed hypotheses. -/
+/-- On the closed unit disk, the distance between the nth powers of two points is at most n times
+the distance between the points. -/
 private theorem pow_sub_norm_le (x y : ℂ) (hx : ‖x‖ ≤ 1) (hy : ‖y‖ ≤ 1) (n : ℕ) :
     ‖x^n-y^n‖ ≤ (n : ℝ)*‖x-y‖ := by
   induction n with
@@ -69,7 +71,8 @@ private theorem pow_sub_norm_le (x y : ℂ) (hx : ‖x‖ ≤ 1) (hy : ‖y‖ �
           (mul_le_mul ih hy (norm_nonneg _) (by positivity))
       _ = ((n+1 : ℕ) : ℝ)*‖x-y‖ := by push_cast; ring
 
-/-- The finite construction in `NativeSourceRadialGap` satisfies `polynomial_sub_norm_le` under the displayed hypotheses. -/
+/-- On the closed unit disk, a polynomial of degree below m whose coefficients have modulus at
+most one has a Lipschitz constant given by the sum of indices from zero through m − 1. -/
 private theorem polynomial_sub_norm_le (p : ℂ[X]) (m : ℕ) (hm : p.natDegree < m)
     (hc : ∀ j : ℕ, ‖p.coeff j‖ ≤ 1)
     (x y : ℂ) (hx : ‖x‖ ≤ 1) (hy : ‖y‖ ≤ 1) :
@@ -93,7 +96,7 @@ private theorem polynomial_sub_norm_le (p : ℂ[X]) (m : ℕ) (hm : p.natDegree 
       mul_le_mul (hc j) (pow_sub_norm_le x y hx hy j) (norm_nonneg _) (by norm_num)
     _ = (j : ℝ)*‖x-y‖ := one_mul _
 
-/-- The finite construction in `NativeSourceRadialGap` satisfies `sum_range_real` under the displayed hypotheses. -/
+/-- The sum of the real casts of the integers from zero through m equals m(m + 1)/2. -/
 private theorem sum_range_real (m : ℕ) :
     (∑ j ∈ Finset.range (m+1),(j : ℝ))=(m : ℝ)*(m+1)/2 := by
   induction m with
@@ -150,7 +153,8 @@ open Polynomial
 def sourceGamma0 (cs : List ℚ) (N : ℕ) (E : ℚ) : ℚ :=
   3*sourceInputU cs N E/(128*(sourceDegree cs N E : ℚ)^2)
 
-/-- The finite construction in `NativeSourceRadialGap` satisfies `sourceGamma0_pos` under the displayed hypotheses. -/
+/-- The source radial gap parameter is positive when both the requested error and source degree
+are positive. -/
 theorem sourceGamma0_pos (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E)
     (hd : 0<sourceDegree cs N E) : 0<sourceGamma0 cs N E := by
   have hu := sourceInputU_pos cs N E hE
@@ -158,7 +162,7 @@ theorem sourceGamma0_pos (cs : List ℚ) (N : ℕ) (E : ℚ) (hE : 0<E)
   unfold sourceGamma0
   positivity
 
-/-- The finite construction in `NativeSourceRadialGap` satisfies `sourceGamma0_le_one` under the displayed hypotheses. -/
+/-- The source radial gap parameter is at most one whenever the source degree is positive. -/
 theorem sourceGamma0_le_one (cs : List ℚ) (N : ℕ) (E : ℚ)
     (hd : 0<sourceDegree cs N E) : sourceGamma0 cs N E ≤ 1 := by
   have hu := sourceInputU_le_half cs N E
@@ -167,7 +171,7 @@ theorem sourceGamma0_le_one (cs : List ℚ) (N : ℕ) (E : ℚ)
   apply (div_le_iff₀ (by positivity : (0 : ℚ)<128*(sourceDegree cs N E : ℚ)^2)).mpr
   nlinarith
 
-/-- The finite construction in `NativeSourceRadialGap` satisfies `sourceF_natDegree_le` under the displayed hypotheses. -/
+/-- The complement polynomial has degree at most twice the computed source degree. -/
 theorem sourceF_natDegree_le (cs : List ℚ) (N : ℕ) (E : ℚ) :
     (sourceF cs N E).natDegree ≤ 2*sourceDegree cs N E := by
   have hP : (sourceInputP cs N E).natDegree ≤ sourceDegree cs N E := by

@@ -36,14 +36,16 @@ open scoped Matrix.Norms.L2Operator
 def sourceDeflationCell (CL CR P Q : Matrix Bool Bool (ℚ×ℚ)) (eta : ℚ) : Matrix Bool Bool (ℚ×ℚ) :=
   sourceRoundCompletionMatrix (sourceGaussianMatrixMul CL Q+sourceGaussianMatrixMul CR P) eta
 
-/-- The finite construction in `NativeSourceDeflationStep` satisfies `qmm_decode` under the displayed hypotheses. -/
+/-- Entrywise decoding of the Gaussian-rational matrix product gives the product of the decoded
+complex matrices. -/
 theorem qmm_decode (A B : Matrix Bool Bool (ℚ×ℚ)) :
     sourceDecodeCompletionMatrix (sourceGaussianMatrixMul A B)=sourceDecodeCompletionMatrix A*sourceDecodeCompletionMatrix B := by
   ext i j
   cases i <;> cases j <;> apply Complex.ext <;>
     simp [sourceDecodeCompletionMatrix,sourceGaussianMatrixMul,gaussianRatMul,rootRationalCoordinate,Matrix.mul_apply] <;> ring
 
-/-- The finite construction in `NativeSourceDeflationStep` satisfies `decode_add` under the displayed hypotheses. -/
+/-- Entrywise decoding takes the sum of two rational coordinate matrices to the sum of their
+complex matrices. -/
 private theorem decode_add (A B : Matrix Bool Bool (ℚ×ℚ)) :
     sourceDecodeCompletionMatrix (A+B)=sourceDecodeCompletionMatrix A+sourceDecodeCompletionMatrix B := by
   ext i j
@@ -109,7 +111,8 @@ def sourceIdealDeflationStep {m : ℕ} (F : Fin (m+2) → Matrix Bool Bool ℂ) 
   fun j => F j.castSucc*sourceComplexGramNormalize (F 0)+F j.succ*sourceComplexGramNormalize (F (Fin.last (m+1)))
 
 
-/-- The finite construction in `NativeSourceDeflationStep` satisfies `source_step_frequency` under the displayed hypotheses. -/
+/-- Increasing the degree parameter by one shifts the old frequency down by one at the same index
+and up by one at the successor index. -/
 theorem source_step_frequency {m : ℕ} (j : Fin (m+1)) :
     (@sourceCompletionFrequency m j)-1=@sourceCompletionFrequency (m+1) j.castSucc ∧
       (@sourceCompletionFrequency m j)+1=@sourceCompletionFrequency (m+1) j.succ := by

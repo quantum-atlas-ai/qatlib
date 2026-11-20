@@ -23,7 +23,7 @@ estimates in the singular-value transformation framework of [GilyenSuLowWiebe201
 
 ## Main statements
 
-* `frontier1`: A phase absorption witness preserving phase-list length.
+* `absorb_first_angle_preserves_word_and_scales_response`: A phase absorption witness preserving phase-list length.
 * `absorbed_channel_rotation`: The compressed and ideal outputs acquire the same phase.
 * `absorbed_conditional_output_channel`: Phase absorption with exact costs and conditional
   output bounds.
@@ -160,7 +160,7 @@ theorem cppCompile_absorb_counts {J : Type} (f g : J → ℝ) (fs : List (J → 
 
 /-- A unit phase can be absorbed into a first angle while preserving list length, multiplying
 the response by `C b`, and left-multiplying the source word by `phaseRotation Q b`. -/
-theorem frontier1 (U P Q : Matrix H H ℂ) (hQ : IsOrthogonalProjector Q)
+theorem absorb_first_angle_preserves_word_and_scales_response (U P Q : Matrix H H ℂ) (hQ : IsOrthogonalProjector Q)
     (b : ℂ) (hb : IsPhase b) (φ : ℝ) (Φ : List ℝ) :
     ∃ θ : ℝ,
       anglePhase θ = b * anglePhase φ ∧

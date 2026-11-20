@@ -37,7 +37,8 @@ open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data.SourceInput
 open Qatlib.Concepts.BlockEncoding.Encoding
 open scoped BigOperators Matrix.Norms.L2Operator ComplexOrder
 
-/-- The finite construction in `NativeSourceGramNormalization` satisfies `positive_norm_le_trace` under the displayed hypotheses. -/
+/-- The operator norm of a positive semidefinite complex 2-by-2 matrix is bounded by the real part
+of its trace. -/
 private theorem positive_norm_le_trace (A : Matrix Bool Bool ℂ) (hA : A.PosSemidef) :
     ‖A‖ ≤ A.trace.re := by
   let U := hA.isHermitian.eigenvectorUnitary
@@ -64,7 +65,8 @@ private theorem positive_norm_le_trace (A : Matrix Bool Bool ℂ) (hA : A.PosSem
       exact mul_le_mul (mul_le_mul_of_nonneg_right hU (norm_nonneg _)) hU (norm_nonneg _) (by positivity)
     _ ≤ A.trace.re := by simpa using hd
 
-/-- The finite construction in `NativeSourceGramNormalization` satisfies `sourceGaussianGram_decode` under the displayed hypotheses. -/
+/-- The decoded rational Gram matrix is the conjugate transpose of the decoded input multiplied by
+the input. -/
 private theorem sourceGaussianGram_decode (A : Matrix Bool Bool (ℚ×ℚ)) :
     sourceDecodeCompletionMatrix (sourceGaussianGram A)=
       (sourceDecodeCompletionMatrix A).conjTranspose*sourceDecodeCompletionMatrix A := by
@@ -73,7 +75,8 @@ private theorem sourceGaussianGram_decode (A : Matrix Bool Bool (ℚ×ℚ)) :
     simp [sourceDecodeCompletionMatrix,sourceGaussianGram,sourceGaussianMatrixMul,sourceGaussianAdjoint,gaussianRatMul,rootRationalCoordinate,
       Matrix.mul_apply,Matrix.conjTranspose_apply] <;> ring
 
-/-- The finite construction in `NativeSourceGramNormalization` satisfies `sourceGaussianGramTrace_re` under the displayed hypotheses. -/
+/-- The real coordinate of the rational Gram trace equals the real part of the trace after
+decoding the Gram matrix. -/
 private theorem sourceGaussianGramTrace_re (A : Matrix Bool Bool (ℚ×ℚ)) :
     ((sourceGaussianGramTrace A).1 : ℝ)=(sourceDecodeCompletionMatrix (sourceGaussianGram A)).trace.re := by
   simp [sourceGaussianGramTrace,sourceDecodeCompletionMatrix,Matrix.trace,rootRationalCoordinate]
@@ -84,7 +87,8 @@ def sourceGramNormalizeUnrounded (A : Matrix Bool Bool (ℚ×ℚ)) : Matrix Bool
   fun i j => ((1/(sourceGaussianGramTrace A).1)*(sourceGaussianGram A i j).1,
     (1/(sourceGaussianGramTrace A).1)*(sourceGaussianGram A i j).2)
 
-/-- The finite construction in `NativeSourceGramNormalization` satisfies `sourceGramNormalizeUnrounded_decode` under the displayed hypotheses. -/
+/-- The decoded unrounded normalized Gram matrix is the decoded Gram matrix scaled by the
+reciprocal of the real rational Gram trace. -/
 private theorem sourceGramNormalizeUnrounded_decode (A : Matrix Bool Bool (ℚ×ℚ)) :
     sourceDecodeCompletionMatrix (sourceGramNormalizeUnrounded A)=
       ((1/(sourceGaussianGramTrace A).1 : ℚ) : ℂ) • sourceDecodeCompletionMatrix (sourceGaussianGram A) := by
@@ -95,7 +99,8 @@ private theorem sourceGramNormalizeUnrounded_decode (A : Matrix Bool Bool (ℚ×
   exact hdecode _ _
 
 
-/-- The finite construction in `NativeSourceGramNormalization` satisfies `sourceGramNormalizeUnrounded_norm` under the displayed hypotheses. -/
+/-- A rational matrix with a nonzero entry has decoded unrounded normalized Gram matrix of
+operator norm at most one. -/
 theorem sourceGramNormalizeUnrounded_norm (A : Matrix Bool Bool (ℚ×ℚ))
     (hn : ∃ i j,A i j≠(0,0)) : ‖sourceDecodeCompletionMatrix (sourceGramNormalizeUnrounded A)‖ ≤ 1 := by
   have hg := sourceGaussianGramTrace_guard A hn
@@ -119,7 +124,7 @@ open scoped Matrix.Norms.L2Operator ComplexOrder
 def sourceComplexGramNormalize (A : Matrix Bool Bool ℂ) : Matrix Bool Bool ℂ :=
   ((1/(A.conjTranspose*A).trace.re : ℝ) : ℂ) • (A.conjTranspose*A)
 
-/-- The finite construction in `NativeSourceGramNormalization` satisfies `sourceCompletionMatrix_entry_norm` under the displayed hypotheses. -/
+/-- The modulus of any entry of a complex 2-by-2 matrix is bounded by its operator norm. -/
 theorem sourceCompletionMatrix_entry_norm (A : Matrix Bool Bool ℂ) (i j : Bool) : ‖A i j‖ ≤ ‖A‖ := by
   let x : EuclideanSpace ℂ Bool := PiLp.single 2 j 1
   let y := (EuclideanSpace.equiv Bool ℂ).symm (A *ᵥ x)
@@ -171,7 +176,9 @@ private theorem normalization_ratio_bound (c delta T : ℝ) (hc : 0<c) (hd : 0 �
   nlinarith
 
 
-/-- The finite construction in `NativeSourceGramNormalization` satisfies `complexGramNormalize_stability` under the displayed hypotheses. -/
+/-- For a nonzero reference B with real Gram trace equal to its squared norm, an operator-norm
+perturbation delta of at most a quarter of that norm leaves A with positive real Gram trace.
+Their trace-normalized Gram matrices differ by at most 12 delta divided by the norm of B. -/
 private theorem complexGramNormalize_stability (A B : Matrix Bool Bool ℂ) (delta : ℝ)
     (hc : 0<‖B‖) (he : ‖A-B‖ ≤ delta) (hcap : delta ≤ ‖B‖/4)
     (hrank : (B.conjTranspose*B).trace.re=‖B‖^2) :
@@ -244,7 +251,8 @@ section RankOneTrace
 open Qatlib.Concepts.BlockEncoding.Encoding
 open scoped BigOperators Matrix.Norms.L2Operator ComplexOrder
 
-/-- The finite construction in `NativeSourceGramNormalization` satisfies `sourceGram_trace_eq_norm_sq` under the displayed hypotheses. -/
+/-- For a complex 2-by-2 matrix with zero determinant, the real Gram trace equals the squared
+operator norm. -/
 theorem sourceGram_trace_eq_norm_sq (C : Matrix Bool Bool ℂ) (hdet : C.det=0) :
     (C.conjTranspose*C).trace.re=‖C‖^2 := by
   let H := C.conjTranspose*C
@@ -302,13 +310,15 @@ open scoped Matrix.Norms.L2Operator
 def sourceGramNormalize (A : Matrix Bool Bool (ℚ×ℚ)) (eta : ℚ) : Matrix Bool Bool (ℚ×ℚ) :=
   sourceRoundCompletionMatrix (sourceGramNormalizeUnrounded A) eta
 
-/-- The finite construction in `NativeSourceGramNormalization` satisfies `sourceGramNormalize_rounding` under the displayed hypotheses. -/
+/-- At positive tolerance eta, the decoded rounded normalized Gram matrix is within eta in
+operator norm of the unrounded one. -/
 theorem sourceGramNormalize_rounding (A : Matrix Bool Bool (ℚ×ℚ)) (eta : ℚ) (heta : 0<eta) :
     ‖sourceDecodeCompletionMatrix (sourceGramNormalize A eta)-
       sourceDecodeCompletionMatrix (sourceGramNormalizeUnrounded A)‖ ≤ (eta : ℝ) := by
   exact sourceRoundCompletionMatrix_error (sourceGramNormalizeUnrounded A) eta heta
 
-/-- The finite construction in `NativeSourceGramNormalization` satisfies `sourceGramNormalize_norm` under the displayed hypotheses. -/
+/-- If the input has a nonzero entry and eta is positive, its decoded rounded normalized Gram
+matrix has norm at most 1 + eta. -/
 theorem sourceGramNormalize_norm (A : Matrix Bool Bool (ℚ×ℚ)) (eta : ℚ) (heta : 0<eta)
     (hn : ∃ i j,A i j≠(0,0)) : ‖sourceDecodeCompletionMatrix (sourceGramNormalize A eta)‖ ≤ 1+(eta : ℝ) := by
   have hr := sourceGramNormalize_rounding A eta heta
@@ -317,7 +327,9 @@ theorem sourceGramNormalize_norm (A : Matrix Bool Bool (ℚ×ℚ)) (eta : ℚ) (
     (sourceDecodeCompletionMatrix (sourceGramNormalizeUnrounded A))
   linarith
 
-/-- The finite construction in `NativeSourceGramNormalization` satisfies `source_initial_normalize` under the displayed hypotheses. -/
+/-- With positive requested error and source degree, either endpoint of the rounded source array
+has real, positive rational Gram trace, and its decoded normalized Gram matrix has norm at
+most one plus the source tolerance. -/
 theorem source_initial_normalize {m : ℕ} (cs : List ℚ) (N : ℕ) (E : ℚ)
     (hE : 0<E) (hd : 0<sourceDegree cs N E) (f : Fin m → RootIntegerFactorData)
     (j : Fin (sourceDegree cs N E+1)) (hj : j.val=0 ∨ j.val=sourceDegree cs N E) :
@@ -338,7 +350,8 @@ open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data
 open Qatlib.Concepts.MatrixAccess.MatrixBackend.RationalQsp.Data.SourceInput
 open scoped Matrix.Norms.L2Operator
 
-/-- The finite construction in `NativeSourceGramNormalization` satisfies `sourceGramNormalizeUnrounded_eq_complex` under the displayed hypotheses. -/
+/-- Decoding the unrounded rational normalization agrees with normalizing the complex Gram matrix
+of the decoded input. -/
 private theorem sourceGramNormalizeUnrounded_eq_complex (A : Matrix Bool Bool (ℚ×ℚ)) :
     sourceDecodeCompletionMatrix (sourceGramNormalizeUnrounded A)=sourceComplexGramNormalize (sourceDecodeCompletionMatrix A) := by
   rw [sourceGramNormalizeUnrounded_decode]
@@ -346,7 +359,11 @@ private theorem sourceGramNormalizeUnrounded_eq_complex (A : Matrix Bool Bool (�
   rw [← sourceGaussianGram_decode,← sourceGaussianGramTrace_re]
   rw [← Complex.ofReal_ratCast,Rat.cast_div,Rat.cast_one]
 
-/-- The finite construction in `NativeSourceGramNormalization` satisfies `sourceGramNormalize_stability` under the displayed hypotheses. -/
+/-- If the decoded input is within delta of a nonzero B whose real Gram trace equals its squared
+norm and delta is at most one quarter of that norm, the rational Gram trace is real and
+positive. For positive eta the decoded rounded normalization has norm at most 1 + eta and
+differs from the normalized Gram matrix of B by at most 12 delta divided by the norm of B plus
+eta. -/
 theorem sourceGramNormalize_stability (A : Matrix Bool Bool (ℚ×ℚ)) (B : Matrix Bool Bool ℂ)
     (delta : ℝ) (eta : ℚ) (heta : 0<eta) (hc : 0<‖B‖)
     (he : ‖sourceDecodeCompletionMatrix A-B‖ ≤ delta) (hcap : delta ≤ ‖B‖/4)
@@ -382,7 +399,8 @@ end NormalizeStability
 section DeflationContinuation
 open scoped Matrix.Norms.L2Operator ComplexOrder
 
-/-- The finite construction in `NativeSourceGramNormalization` satisfies `sourceComplexGram_norm_le_trace` under the displayed hypotheses. -/
+/-- The operator norm of a complex matrix's Gram matrix is at most the real part of its Gram
+trace. -/
 theorem sourceComplexGram_norm_le_trace (C : Matrix Bool Bool ℂ) :
     ‖C.conjTranspose*C‖≤(C.conjTranspose*C).trace.re :=
   positive_norm_le_trace _ (Matrix.posSemidef_conjTranspose_mul_self C)

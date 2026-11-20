@@ -25,7 +25,7 @@ def rootGridTruncate (a h : ℚ) : ℚ :=
   let b := (⌊|a|/h⌋₊ : ℚ)*h
   if a<0 then -b else b
 
-/-- The finite construction in `NativeRootCoordinateTruncation` satisfies `rootGridTruncate_spec` under the displayed hypotheses. -/
+/-- For a positive grid spacing `h`, truncating `a` towards zero gives a rational of magnitude at most `|a|` and absolute error strictly less than `h`. -/
 theorem rootGridTruncate_spec (a h : ℚ) (hh : 0<h) :
     |rootGridTruncate a h|≤|a| ∧ |rootGridTruncate a h-a|<h := by
   let b := (⌊|a|/h⌋₊ : ℚ)*h
@@ -62,7 +62,7 @@ def rootGridPoint (c : ℚ×ℚ) (h : ℚ) : ℚ×ℚ :=
 def rootRationalCoordinate (c : ℚ×ℚ) : ℂ :=
   ⟨(c.1 : ℝ),(c.2 : ℝ)⟩
 
-/-- The finite construction in `NativeRootCoordinateTruncation` satisfies `rootGridPoint_norm_le` under the displayed hypotheses. -/
+/-- Truncating both rational coordinates towards zero with positive spacing `h` can only decrease the norm of the corresponding complex number. -/
 theorem rootGridPoint_norm_le (c : ℚ×ℚ) (h : ℚ) (hh : 0<h) :
     ‖rootRationalCoordinate (rootGridPoint c h)‖≤‖rootRationalCoordinate c‖ := by
   apply truncated_root_coordinate_norm_le

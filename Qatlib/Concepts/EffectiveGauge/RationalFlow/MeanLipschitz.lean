@@ -25,7 +25,8 @@ open Qatlib.Concepts.EffectiveGauge.HopfAtlas
 /-- Definition of In Unit Cube in the Rational Flow construction. -/
 def InUnitCube (x : SpatialPoint) : Prop := ∀ i, x i ∈ Icc (0 : ℝ) 1
 
-/-- Original `meanTensorSpatial_inCube` guarantee for the `MeanLipschitz` construction; the complete source hypotheses are retained. -/
+/-- A tensor point whose three coordinates lie in the closed unit interval embeds into the spatial
+unit cube. -/
 theorem meanTensorSpatial_inCube (p : MeanTensorPoint) (hp : meanTensorInCube p) :
     InUnitCube (meanTensorSpatial p) := by
   intro i
@@ -34,7 +35,8 @@ theorem meanTensorSpatial_inCube (p : MeanTensorPoint) (hp : meanTensorInCube p)
   · exact hp.2.1
   · exact hp.2.2
 
-/-- Original `axes_l1_bound` guarantee for the `MeanLipschitz` construction; the complete source hypotheses are retained. -/
+/-- If a real continuous linear functional has magnitude at most `D` on each coordinate basis
+vector, its magnitude at `w` is bounded by `D` times the sum of the absolute coordinates of `w`. -/
 private theorem axes_l1_bound (A : SpatialPoint →L[ℝ] ℝ) (D : ℝ) (_hD : 0 ≤ D)
     (hA : ∀ i, |A (EuclideanSpace.single i 1)| ≤ D) (w : SpatialPoint) :
     |A w| ≤ D*(|w 0|+|w 1|+|w 2|) := by

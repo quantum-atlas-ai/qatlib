@@ -24,7 +24,8 @@ private abbrev CoordinatePoint := Fin 3 → ℝ
 /-- Definition of coordinate Top in the Hopf Atlas construction. -/
 private def coordinateTop : CoordinatePoint := fun _ => physicalPeriod
 
-/-- Original `scalar_partial_integral_paired_faces` guarantee for the `PeriodicIntegral` construction; the complete source hypotheses are retained. -/
+/-- If a smooth scalar function agrees on each pair of opposite coordinate faces for all transverse
+coordinates, the integral of any first coordinate derivative over the physical cube is zero. -/
 private theorem scalar_partial_integral_paired_faces (f : CoordinatePoint → ℝ) (hf : ContDiff ℝ ∞ f)
     (hfaces : ∀ (j : Fin 3) (y : Fin 2 → ℝ),
       f (j.insertNth physicalPeriod y)=f (j.insertNth 0 y)) (i : Fin 3) :

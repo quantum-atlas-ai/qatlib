@@ -68,7 +68,9 @@ theorem forwardQuotient_error {E : Type*} [NormedAddCommGroup E] [NormedSpace �
     _ ≤ h⁻¹*(R*h^2/2) := mul_le_mul_of_nonneg_left hbint (inv_nonneg.mpr hh.le)
     _ = h*R/2 := by field_simp [hh.ne']
 
-/-- Original `quaternionForwardQuotient_error` guarantee for the `ForwardConnectionSample` construction; the complete source hypotheses are retained. -/
+/-- For a smooth quaternion field with second partial along axis `j` globally bounded by `R`, the
+forward difference quotient with positive spacing `h` approximates the first partial there with norm
+error at most `h * R / 2` at every point. -/
 theorem quaternionForwardQuotient_error (q : QuaternionField) (hq : ContDiff ℝ ∞ q)
     (x : SpatialPoint) (j : Fin 3) (h R : ℝ) (hh : 0<h)
     (hb : ∀ y, ‖spatialWordPartial q [j,j] y‖ ≤ R) :

@@ -71,11 +71,11 @@ def program : Label → TM2.Stmt (fun _ : Slot => Bool) Label Local
   | .zero l => StackCall.stmt Sum.inl Label.zero .done getZero putZero (PaidRationalZero.program l)
   | .done => .load (fun _ => default) .halt
 
-/-- Original `copyCode_injective` guarantee for the `PaidBoundZeroRetention` construction; the complete source hypotheses are retained. -/
+/-- The copy routine's saved, temporary, and zero-tester input slots are pairwise distinct. -/
 private theorem copyCode_injective : Function.Injective copyCode := by
   intro a b h; fin_cases a <;> fin_cases b <;> simp_all [copyCode]
 
-/-- Original `frame_target` guarantee for the `PaidBoundZeroRetention` construction; the complete source hypotheses are retained. -/
+/-- A target with the specified three copy-stack contents and the original contents on every other slot equals the framed copy update. -/
 private theorem frame_target (S T : Slot → CanonicalCodec.Bits) (data : Fin 3 → CanonicalCodec.Bits)
     (hi : ∀ k,T (copyCode k)=data k)
     (ho : ∀ j,(∀ k,copyCode k≠j) → T j=S j) : StackCall.frame copyCode S data=T := by
@@ -148,7 +148,7 @@ theorem zero_call (q : RedundantRational.Frac) :
   · simpa only [TM2.init,hdefault,StackCall.cfg,Option.map_some,Option.getD_some,Option.map_none,Option.getD_none,state] using hn
   · simpa only [TM2.init,hdefault,StackCall.cfg,Option.map_some,Option.getD_some,state] using hnc.trans_le hc
 
-/-- Original `retained_zero_execution` guarantee for the `PaidBoundZeroRetention` construction; the complete source hypotheses are retained. -/
+/-- Starting with an encoded fraction in the saved slot, the machine halts with that encoding retained and a single bit for equality of the numerator entries. The clock cost is at most `11026*(1+encoding length)^2`. -/
 theorem retained_zero_execution (q : RedundantRational.Frac) :
     Stacks.Execution program
       ⟨some (.copy .emit),default,state (PaidRationalBridge.encode q) (fun _ => [])⟩

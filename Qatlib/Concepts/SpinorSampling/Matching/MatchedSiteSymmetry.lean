@@ -33,21 +33,23 @@ noncomputable section
 
 variable {S : Type} [DecidableEq S]
 
-/-- Complete original `occupied_sites_perm_image` guarantee for `MatchedSiteSymmetry`; all source hypotheses and output obligations are retained. -/
+/-- Taking the occupied set after relabeling an array by a site permutation gives the image of
+its original occupied set. -/
 theorem occupied_sites_perm_image [Fintype S] (σ : Equiv.Perm S)
     {n : ℕ} (J : Fin n → S) :
     occupiedSites (σ ∘ J)=(occupiedSites J).image σ := by
   ext x
   simp [occupiedSites]
 
-/-- Complete original `occupied_sites_perm_card` guarantee for `MatchedSiteSymmetry`; all source hypotheses and output obligations are retained. -/
+/-- A site permutation applied to the array leaves the number of distinct occupied sites
+unchanged. -/
 theorem occupied_sites_perm_card [Fintype S] (σ : Equiv.Perm S)
     {n : ℕ} (J : Fin n → S) :
     (occupiedSites (σ ∘ J)).card=(occupiedSites J).card := by
   rw [occupied_sites_perm_image]
   exact Finset.card_image_iff.mpr σ.injective.injOn
 
-/-- Complete original `occupied_sites_perm_mem` guarantee for `MatchedSiteSymmetry`; all source hypotheses and output obligations are retained. -/
+/-- Membership in the relabeled occupied set pulls back along the inverse site permutation. -/
 theorem occupied_sites_perm_mem [Fintype S] (σ : Equiv.Perm S)
     {n : ℕ} (J : Fin n → S) (x : S) :
     x ∈ occupiedSites (σ ∘ J) ↔ σ.symm x ∈ occupiedSites J := by
@@ -61,7 +63,8 @@ theorem occupied_sites_perm_mem [Fintype S] (σ : Equiv.Perm S)
     exact Finset.mem_image.mpr ⟨σ.symm x,hx,σ.apply_symm_apply x⟩
 
 omit [DecidableEq S] in
-/-- Complete original `uniform_cohort_address_prob` guarantee for `MatchedSiteSymmetry`; all source hypotheses and output obligations are retained. -/
+/-- Every specified length-`n` address array has probability `(1/|S|)^n` under independent
+uniform draws. -/
 theorem uniform_cohort_address_prob [Fintype S] [Nonempty S]
     {n : ℕ} (J : Fin n → S) :
     (cohortLaw (uniformLaw S) n).prob J=
@@ -72,7 +75,8 @@ theorem uniform_cohort_address_prob [Fintype S] [Nonempty S]
   rw [Finset.card_univ, Fintype.card_fin]
 
 omit [DecidableEq S] in
-/-- Complete original `uniform_cohort_address_perm_invariant` guarantee for `MatchedSiteSymmetry`; all source hypotheses and output obligations are retained. -/
+/-- Relabeling a specified address array by a permutation preserves its point probability under
+the uniform cohort law. -/
 theorem uniform_cohort_address_perm_invariant {S : Type}
     [_instDecidableEqS : DecidableEq S] [Fintype S] [Nonempty S]
     (σ : Equiv.Perm S) {n : ℕ} (J : Fin n → S) :

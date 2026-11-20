@@ -46,7 +46,8 @@ theorem spinCurvatureValue_normal_identity (s a b c : SpatialPoint) :
     starRingEnd_apply,star_trivial,Fin.sum_univ_three]
   ring
 
-/-- Original `spinCurvatureValue_three_tangents` guarantee for the `SourceMoment` construction; the complete source hypotheses are retained. -/
+/-- The spin curvature of three vectors tangent to the unit sphere at the same unit normal
+vanishes. -/
 theorem spinCurvatureValue_three_tangents (s a b c : SpatialPoint) (hs : ‖s‖=1)
     (ha : inner ℝ s a=0) (hb : inner ℝ s b=0) (hc : inner ℝ s c=0) :
     spinCurvatureValue (spinOfVector a) (spinOfVector b) (spinOfVector c)=0 := by
@@ -71,7 +72,8 @@ theorem source_unit_tangent (v : SpatialPoint → SpatialPoint) (hv : ContDiff �
     simpa using he
   linarith [real_inner_comm (v x) (fderiv ℝ v x h)]
 
-/-- Original `contDiff_sourceCurvature` guarantee for the `SourceMoment` construction; the complete source hypotheses are retained. -/
+/-- For a smooth vector source, each pair of coordinate indices determines a smooth scalar source
+curvature field. -/
 theorem contDiff_sourceCurvature (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (i j : Fin 3) : ContDiff ℝ ∞ (fun x => sourceCurvature v x i j) := by
   have hs := spinEmbedding.toContinuousLinearMap.contDiff.comp hv
@@ -144,12 +146,16 @@ theorem sourceCurvature_partial_bound (v : SpatialPoint → SpatialPoint) (hv : 
 def sourceCurvatureMoment (v : SpatialPoint → SpatialPoint) (i j : Fin 3) (x : SpatialPoint) : ℝ :=
   x i*sourceCurvature v x i j
 
-/-- Original `contDiff_sourceCurvatureMoment` guarantee for the `SourceMoment` construction; the complete source hypotheses are retained. -/
+/-- For a smooth vector source, multiplying the `i, j` source curvature by coordinate `x i`
+gives a smooth scalar field. -/
 theorem contDiff_sourceCurvatureMoment (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (i j : Fin 3) : ContDiff ℝ ∞ (sourceCurvatureMoment v i j) :=
   (EuclideanSpace.proj i : SpatialPoint →L[ℝ] ℝ).contDiff.mul (contDiff_sourceCurvature v hv i j)
 
-/-- Original `sourceCurvatureMoment_partial_bound` guarantee for the `SourceMoment` construction; the complete source hypotheses are retained. -/
+/-- For a smooth unit source at a point with `x i ∈ [0, 1]`, the `k`-directional derivative of the
+`i, j` curvature moment has absolute value at most `M1^2 / 2 + M1 * M2`. Here the nonnegative `M1`
+bounds all first physical partials at that point and `M2` bounds their directional derivatives
+along `k`. -/
 theorem sourceCurvatureMoment_partial_bound (v : SpatialPoint → SpatialPoint) (hv : ContDiff ℝ ∞ v)
     (hu : ∀ y, ‖v y‖=1) (x : SpatialPoint) (i j k : Fin 3) (hx : x i ∈ Set.Icc (0 : ℝ) 1)
     (M1 M2 : ℝ) (hM1 : 0 ≤ M1) (hM2 : 0 ≤ M2)

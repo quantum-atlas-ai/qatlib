@@ -56,7 +56,7 @@ noncomputable section
 
 variable {X : Type*}
 
-/-- Complete original `ordered_add_linear` guarantee for `SplitResidualExecution`; all source hypotheses and output obligations are retained. -/
+/-- On a sample of at least two records, adding f at both arguments and a constant c to the pair kernel adds twice the sample average of f plus c to the ordered statistic. -/
 theorem ordered_add_linear {n : ℕ} (H : X → X → ℝ) (f : X → ℝ) (c : ℝ)
     (ω : Fin n → X) (hn : 2 ≤ n) :
     orderedUStatistic (addLinear H f c) ω=orderedUStatistic H ω+2*FinDist.avg f ω+c := by
@@ -86,7 +86,7 @@ theorem ordered_add_linear {n : ℕ} (H : X → X → ℝ) (f : X → ℝ) (c : 
     linarith
   field_simp
 
-/-- Complete original `weighted_grouped_sum` guarantee for `SplitResidualExecution`; all source hypotheses and output obligations are retained. -/
+/-- Weighting each site's grouped signed count by f and summing over sites gives the sum of f times the sign over the original records. -/
 theorem weighted_grouped_sum {n : ℕ} (r : Fin n → S × Bool) (f : S → ℝ) :
     (∑ x : S, f x*groupedRecordSum (fun i => (r i).1) (fun i => recordSign (r i).2) x)=
       ∑ i : Fin n, f (r i).1*recordSign (r i).2 := by
@@ -101,7 +101,7 @@ theorem weighted_grouped_sum {n : ℕ} (r : Fin n → S × Bool) (f : S → ℝ)
   simp_rw [hp]
   simp
 
-/-- Complete original `split_linear_cast` guarantee for `SplitResidualExecution`; all source hypotheses and output obligations are retained. -/
+/-- The rational grouped linear term, cast to the reals, equals the sample average of the target linear function with the same coefficients and target. -/
 theorem split_linear_cast {n : ℕ} (r : Fin n → S × Bool) (u : S → ℚ) (α β : ℚ) :
     (splitLinearQ (List.ofFn r) u α β : ℝ)=
       FinDist.avg (targetLinear (α : ℝ) (β : ℝ) (fun x => (u x : ℝ))) r := by
@@ -129,13 +129,13 @@ theorem split_linear_cast {n : ℕ} (r : Fin n → S × Bool) (u : S → ℚ) (�
 def splitStreaming {n : ℕ} (u : S → ℝ) (α β : ℝ) (r : Fin n → S × Bool) : ℝ :=
   residualStreamingStatistic (fun _ => 0) α 0 r+2*FinDist.avg (targetLinear α β u) r+targetSquare β u
 
-/-- Complete original `split_streaming_eq_ordered` guarantee for `SplitResidualExecution`; all source hypotheses and output obligations are retained. -/
+/-- For at least two records, the streaming split statistic equals the ordered U-statistic of the split residual kernel. -/
 theorem split_streaming_eq_ordered {n : ℕ} (u : S → ℝ) (α β : ℝ)
     (r : Fin n → S × Bool) (hn : 2 ≤ n) :
     splitStreaming u α β r=orderedUStatistic (splitKernel α β u) r := by
   rw [splitStreaming, residual_streaming_eq_ordered, splitKernel, ordered_add_linear _ _ _ r hn]
 
-/-- Complete original `split_statistic_cast` guarantee for `SplitResidualExecution`; all source hypotheses and output obligations are retained. -/
+/-- Casting the rational split statistic with the exact rational target-square term gives the real streaming statistic for the same records and cast parameters. -/
 theorem split_statistic_cast {n : ℕ} (r : Fin n → S × Bool) (u : S → ℚ) (α β : ℚ) :
     (splitStatisticQ (Fintype.card S) (List.ofFn r) u α β (targetSquareQ β u) : ℝ)=
       splitStreaming (fun x => (u x : ℝ)) (α : ℝ) (β : ℝ) r := by

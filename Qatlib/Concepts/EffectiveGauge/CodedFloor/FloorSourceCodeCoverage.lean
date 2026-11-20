@@ -29,7 +29,8 @@ physical addresses. This is a representation identity, not a runtime oracle. -/
 def floorRationalCodeOfRat (q : ℚ) : FloorRationalCode :=
   ((q.num.toNat,(-q.num).toNat),q.den-1)
 
-/-- Original `floorRationalCodeOfRat_value` guarantee for the `FloorSourceCodeCoverage` construction; the complete source hypotheses are retained. -/
+/-- Encoding a rational in the floor representation and decoding it recovers the original rational
+exactly. -/
 theorem floorRationalCodeOfRat_value (q : ℚ) :
     floorRationalCodeValue (floorRationalCodeOfRat q)=q := by
   have hz : (q.num.toNat : ℤ)-((-q.num).toNat : ℤ)=q.num := by omega
@@ -43,7 +44,7 @@ theorem floorRationalCodeOfRat_value (q : ℚ) :
 def floorPointCodeOfRational (X : Fin 3 → ℚ) : FloorPointCode :=
   (floorRationalCodeOfRat (X 0),floorRationalCodeOfRat (X 1),floorRationalCodeOfRat (X 2))
 
-/-- Original `floorPointCodeOfRational_value` guarantee for the `FloorSourceCodeCoverage` construction; the complete source hypotheses are retained. -/
+/-- Encoding a rational spatial point coordinatewise and decoding it recovers the original point. -/
 theorem floorPointCodeOfRational_value (X : Fin 3 → ℚ) :
     floorPointCodeValue (floorPointCodeOfRational X)=X := by
   funext i
@@ -53,14 +54,16 @@ theorem floorPointCodeOfRational_value (X : Fin 3 → ℚ) :
 def floorSourceQueryCodeOfOriginal (X : Fin 3 → ℚ) (alpha : Fin 3 → ℕ) (b : ℕ) (j : Fin 3) :
     FloorSourceQueryCode := (floorPointCodeOfRational X,(alpha 0,alpha 1,alpha 2),b,j.val)
 
-/-- Original `floorSourceQueryCodeOfOriginal_multiIndex` guarantee for the `FloorSourceCodeCoverage` construction; the complete source hypotheses are retained. -/
+/-- Packing an original jet query preserves its multi-index under decoding, regardless of point,
+precision, and output coordinate. -/
 theorem floorSourceQueryCodeOfOriginal_multiIndex (X : Fin 3 → ℚ) (alpha : Fin 3 → ℕ)
     (b : ℕ) (j : Fin 3) :
     floorSourceQueryMultiIndex (floorSourceQueryCodeOfOriginal X alpha b j)=alpha := by
   funext i
   fin_cases i <;> simp [floorSourceQueryMultiIndex,floorSourceQueryCodeOfOriginal]
 
-/-- Original `floorEncodedJetSource_original_query` guarantee for the `FloorSourceCodeCoverage` construction; the complete source hypotheses are retained. -/
+/-- Encoding an original point, multi-index, precision, and component as a query and decoding the
+resulting answer gives the original program jet source's rational answer. -/
 theorem floorEncodedJetSource_original_query (c : Nat.Partrec.Code) (X : Fin 3 → ℚ)
     (alpha : Fin 3 → ℕ) (b : ℕ) (j : Fin 3) :
     floorRationalCodeValue (floorEncodedJetSource c (floorSourceQueryCodeOfOriginal X alpha b j))=

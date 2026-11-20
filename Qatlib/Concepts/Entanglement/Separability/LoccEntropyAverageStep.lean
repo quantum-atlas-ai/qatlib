@@ -608,7 +608,7 @@ theorem alternatingTreeExecutionStates_eq_leafStates {D E : ℕ} {side : LoccPar
 completeness, agreement of execution and leaf states, and normalization of positive-mass
 leaves. It also records total leaf probability one, the channel decomposition into leaf
 outer products, and the communication bound on outcome paths. -/
-theorem frontier1 (D E : ℕ) :
+theorem alternating_locc_entropy_and_execution_law (D E : ℕ) :
     (∀ (n : ℕ) (ψ : QState (Fin D × Fin E)) (K : KrausInstrument E n)
       (hψ : Normalized ψ),
       rightKrausAverageBranchEntropy ψ K ≤ Qatlib.Concepts.UnbiasedBases.ThreeBasis.entropy ψ hψ) ∧

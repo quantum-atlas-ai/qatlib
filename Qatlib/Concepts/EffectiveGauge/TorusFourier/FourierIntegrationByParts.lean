@@ -27,7 +27,8 @@ open scoped ContDiff
 namespace Qatlib.Concepts.EffectiveGauge.TorusFourier
 open Qatlib.Concepts.EffectiveGauge.HopfAtlas Qatlib.Concepts.EffectiveGauge.RationalFlow
 
-/-- Original `unitPeriodicField_fderiv` guarantee for the `FourierIntegrationByParts` construction; the complete source hypotheses are retained. -/
+/-- The Fréchet derivative of a smooth unit-periodic field with values in a real normed space
+is invariant under all integer lattice shifts. -/
 theorem unitPeriodicField_fderiv {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     (f : SpatialPoint → E) (hf : ContDiff ℝ ∞ f) (hp : IsUnitPeriodicField f) :
     IsUnitPeriodicField (fderiv ℝ f) := by
@@ -39,7 +40,7 @@ theorem unitPeriodicField_fderiv {E : Type*} [NormedAddCommGroup E] [NormedSpace
   rw [heq] at hc
   simpa using hc.unique (hf.differentiable (by simp) x).hasFDerivAt
 
-/-- Original `unitPeriodicField_spatialWordPartial` guarantee for the `FourierIntegrationByParts` construction; the complete source hypotheses are retained. -/
+/-- Every ordered coordinate derivative of a smooth unit-periodic field is itself unit-periodic, including the derivative indexed by the empty word. -/
 theorem unitPeriodicField_spatialWordPartial {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
     (f : SpatialPoint → E) (hf : ContDiff ℝ ∞ f) (hp : IsUnitPeriodicField f) (w : List (Fin 3)) :
     IsUnitPeriodicField (spatialWordPartial f w) := by
@@ -51,7 +52,7 @@ theorem unitPeriodicField_spatialWordPartial {E : Type*} [NormedAddCommGroup E] 
     simp only [spatialWordPartial]
     rw [hd x n]
 
-/-- Original `spatialWordPartial_complex_mul_first` guarantee for the `FourierIntegrationByParts` construction; the complete source hypotheses are retained. -/
+/-- The first coordinate derivative of the product of two smooth complex fields is the sum of the two Leibniz terms in that direction. -/
 theorem spatialWordPartial_complex_mul_first (f g : SpatialPoint → ℂ)
     (hf : ContDiff ℝ ∞ f) (hg : ContDiff ℝ ∞ g) (i : Fin 3) :
     spatialWordPartial (fun x => f x*g x) [i]=fun x =>

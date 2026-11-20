@@ -46,7 +46,7 @@ abbrev GlobalRecord (E : Type*) := E × PartialAddress.Record
 def average (f : E → ℝ) : ℝ := (∑ e : E,f e)/(Fintype.card E : ℝ)
 
 omit [DecidableEq E] in
-/-- Complete original `card_pos` guarantee for `PartialAddressMatching`; all source hypotheses and output obligations are retained. -/
+/-- The real-valued cardinality of the finite edge set is positive when the set is nonempty. -/
 theorem card_pos : (0 : ℝ)<Fintype.card E := by exact_mod_cast Fintype.card_pos
 
 /-- Construction for law in the partial address matching model. -/
@@ -67,12 +67,14 @@ def law (u v : E → Bool → ℂ) (hu : ∀ e,qubitMass (u e)=1) (hv : ∀ e,qu
 def edgeScale : ℂ :=1/(Real.sqrt (Fintype.card E : ℝ) : ℂ)
 
 omit [DecidableEq E] [Nonempty E] in
-/-- Complete original `edge_scale_norm` guarantee for `PartialAddressMatching`; all source hypotheses and output obligations are retained. -/
+/-- The squared norm of the amplitude scale for one edge is the reciprocal of the edge count,
+with Lean's totalized division. -/
 theorem edge_scale_norm : Complex.normSq (edgeScale (E:=E))=1/(Fintype.card E : ℝ) := by
   simp [edgeScale,Complex.normSq_ofReal,Real.mul_self_sqrt]
 
 omit [DecidableEq E] [Nonempty E] in
-/-- Complete original `actual_prob_scale` guarantee for `PartialAddressMatching`; all source hypotheses and output obligations are retained. -/
+/-- Multiplying both endpoint spinors by `c` scales every Born record weight by the squared
+complex norm of `c`. -/
 theorem actual_prob_scale (c : ℂ) (u v : Bool → ℂ) (spin : Bool) (basis : Fin 3) (a : Bool) :
     actualProb (fun b => c*u b) (fun b => c*v b) spin basis a=
       Complex.normSq c*actualProb u v spin basis a := by
@@ -86,7 +88,8 @@ def supplied (u v : E → Bool → ℂ) : QState (E × Reg 2) :=
   fun r => edgeScale (E:=E)*edgeInput (u r.1) (v r.1) r.2
 
 omit [DecidableEq E] [Nonempty E] in
-/-- Complete original `supplied_slice` guarantee for `PartialAddressMatching`; all source hypotheses and output obligations are retained. -/
+/-- The slice of the supplied state at edge `e` is the two-wire edge state formed from its
+endpoint amplitudes scaled by the common edge factor. -/
 theorem supplied_slice (u v : E → Bool → ℂ) (e : E) :
     (fun x => supplied u v (e,x))=
       edgeInput (fun b => edgeScale (E:=E)*u e b) (fun b => edgeScale (E:=E)*v e b) := by
@@ -94,7 +97,8 @@ theorem supplied_slice (u v : E → Bool → ℂ) (e : E) :
   cases h : x 0 <;> simp [supplied,edgeInput,h] <;> ring
 
 omit [DecidableEq E] in
-/-- Complete original `supplied_normalized` guarantee for `PartialAddressMatching`; all source hypotheses and output obligations are retained. -/
+/-- On a nonempty matching, the supplied state has unit mass if both endpoint spinors have unit
+mass on every edge. -/
 theorem supplied_normalized (u v : E → Bool → ℂ)
     (hu : ∀ e,qubitMass (u e)=1) (hv : ∀ e,qubitMass (v e)=1) : Normalized (supplied u v) := by
   have he (e : E) : (∑ x : Reg 2,Complex.normSq (edgeInput (u e) (v e) x))=1 := by
@@ -108,7 +112,8 @@ theorem supplied_normalized (u v : E → Bool → ℂ)
   exact (mul_comm _ _).trans (mul_one_div_cancel (ne_of_gt (card_pos (E:=E))))
 
 omit [DecidableEq E] [Nonempty E] in
-/-- Complete original `supplied_amplitude` guarantee for `PartialAddressMatching`; all source hypotheses and output obligations are retained. -/
+/-- At edge `e` and register bits `(a, b)`, the supplied amplitude selects the endpoint by `a`
+and the spin by `b`, then divides by the square root of twice the edge count. -/
 theorem supplied_amplitude (u v : E → Bool → ℂ) (e : E) (a b : Bool) :
     supplied u v (e,pairReg a b)=
       (if a then v e b else u e b)/(Real.sqrt (2*(Fintype.card E : ℝ)) : ℂ) := by
@@ -127,7 +132,8 @@ def nativeProb (u v : E → Bool → ℂ) (z : GlobalRecord E) : ℝ :=
     (spinProjection z.2.1 (fun x => supplied u v (z.1,x)))) (pairReg z.2.2.2 z.2.1)/3
 
 omit [DecidableEq E] [Nonempty E] in
-/-- Complete original `native_prob_uniform` guarantee for `PartialAddressMatching`; all source hypotheses and output obligations are retained. -/
+/-- A native global record has Born weight equal to its local record weight on the selected
+edge divided by the number of edges. -/
 theorem native_prob_uniform (u v : E → Bool → ℂ) (z : GlobalRecord E) :
     nativeProb u v z=actualProb (u z.1) (v z.1) z.2.1 z.2.2.1 z.2.2.2/(Fintype.card E : ℝ) := by
   unfold nativeProb
@@ -138,7 +144,8 @@ theorem native_prob_uniform (u v : E → Bool → ℂ) (z : GlobalRecord E) :
   ring
 
 omit [DecidableEq E] in
-/-- Complete original `law_prob_native` guarantee for `PartialAddressMatching`; all source hypotheses and output obligations are retained. -/
+/-- For unit spinors on every edge, each probability in the uniform matching law agrees with
+the native circuit's record weight. -/
 theorem law_prob_native (u v : E → Bool → ℂ)
     (hu : ∀ e,qubitMass (u e)=1) (hv : ∀ e,qubitMass (v e)=1) (z : GlobalRecord E) :
     (law u v hu hv).prob z=nativeProb u v z := by
@@ -149,12 +156,13 @@ def globalKernel (r s : GlobalRecord E) : ℝ :=
   if r.1=s.1 then (Fintype.card E : ℝ)*kernel r.2 s.2 else 0
 
 omit [Nonempty E] in
-/-- Complete original `global_kernel_symmetric` guarantee for `PartialAddressMatching`; all source hypotheses and output obligations are retained. -/
+/-- Interchanging the two global records preserves the value of the same-edge kernel. -/
 theorem global_kernel_symmetric (r s : GlobalRecord E) : globalKernel r s=globalKernel s r := by
   simp [globalKernel,eq_comm,kernel_symmetric]
 
 omit [DecidableEq E] in
-/-- Complete original `law_expect` guarantee for `PartialAddressMatching`; all source hypotheses and output obligations are retained. -/
+/-- The expectation of an edge-dependent record statistic is the uniform edge average of its
+local Born expectations. -/
 theorem law_expect (u v : E → Bool → ℂ)
     (hu : ∀ e,qubitMass (u e)=1) (hv : ∀ e,qubitMass (v e)=1)
     (f : E → PartialAddress.Record → ℝ) :
@@ -172,7 +180,8 @@ theorem law_expect (u v : E → Bool → ℂ)
   intro r _
   ring
 
-/-- Complete original `global_projection` guarantee for `PartialAddressMatching`; all source hypotheses and output obligations are retained. -/
+/-- Averaging the global kernel against a second record gives the local projection on the first
+record's edge. The edge-count factor cancels its sampling probability. -/
 theorem global_projection (u v : E → Bool → ℂ)
     (hu : ∀ e,qubitMass (u e)=1) (hv : ∀ e,qubitMass (v e)=1) (r : GlobalRecord E) :
     pairKernelProjection (law u v hu hv) globalKernel r=projection (u r.1) (v r.1) r.2 := by
@@ -191,7 +200,8 @@ theorem global_projection (u v : E → Bool → ℂ)
     simp [Ne.symm he]
   · simp
 
-/-- Complete original `global_mean` guarantee for `PartialAddressMatching`; all source hypotheses and output obligations are retained. -/
+/-- The global kernel mean under two independent records is the uniform average of the edge
+Bell probabilities. -/
 theorem global_mean (u v : E → Bool → ℂ)
     (hu : ∀ e,qubitMass (u e)=1) (hv : ∀ e,qubitMass (v e)=1) :
     pairKernelMean (law u v hu hv) globalKernel=average (fun e => bellProbability (u e) (v e)) := by
@@ -201,7 +211,8 @@ theorem global_mean (u v : E → Bool → ℂ)
   change average (fun e => kernelMean (u e) (v e))=_
   simp_rw [kernel_mean_eq_bell]
 
-/-- Complete original `global_square_projection` guarantee for `PartialAddressMatching`; all source hypotheses and output obligations are retained. -/
+/-- The conditional second moment of the global kernel with its first record fixed is the edge
+count times the local squared-kernel projection at that record. -/
 theorem global_square_projection (u v : E → Bool → ℂ)
     (hu : ∀ e,qubitMass (u e)=1) (hv : ∀ e,qubitMass (v e)=1) (r : GlobalRecord E) :
     (law u v hu hv).expect (fun s => (globalKernel r s)^2)=
@@ -219,13 +230,14 @@ theorem global_square_projection (u v : E → Bool → ℂ)
   · simp
 
 omit [DecidableEq E] [Nonempty E] in
-/-- Complete original `average_const_mul` guarantee for `PartialAddressMatching`; all source hypotheses and output obligations are retained. -/
+/-- A scalar constant can be moved outside the uniform edge average. -/
 theorem average_const_mul (c : ℝ) (f : E → ℝ) : average (fun e => c*f e)=c*average f := by
   unfold average
   rw [← Finset.mul_sum]
   ring
 
-/-- Complete original `global_kernel_second` guarantee for `PartialAddressMatching`; all source hypotheses and output obligations are retained. -/
+/-- The global pair kernel's second moment is the edge count times the edge average of thirteen
+times the sector product plus the Bell probability. -/
 theorem global_kernel_second (u v : E → Bool → ℂ)
     (hu : ∀ e,qubitMass (u e)=1) (hv : ∀ e,qubitMass (v e)=1) :
     (law u v hu hv).expect (fun r => (law u v hu hv).expect (fun s => (globalKernel r s)^2))=
@@ -237,7 +249,8 @@ theorem global_kernel_second (u v : E → Bool → ℂ)
   simp_rw [kernel_second_exact]
   exact average_const_mul _ _
 
-/-- Complete original `global_projection_second` guarantee for `PartialAddressMatching`; all source hypotheses and output obligations are retained. -/
+/-- The second moment of the one-record global projection is the edge average of half the
+sector product plus half the Bell probability. -/
 theorem global_projection_second (u v : E → Bool → ℂ)
     (hu : ∀ e,qubitMass (u e)=1) (hv : ∀ e,qubitMass (v e)=1) :
     (law u v hu hv).expect (fun r => (pairKernelProjection (law u v hu hv) globalKernel r)^2)=
@@ -249,16 +262,17 @@ theorem global_projection_second (u v : E → Bool → ℂ)
   simp_rw [he]
 
 omit [DecidableEq E] [Nonempty E] in
-/-- Complete original `average_nonneg` guarantee for `PartialAddressMatching`; all source hypotheses and output obligations are retained. -/
+/-- A function that is nonnegative on every edge has nonnegative edge average. -/
 theorem average_nonneg (f : E → ℝ) (hf : ∀ e,0 ≤ f e) : 0 ≤ average f := by
   exact div_nonneg (Finset.sum_nonneg fun e _ => hf e) (Nat.cast_nonneg _)
 
 omit [DecidableEq E] [Nonempty E] in
-/-- Complete original `average_mono` guarantee for `PartialAddressMatching`; all source hypotheses and output obligations are retained. -/
+/-- A pointwise inequality between two edge functions is preserved by their uniform averages. -/
 theorem average_mono (f g : E → ℝ) (h : ∀ e,f e ≤ g e) : average f ≤ average g := by
   exact div_le_div_of_nonneg_right (Finset.sum_le_sum fun e _ => h e) (Nat.cast_nonneg _)
 
-/-- Complete original `actual_global_unbiased` guarantee for `PartialAddressMatching`; all source hypotheses and output obligations are retained. -/
+/-- For at least two independent matching records from normalized endpoints, the ordered global
+U-statistic is unbiased for the average Bell probability. -/
 theorem actual_global_unbiased {n : ℕ} (u v : E → Bool → ℂ)
     (hu : ∀ e,qubitMass (u e)=1) (hv : ∀ e,qubitMass (v e)=1) (hn : 2 ≤ n) :
     (∑ ω : Fin n → GlobalRecord E,(law u v hu hv).probOf ω*orderedUStatistic globalKernel ω)=
@@ -266,7 +280,8 @@ theorem actual_global_unbiased {n : ℕ} (u v : E → Bool → ℂ)
   rw [ordered_ustatistic_unbiased (law u v hu hv) globalKernel hn]
   exact global_mean u v hu hv
 
-/-- Complete original `global_projection_variance` guarantee for `PartialAddressMatching`; all source hypotheses and output obligations are retained. -/
+/-- The global projection variance is the edge average of half the sector product plus half the
+Bell probability, minus the square of the mean Bell probability. -/
 theorem global_projection_variance (u v : E → Bool → ℂ)
     (hu : ∀ e,qubitMass (u e)=1) (hv : ∀ e,qubitMass (v e)=1) :
     (law u v hu hv).variance (pairKernelProjection (law u v hu hv) globalKernel)=
@@ -277,7 +292,8 @@ theorem global_projection_variance (u v : E → Bool → ℂ)
     (pairKernelMean (law u v hu hv) globalKernel)^2=_
   rw [global_mean]
 
-/-- Complete original `global_pair_variance` guarantee for `PartialAddressMatching`; all source hypotheses and output obligations are retained. -/
+/-- The variance of the kernel on two independent matching records is the edge count times the
+mean local second moment, minus the squared mean Bell probability. -/
 theorem global_pair_variance (u v : E → Bool → ℂ)
     (hu : ∀ e,qubitMass (u e)=1) (hv : ∀ e,qubitMass (v e)=1) :
     (law u v hu hv).expect (fun r => (law u v hu hv).expect
@@ -287,7 +303,9 @@ theorem global_pair_variance (u v : E → Bool → ℂ)
         (average (fun e => bellProbability (u e) (v e)))^2 := by
   rw [pair_variance_identity,global_kernel_second,global_mean]
 
-/-- Complete original `actual_global_variance` guarantee for `PartialAddressMatching`; all source hypotheses and output obligations are retained. -/
+/-- For `n ≥ 2` records from normalized endpoints, the mean squared error about the average
+Bell probability combines global projection variance with weight `4(n-2)/(n(n-1))` and global
+pair variance with weight `2/(n(n-1))`. -/
 theorem actual_global_variance {n : ℕ} (u v : E → Bool → ℂ)
     (hu : ∀ e,qubitMass (u e)=1) (hv : ∀ e,qubitMass (v e)=1) (hn : 2 ≤ n) :
     (∑ ω : Fin n → GlobalRecord E,(law u v hu hv).probOf ω*
@@ -302,7 +320,9 @@ theorem actual_global_variance {n : ℕ} (u v : E → Bool → ℂ)
   rw [global_projection_variance,global_pair_variance,global_mean] at h
   exact h
 
-/-- Complete original `actual_global_variance_bound` guarantee for `PartialAddressMatching`; all source hypotheses and output obligations are retained. -/
+/-- If the average true-spin mass is at most `q`, the mean squared Bell estimation error from
+`n ≥ 2` independent uniform matching records is at most `6q/n` plus `30q` times the edge count
+divided by `n(n-1)`. -/
 theorem actual_global_variance_bound {n : ℕ} (u v : E → Bool → ℂ)
     (hu : ∀ e,qubitMass (u e)=1) (hv : ∀ e,qubitMass (v e)=1) (hn : 2 ≤ n)
     (q : ℝ) (hq : average (fun e => sectorMass (u e) (v e) true) ≤ q) :

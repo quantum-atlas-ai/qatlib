@@ -56,7 +56,7 @@ def checkedLowSpinPlanQ (side d M : ℕ) (rootM α β U γ η δ p₀ : ℚ) : O
 def gridLowSpinPlanQ (d r : ℕ) (α β U γ η δ p₀ : ℚ) : Option LowSpinPlanQ :=
   checkedLowSpinPlanQ (2^r) d (2^(d*r)) ((2^((d*r+1)/2) : ℕ) : ℚ) α β U γ η δ p₀
 
-/-- Complete original `low_plan_velocity_fields` guarantee for `LowSpinPlan`; all source hypotheses and output obligations are retained. -/
+/-- The low-spin plan takes its current, cross and norm schedules from the high-confidence plan, omits that plan's spin schedule and charges velocity copies only for current and cross records on each axis. -/
 theorem low_plan_velocity_fields (side d M : ℕ) (rootM α β U γ η δ p₀ : ℚ) :
     let p := lowSpinPlanQ side d M rootM α β U γ η δ p₀
     p.velocity.current=(highConfidencePlanQ d M rootM α β U γ η δ).current ∧
@@ -66,17 +66,17 @@ theorem low_plan_velocity_fields (side d M : ℕ) (rootM α β U γ η δ p₀ :
     p.velocity.copies=d*(p.velocity.current.copies+p.velocity.crossRecords) := by
   exact ⟨rfl,rfl,rfl,rfl,rfl⟩
 
-/-- Complete original `low_plan_zero_spin` guarantee for `LowSpinPlan`; all source hypotheses and output obligations are retained. -/
+/-- A zero spin coefficient produces a low-spin plan with no Bell subplan. -/
 theorem low_plan_zero_spin (side d M : ℕ) (rootM α β U η δ p₀ : ℚ) :
     (lowSpinPlanQ side d M rootM α β U 0 η δ p₀).spin=none := rfl
 
-/-- Complete original `low_plan_bell_fields` guarantee for `LowSpinPlan`; all source hypotheses and output obligations are retained. -/
+/-- For nonzero γ, the low-spin plan includes the Bell plan with mean bound p₀, tolerance η/(32dγ) and failure budget δ/(4d). -/
 theorem low_plan_bell_fields (side d M : ℕ) (rootM α β U γ η δ p₀ : ℚ) (hγ : γ≠0) :
     (lowSpinPlanQ side d M rootM α β U γ η δ p₀).spin=
       some (bellPlanQ side M p₀ (η/(32*(d : ℚ)*γ)) (δ/(4*(d : ℚ)))) := by
   simp only [lowSpinPlanQ,ite_eq_right hγ]
 
-/-- Complete original `low_plan_account_fields` guarantee for `LowSpinPlan`; all source hypotheses and output obligations are retained. -/
+/-- The plan adds the scheduled Bell copies on all axes to the velocity copies when a Bell plan is present. Its target-query count equals the velocity target-query count. -/
 theorem low_plan_account_fields (side d M : ℕ) (rootM α β U γ η δ p₀ : ℚ) :
     let p := lowSpinPlanQ side d M rootM α β U γ η δ p₀
     p.copies=p.velocity.copies+(match p.spin with | none => 0 | some q => d*q.copies) ∧

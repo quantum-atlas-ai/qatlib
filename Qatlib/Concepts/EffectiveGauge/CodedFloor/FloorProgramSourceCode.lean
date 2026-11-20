@@ -46,23 +46,26 @@ def floorEncodedJetSource (c : Nat.Partrec.Code) (q : FloorSourceQueryCode) : Fl
   floorExprRawApprox (floorExprJetCode (floorSpinExprCode q.2.2.2) q.2.1)
     (c,q.1,floorSourcePrecisionCode q.2.2.1)
 
-/-- Original `floorSpinExprCode_decode_fin` guarantee for the `FloorProgramSourceCode` construction; the complete source hypotheses are retained. -/
+/-- Encoding a spin expression using the natural representative of coordinate `i` decodes back to
+the spin expression in coordinate `i`. -/
 theorem floorSpinExprCode_decode_fin (i : Fin 3) :
     floorExprDecode (floorSpinExprCode i.val)=floorSpinExpr i := by
   fin_cases i <;> simp [floorSpinExprCode,floorExprDecode_encode]
 
-/-- Original `floorSpinExprCode_decode` guarantee for the `FloorProgramSourceCode` construction; the complete source hypotheses are retained. -/
+/-- Decoding the spin expression code from a natural axis gives the spin expression at the
+corresponding decoded coordinate. -/
 theorem floorSpinExprCode_decode (axis : ℕ) :
     floorExprDecode (floorSpinExprCode axis)=floorSpinExpr (floorExprAxis axis) := by
   have h := floorSpinExprCode_decode_fin (floorExprAxis axis)
   simpa [floorSpinExprCode,floorExprAxis] using h
 
-/-- Original `floorSourcePrecisionCode_value` guarantee for the `FloorProgramSourceCode` construction; the complete source hypotheses are retained. -/
+/-- The coded precision at index `b` represents the rational reciprocal of `2^b`. -/
 theorem floorSourcePrecisionCode_value (b : ℕ) :
     floorRationalCodeValue (floorSourcePrecisionCode b)=(2^b : ℚ)⁻¹ := by
   simp [floorSourcePrecisionCode,floorRationalCodeInv_value,floorRationalCodePow_value,floorRationalCodeNat_value]
 
-/-- Original `floorEncodedJetSource_value` guarantee for the `FloorProgramSourceCode` construction; the complete source hypotheses are retained. -/
+/-- Decoding the coded jet answer gives the program's rational source value at the point,
+multi-index, precision, and output coordinate selected by the query. -/
 theorem floorEncodedJetSource_value (c : Nat.Partrec.Code) (q : FloorSourceQueryCode) :
     floorRationalCodeValue (floorEncodedJetSource c q)=
       floorProgramJetSource c ((floorPointCodeValue q.1,floorSourceQueryMultiIndex q),q.2.2.1)
@@ -74,18 +77,18 @@ theorem floorEncodedJetSource_value (c : Nat.Partrec.Code) (q : FloorSourceQuery
   rw [← hmulti,floorExprDecode_jetCode,floorSpinExprCode_decode,floorSourcePrecisionCode_value]
   rfl
 
-/-- Original `primrec_floorSpinExprCode` guarantee for the `FloorProgramSourceCode` construction; the complete source hypotheses are retained. -/
+/-- The spin component expression code is primitive recursive in the natural axis code. -/
 theorem primrec_floorSpinExprCode : Primrec floorSpinExprCode :=
   (Primrec.list_getD (floorExprEncode (floorSpinExpr 0))).comp
     (Primrec.const [floorExprEncode (floorSpinExpr 0),floorExprEncode (floorSpinExpr 1),floorExprEncode (floorSpinExpr 2)])
     (Primrec.nat_mod.comp Primrec.id (Primrec.const 3))
 
-/-- Original `primrec_floorSourcePrecisionCode` guarantee for the `FloorProgramSourceCode` construction; the complete source hypotheses are retained. -/
+/-- Constructing the rational precision code for `1 / 2^b` is primitive recursive in `b`. -/
 theorem primrec_floorSourcePrecisionCode : Primrec floorSourcePrecisionCode :=
   primrec_floorRationalCodeInv.comp
     (primrec_floorRationalCodePow.comp (Primrec.const (floorRationalCodeNat 2)) Primrec.id)
 
-/-- Original `computable_floorEncodedJetSource` guarantee for the `FloorProgramSourceCode` construction; the complete source hypotheses are retained. -/
+/-- The coded jet source is computable jointly in the program and jet query codes. -/
 theorem computable_floorEncodedJetSource : Computable₂ floorEncodedJetSource := by
   have hq : Computable (fun p : Nat.Partrec.Code × FloorSourceQueryCode => p.2) := Computable.snd
   have hx := Computable.fst.comp hq
@@ -96,7 +99,8 @@ theorem computable_floorEncodedJetSource : Computable₂ floorEncodedJetSource :
   have ht := primrec_floorSourcePrecisionCode.to_comp.comp hb
   exact computable_floorExprRawApprox.comp he (Computable.fst.pair (hx.pair ht))
 
-/-- Original `floorEncodedJetSource_generator` guarantee for the `FloorProgramSourceCode` construction; the complete source hypotheses are retained. -/
+/-- A computable generator takes a program code and returns a partial-recursive program for its
+coded jet source, defined on every encoded jet query. -/
 theorem floorEncodedJetSource_generator : ∃ generate : Nat.Partrec.Code → Nat.Partrec.Code,
     Computable generate ∧ ∀ c q,
       Nat.Partrec.Code.eval (generate c) (Encodable.encode q)=
@@ -105,7 +109,9 @@ theorem floorEncodedJetSource_generator : ∃ generate : Nat.Partrec.Code → Na
     (fun c q => Part.some (floorEncodedJetSource c q)) computable_floorEncodedJetSource.partrec₂
   exact ⟨generate,hgenerate,fun c q => by simpa using hcorrect c q⟩
 
-/-- Original `floorEncodedJetSource_error` guarantee for the `FloorProgramSourceCode` construction; the complete source hypotheses are retained. -/
+/-- For a query whose decoded point lies in the fundamental cube, the decoded output approximates
+the selected component of the program spin's canonical jet with absolute error at most the
+reciprocal of `2` raised to the query's precision index. -/
 theorem floorEncodedJetSource_error (c : Nat.Partrec.Code) (q : FloorSourceQueryCode)
     (hX : InFundamentalCube (rationalSpatialPoint (floorPointCodeValue q.1))) :
     |(floorRationalCodeValue (floorEncodedJetSource c q) : ℝ)-

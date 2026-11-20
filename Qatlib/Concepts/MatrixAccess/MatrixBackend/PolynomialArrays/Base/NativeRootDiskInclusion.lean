@@ -20,7 +20,7 @@ noncomputable section
 namespace Qatlib.Concepts.MatrixAccess.MatrixBackend.PolynomialArrays
 open Polynomial
 
-/-- The finite construction in `NativeRootDiskInclusion` satisfies `polynomial_root_disk_of_norm_ratio` under the displayed hypotheses. -/
+/-- If `f` has positive degree and its degree times `‖f.eval c‖` is at most `r` times the derivative norm at `c`, the closed disk of positive radius `r` about `c` contains a root of `f`. -/
 theorem polynomial_root_disk_of_norm_ratio (f : ℂ[X]) (hf : 0<f.natDegree)
     (c : ℂ) (r : ℝ) (hr : 0<r)
     (hbound : (f.natDegree : ℝ)*‖f.eval c‖≤r*‖f.derivative.eval c‖) :

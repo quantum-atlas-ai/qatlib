@@ -8,7 +8,7 @@ module
 
 public import Qatlib.Concepts.SdpDuality.ConeSeparation.SharedMatrixOptimizationDefs
 public import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationExecutionRefutations
-public import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationS1ContractEvidence
+public import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationContractEvidence
 public import Qatlib.Concepts.AmpTransform.LegendreWindow.LegendreCompleteWindow
 public import Qatlib.Concepts.SdpDuality.StrongDuality.PsdConeGeometry
 
@@ -34,7 +34,7 @@ image is not closed. Matrix and SDP background can be found in [Bhatia1997] and 
 * `clause24_endpoint`: Step 2 bounds and a separator counterexample.
 * `clause26_endpoint`: dual mixture identities and a finite sampling obstruction.
 * `clause28_endpoint`: compiled resource accounting.
-* `SdpDuality.frontier1`: approximate separation and the corner example.
+* `SdpDuality.psd_farkas_geometry_and_nonclosed_corner_image`: approximate separation and the corner example.
 
 ## References
 
@@ -1458,7 +1458,7 @@ theorem corner_image_not_closed : ¬ IsClosed (cornerMap '' {X : HermitianMat (F
 /-- Combines finite real and complex PSD geometry and the approximate Farkas alternative with
 the infeasible but approximately feasible corner system, its lack of a strict separator, and
 its nonclosed cone image. -/
-theorem frontier1 : FinitePsdGeometry ℝ ∧ FinitePsdGeometry ℂ ∧
+theorem psd_farkas_geometry_and_nonclosed_corner_image : FinitePsdGeometry ℝ ∧ FinitePsdGeometry ℂ ∧
     (∀ (𝕜 : Type) [RCLike 𝕜] (D m : ℕ)
       (A : HermitianMat (Fin D) 𝕜 →L[ℝ] EuclideanSpace ℝ (Fin m)) (b : EuclideanSpace ℝ (Fin m)),
       (ApproxFeasible A b ↔ ∀ y, 0 ≤ A.adjoint y → 0 ≤ ⟪b,y⟫_ℝ) ∧

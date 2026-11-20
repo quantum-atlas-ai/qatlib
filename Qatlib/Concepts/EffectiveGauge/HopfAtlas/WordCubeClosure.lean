@@ -23,7 +23,7 @@ open Qatlib.Concepts.EffectiveGauge.RationalFlow
 /-- Definition of In Open Unit Cube in the Hopf Atlas construction. -/
 def InOpenUnitCube (x : SpatialPoint) : Prop := ∀ i, 0<x i ∧ x i<1
 
-/-- Original `isOpen_openUnitCube` guarantee for the `WordCubeClosure` construction; the complete source hypotheses are retained. -/
+/-- The spatial set with all coordinates strictly between zero and one is open. -/
 theorem isOpen_openUnitCube : IsOpen {x : SpatialPoint | InOpenUnitCube x} := by
   have hset : {x : SpatialPoint | InOpenUnitCube x}=⋂ i : Fin 3, {x : SpatialPoint | 0<x i ∧ x i<1} := by
     ext x

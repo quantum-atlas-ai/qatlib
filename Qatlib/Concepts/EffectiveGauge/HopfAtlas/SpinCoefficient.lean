@@ -51,7 +51,8 @@ def roundedHorizontalSample (a : RationalSpinSample) (p : ℕ) : Fin 3 → ℤ :
 def spinCoefficientOracle (M : ℚ) (source : ℚ × ℕ → RationalSpinSample) (label : ℚ × ℕ) : Fin 3 → ℤ :=
   roundedHorizontalSample (source (coefficientSourceQuery M label)) label.2
 
-/-- Original `nearestDyadicNumerator_error` guarantee for the `SpinCoefficient` construction; the complete source hypotheses are retained. -/
+/-- Rounding a rational `a` to the numerator `nearestDyadicNumerator a p` at denominator `2^p`
+gives error at most half the grid spacing. -/
 theorem nearestDyadicNumerator_error (a : ℚ) (p : ℕ) :
     |(nearestDyadicNumerator a p : ℚ)/(2^p : ℚ)-a| ≤ (2^p : ℚ)⁻¹/2 := by
   have hp : (0 : ℚ)<2^p := by positivity
@@ -67,7 +68,8 @@ theorem nearestDyadicNumerator_error (a : ℚ) (p : ℕ) :
   dsimp [nearestDyadicNumerator]
   constructor <;> linarith
 
-/-- Original `spinCoefficientOverhead_bound` guarantee for the `SpinCoefficient` construction; the complete source hypotheses are retained. -/
+/-- For `M ≥ 0`, twice the spacing at precision `p + spinCoefficientOverhead M` is at most the
+original spacing at precision `p` divided by `8 * (M + 2)`. -/
 theorem spinCoefficientOverhead_bound (M : ℚ) (hM : 0 ≤ M) (p : ℕ) :
     2*(2^(p+spinCoefficientOverhead M) : ℚ)⁻¹ ≤ (2^p : ℚ)⁻¹/(8*(M+2)) := by
   have hpow : Nat.ceil (16*(M+2)) ≤ 2^spinCoefficientOverhead M := Nat.le_pow_clog (by decide) _
@@ -92,7 +94,7 @@ def rationalQuaternionCast : Quaternion ℚ →+* ℍ where
   map_add' a b := by ext <;> simp
   map_mul' a b := by ext <;> simp [sub_eq_add_neg]
 
-/-- Original `quaternion_im_norm_le` guarantee for the `SpinCoefficient` construction; the complete source hypotheses are retained. -/
+/-- Taking the imaginary part of a quaternion cannot increase its norm. -/
 theorem quaternion_im_norm_le (q : ℍ) : ‖q.im‖ ≤ ‖q‖ := by
   apply (sq_le_sq₀ (norm_nonneg _) (norm_nonneg _)).mp
   simp only [pow_two,← Quaternion.normSq_eq_norm_mul_self,Quaternion.normSq_def']
@@ -112,14 +114,16 @@ theorem pure_coordinate_norm_le (q : ℍ) (hq : q.re=0) (eta : ℝ) (he : 0 ≤ 
   apply (sq_le_sq₀ (norm_nonneg _) (by positivity)).mp
   nlinarith [sq_nonneg eta]
 
-/-- Original `rationalHorizontalSample_cast` guarantee for the `SpinCoefficient` construction; the complete source hypotheses are retained. -/
+/-- The rational horizontal sample, cast to real quaternions, is the imaginary part of the
+horizontal coefficient computed from the real casts of its two sampled spin quaternions. -/
 theorem rationalHorizontalSample_cast (a : RationalSpinSample) :
     rationalQuaternionCast (rationalHorizontalSample a)=
       (horizontalCoefficient (rationalQuaternionCast (rationalSpinQuaternion a.1))
         (rationalQuaternionCast (rationalSpinQuaternion a.2))).im := by
   ext <;> simp [rationalHorizontalSample,rationalQuaternionCast,horizontalCoefficient,sub_eq_add_neg]
 
-/-- Original `dyadic_rounding_error` guarantee for the `SpinCoefficient` construction; the complete source hypotheses are retained. -/
+/-- For a rational quaternion with zero real part, independently rounding the three imaginary
+coordinates to denominator `2^p` gives quaternion error at most `(7 / 8) * 2⁻ᵖ`. -/
 theorem dyadic_rounding_error (a : Quaternion ℚ) (ha : a.re=0) (p : ℕ) :
     ‖dyadicCoefficient p (fun j => nearestDyadicNumerator (![a.imI,a.imJ,a.imK] j) p)-
       rationalQuaternionCast a‖ ≤ 7*(2^p : ℝ)⁻¹/8 := by
@@ -136,7 +140,9 @@ theorem dyadic_rounding_error (a : Quaternion ℚ) (ha : a.re=0) (p : ℕ) :
     (by simpa [dyadicCoefficient,rationalQuaternionCast,div_eq_mul_inv,mul_comm] using hround a.imK)
   linarith
 
-/-- Original `horizontal_sample_error` guarantee for the `SpinCoefficient` construction; the complete source hypotheses are retained. -/
+/-- For a unit spin `s` whose exact horizontal coefficient is pure imaginary, approximating `s` and
+`ds` by `a` and `d` within `eta ∈ [0, 1]` gives horizontal sample error at most `eta * (M + 2)`
+after taking the imaginary part, provided `‖ds‖ ≤ M`. -/
 theorem horizontal_sample_error (a d s ds : ℍ) (hs : ‖s‖=1)
     (hp : (horizontalCoefficient s ds).re=0) (eta M : ℝ) (he : 0 ≤ eta) (he1 : eta ≤ 1)
     (hd : ‖ds‖ ≤ M) (ha : ‖a-s‖ ≤ eta) (hda : ‖d-ds‖ ≤ eta) :

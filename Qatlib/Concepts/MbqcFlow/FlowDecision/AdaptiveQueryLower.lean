@@ -29,7 +29,7 @@ with measurement based algorithmic context in [Kitaev1995].
 - `toInstrument_traces` identifies compiled traces after applying `restoreTniRecord`.
 - `toInstrument_wellFormed` preserves the circuit well-formedness condition.
 - `toInstrument_event` and `toInstrument_expected` preserve event mass and expected query count.
-- `frontier1` packages well-formedness and the trace transport identity.
+- `toInstrument_wellFormed_and_mixed_traces` packages well-formedness and the trace transport identity.
 
 ## References
 
@@ -255,7 +255,7 @@ def tniBudget : TniCircuit d → ℕ
 
 /-- Packages preservation of circuit well-formedness with the exact mixed-trace identity after
 restoring compiled outcome records. -/
-theorem frontier1 (P : TniCircuit d) (hP : tniWellFormed P) :
+theorem toInstrument_wellFormed_and_mixed_traces (P : TniCircuit d) (hP : tniWellFormed P) :
     instrumentCircuitWellFormed (toInstrument P) ∧
       ∀ (O : Operator d) (rho : Operator d),
         (instrumentCircuitMixedTraces O (toInstrument P) rho).map
