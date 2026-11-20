@@ -3803,13 +3803,13 @@ public import Qatlib.Concepts.SdpDuality.ConeSeparation.DualMixtureDensityInput
 public import Qatlib.Concepts.SdpDuality.ConeSeparation.Macros
 public import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimization
 public import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationAlgorithmsDefs
+public import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationContractEvidence
 public import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationDefs
 public import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationExecutionRefutations
 public import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationExt
 public import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationInterfaces
 public import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationInterfacesDefs
 public import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationRefutations
-public import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationS1ContractEvidence
 public import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationSharedDefs
 public import Qatlib.Concepts.SdpDuality.ConeSeparation.MeasurementStatistics
 public import Qatlib.Concepts.SdpDuality.ConeSeparation.MeasurementStatisticsDefs

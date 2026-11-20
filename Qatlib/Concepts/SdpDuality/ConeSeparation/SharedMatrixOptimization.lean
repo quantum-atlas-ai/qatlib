@@ -8,7 +8,7 @@ module
 
 public import Qatlib.Concepts.SdpDuality.ConeSeparation.SharedMatrixOptimizationDefs
 public import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationExecutionRefutations
-public import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationS1ContractEvidence
+public import Qatlib.Concepts.SdpDuality.ConeSeparation.MatrixOptimizationContractEvidence
 public import Qatlib.Concepts.AmpTransform.LegendreWindow.LegendreCompleteWindow
 public import Qatlib.Concepts.SdpDuality.StrongDuality.PsdConeGeometry
 
