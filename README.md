@@ -101,10 +101,37 @@ lake test
 | **4. 代数、数论与密码分析量子算法** | QFT 与 Fourier 采样、Shor 大数分解与离散对数周期恢复、椭圆曲线离散对数（ECDLP）资源分析、阿贝尔与非阿贝尔隐藏子群问题（HSP）、Simon 解码与对称密码量子分析、格问题条件归约 | [`Qatlib/Concepts/PeriodSampling/`](./Qatlib/Concepts/PeriodSampling)<br>[`Qatlib/Concepts/CurveGroups/`](./Qatlib/Concepts/CurveGroups)<br>[`Qatlib/Concepts/HspRecovery/`](./Qatlib/Concepts/HspRecovery)<br>[`Qatlib/Concepts/AbelianDecoders/`](./Qatlib/Concepts/AbelianDecoders)<br>[`Qatlib/Papers/ECDLPResource17/`](./Qatlib/Papers/ECDLPResource17)<br>[`Qatlib/Papers/DihedralHSP04/`](./Qatlib/Papers/DihedralHSP04) |
 | **5. 量子线性代数、块编码与 QSVT / QSP** | 块编码（Block-Encoding）代数、量子信号处理（QSP）、量子奇异值变换（QSVT）、量子化（Qubitization）、线性组合酉算子（LCU）、HHL 与量子线性方程组求解、矩阵函数逼近 | [`Qatlib/Concepts/BlockEncoding/`](./Qatlib/Concepts/BlockEncoding)<br>[`Qatlib/Concepts/QsvtCore/`](./Qatlib/Concepts/QsvtCore)<br>[`Qatlib/Concepts/QsvtLinearSolve/`](./Qatlib/Concepts/QsvtLinearSolve)<br>[`Qatlib/Concepts/HhlAlgorithms/`](./Qatlib/Concepts/HhlAlgorithms)<br>[`Qatlib/Concepts/SignalPrimitive/`](./Qatlib/Concepts/SignalPrimitive)<br>[`Qatlib/Papers/QSingValue19/`](./Qatlib/Papers/QSingValue19) |
 | **6. 哈密顿量模拟、开放量子系统与科学计算** | Lie–Trotter–Suzuki 乘积公式与交换子误差界、截断泰勒级数、QSP 哈密顿量模拟、LCHS 线性微分方程模拟、qDRIFT 随机哈密顿量模拟、Lindblad 演化、量子 Gibbs 态制备与蒙特卡洛估计 | [`Qatlib/Concepts/TrotterFormula/`](./Qatlib/Concepts/TrotterFormula)<br>[`Qatlib/Concepts/QspSimulation/`](./Qatlib/Concepts/QspSimulation)<br>[`Qatlib/Concepts/LchsSimulation/`](./Qatlib/Concepts/LchsSimulation)<br>[`Qatlib/Concepts/LindbladFlow/`](./Qatlib/Concepts/LindbladFlow)<br>[`Qatlib/Concepts/QuantumGibbs/`](./Qatlib/Concepts/QuantumGibbs)<br>[`Qatlib/Papers/TrotterError19/`](./Qatlib/Papers/TrotterError19) |
-| **7. 多体物理、量子化学、张量网络与量子纠错** | Jordan–Wigner 与 Bravyi–Kitaev 费米子映射、玻色 Fock 空间、量子化学模拟与表面码资源估算、张量网络、稳定子码与 CSS 码解码器 | [`Qatlib/Concepts/FermionAlgebra/`](./Qatlib/Concepts/FermionAlgebra)<br>[`Qatlib/Concepts/BosonFock/`](./Qatlib/Concepts/BosonFock)<br>[`Qatlib/Concepts/TensorNetwork/`](./Qatlib/Concepts/TensorNetwork)<br>[`Qatlib/Concepts/CodingDecoding/`](./Qatlib/Concepts/CodingDecoding)<br>[`Qatlib/Papers/BKFermion17/`](./Qatlib/Papers/BKFermion17)<br>[`Qatlib/Papers/QChemistry14/`](./Qatlib/Papers/QChemistry14) |
+| **7. 多体物理、量子化学与张量网络** | Jordan–Wigner 与 Bravyi–Kitaev 费米子映射、玻色 Fock 空间、量子化学模拟与张量网络 | [`Qatlib/Concepts/FermionAlgebra/`](./Qatlib/Concepts/FermionAlgebra)<br>[`Qatlib/Concepts/BosonFock/`](./Qatlib/Concepts/BosonFock)<br>[`Qatlib/Concepts/TensorNetwork/`](./Qatlib/Concepts/TensorNetwork)<br>[`Qatlib/Papers/BKFermion17/`](./Qatlib/Papers/BKFermion17)<br>[`Qatlib/Papers/QChemistry14/`](./Qatlib/Papers/QChemistry14) |
 | **8. 量子优化、量子机器学习与复杂性理论** | 绝热量子计算与能隙分析、QAOA 与 Overlap Gap 性质、量子半正定规划（SDP）求解器、局域哈密顿量与 QMA 完全性、量子主成分分析（qPCA）与变分电路可训练性分析 | [`Qatlib/Concepts/SdpDuality/`](./Qatlib/Concepts/SdpDuality)<br>[`Qatlib/Concepts/SdpMmwSolver/`](./Qatlib/Concepts/SdpMmwSolver)<br>[`Qatlib/Concepts/QmaCompleteness/`](./Qatlib/Concepts/QmaCompleteness)<br>[`Qatlib/Papers/SDPBrandao16/`](./Qatlib/Papers/SDPBrandao16)<br>[`Qatlib/Papers/QAOAScaling23/`](./Qatlib/Papers/QAOAScaling23)<br>[`Qatlib/Papers/Trainability23/`](./Qatlib/Papers/Trainability23) |
+| **9. 量子纠错（QEC）** | 稳定子与 CSS 码构造、相干恢复、码参数证书、综合征提取线路与译码 | [`Qatlib/Concepts/ErrorCorrection/`](./Qatlib/Concepts/ErrorCorrection)<br>[`Qatlib/Concepts/CodeCert/`](./Qatlib/Concepts/CodeCert)<br>[`Qatlib/Concepts/CodingDecoding/`](./Qatlib/Concepts/CodingDecoding)<br>[`Qatlib/Concepts/CssGreedyDecode/`](./Qatlib/Concepts/CssGreedyDecode) |
 
 详细模块组织与命名约定参见 [`docs/architecture.md`](./docs/architecture.md)。
+
+## <a id="quantum-error-correction"></a>量子纠错组件导览
+
+### 稳定子代数与码构造
+
+带相位的 Pauli 算子与带符号的 Clifford tableau 刻画了稳定子投影与测量的精确语义；二元线性码接口则通过生成子空间与奇偶校验矩阵，由经典线性码系统化构造 Calderbank–Shor–Steane（CSS）量子码。[稳定子代数](./Qatlib/Concepts/PauliClifford/PauliAlgebra/CliffordStabilizer.lean) · [经典线性码](./Qatlib/Concepts/ErrorCorrection/CssBuild/Classical.lean) · [CSS 构造](./Qatlib/Concepts/ErrorCorrection/CssBuild/Constructions.lean)
+
+已收录的具体码与构造涵盖经典重复码、Hamming 码、Steane `[[7,1,3]]` 码以及非 CSS 的五量子比特 `[[5,1,3]]` 完美码；在满足显式配对条件的前提下，Armillary 通用置换分块构造给出了校验秩上界，以及逻辑量子比特数与码率的下界。[重复码](./Qatlib/Papers/CssCodeCS96/Construction/Repetition.lean) · [Hamming 码](./Qatlib/Papers/CssCodeCS96/Construction/Hamming.lean) · [Steane 码](./Qatlib/Papers/CssCodeCS96/Construction/Steane.lean) · [五量子比特码](./Qatlib/Papers/PerfectQEC96/FiveQubit.lean) · [Armillary 参数界](./Qatlib/Papers/Armillary26/Instances/Construction.lean)
+
+### 相干误差恢复
+
+当编码映射为等距映射、噪声与恢复的 Kraus 算子族均完备，且每个噪声 Kraus 算子均落在恢复映射的可纠子空间内时，恢复过程严格保持编码态不变（涵盖混合态及其与任意有限维参考系统的纠缠）。将同一 CSS 译码程序迁移至带符号 tableau 表示后，可证明两种表示诱导的恢复信道对任意输入算子作用等价。[Kraus 恢复与有限维参考系统](./Qatlib/Concepts/ErrorCorrection/Recovery/Kraus.lean) · [CSS 与 tableau 恢复信道等价](./Qatlib/Concepts/ErrorCorrection/Recovery/CssChannel.lean)
+
+### 码参数证书
+
+Lean 内核可直接核验二元高斯消元算出的 `GF(2)` 精确秩，以及由两侧校验秩决定的 CSS 逻辑量子比特数 `k`。分支定界证书用于验证 CSS 码距下界，结合达到该下界的逻辑 Pauli 算子见证即可认证精确码距；Tanner 图模块通过排除奇偶校验矩阵中的四元矩形来证明无 4 圈，配合显式 6 圈见证即可认证精确围长为 6；置换分块模块则提供分块行消元与秩上界工具。[秩与 CSS 维数](./Qatlib/Concepts/CodeCert/RankCert/Binary.lean) · [码距证书](./Qatlib/Concepts/CodeCert/DistCert/Branch.lean) · [Tanner 围长](./Qatlib/Concepts/CodeCert/DistCert/Tanner.lean) · [置换分块秩界](./Qatlib/Concepts/CodeCert/PermBlocks/Rank.lean)
+
+### 综合征提取与译码
+
+当两轮门序列分别实现 `X` 与 `Z` 校验矩阵时，有序 CNOT 网络与逐量子比特 Hadamard 层即构成 CSS 综合征提取的量子测量仪器。按门位点索引的比特翻转模型同步追踪读出偏移与数据残余误差：在每处故障至多翻转一个数据比特的条件下，两轮提取后的残余 Pauli 权重不超过故障门总数。[CSS 综合征线路](./Qatlib/Concepts/CodingDecoding/CssRecovery/CssCircuit.lean) · [CNOT 故障传播](./Qatlib/Concepts/CodingDecoding/CssRecovery/ParityCircuit.lean)
+
+译码组件涵盖可执行的 CSS 贪心翻转算法、满足统一参数条件的量子局部可测试码（qLTC）码族接口，以及量子 Tanner 码与提升积（lifted-product）码的译码规范。含噪综合征接口刻画了给定数据误差与测量误差预算下的单轮（single-shot）译码正确性，量子 LDPC 论文模块则给出了选定模型下的残余误差界。[CSS 贪心译码](./Qatlib/Concepts/CssGreedyDecode/SyndromeGreedy/QuantumLDPCDecoding.lean) · [qLTC 码族](./Qatlib/Concepts/CodingDecoding/FamilyAssembly/AsymptoticallyGoodQLTCFamily.lean) · [量子 Tanner 与提升积译码](./Qatlib/Papers/QCodeDecoding22/MainResults/DecoderModel.lean) · [含噪综合征译码接口](./Qatlib/Concepts/CodingDecoding/CssTesters/CodingDecodingCoreDefs.lean) · [单轮 LDPC 残差界](./Qatlib/Papers/OneShotLDPC23/MainResults/ResidualBound.lean)
+
+### 表面码资源估算
+
+库中的表面码相关内容限于给定参数下的物理资源开销估算（涵盖 RSA 分解与量子化学模拟成本），不含独立的表面码族构造实现。[RSA 分解成本](./Qatlib/Papers/RSAFactoring19/MainResults/ResourceEstimate/SurfaceCodeCost.lean) · [量子化学模拟估算](./Qatlib/Papers/TensorHyper20/MainResults/SurfaceCodeEstimate.lean)
 
 ## <a id="documentation"></a>文档与工具索引
 

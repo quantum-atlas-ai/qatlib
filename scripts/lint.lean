@@ -112,25 +112,29 @@ def checkCopyrightHeader (lines : Array String) : Option String := Id.run do
     return some "Malformed or missing Apache-2.0 copyright header"
   return none
 
+structure HeaderImport where
+  lineNo : Nat
+  moduleName : String
+  isPublicImport : Bool
+
 /-- Parse header imports with Lean's parser, including comments and import modifiers. -/
-def extractHeaderImports (lines : Array String) : IO (Array (Nat × String)) := do
-  -- Imports in Qatlib are one per header line. A small lexical scan avoids
-  -- constructing a full Lean syntax tree for each of the ten thousand files.
-  let mut imports : Array (Nat × String) := #[]
-  for i in [0:lines.size] do
-    let raw := lines[i]!
-    let mut line := raw.trimAscii.toString
-    let mut changed := true
-    while changed do
-      changed := false
-      for pfx in ["public ", "meta ", "all ", "module ", "prelude "] do
-        if line.startsWith pfx then
-          line := line.drop pfx.length |>.toString
-          changed := true
-    if line.startsWith "import " then
-      let rest := line.drop 7 |>.toString
-      let mod := String.ofList (rest.toList.takeWhile (fun c => c.isAlphanum || c == '_' || c == '.'))
-      if !mod.isEmpty then imports := imports.push (i + 1, mod)
+def extractHeaderImports (lines : Array String) (fileName : String := "<header>") :
+    IO (Array HeaderImport) := do
+  let input := Lean.Parser.mkInputContext (String.intercalate "\n" lines.toList) fileName
+  let (header, _, messages) ← Lean.Parser.parseHeader input
+  if messages.hasErrors then
+    for message in messages.toList do
+      IO.eprintln (← message.toString)
+    throw <| IO.userError s!"Invalid Lean import header in {fileName}"
+  let mut imports : Array HeaderImport := #[]
+  if let `(Lean.Parser.Module.header| $[module]? $[prelude]? $importsStx*) := header.raw then
+    for stx in importsStx do
+      if let `(Lean.Parser.Module.import| $[public%$pubTk]? $[meta%$metaTk]? import $[all%$allTk]? $mod) := stx then
+        let lineNo := (input.fileMap.toPosition (mod.raw.getPos?.getD 0)).line
+        imports := imports.push ⟨lineNo, mod.getId.toString,
+          pubTk.isSome && metaTk.isNone && allTk.isNone⟩
+  else
+    throw <| IO.userError s!"Cannot parse Lean import header in {fileName}"
   return imports
 
 /-- Return the first line containing `needle`, case-insensitively. -/
@@ -473,6 +477,27 @@ def countCandidateNames (code : String) (candidates : Std.HashSet String)
     | c :: rest => if isWord c then loop rest (buf.push c) out else loop rest #[] (flush buf out)
   loop code.toList #[] counts
 
+/-- Check source constructs that bypass the kernel or introduce unsupported assumptions. -/
+def checkSoundnessLine (rel : String) (lineNo : Nat) (codeLine : String) : Array String := Id.run do
+  let mut errors := #[]
+  if codeLine.contains "debug.skipKernelTC" then
+    errors := errors.push s!"{rel}:{lineNo}: forbidden skipKernelTC"
+  if codeLine.contains "native_decide" then
+    errors := errors.push s!"{rel}:{lineNo}: forbidden native_decide"
+  let trimmed := codeLine.trimAscii.toString
+  if trimmed.startsWith "set_option warningAsError false" then
+    errors := errors.push s!"{rel}:{lineNo}: forbidden warningAsError-false"
+  let words := codeLine.splitOn " " |>.flatMap (fun x => x.splitOn "\t")
+  if words.any (fun w => w == "sorry") then errors := errors.push s!"{rel}:{lineNo}: forbidden sorry"
+  if words.any (fun w => w == "admit") then errors := errors.push s!"{rel}:{lineNo}: forbidden admit"
+  let trimmed := ["public ", "private ", "protected ", "noncomputable "].foldl
+    (fun t p => if t.startsWith p then t.drop p.length |>.toString else t) trimmed
+  if trimmed.startsWith "axiom " || trimmed == "axiom" then
+    errors := errors.push s!"{rel}:{lineNo}: forbidden custom-axiom"
+  if trimmed.startsWith "unsafe " || trimmed == "unsafe" then
+    errors := errors.push s!"{rel}:{lineNo}: forbidden unsafe-decl"
+  return errors
+
 /-- Check statement-fidelity and source-hygiene rules for one Lean file. -/
 def checkFidelityFile (rel _raw code : String) (lines : Array String) (freq : Std.HashMap String Nat)
     (props : Array PropDefInfo) (costNotices : Nat) :
@@ -513,19 +538,7 @@ def checkFidelityFile (rel _raw code : String) (lines : Array String) (freq : St
       if line.contains needle && !allowedTypeName then
         errors := errors.push s!"{rel}:{lineNo}: {label}: '{needle}'"
     let codeLine := if i < codeLines.size then codeLines[i]! else ""
-    if codeLine.contains "debug.skipKernelTC" then errors := errors.push s!"{rel}:{lineNo}: forbidden skipKernelTC"
-    if codeLine.contains "native_decide" then errors := errors.push s!"{rel}:{lineNo}: forbidden native_decide"
-    let trimmedCodeLine := codeLine.trimAscii.toString
-    if trimmedCodeLine.startsWith "set_option warningAsError false" then
-      errors := errors.push s!"{rel}:{lineNo}: forbidden warningAsError-false"
-    let words := codeLine.splitOn " " |>.flatMap (fun x => x.splitOn "\t")
-    if words.any (fun w => w == "sorry") then errors := errors.push s!"{rel}:{lineNo}: forbidden sorry"
-    if words.any (fun w => w == "admit") then errors := errors.push s!"{rel}:{lineNo}: forbidden admit"
-    let trimmed := codeLine.trimAscii.toString
-    let trimmed := ["public ", "private ", "protected ", "noncomputable "].foldl
-      (fun t p => if t.startsWith p then t.drop p.length |>.toString else t) trimmed
-    if trimmed.startsWith "axiom " || trimmed == "axiom" then errors := errors.push s!"{rel}:{lineNo}: forbidden custom-axiom"
-    if trimmed.startsWith "unsafe " || trimmed == "unsafe" then errors := errors.push s!"{rel}:{lineNo}: forbidden unsafe-decl"
+    errors := errors ++ checkSoundnessLine rel lineNo codeLine
     if rel.startsWith "Qatlib/Papers/" then
       match parsePropDefLine codeLine with
       | some name =>
@@ -576,8 +589,8 @@ def checkOneFile (path : FilePath) (moduleSet bibKeys : Std.HashSet String) : IO
         errors := errors.push s!"{relStr}:1: ERR_CAM: '{part}' is not strict UpperCamelCase"
   if let some hdrErr := checkCopyrightHeader bodyLines then
     errors := errors.push s!"{relStr}:1: ERR_COP: {hdrErr}"
-  let imports ← extractHeaderImports bodyLines
-  for (lineNo, modName) in imports do
+  let imports ← extractHeaderImports bodyLines relStr
+  for ⟨lineNo, modName, _⟩ in imports do
     if modName == "Mathlib" then
       errors := errors.push s!"{relStr}:{lineNo}: ERR_IMP: Only the top-level aggregate 'import Mathlib' is forbidden; import the needed Mathlib.* submodule instead (for example 'import Mathlib.Data.Real.Basic')"
     else if modName.startsWith "Qatlib." then
@@ -653,19 +666,21 @@ def runStaticChecks : IO UInt32 := do
   for path in qatlibFiles do
     let modName := pathToModuleString path
     moduleSet := moduleSet.insert modName
-    expectedRootImports := expectedRootImports.push s!"import {modName}"
+    expectedRootImports := expectedRootImports.push modName
 
   let rootLines ← IO.FS.lines "Qatlib.lean"
-  let rootHeaderImports ← extractHeaderImports rootLines
+  let rootHeaderImports ← extractHeaderImports rootLines "Qatlib.lean"
   let mut seenRootLower : Std.HashMap String String := {}
-  for (lineNo, modName) in rootHeaderImports do
+  for ⟨lineNo, modName, isPublicImport⟩ in rootHeaderImports do
+    if !isPublicImport then
+      errors := errors.push s!"Qatlib.lean:{lineNo}: ERR_ROOT: Expected 'public import {modName}'"
     let lowerMod := modName.toLower
     if let some prevMod := seenRootLower[lowerMod]? then
       if prevMod != modName then
         errors := errors.push s!"Qatlib.lean:{lineNo}: ERR_CASE: Case-insensitive module collision '{modName}' vs '{prevMod}'"
     else
       seenRootLower := seenRootLower.insert lowerMod modName
-  let rootImports := rootHeaderImports.map (fun (_, m) => s!"import {m}")
+  let rootImports := rootHeaderImports.map (·.moduleName)
   expectedRootImports := expectedRootImports.qsort (· < ·)
   if rootImports != expectedRootImports then
     errors := errors.push "Qatlib.lean:1: ERR_ROOT: Qatlib.lean imports do not match sorted Qatlib/ module list"
@@ -758,6 +773,13 @@ def runStaticChecks : IO UInt32 := do
       fidelityErrors := fidelityErrors.push
         s!"{prop.file}:{prop.line}: statement-only Prop definition `{prop.name}` requires a statement-only doc banner"
 
+  let verificationFiles ← collectLeanFiles "verification"
+  for path in verificationFiles do
+    let raw ← IO.FS.readFile path
+    let codeLines := (stripComments raw).splitOn "\n" |>.toArray
+    for i in [0:codeLines.size] do
+      errors := errors ++ checkSoundnessLine path.toString (i + 1) codeLines[i]!
+
   errors := errors ++ fidelityErrors ++ citationErrors
   if !errors.isEmpty then
     for err in errors do IO.eprintln err
@@ -768,6 +790,7 @@ def runStaticChecks : IO UInt32 := do
   IO.println s!"CHECK_IMPORTS_OK modules={qatlibFiles.size} errors=0"
   IO.println s!"CHECK_FIDELITY_OK files={qatlibFiles.size} errors=0 (paper_prop_defs={propDefs.size}, cost_field_notices={costNotices})"
   IO.println s!"CHECK_REFERENCES_OK files={qatlibFiles.size} citations={citationCount} errors=0"
+  IO.println s!"CHECK_VERIFICATION_SOURCE_OK files={verificationFiles.size} errors=0"
   return 0
 
 def main (_args : List String) : IO UInt32 :=

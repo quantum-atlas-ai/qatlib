@@ -299,6 +299,7 @@
 - [LinkInvQFT12](LinkInvQFT12/README.md)
 - [LocAdiabSrch01](LocAdiabSrch01/README.md)
 - [LocalHam06](LocalHam06/README.md)
+- [LogConcave22](LogConcave22/README.md)
 - [LovaszLemma13](LovaszLemma13/README.md)
 - [LowEnergyHam20](LowEnergyHam20/README.md)
 - [LowEnergyProd24](LowEnergyProd24/README.md)

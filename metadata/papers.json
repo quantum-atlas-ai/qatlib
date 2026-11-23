@@ -1,0 +1,1249 @@
+{
+  "AbelianStabil95": {
+    "arxiv_id": "quant-ph/9511026",
+    "authors": [
+      "A. Yu. Kitaev"
+    ],
+    "modules": [
+      "Qatlib/Papers/AbelianStabil95/PrecisionExt/Lemma3EuclideanState.lean",
+      "Qatlib/Papers/AbelianStabil95/PrecisionExt/Lemma5CleanInput.lean",
+      "Qatlib/Papers/AbelianStabil95/PrecisionExt/PartialChain.lean"
+    ],
+    "title": "Quantum measurements and the Abelian Stabilizer Problem",
+    "year": "1995"
+  },
+  "AmpEstBrass00": {
+    "arxiv_id": "quant-ph/0005055",
+    "authors": [
+      "Gilles Brassard",
+      "Peter Høyer",
+      "Michele Mosca",
+      "Alain Tapp"
+    ],
+    "modules": [
+      "Qatlib/Papers/AmpEstBrass00/OffGridQPE/Corollary14OneItem.lean"
+    ],
+    "title": "Quantum Amplitude Amplification and Estimation",
+    "year": "2000"
+  },
+  "AmpTransform14": {
+    "arxiv_id": "1406.0190",
+    "authors": [
+      "David J. Cornwell"
+    ],
+    "modules": [
+      "Qatlib/Papers/AmpTransform14/GeneralUnitary/EventAmplification.lean",
+      "Qatlib/Papers/AmpTransform14/GeneralUnitary/FlatUnitaryBound.lean"
+    ],
+    "title": "Amplified Quantum Transforms",
+    "year": "2014"
+  },
+  "AnyCircuit08": {
+    "arxiv_id": "0805.0007",
+    "authors": [
+      "Sean Hallgren",
+      "Aram W. Harrow"
+    ],
+    "modules": [
+      "Qatlib/Papers/AnyCircuit08/MainResults/BitQueryTree.lean",
+      "Qatlib/Papers/AnyCircuit08/MainResults/OracleSeparation.lean",
+      "Qatlib/Papers/AnyCircuit08/MainResults/PhaseOracle.lean",
+      "Qatlib/Papers/AnyCircuit08/MainResults/RandomCircuitMoments.lean"
+    ],
+    "title": "Superpolynomial speedups based on almost any quantum circuit",
+    "year": "2008"
+  },
+  "BKFermion17": {
+    "arxiv_id": "1712.00446",
+    "authors": [
+      "Kanav Setia",
+      "James D. Whitfield"
+    ],
+    "doi": "10.1063/1.5019371",
+    "modules": [
+      "Qatlib/Papers/BKFermion17/QubitAlgebra/Relations.lean",
+      "Qatlib/Papers/BKFermion17/QubitAlgebra/Words.lean"
+    ],
+    "title": "Bravyi-Kitaev Superfast simulation of electronic structure on a quantum computer",
+    "year": "2017"
+  },
+  "BQPMixSparse06": {
+    "arxiv_id": "quant-ph/0610235",
+    "authors": [
+      "Dominik Janzing",
+      "Pawel Wocjan"
+    ],
+    "modules": [
+      "Qatlib/Papers/BQPMixSparse06/MainResults/LiftedHeatKernel.lean",
+      "Qatlib/Papers/BQPMixSparse06/WalkCounts/LiftedL2WalkBound.lean"
+    ],
+    "title": "BQP-complete Problems Concerning Mixing Properties of Classical Random Walks on Sparse Graphs",
+    "year": "2006"
+  },
+  "BeyondCircuit08": {
+    "arxiv_id": "0809.2307",
+    "authors": [
+      "Stephen P. Jordan"
+    ],
+    "modules": [
+      "Qatlib/Papers/BeyondCircuit08/MainResults/BraidApprox/ErrorPropagation.lean",
+      "Qatlib/Papers/BeyondCircuit08/MainResults/Density/DensityBase.lean",
+      "Qatlib/Papers/BeyondCircuit08/MainResults/HalfSupport/HalfProdUnitary.lean",
+      "Qatlib/Papers/BeyondCircuit08/MainResults/Zeckendorf/EndpointRange.lean"
+    ],
+    "title": "Quantum Computation Beyond the Circuit Model",
+    "year": "2008"
+  },
+  "BlackBoxHam09": {
+    "arxiv_id": "0910.4157",
+    "authors": [
+      "Unknown"
+    ],
+    "modules": [
+      "Qatlib/Papers/BlackBoxHam09/MainResults/StateError.lean"
+    ],
+    "title": "Black-box Hamiltonian simulation and unitary implementation",
+    "year": "2009"
+  },
+  "ClassShadows20": {
+    "arxiv_id": "2002.08953",
+    "authors": [
+      "Hsin-Yuan Huang",
+      "Richard Kueng",
+      "John Preskill"
+    ],
+    "modules": [
+      "Qatlib/Papers/ClassShadows20/ShadowVariance/TensorPauliOperatorNormVariance.lean"
+    ],
+    "title": "Predicting Many Properties of a Quantum System from Very Few Measurements",
+    "year": "2020"
+  },
+  "CollisionLB26": {
+    "arxiv_id": "2609.10808",
+    "authors": [
+      "Frédéric Magniez",
+      "Sebastian Zur"
+    ],
+    "modules": [
+      "Qatlib/Papers/CollisionLB26/DeleteNorm/CollisionDeletionOperator.lean"
+    ],
+    "title": "Tight Time-Space Lower Bounds for Collision Finding and Element Distinctness under Label Symmetry",
+    "year": "2026"
+  },
+  "CommGibbsSamp14": {
+    "arxiv_id": "1409.3435",
+    "authors": [
+      "Michael J. Kastoryano",
+      "Fernando G. S. L. Brandao"
+    ],
+    "modules": [
+      "Qatlib/Papers/CommGibbsSamp14/GibbsStructure/CommutingFamily.lean",
+      "Qatlib/Papers/CommGibbsSamp14/GibbsStructure/QubitGibbs.lean",
+      "Qatlib/Papers/CommGibbsSamp14/GibbsStructure/RhoSpace.lean"
+    ],
+    "title": "Quantum Gibbs Samplers: the commuting case",
+    "year": "2014"
+  },
+  "CommutLCHS26": {
+    "arxiv_id": "2606.11475",
+    "authors": [
+      "Junaid Aftab",
+      "Dong An",
+      "Konstantina Trivisa"
+    ],
+    "modules": [
+      "Qatlib/Papers/CommutLCHS26/MainResults/RepeatedMPF.lean"
+    ],
+    "title": "Linear Combination of Hamiltonian Simulation with Commutator Scaling",
+    "year": "2026"
+  },
+  "CommuteTest05": {
+    "arxiv_id": "quant-ph/0509206",
+    "authors": [
+      "Yuki Kelly Itakura"
+    ],
+    "modules": [
+      "Qatlib/Papers/CommuteTest05/RelationAdv/Lemma18State.lean",
+      "Qatlib/Papers/CommuteTest05/WalkDetect/CosineAverage.lean",
+      "Qatlib/Papers/CommuteTest05/WalkDetect/RotationDeviation.lean"
+    ],
+    "title": "Quantum Algorithm for Commutativity Testing of a Matrix Set",
+    "year": "2005"
+  },
+  "ContDiscWalk08": {
+    "arxiv_id": "0810.0312",
+    "authors": [
+      "Andrew M. Childs"
+    ],
+    "doi": "10.1007/s00220-009-0930-1",
+    "modules": [
+      "Qatlib/Papers/ContDiscWalk08/CompressedSim/OperatorNormBridge.lean"
+    ],
+    "title": "On the relationship between continuous- and discrete-time quantum walk",
+    "year": "2008"
+  },
+  "DecisionTrees97": {
+    "arxiv_id": "quant-ph/9706062",
+    "authors": [
+      "Edward Farhi",
+      "Sam Gutmann"
+    ],
+    "doi": "10.1103/physreva.58.915",
+    "modules": [
+      "Qatlib/Papers/DecisionTrees97/MainResults/ProductPrecision.lean"
+    ],
+    "title": "Quantum Computation and Decision Trees",
+    "year": "1997"
+  },
+  "DenseOutSim26": {
+    "arxiv_id": "2609.40094",
+    "authors": [
+      "Songqinghao Yang",
+      "Chang Liu",
+      "Junkai Wang",
+      "Jingxuan Zhang",
+      "Jin-Peng Liu"
+    ],
+    "modules": [
+      "Qatlib/Papers/DenseOutSim26/FreeTruncation/FiniteL2.lean"
+    ],
+    "title": "Accelerating Quantum Dense-Output Simulation through Locality",
+    "year": "2026"
+  },
+  "DihHSPSieve03": {
+    "arxiv_id": "quant-ph/0302112",
+    "authors": [
+      "Greg Kuperberg"
+    ],
+    "modules": [
+      "Qatlib/Papers/DihHSPSieve03/MainResults/Algorithm2Concrete.lean"
+    ],
+    "title": "A subexponential-time quantum algorithm for the dihedral hidden subgroup problem",
+    "year": "2003"
+  },
+  "DiracEquation16": {
+    "arxiv_id": "1611.05484",
+    "authors": [
+      "François Fillion-Gourdeau",
+      "Steve MacLean",
+      "Raymond Laflamme"
+    ],
+    "doi": "10.1103/physreva.95.042343",
+    "modules": [
+      "Qatlib/Papers/DiracEquation16/AutoCorrel/HadamardReadout.lean",
+      "Qatlib/Papers/DiracEquation16/FilterCore/HeraldedDilation.lean",
+      "Qatlib/Papers/DiracEquation16/HighOrder/ReciprocalCoeffs.lean"
+    ],
+    "title": "Algorithm for the solution of the Dirac equation on digital quantum computers",
+    "year": "2017"
+  },
+  "DistTesting09": {
+    "arxiv_id": "0907.3920",
+    "authors": [
+      "Sergey Bravyi",
+      "Aram W. Harrow",
+      "Avinatan Hassidim"
+    ],
+    "modules": [
+      "Qatlib/Papers/DistTesting09/AmpEstimation/OracleState.lean",
+      "Qatlib/Papers/DistTesting09/AmpEstimation/OtestBudget.lean",
+      "Qatlib/Papers/DistTesting09/AmpEstimation/QueryBudget.lean"
+    ],
+    "title": "Quantum algorithms for testing properties of distributions",
+    "year": "2009"
+  },
+  "DistinctLB26": {
+    "arxiv_id": "2604.05133",
+    "authors": [
+      "Aleksandrs Belovs"
+    ],
+    "modules": [
+      "Qatlib/Papers/DistinctLB26/MainResults/Execution/ConcreteEndpoints.lean"
+    ],
+    "title": "Tight Quantum Lower Bound for k-Distinctness",
+    "year": "2026"
+  },
+  "DysonSeries22": {
+    "arxiv_id": "2212.03544",
+    "authors": [
+      "Dominic W. Berry",
+      "Pedro C. S. Costa"
+    ],
+    "doi": "10.22331/q-2024-06-13-1369",
+    "modules": [
+      "Qatlib/Papers/DysonSeries22/HistorySystem/EndpointRatio.lean",
+      "Qatlib/Papers/DysonSeries22/MainResults/FactorialEndpoint.lean"
+    ],
+    "title": "Quantum algorithm for time-dependent differential equations using Dyson series",
+    "year": "2022"
+  },
+  "ElemGates95": {
+    "arxiv_id": "quant-ph/9503016",
+    "authors": [
+      "Adriano Barenco",
+      "Charles H. Bennett",
+      "Richard Cleve",
+      "David P. DiVincenzo",
+      "Norman Margolus",
+      "Peter Shor",
+      "Tycho Sleator",
+      "John Smolin",
+      "Harald Weinfurter"
+    ],
+    "modules": [
+      "Qatlib/Papers/ElemGates95/MultiControl/GrayBase.lean"
+    ],
+    "title": "Elementary gates for quantum computation",
+    "year": "1995"
+  },
+  "ExactSimon97": {
+    "arxiv_id": "quant-ph/9704027",
+    "authors": [
+      "Gilles Brassard",
+      "Peter Høyer"
+    ],
+    "doi": "10.1109/istcs.1997.595153",
+    "modules": [
+      "Qatlib/Papers/ExactSimon97/MainResults/PolylogExact.lean"
+    ],
+    "title": "An Exact Quantum Polynomial-Time Algorithm for Simon's Problem",
+    "year": "1997"
+  },
+  "ExpCongruence08": {
+    "arxiv_id": "0804.1109",
+    "authors": [
+      "Wim van Dam",
+      "Igor E. Shparlinski"
+    ],
+    "modules": [
+      "Qatlib/Papers/ExpCongruence08/MainResults/DenseOrders.lean",
+      "Qatlib/Papers/ExpCongruence08/MainResults/SearchDensity.lean",
+      "Qatlib/Papers/ExpCongruence08/MainResults/SecondMoment.lean"
+    ],
+    "title": "Classical and Quantum Algorithms for Exponential Congruences",
+    "year": "2008"
+  },
+  "GaussSumEst02": {
+    "arxiv_id": "quant-ph/0207131",
+    "authors": [
+      "Wim van Dam",
+      "Gadiel Seroussi"
+    ],
+    "modules": [
+      "Qatlib/Papers/GaussSumEst02/GaloisAction/CyclotomicBoundary.lean",
+      "Qatlib/Papers/GaussSumEst02/RingEstimate/ImprimitiveLift.lean"
+    ],
+    "title": "Efficient Quantum Algorithms for Estimating Gauss Sums",
+    "year": "2002"
+  },
+  "GraphConnect03": {
+    "arxiv_id": "quant-ph/0303169",
+    "authors": [
+      "Christoph Dürr",
+      "Mehdi Mhalla",
+      "Yaohui Lei"
+    ],
+    "modules": [
+      "Qatlib/Papers/GraphConnect03/MainResults/LowerBounds/Theorem5MatrixConnectivity.lean",
+      "Qatlib/Papers/GraphConnect03/ParityReduce/ParityOrbitPeriod.lean",
+      "Qatlib/Papers/GraphConnect03/RelationBound/ChangedCoordinateBound.lean"
+    ],
+    "title": "Quantum query complexity of graph connectivity",
+    "year": "2003"
+  },
+  "HamLCUSim12": {
+    "arxiv_id": "1202.5822",
+    "authors": [
+      "Andrew M. Childs",
+      "Nathan Wiebe"
+    ],
+    "modules": [
+      "Qatlib/Papers/HamLCUSim12/FullSimulation/Figure3OutcomeUnique.lean",
+      "Qatlib/Papers/HamLCUSim12/FullSimulation/RetryErrorBudget.lean",
+      "Qatlib/Papers/HamLCUSim12/FullSimulation/UniformLCUFailure.lean"
+    ],
+    "title": "Hamiltonian Simulation Using Linear Combinations of Unitary Operations",
+    "year": "2012"
+  },
+  "HiddenTransl02": {
+    "arxiv_id": "quant-ph/0211091",
+    "authors": [
+      "Unknown"
+    ],
+    "modules": [
+      "Qatlib/Papers/HiddenTransl02/MainResults/FiniteCosetState.lean"
+    ],
+    "title": "Hidden Translation and Translating Coset in Quantum Computing",
+    "year": "2002"
+  },
+  "HittingTimes08": {
+    "arxiv_id": "0808.0084",
+    "authors": [
+      "Unknown"
+    ],
+    "modules": [
+      "Qatlib/Papers/HittingTimes08/MainResults/RotationEuclidean.lean"
+    ],
+    "title": "On the hitting times of quantum versus random walks",
+    "year": "2008"
+  },
+  "LearnGraphDis12": {
+    "arxiv_id": "1205.1534",
+    "authors": [
+      "Aleksandrs Belovs"
+    ],
+    "modules": [
+      "Qatlib/Papers/LearnGraphDis12/LearningFlows/SymmetricStage.lean",
+      "Qatlib/Papers/LearnGraphDis12/MainResults/FaultFreeBranch.lean",
+      "Qatlib/Papers/LearnGraphDis12/MainResults/FixedErrorQueryCost.lean",
+      "Qatlib/Papers/LearnGraphDis12/MainResults/IntegerStageSize.lean"
+    ],
+    "title": "Learning-Graph-Based Quantum Algorithm for k-distinctness",
+    "year": "2012"
+  },
+  "LinearOptics10": {
+    "arxiv_id": "1011.3245",
+    "authors": [
+      "Scott Aaronson",
+      "Alex Arkhipov"
+    ],
+    "modules": [
+      "Qatlib/Papers/LinearOptics10/StockmeyerSrc/ColoredCycleCount.lean",
+      "Qatlib/Papers/LinearOptics10/StockmeyerSrc/PermanentSecondMoment.lean"
+    ],
+    "title": "The Computational Complexity of Linear Optics",
+    "year": "2010"
+  },
+  "LowEnergyProd24": {
+    "arxiv_id": "2402.10362",
+    "authors": [
+      "Kasra Hejazi",
+      "Modjtaba Shokrian Zini",
+      "Juan Miguel Arrazola"
+    ],
+    "modules": [
+      "Qatlib/Papers/LowEnergyProd24/CenteredGroups/EnergyShift.lean",
+      "Qatlib/Papers/LowEnergyProd24/CenteredGroups/ProjectedShift.lean"
+    ],
+    "title": "Better bounds for low-energy product formulas",
+    "year": "2024"
+  },
+  "LowRankMatrix19": {
+    "arxiv_id": "1910.06151",
+    "authors": [
+      "Nai-Hui Chia",
+      "András Gilyén",
+      "Tongyang Li",
+      "Han-Hsuan Lin",
+      "Ewin Tang",
+      "Chunhao Wang"
+    ],
+    "modules": [
+      "Qatlib/Papers/LowRankMatrix19/MatrixFunctions/PartitionFunction.lean"
+    ],
+    "title": "Sampling-based sublinear low-rank matrix arithmetic framework for dequantizing quantum machine learning",
+    "year": "2019"
+  },
+  "MCMontanaro15": {
+    "arxiv_id": "1504.06987",
+    "authors": [
+      "Ashley Montanaro"
+    ],
+    "modules": [
+      "Qatlib/Papers/MCMontanaro15/MonteCarlo/LayeredScaledMean.lean",
+      "Qatlib/Papers/MCMontanaro15/MonteCarlo/MedianAmplification.lean",
+      "Qatlib/Papers/MCMontanaro15/MonteCarlo/VariancePrecision.lean"
+    ],
+    "title": "Quantum speedup of Monte Carlo methods",
+    "year": "2015"
+  },
+  "MatProdVerify04": {
+    "arxiv_id": "quant-ph/0409035",
+    "authors": [
+      "Unknown"
+    ],
+    "modules": [
+      "Qatlib/Papers/MatProdVerify04/MainResults/BooleanProductFormula.lean",
+      "Qatlib/Papers/MatProdVerify04/MainResults/WrongRowWitness.lean"
+    ],
+    "title": "Quantum Verification of Matrix Products",
+    "year": "2004"
+  },
+  "MonteCarloInt20": {
+    "arxiv_id": "2011.02165",
+    "authors": [
+      "Kazuya Kaneko",
+      "Koichi Miyamoto",
+      "Naoyuki Takeda",
+      "Kazuyoshi Yoshino"
+    ],
+    "doi": "10.1007/s11128-021-03127-8",
+    "modules": [
+      "Qatlib/Papers/MonteCarloInt20/QaeLaw/QuadraticBias.lean"
+    ],
+    "title": "Quantum Speedup of Monte Carlo Integration with respect to the Number of Dimensions and its Application to Finance",
+    "year": "2020"
+  },
+  "NegWeights06": {
+    "arxiv_id": "quant-ph/0611054",
+    "authors": [
+      "Peter Hoyer",
+      "Troy Lee",
+      "Robert Spalek"
+    ],
+    "modules": [
+      "Qatlib/Papers/NegWeights06/MainResults/Automorphism.lean",
+      "Qatlib/Papers/NegWeights06/MainResults/CompositionEigenvector.lean",
+      "Qatlib/Papers/NegWeights06/MainResults/Distinguishability.lean",
+      "Qatlib/Papers/NegWeights06/MainResults/NonnegativeComposition.lean"
+    ],
+    "title": "Negative weights make adversaries stronger",
+    "year": "2006"
+  },
+  "NestedQWalk12": {
+    "arxiv_id": "1210.1199",
+    "authors": [
+      "Stacey Jeffery",
+      "Robin Kothari",
+      "Frédéric Magniez"
+    ],
+    "doi": "10.1137/1.9781611973105.106",
+    "modules": [
+      "Qatlib/Papers/NestedQWalk12/CoherentTrunc/OperatorNorm.lean",
+      "Qatlib/Papers/NestedQWalk12/ErrorBudget/TwoLevelCompose.lean"
+    ],
+    "title": "Nested Quantum Walks with Quantum Data Structures",
+    "year": "2012"
+  },
+  "NilpotentHSP07": {
+    "arxiv_id": "0707.1260",
+    "authors": [
+      "Gábor Ivanyos",
+      "Luc Sanselme",
+      "Miklos Santha"
+    ],
+    "modules": [
+      "Qatlib/Papers/NilpotentHSP07/CosetFourier/Lemma4Superposition.lean",
+      "Qatlib/Papers/NilpotentHSP07/Proposition1Aut/PhiAut.lean"
+    ],
+    "title": "An efficient quantum algorithm for the hidden subgroup problem in nil-2 groups",
+    "year": "2007"
+  },
+  "NoGlobalSym14": {
+    "arxiv_id": "1403.2228",
+    "authors": [
+      "Jonatan Janmark",
+      "David A. Meyer",
+      "Thomas G. Wong"
+    ],
+    "doi": "10.1103/physrevlett.112.210502",
+    "modules": [
+      "Qatlib/Papers/NoGlobalSym14/GraphFamilies/ParamFamilies.lean",
+      "Qatlib/Papers/NoGlobalSym14/PerturbBounds/CaseTwoCoupling.lean"
+    ],
+    "title": "Global Symmetry is Unnecessary for Fast Quantum Search",
+    "year": "2014"
+  },
+  "NoisyCircuit22": {
+    "arxiv_id": "2211.03999",
+    "authors": [
+      "Dorit Aharonov",
+      "Xun Gao",
+      "Zeph Landau",
+      "Yunchao Liu",
+      "Umesh Vazirani"
+    ],
+    "modules": [
+      "Qatlib/Papers/NoisyCircuit22/MainResults/Paths/TwoQubitDepthOne.lean"
+    ],
+    "title": "A polynomial-time classical algorithm for noisy random circuit sampling",
+    "year": "2022"
+  },
+  "NonlinearDE20": {
+    "arxiv_id": "2011.06571",
+    "authors": [
+      "Seth Lloyd",
+      "Giacomo De Palma",
+      "Can Gokler",
+      "Bobak Kiani",
+      "Zi-Wen Liu",
+      "Milad Marvian",
+      "Felix Tennie",
+      "Tim Palmer"
+    ],
+    "modules": [
+      "Qatlib/Papers/NonlinearDE20/ErrorAnalysis/StabilityWindow.lean"
+    ],
+    "title": "Quantum algorithm for nonlinear differential equations",
+    "year": "2020"
+  },
+  "OrderedList07": {
+    "arxiv_id": "quant-ph/0703231",
+    "authors": [
+      "Michael Ben-Or",
+      "Avinatan Hassidim"
+    ],
+    "modules": [
+      "Qatlib/Papers/OrderedList07/MainResults/ConcreteLearner.lean"
+    ],
+    "title": "Quantum Search in an Ordered List via Adaptive Learning",
+    "year": "2007"
+  },
+  "OrderedSearch25": {
+    "arxiv_id": "2503.21090",
+    "authors": [
+      "Joseph Carolan",
+      "Andrew M. Childs",
+      "Matt Kovacs-Deak",
+      "Luke Schaeffer"
+    ],
+    "modules": [
+      "Qatlib/Papers/OrderedSearch25/MainResults/SymmetryDeltaConjugation.lean"
+    ],
+    "title": "Translation-Invariant Quantum Algorithms for Ordered Search are Optimal",
+    "year": "2025"
+  },
+  "OverlapGapGoh26": {
+    "arxiv_id": "2609.35131",
+    "authors": [
+      "Mark Goh",
+      "Thorge Müller"
+    ],
+    "modules": [
+      "Qatlib/Papers/OverlapGapGoh26/AmpDynamics/EuclideanRegularity.lean",
+      "Qatlib/Papers/OverlapGapGoh26/MainResults/OgpTail.lean",
+      "Qatlib/Papers/OverlapGapGoh26/MainResults/SignRounding.lean",
+      "Qatlib/Papers/OverlapGapGoh26/SignReadout/GaussianTransfer.lean"
+    ],
+    "title": "The Overlap Gap Property: Separating Quantum and Quantum-Inspired Approximate Optimization Algorithms",
+    "year": "2026"
+  },
+  "ParabolicPDE24": {
+    "arxiv_id": "2407.01913",
+    "authors": [
+      "Shi Jin",
+      "Nana Liu"
+    ],
+    "modules": [
+      "Qatlib/Papers/ParabolicPDE24/Resources/StarModel.lean"
+    ],
+    "title": "Analog quantum simulation of parabolic partial differential equations using Jaynes-Cummings-like models",
+    "year": "2024"
+  },
+  "PolyMethod01": {
+    "arxiv_id": "quant-ph/9802049",
+    "authors": [
+      "Robert Beals",
+      "Harry Buhrman",
+      "Richard Cleve",
+      "Michele Mosca",
+      "Ronald de Wolf"
+    ],
+    "modules": [
+      "Qatlib/Papers/PolyMethod01/MainResults/AcceptanceConcrete.lean",
+      "Qatlib/Papers/PolyMethod01/MainResults/PolynomialMethodBridge.lean"
+    ],
+    "title": "Quantum Lower Bounds by Polynomials",
+    "year": "2001"
+  },
+  "PottsPartEval07": {
+    "arxiv_id": "quant-ph/0703023",
+    "authors": [
+      "Joseph Geraci",
+      "Daniel A. Lidar"
+    ],
+    "modules": [
+      "Qatlib/Papers/PottsPartEval07/ClassMembership/ParityCheck.lean",
+      "Qatlib/Papers/PottsPartEval07/CodeStructure/FrobeniusOrbits.lean"
+    ],
+    "title": "On the Exact Evaluation of Certain Instances of the Potts Partition Function by Quantum Computers",
+    "year": "2007"
+  },
+  "PottsTutte07": {
+    "arxiv_id": "quant-ph/0702008",
+    "authors": [
+      "Unknown"
+    ],
+    "modules": [
+      "Qatlib/Papers/PottsTutte07/MainResults/CupOperatorNorm.lean"
+    ],
+    "title": "Polynomial Quantum Algorithms for Additive approximations of the Potts model and other Points of the Tutte Plane",
+    "year": "2007"
+  },
+  "ProdFormSpec21": {
+    "arxiv_id": "2102.12655",
+    "authors": [
+      "Changhao Yi",
+      "Elizabeth Crosson"
+    ],
+    "modules": [
+      "Qatlib/Papers/ProdFormSpec21/MainResults/AdiabaticTrotterOptimization.lean",
+      "Qatlib/Papers/ProdFormSpec21/MainResults/EigenstateDecomposition.lean",
+      "Qatlib/Papers/ProdFormSpec21/MainResults/EnergyShiftOperator.lean",
+      "Qatlib/Papers/ProdFormSpec21/MainResults/PureStateLeakage.lean"
+    ],
+    "title": "Spectral Analysis of Product Formulas for Quantum Simulation",
+    "year": "2021"
+  },
+  "QAOAScaling23": {
+    "arxiv_id": "2308.02342",
+    "authors": [
+      "Ruslan Shaydulin",
+      "Changhao Li",
+      "Shouvanik Chakrabarti",
+      "Matthew DeCross",
+      "Dylan Herman",
+      "Niraj Kumar",
+      "Jeffrey Larson",
+      "Danylo Lykov",
+      "Pierre Minssen",
+      "Yue Sun",
+      "Yuri Alexeev",
+      "Joan M. Dreiling",
+      "John P. Gaebler",
+      "Thomas M. Gatterman",
+      "Justin A. Gerber",
+      "Kevin Gilmore",
+      "Dan Gresh",
+      "Nathan Hewitt",
+      "Chandler V. Horst",
+      "Shaohan Hu",
+      "Jacob Johansen",
+      "Mitchell Matheny",
+      "Tanner Mengle",
+      "Michael Mills",
+      "Steven A. Moses",
+      "Brian Neyenhuis",
+      "Peter Siegfried",
+      "Romina Yalovetzky",
+      "Marco Pistoia"
+    ],
+    "doi": "10.1126/sciadv.adm6761",
+    "modules": [
+      "Qatlib/Papers/QAOAScaling23/PhaseCircuit/FourBody.lean",
+      "Qatlib/Papers/QAOAScaling23/PhaseCircuit/GreedyOrder.lean",
+      "Qatlib/Papers/QAOAScaling23/PhaseCircuit/PhaseReordering.lean",
+      "Qatlib/Papers/QAOAScaling23/QuantumPrep/LABSPhase.lean"
+    ],
+    "title": "Evidence of Scaling Advantage for the Quantum Approximate Optimization Algorithm on a Classically Intractable Problem",
+    "year": "2023"
+  },
+  "QAOASupremacy16": {
+    "arxiv_id": "1602.07674",
+    "authors": [
+      "Edward Farhi",
+      "Aram W. Harrow"
+    ],
+    "modules": [
+      "Qatlib/Papers/QAOASupremacy16/ClauseGates/ClauseSum.lean",
+      "Qatlib/Papers/QAOASupremacy16/ClauseGates/RepeatedGadget.lean",
+      "Qatlib/Papers/QAOASupremacy16/Expectation/LocalMarginal.lean"
+    ],
+    "title": "Quantum Supremacy through the Quantum Approximate Optimization Algorithm",
+    "year": "2016"
+  },
+  "QAOAWeighted24": {
+    "arxiv_id": "2305.15201",
+    "authors": [
+      "Shree Hari Sureshbabu",
+      "Dylan Herman",
+      "Ruslan Shaydulin",
+      "Joao Basso",
+      "Shouvanik Chakrabarti",
+      "Yue Sun",
+      "Marco Pistoia"
+    ],
+    "doi": "10.22331/q-2024-01-18-1231",
+    "modules": [
+      "Qatlib/Papers/QAOAWeighted24/MainResults/Counterexample.lean"
+    ],
+    "title": "Parameter Setting in Quantum Approximate Optimization of Weighted Problems",
+    "year": "2024"
+  },
+  "QActiveLearn14": {
+    "arxiv_id": "1401.4997",
+    "authors": [
+      "Giuseppe Davide Paparo",
+      "Vedran Dunjko",
+      "Adi Makmal",
+      "Miguel Angel Martin-Delgado",
+      "Hans J. Briegel"
+    ],
+    "doi": "10.1103/physrevx.4.031002",
+    "modules": [
+      "Qatlib/Papers/QActiveLearn14/ApproxBudget/ConditionalOutput.lean",
+      "Qatlib/Papers/QActiveLearn14/ApproxBudget/WordError.lean",
+      "Qatlib/Papers/QActiveLearn14/ClassicalAgent/AdaptiveRetry.lean",
+      "Qatlib/Papers/QActiveLearn14/NativeReflect/CheckSign.lean"
+    ],
+    "title": "Quantum speedup for active learning agents",
+    "year": "2014"
+  },
+  "QChemistry14": {
+    "arxiv_id": "1407.7863",
+    "authors": [
+      "Jarrod R. McClean",
+      "Ryan Babbush",
+      "Peter J. Love",
+      "Alán Aspuru-Guzik"
+    ],
+    "doi": "10.1021/jz501649m",
+    "modules": [
+      "Qatlib/Papers/QChemistry14/OracleBias/TwoLevelSystem.lean",
+      "Qatlib/Papers/QChemistry14/OracleBias/VanVleckTensor.lean"
+    ],
+    "title": "Exploiting locality in quantum computation for quantum chemistry",
+    "year": "2014"
+  },
+  "QComplexity97": {
+    "authors": [
+      "Ethan Bernstein",
+      "Umesh Vazirani"
+    ],
+    "doi": "10.1137/s0097539796300921",
+    "modules": [
+      "Qatlib/Papers/QComplexity97/ReversibleTm/ReversibleStep.lean"
+    ],
+    "title": "Quantum Complexity Theory",
+    "year": "1997"
+  },
+  "QCounting98": {
+    "arxiv_id": "quant-ph/9805082",
+    "authors": [
+      "Gilles Brassard",
+      "Peter Høyer",
+      "Alain Tapp"
+    ],
+    "doi": "10.1007/bfb0055105",
+    "modules": [
+      "Qatlib/Papers/QCounting98/MainResults/BoundaryEuclidean.lean",
+      "Qatlib/Papers/QCounting98/MainResults/PlaneIsometryEuclidean.lean"
+    ],
+    "title": "Quantum Counting",
+    "year": "1998"
+  },
+  "QCryptanal15": {
+    "arxiv_id": "1510.05836",
+    "authors": [
+      "Unknown"
+    ],
+    "modules": [
+      "Qatlib/Papers/QCryptanal15/MainResults/OperatorSearch.lean"
+    ],
+    "title": "Quantum Differential and Linear Cryptanalysis",
+    "year": "2015"
+  },
+  "QGradient20": {
+    "arxiv_id": "2004.11086",
+    "authors": [
+      "Keren Li",
+      "Pan Gao",
+      "Shijie Wei",
+      "Jiancun Gao",
+      "Guilu Long"
+    ],
+    "doi": "10.1103/physreva.103.042403",
+    "modules": [
+      "Qatlib/Papers/QGradient20/FilterBranch/Contraction.lean"
+    ],
+    "title": "Quantum Gradient Algorithm for General Polynomials",
+    "year": "2020"
+  },
+  "QLSStatePrep24": {
+    "arxiv_id": "2410.18178",
+    "authors": [
+      "Guang Hao Low",
+      "Yuan Su"
+    ],
+    "modules": [
+      "Qatlib/Papers/QLSStatePrep24/WalkQSVT/CyclicQubitizationBlock.lean"
+    ],
+    "title": "Quantum linear system algorithm with optimal queries to initial state preparation",
+    "year": "2024"
+  },
+  "QMonteCarlo22": {
+    "arxiv_id": "2208.07544",
+    "authors": [
+      "Unknown"
+    ],
+    "modules": [
+      "Qatlib/Papers/QMonteCarlo22/MainResults/MeanEstimation.lean"
+    ],
+    "title": "Mean estimation when you have the source code; or, quantum Monte Carlo methods",
+    "year": "2022"
+  },
+  "QPCAAssume18": {
+    "arxiv_id": "1811.00414",
+    "authors": [
+      "Ewin Tang"
+    ],
+    "modules": [
+      "Qatlib/Papers/QPCAAssume18/QuantumCentroid/Counterexample.lean"
+    ],
+    "title": "Quantum principal component analysis only achieves an exponential speedup because of its state preparation assumptions",
+    "year": "2018"
+  },
+  "QQueryGraph04": {
+    "arxiv_id": "quant-ph/0401091",
+    "authors": [
+      "Unknown"
+    ],
+    "modules": [
+      "Qatlib/Papers/QQueryGraph04/MainResults/OraclePhase.lean"
+    ],
+    "title": "Quantum query complexity of some graph problems",
+    "year": "2004"
+  },
+  "QSearchBoyer98": {
+    "arxiv_id": "quant-ph/9605034",
+    "authors": [
+      "Michel Boyer",
+      "Gilles Brassard",
+      "Peter Høyer",
+      "Alain Tapp"
+    ],
+    "modules": [
+      "Qatlib/Papers/QSearchBoyer98/MainResults/IntegerRestartBudget.lean"
+    ],
+    "title": "Tight bounds on quantum searching",
+    "year": "1998"
+  },
+  "QShannonWilde11": {
+    "arxiv_id": "1106.1445",
+    "authors": [
+      "Mark M. Wilde"
+    ],
+    "modules": [
+      "Qatlib/Papers/QShannonWilde11/MainResults/Appendix/PhaseAverages.lean",
+      "Qatlib/Papers/QShannonWilde11/MainResults/FidelityMetric/EpsilonBounds.lean",
+      "Qatlib/Papers/QShannonWilde11/MainResults/FidelityMetric/TraceDistanceContraction.lean",
+      "Qatlib/Papers/QShannonWilde11/MainResults/QEntropy/PureStateEntropy.lean"
+    ],
+    "title": "From Classical to Quantum Shannon Theory",
+    "year": "2011"
+  },
+  "QSingValue19": {
+    "arxiv_id": "1806.01838",
+    "authors": [
+      "András Gilyén",
+      "Yuan Su",
+      "Guang Hao Low",
+      "Nathan Wiebe"
+    ],
+    "modules": [
+      "Qatlib/Papers/QSingValue19/QsVtStability/Corollary21PolynomialResponse.lean",
+      "Qatlib/Papers/QSingValue19/QsVtStability/PolynomialEigenvalueRobustness.lean"
+    ],
+    "title": "Quantum singular value transformation and beyond: exponential improvements for quantum matrix arithmetics",
+    "year": "2019"
+  },
+  "QTriangle03": {
+    "arxiv_id": "quant-ph/0310134",
+    "authors": [
+      "Frederic Magniez",
+      "Miklos Santha",
+      "Mario Szegedy"
+    ],
+    "modules": [
+      "Qatlib/Papers/QTriangle03/CollisionSearch/PositiveSuccess.lean"
+    ],
+    "title": "Quantum Algorithms for the Triangle Problem",
+    "year": "2003"
+  },
+  "QWalkAmbainis03": {
+    "arxiv_id": "quant-ph/0311001",
+    "authors": [
+      "Andris Ambainis"
+    ],
+    "modules": [
+      "Qatlib/Papers/QWalkAmbainis03/Algorithm3/CollisionPackingLog.lean",
+      "Qatlib/Papers/QWalkAmbainis03/Algorithm3/IsolationLittleO.lean",
+      "Qatlib/Papers/QWalkAmbainis03/GroverInterp/EuclideanClaim5.lean",
+      "Qatlib/Papers/QWalkAmbainis03/GroverInterp/TwoVectorDecomposition.lean",
+      "Qatlib/Papers/QWalkAmbainis03/QRAMModel/BadStateScale.lean"
+    ],
+    "title": "Quantum walk algorithm for element distinctness",
+    "year": "2003"
+  },
+  "QWalkSpectra04": {
+    "arxiv_id": "quant-ph/0401053",
+    "authors": [
+      "Mario Szegedy"
+    ],
+    "modules": [
+      "Qatlib/Papers/QWalkSpectra04/WalkDefinition/ExplicitGram.lean"
+    ],
+    "title": "Spectra of Quantized Walks and a √δε-Rule",
+    "year": "2004"
+  },
+  "QuantumSVM13": {
+    "arxiv_id": "1307.0471",
+    "authors": [
+      "Patrick Rebentrost",
+      "Masoud Mohseni",
+      "Seth Lloyd"
+    ],
+    "modules": [
+      "Qatlib/Papers/QuantumSVM13/GramDensity/EuclideanBridge.lean"
+    ],
+    "title": "Quantum support vector machine for big data classification",
+    "year": "2013"
+  },
+  "Qubitization19": {
+    "arxiv_id": "1610.06546",
+    "authors": [
+      "Guang Hao Low",
+      "Isaac L. Chuang"
+    ],
+    "modules": [
+      "Qatlib/Papers/Qubitization19/MainResults/FiberPhase.lean",
+      "Qatlib/Papers/Qubitization19/MainResults/SignalRotation.lean",
+      "Qatlib/Papers/Qubitization19/MainResults/WalkSpectrum.lean"
+    ],
+    "title": "Hamiltonian Simulation by Qubitization",
+    "year": "2019"
+  },
+  "RandCompiler19": {
+    "arxiv_id": "1811.08017",
+    "authors": [
+      "Earl Campbell"
+    ],
+    "modules": [
+      "Qatlib/Papers/RandCompiler19/ChannelBudget/TableIScaling.lean",
+      "Qatlib/Papers/RandCompiler19/ControlledDrift/PrecisionRotation.lean",
+      "Qatlib/Papers/RandCompiler19/DiamondTools/ObservableTransfer.lean"
+    ],
+    "title": "A random compiler for fast Hamiltonian simulation",
+    "year": "2019"
+  },
+  "ReadManyQry11": {
+    "arxiv_id": "1112.0548",
+    "authors": [
+      "Andrew M. Childs",
+      "Shelby Kimmel",
+      "Robin Kothari"
+    ],
+    "modules": [
+      "Qatlib/Papers/ReadManyQry11/MainResults/MatrixProductVerification.lean"
+    ],
+    "title": "The quantum query complexity of read-many formulas",
+    "year": "2011"
+  },
+  "RydbergMaxCut26": {
+    "arxiv_id": "2606.27224",
+    "authors": [
+      "Tomás Crosta",
+      "Matthieu Saubanere",
+      "Felix Huber"
+    ],
+    "modules": [
+      "Qatlib/Papers/RydbergMaxCut26/Resources/OperatorBound.lean"
+    ],
+    "title": "A 0.651-approximation to quantum Max Cut via Rydberg atoms",
+    "year": "2026"
+  },
+  "Schrodinger25": {
+    "arxiv_id": "2505.00370",
+    "authors": [
+      "Unknown"
+    ],
+    "modules": [
+      "Qatlib/Papers/Schrodinger25/MainResults/Initialization/ErfConstruction.lean"
+    ],
+    "title": "On the Schrödingerization method for linear non-unitary dynamics with optimal dependence on matrix queries",
+    "year": "2025"
+  },
+  "ShadowTomog26": {
+    "arxiv_id": "2608.08429",
+    "authors": [
+      "Zhen-Peng Xu",
+      "Qi Ye",
+      "Jie Wang",
+      "Gereon Koßmann",
+      "Andreas Winter",
+      "René Schwonnek"
+    ],
+    "modules": [
+      "Qatlib/Papers/ShadowTomog26/EnergyEstimate/AllocationInequality.lean",
+      "Qatlib/Papers/ShadowTomog26/EnergyEstimate/RestrictedContexts.lean"
+    ],
+    "title": "Optimal strategies for shadow tomography with limited resources",
+    "year": "2026"
+  },
+  "SpacetimeLB26": {
+    "arxiv_id": "2608.26272",
+    "authors": [
+      "Kishor Bharti",
+      "Tobias Haug",
+      "Andrew Tanggara"
+    ],
+    "modules": [
+      "Qatlib/Papers/SpacetimeLB26/ScalarSupport/SchmidtEuclidean.lean"
+    ],
+    "title": "Fault-tolerant quantum computation cannot be achieved with constant spacetime overhead",
+    "year": "2026"
+  },
+  "SparseNetwork13": {
+    "arxiv_id": "1311.1851",
+    "authors": [
+      "Guoming Wang"
+    ],
+    "modules": [
+      "Qatlib/Papers/SparseNetwork13/MainResults/LowerBound/ParityNetwork.lean",
+      "Qatlib/Papers/SparseNetwork13/MainResults/Spectral/LaplacianEnergy.lean",
+      "Qatlib/Papers/SparseNetwork13/MainResults/Spectral/SpectralGapComparison.lean"
+    ],
+    "title": "Efficient Quantum Algorithms for Analyzing Large Sparse Electrical Networks",
+    "year": "2013"
+  },
+  "SpectralMeas17": {
+    "arxiv_id": "1711.11025",
+    "authors": [
+      "David Poulin",
+      "Alexei Kitaev",
+      "Damian S. Steiger",
+      "Matthew B. Hastings",
+      "Matthias Troyer"
+    ],
+    "doi": "10.1103/physrevlett.121.010501",
+    "modules": [
+      "Qatlib/Papers/SpectralMeas17/PauliExpect/Counterexample.lean"
+    ],
+    "title": "Quantum Algorithm for Spectral Measurement with Lower Gate Count",
+    "year": "2017"
+  },
+  "SpinFreeSim13": {
+    "arxiv_id": "1306.1147",
+    "authors": [
+      "James Daniel Whitfield"
+    ],
+    "doi": "10.1063/1.4812566",
+    "modules": [
+      "Qatlib/Papers/SpinFreeSim13/GroupFourier/CyclicReadout.lean"
+    ],
+    "title": "Spin-free quantum computational simulations and symmetry adapted states",
+    "year": "2013"
+  },
+  "StateConvLee10": {
+    "arxiv_id": "1011.3020",
+    "authors": [
+      "Troy Lee",
+      "Rajat Mittal",
+      "Ben W. Reichardt",
+      "Robert Spalek",
+      "Mario Szegedy"
+    ],
+    "modules": [
+      "Qatlib/Papers/StateConvLee10/StateConvert/EuclideanOutput.lean"
+    ],
+    "title": "Quantum query complexity of state conversion",
+    "year": "2010"
+  },
+  "StateTesting26": {
+    "arxiv_id": "2604.07460",
+    "authors": [
+      "Chirag Wadhwa",
+      "Sitan Chen"
+    ],
+    "modules": [
+      "Qatlib/Papers/StateTesting26/MainResults/Moments/EstimatorMoments.lean",
+      "Qatlib/Papers/StateTesting26/MainResults/SwapObservable.lean"
+    ],
+    "title": "Optimal Quantum State Testing Even with Limited Entanglement",
+    "year": "2026"
+  },
+  "ThermalRate98": {
+    "arxiv_id": "quant-ph/9807009",
+    "authors": [
+      "Daniel A. Lidar",
+      "Haobin Wang"
+    ],
+    "doi": "10.1103/physreve.59.2429",
+    "modules": [
+      "Qatlib/Papers/ThermalRate98/MainResults/AmplitudeStability.lean"
+    ],
+    "title": "Calculating the Thermal Rate Constant with Exponential Speed-Up on a Quantum Computer",
+    "year": "1998"
+  },
+  "TrotterError19": {
+    "arxiv_id": "1912.08854",
+    "authors": [
+      "Andrew M. Childs",
+      "Yuan Su",
+      "Minh C. Tran",
+      "Nathan Wiebe",
+      "Shuchen Zhu"
+    ],
+    "modules": [
+      "Qatlib/Papers/TrotterError19/MainResults/Appendices/AppendixJ.lean",
+      "Qatlib/Papers/TrotterError19/MainResults/Appendices/MonomialIntegrals.lean",
+      "Qatlib/Papers/TrotterError19/MainResults/Appendices/SecondQuantizedCommutation.lean"
+    ],
+    "title": "A Theory of Trotter Error",
+    "year": "2019"
+  },
+  "TruncTaylor14": {
+    "arxiv_id": "1412.4687",
+    "authors": [
+      "Dominic W. Berry",
+      "Andrew M. Childs",
+      "Richard Cleve",
+      "Robin Kothari",
+      "Rolando D. Somma"
+    ],
+    "modules": [
+      "Qatlib/Papers/TruncTaylor14/ResetDiscard/RobustOAAUniform.lean"
+    ],
+    "title": "Simulating Hamiltonian dynamics with a truncated Taylor series",
+    "year": "2014"
+  },
+  "UniversalWalk12": {
+    "arxiv_id": "1205.3782",
+    "authors": [
+      "Unknown"
+    ],
+    "modules": [
+      "Qatlib/Papers/UniversalWalk12/MainResults/Fourier/ConcreteEndpoints.lean"
+    ],
+    "title": "Universal computation by multi-particle quantum walk",
+    "year": "2012"
+  },
+  "VarTimeAmpAmp10": {
+    "arxiv_id": "1010.4458",
+    "authors": [
+      "Andris Ambainis"
+    ],
+    "modules": [
+      "Qatlib/Papers/VarTimeAmpAmp10/MainTheorem/EuclideanRatio.lean"
+    ],
+    "title": "Variable time amplitude amplification and a faster quantum algorithm for solving systems of linear equations",
+    "year": "2010"
+  },
+  "WalkSearch06": {
+    "arxiv_id": "quant-ph/0608026",
+    "authors": [
+      "Frédéric Magniez",
+      "Ashwin Nayak",
+      "Jérémie Roland",
+      "Miklos Santha"
+    ],
+    "modules": [
+      "Qatlib/Papers/WalkSearch06/MainResults/UnitSingularSector.lean",
+      "Qatlib/Papers/WalkSearch06/ReverseWalk/CycleDiscriminant.lean"
+    ],
+    "title": "Search via Quantum Walk",
+    "year": "2006"
+  },
+  "WeightEnum07": {
+    "arxiv_id": "cs/0703129",
+    "authors": [
+      "Joseph Geraci",
+      "Frank Van Bussel"
+    ],
+    "modules": [
+      "Qatlib/Papers/WeightEnum07/MainResults/WeightGeometry.lean"
+    ],
+    "title": "A theorem on the quantum evaluation of Weight Enumerators for a certain class of Cyclic Codes with a note on Cyclotomic cosets",
+    "year": "2007"
+  }
+}

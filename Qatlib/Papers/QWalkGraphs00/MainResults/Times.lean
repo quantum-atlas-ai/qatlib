@@ -20,7 +20,8 @@ public import Qatlib.Papers.QWalkGraphs00.MainResults.Core
 This module defines subset probabilities, total variation distance, and four time predicates for
 a finite coined walk relative to a supplied reference distribution. Relative subset sampling
 bounds imply the mixing, filling, and dispersion conclusions formalized in Theorem 3.12 of
-[AharonovEtAl2001Walks].
+[AharonovEtAl2001Walks]. The four time predicates use computational basis inputs, as in
+Definitions 3.8–3.11. Mixing uses the paper's full ℓ¹ distance.
 
 ## Main statements
 
@@ -57,33 +58,40 @@ def avgSetProb (U : Matrix (Coin × V) (Coin × V) ℂ) (ψ : (Coin × V) → �
 def tvDistance (p q : V → ℝ) : ℝ :=
   (1 / 2) * ∑ v, |p v - q v|
 
+/-- The computational basis state at coin and vertex index `p`. -/
+def walkBasisState (p : Coin × V) : (Coin × V) → ℂ :=
+  Pi.single p 1
+
 /-- The condition that every averaging length at least `T` gives total variation error at most
-`ε` for every input vector. -/
+`ε / 2` for every computational basis input, equivalently an ℓ¹ error at most `ε`. -/
 def IsMixingTime (U : Matrix (Coin × V) (Coin × V) ℂ)
     (π : ((Coin × V) → ℂ) → V → ℝ) (ε : ℝ) (T : ℕ) : Prop :=
-  ∀ (t : ℕ), T ≤ t → ∀ ψ : (Coin × V) → ℂ,
-    tvDistance (π ψ) (fun v => avgNodeProb U ψ t v) ≤ ε
+  ∀ (t : ℕ), T ≤ t → ∀ p : Coin × V,
+    2 * tvDistance (π (walkBasisState p)) (fun v => avgNodeProb U (walkBasisState p) t v) ≤ ε
 
 /-- The condition that every averaging length at least `T` gives relative error at most `ε` on
-every subset for every input vector. -/
+every subset for every computational basis input. -/
 def IsSamplingTime (U : Matrix (Coin × V) (Coin × V) ℂ)
     (π : ((Coin × V) → ℂ) → V → ℝ) (ε : ℝ) (T : ℕ) : Prop :=
-  ∀ (t : ℕ), T ≤ t → ∀ (ψ : (Coin × V) → ℂ) (X : Finset V),
-    |(∑ x ∈ X, π ψ x) - avgSetProb U ψ t X| ≤ ε * (∑ x ∈ X, π ψ x)
+  ∀ (t : ℕ), T ≤ t → ∀ (p : Coin × V) (X : Finset V),
+    |(∑ x ∈ X, π (walkBasisState p) x) - avgSetProb U (walkBasisState p) t X| ≤
+      ε * (∑ x ∈ X, π (walkBasisState p) x)
 
-/-- The condition that every input vector and subset have some time at most `T` with subset
-weight at least `(1 - ε)` times the reference mass. -/
+/-- For each computational basis input and subset, by time `T` the subset weight reaches
+at least `(1 - ε)` times the reference mass. -/
 def IsFillingTime (U : Matrix (Coin × V) (Coin × V) ℂ)
     (π : ((Coin × V) → ℂ) → V → ℝ) (ε : ℝ) (T : ℕ) : Prop :=
-  ∀ (ψ : (Coin × V) → ℂ) (X : Finset V),
-    ∃ t : ℕ, t ≤ T ∧ (1 - ε) * (∑ x ∈ X, π ψ x) ≤ setProb U ψ t X
+  ∀ (p : Coin × V) (X : Finset V),
+    ∃ t : ℕ, t ≤ T ∧ (1 - ε) * (∑ x ∈ X, π (walkBasisState p) x) ≤
+      setProb U (walkBasisState p) t X
 
-/-- The condition that every input vector and subset have some time at most `T` with subset
-weight at most `(1 + ε)` times the reference mass. -/
+/-- For each computational basis input and subset, by time `T` the subset weight reaches
+at most `(1 + ε)` times the reference mass. -/
 def IsDispersionTime (U : Matrix (Coin × V) (Coin × V) ℂ)
     (π : ((Coin × V) → ℂ) → V → ℝ) (ε : ℝ) (T : ℕ) : Prop :=
-  ∀ (ψ : (Coin × V) → ℂ) (X : Finset V),
-    ∃ t : ℕ, t ≤ T ∧ setProb U ψ t X ≤ (1 + ε) * (∑ x ∈ X, π ψ x)
+  ∀ (p : Coin × V) (X : Finset V),
+    ∃ t : ℕ, t ≤ T ∧ setProb U (walkBasisState p) t X ≤
+      (1 + ε) * (∑ x ∈ X, π (walkBasisState p) x)
 
 /-- The averaged subset weight equals the normalized sum of instantaneous subset weights over
 times less than `S`. -/
@@ -102,30 +110,28 @@ theorem avgSetProb_eq (U : Matrix (Coin × V) (Coin × V) ℂ) (ψ : (Coin × V)
     _ = (S : ℝ)⁻¹ * ∑ t ∈ Finset.range S, ∑ x ∈ X, nodeProb U ψ t x := by
         rw [Finset.mul_sum]
 
-/-- For nonnegative error and reference functions of total mass one, a sampling-time bound
+/-- For reference functions of total mass one on basis inputs, a sampling-time bound
 implies a mixing-time bound at the same time. -/
 theorem sampling_le_mixing
     (U : Matrix (Coin × V) (Coin × V) ℂ)
     (π : ((Coin × V) → ℂ) → V → ℝ) (ε : ℝ) (S : ℕ)
-    (hε : 0 ≤ ε)
-    (hπ_sum : ∀ ψ, ∑ v, π ψ v = 1)
+    (hπ_sum : ∀ p, ∑ v, π (walkBasisState p) v = 1)
     (hS : IsSamplingTime U π ε S) :
     IsMixingTime U π ε S := by
-  intro t ht ψ
+  intro t ht p
+  let ψ := walkBasisState p
   have hpoint : ∀ v : V, |π ψ v - avgNodeProb U ψ t v| ≤ ε * π ψ v := by
     intro v
-    have hs := hS t ht ψ {v}
+    have hs := hS t ht p {v}
     simpa [avgSetProb] using hs
   have hsum_le : ∑ v, |π ψ v - avgNodeProb U ψ t v| ≤ ε := by
     calc ∑ v, |π ψ v - avgNodeProb U ψ t v|
         ≤ ∑ v, ε * π ψ v := Finset.sum_le_sum (fun v _ => hpoint v)
       _ = ε * ∑ v, π ψ v := by rw [Finset.mul_sum]
-      _ = ε := by rw [hπ_sum ψ, mul_one]
+      _ = ε := by rw [hπ_sum p, mul_one]
+  change 2 * tvDistance (π ψ) (fun v => avgNodeProb U ψ t v) ≤ ε
   unfold tvDistance
-  have hhalf : (1 / 2 : ℝ) * ∑ v, |π ψ v - avgNodeProb U ψ t v| ≤ (1 / 2 : ℝ) * ε := by
-    apply mul_le_mul_of_nonneg_left hsum_le
-    norm_num
-  nlinarith [hε]
+  linarith only [hsum_le]
 
 /-- A positive sampling time is also a filling time with the same error parameter. -/
 theorem sampling_le_filling
@@ -134,7 +140,9 @@ theorem sampling_le_filling
     (hSpos : 0 < S)
     (hS : IsSamplingTime U π ε S) :
     IsFillingTime U π ε S := by
-  intro ψ X
+  intro p X
+  let ψ := walkBasisState p
+  change ∃ t : ℕ, t ≤ S ∧ (1 - ε) * (∑ x ∈ X, π ψ x) ≤ setProb U ψ t X
   by_contra hcon
   push Not at hcon
   set c : ℝ := (1 - ε) * (∑ x ∈ X, π ψ x) with hc
@@ -155,7 +163,7 @@ theorem sampling_le_filling
     have hcancel : (S : ℝ)⁻¹ * ((S : ℝ) * c) = c := by
       field_simp
     rwa [hcancel] at hmul
-  have hs := hS S le_rfl ψ X
+  have hs := hS S le_rfl p X
   have hge : c ≤ avgSetProb U ψ S X := by
     have h2 : (∑ x ∈ X, π ψ x) - avgSetProb U ψ S X ≤ ε * (∑ x ∈ X, π ψ x) :=
       (abs_le.mp hs).2
@@ -170,7 +178,9 @@ theorem sampling_le_dispersion
     (hSpos : 0 < S)
     (hS : IsSamplingTime U π ε S) :
     IsDispersionTime U π ε S := by
-  intro ψ X
+  intro p X
+  let ψ := walkBasisState p
+  change ∃ t : ℕ, t ≤ S ∧ setProb U ψ t X ≤ (1 + ε) * (∑ x ∈ X, π ψ x)
   by_contra hcon
   push Not at hcon
   set c : ℝ := (1 + ε) * (∑ x ∈ X, π ψ x) with hc
@@ -191,7 +201,7 @@ theorem sampling_le_dispersion
     have hcancel : (S : ℝ)⁻¹ * ((S : ℝ) * c) = c := by
       field_simp
     rwa [hcancel] at hmul
-  have hs := hS S le_rfl ψ X
+  have hs := hS S le_rfl p X
   have hle : avgSetProb U ψ S X ≤ c := by
     have h1 : -(ε * (∑ x ∈ X, π ψ x)) ≤ (∑ x ∈ X, π ψ x) - avgSetProb U ψ S X :=
       (abs_le.mp hs).1
@@ -199,18 +209,17 @@ theorem sampling_le_dispersion
     nlinarith [h1]
   linarith
 
-/-- For nonnegative error, normalized reference functions, and positive `S`, a sampling-time
+/-- For reference functions normalized on basis inputs and positive `S`, a sampling-time
 bound at `S` implies mixing, filling, and dispersion bounds at `S`. See [Aharonov et al.,
 Theorem 3.12][AharonovEtAl2001Walks]. -/
 theorem theorem_3_12
     (U : Matrix (Coin × V) (Coin × V) ℂ)
     (π : ((Coin × V) → ℂ) → V → ℝ) (ε : ℝ) (S : ℕ)
-    (hε : 0 ≤ ε)
-    (hπ_sum : ∀ ψ, ∑ v, π ψ v = 1)
+    (hπ_sum : ∀ p, ∑ v, π (walkBasisState p) v = 1)
     (hSpos : 0 < S)
     (hS : IsSamplingTime U π ε S) :
     IsMixingTime U π ε S ∧ IsFillingTime U π ε S ∧ IsDispersionTime U π ε S :=
-  ⟨sampling_le_mixing U π ε S hε hπ_sum hS,
+  ⟨sampling_le_mixing U π ε S hπ_sum hS,
    sampling_le_filling U π ε S hSpos hS,
    sampling_le_dispersion U π ε S hSpos hS⟩
 

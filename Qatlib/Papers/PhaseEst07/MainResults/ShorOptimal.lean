@@ -22,9 +22,9 @@ amplitude hypotheses. The phase-estimation setting is described in [VanDamEtAl20
 ## Main statements
 
 * `source_shor_spectrum_one`: The first value of `sourceShorSpectrum` is one.
-* `source_shor_qft_measurement_optimal`: For positive index size, nonnegative cost coefficients,
-  and positive amplitudes, the phase states are orthonormal, the Fourier transform prepares them
-  from basis states, and the constant-one kernel has the displayed Holevo cost.
+* `source_shor_qft_measurement_optimal`: For positive index size, nonnegative positive-frequency
+  coefficients, and positive amplitudes, the phase states are orthonormal, the Fourier transform
+  prepares them from basis states, and the constant-one kernel has the displayed Holevo cost.
 
 ## References
 
@@ -51,12 +51,12 @@ theorem source_shor_spectrum_one : sourceShorSpectrum 1 = 1 := by
   unfold sourceShorSpectrum
   norm_num
 
-/-- For positive index size, nonnegative cost coefficients, and positive amplitudes, the phase
-states are orthonormal, the Fourier transform prepares them from basis states, and the
-constant-one kernel has the displayed Holevo cost. See [van Dam et al.,
-2007][VanDamEtAl2007]. -/
+/-- For positive index size, nonnegative positive-frequency coefficients, and positive amplitudes,
+the phase states are orthonormal, the Fourier transform prepares them from basis states, and the
+constant-one kernel has the displayed Holevo cost. The constant coefficient `c 0` is arbitrary.
+See [van Dam et al., 2007][VanDamEtAl2007]. -/
 theorem source_shor_qft_measurement_optimal {q : ℕ} (hq : 1 ≤ q) (c : ℕ → ℝ)
-    (hc : ∀ l, 0 ≤ c l) (ψ : Fin q → ℝ) (hψ : ∀ k, 0 < ψ k) :
+    (hc : ∀ l, 1 ≤ l → 0 ≤ c l) (ψ : Fin q → ℝ) (hψ : ∀ k, 0 < ψ k) :
     (∀ s t : Fin q, Inner (PhaseState q s) (PhaseState q t) = if s = t then 1 else 0) ∧
     (∀ s : Fin q, ApplyGate (QFTMatrix q) (Ket s) = PhaseState q s) ∧
     (sourceHolevoCost c ψ sourceUnitChi

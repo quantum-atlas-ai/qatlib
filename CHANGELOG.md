@@ -14,6 +14,107 @@ All notable changes to **Qatlib** are documented in this file.
 
 ---
 
+## [2026-11-23] — Quantum Algorithms, Spectral Bounds, and Verification
+
+### Added
+
+* **Papers — Spectral gaps, evolution, and matrix estimates**: Develop the doubled-register
+  construction for spectral-gap amplification, its reflection simulation, and finite
+  examples for reversible-chain gaps and graph estimates. Decompose a Hermitian matrix
+  with at most `d` nonzero entries per column into `d²` matrices with at most one nonzero
+  entry per row and column. For a nonempty family of finite Hermitian matrices whose L²
+  operator norms have positive sum, shift each matrix by its norm times the identity to
+  make it positive semidefinite. Shifting the absolute energy cutoff by the sum of the
+  norms preserves the low-energy projector. Additional results cover finite Dyson and
+  Trotter error estimates, LCU simulation, and polynomial singular-value responses. For
+  two contractions of the same nonempty rectangular shape, bound the change in the even
+  or odd real polynomial response using the printed logarithmic factor and the
+  polynomial's explicit coefficient modulus.
+* **Papers — Search, walks, and query complexity**: Formalize executable Fourier-register
+  queries for element distinctness, finite collision packing and isolation estimates,
+  and the two-vector Euclidean decomposition under the stated orthonormality assumptions.
+  Prove exact sign-iterate norms for unitary inputs to quantum counting. In the
+  rotation-plane model for matrix commutativity testing, bound the average squared
+  deviation by `48 / 25` from below for normalized plane weights, angles in `(0, π/2]`,
+  and averaging length `T ≥ 100 * sum (ν_j² / θ_j)`. For a flat unitary of dimension
+  `2^n` with a nonempty proper marked set, give amplitude and probability ratios in a
+  row with zero total sum and nonzero marked sum. Other developments cover finite hidden-shift
+  and dihedral sieve models, ordered-list learning, graph learning, and polynomial query bounds.
+* **Papers — Quantum information, codes, and measurements**: Establish the Bravyi–Kitaev
+  edge algebra on indexed simple graphs, with anticommutation at exactly one shared
+  endpoint and commutation for disjoint edges. For finite density matrices and an effect,
+  bound the change in its expectation by half the trace norm of the state difference,
+  and prove contraction under partial trace. Formalize the algebraic identity for a
+  conditional estimator's second moment in Lemma 3.12 of the state-testing paper, with
+  separate one- and two-register marginals. Prove the dimension factor in equation (3.35)
+  by tracing out the pair of purifying registers from a two-copy SWAP expression.
+  Extend examples and estimates for classical shadows, pure-state entropy, local
+  tomography, and spectral measurements.
+* **Papers — Statistical models, Hamiltonian constructions, and counterexamples**:
+  Extend finite Gibbs and random-compiler models, QAOA and low-energy estimates,
+  and the reductions for Potts partition functions. Under the adjoint-square identity
+  `Aᴴ A = d • 1` on a nonempty finite space with `d > 0`, certify the exact L² operator
+  norm `sqrt d` of the Potts cup operator. For Schrödingerization, construct the
+  error-function initialization and prove the approximation in Theorem 4.1 (H2) with
+  absolute error at most `ε / 2` on `p ≥ 1/2` for `0 < ε ≤ 1`. Exhibit a four-cycle with
+  weight `π / 12` and evolution parameter `γ = 2` that violates the unrestricted selected-edge
+  derivative estimate, and prove the corrected direct-edge bound for `0 ≤ γ ≤ 1`. The
+  one-dimensional centroid witness gives a value of `2` in the printed formula, with
+  the Frobenius-normalized probability equal to `1`. Recovering the static expectation
+  in the spectral-measurement model requires a nonzero scalar response.
+* **Paper coverage**: Add 234 library modules and a net 1,690 theorem and lemma declarations
+  across 98 paper directories. Five directories are new (`DihHSPSieve03`, `LogConcave22`,
+  `QAOAWeighted24`, `QTriangle03`, and `QWalkAmbainis03`), with nine new modules. The other
+  225 new modules extend existing paper directories.
+  Existing paper directories with new or revised library sources are
+  `AbelianStabil95`, `AmpEstBrass00`, `AmpTransform14`, `AnyCircuit08`, `BKFermion17`,
+  `BQPMixSparse06`, `BeyondCircuit08`, `BlackBoxHam09`, `ClassShadows20`, `CollisionLB26`,
+  `CommGibbsSamp14`, `CommutLCHS26`, `CommuteTest05`, `ContDiscWalk08`, `DecisionTrees97`,
+  `DenseOutSim26`, `DiracEquation16`, `DistTesting09`, `DistinctLB26`, `DysonSeries22`,
+  `ElemGates95`, `ExactSimon97`, `ExpCongruence08`, `GaussSumEst02`, `GraphConnect03`,
+  `HamLCUSim12`, `HiddenTransl02`, `HittingTimes08`, `KhovanovHom25`, `LearnGraphDis12`,
+  `LinearOptics10`, `LowEnergyProd24`, `LowRankMatrix19`, `MCMontanaro15`, `MatProdVerify04`,
+  `MonteCarloInt20`, `NegWeights06`, `NestedQWalk12`, `NilpotentHSP07`, `NoGlobalSym14`,
+  `NoisyCircuit22`, `NonlinearDE20`, `OrderedList07`, `OrderedSearch25`, `OverlapGapGoh26`,
+  `ParabolicPDE24`, `PhaseEst07`, `PolyMethod01`, `PottsPartEval07`, `PottsTutte07`,
+  `ProdFormSpec21`, `QAOAScaling23`, `QAOASupremacy16`, `QActiveLearn14`, `QChemistry14`,
+  `QComplexity97`, `QCounting98`, `QCryptanal15`, `QGradient20`, `QLSStatePrep24`,
+  `QLinearSys15`, `QMonteCarlo22`, `QPCAAssume18`, `QQueryGraph04`, `QSDPsolver17`,
+  `QSearchBoyer98`, `QShannonWilde11`, `QSingValue19`, `QTopEigenvec24`, `QWalkGraphs00`,
+  `QWalkSpectra04`, `QuantumSVM13`, `Qubitization19`, `RandCompiler19`, `ReadManyQry11`,
+  `RydbergMaxCut26`, `Schrodinger25`, `ShadowTomog26`, `SpacetimeLB26`, `SparseHam05`,
+  `SparseNetwork13`, `SpectralGap11`, `SpectralMeas17`, `SpinFreeSim13`, `StateConvLee10`,
+  `StateTesting26`, `ThermalRate98`, `TrotterError19`, `TruncTaylor14`, `UniversalWalk12`,
+  `VarTimeAmpAmp10`, `WalkSearch06`, `WeightEnum07`.
+* **Consumer verification and references**: Add 108 consumer modules and extend one
+  existing consumer, including concrete Fourier queries, Potts reductions, universal
+  walk phases, fault propagation and decoding, and public-root imports. Add six
+  bibliography entries and index the promoted paper sources.
+
+### Changed
+
+* **Documentation portal**: Guide readers through the code, recovery, and syndrome-circuit
+  layers of quantum error correction. Improve source navigation by recognizing public
+  imports, dotted Lean scopes, and nested strings when extracting source information.
+* **Build selection**: Treat verification source edits as build inputs for both pull
+  requests and main-branch changes. Route documentation generation through the resulting
+  build for changes involving verification sources.
+
+### Fixed
+
+* **Public exports and kernel auditing**: Require explicit `public import` declarations
+  in `Qatlib.lean` and verify root imports from ordinary modules. Check import headers with
+  Lean's parser and audit private declarations and every verification module for
+  unsupported transitive axioms, including modules outside the verification aggregate.
+* **Quantum walk and phase-estimation domains**: Define the graph walk's time predicates
+  using computational-basis inputs and use the paper's full ℓ¹ distance for mixing.
+  Permit arbitrary constant Fourier coefficients in the phase-estimation optimality
+  theorems, including the standard periodic variance cost.
+* **Norm conventions and coding examples**: Use vector Euclidean norms and induced L²
+  operator norms in linear-system, semidefinite-programming, and spectral contracts
+  where required by the statements. Instantiate propagated repetition-code decoding and
+  certify both bounds for exact Steane distance three in the parity-circuit consumer.
+
 ## [2026-11-20] — Quantum Error Correction, Rational Pilot Arithmetic, Span Programs, and Semantic Interfaces
 
 ### Added

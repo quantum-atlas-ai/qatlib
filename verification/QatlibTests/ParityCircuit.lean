@@ -7,6 +7,8 @@ Authors: Qatlib Contributors
 module
 
 public import Qatlib.Concepts.CodingDecoding.CssRecovery.ParityCircuit
+public import Qatlib.Concepts.CodingDecoding.CssRecovery.CodingDecoding
+public import Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding
 import Mathlib.Data.Fintype.Powerset
 
 @[expose] public section
@@ -19,6 +21,7 @@ set_option autoImplicit false
 set_option warningAsError true
 
 open Qatlib.Concepts.CodingDecoding.CssTesters
+open Qatlib.Concepts.CodingDecoding.CssTesters.CodingDecoding
 open Qatlib.Concepts.CodingDecoding.CssTesters.CssCode
 open Qatlib.Concepts.AdaptiveCP.BranchTrace
 open Qatlib.Foundations.PureStateMath
@@ -81,6 +84,133 @@ theorem noisy_decoded :
     residualFromObserved decoder ((faultRun word (faultsAt word flips {firstGate}) 0).1, 0)
       (0, (faultRun word (faultsAt word flips {firstGate}) 0).2) = 0 := by
   rw [propagated]
+  decide +kernel
+
+/-! ## The seven-qubit Steane code
+
+`steaneData` is the `[[7, 1, 3]]` CSS code: both check matrices are the Hamming
+parity-check matrix, one qubit is encoded, and both the X-logical and Z-logical
+distances are exactly three. The distance is the infimum of a nonempty set of
+logical weights, not the empty-set value `⊤`. -/
+
+/-- A weight-three Steane vector supported on qubits `0`, `1`, and `3`. -/
+def steaneLogical : Fin 7 → ZMod 2 :=
+  fun i => if i = 0 ∨ i = 1 ∨ i = 3 then 1 else 0
+
+/-- The exhibited Steane vector has Hamming weight three. -/
+theorem steaneLogical_weight : bitWeight steaneLogical = 3 := by
+  decide +kernel
+
+/-- Columns `0`, `1`, and `3` of the Steane matrix sum to zero. -/
+theorem steaneLogical_kernel : steaneH *ᵥ steaneLogical = 0 := by
+  decide +kernel
+
+/-- The weight-three vector is outside the eight-element row space. -/
+theorem steaneLogical_not_row (c : Fin 3 → ZMod 2) : steaneHᵀ *ᵥ c ≠ steaneLogical := by
+  revert c
+  decide +kernel
+
+/-- The weight-three vector is not a stabilizer row. -/
+theorem steaneLogical_not_stabilizer :
+    steaneLogical ∉ LinearMap.range (Matrix.mulVecLin steaneHᵀ) := by
+  intro ⟨c, hc⟩
+  apply steaneLogical_not_row c
+  simpa [Matrix.mulVec_transpose] using hc
+
+/-- No Steane codeword of weight at most two exists except zero. -/
+theorem steane_low_kernel :
+    ∀ z : Fin 7 → ZMod 2, steaneH *ᵥ z = 0 → bitWeight z ≤ 2 → z = 0 := by
+  decide +kernel
+
+/-- Weights of nontrivial Steane logical vectors. Both X and Z checks use `steaneH`. -/
+def steaneLogicalWeights : Set ℕ∞ :=
+  {w : ℕ∞ | ∃ z : Fin 7 → ZMod 2, steaneH *ᵥ z = 0 ∧
+    z ∉ LinearMap.range (Matrix.mulVecLin steaneHᵀ) ∧ (bitWeight z : ℕ∞) = w}
+
+/-- The logical-weight infimum equals three because a weight-three logical exists and no
+lighter nonzero kernel vector does. -/
+theorem steaneLogicalWeights_sInf : sInf steaneLogicalWeights = 3 := by
+  classical
+  apply le_antisymm
+  · apply sInf_le
+    refine ⟨steaneLogical, steaneLogical_kernel, steaneLogical_not_stabilizer, ?_⟩
+    exact_mod_cast steaneLogical_weight
+  · apply le_sInf
+    rintro w ⟨z, hker, hout, rfl⟩
+    have hge : 3 ≤ bitWeight z := by
+      by_contra hlt
+      have hw : bitWeight z ≤ 2 := Nat.lt_succ_iff.mp (lt_of_not_ge hlt)
+      have hz0 : z = 0 := steane_low_kernel z hker hw
+      apply hout
+      subst hz0
+      refine ⟨0, ?_⟩
+      simp
+    exact_mod_cast hge
+
+/-- The Steane code encodes one qubit. -/
+theorem steane_encoded_pos : 0 < steaneData.encodedQubits := by
+  rw [steaneData_encodedQubits]
+  decide
+
+/-- Z-logical distance of the Steane code is three. -/
+theorem steane_zLogicalDistance :
+    sInf {w : ℕ∞ | ∃ z : Fin 7 → ZMod 2, steaneData.hX *ᵥ z = 0 ∧
+      z ∉ LinearMap.range (Matrix.mulVecLin steaneData.hZᵀ) ∧
+      (bitWeight z : ℕ∞) = w} = 3 := by
+  rw [show steaneData.hX = steaneH from rfl, show steaneData.hZ = steaneH from rfl]
+  exact steaneLogicalWeights_sInf
+
+/-- X-logical distance of the Steane code is three. -/
+theorem steane_xLogicalDistance :
+    sInf {w : ℕ∞ | ∃ x : Fin 7 → ZMod 2, steaneData.hZ *ᵥ x = 0 ∧
+      x ∉ LinearMap.range (Matrix.mulVecLin steaneData.hXᵀ) ∧
+      (bitWeight x : ℕ∞) = w} = 3 := by
+  rw [show steaneData.hX = steaneH from rfl, show steaneData.hZ = steaneH from rfl]
+  exact steaneLogicalWeights_sInf
+
+/-- The CSS distance is the minimum of the two logical distances, hence exactly three. -/
+theorem steane_cssDistance : cssDistance steaneData = 3 := by
+  unfold cssDistance
+  rw [steane_zLogicalDistance, steane_xLogicalDistance]
+  exact min_self _
+
+/-- Twelve CNOTs realize the Steane check matrix. Qubit `0` is read only by the last gate. -/
+def steaneWord : List (ParityGate 7 3) :=
+  [⟨3, 0⟩, ⟨4, 0⟩, ⟨6, 0⟩,
+   ⟨1, 1⟩, ⟨3, 1⟩, ⟨5, 1⟩, ⟨6, 1⟩,
+   ⟨2, 2⟩, ⟨4, 2⟩, ⟨5, 2⟩, ⟨6, 2⟩,
+   ⟨0, 0⟩]
+
+/-- The executed CNOT word is the Steane Z-check matrix. -/
+theorem steaneWord_check : circuitCheck steaneWord = steaneData.hZ := by
+  decide +kernel
+
+/-- The first gate, after which the data fault is inserted. -/
+def steaneFaultGate : Fin steaneWord.length := ⟨0, by decide +kernel⟩
+
+/-- The fault after the first gate flips data qubit `0` and no ancilla. -/
+def steaneFlips (i : Fin steaneWord.length) : Joint 7 3 :=
+  if i = steaneFaultGate then (fun j => if j = 0 then 1 else 0, 0) else 0
+
+/-- The later CNOT on qubit `0` copies that fault into ancilla `0`. -/
+theorem steanePropagated :
+    faultRun steaneWord (faultsAt steaneWord steaneFlips {steaneFaultGate}) 0 =
+      (fun j => if j = 0 then 1 else 0, fun a => if a = 0 then 1 else 0) := by
+  decide +kernel
+
+/-- `fault_decode` turns the propagated Steane fault into a stabilizer residual. -/
+theorem steaneFaultDecode :
+    IsStabilizerLabel steaneData
+      (residualFromObserved steaneDecoder
+        ((faultRun steaneWord (faultsAt steaneWord steaneFlips {steaneFaultGate}) 0).1, 0)
+        (0, (faultRun steaneWord (faultsAt steaneWord steaneFlips {steaneFaultGate}) 0).2)) := by
+  apply fault_decode steaneData steaneWord steaneWord_check steaneFlips
+    (by
+      intro i
+      fin_cases i <;> decide +kernel)
+    {steaneFaultGate} (by decide +kernel)
+    steaneDecoder steaneDecoder_singleShot
+  rw [steanePropagated]
   decide +kernel
 
 end QatlibTests.ParityCircuit
