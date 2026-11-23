@@ -6,6 +6,7 @@ Authors: Qatlib Contributors
 
 module
 
+public import Mathlib.Analysis.CStarAlgebra.Matrix
 public import Mathlib.Analysis.Matrix.Normed
 public import Mathlib.Analysis.Normed.Algebra.MatrixExponential
 public import Mathlib.Analysis.SpecialFunctions.Pow.Real
@@ -57,10 +58,8 @@ def IsSoftO (cost bound logArg : ℝ) : Prop :=
 
 /-! ## Linear algebra predicates -/
 
-/-- Hermitian positive semidefiniteness for complex matrices, matching the
-paper's `M ⪰ 0` for `M ∈ ℂ^{n×n}`.  `Matrix.PosSemidef` in Mathlib requires an
-ordered coefficient ring, which `ℂ` is not, so the quadratic-form definition is
-used directly. -/
+/-- Hermitian positive semidefiniteness for complex matrices, expressed by
+nonnegativity of the real part of every quadratic form. -/
 def PSD {n : ℕ} (M : Matrix (Fin n) (Fin n) ℂ) : Prop :=
   M.IsHermitian ∧ ∀ x : Fin n → ℂ, 0 ≤ (∑ i, star (x i) * (M.mulVec x) i).re
 
@@ -72,19 +71,37 @@ def RowSparse {n : ℕ} (A : Matrix (Fin n) (Fin n) ℂ) (s : ℕ) : Prop :=
 def IsDiagonal {n : ℕ} {α : Type*} [Zero α] (A : Matrix (Fin n) (Fin n) α) : Prop :=
   ∀ i k, i ≠ k → A i k = 0
 
-/-- Operator-norm bound `‖A‖ ≤ c`, written with the induced `ℓ²` operator norm
-through the defining inequality. -/
-def OpNormLE {n : ℕ} (A : Matrix (Fin n) (Fin n) ℂ) (c : ℝ) : Prop :=
-  ∀ x : Fin n → ℂ, ‖A.mulVec x‖ ≤ c * ‖x‖
-
-/-- Real-matrix version of `OpNormLE`, used for the real diagonal claims. -/
-def OpNormLE_R {n : ℕ} (A : Matrix (Fin n) (Fin n) ℝ) (c : ℝ) : Prop :=
-  ∀ x : Fin n → ℝ, ‖A.mulVec x‖ ≤ c * ‖x‖
-
-/-- Spectral operator norm of a complex matrix, defined as a supremum.  It is
-used only inside distance statements (`‖U - target‖`), never unfolded. -/
+/-- The ℓ²-induced operator norm of a complex matrix. -/
 def opNormℂ {n : ℕ} (A : Matrix (Fin n) (Fin n) ℂ) : ℝ :=
-  sSup {r : ℝ | ∃ x : Fin n → ℂ, x ≠ 0 ∧ r = ‖A.mulVec x‖ / ‖x‖}
+  ‖Matrix.toEuclideanCLM (𝕜 := ℂ) A‖
+
+open scoped Matrix.Norms.L2Operator in
+/-- The paper's complex operator norm agrees with Mathlib's scoped ℓ² matrix norm. -/
+theorem opNormℂ_eq_l2_opNorm {n : ℕ} (A : Matrix (Fin n) (Fin n) ℂ) :
+    opNormℂ A = ‖A‖ :=
+  Matrix.l2_opNorm_toEuclideanCLM A
+
+/-- The spectral operator norm of the complex matrix is at most `c`. -/
+def OpNormLE {n : ℕ} (A : Matrix (Fin n) (Fin n) ℂ) (c : ℝ) : Prop :=
+  opNormℂ A ≤ c
+
+/-- The ℓ²-induced operator norm of the real matrix is at most `c`. -/
+def OpNormLE_R {n : ℕ} (A : Matrix (Fin n) (Fin n) ℝ) (c : ℝ) : Prop :=
+  ‖Matrix.toEuclideanCLM (𝕜 := ℝ) A‖ ≤ c
+
+/-- For a nonnegative bound, the complex operator-norm test is equivalent to
+the Euclidean vector inequality for every input. -/
+theorem opNormLE_iff_mulVec {n : ℕ} (A : Matrix (Fin n) (Fin n) ℂ) {c : ℝ} (hc : 0 ≤ c) :
+    OpNormLE A c ↔ ∀ x : EuclideanSpace ℂ (Fin n),
+      ‖(WithLp.toLp 2 (A.mulVec (WithLp.ofLp x)) : EuclideanSpace ℂ (Fin n))‖ ≤ c * ‖x‖ :=
+  ContinuousLinearMap.opNorm_le_iff (f := Matrix.toEuclideanCLM (𝕜 := ℂ) A) hc
+
+/-- For a nonnegative bound, the real operator-norm test is equivalent to
+the Euclidean vector inequality for every input. -/
+theorem opNormLE_R_iff_mulVec {n : ℕ} (A : Matrix (Fin n) (Fin n) ℝ) {c : ℝ} (hc : 0 ≤ c) :
+    OpNormLE_R A c ↔ ∀ x : EuclideanSpace ℝ (Fin n),
+      ‖(WithLp.toLp 2 (A.mulVec (WithLp.ofLp x)) : EuclideanSpace ℝ (Fin n))‖ ≤ c * ‖x‖ :=
+  ContinuousLinearMap.opNorm_le_iff (f := Matrix.toEuclideanCLM (𝕜 := ℝ) A) hc
 
 /-- Operator norm distance `‖A - B‖` in the paper's spectral norm. -/
 def opDistℂ {n : ℕ} (A B : Matrix (Fin n) (Fin n) ℂ) : ℝ := opNormℂ (A - B)

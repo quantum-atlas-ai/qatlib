@@ -98,6 +98,12 @@ jobs:
           fi
           lake lint
 
+      - name: Check native import parsing regressions
+        run: python3 scripts/test_lint_imports.py
+
+      - name: Check source and kernel axiom audit regressions
+        run: python3 scripts/test_axiom_audit.py
+
       - name: Prepare documentation test environment
         run: |
           python3 -m venv "$RUNNER_TEMP/docs-tests-venv"
@@ -108,3 +114,4 @@ jobs:
         run: |
           python3 scripts/test_docs_pipeline.py
           python3 scripts/test_site_typography.py
+          python3 scripts/test_site_source.py

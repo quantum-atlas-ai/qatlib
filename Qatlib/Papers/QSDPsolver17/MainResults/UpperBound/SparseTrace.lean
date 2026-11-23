@@ -27,24 +27,53 @@ noncomputable section
 
 namespace Qatlib.Papers.QSDPsolver17.MainResults.UpperBound
 open Qatlib.Papers.QSDPsolver17.MainResults
+open Matrix
 
-/-- `I ⪯ H` in quadratic-form form. -/
+/-- `I ⪯ H`: the difference `H - I` is Hermitian positive semidefinite. -/
 def PSDMinusOne {n : ℕ} (H : Matrix (Fin n) (Fin n) ℂ) : Prop :=
-  ∀ x : Fin n → ℂ, ‖x‖ ^ 2 ≤ (∑ i, star (x i) * (H.mulVec x) i).re
+  PSD (H - 1)
 
-/-- `K I - H ⪰ 0` in quadratic-form form, i.e. `H ⪯ K I`. -/
+/-- For Hermitian `H`, the quadratic-form inequality expressing `H ⪯ K I`. -/
 def LeScalarIdentity {n : ℕ} (H : Matrix (Fin n) (Fin n) ℂ) (K : ℝ) : Prop :=
-  ∀ x : Fin n → ℂ, 0 ≤ (∑ i, star (x i) * ((K • (1 : Matrix (Fin n) (Fin n) ℂ) - H).mulVec x) i).re
+  ∀ x : Fin n → ℂ,
+    0 ≤ (∑ i, star (x i) * ((K • (1 : Matrix (Fin n) (Fin n) ℂ) - H).mulVec x) i).re
+
+/-- The lower PSD bound forces `H` to be Hermitian. -/
+theorem PSDMinusOne.isHermitian {n : ℕ} {H : Matrix (Fin n) (Fin n) ℂ}
+    (h : PSDMinusOne H) : H.IsHermitian := by
+  have hd : (H - 1).IsHermitian := h.1
+  simpa only [sub_add_cancel] using hd.add Matrix.isHermitian_one
+
+/-- For Hermitian `H`, the lower PSD bound is equivalent to bounding its
+quadratic form below by the squared Euclidean norm. -/
+theorem psdMinusOne_iff_quadratic_form {n : ℕ} {H : Matrix (Fin n) (Fin n) ℂ}
+    (hH : H.IsHermitian) :
+    PSDMinusOne H ↔ ∀ x : Fin n → ℂ,
+      (∑ i, ‖x i‖ ^ 2) ≤ (∑ i, star (x i) * (H.mulVec x) i).re := by
+  have hform (x : Fin n → ℂ) :
+      (∑ i, star (x i) * ((H - 1).mulVec x) i).re =
+        (∑ i, star (x i) * (H.mulVec x) i).re - ∑ i, ‖x i‖ ^ 2 := by
+    simp only [Matrix.sub_mulVec, Matrix.one_mulVec, Pi.sub_apply, mul_sub,
+      Finset.sum_sub_distrib, Complex.sub_re]
+    congr 1
+    rw [Complex.re_sum]
+    apply Finset.sum_congr rfl
+    intro i _
+    rw [Complex.star_def, ← Complex.normSq_eq_conj_mul_self, Complex.ofReal_re,
+      Complex.normSq_eq_norm_sq]
+  refine ⟨fun h x => ?_, fun h => ⟨hH.sub Matrix.isHermitian_one, fun x => ?_⟩⟩
+  · exact sub_nonneg.mp (hform x ▸ h.2 x)
+  · rw [hform]
+    exact sub_nonneg.mpr (h x)
 
 /-- **Statement only — not proved in Qatlib.**
 Headline resource specification for `lemma13_sparse_flag`.
 The records below carry independent output and resource annotations; this proposition
 does not certify an oracle execution, sampling procedure, or gate decomposition. -/
 def lemma13_sparse_flag_statement (n : ℕ) (A H : Matrix (Fin n) (Fin n) ℂ)
-    (K μ : ℝ) (s d : ℕ)
-    (_hμ : 0 < μ) (_hK : 0 < K) (_hA : OpNormLE A 1)
-    (_hHmin : PSDMinusOne H) (_hHmax : LeScalarIdentity H K)
-    (_hAs : RowSparse A s) (_hHd : RowSparse H d) (_hsd : s ≤ d) : Prop :=
+    (K μ : ℝ) (s d : ℕ) : Prop :=
+  0 < n → A.IsHermitian → OpNormLE A 1 → PSDMinusOne H → LeScalarIdentity H K →
+    0 < K → RowSparse A s → RowSparse H d → s ≤ d → 0 < μ →
     ∃ F : ProbabilityCircuit,
       |F.prob - (Matrix.trace (((1 / (4 * (n : ℝ))) • (1 + A / 2)) * matExp H)).re| ≤ μ ∧
       IsSoftO F.queries ((K : ℝ) * (d : ℝ)) ((n : ℝ) + K + 1 / μ) ∧
@@ -57,7 +86,8 @@ does not certify an oracle execution, sampling procedure, or gate decomposition.
 def cor14_sparse_trace_statement : Prop :=
     ∃ T : TraceEstimationProcedure,
       ∀ {n : ℕ} (A H : Matrix (Fin n) (Fin n) ℂ) (K θ : ℝ) (s d : ℕ),
-        OpNormLE A 1 → OpNormLE H K → 0 < K → RowSparse A s → RowSparse H d → s ≤ d →
+        0 < n → A.IsHermitian → H.IsHermitian → OpNormLE A 1 → OpNormLE H K →
+        0 < K → RowSparse A s → RowSparse H d → s ≤ d →
         0 < θ → θ ≤ 1 →
         |T.estimate A H θ -
             (Matrix.trace (A * matExp H)).re / (Matrix.trace (matExp H)).re| ≤ θ ∧

@@ -560,6 +560,9 @@ class DocsPipelineTests(unittest.TestCase):
             output = Path(directory) / "output"
             for changes, required in ((b"README.md\0CHANGELOG.md\0docs/design.md\0", False),
                                       (b"README.md\0Qatlib/Example.lean\0", True),
+                                      (b"verification/QatlibTests/PublicModuleInterface.lean\0", True),
+                                      (b"verification/QatlibTests/NewConsumer.lean\0", True),
+                                      (b"verification/QatlibTests.lean\0", True),
                                       (b"docbuild/lakefile.toml\0", True),
                                       (b"scripts/docs_cache.py\0", True)):
                 with self.subTest(changes=changes), patch.dict(os.environ, {

@@ -8,6 +8,7 @@ module
 
 public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.FiniteLaws.FiniteInformationDivergence
 public import Qatlib.Concepts.BlockEncoding.Basic
+public import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
 public import Mathlib.Analysis.SpecialFunctions.Gamma.Basic
 public import Mathlib.Analysis.SpecialFunctions.Log.Basic
 public import Mathlib.Analysis.SpecialFunctions.Pow.Real
@@ -37,7 +38,7 @@ This module collects the small amount of paper-local vocabulary shared by the
   by Theorem 2.29 / Corollary 2.28;
 * `IsEigenpair`, `IsUnitVector` and `normedOverlap` — spectral notation.
 
-Everything here is definitional. This paper directory contains no proved main
+The definitions and elementary identities here do not prove a main algorithmic
 upper or lower bound. The legacy algorithm records have unrestricted full-input
 output maps and independent resource annotations. They do not enforce entry-query
 access or certify circuit length, execution time, or query complexity.
@@ -126,8 +127,24 @@ def truncatedGaussianMass (s : ℝ) (L R : ℕ) (x : ℤ) : ℝ :=
 
 /-! ## Spectral notation -/
 
+/-- The ℓ₂ norm of a complex vector, given by the square root of the sum of squared moduli. -/
+def ell2C {d : ℕ} (v : Fin d → ℂ) : ℝ := Real.sqrt (∑ i, ‖v i‖ ^ 2)
+
+open Qatlib.Foundations.PureStateMath Qatlib.Foundations.PureStateMath.BornBridge
+
+/-- The explicit coordinate formula agrees with the Euclidean-space norm. -/
+theorem ell2C_eq_euclidean_norm {d : ℕ} (v : Fin d → ℂ) :
+    ell2C v = ‖toEuclidean_fromVec v‖ := by
+  unfold ell2C
+  rw [← norm_toEuclidean_fromVec_sq, Real.sqrt_sq (norm_nonneg _)]
+
 /-- `v` is a unit vector (`ℓ₂` norm one). -/
-def IsUnitVector {d : ℕ} (v : Fin d → ℂ) : Prop := ‖v‖ = 1
+def IsUnitVector {d : ℕ} (v : Fin d → ℂ) : Prop := ell2C v = 1
+
+/-- A complex unit vector has total Born mass one, and conversely. -/
+theorem isUnitVector_iff_normalized {d : ℕ} (v : Fin d → ℂ) :
+    IsUnitVector v ↔ Normalized v := by
+  rw [IsUnitVector, ell2C_eq_euclidean_norm, normalized_iff_norm_toEuclidean_fromVec]
 
 /-- `v` is an eigenvector of `A` with eigenvalue `lam`. -/
 def IsEigenpair {d : ℕ} (A : Matrix (Fin d) (Fin d) ℂ) (v : Fin d → ℂ) (lam : ℂ) : Prop :=
@@ -137,9 +154,10 @@ def IsEigenpair {d : ℕ} (A : Matrix (Fin d) (Fin d) ℂ) (v : Fin d → ℂ) (
 def normedOverlap {d : ℕ} (v w : Fin d → ℂ) : ℝ :=
   ‖∑ i, star (v i) * w i‖
 
-/-- `w` approximates the unit vector `v` with ℓ₂-error at most `ε`
-(equivalently `|⟨w,v⟩| ≥ 1 - ε²/2`, page 28). -/
-def L2Approximates {d : ℕ} (v w : Fin d → ℂ) (ε : ℝ) : Prop := ‖w - v‖ ≤ ε
+/-- The given representatives `v` and `w` have ℓ₂ distance at most `ε`.
+For unit vectors the minimum squared distance over global phases is `2 - 2 |⟨w,v⟩|`.
+The predicate compares the representatives with their supplied phases. -/
+def L2Approximates {d : ℕ} (v w : Fin d → ℂ) (ε : ℝ) : Prop := ell2C (w - v) ≤ ε
 
 /-! ## Finite probability helpers
 
@@ -298,9 +316,6 @@ def condLaw {Ω : Type*} [Fintype Ω]
 
 /-- The ℓ₂ norm of a real vector. -/
 def ell2 {d : ℕ} (v : Fin d → ℝ) : ℝ := Real.sqrt (∑ i, (v i) ^ 2)
-
-/-- The ℓ₂ norm of a complex vector. -/
-def ell2C {d : ℕ} (v : Fin d → ℂ) : ℝ := Real.sqrt (∑ i, ‖v i‖ ^ 2)
 
 /-- Hamming distance between two sign vectors encoded as Booleans. -/
 def hammingDist {d : ℕ} (u w : Fin d → Bool) : ℕ :=

@@ -63,7 +63,8 @@ jobs:
           python3 - <<'PY'
           import fnmatch, os, subprocess
           # Keep this list aligned with Build's push paths (covered by tests).
-          patterns = ('Qatlib/**', 'Qatlib.lean', 'lakefile.toml', 'lean-toolchain',
+          patterns = ('Qatlib/**', 'Qatlib.lean', 'verification/**',
+                      'lakefile.toml', 'lean-toolchain',
                       'lake-manifest.json', 'lake-cache.toml', 'scripts/*.lean',
                       'scripts/complete_outputs.py', 'scripts/build_docs.sh',
                       'scripts/docs_cache.py', 'scripts/test_docs_pipeline.py',

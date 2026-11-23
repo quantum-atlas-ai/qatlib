@@ -46,14 +46,30 @@ DECLARATION_KINDS = (
     "instance",
     "axiom",
 )
+LEAN_NAME_PART = r"(?:[^\W\d][\w'!?]*|«[^»]+»)"
+LEAN_NAME = rf"{LEAN_NAME_PART}(?:\.{LEAN_NAME_PART})*"
+NAME_PART_RE = re.compile(LEAN_NAME_PART)
 DECLARATION_RE = re.compile(
     r"^\s*(?:(?:@\[[^\]]*\]|(?:private|protected|noncomputable|partial|unsafe|scoped|local|public|meta))\s+)*"
-    r"(?P<kind>theorem|lemma|def|abbrev|structure|inductive|class|opaque|instance|axiom)"
-    r"(?:\s+|\s*:\s*)(?P<name>[A-Za-z_][A-Za-z0-9_'.]*)?"
+    r"(?P<kind>theorem|lemma|def|abbrev|structure|inductive|class|opaque|instance|axiom)\b"
+    rf"(?:\s+(?P<name>{LEAN_NAME}))?"
 )
-IMPORT_RE = re.compile(r"^\s*import\s+([^\s]+)", re.MULTILINE)
-NAMESPACE_RE = re.compile(r"^\s*namespace\s+([A-Za-z_][A-Za-z0-9_.]*)")
-END_NAMESPACE_RE = re.compile(r"^\s*end(?:\s+([A-Za-z_][A-Za-z0-9_.]*))?\s*$")
+HEADER_DIRECTIVE_RE = re.compile(
+    rf"\s*(?:module\b|prelude\b|(?:public\s+)?(?:meta\s+)?import\s+"
+    rf"(?:all\s+)?(?P<imported>{LEAN_NAME}))"
+)
+SCOPE_RE = re.compile(
+    r"^\s*(?:(?:@\[[^\]]*\]|public|noncomputable|meta)\s+)*"
+    rf"(?P<kind>namespace|section|end)\b(?:\s+(?P<name>{LEAN_NAME}))?\s*$"
+)
+SCOPE_NAME_RE = re.compile(rf"\s+({LEAN_NAME})\s*$")
+RAW_STRING_RE = re.compile(r'r(#*)"')
+INTERPOLATED_STRING_START = r'(?<![\w\'!?])(?:[sfm]!|(?:e?print(?:ln)?!)|dbg_trace)\s*"'
+TRIVIA_START = rf'/[-]|--|«|(?<![\w\'!?])r#*"|{INTERPOLATED_STRING_START}|"|(?<![\w\'!?])\''
+SOURCE_TRIVIA_RE = re.compile(TRIVIA_START)
+INTERPOLATION_RE = re.compile(rf"{TRIVIA_START}|[{{}}]")
+BLOCK_DELIMITER_RE = re.compile(r"/-|-/")
+CHAR_LITERAL_RE = re.compile(r"'(?:[^'\\\n]|\\(?:x[0-9A-Fa-f]{2}|u[0-9A-Fa-f]{4}|[^\n]))'")
 SOURCE_HIGHLIGHT_RE = re.compile(
     r"\b(counterexample|refutation|refuted|erratum|errata|corrected|correction|invalid|false|caveat)\b",
     re.IGNORECASE,
@@ -560,6 +576,92 @@ def _module_doc(text: str) -> tuple[str, str, str]:
     return title, summary, highlights
 
 
+def _trivia_end(text: str, marker: re.Match[str]) -> int:
+    start, pos = marker.span()
+    token = marker.group()
+    if token == "/-":
+        depth = 1
+        while depth:
+            delimiter = BLOCK_DELIMITER_RE.search(text, pos)
+            if delimiter is None:
+                return len(text)
+            depth += 1 if delimiter.group() == "/-" else -1
+            pos = delimiter.end()
+        return pos
+    if token == "--":
+        end = text.find("\n", pos)
+        return len(text) if end < 0 else end
+    if token == "«":
+        closing = "»"
+    elif raw := RAW_STRING_RE.fullmatch(token):
+        closing = '"' + raw.group(1)
+    elif token.endswith('"'):
+        return _string_end(text, pos, interpolated=(token != '"'))
+    else:
+        char = CHAR_LITERAL_RE.match(text, start)
+        return char.end() if char else pos
+    end = text.find(closing, pos)
+    return len(text) if end < 0 else end + len(closing)
+
+
+def _string_end(text: str, pos: int, *, interpolated: bool) -> int:
+    while pos < len(text):
+        char = text[pos]
+        pos += 1
+        if char == '"':
+            return pos
+        if char == "\\":
+            pos += 1
+        elif interpolated and char == "{":
+            # An interpolated term may contain nested braces, strings and comments.
+            depth = 1
+            while depth and (marker := INTERPOLATION_RE.search(text, pos)):
+                token = marker.group()
+                if token in ("{", "}"):
+                    depth += 1 if token == "{" else -1
+                    pos = marker.end()
+                else:
+                    pos = _trivia_end(text, marker)
+            if depth:
+                return len(text)
+    return len(text)
+
+
+def _source_code(text: str) -> tuple[str, dict[int, str]]:
+    """Mask Lean comments and literals while retaining source offsets and docstrings."""
+    code = list(text)
+    docs: dict[int, str] = {}
+    pos = line = 0
+    while pos < len(text):
+        marker = SOURCE_TRIVIA_RE.search(text, pos)
+        if marker is None:
+            break
+        line += text[pos:marker.start()].count("\n")
+        start = marker.start()
+        pos = _trivia_end(text, marker)
+        line += text[start:pos].count("\n")
+        # A quoted identifier and a prime in an ordinary identifier are code.
+        if marker.group() == "«" or (marker.group() == "'" and pos == marker.end()):
+            continue
+        if text.startswith("/--", start):
+            docs[line] = text[start + 3:pos - 2].strip()
+        for index in range(start, pos):
+            if code[index] not in "\r\n":
+                code[index] = " "
+    return "".join(code), docs
+
+
+def _header_imports(code: str) -> list[str]:
+    """Read the leading header, including Lean 4.35 public/meta/all modifiers."""
+    imports: list[str] = []
+    pos = 0
+    while match := HEADER_DIRECTIVE_RE.match(code, pos):
+        if imported := match.group("imported"):
+            imports.append(imported)
+        pos = match.end()
+    return sorted(set(imports))
+
+
 def _parse_source_file(job: tuple[Path, Path]) -> dict[str, Any]:
     """Worker-process parser for one public Lean source file."""
     path, repo_root = job
@@ -573,7 +675,8 @@ def _parse_source_file(job: tuple[Path, Path]) -> dict[str, Any]:
     block = after_unit[0] if len(after_unit) > 1 else "(root)"
     module_name = Path(rel).with_suffix("").as_posix().replace("/", ".")
     title, summary, module_highlights = _module_doc(text)
-    imports = sorted(set(m.group(1) for m in IMPORT_RE.finditer(text)))
+    code, docstrings = _source_code(text)
+    imports = _header_imports(code)
     layer_imports: dict[str, list[str]] = {name: [] for name in PANEL_LAYERS}
     for imported in imports:
         for imported_layer in PANEL_LAYERS:
@@ -583,32 +686,48 @@ def _parse_source_file(job: tuple[Path, Path]) -> dict[str, Any]:
     citations = sorted(set(BRACKET_KEY_RE.findall(text)))
 
     declarations: list[dict[str, Any]] = []
-    namespace_stack: list[str] = []
+    # Lean creates one scope per dotted name component. Sections affect the
+    # scope stack but do not contribute components to declaration namespaces.
+    scopes: list[tuple[str, bool]] = []
     pending_doc = ""
-    lines = text.splitlines()
+    code_lines = code.removesuffix("\n").split("\n") if code else []
     line_no = 0
-    while line_no < len(lines):
-        raw = lines[line_no]
+    while line_no < len(code_lines):
+        raw = code_lines[line_no]
         stripped = raw.strip()
-        if stripped.startswith("/--"):
-            remainder = "\n".join(lines[line_no:])
-            doc_match = re.match(r"/--([\s\S]*?)-/", remainder)
-            if doc_match:
-                pending_doc = doc_match.group(1).strip()
-                line_no += remainder[: doc_match.end()].count("\n") + 1
-                continue
-        if not stripped or stripped.startswith("--"):
+        if line_no in docstrings:
+            pending_doc = docstrings[line_no]
+        if not stripped:
             line_no += 1
             continue
-        namespace_match = NAMESPACE_RE.match(raw)
-        if namespace_match:
-            namespace_stack.extend(namespace_match.group(1).split("."))
+        scope_match = SCOPE_RE.match(raw)
+        if scope_match:
+            kind = scope_match.group("kind")
+            name = scope_match.group("name")
+            next_line = line_no + 1
+            if name is None:
+                while next_line < len(code_lines) and not code_lines[next_line].strip():
+                    next_line += 1
+                if next_line < len(code_lines):
+                    continuation = code_lines[next_line]
+                    suffix = SCOPE_NAME_RE.fullmatch(continuation)
+                    if suffix and suffix.start(1) > len(raw) - len(raw.lstrip()):
+                        candidate = suffix.group(1)
+                        parts = NAME_PART_RE.findall(candidate)
+                        if kind != "end" or parts == [part for part, _ in scopes[-len(parts):]]:
+                            name = candidate
+                            line_no = next_line
+            parts = NAME_PART_RE.findall(name or "") or [""]
+            if kind == "end":
+                if parts == [part for part, _ in scopes[-len(parts):]]:
+                    del scopes[-len(parts):]
+            else:
+                scopes.extend((part, kind == "namespace") for part in parts)
             pending_doc = ""
             line_no += 1
             continue
-        if END_NAMESPACE_RE.match(raw):
-            if namespace_stack:
-                namespace_stack.pop()
+        if stripped == "mutual":
+            scopes.append(("", False))
             pending_doc = ""
             line_no += 1
             continue
@@ -618,8 +737,8 @@ def _parse_source_file(job: tuple[Path, Path]) -> dict[str, Any]:
             name = declaration_match.group("name") or f"anonymous_{line_no + 1}"
             if kind == "instance" and re.match(r"^\s*instance\s*:", raw):
                 name = f"anonymous_{line_no + 1}"
-            prefix = namespace_stack or module_name.split(".")[:-1]
-            fqn = ".".join([*prefix, name])
+            prefix = [part for part, is_namespace in scopes if is_namespace]
+            fqn = name[7:] if name.startswith("_root_.") else ".".join([*prefix, name])
             highlight_text = f"{pending_doc} {raw}"
             highlights = sorted(
                 set(m.group(1).lower() for m in SOURCE_HIGHLIGHT_RE.finditer(highlight_text))
@@ -650,7 +769,7 @@ def _parse_source_file(job: tuple[Path, Path]) -> dict[str, Any]:
         "module": module_name,
         "title": title,
         "summary": summary,
-        "loc": len(lines),
+        "loc": len(code_lines),
         "imports": imports,
         "layer_imports": {key: sorted(set(value)) for key, value in layer_imports.items()},
         "citations": citations,
@@ -1371,9 +1490,18 @@ def process_markdown_guide(
     lang: str,
     root_prefix: str,
     strip_h1: bool = True,
+    *,
+    section_id: str | None = None,
 ) -> tuple[str, str, list[dict[str, Any]]]:
-    """Render a repo Markdown file into enhanced HTML + extract (title, html, toc)."""
+    """Render a Markdown guide or one explicitly anchored H2 section."""
     raw = md_path.read_text(encoding="utf-8")
+    if section_id is not None:
+        section = re.search(
+            rf'^## <a id="{re.escape(section_id)}"></a>[^\n]*\n.*?(?=^## |\Z)',
+            raw,
+            re.MULTILINE | re.DOTALL,
+        )
+        raw = section.group() if section else ""
     lines = raw.splitlines()
     # The root README uses the vector wordmark as its visual title. Keep a
     # stable page title if this renderer is ever pointed at either README
@@ -1469,7 +1597,7 @@ def process_markdown_guide(
 
 
 def parse_readme_areas_and_bibtex(readme_path: Path) -> tuple[list[dict[str, Any]], str]:
-    """Extract the 8 thematic research areas table and BibTeX snippet directly from README."""
+    """Extract the thematic research areas table and BibTeX snippet directly from README."""
     raw = readme_path.read_text(encoding="utf-8")
     areas: list[dict[str, Any]] = []
 
@@ -2119,6 +2247,7 @@ a:hover { color: var(--brand-hover); }
   border-bottom: 1px solid var(--border);
   font-size: 21px;
 }
+.prose > h2:first-child { margin-top: 0; }
 .prose h3 { margin: 24px 0 10px; font-size: 17px; }
 .prose p, .prose ul, .prose ol { margin: 0 0 16px; }
 .prose ul, .prose ol { padding-left: 22px; }
@@ -3121,6 +3250,7 @@ def build_home_body(
     bib_count: int,
     areas: list[dict[str, Any]],
     bibtex_str: str,
+    qec_html: str,
 ) -> str:
     page_prefix = f"{root_prefix}zh/" if lang == "zh" else root_prefix
     docs_prefix = f"{root_prefix}docs/"
@@ -3201,7 +3331,7 @@ def build_home_body(
             ),
         ]
         sec_area_eye = "Thematic Coverage"
-        sec_area_h2 = "Eight Interconnected Research Areas"
+        sec_area_h2 = "Research Areas"
         sec_area_p = "Click any representative directory below to inspect its Lean modules and jump directly into doc-gen4 API documentation."
         sec_cite_eye = "Citation & Open Source"
         sec_cite_h2 = "Citing Qatlib"
@@ -3260,7 +3390,7 @@ def build_home_body(
             ),
         ]
         sec_area_eye = "研究主题导航"
-        sec_area_h2 = "八大交叉研究领域"
+        sec_area_h2 = "研究领域"
         sec_area_p = "点击下方任意代表性子目录标签，即可查看该目录包含的模块列表并直达 doc-gen4 API 文档。"
         sec_cite_eye = "引用与开源协议"
         sec_cite_h2 = "引用 Qatlib"
@@ -3295,6 +3425,11 @@ def build_home_body(
             f'<p class="area-topics">{html.escape(area["topics"])}</p>'
             f'<div class="chip-list">{chips}</div></div>'
         )
+    qec_section = (
+        '<section class="section" aria-labelledby="quantum-error-correction">'
+        f'<div class="prose">{qec_html}</div></section>'
+        if qec_html else ""
+    )
 
     return f"""
   <section class="hero">
@@ -3359,6 +3494,8 @@ def build_home_body(
   </section>
 
   {build_catalog_kpi_panel(lang=lang, tree_stats=tree_stats)}
+
+  {qec_section}
 
   <section class="section">
     <div class="section-header">
@@ -3942,10 +4079,12 @@ def create_stub_docgen_dir(docs_out: Path, toolchain_tag: str, tree_stats: dict[
             f"</body></html>",
             encoding="utf-8",
         )
-    # Also write stub entry pages for featured modules so --check validates 100% of links locally
+    # Match directory indices and guide links, which can target any source module.
     for d in tree_stats["dirs"]:
-        for m in d["featured_mods"]:
-            p = docs_out / m["html_path"]
+        for lean_no_ext in d["all_lean_rel"]:
+            html_path = f"{lean_no_ext}.html"
+            label = html.escape(lean_no_ext.replace("/", "."))
+            p = docs_out / html_path
             p.parent.mkdir(parents=True, exist_ok=True)
             rel_assets = os.path.relpath(docs_out.parent / "assets/style.css", p.parent).replace("\\", "/")
             rel_theme = os.path.relpath(docs_out.parent / "assets/theme-init.js", p.parent).replace("\\", "/")
@@ -3954,10 +4093,10 @@ def create_stub_docgen_dir(docs_out: Path, toolchain_tag: str, tree_stats: dict[
                 f'<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">'
                 f'<link rel="stylesheet" href="{rel_assets}">'
                 f'<script src="{rel_theme}"></script>'
-                f'<title>{html.escape(m["label"])}</title></head>'
+                f'<title>{label}</title></head>'
                 f'<body style="padding:36px 24px;max-width:880px;margin:0 auto;">'
                 f'<p><a href="{rel_home}">← Back to Qatlib Portal</a></p>'
-                f"<h1><code>{html.escape(m['label'])}</code></h1>{render_stub_note(m['html_path'])}</body></html>",
+                f"<h1><code>{label}</code></h1>{render_stub_note(html_path)}</body></html>",
                 encoding="utf-8",
             )
     _generate_docgen_dir_indexes(docs_out, tree_stats)
@@ -4126,8 +4265,10 @@ def build_site(
         tree_stats["layers"][layer]["module_count"] = catalog["layers"][layer]["module_count"]
         tree_stats["layers"][layer]["dir_count"] = catalog["layers"][layer]["dir_count"]
 
-    areas_en, bibtex_en = parse_readme_areas_and_bibtex(repo_root / "README.en.md")
-    areas_zh, bibtex_zh = parse_readme_areas_and_bibtex(repo_root / "README.md")
+    readme_en = repo_root / "README.en.md"
+    readme_zh = repo_root / "README.md"
+    areas_en, bibtex_en = parse_readme_areas_and_bibtex(readme_en)
+    areas_zh, bibtex_zh = parse_readme_areas_and_bibtex(readme_zh)
 
     _reset_output_dir(out_dir)
     (out_dir / "assets").mkdir(parents=True, exist_ok=True)
@@ -4142,11 +4283,14 @@ def build_site(
             shutil.copy2(wm_src, out_dir / "assets" / wm_asset)
 
     # Assemble English (/) and Chinese (/zh/) pages
-    for lang, root_prefix, sub_dir, areas, bibtex_str in [
-        ("en", "./", out_dir, areas_en, bibtex_en),
-        ("zh", "../", out_dir / "zh", areas_zh, bibtex_zh or bibtex_en),
+    for lang, root_prefix, sub_dir, readme, areas, bibtex_str in [
+        ("en", "./", out_dir, readme_en, areas_en, bibtex_en),
+        ("zh", "../", out_dir / "zh", readme_zh, areas_zh, bibtex_zh or bibtex_en),
     ]:
         # 1. Overview (index.html)
+        _, qec_html, _ = process_markdown_guide(
+            readme, repo_root, lang, root_prefix, section_id="quantum-error-correction",
+        )
         home_body = build_home_body(
             lang=lang,
             root_prefix=root_prefix,
@@ -4156,6 +4300,7 @@ def build_site(
             bib_count=len(bib_entries),
             areas=areas,
             bibtex_str=bibtex_str,
+            qec_html=qec_html,
         )
         (sub_dir / "index.html").write_text(
             render_page_shell(

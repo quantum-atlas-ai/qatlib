@@ -375,9 +375,11 @@ theorem gadget_bound {κX κZ : Type*} (c : CssData (Fin n) κX κZ)
   rw [pauliWeight_zero_right]
   exact (fault_weight gs flip hloc F).trans hF
 
-/-- For a Z-check round on clean input, a decoder whose syndrome tolerance covers the
-propagated discrepancy leaves a stabilizer residual after the actual measured outcome. -/
-theorem fault_decode (c : CssData (Fin n) (Fin 0) (Fin m)) (gs : List (ParityGate n m))
+/-- For a Z-check extraction round on clean input, a decoder whose syndrome tolerance covers
+the propagated discrepancy leaves a stabilizer residual. The propagated data error is a pure
+X label, so its X-check syndrome is zero for every X-check matrix, including a nontrivial one. -/
+theorem fault_decode {κX : Type*} [Fintype κX] [DecidableEq κX]
+    (c : CssData (Fin n) κX (Fin m)) (gs : List (ParityGate n m))
     (hz : circuitCheck gs = c.hZ) (flip : Fin gs.length → Joint n m)
     (hloc : ∀ i, bitWeight (flip i).1 ≤ 1) (F : Finset (Fin gs.length))
     {t s : ℕ} (hF : F.card ≤ t) (prog : RecoveryProgram c)
@@ -392,7 +394,7 @@ theorem fault_decode (c : CssData (Fin n) (Fin 0) (Fin m)) (gs : List (ParityGat
   · change bitWeight (c.hX *ᵥ (0 : Bits n) + 0) +
       bitWeight (c.hZ *ᵥ (faultRun gs (faultsAt gs flip F) 0).1 +
         (faultRun gs (faultsAt gs flip F) 0).2) ≤ s
-    have hzero : bitWeight (0 : Bits 0) = 0 := by simp [bitWeight]
+    have hzero : bitWeight (0 : κX → ZMod 2) = 0 := by simp [bitWeight]
     rw [Matrix.mulVec_zero, add_zero, hzero, zero_add, ← hz]
     exact hobs
 

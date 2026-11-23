@@ -23,9 +23,9 @@ setting is described in [VanDamEtAl2007].
 
 ## Main statements
 
-* `source_holevo_cost_optimal`: For nonempty index size, nonnegative cost coefficients, positive
-  amplitudes, and kernel entries bounded in absolute value by one, the constant-one kernel
-  minimizes `sourceHolevoCost` and has the stated coefficient-sum value.
+* `source_holevo_cost_optimal`: For nonempty index size, nonnegative positive-frequency
+  coefficients, positive amplitudes, and kernel entries bounded in absolute value by one,
+  the constant-one kernel minimizes `sourceHolevoCost` and has the stated coefficient-sum value.
 * `source_holevo_term_equality`: For positive `ψ`, nonzero `c`, and `|χ| ≤ 1`, the term `c * ψ *
   χ * ψ` is at most `|c| * ψ ^ 2`, with equality exactly when `χ` has the sign of `c`.
 
@@ -55,12 +55,12 @@ noncomputable def sourceHolevoCost {q : ℕ} (c : ℕ → ℝ) (ψ : Fin q → �
 /-- The real kernel whose entries are all one. -/
 def sourceUnitChi {q : ℕ} : Fin q → Fin q → ℝ := fun _ _ => 1
 
-/-- For nonempty index size, nonnegative cost coefficients, positive amplitudes, and kernel
-entries bounded in absolute value by one, the constant-one kernel minimizes
+/-- If the positive-frequency coefficients are nonnegative, the amplitudes are positive, and the
+kernel entries have absolute value at most one, the constant-one kernel minimizes
 `sourceHolevoCost` and has the stated coefficient-sum value. See [van Dam et al.,
-2007][VanDamEtAl2007]. -/
+2007][VanDamEtAl2007]. The constant coefficient `c 0` is arbitrary. -/
 theorem source_holevo_cost_optimal {q : ℕ} (_hq : 1 ≤ q) (c : ℕ → ℝ)
-    (hc : ∀ l, 0 ≤ c l) (ψ : Fin q → ℝ) (hψ : ∀ k, 0 < ψ k)
+    (hc : ∀ l, 1 ≤ l → 0 ≤ c l) (ψ : Fin q → ℝ) (hψ : ∀ k, 0 < ψ k)
     (χ : Fin q → Fin q → ℝ) (hχ : ∀ h k, |χ h k| ≤ 1) :
     sourceHolevoCost c ψ χ ≥ sourceHolevoCost c ψ sourceUnitChi ∧
     sourceHolevoCost c ψ sourceUnitChi
@@ -72,8 +72,8 @@ theorem source_holevo_cost_optimal {q : ℕ} (_hq : 1 ≤ q) (c : ℕ → ℝ)
         (if sourceDist h k = l then ψ h * χ h k * ψ k else 0))
       ≤ c l * (∑ h : Fin q, ∑ k : Fin q,
         (if sourceDist h k = l then ψ h * ψ k else 0)) := by
-    intro l _
-    apply mul_le_mul_of_nonneg_left _ (hc l)
+    intro l hl
+    apply mul_le_mul_of_nonneg_left _ (hc l (Finset.mem_Icc.mp hl).1)
     apply Finset.sum_le_sum
     intro h _
     apply Finset.sum_le_sum
@@ -101,8 +101,8 @@ theorem source_holevo_cost_optimal {q : ℕ} (_hq : 1 ≤ q) (c : ℕ → ℝ)
         = (∑ l ∈ Finset.Icc 1 (q - 1), |c l| *
           ∑ h : Fin q, ∑ k : Fin q, (if sourceDist h k = l then ψ h * ψ k else 0)) by
       apply Finset.sum_congr rfl
-      intro l _
-      rw [abs_of_nonneg (hc l)]]
+      intro l hl
+      rw [abs_of_nonneg (hc l (Finset.mem_Icc.mp hl).1)]]
 
 /-- For positive `ψ`, nonzero `c`, and `|χ| ≤ 1`, the term `c * ψ * χ * ψ` is at most `|c| * ψ ^
 2`, with equality exactly when `χ` has the sign of `c`. See [van Dam et al.,
