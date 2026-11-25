@@ -34,12 +34,15 @@ import tarfile
 import tempfile
 import tomllib
 
+from build_site import DEPENDENCY_GRAPH_ASSET, PANEL_LAYERS, read_lean_toolchain
+
 REPO = "quantum-atlas-ai/qatlib"
 CDN = "https://lake-cache.quantum-atlas.ai"
 FORMAT = "docs-v1-disable-equations"
 INPUTS = ("Qatlib", "Qatlib.lean", "lakefile.toml", "lake-manifest.json",
           "lean-toolchain", "docbuild/lakefile.toml", "docbuild/lake-manifest.json",
-          "docs/references.bib", "scripts/docs_cache.py", "scripts/build_docs.sh")
+          "docs/references.bib", "scripts/docs_cache.py", "scripts/build_docs.sh",
+          "scripts/build_dependency_graph.py", "scripts/export_theorem_dependencies.lean")
 BUILD = Path("docbuild/.lake/build")
 TRASH_BATCH_SIZE = 128
 
@@ -64,12 +67,13 @@ def digest(path: Path) -> str:
 
 def identity() -> tuple[str, str, str]:
     tree = subprocess.check_output(["git", "ls-files", "-s", "--", *INPUTS])
-    fingerprint = hashlib.sha256(FORMAT.encode() + tree).hexdigest()
+    graph_settings = json.dumps([DEPENDENCY_GRAPH_ASSET, PANEL_LAYERS]).encode()
+    fingerprint = hashlib.sha256(FORMAT.encode() + graph_settings + tree).hexdigest()
     lock = hashlib.sha256(FORMAT.encode())
     for name in ("lean-toolchain", "lake-manifest.json", "docbuild/lakefile.toml",
                  "docbuild/lake-manifest.json"):
         lock.update(Path(name).read_bytes())
-    tc = Path("lean-toolchain").read_text().strip().replace("/", "--").replace(":", "---")
+    tc = read_lean_toolchain(Path(".")).replace("/", "--").replace(":", "---")
     return f"docs/{REPO}/tc/{tc}", fingerprint, lock.hexdigest()
 
 
@@ -187,8 +191,7 @@ def restore(kind: str) -> bool:
         extract(tmp / "snapshot.tar.gz", tmp / "unpacked")
         unpacked = tmp / "unpacked"
         if kind == "html":
-            from build_site import verify_docgen
-            errors = verify_docgen(Path.cwd(), unpacked / "doc")
+            errors = verify_html_files(unpacked / "doc")
             if errors:
                 raise RuntimeError("Incomplete HTML snapshot: " + "; ".join(errors[:5]))
             trash(BUILD / "doc")
@@ -280,10 +283,18 @@ def normalize_analysis(connection: sqlite3.Connection) -> None:
     checkpoint(connection)
 
 
+def verify_html_files(doc: Path) -> list[str]:
+    from build_site import verify_docgen
+    errors = verify_docgen(Path.cwd(), doc)
+    graph = doc / DEPENDENCY_GRAPH_ASSET
+    if not graph.is_file() or graph.stat().st_size == 0:
+        errors.append(f"missing or empty API output: {DEPENDENCY_GRAPH_ASSET}")
+    return errors
+
+
 def verify_html() -> None:
     """Validate complete, public HTML even when no R2 publication is requested."""
-    from build_site import verify_docgen
-    errors = verify_docgen(Path.cwd(), BUILD / "doc")
+    errors = verify_html_files(BUILD / "doc")
     if errors:
         raise RuntimeError("Incomplete doc-gen4 output: " + "; ".join(errors[:5]))
     verify_public([BUILD / "doc"])

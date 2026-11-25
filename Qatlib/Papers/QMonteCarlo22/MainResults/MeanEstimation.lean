@@ -13,17 +13,17 @@ public import Qatlib.Concepts.MonteCarloMean.FinDistBounds.Estimator
 /-!
 # Finite mean estimation with median amplification
 
-This module gives a finite, source-faithful model for the mean-estimation setting of
-[Montanaro2015] and QMonteCarlo22, Theorems 1.1 and 1.3.  A `FinDist` is an explicit
-probability law on a finite outcome type, `avg` is the arithmetic mean of a non-empty
-independent sample record, and `medianOfMeans` is the sorted median of eight independent
-blocks.  The theorem below records the exact constant obtained from the finite Chebyshev
-bound and the median amplification argument.
+This module proves a classical finite-distribution median-of-means baseline for
+comparison with quantum mean estimation [Montanaro2015] and
+[Kothari and O'Donnell](https://arxiv.org/abs/2208.07544v1). A `FinDist` is a law on a finite outcome type, and
+`medianOfMeans` combines eight independent blocks, each containing `L > 0` independent draws.
+For `ε > 0`, the variance condition `4 * Var(f) ≤ L * ε²` gives a failure-mass
+bound of `81 / 256` using `8 * L` ordinary samples.
 
-The statement is deliberately about the finite probability model represented by
-`FinDist`.  It does not claim that a source-code oracle or a quantum circuit has been
-constructed.  Those access and implementation bridges remain separate obligations of
-the paper formalisation.
+This guarantee uses a classical sampling model. It does not implement the
+coherent access to the code or the quantum sample complexity of Theorem 1.1,
+nor the promise distinguisher of Theorem 1.3.
+
 -/
 
 set_option autoImplicit false
@@ -35,7 +35,7 @@ namespace Qatlib.Papers.QMonteCarlo22.MainResults
 
 open Qatlib.Concepts.MonteCarloMean.FinDistBounds
 
-/-- **QMonteCarlo22, Theorem 1.1 model.**
+/-- **Finite classical median-of-means baseline.**
 
 For a finite distribution and a real payoff, eight independent blocks of any positive
 length have a median-of-means failure probability at most `1/3` whenever the block

@@ -110,8 +110,16 @@ jobs:
           "$RUNNER_TEMP/docs-tests-venv/bin/pip" install --quiet trash-cli==0.24.5.26
           echo "$RUNNER_TEMP/docs-tests-venv/bin" >> "$GITHUB_PATH"
 
-      - name: Check documentation snapshot regressions
+      - name: Set up Node.js for the dependency explorer tests
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Check documentation snapshot and dependency explorer regressions
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
         run: |
           python3 scripts/test_docs_pipeline.py
           python3 scripts/test_site_typography.py
           python3 scripts/test_site_source.py
+          env -u ELAN_TOOLCHAIN python3 scripts/test_dependency_graph.py

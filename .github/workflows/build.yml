@@ -9,6 +9,7 @@ on:
       - 'Qatlib.lean'
       - 'verification/**'
       - 'lakefile.toml'
+      - 'lakefile.lean'
       - 'lean-toolchain'
       - 'lake-manifest.json'
       - 'lake-cache.toml'
@@ -54,9 +55,11 @@ jobs:
         run: |
           python3 - <<'PY'
           import fnmatch, os, subprocess
+          if os.path.lexists('lakefile.lean'):
+              raise SystemExit('::error file=lakefile.lean::Root lakefile.lean is unsupported. Use lakefile.toml instead.')
           # Keep aligned with push paths and Docs routing (covered by tests).
           patterns = ('Qatlib/**', 'Qatlib.lean', 'verification/**',
-                      'lakefile.toml', 'lean-toolchain',
+                      'lakefile.toml', 'lakefile.lean', 'lean-toolchain',
                       'lake-manifest.json', 'lake-cache.toml', 'scripts/*.lean',
                       'scripts/complete_outputs.py', 'scripts/build_docs.sh',
                       'scripts/docs_cache.py', 'scripts/test_docs_pipeline.py',
@@ -64,9 +67,14 @@ jobs:
                       '.github/workflows/build.yml', '.github/workflows/publish-cache.yml')
           build = True
           if os.environ['EVENT_NAME'] == 'pull_request':
-              changed = subprocess.check_output([
-                  'git', 'diff', '--name-only', '-z', os.environ['BASE_SHA'] + '...HEAD'
-              ]).decode().split('\0')
+              fields = iter(os.fsdecode(subprocess.check_output([
+                  'git', 'diff', '--name-status', '--find-renames', '-z', os.environ['BASE_SHA'] + '...HEAD'
+              ])).split('\0')[:-1])
+              changed = []
+              for status in fields:
+                  changed.append(next(fields))
+                  if status.startswith(('R', 'C')):
+                      changed.append(next(fields))
               build = any(fnmatch.fnmatchcase(p, glob) for p in changed for glob in patterns)
           with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
               output.write(f'build={str(build).lower()}\n')

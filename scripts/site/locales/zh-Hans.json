@@ -1,0 +1,258 @@
+{
+  "ui": {
+    "site_tagline": "面向量子计算与量子信息的 Lean 4 形式化库",
+    "nav_overview": "首页",
+    "nav_getting_started": "快速开始",
+    "nav_architecture": "库架构",
+    "nav_modules": "模块导览",
+    "nav_papers": "文献索引",
+    "nav_graph": "定理依赖",
+    "nav_contributing": "参与贡献",
+    "nav_changelog": "更新日志",
+    "nav_api": "API 文档 ↗",
+    "search_placeholder": "搜索 API 声明…",
+    "brand_home_label": "Qatlib 首页",
+    "theme_toggle_label": "切换浅色/深色主题",
+    "theme_light": "切换为浅色模式",
+    "theme_dark": "切换为深色模式",
+    "github_title": "GitHub 代码仓库",
+    "menu_label": "导航菜单",
+    "language_label": "语言：{name}",
+    "back_to_top_label": "回到顶部",
+    "guides_heading": "文档导航",
+    "api_group_heading": "API 参考文档",
+    "toc_heading": "本页目录",
+    "edit_on_github": "在 GitHub 查看源码 ↗",
+    "footer_api": "API 文档 (doc-gen4)",
+    "footer_refs": "API 文献页",
+    "footer_note": "构建于 Lean 4、Mathlib 与 Physlib 之上。",
+    "footer_license": "采用 Apache-2.0 开源协议发布。",
+    "footer_nav": "页脚导航",
+    "footer_guides": "使用指南",
+    "footer_research": "研究与参考",
+    "footer_project": "项目与贡献",
+    "copy": "复制",
+    "skip_to_content": "跳至正文",
+    "primary_nav": "主导航",
+    "architecture_tooling": "3. 开发与内核审计可执行工具 (scripts/)",
+    "not_found": "页面未找到",
+    "api_links": [
+      "API 文档主页 ↗",
+      "Qatlib 总入口模块 ↗",
+      "API 文献引用页 ↗",
+      "证明策略索引 ↗"
+    ]
+  },
+  "descriptions": {
+    "index.html": "面向量子计算与量子信息的 Lean 4 形式化库",
+    "getting-started.html": "安装 Lean 工具链，将 Qatlib 加入项目，并复用预构建产物。",
+    "architecture.html": "了解 Qatlib 如何组织数学基础、可复用的概念和形式化论文成果。",
+    "modules.html": "按层级和研究方向浏览 Qatlib 的 Lean 模块及其源码。",
+    "papers.html": "浏览 Qatlib 的参考文献，并查找对应论文结果的 Lean 形式化模块。",
+    "contributing.html": "查看 Qatlib 的贡献流程、开发约定和验证要求。",
+    "changelog.html": "查看 Qatlib 的发布记录以及库、文档和工具的更新。",
+    "units": "查看 Qatlib 模块目录中的 {title}，包括 Lean 声明、源码和依赖。",
+    "papers": "查看 Qatlib 文献索引中的 {title}、引用信息和相关 Lean 形式化结果。"
+  },
+  "unit": {
+    "heading": "Unit · {id}",
+    "back_label": "返回模块导览",
+    "level_label": "层级",
+    "loc_label": "代码行",
+    "module_label": "模块",
+    "depends_label": "依赖 Unit",
+    "imports_label": "跨层导入",
+    "block_label": "Block",
+    "no_decl": "此 Block 尚未发现 Lean 声明。",
+    "catalog": "目录 / Unit",
+    "no_blocks": "此 Unit 尚未登记 Block。",
+    "columns": [
+      "类型",
+      "声明",
+      "源码",
+      "摘要"
+    ],
+    "module_stats": "{loc:,} 行代码 · {declarations} 条声明",
+    "imports": "导入",
+    "boundary": "边界",
+    "block_summary": "{label} · {id} · {declarations} 条声明"
+  },
+  "coverage": {
+    "heading": "论文四维覆盖",
+    "dimensions": [
+      "数学",
+      "渐近",
+      "线路",
+      "资源"
+    ],
+    "columns": [
+      "维度",
+      "覆盖等级",
+      "目标",
+      "原文定位",
+      "Lean 证据",
+      "边界与说明"
+    ],
+    "unknown": "待评估",
+    "unnamed": "原文未编号主张"
+  },
+  "paper": {
+    "back_label": "返回文献索引",
+    "claim_heading": "Claim 与保真度",
+    "source_heading": "形式化源码",
+    "no_claims": "公共源码视图没有结构化 Claim 元数据。",
+    "title": "文献 · {id}",
+    "explorer": "文献 / 声明导览",
+    "columns": [
+      "覆盖声明",
+      "保真度",
+      "证据说明"
+    ],
+    "no_evidence": "尚无覆盖证据。",
+    "no_binds": "尚未关联 Unit",
+    "references_heading": "参考与引用",
+    "references": "参考文献",
+    "cited_by": "引用文献"
+  },
+  "graph": {
+    "title": "定理依赖星图",
+    "labels": [
+      "基础",
+      "概念",
+      "论文"
+    ],
+    "loading": "正在绘制定理星图…",
+    "browse": "浏览目录",
+    "inspect": "查看详情",
+    "search": "搜索定理",
+    "filter_label": "筛选当前层级",
+    "layers": "所属层级",
+    "canvas_name": "定理依赖星图。可通过浏览栏和详情栏用键盘选择节点。",
+    "mode_label": "星图视角",
+    "toolbar_label": "星图操作",
+    "view2d": "二维星云",
+    "view3d": "三维分层星阵",
+    "toolbar": [
+      "放大",
+      "缩小",
+      "居中适应",
+      "回到全库视图",
+      "全屏"
+    ],
+    "strings": {
+      "totals": "{nodes} 条定理 · {edges} 条直接依赖",
+      "layerTotal": "{nodes} 条定理",
+      "upstream": "直接依赖",
+      "downstream": "被引用处",
+      "api": "查看 API 文档 ↗",
+      "backToGroup": "返回所在分组",
+      "clear": "清除",
+      "close": "收起",
+      "previous": "上一页",
+      "next": "下一页",
+      "none": "暂无库内直接关联定理。",
+      "noMatches": "没有搜索结果。",
+      "missing": "当前星图中未找到该定理。",
+      "unavailable": "无法加载定理依赖星图。",
+      "fullscreenUnavailable": "当前浏览器无法进入全屏。",
+      "hint2d": "拖动平移 · 滚轮缩放 · 点击星点查看依赖",
+      "hint3d": "拖动旋转 · 滚轮缩放 · 点击星点查看依赖"
+    },
+    "description": "探索 Qatlib 定理之间的直接依赖与引用关系。",
+    "api_link": "定理依赖"
+  },
+  "home": {
+    "eyebrow": "Lean 4 内核级验证 · 零 sorryAx · 仅依赖标准公理",
+    "h1": "面向量子计算与量子信息的 Lean 4 形式化库",
+    "lead": "Qatlib 构建于 mathlib4 与 Physlib 之上，涵盖数学基础、可复用的算法原语，以及文献中的定理与资源复杂度界。",
+    "cta_start": "快速开始",
+    "cta_graph": "定理依赖图",
+    "cta_api": "API 参考文档 (doc-gen4)",
+    "cta_mods": "模块导览",
+    "cta_papers": "文献索引 ({count})",
+    "cta_nav": "首页主要入口",
+    "resources_nav": "更多文档资源",
+    "tab1": "作为下游依赖引入",
+    "tab2": "克隆与构建",
+    "cap1": "在 lakefile.toml（工具链 {toolchain}）中添加依赖，一键拉取三层预编译缓存：",
+    "cap2": "无需从零编译全库，拉取 Mathlib + Physlib + Qatlib 缓存后按需增量构建：",
+    "metrics": [
+      "Lean 4 形式化模块",
+      "形式化论文目录",
+      "权威文献条目",
+      "sorryAx / 自定义公理",
+      "锁定工具链基线"
+    ],
+    "sec_arch_eye": "三层单向架构",
+    "sec_arch_h2": "严格单向依赖：Foundations ← Concepts ← Papers",
+    "sec_arch_p": "由 lake lint 秒级静态校验分层与导入规范，并由 lake test 调用 Lean 4 内核验证全库公理闭包。",
+    "layer_cards": {
+      "foundations": {
+        "count": "{dirs} 子目录 · {modules} 模块",
+        "title": "Foundations（基础层）",
+        "description": "共享矩阵分析、算子范数与 Schatten 范数、正半定序与混合态保真度、集中不等式、图拉普拉斯算子、有限精度算术与数值误差传播。",
+        "link": "浏览 Foundations →"
+      },
+      "concepts": {
+        "count": "{dirs} 子目录 · {modules} 模块",
+        "title": "Concepts（概念与原语层）",
+        "description": "量子信道与量子熵、块编码代数、QSVT/QSP、LCU、振幅放大与估计、量子游走、多项式与对手下界、费米子/玻色子代数、量子纠错与资源记账。",
+        "link": "浏览 Concepts →"
+      },
+      "papers": {
+        "count": "{dirs} 子目录 · {modules} 模块",
+        "title": "Papers（学术文献层）",
+        "description": "基于公共数学接口，按代表性论文目录组织模型定义、专题引理、核心结论定理（MainResults/）与端到端资源复杂度分析。",
+        "link": "浏览 Papers →"
+      }
+    },
+    "sec_area_eye": "研究主题导航",
+    "sec_area_h2": "研究领域",
+    "sec_area_p": "点击下方任意代表性子目录标签，即可查看该目录包含的模块列表并直达 doc-gen4 API 文档。",
+    "sec_cite_eye": "引用与开源协议",
+    "sec_cite_h2": "引用 Qatlib",
+    "sec_cite_p": "Qatlib 采用 Apache License 2.0 协议开源。如果你在研究中使用了本项目，欢迎引用："
+  },
+  "modules": {
+    "h1": "模块导览",
+    "lead": "检索与浏览全库 {dirs:,} 个主题与论文子目录（共 {modules:,} 个 Lean 4 模块；目录标题与摘要实时提取自 .lean 源码模块文档），一键直达 doc-gen4 API 文档与 GitHub 源码目录。",
+    "placeholder": "按目录名、数学主题、关键词或文献 [Citekey] 实时筛选（按 / 聚焦）…",
+    "lbl_all": "全部 ({count})",
+    "layer_display": {
+      "Foundations": "Foundations · 基础层",
+      "Concepts": "Concepts · 概念层",
+      "Papers": "Papers · 论文层"
+    },
+    "status_tpl": "当前显示 {shown} / {total} 个子目录",
+    "api_lbl": "入口 API 文档 →",
+    "dir_api_lbl": "目录索引",
+    "gh_lbl": "GitHub 源码 ↗",
+    "expand_lbl": "代表性模块",
+    "mod_unit": "个模块",
+    "layer_count": "{layer} ({count})",
+    "unit_detail": "Unit 详情 →"
+  },
+  "bibliography": {
+    "h1": "文献与参考书目索引",
+    "lead": "检索 docs/references.bib 收录的全部 {references:,} 篇权威专著与学术论文（按 {chapters} 个学科章节分类），并直接跳转到对应的 Qatlib 形式化模块。",
+    "placeholder": "按作者、论文标题、年份、Citekey、arXiv 编号或 Qatlib 模块名搜索…",
+    "all_chap": "全部 {chapters} 个学科章节 ({references})",
+    "only_form_lbl": "仅显示已关联 Qatlib 模块的文献",
+    "status_tpl": "当前显示 {shown} / {total} 篇文献",
+    "raw_lbl": "BibTeX",
+    "form_prefix": "关联 Qatlib 模块：",
+    "select_aria": "按学科章节筛选",
+    "docgen_badge_lbl": "API 引用 ↗",
+    "detail": "文献详情 →"
+  },
+  "inventory": {
+    "heading": "源码统计",
+    "title": "按层源码清单",
+    "description": "同一份清单同时驱动 Unit、Block 与 Declaration 详情视图。",
+    "columns": [
+      "层级",
+      "模块",
+      "代码行"
+    ]
+  }
+}

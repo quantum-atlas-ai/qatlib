@@ -120,3 +120,58 @@ theorem source_prop_32_error_form (μ : ℝ) :
   ring
 
 end Qatlib.Papers.CausalHier26.MiscHierarchy.Foundations
+
+section
+
+set_option backward.isDefEq.respectTransparency false
+
+/-!
+## SourceLemma31Prop32 — Lemma 3.1, invariance of `Ω_0, Ω_1, Ω_c`
+
+Zhu--Zhao--Zhao--Chen--Wang--Zheng, fixed arXiv:2609.08639v1, Lemma 3.1, p. 10,
+Eqs. (36)-(40).
+
+The operators `Ω_0`, `Ω_1`, `Ω_c` of Eq. (36) are fixed by both twirl generators,
+`phaseConj φ` (conjugation by `V_φ = U_φ^{C_i} ⊗ U_φ^{C_o}`) and
+`xConj` (conjugation by `V_X = X ⊗ X`).  The phase calculation uses charge labels
+`0, 1, -1, 0` for the ordered basis `|00⟩, |01⟩, |10⟩, |11⟩`.
+
+For `phaseConj` the phase on the entry `(i,j)` is `exp (I φ (q_j - q_i))`: it is `1` on the
+diagonal and on the `|00⟩ ↔ |11⟩` entries of `Ω_c`, whose two charges are both `0`, and every
+other entry of the three operators vanishes.  For `xConj` the permutation `xPerm = (3,2,1,0)`
+swaps `|00⟩ ↔ |11⟩` and `|01⟩ ↔ |10⟩`, so each of `Ω_0`, `Ω_1`, `Ω_c` is mapped onto itself.
+
+Boundary: this is the `span_R {Ω_0, Ω_1, Ω_c} ⊆ Fix` direction of Eq. (40).  The reverse
+inclusion requires an entrywise characterization of all Hermitian fixed points.
+
+## Main statements
+
+* `source_lemma_31_generators_fixed`: `Ω_c, Ω_0, Ω_1` are fixed by `phaseConj φ` and `xConj`.
+-/
+
+set_option autoImplicit false
+noncomputable section
+
+namespace Qatlib.Papers.CausalHier26.MiscHierarchy.Foundations
+
+open Qatlib.Papers.CausalHier26.MiscHierarchy.Foundations Matrix
+
+/-- Fixed arXiv:2609.08639v1, Lemma 3.1, Eqs. (36), (38) and (40), p. 10: the operators
+`Ω_0`, `Ω_1`, `Ω_c` of Eq. (36) are fixed by every phase conjugation `phaseConj φ` and by the
+bit-flip conjugation `xConj`.
+
+The proof is a finite entry check: on the support of the three operators the charge difference
+`q_j - q_i` is `0` (diagonal entries and the `|00⟩ ↔ |11⟩` block), so the phase factor is
+`exp 0 = 1`, and `xPerm` exchanges `|00⟩ ↔ |11⟩`, `|01⟩ ↔ |10⟩`, leaving each support and each
+coefficient in place. -/
+theorem source_lemma_31_generators_fixed (φ : ℝ) :
+    phaseConj φ omegac = omegac ∧ phaseConj φ omega0 = omega0 ∧
+      phaseConj φ omega1 = omega1 ∧ xConj omegac = omegac ∧ xConj omega0 = omega0 ∧
+      xConj omega1 = omega1 := by
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
+    ext i j <;> fin_cases i <;> fin_cases j <;>
+      simp [phaseConj, xConj, xPerm, omegac, omega0, omega1, charge]
+
+end Qatlib.Papers.CausalHier26.MiscHierarchy.Foundations
+
+end

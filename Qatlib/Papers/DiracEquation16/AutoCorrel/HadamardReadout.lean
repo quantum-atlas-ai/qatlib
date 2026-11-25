@@ -33,16 +33,16 @@ the output state is `(1/√2)(|0⟩ ⊗ ψ + |1⟩ ⊗ Uψ)`, that the ancilla e
 Eq. (D5)). The corresponding spectral projectors have Born probabilities
 `(1 ± Re C) / 2` and `(1 ± Im C) / 2`.
 
-## Main statements
+## Signed readout example
 
-* `autoCorrWord_mulVec`: the circuit word maps `|0⟩ ⊗ ψ` to the Eq. (D4) state.
-* `inner_corrState_kron_one`: master identity reducing ancilla-bilinear forms to the branch
-  inner products with the constant `2⁻¹` outside the sum.
-* `expect_sigmaX` / `expect_sigmaY`: `⟨σₓ⟩ = (C + C̄)/2`, `⟨σ_y⟩ = (C̄ - C)·i/2`.
-* `expect_sigmaX_add_i_mul_sigmaY`: `⟨σₓ + iσ_y⟩ = C`, Eq. (D5).
-* `expect_sigmaX_euclidean`: the Euclidean-space form of the `σₓ` expectation.
-* `born_sigmaX_plus` / `born_sigmaX_minus`: Born probabilities `(1 ± Re C) / 2`.
-* `corrState_norm`: the readout state has Euclidean norm one.
+With `ψ = (3, 4)/5` and `U = diag(1, (3 + 4i)/5)`, Eq. (D5) gives
+`C = (93 + 64i)/125`. The `σₓ` plus and minus probabilities are `109/125` and
+`16/125`; the `σ_y` plus and minus probabilities are `189/250` and `61/250`.
+Replacing `U` by its adjoint preserves the `σₓ` probabilities and exchanges the
+`σ_y` probabilities. Unlike real-valued autocorrelations, this example distinguishes
+the sign of the imaginary readout and the order of the two inner-product arguments.
+The signs label the `+1` and `-1` eigenspaces of the respective Pauli operator.
+This is an analytic example, not a statement about time-discretization error.
 
 ## References
 

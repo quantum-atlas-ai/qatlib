@@ -9,6 +9,8 @@ esac
 test "$LEAN_NUM_THREADS" -gt 0
 unset LAKE_PKG_URL_MAP
 export DISABLE_EQUATIONS=1 DOCGEN_SRC=github MATHLIB_NO_CACHE_ON_UPDATE=1
+# The dependency exporter reads the public, server, and private module parts from the build tree.
+export LAKE_RESTORE_ARTIFACTS=true
 ROOT="$PWD"
 LOG="$RUNNER_TEMP/docgen.log"
 exec 9>"${DOCS_PACKAGE_CACHE:?}/.build.lock"
@@ -98,6 +100,7 @@ python3 scripts/docs_cache.py clean-html
 mkdir -p docbuild/.lake/build/doc
 cp docs/references.bib docbuild/.lake/build/doc/references.bib
 phase fromDb "$LEAN_NUM_THREADS" @Qatlib/Qatlib:docs
+python3 scripts/build_dependency_graph.py --output-dir docbuild/.lake/build/doc
 python3 scripts/docs_cache.py verify-html
 if [ -n "${LAKE_CACHE_KEY:-}" ]; then
   python3 scripts/docs_cache.py publish-html

@@ -1,13 +1,17 @@
 <div align="center">
 
-<img src="./.github/assets/qatlib-wordmark.svg" alt="Qatlib" width="560" />
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./.github/assets/qatlib-wordmark-dark.svg" />
+  <source type="image/svg+xml" srcset="./.github/assets/qatlib-wordmark.svg" />
+  <img src="./.github/assets/qatlib-wordmark.png" alt="Qatlib" width="360" height="87" />
+</picture>
 
-**The Lean Library for Formalized Quantum Computing and Quantum Information**
+**The Lean 4 Library for Quantum Computing and Quantum Information**
 
 [![Lint](https://github.com/quantum-atlas-ai/qatlib/actions/workflows/lint.yml/badge.svg)](https://github.com/quantum-atlas-ai/qatlib/actions/workflows/lint.yml)
 [![Build](https://github.com/quantum-atlas-ai/qatlib/actions/workflows/build.yml/badge.svg)](https://github.com/quantum-atlas-ai/qatlib/actions/workflows/build.yml)
 [![Cache](https://github.com/quantum-atlas-ai/qatlib/actions/workflows/publish-cache.yml/badge.svg)](https://github.com/quantum-atlas-ai/qatlib/actions/workflows/publish-cache.yml)
-[![api_docs](https://img.shields.io/badge/doc-API_docs-blue)](https://quantum-atlas-ai.github.io/qatlib/)
+[![api_docs](https://img.shields.io/badge/doc-API_docs-blue)](https://quantum-atlas-ai.github.io/qatlib/en/)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](./LICENSE)
 
 [![Lean 4](https://img.shields.io/badge/Lean-v4.35.0-blue)](https://github.com/leanprover/lean4/releases/tag/v4.35.0)
@@ -16,15 +20,17 @@
 
 [简体中文](./README.md) ｜ English
 
+[Theorem Dependency Star Fields (2D / 3D)](https://quantum-atlas-ai.github.io/qatlib/en/dependencies.html)
+
 </div>
 
 ---
 
 ## <a id="overview"></a>Overview
 
-**Qatlib** is a formal library for quantum computing and quantum information in the [Lean 4 theorem prover](https://lean-lang.org/), built on top of [`mathlib4`](https://github.com/leanprover-community/mathlib4) and [`Physlib`](https://github.com/leanprover-community/physlib).
+**Qatlib** is a [Lean 4](https://lean-lang.org/) library for quantum computing and quantum information, built on [`mathlib4`](https://github.com/leanprover-community/mathlib4) and [`Physlib`](https://github.com/leanprover-community/physlib).
 
-It provides unified mathematical definitions, operator-algebraic interfaces, reusable algorithmic primitives, and formalized theorems from the quantum computing literature.
+It formalizes mathematical foundations, reusable algorithmic primitives, and theorems and resource bounds from the literature.
 
 ### <a id="status-provenance"></a>Status, Scope & Provenance
 

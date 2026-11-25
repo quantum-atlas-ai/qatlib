@@ -25,11 +25,11 @@ preserves the effective subspace (`U ∘ Q = Q ∘ U` pointwise).  For a
 unit vector `ψ` in the range of `P`, the leakage
 `1 - ‖P (U ψ)‖²` equals the squared Euclidean distance from `U ψ` to
 the range of `P` and is at most `4 ‖P - Q‖²`, where `‖P - Q‖` is the
-operator norm.  This is the pure-state case of the rank-`m` trace
-identity (Appendix D, Eq. (46)) that
-`Qatlib.Papers.ProdFormSpec21.MainResults.theorem1_leakage` carries as
-a hypothesis for mixed states; the mixed-state trace extension is not
-claimed here.
+operator norm.  The estimate is proved directly, without the minimum-overlap
+identity in Appendix D, Eq. (46).  The appendix's reduction to one differing
+basis vector is not valid for arbitrary nearby projectors of equal rank.
+`Qatlib.Papers.ProdFormSpec21.MainResults.theorem1_leakage` assumes a trace bound;
+neither the minimum-overlap identity nor the mixed-state extension is proved here.
 [Fixed source](https://arxiv.org/abs/2102.12655v1).
 -/
 
