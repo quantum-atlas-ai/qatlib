@@ -155,13 +155,36 @@ def firstLineContaining (lines : Array String) (needle : String) : Nat := Id.run
 def containsCI (s needle : String) : Bool :=
   (asciiLower s).contains (asciiLower needle)
 
-/-- Consume a quoted Lean string, preserving escaped characters. -/
-partial def consumeString (xs : List Char) (out : Array Char) : List Char × Array Char :=
+/-- Consume a string after its opening quote. A raw string closes with its opening hash count. -/
+partial def consumeString (xs : List Char) (out : Array Char)
+    (rawHashes : Option (List Char) := none) : List Char × Array Char :=
   match xs with
   | [] => ([], out)
-  | '\\' :: c :: rest => consumeString rest (out.push '\\' |>.push c)
-  | '"' :: rest => (rest, out.push '"')
-  | c :: rest => consumeString rest (out.push c)
+  | '"' :: rest =>
+      let hashes := rawHashes.getD []
+      if hashes.isPrefixOf rest then
+        (rest.drop hashes.length, (out.push '"') ++ hashes.toArray)
+      else consumeString rest (out.push '"') rawHashes
+  | '\\' :: c :: rest =>
+      if rawHashes.isNone then consumeString rest (out.push '\\' |>.push c)
+      else consumeString (c :: rest) (out.push '\\') rawHashes
+  | c :: rest => consumeString rest (out.push c) rawHashes
+
+/-- Recognize quotes and raw strings at the current lexical position. -/
+def takeString (xs : List Char) (inIdent : Bool) : Option (List Char × Array Char) :=
+  match xs with
+  | '"' :: rest => some (consumeString rest #['"'])
+  | 'r' :: rest =>
+      if inIdent then none else
+      let hashes := rest.takeWhile (· == '#')
+      match rest.drop hashes.length with
+      | '"' :: body => some (consumeString body ((#['r'] ++ hashes.toArray).push '"') (some hashes))
+      | _ => none
+  | '\'' :: '\\' :: c :: '\'' :: rest =>
+      if inIdent then none else some (rest, #['\'', '\\', c, '\''])
+  | '\'' :: c :: '\'' :: rest =>
+      if inIdent || c == '\n' || c == '\\' then none else some (rest, #['\'', c, '\''])
+  | _ => none
 
 /-- Consume a line comment, retaining its terminating newline if present. -/
 def consumeLineComment (xs : List Char) (out : Array Char) : List Char × Array Char :=
@@ -170,36 +193,64 @@ def consumeLineComment (xs : List Char) (out : Array Char) : List Char × Array 
   | '\n' :: rest => (rest, out.push '\n')
   | _ :: rest => consumeLineComment rest out
 
-/-- Strip Lean comments while preserving newlines for stable line diagnostics. -/
-partial def stripCommentsAux (xs : List Char) (depth : Nat) (out : Array Char) : Array Char :=
-  match xs with
-  | [] => out
-  | '/' :: '-' :: rest =>
-      if depth == 0 then stripCommentsAux rest 1 out
-      else stripCommentsAux rest (depth + 1) out
-  | '-' :: '/' :: rest =>
-      if depth == 0 then stripCommentsAux xs depth out
-      else if depth == 1 then stripCommentsAux rest 0 out
-      else stripCommentsAux rest (depth - 1) out
-  | '\n' :: rest =>
-      if depth == 0 then stripCommentsAux rest depth (out.push '\n')
-      else stripCommentsAux rest depth (out.push '\n')
-  | '"' :: rest =>
-      if depth == 0 then
-        let (remaining, copied) := consumeString rest (out.push '"')
-        stripCommentsAux remaining depth copied
-      else stripCommentsAux rest depth out
-  | '-' :: '-' :: rest =>
-      if depth == 0 then
-        let (remaining, skipped) := consumeLineComment rest out
-        stripCommentsAux remaining depth skipped
-      else stripCommentsAux rest depth out
-  | c :: rest =>
-      if depth == 0 then stripCommentsAux rest depth (out.push c)
-      else stripCommentsAux rest depth out
+/-- Whether this quote begins one of Lean's built-in string interpolations. -/
+def interpolatedStringPrefix (out : Array Char) : Bool := Id.run do
+  let mut pos := out.size
+  while pos > 0 && out[pos - 1]!.isWhitespace do pos := pos - 1
+  let stop := pos
+  while pos > 0 && Lean.isIdRest out[pos - 1]! do pos := pos - 1
+  let token := String.ofList (out.extract pos stop).toList
+  return #["s!", "f!", "m!", "print!", "println!", "eprint!", "eprintln!", "dbg_trace"].contains token
 
-def stripComments (source : String) : String :=
-  String.ofList (stripCommentsAux source.toList 0 #[] |>.toList)
+mutual
+  /-- Mask comments and strings. Return to an interpolated string after its term's closing brace. -/
+  partial def maskCode (xs : List Char) (depth braces : Nat) (out : Array Char) :
+      List Char × Array Char :=
+    match xs with
+    | [] => ([], out)
+    | '/' :: '-' :: rest =>
+        maskCode rest (depth + 1) braces (if depth == 0 then out.push ' ' else out)
+    | '-' :: '/' :: rest =>
+        let out := if depth == 0 then out.push '-' |>.push '/' else out
+        maskCode rest (depth - 1) braces out
+    | '\n' :: rest => maskCode rest depth braces (out.push '\n')
+    | '-' :: '-' :: rest =>
+        if depth == 0 then
+          let (remaining, skipped) := consumeLineComment rest out
+          maskCode remaining depth braces skipped
+        else maskCode rest depth braces out
+    | c :: rest =>
+        if depth != 0 then maskCode rest depth braces out
+        else if c == '}' && braces == 1 then (rest, out.push ' ')
+        else if c == '"' && interpolatedStringPrefix out then
+          let (remaining, masked) := maskInterpolation rest (out.push ' ')
+          maskCode remaining depth braces masked
+        else if let some (remaining, literal) := takeString xs (out.back?.any Lean.isIdRest) then
+          let masked := literal.foldl (fun acc ch => acc.push (if ch == '\n' then '\n' else ' ')) out
+          maskCode remaining depth braces masked
+        else if c == '«' then
+          let name := rest.takeWhile (· != '»')
+          let quoted := (out.push c ++ name.toArray).push '»'
+          maskCode (rest.drop (name.length + 1)) depth braces quoted
+        else if braces > 0 && c == '{' then maskCode rest depth (braces + 1) (out.push c)
+        else if braces > 0 && c == '}' then maskCode rest depth (braces - 1) (out.push c)
+        else maskCode rest depth braces (out.push c)
+
+  /-- Mask only the text of an interpolated string, keeping code between braces. -/
+  partial def maskInterpolation (xs : List Char) (out : Array Char) : List Char × Array Char :=
+    match xs with
+    | [] => ([], out)
+    | '"' :: rest => (rest, out.push ' ')
+    | '\\' :: c :: rest =>
+        maskInterpolation rest (out.push ' ' |>.push (if c == '\n' then '\n' else ' '))
+    | '{' :: rest =>
+        let (remaining, masked) := maskCode rest 0 1 (out.push ' ')
+        maskInterpolation remaining masked
+    | c :: rest => maskInterpolation rest (out.push (if c == '\n' then '\n' else ' '))
+end
+
+def maskCommentsAndStrings (source : String) : String :=
+  String.ofList (maskCode source.toList 0 0 #[]).2.toList
 
 structure DocComment where
   startLine : Nat
@@ -482,8 +533,6 @@ def checkSoundnessLine (rel : String) (lineNo : Nat) (codeLine : String) : Array
   let mut errors := #[]
   if codeLine.contains "debug.skipKernelTC" then
     errors := errors.push s!"{rel}:{lineNo}: forbidden skipKernelTC"
-  if codeLine.contains "native_decide" then
-    errors := errors.push s!"{rel}:{lineNo}: forbidden native_decide"
   let trimmed := codeLine.trimAscii.toString
   if trimmed.startsWith "set_option warningAsError false" then
     errors := errors.push s!"{rel}:{lineNo}: forbidden warningAsError-false"
@@ -494,9 +543,46 @@ def checkSoundnessLine (rel : String) (lineNo : Nat) (codeLine : String) : Array
     (fun t p => if t.startsWith p then t.drop p.length |>.toString else t) trimmed
   if trimmed.startsWith "axiom " || trimmed == "axiom" then
     errors := errors.push s!"{rel}:{lineNo}: forbidden custom-axiom"
-  if trimmed.startsWith "unsafe " || trimmed == "unsafe" then
-    errors := errors.push s!"{rel}:{lineNo}: forbidden unsafe-decl"
   return errors
+
+/-- Read tokens across line breaks so a declaration modifier is independent of its prefix. -/
+partial def checkSoundnessTokens (rel code : String) : Array String := Id.run do
+  if !code.contains "unsafe" && !code.contains "native_decide" then return #[]
+  let declarationKinds := #["abbrev", "axiom", "class", "coinductive", "def", "example",
+    "inductive", "instance", "lemma", "opaque", "structure", "theorem"]
+  let rec scan (xs : List Char) (line : Nat) (afterDot : Bool) (pendingUnsafe : Option Nat)
+      (errors : Array String) : Array String :=
+    match xs with
+    | [] => errors
+    | '\n' :: rest => scan rest (line + 1) false pendingUnsafe errors
+    | '«' :: rest =>
+        let quoted := rest.takeWhile (· != '»')
+        scan (rest.drop (quoted.length + 1)) (line + quoted.count '\n') false none errors
+    | c :: rest =>
+        if c.isWhitespace then scan rest line false pendingUnsafe errors
+        else if Lean.isIdRest c then
+          let tail := rest.takeWhile Lean.isIdRest
+          let token := String.ofList (c :: tail)
+          let following := rest.drop tail.length
+          let beforeDot := match following with
+            | '.' :: next :: _ => Lean.isIdFirst next || next == '«'
+            | _ => false
+          let bare := !afterDot && !beforeDot
+          let errors := if bare && token == "native_decide" then
+              errors.push s!"{rel}:{line}: forbidden native_decide"
+            else errors
+          let errors := match pendingUnsafe with
+            | some start =>
+              if bare && declarationKinds.contains token then
+                errors.push s!"{rel}:{start}: forbidden unsafe-decl"
+              else errors
+            | none => errors
+          let pending := if bare && token == "unsafe" then some line
+            else if bare && #["partial", "nonrec", "local", "scoped"].contains token then pendingUnsafe
+            else none
+          scan following line false pending errors
+        else scan rest line (c == '.') none errors
+  return scan code.toList 1 false none #[]
 
 /-- Check statement-fidelity and source-hygiene rules for one Lean file. -/
 def checkFidelityFile (rel _raw code : String) (lines : Array String) (freq : Std.HashMap String Nat)
@@ -506,6 +592,7 @@ def checkFidelityFile (rel _raw code : String) (lines : Array String) (freq : St
   let mut props := props
   let mut costNotices := costNotices
   let codeLines := code.splitOn "\n" |>.toArray
+  errors := errors ++ checkSoundnessTokens rel code
   if rel.startsWith "Qatlib/" then errors := errors ++ checkRootNamespace code rel
   let leaks : Array (String × String) := #[
     ("workflow-leak(Lean gap)", "lean gap"),
@@ -620,7 +707,7 @@ def checkOneFile (path : FilePath) (moduleSet bibKeys : Std.HashSet String) : IO
       if !stripped.startsWith "--" then
         errors := errors.push s!"{relStr}:{lineNo}: ERR_SEM: Space before semicolon"
   if relStr.startsWith "Qatlib/" then
-    code := stripComments raw
+    code := maskCommentsAndStrings raw
     let (fErrs, newProps, newCosts, _) :=
       checkFidelityFile relStr raw code bodyLines {} #[] 0
     fidelityErrors := fidelityErrors ++ fErrs
@@ -776,7 +863,9 @@ def runStaticChecks : IO UInt32 := do
   let verificationFiles ← collectLeanFiles "verification"
   for path in verificationFiles do
     let raw ← IO.FS.readFile path
-    let codeLines := (stripComments raw).splitOn "\n" |>.toArray
+    let code := maskCommentsAndStrings raw
+    errors := errors ++ checkSoundnessTokens path.toString code
+    let codeLines := code.splitOn "\n" |>.toArray
     for i in [0:codeLines.size] do
       errors := errors ++ checkSoundnessLine path.toString (i + 1) codeLines[i]!
 

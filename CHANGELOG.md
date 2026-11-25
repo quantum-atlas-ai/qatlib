@@ -9,10 +9,119 @@ All notable changes to **Qatlib** are documented in this file.
 * **Rolling releases (`main`)**: Every commit published on `main` is a complete,
   self-contained public release dated in UTC (with `.2`, `.3`, … suffixes when
   multiple releases land on the same UTC date), accompanied by precompiled Lake
-  caches (`qatlib-env run -- lake update Qatlib` followed by
-  `qatlib-env run -- lake exe get_cache`).
+  caches (`lake update Qatlib` followed by
+  `lake exe get_cache`).
 
 ---
+
+## [2026-11-25] — Quantum Algorithms, QRAM, and Mathematical Physics
+
+### Added
+
+* **Foundations — Finite registers, query words, and data storage**: Add 5 leaf
+  modules and 31 theorems covering affine spectral conjugation, sequential and
+  iterated oracle words, unitary products, swap-readout branch weights, and
+  squared-norm tree storage. Connect oracle-word composition on finite registers
+  to ordered state evolution and additive query counts.
+* **Concepts — Probability bounds, query interfaces, and qudit teleportation**:
+  Add 7 leaf modules covering finite-distribution Hellinger transport, one-shot
+  Chebyshev bounds, median confidence, and query confidence amplification and
+  state error, as well as finite-character Fourier and compact-message
+  constructions for qudit teleportation.
+* **Concepts — QRAM access and signed readout**: Add 19 leaf modules for word
+  lookup, controlled amplitude preparation, unitary preparation, and
+  matrix-product access. Establish signed-readout results for heralded
+  interference, Born-frequency stability, embedded references, calibration,
+  retry, and adaptive transcripts under the corresponding sampling and
+  calibration hypotheses. Across both topics, Concepts gains 185 theorems.
+* **Papers — Formalization coverage**: Add 571 leaf modules and update 17
+  existing modules, for a net gain of 3,742 theorems and 63 lemmas. The new
+  `NonlinearSDE26`, `QCNN20`, and `QFVMChen22` directories contribute 50
+  modules, while the remaining 521 new modules extend 187 existing paper
+  directories; the 17 updated modules span 12 existing paper directories, two of
+  which also receive new modules.
+* **Papers — Quantum algorithms and query complexity**: Extend formalizations of
+  amplitude estimation, quantum walks, hidden subgroup algorithms, query lower
+  bounds, Hamiltonian simulation, and state preparation. QRAM applications cover
+  threshold sampling for recommendation systems, convolution and gradient
+  interfaces for quantum convolutional networks, and signed writeback and sparse
+  residual updates for finite-volume solvers. Starting from a consistent
+  snapshot, the finite-volume regression proves that the modeled sparse
+  correction preserves agreement between physical variables and residuals.
+* **Papers — Spectral gaps and product formulas**: Derive the quantitative
+  black-box gap bound from the normalized SEARCH lower bound, a constant
+  implementation budget, positive gaps, and the assumed half-square-root
+  amplification lower bound. A separate one-sparse stoquastic diagonal family
+  has marked eigenvalue zero and unmarked eigenvalue `1/M` in positive
+  dimension `M`, giving a spectral gap when `M >= 2`. Bound the rounded
+  segment count of a nonempty recursive Suzuki word by 20 times its Eq. (5)
+  factor, and bound its term count by multiplying by the terms per segment.
+  The bounds assume positive time and error tolerance, `beta >= 1`, an Eq. (5)
+  factor of at least one, and domination of the commutator certificate at the
+  matched order. Prove that the
+  coupled-oscillator term count divided by `(m')^alpha` tends to zero as `m'`
+  tends to infinity for `alpha > 0`, `M >= 1`, `t >= 0`, and `epsilon > 0`.
+  The coupled-oscillator count uses the modeled optimal Suzuki order.
+* **Papers — Causal processes and unambiguous measurements**: Establish
+  fixed-point identities for the three explicit twirl operators, a `z = 0`
+  boundary-value bound on the first-quadrant unit circle for the reduced
+  objective, and block-trace normalization and certificate-coefficient
+  inequalities in the range `0 < epsilon < 1`. For
+  unambiguous measurements, prove spike dual feasibility for the average score
+  and compute the squared Fourier overlap of the basis vectors for a full-rank
+  parity-check matrix and an arbitrary coset section.
+* **Papers — Nonlinear dynamics and field geometry**: Establish a
+  coordinate supremum-norm bound on the first omitted Carleman block in positive
+  dimension, together with its pointwise bound along each realized trajectory.
+  Control the superfluid centerline self-writhe contribution
+  under integrability and nonzero total circulation, including signed
+  circulation bounds. For knotted light, connect finite nonzero fibers to the
+  corresponding oriented pole circle with a Gauss linking number of one on
+  every time slice. The magnetic and electric zero fibers separately
+  compactify to circles, with separate homeomorphisms for the two fields.
+* **Verification**: Add 20 strict consumer modules covering spectral-gap
+  contracts, sparse Hamiltonian simulation, fluid and field geometry, and QRAM
+  applications. QRAM checks verify preservation of untouched sparse entries,
+  zero amplitude on unoccupied branches, consistency across aliased patch-memory
+  slots, and consistency after a sparse finite-volume update.
+* **Bibliography**: Add six references covering double-bracket quantum
+  algorithms, knotted Maxwell fields, precision in quantum unstructured search,
+  QRAM recommendation systems, quantum convolutional networks, and finite-volume
+  quantum algorithms.
+
+* **Documentation portal**: The portal opens in Simplified Chinese at the site
+  root and in English at `/en/`, with a language menu on both sites. The API
+  reference loads its declaration index on demand, and paper pages support an
+  optional coverage overlay. Both portal homepages and repository READMEs link
+  directly to the interactive theorem dependency explorer. It shows references
+  from elaborated Lean theorem types and proof terms in a 2D nebula and layered
+  3D star fields.
+
+### Changed
+
+* **Theorem documentation**: Expand examples and clarify hypotheses across eight
+  existing modules covering classical median-of-means, the polynomial method,
+  coherent classification, product-formula precision, Hadamard readout, query
+  budgeting, pure-state leakage, and state-error transport.
+* **Branding and navigation**: Refresh the Qatlib emblem and wordmark across
+  the READMEs and portal, with adaptive favicons for light and dark themes.
+* **Build configuration**: Require `lakefile.toml` as the root Lake configuration
+  and check it before invoking Lake in CI.
+
+### Fixed
+
+* **Double-bracket approximation**: Record the sign of the commutator generated
+  by the ordered product of four short evolutions of finite Hermitian matrices,
+  with the resulting operator-norm remainder bound proportional to `s^(3/2)` for
+  `0 <= s <= 1`.
+* **Build and documentation workflows**: Use both paths of a rename to decide
+  when Lean checks are required, including moves into or out of the consumer
+  tests directory. Keep the Docs trigger aligned with Build and use HTTP/1.1
+  for documentation snapshot downloads.
+* **Source lint and browsing**: Mask string literals when checking forbidden
+  source tokens and recognize unsafe declaration modifiers after attributes or
+  doc comments. Resolve multiline declaration headers and quoted Lean module
+  components in source browsing and module links.
 
 ## [2026-11-23] — Quantum Algorithms, Spectral Bounds, and Verification
 

@@ -16,8 +16,9 @@ public import Qatlib.Foundations.PureStateMath.BornBridge.RepresentationBridge
 
 This module transports the weighted training state used by the quantum support-vector-machine
 kernel construction to the genuine finite-dimensional `EuclideanSpace` model.  It also records the
-Euclidean swap-test branch identity and an operator-norm certificate for the identity action on the
-prepared state.  The hypotheses exclude empty datasets and zero training rows.
+signed ancilla-interference identity used by the classifier, not the controlled-SWAP test on two
+independently prepared states.  It also certifies the norm of the identity action on the Gram state, assuming a
+nonempty dataset with nonzero training rows.
 
 The preparation and circuit costs of the source algorithm are outside this interface.  The results
 here certify its finite-dimensional state and readout algebra in the true ℓ² geometry.
@@ -57,14 +58,14 @@ theorem gramState_euclidean_norm (x : Fin M → Fin N → ℝ) (hM : 0 < M)
   exact (normalized_iff_norm_toEuclidean_fromVec _).mp
     (kernelDensity_bridge x hM hx).1
 
-/-- The finite-dimensional swap-test minus branch is the squared Euclidean distance to the
-half-difference, hence equals `(1 - ⟪ψ, φ⟫_ℝ) / 2` for unit real states
-[RebentrostMohseniLloyd2014]. -/
+/-- For two unit states, the probability of the coherent classifier's minus branch is the squared Euclidean norm
+of the half-difference.  This is the ancilla projection called a swap test in
+[RebentrostMohseniLloyd2014], not a controlled-SWAP test on two independent registers. -/
 noncomputable def euclideanMinusBranchWeight (ψ φ : EuclideanSpace ℝ (Fin N)) : ℝ :=
   ‖(1 / 2 : ℝ) • (ψ - φ)‖ ^ 2
 
-/-- Euclidean swap-test readout classifies the sign of the real overlap at the one-half threshold.
-The norm is the genuine `EuclideanSpace` ℓ² norm. -/
+/-- Coherent minus-branch readout classifies the sign of the real overlap at the one-half threshold.
+A controlled-SWAP test would depend on the squared magnitude and could not detect this sign. -/
 theorem euclidean_swap_test_branch_formula (ψ φ : EuclideanSpace ℝ (Fin N))
     (hψ : ‖ψ‖ = 1) (hφ : ‖φ‖ = 1) :
     euclideanMinusBranchWeight ψ φ = (1 - ⟪ψ, φ⟫_ℝ) / 2 := by

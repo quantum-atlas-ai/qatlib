@@ -35,15 +35,15 @@ The two main statements separate the two roles of the product formula:
   The matrix ℓ² operator norm agrees with the norm of its action as a continuous linear map on
   those states.
 
-The result is a restricted precision statement for the indexed tree Hamiltonian. It does not
-claim that the segment count is polynomial in `n` (the commutator sum is left symbolic), that the
-valid-node subspace is invariant, or that the local exponentials have a native implementation.
+The Lean bound leaves `pfCommutatorSum` symbolic. For the full grouped tree family
+with `n ≥ 1`, an analytic evaluation gives `K = (6n - 3)√2 + 2(n - 1)`: incident
+degree and hop terms contribute `(6n - 3)√2`, and the `n - 1` adjacent hop pairs
+contribute `2` each. All other commutators vanish.
 
-## Main statements
-
-* `actual_word_precision_uniform`: a uniform `C = 2` segment budget meeting any precision.
-* `actual_state_error`: the normalized-state Euclidean error inherits the operator estimate.
-* `actual_state_precision`: existence of a segment count meeting a state-level precision.
+For example, at `n = 2`, `t = 1`, and tolerance `1/4`, the bound certifies `r = 30`
+segments, or `150` grouped local exponentials. This is not a native gate count.
+The commutator evaluation is not formalized here. Neither valid-node invariance
+nor a native implementation of the exponentials is asserted by the Lean results.
 
 ## References
 

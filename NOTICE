@@ -27,3 +27,10 @@ The Causalean Chebyshev approximation sources were adapted to Lean 4.35,
 the Qatlib.Foundations.CbmdAnalysis.Approximation namespace, and Qatlib's
 import layout. The files retain the original Jiyuan Tan copyright attribution
 and identify their upstream source commit in their headers.
+
+Brand typography
+----------------
+The Qatlib wordmark uses outlined lettering from Fontin, designed by Jos
+Buivenga (exljbris Font Foundry) and used under the foundry's Free Font License
+Agreement. This repository does not distribute Fontin .otf files.
+https://www.exljbris.com/fontin.html

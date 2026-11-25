@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Copyright (c) 2026 Qatlib Contributors. All rights reserved.
 # Released under Apache 2.0 license as described in the file LICENSE.
-"""Exercise the compiled native linter on small source trees with real Lean headers."""
+"""Exercise the compiled native linter on small source trees."""
 
 from __future__ import annotations
 
@@ -29,7 +29,8 @@ class NativeImportTests(unittest.TestCase):
         if not cls.linter.is_file():
             raise RuntimeError(f"Build the native driver with lake build lint first: {cls.linter}")
 
-    def lint(self, imports, root_first_import="public import Qatlib.Foundations.Early"):
+    def lint(self, imports, root_first_import="public import Qatlib.Foundations.Early",
+             *, body="", verification=""):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             files = {
@@ -38,7 +39,7 @@ class NativeImportTests(unittest.TestCase):
                 "Qatlib/Foundations/Early.lean": COPYRIGHT + imports +
                     "\n\nnamespace Qatlib.Foundations.Early\n"
                     "/-- A small source-tree fixture. -/\ndef value : Nat := 0\n"
-                    "end Qatlib.Foundations.Early\n",
+                    + body + "\nend Qatlib.Foundations.Early\n",
                 "Qatlib/Papers/Later.lean": COPYRIGHT +
                     "namespace Qatlib.Papers.Later\n"
                     "/-- A small source-tree fixture. -/\ndef value : Nat := 0\n"
@@ -46,6 +47,8 @@ class NativeImportTests(unittest.TestCase):
                 "docs/references.bib": "@misc{FixtureReference,\n  title = {Parser fixture}\n}\n",
                 "NOTICE": (ROOT / "NOTICE").read_text(encoding="utf-8"),
             }
+            if verification:
+                files["verification/Consumer.lean"] = verification
             for name, text in files.items():
                 path = root / name
                 path.parent.mkdir(parents=True, exist_ok=True)
@@ -93,6 +96,58 @@ class NativeImportTests(unittest.TestCase):
                 result = self.lint("import Lean", f"{command} {module}")
                 self.assertEqual(result.returncode, 1, result.stdout)
                 self.assertIn(f"ERR_ROOT: Expected 'public import {module}'", result.stdout)
+
+    def test_soundness_ignores_literal_contents_and_longer_identifiers(self):
+        source = r'''
+def diagnostic : String := "native_decide \"sorry\" -- admit"
+def multiline : String := "
+unsafe def onlyText := by native_decide
+set_option warningAsError false
+"
+def raw : String := r##"native_decide " debug.skipKernelTC"##
+def interpolated : String := s!"native_decide {s!"{"unsafe def onlyText"}"}"
+def native_decide' : Nat := 1
+def uses_native_decide : Nat := native_decide'
+def native_decide₁ : Nat := native_decide'
+def native_decide? : Nat := native_decide'
+def qualified.native_decide : Nat := 1
+def native_decide.qualified : Nat := qualified.native_decide
+def «native_decide has spaces» : Nat := 1
+def quote : Char := '"'
+/-- An example that mentions `unsafe def` and `native_decide`. -/
+def safe : Nat := 1
+'''
+        result = self.lint("import Lean", body=source, verification=source)
+        self.assertEqual(result.returncode, 0, result.stdout)
+
+    def test_soundness_finds_native_decide_adjacent_to_punctuation(self):
+        source = '''def quote : Char := '"'
+theorem checked : True := by
+  first | native_decide; done | trivial
+def interpolated : String := s!"{show True from by native_decide}"
+'''
+        result = self.lint("import Lean", body=source, verification=source)
+        self.assertEqual(result.returncode, 1, result.stdout)
+        self.assertIn("Qatlib/Foundations/Early.lean:", result.stdout)
+        self.assertIn("verification/Consumer.lean:3: forbidden native_decide", result.stdout)
+        self.assertIn("verification/Consumer.lean:4: forbidden native_decide", result.stdout)
+        self.assertEqual(result.stdout.count("forbidden native_decide"), 4, result.stdout)
+
+    def test_soundness_finds_unsafe_after_declaration_prefixes(self):
+        for source in (
+                "unsafe def runtime : Nat := 0",
+                "@[inline] private unsafe def runtime : Nat := 0",
+                "/-- A runtime helper. -/\n@[inline, extern \"name\"]\nprivate\nunsafe\n"
+                "nonrec def runtime : Nat := 0",
+                "private unsafe/- nested /- comment -/ -/def runtime : Nat := 0",
+        ):
+            with self.subTest(source=source):
+                line = next(i for i, text in enumerate(source.splitlines(), 1) if "unsafe" in text)
+                result = self.lint("import Lean", body=source, verification=source)
+                self.assertEqual(result.returncode, 1, result.stdout)
+                self.assertIn("Qatlib/Foundations/Early.lean:", result.stdout)
+                self.assertIn(f"verification/Consumer.lean:{line}: forbidden unsafe-decl", result.stdout)
+                self.assertEqual(result.stdout.count("forbidden unsafe-decl"), 2, result.stdout)
 
 
 if __name__ == "__main__":

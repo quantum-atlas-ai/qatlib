@@ -7,6 +7,8 @@ Authors: Qatlib Contributors
 module
 
 public import Qatlib.Papers.UnambigMeas25.MainResults.Definitions.UnambigMeasModel
+public import Qatlib.Papers.UnambigMeas25.MainResults.Fourier
+public import Qatlib.Papers.UnambigMeas25.MainResults.Combinatorics.CosetCount
 
 @[expose] public section
 
@@ -235,3 +237,211 @@ def proposition11 {n : ℕ} (S : SymFamily n) (_hfull : FullDualSupport S)
   -- scope of this file.
 
 end Qatlib.Papers.UnambigMeas25.MainResults.Reformulation
+
+section
+
+/-!
+## Fourier coefficients of the basis vectors `|A_s^{H,y}⟩`
+
+Paper: Buzet–Chailloux, *Fine-Grained Unambiguous Measurements*,
+arXiv:2510.07298v2 (4 Nov 2025), Eq. (8) p. 17 and the first line of the proof
+of Theorem 2, p. 17.
+
+`Reformulation.AHVec` is the explicit basis vector
+`|A_s^{H,y}⟩ = ∑_u (α̂_{Hᵀu + v_s})⁻¹ (-1)^{y·u} |b_{Hᵀu + v_s}⟩` of Proposition 11.
+This module computes its overlap with the Fourier basis vector `|b_i⟩`:
+
+`|⟨b_i|A_s^{H,y}⟩|² = 1/|α̂_i|²` if `i = Hᵀu + v_s` for some `u`, and `0` otherwise,
+
+which is the coefficient fact used in the proofs of Theorem 2 and Proposition 13.
+The two ingredients are the orthonormality of the Fourier basis and the
+injectivity of `u ↦ Hᵀu + v_s`, which holds because `H` has full rank `k`; the
+phases `(-1)^{y·u}` have unit modulus and drop out of the modulus squared.
+
+Note that the paper's map `s ↦ v_s` is an arbitrary coset section here, so the
+statement holds for every `v : (Fin (n-k) → ZMod 2) → 𝔽₂ⁿ`.
+
+Boundary: the computation is conditional on `H` having full rank, i.e. on `H`
+being an element of `Λ_k`. The dependence on `S` is only through the Fourier
+coefficients `α̂`; no normalisation of `S` is used or needed. The orthogonality
+statement of Proposition 11 between different cosets `s ≠ s'` is not covered.
+-/
+
+set_option autoImplicit false
+noncomputable section
+
+namespace Qatlib.Papers.UnambigMeas25.MainResults
+
+open Matrix BigOperators
+open Qatlib.Papers.UnambigMeas25.MainResults
+open Qatlib.Papers.UnambigMeas25.MainResults.Reformulation
+open scoped Classical MatrixOrder ComplexOrder BigOperators
+
+/-! ### The Fourier basis is the hat-ket of `Fourier.hatKet` -/
+
+/-- `√(2^n) = (√2)^n`, so the normalisation used by `fourierBasis` agrees with
+the one used by `Fourier.hatKet`. -/
+lemma sqrt_two_pow_eq (n : ℕ) : Real.sqrt ((2 : ℝ) ^ n) = (Real.sqrt 2) ^ n := by
+  induction n with
+  | zero => simp
+  | succ n ih =>
+    rw [pow_succ, Real.sqrt_mul (by positivity), ih, pow_succ]
+
+/-- The inverse normalisation of `fourierBasis` is the one of `Fourier.hatKet`. -/
+lemma sqrtTwoPow_inv_eq (n : ℕ) :
+    (sqrtTwoPow n)⁻¹ = (((Real.sqrt 2)⁻¹ ^ n : ℝ) : ℂ) := by
+  unfold sqrtTwoPow
+  rw [sqrt_two_pow_eq]
+  push_cast
+  rw [inv_pow]
+
+/-- `fourierBasis` is the Fourier ket `hatKet` of `Qatlib/Papers/UnambigMeas25/MainResults/Fourier.lean`. -/
+lemma fourierBasis_eq_hatKet (n : ℕ) (i : F2 n) : fourierBasis i = hatKet i := by
+  funext j
+  show (sqrtTwoPow n)⁻¹ * chi i j = _
+  rw [hatKet_apply, sqrtTwoPow_inv_eq, dotF2_comm]
+  rfl
+
+/-! ### Orthonormality of the Fourier basis -/
+
+/-- The Fourier basis is orthonormal: `⟨b_i|b_j⟩ = δ_{i,j}`. -/
+lemma braKet_fourierBasis (n : ℕ) (i j : F2 n) :
+    braKet (fourierBasis i) (fourierBasis j) = if i = j then 1 else 0 := by
+  rw [fourierBasis_eq_hatKet, fourierBasis_eq_hatKet]
+  exact innerVec_hatKet i j
+
+/-- Orthonormality in the explicit sum form used below. -/
+lemma sum_conj_fourierBasis (n : ℕ) (i j : F2 n) :
+    (∑ t, (starRingEnd ℂ) (fourierBasis i t) * fourierBasis j t) =
+      if i = j then 1 else 0 :=
+  braKet_fourierBasis n i j
+
+/-- Every phase `(-1)^{a·b}` has unit modulus. -/
+lemma normSq_chi {n : ℕ} (a b : F2 n) : Complex.normSq (chi a b) = 1 := by
+  unfold chi
+  split_ifs <;> simp
+
+/-! ### Injectivity of the transpose action of a full-rank matrix -/
+
+/-- For `H ∈ Λ_k`, the transpose action `u ↦ Hᵀu` is injective: the transpose of
+a full-rank `k × n` matrix has trivial kernel. -/
+lemma transposeVec_injective {n k : ℕ} (H : Lam n k) :
+    Function.Injective (transposeVec H.1) := by
+  have hrank : Matrix.rank ((H.1)ᵀ) = k := by
+    rw [Matrix.rank_transpose]
+    exact H.2
+  have hfin : Module.finrank (ZMod 2) (LinearMap.ker ((H.1)ᵀ).mulVecLin) = 0 := by
+    have h := CosetCount.finrank_ker_eq ((H.1)ᵀ)
+    rw [hrank, Nat.sub_self] at h
+    exact h
+  have hsub : Subsingleton (LinearMap.ker ((H.1)ᵀ).mulVecLin) :=
+    Module.finrank_zero_iff.mp hfin
+  have hzero : ∀ u : Fin k → ZMod 2, transposeVec H.1 u = 0 → u = 0 := by
+    intro u hu
+    have hmem : u ∈ LinearMap.ker ((H.1)ᵀ).mulVecLin := by
+      rw [LinearMap.mem_ker, Matrix.mulVecLin_apply]
+      funext j
+      have hj := congrFun hu j
+      simpa [transposeVec, Matrix.mulVec, dotProduct, Matrix.transpose_apply] using hj
+    exact Subtype.ext_iff.mp
+      (Subsingleton.elim (⟨u, hmem⟩ : LinearMap.ker _) ⟨0, (LinearMap.ker _).zero_mem⟩)
+  intro u u' h
+  have hsub : transposeVec H.1 (u - u') = 0 := by
+    have hlin : transposeVec H.1 (u - u')
+        = transposeVec H.1 u - transposeVec H.1 u' := by
+      funext j
+      simp [transposeVec, Finset.sum_sub_distrib, mul_sub]
+    rw [hlin, h, sub_self]
+  exact sub_eq_zero.mp (hzero (u - u') hsub)
+
+/-! ### The coefficient lemma -/
+
+/-- `⟨b_i|` applied to a single Fourier basis term. -/
+lemma braKet_fourierBasis_mul {n : ℕ} (i w : F2 n) (c : ℂ) :
+    braKet (fourierBasis i) (fun t => c * fourierBasis w t) =
+      c * (if i = w then 1 else 0) := by
+  have hsplit : braKet (fourierBasis i) (fun t => c * fourierBasis w t)
+      = c * braKet (fourierBasis i) (fourierBasis w) := by
+    rw [braKet, braKet, Finset.mul_sum]
+    apply Finset.sum_congr rfl
+    intro t _
+    ring
+  rw [hsplit, braKet_fourierBasis]
+
+/-- **Equation (8), p. 17 / Theorem 2, p. 17, first line.**  The squared overlap
+of the Fourier basis vector `|b_i⟩` with the basis vector `|A_s^{H,y}⟩` of
+Proposition 11 is `1/|α̂_i|²` when `i` lies in the dual coset `D_H(s)`, encoded as
+`i = Hᵀu + v_s`, and `0` otherwise. -/
+theorem AHVec_normSq_inner {n k : ℕ} (S : SymFamily n) (H : Lam n k)
+    (y : Fin k → ZMod 2) (v : (Fin (n - k) → ZMod 2) → F2 n)
+    (s : Fin (n - k) → ZMod 2) (i : F2 n) :
+    Complex.normSq (braKet (fourierBasis i) (AHVec S H y v s)) =
+      if ∃ u : Fin k → ZMod 2, i = transposeVec H.1 u + v s
+        then (Complex.normSq (S.hat i))⁻¹ else 0 := by
+  have hstep : braKet (fourierBasis i) (AHVec S H y v s)
+      = ∑ u : Fin k → ZMod 2,
+          ((S.hat (transposeVec H.1 u + v s))⁻¹ * chi y u) *
+            (if i = transposeVec H.1 u + v s then 1 else 0) := by
+    show (∑ t, (starRingEnd ℂ) (fourierBasis i t) *
+        (∑ u : Fin k → ZMod 2,
+          (S.hat (transposeVec H.1 u + v s))⁻¹ * chi y u *
+            fourierBasis (transposeVec H.1 u + v s) t)) = _
+    calc (∑ t, (starRingEnd ℂ) (fourierBasis i t) *
+          (∑ u : Fin k → ZMod 2,
+            (S.hat (transposeVec H.1 u + v s))⁻¹ * chi y u *
+              fourierBasis (transposeVec H.1 u + v s) t))
+        = ∑ t, ∑ u : Fin k → ZMod 2,
+            (starRingEnd ℂ) (fourierBasis i t) *
+              ((S.hat (transposeVec H.1 u + v s))⁻¹ * chi y u *
+                fourierBasis (transposeVec H.1 u + v s) t) := by
+          apply Finset.sum_congr rfl
+          intro t _
+          rw [Finset.mul_sum]
+      _ = ∑ u : Fin k → ZMod 2, ∑ t,
+            (starRingEnd ℂ) (fourierBasis i t) *
+              ((S.hat (transposeVec H.1 u + v s))⁻¹ * chi y u *
+                fourierBasis (transposeVec H.1 u + v s) t) :=
+          Finset.sum_comm
+      _ = ∑ u : Fin k → ZMod 2,
+            ((S.hat (transposeVec H.1 u + v s))⁻¹ * chi y u) *
+              (if i = transposeVec H.1 u + v s then 1 else 0) := by
+          apply Finset.sum_congr rfl
+          intro u _
+          have hcomm : (∑ t, (starRingEnd ℂ) (fourierBasis i t) *
+                ((S.hat (transposeVec H.1 u + v s))⁻¹ * chi y u *
+                  fourierBasis (transposeVec H.1 u + v s) t))
+              = (S.hat (transposeVec H.1 u + v s))⁻¹ * chi y u *
+                  (∑ t, (starRingEnd ℂ) (fourierBasis i t) *
+                    fourierBasis (transposeVec H.1 u + v s) t) := by
+            rw [Finset.mul_sum]
+            apply Finset.sum_congr rfl
+            intro t _
+            ring
+          rw [hcomm, sum_conj_fourierBasis]
+  rw [hstep]
+  split_ifs with hex
+  · obtain ⟨u₀, hu₀⟩ := hex
+    have huniq : ∀ u : Fin k → ZMod 2, i = transposeVec H.1 u + v s → u = u₀ := by
+      intro u hu
+      refine transposeVec_injective H ?_
+      have : transposeVec H.1 u + v s = transposeVec H.1 u₀ + v s := by rw [← hu, ← hu₀]
+      exact add_right_cancel this
+    rw [Finset.sum_eq_single u₀]
+    · rw [show transposeVec H.1 u₀ + v s = i from hu₀.symm, ite_eq_left rfl, mul_one,
+        Complex.normSq_mul, Complex.normSq_inv, normSq_chi, mul_one]
+    · intro u _ hne
+      have hne' : ¬ (i = transposeVec H.1 u + v s) := fun hc => hne (huniq u hc)
+      rw [ite_eq_right hne', mul_zero]
+    · intro h
+      exact absurd (Finset.mem_univ u₀) h
+  · have hzero : ∀ u : Fin k → ZMod 2,
+        ((S.hat (transposeVec H.1 u + v s))⁻¹ * chi y u) *
+          (if i = transposeVec H.1 u + v s then 1 else 0) = 0 := by
+      intro u
+      rw [ite_eq_right (fun hc => hex ⟨u, hc⟩), mul_zero]
+    rw [Finset.sum_eq_zero (fun u _ => hzero u)]
+    simp
+
+end Qatlib.Papers.UnambigMeas25.MainResults
+
+end

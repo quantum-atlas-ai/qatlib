@@ -1,8 +1,12 @@
 <div align="center">
 
-<img src="./.github/assets/qatlib-wordmark.svg" alt="Qatlib" width="560" />
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./.github/assets/qatlib-wordmark-dark.svg" />
+  <source type="image/svg+xml" srcset="./.github/assets/qatlib-wordmark.svg" />
+  <img src="./.github/assets/qatlib-wordmark.png" alt="Qatlib" width="360" height="87" />
+</picture>
 
-**基于 Lean 4 的量子计算与量子信息形式化数学库**
+**面向量子计算与量子信息的 Lean 4 形式化库**
 
 [![Lint](https://github.com/quantum-atlas-ai/qatlib/actions/workflows/lint.yml/badge.svg)](https://github.com/quantum-atlas-ai/qatlib/actions/workflows/lint.yml)
 [![Build](https://github.com/quantum-atlas-ai/qatlib/actions/workflows/build.yml/badge.svg)](https://github.com/quantum-atlas-ai/qatlib/actions/workflows/build.yml)
@@ -16,15 +20,17 @@
 
 简体中文 ｜ [English](./README.en.md)
 
+[定理依赖星图（2D / 3D）](https://quantum-atlas-ai.github.io/qatlib/dependencies.html)
+
 </div>
 
 ---
 
 ## <a id="overview"></a>简介
 
-**Qatlib** 是面向量子计算与量子信息领域的 [Lean 4](https://lean-lang.org/) 形式化数学库，构建于 [`mathlib4`](https://github.com/leanprover-community/mathlib4) 与 [`Physlib`](https://github.com/leanprover-community/physlib) 之上。
+**Qatlib** 是面向量子计算与量子信息的 [Lean 4](https://lean-lang.org/) 形式化库，构建于 [`mathlib4`](https://github.com/leanprover-community/mathlib4) 与 [`Physlib`](https://github.com/leanprover-community/physlib) 之上。
 
-项目旨在用统一的数学定义与算子代数接口，对量子计算中的基础数学结构、核心算法原语以及代表性学术文献中的定理与复杂度分析进行形式化。
+库中涵盖数学基础、可复用的算法原语，以及文献中的定理与资源复杂度界。
 
 ### <a id="status-provenance"></a>项目现状、覆盖边界与来源说明（Status & Provenance）
 

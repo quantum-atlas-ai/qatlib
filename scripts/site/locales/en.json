@@ -1,0 +1,258 @@
+{
+  "ui": {
+    "site_tagline": "The Lean 4 Library for Quantum Computing and Quantum Information",
+    "nav_overview": "Overview",
+    "nav_getting_started": "Getting Started",
+    "nav_architecture": "Architecture",
+    "nav_modules": "Modules",
+    "nav_papers": "Bibliography",
+    "nav_graph": "Dependencies",
+    "nav_contributing": "Contributing",
+    "nav_changelog": "Changelog",
+    "nav_api": "API Docs ↗",
+    "search_placeholder": "Search API declarations…",
+    "brand_home_label": "Qatlib Home",
+    "theme_toggle_label": "Toggle color theme",
+    "theme_light": "Switch to light mode",
+    "theme_dark": "Switch to dark mode",
+    "github_title": "GitHub Repository",
+    "menu_label": "Menu",
+    "language_label": "Language: {name}",
+    "back_to_top_label": "Back to top",
+    "guides_heading": "Documentation",
+    "api_group_heading": "API Reference",
+    "toc_heading": "On this page",
+    "edit_on_github": "View source on GitHub ↗",
+    "footer_api": "API Reference (doc-gen4)",
+    "footer_refs": "API Bibliography",
+    "footer_note": "Built on Lean 4, Mathlib, and Physlib.",
+    "footer_license": "Released under the Apache-2.0 License.",
+    "footer_nav": "Footer navigation",
+    "footer_guides": "Guides",
+    "footer_research": "Research and reference",
+    "footer_project": "Project and contributions",
+    "copy": "Copy",
+    "skip_to_content": "Skip to content",
+    "primary_nav": "Primary navigation",
+    "architecture_tooling": "3. Verification & Maintenance Executables (scripts/)",
+    "not_found": "Page not found",
+    "api_links": [
+      "API Reference Home ↗",
+      "Qatlib Umbrella ↗",
+      "API Bibliography ↗",
+      "Tactics Index ↗"
+    ]
+  },
+  "descriptions": {
+    "index.html": "The Lean 4 Library for Quantum Computing and Quantum Information",
+    "getting-started.html": "Install the Lean toolchain, add Qatlib to a project, and reuse prebuilt artifacts.",
+    "architecture.html": "Learn how Qatlib organizes foundations, reusable concepts, and formalized papers.",
+    "modules.html": "Browse Qatlib’s Lean modules and their source files by layer and research area.",
+    "papers.html": "Explore the bibliography and find the Lean modules that formalize results from each paper.",
+    "contributing.html": "Find Qatlib’s contribution workflow, development conventions, and verification checks.",
+    "changelog.html": "Follow Qatlib releases and changes to the library, documentation, and tools.",
+    "units": "{title} in Qatlib’s Lean module catalog, with declarations, source files, and dependencies.",
+    "papers": "{title} in Qatlib’s bibliography, with citations and related Lean formalizations."
+  },
+  "unit": {
+    "heading": "Unit · {id}",
+    "back_label": "Back to Module Explorer",
+    "level_label": "Layer",
+    "loc_label": "LOC",
+    "module_label": "modules",
+    "depends_label": "Depends on",
+    "imports_label": "Layer imports",
+    "block_label": "Blocks",
+    "no_decl": "No declarations were found for this block.",
+    "catalog": "Catalog / Unit",
+    "no_blocks": "No blocks are registered for this Unit.",
+    "columns": [
+      "Kind",
+      "Declaration",
+      "Source",
+      "Inline summary"
+    ],
+    "module_stats": "{loc:,} LOC · {declarations} declarations",
+    "imports": "Imports",
+    "boundary": "Boundary",
+    "block_summary": "{label} · {id} · {declarations} declarations"
+  },
+  "coverage": {
+    "heading": "Paper coverage",
+    "dimensions": [
+      "Mathematics",
+      "Asymptotics",
+      "Circuit",
+      "Resources"
+    ],
+    "columns": [
+      "Aspect",
+      "Grade",
+      "Target",
+      "Source locator",
+      "Lean evidence",
+      "Scope and notes"
+    ],
+    "unknown": "Unassessed",
+    "unnamed": "Unnumbered source statement"
+  },
+  "paper": {
+    "back_label": "Back to Papers & Bibliography",
+    "claim_heading": "Claims and fidelity",
+    "source_heading": "Formalized source",
+    "no_claims": "No structured claims are available in the source-only view.",
+    "title": "Paper · {id}",
+    "explorer": "Paper / Declaration Explorer",
+    "columns": [
+      "Covered by",
+      "Fidelity",
+      "Evidence note"
+    ],
+    "no_evidence": "No covered_by evidence recorded.",
+    "no_binds": "No binds",
+    "references_heading": "References and citations",
+    "references": "References",
+    "cited_by": "Cited by"
+  },
+  "graph": {
+    "title": "Theorem Nebula",
+    "labels": [
+      "Foundations",
+      "Concepts",
+      "Papers"
+    ],
+    "loading": "Drawing the theorem nebula…",
+    "browse": "Browse",
+    "inspect": "Inspector",
+    "search": "Find a theorem",
+    "filter_label": "Filter this list",
+    "layers": "Theorem groups",
+    "canvas_name": "Theorem nebula. Use the browser and inspector panels for keyboard navigation.",
+    "mode_label": "Graph view",
+    "toolbar_label": "Graph controls",
+    "view2d": "2D nebula",
+    "view3d": "3D layered star field",
+    "toolbar": [
+      "Zoom in",
+      "Zoom out",
+      "Fit view",
+      "Library overview",
+      "Fullscreen"
+    ],
+    "strings": {
+      "totals": "{nodes} theorems · {edges} direct dependencies",
+      "layerTotal": "{nodes} theorems",
+      "upstream": "Uses",
+      "downstream": "Used by",
+      "api": "View API docs ↗",
+      "backToGroup": "Back to group",
+      "clear": "Clear",
+      "close": "Hide",
+      "previous": "Previous",
+      "next": "Next",
+      "none": "None in Qatlib.",
+      "noMatches": "No matches.",
+      "missing": "This theorem was not found in the current graph.",
+      "unavailable": "Unable to load the theorem nebula.",
+      "fullscreenUnavailable": "Fullscreen is unavailable in this browser.",
+      "hint2d": "Drag to pan · Scroll to zoom · Select a star to explore",
+      "hint3d": "Drag to orbit · Scroll to zoom · Select a star to explore"
+    },
+    "description": "Explore direct dependencies and uses of Qatlib theorems.",
+    "api_link": "dependencies"
+  },
+  "home": {
+    "eyebrow": "Kernel-Verified · 0 sorryAx · Standard Axioms Only",
+    "h1": "The Lean 4 Library for Quantum Computing and Quantum Information",
+    "lead": "Built on mathlib4 and Physlib, Qatlib formalizes mathematical foundations, reusable algorithmic primitives, and theorems and resource bounds from the literature.",
+    "cta_start": "Get Started",
+    "cta_graph": "Theorem Dependency Graph",
+    "cta_api": "API Reference (doc-gen4)",
+    "cta_mods": "Explore Modules",
+    "cta_papers": "Bibliography ({count})",
+    "cta_nav": "Main portal actions",
+    "resources_nav": "More documentation resources",
+    "tab1": "Use as Dependency",
+    "tab2": "Clone & Build",
+    "cap1": "Add to lakefile.toml (Lean {toolchain}), then pull prebuilt Mathlib + Physlib + Qatlib caches:",
+    "cap2": "Fetch all three cache tiers in one command and build incrementally:",
+    "metrics": [
+      "Lean 4 Modules",
+      "Paper Directories",
+      "Curated References",
+      "sorryAx / Custom Axioms",
+      "Pinned Toolchain"
+    ],
+    "sec_arch_eye": "Three-Layer Architecture",
+    "sec_arch_h2": "Strict One-Way Dependency: Foundations ← Concepts ← Papers",
+    "sec_arch_p": "Enforced statically in ~1 second by lake lint and audited in the Lean 4 kernel by lake test.",
+    "layer_cards": {
+      "foundations": {
+        "count": "{dirs} dirs · {modules} modules",
+        "title": "Foundations",
+        "description": "Shared operator analysis, trace & Schatten norms, positive semidefinite order, mixed-state fidelity, concentration bounds, graph Laplacians, and finite-precision arithmetic.",
+        "link": "Browse Foundations →"
+      },
+      "concepts": {
+        "count": "{dirs} dirs · {modules} modules",
+        "title": "Concepts",
+        "description": "Reusable quantum channels & entropy, block-encoding algebra, QSVT/QSP, LCU, amplitude amplification, quantum walks, query/adversary bounds, fermionic/bosonic spaces, and QEC.",
+        "link": "Browse Concepts →"
+      },
+      "papers": {
+        "count": "{dirs} dirs · {modules} modules",
+        "title": "Papers",
+        "description": "Selected model definitions, technical lemmas, main theorems (MainResults/), and end-to-end query/gate/qubit resource bounds organized by research paper.",
+        "link": "Browse Papers →"
+      }
+    },
+    "sec_area_eye": "Thematic Coverage",
+    "sec_area_h2": "Research Areas",
+    "sec_area_p": "Click any representative directory below to inspect its Lean modules and jump directly into doc-gen4 API documentation.",
+    "sec_cite_eye": "Citation & Open Source",
+    "sec_cite_h2": "Citing Qatlib",
+    "sec_cite_p": "Qatlib is released under the Apache License 2.0. If you use Qatlib in your research, please cite:"
+  },
+  "modules": {
+    "h1": "Module Explorer",
+    "lead": "Browse all {dirs:,} topic and paper directories ({modules:,} Lean 4 modules) across Foundations, Concepts, and Papers. Every card links directly to doc-gen4 API documentation and GitHub source.",
+    "placeholder": "Filter by directory name, topic, theorem keyword, or [Citekey] (press / to focus)…",
+    "lbl_all": "All ({count})",
+    "layer_display": {
+      "Foundations": "Foundations",
+      "Concepts": "Concepts",
+      "Papers": "Papers"
+    },
+    "status_tpl": "Showing {shown} of {total} directories",
+    "api_lbl": "Entry API Docs →",
+    "dir_api_lbl": "Directory Index",
+    "gh_lbl": "GitHub ↗",
+    "expand_lbl": "Key modules",
+    "mod_unit": "modules",
+    "layer_count": "{layer} ({count})",
+    "unit_detail": "Unit detail →"
+  },
+  "bibliography": {
+    "h1": "Papers & Bibliography",
+    "lead": "Search all {references:,} authoritative books, foundational papers, and preprints in docs/references.bib across {chapters} subject chapters, with direct cross-links to Qatlib formalization directories.",
+    "placeholder": "Search by author, title, year, citekey, arXiv ID, or Qatlib module…",
+    "all_chap": "All {chapters} Subject Chapters ({references})",
+    "only_form_lbl": "Linked to Qatlib modules only",
+    "status_tpl": "Showing {shown} of {total} references",
+    "raw_lbl": "BibTeX",
+    "form_prefix": "Formalized / cited in:",
+    "select_aria": "Filter by subject chapter",
+    "docgen_badge_lbl": "doc-gen4 ↗",
+    "detail": "Paper detail →"
+  },
+  "inventory": {
+    "heading": "Live source KPIs",
+    "title": "Per-layer source inventory",
+    "description": "The same inventory powers Unit, Block, and Declaration detail views.",
+    "columns": [
+      "Layer",
+      "Modules",
+      "LOC"
+    ]
+  }
+}

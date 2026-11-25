@@ -19,15 +19,16 @@ state-vector estimates in `EuclideanSpace`.  The main result is a uniform, state
 the accumulated sandwich-perturbation estimate in [BerryChilds2012], Lemma 7:
 the factor `C` is fixed before all index sets, Hamiltonians, states, and parameters.
 
-The module proves two auxiliary bridges:
+For the ideal preparation amplitude of [BerryChilds2012], Eqs. (57), (58), and (60),
+write `s = 2r + 1` and `u = √(εσ/Λ₁)`, where `Λ₁ > 0`, `0 ≤ σ ≤ Λ₁`, and
+`0 ≤ ε ≤ 1`. Then `u ∈ [0,1]` and convexity of arcsine gives
+`u ≤ s·arcsin(u/s) ≤ arcsin(u)`, so `1 - u²/6 ≤ sin(s·arcsin(u/s))/u ≤ 1`.
+The multiplier at `u = 0` is defined by continuity. In particular the diagonal
+multiplier `M` is contractive and `‖MHM - H‖ ≤ ε‖H‖/3` in the ideal model.
 
-* two Hermitian evolutions are Lipschitz in their Hamiltonians, both as matrices and on state
-  vectors;
-* the real diagonal sandwich perturbation used in the paper is again Hermitian.
-
-The uniform estimate still concerns the explicitly displayed sandwich operator.  It does not
-construct the paper's state-preparation circuit or prove a trace-distance end-to-end simulation
-theorem.
+This is an analytic specialization of the explicit sandwich, not a Lean theorem here.
+The Lean results do not construct the state-preparation circuit or prove an end-to-end
+simulation error bound.
 -/
 
 set_option backward.isDefEq.respectTransparency false

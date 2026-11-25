@@ -44,15 +44,15 @@ total query count on the same scale for every `p_A ∈ [0,1]`, `δ ∈ (0,1]` an
 The paper's combined query count is `M = 2 * n`,
 because one query to the oracle and one to its adjoint implement one phase flip.
 
-## Main statements
+## Four-bin example with an off-grid phase
 
-* `phaseAccuracy_le_delta`: `n ≥ 13 k sqrt p_A / δ` and `n ≥ 5 k / sqrt δ` give the paper's
-  phase-estimation accuracy `δ`.
-* `exists_phase_scale`: for all admissible parameters there are `k` and `n` with both the
-  accuracy and the failure bound, and `n` is at most `48 (sqrt p_A / (ω δ) + 1 / (ω sqrt δ))`.
-* `exists_estprob_budget`: the resulting Theorem 5 interface, with the uniform constant outside
-  the universal quantifiers.
-* `estprob_zero_certain`: a zero estimate for `p_A = 0` succeeds with probability one.
+If one of four equally weighted seeds is accepted, then `p_A = 1/4`. The ideal Grover
+iterate has eigenphases `±1/6` in turns, each with weight `1/2` in the starting state.
+Four-bin inverse Fourier readout gives probabilities `(3,6,1,6)/16` in bin order.
+Decoding with `sin²(π y/4)` gives `(0,1/2,1,1/2)`. At inclusive error `δ = 1/4`,
+only bin `y = 2` fails, so the success probability is `15/16`.
+
+This analytic example checks the ideal readout and decoder, not the oracle query circuit.
 
 ## References
 

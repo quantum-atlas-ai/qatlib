@@ -14,6 +14,7 @@ from pathlib import Path
 import shutil
 import sqlite3
 import subprocess
+import sys
 import tarfile
 import tempfile
 import textwrap
@@ -55,7 +56,7 @@ def fixture():
 def api_files(root: Path, doc: Path) -> None:
     names = ["index.html", "navbar.html", "style.css", "search.html", "search.js",
              "declaration-data.js", "references.html", "Qatlib.html",
-             "declarations/declaration-data.bmp"]
+             "declarations/declaration-data.bmp", build_site.DEPENDENCY_GRAPH_ASSET]
     names.extend(str(p.relative_to(root).with_suffix(".html")) for p in (root / "Qatlib").rglob("*.lean"))
     for name in names:
         path = doc / name
@@ -161,7 +162,7 @@ class DocsPipelineTests(unittest.TestCase):
             self.assertFalse(doc.exists())
             script = (SOURCE / "scripts/build_docs.sh").read_text()
             rendering = script.split("python3 scripts/docs_cache.py clean-html\n", 1)[1]
-            rendering = rendering.split("python3 scripts/docs_cache.py verify-html", 1)[0]
+            rendering = rendering.split("python3 scripts/build_dependency_graph.py", 1)[0]
             # Simulate cached bibPrepass: fromDb checks its inputs without recreating the Bib file.
             phase = '''phase() {
                 test "$1" = fromDb
@@ -179,12 +180,20 @@ class DocsPipelineTests(unittest.TestCase):
     def test_portal_inputs_reuse_html_but_bibliography_and_lean_invalidate_it(self):
         with fixture():
             original = cache.identity()
-            for name in ("README.md", "scripts/build_site.py", "docs/architecture.md"):
+            for name in ("README.md", "scripts/build_site.py", "docs/architecture.md",
+                         "scripts/site/dependency-graph.js", "scripts/site/i18n.js",
+                         "scripts/site/locales/zh-Hans.json", "scripts/site/locales/en.json"):
                 path = Path(name)
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text("portal change")
                 subprocess.run(["git", "add", name], check=True)
             self.assertEqual(cache.identity(), original)
+            for setting, value in (("DEPENDENCY_GRAPH_ASSET", "renamed.json.gz"),
+                                   ("PANEL_LAYERS", cache.PANEL_LAYERS[::-1])):
+                with self.subTest(setting=setting), patch.object(cache, setting, value):
+                    graph_changed = cache.identity()
+                    self.assertNotEqual(graph_changed[1], original[1])
+                    self.assertEqual(graph_changed[2], original[2])
             Path("docs/references.bib").write_text("new bibliography")
             subprocess.run(["git", "add", "docs/references.bib"], check=True)
             changed = cache.identity()
@@ -558,13 +567,19 @@ class DocsPipelineTests(unittest.TestCase):
         gate = workflow.split("      - name: Report required build result\n", 1)[1].split("        run: |\n", 1)[1]
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "output"
-            for changes, required in ((b"README.md\0CHANGELOG.md\0docs/design.md\0", False),
-                                      (b"README.md\0Qatlib/Example.lean\0", True),
-                                      (b"verification/QatlibTests/PublicModuleInterface.lean\0", True),
-                                      (b"verification/QatlibTests/NewConsumer.lean\0", True),
-                                      (b"verification/QatlibTests.lean\0", True),
-                                      (b"docbuild/lakefile.toml\0", True),
-                                      (b"scripts/docs_cache.py\0", True)):
+            for changes, required in (
+                    (b"M\0README.md\0M\0CHANGELOG.md\0A\0docs/design.md\0", False),
+                    (b"M\0README.md\0D\0Qatlib/Example.lean\0", True),
+                    (b"M\0verification/QatlibTests/PublicModuleInterface.lean\0", True),
+                    (b"A\0verification/QatlibTests/NewConsumer.lean\0", True),
+                    (b"M\0verification/QatlibTests.lean\0", True),
+                    (b"M\0docbuild/lakefile.toml\0", True),
+                    (b"M\0scripts/docs_cache.py\0", True),
+                    (b"R100\0Qatlib/Example.lean\0docs/Example.lean\0", True),
+                    (b"R095\0docs/Example.lean\0Qatlib/Example.lean\0", True),
+                    (b"R100\0README.md\0docs/new\nname.md\0", False),
+                    (b"C100\0docs/Example.lean\0verification/Example.lean\0", True),
+            ):
                 with self.subTest(changes=changes), patch.dict(os.environ, {
                         "EVENT_NAME": "pull_request", "BASE_SHA": "base", "GITHUB_OUTPUT": str(output)}), \
                         patch.object(subprocess, "check_output", return_value=changes) as diff:
@@ -572,6 +587,7 @@ class DocsPipelineTests(unittest.TestCase):
                     exec(compile(textwrap.dedent(selector), "build-selector", "exec"), {})
                     self.assertEqual(output.read_text(), f"build={str(required).lower()}\n")
                     self.assertEqual(diff.call_args.args[0][-1], "base...HEAD")
+                    self.assertIn("--name-status", diff.call_args.args[0])
             for selected, required, result, success in (
                     ("success", "false", "skipped", True),
                     ("success", "true", "success", True),
@@ -585,6 +601,62 @@ class DocsPipelineTests(unittest.TestCase):
                                                   "BUILD_REQUIRED": required, "BUILD_RESULT": result},
                                              capture_output=True, text=True)
                     self.assertEqual(process.returncode == 0, success, process.stderr)
+
+    def test_build_rejects_root_lakefile_lean_before_selection(self):
+        workflow = (SOURCE / ".github/workflows/build.yml").read_text()
+        selector = workflow.split("          python3 - <<'PY'\n", 1)[1].split("          PY\n", 1)[0]
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "lakefile.toml").touch()
+            (root / "lakefile.lean").touch()
+            output = root / "output"
+            for event in ("pull_request", "push", "workflow_dispatch"):
+                with self.subTest(event=event):
+                    process = subprocess.run(
+                        [sys.executable, "-c", textwrap.dedent(selector)], cwd=root,
+                        env={**os.environ, "EVENT_NAME": event, "GITHUB_OUTPUT": str(output)},
+                        capture_output=True, text=True,
+                    )
+                    self.assertNotEqual(process.returncode, 0)
+                    self.assertIn("Root lakefile.lean is unsupported. Use lakefile.toml instead.", process.stderr)
+                    self.assertFalse(output.exists())
+
+    def test_git_rename_out_of_verification_routes_through_build(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for source in ("before/verification/Consumer.lean", "after/docs/Consumer.lean"):
+                path = root / source
+                path.parent.mkdir(parents=True)
+                path.write_text("def exampleValue : Nat := 0\n")
+            output = root / "output"
+            for workflow, event, expected in (
+                    ("build", "pull_request", "build=true\n"),
+                    ("docs", "push", "run=false\n"),
+            ):
+                with self.subTest(workflow=workflow):
+                    text = (SOURCE / f".github/workflows/{workflow}.yml").read_text()
+                    selector = text.split("          python3 - <<'PY'\n", 1)[1].split("          PY\n", 1)[0]
+                    ref_count = 1 if event == "pull_request" else 2
+
+                    def diff(args):
+                        # Run Git's real diff with two directory trees in place of two commits.
+                        result = subprocess.run(
+                            [*args[:2], "--no-index", *args[2:-ref_count], "before", "after"],
+                            cwd=root, capture_output=True,
+                        )
+                        self.assertEqual(result.returncode, 1, result.stderr)
+                        if workflow == "build":
+                            self.assertTrue(result.stdout.startswith(b"R100\0"), result.stdout)
+                        return b"\0".join(field.removeprefix(b"before/").removeprefix(b"after/")
+                                           for field in result.stdout.split(b"\0"))
+
+                    output.write_text("")
+                    with patch.dict(os.environ, {
+                        "EVENT_NAME": event, "BASE_SHA": "base", "BEFORE": "before",
+                        "AFTER": "after", "GITHUB_OUTPUT": str(output),
+                    }), patch.object(subprocess, "check_output", side_effect=diff):
+                        exec(compile(textwrap.dedent(selector), f"{workflow}-selector", "exec"), {})
+                    self.assertEqual(output.read_text(), expected)
 
     def test_docs_miss_generates_on_hosted_runners_and_changelog_triggers_docs(self):
         workflow = (SOURCE / ".github/workflows/docs.yml").read_text()
@@ -607,7 +679,7 @@ class DocsPipelineTests(unittest.TestCase):
                 "lake": '#!/bin/bash\nprintf "lake %s\\n" "$*" >> "$CALLS"\n'
                         'if [ "$*" = "--no-build build Qatlib" ]; then exit 1; fi\n',
                 "python3": '#!/bin/bash\nprintf "python3 %s\\n" "$*" >> "$CALLS"\n'
-                           'if [ "$1" = scripts/docs_cache.py ]; then exit 0; fi\nexit 1\n',
+                           'if [ "$1" = scripts/docs_cache.py ] || [ "$1" = scripts/build_dependency_graph.py ]; then exit 0; fi\nexit 1\n',
             }
             for name, content in programs.items():
                 path = bin_dir / name
@@ -622,10 +694,44 @@ class DocsPipelineTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             commands = calls.read_text()
             for expected in ("lake --fail-fast build --wfail Qatlib", "restore-analysis", "prune",
-                             "normalize-analysis", "verify-html", "@Qatlib/+Qatlib:docInfo", "@Qatlib/Qatlib:docs"):
+                             "normalize-analysis", "verify-html",
+                             "python3 scripts/build_dependency_graph.py --output-dir docbuild/.lake/build/doc",
+                             "@Qatlib/+Qatlib:docInfo", "@Qatlib/Qatlib:docs"):
                 self.assertIn(expected, commands)
             self.assertNotIn("publish-", commands)
             self.assertLess(commands.index("normalize-analysis"), commands.index("@Qatlib/Qatlib:docs"))
+
+    def test_lake_restores_missing_private_part_in_a_persistent_build(self):
+        with fixture() as directory:
+            root = directory / "lake-project"
+            root.mkdir()
+            shutil.copyfile(SOURCE / "lean-toolchain", root / "lean-toolchain")
+            (root / "lakefile.toml").write_text(
+                'name = "Fixture"\nplatformIndependent = true\n'
+                '[[lean_lib]]\nname = "Fixture"\nrequiresModuleSystem = true\n')
+            (root / "Fixture.lean").write_text("module\npublic theorem sample : True := trivial\n")
+            env = {key: value for key, value in os.environ.items()
+                   if key not in {"ELAN_TOOLCHAIN", "LAKE_CONFIG", "LAKE_PKG_URL_MAP"}}
+            env.update(LAKE_CACHE_DIR=str(root / "lake-cache"),
+                       LAKE_ARTIFACT_CACHE="true", LAKE_RESTORE_ARTIFACTS="false")
+
+            def lake(*args):
+                result = subprocess.run(["lake", *args], cwd=root, env=env,
+                                        capture_output=True, text=True)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+            lake("build", "Fixture", "-o", "outputs.jsonl")
+            env.pop("LAKE_ARTIFACT_CACHE")
+            env["LAKE_RESTORE_ARTIFACTS"] = "true"
+            lake("--no-build", "build", "Fixture")
+            public = root / ".lake/build/lib/lean/Fixture.olean"
+            private = public.with_suffix(".olean.private")
+            expected = private.read_bytes()
+            self.assertTrue(public.is_file())
+            private.rename(root / "previous.olean.private")
+            lake("--no-build", "build", "Fixture")
+            self.assertEqual(private.read_bytes(), expected)
+            self.assertTrue(public.with_suffix(".olean.server").is_file())
 
     def test_source_link_normalization_does_not_require_publication(self):
         with cache.database(":memory:") as connection, patch.object(cache, "put") as upload:

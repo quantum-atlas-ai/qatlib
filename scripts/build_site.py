@@ -19,17 +19,23 @@ from __future__ import annotations
 
 import argparse
 from concurrent.futures import ProcessPoolExecutor
+from functools import cache
+import gzip
 import html
 from html.parser import HTMLParser
 import json
 import os
 from pathlib import Path
+from posixpath import relpath
 import re
 import shutil
 import subprocess
 import sys
 from collections import defaultdict
 from typing import Any
+from urllib.parse import quote, unquote, urlsplit
+
+from site_docgen import adapt_docgen
 
 GITHUB_REPO_URL = "https://github.com/quantum-atlas-ai/qatlib"
 CACHE_CDN_URL = "https://lake-cache.quantum-atlas.ai"
@@ -50,8 +56,8 @@ LEAN_NAME_PART = r"(?:[^\W\d][\w'!?]*|«[^»]+»)"
 LEAN_NAME = rf"{LEAN_NAME_PART}(?:\.{LEAN_NAME_PART})*"
 NAME_PART_RE = re.compile(LEAN_NAME_PART)
 DECLARATION_RE = re.compile(
-    r"^\s*(?:(?:@\[[^\]]*\]|(?:private|protected|noncomputable|partial|unsafe|scoped|local|public|meta))\s+)*"
-    r"(?P<kind>theorem|lemma|def|abbrev|structure|inductive|class|opaque|instance|axiom)\b"
+    r"[ \t]*(?:(?:@\[[^\]]*\]|(?:private|protected|noncomputable|nonrec|partial|unsafe|scoped|local|public|meta))\s+)*"
+    rf"(?P<kind>{'|'.join(DECLARATION_KINDS)})(?=\s|[:(\[{{]|$)"
     rf"(?:\s+(?P<name>{LEAN_NAME}))?"
 )
 HEADER_DIRECTIVE_RE = re.compile(
@@ -75,74 +81,93 @@ SOURCE_HIGHLIGHT_RE = re.compile(
     re.IGNORECASE,
 )
 PANEL_LAYERS = ("Foundations", "Concepts", "Papers")
-
-# Fallback Qatlib brand wordmark group (selected Z-QL03: Q∀† scaled to 80%, lib unchanged, #263F5F on #FFFFFF)
-FALLBACK_WORDMARK_INNER = (
-    '<g id="prefix-qat" data-prefix-scale="0.8" transform="translate(0,20) scale(0.8)">'
-    '<g id="quantum-q"><g id="q-bowl" transform="translate(6,0)">'
-    '<path d="M23 0 H41 C54 0 64 13 64 33 V70 C64 90 54 103 41 103 H23 C10 103 0 90 0 70 '
-    'V33 C0 13 10 0 23 0 Z M23 4.2 H41 C51.2 4.2 58.6 15.2 58.6 33 V70 C58.6 87.8 51.2 98.8 '
-    '41 98.8 H23 C12.8 98.8 5.4 87.8 5.4 70 V33 C5.4 15.2 12.8 4.2 23 4.2 Z" '
-    'fill="currentColor" fill-rule="evenodd"/></g>'
-    '<path d="M40.37 76 C50.44 80 62 99 71 105 C74 107 77 107 80 105 L78 110 C73 112 69 109 '
-    '65 104 C56 94 46.89 83 40.37 76 Z" fill="currentColor" fill-rule="evenodd"/></g>'
-    '<g id="operator-ligature"><path d="M78 0 H83.46 L111 85.96 L138.54 0 H144 L111 103 Z" '
-    'fill="currentColor" fill-rule="evenodd"/>'
-    '<path d="M173.9 4 L178.1 3 L177.68 37 H174.32 Z" fill="currentColor"/>'
-    '<path d="M176 -3 L180.6 2 L176 7 L171.4 2 Z" fill="currentColor"/>'
-    '<path d="M170.7 37 L181.3 37 L179.445 81 L176 108 L172.555 81 Z M175.35 46 V88 '
-    'L176.65 83 V46 Z" fill="currentColor" fill-rule="evenodd"/>'
-    '<path d="M89 33.9 C115 33.9 152 33.9 175 33.9 C184 33.9 192 33.7 197 32.6 L196 38.295 '
-    'C190 37.7 182 38.1 175 38.1 C150 38.1 115 38.1 91 38.1 Z" fill="currentColor" '
-    'fill-rule="evenodd"/></g>'
-    '<g id="qv-link"><path d="M68.5 33.9 H93 V38.1 H68.5 Z" fill="currentColor" '
-    'fill-rule="evenodd"/></g></g>'
-    '<g id="suffix-lib" transform="translate(168.6,0) scale(.95,1)">'
-    '<path d="M9.73 98.7C9.73 97.59 9.62 96.19 9.93 94.49C11.53 83.36 16.84 53.78 20.25 '
-    '39.24C23.06 28.41 24.16 23 17.55 23C12.93 23 9.22 25.51 9.22 25.51L8.72 27.31C11.53 '
-    '27.71 12.73 30.72 11.73 36.33C11.73 36.33 5.01 72.33 0.2 97.19L0 98.7ZM37.6 34.43C37.5 '
-    '37.24 39.8 39.84 42.71 39.84C45.52 39.84 47.92 37.24 48.02 34.43C48.02 31.62 45.72 29.22 '
-    '42.91 29.22C40 29.22 37.6 31.62 37.6 34.43ZM27.57 98.7H37.3C37.4 98.1 37.4 97.49 '
-    '37.4 96.89C37.4 95.19 37.6 93.28 38 91.18C39.8 80.55 41.91 67.32 42.71 63.2C43.01 '
-    '61.5 44.92 54.88 44.92 52.78C45.02 50.17 43.91 48.07 41.21 48.07C37.2 48.07 32.68 50.67 '
-    '30.58 53.18L31.48 54.78C31.78 54.68 31.98 54.68 32.28 54.68C33.79 54.68 35.09 55.79 '
-    '34.99 58.29C34.99 58.79 34.99 59.9 27.67 98.3ZM66.97 36.33C66.47 42.45 57.15 86.06 57.15 '
-    '91.08C57.15 97.19 63.67 100 71.89 100C90.43 100 99.96 79.95 99.96 64.81C99.96 53.18 '
-    '96.45 47.66 89.93 47.66C83.62 47.66 75.7 52.78 70.48 60.8C73.69 49.67 77.7 32.73 77.8 '
-    '27.81C77.8 24.6 76.5 23 72.79 23C68.18 23 64.47 25.51 64.47 25.51L64.07 27.31C66.57 '
-    '27.41 67.17 30.22 67.17 33.03C67.17 34.23 67.07 35.33 66.97 36.33ZM67.17 83.76C68.08 '
-    '77.44 68.08 76.54 70.18 64.71C74.39 59.29 80.91 54.38 84.72 54.38C89.23 54.38 90.74 59.49 '
-    '90.74 66.01C90.74 77.94 86.52 94.49 73.99 94.49C68.18 94.49 66.87 91.98 66.87 88.17C66.87 '
-    '86.87 66.97 85.36 67.17 83.76Z" fill="currentColor" '
-    'stroke="var(--wordmark-cutout, #ffffff)" stroke-width="1.5" stroke-linejoin="round"/></g>'
+DEPENDENCY_GRAPH_PAGE = "dependencies.html"
+DEPENDENCY_GRAPH_ASSET = "theorem-dependencies.json.gz"
+DEPENDENCY_GRAPH_SCRIPT = "dependency-graph.js"
+DEPENDENCY_GRAPH_STYLES = "dependency-graph.css"
+DEPENDENCY_GRAPH_API = "dependency-graph-api.js"
+DEPENDENCY_GRAPH_PORTAL_ASSETS = (
+    DEPENDENCY_GRAPH_STYLES, DEPENDENCY_GRAPH_SCRIPT, "dependency-nebula.js", "dependency-layers.js",
 )
+SITE_ASSETS = Path(__file__).with_name("site")
+DEFAULT_SITE_URL = "https://quantum-atlas-ai.github.io/qatlib/"
+DEFAULT_LOCALE = "zh"
+LOCALES = {
+    "zh": {"tag": "zh-Hans", "name": "中文", "og": "zh_CN", "md_suffix": "", "prefix": ""},
+    "en": {"tag": "en", "name": "English", "og": "en_US", "md_suffix": ".en", "prefix": "en/"},
+}
+SOCIAL_IMAGE = "qatlib-social-preview.png"
+BRAND_ASSETS = Path(".github/assets")
+FAVICON_ASSETS = Path(__file__).resolve().parents[1] / BRAND_ASSETS / "favicon"
+ADAPTIVE_FAVICON = "favicon-adaptive.svg"
+NAV_PAGES = {
+    "index.html": "nav_overview",
+    "getting-started.html": "nav_getting_started",
+    "architecture.html": "nav_architecture",
+    "modules.html": "nav_modules",
+    "papers.html": "nav_papers",
+    DEPENDENCY_GRAPH_PAGE: "nav_graph",
+    "contributing.html": "nav_contributing",
+    "changelog.html": "nav_changelog",
+}
+GUIDE_PAGES = {
+    "README": "index.html",
+    "docs/getting-started": "getting-started.html",
+    "docs/architecture": "architecture.html",
+    "CONTRIBUTING": "contributing.html",
+    "scripts/README": "architecture.html#tooling",
+}
 
 
-def load_wordmark_svg(repo_root: Path, css_class: str = "brand-wordmark") -> str:
-    """Extract Z-QL03 wordmark SVG from .github/assets/qatlib-wordmark.svg with adaptive cutout."""
-    for rel in [".github/assets/qatlib-wordmark.svg", "docs/qatlib-logo.svg"]:
-        candidate = repo_root / rel
-        if candidate.is_file():
-            raw = candidate.read_text(encoding="utf-8")
-            m = re.search(r'(<g id="wordmark"[\s\S]*)</svg>', raw)
-            if m:
-                inner = m.group(1).strip()
-                inner = re.sub(
-                    r'stroke="#[0-9A-Fa-f]{6}"',
-                    'stroke="var(--wordmark-cutout, #ffffff)"',
-                    inner,
-                )
-                inner = re.sub(r'fill="#[0-9A-Fa-f]{6}"', 'fill="currentColor"', inner)
-                inner = re.sub(r'^<g id="wordmark"\s+transform="[^"]*"', '<g id="wordmark"', inner, count=1)
-                return (
-                    f'<svg class="{css_class}" xmlns="http://www.w3.org/2000/svg" '
-                    f'viewBox="3 15 264 97" role="img" aria-label="Qatlib">{inner}</svg>'
-                )
+@cache
+def strings_for(locale: str) -> dict[str, Any]:
+    path = SITE_ASSETS / "locales" / f"{LOCALES[locale]['tag']}.json"
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def url_for(locale: str, page: str = "index.html") -> str:
+    """Return the locale route relative to the site root, using directory URLs for homes."""
+    path, sep, anchor = page.partition("#")
+    return f"{LOCALES[locale]['prefix']}{'' if path == 'index.html' else quote(path)}{sep}{anchor}"
+
+
+def root_relative(page: str) -> str:
+    return "../" * page.count("/") or "./"
+
+
+def relative_url(from_page: str, target: str) -> str:
+    path = relpath(target or ".", start=from_page.rpartition("/")[0] or ".")
+    if path == ".":
+        return "./"
+    prefix = "" if path == ".." or path.startswith("../") else "./"
+    return f"{prefix}{path}{'/' if not target or target.endswith('/') else ''}"
+
+def render_wordmark(root_prefix: str, css_class: str) -> str:
+    """Render the full wordmark in the colors for the active portal theme."""
+    assets = f"{root_prefix}assets"
     return (
-        f'<svg class="{css_class}" xmlns="http://www.w3.org/2000/svg" '
-        f'viewBox="3 15 264 97" role="img" aria-label="Qatlib">'
-        f'<g id="wordmark">{FALLBACK_WORDMARK_INNER}</g></svg>'
+        f'<span class="brand-wordmark {css_class}">'
+        f'<img class="wordmark-light" src="{assets}/qatlib-wordmark.svg" alt="Qatlib" width="480" height="115">'
+        f'<img class="wordmark-dark" src="{assets}/qatlib-wordmark-dark.svg" alt="Qatlib" width="480" height="115">'
+        '</span>'
     )
+
+
+def render_favicon_links(root_prefix: str) -> str:
+    """Render the icons with paths relative to the portal root."""
+    links = [f'<link rel="icon" href="{root_prefix}favicon.ico" sizes="any">']
+    links.extend(
+        f'<link rel="icon" type="image/png" sizes="{size}" '
+        f'href="{root_prefix}favicon-{theme}-{size}.png" '
+        f'media="(prefers-color-scheme: {theme})">'
+        for theme in ("light", "dark")
+        for size in ("32x32", "16x16")
+    )
+    links.extend((
+        f'<link rel="icon" type="image/svg+xml" href="{root_prefix}{ADAPTIVE_FAVICON}" sizes="any">',
+        f'<link rel="apple-touch-icon" sizes="180x180" href="{root_prefix}apple-touch-icon.png">',
+    ))
+    return "\n".join(f"  {link}" for link in links)
 
 
 # ---------------------------------------------------------------------------
@@ -662,6 +687,11 @@ def _header_imports(code: str) -> list[str]:
     return sorted(set(imports))
 
 
+def _module_components(name: str) -> list[str]:
+    """Decode Lean import names into individual filesystem path components."""
+    return [part.removeprefix("«").removesuffix("»") for part in NAME_PART_RE.findall(name)]
+
+
 def _parse_source_file(job: tuple[Path, Path]) -> dict[str, Any]:
     """Worker-process parser for one public Lean source file."""
     path, repo_root = job
@@ -679,10 +709,9 @@ def _parse_source_file(job: tuple[Path, Path]) -> dict[str, Any]:
     imports = _header_imports(code)
     layer_imports: dict[str, list[str]] = {name: [] for name in PANEL_LAYERS}
     for imported in imports:
-        for imported_layer in PANEL_LAYERS:
-            prefix = f"Qatlib.{imported_layer}."
-            if imported.startswith(prefix):
-                layer_imports[imported_layer].append(imported)
+        components = _module_components(imported)
+        if len(components) >= 3 and components[0] == "Qatlib" and components[1] in layer_imports:
+            layer_imports[components[1]].append(imported)
     citations = sorted(set(BRACKET_KEY_RE.findall(text)))
 
     declarations: list[dict[str, Any]] = []
@@ -691,6 +720,9 @@ def _parse_source_file(job: tuple[Path, Path]) -> dict[str, Any]:
     scopes: list[tuple[str, bool]] = []
     pending_doc = ""
     code_lines = code.removesuffix("\n").split("\n") if code else []
+    line_offsets = [0]
+    for raw in code_lines:
+        line_offsets.append(line_offsets[-1] + len(raw) + 1)
     line_no = 0
     while line_no < len(code_lines):
         raw = code_lines[line_no]
@@ -731,15 +763,14 @@ def _parse_source_file(job: tuple[Path, Path]) -> dict[str, Any]:
             pending_doc = ""
             line_no += 1
             continue
-        declaration_match = DECLARATION_RE.match(raw)
+        declaration_match = DECLARATION_RE.match(code, line_offsets[line_no])
         if declaration_match:
             kind = declaration_match.group("kind")
             name = declaration_match.group("name") or f"anonymous_{line_no + 1}"
-            if kind == "instance" and re.match(r"^\s*instance\s*:", raw):
-                name = f"anonymous_{line_no + 1}"
+            last_line = line_no + code.count("\n", declaration_match.start(), declaration_match.end())
             prefix = [part for part, is_namespace in scopes if is_namespace]
             fqn = name[7:] if name.startswith("_root_.") else ".".join([*prefix, name])
-            highlight_text = f"{pending_doc} {raw}"
+            highlight_text = f"{pending_doc} {' '.join(code_lines[line_no:last_line + 1])}"
             highlights = sorted(
                 set(m.group(1).lower() for m in SOURCE_HIGHLIGHT_RE.finditer(highlight_text))
             )
@@ -755,7 +786,7 @@ def _parse_source_file(job: tuple[Path, Path]) -> dict[str, Any]:
                 }
             )
             pending_doc = ""
-            line_no += 1
+            line_no = last_line + 1
             continue
         pending_doc = ""
         line_no += 1
@@ -1101,68 +1132,42 @@ def _coverage_badges(claim: dict[str, Any]) -> str:
 
 
 def _unit_href(unit_id: str, lang: str, root_prefix: str) -> str:
-    page_prefix = f"{root_prefix}zh/" if lang == "zh" else root_prefix
-    return f"{page_prefix}units/{html.escape(unit_id)}.html"
+    return root_prefix + url_for(lang, f"units/{unit_id}.html")
 
 
 def _paper_href(paper_id: str, lang: str, root_prefix: str) -> str:
-    page_prefix = f"{root_prefix}zh/" if lang == "zh" else root_prefix
-    return f"{page_prefix}papers/{html.escape(str(paper_id))}.html"
+    return root_prefix + url_for(lang, f"papers/{paper_id}.html")
 
 
 def build_catalog_kpi_panel(*, lang: str, tree_stats: dict[str, Any]) -> str:
-    labels = {
-        "en": (
-            "Live source KPIs",
-            "Modules",
-            "LOC",
-            "theorem",
-            "lemma",
-            "def",
-            "structure",
-            "instance",
-        ),
-        "zh": ("源码统计", "模块", "代码行", "theorem", "lemma", "def", "structure", "instance"),
-    }
-    heading, module_lbl, loc_lbl, *kind_labels = labels[lang]
+    t = strings_for(lang)["inventory"]
+    kinds = ("theorem", "lemma", "def", "structure", "instance")
+    columns = "".join(f"<th>{html.escape(label)}</th>" for label in (*t["columns"], *kinds))
     rows: list[str] = []
     for layer in PANEL_LAYERS:
         stats = tree_stats["catalog"]["layers"][layer]
-        selected_kinds = ("theorem", "lemma", "def", "structure", "instance")
         values = [stats["module_count"], stats["loc"]] + [
-            stats["kind_counts"].get(kind, 0) for kind in selected_kinds
+            stats["kind_counts"].get(kind, 0) for kind in kinds
         ]
         rows.append(
             f'<tr><th>{html.escape(layer)}</th>'
             + "".join(f"<td>{value:,}</td>" for value in values)
             + "</tr>"
         )
-    headings = [module_lbl, loc_lbl, *kind_labels]
     return f'''<section class="section panel-kpi-section">
-      <div class="section-header"><div class="section-eyebrow">{html.escape(heading)}</div>
-      <h2>{"Per-layer source inventory" if lang == "en" else "按层源码清单"}</h2>
-      <p>{"The same inventory powers Unit, Block, and Declaration detail views." if lang == "en" else "同一份清单同时驱动 Unit、Block 与 Declaration 详情视图。"}</p></div>
-      <div class="panel-table-wrap"><table class="panel-table"><thead><tr><th>Layer</th>{"".join(f"<th>{html.escape(label)}</th>" for label in headings)}</tr></thead><tbody>{"".join(rows)}</tbody></table></div>
+      <div class="section-header"><div class="section-eyebrow">{t["heading"]}</div>
+      <h2>{t["title"]}</h2>
+      <p>{t["description"]}</p></div>
+      <div class="panel-table-wrap"><table class="panel-table"><thead><tr>{columns}</tr></thead><tbody>{"".join(rows)}</tbody></table></div>
     </section>'''
 
 
 def build_unit_detail_body(
     *, unit: dict[str, Any], lang: str, root_prefix: str, all_unit_ids: set[str]
 ) -> str:
-    page_prefix = f"{root_prefix}zh/" if lang == "zh" else root_prefix
-    metadata = unit.get("metadata") or {}
-    if lang == "en":
-        heading = f"Unit · {unit['id']}"
-        back_label = "Back to Module Explorer"
-        level_label, loc_label, module_label = "Layer", "LOC", "modules"
-        depends_label, imports_label, block_label = "Depends on", "Layer imports", "Blocks"
-        no_decl = "No declarations were found for this block."
-    else:
-        heading = f"Unit · {unit['id']}"
-        back_label = "返回模块导览"
-        level_label, loc_label, module_label = "层级", "代码行", "模块"
-        depends_label, imports_label, block_label = "依赖 Unit", "跨层导入", "Block"
-        no_decl = "此 Block 尚未发现 Lean 声明。"
+    page_prefix = root_prefix + url_for(lang)
+    t = strings_for(lang)["unit"]
+    heading = t["heading"].format(id=unit["id"])
 
     depends = "".join(
         f'<a class="dir-chip" href="{_unit_href(item, lang, root_prefix)}">{html.escape(item)}</a>'
@@ -1170,7 +1175,7 @@ def build_unit_detail_body(
         if item in all_unit_ids
     )
     depends_html = (
-        f'<div class="panel-links"><span class="panel-muted">{depends_label}:</span>{depends}</div>'
+        f'<div class="panel-links"><span class="panel-muted">{t["depends_label"]}:</span>{depends}</div>'
         if depends
         else ""
     )
@@ -1178,19 +1183,22 @@ def build_unit_detail_body(
     for layer, imports in unit.get("imports", {}).items():
         if not imports:
             continue
-        chips = "".join(
-            f'<a class="dir-chip" href="{page_prefix}modules.html#{html.escape("Qatlib/" + layer + "/" + imported.split(".")[2])}">{html.escape(imported)}</a>'
-            for imported in imports[:30]
-            if len(imported.split(".")) >= 3
-        )
+        links = []
+        for imported in imports[:30]:
+            components = _module_components(imported)
+            if len(components) >= 3:
+                fragment = quote("/".join(components[:3]))
+                links.append(f'<a class="dir-chip" href="{page_prefix}modules.html#{fragment}">{html.escape(imported)}</a>')
+        chips = "".join(links)
         if chips:
             imports_html.append(f'<div class="panel-links"><span class="panel-muted">{html.escape(layer)}:</span>{chips}</div>')
     imports_section = (
-        f'<div><div class="panel-muted">{imports_label}</div>{"".join(imports_html)}</div>'
+        f'<div><div class="panel-muted">{t["imports_label"]}</div>{"".join(imports_html)}</div>'
         if imports_html
         else ""
     )
 
+    columns = "".join(f"<th>{html.escape(label)}</th>" for label in t["columns"])
     block_cards: list[str] = []
     for block in unit.get("blocks", []):
         rank_badge = _badge(f"goal-rank {block.get('goal-rank')}", "rank") if block.get("goal-rank") else ""
@@ -1207,11 +1215,11 @@ def build_unit_detail_body(
                 f'<td>{html.escape(declaration.get("doc") or "—")} {badges}</td></tr>'
             )
         decl_html = (
-            '<table class="panel-decl-table"><thead><tr><th>Kind</th><th>Declaration</th><th>Source</th><th>Inline summary</th></tr></thead><tbody>'
+            f'<table class="panel-decl-table"><thead><tr>{columns}</tr></thead><tbody>'
             + "".join(rows)
             + "</tbody></table>"
             if rows
-            else f'<p class="panel-empty">{no_decl}</p>'
+            else f'<p class="panel-empty">{t["no_decl"]}</p>'
         )
         modules_html: list[str] = []
         for module in block.get("modules", []):
@@ -1219,51 +1227,110 @@ def build_unit_detail_body(
             module_imports = ", ".join(module.get("imports", [])[:8])
             modules_html.append(
                 f'<div class="panel-module-card"><div class="panel-module-head"><strong>{html.escape(module["module"])}</strong>'
-                f'<span class="panel-muted">{module["loc"]:,} LOC · {len(module["declarations"])} declarations</span></div>'
+                f'<span class="panel-muted">{t["module_stats"].format(loc=module["loc"], declarations=len(module["declarations"]))}</span></div>'
                 f'<div class="panel-muted">{html.escape(module.get("summary") or "")} {module_highlights}</div>'
-                f'<div class="panel-muted">imports: {html.escape(module_imports or "—")}</div></div>'
+                f'<div class="panel-muted">{t["imports"]}: {html.escape(module_imports or "—")}</div></div>'
             )
+        summary = t["block_summary"].format(label=t["block_label"], id=block["id"], declarations=len(declarations))
         block_cards.append(
             f'<article class="panel-card" id="block-{html.escape(block["id"])}">'
             f'<div class="panel-meta"><h2>{html.escape(block.get("title", block["id"]))}</h2>{rank_badge}{highlight_badges}</div>'
             f'<p>{html.escape(block.get("content") or "")}</p>'
-            f'<p class="panel-muted"><strong>Boundary:</strong> {html.escape(block.get("boundary") or "—")}</p>'
-            f'<details open><summary>{html.escape(block_label)} · {html.escape(block["id"])} · {len(declarations)} declarations</summary>'
+            f'<p class="panel-muted"><strong>{t["boundary"]}:</strong> {html.escape(block.get("boundary") or "—")}</p>'
+            f'<details open><summary>{html.escape(summary)}</summary>'
             f'{"".join(modules_html)}{decl_html}</details></article>'
         )
 
     return f'''
   <main class="panel-detail-wrap">
     <div class="panel-detail-header">
-      <div class="section-eyebrow">Catalog / Unit</div>
+      <div class="section-eyebrow">{t["catalog"]}</div>
       <h1>{html.escape(heading)}</h1>
-      <p>{html.escape(unit.get("title", unit["id"]))} · {html.escape(level_label)} {html.escape(unit.get("level", ""))} · {unit.get("loc", 0):,} {html.escape(loc_label)} · {len(unit.get("modules", []))} {html.escape(module_label)}</p>
-      <p style="margin-top:10px;"><a href="{page_prefix}modules.html">← {html.escape(back_label)}</a></p>
+      <p>{html.escape(unit.get("title", unit["id"]))} · {html.escape(t["level_label"])} {html.escape(unit.get("level", ""))} · {unit.get("loc", 0):,} {html.escape(t["loc_label"])} · {len(unit.get("modules", []))} {html.escape(t["module_label"])}</p>
+      <p style="margin-top:10px;"><a href="{page_prefix}modules.html">← {html.escape(t["back_label"])}</a></p>
       {depends_html}{imports_section}
     </div>
-    <div class="panel-grid">{"".join(block_cards) if block_cards else '<article class="panel-card"><p class="panel-empty">No blocks are registered for this Unit.</p></article>'}</div>
+    <div class="panel-grid">{"".join(block_cards) if block_cards else f'<article class="panel-card"><p class="panel-empty">{t["no_blocks"]}</p></article>'}</div>
   </main>
 '''
+
+
+def build_paper_coverage_body(paper: dict[str, Any], lang: str) -> str:
+    """Render the optional paper-level coverage from the supplied metadata."""
+    coverage = (paper.get("metadata") or {}).get("coverage_claims")
+    if not isinstance(coverage, dict) or not coverage:
+        return ""
+
+    aspects = ("math", "asymptotic", "circuit", "resource")
+    t = strings_for(lang)["coverage"]
+    heading, dimensions, columns = t["heading"], t["dimensions"], t["columns"]
+    unknown, unnamed = t["unknown"], t["unnamed"]
+
+    def entries(value: Any) -> list:
+        return value if isinstance(value, list) else []
+
+    locators = {
+        claim["id"]: claim.get("label") or unnamed
+        for claim in entries(paper.get("claims"))
+        if isinstance(claim, dict) and isinstance(claim.get("id"), str) and claim["id"]
+    }
+    rank_labels = {"unknown": unknown, "not_applicable": "N/A"}
+
+    def reader_text(value: str) -> str:
+        text = re.sub(r"(?<![A-Za-z0-9_])(?:[A-Za-z][A-Za-z0-9_]*\.)?(c[0-9]{3,5})(?![A-Za-z0-9_])",
+                      lambda match: locators.get(match[1], unnamed), value)
+        return html.escape(text)
+
+    rows: list[str] = []
+    for aspect, dimension in zip(aspects, dimensions, strict=True):
+        claim = coverage.get(aspect)
+        if not isinstance(claim, dict):
+            claim = {}
+        rank = claim.get("rank") or "unknown"
+        sources = dict.fromkeys(
+            reader_text(locators.get(key.rsplit(".", 1)[-1], unnamed))
+            for key in entries(claim.get("source_claims")) if isinstance(key, str) and key
+        )
+        evidence_lines = []
+        for item in entries(claim.get("covered_by")):
+            if not isinstance(item, dict):
+                continue
+            fqn = item.get("fqn") or ""
+            path = item.get("file") or ""
+            method = item.get("coverage") or ""
+            note = reader_text(item.get("note") or "")
+            # Preserve declared overlay paths verbatim without inferring public links.
+            location = html.escape(path)
+            if fqn and not re.search(r"(?:^|[._])(?:c[0-9]{3,5}(?:_|$)|Pr[0-9]+|oq[0-9]+)", fqn):
+                location = f"<code>{html.escape(fqn)}</code> ({location})" if path else f"<code>{html.escape(fqn)}</code>"
+            evidence_lines.append(" · ".join(part for part in (location, html.escape(method.replace("_", " ")), note) if part))
+        details = [reader_text(claim[key]) for key in ("reason", "boundary") if claim.get(key)]
+        cells = (html.escape(rank_labels.get(rank, rank)), reader_text(claim.get("target") or ""),
+                 ", ".join(sources), "<br>".join(evidence_lines), "<br>".join(details))
+        rows.append(
+            f'<tr><th scope="row">{dimension}</th>'
+            + "".join(f"<td>{cell or '—'}</td>" for cell in cells)
+            + "</tr>"
+        )
+    header = "".join(f'<th scope="col">{title}</th>' for title in columns)
+    return f"""
+    <article class="panel-card"><h2>{heading}</h2>
+      <div class="panel-table-wrap"><table class="panel-decl-table panel-coverage-table">
+        <thead><tr>{header}</tr></thead>
+        <tbody>{"".join(rows)}</tbody>
+      </table></div>
+    </article>"""
 
 
 def build_paper_detail_body(
     *, paper: dict[str, Any], lang: str, root_prefix: str, catalog: dict[str, Any]
 ) -> str:
-    page_prefix = f"{root_prefix}zh/" if lang == "zh" else root_prefix
+    page_prefix = root_prefix + url_for(lang)
     identity = (paper.get("metadata") or {}).get("identity", {})
     title = paper.get("title") or identity.get("title") or paper.get("key", "")
     claims = paper.get("claims", [])
     source_unit = paper.get("source_unit")
-    if lang == "en":
-        back_label = "Back to Papers & Bibliography"
-        claim_heading = "Claims and fidelity"
-        source_heading = "Formalized source"
-        no_claims = "No structured claims are available in the source-only view."
-    else:
-        back_label = "返回文献索引"
-        claim_heading = "Claim 与保真度"
-        source_heading = "形式化源码"
-        no_claims = "公共源码视图没有结构化 Claim 元数据。"
+    t = strings_for(lang)["paper"]
 
     links: list[str] = []
     if paper.get("doi"):
@@ -1275,12 +1342,13 @@ def build_paper_detail_body(
     source_html = ""
     if source_unit:
         source_html = (
-            f'<div class="panel-card"><h2>{html.escape(source_heading)}</h2>'
+            f'<div class="panel-card"><h2>{html.escape(t["source_heading"])}</h2>'
             f'<p><a href="{_unit_href(source_unit["id"], lang, root_prefix)}">{html.escape(source_unit["path"])}</a> · {source_unit["loc"]:,} LOC</p>'
             f'<div class="panel-links">{" ".join(_badge(item, "partial") for item in source_unit.get("highlights", []))}</div></div>'
         )
 
     unit_ids = {unit["id"] for unit in catalog.get("units", [])}
+    columns = "".join(f"<th>{html.escape(label)}</th>" for label in t["columns"])
     claim_cards: list[str] = []
     for claim in claims:
         binds: list[str] = []
@@ -1303,18 +1371,19 @@ def build_paper_detail_body(
                 f'<tr><td>{fqn_html}</td><td>{_badge(str(item.get("coverage") or "unrecorded"), "full" if item.get("coverage") in {"full", "equivalent"} else "partial")}</td><td>{html.escape(str(item.get("note") or ""))}</td></tr>'
             )
         coverage_html = (
-            '<table class="panel-decl-table"><thead><tr><th>Covered by</th><th>Fidelity</th><th>Evidence note</th></tr></thead><tbody>'
+            f'<table class="panel-decl-table"><thead><tr>{columns}</tr></thead><tbody>'
             + "".join(coverage_rows)
             + "</tbody></table>"
             if coverage_rows
-            else '<p class="panel-empty">No covered_by evidence recorded.</p>'
+            else f'<p class="panel-empty">{t["no_evidence"]}</p>'
         )
+        bind_links = "".join(binds) or f'<span class="panel-empty">{t["no_binds"]}</span>'
         claim_cards.append(
             f'<article class="panel-claim"><h3>{html.escape(claim.get("label") or claim.get("id", "Claim"))} {_coverage_badges(claim)}</h3>'
             f'<p><strong>{html.escape(claim.get("id", ""))}</strong> · {html.escape(claim.get("content") or claim.get("statement") or "")}</p>'
-            f'<div class="panel-links">{"".join(binds) if binds else "<span class=\"panel-empty\">No binds</span>"}</div>{coverage_html}</article>'
+            f'<div class="panel-links">{bind_links}</div>{coverage_html}</article>'
         )
-    claims_html = "".join(claim_cards) if claim_cards else f'<p class="panel-empty">{no_claims}</p>'
+    claims_html = "".join(claim_cards) if claim_cards else f'<p class="panel-empty">{t["no_claims"]}</p>'
 
     metadata_ids = {
         item.get("id")
@@ -1342,18 +1411,18 @@ def build_paper_detail_body(
     return f'''
   <main class="panel-detail-wrap">
     <div class="panel-detail-header">
-      <div class="section-eyebrow">Paper / Declaration Explorer</div>
+      <div class="section-eyebrow">{t["explorer"]}</div>
       <h1>{html.escape(paper.get("key", ""))}</h1>
       <p>{html.escape(title)}</p>
       <p class="panel-muted">{html.escape(paper.get("authors", ""))} · {html.escape(paper.get("venue", ""))} · {html.escape(paper.get("year", ""))}</p>
       <div class="panel-links">{"".join(links)}</div>
-      <p style="margin-top:10px;"><a href="{page_prefix}papers.html">← {html.escape(back_label)}</a></p>
+      <p style="margin-top:10px;"><a href="{page_prefix}papers.html">← {html.escape(t["back_label"])}</a></p>
     </div>
-    {source_html}
-    <article class="panel-card"><h2>{html.escape(claim_heading)}</h2>{claims_html}</article>
-    <article class="panel-card"><h2>References ↔ cited_by</h2>
-      <div class="panel-links"><span class="panel-muted">references:</span>{paper_chips(paper.get("references", [])) or '<span class="panel-empty">—</span>'}</div>
-      <div class="panel-links"><span class="panel-muted">cited_by:</span>{paper_chips(paper.get("cited_by", [])) or '<span class="panel-empty">—</span>'}</div>
+    {source_html}{build_paper_coverage_body(paper, lang)}
+    <article class="panel-card"><h2>{html.escape(t["claim_heading"])}</h2>{claims_html}</article>
+    <article class="panel-card"><h2>{t["references_heading"]}</h2>
+      <div class="panel-links"><span class="panel-muted">{t["references"]}:</span>{paper_chips(paper.get("references", [])) or '<span class="panel-empty">—</span>'}</div>
+      <div class="panel-links"><span class="panel-muted">{t["cited_by"]}:</span>{paper_chips(paper.get("cited_by", [])) or '<span class="panel-empty">—</span>'}</div>
     </article>
   </main>
 '''
@@ -1433,47 +1502,23 @@ def rewrite_repo_href(href: str, source_rel: str, lang: str, root_prefix: str) -
     src_dir = Path(source_rel).parent
     resolved = os.path.normpath((src_dir / path_part).as_posix()).lstrip("./")
 
-    # Map canonical repo Markdown guides to portal HTML pages
-    guide_map_en = {
-        "README.en.md": f"{root_prefix}index.html",
-        "README.md": f"{root_prefix}zh/index.html",
-        "docs/getting-started.en.md": f"{root_prefix}getting-started.html",
-        "docs/getting-started.md": f"{root_prefix}zh/getting-started.html",
-        "docs/architecture.en.md": f"{root_prefix}architecture.html",
-        "docs/architecture.md": f"{root_prefix}zh/architecture.html",
-        "CONTRIBUTING.en.md": f"{root_prefix}contributing.html",
-        "CONTRIBUTING.md": f"{root_prefix}zh/contributing.html",
-        "CHANGELOG.md": f"{root_prefix}changelog.html",
-        "scripts/README.en.md": f"{root_prefix}architecture.html#tooling",
-        "scripts/README.md": f"{root_prefix}architecture.html#tooling",
+    guides = {
+        f"{stem}{locale['md_suffix']}.md": url_for(key, page)
+        for stem, page in GUIDE_PAGES.items()
+        for key, locale in LOCALES.items()
     }
-    guide_map_zh = {
-        "README.md": f"{root_prefix}zh/index.html",
-        "README.en.md": f"{root_prefix}index.html",
-        "docs/getting-started.md": f"{root_prefix}zh/getting-started.html",
-        "docs/getting-started.en.md": f"{root_prefix}getting-started.html",
-        "docs/architecture.md": f"{root_prefix}zh/architecture.html",
-        "docs/architecture.en.md": f"{root_prefix}architecture.html",
-        "CONTRIBUTING.md": f"{root_prefix}zh/contributing.html",
-        "CONTRIBUTING.en.md": f"{root_prefix}contributing.html",
-        "CHANGELOG.md": f"{root_prefix}zh/changelog.html",
-        "scripts/README.md": f"{root_prefix}zh/architecture.html#tooling",
-        "scripts/README.en.md": f"{root_prefix}architecture.html#tooling",
-    }
-    gmap = guide_map_zh if lang == "zh" else guide_map_en
-    if resolved in gmap:
-        target = gmap[resolved]
-        if "#" in target and anchor:
-            return target
-        return target + anchor
+    guides["CHANGELOG.md"] = url_for(lang, "changelog.html")
+    if resolved in guides:
+        target = guides[resolved]
+        return root_prefix + target + (anchor if "#" not in target else "")
 
     # Map Qatlib directory links to Module Explorer / API Reference
-    mod_page = f"{root_prefix}zh/modules.html" if lang == "zh" else f"{root_prefix}modules.html"
+    mod_page = root_prefix + url_for(lang, "modules.html")
     if resolved == "Qatlib":
         return mod_page
     if resolved in ("Qatlib/Foundations", "Qatlib/Concepts", "Qatlib/Papers"):
         layer = resolved.split("/", 1)[1]
-        return f"{mod_page}?layer={layer}"
+        return f"{mod_page}#layer={layer}"
     if resolved.startswith("Qatlib/") and not resolved.endswith(".lean"):
         return f"{mod_page}#{resolved}"
     if resolved.startswith("Qatlib/") and resolved.endswith(".lean"):
@@ -1577,7 +1622,7 @@ def process_markdown_guide(
     html_body = re.sub(r'href="([^"]+)"', _href_repl, html_body)
 
     # Wrap <pre><code> blocks with header bar + copy button
-    copy_label = "复制" if lang == "zh" else "Copy"
+    copy_label = strings_for(lang)["ui"]["copy"]
 
     def _code_repl(m: re.Match[str]) -> str:
         cls_attr = m.group(1) or ""
@@ -1646,7 +1691,6 @@ SITE_CSS = """/* Qatlib Documentation Portal — Clean Academic Design
   --bg-elevated: #ffffff;
   --bg-subtle: #f0f4fa;
   --bg-code: #0f1724;
-  --wordmark-cutout: #ffffff;
   --fg: #182232;
   --fg-muted: #526178;
   --fg-faint: #7b8ba3;
@@ -1670,6 +1714,7 @@ SITE_CSS = """/* Qatlib Documentation Portal — Clean Academic Design
     Menlo, Monaco, Consolas, "Sarasa Mono SC", "Noto Sans Mono CJK SC",
     "Source Han Mono SC", "PingFang SC", "Source Han Sans SC",
     "Noto Sans CJK SC", "Noto Sans SC", "Microsoft YaHei", monospace;
+  --prose-leading: 1.72;
   --nav-h: 64px;
 }
 
@@ -1678,13 +1723,12 @@ SITE_CSS = """/* Qatlib Documentation Portal — Clean Academic Design
   --bg-elevated: #131c2b;
   --bg-subtle: #192538;
   --bg-code: #090e17;
-  --wordmark-cutout: #131c2b;
   --fg: #e6edf7;
   --fg-muted: #9cb0c9;
   --fg-faint: #6c819c;
   --border: #223147;
   --border-strong: #314663;
-  --brand: #8cb6eb;
+  --brand: #dbedff;
   --brand-hover: #b2d0f5;
   --brand-soft: rgba(140, 182, 235, 0.13);
   --teal: #66c2bd;
@@ -1710,6 +1754,20 @@ body {
 
 a { color: var(--brand); text-decoration: none; transition: color 0.15s ease; }
 a:hover { color: var(--brand-hover); }
+:is(a, button, input, select, textarea, summary):focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 3px;
+}
+.skip-link {
+  position: fixed;
+  inset: 8px auto auto 8px;
+  z-index: 101;
+  padding: 8px 12px;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-sm);
+  transform: translateY(-150%);
+}
+.skip-link:focus { transform: none; }
 
 /* Sticky Top Navigation */
 .site-header {
@@ -1746,7 +1804,11 @@ a:hover { color: var(--brand-hover); }
   font-weight: 700;
 }
 .brand-link:hover { opacity: 0.88; }
-.nav-wordmark { height: 26px; width: auto; display: block; }
+.brand-wordmark { display: block; }
+.brand-wordmark img { display: block; width: 100%; height: auto; }
+.brand-wordmark .wordmark-dark, [data-theme="dark"] .brand-wordmark .wordmark-light { display: none; }
+[data-theme="dark"] .brand-wordmark .wordmark-dark { display: block; }
+.nav-wordmark { width: 104px; }
 .toolchain-pill {
   font-family: var(--font-mono);
   font-size: 11.5px;
@@ -1765,10 +1827,10 @@ a:hover { color: var(--brand-hover); }
   gap: 4px;
 }
 .nav-links a {
-  padding: 6px 12px;
+  padding: 6px 9px;
   border-radius: var(--radius-sm);
   color: var(--fg-muted);
-  font-size: 14.5px;
+  font-size: 13.8px;
   font-weight: 500;
   white-space: nowrap;
 }
@@ -1798,7 +1860,7 @@ a:hover { color: var(--brand-hover); }
   align-items: center;
 }
 .nav-search-input {
-  width: 200px;
+  width: 165px;
   padding: 6px 30px 6px 11px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
@@ -1811,7 +1873,7 @@ a:hover { color: var(--brand-hover); }
 .nav-search-input:focus {
   outline: none;
   border-color: var(--brand);
-  width: 240px;
+  width: 195px;
 }
 .nav-search-kbd {
   position: absolute;
@@ -1825,7 +1887,7 @@ a:hover { color: var(--brand-hover); }
   pointer-events: none;
 }
 
-.icon-btn, .lang-switch {
+.icon-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1841,10 +1903,44 @@ a:hover { color: var(--brand-hover); }
   flex-shrink: 0;
   cursor: pointer;
 }
-.icon-btn:hover, .lang-switch:hover {
+.icon-btn:hover {
   color: var(--fg);
   border-color: var(--border-strong);
   background: var(--bg-subtle);
+}
+.lang-switcher { position: relative; flex-shrink: 0; }
+.lang-switcher[open] { z-index: 2; }
+.lang-switcher summary { gap: 6px; list-style: none; }
+.lang-switcher summary::-webkit-details-marker { display: none; }
+.lang-switcher :is(summary, a):focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+.lang-options {
+  position: absolute;
+  inset-inline-end: 0;
+  top: calc(100% + 6px);
+  min-width: 140px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-md);
+}
+.lang-options a {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 9px;
+  border-radius: 4px;
+  color: var(--fg);
+  font-size: 13px;
+  white-space: nowrap;
+}
+.lang-options a:hover, .lang-options a[aria-current="page"] {
+  background: var(--brand-soft);
+  color: var(--brand);
 }
 .mobile-menu-btn { display: none; }
 
@@ -1870,11 +1966,9 @@ a:hover { color: var(--brand-hover); }
   padding: 12px 14px;
 }
 .hero-wordmark {
-  height: 60px;
-  width: auto;
-  color: var(--brand);
+  width: 240px;
+  max-width: 100%;
   margin-bottom: 16px;
-  display: block;
 }
 .hero-eyebrow {
   display: inline-flex;
@@ -1906,39 +2000,59 @@ a:hover { color: var(--brand-hover); }
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  margin-bottom: 24px;
 }
 .btn {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 18px;
+  justify-content: center;
+  gap: 10px;
+  min-height: 46px;
+  padding: 8px 14px;
   border-radius: var(--radius-sm);
-  font-size: 14.5px;
+  font-size: 14px;
   font-weight: 600;
+  line-height: 1.35;
+  text-align: center;
   border: 1px solid transparent;
-  cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
 }
 .btn-primary {
-  background: #263f5f;
+  background: var(--brand);
   color: #ffffff;
 }
-.btn-primary:hover { background: #1c304a; color: #ffffff; }
+.btn-primary:hover { background: var(--brand-hover); color: #ffffff; }
 [data-theme="dark"] .btn-primary {
-  background: #8cb6eb;
   color: #0b1320;
 }
-[data-theme="dark"] .btn-primary:hover { background: #a8caf4; color: #0b1320; }
 .btn-secondary {
   background: var(--bg);
-  color: var(--fg);
+  color: var(--brand);
   border-color: var(--border-strong);
 }
 .btn-secondary:hover {
   background: var(--bg-subtle);
   border-color: var(--brand);
+}
+.hero-resources {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 18px;
+  margin-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.hero-resources a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--fg-muted);
+  font-size: 13.5px;
+  font-weight: 500;
+}
+.hero-resources a:hover,
+.footer-nav a:hover {
   color: var(--brand);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 /* Quickstart Card in Hero */
@@ -2220,6 +2334,7 @@ a:hover { color: var(--brand-hover); }
 
 /* Prose Typography */
 .prose {
+  line-height: var(--prose-leading);
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -2534,23 +2649,42 @@ a:hover { color: var(--brand-hover); }
 .site-footer {
   border-top: 1px solid var(--border);
   background: var(--bg-elevated);
-  padding: 36px 24px;
+  padding: 40px 24px;
   font-size: 13.5px;
   color: var(--fg-muted);
 }
 .footer-inner {
   max-width: 1160px;
   margin: 0 auto;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
+  display: grid;
+  grid-template-columns: minmax(200px, 1fr) minmax(0, 2.6fr);
+  gap: 32px 52px;
 }
-.footer-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 18px;
+.footer-about h2, .footer-group h2 {
+  margin: 0 0 10px;
+  color: var(--fg);
+  font-size: 14px;
+  line-height: 1.45;
+}
+.footer-about h2 { font-size: 18px; }
+.footer-about a { color: var(--brand); }
+.footer-about p { margin: 0; }
+.footer-about p + p { margin-top: 4px; }
+.footer-nav {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) minmax(0, 1.45fr);
+  gap: 24px 20px;
+}
+.footer-group ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.footer-nav a {
+  color: var(--fg-muted);
+  overflow-wrap: anywhere;
 }
 
 .back-to-top {
@@ -2655,6 +2789,12 @@ a:hover { color: var(--brand-hover); }
 .panel-decl-table th, .panel-decl-table td { border: 1px solid var(--border); padding: 7px 8px; vertical-align: top; text-align: left; }
 .panel-decl-table th { background: var(--bg-subtle); color: var(--fg-muted); white-space: nowrap; }
 .panel-decl-table code { font-size: 11.5px; word-break: break-word; }
+.panel-coverage-table { overflow-wrap: anywhere; }
+.panel-coverage-table th { white-space: normal; }
+.panel-coverage-table th:first-child, .panel-coverage-table :is(th, td):nth-child(2) {
+  width: 1%; white-space: nowrap;
+}
+.panel-coverage-table :is(th, td):nth-child(2) { text-align: center; font-weight: 600; }
 .panel-module-card { border-top: 1px solid var(--border); padding-top: 12px; margin-top: 12px; }
 .panel-module-card:first-child { border-top: none; padding-top: 0; margin-top: 0; }
 .panel-module-head { display:flex; justify-content:space-between; gap:10px; align-items:baseline; flex-wrap:wrap; }
@@ -2670,8 +2810,9 @@ a:hover { color: var(--brand-hover); }
   font-variant-numeric: tabular-nums;
 }
 
-/* :lang() also matches inherited zh-CN and locally marked bilingual text. */
+/* :lang() also matches inherited zh-Hans and locally marked bilingual text. */
 body:lang(zh) {
+  --prose-leading: 1.75;
   line-height: 1.75;
   text-spacing-trim: space-first;
   font-kerning: normal;
@@ -2709,21 +2850,16 @@ body:lang(zh) {
   .panel-table { font-size: 12px; }
 }
 
-@media (max-width: 1540px) {
-  .nav-links a { padding: 6px 9px; font-size: 13.8px; }
-  .nav-search-input { width: 165px; }
-  .nav-search-input:focus { width: 195px; }
-}
-
 @media (max-width: 1024px) {
   .hero-inner { grid-template-columns: 1fr; }
+  .footer-inner { grid-template-columns: 1fr; }
   .metrics-strip { grid-template-columns: repeat(3, 1fr); }
   .layers-grid { grid-template-columns: 1fr; }
   .docs-shell { grid-template-columns: 200px minmax(0, 1fr); }
   .docs-toc { display: none; }
 }
 
-@media (max-width: 1400px) {
+@media (max-width: 1570px) {
   .mobile-menu-btn { display: inline-flex; }
   .nav-links {
     display: none;
@@ -2757,9 +2893,16 @@ body:lang(zh) {
 
 @media (max-width: 480px) {
   .nav-inner { padding: 8px 12px; gap: 8px; }
+  .nav-actions { gap: 5px; }
+  .nav-actions .icon-btn { padding-inline: 7px; }
   .nav-brand { flex-direction: column; align-items: flex-start; gap: 2px; }
-  .nav-wordmark { height: 24px; }
+  .nav-wordmark { width: 96px; }
   .toolchain-pill { font-size: 10px; padding: 2px 6px; }
+  .hero-ctas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hero-ctas .btn-primary { grid-column: 1 / -1; }
+  .site-footer { padding-block: 32px; }
+  .footer-nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .footer-group:last-child { grid-column: 1 / -1; }
 }
 
 @media (max-width: 760px) {
@@ -2774,7 +2917,6 @@ body:lang(zh) {
 SITE_JS = """(() => {
   // Theme initialization & toggle
   const root = document.documentElement;
-  const isZh = (root.getAttribute("lang") || "").startsWith("zh");
   const savedTheme = localStorage.getItem("qatlib-theme");
   if (savedTheme === "dark" || savedTheme === "light") {
     root.setAttribute("data-theme", savedTheme);
@@ -2787,12 +2929,8 @@ SITE_JS = """(() => {
     if (!themeBtn) return;
     const isDark = root.getAttribute("data-theme") === "dark";
     themeBtn.textContent = isDark ? "☀" : "☾";
-    themeBtn.setAttribute(
-      "title",
-      isZh
-        ? (isDark ? "切换为浅色模式" : "切换为深色模式")
-        : (isDark ? "Switch to light mode" : "Switch to dark mode")
-    );
+    themeBtn.title = isDark ? themeBtn.dataset.lightTitle : themeBtn.dataset.darkTitle;
+    themeBtn.setAttribute("aria-pressed", String(isDark));
   };
   syncThemeIcon();
   if (themeBtn) {
@@ -2836,13 +2974,30 @@ SITE_JS = """(() => {
   });
 
   // Quickstart tabs
-  document.querySelectorAll(".qs-tab").forEach((tab) => {
-    tab.addEventListener("click", () => {
-      const group = tab.closest(".quickstart-card");
-      if (!group) return;
-      const targetId = tab.getAttribute("data-tab");
-      group.querySelectorAll(".qs-tab").forEach((t) => t.classList.toggle("active", t === tab));
-      group.querySelectorAll(".qs-panel").forEach((p) => p.classList.toggle("active", p.id === targetId));
+  document.querySelectorAll(".qs-tabs").forEach((group) => {
+    const tabs = [...group.querySelectorAll(".qs-tab")];
+    const selectTab = (active) => {
+      tabs.forEach((tab, index) => {
+        const selected = index === active;
+        tab.classList.toggle("active", selected);
+        tab.setAttribute("aria-selected", String(selected));
+        tab.tabIndex = selected ? 0 : -1;
+        const panel = document.getElementById(tab.getAttribute("aria-controls"));
+        panel.hidden = !selected;
+        panel.classList.toggle("active", selected);
+      });
+      tabs[active].focus();
+    };
+    tabs.forEach((tab, index) => {
+      tab.addEventListener("click", () => selectTab(index));
+      tab.addEventListener("keydown", (event) => {
+        const last = tabs.length - 1;
+        const keys = { ArrowLeft: (index + last) % tabs.length, ArrowRight: (index + 1) % tabs.length,
+          Home: 0, End: last };
+        if (!Object.hasOwn(keys, event.key)) return;
+        event.preventDefault();
+        selectTab(keys[event.key]);
+      });
     });
   });
 
@@ -2870,7 +3025,7 @@ SITE_JS = """(() => {
     const cards = Array.from(modGrid.querySelectorAll(".mod-card"));
     let activeLayer = "all";
 
-    const params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(window.location.hash.slice(1) || window.location.search);
     const qLayer = params.get("layer");
     if (qLayer && ["Foundations", "Concepts", "Papers"].includes(qLayer)) {
       activeLayer = qLayer;
@@ -2905,6 +3060,12 @@ SITE_JS = """(() => {
 
     const focusHashCard = () => {
       const rawHash = decodeURIComponent(window.location.hash.replace(/^#/, ""));
+      const layer = /^layer=(Foundations|Concepts|Papers)$/.exec(rawHash)?.[1];
+      if (layer) {
+        activeLayer = layer;
+        applyModFilter();
+        return;
+      }
       if (!rawHash) return;
       const target = document.getElementById(rawHash);
       if (target && target.classList.contains("mod-card")) {
@@ -2963,7 +3124,7 @@ SITE_JS = """(() => {
       const input = form.querySelector("input[name='q']");
       const q = (input?.value || "").trim();
       const target = form.getAttribute("action") || "./docs/search.html";
-      window.location.href = q ? `${target}?q=${encodeURIComponent(q)}` : target;
+      window.location.href = q ? `${target}#q=${encodeURIComponent(q)}` : target;
     });
   });
 
@@ -3011,62 +3172,124 @@ THEME_INIT_JS = """\
 # HTML Shell & Page Builders
 # ---------------------------------------------------------------------------
 
-UI_STRINGS = {
-    "en": {
-        "html_lang": "en",
-        "site_tagline": "The Lean 4 Library for Formalized Quantum Computing & Quantum Information",
-        "nav_overview": "Overview",
-        "nav_getting_started": "Getting Started",
-        "nav_architecture": "Architecture",
-        "nav_modules": "Modules",
-        "nav_papers": "Bibliography",
-        "nav_contributing": "Contributing",
-        "nav_changelog": "Changelog",
-        "nav_api": "API Docs ↗",
-        "search_placeholder": "Search API declarations…",
-        "switch_lang_label": "中文",
-        "switch_lang_title": "切换到中文页面",
-        "brand_home_label": "Qatlib Home",
-        "theme_toggle_label": "Toggle color theme",
-        "github_title": "GitHub Repository",
-        "menu_label": "Menu",
-        "back_to_top_label": "Back to top",
-        "guides_heading": "Documentation",
-        "api_group_heading": "API Reference",
-        "toc_heading": "On this page",
-        "edit_on_github": "View source on GitHub ↗",
-        "footer_api": "API Reference (doc-gen4)",
-        "footer_refs": "API Bibliography",
-        "footer_note": "Built on Lean 4, Mathlib, and Physlib · Released under the Apache-2.0 License.",
-    },
-    "zh": {
-        "html_lang": "zh-CN",
-        "site_tagline": "基于 Lean 4 的量子计算与量子信息形式化数学库",
-        "nav_overview": "首页",
-        "nav_getting_started": "快速开始",
-        "nav_architecture": "库架构",
-        "nav_modules": "模块导览",
-        "nav_papers": "文献索引",
-        "nav_contributing": "参与贡献",
-        "nav_changelog": "更新日志",
-        "nav_api": "API 文档 ↗",
-        "search_placeholder": "搜索 API 声明…",
-        "switch_lang_label": "EN",
-        "switch_lang_title": "Switch to English",
-        "brand_home_label": "Qatlib 首页",
-        "theme_toggle_label": "切换浅色/深色主题",
-        "github_title": "GitHub 代码仓库",
-        "menu_label": "导航菜单",
-        "back_to_top_label": "回到顶部",
-        "guides_heading": "文档导航",
-        "api_group_heading": "API 参考文档",
-        "toc_heading": "本页目录",
-        "edit_on_github": "在 GitHub 查看源码 ↗",
-        "footer_api": "API 文档 (doc-gen4)",
-        "footer_refs": "API 文献页",
-        "footer_note": "构建于 Lean 4、Mathlib 与 Physlib 之上 · 采用 Apache-2.0 开源协议发布。",
-    },
-}
+def language_link(locale: str, href: str, *, current: bool = False, label: str | None = None) -> str:
+    info = LOCALES[locale]
+    selected = ' aria-current="page"' if current else ""
+    check = '<span aria-hidden="true">✓</span>' if current else ""
+    return (
+        f'<a href="{href}" lang="{info["tag"]}" hreflang="{info["tag"]}"{selected}>'
+        f'{label or info["name"]}{check}</a>'
+    )
+
+
+def language_switcher(lang: str, page_slug: str) -> str:
+    current_page = LOCALES[lang]["prefix"] + page_slug
+    options = "".join(
+        language_link(locale, relative_url(current_page, url_for(locale, page_slug)),
+                      current=locale == lang, label="简体中文" if locale == "zh" else None)
+        for locale in LOCALES
+    )
+    current = LOCALES[lang]
+    label = html.escape(strings_for(lang)["ui"]["language_label"].format(name=current["name"]))
+    preserve = ' data-preserve-hash' if page_slug == DEPENDENCY_GRAPH_PAGE else ""
+    return f'''<details class="lang-switcher"{preserve}>
+  <summary class="icon-btn" aria-label="{label}">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+      <circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/>
+    </svg>
+    <span lang="{current["tag"]}">{current["name"]}</span><span aria-hidden="true">▾</span>
+  </summary>
+  <div class="lang-options">{options}</div>
+</details>'''
+
+
+def locale_metadata(lang: str, page: str, site_url: str, title: str, description: str) -> str:
+    canonical = site_url + url_for(lang, page)
+    alternate = [
+        f'<link rel="alternate" hreflang="{info["tag"]}" href="{html.escape(site_url + url_for(key, page))}">'
+        for key, info in LOCALES.items()
+    ]
+    other = next(info["og"] for key, info in LOCALES.items() if key != lang)
+    image = site_url + "assets/" + SOCIAL_IMAGE
+    sharing = {
+        "og:type": "website", "og:site_name": "Qatlib", "og:title": title,
+        "og:description": description, "og:url": canonical, "og:image": image,
+        "og:image:width": "1280", "og:image:height": "640",
+        "og:locale": LOCALES[lang]["og"], "og:locale:alternate": other,
+    }
+    twitter = {"twitter:card": "summary_large_image", "twitter:title": title,
+               "twitter:description": description, "twitter:image": image}
+    return "\n  ".join([
+        f'<link rel="canonical" href="{html.escape(canonical)}">',
+        *alternate,
+        f'<link rel="alternate" hreflang="x-default" href="{html.escape(site_url)}">',
+        f'<meta name="description" content="{html.escape(description)}">',
+        *(f'<meta property="{key}" content="{html.escape(value)}">' for key, value in sharing.items()),
+        *(f'<meta name="{key}" content="{html.escape(value)}">' for key, value in twitter.items()),
+    ])
+
+
+def build_dependency_graph_body(lang: str, root_prefix: str, wordmark: str) -> tuple[str, str]:
+    """Render the full-viewport graph and its bilingual controls."""
+    t = strings_for(lang)["graph"]
+    title, labels, toolbar = t["title"], t["labels"], t["toolbar"]
+    tabs = "".join(
+        f'<button type="button" class="dg-tab" role="tab" data-layer="{i}" data-key="{key}" '
+        f'id="dg-tab-{i}" aria-controls="dg-controls" aria-selected="false" tabindex="-1">{label}</button>'
+        for i, (key, label) in enumerate(zip(PANEL_LAYERS, labels, strict=True))
+    )
+    legend = "".join(f'<span data-layer="{i}">{label}</span>' for i, label in enumerate(labels))
+    buttons = "".join(
+        f'<button type="button" class="dg-icon" id="dg-{key}" aria-label="{label}" title="{label}">{symbol}</button>'
+        for (key, symbol), label in zip(
+            (("zoom-in", "+"), ("zoom-out", "−"), ("fit", "◎"), ("home", "↺"), ("fullscreen", "⛶")),
+            toolbar, strict=True,
+        )
+    )
+    runtime = html.escape(json.dumps(t["strings"], ensure_ascii=False))
+    return title, f'''<main class="dg" data-strings="{runtime}" data-src="{root_prefix}docs/{DEPENDENCY_GRAPH_ASSET}" data-api="{root_prefix}docs/">
+  <header class="dg-mast">
+    <a href="./" class="dg-brand" aria-label="{strings_for(lang)["ui"]["brand_home_label"]}">{wordmark}</a>
+    <h1>{title}</h1>
+    {language_switcher(lang, DEPENDENCY_GRAPH_PAGE)}
+  </header>
+  <canvas class="dg-sky" id="dg-sky" tabindex="0" aria-label="{html.escape(t["canvas_name"])}" aria-describedby="dg-hint"></canvas>
+  <p id="dg-status" class="dg-status" role="status">{html.escape(t["loading"])}</p>
+  <div id="dg-layout" class="dg-layout" hidden>
+    <div class="dg-tray">
+      <div class="dg-view" role="group" aria-label="{html.escape(t["mode_label"])}">
+        <button id="dg-2d" type="button" aria-label="{html.escape(t["view2d"])}" title="{html.escape(t["view2d"])}" aria-pressed="true">2D</button>
+        <button id="dg-3d" type="button" aria-label="{html.escape(t["view3d"])}" title="{html.escape(t["view3d"])}" aria-pressed="false">3D</button>
+      </div>
+      <button class="dg-control" id="dg-browse" type="button" aria-controls="dg-sidebar" aria-expanded="false">{html.escape(t["browse"])}</button>
+      <button class="dg-control" id="dg-inspect" type="button" aria-controls="dg-detail" aria-expanded="false" hidden>{html.escape(t["inspect"])}</button>
+    </div>
+    <aside class="dg-panel dg-sidebar" id="dg-sidebar" aria-label="{html.escape(t["browse"])}" hidden>
+      <div class="dg-field">
+        <label for="dg-search">{html.escape(t["search"])}</label>
+        <input type="search" id="dg-search" autocomplete="off" aria-controls="dg-results">
+        <div id="dg-results" class="dg-results" aria-live="polite" hidden></div>
+      </div>
+      <div class="dg-tabs" role="tablist" aria-label="{html.escape(t["layers"])}">{tabs}</div>
+      <div id="dg-controls" role="tabpanel">
+        <div class="dg-field">
+          <label for="dg-filter">{html.escape(t["filter_label"])}</label>
+          <input type="search" id="dg-filter" autocomplete="off" aria-controls="dg-list">
+        </div>
+        <div id="dg-list" class="dg-list"></div>
+      </div>
+    </aside>
+    <aside id="dg-detail" class="dg-panel dg-detail" aria-labelledby="dg-selection-title" hidden></aside>
+    <div class="dg-toolbar" role="group" aria-label="{html.escape(t["toolbar_label"])}">{buttons}</div>
+    <footer class="dg-hud">
+      <div class="dg-legend">{legend}</div>
+      <p id="dg-totals"></p>
+    </footer>
+    <p class="dg-hint" id="dg-hint">{html.escape(t["strings"]["hint2d"])}</p>
+    <div class="dg-tooltip" id="dg-tooltip" role="tooltip" hidden></div>
+  </div>
+  <script type="module" src="{root_prefix}assets/{DEPENDENCY_GRAPH_SCRIPT}"></script>
+</main>'''
 
 
 def render_page_shell(
@@ -3078,55 +3301,84 @@ def render_page_shell(
     toolchain_tag: str,
     wordmark_nav: str,
     body_html: str,
+    site_url: str = DEFAULT_SITE_URL,
 ) -> str:
-    t = UI_STRINGS[lang]
-    page_prefix = f"{root_prefix}zh/" if lang == "zh" else root_prefix
-    alt_prefix = root_prefix if lang == "zh" else f"{root_prefix}zh/"
-    alt_href = f"{alt_prefix}{page_slug}"
+    t = strings_for(lang)["ui"]
+    tag = LOCALES[lang]["tag"]
+    i18n_script = f'<script type="module" src="{root_prefix}assets/i18n.js"></script>'
+    page_prefix = root_prefix + url_for(lang)
     docs_prefix = f"{root_prefix}docs/"
 
     def nav_cls(slug: str) -> str:
-        return ' class="active"' if slug == page_slug else ""
+        return ' class="active" aria-current="page"' if slug == page_slug else ""
 
     full_title = f"{title} — Qatlib" if title != "Qatlib" else f"Qatlib · {t['site_tagline']}"
-    return f"""<!DOCTYPE html>
-<html lang="{t['html_lang']}">
+    descriptions = strings_for(lang)["descriptions"]
+    if page_slug == DEPENDENCY_GRAPH_PAGE:
+        description = strings_for(lang)["graph"]["description"]
+    else:
+        template = descriptions.get(page_slug) or descriptions.get(page_slug.split("/")[0])
+        description = template.format(title=title) if template else title
+    metadata = locale_metadata(lang, page_slug, site_url, full_title, description)
+    if page_slug == DEPENDENCY_GRAPH_PAGE:
+        return f"""<!doctype html>
+<html lang="{tag}" data-theme="dark">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{html.escape(full_title)}</title>
-  <meta name="description" content="{html.escape(t['site_tagline'])}">
+  {metadata}
+  {i18n_script}
+  <link rel="stylesheet" href="{root_prefix}assets/style.css">
+  <link rel="stylesheet" href="{root_prefix}assets/{DEPENDENCY_GRAPH_STYLES}">
+{render_favicon_links(root_prefix)}
+</head>
+<body class="dependency-page">{body_html}</body>
+</html>
+"""
+    switcher = language_switcher(lang, page_slug)
+    if page_slug == "index.html":
+        body_html = f"<main>{body_html}</main>"
+    body_html = body_html.replace("<main", '<main id="main-content" tabindex="-1"', 1)
+    nav_items = "\n        ".join(
+        f'<a href="{root_prefix}{url_for(lang, slug)}"{nav_cls(slug)}>{t[key]}</a>'
+        for slug, key in NAV_PAGES.items()
+    )
+    return f"""<!DOCTYPE html>
+<html lang="{tag}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{html.escape(full_title)}</title>
+  {metadata}
   <link rel="stylesheet" href="{root_prefix}assets/style.css">
   <script src="{root_prefix}assets/theme-init.js"></script>
+  {i18n_script}
+{render_favicon_links(root_prefix)}
 </head>
 <body>
+  <a class="skip-link" href="#main-content">{t["skip_to_content"]}</a>
   <header class="site-header">
     <div class="nav-inner">
       <div class="nav-brand">
-        <a class="brand-link" href="{page_prefix}index.html" aria-label="{t['brand_home_label']}">
+        <a class="brand-link" href="{page_prefix}" aria-label="{t['brand_home_label']}">
           {wordmark_nav}
         </a>
         <span class="toolchain-pill">Lean {html.escape(toolchain_tag)}</span>
       </div>
 
-      <nav id="nav-links" class="nav-links" aria-label="Primary">
-        <a href="{page_prefix}index.html"{nav_cls("index.html")}>{t["nav_overview"]}</a>
-        <a href="{page_prefix}getting-started.html"{nav_cls("getting-started.html")}>{t["nav_getting_started"]}</a>
-        <a href="{page_prefix}architecture.html"{nav_cls("architecture.html")}>{t["nav_architecture"]}</a>
-        <a href="{page_prefix}modules.html"{nav_cls("modules.html")}>{t["nav_modules"]}</a>
-        <a href="{page_prefix}papers.html"{nav_cls("papers.html")}>{t["nav_papers"]}</a>
-        <a href="{page_prefix}contributing.html"{nav_cls("contributing.html")}>{t["nav_contributing"]}</a>
-        <a href="{page_prefix}changelog.html"{nav_cls("changelog.html")}>{t["nav_changelog"]}</a>
+      <nav id="nav-links" class="nav-links" aria-label="{t['primary_nav']}">
+        {nav_items}
         <a href="{docs_prefix}index.html" class="nav-api-btn">{t["nav_api"]}</a>
       </nav>
 
       <div class="nav-actions">
         <form class="nav-search-form" action="{docs_prefix}search.html" method="get">
-          <input class="nav-search-input" type="search" name="q" placeholder="{t['search_placeholder']}" autocomplete="off">
-          <span class="nav-search-kbd">/</span>
+          <input class="nav-search-input" type="search" name="q" placeholder="{t['search_placeholder']}" aria-label="{t['search_placeholder']}" autocomplete="off">
+          <span class="nav-search-kbd" aria-hidden="true">/</span>
         </form>
-        <a class="lang-switch" lang="{UI_STRINGS['en' if lang == 'zh' else 'zh']['html_lang']}" href="{alt_href}" title="{t['switch_lang_title']}">{t["switch_lang_label"]}</a>
-        <button id="theme-toggle" class="icon-btn" type="button" aria-label="{t['theme_toggle_label']}">☾</button>
+        {switcher}
+        <button id="theme-toggle" class="icon-btn" type="button" aria-label="{t['theme_toggle_label']}" data-light-title="{t['theme_light']}" data-dark-title="{t['theme_dark']}">☾</button>
         <a class="icon-btn" href="{GITHUB_REPO_URL}" target="_blank" rel="noopener" title="{t['github_title']}" aria-label="GitHub">
           <svg width="17" height="17" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
             <path d="M8 0C3.58 0 0 3.58 0 8a8 8 0 0 0 5.47 7.59c.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/>
@@ -3141,17 +3393,38 @@ def render_page_shell(
 
   <footer class="site-footer">
     <div class="footer-inner">
-      <div>{t["footer_note"]}</div>
-      <div class="footer-links">
-        <a href="{page_prefix}getting-started.html">{t["nav_getting_started"]}</a>
-        <a href="{page_prefix}architecture.html">{t["nav_architecture"]}</a>
-        <a href="{page_prefix}modules.html">{t["nav_modules"]}</a>
-        <a href="{page_prefix}papers.html">{t["nav_papers"]}</a>
-        <a href="{page_prefix}changelog.html">{t["nav_changelog"]}</a>
-        <a href="{docs_prefix}index.html">{t["footer_api"]}</a>
-        <a href="{docs_prefix}references.html">{t["footer_refs"]}</a>
-        <a href="{GITHUB_REPO_URL}" target="_blank" rel="noopener">GitHub</a>
+      <div class="footer-about">
+        <h2><a href="{page_prefix}">Qatlib</a></h2>
+        <p>{t["footer_note"]}</p>
+        <p>{t["footer_license"]}</p>
       </div>
+      <nav class="footer-nav" aria-label="{t['footer_nav']}">
+        <div class="footer-group">
+          <h2>{t["footer_guides"]}</h2>
+          <ul>
+            <li><a href="{page_prefix}getting-started.html">{t["nav_getting_started"]}</a></li>
+            <li><a href="{page_prefix}architecture.html">{t["nav_architecture"]}</a></li>
+            <li><a href="{page_prefix}modules.html">{t["nav_modules"]}</a></li>
+          </ul>
+        </div>
+        <div class="footer-group">
+          <h2>{t["footer_research"]}</h2>
+          <ul>
+            <li><a href="{page_prefix}papers.html">{t["nav_papers"]}</a></li>
+            <li><a href="{page_prefix}{DEPENDENCY_GRAPH_PAGE}">{t["nav_graph"]}</a></li>
+            <li><a href="{docs_prefix}index.html">{t["footer_api"]}</a></li>
+            <li><a href="{docs_prefix}references.html">{t["footer_refs"]}</a></li>
+          </ul>
+        </div>
+        <div class="footer-group">
+          <h2>{t["footer_project"]}</h2>
+          <ul>
+            <li><a href="{GITHUB_REPO_URL}" target="_blank" rel="noopener noreferrer">GitHub · {GITHUB_REPO_URL.removeprefix('https://github.com/')}</a></li>
+            <li><a href="{page_prefix}changelog.html">{t["nav_changelog"]}</a></li>
+            <li><a href="{page_prefix}contributing.html">{t["nav_contributing"]}</a></li>
+          </ul>
+        </div>
+      </nav>
     </div>
   </footer>
   <button id="back-to-top" class="back-to-top" type="button" title="{t['back_to_top_label']}" aria-label="{t['back_to_top_label']}">↑</button>
@@ -3171,40 +3444,18 @@ def build_docs_layout(
     prose_html: str,
     toc: list[dict[str, Any]],
 ) -> str:
-    t = UI_STRINGS[lang]
-    page_prefix = f"{root_prefix}zh/" if lang == "zh" else root_prefix
+    t = strings_for(lang)["ui"]
     docs_prefix = f"{root_prefix}docs/"
-
-    nav_items = [
-        ("index.html", t["nav_overview"]),
-        ("getting-started.html", t["nav_getting_started"]),
-        ("architecture.html", t["nav_architecture"]),
-        ("modules.html", t["nav_modules"]),
-        ("papers.html", t["nav_papers"]),
-        ("contributing.html", t["nav_contributing"]),
-        ("changelog.html", t["nav_changelog"]),
-    ]
-    sidebar_lis = "\n".join(
-        f'<li><a href="{page_prefix}{slug}"{" class=\"active\"" if slug == page_slug else ""}>{label}</a></li>'
-        for slug, label in nav_items
+    sidebar = []
+    for slug, key in NAV_PAGES.items():
+        active = ' class="active"' if slug == page_slug else ""
+        sidebar.append(f'<li><a href="{root_prefix}{url_for(lang, slug)}"{active}>{t[key]}</a></li>')
+    sidebar_lis = "\n".join(sidebar)
+    api_links = zip(
+        ("index.html", "Qatlib.html", "references.html", "tactics.html"),
+        t["api_links"], strict=True,
     )
-
-    api_links = (
-        [
-            (f"{docs_prefix}index.html", "API Reference Home ↗"),
-            (f"{docs_prefix}Qatlib.html", "Qatlib Umbrella ↗"),
-            (f"{docs_prefix}references.html", "API Bibliography ↗"),
-            (f"{docs_prefix}tactics.html", "Tactics Index ↗"),
-        ]
-        if lang == "en"
-        else [
-            (f"{docs_prefix}index.html", "API 文档主页 ↗"),
-            (f"{docs_prefix}Qatlib.html", "Qatlib 总入口模块 ↗"),
-            (f"{docs_prefix}references.html", "API 文献引用页 ↗"),
-            (f"{docs_prefix}tactics.html", "证明策略索引 ↗"),
-        ]
-    )
-    api_lis = "\n".join(f'<li><a href="{href}">{label}</a></li>' for href, label in api_links)
+    api_lis = "\n".join(f'<li><a href="{docs_prefix}{href}">{label}</a></li>' for href, label in api_links)
 
     toc_lis = "\n".join(
         f'<li class="toc-h{item["level"]}"><a href="#{item["id"]}">{html.escape(item["text"])}</a></li>'
@@ -3252,15 +3503,12 @@ def build_home_body(
     bibtex_str: str,
     qec_html: str,
 ) -> str:
-    page_prefix = f"{root_prefix}zh/" if lang == "zh" else root_prefix
+    page_prefix = root_prefix + url_for(lang)
     docs_prefix = f"{root_prefix}docs/"
     layers = tree_stats["layers"]
     total_mods = f"{tree_stats['total_modules']:,}"
-    f_mods = f"{layers['Foundations']['module_count']:,}"
-    c_mods = f"{layers['Concepts']['module_count']:,}"
-    p_mods = f"{layers['Papers']['module_count']:,}"
     p_dirs = f"{layers['Papers']['dir_count']:,}"
-    copy_lbl = "复制" if lang == "zh" else "Copy"
+    copy_lbl = strings_for(lang)["ui"]["copy"]
 
     dep_toml = html.escape(
         '[[require]]\nname = "Qatlib"\n'
@@ -3274,127 +3522,19 @@ def build_home_body(
         "lake build Qatlib.Papers.GroverSearch96.MainResults.GainConvergence"
     )
 
-    if lang == "en":
-        eyebrow = "Kernel-Verified · 0 sorryAx · Standard Axioms Only"
-        h1 = "The Lean 4 Library for Quantum Computing & Quantum Information"
-        lead = (
-            "Built on top of Mathlib and Physlib, Qatlib provides unified operator-algebraic "
-            "foundations, reusable quantum algorithmic frameworks, and formalized theorems and "
-            "resource complexity analyses from the quantum computing literature."
-        )
-        cta_start = "Get Started"
-        cta_api = "API Reference (doc-gen4)"
-        cta_mods = "Explore Modules"
-        cta_papers = f"Bibliography ({bib_count})"
-        tab1, tab2 = "Use as Dependency", "Clone & Build"
-        cap1 = f"Add to lakefile.toml (Lean {toolchain_tag}), then pull prebuilt Mathlib + Physlib + Qatlib caches:"
-        cap2 = "Fetch all three cache tiers in one command and build incrementally:"
-        metrics = [
-            (total_mods, "Lean 4 Modules"),
-            (p_dirs, "Paper Directories"),
-            (f"{bib_count:,}", "Curated References"),
-            ("0", "sorryAx / Custom Axioms"),
-            (toolchain_tag, "Pinned Toolchain"),
-        ]
-        sec_arch_eye = "Three-Layer Architecture"
-        sec_arch_h2 = "Strict One-Way Dependency: Foundations ← Concepts ← Papers"
-        sec_arch_p = (
-            "Enforced statically in ~1 second by lake lint and audited in the Lean 4 kernel by lake test."
-        )
-        layer_cards = [
-            (
-                "foundations",
-                "Qatlib/Foundations",
-                f"{layers['Foundations']['dir_count']} dirs · {f_mods} modules",
-                "Foundations",
-                "Shared operator analysis, trace & Schatten norms, positive semidefinite order, mixed-state fidelity, concentration bounds, graph Laplacians, and finite-precision arithmetic.",
-                f"{page_prefix}modules.html?layer=Foundations",
-                "Browse Foundations →",
-            ),
-            (
-                "concepts",
-                "Qatlib/Concepts",
-                f"{layers['Concepts']['dir_count']} dirs · {c_mods} modules",
-                "Concepts",
-                "Reusable quantum channels & entropy, block-encoding algebra, QSVT/QSP, LCU, amplitude amplification, quantum walks, query/adversary bounds, fermionic/bosonic spaces, and QEC.",
-                f"{page_prefix}modules.html?layer=Concepts",
-                "Browse Concepts →",
-            ),
-            (
-                "papers",
-                "Qatlib/Papers",
-                f"{p_dirs} dirs · {p_mods} modules",
-                "Papers",
-                "Selected model definitions, technical lemmas, main theorems (MainResults/), and end-to-end query/gate/qubit resource bounds organized by research paper.",
-                f"{page_prefix}modules.html?layer=Papers",
-                "Browse Papers →",
-            ),
-        ]
-        sec_area_eye = "Thematic Coverage"
-        sec_area_h2 = "Research Areas"
-        sec_area_p = "Click any representative directory below to inspect its Lean modules and jump directly into doc-gen4 API documentation."
-        sec_cite_eye = "Citation & Open Source"
-        sec_cite_h2 = "Citing Qatlib"
-        sec_cite_p = "Qatlib is released under the Apache License 2.0. If you use Qatlib in your research, please cite:"
-    else:
-        eyebrow = "Lean 4 内核级验证 · 零 sorryAx · 仅依赖标准公理"
-        h1 = "基于 Lean 4 的量子计算与量子信息形式化数学库"
-        lead = (
-            "构建于 mathlib4 与 Physlib 之上，Qatlib 用统一的算子代数与执行语义接口，"
-            "对量子计算基础数学结构、可复用算法原语以及学术文献中的核心定理与资源复杂度界进行形式化。"
-        )
-        cta_start = "快速开始"
-        cta_api = "API 参考文档 (doc-gen4)"
-        cta_mods = "模块导览"
-        cta_papers = f"文献索引 ({bib_count})"
-        tab1, tab2 = "作为下游依赖引入", "克隆与构建"
-        cap1 = f"在 lakefile.toml（工具链 {toolchain_tag}）中添加依赖，一键拉取三层预编译缓存："
-        cap2 = "无需从零编译全库，拉取 Mathlib + Physlib + Qatlib 缓存后按需增量构建："
-        metrics = [
-            (total_mods, "Lean 4 形式化模块"),
-            (p_dirs, "形式化论文目录"),
-            (f"{bib_count:,}", "权威文献条目"),
-            ("0", "sorryAx / 自定义公理"),
-            (toolchain_tag, "锁定工具链基线"),
-        ]
-        sec_arch_eye = "三层单向架构"
-        sec_arch_h2 = "严格单向依赖：Foundations ← Concepts ← Papers"
-        sec_arch_p = "由 lake lint 秒级静态校验分层与导入规范，并由 lake test 调用 Lean 4 内核验证全库公理闭包。"
-        layer_cards = [
-            (
-                "foundations",
-                "Qatlib/Foundations",
-                f"{layers['Foundations']['dir_count']} 子目录 · {f_mods} 模块",
-                "Foundations（基础层）",
-                "共享矩阵分析、算子范数与 Schatten 范数、正半定序与混合态保真度、集中不等式、图拉普拉斯算子、有限精度算术与数值误差传播。",
-                f"{page_prefix}modules.html?layer=Foundations",
-                "浏览 Foundations →",
-            ),
-            (
-                "concepts",
-                "Qatlib/Concepts",
-                f"{layers['Concepts']['dir_count']} 子目录 · {c_mods} 模块",
-                "Concepts（概念与原语层）",
-                "量子信道与量子熵、块编码代数、QSVT/QSP、LCU、振幅放大与估计、量子游走、多项式与对手下界、费米子/玻色子代数、量子纠错与资源记账。",
-                f"{page_prefix}modules.html?layer=Concepts",
-                "浏览 Concepts →",
-            ),
-            (
-                "papers",
-                "Qatlib/Papers",
-                f"{p_dirs} 子目录 · {p_mods} 模块",
-                "Papers（学术文献层）",
-                "基于公共数学接口，按代表性论文目录组织模型定义、专题引理、核心结论定理（MainResults/）与端到端资源复杂度分析。",
-                f"{page_prefix}modules.html?layer=Papers",
-                "浏览 Papers →",
-            ),
-        ]
-        sec_area_eye = "研究主题导航"
-        sec_area_h2 = "研究领域"
-        sec_area_p = "点击下方任意代表性子目录标签，即可查看该目录包含的模块列表并直达 doc-gen4 API 文档。"
-        sec_cite_eye = "引用与开源协议"
-        sec_cite_h2 = "引用 Qatlib"
-        sec_cite_p = "Qatlib 采用 Apache License 2.0 协议开源。如果你在研究中使用了本项目，欢迎引用："
+    t = strings_for(lang)["home"]
+    cta_papers = t["cta_papers"].format(count=bib_count)
+    cap1 = t["cap1"].format(toolchain=toolchain_tag)
+    metrics = zip((total_mods, p_dirs, f"{bib_count:,}", "0", toolchain_tag), t["metrics"], strict=True)
+    layer_cards = []
+    for layer in PANEL_LAYERS:
+        card = t["layer_cards"][layer.lower()]
+        counts = layers[layer]
+        layer_cards.append((
+            layer.lower(), f"Qatlib/{layer}",
+            card["count"].format(dirs=counts["dir_count"], modules=f"{counts['module_count']:,}"),
+            card["title"], card["description"], f"{page_prefix}modules.html#layer={layer}", card["link"],
+        ))
 
     metrics_html = "\n".join(
         f'<div class="metric-item"><span class="metric-val">{val}</span>'
@@ -3435,25 +3575,28 @@ def build_home_body(
   <section class="hero">
     <div class="hero-inner">
       <div>
-        <div class="hero-eyebrow">✓ {html.escape(eyebrow)}</div>
+        <div class="hero-eyebrow">✓ {html.escape(t["eyebrow"])}</div>
         {wordmark_hero}
-        <h1>{html.escape(h1)}</h1>
-        <p class="hero-lead">{html.escape(lead)}</p>
-        <div class="hero-ctas">
-          <a class="btn btn-primary" href="{page_prefix}getting-started.html">{html.escape(cta_start)} →</a>
-          <a class="btn btn-secondary" href="{docs_prefix}index.html">{html.escape(cta_api)}</a>
-          <a class="btn btn-secondary" href="{page_prefix}modules.html">{html.escape(cta_mods)}</a>
-          <a class="btn btn-secondary" href="{page_prefix}papers.html">{html.escape(cta_papers)}</a>
-          <a class="btn btn-secondary" href="{page_prefix}changelog.html">{html.escape(UI_STRINGS[lang]["nav_changelog"])}</a>
-        </div>
+        <h1>{html.escape(t["h1"])}</h1>
+        <p class="hero-lead">{html.escape(t["lead"])}</p>
+        <nav class="hero-ctas" aria-label="{html.escape(t['cta_nav'])}">
+          <a class="btn btn-primary" href="{page_prefix}getting-started.html">{html.escape(t["cta_start"])} <span aria-hidden="true">→</span></a>
+          <a class="btn btn-secondary" href="{page_prefix}{DEPENDENCY_GRAPH_PAGE}">{html.escape(t["cta_graph"])}</a>
+          <a class="btn btn-secondary" href="{docs_prefix}index.html">{html.escape(t["cta_api"])}</a>
+        </nav>
+        <nav class="hero-resources" aria-label="{html.escape(t['resources_nav'])}">
+          <a href="{page_prefix}modules.html">{html.escape(t["cta_mods"])}</a>
+          <a href="{page_prefix}papers.html">{html.escape(cta_papers)}</a>
+          <a href="{page_prefix}changelog.html">{html.escape(strings_for(lang)["ui"]["nav_changelog"])}</a>
+        </nav>
       </div>
 
       <div class="quickstart-card">
-        <div class="qs-tabs">
-          <button type="button" class="qs-tab active" data-tab="qs-dep">{html.escape(tab1)}</button>
-          <button type="button" class="qs-tab" data-tab="qs-build">{html.escape(tab2)}</button>
+        <div class="qs-tabs" role="tablist" aria-label="{html.escape(strings_for(lang)["ui"]["nav_getting_started"])}">
+          <button type="button" class="qs-tab active" id="qs-dep-tab" role="tab" aria-selected="true" aria-controls="qs-dep">{html.escape(t["tab1"])}</button>
+          <button type="button" class="qs-tab" id="qs-build-tab" role="tab" aria-selected="false" aria-controls="qs-build" tabindex="-1">{html.escape(t["tab2"])}</button>
         </div>
-        <div id="qs-dep" class="qs-panel active">
+        <div id="qs-dep" class="qs-panel active" role="tabpanel" aria-labelledby="qs-dep-tab">
           <p class="qs-caption">{html.escape(cap1)}</p>
           <div class="code-card">
             <div class="code-card-header"><span class="code-lang">TOML · lakefile.toml</span>
@@ -3466,8 +3609,8 @@ def build_home_body(
             <pre><code>{dep_sh}</code></pre>
           </div>
         </div>
-        <div id="qs-build" class="qs-panel">
-          <p class="qs-caption">{html.escape(cap2)}</p>
+        <div id="qs-build" class="qs-panel" role="tabpanel" aria-labelledby="qs-build-tab" hidden>
+          <p class="qs-caption">{html.escape(t["cap2"])}</p>
           <div class="code-card" style="margin-bottom:0;">
             <div class="code-card-header"><span class="code-lang">BASH</span>
               <button type="button" class="copy-btn" data-copy-label="{copy_lbl}">{copy_lbl}</button></div>
@@ -3484,9 +3627,9 @@ def build_home_body(
 
   <section class="section">
     <div class="section-header">
-      <div class="section-eyebrow">{html.escape(sec_arch_eye)}</div>
-      <h2>{html.escape(sec_arch_h2)}</h2>
-      <p>{html.escape(sec_arch_p)}</p>
+      <div class="section-eyebrow">{html.escape(t["sec_arch_eye"])}</div>
+      <h2>{html.escape(t["sec_arch_h2"])}</h2>
+      <p>{html.escape(t["sec_arch_p"])}</p>
     </div>
     <div class="layers-grid">
       {layers_html}
@@ -3499,9 +3642,9 @@ def build_home_body(
 
   <section class="section">
     <div class="section-header">
-      <div class="section-eyebrow">{html.escape(sec_area_eye)}</div>
-      <h2>{html.escape(sec_area_h2)}</h2>
-      <p>{html.escape(sec_area_p)}</p>
+      <div class="section-eyebrow">{html.escape(t["sec_area_eye"])}</div>
+      <h2>{html.escape(t["sec_area_h2"])}</h2>
+      <p>{html.escape(t["sec_area_p"])}</p>
     </div>
     <div class="areas-grid">
       {"".join(area_cards_html)}
@@ -3510,9 +3653,9 @@ def build_home_body(
 
   <section class="section">
     <div class="section-header">
-      <div class="section-eyebrow">{html.escape(sec_cite_eye)}</div>
-      <h2>{html.escape(sec_cite_h2)}</h2>
-      <p>{html.escape(sec_cite_p)}</p>
+      <div class="section-eyebrow">{html.escape(t["sec_cite_eye"])}</div>
+      <h2>{html.escape(t["sec_cite_h2"])}</h2>
+      <p>{html.escape(t["sec_cite_p"])}</p>
     </div>
     <div class="code-card" style="max-width:780px;">
       <div class="code-card-header"><span class="code-lang">BIBTEX</span>
@@ -3529,7 +3672,7 @@ def build_modules_explorer_body(
     root_prefix: str,
     tree_stats: dict[str, Any],
 ) -> str:
-    page_prefix = f"{root_prefix}zh/" if lang == "zh" else root_prefix
+    page_prefix = root_prefix + url_for(lang)
     docs_prefix = f"{root_prefix}docs/"
     layers = tree_stats["layers"]
     dirs = tree_stats["dirs"]
@@ -3539,57 +3682,21 @@ def build_modules_explorer_body(
         if unit.get("path")
     }
 
-    if lang == "en":
-        h1 = "Module Explorer"
-        lead = (
-            f"Browse all {tree_stats['total_dirs']:,} topic and paper directories "
-            f"({tree_stats['total_modules']:,} Lean 4 modules) across Foundations, Concepts, and Papers. "
-            "Every card links directly to doc-gen4 API documentation and GitHub source."
-        )
-        placeholder = "Filter by directory name, topic, theorem keyword, or [Citekey] (press / to focus)…"
-        lbl_all = f"All ({tree_stats['total_dirs']})"
-        lbl_f = f"Foundations ({layers['Foundations']['dir_count']})"
-        lbl_c = f"Concepts ({layers['Concepts']['dir_count']})"
-        lbl_p = f"Papers ({layers['Papers']['dir_count']})"
-        layer_display = {
-            "Foundations": "Foundations",
-            "Concepts": "Concepts",
-            "Papers": "Papers",
-        }
-        status_tpl = "Showing {shown} of {total} directories"
-        api_lbl = "Entry API Docs →"
-        dir_api_lbl = "Directory Index"
-        gh_lbl = "GitHub ↗"
-        expand_lbl = "Key modules"
-        mod_unit = "modules"
-    else:
-        h1 = "模块导览"
-        lead = (
-            f"检索与浏览全库 {tree_stats['total_dirs']:,} 个主题与论文子目录（共 {tree_stats['total_modules']:,} 个 Lean 4 模块；"
-            "目录标题与摘要实时提取自 .lean 源码模块文档），一键直达 doc-gen4 API 文档与 GitHub 源码目录。"
-        )
-        placeholder = "按目录名、数学主题、关键词或文献 [Citekey] 实时筛选（按 / 聚焦）…"
-        lbl_all = f"全部 ({tree_stats['total_dirs']})"
-        lbl_f = f"Foundations · 基础层 ({layers['Foundations']['dir_count']})"
-        lbl_c = f"Concepts · 概念层 ({layers['Concepts']['dir_count']})"
-        lbl_p = f"Papers · 论文层 ({layers['Papers']['dir_count']})"
-        layer_display = {
-            "Foundations": "Foundations · 基础层",
-            "Concepts": "Concepts · 概念层",
-            "Papers": "Papers · 论文层",
-        }
-        status_tpl = "当前显示 {shown} / {total} 个子目录"
-        api_lbl = "入口 API 文档 →"
-        dir_api_lbl = "目录索引"
-        gh_lbl = "GitHub 源码 ↗"
-        expand_lbl = "代表性模块"
-        mod_unit = "个模块"
+    t = strings_for(lang)["modules"]
+    lead = t["lead"].format(dirs=tree_stats["total_dirs"], modules=tree_stats["total_modules"])
+    lbl_all = t["lbl_all"].format(count=tree_stats["total_dirs"])
+    layer_display = t["layer_display"]
+    layer_counts = {
+        layer: t["layer_count"].format(layer=label, count=layers[layer]["dir_count"])
+        for layer, label in layer_display.items()
+    }
+    status_tpl = t["status_tpl"]
 
     cards_html: list[str] = []
     for d in dirs:
         panel_unit = catalog_units.get(d["rel_dir"])
         panel_link = (
-            f'<a href="{_unit_href(panel_unit["id"], lang, root_prefix)}">Unit detail →</a>'
+            f'<a href="{_unit_href(panel_unit["id"], lang, root_prefix)}">{t["unit_detail"]}</a>'
             if panel_unit
             else ""
         )
@@ -3614,17 +3721,17 @@ def build_modules_explorer_body(
             f'data-layer="{d["layer"]}" data-search="{html.escape(search_blob)}">'
             f'<div class="mod-card-top">'
             f'<span class="mod-layer-tag mod-layer-{d["layer"]}">{html.escape(layer_tag_lbl)}</span>'
-            f'<span class="mod-count">{d["module_count"]} {mod_unit}</span>'
+            f'<span class="mod-count">{d["module_count"]} {t["mod_unit"]}</span>'
             f"</div>"
             f'<h2 class="mod-name">{html.escape(d["name"])}</h2>'
             f"{subtitle_el}{desc_el}{cite_row}"
-            f'<details class="mod-details"><summary>{expand_lbl} ({len(d["featured_mods"])})</summary>'
+            f'<details class="mod-details"><summary>{t["expand_lbl"]} ({len(d["featured_mods"])})</summary>'
             f'<ul class="mod-leaf-list">{leaf_lis}</ul></details>'
             f'<div class="mod-actions">'
             f"{panel_link}"
-            f'<a href="{docs_prefix}{d["entry_html"]}">{api_lbl}</a>'
-            f'<a href="{docs_prefix}{d["rel_dir"]}/index.html">{dir_api_lbl}</a>'
-            f'<a href="{GITHUB_REPO_URL}/tree/main/{d["rel_dir"]}" target="_blank" rel="noopener">{gh_lbl}</a>'
+            f'<a href="{docs_prefix}{d["entry_html"]}">{t["api_lbl"]}</a>'
+            f'<a href="{docs_prefix}{d["rel_dir"]}/index.html">{t["dir_api_lbl"]}</a>'
+            f'<a href="{GITHUB_REPO_URL}/tree/main/{d["rel_dir"]}" target="_blank" rel="noopener">{t["gh_lbl"]}</a>'
             f"</div></article>"
         )
 
@@ -3632,17 +3739,17 @@ def build_modules_explorer_body(
   <main class="explorer-wrap">
     <div class="section-header" style="margin-bottom:16px;">
       <div class="section-eyebrow">Qatlib/{'{'}Foundations, Concepts, Papers{'}'}</div>
-      <h1 style="margin:0 0 8px;font-size:30px;">{html.escape(h1)}</h1>
+      <h1 style="margin:0 0 8px;font-size:30px;">{html.escape(t["h1"])}</h1>
       <p>{html.escape(lead)}</p>
     </div>
 
     <div class="explorer-toolbar">
-      <input id="explorer-search" class="filter-input" type="search" placeholder="{html.escape(placeholder)}" autocomplete="off">
+      <input id="explorer-search" class="filter-input" type="search" placeholder="{html.escape(t["placeholder"])}" autocomplete="off">
       <div class="filter-pills">
         <button type="button" class="filter-pill active" data-layer-filter="all">{html.escape(lbl_all)}</button>
-        <button type="button" class="filter-pill" data-layer-filter="Foundations">{html.escape(lbl_f)}</button>
-        <button type="button" class="filter-pill" data-layer-filter="Concepts">{html.escape(lbl_c)}</button>
-        <button type="button" class="filter-pill" data-layer-filter="Papers">{html.escape(lbl_p)}</button>
+        <button type="button" class="filter-pill" data-layer-filter="Foundations">{html.escape(layer_counts["Foundations"])}</button>
+        <button type="button" class="filter-pill" data-layer-filter="Concepts">{html.escape(layer_counts["Concepts"])}</button>
+        <button type="button" class="filter-pill" data-layer-filter="Papers">{html.escape(layer_counts["Papers"])}</button>
       </div>
     </div>
 
@@ -3665,44 +3772,22 @@ def build_papers_explorer_body(
     bib_entries: list[dict[str, Any]],
     panel_papers: list[dict[str, Any]] | None = None,
 ) -> str:
-    page_prefix = f"{root_prefix}zh/" if lang == "zh" else root_prefix
+    page_prefix = root_prefix + url_for(lang)
     docs_prefix = f"{root_prefix}docs/"
-    copy_lbl = "复制" if lang == "zh" else "Copy"
+    copy_lbl = strings_for(lang)["ui"]["copy"]
     paper_rows = panel_papers or bib_entries
 
-    if lang == "en":
-        h1 = "Papers & Bibliography"
-        lead = (
-            f"Search all {len(paper_rows):,} authoritative books, foundational papers, and preprints "
-            f"in docs/references.bib across {len(bib_sections)} subject chapters, with direct cross-links "
-            "to Qatlib formalization directories."
-        )
-        placeholder = "Search by author, title, year, citekey, arXiv ID, or Qatlib module…"
-        all_chap = f"All {len(bib_sections)} Subject Chapters ({len(paper_rows)})"
-        only_form_lbl = "Linked to Qatlib modules only"
-        status_tpl = "Showing {shown} of {total} references"
-        raw_lbl = "BibTeX"
-        form_prefix = "Formalized / cited in:"
-    else:
-        h1 = "文献与参考书目索引"
-        lead = (
-            f"检索 docs/references.bib 收录的全部 {len(paper_rows):,} 篇权威专著与学术论文（按 {len(bib_sections)} 个学科章节分类），"
-            "并直接跳转到对应的 Qatlib 形式化模块。"
-        )
-        placeholder = "按作者、论文标题、年份、Citekey、arXiv 编号或 Qatlib 模块名搜索…"
-        all_chap = f"全部 {len(bib_sections)} 个学科章节 ({len(paper_rows)})"
-        only_form_lbl = "仅显示已关联 Qatlib 模块的文献"
-        status_tpl = "当前显示 {shown} / {total} 篇文献"
-        raw_lbl = "BibTeX"
-        form_prefix = "关联 Qatlib 模块："
+    t = strings_for(lang)["bibliography"]
+    counts = {"chapters": len(bib_sections), "references": len(paper_rows)}
+    lead = t["lead"].format(**counts)
+    all_chap = t["all_chap"].format(**counts)
+    status_tpl = t["status_tpl"]
 
     def sec_label(sec_id: str, en_title: str) -> str:
         if lang == "zh":
             return BIB_SECTION_TITLES_ZH.get(sec_id, en_title)
         return en_title
 
-    select_aria = "Filter by subject chapter" if lang == "en" else "按学科章节筛选"
-    docgen_badge_lbl = "doc-gen4 ↗" if lang == "en" else "API 引用 ↗"
 
     options_html = [f'<option value="all">{html.escape(all_chap)}</option>']
     for sec in bib_sections:
@@ -3752,7 +3837,7 @@ def build_papers_explorer_body(
                 f'target="_blank" rel="noopener">URL ↗</a>'
             )
         ext_links.append(
-            f'<a class="bib-ext-badge" href="{docs_prefix}references.html#ref_{html.escape(ent.get("key", ""))}">{docgen_badge_lbl}</a>'
+            f'<a class="bib-ext-badge" href="{docs_prefix}references.html#ref_{html.escape(ent.get("key", ""))}">{t["docgen_badge_lbl"]}</a>'
         )
 
         dir_chips = ""
@@ -3764,9 +3849,9 @@ def build_papers_explorer_body(
             )
             dir_chips = (
                 f'<div class="chip-list" style="margin-top:8px;align-items:center;">'
-                f'<span style="font-size:12px;color:var(--fg-faint);">{form_prefix}</span>{chips}</div>'
+                f'<span style="font-size:12px;color:var(--fg-faint);">{t["form_prefix"]}</span>{chips}</div>'
             )
-        detail_link = f'<a class="bib-ext-badge" href="{_paper_href(ent.get("key", ""), lang, root_prefix)}">Explorer detail →</a>'
+        detail_link = f'<a class="bib-ext-badge" href="{_paper_href(ent.get("key", ""), lang, root_prefix)}">{t["detail"]}</a>'
         claim_badges = " ".join(
             _badge(f"{len(ent.get('claims', []))} claims", "rank")
             for _ in [0]
@@ -3785,7 +3870,7 @@ def build_papers_explorer_body(
             f'<p class="bib-authors">{html.escape(ent.get("authors", ""))}</p>'
             f'<p class="bib-venue">{html.escape(venue_line)}</p>'
             f'<div class="bib-links">{"".join(ext_links)}{detail_link}{claim_badges}'
-            f'<details class="bib-raw-details"><summary>{raw_lbl}</summary>'
+            f'<details class="bib-raw-details"><summary>{t["raw_lbl"]}</summary>'
             f'<div class="code-card" style="margin-top:8px;">'
             f'<div class="code-card-header"><span class="code-lang">BIBTEX</span>'
             f'<button type="button" class="copy-btn" data-copy-label="{copy_lbl}">{copy_lbl}</button></div>'
@@ -3797,17 +3882,17 @@ def build_papers_explorer_body(
   <main class="explorer-wrap">
     <div class="section-header" style="margin-bottom:16px;">
       <div class="section-eyebrow">docs/references.bib</div>
-      <h1 style="margin:0 0 8px;font-size:30px;">{html.escape(h1)}</h1>
+      <h1 style="margin:0 0 8px;font-size:30px;">{html.escape(t["h1"])}</h1>
       <p>{html.escape(lead)}</p>
     </div>
 
     <div class="explorer-toolbar">
-      <input id="explorer-search" class="filter-input" type="search" placeholder="{html.escape(placeholder)}" autocomplete="off">
-      <select id="chapter-filter" class="chapter-select" aria-label="{html.escape(select_aria)}">
+      <input id="explorer-search" class="filter-input" type="search" placeholder="{html.escape(t["placeholder"])}" autocomplete="off">
+      <select id="chapter-filter" class="chapter-select" aria-label="{html.escape(t["select_aria"])}">
         {"".join(options_html)}
       </select>
       <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--fg-muted);cursor:pointer;">
-        <input id="formalized-only" type="checkbox"> {html.escape(only_form_lbl)}
+        <input id="formalized-only" type="checkbox"> {html.escape(t["only_form_lbl"])}
       </label>
     </div>
 
@@ -3822,32 +3907,60 @@ def build_papers_explorer_body(
 """
 
 
-def build_smart_404_page(wordmark_nav: str, toolchain_tag: str) -> str:
-    """Build 404.html that auto-redirects legacy root doc-gen4 URLs to /docs/..."""
-    body = """
-  <main class="section" style="text-align:center;padding:88px 24px;">
-    <div class="section-eyebrow">404</div>
-    <h1 style="margin:0 0 12px;font-size:32px;">Page Not Found / <span lang="zh-CN">页面未找到</span></h1>
-    <p id="redirect-msg" style="color:var(--fg-muted);max-width:560px;margin:0 auto 28px;">
-      The requested path could not be found. API documentation generated by <code>doc-gen4</code> is hosted under <code>/docs/</code>.
-    </p>
-    <div class="hero-ctas" style="justify-content:center;">
-      <a class="btn btn-primary" href="./index.html">Qatlib Home / <span lang="zh-CN">返回首页</span></a>
-      <a class="btn btn-secondary" href="./docs/index.html">API Reference (/docs/)</a>
-      <a class="btn btn-secondary" href="./modules.html">Module Explorer</a>
-    </div>
-  </main>
-"""
-    return render_page_shell(
-        title="404 Not Found",
-        lang="en",
-        page_slug="",
-        root_prefix="./",
-        toolchain_tag=toolchain_tag,
-        wordmark_nav=wordmark_nav,
-        body_html=body,
-    )
+def build_legacy_redirect(page: str, site_url: str) -> str:
+    route = url_for(DEFAULT_LOCALE, page)
+    legacy_path = f"zh/{page}"
+    target = relative_url(legacy_path, route)
+    return f'''<!doctype html>
+<html lang="zh-Hans" data-redirect-target="{target}">
+<head><meta charset="utf-8"><title>Qatlib</title>
+<link rel="canonical" href="{html.escape(site_url + route)}">
+<noscript><meta http-equiv="refresh" content="0; url={target}"></noscript>
+<link rel="icon" href="{root_relative(legacy_path)}favicon.ico">
+<script type="module" src="{root_relative(legacy_path)}assets/i18n.js"></script></head>
+<body><a href="{target}">Qatlib →</a></body></html>
+'''
 
+
+def write_site_indexes(out_dir: Path, site_url: str) -> None:
+    homes = (site_url, site_url + url_for("en"))
+    entries = "\n".join(f"  <url><loc>{html.escape(url)}</loc></url>" for url in homes)
+    (out_dir / "sitemap.xml").write_text(
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        f"{entries}\n</urlset>\n", encoding="utf-8",
+    )
+    lines = ["# Qatlib", "", f'> {strings_for("en")["ui"]["site_tagline"]}.', ""]
+    for lang, info in LOCALES.items():
+        labels = strings_for(lang)["ui"]
+        lines.extend([f'## {info["name"]}', ""])
+        for page, label in NAV_PAGES.items():
+            lines.append(f"- [{labels[label]}]({site_url + url_for(lang, page)})")
+        lines.append("")
+    lines.extend(["## API reference", "", f"- [API documentation]({site_url}docs/)"])
+    for layer in PANEL_LAYERS:
+        lines.append(f"- [Qatlib.{layer}]({site_url}docs/Qatlib/{layer}/)")
+    (out_dir / "llms.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def build_smart_404_page() -> str:
+    headings = " / ".join(
+        f'<span lang="{info["tag"]}">{strings_for(key)["ui"]["not_found"]}</span>'
+        for key, info in LOCALES.items()
+    )
+    links = " · ".join(language_link(locale, "./" + url_for(locale)) for locale in LOCALES)
+    return f'''<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>404 · Qatlib</title>
+<link rel="stylesheet" href="./assets/style.css">
+{render_favicon_links("./")}
+<script type="module" src="./assets/i18n.js"></script>
+<script defer src="./assets/site.js"></script></head>
+<body><main id="redirect-msg" class="section"><h1>404 · {headings}</h1>
+<p>{links} · <a href="./docs/">{strings_for("en")["ui"]["footer_api"]}</a></p>
+</main></body></html>
+'''
 
 # ---------------------------------------------------------------------------
 # doc-gen4 post-processing (_site/docs/)
@@ -3882,6 +3995,9 @@ def upgrade_docgen_directory(
     areas_en: list[dict[str, Any]],
 ) -> None:
     """Enhance doc-gen4 output under _site/docs/ without breaking any relative assets."""
+    # Existing API pages already resolve their icon to this shared doc-gen4 asset.
+    shutil.copy2(FAVICON_ASSETS / ADAPTIVE_FAVICON, docs_out / "favicon.svg")
+
     # Patch only the mounted output, after raw snapshot verification. Reuse the
     # existing Lato family for real bold outlines without adding a font source.
     style_file = docs_out / "style.css"
@@ -3890,18 +4006,31 @@ def upgrade_docgen_directory(
         if DOCGEN_TYPOGRAPHY_CSS not in css:
             style_file.write_text(css.rstrip() + "\n\n" + DOCGEN_TYPOGRAPHY_CSS, encoding="utf-8")
 
+    en = "../" + url_for("en")
+    zh = "../" + url_for("zh")
+
     # 1. Inject return-to-portal links at the top of navbar.html
     navbar_file = docs_out / "navbar.html"
     if navbar_file.is_file():
         nav_html = navbar_file.read_text(encoding="utf-8")
         portal_links = (
             '<h3>Qatlib Portal</h3>'
-            '<div class="nav_link"><a href="../index.html">← Home &amp; Guides</a></div>'
-            '<div class="nav_link"><a href="../getting-started.html">getting started</a></div>'
-            '<div class="nav_link"><a href="../modules.html">module explorer</a></div>'
-            '<div class="nav_link"><a href="../papers.html">bibliography</a></div>'
+            f'<div class="nav_link"><a href="{en}">← Home &amp; Guides</a></div>'
+            f'<div class="nav_link"><a href="{en}getting-started.html">getting started</a></div>'
+            f'<div class="nav_link"><a href="{en}modules.html">module explorer</a></div>'
+            f'<div class="nav_link"><a href="{en}papers.html">bibliography</a></div>'
+            f'<div class="nav_link"><a href="{en}{DEPENDENCY_GRAPH_PAGE}">theorem dependencies</a></div>'
+            f'<div class="nav_link">{language_link("zh", zh)}</div>'
         )
-        if "Qatlib Portal" not in nav_html:
+        if "Qatlib Portal" in nav_html:
+            nav_html = re.sub(
+                r"<h3>Qatlib Portal</h3>[\s\S]*?(?=<h3>General documentation</h3>)",
+                lambda _: portal_links,
+                nav_html,
+                count=1,
+            )
+            navbar_file.write_text(nav_html, encoding="utf-8")
+        elif "<h3>General documentation</h3>" in nav_html:
             nav_html = nav_html.replace("<h3>General documentation</h3>", portal_links + "<h3>General documentation</h3>", 1)
             navbar_file.write_text(nav_html, encoding="utf-8")
 
@@ -3922,12 +4051,13 @@ def upgrade_docgen_directory(
         rich_main = f"""<main><a id="top"></a>
 <div style="max-width:920px;line-height:1.65;">
   <p style="margin:0 0 12px;">
-    <a href="../index.html"><strong>← Back to Qatlib Home &amp; Guides</strong></a>
-    &nbsp;·&nbsp; <a href="../getting-started.html">Getting Started &amp; Cache</a>
-    &nbsp;·&nbsp; <a href="../architecture.html">Architecture</a>
-    &nbsp;·&nbsp; <a href="../modules.html">Module Explorer</a>
-    &nbsp;·&nbsp; <a href="../papers.html">Bibliography ({bib_count})</a>
-    &nbsp;·&nbsp; <a href="../zh/index.html" lang="zh-CN">简体中文</a>
+    <a href="{en}"><strong>← Back to Qatlib Home &amp; Guides</strong></a>
+    &nbsp;·&nbsp; <a href="{en}getting-started.html">Getting Started &amp; Cache</a>
+    &nbsp;·&nbsp; <a href="{en}architecture.html">Architecture</a>
+    &nbsp;·&nbsp; <a href="{en}modules.html">Module Explorer</a>
+    &nbsp;·&nbsp; <a href="{en}papers.html">Bibliography ({bib_count})</a>
+    &nbsp;·&nbsp; <a href="{en}{DEPENDENCY_GRAPH_PAGE}">Theorem Dependencies</a>
+    &nbsp;·&nbsp; {language_link("zh", zh)}
   </p>
   <h1>Qatlib API Reference (<code>doc-gen4</code>)</h1>
   <p>
@@ -3948,6 +4078,14 @@ def upgrade_docgen_directory(
 </main>"""
         idx_html = re.sub(r"<main>[\s\S]*?</main>", lambda _: rich_main, idx_html, count=1)
         idx_html = idx_html.replace("<title>Index</title>", "<title>Qatlib API Reference</title>", 1)
+        favicon_links = render_favicon_links("../")
+        if favicon_links not in idx_html:
+            idx_html = re.sub(
+                r'<link rel="icon" href="(?:\./)?favicon\.svg">|</head>',
+                lambda match: favicon_links + ("\n</head>" if match.group() == "</head>" else ""),
+                idx_html,
+                count=1,
+            )
         index_file.write_text(idx_html, encoding="utf-8")
 
     # 3. Generate lightweight directory index pages under _site/docs/Qatlib/... so directory URLs never 404
@@ -3970,7 +4108,7 @@ def _generate_docgen_dir_indexes(docs_out: Path, tree_stats: dict[str, Any]) -> 
                 f'<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">'
                 f'<meta name="viewport" content="width=device-width, initial-scale=1">'
                 f'<link rel="stylesheet" href="{root_rel}style.css">'
-                f'<link rel="icon" href="{root_rel}favicon.svg">'
+                f'{render_favicon_links(portal_rel)}'
                 f"<title>{html.escape(heading)} — Qatlib API</title>"
                 f'<script>const SITE_ROOT="{root_rel}";</script>'
                 f'<script type="module" src="{root_rel}search.js"></script>'
@@ -3981,8 +4119,8 @@ def _generate_docgen_dir_indexes(docs_out: Path, tree_stats: dict[str, Any]) -> 
                 f'<form id="search_form" action="{root_rel}search.html" method="get">'
                 f'<input type="text" name="q" autocomplete="off"> <button id="search_button" type="submit">Search</button></form></header>'
                 f'<main><a id="top"></a>'
-                f'<p><a href="{portal_rel}index.html">← Qatlib Home</a> · '
-                f'<a href="{portal_rel}modules.html#{html.escape(rel_dir)}">Module Explorer</a> · '
+                f'<p><a href="{portal_rel}{url_for("en")}">← Qatlib Home</a> · '
+                f'<a href="{portal_rel}{url_for("en", "modules.html")}#{html.escape(rel_dir)}">Module Explorer</a> · '
                 f'<a href="{root_rel}index.html">API Index</a> · '
                 f'<a href="{GITHUB_REPO_URL}/tree/main/{html.escape(rel_dir)}" target="_blank" rel="noopener">GitHub Source ↗</a></p>'
                 f"<h1>{html.escape(heading)}</h1>{items_html}</main>"
@@ -3995,10 +4133,11 @@ def _generate_docgen_dir_indexes(docs_out: Path, tree_stats: dict[str, Any]) -> 
                 f'<meta name="viewport" content="width=device-width, initial-scale=1">'
                 f'<link rel="stylesheet" href="{portal_rel}assets/style.css">'
                 f'<script src="{portal_rel}assets/theme-init.js"></script>'
+                f'{render_favicon_links(portal_rel)}'
                 f"<title>{html.escape(heading)} — Qatlib API</title></head>"
                 f'<body style="padding:36px 24px;max-width:920px;margin:0 auto;">'
-                f'<p><a href="{portal_rel}index.html">← Qatlib Home</a> · '
-                f'<a href="{portal_rel}modules.html#{html.escape(rel_dir)}">Module Explorer</a> · '
+                f'<p><a href="{portal_rel}{url_for("en")}">← Qatlib Home</a> · '
+                f'<a href="{portal_rel}{url_for("en", "modules.html")}#{html.escape(rel_dir)}">Module Explorer</a> · '
                 f'<a href="{root_rel}index.html">API Index</a></p>'
                 f"<h1>{html.escape(heading)}</h1>{items_html}</body></html>"
             )
@@ -4045,10 +4184,9 @@ def _generate_docgen_dir_indexes(docs_out: Path, tree_stats: dict[str, Any]) -> 
 def create_stub_docgen_dir(docs_out: Path, toolchain_tag: str, tree_stats: dict[str, Any]) -> None:
     """Create a clean local preview stub for _site/docs/ when docbuild/.lake/build/doc is absent."""
     docs_out.mkdir(parents=True, exist_ok=True)
-    live_base = "https://quantum-atlas-ai.github.io/qatlib"
 
     def render_stub_note(rel_doc_path: str) -> str:
-        live_url = f"{live_base}/{rel_doc_path}" if rel_doc_path != "index.html" else f"{live_base}/"
+        live_url = f"{DEFAULT_SITE_URL}docs/{rel_doc_path}"
         return (
             "<div style='padding:16px 20px;border-radius:10px;background:var(--brand-soft);"
             "border:1px solid var(--border);margin:16px 0 24px;'>"
@@ -4072,9 +4210,10 @@ def create_stub_docgen_dir(docs_out: Path, toolchain_tag: str, tree_stats: dict[
             f'<meta name="viewport" content="width=device-width, initial-scale=1">'
             f'<link rel="stylesheet" href="../assets/style.css">'
             f'<script src="../assets/theme-init.js"></script>'
+            f'{render_favicon_links("../")}'
             f"<title>{heading}</title></head>"
             f'<body style="padding:40px 24px;max-width:880px;margin:0 auto;">'
-            f'<p><a href="../index.html">← Back to Qatlib Portal</a> · <a href="../modules.html">Module Explorer</a></p>'
+            f'<p><a href="../{url_for("en")}">← Back to Qatlib Portal</a> · <a href="../{url_for("en", "modules.html")}">Module Explorer</a></p>'
             f"<h1>{heading} (Lean {html.escape(toolchain_tag)})</h1>{render_stub_note(fname)}"
             f"</body></html>",
             encoding="utf-8",
@@ -4088,14 +4227,15 @@ def create_stub_docgen_dir(docs_out: Path, toolchain_tag: str, tree_stats: dict[
             p.parent.mkdir(parents=True, exist_ok=True)
             rel_assets = os.path.relpath(docs_out.parent / "assets/style.css", p.parent).replace("\\", "/")
             rel_theme = os.path.relpath(docs_out.parent / "assets/theme-init.js", p.parent).replace("\\", "/")
-            rel_home = os.path.relpath(docs_out.parent / "index.html", p.parent).replace("\\", "/")
+            portal_rel = os.path.relpath(docs_out.parent, p.parent).replace("\\", "/") + "/"
             p.write_text(
                 f'<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">'
                 f'<link rel="stylesheet" href="{rel_assets}">'
                 f'<script src="{rel_theme}"></script>'
+                f'{render_favicon_links(portal_rel)}'
                 f'<title>{label}</title></head>'
                 f'<body style="padding:36px 24px;max-width:880px;margin:0 auto;">'
-                f'<p><a href="{rel_home}">← Back to Qatlib Portal</a></p>'
+                f'<p><a href="{portal_rel}{url_for("en")}">← Back to Qatlib Portal</a></p>'
                 f"<h1><code>{label}</code></h1>{render_stub_note(html_path)}</body></html>",
                 encoding="utf-8",
             )
@@ -4131,7 +4271,7 @@ def verify_portal_links(out_dir: Path) -> list[str]:
             clean = raw.split("#", 1)[0].split("?", 1)[0]
             if not clean:
                 continue
-            resolved = (html_file.parent / clean).resolve()
+            resolved = (html_file.parent / unquote(clean)).resolve()
             if resolved.is_dir():
                 resolved = resolved / "index.html"
             if not resolved.is_file():
@@ -4163,19 +4303,20 @@ def write_panel_detail_pages(
     out_dir: Path,
     catalog: dict[str, Any],
     panel_papers: list[dict[str, Any]],
-    wordmark_nav: str,
     toolchain_tag: str,
+    site_url: str,
 ) -> None:
     """Write bilingual Unit and Paper detail views driven by one panel model."""
     all_unit_ids = {unit["id"] for unit in catalog.get("units", [])}
-    for lang, units_root, papers_root, root_prefix in (
-        ("en", out_dir / "units", out_dir / "papers", "../"),
-        ("zh", out_dir / "zh" / "units", out_dir / "zh" / "papers", "../../"),
-    ):
+    for lang in LOCALES:
+        locale_root = out_dir / LOCALES[lang]["prefix"]
+        units_root = locale_root / "units"
+        papers_root = locale_root / "papers"
         units_root.mkdir(parents=True, exist_ok=True)
         papers_root.mkdir(parents=True, exist_ok=True)
         for unit in catalog.get("units", []):
             page_slug = f"units/{unit['id']}.html"
+            root_prefix = root_relative(LOCALES[lang]["prefix"] + page_slug)
             body = build_unit_detail_body(
                 unit=unit,
                 lang=lang,
@@ -4184,12 +4325,13 @@ def write_panel_detail_pages(
             )
             (units_root / f"{unit['id']}.html").write_text(
                 render_page_shell(
-                    title=f"Unit · {unit['id']}",
+                    title=strings_for(lang)["unit"]["heading"].format(id=unit["id"]),
                     lang=lang,
                     page_slug=page_slug,
                     root_prefix=root_prefix,
                     toolchain_tag=toolchain_tag,
-                    wordmark_nav=wordmark_nav,
+                    site_url=site_url,
+                    wordmark_nav=render_wordmark(root_prefix, "nav-wordmark"),
                     body_html=body,
                 ),
                 encoding="utf-8",
@@ -4199,6 +4341,7 @@ def write_panel_detail_pages(
             if not paper_id:
                 continue
             page_slug = f"papers/{paper_id}.html"
+            root_prefix = root_relative(LOCALES[lang]["prefix"] + page_slug)
             body = build_paper_detail_body(
                 paper=paper,
                 lang=lang,
@@ -4207,12 +4350,13 @@ def write_panel_detail_pages(
             )
             (papers_root / f"{paper_id}.html").write_text(
                 render_page_shell(
-                    title=f"Paper · {paper_id}",
+                    title=strings_for(lang)["paper"]["title"].format(id=paper_id),
                     lang=lang,
                     page_slug=page_slug,
                     root_prefix=root_prefix,
                     toolchain_tag=toolchain_tag,
-                    wordmark_nav=wordmark_nav,
+                    site_url=site_url,
+                    wordmark_nav=render_wordmark(root_prefix, "nav-wordmark"),
                     body_html=body,
                 ),
                 encoding="utf-8",
@@ -4228,6 +4372,42 @@ def _reset_output_dir(path: Path) -> None:
         raise RuntimeError(f"cannot safely replace generated output without trash-put: {path}")
     subprocess.run([trash, str(path)], check=True)
 
+def read_lean_toolchain(repo_root: Path) -> str:
+    return (repo_root / "lean-toolchain").read_text(encoding="utf-8").strip()
+
+
+def install_dependency_graph_api(docs_dir: Path) -> None:
+    asset = docs_dir / DEPENDENCY_GRAPH_ASSET
+    api_search = docs_dir / "search.js"
+    if not asset.is_file() or not api_search.is_file():
+        return
+    with asset.open("rb") as stream:
+        if stream.peek(2).startswith(b"\x1f\x8b"):
+            with gzip.GzipFile(fileobj=stream) as decoded:
+                graph = json.load(decoded)
+        else:
+            graph = json.load(stream)
+    shutil.copy2(SITE_ASSETS / DEPENDENCY_GRAPH_API, docs_dir)
+    graph_import = f'import {{addQatlibDependencyLinks}} from "./{DEPENDENCY_GRAPH_API}";'
+    routes = {
+        lang: [relative_url("docs/search.js", url_for(lang, DEPENDENCY_GRAPH_PAGE)),
+               strings_for(lang)["graph"]["api_link"]]
+        for lang in LOCALES
+    }
+    options = ", ".join(json.dumps(value, ensure_ascii=False) for value in
+                        (routes, PANEL_LAYERS, graph.get("ambiguousNames", [])))
+    bridge = f"{graph_import}\naddQatlibDependencyLinks({options});\n"
+    search_script = api_search.read_text(encoding="utf-8")
+    if bridge not in search_script:
+        legacy_import = f'import "./{DEPENDENCY_GRAPH_API}";\n'
+        search_script = search_script.replace(legacy_import, "")
+        search_script = re.sub(
+            rf"(?m)^{re.escape(graph_import)}\naddQatlibDependencyLinks\([^\n]*\);\n",
+            "", search_script,
+        )
+        api_search.write_text(f"{search_script.rstrip()}\n\n{bridge}", encoding="utf-8")
+
+
 def build_site(
     repo_root: Path,
     out_dir: Path,
@@ -4236,16 +4416,20 @@ def build_site(
     stub_docgen: bool,
     check_links: bool,
     metadata_dir: Path | None = None,
+    dependency_graph: Path | None = None,
+    site_url: str = DEFAULT_SITE_URL,
+    mathjax_dir: Path | None = None,
 ) -> None:
+    base = urlsplit(site_url)
+    if base.scheme not in ("http", "https") or not base.netloc or base.query or base.fragment:
+        raise ValueError("site URL must be an absolute HTTP(S) URL without a query or fragment")
+    site_url = base.geturl().rstrip("/") + "/"
     if docgen_dir is not None:
         errors = verify_docgen(repo_root, docgen_dir)
         if errors:
             raise RuntimeError("Incomplete doc-gen4 output: " + "; ".join(errors[:10]))
-    tc_raw = (repo_root / "lean-toolchain").read_text(encoding="utf-8").strip()
+    tc_raw = read_lean_toolchain(repo_root)
     toolchain_tag = tc_raw.split(":")[-1] if ":" in tc_raw else tc_raw
-
-    wordmark_nav = load_wordmark_svg(repo_root, css_class="nav-wordmark")
-    wordmark_hero = load_wordmark_svg(repo_root, css_class="hero-wordmark")
 
     bib_sections, bib_entries = parse_references_bib(repo_root / "docs/references.bib")
     bib_key_map = {e["key"]: e for e in bib_entries}
@@ -4265,28 +4449,49 @@ def build_site(
         tree_stats["layers"][layer]["module_count"] = catalog["layers"][layer]["module_count"]
         tree_stats["layers"][layer]["dir_count"] = catalog["layers"][layer]["dir_count"]
 
-    readme_en = repo_root / "README.en.md"
-    readme_zh = repo_root / "README.md"
-    areas_en, bibtex_en = parse_readme_areas_and_bibtex(readme_en)
-    areas_zh, bibtex_zh = parse_readme_areas_and_bibtex(readme_zh)
+    readmes = {
+        lang: repo_root / f"README{info['md_suffix']}.md"
+        for lang, info in LOCALES.items()
+    }
+    readme_data = {lang: parse_readme_areas_and_bibtex(path) for lang, path in readmes.items()}
 
     _reset_output_dir(out_dir)
     (out_dir / "assets").mkdir(parents=True, exist_ok=True)
-    (out_dir / "zh").mkdir(parents=True, exist_ok=True)
     (out_dir / ".nojekyll").write_text("", encoding="utf-8")
     (out_dir / "assets/style.css").write_text(SITE_CSS, encoding="utf-8")
     (out_dir / "assets/theme-init.js").write_text(THEME_INIT_JS, encoding="utf-8")
     (out_dir / "assets/site.js").write_text(SITE_JS, encoding="utf-8")
-    for wm_asset in ("qatlib-wordmark.svg", "qatlib-wordmark.png"):
-        wm_src = repo_root / ".github/assets" / wm_asset
-        if wm_src.is_file():
-            shutil.copy2(wm_src, out_dir / "assets" / wm_asset)
+    for asset in (*DEPENDENCY_GRAPH_PORTAL_ASSETS, "i18n.js"):
+        shutil.copy2(SITE_ASSETS / asset, out_dir / "assets" / asset)
+    for wm_asset in ("qatlib-wordmark.svg", "qatlib-wordmark.png", "qatlib-wordmark-dark.svg", SOCIAL_IMAGE):
+        wm_src = repo_root / BRAND_ASSETS / wm_asset
+        if not wm_src.is_file():
+            wm_src = FAVICON_ASSETS.parent / wm_asset
+        shutil.copy2(wm_src, out_dir / "assets" / wm_asset)
+    for favicon in FAVICON_ASSETS.iterdir():
+        if favicon.suffix in (".png", ".ico") or favicon.name == ADAPTIVE_FAVICON:
+            shutil.copy2(favicon, out_dir / favicon.name)
 
-    # Assemble English (/) and Chinese (/zh/) pages
-    for lang, root_prefix, sub_dir, readme, areas, bibtex_str in [
-        ("en", "./", out_dir, readme_en, areas_en, bibtex_en),
-        ("zh", "../", out_dir / "zh", readme_zh, areas_zh, bibtex_zh or bibtex_en),
-    ]:
+    for lang, info in LOCALES.items():
+        sub_dir = out_dir / info["prefix"]
+        sub_dir.mkdir(exist_ok=True)
+        root_prefix = root_relative(info["prefix"] + "index.html")
+        wordmark_nav = render_wordmark(root_prefix, "nav-wordmark")
+        wordmark_hero = render_wordmark(root_prefix, "hero-wordmark")
+        suffix = info["md_suffix"]
+        readme = readmes[lang]
+        areas, bibtex_str = readme_data[lang]
+        bibtex_str = bibtex_str or readme_data["en"][1]
+        graph_title, graph_body = build_dependency_graph_body(lang, root_prefix, wordmark_nav)
+        (sub_dir / DEPENDENCY_GRAPH_PAGE).write_text(
+            render_page_shell(
+                title=graph_title, lang=lang, page_slug=DEPENDENCY_GRAPH_PAGE,
+                root_prefix=root_prefix, toolchain_tag=toolchain_tag,
+                site_url=site_url,
+                wordmark_nav=wordmark_nav, body_html=graph_body,
+            ), encoding="utf-8",
+        )
+
         # 1. Overview (index.html)
         _, qec_html, _ = process_markdown_guide(
             readme, repo_root, lang, root_prefix, section_id="quantum-error-correction",
@@ -4309,6 +4514,7 @@ def build_site(
                 page_slug="index.html",
                 root_prefix=root_prefix,
                 toolchain_tag=toolchain_tag,
+                site_url=site_url,
                 wordmark_nav=wordmark_nav,
                 body_html=home_body,
             ),
@@ -4316,7 +4522,7 @@ def build_site(
         )
 
         # 2. Getting Started
-        gs_src = repo_root / ("docs/getting-started.en.md" if lang == "en" else "docs/getting-started.md")
+        gs_src = repo_root / f"docs/getting-started{suffix}.md"
         gs_title, gs_html, gs_toc = process_markdown_guide(gs_src, repo_root, lang, root_prefix)
         (sub_dir / "getting-started.html").write_text(
             render_page_shell(
@@ -4325,6 +4531,7 @@ def build_site(
                 page_slug="getting-started.html",
                 root_prefix=root_prefix,
                 toolchain_tag=toolchain_tag,
+                site_url=site_url,
                 wordmark_nav=wordmark_nav,
                 body_html=build_docs_layout(
                     page_title=gs_title,
@@ -4340,14 +4547,14 @@ def build_site(
         )
 
         # 3. Architecture (+ scripts/README{.en,}.md tooling reference)
-        arch_src = repo_root / ("docs/architecture.en.md" if lang == "en" else "docs/architecture.md")
+        arch_src = repo_root / f"docs/architecture{suffix}.md"
         arch_title, arch_html, arch_toc = process_markdown_guide(arch_src, repo_root, lang, root_prefix)
-        scripts_md = repo_root / ("scripts/README.en.md" if lang == "en" else "scripts/README.md")
+        scripts_md = repo_root / f"scripts/README{suffix}.md"
         if not scripts_md.is_file():
             scripts_md = repo_root / "scripts/README.md"
         if scripts_md.is_file():
             _, scripts_html, _ = process_markdown_guide(scripts_md, repo_root, lang, root_prefix)
-            sec_title = "3. Verification & Maintenance Executables (scripts/)" if lang == "en" else "3. 开发与内核审计可执行工具 (scripts/)"
+            sec_title = strings_for(lang)["ui"]["architecture_tooling"]
             arch_html += (
                 f'\n<h2 id="tooling">{sec_title}'
                 f'<a class="heading-anchor" href="#tooling" aria-hidden="true" tabindex="-1">#</a></h2>\n'
@@ -4362,6 +4569,7 @@ def build_site(
                 page_slug="architecture.html",
                 root_prefix=root_prefix,
                 toolchain_tag=toolchain_tag,
+                site_url=site_url,
                 wordmark_nav=wordmark_nav,
                 body_html=build_docs_layout(
                     page_title=arch_title,
@@ -4377,7 +4585,7 @@ def build_site(
         )
 
         # 4. Module Explorer
-        mod_title = "Module Explorer" if lang == "en" else "模块导览"
+        mod_title = strings_for(lang)["modules"]["h1"]
         (sub_dir / "modules.html").write_text(
             render_page_shell(
                 title=mod_title,
@@ -4385,6 +4593,7 @@ def build_site(
                 page_slug="modules.html",
                 root_prefix=root_prefix,
                 toolchain_tag=toolchain_tag,
+                site_url=site_url,
                 wordmark_nav=wordmark_nav,
                 body_html=build_modules_explorer_body(
                     lang=lang,
@@ -4396,7 +4605,7 @@ def build_site(
         )
 
         # 5. Papers & Bibliography
-        pap_title = "Papers & Bibliography" if lang == "en" else "文献与参考书目"
+        pap_title = strings_for(lang)["bibliography"]["h1"]
         (sub_dir / "papers.html").write_text(
             render_page_shell(
                 title=pap_title,
@@ -4404,6 +4613,7 @@ def build_site(
                 page_slug="papers.html",
                 root_prefix=root_prefix,
                 toolchain_tag=toolchain_tag,
+                site_url=site_url,
                 wordmark_nav=wordmark_nav,
                 body_html=build_papers_explorer_body(
                     lang=lang,
@@ -4417,7 +4627,7 @@ def build_site(
         )
 
         # 6. Contributing
-        contrib_src = repo_root / ("CONTRIBUTING.en.md" if lang == "en" else "CONTRIBUTING.md")
+        contrib_src = repo_root / f"CONTRIBUTING{suffix}.md"
         contrib_title, contrib_html, contrib_toc = process_markdown_guide(contrib_src, repo_root, lang, root_prefix)
         (sub_dir / "contributing.html").write_text(
             render_page_shell(
@@ -4426,6 +4636,7 @@ def build_site(
                 page_slug="contributing.html",
                 root_prefix=root_prefix,
                 toolchain_tag=toolchain_tag,
+                site_url=site_url,
                 wordmark_nav=wordmark_nav,
                 body_html=build_docs_layout(
                     page_title=contrib_title,
@@ -4445,7 +4656,7 @@ def build_site(
         _, changelog_html, changelog_toc = process_markdown_guide(
             changelog_src, repo_root, lang, root_prefix
         )
-        changelog_title = UI_STRINGS[lang]["nav_changelog"]
+        changelog_title = strings_for(lang)["ui"]["nav_changelog"]
         (sub_dir / "changelog.html").write_text(
             render_page_shell(
                 title=changelog_title,
@@ -4453,6 +4664,7 @@ def build_site(
                 page_slug="changelog.html",
                 root_prefix=root_prefix,
                 toolchain_tag=toolchain_tag,
+                site_url=site_url,
                 wordmark_nav=wordmark_nav,
                 body_html=build_docs_layout(
                     page_title=changelog_title,
@@ -4471,15 +4683,18 @@ def build_site(
         out_dir=out_dir,
         catalog=catalog,
         panel_papers=panel_papers,
-        wordmark_nav=wordmark_nav,
         toolchain_tag=toolchain_tag,
+        site_url=site_url,
     )
 
-    # 404 page with legacy root doc-gen4 URL redirector
-    (out_dir / "404.html").write_text(
-        build_smart_404_page(wordmark_nav, toolchain_tag),
-        encoding="utf-8",
-    )
+    # Each former Chinese route keeps a thin redirect to its canonical page.
+    for localized in (out_dir / "en").rglob("*.html"):
+        page = localized.relative_to(out_dir / "en").as_posix()
+        legacy = out_dir / "zh" / page
+        legacy.parent.mkdir(parents=True, exist_ok=True)
+        legacy.write_text(build_legacy_redirect(page, site_url), encoding="utf-8")
+    (out_dir / "404.html").write_text(build_smart_404_page(), encoding="utf-8")
+    write_site_indexes(out_dir, site_url)
 
     # Mount doc-gen4 output under _site/docs/
     docs_target = out_dir / "docs"
@@ -4493,10 +4708,16 @@ def build_site(
             toolchain_tag=toolchain_tag,
             tree_stats=tree_stats,
             bib_count=len(bib_entries),
-            areas_en=areas_en,
+            areas_en=readme_data["en"][0],
         )
+        adapt_docgen(docs_target, mathjax_dir)
     elif stub_docgen:
         create_stub_docgen_dir(docs_target, toolchain_tag, tree_stats)
+
+    if dependency_graph is not None:
+        docs_target.mkdir(exist_ok=True)
+        shutil.copy2(dependency_graph, docs_target / DEPENDENCY_GRAPH_ASSET)
+    install_dependency_graph_api(docs_target)
 
     if check_links:
         errs = verify_portal_links(out_dir)
@@ -4519,8 +4740,11 @@ def main() -> None:
     parser.add_argument("--move-docgen", action="store_true", help="Move --docgen-dir into _site/docs in O(1) instead of copying")
     parser.add_argument("--stub-docgen-if-missing", action="store_true", help="Generate stub /docs/ pages for local preview if --docgen-dir is absent")
     parser.add_argument("--out-dir", type=Path, default=Path("_site"), help="Output directory for GitHub Pages artifact")
+    parser.add_argument("--dependency-graph", type=Path, help="Use a prebuilt graph asset for local preview")
     parser.add_argument("--metadata-dir", type=Path, default=None, help="Optional Unit/Paper metadata directory to overlay on the source inventory")
     parser.add_argument("--check", action="store_true", help="Verify all internal relative links in generated portal HTML")
+    parser.add_argument("--site-url", default=DEFAULT_SITE_URL, help="Public base URL for canonical and alternate links")
+    parser.add_argument("--mathjax-dir", type=Path, help="Local MathJax 3.2.2 es5 directory for doc-gen4")
     args = parser.parse_args()
 
     build_site(
@@ -4531,6 +4755,9 @@ def main() -> None:
         stub_docgen=args.stub_docgen_if_missing,
         check_links=args.check,
         metadata_dir=args.metadata_dir.resolve() if args.metadata_dir else None,
+        dependency_graph=args.dependency_graph.resolve() if args.dependency_graph else None,
+        site_url=args.site_url,
+        mathjax_dir=args.mathjax_dir.resolve() if args.mathjax_dir else None,
     )
 
 

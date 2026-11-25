@@ -11,11 +11,12 @@ public import Qatlib.Papers.PolyMethod01.MainResults.OrDegree
 @[expose] public section
 
 /-!
-# A tight polynomial-method instance for Boolean OR
+# Boolean OR degree and exact query minimum
 
-This bridge packages the exact degree calculation for OR with the exact query minimum
-and the Beals polynomial-method inequality.  It is a concrete, finite Boolean instance
-of Theorem 4.3, including the zero-input boundary case.
+This bridge combines the exact degree and query minimum for OR with the generic
+degree bound of Theorem 4.3. For positive input dimension, the generic bound gives
+a lower bound of `⌈n / 2⌉` queries, which is strictly below the exact minimum
+for `n ≥ 2`. The degree inequality is an equality at `n = 0`.
 
 The source model is the finite clean Boolean-query program class exposed by the imported
 `Qatlib` declarations.  No asymptotic or circuit-synthesis claim is added here.
@@ -31,7 +32,7 @@ open Qatlib.Concepts.QueryComplexity.DegreeMethod.BooleanQueryMinimumDefs
 open Qatlib.Concepts.QueryComplexity.DegreeMethod.OrAndSearchUpper
 open Qatlib.Papers.PolyMethod01.MainResults
 
-/-- The polynomial method lower bound is tight for Boolean OR in the exact query model. -/
+/-- Boolean OR has exact degree and exact query minimum `n` and satisfies the generic degree bound. -/
 theorem or_polynomial_method_main (n : ℕ) :
     n ≤ 2 * exactMinimum (@orValue n) ∧
       exactMinimum (@orValue n) = n ∧

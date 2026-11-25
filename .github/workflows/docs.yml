@@ -12,6 +12,9 @@ on:
       - '!docs/references.bib'
       - 'scripts/README*'
       - 'scripts/build_site.py'
+      - 'scripts/site_docgen.py'
+      - 'scripts/build_dependency_graph.py'
+      - 'scripts/site/**'
       - '.github/assets/**'
       - '.github/workflows/docs.yml'
   workflow_run:
@@ -64,7 +67,7 @@ jobs:
           import fnmatch, os, subprocess
           # Keep this list aligned with Build's push paths (covered by tests).
           patterns = ('Qatlib/**', 'Qatlib.lean', 'verification/**',
-                      'lakefile.toml', 'lean-toolchain',
+                      'lakefile.toml', 'lakefile.lean', 'lean-toolchain',
                       'lake-manifest.json', 'lake-cache.toml', 'scripts/*.lean',
                       'scripts/complete_outputs.py', 'scripts/build_docs.sh',
                       'scripts/docs_cache.py', 'scripts/test_docs_pipeline.py',
@@ -72,9 +75,9 @@ jobs:
                       '.github/workflows/build.yml', '.github/workflows/publish-cache.yml')
           run = True
           if os.environ['EVENT_NAME'] == 'push':
-              changed = subprocess.check_output([
-                  'git', 'diff', '--name-only', os.environ['BEFORE'], os.environ['AFTER']
-              ], text=True).splitlines()
+              changed = os.fsdecode(subprocess.check_output([
+                  'git', 'diff', '--no-renames', '--name-status', '-z', os.environ['BEFORE'], os.environ['AFTER']
+              ])).split('\0')[1::2]
               run = not any(fnmatch.fnmatchcase(p, glob) for p in changed for glob in patterns)
           with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
               output.write(f'run={str(run).lower()}\n')
@@ -121,7 +124,13 @@ jobs:
 
       - name: Restore exact raw doc-gen4 HTML from R2 before installing Lean
         id: html
-        run: python3 scripts/docs_cache.py probe
+        run: |
+          set -euo pipefail
+          # Force HTTP/1.1 for this R2 probe and reuse its existing curl retry count.
+          CURL_CONFIG_DIR="$(mktemp -d "$RUNNER_TEMP/docs-curl.XXXXXX")"
+          trap 'trash-put -- "$CURL_CONFIG_DIR"' EXIT
+          printf '%s\n' 'http1.1' 'retry-all-errors' > "$CURL_CONFIG_DIR/.curlrc"
+          CURL_HOME="$CURL_CONFIG_DIR" python3 scripts/docs_cache.py probe
 
       - name: Install elan on analysis cache miss
         if: steps.html.outputs.hit != 'true'
@@ -148,10 +157,18 @@ jobs:
           LAKE_CACHE_KEY: ${{ secrets.LAKE_CACHE_KEY }}
         run: bash scripts/build_docs.sh
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
       - name: Assemble and verify the documentation portal without modifying raw HTML
         run: |
+          mkdir -p "$RUNNER_TEMP/qatlib-mathjax"
+          npm pack mathjax@3.2.2 --ignore-scripts --pack-destination "$RUNNER_TEMP/qatlib-mathjax"
+          tar -xf "$RUNNER_TEMP/qatlib-mathjax/mathjax-3.2.2.tgz" -C "$RUNNER_TEMP/qatlib-mathjax" package/es5 package/LICENSE
           python3 scripts/build_site.py --repo-root . \
-            --docgen-dir docbuild/.lake/build/doc --out-dir _site --check
+            --docgen-dir docbuild/.lake/build/doc --out-dir _site --check \
+            --mathjax-dir "$RUNNER_TEMP/qatlib-mathjax/package/es5"
 
       - uses: actions/upload-pages-artifact@v3
         with:

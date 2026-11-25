@@ -14,6 +14,13 @@
   Lean 4 内核级 `.olean` 环境健全性与公理审计器。将编译后的 `Qatlib` 环境加载至 Lean 4 内核，并通过 `Lean.collectAxioms`（传递公理闭包）逐条验证全库所有声明均为零 `sorry`（`0 sorryAx`）、未使用未经内核验证的计算规约（`Lean.ofReduceBool` / `native_decide`），且仅依赖 Lean 的三条标准公理（`propext`、`Classical.choice`、`Quot.sound`）。
 - **`build_site.py`**（`python3 scripts/build_site.py`）：
   纯 Python 静态文档门户生成脚本，将中英文指南、全库模块导览、文献索引（`docs/references.bib`）与 `doc-gen4` API 参考文档组装为统一的 GitHub Pages 站点（工作流见 [`.github/workflows/docs.yml`](../.github/workflows/docs.yml)）。
+  `/` 直接呈现中文，`/en/` 呈现英文，两者共用 `/assets/` 和 `/docs/`。旧 `/zh/` 地址跳转到对应的中文页面。用 `--site-url` 设置规范链接、分享卡片、站点地图和 `llms.txt` 的公共基址。
+  界面文案存放在 `scripts/site/locales/zh-Hans.json` 与 `scripts/site/locales/en.json`，两份文件的键和占位符须对应。双语指南从 Markdown 渲染。组装 API 参考文档时，使用 `--mathjax-dir` 提供 MathJax 3.2.2 的 `es5` 目录。声明索引在输入搜索词或展开关联声明列表时加载，原始 doc-gen4 文档快照可继续复用。
+- **`build_dependency_graph.py` / `export_theorem_dependencies.lean`**（`python3 scripts/build_dependency_graph.py --output-dir .`）：
+  从编译后的 Lean 模块部件中提取公开定理类型与证明项的直接引用，并打包为 `theorem-dependencies.json.gz`，随 API 参考文档一并发布，供定理依赖星图按需加载。前端资源位于 `scripts/site/`。使用单独生成的数据预览时，可向 `build_site.py` 传入 `--dependency-graph <文件>`。
+  跨模块同名的定理常量会触发警告，星图省略对应节点及关联边，API 页面也省略这些节点的星图链接。
+- **`test_dependency_graph.py`**（`python3 scripts/test_dependency_graph.py`）：
+  使用仓库指定的 Lean 工具链验证定理提取，并通过 Node.js 测试星点点击范围、跨层级导航和 API 文档链接。CI 使用 Node.js 22，无需安装 npm 依赖。本地未安装 Node.js 时仍可正常运行 Lean 提取测试。
 - **`docs_cache.py` / `build_docs.sh`**：
   自维护的文档快照协议，使用 R2 存储，独立于 Lake 编译缓存；不是 `doc-gen4` 的稳定公共接口。HTML 按源码与渲染输入指纹精确复用，分析快照按 Lean 工具链、依赖锁和协议标识兼容复用。门户说明变更可直接复用原始 HTML。
 
